@@ -2907,6 +2907,22 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
        titled "Eli Brown @ City Market DTLA" stays Music instead of being read as a Market.
        Only when the genre field says nothing musical do we let the title suggest an industry. */
     var gs=(g||'').toLowerCase();
+    /* ══ FESTIVAL IS DECIDED BEFORE GENRE (KODE 2026-09-09) ═══════════════════════════════
+       The FESTIVAL category was rendering empty and, once filters became inventory-driven,
+       disappearing entirely. The cause was not a shortage of festivals - it was that nothing
+       ever set ecat:'festival'. classify() returned on the genre field first, so
+       "Dreamstate SoCal" with genres 'electronic' became Music, and the 224 rows whose genre
+       field is NULL fell through to title inference that had no festival branch at all.
+       A festival is an EVENT FORMAT, not a genre: it has a genre too. So the format is
+       decided first and the musical genre is still carried in gcat, which keeps the
+       sub-genre pills working inside FESTIVAL.
+       Deliberately narrow - the title must actually say so. Matching loosely here would
+       drag in every club night whose flyer used the word. */
+    var _ft=(title||'').toLowerCase();
+    if(/\bfest(ival)?\b/.test(_ft) && !/film fest|filmfest|food fest|beer fest|renaissance/.test(_ft)){
+      var fg=musicOf(gs)||musicOf(_ft);
+      return {ecat:'festival', gcat:fg||'etc'};
+    }
     var mg=musicOf(gs); if(mg) return {ecat:'music',gcat:mg};
     var s=(gs+' '+(title||'')).toLowerCase();
     /* comedy */
@@ -3046,6 +3062,8 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
       .replace(/[^a-z0-9]+/g,' ').trim();
   }
   /* Does this title read as a ticket PRODUCT rather than an event name? */
+  /* Multi-day pass wording: the fingerprint of a festival's ticketing. */
+  var _MULTIDAY=/\b((\d+\s*)?day pass|weekend pass|\d\s*day)\b/i;
   var _TICKET_PRODUCT=/\b(ga|vip|general admission|early bird|presale|upgrade|meet (and|&) greet|(\d+\s*)?day pass|weekend pass|friday pass|saturday pass|sunday pass|3 day|2 day)\b/i;
   function _stem(title){
     var t=String(title||'');
@@ -3073,6 +3091,14 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
         var keep=_better(hit,e), drop=(keep===hit)?e:hit;
         keep.offers=(keep.offers||[]).concat(drop.offers||[],
           [{title:drop.title,ticket:drop.ticket,source:drop.source||''}]);
+        /* ══ FESTIVAL DETECTED FROM THE TICKETING, NOT THE NAME (KODE 2026-09-09) ═════════
+           The title rule in classify() misses the ones that matter: "Dreamstate SoCal -
+           Friday" never says "festival", and a regression test caught exactly that before
+           this shipped. But the ticketing gives it away - only a festival sells a DAY PASS
+           or a WEEKEND PASS alongside a single-day ticket. That signal lives here, because
+           this is the only place that has seen all of an event's ticket products at once.
+           A club night selling GA and VIP is NOT promoted: those are price tiers, not days. */
+        if(_MULTIDAY.test(drop.title||'') || _MULTIDAY.test(keep.title||'')) keep.ecat='festival';
         if(keep!==hit){                               /* the newcomer is the better record */
           var i=out.indexOf(hit); if(i>-1) out[i]=keep;
           if(venue&&stem) byStem[day+'|'+venue+'|'+_stem(keep.title)]=keep;

@@ -148,6 +148,78 @@
       '#kil-radio{gap:6px;padding:0 8px;}'+
     '}'+
     '@media(max-width:480px){.radio-mini #kilo-panel{bottom:156px!important;right:12px!important;}}';
+    /* ══ UNIFIED LIVE RADIO (KODE 2026-09-09) ══════════════════════════════════════════
+       Dark base, cyan as the system accent, green reserved for LIVE/playing, purple as
+       ambience. Emphasis is spent deliberately: Play/Pause and the LIVE RADIO state glow,
+       and nothing else does, so the two controls that matter are the two that stand out.
+       No borders around every function - spacing and weight carry the hierarchy. */
+    +'#kil-radio{height:auto;min-height:46px;}'
+    +'#kr-live{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(0,255,136,.28);border-radius:10px;padding:4px 8px;cursor:pointer;transition:background .18s,border-color .18s,box-shadow .18s;}'
+    +'#kr-live:hover{background:rgba(0,255,136,.10);border-color:rgba(0,255,136,.55);}'
+    +'#kr-live:focus-visible{outline:2px solid #36e2ff;outline-offset:2px;}'
+    +'html[data-radio-ui="drawer"] #kr-live,html[data-radio-ui="expanded"] #kr-live{background:rgba(0,255,136,.16);border-color:#00ff88;box-shadow:0 0 14px rgba(0,255,136,.35);}'
+    +'#kr-live .kil-brand-radio{line-height:.95;text-align:left;font-size:.5rem;}'
+    +'.kr-gw-ic{color:#36e2ff;font-size:.6rem;line-height:1;}'
+    /* station stepper: fixed width, so new stations never widen the bar */
+    +'.kr-stwrap{display:flex;align-items:center;gap:2px;flex:0 0 auto;}'
+    +'.krb-step{background:transparent;border:0;color:#36e2ff;cursor:pointer;padding:2px 4px;font-size:.95rem;line-height:1;}'
+    +'.krb-step:hover{color:#fff;} .krb-step:focus-visible{outline:2px solid #36e2ff;outline-offset:1px;}'
+    +'.kr-stname{min-width:62px;max-width:88px;text-align:center;font-size:.54rem;font-weight:900;letter-spacing:.1em;color:#cfe9ff;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}'
+    /* now playing */
+    +'.krb-now{display:flex;align-items:center;gap:7px;min-width:0;}'
+    +'.kr-art{width:30px;height:30px;border-radius:6px;object-fit:cover;flex:0 0 auto;background:#15151f;}'
+    +'.kr-nowwrap{display:flex;flex-direction:column;min-width:0;line-height:1.15;}'
+    +'.kr-nowlab{font-size:.42rem;font-weight:900;letter-spacing:.18em;color:#7a8699;text-transform:uppercase;}'
+    +'.kr-nowsub{color:#8d99ab;font-size:.52rem;}'
+    +'.kr-wave{display:none;align-items:flex-end;gap:2px;height:12px;flex:0 0 auto;}'
+    +'.kr-wave.on{display:flex;}'
+    +'.kr-wave i{width:2px;background:#00ff88;border-radius:1px;animation:kr-eq .9s ease-in-out infinite;}'
+    +'.kr-wave i:nth-child(1){height:5px;animation-delay:0s}.kr-wave i:nth-child(2){height:11px;animation-delay:.15s}.kr-wave i:nth-child(3){height:7px;animation-delay:.3s}'
+    +'@keyframes kr-eq{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}'
+    /* play/pause is the dominant control */
+    +'.krb-play{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#36e2ff,#00ff88);border:0;color:#05121a;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 auto;box-shadow:0 0 16px rgba(54,226,255,.45);transition:transform .12s,box-shadow .18s;}'
+    +'.krb-play:hover{transform:scale(1.07);box-shadow:0 0 22px rgba(0,255,136,.6);}'
+    +'.krb-play:focus-visible{outline:2px solid #fff;outline-offset:2px;}'
+    +'.krb-pg{font-size:.85rem;line-height:1;}'
+    +'.kr-fav{background:transparent;border:0;color:#7a8699;cursor:pointer;font-size:.95rem;line-height:1;padding:2px 4px;}'
+    +'.kr-fav.on{color:#ff4d82;text-shadow:0 0 8px rgba(255,77,130,.6);}'
+    +'.kr-fav:focus-visible{outline:2px solid #36e2ff;outline-offset:1px;}'
+    /* ── PANELS: exactly one visible, both driven by data-radio-ui ── */
+    +'.kr-panel{position:fixed;left:0;right:0;z-index:9997;display:none;flex-direction:column;background:rgba(9,9,14,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid rgba(54,226,255,.28);font-family:\'Space Grotesk\',\'Inter\',sans-serif;}'
+    +'.kr-panel.on{display:flex;}'
+    +'#kr-drawer{bottom:var(--kil-radio-h,46px);max-height:46vh;border-radius:14px 14px 0 0;box-shadow:0 -18px 50px rgba(0,0,0,.7);}'
+    +'#kr-full{top:0;bottom:var(--kil-radio-h,46px);border-radius:0;}'
+    +'.kr-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:linear-gradient(90deg,rgba(0,255,136,.12),rgba(124,77,255,.10));border:0;border-bottom:1px solid rgba(255,255,255,.08);padding:11px 14px;cursor:pointer;}'
+    +'.kr-hdr:hover{background:linear-gradient(90deg,rgba(0,255,136,.2),rgba(124,77,255,.16));}'
+    +'.kr-hdr:focus-visible{outline:2px solid #36e2ff;outline-offset:-2px;}'
+    +'.kr-hdr-l,.kr-hdr-r{display:flex;align-items:center;gap:8px;}'
+    +'.kr-hdr-t{font-size:.7rem;font-weight:900;letter-spacing:.2em;color:#00ff88;text-transform:uppercase;}'
+    +'.kr-hdr-hint{font-size:.47rem;font-weight:800;letter-spacing:.16em;color:#7a8699;text-transform:uppercase;}'
+    +'.kr-hdr-ic{color:#36e2ff;font-size:.7rem;}'
+    +'html[data-radio-ui="expanded"] .kr-hdr-ic{transform:rotate(180deg);}'
+    +'.kr-panel-body{overflow:auto;padding:12px 14px 16px;}'
+    +'.kr-sec h4{margin:0 0 8px;font-size:.5rem;font-weight:900;letter-spacing:.2em;color:#7a8699;text-transform:uppercase;}'
+    +'.kr-stations{display:flex;flex-wrap:wrap;gap:8px;}'
+    +'.kr-st{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:6px 10px 6px 6px;color:#cfe9ff;font-size:.58rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}'
+    +'.kr-st img,.kr-st-noart{width:26px;height:26px;border-radius:6px;object-fit:cover;background:#15151f;display:block;}'
+    +'.kr-st:hover{border-color:rgba(54,226,255,.5);}'
+    +'.kr-st.on{border-color:#00ff88;color:#fff;box-shadow:0 0 12px rgba(0,255,136,.28);}'
+    +'.kr-st:focus-visible{outline:2px solid #36e2ff;outline-offset:1px;}'
+    +'.kr-empty{color:#7a8699;font-size:.6rem;margin:0;}'
+    +'.kr-full-hero{display:flex;gap:14px;align-items:center;margin-bottom:18px;}'
+    +'.kr-full-art{width:104px;height:104px;border-radius:12px;object-fit:cover;background:#15151f;flex:0 0 auto;}'
+    +'.kr-full-meta{display:flex;flex-direction:column;gap:3px;min-width:0;}'
+    +'.kr-full-title{font-size:1rem;font-weight:800;color:#fff;}'
+    +'.kr-full-sub{font-size:.7rem;color:#8d99ab;}'
+    /* mobile: prioritise artwork, station, play, mute, gateway - not a squeezed desktop bar */
+    +'@media(max-width:640px){'
+    +  '#kr-live .kil-brand-radio{font-size:.44rem;}'
+    +  '.kr-stname{min-width:48px;max-width:62px;font-size:.46rem;}'
+    +  '#kr-prev,#kr-next{display:none!important;}'
+    +  '.kr-nowsub{display:none;}'
+    +  '#kr-drawer{max-height:58vh;}'
+    +  '.kr-full-art{width:76px;height:76px;}'
+    +'}'
   document.head.appendChild(css);
 
   // ── Inject HTML (skip if already in DOM — e.g. inline on index.html) ─────
@@ -163,27 +235,50 @@
       '<div id="kil-mini-dot">\u266c</div>'+
       /* SEVEN buttons, one flex line. IDs are unchanged from the shuttle layout so every
          handler below still binds; only the nesting and the widths changed. */
-      '<div class="krb krb-brand">'+
+      /* ══ LIVE RADIO IS THE SINGLE GATEWAY (KODE 2026-09-09) ═══════════════════════════
+         This was a static <div> badge reading "RADIO". It is now the one branded control
+         for the whole radio experience: compact -> drawer -> expanded -> compact. There is
+         deliberately no separate Options, Queue, Expand or Collapse button anywhere in the
+         bar - the current UI state decides what this control does, which is why its
+         aria-label is rewritten on every transition rather than left as one static string. */
+      '<button type="button" class="krb krb-brand" id="kr-live" aria-expanded="false" aria-label="Open KEEPITIL Radio">'+
         '<div class="kil-live off" id="kil-led"></div>'+
         '<img src="/keepitil-x-logo.png" class="kil-brand-logo" alt="KEEPITIL"/>'+
-        '<span class="kil-brand-radio">RADIO</span>'+
-      '</div>'+
-      '<button class="krb" id="kr-prevpl" title="Previous playlist" aria-label="Previous playlist">'+
-        '<span class="kr-plname" id="kr-prevpl-t"></span><span class="krb-g">\u00ab</span>'+
+        '<span class="kil-brand-radio">LIVE<br>RADIO</span>'+
+        '<span class="kr-gw-ic" id="kr-gw-ic" aria-hidden="true">\u25b4</span>'+
       '</button>'+
+      /* ── COMPACT STATION SELECTOR: ‹ NAME › ──────────────────────────────────────────
+         Was two wide buttons carrying the names of the neighbouring playlists, which grew
+         the bar with every station added. It is now a fixed-width stepper showing the
+         CURRENT station, so adding stations never widens the bar. The full list lives in
+         the drawer. */
+      '<span class="kr-stwrap">'+
+        '<button class="krb krb-step" id="kr-prevpl" title="Previous station" aria-label="Previous station"><span class="krb-g">\u2039</span></button>'+
+        '<span class="kr-stname" id="kr-stname"></span>'+
+        '<button class="krb krb-step" id="kr-nextpl" title="Next station" aria-label="Next station"><span class="krb-g">\u203a</span></button>'+
+      '</span>'+
       '<button class="krb" id="kr-prev" title="Previous song" aria-label="Previous song">'+
         '<span class="kr-side" id="kr-prevt"></span><span class="krb-g">\u2039</span>'+
       '</button>'+
       '<div class="krb krb-now">'+
-        '<span class="kr-now" id="kil-track">Loading\u2026</span>'+
-        '<span class="kr-now" id="kr-nowpl"></span>'+
+        '<img class="kr-art" id="kr-art" alt="" aria-hidden="true"/>'+
+        '<span class="kr-nowwrap">'+
+          '<span class="kr-nowlab">NOW PLAYING</span>'+
+          '<span class="kr-now" id="kil-track">Loading\u2026</span>'+
+          '<span class="kr-now kr-nowsub" id="kr-nowpl"></span>'+
+        '</span>'+
+        /* Three bars that animate only while audio is actually playing. Not a real FFT - it
+           is an activity indicator, and it is driven by the play state so it never suggests
+           sound that is not happening. */
+        '<span class="kr-wave" id="kr-wave" aria-hidden="true"><i></i><i></i><i></i></span>'+
       '</div>'+
+      '<button type="button" class="krb krb-play" id="kr-play" title="Play / Pause" aria-label="Play radio" aria-pressed="false">'+
+        '<span class="krb-pg" id="kr-playg">\u25b6</span>'+
+      '</button>'+
       '<button class="krb" id="kr-next" title="Next song" aria-label="Next song">'+
         '<span class="krb-g">\u203a</span><span class="kr-side" id="kr-nextt"></span>'+
       '</button>'+
-      '<button class="krb" id="kr-nextpl" title="Next playlist" aria-label="Next playlist">'+
-        '<span class="krb-g">\u00bb</span><span class="kr-plname" id="kr-nextpl-t"></span>'+
-      '</button>'+
+
       '<button class="krb" id="kr-mute" title="Mute / Unmute" aria-label="Mute">\ud83d\udd0a</button>'+
       /* The volume slider the script has referenced since it was written. It was never in
          the markup, so volEl was always null: getVol() could only ever return DEFAULT_VOL
@@ -191,7 +286,11 @@
          brief - muting is the moment someone wants to choose a level rather than lose one. */
       '<input class="krb kr-vol" id="kr-vol" type="range" min="0" max="100" step="1" hidden '+
         'aria-label="Radio volume" title="Volume"/>'+
-      '';   /* the minimise button is gone — see setMini() */
+      /* Saves the STATION, which is the only thing this radio can genuinely favourite.
+         There is no per-track favourites store, so the heart does not claim to save a
+         track. It persists in localStorage and is reflected on load. */
+      '<button type="button" class="krb kr-fav" id="kr-fav" aria-pressed="false" aria-label="Save this station">\u2661</button>'+
+      '';   /* no minimise / expand / collapse buttons — LIVE RADIO owns those states */
     document.body.appendChild(bar);
     /* The rotating referral ad that lived here was removed 2026-08-22 (Founder).
        No affiliate or referral link ships in the radio bar. */
@@ -378,6 +477,12 @@
     if(a) a.textContent = solo ? '' : kilPlName(-1);
     if(b) b.textContent = solo ? '' : kilPlName(1);
   }
+  /* The compact bar's station label, artwork and favourite state all follow the same
+     config load that renames the stepper, so they can never disagree with KIL_PL_I. */
+  var _origPaintNames = kilPaintPlaylistNames;
+  kilPaintPlaylistNames = function(){ try{ _origPaintNames(); }catch(e){}
+    try{ paintStationCompact(); }catch(e){}
+    try{ if(RADIO_UI!=='compact') paintStations(); }catch(e){} };
   window.__kilPaintPlaylistNames = kilPaintPlaylistNames;
 
   /* ── STATE BROADCAST (EARN radio row + playlist carousel, Founder 2026-08-25) ───────────
@@ -764,7 +869,7 @@
       syncAndPlay();
       try{ if(muted){ widget.setVolume(0); if(muteBtn){muteBtn.textContent='🔇';muteBtn.setAttribute('aria-pressed','true');} } }catch(e){}
     });
-    widget.bind(SC.Widget.Events.PLAY,function(){goLive();reListenGesture();widget.getCurrentSoundIndex(function(i){currentTrackIdx=i;});kilPaintTitles();});
+    widget.bind(SC.Widget.Events.PLAY,function(){playing=true;try{paintPlay();}catch(e){}goLive();reListenGesture();widget.getCurrentSoundIndex(function(i){currentTrackIdx=i;});kilPaintTitles();});
     widget.bind(SC.Widget.Events.PLAY_PROGRESS,function(e){
       if(e&&e.currentPosition)currentPosition=e.currentPosition;
       if(interacted&&widget)widget.setVolume(getVol());
@@ -776,7 +881,7 @@
         krsWrite({trackIdx:currentTrackIdx,currentTime:currentPosition,volume:savedVol/100,muted:muted,playing:true});
       }
     });
-    widget.bind(SC.Widget.Events.PAUSE,function(){goOff();});
+    widget.bind(SC.Widget.Events.PAUSE,function(){playing=false;try{paintPlay();}catch(e){}goOff();});
     /* ── PLAY A PLAYLIST THROUGH, THEN ROLL TO THE NEXT ONE (Founder 2026-08-22) ──────────
        Was `skip((i+1) % length)` — the modulo wrapped back to track 0 of the SAME playlist and
        looped it forever, so the other stations never got reached. On the LAST track it now
@@ -845,6 +950,196 @@
       document.addEventListener(ev, boot, { once:true, capture:true, passive:true });
     });
   })();
+
+  /* ── PLAY / PAUSE ─────────────────────────────────────────────────────────────────────
+     The bar had no play control at all: mute was doing double duty, and on mobile mute also
+     paused. Play/Pause is now the dominant control and is the only thing that starts audio.
+     It mounts the widget on first use, because the iframe is deliberately deferred until a
+     gesture - which is also the earliest moment a browser would let it make sound. */
+  var playBtn=document.getElementById('kr-play'), playG=document.getElementById('kr-playg');
+  function paintPlay(){
+    if(!playBtn) return;
+    playBtn.setAttribute('aria-pressed', playing?'true':'false');
+    playBtn.setAttribute('aria-label', playing?'Pause radio':'Play radio');
+    if(playG) playG.textContent = playing ? '⏸' : '▶';
+    var w=document.getElementById('kr-wave'); if(w) w.classList.toggle('on', !!playing);
+  }
+  if(playBtn){
+    playBtn.addEventListener('click',function(e){
+      e.stopPropagation(); interacted=true;
+      if(!document.getElementById('kil-sc') && window.__kilMountRadio){ window.__kilMountRadio(); paintPlay(); return; }
+      if(!widget||!widgetReady) return;
+      if(playing){ widget.pause(); } else { widget.play(); }
+    });
+  }
+  window.__kilPaintPlay=paintPlay;
+
+  /* ── STATION NAME + ARTWORK IN THE COMPACT BAR ───────────────────────────────────────── */
+  function paintStationCompact(){
+    var pl=KIL_PL[KIL_PL_I]||KIL_PL[0]||{};
+    var lab=document.getElementById('kr-stname'); if(lab) lab.textContent=String(pl.name||'');
+    var art=document.getElementById('kr-art');
+    if(art){
+      if(pl.art){ art.src=pl.art; art.hidden=false; } else { art.removeAttribute('src'); art.hidden=true; }
+    }
+    var f=document.getElementById('kr-fav'); if(f) paintFav();
+  }
+  window.__kilPaintStationCompact=paintStationCompact;
+
+  /* ── FAVOURITE = SAVE THIS STATION ───────────────────────────────────────────────────
+     The only favourite this radio can honestly offer. There is no per-track favourites
+     store, so the heart does not claim to save a track, and it never reports success for
+     something it did not persist. */
+  var FAVK='kil_radio_fav_stations';
+  function favRead(){ try{ return JSON.parse(localStorage.getItem(FAVK)||'[]')||[]; }catch(e){ return []; } }
+  function favName(){ var pl=KIL_PL[KIL_PL_I]||{}; return String(pl.name||''); }
+  function paintFav(){
+    var b=document.getElementById('kr-fav'); if(!b) return;
+    var on=favRead().indexOf(favName())>-1;
+    b.classList.toggle('on',on);
+    b.textContent = on ? '♥' : '♡';
+    b.setAttribute('aria-pressed', on?'true':'false');
+    b.setAttribute('aria-label', (on?'Remove ':'Save ')+(favName()||'station')+(on?' from saved stations':' to saved stations'));
+  }
+  var favBtn=document.getElementById('kr-fav');
+  if(favBtn){
+    favBtn.addEventListener('click',function(e){
+      e.stopPropagation();
+      var n=favName(); if(!n) return;
+      var list=favRead(), i=list.indexOf(n);
+      if(i>-1) list.splice(i,1); else list.push(n);
+      try{ localStorage.setItem(FAVK, JSON.stringify(list)); }catch(x){}
+      paintFav();
+    });
+  }
+
+  /* ══ RADIO UI STATE MACHINE ════════════════════════════════════════════════════════════
+     EXACTLY ONE presentation state at any moment: 'compact' | 'drawer' | 'expanded'.
+     The audio engine is untouched by all of this - there is one SoundCloud widget, created
+     once by __kilMountRadio(), and none of these transitions reload it, re-create it, reset
+     volume or restart the track. That is the whole point: the interface changes, the radio
+     session does not.
+
+     LIVE RADIO is the only control that moves between states:
+         compact   --click LIVE RADIO-->   drawer
+         drawer    --click header------>   expanded
+         expanded  --click header------>   compact
+     Dismissing the drawer (outside click / Escape / swipe down) returns to compact and never
+     touches playback. */
+  var RADIO_UI='compact';
+  var drawerEl=null, fullEl=null;
+
+  function _gwLabel(st){
+    return st==='compact' ? 'Open KEEPITIL Radio'
+         : st==='drawer'  ? 'Expand KEEPITIL Radio'
+         :                  'Collapse KEEPITIL Radio';
+  }
+  /* The drawer and the full view share ONE header component so the gateway cannot drift
+     between them. Built lazily: a visitor who never opens the radio pays nothing. */
+  function _hdr(idSuffix){
+    return '<button type="button" class="kr-hdr" id="kr-hdr-'+idSuffix+'">'
+         +   '<span class="kr-hdr-l">'
+         +     '<span class="kil-live" aria-hidden="true"></span>'
+         +     '<img src="/keepitil-x-logo.png" class="kil-brand-logo" alt="KEEPITIL"/>'
+         +     '<span class="kr-hdr-t">LIVE RADIO</span>'
+         +   '</span>'
+         +   '<span class="kr-hdr-r"><span class="kr-hdr-hint" id="kr-hint-'+idSuffix+'"></span>'
+         +   '<span class="kr-hdr-ic" aria-hidden="true">▴</span></span>'
+         + '</button>';
+  }
+  function _buildDrawer(){
+    if(drawerEl) return drawerEl;
+    drawerEl=document.createElement('div');
+    drawerEl.id='kr-drawer'; drawerEl.className='kr-panel'; drawerEl.setAttribute('role','dialog');
+    drawerEl.setAttribute('aria-label','KEEPITIL Radio');
+    drawerEl.innerHTML=_hdr('d')+'<div class="kr-panel-body"><div class="kr-sec"><h4>STATIONS</h4>'
+      +'<div class="kr-stations" id="kr-stations-d"></div></div></div>';
+    document.body.appendChild(drawerEl);
+    document.getElementById('kr-hdr-d').addEventListener('click',function(e){ e.stopPropagation(); setRadioUI('expanded'); });
+    document.getElementById('kr-hint-d').textContent='OPEN FULL RADIO';
+    return drawerEl;
+  }
+  function _buildFull(){
+    if(fullEl) return fullEl;
+    fullEl=document.createElement('div');
+    fullEl.id='kr-full'; fullEl.className='kr-panel'; fullEl.setAttribute('role','dialog');
+    fullEl.setAttribute('aria-label','KEEPITIL Radio, full view');
+    fullEl.innerHTML=_hdr('f')+'<div class="kr-panel-body kr-full-body">'
+      +'<div class="kr-full-hero"><img class="kr-full-art" id="kr-full-art" alt=""/>'
+      +'<div class="kr-full-meta"><span class="kr-nowlab">NOW PLAYING</span>'
+      +'<span class="kr-full-title" id="kr-full-title"></span>'
+      +'<span class="kr-full-sub" id="kr-full-sub"></span></div></div>'
+      +'<div class="kr-sec"><h4>STATIONS</h4><div class="kr-stations" id="kr-stations-f"></div></div></div>';
+    document.body.appendChild(fullEl);
+    document.getElementById('kr-hdr-f').addEventListener('click',function(e){ e.stopPropagation(); setRadioUI('compact'); });
+    document.getElementById('kr-hint-f').textContent='COLLAPSE';
+    return fullEl;
+  }
+  /* Station list is rendered from the SAME array the engine plays from, so a station can
+     never be offered here that the player cannot actually switch to. */
+  function paintStations(){
+    ['kr-stations-d','kr-stations-f'].forEach(function(id){
+      var host=document.getElementById(id); if(!host) return;
+      var pls=KIL_PL||[];
+      if(!pls.length){ host.innerHTML='<p class="kr-empty">Stations are loading\u2026</p>'; return; }
+      host.innerHTML=pls.map(function(pl,i){
+        return '<button type="button" class="kr-st'+(i===KIL_PL_I?' on':'')+'" data-i="'+i+'"'
+          +(i===KIL_PL_I?' aria-current="true"':'')+'>'
+          +(pl.art?'<img src="'+pl.art+'" alt=""/>':'<span class="kr-st-noart"></span>')
+          +'<span>'+String(pl.name||'Station')+'</span></button>';
+      }).join('');
+      host.querySelectorAll('.kr-st').forEach(function(b){
+        b.addEventListener('click',function(){
+          var i=+b.dataset.i;
+          /* kilLoadPlaylist takes a DELTA and wraps, so an absolute pick becomes a relative
+             move. It removes the existing iframe before creating the replacement, which is
+             what keeps exactly one widget alive across a station change. */
+          if(i!==KIL_PL_I) kilLoadPlaylist(i-KIL_PL_I);
+          paintStations();
+        });
+      });
+    });
+  }
+  function setRadioUI(st){
+    if(st===RADIO_UI) return;
+    if(st!=='compact'){ if(st==='drawer') _buildDrawer(); else _buildFull(); }
+    RADIO_UI=st;
+    /* Only ever ONE panel on screen: both are removed from view before one is shown. */
+    if(drawerEl) drawerEl.classList.toggle('on', st==='drawer');
+    if(fullEl)   fullEl.classList.toggle('on',  st==='expanded');
+    document.documentElement.setAttribute('data-radio-ui', st);
+    var gw=document.getElementById('kr-live');
+    if(gw){ gw.setAttribute('aria-label',_gwLabel(st)); gw.setAttribute('aria-expanded', st==='compact'?'false':'true'); }
+    var ic=document.getElementById('kr-gw-ic'); if(ic) ic.textContent = st==='compact' ? '▴' : '▾';
+    if(st!=='compact'){ paintStations(); paintFull(); }
+    try{ window.KIL_RADIO_UI=st; }catch(e){}
+  }
+  function paintFull(){
+    var t=document.getElementById('kr-full-title'), sub=document.getElementById('kr-full-sub'),
+        a=document.getElementById('kr-full-art'), src=document.getElementById('kr-art');
+    var tr=document.getElementById('kil-track');
+    if(t&&tr) t.textContent=tr.textContent||'';
+    if(sub){ var np=document.getElementById('kr-nowpl'); sub.textContent=np?np.textContent:''; }
+    if(a&&src&&src.getAttribute('src')) a.src=src.getAttribute('src');
+  }
+  window.KIL_SET_RADIO_UI=setRadioUI;
+
+  var gwBtn=document.getElementById('kr-live');
+  if(gwBtn){
+    gwBtn.addEventListener('click',function(e){
+      e.stopPropagation();
+      interacted=true;
+      /* One control, three meanings, decided by the state we are currently in. */
+      setRadioUI(RADIO_UI==='compact' ? 'drawer' : RADIO_UI==='drawer' ? 'expanded' : 'compact');
+    });
+  }
+  /* Dismiss gestures return to compact. None of them stop audio. */
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&RADIO_UI!=='compact') setRadioUI('compact'); });
+  document.addEventListener('click',function(e){
+    if(RADIO_UI==='compact') return;
+    var panel=RADIO_UI==='drawer'?drawerEl:fullEl;
+    if(panel&&!panel.contains(e.target)&&!e.target.closest('#kil-radio')) setRadioUI('compact');
+  });
 
   // ── Mute/vol controls ─────────────────────────────────────────────────────
   /* ══ MUTE MUST NEVER DEPEND ON WIDGET READINESS (KODE 2026-09-09) ═══════════════════════

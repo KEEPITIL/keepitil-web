@@ -147,7 +147,7 @@
              tag ran the current one. Two different radio bars on one site, and the stale half
              was invisible to a cache bump because the URL never changed. Bump this WITH the
              page tags whenever keepitil-radio.js changes. */
-          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20260909a'; document.body.appendChild(_rs);
+          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20260909b'; document.body.appendChild(_rs);
         }
       }catch(e){} });
     }
@@ -251,7 +251,7 @@
          navigations stale-while-revalidate, a returning visitor was reading HTML one
          deploy behind - which is exactly how a verification run measured a page that no
          longer existed on the origin. Bump this WITH sw.js. */
-      navigator.serviceWorker.register('/sw.js?v=20260909e').catch(function(){});
+      navigator.serviceWorker.register('/sw.js?v=20260909f').catch(function(){});
       /* An older worker may still be in control from a previous registration of the bare URL.
          Asking every registration to update forces that one to re-check now rather than on its
          own schedule. */

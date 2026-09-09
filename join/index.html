@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Join TUITEA</title>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TUITEA">
+<meta property="og:title" content="Join TUITEA">
+<meta property="og:description" content="You've been invited to your family's household on TUITEA.">
+<meta property="og:image" content="https://keepitil.com/brand/tuitea/share.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://keepitil.com/join/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Join TUITEA">
+<meta name="twitter:description" content="You've been invited to your family's household on TUITEA.">
+<meta name="twitter:image" content="https://keepitil.com/brand/tuitea/share.png">
+<link rel="icon" href="https://keepitil.com/app/tuitea/icon-192.png">
+<link rel="apple-touch-icon" href="https://keepitil.com/app/tuitea/apple-touch-icon.png">
+<!--
+  WHERE A TUITEA INVITATION LANDS WHEN THE APP DID NOT CATCH IT.
+
+  On an iPhone with TUITEA installed, iOS opens the APP for https://keepitil.com/join/*
+  (apple-app-site-association) and this page is never seen. It exists for everyone else: the
+  app is not installed yet, the link was opened on a computer, or a mail client forced it into
+  a browser tab. The token travels as ?t=…; the page never sends it anywhere except back into
+  the app (tupu://join?token=…) or on to the install page (?invite=…), and it says nothing
+  about whose household this is.
+-->
+<style>
+  :root{--bg:#FBF7EF;--ink:#20261F;--muted:#6E7566;--ocean:#33777D;--line:#E2D9C6;--surface:#FFFDF8}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14170F;--ink:#ECE7DA;--muted:#9BA391;--ocean:#6FBFC5;--line:#333A2D;--surface:#1C201A}}
+  :root[data-theme="dark"]{--bg:#14170F;--ink:#ECE7DA;--muted:#9BA391;--ocean:#6FBFC5;--line:#333A2D;--surface:#1C201A}
+  body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--ink);
+       font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.55;padding:24px}
+  .card{max-width:34rem;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:1.5rem 1.4rem;text-align:center}
+  img.icon{width:72px;height:72px;border-radius:18px;margin-bottom:.6rem}
+  h1{font-size:1.4rem;margin:0 0 .4rem}
+  p{margin:0 0 .8rem;color:var(--muted)}
+  a.btn{display:inline-block;background:var(--ocean);color:#fff;text-decoration:none;font-weight:600;padding:.8rem 1.4rem;border-radius:999px;margin:.2rem;font-size:1.02rem}
+  ol.steps{text-align:left;margin:1rem auto .4rem;padding-left:1.3rem;max-width:28rem;color:var(--ink)}
+  ol.steps li{margin-bottom:.45rem}
+  .small{font-size:.86rem}
+  #notyet{margin-top:.6rem;padding-top:.9rem;border-top:1px solid var(--line)}
+  #notyet p{color:var(--ink);font-weight:600}
+  details{margin-top:1rem;font-size:.86rem}
+  summary{cursor:pointer;color:var(--ocean)}
+  code{font-size:.85rem;background:var(--bg);padding:.15rem .4rem;border-radius:6px;user-select:all;word-break:break-all}
+</style>
+</head>
+<body>
+  <div class="card">
+    <img class="icon" src="https://keepitil.com/app/tuitea/icon-192.png" alt="">
+    <h1>You're invited to TUITEA</h1>
+    <p id="msg">Someone in your family has invited you to their household.</p>
+
+    <div id="flow" hidden>
+      <p><a class="btn" id="open" href="#">Open in TUITEA</a></p>
+
+      <div id="notyet" hidden>
+        <p>TUITEA isn't on this iPhone yet.</p>
+        <p><a class="btn" id="get" href="https://keepitil.com/app/tuitea/">Get TUITEA</a></p>
+      </div>
+
+      <ol class="steps">
+        <li>Get TUITEA on this iPhone.</li>
+        <li>Open TUITEA and sign in with your email and a password.</li>
+        <li>Your invitation is waiting inside — you'll be asked who you are in the family.</li>
+      </ol>
+      <p class="small">Invitations sent to your email address are recognised automatically when you sign in.</p>
+
+      <details>
+        <summary>Having trouble? Show invitation code</summary>
+        <p class="small" style="margin-top:.6rem">If TUITEA asks for an invitation code, use this one: <code id="tok"></code></p>
+      </details>
+    </div>
+
+    <p class="small">You will still need to be approved by the household before you can see anything. Nothing about your family is shown on this page.</p>
+  </div>
+  <script>
+    (function(){
+      var q = new URLSearchParams(location.search);
+      var t = (q.get('t') || q.get('token') || '').toLowerCase();
+      if (!t) { var seg = location.pathname.split('/').filter(Boolean); var i = seg.indexOf('join'); if (i >= 0 && seg[i+1]) t = seg[i+1].toLowerCase(); }
+      if (!/^[0-9a-f]{32}$/.test(t)) {
+        document.getElementById('msg').textContent = 'This invitation link is incomplete. Ask the person who sent it to share it again.';
+        return;
+      }
+
+      var open  = document.getElementById('open');
+      var get   = document.getElementById('get');
+      var notyet = document.getElementById('notyet');
+      open.href = 'tupu://join?token=' + t;
+      get.href  = 'https://keepitil.com/app/tuitea/?invite=' + t;
+      document.getElementById('tok').textContent = t;
+      document.getElementById('flow').hidden = false;
+
+      // If the app is installed, iOS leaves this page (it goes hidden) as TUITEA
+      // opens. If we are still visible ~1.2s after the tap, the app is not here.
+      var left = false, timer = null;
+      function onHide(){ if (document.visibilityState === 'hidden') left = true; }
+      document.addEventListener('visibilitychange', onHide);
+      window.addEventListener('pagehide', function(){ left = true; });
+      window.addEventListener('blur', function(){ left = true; });
+
+      open.addEventListener('click', function(){
+        left = false;
+        clearTimeout(timer);
+        timer = setTimeout(function(){
+          if (!left && document.visibilityState === 'visible') notyet.hidden = false;
+        }, 1200);
+      });
+    })();
+  </script>
+</body>
+</html>

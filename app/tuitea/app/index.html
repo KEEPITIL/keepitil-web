@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TUITEA</title>
+<!--
+  THE WEB ADDRESS IS NOT A SECOND TUITEA.
+
+  This path used to boot the whole Flutter application, and Safari became a
+  parallel, signed-in TUITEA: Fale, More, the account screen, the household,
+  the full navigation. That is explicitly not wanted. A family's records having
+  two front doors means two session models, two places to be signed in, and two
+  ways to be looking at different data — and the browser one is the door nobody
+  chose.
+
+  The build itself has NOT been deleted. index.html is the bootstrap; without
+  it nothing starts. The original is kept beside this file, dot-prefixed so the
+  host does not publish it, and the compiled output is untouched. Restoring the
+  web app is a one-file change if it is ever wanted again.
+
+  What remains here is what the website is actually for: getting TUITEA onto a
+  phone, and the three things a browser genuinely does better than an app it
+  cannot open.
+-->
+<style>
+  :root{
+    --bg:#FBF7EF; --ink:#20261F; --muted:#6E7566; --ocean:#33777D;
+    --line:#E2D9C6; --surface:#FFFDF8;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#14170F; --ink:#ECE7DA; --muted:#9BA391; --ocean:#6FBFC5;
+    --line:#333A2D; --surface:#1C201A;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#14170F; --ink:#ECE7DA; --muted:#9BA391; --ocean:#6FBFC5;
+    --line:#333A2D; --surface:#1C201A;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);
+       color:var(--ink);font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+       padding:24px}
+  main{width:100%;max-width:400px}
+  h1{margin:0 0 4px;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--ocean)}
+  h2{margin:0 0 10px;font-size:24px;line-height:1.25}
+  p{color:var(--muted);font-size:14.5px;margin:0 0 22px}
+  a.card{display:block;padding:15px 16px;margin-bottom:10px;border:1px solid var(--line);
+         border-radius:12px;background:var(--surface);color:var(--ink);text-decoration:none;
+         min-height:44px}
+  a.card:focus-visible{outline:2px solid var(--ocean);outline-offset:2px}
+  a.primary{background:var(--ocean);color:#fff;border-color:var(--ocean);font-weight:600}
+  .sub{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
+  a.primary .sub{color:rgba(255,255,255,.85)}
+  footer{margin-top:20px;font-size:12.5px;color:var(--muted)}
+  footer a{color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <h1>TUITEA</h1>
+  <h2>A private app for one family.</h2>
+  <p>TUITEA runs on your phone. Your family's records live in your account, not in this browser.</p>
+
+  <a class="card primary" href="/app/tuitea/">
+    Install TUITEA
+    <span class="sub">Get it onto this iPhone</span>
+  </a>
+
+  <a class="card" href="/app/tuitea/password/">
+    Set or reset your password
+    <span class="sub">Then sign in from the app</span>
+  </a>
+
+  <a class="card" href="/app/tuitea/support/">
+    Support
+    <span class="sub">Questions, problems, and getting your data</span>
+  </a>
+
+  <footer>
+    <a href="/app/tuitea/privacy/">Privacy</a> ·
+    <a href="/app/tuitea/terms/">Terms</a>
+  </footer>
+</main>
+</body>
+</html>

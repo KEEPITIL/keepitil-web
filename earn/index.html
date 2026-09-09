@@ -1,0 +1,1760 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="default" data-radio="page">
+<head>
+<link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="description" content="EARN on KEEPITIL — radio, playlists and the ways creators submit, take part and earn."/>
+<title>EARN — Radio, Playlists & Creator Opportunities | KEEPITIL</title>
+<link rel="icon" type="image/png" href="/assets/images/logo-purple-nav.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--brand:#00e0a4;--neon:#00e0a4;--ink:#f4f2fb;--ink2:#aab2c5;--panel:rgba(16,16,24,.72);--brd:rgba(255,255,255,.12);--fh:'Bebas Neue',sans-serif;--fb:'Inter',sans-serif}
+/* ⚠ THE COLOUR LIVES ON <html> ONLY — body MUST stay transparent (Atlas 2026-08-21).
+   This was `html,body{background:#0a0a0f}` and it made the backdrop image invisible even though
+   the file loaded and the rule applied. Painting order inside the root stacking context is:
+   html's background → negative-z-index children (body::before) → in-flow block backgrounds
+   (body). So an opaque background ON BODY paints straight over a `z-index:-2` ::before. When only
+   body has a background it is propagated to the canvas instead and body paints no box, which is
+   why /connect's backdrop always worked and this one never did. */
+html{background:#0a0a0f}
+/* overflow-x:clip, NOT hidden (Atlas 2026-08-21). `overflow-x:hidden` on body computes
+   overflow-y:auto, which turns BODY into a scroll container. position:sticky then resolves
+   against body instead of the viewport, and because the page actually scrolls on the
+   viewport the bar never sticks — the filter bars were correctly declared sticky and simply
+   could not work. `clip` clips the same overflow WITHOUT creating a scroll container, so
+   sticky resolves against the viewport again. `hidden` is kept first as the fallback for
+   anything that predates `clip`. */
+body{background:transparent;color:var(--ink);font-family:var(--fb);overflow-x:hidden;overflow-x:clip}
+/* image-forward backdrop (same model as home): default KEEPITIL image, seasonal image takes over on its dates */
+/* EARN backdrop (Founder 2026-08-21). Separate portrait file below 860px — the 16:9 art puts the
+   sign centre-left, so `cover` on a phone crops to bare floor. Opacity .5 so the orange does not
+   overwhelm the cards sitting on it. */
+body::before{content:"";position:fixed;inset:0;z-index:-2;background:#0a0a0f url('/assets/images/earn-hero.jpg?v=20260821b') center/cover no-repeat;opacity:1}
+/* One scrim, not a dimmed image — the art stays full strength and this holds text legible. */
+/* Scrim lightened for the 2026-08-21b artwork: these compositions already leave a dark,
+   empty centre for the page content and put the neon out at the edges. The heavier
+   .35->.72 scrim was flattening exactly the parts meant to be seen. */
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(10,10,15,.12),rgba(10,10,15,.55))}
+@media(max-width:860px){body::before{background-image:url('/assets/images/earn-hero-m.jpg?v=20260821b')}}
+html.has-season body::before{display:none!important}
+body{padding-top:70px;padding-bottom:calc(96px + env(safe-area-inset-bottom))} /* clear fixed shell nav + radio bar */
+a{color:inherit;text-decoration:none}
+/* width:100% IS LOAD-BEARING — DO NOT DROP IT (KODE 2026-08-20, restored by Atlas 08-21).
+   body is a flex column here, so .wrap is a flex ITEM. `margin:0 auto` is a cross-axis auto
+   margin, and a cross-axis auto margin cancels align-items:stretch — .wrap then sizes to
+   fit-content, which for a flex-wrap:nowrap card rail is wider than the phone. Mobile Safari
+   responds by zooming the whole page out to fit. max-width:1120px still caps it on desktop.
+   This was lost once already when a push overwrote the file; if it goes missing again the
+   symptom is "the page is zoomed out", not a layout error. */
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px;width:100%}
+/* hero */
+/* LEFT, not centred (Founder 2026-08-21): "on the desktop version the connect metric and
+   title is on the left side of the screen. should be the same for the other pages."
+   Mobile keeps it centred — see the body.rad-m block. */
+/* BACKGROUND FIRST, CONTENT SCROLLS UP (Founder 2026-08-21: "every page except culture
+   should start like the homepage. background image first, than everything else can scroll up
+   into place"). The homepage does this with .hero{min-height:100dvh} — a full-viewport opening
+   panel over the fixed backdrop. Same here. svh first so the iOS URL bar collapsing does not
+   change the height mid-scroll; dvh is the fallback for anything without svh. */
+/* BOTTOM-WEIGHTED LANDING PANEL (Founder 2026-08-21: "titles and metrics needs to be bigger
+   and towards the bottom of the landing page and also match the color theme of that page").
+   justify-content:flex-end drops the block to the foot of the full-viewport panel, so the
+   artwork owns the top two thirds and the type sits over the darkest part of the scrim where
+   it is most legible. */
+/*   The 130px is /create's value and is now the standard (Founder 2026-08-21: "create is the
+   best example on positioning. it sits above the radio so it is readable on the landing page.
+   the filter sits right behind the radio bar"). It is the fixed top nav (70) plus the radio bar
+   (60): subtracting both keeps the title and metrics clear of the player instead of sitting
+   under it, and lets the filter bar settle behind the bar as you scroll. */
+/* Vertical matched to /create (6px top / 40px bottom). Horizontal already agreed: this
+   .hero is 1120px inside a 1120px .wrap, so the 16px comes from the wrap. */
+.hero{padding:6px 0 40px;text-align:left;max-width:1120px;margin:0 auto;
+  min-height:calc(100svh - 130px);min-height:calc(100dvh - 130px);
+  display:flex;flex-direction:column;justify-content:flex-end}
+/* EARN palette: the neon green and orange of the backdrop art. */
+.hero h1{font-family:var(--fh);font-size:clamp(3.6rem,13vw,8rem);letter-spacing:.03em;line-height:.88;
+  background:linear-gradient(100deg,#8BFF3D 18%,#FF8A1F);-webkit-background-clip:text;background-clip:text;
+  color:transparent;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 4px 26px rgba(0,0,0,.75))}
+.hero p{color:#e7e9f2;max-width:640px;margin:12px 0 0;font-size:1.02rem;line-height:1.55;text-shadow:0 1px 10px rgba(0,0,0,.5)}
+/* Connect's stat row (Founder 2026-08-21) */
+.hero .stats{display:flex;justify-content:flex-start;gap:46px;margin-top:22px;flex-wrap:wrap}
+.hero .stat b{font-family:var(--fh);font-size:clamp(2.4rem,6vw,3.6rem);letter-spacing:.02em;display:block;line-height:1;text-shadow:0 2px 18px rgba(0,0,0,.7)}
+.hero .stat span{display:block;font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:#cfd6c9;margin-top:5px;font-weight:800;text-shadow:0 1px 8px rgba(0,0,0,.7)}
+.hero .stat.s b{color:#8BFF3D}.hero .stat.p b{color:#FF8A1F}.hero .stat.g b{color:#8BFF3D}
+@media(max-width:600px){.hero .stats{gap:26px}.hero .stat b{font-size:2rem}.hero .stat span{font-size:.68rem}}
+.hero .live{display:inline-flex;align-items:center;gap:8px;margin-top:18px;background:var(--panel);border:1px solid var(--brd);backdrop-filter:blur(8px);border-radius:999px;padding:8px 16px;font-size:.8rem;font-weight:700;letter-spacing:.05em}
+.hero .live .dot{width:9px;height:9px;border-radius:50%;background:var(--brand);box-shadow:0 0 12px var(--brand);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.35}}
+/* ── filter bar, cloned from /connect (Founder 2026-08-21) ────────────────────────────
+   Sticky under the 70px shell nav on desktop, under the notch on mobile. This only works
+   because body is overflow-x:clip rather than hidden — see the note at the top of the file. */
+.controls{position:sticky;top:70px;z-index:100;background:#0b0b12;max-width:none;width:100%;
+  margin:6px 0 0;padding:12px 0;border-top:1px solid rgba(255,255,255,.05);
+  border-bottom:1px solid rgba(255,255,255,.06);box-shadow:0 10px 24px rgba(0,0,0,.45)}
+.controls-row{max-width:1120px;margin-left:auto;margin-right:auto;padding:0 16px}
+.controls-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.seg{display:flex;gap:4px;background:rgba(255,255,255,.04);border:1px solid var(--brd);border-radius:12px;padding:4px;flex-wrap:wrap}
+.seg button{font-family:var(--fh);font-size:.98rem;letter-spacing:.09em;color:var(--ink2);background:none;border:0;cursor:pointer;padding:8px 16px;border-radius:9px;transition:all .18s}
+.seg button:hover{color:#fff}
+.seg button.on{background:var(--brand);color:#053a2c}
+.search{flex:1;min-width:200px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid var(--brd);border-radius:12px;padding:10px 16px}
+.search input{flex:1;background:none;border:0;color:var(--ink);font-family:var(--fb);font-size:.95rem;outline:none}
+.search input::placeholder{color:#6b6588}
+.count{font-size:.76rem;color:#6b6588;white-space:nowrap}
+@media(max-width:768px){#radCount{display:none!important}}
+/* HOW YOU EARN — four comparable panels. auto-fit so it is 4 / 2 / 1 across without a
+   breakpoint per column count. minmax(0,...) because a long <dd> would otherwise push the
+   track wider than its share and break the grid. */
+.pl-note{color:#8c86a8;font-size:.8rem;line-height:1.5;margin:8px 0 14px;max-width:640px}
+.hye-lead{max-width:820px;color:#cfd6c9;font-size:1rem;line-height:1.6;margin:0 0 20px}
+.hye-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:14px}
+.hye{background:var(--panel);border:1px solid var(--brd);border-radius:14px;padding:18px;
+  backdrop-filter:blur(10px);min-width:0}
+.hye h3{font-family:var(--fh);font-size:1.25rem;letter-spacing:.08em;color:var(--brand);margin:0 0 12px}
+.hye dl{margin:0}
+.hye dt{font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:#8c86a8;
+  font-weight:800;margin-top:12px}
+.hye dt:first-of-type{margin-top:0}
+.hye dd{margin:4px 0 0;font-size:.9rem;line-height:1.5;color:var(--ink)}
+@media(max-width:600px){.hye{padding:15px}.hye dd{font-size:.86rem}}
+/* ── PARTNER TILES ─────────────────────────────────────────────────────────────────────
+   Same 2:3 shape as every other card on the site, but the art is the card rather than a strip
+   inside it. The glyph is oversized and low-contrast so it reads as artwork, not an icon. */
+/* The partner cards are the shell's sponsored cards now, so they need the same image-only
+   treatment DISCOVER gives them: the creative fills the tile and only the disclosure chip and
+   the external-link mark sit on top. */
+.aff-card picture,.aff-card img{position:absolute;inset:0;width:100%;height:100%;display:block;}
+.aff-card img{object-fit:cover;object-position:center;}
+.aff-card .kil-spon-tag{position:absolute;top:9px;left:9px;z-index:2;padding:4px 9px;
+  border-radius:999px;background:rgba(6,6,12,.62);backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.24);color:#fff;
+  font:800 .52rem/1 var(--fh,Inter),sans-serif;letter-spacing:.15em;text-transform:uppercase;}
+.aff-card .kil-spon-ext{position:absolute;right:9px;bottom:9px;z-index:2;width:22px;height:22px;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:rgba(6,6,12,.55);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:.7rem;}
+.aff-card{position:relative;display:block;aspect-ratio:2/3;border-radius:14px;overflow:hidden;
+  border:1px solid var(--brd);text-decoration:none;color:#fff;
+  transition:border-color .15s,transform .15s}
+.aff-card:hover{border-color:var(--brand);transform:translateY(-2px)}
+.aff-glyph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:clamp(3.4rem,9vw,5.4rem);opacity:.34;filter:drop-shadow(0 6px 18px rgba(0,0,0,.5))}
+.aff-tag{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.6);color:#fff;
+  font:800 .56rem Inter,sans-serif;letter-spacing:.1em;padding:4px 9px;border-radius:6px}
+.aff-body{position:absolute;left:0;right:0;bottom:0;padding:16px 14px 14px;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.55) 38%,rgba(0,0,0,.9))}
+.aff-body b{display:block;font-family:var(--fh);font-size:1.5rem;letter-spacing:.02em;line-height:1.02}
+.aff-body span{display:block;margin-top:5px;font-size:.8rem;line-height:1.35;color:#dfe4ee}
+@media(max-width:860px){
+  .aff-body b{font-size:1.2rem}
+  .aff-body span{font-size:.72rem}
+}
+/* section */
+section{padding:30px 0;border-top:1px solid var(--brd)}
+/* align-items:center, not baseline: INFO is a control, and baseline alignment against a
+   1.9rem heading pushed it off the row's optical centre (Founder 2026-09-05). */
+.sh{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+/* ── SECTION ABOUT (Founder 2026-08-31 §5-§7; corrected 2026-09-01) ──────────────────────
+   Every section's explanation is folded behind that section's INFO button, at EVERY width and
+   under every filter. There is no state in which the copy sits open on the page: INFO is the
+   only way to read it, so it is never on screen twice. */
+/* INFO reads at the row's own text size and gets its touch target from PADDING, not from
+   type scale (Founder 2026-09-05). It was .66rem inside a fixed 28px pill, which is what made
+   a small label look like an oversized button. Far right via margin-left:auto, vertically
+   centred by the row above, identical on desktop and mobile. */
+.sh .hye-info{margin-left:auto;flex:0 0 auto;min-height:32px;padding:6px 12px;display:inline-flex;
+  align-items:center;justify-content:center;border-radius:8px;cursor:pointer;
+  border:1px solid rgba(0,224,164,.32);background:rgba(0,224,164,.08);color:#7ff5d0;
+  font:800 .88rem/1 var(--fh,Inter),sans-serif;letter-spacing:.1em;text-transform:uppercase;
+  transition:background .15s,border-color .15s,color .15s;white-space:nowrap}
+.sh .hye-info:hover,.sh .hye-info:active{background:rgba(0,224,164,.2);border-color:rgba(0,224,164,.65);color:#eafff7}
+.sec-about{border:1px solid var(--brd);background:rgba(255,255,255,.035);border-radius:14px;
+  padding:16px 18px;margin:0 0 18px}
+.sec-about h3{font-family:var(--fh);font-size:1.05rem;letter-spacing:.08em;margin:0 0 8px;color:#eafff7}
+.sec-about p{margin:0 0 8px}
+.sec-about :last-child{margin-bottom:0}
+/* ── FULL-SCREEN INFO MODAL (Founder 2026-08-31) ────────────────────────────────────────
+   Not a dropdown and not an accordion: on a phone either one pushes the section you were
+   reading off the screen. position:fixed means the page underneath never scrolls or reflows,
+   which is also what makes X land you back on the exact row you left. */
+#hyeOv{position:fixed;inset:0;z-index:1200;display:none;background:#0a0f0e;overscroll-behavior:contain;touch-action:none}
+#hyeOv.on{display:flex;flex-direction:column}
+#hyeOv .hye-panel{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+  padding:calc(var(--kil-safe-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 18px)}
+#hyeOv .hye-head{flex:0 0 auto;display:flex;align-items:center;gap:12px;
+  padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--brd)}
+#hyeOv .hye-head h2{font-family:var(--fh);font-size:1.5rem;letter-spacing:.06em;flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#hyeOv .hye-x{flex:0 0 auto;width:44px;height:44px;border-radius:999px;border:1px solid var(--brd);
+  background:rgba(255,255,255,.06);color:#eafff7;font-size:1.2rem;line-height:1;cursor:pointer}
+#hyeOv .hye-x:active{background:rgba(255,255,255,.14)}
+/* Only the CONTENT scrolls — the title row and X stay put however long the copy is. */
+/* contain + pan-y: the panel scrolls its own content and a drag that runs past the end
+   stops there instead of chaining to the page behind it. */
+#hyeOv .hye-body{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;touch-action:pan-y}
+#hyeOv .hye-body .sec-about{border:0;background:none;padding:0;margin:0}
+@media(min-width:861px){
+  #hyeOv{background:rgba(4,8,7,.82);backdrop-filter:blur(6px);padding:24px}
+  #hyeOv.on{align-items:center;justify-content:center}
+  #hyeOv .hye-panel{flex:0 1 auto;width:min(600px,100%);max-height:calc(100dvh - 48px);
+    background:#0d1613;border:1px solid var(--brd);border-radius:16px;padding:20px 22px 24px;
+    box-shadow:0 18px 50px rgba(0,0,0,.6)}
+}
+.sh h2{font-family:var(--fh);font-size:1.9rem;letter-spacing:.04em;text-shadow:0 2px 14px rgba(0,0,0,.5)}
+.sh .sub{color:#d5d9e6;font-size:.88rem;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+/* grids */
+/* HOMEPAGE MODEL (Founder 2026-08-20: "needs to be setup like the homepage. Each section a
+   2:3 format card and carousel rows."): each section scrolls horizontally as a rail of 2:3
+   cards instead of stacking a grid. Same shape as #evx .evx-row on the homepage — 240px on
+   desktop, 160px on mobile, x-scroll only, scrollbar hidden. */
+.grid{display:flex;gap:15px;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;
+  padding:4px 0 14px;scroll-snap-type:x proximity}
+.grid::-webkit-scrollbar{display:none}
+.grid>*{flex:0 0 240px;scroll-snap-align:start}
+.grid>.card{aspect-ratio:2/3;display:flex;flex-direction:column;overflow:hidden}
+/* ── DISCOVER PARITY ON MOBILE (Founder 2026-09-03) ─────────────────────────────────
+   DISCOVER's mobile flyer is 220px wide at 2:3 with a 10px rail gap; at 375px that shows
+   about one and a half cards, which is the rhythm every horizontal rail on KEEPITIL is
+   meant to share. EARN's rails were 160-170px, so they read as a dense multi-card strip
+   rather than the same component. One number, taken from DISCOVER, not a new system. */
+@media(max-width:860px){ .grid{gap:10px} .grid>*{flex:0 0 220px} }
+/* Stations match the CREATE cards on this page (Founder 2026-08-22) — they were 160px
+   against the CREATE rail's 240px, so two rails on one page disagreed about card size. */
+.g-stations>*{flex:0 0 240px}
+.g-cards>*{flex:0 0 240px}
+/* CREATE rail: ONE row, always (Founder 2026-08-22: "a single carousel row under CREATE").
+   The generic .grid is already a nowrap flex rail, but the section-expand toggle could turn
+   it back into a wrapping grid; this pins it. */
+#earnGrid,#affGrid,#plList,#stationGrid{display:flex!important;flex-wrap:nowrap!important;
+  overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x proximity;
+  -webkit-overflow-scrolling:touch}
+#earnGrid::-webkit-scrollbar,#affGrid::-webkit-scrollbar,#plList::-webkit-scrollbar,
+#stationGrid::-webkit-scrollbar{display:none}
+#earnGrid>*,#affGrid>*,#plList>*,#stationGrid>*{flex:0 0 240px;scroll-snap-align:start}
+@media(max-width:860px){#earnGrid>*,#affGrid>*,#plList>*,#stationGrid>*{flex:0 0 220px}}
+
+/* ── MOBILE SECTION RHYTHM (Founder 2026-09-03) ────────────────────────────────────────
+   Sections were 30px top and bottom plus the rail's own 14px bottom padding, so scrolling
+   between categories crossed a wide band of background. Tightened to 16/10 on mobile only:
+   enough of the divider and backdrop still shows that sections stay distinct, without the
+   page feeling like it is mostly gaps. Desktop spacing is untouched. */
+@media(max-width:860px){
+  section{padding:16px 0 10px}
+  .sh{margin-bottom:10px}
+  .grid{padding:2px 0 8px}
+  .sec-about{margin:0 0 10px}
+}
+
+.card{background:var(--panel);border:1px solid var(--brd);border-radius:14px;padding:16px;transition:border-color .15s,transform .15s;backdrop-filter:blur(10px);overflow:hidden}
+.card:hover{border-color:var(--brand);transform:translateY(-2px)}
+/* image band on every widget */
+.card-img{height:92px;margin:-16px -16px 12px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;position:relative}
+.card-img::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.35))}
+.station{cursor:pointer;display:flex;flex-direction:column}
+.station .g{font-family:var(--fh);font-size:1.35rem;letter-spacing:.03em;line-height:1}
+.station .s{font-size:.68rem;color:var(--ink2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+.chip{display:inline-block;font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#06120a;background:var(--brand);padding:3px 8px;border-radius:6px}
+.chip.soon{background:rgba(255,255,255,.14);color:var(--ink2)}
+.card h3{font-family:var(--fh);font-size:1.25rem;letter-spacing:.02em;margin-bottom:6px}
+.card p{color:var(--ink2);font-size:.84rem;line-height:1.5}
+.card .meta{margin-top:10px;font-size:.72rem;color:var(--ink2);display:flex;flex-wrap:wrap;gap:6px 12px}
+.btn{display:inline-block;background:var(--brand);color:#06120a;font-weight:800;letter-spacing:.05em;padding:11px 18px;border-radius:10px;border:0;cursor:pointer;font-size:.82rem}
+.btn.ghost{background:transparent;border:1px solid var(--brand);color:var(--brand)}
+.disc{font-size:.72rem;color:#cfd4e2;margin-top:8px;line-height:1.5;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+.pl-form{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--brd);backdrop-filter:blur(10px);border-radius:14px;padding:14px}
+.pl-form input{flex:1 1 220px;min-width:0;background:rgba(0,0,0,.35);border:1px solid var(--brd);border-radius:9px;color:var(--ink);padding:11px 12px;font-size:.9rem;font-family:inherit}
+.pl-list{display:flex;flex-direction:column;gap:14px;margin-top:16px}
+.pl-item{background:var(--panel);border:1px solid var(--brd);backdrop-filter:blur(10px);border-radius:14px;padding:14px}
+.pl-item .top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pl-item .top b{font-family:var(--fh);font-size:1.2rem;letter-spacing:.02em;flex:1}
+.pl-item .rm{background:none;border:0;color:#ff6b6b;font-weight:700;cursor:pointer;font-size:.82rem}
+.pl-item iframe{width:100%;height:120px;border:0;border-radius:8px}
+/* Sections as single-row carousels that expand into the full grid via a down-arrow (Founder 2026-08-04) */
+.grid.rad-carou{display:flex;flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+.grid.rad-carou::-webkit-scrollbar{height:6px}
+.grid.rad-carou::-webkit-scrollbar-thumb{background:var(--brd);border-radius:3px}
+.grid.rad-carou>*{flex:0 0 220px;scroll-snap-align:start}
+.grid.g-stations.rad-carou>*{flex:0 0 220px}
+/* WAS: section.open reverted the rail back to display:grid, so opening a section turned the
+   carousel into a single stacked column — exactly what the Founder reported 2026-08-20. The
+   rail is now unconditional; a section opening changes what is visible, not how it is laid out. */
+section.open .grid.rad-carou{display:flex;overflow-x:auto}
+/* Vertical sidebar (desktop): subpages on top + this page's sections below (Founder 2026-08-04) */
+.cul-vrail{display:none}
+@media(min-width:861px){
+  .cul-vrail{display:flex;flex-direction:column;gap:9px;position:fixed;right:20px;top:50%;transform:translateY(-50%);z-index:40}
+  .cul-vrail{overflow:visible}
+  .cul-vrail .cvr{display:flex;align-items:center;gap:13px;width:58px;height:58px;padding:0 15px;overflow:hidden;white-space:nowrap;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(12,20,18,.85);backdrop-filter:blur(12px);color:#cfe6df;cursor:pointer;transition:width .18s ease;box-sizing:border-box}
+  .cul-vrail .cvr .ic{font-size:1.55rem;flex:0 0 auto;line-height:1;width:26px;text-align:center}
+  .cul-vrail .cvr .tx{font-family:var(--fh);font-weight:800;letter-spacing:.08em;font-size:.9rem;opacity:0;transition:opacity .12s}
+  .cul-vrail:hover .cvr{width:180px}
+  .cul-vrail .vr-subdd{position:absolute;right:66px;top:0;display:none;flex-direction:column;gap:2px;background:#0d1613;border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:7px;min-width:150px;z-index:60;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+  .cul-vrail .vr-subdd.open{display:flex}
+  .cul-vrail .vr-subdd button{display:flex;align-items:center;gap:11px;background:none;border:0;color:#dff0ea;font-size:.95rem;font-weight:600;padding:10px 12px;border-radius:8px;cursor:pointer;text-align:left;white-space:nowrap}
+  .cul-vrail .vr-subdd button .ic{font-size:1.2rem}
+  .cul-vrail .vr-subdd button:hover{background:rgba(255,255,255,.09);color:#fff}
+  .cul-vrail:hover .cvr .tx{opacity:1}
+  .cul-vrail .vr-div{width:34px;height:1px;background:rgba(255,255,255,.2);align-self:flex-end;margin:4px 6px 4px 0}
+  .cul-vrail .cvr.sp.on,.cul-vrail .cvr.sf.on{background:linear-gradient(90deg,#0f6e56,#00e0a4);border-color:transparent;color:#04120a}
+}
+/* universal locked footer — sits at the bottom before the radio bar */
+body{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+/* A flex-column body makes every child a flex item, and a flex item defaults to
+   min-width:auto — it will not shrink below its own max-content width. Measured at
+   375px: .wrap computed to 1120px while body{overflow-x:hidden} clipped the excess,
+   hiding the overflow instead of fixing it. Releasing min-width is what lets the
+   locked-footer flex body and a nowrap rail coexist. */
+body>*{min-width:0}
+
+footer{margin-top:auto}
+
+/* ── RADIO ROWS (Founder 2026-08-25) ──────────────────────────────────────────────────── */
+.kr-sub{display:inline-block;font:800 .7rem/1 Inter,sans-serif;letter-spacing:.22em;
+  color:#cfd3df;text-transform:uppercase;margin:-6px 0 14px;
+  text-shadow:0 1px 6px rgba(0,0,0,.85)}
+/* The bar is one line that must survive three variable-length titles on a 360px phone.
+   min-width:0 on the flex children is what actually permits the ellipsis — without it a flex
+   item refuses to shrink below its max-content width and the row overflows instead. */
+/* ── THE RADIO BAR: PREV | DISPLAY | NEXT (Founder 2026-08-31) ──────────────────────────
+   Three parts that read as one control. The old version was three text buttons of unequal
+   weight with the song crammed beside the transport; PREV/NEXT are now equal-sized targets and
+   the middle is a display, not a button. */
+.kr-bar{display:flex;align-items:stretch;gap:0;margin:0 0 18px;
+  background:rgba(255,255,255,.04);border:1px solid var(--line,#242433);border-radius:12px;
+  font:700 .8rem/1.25 Inter,sans-serif;overflow:hidden}
+/* 48px is the accessible minimum for a thumb; the old buttons were 38px and shrank further
+   when the title grew. flex:0 0 64px means they never trade width with the display. */
+.kr-bar .kr-nav{flex:0 0 64px;min-width:0;display:flex;align-items:center;justify-content:center;
+  height:52px;border:0;cursor:pointer;background:rgba(255,255,255,.05);color:#cfd3df;
+  font:400 1.5rem/1 Inter,sans-serif;transition:background .15s,color .15s}
+.kr-bar .kr-nav:active{background:rgba(0,224,164,.18);color:#eafff7}
+.kr-bar .kr-nav:disabled{opacity:.4;cursor:default}
+.kr-bar .kr-prevb{border-right:1px solid var(--line,#242433)}
+.kr-bar .kr-nextb{border-left:1px solid var(--line,#242433)}
+/* The display takes every pixel the two controls do not. */
+.kr-disp{flex:1 1 auto;min-width:0;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;padding:0 12px;height:52px}
+.kr-txt{display:block;max-width:100%;white-space:nowrap;color:#fff;
+  font:700 .84rem/1 Inter,sans-serif;letter-spacing:.02em;
+  overflow:hidden;text-overflow:ellipsis;
+  opacity:1;transition:opacity .45s ease}
+.kr-txt.fading{opacity:0}
+/* A label that fits is centred and still. Only text that genuinely overflows moves, and only
+   then — constant motion on a short track name is noise. */
+.kr-txt.marquee{text-overflow:clip;animation:kr-scroll 12s linear infinite}
+@keyframes kr-scroll{
+  0%,8%   {transform:translateX(0)}
+  92%,100%{transform:translateX(var(--kr-shift,0px))}
+}
+/* ── ONE LINE AT A TIME (Founder 2026-09-06) ──────────────────────────────────────────
+   .kr-sub was a SECOND text layer: absolutely positioned at the foot of a 52px bar that is
+   already vertically centring .kr-txt, so the caption sat on top of the name and the bar
+   showed two overlapping strings at once. The bar now shows exactly one string, and which
+   one it is alternates - which is what the caption was trying to convey anyway. */
+.kr-sub{display:none!important}
+@media(prefers-reduced-motion:reduce){
+  .kr-txt{transition:none}
+  .kr-txt.marquee{animation:none;text-overflow:ellipsis}
+}
+/* Horizontal cycling carousel. Scrolling BROWSES ONLY — it never changes station; that is
+   deliberate (Founder), so a thumb-flick past the rail cannot silently restart the audio.
+   Only a tap on the artwork selects.
+   ⚠ SIZING IS NOT DEFINED HERE AND MUST NOT BE. The tiles are the page's standard .card, so
+   `.grid>.card{aspect-ratio:2/3}` and `.g-stations>*{flex:0 0 240px}` (160px at <=860px) are
+   the only rules that size them — exactly the same ones every other rail on this page uses.
+   An earlier version carried its own 152px/124px square tiles; that is precisely the parallel
+   rule that drifts away from the rest of the page, and the Founder's instruction is that this
+   never changes again. Add nothing here that sets width, height or aspect-ratio. */
+/* ⚠ PLAIN CAROUSEL — NO AUTO-CENTRING (Founder 2026-08-27: "revert back to the original
+   setup. normal carousel of playlist cards"). What was here: mandatory centre-snap, two
+   flex end-spacers sized from a --kr-pad custom property, and a debounced kilCentreActive()
+   that re-scrolled the rail after every scroll and resize so the playing card sat dead
+   centre. It is all deleted, not disabled — a rail that quietly re-scrolls itself is the
+   thing being reverted, and half of it left behind would just fight the other half.
+   The rail is now the page's ordinary .grid: free horizontal browse, proximity snap on the
+   card edge. Selection is still tap-only; scrolling never changes station. */
+.kr-tile{font:inherit;text-align:left;color:inherit;cursor:pointer;scroll-snap-align:center;
+  opacity:.55;transition:opacity .22s ease,border-color .22s ease}
+/* ⚠ NO transform:scale() here. It was scale(.96) on inactive tiles, which renders them 4%
+   smaller than every other card on the page even though their layout box is identical —
+   and "same size as the other cards" is a rule about what the eye sees, not about the box.
+   Active state is carried by opacity and the border alone. */
+.kr-tile.on{opacity:1;border-color:var(--brand)}
+/* Full 2:3 poster, the way the station cards looked before the carousel. */
+.kr-tile .card-img{height:auto;aspect-ratio:2/3;background:#15131f center/cover no-repeat;
+  display:flex;align-items:center;justify-content:center;font-size:2.5rem;color:#fff}
+/* The state badge sits ON the art. The card is 2:3 and the art fills it, so anything below the
+   image is clipped by .card{overflow:hidden} — which is where the old card's caption went. */
+.kr-tile .kr-state{position:absolute;left:8px;right:8px;bottom:8px;z-index:2;
+  display:flex;align-items:center;gap:6px;justify-content:space-between;
+  font:800 .6rem Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.9)}
+.kr-tile .kr-state b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kr-tile.on .kr-state em{font-style:normal;color:#06120a;background:var(--brand);
+  padding:2px 7px;border-radius:9px;flex:0 0 auto}
+.kr-tile:not(.on) .kr-state em{font-style:normal;color:var(--ink2);flex:0 0 auto}
+/* Row 3 ONLY is desktop-hidden (Founder 2026-08-25). The persistent radio bar is docked at the
+   foot of the desktop page and already shows playlist and track, so the mid-page bar was the
+   same information twice. Rows 1 and 2 are the section's TITLE and stay at every width — a
+   rail with no heading is inconsistent with every other section on this page.
+   Mobile keeps row 3: there the shell bar is pushed off screen, so it is the only place that
+   state is visible. */
+@media(min-width:861px){
+  #stations .kr-bar{display:none}
+}
+</style>
+<link rel="canonical" href="https://keepitil.com/earn/"/>
+  <!-- PWA manifest — STATIC, deliberately (Founder 2026-08-15).
+       keepitil-shell.js has injected this link from JS since forever (see its head-tags block),
+       and the installed PWA still had no start_url: iOS reads the manifest when the user taps
+       Add to Home Screen, and does not reliably pick up a link added by script afterwards. A
+       page can be installed from ANY page, so the link has to be in the served HTML. -->
+  <link rel="manifest" href="/manifest.webmanifest"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="KEEPITIL"/>
+
+<meta property="og:site_name" content="KEEPITIL"/>
+<meta property="og:title" content="EARN — Radio, Playlists & Creator Opportunities | KEEPITIL"/>
+<meta property="og:description" content="EARN on KEEPITIL — radio, playlists and the ways creators submit, take part and earn."/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://keepitil.com/earn/"/>
+<meta property="og:image" content="https://keepitil.com/keepitil-og.png"/>
+<meta property="og:locale" content="en_US"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="EARN — Radio, Playlists & Creator Opportunities | KEEPITIL"/>
+<meta name="twitter:description" content="EARN on KEEPITIL — radio, playlists and the ways creators submit, take part and earn."/>
+<meta name="twitter:image" content="https://keepitil.com/keepitil-og.png"/></head>
+<!-- No social engagement controls on the EARN landing page (Founder 2026-08-31). EARN is a
+     landing surface, not a post: like/repost/save/comment/share belong on things a person can
+     respond to. keepitil-social.js auto-injects its bar on any page containing <article>, and
+     this page uses <article class="hye"> for the four HOW-YOU-EARN cards, so it qualified by
+     accident. The opt-out is a declaration on this page rather than a change to the injector,
+     so no other surface loses its controls. -->
+<body data-kil-social="off">
+<!-- ── STATIC PLATFORM NAV — CRAWLER SOURCE OF TRUTH (KODE 2026-09-08) ──────────
+     This page previously shipped NO crawlable navigation at all: the global nav
+     existed only inside keepitil-shell.js, so a crawler that does not execute JS
+     saw a page with no architecture around it and could not discover the other
+     four platform sections from here. keepitil-shell.js removes #main-nav (see the
+     querySelectorAll('#main-nav, ...').remove() sweep) before it injects the real
+     navigation, so this markup is gone by the time a visitor sees the page - it
+     exists for crawlers and for no-JS readers, and adds no visual duplication.
+     One architecture only: DISCOVER · CONNECT · CREATE · CULTURE · EARN (+ Login). -->
+<nav id="main-nav" aria-label="KEEPITIL platform"><div class="nav-inner">
+  <a class="nav-logo" href="/"><span class="nav-brand">KEEPITIL</span></a>
+  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
+  <a href="/apply" class="nav-cta">LOGIN</a>
+</div></nav>
+
+
+<!-- Founder 2026-08-21: the paragraph listed what the page already shows underneath it, and the
+     "LIVE NOW" chip announced a player that is visible at the bottom of every page anyway.
+     Replaced with the Connect page's stat row. Counts are filled in by script from the page's own
+     data, so they cannot drift from what actually renders. -->
+<header class="hero wrap">
+  <h1>EARN</h1>
+  <div class="stats">
+    <div class="stat s"><b id="eS">0</b><span>Stations</span></div>
+    <div class="stat p"><b id="eC">0</b><span>Competitions</span></div>
+    <div class="stat g"><b id="eG">0</b><span>Games</span></div>
+  </div>
+</header>
+
+<!-- Filter bar cloned from /connect (Founder 2026-08-21: "the info and setup needs to clone how
+     the connect is setup for the info and filter"). Same markup and class names as Connect's
+     .controls so the two pages cannot drift apart. Sticky under the top nav. -->
+<div class="controls" id="radControls">
+  <div class="controls-row">
+    <div class="seg" id="radSeg">
+      <button data-k="all" class="on">All</button>
+      <button data-k="stations">Radio</button>
+      <button data-k="playlists">Playlists</button>
+      <button data-k="create">Create</button>
+      <button data-k="earn">Earn</button>
+    </div>
+    <div class="search" id="ctlSearch">
+      <span aria-hidden="true">&#128269;</span>
+      <input id="radQ" type="search" placeholder="Search stations by genre…" autocomplete="off">
+    </div>
+    <span class="count" id="radCount"></span>
+  </div>
+</div>
+
+<main class="wrap">
+
+<!-- ── HOW YOU EARN (Founder 2026-08-28, §4/§29) ────────────────────────────────────────────
+     EARN was a directory of features; this is the layer that explains the system around them.
+     Four paths, each answering the same four questions in the same order, so they can be
+     compared rather than read.
+
+     ⚠ LANGUAGE RULE (§28). Every promise here is KEEPITIL-CONTROLLED INVENTORY: placement,
+     rotation, an article, a feature. Nothing claims outside traffic, virality, followers,
+     sales or third-party collaboration. "Guaranteed KEEPITIL exposure" — never "guaranteed
+     traffic". §30's unset business terms are deliberately ABSENT: no play counts, no partner
+     capacity, no percentages, no dollar figures. Those are Founder decisions and putting a
+     placeholder in customer-facing copy is how a placeholder becomes a promise. -->
+<section id="howyouearn">
+  <div class="sh"><h2>HOW YOU EARN</h2></div>
+  <p class="hye-lead">Submit your work. KEEPITIL puts it in front of people through radio,
+     playlists, articles and features. What the platform earns from partners and royalties
+     funds creator rewards — and more creators bring more audience.</p>
+
+  <div class="hye-grid">
+    <article class="hye">
+      <h3>RADIO</h3>
+      <dl>
+        <dt>What you submit</dt><dd>Your music, with a link to the track.</dd>
+        <dt>How it works</dt><dd>Accepted tracks enter KEEPITIL Radio rotation. There are two
+          levels: standard rotation, and a royalty-partner tier with more scheduled placement.</dd>
+        <dt>What you give</dt><dd>Standard rotation asks nothing. The royalty tier is a
+          participation arrangement — a share of the track's royalties through your existing
+          distribution, agreed in writing.</dd>
+        <dt>What you receive</dt><dd>Guaranteed monthly airtime on KEEPITIL Radio. Royalty
+          partners also receive recurring scheduled rotation, genre playlist placement, chart
+          and leaderboard participation, editorial and review opportunities, artist highlights
+          and promotional assets — for as long as the arrangement is active.</dd>
+      </dl>
+    </article>
+
+    <article class="hye">
+      <h3>PLAYLISTS</h3>
+      <dl>
+        <dt>What you submit</dt><dd>One curated SoundCloud playlist, with a portrait (2:3) cover.</dd>
+        <dt>How it works</dt><dd>SoundCloud stays the source. Edit the playlist there and
+          KEEPITIL plays the change — you never resubmit tracks.</dd>
+        <dt>What you give</dt><dd>Nothing. One playlist per person keeps the wall curated.</dd>
+        <dt>What you receive</dt><dd>Your playlist listed on KEEPITIL and inside the radio
+          playlist ecosystem, where listeners can find and play it. Rotation is offered where
+          scheduling allows; royalty-partner placement comes first.</dd>
+      </dl>
+    </article>
+
+    <article class="hye">
+      <h3>CREATE</h3>
+      <dl>
+        <dt>What you submit</dt><dd>Creative work entered into a KEEPITIL competition.</dd>
+        <dt>How it works</dt><dd>Every valid entry gets exposure — you do not have to win first.</dd>
+        <dt>What you give</dt><dd>Your entry, and accurate credit for who made it.</dd>
+        <dt>What you receive</dt><dd>Placement in Culture, an editorial article built around your
+          work, and discovery through the feed. Winners receive the residency package: continued
+          coverage, featured placement, a winner badge, a permanent record, and participation in
+          the creator reward programme for the residency period.</dd>
+      </dl>
+    </article>
+
+    <article class="hye">
+      <!-- EARN, not PARTNERS (Founder 2026-08-31). The four About panels are keyed to the four
+           filter categories, so the label has to be the category name. Partners, affiliates,
+           referrals, sponsorship, merch and creator rewards are all things you EARN from; they
+           are part of that category, not a category beside it. Copy below is unchanged. -->
+      <h3>EARN</h3>
+      <dl>
+        <dt>What you submit</dt><dd>Nothing to submit — you take part by referring and sharing.</dd>
+        <dt>How it works</dt><dd>Two separate things, deliberately not mixed. You may earn
+          directly from an eligible referral or affiliate programme. Separately, KEEPITIL puts a
+          share of what it earns from partners into the creator reward pool.</dd>
+        <dt>What you give</dt><dd>Nothing beyond taking part.</dd>
+        <dt>What you receive</dt><dd>Your own referral earnings where a programme applies, and —
+          as a resident or winner — a share of the creator reward pool for your period.</dd>
+      </dl>
+    </article>
+  </div>
+</section>
+
+<!-- STATIONS -->
+<!-- KEEPITIL RADIO — four rows (Founder 2026-08-25): name, attribution, live bar, carousel.
+     Row 3 and row 4 both reflect the ONE shell player (#kil-sc). Nothing here starts a second
+     SoundCloud widget: a widget is bound to a single playlist for its lifetime, so a page-local
+     player would immediately disagree with the bar the visitor carries between pages. This
+     listens to `kil-radio-state` and calls __kilRadioSelect() — see assets/js/keepitil-radio.js. -->
+<section id="stations">
+  <div class="sh"><h2>KEEPITIL RADIO</h2></div>
+  <div class="kr-sub">POWERED BY SOUNDCLOUD <span id="krCount"></span></div>
+  <!-- PREV | DISPLAY | NEXT. #krPl / #krCur / #krNxt are kept as hidden data holders: the
+       kil-radio-state listener writes them and the cycler reads them, so the broadcast contract
+       is untouched and no second player is involved. -->
+  <div class="kr-bar" id="krBar">
+    <button type="button" class="kr-nav kr-prevb" id="krPrev" aria-label="Previous song">&#8249;</button>
+    <div class="kr-disp" id="krDisp" aria-live="polite">
+      <span class="kr-txt" id="krTxt">&mdash;</span>
+      <span class="kr-sub" id="krSub"></span>
+    </div>
+    <button type="button" class="kr-nav kr-nextb" id="krNext" aria-label="Next song">&#8250;</button>
+    <span class="kr-pl" id="krPl" hidden>&mdash;</span>
+    <span class="kr-cur" id="krCur" hidden>&mdash;</span>
+    <span class="kr-nxt" id="krNxt" hidden>&mdash;</span>
+  </div>
+  <div class="grid g-stations" id="stationGrid"></div>
+</section>
+
+<!-- PLAYLISTS — title only, no explanatory copy (Founder 2026-08-22). -->
+<section id="playlists">
+  <!-- 'ADD PLAYLIST' (Founder 2026-08-31): the shorter title leaves room for INFO on the same
+       row. SoundCloud is still the authoritative provider — this is a label change, not a
+       change of provider. -->
+  <div class="sh"><h2>ADD PLAYLIST</h2></div>
+  <!-- §14: ONE playlist per user, 2:3 cover, SoundCloud URL, editable. The one-per-user rule is
+       enforced by a unique index on user_playlists(user_id), not by this form — a client-side
+       rule is a suggestion that two tabs or a retried request will walk straight past. The form
+       simply switches between Save and Update depending on what the database already holds. -->
+  <div class="pl-form" id="plForm">
+    <input id="plName" type="text" placeholder="Playlist name" maxlength="60"/>
+    <input id="plUrl" type="url" placeholder="Public SoundCloud URL"/>
+    <input id="plArt" type="url" placeholder="Cover image URL (portrait 2:3)"/>
+    <button class="btn" id="plSave" onclick="addPlaylist()">&#65291; Save</button>
+  </div>
+  <!-- The standing instruction copy moved into ADD PLAYLIST > INFO (Founder 2026-08-31): it is
+       read once and then occupies the section forever, which is exactly what INFO is for.
+       Nothing in JS referenced #plNote, so the element goes with the copy rather than being
+       left behind as an empty paragraph. -->
+  <div id="plGate" style="display:none"><a class="btn" href="/apply">Sign in to add a playlist</a></div>
+  <div class="grid g-cards" id="plList"></div>
+</section>
+
+<!-- CREATE — live competition cards, read straight from vs_competitions so this rail can never
+     show a competition that /create does not. -->
+<section id="create">
+  <div class="sh"><h2>CREATE</h2></div>
+  <div class="grid g-cards" id="earnGrid"></div>
+</section>
+
+<!-- EARN — referral and affiliate partners ONLY (Founder 2026-08-22). These were pulled out of
+     the radio bar, where they rotated as an ad; they belong on a page a visitor chose to open.
+     Every link keeps rel="sponsored nofollow" — required disclosure, and it keeps the outbound
+     links from passing ranking signal. -->
+<section id="earn">
+  <div class="sh"><h2>EARN</h2></div>
+  <div class="grid g-cards" id="affGrid"></div>
+
+  <!-- The "GET YOUR SONG ON KEEPITIL RADIO" submission form was removed 2026-08-22
+       (Founder). The radio_airplay_requests table and submitAirplay() are left in place — the
+       terms were still pending review, so nothing is lost by taking the form down and it can be
+       re-mounted without rebuilding it. -->
+</section>
+
+<!-- CREATOR SERVICES / GAMES / MOBILE APP sections REMOVED 2026-08-18 (Founder).
+     EARN is now Stations · Playlists · Create-Compete-Earn — the three things that are actually
+     about earning. The rest were a services menu, a games arcade and an app advert sharing one
+     page because Radio used to be the catch-all before EARN became a surface in its own right.
+     Games still live at /games/. The app is still installable. Neither needed a section here. -->
+
+</main>
+
+<!-- DESKTOP SIDE-BAR FILTER REMOVED 2026-08-18 (Founder). It was a fixed hover-reveal rail of
+     Channel / Playlist / Schedule / App that only scrolled to sections already visible on the
+     page — a floating control duplicating the page's own order. The subpage switcher had already
+     been stripped on 2026-08-15, so this is the rest of the rail going.
+     radScroll() is kept: the mobile pager still calls into these sections by id. -->
+<!-- (no side rail) -->
+<script>
+function radScroll(id,el){ var s=document.getElementById(id); if(s){ try{ s.scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){ location.hash=id; } } if(el&&el.parentNode){ [].forEach.call(el.parentNode.querySelectorAll('.cvr.sf'),function(b){b.classList.remove('on');}); el.classList.add('on'); } }
+function vrToggleSub(e){ if(e){try{e.stopPropagation();}catch(x){}} var dd=document.getElementById('vrSubDD'); if(dd)dd.classList.toggle('open'); }
+function vrGoSub(sp){ var dd=document.getElementById('vrSubDD'); if(dd)dd.classList.remove('open'); location.href=(sp==='feed'?'/culture/':(sp==='radio'?'/culture/radio':'/culture/vs')); }
+document.addEventListener('click',function(e){ var dd=document.getElementById('vrSubDD'),b=document.getElementById('vrSubBtn'); if(dd&&dd.classList.contains('open')&&!dd.contains(e.target)&&b&&!b.contains(e.target))dd.classList.remove('open'); });
+</script>
+
+<!-- universal shell: injects the DISCOVER·CONNECT·CREATE·CULTURE·EARN nav + footer + radio rules (same on every page) -->
+
+<!-- ══════════════════════════════════════════════════════════════════════════════════════
+     MOBILE RADIO (Founder 2026-08-04, handoff #58) — same reusable pattern as Culture.
+     STRICTLY ≤860px; desktop (per-section carousels + accordions) is untouched.
+     Locked values, 302x600 frame: navBar 6,6 290x30 · sectionCarousel 6,36 290x28 ·
+     mini-player 44px above the 56px bottom nav.
+     RENAMES per spec: Stations→Channel, Create/Compete/Earn→VS.
+     ══════════════════════════════════════════════════════════════════════════════════════ -->
+<style>
+@media(max-width:860px){
+  /* subpage tabs — Radio active, teal accent */
+  /* the shell reserves top-nav space even though it hides the bar ≤860px — reclaim it here only */
+  /* Was padding-top:0 — correct for the missing top nav, wrong for the notch. With
+     viewport-fit=cover and a black-translucent status bar the page starts UNDER the clock and
+     battery, so the EARN title was clipped off the top and the page looked pre-scrolled
+     (Founder 2026-08-21: "default scrolled too high and i can not see the top").
+     The status bar has no fixed height — env() is the only correct value. */
+  /* padding-top REMOVED (KODE 2026-08-24). It predates #kil-statusbar. The shell now mounts
+     a position:fixed black layer over the notch, so the page still begins at y=0 and the
+     landing panel adds --kil-safe-top back into its own height. Padding the body as well
+     shifted the panel down by the inset a second time, pushing the metrics off the nav.
+     /connect — the reference — has no body padding-top. The title cannot clip the way it
+     did in the original bug because the hero is now bottom-weighted (flex-end). */
+  /* Founder 2026-08-24: the 70px clears the DESKTOP shell nav, which is display:none below
+     861px. Leaving it makes the landing panel start at y=70 while the canonical height assumes
+     y=0, so the panel overshoots by exactly 70px and the metrics row — the last thing in a
+     bottom-weighted column — falls behind the bottom nav.
+     /connect has no body padding-top; that is the whole reason it was the only correct page.
+     Third instance of one defect: Discovery's 56px, /earn's rad-m inset, now this.
+     padding-bottom is deliberately NOT touched here: the shell already emits
+     `body{padding-bottom:0!important}` inside its own 860px block, so the page's
+     calc(96px + env(safe-area-inset-bottom)) is already dead on mobile and the two are not
+     compounding. Verified in the served shell before changing anything. KODE 2026-08-24. */
+  body.rad-m{padding-top:0!important;margin-top:0!important}
+  #radMTabs{position:sticky;top:0;z-index:70;display:flex;gap:6px;height:38px;align-items:center;
+    padding:0 2%;background:#0a0a0f;margin:0 0 4px}
+  #radMTabs button{flex:1 1 0;height:30px;border-radius:9px;border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.05);color:#cfe6df;font:800 .74rem/1 var(--fh,Inter),sans-serif;
+    letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+  #radMTabs button.on{background:linear-gradient(90deg,#0f6e56,#00e0a4);border-color:transparent;color:#04120a}
+  /* section carousel — transparent, horizontally scrollable */
+  #radMSecs{position:sticky;top:38px;z-index:65;display:flex;gap:7px;height:36px;align-items:center;
+    padding:0 2%;overflow-x:auto;scrollbar-width:none;background:transparent;margin:0 0 8px}
+  #radMSecs::-webkit-scrollbar{display:none}
+  #radMSecs button{flex:0 0 auto;height:28px;padding:0 13px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#cfe6df;
+    font:800 .7rem/1 var(--fh,Inter),sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+  #radMSecs button.on{background:linear-gradient(90deg,#0f6e56,#00e0a4);border-color:transparent;color:#04120a}
+  /* all sections visible; the one-at-a-time filter was removed 2026-08-20 */
+  /* Every section renders and the page simply scrolls. With the filter bar gone, hiding
+     non-active sections would strand a mobile visitor on the first one with no way to reach
+     the others — removing the control means removing what the control was hiding. */
+  /* Tightened bottom padding (Founder 2026-09-03): 20px under every rail plus the rail's own
+     bottom padding was the wide background band between categories. 10px keeps the seam
+     visible without the page reading as mostly gaps. */
+  body.rad-m main.wrap>section{display:block;border-top:0;padding:6px 0 10px}
+  /* The hero used to be hidden on mobile because it was a wall of prose. It is now the stat row,
+     which is the point of the header — so it stays, compacted (Founder 2026-08-21). */
+  /* EXACTLY the homepage pattern (#evx .evx-nav, index.html): top:0 and GROW into the
+     status-bar band. Offsetting to top:env(safe-area-inset-top) leaves a transparent strip
+     above the bar that page content scrolls through — the Founder's "you can see scrolling
+     above the filter". The bar must own that band, not sit below it. */
+  /*     ⚠ z-index 940, BELOW the shell's bottom nav (#kil-bnav is 950). It was 960, which put the
+     filter bar IN FRONT of the bottom nav as the page scrolled — every other page passes behind
+     it. Anything sticky on a page must stay under 950 or it will cross the nav. */
+  /* Founder 2026-08-24 — same change as /connect and /create: offset below the black status
+     layer instead of growing into it. See the note in connect/index.html for why. */
+  body.rad-m .controls{top:var(--kil-safe-top,0px);padding:10px 0;max-width:none;margin-top:0;z-index:940}
+  body.rad-m .controls-row{padding:0 14px}
+  body.rad-m .controls-row{flex-direction:column;align-items:stretch;gap:8px}
+  body.rad-m .seg{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-width:100%}
+  body.rad-m .seg::-webkit-scrollbar{display:none}
+  body.rad-m .seg button{flex:0 0 auto;white-space:nowrap}
+  body.rad-m .search{width:100%;min-width:0}
+  /* Mobile has no fixed top bar, so the panel is the full viewport less the notch. */
+  /* Mobile: no fixed top bar, but the radio bar and bottom nav still occupy the foot. */
+  /* ONE rule, not two (KODE 2026-08-24). There were two body.rad-m .hero rules of equal
+     specificity fighting over min-height. The loser subtracted `- 60px` for a radio bar the
+     shell pushes off screen below 861px, and subtracted the top inset a SECOND time on top of
+     --kil-bnav-h, which already contains env(safe-area-inset-bottom). Source order happened to
+     pick the right one; the next edit to this block would have silently flipped it.
+     Canonical height per the shell contract: the measured usable band, plus --kil-safe-top
+     because the panel begins at y=0 underneath the fixed black status layer. */
+  body.rad-m .hero{display:flex;flex-direction:column;justify-content:flex-end;text-align:center;
+    padding:4px 0 14px;
+    min-height:calc(var(--kil-vh,100dvh) + var(--kil-safe-top,0px))}
+  body.rad-m .hero h1{font-size:clamp(3rem,16vw,4.4rem)}
+  body.rad-m .hero .stats{flex-wrap:nowrap;justify-content:center;gap:min(6vw,26px)}
+  body.rad-m .hero .stat{flex:0 1 auto;min-width:0}
+  body.rad-m .hero .stats{margin-top:10px}
+  /* the desktop accordion collapses grids until .open — on mobile always show them */
+  /* KODE 2026-08-20, Part C #5: THIS is the rule that kept /earn a single column on a phone.
+     The desktop accordion rule was fixed and verified — but this mobile-only !important wins
+     over display:flex and only bites at ≤860px, so the fix was verified exactly where the
+     broken rule does not apply. Rails on mobile too. */
+  /* ONE ROW PER SECTION, ALWAYS (Founder 2026-08-21: "carousel by section and single row only",
+     same as the homepage event rails). The section.open state could still expand a rail back
+     into a wrapping grid; on a phone that turns one swipeable row into a tall block and the page
+     grows past the viewport. Locked to a nowrap rail regardless of open state. */
+  body.rad-m section .grid,
+  body.rad-m section.open .grid,
+  body.rad-m section .grid.rad-carou,
+  body.rad-m section.open .grid.rad-carou{
+    display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;
+    scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;max-width:100%}
+  /* Nothing inside a rail may claim a full-width basis — that is what pushes the rail, and then
+     the page, wider than the screen. */
+  /* 220px, matching DISCOVER (Founder 2026-09-03). This !important rule is the one actually
+     in force on a phone - body.rad-m is the mobile radio layout - so the earlier change to the
+     plain .grid rules had no effect here. ~1.5 cards at 375-402px, same as every other rail. */
+  body.rad-m section .grid > *{flex:0 0 220px!important;scroll-snap-align:start}
+  body.rad-m #radNoHits{flex:0 0 auto!important;max-width:80vw}
+  /* NO DOCKED BAR ON MOBILE (Founder 2026-08-26). This page used to force the shell's
+     mini-player back on screen here — it was the only page that did. Row 3 of the radio
+     section now carries the transport, so the docked bar was a second set of the same
+     controls competing for the bottom of a phone screen.
+     ⚠ THIS HIDES THE BAR, NOT THE RADIO. The audio engine is #kil-sc, a separate element kept
+     alive by <html data-radio="page">; display:none on the bar does not touch it, so playback
+     continues and the section's own row keeps working. */
+  body.rad-m #kil-radio{display:none!important}
+  /* ── FOOTER MATCHES /connect AND /create (Founder 2026-08-24) ────────────────────────────
+     "footer has extra space at the bottom of the footer followed by a gap after the footer.
+      connect and create do not and have the best examples."
+     This was `padding-bottom:calc(120px + env(safe-area-inset-bottom))!important` — the page
+     reserving room for a mini player, on top of the 96px the base body rule already reserves.
+     That padding lives OUTSIDE the footer, so it rendered as the gap AFTER it, and the shell
+     then honoured it as a floor: publishBarHeight() measures the page's own padding once as
+     KIL_BASE_PAD and never goes below it. /connect measures 0 there, which is the entire
+     reason its footer sits clean against the nav.
+     Zeroing it lets the shell's `#v3-footer{padding-bottom:calc(12px + var(--kil-bnav-h))}`
+     be the ONLY clearance — inside the footer, painted in the footer's colour. */
+  body.rad-m{padding-bottom:0!important}
+  /* section-name pop that fades, same affordance as Culture */
+  #radSwToast{position:fixed;left:50%;top:calc(38px + 36px + 10px);transform:translateX(-50%);z-index:90;
+    background:rgba(10,16,14,.88);border:1px solid rgba(0,224,164,.35);border-radius:999px;
+    padding:7px 18px;color:#d9fff2;font:800 .76rem/1 var(--fh,Inter),sans-serif;letter-spacing:.12em;
+    text-transform:uppercase;opacity:0;transition:opacity .9s ease;pointer-events:none}
+  #radSwToast.on{opacity:1;transition:opacity .12s ease}
+}
+
+@media(min-width:861px){
+  /* Same desktop scale as DISCOVER and CREATE (Founder 2026-09-05). */
+  section{padding:var(--kil-sec-gap,18px) 0;}
+  .sh{margin-bottom:var(--kil-head-gap,12px);}
+}
+
+/* ── EARN MOBILE: RADIO TAKES THE SEARCH ROW, NEVER THE FILTER ROW (Founder 2026-09-05) ──
+   The category filter is the one thing that stays put. Search sits under it, and once the
+   visitor is deeper into the page the radio bar moves into the SEARCH slot — the search
+   transitions out, the filter never moves, and the two are never stacked.
+   There is exactly one radio bar on the page: #krBar is MOVED between its section and the
+   control row, never duplicated, so its state, handlers and the single shell player are
+   untouched. */
+@media(max-width:860px){
+  body.rad-m .controls-row{flex-direction:column;align-items:stretch;gap:8px}
+  body.rad-m .controls-row > .seg{order:1}
+  body.rad-m .controls-row > .search,
+  body.rad-m .controls-row > #krBar{order:2;width:100%}
+  /* Full usable width: the bar breaks the row's 14px inset and re-applies nothing. */
+  body.rad-m #krBar{margin:0;width:100%;max-width:none;box-sizing:border-box}
+  body.rad-m.earn-radioswap .controls-row > .search{display:none}
+  /* In its own section the bar is also full width rather than inset by the rail padding. */
+  body.rad-m #stations #krBar{width:100%;max-width:none;margin-left:0;margin-right:0}
+}
+</style>
+<script>
+/* MOBILE RADIO enhancer — additive, ≤860px only; returns early above that. */
+(function(){
+  function isMob(){ try{ return window.matchMedia('(max-width:860px)').matches; }catch(e){ return false; } }
+  function sync(){ document.body.classList.toggle('rad-m', isMob()); }
+  sync(); window.addEventListener('resize', sync);
+  if(!isMob()) return;
+
+  /* section id -> label, using the Founder's renames */
+  var SECS = [
+    /* Founder 2026-08-18: Schedule / Apps / Games sections removed from this page. */
+    ['stations','Channel'], ['playlists','Playlist'], ['earn','VS']
+  ].filter(function(s){ return document.getElementById(s[0]); });
+  if(!SECS.length) return;
+  var idx = 0;
+
+  var main = document.querySelector('main.wrap'); if(!main) return;
+  /* Founder 2026-08-15: the mobile Feed/Radio/VS switcher is gone — all three are shell nav
+     destinations now. #radMTabs stays in the DOM because M1's safe-area fix and the section
+     bar's offset both key off it; it just renders nothing. */
+  var tabs = document.createElement('div'); tabs.id = 'radMTabs';
+  tabs.innerHTML = '';
+  /* SECTION FILTER BAR REMOVED — Founder 2026-08-20: "the mobile earn page still has filters
+     swipe left and right. that needs to be removed."
+     The element stays in the DOM and renders nothing, exactly like #radMTabs above it: M1's
+     safe-area fix and the sticky offsets below both key off these two ids, so deleting the
+     nodes would move every section up under the status bar. Empty bar, no buttons, no swipe. */
+  var secbar = document.createElement('div'); secbar.id = 'radMSecs';
+  secbar.innerHTML = '';
+  main.parentNode.insertBefore(tabs, main);
+  main.parentNode.insertBefore(secbar, main);
+
+  tabs.addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(b && b.dataset.go) location.href = b.dataset.go;
+  });
+  secbar.addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(b) show(Number(b.dataset.i));
+  });
+
+  function toast(t){
+    var el = document.getElementById('radSwToast');
+    if(!el){ el = document.createElement('div'); el.id='radSwToast'; document.body.appendChild(el); }
+    el.textContent = t; el.classList.add('on');
+    clearTimeout(el._t); el._t = setTimeout(function(){ el.classList.remove('on'); }, 850);
+  }
+  function show(i, quiet){
+    idx = (i + SECS.length) % SECS.length;
+    SECS.forEach(function(s, n){
+      var el = document.getElementById(s[0]);
+      if(el) el.classList.toggle('rad-on', n === idx);
+    });
+    [].forEach.call(secbar.children, function(b, n){ b.classList.toggle('on', n === idx); });
+    var active = secbar.children[idx];
+    if(active && active.scrollIntoView) active.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'});
+    if(!quiet) toast(SECS[idx][1]);
+  }
+  show(0, true);
+
+  /* Swipe-to-cycle removed with the filter bar (Founder 2026-08-20). */
+
+  document.addEventListener('touchend', function(e){
+    if(x0==null) return;
+    var tt=e.changedTouches[0], dx=tt.clientX-x0, dy=tt.clientY-y0, dt=Date.now()-t0; x0=null;
+    if(dt>700) return;
+    if(Math.abs(dx)<55 || Math.abs(dx)<Math.abs(dy)*1.7) return;
+    show(idx + (dx<0 ? 1 : -1));
+  }, {passive:true});
+})();
+</script>
+<script src="/keepitil-shell.js?v=20260909a" defer></script>
+<!-- seasonal background rotation (auto by date; ?season=<slug> to preview) -->
+<script src="/kil-seasons.js?v=20260826a"></script>
+<!-- persistent synchronized radio bar -->
+<script src="/assets/js/keepitil-radio.js?v=20260907a" defer></script>
+<!-- floating AI chat bubble (#kilo-btn) — same as Culture/home for uniformity -->
+<script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
+<script>
+/* One anon key for this page's two public reads (playlists + competitions). Same publishable
+   key every other page already ships in its HTML. */
+window.KIL_EARN_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ';
+/* genre → emoji + hue for the card image band */
+var GENRES=[
+ ['Hip-Hop','🎤',280],['House','🏠',200],['Techno','🤖',190],['Bass','🔊',260],['R&B & Soul','💜',300],['Pop','⭐',330],
+ ['Rock','🎸',12],['Metal','🤘',0],['Country & Americana','🤠',35],['Latin','💃',20],['Afrobeats & African','🥁',45],
+ ['Reggae & Dancehall','🌴',140],['Jazz','🎷',270],['Classical','🎻',220],['Indie & Alternative','🎶',170],['Mixed Discovery','🔀',160]
+];
+function band(hue,glyph){return '<div class="card-img" style="background:linear-gradient(135deg,hsl('+hue+',70%,42%),hsl('+((hue+40)%360)+',65%,20%))">'+glyph+'</div>';}
+/* ── RADIO CAROUSEL (Founder 2026-08-25) ───────────────────────────────────────────────
+   Was: one <a> per playlist linking OUT to soundcloud.com. Now each tile selects the station
+   on KEEPITIL's own player, because leaving the site to hear a station is not "changes
+   playlist and starts its first song".
+   Read from platform_config.radio_playlists — the SAME row the radio bar reads — so the page
+   and the player can never disagree about which stations exist. */
+function kilStationCard(p, i){
+  /* Back to the page's standard 2:3 card (Founder 2026-08-25). Structure matches the station
+     card this rail used before the carousel — .card + .card-img poster — so it is the same
+     size as every other card on the page, from the same CSS rules. Only the behaviour is new:
+     a button that selects the station on KEEPITIL's own player, not an <a> out to soundcloud. */
+  var cover = p.art
+    ? "background-image:url('" + String(p.art).replace(/'/g, "%27") + "')"
+    : '';
+  return '<button class="station card kr-tile" type="button" data-i="' + i + '" '
+    +      'aria-label="Play ' + esc(p.name || 'Playlist') + '">'
+    +   '<div class="card-img" style="' + cover + '">' + (p.art ? '' : '\u266a')
+    +     '<span class="kr-state"><b>' + esc(p.name || 'Playlist') + '</b>'
+    +     '<em data-st>Tap to play</em></span>'
+    +   '</div>'
+    + '</button>';
+}
+
+/* Tap — and ONLY tap — changes station. Delegated, so it survives a repaint of the rail. */
+document.addEventListener('click', function(e){
+  var t = e.target.closest && e.target.closest('.kr-tile');
+  if(!t) return;
+  var i = parseInt(t.getAttribute('data-i'), 10);
+  if(isNaN(i)) return;
+  if(typeof window.__kilRadioSelect === 'function') window.__kilRadioSelect(i);
+  else { /* radio script not up yet — reflect the choice locally so the tap is not swallowed */
+         kilMarkActive(i); }
+});
+
+/* Selection is tap-only; the rail is never re-scrolled by script. See the CSS note above. */
+function kilMarkActive(i){
+  var grid = document.getElementById('stationGrid'); if(!grid) return;
+  var tiles = grid.querySelectorAll('.kr-tile');
+  [].forEach.call(tiles, function(t){
+    var on = parseInt(t.getAttribute('data-i'),10) === i;
+    t.classList.toggle('on', on);
+    var st = t.querySelector('[data-st]');
+    if(st) st.textContent = on ? 'Now playing' : 'Tap to play';
+  });
+}
+
+/* HEADER SEARCH BAR (Founder 2026-09-01). The search<->radio swap was removed: the desktop
+   controls row is a SEARCH/FILTER bar and must stay one. The page's only Radio bar is the
+   global player docked at the foot of the shell. Search/filter is not Radio. */
+
+/* Row 3's transport. The shell bar is hidden on mobile, so these drive the player directly
+   through __kilRadioSong() rather than proxying a click at an element that is not on screen. */
+document.addEventListener('click', function(e){
+  var b = e.target.closest && e.target.closest('#krPrev,#krNext');
+  if(!b) return;
+  /* #krCur is a hidden data holder now, not a control — the centre is a display. */
+  if(typeof window.__kilRadioSong !== 'function') return;
+  window.__kilRadioSong(b.id === 'krPrev' ? -1 : 1);
+});
+
+/* Row 3 mirrors the shell player. The bar is the only place these values are computed, so this
+   listens rather than reading the SoundCloud widget a second time. */
+document.addEventListener('kil-radio-state', function(e){
+  var d = e.detail || {};
+  function put(id, v, fallback){
+    var el = document.getElementById(id); if(!el) return;
+    el.textContent = (v && String(v).trim()) ? v : fallback;
+  }
+  /* Founder's rule, same as the bar's: when a neighbour does not exist, name the playlist
+     rather than leaving a slot blank. */
+  var pl = d.playlist || '';
+  put('krPl',  pl,        '\u2014');
+  put('krCur', d.current, pl || '\u2014');
+  put('krNxt', d.next,    pl || '\u2014');
+  if(typeof d.index === 'number') kilMarkActive(d.index);
+});
+
+/* ── RADIO DISPLAY CYCLE (Founder 2026-08-31, §10) ──────────────────────────────────────
+   The centre alternates between the station/playlist name and the current track rather than
+   showing "Playlist — Track" as one cramped string. Fade out, swap, fade in, hold ~2.6s.
+
+   ⚠ PRESENTATION ONLY. This reads #krPl and #krCur, which the kil-radio-state listener above
+   already writes. It never touches the SoundCloud widget, never constructs a player and never
+   calls a transport, so a text change cannot restart or reseek playback.
+
+   Marquee is conditional: a label that fits is centred and still. Only text wider than the
+   display scrolls, and the distance it travels is measured per label rather than guessed. */
+(function(){
+  /* 4s per side (Founder 2026-09-06). The fade is inside that window, not added to it, so
+     a full name is legible for the whole hold rather than for whatever is left after it. */
+  var HOLD = 4000, FADE = 450;
+  var txt = document.getElementById('krTxt'), sub = document.getElementById('krSub');
+  if(!txt) return;
+  var state = 0, timer = null;
+  function read(id){
+    var el = document.getElementById(id);
+    var v = el ? (el.textContent || '').trim() : '';
+    return (v && v !== '\u2014') ? v : '';
+  }
+  function paint(label, caption){
+    txt.classList.remove('marquee');
+    txt.style.removeProperty('--kr-shift');
+    txt.textContent = label || '\u2014';
+    if(sub) sub.textContent = caption || '';
+    /* Measure AFTER the text is in the DOM; scrollWidth is the only honest answer. */
+    var over = txt.scrollWidth - txt.clientWidth;
+    if(over > 4){
+      txt.style.setProperty('--kr-shift', (-over - 8) + 'px');
+      txt.classList.add('marquee');
+    }
+  }
+  function tick(){
+    var pl = read('krPl'), cur = read('krCur');
+    /* With only one of the two known there is nothing to alternate between. */
+    if(!pl && !cur){ paint('KEEPITIL RADIO', ''); schedule(); return; }
+    if(!cur){ paint(pl, ''); schedule(); return; }
+    if(!pl){ paint(cur, ''); schedule(); return; }
+    txt.classList.add('fading');
+    setTimeout(function(){
+      state = state ? 0 : 1;
+      if(state) paint(cur, ''); else paint(pl, '');
+      txt.classList.remove('fading');
+      /* Schedule from the moment the NEW text is on screen, not from the start of the fade.
+         Scheduling before the swap made the period HOLD + FADE - measured 5s between
+         changes when the brief asked for 4 - so each side was shown for less than its turn. */
+      schedule();
+    }, FADE);
+  }
+  function schedule(){ clearTimeout(timer); timer = setTimeout(tick, HOLD); }
+  /* Repaint immediately when the broadcast changes, so a station switch is not held back by
+     the cycle timer. */
+  document.addEventListener('kil-radio-state', function(){
+    setTimeout(function(){
+      var pl = read('krPl'), cur = read('krCur');
+      if(state && cur) paint(cur, ''); else if(pl) paint(pl, '');
+    }, 0);
+  });
+  paint(read('krPl') || 'KEEPITIL RADIO', '');
+  schedule();
+})();
+
+/* esc() already exists further down this file — not redefined here. */
+
+function renderStations(){
+  var grid=document.getElementById('stationGrid');
+  if(!grid) return;
+  var SUPA='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
+  var KEY=window.KIL_EARN_KEY||'';
+
+  function paint(list){
+    if(!list || !list.length){
+      /* BROKEN != EMPTY — an empty rail must explain itself. */
+      grid.innerHTML='<div class="disc" style="flex:0 0 auto;max-width:80vw;padding:14px 2px">'
+        +'No playlists configured yet.</div>';
+      var s0=document.getElementById('eS'); if(s0) s0.textContent='0';
+      var k0=document.getElementById('krCount'); if(k0) k0.textContent='(0)';
+      return;
+    }
+    grid.innerHTML=list.map(kilStationCard).join('');
+    var el=document.getElementById('eS'); if(el) el.textContent=String(list.length);
+    /* Row 2 names the source and the size of it. Taken from the SAME list the rail renders,
+       so the number can never disagree with the number of cards beside it. */
+    var kc=document.getElementById('krCount');
+    if(kc) kc.textContent='('+list.length+')';
+    /* keepitil-radio.js is deferred and fetches its own config, so it may not exist yet — and
+       when it does, its first `kil-radio-state` only fires once the SoundCloud widget reports
+       a track. Until then the rail would show no active station at all. Poll briefly for the
+       player, mark the active tile, and seed row 3 with the playlist name so the bar is never
+       three em-dashes on a working radio. */
+    (function sync(n){
+      if(typeof window.__kilRadioPlaylists === 'function'){
+        var st = window.__kilRadioPlaylists();
+        kilMarkActive(st.index);
+        var nm = (st.list[st.index] || {}).name || '';
+        ['krPl','krCur','krNxt'].forEach(function(id){
+          var e = document.getElementById(id);
+          if(e && (!e.textContent || e.textContent === '\u2014')) e.textContent = nm || '\u2014';
+        });
+        /* Do NOT return on the seed. keepitil-radio.js starts with a one-entry placeholder
+           playlist and replaces it when platform_config arrives; stopping here pinned the row
+           to that placeholder name. Keep polling until the real list (more than the seed) is
+           in, and the config broadcast will overwrite this anyway. */
+        if(st.list.length > 1) return;
+      }
+      if(n < 24) setTimeout(function(){ sync(n+1); }, 250);
+    })(0);
+  }
+
+  fetch(SUPA+'/rest/v1/platform_config?select=value&key=eq.radio_playlists',
+        {headers:{apikey:KEY,Authorization:'Bearer '+KEY}})
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(rows){
+      var v=rows&&rows[0]&&rows[0].value;
+      /* value is a TEXT column holding JSON, so it arrives as a string. */
+      if(typeof v==='string'){ try{ v=JSON.parse(v); }catch(e){ v=null; } }
+      paint(v&&v.playlists);
+    })
+    .catch(function(e){ console.error('[earn] playlists failed to load',e); paint(null); });
+}
+
+/* ---- User playlists from public SoundCloud URLs (localStorage v1) ---- */
+function scValid(u){ return /^https?:\/\/(m\.|www\.)?soundcloud\.com\//i.test(u||''); }
+/* Playlist plumbing removed 2026-08-21 with the Playlists section (Founder). loadPls,
+   savePls, addPlaylist, rmPlaylist and renderPls all read or wrote #plList, #plName and
+   #plUrl — none of which exist any more, so every one of them was dead. */
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function iconCard(glyph,hue,chip,title,desc,extra){
+  return '<div class="card">'+band(hue,glyph)+'<span class="chip'+(/soon|scheduled/i.test(chip)?' soon':'')+'">'+chip+'</span>'
+    +'<h3 style="margin-top:8px">'+title+'</h3><p>'+desc+'</p>'+(extra||'')+'</div>';
+}
+
+/* ---- Schedule blocks ---- */
+var BLOCKS=[['Morning Discovery','🌅',35,'Fresh finds to start the day'],['Local Artist Spotlight','📍',200,'Your city, on rotation'],
+ ['Genre Hour','🎚️',260,'A deep dive, one genre at a time'],['Creator Education','🎓',150,'Learn the craft & the business'],
+ ['Venue Talk','🏛️',20,'Rooms, sound & the people behind them'],['Festival Preview','🎪',300,'What to catch this season'],
+ ['Community Picks','🫶',330,'Chosen by listeners'],['New Release Hour','🆕',180,'Just dropped'],
+ ['AI Crew Show','🤖',190,'KEEPITIL agents curate'],['Weekend Mix','🎧',270,'Long-play DJ sets']];
+var _g_scheduleGrid=document.getElementById('scheduleGrid'); if(_g_scheduleGrid) _g_scheduleGrid.innerHTML=BLOCKS.map(function(b){return iconCard(b[1],b[2],'Scheduled',b[0],b[3]);}).join('');
+
+/* ── EARN: referral & affiliate partners ONLY (Founder 2026-08-22) ─────────────────────
+   Moved here from the radio bar, where they rotated as an ad on every page. rel="sponsored
+   nofollow" on every one — that is the required disclosure and it stops the outbound links
+   passing ranking signal. data-kt keeps the existing click tracking. */
+(function(){
+  var grid=document.getElementById('affGrid'); if(!grid) return;
+  /* ── ONE CANONICAL CREATIVE PER CAMPAIGN (Founder 2026-09-07) ──────────────────────
+     EARN used to build its own partner tiles from a private list: a second copy of the
+     links, and gradient art that existed nowhere else. Both are gone. The rail now asks
+     the shell for the same cards DISCOVER renders, so a referral URL or a creative is
+     changed in one place and changes on every surface. Order is the approved one:
+     Freecash, DistroKid, Posh, Amazon, KEEPITIL Store. */
+  var ORDER=['freecash','distrokid','posh','amazon','keepitil-store'];
+  /* ⚠ THE SHELL IS DEFERRED, THIS SCRIPT IS NOT. On the first run KIL_SPONSORS does not
+     exist yet, so painting once here rendered an empty rail. Wait for the module rather
+     than assuming an order the markup does not guarantee. */
+  function paintPartners(){
+    if(!window.KIL_SPONSORS) return false;
+    grid.innerHTML = ORDER.map(function(id){
+      var sp = window.KIL_SPONSORS.byId(id);
+      if(!sp || !sp.active || !sp.href) return '';    /* a pending partner simply does not render */
+      return window.KIL_SPONSORS.card(0, 'aff-card', {
+        sponsor: sp,
+        placement: 'earn_partner_rail',
+        sizes: '(max-width:860px) 45vw, 240px'
+      });
+    }).join('');
+    if(window.KIL_SPONSORS.refreshImpressions) window.KIL_SPONSORS.refreshImpressions();
+    return true;
+  }
+  if(!paintPartners()){
+    var tries=0;
+    var t=setInterval(function(){ if(paintPartners() || ++tries>40) clearInterval(t); }, 150);
+    window.addEventListener('load', paintPartners);
+  }
+})();
+
+/* ── PLAYLISTS: a signed-in listener's own SoundCloud sets (Founder 2026-08-22) ────────
+   Server-side now, not localStorage: a playlist saved on a phone must be there on a laptop.
+   Rows are private by RLS, so these are audible only to the person who saved them — the
+   KEEPITIL rotation everyone hears is unchanged. */
+function scValid2(u){ return /^https?:\/\/(m\.|www\.)?soundcloud\.com\/.+/i.test(u||''); }
+
+function kilTok(){
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(k && k.indexOf('-auth-token')>-1){
+        var j=JSON.parse(localStorage.getItem(k)||'null');
+        if(j && j.access_token) return j.access_token;
+      }
+    }
+  }catch(e){}
+  return null;
+}
+function kilAuthHeaders(){
+  var t=kilTok();
+  return t ? {apikey:window.KIL_EARN_KEY, Authorization:'Bearer '+t, 'Content-Type':'application/json',
+              Prefer:'return=representation'} : null;
+}
+var PL_API='https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/user_playlists';
+
+function plGate(){
+  var signedIn=!!kilTok();
+  /* airForm/airGate dropped with the submission form 2026-08-22. */
+  var f=document.getElementById('plForm'); if(f) f.style.display=signedIn?'':'none';
+  var g=document.getElementById('plGate'); if(g) g.style.display=signedIn?'none':'';
+  return signedIn;
+}
+
+/* §14/§15. One row per user, so this is an UPSERT: a second save edits the existing playlist
+   rather than failing against the unique index or creating a duplicate the user cannot see.
+   Tracks are never copied — the SoundCloud URL stays authoritative (§15). */
+function addPlaylist(){
+  var h=kilAuthHeaders();
+  if(!h){ location.href='/apply'; return; }
+  var n=((document.getElementById('plName')||{}).value||'').trim();
+  var u=((document.getElementById('plUrl')||{}).value||'').trim();
+  var a=((document.getElementById('plArt')||{}).value||'').trim();
+  if(!scValid2(u)){ alert('Paste a public SoundCloud URL.'); return; }
+  if(a && !/^https?:\/\//i.test(a)){ alert('The cover must be a full image URL.'); return; }
+  var uid=(function(){ try{ return JSON.parse(atob(kilTok().split('.')[1])).sub; }catch(e){ return null; } })();
+  /* Prefer-resolution merge-duplicates turns the unique index from an error into an update,
+     which is exactly the "user may update their submitted playlist entry" rule. */
+  var hh={}; for(var k in h) hh[k]=h[k];
+  hh['Prefer']='resolution=merge-duplicates,return=representation';
+  fetch(PL_API+'?on_conflict=user_id', {method:'POST', headers:hh,
+        body:JSON.stringify({user_id:uid, name:n||'My playlist', url:u, art:a||null})})
+    .then(function(r){ if(!r.ok) throw new Error('save failed '+r.status); return r.json(); })
+    .then(function(){ renderPls(); })
+    .catch(function(e){ console.error('[earn] playlist save failed', e); alert('Could not save that playlist.'); });
+}
+
+function renderPls(){
+  var el=document.getElementById('plList'); if(!el) return;
+  if(!plGate()){ el.innerHTML=''; return; }
+  var h=kilAuthHeaders(); if(!h){ el.innerHTML=''; return; }
+  fetch(PL_API+'?select=id,name,url,art,is_default&order=created_at.asc', {headers:h})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){
+      /* Reflect what is already saved: the fields prefill and the button says Update, so a
+         returning user edits their playlist instead of wondering why Save does nothing new. */
+      var have=!!(rows && rows.length);
+      var btn=document.getElementById('plSave'); if(btn) btn.innerHTML=have?'\u2713 Update':'\uFF0B Save';
+      if(have){
+        var r0=rows[0];
+        var fN=document.getElementById('plName'), fU=document.getElementById('plUrl'), fA=document.getElementById('plArt');
+        if(fN && !fN.value) fN.value=r0.name||'';
+        if(fU && !fU.value) fU.value=r0.url||'';
+        if(fA && !fA.value) fA.value=r0.art||'';
+      }
+      if(!rows.length){ el.innerHTML=''; return; }
+      el.innerHTML=rows.map(function(p,i){
+        var hue=[280,200,35,140,320,90][i%6];
+        var cover=p.art ? 'background:#15131f url('+p.art+') center/cover no-repeat'
+                        : 'background:linear-gradient(135deg,hsl('+hue+',72%,44%),hsl('+((hue+40)%360)+',66%,20%))';
+        return '<div class="station card" style="position:relative">'
+          + '<a href="'+esc(p.url)+'" target="_blank" rel="noopener" style="display:block;color:inherit;text-decoration:none">'
+          +   '<div class="card-img" style="'+cover+'">'+(p.art?'':'\u266a')+'</div>'
+          +   '<div class="g">'+esc(p.name)+'</div><div class="s">Your playlist</div>'
+          + '</a>'
+          + '<button class="chip'+(p.is_default?'':' soon')+'" onclick="setDefaultPlaylist('+p.id+')" '
+          +   'style="border:0;cursor:pointer;margin-top:8px">'+(p.is_default?'DEFAULT':'SET DEFAULT')+'</button>'
+          + '<button onclick="rmPlaylist('+p.id+')" title="Remove" '
+          +   'style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);border:0;color:#ff6b6b;'
+          +   'font-weight:800;cursor:pointer;border-radius:6px;padding:2px 7px">&times;</button>'
+          + '</div>';
+      }).join('');
+    })
+    .catch(function(e){ console.error('[earn] playlists failed', e); });
+}
+
+/* ── AIRPLAY SUBMISSION ────────────────────────────────────────────────────────────────
+   Records a REQUEST. It does not put anything on air and it does not create an agreement —
+   status starts 'requested' and a human moves it from there. */
+function submitAirplay(){
+  var h=kilAuthHeaders(), msg=document.getElementById('airMsg');
+  if(!h){ location.href='/apply'; return; }
+  var artist=(document.getElementById('airArtist')||{}).value||'';
+  var email =(document.getElementById('airEmail') ||{}).value||'';
+  var url   =(document.getElementById('airUrl')   ||{}).value||'';
+  var genre =(document.getElementById('airGenre') ||{}).value||'';
+  var ok    =(document.getElementById('airTerms') ||{}).checked;
+  if(!artist.trim()||!email.trim()||!scValid2(url.trim())){ msg.textContent='Artist, email and a SoundCloud URL are required.'; return; }
+  if(!ok){ msg.textContent='Please confirm you are authorised to license this recording.'; return; }
+  msg.textContent='Sending…';
+  fetch('https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/radio_airplay_requests', {
+    method:'POST', headers:h,
+    body:JSON.stringify({
+      user_id:(function(){ try{ return JSON.parse(atob(kilTok().split('.')[1])).sub; }catch(e){ return null; } })(),
+      artist_name:artist.trim(), contact_email:email.trim(), track_url:url.trim(),
+      genre:genre.trim()||null, terms_agreed:true, terms_version:'airplay-v1'
+    })
+  })
+  .then(function(r){ if(!r.ok) throw new Error('submit failed '+r.status); return r.json(); })
+  .then(function(){ msg.textContent='Received. We review every submission before anything goes on air.';
+                    ['airArtist','airEmail','airUrl','airGenre'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+                    document.getElementById('airTerms').checked=false; })
+  .catch(function(e){ console.error('[earn] airplay submit failed', e); msg.textContent='Could not send that — try again.'; });
+}
+
+/* ── CREATE competition cards (Founder 2026-08-21) ─────────────────────────────────────
+   The eight entries here used to be a hard-coded array of competitions that do not exist —
+   "Song of the Month", "Beat Battle" and so on, every one of them labelled "Open soon". This
+   now reads vs_competitions, so the rail shows the SAME seven Q4 competitions /create shows and
+   cannot invent one or miss one. Same 2:3 card shape as the homepage and CREATE. */
+(function(){
+  var grid = document.getElementById('earnGrid');
+  if(!grid) return;
+  function esc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function paint(rows){
+    if(!rows || !rows.length){
+      /* BROKEN != EMPTY — an empty rail with no explanation reads as a dead page. */
+      grid.innerHTML = '<div class="disc" style="flex:0 0 auto;max-width:80vw;padding:14px 2px">'
+        + 'No competitions are open right now. <a href="/create/" style="color:var(--brand)">See CREATE →</a></div>';
+      var c1=document.getElementById('eC'); if(c1) c1.textContent='0';
+      return;
+    }
+    grid.innerHTML = rows.map(function(c){
+      var closes=''; try{ var dt=new Date(c.submissions_close_at); if(!isNaN(dt)) closes='Closes '+dt.toLocaleDateString([],{month:'short',day:'numeric'}); }catch(e){}
+      var free = !c.entry_fee_cents;
+      var art = c.cover_url
+        ? '<div class="card-img" style="height:auto;aspect-ratio:2/3;margin:-16px -16px 12px;background:#15131f url('+esc(c.cover_url)+') center/cover no-repeat"></div>'
+        : '<div class="card-img" style="background:linear-gradient(150deg,#ff2e88,#a06bff)">🏆</div>';
+      return '<a class="card station" href="/create/?view=enter&c='+encodeURIComponent(c.id)+'">'
+        + art
+        + '<div class="g">'+esc(c.title)+'</div>'
+        + '<div class="s">'+esc(c.season_label||'CREATE')+'</div>'
+        + '<span class="chip'+(free?'':' soon')+'">'+(free?'FREE TO ENTER':'$'+(c.entry_fee_cents/100).toFixed(2))+'</span>'
+        + (closes?'<div class="meta">'+esc(closes)+'</div>':'')
+        + '</a>';
+    }).join('');
+    var el=document.getElementById('eC'); if(el) el.textContent=String(rows.length);
+  }
+
+  /* Read-only, anon-safe: published competitions are public on /create already. */
+  /* ⚠ SELECT ONLY COLUMNS THAT EXIST. PostgREST answers 400 for an unknown column, and a 400
+     here lands in the "no competitions" branch — so a typo looks exactly like an empty season.
+     vs_competitions has NO `category` column (it has category_id, and the joined name just
+     repeats the title anyway); asking for it is what kept this rail empty. season_label is the
+     useful subtitle: "Q4 2026". */
+  var URL_ = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/vs_competitions'
+    + '?select=id,title,season_label,cover_url,entry_fee_cents,submissions_close_at,status'
+    + '&status=eq.published&order=submissions_close_at.asc';
+  var KEY_ = window.KIL_EARN_KEY || '';
+
+  /* A plain fetch rather than the Supabase SDK: this page needs exactly one public read, and
+     pulling the whole client in for that would cost more than the request. The anon key is the
+     same publishable key every other page already ships in its HTML. */
+  fetch(URL_, { headers: { apikey: KEY_, Authorization: 'Bearer ' + KEY_ } })
+    .then(function(r){
+      /* Say WHY, in the console, rather than letting a 400 masquerade as an empty season. */
+      if(!r.ok){ console.error('[earn] competitions request failed', r.status, URL_); return null; }
+      return r.json();
+    })
+    .then(function(rows){ paint(rows); })
+    .catch(function(e){ console.error('[earn] competitions failed to load', e); paint(null); });
+})();
+
+/* ---- Creator Services ---- */
+var SERVICES=[['Add my song','🎵',160,'Get your track considered for a station','Free · reviewed'],
+ ['Submit a mix','🎚️',260,'DJ mixes for shows & rotation','Free · reviewed'],
+ ['Submit a playlist','📃',200,'Pitch a curated playlist','Free · reviewed'],
+ ['Request an interview','🎤',300,'Be featured on a show','Free · reviewed'],
+ ['Request a spotlight','🌟',45,'Editorial feature','Free · reviewed'],
+ ['Promote an event','📣',20,'Get your event on-air','Beta'],
+ ['Advertise on Radio','📈',190,'Reach listeners','Paid · rate card'],
+ ['Sponsor a show','🤝',140,'Brand a station block','Paid · reviewed'],
+ ['Referral partner','🔗',270,'Earn on referrals','Application'],
+ ['Ticket-sales commission','🎟️',330,'Earn on tickets you drive','Application']];
+var _g_servicesGrid=document.getElementById('servicesGrid'); if(_g_servicesGrid) _g_servicesGrid.innerHTML=SERVICES.map(function(s){
+  var subj=encodeURIComponent('KEEPITIL Radio — '+s[0]);
+  var body=encodeURIComponent('Request: '+s[0]+'\n\nName:\nProfile / link:\nDetails:\n\nI confirm I hold the rights to anything I submit.');
+  return iconCard(s[1],s[2],s[4],s[0],s[3],'<div class="meta">Timeline: ~5 business days</div><a class="btn ghost" style="margin-top:12px" href="mailto:info@keepitil.com?subject='+subj+'&body='+body+'">Request</a>');
+}).join('');
+
+/* ---- Games (all live at /games/) ---- */
+/* Games: only real, playable titles (Founder 2026-08-04) — the Games hub link lives in the section footer */
+var GAMES=[['Age of Wars','⚔️',12,'Strategy war game — build, battle, conquer.','/games/ageofwars/'],
+ ];  /* Kingdom Wars removed 2026-08-26: /games/kingdom-wars/ does not exist. */
+var _g_gamesGrid=document.getElementById('gamesGrid'); if(_g_gamesGrid) _g_gamesGrid.innerHTML=GAMES.map(function(g){
+  return '<a class="card" href="'+g[4]+'" style="display:block;color:inherit">'+band(g[2],g[1])
+    +'<span class="chip">Play free</span><h3 style="margin-top:8px">'+g[0]+'</h3><p>'+g[3]+'</p></a>';
+}).join('');
+
+/* ---- Mobile App ---- */
+/* Mobile: only what's actually usable today — the installable web app (Founder 2026-08-04) */
+var MOBILE=[['Install the Web App','📲',190,'Add KEEPITIL to your home screen — works offline, no store needed.'],
+ ['Radio in your pocket','🎧',260,'Keep the stream going anywhere on your phone.']];
+var _g_mobileGrid=document.getElementById('mobileGrid'); if(_g_mobileGrid) _g_mobileGrid.innerHTML=MOBILE.map(function(m){return iconCard(m[1],m[2],'PWA',m[0],m[3]);}).join('');
+
+renderStations();
+renderPls();
+
+/* Header counters (Founder 2026-08-21). Read from the page's own data rather than hard-coded
+   numbers, so the header can never claim more stations or games than actually render. Playlists
+   are per-device in v1 (localStorage), so that number is this visitor's, which is what the
+   "Your Playlists" section below it also shows. */
+function radStats(){
+  var set=function(id,n){ var el=document.getElementById(id); if(el) el.textContent=String(n); };
+  try{ set('eG', (typeof GAMES!=='undefined' && GAMES.length) || 0); }catch(e){}
+}
+radStats();
+/* re-count after a playlist is added or removed */
+
+/* ── filter bar behaviour, cloned from /connect (Founder 2026-08-21) ────────────────────
+   Segments show/hide whole sections; the search filters station cards by genre name. The
+   two are independent — searching does not silently switch you to a section you did not
+   pick, and picking a section does not clear what you typed. */
+(function(){
+  var SEC={stations:'stations',playlists:'playlists',create:'create',earn:'earn'};
+  var seg=document.getElementById('radSeg'), q=document.getElementById('radQ'),
+      cnt=document.getElementById('radCount');
+  if(!seg) return;
+  var key='all';
+
+  function apply(){
+    var term=((q&&q.value)||'').trim().toLowerCase();
+    Object.keys(SEC).forEach(function(k){
+      var sec=document.getElementById(SEC[k]);
+      if(sec) sec.style.display=(key==='all'||key===k)?'':'none';
+    });
+    var shown=0, total=0;
+    [].forEach.call(document.querySelectorAll('#stationGrid > *'),function(card){
+      total++;
+      var name=(card.textContent||'').toLowerCase();
+      var hit=!term || name.indexOf(term)>-1;
+      card.style.display=hit?'':'none';
+      if(hit) shown++;
+    });
+    /* An active search that matches nothing must SAY so — a silently empty rail is
+       indistinguishable from a broken one. */
+    var grid=document.getElementById('stationGrid');
+    if(grid){
+      var msg=document.getElementById('radNoHits');
+      if(term && shown===0){
+        if(!msg){ msg=document.createElement('div'); msg.id='radNoHits'; msg.className='disc';
+          msg.style.cssText='flex:1 1 100%;padding:14px 2px'; grid.appendChild(msg); }
+        msg.textContent='No station matches “'+term+'”. '+total+' stations available.';
+        msg.style.display='';
+      } else if(msg){ msg.style.display='none'; }
+    }
+    if(cnt) cnt.textContent = term ? (shown+' of '+total+' stations') : (total+' stations');
+  }
+
+  seg.addEventListener('click',function(e){
+    var b=e.target.closest('button[data-k]'); if(!b) return;
+    key=b.dataset.k;
+    [].forEach.call(seg.querySelectorAll('button'),function(x){ x.classList.toggle('on',x===b); });
+    apply();
+  });
+  if(q) q.addEventListener('input',apply);
+  apply();
+})();
+/* ── SECTION ABOUT: EYE ON "ALL", OPEN ON A CATEGORY (Founder 2026-08-31, §5-§8) ─────────
+   The ALL page is the whole of EARN, so leading every section with a block of explanation
+   pushed the actual content off the first screen. On ALL the explanation folds behind a small
+   eye next to each section title. Choosing one category IS choosing to read about it, so
+   there the same copy opens by itself above that section's content.
+
+   The copy is MOVED, never rewritten: each panel is the existing <article class="hye"> node
+   from HOW YOU EARN, reparented. There is one copy of each explanation in the document, so
+   the two presentations cannot drift apart.
+
+   ⚠ The overlay is position:fixed and never scrolls the document. Closing it therefore lands
+   the visitor on the exact row they opened it from, which is what X has to do (§6). */
+(function(){
+  var MAP = [
+    ['stations',  'RADIO'],
+    ['playlists', 'PLAYLISTS'],
+    ['create',    'CREATE'],
+    ['earn',      'EARN']
+  ];
+  var hye = document.getElementById('howyouearn');
+  if(!hye) return;
+  /* ALL WIDTHS (Founder 2026-09-01). This was mobile-only; the correction is that desktop must
+     behave the same way. No permanently expanded ABOUT copy at any width — every section's
+     explanation lives behind that section's INFO button and nowhere else. */
+
+  /* Pull the four explanations out of HOW YOU EARN and key them by section id. */
+  var arts = [].slice.call(hye.querySelectorAll('article.hye'));
+  var about = {};
+  MAP.forEach(function(pair, i){
+    var art = arts[i];
+    if(!art) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'sec-about';
+    wrap.id = 'about-' + pair[0];
+    wrap.appendChild(art);            /* MOVES the node - copy is never duplicated */
+    /* The playlist section's standing instructions used to sit permanently under the form.
+       They belong with the rest of that section's explanation. */
+    if(pair[0] === 'playlists'){
+      var note = document.createElement('p');
+      note.textContent = 'One playlist each. Edit it on SoundCloud and KEEPITIL plays the '
+        + 'change \u2014 you only come back here to change the link, cover or name.';
+      wrap.appendChild(note);
+    }
+    about[pair[0]] = { node: wrap, label: pair[1] };
+  });
+
+  /* HOW YOU EARN keeps its heading, lead and footer - five lines that frame the whole page and
+     are not specific to any one category, so there is no eye they could sensibly hide behind.
+     What made this block "a large expanded explanation before each section" was the four
+     cards, and those have just been moved out. Removing the remaining copy would be deleting
+     it, and the instruction was to change presentation, not content. */
+  var grid = hye.querySelector('.hye-grid');
+  if(grid) grid.style.display = 'none';
+
+  /* One overlay, reused. */
+  var ov = document.createElement('div');
+  ov.id = 'hyeOv';
+  ov.innerHTML = '<div class="hye-panel" role="dialog" aria-modal="true" aria-labelledby="hyeOvTitle">' +
+    '<div class="hye-head"><h2 id="hyeOvTitle"></h2>' +
+    '<button type="button" class="hye-x" aria-label="Close">&#10005;</button></div>' +
+    '<div class="hye-body"></div></div>';
+  document.body.appendChild(ov);
+  var ovTitle = ov.querySelector('#hyeOvTitle'),
+      ovBody  = ov.querySelector('.hye-body'),
+      ovX     = ov.querySelector('.hye-x');
+  var openFor = null, lastFocus = null;
+
+  function closeOv(){
+    if(!openFor) return;
+    /* Put the panel back where it lives so the category view can still show it inline. */
+    var slot = document.getElementById('aboutSlot-' + openFor);
+    if(slot) slot.appendChild(about[openFor].node);
+    else if(ovBody.firstChild) ovBody.removeChild(ovBody.firstChild);
+    ov.classList.remove('on');
+    openFor = null;
+    /* No scrollTo of any kind. The document never moved. */
+    /* ⚠ preventScroll IS THE WHOLE FIX. Returning focus to the INFO button made the browser
+       scroll that button into view, which is what moved the page: measured 600 -> 1222 on
+       PLAYLISTS, 600 -> 1699 on EARN, and no movement at all on RADIO only because its button
+       happened to already be on screen. Focus belongs back on the control; the scroll does not
+       come with it. */
+    if(lastFocus && lastFocus.focus) { try{ lastFocus.focus({preventScroll:true}); }catch(e){ try{ lastFocus.focus(); }catch(e2){} } }
+  }
+  function openOv(k, from){
+    if(!about[k]) return;
+    lastFocus = from || null;
+    openFor = k;
+    ovTitle.textContent = about[k].label;
+    ovBody.appendChild(about[k].node);
+    ov.classList.add('on');
+    /* ⚠ DO NOT SET body{overflow:hidden} HERE. Measured: it moved the document from scrollY
+       700 to 1222, so X returned the visitor 522px away from the section they opened. This
+       page's body is overflow-x:clip, and toggling overflow re-resolves that and reflows the
+       scroller. The overlay is position:fixed and covers the viewport, and .hye-body carries
+       overscroll-behavior:contain, which is what actually stops a drag reaching the page
+       behind it. Leaving the document alone is what makes the scroll position exact. */
+    try{ ovX.focus({preventScroll:true}); }catch(e){ ovX.focus(); }
+  }
+  ovX.addEventListener('click', closeOv);
+  ov.addEventListener('click', function(e){ if(e.target === ov) closeOv(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeOv(); });
+
+  /* Eye button + an inline slot, per section. */
+  MAP.forEach(function(pair){
+    var id = pair[0];
+    var sec = document.getElementById(id); if(!sec || !about[id]) return;
+    var sh = sec.querySelector('.sh'); if(!sh) return;
+
+    /* A REAL CONTROL, NOT AN EMOJI (Founder 2026-08-31). The eye glyph rendered differently on
+       every platform and read as decoration rather than something to press. INFO sits on the
+       same row as the section title, which is why ADD SOUNDCLOUD PLAYLIST became ADD PLAYLIST. */
+    var eye = document.createElement('button');
+    eye.type = 'button';
+    eye.className = 'hye-info';
+    eye.setAttribute('aria-label', 'About ' + about[id].label);
+    eye.title = 'About ' + about[id].label;
+    eye.textContent = 'INFO';
+    eye.addEventListener('click', function(){ openOv(id, eye); });
+    sh.appendChild(eye);
+
+    var slot = document.createElement('div');
+    slot.id = 'aboutSlot-' + id;
+    slot.style.display = 'none';
+    sh.parentNode.insertBefore(slot, sh.nextSibling);
+    slot.appendChild(about[id].node);
+  });
+
+  /* INFO IS THE ONLY DOOR (Founder 2026-09-01). The slots stay closed at every width and on
+     every filter; INFO stays available on every section. The previous rule opened a category's
+     About inline when that category was filtered to, which is exactly the "permanently visible
+     ABOUT copy" being removed — and it also duplicated copy that INFO already shows. */
+  MAP.forEach(function(pair){
+    var slot = document.getElementById('aboutSlot-' + pair[0]);
+    var sec  = document.getElementById(pair[0]);
+    if(slot) slot.style.display = 'none';
+    var eye = sec && sec.querySelector('.sh .hye-info');
+    if(eye) eye.style.display = '';
+  });
+})();
+
+/* The per-section expand toggle is REMOVED (Founder 2026-08-22: "remove the drop down buttons in
+   each sections. they do not work"). It toggled section.open, which was meant to turn a rail into
+   a full grid — but the rails are now pinned to a single nowrap row at both breakpoints, so the
+   class had nothing left to change and the button did nothing when pressed. The carousel class is
+   still applied; only the dead control is gone. */
+(function(){
+  [].forEach.call(document.querySelectorAll('main > section'), function(sec){
+    var grid=sec.querySelector('.grid'); if(grid) grid.classList.add('rad-carou');
+  });
+})();
+</script>
+
+<script src="/keepitil-pager.js?v=20260820e" defer></script>
+<script>
+/* ── §D.3 — Radio on the shared pager ──────────────────────────────────────────────────────
+   CHANNEL · PLAYLIST · APP. The old `Feed | Radio | VS` switcher (#radMTabs) and the six-button
+   section row (#radMSecs) are both replaced by the locked single-filter header — S7 removal,
+   still correct, now part of this directive.
+
+   The pager pages over the CARDS already inside each section, so nothing is re-authored: the
+   markup that renders a station today renders a station slide tonight. Sections are looked up
+   by the ids the page already uses.
+
+   Schedule now has its own slot and Games folds into APP, so the only section without a
+   mobile entry point is VS (#earn, 8 items) — intentionally, since VS is a global destination
+   and a Radio filter for it would duplicate that. It keeps its desktop layout. */
+(function(){
+  if(!window.matchMedia('(max-width:860px)').matches) return;
+
+  /* CHANNEL · PLAYLIST · SCHEDULE · APP.
+     Schedule earns a slot on its own: 10 items and no other home on mobile.
+     Games (2 items) folds into APP rather than taking a slot for itself — a filter has to be
+     worth a full swipe. VS (#earn, 8 items) is deliberately dropped: VS is a global destination
+     since K1, so a Radio filter for it would be a second path to one product. */
+  var FILTERS = [
+    { ids:['stations'],           label:'Channel'  },
+    { ids:['playlists'],          label:'Playlist' },
+    /* Schedule + App filters dropped with their sections (Founder 2026-08-18). */
+  ];
+
+  /* SNAPSHOT, once per section.
+     render() MOVES the card node into its slide, which removes it from the grid — so a live
+     query would return a shrinking list every time the pager asked, and the pager asks on every
+     scroll settle. First run reported 16 items for a 14-card grid before this was cached. */
+  var SNAP = {};
+  function cardsIn(sectionIds){
+    var key = sectionIds.join('+');
+    if(SNAP[key]) return SNAP[key];
+    var list = [];
+    sectionIds.forEach(function(id){
+      var sec = document.getElementById(id);
+      if(!sec) return;
+      var nodes = sec.querySelectorAll('.grid > *, .pl-list > *');
+      [].slice.call(nodes).forEach(function(n){
+        if((n.textContent||'').trim() || n.querySelector('img')) list.push(n);
+      });
+    });
+    if(list.length) SNAP[key] = list;   /* only freeze once there is something to freeze */
+    return list;
+  }
+
+  function start(attempt){
+    attempt = attempt || 0;
+    var ready = FILTERS.some(function(f){ return cardsIn(f.ids).length; });
+    /* Cards render from Supabase, so the first pass is usually empty. Retry, then say which. */
+    if(!ready && attempt < 30){ setTimeout(function(){ start(attempt+1); }, 350); return; }
+
+    var filters = FILTERS.map(function(f){
+      return {
+        id: f.ids.join('+'),
+        label: f.label,
+        items: function(){ return cardsIn(f.ids); },
+        /* The card node itself is moved into the slide — no clone, no second copy to diverge. */
+        render: function(node, el){ if(node) el.appendChild(node); }
+      };
+    });
+
+    window.KIL_PAGER.mount({
+      filters: filters,
+      emptyFor: function(f){
+        /* BROKEN != EMPTY: "nothing published" and "the page never loaded" are different, and
+           the reason says which. */
+        return ready
+          ? { title:'Nothing in ' + f.label + ' yet', body:'New drops appear here as they publish.' }
+          : { title:'Radio could not load', body:'The station list did not come back. <a href="/earn/">Try again</a>.' };
+      }
+    });
+
+    /* The old switchers are gone once the pager owns the screen. */
+    ['radMTabs','radMSecs','radSwToast'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.remove();
+    });
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ start(0); });
+  else start(0);
+})();
+</script>
+
+<script>
+/* ── EARN MOBILE RADIO/SEARCH SWAP (Founder 2026-09-05, rebuilt) ───────────────────────
+   Mobile only. Moves the ONE existing #krBar node between its section and the search slot;
+   it never builds a second bar, so radio state and the single shell player are untouched.
+
+   TRIGGER IS ELEMENT COLLISION, NOT scrollY. The previous version fired at a fixed
+   scrollY (in 260 / out 170), which had nothing to do with where the RADIO section
+   actually was: any change to the content above it moved the real collision point while
+   the trigger stayed put. The bar now swaps at the moment its own home position physically
+   reaches the search row.
+
+   THE SENTINEL IS LOAD-BEARING. When the bar leaves its section, that section collapses by
+   the bar's height, which pushes the home position back down past the trigger line and
+   swaps it straight back out - an oscillation every frame. A spacer of exactly the bar's
+   height holds the gap open, so the measured home position means the same thing in both
+   states. */
+(function(){
+  if(!window.matchMedia || !window.matchMedia('(max-width:860px)').matches) return;
+  function ready(fn){ if(document.readyState!=='loading') fn(); else document.addEventListener('DOMContentLoaded',fn); }
+  ready(function(){
+    var bar=document.getElementById('krBar');
+    var row=document.querySelector('.controls-row');
+    var home=bar&&bar.parentElement;
+    if(!bar||!row||!home) return;
+
+    /* The line the bar collides with is the bottom of the SEARCH control, not of the row:
+       the row itself grows once the bar is appended to it, so its own bottom would move
+       under us and change the very threshold we are testing. */
+    var searchEl=document.getElementById('radQ') || row.querySelector('input,select') || row;
+
+    var spacer=document.createElement('div');
+    spacer.setAttribute('data-krbar-slot','');
+    spacer.setAttribute('aria-hidden','true');
+    home.insertBefore(spacer, bar);
+
+    var inRow=false;
+    function syncSpacer(){
+      /* Only reserve space while the bar is away; at home the bar occupies its own gap. */
+      spacer.style.height = inRow ? (spacer._h||0)+'px' : '0px';
+    }
+    function place(next){
+      if(next===inRow) return;
+      if(next){ spacer._h=Math.round(bar.getBoundingClientRect().height)||0; }
+      inRow=next;
+      if(next){ row.appendChild(bar); document.body.classList.add('earn-radioswap'); }
+      else    { home.insertBefore(bar, spacer.nextSibling); document.body.classList.remove('earn-radioswap'); }
+      syncSpacer();
+    }
+
+    var GAP=24;   /* hysteresis in pixels of geometry, so resting on the line cannot flutter */
+    function check(){
+      var line=searchEl.getBoundingClientRect().bottom;
+      var homeTop=spacer.getBoundingClientRect().top;
+      if(!inRow){ if(homeTop<=line) place(true); }
+      else      { if(homeTop>=line+GAP) place(false); }
+    }
+
+    /* While the visitor is typing, the row must not change under them. */
+    var q=document.getElementById('radQ');
+    var typing=false;
+    if(q){ q.addEventListener('focus',function(){typing=true;});
+           q.addEventListener('blur',function(){typing=false;check();}); }
+
+    var tick=false;
+    function onScroll(){ if(typing||tick) return; tick=true;
+      requestAnimationFrame(function(){ tick=false; check(); }); }
+    window.addEventListener('scroll',onScroll,{passive:true});
+    window.addEventListener('resize',onScroll,{passive:true});
+    check();
+  });
+})();
+</script>
+</body>
+</html>

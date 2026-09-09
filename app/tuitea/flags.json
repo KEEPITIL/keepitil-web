@@ -1,0 +1,54 @@
+{
+  "_comment": [
+    "SERVER-SIDE FEATURE FLAGS for the TUITEA web shell.",
+    "This file is fetched fresh on every launch (network-first, never cached by",
+    "the service worker) so a section can be hidden or restored WITHOUT",
+    "redeploying the app shell and WITHOUT anybody reinstalling.",
+    "Rollback = edit this file, commit. MEASURED propagation: GitHub Pages",
+    "serves this file with cache-control: max-age=600 and a query string does",
+    "NOT defeat it, so a flip or a rollback can be served stale by an edge for",
+    "up to 10 minutes. It said \"live in under a minute\" until 2026-09-02, when a",
+    "rollback was observed still serving the old value at age:35. The service",
+    "worker's network-only rule cannot help: the stale copy is held by the CDN,",
+    "not the browser. Treat 10 minutes as the worst case when rolling back.",
+    "",
+    "Resolution order for each flag, first match wins:",
+    "  1. cohorts[<the viewer's cohort>][<flag>]",
+    "  2. flags[<flag>]",
+    "  3. false",
+    "webBuildStamp selects WHICH COMPILED TUITEA the installed web app boots:",
+    "off -> main.dart.js (GIT_SHA unset), on -> main.stamped.dart.js (stamped).",
+    "Both are real release builds of the same commit; a viewer downloads one.",
+    "A viewer's cohort is whatever they hold in localStorage 'tuitea.cohort'.",
+    "'owner' and 'test' are set by opening /app/tuitea/?cohort=owner once.",
+    "Everyone else is 'public'. This is a PRESENTATION gate, not a security",
+    "boundary — real authorisation lives in the backend, never in this file."
+  ],
+  "version": 2,
+  "updated": "2026-09-01T16:20Z",
+  "minShellVersion": 5,
+  "message": null,
+  "flags": {
+    "shell": true,
+    "people": false,
+    "stories": false,
+    "health": false,
+    "household": false,
+    "reportProblem": true,
+    "webBuildStamp": false,
+    "nativeBridgeNotice": true
+  },
+  "cohorts": {
+    "owner": {
+      "webBuildStamp": false,
+      "people": true,
+      "stories": true,
+      "health": true,
+      "household": true
+    },
+    "test": {
+      "people": true,
+      "household": true
+    }
+  }
+}

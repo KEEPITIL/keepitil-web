@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install TUITEA</title>
+<meta name="description" content="TUITEA — a private app for one family.">
+<meta name="theme-color" content="#3F7658">
+<link rel="canonical" href="https://keepitil.com/app/tuitea">
+<meta property="og:title" content="Install TUITEA">
+<meta property="og:description" content="TUITEA — a private app for one family.">
+<meta property="og:url" content="https://keepitil.com/app/tuitea">
+<meta property="og:site_name" content="TUITEA">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+
+<!-- WEB DELIVERY SUBSTRATE (workstream 6). Additive only: nothing above or
+     below changes. The manifest/icons make TUITEA installable as a web app,
+     and pwa.js appends the web install card + registers the service worker.
+     pwa.js inserts that card before the first ".facts" element, so the marker
+     div with that class lives inside "More ways to install and support" and the
+     visible facts strip uses ".factlist" instead. -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png" type="image/png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TUITEA">
+<script src="pwa.js" defer></script>
+
+<!--
+  ============================================================================
+  TUITEA — CANONICAL INSTALL PAGE
+  https://keepitil.com/app/tuitea
+
+  THIS URL IS PERMANENT. It is the address given to family members and pasted
+  into messages. The Apple links underneath it may be regenerated, revoked or
+  replaced WITHOUT this address changing — that indirection is why this page
+  exists.
+
+  HOW TUITEA IS DISTRIBUTED TODAY: an Ad Hoc iOS build installed over the air
+  (itms-services) from fastbeta/manifest.plist. It installs only on iPhones
+  whose identifier the owner has registered. There is no TestFlight link
+  (TESTFLIGHT_URL below is empty and its card does not render when empty).
+  The recipient sees ONE card: register this iPhone once, then install.
+
+  ------------------------ THE ONLY THINGS TO EDIT ------------------------
+  Every switch is a constant in the script at the bottom. No markup changes.
+  -------------------------------------------------------------------------
+
+  NEVER put in this file: provisioning profiles, certificates, anybody's UDID,
+  developer credentials, or storage paths. It is a public page. The install
+  package lives behind a URL and nothing here describes how it is built.
+  ============================================================================
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Karla:wght@400;500;600;700&display=swap">
+
+<style>
+  :root{
+    --bg:#FBF7EF; --surface:#FFFDF8; --sunken:#F2EBDD; --line:#E2D9C6;
+    --ink:#20261F; --muted:#6E7566;
+    --forest:#3F7658; --forest-deep:#2F5B41;
+    --gold:#B5872F; --coral:#C4614C; --ocean:#33777D;
+    --radius:16px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#14170F; --surface:#1C201A; --sunken:#23281F; --line:#333A2D;
+      --ink:#ECE7DA; --muted:#9BA391;
+      --forest:#7FB894; --forest-deep:#9FCFB0;
+      --gold:#E3BC6B; --coral:#E9967F; --ocean:#6FBFC5;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14170F; --surface:#1C201A; --sunken:#23281F; --line:#333A2D;
+    --ink:#ECE7DA; --muted:#9BA391;
+    --forest:#7FB894; --forest-deep:#9FCFB0;
+    --gold:#E3BC6B; --coral:#E9967F; --ocean:#6FBFC5;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Karla',ui-sans-serif,system-ui,-apple-system,sans-serif;
+    font-size:17px;line-height:1.55;-webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:38rem;margin:0 auto;padding:0 1.25rem 4.5rem}
+
+  header{padding:3.5rem 0 0}
+  .mark{
+    font-family:'Fraunces',Georgia,serif;font-weight:600;
+    font-size:clamp(2.4rem,9vw,3.4rem);letter-spacing:-.02em;line-height:1;
+    margin:0 0 .1rem;
+  }
+  .tag{margin:0;color:var(--muted);font-size:1.05rem}
+  .lede{margin:1.9rem 0 0;font-size:1.1rem;max-width:32rem;text-wrap:pretty}
+
+  .card{
+    margin-top:2.1rem;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius);padding:1.4rem 1.35rem;
+  }
+  .card.fast{border-color:var(--gold)}
+  .card h2{
+    font-family:'Karla',sans-serif;font-size:.72rem;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 .35rem;font-weight:700;
+  }
+  .card.fast h2{color:var(--gold)}
+  .card .blurb{margin:0 0 1rem;color:var(--muted);font-size:.95rem}
+
+  .cta{
+    display:block;text-align:center;text-decoration:none;
+    background:var(--forest);color:var(--bg);font-weight:700;font-size:1.08rem;
+    padding:1.05rem 1.2rem;border-radius:12px;border:0;width:100%;
+    font-family:inherit;cursor:pointer;
+  }
+  .cta:hover{background:var(--forest-deep)}
+  .cta.gold{background:var(--gold);color:#231A05}
+  .cta.gold:hover{filter:brightness(.94)}
+  .cta:focus-visible{outline:3px solid var(--ocean);outline-offset:3px}
+  .cta-sub{margin:.85rem 0 0;color:var(--muted);font-size:.92rem;text-align:center}
+
+  .closed{background:var(--sunken);border-radius:12px;padding:1.05rem 1.15rem}
+  .closed b{display:block;margin-bottom:.3rem}
+
+  details{margin-top:1.1rem;border-top:1px solid var(--line);padding-top:1rem}
+  summary{
+    cursor:pointer;font-weight:600;font-size:.97rem;list-style:none;
+    display:flex;align-items:center;gap:.45rem;
+  }
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"›";transform:rotate(90deg);color:var(--muted);font-size:1.2rem;line-height:1}
+  details[open] summary::after{transform:rotate(-90deg)}
+  summary:focus-visible{outline:2px solid var(--ocean);outline-offset:3px;border-radius:4px}
+  .details-body{margin-top:.85rem}
+  .details-body ol{margin:0;padding-left:1.15rem}
+  .details-body li{margin-bottom:.6rem}
+  .details-body li:last-child{margin-bottom:0}
+
+  .secondary{
+    display:inline-block;text-decoration:none;margin-top:.2rem;
+    border:1px solid var(--line);border-radius:10px;
+    padding:.6rem .9rem;font-weight:600;font-size:.95rem;color:var(--ink);
+    background:transparent;font-family:inherit;cursor:pointer;
+  }
+  .secondary:hover{border-color:var(--muted)}
+  .secondary:focus-visible{outline:2px solid var(--ocean);outline-offset:3px}
+
+  .back{
+    margin-top:.9rem;padding:.7rem .85rem;background:var(--sunken);
+    border-radius:10px;font-size:.93rem;
+  }
+  .back code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;font-weight:600}
+
+  .factlist{display:grid;gap:.5rem;margin-top:2.1rem}
+  .fact{display:flex;gap:.8rem;align-items:baseline;font-size:.96rem}
+  .fact .k{
+    flex:0 0 8.5rem;color:var(--muted);font-size:.79rem;
+    letter-spacing:.06em;text-transform:uppercase;font-weight:600;
+  }
+
+  .note{
+    margin-top:2rem;border-left:3px solid var(--gold);
+    padding:.15rem 0 .15rem 1rem;font-size:1rem;
+  }
+  .note.privacy{border-left-color:var(--coral)}
+  .note b{font-weight:600}
+
+  footer{
+    margin-top:3rem;padding-top:1.3rem;border-top:1px solid var(--line);
+    color:var(--muted);font-size:.87rem;
+  }
+  footer a{color:var(--ocean)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1 class="mark">TUITEA</h1>
+    <p class="tag">A private app for one family.</p>
+  </header>
+
+  <p class="lede">
+    Everything a family wants to keep — who everyone is and how they are
+    related, the photographs and the stories behind them, the health and the
+    everyday running of a household — in one place that belongs to you.
+  </p>
+
+  <!-- INVITATION — shown only when this page was reached from an invitation
+       link (?invite=<token>). The token is kept in localStorage as a harmless
+       courtesy; the app reads its own universal link and needs nothing here. -->
+  <p class="note" id="inviteNote" hidden>
+    <b>You're invited.</b> Your invitation will be waiting inside TUITEA once it
+    is installed.
+  </p>
+
+  <!-- UPDATE — the one action for an iPhone that already has TUITEA. Shown
+       only when fastbeta/build.json names a staged build, so this button can
+       never advertise a build that is not the one being served. -->
+  <div class="card" id="updateCard" hidden>
+    <h2 id="updateTitle">Update TUITEA</h2>
+    <p class="blurb" id="updateBlurb">Installs over the TUITEA already on this
+      iPhone. Nothing is deleted and your family's data stays exactly as it is.</p>
+    <div id="updateSlot"></div>
+  </div>
+
+  <!-- INSTALL — the single recipient flow -->
+  <div class="card" id="installCard">
+    <h2>Install TUITEA on this iPhone</h2>
+    <p class="blurb">Two steps. The first happens once; after that, updates arrive on their own.</p>
+    <div id="installSlot"></div>
+  </div>
+
+  <!-- APP STORE / TESTFLIGHT — renders only when TESTFLIGHT_URL is set -->
+  <div class="card" id="storeCard" hidden>
+    <h2>Install from TestFlight</h2>
+    <div id="storeSlot"></div>
+  </div>
+
+  <div class="factlist">
+    <div class="fact"><span class="k">Device</span><span>iPhone</span></div>
+    <div class="fact"><span class="k">Requires</span><span>iOS 13 or later</span></div>
+    <div class="fact"><span class="k">Installed</span><span>From this page</span></div>
+    <div class="fact"><span class="k">Cost</span><span>Free</span></div>
+  </div>
+
+  <p class="note">
+    <b>Something not right?</b> Use <b>Report a problem</b> inside the app — it
+    reaches us with the screen you were on, and it is the fastest way to get
+    something fixed.
+  </p>
+
+  <p class="note privacy">
+    <b>Your family's records stay yours.</b> A household is visible only to
+    people in it who have been approved. Health sharing is each person's own
+    choice, and nobody else — not even whoever set the household up — can see or
+    change it.
+  </p>
+
+  <details id="moreWays">
+    <summary>More ways to install and support</summary>
+    <div class="details-body">
+      <!-- pwa.js inserts its "add to Home Screen" card before this marker. -->
+      <div class="facts"></div>
+      <div class="card" style="margin-top:1rem">
+        <h2>Use TUITEA on the web</h2>
+        <p class="blurb">The same TUITEA, running in the browser. Add it to your
+          Home Screen and it opens like an app — and it updates itself, so you
+          never reinstall it.</p>
+        <p style="margin:.9rem 0 0"><a class="tuitea-btn" href="app/">Open TUITEA</a></p>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <h2>Help and your account</h2>
+        <p class="blurb" style="margin-bottom:.6rem">
+          <a href="support/">Support</a> — how to reach us and what to include.<br>
+          <a href="password/">Reset your password</a> — if you can't sign in.<br>
+          <a href="privacy/">Privacy</a> · <a href="terms/">Terms</a>
+        </p>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <h2>For the owner</h2>
+        <p class="blurb" style="margin:0">
+          TUITEA installs over the air from this page onto iPhones whose
+          identifier has been registered on the developer account. Register the
+          iPhone first; the install button on this page then works on it.
+          Apple allows a fixed number of registrations per membership year.
+        </p>
+      </div>
+    </div>
+  </details>
+
+  <footer>
+    <p>TUITEA is part of <a href="https://keepitil.com">KEEPITIL</a>.</p>
+  </footer>
+
+</div>
+
+<script>
+/* ==========================================================================
+   THE ONLY THINGS TO EDIT.
+   ========================================================================== */
+
+/* --- TESTFLIGHT ------------------------------------------------------------
+   A public TestFlight link, if one ever exists. Empty = the TestFlight card
+   does not render at all. Never a button that fails.                        */
+var TESTFLIGHT_URL = "";
+
+/* --- OVER-THE-AIR INSTALL ---------------------------------------------------
+   INSTALL_MANIFEST  the https:// URL of the OTA manifest (a .plist).
+   INSTALL_CONTACT   optional link a person uses to ask for their iPhone to be
+                     registered. Empty = "whoever invited you will arrange it".
+                     No addresses in markup.                                   */
+var INSTALL_MANIFEST = "https://keepitil.com/app/tuitea/fastbeta/manifest.plist";
+var INSTALL_CONTACT  = "";
+
+/* Apple's own TestFlight app. Fixed by Apple; not ours to change. */
+var TESTFLIGHT_APP_STORE = "https://apps.apple.com/app/testflight/id899247664";
+
+(function () {
+  "use strict";
+
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  /* ---------------- INVITATION (?invite=<token>) ---------------- */
+  (function invite() {
+    try {
+      var t = (new URLSearchParams(location.search).get('invite') || '').toLowerCase();
+      if (!/^[0-9a-f]{32}$/.test(t)) return;
+      var n = document.getElementById('inviteNote');
+      if (n) n.hidden = false;
+      try { localStorage.setItem('tuitea-pending-invite', t); } catch (e) {}
+    } catch (e) {}
+  })();
+
+  /* ---------------- UPDATE (iPhone only) ----------------
+     Shown only on iPhone/iPad: itms-services does nothing anywhere else, and a
+     button that silently does nothing is worse than no button. What it offers
+     is named from the build actually staged on the server, never from a number
+     typed into this page. */
+  (function primaryInstall() {
+    if (!isIOS) return;
+
+    var card = document.getElementById('updateCard');
+    var slot = document.getElementById('updateSlot');
+    if (!card || !slot) return;
+
+    fetch('fastbeta/build.json', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (b) {
+        if (!b || !b.build) return;            /* nothing staged: stay hidden */
+
+        var a = document.createElement('a');
+        a.className = 'tuitea-btn';
+        /* itms-services is how iOS installs an over-the-air build: it reads the
+           manifest, then fetches the IPA named inside it. */
+        a.href = 'itms-services://?action=download-manifest&url=' +
+                 encodeURIComponent('https://keepitil.com/app/tuitea/fastbeta/manifest.plist');
+        a.textContent = 'Update TUITEA';
+        slot.appendChild(a);
+
+        var v = document.createElement('p');
+        v.className = 'sub';
+        v.style.margin = '.7rem 0 0';
+        v.textContent = 'Version ' + b.version + ' (' + b.build + ')' +
+          (b.shorebird ? ' — after this one, updates arrive on their own.' : '');
+        slot.appendChild(v);
+
+        card.hidden = false;
+      })
+      .catch(function () { /* offline: the rest of the page still works */ });
+  })();
+
+  /* ---------------- TESTFLIGHT (only when a link exists) ---------------- */
+  (function testflight() {
+    var url = (TESTFLIGHT_URL || "").trim();
+    if (!/^https:\/\/testflight\.apple\.com\/join\/\S+/.test(url)) return;
+
+    var card = document.getElementById('storeCard');
+    var slot = document.getElementById('storeSlot');
+    if (!card || !slot) return;
+
+    var a = document.createElement('a');
+    a.className = 'cta'; a.href = url; a.rel = 'noopener';
+    a.textContent = 'Install TUITEA';
+    slot.appendChild(a);
+
+    var sub = document.createElement('p');
+    sub.className = 'cta-sub';
+    sub.textContent = 'Opens TestFlight, where you install TUITEA.';
+    slot.appendChild(sub);
+
+    var det = document.createElement('details');
+    det.innerHTML =
+      '<summary>Don’t have TestFlight yet?</summary>' +
+      '<div class="details-body"><ol>' +
+        '<li>Install <b>TestFlight</b> — Apple’s free app.' +
+          '<br><a class="secondary" href="' + TESTFLIGHT_APP_STORE + '" rel="noopener">Get TestFlight from the App Store</a></li>' +
+        '<li>Come back to this page and tap <b>Install TUITEA</b>.' +
+          '<div class="back">This page: <code>keepitil.com/app/tuitea</code></div></li>' +
+      '</ol></div>';
+    slot.appendChild(det);
+    card.hidden = false;
+  })();
+
+  /* ---------------- INSTALL — the single recipient flow ---------------- */
+  var slot = document.getElementById('installSlot');
+  if (!slot) return;
+
+  /* The device remembers that it has been registered so step 2 leads. This is
+     the same local flag the page has always used. */
+  var KEY = 'tuitea-fastbeta-registered';
+  function registered() {
+    try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; }
+  }
+  function setRegistered(v) {
+    try { v ? localStorage.setItem(KEY, '1') : localStorage.removeItem(KEY); } catch (e) {}
+  }
+
+  var manifest = (INSTALL_MANIFEST || "").trim();
+  var ready = /^https:\/\/\S+\.plist$/i.test(manifest);
+  var installHref = 'itms-services://?action=download-manifest&url=' + encodeURIComponent(manifest);
+
+  function render() {
+    slot.innerHTML = '';
+
+    if (!ready) {
+      var pending = document.createElement('div');
+      pending.className = 'closed';
+      pending.innerHTML =
+        '<b>TUITEA is not ready to install yet.</b>' +
+        'If you are expecting it, you will be told directly. This address stays the same.';
+      slot.appendChild(pending);
+      return;
+    }
+
+    var steps = document.createElement('div');
+    steps.className = 'details-body';
+    steps.style.marginTop = '0';
+
+    var isReg = registered();
+    steps.innerHTML =
+      '<ol>' +
+        '<li><b>Register this iPhone (once).</b>' +
+          (isReg
+            ? ' <span style="color:var(--muted)">Done on this iPhone.</span>'
+            : (INSTALL_CONTACT
+                ? ' <a class="secondary" href="' + INSTALL_CONTACT + '">Ask to be registered</a>'
+                : ' Whoever invited you will arrange it.') +
+              '<br><span style="color:var(--muted);font-size:.93rem">You will be asked for this iPhone’s device identifier once. It is used only to let this iPhone install TUITEA, and is not shared with anyone else.</span>' +
+              '<p style="margin:.7rem 0 0"><button class="secondary" type="button" id="doneReg">My iPhone has been registered</button></p>') +
+        '</li>' +
+        '<li><b>Install TUITEA.</b>' +
+          (isIOS
+            ? '<p style="margin:.6rem 0 0"><a class="cta" href="' + installHref + '">Install TUITEA</a></p>' +
+              '<p class="cta-sub" style="text-align:left">Tap Install when your iPhone asks. TUITEA appears on your Home Screen.</p>'
+            : '<br><span style="color:var(--muted);font-size:.93rem">Open this page on the iPhone itself to install.</span>' +
+              '<div class="back">This page: <code>keepitil.com/app/tuitea</code></div>') +
+        '</li>' +
+      '</ol>';
+    slot.appendChild(steps);
+
+    var done = steps.querySelector('#doneReg');
+    if (done) done.addEventListener('click', function () { setRegistered(true); render(); });
+
+    if (isIOS) {
+      var help = document.createElement('details');
+      help.innerHTML =
+        '<summary>Install didn’t start?</summary>' +
+        '<div class="details-body">' +
+          '<p style="margin:0 0 .6rem">TUITEA installs only on iPhones that have been registered first. ' +
+          'If nothing happened, this one may not be registered yet — ask whoever invited you, then try again.</p>' +
+          (isReg ? '<button class="secondary" type="button" id="notReg">This iPhone isn’t registered</button>' : '') +
+        '</div>';
+      slot.appendChild(help);
+      var notReg = help.querySelector('#notReg');
+      if (notReg) notReg.addEventListener('click', function () { setRegistered(false); render(); });
+    }
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

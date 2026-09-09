@@ -1019,13 +1019,18 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
       if(s && onProfile){ cta.innerHTML=HAMB; cta.setAttribute('href','#'); cta.setAttribute('title','Menu'); cta.setAttribute('aria-label','Profile menu'); cta.classList.add('v3s-hamb'); cta.style.cssText='color:var(--text,#fff);display:inline-flex;align-items:center;justify-content:center;padding:8px 12px';
         var _sv=cta.querySelector('svg'); if(_sv){ _sv.style.width='22px'; _sv.style.height='22px'; }
         try{ cta.onclick=kilProfMenu; }catch(e){} }
-      else { cta.textContent = s?'PROFILE':'LOGIN'; cta.setAttribute('href', s?'/profile.html':'/apply.html'); cta.classList.remove('v3s-hamb'); }
+  /* LOGIN destinations are the branded extensionless /apply (KODE 2026-09-09). The
+     amap matcher below still tests for apply.html because it matches the CURRENT
+     location, which can legitimately be either form. Only the navigation TARGET moved.
+     /profile.html stays: its branded form /profile/<slug> resolves through the 404 JS
+     router and returns HTTP 404, so switching to it would break a working page. */
+      else { cta.textContent = s?'PROFILE':'LOGIN'; cta.setAttribute('href', s?'/profile.html':'/apply'); cta.classList.remove('v3s-hamb'); }
     }
-    if(mlog){ mlog.textContent = s?'Profile':'Login'; mlog.setAttribute('href', s?'/profile.html':'/apply.html'); }
+    if(mlog){ mlog.textContent = s?'Profile':'Login'; mlog.setAttribute('href', s?'/profile.html':'/apply'); }
     var iprof=document.getElementById('v3s-iconprof');
     if(iprof){
       if(s && onProfile){ iprof.innerHTML=HAMB; iprof.setAttribute('href','/settings.html'); iprof.setAttribute('aria-label','Settings'); }
-      else iprof.setAttribute('href', s?'/profile.html':'/apply.html');
+      else iprof.setAttribute('href', s?'/profile.html':'/apply');
     }
 
   }

@@ -243,7 +243,15 @@
          because sw.js already calls skipWaiting() on install and clients.claim() on activate, it
          takes over without waiting for every tab to close. Bump this ?v= with the cache names in
          sw.js whenever a release must reach returning users. */
-      navigator.serviceWorker.register('/sw.js?v=20260822b').catch(function(){});
+      /* ══ THIS STAMP MUST TRACK sw.js (KODE 2026-09-09) ═══════════════════════════════
+         It was pinned at v=20260822b while sw.js's own VERSION constant was bumped on
+         every deploy since. Registration URL and script content are the two things that
+         make a browser take a new worker, and freezing one of them makes updates depend
+         entirely on byte-comparison. Combined with the PAGES cache below serving
+         navigations stale-while-revalidate, a returning visitor was reading HTML one
+         deploy behind - which is exactly how a verification run measured a page that no
+         longer existed on the origin. Bump this WITH sw.js. */
+      navigator.serviceWorker.register('/sw.js?v=20260909e').catch(function(){});
       /* An older worker may still be in control from a previous registration of the bare URL.
          Asking every registration to update forces that one to re-check now rather than on its
          own schedule. */

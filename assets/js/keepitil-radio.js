@@ -147,7 +147,7 @@
       '#kr-vol{width:74px;height:20px;}'+
       '#kil-radio{gap:6px;padding:0 8px;}'+
     '}'+
-    '@media(max-width:480px){.radio-mini #kilo-panel{bottom:156px!important;right:12px!important;}}';
+    '@media(max-width:480px){.radio-mini #kilo-panel{bottom:156px!important;right:12px!important;}}'
     /* ══ UNIFIED LIVE RADIO (KODE 2026-09-09) ══════════════════════════════════════════
        Dark base, cyan as the system accent, green reserved for LIVE/playing, purple as
        ambience. Emphasis is spent deliberately: Play/Pause and the LIVE RADIO state glow,
@@ -219,7 +219,7 @@
     +  '.kr-nowsub{display:none;}'
     +  '#kr-drawer{max-height:58vh;}'
     +  '.kr-full-art{width:76px;height:76px;}'
-    +'}'
+    +'}';
   document.head.appendChild(css);
 
   // ── Inject HTML (skip if already in DOM — e.g. inline on index.html) ─────

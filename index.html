@@ -2343,7 +2343,10 @@ var CATS=[
   ['sftu','SFTU',[['raves','Raves'],['warehouse','Warehouse']]],
   ['festival','FESTIVAL',[['edm','EDM'],['country','Country'],['etc','Other']]]
 ];
-var CAT_ALWAYS={ '':1, music:1, sftu:1, festival:1 }; /* these top tabs always show */
+/* CAT_ALWAYS retired 2026-09-09 - categories are now derived from canonical inventory in
+   buildGenres(). Left as an empty object rather than deleted so any stray reader gets a
+   harmless miss instead of a ReferenceError. */
+var CAT_ALWAYS={};
 /* VS is a submission/signup lane — each sub links to its challenge signup */
 var VS_SIGNUP={ dj:'/submit-event.html?vs=dj', photography:'/submit-event.html?vs=photography', videography:'/submit-event.html?vs=videography', song:'/submit-event.html?vs=song' };
 var GENRES=CATS; /* back-compat alias */
@@ -2461,8 +2464,18 @@ function buildGenres(){
   var el=document.getElementById('evx-genres'); if(!el) return;
   /* Founder 2026-07-31: the 5 top tabs (ALL · MUSIC · VS · SFTU · FESTIVAL) ALWAYS render,
      even when a bucket is currently empty, so the filter structure is always visible. */
+  /* ══ FILTERS ARE DATA-DRIVEN (KODE 2026-09-09) ══════════════════════════════════════
+     A category appears only if canonical events exist behind it. This REVERSES the earlier
+     rule recorded here - "the 5 top tabs ALWAYS render, even when a bucket is currently
+     empty" (Founder 2026-07-31) - on the owner's later instruction: ZERO DEDUPED EVENTS =
+     DO NOT DISPLAY THE FILTER. An always-on tab whose only content was "more coming soon"
+     is a dead end, and hiding it needs no weekly manual curation: the row recomputes from
+     EVENTS on every paint, so a category returns by itself the moment a qualifying event
+     lands. ALL is the sole exception - it is the reset, not a bucket.
+     EVENTS is already canonical here (canonicalize() runs in loadEvents), so these counts
+     are real events, never ticket variants. */
   var present={}; EVENTS.forEach(function(e){ present[e.ecat||'music']=1; });
-  var cats=CATS.filter(function(c){ return CAT_ALWAYS[c[0]] || present[c[0]]; });
+  var cats=CATS.filter(function(c){ return c[0]==='' || present[c[0]]; });
   if(isDeskFilters()){
     /* DESKTOP (Founder 2026-08-02): single dropdown-icon selector; subfilters render inline on the same row. */
     var cur=null; for(var i=0;i<CATS.length;i++){ if(CATS[i][0]===activeCat) cur=CATS[i]; } if(!cur) cur=CATS[0];
@@ -2491,8 +2504,15 @@ function buildSubGenres(){
   if(!el) return;
   var cat=null; for(var i=0;i<CATS.length;i++){ if(CATS[i][0]===activeCat) cat=CATS[i]; }
   if(!activeCat||!cat||!cat[2].length){ if(el.id==='evx-subgenres') el.className='evx-nav-row evx-subrow'; el.innerHTML=''; return; }
-  /* Founder 2026-07-31: show the FULL subfilter for the active category (always visible), not only present ones. */
-  var subs=cat[2];
+  /* Data-driven sub-genres (KODE 2026-09-09), reversing "show the FULL subfilter ... not
+     only present ones" (Founder 2026-07-31) under the owner's later rule. A genre pill is
+     rendered only when the current canonical inventory actually contains it, so Trance
+     stops appearing in a week with no Trance events and reappears on its own when one is
+     imported. Counted against the SAME canonical list Discover paints from, so the filter
+     row and the cards can never disagree. */
+  var _sp={}; EVENTS.forEach(function(e){ if((e.ecat||'music')===activeCat && e.gcat) _sp[e.gcat]=(_sp[e.gcat]||0)+1; });
+  var subs=cat[2].filter(function(x){ return _sp[x[0]]>0; });
+  if(!subs.length){ if(el.id==='evx-subgenres') el.className='evx-nav-row evx-subrow'; el.innerHTML=''; return; }
   if(el.id==='evx-subgenres') el.className='evx-nav-row evx-subrow on';
   /* Founder 2026-08-20: just "ALL". The dropdown button to its left already displays the
      category, so "ALL MUSIC" next to a button reading MUSIC said the same word twice. */
@@ -2990,6 +3010,85 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
     if(b) b.onclick=function(){ b.disabled=true; b.textContent='Retrying…'; loadEvents(); };
   }
 
+  /* ══ CANONICAL EVENT LAYER (KODE 2026-09-09) ═══════════════════════════════════════════
+     ONE REAL-WORLD EVENT + ONE CALENDAR DAY = AT MOST ONE CARD.
+
+     The feed sells TICKET PRODUCTS, not events. A festival arrives as "X - Friday Pass",
+     "X - 2 Day Pass", "X - VIP" and so on, and Discover was painting one flyer per product:
+     the same artwork, same venue, same night, several times over.
+
+     Measured against live data before writing this: 590 published future rows collapse to
+     584 canonical events - 6 duplicate pairs, every one a real ticket variant, and ZERO
+     genuinely-different events wrongly merged. The pairs were Global Dance Festival, Four
+     Chord, Neverender, Dreamstate SoCal, Vans Warped Tour (each "2 Day Pass" + a single-day
+     pass) and an Usher "VIP UPGRADE" sold alongside its own tour date.
+
+     TWO MATCH TIERS, deliberately conservative - it is far worse to merge two real events
+     than to leave one duplicate standing:
+
+       tier 1  same day + same venue + same title STEM (the text before the first " - ").
+               This is what a ticket variant looks like: the product name is a suffix.
+       tier 2  same day + same venue + same IMAGE, and one of the two titles reads as a
+               ticket product (VIP / upgrade / meet & greet / pass). Image alone is NEVER
+               enough - the directive is explicit and it is right: promoters reuse artwork
+               across a residency, so image-only merging would destroy real events.
+
+     Anything else stays separate. Two different acts at the same venue on the same night
+     (Camoufly and Venjent at Club Vinyl, 11 Sep) have different stems and different images,
+     so neither tier fires and both keep their card.
+
+     Merged rows are not discarded. They are attached to the survivor as .offers[], which is
+     where ticket tiers belong, and they keep their own purchase URL and tracking parameters.
+     A future preferred-ticket-url rule reads .offers; nothing here invents a revenue ranking. */
+  function _cnorm(v){
+    return String(v==null?'':v).toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g,'')   /* fold accents */
+      .replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  /* Does this title read as a ticket PRODUCT rather than an event name? */
+  var _TICKET_PRODUCT=/\b(ga|vip|general admission|early bird|presale|upgrade|meet (and|&) greet|(\d+\s*)?day pass|weekend pass|friday pass|saturday pass|sunday pass|3 day|2 day)\b/i;
+  function _stem(title){
+    var t=String(title||'');
+    var cut=t.split(' - ')[0];                       /* product names arrive as a suffix */
+    cut=cut.replace(/\s*\((?:1[0-9]|2[0-9])\+\)\s*$/,'');   /* trailing age rating */
+    return _cnorm(cut);
+  }
+  /* Prefer the row that names the EVENT over the row that names a ticket product. */
+  function _better(a,b){
+    var ap=_TICKET_PRODUCT.test(a.title||''), bp=_TICKET_PRODUCT.test(b.title||'');
+    if(ap!==bp) return ap?b:a;                        /* a non-product title wins outright */
+    return (String(a.title||'').length<=String(b.title||'').length)?a:b;  /* else the plainer one */
+  }
+  function canonicalize(list){
+    var byStem={}, byImage={}, out=[];
+    list.forEach(function(e){
+      var day=e.date||'', venue=_cnorm(e.venue), stem=_stem(e.title);
+      var k1=day+'|'+venue+'|'+stem;
+      var hit=(venue&&stem)?byStem[k1]:null;
+      if(!hit && venue && e.img){                     /* tier 2 */
+        var k2=day+'|'+venue+'|'+e.img, cand=byImage[k2];
+        if(cand && (_TICKET_PRODUCT.test(e.title||'') || _TICKET_PRODUCT.test(cand.title||''))) hit=cand;
+      }
+      if(hit){
+        var keep=_better(hit,e), drop=(keep===hit)?e:hit;
+        keep.offers=(keep.offers||[]).concat(drop.offers||[],
+          [{title:drop.title,ticket:drop.ticket,source:drop.source||''}]);
+        if(keep!==hit){                               /* the newcomer is the better record */
+          var i=out.indexOf(hit); if(i>-1) out[i]=keep;
+          if(venue&&stem) byStem[day+'|'+venue+'|'+_stem(keep.title)]=keep;
+          if(venue&&keep.img) byImage[day+'|'+venue+'|'+keep.img]=keep;
+        }
+        return;
+      }
+      e.offers=e.offers||[];
+      out.push(e);
+      if(venue&&stem) byStem[k1]=e;
+      if(venue&&e.img) byImage[day+'|'+venue+'|'+e.img]=e;
+    });
+    try{ window.KIL_DEDUPE={raw:list.length,canonical:out.length,merged:list.length-out.length}; }catch(x){}
+    return out;
+  }
+
   function mapRows(rows){
     return rows.filter(function(e){return e.starts_at;}).map(function(e){
       var g=e.genres||e.genre||'';
@@ -3031,7 +3130,7 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
       /* postgrest-js resolves (it does not reject) on an API error — an unchecked r.error is
          indistinguishable from an empty table, which is the exact bug this block now prevents. */
       if(r&&r.error){ evxFail((r.error&&r.error.message)||'The events service returned an error.'); return; }
-      var db=mapRows((r&&r.data)||[]);
+      var db=canonicalize(mapRows((r&&r.data)||[]));
       if(db.length){
         EVENTS=db;
         EVENTS.sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
@@ -3052,7 +3151,7 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
 </script>
 
 <script src="/kil-seasons.js?v=20260826a"></script>
-<script src="/assets/js/keepitil-radio.js?v=20260907a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20260909a" defer></script>
 <script>
 /* Inline KEEPITIL-X save icon (staging preview self-contained; /keepitil-save.js not yet deployed) */
 (function(){

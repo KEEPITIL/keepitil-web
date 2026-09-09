@@ -285,6 +285,7 @@
   var volEl=document.getElementById('kr-vol');
   /* toggleBtn removed with the collapse feature 2026-08-22. */
   var widget=null,playing=false,muted=false,savedVol=5,interacted=false,widgetReady=false,miniState=false,wakeLock=null;
+  var _pendingMute=null;   /* a mute choice made before the widget was ready; see the mute handler */
   var isMobile=('ontouchstart'in window)||(navigator.maxTouchPoints>0);
   /* ── ONE SOURCE OF TRUTH FOR RADIO STATE (Founder 2026-09-07) ──────────────────────
      DEFAULT_VOL was 3. Not 30 - three percent - and because #kr-vol never existed in the
@@ -755,7 +756,14 @@
   function initWidget(){
     if(!window.SC)return;
     widget=SC.Widget(frame);
-    widget.bind(SC.Widget.Events.READY,function(){widgetReady=true;widget.setVolume(0);syncAndPlay();});
+    widget.bind(SC.Widget.Events.READY,function(){
+      widgetReady=true;widget.setVolume(0);
+      /* Honour a mute pressed before the widget existed. Volume only - syncAndPlay() decides
+         playback, so a muted visitor is not forced into audio they did not ask for. */
+      if(_pendingMute!==null){ muted=_pendingMute; _pendingMute=null; }
+      syncAndPlay();
+      try{ if(muted){ widget.setVolume(0); if(muteBtn){muteBtn.textContent='🔇';muteBtn.setAttribute('aria-pressed','true');} } }catch(e){}
+    });
     widget.bind(SC.Widget.Events.PLAY,function(){goLive();reListenGesture();widget.getCurrentSoundIndex(function(i){currentTrackIdx=i;});kilPaintTitles();});
     widget.bind(SC.Widget.Events.PLAY_PROGRESS,function(e){
       if(e&&e.currentPosition)currentPosition=e.currentPosition;
@@ -839,14 +847,42 @@
   })();
 
   // ── Mute/vol controls ─────────────────────────────────────────────────────
+  /* ══ MUTE MUST NEVER DEPEND ON WIDGET READINESS (KODE 2026-09-09) ═══════════════════════
+     This handler used to open with:
+
+         if(!widget||!widgetReady){interacted=true;return;}
+
+     and that return was the bug. Reproduced on the live site before changing anything: on
+     EARN at 375px the button renders, and two consecutive clicks left the icon on the
+     speaker glyph with no state change at all - a control that is purely decorative until
+     the SoundCloud widget happens to report READY. On desktop the widget reaches READY
+     quickly so mute worked, which is why this looked intermittent rather than broken.
+     On a phone the widget does not become ready until playback actually starts, so the
+     visitor gets a mute button that does nothing for as long as they have not pressed play.
+
+     Mute is a statement of INTENT and is now always honoured: the flag flips, the icon and
+     slider update, and the choice is persisted, whether or not a widget exists yet. When
+     the widget is not ready the intent is remembered in _pendingMute and applied by the
+     READY handler. Nothing here starts playback - muting an idle player must not force
+     audio to begin, which would defeat the browser's autoplay rules. */
   if(muteBtn){muteBtn.addEventListener('click',function(e){
     e.stopPropagation();
-    if(!widget||!widgetReady){interacted=true;return;}
     interacted=true;
+    if(!widget||!widgetReady){
+      muted=!muted;
+      muteBtn.textContent = muted?'🔇':'🔊';
+      muteBtn.setAttribute('aria-label', muted?'Unmute':'Mute');
+      muteBtn.setAttribute('aria-pressed', muted?'true':'false');
+      if(volEl){ volEl.value=savedVol; volEl.hidden=!muted; }
+      _pendingMute = muted;                 /* applied the moment READY fires */
+      krsWrite({volume:savedVol/100,muted:muted});
+      return;
+    }
     if(muted){
       /* Unmute returns audio at the STORED level - which may be one the visitor chose while
          muted - and never jumps to full volume. */
       muted=false;muteBtn.textContent='🔊';
+      muteBtn.setAttribute('aria-label','Mute');muteBtn.setAttribute('aria-pressed','false');
       widget.setVolume(savedVol);
       if(volEl){volEl.value=savedVol;volEl.hidden=true;}
       if(isMobile)widget.play();
@@ -856,6 +892,7 @@
          level are all untouched, and the slider appears so a level can be chosen. */
       savedVol=Math.max(1,parseInt(volEl&&volEl.value!==''?volEl.value:savedVol)||DEFAULT_VOL);
       muted=true;muteBtn.textContent='🔇';
+      muteBtn.setAttribute('aria-label','Unmute');muteBtn.setAttribute('aria-pressed','true');
       widget.setVolume(0);
       if(volEl){volEl.value=savedVol;volEl.hidden=false;}
       if(isMobile)widget.pause();

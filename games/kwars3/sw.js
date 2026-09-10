@@ -24,10 +24,13 @@ self.addEventListener('install', e => {
     .then(() => self.skipWaiting()));
 });
 
+// Cache scope: `caches` is ORIGIN-wide, so a naive `k !== CACHE` sweep would
+// delete the OTHER KWARS games' live caches and break their offline mode.
+// Only this game's own namespace and its own retired ancestors are purged.
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
     .then(keys => Promise.all(keys
-      .filter(k => ((k.indexOf('aow2-3d-')===0) || k !== CACHE))
+      .filter(k => ((k.indexOf('kwars3-')===0 && k !== CACHE) || k.indexOf('aow2-3d-')===0))
       .map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });

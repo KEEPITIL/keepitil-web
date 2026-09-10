@@ -99,6 +99,32 @@
   var BG_SLOT='kil-global-background';
   var BG_DEFAULT='/assets/images/logo-bg.jpg';   /* neon blue KEEPITIL X */
 
+  /* ══ THE GLOBAL BACKDROP IS OPT-IN, DECIDED BY THE PAGE (KODE 2026-09-10, 2nd pass) ═════
+     My first fix for the Connect regression was wrong and the live page proved it. I removed
+     the inline body{background:transparent} override expecting Connect's own opaque
+     body{background:#0a0a0f} to hide the slot. It did not: a body background is PROPAGATED
+     TO THE CANVAS and painted beneath everything, so it can never occlude a fixed element at
+     z-index:-3. Measured after that fix: body computed rgb(10,10,15), no inline override,
+     and the neon-X slot still painting through the Connect hero.
+
+     So occlusion was never the mechanism, and the backdrop has to be OPT-IN. Each page
+     already states its intent in its own stylesheet:
+         body{background:transparent}      -> "something belongs behind me"   -> paint
+         body{background:var(--bg,#0a0a0f)} -> "I own my own backdrop"        -> skip
+     That is read from computed style before anything is created, so no page markup changes
+     and no page needs to know this controller exists. A page that later wants the backdrop
+     declares a transparent body; that is the whole contract. */
+  function wantsGlobalBackdrop(){
+    try{
+      var bg=getComputedStyle(document.body).backgroundColor||'';
+      var m=bg.match(/rgba?\(([^)]+)\)/);
+      if(!m) return true;                       /* unparseable -> behave as before */
+      var parts=m[1].split(',').map(function(x){ return parseFloat(x); });
+      var alpha=parts.length>3?parts[3]:1;
+      return alpha<0.05;                        /* transparent body = page wants a backdrop */
+    }catch(e){ return true; }
+  }
+
   function bgSlot(){
     var el=document.getElementById(BG_SLOT);
     if(!el){
@@ -117,6 +143,13 @@
   }
   /* setBackground(url, tag) is the ONLY way the background changes. */
   function setBackground(url, tag){
+    if(!wantsGlobalBackdrop()){
+      /* The page owns its own backdrop. Remove any slot a previous page-state left behind
+         rather than leaving it stacked underneath - that stacking is the whole bug. */
+      var old=document.getElementById(BG_SLOT); if(old) old.remove();
+      var legacy=document.getElementById('kil-season-bg'); if(legacy) legacy.remove();
+      return;
+    }
     var el=bgSlot();
     var img=new Image();
     img.onload=function(){

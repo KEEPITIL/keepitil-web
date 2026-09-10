@@ -1,0 +1,46 @@
+{
+  "name": "KWARS3 \u2014 Age of Wars 3D",
+  "short_name": "KWARS3",
+  "description": "The true-3D chapter. A living army in real 3D across eight ages, with campaign, perks and endless war.",
+  "id": "/games/kwars3/",
+  "start_url": "/games/kwars3/index.html?source=pwa",
+  "scope": "/games/kwars3/",
+  "display": "standalone",
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
+  "orientation": "landscape",
+  "background_color": "#071018",
+  "theme_color": "#071018",
+  "categories": [
+    "games",
+    "strategy"
+  ],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "app-icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

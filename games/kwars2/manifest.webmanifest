@@ -1,0 +1,41 @@
+{
+  "name": "KWARS2 \u2014 Kingdom Wars II",
+  "short_name": "KWARS2",
+  "description": "Castle-to-castle war on a 3D-styled battlefield. Command formations, fortify your kingdom, and defeat evolving armies.",
+  "id": "/games/kwars2/",
+  "start_url": "/games/kwars2/index.html?source=pwa",
+  "scope": "/games/kwars2/",
+  "display": "standalone",
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
+  "orientation": "any",
+  "background_color": "#071018",
+  "theme_color": "#071018",
+  "categories": [
+    "games",
+    "strategy"
+  ],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "app-icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

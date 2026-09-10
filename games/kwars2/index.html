@@ -1,25 +1,25 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>AOW2 — Age of Wars 3D</title>
-<meta name="description" content="AOW2 — the 3D sequel to Age of War. Command a 3D stick army, orbit the battlefield, build your castle and crush the enemy fort.">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>KWARS2 — Kingdom Wars II</title>
+<meta name="description" content="KWARS2 — castle-to-castle war in a 3D-styled battlefield. Command formations, fortify your kingdom, and defeat evolving enemy armies across the ages.">
 <meta name="theme-color" content="#071018">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="AOW2">
+<meta name="apple-mobile-web-app-title" content="KWARS2">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;background:#071018;color:#f8e7bd;font-family:Inter,system-ui,sans-serif}canvas{position:fixed;inset:0;width:100vw;height:100dvh;display:block;touch-action:none}.hud{position:fixed;inset:0;width:100vw;height:100dvh;pointer-events:none}.top{display:flex;gap:10px;align-items:center;padding:10px 14px;background:linear-gradient(#06101ee8,#06101e00)}.brand{font:900 22px Georgia;color:#f2bd59;text-shadow:0 2px #000}.pill{padding:8px 12px;border:1px solid #bd8937aa;border-radius:18px;background:#0c1728dd;color:#fff;font-weight:800}.hp{width:min(260px,24vw);height:13px;background:#221c19;border:2px solid #6f5432;border-radius:9px;overflow:hidden}.hp i{display:block;height:100%;background:linear-gradient(90deg,#aa2727,#f16b42);width:100%}.enemy{margin-left:auto}#unitbar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;gap:5px;justify-content:flex-start;align-items:flex-end;padding:6px max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));overflow-x:auto;scrollbar-width:none;background:linear-gradient(rgba(7,17,29,0),rgba(7,17,29,.8));pointer-events:auto}#unitbar::-webkit-scrollbar{display:none}.ubtn{position:relative;flex:0 0 auto;min-width:62px;height:62px;border:1px solid #9d7738;border-radius:11px;cursor:pointer;background:linear-gradient(#27354a,#101927);color:#fff;box-shadow:0 3px 0 #06101e,0 4px 10px rgba(0,0,0,.4);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-family:inherit;padding:0 6px}.ubtn .big{font-size:20px;line-height:22px}.ubtn .nm{font-size:10px;font-weight:bold;letter-spacing:.2px}.ubtn .cost{font-size:10px;color:#f4c86c;font-weight:bold}.ubtn:active{transform:translateY(2px)}.ubtn.active{background:linear-gradient(#f2c94d,#c98f1d);color:#4a3405}.ubtn.active .cost{color:#4a3405}.ubtn.evolve{background:linear-gradient(#7a4fbc,#553083)}.sep{flex:0 0 2px;height:46px;background:rgba(255,255,255,.16);border-radius:2px;align-self:center}.era{position:absolute;right:14px;top:66px;pointer-events:auto;background:#07111de8;border:1px solid #82632e;border-radius:12px;padding:8px}.era select{background:#172337;color:#fff;border:1px solid #b88a3c;border-radius:7px;padding:7px}.banner{position:absolute;left:50%;top:18%;transform:translateX(-50%);font:900 clamp(30px,6vw,70px) Georgia;color:#ffd36c;text-shadow:0 4px 12px #000;opacity:0;transition:.3s}.banner.show{opacity:1}.mobile{display:none}@media(max-width:850px){.brand{font-size:16px}.pill{font-size:11px;padding:6px}.ubtn{min-width:56px;height:56px}.ubtn .big{font-size:18px}.mobile{display:block}}
 </style>
-<link rel="canonical" href="https://keepitil.com/games/aow2/"/>
+<link rel="canonical" href="https://keepitil.com/games/kwars2/"/>
 </head><body><canvas id="c"></canvas><div class="hud"><div class="top"><div class="brand">AOW2</div><div class="pill">Gold <b id="gold">500</b></div><div class="pill">Wave <b id="wave">1</b></div><div class="pill">Army <b id="count">0</b>/50</div><div class="hp"><i id="ph"></i></div><div class="hp enemy"><i id="eh"></i></div><button class="pill" id="speed" style="pointer-events:auto">1× SPEED</button><button class="pill" id="zin" style="pointer-events:auto">➕</button><button class="pill" id="zout" style="pointer-events:auto">➖</button><button class="pill" id="rl" style="pointer-events:auto">↺</button><button class="pill" id="rr" style="pointer-events:auto">↻</button></div><div class="era"><select id="era"><option value="tribal">Tribal Stone Age</option><option value="greek">Classical Greece</option><option value="rome" selected>Imperial Rome</option><option value="viking">Viking Age</option><option value="japan">Feudal Japan</option><option value="future">Future Era</option></select></div><div id="unitbar"><button class="ubtn" data-unit="defender"><span class="big">🛡</span><span class="nm">Defender</span><span class="cost">80</span></button><button class="ubtn" data-unit="assault"><span class="big">⚔</span><span class="nm">Assault</span><span class="cost">65</span></button><button class="ubtn" data-unit="ranged"><span class="big">🏹</span><span class="nm">Ranged</span><span class="cost">90</span></button><button class="ubtn" data-unit="champion"><span class="big">👑</span><span class="nm">Champion</span><span class="cost">220</span></button><div class="sep"></div><button class="ubtn active" data-cmd="defend"><span class="big">🛡</span><span class="nm">Defend</span></button><button class="ubtn" data-cmd="march"><span class="big">🚶</span><span class="nm">March</span></button><button class="ubtn" data-cmd="attack"><span class="big">⚔</span><span class="nm">Attack</span></button><button class="ubtn" data-action="spear"><span class="big">🔱</span><span class="nm">Spear</span><span class="cost">volley</span></button><button class="ubtn" data-charge="defender"><span class="big">🔱</span><span class="nm">Charge</span><span class="cost">Spears</span></button><button class="ubtn" data-charge="assault"><span class="big">⚔</span><span class="nm">Charge</span><span class="cost">Swords</span></button><button class="ubtn" data-charge="ranged"><span class="big">🏹</span><span class="nm">Charge</span><span class="cost">Archers</span></button><div class="sep"></div><button class="ubtn" data-system="garrison"><span class="big">🏯</span><span class="nm">Garrison</span><span class="cost">150</span></button><button class="ubtn" data-system="wizard"><span class="big">🧙</span><span class="nm">Wizard</span><span class="cost">250</span></button><button class="ubtn" data-system="fortify"><span class="big">🧱</span><span class="nm">Fortify</span><span class="cost">300</span></button><button class="ubtn evolve" data-system="evolve"><span class="big">⬆</span><span class="nm">Evolve</span><span class="cost">600</span></button><button class="ubtn" data-system="power"><span class="big">💥</span><span class="nm">Power</span></button><div class="sep"></div><button class="ubtn" data-build="1"><span class="big">🏰</span><span class="nm">Build</span><span class="cost">castle</span></button></div><div class="banner" id="banner"></div></div>
 <script>
 const cv=document.getElementById('c'),x=cv.getContext('2d');let W,H,DPR=1;
 function size(){DPR=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;x.setTransform(DPR,0,0,DPR,0,0)}addEventListener('resize',size);size();
 const ERA={tribal:{name:'Tribal Stone Age',main:'#6c4d2f',metal:'#999083',accent:'#d9c28b',helm:'fur'},greek:{name:'Classical Greece',main:'#7d2020',metal:'#c99636',accent:'#e5c45f',helm:'crest'},rome:{name:'Imperial Rome',main:'#8e2020',metal:'#c7c9c8',accent:'#d7a52e',helm:'crest'},viking:{name:'Viking Age',main:'#334455',metal:'#92989b',accent:'#76512f',helm:'horn'},japan:{name:'Feudal Japan',main:'#7d1717',metal:'#24292c',accent:'#d4862c',helm:'kabuto'},future:{name:'Future Era',main:'#1d3145',metal:'#627587',accent:'#29cfff',helm:'visor'}};
 const WORLD=210,PLAYER_FORT=10,ENEMY_FORT=200,COST={defender:80,assault:65,ranged:90,champion:220},ERA_ORDER=['tribal','greek','rome','viking','japan','future'];let era='rome',gold=500,wave=1,speed=1,stance='defend',fortHP=2200,fortMax=2200,enemyHP=2200,enemyMax=2200,t=0,last=performance.now(),waveState='forming',formClock=8,bannerT=0,id=0,garrison=0,fortLevel=1,powerCd=0,playerRally=30,enemyRally=180,marchDir=1,lastDefendTap=0,lastMarchTap=0,oilCd=0,fortArchCd=0,fortArchSide=1,tapCd=0,spearCd=0,zoom=1,camA=0,castleCd=0,castleFront=18,CASTLE=null;
-try{const _m=location.hash.match(/castle=([^&]+)/);CASTLE=_m?JSON.parse(decodeURIComponent(_m[1])):JSON.parse(localStorage.getItem('aow2_castle'));if(CASTLE&&_m){localStorage.setItem('aow2_castle',JSON.stringify(CASTLE));}}catch(e){CASTLE=null;}
+try{const _m=location.hash.match(/castle=([^&]+)/);CASTLE=_m?JSON.parse(decodeURIComponent(_m[1])):JSON.parse(localStorage.getItem('kwars2_aow2_castle'));if(CASTLE&&_m){localStorage.setItem('kwars2_aow2_castle',JSON.stringify(CASTLE));}}catch(e){CASTLE=null;}
 const units=[],shots=[],fx=[],wizards=[],defenses=[];
 // Locked side view: both castles and the complete battlefield always fill the screen.
 function proj(X,Y,Z){let ca=Math.cos(camA),sa=Math.sin(camA),dx=X-WORLD/2,rx=WORLD/2+dx*ca-Z*sa,rz=Z*ca+dx*sa,margin=Math.max(18,W*.02),depth=(rz+52)/104,sc0=Math.max(3.2,Math.min(6.7,H/108))*(.9+depth*.18),bx=margin+rx/WORLD*(W-margin*2),by=H*.73+rz*(H*.0047)-Y*sc0,cx=W*.5,cy=H*.62;return{x:(bx-cx)*zoom+cx,y:(by-cy)*zoom+cy,s:sc0*zoom,d:rz}}
@@ -249,4 +249,56 @@ cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endP
 cv.addEventListener('wheel',e=>{zoom=Math.max(1,Math.min(2.6,zoom-e.deltaY*0.0012));e.preventDefault();},{passive:false});
 for(let i=0;i<20;i++)add(i%7===0?'ranged':i%5===0?'defender':'assault',-1,(i%10-4.5)*4,{x:ENEMY_FORT-8-Math.floor(i/10)*1.2});requestAnimationFrame(loop);
 if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
-</script></body></html>
+</script>
+<script id="kwars2-save-migration">
+/* Save isolation (Phase 13). KWARS2 keys are namespaced kwars2_*. Players who
+   built a castle under the old AOW2 / Rave Wars deployments stored it at the
+   un-namespaced 'aow2_castle', so migrate it once rather than orphaning it. */
+(function(){try{
+  if(localStorage.getItem('kwars2_aow2_castle')===null){
+    var old=localStorage.getItem('aow2_castle');
+    if(old!==null){localStorage.setItem('kwars2_aow2_castle',old);
+      console.info('[KWARS2] migrated castle save from aow2_castle');}
+  }
+}catch(e){}})();
+</script>
+<script id="kwars2-merged-view">
+/* KWARS2 merge — Rave Wars readability + AOW2 camera freedom.
+   Rave Wars locked the camera (camA=0; zoom=1 every 16ms) to guarantee a
+   readable side view, at the cost of deleting orbit/zoom. KWARS2 keeps the
+   locked side view as the default and lets the player unlock it, so neither
+   branch's intent is lost. */
+(function(){
+  var LOCK_KEY='kwars2_view_locked';
+  var locked = localStorage.getItem(LOCK_KEY);
+  locked = (locked===null) ? true : locked==='1';   // default: Rave Wars view
+  // Rave Wars' unit-bar treatment: centred, bordered, rounded — better than
+  // the left-aligned original on both phone and desktop.
+  document.head.insertAdjacentHTML('beforeend',
+    '<style id="kwars2-ui">#unitbar{left:50%;right:auto;width:min(calc(100% - 16px),1280px);'+
+    'transform:translateX(-50%);bottom:8px;border:1px solid rgba(189,137,55,.28);'+
+    'border-radius:14px;padding-top:8px}#speed{pointer-events:auto}</style>');
+  function applyLock(){
+    var ids=['zin','zout','rl','rr'];
+    for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);
+      if(e) e.style.display = locked ? 'none' : '';}
+    var b=document.getElementById('kwars2view');
+    if(b) b.textContent = locked ? 'VIEW: FIXED' : 'VIEW: FREE';
+  }
+  // The lock itself: hold the canonical readable framing while engaged.
+  setInterval(function(){ if(locked){ try{ camA=0; zoom=1; }catch(e){} } },16);
+  window.addEventListener('DOMContentLoaded',function(){
+    var host=document.querySelector('.top');
+    if(host){
+      var btn=document.createElement('button');
+      btn.className='pill'; btn.id='kwars2view';
+      btn.style.pointerEvents='auto'; btn.title='Toggle free camera (orbit + zoom)';
+      btn.onclick=function(){ locked=!locked; localStorage.setItem(LOCK_KEY, locked?'1':'0'); applyLock(); };
+      host.appendChild(btn);
+    }
+    var br=document.querySelector('.brand'); if(br) br.textContent='KWARS2';
+    applyLock();
+  });
+})();
+</script>
+</body></html>

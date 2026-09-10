@@ -3,7 +3,7 @@
  * three.js, game modules and icons are cache-first (they are versioned by the
  * cache name). Cleanup is scoped to the 'aow2-3d-' prefix so this never
  * deletes another game's offline data on the same origin. */
-const CACHE = 'aow2-3d-v5';
+const CACHE = 'kwars3-v6';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest', './icon.svg',
   './vendor/three.min.js', './vendor/CopyShader.js', './vendor/LuminosityHighPassShader.js',
@@ -27,7 +27,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
     .then(keys => Promise.all(keys
-      .filter(k => k.indexOf('aow2-3d-') === 0 && k !== CACHE)
+      .filter(k => ((k.indexOf('aow2-3d-')===0) || k !== CACHE))
       .map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });

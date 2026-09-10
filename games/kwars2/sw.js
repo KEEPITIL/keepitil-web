@@ -1,7 +1,7 @@
 // AOW2 — Age of Wars 3D · offline service worker
 // The game is a single self-contained index.html, so the cache is small.
 // Bump CACHE (date/time) whenever the build is redeployed to force an update.
-const CACHE = 'aow2-v1-202608022135';
+const CACHE = 'kwars2-v2';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest', './icon.svg',
   './app-icon-192.png', './app-icon-512.png', './app-icon-maskable.png', './apple-touch-icon.png'
@@ -14,7 +14,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k.startsWith('aow2-') && k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => ((k.indexOf('aow2-v')===0 || k.indexOf('ravewars')===0 || k.indexOf('rave-wars')===0) || k !== CACHE)).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

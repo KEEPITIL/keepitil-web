@@ -153,7 +153,10 @@
        ambience. Emphasis is spent deliberately: Play/Pause and the LIVE RADIO state glow,
        and nothing else does, so the two controls that matter are the two that stand out.
        No borders around every function - spacing and weight carry the hierarchy. */
-    +'#kil-radio{height:auto;min-height:46px;}'
+    /* Desktop bar sits in the 72-84px band asked for: tall enough to read Now Playing and
+       artwork, short enough to stay persistent. MOBILE IS UNTOUCHED - the mobile height
+       rules live in the existing max-width blocks and are deliberately not changed here. */
+    +'@media(min-width:641px){#kil-radio{height:auto;min-height:76px;padding:0 14px;gap:14px;}}'
     +'#kr-live{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(0,255,136,.28);border-radius:10px;padding:4px 8px;cursor:pointer;transition:background .18s,border-color .18s,box-shadow .18s;}'
     +'#kr-live:hover{background:rgba(0,255,136,.10);border-color:rgba(0,255,136,.55);}'
     +'#kr-live:focus-visible{outline:2px solid #36e2ff;outline-offset:2px;}'
@@ -177,18 +180,13 @@
     +'.kr-wave i:nth-child(1){height:5px;animation-delay:0s}.kr-wave i:nth-child(2){height:11px;animation-delay:.15s}.kr-wave i:nth-child(3){height:7px;animation-delay:.3s}'
     +'@keyframes kr-eq{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}'
     /* play/pause is the dominant control */
-    +'.krb-play{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#36e2ff,#00ff88);border:0;color:#05121a;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 auto;box-shadow:0 0 16px rgba(54,226,255,.45);transition:transform .12s,box-shadow .18s;}'
-    +'.krb-play:hover{transform:scale(1.07);box-shadow:0 0 22px rgba(0,255,136,.6);}'
-    +'.krb-play:focus-visible{outline:2px solid #fff;outline-offset:2px;}'
-    +'.krb-pg{font-size:.85rem;line-height:1;}'
     +'.kr-fav{background:transparent;border:0;color:#7a8699;cursor:pointer;font-size:.95rem;line-height:1;padding:2px 4px;}'
     +'.kr-fav.on{color:#ff4d82;text-shadow:0 0 8px rgba(255,77,130,.6);}'
     +'.kr-fav:focus-visible{outline:2px solid #36e2ff;outline-offset:1px;}'
     /* ── PANELS: exactly one visible, both driven by data-radio-ui ── */
     +'.kr-panel{position:fixed;left:0;right:0;z-index:9997;display:none;flex-direction:column;background:rgba(9,9,14,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid rgba(54,226,255,.28);font-family:\'Space Grotesk\',\'Inter\',sans-serif;}'
     +'.kr-panel.on{display:flex;}'
-    +'#kr-drawer{bottom:var(--kil-radio-h,46px);max-height:46vh;border-radius:14px 14px 0 0;box-shadow:0 -18px 50px rgba(0,0,0,.7);}'
-    +'#kr-full{top:0;bottom:var(--kil-radio-h,46px);border-radius:0;}'
+    +'#kr-drawer{bottom:var(--kil-radio-h,76px);max-height:360px;border-radius:14px 14px 0 0;box-shadow:0 -18px 50px rgba(0,0,0,.7);}'
     +'.kr-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:linear-gradient(90deg,rgba(0,255,136,.12),rgba(124,77,255,.10));border:0;border-bottom:1px solid rgba(255,255,255,.08);padding:11px 14px;cursor:pointer;}'
     +'.kr-hdr:hover{background:linear-gradient(90deg,rgba(0,255,136,.2),rgba(124,77,255,.16));}'
     +'.kr-hdr:focus-visible{outline:2px solid #36e2ff;outline-offset:-2px;}'
@@ -206,11 +204,6 @@
     +'.kr-st.on{border-color:#00ff88;color:#fff;box-shadow:0 0 12px rgba(0,255,136,.28);}'
     +'.kr-st:focus-visible{outline:2px solid #36e2ff;outline-offset:1px;}'
     +'.kr-empty{color:#7a8699;font-size:.6rem;margin:0;}'
-    +'.kr-full-hero{display:flex;gap:14px;align-items:center;margin-bottom:18px;}'
-    +'.kr-full-art{width:104px;height:104px;border-radius:12px;object-fit:cover;background:#15151f;flex:0 0 auto;}'
-    +'.kr-full-meta{display:flex;flex-direction:column;gap:3px;min-width:0;}'
-    +'.kr-full-title{font-size:1rem;font-weight:800;color:#fff;}'
-    +'.kr-full-sub{font-size:.7rem;color:#8d99ab;}'
     /* mobile: prioritise artwork, station, play, mute, gateway - not a squeezed desktop bar */
     +'@media(max-width:640px){'
     +  '#kr-live .kil-brand-radio{font-size:.44rem;}'
@@ -218,7 +211,6 @@
     +  '#kr-prev,#kr-next{display:none!important;}'
     +  '.kr-nowsub{display:none;}'
     +  '#kr-drawer{max-height:58vh;}'
-    +  '.kr-full-art{width:76px;height:76px;}'
     +'}';
   document.head.appendChild(css);
 
@@ -272,9 +264,11 @@
            sound that is not happening. */
         '<span class="kr-wave" id="kr-wave" aria-hidden="true"><i></i><i></i><i></i></span>'+
       '</div>'+
-      '<button type="button" class="krb krb-play" id="kr-play" title="Play / Pause" aria-label="Play radio" aria-pressed="false">'+
-        '<span class="krb-pg" id="kr-playg">\u25b6</span>'+
-      '</button>'+
+      /* NO PLAY/PAUSE (KODE 2026-09-09). KEEPITIL Radio is a 24/7 broadcast, not a
+         track-by-track player, so the bar does not carry transport UI. Initialisation is
+         covered below: the stream mounts on the visitor's first gesture anywhere on the
+         page, which is also the earliest moment a browser permits sound. */
+
       '<button class="krb" id="kr-next" title="Next song" aria-label="Next song">'+
         '<span class="krb-g">\u203a</span><span class="kr-side" id="kr-nextt"></span>'+
       '</button>'+
@@ -284,7 +278,9 @@
          the markup, so volEl was always null: getVol() could only ever return DEFAULT_VOL
          and the visitor had no way to set a level. Hidden until MUTE is pressed, per the
          brief - muting is the moment someone wants to choose a level rather than lose one. */
-      '<input class="krb kr-vol" id="kr-vol" type="range" min="0" max="100" step="1" hidden '+
+      /* Always visible (KODE 2026-09-09). It used to be hidden until MUTE was pressed, which
+         made volume feel absent; it is a primary control of a live radio. */
+      '<input class="krb kr-vol" id="kr-vol" type="range" min="0" max="100" step="1" '+
         'aria-label="Radio volume" title="Volume"/>'+
       /* Saves the STATION, which is the only thing this radio can genuinely favourite.
          There is no per-track favourites store, so the heart does not claim to save a
@@ -411,7 +407,7 @@
     var v=(typeof st.volume==='number') ? Math.round(st.volume*100) : DEFAULT_VOL;
     savedVol=Math.max(0,Math.min(100, v||DEFAULT_VOL));
     if(st.muted){ muted=true; }
-    if(volEl){ volEl.value=savedVol; volEl.hidden=!muted; }
+    if(volEl){volEl.value=muted?0:savedVol;}
     /* The icon has to agree with the restored state, or the bar arrives on the next page
        saying "unmuted" over a session that is muted. */
     if(muted && muteBtn) muteBtn.textContent='\ud83d\udd07';
@@ -826,7 +822,7 @@
       if(st && typeof st.trackIdx==='number' && st.ts && (Date.now()-st.ts)<45*60*1000){
         savedVol=Math.max(0,Math.min(100, Math.round((st.volume!=null?st.volume:DEFAULT_VOL/100)*100)))||DEFAULT_VOL;
         muted=!!st.muted;
-        if(volEl){ volEl.value=savedVol; volEl.hidden=!muted; }
+        if(volEl){volEl.value=muted?0:savedVol;}
         if(muted && muteBtn) muteBtn.textContent='🔇';
         var away=Date.now()-st.ts;
         var pos=Math.round((st.currentTime||0)+away);
@@ -951,26 +947,18 @@
     });
   })();
 
-  /* ── PLAY / PAUSE ─────────────────────────────────────────────────────────────────────
-     The bar had no play control at all: mute was doing double duty, and on mobile mute also
-     paused. Play/Pause is now the dominant control and is the only thing that starts audio.
-     It mounts the widget on first use, because the iframe is deliberately deferred until a
-     gesture - which is also the earliest moment a browser would let it make sound. */
-  var playBtn=document.getElementById('kr-play'), playG=document.getElementById('kr-playg');
+  /* ── INITIALISATION, WITHOUT A PLAY BUTTON (KODE 2026-09-09) ──────────────────────────
+     A browser will not emit sound until the visitor has interacted with the document. The
+     stream therefore mounts on the FIRST gesture anywhere on the page - a click, a key, a
+     scroll - via the existing arming listeners, not via a transport control. That keeps the
+     bar a broadcast panel rather than a music player, and it does not fight autoplay policy:
+     nothing is attempted before the browser would allow it.
+     Until that gesture the LED reads 'off' and the bar says LIVE READY, which is honest -
+     the station is live, this tab simply has not been permitted to play it yet. */
   function paintPlay(){
-    if(!playBtn) return;
-    playBtn.setAttribute('aria-pressed', playing?'true':'false');
-    playBtn.setAttribute('aria-label', playing?'Pause radio':'Play radio');
-    if(playG) playG.textContent = playing ? '⏸' : '▶';
     var w=document.getElementById('kr-wave'); if(w) w.classList.toggle('on', !!playing);
-  }
-  if(playBtn){
-    playBtn.addEventListener('click',function(e){
-      e.stopPropagation(); interacted=true;
-      if(!document.getElementById('kil-sc') && window.__kilMountRadio){ window.__kilMountRadio(); paintPlay(); return; }
-      if(!widget||!widgetReady) return;
-      if(playing){ widget.pause(); } else { widget.play(); }
-    });
+    var t=document.getElementById('kil-track');
+    if(t && !playing && !widgetReady && /^(Loading|)/.test(t.textContent||'')) t.textContent='LIVE READY';
   }
   window.__kilPaintPlay=paintPlay;
 
@@ -1014,25 +1002,24 @@
   }
 
   /* ══ RADIO UI STATE MACHINE ════════════════════════════════════════════════════════════
-     EXACTLY ONE presentation state at any moment: 'compact' | 'drawer' | 'expanded'.
+     EXACTLY ONE presentation state at any moment: 'compact' | 'drawer'.
      The audio engine is untouched by all of this - there is one SoundCloud widget, created
      once by __kilMountRadio(), and none of these transitions reload it, re-create it, reset
      volume or restart the track. That is the whole point: the interface changes, the radio
      session does not.
 
      LIVE RADIO is the only control that moves between states:
-         compact   --click LIVE RADIO-->   drawer
-         drawer    --click header------>   expanded
-         expanded  --click header------>   compact
+         compact  --click LIVE RADIO-->  drawer
+         drawer   --click LIVE RADIO or the drawer header-->  compact
+     The full-screen state was removed on 2026-09-09: it filled a desktop screen with empty
+     space and offered nothing the drawer does not.
      Dismissing the drawer (outside click / Escape / swipe down) returns to compact and never
      touches playback. */
   var RADIO_UI='compact';
-  var drawerEl=null, fullEl=null;
+  var drawerEl=null;
 
   function _gwLabel(st){
-    return st==='compact' ? 'Open KEEPITIL Radio'
-         : st==='drawer'  ? 'Expand KEEPITIL Radio'
-         :                  'Collapse KEEPITIL Radio';
+    return st==='compact' ? 'Open KEEPITIL Radio' : 'Close KEEPITIL Radio';
   }
   /* The drawer and the full view share ONE header component so the gateway cannot drift
      between them. Built lazily: a visitor who never opens the radio pays nothing. */
@@ -1055,26 +1042,12 @@
     drawerEl.innerHTML=_hdr('d')+'<div class="kr-panel-body"><div class="kr-sec"><h4>STATIONS</h4>'
       +'<div class="kr-stations" id="kr-stations-d"></div></div></div>';
     document.body.appendChild(drawerEl);
-    document.getElementById('kr-hdr-d').addEventListener('click',function(e){ e.stopPropagation(); setRadioUI('expanded'); });
-    document.getElementById('kr-hint-d').textContent='OPEN FULL RADIO';
+    document.getElementById('kr-hdr-d').addEventListener('click',function(e){ e.stopPropagation(); setRadioUI('compact'); });
+    document.getElementById('kr-hint-d').textContent='CLOSE';
     return drawerEl;
   }
-  function _buildFull(){
-    if(fullEl) return fullEl;
-    fullEl=document.createElement('div');
-    fullEl.id='kr-full'; fullEl.className='kr-panel'; fullEl.setAttribute('role','dialog');
-    fullEl.setAttribute('aria-label','KEEPITIL Radio, full view');
-    fullEl.innerHTML=_hdr('f')+'<div class="kr-panel-body kr-full-body">'
-      +'<div class="kr-full-hero"><img class="kr-full-art" id="kr-full-art" alt=""/>'
-      +'<div class="kr-full-meta"><span class="kr-nowlab">NOW PLAYING</span>'
-      +'<span class="kr-full-title" id="kr-full-title"></span>'
-      +'<span class="kr-full-sub" id="kr-full-sub"></span></div></div>'
-      +'<div class="kr-sec"><h4>STATIONS</h4><div class="kr-stations" id="kr-stations-f"></div></div></div>';
-    document.body.appendChild(fullEl);
-    document.getElementById('kr-hdr-f').addEventListener('click',function(e){ e.stopPropagation(); setRadioUI('compact'); });
-    document.getElementById('kr-hint-f').textContent='COLLAPSE';
-    return fullEl;
-  }
+  /* _buildFull() and the whole expanded view were deleted 2026-09-09 - see setRadioUI.
+     No stale constants, no orphan handlers, no CSS for a screen that no longer exists. */
   /* Station list is rendered from the SAME array the engine plays from, so a station can
      never be offered here that the player cannot actually switch to. */
   function paintStations(){
@@ -1102,25 +1075,16 @@
   }
   function setRadioUI(st){
     if(st===RADIO_UI) return;
-    if(st!=='compact'){ if(st==='drawer') _buildDrawer(); else _buildFull(); }
+    if(st==='drawer') _buildDrawer();
     RADIO_UI=st;
     /* Only ever ONE panel on screen: both are removed from view before one is shown. */
     if(drawerEl) drawerEl.classList.toggle('on', st==='drawer');
-    if(fullEl)   fullEl.classList.toggle('on',  st==='expanded');
     document.documentElement.setAttribute('data-radio-ui', st);
     var gw=document.getElementById('kr-live');
     if(gw){ gw.setAttribute('aria-label',_gwLabel(st)); gw.setAttribute('aria-expanded', st==='compact'?'false':'true'); }
     var ic=document.getElementById('kr-gw-ic'); if(ic) ic.textContent = st==='compact' ? '▴' : '▾';
-    if(st!=='compact'){ paintStations(); paintFull(); }
+    if(st!=='compact'){ paintStations(); }
     try{ window.KIL_RADIO_UI=st; }catch(e){}
-  }
-  function paintFull(){
-    var t=document.getElementById('kr-full-title'), sub=document.getElementById('kr-full-sub'),
-        a=document.getElementById('kr-full-art'), src=document.getElementById('kr-art');
-    var tr=document.getElementById('kil-track');
-    if(t&&tr) t.textContent=tr.textContent||'';
-    if(sub){ var np=document.getElementById('kr-nowpl'); sub.textContent=np?np.textContent:''; }
-    if(a&&src&&src.getAttribute('src')) a.src=src.getAttribute('src');
   }
   window.KIL_SET_RADIO_UI=setRadioUI;
 
@@ -1130,14 +1094,17 @@
       e.stopPropagation();
       interacted=true;
       /* One control, three meanings, decided by the state we are currently in. */
-      setRadioUI(RADIO_UI==='compact' ? 'drawer' : RADIO_UI==='drawer' ? 'expanded' : 'compact');
+      /* TWO STATES ONLY (KODE 2026-09-09). The full-screen state was removed: it filled a
+         desktop screen with empty space and offered nothing the drawer does not. LIVE RADIO
+         now opens and closes the drawer, and the drawer header closes it too. */
+      setRadioUI(RADIO_UI==='compact' ? 'drawer' : 'compact');
     });
   }
   /* Dismiss gestures return to compact. None of them stop audio. */
   document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&RADIO_UI!=='compact') setRadioUI('compact'); });
   document.addEventListener('click',function(e){
     if(RADIO_UI==='compact') return;
-    var panel=RADIO_UI==='drawer'?drawerEl:fullEl;
+    var panel=drawerEl;
     if(panel&&!panel.contains(e.target)&&!e.target.closest('#kil-radio')) setRadioUI('compact');
   });
 
@@ -1168,7 +1135,7 @@
       muteBtn.textContent = muted?'🔇':'🔊';
       muteBtn.setAttribute('aria-label', muted?'Unmute':'Mute');
       muteBtn.setAttribute('aria-pressed', muted?'true':'false');
-      if(volEl){ volEl.value=savedVol; volEl.hidden=!muted; }
+      if(volEl){volEl.value=muted?0:savedVol;}
       _pendingMute = muted;                 /* applied the moment READY fires */
       krsWrite({volume:savedVol/100,muted:muted});
       return;
@@ -1179,7 +1146,7 @@
       muted=false;muteBtn.textContent='🔊';
       muteBtn.setAttribute('aria-label','Mute');muteBtn.setAttribute('aria-pressed','false');
       widget.setVolume(savedVol);
-      if(volEl){volEl.value=savedVol;volEl.hidden=true;}
+      if(volEl){volEl.value=muted?0:savedVol;}
       if(isMobile)widget.play();
       if(commercialAudio)commercialAudio.volume=Math.min(1,savedVol/100);
     } else {
@@ -1189,19 +1156,37 @@
       muted=true;muteBtn.textContent='🔇';
       muteBtn.setAttribute('aria-label','Unmute');muteBtn.setAttribute('aria-pressed','true');
       widget.setVolume(0);
-      if(volEl){volEl.value=savedVol;volEl.hidden=false;}
+      if(volEl){volEl.value=muted?0:savedVol;}
       if(isMobile)widget.pause();
       if(commercialAudio)commercialAudio.volume=0;
     }
     krsWrite({volume:savedVol/100,muted:muted});
   });}
+  /* ══ VOLUME MUST NEVER BE DEAD (KODE 2026-09-09) ═══════════════════════════════════════
+     This opened with `if(!widget||!widgetReady) return;` - the same defect that made mute
+     decorative. Dragging the slider before the widget reported READY did nothing at all:
+     no audible change, no savedVol update, no persistence, so the chosen level was lost
+     too. The level is a user decision and is now always recorded; it reaches the engine
+     the moment there is an engine to reach.
+     Volume 0 IS muted and volume above 0 is unmuted, so the slider and the mute button can
+     never disagree - they are two views of one state. */
   if(volEl){volEl.addEventListener('input',function(){
-    if(!widget||!widgetReady) return;
     interacted=true;
-    savedVol=Math.max(0,Math.min(100,parseInt(this.value)||0));
-    /* Moving the slider while muted sets the level to return to; it does not unmute on its
-       own, because the brief asks for the level to be chosen while muted. */
-    if(!muted){ widget.setVolume(savedVol); if(commercialAudio)commercialAudio.volume=Math.min(1,savedVol/100); }
+    var v=Math.max(0,Math.min(100,parseInt(this.value)||0));
+    savedVol=v;
+    var wantMuted=(v===0);
+    if(wantMuted!==muted){
+      muted=wantMuted;
+      if(muteBtn){
+        muteBtn.textContent = muted?'🔇':'🔊';
+        muteBtn.setAttribute('aria-pressed', muted?'true':'false');
+        muteBtn.setAttribute('aria-label', muted?'Unmute radio':'Mute radio');
+      }
+    }
+    if(widget&&widgetReady){
+      widget.setVolume(muted?0:v);
+      if(commercialAudio)commercialAudio.volume=muted?0:Math.min(1,v/100);
+    } else { _pendingMute = muted; }   /* applied by the READY handler */
     krsWrite({volume:savedVol/100,muted:muted});
   });}
 

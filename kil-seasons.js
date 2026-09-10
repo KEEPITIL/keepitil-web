@@ -82,26 +82,75 @@
     try{ var r=document.documentElement.style; r.setProperty('--kil-season-tint','rgb('+rgb+')'); r.setProperty('--kil-season-tint-rgb',rgb); }catch(e){} }
   function clearTint(){ try{ var r=document.documentElement.style; r.removeProperty('--kil-season-tint'); r.removeProperty('--kil-season-tint-rgb'); }catch(e){} }
 
-  // paint a given season slug (desktop/mobile variant chosen live) — only if the image exists
-  function paintSeason(slug){
-    var isMobile=Math.min(window.innerWidth,window.innerHeight)<=640 || window.innerHeight>window.innerWidth;
-    var url='/assets/images/seasons/'+slug+'-'+(isMobile?'mobile':'desktop')+'.jpg';
+  /* ══ ONE AUTHORITATIVE BACKGROUND CONTROLLER (KODE 2026-09-09) ═════════════════════════
+     KEEPITIL had TWO background systems that could paint at the same time:
+       1. #hero-holiday-bg  — inside index.html's hero, scheduled by its own HOLIDAYS table
+       2. #kil-season-bg    — this file, position:fixed behind the whole page
+     Nothing coordinated them, so "campaign art + default underneath" was reachable by
+     construction rather than by accident.
+
+     There is now ONE slot, #kil-global-background, and one function that may change it.
+     Adding a background means changing this slot's source - never appending a second layer.
+     The slot is inert: pointer-events:none, z-index behind content, no handlers, so it can
+     never open an image, a modal or a popup.
+
+     DEFAULT: the neon-blue KEEPITIL X. It is what shows whenever no campaign is
+     explicitly active, which is the state KEEPITIL is in today. */
+  var BG_SLOT='kil-global-background';
+  var BG_DEFAULT='/assets/images/logo-bg.jpg';   /* neon blue KEEPITIL X */
+
+  function bgSlot(){
+    var el=document.getElementById(BG_SLOT);
+    if(!el){
+      el=document.createElement('div'); el.id=BG_SLOT;
+      el.setAttribute('aria-hidden','true');
+      el.style.cssText='position:fixed;inset:0;z-index:-3;pointer-events:none;'
+        +'background-position:center;background-size:cover;background-repeat:no-repeat;'
+        +'opacity:1;transition:opacity .6s ease';
+      document.body.appendChild(el);
+    }
+    /* Any legacy layer from an older build is removed rather than left underneath - that
+       stacking is exactly the regression this controller exists to prevent. */
+    var stale=document.getElementById('kil-season-bg');
+    if(stale && stale!==el) stale.remove();
+    return el;
+  }
+  /* setBackground(url, tag) is the ONLY way the background changes. */
+  function setBackground(url, tag){
+    var el=bgSlot();
     var img=new Image();
     img.onload=function(){
-      var layer=document.getElementById('kil-season-bg');
-      if(!layer){ layer=document.createElement('div'); layer.id='kil-season-bg';
-        layer.style.cssText='position:fixed;inset:0;z-index:-3;pointer-events:none;background-position:center;background-size:cover;background-repeat:no-repeat;opacity:1';
-        document.body.appendChild(layer); }
-      layer.setAttribute('data-season',slug);
-      layer.style.backgroundImage='url("'+url+'")';
-      document.documentElement.classList.add('has-season');
+      el.style.backgroundImage='url("'+url+'")';
+      el.setAttribute('data-bg', tag||'default');
+      document.documentElement.classList.toggle('has-season', (tag||'default')!=='default');
       document.body.style.background='transparent';
-      setTint(slug);   // recolor hero text to match this background
+      setTint(tag||'default');
     };
-    img.onerror=function(){};
+    /* A missing image must not leave a half-applied state, and must never fall back to a
+       campaign: it falls back to the default, which always exists. */
+    img.onerror=function(){ if(url!==BG_DEFAULT) setBackground(BG_DEFAULT,'default'); };
     img.src=url;
   }
-  function clearSeason(){ var l=document.getElementById('kil-season-bg'); if(l)l.remove(); document.documentElement.classList.remove('has-season'); document.body.style.background=''; clearTint(); }
+  function paintDefault(){ setBackground(BG_DEFAULT,'default'); }
+
+  /* A campaign replaces the default in the SAME slot, and only when it is explicitly
+     enabled AND today falls inside its approved window. Both conditions, every time. */
+  function paintCampaign(c){
+    if(!c || c.active!==true) return paintDefault();
+    var now=new Date();
+    if(!(now>=c.start && now<=c.end)) return paintDefault();
+    setBackground(c.img, c.slug||'campaign');
+  }
+  window.KIL_BG={ setBackground:setBackground, paintDefault:paintDefault,
+                  paintCampaign:paintCampaign, slotId:BG_SLOT, defaultUrl:BG_DEFAULT,
+                  visibleCount:function(){ return document.querySelectorAll('#'+BG_SLOT+',#kil-season-bg').length; } };
+
+  function paintSeason(slug){
+    if(!slug || slug==='default') return paintDefault();
+    var isMobile=Math.min(window.innerWidth,window.innerHeight)<=640 || window.innerHeight>window.innerWidth;
+    setBackground('/assets/images/seasons/'+slug+'-'+(isMobile?'mobile':'desktop')+'.jpg', slug);
+  }
+  function clearSeason(){ paintDefault(); }   /* clearing means the DEFAULT, never an empty slot */
 
   // ── public API for the home-page background picker (Founder 2026-08-05) ──
   var _seen={}, _list=[];
@@ -110,7 +159,7 @@
   window.kilSeason={
     seasons:_list,
     accent:function(slug){ var v=ACCENT[slug]; return v?('rgb('+v+')'):''; },
-    current:function(){ var l=document.getElementById('kil-season-bg'); return l?l.getAttribute('data-season'):null; },
+    current:function(){ var l=document.getElementById(BG_SLOT); return l?l.getAttribute('data-bg'):null; },
     apply:function(slug){ try{sessionStorage.setItem('kil_season_preview',slug);}catch(e){} paintSeason(slug); },
     auto:function(){ try{sessionStorage.removeItem('kil_season_preview');}catch(e){} var a=pick(new Date())||{slug:'default'}; paintSeason(a.slug); },
     off:function(){ try{sessionStorage.setItem('kil_season_preview','off');}catch(e){} clearSeason(); }
@@ -133,5 +182,10 @@
   if(ov && ov!=='off'){
     var active = S.filter(function(s){return s.slug===ov;})[0] || {slug:ov};
     paintSeason(active.slug);
+  } else {
+    /* No override and no approved active campaign: the default neon-blue X paints. It is
+       painted EXPLICITLY rather than left to whatever happened to be in the DOM, so the
+       background is always a decision this controller made. */
+    paintDefault();
   }
 })();

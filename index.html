@@ -150,8 +150,6 @@
     .kil-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
     @keyframes blink{0%,100%{border-color:var(--blue);}50%{border-color:transparent;}}
     /* ── HOLIDAY BACKGROUND ── */
-    .hero-holiday-bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center top;background-repeat:no-repeat;opacity:0;transition:opacity 1.8s ease;pointer-events:none;}
-    .hero-holiday-bg.active{opacity:1;}
     .hero-sub{font-size:18px;color:var(--grey);max-width:520px;margin-bottom:40px;line-height:1.7;}
     .hero-actions{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:36px;}
     .live-badge{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);margin-bottom:20px;}
@@ -1794,7 +1792,6 @@
 <!-- Hero -->
   <section class="hero" id="home">
     <canvas id="hero-canvas"></canvas>
-    <div class="hero-holiday-bg" id="hero-holiday-bg"></div>
     <div class="hero-overlay"></div>
 <div class="container">
       <div class="hero-content">
@@ -2253,64 +2250,26 @@
     setTimeout(twStart, 1500); // fallback: guarantees it starts even if load already fired
   })();
 
-  /* ── HOLIDAY BACKGROUND SYSTEM ──────────────────────────────────────────
-   * To add a new holiday:
-   *   1. Add an entry to HOLIDAYS below
-   *   2. Drop the image in assets/ folder and match the img path
-   *   3. dateRange: [[startMonth0, startDay], [endMonth0, endDay]]  (month is 0-indexed: Jan=0 … Dec=11)
-   * ─────────────────────────────────────────────────────────────────────── */
-  const HOLIDAYS = [
-    {
-      name: 'july4',
-      label: 'Independence Day',
-      dateRange: [[5, 25], [6, 7]], // Jun 25 – Jul 7  (takes priority over summer)
-      img: 'assets/bg-4th-july.jpg',
-      overlayOpacity: 0.55
-    },
-    /* FILENAME CORRECTED (KODE 2026-09-08). These two pointed at assets/holiday-july4.jpg
-       and assets/holiday-summer.jpg, which have never existed in this repository - the
-       files shipped as bg-4th-july.jpg and bg-summer.jpg. The homepage therefore requested
-       a 404 on every load between Jun 15 and Aug 31 and the hero fell back to no image.
-       Found by the orphan-asset sweep: both real files showed as "unreferenced" precisely
-       because the only code that wanted them asked for the wrong name. If you add a holiday
-       below, check the actual filename in assets/ before uncommenting it. */
-    {
-      name: 'summer',
-      label: 'Summer',
-      dateRange: [[5, 15], [8, 31]], // Jun 15 – Aug 31  (fallback when no other holiday active)
-      img: 'assets/bg-summer.jpg',
-      overlayOpacity: 0.35            // lighter tint — summer is bright
-    },
-    // ── Future American holidays — add image + uncomment ──────────────────
-    // { name: 'memorial',     label: 'Memorial Day',   dateRange: [[4,23],[4,28]], img: 'assets/holiday-memorial.jpg',     overlayOpacity: 0.5 },
-    // { name: 'laborday',     label: 'Labor Day',      dateRange: [[7,29],[8, 3]], img: 'assets/holiday-laborday.jpg',     overlayOpacity: 0.5 },
-    // { name: 'halloween',    label: 'Halloween',      dateRange: [[9,24],[10,1]], img: 'assets/holiday-halloween.jpg',    overlayOpacity: 0.55 },
-    // { name: 'thanksgiving', label: 'Thanksgiving',   dateRange: [[10,19],[10,28]], img: 'assets/holiday-thanksgiving.jpg', overlayOpacity: 0.5 },
-    // { name: 'christmas',    label: 'Christmas',      dateRange: [[11,18],[12,26]], img: 'assets/holiday-christmas.jpg',   overlayOpacity: 0.55 },
-    // { name: 'newyear',      label: "New Year's",     dateRange: [[11,29],[0, 2]], img: 'assets/holiday-newyear.jpg',     overlayOpacity: 0.5 },
-    // { name: 'mlk',          label: 'MLK Day',        dateRange: [[0,12],[0,20]], img: 'assets/holiday-mlk.jpg',          overlayOpacity: 0.45 },
-  ];
+  /* ══ HERO HOLIDAY BACKGROUND SYSTEM — REMOVED (KODE 2026-09-09) ═══════════════════════
+     This was KEEPITIL's SECOND background system and the source of the Summer artwork
+     appearing with no approved campaign.
 
-  (function initHolidayBg() {
-    var now = new Date(), m = now.getMonth(), d = now.getDate();
-    function inRange(r) {
-      var sm = r[0][0], sd = r[0][1], em = r[1][0], ed = r[1][1];
-      var cur = m * 100 + d, start = sm * 100 + sd, end = em * 100 + ed;
-      return start <= end ? (cur >= start && cur <= end) : (cur >= start || cur <= end);
-    }
-    var active = HOLIDAYS.find(function(h){ return inRange(h.dateRange); });
-    if (!active) return;
-    var bg = document.getElementById('hero-holiday-bg');
-    if (!bg) return;
-    bg.style.backgroundImage = "url('" + active.img + "')";
-    // Deepen overlay slightly so text stays legible over holiday art
-    var overlay = document.querySelector('.hero-overlay');
-    if (overlay && active.overlayOpacity) {
-      overlay.style.background = 'rgba(10,10,20,' + active.overlayOpacity + '),' + overlay.style.background;
-    }
-    requestAnimationFrame(function(){ requestAnimationFrame(function(){ bg.classList.add('active'); }); });
-  })();
-  /* ── END HOLIDAY BACKGROUND SYSTEM ── */
+     Its schedule was wrong in a way its own comment hid. JavaScript months are 0-indexed,
+     so dateRange [[5,15],[8,31]] is June 15 -> SEPTEMBER 31, not the "Jun 15 - Aug 31" the
+     comment claimed. On 9 September the summer entry was therefore still in range.
+
+     It had been invisible for a different reason: the entry pointed at
+     assets/holiday-summer.jpg, a filename that never existed, so the image 404'd and the
+     hero silently fell back to nothing. Correcting that filename on 2026-09-08 made the
+     mis-scheduled campaign visible. The wrong schedule was pre-existing; fixing the
+     filename is what exposed it.
+
+     Rather than repair one date, the whole system is retired: one page owning a background
+     schedule while a global controller owns another is the architecture that made
+     "campaign + default at once" possible. kil-seasons.js is now the single authoritative
+     controller (window.KIL_BG) painting one slot, defaulting to the neon-blue KEEPITIL X,
+     and a campaign replaces that default only when explicitly active AND inside its window.
+     To run a campaign, use KIL_BG.paintCampaign({active:true,start,end,img,slug}). */
 
   /* ── SCROLL REVEAL ── */
   var observer = new IntersectionObserver((entries) => {
@@ -3176,8 +3135,8 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
 })();
 </script>
 
-<script src="/kil-seasons.js?v=20260826a"></script>
-<script src="/assets/js/keepitil-radio.js?v=20260909c" defer></script>
+<script src="/kil-seasons.js?v=20260909a"></script>
+<script src="/assets/js/keepitil-radio.js?v=20260909d" defer></script>
 <script>
 /* Inline KEEPITIL-X save icon (staging preview self-contained; /keepitil-save.js not yet deployed) */
 (function(){
@@ -3431,7 +3390,7 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
   else setTimeout(run,500);
 })();
 </script>
-<script src="/keepitil-shell.js?v=20260909e" defer></script>
+<script src="/keepitil-shell.js?v=20260909f" defer></script>
   <!-- Create FAB removed (Founder 2026-07-17): linked to a retired v3 create page (wrong page). Same fix as V3 home. -->
   <!-- Founder fixes 2026-07-12: (the old "force chat FAB above the Create FAB" rule is REMOVED — the Create FAB
        no longer exists, and its bottom:132px was overriding the chat-FAB placement below) + bulletproof hero typewriter -->

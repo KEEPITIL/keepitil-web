@@ -545,7 +545,13 @@ footer a{color:var(--purple)}
    DESKTOP ONLY. Everything here is inside min-width:861px; the mobile feed's own
    scroll-snap (body.cul-fs .feedcol) is a separate inner scroller and is untouched. */
 @media(min-width:861px){
-  html{scroll-snap-type:y mandatory;scroll-padding-top:var(--kil-nav-h,66px);}
+  /* The snap goes on BODY, not html. Culture's body carries overflow-y:auto, so BODY is the
+     real scroll container - measured live: document.scrollingElement is HTML but
+     getComputedStyle(body).overflow is "hidden auto", and setting html.scrollTop had no
+     effect while the page sat stuck 112px into the content. Declaring snap on html applied
+     it to an element that does not scroll, so the two states never locked. Snap must be
+     declared on the element that actually scrolls. */
+  body{scroll-snap-type:y mandatory;scroll-padding-top:0;}
   .hero{
     min-height:calc(100vh - var(--kil-nav-h,66px));
     display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -2736,7 +2742,7 @@ function culResolveFilters(){
   new MutationObserver(enhance).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
-<script src="/keepitil-shell.js?v=20260910b" defer></script>
+<script src="/keepitil-shell.js?v=20260910c" defer></script>
 <style id="cul-int-css">
 .kil-modal-ov{position:fixed;inset:0;background:rgba(4,4,10,.72);backdrop-filter:blur(3px);z-index:12000;display:flex;align-items:center;justify-content:center;padding:16px}
 .kil-modal{width:100%;max-width:520px;max-height:88vh;max-height:88dvh;overflow:hidden;display:flex;flex-direction:column;background:var(--bg2,#12121c);border:1px solid var(--line,#242433);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.6)}

@@ -251,7 +251,7 @@
          navigations stale-while-revalidate, a returning visitor was reading HTML one
          deploy behind - which is exactly how a verification run measured a page that no
          longer existed on the origin. Bump this WITH sw.js. */
-      navigator.serviceWorker.register('/sw.js?v=20260910b').catch(function(){});
+      navigator.serviceWorker.register('/sw.js?v=20260910c').catch(function(){});
       /* An older worker may still be in control from a previous registration of the bare URL.
          Asking every registration to update forces that one to re-check now rather than on its
          own schedule. */

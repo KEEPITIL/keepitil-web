@@ -26,7 +26,7 @@
    clients.claim() take over immediately, which clears anything a phone or an installed PWA was
    still holding from before. Bump these four names whenever a release must reach returning
    users regardless of what they have cached. */
-var VERSION = 'kil-pwa-v97-20260909i';
+var VERSION = 'kil-pwa-v98-20260910a';
 var PAGES = 'kil-pages-v42';
 var ASSETS = 'kil-assets-v41';
 var CODE = 'kil-code-v84';
@@ -53,7 +53,15 @@ self.addEventListener('install', function (e) {
 self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys().then(function (names) {
-      return Promise.all(names.filter(function (n) { return KEEP.indexOf(n) === -1; })
+      /* Scope is '/', so this worker sees EVERY cache on the origin — including
+         ones owned by the self-contained apps under /games/* and /kode/. A bare
+         KEEP allowlist evicted their offline data on every site deploy and
+         silently broke their PWA/offline mode. Those apps own and clean their
+         own namespaces, so exempt them; keep evicting everything else. */
+      var OWNED_BY_APPS = /^(kwars[123]-|kode-)/;
+      return Promise.all(names.filter(function (n) {
+          return KEEP.indexOf(n) === -1 && !OWNED_BY_APPS.test(n);
+        })
         .map(function (n) { return caches.delete(n); }));
     }).then(function () { return self.clients.claim(); })
   );

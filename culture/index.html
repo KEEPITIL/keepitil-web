@@ -527,6 +527,34 @@ body.cul-fs .feedcol{scroll-snap-type:y mandatory;overflow-y:auto}
 .soon a{display:inline-block;background:var(--brand);color:#04121b;font-weight:800;padding:11px 22px;border-radius:999px}
 footer{border-top:1px solid rgba(255,255,255,.06);padding:30px;text-align:center;color:var(--ink3);font-size:.82rem;margin-top:auto} /* locked to the bottom before the radio bar — no gap on short subpages (VS) */
 footer a{color:var(--purple)}
+
+/* ══ CULTURE DESKTOP: TWO LOCKED STATES (KODE 2026-09-10) ═══════════════════════════════
+   Measured on the live desktop page at 1440x900 before writing this: the hero occupied
+   770px inside a 900px viewport, so the content section began at y=836 and 64px of it -
+   including the #culTypeBar browse tabs - sat inside the landing viewport. scroll-snap-type
+   computed to `none` on both html and body, so there was no snap on desktop at all: the
+   page behaved as one long scroll and a visitor could rest halfway between the two states.
+
+   Landing must show hero art, CULTURE and the three metrics, and nothing else. So:
+     - the hero is sized to the viewport MINUS the fixed nav, so its bottom edge is the
+       viewport's bottom edge and nothing below it can peek in;
+     - the document snaps, mandatory, with exactly two targets - hero and content - and
+       scroll-snap-stop:always so one gesture moves one state and never lands between them;
+     - scroll-padding-top keeps the fixed nav from covering a snapped target's start.
+
+   DESKTOP ONLY. Everything here is inside min-width:861px; the mobile feed's own
+   scroll-snap (body.cul-fs .feedcol) is a separate inner scroller and is untouched. */
+@media(min-width:861px){
+  html{scroll-snap-type:y mandatory;scroll-padding-top:var(--kil-nav-h,66px);}
+  .hero{
+    min-height:calc(100vh - var(--kil-nav-h,66px));
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    scroll-snap-align:start;scroll-snap-stop:always;
+  }
+  .wrap{scroll-snap-align:start;scroll-snap-stop:always;}
+  /* A snapped landing must not show a sliver of what comes next. */
+  .hero{overflow:hidden;}
+}
 </style>  <!-- PWA manifest — STATIC, deliberately (Founder 2026-08-15).
        keepitil-shell.js has injected this link from JS since forever (see its head-tags block),
        and the installed PWA still had no start_url: iOS reads the manifest when the user taps
@@ -1043,8 +1071,8 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
 })();
 </script>
 <script src="/assets/js/vendor/supabase-js.min.js" defer></script>
-<script src="/kil-seasons.js?v=20260909a"></script>
-<script src="/assets/js/keepitil-radio.js?v=20260909e" defer></script>
+<script src="/kil-seasons.js?v=20260910a"></script>
+<script src="/assets/js/keepitil-radio.js?v=20260910a" defer></script>
 <script src="/keepitil-pager.js?v=20260820e" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
 <script>
@@ -2708,7 +2736,7 @@ function culResolveFilters(){
   new MutationObserver(enhance).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
-<script src="/keepitil-shell.js?v=20260909g" defer></script>
+<script src="/keepitil-shell.js?v=20260910a" defer></script>
 <style id="cul-int-css">
 .kil-modal-ov{position:fixed;inset:0;background:rgba(4,4,10,.72);backdrop-filter:blur(3px);z-index:12000;display:flex;align-items:center;justify-content:center;padding:16px}
 .kil-modal{width:100%;max-width:520px;max-height:88vh;max-height:88dvh;overflow:hidden;display:flex;flex-direction:column;background:var(--bg2,#12121c);border:1px solid var(--line,#242433);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.6)}

@@ -123,7 +123,23 @@
       el.style.backgroundImage='url("'+url+'")';
       el.setAttribute('data-bg', tag||'default');
       document.documentElement.classList.toggle('has-season', (tag||'default')!=='default');
-      document.body.style.background='transparent';
+      /* ══ THE CONTROLLER MUST NOT STOMP A PAGE'S OWN BODY BACKGROUND (KODE 2026-09-10) ═══
+         This line used to read: document.body.style.background='transparent'.
+         It is older than this controller (2026-08-09), but it only ever ran when a season
+         was actively painted - and automatic rotation is disabled, so in practice it never
+         ran. Introducing paintDefault() on every page load turned a near-dead path into one
+         that fires on every page, and an INLINE style beats the page's own stylesheet.
+
+         CONNECT declares body{background:var(--bg,#0a0a0f)} - deliberately opaque. Blanking
+         it unmasked the global slot, so the neon-X default painted straight through the
+         Connect hero and read as two stacked backgrounds behind its two corner glares.
+         Measured on the live page: three painting layers where there should be one.
+
+         Each page already declares its own intent, so the controller now respects it:
+             create/, earn/   body{background:transparent}      -> backdrop shows through
+             connect/, culture/ body{background:#0a0a0f}        -> page occludes the slot
+         The slot still sits at z-index:-3 behind everything; whether it is SEEN is the
+         page's decision, not this function's. Do not reintroduce a global override here. */
       setTint(tag||'default');
     };
     /* A missing image must not leave a half-applied state, and must never fall back to a

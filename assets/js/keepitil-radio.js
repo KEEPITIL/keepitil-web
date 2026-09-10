@@ -84,11 +84,18 @@
       'border:0;cursor:pointer;}'+
     '.kr-vol[hidden]{display:none!important;}'+
     '@media(max-width:860px){.kr-vol{flex-basis:70px;width:70px;}}'+
+    /* ══ .krb NO LONGER DRAWS A BOX (KODE 2026-09-10) ═══════════════════════════════════
+       Measured on the live desktop bar: SEVEN separate boxed regions, each with its own
+       1px border, translucent fill and 5px radius - LIVE RADIO, prev, now-playing, next,
+       mute, volume, favourite. That is the "chopped-up box treatment": a strip of little
+       widgets rather than one media strip. Hierarchy now comes from spacing, weight and
+       colour; a container is drawn only where it earns one (the LIVE RADIO gateway).
+       Mobile keeps its own .krb sizing in the max-width blocks below - untouched. */
     '.krb{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;'+
-      'height:35px;border-radius:5px;padding:0 8px;background:rgba(255,255,255,.05);'+
-      'border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.72);'+
+      'height:35px;padding:0 6px;background:transparent;border:0;'+
+      'color:rgba(255,255,255,.72);'+
       'font-family:inherit;font-size:.7rem;letter-spacing:.05em;white-space:nowrap;'+
-      'overflow:hidden;transition:background .18s,border-color .18s;}'+
+      'overflow:hidden;transition:color .18s,opacity .18s;}'+
     'button.krb{cursor:pointer;}'+
     'button.krb:hover{background:rgba(0,255,136,.14);border-color:rgba(0,255,136,.3);}'+
     '.krb-brand{flex:0.9 1 0;}'+
@@ -180,9 +187,6 @@
     +'.kr-wave i:nth-child(1){height:5px;animation-delay:0s}.kr-wave i:nth-child(2){height:11px;animation-delay:.15s}.kr-wave i:nth-child(3){height:7px;animation-delay:.3s}'
     +'@keyframes kr-eq{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}'
     /* play/pause is the dominant control */
-    +'.kr-fav{background:transparent;border:0;color:#7a8699;cursor:pointer;font-size:.95rem;line-height:1;padding:2px 4px;}'
-    +'.kr-fav.on{color:#ff4d82;text-shadow:0 0 8px rgba(255,77,130,.6);}'
-    +'.kr-fav:focus-visible{outline:2px solid #36e2ff;outline-offset:1px;}'
     /* ── PANELS: exactly one visible, both driven by data-radio-ui ── */
     +'.kr-panel{position:fixed;left:0;right:0;z-index:9997;display:none;flex-direction:column;background:rgba(9,9,14,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid rgba(54,226,255,.28);font-family:\'Space Grotesk\',\'Inter\',sans-serif;}'
     +'.kr-panel.on{display:flex;}'
@@ -289,10 +293,10 @@
          made volume feel absent; it is a primary control of a live radio. */
       '<input class="krb kr-vol" id="kr-vol" type="range" min="0" max="100" step="1" '+
         'aria-label="Radio volume" title="Volume"/>'+
-      /* Saves the STATION, which is the only thing this radio can genuinely favourite.
-         There is no per-track favourites store, so the heart does not claim to save a
-         track. It persists in localStorage and is reflected on load. */
-      '<button type="button" class="krb kr-fav" id="kr-fav" aria-pressed="false" aria-label="Save this station">\u2661</button>'+
+      /* No favourite control (KODE 2026-09-10, owner). The desktop bar is LIVE RADIO,
+         station, now playing, mute, volume - nothing else. Its storage key
+         kil_radio_fav_stations is intentionally left unread rather than migrated: it holds
+         only station names a visitor picked, and deleting it would be a silent data change. */
       '';   /* no minimise / expand / collapse buttons — LIVE RADIO owns those states */
     document.body.appendChild(bar);
     /* The rotating referral ad that lived here was removed 2026-08-22 (Founder).
@@ -977,7 +981,6 @@
     if(art){
       if(pl.art){ art.src=pl.art; art.hidden=false; } else { art.removeAttribute('src'); art.hidden=true; }
     }
-    var f=document.getElementById('kr-fav'); if(f) paintFav();
   }
   window.__kilPaintStationCompact=paintStationCompact;
 
@@ -985,29 +988,6 @@
      The only favourite this radio can honestly offer. There is no per-track favourites
      store, so the heart does not claim to save a track, and it never reports success for
      something it did not persist. */
-  var FAVK='kil_radio_fav_stations';
-  function favRead(){ try{ return JSON.parse(localStorage.getItem(FAVK)||'[]')||[]; }catch(e){ return []; } }
-  function favName(){ var pl=KIL_PL[KIL_PL_I]||{}; return String(pl.name||''); }
-  function paintFav(){
-    var b=document.getElementById('kr-fav'); if(!b) return;
-    var on=favRead().indexOf(favName())>-1;
-    b.classList.toggle('on',on);
-    b.textContent = on ? '♥' : '♡';
-    b.setAttribute('aria-pressed', on?'true':'false');
-    b.setAttribute('aria-label', (on?'Remove ':'Save ')+(favName()||'station')+(on?' from saved stations':' to saved stations'));
-  }
-  var favBtn=document.getElementById('kr-fav');
-  if(favBtn){
-    favBtn.addEventListener('click',function(e){
-      e.stopPropagation();
-      var n=favName(); if(!n) return;
-      var list=favRead(), i=list.indexOf(n);
-      if(i>-1) list.splice(i,1); else list.push(n);
-      try{ localStorage.setItem(FAVK, JSON.stringify(list)); }catch(x){}
-      paintFav();
-    });
-  }
-
   /* ══ RADIO UI STATE MACHINE ════════════════════════════════════════════════════════════
      EXACTLY ONE presentation state at any moment: 'compact' | 'drawer'.
      The audio engine is untouched by all of this - there is one SoundCloud widget, created

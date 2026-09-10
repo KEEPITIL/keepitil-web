@@ -196,6 +196,13 @@
     +'.kr-hdr-ic{color:#36e2ff;font-size:.7rem;}'
     +'html[data-radio-ui="expanded"] .kr-hdr-ic{transform:rotate(180deg);}'
     +'.kr-panel-body{overflow:auto;padding:12px 14px 16px;}'
+    +'.kr-dnow-row{display:flex;gap:14px;align-items:center;}'
+    +'.kr-dnow-art{width:88px;height:88px;border-radius:12px;object-fit:cover;background:#15151f;flex:0 0 auto;}'
+    +'.kr-dnow-meta{display:flex;flex-direction:column;gap:5px;min-width:0;}'
+    +'.kr-dnow-t{font-size:.95rem;font-weight:800;color:#fff;}'
+    +'.kr-dnow-s{font-size:.62rem;font-weight:800;letter-spacing:.12em;color:#36e2ff;text-transform:uppercase;}'
+    +'.kr-dnow-live{display:inline-flex;align-items:center;gap:6px;font-size:.5rem;font-weight:900;letter-spacing:.18em;color:#00ff88;text-transform:uppercase;}'
+    +'.kr-dnow{margin-bottom:18px;}'
     +'.kr-sec h4{margin:0 0 8px;font-size:.5rem;font-weight:900;letter-spacing:.2em;color:#7a8699;text-transform:uppercase;}'
     +'.kr-stations{display:flex;flex-wrap:wrap;gap:8px;}'
     +'.kr-st{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:6px 10px 6px 6px;color:#cfe9ff;font-size:.58rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}'
@@ -1039,7 +1046,16 @@
     drawerEl=document.createElement('div');
     drawerEl.id='kr-drawer'; drawerEl.className='kr-panel'; drawerEl.setAttribute('role','dialog');
     drawerEl.setAttribute('aria-label','KEEPITIL Radio');
-    drawerEl.innerHTML=_hdr('d')+'<div class="kr-panel-body"><div class="kr-sec"><h4>STATIONS</h4>'
+    /* Real content only. Now Playing and the three real stations - no schedule, no listener
+       count, no queue, because none of those have a source. The drawer is as tall as the
+       truth makes it. */
+    drawerEl.innerHTML=_hdr('d')+'<div class="kr-panel-body">'
+      +'<div class="kr-sec kr-dnow"><h4>NOW PLAYING</h4>'
+      +  '<div class="kr-dnow-row"><img class="kr-dnow-art" id="kr-dnow-art" alt=""/>'
+      +  '<div class="kr-dnow-meta"><span class="kr-dnow-t" id="kr-dnow-t"></span>'
+      +  '<span class="kr-dnow-s" id="kr-dnow-s"></span>'
+      +  '<span class="kr-dnow-live"><i class="kil-live"></i>LIVE</span></div></div></div>'
+      +'<div class="kr-sec"><h4>STATIONS</h4>'
       +'<div class="kr-stations" id="kr-stations-d"></div></div></div>';
     document.body.appendChild(drawerEl);
     document.getElementById('kr-hdr-d').addEventListener('click',function(e){ e.stopPropagation(); setRadioUI('compact'); });
@@ -1083,9 +1099,19 @@
     var gw=document.getElementById('kr-live');
     if(gw){ gw.setAttribute('aria-label',_gwLabel(st)); gw.setAttribute('aria-expanded', st==='compact'?'false':'true'); }
     var ic=document.getElementById('kr-gw-ic'); if(ic) ic.textContent = st==='compact' ? '▴' : '▾';
-    if(st!=='compact'){ paintStations(); }
+    if(st!=='compact'){ paintStations(); paintDrawerNow(); }
     try{ window.KIL_RADIO_UI=st; }catch(e){}
   }
+  /* Mirrors the compact bar - one source of truth for what is on air. */
+  function paintDrawerNow(){
+    var t=document.getElementById('kr-dnow-t'), sub=document.getElementById('kr-dnow-s'),
+        a=document.getElementById('kr-dnow-art'), src=document.getElementById('kr-art'),
+        tr=document.getElementById('kil-track');
+    if(t&&tr) t.textContent=tr.textContent||'';
+    if(sub){ var pl=KIL_PL[KIL_PL_I]||{}; sub.textContent=String(pl.name||''); }
+    if(a&&src&&src.getAttribute('src')) a.src=src.getAttribute('src');
+  }
+  window.__kilPaintDrawerNow=paintDrawerNow;
   window.KIL_SET_RADIO_UI=setRadioUI;
 
   var gwBtn=document.getElementById('kr-live');

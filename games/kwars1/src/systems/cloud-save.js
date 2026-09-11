@@ -91,7 +91,11 @@
   async function signUp(email,password){
     const c=client(); if(!c)return {ok:false,error:'Accounts are unavailable right now.'};
     try{
-      const {data,error}=await c.auth.signUp({email,password});
+      // Without emailRedirectTo the confirmation link returns the player to the
+      // project's Site URL (the KEEPITIL homepage), stranding them outside the
+      // game they just signed up from. Send them back to Kingdom Wars.
+      const {data,error}=await c.auth.signUp({email,password,
+        options:{emailRedirectTo:'https://keepitil.com/games/kwars1/'}});
       if(error)return {ok:false,error:error.message};
       // Authority is the SESSION, never data.user. When the project requires
       // email confirmation, signUp returns a user with no session: there is no

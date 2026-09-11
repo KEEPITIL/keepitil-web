@@ -119,12 +119,14 @@
     return pre?(beginNew(),true):(startNew(),true);
   }
   function lastBattleIntent(){return lastBattle?{...lastBattle}:null;}
+  // Some saves carry an inflated gateHP (or a zero gateMax); the fort
+  // percentage is clamped so the menu can never print e.g. 100000000000%.
   const mins=s=>Math.floor((s||0)/60)+'m '+Math.floor((s||0)%60)+'s';
   const played=t=>t?new Date(t).toLocaleString():'Never';
   function mainMenu(){
     if(started)saveRun();started=false;paused=true;document.getElementById('overlay').classList.add('hidden');hub.classList.remove('hidden');panel.classList.add('hidden');
     const a=data.active,cont=document.getElementById('continuebtn');cont.hidden=!a;
-    document.getElementById('continuesub').textContent=a?('Wave '+a.wave+' · '+CIV_NAMES[(a.civ||1)-1]+' · '+Math.round(100*a.gateHP/a.gateMax)+'% fort · '+mins(a.time)+' · '+played(data.lastPlayed)):'';
+    document.getElementById('continuesub').textContent=a?('Wave '+a.wave+' · '+CIV_NAMES[(a.civ||1)-1]+' · '+Math.max(0,Math.min(100,Math.round(100*(a.gateHP||0)/(a.gateMax||1))))+'% fort · '+mins(a.time)+' · '+played(data.lastPlayed)):'';
   }
   function showPanel(title,html){document.getElementById('paneltitle').textContent=title;document.getElementById('panelbody').innerHTML=html;panel.classList.remove('hidden');}
   function showKingdom(){const p=data.profile,r=data.records,g=window.KWCommerce?KWCommerce.balance():p.gems;showPanel('ARMY · KINGDOM','<div class="profilecrest">⚜</div><h3>'+p.name+'</h3><p>'+p.title+' · Legacy Level '+p.legacyLevel+'</p><p>Legacy XP: '+p.legacyXP+' · Gems: 💎 '+g+'</p><hr><p>Highest wave: '+r.highestWave+'<br>Longest war: '+mins(r.longestRun)+'<br>Total enemies defeated: '+r.enemiesDefeated+'<br>Bosses defeated: '+r.bossesDefeated+'</p>');}

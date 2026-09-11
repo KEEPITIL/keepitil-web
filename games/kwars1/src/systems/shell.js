@@ -176,7 +176,7 @@
       '<li><span>Best wave</span><b>'+(D.records.highestWave||0)+'</b></li>'+
       '<li><span>Longest war</span><b>'+X.mins(D.records.longestRun)+'</b></li>'+
       '<li><span>Enemies defeated</span><b>'+(D.records.enemiesDefeated||0)+'</b></li>'+
-      (a?'<li><span>Run in progress</span><b>Wave '+a.wave+' · '+esc(civName(a.civ||1))+' · '+Math.round(100*a.gateHP/a.gateMax)+'% fort</b></li>':'')+
+      (a?'<li><span>Run in progress</span><b>Wave '+a.wave+' · '+esc(civName(a.civ||1))+' · '+Math.max(0,Math.min(100,Math.round(100*(a.gateHP||0)/(a.gateMax||1))))+'% fort</b></li>':'')+
       '</ul></div>'+
       (a?'<button class="menubtn primary" id="endlessCont">CONTINUE WAR<span class="menusub">Last played '+esc(X.played(D.lastPlayed))+'</span></button>':'')+
       '<button class="menubtn'+(a?'':' primary')+'" id="endlessNew">'+(a?'START A NEW WAR':'START ENDLESS WAR')+'</button>'+

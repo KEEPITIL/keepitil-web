@@ -13,7 +13,7 @@
    /keepitil-radio.js, /v3/*). Navigations and JS/CSS are network-first so the shell itself was
    never stale, but MEDIA is stale-while-revalidate, and bumping evicts those on activate via
    the KEEP list rather than leaving them to age out.
-   Previous: kil-pwa-v44-20260827a
+   Previous: kil-pwa-v101-20260910d
    BUMPED AGAIN 2026-08-31 for the route cleanup. Articles moved from /article-<slug>.html to
    /article/<slug>/, and /spotlight plus thirteen *-staging.html pages were deleted. Page HTML is
    network-first so no installed device would have served a stale shell, but MEDIA is
@@ -26,7 +26,7 @@
    clients.claim() take over immediately, which clears anything a phone or an installed PWA was
    still holding from before. Bump these four names whenever a release must reach returning
    users regardless of what they have cached. */
-var VERSION = 'kil-pwa-v100-20260910c';
+var VERSION = 'kil-pwa-v101-20260910d';
 var PAGES = 'kil-pages-v42';
 var ASSETS = 'kil-assets-v41';
 var CODE = 'kil-code-v84';

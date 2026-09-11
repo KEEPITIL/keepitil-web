@@ -101,7 +101,8 @@
     '.krb-brand{flex:0.9 1 0;}'+
     '#kr-prevpl{flex:1.8 1 0;}'+
     '#kr-prev{flex:2 1 0;}'+
-    '.krb-now{flex:4.1 1 0;position:relative;background:rgba(0,255,136,.09);'+
+    /* De-boxed 2026-09-10: the tinted fill made the centre read as a separate widget. */
+    '.krb-now{flex:4.1 1 0;position:relative;background:none;'+
       'border-color:rgba(0,255,136,.28);}'+
     '#kr-next{flex:2 1 0;}'+
     '#kr-nextpl{flex:1.8 1 0;}'+
@@ -163,7 +164,22 @@
     /* Desktop bar sits in the 72-84px band asked for: tall enough to read Now Playing and
        artwork, short enough to stay persistent. MOBILE IS UNTOUCHED - the mobile height
        rules live in the existing max-width blocks and are deliberately not changed here. */
-    +'@media(min-width:641px){#kil-radio{height:auto;min-height:76px;padding:0 14px;gap:14px;}}'
+    /* ══ DESKTOP ZONES (KODE 2026-09-10) ══════════════════════════════════════════════
+       Three zones, held apart by SPACE rather than by borders: identity on the left,
+       Now Playing taking the centre, audio pinned right. The bar previously divided its
+       width evenly across seven flex children, which is what made it read as a row of
+       separate widgets instead of one media strip. */
+    +'@media(min-width:641px){'
+    +  '#kil-radio{height:auto;min-height:76px;padding:0 22px;gap:20px;}'
+    +  '#kr-live{flex:0 0 auto;}'
+    +  '.kr-stwrap{flex:0 0 auto;}'
+    +  '.krb-now{flex:1 1 auto;justify-content:flex-start;}'
+    +  '#kr-mute{margin-left:auto;flex:0 0 auto;}'
+    +  '#kr-vol{flex:0 0 120px;}'
+    +  '.kr-art{width:44px;height:44px;border-radius:9px;}'
+    +  '.kr-nowlab{font-size:.44rem;}'
+    +  '#kil-track{font-size:.8rem;font-weight:700;}'
+    +'}'
     +'#kr-live{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(0,255,136,.28);border-radius:10px;padding:4px 8px;cursor:pointer;transition:background .18s,border-color .18s,box-shadow .18s;}'
     +'#kr-live:hover{background:rgba(0,255,136,.10);border-color:rgba(0,255,136,.55);}'
     +'#kr-live:focus-visible{outline:2px solid #36e2ff;outline-offset:2px;}'
@@ -219,7 +235,6 @@
     +'@media(max-width:640px){'
     +  '#kr-live .kil-brand-radio{font-size:.44rem;}'
     +  '.kr-stname{min-width:48px;max-width:62px;font-size:.46rem;}'
-    +  '#kr-prev,#kr-next{display:none!important;}'
     +  '.kr-nowsub{display:none;}'
     +  '#kr-drawer{max-height:58vh;}'
     +'}';
@@ -260,9 +275,12 @@
         '<span class="kr-stname" id="kr-stname"></span>'+
         '<button class="krb krb-step" id="kr-nextpl" title="Next station" aria-label="Next station"><span class="krb-g">\u203a</span></button>'+
       '</span>'+
-      '<button class="krb" id="kr-prev" title="Previous song" aria-label="Previous song">'+
-        '<span class="kr-side" id="kr-prevt"></span><span class="krb-g">\u2039</span>'+
-      '</button>'+
+      /* NO PREV/NEXT SONG (KODE 2026-09-10). The permanent bar carries exactly five things:
+         LIVE RADIO, station selector, now playing, mute, volume. Track transport belongs to
+         a player, not to a 24/7 broadcast strip - and these two were the main source of the
+         "chopped up" look: .krb gives every child flex:1, so each arrow button was claiming
+         222px of a 1440px bar, as wide as the Now Playing region itself. Station stepping
+         (kr-prevpl / kr-nextpl) stays; that is the station selector, not track transport. */
       '<div class="krb krb-now">'+
         '<img class="kr-art" id="kr-art" alt="" aria-hidden="true"/>'+
         '<span class="kr-nowwrap">'+
@@ -280,9 +298,6 @@
          covered below: the stream mounts on the visitor's first gesture anywhere on the
          page, which is also the earliest moment a browser permits sound. */
 
-      '<button class="krb" id="kr-next" title="Next song" aria-label="Next song">'+
-        '<span class="krb-g">\u203a</span><span class="kr-side" id="kr-nextt"></span>'+
-      '</button>'+
 
       '<button class="krb" id="kr-mute" title="Mute / Unmute" aria-label="Mute">\ud83d\udd0a</button>'+
       /* The volume slider the script has referenced since it was written. It was never in
@@ -550,16 +565,11 @@
     widget.getSounds(function(list){
       if(!list || !list.length) return;
       widget.getCurrentSoundIndex(function(i){
-        var prevEl=document.getElementById('kr-prevt'),
-            nextEl=document.getElementById('kr-nextt'),
-            nowEl =document.getElementById('kil-track');
+        /* kr-prevt / kr-nextt were the neighbouring-track labels inside the removed
+           prev/next buttons. Only the current track is painted now. */
+        var nowEl =document.getElementById('kil-track');
         var here = kilPlName(0);
-        /* First or last track has no neighbour inside this playlist. Rather than leave a blank
-           slot, name the playlist — the Founder's rule: "if non than use the playlist title". */
-        var p = (i > 0) ? list[i-1] : null;
-        var n = (i < list.length-1) ? list[i+1] : null;
-        if(prevEl) prevEl.textContent = (p && p.title) ? p.title : here;
-        if(nextEl) nextEl.textContent = (n && n.title) ? n.title : here;
+        /* The neighbouring-track lookups went with the prev/next buttons they fed. */
         /* Current reads "PLAYLIST: SONG" — e.g. "EDM: VHS TAPES". */
         var cur = list[i];
         var t = (cur && cur.title) ? cur.title : '';
@@ -601,8 +611,9 @@
 
   (function(){
     function on(id, fn){ var b=document.getElementById(id); if(b) b.addEventListener('click',function(e){ e.stopPropagation(); fn(); }); }
-    on('kr-prev',  function(){ if(widget&&widgetReady){ widget.prev(); widget.play(); } });
-    on('kr-next',  function(){ if(widget&&widgetReady){ widget.next(); widget.play(); } });
+    /* kr-prev / kr-next handlers removed with their buttons 2026-09-10. on() would have
+       no-opped on the missing ids, but a listener for a control that cannot exist is the
+       kind of dead code that makes the next reader think the feature is still there. */
     on('kr-prevpl',function(){ kilLoadPlaylist(-1); });
     on('kr-nextpl',function(){ kilLoadPlaylist(1); });
   })();

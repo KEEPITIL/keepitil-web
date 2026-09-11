@@ -545,13 +545,22 @@ footer a{color:var(--purple)}
    DESKTOP ONLY. Everything here is inside min-width:861px; the mobile feed's own
    scroll-snap (body.cul-fs .feedcol) is a separate inner scroller and is untouched. */
 @media(min-width:861px){
-  /* The snap goes on BODY, not html. Culture's body carries overflow-y:auto, so BODY is the
-     real scroll container - measured live: document.scrollingElement is HTML but
-     getComputedStyle(body).overflow is "hidden auto", and setting html.scrollTop had no
-     effect while the page sat stuck 112px into the content. Declaring snap on html applied
-     it to an element that does not scroll, so the two states never locked. Snap must be
-     declared on the element that actually scrolls. */
-  body{scroll-snap-type:y mandatory;scroll-padding-top:0;}
+  /* ⚠ THE SNAP CONTAINER IS html, NOT body. This was moved to body on 2026-09-10 and that
+     was a REGRESSION, made from a broken measurement: the reasoning was "setting
+     html.scrollTop had no effect". That observation came from an automated browser pane in
+     which scripted scrolling does not take effect AT ALL - the same assignment returns 0 on
+     /connect/, a page with overflow-y:visible and 1598px of content in a 900px viewport that
+     obviously scrolls. It proved nothing about Culture.
+
+     The spec settles it. body's overflow DOES propagate to the viewport when html is
+     `visible`, which is why body looked like the scroller - but scroll-snap-type on body is
+     explicitly NOT propagated (CSS Scroll Snap §5). Only the ROOT element's is. Declared on
+     body it is inert; declared on html it governs the viewport, which is what actually
+     scrolls here. Do not "correct" this back to body.
+
+     scroll-padding-top keeps a snapped target clear of the fixed 66px nav, which overlays
+     the page rather than occupying flow. */
+  html{scroll-snap-type:y mandatory;scroll-padding-top:66px;}
   .hero{
     min-height:calc(100vh - var(--kil-nav-h,66px));
     display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -1078,7 +1087,7 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
 </script>
 <script src="/assets/js/vendor/supabase-js.min.js" defer></script>
 <script src="/kil-seasons.js?v=20260910b"></script>
-<script src="/assets/js/keepitil-radio.js?v=20260910a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20260910b" defer></script>
 <script src="/keepitil-pager.js?v=20260820e" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
 <script>
@@ -2742,7 +2751,7 @@ function culResolveFilters(){
   new MutationObserver(enhance).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
-<script src="/keepitil-shell.js?v=20260910c" defer></script>
+<script src="/keepitil-shell.js?v=20260910d" defer></script>
 <style id="cul-int-css">
 .kil-modal-ov{position:fixed;inset:0;background:rgba(4,4,10,.72);backdrop-filter:blur(3px);z-index:12000;display:flex;align-items:center;justify-content:center;padding:16px}
 .kil-modal{width:100%;max-width:520px;max-height:88vh;max-height:88dvh;overflow:hidden;display:flex;flex-direction:column;background:var(--bg2,#12121c);border:1px solid var(--line,#242433);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.6)}

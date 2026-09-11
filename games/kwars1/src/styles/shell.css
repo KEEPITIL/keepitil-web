@@ -234,3 +234,19 @@ body.kw-shell #msg{ display:none !important; }
   .homesec button{ flex:1 1 22%; }
   .resultstats{ grid-template-columns:repeat(3,1fr); }
 }
+
+/* ---------------- no-JavaScript fallback (§4) ----------------
+   The shell is script-driven, so without JS there is no game and no menu to
+   offer. Present the identity and say plainly what is required -- never a
+   dead control, and never the old hub. */
+#nojs{
+  position:fixed; inset:0; z-index:70; display:grid; place-items:center;
+  padding:28px; text-align:center; color:#fff;
+  background:linear-gradient(#16212b 0%,#101922 52%,#070c11 100%);
+  font-family:'Trebuchet MS',Verdana,sans-serif;
+}
+#nojs h1{ font-size:clamp(28px,8vw,56px); letter-spacing:.10em; color:#ffe27a;
+          text-shadow:0 4px 0 rgba(0,0,0,.6); margin-bottom:14px; }
+#nojs p{ max-width:460px; margin:0 auto; color:#b9c7ce; font-size:14px; line-height:1.65; }
+#nojs .nojsnote{ margin-top:18px; padding:10px 16px; display:inline-block;
+  border:1px solid #98722b; border-radius:10px; background:#2a2317; color:#ffe27a; font-weight:bold; }

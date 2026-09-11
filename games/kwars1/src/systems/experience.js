@@ -20,7 +20,7 @@
   let data=load();
   const missionDay=()=>new Date().toISOString().slice(0,10);
   if(data.missions.day!==missionDay())data.missions={day:missionDay(),waves:0,recruits:0,powers:0,claimed:{}};
-  const hub=document.getElementById('hub'),panel=document.getElementById('hubpanel');
+  const hub=document.getElementById('shell'),panel=document.getElementById('shellpanel');
   const safeUnit=u=>{const c={...u};delete c.tgt;return c;};
   function persist(){
     try{

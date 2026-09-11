@@ -1,7 +1,7 @@
 {
-  "name": "KWARS1 \u2014 Age of Wars",
-  "short_name": "KWARS1",
-  "description": "Fort-defense war across the ages. Raise your army, defend the gate, evolve your civilisation and break the enemy fort.",
+  "name": "Kingdom Wars",
+  "short_name": "Kingdom Wars",
+  "description": "Kingdom Wars is a real-time strategy battle game. Raise and command an army, hold the gate, conquer kingdoms in the World Crusade, and survive Endless War across fifteen historical ages.",
   "id": "/games/kwars1/",
   "start_url": "/games/kwars1/index.html?source=pwa",
   "scope": "/games/kwars1/",

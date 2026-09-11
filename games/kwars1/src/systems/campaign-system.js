@@ -22,7 +22,7 @@
     S.campaignMissionId=id;S.campaignDifficulty=difficulty;S.campaignStartingGate=S.gateHP;S.phase='inter';S.interT=1.2;
     bakeCastles();rebakePlayer();
     btnEls.gunner.style.display=S.civ>=11?'flex':'none';btnEls.laser.style.display='none';
-    document.getElementById('overlay').classList.add('hidden');document.getElementById('hub').classList.add('hidden');
+    document.getElementById('overlay').classList.add('hidden');document.getElementById('shell').classList.add('hidden');
     started=true;paused=false;follow=true;syncFollowBtn();
     window.KWAnalytics?.track('campaign_battle_started',{missionId:id,civilization:civ.id,kingdom:node.kingdomNumber,difficulty},'critical');
     showMsg('WORLD CRUSADE · '+civ.displayName+' · Kingdom '+node.kingdomNumber+' · '+node.leaderDisplayName,3600);

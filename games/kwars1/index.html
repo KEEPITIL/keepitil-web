@@ -2,14 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>KWARS1 — Age of Wars</title>
+<title>Kingdom Wars</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="KWARS1">
-<meta name="application-name" content="Age of Wars">
+<meta name="apple-mobile-web-app-title" content="Kingdom Wars">
+<meta name="application-name" content="Kingdom Wars">
 <meta name="format-detection" content="telephone=no">
+<meta name="description" content="Kingdom Wars is a real-time strategy battle game. Raise and command an army, hold the gate, conquer kingdoms in the World Crusade, and survive Endless War across fifteen historical ages.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Kingdom Wars">
+<meta property="og:title" content="Kingdom Wars">
+<meta property="og:description" content="Kingdom Wars is a real-time strategy battle game. Raise and command an army, hold the gate, conquer kingdoms in the World Crusade, and survive Endless War across fifteen historical ages.">
+<meta property="og:url" content="https://keepitil.com/games/kwars1/">
+<meta property="og:image" content="https://keepitil.com/games/kwars1/app-icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="Kingdom Wars">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Kingdom Wars">
+<meta name="twitter:description" content="Kingdom Wars is a real-time strategy battle game. Raise and command an army, hold the gate, conquer kingdoms in the World Crusade, and survive Endless War across fifteen historical ages.">
+<meta name="twitter:image" content="https://keepitil.com/games/kwars1/app-icon-512.png">
 <meta name="theme-color" content="#22303c">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -112,16 +126,16 @@
   }
   #rotate span { display:block; font-size:52px; margin-bottom:14px; }
   #installbtn { background:linear-gradient(#f2c94d,#c98f1d); color:#3d2b08; }
-  #hub { position:fixed; inset:0; z-index:25; display:flex; align-items:center; justify-content:center; padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left)); background:linear-gradient(rgba(15,25,34,.82),rgba(10,15,22,.94)); color:#fff; }
-  #hub.hidden,.hubpanel.hidden { display:none; }
-  .hubmenu,.hubpanel { width:min(520px,94vw); max-height:92vh; overflow:auto; padding:22px; border:2px solid #98722b; border-radius:18px; background:rgba(29,40,50,.96); box-shadow:0 14px 50px rgba(0,0,0,.65); text-align:center; }
-  .hubmenu h1,.hubpanel h2 { color:#ffe27a; letter-spacing:2px; margin-bottom:12px; }
+  #shell { position:fixed; inset:0; z-index:25; display:flex; align-items:center; justify-content:center; padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left)); background:linear-gradient(rgba(15,25,34,.82),rgba(10,15,22,.94)); color:#fff; }
+  #shell.hidden,.shellpanel.hidden { display:none; }
+  .shellpanel { width:min(520px,94vw); max-height:92vh; overflow:auto; padding:22px; border:2px solid #98722b; border-radius:18px; background:rgba(29,40,50,.96); box-shadow:0 14px 50px rgba(0,0,0,.65); text-align:center; }
+  .shellpanel h2 { color:#ffe27a; letter-spacing:2px; margin-bottom:12px; }
   .menubtn { display:block; width:100%; margin:8px 0; padding:11px 14px; border:1px solid #8ba0ad; border-radius:10px; background:linear-gradient(#516574,#34444f); color:#fff; font:bold 15px inherit; cursor:pointer; }
   .menubtn.primary { background:linear-gradient(#6fbd64,#357b38); }
   .menusub,.note { display:block; color:#b9c7ce; font-size:11px; margin-top:4px; line-height:1.45; }
-  .hubpanel { position:absolute; }
-  .hubpanel p,.hubpanel label { display:block; margin:10px 0; line-height:1.5; }
-  .hubpanel hr { border:0; border-top:1px solid #53636c; margin:15px 0; }
+  .shellpanel { position:absolute; }
+  .shellpanel p,.shellpanel label { display:block; margin:10px 0; line-height:1.5; }
+  .shellpanel hr { border:0; border-top:1px solid #53636c; margin:15px 0; }
   .profilecrest { font-size:54px; color:#ffe27a; }
   .campaignnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 12px}.campaignnav button{border:1px solid #71838d;border-radius:7px;background:#34444f;color:#fff;padding:7px 12px}.campaigngrid{display:grid;gap:7px}.campaigncard,.councilrow{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;padding:10px;border:1px solid #526671;border-radius:9px;background:#263740;color:#fff;text-align:left}.campaigncard small,.councilrow small{display:block;color:#b9c7ce;margin-top:3px}.campaigncard.locked{opacity:.48}.councilrow button{border:1px solid #d7ae43;border-radius:7px;background:#5b4721;color:#ffe27a;padding:8px;white-space:nowrap}
   .campaignroadmap{position:relative;display:grid;gap:10px;margin:14px 0;padding:5px 2px}.roadciv{position:relative;display:grid;grid-template-columns:38px 1fr auto;align-items:center;gap:9px;width:94%;min-height:64px;padding:8px 10px;border:2px solid #516773;border-radius:14px;background:linear-gradient(135deg,#263a45,#1d2c35);color:#fff;text-align:left;box-shadow:0 5px 12px rgba(0,0,0,.25)}.roadciv:nth-child(even){margin-left:6%}.roadciv:not(:last-child):after{content:'';position:absolute;left:49%;bottom:-13px;width:3px;height:13px;background:#718b98}.roadciv:nth-child(even):not(:last-child):after{left:44%}.roadciv.current{border-color:#ffe27a;box-shadow:0 0 14px rgba(255,226,122,.35)}.roadciv.complete{border-color:#69b879;background:linear-gradient(135deg,#26473b,#1c332c)}.roadciv.locked{opacity:.45;filter:saturate(.45)}.roadicon{font-size:25px;text-align:center}.roadname b,.roadname small{display:block}.roadname small{color:#b9c7ce;margin-top:3px}.roadnodes{display:flex;align-items:center;gap:2px}.roadnode{width:17px;height:17px;border:2px solid #8ca0aa;border-radius:50%;background:#17252d;color:#ffe27a;font-size:9px;line-height:13px;text-align:center}.roadnode.done{border-color:#69b879;background:#39734d}.roadnode.next{border-color:#ffe27a;animation:roadpulse 1.4s infinite}.roadflag{position:absolute;right:7px;top:-9px;font-size:17px}@keyframes roadpulse{50%{box-shadow:0 0 10px #ffe27a}}.roadlegend{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;color:#b9c7ce;font-size:11px}.roadsummary{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.roadsummary span{padding:7px;border-radius:8px;background:#21323b;font-size:11px}.campaignmapback{width:100%;margin:0 0 9px;padding:8px;border:1px solid #71838d;border-radius:8px;background:#34444f;color:#fff}
@@ -146,7 +160,7 @@
     .ubtn { min-width:54px; height:56px; border-radius:9px; padding:0 5px; }
     .ubtn svg { width:20px; height:20px; }
     .ubtn .big { font-size:17px; line-height:20px; }
-    .hubmenu,.hubpanel { width:min(620px,96vw); padding:14px; }.shopgrid{grid-template-columns:1fr}.shopcard{min-height:52px}
+    .shellpanel { width:min(620px,96vw); padding:14px; }.shopgrid{grid-template-columns:1fr}.shopcard{min-height:52px}
     .ubtn .nm,.ubtn .cost { font-size:9px; }
     .sep { height:44px; }
     #overlay { justify-content:flex-start; overflow-y:auto; padding:calc(env(safe-area-inset-top) + 16px) 18px calc(env(safe-area-inset-bottom) + 18px); }
@@ -158,9 +172,18 @@
   @media (orientation:portrait) and (max-width:760px){ #rotate { display:grid; } }
 </style>
 
-<link rel="canonical" href="https://keepitil.com/games/kwars1"/>
+<link rel="canonical" href="https://keepitil.com/games/kwars1/"/>
 </head>
 <body>
+<noscript>
+  <div id="nojs">
+    <h1>KINGDOM WARS</h1>
+    <p>A real-time strategy battle game. Raise and command an army, hold the gate,
+       conquer kingdoms in the World Crusade, and survive Endless War across
+       fifteen historical ages.</p>
+    <p class="nojsnote">JavaScript is required to play Kingdom Wars.</p>
+  </div>
+</noscript>
 <canvas id="game"></canvas>
 <div id="rotate"><div><span>↻</span>Rotate your phone sideways<br><small>This battlefield is designed for landscape play.</small></div></div>
 
@@ -180,25 +203,25 @@
   <button class="iconbtn" id="pausebtn">⏸</button>
 </div>
 
-<div id="title">
+<main id="title" aria-label="Kingdom Wars">
   <div class="titleinner">
-    <div class="titlecrest">⚔</div>
+    <div class="titlecrest" aria-hidden="true">⚔</div>
     <h1 class="titlewordmark">KINGDOM<span>WARS</span></h1>
     <p class="titletag">Command an army through fifteen ages of war —<br>from tribal stone to the industrial siege.</p>
-    <button class="titlebtn" id="enterbtn">ENTER</button>
-    <button class="titlecont" id="titlecontinue" hidden></button>
+    <button class="titlebtn" id="enterbtn" type="button">ENTER</button>
+    <button class="titlecont" id="titlecontinue" type="button" hidden></button>
     <div class="titlefoot">
-      <button id="titlesettings" title="Settings">⚙ SETTINGS</button>
-      <button id="titleaudio" title="Audio">🔊</button>
-      <button id="installbtn" hidden>📲 INSTALL</button>
+      <button id="titlesettings" type="button" title="Settings">⚙ SETTINGS</button>
+      <button id="titleaudio" type="button" title="Audio" aria-label="Toggle audio">🔊</button>
+      <button id="installbtn" type="button" hidden aria-label="Install Kingdom Wars on this device">📲 INSTALL</button>
       <span id="titleversion"></span>
     </div>
   </div>
-</div>
-<div id="hub" class="hidden">
-  <div class="home" id="homescreen">
+</main>
+<div id="shell" class="hidden" aria-label="Command centre">
+  <nav class="home" id="homescreen" aria-label="Kingdom Wars main menu">
     <div class="homehud">
-      <div class="hudcrest">⚜</div>
+      <div class="hudcrest" aria-hidden="true">⚜</div>
       <div class="hudmain"><b id="hudname">Wandering Commander</b><small id="hudera">Tribal Stone Era</small></div>
       <div class="hudstats"><span id="hudcrusade">🏰 —</span><span id="hudwave">♛ —</span><span id="hudgems">💎 —</span></div>
     </div>
@@ -206,11 +229,11 @@
     <button class="menubtn primary" id="continuebtn" hidden>CONTINUE WAR<span class="menusub" id="continuesub"></span></button>
     <button class="menubtn playbtn" id="playbtn">▶ PLAY</button>
     <div class="homegrid">
-      <button class="hometile" id="campaignbtn"><span class="tileicon">🌍</span><b>WORLD CRUSADE</b><small id="tilecrusade">Campaign</small></button>
-      <button class="hometile" id="newrunbtn"><span class="tileicon">♛</span><b>ENDLESS WAR</b><small id="tileendless">Survival</small></button>
-      <button class="hometile" id="kingdombtn"><span class="tileicon">⚜</span><b>ARMY</b><small>Kingdom &amp; progression</small></button>
-      <button class="hometile" id="loadoutbtn"><span class="tileicon">🛡</span><b>ARMORY</b><small>Equipment &amp; loadouts</small></button>
-      <button class="hometile" id="storebtn"><span class="tileicon">💎</span><b>SHOP</b><small>Cosmetics &amp; unlocks</small></button>
+      <button class="hometile" id="campaignbtn"><span class="tileicon" aria-hidden="true">🌍</span><b>WORLD CRUSADE</b><small id="tilecrusade">Campaign</small></button>
+      <button class="hometile" id="newrunbtn"><span class="tileicon" aria-hidden="true">♛</span><b>ENDLESS WAR</b><small id="tileendless">Survival</small></button>
+      <button class="hometile" id="kingdombtn"><span class="tileicon" aria-hidden="true">⚜</span><b>ARMY</b><small>Kingdom &amp; progression</small></button>
+      <button class="hometile" id="loadoutbtn"><span class="tileicon" aria-hidden="true">🛡</span><b>ARMORY</b><small>Equipment &amp; loadouts</small></button>
+      <button class="hometile" id="storebtn"><span class="tileicon" aria-hidden="true">💎</span><b>SHOP</b><small>Cosmetics &amp; unlocks</small></button>
     </div>
     <div class="homesec">
       <button id="missionsbtn">DAILY ORDERS</button>
@@ -219,8 +242,8 @@
       <button id="settingsbtn">SETTINGS</button>
     </div>
     <span class="menusub">Progress saves on this device. No account required.</span>
-  </div>
-  <div id="hubpanel" class="hubpanel hidden"><h2 id="paneltitle"></h2><div id="panelbody"></div><button class="menubtn" id="panelback">BACK</button></div>
+  </nav>
+  <div id="shellpanel" class="shellpanel hidden" role="dialog" aria-labelledby="paneltitle" aria-modal="true"><h2 id="paneltitle"></h2><div id="panelbody"></div><button class="menubtn" id="panelback">BACK</button></div>
 </div>
 <div id="wavechip">Wave —</div>
 <pre id="diag" aria-label="Developer diagnostics"></pre>
@@ -254,7 +277,7 @@
 <script>
 'use strict';
 /* ============================================================
-   STICK KINGDOM WAR — 15-civilization Endless War and World Crusade
+   KINGDOM WARS — 15-civilization Endless War and World Crusade
    ============================================================ */
 
 // ---------- world constants ----------
@@ -3380,7 +3403,7 @@ function updateDiagnostics(force=false){
   const entityBytes=S.units.length*360+S.projs.length*120+S.fx.length*96+S.corpses.length*80+S.splats.length*40;
   const heap=performance.memory?.usedJSHeapSize;
   document.getElementById('diag').textContent=
-    'AGE OF WARS DIAGNOSTICS\n'+
+    'KINGDOM WARS DIAGNOSTICS\n'+
     'FPS          '+perfStats.fps.toFixed(1)+'  min '+(isFinite(perfStats.minFps)?perfStats.minFps.toFixed(1):'—')+'\n'+
     'Sim steps/s  '+perfStats.sampleSteps+'  speed '+gameSpeed+'×\n'+
     'Units        '+S.units.length+'  P:'+allies+' E:'+enemies+'\n'+

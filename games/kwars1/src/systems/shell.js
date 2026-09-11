@@ -9,7 +9,8 @@
   'use strict';
   const X=window.KWExperience; if(!X)return;
   const D=X.data, $=id=>document.getElementById(id);
-  const hub=$('hub'), title=$('title'), panel=$('hubpanel');
+  const hub=$('shell'), title=$('title'), panel=$('shellpanel');
+  if(!hub||!title||!panel){console.error('KWShell: missing shell container',{hub:!!hub,title:!!title,panel:!!panel});return;}
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
   /* ---------- real-state readers (nothing here is fabricated) ---------- */

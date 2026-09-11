@@ -158,7 +158,7 @@
   @media (orientation:portrait) and (max-width:760px){ #rotate { display:grid; } }
 </style>
 
-<link rel="canonical" href="https://keepitil.com/games/ageofwars/"/>
+<link rel="canonical" href="https://keepitil.com/games/kwars1"/>
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -219,6 +219,7 @@
 <script src="src/platform/platform.js"></script>
 <script src="src/core/civilizations.js"></script>
 <script src="src/core/balance.js"></script>
+<script src="src/core/soldier-state.js"></script>
 <script src="src/core/ai.js"></script>
 <script src="src/core/core-runtime.js"></script>
 <script src="src/core/progression-system.js"></script>
@@ -341,6 +342,8 @@ function reset(){
     castleHP: 2200, castleMax: 2200,
     units: [], projs: [], fx: [], splats: [], corpses: [], floats: [],
     wave: 0, localWave:0, conquestCycle:0, encounter:'normal', waveQueue: [], spawnT: 0, interT: 5, phase: 'inter',
+    waveTotal:0, spawnedTotal:0, defeatedTotal:0, cohortPending:0, cohortT:0, cohortIndex:0,
+    bossSpawned:false, bossDefeated:false, rewardClaimedWave:0,
     folkSiege:false, folkSiegeStart:0, folkSpawnT:0, folkGiantCd:0,
     over: null,
     stance: 'defend', rallyX: 760, marchDir: 1, retreatT: 0,
@@ -426,8 +429,10 @@ function showMsg(txt, dur){
   el.textContent = txt; el.style.opacity = 1;
   clearTimeout(showMsg._t); showMsg._t = setTimeout(()=>{ el.style.opacity = 0; }, (dur||2400));
 }
-function armyCount(){ return S.units.filter(u=>u.team===1&&u.hp>0).length; }
-function enemyCount(){ return S.units.filter(u=>u.team===-1&&u.hp>0).length; }
+// Counting loops, not filters: these are called several times per frame and
+// a throwaway array each time is pure GC pressure.
+function armyCount(){ let n=0; for(let i=0;i<S.units.length;i++){const u=S.units[i]; if(u.team===1&&u.hp>0)n++;} return n; }
+function enemyCount(){ let n=0; for(let i=0;i<S.units.length;i++){const u=S.units[i]; if(u.team===-1&&u.hp>0)n++;} return n; }
 
 const PROTECTION={
   sword:[0,32], archer:[0,16], spear:[85,55], spartan:[105,72], gunner:[0,45], laser:[18,68],
@@ -435,7 +440,46 @@ const PROTECTION={
 };
 function progression(){return window.KWCampaign?.progression?.()||window.KWProgression?.calculate({},window.KW_DATA?.campaignKingdoms||[],false)||{armyCap:25,passiveIncome:6,combatMultiplier:1};}
 function armyMax(){return progression().armyCap;}
-function enemyMax(){const p=progression();return window.KWProgression?.activeEnemyCap?.(S?.wave||1,p.armyCap)||100;}
+/* ---------------------------------------------------------------------------
+ * ACTIVE SIMULATION BUDGET + REINFORCEMENT COHORTS
+ * A wave still contains every enemy it ever did (S.waveTotal is untouched);
+ * only how many are ACTIVE AT ONCE is bounded. The remainder waits in
+ * S.waveQueue as plain type strings -- reserves are not entities, so they run
+ * no AI, collision, targeting, animation or projectile logic and are invisible
+ * to every count below.
+ *
+ * The budget comes from measurement, not taste. Desktop medians for total
+ * active actors: 240 -> 4.8ms, 360 -> 11.5ms, 480 -> 20.8ms, 800 -> 56ms,
+ * against a 16.7ms frame. Mobile runs 3-5x slower, so 280 total actors keeps
+ * desktop far inside budget and mobile near it.
+ * ------------------------------------------------------------------------- */
+/* Real-combat medians at wave 400 (projectiles, corpses, deaths, formations):
+   150 actors -> 4.89ms, 210 -> 5.30ms, 268 -> 8.22ms. Below ~210 the curve
+   flattens (fixed per-frame costs dominate), so 220 buys a dense battlefield
+   for almost nothing. Note the frame SPIKES are GC, not population -- they sit
+   at 6-7% of frames at every budget -- so they are fixed by cutting allocation
+   churn, not by shrinking this number. */
+const ACTIVE_BUDGET = 220;   // player army + active enemies, never exceeded
+const ENEMY_FLOOR   = 45;    // a huge player army must still face a real enemy
+const REFILL_AT     = .82;   // release the next cohort at 82% of the budget
+const FORM_MAX_WAIT = 12;    // seconds the enemy may spend forming before it advances regardless
+function activeBudgetTotal(){ return ACTIVE_BUDGET; }
+/* Enemy concurrency = whatever the budget has left after the player's own
+   army, clamped so it never exceeds what progression allows for this wave. */
+function enemyMax(){
+  const p=progression();
+  const progressionCap=window.KWProgression?.activeEnemyCap?.(S?.wave||1,p.armyCap)||100;
+  const room=ACTIVE_BUDGET-armyCount();
+  return Math.max(ENEMY_FLOOR,Math.min(progressionCap,room));
+}
+/* Cohort size scales with the wave so late waves arrive as bigger lines. */
+function cohortSize(){
+  const budget=enemyMax();
+  const byWave=8+Math.floor((S.wave||1)/14);
+  return Math.max(6,Math.min(Math.round(budget*.28),byWave+18));
+}
+function aliveActiveEnemies(){ return enemyCount(); }
+function remainingToSpawn(){ return S.waveQueue.length; }
 function unitProtection(type,team){
   const p=PROTECTION[type]||[0,0];
   const shieldScale=team===1 ? (1+.16*((S&&S.civ||1)-1)) : globalEnemyShieldMult();
@@ -487,6 +531,7 @@ function spawnEnemy(type){
   const folklore=siegeOn?window.KWFolklore?.byOrder?.(S.enemyCiv):null,elapsed=siegeOn?S.time-siegeStart:0,stage=elapsed>=900?4:elapsed>=600?3:elapsed>=360?2:elapsed>=180?1:0,folk=folklore?.units?.[Math.min(stage,type==='eboss'?4:stage)];
   S.units.push({ team:-1, type, bossTier, boss:type==='eboss', bossName:folk?.name||bossName, tags:folk?.tags||[T.role==='RANGED'?'ranged':'infantry'], folkloreName:folk?.name||null, x:E_WALL-92-simRandom()*58, y:simRange(GROUND_TOP,GROUND_BOT),
     hp, max:hp, dmg:Math.round(T.dmg*globalEnemyDamageMult()*(type==='eboss'?1+(enc.scale-1)*.35:1)), cdT:simRandom()*.5, anim:0, ph:simRandom()*10, yPref:simRandom()*24-12, spdMul:.92+simRandom()*.16, face:-1, pose:'idle', order:raid?'raid':'line', ...unitProtection(type,-1) });
+  if(type==='eboss')S.bossSpawned=true;
   window.KWRuntime?.events.emit('unit_spawned',{team:-1,type});
   return true;
 }
@@ -672,23 +717,74 @@ function setStance(s){
 // Fill front slots first with the nearest compatible survivor. This creates a
 // visible "close ranks" response: the soldier directly behind a casualty steps
 // into the opening while the rest of the formation stays stable.
-function fillFormationGaps(pool,slots,place,frontDir){
-  const remaining=pool.slice();
-  for(const slot of slots){
-    if(!remaining.length)break;
-    let best=0,bd=Infinity;
+// Fill front slots first with the nearest compatible survivor, but let a
+// soldier KEEP the slot it already holds. Without that stickiness the greedy
+// nearest-match re-shuffles the whole line every frame and neighbours trade
+// places forever; a soldier is only displaced when someone is decisively
+// closer (SLOT_STICK px), so gaps still close but the line stops churning.
+const SLOT_STICK = 26;
+/* Scratch reused across every call and frame. These ran per band per frame and
+   were a steady source of the GC pauses that show up as frame spikes. */
+const _fgKey=new Map(); let _fgTaken=new Uint8Array(0); const _fgRemaining=[];
+function fillFormationGaps(pool,slots,place,frontDir,groupTag){
+  // PASS 1 (linear): everyone who already holds a slot in this band keeps it.
+  // In a settled line that is nearly everybody, so the quadratic matching
+  // below only ever runs over the handful of genuine gaps.
+  const byKey=_fgKey; byKey.clear();
+  for(let i=0;i<slots.length;i++) byKey.set(groupTag+':'+slots[i].col+':'+slots[i].row,i);
+  if(_fgTaken.length<slots.length)_fgTaken=new Uint8Array(slots.length*2);
+  const taken=_fgTaken; taken.fill(0,0,slots.length);
+  const remaining=_fgRemaining; remaining.length=0;
+  for(let i=0;i<pool.length;i++){
+    const u=pool[i], si=u.slotKey!==undefined?byKey.get(u.slotKey):undefined;
+    if(si!==undefined&&!taken[si]){
+      taken[si]=1;
+      const slot=slots[si];
+      place(u,slot.x,slot.y,slot.row);
+    } else remaining.push(u);
+  }
+  // PASS 2: fill the openings with the nearest unplaced survivor -- the
+  // visible "close ranks" step after a casualty.
+  for(let si=0;si<slots.length;si++){
+    if(taken[si]||!remaining.length)continue;
+    const slot=slots[si];
+    let pick=0,bd=Infinity;
     for(let i=0;i<remaining.length;i++){
-      const u=remaining[i],d=Math.hypot(u.x-slot.x,(u.y-slot.y)*1.35);
-      if(d<bd){bd=d;best=i;}
+      const u=remaining[i],ddx=u.x-slot.x,ddy=(u.y-slot.y)*1.35,d=ddx*ddx+ddy*ddy;
+      if(d<bd){bd=d;pick=i;}
     }
-    const u=remaining.splice(best,1)[0],old=Number.isFinite(u.slotX)?u.slotX:u.x;
+    const u=remaining.splice(pick,1)[0],old=Number.isFinite(u.slotX)?u.slotX:u.x;
     if((slot.x-old)*frontDir>12){u.reinforceT=.9;u.closeRanks=true;}
+    u.slotKey=groupTag+':'+slot.col+':'+slot.row;
     place(u,slot.x,slot.y,slot.row);
   }
+  // Anyone left over has no slot this rebuild -- they fight independently.
+  for(const u of remaining) u.slotKey=undefined;
 }
+/* Persistent scratch for the formation builders. These allocated several
+   arrays -- plus one object per slot -- on EVERY frame for BOTH armies, which
+   the heap profile showed as ~2.6MB per 600 frames and a GC pause roughly once
+   a second. Reusing them removes that churn without changing any behaviour. */
+const _sAllies=[],_sMelee=[],_sRanged=[],_sEnemies=[],_sBandG=[];
+const _sEGroups=[[],[],[],[],[]];   // espear, esword, eboss, earcher, specialists
+function _formScratch(arr,pred){
+  arr.length=0;
+  for(let i=0;i<S.units.length;i++){const u=S.units[i];if(pred(u))arr.push(u);}
+  return arr;
+}
+/* Pooled slot records, keyed by a monotonic cursor that resets each frame. */
+const _slotPool=[]; let _slotN=0;
+function _slotReset(){_slotN=0;}
+function _slot(x,y,row,col){
+  let o=_slotPool[_slotN];
+  if(!o)o=_slotPool[_slotN]={x:0,y:0,row:0,col:0};
+  _slotN++;
+  o.x=x;o.y=y;o.row=row;o.col=col;return o;
+}
+const _slotList=[];
 function updateFormation(dt){
   if (S.stance === 'attack') return;
-  const allies = S.units.filter(u=>u.team===1&&u.hp>0&&!u.charge);   // charging units leave the ranks
+  const allies = _formScratch(_sAllies, u=>u.team===1&&u.hp>0&&!u.charge);   // charging units leave the ranks
   const oldRally=S.rallyX;
   if (S.stance === 'march' && allies.length){
     const enemyNear = S.units.some(e=>e.team===-1&&e.hp>0&&e.x-S.rallyX<70);
@@ -706,24 +802,32 @@ function updateFormation(dt){
   //  1) spearmen who still have a shield   2) other shielded soldiers
   //  3) soldiers whose shield is gone       4) ranged (split out below, kept furthest back)
   const isSpear=u=>{const w=TYPES[u.type].weapon;return w==='spear'||w==='spartan';};
-  const tier=u=>{
-    if((u.shield||0)<=0) return 2;                 // no shield -> rear melee rank
-    if(isSpear(u) && !u.spearThrown) return 0;     // spear + shield -> very front line
-    return 1;                                       // sword + shield (incl. spearmen who threw) -> reform 2nd rank
-  };
-  const melee = allies.filter(u=>!RANGED(u.type)).sort((a,b)=>{
-    const rank=t=>(t==='spartan'?0:t==='spear'?1:t==='sword'?2:3);
-    return tier(a)-tier(b) || rank(a.type)-rank(b.type);
-  });
-  const ranged = allies.filter(u=>RANGED(u.type));
+  // Rank order comes straight from the live formation body (soldier-state.js).
+  // Slots are temporary battlefield positions; a soldier holds one only while
+  // its current formation says it belongs there.
+  const tier=u=>FORM_TIER[u.formationType]!==undefined?FORM_TIER[u.formationType]:2;
+  const melee=_sMelee; melee.length=0;
+  const ranged=_sRanged; ranged.length=0;
+  for(let i=0;i<allies.length;i++){const u=allies[i];(RANGED(u.type)?ranged:melee).push(u);}
+  const _rank=t=>(t==='spartan'?0:t==='spear'?1:t==='sword'?2:3);
+  melee.sort((a,b)=>tier(a)-tier(b)||_rank(a.type)-_rank(b.type));
   // Lay the three melee tiers out in separate column bands with a one-column GAP
   // between each, so the groups (spear line / shield line / no-shield) read clearly.
-  const tierGroups=[0,1,2].map(tv=>melee.filter(u=>tier(u)===tv)).filter(g=>g.length);
-  const orderedM=[]; const colOfM=[]; let colBase=0;
-  for(const g of tierGroups){
-    const gcols=Math.ceil(g.length/rankRows);
-    g.forEach((u,i)=>{ orderedM.push(u); colOfM.push(colBase+Math.floor(i/rankRows)); });
-    colBase += gcols + 1;   // +1 empty column = visible gap before the next group
+  // Each melee band is laid out AND filled separately. Assigning all melee
+  // slots from one pool let a spearman win a sword-band slot when it happened
+  // to stand closer, which put the sword line in front of the spear wall.
+  // Bands built into reused buffers: melee is already sorted by tier, so each
+  // band is a contiguous run and needs no per-band filter array.
+  let colBase=0;
+  const bandPlans=_sBandG; bandPlans.length=0;
+  for(let tv=0, i=0; tv<3; tv++){
+    let j=i; while(j<melee.length&&tier(melee[j])===tv) j++;
+    if(j>i){
+      const gcols=Math.ceil((j-i)/rankRows);
+      bandPlans.push({tv,from:i,to:j,colBase});
+      colBase += gcols + 1;   // +1 empty column = visible gap before the next group
+    }
+    i=j;
   }
   const mCols = Math.max(1, colBase);
   const rCols = Math.ceil(ranged.length/rankRows);
@@ -740,22 +844,54 @@ function updateFormation(dt){
     }
     u.slotX=sx;u.slotY=sy;u.marchOffset=row*.025;
   };
-  const meleeSlots=orderedM.map((u,i)=>{const row=i%rankRows;return{x:S.rallyX-colOfM[i]*cs,y:rows[row],row};});
-  const rangedSlots=ranged.map((_,i)=>{const row=i%rankRows;return{x:S.rallyX-mCols*cs-70-Math.floor(i/rankRows)*cs,y:rows[row],row};});
-  fillFormationGaps(orderedM,meleeSlots,place,1);
-  fillFormationGaps(ranged,rangedSlots,place,1);
+
+
+  // Fill front band first so the spear wall closes before the ranks behind it.
+  _slotReset();
+  const bandUnits=[];
+  for(const {tv,from,to,colBase:cb} of bandPlans){
+    bandUnits.length=0;
+    for(let i=from;i<to;i++) bandUnits.push(melee[i]);
+    const slots=_slotList; slots.length=0;
+    for(let i=0;i<bandUnits.length;i++){const row=i%rankRows,col=cb+Math.floor(i/rankRows);
+      slots.push(_slot(S.rallyX-col*cs,rows[row],row,col));}
+    fillFormationGaps(bandUnits,slots,place,1,'aM'+tv);
+  }
+  {
+    const slots=_slotList; slots.length=0;
+    for(let i=0;i<ranged.length;i++){const row=i%rankRows,col=Math.floor(i/rankRows);
+      slots.push(_slot(S.rallyX-mCols*cs-70-col*cs,rows[row],row,col));}
+    fillFormationGaps(ranged,slots,place,1,'aR');
+  }
 }
 
 function updateEnemyFormation(dt){
   // Raiders also report to formation first. They may break away only after the
   // whole army has visibly assembled in front of its castle.
-  const enemies=S.units.filter(u=>u.team===-1&&u.hp>0&&(S.enemyPhase==='form'||u.order!=='raid'));
+  const enemies=_formScratch(_sEnemies,u=>u.team===-1&&u.hp>0&&(S.enemyPhase==='form'||u.order!=='raid'));
   if(!enemies.length)return;
   const oldRally=S.enemyRallyX;
   if(S.enemyPhase==='form'){
-    const initialCompanyReady=enemyCount()>=Math.min(enemyMax(),S.waveTotal||enemyCount());
-    const ranksReady=(initialCompanyReady||!S.waveQueue.length)&&enemies.every(u=>Number.isFinite(u.slotX)&&Math.hypot(u.x-u.slotX,u.y-u.slotY)<7);
-    if(ranksReady)S.enemyFormT-=dt;
+    // Readiness must be reachable in the cohort steady state. Refill stops at
+    // REFILL_AT of the budget, so demanding a FULL budget here deadlocks: the
+    // army sits just under the bar forever, never advances, never fights, never
+    // dies, and the reserve queue never drains. Gate on the refill level.
+    const _formTarget=Math.min(Math.floor(enemyMax()*REFILL_AT),S.waveTotal||enemyCount());
+    const initialCompanyReady=enemyCount()>=_formTarget;
+    // With rolling reinforcements "every soldier settled" is never true -- a
+    // cohort is always still walking in. Release the advance once the bulk of
+    // the company has formed up instead of waiting for the last straggler.
+    let settled=0;
+    for(const u of enemies) if(Number.isFinite(u.slotX)&&Math.hypot(u.x-u.slotX,u.y-u.slotY)<7) settled++;
+    const ranksReady=(initialCompanyReady||!S.waveQueue.length)&&settled>=Math.ceil(enemies.length*.8);
+    /* LIVENESS. With rolling reinforcements some cohort is always still
+       walking in from the spawn edge (~830px), so any "most of the army is
+       settled" bar can stay unreachable forever -- and while the army waits it
+       never advances, never fights and never dies, so the reserve queue never
+       drains. The wave must never be able to stall on formation: after
+       FORM_MAX_WAIT the company advances with whoever has formed up. */
+    S.enemyFormWaitT=(S.enemyFormWaitT||0)+dt;
+    if(ranksReady||S.enemyFormWaitT>FORM_MAX_WAIT)S.enemyFormT-=dt;
     if(S.enemyFormT<=0){S.enemyPhase='march';showMsg('⚔ Enemy formation advances');snd.horn();}
   }else if(S.enemyPhase==='march'){
     S.enemyRallyX=Math.max(880,S.enemyRallyX-(24+Math.min(12,S.wave))*dt);
@@ -767,19 +903,33 @@ function updateEnemyFormation(dt){
   enemies.sort((a,b)=>rank(a.type)-rank(b.type));
   // Spearmen who have thrown (sword+shield) reform toward the rear of the spear block,
   // behind those still holding a spear — mirrors the player formation.
-  const espearOrdered=enemies.filter(u=>u.type==='espear').sort((a,b)=>((a.spearThrown?1:0)-(b.spearThrown?1:0))||(((b.shield||0)>0?1:0)-((a.shield||0)>0?1:0)));
-  const groups=[espearOrdered,enemies.filter(u=>u.type==='esword'),enemies.filter(u=>u.type==='eboss'),enemies.filter(u=>u.type==='earcher'),enemies.filter(u=>u.type==='egunner'||u.type==='elaser')];
+  // Bucketed into reused arrays -- these five filters plus a slot object per
+  // soldier ran every frame and were the single largest source of GC churn.
+  for(let g=0;g<_sEGroups.length;g++)_sEGroups[g].length=0;
+  const [gSpear,gSword,gBoss,gArch,gSpec]=_sEGroups;
+  for(let i=0;i<enemies.length;i++){
+    const u=enemies[i],t=u.type;
+    if(t==='espear')gSpear.push(u);
+    else if(t==='esword')gSword.push(u);
+    else if(t==='eboss')gBoss.push(u);
+    else if(t==='earcher')gArch.push(u);
+    else if(t==='egunner'||t==='elaser')gSpec.push(u);
+  }
+  gSpear.sort((a,b)=>((a.spearThrown?1:0)-(b.spearThrown?1:0))||(((b.shield||0)>0?1:0)-((a.shield||0)>0?1:0)));
+  const groups=_sEGroups;
   const totalCols=groups.reduce((n,g)=>n+Math.ceil(g.length/rankRows)+(g.length?1:0),0);
   // Rear rank stays clear of the enemy masonry; every soldier forms on grass.
   const castleSafeFront=E_WALL-72-Math.max(0,totalCols-1)*cs;
   if(S.enemyPhase==='form')S.enemyRallyX=Math.min(S.enemyRallyX,castleSafeFront);
   const rallyShift=S.enemyRallyX-oldRally;
+  _slotReset();
   let col=0;
   for(const group of groups){
-    const groupSlots=group.map((u,i)=>{
-      const row=i%rankRows,sx=S.enemyRallyX+(col+Math.floor(i/rankRows))*cs;
-      return{x:Math.min(sx,E_WALL-72),y:u.type==='eboss'?466:rows[row],row};
-    });
+    const groupSlots=_slotList; groupSlots.length=0;
+    for(let i=0;i<group.length;i++){
+      const u=group[i],row=i%rankRows,gcol=col+Math.floor(i/rankRows),sx=S.enemyRallyX+gcol*cs;
+      groupSlots.push(_slot(Math.min(sx,E_WALL-72),u.type==='eboss'?466:rows[row],row,gcol));
+    }
     fillFormationGaps(group,groupSlots,(u,sx,sy,row)=>{
       const settled=S.enemyPhase==='march'&&Number.isFinite(u.slotX)&&Math.hypot(u.x-u.slotX,u.y-u.slotY)<7;
       if(settled&&rallyShift){
@@ -790,13 +940,73 @@ function updateEnemyFormation(dt){
       u.face=rallyShift>0?1:-1;
     }
       u.slotX=sx;u.slotY=sy;u.marchOffset=row*.025;
-    },-1);
+    },-1,'eG');
     col+=Math.ceil(group.length/rankRows)+(group.length?1:0);
   }
 }
 
 // ---------- combat ----------
+
+/* ---------------------------------------------------------------------------
+ * BATTLEFIELD SPATIAL INDEX (perf pass, build 50)
+ * The field is a lane: units differ far more in x than in y, so a sorted-by-x
+ * array of the living gives cheap neighbourhood queries without a full grid.
+ * Rebuilt once per sim step; every hot query then scans outward from a binary
+ * search and stops as soon as |dx| can no longer beat the incumbent. Scoring
+ * maths is unchanged — only the candidates we bother to score.
+ * Before this, steerMove (34.5%), assignTargets (12.8%) and nearest (10.5%)
+ * each walked all S.units per unit per frame: O(n^2) three times over.
+ * ------------------------------------------------------------------------ */
+var SPAT = { all: [], byTeam: { '1': [], '-1': [] }, stamp: -1 };
+function spatialRebuild(){
+  const all = SPAT.all; all.length = 0;
+  const a = SPAT.byTeam['1'], b = SPAT.byTeam['-1']; a.length = 0; b.length = 0;
+  for (let i = 0; i < S.units.length; i++){
+    const u = S.units[i];
+    if (u.hp <= 0) continue;
+    all.push(u);
+    (u.team === 1 ? a : b).push(u);
+  }
+  const byX = (p, q) => p.x - q.x;
+  all.sort(byX); a.sort(byX); b.sort(byX);
+  SPAT.stamp = S.time;
+}
+/* index of the first element with x >= v */
+function spatLower(arr, v){
+  let lo = 0, hi = arr.length;
+  while (lo < hi){ const mid = (lo + hi) >> 1; if (arr[mid].x < v) lo = mid + 1; else hi = mid; }
+  return lo;
+}
+/* Nearest living enemy of u, exact — outward scan with an |dx| >= best cutoff. */
+function spatNearestEnemy(u){
+  const arr = SPAT.byTeam[u.team === 1 ? '-1' : '1'];
+  const n = arr.length; if (!n) return null;
+  let i = spatLower(arr, u.x), lo = i - 1, hi = i;
+  let best = null, bd = 1e9;
+  while (lo >= 0 || hi < n){
+    let advanced = false;
+    if (hi < n){
+      const o = arr[hi], dx = o.x - u.x;
+      if (dx < bd){ advanced = true;
+        if (o.hp > 0){ const d = Math.hypot(dx, (o.y - u.y) * 1.6); if (d < bd){ bd = d; best = o; } }
+        hi++;
+      } else hi = n;
+    }
+    if (lo >= 0){
+      const o = arr[lo], dx = u.x - o.x;
+      if (dx < bd){ advanced = true;
+        if (o.hp > 0){ const d = Math.hypot(dx, (o.y - u.y) * 1.6); if (d < bd){ bd = d; best = o; } }
+        lo--;
+      } else lo = -1;
+    }
+    if (!advanced) break;
+  }
+  return best ? { u: best, d: bd } : null;
+}
+
 function nearest(u){
+  // Indexed equivalent of the old full scan (same metric, same winner).
+  if (SPAT.stamp === S.time) return spatNearestEnemy(u);
   let best = null, bd = 1e9;
   for (const o of S.units){
     if (o.team === u.team || o.hp <= 0) continue;
@@ -809,28 +1019,59 @@ function nearest(u){
 // Momentum-based locomotion. Units steer toward a destination while gently
 // separating from nearby allies, which keeps formations readable and makes
 // charges, retreats and lateral corrections feel less mechanical.
+// Melee rank order for the live formation bodies (see soldier-state.js).
+const FORM_TIER = {PHALANX:0, DEFENSIVE_LINE:1, MELEE_LINE:2};
+// Widest preferredSpacing any soldier profile asks for (see soldier-state.js).
+// This sets the separation cull band for every soldier -- keep it tight.
+const SEP_MAX = 28;
 function steerMove(u, tx, ty, maxSpeed, dt, stopRadius){
   let dx = tx-u.x, dy = ty-u.y, dist = Math.hypot(dx,dy);
   if (dist <= (stopRadius||1)) return false;
   dx /= dist; dy /= dist;
   let sx = 0, sy = 0;
-  for (const o of S.units){
+  // Spacing follows the weapon in hand: a spear wall packs tight, swords need
+  // swinging room, missile troops stay loose. R for a pair is the mean of what
+  // each of them wants, so the widest body either unit can care about is
+  // (own spacing + SEP_MAX)/2 -- cull to exactly that, no wider.
+  const uSep = u.preferredSpacing || 24;
+  const band = (uSep + SEP_MAX) * .5;
+  const yBand = band / 1.35 + 1;
+  const _pool = (SPAT.stamp === S.time) ? SPAT.all : S.units;
+  let _i0 = 0, _i1 = _pool.length;
+  if (_pool !== S.units){ _i0 = spatLower(_pool, u.x - band); _i1 = spatLower(_pool, u.x + band + 1e-6); }
+  for (let _i = _i0; _i < _i1; _i++){
+    const o = _pool[_i];
     if (o===u || o.hp<=0) continue;
-    const ox=u.x-o.x; if (ox>24 || ox<-24) continue;      // cheap x-band cull before the costlier math
-    const oy2=(u.y-o.y); if (oy2>20 || oy2<-20) continue;
-    const R = (o.team===u.team) ? 24 : 16;                // gentle body separation from allies AND enemies
+    const ox=u.x-o.x; if (ox>band || ox<-band) continue;  // cheap x-band cull before the costlier math
+    const oy2=(u.y-o.y); if (oy2>yBand || oy2<-yBand) continue;
+    // gentle body separation from allies AND enemies
+    const R = (o.team===u.team) ? (uSep + (o.preferredSpacing||24))*.5 : 16;
     const oy=oy2*1.35, od=Math.hypot(ox,oy);
     if (od>0 && od<R){ const push=(R-od)/R; sx+=ox/od*push; sy+=oy/od*push*.7; }
   }
-  const desiredX=(dx+sx*.8)*maxSpeed, desiredY=(dy+sy*.8)*maxSpeed;
-  const accel=(u.team===1 && S.retreatT>0 ? 8.5 : 6.2);
-  u.vx=(u.vx||0)+(desiredX-(u.vx||0))*Math.min(1,dt*accel);
-  u.vy=(u.vy||0)+(desiredY-(u.vy||0))*Math.min(1,dt*accel);
+  // ARRIVAL: ease down over the last stride instead of running at full speed
+  // into the stopping radius and jittering back and forth across it.
+  const slowR=Math.max((stopRadius||1)*3,26);
+  const arrive=dist<slowR?Math.max(.18,dist/slowR):1;
+  const desiredX=(dx+sx*.8)*maxSpeed*arrive, desiredY=(dy+sy*.8)*maxSpeed*arrive;
+  // Role weights how hard the soldier drives; retreat still overrides.
+  let accel=(u.team===1 && S.retreatT>0) ? 8.5 : (u.moveAccel||6.2);
+  // TURN DAMPING: reversing costs more than continuing, so a soldier leans
+  // into a turn instead of snapping through 180 degrees in a frame.
+  const vx0=u.vx||0, vy0=u.vy||0, sp0=Math.hypot(vx0,vy0);
+  if(sp0>6){
+    const dot=(vx0*desiredX+vy0*desiredY)/(sp0*(Math.hypot(desiredX,desiredY)||1));
+    if(dot<0) accel*=.45+.4*(1+dot);   // hardest damping on a full reversal
+  }
+  u.vx=vx0+(desiredX-vx0)*Math.min(1,dt*accel);
+  u.vy=vy0+(desiredY-vy0)*Math.min(1,dt*accel);
   const vm=Math.hypot(u.vx,u.vy), cap=maxSpeed*1.08;
   if(vm>cap){u.vx=u.vx/vm*cap;u.vy=u.vy/vm*cap;}
   u.x+=u.vx*dt; u.y+=u.vy*dt;
   u.moveSpeed=Math.hypot(u.vx,u.vy);
-  if(Math.abs(u.vx)>3)u.face=u.vx>=0?1:-1;
+  // Facing needs a deadband, or a soldier shuffling on the spot flips every
+  // few frames. Turn only on committed movement.
+  if(Math.abs(u.vx)>9)u.face=u.vx>=0?1:-1;
   return true;
 }
 function brakeUnit(u,dt){
@@ -848,20 +1089,60 @@ function assignTargets(){
     return;
   }
   const claims = new Map();
+  /* AI SCHEDULING (perf pass, build 50)
+     Target *acquisition* is the expensive half of combat AI and does not need
+     to run for every soldier on every simulated step — a soldier re-picking a
+     foe 4 frames (~67ms) later is imperceptible, while re-scoring 240 units
+     60×/s is not. Units are spread across TGT_PHASES buckets by id, so the
+     cost is amortised instead of spiking on one frame. Anything urgent — a
+     dead/flipped target, or a unit with no target at all — still re-acquires
+     immediately, so correctness is unchanged. */
+  const TGT_PHASES = 4;
+  const phase = (S.tgtPhase = ((S.tgtPhase|0) + 1) % TGT_PHASES);
   for (const u of S.units){
     if (u.hp <= 0) continue;
     if (u.tgt && (u.tgt.hp <= 0 || u.tgt.team === u.team)) u.tgt = null;
   }
   for (const u of S.units){
     if (u.hp <= 0) continue;
+    // keep an existing valid target unless it is this unit's turn to re-think
+    // Units carry no id, so hand out a stable phase on first sight. Round-robin
+    // guarantees an even spread across buckets — deriving it from position or
+    // spawn order would clump whole ranks into the same frame and reintroduce
+    // exactly the spike this is meant to remove.
+    if (u.aiPhase === undefined) u.aiPhase = (S.aiPhaseSeq = ((S.aiPhaseSeq|0) + 1)) % TGT_PHASES;
+    if (u.tgt && u.tgt.hp > 0 && u.aiPhase !== phase){
+      claims.set(u.tgt, (claims.get(u.tgt)||0) + 1);
+      continue;
+    }
     if(u.spearThrown){
-      let near=null,nd=1e9;
-      for(const o of S.units)if(o.team!==u.team&&o.hp>0){const d=Math.hypot(o.x-u.x,(o.y-u.y)*1.6);if(d<nd){nd=d;near=o;}}
+      let near=null;
+      const _sn = (SPAT.stamp === S.time) ? spatNearestEnemy(u) : null;
+      if (_sn) near = _sn.u;
+      else { let nd=1e9; for(const o of S.units)if(o.team!==u.team&&o.hp>0){const d=Math.hypot(o.x-u.x,(o.y-u.y)*1.6);if(d<nd){nd=d;near=o;}} }
       u.tgt=near;if(near)claims.set(near,(claims.get(near)||0)+1);continue;
     }
     const melee = !['bow','gun','laser'].includes(TYPES[u.type].weapon);
     let best = null, bs = 1e9;
-    for (const o of S.units){
+    /* Only enemies whose |dx| could still beat the incumbent score are worth
+       scoring. Score = d + pen + stick + tactical + lane, and the only negative
+       terms are stick(-40) and tactical(min -42), so anything further than
+       bs + 82 in x can never win. Same winner as the old full scan. */
+    const _foes = (SPAT.stamp === S.time) ? SPAT.byTeam[u.team === 1 ? '-1' : '1'] : null;
+    const _list = _foes || S.units;
+    let _c = _foes ? spatLower(_foes, u.x) : 0;
+    let _lo = _foes ? _c - 1 : 0, _hi = _foes ? _c : 0;
+    const _n = _list.length;
+    for (let _k = 0; _k < _n; _k++){
+      let o;
+      if (_foes){
+        // walk outward from u.x, nearest-in-x first, so the cutoff bites early
+        const dLo = _lo >= 0 ? (u.x - _list[_lo].x) : Infinity;
+        const dHi = _hi < _n ? (_list[_hi].x - u.x) : Infinity;
+        if (dLo === Infinity && dHi === Infinity) break;
+        if (dLo <= dHi){ o = _list[_lo--]; if (u.x - o.x > bs + 82) break; }
+        else { o = _list[_hi++]; if (o.x - u.x > bs + 82) break; }
+      } else o = _list[_k];
       if (o.team === u.team || o.hp <= 0) continue;
       const d = Math.hypot(o.x-u.x, (o.y-u.y)*1.6);
       const c = claims.get(o) || 0;
@@ -890,7 +1171,11 @@ function fireBullet(x, y, tg, dmg, team){
   S.projs.push({kind:'bullet', x, y, sourceX:x, vx:(tg.x-x)/d*880, vy:(tg.y-y)/d*880, g:0, dmg, team, life:2});
   window.KWRuntime?.events.emit('projectile_released',{kind:'bullet',team,damage:dmg});
 }
-function combatRange(u,t){const base=u.spearThrown&&(t.weapon==='spear'||t.weapon==='spartan')?22:t.range;let r=base*(u.equipMods?.range||1);if(u.team===-1&&['bow','gun','laser'].includes(t.weapon))r=Math.min(r,ENEMY_RANGE_CAP);return r;}
+function combatRange(u,t){let r=Number.isFinite(u.attackRange)?u.attackRange:(u.spearThrown&&(t.weapon==='spear'||t.weapon==='spartan')?22:t.range)*(u.equipMods?.range||1);if(u.team===-1&&['bow','gun','laser'].includes(t.weapon))r=Math.min(r,ENEMY_RANGE_CAP);return r;}
+// Structures are hit with whatever is in hand too: a spear reaches the wall
+// from further out than a sword. Capped so long reaches don't let a soldier
+// hit the fort from the middle of the field.
+function structureReach(u,range){return Math.max(16,Math.min(range,44));}
 function attackCooldown(u,t){return t.cd/(u.equipMods?.attackSpeed||1);}
 function incomingThreat(u){
   if(!(TYPES[u.type].weapon==='spear'||TYPES[u.type].weapon==='spartan')||u.shield<=0)return null;
@@ -1172,6 +1457,9 @@ function startWave(){
   if(bossWave)q.push('eboss');
   for (let i=q.length-1;i>0;i--){ const j=(simRandom()*(i+1))|0; [q[i],q[j]]=[q[j],q[i]]; }
   S.waveQueue=q;S.waveTotal=q.length;S.spawnT=0;S.phase='wave';
+  // Cohort bookkeeping. waveTotal is the FULL wave and never shrinks.
+  S.spawnedTotal=0;S.defeatedTotal=0;S.cohortPending=0;S.cohortT=0;S.cohortIndex=0;
+  S.enemyFormWaitT=0;S.bossSpawned=false;S.bossDefeated=false;
   // Every wave must assemble and hold its ranks before any march, raid, or
   // attack order is released. Later waves hold slightly longer as formations grow.
   S.enemyPhase='form';S.enemyRallyX=E_SPAWN-70;S.enemyFormT=2+Math.min(2,local*.04);
@@ -1209,17 +1497,42 @@ function update(dt){
       if (!S.units.some(u=>u.team===-1&&u.boss&&u.hp>0)){ S.folkGiantCd -= dt; if(S.folkGiantCd<=0){ spawnFolkGiant(); S.folkGiantCd = 16; } }
     } else if(S.phase === 'wave') {
       if (S.waveQueue.length){
+        // REINFORCEMENT COHORTS. Reserves stay in S.waveQueue -- they are type
+        // strings, not entities, so nothing simulates them and no count sees
+        // them. A cohort opens only when the field has thinned past REFILL_AT,
+        // which is the hysteresis: we never trickle one body at a time to hold
+        // a cap, and we open the next line well before the field empties.
+        const budget=enemyMax(), alive=enemyCount();
+        if (S.cohortPending<=0 && alive<=Math.floor(budget*REFILL_AT)){
+          S.cohortPending=Math.min(cohortSize(),budget-alive,S.waveQueue.length);
+          S.cohortIndex=(S.cohortIndex||0)+1;
+        }
         S.spawnT -= dt;
-        if (S.spawnT <= 0){S.spawnT=.28;const next=S.waveQueue[S.waveQueue.length-1];if(spawnEnemy(next))S.waveQueue.pop();}
+        if (S.cohortPending>0 && S.spawnT<=0){
+          if (enemyCount()>=budget){
+            S.cohortPending=0;            // budget closed early; wait for the next window
+          } else {
+            S.spawnT=.06;                 // tight stagger: reads as a line walking on
+            const next=S.waveQueue[S.waveQueue.length-1];
+            // pop ONLY on a successful spawn -- a dropped return value here
+            // would silently delete enemies (and could delete the boss).
+            if (spawnEnemy(next)){ S.waveQueue.pop(); S.spawnedTotal=(S.spawnedTotal||0)+1; S.cohortPending--; }
+            else S.cohortPending=0;
+          }
+        }
       } else if (!S.units.some(u=>u.team===-1&&u.hp>0)){
+        // IDEMPOTENT REWARD. The grant is keyed to the wave number, so a
+        // reload can never pay the same wave twice however the save is timed.
+        const alreadyPaid = (S.rewardClaimedWave||0) >= S.wave;
+        S.rewardClaimedWave = S.wave;
         S.phase = 'inter'; S.interT = 6;
         const milestone=S.localWave%10===0;
         const ruler=S.localWave===50;
         const goldReward=milestone?350+S.localWave*8+S.conquestCycle*100:100+Math.floor(S.wave*.5);
-        S.gold += goldReward;
-        const gemReward=window.KWCommerce?KWCommerce.rewardWave(S.wave):0;
+        if(!alreadyPaid) S.gold += goldReward;
+        const gemReward=(!alreadyPaid&&window.KWCommerce)?KWCommerce.rewardWave(S.wave):0;
         showMsg((ruler?'♛ Ruler defeated! ':milestone?'🏆 Encounter won! ':'Wave cleared!  ')+'+'+goldReward+' gold'+(gemReward?' · +'+gemReward+' gems':'')); snd.coin();
-        if(milestone){
+        if(milestone&&!alreadyPaid){
           window.KWRuntime?.events.emit('boss_defeated',{wave:S.wave,tier:S.wave/10,civilization:S.enemyCiv});
           if(window.KWAnalytics)KWAnalytics.track('boss_defeated',{wave:S.wave,bossTier:S.wave/10,gold:goldReward,gems:gemReward},'critical');
           if(window.KWExperience)KWExperience.recordBoss();
@@ -1235,7 +1548,19 @@ function update(dt){
   updateEnemyFormation(dt);
 
   // units
-  S.units = S.units.filter(u=>u.hp>0);
+  // Compact in place -- a fresh array every frame is needless garbage.
+  {
+    let w=0;
+    for(let i=0;i<S.units.length;i++){
+      const d=S.units[i];
+      if(d.hp>0){ S.units[w++]=d; }
+      else if(d.team===-1){ S.defeatedTotal=(S.defeatedTotal||0)+1; if(d.boss)S.bossDefeated=true; }
+    }
+    S.units.length=w;
+  }
+  // Weapon/role truth is refreshed before anything reads it this step.
+  window.KW_SOLDIER?.refreshAll(S.units,TYPES,S.time);
+  spatialRebuild();          // one sorted pass powers every neighbourhood query below
   assignTargets();
   // Shield wall: while not on a full attack push, the player's frontmost living
   // melee defenders form a line the enemy cannot pass until that line is killed.
@@ -1291,7 +1616,7 @@ function update(dt){
         if (foe.d > range){ moving=steerMove(u,foe.u.x,foe.u.y+(ranged?0:(u.yPref||0)),spd,dt,range*.82); }
         else if (u.cdT <= 0){ u.cdT = attackCooldown(u,t); u.anim = 1; unitFire(u, t, foe); }
         u.face = foe.u.x >= u.x ? 1 : -1;
-      } else if (gateD > (ranged ? range*.8 : 8)){
+      } else if (gateD > (ranged ? range*.8 : Math.max(8,structureReach(u,range)-14))){
         moving=steerMove(u,P_WALL+8,u.y,spd,dt,3); u.face = -1;
       } else if (u.cdT <= 0 && !S.over){
         u.cdT = attackCooldown(u,t); u.anim = 1; u.face = -1;
@@ -1309,7 +1634,7 @@ function update(dt){
         else if (u.cdT <= 0){ u.cdT = attackCooldown(u,t); u.anim = 1; unitFire(u, t, tgt); }
         u.face = tgt.u.x >= u.x ? 1 : -1;
       } else if (!sealed && S.castleHP > 0){
-        const jit = u.jit||0, d = E_WALL - u.x, rng = ranged ? range : (26 + jit);
+        const jit = u.jit||0, d = E_WALL - u.x, rng = ranged ? range : (structureReach(u,range) + jit);
         if (d > rng){ moving=steerMove(u,E_WALL-rng,u.y+(u.yPref||0)*.15,spd,dt,3); }
         else if (u.cdT <= 0){ u.cdT = attackCooldown(u,t); u.anim = 1; unitFire(u, t, null); }
         u.face = 1;
@@ -2923,7 +3248,7 @@ function updateUI(){
   wc.textContent = (S.phase==='inter' && !S.over ? 'Next wave in '+Math.ceil(S.interT)+'s' : 'Wave '+S.wave)
     + ' · ⚔ '+armyCount()+'/'+armyMax() + ' · ' + CIV_NAMES[S.civ-1] + ' Age'
     + ' · 🏰 '+FORTRESS_AGES[S.civ-1].name
-    + ' · ☠ '+enemyCount()+'/'+enemyMax()+' '+CIV_NAMES[S.enemyCiv-1]+' D'+S.enemyUpgrades;
+    + ' · ☠ '+(S.phase==='wave'&&S.waveTotal?((S.defeatedTotal||0)+'/'+S.waveTotal+(S.waveQueue.length?' (↑'+enemyCount()+')':'')):(enemyCount()+'/'+enemyMax()))+' '+CIV_NAMES[S.enemyCiv-1]+' D'+S.enemyUpgrades;
   for (const key of ['sword','archer','spear','gunner','laser','aetherwing'])
     btnEls[key].classList.toggle('poor', S.gold < TYPES[key].cost);
   for (const st of ['defend','march','attack'])

@@ -32,10 +32,42 @@
       localStorage.setItem(KEY,JSON.stringify(data));return true;
     }catch(e){return false;}
   }
+  /* Mid-wave saves used to rewind a whole wave: they stored wave-1 in phase
+     'inter' and threw the reserve queue away, so resuming re-ran the entire
+     wave from scratch. Because every kill pays gold (index.html: `S.gold += b`
+     on death), that let a player farm the same enemies indefinitely by
+     backgrounding the app -- and it re-spawned bosses that were already dead.
+
+     Instead the wave is now saved AS IT STANDS. Living enemies are not
+     serialised; they are returned to the reserve queue by type and removed
+     from spawnedTotal, which is exact deterministic reconstruction:
+       spawned' + queue' == (spawned - alive) + (queue + alive) == waveTotal
+     Already-defeated enemies stay in defeatedTotal and never come back. */
   function saveRun(){
     if(!started||!S||S.over||S.campaignMissionId)return false;
     const activeBattle=S.phase==='wave';
-    data.active={...S,wave:activeBattle?Math.max(0,S.wave-1):S.wave,units:S.units.filter(u=>u.hp>0&&(!activeBattle||u.team===1)).map(safeUnit),projs:[],fx:[],floats:[],splats:[],corpses:[],waveQueue:activeBattle?[]:[...S.waveQueue],phase:activeBattle?'inter':S.phase,interT:activeBattle?3:S.interT,checkpointNotice:activeBattle};
+    const queue=[...S.waveQueue];
+    let spawned=S.spawnedTotal||0, bossSpawned=!!S.bossSpawned;
+    if(activeBattle){
+      for(const u of S.units){
+        if(u.team===-1&&u.hp>0){
+          queue.push(u.type);
+          spawned--;
+          if(u.boss)bossSpawned=false;   // alive, so not defeated: it re-enters, it is not duplicated
+        }
+      }
+    }
+    data.active={...S,
+      units:S.units.filter(u=>u.hp>0&&(!activeBattle||u.team===1)).map(safeUnit),
+      projs:[],fx:[],floats:[],splats:[],corpses:[],
+      waveQueue:queue,
+      spawnedTotal:Math.max(0,spawned),
+      bossSpawned,
+      cohortPending:0,spawnT:0,
+      // The returned enemies walk back on as a fresh line.
+      enemyPhase:activeBattle?'form':S.enemyPhase,
+      enemyFormWaitT:0,
+      checkpointNotice:false};
     data.lastPlayed=Date.now();data.records.highestWave=Math.max(data.records.highestWave,S.wave);data.records.longestRun=Math.max(data.records.longestRun,S.time||0);
     return persist();
   }

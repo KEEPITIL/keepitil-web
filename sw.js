@@ -26,10 +26,10 @@
    clients.claim() take over immediately, which clears anything a phone or an installed PWA was
    still holding from before. Bump these four names whenever a release must reach returning
    users regardless of what they have cached. */
-var VERSION = 'kil-pwa-v102-20260910e';
+var VERSION = 'kil-pwa-v103-20260911a';
 var PAGES = 'kil-pages-v42';
 var ASSETS = 'kil-assets-v41';
-var CODE = 'kil-code-v84';
+var CODE = 'kil-code-v85';
 var KEEP = [VERSION, PAGES, ASSETS, CODE];
 var PAGE_LIMIT = 40;
 var PRECACHE = [
@@ -74,6 +74,17 @@ self.addEventListener('fetch', function (e) {
 
   // NEVER touch Supabase — user data stays live.
   if (url.hostname.endsWith('.supabase.co')) return;
+
+  // SELF-CONTAINED APPS OWN THEIR OWN ASSETS.
+  // /games/<app>/ and /kode/ each register their own scoped service worker with
+  // their own cache and their own version stamp. This worker must not also
+  // cache their files: its CODE cache is network-first but keyed on the full
+  // URL, so once an app asset lands here it shadows the app's scoped worker and
+  // keeps serving an old copy until this cache happens to rotate. That was
+  // observed live — kwars1-v52 held build 51 while kil-code-v84 served build 50
+  // of the same file to the same page. Let the app's own worker answer.
+  if (url.origin === self.location.origin &&
+      /^\/(games\/[^/]+|kode)\//.test(url.pathname)) return;
 
   // Navigations: network-first; cached copy ONLY when the network fails.
   if (req.mode === 'navigate') {

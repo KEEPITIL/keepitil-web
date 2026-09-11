@@ -128,6 +128,44 @@
       +'}';
     document.head.appendChild(v);
   })();
+
+  /* ══ KEEPITIL LANDING HERO STANDARD (KODE 2026-09-10) ═══════════════════════════════════
+     ONE rule set for every core landing hero, so the five pages cannot drift apart again.
+     Measured live at 1440 before writing it — rendered TEXT and metric ITEMS, not container
+     boxes, because a full-width container with justify-content:flex-start centres its own box
+     while packing its children left. Box-based measurement said Earn and Create were already
+     centred; they were out by 462-530px.
+
+         Connect   title -359  metrics -323
+         Earn      title -530  metrics -462
+         Create    title -482  metrics -484
+         Culture   title    0  metrics    0   <- the reference; already correct
+         Discover  no comparable model: its only h1 is an off-screen SEO heading and
+                   .hero-stats is display:none. Deliberately NOT forced into this standard.
+
+     Deliberately a SEPARATE <style> element rather than an append to the shell's main CSS
+     string: that string is one long concatenation, and appending after its terminating
+     semicolon silently produces a dangling `+'...'` expression that parses, runs and paints
+     nothing. That exact failure has already cost this project one shipped-dead stylesheet.
+
+     Loaded on every page, so a new landing page inherits the standard by existing. Desktop
+     only — mobile heroes are untouched. */
+  (function(){
+    var ls=document.createElement('style'); ls.setAttribute('data-kil','landing-standard');
+    ls.textContent='@media(min-width:861px){'
+      /* the heading wrapper: Connect sizes it width:max-content, so it hugs the flex start
+         until it is given auto margins */
+      + '.hero-head,.ce-head{margin-left:auto!important;margin-right:auto!important;}'
+      + '.hero h1,.ce-hero h1{text-align:center!important;}'
+      + '.hero .eyebrow,.ce-hero .eyebrow{text-align:center!important;}'
+      + '.hero>p,.ce-hero>p{margin-left:auto!important;margin-right:auto!important;text-align:center!important;}'
+      /* metric rows: every core surface, whichever class it uses */
+      + '.hero .stats,.hero .hero-stats,.ce-hero .ce-stats{justify-content:center!important;}'
+      /* column-flex heroes must centre their cross axis or the centred children still hug left */
+      + '.hero,.ce-hero{align-items:center;}'
+      + '}';
+    document.head.appendChild(ls);
+  })();
     var RADIO_PAGE = false;
     try{ RADIO_PAGE = document.documentElement.getAttribute('data-radio') === 'page'; }catch(e){}
     var RADIO_ALLOWED = RULES.radio && !IN_IFRAME && (!IS_MOBILE || PAGE_TYPE==='home' || RADIO_PAGE);
@@ -147,7 +185,7 @@
              tag ran the current one. Two different radio bars on one site, and the stale half
              was invisible to a cache bump because the URL never changed. Bump this WITH the
              page tags whenever keepitil-radio.js changes. */
-          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20260910b'; document.body.appendChild(_rs);
+          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20260910c'; document.body.appendChild(_rs);
         }
       }catch(e){} });
     }
@@ -251,7 +289,7 @@
          navigations stale-while-revalidate, a returning visitor was reading HTML one
          deploy behind - which is exactly how a verification run measured a page that no
          longer existed on the origin. Bump this WITH sw.js. */
-      navigator.serviceWorker.register('/sw.js?v=20260910d').catch(function(){});
+      navigator.serviceWorker.register('/sw.js?v=20260910e').catch(function(){});
       /* An older worker may still be in control from a previous registration of the bare URL.
          Asking every registration to update forces that one to re-check now rather than on its
          own schedule. */

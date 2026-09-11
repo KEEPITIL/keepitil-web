@@ -115,12 +115,16 @@
     /* Button 4 shows the SONG and the PLAYLIST alternately, 5s each with a half-second
        cross-fade. Both spans are stacked in the same box so neither reflows the bar when
        the other is showing; the whole cycle is CSS, so there is no timer to leak. */
-    '.krb-now .kr-now{position:absolute;left:8px;right:8px;text-align:center;'+
-      'font-size:.72rem;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;'+
-      'text-overflow:ellipsis;animation:kil-swap 10s ease-in-out infinite;}'+
-    '.krb-now #kr-nowpl{color:rgba(0,255,136,.9);letter-spacing:.06em;animation-delay:5s;}'+
-    '@keyframes kil-swap{0%,45%{opacity:1;}50%,95%{opacity:0;}100%{opacity:1;}}'+
-    '@media(prefers-reduced-motion:reduce){.krb-now .kr-now{animation-duration:20s;}}'+
+    /* ══ ONE NOW PLAYING SYSTEM (KODE 2026-09-10) ═════════════════════════════════════
+       Deleted here: `.krb-now .kr-now{position:absolute;left:8px;right:8px}` plus
+       `animation:kil-swap`, the `#kr-nowpl{animation-delay:5s}` offset and the
+       `@keyframes kil-swap` crossfade.
+
+       That rule matched BOTH #kil-track and #kr-nowpl - each carries class .kr-now - and
+       stacked them absolutely in the same box, alternating their opacity on a 10s cycle.
+       When the column layout (.kr-nowwrap: label / title / station) was added it did not
+       remove this, so two systems addressed the same two spans at once: the overlapping
+       Now Playing text. The column layout below is now the only one. */
     '@media(max-width:1100px){.kr-plname{display:none;}}'+
     '@media(max-width:900px){.kr-side{display:none;}}'+
     '.kr-btn{background:none;border:none;cursor:pointer;color:#00ff88;font-size:.85rem;line-height:1;padding:2px 4px;transition:opacity .2s;flex-shrink:0;}'+
@@ -146,8 +150,9 @@
       '.kil-live,.kil-divider{display:none!important;}'+
       '.krb{flex:0 0 auto!important;height:28px;padding:0 6px;gap:4px;}'+
       '.krb-now{flex:1 1 auto!important;position:static;background:none;border-color:transparent;}'+
-      '.krb-now .kr-now{position:static;left:auto;right:auto;animation:none;'+
-        'font-size:.62rem;font-weight:400;color:rgba(255,255,255,.7);}'+
+      /* position/animation resets dropped with the absolute+crossfade system they undid.
+         The mobile type scale stays, and so does hiding the station sub-line below. */
+      '.krb-now .kr-now{font-size:.62rem;font-weight:400;color:rgba(255,255,255,.7);}'+
       '#kr-nowpl{display:none!important;}'+
       '.kr-side,.kr-plname{display:none!important;}'+
       '.kil-brand-logo{height:22px;}'+
@@ -169,16 +174,27 @@
        Now Playing taking the centre, audio pinned right. The bar previously divided its
        width evenly across seven flex children, which is what made it read as a row of
        separate widgets instead of one media strip. */
+    /* ══ DESKTOP STRIP: 54px, everything vertically centred (KODE 2026-09-10) ══════════
+       Was min-height:76px, which left large dead bands above and below 35px controls. The
+       bar is content-height now with a 54px floor, so nothing is taller than it needs to be.
+       Every child is flex:0 0 auto EXCEPT Now Playing, which is the only region allowed to
+       take the slack - that is what makes it the visual centre and what makes long titles
+       truncate instead of pushing mute and volume off the end. */
     +'@media(min-width:641px){'
-    +  '#kil-radio{height:auto;min-height:76px;padding:0 22px;gap:20px;}'
-    +  '#kr-live{flex:0 0 auto;}'
+    +  '#kil-radio{height:54px;min-height:54px;padding:0 20px;gap:18px;align-items:center;}'
+    +  '#kil-radio>*{align-self:center;}'
+    +  '.krb{height:auto!important;}'
+    +  '#kr-live{flex:0 0 auto;padding:3px 9px;}'
     +  '.kr-stwrap{flex:0 0 auto;}'
-    +  '.krb-now{flex:1 1 auto;justify-content:flex-start;}'
+    +  '.krb-now{flex:1 1 auto;min-width:0;justify-content:flex-start;gap:10px;}'
+    +  '.kr-nowwrap{min-width:0;flex:1 1 auto;}'
+    /* the four controls that must never be pushed off by a long title */
     +  '#kr-mute{margin-left:auto;flex:0 0 auto;}'
-    +  '#kr-vol{flex:0 0 120px;}'
-    +  '.kr-art{width:44px;height:44px;border-radius:9px;}'
-    +  '.kr-nowlab{font-size:.44rem;}'
-    +  '#kil-track{font-size:.8rem;font-weight:700;}'
+    +  '#kr-vol{flex:0 0 108px;}'
+    +  '.kr-art{width:34px;height:34px;border-radius:8px;}'
+    +  '.kr-nowlab{font-size:.42rem;line-height:1;}'
+    +  '#kil-track{font-size:.78rem;font-weight:700;line-height:1.2;}'
+    +  '.kr-nowsub{font-size:.5rem;line-height:1.2;}'
     +'}'
     +'#kr-live{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(0,255,136,.28);border-radius:10px;padding:4px 8px;cursor:pointer;transition:background .18s,border-color .18s,box-shadow .18s;}'
     +'#kr-live:hover{background:rgba(0,255,136,.10);border-color:rgba(0,255,136,.55);}'
@@ -195,6 +211,10 @@
     +'.krb-now{display:flex;align-items:center;gap:7px;min-width:0;}'
     +'.kr-art{width:30px;height:30px;border-radius:6px;object-fit:cover;flex:0 0 auto;background:#15151f;}'
     +'.kr-nowwrap{display:flex;flex-direction:column;min-width:0;line-height:1.15;}'
+    /* A long track title truncates. min-width:0 is the part that actually matters: without
+       it a flex item refuses to shrink below its content and pushes mute/volume off-screen
+       instead of ellipsing. */
+    +'#kil-track,.kr-nowsub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%;display:block;}'
     +'.kr-nowlab{font-size:.42rem;font-weight:900;letter-spacing:.18em;color:#7a8699;text-transform:uppercase;}'
     +'.kr-nowsub{color:#8d99ab;font-size:.52rem;}'
     +'.kr-wave{display:none;align-items:flex-end;gap:2px;height:12px;flex:0 0 auto;}'
@@ -206,7 +226,7 @@
     /* ── PANELS: exactly one visible, both driven by data-radio-ui ── */
     +'.kr-panel{position:fixed;left:0;right:0;z-index:9997;display:none;flex-direction:column;background:rgba(9,9,14,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid rgba(54,226,255,.28);font-family:\'Space Grotesk\',\'Inter\',sans-serif;}'
     +'.kr-panel.on{display:flex;}'
-    +'#kr-drawer{bottom:var(--kil-radio-h,76px);max-height:360px;border-radius:14px 14px 0 0;box-shadow:0 -18px 50px rgba(0,0,0,.7);}'
+    +'#kr-drawer{bottom:var(--kil-radio-h,54px);max-height:360px;border-radius:14px 14px 0 0;box-shadow:0 -18px 50px rgba(0,0,0,.7);}'
     +'.kr-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:linear-gradient(90deg,rgba(0,255,136,.12),rgba(124,77,255,.10));border:0;border-bottom:1px solid rgba(255,255,255,.08);padding:11px 14px;cursor:pointer;}'
     +'.kr-hdr:hover{background:linear-gradient(90deg,rgba(0,255,136,.2),rgba(124,77,255,.16));}'
     +'.kr-hdr:focus-visible{outline:2px solid #36e2ff;outline-offset:-2px;}'
@@ -1103,6 +1123,24 @@
     if(a&&src&&src.getAttribute('src')) a.src=src.getAttribute('src');
   }
   window.__kilPaintDrawerNow=paintDrawerNow;
+  /* ══ THE DRAWER SITS ON THE MEASURED BAR, NOT A GUESSED ONE (KODE 2026-09-10) ═════════
+     --kil-radio-h was referenced by #kr-drawer but never actually SET by anything, so the
+     drawer's bottom offset was whatever the fallback happened to say - it was 76px while the
+     desktop bar was 76px, and would have been wrong the moment either number changed. The
+     bar is 54px on desktop and 40px on mobile, so one hardcoded fallback cannot serve both.
+     It is measured and published here, and re-measured on resize, so the drawer can never
+     drift away from the bar it sits on. */
+  function publishRadioHeight(){
+    var bar=document.getElementById('kil-radio'); if(!bar) return;
+    var h=Math.round(bar.getBoundingClientRect().height);
+    if(h>0) document.documentElement.style.setProperty('--kil-radio-h', h+'px');
+  }
+  window.__kilPublishRadioHeight=publishRadioHeight;
+  publishRadioHeight();
+  addEventListener('resize', publishRadioHeight, {passive:true});
+  /* The bar is built before its fonts/art settle, so measure again once painted. */
+  [60,400,1500].forEach(function(ms){ setTimeout(publishRadioHeight, ms); });
+
   window.KIL_SET_RADIO_UI=setRadioUI;
 
   var gwBtn=document.getElementById('kr-live');

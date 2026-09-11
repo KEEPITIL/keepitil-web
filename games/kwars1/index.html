@@ -180,19 +180,45 @@
   <button class="iconbtn" id="pausebtn">⏸</button>
 </div>
 
+<div id="title">
+  <div class="titleinner">
+    <div class="titlecrest">⚔</div>
+    <h1 class="titlewordmark">KINGDOM<span>WARS</span></h1>
+    <p class="titletag">Command an army through fifteen ages of war —<br>from tribal stone to the industrial siege.</p>
+    <button class="titlebtn" id="enterbtn">ENTER</button>
+    <button class="titlecont" id="titlecontinue" hidden></button>
+    <div class="titlefoot">
+      <button id="titlesettings" title="Settings">⚙ SETTINGS</button>
+      <button id="titleaudio" title="Audio">🔊</button>
+      <button id="installbtn" hidden>📲 INSTALL</button>
+      <span id="titleversion"></span>
+    </div>
+  </div>
+</div>
 <div id="hub" class="hidden">
-  <div class="hubmenu">
-    <h1>KWARS1</h1>
+  <div class="home" id="homescreen">
+    <div class="homehud">
+      <div class="hudcrest">⚜</div>
+      <div class="hudmain"><b id="hudname">Wandering Commander</b><small id="hudera">Tribal Stone Era</small></div>
+      <div class="hudstats"><span id="hudcrusade">🏰 —</span><span id="hudwave">♛ —</span><span id="hudgems">💎 —</span></div>
+    </div>
+    <h1 class="hometitle">KINGDOM WARS</h1>
     <button class="menubtn primary" id="continuebtn" hidden>CONTINUE WAR<span class="menusub" id="continuesub"></span></button>
-    <button class="menubtn primary" id="newrunbtn">NEW ENDLESS WAR</button>
-    <button class="menubtn primary" id="campaignbtn">WORLD CRUSADE</button>
-    <button class="menubtn" id="kingdombtn">KINGDOM</button>
-    <button class="menubtn" id="missionsbtn">MISSIONS</button>
-    <button class="menubtn" id="storebtn">STORE</button>
-    <button class="menubtn" id="loadoutbtn">ARMORY & LOADOUTS</button>
-    <button class="menubtn" id="recordsbtn">LEADERBOARDS</button>
-    <button class="menubtn" id="settingsbtn">SETTINGS</button>
-    <span class="menusub">Core Endless War is available offline.</span>
+    <button class="menubtn playbtn" id="playbtn">▶ PLAY</button>
+    <div class="homegrid">
+      <button class="hometile" id="campaignbtn"><span class="tileicon">🌍</span><b>WORLD CRUSADE</b><small id="tilecrusade">Campaign</small></button>
+      <button class="hometile" id="newrunbtn"><span class="tileicon">♛</span><b>ENDLESS WAR</b><small id="tileendless">Survival</small></button>
+      <button class="hometile" id="kingdombtn"><span class="tileicon">⚜</span><b>ARMY</b><small>Kingdom &amp; progression</small></button>
+      <button class="hometile" id="loadoutbtn"><span class="tileicon">🛡</span><b>ARMORY</b><small>Equipment &amp; loadouts</small></button>
+      <button class="hometile" id="storebtn"><span class="tileicon">💎</span><b>SHOP</b><small>Cosmetics &amp; unlocks</small></button>
+    </div>
+    <div class="homesec">
+      <button id="missionsbtn">DAILY ORDERS</button>
+      <button id="achievebtn">ACHIEVEMENTS</button>
+      <button id="recordsbtn">RECORDS</button>
+      <button id="settingsbtn">SETTINGS</button>
+    </div>
+    <span class="menusub">Progress saves on this device. No account required.</span>
   </div>
   <div id="hubpanel" class="hubpanel hidden"><h2 id="paneltitle"></h2><div id="panelbody"></div><button class="menubtn" id="panelback">BACK</button></div>
 </div>
@@ -202,20 +228,10 @@
 <div id="msg"></div>
 <div id="unitbar"></div>
 
-<div id="overlay">
-  <h1 id="ovtitle">STICK <span class="w">KINGDOM</span> WAR</h1>
-  <p id="ovtext">Defend your fortress, command your stick army, and conquer fifteen historical civilizations.<br><br>
-  🪙 Gold flows over time and from victories. Recruit <b>Assault</b>, <b>Ranged</b>, and <b>Defender</b> troops, then use <b>Defend / March / Attack</b> formations.
-  Strengthen the walls with <b>Garrison</b> archers, elite-producing <b>Wizards</b>, and three visible <b>Defense</b> tiers.<br>
-  ♛ Endless War advances every 50 waves from the Tribal Stone Era through the Industrial War Era. Each tenth wave brings a leader encounter; every fiftieth wave brings a ruler and civilization transition.<br>
-  ⚜ Open the <b>War Council</b> during Endless War to spend excess gold on research, repairs, elites, power acceleration, and fortress overdrive.<br>
-  🌍 <b>World Crusade</b> contains five kingdoms per civilization with leaders, specialty armies, Crowns, and gem rewards.<br>
-  <b>Tap the battlefield</b> to call down your civilization power. Double-tap 🛡 <b>Defend</b> to retreat · double-tap 🚩 <b>March</b> to reverse.</p>
-  <button class="dbtn" id="installbtn" hidden>📲 Install on Phone</button>
-  <button class="dbtn" id="startbtn">⚔ Start Battle</button>
-</div>
+<div id="overlay" class="hidden"></div>
 
 <link rel="stylesheet" href="src/platform/platform.css">
+<link rel="stylesheet" href="src/styles/shell.css">
 <script src="src/platform/platform.js"></script>
 <script src="src/core/civilizations.js"></script>
 <script src="src/core/balance.js"></script>
@@ -1360,13 +1376,17 @@ function endGame(title, text){
   const result=/victory/i.test(title)?'victory':'defeat';
   if(window.KWAnalytics)KWAnalytics.track('battle_ended',{result,wave:S.wave,civilization:S.civ},'critical');
   if(window.KWCampaign?.finish?.(result)){started=false;paused=true;return;}
+  const wave=S.wave, civ=S.civ, gold=S.gold;
   if(window.KWExperience)KWExperience.finishRun();
   setTimeout(()=>{
-    document.getElementById('ovtitle').innerHTML = title;
-    document.getElementById('ovtext').innerHTML = text + '<br><br>You survived to wave ' + S.wave + ' in the ' + CIV_NAMES[S.civ-1] + ' Age.';
-    document.getElementById('startbtn').textContent = '⚔ Play Again';
-    document.getElementById('overlay').classList.remove('hidden');
-    started = false;
+    started=false;
+    // §15: the full results screen. RETRY goes through the canonical start path.
+    if(window.KWShell) window.KWShell.results({
+      result, mode:'ENDLESS', gold,
+      scopeLabel:'WAVE REACHED', scopeValue:wave,
+      subtitle:(text||'').replace(/<[^>]*>/g,' ').trim()+' · '+CIV_NAMES[civ-1]+' Age',
+      retry:{mode:'ENDLESS'}
+    });
   }, 1500);
 }
 
@@ -3341,18 +3361,9 @@ document.getElementById('followbtn').addEventListener('click', ()=>{
 });
 document.getElementById('zoomout').addEventListener('click', ()=> setZoom(zoom * 0.8));
 document.getElementById('zoomin').addEventListener('click', ()=> setZoom(zoom * 1.25));
-document.getElementById('startbtn').addEventListener('click', ()=>{
-  audio();
-  reset();
-  bakeCastles();
-  btnEls.gunner.style.display = 'none';
-  btnEls.laser.style.display = 'none';
-  document.getElementById('overlay').classList.add('hidden');
-  started = true; paused = false;
-  document.getElementById('pausebtn').textContent = '⏸';
-  follow = true; syncFollowBtn();
-  showMsg('Defend the gate — destroy their castle! ⚔');
-});
+// The old #startbtn intro/replay path was removed: the title screen is the
+// entry point and every retry routes through KWExperience.startBattle().
+
 
 // ============================================================
 //  MAIN LOOP
@@ -3445,5 +3456,6 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
 <script src="src/systems/war-council.js"></script>
 <script src="src/systems/campaign-system.js"></script>
 <script src="src/systems/experience.js"></script>
+<script src="src/systems/shell.js"></script>
 </body>
 </html>

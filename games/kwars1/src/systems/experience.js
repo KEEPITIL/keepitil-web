@@ -80,6 +80,45 @@
     bakeCastles();rebakePlayer();btnEls.gunner.style.display=S.civ>=11?'flex':'none';btnEls.laser.style.display='none';closeHub();document.getElementById('overlay').classList.add('hidden');started=true;paused=false;follow=true;syncFollowBtn();
     window.KWAnalytics?.track('run_started',{mode:'ENDLESS',newRun:false},'critical');showMsg(data.recoveryNotice?'Save recovered safely from backup':(S.checkpointNotice?'Run restored at a safe wave checkpoint':'War continued'));delete S.checkpointNotice;delete data.recoveryNotice;
   }
+  /* ---- §1 CANONICAL BATTLE START ----------------------------------------
+     Every battle entry -- new run, continue, campaign kingdom, final siege,
+     and every RETRY / PLAY AGAIN from the results screen -- goes through
+     startBattle(). The results overlay used to call reset()+started=true
+     directly, which skipped data.active=null, persist(), the loadout screen
+     and the civ-dependent unit-button setup. There is now no second path:
+     #startbtn is bound to startBattle() below and the raw starters are not
+     exported. `lastBattle` records the intent so RETRY can replay it. */
+  let lastBattle=null;
+  function startBattle(intent){
+    const i=intent||lastBattle||{mode:'ENDLESS'};
+    window.KWShell?.takeSnapshot?.();
+    const pre=i.prebattle!==false;
+    if(i.mode==='CONTINUE'){
+      if(!data.active)return startBattle({mode:'ENDLESS'});
+      lastBattle={mode:'ENDLESS'};           // a retry after continuing is a fresh endless run
+      continueRun();return true;
+    }
+    if(i.mode==='CAMPAIGN'){
+      const node=window.KWCampaign?.nodeById?.(i.missionId);
+      if(!node)return false;
+      lastBattle={mode:'CAMPAIGN',missionId:i.missionId,civOrder:i.civOrder};
+      const go=()=>{data.active=null;persist();audio();window.KWCampaign.start(i.missionId,i.difficulty);};
+      return pre&&window.KWEquipment
+        ? (KWEquipment.renderPreBattle(showPanel,go,{civilization:i.civOrder||1,mode:'CAMPAIGN'}),true)
+        : (go(),true);
+    }
+    if(i.mode==='SIEGE'){
+      if(!window.KWFinalSiege)return false;
+      lastBattle={mode:'SIEGE',civOrder:i.civOrder};
+      const go=()=>{data.active=null;persist();audio();window.KWFinalSiege.start(i.civOrder);};
+      return pre&&window.KWEquipment
+        ? (KWEquipment.renderPreBattle(showPanel,go,{civilization:i.civOrder||1,mode:'SIEGE'}),true)
+        : (go(),true);
+    }
+    lastBattle={mode:'ENDLESS'};
+    return pre?(beginNew(),true):(startNew(),true);
+  }
+  function lastBattleIntent(){return lastBattle?{...lastBattle}:null;}
   const mins=s=>Math.floor((s||0)/60)+'m '+Math.floor((s||0)%60)+'s';
   const played=t=>t?new Date(t).toLocaleString():'Never';
   function mainMenu(){
@@ -88,7 +127,7 @@
     document.getElementById('continuesub').textContent=a?('Wave '+a.wave+' · '+CIV_NAMES[(a.civ||1)-1]+' · '+Math.round(100*a.gateHP/a.gateMax)+'% fort · '+mins(a.time)+' · '+played(data.lastPlayed)):'';
   }
   function showPanel(title,html){document.getElementById('paneltitle').textContent=title;document.getElementById('panelbody').innerHTML=html;panel.classList.remove('hidden');}
-  function showKingdom(){const p=data.profile,r=data.records,g=window.KWCommerce?KWCommerce.balance():p.gems;showPanel('KINGDOM','<div class="profilecrest">⚜</div><h3>'+p.name+'</h3><p>'+p.title+' · Legacy Level '+p.legacyLevel+'</p><p>Legacy XP: '+p.legacyXP+' · Gems: 💎 '+g+'</p><hr><p>Highest wave: '+r.highestWave+'<br>Longest war: '+mins(r.longestRun)+'<br>Total enemies defeated: '+r.enemiesDefeated+'<br>Bosses defeated: '+r.bossesDefeated+'</p>');}
+  function showKingdom(){const p=data.profile,r=data.records,g=window.KWCommerce?KWCommerce.balance():p.gems;showPanel('ARMY · KINGDOM','<div class="profilecrest">⚜</div><h3>'+p.name+'</h3><p>'+p.title+' · Legacy Level '+p.legacyLevel+'</p><p>Legacy XP: '+p.legacyXP+' · Gems: 💎 '+g+'</p><hr><p>Highest wave: '+r.highestWave+'<br>Longest war: '+mins(r.longestRun)+'<br>Total enemies defeated: '+r.enemiesDefeated+'<br>Bosses defeated: '+r.bossesDefeated+'</p>');}
   const missionDefs={waves:{goal:5,label:'Complete 5 waves'},recruits:{goal:20,label:'Recruit 20 soldiers'},powers:{goal:10,label:'Use 10 battlefield powers'}};
   function missionProgress(key,amount=1){
     const def=missionDefs[key];if(!def)return;
@@ -101,12 +140,12 @@
     }
     persist();
   }
-  function showMissions(){const rows=Object.entries(missionDefs).map(([key,d])=>{const n=Math.min(d.goal,data.missions[key]||0),done=!!data.missions.claimed[key];return '<div class="mission"><span>'+d.label+'</span><b>'+n+' / '+d.goal+' · '+(done?'✅ +5 💎':'💎5')+'</b></div>';}).join('');showPanel('MISSIONS','<p><b>Daily Orders · '+data.missions.day+'</b></p>'+rows+'<p class="note">Progress saves automatically. Completed rewards are deposited immediately and reset with the next UTC day.</p>');}
-  function showStore(){if(window.KWCommerce)KWCommerce.renderStore(showPanel);else showPanel('STORE','<p class="note">Store data is unavailable. Endless War remains playable.</p>');}
+  function showMissions(){const rows=Object.entries(missionDefs).map(([key,d])=>{const n=Math.min(d.goal,data.missions[key]||0),done=!!data.missions.claimed[key];return '<div class="mission"><span>'+d.label+'</span><b>'+n+' / '+d.goal+' · '+(done?'✅ +5 💎':'💎5')+'</b></div>';}).join('');showPanel('DAILY ORDERS','<p><b>Daily Orders · '+data.missions.day+'</b></p>'+rows+'<p class="note">Progress saves automatically. Completed rewards are deposited immediately and reset with the next UTC day.</p>');}
+  function showStore(){if(window.KWCommerce)KWCommerce.renderStore(showPanel);else showPanel('SHOP','<p class="note">Shop data is unavailable. Endless War remains playable.</p>');}
   function showLoadouts(){if(window.KWEquipment)KWEquipment.render(showPanel,S?.civ||1);else showPanel('ARMORY','<p class="note">Equipment data is unavailable.</p>');}
   function showCampaign(){if(window.KWCampaign)KWCampaign.render(showPanel);else showPanel('WORLD CRUSADE','<p class="note">Campaign data is unavailable.</p>');}
   function showWarCouncil(){if(S?.campaignMissionId)return showPanel('WAR COUNCIL','<p class="note">The War Council is available only in Endless War. Campaign conquest uses permanent kingdom rewards.</p>');if(window.KWWarCouncil)KWWarCouncil.render(showPanel);else showPanel('WAR COUNCIL','<p class="note">War Council is unavailable.</p>');}
-  function showRecords(){const r=data.records;showPanel('LEADERBOARDS · PERSONAL RECORDS','<p>Highest wave: <b>'+r.highestWave+'</b></p><p>Longest run: <b>'+mins(r.longestRun)+'</b></p><p>Enemies defeated: <b>'+r.enemiesDefeated+'</b></p><p>Bosses defeated: <b>'+r.bossesDefeated+'</b></p><p class="note">These are device-local records. No fake global leaderboard data is displayed while offline.</p>');}
+  function showRecords(){const r=data.records;showPanel('RECORDS','<p>Highest wave: <b>'+r.highestWave+'</b></p><p>Longest run: <b>'+mins(r.longestRun)+'</b></p><p>Enemies defeated: <b>'+r.enemiesDefeated+'</b></p><p>Bosses defeated: <b>'+r.bossesDefeated+'</b></p><p class="note">Global rankings require online accounts and are not available yet. Only your own device-local records are shown.</p>');}
   function showSettings(){
     const s=data.settings,a=window.KWArt?KWArt.settings:{violence:'standard',reducedEffects:false,graphics:'auto'},au=window.KWAudio?KWAudio.settings:{master:1,music:.65,effects:.85,voice:.9,ambience:.45,ui:.75,haptics:true,reducedDensity:false,commandText:true,dynamicRange:'standard',debug:false};
     const slider=(key,label)=>'<label>'+label+' <span id="'+key+'Value">'+Math.round(au[key]*100)+'%</span><input data-audio="'+key+'" type="range" min="0" max="1" step="0.05" value="'+au[key]+'"></label>';
@@ -128,14 +167,16 @@
   window.KWRuntime?.events.on('wave_completed',()=>missionProgress('waves'));
   window.KWRuntime?.events.on('unit_spawned',e=>{if(e?.team===1)missionProgress('recruits');});
   window.KWRuntime?.events.on('power_used',()=>missionProgress('powers'));
-  window.KWRuntime?.events.on('campaign_result',e=>{started=false;paused=true;hub.classList.remove('hidden');if(e.result==='victory'){showPanel('KINGDOM CONQUERED','<div class="profilecrest">'+('★'.repeat(e.crowns)+'☆'.repeat(3-e.crowns))+'</div><h3>'+e.node.leaderDisplayName+' defeated</h3><p>'+e.civ.displayName+' · Kingdom '+e.node.kingdomNumber+'</p><p><b>+'+e.reward+' gems</b></p><button class="menubtn primary" id="campaignContinue">RETURN TO CRUSADE</button>');}else{showPanel('BATTLE LOST','<p>'+e.node.leaderDisplayName+' still holds the kingdom.</p><button class="menubtn primary" id="campaignRetry">RETRY</button><button class="menubtn" id="campaignContinue">RETURN TO CRUSADE</button>');document.getElementById('campaignRetry').onclick=()=>KWCampaign.start(e.node.id);}setTimeout(()=>{const b=document.getElementById('campaignContinue');if(b)b.onclick=showCampaign;},0);});
-  document.getElementById('continuebtn').onclick=continueRun;
-  document.getElementById('newrunbtn').onclick=()=>{if(data.active&&!confirm('Starting a new war will end the current run. Continue?'))return;beginNew();};
+  window.KWRuntime?.events.on('campaign_result',e=>{started=false;paused=true;data.active=null;persist();const civ=e.civ,node=e.node;if(window.KWShell){const nk=window.KWShell.nextKingdom();window.KWShell.results({result:e.result,mode:'CAMPAIGN',gold:S?S.gold:null,crowns:e.result==='victory'?e.crowns:null,scopeLabel:'KINGDOM',scopeValue:civ.displayName+' · '+node.kingdomNumber,subtitle:e.result==='victory'?(node.leaderDisplayName+' defeated'):(node.leaderDisplayName+' holds the field'),unlocked:e.firstClear&&node.kingdomNumber===5?(civ.displayName+' era cleared — next civilization unlocked'):null,retry:{mode:'CAMPAIGN',missionId:node.id,civOrder:civ.order},next:(e.result==='victory'&&nk)?{mode:'CAMPAIGN',missionId:nk.node.id,civOrder:nk.civ.order}:null});}else{hub.classList.remove('hidden');}});
+  document.getElementById('continuebtn').onclick=()=>startBattle({mode:'CONTINUE'});
+  document.getElementById('newrunbtn').onclick=()=>{if(data.active&&!confirm('Starting a new war will end the current run. Continue?'))return;startBattle({mode:'ENDLESS'});};
   document.getElementById('campaignbtn').onclick=showCampaign;document.getElementById('kingdombtn').onclick=showKingdom;document.getElementById('missionsbtn').onclick=showMissions;document.getElementById('storebtn').onclick=showStore;document.getElementById('loadoutbtn').onclick=showLoadouts;document.getElementById('recordsbtn').onclick=showRecords;document.getElementById('settingsbtn').onclick=showSettings;document.getElementById('panelback').onclick=()=>panel.classList.add('hidden');
   document.getElementById('warcouncilbtn').addEventListener('click',()=>{if(started&&!paused){paused=true;document.getElementById('pausebtn').textContent='▶';}hub.classList.remove('hidden');showWarCouncil();});
   document.getElementById('pausebtn').addEventListener('click',()=>setTimeout(pauseMenu,0));
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&started){paused=true;document.getElementById('pausebtn').textContent='▶';saveRun();if(AC&&AC.state==='running')AC.suspend();if(window.KWAudio)KWAudio.suspend();}else if(!document.hidden&&started){hub.classList.remove('hidden');pauseMenu();}});
   window.addEventListener('pagehide',()=>saveRun());window.addEventListener('beforeunload',()=>saveRun());
-  window.KWExperience=Object.freeze({saveRun,mainMenu,finishRun,recordKill,recordBoss,showCampaign,showWarCouncil,data});
+  window.KWExperience=Object.freeze({saveRun,mainMenu,finishRun,recordKill,recordBoss,showCampaign,showWarCouncil,data,
+    startBattle,lastBattleIntent,showPanel,closeHub,persist,missionDefs,
+    showKingdom,showMissions,showStore,showLoadouts,showRecords,showSettings,mins,played});
   muted=!data.settings.sound;mainMenu();
 })();

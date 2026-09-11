@@ -68,13 +68,18 @@
   function color(kind,fallback){const item=byId(state.equipped[kind]);return item&&item.value||fallback;}
   function balance(){return state.wallet.currentBalance;}
   function renderStore(showPanel,initial='FEATURED'){
-    const tabs=['FEATURED','EQUIPMENT','UNITS','FORTRESSES','EFFECTS','BANNERS','GEMS','OWNED'];
+    /* The gem top-up is only offered when the purchase path can actually
+       complete: live Stripe mode with live links present. In test mode the
+       links are sandbox URLs whose success route points at a retired path, so
+       the tab is withheld rather than shown as a dead CTA. */
+    const gemsLive=window.KW_STRIPE_MODE==='live'&&Object.values(window.KW_STRIPE_LINKS?.live||{}).some(Boolean);
+    const tabs=['FEATURED','EQUIPMENT','UNITS','FORTRESSES','EFFECTS','BANNERS'].concat(gemsLive?['GEMS']:[],['OWNED']);
     function draw(tab){
       if(tab==='EQUIPMENT'&&window.KWEquipment){KWEquipment.render(showPanel,window.S?.civ||1);return;}
       const list=tab==='FEATURED'?CATALOG.filter(x=>['progression.full_unlock','hero.aetherwing','effect.ember','fort.moss'].includes(x.id)):tab==='OWNED'?CATALOG.filter(x=>state.ownership.includes(x.id)):CATALOG.filter(x=>x.category===tab);
       const cards=list.map(x=>{const owned=state.ownership.includes(x.id),equipped=state.equipped[x.kind]===x.id;return '<button class="shopcard" data-item="'+x.id+'"><span class="shopicon">'+x.icon+'</span><span><b>'+x.name+'</b><small>'+x.rarity+' · '+x.acquisition+'</small></span><strong>'+(equipped?'EQUIPPED':owned?'OWNED':'💎 '+x.cost)+'</strong></button>';}).join('')||'<p class="note">No items in this category yet.</p>';
-      const gems=tab==='GEMS'?'<div class="commerceNotice"><b>Secure gem purchase</b><br>Stripe Checkout opens outside the game. Gems are credited only after server-verified payment.</div><div class="shopgrid">'+(window.KWStripe?.packs||[]).map(p=>'<button class="shopcard" data-gempack="'+p.id+'"><span class="shopicon">💎</span><span><b>'+p.gems+' Gems</b><small>'+p.label+'</small></span><strong>'+p.price+'</strong></button>').join('')+'</div>':'';
-      showPanel('STORE · 💎 '+balance(),'<div class="shoptabs">'+tabs.map(t=>'<button data-tab="'+t+'" class="'+(t===tab?'selected':'')+'">'+t+'</button>').join('')+'</div>'+gems+'<div class="shopgrid">'+cards+'</div><p class="note">Cosmetic collections remain visual. Functional equipment is shown in EQUIPMENT with exact attributes, compatibility and its free unlock route. Gold is never sold.</p>');
+      const gems=(tab==='GEMS'&&gemsLive)?'<div class="commerceNotice"><b>Secure gem purchase</b><br>Stripe Checkout opens outside the game. Gems are credited only after server-verified payment.</div><div class="shopgrid">'+(window.KWStripe?.packs||[]).map(p=>'<button class="shopcard" data-gempack="'+p.id+'"><span class="shopicon">💎</span><span><b>'+p.gems+' Gems</b><small>'+p.label+'</small></span><strong>'+p.price+'</strong></button>').join('')+'</div>':'';
+      showPanel('SHOP · 💎 '+balance(),'<div class="shoptabs">'+tabs.map(t=>'<button data-tab="'+t+'" class="'+(t===tab?'selected':'')+'">'+t+'</button>').join('')+'</div>'+gems+'<div class="shopgrid">'+cards+'</div><p class="note">Cosmetic collections remain visual. Functional equipment is shown in EQUIPMENT with exact attributes, compatibility and its free unlock route. Gold is never sold.'+(gemsLive?'':' Gem purchases are unavailable until payment services are connected; every item here is also earnable in play.')+'</p>');
       document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>draw(b.dataset.tab));
       document.querySelectorAll('[data-item]').forEach(b=>b.onclick=()=>details(b.dataset.item,tab));
       document.querySelectorAll('[data-gempack]').forEach(b=>b.onclick=()=>window.KWStripe?.purchase?.(b.dataset.gempack));

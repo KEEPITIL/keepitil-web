@@ -219,6 +219,7 @@
 <script src="src/platform/platform.js"></script>
 <script src="src/core/civilizations.js"></script>
 <script src="src/core/balance.js"></script>
+<script src="src/render/greek-defender.js"></script>
 <script src="src/core/soldier-state.js"></script>
 <script src="src/core/ai.js"></script>
 <script src="src/core/core-runtime.js"></script>
@@ -1910,13 +1911,31 @@ const CLASS_MOTION={
 // Adapter: map a game unit's state to a rig motion and draw it with window.KWRig.
 // Rig figure is ~150 tall in its own space; K scales it to the game's footprint (tune RIG_K).
 const RIG_K = 0.30;
+// Greek slice: the new rig is 7.5 heads where the legacy rig is 6.36, so its
+// scale constant differs to land on the same on-screen footprint.
+const GREEK_RUNTIME = !/[?&]legacyrig=1\b/.test(location.search);
+// 140 legacy units x RIG_K = 42px; the new rig is 7.5 head-units tall, so
+// px-per-head must be 42/7.5 to occupy the same footprint beside other units.
+const GREEK_K = RIG_K * 140 / 7.5;
+// Weapon-in-hand -> rig class. Module scope: rebuilding this per soldier per
+// frame would allocate ~18k objects/sec at 300 units, which is precisely the
+// churn the Phase 1 pass removed.
+const WEAPON_RIG = {spear:'spear', spartan:'spear', sword:'sword', hammer:'sword',
+                    mech:'sword', bow:'bow', gun:'gun', laser:'gun'};
 function drawRigUnit(u, corpse, cls, s, x, y){
   // A spearman who has thrown their spear keeps their spearman identity (armor,
   // shield, mohawk) but fights with a SWORD: sword weapon+motion (rcls), spear
   // armor (armorCls). Only once the shield is depleted do they reveal a 2nd sword.
-  const swordMode = (cls==='spear' && u.spearThrown && !(u.throwT>0));
-  const rcls = swordMode ? 'sword' : cls;      // weapon + swing motion
-  const armorCls = swordMode ? 'spear' : cls;  // keep the spearman's armor/shield/helmet
+  // PHASE 2: the weapon drawn is whatever soldier-state says is IN HAND. The
+  // renderer used to re-derive this from (cls + spearThrown), a second source
+  // of truth that disagreed with combat state for ~0.55s after a throw: the
+  // soldier kept a spear in his fist while that same spear flew down the field,
+  // and swung spear motion while his reach was already 22.
+  // Armor/kit still comes from the SPAWN class - one universal body, identity
+  // from helmet/armor/shield/crest - so a thrown spearman stays a spearman.
+  const liveWeapon = u.currentWeapon || null;
+  const rcls = (liveWeapon && WEAPON_RIG[liveWeapon]) || cls;   // weapon + swing motion
+  const armorCls = cls;                                         // keep the spawn class's armor/shield/helmet
   let st, p, t = u.ph || 0;
   if(corpse){ st = u.death==='impale' ? 'die_impale' : ((rcls==='bow'||rcls==='gun') ? 'die_back' : 'die_kneel'); p = Math.min(1, (u.t||0)/1.4); }
   else if(cls==='spear' && u.throwT>0){ st='throw'; p = Math.min(1, 1 - u.throwT/.55); }
@@ -1924,10 +1943,27 @@ function drawRigUnit(u, corpse, cls, s, x, y){
   else if(u.anim>0){ st = (rcls==='sword' && u.rage) ? 'fury' : 'attack'; p = Math.min(1, Math.max(0, 1 - u.anim)); }
   else if(u.pose==='walk'){ st='march'; p = ((((u.walkPhase||u.ph||0)/(Math.PI*2))%1)+1)%1; }
   else { st='idle'; p = (((u.ph*0.16)%1)+1)%1; }
+  // ---- GREEK DEFENDER vertical slice -------------------------------------
+  // The spear class renders on the new outside/inside-arm architecture with
+  // true occlusion. Every other unit keeps the legacy rig below, so a fault
+  // here cannot reach the rest of the roster. Disable with ?legacyrig=1.
+  if (GREEK_RUNTIME && cls === 'spear' && window.KWGreek){
+    ctx.save();
+    ctx.translate(x, y);
+    const kx = (u.face || (u.team===1?1:-1));
+    ctx.scale(kx, 1);
+    try { KWGreek.drawUnit(ctx, u, corpse, GREEK_K * s, 0, 0); }
+    catch(e){ ctx.restore(); return legacyRig(); }
+    ctx.restore();
+    return;
+  }
   const po = KWRig.poseFor(rcls, st, p, t); po._t = t;
+  // The spear leaves the hand when the projectile leaves, not halfway through
+  // the wind-down: soldier-state has already switched the weapon by then.
+  if (liveWeapon && liveWeapon !== 'spear' && liveWeapon !== 'spartan') po.extra.spearGone = true;
   // 2nd sword ONLY once the shield is depleted/broken (an ex-spearman with a shield
   // still fights with a single sword + shield); rage/oversized blades on shield break.
-  if(swordMode && (u.shieldMax>0) && u.shield<=0){ po.extra.dualSword = 1; }
+  if(cls==='spear' && rcls==='sword' && (u.shieldMax>0) && u.shield<=0){ po.extra.dualSword = 1; }
   if(rcls==='sword' && u.rage){ po.extra.bigSword = 1; } // shield broken -> raged, oversized blade(s)
   if(armorCls==='spear' && u.shieldUp && !u.charge){ po.extra.brace = 1; } // shield-wall brace when holding vs a threat
   po.era = S ? (u.team===1 ? S.civ : S.enemyCiv) : 1;   // civilization-fitted armor tier
@@ -1944,6 +1980,7 @@ function drawRigUnit(u, corpse, cls, s, x, y){
   // Renderer selector (Evolution Directive §4): skeletal art when a class has
   // registered assets, else the procedural rig — which remains the guaranteed
   // fallback, so unfinished art can never break the game.
+  function legacyRig(){
   const skel = window.KWSkeletal && KWSkeletal.ready(rcls) &&
     KWSkeletal.draw(ctx, rcls, st, p, {team:u.team, era:po.era, alpha:po.alpha,
       dropShield:po.dropShield, dropHelmet:po.dropHelmet, extra:po.extra});
@@ -1951,6 +1988,8 @@ function drawRigUnit(u, corpse, cls, s, x, y){
     if (rigLite()) KWRig.drawSoldierLite(ctx, rcls, po, C, u.team);
     else KWRig.drawSoldier(ctx, rcls, po, C, u.team, armorCls);
   }
+  }
+  legacyRig();
   ctx.restore();
 }
 // Weaker / performance "lite" soldiers: on when the graphics setting is 'lite', or

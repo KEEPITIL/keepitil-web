@@ -185,7 +185,7 @@
   </div>
 </noscript>
 <canvas id="game"></canvas>
-<div id="rotate"><div><span>↻</span>Rotate your phone sideways<br><small>This battlefield is designed for landscape play.</small></div></div>
+<div id="rotate"><div><span aria-hidden="true">↻</span>ROTATE YOUR PHONE<br><small>Kingdom Wars battles are fought in landscape — turn your phone sideways to command your army. Your progress is saved.</small></div></div>
 
 <div id="topbar">
   <div class="pill">🪙 <span id="gold">0</span></div>
@@ -195,7 +195,6 @@
   <div class="pill"><div class="hpwrap"><div id="ehp"></div></div>💀</div>
   <button class="iconbtn" id="speedbtn" title="Game speed">1×</button>
   <button class="iconbtn" id="warcouncilbtn" title="War Council">⚜</button>
-  <button class="iconbtn" id="diagbtn" title="Developer diagnostics (D)">▦</button>
   <button class="iconbtn" id="followbtn" title="Camera follows the battle">🎯</button>
   <button class="iconbtn zoombtn" id="zoomout" title="Zoom out">➖</button>
   <button class="iconbtn zoombtn" id="zoomin" title="Zoom in">➕</button>
@@ -241,7 +240,7 @@
       <button id="recordsbtn">RECORDS</button>
       <button id="settingsbtn">SETTINGS</button>
     </div>
-    <span class="menusub">Progress saves on this device. No account required.</span>
+    <button class="homeacct" id="acctbtn">Progress saves on this device · <b>SAVE ONLINE</b></button>
   </nav>
   <div id="shellpanel" class="shellpanel hidden" role="dialog" aria-labelledby="paneltitle" aria-modal="true"><h2 id="paneltitle"></h2><div id="panelbody"></div><button class="menubtn" id="panelback">BACK</button></div>
 </div>
@@ -3269,7 +3268,7 @@ window.addEventListener('keydown', e => {
   else if (e.key === 'v' || e.key === 'V') issueCommand('evolve');
   else if (e.key === 'f' || e.key === 'F') { follow = !follow; syncFollowBtn(); }
   else if (e.key === 's' || e.key === 'S') document.getElementById('speedbtn').click();
-  else if (e.key === 'd' || e.key === 'D') document.getElementById('diagbtn').click();
+  else if (e.key === 'd' || e.key === 'D') toggleDiagnostics();
   else if (e.key === 'p' || e.key === 'P') togglePause();
   else if (e.key === 'ArrowLeft') { manualCam(); camX -= 80; clampCam(); }
   else if (e.key === 'ArrowRight'){ manualCam(); camX += 80; clampCam(); }
@@ -3372,12 +3371,14 @@ document.getElementById('speedbtn').addEventListener('click', function(){
   this.textContent = gameSpeed + '×';
   showMsg('⏩ Game speed ' + gameSpeed + '×', 1200);
 });
-document.getElementById('diagbtn').addEventListener('click', function(){
+// The diagnostics overlay has no player-facing button: it is an undocumented
+// developer shortcut (press D). Player-readable diagnostics live in
+// Settings -> Technical Diagnostics.
+function toggleDiagnostics(){
   diagnosticsVisible = !diagnosticsVisible;
   document.getElementById('diag').classList.toggle('show', diagnosticsVisible);
-  this.style.color = diagnosticsVisible ? '#7de8ff' : '#fff';
   updateDiagnostics(true);
-});
+}
 document.getElementById('followbtn').addEventListener('click', ()=>{
   follow = !follow; syncFollowBtn();
   showMsg(follow ? '🎯 Camera follows the battle' : 'Free camera — drag or scroll to look around');
@@ -3479,6 +3480,9 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
 <script src="src/systems/war-council.js"></script>
 <script src="src/systems/campaign-system.js"></script>
 <script src="src/systems/experience.js"></script>
+<script src="src/vendor/supabase.min.js"></script>
+<script src="src/systems/cloud-save.js"></script>
 <script src="src/systems/shell.js"></script>
+<script src="src/systems/account-ui.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 {
-  "version": "0.23.3",
-  "build": 55,
+  "version": "1.0.0-rc.1",
+  "build": 56,
   "channel": "production",
-  "notes": "FRONT-DOOR CLEANUP + SHELL FREEZE. The delivered document now identifies as KINGDOM WARS from the first byte: title, apple/application name, description, Open Graph and Twitter card, canonical URL and web manifest all carry the public game name, and a <noscript> fallback states the identity and that JavaScript is required instead of exposing a dead menu. Legacy human-facing labels removed (KWARS1 title branding, Age of Wars, STICK KINGDOM WAR, AGE OF WARS DIAGNOSTICS); internal identifiers that saves and cache eviction depend on are preserved. The legacy hub containers were retired: #hub/#hubpanel are now #shell/#shellpanel with the dead .hubmenu rules deleted, the title screen is a <main> owning the single <h1>, the home menu is a labelled <nav>, decorative glyphs are aria-hidden and icon-only controls have accessible names. Shell architecture Title -> Home -> Mode -> Preparation -> Battle -> Results is now BASELINE/FROZEN. No gameplay, save, or renderer change; save schema remains 3."
+  "notes": "RELEASE CANDIDATE. Accounts and cloud saves on the existing KEEPITIL Supabase stack (email sign-up/sign-in/sign-out/password reset, session restore, cloud save/load) with RLS scoped to authenticated auth.uid()=user_id. Guest play remains the default and is never gated. Guest->account migration offers an explicit IMPORT, and when both device and account hold progress the player picks via a side-by-side comparison; nothing is silently overwritten and local remains the working copy through every failure path. Developer diagnostics removed from the battle HUD (now Settings -> Advanced, plus an undocumented D shortcut). Greek Defender re-validated against the shipping runtime module: 13 clips, 204 frames, zero impossible frames."
 }

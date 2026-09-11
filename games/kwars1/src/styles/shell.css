@@ -64,7 +64,7 @@
 .titlefoot button{
   border:1px solid #4a5b66; border-radius:8px; background:rgba(20,28,36,.8);
   color:#b9c7ce; padding:7px 12px; font:bold 11px inherit; cursor:pointer;
-  min-height:34px; letter-spacing:.06em;
+  min-height:44px; min-width:44px; letter-spacing:.06em;   /* §8 touch target */
 }
 
 /* ---------------- home / command centre ---------------- */
@@ -250,3 +250,52 @@ body.kw-shell #msg{ display:none !important; }
 #nojs p{ max-width:460px; margin:0 auto; color:#b9c7ce; font-size:14px; line-height:1.65; }
 #nojs .nojsnote{ margin-top:18px; padding:10px 16px; display:inline-block;
   border:1px solid #98722b; border-radius:10px; background:#2a2317; color:#ffe27a; font-weight:bold; }
+
+/* ---------------- account surface (§19) ----------------
+   Home gets ONE line about saving online -- not an account dashboard. */
+.homeacct{
+  display:block; width:100%; margin:2px 0 0; padding:8px 10px;
+  border:1px solid #3f4e59; border-radius:9px; background:#1b2730;
+  color:var(--kw-mute); font:11px inherit; cursor:pointer; letter-spacing:.03em;
+}
+.homeacct b{ color:var(--kw-gold); letter-spacing:.08em; }
+.acctlabel{ display:block; margin:10px 0; font-size:12px; color:var(--kw-mute); }
+.acctlabel input{
+  display:block; width:100%; margin-top:5px; padding:11px; min-height:44px;
+  border:1px solid #566d7a; border-radius:9px; background:#16212a; color:#fff;
+  font:14px inherit;
+}
+.acctlabel input:focus{ outline:2px solid var(--kw-gold); outline-offset:1px; }
+.acctmsg{ min-height:16px; color:var(--kw-gold); font-size:11.5px; }
+.acctfacts{ list-style:none; margin:8px 0; }
+.acctfacts li{
+  display:flex; justify-content:space-between; gap:10px; padding:4px 0;
+  font-size:11.5px; color:var(--kw-mute); border-bottom:1px solid #2c3a44;
+}
+.acctfacts li b{ color:#f1f6f9; }
+
+/* §8 touch targets: every interactive control in the shell clears ~44px.
+   The battle HUD icon buttons are sized by the game's own stylesheet; these
+   raise the shell's own controls, which are the ones used on menus. */
+.homesec button, .modecard, .menubtn, .resultacts button, .homeacct{ min-height:44px; }
+.shellpanel .shoptabs button{ min-height:40px; }
+
+/* ---------------- §7 portrait handling ----------------
+   The battlefield needs landscape, but the MENUS do not. Previously the rotate
+   gate covered every portrait screen, so a phone held upright could not reach
+   the title, home, shop or settings at all. The gate now applies only while a
+   battle is on screen; `kw-shell` marks title/home/panel/results. It clears
+   itself on rotation because it is a media query, and it neither reloads the
+   page nor touches saved progress. */
+body.kw-shell #rotate{ display:none !important; }
+
+/* §8: Settings uses native form controls, which default well under a comfortable
+   touch target on phones. Size them up without changing any behaviour. */
+.shellpanel input[type="range"]{ width:100%; height:44px; }
+.shellpanel input[type="checkbox"]{ width:26px; height:26px; vertical-align:middle; }
+.shellpanel select{
+  min-height:44px; padding:10px; border:1px solid #566d7a; border-radius:9px;
+  background:#16212a; color:#fff; font:13px inherit; max-width:100%;
+}
+.shellpanel label{ min-height:44px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.shellpanel label input[type="range"]{ flex:1 1 100%; }

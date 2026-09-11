@@ -305,6 +305,17 @@
   $('campaignbtn').onclick=()=>crusadeScreen('home');
   $('newrunbtn').onclick=()=>endlessScreen('home');
   $('recordsbtn').onclick=showRecords;
+  // §19 one compact account line; the real surface lives in Settings.
+  const acct=$('acctbtn');
+  if(acct){
+    acct.onclick=()=>{ window.KWAccount?window.KWAccount.showAccount():null; panelNav('home'); };
+    window.KWCloud&&window.KWCloud.on(st=>{
+      acct.innerHTML = st.signedIn
+        ? 'Saving to <b>'+esc(st.email)+'</b>'
+        : (st.available ? 'Progress saves on this device · <b>SAVE ONLINE</b>'
+                        : 'Progress saves on this device');
+    });
+  }
   $('achievebtn').onclick=showAchievements;
   // ARMORY / SHOP / ARMY / DAILY ORDERS / SETTINGS keep their real handlers.
 

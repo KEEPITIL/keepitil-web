@@ -77,6 +77,13 @@
     $('tilecrusade').textContent=nk?('Next: '+nk.civ.displayName+' · Kingdom '+nk.node.kingdomNumber):(conquered()?'All available kingdoms conquered':'Campaign');
     $('tileendless').textContent=(D.records.highestWave?'Best wave '+D.records.highestWave:'Survival mode');
     $('playbtn').textContent=a?'▶ PLAY':(isNewPlayer()?'▶ PLAY — START YOUR FIRST WAR':'▶ PLAY');
+    // §39: a new build is ready. Offer it at Home only -- never mid-battle --
+    // and reload on the player's word. Reloading never touches saved progress.
+    const note=$('updatenote');
+    if(note){
+      note.hidden=!window.KWUpdateReady;
+      note.onclick=()=>{ try{ X.saveRun(); }catch(e){} location.reload(); };
+    }
   }
   // Home is re-shown by many paths (mainMenu, war council, campaign results),
   // so repaint whenever #hub becomes visible rather than at each call site.

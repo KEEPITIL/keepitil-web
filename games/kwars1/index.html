@@ -240,6 +240,7 @@
       <button id="recordsbtn">RECORDS</button>
       <button id="settingsbtn">SETTINGS</button>
     </div>
+    <button class="updatenote" id="updatenote" hidden>⟳ <b>UPDATE AVAILABLE</b> — tap to reload</button>
     <button class="homeacct" id="acctbtn">Progress saves on this device · <b>SAVE ONLINE</b></button>
   </nav>
   <div id="shellpanel" class="shellpanel hidden" role="dialog" aria-labelledby="paneltitle" aria-modal="true"><h2 id="paneltitle"></h2><div id="panelbody"></div><button class="menubtn" id="panelback">BACK</button></div>
@@ -3468,7 +3469,22 @@ window.addEventListener('appinstalled', () => { installBtn.hidden = true; });
 // PWA service worker
 if (window.KWResponsive){ KWResponsive.guard(document.getElementById('game')); }
 if ('serviceWorker' in navigator && location.protocol !== 'file:'){
-  window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  // §39: never hot-replace game code mid-battle. A new build installs in the
+  // background; the player is told at Home and reloads when they choose. The
+  // worker never calls clients.claim(), so the running page keeps its assets.
+  window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js').then(reg=>{
+    if(!reg) return;
+    const flag = () => { window.KWUpdateReady = true; window.KWShell && window.KWShell.paintHome && window.KWShell.paintHome(); };
+    if (reg.waiting) flag();
+    reg.addEventListener('updatefound', ()=>{
+      const sw = reg.installing;
+      if(!sw) return;
+      sw.addEventListener('statechange', ()=>{
+        // "installed" with an existing controller means a NEW build is ready
+        if (sw.state === 'installed' && navigator.serviceWorker.controller) flag();
+      });
+    });
+  }).catch(()=>{}));
 }
 </script>
 <script src="src/systems/build-info.js"></script>

@@ -299,3 +299,10 @@ body.kw-shell #rotate{ display:none !important; }
 }
 .shellpanel label{ min-height:44px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .shellpanel label input[type="range"]{ flex:1 1 100%; }
+
+/* §39 update notice: shown at Home only, acted on by the player. */
+.updatenote{
+  display:block; width:100%; margin:0 0 8px; padding:10px; min-height:44px;
+  border:1px solid var(--kw-gold); border-radius:9px; background:#2a2317;
+  color:var(--kw-gold); font:bold 11.5px inherit; cursor:pointer; letter-spacing:.05em;
+}

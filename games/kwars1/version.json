@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0-rc.1",
-  "build": 56,
+  "version": "1.0.0-rc.2",
+  "build": 57,
   "channel": "production",
-  "notes": "RELEASE CANDIDATE. Accounts and cloud saves on the existing KEEPITIL Supabase stack (email sign-up/sign-in/sign-out/password reset, session restore, cloud save/load) with RLS scoped to authenticated auth.uid()=user_id. Guest play remains the default and is never gated. Guest->account migration offers an explicit IMPORT, and when both device and account hold progress the player picks via a side-by-side comparison; nothing is silently overwritten and local remains the working copy through every failure path. Developer diagnostics removed from the battle HUD (now Settings -> Advanced, plus an undocumented D shortcut). Greek Defender re-validated against the shipping runtime module: 13 clips, 204 frames, zero impossible frames."
+  "notes": "RELEASE CANDIDATE. Accounts and cloud saves on the existing KEEPITIL Supabase stack (email sign-up/sign-in/sign-out/password reset, session restore, cloud save/load) with RLS scoped to authenticated auth.uid()=user_id. Guest play remains the default and is never gated. Guest->account migration offers an explicit IMPORT, and when both device and account hold progress the player picks via a side-by-side comparison; nothing is silently overwritten and local remains the working copy through every failure path. Developer diagnostics removed from the battle HUD (now Settings -> Advanced, plus an undocumented D shortcut). Greek Defender re-validated against the shipping runtime module: 13 clips, 204 frames, zero impossible frames. Build 57: portrait menus (the rotate gate now applies only while a battle is on screen, so a phone held upright can reach title/home/shop/settings); ~44px touch targets across shell and Settings rows; and an UPDATE AVAILABLE notice at Home so a new build is never adopted mid-battle."
 }

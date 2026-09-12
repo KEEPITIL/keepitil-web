@@ -22,5 +22,9 @@ Enforcement, in the order it acts:
 3. `web-drift.yml` in thrive-app compares production to `main` hourly and
    rebuilds if they disagree.
 
+Publishing from here while a TUITEA release is compiling is fine. The TUITEA
+deploy job rebases onto whatever this repository published during its build and
+retries, so neither publisher has to wait for the other or know it ran.
+
 Credentials are documented in `thrive-app`'s `docs/WEB_DEPLOYMENT.md`. No secret values
 are recorded in either repository.

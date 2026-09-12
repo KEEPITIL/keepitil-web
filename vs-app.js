@@ -1200,7 +1200,7 @@
       return A < B ? -1 : A > B ? 1 : 0;
     });
 
-    var html='<div class="ce-bar">'
+    var html='<div class="ce-bar kil-filter-shell">'
       + '<div class="ce-row">'
         /* Founder 2026-08-20: "Remove ALL, just use DATE and TYPE." The reset chip keeps its
            job — it clears the filter — but it is labelled for the axis it controls, not with a

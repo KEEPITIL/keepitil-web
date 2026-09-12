@@ -129,6 +129,52 @@
     document.head.appendChild(v);
   })();
 
+  /* ══ KEEPITIL DESKTOP FILTER SHELL STANDARD (KODE 2026-09-12) ═══════════════════════════
+     ONE offset for every sticky filter bar, taken from the nav's real measured height.
+
+     Measured live at 1440 before writing this. The nav renders 67px tall, and the four
+     filter bars disagreed about where to stop:
+
+         Discover  .evx-nav          top:64px   -> tucks 3px UNDER the nav: no seam
+         Connect   .controls         top:70px   -> 3px of hero artwork shows through
+         Create    #vs-app .ce-bar   top:70px   -> same seam, and only 1280px wide
+         Earn      .controls         top:70px   -> same seam
+
+     Discover is the reference precisely BECAUSE 64 < 67: the bar hides behind the nav
+     instead of meeting it exactly, and a 3px overlap is what guarantees no sub-pixel
+     sliver at any zoom or device-pixel-ratio. So the standard is the nav height minus a
+     3px overlap, derived from --kil-nav-h rather than hardcoded per page.
+
+     Scoped to an explicit .kil-filter-shell class, NOT to `.controls`: skillvault also uses
+     that class name and is a different product that nobody asked me to change.
+     Culture is excluded by construction - it carries none of these classes. */
+  (function(){
+    function publishNavHeight(){
+      var nav=document.querySelector('#v3shell-nav,#main-nav');
+      if(!nav) return;
+      var h=Math.round(nav.getBoundingClientRect().height);
+      if(h>0) document.documentElement.style.setProperty('--kil-nav-h', h+'px');
+    }
+    window.__kilPublishNavHeight=publishNavHeight;
+    publishNavHeight();
+    addEventListener('resize', publishNavHeight, {passive:true});
+    [60,400,1500].forEach(function(ms){ setTimeout(publishNavHeight, ms); });
+
+    var fs=document.createElement('style'); fs.setAttribute('data-kil','filter-shell');
+    fs.textContent='@media(min-width:861px){'
+      /* flush to the nav, with the 3px overlap that kills the seam */
+      + '.kil-filter-shell{position:sticky!important;top:calc(var(--kil-nav-h,67px) - 3px)!important;z-index:100;}'
+      /* full-bleed opaque surface, controls held to a centred column inside it */
+      + '.kil-filter-shell{width:100vw!important;margin-left:calc(50% - 50vw)!important;margin-right:calc(50% - 50vw)!important;'
+      +   'background:#0b0b12!important;max-width:none!important;'
+      +   'padding-top:8px!important;padding-bottom:6px!important;'
+      +   'padding-left:max(24px,calc(50vw - 680px))!important;padding-right:max(24px,calc(50vw - 680px))!important;}'
+      /* Discover keeps its own tighter rhythm: it is the reference, not a follower. */
+      + '#evx .evx-nav.kil-filter-shell{padding-top:9px!important;padding-bottom:4px!important;}'
+      + '}';
+    document.head.appendChild(fs);
+  })();
+
   /* ══ KEEPITIL LANDING HERO STANDARD (KODE 2026-09-10) ═══════════════════════════════════
      ONE rule set for every core landing hero, so the five pages cannot drift apart again.
      Measured live at 1440 before writing it — rendered TEXT and metric ITEMS, not container
@@ -289,7 +335,7 @@
          navigations stale-while-revalidate, a returning visitor was reading HTML one
          deploy behind - which is exactly how a verification run measured a page that no
          longer existed on the origin. Bump this WITH sw.js. */
-      navigator.serviceWorker.register('/sw.js?v=20260910e').catch(function(){});
+      navigator.serviceWorker.register('/sw.js?v=20260912a').catch(function(){});
       /* An older worker may still be in control from a previous registration of the bare URL.
          Asking every registration to update forces that one to re-check now rather than on its
          own schedule. */

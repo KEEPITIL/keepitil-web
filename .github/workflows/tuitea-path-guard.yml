@@ -97,13 +97,13 @@ jobs:
 
           git config user.name  "TUITEA CI"
           git config user.email "$CI_EMAIL"
-          git commit -m "Restore TUITEA web bundle clobbered by $AUTHOR
-
-/app/tuitea/app, release.json, sw.js and pwa.js are written only by the
-deploy-web job in KEEPITIL/thrive-app. Commit $(git rev-parse --short=7 HEAD~1)
-changed them from outside that job, which puts a stale app in front of users.
-Restored from $(git rev-parse --short=7 "$LAST_CI").
-
-See app/tuitea/OWNERSHIP.md."
+          BAD="$(git rev-parse --short=7 HEAD)"
+          GOOD="$(git rev-parse --short=7 "$LAST_CI")"
+          printf '%s\n\n%s\n%s\n%s\n\n%s\n' \
+            "Restore TUITEA web bundle clobbered by $AUTHOR" \
+            "/app/tuitea/app, release.json, sw.js and pwa.js are written only by the" \
+            "deploy-web job in KEEPITIL/thrive-app. Commit $BAD changed them from outside" \
+            "that job, which puts a stale app in front of users. Restored from $GOOD." \
+            "See app/tuitea/OWNERSHIP.md." | git commit -q -F -
           git push
           echo "restored"

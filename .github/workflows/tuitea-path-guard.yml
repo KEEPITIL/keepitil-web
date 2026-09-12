@@ -1,0 +1,109 @@
+# =============================================================================
+# /app/tuitea/** — enforce that TUITEA CI is the only writer for the built app.
+#
+# WHY THIS EXISTS
+# ---------------
+# This repository is published to by two things: TUITEA's own CI (which builds
+# the Flutter app) and the general KEEPITIL site publisher (which syncs the rest
+# of keepitil.com). The site's private source used to carry a full copy of
+# /app/tuitea, frozen at release 51.f7b5d36. Every site publish overwrote the
+# app bundle CI had just shipped. CI reported success — it had pushed — and
+# production served an app several releases old. Two people looking at two
+# dashboards both saw green.
+#
+# The cause was fixed where it belonged: that copy is gone from the site's
+# private source (see app/tuitea/OWNERSHIP.md). This is the guard that makes the
+# invariant hold even if something recreates it, because "we removed the copy"
+# is a claim about today and this is a check that runs every time.
+#
+# It reverts rather than merely alerting. A stale app bundle is live the instant
+# it is pushed; a notification that arrives first still leaves it live.
+#
+# To land a deliberate hand-edit to these paths (an emergency rollback), put
+# [tuitea-override] in the commit message.
+# =============================================================================
+name: TUITEA path guard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/tuitea/app/**'
+      - 'app/tuitea/release.json'
+      - 'app/tuitea/sw.js'
+      - 'app/tuitea/pwa.js'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tuitea-path-guard
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The last TUITEA CI commit for these paths may be far back if the site
+          # has published many times since.
+          fetch-depth: 0
+
+      - name: Revert non-CI writes to the TUITEA app bundle
+        run: |
+          set -euo pipefail
+          PATHS="app/tuitea/app app/tuitea/release.json app/tuitea/sw.js app/tuitea/pwa.js"
+          CI_EMAIL="ci@keepitil.com"
+
+          if git log -1 --format='%B' | grep -qF '[tuitea-override]'; then
+            echo "commit carries [tuitea-override] — leaving it alone"
+            exit 0
+          fi
+
+          AUTHOR="$(git log -1 --format='%ae')"
+          if [ "$AUTHOR" = "$CI_EMAIL" ]; then
+            echo "authored by TUITEA CI — this is the owner writing its own paths"
+            exit 0
+          fi
+
+          # State, not authorship, is what decides. The question is whether the
+          # bundle on main is still the one CI built, whoever moved it.
+          LAST_CI="$(git log --format='%H %ae' -- $PATHS | awk -v e="$CI_EMAIL" '$2==e {print $1; exit}')"
+          if [ -z "$LAST_CI" ]; then
+            echo "no TUITEA CI commit found for these paths — nothing to restore to"
+            exit 0
+          fi
+
+          if git diff --quiet "$LAST_CI" HEAD -- $PATHS; then
+            echo "bundle still matches TUITEA CI commit $LAST_CI — no drift"
+            exit 0
+          fi
+
+          echo "::warning::$AUTHOR changed the TUITEA app bundle; restoring from CI commit $LAST_CI"
+          git diff --stat "$LAST_CI" HEAD -- $PATHS | tail -20
+
+          # checkout alone would leave behind any file the offending commit added
+          # that CI's release does not contain, so clear the paths first and let
+          # the CI commit define the tree exactly.
+          git rm -r -q --cached --ignore-unmatch $PATHS
+          rm -rf $PATHS
+          git checkout "$LAST_CI" -- $PATHS
+          git add -A $PATHS
+
+          if git diff --cached --quiet; then
+            echo "nothing to restore after all"
+            exit 0
+          fi
+
+          git config user.name  "TUITEA CI"
+          git config user.email "$CI_EMAIL"
+          git commit -m "Restore TUITEA web bundle clobbered by $AUTHOR
+
+/app/tuitea/app, release.json, sw.js and pwa.js are written only by the
+deploy-web job in KEEPITIL/thrive-app. Commit $(git rev-parse --short=7 HEAD~1)
+changed them from outside that job, which puts a stale app in front of users.
+Restored from $(git rev-parse --short=7 "$LAST_CI").
+
+See app/tuitea/OWNERSHIP.md."
+          git push
+          echo "restored"

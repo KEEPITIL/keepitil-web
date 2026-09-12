@@ -55,10 +55,15 @@ jobs:
           PATHS="app/tuitea/app app/tuitea/release.json app/tuitea/sw.js app/tuitea/pwa.js"
           CI_EMAIL="ci@keepitil.com"
 
-          if git log -1 --format='%B' | grep -qF '[tuitea-override]'; then
-            echo "commit carries [tuitea-override] — leaving it alone"
-            exit 0
-          fi
+          # No `cmd | grep -q` here. grep exits on the first match, git log takes
+          # SIGPIPE, and under `set -o pipefail` the pipeline reports 141 — so the
+          # override would read as "not present" precisely when it WAS present.
+          MSG="$(git log -1 --format='%B')"
+          case "$MSG" in
+            *'[tuitea-override]'*)
+              echo "commit carries [tuitea-override] — leaving it alone"
+              exit 0 ;;
+          esac
 
           AUTHOR="$(git log -1 --format='%ae')"
           if [ "$AUTHOR" = "$CI_EMAIL" ]; then
@@ -66,9 +71,7 @@ jobs:
             exit 0
           fi
 
-          # State, not authorship, is what decides. The question is whether the
-          # bundle on main is still the one CI built, whoever moved it.
-          LAST_CI="$(git log --format='%H %ae' -- $PATHS | awk -v e="$CI_EMAIL" '$2==e {print $1; exit}')"
+          LAST_CI="$(git log --format='%H %ae' -- $PATHS | awk -v e="$CI_EMAIL" '$2==e && !f {print $1; f=1}')"
           if [ -z "$LAST_CI" ]; then
             echo "no TUITEA CI commit found for these paths — nothing to restore to"
             exit 0

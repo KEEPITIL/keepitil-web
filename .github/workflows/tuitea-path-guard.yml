@@ -42,6 +42,11 @@ concurrency:
 jobs:
   guard:
     runs-on: ubuntu-latest
+    # Every TUITEA release matches the path filter above, so without this the guard
+    # would clone this repository's full history — 113 MB, and about 70 MB more per
+    # release — purely to discover that CI wrote its own paths and exit. Decide that
+    # from the event payload, before paying for a checkout.
+    if: github.event.head_commit.author.email != 'ci@keepitil.com'
     steps:
       - uses: actions/checkout@v4
         with:

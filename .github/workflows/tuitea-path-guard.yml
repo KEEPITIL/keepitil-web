@@ -1,27 +1,34 @@
 # =============================================================================
-# /app/tuitea/** — enforce that TUITEA CI is the only writer for the built app.
+# /app/tuitea — TUITEA CI is the only writer for the built application.
 #
-# WHY THIS EXISTS
-# ---------------
-# This repository is published to by two things: TUITEA's own CI (which builds
-# the Flutter app) and the general KEEPITIL site publisher (which syncs the rest
-# of keepitil.com). The site's private source used to carry a full copy of
-# /app/tuitea, frozen at release 51.f7b5d36. Every site publish overwrote the
-# app bundle CI had just shipped. CI reported success — it had pushed — and
-# production served an app several releases old. Two people looking at two
-# dashboards both saw green.
+# This repository is public and is keepitil.com. It has two publishers: TUITEA's
+# CI, and the general KEEPITIL site sync. They must not overlap.
 #
-# The cause was fixed where it belonged: that copy is gone from the site's
-# private source (see app/tuitea/OWNERSHIP.md). This is the guard that makes the
-# invariant hold even if something recreates it, because "we removed the copy"
-# is a claim about today and this is a check that runs every time.
+# TUITEA CI owns exactly these, and nothing else may publish them:
 #
-# It reverts rather than merely alerting. A stale app bundle is live the instant
-# it is pushed; a notification that arrives first still leaves it live.
+#     app/tuitea/app/**        the compiled bundle
+#     app/tuitea/release.json  the release stamp
+#     app/tuitea/sw.js         service worker, generated with this release
+#     app/tuitea/pwa.js        shell runtime, generated with this release
 #
-# To land a deliberate hand-edit to these paths (an emergency rollback), put
+# They are one build's mutually consistent output: sw.js precaches a file list
+# that matches only the app/ it was built with, so a mixed set produces a worker
+# that never finishes installing. A site sync must exclude all four.
+#
+# Everything else under app/tuitea — index.html, app.html, manifest.webmanifest,
+# the icons, flags.json, fastbeta/, password/, privacy/, support/ — belongs to the
+# site and should keep being published normally. fastbeta/ holds install artefacts
+# CI does not write; do not remove it.
+#
+# This guard reverts rather than alerting, because a wrong bundle is live the
+# instant it is pushed. For a deliberate hand-edit (an emergency rollback), put
 # [tuitea-override] in the commit message.
+#
+# Rationale and deploy topology are documented privately in KEEPITIL/thrive-app,
+# docs/WEB_DEPLOYMENT.md — deliberately not in this repository, which is served
+# to the internet.
 # =============================================================================
+
 name: TUITEA path guard
 
 on:
@@ -42,10 +49,8 @@ concurrency:
 jobs:
   guard:
     runs-on: ubuntu-latest
-    # Every TUITEA release matches the path filter above, so without this the guard
-    # would clone this repository's full history — 113 MB, and about 70 MB more per
-    # release — purely to discover that CI wrote its own paths and exit. Decide that
-    # from the event payload, before paying for a checkout.
+    # Every TUITEA release matches the path filter above. Decide from the event
+    # payload that CI wrote its own paths, before paying for a full-history checkout.
     if: github.event.head_commit.author.email != 'ci@keepitil.com'
     steps:
       - uses: actions/checkout@v4
@@ -112,6 +117,6 @@ jobs:
             "/app/tuitea/app, release.json, sw.js and pwa.js are written only by the" \
             "deploy-web job in KEEPITIL/thrive-app. Commit $BAD changed them from outside" \
             "that job, which puts a stale app in front of users. Restored from $GOOD." \
-            "See app/tuitea/OWNERSHIP.md." | git commit -q -F -
+            "" | git commit -q -F -
           git push
           echo "restored"

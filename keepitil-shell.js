@@ -152,8 +152,18 @@
     function publishNavHeight(){
       var nav=document.querySelector('#v3shell-nav,#main-nav');
       if(!nav) return;
-      var h=Math.round(nav.getBoundingClientRect().height);
-      if(h>0) document.documentElement.style.setProperty('--kil-nav-h', h+'px');
+      /* Measure the nav's own bar, not whatever a page has nested inside it. On Earn the
+         first version of this latched 137px - the nav plus that page's radio sub-tabs -
+         which would have pushed its filter bar a whole nav-height down the screen. */
+      var inner=nav.querySelector('.nav-inner')||nav;
+      var h=Math.round(inner.getBoundingClientRect().height);
+      /* A nav outside this range is a mis-measurement (mid-layout, or a page's own header
+         counted in). Ignore it rather than publish a number that moves other people's UI. */
+      if(h<44||h>96) return;
+      /* ⚠ DELIBERATELY NOT --kil-nav-h. That variable is already READ by culture/index.html
+         for its approved hero height, calc(100vh - var(--kil-nav-h,66px)). Publishing into
+         it would resize a regression-protected surface from here. This one is ours. */
+      document.documentElement.style.setProperty('--kil-filter-top', (h-3)+'px');
     }
     window.__kilPublishNavHeight=publishNavHeight;
     publishNavHeight();
@@ -163,14 +173,15 @@
     var fs=document.createElement('style'); fs.setAttribute('data-kil','filter-shell');
     fs.textContent='@media(min-width:861px){'
       /* flush to the nav, with the 3px overlap that kills the seam */
-      + '.kil-filter-shell{position:sticky!important;top:calc(var(--kil-nav-h,67px) - 3px)!important;z-index:100;}'
+      + '.kil-filter-shell{position:sticky!important;top:var(--kil-filter-top,64px)!important;z-index:100;}'
       /* full-bleed opaque surface, controls held to a centred column inside it */
-      + '.kil-filter-shell{width:100vw!important;margin-left:calc(50% - 50vw)!important;margin-right:calc(50% - 50vw)!important;'
+      + '.kil-filter-shell,#vs-app .ce-bar.kil-filter-shell{width:100vw!important;margin-left:calc(50% - 50vw)!important;margin-right:calc(50% - 50vw)!important;'
       +   'background:#0b0b12!important;max-width:none!important;'
       +   'padding-top:8px!important;padding-bottom:6px!important;'
       +   'padding-left:max(24px,calc(50vw - 680px))!important;padding-right:max(24px,calc(50vw - 680px))!important;}'
       /* Discover keeps its own tighter rhythm: it is the reference, not a follower. */
       + '#evx .evx-nav.kil-filter-shell{padding-top:9px!important;padding-bottom:4px!important;}'
+      + '#vs-app .ce-bar.kil-filter-shell{position:sticky!important;top:var(--kil-filter-top,64px)!important;}'
       + '}';
     document.head.appendChild(fs);
   })();
@@ -335,7 +346,7 @@
          navigations stale-while-revalidate, a returning visitor was reading HTML one
          deploy behind - which is exactly how a verification run measured a page that no
          longer existed on the origin. Bump this WITH sw.js. */
-      navigator.serviceWorker.register('/sw.js?v=20260912a').catch(function(){});
+      navigator.serviceWorker.register('/sw.js?v=20260912b').catch(function(){});
       /* An older worker may still be in control from a previous registration of the bare URL.
          Asking every registration to update forces that one to re-check now rather than on its
          own schedule. */

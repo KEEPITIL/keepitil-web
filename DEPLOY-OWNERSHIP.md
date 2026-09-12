@@ -22,5 +22,5 @@ Enforcement, in the order it acts:
 3. `web-drift.yml` in thrive-app compares production to `main` hourly and
    rebuilds if they disagree.
 
-Credentials are documented in `thrive-app`'s `docs/deploy.md`. No secret values
+Credentials are documented in `thrive-app`'s `docs/WEB_DEPLOYMENT.md`. No secret values
 are recorded in either repository.

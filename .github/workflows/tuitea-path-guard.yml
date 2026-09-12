@@ -1,34 +1,27 @@
 # =============================================================================
-# /app/tuitea — TUITEA CI is the only writer for the built application.
+# app/tuitea — the built application is written by one publisher only.
 #
-# This repository is public and is keepitil.com. It has two publishers: TUITEA's
-# CI, and the general KEEPITIL site sync. They must not overlap.
-#
-# TUITEA CI owns exactly these, and nothing else may publish them:
+# These four paths are produced together by an external build pipeline and must
+# not be written by anything else, including a sync from the site's source:
 #
 #     app/tuitea/app/**        the compiled bundle
 #     app/tuitea/release.json  the release stamp
 #     app/tuitea/sw.js         service worker, generated with this release
 #     app/tuitea/pwa.js        shell runtime, generated with this release
 #
-# They are one build's mutually consistent output: sw.js precaches a file list
-# that matches only the app/ it was built with, so a mixed set produces a worker
-# that never finishes installing. A site sync must exclude all four.
+# They are one build's output and only work as a set: sw.js precaches a file list
+# matching only the app/ it was built with, so a mixed set produces a worker that
+# never finishes installing. Exclude all four from any sync into this repository.
 #
 # Everything else under app/tuitea — index.html, app.html, manifest.webmanifest,
-# the icons, flags.json, fastbeta/, password/, privacy/, support/ — belongs to the
-# site and should keep being published normally. fastbeta/ holds install artefacts
-# CI does not write; do not remove it.
+# the icons, flags.json, fastbeta/, password/, privacy/, support/ — is owned here
+# and should keep being published normally. fastbeta/ holds install artefacts the
+# pipeline does not write; do not remove it.
 #
-# This guard reverts rather than alerting, because a wrong bundle is live the
-# instant it is pushed. For a deliberate hand-edit (an emergency rollback), put
-# [tuitea-override] in the commit message.
-#
-# Rationale and deploy topology are documented privately in KEEPITIL/thrive-app,
-# docs/WEB_DEPLOYMENT.md — deliberately not in this repository, which is served
-# to the internet.
+# This guard restores rather than alerts, because a wrong bundle is live from the
+# moment it is pushed. For a deliberate hand-edit, put [tuitea-override] in the
+# commit message.
 # =============================================================================
-
 name: TUITEA path guard
 
 on:
@@ -49,74 +42,107 @@ concurrency:
 jobs:
   guard:
     runs-on: ubuntu-latest
-    # Every TUITEA release matches the path filter above. Decide from the event
-    # payload that CI wrote its own paths, before paying for a full-history checkout.
-    if: github.event.head_commit.author.email != 'ci@keepitil.com'
     steps:
+      # Every release from the owning pipeline matches the path filter above, so
+      # decide from the event payload before paying for a full-history checkout.
+      # Examine EVERY commit in the push, not just the last: a push whose final
+      # commit is the pipeline's own can still carry an earlier one that rewrote
+      # the bundle. GitHub truncates this array for large pushes, so an empty or
+      # suspiciously long list is treated as "cannot tell" and checked properly.
+      - name: Does this push need checking?
+        id: scope
+        env:
+          COMMITS: ${{ toJSON(github.event.commits) }}
+        run: |
+          set -euo pipefail
+          N=$(printf '%s' "$COMMITS" | jq 'length')
+          if [ "$N" = "0" ] || [ "$N" -ge 20 ]; then
+            echo "check=yes" >> "$GITHUB_OUTPUT"
+            echo "event payload lists ${N} commits and cannot be trusted; checking"
+            exit 0
+          fi
+          OVERRIDE=$(printf '%s' "$COMMITS" | jq '[.[] | select(.message | test("\\[tuitea-override\\]"))] | length')
+          if [ "$OVERRIDE" != "0" ]; then
+            echo "check=no" >> "$GITHUB_OUTPUT"
+            echo "push carries [tuitea-override] — leaving it alone"
+            exit 0
+          fi
+          NON_CI=$(printf '%s' "$COMMITS" | jq '[.[] | select(.author.email != "ci@keepitil.com")] | length')
+          if [ "$NON_CI" = "0" ]; then
+            echo "check=no" >> "$GITHUB_OUTPUT"
+            echo "all ${N} commit(s) authored by the owning pipeline"
+            exit 0
+          fi
+          echo "check=yes" >> "$GITHUB_OUTPUT"
+          echo "${NON_CI} of ${N} commit(s) were not authored by the owning pipeline"
+
       - uses: actions/checkout@v4
+        if: steps.scope.outputs.check == 'yes'
         with:
-          # The last TUITEA CI commit for these paths may be far back if the site
+          # The last pipeline commit for these paths can be far back if the site
           # has published many times since.
           fetch-depth: 0
 
-      - name: Revert non-CI writes to the TUITEA app bundle
+      - name: Restore the bundle if anything else wrote it
+        if: steps.scope.outputs.check == 'yes'
         run: |
           set -euo pipefail
           PATHS="app/tuitea/app app/tuitea/release.json app/tuitea/sw.js app/tuitea/pwa.js"
           CI_EMAIL="ci@keepitil.com"
 
-          # No `cmd | grep -q` here. grep exits on the first match, git log takes
-          # SIGPIPE, and under `set -o pipefail` the pipeline reports 141 — so the
-          # override would read as "not present" precisely when it WAS present.
-          MSG="$(git log -1 --format='%B')"
-          case "$MSG" in
-            *'[tuitea-override]'*)
-              echo "commit carries [tuitea-override] — leaving it alone"
-              exit 0 ;;
-          esac
+          # The whole decision is re-made on every attempt, against a freshly fetched
+          # tip. That is what makes the retry safe: this repository has a second,
+          # frequent publisher, so a push can be rejected simply because someone else
+          # landed first. Rebasing a prepared restore onto that new tip and replaying
+          # it would overwrite a release the pipeline published while this job ran —
+          # the guard would become the clobberer. Re-reading instead means a newer
+          # legitimate release is simply seen as "no drift" and left alone.
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git reset -q --hard origin/main
 
-          AUTHOR="$(git log -1 --format='%ae')"
-          if [ "$AUTHOR" = "$CI_EMAIL" ]; then
-            echo "authored by TUITEA CI — this is the owner writing its own paths"
-            exit 0
-          fi
+            # Authorship decides nothing here; the question is whether the bundle on
+            # main is still the one the pipeline built, whoever moved it.
+            LAST_CI="$(git log --format='%H %ae' -- $PATHS | awk -v e="$CI_EMAIL" '$2==e && !f {print $1; f=1}')"
+            if [ -z "$LAST_CI" ]; then
+              echo "no owning-pipeline commit found for these paths — nothing to restore to"
+              exit 0
+            fi
+            if git diff --quiet "$LAST_CI" HEAD -- $PATHS; then
+              echo "bundle still matches pipeline commit ${LAST_CI} — no drift"
+              exit 0
+            fi
 
-          LAST_CI="$(git log --format='%H %ae' -- $PATHS | awk -v e="$CI_EMAIL" '$2==e && !f {print $1; f=1}')"
-          if [ -z "$LAST_CI" ]; then
-            echo "no TUITEA CI commit found for these paths — nothing to restore to"
-            exit 0
-          fi
+            echo "::warning::the application bundle was changed from outside the build pipeline; restoring from ${LAST_CI}"
+            git diff --stat "$LAST_CI" HEAD -- $PATHS | tail -20
 
-          if git diff --quiet "$LAST_CI" HEAD -- $PATHS; then
-            echo "bundle still matches TUITEA CI commit $LAST_CI — no drift"
-            exit 0
-          fi
+            # checkout alone would leave behind any file the offending commit added
+            # that the release does not contain, so clear the paths first and let the
+            # pipeline's commit define the tree exactly.
+            git rm -r -q --cached --ignore-unmatch $PATHS
+            rm -rf $PATHS
+            git checkout "$LAST_CI" -- $PATHS
+            git add -A $PATHS
+            if git diff --cached --quiet; then
+              echo "nothing to restore after all"
+              exit 0
+            fi
 
-          echo "::warning::$AUTHOR changed the TUITEA app bundle; restoring from CI commit $LAST_CI"
-          git diff --stat "$LAST_CI" HEAD -- $PATHS | tail -20
+            git config user.name  "TUITEA CI"
+            git config user.email "$CI_EMAIL"
+            BAD="$(git rev-parse --short=7 HEAD)"
+            GOOD="$(git rev-parse --short=7 "$LAST_CI")"
+            printf '%s\n\n%s\n%s\n%s\n' \
+              "Restore the TUITEA web bundle" \
+              "app/tuitea/app, release.json, sw.js and pwa.js are written only by the" \
+              "build pipeline. Commit ${BAD} changed them from outside it, which puts a" \
+              "stale application in front of users. Restored from ${GOOD}." | git commit -q -F -
 
-          # checkout alone would leave behind any file the offending commit added
-          # that CI's release does not contain, so clear the paths first and let
-          # the CI commit define the tree exactly.
-          git rm -r -q --cached --ignore-unmatch $PATHS
-          rm -rf $PATHS
-          git checkout "$LAST_CI" -- $PATHS
-          git add -A $PATHS
-
-          if git diff --cached --quiet; then
-            echo "nothing to restore after all"
-            exit 0
-          fi
-
-          git config user.name  "TUITEA CI"
-          git config user.email "$CI_EMAIL"
-          BAD="$(git rev-parse --short=7 HEAD)"
-          GOOD="$(git rev-parse --short=7 "$LAST_CI")"
-          printf '%s\n\n%s\n%s\n%s\n\n%s\n' \
-            "Restore TUITEA web bundle clobbered by $AUTHOR" \
-            "/app/tuitea/app, release.json, sw.js and pwa.js are written only by the" \
-            "deploy-web job in KEEPITIL/thrive-app. Commit $BAD changed them from outside" \
-            "that job, which puts a stale app in front of users. Restored from $GOOD." \
-            "" | git commit -q -F -
-          git push
-          echo "restored"
+            if git push; then
+              echo "restored on attempt ${attempt}"
+              exit 0
+            fi
+            echo "push rejected — re-reading the tip and deciding again (attempt ${attempt})"
+          done
+          echo "could not restore after 5 attempts" >&2
+          exit 1

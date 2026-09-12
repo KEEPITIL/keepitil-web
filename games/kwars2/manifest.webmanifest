@@ -1,7 +1,7 @@
 {
-  "name": "KWARS2 \u2014 Kingdom Wars II",
-  "short_name": "KWARS2",
-  "description": "Castle-to-castle war on a 3D-styled battlefield. Command formations, fortify your kingdom, and defeat evolving armies.",
+  "name": "Kingdom Wars II",
+  "short_name": "Kingdom Wars II",
+  "description": "The 2.5D edition of Kingdom Wars. Four battlefield roles across fifteen historical ages.",
   "id": "/games/kwars2/",
   "start_url": "/games/kwars2/index.html?source=pwa",
   "scope": "/games/kwars2/",

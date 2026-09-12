@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "build": 1,
+  "version": "0.2.0",
+  "build": 2,
   "channel": "production",
-  "notes": "AOW2 3D (Codex canvas build) live on the apps page. 360 drag-to-orbit camera, pinch + button zoom, tap-to-fire castle defenses, charge-by-type orders, spear volley, castle builder, era evolution. Mobile-ready PWA: installable, offline, safe-area HUD, touch controls."
+  "notes": "KWARS2 PHASE 1 FOUNDATION. Rebuilt from the 304-line prototype into the Kingdom Wars franchise game system expressed in 2.5D. Canonical content parity with KWARS1: 15 civilizations / 75 campaign kingdoms, data-driven and extensible to 18 without engine change. Four core army roles (RANGE, ASSAULT, HEAVY, MOBILE) with special layers above them. HEAVY state machine: spear+shield PHALANX -> primary expended -> sword+shield DEFENSIVE_LINE -> shield depleted -> sword-only ASSAULT MELEE_LINE, on the same actor with slot release and no respawn. New versioned kwars2-save-v1 namespace with one-time aow2_castle import (legacy keys preserved for rollback). Title/Home/Mode/Preparation/Battle/Results shell. 2.5D depth model with lane-based ordering, parallax planes, depth scale, marble acropolis fortress. Greek vertical slice. Service-worker freshness repair (cache:reload install, no-cache revalidation)."
 }

@@ -25,8 +25,8 @@
      drifted, because that is what two hand-maintained numbers do. RELEASE is
      the same identity the service worker and the compiled Dart carry, so all
      three answer the same question with the same string. */
-  var SHELL_VERSION = 326;
-  var RELEASE = '51.7a01554';
+  var SHELL_VERSION = 338;
+  var RELEASE = '51.6a5061c';
 
   /* Readable from the DOM without a debugger, and before any Dart has run.
      This is the shell's own claim about which release it is; the worker's claim
@@ -154,6 +154,13 @@
           '<li>Tap the <b>Share</b> button ' + SHARE_SVG +
             ' — the square with an arrow, in the bar at the bottom of Safari.</li>' +
           '<li>Scroll the list and tap <b>Add to Home Screen</b>.</li>' +
+          /* iOS 18 added a choice on this sheet. Left on "Open in Safari" the icon opens a
+             browser tab with the address bar over it, which does not look or behave like the
+             app and is the single most common reason an install "did not work". Naming it is
+             the difference between an app and a bookmark. */
+          '<li>If you see <b>Open as Web App</b>, leave it switched <b>on</b>. ' +
+            '<span style="opacity:.85">That is what makes it open without the browser bars.' +
+            '</span></li>' +
           '<li>Tap <b>Add</b> in the top-right corner.</li>' +
         '</ol>' +
         '<p style="margin-top:.9rem">Open it from the new TUITEA icon. ' +
@@ -168,6 +175,70 @@
       '<p id="tuitea-install-slot"><span style="opacity:.8">If your browser offers ' +
       '“Install app” or “Add to Home screen” in its menu, that is this same app.</span></p>';
     return card;
+  }
+
+  /* ── SHARE TUITEA ────────────────────────────────────────────────────────────────────
+     A family grows by somebody passing the app on, and there was no way to do it from the
+     page itself — the link had to be copied out of the address bar, which on iOS means
+     leaving the page you are trying to share.
+
+     The link is ALWAYS the canonical install address. Never the current URL: someone
+     sharing from deep inside the installed app would otherwise send a start_url that opens
+     to a sign-in wall, and never an App Store URL, because no listing exists yet and a dead
+     link is worse than none. */
+  var CANONICAL = 'https://keepitil.com/app/tuitea';
+
+  function shareCard() {
+    var card = el('div', { class: 'tuitea-pwa', id: 'tuitea-share-card' });
+    card.innerHTML =
+      '<h2>Share TUITEA</h2>' +
+      '<p>Send this to someone in the family. It opens these same instructions on ' +
+      'their phone.</p>';
+
+    var row = el('p');
+    var btn = el('button', { class: 'tuitea-btn', type: 'button', id: 'tuitea-share-btn' },
+      'Share TUITEA');
+    var note = el('span', { id: 'tuitea-share-note',
+      style: 'margin-left:.6rem;color:var(--muted,#6E7566)' });
+
+    btn.addEventListener('click', function () {
+      var payload = {
+        title: 'TUITEA',
+        text: 'TUITEA — our family app. Here is how to put it on your phone:',
+        url: CANONICAL
+      };
+      /* The real sheet where the platform has one. canShare is checked as well as share:
+         some browsers expose navigator.share and then reject a payload carrying a url. */
+      if (navigator.share && (!navigator.canShare || navigator.canShare(payload))) {
+        navigator.share(payload).catch(function () {
+          /* A cancelled sheet rejects exactly like a failed one, so nothing is reported —
+             telling somebody an error occurred because they changed their mind is worse
+             than silence. */
+        });
+        return;
+      }
+      copyFallback(note);
+    });
+
+    row.appendChild(btn);
+    row.appendChild(note);
+    card.appendChild(row);
+    return card;
+  }
+
+  /* Copy-link fallback, for every browser without a share sheet. */
+  function copyFallback(note) {
+    function done(ok) {
+      note.textContent = ok ? 'Link copied.' : CANONICAL;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(CANONICAL).then(function () { done(true); },
+        function () { done(false); });
+      return;
+    }
+    /* No clipboard API and no sheet: show the address so it can be copied by hand. That is
+       still a way to share it, which a disabled button is not. */
+    done(false);
   }
 
   var deferredPrompt = null;
@@ -324,11 +395,30 @@
     }
 
     if (onInstallPage) {
-      var wrap = document.querySelector('.wrap');
+      /* THE INSTALL CARD HAS NEVER RENDERED, ON ANY VISIT, SINCE IT SHIPPED.
+         This read:
+
+             if (facts) wrap.insertBefore(card, facts); else wrap.appendChild(card);
+
+         `.facts` is a marker div three levels inside `.wrap`, not a child of it, so
+         `insertBefore` threw NotFoundError every time — and the throw aborted boot() at
+         exactly this point. Nobody saw an error because nothing else depended on the lines
+         after it, and the page looks complete without the card: it already carries the Ad Hoc
+         install flow, so a missing PWA card reads as a design decision rather than a fault.
+
+         registerSW() runs earlier, so the service worker was never affected. What was lost is
+         the whole of the Home Screen guidance.
+
+         A reference node is only valid for its OWN parent, so that is what is used. */
       var facts = document.querySelector('.facts');
-      if (wrap) {
+      var host = facts ? facts.parentNode : document.querySelector('.wrap');
+      if (host) {
         var card = installCard();
-        if (facts) wrap.insertBefore(card, facts); else wrap.appendChild(card);
+        if (facts) host.insertBefore(card, facts); else host.appendChild(card);
+        // Directly under the install steps: somebody who has just installed it is exactly
+        // who is about to pass it on.
+        var share = shareCard();
+        if (facts) host.insertBefore(share, facts); else host.appendChild(share);
       }
     }
   }

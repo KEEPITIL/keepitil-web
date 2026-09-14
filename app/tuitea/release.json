@@ -1,7 +1,8 @@
 {
-  "release": "52.e6af390",
+  "release": "52.9467100",
   "appVersion": "1.0.0",
   "buildNumber": "52",
-  "commit": "e6af390",
-  "shellVersion": 351
+  "commit": "9467100",
+  "applicationRevision": "9467100",
+  "shellVersion": 352
 }

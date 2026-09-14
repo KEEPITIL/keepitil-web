@@ -35805,8 +35805,8 @@ q=new A.ab(Date.now(),0,!1).hz()
 r.n(0,"occurred_at",q.dF())
 r.n(0,"client_kind",A.bUs().c)
 r.n(0,"app_version","1.0.0")
-r.n(0,"build_number","52")
-r.n(0,"git_commit","52.d3911f9.base")
+r.n(0,"build_number","51")
+r.n(0,"git_commit","51.7a2128f.base")
 r.n(0,"event",a.c)
 r.n(0,"anonymous_origin",b.c)
 r.n(0,"result",c.c)
@@ -36716,7 +36716,7 @@ q=B.f0
 n=[1]
 s=5
 break}i=B.c.a6(j)
-g=A.bYO(i,"52.d3911f9.base")?B.afR:B.afS
+g=A.bYO(i,"51.7a2128f.base")?B.afR:B.afS
 g=new A.zo(g,i)
 $.Ol=g
 q=g
@@ -37817,7 +37817,7 @@ SB(){var s=0,r=A.j(t.GU),q,p=2,o=[],n,m,l,k,j,i,h
 var $async$SB=A.e(function(a,b){if(a===1){o.push(b)
 s=p}for(;;)switch(s){case 0:j=t.N
 i=A.D(j,j)
-J.bo(i,"appVersion","1.0.0 (52) \xb7 52.d3911f9.base")
+J.bo(i,"appVersion","1.0.0 (51) \xb7 51.7a2128f.base")
 p=4
 s=7
 return A.c(A.a5P(),$async$SB)
@@ -38217,7 +38217,7 @@ J.bo(l,"app_version",b)
 J.bo(l,"patch",J.bt(m,"patch"))
 J.bo(l,"platform",J.bt(m,"platform"))
 J.bo(l,"screen",d)
-J.bo(l,"build","52.d3911f9.base")
+J.bo(l,"build","51.7a2128f.base")
 J.bo(l,"report_id",f)
 J.bo(l,"occurred_at",new A.ab(Date.now(),0,!1).hz().dF())
 if(a.length!==0)J.bo(l,"action",a)
@@ -147990,7 +147990,7 @@ if(h)h="Attach a photo of the document"
 else{h=s.e
 h="Attached: "+(h==null?"photo":h)+" \u2014 tap to replace"}i=A.eF(p,B.aNt,A.n(h,l,l,l,l,l,l,l,l,l),new A.beL(s,b),i)
 h=A.eF(B.a6l,B.aNc,B.aCO,new A.beM(s,m.b,b),A.eT(l,l,l,l,l,l,l,l,l,l,l,B.dD,l,l,l,l,l,l,l,l))
-n=A.eG("52",l)
+n=A.eG("51",l)
 B.b.C(q,A.a([B.a5,i,B.a4,h,new A.K(B.mT,A.n(n==null||n>=50?"Photos of letters, results and scans, or the PDF itself. Documents belong to this person's medical record and follow their access settings.":"Photos of letters, results and scans work now. PDF files arrive with the TUITEA update at keepitil.com/app/tuitea.",l,l,l,l,l,B.S3,l,l,l),l)],j))}i=s.a
 if(i!=="medication"&&i!=="appointment"&&i!=="note"&&i!=="document")B.b.C(q,A.a([B.a5,A.an(A.a([A.aA(A.c9(l,B.P,!1,l,!0,B.l,l,A.cd(),m.d,l,l,l,l,l,2,B.a7L,B.t,!0,l,!0,l,!1,l,B.W,l,l,l,l,l,B.pv,l,l,l,1,l,l,!1,"\u2022",l,l,l,l,l,!1,l,l,!1,l,!0,l,B.Y,l,l,l,l,l,l,l,l,l,l,l,l,!0,B.M,l,B.an,l,l,l,l),1),B.az,A.bj(A.a9h(!1,l,B.a7R,!1,l,s.b,l,l,l,1,new A.beN(s),l,l,l,l,l,B.M,B.an,l,l),l,90)],j),B.j,B.e,B.h,0,l)],j))
 q.push(B.a5)
@@ -148039,7 +148039,7 @@ $S:0}
 A.beM.prototype={
 $0(){var s=0,r=A.j(t.H),q,p=2,o=[],n=this,m,l,k,j,i,h
 var $async$$0=A.e(function(a,b){if(a===1){o.push(b)
-s=p}for(;;)switch(s){case 0:i=A.eG("52",null)
+s=p}for(;;)switch(s){case 0:i=A.eG("51",null)
 if(!(i==null||i>=50)){n.b.c.U(t.q).f.b6(B.avg)
 s=1
 break}p=4
@@ -152697,7 +152697,7 @@ q(a){var s=null
 return A.a23(A.cS(A.da(s,s,!0,s,B.aw8,s,s,s,s,s,s,s,s,B.aHI,s),s,B.aw2,s,s),0,2)}}
 A.AC.prototype={
 V(){var s=$.a3()
-return new A.Xq(new A.bO(B.ao,s),new A.bO(B.ao,s),new A.bO(B.ao,s),"1.0.0 (52) \xb7 52.d3911f9.base",B.w9)}}
+return new A.Xq(new A.bO(B.ao,s),new A.bO(B.ao,s),new A.bO(B.ao,s),"1.0.0 (51) \xb7 51.7a2128f.base",B.w9)}}
 A.Xq.prototype={
 ae(){this.ap()
 A.a5P().ba(new A.bsm(this),t.a)},
@@ -155958,9 +155958,9 @@ q(a){var s,r,q,p,o,n,m=this,l=null,k=t.p,j=A.a([A.n("Native base",l,l,l,l,l,B.lM
 B.b.C(j,m.aMa(B.fc))
 B.b.C(j,m.aIR(B.fc))
 s=m.w
-r=s.b2i("d3911f9")
+r=s.b2i("7a2128f")
 q=A.n("Source revision",l,l,l,l,l,B.lM,l,l,l)
-p=A.n("This app: d3911f9",l,l,l,l,l,B.fc,l,l,l)
+p=A.n("This app: 7a2128f",l,l,l,l,l,B.fc,l,l,l)
 if(!s.c)s="Desktop (keepitil.com): could not reach it just now"
 else{s=s.a
 s="Desktop (keepitil.com): "+(s==null?"unknown":s)}s=A.n(s,B.aNR,l,l,l,l,B.fc,l,l,l)
@@ -155996,7 +155996,7 @@ A.a5P().ba(new A.br4(r),s)
 A.aZc().ba(new A.br5(r),s)
 A.bDw().ba(new A.br6(r),s)},
 q(a){var s=this
-return new A.a6F("1.0.0","52","52.d3911f9.base",s.d,s.e,s.f,s.r,null)}}
+return new A.a6F("1.0.0","51","51.7a2128f.base",s.d,s.e,s.f,s.r,null)}}
 A.br3.prototype={
 $1(a){var s=this.a
 if(s.c!=null)s.E(new A.br2(s,a))},

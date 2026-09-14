@@ -28,13 +28,33 @@
   function empty(title, sub, cta){
     APP.innerHTML = '<div class="soon"><div class="i">⚔️</div><h2>'+h(title)+'</h2><p>'+h(sub||'')+'</p>'+(cta||'')+'</div>';
   }
-  function err(e){ APP.innerHTML = '<div class="vs-err">Something went wrong. <span>'+h(String(e&&e.message||e))+'</span></div>'; }
+  /* An error state must be HONEST and RECOVERABLE (Founder 2026-09-14). "Loading" that never
+     resolves, and a dead end with no way forward, are both failures: a reader cannot tell a
+     broken page from an empty one. So every failure says what happened, keeps the technical
+     detail available but secondary, and always offers a way to try again. Never render 0 or an
+     empty list to paper over a request that actually failed. */
+  function err(e, retry){
+    var detail = String(e && e.message || e || '');
+    APP.innerHTML = '<div class="vs-err">'
+      + '<strong>We could not load this right now.</strong>'
+      + '<span>' + h(detail) + '</span>'
+      + '<button type="button" class="vs-retry">Try again</button>'
+      + '</div>';
+    var b = APP.querySelector('.vs-retry');
+    if(b) b.addEventListener('click', function(){
+      busy('Retrying…');
+      /* setTimeout so the "Retrying…" frame actually paints before the next attempt blocks. */
+      setTimeout(function(){ (typeof retry === 'function' ? retry : route)(); }, 0);
+    });
+  }
 
   /* ── styles (scoped to #vs-app so the shell is untouched) ───────────────────────── */
   var CSS = ''
    + '#vs-app{--vsb:#00b4ff;--vsl:rgba(255,255,255,.1)}'
    + '#vs-app .vs-busy,#vs-app .vs-err{padding:40px 6px;color:#9aa0b0;text-align:center}'
-   + '#vs-app .vs-err span{display:block;font-size:.8rem;opacity:.7;margin-top:6px}'
+   + '#vs-app .vs-err span{display:block;font-size:.8rem;opacity:.7;margin-top:6px;word-break:break-word}'
+   + '#vs-app .vs-err strong{display:block;color:#e8e6f2;font-size:1rem}'
+   + '#vs-app .vs-retry{margin-top:14px;background:linear-gradient(90deg,var(--vsb),#5cc8ff);border:0;color:#04121b;border-radius:999px;padding:9px 20px;font:700 .78rem Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}'
    + '#vs-app .vs-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 16px}'
    + '#vs-app .vs-bar button,#vs-app .vs-bar a{background:rgba(255,255,255,.05);border:1px solid var(--vsl);color:#e8e6f2;border-radius:999px;padding:8px 15px;font:700 .78rem Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;text-decoration:none}'
    + '#vs-app .vs-bar .on{background:linear-gradient(90deg,var(--vsb),#5cc8ff);border-color:transparent;color:#04121b}'
@@ -1807,7 +1827,13 @@
 
   /* ── router ────────────────────────────────────────────────────────────────────── */
   function route(){
-    if(!SB){ err('Supabase client unavailable'); return; }
+    if(!SB){
+      /* The vendor client itself never loaded, so re-running the router would hit the same null
+         client every time -- a reload is the only retry that can actually change the outcome. */
+      err('The connection to our servers could not be established. Check your network and try again.',
+          function(){ location.reload(); });
+      return;
+    }
     /* DEFAULT VIEW = JOIN (Founder 2026-08-18). It used to be the entries FEED, which is empty
        until somebody enters — so the landing screen of a page with 36 live competitions showed
        nothing, and visitors concluded the product was empty. Landing on the competitions makes

@@ -25,8 +25,8 @@
      drifted, because that is what two hand-maintained numbers do. RELEASE is
      the same identity the service worker and the compiled Dart carry, so all
      three answer the same question with the same string. */
-  var SHELL_VERSION = 341;
-  var RELEASE = '51.f1cb142';
+  var SHELL_VERSION = 347;
+  var RELEASE = '51.7a2128f';
 
   /* Readable from the DOM without a debugger, and before any Dart has run.
      This is the shell's own claim about which release it is; the worker's claim

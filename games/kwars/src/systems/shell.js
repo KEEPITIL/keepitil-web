@@ -35,12 +35,37 @@
   }
   const isNewPlayer=()=>!D.active && conquered()===0 && (D.records.highestWave||0)===0;
 
+
+  /* Small corner account affordance. Guests see SIGN IN; signed-in players see
+     their initials. Neither ever blocks play. */
+  function paintAccountCorner(signedIn){
+    const si=$('titlesignin'), pr=$('titleprofile');
+    if(!si||!pr)return;
+    const avail = !!(window.KWCloud && KWCloud.state().available);
+    if(!avail){ si.hidden=true; pr.hidden=true; return; }
+    if(signedIn){
+      const em=(KWCloud.state().email||'?');
+      si.hidden=true; pr.hidden=false;
+      pr.textContent=em.slice(0,2).toUpperCase();
+      pr.title='Signed in as '+em;
+    } else { si.hidden=false; pr.hidden=true; }
+  }
   /* ---------- title screen ---------- */
   function showTitle(){
     const b=window.KWBuild||{};
     $('titleversion').textContent=(b.appVersion?'v'+b.appVersion:'')+(b.buildNumber?' · build '+b.buildNumber:'');
+    /* §2 GUEST-FIRST FRONT DOOR.
+       A signed-out visitor gets PLAY and a small SIGN IN -- nothing else. The
+       title previously led with CONTINUE, which made the front page look like a
+       save-management screen to someone who had never played. CONTINUE still
+       exists, but on Home, where it belongs. A signed-in player keeps a
+       shortcut here because for them it is genuinely the fastest path back. */
+    const signedIn = !!(window.KWCloud && KWCloud.state().signedIn);
+    paintAccountCorner(signedIn);
+    showLanding();                       // §2: CRUSADE / WAR / MORE is the door
     const a=D.active, c=nextKingdom(), t=$('titlecontinue');
-    if(a){ t.hidden=false; t.innerHTML='CONTINUE WAR<br><small>Wave '+a.wave+' · '+esc(civName(a.civ||1))+'</small>'; t.dataset.mode='CONTINUE'; }
+    if(!signedIn){ t.hidden=true; }
+    else if(a){ t.hidden=false; t.innerHTML='CONTINUE WAR<br><small>Wave '+a.wave+' · '+esc(civName(a.civ||1))+'</small>'; t.dataset.mode='CONTINUE'; }
     else if(conquered()>0&&c){ t.hidden=false; t.innerHTML='CONTINUE CRUSADE<br><small>'+esc(c.civ.displayName)+' · Kingdom '+c.node.kingdomNumber+'</small>'; t.dataset.mode='CRUSADE'; }
     else t.hidden=true;
     hub.classList.add('hidden'); panel.classList.add('hidden');
@@ -48,6 +73,106 @@
     title.classList.remove('hidden');
   }
   function enterGame(){ title.classList.add('hidden'); X.mainMenu(); }
+
+  /* ---------- §2 LANDING: CRUSADE / WAR / MORE ---------------------------
+     The landing is the front door and the Home/command centre is not. Home
+     unlocks once the player has actually started a war on this device, or once
+     they are signed in -- until then it is a dashboard for progress nobody has.
+
+     CONTINUE while signed out has to survive a full page load, because email
+     confirmation takes the player out of the browser and back. The chosen mode
+     is therefore parked in localStorage and consumed on return, so they land in
+     the war they picked rather than back here. */
+  const HOME_UNLOCK_KEY='kw-home-unlocked';
+  const PENDING_ENTRY_KEY='kw-pending-entry';
+  const PENDING_TTL_MS=1000*60*30;
+  function homeUnlocked(){
+    if(D.active || conquered()>0 || (D.records.highestWave||0)>0) return true;
+    try{ return localStorage.getItem(HOME_UNLOCK_KEY)==='1'; }catch(e){ return false; }
+  }
+  function unlockHome(){ try{ localStorage.setItem(HOME_UNLOCK_KEY,'1'); }catch(e){} }
+  function parkEntry(mode){
+    try{ localStorage.setItem(PENDING_ENTRY_KEY,JSON.stringify({mode,at:Date.now()})); }catch(e){}
+  }
+  function takeEntry(){
+    try{
+      const raw=localStorage.getItem(PENDING_ENTRY_KEY);
+      if(!raw)return null;
+      localStorage.removeItem(PENDING_ENTRY_KEY);
+      const v=JSON.parse(raw);
+      if(!v||!v.mode||Date.now()-(v.at||0)>PENDING_TTL_MS)return null;
+      return v.mode;
+    }catch(e){ return null; }
+  }
+  const MODES={
+    CRUSADE:{title:'CRUSADE', sub:'Take kingdoms one at a time and keep what you win.'},
+    WAR:    {title:'WAR',     sub:'One battlefield. Waves that never stop.'}
+  };
+  function showLanding(){
+    $('landingmode').hidden=true;
+    $('landingmain').hidden=false;
+    const sub=$('moresub');
+    if(sub){
+      const st=window.KWCloud&&KWCloud.state();
+      sub.textContent = st&&st.signedIn ? ('Signed in · '+st.email)
+                      : (homeUnlocked()?'Account, command centre & settings':'Account & settings');
+    }
+  }
+  function hasCrusadeSave(){ return conquered()>0; }
+  function hasWarSave(){ return !!(D.active) || (D.records.highestWave||0)>0; }
+  function showModeEntry(mode){
+    const m=MODES[mode]; if(!m)return;
+    $('landingmain').hidden=true;
+    $('landingmode').hidden=false;
+    $('landingmodetitle').textContent=m.title;
+    $('landingmodesub').textContent=m.sub;
+    const cont=$('modecontinue'), csub=$('modecontinuesub');
+    const have = mode==='CRUSADE' ? hasCrusadeSave() : hasWarSave();
+    const signedIn=!!(window.KWCloud&&KWCloud.state().signedIn);
+    // CONTINUE is always offered: a signed-out player with no local save may
+    // still have a save on their account, and that is precisely the case the
+    // owner asked to route through login and come back.
+    cont.hidden=false;
+    if(have){
+      csub.textContent = mode==='CRUSADE'
+        ? (nextKingdom()?('Next: '+nextKingdom().civ.displayName+' · Kingdom '+nextKingdom().node.kingdomNumber):'Resume the crusade')
+        : (D.active?('Wave '+D.active.wave+' · '+civName(D.active.civ||1)):('Best wave '+(D.records.highestWave||0)));
+    } else {
+      csub.textContent = signedIn ? 'No saved war yet' : 'Sign in to load a saved war';
+    }
+    cont.dataset.mode=mode;
+    $('modenew').dataset.mode=mode;
+  }
+  function startMode(mode,fresh){
+    unlockHome();
+    window.KWAudio?.resume?.();
+    title.classList.add('hidden');
+    X.mainMenu();
+    if(mode==='CRUSADE'){ crusadeScreen('home'); }
+    else if(fresh || !D.active){ endlessScreen('home'); }
+    else { X.startBattle({mode:'CONTINUE'}); }
+  }
+  function continueMode(mode){
+    const signedIn=!!(window.KWCloud&&KWCloud.state().signedIn);
+    const have = mode==='CRUSADE' ? hasCrusadeSave() : hasWarSave();
+    if(have || signedIn) return startMode(mode,false);
+    // Signed out with nothing local: park the choice, send them to sign in, and
+    // come straight back to this mode once auth succeeds.
+    parkEntry(mode);
+    unlockHome();
+    title.classList.add('hidden'); X.mainMenu();
+    if(window.KWAccount) KWAccount.authForm('in'); else X.showSettings();
+  }
+  if($('entercrusade'))$('entercrusade').onclick=()=>{ window.KWAudio?.resume?.(); showModeEntry('CRUSADE'); };
+  if($('enterwar'))    $('enterwar').onclick    =()=>{ window.KWAudio?.resume?.(); showModeEntry('WAR'); };
+  if($('entermore'))   $('entermore').onclick   =()=>{
+    window.KWAudio?.resume?.();
+    title.classList.add('hidden'); X.mainMenu();
+    if(!homeUnlocked() && window.KWAccount) KWAccount.showAccount();
+  };
+  if($('modeback'))    $('modeback').onclick    =showLanding;
+  if($('modenew'))     $('modenew').onclick     =function(){ startMode(this.dataset.mode,true); };
+  if($('modecontinue'))$('modecontinue').onclick=function(){ continueMode(this.dataset.mode); };
 
   $('enterbtn').onclick=()=>{ window.KWAudio?.resume?.(); enterGame(); };
   $('titlecontinue').onclick=function(){
@@ -58,6 +183,14 @@
     else crusadeContinue();
   };
   $('titlesettings').onclick=()=>{ title.classList.add('hidden'); X.mainMenu(); X.showSettings(); };
+  if($('titlesignin'))$('titlesignin').onclick=()=>{
+    title.classList.add('hidden'); X.mainMenu();
+    if(window.KWAccount)KWAccount.authForm('in'); else X.showSettings();
+  };
+  if($('titleprofile'))$('titleprofile').onclick=()=>{
+    title.classList.add('hidden'); X.mainMenu();
+    if(window.KWAccount)KWAccount.showAccount();
+  };
   $('titleaudio').onclick=function(){
     const on=!(window.KWAudio?window.KWAudio.settings.master<=0:!D.settings.sound);
     if(window.KWAudio)window.KWAudio.set('master',on?0:.85);
@@ -74,9 +207,33 @@
     $('hudwave').textContent='♛ '+(D.records.highestWave||0);
     $('hudgems').textContent='💎 '+gems();
     const nk=nextKingdom();
-    $('tilecrusade').textContent=nk?('Next: '+nk.civ.displayName+' · Kingdom '+nk.node.kingdomNumber):(conquered()?'All available kingdoms conquered':'Campaign');
-    $('tileendless').textContent=(D.records.highestWave?'Best wave '+D.records.highestWave:'Survival mode');
-    $('playbtn').textContent=a?'▶ PLAY':(isNewPlayer()?'▶ PLAY — START YOUR FIRST WAR':'▶ PLAY');
+    const first=isNewPlayer();
+    /* §2 FIRST-TIME HOME.
+       A first-time commander arrives knowing nothing about the two modes, so
+       Home says what each one IS -- not just its score -- and marks the one we
+       recommend. Returning players see their real progress instead, because
+       for them the numbers are the useful thing. Nothing here asks for an
+       account: saving online stays optional and lives on its own line. */
+    $('tilecrusade').textContent=first
+      ? 'Story campaign · conquer 75 kingdoms'
+      : (nk?('Next: '+nk.civ.displayName+' · Kingdom '+nk.node.kingdomNumber)
+           :(conquered()?'All available kingdoms conquered':'Campaign'));
+    $('tileendless').textContent=first
+      ? 'Survival · hold out as long as you can'
+      : (D.records.highestWave?'Best wave '+D.records.highestWave:'Survival mode');
+    const badge=$('crusadebadge'); if(badge)badge.hidden=!first;
+    const intro=$('homeintro');
+    if(intro){
+      intro.hidden=!first;
+      if(first)intro.textContent='Two ways to fight: the World Crusade is the story — take kingdoms one at a time and keep what you win. Endless War is survival — one battlefield, waves that never stop. Start with the Crusade.';
+    }
+    const psub=$('playsub');
+    if(psub){
+      const where=a?('Wave '+a.wave+' · '+civName(a.civ||1))
+                   :(nk?('World Crusade · '+nk.civ.displayName+' · Kingdom '+nk.node.kingdomNumber):null);
+      psub.hidden=!where; if(where)psub.textContent=where;
+    }
+    $('playbtn').firstChild.nodeValue=a?'▶ PLAY':(first?'▶ PLAY — START YOUR FIRST WAR':'▶ PLAY');
     // §39: a new build is ready. Offer it at Home only -- never mid-battle --
     // and reload on the player's word. Reloading never touches saved progress.
     const note=$('updatenote');
@@ -252,6 +409,59 @@
     panelNav('home');
   }
 
+
+  /* ---------- §3 SAVE PROGRESS ------------------------------------------
+     Offered only when there is something worth saving and only at meaningful
+     checkpoints. A dismissal is remembered for a cooldown so the prompt never
+     nags, and NOT NOW always continues play untouched. */
+  // Return to the command centre: hub visible, panel closed. X.mainMenu() is
+  // the canonical route and also stops any running battle cleanly.
+  function goHome(){ X.mainMenu(); panel.classList.add('hidden'); }
+  const SAVE_DISMISS_KEY='kw-save-offer-dismissed';
+  const SAVE_COOLDOWN_MS=1000*60*60*20;
+  function noteSaveDismissed(){ try{localStorage.setItem(SAVE_DISMISS_KEY,String(Date.now()));}catch(e){} }
+  function saveRecentlyDismissed(){
+    try{ const t=+localStorage.getItem(SAVE_DISMISS_KEY)||0; return Date.now()-t < SAVE_COOLDOWN_MS; }catch(e){ return false; }
+  }
+  function hasRealProgress(){
+    const d=P_get();
+    return conquered()>0 || (d.records.highestWave||0)>0 || (d.profile.legacyXP||0)>0;
+  }
+  const P_get=()=>X.data;
+  function shouldOfferSave(){
+    if(!window.KWCloud||!KWCloud.state().available)return false;
+    if(KWCloud.state().signedIn)return false;          // already saving online
+    if(!hasRealProgress())return false;                 // nothing to save yet
+    if(saveRecentlyDismissed())return false;            // no nagging
+    return true;
+  }
+  function savePromptHTML(){
+    return '<div class="saveoffer">'+
+      '<b>SAVE PROGRESS</b>'+
+      '<small>You are playing as a guest — progress lives on this device only. '+
+      'Create a free account to keep it if you clear your browser or switch device.</small>'+
+      '<div class="saveacts">'+
+        '<button class="primary" id="saveProgressBtn">SAVE PROGRESS</button>'+
+        '<button id="saveNotNow">NOT NOW</button>'+
+      '</div></div>';
+  }
+  // Full-panel version, used from Home / profile
+  function savePrompt(){
+    if(!window.KWAccount)return;
+    const d=P_get();
+    X.showPanel('SAVE YOUR PROGRESS',
+      '<p class="note">Your campaign, records and gems are saved on this device. '+
+      'An account keeps them if you clear your browser or play somewhere else. '+
+      'You can keep playing as a guest for as long as you like.</p>'+
+      (window.KWCloud?window.KWAccount.summary(KWCloud.digest(KWCloud.bundle())):'')+
+      '<button class="menubtn primary" id="spCreate">CREATE ACCOUNT</button>'+
+      '<button class="menubtn" id="spSignIn">SIGN IN</button>'+
+      '<button class="menubtn" id="spLater">NOT NOW</button>');
+    panelNav('home');
+    $('spCreate').onclick=()=>window.KWAccount.authForm('up');
+    $('spSignIn').onclick=()=>window.KWAccount.authForm('in');
+    $('spLater').onclick=()=>{ noteSaveDismissed(); goHome(); };
+  }
   /* ---------- §15 results screen ---------------------------------------
      Snapshot progression at battle start so the results screen can report a
      real delta instead of inventing numbers. */
@@ -278,6 +488,7 @@
     ].filter(Boolean).join('');
     const notes=[];
     if(o.unlocked)notes.push('🔓 '+esc(o.unlocked));
+    const saveOffer = shouldOfferSave();
     newBadges.forEach(m=>notes.push('🏅 Milestone reached — '+esc(m.n)));
     const retry=o.retry?'<button data-act="retry">'+(win&&o.next?'REPLAY':'RETRY')+'</button>':'';
     const acts=
@@ -288,13 +499,23 @@
       '<button data-act="army">ARMY</button>'+
       '<button data-act="home" style="grid-column:1/3">HOME</button>';
     const ov=$('overlay');
+    /* The hub sits above the overlay (z 25 vs 10). Anything that re-opened it
+       during the battle -- the visibilitychange pause menu, most commonly --
+       would otherwise bury the results screen entirely. Results owns the
+       screen, so close the hub before painting. */
+    hub.classList.add('hidden'); panel.classList.add('hidden');
     ov.innerHTML='<div class="resultwrap">'+
       '<div class="resultbanner '+(win?'victory':'defeat')+'">'+(win?'VICTORY':'DEFEAT')+'</div>'+
       '<div class="resultsub">'+esc(o.subtitle||'')+'</div>'+
       '<div class="resultstats">'+cells+'</div>'+
       (notes.length?'<div class="resultnotes">'+notes.join('<br>')+'</div>':'')+
+      (saveOffer?savePromptHTML():'')+
       '<div class="resultacts">'+acts+'</div></div>';
     ov.classList.remove('hidden');
+    const sp=ov.querySelector('#saveProgressBtn');
+    if(sp)sp.onclick=()=>{ ov.classList.add('hidden'); goHome(); savePrompt(); };
+    const sn=ov.querySelector('#saveNotNow');
+    if(sn)sn.onclick=()=>{ noteSaveDismissed(); const w=ov.querySelector('.saveoffer'); if(w)w.remove(); };
     ov.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{
       const act=b.dataset.act;
       ov.classList.add('hidden');
@@ -315,18 +536,39 @@
   // §19 one compact account line; the real surface lives in Settings.
   const acct=$('acctbtn');
   if(acct){
-    acct.onclick=()=>{ window.KWAccount?window.KWAccount.showAccount():null; panelNav('home'); };
-    window.KWCloud&&window.KWCloud.on(st=>{
+    acct.onclick=()=>{
+      // guests with real progress get the Save Progress pitch; everyone else
+      // goes straight to the account panel.
+      if(shouldOfferSave()) savePrompt();
+      else if(window.KWAccount) window.KWAccount.showAccount();
+      panelNav('home');
+    };
+  }
+  /* Cloud availability resolves asynchronously, after the title has already
+     painted. Subscribe once and repaint every account-aware surface, otherwise
+     a cold load leaves the guest with no SIGN IN affordance at all. */
+  window.KWCloud&&window.KWCloud.on(st=>{
+    if(acct){
       acct.innerHTML = st.signedIn
         ? 'Saving to <b>'+esc(st.email)+'</b>'
         : (st.available ? 'Progress saves on this device · <b>SAVE ONLINE</b>'
                         : 'Progress saves on this device');
-    });
-  }
+    }
+    paintAccountCorner(st.signedIn);
+    if(st.signedIn){
+      // §2 return-to-mode: the player chose CRUSADE or WAR, was sent to sign
+      // in, and must land in that war -- not back at the landing page.
+      const mode=takeEntry();
+      if(mode){ startMode(mode,false); return; }
+    }
+    if(!title.classList.contains('hidden'))showTitle();
+  });
   $('achievebtn').onclick=showAchievements;
   // ARMORY / SHOP / ARMY / DAILY ORDERS / SETTINGS keep their real handlers.
 
   window.KWShell=Object.freeze({showTitle,enterGame,results,takeSnapshot,modeSelect,
+    showLanding,showModeEntry,startMode,continueMode,homeUnlocked,takeEntry,
+    savePrompt,shouldOfferSave,paintAccountCorner,
     crusadeScreen,endlessScreen,showAchievements,showRecords,paintHome,
     milestones:MILESTONES,earnedList,nextKingdom,conquered});
 

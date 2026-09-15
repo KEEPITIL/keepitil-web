@@ -1,6 +1,0 @@
-{
-  "version": "1.0.0",
-  "build": 58,
-  "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 \u2014 PRODUCTION LAUNCH. Real end-to-end email signup verified on production: Supabase dispatched the confirmation from noreply@keepitil.com, it landed in the inbox (not spam) within ~5 seconds, the link confirmed the account, and sign-in, guest-progress import, sign-out, clean-device sign-in and cloud restore all returned a digest-identical save. Email confirmation remains required project-wide and was not weakened. Fixed in this build: the confirmation link returned players to the KEEPITIL homepage instead of the game, because signUp did not pass emailRedirectTo. Complete playable game: Campaign (75 kingdoms / 15 eras), Endless, Final Siege, equipment, shop, daily orders, achievements, records, guest and cloud saves. Greek Defender is the canonical advanced defender; every other unit uses the proven fallback renderer. Save schema 3."
-}

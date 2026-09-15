@@ -1,53 +1,32 @@
-const CACHE = 'kwars1-v59';
-const ASSETS = [
-  './', './index.html', './src/platform/platform.js', './src/platform/platform.css', './src/core/civilizations.js', './src/core/balance.js', './src/core/soldier-state.js', './src/core/ai.js', './src/core/core-runtime.js', './src/core/progression-system.js', './src/systems/build-info.js', './src/systems/platform-service.js', './src/systems/analytics-service.js', './src/systems/save-manager.js', './src/systems/commerce.js', './src/systems/stripe-links.config.js', './src/systems/stripe-commerce.js', './src/systems/purchase-bridge.js', './src/systems/equipment-system.js', './src/systems/folklore-system.js', './src/systems/final-siege-system.js', './src/render/soldier-visual-system.js', './src/render/greek-defender.js', './src/render/soldier-rig.js', './src/render/skeletal-adapter.js', './src/render/monster-rig.js', './src/render/art-system.js', './src/render/audio-system.js', './src/systems/war-council.js', './src/systems/campaign-system.js', './src/systems/experience.js', './src/systems/shell.js', './src/vendor/supabase.min.js', './src/systems/cloud-save.js', './src/systems/account-ui.js', './src/styles/shell.css', './manifest.webmanifest', './icon.svg',
-  './app-icon-192.png', './app-icon-512.png', './app-icon-maskable.png', './apple-touch-icon.png'
-];
+/* LEGACY SERVICE WORKER KILL-SWITCH — /games/kwars1/sw.js
+   The old worker checks this URL for an update on navigation. Replacing it with
+   this file is what actually retires it: the browser installs this, which then
+   deletes the retired caches, unregisters itself and moves every client it
+   controls to the canonical route.
+   It caches nothing and it never touches localStorage or IndexedDB. */
+self.addEventListener('install', function(){ self.skipWaiting(); });
 
-self.addEventListener('install', e => {
-  // addAll() reads through the browser HTTP cache. When a deploy lands inside
-  // the CDN's max-age window, a freshly named cache installs itself full of the
-  // PREVIOUS build and then keeps re-validating into that same stale entry --
-  // the client stays pinned to the old build even though the cache name changed.
-  // Fetching with cache:'reload' forces every install to come from the origin.
-  e.waitUntil(caches.open(CACHE).then(c => Promise.all(ASSETS.map(u =>
-    fetch(new Request(u, {cache: 'reload'}))
-      .then(res => res && res.ok ? c.put(u, res) : null)
-      .catch(() => null)
-  ))).then(() => self.skipWaiting()));
+self.addEventListener('activate', function(e){
+  e.waitUntil((async function(){
+    const keys = await caches.keys();
+    // ONLY the retired namespace. Saves, auth and the other KWARS games are
+    // not in the Cache API at all, and nothing else here is touched.
+    await Promise.all(keys.filter(k => k.indexOf('kwars1-') === 0).map(k => caches.delete(k)));
+    await self.registration.unregister();
+    const clients = await self.clients.matchAll({type:'window'});
+    for (const c of clients){
+      try{
+        const rest = new URL(c.url).pathname.replace(/^\/games\/kwars1\/?/, '').replace(/^index\.html$/i,'');
+        await c.navigate('/games/kwars/' + rest);
+      }catch(err){ /* navigate() is not available everywhere; the page's own script also redirects */ }
+    }
+  })());
 });
 
-// Cache scope: `caches` is ORIGIN-wide, so a naive `k !== CACHE` sweep would
-// delete the OTHER KWARS games' live caches and break their offline mode.
-// Only this game's own namespace and its own retired ancestors are purged.
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => ((k.indexOf('kwars1-')===0 && k !== CACHE) || k.indexOf('skw-')===0 || k.indexOf('kingdom-wars')===0 || k.indexOf('ageofwars')===0)).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
-});
-
-self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  if(e.request.mode==='navigate'){
-    e.respondWith(fetch(e.request).then(res=>{if(res&&res.ok)caches.open(CACHE).then(c=>c.put(e.request,res.clone()));return res;}).catch(()=>caches.match('./index.html')));
-    return;
-  }
-  e.respondWith(
-    caches.match(e.request).then(hit => {
-      // no-cache: always revalidate against the origin, so a stale HTTP-cache
-      // entry can never keep re-seeding the SW cache with the old build.
-      const fetched = fetch(new Request(e.request, {cache: 'no-cache'}))
-        .then(res => {
-          if (res && res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE).then(c => c.put(e.request, copy));
-          }
-          return res;
-        })
-        .catch(() => hit);
-      return hit || fetched;
-    })
-  );
+/* Serve nothing from cache. A retired worker that still answers fetches is
+   exactly how a player gets handed the old shell after the migration. */
+self.addEventListener('fetch', function(e){
+  e.respondWith(fetch(e.request).catch(function(){
+    return new Response('', {status:503, statusText:'Kingdom Wars has moved to /games/kwars/'});
+  }));
 });

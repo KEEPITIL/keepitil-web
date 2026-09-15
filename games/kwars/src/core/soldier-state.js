@@ -50,6 +50,12 @@
   function liveFormation(u,weapon){
     const p=profileFor(weapon);
     if(p.formation==='SKIRMISH')return 'SKIRMISH';
+    /* §16 OWNER RULE (supersedes the earlier interpretation): once a soldier has
+       thrown his spear he is no longer a phalanx spearman, even if his shield
+       survived. He joins the sword/assault line and frees his spear slot for the
+       next equipped defender behind him. His shield still protects him from
+       projectiles; it just no longer earns him a place in the shield wall. */
+    if(u.spearThrown)return 'MELEE_LINE';
     if((u.shield||0)<=0)return 'MELEE_LINE';
     return isSpearWeapon(weapon)?'PHALANX':'DEFENSIVE_LINE';
   }

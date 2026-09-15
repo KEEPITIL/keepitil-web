@@ -316,9 +316,13 @@ const ease=t=>t*t*(3-2*t);
 /* Base stances. Shield arm stays restrained (it carries a heavy aspis);
    the weapon arm does the work and is largely occluded, which is correct. */
 function stance(){
+  // §14 UNDERARM FORWARD carry. The dory rests along the flank at roughly
+  // shoulder height with the butt back and the point forward past the shield --
+  // this is the couched phalanx grip. The overhand/raised pose (sh ~ -2.05) is
+  // throw preparation and is now used ONLY by the throw clip.
   return {lean:0, headTilt:0,
     shieldArm:{sh:-0.34, el:1.55},
-    weaponArm:{sh:-2.05, el:0.95},
+    weaponArm:{sh:-0.62, el:0.30},
     legFar:{hip: 0.16, knee:-0.26},
     legNear:{hip:-0.14, knee:-0.34}};
 }
@@ -329,7 +333,7 @@ function swordStance(){
 }
 
 const SPEAR_KIT = {weapon:'spear', shield:'aspis', helmet:true, cuirass:true,
-                   spearFwd:5.40, spearBack:1.55, wrist:2.28,
+                   spearFwd:7.20, spearBack:1.70, wrist:1.34,   // §13 longer dory, §14 underarm wrist
                    shieldPush:0.34, shieldLift:-0.30};
 const SWORD_KIT = {weapon:'sword', shield:'aspis', helmet:true, cuirass:true,
                    bladeLen:2.45, bladeW:0.120, wrist:-0.85,

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>KEEPITIL APPS — Games, Utilities &amp; Marketing Tools</title>
+<title>KEEPITIL Games — Kingdom Wars &amp; more</title>
 <meta name="description" content="Apps built by KEEPITIL — games, utilities and marketing tools. Play or use instantly in your browser, or install on your phone like a native app.">
 <link rel="icon" type="image/png" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -31,6 +31,33 @@
   .filters button{background:var(--panel);border:1px solid var(--line);color:var(--dim);font:700 13px/1 inherit;letter-spacing:.06em;text-transform:uppercase;padding:10px 18px;border-radius:999px;cursor:pointer;transition:all .15s}
   .filters button:hover{color:var(--ink);border-color:#456}
   .filters button.on{background:var(--gold);border-color:var(--gold);color:#211}
+  /* ---- KWARS franchise showcase ------------------------------------------
+     The hub was a utility grid with filter chips. KWARS is the flagship, so it
+     leads with a hero and the three chapters read as one franchise. */
+  .hero{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:22px;
+        margin:6px 0 30px;padding:clamp(26px,5vw,46px) clamp(20px,4vw,40px);
+        background:radial-gradient(120% 130% at 78% 8%,#33424f 0%,#1b2732 48%,#141c24 100%)}
+  .hero::after{content:"";position:absolute;inset:auto 0 0 0;height:42%;
+        background:linear-gradient(180deg,rgba(20,28,36,0) 0%,rgba(20,28,36,.75) 100%);pointer-events:none}
+  .hero .eyebrow{position:relative;z-index:1;font:800 11px/1 inherit;letter-spacing:.24em;color:var(--gold);margin-bottom:14px}
+  .hero .crest{position:relative;z-index:1;font-size:26px;margin-bottom:6px}
+  .hero h2{position:relative;z-index:1;font:900 clamp(30px,7vw,58px)/0.98 inherit;letter-spacing:.06em;margin:0}
+  .hero h2 span{display:block;color:var(--gold)}
+  .hero p{position:relative;z-index:1;color:var(--dim);font-size:15px;line-height:1.65;max-width:34rem;margin:14px 0 22px}
+  .hero .acts{position:relative;z-index:1;display:flex;gap:10px;flex-wrap:wrap}
+  .hero .acts a{text-decoration:none;font:800 13px/1 inherit;letter-spacing:.12em;padding:14px 26px;border-radius:12px}
+  .hero .acts .primary{background:linear-gradient(#e8c15a,#b8871c);color:#221a05}
+  .hero .acts .second{border:1px solid var(--line);color:var(--ink)}
+  .chapters{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:0 0 34px}
+  .chapter{display:block;text-decoration:none;color:var(--ink);background:var(--panel);
+           border:1px solid var(--line);border-radius:16px;padding:16px 18px;transition:border-color .15s,transform .15s}
+  .chapter:hover{border-color:var(--gold);transform:translateY(-2px)}
+  .chapter b{display:block;font-size:14px;letter-spacing:.1em}
+  .chapter small{display:block;color:var(--dim);font-size:11.5px;line-height:1.5;margin-top:5px}
+  .chapter .state{display:inline-block;margin-top:10px;font:800 9.5px/1 inherit;letter-spacing:.14em;
+           padding:5px 9px;border-radius:999px;background:#2a3a47;color:var(--dim)}
+  .chapter .state.live{background:rgba(99,184,92,.16);color:var(--green)}
+  h3.secthead{font-size:13px;letter-spacing:.18em;color:var(--dim);margin:0 0 14px;text-transform:uppercase}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
   .card{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;transition:transform .15s ease,border-color .15s ease}
   .card:hover{transform:translateY(-3px);border-color:#456}
@@ -70,6 +97,37 @@
   <h1>Build. Play. <em>Use.</em></h1>
   <p class="sub">Apps built by KEEPITIL — games, utilities and marketing tools. Everything runs instantly in your browser, and games install on your phone as a full-screen app, no app store needed.</p>
 
+  <section class="hero" aria-labelledby="kwarshero">
+    <div class="eyebrow">KEEPITIL ORIGINAL SERIES</div>
+    <div class="crest" aria-hidden="true">⚔</div>
+    <h2 id="kwarshero">KINGDOM<span>WARS</span></h2>
+    <p>Raise an army, hold the gate and conquer seventy-five kingdoms across fifteen ages of war — from tribal stone to the industrial siege. Free, playable in the browser, and installable on your phone as a full-screen app.</p>
+    <div class="acts">
+      <a class="primary" href="/games/kwars">▶ PLAY KINGDOM WARS</a>
+      <a class="second" href="#chapters">SEE THE SERIES</a>
+    </div>
+  </section>
+
+  <h3 class="secthead" id="chapters">The series</h3>
+  <div class="chapters">
+    <a class="chapter" href="/games/kwars">
+      <b>KINGDOM WARS</b>
+      <small>The original. Fort-defense war across fifteen ages — raise your army, hold the gate, evolve your civilisation and break the enemy fort.</small>
+      <span class="state live">PLAY NOW</span>
+    </a>
+    <a class="chapter" href="/games/kwars2">
+      <b>KINGDOM WARS II</b>
+      <small>The 2.5D edition. The same war with depth, layered battlefields and a rebuilt army model.</small>
+      <span class="state">IN DEVELOPMENT</span>
+    </a>
+    <a class="chapter" href="/games/kwars3">
+      <b>KINGDOM WARS III</b>
+      <small>The true-3D chapter. A living army in real 3D across eight ages, with campaign missions and endless war.</small>
+      <span class="state">IN DEVELOPMENT</span>
+    </a>
+  </div>
+
+  <h3 class="secthead">Everything else</h3>
   <div class="filters" id="filters">
     <button data-cat="all" class="on">All</button>
     <button data-cat="games">Games</button>
@@ -82,13 +140,13 @@
     <div class="card" data-cat="games">
       <div class="art">
         <span class="badge">KWARS · STRATEGY</span>
-        <img src="kwars1/app-icon-192.png" alt="KWARS1 icon">
+        <img src="kwars/app-icon-192.png" alt="Kingdom Wars icon">
       </div>
       <div class="body">
-        <h2>KWARS1</h2>
+        <h2>Kingdom Wars</h2>
         <p>The original. Fort-defense war across the ages — raise your army, hold the gate, evolve your civilisation and break the enemy fort.</p>
         <div class="tags"><span class="tag">Free</span><span class="tag">Offline-ready</span><span class="tag">Desktop + Mobile</span></div>
-        <a class="play" href="/games/kwars1">▶ PLAY NOW</a>
+        <a class="play" href="/games/kwars">▶ PLAY NOW</a>
       </div>
     </div>
 

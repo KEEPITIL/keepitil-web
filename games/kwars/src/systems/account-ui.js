@@ -56,7 +56,11 @@
       return done('Signed in. Your account could not be reached just now, so this device keeps playing locally and will sync later.');
     }
     if(r.empty){
-      if(C.isEmpty(localD)) return done('Signed in. Progress on this device will be saved to your account from now on.');
+      if(C.isEmpty(localD)){
+        // Nothing on either side, so there is nothing to lose: start syncing.
+        C.armSync();
+        return done('Signed in. Progress on this device will be saved to your account from now on.');
+      }
       // §16: local progress, empty cloud -> offer import, do not auto-push silently
       X.showPanel('SAVE THIS DEVICE’S PROGRESS?',
         '<p class="note">Your account has no saved progress yet.</p>'+summary(localD)+
@@ -64,7 +68,8 @@
         '<button class="menubtn" id="skipImport">NOT NOW</button>');
       $('doImport').onclick=async()=>{ const p=await C.push(true);
         done(p.ok?'Progress saved to your account.':'Could not reach your account. Nothing was lost.'); };
-      $('skipImport').onclick=()=>showAccount();
+      $('skipImport').onclick=()=>done('Not imported. Your account stays empty and this device '+
+        'keeps playing locally — nothing is uploaded until you choose to.');
       return;
     }
     if(C.isEmpty(localD)){
@@ -72,6 +77,7 @@
       return done(rr.ok?'Your account progress has been restored to this device. Reloading…'
                       :'Could not restore your account progress. This device is unchanged.',null,rr.ok);
     }
+    // Both sides hold progress -- the player decides, nothing is written yet.
     conflict(localD,r.digest);
   }
 
@@ -131,13 +137,24 @@
     }
     X.showPanel('ACCOUNT',
       '<p>Signed in as <b>'+esc(s.email)+'</b></p>'+
-      '<p class="note" id="syncState">Progress on this device syncs to your account at checkpoints.</p>'+
+      '<p class="note" id="syncState">'+(s.syncArmed
+        ? 'Progress on this device syncs to your account at checkpoints.'
+        : 'Not syncing yet — this device and your account have not been reconciled. '+
+          'Use SAVE TO ACCOUNT NOW or RESTORE FROM ACCOUNT to decide which copy wins.')+'</p>'+
       summary(C.digest(C.bundle()))+
       '<button class="menubtn primary" id="acctSync">SAVE TO ACCOUNT NOW</button>'+
       '<button class="menubtn" id="acctRestore">RESTORE FROM ACCOUNT</button>'+
       '<button class="menubtn" id="acctOut">SIGN OUT</button>');
     $('acctSync').onclick=async()=>{ $('syncState').textContent='Saving…';
-      const r=await C.push(true);
+      const r=await C.push();
+      if(r.reason==='would-regress'){
+        // This device is behind the account on every measure. Uploading would
+        // destroy the better copy, so show both and let the player choose.
+        return conflict(r.local,r.cloud);
+      }
+      if(r.reason==='nothing-to-save'){
+        $('syncState').textContent='There is no progress on this device to save yet.'; return;
+      }
       $('syncState').textContent=r.ok?'Saved to your account just now.'
         :'Could not reach your account. This device still has your progress.'; };
     $('acctRestore').onclick=async()=>{
@@ -153,7 +170,10 @@
   const R=window.KWRuntime&&window.KWRuntime.events;
   if(R){ ['wave_completed','campaign_battle_completed','campaign_result','run_ended']
          .forEach(e=>R.on(e,()=>C.checkpoint(e))); }
-  window.addEventListener('pagehide',()=>{ if(C.state().signedIn) C.push().catch(()=>{}); });
+  window.addEventListener('pagehide',()=>{
+    const st=C.state();
+    if(st.signedIn&&st.syncArmed) C.push().catch(()=>{});
+  });
 
   window.KWAccount=Object.freeze({showAccount,authForm,afterAuth,conflict,summary});
   C.init();

@@ -22,9 +22,18 @@
   const PUSH_DEBOUNCE=4000;
 
   let sb=null, user=null, ready=false, lastPush=0, pushTimer=null, status='guest';
+  /* SYNC ARMING. Signing in is NOT permission to start writing this device's
+     save over the account's. Background checkpoint pushes stay disarmed until
+     the player has actually resolved what happens to the two copies -- by
+     importing, by restoring, or by answering the conflict. A player who signs
+     in and picks "not now" keeps their cloud row untouched. */
+  let syncArmed=false;
+  const armSync=()=>{ syncArmed=true; };
+  const disarmSync=()=>{ syncArmed=false; clearTimeout(pushTimer); };
+  const LOCAL_BACKUP_KEY='kw-cloud-local-backup';
   const listeners=[];
   const emit=()=>listeners.forEach(f=>{try{f(state())}catch(e){}});
-  function state(){return {signedIn:!!user, email:user?user.email:null, userId:user?user.id:null, status, available:!!sb};}
+  function state(){return {signedIn:!!user, email:user?user.email:null, userId:user?user.id:null, status, available:!!sb, syncArmed};}
   function on(f){listeners.push(f);try{f(state())}catch(e){}}
 
   function client(){
@@ -32,6 +41,10 @@
     if(!window.supabase||!window.supabase.createClient)return null;
     try{
       sb=window.supabase.createClient(URL_,ANON,{auth:{persistSession:true,autoRefreshToken:true,
+        /* DO NOT RENAME. This is the localStorage key holding the Supabase
+        session. The consumer route moved to /games/kwars, but the key is an
+        internal identity like the manifest `id`: changing it would sign every
+        existing player out on the day of the migration. */
         storageKey:'kwars1-auth'}});
     }catch(e){ sb=null; }
     return sb;
@@ -65,16 +78,59 @@
   }
   function isEmpty(d){ return !d || (!d.highestWave && !d.kingdoms && !d.legacyXP && d.activeWave==null); }
 
-  function applyBundle(b){
+  // Before anything overwrites local storage, keep a copy of what was there.
+  // Restoring the wrong account, or a stale cloud row, is recoverable from this.
+  function snapshotLocal(reason){
+    try{
+      localStorage.setItem(LOCAL_BACKUP_KEY,JSON.stringify({
+        at:new Date().toISOString(), reason:reason||'restore',
+        digest:digest(bundle()), bundle:bundle()
+      }));
+      return true;
+    }catch(e){ return false; }
+  }
+  function localBackup(){
+    try{ return JSON.parse(localStorage.getItem(LOCAL_BACKUP_KEY)||'null'); }catch(e){ return null; }
+  }
+  function undoRestore(){
+    const b=localBackup();
+    if(!b||!b.bundle)return {ok:false,reason:'no-backup'};
+    return applyBundle(b.bundle,true)?{ok:true,digest:b.digest,at:b.at}:{ok:false,reason:'corrupt'};
+  }
+  function applyBundle(b,skipSnapshot){
     if(!b||typeof b!=='object')return false;
-    let n=0;
+    // A cloud row is untrusted input. Every value must be a string that parses
+    // as JSON before it is allowed near localStorage: writing junk would make
+    // KWSave fall back to its backup and look like data loss.
+    const good={};
     for(const k of KEYS){
-      if(typeof b[k]==='string'){ localStorage.setItem(k,b[k]); n++; }
-      // a key absent from the cloud bundle is left alone rather than cleared:
-      // deleting local data to mirror an incomplete cloud row is exactly the
-      // destructive behaviour this module exists to prevent.
+      const v=b[k];
+      if(typeof v!=='string')continue;
+      try{ JSON.parse(v); good[k]=v; }catch(e){ /* skip the malformed key */ }
     }
-    return n>0;
+    const n=Object.keys(good).length;
+    if(!n)return false;
+    if(!skipSnapshot)snapshotLocal('apply-cloud-bundle');
+    for(const k in good)localStorage.setItem(k,good[k]);
+    // a key absent from the cloud bundle is left alone rather than cleared:
+    // deleting local data to mirror an incomplete cloud row is exactly the
+    // destructive behaviour this module exists to prevent.
+    return true;
+  }
+  /* Would writing `local` over `cloud` lose progress? True only when local is
+     no better on every axis and strictly worse on at least one. Equal states,
+     and any state where local leads somewhere, are allowed through. */
+  function wouldRegress(local,cloud){
+    if(!cloud||isEmpty(cloud))return false;
+    if(!local)return true;
+    const axes=['highestWave','kingdoms','legacyXP'];
+    let worse=false;
+    for(const a of axes){
+      const l=local[a]||0, c=cloud[a]||0;
+      if(l>c)return false;
+      if(l<c)worse=true;
+    }
+    return worse;
   }
 
   /* ---------------- auth ---------------- */
@@ -95,7 +151,7 @@
       // project's Site URL (the KEEPITIL homepage), stranding them outside the
       // game they just signed up from. Send them back to Kingdom Wars.
       const {data,error}=await c.auth.signUp({email,password,
-        options:{emailRedirectTo:'https://keepitil.com/games/kwars1/'}});
+        options:{emailRedirectTo:'https://keepitil.com/games/kwars/'}});
       if(error)return {ok:false,error:error.message};
       // Authority is the SESSION, never data.user. When the project requires
       // email confirmation, signUp returns a user with no session: there is no
@@ -115,14 +171,14 @@
       if(error)return {ok:false,error:error.message};
       const session=(data&&data.session)||null;
       if(!session){ status='guest'; emit(); return {ok:false,error:'Confirm your email address, then sign in.'}; }
-      user=session.user; status='signed-in'; emit();
+      user=session.user; status='signed-in'; disarmSync(); emit();
       return {ok:true};
     }catch(e){ return {ok:false,error:'Could not reach the account service.'}; }
   }
   async function signOut(){
     const c=client(); if(!c)return {ok:true};
     try{ await c.auth.signOut(); }catch(e){}
-    user=null; status='guest'; emit();
+    user=null; status='guest'; disarmSync(); emit();
     // The local save deliberately survives sign-out: the device keeps a usable copy.
     return {ok:true};
   }
@@ -149,7 +205,17 @@
   async function push(force){
     const c=client(); if(!c||!user)return {ok:false,reason:'not-signed-in'};
     const b=bundle();
-    if(isEmpty(digest(b))&&!force)return {ok:false,reason:'nothing-to-save'};
+    const local=digest(b);
+    if(isEmpty(local)&&!force)return {ok:false,reason:'nothing-to-save'};
+    // REGRESSION GUARD. An unforced push reads the row first and refuses to
+    // replace a cloud save that is ahead of this device on every axis. Without
+    // this, opening the game on a stale device quietly destroys the account's
+    // progress a few seconds later, with nothing shown to the player.
+    if(!force){
+      const cur=await pull();
+      if(cur.ok&&!cur.empty&&wouldRegress(local,cur.digest))
+        return {ok:false,reason:'would-regress',local,cloud:cur.digest};
+    }
     try{
       const {error}=await c.from(TABLE).upsert({
         user_id:user.id, payload:b, schema_version:(window.KWSave&&window.KWSave.schemaVersion)||3,
@@ -157,23 +223,27 @@
         device_updated_at:new Date().toISOString()
       },{onConflict:'user_id'});
       if(error)return {ok:false,reason:'error',error:error.message};
-      lastPush=Date.now();
+      lastPush=Date.now(); armSync();
       return {ok:true};
     }catch(e){ return {ok:false,reason:'offline'}; }
   }
   // Checkpoint pushes are debounced; offline failures are swallowed on purpose,
   // because losing connectivity must never interrupt play.
   function checkpoint(reason){
-    if(!user)return;
+    if(!user||!syncArmed)return;   // see SYNC ARMING above
     clearTimeout(pushTimer);
     pushTimer=setTimeout(()=>{ push().catch(()=>{}); }, PUSH_DEBOUNCE);
   }
   async function restore(){
     const r=await pull();
     if(!r.ok||r.empty)return r;
-    return applyBundle(r.bundle)?{ok:true,applied:true,digest:r.digest}:{ok:false,reason:'corrupt'};
+    if(!applyBundle(r.bundle))return {ok:false,reason:'corrupt'};
+    armSync();
+    return {ok:true,applied:true,digest:r.digest,undoAvailable:!!localBackup()};
   }
 
   window.KWCloud=Object.freeze({init,on,state,signUp,signIn,signOut,resetPassword,
-    pull,push,restore,checkpoint,bundle,digest,isEmpty,applyBundle,KEYS});
+    pull,push,restore,checkpoint,bundle,digest,isEmpty,applyBundle,KEYS,
+    wouldRegress,snapshotLocal,localBackup,undoRestore,armSync,
+    syncArmed:()=>syncArmed});
 })();

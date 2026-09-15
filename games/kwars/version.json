@@ -1,0 +1,6 @@
+{
+  "version": "1.0.0",
+  "build": 60,
+  "channel": "production",
+  "notes": "KINGDOM WARS 1.0.0 build 60 (owner review). Canonical route is now /games/kwars; /games/kwars1 serves only a migration bridge that retires the old service worker and its caches, preserving saves, settings and auth. PWA manifest id and the auth storage key deliberately keep their legacy /games/kwars1 spelling so installed apps update in place and nobody is signed out. New front door: CRUSADE / WAR / MORE, with NEW GAME / CONTINUE per mode; Home is earned after play or sign-in. Battle orders rebuilt: RETREAT is a real order (withdraw behind the wall, garrison healing, up to 10 wall archers), DEFEND<->MARCH is one toggle, plus full and class-specific ATTACK. Spearman presentation fixed: the dory reads forward of the shield and the upper body articulates while walking, marching and running. Screen shake is OFF by default and the setting now actually governs the camera. Save schema 3 unchanged."
+}

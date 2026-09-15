@@ -47,7 +47,12 @@ function legPts(pv,g){const hip=DN-g.fwd,kn=DN-g.fwd+g.bend;const p1=fk(pv,hip,L
 function armPts(sh,a){const up=DN-a.fwd,fo=DN-a.fwd-a.bend;const e=fk(sh,up,L.uarm),h=fk(e,fo,L.farm);return [sh,e,h];}
 function build(po){
   const pv=[po.px,-(L.thigh+L.shin)+po.py];
-  const sh=fk(pv,UP+po.lean,L.spine), nk=fk(sh,UP+po.lean*1.1,L.neck), hd=fk(nk,UP+po.lean*1.1+po.headTilt,L.headR+2);
+  /* The spine carries the stride's counter-rotation, so the shoulders -- and
+     everything hanging off them: shield, spear, both arms -- move with the gait
+     instead of riding rigidly on top of moving legs (§7). */
+  const roll=po.extra&&po.extra.shoulderRoll||0;
+  const sh=fk(pv,UP+po.lean+roll,L.spine), nk=fk(sh,UP+po.lean*1.1+roll*0.5,L.neck),
+        hd=fk(nk,UP+po.lean*1.1+po.headTilt,L.headR+2);
   return {pelvis:pv,shoulder:sh,neck:nk,head:hd,
     legF:legPts(pv,po.legF),legB:legPts(pv,po.legB),armF:armPts(sh,po.armN),armB:armPts(sh,po.armF2)};
 }
@@ -144,6 +149,30 @@ function poseFor(cls,st,p,t){
     }
     else if(st!=='idle'&&st!=='march'){po.headTilt=0.1;}
   }
+  /* §7 GAIT DRIVES THE WHOLE BODY, NOT JUST THE LEGS.
+     Owner rejection 2026-09-14: soldiers "slide" while walking/marching/running.
+     Cause: walk() animated legs, bob, head and weight-shift, but every class
+     block then assigned CONSTANT arm poses -- so the shield, the spear and both
+     arms were welded rigid for the entire cycle. On a hoplite, where the shield
+     and dory are most of the silhouette, that reads as a cardboard cut-out on
+     walking legs.
+     Locomotion now modulates the arms the class already chose, contralaterally
+     (near arm swings opposite the near leg), plus a shoulder roll and a small
+     weapon-tip oscillation. A braced phalanx keeps it tight; a charge is loose.
+     This adjusts the class pose rather than replacing it, so every stance,
+     brace, attack and throw pose is preserved exactly. */
+  if(po.extra.stride!==undefined && st!=='attack' && st!=='throw' && st!=='overhead' && st!=='fury'){
+    const g=po.extra.stride;                 // -1..1, in phase with the front leg
+    const run=(st==='run');
+    const braced=!!po.extra.brace;
+    // A braced shield wall keeps its shape; a charge swings freely.
+    const amp = braced ? (run?0.13:0.075) : (run?0.34:0.17);
+    po.armN  = {fwd:po.armN.fwd  - g*amp,        bend:po.armN.bend  + Math.max(0,g)*amp*0.55};
+    po.armF2 = {fwd:po.armF2.fwd + g*amp*0.72,   bend:po.armF2.bend - g*amp*0.34};
+    po.extra.shoulderRoll = g*(run?0.075:0.042);   // torso counter-rotates into each stride
+    if(po.extra.spearAng!==undefined) po.extra.spearAng += g*(braced?0.022:0.055);
+    po.extra.gait = g;
+  }
   // ---- deaths ----
   if(st==='die_kneel'||st==='die_impale'){
     const q=ss(0,.45,p),sl=ss(.4,.96,p);po.py=q*30;po.lean=sl*0.3;po.headTilt=sl*0.6;
@@ -159,15 +188,85 @@ function poseFor(cls,st,p,t){
 }
 
 // ---------- CLASS DRAW ----------
+/* §7 DORY GEOMETRY -- ONE SOURCE OF TRUTH.
+   drawSpear() and drawSpearAheadOfShield() must agree exactly or the re-drawn
+   forward segment lands in the wrong place; they used to carry duplicate magic
+   numbers. Owner rejection 2026-09-14: the spear read as a twig in motion.
+   The shaft length was defensible (190 units on a ~140-unit man is a real
+   dory ratio) but only the last ~44 units cleared the shield rim, and at 2.5
+   line-width that stub is a hairline at gameplay zoom. So the weapon is
+   re-balanced FORWARD -- more reach ahead of the hand, less butt behind it --
+   and thickened, which is what actually makes it legible while moving. */
+const SPEAR={FWD:155, BACK:60, W:3.4, TIP:18, TIPW:5.2, SAUROTER:8};
 function drawSpear(ctx,h,ang,C){const d=[Math.cos(ang),Math.sin(ang)];
-  const b=[h[0]-d[0]*82,h[1]-d[1]*82],tp=[h[0]+d[0]*108,h[1]+d[1]*108];   // long shaft, butt clears shield behind
-  ctx.strokeStyle=shade(C.wood,-.1);ctx.lineWidth=2.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(b[0],b[1]);ctx.lineTo(tp[0],tp[1]);ctx.stroke();
+  const b=[h[0]-d[0]*SPEAR.BACK,h[1]-d[1]*SPEAR.BACK],tp=[h[0]+d[0]*SPEAR.FWD,h[1]+d[1]*SPEAR.FWD];
+  ctx.strokeStyle=shade(C.wood,-.1);ctx.lineWidth=SPEAR.W;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(b[0],b[1]);ctx.lineTo(tp[0],tp[1]);ctx.stroke();
   // bronze butt-spike (sauroter) at the rear
-  ctx.strokeStyle=C.trim;ctx.lineWidth=3.0;ctx.beginPath();ctx.moveTo(b[0]-d[0]*7,b[1]-d[1]*7);ctx.lineTo(b[0]+d[0]*3,b[1]+d[1]*3);ctx.stroke();
-  // leaf-blade tip
-  const nx=-d[1],ny=d[0],hb=[tp[0]-d[0]*12,tp[1]-d[1]*12];
-  poly(ctx,[[tp[0],tp[1]],[hb[0]+nx*3.6,hb[1]+ny*3.6],[hb[0]-nx*3.6,hb[1]-ny*3.6]],'#dfe4e8',shade('#dfe4e8',-.3),0.5);}
-function drawAspis(ctx,J,C,po){const top=J.shoulder,bot=J.pelvis,hd=J.armF[2];const th=Math.hypot(bot[0]-top[0],bot[1]-top[1]);const R=th*0.92;const spaced=po.extra.brace;const mid=[lerp(top[0],bot[0],0.5),lerp(top[1],bot[1],0.64)];const gap=spaced?R*0.4+5:R*0.12;const cx=lerp(mid[0],hd[0],0.2)+gap,cy=lerp(mid[1],hd[1],0.2);ctx.save();ctx.translate(cx,cy);ctx.fillStyle=cyl(ctx,-R,R,C.shield,.15);ctx.strokeStyle=shade(C.shield,-.4);ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.fill();ctx.stroke();ctx.strokeStyle=C.trim;ctx.lineWidth=R*0.09;ctx.beginPath();ctx.arc(0,0,R-R*0.06,0,7);ctx.stroke();ctx.strokeStyle=C.trim;ctx.lineWidth=R*0.13;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,-R*0.4);ctx.lineTo(-R*0.32,R*0.4);ctx.moveTo(0,-R*0.4);ctx.lineTo(R*0.32,R*0.4);ctx.stroke();ctx.restore();}
+  ctx.strokeStyle=C.trim;ctx.lineWidth=SPEAR.W+0.6;ctx.beginPath();ctx.moveTo(b[0]-d[0]*SPEAR.SAUROTER,b[1]-d[1]*SPEAR.SAUROTER);ctx.lineTo(b[0]+d[0]*3,b[1]+d[1]*3);ctx.stroke();
+  spearHead(ctx,tp,d,C);}
+/* Leaf blade, drawn identically wherever the tip appears. */
+function spearHead(ctx,tp,d,C){
+  const nx=-d[1],ny=d[0],hb=[tp[0]-d[0]*SPEAR.TIP,tp[1]-d[1]*SPEAR.TIP];
+  poly(ctx,[[tp[0],tp[1]],[hb[0]+nx*SPEAR.TIPW,hb[1]+ny*SPEAR.TIPW],[hb[0]-nx*SPEAR.TIPW,hb[1]-ny*SPEAR.TIPW]],'#dfe4e8',shade('#dfe4e8',-.3),0.6);
+  // socket collar: reads as a real head rather than a paper dart at small scale
+  ctx.strokeStyle=C.trim;ctx.lineWidth=SPEAR.W;ctx.beginPath();
+  ctx.moveTo(hb[0],hb[1]);ctx.lineTo(hb[0]-d[0]*3,hb[1]-d[1]*3);ctx.stroke();}
+
+/* §2/§13 SPEAR HEDGE. The aspis is drawn after the weapon arm, so the forward
+   half of the dory was being painted over by the shield and the phalanx showed
+   no spear points at all -- only the butt-spikes protruding backwards. A spear
+   held on the far arm genuinely projects PAST the shield rim, and beyond that
+   rim it is visible. So after the shield we re-draw only the segment that lies
+   outside the shield disc. Nothing about the weapon's geometry or its reach
+   changes; this only stops the shield from hiding what should be in front of it. */
+function drawSpearAheadOfShield(ctx,J,po,C){
+  if(po.supine||po.extra.impale||po.extra.spearGone)return;
+  const ang=po.extra.spearAng||0, d=[Math.cos(ang),Math.sin(ang)];
+  const h=J.armB[2];
+  const tip=[h[0]+d[0]*SPEAR.FWD,h[1]+d[1]*SPEAR.FWD];
+  const {cx,cy,R}=aspisDisc(J,po);
+  /* Find where the shaft LAST leaves the shield disc. Scanning for the first
+     clear point was wrong: the weapon hand sits on the far arm and is usually
+     already outside the disc, so that scan returned t=0 and the guard below
+     silently skipped every soldier -- which is why the first attempt at this
+     drew nothing at all. */
+  let tIn=-1;
+  for(let t=0;t<=SPEAR.FWD;t+=3){
+    const px=h[0]+d[0]*t, py=h[1]+d[1]*t;
+    if(Math.hypot(px-cx,py-cy)<=R) tIn=t;
+  }
+  if(tIn<0) return;                 // shaft never crosses the shield: already visible
+  const t0=Math.min(SPEAR.FWD,tIn+3);
+  if(t0>=SPEAR.FWD) return;         // the disc swallows the whole shaft
+  const a=[h[0]+d[0]*t0,h[1]+d[1]*t0];
+  ctx.strokeStyle=shade(C.wood,-.1);ctx.lineWidth=SPEAR.W;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(tip[0],tip[1]);ctx.stroke();
+  spearHead(ctx,tip,d,C);
+}
+/* How much of the dory projects past the shield rim, in rig units. This is the
+   number that decides whether the weapon reads as a spear while the soldier is
+   moving; the test suite asserts a floor on it. */
+function spearClearance(J,po){
+  const ang=po.extra.spearAng||0, d=[Math.cos(ang),Math.sin(ang)];
+  const h=J.armB[2], {cx,cy,R}=aspisDisc(J,po);
+  let tIn=-1;
+  for(let t=0;t<=SPEAR.FWD;t+=1){
+    if(Math.hypot(h[0]+d[0]*t-cx,h[1]+d[1]*t-cy)<=R) tIn=t;
+  }
+  return SPEAR.FWD-Math.max(0,tIn);
+}
+/* §7 The aspis was R = torso*0.92 -- an 84-unit disc on a 140-unit man, centred
+   over the chest, which hid the body, both arms and most of the dory. It is now
+   0.78 and braced slightly less far forward, so the soldier reads as a soldier
+   and the weapon reads as a weapon. Still a big round hoplite shield. */
+function aspisDisc(J,po){
+  const top=J.shoulder,bot=J.pelvis,hd=J.armF[2];
+  const th=Math.hypot(bot[0]-top[0],bot[1]-top[1]), R=th*0.78;
+  const mid=[lerp(top[0],bot[0],0.5),lerp(top[1],bot[1],0.64)];
+  const gap=po.extra.brace?R*0.28+4:R*0.10;
+  return {cx:lerp(mid[0],hd[0],0.2)+gap, cy:lerp(mid[1],hd[1],0.2), R};
+}
+function drawAspis(ctx,J,C,po){const {cx,cy,R}=aspisDisc(J,po);ctx.save();ctx.translate(cx,cy);ctx.fillStyle=cyl(ctx,-R,R,C.shield,.15);ctx.strokeStyle=shade(C.shield,-.4);ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.fill();ctx.stroke();ctx.strokeStyle=C.trim;ctx.lineWidth=R*0.09;ctx.beginPath();ctx.arc(0,0,R-R*0.06,0,7);ctx.stroke();ctx.strokeStyle=C.trim;ctx.lineWidth=R*0.13;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,-R*0.4);ctx.lineTo(-R*0.32,R*0.4);ctx.moveTo(0,-R*0.4);ctx.lineTo(R*0.32,R*0.4);ctx.stroke();ctx.restore();}
 function drawScutum(ctx,J,C){const top=J.shoulder,bot=J.pelvis,hd=J.armF[2];const th=Math.hypot(bot[0]-top[0],bot[1]-top[1]);const HH=th*0.86,HW=th*0.30;const mid=[lerp(top[0],bot[0],0.5),lerp(top[1],bot[1],0.6)];const cx=lerp(mid[0],hd[0],0.32)+HW*0.5,cy=lerp(mid[1],hd[1],0.38);ctx.save();ctx.translate(cx,cy);ctx.fillStyle=cyl(ctx,-HW,HW,C.shield,.14);ctx.strokeStyle=shade(C.shield,-.4);ctx.lineWidth=1.4;ctx.beginPath();ctx.roundRect(-HW,-HH,HW*2,HH*2,4);ctx.fill();ctx.stroke();ctx.strokeStyle=C.trim;ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(-HW+1.2,-HH+1.4,HW*2-2.4,HH*2-2.8,3);ctx.stroke();ctx.fillStyle=C.trim;ctx.beginPath();ctx.arc(0,0,HW*0.24,0,7);ctx.fill();ctx.restore();}
 function drawGladius(ctx,J,po,C){
   const h=J.armB[2];const trail=po.extra.trail||0;
@@ -297,7 +396,8 @@ function drawSoldier(ctx,cls,po,C,team,armorCls){
   if(armorCls==='sword'&&!po.supine&&!po.extra.impale)drawPauldron(ctx,J.shoulder,C);
   if(!po.supine&&!po.extra.impale&&!po.extra.dropGear&&!po.dropShield){
     if(armorCls==='sword')drawScutum(ctx,J,C);
-    if(armorCls==='spear')drawAspis(ctx,J,C,po);
+    if(armorCls==='spear'){drawAspis(ctx,J,C,po);
+      if(cls==='spear')drawSpearAheadOfShield(ctx,J,po,C);}
   }
   if(cls==='gun'&&!po.supine)drawRifle(ctx,J.armF[2],J.armB[2],po,C);
   if(po.extra.impale){const cx=lerp(J.shoulder[0],J.pelvis[0],0.4),cy=lerp(J.shoulder[1],J.pelvis[1],0.42);const d=[Math.cos(po.extra.impale),Math.sin(po.extra.impale)];ctx.strokeStyle=shade(C.wood||'#8a5a2c',-.1);ctx.lineWidth=2.4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cx+d[0]*38,cy+d[1]*38);ctx.lineTo(cx-d[0]*16,cy-d[1]*16);ctx.stroke();ctx.fillStyle='#5a0e0e';ctx.beginPath();ctx.arc(cx,cy,2.4,0,7);ctx.fill();}
@@ -334,5 +434,5 @@ function drawSoldierLite(ctx,cls,po,C,team){
   if((cls==='spear'||cls==='sword')&&!po.dropShield&&!po.supine){ctx.fillStyle=C.shield||'#9e2b25';ctx.beginPath();ctx.arc(J.armF[2][0],J.armF[2][1],6.5,0,7);ctx.fill();}
   ctx.globalAlpha=1;
 }
-return {drawSoldier,drawSoldierLite,poseFor,build,PAL,teamTint,poly,shade};
+return {drawSoldier,drawSoldierLite,poseFor,build,PAL,teamTint,poly,shade,SPEAR,aspisDisc,spearClearance};
 })();

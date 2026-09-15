@@ -15,7 +15,7 @@
 			<key>metadata</key>
 			<dict>
 				<key>bundle-identifier</key><string>com.keepitil.thrive</string>
-				<key>bundle-version</key><string>51</string>
+				<key>bundle-version</key><string>52</string>
 				<key>kind</key><string>software</string>
 				<key>title</key><string>TUITEA</string>
 			</dict>

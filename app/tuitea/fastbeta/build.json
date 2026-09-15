@@ -1,8 +1,8 @@
 {
   "version": "1.0.0",
-  "build": "51",
-  "releaseId": "51.bc3f79a.app",
-  "commit": "bc3f79a",
+  "build": "52",
+  "releaseId": "52.d3911f9.app",
+  "commit": "d3911f9",
   "flutter": "3.44.4",
   "shorebird": true
 }

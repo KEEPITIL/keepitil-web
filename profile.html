@@ -11,7 +11,9 @@
 <meta name="robots" content="index,follow">
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
-  <link rel="canonical" href="https://keepitil.com/profile.html"/>
+  <!-- NO STATIC CANONICAL: this page is identified by ?slug=<slug>, so one hardcoded value
+       collapsed all six sitemap-listed profiles onto /profile for any crawler that does
+       not run JS. Missing beats wrong; the real canonical is injected below. -->
 <title>Profile | KEEPITIL</title>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
@@ -851,7 +853,14 @@ var IS_DEMO=false;/* Founder 2026-08-04: unclaimed profiles (incl. groove-troope
        engines the real page is not the one to index. Canonical now points at the URL that
        actually serves 200. If the pretty route is wanted, it needs an edge rewrite first -
        GitHub Pages cannot serve it - and this line should follow, not lead. */
-try{ if(PROFILE_SLUG){ var _pu='https://keepitil.com/profile.html?slug='+encodeURIComponent(PROFILE_SLUG); var _c=document.querySelector('link[rel="canonical"]'); if(_c)_c.href=_pu; var _ou=document.querySelector('meta[property="og:url"]'); if(_ou)_ou.setAttribute('content',_pu); } }catch(e){}
+/* Clean form: Pages serves /profile natively from profile.html, so the .html was noise that
+   also let two aliases compete as separate pages. The static tag is gone, so CREATE the link
+   rather than assuming one is present. */
+try{ if(PROFILE_SLUG){ var _pu='https://keepitil.com/profile?slug='+encodeURIComponent(PROFILE_SLUG);
+  var _c=document.querySelector('link[rel="canonical"]');
+  if(!_c){ _c=document.createElement('link'); _c.rel='canonical'; document.head.appendChild(_c); }
+  _c.href=_pu;
+  var _ou=document.querySelector('meta[property="og:url"]'); if(_ou)_ou.setAttribute('content',_pu); } }catch(e){}
 /* the 14 KEEPITIL agents answer live via the ask-echo edge fn (agent-scoped brain + personality);
    their CHAT tab becomes a real "ask this agent" chat — normal profiles keep scene-room chats */
 var AGENT_INFO={ /* mirrors public.agent_profiles (name, genre lane, department) — fallback identity when profile_meta has no row */
@@ -1151,7 +1160,7 @@ function dbToEv(e,src){
   return { month:d?_MON3[d.getMonth()]:'', day:d?String(d.getDate()):'', dow:d?_DOW[d.getDay()]:'',
     title:e.title||'Event', venue:e.city||'',
     tags: src==='tickets'?('🎟 Ticket'+(e.qty>1?' ×'+e.qty:'')):(e.genres||(st&&st!=='published'?st:'')),
-    tix: src==='tickets'?('/tickets.html?e='+encodeURIComponent(e.slug||'')):('/event.html?e='+encodeURIComponent(e.slug||'')),
+    tix: src==='tickets'?('/tickets?e='+encodeURIComponent(e.slug||'')):('/event?e='+encodeURIComponent(e.slug||'')),
     cover:e.cover_url||'', kind:'kil', _src:src, _ts:d?d.getTime():0 };
 }
 /* SINGLE events feed: all event types + my events + my tickets, filterable, newest -> oldest */
@@ -1206,7 +1215,7 @@ function loadMyTickets(){
     renderShows();
   }).catch(function(){});
 }
-function goMyTix(i){ var t=MY_TIX[i]; if(!t)return; location.href='/tickets.html?e='+encodeURIComponent(t.slug||''); }
+function goMyTix(i){ var t=MY_TIX[i]; if(!t)return; location.href='/tickets?e='+encodeURIComponent(t.slug||''); }
 /* ── MY EVENTS carousel: events this profile created/hosts. Owner sees all statuses; public sees published. ── */
 function loadMyEvents(){
   var wrap=document.getElementById('myev-wrap'); if(wrap)wrap.style.display='none';  /* my events now live in the unified events feed */
@@ -1230,8 +1239,8 @@ function openTicket(i){
     +'<h3 style="margin:0 0 4px">'+esc(t.title||'Event')+'</h3>'
     +'<p class="note" style="margin:0 0 12px">'+esc(fmtTixDate(t.starts_at))+(t.venue?' · '+esc(t.venue):'')+(t.city?' · '+esc(t.city):'')+'</p>'
     +'<div style="display:flex;gap:14px;align-items:center;margin:0 0 14px"><img src="'+qr+'" alt="Ticket QR" style="width:110px;height:110px;border-radius:10px;background:#fff;padding:6px"><div><div style="font-weight:800;font-size:.9rem">General Admission</div><div class="note">Qty: '+(t.qty||1)+'</div><div class="note" style="word-break:break-all;font-size:.66rem">Ref: '+esc(String(t.qr_token||'').slice(0,12))+'</div><div style="color:var(--accent);font-weight:800;font-size:.8rem;margin-top:4px">✓ PAID</div></div></div>'
-    +'<a class="kil-msave" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px" href="/tickets.html?t='+encodeURIComponent(t.qr_token||'')+'">View / share full ticket →</a>'
-    +'<a class="kil-mcancel" style="display:block;text-align:center;text-decoration:none" href="/event.html?e='+encodeURIComponent(t.slug||'')+'">Open event page &amp; chat →</a>'
+    +'<a class="kil-msave" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px" href="/tickets?t='+encodeURIComponent(t.qr_token||'')+'">View / share full ticket →</a>'
+    +'<a class="kil-mcancel" style="display:block;text-align:center;text-decoration:none" href="/event?e='+encodeURIComponent(t.slug||'')+'">Open event page &amp; chat →</a>'
     +'</div></div>';
   document.body.appendChild(ov);
   ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
@@ -1391,6 +1400,32 @@ var PROFILE = IS_DEMO ? {
 function applyProfile(){
   var g=function(id){return document.getElementById(id);};
   try{document.title=(PROFILE.name?PROFILE.name+' — ':'')+'Artist Profile | KEEPITIL';}catch(e){}
+  /* ProfilePage JSON-LD (KODE 2026-09-14). Public profiles carried no structured data at all.
+     Only fields that actually hold a value are emitted -- an empty name or a blank image is
+     worse than an absent one, because it publishes a claim the page cannot support.
+
+     mainEntity is deliberately ABSENT. Saying Person or Organization would be a guess: the
+     profile model does store an entity type (profile_meta.account_type / entity_category) but
+     its values are 'editorial_artist' / 'artist' / 'subscriber_profile', and one of the two
+     live public profiles has entity_category NULL. "Artist" does not resolve the question
+     either -- an artist may be one person or a group. Guessing from the display name is
+     exactly what must not happen here, so the type stays unstated until the data states it.
+
+     Nothing is emitted for a profile that did not resolve: a not-found profile must not
+     publish structured data describing a profile that does not exist. */
+  try{
+    if(PROFILE_SLUG && PROFILE.name){
+      var _ld={"@context":"https://schema.org","@type":"ProfilePage",
+               "url":'https://keepitil.com/profile?slug='+encodeURIComponent(PROFILE_SLUG),
+               "name":PROFILE.name};
+      var _d=PROFILE.bio||PROFILE.tagline||''; if(_d) _ld.description=_d;
+      if(PROFILE.avatar) _ld.image=PROFILE.avatar;
+      var _e=document.getElementById('ld-profile');
+      if(!_e){ _e=document.createElement('script'); _e.type='application/ld+json';
+               _e.id='ld-profile'; document.head.appendChild(_e); }
+      _e.textContent=JSON.stringify(_ld);
+    }
+  }catch(e){}
   /* the profile "cover" is now the LOCKED BACKGROUND image (editable in Edit Profile) */
   try{ var _isM=window.matchMedia('(max-width:768px)').matches; var _bg=(_isM&&PROFILE.cover_mobile)?PROFILE.cover_mobile:PROFILE.cover; document.documentElement.style.setProperty('--pf-bg', _bg?("url('"+String(_bg).replace(/'/g,"%27")+"')"):"url('/assets/images/logo-bg.jpg')"); }catch(e){}
   var _av=g('pfAvatar'); if(_av){ _av.classList.remove('pf-skel'); if(PROFILE.avatar){ _av.style.display=''; _av.src=PROFILE.avatar; } }
@@ -1446,7 +1481,7 @@ function loadProfileMeta(){
     if(PROFILE_SLUG && !(r&&r.data) && window.KIL_NOT_FOUND){
       window.KIL_NOT_FOUND({ what:'profile', heading:'That profile isn’t here',
         body:'It may have been removed, renamed, or the link may be wrong.',
-        links:[['/connect/','Browse the Scene'],['/','Explore'],['/apply.html','Claim your profile']] });
+        links:[['/connect/','Browse the Scene'],['/','Explore'],['/apply','Claim your profile']] });
       return;
     }
     if(r&&r.data){var d=r.data;
@@ -1572,7 +1607,7 @@ function syncNavCta(){ if(window.__ncStarted)return; window.__ncStarted=1; var t
     var cta=document.querySelector('.v3s-cta'); if(!cta){ if(tries>40)clearInterval(iv); return; }
     if(SESSION && SESSION.user){
       if(!CAN_EDIT() && cta.textContent.trim().toUpperCase()!=='PROFILE'){
-        cta.innerHTML=''; cta.textContent='PROFILE'; cta.setAttribute('href','/profile.html');
+        cta.innerHTML=''; cta.textContent='PROFILE'; cta.setAttribute('href','/profile');
         cta.setAttribute('title','My profile'); cta.setAttribute('aria-label','My profile');
         cta.classList.remove('v3s-hamb'); cta.onclick=null; cta.style.cssText='';
       }
@@ -2167,7 +2202,7 @@ function showLoginWall(){
     +'<div class="kil-mb" style="padding:26px 22px;text-align:center">'
       +'<div style="font-size:2.5rem;line-height:1;margin-bottom:12px">🔒</div>'
       +'<p style="font-size:1rem;line-height:1.55;color:var(--text-soft,#d4d7e2);margin:0 0 20px">Create a free account to like, comment, reshare and save. Anyone can look around — you just need to be signed in to join in.</p>'
-      +'<a href="/apply.html?next='+next+'" class="kil-join-btn" style="display:inline-block;text-decoration:none;padding:12px 28px">Log in / Join →</a>'
+      +'<a href="/apply?next='+next+'" class="kil-join-btn" style="display:inline-block;text-decoration:none;padding:12px 28px">Log in / Join →</a>'
     +'</div></div>';
   document.body.appendChild(ov); ov.addEventListener('click',function(e){if(e.target===ov)closeLoginWall();});
 }
@@ -2244,7 +2279,7 @@ function postMenu(pid,src,idx,ev){ if(ev){ev.stopPropagation();} closeMenu();
   if(owner){ items.push('<button onclick="editPost(\''+src+'\','+idx+')">✏️ Edit caption</button>');
     items.push('<button onclick="delPost(\''+pid+'\')">🗑 Delete post</button>');
     items.push('<button onclick="toggleHideFeed(\''+src+'\','+idx+');closeMenu()">👁 Hide / show in feed</button>'); }
-  else { items.push('<button onclick="fbShare(location.origin+\'/profile.html?slug=\'+encodeURIComponent(PROFILE_SLUG));closeMenu()">🔗 Copy link</button>');
+  else { items.push('<button onclick="fbShare(location.origin+\'/profile?slug=\'+encodeURIComponent(PROFILE_SLUG));closeMenu()">🔗 Copy link</button>');
     items.push('<button onclick="reportPost()">🚩 Report</button>'); }
   var m=document.createElement('div'); m.className='post-menu'; m.id='postMenu'; m.innerHTML=items.join('');
   document.body.appendChild(m);
@@ -2273,7 +2308,7 @@ document.addEventListener('scroll',function(e){
   dots.forEach(function(d,j){d.classList.toggle('on',j===i);});
 },true);
 function eventCardHtml(e,pid){
-  var ext=!!e.is_external; var url=e.ticket_url||('/event.html?e='+encodeURIComponent(e.slug||''));
+  var ext=!!e.is_external; var url=e.ticket_url||('/event?e='+encodeURIComponent(e.slug||''));
   var img=e.cover||'/assets/images/blog-default.jpg';
   var when=''; try{var dt=new Date(e.date); if(!isNaN(dt)) when=dt.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});}catch(x){}
   var tgt=ext?' target="_blank" rel="noopener"':'';
@@ -2301,7 +2336,7 @@ function postCard(p){
     : '<img src="'+esc(p.media||authorAv||'/icon-192.png')+'" alt="'+esc(p.title)+'" loading="lazy" onerror="this.src=\'/icon-192.png\'">';  /* every post shows an image — fall back to the author avatar */
   var col=(p.collab&&p.collab.length)?' <span style="color:var(--accent)">✦ @'+p.collab.map(esc).join(', @')+'</span>':'';
   var hid=(CAN_EDIT()&&isHiddenFromFeed(p))?'<span class="pc-hidden">Gallery only</span>':'';
-  var plink='/profile.html?slug='+encodeURIComponent(authorSlug);
+  var plink='/profile?slug='+encodeURIComponent(authorSlug);
   return '<div class="pf-card fbcard" data-kind="'+p.type+'" data-pid="'+esc(pid)+'">'
     +'<div class="fb-head">'
       +'<a class="fb-avlink" href="'+plink+'"><img class="fb-av" src="'+esc(authorAv)+'" alt="" onerror="this.src=\'/icon-192.png\'"></a>'
@@ -2315,7 +2350,7 @@ function postCard(p){
     +'<div class="fb-actions">'
       +'<button class="fba fba-like" onclick="event.stopPropagation();fbToggleLike(\''+pid+'\')" title="Like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.9-9.3-9C1.2 8 3 4.5 6.4 4.5c2.2 0 3.6 1.2 4.4 2.6.2.4.9.4 1.1 0 .8-1.4 2.2-2.6 4.4-2.6 3.4 0 5.2 3.5 3.7 7-1.8 4.1-8 9-8 9z"/></svg><b></b></button>'
       +'<button class="fba fba-resh" onclick="event.stopPropagation();fbReshare(\''+pid+'\')" title="Reshare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><b></b></button>'
-      +'<button class="fba fba-share" onclick="event.stopPropagation();fbShare(location.origin+\'/profile.html?slug=\'+encodeURIComponent('+(p.collab&&p.collab.length?'\''+esc(authorSlug)+'\'':'PROFILE_SLUG')+'))" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></button>'
+      +'<button class="fba fba-share" onclick="event.stopPropagation();fbShare(location.origin+\'/profile?slug=\'+encodeURIComponent('+(p.collab&&p.collab.length?'\''+esc(authorSlug)+'\'':'PROFILE_SLUG')+'))" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></button>'
       +'<button class="fba fb-save" style="margin-left:auto" onclick="event.stopPropagation();fbSave(\''+pid+'\',this)" title="Save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17 3H7a2 2 0 00-2 2v16l7-4 7 4V5a2 2 0 00-2-2z"/></svg></button>'
     +'</div>'
   +'</div>';
@@ -2549,11 +2584,11 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
   if(!PROFILE_SLUG){
     /* No slug: send a logged-in user to THEIR profile, else to login.
        ⚠ The no-profile destination was /create-profile.html, which does not exist. It is the
-       DASHBOARD now, not /profile.html?edit=1: this whole branch is guarded by !PROFILE_SLUG,
+       DASHBOARD now, not /profile?edit=1: this whole branch is guarded by !PROFILE_SLUG,
        so sending them back to a slugless profile.html would run this same code again and
        loop. */
-    if(SB){ SB.auth.getSession().then(function(r){ var s=r&&r.data?r.data.session:null; if(!s){ location.replace('/apply.html'); return; } SB.rpc('my_profile_slug').then(function(rr){ if(rr&&!rr.error&&rr.data){ location.replace('/profile.html?slug='+encodeURIComponent(rr.data)); /* OWNER view, not /public/ (Founder 2026-08-05) */ } else { location.replace('/dashboard.html'); } }).catch(function(){ location.replace('/dashboard.html'); }); }); }
-    else { location.replace('/apply.html'); }
+    if(SB){ SB.auth.getSession().then(function(r){ var s=r&&r.data?r.data.session:null; if(!s){ location.replace('/apply'); return; } SB.rpc('my_profile_slug').then(function(rr){ if(rr&&!rr.error&&rr.data){ location.replace('/profile?slug='+encodeURIComponent(rr.data)); /* OWNER view, not /public/ (Founder 2026-08-05) */ } else { location.replace('/dashboard'); } }).catch(function(){ location.replace('/dashboard'); }); }); }
+    else { location.replace('/apply'); }
   } else if(SB){
     SB.auth.getSession().then(function(r){ SESSION=(r&&r.data)?r.data.session:null; return checkOwnership(); }).then(function(){ updateOwnerUI(); try{applyProfileTabs();}catch(e){} loadProfileMeta(); loadFromDB(); loadFollow(); loadCollab(); loadMyTickets(); loadMyEvents(); }).catch(function(){ loadProfileMeta(); loadFromDB(); loadFollow(); loadMyEvents(); });
     SB.auth.onAuthStateChange(function(_e,s){ SESSION=s; checkOwnership().then(function(){ updateOwnerUI(); try{applyProfileTabs();}catch(e){} loadFromDB(); loadFollow(); loadCollab(); loadMyTickets(); loadMyEvents(); }); });
@@ -2823,7 +2858,7 @@ function loadTagged(){
         try{ var dt=new Date(e.starts_at); if(!isNaN(dt)) when=dt.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'}).toUpperCase(); }catch(x){}
         var where=[e.venue,e.city].filter(Boolean).join(' · ');
         var amt=o.amount_cents ? '$'+(o.amount_cents/100).toFixed(2) : 'Free';
-        var href=e.slug ? '/event.html?e='+encodeURIComponent(e.slug) : '#';
+        var href=e.slug ? '/event?e='+encodeURIComponent(e.slug) : '#';
         var img=e.cover_url||'';
         var media = img
           ? '<img class="pfe-bg" src="'+esc(img)+'" alt="" aria-hidden="true" loading="lazy">'

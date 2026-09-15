@@ -15,11 +15,11 @@
      WHAT IT DOES: translates pretty URLs into real pages, e.g.
         /culture              -> /culture/
         /games                -> /games/
-        /profile/<handle>     -> /profile.html?slug=<handle>
-        /event/<slug>         -> /event.html?e=<slug>
-        /venue/<slug>         -> /venue.html?v=<slug>
+        /profile/<handle>     -> /profile?slug=<handle>
+        /event/<slug>         -> /event?e=<slug>
+        /venue/<slug>         -> /venue?v=<slug>
         /unclaimed/profile/<handle>, /culture/feed, and the single-segment clean
-        URLs in CLEAN_URL_PAGES (/apply -> /apply.html and so on)
+        URLs in CLEAN_URL_PAGES (/apply -> apply.html and so on)
 
      The /radio, /vs and /scene lines that used to sit in this list were removed on
      2026-09-09. Those surfaces are RETIRED: the router stopped translating them, so
@@ -89,28 +89,28 @@ a{color:#5cc8ff}</style>
      bundle, no template and no current page links to any of them. Do not put the map back. */
   // /unclaimed/profile/<slug>  → dynamic template (public view); no stale static clones (Founder 2026-08-04)
   if(seg.length===3 && seg[0]==='unclaimed' && seg[1]==='profile'){
-    return go('/profile.html?slug='+encodeURIComponent(slug)+'&view=public');
+    return go('/profile?slug='+encodeURIComponent(slug)+'&view=public');
   }
   /* /public/profile/<slug> BRANCH REMOVED (KODE 2026-09-09).
      It was routed here while simultaneously sitting in the search-console removal list -
      a URL cannot be both retired and actively translated. profile.html already records the
      decision: the 2026-08-04 plan named /public/profile/<slug> canonical, "but that route
-     was never built", and canonical was corrected on 2026-09-02 to /profile.html?slug=.
+     was never built", and canonical was corrected on 2026-09-02 to /profile?slug=.
      Proof taken before removal: zero producers repo-wide - no share flow, template, app
      bundle or profile page emits this shape; the only other mention is that comment.
      It is a retired URL and now terminates as a hard 404. /unclaimed/profile/<slug> and
      /profile/<slug> below are NOT this: they are clean URLs for a page that exists. */
   // /profile/<slug>
   if(seg.length===2 && seg[0]==='profile'){
-    return go('/profile.html?slug='+encodeURIComponent(slug));
+    return go('/profile?slug='+encodeURIComponent(slug));
   }
   // /venue/<slug>
   if(seg.length===2 && seg[0]==='venue'){
-    return go('/venue.html?v='+encodeURIComponent(slug));
+    return go('/venue?v='+encodeURIComponent(slug));
   }
   // /event/<name>
   if(seg.length===2 && seg[0]==='event'){
-    return go('/event.html?e='+encodeURIComponent(slug));
+    return go('/event?e='+encodeURIComponent(slug));
   }
   /* /article/<slug> NO LONGER ROUTES HERE (2026-08-31 route cleanup). Every article is now a
      real directory — /article/<slug>/index.html and /article/artist/<slug>/index.html — so the
@@ -165,7 +165,7 @@ a{color:#5cc8ff}</style>
   var SECTION={culture:'/culture/',games:'/games/'};
   /* about, contact and onboarding were removed: no such page exists, so those entries could
      only ever send a visitor from one 404 to another. */
-  /* Clean URLs for pages that EXIST: /apply -> /apply.html and so on. Renamed off the
+  /* Clean URLs for pages that EXIST: /apply -> /apply and so on. Renamed off the
      stale "V31PAGES" label (KODE 2026-09-09) - these have nothing to do with the retired
      /v31/ generation, and the old name implied this router still served it. 'audit' was
      dropped in the same pass: audit.html does not exist, so that entry could only ever send

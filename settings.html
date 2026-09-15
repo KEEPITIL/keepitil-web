@@ -303,7 +303,7 @@ function initPush(){
   };
 }
 
-function goProfile(){ var h=window.__myHandle; if(h){ location.href='/profile.html?slug='+encodeURIComponent(h); } else if(document.referrer&&/\/v31\//.test(document.referrer)){ history.back(); } else { location.href='/'; } }
+function goProfile(){ var h=window.__myHandle; if(h){ location.href='/profile?slug='+encodeURIComponent(h); } else if(document.referrer&&/\/v31\//.test(document.referrer)){ history.back(); } else { location.href='/'; } }
 function saveEmail(){ var sz=document.getElementById('sz-account'); var el=document.getElementById('acc-email-in'); var email=(el.value||'').trim();
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ if(sz){sz.textContent='Enter a valid email';setTimeout(function(){sz.textContent='';},2200);} return; }
   if(!SB||!SIGNED){ if(sz)sz.textContent='Log in to change your email'; return; }

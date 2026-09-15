@@ -176,7 +176,7 @@
         .then(function (r) { if (r && r.data) { r.data.forEach(function (x) { mine[x.kind] = true; }); paintMine(); } }).catch(function () {});
     }
     function toggle(kind) {
-      if (!sb || !session) { location.href = "/apply.html"; return; }
+      if (!sb || !session) { location.href = "/apply"; return; }
       var on = mine[kind]; mine[kind] = !on; paintMine();
       var cel = q(kind) && q(kind).querySelector("b");
       if (cel) cel.textContent = Math.max(0, (parseInt(cel.textContent, 10) || 0) + (on ? -1 : 1));

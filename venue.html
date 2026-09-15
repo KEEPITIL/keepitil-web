@@ -10,7 +10,8 @@
 <meta property="og:site_name" content="KEEPITIL"/>
 <meta property="og:title" id="mOg" content="Venue — KEEPITIL"/>
 <meta property="og:image" id="mImg" content="https://keepitil.com/assets/images/logo-blue-nav.png"/>
-<link rel="canonical" id="mCanon" href="https://keepitil.com/venue.html"/>
+<!-- NO STATIC CANONICAL: identified by ?v=<slug>; a single hardcoded value is wrong for
+     every venue. Injected at runtime below. -->
 <link rel="stylesheet" href="/assets/css/tokens.css"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>
 <script type="application/ld+json" id="ldjson">{"@context":"https://schema.org","@type":"EventVenue","name":"KEEPITIL Venue"}</script>
@@ -233,9 +234,14 @@ function render(){
   document.title=V.name+' — Book on KEEPITIL';
   $('mDesc').setAttribute('content',(V.tagline||V.about||V.name));
   $('mOg').setAttribute('content',V.name+' — KEEPITIL');
-  $('mCanon').setAttribute('href','https://keepitil.com/venue.html?v='+encodeURIComponent(V.slug));
+  /* Clean /venue form, matching how Pages already serves it; create the tag since there is
+     no longer a static one to mutate. */
+  var _vc=document.getElementById('mCanon');
+  if(!_vc){ _vc=document.createElement('link'); _vc.rel='canonical'; _vc.id='mCanon';
+            document.head.appendChild(_vc); }
+  _vc.setAttribute('href','https://keepitil.com/venue?v='+encodeURIComponent(V.slug));
   if(V.cover_url){ $('vCover').innerHTML='<img src="'+esc(V.cover_url)+'" alt="'+esc(V.name)+'" onerror="this.style.display=\'none\'">'; $('mImg').setAttribute('content',V.cover_url); }
-  try{ $('ldjson').textContent=JSON.stringify({"@context":"https://schema.org","@type":"EventVenue","name":V.name,"description":V.about||V.tagline,"address":V.address||V.city,"maximumAttendeeCapacity":V.capacity_summary,"image":V.cover_url||undefined,"url":'https://keepitil.com/venue.html?v='+V.slug}); }catch(e){}
+  try{ $('ldjson').textContent=JSON.stringify({"@context":"https://schema.org","@type":"EventVenue","name":V.name,"description":V.about||V.tagline,"address":V.address||V.city,"maximumAttendeeCapacity":V.capacity_summary,"image":V.cover_url||undefined,"url":'https://keepitil.com/venue?v='+V.slug}); }catch(e){}
   $('vName').textContent=V.name;
   $('vTag').textContent=V.tagline||'';
   var loc=V.address||V.city;
@@ -284,7 +290,7 @@ function render(){
   $('askName').textContent=V.name;
   $('askSugg').innerHTML=['How many guests fit?','Can I bring outside food?','Can I have alcohol?','Can I tour first?'].map(function(q){return '<button onclick="askVQ(this.textContent)">'+esc(q)+'</button>';}).join('');
   // claim
-  $('vClaim').innerHTML=V.owner_handle?('Managed by <a href="/profile.html?slug='+esc(V.owner_handle)+'">@'+esc(V.owner_handle)+'</a>'):'Is this your venue? <a onclick="claim()">Claim this page →</a>';
+  $('vClaim').innerHTML=V.owner_handle?('Managed by <a href="/profile?slug='+esc(V.owner_handle)+'">@'+esc(V.owner_handle)+'</a>'):'Is this your venue? <a onclick="claim()">Claim this page →</a>';
   $('loading').style.display='none'; $('v').style.display='block';
 }
 /* ── Gallery (auto-filled from posts/blogs that tag or mention the venue) ── */

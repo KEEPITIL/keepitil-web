@@ -8,9 +8,16 @@
 User-agent: *
 Allow: /
 
-# Account-only application states
+# Account-only application states.
+# BOTH spellings are listed on purpose. GitHub Pages serves every one of these pages at its
+# extensionless URL too (/dashboard is the same page as /dashboard.html, HTTP 200, no
+# redirect), and internal links were moved to the clean form on 2026-09-14 - so a rule that
+# named only the .html spelling stopped covering the URL the crawler actually sees.
+Disallow: /dashboard
 Disallow: /dashboard.html
+Disallow: /settings
 Disallow: /settings.html
+Disallow: /reset-password
 Disallow: /reset-password.html
 Disallow: /organizers/
 

@@ -336,14 +336,14 @@
     return false;
   }
 
-  /* The public create path. NOT /create-event.html — that is admin-only and bounces everyone
+  /* The public create path. NOT /create-event — that is admin-only and bounces everyone
      else, dropping query params on the way. */
-  var KIL_CREATE_URL = '/submit-event.html';
+  var KIL_CREATE_URL = '/submit-event';
 
   function welcomeActions(){
     return kilSignedIn()
-      ? [{ label:'Profile', href:'/profile.html' }, { label:'Create', href:KIL_CREATE_URL }]
-      : [{ label:'Log in',  href:'/apply.html'   }, { label:'Create', href:KIL_CREATE_URL }];
+      ? [{ label:'Profile', href:'/profile' }, { label:'Create', href:KIL_CREATE_URL }]
+      : [{ label:'Log in',  href:'/apply'   }, { label:'Create', href:KIL_CREATE_URL }];
   }
 
   var WELCOME_CHIPS = [];   /* kept for the renderer; the two actions are rendered separately */
@@ -942,7 +942,7 @@
         return '• ' + (p.display_name || p.name || p.slug) + (p.city ? ' · ' + p.city : '');
       }).join('\n'),
       links: ps.slice(0, 5).filter(function (p) { return p.slug; }).map(function (p) {
-        return { label: p.display_name || p.slug, url: 'https://keepitil.com/profile.html?slug=' + encodeURIComponent(p.slug) };
+        return { label: p.display_name || p.slug, url: 'https://keepitil.com/profile?slug=' + encodeURIComponent(p.slug) };
       })
     };
   }
@@ -1085,10 +1085,10 @@
     }
     if (!wantsArticle) {
       lookups.push(choRest('events?select=slug,title&status=eq.published&title=ilike.*' + enc + '*&limit=1')
-        .then(function (r) { return (r && r[0]) ? { kind: 'event', href: '/event.html?e=' + encodeURIComponent(r[0].slug), label: r[0].title } : null; }));
+        .then(function (r) { return (r && r[0]) ? { kind: 'event', href: '/event?e=' + encodeURIComponent(r[0].slug), label: r[0].title } : null; }));
     }
     lookups.push(choRest('profile_meta?select=slug,display_name&slug=ilike.*' + enc.replace(/%20/g, '-') + '*&limit=1')
-      .then(function (r) { return (r && r[0]) ? { kind: 'profile', href: '/profile.html?slug=' + encodeURIComponent(r[0].slug), label: r[0].display_name || r[0].slug } : null; }));
+      .then(function (r) { return (r && r[0]) ? { kind: 'profile', href: '/profile?slug=' + encodeURIComponent(r[0].slug), label: r[0].display_name || r[0].slug } : null; }));
 
     return Promise.all(lookups).then(function (res) {
       var order = wantsArticle ? ['article', 'profile', 'event']
@@ -1215,7 +1215,7 @@
       CHO_FLOW.step = 'await_auth';
       choPersistFlow();
       setTimeout(function () {
-        try { location.href = '/apply.html?next=' + encodeURIComponent(location.pathname + location.search); } catch (e) {}
+        try { location.href = '/apply?next=' + encodeURIComponent(location.pathname + location.search); } catch (e) {}
       }, 900);
       return { title: 'Sign in to continue',
                text: 'I have kept everything you have given me so far. Signing you in now — we will pick up exactly here.' };
@@ -1302,7 +1302,7 @@
          An authenticated user who may already publish events uses the AUTHORIZED path; everyone
          else keeps the community review path. CHO picks the route; it never grants access.
 
-         The authorized route is create_event_with_tiers — the exact RPC /create-event.html
+         The authorized route is create_event_with_tiers — the exact RPC /create-event
          calls. It is SECURITY DEFINER and refuses non-admins itself with errcode 42501
          ("Only KEEPITIL can create ticketed events"), so even if this client-side check were
          wrong or bypassed, the database still decides. That is the point: the permission test
@@ -1356,7 +1356,7 @@
                          p_ok: true, p_error: null })
               .then(function () {
                 choClearFlow();
-                if (slug) setTimeout(function () { location.href = '/event.html?e=' + encodeURIComponent(slug); }, 1400);
+                if (slug) setTimeout(function () { location.href = '/event?e=' + encodeURIComponent(slug); }, 1400);
                 return { title: wentLive ? 'Event published ✓' : 'Event created ✓',
                          text: (wentLive
                                  ? 'Published through the authorized event path with your permissions — it is live in DISCOVER now.'
@@ -1794,8 +1794,8 @@
         + '<p>Sign in to talk to CHO. She can find events, open profiles and articles, '
         + 'play KEEPITIL Radio, and walk you through creating an event or entering CREATE.</p>'
         + '<div class="kilo-gbtns">'
-        + '<a class="pri" href="/apply.html?next=' + next + '">Log in</a>'
-        + '<a class="sec" href="/signup.html?next=' + next + '">Create account</a>'
+        + '<a class="pri" href="/apply?next=' + next + '">Log in</a>'
+        + '<a class="sec" href="/signup?next=' + next + '">Create account</a>'
         + '</div>';
       var pnl = document.getElementById('kilo-panel');
       var row = document.getElementById('kilo-input-row');
@@ -1866,8 +1866,8 @@
       /* CREATE is deliberately absent (Founder 2026-09-01). Creating starts by asking CHO for
          it in the conversation, which is where the guided flow already lives. */
       row.innerHTML = kilSignedIn()
-        ? '<a class="kilo-r2" href="/profile.html">Profile</a>'
-        : '<a class="kilo-r2" href="/apply.html?next=' + encodeURIComponent(location.pathname + location.search) + '">Login</a>';
+        ? '<a class="kilo-r2" href="/profile">Profile</a>'
+        : '<a class="kilo-r2" href="/apply?next=' + encodeURIComponent(location.pathname + location.search) + '">Login</a>';
       document.body.classList.toggle('kilo-noauth', !kilSignedIn());
     }
     window.__kiloApplyAuthRows = kiloApplyAuthRows;
@@ -1950,13 +1950,13 @@
       organizer:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/>',
       link:'<path d="M9 15l6-6"/><path d="M10 6l1-1a4 4 0 0 1 6 6l-1 1"/><path d="M14 18l-1 1a4 4 0 0 1-6-6l1-1"/>'
     };
-    var map=[['/connect/','scene'],['/culture/','culture'],['amazon','shop'],['/apply.html','login'],['/signup','login'],['/grow','grow'],['/artist','artist'],['/brand','brand'],['/organizer','organizer']];
+    var map=[['/connect/','scene'],['/culture/','culture'],['amazon','shop'],['/apply','login'],['/signup','login'],['/grow','grow'],['/artist','artist'],['/brand','brand'],['/organizer','organizer']];
     function iconName(href){ href=(href||'').toLowerCase(); for(var i=0;i<map.length;i++){ if(href.indexOf(map[i][0])>-1) return map[i][1]; } return 'link'; }
     function makeIco(name){ var s=document.createElement('span'); s.className='kil-nav-ico'; s.setAttribute('aria-hidden','true'); s.innerHTML='<svg viewBox="0 0 24 24">'+(ICON[name]||ICON.link)+'</svg>'; return s; }
     /* Build ONE canonical mobile header on EVERY page: Culture · Scene · Login (logo = home) */
     if(ul.getAttribute('data-kil-mnav')) return;
     ul.setAttribute('data-kil-mnav','1');
-    var CANON=[['/culture/','CULTURE','culture'],['/connect/','CONNECT','connect'],['/apply.html','LOGIN','login']];
+    var CANON=[['/culture/','CULTURE','culture'],['/connect/','CONNECT','connect'],['/apply','LOGIN','login']];
     ul.innerHTML='';
     CANON.forEach(function(it){
       var li=document.createElement('li');

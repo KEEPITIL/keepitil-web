@@ -151,7 +151,7 @@ function toggleTix(){ EXPANDED=!EXPANDED; var el=document.getElementById('tixlis
 function render(){
   var x=TIX[ACTIVE]; if(!x) return; var e=x.row;
   var flyerBg=e.cover_url?("background-image:url('"+String(e.cover_url).replace(/'/g,'')+"')"):"";
-  var org = e.owner_handle ? ('<a href="/profile.html?slug='+enc(e.owner_handle)+'">'+esc(e.owner_name||e.owner_handle)+'</a>') : '<span>KEEPITIL Event</span>';
+  var org = e.owner_handle ? ('<a href="/profile?slug='+enc(e.owner_handle)+'">'+esc(e.owner_name||e.owner_handle)+'</a>') : '<span>KEEPITIL Event</span>';
   var used=!!e.checked_in_at;
   var price=e.price_cents!=null?('$'+(e.price_cents/100).toFixed(2).replace(/\.00$/,'')):'';
   var qr='https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=0&data='+enc('KIL-'+(e.qr_token||e.order_id));
@@ -185,7 +185,7 @@ function render(){
       '</div>'+
       '<div class="tp-col">'+
         '<div class="infocard">'+
-          '<a class="buymore" href="/event.html?e='+enc(x.slug)+'">BUY TICKETS</a>'+
+          '<a class="buymore" href="/event?e='+enc(x.slug)+'">BUY TICKETS</a>'+
           '<h1>'+esc(e.title||'Event')+'</h1>'+
           '<div class="irow"><span class="k">Date</span><span class="v">'+esc(dt)+'</span></div>'+
           '<div class="irow"><span class="k">Venue</span><span class="v">'+esc(e.venue||'—')+'</span></div>'+
@@ -216,12 +216,12 @@ function setActive(i){ if(i<0||i>=TIX.length)return; ACTIVE=i; render(); window.
 
 async function init(){
   if(!supa){ $('loading').style.display='none'; $('gate').style.display='block'; return; }
-  var b=$('loginBtn'); if(b) b.href='/apply.html?next='+encodeURIComponent(location.pathname+location.search);
+  var b=$('loginBtn'); if(b) b.href='/apply?next='+encodeURIComponent(location.pathname+location.search);
   /* session can restore a beat late (Google/Apple sign-in) — retry before showing the login gate */
   var s=null;
   for(var _i=0;_i<5;_i++){ var r=await supa.auth.getSession().catch(function(){return null;}); s=r&&r.data?r.data.session:null; if(s) break; await new Promise(function(res){setTimeout(res,500);}); }
   if(!s){ $('loading').style.display='none'; $('gate').style.display='block'; return; }
-  try{ var ps=await supa.rpc('my_profile_slug'); if(ps&&!ps.error&&ps.data){ BACK='/profile.html?slug='+enc(ps.data)+'&tab=shows'; } }catch(e){}
+  try{ var ps=await supa.rpc('my_profile_slug'); if(ps&&!ps.error&&ps.data){ BACK='/profile?slug='+enc(ps.data)+'&tab=shows'; } }catch(e){}
   try{
     var o=await supa.rpc('get_my_tickets'); var rows=(o&&o.data)||[];
     if(!rows.length){ $('loading').style.display='none'; $('empty').style.display='block'; return; }

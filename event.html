@@ -9,20 +9,29 @@
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
 <meta name="description" id="m-desc" content="KEEPITIL is a culture platform built to discover, connect, create, share and earn through people, events, media and community."/>
-<link rel="canonical" id="m-canon" href="https://keepitil.com/event.html"/>
+<!-- NO STATIC CANONICAL. This page is identified by ?e=<slug>, so any single hardcoded
+     value is wrong for every event: the previous "https://keepitil.com/event" told every
+     crawler that does not execute JS that all 322 event URLs were one page, which is an
+     instruction to drop 321 of them. A MISSING canonical is strictly better than a wrong one
+     -- a crawler then indexes the URL it requested, which is the correct distinct URL. The
+     real per-event canonical is injected in paint(). -->
 <link rel="icon" type="image/png" href="https://keepitil.com/logo-blue-nav.png"/>
 <meta property="og:type" content="event"/>
 <meta property="og:title" id="og-title" content="Event — KEEPITIL"/>
 <meta property="og:description" id="og-desc" content="KEEPITIL is a culture platform built to discover, connect, create, share and earn through people, events, media and community."/>
 <meta property="og:image" id="og-img" content="https://keepitil.com/keepitil-og.png"/>
-<meta property="og:url" id="og-url" content="https://keepitil.com/event.html"/>
+<meta property="og:url" id="og-url"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="geo.region" content="US-CA"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="preconnect" href="https://images.ra.co"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
-<script type="application/ld+json" id="ld-event">{"@context":"https://schema.org","@type":"MusicEvent","name":"KEEPITIL Event"}</script>
+<!-- NO STATIC JSON-LD. This carried {"@type":"MusicEvent","name":"KEEPITIL Event"} on every
+     event URL: a MusicEvent with no startDate and no location is invalid, and the name was
+     not the real event's name, so a crawler that does not run JS was served an identical
+     fabricated event 322 times. Publishing an empty shape to satisfy the schema is worse than
+     publishing none. The real, fully-populated node is injected in paint(). -->
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   :root{--green:var(--live);--blue:var(--brand);--gold:#ffd76a;--white:var(--text);--grey:#8a97a4;--head:'Bebas Neue',sans-serif;--body:'Inter',sans-serif;}
@@ -345,7 +354,7 @@
     var sh=$('ev-share');
     if(sh){
       var url = (location.hostname==='keepitil.com') ? location.href
-              : ('https://keepitil.com/event.html?e='+encodeURIComponent(ev.slug||''));
+              : ('https://keepitil.com/event?e='+encodeURIComponent(ev.slug||''));
       var txt = encodeURIComponent(ev.title + (ev.date?(' — '+fmt(ev.date)):''));
       var u   = encodeURIComponent(url);
       sh.innerHTML =
@@ -400,7 +409,7 @@
   }
   function evMini(e){
     var d=''; try{ d=fmt(localDate(e.starts_at,e.tz)); }catch(_x){}
-    return '<a class="evmini" href="/event.html?e='+encodeURIComponent(e.slug)+'">'
+    return '<a class="evmini" href="/event?e='+encodeURIComponent(e.slug)+'">'
       + '<div class="im"'+(e.cover_url?(' style="background-image:url('+String(e.cover_url).replace(/"/g,'')+')"'):'')+'></div>'
       + '<div class="tt">'+esc(e.title||'')+'</div><div class="dt">'+esc(d)+'</div></a>';
   }
@@ -414,8 +423,16 @@
     $('og-title').setAttribute('content', titledate + ' | KEEPITIL');
     $('og-desc').setAttribute('content', descTxt);
     if(ev.img) $('og-img').setAttribute('content', ev.img);
-    var canon=(location.hostname==='keepitil.com')?location.href:('https://keepitil.com'+location.pathname+location.search);
-    $('m-canon').setAttribute('href', canon); $('og-url').setAttribute('content', canon);
+    /* Canonical is the CLEAN /event?e=<slug> form, never location.href. Pages serves both
+       /event and /event.html, so echoing the requested path would let the two aliases compete
+       as separate pages; naming one form consolidates them. This is also byte-identical to what
+       build-sitemaps.mjs emits, so the sitemap and the page never disagree. */
+    var canon='https://keepitil.com/event?e='+encodeURIComponent(ev.slug||'');
+    var cl=document.getElementById('m-canon');
+    if(!cl){ cl=document.createElement('link'); cl.rel='canonical'; cl.id='m-canon';
+             document.head.appendChild(cl); }
+    cl.setAttribute('href', canon);
+    $('og-url').setAttribute('content', canon);
     var _cr=$('cr-title'); if(_cr) _cr.textContent = ev.title;
     $('ev-title').textContent = ev.title;
     $('ev-date').textContent = fmt(ev.date);
@@ -427,7 +444,7 @@
     /* shareable event QR — scan to open this event page (works on flyers/print) */
     /* QR is only useful for KEEPITIL-hosted events — 3rd-party listings point off-site, so skip it */
     var _extqr=(ev.is_external===true)||(ev.is_external===undefined && /^https?:\/\//.test(ev.ticket||'') && !/\/v31\/event\.html/.test(ev.ticket||''));
-    var _qe=$('ev-qr'); if(_qe){ if(_extqr){ _qe.style.display='none'; } else { var _qu=(location.hostname==='keepitil.com')?location.href:('https://keepitil.com/event.html?e='+encodeURIComponent(ev.slug||'')); _qe.innerHTML='<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=0&data='+encodeURIComponent(_qu)+'" width="180" height="180" alt="Scan to open this event"/><div class="cap">📱 Scan to open &amp; share</div>'; _qe.style.display=''; } }
+    var _qe=$('ev-qr'); if(_qe){ if(_extqr){ _qe.style.display='none'; } else { var _qu=(location.hostname==='keepitil.com')?location.href:('https://keepitil.com/event?e='+encodeURIComponent(ev.slug||'')); _qe.innerHTML='<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=0&data='+encodeURIComponent(_qu)+'" width="180" height="180" alt="Scan to open this event"/><div class="cap">📱 Scan to open &amp; share</div>'; _qe.style.display=''; } }
     // CTAs
     var c='';
     if(ev.ticket && ev.ticket!=='#') c+='<a class="cta cta-tix" data-kt="ticket_click" data-event-slug="'+esc(ev.slug)+'" href="'+esc(ev.ticket)+'" target="_blank" rel="noopener">🎟 Buy Tickets</a>';
@@ -444,12 +461,22 @@
     var _bk=$('ev-back2'); if(_bk && !_bk._wired){ _bk._wired=1; var _so=false; try{ var _u=new URL(document.referrer); _so=(_u.origin===location.origin && _u.pathname!==location.pathname); }catch(_e){} if(_so){ _bk.addEventListener('click',function(e2){ e2.preventDefault(); history.back(); }); } else { _bk.setAttribute('href','/'); } }
     // JSON-LD
     var ld={"@context":"https://schema.org","@type":"MusicEvent","name":ev.title,"url":canon,"eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode"};
-    if(ev.date) ld.startDate=ev.date+"T20:00:00-07:00";
+    /* startDate must not be invented. This used to append "T20:00:00-07:00" to every event:
+       a fabricated 8pm start and a fixed Pacific offset, applied even to a morning event in
+       another timezone -- and it threw away the real time, because ev.date is a local DATE
+       string derived from starts_at. Prefer the actual timestamp; fall back to a date-only
+       value, which schema.org accepts, rather than guessing the missing half. */
+    if(ev.startsAt) ld.startDate=ev.startsAt;
+    else if(ev.date) ld.startDate=ev.date;
+    if(ev.endsAt) ld.endDate=ev.endsAt;
     if(ev.img) ld.image=ev.img;
     if(ev.venue) ld.location={"@type":"Place","name":ev.venue,"address":{"@type":"PostalAddress","addressLocality":ev.city||"Los Angeles","addressRegion":"CA","addressCountry":"US"}};
     if(ev.ticket && ev.ticket!=='#') ld.offers={"@type":"Offer","url":ev.ticket,"availability":"https://schema.org/InStock"};
     ld.organizer={"@type":"Organization","name":"KEEPITIL","url":"https://keepitil.com/"};
-    $('ld-event').textContent=JSON.stringify(ld);
+    var ldEl=document.getElementById('ld-event');
+    if(!ldEl){ ldEl=document.createElement('script'); ldEl.type='application/ld+json';
+               ldEl.id='ld-event'; document.head.appendChild(ldEl); }
+    ldEl.textContent=JSON.stringify(ld);
   }
   /* attendee-data capture: name + email + organizer's custom questions → event_registrations. Fail-open (never blocks a sale). */
   function regCapture(tierName, showPromo, done){
@@ -493,7 +520,7 @@
   }
   paint();
   /* back button → the logged-in user's own profile Events section (not "all events") */
-  try{ if(window.supabase){ var _bsb=window.supabase.createClient(URL,KEY); _bsb.auth.getSession().then(function(sr){ var s=sr&&sr.data?sr.data.session:null; var bk=document.getElementById('ev-back'); if(!bk||!s) return; _bsb.rpc('my_profile_slug').then(function(rr){ if(rr&&!rr.error&&rr.data){ bk.setAttribute('href','/profile.html?slug='+encodeURIComponent(rr.data)+'&tab=shows'); } },function(){}); }); } }catch(e){}
+  try{ if(window.supabase){ var _bsb=window.supabase.createClient(URL,KEY); _bsb.auth.getSession().then(function(sr){ var s=sr&&sr.data?sr.data.session:null; var bk=document.getElementById('ev-back'); if(!bk||!s) return; _bsb.rpc('my_profile_slug').then(function(rr){ if(rr&&!rr.error&&rr.data){ bk.setAttribute('href','/profile?slug='+encodeURIComponent(rr.data)+'&tab=shows'); } },function(){}); }); } }catch(e){}
   /* returned from a successful checkout → surface the in-account ticket */
   if(p.get('paid')==='1'){ try{ var _ann=document.getElementById('ev-ann'); if(_ann){ var _d=document.createElement('div'); _d.className='ann'; _d.style.cssText='border-left-color:#22e39b;background:linear-gradient(90deg,rgba(34,227,155,.14),rgba(34,227,155,.04));border-color:rgba(34,227,155,.4)'; _d.innerHTML='<div class="t" style="color:#22e39b">🎟 You\'re in!</div><div class="b">Your ticket is confirmed and saved to your account. <a href="/tickets" style="color:#22e39b;font-weight:800">View your ticket →</a></div>'; _ann.parentNode.insertBefore(_d,_ann); } }catch(e){} }
   /* P0d: shared/bookmarked links with numeric ?id=NN used to dead-end — resolve the slug and reload cleanly */
@@ -515,19 +542,20 @@
         if(!(r&&r.data&&r.data[0]) && window.KIL_NOT_FOUND){
           window.KIL_NOT_FOUND({ what:'event', heading:'That event isn’t here',
             body:'It may have finished, been unpublished, or the link may be wrong.',
-            links:[['/','Explore events'],['/culture/','Culture'],['/submit-event.html','Submit an event']] });
+            links:[['/','Explore events'],['/culture/','Culture'],['/submit-event','Submit an event']] });
           return;
         }
         if(r&&r.data&&r.data[0]){ var x=r.data[0];
           if(x.slug){ ev.slug=x.slug; }  /* canonicalize slug so lineup/social/tickets resolve even when the URL slug differs */
           ev.title=x.title||ev.title; ev.venue=x.venue||ev.venue; ev.city=x.city||ev.city;
           ev.date=localDate(x.starts_at,x.tz)||ev.date; ev.genre=x.genres||ev.genre;
+          ev.startsAt=x.starts_at||ev.startsAt; ev.endsAt=x.ends_at||ev.endsAt;  /* real timestamps for JSON-LD */
           ev.img=x.cover_url||ev.img; ev.description=x.description||ev.description;
           ev.id=x.id; ev.reg=Array.isArray(x.reg_questions)?x.reg_questions:[];
           ev.show_lineup=x.show_lineup!==false; ev.show_gallery=x.show_gallery!==false; ev.show_feed=x.show_feed!==false; ev.is_external=x.is_external===true;
           if(!ev.show_feed){ var sf=$('sec-feed'); if(sf) sf.style.display='none'; }
           /* HOST button — only shown once a real organizer resolves (no dead "Host" chip) */
-          var _hb=$('ev-host'); if(_hb){ if(x.owner_handle){ _hb.innerHTML='<span style="opacity:.6;font-size:.72rem;letter-spacing:.06em;margin-right:2px">HOST</span> <a href="/profile.html?slug='+encodeURIComponent(x.owner_handle)+'">'+esc(x.owner_name||x.owner_handle)+'</a>'; _hb.style.display='flex'; } else { _hb.style.display='none'; } }
+          var _hb=$('ev-host'); if(_hb){ if(x.owner_handle){ _hb.innerHTML='<span style="opacity:.6;font-size:.72rem;letter-spacing:.06em;margin-right:2px">HOST</span> <a href="/profile?slug='+encodeURIComponent(x.owner_handle)+'">'+esc(x.owner_name||x.owner_handle)+'</a>'; _hb.style.display='flex'; } else { _hb.style.display='none'; } }
           /* social proof — "N going" */
           sb.rpc('get_event_social',{p_slug:ev.slug}).then(function(gr){ var n=(gr&&typeof gr.data==='number')?gr.data:0; var g=$('ev-going'); if(g && n>0){ g.textContent='🔥 '+n+' going'; g.style.display='inline-flex'; } }).catch(function(){});
           paint(); loadExtras(sb);
@@ -602,7 +630,7 @@
               if(count<1) return;
               var sr=await sb.auth.getSession().catch(function(){return null;});
               var sess=sr&&sr.data?sr.data.session:null;
-              if(!sess){ location.href='/apply.html?next='+encodeURIComponent(location.pathname+location.search); return; }
+              if(!sess){ location.href='/apply?next='+encodeURIComponent(location.pathname+location.search); return; }
               buyerEmail=(sess.user&&sess.user.email)||'';
               regCapture('', false, function(){
                 if(!paid.length){ buy.textContent='✓ You’re on the list'; buy.disabled=true; return; }
@@ -634,7 +662,7 @@
       box.innerHTML=rows.map(function(a){
         var ini=esc((a.artist_name||'?').charAt(0).toUpperCase());
         var img=a.image_url?'<img class="im" src="'+esc(a.image_url)+'" alt="'+esc(a.artist_name)+'" onerror="this.outerHTML=&quot;<div class=\\&quot;ph\\&quot;>'+ini+'</div>&quot;">':'<div class="ph">'+ini+'</div>';
-        var href=a.profile_slug?(/^(https?:|\/)/.test(a.profile_slug)?a.profile_slug:('/profile.html?slug='+encodeURIComponent(a.profile_slug))):'';
+        var href=a.profile_slug?(/^(https?:|\/)/.test(a.profile_slug)?a.profile_slug:('/profile?slug='+encodeURIComponent(a.profile_slug))):'';
         var nm=href?('<a class="nm" href="'+esc(href)+'">'+esc(a.artist_name)+'</a><div class="lnk">View profile →</div>'):('<span class="nm">'+esc(a.artist_name)+'</span>');
         return '<div class="lcard">'+img+nm+'</div>';
       }).join('');
@@ -655,7 +683,7 @@
         var who=esc(m.author_handle||'guest');
         var ini=esc((m.author_handle||'?').charAt(0).toUpperCase());
         var when=timeAgo(m.created_at);
-        var whoLink=m.author_handle?('<a href="/profile.html?slug='+esc(m.author_handle)+'">@'+who+'</a>'):('@'+who);
+        var whoLink=m.author_handle?('<a href="/profile?slug='+esc(m.author_handle)+'">@'+who+'</a>'):('@'+who);
         var media='';
         if(m.media_url && m.kind==='image') media='<div class="fp-media"><img src="'+esc(m.media_url)+'" alt="" loading="lazy" onerror="this.parentNode.style.display=\'none\'"></div>';
         else if(m.media_url && m.kind==='video') media='<div class="fp-media"><video src="'+esc(m.media_url)+'" controls preload="metadata"></video></div>';

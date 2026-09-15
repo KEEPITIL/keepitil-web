@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<!-- V3.1 ORGANIZER DASHBOARD — in-family clone of /dashboard.html (KODE 2026-07-20).
-     Kills the /dashboard.html leak from /profile.html. Child tools (create-event gold
+<!-- V3.1 ORGANIZER DASHBOARD — in-family clone of /dashboard (KODE 2026-07-20).
+     Kills the /dashboard leak from /profile.html. Child tools (create-event gold
      standard, scanner, campaigns, staging/QA admin tabs) are audit-exempt logged-in tools. -->
 <html lang="en" data-theme="default" data-page-type="standard">
 <head>
@@ -244,7 +244,7 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
         <span style="flex:1"></span>
         <a class="btn" style="font-size:.78rem;padding:8px 14px" href="/dashboard" target="_blank" rel="noopener" title="Full-screen duplicate-page editor">⛶ Open STAGING full screen ↗</a>
       </div>
-      <iframe src="/dashboard.html" title="STAGING — duplicate-page editor" loading="lazy" style="width:100%;height:calc(100vh - 210px);min-height:620px;border:1px solid var(--line,#242433);border-radius:14px;background:#0a0a0f"></iframe>
+      <iframe src="/dashboard" title="STAGING — duplicate-page editor" loading="lazy" style="width:100%;height:calc(100vh - 210px);min-height:620px;border:1px solid var(--line,#242433);border-radius:14px;background:#0a0a0f"></iframe>
     </div>
     <div class="panel" id="tab-qa">
       <div class="head2">QA Runs <span class="ct" id="qaCt"></span><a class="btn" style="margin-left:auto;font-size:.78rem;padding:8px 14px" href="/dashboard" target="_blank" rel="noopener">Open QA audit ↗</a></div>
@@ -305,10 +305,10 @@ function card(d){
         '<div class="s"><div class="n">'+money(d.revenue_cents)+'</div><div class="l">Revenue</div></div>'+
       '</div>'+
       '<div class="ev-acts">'+
-        '<a href="/create-event.html?e='+encodeURIComponent(d.slug)+'">Edit</a>'+
+        '<a href="/create-event?e='+encodeURIComponent(d.slug)+'">Edit</a>'+
         '<a class="scan" href="/dashboard">Door scanner</a>'+
-        (st==='published'?'<a href="/event.html?e='+encodeURIComponent(d.slug)+'">View</a>':'')+
-        '<a href="/dashboard.html?e='+encodeURIComponent(d.slug)+'">Promote</a>'+
+        (st==='published'?'<a href="/event?e='+encodeURIComponent(d.slug)+'">View</a>':'')+
+        '<a href="/dashboard?e='+encodeURIComponent(d.slug)+'">Promote</a>'+
         '<button onclick="dup('+d.event_id+',this)">Duplicate</button>'+
       '</div>'+
     '</div>'+
@@ -498,7 +498,7 @@ function renderSettingsTab(){
     +     '<span class="pg-dot" style="background:hsl(210,70%,52%)"></span>'
     +     '<span class="pg-nm"><b>Account settings</b><small>Email, password, notifications and privacy.</small></span>'
     +     '<span class="pg-go">Open →</span></div></a>'
-    +   '<a class="pg-row pg-link" id="pgEdit" href="/profile.html"><div class="pg-head">'
+    +   '<a class="pg-row pg-link" id="pgEdit" href="/profile"><div class="pg-head">'
     +     '<span class="pg-dot" style="background:hsl(280,70%,58%)"></span>'
     +     '<span class="pg-nm"><b>Edit profile</b><small>Name, photo, bio, links and genre.</small></span>'
     +     '<span class="pg-go">Open →</span></div></a>'
@@ -508,7 +508,7 @@ function renderSettingsTab(){
     supa.rpc('my_profile_slug').then(function(r){
       var a=$('pgEdit'); if(!a) return;
       var slug = (r && !r.error) ? r.data : null;
-      a.href = slug ? ('/profile.html?slug='+encodeURIComponent(slug)+'&edit=1') : '/profile.html?edit=1';
+      a.href = slug ? ('/profile?slug='+encodeURIComponent(slug)+'&edit=1') : '/profile?edit=1';
     }).catch(function(){});
   }catch(e){}
 }
@@ -665,7 +665,7 @@ async function loadPostReview(){
         +'<div class="fc-head"><img class="fc-av" src="'+esc(p.agent_avatar||'/assets/images/logo-blue-nav.png')+'" onerror="this.src=\'/assets/images/logo-blue-nav.png\'"><div class="fc-who"><b>'+esc(p.agent_name||'')+'</b><span>'+esc((p.agent||'').toUpperCase())+' · '+esc(when)+'</span></div><span class="fc-tag">'+esc(typ)+'</span></div>'
         +media
         +'<div class="fc-body"><div class="fc-title">'+esc(p.title||'(untitled)')+'</div><div class="fc-text">'+(p.body||'')+'</div>'+buy+'</div>'
-        +'<div class="fc-acts"><button class="approve" onclick="approveFeed(\''+p.id+'\',this)">✓ Approve &amp; publish</button><button class="deny" onclick="denyFeed(\''+p.id+'\',this)">✕ Deny</button><a class="fc-view" href="/profile.html?slug='+encodeURIComponent(p.agent||'')+'" target="_blank">View profile ↗</a></div>'
+        +'<div class="fc-acts"><button class="approve" onclick="approveFeed(\''+p.id+'\',this)">✓ Approve &amp; publish</button><button class="deny" onclick="denyFeed(\''+p.id+'\',this)">✕ Deny</button><a class="fc-view" href="/profile?slug='+encodeURIComponent(p.agent||'')+'" target="_blank">View profile ↗</a></div>'
       +'</div>';
     }).join('')+'</div>';
     /* existing published agent blog posts */
@@ -673,7 +673,7 @@ async function loadPostReview(){
     if(!rows.length){ html+='<div class="rv-empty">No blog posts yet.</div>'; }
     else html+=rows.map(function(p){
       var pub=p.status==='published';
-      var act=pub?'<a class="view" href="/profile.html?slug='+encodeURIComponent(p.agent_slug||'')+'" target="_blank">View</a><button class="deny" onclick="pullPost('+p.id+',this)">Deny / Pull</button>'
+      var act=pub?'<a class="view" href="/profile?slug='+encodeURIComponent(p.agent_slug||'')+'" target="_blank">View</a><button class="deny" onclick="pullPost('+p.id+',this)">Deny / Pull</button>'
                  :'<span class="pill2 den">Pulled</span><button class="approve" onclick="restorePost('+p.id+',this)">Restore</button>';
       return '<div class="rv"><div class="info"><div class="t">'+esc(p.title)+'</div><div class="d">'+esc((p.dek||'').slice(0,160))+'</div><div class="tags"><span class="pill2">'+esc((p.agent_slug||'').toUpperCase())+'</span><span class="pill2 '+(pub?'pub':'den')+'">'+esc(p.status)+'</span>'+(p.genre?'<span class="pill2">'+esc(p.genre)+'</span>':'')+'</div></div><div class="acts">'+act+'</div></div>';
     }).join('');
@@ -1256,7 +1256,7 @@ async function dismissSuggestion(id,btn){
 
 async function init(){
   if(!supa){ $('gate').style.display='block'; return; }
-  var b=$('loginBtn'); if(b) b.href='/apply.html?stay=1&next='+encodeURIComponent(location.pathname);
+  var b=$('loginBtn'); if(b) b.href='/apply?stay=1&next='+encodeURIComponent(location.pathname);
   var r=await supa.auth.getSession().catch(function(){return null;});
   if(!(r&&r.data&&r.data.session)){ $('gate').style.display='block'; return; }
   $('app').style.display='block';

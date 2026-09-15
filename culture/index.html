@@ -635,7 +635,7 @@ footer a{color:var(--purple)}
   <!-- LEFT: live feed -->
   <section class="feedcol">
     <div class="feedhd">
-      <a class="cul-add" id="cul-add" href="/profile.html?create=feed" aria-label="Create a feed post" title="Create a feed post" style="display:none">+</a>
+      <a class="cul-add" id="cul-add" href="/profile?create=feed" aria-label="Create a feed post" title="Create a feed post" style="display:none">+</a>
       <button class="cul-gear" id="cul-gear" style="display:none" aria-label="Feed settings" onclick="toggleCulGear(event)">&#9881;</button>
       <div class="cul-gear-menu" id="culGearMenu">
         <div class="gm-h">Type</div>
@@ -780,7 +780,7 @@ function culNav(section){
   if(section==='radio'){ location.href='/earn/'; return; }
   var s=SOON[section]; if(!s) return;
   var cf=document.getElementById('community-feed'); if(cf)cf.style.display='none';
-  var f=document.getElementById('feed'); if(f)f.innerHTML='<div class="gate"><div class="i">'+s.i+'</div><h3>'+s.t+'</h3><p>'+s.d+'</p><a href="'+(s.cta||'/apply.html#plans')+'">'+(s.ctaT||'Join to get early access →')+'</a></div>';
+  var f=document.getElementById('feed'); if(f)f.innerHTML='<div class="gate"><div class="i">'+s.i+'</div><h3>'+s.t+'</h3><p>'+s.d+'</p><a href="'+(s.cta||'/apply#plans')+'">'+(s.ctaT||'Join to get early access →')+'</a></div>';
   var now=document.getElementById('feedNow'); if(now)now.textContent=s.t;
 }
 /* ── Culture sections: Feed / Radio / VS / Givebacks (Founder 2026-07-31) ── */
@@ -810,10 +810,10 @@ function culSection(sec){
   if(sec==='vs'){
     panel.innerHTML='<div class="cul-sec-h">⚔️ VS — Artist Battles</div><div class="cul-sec-sub">DJ mixes, paint, photo &amp; video battles — submitted content only. Enter a challenge and let the scene vote.</div>'
       +'<div class="gb-grid">'
-      +'<a class="gb-card" href="/submit-event.html?vs=dj"><div class="gb-k">DJ</div><h3>Mix Battle</h3><p>Submit a mix and go head-to-head.</p></a>'
-      +'<a class="gb-card" href="/submit-event.html?vs=photography"><div class="gb-k">Photo</div><h3>Image Challenge</h3><p>Enter your best shot.</p></a>'
-      +'<a class="gb-card" href="/submit-event.html?vs=videography"><div class="gb-k">Video</div><h3>Video Challenge</h3><p>Submit a clip or edit.</p></a>'
-      +'<a class="gb-card" href="/submit-event.html?vs=song"><div class="gb-k">Open</div><h3>Song / Paint / etc.</h3><p>Any craft — enter your work.</p></a>'
+      +'<a class="gb-card" href="/submit-event?vs=dj"><div class="gb-k">DJ</div><h3>Mix Battle</h3><p>Submit a mix and go head-to-head.</p></a>'
+      +'<a class="gb-card" href="/submit-event?vs=photography"><div class="gb-k">Photo</div><h3>Image Challenge</h3><p>Enter your best shot.</p></a>'
+      +'<a class="gb-card" href="/submit-event?vs=videography"><div class="gb-k">Video</div><h3>Video Challenge</h3><p>Submit a clip or edit.</p></a>'
+      +'<a class="gb-card" href="/submit-event?vs=song"><div class="gb-k">Open</div><h3>Song / Paint / etc.</h3><p>Any craft — enter your work.</p></a>'
       +'</div>';
   } else if(sec==='givebacks'){
     panel.innerHTML='<div class="cul-sec-h">💚 Givebacks</div><div class="cul-sec-sub">Every link supports the scene — shop, donate, or sign up. Amazon links are affiliate; KEEPITIL earns from qualifying purchases.</div>'
@@ -1255,7 +1255,7 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
 
   function card(r){
     var d=r.data||{}; var media=(d.media&&d.media[0])||{src:d.img||'',mtype:d.mtype||'image'};
-    var url='/profile.html?slug='+encodeURIComponent(r.profile_slug);
+    var url='/profile?slug='+encodeURIComponent(r.profile_slug);
     /* ── ONE CARD FOR EVERY KIND (Founder 2026-08-21: "make this the universal template for
        all content on the culture page ... only this template if allowed").
        Nothing here builds HTML. Each kind is normalised to the same handful of fields and
@@ -1267,7 +1267,7 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
     if(r.kind==='event'){
       var ext=!!d.is_external;
       var when=''; try{var dt=new Date(d.date); if(!isNaN(dt)) when=dt.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});}catch(x){}
-      var evTarget = d.ticket_url||('/event.html?e='+encodeURIComponent(d.slug||''));
+      var evTarget = d.ticket_url||('/event?e='+encodeURIComponent(d.slug||''));
       n = { pid:'cul:'+(d.slug||r.id), href:evTarget, external:ext,
             thumb:d.cover||'/assets/images/blog-default.jpg', aspect:'16/9',
             badge: ext?'EXTERNAL':'KEEPITIL EVENT',
@@ -1290,7 +1290,7 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
             badge:'CREATE', badgeBg:'rgba(255,92,138,.95)', badgeFg:'#1a0410',
             title:cd.title||'Untitled entry',
             name:r.author_name||r.profile_slug, avatar:r.author_avatar,
-            creatorHref:'/profile.html?slug='+encodeURIComponent(r.profile_slug||''),
+            creatorHref:'/profile?slug='+encodeURIComponent(r.profile_slug||''),
             meta:[cd.competition||'CREATE', cd.division, closes?((votingOpen?'Voting closes ':'Closes ')+closes):''].filter(Boolean).join(' \u00b7 '),
             cta:{label:(votingOpen?'\ud83d\uddf3 Vote on this entry':'View entry'), href:cd.vote_url||'/create/',
                  bg:(votingOpen?'#ff5c8a':'rgba(255,255,255,.08)'), fg:(votingOpen?'#1a0410':'#9aa')} };
@@ -1349,7 +1349,7 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
          There is no profile fallback any more: if a row has no article route it is not
          linkable as an article, and a dead-end card is better than the wrong destination. */
       var araw = ad.source_url || ad.url || (ad.slug?('/article/'+ad.slug+'/'):'')
-                 || (ad.event_slug?('/event.html?e='+encodeURIComponent(ad.event_slug)):'');
+                 || (ad.event_slug?('/event?e='+encodeURIComponent(ad.event_slug)):'');
       /* Pages serves /article/x as a 301 to /article/x/; ask for the destination directly. */
       var ahref = araw && /^\/article\//.test(araw) && !/\/$/.test(araw) ? araw + '/' : araw;
       n = { pid:r.id, href:ahref||'#', external:false,
@@ -2701,7 +2701,7 @@ function culResolveFilters(){
       if(c.querySelector('.cul-buy')) return;
       var slug=(c.dataset.pid||'').replace(/^cul:/,''); if(!slug) return;
       var a=document.createElement('a'); a.className='cul-buy';
-      a.href='/event.html?e='+encodeURIComponent(slug); a.textContent='BUY';
+      a.href='/event?e='+encodeURIComponent(slug); a.textContent='BUY';
       a.addEventListener('click',function(ev){ ev.stopPropagation(); });
       c.appendChild(a);
     });
@@ -3012,7 +3012,7 @@ function culResolveFilters(){
   function meAvatar(){var u=SES&&SES.user,m=(u&&u.user_metadata)||{};return m.avatar||m.avatar_url||'';}
   function closeWall(){var w=document.getElementById('kil-loginwall');if(w)w.remove();}
   window.__culCloseWall=closeWall;
-  function wall(){if(document.getElementById('kil-loginwall'))return true;var next=encodeURIComponent(location.pathname+location.search);var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kil-loginwall';ov.innerHTML='<div class="kil-modal" style="max-width:390px"><div class="kil-mh">Join KEEPITIL<button class="kil-mx" onclick="__culCloseWall()">&times;</button></div><div class="kil-mb" style="padding:26px 22px;text-align:center"><div style="font-size:2.5rem;margin-bottom:12px">&#128274;</div><p style="font-size:1rem;line-height:1.55;color:var(--ink,#e8e8f0);margin:0 0 20px">Create a free account to like, reshare and save. Anyone can look around &mdash; you just need to be signed in to join in.</p><a href="/apply.html?next='+next+'" class="kil-join-btn" style="padding:12px 28px">Log in / Join &rarr;</a></div></div>';document.body.appendChild(ov);ov.addEventListener('click',function(e){if(e.target===ov)closeWall();});return true;}
+  function wall(){if(document.getElementById('kil-loginwall'))return true;var next=encodeURIComponent(location.pathname+location.search);var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kil-loginwall';ov.innerHTML='<div class="kil-modal" style="max-width:390px"><div class="kil-mh">Join KEEPITIL<button class="kil-mx" onclick="__culCloseWall()">&times;</button></div><div class="kil-mb" style="padding:26px 22px;text-align:center"><div style="font-size:2.5rem;margin-bottom:12px">&#128274;</div><p style="font-size:1rem;line-height:1.55;color:var(--ink,#e8e8f0);margin:0 0 20px">Create a free account to like, reshare and save. Anyone can look around &mdash; you just need to be signed in to join in.</p><a href="/apply?next='+next+'" class="kil-join-btn" style="padding:12px 28px">Log in / Join &rarr;</a></div></div>';document.body.appendChild(ov);ov.addEventListener('click',function(e){if(e.target===ov)closeWall();});return true;}
   function gate(){if(signedIn())return false;wall();return true;}
   function keyOf(x){ x=String(x); if(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x)) return x; return x.indexOf('cul:')===0?x:('cul:'+x); }
   function pst(k){return PST[k]||(PST[k]={likes:0,liked:false,resh:0,reshared:false,comments:0});}
@@ -3058,7 +3058,7 @@ function culResolveFilters(){
         if(!SB) return;
         if(!SES){
           /* Voting requires a real account; say so rather than failing silently. */
-          location.href = '/apply.html?next=' + encodeURIComponent(location.pathname + location.search);
+          location.href = '/apply?next=' + encodeURIComponent(location.pathname + location.search);
           return;
         }
         var wasVoted = btn.getAttribute('aria-pressed') === 'true';
@@ -3237,7 +3237,7 @@ function culResolveFilters(){
     /* The rail drives ARTICLE / CREATE / VIDEO and nothing else. It used to include events,
        which are never rendered as feed cards, so half the list pointed at content the feed
        could not show - and those were exactly the rows that fell through hrefOf() to the
-       dead /profile.html?slug= route. */
+       dead /profile?slug= route. */
     /* THE LIST FOLLOWS THE ACTIVE TAB (Founder 2026-09-06). It listed every loaded row of
        the three kinds regardless of which tab was on, so selecting ARTICLES left a feed of
        13 articles beside a rail of 40 videos - two different answers to the same question. */
@@ -3262,7 +3262,7 @@ function culResolveFilters(){
 
     /* ── THE LIST DRIVES THE FEED; IT DOES NOT NAVIGATE (Founder 2026-09-06) ────────────
        Every item was an <a href> and clicking one left CULTURE - often to
-       /profile.html?slug=..., which does not exist. An item now selects its content into
+       /profile?slug=..., which does not exist. An item now selects its content into
        the main feed, like an up-next list, and the page never unloads. */
     var VIEWED = Object.create(null);
     var CURRENT = '';
@@ -3318,7 +3318,7 @@ function culResolveFilters(){
       if(r.kind==='article') return d.url||(d.slug?('/article/'+d.slug+'/'):'#');
       if(r.source_url||d.source_url) return r.source_url||d.source_url;
       if(r.vs_entry_id) return '/create/?view=entry&e='+r.vs_entry_id;
-      return r.profile_slug?('/profile.html?slug='+encodeURIComponent(r.profile_slug)):'#';
+      return r.profile_slug?('/profile?slug='+encodeURIComponent(r.profile_slug)):'#';
     }
     function esc(v){ return String(v==null?'':v).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 

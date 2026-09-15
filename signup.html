@@ -102,7 +102,7 @@ function say(t,ok){ MSG.textContent=t; MSG.className='msg '+(ok?'ok':'err'); }
 
 /* ⚠ WAS /u.html (route cleanup 2026-08-31) — a page that does not exist. An already
    signed-in visitor who opened the signup page was thrown straight to a 404. */
-if(supa){ supa.auth.getSession().then(function(r){ if(r&&r.data&&r.data.session) location.replace('/dashboard.html'); }).catch(function(){}); }
+if(supa){ supa.auth.getSession().then(function(r){ if(r&&r.data&&r.data.session) location.replace('/dashboard'); }).catch(function(){}); }
 
 function signUp(){
   if(!supa){ say('Loading — try again in a moment.'); return; }
@@ -123,7 +123,7 @@ function signUp(){
     /* ⚠ WAS /create-profile.html — a page that does not exist. Signing up SUCCEEDED and then
        dropped the brand-new account on a 404: the single worst place on the site to send
        someone. The dashboard is the signed-in home and carries the profile edit link. */
-    if(r&&r.data&&r.data.session){ location.replace('/dashboard.html'); }
+    if(r&&r.data&&r.data.session){ location.replace('/dashboard'); }
     else {
       /* No session means verification is required, which is the intended production flow.
          Say what happens next in the customer's terms, and give them a way to re-send rather
@@ -131,7 +131,7 @@ function signUp(){
       /* Carry the caller's destination into the login link so the intent survives the whole
          signup -> verify -> log in journey. */
       var nx=''; try{ nx=new URLSearchParams(location.search).get('next')||''; }catch(e){}
-      var loginHref='/apply.html'+(nx?('?next='+encodeURIComponent(nx)):'');
+      var loginHref='/apply'+(nx?('?next='+encodeURIComponent(nx)):'');
       MSG.innerHTML='<b>Account created.</b> Check your email for a verification link, then '
         + '<a href="'+loginHref+'" style="color:var(--blue)">log in</a>. '
         + 'You will need to verify before you can enter or join communities. '

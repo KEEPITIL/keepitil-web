@@ -767,7 +767,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
       /* Matchers come from DESTINATIONS so the header and the bottom bar can never disagree
          about which page you are on. Profile keeps its own, since it is contextual. */
       try{ var p=location.pathname;
-        var amap={'/apply.html':/(profile\.html|my-tickets\.html|apply\.html)/};
+        var amap={'/apply':/(profile\.html|my-tickets\.html|apply\.html)/};
         DESTINATIONS.forEach(function(d){ amap[d.href]=d.match; });
         hdr.querySelectorAll('.v3s-icons a').forEach(function(a){ var h=a.getAttribute('href'); var rx=amap[h]; if(rx&&rx.test(p)) a.classList.add('on'); }); }catch(e){}
 
@@ -813,13 +813,13 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
         var item=function(label,href){return '<a href="'+href+'" style="display:block;color:#e8e8f0;padding:15px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-decoration:none;font-weight:700;font-size:1.02rem">'+label+'</a>';};
         ov.innerHTML='<div style="background:#15151f;border-radius:18px 18px 0 0;width:100%;max-width:520px;padding:14px 18px 26px">'
           +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="color:#fff;font-size:1.08rem">Create</b><button id="kilCX" style="background:none;border:0;color:#888;font-size:1.6rem;line-height:1;cursor:pointer">&times;</button></div>'
-          +item('Feed post','/profile.html?create=feed')
-          /* /create-event.html is admin-only — it runs rpc('is_admin') and bounces everyone
+          +item('Feed post','/profile?create=feed')
+          /* /create-event is admin-only — it runs rpc('is_admin') and bounces everyone
              else to submit-event, dropping query params. The public create path is
              submit-event. §C's chat surface must use this same destination. */
-          +item('Event','/submit-event.html')
-          +item('Collection','/profile.html?tab=saved&create=collection')
-          +'<a href="/profile.html?tab=chat&create=chat" style="display:block;color:#e8e8f0;padding:15px 8px;text-decoration:none;font-weight:700;font-size:1.02rem">Chat</a>'
+          +item('Event','/submit-event')
+          +item('Collection','/profile?tab=saved&create=collection')
+          +'<a href="/profile?tab=chat&create=chat" style="display:block;color:#e8e8f0;padding:15px 8px;text-decoration:none;font-weight:700;font-size:1.02rem">Chat</a>'
           +'</div>';
         document.body.appendChild(ov);
         kilSheetOpen(true);
@@ -1100,7 +1100,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     var btn=(ev&&(ev.currentTarget||ev.target.closest&&ev.target.closest('a,button')))||null;
     if(btn&&btn.getBoundingClientRect){ var r=btn.getBoundingClientRect(); m.style.top=(r.bottom+window.scrollY+8)+'px'; m.style.left=Math.max(8,(r.right+window.scrollX-m.offsetWidth))+'px'; }
     m.querySelectorAll('button').forEach(function(b){ b.onmouseover=function(){b.style.background='rgba(255,255,255,.07)';}; b.onmouseout=function(){b.style.background='none';}; });
-    m.querySelector('[data-a=edit]').onclick=function(){ m.remove(); if(typeof window.openEditProfile==='function'){ window.openEditProfile(); } else { location.href='/profile.html?edit=1'; } };
+    m.querySelector('[data-a=edit]').onclick=function(){ m.remove(); if(typeof window.openEditProfile==='function'){ window.openEditProfile(); } else { location.href='/profile?edit=1'; } };
     m.querySelector('[data-a=settings]').onclick=function(){ m.remove(); location.href='/settings'; };
     m.querySelector('[data-a=signout]').onclick=function(){ m.remove(); try{ if(window.supabase&&window.supabase.createClient){ window.supabase.createClient('https://ovmqtzjfpzrbzrlkxwgw.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ').auth.signOut(); } }catch(e){} try{ Object.keys(localStorage).forEach(function(k){ if(/^sb-.*-auth-token/.test(k)) localStorage.removeItem(k); }); }catch(e){} location.href='/'; };
     setTimeout(function(){ document.addEventListener('click',function h(e){ var mm=document.getElementById('kil-profmenu'); if(mm&&!mm.contains(e.target)){ mm.remove(); } document.removeEventListener('click',h); }); },0);
@@ -1125,15 +1125,15 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
   /* LOGIN destinations are the branded extensionless /apply (KODE 2026-09-09). The
      amap matcher below still tests for apply.html because it matches the CURRENT
      location, which can legitimately be either form. Only the navigation TARGET moved.
-     /profile.html stays: its branded form /profile/<slug> resolves through the 404 JS
+     /profile stays: its branded form /profile/<slug> resolves through the 404 JS
      router and returns HTTP 404, so switching to it would break a working page. */
-      else { cta.textContent = s?'PROFILE':'LOGIN'; cta.setAttribute('href', s?'/profile.html':'/apply'); cta.classList.remove('v3s-hamb'); }
+      else { cta.textContent = s?'PROFILE':'LOGIN'; cta.setAttribute('href', s?'/profile':'/apply'); cta.classList.remove('v3s-hamb'); }
     }
-    if(mlog){ mlog.textContent = s?'Profile':'Login'; mlog.setAttribute('href', s?'/profile.html':'/apply'); }
+    if(mlog){ mlog.textContent = s?'Profile':'Login'; mlog.setAttribute('href', s?'/profile':'/apply'); }
     var iprof=document.getElementById('v3s-iconprof');
     if(iprof){
-      if(s && onProfile){ iprof.innerHTML=HAMB; iprof.setAttribute('href','/settings.html'); iprof.setAttribute('aria-label','Settings'); }
-      else iprof.setAttribute('href', s?'/profile.html':'/apply');
+      if(s && onProfile){ iprof.innerHTML=HAMB; iprof.setAttribute('href','/settings'); iprof.setAttribute('aria-label','Settings'); }
+      else iprof.setAttribute('href', s?'/profile':'/apply');
     }
 
   }

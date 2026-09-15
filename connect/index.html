@@ -566,7 +566,7 @@ const ART=[],BRND=[],ORG=[],VEN=[
      showing food no matter how many times the database was fixed.
      Kept as a seed so the card renders before the Supabase fetch returns, but every field now
      matches the venues row. */
-  {name:'BLEU',city:'Westminster',county:'Orange County',genre:'Event Space / Live Music',ig:'xoeventspace',img:'/venues/bleu-2x3.jpg?v=20260823',color:'var(--brand)',blog:'/venue.html?v=bleu',keepitil:true,type:'Event Space'}
+  {name:'BLEU',city:'Westminster',county:'Orange County',genre:'Event Space / Live Music',ig:'xoeventspace',img:'/venues/bleu-2x3.jpg?v=20260823',color:'var(--brand)',blog:'/venue?v=bleu',keepitil:true,type:'Event Space'}
 ];
 // Each item carries kinds=[...]; multi-category profiles (once claimed) can list several.
 let DATA=[].concat(
@@ -743,7 +743,7 @@ renderSubs();render();
       if(!Array.isArray(rows)||!rows.length) return;
       var have=_dedupe();
       rows.forEach(function(p){
-        var blog='/profile.html?slug='+p.slug;
+        var blog='/profile?slug='+p.slug;
         if(have[blog.toLowerCase()]||have[String(p.display_name||'').toLowerCase()]) return;
         DATA.push({name:p.display_name||p.slug, city:p.location||'', county:'', genre:'', ig:'', img:p.cover_url||p.avatar_url||'', blog:blog, type:(p.account_type==='artist'?'DJ':''), kinds:[p.account_type], keepitil:true});
       });
@@ -778,7 +778,7 @@ renderSubs();render();
       if(!Array.isArray(rows)||!rows.length) return;
       var have=_dedupe();
       rows.forEach(function(p){
-        var blog='/venue.html?v='+p.slug;
+        var blog='/venue?v='+p.slug;
         if(have[blog.toLowerCase()]||have[String(p.name||'').toLowerCase()]) return;
         DATA.push({name:p.name||p.slug, city:p.city||'', county:'', genre:'', ig:'', img:p.cover_url||p.logo_url||'', blog:blog, type:'Venue', kinds:['venue'], keepitil:true});
       });
@@ -920,7 +920,7 @@ renderSubs();render();
   /* ── join / leave ───────────────────────────────────────────────────────────────────── */
   function needAuth(){
     if(SES) return false;
-    location.href='/apply.html?next='+encodeURIComponent(location.pathname+location.search);
+    location.href='/apply?next='+encodeURIComponent(location.pathname+location.search);
     return true;
   }
   function toggleJoin(cid,btn){
@@ -1258,8 +1258,8 @@ renderSubs();render();
       +'<h3>Join the community</h3>'
       +'<p>Create a KEEPITIL account or sign in to enter '+esc(c.name)+' and take part.</p>'
       +'<div class="g-act">'
-        +'<a class="g-primary" href="/signup.html?next='+next+'">Create account</a>'
-        +'<a class="g-secondary" href="/apply.html?next='+next+'">Log in</a>'
+        +'<a class="g-primary" href="/signup?next='+next+'">Create account</a>'
+        +'<a class="g-secondary" href="/apply?next='+next+'">Log in</a>'
         +'<button type="button" class="g-not">Not now</button>'
       +'</div></div>';
     gate.classList.add('on');

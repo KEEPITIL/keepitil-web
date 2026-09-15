@@ -4,8 +4,8 @@
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/>    <meta charset="UTF-8"/>
   <!-- Password-recovery guard: forward Supabase recovery tokens to the reset page; forward expired/invalid links to the portal's "get a fresh link" screen instead of dead-ending here -->
   <script>(function(){try{var h=location.hash||'';
-    if(h.indexOf('type=recovery')>-1||(h.indexOf('access_token=')>-1&&h.indexOf('recovery')>-1)){location.replace('/reset-password.html'+h);}
-    else if(h.indexOf('otp_expired')>-1||h.indexOf('error_code=access_denied')>-1||(h.indexOf('error')>-1&&h.indexOf('expired')>-1)){location.replace('/apply.html'+h);}
+    if(h.indexOf('type=recovery')>-1||(h.indexOf('access_token=')>-1&&h.indexOf('recovery')>-1)){location.replace('/reset-password'+h);}
+    else if(h.indexOf('otp_expired')>-1||h.indexOf('error_code=access_denied')>-1||(h.indexOf('error')>-1&&h.indexOf('expired')>-1)){location.replace('/apply'+h);}
   }catch(e){}})();</script>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
   <title>KEEPITIL — Create Loud. Live Louder.</title>
@@ -1890,8 +1890,8 @@
           <ul>
             <li><a href="/connect/">Artist Roster</a></li>
             <li><a href="/culture/">Culture Blog</a></li>
-            <li><a href="/profile.html?slug=rab3l">RAB3L</a></li>
-            <li><a href="/profile.html?slug=groove-trooper">Groove Trooper</a></li>
+            <li><a href="/profile?slug=rab3l">RAB3L</a></li>
+            <li><a href="/profile?slug=groove-trooper">Groove Trooper</a></li>
           </ul>
         </div>
         <div class="footer-col">
@@ -2049,7 +2049,7 @@
          '/scene' + slug — no separator, and the wrong route. */
       /* /profile/<slug> is served by 404.html rewriting to the real page — a 404 status and a
          JS hop for what is ordinary navigation. The query-string form IS the page. */
-      link: '/profile.html?slug=' + encodeURIComponent(row.slug || ''),
+      link: '/profile?slug=' + encodeURIComponent(row.slug || ''),
       img: row.avatar_url || null,
       type: 'Profile'
     };
@@ -2128,8 +2128,8 @@
       spotlightItem(a, 'Creator', 'Making work worth hearing.'));
     if (artistItems.length) buildWidget(artistEl, artistItems, 'var(--artist-color)');
     else buildWidget(artistEl, [
-      {name:'Groove Trooper', tag:'House · Techno', bio:'Deep cuts and heavy kicks from the OC underground pioneer. Resident selector and label founder.', link:'/profile.html?slug=groove-trooper', img:'https://i1.sndcdn.com/avatars-gHooPmNJyPSwqZfD-MwCeOQ-t500x500.jpg', type:'Profile'},
-      {name:'Aztekan', tag:'Bass · Electronic', bio:'Bass-forward productions pushing the sound of OC and LA into new territory.', link:'/profile.html?slug=aztekan', img:'https://i1.sndcdn.com/avatars-65ANz1PFRKjujXrW-qWNxdw-t500x500.jpg', type:'Profile'},
+      {name:'Groove Trooper', tag:'House · Techno', bio:'Deep cuts and heavy kicks from the OC underground pioneer. Resident selector and label founder.', link:'/profile?slug=groove-trooper', img:'https://i1.sndcdn.com/avatars-gHooPmNJyPSwqZfD-MwCeOQ-t500x500.jpg', type:'Profile'},
+      {name:'Aztekan', tag:'Bass · Electronic', bio:'Bass-forward productions pushing the sound of OC and LA into new territory.', link:'/profile?slug=aztekan', img:'https://i1.sndcdn.com/avatars-65ANz1PFRKjujXrW-qWNxdw-t500x500.jpg', type:'Profile'},
       {name:'DJ Trauma', tag:'Techno · Industrial', bio:'Dark and driving sets from one of the hardest selectors in the SoCal scene.', link:'/connect/', img:'https://images.pexels.com/photos/1540406/pexels-photo-1540406.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop', type:'Profile'},
       {name:'Lila Nova', tag:'Deep House', bio:'Soulful, hypnotic deep house from an LA selector carving her own lane in the underground.', link:'/connect/', img:'https://images.pexels.com/photos/1699161/pexels-photo-1699161.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop', type:'Profile'},
       {name:'Submerged', tag:'Dub Techno', bio:'Immersive dub techno journeys built for warehouse floors and late-night listening sessions.', link:'/connect/', img:'https://images.pexels.com/photos/2507025/pexels-photo-2507025.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop', type:'Profile'},
@@ -2307,7 +2307,7 @@ var CATS=[
    harmless miss instead of a ReferenceError. */
 var CAT_ALWAYS={};
 /* VS is a submission/signup lane — each sub links to its challenge signup */
-var VS_SIGNUP={ dj:'/submit-event.html?vs=dj', photography:'/submit-event.html?vs=photography', videography:'/submit-event.html?vs=videography', song:'/submit-event.html?vs=song' };
+var VS_SIGNUP={ dj:'/submit-event?vs=dj', photography:'/submit-event?vs=photography', videography:'/submit-event?vs=videography', song:'/submit-event?vs=song' };
 var GENRES=CATS; /* back-compat alias */
 function h(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function parts(d){var p=(d||'2026-01-01').split('-');return {y:+p[0],m:+p[1],day:+p[2]};}
@@ -2389,7 +2389,7 @@ function flyer(e,showPick){
   var slug=e.slug||slugify(e);
   var vip=/club|lounge|nightclub|rooftop|exchange|avalon|catch one|time nightclub|\bsound\b/i.test(e.venue||'');
   var saved=(window.KIL_SAVED&&window.KIL_SAVED.has(slug))?' on':'';
-  var epage='/event.html?e='+encodeURIComponent(slug)+'&t='+encodeURIComponent(e.title)+'&v='+encodeURIComponent(e.venue||'')+'&c='+encodeURIComponent(e.city||'')+'&d='+encodeURIComponent(e.date||'')+'&g='+encodeURIComponent(e.genre||'')+'&img='+encodeURIComponent(e.img||'')+'&tix='+encodeURIComponent(e.ticket||'')+(vip?'&vip=1':'');
+  var epage='/event?e='+encodeURIComponent(slug)+'&t='+encodeURIComponent(e.title)+'&v='+encodeURIComponent(e.venue||'')+'&c='+encodeURIComponent(e.city||'')+'&d='+encodeURIComponent(e.date||'')+'&g='+encodeURIComponent(e.genre||'')+'&img='+encodeURIComponent(e.img||'')+'&tix='+encodeURIComponent(e.ticket||'')+(vip?'&vip=1':'');
   return '<div class="evx-flyer'+(pk?' pick':'')+'" data-slug="'+slug+'" data-title="'+h(e.title)+'">'
     +im+'<div class="evx-shade"></div>'+ribbon
     +'<span class="evx-genre">'+h(e.genre)+'</span>'
@@ -3083,7 +3083,7 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
       return {title:e.title,date:_kld(e.starts_at,e.tz),venue:e.venue||'',city:e.city||'',
         state:e.state||'',county:e.county||'',   /* 2026-08-18: drives the location filter */
         genre:g||'KEEPITIL',gcat:_cl.gcat,ecat:_cl.ecat,img:e.cover_url||e.img||'',
-        ticket:(e.source_url&&!internal)?e.source_url:('/event.html?e='+encodeURIComponent(e.slug||'')),
+        ticket:(e.source_url&&!internal)?e.source_url:('/event?e='+encodeURIComponent(e.slug||'')),
         price:'Tickets',pick:!!e.featured,keepitil:internal,slug:e.slug,owner:e.owner_handle||''};
     });
   }

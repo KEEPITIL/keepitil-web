@@ -623,8 +623,8 @@
     var b = ev.target && ev.target.closest && ev.target.closest('#vsBackProfile');
     if(!b) return;
     ev.preventDefault();
-    var go2 = function(slug){ location.href = slug ? ('/profile.html?slug='+encodeURIComponent(slug)+'&tab=tagged')
-                                                   : '/profile.html?tab=tagged'; };
+    var go2 = function(slug){ location.href = slug ? ('/profile?slug='+encodeURIComponent(slug)+'&tab=tagged')
+                                                   : '/profile?tab=tagged'; };
     try{
       SB.rpc('my_profile_slug').then(function(r){ go2(r && !r.error ? r.data : null); })
         .catch(function(){ go2(null); });
@@ -804,7 +804,7 @@
                         + '<span class="th"'+(x.thumb_url?(' style="background-image:url('+h(x.thumb_url)+')"'):'')+'></span>'
                         + '<span class="nm"><b>'+h(x.title||'Untitled')+'</b>'
                         +   (x.creator_handle
-                              ? '<a href="/profile.html?slug='+encodeURIComponent(x.creator_handle)+'">@'+h(x.creator_handle)+'</a>'
+                              ? '<a href="/profile?slug='+encodeURIComponent(x.creator_handle)+'">@'+h(x.creator_handle)+'</a>'
                               : '')
                         + '</span>'
                         + '<span class="vt">'+(x.total_votes||0)+'<small>votes</small></span>'
@@ -914,7 +914,7 @@
       try{
         SB.rpc('my_profile_slug').then(function(r){
           var slug = (r && !r.error) ? r.data : null;
-          if(slug){ location.replace('/profile.html?slug='+encodeURIComponent(slug)+'&tab=tagged'); }
+          if(slug){ location.replace('/profile?slug='+encodeURIComponent(slug)+'&tab=tagged'); }
           else { renderMine(); }                      // no slug → show the list rather than strand
         }).catch(function(){ renderMine(); });
         return;

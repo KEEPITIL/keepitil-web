@@ -143,7 +143,7 @@ footer a{margin:0 5px;}
       <button class="btn-login" id="login-btn">LOG IN</button>
       <div class="login-err" id="err"></div>
       <a href="#" class="forgot" id="forgot-link">Forgot password?</a>
-      <a href="/profile.html" class="portal-note" id="portal-note">You're already signed in — go to your profile &rarr;</a>
+      <a href="/profile" class="portal-note" id="portal-note">You're already signed in — go to your profile &rarr;</a>
       <div style="display:flex;align-items:center;gap:12px;margin:18px 0 4px;color:var(--grey,#8a8a99);font-size:.78rem;letter-spacing:.05em"><span style="flex:1;height:1px;background:rgba(255,255,255,.12)"></span>OR<span style="flex:1;height:1px;background:rgba(255,255,255,.12)"></span></div>
       <div class="social-login" style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
         <button type="button" class="btn-social" id="btn-google" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border-radius:10px;border:1px solid var(--line,#2a2a38);background:#fff;color:#1a1a1a;font-weight:700;cursor:pointer;font:inherit;font-weight:700"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.9 6.1C12.2 13.2 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 2.9-2.2 5.3-4.7 7l7.3 5.7c4.3-4 6.8-9.9 6.8-17.2z"/><path fill="#FBBC05" d="M10.4 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6l-7.9-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.6-2.1 15.5-5.7l-7.3-5.7c-2 1.4-4.7 2.3-8.2 2.3-6.4 0-11.8-3.7-13.6-9.9l-7.9 6.1C6.4 42.6 14.6 48 24 48z"/></svg>Continue with Google</button>
@@ -178,7 +178,7 @@ if(supa){
   supa.auth.getSession().then(function(r){
     if(r&&r.data&&r.data.session){
       if(new URLSearchParams(location.search).get('stay')==='1'){ var p=$('portal-note'); if(p) p.style.display='inline-block'; }
-      else { location.replace('/profile.html'); }
+      else { location.replace('/profile'); }
     }
   }).catch(function(){});
 }
@@ -242,7 +242,7 @@ function signIn(){
            should land back on that community, not on their profile with the thing they wanted
            forgotten. Same-origin PATHS only — an open redirect here would let any link send a
            freshly authenticated user anywhere. */
-        location.replace(kilNext() || '/profile.html');
+        location.replace(kilNext() || '/profile');
       }
     });
   }).catch(function(){ $('err').textContent='Could not log in — try again.'; b.disabled=false; b.textContent='LOG IN'; });
@@ -265,7 +265,7 @@ $('login-btn').addEventListener('click',signIn);
 function oauth(provider){
   if(!supa){ var e=$('err'); if(e){e.textContent='Sign-in is unavailable right now.';} return; }
   try{
-    supa.auth.signInWithOAuth({ provider:provider, options:{ redirectTo: location.origin+'/profile.html' } })
+    supa.auth.signInWithOAuth({ provider:provider, options:{ redirectTo: location.origin+'/profile' } })
       .then(function(r){ if(r&&r.error){ var e=$('err'); if(e){ e.textContent=(provider.charAt(0).toUpperCase()+provider.slice(1))+' sign-in failed: '+r.error.message; } } })
       .catch(function(){ var e=$('err'); if(e){e.textContent='Could not start sign-in. Try email + password.';} });
   }catch(e2){ var e=$('err'); if(e){e.textContent='Could not start sign-in.';} }
@@ -283,7 +283,7 @@ $('reset-btn').addEventListener('click',function(){
   /* ⚠ WAS /portal.html (route cleanup 2026-08-31) — a page that does not exist and returns
      404. Anyone who asked to reset their password got the email, clicked the link, and landed
      on an error page with the recovery token in the URL and no form to use it, so password
-     reset was broken end to end from this page. /reset-password.html is the real handler and
+     reset was broken end to end from this page. /reset-password is the real handler and
      already sets this same redirectTo for its own re-send. */
   supa.auth.resetPasswordForEmail(email,{redirectTo:'https://keepitil.com/reset-password'}).then(function(r){
     if(r&&r.error){ msg.style.color='#ff5c5c'; msg.textContent=r.error.message; }

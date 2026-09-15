@@ -25,8 +25,8 @@
      drifted, because that is what two hand-maintained numbers do. RELEASE is
      the same identity the service worker and the compiled Dart carry, so all
      three answer the same question with the same string. */
-  var SHELL_VERSION = 352;
-  var RELEASE = '52.9467100';
+  var SHELL_VERSION = 369;
+  var RELEASE = '53.5b9edc3';
 
   /* Readable from the DOM without a debugger, and before any Dart has run.
      This is the shell's own claim about which release it is; the worker's claim
@@ -192,8 +192,11 @@
     var card = el('div', { class: 'tuitea-pwa', id: 'tuitea-share-card' });
     card.innerHTML =
       '<h2>Share TUITEA</h2>' +
-      '<p>Send this to someone in the family. It opens these same instructions on ' +
-      'their phone.</p>';
+      /* This said "it opens these same instructions", which was true of the old
+         install page and is not true of the page that replaced it. What arrives
+         is TUITEA's own page, and it works out for itself what that phone can do. */
+      '<p>Send this to someone in the family. It opens TUITEA on their phone, ' +
+      'ready to install or to sign in to.</p>';
 
     var row = el('p');
     var btn = el('button', { class: 'tuitea-btn', type: 'button', id: 'tuitea-share-btn' },

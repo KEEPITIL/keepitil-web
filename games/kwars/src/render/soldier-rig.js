@@ -67,7 +67,19 @@ const PAL={
 function teamTint(C,team){ if(team===1)return C; const c={...C}; c.skin=shade(C.skin,0.86); return c; } // enemy lighter body
 
 // ---------- POSES (per class + state) ----------
-function poseFor(cls,st,p,t){
+/* ARM CHANNEL SEMANTICS — see docs/kwars-reference/combat-golden/ARM-CHANNEL-MAP.md
+   build() maps  po.armF2 -> J.armB  and  po.armN -> J.armF.
+   The renderer draws the WEAPON from J.armB and the OFF-HAND from J.armF, so:
+
+       po.armF2  IS THE WEAPON ARM   (spear, gladius, bow GRIP, rifle fore-end)
+       po.armN   IS THE OFF ARM      (aspis, scutum, bow DRAW hand, trigger hand)
+
+   The historic comments claiming the reverse are wrong. Which channel should
+   carry an attack is per-weapon: a sword or spear moves the WEAPON hand, but a
+   bow correctly moves the DRAW hand and a rifle the TRIGGER hand. */
+const ARM={WEAPON:'armF2', OFF:'armN'};
+function poseFor(cls,st,p,t,opt){
+  const OPT=opt||{};
   const s=Math.sin(p*Math.PI*2), s2=Math.sin(p*Math.PI*4);
   let po={px:0,py:0,lean:0,headTilt:0,alpha:1,
     legF:{fwd:0.05,bend:0.16,tilt:0},legB:{fwd:-0.05,bend:0.16,tilt:0},
@@ -82,29 +94,162 @@ function poseFor(cls,st,p,t){
   else if(st==='march'){ walk(0.24,false); po.lean=0.03; }        // tight formation steps, upright
   else if(st==='run'){ walk(0.54,true); po.lean=0.20; po.py-=1.4; } // long stride, leaning charge
   if(cls==='sword'){
-    po.armF2={fwd:0.28,bend:1.5};          // shield arm (near, drawn as F front)
-    po.armN ={fwd:0.10,bend:1.32};         // sword arm (far)
-    if(st==='attack'){const wind=ss(0,.15,p),thr=ss(.15,.45,p)*(1-ss(.55,.9,p));po.px=-wind*3+thr*12;po.lean=thr*0.16-wind*0.04;po.legF={fwd:0.05+thr*0.3,bend:0.16,tilt:0};po.armN={fwd:lerp(0.1,1.55,thr),bend:lerp(1.32,0.12,thr)};po.extra.trail=thr;}
-    else if(st==='overhead'){                       // flying overhead chop (post shield-break charge)
-      const rise=ss(0,.4,p), slam=ss(.4,.6,p);
-      po.py = -Math.sin(ss(0,.62,p)*Math.PI)*20;     // leap up then land
-      po.px = ss(.12,.62,p)*20;                      // fly forward
-      po.lean = 0.12 + slam*0.22;
-      po.legF={fwd:0.12+rise*0.35,bend:0.30+rise*0.55,tilt:0};
-      po.legB={fwd:-0.12-rise*0.1,bend:0.30+rise*0.6,tilt:0};
-      po.armN={fwd:lerp(-0.7,1.5,ss(.35,.6,p)),bend:0.5};
-      po.extra.chop = ss(.30,.60,p);                 // raise then slam
+    po.armF2={fwd:0.10,bend:1.32};         // WEAPON arm -> J.armB -> drawGladius
+    po.armN ={fwd:0.28,bend:1.5};          // OFF arm    -> J.armF -> drawScutum
+    if(st==='attack'){
+      /* §6 SWORD STRIKE — a whole-body action, not an arm rotating on a statue.
+         Owner rejection (build 60): the sword attack read as positional
+         movement. The old pose moved `armN` and nothing else that matters: the
+         torso never rotated, the hips never preloaded, the rear leg never
+         drove, and the blade angle came only from `trail`. What follows is one
+         chain -- rear foot -> hips -> torso -> shoulder -> elbow -> blade --
+         so the strike has weight behind it.
+
+         Two variations so repeated melee does not loop like a machine:
+           0  DIAGONAL CUT   -- deeper wind-up over the shoulder, steeper arc
+           1  ADVANCING CUT  -- shorter, flatter, more step into the target
+         Both stay historically plausible; neither is acrobatic. */
+      const v = OPT.swingVar ? 1 : 0;
+      const ANTIC = v ? 0.20 : 0.26;          // wind-up ends
+      const CONTACT = v ? 0.40 : 0.46;        // blade passes the target
+      const wind = ss(0, ANTIC, p);                       // 0->1 loading
+      const thr  = ss(ANTIC, CONTACT, p);                 // 0->1 driving
+      const rec  = ss(CONTACT, v?0.80:0.88, p);           // 0->1 recovering
+      const drive = thr * (1 - rec);                      // peaks at contact
+      /* The wind-up must be UNWOUND by the recovery. `wind` is a smoothstep, so
+         it saturates at 1 and stays there: every term built on it held its
+         loaded value for the rest of the cycle, and the swing finished cocked
+         back (armF2.fwd ended at -1.05 having started at 0.10) instead of at
+         guard. The audit missed it because its blade formula was a stale copy
+         of the pre-§9 independent angle -- it was measuring a sword that is no
+         longer drawn. `set` is the load that recovery pays back. */
+      const set = wind * (1 - rec);
+      po.extra.swing = drive;
+      po.extra.contact = ss(CONTACT-0.06,CONTACT,p) * (1-ss(CONTACT,CONTACT+0.10,p));
+
+      // weight: rock back onto the rear foot, then drive through the front one
+      po.px   = -set*(v?3.5:5) + drive*(v?15:12) - rec*2;
+      po.py   = -set*1.2 + drive*(v?0.6:1.8);
+      po.lean = -set*(v?0.05:0.08) + drive*(v?0.20:0.16);
+      // hips + torso counter-rotate into the cut (build() feeds this to the spine)
+      po.extra.shoulderRoll = -set*(v?0.06:0.10) + drive*(v?0.12:0.16);
+      po.headTilt = drive*0.06;
+      // legs: rear foot pushes, lead foot steps in and plants
+      po.legF = {fwd: 0.05 + set*0.06 + drive*(v?0.52:0.34), bend: 0.16 + drive*0.10, tilt: 0};
+      po.legB = {fwd: -0.05 - set*0.10 - drive*(v?0.30:0.22), bend: 0.18 + set*0.22 + drive*0.16, tilt: 0};
+      // weapon arm: cocked back and bent, then extends through the target
+      // the SWORD hand swings (armF2 = weapon arm), the shield tucks (armN)
+      po.armF2 = {fwd: lerp(0.10, v?-0.62:-1.05, set) + drive*(v?2.30:2.75),
+                  bend: lerp(1.32, v?1.62:1.92, set) - drive*(v?1.50:1.80)};
+      po.armN  = {fwd: 0.28 - drive*0.14 + set*0.05, bend: 1.50 + drive*0.16};
+      po.extra.trail = drive;
+      po.extra.swingStyle = v;
     }
-    else if(st==='fury'){                            // rapid multi-slash
-      const sw=Math.sin(p*Math.PI*6);
-      po.px = 7 + Math.abs(sw)*4; po.lean=0.13;
-      po.legF={fwd:0.26,bend:0.20,tilt:0}; po.legB={fwd:-0.16,bend:0.32,tilt:0};
-      po.armN={fwd:lerp(0.1,1.5,0.5+0.5*sw),bend:lerp(1.3,0.3,0.5+0.5*sw)};
-      po.extra.trail=0.5+0.5*sw;                     // blade sweeps across the body
+    else if(st==='shieldthrust'){
+      /* §17-§19 SHIELD THRUST — GUARD -> PRELOAD -> DRIVE -> CONTACT ->
+         FOLLOW-THROUGH -> RECOVERY -> GUARD.
+         The drive is a body action: rear leg extends, hips arrive, torso and
+         shoulder carry the shield. An arm extending on a static torso is
+         exactly what was rejected.
+         CHANNEL: the shield rides J.armF, which build() feeds from po.armN.
+         This state used to drive po.armF2 -- the WEAPON arm -- so the thrust
+         punched the SWORD forward while the shield was dragged BACKWARD
+         (armN.fwd ran 0.10 -> -0.45 through the drive). Same inversion already
+         fixed for spear and sword; fixed here too. */
+      const pre  = ss(0,    0.24, p);              // load onto the rear foot
+      const drv  = ss(0.24, 0.44, p);              // hips fire, lead foot steps
+      const thru = ss(0.48, 0.60, p);              // stay committed past contact
+      const rec  = ss(0.62, 0.95, p);              // catch the weight, re-guard
+      const push = drv * (1 - rec);
+      po.extra.shieldDrive = push;
+      po.extra.contact = ss(0.42,0.48,p) * (1-ss(0.48,0.60,p));
+      // centre of mass: back, decisively through, then caught and returned to guard
+      po.px   = -pre*7 + push*20 + thru*2.5 + rec*4.5;   // ...and the preload is paid back
+      po.py   =  pre*2.2 - push*1.4 - rec*2.2;     // sink, rise through the drive, settle
+      po.lean = -pre*0.10 + push*0.26 + thru*0.05 + rec*0.05;
+      po.extra.shoulderRoll = -pre*0.14 + push*0.30 + thru*0.04 + rec*0.10;
+      po.headTilt = -pre*0.05 + push*0.08 + rec*0.05;
+      // rear leg loads and extends; lead leg steps out, plants, then absorbs
+      po.legB = {fwd: -0.10 - pre*0.30 + rec*0.30, bend: 0.20 + pre*0.55 - push*0.42 - rec*0.55, tilt: 0};
+      po.legF = {fwd:  0.06 + pre*0.05 + push*0.62 + thru*0.06 - rec*0.11, bend: 0.18 + pre*0.22 + push*0.12 + thru*0.16 - rec*0.38, tilt: 0};
+      // SHIELD arm (off hand): draws in under load, drives out as the last link,
+      // then retracts to a defensive angle rather than snapping back.
+      po.armN  = {fwd: 0.28 - pre*0.34 + push*1.55 + thru*0.08 + rec*0.26,
+                  bend: 1.50 + pre*0.35 - push*1.05 - rec*0.35};
+      // weapon arm counterbalances behind the body and returns combat-ready
+      po.armF2 = {fwd: 0.10 - pre*0.20 - push*0.35 + rec*0.20,
+                  bend: 1.32 + push*0.30};
+      po.extra.brace = 1 - push;
+    }
+    else if(st==='overhead'){
+      /* §4-§9 OVERHEAD — GUARD -> LOAD -> RAISE -> COMMIT -> CONTACT ->
+         FOLLOW-THROUGH -> RECOVERY -> GUARD.
+         It used to end slammed: extra.chop reached 1 at p=0.60 and simply held
+         there for the remaining 40% of the cycle, so the unit stood with the
+         blade buried in the ground until the state changed and the pose
+         snapped. The recovery below is a real phase, not an ease-out. */
+      const GUARD = 0.17;                           // chop value whose blade angle reads as guard
+      const load  = ss(0,    0.14, p);              // feet settle, knees bend, hips preload
+      const raise = ss(0.10, 0.34, p);              // shoulder lifts, elbow folds, sword cocks
+      const slam  = ss(0.32, 0.56, p);              // commit: legs -> hips -> torso -> shoulder -> sword
+      const thru  = ss(0.54, 0.66, p);              // follow through past the target plane
+      const rec   = ss(0.68, 0.97, p);              // recover to a continuous guard
+      po.extra.contact = ss(0.50,0.56,p) * (1-ss(0.56,0.66,p));
+      let chop = GUARD*(1-raise);                   // guard -> fully cocked
+      chop = chop + (1-chop)*slam;                  // -> slammed through
+      chop = chop + (GUARD-chop)*rec;               // -> back to guard
+      po.extra.chop = chop;
+      po.py = -Math.sin(ss(0,0.58,p)*Math.PI)*20 + thru*3 - rec*3;   // leap, land, absorb
+      po.px = ss(0.12,0.58,p)*20 + thru*3 - rec*4;                   // fly forward, then re-centre
+      po.lean = 0.10 - load*0.10 + raise*0.02 + slam*0.30 + thru*0.06 - rec*0.28;
+      po.extra.shoulderRoll = -raise*0.18 + slam*0.34 + thru*0.05 - rec*0.21;
+      po.headTilt = -raise*0.06 + slam*0.10 - rec*0.04;
+      po.legF={fwd: 0.12 - load*0.04 + raise*0.30 + slam*0.34 - rec*0.60,
+               bend:0.22 + load*0.20 + raise*0.34 - slam*0.16 + thru*0.10 - rec*0.48, tilt:0};
+      po.legB={fwd:-0.12 - load*0.06 - raise*0.14 - slam*0.22 + rec*0.42,
+               bend:0.22 + load*0.24 + raise*0.36 - slam*0.24 + thru*0.08 - rec*0.44, tilt:0};
+      /* Weapon hand: guard -> cocked ABOVE THE HEAD -> driven down through the
+         target -> guard. The channel's sign is the opposite of what it reads
+         like: a HIGH armF2.fwd raises the hand (fwd 2.45/bend 1.35 puts the
+         forearm at -2.2 rad with the hand above the helmet), a low one drops
+         it. The first attempt at this recovery drove fwd NEGATIVE to "cock
+         back" and produced an overhead whose sword never left chest height --
+         which the rendered strip caught and the geometry gate did not. */
+      let aF = 0.60 + ( 2.45-0.60)*raise; aF = aF + ( 0.20-aF)*slam; aF = aF + ( 0.00-aF)*thru; aF = aF + (0.60-aF)*rec;
+      let aB = 1.00 + ( 1.35-1.00)*raise; aB = aB + ( 0.96-aB)*slam; aB = aB + ( 0.84-aB)*thru; aB = aB + (1.00-aB)*rec;
+      po.armF2={fwd:aF, bend:aB};
+      // off hand stays a shield: tucked under the raise, braced on contact, back to guard
+      po.armN ={fwd:0.28 - raise*0.14 + slam*0.12 - rec*0.10 + 0.02*thru,
+                bend:1.46 + raise*0.14 - slam*0.12 + rec*0.10};
+    }
+    else if(st==='fury'){
+      /* §12-§16 FURY — rapid multi-slash. The cadence and identity are
+         unchanged; what was missing is the lower body. It used to hold
+         legF/legB at fixed constants for the whole state, so an aggressive
+         upper-body attack played on a frozen pelvis: the audit measured 4.0
+         of travel at every lower-body joint. Each slash is now driven from
+         the ground -- rear foot pushes, knees compress and extend, hips
+         translate and the torso rotates -- while staying grounded: no flips,
+         spins, jumps or lunges. */
+      const sw    = Math.sin(p*Math.PI*6);
+      const drive = 0.5 + 0.5*sw;                   // 1 = blow extended
+      const load  = 1 - drive;                      // 1 = coiled between blows
+      po.px   = 7 + drive*7;                        // hips translate into each blow
+      po.py   = load*1.8;                           // sink on the load, rise through the strike
+      po.lean = 0.06 + drive*0.16;
+      po.extra.shoulderRoll = -0.10 + drive*0.30;   // torso rotates behind the arm
+      po.headTilt = drive*0.06;
+      // rear foot pushes and the lead foot catches: the stance works each strike
+      po.legF={fwd: 0.18 + drive*0.30, bend: 0.30 + load*0.16 - drive*0.12, tilt:0};
+      po.legB={fwd:-0.14 - drive*0.20, bend: 0.26 + load*0.34 - drive*0.14, tilt:0};
+      po.armF2={fwd:lerp(0.1,1.5,drive),bend:lerp(1.3,0.3,drive)};  // weapon hand
+      po.armN ={fwd:0.22 - drive*0.12, bend:1.44 + drive*0.12};      // off hand stays useful
+      po.extra.trail=drive;                          // blade sweeps across the body
     }
   } else if(cls==='spear'){
-    po.armF2={fwd:0.5,bend:1.4};           // big shield (near)
-    po.armN ={fwd:0.55,bend:0.85};po.extra.spearAng=-0.05; // spear (far), waist level
+    po.armF2={fwd:0.55,bend:0.85};         // WEAPON arm -> J.armB -> drawSpear
+    po.armN ={fwd:0.5,bend:1.4};           // OFF arm    -> J.armF -> drawAspis
+    po.extra.spearAng=-0.05;               // dory at waist level
     if(st==='march'){po.extra.brace=1;}             // phalanx: shield up, spear forward keeping distance
     if(st==='attack'){                               // dramatic stepping thrust
       const wind=ss(0,.2,p), thr=ss(.2,.44,p)*(1-ss(.52,.9,p));
@@ -112,7 +257,14 @@ function poseFor(cls,st,p,t){
       po.lean = thr*0.16 - wind*0.05;
       po.legF={fwd:0.05+thr*0.55,bend:0.18,tilt:0};  // front foot steps in
       po.legB={fwd:-0.05-thr*0.35,bend:0.20+thr*0.2,tilt:0};
-      po.armN={fwd:lerp(0.5,1.55,thr)-wind*0.25,bend:lerp(0.85,0.32,thr)};
+      /* CHANNEL NAMING IS INVERTED IN THIS RIG. build() maps po.armF2 -> J.armB,
+         and the renderer draws the WEAPON from J.armB. So po.armF2 is the
+         weapon arm and po.armN is the shield arm, despite the names. The thrust
+         used to drive po.armN, which punched the SHIELD forward and left the
+         dory welded to the body -- measured forward extension of the spear tip
+         relative to the torso was exactly 0.0. It now drives the weapon arm. */
+      po.armF2={fwd:lerp(0.5,1.55,thr)-wind*0.25,bend:lerp(0.85,0.32,thr)};
+      po.armN ={fwd:0.5+thr*0.10, bend:1.4-thr*0.15};     // shield stays a shield
       po.extra.spearAng=-0.02; po.extra.brace=1-thr;
     }
     else if(st==='throw'){                           // overhead arch throw to the furthest enemy
@@ -121,7 +273,8 @@ function poseFor(cls,st,p,t){
       po.lean = -wind*0.05 + rel*0.24;
       po.legF={fwd:0.05+rel*0.6,bend:0.18,tilt:0};
       po.legB={fwd:-0.1-rel*0.3,bend:0.22,tilt:0};
-      po.armN={fwd:lerp(-1.1,1.9,rel),bend:lerp(1.7,0.1,rel)};   // cock over the shoulder, hurl up-forward
+      po.armF2={fwd:lerp(-1.1,1.9,rel),bend:lerp(1.7,0.1,rel)};  // SPEAR hand cocks and hurls
+      po.armN ={fwd:0.5-rel*0.15, bend:1.4+rel*0.10};            // shield stays a shield
       po.extra.spearAng=lerp(-2.0,-0.55,rel);        // over-shoulder cock -> launch angled upward
       po.extra.thrown=fly; po.extra.spearGone=p>0.52;
     }
@@ -131,6 +284,24 @@ function poseFor(cls,st,p,t){
     po.extra.bowUp=1;
     if(st!=='march'&&st!=='run'){po.legF={fwd:0.34,bend:0.10,tilt:0};po.legB={fwd:-0.34,bend:0.18,tilt:0.12};} // braced archer stance
     if(st==='attack'){const pull=ss(.1,.5,p)*(1-ss(.6,.72,p));po.armN={fwd:lerp(0.3,-1.9,pull),bend:lerp(1.6,2.05,pull)};po.extra.nocked=pull>0.15&&pull<0.95;}
+    else if(st==='hold'){
+      /* §13 HELD DRAW. The owner asked for an archer that visibly WAITS at
+         full draw for a target to enter range, instead of cycling draw/release
+         into empty space. `p` is the approach into the anchor, not a shot
+         clock: the release is decided by combat state, never by this reaching
+         1. The stance is deliberately distinct from ARCHER_READY -- bow arm
+         locked out, drawing elbow high and back, hand at the face. */
+      const draw=ss(0,0.55,p);
+      po.armF2={fwd:lerp(1.5,1.62,draw), bend:lerp(0.12,0.06,draw)};   // bow arm extends and locks
+      po.armN ={fwd:lerp(0.3,-1.9,draw), bend:lerp(1.6,2.05,draw)};    // draw to anchor
+      po.extra.nocked=true;                                            // arrow stays on the string
+      po.extra.holding=draw;
+      po.lean=0.03+draw*0.03;
+      po.headTilt=0.05;
+      po.legF={fwd:0.34,bend:0.10,tilt:0};                             // braced shooting stance
+      po.legB={fwd:-0.34,bend:0.18,tilt:0.12};
+      po.py=-draw*0.6;
+    }
   } else if(cls==='gun'){
     po.armF2={fwd:1.44,bend:0.34};         // front hand
     po.armN ={fwd:0.66,bend:1.86};         // rear/trigger
@@ -161,6 +332,21 @@ function poseFor(cls,st,p,t){
      weapon-tip oscillation. A braced phalanx keeps it tight; a charge is loose.
      This adjusts the class pose rather than replacing it, so every stance,
      brace, attack and throw pose is preserved exactly. */
+  /* §4 SHIELD BLOCK POSE. `blockRaise` is 0..1 from the unit's raise timer, so
+     the shield travels into the projectile line over several frames instead of
+     snapping. The shield arm lifts and crosses, the torso turns in behind it
+     and the knees brace -- visibly different from the idle guard. */
+  if(po.extra.blockRaise>0){
+    const b=po.extra.blockRaise;
+    po.armF2={fwd:(po.armF2.fwd)+b*0.95, bend:(po.armF2.bend)-b*0.55};
+    po.armN ={fwd:(po.armN.fwd)-b*0.30, bend:(po.armN.bend)+b*0.35};
+    po.lean += b*0.10;
+    po.extra.shoulderRoll=(po.extra.shoulderRoll||0)+b*0.12;
+    po.legF={fwd:(po.legF.fwd)-b*0.08, bend:(po.legF.bend)+b*0.20, tilt:po.legF.tilt||0};
+    po.legB={fwd:(po.legB.fwd)-b*0.10, bend:(po.legB.bend)+b*0.24, tilt:po.legB.tilt||0};
+    po.extra.brace=1;
+    po.py += b*1.6;
+  }
   if(po.extra.stride!==undefined && st!=='attack' && st!=='throw' && st!=='overhead' && st!=='fury'){
     const g=po.extra.stride;                 // -1..1, in phase with the front leg
     const run=(st==='run');
@@ -267,14 +453,65 @@ function aspisDisc(J,po){
   return {cx:lerp(mid[0],hd[0],0.2)+gap, cy:lerp(mid[1],hd[1],0.2), R};
 }
 function drawAspis(ctx,J,C,po){const {cx,cy,R}=aspisDisc(J,po);ctx.save();ctx.translate(cx,cy);ctx.fillStyle=cyl(ctx,-R,R,C.shield,.15);ctx.strokeStyle=shade(C.shield,-.4);ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.fill();ctx.stroke();ctx.strokeStyle=C.trim;ctx.lineWidth=R*0.09;ctx.beginPath();ctx.arc(0,0,R-R*0.06,0,7);ctx.stroke();ctx.strokeStyle=C.trim;ctx.lineWidth=R*0.13;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,-R*0.4);ctx.lineTo(-R*0.32,R*0.4);ctx.moveTo(0,-R*0.4);ctx.lineTo(R*0.32,R*0.4);ctx.stroke();ctx.restore();}
-function drawScutum(ctx,J,C){const top=J.shoulder,bot=J.pelvis,hd=J.armF[2];const th=Math.hypot(bot[0]-top[0],bot[1]-top[1]);const HH=th*0.86,HW=th*0.30;const mid=[lerp(top[0],bot[0],0.5),lerp(top[1],bot[1],0.6)];const cx=lerp(mid[0],hd[0],0.32)+HW*0.5,cy=lerp(mid[1],hd[1],0.38);ctx.save();ctx.translate(cx,cy);ctx.fillStyle=cyl(ctx,-HW,HW,C.shield,.14);ctx.strokeStyle=shade(C.shield,-.4);ctx.lineWidth=1.4;ctx.beginPath();ctx.roundRect(-HW,-HH,HW*2,HH*2,4);ctx.fill();ctx.stroke();ctx.strokeStyle=C.trim;ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(-HW+1.2,-HH+1.4,HW*2-2.4,HH*2-2.8,3);ctx.stroke();ctx.fillStyle=C.trim;ctx.beginPath();ctx.arc(0,0,HW*0.24,0,7);ctx.fill();ctx.restore();}
+/* §6 The scutum was th*0.86 x th*0.30 -- a 79x55 slab on a 140-unit man,
+   centred over the torso and drawn AFTER the weapon arm. It hid the body and
+   the entire sword strike, which is why the owner saw "positional movement"
+   instead of an attack. Same defect the aspis had over the dory. */
+function scutumRect(J,po){
+  const top=J.shoulder,bot=J.pelvis,hd=J.armF[2];
+  const th=Math.hypot(bot[0]-top[0],bot[1]-top[1]);
+  const HH=th*0.72,HW=th*0.26;
+  const mid=[lerp(top[0],bot[0],0.5),lerp(top[1],bot[1],0.6)];
+  return {cx:lerp(mid[0],hd[0],0.32)+HW*0.5, cy:lerp(mid[1],hd[1],0.38), HH, HW};
+}
+function drawScutum(ctx,J,C,po){const {cx,cy,HH,HW}=scutumRect(J,po);ctx.save();ctx.translate(cx,cy);ctx.fillStyle=cyl(ctx,-HW,HW,C.shield,.14);ctx.strokeStyle=shade(C.shield,-.4);ctx.lineWidth=1.4;ctx.beginPath();ctx.roundRect(-HW,-HH,HW*2,HH*2,4);ctx.fill();ctx.stroke();ctx.strokeStyle=C.trim;ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(-HW+1.2,-HH+1.4,HW*2-2.4,HH*2-2.8,3);ctx.stroke();ctx.fillStyle=C.trim;ctx.beginPath();ctx.arc(0,0,HW*0.24,0,7);ctx.fill();ctx.restore();}
+/* The blade rides the FAR arm and genuinely projects past the shield's edge.
+   Re-draw only the part that lies outside the shield rectangle, after it. */
+function gladiusAheadOfShield(ctx,J,po,C){
+  if(po.supine||po.extra.spearGone)return;
+  const h=J.armB[2], trail=po.extra.trail||0, style=po.extra.swingStyle||0;
+  const ang = gladiusAngle(J,po,trail,style);   // §9 one source of truth
+  const d=[Math.cos(ang),Math.sin(ang)],nx=-d[1],ny=d[0];
+  const big=po.extra.bigSword?1.6:1, blade=70*big, bw=3.5*big;
+  const {cx,cy,HH,HW}=scutumRect(J,po);
+  const inside=(x,y)=>Math.abs(x-cx)<=HW&&Math.abs(y-cy)<=HH;
+  let tIn=-1;
+  for(let t=0;t<=blade;t+=2) if(inside(h[0]+d[0]*t,h[1]+d[1]*t)) tIn=t;
+  if(tIn<0) return;                  // never crosses the shield: already visible
+  const t0=Math.min(blade,tIn+2);
+  if(t0>=blade) return;              // the shield swallows the whole blade
+  const a=[h[0]+d[0]*t0,h[1]+d[1]*t0], tip=[h[0]+d[0]*blade,h[1]+d[1]*blade];
+  poly(ctx,[[a[0]+nx*bw,a[1]+ny*bw],[tip[0]+nx*0.6,tip[1]+ny*0.6],
+            [tip[0]+d[0]*2.4,tip[1]+d[1]*2.4],[tip[0]-nx*0.6,tip[1]-ny*0.6],
+            [a[0]-nx*bw,a[1]-ny*bw]],'#e9edf1',shade('#e9edf1',-.35),0.6);
+  ctx.strokeStyle=shade('#e9edf1',.25);ctx.lineWidth=0.8;ctx.beginPath();
+  ctx.moveTo(a[0]+d[0]*2,a[1]+d[1]*2);ctx.lineTo(tip[0]-d[0]*5,tip[1]-d[1]*5);ctx.stroke();
+}
+/* The blade direction, derived once from the forearm + a bounded wrist. Both
+   the main draw and the ahead-of-shield redraw must use this or they diverge. */
+function gladiusAngle(J,po,trail,style){
+  const h=J.armB[2];
+  const fore=Math.atan2(h[1]-J.armB[1][1], h[0]-J.armB[1][0]);
+  const wristMax=1.25;
+  const wrist = po.extra.chop!=null ? lerp(-0.55,0.20,po.extra.chop)
+              : (style ? lerp(-0.62,0.42,trail) : lerp(-0.95,0.55,trail));
+  return fore + Math.max(-wristMax, Math.min(wristMax, wrist));
+}
 function drawGladius(ctx,J,po,C){
   const h=J.armB[2];const trail=po.extra.trail||0;
-  const ang = po.extra.chop!=null ? lerp(-2.5,0.78,po.extra.chop)   // overhead: raised behind -> slam down-forward
-            : lerp(-1.46,-0.05,trail);                              // idle upright -> forward thrust
+  /* §9 RIGID-WEAPON CONTRACT.
+     The blade angle used to be derived from `trail` alone, completely
+     independently of where the hand actually was. That is why the sword could
+     arc convincingly around a welded hand -- and why, once the hand started
+     moving, hand and blade stopped agreeing. The blade is a rigid object
+     gripped at the hilt, so its direction must come from the FOREARM, with the
+     wrist adding only a bounded offset. `trail` now describes the wrist, not
+     the sword. */
+  const style = po.extra.swingStyle||0;
+  const ang = gladiusAngle(J,po,trail,style);
   const d=[Math.cos(ang),Math.sin(ang)],nx=-d[1],ny=d[0];
   const big=po.extra.bigSword?1.6:1;                       // raged: oversized greatsword
-  const blade=64*big,grip=9,guardW=7.5*big,bw=2.9*big;
+  const blade=70*big,grip=9,guardW=8.2*big,bw=3.5*big;
   const tip=[h[0]+d[0]*blade,h[1]+d[1]*blade];
   const gripEnd=[h[0]-d[0]*grip,h[1]-d[1]*grip];
   // grip + pommel (behind hand)
@@ -299,7 +536,37 @@ function drawGladius2(ctx,J,po,C){
   const b0=[h[0]+d[0]*2,h[1]+d[1]*2];
   poly(ctx,[[b0[0]+nx*bw,b0[1]+ny*bw],[tip[0]+nx*0.5,tip[1]+ny*0.5],[tip[0]+d[0]*2.2,tip[1]+d[1]*2.2],[tip[0]-nx*0.5,tip[1]-ny*0.5],[b0[0]-nx*bw,b0[1]-ny*bw]],'#e9edf1',shade('#e9edf1',-.35),0.6);
 }
-function drawBow(ctx,G,dh,po){const half=40,depth=15;const aim=po.extra.nocked?Math.atan2(G[1]-dh[1],G[0]-dh[0]):0;ctx.save();ctx.translate(G[0],G[1]);ctx.rotate(aim);const T=[-depth,-half],B=[-depth,half];ctx.strokeStyle='#8a5a2c';ctx.lineWidth=2.6;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(T[0],T[1]);ctx.quadraticCurveTo(2,-half*0.5,2,0);ctx.quadraticCurveTo(2,half*0.5,B[0],B[1]);ctx.stroke();let nock;if(po.extra.nocked){const dx=dh[0]-G[0],dy=dh[1]-G[1];nock=[dx*Math.cos(aim)+dy*Math.sin(aim),-dx*Math.sin(aim)+dy*Math.cos(aim)];}else nock=[-depth,0];ctx.strokeStyle='rgba(238,232,214,.8)';ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(T[0],T[1]);ctx.lineTo(nock[0],nock[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();if(po.extra.nocked){ctx.strokeStyle='#7a5330';ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(nock[0],nock[1]);ctx.lineTo(22,0);ctx.stroke();ctx.fillStyle='#e6ebef';poly(ctx,[[26,0],[22,-2],[22,2]],'#e6ebef',null,0);}ctx.restore();}
+/* §7/§16 ARROW SILHOUETTE — one definition, used by the nocked arrow here and
+   by the flying projectile in index.html. The old arrow was a 14px line with a
+   4px head and NO fletching, which is why the owner said arrows do not read as
+   arrows. Head and fletching are deliberately a little generous: this is a
+   readability decision at battle zoom, not a scale drawing.
+   Draws along +X from the nock at the origin; the caller supplies rotation. */
+const ARROW={LEN:30, BACK:9, W:2.2, HEAD:9, HEADW:3.4, FLETCH:7, FLETCHW:3.2};
+function drawArrowShape(ctx,shaftCol,headCol,fletchCol,tipAt){
+  /* `tipAt` lets the nocked arrow reach PAST the bow: on the string the nock
+     sits well behind the grip, so a fixed-length arrow drawn from the nock
+     stops short and the fletching juts out behind the archer's back. The
+     flying projectile uses the default length. */
+  const A=ARROW, tip=(tipAt===undefined?A.LEN-A.BACK:tipAt);
+  ctx.strokeStyle=shaftCol; ctx.lineWidth=A.W; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-A.BACK,0); ctx.lineTo(tip-A.HEAD*0.4,0); ctx.stroke();
+  // barbed head
+  poly(ctx,[[tip,0],[tip-A.HEAD,-A.HEADW],[tip-A.HEAD*0.55,0],[tip-A.HEAD,A.HEADW]],headCol,null,0);
+  // fletching: two vanes swept back from the nock
+  ctx.fillStyle=fletchCol;
+  for(const sgn of [-1,1]){
+    ctx.beginPath();
+    ctx.moveTo(-A.BACK,0);
+    ctx.lineTo(-A.BACK+A.FLETCH*0.35, sgn*A.FLETCHW);
+    ctx.lineTo(-A.BACK+A.FLETCH,      sgn*A.FLETCHW*0.35);
+    ctx.lineTo(-A.BACK+A.FLETCH*0.8,  0);
+    ctx.closePath(); ctx.fill();
+  }
+}
+function drawBow(ctx,G,dh,po){const half=40,depth=15;const aim=po.extra.nocked?Math.atan2(G[1]-dh[1],G[0]-dh[0]):0;ctx.save();ctx.translate(G[0],G[1]);ctx.rotate(aim);const T=[-depth,-half],B=[-depth,half];ctx.strokeStyle='#8a5a2c';ctx.lineWidth=2.6;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(T[0],T[1]);ctx.quadraticCurveTo(2,-half*0.5,2,0);ctx.quadraticCurveTo(2,half*0.5,B[0],B[1]);ctx.stroke();let nock;if(po.extra.nocked){const dx=dh[0]-G[0],dy=dh[1]-G[1];nock=[dx*Math.cos(aim)+dy*Math.sin(aim),-dx*Math.sin(aim)+dy*Math.cos(aim)];}else nock=[-depth,0];ctx.strokeStyle='rgba(238,232,214,.8)';ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(T[0],T[1]);ctx.lineTo(nock[0],nock[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();if(po.extra.nocked){ctx.save();ctx.translate(nock[0],nock[1]);
+    drawArrowShape(ctx,'#7a5330','#e6ebef','#d9cfc0', 28-nock[0]);   // tip clears the bow
+    ctx.restore();}ctx.restore();}
 function drawRifle(ctx,rear,front,po,C){const ang=Math.atan2(front[1]-rear[1],front[0]-rear[0]),len=Math.hypot(front[0]-rear[0],front[1]-rear[1]);ctx.save();ctx.translate(rear[0],rear[1]);ctx.rotate(ang);const muzzle=len+24;ctx.fillStyle=shade(C.wood,-.1);ctx.beginPath();ctx.moveTo(-16,-3.4);ctx.lineTo(-2,-2.2);ctx.lineTo(-2,2);ctx.lineTo(-16,3.6);ctx.closePath();ctx.fill();ctx.fillStyle=cyl(ctx,-3,3,C.metal,.3);ctx.beginPath();ctx.roundRect(-2,-2.4,len*0.5+4,4.2,1);ctx.fill();ctx.fillStyle=shade(C.metal,-.1);ctx.beginPath();ctx.moveTo(3,2);ctx.lineTo(8,2);ctx.lineTo(7,9);ctx.lineTo(4,9);ctx.closePath();ctx.fill();ctx.fillStyle=shade(C.metal,.1);ctx.fillRect(len*0.4,-1.2,muzzle-len*0.4,2.4);ctx.fillStyle=shade(C.wood,-.05);ctx.beginPath();ctx.roundRect(len-8,-2.2,16,4.4,1.2);ctx.fill();if(po.extra.fire>0.05){ctx.globalAlpha=Math.min(1,po.extra.fire*1.4);ctx.fillStyle='#ffd24a';poly(ctx,[[muzzle+2,0],[muzzle+9,-4],[muzzle+15,0],[muzzle+9,4]],'#ffd24a',null,0);ctx.globalAlpha=1;}ctx.restore();}
 
 // ---- Roman legionary armor overlays (sword class) ----
@@ -395,7 +662,8 @@ function drawSoldier(ctx,cls,po,C,team,armorCls){
   limb(ctx,J.armF[0],J.armF[1],5.1,4.1,sk);limb(ctx,J.armF[1],J.armF[2],4.1,3.0,sk);hand(ctx,J.armF[2],J.armF[1],shade(sk,.1));
   if(armorCls==='sword'&&!po.supine&&!po.extra.impale)drawPauldron(ctx,J.shoulder,C);
   if(!po.supine&&!po.extra.impale&&!po.extra.dropGear&&!po.dropShield){
-    if(armorCls==='sword')drawScutum(ctx,J,C);
+    if(armorCls==='sword'){drawScutum(ctx,J,C,po);
+      if(cls==='sword')gladiusAheadOfShield(ctx,J,po,C);}
     if(armorCls==='spear'){drawAspis(ctx,J,C,po);
       if(cls==='spear')drawSpearAheadOfShield(ctx,J,po,C);}
   }
@@ -434,5 +702,5 @@ function drawSoldierLite(ctx,cls,po,C,team){
   if((cls==='spear'||cls==='sword')&&!po.dropShield&&!po.supine){ctx.fillStyle=C.shield||'#9e2b25';ctx.beginPath();ctx.arc(J.armF[2][0],J.armF[2][1],6.5,0,7);ctx.fill();}
   ctx.globalAlpha=1;
 }
-return {drawSoldier,drawSoldierLite,poseFor,build,PAL,teamTint,poly,shade,SPEAR,aspisDisc,spearClearance};
+return {drawSoldier,drawSoldierLite,poseFor,build,PAL,teamTint,poly,shade,SPEAR,aspisDisc,spearClearance,scutumRect,ARROW,drawArrowShape,ARM,gladiusAngle};
 })();

@@ -141,6 +141,10 @@
   function mainMenu(){
     if(started)saveRun();started=false;paused=true;document.getElementById('overlay').classList.add('hidden');hub.classList.remove('hidden');panel.classList.add('hidden');
     const a=data.active,cont=document.getElementById('continuebtn');cont.hidden=!a;
+    /* §38 the headline states what is being resumed, from the SAVE -- a
+       returning player should not have to read the detail line to know. */
+    const lab=document.getElementById('continuelabel');
+    if(lab) lab.textContent = a ? ('CONTINUE WAR — WAVE '+a.wave) : 'CONTINUE WAR';
     document.getElementById('continuesub').textContent=a?('Wave '+a.wave+' · '+CIV_NAMES[(a.civ||1)-1]+' · '+Math.max(0,Math.min(100,Math.round(100*(a.gateHP||0)/(a.gateMax||1))))+'% fort · '+mins(a.time)+' · '+played(data.lastPlayed)):'';
   }
   function showPanel(title,html){document.getElementById('paneltitle').textContent=title;document.getElementById('panelbody').innerHTML=html;panel.classList.remove('hidden');}

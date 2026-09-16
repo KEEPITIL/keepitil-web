@@ -227,18 +227,18 @@
          not a front door: it appears once the player has actually started a
          war, or once they are signed in. -->
     <div class="landing" id="landingmain">
-      <button class="titlebtn" id="entercrusade" type="button">CRUSADE<span class="titlebtnsub">Campaign · conquer 75 kingdoms</span></button>
-      <button class="titlebtn" id="enterwar" type="button">WAR<span class="titlebtnsub">Endless · hold out as long as you can</span></button>
-      <button class="titlebtn ghost" id="entermore" type="button">MORE<span class="titlebtnsub" id="moresub">Account &amp; settings</span></button>
+      <button class="titlebtn major" id="entercrusade" type="button">CRUSADE<span class="titlebtnsub">Conquer the kingdoms.</span></button>
+      <button class="titlebtn major" id="enterwar" type="button">WAR<span class="titlebtnsub">Survive endless war.</span></button>
+      <button class="titlebtn minor" id="entermore" type="button">MORE<span class="titlebtnsub" id="moresub">Account &amp; settings</span></button>
     </div>
     <!-- Mode entry: NEW GAME / CONTINUE, shown in place so the player never
          bounces out to a dashboard to make this one choice. -->
     <div class="landing" id="landingmode" hidden>
       <h2 class="landingmodetitle" id="landingmodetitle"></h2>
       <p class="landingmodesub" id="landingmodesub"></p>
-      <button class="titlebtn" id="modenew" type="button">NEW GAME</button>
-      <button class="titlebtn" id="modecontinue" type="button">CONTINUE<span class="titlebtnsub" id="modecontinuesub"></span></button>
-      <button class="titlebtn ghost" id="modeback" type="button">BACK</button>
+      <button class="titlebtn major" id="modenew" type="button">NEW GAME</button>
+      <button class="titlebtn major" id="modecontinue" type="button">CONTINUE<span class="titlebtnsub" id="modecontinuesub"></span></button>
+      <button class="titlebtn minor" id="modeback" type="button">BACK</button>
     </div>
     <button class="titlecont" id="titlecontinue" type="button" hidden></button>
     <button class="titlebtn" id="enterbtn" type="button" hidden>PLAY</button>
@@ -259,14 +259,21 @@
     </div>
     <h1 class="hometitle">KINGDOM WARS</h1>
     <p class="homeintro" id="homeintro" hidden></p>
-    <button class="menubtn primary" id="continuebtn" hidden>CONTINUE WAR<span class="menusub" id="continuesub"></span></button>
+    <!-- §37/§38 PRIMARY: resume. A returning player must know what to continue
+         without reading anything else, and the label is built from the real
+         save -- never an invented number. -->
+    <button class="menubtn primary" id="continuebtn" hidden><span id="continuelabel">CONTINUE WAR</span><span class="menusub" id="continuesub"></span></button>
     <button class="menubtn playbtn" id="playbtn">▶ PLAY<span class="menusub" id="playsub" hidden></span></button>
-    <div class="homegrid">
-      <button class="hometile" id="campaignbtn"><span class="tilebadge" id="crusadebadge" hidden>START HERE</span><span class="tileicon" aria-hidden="true">🌍</span><b>WORLD CRUSADE</b><small id="tilecrusade">Campaign</small></button>
-      <button class="hometile" id="newrunbtn"><span class="tileicon" aria-hidden="true">♛</span><b>ENDLESS WAR</b><small id="tileendless">Survival</small></button>
-      <button class="hometile" id="kingdombtn"><span class="tileicon" aria-hidden="true">⚜</span><b>ARMY</b><small>Kingdom &amp; progression</small></button>
-      <button class="hometile" id="loadoutbtn"><span class="tileicon" aria-hidden="true">🛡</span><b>ARMORY</b><small>Equipment &amp; loadouts</small></button>
-      <button class="hometile" id="storebtn"><span class="tileicon" aria-hidden="true">💎</span><b>SHOP</b><small>Cosmetics &amp; unlocks</small></button>
+    <!-- §37 SECONDARY: the two ways to play. Not equal-weight tiles in a grid. -->
+    <div class="homemodes">
+      <button class="homemode" id="campaignbtn"><span class="tilebadge" id="crusadebadge" hidden>START HERE</span><b>CRUSADE</b><small id="tilecrusade">Conquer the kingdoms</small></button>
+      <button class="homemode war" id="newrunbtn"><b>WAR</b><small id="tileendless">Survive endless war</small></button>
+    </div>
+    <!-- §37 TERTIARY: utilities, deliberately quiet. -->
+    <div class="homeutil">
+      <button class="hometile" id="kingdombtn"><span class="tileicon" aria-hidden="true">⚜</span><b>ARMY</b></button>
+      <button class="hometile" id="loadoutbtn"><span class="tileicon" aria-hidden="true">🛡</span><b>ARMORY</b></button>
+      <button class="hometile" id="storebtn"><span class="tileicon" aria-hidden="true">💎</span><b>SHOP</b></button>
     </div>
     <div class="homesec">
       <button id="missionsbtn">DAILY ORDERS</button>
@@ -308,6 +315,7 @@
 <script src="src/render/soldier-rig.js"></script>
 <script src="src/render/skeletal-adapter.js"></script>
 <script src="src/render/monster-rig.js"></script>
+<script src="src/render/title-scene.js"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -405,6 +413,30 @@ const RETREAT_WALL_POSTS = [
 ];
 const RETREAT_HEAL_PER_SEC = 0.06;   // fraction of max HP, only while garrisoned
 const GARRISON_BAND = 150;           // how far behind the wall counts as "safe"
+/* §21 GARRISON SAFETY CONTRACT.
+   GARRISON_BAND has always been documented as the band that "counts as safe",
+   but only the HEAL ever honoured it -- nothing stopped damage. The two
+   systems therefore disagreed about what garrisoned means, and the visible
+   result was a unit healing to full behind the wall and then losing health.
+   Traced sources, all real: a `bleed` DoT ticking -1.2 every 0.15s on a unit
+   standing still at x=572; enemy arrows from x=847-875 reaching that same
+   unit; and melee (`bash`, `spearp`) from x=602-622 killing units including
+   one already posted ON the parapet.
+
+   The rule, stated once and enforced in one place: while RETREAT is the
+   standing order, a unit that has reached the garrison band -- or taken a post
+   on the wall -- is safe from ORDINARY damage: melee, ordinary direct
+   projectiles, and damage-over-time. SIEGE is deliberately still allowed
+   through, so falling back is cover, never immunity: catapults, boulders,
+   bombs and blasts still reach over the wall, and an enemy that brings siege
+   can still break a garrison.
+   This is not a new balance decision -- it is the behaviour the constant has
+   claimed since it was written. */
+const GARRISON_SIEGE_KINDS = new Set(['boulder','rock','bomb','blast']);
+function isGarrisoned(u){
+  return u && u.team === 1 && S && S.retreatMode &&
+         (u.onWall === true || u.x <= P_WALL + GARRISON_BAND);
+}
 // wall wizard spots (the fort starts with one on the fountain tower)
 const WIZ_SPOTS = [
   {x:210,y:240,s:.8},{x:345,y:260,s:.8},{x:508,y:264,s:.75},{x:65,y:296,s:.9},
@@ -872,7 +904,7 @@ function fillFormationGaps(pool,slots,place,frontDir,groupTag){
   // In a settled line that is nearly everybody, so the quadratic matching
   // below only ever runs over the handful of genuine gaps.
   const byKey=_fgKey; byKey.clear();
-  for(let i=0;i<slots.length;i++) byKey.set(groupTag+':'+slots[i].col+':'+slots[i].row,i);
+  for(let i=0;i<slots.length;i++) byKey.set(groupTag+':'+slots[i].lcol+':'+slots[i].row,i);
   if(_fgTaken.length<slots.length)_fgTaken=new Uint8Array(slots.length*2);
   const taken=_fgTaken; taken.fill(0,0,slots.length);
   const remaining=_fgRemaining; remaining.length=0;
@@ -929,7 +961,7 @@ function fillFormationGaps(pool,slots,place,frontDir,groupTag){
     if(pick<0)pick=0;
     const u=remaining.splice(pick,1)[0],old=Number.isFinite(u.slotX)?u.slotX:u.x;
     if((slot.x-old)*frontDir>12){u.reinforceT=.9;u.closeRanks=true;}
-    u.slotKey=groupTag+':'+slot.col+':'+slot.row;
+    u.slotKey=groupTag+':'+slot.lcol+':'+slot.row;
     u.slotRow=slot.row; u.slotCol=slot.col;      // lane + rank, for §11 refill
     place(u,slot.x,slot.y,slot.row);
   }
@@ -950,11 +982,15 @@ function _formScratch(arr,pred){
 /* Pooled slot records, keyed by a monotonic cursor that resets each frame. */
 const _slotPool=[]; let _slotN=0;
 function _slotReset(){_slotN=0;}
-function _slot(x,y,row,col){
+/* §5 SLOT IDENTITY IS BAND-RELATIVE.
+   `col` is the ABSOLUTE column on the field and moves whenever a band in front
+   of this one changes size. `lcol` is the column WITHIN this band and does not.
+   Slot ownership keys off lcol; only the drawn x/y follow col. */
+function _slot(x,y,row,col,lcol){
   let o=_slotPool[_slotN];
-  if(!o)o=_slotPool[_slotN]={x:0,y:0,row:0,col:0};
+  if(!o)o=_slotPool[_slotN]={x:0,y:0,row:0,col:0,lcol:0};
   _slotN++;
-  o.x=x;o.y=y;o.row=row;o.col=col;return o;
+  o.x=x;o.y=y;o.row=row;o.col=col;o.lcol=lcol===undefined?col:lcol;return o;
 }
 const _slotList=[];
 function updateFormation(dt){
@@ -1028,8 +1064,8 @@ function updateFormation(dt){
     bandUnits.length=0;
     for(let i=from;i<to;i++) bandUnits.push(melee[i]);
     const slots=_slotList; slots.length=0;
-    for(let i=0;i<bandUnits.length;i++){const row=i%rankRows,col=cb+Math.floor(i/rankRows);
-      slots.push(_slot(S.rallyX-col*cs,rows[row],row,col));}
+    for(let i=0;i<bandUnits.length;i++){const row=i%rankRows,lcol=Math.floor(i/rankRows),col=cb+lcol;
+      slots.push(_slot(S.rallyX-col*cs,rows[row],row,col,lcol));}
     fillFormationGaps(bandUnits,slots,place,1,'aM'+tv);
   }
   {
@@ -1133,6 +1169,9 @@ function updateEnemyFormation(dt){
  * each walked all S.units per unit per frame: O(n^2) three times over.
  * ------------------------------------------------------------------------ */
 var SPAT = { all: [], byTeam: { '1': [], '-1': [] }, stamp: -1 };
+/* §14 scratch buffer for the separation index: reused, never reallocated. */
+const _sepIdx=[];
+const SEP_X=16;                       // the exact half-width the old dx test accepted
 function spatialRebuild(){
   const all = SPAT.all; all.length = 0;
   const a = SPAT.byTeam['1'], b = SPAT.byTeam['-1']; a.length = 0; b.length = 0;
@@ -1308,8 +1347,14 @@ function projectileThreat(u){
    only that list, sorted by x so the walk can stop early. */
 const SPEAR_DENIAL_BODY = 16;
 let _denialSrc = [], _denialTeam1 = [], _denialTeamE = [];
+/* §11 Widest reach among the CURRENT spear defenders, recomputed each step by
+   buildSpearDenial(). A hard-coded constant was tried first and was wrong --
+   ranges in TYPES go up to 620 -- which would have silently dropped candidates
+   the old full scan found. Deriving it from the same list that is scanned makes
+   the indexed window provably complete. */
+let _denialReach=0;
 function buildSpearDenial(){
-  _denialTeam1.length=0; _denialTeamE.length=0;
+  _denialTeam1.length=0; _denialTeamE.length=0; _denialReach=0;
   const list=S.units;
   for(let i=0;i<list.length;i++){
     const d=list[i];
@@ -1317,6 +1362,8 @@ function buildSpearDenial(){
     const w=(TYPES[d.type]||{}).weapon;
     if(w!=='spear'&&w!=='spartan') continue;
     (d.team===1?_denialTeam1:_denialTeamE).push(d);
+    const r=(Number.isFinite(d.attackRange)?d.attackRange:(TYPES[d.type]||{}).range||48);
+    if(r>_denialReach) _denialReach=r;
   }
   _denialTeam1.sort((a,b)=>a.x-b.x);
   _denialTeamE.sort((a,b)=>a.x-b.x);
@@ -1327,8 +1374,19 @@ function spearDenial(u){
   if(!src.length) return 0;
   const forward = (u.team===1) ? -1 : 1;   // sign that puts u IN FRONT of a defender
   let worst=0;
-  for(let i=0;i<src.length;i++){
+  /* §11/§28 `src` is already sorted by x (buildSpearDenial sorts both lists),
+     but this used to walk all of it for every unit -- ~200 units x ~100 spear
+     defenders = ~20k comparisons per step, 1.75ms and the second largest cost
+     in the simulation after the separation scan.
+     A defender can only deny u if |u.x - d.x| <= its reach, and reach is
+     bounded by _denialReach (the widest reach among the current defenders, each
+     step), so the candidates lie in one contiguous
+     x window. Binary-search to it and stop at the far edge. Same candidates,
+     same `worst` value, same early-out -- only the walk is shorter. */
+  const _lo=spatLower(src, u.x-_denialReach);
+  for(let i=_lo;i<src.length;i++){
     const d=src[i];
+    if(d.x > u.x+_denialReach) break;              // sorted: nothing further can reach
     const dy=d.y-u.y; if(dy>22||dy<-22) continue;
     const dx=(u.x-d.x)*(d.team===1?1:-1);
     if(dx<=SPEAR_DENIAL_BODY) continue;
@@ -1442,11 +1500,58 @@ function combatRange(u,t){let r=Number.isFinite(u.attackRange)?u.attackRange:(u.
 // hit the fort from the middle of the field.
 function structureReach(u,range){return Math.max(16,Math.min(range,44));}
 function attackCooldown(u,t){return t.cd/(u.equipMods?.attackSpeed||1);}
+/* §3 REAR-RANK SHIELD DEFENCE ------------------------------------------------
+   Owner defect (build 60): shield-bearers behind the front rank stand still
+   while arrows fly into them. Two causes:
+     1. incomingThreat() was gated to spear/spartan, so NO swordsman with a
+        shield ever reacted, at any rank;
+     2. it scanned every projectile for every unit -- O(units x projectiles) --
+        which is why widening it naively would have been a performance trap.
+
+   The scan is now bounded: projectiles are binned by lane once per frame and a
+   unit only looks at its own lane and the two either side. */
+const THREAT_BIN=48;                 // px of vertical lane per bin
+let _threatBins=new Map();
+const _fallingProjs=[];
+const THREAT_KINDS={arrow:1,bullet:1,spearp:1,rock:1,bomb:1,boulder:1};
+function buildThreatBins(){
+  _threatBins.clear(); _fallingProjs.length=0;
+  for(let i=0;i<S.projs.length;i++){
+    const p=S.projs[i];
+    if(!THREAT_KINDS[p.kind])continue;
+    /* Siege fire drops nearly vertically from well above the line, so its
+       CURRENT lane is nowhere near the lane it threatens. Binning it by y
+       would hide it from the men underneath it -- which the lane index did on
+       its first cut. These are few, so they go in one list everyone checks. */
+    if(Math.abs(p.vx||0)<1){ _fallingProjs.push(p); continue; }
+    const b=Math.round(p.y/THREAT_BIN);
+    let a=_threatBins.get(b); if(!a){a=[];_threatBins.set(b,a);}
+    a.push(p);
+  }
+}
+function _binProjs(u,out){
+  out.length=0;
+  const b=Math.round(u.y/THREAT_BIN);
+  for(let d=-1;d<=1;d++){ const a=_threatBins.get(b+d); if(a) for(let i=0;i<a.length;i++) out.push(a[i]); }
+  for(let i=0;i<_fallingProjs.length;i++) out.push(_fallingProjs[i]);
+  return out;
+}
+const _threatScratch=[];
+/* Can this unit answer a projectile with its shield at all? Any intact shield
+   qualifies -- a swordsman in the third rank is exactly who the owner watched
+   stand still. Ranged troops keep shooting; they have no shield to raise. */
+function canShieldBlock(u){
+  if(!(u.shield>0))return false;                 // depleted shield = no ghost defence
+  const w=TYPES[u.type].weapon;
+  if(w==='bow'||w==='gun'||w==='laser'||w==='mech')return false;
+  return true;
+}
 function incomingThreat(u){
-  if(!(TYPES[u.type].weapon==='spear'||TYPES[u.type].weapon==='spartan')||u.shield<=0)return null;
+  if(!canShieldBlock(u))return null;
   let best=null,bt=9;
-  for(const p of S.projs){
-    if(p.team===u.team||!['arrow','bullet','spearp','rock','bomb','boulder'].includes(p.kind))continue;
+  const near=_binProjs(u,_threatScratch);
+  for(const p of near){
+    if(p.team===u.team)continue;               // kind already filtered into the bin
     if(Math.abs(p.vx||0)<1){
       // Falling siege fire has no horizontal velocity. Raise the shield when
       // its landing column is close enough instead of ignoring it entirely.
@@ -1583,6 +1688,8 @@ function dmgGate(d){
 function hurt(u, dmg, hit){
   if (u.hp <= 0) return;
   hit=hit||{};
+  // §21 garrison safety: ordinary damage cannot undo a garrison heal. Siege can.
+  if (isGarrisoned(u) && !GARRISON_SIEGE_KINDS.has(hit.kind)) return;
   let left=dmg;
   if(u.equipMods){if(hit.kind==='arrow'||hit.kind==='bullet'||hit.kind==='spearp')left*=1-(u.equipMods.rangedResist||0);else if(hit.kind==='blast'||hit.kind==='bomb'||hit.kind==='boulder'||hit.kind==='rock')left*=1-(u.equipMods.explosionResist||0);else if(hit.kind==='melee')left*=1-(u.equipMods.meleeResist||0);}
   const inferred={arrow:'PIERCING',spearp:'PIERCING',bullet:'PIERCING',boulder:'SIEGE',rock:'SIEGE',bomb:'SIEGE',blast:'SIEGE',laser:'SPECIAL',magic:'SPECIAL'};
@@ -1753,6 +1860,7 @@ function update(dt){
   S.shake = Math.max(0, S.shake - dt*20);
   S.atkCd = Math.max(0, S.atkCd - dt);
   S.retreatT = Math.max(0, (S.retreatT||0) - dt);
+  buildThreatBins();                      // §3 one pass, then every unit reads its own lane
   retreatUpkeep(dt);                      // §4 heal + man the parapet while withdrawn
   if (S.goldT > 1){ S.goldT -= 1; S.gold += progression().passiveIncome; }
   window.KWWarCouncil?.tick?.(dt);
@@ -1857,6 +1965,31 @@ function update(dt){
     u.upgradeFlash=Math.max(0,(u.upgradeFlash||0)-dt);
     u.hurtT = Math.max(0, (u.hurtT||0) - dt);
     u.blockT = Math.max(0, (u.blockT||0) - dt);
+    /* §14 NO STUCK FULL DRAW. The hold decays whenever the reason for it is
+       gone -- target dead or lost, a retreat ordered, or the archer posted to
+       the wall -- so nobody runs to the fort frozen at anchor. */
+    if(u.holdDrawT>0 && (!u.tgt || u.tgt.hp<=0 || (u.team===1 && S.retreatT>0) || u.onWall))
+      u.holdDrawT=Math.max(0,u.holdDrawT-dt*2.6);
+    /* §9/§10 SHIELD THRUST. Damage and stagger fire at VISIBLE CONTACT -- the
+       moment the shield arrives -- not when the order is given. `shieldThrustT`
+       counts the 0.62s action down, so contact is the crossing of 0.46 of it. */
+    if(u.shieldThrustT>0){
+      const was=u.shieldThrustT;
+      u.shieldThrustT=Math.max(0,was-dt);
+      const CONTACT=0.62*(1-0.46);
+      if(was>CONTACT && u.shieldThrustT<=CONTACT && u.shieldTarget && u.shieldTarget.hp>0){
+        const tgt=u.shieldTarget;
+        if(Math.hypot(tgt.x-u.x,(tgt.y-u.y)*1.5) < 46){
+          hurt(tgt, Math.round((u.dmg||TYPES[u.type].dmg)*0.55), {kind:'bash',sourceX:u.x});
+          if(tgt.hp>0){
+            tgt.staggerT=Math.max(tgt.staggerT||0,0.34);       // brief interruption
+            tgt.x += (u.face||1)*7;                            // space, not knockback
+            S.fx.push({kind:'shieldhit',x:tgt.x-(u.face||1)*10,y:tgt.y-22,t:0});
+          }
+        }
+        u.shieldTarget=null;
+      }
+    }
     if(u.bleed>0&&u.hp>0){u.bleedAcc=(u.bleedAcc||0)+u.bleed*dt;if(u.bleedAcc>=1){const n=Math.floor(u.bleedAcc);u.bleedAcc-=n;hurt(u,n,{kind:'bleed',sourceX:u.x});}if(u.hp<=0)continue;}
     u.mo = clamp((u.mo||0) + ((u.pose==='walk') ? dt*5 : -dt*8), 0, 1);   // accelerate / decelerate
     const t = TYPES[u.type];
@@ -1883,9 +2016,25 @@ function update(dt){
     const spd = t.spd * (u.spdMul||1) * (.35+.65*u.mo) * ((u.team===1 && S.retreatT>0) ? 1.4 : 1) * (u.rage?1.35:1) * denialMul;
     const foe = (u.tgt && u.tgt.hp > 0) ? {u:u.tgt, d:Math.hypot(u.tgt.x-u.x, (u.tgt.y-u.y)*1.6)} : null;
     const ranged = ['bow','gun','laser'].includes(t.weapon);
-    const threat=incomingThreat(u);
-    u.shieldUp=!!threat||(!u.spearThrown&&!ranged&&u.shield>0&&((u.team===1&&S.stance!=='attack')||(u.team===-1&&S.enemyPhase!=='assault')));
-    if(threat&&threat.sourceX!=null)u.face=threat.sourceX>=u.x?1:-1;
+    /* §3/§8 Projectile reaction, with front-line melee priority.
+       A soldier already committed to a swing keeps swinging -- interrupting a
+       melee exchange to throw a shield overhead every time an arrow crosses the
+       field is both wrong and visually noisy. Rear ranks are not in contact, so
+       they are the ones that react, which is exactly what the owner watched
+       fail. `meleeCommitted` is the gate. */
+    const meleeCommitted = (u.anim>0) || (foe && foe.d <= (t.range||22)+6);
+    const threat = meleeCommitted ? null : incomingThreat(u);
+    if(threat){
+      // raise -> hold -> recover, so the block reads as an action, not a flag
+      u.blockRaiseT = Math.min(1, (u.blockRaiseT||0) + dt*7.5);
+      u.blockHoldT  = 0.30;
+      if(threat.sourceX!=null) u.face = threat.sourceX>=u.x?1:-1;
+    } else {
+      u.blockHoldT = Math.max(0,(u.blockHoldT||0)-dt);
+      if(u.blockHoldT<=0) u.blockRaiseT = Math.max(0,(u.blockRaiseT||0) - dt*4.5);
+    }
+    u.shieldRaised = (u.blockRaiseT||0) > 0.25;     // drives the pose + the block geometry
+    u.shieldUp=!!threat||u.shieldRaised||(!u.spearThrown&&!ranged&&u.shield>0&&((u.team===1&&S.stance!=='attack')||(u.team===-1&&S.enemyPhase!=='assault')));
     let moving = false;
     // The enemy castle is impregnable outside a siege, so forward orders must NOT
     // march allies into an unbreakable wall — they hunt enemies and hold the line.
@@ -1900,7 +2049,7 @@ function update(dt){
         u.face=-1;
         // Formation is a true staging phase: no ranged volleys or melee attacks
         // are allowed until every surviving soldier reaches a legal slot.
-        if(S.enemyPhase!=='form'&&foe&&foe.d<=range+(ranged?12:4)&&u.cdT<=0){u.cdT=attackCooldown(u,t);u.anim=1;unitFire(u,t,foe);}
+        if(S.enemyPhase!=='form'&&foe&&foe.d<=range+(ranged?12:4)&&u.cdT<=0){u.cdT=attackCooldown(u,t);u.anim=1;u.swingVar=!u.swingVar;unitFire(u,t,foe);}
         const formationSpeed=Math.hypot(u.vx||0,u.vy||0);
         u.walkPhase=(u.walkPhase||0)+(moving?formationSpeed*dt/9.5:0);
         if(!moving)brakeUnit(u,dt);
@@ -1911,7 +2060,20 @@ function update(dt){
       const gateD = u.x - (P_WALL + 12);
       if (foe && foe.d < Math.max(range+10, 300)){
         if (foe.d > range){ moving=steerMove(u,foe.u.x,foe.u.y+(ranged?0:(u.yPref||0)),spd,dt,range*.82); }
-        else if (u.cdT <= 0){ u.cdT = attackCooldown(u,t); u.anim = 1; unitFire(u, t, foe); }
+        else if (u.cdT <= 0){
+        /* §9 Every third melee beat from a shield-bearer is a shield thrust
+           instead of a cut: it creates space rather than trading blows, which
+           is what a shield is for. Cadence is unchanged -- it consumes the same
+           attack cooldown -- so effective DPS is not rebalanced by this. */
+        u.meleeBeat = ((u.meleeBeat||0) + 1) % 3;
+        const canBash = u.shield>0 && !u.rage && foe && foe.d <= (t.range||22)+6
+                        && TYPES[u.type].weapon!=='bow' && TYPES[u.type].weapon!=='gun';
+        if (canBash && u.meleeBeat===2){
+          u.cdT = attackCooldown(u,t); u.shieldThrustT = 0.62; u.shieldTarget = foe.u;
+        } else {
+          u.cdT = attackCooldown(u,t); u.anim = 1; u.swingVar = !u.swingVar; unitFire(u, t, foe);
+        }
+      }
         u.face = foe.u.x >= u.x ? 1 : -1;
       } else if (gateD > (ranged ? range*.8 : Math.max(8,structureReach(u,range)-14))){
         moving=steerMove(u,P_WALL+8,u.y,spd,dt,3); u.face = -1;
@@ -1927,8 +2089,19 @@ function update(dt){
       // line so marching stays intact; rage still changes their weapon/animation & combat.
       const tgt = (foe && foe.u.hp>0) ? foe : nearest(u);
       if (tgt){
-        if (tgt.d > range){ moving=steerMove(u,tgt.u.x,tgt.u.y+(ranged?0:(u.yPref||0)),spd,dt,range*.82); }
-        else if (u.cdT <= 0){ u.cdT = attackCooldown(u,t); u.anim = 1; unitFire(u, t, tgt); }
+        if (tgt.d > range){
+          /* §13 HELD DRAW. An archer whose target is closing but not yet in
+             range draws and WAITS, rather than standing idle or loosing into
+             empty space. The hold is entered only inside an approach band, so
+             a distant enemy does not lock every archer at full draw. */
+          if (ranged && u.shield<=0 && t.weapon==='bow' && u.cdT<=0 && tgt.d < range*1.55){
+            u.holdDrawT = Math.min(0.45,(u.holdDrawT||0)+dt*1.6);
+          } else if (u.holdDrawT) {
+            u.holdDrawT = Math.max(0,u.holdDrawT-dt*2.2);   // §14 relax, never stick
+          }
+          moving=steerMove(u,tgt.u.x,tgt.u.y+(ranged?0:(u.yPref||0)),spd,dt,range*.82);
+        }
+        else if (u.cdT <= 0){ u.holdDrawT=0; u.cdT = attackCooldown(u,t); u.anim = 1; unitFire(u, t, tgt); }
         u.face = tgt.u.x >= u.x ? 1 : -1;
       } else if (!sealed && S.castleHP > 0){
         const jit = u.jit||0, d = E_WALL - u.x, rng = ranged ? range : (structureReach(u,range) + jit);
@@ -1983,6 +2156,13 @@ function update(dt){
     u.y = clamp(u.y, GROUND_TOP, GROUND_BOT);
     u.pose = moving ? 'walk' : (u.anim > 0 ? 'attack' : 'idle');
   }
+  /* §14 Separation index. Rebuilt HERE, not reused from spatialRebuild(),
+     because units move during the unit loop above -- a pre-movement ordering
+     could miss a neighbour that has since shifted. One sort of ~200 entries
+     costs about 0.1ms against the ~4.8ms the quadratic scan cost. */
+  _sepIdx.length=0;
+  for(let i=0;i<S.units.length;i++){ const _u=S.units[i]; if(_u.hp>0) _sepIdx.push(_u); }
+  _sepIdx.sort((p,q)=>p.x-q.x);
   // Anti-overlap: engaged/attacking soldiers keep realistic spacing so they don't
   // stack on the same spot at the front line. A small capped push apart, run after
   // movement (covers stationary attackers that steerMove no longer separates).
@@ -1994,8 +2174,18 @@ function update(dt){
     const holding = u.anim<=0 && ((u.team===1 && S.stance!=='attack' && !u.charge) || (u.team===-1 && S.enemyPhase!=='assault'));
     const settled = holding && (()=>{const sx=(u.slotX||u.x)-u.x, sy=(u.slotY||u.y)-u.y; return sx*sx+sy*sy<100;})();
     let px=0,py=0,cnt=0,hard=0;
-    for(const o of S.units){ if(o===u||o.hp<=0) continue;
-      const dx=u.x-o.x; if(dx>16||dx<-16) continue;
+    /* §14/§15 This used to be `for(const o of S.units)` -- every living unit
+       compared against every other one, 217x217 = 47,089 iterations per step
+       at wave 100, purely to find the handful of bodies within +/-16px. It was
+       36% of the simulation step and the single largest cost in the game.
+       The candidates are unchanged: _sepIdx is the same living units sorted by
+       x, and the scan covers exactly the same +/-SEP_X window the dx test
+       accepted. Only the way they are reached is different, so spacing,
+       BODY_MIN and the settled/holding rules all behave identically. */
+    const _lo=spatLower(_sepIdx, u.x-SEP_X);
+    for(let _i=_lo;_i<_sepIdx.length;_i++){ const o=_sepIdx[_i];
+      const dx=u.x-o.x; if(dx<-SEP_X) break;          // sorted: nothing further right can qualify
+      if(o===u||o.hp<=0) continue;
       const dy=u.y-o.y; if(dy>15||dy<-15) continue;
       const d=Math.hypot(dx,dy*1.3)||0.01, R=14;
       // §9 ONE SOLDIER PER BODY SPACE. Settled soldiers used to skip separation
@@ -2112,10 +2302,35 @@ function update(dt){
     if (p.kind === 'rock'){ if (p.y >= p.ty){ explode(p.x, p.ty, p.r||42, p.dmg, 1); p.life = 0; } continue; }
     if (p.kind === 'boulder'){ if (p.y >= p.ty){ explode(p.x, p.ty, 58, p.dmg, 1); p.life = 0; } continue; }
     // arrow / bullet / falling spear vs units
+    // A deflected shot is spent: it must not re-hit the shield it bounced off,
+    // nor score a second hit on anyone while it tumbles away.
+    if (p.deflected) continue;
     const hw = p.kind==='spearp' ? 16 : 12;
     for (const u of S.units){
       if (u.team === p.team || u.hp <= 0) continue;
-      if (Math.abs(u.x-p.x) < hw && p.y > u.y-38 && p.y < u.y+4){ hurt(u,p.dmg,{kind:p.kind,sourceX:p.sourceX==null?p.x-(p.vx||0)*.1:p.sourceX}); if(p.kind==='spearp'&&u.hp>0){ u.bleed=(u.bleed||0)+1; u.impaled=true; addFloat(u.x,u.y-46,'IMPALED −1/s','#ff9b8f'); } p.life = 0; break; }
+      if (Math.abs(u.x-p.x) < hw && p.y > u.y-38 && p.y < u.y+4){
+        /* §5/§6 SHIELD CONTACT.
+           A raised, intact shield intercepts the shot at the shield itself --
+           the projectile must visibly REACH it. It is then deflected away
+           rather than deleted in mid-air, which is what made blocking read as
+           "the arrow just disappeared". The shield still takes its damage
+           through hurt(), so durability stays on the one existing source of
+           truth and a depleted shield offers no protection at all. */
+        const facingIt = (p.x - u.x) * (u.face||1) > -6;
+        if (u.shieldRaised && u.shield > 0 && facingIt && p.kind !== 'bomb' && p.kind !== 'boulder'){
+          hurt(u, p.dmg, {kind:p.kind, sourceX:p.sourceX==null?p.x-(p.vx||0)*.1:p.sourceX});
+          // deflect: kick it up and back off the shield face, then let it die
+          const away = (u.face||1) >= 0 ? -1 : 1;
+          p.vx = Math.abs(p.vx||60) * away * (0.35 + simRandom()*0.25);
+          p.vy = -Math.abs(p.vy||0) * 0.3 - 90 - simRandom()*60;
+          p.g = GRAV; p.deflected = 1; p.life = Math.min(p.life, 0.55);
+          S.fx.push({kind:'shieldhit', x:u.x+(u.face||1)*11, y:u.y-22, t:0});
+          break;
+        }
+        hurt(u,p.dmg,{kind:p.kind,sourceX:p.sourceX==null?p.x-(p.vx||0)*.1:p.sourceX});
+        if(p.kind==='spearp'&&u.hp>0){ u.bleed=(u.bleed||0)+1; u.impaled=true; addFloat(u.x,u.y-46,'IMPALED −1/s','#ff9b8f'); }
+        p.life = 0; break;
+      }
     }
     if (p.life > 0){
       if (p.team === 1 && p.x > E_WALL - 10 && S.castleHP > 0){ dmgCastle(p.dmg); S.fx.push({kind:'flash', x:p.x, y:p.y, t:0}); p.life = 0; }
@@ -2253,6 +2468,8 @@ function drawRigUnit(u, corpse, cls, s, x, y){
   if(corpse){ st = u.death==='impale' ? 'die_impale' : ((rcls==='bow'||rcls==='gun') ? 'die_back' : 'die_kneel'); p = Math.min(1, (u.t||0)/1.4); }
   else if(cls==='spear' && u.throwT>0){ st='throw'; p = Math.min(1, 1 - u.throwT/.55); }
   else if(u.jumpSlashT>0){ st = rcls==='sword' ? 'overhead' : 'attack'; p = Math.min(1, 1 - u.jumpSlashT/.45); }
+  else if(u.shieldThrustT>0){ st='shieldthrust'; p = Math.min(1, 1 - u.shieldThrustT/0.62); }
+  else if(u.holdDrawT>0 && rcls==='bow'){ st='hold'; p = Math.min(1, u.holdDrawT/0.45); }
   else if(u.anim>0){ st = (rcls==='sword' && u.rage) ? 'fury' : 'attack'; p = Math.min(1, Math.max(0, 1 - u.anim)); }
   else if(u.pose==='walk'){ st='march'; p = ((((u.walkPhase||u.ph||0)/(Math.PI*2))%1)+1)%1; }
   else { st='idle'; p = (((u.ph*0.16)%1)+1)%1; }
@@ -2275,7 +2492,10 @@ function drawRigUnit(u, corpse, cls, s, x, y){
     ctx.restore();
     return;
   }
-  const po = KWRig.poseFor(rcls, st, p, t); po._t = t;
+  /* §6 Alternate the two sword cuts per strike so repeated melee does not read
+     as one looping animation. The flag is flipped when the attack fires, not
+     here, so the whole swing keeps one style from wind-up to recovery. */
+  const po = KWRig.poseFor(rcls, st, p, t, {swingVar: u.swingVar ? 1 : 0}); po._t = t;
   // The spear leaves the hand when the projectile leaves, not halfway through
   // the wind-down: soldier-state has already switched the weapon by then.
   if (liveWeapon && liveWeapon !== 'spear' && liveWeapon !== 'spartan') po.extra.spearGone = true;
@@ -2284,6 +2504,7 @@ function drawRigUnit(u, corpse, cls, s, x, y){
   if(cls==='spear' && rcls==='sword' && (u.shieldMax>0) && u.shield<=0){ po.extra.dualSword = 1; }
   if(rcls==='sword' && u.rage){ po.extra.bigSword = 1; } // shield broken -> raged, oversized blade(s)
   if(armorCls==='spear' && u.shieldUp && !u.charge){ po.extra.brace = 1; } // shield-wall brace when holding vs a threat
+  po.extra.blockRaise = u.shield>0 ? (u.blockRaiseT||0) : 0;   // §4 visible projectile block
   po.era = S ? (u.team===1 ? S.civ : S.enemyCiv) : 1;   // civilization-fitted armor tier
   // Layered defense visuals: shield is dropped once its HP is gone; the helmet is
   // lost once armor is depleted; only then does the bare soldier take HP damage.
@@ -3188,12 +3409,13 @@ function drawWallMelee(side){
 // ---------- projectiles / fx ----------
 function drawProj(p){
   if (p.kind === 'arrow'){
+    /* §16/§18 The arrow uses the same silhouette the archer has nocked, and
+       always points along its velocity -- including on the descending half of
+       an arc and after a shield deflection. */
     const ang = Math.atan2(p.vy, p.vx);
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ang);
-    ctx.strokeStyle = p.team===1 ? (window.KWCommerce?KWCommerce.color('effect','#252525'):'#252525') : '#ececec'; ctx.lineWidth = 2; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(-8,0); ctx.lineTo(6,0); ctx.stroke();
-    ctx.fillStyle = '#c9c9c9';
-    ctx.beginPath(); ctx.moveTo(9,0); ctx.lineTo(5,-2.4); ctx.lineTo(5,2.4); ctx.closePath(); ctx.fill();
+    const shaft = p.team===1 ? (window.KWCommerce?KWCommerce.color('effect','#4a3a26'):'#4a3a26') : '#c9bda8';
+    if (window.KWRig && KWRig.drawArrowShape) KWRig.drawArrowShape(ctx, shaft, '#e6ebef', p.team===1?'#d9cfc0':'#efe6d6');
     ctx.restore();
   } else if (p.kind === 'spearp'){
     const ang = Math.atan2(p.vy, p.vx||0.001);

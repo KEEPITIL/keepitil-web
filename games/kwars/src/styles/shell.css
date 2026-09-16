@@ -12,21 +12,14 @@
   position:fixed; inset:0; z-index:40; display:grid; place-items:center;
   padding:max(20px,env(safe-area-inset-top)) 18px max(20px,env(safe-area-inset-bottom));
   color:#fff; text-align:center; overflow-y:auto;
-  background:
-    radial-gradient(120% 85% at 50% 8%, rgba(255,226,122,.13), transparent 60%),
-    radial-gradient(140% 100% at 50% 118%, rgba(152,114,43,.30), transparent 62%),
-    linear-gradient(#16212b 0%, #101922 52%, #070c11 100%);
+  background:#0a1119;   /* §29 the scene canvas paints over this; this is only the flash-of-load colour */
 }
 #title.hidden{ display:none; }
-/* distant banner/spear silhouettes along the horizon */
-#title::after{
-  content:''; position:absolute; left:0; right:0; bottom:0; height:34vh; pointer-events:none;
-  background:
-    repeating-linear-gradient(95deg, transparent 0 26px, rgba(0,0,0,.55) 26px 29px),
-    linear-gradient(transparent, rgba(0,0,0,.72) 70%);
-  mask-image:linear-gradient(transparent, #000 55%);
-  -webkit-mask-image:linear-gradient(transparent, #000 55%);
-  opacity:.5;
+/* §29 KWARS-only cinematic backdrop, painted by src/render/title-scene.js from
+   the production soldier rig. Sits behind everything and is never interactive. */
+#titlescene{
+  position:absolute; inset:0; width:100%; height:100%;
+  z-index:0; pointer-events:none; display:block;
 }
 .titleinner{ position:relative; z-index:1; width:min(560px,100%); }
 .titlecrest{
@@ -34,14 +27,19 @@
   text-shadow:0 0 26px rgba(255,226,122,.35); margin-bottom:6px;
 }
 .titlewordmark{
-  font-size:clamp(34px,10vw,68px); line-height:.98; letter-spacing:.10em; font-weight:bold;
-  color:#f4f8fb; text-shadow:0 4px 0 rgba(0,0,0,.6), 0 0 34px rgba(255,226,122,.22);
+  font-size:clamp(38px,11vw,76px); line-height:.94; letter-spacing:.13em; font-weight:bold;
+  color:#f4f8fb;
+  text-shadow:0 3px 0 rgba(0,0,0,.72), 0 10px 34px rgba(0,0,0,.8), 0 0 46px rgba(255,226,122,.20);
 }
 .titlewordmark span{ display:block; color:var(--kw-gold); }
 .titletag{
-  margin:14px auto 0; max-width:430px; color:var(--kw-mute);
+  margin:14px auto 0; max-width:430px; color:#c6d3db;
+  text-shadow:0 2px 8px rgba(0,0,0,.8);
   font-size:clamp(12px,3.1vw,14px); line-height:1.6;
 }
+/* §28 TITLE-SCREEN LANGUAGE. These are not web cards: no boxed panel, no
+   equal-weight tiles. CRUSADE and WAR are cinematic plates carved into the
+   scene; MORE is deliberately quiet. */
 .titlebtn{
   margin:26px auto 0; display:block; min-width:230px; padding:15px 34px;
   border:2px solid var(--kw-gold); border-radius:12px; cursor:pointer;
@@ -51,14 +49,52 @@
   touch-action:manipulation;
 }
 .titlebtn:active{ transform:translateY(4px); box-shadow:0 1px 0 rgba(0,0,0,.5); }
-/* §2 LANDING — three primary choices, stacked, each naming what it is. */
-.landing{ display:flex; flex-direction:column; align-items:stretch; gap:10px; margin-top:20px; width:min(19rem,82vw); }
-.landing .titlebtn{ margin-top:0; width:100%; display:flex; flex-direction:column; gap:2px; padding:13px 18px; }
-.titlebtnsub{ display:block; font-size:10px; font-weight:600; letter-spacing:.05em;
-  text-transform:none; color:rgba(61,43,8,.72); }
-.titlebtn.ghost{ background:linear-gradient(#3a4855,#26313c); color:#e8eef2;
-  border:1px solid #566d7a; box-shadow:0 3px 0 rgba(0,0,0,.45); }
-.titlebtn.ghost .titlebtnsub{ color:var(--kw-mute); }
+
+.landing{
+  display:flex; flex-direction:column; align-items:stretch;
+  gap:12px; margin-top:26px; width:min(24rem,88vw);
+  margin-inline:auto;    /* the column is centred under the wordmark, not left-hung */
+}
+.landing .titlebtn{ margin-top:0; width:100%; }
+
+/* §32 the two ways to play — major, and visually distinct from each other */
+.titlebtn.major{
+  position:relative; display:flex; flex-direction:column; align-items:flex-start;
+  gap:5px; padding:16px 20px; text-align:left; border-radius:4px;
+  border:0; border-left:3px solid var(--kw-gold);
+  background:linear-gradient(100deg, rgba(28,38,48,.90) 0%, rgba(18,26,34,.62) 62%, rgba(18,26,34,.18) 100%);
+  color:#f6f9fb; letter-spacing:.24em;
+  font:bold clamp(20px,5.6vw,27px)/1 inherit;
+  box-shadow:0 2px 18px rgba(0,0,0,.45);
+  backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+  transition:background .16s ease, border-color .16s ease, transform .10s ease;
+}
+.titlebtn.major::after{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:0;
+  background:linear-gradient(90deg, rgba(255,226,122,.16), transparent);
+  transition:width .18s ease;
+}
+.titlebtn.major:hover, .titlebtn.major:focus-visible{
+  background:linear-gradient(100deg, rgba(44,58,70,.94) 0%, rgba(24,34,44,.70) 62%, rgba(24,34,44,.20) 100%);
+}
+.titlebtn.major:hover::after, .titlebtn.major:focus-visible::after{ width:100%; }
+.titlebtn.major:active{ transform:translateX(3px); box-shadow:0 1px 10px rgba(0,0,0,.5); }
+#enterwar{ border-left-color:#c8533c; }
+#enterwar .titlebtnsub{ color:#e6b3a6; }
+
+.titlebtn.minor{
+  align-self:center; width:auto; min-width:0; margin-top:6px;
+  padding:11px 20px; border:1px solid rgba(160,180,195,.34); border-radius:8px;
+  background:rgba(14,21,28,.52); color:#c2d0d8; box-shadow:none;
+  font:bold 12px/1 inherit; letter-spacing:.20em;
+  display:flex; flex-direction:column; gap:3px; align-items:center;
+}
+.titlebtn.minor:active{ transform:none; box-shadow:none; background:rgba(24,34,44,.72); }
+.titlebtnsub{
+  display:block; font-size:11px; font-weight:600; letter-spacing:.05em;
+  text-transform:none; color:#a8bcc8;
+}
+.titlebtn.minor .titlebtnsub{ font-size:10px; }
 .landingmodetitle{ margin:0; font-size:17px; letter-spacing:.14em; color:#f2c94d; text-align:center; }
 .landingmodesub{ margin:0 0 4px; font-size:11px; line-height:1.5; color:var(--kw-mute); text-align:center; }
 .titlecont{
@@ -68,9 +104,12 @@
 }
 .titlecont[hidden]{ display:none; }
 .titlefoot{
-  margin-top:30px; display:flex; align-items:center; justify-content:center;
+  margin-top:26px; padding:8px 12px; border-radius:10px;
+  background:rgba(8,12,17,.55); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+  display:flex; align-items:center; justify-content:center;
   gap:10px; flex-wrap:wrap; color:#7e8f9b; font-size:11px;
 }
+#titleversion{ opacity:.5; font-size:10px; letter-spacing:.06em; width:100%; margin-top:2px; }
 .titlefoot button{
   border:1px solid #4a5b66; border-radius:8px; background:rgba(20,28,36,.8);
   color:#b9c7ce; padding:7px 12px; font:bold 11px inherit; cursor:pointer;
@@ -105,8 +144,56 @@
   border-color:var(--kw-gold) !important; font-size:17px !important;
   letter-spacing:.16em; padding:14px !important;
 }
+/* §37 ONE primary. When there is a save to resume, CONTINUE is the headline and
+   PLAY is the same action a second time -- two gold slabs stacked said "these
+   are equally important", which is exactly the flat hierarchy this replaces. */
+#continuebtn:not([hidden]) + .playbtn{
+  background:rgba(255,255,255,.04) !important; color:#c6d5de !important;
+  border:1px solid rgba(120,145,160,.32) !important;
+  font-size:13px !important; padding:10px !important; letter-spacing:.14em;
+}
+#continuebtn:not([hidden]) + .playbtn .menusub{ color:#93a7b3; font-size:10px; }
+/* §37 HOME HIERARCHY. It used to be a five-tile equal-weight grid, which said
+   nothing about what to do next. Now: one dominant resume, two secondary modes,
+   quiet utilities. */
 #continuebtn{ text-align:left; }
-.homegrid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:14px 0 12px; }
+.menubtn.primary{
+  position:relative; display:block; width:100%; text-align:left;
+  padding:16px 18px; margin:0 0 10px; border-radius:6px;
+  border:0; border-left:4px solid var(--kw-gold);
+  background:linear-gradient(100deg, rgba(200,162,60,.94) 0%, rgba(138,100,23,.88) 100%);
+  color:#1c1305; cursor:pointer;
+  font:bold clamp(15px,4.2vw,19px)/1.15 inherit; letter-spacing:.10em;
+  box-shadow:0 4px 18px rgba(0,0,0,.45);
+}
+.menubtn.primary .menusub{
+  display:block; margin-top:6px; font-size:10.5px; font-weight:600;
+  letter-spacing:.02em; color:rgba(40,28,4,.80); line-height:1.45;
+}
+/* §37 SECONDARY — the two ways to play, side by side but not identical */
+.homemodes{ display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:12px 0 10px; }
+.homemode{
+  position:relative; display:flex; flex-direction:column; align-items:flex-start;
+  gap:4px; min-height:64px; padding:12px 13px; cursor:pointer; text-align:left;
+  border:0; border-left:3px solid var(--kw-gold); border-radius:4px;
+  background:linear-gradient(105deg, rgba(43,61,72,.96), rgba(28,40,49,.80));
+  color:#f2f7fa; font:inherit;
+}
+.homemode b{ font-size:clamp(13px,3.6vw,16px); letter-spacing:.20em; }
+.homemode small{ color:#a9bcc7; font-size:10px; line-height:1.35; letter-spacing:.02em; }
+.homemode.war{ border-left-color:#c8533c; }
+.homemode.war small{ color:#d9ab9f; }
+.homemode:active{ transform:translateX(2px); }
+/* §37 TERTIARY — utilities, quiet */
+.homeutil{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; margin-bottom:10px; }
+.homeutil .hometile{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px; min-height:54px; padding:9px 6px; text-align:center;
+  border:1px solid rgba(120,145,160,.30); border-radius:9px;
+  background:rgba(255,255,255,.035); color:#c8d6de;
+}
+.homeutil .hometile .tileicon{ font-size:17px; }
+.homeutil .hometile b{ font-size:10px; letter-spacing:.08em; font-weight:700; }
 .hometile{
   display:grid; grid-template-columns:30px 1fr; grid-template-rows:auto auto;
   align-items:center; gap:2px 9px; min-height:60px; padding:10px;
@@ -117,7 +204,6 @@
 .hometile .tileicon{ grid-row:1/3; font-size:22px; text-align:center; }
 .hometile b{ font-size:12px; letter-spacing:.05em; }
 .hometile small{ color:var(--kw-mute); font-size:10px; line-height:1.35; }
-.hometile:first-child{ grid-column:1/3; border-color:var(--kw-bronze); background:linear-gradient(#35485a,#22323f); }
 /* §2 first-time Home: orientation copy and a single recommended path. Both are
    shown only to a player with no progress; returning players see their numbers. */
 .homeintro{

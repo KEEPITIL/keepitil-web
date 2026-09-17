@@ -1,8 +1,8 @@
 {
-  "release": "53.536ae6d",
+  "release": "53.aac31c6",
   "appVersion": "1.0.0",
   "buildNumber": "53",
-  "commit": "536ae6d",
-  "applicationRevision": "0d5ad5a",
-  "shellVersion": 404
+  "commit": "aac31c6",
+  "applicationRevision": "6af5f77",
+  "shellVersion": 407
 }

@@ -36129,7 +36129,7 @@ r.n(0,"occurred_at",q.dK())
 r.n(0,"client_kind",A.bXZ().c)
 r.n(0,"app_version","1.0.0")
 r.n(0,"build_number","53")
-r.n(0,"git_commit","53.0d5ad5a.stamped")
+r.n(0,"git_commit","53.536ae6d.stamped")
 r.n(0,"event",a.c)
 r.n(0,"anonymous_origin",b.c)
 r.n(0,"result",c.c)
@@ -37283,7 +37283,7 @@ q=B.f3
 n=[1]
 s=5
 break}i=B.c.a1(j)
-g=A.c1r(i,"53.0d5ad5a.stamped")?B.atG:B.atH
+g=A.c1r(i,"53.536ae6d.stamped")?B.atG:B.atH
 g=new A.zJ(g,i)
 $.OV=g
 q=g
@@ -38384,7 +38384,7 @@ T9(){var s=0,r=A.j(t.GU),q,p=2,o=[],n,m,l,k,j,i,h
 var $async$T9=A.e(function(a,b){if(a===1){o.push(b)
 s=p}for(;;)switch(s){case 0:j=t.N
 i=A.D(j,j)
-J.bo(i,"appVersion","1.0.0 (53) \xb7 53.0d5ad5a.stamped")
+J.bo(i,"appVersion","1.0.0 (53) \xb7 53.536ae6d.stamped")
 p=4
 s=7
 return A.c(A.PO(),$async$T9)
@@ -38784,7 +38784,7 @@ J.bo(l,"app_version",b)
 J.bo(l,"patch",J.bq(m,"patch"))
 J.bo(l,"platform",J.bq(m,"platform"))
 J.bo(l,"screen",d)
-J.bo(l,"build","53.0d5ad5a.stamped")
+J.bo(l,"build","53.536ae6d.stamped")
 J.bo(l,"report_id",f)
 J.bo(l,"occurred_at",new A.ab(Date.now(),0,!1).hD().dK())
 if(a.length!==0)J.bo(l,"action",a)
@@ -155691,7 +155691,7 @@ q(a){var s=null
 return A.a2R(A.cr(A.cM(s,s,!0,s,B.aL6,s,s,s,s,s,s,s,s,B.aWY,s),s,B.aL1,s,!1,s),0,2)}}
 A.B1.prototype={
 V(){var s=$.a3()
-return new A.Y6(new A.bP(B.ak,s),new A.bP(B.ak,s),new A.bP(B.ak,s),"1.0.0 (53) \xb7 53.0d5ad5a.stamped",B.wC)}}
+return new A.Y6(new A.bP(B.ak,s),new A.bP(B.ak,s),new A.bP(B.ak,s),"1.0.0 (53) \xb7 53.536ae6d.stamped",B.wC)}}
 A.Y6.prototype={
 ae(){this.aq()
 A.PO().bc(new A.bvi(this),t.a)},
@@ -159295,37 +159295,37 @@ A.aR9.prototype={
 $0(){return this.a.aRG(this.b,B.pX)},
 $S:0}
 A.aR8.prototype={
-$1(a){var s,r,q,p,o,n,m,l,k=null,j="Desktop (keepitil.com): ",i="This app: 0d5ad5a",h=this.a,g=this.b,f=t.p,e=A.a([B.aT4,B.aT,B.aWa,B.ac,A.n("Native base",k,k,k,k,k,B.i4,k,k,k),A.n("TUITEA "+h.c+" ("+h.d+")",k,k,k,k,k,g,k,k,k),A.n(h.e,k,k,k,k,k,g,k,k,k)],f)
-B.b.B(e,h.aNC(g))
-B.b.B(e,h.aKb(g))
-h=h.w
-s=h.b47("0d5ad5a")
-r=h.a0H("0d5ad5a")
+$1(a){var s,r,q,p,o,n,m,l,k=null,j="Desktop (keepitil.com): ",i=this.a,h=this.b,g=t.p,f=A.a([B.aT4,B.aT,B.aWa,B.ac,A.n("Native base",k,k,k,k,k,B.i4,k,k,k),A.n("TUITEA "+i.c+" ("+i.d+")",k,k,k,k,k,h,k,k,k),A.n(i.e,k,k,k,k,k,h,k,k,k)],g)
+B.b.B(f,i.aNC(h))
+B.b.B(f,i.aKb(h))
+i=i.w
+s=i.b47("0d5ad5a")
+r=i.a0H("536ae6d")
 q=A.n("Application revision",k,k,k,k,k,B.i4,k,k,k)
-p=A.n(i,k,k,k,k,k,g,k,k,k)
-o=h.d
+p=A.n("This app: 0d5ad5a",k,k,k,k,k,h,k,k,k)
+o=i.d
 if(!o)n="Desktop (keepitil.com): could not reach it just now"
-else{n=h.c
-n=j+(n==null?"not reported":n)}n=A.n(n,B.b_W,k,k,k,k,g,k,k,k)
+else{n=i.c
+n=j+(n==null?"not reported":n)}n=A.n(n,B.b_W,k,k,k,k,h,k,k,k)
 m=s==null
 if(m)l="Cannot compare the application code right now."
 else l=s?"Phone and desktop run the SAME application code.":"Phone and desktop run DIFFERENT application code."
 if(m)m=B.q
 else m=s?B.cu:B.ah
-m=A.n(l,B.b0R,k,k,k,k,g.ahn(m,B.Z),k,k,k)
+m=A.n(l,B.b0R,k,k,k,k,h.ahn(m,B.Z),k,k,k)
 l=A.n("Build revision",k,k,k,k,k,B.i4,k,k,k)
-f=A.a([q,p,n,m,B.a3,l,A.n(i,k,k,k,k,k,g,k,k,k)],f)
-if(o){h=h.a
-f.push(A.n(j+(h==null?"unknown":h),B.b2T,k,k,k,k,g,k,k,k))}h=r==null
-if(h)q="Cannot compare the two right now."
+g=A.a([q,p,n,m,B.a3,l,A.n("This app: 536ae6d",k,k,k,k,k,h,k,k,k)],g)
+if(o){i=i.a
+g.push(A.n(j+(i==null?"unknown":i),B.b2T,k,k,k,k,h,k,k,k))}i=r==null
+if(i)q="Cannot compare the two right now."
 else q=r?"Phone and desktop were built from the SAME revision.":"Phone and desktop were built from DIFFERENT revisions."
-if(h)h=B.q
-else h=r?B.cu:B.ah
-f.push(A.n(q,B.b2J,k,k,k,k,g.ahn(h,B.Z),k,k,k))
-B.b.B(e,f)
-e.push(B.ay)
-e.push(A.bi(A.eE(B.a8_,B.b2Z,B.aRQ,new A.aR7(this.c,a),k),k,1/0))
-return A.cx(!0,A.f7(new A.I(B.a35,A.a9(e,B.o,k,B.e,B.z,0,B.i),k),k,B.t,k,k,k,k,B.y),!0,B.A,!0,!0)},
+if(i)i=B.q
+else i=r?B.cu:B.ah
+g.push(A.n(q,B.b2J,k,k,k,k,h.ahn(i,B.Z),k,k,k))
+B.b.B(f,g)
+f.push(B.ay)
+f.push(A.bi(A.eE(B.a8_,B.b2Z,B.aRQ,new A.aR7(this.c,a),k),k,1/0))
+return A.cx(!0,A.f7(new A.I(B.a35,A.a9(f,B.o,k,B.e,B.z,0,B.i),k),k,B.t,k,k,k,k,B.y),!0,B.A,!0,!0)},
 $S:25}
 A.aR7.prototype={
 $0(){var s=0,r=A.j(t.H),q=this,p
@@ -159380,7 +159380,7 @@ case 6:case 1:return A.h(q,r)
 case 2:return A.f(o.at(-1),r)}})
 return A.i($async$CY,r)},
 q(a){var s=this,r=s.d,q=s.e,p=s.f,o=s.r,n=s.w
-return new A.a7v("1.0.0","53","53.0d5ad5a.stamped",r,q,p,o,s.gayJ(),n,"0d5ad5a",p.c,null)}}
+return new A.a7v("1.0.0","53","53.536ae6d.stamped",r,q,p,o,s.gayJ(),n,"0d5ad5a",p.c,null)}}
 A.bu_.prototype={
 $1(a){var s=this.a
 if(s.c!=null)s.E(new A.btZ(s,a))},

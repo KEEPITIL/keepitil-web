@@ -602,17 +602,22 @@ footer{margin-top:auto}
        enforced by a unique index on user_playlists(user_id), not by this form — a client-side
        rule is a suggestion that two tabs or a retried request will walk straight past. The form
        simply switches between Save and Update depending on what the database already holds. -->
-  <div class="pl-form" id="plForm">
-    <input id="plName" type="text" placeholder="Playlist name" maxlength="60"/>
-    <input id="plUrl" type="url" placeholder="Public SoundCloud URL"/>
-    <input id="plArt" type="url" placeholder="Cover image URL (portrait 2:3)"/>
-    <button class="btn" id="plSave" onclick="addPlaylist()">&#65291; Save</button>
-  </div>
+  <!-- ══ ONE SHARED CREATE-PLAYLIST FLOW (KODE 2026-09-17) ═══════════════════════════════
+       This section and the radio's "+ CREATE" tile now render the SAME component from
+       /assets/js/keepitil-playlist-submit.js. They were two separate implementations of one
+       form, which is how they drift: this page accepted a cover-image URL typed by hand
+       while the radio card it feeds is a 2:3 portrait, so the artwork could be any shape,
+       hosted anywhere, and could change or vanish without notice.
+       The shared component does a real upload into the playlist-covers bucket, centre-crops
+       to 2:3 in the browser and shows the result before submitting. Same fields, same
+       validation, same endpoint (user_playlists, upsert on user_id), both places.
+       The three inputs and addPlaylist() that used to live here are gone rather than left
+       hidden - two forms writing one row is the defect being removed. -->
+  <div id="kilPlaylistFlow"></div>
   <!-- The standing instruction copy moved into ADD PLAYLIST > INFO (Founder 2026-08-31): it is
        read once and then occupies the section forever, which is exactly what INFO is for.
        Nothing in JS referenced #plNote, so the element goes with the copy rather than being
        left behind as an empty paragraph. -->
-  <div id="plGate" style="display:none"><a class="btn" href="/apply">Sign in to add a playlist</a></div>
   <div class="grid g-cards" id="plList"></div>
 </section>
 
@@ -897,7 +902,7 @@ document.addEventListener('click',function(e){ var dd=document.getElementById('v
 <!-- seasonal background rotation (auto by date; ?season=<slug> to preview) -->
 <script src="/kil-seasons.js?v=20260910b"></script>
 <!-- persistent synchronized radio bar -->
-<script src="/assets/js/keepitil-radio.js?v=20260910c" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20260917a" defer></script>
 <!-- floating AI chat bubble (#kilo-btn) — same as Culture/home for uniformity -->
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
 <script>
@@ -1192,36 +1197,16 @@ function kilAuthHeaders(){
 }
 var PL_API='https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/user_playlists';
 
-function plGate(){
-  var signedIn=!!kilTok();
-  /* airForm/airGate dropped with the submission form 2026-08-22. */
-  var f=document.getElementById('plForm'); if(f) f.style.display=signedIn?'':'none';
-  var g=document.getElementById('plGate'); if(g) g.style.display=signedIn?'none':'';
-  return signedIn;
-}
+/* The form and its signed-out prompt are both inside the shared component now, so there is
+   nothing here to show or hide. This is still the gate for the SAVED-PLAYLIST LIST below,
+   which is a private read and genuinely does need a session. */
+function plGate(){ return !!kilTok(); }
 
-/* §14/§15. One row per user, so this is an UPSERT: a second save edits the existing playlist
-   rather than failing against the unique index or creating a duplicate the user cannot see.
-   Tracks are never copied — the SoundCloud URL stays authoritative (§15). */
-function addPlaylist(){
-  var h=kilAuthHeaders();
-  if(!h){ location.href='/apply'; return; }
-  var n=((document.getElementById('plName')||{}).value||'').trim();
-  var u=((document.getElementById('plUrl')||{}).value||'').trim();
-  var a=((document.getElementById('plArt')||{}).value||'').trim();
-  if(!scValid2(u)){ alert('Paste a public SoundCloud URL.'); return; }
-  if(a && !/^https?:\/\//i.test(a)){ alert('The cover must be a full image URL.'); return; }
-  var uid=(function(){ try{ return JSON.parse(atob(kilTok().split('.')[1])).sub; }catch(e){ return null; } })();
-  /* Prefer-resolution merge-duplicates turns the unique index from an error into an update,
-     which is exactly the "user may update their submitted playlist entry" rule. */
-  var hh={}; for(var k in h) hh[k]=h[k];
-  hh['Prefer']='resolution=merge-duplicates,return=representation';
-  fetch(PL_API+'?on_conflict=user_id', {method:'POST', headers:hh,
-        body:JSON.stringify({user_id:uid, name:n||'My playlist', url:u, art:a||null})})
-    .then(function(r){ if(!r.ok) throw new Error('save failed '+r.status); return r.json(); })
-    .then(function(){ renderPls(); })
-    .catch(function(e){ console.error('[earn] playlist save failed', e); alert('Could not save that playlist.'); });
-}
+/* addPlaylist() REMOVED 2026-09-17. The write now lives in the shared component
+   (/assets/js/keepitil-playlist-submit.js), which both this page and the radio's + CREATE
+   tile mount - same fields, same validation, same upsert on user_id. Two functions writing
+   one row is exactly how the cover-image rules drifted apart between the two surfaces, so
+   the duplicate is deleted rather than left unreferenced. */
 
 function renderPls(){
   var el=document.getElementById('plList'); if(!el) return;
@@ -1230,17 +1215,10 @@ function renderPls(){
   fetch(PL_API+'?select=id,name,url,art,is_default&order=created_at.asc', {headers:h})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
-      /* Reflect what is already saved: the fields prefill and the button says Update, so a
-         returning user edits their playlist instead of wondering why Save does nothing new. */
-      var have=!!(rows && rows.length);
-      var btn=document.getElementById('plSave'); if(btn) btn.innerHTML=have?'\u2713 Update':'\uFF0B Save';
-      if(have){
-        var r0=rows[0];
-        var fN=document.getElementById('plName'), fU=document.getElementById('plUrl'), fA=document.getElementById('plArt');
-        if(fN && !fN.value) fN.value=r0.name||'';
-        if(fU && !fU.value) fU.value=r0.url||'';
-        if(fA && !fA.value) fA.value=r0.art||'';
-      }
+      /* The prefill that used to happen here wrote into #plName/#plUrl/#plArt, which this
+         section no longer contains - the shared component owns the form. Resubmitting
+         through it upserts the same row, so editing still works; it simply is not done by
+         pushing values back into inputs that are not there. */
       if(!rows.length){ el.innerHTML=''; return; }
       el.innerHTML=rows.map(function(p,i){
         var hue=[280,200,35,140,320,90][i%6];
@@ -1753,6 +1731,33 @@ radStats();
     window.addEventListener('scroll',onScroll,{passive:true});
     window.addEventListener('resize',onScroll,{passive:true});
     check();
+  });
+})();
+</script>
+<!-- The shared Create-Playlist / Earn flow. Same file the radio lazy-loads, so a change to
+     the fields, the validation or the endpoint reaches both surfaces at once. -->
+<script src="/assets/js/keepitil-playlist-submit.js?v=20260917a" defer></script>
+<script>
+/* Mounted on DOM ready. It renders its own signed-out state, so there is nothing to gate
+   here - and it re-renders after a submission so the list below reflects the new row. */
+(function(){
+  function mountPlaylistFlow(){
+    var host=document.getElementById('kilPlaylistFlow');
+    if(!host) return;
+    if(window.KIL_PLAYLIST_SUBMIT && typeof window.KIL_PLAYLIST_SUBMIT.mount==='function'){
+      window.KIL_PLAYLIST_SUBMIT.mount(host,{context:'earn'});
+    } else {
+      /* Deferred script has not run yet, or failed. Say so rather than leaving a blank box. */
+      host.innerHTML='<p style="font-size:.72rem;color:#9c94b8">The playlist form could not '
+        +'be loaded. Reload the page to try again.</p>';
+    }
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',function(){ setTimeout(mountPlaylistFlow,0); });
+  } else { setTimeout(mountPlaylistFlow,0); }
+  /* A successful submission should refresh the visible list immediately. */
+  document.addEventListener('kil-playlist-submitted',function(){
+    try{ if(typeof renderPls==='function') renderPls(); }catch(e){}
   });
 })();
 </script>

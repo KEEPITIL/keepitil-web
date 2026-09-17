@@ -1,0 +1,101 @@
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#FBF7EF;--ink:#20261F;--lo:#6E7566;--accent:#3F7658;--stroke:#E6DDC9}
+@media (prefers-color-scheme:dark){:root{--bg:#171A16;--ink:#ECE7DA;--lo:#9AA291;--accent:#7FB894;--stroke:#2C3229}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding-block:32px 64px;padding-left:20px;padding-right:20px}
+h1{font-size:28px;margin:0 0 4px;text-wrap:balance}
+h2{font-size:19px;margin:30px 0 8px;color:var(--accent)}
+.up{color:var(--lo);font-size:14px;margin:0 0 24px}
+.note{border:1px solid var(--stroke);border-radius:12px;padding:12px 15px;color:var(--lo);font-size:14px;margin:20px 0}
+a{color:var(--accent)}
+nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-size:14px;display:flex;flex-wrap:wrap;gap:14px}
+</style>
+<title>TUITEA Privacy Policy</title>
+<main>
+<h1>TUITEA Privacy Policy</h1>
+<p class="up">Last updated: 17 September 2026</p>
+
+<p>TUITEA is a family app made by KEEPITIL. This policy describes the app as it is
+actually built. Every statement below was checked against the code and the database
+rather than written from intent, and where something is only partly true it says so.</p>
+
+<h2>Who we are</h2>
+<p>TUITEA is operated by KEEPITIL. Contact: <a href="mailto:info@keepitil.com">info@keepitil.com</a>.</p>
+
+<h2>What TUITEA stores</h2>
+<p><strong>Your account.</strong> Your email address, and a session on your device. You sign in
+with an email address and a password. Password reset links go to your email.</p>
+<p><strong>Your household.</strong> The people you add, their names, relationships, dates and
+notes, and who belongs to which household.</p>
+<p><strong>What you record.</strong> Memories and their photos, family history, meals, groceries,
+plans, routines, habits, sleep, and any health entries you type in yourself.</p>
+<p><strong>Health data from Apple Health.</strong> Only if you turn it on. This has its own page:
+<a href="/apps/tuitea/legal/health-privacy/">Health &amp; Apple Health</a>.</p>
+<p><strong>Your conversations with Tupu.</strong> What you ask, and what Tupu answers, so a
+conversation continues across sessions. These are kept in your own account in TUITEA's
+database, protected by row-level security so that only you can read them. Storing a
+conversation is not the same as sending it: what is stored is described here, and what may
+be sent to an AI provider is described under "Tupu and AI providers" below.</p>
+<p><strong>Photos and media.</strong> Some media currently lives only on your device. Where that is
+true, TUITEA cannot restore it if the app is removed. This is stated plainly because it is
+true today.</p>
+
+<h2>Who can see it</h2>
+<p>Members of your household see what is shared with the household; a record you keep private
+stays private to you. Nobody outside your household sees any of it. TUITEA does not sell
+personal data and does not use family content for advertising.</p>
+<p><strong>Service providers.</strong> TUITEA uses Supabase for its database, storage and
+authentication.</p>
+
+<h2>Tupu and AI providers</h2>
+<p>Many of Tupu's answers never reach an AI provider at all: questions about your own family,
+your schedule and your recorded health readings are answered from your own records on the
+spot.</p>
+<p>When a question does need a model, what may be sent is decided by a provider registry that
+records, for each provider, which classes of data it is approved for, whether it retains data,
+and whether it trains on data. A provider that has not been approved for a class of data does
+not receive it, and an unverified provider is treated as not approved rather than as approved.</p>
+<p>The current provider is <strong>Cloudflare Workers AI</strong>, approved for general and personal
+content. Cloudflare's Data Processing Addendum is incorporated into its Self-Serve Subscription
+Agreement, so it applies to this account.</p>
+<p>Health information is in a stricter class that no remote provider is approved for. See
+<a href="/apps/tuitea/legal/health-privacy/">Health &amp; Apple Health</a> for the exceptions and
+the rule that governs them.</p>
+
+<h2>Children</h2>
+<p>TUITEA is built for families and expects a parent or guardian to create and manage records
+about a child. Those records belong to the household.</p>
+
+<h2>Your choices</h2>
+<ul>
+<li>See and edit what is stored, in the app.</li>
+<li>Delete a record. TUITEA asks first.</li>
+<li>Turn Apple Health off in TUITEA, or revoke it in iOS Settings.</li>
+<li><strong>Delete your account</strong>, from Your account &rarr; Delete account. This deletes it
+immediately: your account and the records only you own are removed at once, and it cannot be
+undone. Records you shared with your household stay with the household. If you started a
+household, it passes to the member who has been there longest so that nobody else loses
+access.</li>
+<li>Ask for a copy of your data at <a href="mailto:info@keepitil.com">info@keepitil.com</a>.</li>
+</ul>
+
+<h2>How long it is kept</h2>
+<p>Until you delete it, or until you delete your account.</p>
+
+<h2>Changes</h2>
+<p>Material changes are announced in the app before they take effect.</p>
+
+<h2>Contact</h2>
+<p><a href="mailto:info@keepitil.com">info@keepitil.com</a></p>
+
+<div class="note">This policy describes how the app behaves. It is not legal advice and has not
+been reviewed by a lawyer.</div>
+<nav>
+<a href="/apps/tuitea/legal/privacy/">Privacy</a>
+<a href="/apps/tuitea/legal/health-privacy/">Health &amp; Apple Health</a>
+<a href="/apps/tuitea/legal/terms/">Terms</a>
+<a href="/apps/tuitea/support/">Support</a>
+</nav>
+</main>

@@ -1,8 +1,8 @@
 {
-  "release": "53.d147fb3",
+  "release": "53.1cf251a",
   "appVersion": "1.0.0",
   "buildNumber": "53",
-  "commit": "d147fb3",
-  "applicationRevision": "ceb3205",
-  "shellVersion": 413
+  "commit": "1cf251a",
+  "applicationRevision": "1cf251a",
+  "shellVersion": 415
 }

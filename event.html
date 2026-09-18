@@ -427,7 +427,7 @@
        /event and /event.html, so echoing the requested path would let the two aliases compete
        as separate pages; naming one form consolidates them. This is also byte-identical to what
        build-sitemaps.mjs emits, so the sitemap and the page never disagree. */
-    var canon='https://keepitil.com/event?e='+encodeURIComponent(ev.slug||'');
+    var canon=canonFor(ev.slug);
     var cl=document.getElementById('m-canon');
     if(!cl){ cl=document.createElement('link'); cl.rel='canonical'; cl.id='m-canon';
              document.head.appendChild(cl); }
@@ -460,7 +460,30 @@
     /* EVENTS back → return to the exact flyer they came from (same-origin), else the homepage */
     var _bk=$('ev-back2'); if(_bk && !_bk._wired){ _bk._wired=1; var _so=false; try{ var _u=new URL(document.referrer); _so=(_u.origin===location.origin && _u.pathname!==location.pathname); }catch(_e){} if(_so){ _bk.addEventListener('click',function(e2){ e2.preventDefault(); history.back(); }); } else { _bk.setAttribute('href','/'); } }
     // JSON-LD
-    var ld={"@context":"https://schema.org","@type":"MusicEvent","name":ev.title,"url":canon,"eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode"};
+    writeEventLd(null);
+  }
+
+  /* ══ ONE EVENT NODE, REAL OFFERS (owner decision 2026-09-17) ═══════════════════════════
+     Called twice: once from paint() before the tier query resolves, and again from the tier
+     renderer with the rows it actually received. It REWRITES the same #ld-event element, so
+     there is never more than one Event node on the page — the brief's rule that ticket tiers
+     belong in offers[] and must never become extra events.
+
+     `tiers` is null when the tiers are not known yet, and an array (possibly empty) once the
+     query has answered. Those are different states and are treated differently: unknown keeps
+     whatever the event itself can honestly say, empty means this event genuinely has none. */
+  /* ONE derivation of the canonical URL, at module scope.
+
+     writeEventLd and tierOffers are siblings of paint(), not nested inside it, so the
+     `var canon` that paint() declares was never in their scope: line 476 threw
+     ReferenceError on every event page, which aborted the whole JSON-LD write AND the
+     tail of paint() with it. Hoisting a shared mutable would have fixed the scope and
+     kept an ordering dependency — whoever calls writeEventLd before paint() gets a stale
+     or empty URL. Deriving it from ev.slug on demand has no order to get wrong. */
+  function canonFor(slug){ return 'https://keepitil.com/event?e='+encodeURIComponent(slug||''); }
+
+  function writeEventLd(tiers){
+    var ld={"@context":"https://schema.org","@type":"MusicEvent","name":ev.title,"url":canonFor(ev.slug),"eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode"};
     /* startDate must not be invented. This used to append "T20:00:00-07:00" to every event:
        a fabricated 8pm start and a fixed Pacific offset, applied even to a morning event in
        another timezone -- and it threw away the real time, because ev.date is a local DATE
@@ -471,13 +494,70 @@
     if(ev.endsAt) ld.endDate=ev.endsAt;
     if(ev.img) ld.image=ev.img;
     if(ev.venue) ld.location={"@type":"Place","name":ev.venue,"address":{"@type":"PostalAddress","addressLocality":ev.city||"Los Angeles","addressRegion":"CA","addressCountry":"US"}};
-    if(ev.ticket && ev.ticket!=='#') ld.offers={"@type":"Offer","url":ev.ticket,"availability":"https://schema.org/InStock"};
+
+    var offers=tierOffers(tiers);
+    if(offers.length){
+      /* One Offer per real tier. An array even for a single tier: schema.org accepts it, and a
+         shape that changes with the row count is the kind of thing that breaks a consumer the
+         first time a second tier is added. */
+      ld.offers=offers;
+    } else if(ev.ticket && ev.ticket!=='#'){
+      /* No tiers of our own, but a real link to buy. NOTE: no `availability`. This line used
+         to assert "https://schema.org/InStock" for every external ticket link, which is a
+         claim about someone else's inventory that this page has never checked -- exactly the
+         invented availability the brief forbids. The URL is real; the stock level is not ours
+         to state. */
+      ld.offers={"@type":"Offer","url":ev.ticket};
+    }
+    /* A genuinely ticket-less event carries no offers key at all, rather than an empty array.
+       An empty offers[] reads as "we sell nothing here", which is a claim; absence is not. */
+
     ld.organizer={"@type":"Organization","name":"KEEPITIL","url":"https://keepitil.com/"};
     var ldEl=document.getElementById('ld-event');
     if(!ldEl){ ldEl=document.createElement('script'); ldEl.type='application/ld+json';
                ldEl.id='ld-event'; document.head.appendChild(ldEl); }
     ldEl.textContent=JSON.stringify(ld);
   }
+
+  /* Real tiers -> real Offers. Every field is read from the row; nothing is defaulted into
+     existence. Returns [] for null/empty input so the caller has one thing to test. */
+  function tierOffers(tiers){
+    if(!Array.isArray(tiers) || !tiers.length) return [];
+    var now=Date.now();
+    return tiers.map(function(t){
+      var o={"@type":"Offer","url":canonFor(ev.slug)};
+      if(t.name) o.name=String(t.name);
+      /* price is stated even when zero: "0" is a fact about a free ticket, not a missing
+         value, and schema.org wants a price with a currency. */
+      if(typeof t.price_cents==='number'){
+        o.price=(t.price_cents/100).toFixed(2);
+        o.priceCurrency=String(t.currency||'usd').toUpperCase();
+      }
+      if(t.sales_start) o.validFrom=t.sales_start;
+      if(t.sales_end)   o.validThrough=t.sales_end;
+
+      /* AVAILABILITY IS DERIVED, NEVER ASSUMED. Each branch corresponds to a state the row
+         actually reports, and the page already renders the same four states as text. When the
+         row says nothing about quantity or a sales window, availability is OMITTED rather than
+         guessed at. */
+      var remaining=(t.qty_total!=null)?(t.qty_total-(t.qty_sold||0)):null;
+      var ss=t.sales_start?Date.parse(t.sales_start):null;
+      var se=t.sales_end?Date.parse(t.sales_end):null;
+      if(remaining!=null && remaining<=0)      o.availability="https://schema.org/SoldOut";
+      else if(ss && now<ss)                    o.availability="https://schema.org/PreOrder";
+      else if(se && now>se)                    o.availability="https://schema.org/OutOfStock";
+      else if(remaining!=null || ss || se)     o.availability="https://schema.org/InStock";
+
+      /* Inventory is published ONLY where the organizer chose to show it. show_qty is their
+         decision on the page; repeating the number in structured data when they hid it would
+         leak it to every consumer that reads the markup. */
+      if(t.show_qty && remaining!=null && remaining>0) o.inventoryLevel={
+        "@type":"QuantitativeValue","value":remaining
+      };
+      return o;
+    });
+  }
+  window.__kilTierOffers=tierOffers;   /* exercised directly by the regression test */
   /* attendee-data capture: name + email + organizer's custom questions → event_registrations. Fail-open (never blocks a sale). */
   function regCapture(tierName, showPromo, done){
     var reg=Array.isArray(ev.reg)?ev.reg:[];
@@ -566,6 +646,12 @@
           }).catch(function(){});
           /* render ticket tiers as scrollable rows INSIDE the event card — name + price, hover reveals description + availability, − 0 + stepper, buy */
           sb.from('ticket_tiers').select('*').eq('event_id',x.id).order('sort').then(function(tr){
+            /* The structured data is rewritten with whatever the query returned -- including an
+               empty result, which is how a ticket-less event stops advertising the external
+               link's offer only after we know there are no tiers of our own. paint() ran before
+               this resolved, so without this the offers would always describe the pre-query
+               state. */
+            try{ writeEventLd((tr&&tr.data)||[]); }catch(_e){}
             if(!(tr&&tr.data&&tr.data.length)) return;
             var sec=$('sec-tickets'), box=$('ev-tickets'); if(!sec||!box) return;
             var now=Date.now(), anyPaid=tr.data.some(function(t){return t.price_cents>0;});

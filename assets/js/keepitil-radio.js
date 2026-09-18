@@ -45,16 +45,26 @@
   var css=document.createElement('style');
   css.setAttribute('data-kil','player');
   css.textContent=
-    /* ══ TWO COLOURS, ONE RULE (KODE 2026-09-17) ══════════════════════════════════════
-       LIVE RADIO is the green anchor. Everything else in the radio is neon purple:
-       transport, waveform, hover states, borders, carousel selection, drawer accents and
-       the chat integration. The bar used to be green throughout with cyan utility icons,
-       which is why nothing read as the anchor - when every element is the accent colour
-       there is no accent. Declared as tokens so the split is enforced in one place and a
-       future edit cannot quietly repaint the transport green again. */
-    ':root,#kil-radio{--krp:#a855f7;--krp-txt:#c9a6ff;--krp-line:rgba(168,85,247,.34);'
-    + '--krp-glow:rgba(168,85,247,.30);--krg:#00ff88;}'+
-    '#kil-radio{position:fixed;bottom:0;left:0;right:0;height:40px;z-index:9998;background:rgba(6,6,6,.97);border-top:1px solid var(--krp-line);box-shadow:0 -2px 24px rgba(0,0,0,.7);backdrop-filter:blur(18px);font-family:\'Space Grotesk\',\'Inter\',sans-serif;display:flex;align-items:center;padding:0 5px;gap:5px;overflow:hidden;transition:bottom .3s,left .3s,right .3s,width .3s,height .3s,border-radius .3s,border .3s,padding .3s,box-shadow .3s;}'+
+    /* ══ ONE ACCENT: NEON GREEN ON DARK GLASS (KODE 2026-09-18) ═══════════════════════
+       The radio was a green LIVE RADIO anchor against a neon-PURPLE everything-else. The
+       approved direction is a single neon green accent on transparent silver/dark glass,
+       so the split is gone: green is the outline, the glow, the icon and the active state,
+       and the surface itself stays dark glass rather than becoming green.
+
+       The token family was named --krp for "purple". Redefining those names to hold green
+       would have left every one of 58 references claiming a colour the radio no longer
+       uses, so they are renamed --kra ("accent") in the same change. One definition site,
+       so a future edit cannot reintroduce a second accent by hand. */
+    /* Every radio button opts out of the native widget. Not fixing a known defect: the
+       transport circles were verified painting correctly (interior pixel rgb(6,32,20), the
+       accent at 10% over the bar) before and after this line. It is here because these are
+       fully custom controls, and appearance:auto leaves their fill at the mercy of a
+       platform's native button theme. */
+    '#kil-radio button,.kr-panel button{appearance:none;-webkit-appearance:none;}'+
+    ':root,#kil-radio{--kra:#00ff88;--kra-txt:#8fe9bd;--kra-line:rgba(0,255,136,.34);'
+    + '--kra-glow:rgba(0,255,136,.30);--kra-fill:rgba(0,255,136,.10);'
+    + '--kra-fill-2:rgba(0,255,136,.22);--krg:#00ff88;}'+
+    '#kil-radio{position:fixed;bottom:0;left:0;right:0;height:40px;z-index:9998;background:rgba(6,6,6,.97);border-top:1px solid var(--kra-line);box-shadow:0 -2px 24px rgba(0,0,0,.7);backdrop-filter:blur(18px);font-family:\'Space Grotesk\',\'Inter\',sans-serif;display:flex;align-items:center;padding:0 5px;gap:5px;overflow:hidden;transition:bottom .3s,left .3s,right .3s,width .3s,height .3s,border-radius .3s,border .3s,padding .3s,box-shadow .3s;}'+
     '#kil-radio.kil-mini{bottom:20px!important;left:auto!important;right:24px!important;width:58px!important;height:58px!important;border-radius:50%!important;border:2px solid rgba(0,255,136,.3)!important;border-top:2px solid rgba(0,255,136,.3)!important;box-shadow:0 4px 24px rgba(0,0,0,.7),0 0 20px rgba(0,255,136,.08)!important;cursor:pointer!important;padding:0!important;justify-content:center!important;gap:0!important;}'+
     '#kil-mini-dot{display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:1.5rem;color:#00ff88;animation:kil-blink 2s ease-in-out infinite;}'+
     '#kil-radio.kil-mini #kil-mini-dot{display:flex!important;}'+
@@ -62,7 +72,7 @@
     '.kil-live{width:7px;height:7px;border-radius:50%;background:#00ff88;flex-shrink:0;box-shadow:0 0 6px #00ff88;animation:kil-blink 2s ease-in-out infinite;}'+
     '.kil-live.off{background:#444;box-shadow:none;animation:none;}'+
     '@keyframes kil-blink{0%,100%{opacity:1;}50%{opacity:.35;}}'+
-    '.kil-brand-logo{height:28px;width:auto;filter:drop-shadow(0 0 4px rgba(255,80,120,.7));}'+
+    '.kil-brand-logo{height:28px;width:auto;}'+
     '.kil-brand-radio{font-size:.55rem;font-weight:900;letter-spacing:.18em;color:#00ff88;text-transform:uppercase;}'+
     /* ── SHUTTLE (Founder 2026-08-22) ────────────────────────────────────────────────
        << playlist · < song · NOW PLAYING · song > · playlist >>
@@ -86,10 +96,10 @@
        is pressed, so the bar keeps its usual shape until a level is actually being chosen. */
     '.kr-vol{flex:0 0 92px;width:92px;height:4px;padding:0;margin:0 8px;cursor:pointer;'+
       'appearance:none;-webkit-appearance:none;background:rgba(255,255,255,.28);border:0;'+
-      'border-radius:999px;accent-color:var(--krp);}'+
+      'border-radius:999px;accent-color:var(--kra);}'+
     '.kr-vol::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;'+
-      'border-radius:50%;background:var(--krp);border:0;cursor:pointer;}'+
-    '.kr-vol::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--krp);'+
+      'border-radius:50%;background:var(--kra);border:0;cursor:pointer;}'+
+    '.kr-vol::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--kra);'+
       'border:0;cursor:pointer;}'+
     '.kr-vol[hidden]{display:none!important;}'+
     '@media(max-width:860px){.kr-vol{flex-basis:70px;width:70px;}}'+
@@ -106,7 +116,7 @@
       'font-family:inherit;font-size:.7rem;letter-spacing:.05em;white-space:nowrap;'+
       'overflow:hidden;transition:color .18s,opacity .18s;}'+
     'button.krb{cursor:pointer;}'+
-    'button.krb:hover{background:rgba(168,85,247,.14);border-color:var(--krp-line);}'+
+    'button.krb:hover{background:rgba(0,255,136,.14);border-color:var(--kra-line);}'+
     '.krb-brand{flex:0.9 1 0;}'+
     '#kr-prev{flex:2 1 0;}'+
     /* De-boxed 2026-09-10: the tinted fill made the centre read as a separate widget. */
@@ -116,7 +126,7 @@
     '#kr-mute{flex:1 1 0;}'+
     '.kr-side{font-size:.7rem;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;'+
       'text-overflow:ellipsis;min-width:0;}'+
-    '.kr-plname{font-weight:800;font-size:.68rem;letter-spacing:.06em;color:var(--krp-txt);'+
+    '.kr-plname{font-weight:800;font-size:.68rem;letter-spacing:.06em;color:var(--kra-txt);'+
       'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}'+
     /* Button 4 shows the SONG and the PLAYLIST alternately, 5s each with a half-second
        cross-fade. Both spans are stacked in the same box so neither reflows the bar when
@@ -131,9 +141,9 @@
        When the column layout (.kr-nowwrap: label / title / station) was added it did not
        remove this, so two systems addressed the same two spans at once: the overlapping
        Now Playing text. The column layout below is now the only one. */
-    '.kr-btn{background:none;border:none;cursor:pointer;color:var(--krp);font-size:.85rem;line-height:1;padding:2px 4px;transition:opacity .2s;flex-shrink:0;}'+
+    '.kr-btn{background:none;border:none;cursor:pointer;color:var(--kra);font-size:.85rem;line-height:1;padding:2px 4px;transition:opacity .2s;flex-shrink:0;}'+
     '.kr-btn:hover{opacity:.6;}'+
-    '#kr-vol{width:60px;accent-color:var(--krp);cursor:pointer;opacity:.75;vertical-align:middle;}'+
+    '#kr-vol{width:60px;accent-color:var(--kra);cursor:pointer;opacity:.75;vertical-align:middle;}'+
     '#kil-sc{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;}'+
     /* The #kilo-btn overrides that lived here are GONE — the shell owns the chat
        button's position now. The PANEL still needs to clear the radio bar. */
@@ -225,42 +235,63 @@
     +    'visibility:hidden;}'
     +  '.kr-tk-side:hover{opacity:.9;}'
     +  '.kr-tk-cur{flex:0 0 var(--kr-curw,226px);width:var(--kr-curw,226px);}'
-    /* 2:3 PORTRAIT, never square and never stretched (brief 47). 36x24 is the largest
-       portrait card that fits inside 54px with breathing room. */
-    +  '.kr-tkart{flex:0 0 auto;width:24px;height:36px;border-radius:4px;object-fit:cover;'
-    +    'background:#15131f;display:block;}'
-    +  '.kr-tk-cur .kr-tkart{width:26px;height:39px;border-radius:5px;'
-    +    'box-shadow:0 0 0 1px var(--krp-line),0 0 12px var(--krp-glow);}'
+    /* 1:1 SQUARE (§5). A SoundCloud TRACK's artwork is square at source - the portrait
+       card belongs to a STATION, and using it here meant every song was centre-cropped into
+       a shape its artwork was never drawn for. object-fit:cover still guards against a
+       non-square source rather than stretching it. 38px is the largest square that fits
+       inside 54px with breathing room. */
+    +  '.kr-tkart{flex:0 0 auto;width:38px;height:38px;border-radius:5px;object-fit:cover;'
+    +    'background:#0e1a14;display:block;}'
+    +  '.kr-tk-cur .kr-tkart{width:40px;height:40px;border-radius:6px;'
+    +    'box-shadow:0 0 0 1px var(--kra-line),0 0 12px var(--kra-glow);}'
     /* EXACTLY TWO TEXT ROWS. No third label, no repeated title, no wrap - min-width:0 is
        what actually lets a flex child shrink below its content so the ellipsis can apply. */
     +  '.kr-tkmeta{display:flex;flex-direction:column;justify-content:center;min-width:0;'
     +    'flex:1 1 auto;gap:1px;}'
     +  '.kr-tkt,.kr-tkp{display:block;min-width:0;max-width:100%;white-space:nowrap;'
     +    'overflow:hidden;text-overflow:ellipsis;}'
-    +  '.kr-tkt{font-size:.66rem;font-weight:700;line-height:1.15;color:#efeaff;}'
-    +  '.kr-tkp{font-size:.5rem;font-weight:600;line-height:1.15;letter-spacing:.06em;'
-    +    'text-transform:uppercase;color:var(--krp-txt);}'
-    +  '.kr-tk-cur .kr-tkt{font-size:.8rem;font-weight:800;color:#fff;}'
-    +  '.kr-tk-cur .kr-tkp{font-size:.54rem;color:var(--krp);}'
+    /* §7: sized UP against the same 54px. Two rows at 1.2 line-height plus the gap is
+       ~34px, which sits inside the bar without touching its edges. Still exactly two rows
+       and still ellipsised - bigger text makes truncation more likely, not less. */
+    +  '.kr-tkt{font-size:.8rem;font-weight:700;line-height:1.2;color:#eafff4;}'
+    +  '.kr-tkp{font-size:.62rem;font-weight:700;line-height:1.2;letter-spacing:.06em;'
+    +    'text-transform:uppercase;color:var(--kra-txt);}'
+    +  '.kr-tk-cur .kr-tkt{font-size:.95rem;font-weight:800;color:#fff;}'
+    +  '.kr-tk-cur .kr-tkp{font-size:.68rem;color:var(--kra);}'
     /* The two - and only two - primary transport controls. */
-    +  '.kr-nav{flex:0 0 30px;width:30px;height:30px;border-radius:50%;display:flex;'
-    +    'align-items:center;justify-content:center;background:rgba(168,85,247,.10);'
-    +    'border:1px solid var(--krp-line);color:var(--krp);font-size:.8rem;line-height:1;'
+    /* §8: 40px inside a 54px bar - close to the usable height, with 7px clear top and
+       bottom. These were 30px circles carrying a 12.8px glyph, which read as decoration. */
+    +  '.kr-nav{flex:0 0 40px;width:40px;height:40px;border-radius:50%;display:flex;'
+    +    'align-items:center;justify-content:center;background:var(--kra-fill);'
+    +    'border:1px solid var(--kra-line);color:var(--kra);font-size:1.3rem;line-height:1;'
     +    'cursor:pointer;transition:background .18s,border-color .18s,box-shadow .18s;}'
-    +  '.kr-nav:hover{background:rgba(168,85,247,.22);border-color:var(--krp);'
-    +    'box-shadow:0 0 14px var(--krp-glow);}'
-    +  '.kr-nav:focus-visible{outline:2px solid var(--krp);outline-offset:2px;}'
+    +  '.kr-nav:hover{background:var(--kra-fill-2);border-color:var(--kra);'
+    +    'box-shadow:0 0 14px var(--kra-glow);}'
+    +  '.kr-nav:focus-visible{outline:2px solid var(--kra);outline-offset:2px;}'
     /* Right-hand utilities, in the one approved order: shuffle, repeat, volume, chat. */
     +  '.kr-ctrls{margin-left:auto;flex:0 0 auto;display:flex;align-items:center;gap:10px;}'
-    +  '@media(min-width:1200px){#kil-radio{--kr-tkw:178px;--kr-curw:226px;}}'
-    +  '@media(min-width:1024px) and (max-width:1199px){#kil-radio{--kr-tkw:132px;--kr-curw:200px;}}'
-    +  '@media(max-width:1023px){.kr-tk-side{display:none;}#kil-radio{--kr-curw:200px;}}'
+    /* §8: 40px hit targets carrying a 22px glyph, matching the transport circles. Scoped to
+       #kil-radio on purpose - .kr-util is also the drawer's chat expand/close pair, and
+       those are secondary controls in a header, not primary controls in the bar. */
+    +  '#kil-radio .kr-util{width:40px;height:40px;padding:0;border-radius:10px;'
+    +    'font-size:1.25rem;}'
+    +  '#kil-radio .kr-util svg{width:22px;height:22px;}'
+    /* The square art is 14px wider than the portrait card it replaces and the text is
+       larger, so each zone gains that back. Measured, not guessed: see the reported centre
+       offset at 1440/1280/1024. */
+    +  '@media(min-width:1200px){#kil-radio{--kr-tkw:210px;--kr-curw:270px;}}'
+    +  '@media(min-width:1024px) and (max-width:1199px){#kil-radio{--kr-tkw:158px;--kr-curw:238px;}}'
+    +  '@media(max-width:1023px){.kr-tk-side{display:none;}#kil-radio{--kr-curw:230px;}}'
     +'}'
     +'#kr-live{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(0,255,136,.28);border-radius:10px;padding:4px 8px;cursor:pointer;transition:background .18s,border-color .18s,box-shadow .18s;}'
     +'#kr-live:hover{background:rgba(0,255,136,.10);border-color:rgba(0,255,136,.55);}'
     +'#kr-live:focus-visible{outline:2px solid var(--krg);outline-offset:2px;}'
     +'html[data-radio-ui="drawer"] #kr-live,html[data-radio-ui="expanded"] #kr-live{background:rgba(0,255,136,.16);border-color:#00ff88;box-shadow:0 0 14px rgba(0,255,136,.35);}'
-    +'#kr-live .kil-brand-radio{line-height:.95;text-align:left;font-size:.5rem;}'
+    /* ONE ROW, NO WRAP (§4). white-space:nowrap is the part that matters: the old markup
+       forced two rows with a <br>, and simply deleting the <br> would let a narrow bar wrap
+       it back to two by itself. */
+    +'#kr-live .kil-brand-radio{line-height:1;text-align:left;font-size:1rem;'
+    +  'white-space:nowrap;letter-spacing:.1em;}'
     /* station stepper: fixed width, so new stations never widen the bar */
     /* now playing */
     /* A long track title truncates. min-width:0 is the part that actually matters: without
@@ -286,8 +317,8 @@
     +'.kr-wave.on{display:flex;}'
     +'.kr-tk-cur{position:relative;}'
     +'.kr-tk-cur>*{position:relative;z-index:1;}'
-    +'.kr-wave i{flex:1 1 0;min-width:2px;max-width:3px;background:var(--krp);border-radius:2px;'
-    +  'box-shadow:0 0 6px var(--krp-glow);animation:kr-eq .9s ease-in-out infinite;}'
+    +'.kr-wave i{flex:1 1 0;min-width:2px;max-width:3px;background:var(--kra);border-radius:2px;'
+    +  'box-shadow:0 0 6px var(--kra-glow);animation:kr-eq .9s ease-in-out infinite;}'
     /* One rule, one place: no motion means no animation anywhere in the radio. */
     +'@media(prefers-reduced-motion:reduce){'
     +  '.kr-wave i{animation:none!important;transform:none!important;}'
@@ -296,25 +327,25 @@
     /* ══ UTILITY CONTROLS ════════════════════════════════════════════════════════════ */
     +'.kr-util{display:inline-flex;align-items:center;justify-content:center;'
     +  'background:transparent;border:1px solid transparent;border-radius:9px;'
-    +  'color:var(--krp-txt);font-size:.9rem;line-height:1;padding:5px 7px;cursor:pointer;'
+    +  'color:var(--kra-txt);font-size:.9rem;line-height:1;padding:5px 7px;cursor:pointer;'
     +  'transition:color .18s,background .18s,border-color .18s;}'
-    +'.kr-util:hover{color:#fff;background:rgba(168,85,247,.16);border-color:var(--krp-line);}'
-    +'.kr-util:focus-visible{outline:2px solid var(--krp);outline-offset:2px;}'
+    +'.kr-util:hover{color:#fff;background:rgba(0,255,136,.16);border-color:var(--kra-line);}'
+    +'.kr-util:focus-visible{outline:2px solid var(--kra);outline-offset:2px;}'
     /* An engaged toggle has to be legible without colour alone, so it also gains a border. */
-    +'.kr-util[aria-pressed="true"]{color:#fff;background:rgba(168,85,247,.26);'
-    +  'border-color:var(--krp);box-shadow:0 0 12px var(--krp-glow);}'
+    +'.kr-util[aria-pressed="true"]{color:#fff;background:rgba(0,255,136,.26);'
+    +  'border-color:var(--kra);box-shadow:0 0 12px var(--kra-glow);}'
     /* ══ VOLUME: A SLIDER THAT RISES FROM THE BAR (brief 19) ═════════════════════════ */
     +'.kr-volwrap{position:relative;display:flex;align-items:center;}'
     +'.kr-volpop{position:absolute;left:50%;transform:translateX(-50%);'
     +  'bottom:calc(100% + 10px);display:flex;flex-direction:column;align-items:center;gap:6px;'
-    +  'padding:12px 8px 10px;background:rgba(10,8,18,.97);border:1px solid var(--krp-line);'
-    +  'border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.6),0 0 18px var(--krp-glow);'
+    +  'padding:12px 8px 10px;background:rgba(10,8,18,.97);border:1px solid var(--kra-line);'
+    +  'border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.6),0 0 18px var(--kra-glow);'
     +  'z-index:10000;}'
     +'.kr-volpop[hidden]{display:none;}'
     +'.kr-volpop .kr-vol{-webkit-appearance:slider-vertical;appearance:slider-vertical;'
     +  'writing-mode:vertical-lr;direction:rtl;width:26px;height:96px;margin:0;padding:0;'
-    +  'flex:0 0 auto;accent-color:var(--krp);cursor:pointer;background:transparent;}'
-    +'.kr-volnum{font-size:.52rem;font-weight:800;letter-spacing:.08em;color:var(--krp-txt);'
+    +  'flex:0 0 auto;accent-color:var(--kra);cursor:pointer;background:transparent;}'
+    +'.kr-volnum{font-size:.52rem;font-weight:800;letter-spacing:.08em;color:var(--kra-txt);'
     +  'font-variant-numeric:tabular-nums;}'
     +'.kr-wave i:nth-child(6n+1){height:8px;animation-delay:0s}'
     +'.kr-wave i:nth-child(6n+2){height:18px;animation-delay:.12s}'
@@ -325,7 +356,7 @@
     +'@keyframes kr-eq{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}'
     /* play/pause is the dominant control */
     /* ── PANELS: exactly one visible, both driven by data-radio-ui ── */
-    +'.kr-panel{position:fixed;left:0;right:0;z-index:9997;display:none;flex-direction:column;background:rgba(9,9,14,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--krp-line);max-height:calc(100vh - var(--kil-radio-h,54px));overflow-y:auto;font-family:\'Space Grotesk\',\'Inter\',sans-serif;}'
+    +'.kr-panel{position:fixed;left:0;right:0;z-index:9997;display:none;flex-direction:column;background:rgba(9,9,14,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--kra-line);max-height:calc(100vh - var(--kil-radio-h,54px));overflow-y:auto;font-family:\'Space Grotesk\',\'Inter\',sans-serif;}'
     +'.kr-panel.on{display:flex;}'
     /* ══ THE CAP MUST FIT BOTH ROWS (KODE 2026-09-17) ═══════════════════════════════
        This was max-height:360px, from when the drawer held a now-playing block and a row of
@@ -338,11 +369,11 @@
     +'#kr-drawer{bottom:var(--kil-radio-h,54px);max-height:calc(100vh - var(--kil-radio-h,54px) - 8px);border-radius:14px 14px 0 0;box-shadow:0 -18px 50px rgba(0,0,0,.7);}'
     +'.kr-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:linear-gradient(90deg,rgba(0,255,136,.12),rgba(124,77,255,.10));border:0;border-bottom:1px solid rgba(255,255,255,.08);padding:11px 14px;cursor:pointer;}'
     +'.kr-hdr:hover{background:linear-gradient(90deg,rgba(0,255,136,.2),rgba(124,77,255,.16));}'
-    +'.kr-hdr:focus-visible{outline:2px solid var(--krp);outline-offset:-2px;}'
+    +'.kr-hdr:focus-visible{outline:2px solid var(--kra);outline-offset:-2px;}'
     +'.kr-hdr-l,.kr-hdr-r{display:flex;align-items:center;gap:8px;}'
     +'.kr-hdr-t{font-size:.7rem;font-weight:900;letter-spacing:.2em;color:#00ff88;text-transform:uppercase;}'
     +'.kr-hdr-hint{font-size:.47rem;font-weight:800;letter-spacing:.16em;color:#7a8699;text-transform:uppercase;}'
-    +'.kr-hdr-ic{color:var(--krp);font-size:.7rem;}'
+    +'.kr-hdr-ic{color:var(--kra);font-size:.7rem;}'
     +'html[data-radio-ui="expanded"] .kr-hdr-ic{transform:rotate(180deg);}'
     +'.kr-panel-body{overflow:auto;padding:12px 14px 16px;}'
     /* ══ EXPANDED RADIO: TWO COLUMNS (brief 21-25) ═══════════════════════════════════
@@ -359,27 +390,60 @@
     +'.kr-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:14px;'
     +  'padding:14px 16px 18px;min-height:0;}'
     +'.kr-chatcol{flex:0 0 var(--kr-chatw,318px);width:var(--kr-chatw,318px);min-width:0;'
-    +  'display:flex;flex-direction:column;border-left:1px solid var(--krp-line);'
+    +  'display:flex;flex-direction:column;border-left:1px solid var(--kra-line);'
     +  'background:rgba(12,10,20,.72);transition:flex-basis .22s ease,width .22s ease;}'
     +'#kr-drawer.kr-chat-wide{--kr-chatw:50%;}'
     +'#kr-drawer.kr-chat-off{--kr-chatw:0px;}'
     +'#kr-drawer.kr-chat-off .kr-chatcol{border-left:0;overflow:hidden;}'
     +'.kr-chathdr{display:flex;align-items:center;gap:8px;padding:10px 12px;'
-    +  'border-bottom:1px solid var(--krp-line);flex:0 0 auto;}'
-    +'.kr-chathdr b{font-size:.62rem;font-weight:900;letter-spacing:.16em;color:var(--krp);'
+    +  'border-bottom:1px solid var(--kra-line);flex:0 0 auto;}'
+    +'.kr-chathdr b{font-size:.62rem;font-weight:900;letter-spacing:.16em;color:var(--kra);'
     +  'text-transform:uppercase;}'
     +'.kr-chathdr .kr-sp{margin-left:auto;display:flex;gap:4px;}'
     +'.kr-chatbody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;}'
     +'.kr-chatnote{padding:12px;font-size:.66rem;line-height:1.5;color:#9c94b8;}'
     /* ── ROWS ────────────────────────────────────────────────────────────────────────── */
     +'.kr-rowhead{display:flex;align-items:center;gap:10px;margin:0 0 8px;}'
-    +'.kr-rowhead h4{margin:0;font-size:.58rem;font-weight:900;letter-spacing:.2em;'
-    +  'color:#8e86a8;text-transform:uppercase;}'
-    +'.kr-rail{display:flex;align-items:center;gap:8px;min-width:0;}'
-    +'.kr-railbtn{flex:0 0 28px;width:28px;height:28px;border-radius:50%;background:rgba(168,85,247,.10);'
-    +  'border:1px solid var(--krp-line);color:var(--krp);cursor:pointer;line-height:1;}'
-    +'.kr-railbtn:hover{background:rgba(168,85,247,.24);border-color:var(--krp);}'
-    +'.kr-railbtn:focus-visible{outline:2px solid var(--krp);outline-offset:2px;}'
+    /* #8e86a8 was a purple-grey - a leftover of the old palette that read as lilac against
+       the green row it labels. Neutral with a green cast, and a step larger so the two row
+       labels are legible rather than decorative. */
+    +'.kr-rowhead h4{margin:0;font-size:.66rem;font-weight:900;letter-spacing:.2em;'
+    +  'color:#8fa89b;text-transform:uppercase;}'
+    +'.kr-rail{position:relative;display:flex;align-items:center;gap:8px;min-width:0;}'
+    /* The two Now Playing controls are positioned from the ROW CENTRE, which is where the
+       current card always is, so they stay against it at every width without measuring. */
+    +'.kr-npnav{position:absolute;top:calc(var(--kr-tcw,118px)/2 - 20px);width:40px;height:40px;'
+    +  'border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:3;'
+    +  'background:rgba(6,20,14,.86);border:1px solid var(--kra-line);color:var(--kra);'
+    +  'font-size:1.4rem;line-height:1;cursor:pointer;backdrop-filter:blur(6px);'
+    +  'transition:background .18s,border-color .18s,box-shadow .18s;}'
+    +'.kr-npnav:hover{background:var(--kra-fill-2);border-color:var(--kra);'
+    +  'box-shadow:0 0 16px var(--kra-glow);}'
+    +'.kr-npnav:focus-visible{outline:2px solid var(--kra);outline-offset:2px;}'
+    +'.kr-npnav-l{right:calc(50% + var(--kr-tcw,118px)/2 - 6px);}'
+    +'.kr-npnav-r{left:calc(50% + var(--kr-tcw,118px)/2 - 6px);}'
+    /* WITHOUT THIS THE FIRST AND LAST TRACK CANNOT REACH THE CENTRE. centreCurrentTrack
+       clamps scrollLeft at 0, so with no inline padding the first card simply sat at the
+       left edge and "current is centred" quietly stopped being true at the queue's ends. */
+    +'#kr-tracks-strip{padding-inline:calc(50% - var(--kr-tcw,118px)/2);}'
+    /* §12: FIVE VISIBLE, from measurement rather than taste. The track viewport is 1090 /
+       930 / 674px at 1440 / 1280 / 1024, so the card that makes exactly five fit with a 12px
+       gap is 208 / 176 / 125px. These are set a little under that, which leaves a sliver of
+       the sixth card showing - five are fully visible AND the row still looks like something
+       that scrolls, instead of ending suspiciously flush with the edge. */
+    +'@media(min-width:1360px){.kr-rail{--kr-tcw:196px;}}'
+    +'@media(min-width:1200px) and (max-width:1359px){.kr-rail{--kr-tcw:168px;}}'
+    +'@media(min-width:1024px) and (max-width:1199px){.kr-rail{--kr-tcw:124px;}}'
+    +'@media(max-width:1023px){.kr-rail{--kr-tcw:120px;}}'
+    +'.kr-railbtn{flex:0 0 28px;width:28px;height:28px;border-radius:50%;background:rgba(0,255,136,.10);'
+    +  'border:1px solid var(--kra-line);color:var(--kra);cursor:pointer;line-height:1;}'
+    +'.kr-railbtn:hover:not([disabled]){background:rgba(0,255,136,.24);border-color:var(--kra);}'
+    /* A rail arrow with nothing to scroll is a control that does nothing. With three real
+       stations the row does not overflow, so rather than leave two live-looking buttons
+       that silently no-op, they are genuinely disabled and dimmed until there IS overflow.
+       They stay in the layout because they are also the signal that the row CAN hold more. */
+    +'.kr-railbtn[disabled]{opacity:.32;cursor:default;}'
+    +'.kr-railbtn:focus-visible{outline:2px solid var(--kra);outline-offset:2px;}'
     /* NO scroll-behavior:smooth HERE. With it, assigning scrollLeft starts an animation, so
        reading the property straight back returns a mid-flight value - centring measured a
        delta against a position it had already asked to leave and compounded the error, which
@@ -397,58 +461,78 @@
        every card, including the first and the last, somewhere to be centred from. */
     +'#kr-tracks-strip{padding-left:calc(50% - 54px);padding-right:calc(50% - 54px);}'
     /* ── TRACK CARDS: FULL 2:3 PORTRAIT, NEVER CROPPED TO SQUARE (brief 27) ─────────── */
-    +'.kr-tc{flex:0 0 108px;width:108px;background:none;border:0;padding:0;cursor:default;'
+    +'.kr-tc{flex:0 0 var(--kr-tcw,118px);width:var(--kr-tcw,118px);background:none;border:0;padding:0;cursor:default;'
     +  'text-align:left;opacity:.66;transition:opacity .18s,transform .18s;}'
     +'.kr-tc.on{opacity:1;}'
-    +'.kr-tcart{width:108px;height:162px;border-radius:10px;object-fit:cover;display:block;'
+    /* §13: SQUARE. This was 108x162 - a station's portrait shape applied to a song, so
+       every track's square SoundCloud artwork lost a third of itself to the crop. The shape
+       is declared with aspect-ratio rather than by repeating the width variable as a height:
+       a percentage height would resolve against the PARENT's height and silently stop being
+       square, which is the trap that makes "it looked fine at one width" a bad proof. */
+    +'.kr-tcart{width:100%;aspect-ratio:1/1;height:auto;border-radius:10px;object-fit:cover;display:block;'
     +  'background:#15131f;border:1px solid rgba(255,255,255,.07);}'
-    +'.kr-tc.on .kr-tcart{border-color:var(--krp);box-shadow:0 0 0 1px var(--krp),'
-    +  '0 0 22px var(--krp-glow);}'
-    +'.kr-tct,.kr-tcp{display:block;max-width:108px;white-space:nowrap;overflow:hidden;'
+    +'.kr-tc.on .kr-tcart{border-color:var(--kra);box-shadow:0 0 0 1px var(--kra),'
+    +  '0 0 22px var(--kra-glow);}'
+    +'.kr-tct,.kr-tcp{display:block;max-width:100%;white-space:nowrap;overflow:hidden;'
     +  'text-overflow:ellipsis;}'
     +'.kr-tct{margin-top:7px;font-size:.66rem;font-weight:700;color:#efeaff;}'
     +'.kr-tcp{font-size:.5rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;'
-    +  'color:var(--krp-txt);}'
+    +  'color:var(--kra-txt);}'
     +'.kr-tc.on .kr-tct{font-weight:800;color:#fff;}'
     +'.kr-tcnow{display:inline-flex;align-items:center;gap:5px;margin-top:4px;font-size:.46rem;'
     +  'font-weight:900;letter-spacing:.16em;color:var(--krg);text-transform:uppercase;}'
     /* ── STATION ROW + THE LOCKED CREATE TILE (brief 30-33) ─────────────────────────── */
     +'.kr-strow{display:flex;align-items:stretch;gap:10px;min-width:0;}'
+    /* The station scroller HUGS ITS CONTENT instead of filling the row. There are three real
+       stations, and a full-width scroller left a ~500px void between the last one and the
+       CREATE tile. flex:0 1 auto still lets it shrink and scroll once there are enough
+       stations to overflow - it just stops reserving space for stations that do not exist.
+       Scoped to the station row: the track row must stay full-width, because that is what
+       the current card is centred within. */
+    +'.kr-strow .kr-scroll{flex:0 1 auto;}'
     /* The tile is a SIBLING of the scroller, not a child, which is what actually keeps it
        fixed while the stations move: a sticky child still lives in the scrolled box and
        drifts under a rubber-band scroll. */
     +'.kr-createtile{flex:0 0 116px;width:116px;display:flex;flex-direction:column;'
-    +  'align-items:center;justify-content:center;gap:6px;background:rgba(168,85,247,.07);'
-    +  'border:1px dashed var(--krp);border-radius:12px;color:var(--krp);cursor:pointer;'
+    +  'align-items:center;justify-content:center;gap:6px;background:rgba(0,255,136,.07);'
+    +  'border:1px dashed var(--kra);border-radius:12px;color:var(--kra);cursor:pointer;'
     +  'font:900 .56rem/1.1 \'Space Grotesk\',Inter,sans-serif;letter-spacing:.14em;'
     +  'text-transform:uppercase;transition:background .18s,box-shadow .18s;}'
-    +'.kr-createtile:hover{background:rgba(168,85,247,.18);box-shadow:0 0 18px var(--krp-glow);}'
-    +'.kr-createtile:focus-visible{outline:2px solid var(--krp);outline-offset:2px;}'
+    +'.kr-createtile:hover{background:rgba(0,255,136,.18);box-shadow:0 0 18px var(--kra-glow);}'
+    +'.kr-createtile:focus-visible{outline:2px solid var(--kra);outline-offset:2px;}'
     +'.kr-createtile i{font-size:1.2rem;font-style:normal;line-height:1;}'
-    +'.kr-createtile[aria-expanded="true"]{background:rgba(168,85,247,.22);border-style:solid;}'
+    +'.kr-createtile[aria-expanded="true"]{background:rgba(0,255,136,.22);border-style:solid;}'
     /* ── THE CREATE FLOW HOST: THE RADIO GROWS UPWARD IN PLACE (brief 34/41) ────────── */
-    +'.kr-createhost{display:none;border-top:1px solid var(--krp-line);padding-top:14px;}'
+    +'.kr-createhost{display:none;border-top:1px solid var(--kra-line);padding-top:14px;}'
     +'.kr-createhost.on{display:block;}' 
     +'.kr-sec h4{margin:0 0 8px;font-size:.5rem;font-weight:900;letter-spacing:.2em;color:#7a8699;text-transform:uppercase;}'
-    +'.kr-stations{display:flex;flex-wrap:wrap;gap:8px;}'
+    /* nowrap: this strip lives inside a horizontal scroller, and wrapping made it a grid
+       that grew DOWNWARD instead of scrolling sideways - which is also what made the rail
+       arrows look inert, because there was never any horizontal overflow to move. */
+    +'.kr-stations{display:flex;flex-wrap:nowrap;gap:10px;}'
     /* Station cards are one consistent size across the row and lead with real artwork
        (brief 31/32) - the old text-only pill ignored the station art that config carries. */
     +'.kr-st{flex:0 0 116px;width:116px;display:flex;flex-direction:column;align-items:stretch;'
     +  'gap:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);'
     +  'border-radius:12px;padding:0;overflow:hidden;color:#cfe9ff;cursor:pointer;'
     +  'transition:border-color .18s,box-shadow .18s;}'
-    +'.kr-st img{width:100%;height:78px;object-fit:cover;display:block;background:#15131f;}'
+    /* §18: THE WHOLE 2:3 IS VISIBLE. The box was 116x78 - landscape - so cover-cropping a
+       portrait cover threw away its top and bottom, which is exactly the artwork the
+       submitter framed. A 2:3 box means cover and contain agree for a 2:3 source: nothing
+       is cut and nothing is stretched. */
+    +'.kr-st img{width:100%;aspect-ratio:2/3;height:auto;object-fit:cover;display:block;'
+    +  'background:#0e1a14;}'
     +'.kr-st>span{padding:7px 8px;font:900 .54rem/1.15 \'Space Grotesk\',Inter,sans-serif;'
     +  'letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;overflow:hidden;'
     +  'text-overflow:ellipsis;}'
     +'.kr-st-noart{width:100%;height:78px;display:block;background:linear-gradient(135deg,'
-    +  'rgba(168,85,247,.28),rgba(20,16,32,.9));}'
+    +  'rgba(0,255,136,.28),rgba(20,16,32,.9));}'
     /* The 26x26 icon rule that used to sit here belonged to the old text pill and, being
        later in the sheet, silently overrode the full-width station artwork above it - the
        cards rendered with a thumbnail in the corner instead of a cover image. */
     +'.kr-st:hover{border-color:rgba(54,226,255,.5);}'
-    +'.kr-st.on{border-color:var(--krp);color:#fff;box-shadow:0 0 12px var(--krp-glow);}'
-    +'.kr-st:focus-visible{outline:2px solid var(--krp);outline-offset:1px;}'
+    +'.kr-st.on{border-color:var(--kra);color:#fff;box-shadow:0 0 12px var(--kra-glow);}'
+    +'.kr-st:focus-visible{outline:2px solid var(--kra);outline-offset:1px;}'
     +'.kr-empty{color:#7a8699;font-size:.6rem;margin:0;}'
     /* mobile: prioritise artwork, station, play, mute, gateway - not a squeezed desktop bar */
     +'@media(max-width:640px){'
@@ -476,9 +560,13 @@
          is clickable, so a dedicated expand affordance was a control that duplicated the
          surface it sat on. */
       '<button type="button" class="krb krb-brand" id="kr-live" aria-expanded="false" aria-label="Open KEEPITIL Radio">'+
-        '<div class="kil-live off" id="kil-led"></div>'+
-        '<img src="/keepitil-x-logo.png" class="kil-brand-logo" alt="KEEPITIL"/>'+
-        '<span class="kil-brand-radio">LIVE<br>RADIO</span>'+
+        /* §4: the status dot and the logo are BOTH gone, and the label is one row.
+           The dot asserted "live" from a play-state flag beside a permanently-live
+           broadcast, so it carried no information the words did not. The logo repeated an
+           identification the site header already makes. What is left is the label, at a size
+           that uses the 54px bar. The #kil-led element is gone with it; every reference to
+           it is an `if(led)` guard, so they simply stop firing. */
+        '<span class="kil-brand-radio">LIVE RADIO</span>'+
       '</button>'+
       /* ══ THREE REAL TRACKS, CURRENT DEAD-CENTRE (brief 7-12) ═════════════════════════
          PREVIOUS | ‹ | CURRENT | › | NEXT. Every one of the three is a real track read
@@ -638,8 +726,9 @@
      full-colour emoji: a grey 3D loudspeaker and a white speech bubble sitting beside two
      clean purple glyphs. Emoji cannot take a colour, so no CSS could bring them into the
      palette - the icon had to stop being text. These use currentColor, so they inherit the
-     same purple token as every other utility and the mute state is a real icon change
-     rather than a different picture. */
+     same accent token as every other utility and the mute state is a real icon change
+     rather than a different picture. The width/height attributes here are a floor; the
+     desktop bar overrides them in CSS so one number controls the on-screen size. */
   var SVG_VOL  = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" '
     + 'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
     + '<path d="M4 9.5h3L11 6v12l-4-3.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/>'
@@ -1358,9 +1447,10 @@
      between them. Built lazily: a visitor who never opens the radio pays nothing. */
   function _hdr(idSuffix){
     return '<button type="button" class="kr-hdr" id="kr-hdr-'+idSuffix+'">'
+         /* Same as the bar (§4): no status dot, no repeated logo. The dot here was not even
+            wired to play state - it was a bare .kil-live with no .off class, so it blinked
+            green permanently and would have said "live" through a stopped stream. */
          +   '<span class="kr-hdr-l">'
-         +     '<span class="kil-live" aria-hidden="true"></span>'
-         +     '<img src="/keepitil-x-logo.png" class="kil-brand-logo" alt="KEEPITIL"/>'
          +     '<span class="kr-hdr-t">LIVE RADIO</span>'
          +   '</span>'
          +   '<span class="kr-hdr-r"><span class="kr-hdr-hint" id="kr-hint-'+idSuffix+'"></span>'
@@ -1375,7 +1465,7 @@
     if(_createFlowP) return _createFlowP;
     _createFlowP=new Promise(function(res,rej){
       var sc=document.createElement('script');
-      sc.src='/assets/js/keepitil-playlist-submit.js?v=20260917a';
+      sc.src='/assets/js/keepitil-playlist-submit.js?v=20260918a';
       sc.onload=function(){ window.KIL_PLAYLIST_SUBMIT ? res() : rej(new Error('loaded but absent')); };
       sc.onerror=function(){ _createFlowP=null; rej(new Error('script failed')); };
       document.head.appendChild(sc);
@@ -1400,18 +1490,25 @@
       +  '<div class="kr-main">'
       /* ROW 1 - tracks, current always centred */
       +    '<div>'
-      +      '<div class="kr-rowhead"><h4>Now Playing</h4></div>'
+      +      '<div class="kr-rowhead"><h4>NOW PLAYING</h4></div>'
+      /* §15: EXACTLY TWO track controls, and they sit against the current card rather than
+         at the ends of the row. There used to be a pair here AND a pair at the outer edges,
+         which is four controls for two actions - and the outer pair scrolled the strip while
+         the inner pair changed track, so two identical-looking arrows did different things.
+         These change track; the strip re-centres itself on the new current card. */
       +      '<div class="kr-rail">'
-      +        '<button type="button" class="kr-railbtn" id="kr-tr-l" aria-label="Scroll tracks left">‹</button>'
       +        '<div class="kr-scroll" id="kr-tracks-scroll" tabindex="0" role="group" aria-label="Track queue">'
       +          '<div class="kr-strip" id="kr-tracks-strip"></div>'
       +        '</div>'
-      +        '<button type="button" class="kr-railbtn" id="kr-tr-r" aria-label="Scroll tracks right">›</button>'
+      +        '<button type="button" class="kr-npnav kr-npnav-l" id="kr-np-prev" '
+      +          'aria-label="Previous track" title="Previous track">‹</button>'
+      +        '<button type="button" class="kr-npnav kr-npnav-r" id="kr-np-next" '
+      +          'aria-label="Next track" title="Next track">›</button>'
       +      '</div>'
       +    '</div>'
       /* ROW 2 - stations, with the CREATE tile locked outside the scroller */
       +    '<div>'
-      +      '<div class="kr-rowhead"><h4>Stations</h4></div>'
+      +      '<div class="kr-rowhead"><h4>STATIONS</h4></div>'
       +      '<div class="kr-strow">'
       +        '<button type="button" class="kr-railbtn" id="kr-st-l" aria-label="Scroll stations left">‹</button>'
       +        '<div class="kr-scroll" id="kr-stations-scroll" tabindex="0" role="group" aria-label="Stations">'
@@ -1436,6 +1533,12 @@
     document.body.appendChild(drawerEl);
     document.getElementById('kr-hdr-d').addEventListener('click',function(e){ e.stopPropagation(); setRadioUI('compact'); });
     document.getElementById('kr-hint-d').textContent='CLOSE';
+    /* Same transport function as the bar's pair - see krNavTrack. */
+    (function(){
+      var a=document.getElementById('kr-np-prev'), b=document.getElementById('kr-np-next');
+      if(a) a.addEventListener('click', krNavTrack(-1));
+      if(b) b.addEventListener('click', krNavTrack(1));
+    }());
 
     /* Rail buttons scroll by roughly one card, which is what makes them feel like paging
        rather than nudging. */
@@ -1449,7 +1552,8 @@
         catch(_e){ sc.scrollLeft += by; }
       });
     }
-    rail('kr-tr-l','kr-tracks-scroll',-240); rail('kr-tr-r','kr-tracks-scroll',240);
+    /* The track strip no longer has rail buttons: its two controls change TRACK, and the
+       strip re-centres itself. rail() stays for the station row, which does scroll. */
     rail('kr-st-l','kr-stations-scroll',-260); rail('kr-st-r','kr-stations-scroll',260);
 
     /* CHAT COLUMN WIDTH (brief 24) - compact, ~half, or collapsed, and back again. */
@@ -1488,7 +1592,7 @@
           /* Never an indefinite blank or a silent nothing: say what failed and offer the
              other way in. */
           host.innerHTML='<p class="kr-chatnote">The playlist form could not be loaded. '
-            +'Check your connection, or <a href="/earn/#playlists" style="color:var(--krp)">'
+            +'Check your connection, or <a href="/earn/#playlists" style="color:var(--kra)">'
             +'open it on EARN</a>.</p>';
         });
         host.innerHTML='<p class="kr-chatnote">Loading the playlist form\u2026</p>';
@@ -1536,7 +1640,7 @@
       note.className='kr-chatnote';
       note.innerHTML='KEEPITIL AI is part of your account. '
         +'<a href="/apply?next='+encodeURIComponent(location.pathname+location.search)
-        +'" style="color:var(--krp);font-weight:700">Sign in</a> to talk to it \u2014 '
+        +'" style="color:var(--kra);font-weight:700">Sign in</a> to talk to it \u2014 '
         +'the radio keeps playing either way.';
       col.insertBefore(note, msgs);
     }
@@ -1629,6 +1733,17 @@
      No stale constants, no orphan handlers, no CSS for a screen that no longer exists. */
   /* Station list is rendered from the SAME array the engine plays from, so a station can
      never be offered here that the player cannot actually switch to. */
+  /* Recomputed from the rendered row, never assumed from the station count: a long station
+     name can make three cards overflow where four short ones would not. */
+  function syncStationArrows(){
+    var sc=document.getElementById('kr-stations-scroll');
+    var l=document.getElementById('kr-st-l'), r=document.getElementById('kr-st-r');
+    if(!sc||!l||!r) return;
+    var over = sc.scrollWidth > sc.clientWidth + 1;
+    l.disabled = !over; r.disabled = !over;
+  }
+  window.addEventListener('resize', syncStationArrows);
+
   function paintStations(){
     ['kr-stations-d'].forEach(function(id){
       var host=document.getElementById(id); if(!host) return;
@@ -1640,6 +1755,11 @@
           +(pl.art?'<img src="'+pl.art+'" alt=""/>':'<span class="kr-st-noart"></span>')
           +'<span>'+String(pl.name||'Station')+'</span></button>';
       }).join('');
+      /* after the cards exist, and again once their artwork has changed the widths */
+      syncStationArrows();
+      host.querySelectorAll('img').forEach(function(im){
+        if(!im.complete) im.addEventListener('load', syncStationArrows, {once:true});
+      });
       host.querySelectorAll('.kr-st').forEach(function(b){
         b.addEventListener('click',function(){
           var i=+b.dataset.i;
@@ -1838,17 +1958,21 @@
   /* ── TRACK TRANSPORT: THE ONLY TWO PRIMARY CONTROLS ───────────────────────────────────
      Real previous / real next against the live SoundCloud queue. No second audio engine and
      no synthetic queue - __kilRadioSong is the same two lines the EARN row already calls. */
+  /* ONE implementation, bound in two places. The Now Playing row's two controls (§15) do
+     the same thing as the bar's, so they call the same function rather than a second copy
+     that could diverge on shuffle handling. Hoisted to module scope because the drawer is
+     built lazily, long after this runs. */
+  function krNavTrack(dir){
+    return function(e){
+      e.stopPropagation();            /* a transport click must not also open the drawer */
+      if(dir>0 && SHUFFLE) return shuffleNext();
+      if(typeof window.__kilRadioSong==='function') window.__kilRadioSong(dir);
+    };
+  }
   (function(){
-    function nav(dir){
-      return function(e){
-        e.stopPropagation();          /* a transport click must not also open the drawer */
-        if(dir>0 && SHUFFLE) return shuffleNext();
-        if(typeof window.__kilRadioSong==='function') window.__kilRadioSong(dir);
-      };
-    }
     var pb=document.getElementById('kr-prev'), nb=document.getElementById('kr-next');
-    if(pb) pb.addEventListener('click', nav(-1));
-    if(nb) nb.addEventListener('click', nav(1));
+    if(pb) pb.addEventListener('click', krNavTrack(-1));
+    if(nb) nb.addEventListener('click', krNavTrack(1));
   })();
 
   /* ── SHUFFLE AND REPEAT ARE REAL, OR THEY ARE NOT OFFERED ─────────────────────────────

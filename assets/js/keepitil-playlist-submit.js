@@ -124,99 +124,151 @@
   function html(ctx) {
     return ''
       + '<div class="kps" data-ctx="' + esc(ctx) + '">'
-      +   '<div class="kps-head">'
-      +     '<h3>Get your sound on KEEPITIL and earn.</h3>'
-      +     '<p>It’s simple: 1, 2, 3.</p>'
-      +   '</div>'
-      +   '<ol class="kps-steps">'
-      +     '<li><b>1</b><span><strong>Create your playlist</strong>'
-      +       'Put your best tracks in one public SoundCloud playlist.</span></li>'
-      +     '<li><b>2</b><span><strong>Submit your work</strong>'
-      +       'Send us the playlist link and a cover image.</span></li>'
-      +     '<li><b>3</b><span><strong>KEEPITIL+</strong>'
-      +       'Submissions we approve go into the ecosystem — radio rotation, playlist '
-      +       'discovery, and Culture and Earn opportunities. Every submission is reviewed.</span></li>'
-      +   '</ol>'
-      +   '<form class="kps-form" novalidate>'
-      +     '<label class="kps-f"><span>Playlist name</span>'
-      +       '<input type="text" name="name" maxlength="80" autocomplete="off" '
-      +         'placeholder="Name your playlist" required/></label>'
-      +     '<label class="kps-f"><span>Public SoundCloud URL</span>'
-      +       '<input type="url" name="url" inputmode="url" autocomplete="off" '
-      +         'placeholder="https://soundcloud.com/you/sets/your-playlist" required/></label>'
-      +     '<div class="kps-f kps-cover"><span>Cover image</span>'
-      +       '<div class="kps-up">'
-      +         '<button type="button" class="kps-drop" aria-label="Choose a cover image">'
-      +           '<i aria-hidden="true">↑</i>'
-      +           '<em>Click to upload</em><small>or drag and drop</small>'
-      +         '</button>'
-      +         '<input type="file" class="kps-file" accept="image/jpeg,image/png,image/webp,image/avif" hidden/>'
-      +         '<div class="kps-prevwrap">'
-      +           '<div class="kps-prev" aria-hidden="true"><span>2:3</span></div>'
-      +           '<p class="kps-hint">2:3 portrait recommended (e.g. 1000×1500). '
-      +             'Anything else is centre-cropped to 2:3, never stretched. '
-      +             'This becomes your playlist cover on KEEPITIL.</p>'
-      +         '</div>'
-      +       '</div>'
+      +   '<div class="kps-row">'
+
+      /* COLUMN 1 - supporting information only. Short by instruction: this is not the form,
+         and paragraphs here push the actual fields off the row. */
+      +     '<div class="kps-info">'
+      +       '<h3>Get your sound on KEEPITIL and earn</h3>'
+      +       '<p class="kps-sub">It\u2019s simple.</p>'
+      +       '<ol class="kps-steps">'
+      +         '<li><b>1</b><span><strong>Create your playlist</strong>'
+      +           'Add your favourite tracks on SoundCloud.</span></li>'
+      +         '<li><b>2</b><span><strong>Submit your work</strong>'
+      +           'Send the playlist link and a cover image.</span></li>'
+      /* Step 3 says what KEEPITIL does and stops there. "Reaches a global audience" would
+         promise a result no submission is guaranteed, and every one is reviewed. */
+      +         '<li><b>3</b><span><strong>Get discovered</strong>'
+      +           'Approved playlists enter radio rotation and playlist discovery.</span></li>'
+      +       '</ol>'
       +     '</div>'
-      +     '<p class="kps-msg" role="status" aria-live="polite"></p>'
-      +     '<button type="submit" class="kps-submit">Submit playlist</button>'
-      +   '</form>'
+
+      /* COLUMN 2 - EXACTLY three stacked rows: name, URL, submit. The upload deliberately
+         does NOT live in this stack; it is its own column. */
+      +     '<form class="kps-form" novalidate>'
+      +       '<label class="kps-f"><span>Playlist name</span>'
+      +         '<input type="text" name="name" maxlength="80" autocomplete="off" '
+      +           'placeholder="Enter playlist name..." required/></label>'
+      +       '<label class="kps-f"><span>Public SoundCloud URL</span>'
+      +         '<input type="url" name="url" inputmode="url" autocomplete="off" '
+      +           'placeholder="https://soundcloud.com/your-playlist" required/></label>'
+      +       '<button type="submit" class="kps-submit" disabled>Submit playlist</button>'
+      +     '</form>'
+
+      /* COLUMN 3 - ONE card. It is the upload target before a file is chosen and becomes the
+         preview afterwards. There is no second preview box: two boxes made the submitter
+         wonder which one was the cover. */
+      +     '<div class="kps-upload">'
+      +       '<button type="button" class="kps-drop" aria-label="Upload cover image, 2 by 3 portrait">'
+      +         '<span class="kps-dropin">'
+      +           '<i aria-hidden="true">\u2191</i>'
+      +           '<em>Click to upload<br/>cover image</em>'
+      +           '<small>2:3 portrait</small>'
+      +           '<small class="kps-dim">1000 \u00d7 1500<br/>recommended</small>'
+      +         '</span>'
+      +         '<span class="kps-replace" aria-hidden="true">Click to replace</span>'
+      +       '</button>'
+      /* accept="image/*" keeps the iOS picker offering the photo library; the real type
+         check is OK_TYPES in takeFile, which runs on whatever the picker returns. */
+      +       '<input type="file" class="kps-file" accept="image/*" hidden/>'
+      +     '</div>'
+
+      +   '</div>'
+      +   '<p class="kps-msg" role="status" aria-live="polite"></p>'
       + '</div>';
   }
 
+  /* NEON GREEN ON DARK GLASS. The previous theme was purple; the radio and this flow now
+     share one accent so the component does not change colour between its two hosts.
+     Everything is scoped under .kps so no unrelated KEEPITIL surface is recoloured. */
   var CSS = ''
-    + '.kps{--kp:#a855f7;--kpl:rgba(168,85,247,.34);color:#e9e4f7;'
+    + '.kps{--kp:#00ff88;--kpl:rgba(0,255,136,.34);--kpg:rgba(0,255,136,.18);'
+    +   '--kptx:#cfeadd;--kpmut:#8aa69a;color:var(--kptx);'
     +   'font-family:\'Space Grotesk\',\'Inter\',sans-serif;}'
-    + '.kps-head h3{margin:0 0 4px;font-size:1rem;font-weight:900;letter-spacing:.02em;color:#fff;'
-    +   'text-transform:uppercase;}'
-    + '.kps-head p{margin:0 0 14px;font-size:.72rem;color:#a79ec4;}'
-    + '.kps-steps{list-style:none;display:flex;gap:12px;margin:0 0 16px;padding:0;flex-wrap:wrap;}'
-    + '.kps-steps li{flex:1 1 180px;min-width:0;display:flex;gap:9px;align-items:flex-start;}'
-    + '.kps-steps b{flex:0 0 24px;width:24px;height:24px;border-radius:50%;display:flex;'
-    +   'align-items:center;justify-content:center;background:rgba(168,85,247,.16);'
-    +   'border:1px solid var(--kpl);color:var(--kp);font-size:.66rem;font-weight:900;}'
-    + '.kps-steps span{min-width:0;font-size:.66rem;line-height:1.5;color:#a79ec4;}'
-    + '.kps-steps strong{display:block;color:#fff;font-size:.68rem;margin-bottom:2px;}'
-    + '.kps-form{display:flex;flex-direction:column;gap:12px;max-width:560px;}'
+
+    /* THE ONE ROW. Columns are info | form | upload. The upload column is sized from the
+       card's own width so the 2:3 card is never squeezed into a different shape by the
+       track. minmax(0,...) on the flexible columns stops a long URL widening the grid. */
+    + '.kps-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) 150px;'
+    +   'gap:26px;align-items:start;}'
+    /* 1024 is a SUPPORTED DESKTOP WIDTH and must still be one row: info | form | card.
+       The first breakpoint was 1180px, which folded the information column onto its own
+       line at exactly the width the brief asks to see the single row at. Below 900 there is
+       no honest way to keep three columns without squeezing the fields, so the information
+       column steps aside first - it is the part that is supporting, not operative. */
+    + '@media(max-width:900px){.kps-row{grid-template-columns:minmax(0,1fr) 140px;}'
+    +   '.kps-info{grid-column:1/-1;}}'
+    + '@media(max-width:720px){.kps-row{grid-template-columns:1fr;gap:18px;}'
+    +   '.kps-info{grid-column:auto;}.kps-upload{max-width:150px;}}'
+
+    + '.kps-info h3{margin:0 0 3px;font-size:1.04rem;font-weight:900;letter-spacing:.02em;'
+    +   'color:#fff;text-transform:uppercase;line-height:1.15;}'
+    + '.kps-sub{margin:0 0 14px;font-size:.74rem;color:var(--kpmut);}'
+    + '.kps-steps{list-style:none;display:flex;flex-direction:column;gap:10px;margin:0;padding:0;}'
+    + '.kps-steps li{display:flex;gap:10px;align-items:flex-start;min-width:0;}'
+    + '.kps-steps b{flex:0 0 26px;width:26px;height:26px;border-radius:50%;display:flex;'
+    +   'align-items:center;justify-content:center;background:var(--kpg);'
+    +   'border:1px solid var(--kpl);color:var(--kp);font-size:.7rem;font-weight:900;}'
+    + '.kps-steps span{min-width:0;font-size:.68rem;line-height:1.5;color:var(--kpmut);}'
+    + '.kps-steps strong{display:block;color:#fff;font-size:.72rem;margin-bottom:1px;}'
+
+    + '.kps-form{display:flex;flex-direction:column;gap:12px;min-width:0;}'
     + '.kps-f{display:flex;flex-direction:column;gap:5px;min-width:0;}'
-    + '.kps-f>span{font-size:.56rem;font-weight:900;letter-spacing:.14em;color:#8e86a8;'
+    + '.kps-f>span{font-size:.58rem;font-weight:900;letter-spacing:.14em;color:var(--kpmut);'
     +   'text-transform:uppercase;}'
     + '.kps-f input[type=text],.kps-f input[type=url]{background:rgba(255,255,255,.05);'
-    +   'border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:9px 11px;'
-    +   'color:#fff;font:400 .74rem/1.3 inherit;min-width:0;}'
+    +   'border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:11px 12px;'
+    +   'color:#fff;font:400 .78rem/1.3 inherit;min-width:0;width:100%;}'
+    + '.kps-f input::placeholder{color:#6f8478;}'
     + '.kps-f input:focus{outline:2px solid var(--kp);outline-offset:1px;border-color:var(--kp);}'
     + '.kps-f input[aria-invalid="true"]{border-color:#ff6b8a;}'
-    + '.kps-up{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;}'
-    + '.kps-drop{flex:0 0 auto;width:168px;min-height:104px;display:flex;flex-direction:column;'
-    +   'align-items:center;justify-content:center;gap:2px;background:rgba(255,255,255,.04);'
-    +   'border:1px dashed var(--kpl);border-radius:11px;color:#b9b0d4;cursor:pointer;'
-    +   'font:inherit;padding:10px;}'
-    + '.kps-drop:hover,.kps-drop.over{background:rgba(168,85,247,.14);border-color:var(--kp);}'
+
+    /* ── THE SINGLE 2:3 UPLOAD CARD ───────────────────────────────────────────────────
+       aspect-ratio lives on the control itself, so the thing the submitter clicks is the
+       shape the cover will be. A wide dashed rectangle next to a small portrait preview
+       taught the wrong shape and needed two boxes to say one thing. */
+    + '.kps-upload{min-width:0;}'
+    + '.kps-drop{position:relative;display:block;width:100%;aspect-ratio:2/3;'
+    +   'background:rgba(255,255,255,.04) center/cover no-repeat;'
+    +   'border:1px dashed var(--kpl);border-radius:12px;color:var(--kptx);'
+    +   'cursor:pointer;font:inherit;padding:10px;overflow:hidden;}'
+    + '.kps-drop:hover,.kps-drop.over{background-color:var(--kpg);border-color:var(--kp);}'
     + '.kps-drop:focus-visible{outline:2px solid var(--kp);outline-offset:2px;}'
-    + '.kps-drop i{font-size:1.1rem;font-style:normal;color:var(--kp);}'
-    + '.kps-drop em{font-style:normal;font-size:.66rem;font-weight:700;color:#e9e4f7;}'
-    + '.kps-drop small{font-size:.56rem;color:#8e86a8;}'
-    + '.kps-prevwrap{display:flex;gap:10px;align-items:flex-start;min-width:0;flex:1 1 200px;}'
-    /* The preview box IS 2:3, so the submitter is looking at the real card shape. */
-    + '.kps-prev{flex:0 0 68px;width:68px;height:102px;border-radius:8px;'
-    +   'background:#15131f center/cover no-repeat;border:1px solid var(--kpl);'
-    +   'display:flex;align-items:center;justify-content:center;}'
-    + '.kps-prev span{font-size:.56rem;font-weight:900;color:#6f6790;letter-spacing:.1em;}'
-    + '.kps-prev.has span{display:none;}'
-    + '.kps-hint{margin:0;font-size:.58rem;line-height:1.5;color:#8e86a8;min-width:0;}'
-    + '.kps-msg{margin:0;min-height:1em;font-size:.66rem;line-height:1.45;color:#a79ec4;}'
-    + '.kps-msg.err{color:#ff8da3;}'
-    + '.kps-msg.ok{color:#6ff2b0;}'
-    + '.kps-submit{align-self:flex-start;background:linear-gradient(90deg,var(--kp),#c98bff);'
-    +   'border:0;border-radius:999px;padding:10px 22px;color:#12061f;cursor:pointer;'
-    +   'font:900 .68rem/1 inherit;letter-spacing:.1em;text-transform:uppercase;}'
-    + '.kps-submit:hover{filter:brightness(1.08);}'
+    + '.kps-dropin{display:flex;flex-direction:column;align-items:center;justify-content:center;'
+    +   'gap:5px;height:100%;text-align:center;}'
+    + '.kps-drop i{font-size:1.35rem;font-style:normal;color:var(--kp);line-height:1;}'
+    + '.kps-drop em{font-style:normal;font-size:.68rem;font-weight:700;color:#fff;line-height:1.3;}'
+    + '.kps-drop small{font-size:.56rem;color:var(--kpmut);line-height:1.35;}'
+    + '.kps-drop .kps-dim{color:#6f8478;}'
+    /* Once an image is in, the card IS the preview: the helper text goes and a replace
+       affordance takes its place, so the card never looks like a dead thumbnail. */
+    + '.kps-drop.has{border-style:solid;border-color:var(--kpl);padding:0;}'
+    + '.kps-drop.has .kps-dropin{display:none;}'
+    + '.kps-replace{position:absolute;left:0;right:0;bottom:0;display:none;'
+    +   'padding:7px 6px;font-size:.58rem;font-weight:800;letter-spacing:.06em;'
+    +   'text-transform:uppercase;color:#06170f;background:var(--kp);}'
+    + '.kps-drop.has .kps-replace{display:block;}'
+    + '.kps-drop.busy{cursor:progress;}'
+
+    /* ── SUBMIT ───────────────────────────────────────────────────────────────────────
+       Muted glass until the form is genuinely complete, then solid neon. The transition
+       is the signal that nothing is missing, so it must not be green early. */
+    + '.kps-submit{align-self:stretch;background:rgba(255,255,255,.06);'
+    +   'border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:12px 22px;'
+    +   'color:#7e938a;cursor:not-allowed;font:900 .72rem/1 inherit;letter-spacing:.1em;'
+    +   'text-transform:uppercase;transition:background .18s,color .18s,border-color .18s;}'
+    + '.kps-submit.ready{background:var(--kp);border-color:var(--kp);color:#06170f;'
+    +   'cursor:pointer;box-shadow:0 0 18px rgba(0,255,136,.35);}'
+    + '.kps-submit.ready:hover{filter:brightness(1.08);}'
     + '.kps-submit:focus-visible{outline:2px solid var(--kp);outline-offset:3px;}'
-    + '.kps-submit[disabled]{opacity:.55;cursor:progress;}'
-    + '.kps-gate{font-size:.7rem;line-height:1.6;color:#a79ec4;}'
-    + '.kps-gate a{color:var(--kp);font-weight:700;}'
-    + '@media(max-width:640px){.kps-steps li{flex:1 1 100%;}.kps-drop{width:100%;}}';
+    + '.kps-submit[disabled]{pointer-events:none;}'
+
+    + '.kps-msg{margin:12px 0 0;min-height:1em;font-size:.68rem;line-height:1.45;'
+    +   'color:var(--kpmut);}'
+    + '.kps-msg.err{color:#ff8da3;}'
+    + '.kps-msg.ok{color:var(--kp);}'
+    + '.kps-gate{font-size:.72rem;line-height:1.6;color:var(--kpmut);}'
+    + '.kps-gate a{color:var(--kp);font-weight:700;}';
 
   function styles() {
     if (document.getElementById('kps-styles')) return;
@@ -251,10 +303,27 @@
     var urlEl = form.querySelector('[name=url]');
     var fileEl = root.querySelector('.kps-file');
     var drop = root.querySelector('.kps-drop');
-    var prev = root.querySelector('.kps-prev');
     var msg = root.querySelector('.kps-msg');
     var submit = root.querySelector('.kps-submit');
-    var cover = null;                      /* {blob, preview} once an image is accepted */
+    var cover = null;                      /* {blob, preview} once a NEW image is accepted */
+    var haveArt = false;                   /* a usable cover exists: new upload OR one already live */
+    var working = false;                   /* an image is being cropped, or a submit is in flight */
+    var existingArt = null;                /* cover already live on this person's row, if any */
+
+    /* SUBMIT IS GATED ON ALL THREE REQUIREMENTS, and stays shut while an image is still
+       being processed - enabling during the crop would let a submit race a cover that does
+       not exist yet, which is the "it said it worked" failure this project keeps hitting. */
+    function ready() {
+      return !working
+        && !!(nameEl.value || '').trim()
+        && scShape(urlEl.value).ok
+        && haveArt;
+    }
+    function refresh() {
+      var go = ready();
+      submit.disabled = !go;
+      submit.classList.toggle('ready', go);
+    }
 
     function say(text, kind) {
       msg.textContent = text || '';
@@ -266,8 +335,33 @@
       try { el.focus(); } catch (e) {}
     }
     function clearInvalid(el) { el.removeAttribute('aria-invalid'); }
-    nameEl.addEventListener('input', function () { clearInvalid(nameEl); });
-    urlEl.addEventListener('input', function () { clearInvalid(urlEl); });
+    nameEl.addEventListener('input', function () { clearInvalid(nameEl); refresh(); });
+    urlEl.addEventListener('input', function () { clearInvalid(urlEl); refresh(); });
+
+    /* A SUBMITTER WHO ALREADY HAS A PLAYLIST IS EDITING, NOT STARTING OVER.
+       The endpoint upserts on user_id, and omitting `art` deliberately preserves the cover
+       that is already live. Requiring a fresh upload before the button unlocks would mean a
+       returning submitter could not fix a typo in their name without re-picking artwork they
+       had already chosen. So an existing cover counts as the image requirement being met,
+       and the card shows it. If the read fails the form simply behaves as a first-time one -
+       it is a convenience, so it must never block submitting. */
+    (function prefill() {
+      var who = uid(); if (!who) return;
+      fetch(PL_API + '?user_id=eq.' + encodeURIComponent(who) + '&select=name,url,art&limit=1', {
+        headers: { apikey: ANON, Authorization: 'Bearer ' + token() }
+      }).then(function (r) { return r.ok ? r.json() : null; }).then(function (rows) {
+        var row = rows && rows[0]; if (!row) return;
+        if (!nameEl.value && row.name) nameEl.value = row.name;
+        if (!urlEl.value && row.url) urlEl.value = row.url;
+        if (row.art) {
+          existingArt = String(row.art);
+          haveArt = true;
+          drop.classList.add('has');
+          drop.style.backgroundImage = 'url("' + existingArt.replace(/"/g, '%22') + '")';
+        }
+        refresh();
+      }).catch(function () {});
+    }());
 
     /* ── file selection ─────────────────────────────────────────────────────────────── */
     function takeFile(file) {
@@ -280,19 +374,32 @@
         say('That image is ' + (file.size / 1048576).toFixed(1) + 'MB. The limit is 8MB.', 'err');
         return;
       }
+      working = true; drop.classList.add('busy'); refresh();
       say('Preparing your cover…');
       to23(file).then(function (out) {
         cover = out;
-        prev.classList.add('has');
-        prev.style.backgroundImage = 'url(' + out.preview + ')';
+        haveArt = true;
+        drop.classList.add('has');
+        drop.style.backgroundImage = 'url(' + out.preview + ')';
         say('Cover ready — this is exactly how it will appear, cropped to 2:3.', 'ok');
       }).catch(function (e) {
         cover = null;
-        prev.classList.remove('has');
-        prev.style.backgroundImage = '';
+        /* A failed crop must not leave the previous cover standing in as proof of an image
+           the submitter thinks they just replaced. Fall back to the live one only if there
+           genuinely is one. */
+        haveArt = !!existingArt;
+        if (existingArt) { drop.style.backgroundImage = 'url("' + existingArt.replace(/"/g, '%22') + '")'; }
+        else { drop.classList.remove('has'); drop.style.backgroundImage = ''; }
         say(e && e.message ? e.message : 'That image could not be processed.', 'err');
+      }).then(function () {
+        working = false; drop.classList.remove('busy'); refresh();
       });
     }
+    /* Set the gate from the real field state before any interaction. The markup ships the
+       button disabled, but the class that makes it look disabled must agree with it from the
+       first paint or the styling and the behaviour disagree. */
+    refresh();
+
     drop.addEventListener('click', function () { fileEl.click(); });
     fileEl.addEventListener('change', function () { takeFile(fileEl.files && fileEl.files[0]); });
     ['dragenter', 'dragover'].forEach(function (ev) {
@@ -316,10 +423,12 @@
       var shape = scShape(urlEl.value);
       if (!shape.ok) return invalid(urlEl, shape.why);
 
+      if (!haveArt) { say('Add a cover image before submitting.', 'err'); return; }
+
       var who = uid();
       if (!who) { say('Your session expired. Sign in again and resubmit.', 'err'); return; }
 
-      submit.disabled = true;
+      working = true; refresh();
       say('Submitting…');
 
       /* Upload first: if the cover fails there is no point writing a row that points at
@@ -355,14 +464,14 @@
         if (!r.ok) throw new Error('Your playlist could not be saved (HTTP ' + r.status + ').');
         return r.json();
       }).then(function () {
-        submit.disabled = false;
+        working = false; refresh();
         say('Submitted. Your playlist is with us for review — you can edit it any time by '
           + 'submitting again.', 'ok');
         try { document.dispatchEvent(new CustomEvent('kil-playlist-submitted')); } catch (e2) {}
       }).catch(function (err) {
         /* Never left on "Submitting…": every path ends in a real message and a usable
            button, so the submitter can correct something and try again. */
-        submit.disabled = false;
+        working = false; refresh();
         say((err && err.message ? err.message : 'Something went wrong submitting that.')
           + ' Nothing was lost — try again.', 'err');
       });

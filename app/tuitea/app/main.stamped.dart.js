@@ -36131,8 +36131,8 @@ q=new A.ab(Date.now(),0,!1).hD()
 r.n(0,"occurred_at",q.dM())
 r.n(0,"client_kind",A.bYP().c)
 r.n(0,"app_version","1.0.0")
-r.n(0,"build_number","53")
-r.n(0,"git_commit","53.6c52b63.stamped")
+r.n(0,"build_number","54")
+r.n(0,"git_commit","54.e7dd7a4.stamped")
 r.n(0,"event",a.c)
 r.n(0,"anonymous_origin",b.c)
 r.n(0,"result",c.c)
@@ -37289,7 +37289,7 @@ q=B.f8
 n=[1]
 s=5
 break}i=B.c.Y(j)
-g=A.c2j(i,"53.6c52b63.stamped")?B.atQ:B.atR
+g=A.c2j(i,"54.e7dd7a4.stamped")?B.atQ:B.atR
 g=new A.zL(g,i)
 $.OY=g
 q=g
@@ -38390,7 +38390,7 @@ Tc(){var s=0,r=A.j(t.GU),q,p=2,o=[],n,m,l,k,j,i,h
 var $async$Tc=A.e(function(a,b){if(a===1){o.push(b)
 s=p}for(;;)switch(s){case 0:j=t.N
 i=A.E(j,j)
-J.bp(i,"appVersion","1.0.0 (53) \xb7 53.6c52b63.stamped")
+J.bp(i,"appVersion","1.0.0 (54) \xb7 54.e7dd7a4.stamped")
 p=4
 s=7
 return A.c(A.PR(),$async$Tc)
@@ -38790,7 +38790,7 @@ J.bp(l,"app_version",b)
 J.bp(l,"patch",J.bo(m,"patch"))
 J.bp(l,"platform",J.bo(m,"platform"))
 J.bp(l,"screen",d)
-J.bp(l,"build","53.6c52b63.stamped")
+J.bp(l,"build","54.e7dd7a4.stamped")
 J.bp(l,"report_id",f)
 J.bp(l,"occurred_at",new A.ab(Date.now(),0,!1).hD().dM())
 if(a.length!==0)J.bp(l,"action",a)
@@ -151362,7 +151362,7 @@ if(q)q="Attach a photo of the document"
 else{q=r.d
 q="Attached: "+(q==null?"photo":q)+" \u2014 tap to replace"}j=A.eE(p,B.b2M,A.n(q,m,m,m,m,m,m,m,m,m),new A.bii(r,b),j)
 r=A.eE(B.a7E,B.b2s,B.aS7,new A.bij(r,n.b,b),A.f_(m,m,m,m,m,m,m,m,m,m,m,B.dH,m,m,m,m,m,m,m,m))
-o=A.eG("53",m)
+o=A.eG("54",m)
 B.b.B(s,A.a([B.a3,j,B.Y,r,new A.I(B.kA,A.n(o==null||o>=50?"Photos of letters, results and scans, or the PDF itself. Documents belong to this person's medical record and follow their access settings.":"Photos of letters, results and scans work now. PDF files arrive with the TUITEA update at keepitil.com/app/tuitea.",m,m,m,m,m,B.aNe,m,m,m),m)],k))}if(n.r||i==="vitals"||i==="measurement"){j=n.a
 B.b.B(s,A.a([B.a3,A.ak(A.a([A.ay(A.c0(m,B.K,!1,m,!0,B.l,m,A.c3(),n.w,m,m,m,m,m,2,B.a98,B.t,!0,m,!0,m,!1,m,B.V,m,m,m,m,m,B.pV,m,m,m,1,m,m,!1,"\u2022",m,m,m,m,m,!1,m,m,!1,m,!0,m,B.X,m,m,m,m,m,m,m,m,m,m,m,m,!0,B.M,m,B.ah,m,m,m,m),1),B.aE,A.bi(A.aab(!1,m,B.a9f,!1,m,j.a,m,m,m,1,new A.bik(j),m,m,m,m,m,B.M,B.ah,m,m),m,90)],k),B.j,m,B.e,B.h,0,m)],k))}s.push(B.a3)
 s.push(A.c0(m,B.K,!1,m,!0,B.l,m,A.c3(),n.x,m,m,m,m,m,2,B.a9t,B.t,!0,m,!0,m,!1,m,B.V,m,m,m,m,m,m,m,m,m,3,1,m,!1,"\u2022",m,m,m,m,m,!1,m,m,!1,m,!0,m,B.X,m,m,m,m,m,m,m,m,m,m,m,m,!0,B.M,m,B.ah,m,m,m,m))
@@ -151403,7 +151403,7 @@ $S:0}
 A.bij.prototype={
 $0(){var s=0,r=A.j(t.H),q,p=2,o=[],n=this,m,l,k,j,i,h
 var $async$$0=A.e(function(a,b){if(a===1){o.push(b)
-s=p}for(;;)switch(s){case 0:i=A.eG("53",null)
+s=p}for(;;)switch(s){case 0:i=A.eG("54",null)
 if(!(i==null||i>=50)){n.b.c.S(t.q).f.b0(B.aKp)
 s=1
 break}p=4
@@ -154052,7 +154052,7 @@ return A.c(A.yN(f==null?a:f,j),$async$yC)
 case 3:l=c
 if(l==null){g.b0(B.aKD)
 s=1
-break}i=A.eG("53",null)
+break}i=A.eG("54",null)
 s=i==null||i>=50?4:5
 break
 case 4:p=7
@@ -156235,7 +156235,7 @@ q(a){var s=null
 return A.a2V(A.cu(A.cO(s,s,!0,s,B.aLh,s,s,s,s,s,s,s,s,B.aXf,s),s,B.aLc,s,!1,s),0,2)}}
 A.B2.prototype={
 V(){var s=$.a4()
-return new A.Yb(new A.bN(B.ak,s),new A.bN(B.ak,s),new A.bN(B.ak,s),"1.0.0 (53) \xb7 53.6c52b63.stamped",B.wE)}}
+return new A.Yb(new A.bN(B.ak,s),new A.bN(B.ak,s),new A.bN(B.ak,s),"1.0.0 (54) \xb7 54.e7dd7a4.stamped",B.wE)}}
 A.Yb.prototype={
 ae(){this.aq()
 A.PR().bc(new A.bw2(this),t.a)},
@@ -159873,10 +159873,10 @@ $1(a){var s,r,q,p,o,n,m,l,k=null,j="Desktop (keepitil.com): ",i=this.a,h=this.b,
 B.b.B(f,i.aNM(h))
 B.b.B(f,i.aKl(h))
 i=i.w
-s=i.b4p("0e51dc2")
-r=i.a0O("6c52b63")
+s=i.b4p("ce85994")
+r=i.a0O("e7dd7a4")
 q=A.n("Application revision",k,k,k,k,k,B.i5,k,k,k)
-p=A.n("This app: 0e51dc2",k,k,k,k,k,h,k,k,k)
+p=A.n("This app: ce85994",k,k,k,k,k,h,k,k,k)
 o=i.d
 if(!o)n="Desktop (keepitil.com): could not reach it just now"
 else{n=i.c
@@ -159888,7 +159888,7 @@ if(m)m=B.q
 else m=s?B.cu:B.ad
 m=A.n(l,B.b1b,k,k,k,k,h.ahu(m,B.a0),k,k,k)
 l=A.n("Build revision",k,k,k,k,k,B.i5,k,k,k)
-g=A.a([q,p,n,m,B.a3,l,A.n("This app: 6c52b63",k,k,k,k,k,h,k,k,k)],g)
+g=A.a([q,p,n,m,B.a3,l,A.n("This app: e7dd7a4",k,k,k,k,k,h,k,k,k)],g)
 if(o){i=i.a
 g.push(A.n(j+(i==null?"unknown":i),B.b3i,k,k,k,k,h,k,k,k))}i=r==null
 if(i)q="Cannot compare the two right now."
@@ -159954,7 +159954,7 @@ case 6:case 1:return A.h(q,r)
 case 2:return A.f(o.at(-1),r)}})
 return A.i($async$D_,r)},
 q(a){var s=this,r=s.d,q=s.e,p=s.f,o=s.r,n=s.w
-return new A.a7z("1.0.0","53","53.6c52b63.stamped",r,q,p,o,s.gayR(),n,"0e51dc2",p.c,null)}}
+return new A.a7z("1.0.0","54","54.e7dd7a4.stamped",r,q,p,o,s.gayR(),n,"ce85994",p.c,null)}}
 A.buK.prototype={
 $1(a){var s=this.a
 if(s.c!=null)s.E(new A.buJ(s,a))},

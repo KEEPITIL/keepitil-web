@@ -2095,6 +2095,15 @@ function culFetchMedia(sb){
        existing relationship — no second CREATE->Culture model, no duplicated submission. */
     .select('id,provider,media_kind,title,creator_name,creator_profile_url,source_url,embed_url,thumbnail_url,published_at,own_content,is_short,related_vs_entry_id,description,metadata')
     .eq('review_status','approved').eq('embed_status','active')
+    /* SHORTS ONLY (Founder 2026-09-20: "only play youtube shorts only").
+       FILTERED IN THE QUERY, NOT AFTER THE FETCH. .limit(100) below applies to whatever the
+       server returns, so filtering client-side would pull 100 mixed rows and leave only the
+       ~30 Shorts among them — a feed that looks broken rather than curated.
+       is_short is maintained by the tag-shorts job (cron 25); it was verified against
+       youtube.com/shorts/<id> on 204 of 204 rows the day this filter went in, 0 mismatches.
+       The long-form rows are NOT deleted and keep being ingested and health-checked. This is
+       a display filter and nothing else: deleting this one line restores the mixed feed. */
+    .eq('is_short', true)
     .order('published_at',{ascending:false}).limit(100)
     .then(function(r){
       if(r.error || !r.data) return window.__culMediaRows;

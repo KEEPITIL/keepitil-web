@@ -67,7 +67,7 @@
       --font-head:'Bebas Neue',sans-serif; --font-body:'Inter',sans-serif;
     }
     html{scroll-behavior:smooth;}
-    body{background:var(--bg);color:var(--white);font-family:var(--font-body);font-size:16px;line-height:1.6;overflow-x:hidden;overflow-y:auto;}
+    body{background:var(--bg);color:var(--white);font-family:var(--font-body);font-size:16px;line-height:1.6;overflow-x:hidden;overflow-x:clip;overflow-y:auto;}
     body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--bg) url('/assets/images/logo-bg.jpg') center/cover no-repeat;opacity:1;} /* full-strength backdrop — ABSOLUTE path: relative 'logo-bg.jpg' resolved to / and 404'd (Founder 2026-07-18) */
     /* when a seasonal image is active, the static backdrop yields to the auto-rotating season background */
     html.has-season body::before{display:none!important;}
@@ -716,11 +716,6 @@
       and nothing below it reflows. -110% rather than -100% so the 1px border and the
       backdrop-blur edge clear the top of the screen too.
       Mobile only: the class is applied by kil-fbar.js, which no-ops above 860px. */
-@supports (overflow: clip) {
-  @media (max-width: 860px) {
-    body { overflow-x: clip; overflow-y: visible; }
-  }
-}
 @media (max-width: 860px) {
   #evx .evx-nav { transition: transform .22s ease; }
   body.kil-fbar-hidden #evx .evx-nav { transform: translateY(-110%); }
@@ -1336,7 +1331,7 @@
       --font-head:'Bebas Neue',sans-serif;--font-body:'Inter',sans-serif;
     }
     html{scroll-behavior:smooth;}
-    body{background:var(--bg);color:var(--white);font-family:var(--font-body);font-size:16px;line-height:1.6;overflow-x:hidden;}
+    body{background:var(--bg);color:var(--white);font-family:var(--font-body);font-size:16px;line-height:1.6;overflow-x:hidden;overflow-x:clip;}
 
 
     /* ── NAV ── */

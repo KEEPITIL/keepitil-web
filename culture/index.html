@@ -15,7 +15,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--panel:rgba(255,255,255,.035);--brd:rgba(255,255,255,.09);--ink:#f4f2fb;--ink2:#9a94b4;--ink3:#6b6588;--purple:var(--purple-2);--fh:'Bebas Neue',sans-serif;--fb:'Inter',sans-serif;--fs:'Fraunces',serif}
 html{scroll-behavior:smooth}
-body{background:var(--bg,#0a0a0f);color:var(--ink);font-family:var(--fb);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;padding-bottom:80px;display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+body{background:var(--bg,#0a0a0f);color:var(--ink);font-family:var(--fb);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;overflow-x:clip;padding-bottom:80px;display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
 /* A flex-column body makes every child a flex item, and a flex item defaults to
    min-width:auto — it will not shrink below its own max-content width. Measured at
    375px: .wrap computed to 1120px while body{overflow-x:hidden} clipped the excess,
@@ -3634,8 +3634,7 @@ function culResolveFilters(){
       return da<db?1:da>db?-1:0;                 /* newest first within the month */
     });
     window.__culOrder=out.map(function(r){ return {t:titleOf(r), k:mk(r)}; });
-    if(mob()) setTimeout(stampAndPaint,0);
-    paintRow2();
+    /* label + date row removed 2026-09-22 — the sort above is kept. */
     return out;
   };
 
@@ -3734,12 +3733,14 @@ function culResolveFilters(){
 
   function boot(){
     if(!mob()) return;
-    paintRow2();
-    stampAndPaint();
+    /* 1a + 1b (Founder 2026-09-22): the floating month label and the DATE filter row are
+       gone. paintRow2()/stampAndPaint() are the only things that built them, so not calling
+       them removes both without touching the month GROUPING + SORT above, which the feed
+       order still depends on. window.culMonth stays 'all', so nothing is filtered out. */
   }
   if(document.readyState!=='loading') boot();
   else document.addEventListener('DOMContentLoaded', boot);
-  window.addEventListener('resize', function(){ if(mob()) { paintRow2(); } });
+  /* no resize repaint: the date row no longer exists (2026-09-22). */
 })();
 </script>
 <style id="cul-footer-css">

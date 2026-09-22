@@ -67,7 +67,7 @@
       --font-head:'Bebas Neue',sans-serif; --font-body:'Inter',sans-serif;
     }
     html{scroll-behavior:smooth;}
-    body{background:var(--bg);color:var(--white);font-family:var(--font-body);font-size:16px;line-height:1.6;overflow-x:hidden;overflow-x:clip;overflow-y:auto;}
+    body{background:var(--bg);color:var(--white);font-family:var(--font-body);font-size:16px;line-height:1.6;overflow-x:hidden;overflow-x:clip;}
     body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--bg) url('/assets/images/logo-bg.jpg') center/cover no-repeat;opacity:1;} /* full-strength backdrop — ABSOLUTE path: relative 'logo-bg.jpg' resolved to / and 404'd (Founder 2026-07-18) */
     /* when a seasonal image is active, the static backdrop yields to the auto-rotating season background */
     html.has-season body::before{display:none!important;}
@@ -707,8 +707,15 @@
       (-3168 either way), while body{overflow-x:clip;overflow-y:visible} alone put barTop at
       0 at every scroll offset. overflow-x:clip clips exactly like hidden but does NOT create
       a scroll container, so the horizontal guard is kept and sticky is restored.
-      @supports-gated: a browser without `clip` keeps today's behaviour rather than gaining a
-      horizontal scrollbar.
+
+      ⚠ overflow-y MATTERS AS MUCH AS overflow-x, AND THIS IS WHERE THE FIRST FIX FAILED.
+      The first attempt set overflow-x:clip but LEFT overflow-y:auto on this rule. An explicit
+      overflow-y:auto makes body a scroll container on its own, so the clip changed nothing and
+      the bar still did not pin. It passed in headless Chrome only because the experiment that
+      "proved" it had injected overflow-y:visible — i.e. it verified something other than what
+      shipped. Real mobile Safari, in the Simulator, showed the bar still unpinned.
+      This rule now carries NO overflow-y at all, which is exactly what connect/create/earn —
+      the three pages whose filter bars have always pinned correctly — do.
 
    2. SCROLL-UP ONLY. Plain sticky pins in both directions. The Founder asked for the bar to
       lock at the top when scrolling UP, so scrolling DOWN hands the screen back to the

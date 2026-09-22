@@ -455,13 +455,21 @@
          here: creating is a conversation now, not a permanent header shortcut. */
       '#kilo-row1{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;',
         'padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top,0px));}',
-      '#kilo-hname{justify-self:start;font:800 .95rem/1 Inter,system-ui,sans-serif;letter-spacing:.14em;color:#fff;}',
+      /* 3d: CHO in neon green. text-shadow rather than a filter so it stays crisp small. */
+      '#kilo-hname{justify-self:start;font:800 .95rem/1 Inter,system-ui,sans-serif;letter-spacing:.14em;',
+        'color:#00ff88;text-shadow:0 0 10px rgba(0,255,136,.45);}',
       '#kilo-close{justify-self:end;}',
+      /* 3b (Founder 2026-09-22): NEON TRANSPARENT GREEN. The fill is rgba, so the panel's
+         own background shows through rather than the button reading as a separate surface.
+         justify-self:center in the 1fr auto 1fr grid is what optically centres it whatever
+         the name or the X measure — space-between would not. */
       '.kilo-r2{justify-self:center;display:inline-flex;align-items:center;justify-content:center;',
-        'height:32px;padding:0 18px;border-radius:9px;text-decoration:none;',
+        'height:32px;padding:0 20px;border-radius:9px;text-decoration:none;',
         'font:800 .68rem Inter,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;',
-        'color:#cfd3df;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);}',
-      '.kilo-r2:hover{background:rgba(0,180,255,.16);color:#fff;}',
+        'color:#00ff88;background:rgba(0,255,136,.10);border:1px solid #00ff88;',
+        'box-shadow:0 0 12px rgba(0,255,136,.28);transition:background .15s,box-shadow .15s;}',
+      '.kilo-r2:hover{background:rgba(0,255,136,.20);color:#fff;',
+        'box-shadow:0 0 18px rgba(0,255,136,.45);}',
       /* ── SIGNED-OUT GATE (Founder 2026-09-01) ──────────────────────────────────────────
          The conversation is account-only. Signed out there is no interactive thread at all —
          the composer is removed from the DOM flow, not merely dimmed, so there is nothing to
@@ -489,11 +497,16 @@
         'color:#cfd3df;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);}',
       '#kilo-options a:hover,#kilo-options button:hover{background:rgba(0,180,255,.18);color:#fff;}',
       '@media(max-width:480px){#kilo-options{right:16px;bottom:112px;}}',
-      '#kilo-close{background:none;border:none;cursor:pointer;color:#666;',
-      'width:28px;height:28px;display:flex;align-items:center;justify-content:center;',
-      'border-radius:50%;transition:background .15s,color .15s;padding:0;}',
-      '#kilo-close:hover{background:rgba(255,255,255,.07);color:#e8e8f0;}',
-      '#kilo-close svg{width:16px;height:16px;stroke:currentColor;fill:none;}',
+      /* 3c: THICK neon green X, top-right of the same row as the profile button.
+         stroke-width is set on the svg rule because the markup carries stroke-width="2" as an
+         attribute, and a presentation attribute loses to any CSS declaration — so this is what
+         actually decides the weight. */
+      '#kilo-close{background:none;border:none;cursor:pointer;color:#00ff88;',
+      'width:30px;height:30px;display:flex;align-items:center;justify-content:center;',
+      'border-radius:50%;transition:background .15s,box-shadow .15s;padding:0;}',
+      '#kilo-close:hover{background:rgba(0,255,136,.14);box-shadow:0 0 12px rgba(0,255,136,.35);}',
+      '#kilo-close svg{width:18px;height:18px;stroke:#00ff88;stroke-width:3.2;',
+        'stroke-linecap:round;fill:none;}',
       '#kilo-fb{background:none;border:none;cursor:pointer;color:#666;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .15s,color .15s;padding:0;}',
       '#kilo-fb:hover{background:rgba(0,180,255,.12);color:#00b4ff;}',
       '#kilo-fb svg{width:17px;height:17px;}',
@@ -1747,6 +1760,19 @@
        differed before and after a close. Recorded on open, restored on close. */
     var kiloScrollY = 0;
     function openPanel() {
+      /* ── 3a (Founder 2026-09-22): SIGNED OUT GOES STRAIGHT TO LOGIN ──────────────────
+         The conversation has been account-only since 2026-09-01, but a signed-out tap used
+         to open the panel onto a gate screen — a dead end that still had to be read and
+         dismissed. A new or logged-out visitor now lands on the login page directly, with
+         ?next= set so they come back to the page they were on rather than the home page.
+         The gate below is deliberately KEPT: it still covers a session that expires while
+         the panel is already open, which this redirect cannot catch. */
+      try {
+        if (!kilSignedIn()) {
+          location.href = '/apply?next=' + encodeURIComponent(location.pathname + location.search);
+          return;
+        }
+      } catch (e) { /* if the auth check itself throws, fall through to the gate */ }
       isOpen = true;
       kiloScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
       kiloApplyAuthRows();

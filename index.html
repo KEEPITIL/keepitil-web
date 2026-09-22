@@ -690,6 +690,44 @@
 #evx .evx-day{margin-top:34px;}
 #evx .evx-more{display:block;max-width:1180px;width:calc(100% - 48px);margin:26px auto 0;padding:13px 24px;background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.28);border-radius:10px;color:var(--green);font-family:var(--font-body);font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .2s;text-align:center;}
 #evx .evx-more:hover{background:rgba(0,255,136,.14);border-color:var(--green);}
+/* ── MOBILE FILTER BAR: LOCK AT TOP ON SCROLL-UP ONLY (Founder 2026-09-22) ─────────────────
+   Two separate problems, and the first one hid the second.
+
+   1. position:sticky WAS INERT ON MOBILE. #evx .evx-nav has been sticky since it was built,
+      and @media(max-width:860px) already sets top:var(--kil-safe-top,0px) — the intent to
+      pin at the top was there. It never worked: measured at 390px the bar's viewport top
+      tracked scrollY exactly (832 at rest, -3168 after scrolling 4000px), i.e. it behaved
+      as static. It DOES stick at >=861px, which is why this only ever looked broken on a phone.
+      Cause: body{overflow-x:hidden}. Per spec, hidden on one axis makes the other compute to
+      auto, so body becomes a scroll container — and at narrow widths, where something does
+      overflow horizontally, that scrollport engages. body's scrollHeight equals its
+      clientHeight (15687 = 15687), so it is an INERT scrollport: every sticky descendant
+      resolves against a box that never scrolls and therefore never sticks.
+      Proven by elimination, not guessed: forcing top:64px on mobile changed nothing
+      (-3168 either way), while body{overflow-x:clip;overflow-y:visible} alone put barTop at
+      0 at every scroll offset. overflow-x:clip clips exactly like hidden but does NOT create
+      a scroll container, so the horizontal guard is kept and sticky is restored.
+      @supports-gated: a browser without `clip` keeps today's behaviour rather than gaining a
+      horizontal scrollbar.
+
+   2. SCROLL-UP ONLY. Plain sticky pins in both directions. The Founder asked for the bar to
+      lock at the top when scrolling UP, so scrolling DOWN hands the screen back to the
+      content. Hiding is a transform, not a position change, so the bar keeps its sticky box
+      and nothing below it reflows. -110% rather than -100% so the 1px border and the
+      backdrop-blur edge clear the top of the screen too.
+      Mobile only: the class is applied by kil-fbar.js, which no-ops above 860px. */
+@supports (overflow: clip) {
+  @media (max-width: 860px) {
+    body { overflow-x: clip; overflow-y: visible; }
+  }
+}
+@media (max-width: 860px) {
+  #evx .evx-nav { transition: transform .22s ease; }
+  body.kil-fbar-hidden #evx .evx-nav { transform: translateY(-110%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #evx .evx-nav { transition: none; }
+}
 </style>
 
     <script src="/assets/js/keepitil-events-store.js?v=20260718" defer></script>
@@ -3591,6 +3629,87 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
     .then(function(d){ var st=Array.isArray(d)?d[0]:d; if(!st)return;
       set('dEV',st.events); set('dVE',st.venues); set('dCI',st.cities); })
     .catch(function(){});
+})();
+</script>
+<script>
+/* ── MOBILE FILTER BAR DIRECTION WATCHER (Founder 2026-09-22: "lock at the top of the screen
+   when scrolling up only") ──────────────────────────────────────────────────────────────────
+   Scrolling UP  -> bar is pinned at the top (its CSS sticky does the pinning).
+   Scrolling DOWN-> bar is translated out of view, giving the screen back to the listings.
+   The CSS half of this, and why sticky was inert on mobile at all, is documented in the
+   stylesheet above next to the overflow-x:clip rule.
+
+   DELIBERATE CHOICES:
+   - A THRESHOLD, not every scroll event. iOS reports sub-pixel jitter and rubber-band
+     bounces as direction changes; without a threshold the bar flickers on a slow drag.
+   - NEVER HIDDEN NEAR THE TOP of the page. Above the bar's own resting offset there is
+     nothing to reveal, and hiding there makes the first flick look like a glitch.
+   - NEVER HIDDEN WHILE A DROPDOWN IS OPEN. #evx-locdd-menu / #evx-catdd-menu hang below the
+     bar; sliding the bar away with a menu open would take the menu with it mid-interaction.
+     Tested by visibility rather than a class name, because the menus are toggled by display
+     and there is no open-state class to rely on.
+   - rAF-COALESCED and passive: one class write per frame at most, and the listener never
+     blocks scrolling.
+   - NO-OP ABOVE 860px. Desktop sticky already works and the Founder asked for mobile only;
+     the media query is re-read on resize so rotating a phone does the right thing. */
+(function () {
+  var bar = document.querySelector('#evx .evx-nav');
+  if (!bar) return;
+
+  var mq = window.matchMedia('(max-width: 860px)');
+  var THRESHOLD = 6;      // px of travel before a direction is believed
+  var lastY = window.scrollY || 0;
+  var hidden = false;
+  var queued = false;
+
+  function menuOpen() {
+    var menus = bar.querySelectorAll('.evx-catdd-menu');
+    for (var i = 0; i < menus.length; i++) {
+      // offsetParent is null for display:none; a visible menu has layout.
+      if (menus[i].offsetParent !== null && menus[i].getBoundingClientRect().height > 0) return true;
+    }
+    return false;
+  }
+
+  function setHidden(next) {
+    if (next === hidden) return;
+    hidden = next;
+    document.body.classList.toggle('kil-fbar-hidden', hidden);
+  }
+
+  function evaluate() {
+    queued = false;
+    var y = window.scrollY || 0;
+
+    if (!mq.matches) { setHidden(false); lastY = y; return; }
+
+    // Where the bar sits when nothing is pinned. Above this there is nothing to reveal.
+    var revealFloor = bar.offsetTop || 0;
+    if (y <= revealFloor + 8) { setHidden(false); lastY = y; return; }
+
+    var dy = y - lastY;
+    if (Math.abs(dy) < THRESHOLD) return;   // keep lastY: let small moves accumulate
+    lastY = y;
+
+    if (dy > 0) {                            // scrolling down
+      if (!menuOpen()) setHidden(true);
+    } else {                                 // scrolling up -> lock at top
+      setHidden(false);
+    }
+  }
+
+  function onScroll() {
+    if (queued) return;
+    queued = true;
+    window.requestAnimationFrame(evaluate);
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  // Rotating or resizing past the breakpoint must not leave the bar stuck off-screen.
+  (mq.addEventListener ? mq.addEventListener.bind(mq, 'change') : mq.addListener.bind(mq))(function () {
+    setHidden(false); lastY = window.scrollY || 0;
+  });
+  window.addEventListener('orientationchange', function () { setHidden(false); });
 })();
 </script>
 </body>

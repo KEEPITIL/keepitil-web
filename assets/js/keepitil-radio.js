@@ -384,14 +384,33 @@
        compact by default so it is usable without dominating, and can be taken to about
        half the panel. Nothing overlaps at any width: this is a flex row, so widening one
        column genuinely narrows the other rather than covering it. */
+    /* ══ EXPANDED RADIO GRID — TUNABLE DIMENSIONS (Founder 2026-09-23) ═══════════════════
+       Every size in the expanded drawer is a named custom property with the SHIPPED value as
+       its fallback, so an unset variable renders exactly what it rendered before this change.
+       Nothing moves until someone sets one. Override them on :root (or #kr-drawer) to retune:
+
+         --kr-chatw     318px    chat column width      --kr-main-gap   14px   section spacing
+         --kr-main-padt 14px     main padding top       --kr-main-padx  16px   main padding sides
+         --kr-main-padb 18px     main padding bottom    --kr-head-gap   10px   section-head gap
+         --kr-head-mb   8px      section-head margin    --kr-strip-gap  12px   gap between cards
+         --kr-tcw       118px    track card width       --kr-art-radius 10px   artwork corner
+         --kr-tct-size  .66rem   track title size       --kr-tct-mt     7px    title offset
+         --kr-tcp-size  .5rem    playlist label size    --kr-nav        40px   ‹ › button size
+         --kr-nav-glyph 1.4rem   ‹ › glyph size         --kr-stw        116px  station card width
+
+       The tuner at /radio-tuner/ writes these live and copies out a ready-to-paste block.
+       ⚠ Keep the fallbacks equal to the shipped values. They are the contract that an
+       untouched site looks untouched. */
     +'.kr-two{display:flex;align-items:stretch;gap:0;min-height:0;flex:1 1 auto;}'
     /* NO overflow:auto HERE. With it, the left column stopped contributing its height to
        the panel, so the panel sized itself to 360px and clipped the STATIONS row and the
        + CREATE tile clean off the bottom - both rows are required to be visible. The rows
        scroll HORIZONTALLY on their own; the column itself has no reason to scroll, and the
        panel below carries the vertical cap for the rare case where content exceeds it. */
-    +'.kr-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:14px;'
-    +  'padding:14px 16px 18px;min-height:0;}'
+    +'.kr-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;'
+    +  'gap:var(--kr-main-gap,14px);'
+    +  'padding:var(--kr-main-padt,14px) var(--kr-main-padx,16px) var(--kr-main-padb,18px);'
+    +  'min-height:0;}'
     +'.kr-chatcol{flex:0 0 var(--kr-chatw,318px);width:var(--kr-chatw,318px);min-width:0;'
     +  'display:flex;flex-direction:column;border-left:1px solid var(--kra-line);'
     +  'background:rgba(12,10,20,.72);transition:flex-basis .22s ease,width .22s ease;}'
@@ -406,7 +425,8 @@
     +'.kr-chatbody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;}'
     +'.kr-chatnote{padding:12px;font-size:.66rem;line-height:1.5;color:#9c94b8;}'
     /* ── ROWS ────────────────────────────────────────────────────────────────────────── */
-    +'.kr-rowhead{display:flex;align-items:center;gap:10px;margin:0 0 8px;}'
+    +'.kr-rowhead{display:flex;align-items:center;gap:var(--kr-head-gap,10px);'
+    +  'margin:0 0 var(--kr-head-mb,8px);}'
     /* #8e86a8 was a purple-grey - a leftover of the old palette that read as lilac against
        the green row it labels. Neutral with a green cast, and a step larger so the two row
        labels are legible rather than decorative. */
@@ -415,7 +435,8 @@
     +'.kr-rail{position:relative;display:flex;align-items:center;gap:8px;min-width:0;}'
     /* The two Now Playing controls are positioned from the ROW CENTRE, which is where the
        current card always is, so they stay against it at every width without measuring. */
-    +'.kr-npnav{position:absolute;top:calc(var(--kr-tcw,118px)/2 - 20px);width:40px;height:40px;'
+    +'.kr-npnav{position:absolute;top:calc(var(--kr-tcw,118px)/2 - var(--kr-nav,40px)/2);'
+    +  'width:var(--kr-nav,40px);height:var(--kr-nav,40px);font-size:var(--kr-nav-glyph,1.4rem);'
     +  'border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:3;'
     +  'background:rgba(6,20,14,.86);border:1px solid var(--kra-line);color:var(--kra);'
     +  'font-size:1.4rem;line-height:1;cursor:pointer;backdrop-filter:blur(6px);'
@@ -455,7 +476,7 @@
     +'.kr-scroll{flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;'
     +  'scrollbar-width:none;}'
     +'.kr-scroll::-webkit-scrollbar{display:none;}'
-    +'.kr-strip{display:flex;align-items:flex-end;gap:12px;padding:2px 0 4px;}'
+    +'.kr-strip{display:flex;align-items:flex-end;gap:var(--kr-strip-gap,12px);padding:2px 0 4px;}'
     /* ══ THE FIRST AND LAST TRACK MUST BE ABLE TO REACH THE CENTRE ═══════════════════
        Without this the carousel can only centre cards that have half a viewport of
        neighbours on both sides: centring track 1 asks for a negative scrollLeft, the browser
@@ -472,14 +493,14 @@
        is declared with aspect-ratio rather than by repeating the width variable as a height:
        a percentage height would resolve against the PARENT's height and silently stop being
        square, which is the trap that makes "it looked fine at one width" a bad proof. */
-    +'.kr-tcart{width:100%;aspect-ratio:1/1;height:auto;border-radius:10px;object-fit:cover;display:block;'
+    +'.kr-tcart{width:100%;aspect-ratio:1/1;height:auto;border-radius:var(--kr-art-radius,10px);object-fit:cover;display:block;'
     +  'background:#15131f;border:1px solid rgba(255,255,255,.07);}'
     +'.kr-tc.on .kr-tcart{border-color:var(--kra);box-shadow:0 0 0 1px var(--kra),'
     +  '0 0 22px var(--kra-glow);}'
     +'.kr-tct,.kr-tcp{display:block;max-width:100%;white-space:nowrap;overflow:hidden;'
     +  'text-overflow:ellipsis;}'
-    +'.kr-tct{margin-top:7px;font-size:.66rem;font-weight:700;color:#efeaff;}'
-    +'.kr-tcp{font-size:.5rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;'
+    +'.kr-tct{margin-top:var(--kr-tct-mt,7px);font-size:var(--kr-tct-size,.66rem);font-weight:700;color:#efeaff;}'
+    +'.kr-tcp{font-size:var(--kr-tcp-size,.5rem);font-weight:700;letter-spacing:.08em;text-transform:uppercase;'
     +  'color:var(--kra-txt);}'
     +'.kr-tc.on .kr-tct{font-weight:800;color:#fff;}'
     +'.kr-tcnow{display:inline-flex;align-items:center;gap:5px;margin-top:4px;font-size:.46rem;'
@@ -515,7 +536,7 @@
     +'.kr-stations{display:flex;flex-wrap:nowrap;gap:10px;}'
     /* Station cards are one consistent size across the row and lead with real artwork
        (brief 31/32) - the old text-only pill ignored the station art that config carries. */
-    +'.kr-st{flex:0 0 116px;width:116px;display:flex;flex-direction:column;align-items:stretch;'
+    +'.kr-st{flex:0 0 var(--kr-stw,116px);width:var(--kr-stw,116px);display:flex;flex-direction:column;align-items:stretch;'
     +  'gap:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);'
     +  'border-radius:12px;padding:0;overflow:hidden;color:#cfe9ff;cursor:pointer;'
     +  'transition:border-color .18s,box-shadow .18s;}'

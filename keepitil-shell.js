@@ -1228,6 +1228,17 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
        stays the single owner of the glyph size. 22px in a 44px circle keeps the 11px ring
        of padding the 20px-in-40px original had. */
     +'#kilo-btn svg,#kilo-btn img,#kilo-btn i{width:20px!important;height:20px!important;font-size:20px!important;line-height:1!important;display:block}'
+    /* ── ONE CHAT ENTRY POINT ON DESKTOP (Founder 2026-09-23) ──────────────────────────
+       Desktop carried two ways into chat: this floating button and #kr-chat inside the radio
+       bar. The radio bar's is the one that stays, so the floating button is hidden at
+       >=861px ONLY — below that there is no radio-bar chat control and this button is still
+       the only way in. Hidden rather than removed, so every openPanel()/closePanel()
+       reference to #kilo-btn stays valid and the panel still opens from #kr-chat.
+       ⚠ IT HAS TO LIVE HERE, NOT IN keepitil-ai.js. The rule a few lines above sets
+       display:flex!important on #kilo-btn at every width, and that sheet beats ai.js's own
+       — a min-width rule written over there is in the stylesheet, matches the media query and
+       matches the element, and still loses. Same file, later line, same specificity: wins. */
+    +'@media(min-width:861px){#kilo-btn{display:none!important}}'
     +'#kilo-btn .kilo-mark{width:22px!important;height:24px!important;display:block}'
     /* The badge is positioned OUTSIDE the circle on purpose; nothing in the shell may
        clip it, and it must not be forced to the glyph size by the rule above. */

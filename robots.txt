@@ -21,5 +21,7 @@ Disallow: /reset-password
 Disallow: /reset-password.html
 Disallow: /organizers/
 
+Disallow: /radio-tuner/
+
 Sitemap: https://keepitil.com/sitemap.xml
 Sitemap: https://keepitil.com/sitemap-events.xml

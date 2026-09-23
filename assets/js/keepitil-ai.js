@@ -484,7 +484,9 @@
         'letter-spacing:.1em;text-transform:uppercase;}',
       '#kilo-gate a.pri{background:linear-gradient(135deg,#00b4ff,#00ff88);color:#0f0f1a;}',
       '#kilo-gate a.sec{color:#cfd3df;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);}',
-      'body.kilo-noauth #kilo-input-row{display:none;}',
+      /* The composer stays for signed-out visitors now — they can ask about the site,
+         the brand, and where to find things. Account-only operations are refused
+         further in, at the point of the operation, not by removing the input. */
       /* ── OPTIONS MENU (§25) ─────────────────────────────────────────────────────────────
          Anchored to the launcher, above it, so it never covers the bottom navigation. */
       '#kilo-options{position:fixed;bottom:112px;right:24px;z-index:99999;display:flex;',
@@ -1760,19 +1762,17 @@
        differed before and after a close. Recorded on open, restored on close. */
     var kiloScrollY = 0;
     function openPanel() {
-      /* ── 3a (Founder 2026-09-22): SIGNED OUT GOES STRAIGHT TO LOGIN ──────────────────
-         The conversation has been account-only since 2026-09-01, but a signed-out tap used
-         to open the panel onto a gate screen — a dead end that still had to be read and
-         dismissed. A new or logged-out visitor now lands on the login page directly, with
-         ?next= set so they come back to the page they were on rather than the home page.
-         The gate below is deliberately KEPT: it still covers a session that expires while
-         the panel is already open, which this redirect cannot catch. */
-      try {
-        if (!kilSignedIn()) {
-          location.href = '/apply?next=' + encodeURIComponent(location.pathname + location.search);
-          return;
-        }
-      } catch (e) { /* if the auth check itself throws, fall through to the gate */ }
+      /* ── SIGNED OUT MAY USE CHO (Founder 2026-09-23) ─────────────────────────────────
+         Supersedes the 2026-09-22 redirect that sent a logged-out visitor straight to
+         /apply. A visitor who has not signed in can now open the chat and use it to learn
+         about the site and the KEEPITIL brand, and to navigate — which handleQuery already
+         supports: choAct() runs FIRST and is explicitly signed-out capable, and the
+         knowledge base behind askBrain/askEcho is public marketing content.
+         The boundary is CAPABILITY, not subject matter: the account-only tools
+         (askAgent / runReadTool) need a session and no-op without one, and choAdvance()
+         still holds any operation that requires an account and sends the visitor to log in
+         at that point. So signed-out is read-only and navigational by construction, and
+         nothing here weakens server-side authorization. */
       isOpen = true;
       kiloScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
       kiloApplyAuthRows();
@@ -1789,7 +1789,7 @@
          thread is never rendered, the composer is removed by body.kilo-noauth, and no query
          is accepted — kiloGate() returns true and sendQuery() refuses before handleQuery()
          is ever reached. */
-      if (!kilSignedIn()) { kiloRenderGate(); return; }
+      /* gate no longer shown on open — see SIGNED OUT MAY USE CHO above */
       kiloClearGate();
 
       // Welcome message on first open
@@ -1912,9 +1912,9 @@
 
     // Send
     function sendQuery() {
-      /* Server-side authorization is unchanged; this is the client refusing to open a thread
-         it is not entitled to, so a signed-out visitor cannot reach handleQuery() at all. */
-      if (!kilSignedIn()) { kiloRenderGate(); return; }
+      /* Signed-out visitors ARE entitled to the informational and navigational thread
+         (Founder 2026-09-23), so this no longer refuses them. Server-side authorization is
+         unchanged, and the account-only path still refuses further in. */
       var text = input.value.trim();
       if (!text) return;
       input.value = '';

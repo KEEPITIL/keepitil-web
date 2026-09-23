@@ -782,6 +782,86 @@
     if (d.sources && d.sources.length) card.links = d.sources;
     return card;
   }
+  /* ══ SIGNED-OUT SUBJECT BOUNDARY (Founder 2026-09-23) ══════════════════════════════════
+     The previous pass drew a CAPABILITY boundary — signed-out visitors could not perform
+     account actions, but they could still ask anything and the general brain answered.
+     Measured on the live site 2026-09-23 while signed out: "How do I book a DJ for my party?"
+     returned venue copy about the Hollywood Roosevelt, and "What is KEEPITIL?" returned
+     INTERNAL brand-positioning guidance verbatim ("Do not describe KEEPITIL as an EDM
+     website, an underground event site, another Eventbrite..."). Neither belongs in front of
+     an anonymous visitor.
+     The boundary is now by SUBJECT, and explicit rather than implied by the absence of a
+     session:
+         signed out -> KEEPITIL / site / navigation question?
+                       YES -> answer from THIS curated set
+                       NO  -> concierge boundary reply
+     A signed-out visitor never reaches askAgent / askBrain / askEcho at all, which is what
+     stops the internal guidance leaking. Signed-in behaviour is untouched. */
+  var KILO_PUBLIC = [
+    { id:'what', kw:['what is keepitil','who are you','what do you do','about keepitil','tell me about keepitil','what is this site','what is this website','keepitil brand','keepitil company'],
+      title:'What KEEPITIL is',
+      text:'KEEPITIL is a platform for the creative scene — events, artists, venues and culture in one place. It is built around a creator journey: Discover what is happening, Connect with people, Create and submit work, follow Culture, and Earn from what you make.',
+      links:[{label:'Discover',url:'/'},{label:'Culture',url:'/culture/'}] },
+    { id:'discover', kw:['discover','find events','what events','events page','upcoming events','shows','gigs','concerts','where can i find events'],
+      title:'Discover',
+      text:'Discover is the events surface — browse by month, city and genre, and open any event for details and tickets.',
+      links:[{label:'Open Discover',url:'/'},{label:'Tickets',url:'/tickets'}] },
+    { id:'connect', kw:['connect','artist','venue','organizer','organiser','promoter','brand','directory','community','profiles'],
+      title:'Connect',
+      text:'Connect is the directory — artist, venue, organizer and brand profiles, with booking and contact details on each profile.',
+      links:[{label:'Open Connect',url:'/connect/'}] },
+    { id:'create', kw:['create','submit','playlist','upload','add my event','enter create'],
+      title:'Create',
+      text:'Create is where you submit work — playlists, events and other entries. Submitting requires an account, so you will be asked to sign in first.',
+      links:[{label:'Open Create',url:'/create/'},{label:'Sign up',url:'/signup'}] },
+    { id:'culture', kw:['culture','article','blog','video','shorts','stories','editorial'],
+      title:'Culture',
+      text:'Culture is the editorial side — articles and short videos about the scene, the artists and the history behind it.',
+      links:[{label:'Open Culture',url:'/culture/'}] },
+    { id:'earn', kw:['earn','earning','earnings','make money','monetise','monetize','payout'],
+      title:'Earn',
+      text:'Earn is where creators turn activity on KEEPITIL into income. Reading about Earn takes no account; your own earnings are private and need you signed in.',
+      links:[{label:'Open Earn',url:'/earn/'},{label:'Sign up',url:'/signup'}] },
+    { id:'radio', kw:['radio','music player','listen','stream','station','play music','how does radio work'],
+      title:'KEEPITIL Radio',
+      text:'KEEPITIL Radio is the player in the bar at the bottom of every page. Use the arrows to change track, click the bar to expand it for the full playlist, and pick a station from the expanded view. It is free and needs no account.',
+      links:[{label:'Radio on Earn',url:'/earn/'}] },
+    { id:'account', kw:['sign up','signup','create an account','make an account','register','log in','login','sign in','password','my account'],
+      title:'Accounts',
+      text:'Create an account to submit work, save things and see your own earnings. Browsing, Culture and Radio need no account at all.',
+      links:[{label:'Log in',url:'/apply'},{label:'Create account',url:'/signup'}] },
+    { id:'where', kw:['where do i','where can i','how do i find','navigate','find my way','where is','take me to'],
+      title:'Finding your way',
+      text:'Discover has events, Connect has artists and venues, Create is for submissions, Culture is articles and video, and Earn covers making money on KEEPITIL. Tell me what you are looking for and I will point you at the right one.',
+      links:[{label:'Discover',url:'/'},{label:'Connect',url:'/connect/'},{label:'Create',url:'/create/'},{label:'Culture',url:'/culture/'},{label:'Earn',url:'/earn/'}] }
+  ];
+  var KILO_PUBLIC_CHIPS = ['What is KEEPITIL?','Where can I find events?','How does KEEPITIL Radio work?','How do I create an account?'];
+
+  function kiloPublicMatch(text){
+    var q=String(text||'').toLowerCase();
+    if(!q.trim()) return null;
+    var best=null, bestScore=0;
+    KILO_PUBLIC.forEach(function(e){
+      var score=0;
+      e.kw.forEach(function(k){ if(q.indexOf(k)!==-1) score += k.length; });
+      if(score>bestScore){ bestScore=score; best=e; }
+    });
+    if(!best && q.indexOf('keepitil')!==-1) best=KILO_PUBLIC[0];
+    return best ? { title:best.title, text:best.text, links:best.links, chips:KILO_PUBLIC_CHIPS } : null;
+  }
+
+  /* Not a redirect and not a refusal to talk — it names what this chat is for and leaves the
+     visitor somewhere useful. The Founder was explicit: do not push someone away merely for
+     asking something unrelated. */
+  function kiloBoundaryCard(){
+    return {
+      title:'I can help you around KEEPITIL',
+      text:'I can help you learn about KEEPITIL and find your way around the site — events, artists, Culture, Radio, Create and Earn. I am not a general assistant, so I will not be much use outside that.',
+      chips:KILO_PUBLIC_CHIPS
+    };
+  }
+  window.__kiloPublicMatch = kiloPublicMatch;   /* read-only, for tests */
+
   function fallbackCard(text) {
     return matchIntent(text) || {
       title: '🔍 I\'m not sure about that',
@@ -1666,6 +1746,21 @@
   function handleQuery(text) {
     addMessage('user', text);
     showTyping();
+
+    /* SIGNED OUT: concierge only. choAct() still runs first so deterministic navigation and
+       Radio keep working, then the curated public set, then the boundary reply. The general
+       brain is deliberately unreachable from here — see KILO_PUBLIC above. */
+    if (!kilSignedIn()) {
+      choAct(text).then(function (choCard) {
+        hideTyping();
+        if (choCard) { addMessage('bot', choCard); return; }
+        addMessage('bot', kiloPublicMatch(text) || kiloBoundaryCard());
+      }).catch(function () {
+        hideTyping();
+        addMessage('bot', kiloPublicMatch(text) || kiloBoundaryCard());
+      });
+      return;
+    }
 
     /* Deterministic tools first (§1/§2). They answer navigation and Radio without a round trip,
        work signed-out, and work while NEXUS is unavailable. Null means "not mine" and the

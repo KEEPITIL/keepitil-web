@@ -326,9 +326,19 @@
           <a class="btn" href="#get" data-cta>Get TUITEA</a>
         </div>
       </div>
+      <!-- A PHONE GETS THE PHONE'S OWN SCREEN.
+           The desktop capture is 2880 points wide and a phone draws it at about 350, which
+           is small enough that the thing being sold — that you can read a whole family at
+           once — stops being visible in the picture of it. Measured at 390: 350 x 220.
+           Both files are the product's own renderer at the same release; neither is a crop
+           of the other. -->
       <figure data-shot="tree-focus" class="wide">
-        <img src="shots/tree-focus.png" alt="The family tree on a laptop: one person highlighted at the centre, with their own parents and siblings on the left and their partner's grandparents, parents and siblings on the right, and their child connected below."
-             width="2880" height="1800" loading="lazy" decoding="async">
+        <picture>
+          <source media="(max-width:43.99rem)" srcset="shots/tree-focus-phone.png"
+                  width="780" height="1688">
+          <img src="shots/tree-focus.png" alt="The family tree: one person highlighted, with their own grandparents and parents above them, their brother and sister beside them, and the two families they belong to drawn as two families."
+               width="2880" height="1800" loading="lazy" decoding="async">
+        </picture>
         <figcaption>The tree around one person. Two families, drawn as two families.</figcaption>
       </figure>
     </div>
@@ -350,7 +360,7 @@
   <section>
     <div class="split">
       <figure class="phone" data-shot="profile">
-        <img src="shots/profile.png" alt="A person's profile on a phone, showing their details at the top and cards below for stories, heritage, documents and other records kept about them."
+        <img src="shots/profile.png" alt="A person's profile on a phone, showing their details at the top and cards below for family and relationships, access, medical history, heritage, traditions and the stories kept about them."
              width="780" height="1688" loading="lazy" decoding="async">
       </figure>
       <div>
@@ -389,11 +399,37 @@
           looks like the day it came from.
         </p>
       </div>
-      <figure class="phone" data-shot="family">
-        <img src="shots/family.png" alt="The family and relationships page on a phone: grandparents, parents, siblings, spouse and children in one column, each person on their own row, with a control beside each parent saying Mother, Father or Parent."
+      <figure class="phone" data-shot="memories">
+        <img src="shots/memories.png" alt="The memories timeline on a phone, grouped by month: four kept memories, each with its title, the first line of what was written, and a note saying a photograph is still to come."
              width="780" height="1688" loading="lazy" decoding="async">
-        <figcaption>Everyone one person is related to, grouped the way a family says it.</figcaption>
+        <figcaption>Written down first. The photograph can come later.</figcaption>
       </figure>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- ── RELATIONSHIPS ────────────────────────────────────────────────── -->
+  <section>
+    <div class="split">
+      <figure class="phone" data-shot="family">
+        <img src="shots/family.png" alt="The family and relationships page on a phone: parents, siblings, spouse and children in one column, each person on their own row, with the relationship named beside them."
+             width="780" height="1688" loading="lazy" decoding="async">
+      </figure>
+      <div>
+        <p class="kicker">Family &amp; relationships</p>
+        <h2 class="head">Everyone one person is related to, on one page.</h2>
+        <p class="lead">
+          Parents, brothers and sisters, a husband or wife, children — grouped
+          the way a family says it rather than the way a database stores it.
+          Each relationship is named, and each one can be corrected later
+          without starting again.
+        </p>
+        <p class="lead">
+          Add somebody from here and TUITEA works out the rest of the
+          connections, including the ones on the other side of the family.
+        </p>
+      </div>
     </div>
   </section>
 
@@ -417,7 +453,7 @@
         <p>Measurements, appointments and records. Each person decides what they share, and nobody can change that for them.</p>
       </div>
       <div class="tile">
-        <h3>Fale</h3>
+        <h3>Home</h3>
         <p>Sleep, meals, groceries and the small daily things — including progress photos, kept where the rest of it is.</p>
       </div>
     </div>

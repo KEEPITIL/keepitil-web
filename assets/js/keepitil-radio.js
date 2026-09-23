@@ -248,8 +248,11 @@
        what actually lets a flex child shrink below its content so the ellipsis can apply. */
     +  '.kr-tkmeta{display:flex;flex-direction:column;justify-content:center;min-width:0;'
     +    'flex:1 1 auto;gap:1px;}'
+    /* CENTRED (Founder 2026-09-23): both rows are centred in their card. text-align rather
+       than a flex change - .kr-tkmeta is a COLUMN, so its justify-content centres vertically
+       and would do nothing horizontally here. The ellipsis still applies. */
     +  '.kr-tkt,.kr-tkp{display:block;min-width:0;max-width:100%;white-space:nowrap;'
-    +    'overflow:hidden;text-overflow:ellipsis;}'
+    +    'overflow:hidden;text-overflow:ellipsis;text-align:center;}'
     /* §7: sized UP against the same 54px. Two rows at 1.2 line-height plus the gap is
        ~34px, which sits inside the bar without touching its edges. Still exactly two rows
        and still ellipsised - bigger text makes truncation more likely, not less. */
@@ -823,12 +826,16 @@
   setMini();
   if(radio){
     radio.style.cursor='pointer';
-    radio.addEventListener('click',function(e){
-      /* clicking the bar opens the Radio page — except the mute button, volume, minimize, or the advertisement */
-      if(e.target&&e.target.closest&&e.target.closest('.krb')){return;}
-      if(location.pathname.indexOf('/earn/')===0)return; /* already on the radio surface */
-      location.href='/earn/';
-    });
+    /* ── THE BAR NO LONGER NAVIGATES (Founder 2026-09-23) ──────────────────────────────
+       This listener existed only to send the visitor to /earn/ when they clicked the bar,
+       which took them off whatever page they were reading just because they touched the
+       player. It is gone rather than repointed.
+       ⚠ DO NOT ADD A DRAWER TOGGLE HERE. One already exists further down (search
+       INTERACTIVE / "bar.addEventListener") and it is the one that should own this: it
+       excludes every interactive control by selector and guards e.target instanceof Element
+       for synthetic events. Adding a second toggle here makes the bar open the drawer and
+       then immediately close it in the same click — measured as the transition sequence
+       ["drawer","compact"] from one click — and the bar looks dead. */
   }
 
   /* ── SHUTTLE CONTROLS ──────────────────────────────────────────────────────────────────
@@ -999,6 +1006,17 @@
            carousel) was left on whatever it had first rendered. */
         var nextTitle = (i < list.length-1 && list[i+1] && list[i+1].title) ? list[i+1].title : '';
         kilBroadcast(t, nextTitle);
+
+        /* ── THE TWO VIEWS MIRROR EACH OTHER (Founder 2026-09-23) ────────────────────────
+           paintTrackCarousel() was called from exactly ONE place - setRadioUI(), i.e. only
+           when the drawer OPENS. Changing track while the drawer was already open repainted
+           the compact bar and left the expanded carousel showing whatever it had, so the two
+           drifted apart until the drawer was closed and reopened.
+           kilPaintTitles() is the single repaint every track change already runs through, so
+           driving the carousel from here keeps ONE source of truth instead of adding a second.
+           Guarded on the drawer being open: repainting a hidden carousel is wasted work on
+           every track change. */
+        try{ if(RADIO_UI==='drawer') paintTrackCarousel(); }catch(e){}
       });
     });
     kilPaintPlaylistNames();

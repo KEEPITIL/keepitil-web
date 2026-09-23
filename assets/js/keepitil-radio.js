@@ -792,6 +792,33 @@
   var SYNC_EPOCH=1735689600000; // 2026-01-01 00:00 UTC — fallback only
   var currentTrackIdx=0,currentPosition=0; // kept fresh for beforeunload handoff
 
+  /* ══ ONE CANONICAL CURRENT-TRACK STATE (Founder 2026-09-23) ════════════════════════════
+     The collapsed bar and the expanded carousel are two VIEWS of one player, and they used
+     to decide "what is playing" independently: kilPaintTitles() did its own
+     getSounds()+getCurrentSoundIndex(), and paintTrackCarousel() did a second pair of async
+     reads of its own. Two independent reads at two different moments is exactly how the two
+     views came to disagree — observed 2026-09-22 as compact "Certified" against expanded
+     "Main Character Mood" on the same player.
+     KIL_NOW is now the single snapshot. It is refreshed in exactly ONE place
+     (kilRefreshNow) and BOTH views render from it, so a mismatch is not merely unlikely:
+     there is no second source left that could disagree.
+     It also decouples the drawer from SoundCloud's PLAY event — opening the drawer renders
+     the carousel straight from the snapshot the bar is already showing, which is what makes
+     this correct when autoplay is blocked, when audio is paused, and under headless testing,
+     none of which emit another PLAY. */
+  var KIL_NOW = null;   /* {list, idx, playlist} — written ONLY by kilRefreshNow */
+  function kilRefreshNow(cb){
+    if(!widget || !widgetReady){ if(cb) cb(null); return; }
+    widget.getSounds(function(list){
+      if(!list || !list.length){ KIL_NOW=null; if(cb) cb(null); return; }
+      widget.getCurrentSoundIndex(function(i){
+        KIL_NOW = { list:list, idx:i, playlist:kilPlName(0) };
+        if(cb) cb(KIL_NOW);
+      });
+    });
+  }
+  window.__kilNow = function(){ return KIL_NOW; };   /* read-only, for tests */
+
   // ── Supabase radio sync ───────────────────────────────────────────────────
   var SUPA_URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
   var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ';
@@ -965,10 +992,11 @@
 
   function kilPaintTitles(){
     if(!widget || !widgetReady) return;
-    widget.getSounds(function(list){
-      if(!list || !list.length) return;
-      widget.getCurrentSoundIndex(function(i){
-        var here = kilPlName(0);
+    /* Refresh the ONE snapshot, then paint every view from it in the same pass. */
+    kilRefreshNow(function(now){
+      if(!now) return;
+      (function(list, i){
+        var here = now.playlist;
         var cur  = list[i];
         var t    = (cur && cur.title) ? cur.title : '';
 
@@ -1016,8 +1044,9 @@
            driving the carousel from here keeps ONE source of truth instead of adding a second.
            Guarded on the drawer being open: repainting a hidden carousel is wasted work on
            every track change. */
+        /* The expanded view repaints from the SAME snapshot, in the same pass. */
         try{ if(RADIO_UI==='drawer') paintTrackCarousel(); }catch(e){}
-      });
+      })(now.list, now.idx);
     });
     kilPaintPlaylistNames();
   }
@@ -1707,19 +1736,12 @@
   window.addEventListener('resize', function(){
     if(RADIO_UI!=='compact') centreCurrentTrack();
   });
-  function paintTrackCarousel(){
-    var strip=document.getElementById('kr-tracks-strip'); if(!strip) return;
-    if(!widget || !widgetReady){
-      strip.innerHTML='<p class="kr-chatnote">The station is still connecting…</p>';
-      return;
-    }
-    widget.getSounds(function(list){
-      if(!list || !list.length){
-        strip.innerHTML='<p class="kr-chatnote">This station reported no tracks.</p>';
-        return;
-      }
-      widget.getCurrentSoundIndex(function(i){
-        var here=kilPlName(0);
+  /* Renders the carousel FROM A SNAPSHOT. Split out of paintTrackCarousel so identical
+     markup is produced whether the drawer is opening (snapshot already in hand, painted
+     synchronously) or a snapshot is being fetched for the first time. */
+  function _renderCarousel(strip, now){
+    (function(list, i){
+        var here=now.playlist;
         var html=list.map(function(sn,k){
           var art=kilArt(sn);
           return '<div class="kr-tc'+(k===i?' on':'')+'"'+(k===i?' aria-current="true"':'')+'>'
@@ -1742,7 +1764,25 @@
         }
         strip.innerHTML=html;
         centreCurrentTrackSoon();
-      });
+    })(now.list, now.idx);
+  }
+  function paintTrackCarousel(){
+    var strip=document.getElementById('kr-tracks-strip'); if(!strip) return;
+    /* ⚠ SNAPSHOT FIRST, SYNCHRONOUSLY. When the drawer opens, KIL_NOW already holds what the
+       compact bar is showing, so the carousel paints from it immediately and the two views
+       cannot differ at open. Going back to the widget here would reintroduce the second
+       independent read that caused the mismatch, and would make the drawer depend on a PLAY
+       event that never arrives when autoplay is blocked. */
+    if(KIL_NOW){ _renderCarousel(strip, KIL_NOW); return; }
+    if(!widget || !widgetReady){
+      strip.innerHTML='<p class="kr-chatnote">The station is still connecting…</p>';
+      return;
+    }
+    /* No snapshot yet (drawer opened before the first paint) — take one, which also populates
+       KIL_NOW for the compact bar, so both still come from a single source. */
+    kilRefreshNow(function(now){
+      if(!now){ strip.innerHTML='<p class="kr-chatnote">This station reported no tracks.</p>'; return; }
+      _renderCarousel(strip, now);
     });
   }
   window.__kilPaintTrackCarousel=paintTrackCarousel;
@@ -1801,7 +1841,12 @@
     if(gw){ gw.setAttribute('aria-label',_gwLabel(st)); gw.setAttribute('aria-expanded', st==='compact'?'false':'true'); }
     if(st!=='compact'){
       paintStations();
+      /* Paint the carousel from the snapshot FIRST — synchronous, so the drawer is never
+         briefly showing a different track from the bar it just came out of. Then refresh,
+         which repaints BOTH views together from one fresh read, so they are not merely
+         consistent with each other but current with the widget. */
       paintTrackCarousel();
+      try{ kilPaintTitles(); }catch(e){}
       chatBorrow();
     } else {
       chatReturn();

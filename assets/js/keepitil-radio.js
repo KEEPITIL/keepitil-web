@@ -1685,10 +1685,16 @@
     if(!signedIn && !msgs.hasChildNodes()){
       var note=document.createElement('p');
       note.className='kr-chatnote';
-      note.innerHTML='KEEPITIL AI is part of your account. '
+      /* ⚠ THIS COPY MUST MATCH WHAT SIGNED-OUT CHAT ACTUALLY DOES (Founder 2026-09-23).
+         It read "KEEPITIL AI is part of your account. Sign in to talk to it", which became
+         untrue the moment the signed-out subject boundary shipped: an anonymous visitor can
+         now ask about KEEPITIL and get an answer, so the drawer was sending them to sign in
+         for something already available. Caught on a production screenshot, not in review.
+         If the boundary changes again, change this with it. */
+      note.innerHTML='Ask CHO about KEEPITIL \u2014 events, artists, Culture and Radio. '
         +'<a href="/apply?next='+encodeURIComponent(location.pathname+location.search)
-        +'" style="color:var(--kra);font-weight:700">Sign in</a> to talk to it \u2014 '
-        +'the radio keeps playing either way.';
+        +'" style="color:var(--kra);font-weight:700">Sign in</a> for your own account, '
+        +'submissions and earnings.';
       col.insertBefore(note, msgs);
     }
   }

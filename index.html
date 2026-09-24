@@ -3360,6 +3360,11 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
         var uid=(r&&r.data&&r.data.user)?r.data.user.id:null;
         var sess=(r&&r.data)?r.data.session:null;
         if(uid && sb){ sb.from('app_users').upsert({id:uid,handle:handle,display_name:handle},{onConflict:'id',ignoreDuplicates:true}).then(function(){}).catch(function(){}); }
+        /* app_users is NOT where ownership lives — profile_owners is, and nothing wrote to it,
+           so every account created here had a handle and no profile. claim_profile() needs a
+           session, so it only runs when signup returns one; the shell covers the rest at first
+           sign-in (Founder rule 2026-09-23). */
+        if(sess && sb){ sb.rpc('claim_profile',{p_handle:handle,p_display:handle}).then(function(){},function(){}); }
         captureLead(email,handle,'signup');
         window.KIL_HANDLE=handle;
         if(sess){ setMsg('Welcome, @'+handle+'! You are in.'); }

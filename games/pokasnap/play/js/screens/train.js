@@ -12,13 +12,14 @@ import { MISSIONS } from '../data/missions.js';
 import { pose as poseOf } from '../data/poses.js';
 import { line } from '../data/personality.js';
 import { species as speciesOf } from '../data/pets.js';
-import { canTrain, practice, learned, grantXP } from '../game/progress.js';
+import { canTrain, practice, learned } from '../game/progress.js';
+import { onTraining } from '../game/adventure.js';
 import { markDaily, boost, checkBadges } from '../game/companion.js';
 import { drawPet } from '../render/pet.js';
 import { sfx } from '../platform/sound.js';
 import { haptic } from '../platform/native.js';
 import { track } from '../platform/analytics.js';
-import { levelUpCard, badgeToast } from './result.js';
+import { levelUpCard, badgeToast, announce } from './result.js';
 
 const GAMES = {
   catch:  { id: 'catch',  name: 'Treat Catch',     icon: '🦴', blurb: 'Slide to catch falling treats.' },
@@ -68,12 +69,16 @@ export function gameScreen(app, { skillId, game }) {
 }
 
 function finish(app, s, game, stats) {
-  const coins = game === 'catch' ? Math.min(20, 5 + stats.caught) : Math.max(6, 14 - stats.mistakes * 2);
-  let r, lv, daily, badges;
+  let r, lv, daily, badges, tr;
+  const lvBefore = get().progress.level;
   update(st => {
-    r = practice(st, s.id); lv = grantXP(st, 10, coins);
+    r = practice(st, s.id);
+    tr = onTraining(st, { learnedNow: r.learnedNow, gameId: game });   // coins: first completion/day (economy caps)
     daily = markDaily(st, 'train'); boost(st, 'train'); badges = checkBadges(st);
   });
+  lv = { levelUp: get().progress.level > lvBefore ? get().progress.level : 0 };
+  const coins = tr.coins;
+  announce(tr);
   if (daily.newly) track('daily_task_completed', { task: 'train' });
   badges.forEach(badgeToast);
   if (r.learnedNow) { track('skill_learned', { skill: s.id }); app.go('learned', { skillId: s.id, coins }); }
@@ -85,7 +90,9 @@ function finish(app, s, game, stats) {
       h('h1', {}, `${s.icon} ${s.name} ${r.reps}/${REPS}`),
       h('div', { class: 'dots big', style: 'justify-content:center' }, ...Array.from({ length: REPS }, (_, i) => h('i', { class: i < r.reps ? 'on' : '' }))),
       h('p', { class: 'bubble', style: 'margin:14px 0' }, line(pet.personality, 'train', pet.name)),
-      h('div', { class: 'rewards' }, h('div', { class: 'reward' }, '+10 XP'), h('div', { class: 'reward' }, '+', coins, ' ', coin())),
+      h('div', { class: 'rewards' }, h('div', { class: 'reward' }, '+', tr.xp, ' XP'), coins ? h('div', { class: 'reward' }, '+', coins, ' ', coin()) : null,
+        tr.points ? h('div', { class: 'reward' }, '+', tr.points, ' AP') : null),
+      coins ? null : h('p', { class: 'small', style: 'margin:6px 0 0' }, 'Today\'s training coins are collected — practice still counts toward the trick.'),
       h('div', { class: 'stack', style: 'width:100%;max-width:360px;margin-top:16px' },
         h('button', { class: 'btn block big', onclick: () => app.go('game', { skillId: s.id, game }) }, 'PRACTICE AGAIN'),
         h('button', { class: 'linkbtn', onclick: () => app.go('train') }, 'Back to Train'))));
@@ -153,8 +160,7 @@ function catchGame(app, s, done) {
     treats = treats.filter(t => !t.hit && t.y < dim.H + 30);
     if (now > poseUntil) pose = 'look';
     const ctx = cv.getContext('2d'); ctx.setTransform(dim.d, 0, 0, dim.d, 0, 0); ctx.clearRect(0, 0, dim.W, dim.H);
-    ctx.font = '34px system-ui'; ctx.textAlign = 'center';
-    for (const tr of treats) ctx.fillText(tr.gold ? '⭐' : '🦴', tr.x, tr.y);
+    for (const tr of treats) drawTreat(ctx, tr.x, tr.y, tr.gold, now);
     ctx.save(); ctx.translate(x, dim.H - 12); ctx.scale(k, k); drawPet(ctx, pet, pose, { t: now / 1000 }); ctx.restore();
     if (left <= 0 && !over) { over = true; setTimeout(() => done({ caught }), 400); return; }
     requestAnimationFrame(frame);
@@ -211,3 +217,18 @@ function followGame(app, s, done) {
   newRound();
 }
 const wait = ms => new Promise(r => setTimeout(r, ms));
+
+/* App-owned treat art (no emoji: those render as grey outlines in some engines). */
+function drawTreat(ctx, x, y, gold, now) {
+  ctx.save(); ctx.translate(x, y);
+  if (gold) {
+    ctx.rotate(now / 400); ctx.beginPath();
+    for (let j = 0; j < 10; j++) { const r = j % 2 ? 7 : 16, a = -Math.PI / 2 + j * Math.PI / 5; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+    ctx.closePath(); ctx.fillStyle = '#ffd84a'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#c98f0e'; ctx.stroke();
+  } else {
+    ctx.rotate(0.5); ctx.fillStyle = '#f4e4c1'; ctx.strokeStyle = '#b89a6a'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.roundRect(-14, -5, 28, 10, 5); ctx.fill(); ctx.stroke();
+    for (const s of [-1, 1]) for (const v of [-1, 1]) { ctx.beginPath(); ctx.arc(s * 14, v * 4.5, 6, 0, 7); ctx.fill(); ctx.stroke(); }
+  }
+  ctx.restore();
+}

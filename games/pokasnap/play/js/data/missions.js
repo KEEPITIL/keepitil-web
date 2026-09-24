@@ -57,7 +57,14 @@ export const MISSIONS = [
   M('fall_leaves',   'Falling Leaves',    'Pose your pet in autumn leaves.',                     'happy',     2, 90,  35, 'seasonal',    '🍂', 'Leaves at the bottom of the frame look cozy.', { place: 'low', availableFrom: '09-15', availableTo: '11-30' }),
 ];
 
-export function mission(id) { return MISSIONS.find(m => m.missionID === id) || MISSIONS[0]; }
+/* The Daily Snap uses the same camera and scoring. Its prompt changes daily
+   (economy.DAILY_SNAP_PROMPTS); this record is never listed as a mission. */
+export const DAILY_SNAP = { missionID: 'daily_snap', title: 'Daily Snap', instruction: "Today's photo prompt", recommendedPose: 'happy', difficulty: 1,
+  XPReward: 30, coinReward: 0, category: 'creative', icon: '☀️', tip: 'Any snap that matches the prompt counts. 30 seconds is plenty!', isActive: false, isDaily: true, size: 'any', place: 'any' };
+export function dailyMissionFor(prompt) {
+  return { ...DAILY_SNAP, instruction: prompt.text, icon: prompt.icon, recommendedPose: prompt.pose || DAILY_SNAP.recommendedPose, size: prompt.check === 'tiny' ? 'tiny' : 'any' };
+}
+export function mission(id) { return id === 'daily_snap' ? DAILY_SNAP : MISSIONS.find(m => m.missionID === id) || MISSIONS[0]; }
 
 function inWindow(m, d) {
   if (!m.availableFrom) return true;

@@ -22,9 +22,9 @@ function db() {
 function tx(mode) { return db().then(d => d.transaction(STORE, mode).objectStore(STORE)); }
 const wrap = req => new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); });
 
-/** snap = { blob, petName, missionID, missionTitle, score, poseId, caption, fav } */
+/** snap = { blob, petName, missionID, missionTitle, score, poseId, caption, fav, journey, rare, frame } */
 export async function add(snap) {
-  const rec = { id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at: Date.now(), ...snap };
+  const rec = { id: snap.id || 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at: Date.now(), ...snap };
   await wrap((await tx('readwrite')).put(rec));
   return rec;
 }
@@ -32,6 +32,8 @@ export async function list() {
   const all = await wrap((await tx('readonly')).getAll());
   return all.sort((a, b) => b.at - a.at);
 }
+/** Store a complete record as-is (cloud restore). */
+export async function put(rec) { await wrap((await tx('readwrite')).put(rec)); return rec; }
 /** Merge fields into a stored snap (favourite, caption). */
 export async function patch(id, fields) {
   const store = await tx('readwrite');

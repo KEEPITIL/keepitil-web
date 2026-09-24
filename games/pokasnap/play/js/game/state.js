@@ -22,7 +22,7 @@ export function freshState() {
     progress: { xp: 0, level: 1, coins: 0, snaps: 0, bestScore: 0, missions: {} },  // missions: { id: bestScore }
     inventory: [],             // owned itemIDs
     currentMission: 'first_snap',
-    settings: { sound: true, haptics: true, music: true },
+    settings: { sound: true, haptics: true, music: true, musicVolume: 0.8, sfxVolume: 1 },
     // ---- companion (all optional, none punitive; see game/companion.js) ----
     companion: { lastSeen: 0, lastWelcome: 0, mood: null, boost: null },   // boost: { kind, at }
     care: { last: {} },                          // action id -> last REWARDED time
@@ -32,6 +32,16 @@ export function freshState() {
     achievements: {},                            // id -> unlocked-at
     memory: { poseUse: {}, itemUse: {}, lastItems: [] },
     hints: {},                                   // one-time UI hints already shown
+    // ---- 1.2 economy (all optional; game/ledger.js owns coins) ----
+    ledger: null,                                // { entries, ids, earned, spent, maxSeen, flags } -- created on first use
+    ownership: {},                               // itemID -> { via, at, ref }  (OWNED forever)
+    plus: { active: false, product: null, expiresAt: 0, source: null, preview: { until: 0, used: false } },
+    activity: { days: [], streak: 0, best: 0, lastDay: null },
+    events: {},                                  // eventId -> { points, path, joined, claimed, today }
+    walk: null,                                  // game/walk.js
+    collections: {},
+    cloud: { autoBackup: null, lastBackupAt: 0, memories: {} },   // memories: snapId -> path
+    notify: { asked: false, prefs: { dailySnap: true, friday: true, eventEnding: true, weeklyNear: false, monthlyNew: true, journey: true } },
     updatedAt: Date.now(),
   };
 }
@@ -41,8 +51,13 @@ export function freshState() {
 function upgrade(s) {
   const f = freshState();
   const out = { ...f, ...s };
-  for (const k of ['progress', 'settings', 'companion', 'care', 'skills', 'daily', 'streak', 'memory', 'hints'])
+  for (const k of ['progress', 'settings', 'companion', 'care', 'skills', 'daily', 'streak', 'memory', 'hints', 'plus', 'activity', 'cloud', 'notify'])
     out[k] = { ...f[k], ...(s[k] || {}) };
+  out.plus.preview = { ...f.plus.preview, ...(s.plus?.preview || {}) };
+  out.notify.prefs = { ...f.notify.prefs, ...(s.notify?.prefs || {}) };
+  for (const k of ['ownership', 'events', 'collections']) out[k] = { ...(s[k] || {}) };
+  out.ledger = s.ledger && Array.isArray(s.ledger.entries) ? s.ledger : null;
+  out.walk = s.walk || null;
   if (!Array.isArray(out.skills.learned)) out.skills.learned = [...STARTER_SKILLS];
   for (const id of STARTER_SKILLS) if (!out.skills.learned.includes(id)) out.skills.learned.push(id);
   out.achievements = { ...(s.achievements || {}) };

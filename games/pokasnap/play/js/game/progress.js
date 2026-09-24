@@ -6,6 +6,7 @@ import { ITEMS } from '../data/items.js';
 import { POSES } from '../data/poses.js';
 import { SKILLS, TRICKS, REPS, skill as skillOf } from '../data/skills.js';
 import { activeMissions, mission as missionOf } from '../data/missions.js';
+import { hasAccess } from './entitlements.js';
 
 export const MAX_LEVEL = 10;
 // cumulative XP needed to REACH each level (index = level)
@@ -37,6 +38,7 @@ export function learned(st) { return st.skills?.learned || SKILLS.filter(s => s.
 /** Can the pet strike this pose right now? Trick poses need the trick. */
 export function poseAvailable(st, poseId) {
   const p = POSES[poseId]; if (!p) return false;
+  if (p.item) return hasAccess(st, p.item);           // catalog poses: owned (or Plus access)
   return !p.skill || learned(st).includes(p.skill);
 }
 /** Legacy level check (kept for old callers): every pose is level 1 now. */
@@ -55,10 +57,13 @@ export function practice(st, skillId) {
   return { reps, learnedNow: false };
 }
 
-/* ---- XP from anywhere ---- */
-export function grantXP(st, xp, coins = 0) {
+/* ---- XP (Bond) from anywhere. Coins never move here: they go through game/ledger.js. ---- */
+export function grantXP(st, xp) {
+  if (arguments.length > 2 && arguments[2]) throw new Error('grantXP no longer pays coins; use the ledger');
   const p = st.progress, oldLevel = p.level;
-  p.xp += xp; p.coins += coins; p.level = levelFor(p.xp);
+  p.xp += xp; p.level = levelFor(p.xp);
+  const d = new Date(), day = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;   // Bond earned today (recap)
+  p.xpToday = p.xpToday?.day === day ? { day, xp: p.xpToday.xp + xp } : { day, xp };
   const granted = [];
   for (let l = oldLevel + 1; l <= p.level; l++)
     for (const it of unlocksAt(l).items) if (!st.inventory.includes(it.itemID)) { st.inventory.push(it.itemID); granted.push(it); }
@@ -66,21 +71,21 @@ export function grantXP(st, xp, coins = 0) {
 }
 
 /**
- * Apply a finished snap. First completion of a mission pays full XP; replays
- * pay half, so the loop always rewards a new mission most.
+ * Apply a finished snap: XP, snap count and best scores. First completion of a
+ * mission pays full XP; replays pay half. COINS are decided by
+ * game/adventure.onSnap through the ledger (first clears only -- no farming).
  */
 export function applySnap(st, missionId, total) {
   const m = missionOf(missionId), p = st.progress;
   const first = !(missionId in p.missions);
   const prevBest = p.missions[missionId] || 0;
   const xpGain = Math.round((first ? m.XPReward : m.XPReward * 0.5) + (total / 5000) * 40);
-  const coinGain = m.coinReward + (total >= 4000 ? 10 : 0);
   p.snaps += 1;
-  p.missions[missionId] = Math.max(prevBest, total);
+  if (!m.isDaily) p.missions[missionId] = Math.max(prevBest, total);   // the Daily Snap is not a mission clear
   const personalBest = total > p.bestScore;
   p.bestScore = Math.max(p.bestScore, total);
-  const g = grantXP(st, xpGain, coinGain);
-  return { xpGain, coinGain, first, prevBest, personalBest, missionBest: !first && total > prevBest, levelUp: g.levelUp, granted: g.granted };
+  const g = grantXP(st, xpGain);
+  return { xpGain, first, prevBest, personalBest, missionBest: !first && total > prevBest, levelUp: g.levelUp, granted: g.granted };
 }
 
 /* The next mission: the first one not yet completed, else a replay. */

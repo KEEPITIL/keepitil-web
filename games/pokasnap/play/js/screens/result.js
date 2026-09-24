@@ -6,27 +6,35 @@
 import { h, fmt, countUp, toast, coin } from '../ui.js';
 import { scoreSnap, explain, MAX, LABELS } from '../game/score.js';
 import { applySnap, nextMission, unlocksAt } from '../game/progress.js';
-import { mission as missionOf } from '../data/missions.js';
+import { mission as missionOf, dailyMissionFor } from '../data/missions.js';
+import { dailyPrompt } from '../game/adventure.js';
 import { pose as poseOf } from '../data/poses.js';
 import { line } from '../data/personality.js';
 import { get, update } from '../game/state.js';
 import { markDaily, boost, checkBadges, remember, memoryLine } from '../game/companion.js';
+import { onSnap } from '../game/adventure.js';
+import { item as itemOf } from '../data/items.js';
 import * as album from '../game/album.js';
 import { saveToPhotos, share, haptic } from '../platform/native.js';
 import { track } from '../platform/analytics.js';
 import { sfx } from '../platform/sound.js';
 import { drawItemThumb } from '../render/items.js';
+import * as notify from '../platform/notify.js';
 
 const ROWS = ['pose', 'framing', 'size', 'position', 'mission', 'bonus'];
 
 export async function resultScreen(app, { missionId, blob, snapInfo }) {
-  const m = missionOf(missionId), pet = get().pet;
+  const m = snapInfo.daily ? dailyMissionFor(dailyPrompt()) : missionOf(missionId), pet = get().pet;
   const sc = scoreSnap(snapInfo, m);
   const tip = explain(sc, m, snapInfo, id => poseOf(id).name);
-  let rw, daily, badges, memo;
+  let rw, daily, badges, memo, sum;
+  const snapId = 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const firstEver = get().progress.snaps === 0;
   update(st => {
     rw = applySnap(st, missionId, sc.total);
-    st.currentMission = nextMission(st, missionId);
+    if (!snapInfo.daily) st.currentMission = nextMission(st, missionId);
+    sum = onSnap(st, { id: snapId, missionId, poseId: snapInfo.poseId, total: sc.total, first: rw.first, daily: !!snapInfo.daily,
+      journey: !!snapInfo.journey, rare: snapInfo.rare || null, equippedCount: snapInfo.equippedCount, itemIds: Object.values(st.pet.equipped || {}), box: snapInfo.box, frame: snapInfo.frame });
     remember(st, snapInfo.poseId, st.pet.equipped);
     boost(st, 'snap');
     daily = markDaily(st, 'photo');
@@ -35,7 +43,15 @@ export async function resultScreen(app, { missionId, blob, snapInfo }) {
   });
   const great = sc.total >= 4000;
   const comment = memo || line(pet.personality, rw.missionBest ? 'favpic' : great ? 'great' : 'snap', pet.name);
-  const rec = await album.add({ blob, petName: pet.name, missionID: m.missionID, missionTitle: m.title, score: sc.total, poseId: snapInfo.poseId, caption: comment, fav: false });
+  const rec = await album.add({ id: snapId, blob, petName: pet.name, missionID: m.missionID, missionTitle: snapInfo.daily ? 'Daily Snap' : m.title, score: sc.total, poseId: snapInfo.poseId, caption: comment, fav: false,
+    journey: !!snapInfo.journey, rare: snapInfo.rare?.name || null, daily: !!snapInfo.daily, frameItem: snapInfo.frameItem || null });
+  if (firstEver) track('first_snap', {});
+  if (rw.first && !snapInfo.daily && Object.keys(get().progress.missions).length === 1) track('first_mission_complete', { mission: m.missionID });
+  if (sum.daily?.done && !sum.daily.missed) track('daily_snap_complete', { prompt: sum.daily.prompt.id });
+  if (snapInfo.journey) track('journey_snap', {});
+  if (snapInfo.rare) track('rare_moment', { moment: snapInfo.rare.id, captured: true });
+  const coinTotal = sum.coins.reduce((a, c) => a + c.amount, 0);
+  if (coinTotal) track('coins_earned', { amount: coinTotal, source: 'snap' });
   track('score_received', { mission: m.missionID, total: sc.total });
   track('mission_completed', { mission: m.missionID, first: rw.first });
   if (rw.missionBest || rw.personalBest) track('personal_best', { mission: m.missionID, total: sc.total, overall: rw.personalBest });
@@ -52,7 +68,14 @@ export async function resultScreen(app, { missionId, blob, snapInfo }) {
     : h('div', { class: 'record plain' }, `Mission best: ${fmt(get().progress.missions[m.missionID])}`);
   record.style.visibility = 'hidden';
   const rewards = h('div', { class: 'rewards', style: 'visibility:hidden' },
-    h('div', { class: 'reward' }, '+', rw.xpGain, ' XP'), h('div', { class: 'reward' }, '+', rw.coinGain, ' ', coin()));
+    h('div', { class: 'reward' }, '+', rw.xpGain, ' XP'),
+    coinTotal ? h('div', { class: 'reward' }, '+', coinTotal, ' ', coin()) : h('div', { class: 'reward muted' }, 'Replay: XP only'),
+    sum.points ? h('div', { class: 'reward' }, '+', sum.points, ' AP') : null);
+  const extras = h('div', { class: 'extras', style: 'visibility:hidden' },
+    ...sum.coins.map(c => h('span', { class: 'chipline' }, `${c.label} +${c.amount}`)),
+    sum.daily && sum.daily.missed && !sum.daily.done ? h('span', { class: 'chipline warn' }, `Daily Snap: ${sum.daily.prompt.text} — try again!`) : null,
+    sum.rare ? h('span', { class: 'chipline rare' }, `✨ RARE MOMENT CAPTURED: ${sum.rare.moment.name}`) : null,
+    sum.journey ? h('span', { class: 'chipline' }, '🥾 Journey Snap saved to your Adventure Book') : null);
   const tipCard = h('div', { class: 'card tipcard', style: 'visibility:hidden' },
     h('b', {}, tip.part ? 'Want a higher score?' : 'Wow!'), h('p', {}, tip.text.replace(/\{name\}/g, pet.name)));
   const say = h('p', { class: 'bubble', style: 'align-self:center;visibility:hidden' }, comment);
@@ -73,7 +96,7 @@ export async function resultScreen(app, { missionId, blob, snapInfo }) {
         record)),
     h('div', { class: 'card breakdown' }, ...rows.flatMap(r => r.els),
       h('span', { class: 'k total' }, 'TOTAL'), h('span', { class: 'v total' }, fmt(sc.total))),
-    tipCard, rewards, say,
+    tipCard, rewards, extras, say,
     h('div', { class: 'actions4' },
       saveBtn, shareBtn,
       h('button', { class: 'btn ghost', onclick: () => app.go('camera', { missionId: m.missionID }) }, '🔁 RETRY'),
@@ -86,13 +109,48 @@ export async function resultScreen(app, { missionId, blob, snapInfo }) {
   for (const r of rows) { r.bar.style.width = (100 * sc.parts[r.k] / MAX[r.k]) + '%'; countUp(r.v, sc.parts[r.k], 400); await new Promise(res => setTimeout(res, 90)); }
   record.style.visibility = 'visible';
   if (rw.missionBest) { sfx.unlock(); record.classList.add('pop'); }
-  for (const el of [tipCard, rewards, say]) el.style.visibility = 'visible';
+  for (const el of [tipCard, rewards, extras, say]) el.style.visibility = 'visible';
   haptic('success');
   let delay = 900;
+  delay = announce(sum, delay);
   if (daily.bonus) { setTimeout(() => toast(`💞 Daily bond bonus! +${daily.bonus.coins} coins +${daily.bonus.xp} XP`, 2600), delay); delay += 1400; }
   badges.forEach(b => { setTimeout(() => badgeToast(b), delay); delay += 1600; });
+  // contextual notification offer: once, after the first Daily Snap -- never on first launch
+  if (sum.daily?.done && !sum.daily.missed && !get().notify.asked && notify.supported()) setTimeout(() => {
+    const layer = h('div', { class: 'levelup' }, h('div', { class: 'card' },
+      h('p', { class: 'tag', style: 'margin:0' }, 'DAILY SNAP DONE!'),
+      h('h2', { style: 'margin:8px 0' }, `Want a nudge when tomorrow's Daily Snap is ready?`),
+      h('p', { class: 'small' }, 'At most one gentle reminder a day. Change it any time in Settings.'),
+      h('button', { class: 'btn block', onclick: async () => { layer.remove(); track('notification_permission_requested', { from: 'daily_snap' }); update(s => { s.notify.asked = true; }); const r = await notify.request(); if (r === 'granted') window.PokaNotifyReschedule?.(); } }, 'YES, REMIND ME'),
+      h('button', { class: 'linkbtn', onclick: () => { layer.remove(); update(s => { s.notify.asked = true; }); } }, 'No thanks')));
+    document.body.append(layer);
+  }, delay + 600);
   const lvl = rw.levelUp || daily.bonus?.levelUp;
   if (lvl) setTimeout(() => levelUpCard({ levelUp: lvl }), delay + 400);
+}
+
+/* Shared reward announcer: event milestones, streak / weekly / monthly tracks,
+   collections. Emits the analytics for each. Returns the next free delay. */
+export function announce(sum, delay = 300) {
+  const say = (msg, ms = 2400) => { setTimeout(() => toast(msg, ms), delay); delay += 1500; };
+  for (const r of sum.activity || []) {
+    if (r.track === 'streak') { track('active_day', { streak: r.day }); if ([3, 7].includes(r.day) || r.day % 7 === 0) track('streak_milestone', { day: r.day }); if (r.coins) say(`🔥 ${r.label} +${r.coins} coins`); }
+    if (r.track === 'weekly') { track('weekly_milestone', { days: r.days }); say(`📅 ${r.label}! +${r.coins || 0} coins`); }
+    if (r.track === 'monthly') { track('monthly_milestone', { days: r.days }); say(`🗓️ ${r.label}${r.item ? ' — ' + itemOf(r.item)?.name : ''}${r.coins ? ' +' + r.coins + ' coins' : ''}`); }
+  }
+  if (sum.points) track('event_points_earned', { points: sum.points });
+  for (const r of sum.eventRewards || []) {
+    if (r.slot === 'headline') track('event_headline_unlocked', { item: r.item || r.dupOf });
+    if (r.slot === 'prestige') track('prestige_reward_unlocked', { item: r.item || r.already });
+    const what = r.item ? itemOf(r.item)?.name : r.dupOf ? `${itemOf(r.dupOf)?.name} (already yours) +${r.coins} coins` : r.coins ? `+${r.coins} coins` : r.xp ? `+${r.xp} Bond XP` : r.label;
+    say(`${r.slot === 'prestige' ? '🏅 PRESTIGE' : '🧭'} ${r.points} AP reached: ${what}`, 2800);
+  }
+  for (const c of sum.collections || []) {
+    if (c.goal) say(`🍂 Collection: ${c.goal} ✓`);
+    if (c.partial) say(`🍂 Collection half done! ${c.item ? itemOf(c.item)?.name : ''} +${c.coins} coins`);
+    if (c.full) say(`🍂 Collection complete! ${c.item ? itemOf(c.item)?.name : ''}`);
+  }
+  return delay;
 }
 
 export function badgeToast(b) {

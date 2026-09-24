@@ -107,6 +107,32 @@ const DRAW = {
     ctx.restore();
     ctx.beginPath(); ctx.arc(0, -98, 13, 0, Math.PI * 2); outlineFill(ctx, it.trim, dk(it.trim, .35), 3);
   },
+  starclip(ctx, it, A) {
+    if (!A.thumb) ctx.translate(A.hR * 0.52, 18); else ctx.scale(2, 2);
+    ctx.rotate(0.2); ctx.beginPath();
+    for (let j = 0; j < 10; j++) { const r = j % 2 ? 11 : 26, a = -Math.PI / 2 + j * Math.PI / 5; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+    ctx.closePath(); outlineFill(ctx, it.color, it.trim, 3.5);
+    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.arc(-6, -7, 4, 0, Math.PI * 2); ctx.fill();
+  },
+  rainhat(ctx, it) {
+    ctx.beginPath(); ctx.ellipse(0, 8, 92, 22, 0, 0, Math.PI * 2); outlineFill(ctx, it.color, it.trim, 5);
+    ctx.beginPath(); ctx.moveTo(-54, 8); ctx.quadraticCurveTo(-50, -58, 0, -60); ctx.quadraticCurveTo(50, -58, 54, 8); ctx.closePath();
+    outlineFill(ctx, it.color, it.trim, 5);
+    ctx.strokeStyle = it.trim; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(-52, -6); ctx.quadraticCurveTo(0, 6, 52, -6); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.beginPath(); ctx.ellipse(-22, -36, 10, 16, -0.4, 0, Math.PI * 2); ctx.fill();
+  },
+  leafcrown(ctx, it) {
+    const cols = [it.color, it.trim, '#f2b233', it.color, '#d9602a', it.trim, it.color];
+    for (let i = 0; i < 7; i++) {
+      const a = Math.PI + (i + 0.5) * Math.PI / 7, x = Math.cos(a) * 70, y = Math.sin(a) * 30 + 4;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(a + Math.PI / 2);
+      ctx.beginPath(); ctx.moveTo(0, 10); ctx.quadraticCurveTo(-18, -8, 0, -34); ctx.quadraticCurveTo(18, -8, 0, 10); ctx.closePath();
+      outlineFill(ctx, cols[i], dk(cols[i], .35), 3);
+      ctx.strokeStyle = dk(cols[i], .35); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, 8); ctx.lineTo(0, -26); ctx.stroke();
+      ctx.restore();
+    }
+    ctx.beginPath(); ctx.ellipse(0, 6, 72, 12, 0, Math.PI, 0); ctx.strokeStyle = '#7a4a2a'; ctx.lineWidth = 6; ctx.stroke();
+  },
   bunnyears(ctx, it) {
     for (const s of [-1, 1]) {
       ctx.save(); ctx.translate(s * 34, 6); ctx.rotate(s * 0.18);
@@ -148,6 +174,74 @@ const DRAW = {
   },
 };
 
+/* ------------------------------------------------------------ FRAMES --
+   Drawn over the whole photo (and the camera preview) at size W x H. */
+function star(ctx, x, y, r, col) {
+  ctx.beginPath();
+  for (let j = 0; j < 10; j++) { const rr = j % 2 ? r * 0.42 : r, a = -Math.PI / 2 + j * Math.PI / 5; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+  ctx.closePath(); ctx.fillStyle = col; ctx.fill();
+}
+function heartAt(ctx, x, y, s, col) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.beginPath();
+  ctx.moveTo(0, 6); ctx.bezierCurveTo(-14, -6, -8, -18, 0, -9); ctx.bezierCurveTo(8, -18, 14, -6, 0, 6);
+  ctx.fillStyle = col; ctx.fill(); ctx.restore();
+}
+function border(ctx, W, H, b, col, r) {
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.roundRect(b, b, W - 2 * b, H - 2 * b, r); ctx.fillStyle = col; ctx.fill('evenodd'); ctx.restore();
+}
+function around(W, H, n, fn) {           // n points spread along the edge
+  const per = 2 * (W + H), out = [];
+  for (let i = 0; i < n; i++) { let d = (i + 0.5) * per / n, x, y;
+    if (d < W) { x = d; y = 0; } else if ((d -= W) < H) { x = W; y = d; } else if ((d -= H) < W) { x = W - d; y = H; } else { d -= W; x = 0; y = H - d; }
+    fn(x, y, i); }
+}
+export const FRAMES = {
+  frame_trail(ctx, it, W, H) {
+    const u = Math.min(W, H) / 100; border(ctx, W, H, 3.2 * u, it.color, 4 * u);
+    ctx.fillStyle = it.trim; ctx.globalAlpha = .75;
+    for (let i = 0; i < 7; i++) { const x = W * (0.12 + i * 0.13), y = H - 1.6 * u - (i % 2) * 1.2 * u;
+      ctx.beginPath(); ctx.ellipse(x, y, 1.1 * u, 1.5 * u, 0.3, 0, 7); ctx.fill();
+      for (let k = -1; k <= 1; k++) { ctx.beginPath(); ctx.arc(x + k * 0.9 * u, y - 1.9 * u, 0.45 * u, 0, 7); ctx.fill(); } }
+    ctx.globalAlpha = 1;
+    for (const [x, y] of [[0, 0], [W, 0], [0, H], [W, H]]) for (let k = 0; k < 3; k++) {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(k * 0.9 + (x ? 2 : 0)); ctx.beginPath(); ctx.ellipse(6 * u, 0, 5 * u, 2.2 * u, 0, 0, 7);
+      ctx.fillStyle = ['#4f9a5b', '#7cc85a', '#3f7f4a'][k]; ctx.fill(); ctx.restore(); }
+  },
+  frame_puddle(ctx, it, W, H, t = 0) {
+    const u = Math.min(W, H) / 100; border(ctx, W, H, 3 * u, it.color, 5 * u);
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    for (let i = 0; i < 9; i++) { const x = W * (0.08 + i * 0.105), y = 1.5 * u + ((t * 20 + i * 7) % 5) * u * 0.3;
+      ctx.beginPath(); ctx.moveTo(x, y - 1.6 * u); ctx.quadraticCurveTo(x + 1.1 * u, y + 0.4 * u, x, y + 1.1 * u); ctx.quadraticCurveTo(x - 1.1 * u, y + 0.4 * u, x, y - 1.6 * u); ctx.fill(); }
+    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 0.6 * u;
+    for (const [x, r] of [[0.2, 6], [0.5, 9], [0.8, 5]]) { ctx.beginPath(); ctx.ellipse(W * x, H - 1.5 * u, r * u, r * u * 0.3, 0, Math.PI, 0); ctx.stroke(); }
+  },
+  frame_sparkle(ctx, it, W, H, t = 0) {
+    const u = Math.min(W, H) / 100; border(ctx, W, H, 1.8 * u, '#ffffff', 3 * u);
+    around(W, H, 14, (x, y, i) => star(ctx, x + (x < W / 2 ? 3 : -3) * u, y + (y < H / 2 ? 3 : -3) * u, (2.2 + (i % 3)) * u * (0.8 + 0.2 * Math.sin(t * 4 + i)), i % 2 ? it.color : '#fff6c9'));
+  },
+  frame_confetti(ctx, it, W, H) {
+    const u = Math.min(W, H) / 100, cols = ['#ff6b8b', '#5ec8f2', '#ffd84a', '#53d3a2', '#a98bf0'];
+    border(ctx, W, H, 1.6 * u, '#ffffff', 3 * u);
+    around(W, H, 46, (x, y, i) => { ctx.save(); ctx.translate(x + (x < W / 2 ? 2.5 : -2.5) * u * ((i * 7) % 3), y + (y < H / 2 ? 2.5 : -2.5) * u * ((i * 5) % 3));
+      ctx.rotate(i * 1.7); ctx.fillStyle = cols[i % 5]; ctx.fillRect(-1.2 * u, -0.5 * u, 2.4 * u, 1 * u); ctx.restore(); });
+  },
+  frame_hearts(ctx, it, W, H) {
+    const u = Math.min(W, H) / 100; border(ctx, W, H, 2.6 * u, it.trim, 4 * u);
+    around(W, H, 22, (x, y, i) => heartAt(ctx, x + (x < W / 2 ? 2.6 : -2.6) * u, y + (y < H / 2 ? 2.6 : -2.6) * u, u * (i % 2 ? 0.22 : 0.3), i % 3 ? it.color : '#ff8fb1'));
+  },
+  frame_leaves(ctx, it, W, H) {
+    const u = Math.min(W, H) / 100, cols = ['#e8812f', '#c9384f', '#f2b233', '#b5452b'];
+    border(ctx, W, H, 1.8 * u, '#fff4e6', 3 * u);
+    around(W, H, 26, (x, y, i) => { ctx.save(); ctx.translate(x + (x < W / 2 ? 3 : -3) * u, y + (y < H / 2 ? 3 : -3) * u); ctx.rotate(i * 2.1);
+      ctx.beginPath(); ctx.moveTo(0, 2.4 * u); ctx.quadraticCurveTo(-3 * u, -1 * u, 0, -4 * u); ctx.quadraticCurveTo(3 * u, -1 * u, 0, 2.4 * u);
+      ctx.fillStyle = cols[i % 4]; ctx.fill(); ctx.restore(); });
+  },
+};
+export function drawFrame(ctx, id, W, H, t = 0) {
+  const it = item(id); if (!it || !FRAMES[it.draw]) return;
+  ctx.save(); FRAMES[it.draw](ctx, it, W, H, t); ctx.restore();
+}
+
 /**
  * Draw every equipped item in `slot` at its anchor.
  * @param equipped { HEAD:itemID, NECK:itemID, ... }
@@ -171,8 +265,21 @@ export function drawItemThumb(canvas, id) {
   const it = item(id); if (!it) return;
   const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
-  ctx.save(); ctx.translate(W / 2, H * (it.draw === 'daisy' ? 0.5 : it.slot === 'HEAD' ? 0.66 : it.slot === 'NECK' ? 0.36 : 0.5));
+  if (it.slot === 'FRAME') {
+    ctx.save(); ctx.translate(W * 0.14, H * 0.08);
+    const w = W * 0.72, h = H * 0.84, g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#bfe6ff'); g.addColorStop(1, '#d9f2c6'); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    FRAMES[it.draw](ctx, it, w, h, 0.4); ctx.restore(); return;
+  }
+  if (it.slot === 'POSE' || it.slot === 'LOOK') {
+    const g = ctx.createRadialGradient(W / 2, H / 2, 4, W / 2, H / 2, W / 2);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(1, it.color); ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, W * 0.42, 0, 7); ctx.fill();
+    ctx.font = `${Math.round(W * 0.42)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(it.slot === 'LOOK' ? '🎨' : (it.icon || '💫'), W / 2, H / 2 + 2); return;
+  }
+  ctx.save(); ctx.translate(W / 2, H * (it.draw === 'daisy' || it.draw === 'starclip' ? 0.5 : it.slot === 'HEAD' ? 0.66 : it.slot === 'NECK' ? 0.36 : 0.5));
   const s = W / 190; ctx.scale(s, s);
-  DRAW[it.draw](ctx, it, { hR: 115, w: 120, rx: 70, ry: 60, thumb: true });
+  DRAW[it.draw]?.(ctx, it, { hR: 115, w: 120, rx: 70, ry: 60, thumb: true });
   ctx.restore();
 }

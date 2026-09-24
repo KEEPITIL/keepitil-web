@@ -13,7 +13,10 @@
 
 import { drawPet } from '../render/pet.js';
 import { pose as poseOf, POSES, POSE_ORDER } from '../data/poses.js';
-import { mission as missionOf } from '../data/missions.js';
+import { mission as missionOf, dailyMissionFor } from '../data/missions.js';
+import { dailyPrompt } from '../game/adventure.js';
+import { drawFrame } from '../render/items.js';
+import { RARE } from '../data/economy.js';
 import { line, reaction } from '../data/personality.js';
 import { get } from '../game/state.js';
 import { poseAvailable } from '../game/progress.js';
@@ -26,8 +29,10 @@ import { h, sheet, toast } from '../ui.js';
 const PIVOT_Y = -175;          // pet-space y of the rotation/scale centre (mid-body)
 const PET_H = 380;             // approximate pet height in pet units
 
-export function cameraScreen(app, { missionId }) {
-  const st = get(), pet = st.pet, m = missionOf(missionId);
+export function cameraScreen(app, { missionId, daily = false, journey = false }) {
+  const st = get(), pet = st.pet, m = daily ? dailyMissionFor(dailyPrompt()) : missionOf(missionId);
+  const frameItem = pet.equipped?.FRAME || null;
+  let rare = null, rareUntil = 0, nextRareAt = performance.now() + 9000 + Math.random() * 7000;   // the first one comes soon
   let facing = m.camera === 'front' ? 'user' : 'environment';
   let stream = null, raf = 0, alive = true, source = null;   // source: video | img element
   let poseId = 'idle';
@@ -44,15 +49,18 @@ export function cameraScreen(app, { missionId }) {
   const overlay = h('canvas', { class: 'overlay', 'aria-label': 'Your pet. Drag to move, pinch to resize, tap to poke.' });
   const flash = h('div', { class: 'flash' });
   const hint = h('div', { class: 'cam-hint' }, 'Drag · pinch · tap to poke · hold for poses');
+  const loading = h('div', { class: 'cam-loading', role: 'status' }, h('div', { class: 'spin' }), 'Starting camera…');
+  const rareBanner = h('div', { class: 'rare-banner', role: 'status', 'aria-live': 'polite' }); rareBanner.hidden = true;
   const bubble = h('div', { class: 'bubble', style: 'position:absolute;display:none;pointer-events:none;transform:translate(-50%,-100%);z-index:3' });
   const blocked = h('div', { class: 'cam-blocked' }); blocked.hidden = true;
   const torchBtn = h('button', { class: 'icon-btn', 'aria-label': 'Flash', onclick: toggleTorch }, '⚡'); torchBtn.hidden = true;
 
   const root = h('div', { class: 'cam' },
-    video, still, overlay, bubble, flash, hint, blocked,
+    video, still, overlay, bubble, flash, hint, loading, rareBanner, blocked,
     h('div', { class: 'cam-top' },
       h('button', { class: 'icon-btn', 'aria-label': 'Close camera', onclick: () => app.go('home') }, '✕'),
-      h('div', { class: 'mission-card' }, h('b', {}, `${m.icon} ${m.title}`), h('span', {}, m.instruction),
+      h('div', { class: 'mission-card' }, daily ? h('span', { class: 'mc-tag' }, '☀️ DAILY SNAP') : journey ? h('span', { class: 'mc-tag' }, '🥾 JOURNEY SNAP') : null,
+        h('b', {}, `${m.icon} ${m.title}`), h('span', {}, m.instruction),
         h('span', { class: 'mc-pose' }, m.anySkill ? 'Best pose: 🎓 any trained trick' : `Best pose: ${poseOf(m.recommendedPose).icon} ${poseOf(m.recommendedPose).name}`))),
     h('div', { class: 'cam-side' },
       h('button', { class: 'icon-btn', 'aria-label': 'Switch camera', onclick: flipCamera }, '🔄'),
@@ -78,7 +86,7 @@ export function cameraScreen(app, { missionId }) {
       video.srcObject = stream; still.hidden = true; video.hidden = false;
       video.classList.toggle('mirror', facing === 'user');
       await video.play().catch(() => {});
-      source = video;
+      source = video; loading.hidden = true;
       const track0 = stream.getVideoTracks()[0];
       const caps = track0?.getCapabilities?.() || {};
       torchBtn.hidden = !caps.torch;
@@ -97,6 +105,7 @@ export function cameraScreen(app, { missionId }) {
   }
 
   function showBlocked(why) {
+    loading.hidden = true;
     blocked.hidden = false; video.hidden = true;
     blocked.replaceChildren(
       h('div', { style: 'font-size:56px' }, why === 'denied' ? '📷' : '🌤️'),
@@ -116,7 +125,7 @@ export function cameraScreen(app, { missionId }) {
   }
   function useImage(src) {
     stopStream();
-    still.onload = () => { blocked.hidden = true; still.hidden = false; video.hidden = true; still.classList.remove('mirror'); source = still; };
+    still.onload = () => { loading.hidden = true; blocked.hidden = true; still.hidden = false; video.hidden = true; still.classList.remove('mirror'); source = still; };
     still.src = src;
   }
   function useScene() { useImage(sceneDataURL()); }
@@ -148,9 +157,11 @@ export function cameraScreen(app, { missionId }) {
     if (now > nextBlink) { blinkUntil = now + 140; nextBlink = now + 2200 + Math.random() * 2600; }
     squash *= 0.86;
     ctx.save(); petMatrix(ctx);
-    const r = drawPet(ctx, pet, poseId, { t: now / 1000, blink: now < blinkUntil, squash: squash > 0.02 ? Math.sin(squash * Math.PI) * squash : 0 });
+    const r = drawPet(ctx, pet, rare && now < rareUntil ? rare.pose : poseId, { t: now / 1000, blink: now < blinkUntil, squash: squash > 0.02 ? Math.sin(squash * Math.PI) * squash : 0 });
     ctx.restore();
     lastBox = r.bbox;
+    if (frameItem) drawFrame(ctx, frameItem, W, H, now / 1000);
+    rareTick(now);
     placeBubble();
     raf = requestAnimationFrame(frame);
   }
@@ -254,6 +265,20 @@ export function cameraScreen(app, { missionId }) {
     bubble.style.top = Math.max(120, b.y - 8) + 'px';
   }
 
+  // ------------------------------------------------------------ rare moments ----
+  /* Every 25-60 s (the first within ~15 s) the pet does something rare for a
+     few seconds. Snap during it for RARE MOMENT CAPTURED. Purely a bonus. */
+  function rareTick(now) {
+    if (rare && now >= rareUntil) { rare = null; rareBanner.hidden = true; nextRareAt = now + RARE.minGapMs + Math.random() * (RARE.maxGapMs - RARE.minGapMs); }
+    if (!rare && now >= nextRareAt && source) {
+      rare = RARE.moments[Math.floor(Math.random() * RARE.moments.length)];
+      rareUntil = now + RARE.windowMs; squash = 0.8;
+      rareBanner.textContent = `✨ Rare moment: ${rare.name}! Snap now!`; rareBanner.hidden = false;
+      haptic('light'); sfx.pose();
+    }
+  }
+  window.PokaCamera = { forceRare: id => { const mo = RARE.moments.find(x => x.id === id) || RARE.moments[0]; nextRareAt = 0; rare = null; setTimeout(() => { if (rare) return; rare = mo; rareUntil = performance.now() + RARE.windowMs * 2; rareBanner.textContent = `✨ Rare moment: ${mo.name}! Snap now!`; rareBanner.hidden = false; }, 0); } };   // QA hook
+
   // ------------------------------------------------------------ capture ----
   async function snap() {
     if (!source || (source === video && !video.videoWidth)) { toast('Camera is still starting…'); return; }
@@ -271,6 +296,8 @@ export function cameraScreen(app, { missionId }) {
       rot: T.r, flipped: T.flip < 0, poseId,
       equippedCount: Object.values(pet.equipped || {}).filter(Boolean).length,
       pokedRecently: now - pokedAt < 3000,
+      daily, journey, frameItem,
+      rare: rare && now < rareUntil ? rare : null,
     };
     alive = false; cancelAnimationFrame(raf); stopStream();
     app.go('result', { missionId: m.missionID, blob, snapInfo });
@@ -293,8 +320,9 @@ export function cameraScreen(app, { missionId }) {
     ctx.restore();
     const f = OW / W;
     ctx.save(); ctx.scale(f, f); petMatrix(ctx);
-    drawPet(ctx, pet, poseId, { t: now / 1000, blink: false, squash: 0 });
+    drawPet(ctx, pet, rare && now < rareUntil ? rare.pose : poseId, { t: now / 1000, blink: false, squash: 0 });
     ctx.restore();
+    if (frameItem) drawFrame(ctx, frameItem, OW, OH, now / 1000);
     // a small, tasteful watermark so shared snaps carry the brand
     ctx.save(); ctx.font = `900 ${Math.round(OW * 0.034)}px ui-rounded, system-ui, sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = OW * 0.01;

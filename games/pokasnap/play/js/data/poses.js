@@ -16,8 +16,10 @@
            after the pet learns that skill in TRAIN (data/skills.js). Poses
            without a skill are always available. This is the loop
            PLAY -> TRAIN -> UNLOCK POSE -> USE IN PHOTO.
-   reaction true = used only as a canned poke/idle reaction, not in the camera
-           pose picker (yawn, confused).
+   reaction true = used only as a canned poke/idle/rare-moment reaction, not in
+           the camera pose picker (yawn, confused, sneeze, stumble).
+   item    when set, the pose is a catalog item (coins, pack or event); it is
+           available once owned (game/entitlements.js).
    unlockLevel is kept for compatibility; skills now own progression gating. */
 
 export const POSES = {
@@ -35,6 +37,12 @@ export const POSES = {
   dance:     { id: 'dance',     name: 'Dance',       icon: '💃', posture: 'stand', eyes: 'happy',  mouth: 'open',   headTilt: .2,    paw: 'up',   ears: 'perk', tailWag: 1,  fx: 'notes',   unlockLevel: 1, skill: 'dance' },
   spin:      { id: 'spin',      name: 'Spin',        icon: '🌀', posture: 'jump',  eyes: 'happy',  mouth: 'smile',  headTilt: -.3,   paw: 'up',   ears: 'back', tailWag: 1,  fx: 'sparkle', unlockLevel: 1, skill: 'spin' },
   highfive:  { id: 'highfive',  name: 'High Five',   icon: '🙌', posture: 'sit',   eyes: 'happy',  mouth: 'open',   headTilt: -.12,  paw: 'wave', ears: 'perk', tailWag: 1,  fx: 'bang',    unlockLevel: 1, skill: 'highfive' },
+  bow:       { id: 'bow',       name: 'Take a Bow',  icon: '🙇', posture: 'sit',   eyes: 'closed', mouth: 'smile',  headTilt: .42,   paw: 'tuck', ears: 'back', tailWag: .6, fx: 'sparkle', unlockLevel: 1, item: 'pose_bow' },
+  disco:     { id: 'disco',     name: 'Disco',       icon: '🪩', posture: 'stand', eyes: 'wink',   mouth: 'open',   headTilt: -.24,  paw: 'wave', ears: 'perk', tailWag: 1,  fx: 'notes',   unlockLevel: 1, item: 'pose_disco' },
+  moonwalk:  { id: 'moonwalk',  name: 'Moonwalk',    icon: '🌙', posture: 'stand', eyes: 'happy',  mouth: 'cat',    headTilt: .3,    paw: 'up',   ears: 'back', tailWag: .8, fx: 'notes',   unlockLevel: 1, item: 'pose_moonwalk' },
+  twirl:     { id: 'twirl',     name: 'Twirl',       icon: '💫', posture: 'jump',  eyes: 'closed', mouth: 'open',   headTilt: .36,   paw: 'up',   ears: 'perk', tailWag: 1,  fx: 'sparkle', unlockLevel: 1, item: 'pose_twirl' },
+  sneeze:    { id: 'sneeze',    name: 'Sneeze',      icon: '🤧', posture: 'sit',   eyes: 'closed', mouth: 'o',      headTilt: -.3,   paw: 'up',   ears: 'back', tailWag: .2, fx: 'bang',    unlockLevel: 1, reaction: true },
+  stumble:   { id: 'stumble',   name: 'Stumble',     icon: '🙃', posture: 'lay',   eyes: 'wide',   mouth: 'o',      headTilt: .4,    paw: 'up',   ears: 'perk', tailWag: .3, fx: 'question',unlockLevel: 1, reaction: true },
   yawn:      { id: 'yawn',      name: 'Yawn',        icon: '🥱', posture: 'sit',   eyes: 'closed', mouth: 'o',      headTilt: .22,   paw: 'down', ears: 'back', tailWag: .1, fx: null,      unlockLevel: 1, reaction: true },
   confused:  { id: 'confused',  name: 'Huh?',        icon: '❓', posture: 'stand', eyes: 'open',   mouth: 'cat',    headTilt: .34,   paw: 'down', ears: 'perk', tailWag: .2, fx: 'question',unlockLevel: 1, reaction: true },
 };
@@ -43,6 +51,6 @@ export const POSES = {
    happy reaction. The personality weights the order (see personality.js). */
 export const POKE_CYCLE = ['happy', 'surprised', 'wave', 'look', 'jump', 'wink', 'dance'];
 
-export const POSE_ORDER = ['idle', 'look', 'sit', 'happy', 'wave', 'lay', 'sleep', 'surprised', 'swim', 'jump', 'dance', 'spin', 'wink', 'highfive'];
+export const POSE_ORDER = ['idle', 'look', 'sit', 'happy', 'wave', 'lay', 'sleep', 'surprised', 'swim', 'jump', 'dance', 'spin', 'wink', 'highfive', 'bow', 'disco', 'moonwalk', 'twirl'];
 
 export function pose(id) { return POSES[id] || POSES.idle; }

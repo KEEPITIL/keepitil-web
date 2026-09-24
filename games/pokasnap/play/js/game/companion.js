@@ -6,23 +6,26 @@
    label computed from recent good things, not a meter that drains. Coming
    back after a break is celebrated ("{name} missed you!"), never punished. */
 
-import { COOLDOWN_MS, REWARD, FAVORITE_FOOD, FOODS } from '../data/care.js';
+import { FAVORITE_FOOD, FOODS } from '../data/care.js';
 import { ACHIEVEMENTS } from '../data/achievements.js';
 import { item as itemOf } from '../data/items.js';
 import { POSES } from '../data/poses.js';
 import { species as speciesOf } from '../data/pets.js';
 import { grantXP } from './progress.js';
+import * as ledger from './ledger.js';
+import { EARN } from '../data/economy.js';
+import { onCare } from './adventure.js';
 
 const H = 3600e3;
 export const AWAY_MS = 20 * H;           // "welcome back" threshold
-export const WELCOME_COINS = 15;
+export const WELCOME_COINS = EARN.welcomeBack;
 export const DAILY_TASKS = [
   { id: 'photo',  name: 'Take today\'s photo', icon: '📸' },
   { id: 'feed',   name: 'Feed {name}',         icon: '🍽️' },
   { id: 'train',  name: 'Train one skill',     icon: '🎓' },
   { id: 'outfit', name: 'Change the outfit',   icon: '👕' },
 ];
-export const DAILY_BONUS = { xp: 60, coins: 40 };
+export const DAILY_BONUS = { xp: 60, coins: EARN.dailyBondBonus };
 
 export const MOODS = {
   HAPPY:    { id: 'HAPPY',    label: 'Happy',    icon: '😊' },
@@ -66,7 +69,7 @@ export function checkIn(st, now = Date.now()) {
   const away = last && now - last >= AWAY_MS;
   let gift = 0;
   if (away && now - (st.companion.lastWelcome || 0) >= AWAY_MS) {
-    gift = WELCOME_COINS; st.progress.coins += gift; st.companion.lastWelcome = now;
+    gift = ledger.earn(st, { id: `welcome:${ledger.dayKey(now)}`, source: 'welcome', amount: WELCOME_COINS, now }).amount; st.companion.lastWelcome = now;
     boost(st, 'welcome', now);
   }
   st.companion.lastSeen = now;
@@ -75,18 +78,20 @@ export function checkIn(st, now = Date.now()) {
 
 /* ---------------------------------------------------------------- care -- */
 export function favoriteFood(st) { return FAVORITE_FOOD[speciesOf(st.pet?.species)?.animal] || 'cookie'; }
-/** Always succeeds. Pays XP/coins only outside the cooldown. */
+/** Always succeeds and always animates. Rewards follow the daily cap (economy CAPS.care). */
 export function care(st, action, now = Date.now(), foodId = null) {
-  const last = st.care.last[action] || 0;
-  const rewarded = now - last >= COOLDOWN_MS;
-  let lv = { levelUp: 0, granted: [] };
-  if (rewarded) { st.care.last[action] = now; lv = grantXP(st, REWARD.xp, REWARD.coins); }
+  const r = onCare(st, action, now);
   const fav = action === 'feed' && foodId === favoriteFood(st);
   const moodChanged = boost(st, action, now);
   const daily = action === 'feed' || action === 'treat' ? markDaily(st, 'feed', now) : null;
-  return { rewarded, xp: rewarded ? REWARD.xp : 0, coins: rewarded ? REWARD.coins : 0, fav, moodChanged, daily, ...lv };
+  return { ...r, fav, moodChanged, daily, levelUp: 0, granted: [] };
 }
-export function careReadyIn(st, action, now = Date.now()) { return Math.max(0, (st.care.last[action] || 0) + COOLDOWN_MS - now); }
+import { CAPS } from '../data/economy.js';
+/** 0 while today's care rewards remain; otherwise ms until tomorrow (the card says "just for love"). */
+export function careReadyIn(st, action, now = Date.now()) {
+  if (ledger.countToday(st, 'care', now) < CAPS.care) return 0;
+  const t = new Date(now); t.setHours(24, 0, 0, 0); return +t - now;
+}
 
 /* --------------------------------------------------------------- daily -- */
 function freshDay(st, now) {
@@ -105,7 +110,9 @@ export function markDaily(st, task, now = Date.now()) {
   touchStreak(st, now);
   let bonus = null;
   if (!st.daily.bonus && DAILY_TASKS.every(t => st.daily.done[t.id])) {
-    st.daily.bonus = true; bonus = { ...DAILY_BONUS, ...grantXP(st, DAILY_BONUS.xp, DAILY_BONUS.coins) };
+    st.daily.bonus = true;
+    const c = ledger.earn(st, { id: `bond:${st.daily.day}`, source: 'dailyBond', amount: DAILY_BONUS.coins, now });
+    bonus = { ...DAILY_BONUS, coins: c.amount, ...grantXP(st, DAILY_BONUS.xp) };
   }
   return { newly: true, task, bonus };
 }
@@ -136,8 +143,9 @@ export function checkBadges(st, ctx = {}, now = Date.now()) {
   for (const a of ACHIEVEMENTS) {
     if (st.achievements[a.id]) continue;
     if (!a.test(st, ctx)) continue;
-    st.achievements[a.id] = now; st.progress.coins += a.coins || 0;
-    if (a.item && !st.inventory.includes(a.item)) st.inventory.push(a.item);
+    st.achievements[a.id] = now;
+    ledger.earn(st, { id: `badge:${a.id}`, source: 'badge', amount: a.coins || 0, ref: a.id, now });
+    if (a.item && !st.inventory.includes(a.item)) { st.inventory.push(a.item); st.ownership = st.ownership || {}; st.ownership[a.item] = { via: 'ACHIEVEMENT_LIMITED', at: now, ref: a.id }; }
     out.push(a);
   }
   return out;

@@ -14,6 +14,8 @@ function tone(freq, dur, type = 'sine', vol = 0.12, slide = 0, delay = 0, dest =
   if (!dest && !get().settings.sound) return;
   const c = ctx(); if (!c) return;
   const t0 = c.currentTime + delay;
+  if (!dest) vol *= (get().settings.sfxVolume ?? 1);
+  if (vol <= 0.0001) return;
   const o = c.createOscillator(), g = c.createGain();
   o.type = type; o.frequency.setValueAtTime(freq, t0);
   if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, freq + slide), t0 + dur);
@@ -45,29 +47,34 @@ export const sfx = {
 };
 
 /* ---------------------------------------------------------------- music --
-   A soft, looping pentatonic tune scheduled a bar ahead. Menu screens only:
-   the camera and minigames stop it so nothing competes with the shutter. */
-const SCALE = [0, 2, 4, 7, 9, 12, 14, 16];
-const MELODY = [0, 2, 4, 2, 5, 4, 2, 0, 3, 4, 5, 7, 5, 4, 2, 4];
-const BASS = [0, 0, -5, -5, -3, -3, -5, -5];
-let musicOn = false, musicTimer = 0, bus = null, step = 0, nextAt = 0;
-const BEAT = 60 / 96 / 2;
-function note(semi, base = 523.25) { return base * Math.pow(2, semi / 12); }
+   PokaSnap Music Journeys, provider LOCAL_OWNED: three original, generated
+   tunes (nothing to license). Future providers (SOUNDCLOUD, YOUTUBE_DISCOVERY)
+   plug in behind the same controls. Playback itself never earns anything --
+   rewards come from what you DO while it plays (walks, snaps, training). */
+export const MUSIC_PROVIDERS = ['LOCAL_OWNED', 'SOUNDCLOUD', 'YOUTUBE_DISCOVERY'];
+export const TRACKS = [
+  { id: 'home', name: 'Cozy Home',  bpm: 96,  root: 523.25, scale: [0, 2, 4, 7, 9, 12, 14, 16], melody: [0, 2, 4, 2, 5, 4, 2, 0, 3, 4, 5, 7, 5, 4, 2, 4], bass: [0, 0, -5, -5, -3, -3, -5, -5], wave: 'triangle' },
+  { id: 'walk', name: 'Walk Along', bpm: 112, root: 587.33, scale: [0, 2, 4, 5, 7, 9, 11, 12], melody: [0, 4, 7, 4, 5, 4, 2, 0, 2, 4, 5, 7, 9, 7, 5, 4], bass: [0, 0, 5, 5, 7, 7, 5, 5], wave: 'sine' },
+  { id: 'snap', name: 'Snap Party', bpm: 124, root: 659.25, scale: [0, 3, 5, 7, 10, 12, 15, 17], melody: [0, 2, 3, 2, 4, 3, 2, 1, 0, 2, 4, 5, 4, 2, 3, 1], bass: [0, 0, -2, -2, -4, -4, -5, -5], wave: 'triangle' },
+];
+let musicOn = false, musicTimer = 0, bus = null, step = 0, nextAt = 0, trackIdx = 0;
+function note(semi, base) { return base * Math.pow(2, semi / 12); }
 function schedule() {
   const c = ctx(); if (!c || !musicOn) return;
+  const T = TRACKS[trackIdx], BEAT = 60 / T.bpm / 2;
   while (nextAt < c.currentTime + 0.6) {
-    const d = nextAt - c.currentTime;
-    const m = MELODY[step % MELODY.length];
-    if (step % 2 === 0 || Math.random() < 0.5) tone(note(SCALE[m % SCALE.length]), BEAT * 1.6, 'triangle', 0.05, 0, Math.max(0, d), bus);
-    if (step % 4 === 0) tone(note(BASS[(step / 4) % BASS.length], 130.8), BEAT * 3.6, 'sine', 0.07, 0, Math.max(0, d), bus);
+    const d = nextAt - c.currentTime, m = T.melody[step % T.melody.length];
+    if (step % 2 === 0 || Math.random() < 0.5) tone(note(T.scale[m % T.scale.length], T.root), BEAT * 1.6, T.wave, 0.05, 0, Math.max(0, d), bus);
+    if (step % 4 === 0) tone(note(T.bass[(step / 4) % T.bass.length], T.root / 4), BEAT * 3.6, 'sine', 0.07, 0, Math.max(0, d), bus);
     step++; nextAt += BEAT;
   }
 }
 export const music = {
-  start() {
+  start(trackId) {
+    if (trackId) { const i = TRACKS.findIndex(t => t.id === trackId); if (i >= 0) trackIdx = i; }
     if (musicOn || !get().settings.music) return;
     const c = ctx(); if (!c) return;
-    bus = c.createGain(); bus.gain.value = 0.9; bus.connect(c.destination);
+    bus = c.createGain(); bus.gain.value = 0.9 * (get().settings.musicVolume ?? 1); bus.connect(c.destination);
     musicOn = true; nextAt = c.currentTime + 0.1; step = 0;
     musicTimer = setInterval(schedule, 200); schedule();
   },
@@ -75,6 +82,12 @@ export const music = {
     if (!musicOn) return; musicOn = false; clearInterval(musicTimer);
     try { bus.gain.setTargetAtTime(0, ac.currentTime, 0.08); const b = bus; setTimeout(() => b.disconnect(), 400); } catch (e) {}
   },
+  toggle() { musicOn ? music.stop() : music.start(); return musicOn; },
+  next() { trackIdx = (trackIdx + 1) % TRACKS.length; step = 0; return TRACKS[trackIdx]; },
+  prev() { trackIdx = (trackIdx + TRACKS.length - 1) % TRACKS.length; step = 0; return TRACKS[trackIdx]; },
+  setVolume(v) { if (bus) try { bus.gain.setTargetAtTime(0.9 * v, ac.currentTime, 0.05); } catch (e) {} },
+  track: () => TRACKS[trackIdx],
   playing: () => musicOn,
 };
+
 export function unlockAudio() { ctx(); }

@@ -23,9 +23,10 @@ export function sheet(...content) {
 }
 
 let tt = 0;
-export function toast(msg, ms = 2200) {
+/** pos 'bottom' (default) or 'top' -- screens whose actions sit at the bottom use 'top'. */
+export function toast(msg, ms = 2200, pos = 'bottom') {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
+  t.textContent = msg; t.classList.toggle('top', pos === 'top'); t.classList.add('show');
   clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), ms);
 }
 

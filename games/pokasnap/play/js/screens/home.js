@@ -16,6 +16,11 @@ import { moodFor, dailyView, dailyMission, DAILY_TASKS, DAILY_BONUS, boost } fro
 import { sfx, music } from '../platform/sound.js';
 import { haptic } from '../platform/native.js';
 import { track } from '../platform/analytics.js';
+import { ladderView } from '../game/events.js';
+import { view as activityView } from '../game/activity.js';
+import { dailyPrompt, dailyDone, fridayClaimable } from '../game/adventure.js';
+import { ensure as walkState, journeyReady } from '../game/walk.js';
+import { plusSubscribed } from '../game/entitlements.js';
 
 /* Pose logic shared by every screen that shows a living pet. */
 export function petBrain(getPose, setPose, kick) {
@@ -80,12 +85,19 @@ export function homeScreen(app, opts = {}) {
     h('div', { class: 'daily-tasks' }, ...DAILY_TASKS.map(t => h('button', {
       class: 'dtask' + (daily.done[t.id] ? ' done' : ''),
       'aria-label': t.name.replace('{name}', pet.name) + (daily.done[t.id] ? ' — done' : ''),
-      onclick: () => { sfx.tap(); app.go({ photo: 'brief', feed: 'care', train: 'train', outfit: 'closet' }[t.id], t.id === 'photo' ? { missionId: dm.missionID } : {}); },
+      onclick: () => { sfx.tap(); t.id === 'photo' ? app.go('camera', { missionId: 'daily_snap', daily: true }) : app.go({ feed: 'care', train: 'train', outfit: 'closet' }[t.id]); },
     }, h('span', { class: 'ic' }, daily.done[t.id] ? '✅' : t.icon), t.name.replace('{name}', pet.name)))),
-    h('button', { class: 'daily-challenge', onclick: () => app.go('brief', { missionId: dm.missionID }) },
-      h('span', {}, `Today's challenge: ${dm.icon} ${dm.title}`), h('span', {}, '›')),
+    h('button', { class: 'daily-challenge', onclick: () => app.go('camera', { missionId: 'daily_snap', daily: true }) },
+      h('span', {}, dailyDone(st) ? `☀️ Daily Snap done ✓ — ${dailyPrompt().text}` : `☀️ Daily Snap: ${dailyPrompt().icon} ${dailyPrompt().text}`), h('span', {}, '›')),
     null);
 
+  const lv = ladderView(st), act = activityView(st), W = walkState(st);
+  const strip = h('div', { class: 'adv-strip' },
+    lv ? h('button', { class: 'chipbtn', onclick: () => app.go('adventures'), 'aria-label': `${lv.event.name}: ${lv.points} of ${lv.max} Adventure Points` },
+      h('span', {}, lv.event.icon), h('b', {}, lv.event.name), h('span', { class: 'mini-meter' }, h('i', { style: `width:${Math.min(100, 100 * lv.points / lv.max)}%` })), h('small', {}, `${lv.points}/${lv.max}`)) : null,
+    h('button', { class: 'chipbtn', onclick: () => app.go('walk'), 'aria-label': `Walk with ${pet.name}` },
+      h('span', {}, journeyReady(st) ? '🥾' : '🐾'), h('b', {}, journeyReady(st) ? 'Journey ready!' : W.session ? 'Walking…' : 'Walk'), W.steps ? h('small', {}, `${fmt(W.steps)}`) : null),
+    fridayClaimable(st) ? h('button', { class: 'chipbtn gift', onclick: () => app.go('adventures', { friday: true }) }, h('span', {}, '🎁'), h('b', {}, 'Poka Friday!')) : null);
   const protect = st.account.mode === 'guest' && st.progress.snaps >= 3 && !st.hints.protect
     ? h('div', { class: 'card nudge' },
         h('b', {}, `Protect ${pet.name} across devices`),
@@ -97,8 +109,9 @@ export function homeScreen(app, opts = {}) {
 
   app.mount(h('div', { class: 'screen home bg-dots' },
     h('div', { class: 'topbar' },
-      h('div', { class: 'pill', 'aria-label': 'Coins' }, coin(), fmt(st.progress.coins)),
-      daily.streak.count > 1 ? h('div', { class: 'pill', 'aria-label': `${daily.streak.count} day friend streak` }, '🔥 ', daily.streak.count) : null,
+      h('button', { class: 'pill', 'aria-label': `${st.progress.coins} Poka Coins. Open the store`, onclick: () => app.go('store') }, coin(), fmt(st.progress.coins), h('span', { class: 'plus-mini' }, '+')),
+      act.streak > 1 ? h('button', { class: 'pill', 'aria-label': `${act.streak} day streak. Open adventures`, onclick: () => app.go('adventures') }, '🔥 ', act.streak) : null,
+      plusSubscribed(st) ? h('div', { class: 'pill plus-pill', 'aria-label': 'PokaSnap+ member' }, '🌟') : null,
       h('div', { class: 'grow' }),
       h('button', { class: 'icon-btn', 'aria-label': 'Settings', onclick: () => app.go('settings') }, '⚙️')),
     h('div', { class: 'home-head' },
@@ -110,6 +123,7 @@ export function homeScreen(app, opts = {}) {
     h('div', { class: 'stack home-bottom' },
       h('button', { class: 'btn block big', onclick: () => { sfx.tap(); track('play_now_tapped', { from: 'home' }); app.go('brief', { missionId: st.currentMission }); } }, '📸 PLAY'),
       h('button', { class: 'linkbtn next-link', onclick: () => app.go('missions') }, `Next: ${next.icon} ${next.title} · All missions ›`),
+      strip,
       dailyCard,
       h('div', { class: 'nav4' },
         h('button', { onclick: () => app.go('album') }, h('span', {}, '📔'), 'MY SNAPS'),
@@ -130,6 +144,8 @@ function welcomeBack(w) {
       livePet(() => pet, () => 'happy', 170),
       h('p', { class: 'bubble', style: 'margin:6px 0 12px' }, line(pet.personality, 'welcome', pet.name)),
       w.gift ? h('div', { class: 'reward', style: 'display:inline-block' }, '+', w.gift, ' ', coin(), ' welcome gift') : null,
+      (() => { const lv = ladderView(st); return lv ? h('p', { class: 'small', style: 'margin:10px 0 0' }, `${lv.event.icon} ${lv.event.name}: ${lv.points}/${lv.max} AP · ${lv.event.daysLeft} day${lv.event.daysLeft === 1 ? '' : 's'} left — plenty of time to catch up.`) : null; })(),
+      h('p', { class: 'small', style: 'margin:6px 0 0' }, dailyDone(st) ? 'Next: pick any mission and snap away.' : `Next: today's Daily Snap — ${dailyPrompt().text}.`),
       h('button', { class: 'btn block', style: 'margin-top:14px' }, 'HI ' + pet.name.toUpperCase() + '! 👋')));
   document.body.append(layer);
   sfx.reward(); haptic('success');

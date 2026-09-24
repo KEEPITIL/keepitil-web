@@ -31,6 +31,7 @@ export const SPECIES = {
       { id: 'cloud',   name: 'Cloud',    base: '#f4efe9', shade: '#dcd2c7', belly: '#ffffff', inner: '#f7b9c4', patch: null,      eye: '#6aa7d8' },
       { id: 'ginger',  name: 'Ginger',   base: '#f2a65a', shade: '#d98639', belly: '#fde7cf', inner: '#f7b0a4', patch: '#e08a3c', eye: '#7fae4f' },
       { id: 'smoke',   name: 'Smoke',    base: '#9aa3b0', shade: '#7b8492', belly: '#e3e7ec', inner: '#f2b3c0', patch: null,      eye: '#e7b84a' },
+      { id: 'lilac',   name: 'Lilac (Candy)', base: '#d9c6f2', shade: '#b8a2d9', belly: '#f7f0ff', inner: '#f7b9c4', patch: null, eye: '#7a5fc4', item: 'look_candy' },
     ],
   },
   cat_short: {
@@ -43,6 +44,7 @@ export const SPECIES = {
       { id: 'tuxedo',  name: 'Tuxedo',   base: '#3a3d45', shade: '#25272d', belly: '#f6f6f4', inner: '#f0a8b4', patch: null,      eye: '#9ccc65' },
       { id: 'tabby',   name: 'Tabby',    base: '#c49a6c', shade: '#9e7a52', belly: '#f3e4cf', inner: '#f2aab0', patch: '#8b6a45', eye: '#d9a441' },
       { id: 'midnight',name: 'Midnight', base: '#2b2d38', shade: '#1a1b22', belly: '#3d4050', inner: '#e690a4', patch: null,      eye: '#f2c94c' },
+      { id: 'bluemoon',name: 'Blue Moon (Candy)', base: '#4a5c8f', shade: '#34426b', belly: '#dfe6f7', inner: '#f0a8b4', patch: null, eye: '#ffd76a', item: 'look_candy' },
     ],
   },
   dog_golden: {
@@ -55,6 +57,7 @@ export const SPECIES = {
       { id: 'honey',   name: 'Honey',    base: '#e8b465', shade: '#c9923f', belly: '#fbe6bf', inner: '#c9923f', patch: null,      eye: '#5b3a22' },
       { id: 'cream',   name: 'Cream',    base: '#f3dfbd', shade: '#dcc39a', belly: '#fff6e6', inner: '#dcc39a', patch: null,      eye: '#4a2f1c' },
       { id: 'cocoa',   name: 'Cocoa',    base: '#8a5a3c', shade: '#6b422a', belly: '#d9b28f', inner: '#6b422a', patch: null,      eye: '#2e1d12' },
+      { id: 'strawberry', name: 'Strawberry (Candy)', base: '#f5a9b8', shade: '#dc8599', belly: '#fff0f3', inner: '#f7b9c4', patch: null, eye: '#3a1f28', item: 'look_candy' },
     ],
   },
   dog_small: {
@@ -67,6 +70,7 @@ export const SPECIES = {
       { id: 'snow',    name: 'Snow',     base: '#fbfaf7', shade: '#e2ddd3', belly: '#ffffff', inner: '#e8d6c4', patch: null,      eye: '#2a1c14' },
       { id: 'apricot', name: 'Apricot',  base: '#f6c28b', shade: '#dea266', belly: '#fde6c9', inner: '#dea266', patch: null,      eye: '#2a1c14' },
       { id: 'mocha',   name: 'Mocha',    base: '#b98a66', shade: '#98694a', belly: '#ecd3bb', inner: '#98694a', patch: '#8a5b3d', eye: '#23160f' },
+      { id: 'mint',    name: 'Mint (Candy)', base: '#bfe8d6', shade: '#98cdb7', belly: '#f2fff9', inner: '#f7b9c4', patch: null, eye: '#23413a', item: 'look_candy' },
     ],
   },
   bunny: {
@@ -79,6 +83,7 @@ export const SPECIES = {
       { id: 'lop',     name: 'Snowdrop', base: '#f7f4f0', shade: '#e0d9d0', belly: '#ffffff', inner: '#f5b7c5', patch: null,      eye: '#b8434f' },
       { id: 'hazel',   name: 'Hazel',    base: '#b88c63', shade: '#977050', belly: '#eedcc5', inner: '#f1b2ae', patch: null,      eye: '#2c1b12' },
       { id: 'dusk',    name: 'Dusk',     base: '#8f8c9c', shade: '#716e7e', belly: '#dcd9e3', inner: '#f0b0c2', patch: null,      eye: '#2a2530' },
+      { id: 'peach',   name: 'Peach (Candy)', base: '#ffd2b0', shade: '#e9ae86', belly: '#fff5ec', inner: '#f7b0b8', patch: null, eye: '#6b2f3a', item: 'look_candy' },
     ],
   },
 };
@@ -88,6 +93,8 @@ export const SPECIES = {
 export const LAUNCH_SPECIES = ['cat_fluffy', 'cat_short', 'dog_golden', 'dog_small', 'bunny'];
 
 export function species(id) { return SPECIES[id] || SPECIES.cat_fluffy; }
+/* Free looks (shown at creation). Premium looks carry `item` and appear once owned. */
+export function freeAppearances(speciesId) { return species(speciesId).appearances.filter(a => !a.item); }
 export function appearance(speciesId, appearanceId) {
   const s = species(speciesId);
   return s.appearances.find(a => a.id === appearanceId) || s.appearances[0];

@@ -4,7 +4,7 @@
 
 import { h, toast, sheet } from '../ui.js';
 import { portrait } from '../render/pet.js';
-import { SPECIES, LAUNCH_SPECIES, species as speciesOf } from '../data/pets.js';
+import { SPECIES, LAUNCH_SPECIES, species as speciesOf, freeAppearances } from '../data/pets.js';
 import { PERSONALITIES, PERSONALITY_ORDER, line } from '../data/personality.js';
 import { starterItems } from '../data/items.js';
 import { drawItemThumb } from '../render/items.js';
@@ -121,6 +121,7 @@ export function onboardingScreen(app) {
   const pet = { species: 'dog_small', appearance: 'apricot', equipped: { NECK: 'neck_bandana' } };
   let pose = 'happy', k = 0;
   const iv = setInterval(() => { pose = ['happy', 'surprised', 'wave', 'jump'][++k % 4]; if (!document.body.contains(c)) clearInterval(iv); }, 1400);
+  track('onboarding_started', {});
   const go = () => { clearInterval(iv); update(s => { s.onboarded = true; }); sfx.tap(); app.go('create'); };
   const c = livePet(() => pet, () => pose, Math.min(200, window.innerHeight * 0.24));
   app.mount(h('div', { class: 'screen center bg-dots' },
@@ -161,7 +162,7 @@ export function createScreen(app) {
         h('p', { class: 'sub', style: 'text-align:center;margin:12px 0 0' }, SPECIES[draft.species].blurb),
         nav('NEXT', () => true)];
     } else if (step === 1) {
-      const sp = speciesOf(draft.species);
+      const sp = { ...speciesOf(draft.species), appearances: freeAppearances(draft.species) };   // premium looks come later, from the store
       if (!draft.appearance) draft.appearance = sp.appearances[0].id;
       body = [...head('Choose a look', sp.name + ' comes in these colours.'), hero,
         h('div', { class: 'swatches', style: 'margin-top:8px' }, ...sp.appearances.map(a => h('button', {
@@ -209,6 +210,8 @@ export function createScreen(app) {
     });
     track('pet_created', { species: draft.species, appearance: draft.appearance, personality: draft.personality });
     track('pet_named', { suggested: NAMES.includes(draft.name) });
+    track('first_pet_created', { species: draft.species });
+    track('onboarding_completed', {});
     track('signup_completed', { method: get().account.mode || 'guest' });
     track('pet_customized', { item: starter, via: 'starter' });
     sfx.level(); haptic('success');

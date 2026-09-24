@@ -50,8 +50,8 @@ export function careScreen(app) {
     bubble.textContent = line(pet.personality, r.fav ? 'fav' : id === 'rest' ? 'rest' : id === 'pet' ? 'pet' : 'fed', pet.name);
     if (id === 'feed' || id === 'treat') track('pet_fed', { food: foodId || 'treat', fav: r.fav, rewarded: r.rewarded });
     if (r.moodChanged) track('pet_mood_changed', { mood: r.moodChanged, via: id });
-    if (r.daily?.newly) { track('daily_task_completed', { task: 'feed' }); if (r.daily.bonus) toast(`💞 Daily bond bonus! +${r.daily.bonus.coins} coins`); }
-    if (r.rewarded) { toast(`+${r.xp} XP  +${r.coins} coins`); sfx.reward(); }
+    if (r.daily?.newly) { track('daily_task_completed', { task: 'feed' }); if (r.daily.bonus) toast(`💞 Daily bond bonus! +${r.daily.bonus.coins} coins`, 2600, 'top'); }
+    if (r.rewarded) { toast(`+${r.xp} XP  +${r.coins} coins`, 2200, 'top'); sfx.reward(); }
     moodBox.replaceChildren(moodChip(moodFor(get())));
     coins.lastChild.textContent = fmt(get().progress.coins);
     if (r.levelUp) setTimeout(() => levelUpCard(r), 900);

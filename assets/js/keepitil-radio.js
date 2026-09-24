@@ -593,6 +593,21 @@
     +'}';
   document.head.appendChild(css);
 
+  /* SHUFFLE and REPEAT were the characters ⇄ and ↺, sized by --kr-util-glyph, while VOLUME and
+     CHAT are SVGs sized by --kr-util-ic. Two knobs for one row of four icons cannot be matched:
+     measured at 1rem, ⇄ paints 14.7x9.5 and ↺ paints 8.2x7.9, against 29.4x22.5 and 33.5x31.9
+     for the two SVGs — and no single font-size fixes both, because ⇄ is wide and flat (.92 wide
+     per px of font-size) while ↺ is nearly square (.52). Matching one leaves the other half
+     size. Drawn as SVGs in the same 24x24 / stroke-1.9 system as their neighbours instead, so
+     all four are one kind of thing governed by one knob and match by construction. */
+  var SVG_SHUF = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" '
+    + 'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="M3 7.5h3.5l3 4"/><path d="M14.5 16.5H18"/><path d="M3 16.5h3.5l7-9H18"/>'
+    + '<path d="M16 5.5L18.5 7.5 16 9.5"/><path d="M16 14.5L18.5 16.5 16 18.5"/></svg>';
+  var SVG_REP  = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" '
+    + 'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="M6.5 8.5h11a2.5 2.5 0 0 1 2.5 2.5v1.5"/><path d="M17.5 15.5h-11A2.5 2.5 0 0 1 4 13v-1.5"/>'
+    + '<path d="M8.5 6L6 8.5 8.5 11"/><path d="M15.5 13L18 15.5 15.5 18"/></svg>';
   // ── Inject HTML (skip if already in DOM — e.g. inline on index.html) ─────
   if(!document.getElementById('kil-radio')){
     var bar=document.createElement('div');
@@ -667,8 +682,8 @@
       /* ══ UTILITIES, IN THE ONE APPROVED ORDER (brief 15) ═════════════════════════════
          SHUFFLE → REPEAT → VOLUME → CHAT. Chat is the right-most control. */
       '<div class="kr-ctrls">'+
-        '<button type="button" class="kr-util" id="kr-shuffle" aria-pressed="false" aria-label="Shuffle" title="Shuffle">⇄</button>'+
-        '<button type="button" class="kr-util" id="kr-repeat" aria-pressed="false" aria-label="Repeat" title="Repeat">↺</button>'+
+        '<button type="button" class="kr-util" id="kr-shuffle" aria-pressed="false" aria-label="Shuffle" title="Shuffle">'+ SVG_SHUF +'</button>'+
+        '<button type="button" class="kr-util" id="kr-repeat" aria-pressed="false" aria-label="Repeat" title="Repeat">'+ SVG_REP +'</button>'+
         '<span class="kr-volwrap">'+
           '<button type="button" class="kr-util" id="kr-mute" aria-label="Mute" title="Mute / volume"></button>'+
           /* The slider RISES from the bar rather than sitting in it (brief 19). In the bar it

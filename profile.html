@@ -2580,6 +2580,94 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
      whose only purpose was rate-limiting that redirect, so the whole check goes.
      index.html still READS user_onboarding as a personalisation signal; that is fine — it
      uses the data when present and renders nothing when absent. It does not need the page. */
+  /* Renders in place instead of navigating, so the page can never bounce to a page that
+     bounces back. Kept deliberately plain: this is an error state, not a screen to design. */
+  function pfStuck(title, body, actions){
+    var w=document.createElement('div');
+    w.setAttribute('style','max-width:560px;margin:14vh auto;padding:26px 24px;border:1px solid rgba(0,255,136,.28);'
+      +'border-radius:14px;background:rgba(10,12,11,.92);color:#e8ecf1;font:400 15px/1.55 Inter,system-ui,sans-serif;text-align:center');
+    var h=document.createElement('h2');
+    h.setAttribute('style','margin:0 0 10px;font:900 .8rem/1.2 Inter,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#00ff88');
+    h.textContent=title;
+    var p2=document.createElement('p'); p2.setAttribute('style','margin:0 0 18px;color:#b9c2cc'); p2.textContent=body;
+    var row=document.createElement('div');
+    row.setAttribute('style','display:flex;gap:10px;justify-content:center;flex-wrap:wrap');
+    (actions||[]).forEach(function(a){
+      var b=document.createElement('button'); b.type='button'; b.textContent=a.label;
+      b.setAttribute('style','padding:10px 16px;border-radius:9px;cursor:pointer;font:800 .72rem Inter,sans-serif;'
+        +'letter-spacing:.08em;text-transform:uppercase;border:1px solid '+(a.primary?'#00ff88':'rgba(255,255,255,.22)')
+        +';background:'+(a.primary?'#00ff88':'transparent')+';color:'+(a.primary?'#07130d':'#e8ecf1'));
+      b.onclick=a.go; row.appendChild(b);
+    });
+    w.appendChild(h); w.appendChild(p2); w.appendChild(row);
+    var host=document.querySelector('main')||document.body;
+    host.innerHTML=''; host.appendChild(w);
+  }
+
+  function pfGo(slug){ location.replace('/profile?slug='+encodeURIComponent(slug)); }
+
+  function resolveMyProfile(){
+    /* getUser() validates against the server; getSession() alone cannot tell a live session
+       from a stale one, and that difference is the whole bug. */
+    SB.auth.getUser().then(function(u){
+      var user=(u&&u.data)?u.data.user:null;
+      if(!user || (u&&u.error)){
+        SB.auth.getSession().then(function(r){
+          var stale=!!(r&&r.data&&r.data.session);
+          if(!stale){ location.replace('/apply'); return; }
+          pfStuck('Session expired',
+            'You are signed in on this device, but the sign-in has expired, so your profile could not be loaded. Signing in again fixes it.',
+            [{label:'Sign in again', primary:true, go:function(){ location.href='/apply'; }},
+             {label:'Dashboard', go:function(){ location.href='/dashboard'; }}]);
+        });
+        return;
+      }
+      /* Two ways to find the slug. The RPC is the normal one; profile_owners is world-readable,
+         so a direct read is a real second path rather than a retry of the same call. */
+      SB.rpc('my_profile_slug').then(function(rr){
+        if(rr && !rr.error && rr.data){ pfGo(rr.data); return; }   /* OWNER view (Founder 2026-08-05) */
+        return SB.from('profile_owners').select('profile_slug').eq('owner_id', user.id).limit(1)
+          .then(function(q){
+            var row=(q && !q.error && q.data && q.data[0]) ? q.data[0].profile_slug : null;
+            if(row){ pfGo(row); return; }
+            pfStuck('No profile on this account',
+              'Signed in as '+(user.email||'this account')+'. There is no profile linked to it yet.',
+              [{label:'Create my profile', primary:true, go:function(){ pfClaim(user); }},
+               {label:'Dashboard', go:function(){ location.href='/dashboard'; }}]);
+          });
+      }).catch(function(){
+        pfStuck('Could not load your profile',
+          'The lookup failed rather than coming back empty, so this is not a missing profile. Trying again usually works.',
+          [{label:'Try again', primary:true, go:function(){ location.reload(); }},
+           {label:'Dashboard', go:function(){ location.href='/dashboard'; }}]);
+      });
+    }).catch(function(){
+      pfStuck('Could not check your sign-in',
+        'The sign-in check did not complete, so nothing has been assumed about your account.',
+        [{label:'Try again', primary:true, go:function(){ location.reload(); }},
+         {label:'Sign in', go:function(){ location.href='/apply'; }}]);
+    });
+  }
+
+  /* claim_profile() has existed in the database the whole time and was called from nowhere,
+     which is why no account could ever get a profile through the site. */
+  function pfClaim(user){
+    var suggested=(user.email||'').split('@')[0].replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-+|-+$/g,'').toLowerCase();
+    var handle=prompt('Choose your profile handle (letters, numbers and dashes):', suggested||'');
+    if(!handle) return;
+    SB.rpc('claim_profile',{p_handle:handle, p_display:''}).then(function(r){
+      if(r && !r.error && r.data){ pfGo(r.data); return; }
+      pfStuck('That handle did not work',
+        (r && r.error && r.error.message) ? r.error.message : 'The handle may already be taken.',
+        [{label:'Try another', primary:true, go:function(){ pfClaim(user); }},
+         {label:'Dashboard', go:function(){ location.href='/dashboard'; }}]);
+    }).catch(function(){
+      pfStuck('Could not create the profile','The request did not complete. Nothing was changed.',
+        [{label:'Try again', primary:true, go:function(){ pfClaim(user); }},
+         {label:'Dashboard', go:function(){ location.href='/dashboard'; }}]);
+    });
+  }
+
   applyProfile(); renderAll();
   if(!PROFILE_SLUG){
     /* No slug: send a logged-in user to THEIR profile, else to login.
@@ -2587,7 +2675,23 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
        DASHBOARD now, not /profile?edit=1: this whole branch is guarded by !PROFILE_SLUG,
        so sending them back to a slugless profile.html would run this same code again and
        loop. */
-    if(SB){ SB.auth.getSession().then(function(r){ var s=r&&r.data?r.data.session:null; if(!s){ location.replace('/apply'); return; } SB.rpc('my_profile_slug').then(function(rr){ if(rr&&!rr.error&&rr.data){ location.replace('/profile?slug='+encodeURIComponent(rr.data)); /* OWNER view, not /public/ (Founder 2026-08-05) */ } else { location.replace('/dashboard'); } }).catch(function(){ location.replace('/dashboard'); }); }); }
+    /* ── WHY THIS IS NO LONGER A REDIRECT (Founder 2026-09-23) ───────────────────────────
+       This branch used to end in location.replace('/dashboard') for every outcome that was
+       not a slug. The dashboard's own "Edit profile" link falls back to /profile?edit=1 when
+       it cannot resolve a slug, and /profile?edit=1 has no slug, so it came straight back
+       here and bounced again: dashboard -> profile -> dashboard, with nothing said. An owner
+       WITH a profile was sent away from it and given no reason.
+
+       The cause it could not see: getSession() reads local storage, so an expired or
+       refresh-failed token still looks signed in. The RPC then runs unauthenticated, returns
+       null, and the page reads that as "no profile" rather than "not really signed in".
+       getUser() asks the server, so a stale session is named instead of misread.
+
+       Three outcomes now, and none of them is a silent redirect:
+         valid session + slug  -> the profile (unchanged)
+         valid session, no slug-> a panel offering to create one
+         stale/missing session -> a panel saying so, with a way back in            */
+    if(SB){ resolveMyProfile(); }
     else { location.replace('/apply'); }
   } else if(SB){
     SB.auth.getSession().then(function(r){ SESSION=(r&&r.data)?r.data.session:null; return checkOwnership(); }).then(function(){ updateOwnerUI(); try{applyProfileTabs();}catch(e){} loadProfileMeta(); loadFromDB(); loadFollow(); loadCollab(); loadMyTickets(); loadMyEvents(); }).catch(function(){ loadProfileMeta(); loadFromDB(); loadFollow(); loadMyEvents(); });

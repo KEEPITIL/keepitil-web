@@ -1137,12 +1137,89 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     }
 
   }
+  /* ══ SIGNED IN MEANS HAS A PROFILE (Founder rule, 2026-09-23) ════════════════════════
+     "if no profile/account created then no one should be logged in."
+
+     A session with no profile is the state that produced the dashboard bounce: the site
+     treated it as signed in, every profile route then found nothing, and the user was sent in
+     circles. Both signup paths could create it — signup.html never made a profile at all, and
+     index.html made an app_users row, which is a different table from the one ownership lives
+     in. So the state is not handled here, it is ENDED here, on every page, for every session:
+
+       token the server rejects  -> cleared, and the session is over
+       session with no profile   -> a profile is claimed for it
+       claim impossible          -> signed out, because half-signed-in is the bug
+
+     Runs once per page and again on every auth change, so it also heals accounts that were
+     created before this existed. */
+  function kilPurgeTokens(){
+    try{ Object.keys(localStorage).forEach(function(k){
+      if(/^sb-.*-auth-token/.test(k)||/supabase\.auth\.token/.test(k)) localStorage.removeItem(k); }); }catch(e){}
+    try{ Object.keys(sessionStorage).forEach(function(k){
+      if(/^sb-.*-auth-token/.test(k)) sessionStorage.removeItem(k); }); }catch(e){}
+  }
+  function kilEndSession(c){
+    var done=function(){ kilPurgeTokens(); };
+    try{ return c.auth.signOut({scope:'local'}).then(done,done); }
+    catch(e){ done(); return Promise.resolve(); }
+  }
+  function kilHandleFor(user){
+    var m=(user&&user.user_metadata)||{};
+    var h=m.handle||m.display_name||((user&&user.email)||'').split('@')[0]||'';
+    return String(h).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  }
+  function kilEnforceProfile(c, session){
+    if(!c||!session) return;
+    if(window.__kilProfileChecked) return; window.__kilProfileChecked=1;
+    c.auth.getUser().then(function(u){
+      var user=(u&&u.data)?u.data.user:null;
+      if(!user||(u&&u.error)){
+        /* Not a profile problem — the token is dead. Do not leave it sitting there: that is
+           what stranded the owner on a page with no way out. */
+        return c.auth.refreshSession().then(function(rs){
+          var u2=(rs&&rs.data)?rs.data.user:null;
+          if(!(u2&&!(rs&&rs.error))) return kilEndSession(c);
+          window.__kilProfileChecked=0; kilEnforceProfile(c, session);
+        }, function(){ return kilEndSession(c); });
+      }
+      return c.rpc('my_profile_slug').then(function(rr){
+        if(rr&&!rr.error&&rr.data){ window.KIL_SLUG=rr.data; return; }
+        /* profile_owners is world-readable, so this is a second path, not a retry. */
+        return c.from('profile_owners').select('profile_slug').eq('owner_id',user.id).limit(1)
+          .then(function(q){
+            var row=(q&&!q.error&&q.data&&q.data[0])?q.data[0].profile_slug:null;
+            if(row){ window.KIL_SLUG=row; return; }
+            var base=kilHandleFor(user);
+            if(base.length<2) return kilEndSession(c);
+            /* claim_profile() returns the existing slug if there is one, and raises when the
+               handle is taken — so try a suffix before giving up on the account. */
+            var attempt=function(h, n){
+              return c.rpc('claim_profile',{p_handle:h,p_display:''}).then(function(r){
+                if(r&&!r.error&&r.data){ window.KIL_SLUG=r.data; return; }
+                if(n>=3) return kilEndSession(c);
+                return attempt(base+'-'+(n+1), n+1);
+              }, function(){
+                if(n>=3) return kilEndSession(c);
+                return attempt(base+'-'+(n+1), n+1);
+              });
+            };
+            return attempt(base, 0);
+          });
+      });
+    }).catch(function(){ /* offline or blocked: assume nothing, change nothing */ });
+  }
+  window.__kilEnforceProfile = kilEnforceProfile;
+
   function authNav(hdr){
     ensureSB(function(){
       var c=shellClient(); if(!c) return;
-      try{ c.auth.getSession().then(function(r){ applyAuthState(hdr, r&&r.data?r.data.session:null); }, function(){}); }catch(e){}
+      try{ c.auth.getSession().then(function(r){ var ss=r&&r.data?r.data.session:null;
+        applyAuthState(hdr, ss); kilEnforceProfile(c, ss); }, function(){}); }catch(e){}
       if(!window.__kilShellAuthSub){ window.__kilShellAuthSub=1;
-        try{ c.auth.onAuthStateChange(function(_e,session){ applyAuthState(document.getElementById('v3shell-nav'), session); }); }catch(e){}
+        try{ c.auth.onAuthStateChange(function(_e,session){
+          applyAuthState(document.getElementById('v3shell-nav'), session);
+          if(session){ window.__kilProfileChecked=0; kilEnforceProfile(c, session); }
+        }); }catch(e){}
       }
     });
   }

@@ -1736,7 +1736,11 @@ radStats();
 </script>
 <!-- The shared Create-Playlist / Earn flow. Same file the radio lazy-loads, so a change to
      the fields, the validation or the endpoint reaches both surfaces at once. -->
-<script src="/assets/js/keepitil-playlist-submit.js?v=20260918a" defer></script>
+<script src="/assets/js/keepitil-playlist-submit.js?v=20260924a" defer></script>
+<script>/* Playlist section tuner — only with ?tune=1 (Founder 2026-09-24). Loaded on demand so
+   visitors never download it. */
+if(/[?&]tune=1\b/.test(location.search)){ var _t=document.createElement('script');
+  _t.src='/assets/js/keepitil-earn-tuner.js?v=20260924a'; document.head.appendChild(_t); }</script>
 <script>
 /* Mounted on DOM ready. It renders its own signed-out state, so there is nothing to gate
    here - and it re-renders after a submission so the list below reflects the new row. */

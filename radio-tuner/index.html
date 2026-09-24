@@ -169,8 +169,8 @@ function render(){
       var val=(state[name]===undefined?def:state[name]);
       var row=document.createElement('div'); row.className='row';
       row.innerHTML='<label>'+label+'<small>'+name+'</small></label>'
-        +'<input type="number" step="'+step+'" value="'+val+'">'
-        +'<input type="range" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'">';
+        +'<input type="number" data-var="'+name+'" step="'+step+'" value="'+val+'">'
+        +'<input type="range" data-var="'+name+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'">';
       var num=row.querySelector('input[type=number]'), rng=row.querySelector('input[type=range]');
       function set(v){
         v=parseFloat(v); if(isNaN(v)) return;

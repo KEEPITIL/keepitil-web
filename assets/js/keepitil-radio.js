@@ -1575,7 +1575,7 @@
     if(_createFlowP) return _createFlowP;
     _createFlowP=new Promise(function(res,rej){
       var sc=document.createElement('script');
-      sc.src='/assets/js/keepitil-playlist-submit.js?v=20260918a';
+      sc.src='/assets/js/keepitil-playlist-submit.js?v=20260924a';
       sc.onload=function(){ window.KIL_PLAYLIST_SUBMIT ? res() : rej(new Error('loaded but absent')); };
       sc.onerror=function(){ _createFlowP=null; rej(new Error('script failed')); };
       document.head.appendChild(sc);

@@ -2441,8 +2441,15 @@ window.culFetchMedia = culFetchMedia;
 
   /* Sound becomes legal on the first real gesture. Record it, unmute whatever is playing, and
      stop listening — this must not re-run on every tap for the life of the page. */
+  /* ⚠ PRIVATE GUARD (Founder 2026-09-24). This returned early on window.__kilSoundOK — a flag
+     the SHELL also writes, on pointerdown (before activation exists) and even at page load
+     from sessionStorage. So once a visitor had tapped anything anywhere on the site, this
+     function saw "already armed" and never sent the unMute: every clip stayed muted, on
+     phones and desktops alike. Whether THIS page has unmuted is this page's own fact. */
+  var cultureUnmuted = false;
   function armSound(){
-    if(window.__kilSoundOK) return;
+    if(cultureUnmuted) return;
+    cultureUnmuted = true;
     window.__kilSoundOK = true;
     try{
       window.KIL_CULTURE_AUDIO.cultureAudioArmed = true;
@@ -2479,8 +2486,23 @@ window.culFetchMedia = culFetchMedia;
      document.activeElement; that pair is the standard, policy-respecting signal that the
      visitor interacted with the embed. Nothing here bypasses autoplay policy - the browser
      has granted activation to the frame, which is precisely when un-muting is permitted. */
-  ['pointerdown','mousedown','click','keydown','touchstart'].forEach(function(ev){
-    document.addEventListener(ev, armSound, {once:true, passive:true, capture:true});
+  /* ⚠ ARM ONLY WHEN THE BROWSER HAS ACTUALLY GRANTED ACTIVATION (Founder 2026-09-24: "every
+     video starts on mute"). This listened on pointerdown and touchstart with once:true. On a
+     phone those are the FIRST events of a tap, and activation is not granted until the END of
+     it — measured: pointerdown:false, touchstart:false, pointerup:true, touchend:true. So the
+     unMute was sent while it was still forbidden, refused, and the page then marked itself
+     armed and never tried again. Desktop mice grant activation at pointerdown, which is why
+     desktop fared better. Listen on every candidate, act only once userActivation says so. */
+  function armIfActive(){
+    var ua = navigator.userActivation;
+    if(ua && !ua.isActive) return;            /* too early in the gesture — wait for the end of it */
+    ['pointerdown','pointerup','mousedown','click','keydown','touchstart','touchend'].forEach(function(ev){
+      document.removeEventListener(ev, armIfActive, true);
+    });
+    armSound();
+  }
+  ['pointerdown','pointerup','mousedown','click','keydown','touchstart','touchend'].forEach(function(ev){
+    document.addEventListener(ev, armIfActive, {passive:true, capture:true});
   });
   window.addEventListener('blur', function(){
     /* Read after the blur settles, or activeElement is still <body>. */

@@ -29,6 +29,8 @@ export function toast(msg, ms = 2200) {
   clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), ms);
 }
 
+export function coin() { return h('span', { class: 'coin', role: 'img', 'aria-label': 'coins' }); }
+
 export function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
 
 /* Animate a number counting up inside an element. */

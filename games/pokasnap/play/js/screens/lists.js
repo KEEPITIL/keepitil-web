@@ -1,6 +1,6 @@
 /* MISSIONS · MY SNAPS · CLOSET · SETTINGS */
 
-import { h, fmt, toast } from '../ui.js';
+import { h, fmt, toast, coin } from '../ui.js';
 import { activeMissions } from '../data/missions.js';
 import { stars } from '../game/score.js';
 import { get, update, reset } from '../game/state.js';
@@ -75,12 +75,12 @@ export function closetScreen(app, opts = {}) {
   const tabs = h('div', { class: 'tabs' });
   const grid = h('div', { class: 'items' });
   const action = h('div', { style: 'min-height:60px' });
-  const coins = h('div', { class: 'pill' }, '🪙 ', fmt(st.progress.coins));
+  const coins = h('div', { class: 'pill' }, coin(), h('span', {}, fmt(st.progress.coins)));
 
   function lockText(v) {
     const u = v.unlockRequirement;
     if (u.type === 'level') return `UNLOCK AT LEVEL ${u.level}`;
-    if (u.type === 'coins') return `${u.amount} 🪙`;
+    if (u.type === 'coins') return [String(u.amount) + ' ', coin()];
     return 'STARTER';
   }
   function draw() {
@@ -108,7 +108,7 @@ export function closetScreen(app, opts = {}) {
         update(x => { x.progress.coins -= cost; x.inventory.push(v.itemID); x.pet.equipped = { ...x.pet.equipped, [v.slot]: v.itemID }; });
         sfx.unlock(); haptic('success'); track('cosmetic_equipped', { item: v.itemID, via: 'coins' }); coins.lastChild.textContent = fmt(get().progress.coins);
         toast(`${v.name} unlocked!`); preview = null; draw();
-      } }, can ? `UNLOCK FOR ${cost} 🪙` : `NEED ${cost - s.progress.coins} MORE 🪙`));
+      } }, ...(can ? [`UNLOCK FOR ${cost} `, coin()] : [`NEED ${cost - s.progress.coins} MORE `, coin()])));
     } else {
       action.append(h('button', { class: 'btn ghost block', disabled: true }, lockText(v)));
     }

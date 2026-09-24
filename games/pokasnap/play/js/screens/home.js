@@ -1,6 +1,6 @@
 /* HOME — the pet is the focus. One big PLAY; three secondary doors. */
 
-import { h, fmt } from '../ui.js';
+import { h, fmt, coin } from '../ui.js';
 import { livePet } from './flow.js';
 import { get } from '../game/state.js';
 import { levelProgress, MAX_LEVEL } from '../game/progress.js';
@@ -29,7 +29,7 @@ export function homeScreen(app, opts = {}) {
 
   app.mount(h('div', { class: 'screen bg-dots' },
     h('div', { class: 'topbar' },
-      h('div', { class: 'pill' }, '🪙 ', fmt(st.progress.coins)),
+      h('div', { class: 'pill' }, coin(), fmt(st.progress.coins)),
       h('div', { class: 'pill' }, '📸 ', fmt(st.progress.snaps)),
       h('div', { class: 'grow' }),
       h('button', { class: 'icon-btn', 'aria-label': 'Settings', onclick: () => app.go('settings') }, '⚙️')),
@@ -61,7 +61,7 @@ export function briefScreen(app, { missionId }) {
     livePet(() => pet, () => m.recommendedPose, 190),
     h('p', { class: 'bubble' }, line(pet.personality, 'mission', pet.name)),
     h('div', { class: 'row', style: 'gap:8px;margin:18px 0 6px' },
-      h('div', { class: 'pill' }, '⭐ ', m.XPReward, ' XP'), h('div', { class: 'pill' }, '🪙 ', m.coinReward),
+      h('div', { class: 'pill' }, '⭐ ', m.XPReward, ' XP'), h('div', { class: 'pill' }, coin(), m.coinReward),
       st.progress.missions[m.missionID] ? h('div', { class: 'pill' }, '🏆 ', fmt(st.progress.missions[m.missionID])) : null),
     h('div', { class: 'stack', style: 'width:100%;max-width:360px' },
       h('button', { class: 'btn block big', onclick: () => app.go('camera', { missionId }) }, '📷 OPEN CAMERA'),

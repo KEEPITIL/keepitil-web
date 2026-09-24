@@ -2,7 +2,7 @@
    The snap is filed in My Snaps immediately; SAVE puts it in the phone's
    Photos library, SHARE opens the share sheet. */
 
-import { h, fmt, countUp, toast } from '../ui.js';
+import { h, fmt, countUp, toast, coin } from '../ui.js';
 import { scoreSnap, MAX } from '../game/score.js';
 import { applySnap, nextMission, unlocksAt } from '../game/progress.js';
 import { mission as missionOf } from '../data/missions.js';
@@ -33,7 +33,7 @@ export async function resultScreen(app, { missionId, blob, snapInfo }) {
   });
   const pb = h('div', { class: 'pb' });
   const rewards = h('div', { class: 'rewards', style: 'visibility:hidden' },
-    h('div', { class: 'reward' }, '+', rw.xpGain, ' XP'), h('div', { class: 'reward' }, '+', rw.coinGain, ' 🪙'));
+    h('div', { class: 'reward' }, '+', rw.xpGain, ' XP'), h('div', { class: 'reward' }, '+', rw.coinGain, ' ', coin()));
   const comment = h('p', { class: 'bubble', style: 'align-self:center;visibility:hidden' }, line(pet.personality, sc.total >= 4000 ? 'great' : 'snap', pet.name));
 
   const saveBtn = h('button', { class: 'btn mint', onclick: async () => {

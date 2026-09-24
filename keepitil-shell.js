@@ -235,7 +235,13 @@
   })();
     var RADIO_PAGE = false;
     try{ RADIO_PAGE = document.documentElement.getAttribute('data-radio') === 'page'; }catch(e){}
-    var RADIO_ALLOWED = RULES.radio && !IN_IFRAME && !IN_STAGE && (!IS_MOBILE || PAGE_TYPE==='home' || RADIO_PAGE);
+    /* MOBILE RADIO IS SITE-WIDE (Founder 2026-09-24: "Mobile radio: continuous across KEEPITIL,
+       compact bar fixed immediately above the bottom navigation."). This used to allow the engine
+       on a phone only when PAGE_TYPE==='home' or the page opted in — and since the /v31 path tests
+       were removed on 2026-09-09 EVERY page resolves to 'standard', so phone Home had silently
+       lost its radio too (measured: no #kil-radio, no #kil-sc on mobile /). Culture still has
+       none: keepitil-radio.js returns before mounting there. RADIO_PAGE is kept for reference. */
+    var RADIO_ALLOWED = RULES.radio && !IN_IFRAME && !IN_STAGE;
     if(!RADIO_ALLOWED){
       var _rk=document.createElement('style'); _rk.textContent='#kil-radio,#kil-sc{display:none!important}'; document.head.appendChild(_rk);
       /* kill the BAR and the AUDIO ENGINE (#kil-sc soundcloud iframe survives bar removal —
@@ -252,7 +258,7 @@
              tag ran the current one. Two different radio bars on one site, and the stale half
              was invisible to a cache bump because the URL never changed. Bump this WITH the
              page tags whenever keepitil-radio.js changes. */
-          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20260924a'; document.body.appendChild(_rs);
+          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20260924b'; document.body.appendChild(_rs);
         }
       }catch(e){} });
     }
@@ -399,7 +405,7 @@
            This keeps the geometric fix and drops the collision: the banner is a full-width bar
            stacked above the chat FAB and the bottom nav, so nothing overlaps at any z-index and
            the content it interrupts is empty page margin instead of the middle of the feed. */
-        var _lift = 'calc(var(--kil-bnav-h,62px) + 86px + env(safe-area-inset-bottom,0px))';
+        var _lift = 'calc(var(--kil-bnav-h,62px) + var(--kil-mbar-h,0px) + 86px + env(safe-area-inset-bottom,0px))';
         b.style.cssText='position:fixed;left:12px;right:12px;bottom:'+_lift+';margin:0 auto;'
           +'max-width:520px;z-index:1150;background:#12121c;border:1px solid #2a2a3a;border-radius:14px;'
           +'padding:14px;display:flex;align-items:center;gap:10px;box-shadow:0 18px 48px rgba(0,0,0,.6);'
@@ -873,6 +879,9 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
       window.__kilMountBnav=function(){
         try{
           if(IN_IFRAME) return;   /* NEVER inside embedded frames — this leaked into the desktop chat card */
+          /* In the persistent-radio stage the TOP document already shows the bottom nav, with the
+             radio bar docked on top of it. A second nav inside the frame would stack under it. */
+          if(IN_STAGE) return;
 
           /* ── STATUS BAR IS ITS OWN LAYER (Founder 2026-08-24) ────────────────────────────
              "Make the iOS status area its own permanent black layer ... It should not belong
@@ -921,6 +930,16 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
              was born matching `:not(.on)` and had to be re-resolved; born with the class, it
              is correct from its first style resolution and nothing depends on invalidation. */
           var _bp=location.pathname;
+          /* The stage changes the page without reloading this document, so the active slot has
+             to be movable after mount. Same match rule as the markup below. */
+          window.__kilBnavActive=function(path){
+            try{ var links=document.querySelectorAll('#kil-bnav > a');
+              DESTINATIONS.forEach(function(d,i){ var a=links[i]; if(!a) return;
+                var on=d.match.test(path);
+                a.classList.toggle('on', on);
+                if(on) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current');
+              }); }catch(e){}
+          };
           bn.innerHTML=DESTINATIONS.map(function(d){
             var on=d.match.test(_bp);
             var mark=(on?' class="on" aria-current="page"':'');
@@ -959,7 +978,9 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           var KIL_BASE_PAD=null;
           /* Both floating controls are gone (§B). What is left to clear is the nav and
              the chat button, which §C keeps. */
-          var PINNED_IDS=['kil-bnav','kilo-btn'];
+          /* kil-radio: on a phone the compact bar now docks on the nav (Founder 2026-09-24), so a
+             page with no footer has to clear it too. */
+          var PINNED_IDS=['kil-bnav','kilo-btn','kil-radio'];
           var publishBarHeight=function(){
             var h=Math.round(bn.getBoundingClientRect().height);
             if(h>0 && h<=BNAV_MAX_H) document.documentElement.style.setProperty('--kil-bnav-h', h+'px');
@@ -1315,7 +1336,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
        against a 375 viewport. 8px puts the whole badge on screen with room to spare.
        ⚠ overflow MUST be visible. It was hidden, which clipped the badge against the button's
        own border-radius, and that is the clipping the badge fix is about. */
-    +'#kilo-btn{right:8px!important;left:auto!important;top:auto!important;bottom:calc(var(--kil-bnav-h,56px) + 5px)!important;width:44px!important;height:44px!important;min-width:0!important;min-height:0!important;padding:0!important;border-radius:50%!important;background:linear-gradient(135deg,#00b4ff,#22e39b)!important;display:flex!important;align-items:center;justify-content:center;overflow:visible!important}'
+    +'#kilo-btn{right:8px!important;left:auto!important;top:auto!important;bottom:calc(var(--kil-bnav-h,56px) + var(--kil-mbar-h,0px) + 5px)!important;width:44px!important;height:44px!important;min-width:0!important;min-height:0!important;padding:0!important;border-radius:50%!important;background:linear-gradient(135deg,#00b4ff,#22e39b)!important;display:flex!important;align-items:center;justify-content:center;overflow:visible!important}'
 /* Founder-tuned 2026-08-22 in the floating-button editor: 40px button, 20px glyph. */
     /* .kilo-mark added 2026-08-31: the glyph is the KEEPITIL mark now, painted through a
        CSS mask on a span rather than an <svg>. It belongs in the same rule so the shell
@@ -1345,7 +1366,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
        (border-radius 0 — deliberate, it is no longer a disc), 25px glyph, left, 5px from the
        edge, 5px above the nav. The glyph now fits inside the box, so overflow:visible is no
        longer load-bearing, but it is kept: it costs nothing and a later glyph bump would clip. */
-    +'#kil-top{position:fixed;left:5px;right:auto;bottom:calc(var(--kil-bnav-h,56px) + 5px);width:35px;height:35px;border-radius:0;background:#0aa2e8;color:#fff;border:0;cursor:pointer;z-index:940;display:flex;align-items:center;justify-content:center;font-size:25px;line-height:0;padding:0;opacity:0;pointer-events:none;transform:translateY(16px);transition:opacity .28s,transform .28s;overflow:visible}'
+    +'#kil-top{position:fixed;left:5px;right:auto;bottom:calc(var(--kil-bnav-h,56px) + var(--kil-mbar-h,0px) + 5px);width:35px;height:35px;border-radius:0;background:#0aa2e8;color:#fff;border:0;cursor:pointer;z-index:940;display:flex;align-items:center;justify-content:center;font-size:25px;line-height:0;padding:0;opacity:0;pointer-events:none;transform:translateY(16px);transition:opacity .28s,transform .28s;overflow:visible}'
     +'#kil-top.on{opacity:1;transform:none;pointer-events:auto}'
     +'html.kil-noarrow #kil-top{display:none!important}'
     /* R4.5 (Founder 2026-08-24: "remove the up blue arrow in the bottom left corner").
@@ -1511,7 +1532,9 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
        Scoped now — the inset alone on mobile, header + inset on desktop. */
     +'@media(max-width:860px){.pf-tabs{top:env(safe-area-inset-top,0px)!important}}'
     +'@media(min-width:861px){.pf-tabs{top:calc(66px + env(safe-area-inset-top,0px))!important}}'
-    +'@media(max-width:860px){#kil-bnav{display:flex}#kil-radio{transform:translateY(220%)!important;pointer-events:none!important}}'
+    /* The phone bar used to be pushed off-screen here (translateY(220%)). Superseded 2026-09-24:
+       the compact bar docks on the bottom nav — see keepitil-radio.js, MOBILE: THE COMPACT BAR. */
+    +'@media(max-width:860px){#kil-bnav{display:flex}}'
     +'#v3-footer{border-top:1px solid var(--line,rgba(255,255,255,.08));background:var(--bg,#0a0a0f);color:var(--muted,#888);padding:40px 20px;margin-top:56px;font-family:var(--font,Inter,sans-serif);font-size:.85rem;text-align:left}'
     /* FOOTER GAP — Founder 2026-08-19: "there is a gap after the footer section" on Connect and
        Create. Cause: each page reserves room for the fixed bottom nav with its own
@@ -1532,7 +1555,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
        the inset is already inside the number. Adding env() again reserved it twice and the
        second copy rendered as empty background between the content and the nav. Same mistake
        the Culture card made on 2026-08-23; see keepitil-shell-geometry-variables. */
-    +    'padding-bottom:calc(12px + var(--kil-bnav-h,56px))}'
+    +    'padding-bottom:calc(12px + var(--kil-bnav-h,56px) + var(--kil-mbar-h,0px))}'
     +'}'
     +'#v3-footer .v3-foot-inner{max-width:var(--maxw,1400px);margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}'
     +'#v3-footer .v3-foot-brand{font-weight:900;letter-spacing:.14em;font-size:1.05rem;background:linear-gradient(90deg,var(--brand,#00b4ff),var(--brand-2,#5cc8ff));-webkit-background-clip:text;background-clip:text;color:transparent;text-decoration:none}'
@@ -1583,7 +1606,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     +    'opacity:.6;padding-top:6px}'
     /* row 6: deliberate empty space so the floating up-arrow (left) and chat (right) buttons
        have somewhere to sit that is not on top of a link. */
-    +  '#v3-footer{padding-bottom:calc(84px + var(--kil-bnav-h,62px))!important}'
+    +  '#v3-footer{padding-bottom:calc(84px + var(--kil-bnav-h,62px) + var(--kil-mbar-h,0px))!important}'
     +'}'
     +'#v3-theme{position:fixed;left:16px;bottom:124px;z-index:600;display:flex;flex-direction:column-reverse;align-items:center;gap:8px}'
     +'#v3-theme .v3t-btn{width:44px;height:44px;border-radius:50%;background:var(--surface,#15151f);border:1px solid var(--line,rgba(255,255,255,.14));color:var(--text,#f0f0f0);font-size:1.15rem;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.4);line-height:1}'

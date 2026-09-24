@@ -166,12 +166,12 @@
       '.krb-now{flex:1 1 auto!important;position:static;background:none;border-color:transparent;}'+
       /* position/animation resets dropped with the absolute+crossfade system they undid.
          The mobile type scale stays, and so does hiding the station sub-line below. */
-      '.krb-now .kr-now{font-size:.62rem;font-weight:400;color:rgba(255,255,255,.7);}'+
+      '.krb-now .kr-now{font-size:var(--kr-bar-now,.62rem);font-weight:400;color:rgba(255,255,255,.7);}'+
       '#kr-nowpl{display:none!important;}'+
       '.kr-side,.kr-plname{display:none!important;}'+
       '.kil-brand-logo{height:22px;}'+
       '#kr-mute{margin-left:auto;}'+
-      '#kr-vol{width:74px;height:20px;}'+
+      '#kr-vol{width:var(--kr-vol-w,74px);height:20px;}'+
       '#kil-radio{gap:6px;padding:0 8px;}'+
     '}'+
     '@media(max-width:480px){.radio-mini #kilo-panel{bottom:156px!important;right:12px!important;}}'
@@ -277,15 +277,23 @@
     /* §8: 40px hit targets carrying a 22px glyph, matching the transport circles. Scoped to
        #kil-radio on purpose - .kr-util is also the drawer's chat expand/close pair, and
        those are secondary controls in a header, not primary controls in the bar. */
-    +  '#kil-radio .kr-util{width:40px;height:40px;padding:0;border-radius:10px;'
-    +    'font-size:1.25rem;}'
-    +  '#kil-radio .kr-util svg{width:22px;height:22px;}'
+    +  '#kil-radio .kr-util{width:var(--kr-util,40px);height:var(--kr-util,40px);padding:0;'
+    +    'border-radius:var(--kr-util-radius,10px);font-size:var(--kr-util-glyph,1.25rem);}'
+    +  '#kil-radio .kr-util svg{width:var(--kr-util-ic,22px);height:var(--kr-util-ic,22px);}'
     /* The square art is 14px wider than the portrait card it replaces and the text is
        larger, so each zone gains that back. Measured, not guessed: see the reported centre
        offset at 1440/1280/1024. */
-    +  '@media(min-width:1200px){#kil-radio{--kr-tkw:210px;--kr-curw:270px;}}'
-    +  '@media(min-width:1024px) and (max-width:1199px){#kil-radio{--kr-tkw:158px;--kr-curw:238px;}}'
-    +  '@media(max-width:1023px){.kr-tk-side{display:none;}#kil-radio{--kr-curw:230px;}}'
+    /* Same rule as the drawer card: these once hard-set --kr-tkw / --kr-curw here, which made
+       the bar's track slots untunable, because a literal on #kil-radio beats any inherited
+       value. Tune the -base pair; the narrower widths keep their measured proportions of it
+       (210 -> 158 was .752; 270 -> 238 / 230 was .881 / .852). */
+    +  '@media(min-width:1200px){#kil-radio{--kr-tkw:var(--kr-tkw-base,210px);'
+    +    '--kr-curw:var(--kr-curw-base,270px);}}'
+    +  '@media(min-width:1024px) and (max-width:1199px){'
+    +    '#kil-radio{--kr-tkw:calc(var(--kr-tkw-base,210px)*.752);'
+    +    '--kr-curw:calc(var(--kr-curw-base,270px)*.881);}}'
+    +  '@media(max-width:1023px){.kr-tk-side{display:none;}'
+    +    '#kil-radio{--kr-curw:calc(var(--kr-curw-base,270px)*.852);}}'
     +'}'
     +'#kr-live{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(0,255,136,.28);border-radius:10px;padding:4px 8px;cursor:pointer;transition:background .18s,border-color .18s,box-shadow .18s;}'
     +'#kr-live:hover{background:rgba(0,255,136,.10);border-color:rgba(0,255,136,.55);}'
@@ -294,7 +302,7 @@
     /* ONE ROW, NO WRAP (§4). white-space:nowrap is the part that matters: the old markup
        forced two rows with a <br>, and simply deleting the <br> would let a narrow bar wrap
        it back to two by itself. */
-    +'#kr-live .kil-brand-radio{line-height:1;text-align:left;font-size:1rem;'
+    +'#kr-live .kil-brand-radio{line-height:1;text-align:left;font-size:var(--kr-live-size,1rem);'
     +  'white-space:nowrap;letter-spacing:.1em;}'
     /* station stepper: fixed width, so new stations never widen the bar */
     /* now playing */
@@ -331,7 +339,8 @@
     /* ══ UTILITY CONTROLS ════════════════════════════════════════════════════════════ */
     +'.kr-util{display:inline-flex;align-items:center;justify-content:center;'
     +  'background:transparent;border:1px solid transparent;border-radius:9px;'
-    +  'color:var(--kra-txt);font-size:.9rem;line-height:1;padding:5px 7px;cursor:pointer;'
+    +  'color:var(--kra-txt);font-size:var(--kr-chatbtn-glyph,.9rem);line-height:1;'
+    +  'padding:var(--kr-chatbtn-pady,5px) var(--kr-chatbtn-padx,7px);cursor:pointer;'
     +  'transition:color .18s,background .18s,border-color .18s;}'
     +'.kr-util:hover{color:#fff;background:rgba(0,255,136,.16);border-color:var(--kra-line);}'
     +'.kr-util:focus-visible{outline:2px solid var(--kra);outline-offset:2px;}'
@@ -371,13 +380,14 @@
        Sized to the content it actually has, capped so it can never cover the viewport, and
        it grows again when + CREATE reveals the submission form. */
     +'#kr-drawer{bottom:var(--kil-radio-h,54px);max-height:calc(100vh - var(--kil-radio-h,54px) - 8px);border-radius:14px 14px 0 0;box-shadow:0 -18px 50px rgba(0,0,0,.7);}'
-    +'.kr-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:linear-gradient(90deg,rgba(0,255,136,.12),rgba(124,77,255,.10));border:0;border-bottom:1px solid rgba(255,255,255,.08);padding:11px 14px;cursor:pointer;}'
+    +'.kr-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:linear-gradient(90deg,rgba(0,255,136,.12),rgba(124,77,255,.10));border:0;border-bottom:1px solid rgba(255,255,255,.08);'
+    +  'padding:var(--kr-hdr-pady,11px) var(--kr-hdr-padx,14px);cursor:pointer;}'
     +'.kr-hdr:hover{background:linear-gradient(90deg,rgba(0,255,136,.2),rgba(124,77,255,.16));}'
     +'.kr-hdr:focus-visible{outline:2px solid var(--kra);outline-offset:-2px;}'
     +'.kr-hdr-l,.kr-hdr-r{display:flex;align-items:center;gap:8px;}'
-    +'.kr-hdr-t{font-size:.7rem;font-weight:900;letter-spacing:.2em;color:#00ff88;text-transform:uppercase;}'
-    +'.kr-hdr-hint{font-size:.47rem;font-weight:800;letter-spacing:.16em;color:#7a8699;text-transform:uppercase;}'
-    +'.kr-hdr-ic{color:var(--kra);font-size:.7rem;}'
+    +'.kr-hdr-t{font-size:var(--kr-hdr-t,.7rem);font-weight:900;letter-spacing:.2em;color:#00ff88;text-transform:uppercase;}'
+    +'.kr-hdr-hint{font-size:var(--kr-hdr-hint,.47rem);font-weight:800;letter-spacing:.16em;color:#7a8699;text-transform:uppercase;}'
+    +'.kr-hdr-ic{color:var(--kra);font-size:var(--kr-hdr-ic,.7rem);}'
     +'html[data-radio-ui="expanded"] .kr-hdr-ic{transform:rotate(180deg);}'
     +'.kr-panel-body{overflow:auto;padding:12px 14px 16px;}'
     /* ══ EXPANDED RADIO: TWO COLUMNS (brief 21-25) ═══════════════════════════════════
@@ -423,13 +433,14 @@
     +'#kr-drawer.kr-chat-wide{--kr-chatw:50%;}'
     +'#kr-drawer.kr-chat-off{--kr-chatw:0px;}'
     +'#kr-drawer.kr-chat-off .kr-chatcol{border-left:0;overflow:hidden;}'
-    +'.kr-chathdr{display:flex;align-items:center;gap:8px;padding:10px 12px;'
+    +'.kr-chathdr{display:flex;align-items:center;gap:var(--kr-chathdr-gap,8px);'
+    +  'padding:var(--kr-chathdr-pady,10px) var(--kr-chathdr-padx,12px);'
     +  'border-bottom:1px solid var(--kra-line);flex:0 0 auto;}'
-    +'.kr-chathdr b{font-size:.62rem;font-weight:900;letter-spacing:.16em;color:var(--kra);'
+    +'.kr-chathdr b{font-size:var(--kr-chathdr-size,.62rem);font-weight:900;letter-spacing:.16em;color:var(--kra);'
     +  'text-transform:uppercase;}'
-    +'.kr-chathdr .kr-sp{margin-left:auto;display:flex;gap:4px;}'
+    +'.kr-chathdr .kr-sp{margin-left:auto;display:flex;gap:var(--kr-chatbtn-gap,4px);}'
     +'.kr-chatbody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;}'
-    +'.kr-chatnote{padding:12px;font-size:.66rem;line-height:1.5;color:#9c94b8;}'
+    +'.kr-chatnote{padding:var(--kr-chatnote-pad,12px);font-size:var(--kr-chatnote-size,.66rem);line-height:1.5;color:#9c94b8;}'
     /* ── ROWS ────────────────────────────────────────────────────────────────────────── */
     +'.kr-rowhead{display:flex;align-items:center;gap:var(--kr-head-gap,10px);'
     +  'margin:0 0 var(--kr-head-mb,10px);}'
@@ -474,7 +485,7 @@
     +  '.kr-rail{--kr-tcw:calc(var(--kr-tcw-base,200px)*.633);}}'
     +'@media(max-width:1023px){'
     +  '.kr-rail{--kr-tcw:calc(var(--kr-tcw-base,200px)*.612);}}'
-    +'.kr-railbtn{flex:0 0 28px;width:28px;height:28px;border-radius:50%;background:rgba(0,255,136,.10);'
+    +'.kr-railbtn{flex:0 0 var(--kr-railbtn,28px);width:var(--kr-railbtn,28px);height:var(--kr-railbtn,28px);border-radius:50%;background:rgba(0,255,136,.10);'
     +  'border:1px solid var(--kra-line);color:var(--kra);cursor:pointer;line-height:1;}'
     +'.kr-railbtn:hover:not([disabled]){background:rgba(0,255,136,.24);border-color:var(--kra);}'
     /* A rail arrow with nothing to scroll is a control that does nothing. With three real
@@ -518,10 +529,10 @@
     +'.kr-tcp{font-size:var(--kr-tcp-size,1rem);font-weight:700;letter-spacing:.08em;text-transform:uppercase;'
     +  'color:var(--kra-txt);}'
     +'.kr-tc.on .kr-tct{font-weight:800;color:#fff;}'
-    +'.kr-tcnow{display:inline-flex;align-items:center;gap:5px;margin-top:4px;font-size:.46rem;'
+    +'.kr-tcnow{display:inline-flex;align-items:center;gap:5px;margin-top:4px;font-size:var(--kr-tcnow-size,.46rem);'
     +  'font-weight:900;letter-spacing:.16em;color:var(--krg);text-transform:uppercase;}'
     /* ── STATION ROW + THE LOCKED CREATE TILE (brief 30-33) ─────────────────────────── */
-    +'.kr-strow{display:flex;align-items:stretch;gap:10px;min-width:0;}'
+    +'.kr-strow{display:flex;align-items:stretch;gap:var(--kr-st-gap,10px);min-width:0;}'
     /* The station scroller HUGS ITS CONTENT instead of filling the row. There are three real
        stations, and a full-width scroller left a ~500px void between the last one and the
        CREATE tile. flex:0 1 auto still lets it shrink and scroll once there are enough
@@ -548,7 +559,7 @@
     /* nowrap: this strip lives inside a horizontal scroller, and wrapping made it a grid
        that grew DOWNWARD instead of scrolling sideways - which is also what made the rail
        arrows look inert, because there was never any horizontal overflow to move. */
-    +'.kr-stations{display:flex;flex-wrap:nowrap;gap:10px;}'
+    +'.kr-stations{display:flex;flex-wrap:nowrap;gap:var(--kr-st-gap,10px);}'
     /* Station cards are one consistent size across the row and lead with real artwork
        (brief 31/32) - the old text-only pill ignored the station art that config carries. */
     +'.kr-st{flex:0 0 var(--kr-stw,150px);width:var(--kr-stw,150px);display:flex;flex-direction:column;align-items:stretch;'
@@ -561,7 +572,8 @@
        is cut and nothing is stretched. */
     +'.kr-st img{width:100%;aspect-ratio:2/3;height:auto;object-fit:cover;display:block;'
     +  'background:#0e1a14;}'
-    +'.kr-st>span{padding:7px 8px;font:900 .54rem/1.15 \'Space Grotesk\',Inter,sans-serif;'
+    +'.kr-st>span{padding:var(--kr-stname-pady,7px) var(--kr-stname-padx,8px);'
+    +  'font:900 var(--kr-stname-size,.54rem)/1.15 \'Space Grotesk\',Inter,sans-serif;'
     +  'letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;overflow:hidden;'
     +  'text-overflow:ellipsis;}'
     +'.kr-st-noart{width:100%;height:78px;display:block;background:linear-gradient(135deg,'

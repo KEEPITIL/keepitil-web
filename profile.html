@@ -2600,11 +2600,33 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
       b.onclick=a.go; row.appendChild(b);
     });
     w.appendChild(h); w.appendChild(p2); w.appendChild(row);
-    var host=document.querySelector('main')||document.body;
-    host.innerHTML=''; host.appendChild(w);
+    /* Rendered INTO <main> at first, which had two faults: it deleted the page's own content,
+       and the profile loaders repaint <main> milliseconds later, so the message vanished on
+       any run where they finished second. A fixed layer on <body> is repaint-proof, and it
+       starts below the nav so every link out of here stays clickable. */
+    var prev=document.getElementById('pf-stuck'); if(prev) prev.remove();
+    var lay=document.createElement('div'); lay.id='pf-stuck';
+    lay.setAttribute('style','position:fixed;left:0;right:0;top:64px;bottom:0;z-index:9990;'
+      +'display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;'
+      +'background:rgba(6,7,9,.94);backdrop-filter:blur(3px);overflow:auto');
+    w.style.margin='0';
+    lay.appendChild(w); document.body.appendChild(lay);
   }
 
   function pfGo(slug){ location.replace('/profile?slug='+encodeURIComponent(slug)); }
+
+  function pfSignOut(){
+    var done=function(){
+      try{ Object.keys(localStorage).forEach(function(k){
+        if(/^sb-.*-auth-token/.test(k)||/supabase\.auth\.token/.test(k)) localStorage.removeItem(k); }); }catch(e){}
+      try{ Object.keys(sessionStorage).forEach(function(k){
+        if(/^sb-.*-auth-token/.test(k)) sessionStorage.removeItem(k); }); }catch(e){}
+    };
+    try{
+      return SB.auth.signOut({scope:'local'}).then(done).catch(done);
+    }catch(e){ done(); return Promise.resolve(); }
+  }
+  window.__kilSignOut = pfSignOut;   /* so a stuck session can always be cleared from anywhere */
 
   function resolveMyProfile(){
     /* getUser() validates against the server; getSession() alone cannot tell a live session
@@ -2612,16 +2634,28 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
     SB.auth.getUser().then(function(u){
       var user=(u&&u.data)?u.data.user:null;
       if(!user || (u&&u.error)){
-        SB.auth.getSession().then(function(r){
-          var stale=!!(r&&r.data&&r.data.session);
-          if(!stale){ location.replace('/apply'); return; }
-          pfStuck('Session expired',
-            'You are signed in on this device, but the sign-in has expired, so your profile could not be loaded. Signing in again fixes it.',
-            [{label:'Sign in again', primary:true, go:function(){ location.href='/apply'; }},
-             {label:'Dashboard', go:function(){ location.href='/dashboard'; }}]);
+        /* A token the server rejects is not a state to display and leave sitting there — the
+           first version of this panel did exactly that, and left no way to clear it. Try a
+           refresh, and if that fails the session is genuinely over, so END it. */
+        SB.auth.refreshSession().then(function(rs){
+          var u2=(rs&&rs.data)?rs.data.user:null;
+          if(u2 && !(rs&&rs.error)){ resolveFor(u2); return; }   /* self-healed, carry on */
+          return pfSignOut().then(function(){ location.replace('/apply?expired=1'); });
+        }).catch(function(){
+          pfSignOut().then(function(){ location.replace('/apply?expired=1'); });
         });
         return;
       }
+      resolveFor(user);
+    }).catch(function(){
+      pfStuck('Could not check your sign-in',
+        'The sign-in check did not complete, so nothing has been assumed about your account.',
+        [{label:'Try again', primary:true, go:function(){ location.reload(); }},
+         {label:'Sign in', go:function(){ location.href='/apply'; }}]);
+    });
+  }
+
+  function resolveFor(user){
       /* Two ways to find the slug. The RPC is the normal one; profile_owners is world-readable,
          so a direct read is a real second path rather than a retry of the same call. */
       SB.rpc('my_profile_slug').then(function(rr){
@@ -2633,20 +2667,16 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
             pfStuck('No profile on this account',
               'Signed in as '+(user.email||'this account')+'. There is no profile linked to it yet.',
               [{label:'Create my profile', primary:true, go:function(){ pfClaim(user); }},
-               {label:'Dashboard', go:function(){ location.href='/dashboard'; }}]);
+               {label:'Dashboard', go:function(){ location.href='/dashboard'; }},
+               {label:'Sign out', go:function(){ pfSignOut().then(function(){ location.href='/'; }); }}]);
           });
       }).catch(function(){
         pfStuck('Could not load your profile',
           'The lookup failed rather than coming back empty, so this is not a missing profile. Trying again usually works.',
           [{label:'Try again', primary:true, go:function(){ location.reload(); }},
-           {label:'Dashboard', go:function(){ location.href='/dashboard'; }}]);
+           {label:'Dashboard', go:function(){ location.href='/dashboard'; }},
+           {label:'Sign out', go:function(){ pfSignOut().then(function(){ location.href='/'; }); }}]);
       });
-    }).catch(function(){
-      pfStuck('Could not check your sign-in',
-        'The sign-in check did not complete, so nothing has been assumed about your account.',
-        [{label:'Try again', primary:true, go:function(){ location.reload(); }},
-         {label:'Sign in', go:function(){ location.href='/apply'; }}]);
-    });
   }
 
   /* claim_profile() has existed in the database the whole time and was called from nowhere,

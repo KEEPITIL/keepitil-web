@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PokaSnap — Poke. Pose. Snap.</title>
+<meta name="description" content="PokaSnap is a cute photo game: create a plush pet, pose it anywhere in the real world with your camera, complete silly photo missions and earn rewards.">
+<link rel="canonical" href="https://keepitil.com/games/pokasnap/">
+<meta property="og:title" content="PokaSnap — Poke. Pose. Snap.">
+<meta property="og:description" content="Bring your pet into your world and complete photo challenges together.">
+<meta property="og:image" content="https://keepitil.com/games/pokasnap/play/img/icon-1024.png">
+<meta property="og:url" content="https://keepitil.com/games/pokasnap/">
+<meta name="theme-color" content="#ff6b8b">
+<link rel="icon" href="play/img/icon-192.png">
+<link rel="apple-touch-icon" href="play/img/icon-180.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"PokaSnap","url":"https://keepitil.com/games/pokasnap/","description":"A cute photo game: pose a plush pet in the real world and complete photo missions.","genre":["Casual","Photography"],"gamePlatform":["Web browser","iOS"],"applicationCategory":"Game","operatingSystem":"iOS, Web","publisher":{"@type":"Organization","name":"KEEPITIL","url":"https://keepitil.com/"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+<style>
+:root{--cream:#fff6ec;--ink:#3b2a33;--ink2:#7a6670;--pink:#ff6b8b;--pinkdk:#e0496c;--sun:#ffcf4a;--sky:#5ec8f2;--line:#f1dfcc;--font:ui-rounded,"SF Pro Rounded","Nunito",system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box}html,body{margin:0;background:var(--cream);color:var(--ink);font-family:var(--font)}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+.brand{font-weight:900;font-size:26px;text-decoration:none}.brand .p{color:var(--pink)}.brand .s{color:#2fa4d6}
+.btn{display:inline-flex;align-items:center;gap:10px;background:var(--pink);color:#fff;font-weight:900;font-size:19px;padding:16px 28px;border-radius:999px;text-decoration:none;box-shadow:0 5px 0 var(--pinkdk),0 12px 26px rgba(224,73,108,.25)}
+.btn.ghost{background:#fff;color:var(--ink);box-shadow:0 4px 0 var(--line);border:2px solid var(--line)}
+.btn:active{transform:translateY(3px)}
+.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:30px;align-items:center;padding:30px 0 50px}
+.hero h1{font-size:clamp(52px,9vw,96px);line-height:.95;margin:0;letter-spacing:-2px;font-weight:900}
+.hero h1 .p{color:var(--pink)}.hero h1 .s{color:#2fa4d6}
+.tag{font-weight:900;letter-spacing:5px;color:var(--ink2);margin:14px 0 6px}
+.lede{font-size:21px;font-weight:600;color:var(--ink2);line-height:1.45;max-width:460px}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+.stage{position:relative;aspect-ratio:1;border-radius:40px;background:radial-gradient(circle at 50% 40%,#ffe07a,#ff9aa9 60%,#ff6b8b);box-shadow:0 30px 60px rgba(255,107,139,.25);overflow:hidden}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%}
+section{padding:46px 0}
+h2{font-size:38px;margin:0 0 10px;letter-spacing:-.5px;font-weight:900}
+.subh{color:var(--ink2);font-weight:600;font-size:18px;margin:0 0 26px}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.step{background:#fff;border:2px solid var(--line);border-radius:24px;padding:18px 14px;text-align:center;box-shadow:0 4px 0 var(--line)}
+.step .n{width:40px;height:40px;border-radius:50%;background:var(--pink);color:#fff;font-weight:900;display:grid;place-items:center;margin:0 auto 10px;font-size:19px}
+.step b{display:block;font-size:17px;margin-bottom:4px}.step span{color:var(--ink2);font-weight:600;font-size:14.5px}
+.pets{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.pet{background:#fff;border:2px solid var(--line);border-radius:26px;padding:10px 10px 16px;text-align:center;box-shadow:0 4px 0 var(--line)}
+.pet canvas{width:100%;aspect-ratio:1}.pet b{display:block;font-size:17px}.pet span{color:var(--ink2);font-size:13.5px;font-weight:600}
+.missions{display:flex;flex-wrap:wrap;gap:10px}
+.m{background:#fff;border:2px solid var(--line);border-radius:999px;padding:10px 16px;font-weight:800;font-size:15.5px}
+.closet{display:grid;grid-template-columns:1fr 1.2fr;gap:30px;align-items:center}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.cards canvas{width:100%;aspect-ratio:1;background:#fff;border:2px solid var(--line);border-radius:22px}
+.download{background:#fff;border:2px solid var(--line);border-radius:36px;padding:40px;text-align:center;box-shadow:0 6px 0 var(--line)}
+.badge{display:inline-block;background:var(--ink);color:#fff;border-radius:14px;padding:12px 20px;font-weight:800;opacity:.85}
+footer{padding:36px 0 50px;color:var(--ink2);font-weight:700;font-size:14.5px;display:flex;gap:18px;flex-wrap:wrap;justify-content:center}
+@media(max-width:820px){.hero,.closet{grid-template-columns:1fr}.steps{grid-template-columns:1fr 1fr}.pets{grid-template-columns:repeat(3,1fr)}.hero{padding-top:6px}}
+@media(max-width:480px){.pets{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav><a class="brand" href="./"><span class="p">Poka</span><span class="s">Snap</span></a><a class="btn ghost" href="play/" style="padding:10px 20px;font-size:16px">Play now</a></nav>
+  <div class="hero">
+    <div>
+      <h1><span class="p">Poka</span><span class="s">Snap</span></h1>
+      <p class="tag">POKE · POSE · SNAP</p>
+      <p class="lede">Bring your pet into your world and complete photo challenges together.</p>
+      <div class="ctas"><a class="btn" href="play/">📸 Play free in your browser</a><a class="btn ghost" href="#download">iPhone app</a></div>
+    </div>
+    <div class="stage"><canvas id="hero" width="900" height="900" aria-label="A fluffy PokaSnap cat waving"></canvas></div>
+  </div>
+</div>
+<section><div class="wrap">
+  <h2>How it works</h2><p class="subh">One silly mission at a time.</p>
+  <div class="steps">
+    <div class="step"><div class="n">1</div><b>Pick your pet</b><span>Choose, name and dress your plush companion.</span></div>
+    <div class="step"><div class="n">2</div><b>Get a mission</b><span>"Couch Potato", "Big Pet", "Hide and Seek"…</span></div>
+    <div class="step"><div class="n">3</div><b>Poke &amp; pose</b><span>Tap your pet to make it react, pick a pose.</span></div>
+    <div class="step"><div class="n">4</div><b>Snap the picture</b><span>Drag, pinch and place your pet anywhere, then shoot.</span></div>
+    <div class="step"><div class="n">5</div><b>Earn rewards</b><span>Score points, level up and unlock gear.</span></div>
+  </div>
+</div></section>
+<section><div class="wrap">
+  <h2>Meet the pets</h2><p class="subh">Fluffy, friendly and very photogenic.</p>
+  <div class="pets" id="pets"></div>
+</div></section>
+<section><div class="wrap">
+  <h2>Photo missions</h2><p class="subh">Eighteen to start — no real chair required, just creativity.</p>
+  <div class="missions" id="missions"></div>
+</div></section>
+<section><div class="wrap closet">
+  <div><h2>Customize your pet</h2><p class="subh">Collars, bow ties, caps, crowns and more — earned by playing, or unlocked with coins from missions.</p></div>
+  <div class="cards" id="cards"></div>
+</div></section>
+<section id="download"><div class="wrap"><div class="download">
+  <h2>Play now</h2>
+  <p class="subh">PokaSnap runs right in your phone's browser — tap Share → Add to Home Screen to install it. The iPhone app is on its way to the App Store.</p>
+  <div class="ctas" style="justify-content:center"><a class="btn" href="play/">📸 Play PokaSnap</a><span class="badge">App Store — coming soon</span></div>
+</div></div></section>
+<footer><span>© KEEPITIL</span><a href="privacy.html">Privacy</a><a href="support.html">Support</a><a href="/games/">More games</a></footer>
+<script type="module">
+import { portrait, drawPet } from './play/js/render/pet.js';
+import { SPECIES, LAUNCH_SPECIES } from './play/js/data/pets.js';
+import { MISSIONS } from './play/js/data/missions.js';
+import { drawItemThumb } from './play/js/render/items.js';
+const hero = document.getElementById('hero');
+const scenes = [
+  ['cat_fluffy','cloud',{NECK:'neck_bowtie_blue'},'wave'],['dog_golden','honey',{HEAD:'head_cap'},'happy'],
+  ['bunny','lop',{HEAD:'head_crown'},'jump'],['dog_small','apricot',{NECK:'neck_bandana'},'wink'],['cat_short','tabby',{FACE:'face_sunnies'},'look']];
+let si = 0, t0 = performance.now();
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+(function loop(now){ if (now - t0 > 3200) { si = (si+1)%scenes.length; t0 = now; }
+  const [s,a,e,p] = scenes[si]; portrait(hero, {species:s,appearance:a,equipped:e}, p, {t: reduce ? 0.5 : now/1000, zoom:1.05, ground:.1});
+  requestAnimationFrame(loop); })(performance.now());
+const pets = document.getElementById('pets');
+for (const id of LAUNCH_SPECIES) { const sp = SPECIES[id], c = document.createElement('canvas'); c.width = c.height = 320;
+  portrait(c, {species:id, appearance:sp.appearances[0].id}, 'happy', {t:.4});
+  const d = document.createElement('div'); d.className = 'pet'; d.append(c); d.insertAdjacentHTML('beforeend', `<b>${sp.name}</b><span>${sp.blurb}</span>`); pets.append(d); }
+document.getElementById('missions').innerHTML = MISSIONS.map(m => `<span class="m">${m.icon} ${m.title}</span>`).join('');
+const cards = document.getElementById('cards');
+for (const id of ['neck_bowtie_blue','head_cap','head_crown','face_sunnies','neck_bandana','head_party']) { const c = document.createElement('canvas'); c.width = c.height = 240; drawItemThumb(c, id); cards.append(c); }
+</script>
+</body>
+</html>

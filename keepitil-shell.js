@@ -40,8 +40,18 @@
      IN_IFRAME guard: embedded frames (e.g. the event chat) NEVER get bottom-nav/radio/banner —
      this was the "mobile filter bar" leaking into the desktop chat card. */
   var IN_IFRAME=false; try{ IN_IFRAME=(window.self!==window.top); }catch(e){ IN_IFRAME=true; }
+  /* THE STAGE IS NOT AN EMBED (Founder 2026-09-24: the radio "needs to consistently play on
+     the same track as the user ... jumps between different pages"). The persistent radio keeps
+     the radio in the top document and shows every page inside a full-screen frame named
+     kil-stage. That page is the visitor's page, not an embedded card: it keeps its nav, its
+     floating buttons and its mobile bottom nav. The only thing it must NOT have is a radio of
+     its own — the one in the top document is already playing. Every other frame keeps the
+     embedded-frame rule above. */
+  var IN_STAGE=false;
+  try{ IN_STAGE = IN_IFRAME && window.name==='kil-stage' && !!window.top.__kilStageHost; }catch(e){ IN_STAGE=false; }
+  if(IN_STAGE) IN_IFRAME=false;
   var IS_MOBILE=false; try{ IS_MOBILE=window.matchMedia('(max-width:860px)').matches; }catch(e){}
-  try{ window.KIL=window.KIL||{}; window.KIL.pageType=PAGE_TYPE; window.KIL.pageRules=RULES; window.KIL.isMobile=IS_MOBILE; }catch(e){}
+  try{ window.KIL=window.KIL||{}; window.KIL.inStage=IN_STAGE; window.KIL.pageType=PAGE_TYPE; window.KIL.pageRules=RULES; window.KIL.isMobile=IS_MOBILE; }catch(e){}
   /* LEGACY URL PRETTIFIER REMOVED 2026-08-26. This ran history.replaceState() to rewrite
      /v3/... and /v31/... paths into clean forms. Both namespaces were deleted on
      2026-08-25, so not one of its branches could ever match again — and the clean forms
@@ -225,7 +235,7 @@
   })();
     var RADIO_PAGE = false;
     try{ RADIO_PAGE = document.documentElement.getAttribute('data-radio') === 'page'; }catch(e){}
-    var RADIO_ALLOWED = RULES.radio && !IN_IFRAME && (!IS_MOBILE || PAGE_TYPE==='home' || RADIO_PAGE);
+    var RADIO_ALLOWED = RULES.radio && !IN_IFRAME && !IN_STAGE && (!IS_MOBILE || PAGE_TYPE==='home' || RADIO_PAGE);
     if(!RADIO_ALLOWED){
       var _rk=document.createElement('style'); _rk.textContent='#kil-radio,#kil-sc{display:none!important}'; document.head.appendChild(_rk);
       /* kill the BAR and the AUDIO ENGINE (#kil-sc soundcloud iframe survives bar removal —
@@ -242,7 +252,7 @@
              tag ran the current one. Two different radio bars on one site, and the stale half
              was invisible to a cache bump because the URL never changed. Bump this WITH the
              page tags whenever keepitil-radio.js changes. */
-          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20260918a'; document.body.appendChild(_rs);
+          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20260924a'; document.body.appendChild(_rs);
         }
       }catch(e){} });
     }

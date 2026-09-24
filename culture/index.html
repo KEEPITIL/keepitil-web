@@ -1,4 +1,19 @@
 <!DOCTYPE html><html lang="en" data-theme="default"><head>
+<script>/* Culture landing: no page snap, and NO MOVEMENT, until the one transition has run.
+   Measured on the live site: the page glided 113px (desktop) / 179px (mobile) down at ~0.5s
+   and back ~1.5s later, before anyone touched anything. Blanking inline scripts isolated it
+   to the mobile enhancer's first layout pass; no script calls a scroll API, the browser
+   follows a layout change. Whatever moves it, the landing is the one state the page is in, so
+   any scroll the visitor did not make is put back in the same frame — scroll events run
+   before paint, so the correction is never seen. The visitor's own wheel/swipe/key starts the
+   transition instead (see cul-advance). */
+(function(){ var h=document.documentElement; h.classList.add('cul-landing');
+  addEventListener('scroll', function(){
+    if(h.classList.contains('cul-landing') && !h.classList.contains('cul-moving') && scrollY!==0){
+      try{ window.scrollTo({top:0, left:0, behavior:'instant'}); }catch(e){ window.scrollTo(0,0); }
+    }
+  }, {passive:true});
+})();</script>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content"/>
 <meta name="description" content="CULTURE on KEEPITIL — original stories, media and the community feed from the people making culture."/>
 <title>CULTURE — Stories, Media & Community Feed | KEEPITIL</title>
@@ -3832,6 +3847,122 @@ function culResolveFilters(){
        footer staying up after the pointer has gone back to the feed and scrolled up there. */
     window.addEventListener('keydown', function(e){ if(e.key==='Escape') hide(); });
   });
+})();
+</script>
+
+<style id="cul-advance-css">
+/* ══ ONE TRANSITION, THEN STAY (Founder 2026-09-24) ═══════════════════════════════════
+   "the landing page that pauses for a brief 1.5 seconds and the transition to the second
+   section ... that locks into the screen and not allow the page to scroll up or down."
+   Once the content is in, the landing is taken out of the page, so there is nothing above
+   to scroll back to; on desktop the page itself is frozen and only the feed scrolls. */
+/* DURING THE LANDING the page must not snap at all. Measured: html AND body are
+   scroll-snap-type:y mandatory with scroll-behavior:smooth, and while the page is still laying
+   out the hero is the only snap target — so the browser GLIDED the page to it (0 -> 113px on
+   desktop, 0 -> 171px on mobile) and back again ~2s later when the feed rendered. On the live
+   site that was a visible lurch before anyone had touched anything. */
+html.cul-landing, html.cul-landing body{scroll-snap-type:none!important;}
+/* No transform (and no will-change) until the move itself: ANY transform on .wrap makes it the
+   containing block for the fixed bars inside it, which would pin them to the content instead
+   of the screen for the whole landing. It exists only for the 0.65s of the slide. */
+html.cul-landing header.hero, html.cul-landing .wrap{
+  transition:transform .65s cubic-bezier(.22,.61,.36,1);}
+html.cul-landing.cul-moving header.hero, html.cul-landing.cul-moving .wrap{
+  transform:translateY(calc(-1 * var(--cul-d, 0px)));}
+@media (prefers-reduced-motion: reduce){ html.cul-landing header.hero, html.cul-landing .wrap{transition:none;} }
+html.cul-in header.hero{display:none!important;}
+/* AFTER: desktop is frozen, so it has nothing to snap. Mobile keeps its mandatory snap,
+   because that snap is what moves the feed one card per swipe — the hero it used to fight
+   is gone, so it can only ever land on a card. */
+@media(min-width:861px){
+  html.cul-in{scroll-snap-type:none!important;}
+  html.cul-in, html.cul-in body{overflow:hidden!important;overscroll-behavior:none;}
+}
+</style>
+<script>
+/* ══ AUTO-ADVANCE: LANDING 1.5s -> ONE SMOOTH SLIDE -> CONTENT, LOCKED ═════════════════
+   Measured before building, desktop 1440x900: every wheel scroll from the landing snapped
+   BACK to the top (105px -> 0, 269px -> 0) — the mandatory snap between the two states
+   fought the visitor. The page now makes that move itself, once, and then removes the
+   landing so it cannot be returned to.
+
+   - The 1.5s counts from when the landing ART is on screen, not from window 'load', which
+     this site can take 12-15s to fire. Capped, so a slow image never holds anyone there.
+   - A visitor who scrolls, swipes, or taps a metric before then is taken there at once.
+   - A link to an anchor in the content skips the landing entirely.
+   - prefers-reduced-motion gets the same result without the animation.
+   - The collapse happens in the same frame as the scroll reset, at the exact point the
+     slide ends, so the content does not move by a pixel when the landing leaves. */
+(function(){
+  var root=document.documentElement, done=false, started=false;
+  function hero(){ return document.querySelector('header.hero'); }
+  function wrap(){ return document.querySelector('.wrap'); }
+  function topNavH(){
+    var n=document.getElementById('v3shell-nav'); if(!n) return 0;
+    var r=n.getBoundingClientRect(), c=getComputedStyle(n);
+    return (c.position==='fixed' && r.top<=1 && r.height>0 && c.display!=='none' && c.visibility!=='hidden') ? r.height : 0;
+  }
+  function target(){ var w=wrap(); if(!w) return 0; return Math.max(0, Math.round(w.getBoundingClientRect().top + scrollY - topNavH())); }
+  /* ⚠ INSTANT, explicitly. html has scroll-behavior:smooth, so a bare scrollTo(0,0) here was
+     itself animated — the content slid a second time and mobile took 4.8s to settle. */
+  function jump(y){ try{ window.scrollTo({top:y, left:0, behavior:'instant'}); }catch(e){ window.scrollTo(0,y); } }
+  function settle(){
+    if(done) return; done=true;
+    root.classList.add('cul-in');          /* landing out of the page; desktop frozen */
+    root.classList.remove('cul-landing','cul-moving');  /* mobile's card snap resumes, on cards only */
+    jump(0);                               /* same frame: content stays exactly where it was */
+    try{ window.dispatchEvent(new Event('scroll')); }catch(e){}
+    try{ window.dispatchEvent(new CustomEvent('kil-culture-in')); }catch(e){}
+  }
+  function advance(instant){
+    if(started) return; started=true;
+    var h=hero(), w=wrap(); if(!h||!w){ done=true; return; }
+    var reduce=false; try{ reduce=matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+    var t=target();
+    if(instant||reduce||t<=0){ settle(); return; }
+    /* THE SLIDE IS A TRANSFORM, NOT A SCROLL. Scrolling the window can only travel as far as
+       the document is tall, and while the feed is still loading it is not tall enough — the
+       first version reached 579 of 834px and then finished with a 255px jerk. Moving the
+       landing and the content up together needs no document height at all, and ends with the
+       content at exactly the place it will occupy once the landing is removed. */
+    jump(0);
+    var d = Math.round(w.getBoundingClientRect().top - topNavH());
+    root.style.setProperty('--cul-d', d + 'px');
+    var fin=false, finish=function(){ if(fin) return; fin=true; settle(); };
+    w.addEventListener('transitionend', function te(e){ if(e.target===w && e.propertyName==='transform'){ w.removeEventListener('transitionend', te); finish(); } });
+    setTimeout(finish, 1100);              /* transitionend is not guaranteed; the result is */
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ root.classList.add('cul-moving'); }); });
+  }
+  /* A deep link already knows where it is going. */
+  /* Culture reads no deep-link parameters (checked: only kvaudio/kildebug flags), so an
+     anchor is the one way a link can point INTO the content. */
+  var deep = !!location.hash && location.hash.length>1;
+  if(deep){ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', function(){ advance(true); }); else advance(true); return; }
+
+  /* Anything the visitor does first takes them straight there. */
+  var early=function(e){
+    if(started) return;
+    if(e && e.type==='keydown' && !/^(ArrowDown|PageDown|Space| |End)$/.test(e.key)) return;
+    advance(false);
+  };
+  addEventListener('wheel', early, {passive:true});
+  addEventListener('touchmove', early, {passive:true});
+  addEventListener('keydown', early);
+  document.addEventListener('click', function(e){
+    if(e.target && e.target.closest && e.target.closest('header.hero .stat')) setTimeout(function(){ advance(false); }, 0);
+  }, true);
+
+  function arm(){
+    var h=hero(); if(!h){ return; }
+    var bg=getComputedStyle(h).backgroundImage||'', m=bg.match(/url\(["']?([^"')]+)["']?\)/);
+    var go=function(){ if(!started) setTimeout(function(){ advance(false); }, 1500); };
+    var once=false, fire=function(){ if(once) return; once=true; go(); };
+    if(m){ var im=new Image(); im.onload=fire; im.onerror=fire; im.src=m[1];
+      if(im.complete) fire(); }
+    else fire();
+    setTimeout(fire, 2500);                /* the art is late: count from now anyway */
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', arm); else arm();
 })();
 </script>
 </body></html>

@@ -123,7 +123,23 @@ function signUp(){
     /* ⚠ WAS /create-profile.html — a page that does not exist. Signing up SUCCEEDED and then
        dropped the brand-new account on a 404: the single worst place on the site to send
        someone. The dashboard is the signed-in home and carries the profile edit link. */
-    if(r&&r.data&&r.data.session){ location.replace('/dashboard'); }
+    /* A profile is part of creating an account, not a later step (Founder rule 2026-09-23:
+       "if no profile/account created than no one should be logged in"). This page collects no
+       handle, so it is derived from the email exactly as claim_profile() would slug it; the
+       shell enforces the same rule on every page, so a verification-first signup that has no
+       session here is still covered at first sign-in. */
+    if(r&&r.data&&r.data.session){
+      var h=(email.split('@')[0]||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+      var go=function(){ location.replace('/dashboard'); };
+      if(h.length<2){ go(); return; }
+      supa.rpc('claim_profile',{p_handle:h,p_display:''}).then(function(c){
+        if(c&&!c.error&&c.data){ location.replace('/profile?slug='+encodeURIComponent(c.data)); return; }
+        supa.rpc('claim_profile',{p_handle:h+'-1',p_display:''}).then(function(c2){
+          if(c2&&!c2.error&&c2.data){ location.replace('/profile?slug='+encodeURIComponent(c2.data)); return; }
+          go();
+        }, go);
+      }, go);
+    }
     else {
       /* No session means verification is required, which is the intended production flow.
          Say what happens next in the customer's terms, and give them a way to re-send rather

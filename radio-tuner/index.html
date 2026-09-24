@@ -99,21 +99,21 @@
    design instead of restoring it. */
 var SPEC = [
   ['Bar', [
-    ['--kr-bar-h',       'Bar height',              54, 40,  120, 1, 'px'],
-    ['--kr-util',        'Bar icon button',         40, 24,   80, 1, 'px'],
-    ['--kr-util-ic',     'Bar icon glyph',          22, 10,   48, 1, 'px'],
+    ['--kr-bar-h',       'Bar height',              45, 40,  120, 1, 'px'],
+    ['--kr-util',        'Bar icon button',         45, 24,   80, 1, 'px'],
+    ['--kr-util-ic',     'Bar icon glyph',          45, 10,   48, 1, 'px'],
     ['--kr-util-radius', 'Bar icon corner',         10, 0,    40, 1, 'px'],
-    ['--kr-util-glyph',  'Bar icon text glyph',   1.25, 0.5, 3.0, 0.01,'rem'],
+    ['--kr-util-glyph',  'Bar icon text glyph',   1, 0.5, 3.0, 0.01,'rem'],
     ['--kr-live-size',   'LIVE RADIO pill text',  1.00, 0.4, 2.4, 0.01,'rem'],
-    ['--kr-curw-base',   'Bar current-track slot',  270, 120, 520, 1, 'px'],
-    ['--kr-tkw-base',    'Bar side-track slot',     210, 80,  420, 1, 'px']
+    ['--kr-curw-base',   'Bar current-track slot',  250, 120, 520, 1, 'px'],
+    ['--kr-tkw-base',    'Bar side-track slot',     200, 80,  420, 1, 'px']
   ]],
   ['Drawer header', [
-    ['--kr-hdr-t',       'Title text',            0.70, 0.4, 2.0, 0.01,'rem'],
-    ['--kr-hdr-hint',    'CLOSE text',            0.47, 0.3, 1.6, 0.01,'rem'],
-    ['--kr-hdr-ic',      'Arrow glyph',           0.70, 0.3, 2.0, 0.01,'rem'],
-    ['--kr-hdr-pady',    'Header padding \u00b7 rows',   11, 0,   40, 1, 'px'],
-    ['--kr-hdr-padx',    'Header padding \u00b7 sides',  14, 0,   60, 1, 'px']
+    ['--kr-hdr-t',       'Title text',            1, 0.4, 2.0, 0.01,'rem'],
+    ['--kr-hdr-hint',    'CLOSE text',            1, 0.3, 1.6, 0.01,'rem'],
+    ['--kr-hdr-ic',      'Arrow glyph',           1, 0.3, 2.0, 0.01,'rem'],
+    ['--kr-hdr-pady',    'Header padding \u00b7 rows',   10, 0,   40, 1, 'px'],
+    ['--kr-hdr-padx',    'Header padding \u00b7 sides',  10, 0,   60, 1, 'px']
   ]],
   ['Layout', [
     ['--kr-chatw',       'Chat column width',      400, 0,   680, 1, 'px'],
@@ -123,40 +123,40 @@ var SPEC = [
     ['--kr-main-padb',   'Main padding \u00b7 bottom',   10, 0,   60, 1, 'px']
   ]],
   ['Chat box', [
-    ['--kr-chathdr-size','Header text',           0.62, 0.3, 1.8, 0.01,'rem'],
+    ['--kr-chathdr-size','Header text',           1, 0.3, 1.8, 0.01,'rem'],
     ['--kr-chathdr-pady','Header padding \u00b7 rows',   10, 0,   40, 1, 'px'],
-    ['--kr-chathdr-padx','Header padding \u00b7 sides',  12, 0,   48, 1, 'px'],
-    ['--kr-chathdr-gap', 'Header gap',               8, 0,    40, 1, 'px'],
-    ['--kr-chatbtn-glyph','Expand / close glyph', 0.90, 0.4, 2.4, 0.01,'rem'],
-    ['--kr-chatbtn-pady','Expand / close pad \u00b7 rows', 5, 0,  28, 1, 'px'],
-    ['--kr-chatbtn-padx','Expand / close pad \u00b7 sides',7, 0,  28, 1, 'px'],
-    ['--kr-chatbtn-gap', 'Gap between them',         4, 0,    32, 1, 'px'],
-    ['--kr-chatnote-size','Intro text',           0.66, 0.3, 1.6, 0.01,'rem'],
-    ['--kr-chatnote-pad','Intro padding',           12, 0,    48, 1, 'px']
+    ['--kr-chathdr-padx','Header padding \u00b7 sides',  10, 0,   48, 1, 'px'],
+    ['--kr-chathdr-gap', 'Header gap',               10, 0,    40, 1, 'px'],
+    ['--kr-chatbtn-glyph','Expand / close glyph', 1, 0.4, 2.4, 0.01,'rem'],
+    ['--kr-chatbtn-pady','Expand / close pad \u00b7 rows', 0, 0,  28, 1, 'px'],
+    ['--kr-chatbtn-padx','Expand / close pad \u00b7 sides',10, 0,  28, 1, 'px'],
+    ['--kr-chatbtn-gap', 'Gap between them',         10, 0,    32, 1, 'px'],
+    ['--kr-chatnote-size','Intro text',           1, 0.3, 1.6, 0.01,'rem'],
+    ['--kr-chatnote-pad','Intro padding',           10, 0,    48, 1, 'px']
   ]],
   ['Section heads', [
-    ['--kr-head-size',   'Head font size',        0.66, 0.4, 1.6, 0.01,'rem'],
+    ['--kr-head-size',   'Head font size',        1, 0.4, 1.6, 0.01,'rem'],
     ['--kr-head-gap',    'Head gap',                10, 0,    40, 1, 'px'],
     ['--kr-head-mb',     'Head margin below',       10, 0,    40, 1, 'px']
   ]],
   ['Track cards', [
     ['--kr-tcw-base',    'Card width',             200, 60,  340, 1, 'px'],
     ['--kr-strip-gap',   'Gap between cards',       10, 0,    48, 1, 'px'],
-    ['--kr-art-radius',  'Artwork corner',          10, 0,    40, 1, 'px'],
-    ['--kr-tct-mt',      'Title offset',            10, 0,    32, 1, 'px'],
+    ['--kr-art-radius',  'Artwork corner',          5, 0,    40, 1, 'px'],
+    ['--kr-tct-mt',      'Title offset',            5, 0,    32, 1, 'px'],
     ['--kr-tct-size',    'Title size',            1.00, 0.4, 1.8, 0.01,'rem'],
     ['--kr-tcp-size',    'Playlist label size',   1.00, 0.3, 1.8, 0.01,'rem'],
-    ['--kr-tcnow-size',  'LIVE NOW badge',        0.46, 0.3, 1.4, 0.01,'rem']
+    ['--kr-tcnow-size',  'LIVE NOW badge',        0.5, 0.3, 1.4, 0.01,'rem']
   ]],
   ['Buttons & stations', [
     ['--kr-nav',         'Prev/next size',          50, 24,   88, 1, 'px'],
-    ['--kr-nav-glyph',   'Prev/next glyph',       2.00, 0.8, 3.2, 0.05,'rem'],
+    ['--kr-nav-glyph',   'Prev/next glyph',       1.5, 0.8, 3.2, 0.05,'rem'],
     ['--kr-stw',         'Station card width',     150, 70,  280, 1, 'px'],
-    ['--kr-stname-size', 'Station name text',     0.54, 0.3, 1.6, 0.01,'rem'],
-    ['--kr-stname-pady', 'Station name pad \u00b7 rows',  7, 0,  28, 1, 'px'],
-    ['--kr-stname-padx', 'Station name pad \u00b7 sides', 8, 0,  28, 1, 'px'],
+    ['--kr-stname-size', 'Station name text',     0.8, 0.3, 1.6, 0.01,'rem'],
+    ['--kr-stname-pady', 'Station name pad \u00b7 rows',  3, 0,  28, 1, 'px'],
+    ['--kr-stname-padx', 'Station name pad \u00b7 sides', 0, 0,  28, 1, 'px'],
     ['--kr-st-gap',      'Gap between stations',    10, 0,    48, 1, 'px'],
-    ['--kr-railbtn',     'Station scroll button',   28, 16,   64, 1, 'px']
+    ['--kr-railbtn',     'Station scroll button',   25, 16,   64, 1, 'px']
   ]]
 ];
 var KEY='kil_radio_tuner_v3';

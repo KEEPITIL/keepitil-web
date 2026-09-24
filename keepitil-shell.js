@@ -319,15 +319,22 @@
        then open CULTURE, and the first video already plays with audio instead of starting muted
        and waiting for another tap. Browsers only block unmuted autoplay BEFORE a gesture; this
        just makes sure the gesture the visitor already made is not forgotten on navigation. */
+    /* ⚠ CORRECTED 2026-09-24. Two faults here kept every video muted:
+       - it set __kilSoundOK at pointerdown/touchstart, the START of a tap, where a phone has
+         not yet granted activation (measured: false there, true only at pointerup/touchend);
+       - it re-set the flag at LOAD from sessionStorage. Activation belongs to a document and
+         does not survive navigation, so that claimed permission the new page did not have —
+         and culture's unmute read "already armed" and never ran.
+       Now it is set only when navigator.userActivation confirms it, in this document. */
     (function(){
-      try{ if(sessionStorage.getItem('kil_sound_ok')==='1'){ window.__kilSoundOK = true; return; } }catch(e){}
+      var EV=['pointerdown','pointerup','mousedown','click','keydown','touchstart','touchend'];
       var arm = function(){
+        var ua=navigator.userActivation; if(ua && !ua.isActive) return;
+        EV.forEach(function(ev){ document.removeEventListener(ev, arm, true); });
         window.__kilSoundOK = true;
         try{ sessionStorage.setItem('kil_sound_ok','1'); }catch(e){}
       };
-      ['pointerdown','keydown','touchstart'].forEach(function(ev){
-        document.addEventListener(ev, arm, {once:true, passive:true, capture:true});
-      });
+      EV.forEach(function(ev){ document.addEventListener(ev, arm, {passive:true, capture:true}); });
     })();
 
     if('serviceWorker' in navigator){

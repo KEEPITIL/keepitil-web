@@ -1,7 +1,7 @@
 /* PokaSnap offline shell. Cache name carries the build: bump it on every ship.
    Only pokasnap-* caches are ever deleted -- `caches` is origin-wide and the
    rest of keepitil.com lives on the same origin. */
-const CACHE = 'pokasnap-v1-b1';
+const CACHE = 'pokasnap-v1-b2';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/main.js', 'js/ui.js',
   'js/data/pets.js', 'js/data/poses.js', 'js/data/items.js', 'js/data/missions.js', 'js/data/personality.js',

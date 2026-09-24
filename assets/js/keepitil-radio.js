@@ -3,6 +3,22 @@
  * Self-injecting · 24/7 synchronized SoundCloud stream · X-mark logo
  */
 (function(){
+  /* ══ INSIDE THE STAGE: NO SECOND RADIO (Founder 2026-09-24) ═══════════════════════════
+     When this page is shown inside the persistent-radio stage, the radio is already playing in
+     the TOP document. Mounting one here would start a second stream on top of it. So this
+     copy mounts nothing: it hands the public radio hooks up to the top document, relays the
+     state broadcast down, and guards this page's navigations (see kilStageGuard). */
+  try{
+    if(window.self!==window.top && window.name==='kil-stage' && window.top.__kilStageHost){
+      window.__kilRadioInit=true; window.__kilRadioInStage=true;
+      ['__kilRadioSelect','__kilRadioPlaylists','__kilRadioSong','__kilPaintPlaylistNames'].forEach(function(k){
+        window[k]=function(){ try{ var f=window.top[k]; return f ? f.apply(window.top, arguments) : undefined; }catch(e){} };
+      });
+      try{ Object.defineProperty(window,'__kilRadioSuppressed',{configurable:true,get:function(){ try{ return !!window.top.__kilRadioSuppressed; }catch(e){ return false; } }}); }catch(e){}
+      if(window.top.__kilStageGuard) window.top.__kilStageGuard(window);
+      return;
+    }
+  }catch(e){}
   if(window.__kilRadioInit)return;
   window.__kilRadioInit=true;
 
@@ -2308,6 +2324,209 @@
     // Handle browser back/forward
     window.addEventListener('popstate',function(e){
       if(e.state&&e.state.pjax)pjaxNav(e.state.url||location.href);
+    });
+  })();
+
+  /* ══ PERSISTENT RADIO: THE STAGE (Founder 2026-09-24) ═══════════════════════════════════
+     "the radio bar needs to consistently play on the same track as the user scrolls and jumps
+      between different pages ... its not acting as a true live radio."
+
+     WHY THIS AND NOT A FASTER HAND-OFF. Measured on the live site, desktop, with the autoplay
+     policy switched OFF (the best case): Home -> Earn, the radio was playing "Swipe Left Love"
+     at 0:37; 30s later on Earn it was STOPPED, on a different song, at 0:00. And no hand-off can
+     be continuous on a phone: a new document has no user activation, so the browser refuses
+     to start sound until the visitor taps again. The only way the stream never stops is for
+     the document holding it never to be replaced.
+
+     WHY NOT PJAX. It swaps page content and re-runs the page's inline scripts inside the live
+     document. This site's pages rely on inline scripts whose function declarations are called
+     from onclick="" attributes; re-run through new Function() they are no longer global and
+     the buttons die (that is the agent.html P0 the old allow-list was written around, and why
+     that allow-list — /v3 paths only — matched nothing once /v3 was purged).
+
+     THE STAGE. On the first internal link clicked while the radio is PLAYING, this page becomes
+     the host: the destination opens full-screen in a frame above the radio bar, and every later
+     click navigates inside that frame. Each page is still a real, fresh page load — nothing is
+     re-run — while this document, and the SoundCloud player in it, never unloads. The address
+     bar, title and Back button follow the frame.
+
+     WHAT STAYS TOP-LEVEL. Anything leaving keepitil.com (Google sign-in, Stripe, SoundCloud,
+     socials) refuses to render in a frame, so the Navigation API in the staged page catches
+     EVERY navigation — links, location.href, form posts — before it happens and sends
+     cross-origin ones to the top. Browsers without the Navigation API never stage at all:
+     their behaviour is exactly what it was. Pages that carry their own audio or their own
+     radio (games, the radio tuner) also always load top-level.
+
+     DESKTOP ONLY for now. On phones the radio exists only on Home and opted-in pages by
+     design, so continuity there changes the mobile layout, which is the Founder's call. */
+  (function(){
+    var DESKTOP = function(){ try{ return matchMedia('(min-width:861px)').matches; }catch(e){ return false; } };
+    var CAN = (function(){
+      try{
+        if(window.self!==window.top) return false;
+        if(!('navigation' in window)) return false;
+        if(/[?&]nostage=1\b/.test(location.search)) return false;
+        return true;
+      }catch(e){ return false; }
+    })();
+    if(!CAN) return;
+    window.__kilStageHost = true;
+    /* Same-origin paths that must always be a full page of their own. */
+    var TOP_ONLY = /^\/(games\/|radio-tuner\/?|apply\/?$|signup(\.html)?$|login(\.html)?$|auth\/|checkout|pay\/|stripe)/i;
+    var FILES = /\.(pdf|zip|png|jpe?g|gif|svg|webp|mp3|mp4|webm|wav|ogg|m4a|csv|json|xml|txt)$/i;
+    var CULTURE = /(^|\/)culture(\/|\/index\.html)?$/i;
+    var stage = null, pausedForCulture = null, hostTitle = document.title;
+
+    function css(){
+      if(document.getElementById('kil-stage-css')) return;
+      var st=document.createElement('style'); st.id='kil-stage-css'; st.setAttribute('data-kil','1');
+      st.textContent =
+        /* The page underneath stays alive but out of sight and out of reach; only the radio's
+           own nodes remain above it. The frame ends where the bar begins, so nothing overlaps. */
+        'html.kil-staged,html.kil-staged body{overflow:hidden!important;}'
+      + 'html.kil-staged body>*:not(#kil-radio):not(#kr-drawer):not(.kr-panel):not(#kil-sc):not(#kil-stage):not(script):not(style){'
+      +   'visibility:hidden!important;pointer-events:none!important;}'
+      + '#kil-stage{position:fixed;left:0;top:0;width:100%;height:calc(100% - var(--kil-radio-h,45px));'
+      +   'border:0;margin:0;padding:0;z-index:9990;background:#0a0a0f;display:block;}';
+      document.head.appendChild(st);
+    }
+    function same(u){ try{ return new URL(u, location.href).origin===location.origin; }catch(e){ return false; } }
+    function pathOf(w){ try{ return w.location.pathname; }catch(e){ return ''; } }
+
+    /* CULTURE OWNS ITS AUDIO, in the stage too. The radio pauses while Culture is on screen and
+       comes back LIVE — the position advanced by the time spent away — when the visitor leaves. */
+    function cultureRule(path){
+      if(!widget) return;
+      var isCul = CULTURE.test(path);
+      if(isCul && !pausedForCulture){
+        widget.getPosition(function(pos){ pausedForCulture = { pos: pos||0, at: Date.now(), wasPlaying: playing }; });
+        try{ widget.pause(); }catch(e){}
+      } else if(!isCul && pausedForCulture){
+        var p = pausedForCulture; pausedForCulture = null;
+        if(p.wasPlaying){
+          try{ widget.seekTo(Math.round(p.pos + (Date.now()-p.at))); widget.setVolume(getVol()); widget.play(); }catch(e){}
+        }
+      }
+      window.__kilRadioSuppressed = isCul;
+    }
+
+    /* Every navigation the staged page attempts passes through here first. */
+    function guard(win){
+      try{
+        if(!win || win.__kilStageGuarded || !win.navigation) return;
+        win.__kilStageGuarded = true;
+        win.navigation.addEventListener('navigate', function(e){
+          try{
+            if(e.downloadRequest) return;
+            var d = e.destination; if(!d || d.sameDocument) return;
+            var u = new URL(d.url);
+            var toTop = u.origin!==location.origin || TOP_ONLY.test(u.pathname);
+            if(!toTop || !e.cancelable) return;
+            e.preventDefault();
+            handoff();
+            window.location.href = u.href;          /* THIS document navigates; the stage goes with it */
+          }catch(_e){}
+        });
+        /* same-document URL changes inside the page (filters, tabs) keep the address bar true */
+        win.navigation.addEventListener('currententrychange', function(){ sync(win); });
+      }catch(e){}
+    }
+    window.__kilStageGuard = guard;
+
+    /* Leaving the stage for a top-level page: hand the stream over the old way, so the next
+       page resumes the same track at the right point instead of picking one from the clock. */
+    function handoff(){
+      /* SYNCHRONOUS on purpose: the navigation follows on the next line, and an async
+         getPosition() callback would land after the page is gone. currentPosition is kept
+         fresh by the player's progress events for exactly this. */
+      try{ sessionStorage.setItem('kil_hand', JSON.stringify({ idx: currentTrackIdx, pos: currentPosition||0, ts: Date.now(), vol: muted?0:savedVol, muted: muted })); }catch(e){}
+    }
+
+    function sync(win){
+      try{
+        var l = win.location; if(l.origin!==location.origin) return;
+        var url = l.pathname + l.search + l.hash;
+        if(url !== location.pathname + location.search + location.hash)
+          history.replaceState({ kilStage: 1, url: url }, '', url);
+        if(win.document && win.document.title) document.title = win.document.title;
+        cultureRule(l.pathname);
+      }catch(e){}
+    }
+
+    function relay(e){
+      /* Surfaces inside the staged page (Earn's radio row, the chat) listen for the radio's
+         state broadcast on THEIR document; re-dispatch it there. */
+      try{ if(!stage || !stage.contentWindow) return;
+        var W = stage.contentWindow;
+        W.document.dispatchEvent(new W.CustomEvent('kil-radio-state', { detail: e.detail }));
+      }catch(_){}
+    }
+
+    function open(url){
+      css(); hostTitle = document.title;
+      var f = document.createElement('iframe');
+      f.id = 'kil-stage'; f.name = 'kil-stage'; f.title = 'KEEPITIL';
+      f.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write; web-share; geolocation');
+      f.setAttribute('allowfullscreen', '');
+      f.addEventListener('load', function(){
+        try{
+          var W = f.contentWindow;
+          if(!same(W.location.href)){ return; }       /* guarded; should not happen */
+          guard(W); sync(W);
+          try{ kilPaintPlaylistNames(); }catch(_e){}  /* late listeners get the current state */
+        }catch(e){
+          /* The frame ended up somewhere we cannot read — a navigation the guard did not see.
+             Never leave the visitor looking at a blank frame: give them the page top-level. */
+          try{ close(); location.reload(); }catch(_e){}
+        }
+      });
+      f.src = url;
+      document.body.appendChild(f);
+      stage = f;
+      document.documentElement.classList.add('kil-staged');
+      history.pushState({ kilStage: 1, url: url }, '', url);
+      try{ document.addEventListener('kil-radio-state', relay); }catch(e){}
+    }
+    function close(){
+      if(!stage) return;
+      try{ document.removeEventListener('kil-radio-state', relay); }catch(e){}
+      try{ stage.remove(); }catch(e){}
+      stage = null;
+      document.documentElement.classList.remove('kil-staged');
+      document.title = hostTitle;                      /* the page underneath is back, so is its name */
+      cultureRule(location.pathname);
+    }
+
+    /* The first internal link clicked while the radio is playing becomes the stage. */
+    document.addEventListener('click', function(e){
+      try{
+        if(!DESKTOP()) return;
+        if(!stage && !playing) return;                 /* nothing to keep alive */
+        if(e.defaultPrevented || e.button!==0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        var a = e.target && e.target.closest && e.target.closest('a[href]'); if(!a) return;
+        if((a.target && a.target!=='_self') || a.hasAttribute('download')) return;
+        var h = a.getAttribute('href') || '';
+        if(!h || h.charAt(0)==='#' || /^(mailto:|tel:|sms:|javascript:)/i.test(h)) return;
+        var u = new URL(a.href, location.href);
+        if(u.origin!==location.origin) return;
+        if(u.pathname===location.pathname && u.search===location.search) return;
+        if(TOP_ONLY.test(u.pathname) || FILES.test(u.pathname)){ if(stage) handoff(); return; }
+        e.preventDefault();
+        /* Already staged: a link in the radio's OWN drawer (this document) must move the
+           stage, not this page — navigating this page is the one thing that stops the stream. */
+        if(stage){ try{ stage.contentWindow.location.href = u.pathname + u.search + u.hash; }catch(_e){ close(); location.href = u.href; } return; }
+        open(u.pathname + u.search + u.hash);
+      }catch(_e){}
+    }, true);
+
+    /* Back past the first staged page returns to THIS page exactly as it was left; Forward
+       re-opens the stage. Inside the stage, Back and Forward are the frame's own history. */
+    window.addEventListener('popstate', function(e){
+      try{
+        var st = e.state;
+        if(st && st.kilStage){ if(!stage) open(st.url || (location.pathname+location.search+location.hash)); }
+        else if(stage){ close(); }
+      }catch(_e){}
     });
   })();
 })();

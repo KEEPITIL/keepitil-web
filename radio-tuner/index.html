@@ -92,32 +92,36 @@
    is the shipped value. `def` here MUST equal that fallback, or Reset would quietly move the
    design instead of restoring it. */
 var SPEC = [
+  ['Bar', [
+    ['--kr-bar-h',     'Bar height',           54, 40,  120, 1, 'px']
+  ]],
   ['Layout', [
-    ['--kr-chatw',     'Chat column width',   318, 0,   680, 1, 'px'],
-    ['--kr-main-gap',  'Section spacing',      14, 0,    48, 1, 'px'],
-    ['--kr-main-padt', 'Main padding · top',   14, 0,    60, 1, 'px'],
-    ['--kr-main-padx', 'Main padding · sides', 16, 0,    80, 1, 'px'],
-    ['--kr-main-padb', 'Main padding · bottom',18, 0,    60, 1, 'px']
+    ['--kr-chatw',     'Chat column width',   400, 0,   680, 1, 'px'],
+    ['--kr-main-gap',  'Section spacing',      10, 0,    48, 1, 'px'],
+    ['--kr-main-padt', 'Main padding \u00b7 top',   10, 0,    60, 1, 'px'],
+    ['--kr-main-padx', 'Main padding \u00b7 sides', 10, 0,    80, 1, 'px'],
+    ['--kr-main-padb', 'Main padding \u00b7 bottom',10, 0,    60, 1, 'px']
   ]],
   ['Section heads', [
+    ['--kr-head-size', 'Head font size',     0.66,0.4,  1.6, 0.01,'rem'],
     ['--kr-head-gap',  'Head gap',             10, 0,    40, 1, 'px'],
-    ['--kr-head-mb',   'Head margin below',     8, 0,    40, 1, 'px']
+    ['--kr-head-mb',   'Head margin below',    10, 0,    40, 1, 'px']
   ]],
   ['Track cards', [
-    ['--kr-tcw',       'Card width',          118, 60,  340, 1, 'px'],
-    ['--kr-strip-gap', 'Gap between cards',    12, 0,    48, 1, 'px'],
+    ['--kr-tcw-base',  'Card width',          200, 60,  340, 1, 'px'],
+    ['--kr-strip-gap', 'Gap between cards',    10, 0,    48, 1, 'px'],
     ['--kr-art-radius','Artwork corner',       10, 0,    40, 1, 'px'],
-    ['--kr-tct-mt',    'Title offset',          7, 0,    32, 1, 'px'],
-    ['--kr-tct-size',  'Title size',          0.66,0.4, 1.6, 0.01,'rem'],
-    ['--kr-tcp-size',  'Playlist label size', 0.50,0.3, 1.2, 0.01,'rem']
+    ['--kr-tct-mt',    'Title offset',         10, 0,    32, 1, 'px'],
+    ['--kr-tct-size',  'Title size',         1.00,0.4,  1.6, 0.01,'rem'],
+    ['--kr-tcp-size',  'Playlist label size',1.00,0.3,  1.6, 0.01,'rem']
   ]],
   ['Buttons & stations', [
-    ['--kr-nav',       'Prev/next size',       40, 24,   88, 1, 'px'],
-    ['--kr-nav-glyph', 'Prev/next glyph',     1.4, 0.8,  3.2,0.05,'rem'],
-    ['--kr-stw',       'Station card width',  116, 70,  280, 1, 'px']
+    ['--kr-nav',       'Prev/next size',       50, 24,   88, 1, 'px'],
+    ['--kr-nav-glyph', 'Prev/next glyph',    2.00,0.8,  3.2, 0.05,'rem'],
+    ['--kr-stw',       'Station card width',  150, 70,  280, 1, 'px']
   ]]
 ];
-var KEY='kil_radio_tuner_v1';
+var KEY='kil_radio_tuner_v2';
 var state={};
 try{ state=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){ state={}; }
 

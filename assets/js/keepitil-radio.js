@@ -761,40 +761,96 @@
       + '&hide_related=true&continuous_play=true&single_active=false';
   };
 
-  /* ── MOBILE: PLAYBACK EVERYWHERE ELIGIBLE, VISIBLE BAR ONLY ON EARN (Founder §5) ─────────
-     DISCOVER / CONNECT / CREATE may play but must not show a persistent bar; EARN shows one;
-     CULTURE has neither (handled by the KIL_NO_RADIO gate at the top of this file).
+  /* ── MOBILE: THE COMPACT BAR DOCKS ON THE BOTTOM NAV (Founder 2026-09-24) ─────────────────
+     "Mobile radio: continuous across KEEPITIL, compact bar fixed immediately above the bottom
+      navigation. ... Do not cover or push the bottom nav. Preserve safe-area spacing."
+     This SUPERSEDES §5 ("visible bar only on EARN"), which hid the docked bar on every phone.
 
-     The docked bar is therefore hidden on EVERY mobile page. That is not a shortcut — EARN's
-     visible control on mobile is its own in-section bar (#krBar), and earn/index.html already
-     hides the docked bar there for exactly that reason. So "hide the docked bar on mobile"
-     produces precisely the required matrix without a per-page allowlist that would have to be
-     maintained every time a page is added.
-
-     HIDING THE BAR MUST NOT STOP THE AUDIO. The player is #kil-sc, a separate element; the bar
-     is only its display. Hiding one does not touch the other — which is the whole reason
-     playback can continue on a page with no bar.
-     body padding-bottom is released too, or every mobile page would reserve 40px for a bar that
-     is not there. */
+     The bar's bottom edge is set to the bottom nav's TOP edge, MEASURED — the nav already carries
+     the safe-area inset in its own padding, so resting on it preserves that spacing exactly and
+     the nav is neither covered nor moved. With no bottom nav on the page the bar sits on the
+     safe area itself. Content reserves the bar's height, so the bar never hides it either.
+     The bar's look is the approved compact mobile bar, unchanged. */
   (function(){
     function isMobileRadio(){
       try{ return window.matchMedia('(max-width:860px)').matches; }catch(e){ return false; }
     }
+    var ro = null;
+    /* THE COMPACT PHONE LAYOUT. The ≤600px block near the top of this file was written for the
+       bar BEFORE the 2026-08-27 seven-button rebuild — it targets .krb-now / .kil-live, which no
+       longer exist — and because the bar was hidden on phones from then on, the rebuilt bar never
+       had a phone layout at all: measured at 390px, its three track cards rendered as 258px
+       artwork and the four controls wrapped into a 96px column inside a 40px bar.
+       One row, same 40px: LIVE RADIO · ‹ · current art + title · › · mute. Shuffle, repeat and
+       chat step aside (chat has its own button on phones). Scoped to html.kil-mbar, which is only
+       ever set at phone width, so the desktop bar is untouched. */
+    function phoneCss(){
+      if(document.getElementById('kil-mbar-css')) return;
+      var st=document.createElement('style'); st.id='kil-mbar-css'; st.setAttribute('data-kil','1');
+      var B='html.kil-mbar #kil-radio';
+      st.textContent =
+          B+'{display:flex!important;align-items:center!important;gap:6px!important;padding:0 8px!important;'
+        +   'height:40px!important;min-height:40px!important;overflow:hidden!important;box-sizing:border-box;}'
+        + B+'>*{align-self:center!important;}'
+        + B+' #kr-live{flex:0 0 auto!important;height:28px!important;padding:0 9px!important;}'
+        + B+' #kr-live .kil-brand-radio{font-size:.62rem!important;letter-spacing:.12em!important;}'
+        + B+' .krb-tracks{position:static!important;transform:none!important;left:auto!important;top:auto!important;'
+        +   'flex:1 1 auto!important;min-width:0!important;height:40px!important;display:flex!important;'
+        +   'align-items:center!important;gap:4px!important;pointer-events:auto!important;}'
+        + B+' .kr-tk-side,'+B+' #kr-wave,'+B+' #kr-shuffle,'+B+' #kr-repeat,'+B+' #kr-chat{display:none!important;}'
+        + B+' .kr-nav{flex:0 0 26px!important;width:26px!important;height:26px!important;padding:0!important;'
+        +   'font-size:1rem!important;line-height:1!important;border-radius:50%!important;}'
+        + B+' #kr-tk-cur{flex:1 1 auto!important;width:auto!important;min-width:0!important;display:flex!important;'
+        +   'flex-direction:row!important;align-items:center!important;gap:8px!important;height:40px!important;}'
+        + B+' #kr-tk-cur .kr-tkart{flex:0 0 28px!important;width:28px!important;height:28px!important;'
+        +   'border-radius:6px!important;object-fit:cover!important;}'
+        + B+' #kr-tk-cur .kr-tkmeta{min-width:0!important;display:flex!important;flex-direction:column!important;'
+        +   'align-items:flex-start!important;text-align:left!important;}'
+        + B+' #kr-tk-cur .kr-tkt{display:block!important;max-width:100%!important;white-space:nowrap!important;'
+        +   'overflow:hidden!important;text-overflow:ellipsis!important;font-size:.72rem!important;line-height:1.2!important;}'
+        + B+' #kr-tk-cur .kr-tkp{font-size:.56rem!important;line-height:1.2!important;}'
+        + B+' .kr-ctrls{flex:0 0 auto!important;display:flex!important;flex-direction:row!important;'
+        +   'flex-wrap:nowrap!important;align-items:center!important;gap:2px!important;height:40px!important;}'
+        + B+' .kr-ctrls .kr-util{width:34px!important;height:34px!important;padding:0!important;}'
+        + B+' .kr-ctrls .kr-util svg{width:19px!important;height:19px!important;}';
+      document.head.appendChild(st);
+    }
     function applyBarVisibility(){
       var bar = document.getElementById('kil-radio');
       if(!bar) return;
-      var mob = isMobileRadio();
-      bar.style.display = mob ? 'none' : '';
-      document.body.style.paddingBottom = mob ? '' : '';
-      /* The 40px reservation comes from the injected `body{padding-bottom:40px}` rule. On
-         mobile that rule is neutralised by an inline override rather than by editing the
-         stylesheet, so desktop is untouched. */
-      if(mob) document.body.style.setProperty('padding-bottom','0px','important');
-      else    document.body.style.removeProperty('padding-bottom');
+      var root = document.documentElement;
+      if(!isMobileRadio()){
+        bar.style.removeProperty('bottom'); bar.style.display = '';
+        root.classList.remove('kil-mbar'); root.style.removeProperty('--kil-bar-bottom');
+        root.style.removeProperty('--kil-mbar-h');
+        return;
+      }
+      bar.style.display = '';
+      phoneCss();
+      var nav = document.getElementById('kil-bnav');
+      var lift = 0;
+      if(nav && getComputedStyle(nav).display !== 'none'){
+        var r = nav.getBoundingClientRect();
+        if(r.height > 0 && r.height < 200) lift = Math.max(0, Math.round(window.innerHeight - r.top));
+      }
+      bar.style.setProperty('bottom', lift ? lift + 'px' : 'env(safe-area-inset-bottom, 0px)', 'important');
+      root.style.setProperty('--kil-bar-bottom', lift + 'px');
+      root.classList.add('kil-mbar');
+      /* The page's bottom clearance is the SHELL's job and deliberately lives in the footer, not the
+         body (Founder 2026-08-19/24: no empty strip under the footer). So this does not touch
+         padding: it publishes the bar's height and every rule that clears the nav — the footer,
+         the chat and scroll-to-top buttons, Create — adds it. */
+      var bh = Math.round(bar.getBoundingClientRect().height) || 40;
+      root.style.setProperty('--kil-mbar-h', bh + 'px');
+      if(!ro && nav && typeof ResizeObserver === 'function'){
+        try{ ro = new ResizeObserver(applyBarVisibility); ro.observe(nav); ro.observe(bar); }catch(e){}
+      }
     }
     window.__kilApplyRadioBarVisibility = applyBarVisibility;
     if(document.readyState !== 'loading') setTimeout(applyBarVisibility, 0);
     else document.addEventListener('DOMContentLoaded', applyBarVisibility);
+    /* the shell mounts the nav after DOMContentLoaded; follow it rather than guess when */
+    [300, 900, 2000].forEach(function(t){ setTimeout(applyBarVisibility, t); });
     window.addEventListener('resize', applyBarVisibility);
   })();
 
@@ -1979,6 +2035,9 @@
       /* TWO STATES ONLY (KODE 2026-09-09). The full-screen state was removed: it filled a
          desktop screen with empty space and offered nothing the drawer does not. LIVE RADIO
          now opens and closes the drawer, and the drawer header closes it too. */
+      /* PHONES: the drawer is a desktop panel (a 400px chat column beside the tracks) and would
+         cover the page and the bottom nav. The compact bar is the whole phone radio. */
+      if(document.documentElement.classList.contains('kil-mbar')) return;
       setRadioUI(RADIO_UI==='compact' ? 'drawer' : 'compact');
     });
   }
@@ -2215,6 +2274,7 @@
       var t=e.target;
       if(!(t instanceof Element)) return;
       if(t.closest(INTERACTIVE)) return;
+      if(document.documentElement.classList.contains('kil-mbar')) return;   /* phones: no drawer */
       if(typeof setRadioUI==='function') setRadioUI(RADIO_UI==='compact' ? 'drawer' : 'compact');
     });
   })();
@@ -2357,10 +2417,14 @@
      their behaviour is exactly what it was. Pages that carry their own audio or their own
      radio (games, the radio tuner) also always load top-level.
 
-     DESKTOP ONLY for now. On phones the radio exists only on Home and opted-in pages by
-     design, so continuity there changes the mobile layout, which is the Founder's call. */
+     PHONES (Founder 2026-09-24): "compact bar fixed immediately above the bottom navigation.
+     Culture pauses it and resumes live on exit. Do not cover or push the bottom nav. Preserve
+     safe-area spacing." The host keeps ITS bottom nav and the docked bar; the frame fills only
+     the space above them, and the staged page mounts no nav of its own (keepitil-shell.js,
+     IN_STAGE). The host nav's taps move the stage, and its active tab follows the page.
+     While Culture is staged the bar steps aside and the frame runs down to the nav, because
+     Culture owns the sound and sizes its cards to the band above the nav. */
   (function(){
-    var DESKTOP = function(){ try{ return matchMedia('(min-width:861px)').matches; }catch(e){ return false; } };
     var CAN = (function(){
       try{
         if(window.self!==window.top) return false;
@@ -2384,10 +2448,16 @@
         /* The page underneath stays alive but out of sight and out of reach; only the radio's
            own nodes remain above it. The frame ends where the bar begins, so nothing overlaps. */
         'html.kil-staged,html.kil-staged body{overflow:hidden!important;}'
-      + 'html.kil-staged body>*:not(#kil-radio):not(#kr-drawer):not(.kr-panel):not(#kil-sc):not(#kil-stage):not(script):not(style){'
+      + 'html.kil-staged body>*:not(#kil-radio):not(#kr-drawer):not(.kr-panel):not(#kil-sc):not(#kil-stage):not(#kil-bnav):not(script):not(style){'
       +   'visibility:hidden!important;pointer-events:none!important;}'
       + '#kil-stage{position:fixed;left:0;top:0;width:100%;height:calc(100% - var(--kil-radio-h,45px));'
-      +   'border:0;margin:0;padding:0;z-index:9990;background:#0a0a0f;display:block;}';
+      +   'border:0;margin:0;padding:0;z-index:9990;background:#0a0a0f;display:block;}'
+      /* PHONE: the frame ends at the top of the dock (bar on nav), measured, so it covers neither */
+      + '@media(max-width:860px){'
+      +   '#kil-stage{height:calc(100% - var(--kil-bar-bottom,0px) - var(--kil-mbar-h,40px));}'
+      +   'html.kil-stage-culture #kil-radio{display:none!important;}'
+      +   'html.kil-stage-culture #kil-stage{height:calc(100% - var(--kil-bar-bottom,0px));}'
+      + '}';
       document.head.appendChild(st);
     }
     function same(u){ try{ return new URL(u, location.href).origin===location.origin; }catch(e){ return false; } }
@@ -2408,6 +2478,7 @@
         }
       }
       window.__kilRadioSuppressed = isCul;
+      document.documentElement.classList.toggle('kil-stage-culture', isCul && !!stage);
     }
 
     /* Every navigation the staged page attempts passes through here first. */
@@ -2449,6 +2520,7 @@
         if(url !== location.pathname + location.search + location.hash)
           history.replaceState({ kilStage: 1, url: url }, '', url);
         if(win.document && win.document.title) document.title = win.document.title;
+        try{ if(window.__kilBnavActive) window.__kilBnavActive(l.pathname); }catch(_e){}
         cultureRule(l.pathname);
       }catch(e){}
     }
@@ -2494,13 +2566,13 @@
       stage = null;
       document.documentElement.classList.remove('kil-staged');
       document.title = hostTitle;                      /* the page underneath is back, so is its name */
+      try{ if(window.__kilBnavActive) window.__kilBnavActive(location.pathname); }catch(_e){}
       cultureRule(location.pathname);
     }
 
     /* The first internal link clicked while the radio is playing becomes the stage. */
     document.addEventListener('click', function(e){
       try{
-        if(!DESKTOP()) return;
         if(!stage && !playing) return;                 /* nothing to keep alive */
         if(e.defaultPrevented || e.button!==0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
         var a = e.target && e.target.closest && e.target.closest('a[href]'); if(!a) return;

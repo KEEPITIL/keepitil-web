@@ -215,7 +215,8 @@
        priority the brief sets: current track, then arrows, then volume/chat, then the
        adjacent art and text. The bar never gets taller and nothing ever overlaps. */
     +'@media(min-width:641px){'
-    +  '#kil-radio{height:54px;min-height:54px;padding:0 20px;gap:18px;align-items:center;}'
+    +  '#kil-radio{height:var(--kr-bar-h,54px);min-height:var(--kr-bar-h,54px);'
+    +  'padding:0 20px;gap:18px;align-items:center;}'
     +  '#kil-radio>*{align-self:center;}'
     +  '.krb{height:auto!important;}'
     +  '#kr-live{flex:0 0 auto;padding:3px 9px;}'
@@ -386,17 +387,22 @@
        column genuinely narrows the other rather than covering it. */
     /* ══ EXPANDED RADIO GRID — TUNABLE DIMENSIONS (Founder 2026-09-23) ═══════════════════
        Every size in the expanded drawer is a named custom property with the SHIPPED value as
-       its fallback, so an unset variable renders exactly what it rendered before this change.
-       Nothing moves until someone sets one. Override them on :root (or #kr-drawer) to retune:
+       its fallback. The founder retuned these on 2026-09-23 and the chosen values ARE the
+       fallbacks below, so the shipped look and the "unset" look remain the same thing.
+       Override them on :root, .kr-rail or #kr-drawer to retune:
 
-         --kr-chatw     318px    chat column width      --kr-main-gap   14px   section spacing
-         --kr-main-padt 14px     main padding top       --kr-main-padx  16px   main padding sides
-         --kr-main-padb 18px     main padding bottom    --kr-head-gap   10px   section-head gap
-         --kr-head-mb   8px      section-head margin    --kr-strip-gap  12px   gap between cards
-         --kr-tcw       118px    track card width       --kr-art-radius 10px   artwork corner
-         --kr-tct-size  .66rem   track title size       --kr-tct-mt     7px    title offset
-         --kr-tcp-size  .5rem    playlist label size    --kr-nav        40px   ‹ › button size
-         --kr-nav-glyph 1.4rem   ‹ › glyph size         --kr-stw        116px  station card width
+         --kr-bar-h     54px     collapsed bar height   --kr-chatw     400px  chat column width
+         --kr-main-gap  10px     section spacing        --kr-main-padt 10px   main padding top
+         --kr-main-padx 10px     main padding sides     --kr-main-padb 10px   main padding bottom
+         --kr-head-size .66rem   section-head font      --kr-head-gap  10px   section-head gap
+         --kr-head-mb   10px     section-head margin    --kr-strip-gap 10px   gap between cards
+         --kr-tcw-base  200px    track card width       --kr-art-radius 10px  artwork corner
+         --kr-tct-size  1rem     track title size       --kr-tct-mt    10px   title offset
+         --kr-tcp-size  1rem     playlist label size    --kr-nav       50px   ‹ › button size
+         --kr-nav-glyph 2rem     ‹ › glyph size         --kr-stw       150px  station card width
+
+       Card width is --kr-tcw-base, NOT --kr-tcw: the narrower-desktop breakpoints derive
+       --kr-tcw from it, and a literal there would beat any override.
 
        The tuner at /radio-tuner/ writes these live and copies out a ready-to-paste block.
        ⚠ Keep the fallbacks equal to the shipped values. They are the contract that an
@@ -408,10 +414,10 @@
        scroll HORIZONTALLY on their own; the column itself has no reason to scroll, and the
        panel below carries the vertical cap for the rare case where content exceeds it. */
     +'.kr-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;'
-    +  'gap:var(--kr-main-gap,14px);'
-    +  'padding:var(--kr-main-padt,14px) var(--kr-main-padx,16px) var(--kr-main-padb,18px);'
+    +  'gap:var(--kr-main-gap,10px);'
+    +  'padding:var(--kr-main-padt,10px) var(--kr-main-padx,10px) var(--kr-main-padb,10px);'
     +  'min-height:0;}'
-    +'.kr-chatcol{flex:0 0 var(--kr-chatw,318px);width:var(--kr-chatw,318px);min-width:0;'
+    +'.kr-chatcol{flex:0 0 var(--kr-chatw,400px);width:var(--kr-chatw,400px);min-width:0;'
     +  'display:flex;flex-direction:column;border-left:1px solid var(--kra-line);'
     +  'background:rgba(12,10,20,.72);transition:flex-basis .22s ease,width .22s ease;}'
     +'#kr-drawer.kr-chat-wide{--kr-chatw:50%;}'
@@ -426,39 +432,48 @@
     +'.kr-chatnote{padding:12px;font-size:.66rem;line-height:1.5;color:#9c94b8;}'
     /* ── ROWS ────────────────────────────────────────────────────────────────────────── */
     +'.kr-rowhead{display:flex;align-items:center;gap:var(--kr-head-gap,10px);'
-    +  'margin:0 0 var(--kr-head-mb,8px);}'
+    +  'margin:0 0 var(--kr-head-mb,10px);}'
     /* #8e86a8 was a purple-grey - a leftover of the old palette that read as lilac against
        the green row it labels. Neutral with a green cast, and a step larger so the two row
        labels are legible rather than decorative. */
-    +'.kr-rowhead h4{margin:0;font-size:.66rem;font-weight:900;letter-spacing:.2em;'
+    +'.kr-rowhead h4{margin:0;font-size:var(--kr-head-size,.66rem);font-weight:900;letter-spacing:.2em;'
     +  'color:#8fa89b;text-transform:uppercase;}'
     +'.kr-rail{position:relative;display:flex;align-items:center;gap:8px;min-width:0;}'
     /* The two Now Playing controls are positioned from the ROW CENTRE, which is where the
        current card always is, so they stay against it at every width without measuring. */
-    +'.kr-npnav{position:absolute;top:calc(var(--kr-tcw,118px)/2 - var(--kr-nav,40px)/2);'
-    +  'width:var(--kr-nav,40px);height:var(--kr-nav,40px);font-size:var(--kr-nav-glyph,1.4rem);'
+    +'.kr-npnav{position:absolute;top:calc(var(--kr-tcw,200px)/2 - var(--kr-nav,50px)/2);'
+    +  'width:var(--kr-nav,50px);height:var(--kr-nav,50px);font-size:var(--kr-nav-glyph,2rem);'
     +  'border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:3;'
     +  'background:rgba(6,20,14,.86);border:1px solid var(--kra-line);color:var(--kra);'
-    +  'font-size:1.4rem;line-height:1;cursor:pointer;backdrop-filter:blur(6px);'
+    /* NO font-size here: this rule already sets it from --kr-nav-glyph above, and a second
+       declaration in the same rule silently won, so the glyph knob did nothing. */
+    +  'line-height:1;cursor:pointer;backdrop-filter:blur(6px);'
     +  'transition:background .18s,border-color .18s,box-shadow .18s;}'
     +'.kr-npnav:hover{background:var(--kra-fill-2);border-color:var(--kra);'
     +  'box-shadow:0 0 16px var(--kra-glow);}'
     +'.kr-npnav:focus-visible{outline:2px solid var(--kra);outline-offset:2px;}'
-    +'.kr-npnav-l{right:calc(50% + var(--kr-tcw,118px)/2 - 6px);}'
-    +'.kr-npnav-r{left:calc(50% + var(--kr-tcw,118px)/2 - 6px);}'
+    +'.kr-npnav-l{right:calc(50% + var(--kr-tcw,200px)/2 - 6px);}'
+    +'.kr-npnav-r{left:calc(50% + var(--kr-tcw,200px)/2 - 6px);}'
     /* WITHOUT THIS THE FIRST AND LAST TRACK CANNOT REACH THE CENTRE. centreCurrentTrack
        clamps scrollLeft at 0, so with no inline padding the first card simply sat at the
        left edge and "current is centred" quietly stopped being true at the queue's ends. */
-    +'#kr-tracks-strip{padding-inline:calc(50% - var(--kr-tcw,118px)/2);}'
+    +'#kr-tracks-strip{padding-inline:calc(50% - var(--kr-tcw,200px)/2);}'
     /* §12: FIVE VISIBLE, from measurement rather than taste. The track viewport is 1090 /
        930 / 674px at 1440 / 1280 / 1024, so the card that makes exactly five fit with a 12px
        gap is 208 / 176 / 125px. These are set a little under that, which leaves a sliver of
        the sixth card showing - five are fully visible AND the row still looks like something
        that scrolls, instead of ending suspiciously flush with the edge. */
-    +'@media(min-width:1360px){.kr-rail{--kr-tcw:196px;}}'
-    +'@media(min-width:1200px) and (max-width:1359px){.kr-rail{--kr-tcw:168px;}}'
-    +'@media(min-width:1024px) and (max-width:1199px){.kr-rail{--kr-tcw:124px;}}'
-    +'@media(max-width:1023px){.kr-rail{--kr-tcw:120px;}}'
+    /* These once hard-set --kr-tcw, which made the card the ONE dimension the tuner could not
+       ship: a literal on .kr-rail beats any :root fallback, so a new default was ignored at
+       every width. The width to tune is --kr-tcw-base; the narrower desktops keep their
+       measured proportions of it (196 -> 168 / 124 / 120 was .857 / .633 / .612). */
+    +'@media(min-width:1360px){.kr-rail{--kr-tcw:var(--kr-tcw-base,200px);}}'
+    +'@media(min-width:1200px) and (max-width:1359px){'
+    +  '.kr-rail{--kr-tcw:calc(var(--kr-tcw-base,200px)*.857);}}'
+    +'@media(min-width:1024px) and (max-width:1199px){'
+    +  '.kr-rail{--kr-tcw:calc(var(--kr-tcw-base,200px)*.633);}}'
+    +'@media(max-width:1023px){'
+    +  '.kr-rail{--kr-tcw:calc(var(--kr-tcw-base,200px)*.612);}}'
     +'.kr-railbtn{flex:0 0 28px;width:28px;height:28px;border-radius:50%;background:rgba(0,255,136,.10);'
     +  'border:1px solid var(--kra-line);color:var(--kra);cursor:pointer;line-height:1;}'
     +'.kr-railbtn:hover:not([disabled]){background:rgba(0,255,136,.24);border-color:var(--kra);}'
@@ -476,7 +491,7 @@
     +'.kr-scroll{flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;'
     +  'scrollbar-width:none;}'
     +'.kr-scroll::-webkit-scrollbar{display:none;}'
-    +'.kr-strip{display:flex;align-items:flex-end;gap:var(--kr-strip-gap,12px);padding:2px 0 4px;}'
+    +'.kr-strip{display:flex;align-items:flex-end;gap:var(--kr-strip-gap,10px);padding:2px 0 4px;}'
     /* ══ THE FIRST AND LAST TRACK MUST BE ABLE TO REACH THE CENTRE ═══════════════════
        Without this the carousel can only centre cards that have half a viewport of
        neighbours on both sides: centring track 1 asks for a negative scrollLeft, the browser
@@ -485,7 +500,7 @@
        every card, including the first and the last, somewhere to be centred from. */
     +'#kr-tracks-strip{padding-left:calc(50% - 54px);padding-right:calc(50% - 54px);}'
     /* ── TRACK CARDS: FULL 2:3 PORTRAIT, NEVER CROPPED TO SQUARE (brief 27) ─────────── */
-    +'.kr-tc{flex:0 0 var(--kr-tcw,118px);width:var(--kr-tcw,118px);background:none;border:0;padding:0;cursor:default;'
+    +'.kr-tc{flex:0 0 var(--kr-tcw,200px);width:var(--kr-tcw,200px);background:none;border:0;padding:0;cursor:default;'
     +  'text-align:left;opacity:.66;transition:opacity .18s,transform .18s;}'
     +'.kr-tc.on{opacity:1;}'
     /* §13: SQUARE. This was 108x162 - a station's portrait shape applied to a song, so
@@ -499,8 +514,8 @@
     +  '0 0 22px var(--kra-glow);}'
     +'.kr-tct,.kr-tcp{display:block;max-width:100%;white-space:nowrap;overflow:hidden;'
     +  'text-overflow:ellipsis;}'
-    +'.kr-tct{margin-top:var(--kr-tct-mt,7px);font-size:var(--kr-tct-size,.66rem);font-weight:700;color:#efeaff;}'
-    +'.kr-tcp{font-size:var(--kr-tcp-size,.5rem);font-weight:700;letter-spacing:.08em;text-transform:uppercase;'
+    +'.kr-tct{margin-top:var(--kr-tct-mt,10px);font-size:var(--kr-tct-size,1rem);font-weight:700;color:#efeaff;}'
+    +'.kr-tcp{font-size:var(--kr-tcp-size,1rem);font-weight:700;letter-spacing:.08em;text-transform:uppercase;'
     +  'color:var(--kra-txt);}'
     +'.kr-tc.on .kr-tct{font-weight:800;color:#fff;}'
     +'.kr-tcnow{display:inline-flex;align-items:center;gap:5px;margin-top:4px;font-size:.46rem;'
@@ -536,7 +551,7 @@
     +'.kr-stations{display:flex;flex-wrap:nowrap;gap:10px;}'
     /* Station cards are one consistent size across the row and lead with real artwork
        (brief 31/32) - the old text-only pill ignored the station art that config carries. */
-    +'.kr-st{flex:0 0 var(--kr-stw,116px);width:var(--kr-stw,116px);display:flex;flex-direction:column;align-items:stretch;'
+    +'.kr-st{flex:0 0 var(--kr-stw,150px);width:var(--kr-stw,150px);display:flex;flex-direction:column;align-items:stretch;'
     +  'gap:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);'
     +  'border-radius:12px;padding:0;overflow:hidden;color:#cfe9ff;cursor:pointer;'
     +  'transition:border-color .18s,box-shadow .18s;}'
@@ -1900,6 +1915,13 @@
   window.__kilPublishRadioHeight=publishRadioHeight;
   publishRadioHeight();
   addEventListener('resize', publishRadioHeight, {passive:true});
+  /* Resize is not the only way the bar's height changes - tuning --kr-bar-h changes it with no
+     resize event at all, and the drawer would sit at the old offset. Observe the bar itself
+     rather than trying to enumerate every cause. */
+  if(typeof ResizeObserver==='function'){
+    try{ var _bar=document.getElementById('kil-radio');
+         if(_bar) new ResizeObserver(publishRadioHeight).observe(_bar); }catch(e){}
+  }
   /* The bar is built before its fonts/art settle, so measure again once painted. */
   [60,400,1500].forEach(function(ms){ setTimeout(publishRadioHeight, ms); });
 

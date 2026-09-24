@@ -189,8 +189,8 @@
     /* THE ONE ROW. Columns are info | form | upload. The upload column is sized from the
        card's own width so the 2:3 card is never squeezed into a different shape by the
        track. minmax(0,...) on the flexible columns stops a long URL widening the grid. */
-    + '.kps-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) 150px;'
-    +   'gap:26px;align-items:start;}'
+    + '.kps-row{display:grid;grid-template-columns:minmax(0,var(--kp-col-info,1.15fr)) minmax(0,var(--kp-col-form,1fr)) var(--kp-col-card,150px);'
+    +   'gap:var(--kp-gap,26px);align-items:var(--kp-align,start);}'
     /* 1024 is a SUPPORTED DESKTOP WIDTH and must still be one row: info | form | card.
        The first breakpoint was 1180px, which folded the information column onto its own
        line at exactly the width the brief asks to see the single row at. Below 900 there is
@@ -201,24 +201,31 @@
     + '@media(max-width:720px){.kps-row{grid-template-columns:1fr;gap:18px;}'
     +   '.kps-info{grid-column:auto;}.kps-upload{max-width:150px;}}'
 
-    + '.kps-info h3{margin:0 0 3px;font-size:1.04rem;font-weight:900;letter-spacing:.02em;'
+    + '.kps-info h3{margin:0 0 3px;font-size:var(--kp-h3,1.04rem);font-weight:900;letter-spacing:.02em;'
     +   'color:#fff;text-transform:uppercase;line-height:1.15;}'
-    + '.kps-sub{margin:0 0 14px;font-size:.74rem;color:var(--kpmut);}'
-    + '.kps-steps{list-style:none;display:flex;flex-direction:column;gap:10px;margin:0;padding:0;}'
+    + '.kps-sub{margin:0 0 var(--kp-sub-mb,14px);font-size:var(--kp-sub,.74rem);color:var(--kpmut);}'
+    + '.kps-steps{list-style:none;display:flex;flex-direction:column;gap:var(--kp-steps-gap,10px);margin:0;padding:0;}'
     + '.kps-steps li{display:flex;gap:10px;align-items:flex-start;min-width:0;}'
-    + '.kps-steps b{flex:0 0 26px;width:26px;height:26px;border-radius:50%;display:flex;'
+    + '.kps-steps b{flex:0 0 var(--kp-num,26px);width:var(--kp-num,26px);height:var(--kp-num,26px);border-radius:50%;display:flex;'
     +   'align-items:center;justify-content:center;background:var(--kpg);'
-    +   'border:1px solid var(--kpl);color:var(--kp);font-size:.7rem;font-weight:900;}'
-    + '.kps-steps span{min-width:0;font-size:.68rem;line-height:1.5;color:var(--kpmut);}'
-    + '.kps-steps strong{display:block;color:#fff;font-size:.72rem;margin-bottom:1px;}'
+    +   'border:1px solid var(--kpl);color:var(--kp);font-size:var(--kp-num-fs,.7rem);font-weight:900;}'
+    + '.kps-steps span{min-width:0;font-size:var(--kp-step-fs,.68rem);line-height:1.5;color:var(--kpmut);}'
+    + '.kps-steps strong{display:block;color:#fff;font-size:var(--kp-step-title,.72rem);margin-bottom:1px;}'
 
-    + '.kps-form{display:flex;flex-direction:column;gap:12px;min-width:0;}'
+    + '.kps-form{display:flex;flex-direction:column;gap:var(--kp-form-gap,12px);min-width:0;}'
     + '.kps-f{display:flex;flex-direction:column;gap:5px;min-width:0;}'
-    + '.kps-f>span{font-size:.58rem;font-weight:900;letter-spacing:.14em;color:var(--kpmut);'
+    + '.kps-f>span{font-size:var(--kp-label-fs,.58rem);font-weight:900;letter-spacing:.14em;color:var(--kpmut);'
     +   'text-transform:uppercase;}'
     + '.kps-f input[type=text],.kps-f input[type=url]{background:rgba(255,255,255,.05);'
-    +   'border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:11px 12px;'
-    +   'color:#fff;font:400 .78rem/1.3 inherit;min-width:0;width:100%;}'
+    +   'border:1px solid rgba(255,255,255,.14);border-radius:var(--kp-input-radius,9px);'
+    +   'padding:var(--kp-input-pady,11px) var(--kp-input-padx,12px);'
+    +   'color:#fff;font:400 .78rem/1.3 inherit;min-width:0;width:100%;'
+    /* ⚠ That font shorthand is INVALID (inherit cannot be a family inside it), so every
+       browser drops it and the field has always shown the UA's size — 13.33px in Chrome, not
+       the .78rem written here. Putting var() inside it changed HOW it failed and the field
+       jumped to 16px. The tunable size is its own declaration, and `revert` hands an unset
+       variable back to the browser default, so untouched looks exactly as it always has. */
+    +   'font-size:var(--kp-input-fs,revert);}'
     + '.kps-f input::placeholder{color:#6f8478;}'
     + '.kps-f input:focus{outline:2px solid var(--kp);outline-offset:1px;border-color:var(--kp);}'
     + '.kps-f input[aria-invalid="true"]{border-color:#ff6b8a;}'
@@ -228,17 +235,17 @@
        shape the cover will be. A wide dashed rectangle next to a small portrait preview
        taught the wrong shape and needed two boxes to say one thing. */
     + '.kps-upload{min-width:0;}'
-    + '.kps-drop{position:relative;display:block;width:100%;aspect-ratio:2/3;'
+    + '.kps-drop{position:relative;display:block;width:100%;aspect-ratio:var(--kp-card-ratio,2/3);'
     +   'background:rgba(255,255,255,.04) center/cover no-repeat;'
-    +   'border:1px dashed var(--kpl);border-radius:12px;color:var(--kptx);'
+    +   'border:1px dashed var(--kpl);border-radius:var(--kp-card-radius,12px);color:var(--kptx);'
     +   'cursor:pointer;font:inherit;padding:10px;overflow:hidden;}'
     + '.kps-drop:hover,.kps-drop.over{background-color:var(--kpg);border-color:var(--kp);}'
     + '.kps-drop:focus-visible{outline:2px solid var(--kp);outline-offset:2px;}'
     + '.kps-dropin{display:flex;flex-direction:column;align-items:center;justify-content:center;'
     +   'gap:5px;height:100%;text-align:center;}'
-    + '.kps-drop i{font-size:1.35rem;font-style:normal;color:var(--kp);line-height:1;}'
-    + '.kps-drop em{font-style:normal;font-size:.68rem;font-weight:700;color:#fff;line-height:1.3;}'
-    + '.kps-drop small{font-size:.56rem;color:var(--kpmut);line-height:1.35;}'
+    + '.kps-drop i{font-size:var(--kp-card-icon,1.35rem);font-style:normal;color:var(--kp);line-height:1;}'
+    + '.kps-drop em{font-style:normal;font-size:var(--kp-card-text,.68rem);font-weight:700;color:#fff;line-height:1.3;}'
+    + '.kps-drop small{font-size:var(--kp-card-small,.56rem);color:var(--kpmut);line-height:1.35;}'
     + '.kps-drop .kps-dim{color:#6f8478;}'
     /* Once an image is in, the card IS the preview: the helper text goes and a replace
        affordance takes its place, so the card never looks like a dead thumbnail. */
@@ -254,8 +261,9 @@
        Muted glass until the form is genuinely complete, then solid neon. The transition
        is the signal that nothing is missing, so it must not be green early. */
     + '.kps-submit{align-self:stretch;background:rgba(255,255,255,.06);'
-    +   'border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:12px 22px;'
-    +   'color:#7e938a;cursor:not-allowed;font:900 .72rem/1 inherit;letter-spacing:.1em;'
+    +   'border:1px solid rgba(255,255,255,.14);border-radius:var(--kp-btn-radius,10px);'
+    +   'padding:var(--kp-btn-pady,12px) 22px;'
+    +   'color:#7e938a;cursor:not-allowed;font:900 .72rem/1 inherit;font-size:var(--kp-btn-fs,revert);letter-spacing:.1em;'
     +   'text-transform:uppercase;transition:background .18s,color .18s,border-color .18s;}'
     + '.kps-submit.ready{background:var(--kp);border-color:var(--kp);color:#06170f;'
     +   'cursor:pointer;box-shadow:0 0 18px rgba(0,255,136,.35);}'

@@ -1,7 +1,8 @@
-/* WELCOME (sign in) -> ONBOARDING (4 cards) -> CREATE PET (5 quick steps).
-   Target: onboarding under 30 s, creation 30-60 s. */
+/* WELCOME (PLAY NOW / sign in) -> HOW TO PLAY (one card) -> CREATE PET
+   (5 one-tap steps) -> straight into the first photo mission.
+   Target: first photo in under a minute; teach only the core loop. */
 
-import { h, toast } from '../ui.js';
+import { h, toast, sheet } from '../ui.js';
 import { portrait } from '../render/pet.js';
 import { SPECIES, LAUNCH_SPECIES, species as speciesOf } from '../data/pets.js';
 import { PERSONALITIES, PERSONALITY_ORDER, line } from '../data/personality.js';
@@ -20,6 +21,7 @@ export function livePet(petFn, poseFn, size = 220, opts = {}) {
   const loop = now => {
     if (!c.isConnected && raf) { cancelAnimationFrame(raf); return; }
     if (now > nextBlink) { blinkUntil = now + 140; nextBlink = now + 2400 + Math.random() * 2400; }
+    opts.tick?.(now);
     const pet = petFn(); if (pet) portrait(c, pet, poseFn(), { t: now / 1000, blink: now < blinkUntil, zoom: opts.zoom || 1, squash: opts.squash?.() || 0 });
     raf = requestAnimationFrame(loop);
   };
@@ -31,21 +33,30 @@ export function livePet(petFn, poseFn, size = 220, opts = {}) {
 export function welcomeScreen(app) {
   const demo = { species: 'cat_fluffy', appearance: 'cloud', equipped: { NECK: 'neck_bowtie_blue' } };
   let pose = 'wave';
-  setInterval(() => { pose = pose === 'wave' ? 'happy' : 'wave'; }, 2400);
-  const guest = () => { unlockAudio(); update(s => { s.account = { mode: 'guest', userId: null, email: null }; }); track('signup_completed', { method: 'guest' }); app.go('onboarding'); };
+  const iv = setInterval(() => { pose = pose === 'wave' ? 'happy' : 'wave'; }, 2400);
+  const guest = () => { unlockAudio(); update(s => { s.account = { mode: 'guest', userId: null, email: null }; }); app.go('onboarding'); };
 
-  app.mount(h('div', { class: 'screen center bg-dots' },
+  const signIn = () => {
+    const sh = sheet(h('h2', {}, 'Sign in'),
+      h('p', { class: 'small', style: 'margin:0 0 12px' }, 'Keep your pet safe across devices. You can always do this later.'),
+      h('div', { class: 'stack' },
+        providers.apple ? h('button', { class: 'btn dark block', onclick: () => social('apple') }, ' Sign in with Apple') : null,
+        providers.google ? h('button', { class: 'btn ghost block', onclick: () => social('google') }, h('b', { style: 'color:#4285f4' }, 'G'), 'Sign in with Google') : null,
+        h('button', { class: 'btn sky block', onclick: () => { sh.close(); app.go('email'); } }, '✉️ Continue with email')));
+  };
+
+  app.mount(h('div', { class: 'screen center bg-dots welcome' },
     h('p', { class: 'logo' }, h('span', { class: 'p' }, 'Poka'), h('span', { class: 's' }, 'Snap')),
     h('p', { class: 'tag' }, 'POKE · POSE · SNAP'),
-    livePet(() => demo, () => pose, 240),
-    h('p', { class: 'sub', style: 'max-width:320px' }, 'Bring your pet into your world and complete photo challenges together.'),
+    livePet(() => demo, () => pose, Math.min(260, window.innerHeight * 0.34)),
+    h('p', { class: 'sub', style: 'max-width:320px' }, 'A photo game starring your very own pet. Pose it anywhere and snap photo missions together!'),
     h('div', { class: 'stack', style: 'width:100%;max-width:360px' },
-      providers.apple ? h('button', { class: 'btn dark block', onclick: () => social('apple') }, ' Sign in with Apple') : null,
-      providers.google ? h('button', { class: 'btn ghost block', onclick: () => social('google') }, h('b', { style: 'color:#4285f4' }, 'G'), 'Sign in with Google') : null,
-      h('button', { class: 'btn sky block', onclick: () => app.go('email') }, '✉️ Continue with email'),
-      h('button', { class: 'btn block', onclick: guest }, 'Play as guest'),
-      h('p', { class: 'small', style: 'margin:0' }, 'Guest progress stays on this device. You can save it to an account any time.'),
+      h('button', { class: 'btn block big', onclick: () => { track('play_now_tapped', { from: 'welcome' }); guest(); } }, 'PLAY NOW'),
+      h('button', { class: 'btn ghost block', onclick: signIn }, 'SIGN IN'),
+      h('p', { class: 'small', style: 'margin:0' }, 'No account needed. Your pet and photos stay on this device.'),
     )));
+
+  return () => clearInterval(iv);
 
   async function social(p) {
     track('signup_started', { method: p });
@@ -100,25 +111,23 @@ export function emailScreen(app) {
 }
 
 /* ------------------------------------------------------------- ONBOARDING -- */
-const CARDS = [
-  { t: 'CREATE YOUR PET',  s: 'Choose your new companion.',                                   pet: { species: 'dog_small', appearance: 'apricot' }, pose: 'happy' },
-  { t: 'POKE & POSE',      s: 'Tap your pet to make them react.',                             pet: { species: 'cat_short', appearance: 'tabby' },   pose: 'surprised' },
-  { t: 'PLACE & SNAP',     s: 'Put your pet into the real world and complete photo missions.', pet: { species: 'dog_golden', appearance: 'honey' }, pose: 'wave' },
-  { t: 'SCORE & COLLECT',  s: 'Earn points, unlock gear and build your photo album.',          pet: { species: 'bunny', appearance: 'lop', equipped: { HEAD: 'head_crown' } }, pose: 'jump' },
+/* One card, six beats, then you're choosing your pet. Everything else
+   (care, training, closet, badges) is discovered after the first photo. */
+const HOW = [
+  ['🐾', 'Pick your pet'], ['👆', 'Poke it to react'], ['🎭', 'Pose it'],
+  ['🌍', 'Put it into your world'], ['📸', 'Snap!'], ['🏆', 'Earn rewards'],
 ];
 export function onboardingScreen(app) {
-  let i = 0;
-  const render = () => {
-    const c = CARDS[i], last = i === CARDS.length - 1;
-    app.mount(h('div', { class: 'screen center bg-dots' },
-      h('div', { class: 'stepper' }, ...CARDS.map((_, k) => h('i', { class: k === i ? 'on' : '' }))),
-      livePet(() => c.pet, () => c.pose, 230),
-      h('h1', {}, c.t), h('p', { class: 'sub', style: 'max-width:320px' }, c.s),
-      h('div', { class: 'stack', style: 'width:100%;max-width:360px;margin-top:10px' },
-        h('button', { class: 'btn block big', onclick: () => { sfx.tap(); if (last) { update(s => { s.onboarded = true; }); app.go('create'); } else { i++; render(); } } }, last ? 'CREATE MY PET' : 'NEXT'),
-        last ? null : h('button', { class: 'linkbtn', onclick: () => { update(s => { s.onboarded = true; }); app.go('create'); } }, 'Skip'))));
-  };
-  render();
+  const pet = { species: 'dog_small', appearance: 'apricot', equipped: { NECK: 'neck_bandana' } };
+  let pose = 'happy', k = 0;
+  const iv = setInterval(() => { pose = ['happy', 'surprised', 'wave', 'jump'][++k % 4]; if (!document.body.contains(c)) clearInterval(iv); }, 1400);
+  const go = () => { clearInterval(iv); update(s => { s.onboarded = true; }); sfx.tap(); app.go('create'); };
+  const c = livePet(() => pet, () => pose, Math.min(200, window.innerHeight * 0.24));
+  app.mount(h('div', { class: 'screen center bg-dots' },
+    c, h('h1', {}, 'How to play'),
+    h('ol', { class: 'how' }, ...HOW.map(([i, t], n) => h('li', {}, h('span', { class: 'n' }, n + 1), h('span', { class: 'i' }, i), t))),
+    h('div', { class: 'stack', style: 'width:100%;max-width:360px;margin-top:14px' },
+      h('button', { class: 'btn block big', onclick: go }, 'PICK MY PET'))));
 }
 
 /* ------------------------------------------------------------- CREATE PET -- */
@@ -132,7 +141,7 @@ export function createScreen(app) {
     equipped: step >= 4 ? { [itemSlot(draft.starter)]: draft.starter } : {} });
 
   const head = (t, s) => [h('div', { class: 'stepper' }, ...Array.from({ length: STEPS }, (_, k) => h('i', { class: k === step ? 'on' : '' }))), h('h1', { style: 'text-align:center' }, t), h('p', { class: 'sub', style: 'text-align:center' }, s)];
-  const nav = (label, ok) => h('div', { class: 'row', style: 'margin-top:auto;padding-top:14px' },
+  const nav = (label, ok) => h('div', { class: 'row sticky-nav' },
     step > 0 ? h('button', { class: 'icon-btn', onclick: () => { step--; render(); }, 'aria-label': 'Back' }, '←') : null,
     h('button', { class: 'btn block grow', onclick: () => { if (!ok()) return; sfx.tap(); step++; render(); } }, label));
 
@@ -143,12 +152,13 @@ export function createScreen(app) {
     let body;
     if (step === 0) {
       body = [...head('Choose your pet', 'Who\'s coming on adventures with you?'),
-        h('div', { class: 'choices' }, ...LAUNCH_SPECIES.map(id => {
+        h('div', { class: 'choices species' }, ...LAUNCH_SPECIES.map(id => {
           const sp = SPECIES[id], c = h('canvas', { width: 240, height: 240 });
           portrait(c, { species: id, appearance: sp.appearances[0].id }, 'idle', { t: 0.3 });
           return h('div', { class: 'choice' + (draft.species === id ? ' on' : ''), onclick: () => { draft.species = id; draft.appearance = null; track('pet_selected', { species: id }); sfx.tap(); render(); } },
-            c, h('b', {}, sp.name), h('span', {}, sp.blurb));
+            c, h('b', {}, sp.name));
         })),
+        h('p', { class: 'sub', style: 'text-align:center;margin:12px 0 0' }, SPECIES[draft.species].blurb),
         nav('NEXT', () => true)];
     } else if (step === 1) {
       const sp = speciesOf(draft.species);
@@ -182,7 +192,7 @@ export function createScreen(app) {
           const c = h('canvas', { width: 180, height: 180 }); drawItemThumb(c, it.itemID);
           return h('div', { class: 'choice' + (draft.starter === it.itemID ? ' on' : ''), onclick: () => { draft.starter = it.itemID; sfx.equip(); render(); } }, c, h('b', {}, it.name));
         })),
-        h('div', { class: 'row', style: 'margin-top:auto;padding-top:14px' },
+        h('div', { class: 'row sticky-nav' },
           h('button', { class: 'icon-btn', onclick: () => { step--; render(); }, 'aria-label': 'Back' }, '←'),
           h('button', { class: 'btn block big grow', onclick: finish }, 'LET\'S GO! 🐾'))];
     }
@@ -198,9 +208,12 @@ export function createScreen(app) {
       s.currentMission = 'first_snap';
     });
     track('pet_created', { species: draft.species, appearance: draft.appearance, personality: draft.personality });
+    track('pet_named', { suggested: NAMES.includes(draft.name) });
+    track('signup_completed', { method: get().account.mode || 'guest' });
     track('pet_customized', { item: starter, via: 'starter' });
     sfx.level(); haptic('success');
-    app.go('home', { greet: true });
+    // first photo as fast as possible: straight into the first mission
+    app.go('brief', { missionId: 'first_snap' });
   }
   render();
 }

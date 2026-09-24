@@ -46,3 +46,28 @@ export function countUp(el, to, ms = 900, onTick) {
     requestAnimationFrame(step);
   });
 }
+
+/* Poke gestures for a pet element.
+   Tap reacts INSTANTLY (no waiting to see if a second tap follows); a second
+   tap within 320 ms upgrades it to the double-tap reaction; holding 500 ms
+   without moving fires onLong (the pose wheel). */
+export function pokeGestures(el, { onTap, onDouble, onLong }) {
+  let lastTap = 0, timer = 0, start = null, longFired = false;
+  el.addEventListener('pointerdown', e => {
+    start = { x: e.clientX, y: e.clientY }; longFired = false;
+    clearTimeout(timer);
+    if (onLong) timer = setTimeout(() => { longFired = true; onLong(); }, 500);
+  });
+  el.addEventListener('pointermove', e => { if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) clearTimeout(timer); });
+  const end = () => { clearTimeout(timer); };
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('pointerup', e => {
+    end(); if (!start || longFired) { start = null; return; }
+    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) { start = null; return; }
+    start = null;
+    const now = performance.now();
+    if (now - lastTap < 320 && onDouble) { lastTap = 0; onDouble(); } else { lastTap = now; onTap?.(); }
+  });
+}
+
+export function moodChip(m) { return h('span', { class: 'mood', title: 'Mood' }, m.icon, ' ', m.label); }

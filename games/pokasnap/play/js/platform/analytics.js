@@ -6,9 +6,21 @@
    pointing the sink at a real endpoint later is a one-line change. */
 
 export const EVENTS = [
-  'app_open', 'signup_started', 'signup_completed', 'pet_created', 'pet_selected', 'pet_customized',
-  'mission_started', 'pet_poked', 'pose_selected', 'photo_taken', 'photo_saved', 'mission_completed',
-  'score_received', 'level_up', 'cosmetic_equipped',
+  // launch & account
+  'app_open', 'session_started', 'play_now_tapped', 'returning_user', 'signup_started', 'signup_completed',
+  // pet
+  'pet_created', 'pet_selected', 'pet_customized', 'pet_named', 'pet_poked', 'pet_fed', 'pet_mood_changed',
+  // train
+  'training_started', 'skill_learned',
+  // photo loop
+  'mission_started', 'pose_selected', 'photo_taken', 'score_received', 'personal_best', 'mission_completed',
+  'photo_saved', 'album_opened', 'level_up', 'cosmetic_equipped',
+  // retention
+  'daily_task_completed', 'achievement_unlocked',
+  // music (outbound only; never tied to rewards)
+  'soundcloud_link_opened', 'soundcloud_track_opened',
+  // future purchases (not emitted until a store exists)
+  'store_viewed', 'product_viewed', 'purchase_started', 'purchase_completed',
 ];
 
 const ring = [];
@@ -23,4 +35,4 @@ export function track(name, props = {}) {
   if (sink) { try { sink(ev); } catch (e) {} }
 }
 
-window.PokaAnalytics = { events: ring, EVENTS };
+if (typeof window !== "undefined") window.PokaAnalytics = { events: ring, EVENTS };

@@ -18,6 +18,7 @@
      { type:'starter' }              chosen during pet creation
      { type:'level',  level:N }      earned by playing
      { type:'coins',  amount:N }     bought with coins earned in missions
+     { type:'achievement', id:'…' }  earned by a badge (data/achievements.js)
      { type:'premium', sku:'…' }     FUTURE: Stripe on the web, StoreKit on iOS.
                                      premium items are filtered out of V1 UI
                                      entirely -- there is no fake store.        */
@@ -49,6 +50,10 @@ export const ITEMS = [
     unlockRequirement: { type: 'level', level: 9 },   premiumEligible: true,  draw: 'hoodie',  color: '#8f6ad8', trim: '#c9b6f2' },
   { itemID: 'head_crown',       name: 'Tiny Crown',    category: 'crown',   slot: 'HEAD', petCompatibility: ALL, rarity: 'epic',
     unlockRequirement: { type: 'level', level: 10 },  premiumEligible: true,  draw: 'crown',   color: '#ffcc33', trim: '#e0474c' },
+
+  // ---- earned by a badge ----
+  { itemID: 'neck_medal',       name: 'Gold Medal',    category: 'medal',   slot: 'NECK', petCompatibility: ALL, rarity: 'rare',
+    unlockRequirement: { type: 'achievement', id: 'snaps_10' }, premiumEligible: false, draw: 'medal', color: '#ffcc33', trim: '#3f8ae0' },
 
   // ---- bought with earned coins (gives coins a real use in V1) ----
   { itemID: 'face_sunnies',     name: 'Sunnies',       category: 'glasses', slot: 'FACE', petCompatibility: ALL, rarity: 'uncommon',

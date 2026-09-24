@@ -360,6 +360,15 @@ function drawFx(ctx, fx, L, t) {
     ctx.fillStyle = '#ff5a4f'; ctx.font = '900 64px "Baloo 2", system-ui, sans-serif'; ctx.textAlign = 'center';
     ctx.fillText('!', hR * 0.95, top + 10 + Math.sin(t * 12) * 4);
   }
+  if (fx === 'notes') {
+    ctx.fillStyle = '#8a63d2'; ctx.font = '900 46px system-ui, sans-serif'; ctx.textAlign = 'center';
+    for (let i = 0; i < 3; i++) { const k = ((t * 0.6 + i / 3) % 1); ctx.globalAlpha = 1 - k;
+      ctx.fillText(i % 2 ? '♫' : '♪', (i - 1) * hR * 0.9 + Math.sin(t * 4 + i) * 12, top - k * 90 + 10); }
+  }
+  if (fx === 'question') {
+    ctx.fillStyle = '#5ab0e8'; ctx.font = '900 60px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('?', hR * 0.95, top + 6 + Math.sin(t * 5) * 5);
+  }
   ctx.restore();
 }
 

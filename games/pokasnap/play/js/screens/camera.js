@@ -12,11 +12,12 @@
    photo from their library or use a built-in scene -- the game never dead-ends. */
 
 import { drawPet } from '../render/pet.js';
-import { pose as poseOf, POSES, POSE_ORDER, POKE_CYCLE } from '../data/poses.js';
+import { pose as poseOf, POSES, POSE_ORDER } from '../data/poses.js';
 import { mission as missionOf } from '../data/missions.js';
-import { personality, line } from '../data/personality.js';
+import { line, reaction } from '../data/personality.js';
 import { get } from '../game/state.js';
-import { poseUnlocked } from '../game/progress.js';
+import { poseAvailable } from '../game/progress.js';
+import { skill as skillOf } from '../data/skills.js';
 import { track } from '../platform/analytics.js';
 import { haptic } from '../platform/native.js';
 import { sfx } from '../platform/sound.js';
@@ -29,9 +30,9 @@ export function cameraScreen(app, { missionId }) {
   const st = get(), pet = st.pet, m = missionOf(missionId);
   let facing = m.camera === 'front' ? 'user' : 'environment';
   let stream = null, raf = 0, alive = true, source = null;   // source: video | img element
-  let poseId = poseUnlocked(m.recommendedPose, st.progress.level) ? 'idle' : 'idle';
+  let poseId = 'idle';
   let squash = 0, pokedAt = -1e9, blinkUntil = 0, nextBlink = performance.now() + 2500;
-  let pokeIdx = 0;
+  let pokeIdx = 0, dblIdx = 0, lastTapAt = 0;
   const T = { x: 0, y: 0, s: 1, r: 0, flip: 1 };
 
   track('mission_started', { mission: m.missionID });
@@ -42,7 +43,7 @@ export function cameraScreen(app, { missionId }) {
   const still = h('img', { class: 'still', alt: '' }); still.hidden = true;
   const overlay = h('canvas', { class: 'overlay', 'aria-label': 'Your pet. Drag to move, pinch to resize, tap to poke.' });
   const flash = h('div', { class: 'flash' });
-  const hint = h('div', { class: 'cam-hint' }, 'Drag · pinch · tap to poke');
+  const hint = h('div', { class: 'cam-hint' }, 'Drag · pinch · tap to poke · hold for poses');
   const bubble = h('div', { class: 'bubble', style: 'position:absolute;display:none;pointer-events:none;transform:translate(-50%,-100%);z-index:3' });
   const blocked = h('div', { class: 'cam-blocked' }); blocked.hidden = true;
   const torchBtn = h('button', { class: 'icon-btn', 'aria-label': 'Flash', onclick: toggleTorch }, '⚡'); torchBtn.hidden = true;
@@ -51,7 +52,8 @@ export function cameraScreen(app, { missionId }) {
     video, still, overlay, bubble, flash, hint, blocked,
     h('div', { class: 'cam-top' },
       h('button', { class: 'icon-btn', 'aria-label': 'Close camera', onclick: () => app.go('home') }, '✕'),
-      h('div', { class: 'mission-card' }, h('b', {}, `${m.icon} ${m.title}`), h('span', {}, m.instruction))),
+      h('div', { class: 'mission-card' }, h('b', {}, `${m.icon} ${m.title}`), h('span', {}, m.instruction),
+        h('span', { class: 'mc-pose' }, m.anySkill ? 'Best pose: 🎓 any trained trick' : `Best pose: ${poseOf(m.recommendedPose).icon} ${poseOf(m.recommendedPose).name}`))),
     h('div', { class: 'cam-side' },
       h('button', { class: 'icon-btn', 'aria-label': 'Switch camera', onclick: flipCamera }, '🔄'),
       torchBtn,
@@ -204,7 +206,10 @@ export function cameraScreen(app, { missionId }) {
   const up = e => {
     ptrs.delete(e.pointerId);
     if (ptrs.size < 2) pinch = null;
-    if (drag && !drag.moved && press && performance.now() - press.t < 480) poke(false);
+    if (drag && !drag.moved && press && performance.now() - press.t < 480) {
+      const now = performance.now();
+      if (now - lastTapAt < 320) { lastTapAt = 0; poke(false, 'double'); } else { lastTapAt = now; poke(false); }
+    }
     clearTimeout(press?.timer); press = null;
     if (ptrs.size === 0) drag = null;
   };
@@ -216,28 +221,26 @@ export function cameraScreen(app, { missionId }) {
   function clampScale(s) { const k = H / PET_H; return Math.max(k * 0.08, Math.min(k * 2.6, s)); }
 
   // ------------------------------------------------------------ poke & pose ----
-  function poke(fromButton) {
-    const lvl = get().progress.level;
-    const bias = personality(pet.personality).pokeBias;
-    const order = [...new Set([...bias, ...POKE_CYCLE])].filter(p => poseUnlocked(p, lvl));
-    poseId = order[pokeIdx % order.length]; pokeIdx++;
+  function poke(fromButton, kind = 'tap') {
+    const cur = get(), can = id => POSES[id] && !POSES[id].reaction && poseAvailable(cur, id);
+    poseId = reaction(pet.personality, kind, can, kind === 'double' ? dblIdx++ : pokeIdx++);
     squash = 1; pokedAt = performance.now();
-    say(line(pet.personality, 'poke', pet.name));
-    sfx.poke(); haptic('light');
-    track('pet_poked', { pose: poseId, via: fromButton ? 'button' : 'tap' });
+    say(line(pet.personality, kind === 'double' ? 'double' : 'poke', pet.name));
+    kind === 'double' ? sfx.pose() : sfx.poke(); haptic(kind === 'double' ? 'medium' : 'light');
+    track('pet_poked', { pose: poseId, via: fromButton ? 'button' : 'tap', gesture: kind });
   }
   function setPose(id) { poseId = id; squash = 0.6; sfx.pose(); haptic('light'); track('pose_selected', { pose: id }); }
   function openPoses() {
-    const lvl = get().progress.level;
+    const cur = get();
     const s = sheet(
       h('h2', {}, 'Pick a pose'),
-      h('p', { class: 'small', style: 'margin:0 0 12px' }, `Tip: "${m.title}" loves ${poseOf(m.recommendedPose).icon} ${poseOf(m.recommendedPose).name}.`),
+      h('p', { class: 'small', style: 'margin:0 0 12px' }, m.anySkill ? `Tip: "${m.title}" wants a trick ${pet.name} learned in Train.` : `Tip: "${m.title}" loves ${poseOf(m.recommendedPose).icon} ${poseOf(m.recommendedPose).name}.`),
       h('div', { class: 'poses' }, ...POSE_ORDER.map(id => {
-        const p = POSES[id], ok = poseUnlocked(id, lvl);
+        const p = POSES[id], ok = poseAvailable(cur, id), rec = id === m.recommendedPose && !m.anySkill;
         return h('button', {
-          class: 'pose' + (id === poseId ? ' on' : '') + (ok ? '' : ' locked'),
-          onclick: () => { if (!ok) { toast(`Unlocks at level ${p.unlockLevel}`); return; } setPose(id); s.close(); },
-        }, h('span', { class: 'e' }, ok ? p.icon : '🔒'), p.name, ok ? null : h('span', { class: 'lock' }, `Lv ${p.unlockLevel}`));
+          class: 'pose' + (id === poseId ? ' on' : '') + (ok ? '' : ' locked') + (rec ? ' rec' : ''),
+          onclick: () => { if (!ok) { toast(`Teach ${pet.name} ${skillOf(p.skill).name} in 🎓 Train`); return; } setPose(id); s.close(); },
+        }, h('span', { class: 'e' }, ok ? p.icon : '🔒'), p.name, ok ? (rec ? h('span', { class: 'lock' }, '★ BEST') : null) : h('span', { class: 'lock' }, '🎓 Train'));
       })));
   }
 

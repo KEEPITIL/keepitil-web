@@ -7,7 +7,15 @@
 
 export const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 export const platform = isNative ? 'ios' : 'web';
-const Native = () => window.Capacitor?.Plugins?.PokaNative;
+/* PokaNative is registered at runtime by PokaViewController, after Capacitor
+   announced its plugin list, so it is never in Capacitor.Plugins; and there is
+   no @capacitor/core bundle here, so Capacitor.registerPlugin does not exist
+   either. The native bridge's own nativePromise(plugin, method, options)
+   reaches any registered plugin by name -- that is the call that works.
+   (Both other lookups silently fell back to the share sheet on iOS.) */
+const call = method => opts => window.Capacitor.nativePromise('PokaNative', method, opts);
+const Native = () => (isNative && typeof window.Capacitor?.nativePromise === 'function')
+  ? { savePhoto: call('savePhoto'), share: call('share'), haptic: call('haptic') } : null;
 
 async function blobToBase64(blob) {
   const buf = new Uint8Array(await blob.arrayBuffer());

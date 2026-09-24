@@ -48,6 +48,13 @@ const DRAW = {
     ctx.fillStyle = it.trim;
     for (const [x, y] of [[-30, 8], [0, 24], [26, 10], [-10, 44], [12, 42]]) { ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); }
   },
+  medal(ctx, it, A) {
+    const w = A.w * 0.42;
+    ctx.beginPath(); ctx.moveTo(-w, -8); ctx.lineTo(-10, 40); ctx.lineTo(10, 40); ctx.lineTo(w, -8);
+    ctx.lineWidth = 12; ctx.strokeStyle = it.trim; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 58, 22, 0, Math.PI * 2); outlineFill(ctx, it.color, dk(it.color, .4));
+    ctx.fillStyle = '#fff6c9'; ctx.font = '900 24px system-ui'; ctx.textAlign = 'center'; ctx.fillText('★', 0, 67);
+  },
   scarf(ctx, it, A) {
     const w = A.w * 0.55;
     ctx.beginPath(); ctx.moveTo(-w, -14); ctx.quadraticCurveTo(0, 20, w, -14);
@@ -60,7 +67,8 @@ const DRAW = {
 
   /* ---------------- HEAD (origin = crown of the head) ---------------- */
   daisy(ctx, it, A) {
-    ctx.translate(A.hR * 0.5, 22);
+    if (!A.thumb) ctx.translate(A.hR * 0.5, 22);   // on the pet it sits by the ear; thumbnails centre it
+    else ctx.scale(2, 2);
     for (let i = 0; i < 8; i++) {
       const a = i * Math.PI / 4; ctx.beginPath();
       ctx.ellipse(Math.cos(a) * 16, Math.sin(a) * 16, 11, 7, a, 0, Math.PI * 2);
@@ -163,8 +171,8 @@ export function drawItemThumb(canvas, id) {
   const it = item(id); if (!it) return;
   const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
-  ctx.save(); ctx.translate(W / 2, H * (it.slot === 'HEAD' ? 0.66 : it.slot === 'NECK' ? 0.36 : 0.5));
+  ctx.save(); ctx.translate(W / 2, H * (it.draw === 'daisy' ? 0.5 : it.slot === 'HEAD' ? 0.66 : it.slot === 'NECK' ? 0.36 : 0.5));
   const s = W / 190; ctx.scale(s, s);
-  DRAW[it.draw](ctx, it, { hR: 115, w: 120, rx: 70, ry: 60 });
+  DRAW[it.draw](ctx, it, { hR: 115, w: 120, rx: 70, ry: 60, thumb: true });
   ctx.restore();
 }

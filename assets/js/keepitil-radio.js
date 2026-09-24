@@ -166,12 +166,12 @@
       '.krb-now{flex:1 1 auto!important;position:static;background:none;border-color:transparent;}'+
       /* position/animation resets dropped with the absolute+crossfade system they undid.
          The mobile type scale stays, and so does hiding the station sub-line below. */
-      '.krb-now .kr-now{font-size:var(--kr-bar-now,.62rem);font-weight:400;color:rgba(255,255,255,.7);}'+
+      '.krb-now .kr-now{font-size:.62rem;font-weight:400;color:rgba(255,255,255,.7);}'+
       '#kr-nowpl{display:none!important;}'+
       '.kr-side,.kr-plname{display:none!important;}'+
       '.kil-brand-logo{height:22px;}'+
       '#kr-mute{margin-left:auto;}'+
-      '#kr-vol{width:var(--kr-vol-w,74px);height:20px;}'+
+      '#kr-vol{width:74px;height:20px;}'+
       '#kil-radio{gap:6px;padding:0 8px;}'+
     '}'+
     '@media(max-width:480px){.radio-mini #kilo-panel{bottom:156px!important;right:12px!important;}}'

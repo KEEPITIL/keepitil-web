@@ -215,7 +215,7 @@
        priority the brief sets: current track, then arrows, then volume/chat, then the
        adjacent art and text. The bar never gets taller and nothing ever overlaps. */
     +'@media(min-width:641px){'
-    +  '#kil-radio{height:var(--kr-bar-h,54px);min-height:var(--kr-bar-h,54px);'
+    +  '#kil-radio{height:var(--kr-bar-h,45px);min-height:var(--kr-bar-h,45px);'
     +  'padding:0 20px;gap:18px;align-items:center;}'
     +  '#kil-radio>*{align-self:center;}'
     +  '.krb{height:auto!important;}'
@@ -277,9 +277,9 @@
     /* §8: 40px hit targets carrying a 22px glyph, matching the transport circles. Scoped to
        #kil-radio on purpose - .kr-util is also the drawer's chat expand/close pair, and
        those are secondary controls in a header, not primary controls in the bar. */
-    +  '#kil-radio .kr-util{width:var(--kr-util,40px);height:var(--kr-util,40px);padding:0;'
-    +    'border-radius:var(--kr-util-radius,10px);font-size:var(--kr-util-glyph,1.25rem);}'
-    +  '#kil-radio .kr-util svg{width:var(--kr-util-ic,22px);height:var(--kr-util-ic,22px);}'
+    +  '#kil-radio .kr-util{width:var(--kr-util,45px);height:var(--kr-util,45px);padding:0;'
+    +    'border-radius:var(--kr-util-radius,10px);font-size:var(--kr-util-glyph,1rem);}'
+    +  '#kil-radio .kr-util svg{width:var(--kr-util-ic,45px);height:var(--kr-util-ic,45px);}'
     /* The square art is 14px wider than the portrait card it replaces and the text is
        larger, so each zone gains that back. Measured, not guessed: see the reported centre
        offset at 1440/1280/1024. */
@@ -287,13 +287,13 @@
        the bar's track slots untunable, because a literal on #kil-radio beats any inherited
        value. Tune the -base pair; the narrower widths keep their measured proportions of it
        (210 -> 158 was .752; 270 -> 238 / 230 was .881 / .852). */
-    +  '@media(min-width:1200px){#kil-radio{--kr-tkw:var(--kr-tkw-base,210px);'
-    +    '--kr-curw:var(--kr-curw-base,270px);}}'
+    +  '@media(min-width:1200px){#kil-radio{--kr-tkw:var(--kr-tkw-base,200px);'
+    +    '--kr-curw:var(--kr-curw-base,250px);}}'
     +  '@media(min-width:1024px) and (max-width:1199px){'
-    +    '#kil-radio{--kr-tkw:calc(var(--kr-tkw-base,210px)*.752);'
-    +    '--kr-curw:calc(var(--kr-curw-base,270px)*.881);}}'
+    +    '#kil-radio{--kr-tkw:calc(var(--kr-tkw-base,200px)*.752);'
+    +    '--kr-curw:calc(var(--kr-curw-base,250px)*.881);}}'
     +  '@media(max-width:1023px){.kr-tk-side{display:none;}'
-    +    '#kil-radio{--kr-curw:calc(var(--kr-curw-base,270px)*.852);}}'
+    +    '#kil-radio{--kr-curw:calc(var(--kr-curw-base,250px)*.852);}}'
     +'}'
     +'#kr-live{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(0,255,136,.28);border-radius:10px;padding:4px 8px;cursor:pointer;transition:background .18s,border-color .18s,box-shadow .18s;}'
     +'#kr-live:hover{background:rgba(0,255,136,.10);border-color:rgba(0,255,136,.55);}'
@@ -339,8 +339,8 @@
     /* ══ UTILITY CONTROLS ════════════════════════════════════════════════════════════ */
     +'.kr-util{display:inline-flex;align-items:center;justify-content:center;'
     +  'background:transparent;border:1px solid transparent;border-radius:9px;'
-    +  'color:var(--kra-txt);font-size:var(--kr-chatbtn-glyph,.9rem);line-height:1;'
-    +  'padding:var(--kr-chatbtn-pady,5px) var(--kr-chatbtn-padx,7px);cursor:pointer;'
+    +  'color:var(--kra-txt);font-size:var(--kr-chatbtn-glyph,1rem);line-height:1;'
+    +  'padding:var(--kr-chatbtn-pady,0px) var(--kr-chatbtn-padx,10px);cursor:pointer;'
     +  'transition:color .18s,background .18s,border-color .18s;}'
     +'.kr-util:hover{color:#fff;background:rgba(0,255,136,.16);border-color:var(--kra-line);}'
     +'.kr-util:focus-visible{outline:2px solid var(--kra);outline-offset:2px;}'
@@ -381,13 +381,13 @@
        it grows again when + CREATE reveals the submission form. */
     +'#kr-drawer{bottom:var(--kil-radio-h,54px);max-height:calc(100vh - var(--kil-radio-h,54px) - 8px);border-radius:14px 14px 0 0;box-shadow:0 -18px 50px rgba(0,0,0,.7);}'
     +'.kr-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:linear-gradient(90deg,rgba(0,255,136,.12),rgba(124,77,255,.10));border:0;border-bottom:1px solid rgba(255,255,255,.08);'
-    +  'padding:var(--kr-hdr-pady,11px) var(--kr-hdr-padx,14px);cursor:pointer;}'
+    +  'padding:var(--kr-hdr-pady,10px) var(--kr-hdr-padx,10px);cursor:pointer;}'
     +'.kr-hdr:hover{background:linear-gradient(90deg,rgba(0,255,136,.2),rgba(124,77,255,.16));}'
     +'.kr-hdr:focus-visible{outline:2px solid var(--kra);outline-offset:-2px;}'
     +'.kr-hdr-l,.kr-hdr-r{display:flex;align-items:center;gap:8px;}'
-    +'.kr-hdr-t{font-size:var(--kr-hdr-t,.7rem);font-weight:900;letter-spacing:.2em;color:#00ff88;text-transform:uppercase;}'
-    +'.kr-hdr-hint{font-size:var(--kr-hdr-hint,.47rem);font-weight:800;letter-spacing:.16em;color:#7a8699;text-transform:uppercase;}'
-    +'.kr-hdr-ic{color:var(--kra);font-size:var(--kr-hdr-ic,.7rem);}'
+    +'.kr-hdr-t{font-size:var(--kr-hdr-t,1rem);font-weight:900;letter-spacing:.2em;color:#00ff88;text-transform:uppercase;}'
+    +'.kr-hdr-hint{font-size:var(--kr-hdr-hint,1rem);font-weight:800;letter-spacing:.16em;color:#7a8699;text-transform:uppercase;}'
+    +'.kr-hdr-ic{color:var(--kra);font-size:var(--kr-hdr-ic,1rem);}'
     +'html[data-radio-ui="expanded"] .kr-hdr-ic{transform:rotate(180deg);}'
     +'.kr-panel-body{overflow:auto;padding:12px 14px 16px;}'
     /* ══ EXPANDED RADIO: TWO COLUMNS (brief 21-25) ═══════════════════════════════════
@@ -433,27 +433,27 @@
     +'#kr-drawer.kr-chat-wide{--kr-chatw:50%;}'
     +'#kr-drawer.kr-chat-off{--kr-chatw:0px;}'
     +'#kr-drawer.kr-chat-off .kr-chatcol{border-left:0;overflow:hidden;}'
-    +'.kr-chathdr{display:flex;align-items:center;gap:var(--kr-chathdr-gap,8px);'
-    +  'padding:var(--kr-chathdr-pady,10px) var(--kr-chathdr-padx,12px);'
+    +'.kr-chathdr{display:flex;align-items:center;gap:var(--kr-chathdr-gap,10px);'
+    +  'padding:var(--kr-chathdr-pady,10px) var(--kr-chathdr-padx,10px);'
     +  'border-bottom:1px solid var(--kra-line);flex:0 0 auto;}'
-    +'.kr-chathdr b{font-size:var(--kr-chathdr-size,.62rem);font-weight:900;letter-spacing:.16em;color:var(--kra);'
+    +'.kr-chathdr b{font-size:var(--kr-chathdr-size,1rem);font-weight:900;letter-spacing:.16em;color:var(--kra);'
     +  'text-transform:uppercase;}'
-    +'.kr-chathdr .kr-sp{margin-left:auto;display:flex;gap:var(--kr-chatbtn-gap,4px);}'
+    +'.kr-chathdr .kr-sp{margin-left:auto;display:flex;gap:var(--kr-chatbtn-gap,10px);}'
     +'.kr-chatbody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;}'
-    +'.kr-chatnote{padding:var(--kr-chatnote-pad,12px);font-size:var(--kr-chatnote-size,.66rem);line-height:1.5;color:#9c94b8;}'
+    +'.kr-chatnote{padding:var(--kr-chatnote-pad,10px);font-size:var(--kr-chatnote-size,1rem);line-height:1.5;color:#9c94b8;}'
     /* ── ROWS ────────────────────────────────────────────────────────────────────────── */
     +'.kr-rowhead{display:flex;align-items:center;gap:var(--kr-head-gap,10px);'
     +  'margin:0 0 var(--kr-head-mb,10px);}'
     /* #8e86a8 was a purple-grey - a leftover of the old palette that read as lilac against
        the green row it labels. Neutral with a green cast, and a step larger so the two row
        labels are legible rather than decorative. */
-    +'.kr-rowhead h4{margin:0;font-size:var(--kr-head-size,.66rem);font-weight:900;letter-spacing:.2em;'
+    +'.kr-rowhead h4{margin:0;font-size:var(--kr-head-size,1rem);font-weight:900;letter-spacing:.2em;'
     +  'color:#8fa89b;text-transform:uppercase;}'
     +'.kr-rail{position:relative;display:flex;align-items:center;gap:8px;min-width:0;}'
     /* The two Now Playing controls are positioned from the ROW CENTRE, which is where the
        current card always is, so they stay against it at every width without measuring. */
     +'.kr-npnav{position:absolute;top:calc(var(--kr-tcw,200px)/2 - var(--kr-nav,50px)/2);'
-    +  'width:var(--kr-nav,50px);height:var(--kr-nav,50px);font-size:var(--kr-nav-glyph,2rem);'
+    +  'width:var(--kr-nav,50px);height:var(--kr-nav,50px);font-size:var(--kr-nav-glyph,1.5rem);'
     +  'border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:3;'
     +  'background:rgba(6,20,14,.86);border:1px solid var(--kra-line);color:var(--kra);'
     /* NO font-size here: this rule already sets it from --kr-nav-glyph above, and a second
@@ -485,7 +485,7 @@
     +  '.kr-rail{--kr-tcw:calc(var(--kr-tcw-base,200px)*.633);}}'
     +'@media(max-width:1023px){'
     +  '.kr-rail{--kr-tcw:calc(var(--kr-tcw-base,200px)*.612);}}'
-    +'.kr-railbtn{flex:0 0 var(--kr-railbtn,28px);width:var(--kr-railbtn,28px);height:var(--kr-railbtn,28px);border-radius:50%;background:rgba(0,255,136,.10);'
+    +'.kr-railbtn{flex:0 0 var(--kr-railbtn,25px);width:var(--kr-railbtn,25px);height:var(--kr-railbtn,25px);border-radius:50%;background:rgba(0,255,136,.10);'
     +  'border:1px solid var(--kra-line);color:var(--kra);cursor:pointer;line-height:1;}'
     +'.kr-railbtn:hover:not([disabled]){background:rgba(0,255,136,.24);border-color:var(--kra);}'
     /* A rail arrow with nothing to scroll is a control that does nothing. With three real
@@ -519,17 +519,17 @@
        is declared with aspect-ratio rather than by repeating the width variable as a height:
        a percentage height would resolve against the PARENT's height and silently stop being
        square, which is the trap that makes "it looked fine at one width" a bad proof. */
-    +'.kr-tcart{width:100%;aspect-ratio:1/1;height:auto;border-radius:var(--kr-art-radius,10px);object-fit:cover;display:block;'
+    +'.kr-tcart{width:100%;aspect-ratio:1/1;height:auto;border-radius:var(--kr-art-radius,5px);object-fit:cover;display:block;'
     +  'background:#15131f;border:1px solid rgba(255,255,255,.07);}'
     +'.kr-tc.on .kr-tcart{border-color:var(--kra);box-shadow:0 0 0 1px var(--kra),'
     +  '0 0 22px var(--kra-glow);}'
     +'.kr-tct,.kr-tcp{display:block;max-width:100%;white-space:nowrap;overflow:hidden;'
     +  'text-overflow:ellipsis;}'
-    +'.kr-tct{margin-top:var(--kr-tct-mt,10px);font-size:var(--kr-tct-size,1rem);font-weight:700;color:#efeaff;}'
+    +'.kr-tct{margin-top:var(--kr-tct-mt,5px);font-size:var(--kr-tct-size,1rem);font-weight:700;color:#efeaff;}'
     +'.kr-tcp{font-size:var(--kr-tcp-size,1rem);font-weight:700;letter-spacing:.08em;text-transform:uppercase;'
     +  'color:var(--kra-txt);}'
     +'.kr-tc.on .kr-tct{font-weight:800;color:#fff;}'
-    +'.kr-tcnow{display:inline-flex;align-items:center;gap:5px;margin-top:4px;font-size:var(--kr-tcnow-size,.46rem);'
+    +'.kr-tcnow{display:inline-flex;align-items:center;gap:5px;margin-top:4px;font-size:var(--kr-tcnow-size,0.5rem);'
     +  'font-weight:900;letter-spacing:.16em;color:var(--krg);text-transform:uppercase;}'
     /* ── STATION ROW + THE LOCKED CREATE TILE (brief 30-33) ─────────────────────────── */
     +'.kr-strow{display:flex;align-items:stretch;gap:var(--kr-st-gap,10px);min-width:0;}'
@@ -572,8 +572,8 @@
        is cut and nothing is stretched. */
     +'.kr-st img{width:100%;aspect-ratio:2/3;height:auto;object-fit:cover;display:block;'
     +  'background:#0e1a14;}'
-    +'.kr-st>span{padding:var(--kr-stname-pady,7px) var(--kr-stname-padx,8px);'
-    +  'font:900 var(--kr-stname-size,.54rem)/1.15 \'Space Grotesk\',Inter,sans-serif;'
+    +'.kr-st>span{padding:var(--kr-stname-pady,3px) var(--kr-stname-padx,0px);'
+    +  'font:900 var(--kr-stname-size,0.8rem)/1.15 \'Space Grotesk\',Inter,sans-serif;'
     +  'letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;overflow:hidden;'
     +  'text-overflow:ellipsis;}'
     +'.kr-st-noart{width:100%;height:78px;display:block;background:linear-gradient(135deg,'

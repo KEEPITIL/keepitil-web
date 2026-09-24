@@ -783,7 +783,8 @@ document.addEventListener('click',function(e){ var dd=document.getElementById('v
      ⚠ THIS HIDES THE BAR, NOT THE RADIO. The audio engine is #kil-sc, a separate element kept
      alive by <html data-radio="page">; display:none on the bar does not touch it, so playback
      continues and the section's own row keeps working. */
-  body.rad-m #kil-radio{display:none!important}
+  /* body.rad-m #kil-radio{display:none!important} — removed 2026-09-24: the compact bar now docks on
+     the bottom nav on EVERY page, Earn included (Founder: "continuous across KEEPITIL"). */
   /* ── FOOTER MATCHES /connect AND /create (Founder 2026-08-24) ────────────────────────────
      "footer has extra space at the bottom of the footer followed by a gap after the footer.
       connect and create do not and have the best examples."
@@ -898,11 +899,11 @@ document.addEventListener('click',function(e){ var dd=document.getElementById('v
   }, {passive:true});
 })();
 </script>
-<script src="/keepitil-shell.js?v=20260924a" defer></script>
+<script src="/keepitil-shell.js?v=20260924b" defer></script>
 <!-- seasonal background rotation (auto by date; ?season=<slug> to preview) -->
 <script src="/kil-seasons.js?v=20260910b"></script>
 <!-- persistent synchronized radio bar -->
-<script src="/assets/js/keepitil-radio.js?v=20260924a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20260924b" defer></script>
 <!-- floating AI chat bubble (#kilo-btn) — same as Culture/home for uniformity -->
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
 <script>

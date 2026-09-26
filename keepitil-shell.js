@@ -1943,8 +1943,50 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     (document.head||document.documentElement).appendChild(st);
   }catch(e){}
 
+  /* ── CANONICAL CATALOG (2026-09-26) ─────────────────────────────────────────────────
+     /assets/campaigns/catalog.json is the one list the website AND the WiFi Remote app
+     read. The array above stays as the built-in fallback so a failed fetch never empties a
+     rail; when the catalog arrives it wins. Fail closed: a sponsor renders only if the
+     catalog lists it enabled and websiteApproved with https artwork and destination - a
+     sponsor the catalog omits is switched off. appApproved is the app's concern and is
+     never read here. If anything visible changed, surfaces are told to repaint. */
+  var catalogApplied = false;
+  function applyCatalog(cat){
+    if(!cat || !cat.campaigns || !cat.campaigns.length) return false;
+    var changed = false, seen = {};
+    cat.campaigns.forEach(function(c){
+      var s = byId(c.id); if(!s) return;
+      seen[c.id] = 1;
+      var ok = c.enabled === true && c.websiteApproved === true
+        && /^https:\/\//.test(c.destination || '') && /^https:\/\//.test(c.artworkBase || '');
+      var img = ok ? String(c.artworkBase).replace(/^https:\/\/keepitil\.com/, '') : s.image;
+      if(s.active !== ok) changed = true;
+      s.active = ok;
+      if(ok){
+        if(s.href !== c.destination || s.image !== img || s.priority !== c.order
+           || s.disclosure !== c.disclosure) changed = true;
+        s.href = c.destination; s.image = img; s.priority = c.order;
+        s.disclosure = c.disclosure; if(c.alt) s.alt = c.alt;
+      }
+    });
+    SPONSORS.forEach(function(s){ if(!seen[s.id] && s.active){ s.active = false; changed = true; } });
+    catalogApplied = true;
+    return changed;
+  }
+  try{
+    fetch('/assets/campaigns/catalog.json', {cache:'no-cache'})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(cat){
+        if(applyCatalog(cat)){
+          try{ document.dispatchEvent(new CustomEvent('kil:sponsors-updated')); }catch(e){}
+        }
+      })
+      .catch(function(){});
+  }catch(e){}
+
   window.KIL_SPONSORS = {
     list:SPONSORS, live:live, byId:byId, pick:pick, card:card,
-    validate:validate, refreshImpressions:watch
+    validate:validate, refreshImpressions:watch,
+    catalogApplied:function(){ return catalogApplied; }
   };
 })();

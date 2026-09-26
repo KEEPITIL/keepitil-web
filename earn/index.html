@@ -1166,6 +1166,8 @@ var _g_scheduleGrid=document.getElementById('scheduleGrid'); if(_g_scheduleGrid)
     if(window.KIL_SPONSORS.refreshImpressions) window.KIL_SPONSORS.refreshImpressions();
     return true;
   }
+  /* The shell repaints this rail if the canonical catalog changed anything. */
+  document.addEventListener('kil:sponsors-updated', paintPartners);
   if(!paintPartners()){
     var tries=0;
     var t=setInterval(function(){ if(paintPartners() || ++tries>40) clearInterval(t); }, 150);

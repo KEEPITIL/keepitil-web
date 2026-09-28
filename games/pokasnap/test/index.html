@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en" data-channel="test">
+<head>
+<meta name="robots" content="noindex,nofollow">
+<meta name="pokasnap-build" content="2.0 owner test · 0244b5a">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#ff6b8b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PokaSnap">
+<meta name="description" content="PokaSnap — poke, pose and snap your plush pet into the real world. Complete silly photo missions, earn rewards and dress up your companion.">
+<title>PokaSnap</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="img/icon-192.png">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/opening.css">
+<link rel="stylesheet" href="css/v2.css">
+<script>
+/* Boot instrumentation + watchdog (plain script: runs before any module). */
+(function(){var t0=Date.now(),b=window.__boot={t0:t0,marks:[],errors:[]};
+window.__mark=function(n){var ms=Date.now()-t0;b.marks.push([n,ms]);try{console.log('[boot] '+n+' +'+ms+'ms')}catch(e){}};
+__mark('html');
+window.addEventListener('error',function(e){var u=e.target&&e.target.src;if(u&&u.indexOf(location.origin)!==0&&!/^(capacitor|file):/.test(u))return;/* optional third-party media (music artwork) has its own fallback; not a boot error */b.errors.push((e.message||'error')+' @ '+(e.filename||(e.target&&e.target.src)||'?')+':'+(e.lineno||0));try{console.error('[boot] error',b.errors[b.errors.length-1])}catch(x){}},true);
+setTimeout(function(){if(!b.rendered){__mark('watchdog-8s');var s=document.getElementById('boot-msg');if(s)s.innerHTML='Still waking up… <button onclick="location.reload()" style="font:inherit;border:0;border-radius:99px;padding:8px 16px;background:#ff6b8b;color:#fff;margin-top:10px">Try again</button>'}},8000);})();
+</script>
+
+</head>
+<body>
+<div id="app" aria-live="polite"><div id="boot-splash" style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff6ec;font:800 42px/1 system-ui,-apple-system,sans-serif;color:#ff6b8b"><div><span>Poka</span><span style="color:#2fa8d8">Snap</span></div><div style="font:700 13px/1 system-ui;letter-spacing:.3em;color:#6a5a7a;margin-top:12px">POKE · POSE · SNAP</div><div id="boot-msg" style="font:600 14px/1.4 system-ui;color:#6a5a7a;margin-top:28px;text-align:center">Loading…</div></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<noscript>PokaSnap needs JavaScript to play.</noscript>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

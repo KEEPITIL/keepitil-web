@@ -1,1 +1,1 @@
-PokaSnap 2.0 Living World — Owner Test · branch feature/pokasnap-2-living-world · commit 0244b5a
+PokaSnap 2.0.0 (14) Living World — Owner Test · branch feature/pokasnap-2-living-world · commit d28a696 (same commit as the iPhone/TestFlight build)

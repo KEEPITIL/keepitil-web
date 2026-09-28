@@ -39,7 +39,7 @@ import { packScreen, lifeAlbumScreen, journalScreen, lifeScreen, partyScreen, co
 import * as World from './game/world.js';
 import './data/challenges.js';
 
-window.POKASNAP_VERSION = '2.0.0-dev';
+window.POKASNAP_VERSION = '2.0.0 (14)';
 
 const ROUTES = {
   welcome: welcomeScreen, email: emailScreen, onboarding: onboardingScreen, create: createScreen,

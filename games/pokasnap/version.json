@@ -1,0 +1,10 @@
+{
+  "latestVersion": "1.5.0",
+  "latestBuild": 13,
+  "minimumSupportedVersion": "1.5.0",
+  "appStoreURL": null,
+  "testFlightURL": "itms-beta://",
+  "releaseNotes": "Opening intro with the Raving Animals song, a tidier Settings page with version and update check, KEEPITIL Music, Friends & Invites, and fixes.",
+  "updatedAt": "2026-09-27T00:00:00Z",
+  "_notes": "appStoreURL is filled in once the App Store listing exists (the owner provides the app id). minimumSupportedVersion is informational; forced updates are not enabled."
+}

@@ -2,7 +2,7 @@
   "schema": 2,
   "updated": "2026-09-29",
   "source": "Rendered keepitil.com/earn/ bottom partner rail (#affGrid), captured 2026-09-26 08:27-08:35 UTC. Evidence: Notion page 3e72463a64aa81cdba1eea004dea9c5d.",
-  "rules": "Fail closed. A campaign renders on the website only when enabled and websiteApproved; in the WiFi Remote app only when enabled and appApproved, on a surface listed in appPlacements. websiteApproved never implies appApproved. Artwork is the exact 1024x1536 (2:3) EARN creative; never substituted. Owner decisions 2026-09-29: Amazon Associates tag tuitea09-20 confirmed active; store renamed KStore; app placements keep the 4-per-surface cap, EARN order within each row, every partner shown at least once.",
+  "rules": "Fail closed. A campaign renders on the website only when enabled and websiteApproved; in the WiFi Remote app only when enabled and appApproved, on a surface listed in appPlacements. websiteApproved never implies appApproved. Artwork is the exact 1024x1536 (2:3) EARN creative; never substituted. Owner decisions 2026-09-29: Amazon Associates tag tuitea09-20 confirmed active; store renamed KStore; all five partners on both Home and Search in EARN order (cap raised to 5).",
   "campaigns": [
     {
       "id": "freecash",
@@ -48,7 +48,8 @@
       "websiteApproved": true,
       "appApproved": true,
       "appPlacements": [
-        "home"
+        "home",
+        "search"
       ]
     },
     {
@@ -95,6 +96,7 @@
       "websiteApproved": true,
       "appApproved": true,
       "appPlacements": [
+        "home",
         "search"
       ]
     },

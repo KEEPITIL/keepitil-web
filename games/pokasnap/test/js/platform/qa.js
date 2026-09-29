@@ -34,9 +34,10 @@ export async function initQA(app) {
     const v = document.querySelector('.about-ver'); log(`settings version-shown="${v?.textContent}" data-version=${v?.dataset.version} data-build=${v?.dataset.build} status="${document.querySelector('.update-status')?.innerText.replace(/\n/g, ' | ')}" badge=${!document.querySelector('.update-badge')?.hidden}`);
     snap(`${plan}-bottom`);
   }
+  if (plan.startsWith('v21')) { const m = await import('./qa21.js'); await m.runV21(plan, { log, snap, app }); return; }   // 2.1 device driver: only ever loaded in a device-QA build
   if (plan === 'owner-check') {   // the owner's real save after migration: read-only
     const st = JSON.parse(localStorage.getItem('pokasnap-save-v1') || '{}'), bk = localStorage.getItem('pokasnap-save-v1.pre2-backup');
-    log(`owner-save pet=${st.pet?.name || '-'} residents=${(st.residents || []).map(p => p.name).join('+') || '-'} level=${st.progress?.level} coins=${st.progress?.coins} diamonds=${st.progress?.diamonds} photos=${st.world?.photos?.length || 0} v2=${!!st.v2} backup=${!!bk} backupCoins=${bk ? JSON.parse(bk).progress?.coins : '-'} navOrder=${[...document.querySelectorAll('.navbar [data-nav]')].map(b => b.dataset.nav).join(',')}`);
+    log(`owner-save pet=${st.pet?.name || '-'} residents=${(st.residents || []).map(p => p.name).join('+') || '-'} level=${st.progress?.level} coins=${st.progress?.coins} diamonds=${st.progress?.diamonds} photos=${st.world?.photos?.length || 0} v2=${!!st.v2} backup=${!!bk} backupCoins=${bk ? JSON.parse(bk).progress?.coins : '-'} v21=${!!st.v21} rooms=${Object.keys(st.v21?.rooms || {}).length} sp=${JSON.stringify(st.v21?.sp)} album21=${JSON.stringify(st.v21?.album?.slots || {})} legacyAlbum=${(st.v21?.album?.legacy || []).length} migrated20=${!!st.v21?.album?.migrated20} pre21backup=${!!localStorage.getItem('pokasnap-save-v1.pre21-backup')} pre21backupCoins=${JSON.parse(localStorage.getItem('pokasnap-save-v1.pre21-backup') || '{}').progress?.coins ?? '-'} pre21backupPhotos=${(JSON.parse(localStorage.getItem('pokasnap-save-v1.pre21-backup') || '{}').world?.photos || []).length} inventory=${(st.inventory || []).length} ownership=${Object.keys(st.ownership || {}).length} navOrder=${[...document.querySelectorAll('.navbar [data-nav]')].map(b => b.dataset.nav).join(',')}`);
     snap('owner-check');
   }
   if (plan === 'v2tour') {

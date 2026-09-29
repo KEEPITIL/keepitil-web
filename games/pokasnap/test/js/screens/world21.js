@@ -33,6 +33,7 @@ import { track } from '../platform/analytics.js';
 import { sfx } from '../platform/sound.js';
 import { haptic } from '../platform/native.js';
 import { navBar, compact } from './nav.js';
+import { PROFILE } from '../platform/profile.js';
 import { celebrateSet } from './album21.js';
 
 const WW = 900;                                   // world canvas width; height follows the screen
@@ -253,7 +254,7 @@ export function worldScreen(app, opts = {}) {
   const toWorld = e => { const r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height, px: e.clientX, py: e.clientY }; };
   const actorAt = (x, y) => [...actors].sort((a, b) => b.y - a.y).find(a => { const k = petScale(a) * 0.5; return Math.abs(a.x - x) < 0.12 * k * 1.6 && y <= a.y + 0.01 && y >= a.y - 0.3 * k / aspect * 1.6; });
   canvas.addEventListener('pointerdown', e => {
-    const w = toWorld(e); canvas.setPointerCapture?.(e.pointerId);
+    const w = toWorld(e); try { canvas.setPointerCapture?.(e.pointerId); } catch (err) { /* capture is a convenience; a pointer the browser can't capture must never break the gesture */ }
     const now = performance.now();
     if (edit) { const hit = Room.hitTest(edit.draft, w.x, w.y, aspect); edit.selected = hit?.uid || null; drawEditBar(); if (hit) drag = { kind: 'furniture', uid: hit.uid, dx: hit.x - w.x, dy: hit.y - w.y }; return; }
     // the ball (finger radius generous)
@@ -494,13 +495,18 @@ export function worldScreen(app, opts = {}) {
   window.__snapAction = () => doSnap();
   buildWorld(); drawHud(); drawDock(); drawEvent(); setSnapState('ready'); raf = requestAnimationFrame(loop); tutorial('start');
   const evTimer = setInterval(drawEvent, 30000);
-  window.PokaWorld = {   // QA hook (logged by every harness that uses it)
+  // QA inspection hook: INERT in a normal owner/store session. It answers only in the seeded test profile, a review
+  // harness, or a device-QA build (window.__pokaQA) — every harness that uses it logs that. No cheat surface in play.
+  const qaOn = () => !!(window.POKA_REVIEW || window.__pokaQA || PROFILE === 'seed');
+  const hooks = {
     state: () => ({ loc: loc.id, aspect: +aspect.toFixed(3), ball: { x: +ball.x.toFixed(3), y: +ball.y.toFixed(3), h: +ball.h.toFixed(3), state: ball.state, heldBy: ball.heldBy }, bowls: bowls.length, edit: !!edit,
       actors: actors.map(a => ({ id: a.pet.id, name: a.pet.name, personality: a.pet.personality, trait: a.pet.trait, x: +a.x.toFixed(3), y: +a.y.toFixed(3), pose: a.pose, kind: a.s?.kind || null, reaction: a.beh?.reaction || null, carry: a.carry || null })) }),
     ballScreen: () => { const r = canvas.getBoundingClientRect(); return { x: r.left + ball.x * r.width, y: r.top + (ball.y - ball.h / aspect) * r.height - Room.depthScale(ball.y) * 30 * r.width / WW }; },
     petScreen: i => { const a = actors[i], r = canvas.getBoundingClientRect(); return a ? { x: r.left + a.x * r.width, y: r.top + (a.y - 0.08 * petScale(a) / aspect) * r.height } : null; },
     furnitureScreen: obj => { const p = room().find(o => o.obj === obj), r = canvas.getBoundingClientRect(); if (!p) return null; const b = Room.bbox(p, aspect); return { x: r.left + p.x * r.width, y: r.top + ((b.y0 + b.y1) / 2) * r.height, uid: p.uid, rot: p.rot, px: p.x, py: p.y }; },
     forceMoment: (r = 'rare') => openMoment(r), snap: () => doSnap(),
+  
   };
+  window.PokaWorld = Object.fromEntries(Object.entries(hooks).map(([k, f]) => [k, (...a) => (qaOn() ? f(...a) : undefined)]));
   return () => { alive = false; cancelAnimationFrame(raf); ro.disconnect(); clearInterval(evTimer); document.removeEventListener('visibilitychange', onVis); clearTimeout(say.t); clearTimeout(persistBall.t); delete window.PokaWorld; if (window.__snapAction) delete window.__snapAction; };
 }

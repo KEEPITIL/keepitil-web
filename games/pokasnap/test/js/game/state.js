@@ -108,6 +108,8 @@ export function load() {
     if (!raw && suffix === ':seed') { raw = JSON.stringify(seededSave(Date.now())); localStorage.setItem(KEY, raw); }
     // 2.0: before the first 2.0 launch touches a pre-2.0 save, keep an untouched copy (never overwritten)
     if (raw && !suffix && !raw.includes('"v2"')) { try { if (!localStorage.getItem(KEY + '.pre2-backup')) localStorage.setItem(KEY + '.pre2-backup', raw); } catch (e) {} }
+    // 2.1: the same safety net before the first 2.1 launch migrates a 2.0 save (never overwritten)
+    if (raw && !suffix && !raw.includes('"v21"')) { try { if (!localStorage.getItem(KEY + '.pre21-backup')) localStorage.setItem(KEY + '.pre21-backup', raw); } catch (e) {} }
     if (raw) {
       const s = JSON.parse(raw);
       if (s && s.schema === SCHEMA) { state = upgrade(s); return state; }

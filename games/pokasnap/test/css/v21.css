@@ -128,3 +128,15 @@ body.has-intro-music .screen.tabscreen { padding-top: calc(var(--safe-t) + 14px 
 @media (max-height: 700px) { .snap-result.r21 .hl-photo { max-height: 20vh; } .snap-result.r21 .album-unlock { grid-template-columns: 60px 1fr; } .sp-total b { font-size: 19px; } }
 .intro-music:not(.docked) .intro-open { display: none; }
 .setcard.locked { opacity: .55; cursor: default; background: #f6f1f5; }
+
+/* 375x667 (Display Zoom): the WHOLE result card fits — nothing to scroll, buttons always in view */
+@media (max-height: 700px) {
+  .snap-result.r21 .card { padding: 10px; gap: 4px; }
+  .snap-result.r21 .hl-photo { max-height: 15vh; }
+  .snap-result.r21 .photo-dims { margin: 2px 0; } .snap-result.r21 .photo-dims b { font-size: 14px; }
+  .snap-result.r21 .sp-box { padding: 6px 8px; gap: 2px; } .snap-result.r21 .sp-lines { font-size: 11px; gap: 2px 8px; } .sp-total b { font-size: 18px; }
+  .snap-result.r21 .ev-line, .snap-result.r21 .reward-line { font-size: 13px; line-height: 1.25; }
+  .snap-result.r21 .album-unlock { grid-template-columns: 52px 1fr; padding: 6px; } .snap-result.r21 .au-card img { aspect-ratio: 1; }
+  .snap-result.r21 .card > p.small:not(.dup-line) { display: none; }   /* the coaching tip; the numbers above are the point */
+  .snap-result.r21 .res-actions { position: static; padding-top: 4px; margin-top: 4px; } .res-actions .btn { min-height: 40px; }
+}

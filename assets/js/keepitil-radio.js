@@ -825,7 +825,11 @@
         root.style.removeProperty('--kil-mbar-h');
         return;
       }
-      bar.style.display = '';
+      /* PHONES (Founder 2026-09-29): no docked bar. The radio lives only in Earn's radio section.
+         Hiding the bar does not stop the audio — #kil-sc is a separate element. */
+      bar.style.display = 'none';
+      root.classList.remove('kil-mbar'); root.style.removeProperty('--kil-bar-bottom'); root.style.removeProperty('--kil-mbar-h');
+      return;
       phoneCss();
       var nav = document.getElementById('kil-bnav');
       var lift = 0;
@@ -2574,6 +2578,9 @@
     document.addEventListener('click', function(e){
       try{
         if(!stage && !playing) return;                 /* nothing to keep alive */
+        /* PHONES (Founder 2026-09-29): the radio belongs to Earn only, so it must not be carried
+           to other pages. Ordinary navigation, which ends it. */
+        if(!stage){ try{ if(matchMedia('(max-width:860px)').matches) return; }catch(_m){} }
         if(e.defaultPrevented || e.button!==0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
         var a = e.target && e.target.closest && e.target.closest('a[href]'); if(!a) return;
         if((a.target && a.target!=='_self') || a.hasAttribute('download')) return;

@@ -241,7 +241,11 @@
        were removed on 2026-09-09 EVERY page resolves to 'standard', so phone Home had silently
        lost its radio too (measured: no #kil-radio, no #kil-sc on mobile /). Culture still has
        none: keepitil-radio.js returns before mounting there. RADIO_PAGE is kept for reference. */
-    var RADIO_ALLOWED = RULES.radio && !IN_IFRAME && !IN_STAGE;
+    /* PHONES: RADIO ONLY ON EARN (Founder 2026-09-29: "remove the radio bar from the mobile
+       version. it should only be on the earn page in the radio section."). Supersedes the
+       2026-09-24 site-wide phone radio. The engine runs on a phone only where the page opts in
+       with data-radio="page" (Earn), and plays through Earn's own radio section. */
+    var RADIO_ALLOWED = RULES.radio && !IN_IFRAME && !IN_STAGE && (!IS_MOBILE || RADIO_PAGE);
     if(!RADIO_ALLOWED){
       var _rk=document.createElement('style'); _rk.textContent='#kil-radio,#kil-sc{display:none!important}'; document.head.appendChild(_rk);
       /* kill the BAR and the AUDIO ENGINE (#kil-sc soundcloud iframe survives bar removal —
@@ -258,7 +262,7 @@
              tag ran the current one. Two different radio bars on one site, and the stale half
              was invisible to a cache bump because the URL never changed. Bump this WITH the
              page tags whenever keepitil-radio.js changes. */
-          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20260924b'; document.body.appendChild(_rs);
+          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20260929a'; document.body.appendChild(_rs);
         }
       }catch(e){} });
     }
@@ -1943,50 +1947,8 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     (document.head||document.documentElement).appendChild(st);
   }catch(e){}
 
-  /* ── CANONICAL CATALOG (2026-09-26) ─────────────────────────────────────────────────
-     /assets/campaigns/catalog.json is the one list the website AND the WiFi Remote app
-     read. The array above stays as the built-in fallback so a failed fetch never empties a
-     rail; when the catalog arrives it wins. Fail closed: a sponsor renders only if the
-     catalog lists it enabled and websiteApproved with https artwork and destination - a
-     sponsor the catalog omits is switched off. appApproved is the app's concern and is
-     never read here. If anything visible changed, surfaces are told to repaint. */
-  var catalogApplied = false;
-  function applyCatalog(cat){
-    if(!cat || !cat.campaigns || !cat.campaigns.length) return false;
-    var changed = false, seen = {};
-    cat.campaigns.forEach(function(c){
-      var s = byId(c.id); if(!s) return;
-      seen[c.id] = 1;
-      var ok = c.enabled === true && c.websiteApproved === true
-        && /^https:\/\//.test(c.destination || '') && /^https:\/\//.test(c.artworkBase || '');
-      var img = ok ? String(c.artworkBase).replace(/^https:\/\/keepitil\.com/, '') : s.image;
-      if(s.active !== ok) changed = true;
-      s.active = ok;
-      if(ok){
-        if(s.href !== c.destination || s.image !== img || s.priority !== c.order
-           || s.disclosure !== c.disclosure) changed = true;
-        s.href = c.destination; s.image = img; s.priority = c.order;
-        s.disclosure = c.disclosure; if(c.alt) s.alt = c.alt;
-      }
-    });
-    SPONSORS.forEach(function(s){ if(!seen[s.id] && s.active){ s.active = false; changed = true; } });
-    catalogApplied = true;
-    return changed;
-  }
-  try{
-    fetch('/assets/campaigns/catalog.json', {cache:'no-cache'})
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(cat){
-        if(applyCatalog(cat)){
-          try{ document.dispatchEvent(new CustomEvent('kil:sponsors-updated')); }catch(e){}
-        }
-      })
-      .catch(function(){});
-  }catch(e){}
-
   window.KIL_SPONSORS = {
     list:SPONSORS, live:live, byId:byId, pick:pick, card:card,
-    validate:validate, refreshImpressions:watch,
-    catalogApplied:function(){ return catalogApplied; }
+    validate:validate, refreshImpressions:watch
   };
 })();

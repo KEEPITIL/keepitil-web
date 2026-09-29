@@ -5,6 +5,7 @@
 import { h, toast, sheet, plural, fmt, coin } from '../ui.js';
 import { get, update } from '../game/state.js';
 import * as V from '../game/v2.js';
+import * as C21 from '../game/core21.js';
 import * as W from '../game/world.js';
 import { SPECIES } from '../data/pets.js';
 import { PERSONALITIES } from '../data/personality.js';
@@ -39,13 +40,13 @@ export function winsScreen(app) {
       w.claimed ? h('span', { class: 'claimed-tag' }, '✓ Claimed') : w.done ? h('button', { class: 'btn claim', onclick: () => claim(w.claimId) }, 'CLAIM') : h('span', { class: 'small' }, `${w.n - w.have} to go`)));
   function claim(id) { let r; update(x => { r = V.claimWin(x, id); }); if (r.ok) { track('win_claimed', { id }); celebrate(`Win claimed! ${paid(r)}`); } else toast(r.reason === 'claimed' ? 'Already claimed' : 'Not finished yet'); winsScreen(app); }
   const near = [...v.day, ...v.week].filter(w => !w.done).sort((a, b) => b.have / b.n - a.have / a.n)[0];
-  const ev = V.currentEvent2(get()), ep = ev ? V.eventProgress(get(), ev) : null;
+  const ev21 = C21.currentEvent(), ev = ev21 ? { ...ev21, type: ev21.mode } : null, ep = ev ? (() => { const v = C21.eventView(get(), ev21); return { endsIn: v.endsIn, total: v.per - v.toNext, goal: v.per, milestones: [], avail: v.available }; })() : null;
   app.mount(shell(app, 'wins', { title: 'Wins', sub: v.claimable ? `${plural(v.claimable, 'reward')} ready to claim` : near ? `Almost there: ${near.label} (${near.have}/${near.n})` : 'Everything claimed — nice!', right: currencyPills(app) },
     h('section', { class: 'win-sec' }, h('div', { class: 'sec-head' }, h('h2', {}, '☀️ TODAY'), h('span', { class: 'small' }, `resets in ${dur(v.dayEndsIn)}`)), ...v.day.map(goal)),
     h('section', { class: 'win-sec' }, h('div', { class: 'sec-head' }, h('h2', {}, '📅 THIS WEEK'), h('span', { class: 'small' }, `resets in ${dur(v.weekEndsIn)}`)), ...v.week.map(goal)),
     ev ? h('section', { class: 'win-sec' }, h('div', { class: 'sec-head' }, h('h2', {}, `${ev.icon} ACTIVE EVENT`), h('span', { class: 'small' }, `ends in ${dur(ep.endsIn)}`)),
-      h('button', { class: 'card event-card', onclick: () => app.go('event2') }, h('b', {}, ev.title), h('span', { class: 'small' }, ev.type === 'team' ? ' · Team' : ' · Solo'),
-        bar(ep.total, ep.goal, `${ev.title}: ${ep.total} of ${ep.goal}`), h('span', { class: 'small' }, `${ep.total}/${ep.goal} points · ${ep.milestones.filter(m => m.done && !m.claimed).length ? 'reward ready ›' : 'open ›'}`))) : null,
+      h('button', { class: 'card event-card', onclick: () => app.go('event21') }, h('b', {}, ev.title), h('span', { class: 'small' }, ev.type === 'team' ? ' · Team' : ' · Solo'),
+        bar(ep.total, ep.goal, `${ev.title}: ${ep.total} of ${ep.goal}`), h('span', { class: 'small' }, `${ep.total}/${ep.goal} SP to the next ${ev.conversion.currency.replace(/s$/, '')} · ${ep.avail} ready ›`))) : null,
     h('section', { class: 'win-sec' }, h('div', { class: 'sec-head' }, h('h2', {}, `${v.season.icon} SEASON ROAD`), h('span', { class: 'small' }, `${v.season.name} · ${plural(v.season.daysLeft, 'day')} left`)),
       h('p', { class: 'small' }, 'Every Album slot you fill moves you along the road.'),
       h('div', { class: 'road' }, ...v.road.map(r => h('div', { class: 'road-stop' + (r.done ? ' done' : '') },
@@ -99,7 +100,8 @@ export function pokaScreen(app) {
       h('button', { onclick: () => app.go('journal') }, '📔', h('span', {}, 'Species Journal')),
       h('button', { onclick: () => app.go('care') }, '🍽️', h('span', {}, 'Care')),
       h('button', { onclick: () => app.go('academy') }, '🎓', h('span', {}, 'Academy')),
-      h('button', { onclick: () => app.go('train') }, '🎯', h('span', {}, 'Train tricks')),
+      h('button', { onclick: () => app.go('training21') }, '🎯', h('span', {}, 'Training')),
+      h('button', { onclick: () => app.go('train') }, '🪄', h('span', {}, 'Tricks')),
       h('button', { onclick: () => app.go('closet') }, '👒', h('span', {}, 'Closet')),
       h('button', { onclick: () => app.go('life') }, '🌿', h('span', {}, 'Poka Life')),
       h('button', { onclick: () => app.go('lookback') }, '🗓️', h('span', {}, 'Lookback'))),
@@ -132,7 +134,8 @@ export function pokaProfileScreen(app, { pet: petId } = {}) {
     h('div', { class: 'link-grid' },
       h('button', { onclick: () => app.go('album-life', { pet: p.id }) }, '📖', h('span', {}, 'Life Album')),
       h('button', { onclick: () => app.go('care') }, '🍽️', h('span', {}, 'Care')),
-      h('button', { onclick: () => app.go('train') }, '🎯', h('span', {}, 'Training')),
+      h('button', { onclick: () => app.go('training21') }, '🎯', h('span', {}, 'Training')),
+      h('button', { onclick: () => app.go('train') }, '🪄', h('span', {}, 'Tricks')),
       h('button', { onclick: () => app.go('academy') }, '🎓', h('span', {}, 'Upgrades & Academy')),
       h('button', { onclick: () => app.go('closet') }, '👒', h('span', {}, 'Outfits')),
       h('button', { onclick: () => app.go('pack') }, '🐾', h('span', {}, 'Active Pokas')))));
@@ -142,7 +145,7 @@ export function pokaProfileScreen(app, { pet: petId } = {}) {
 export function petsScreen(app) {
   const st = get(); update(x => V.ensureV2(x));
   const signed = !!st.account?.userId, n = st.social?.friendCount || 0;
-  const ev = V.currentEvent2(get()), ep = ev ? V.eventProgress(get(), ev) : null, team = ev?.type === 'team';
+  const e21 = C21.currentEvent(), ev = e21 ? { ...e21, type: e21.mode, next: (n => n && { ...n, type: n.mode })(C21.nextEvent()) } : null, team = ev?.type === 'team', ep = null;
   const proj = (st.progress.level || 1) >= 30 ? W.activeProject(st) : null;
   app.mount(shell(app, 'pets', { title: 'Friends & Community', sub: signed ? (n ? `${plural(n, 'friend')} in PokaSnap` : 'Add friends to team up in events') : 'Play solo, or sign in to add friends' },
     h('div', { class: 'card social-hero' },
@@ -153,9 +156,8 @@ export function petsScreen(app) {
         signed ? h('button', { class: 'btn ghost', onclick: () => app.go('friends', { from: 'pets' }) }, '📤 INVITE') : null)),
     ev ? h('div', { class: 'card team-card' + (team ? ' team' : '') },
       h('div', { class: 'row between' }, h('b', {}, `${ev.icon} ${ev.title}`), h('span', { class: 'tagpill' }, team ? 'TEAM' : 'SOLO')),
-      h('p', { class: 'small' }, team ? `A team event: your photos plus a daily cheer from each friend fill the shared meter.${n ? '' : ' Add friends to fill it faster.'}` : `This event is solo. The next one is ${ev.next.icon} ${ev.next.title} (${ev.next.type === 'team' ? 'team' : 'solo'}).`),
-      team ? h('div', {}, bar(ep.total, ep.goal, `Team progress ${ep.total} of ${ep.goal}`), h('p', { class: 'small' }, `Team ${ep.total}/${ep.goal} · you ${ep.mine} · friends' cheers ${ep.friendBoost}`), gardenView(ep)) : null,
-      h('button', { class: 'btn ghost block', onclick: () => app.go('event2') }, 'OPEN EVENT ›')) : null,
+      h('p', { class: 'small' }, team ? `A real team event: you and up to ${ev.teamSize - 1} other players (friends first) share one score on the server. Needs a signed-in account.` : `This event is solo. The next one is ${ev.next.icon} ${ev.next.title} (${ev.next.type === 'team' ? 'team' : 'solo'}).`),
+      h('button', { class: 'btn ghost block', onclick: () => app.go('event21') }, 'OPEN EVENT ›')) : null,
     h('div', { class: 'card' }, h('b', {}, '🏘️ Community'), h('p', { class: 'small' }, proj ? `Current Community Project: ${proj.name}. Your photos build it and the world changes.` : 'Community Projects open at level 30.'),
       h('div', { class: 'link-grid' },
         h('button', { onclick: () => app.go('community') }, '🏗️', h('span', {}, 'Community Projects')),

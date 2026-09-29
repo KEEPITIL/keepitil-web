@@ -86,3 +86,5 @@ export function moodChip(m) { return h('span', { class: 'mood', title: 'Mood' },
 /** '1 active day' / '3 active days' — every count shown to players goes through this. */
 export function plural(n, one, many = one + 's') { return `${fmtN(n)} ${Math.abs(n) === 1 ? one : many}`; }
 const fmtN = n => (typeof n === 'number' ? Math.round(n).toLocaleString('en-US') : n);
+/** replaceChildren that skips null/false (the native one prints "null" as text). */
+export const fill = (el, ...kids) => el.replaceChildren(...kids.flat().filter(k => k != null && k !== false));

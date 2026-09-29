@@ -6,6 +6,8 @@
    pointing the sink at a real endpoint later is a one-line change. */
 
 export const EVENTS = [
+  // 2.1 core game
+  'album_set_complete', 'room_edit', 'race_start', 'race_finish', 'build_action', 'puzzle_dig', 'fashion_show', 'dance_show',
   // 2.0 living world
   'interact_used', 'world_snap', 'win_claimed', 'album_claimed', 'event2_claimed', 'event2_turn',
   // 1.4 world

@@ -184,6 +184,6 @@ body.has-intro-music .screen.snapworld { padding-top: calc(var(--safe-t) + 6px +
 .tab-body .brow > span:last-child { text-align: right; overflow-wrap: anywhere; }
 .res-actions .btn { font-size: 14px; padding: 10px 8px; letter-spacing: .2px; }
 /* test-launch labels: web test route (data-channel set at deploy) and the seeded profile */
-html[data-channel="test"] body::after, html[data-profile="seed"] body::after { content: '2.0 TEST'; position: fixed; z-index: 90; top: calc(var(--safe-t) + 1px); left: 50%; transform: translateX(-50%);
+html[data-channel="test"] body::after, html[data-profile="seed"] body::after { content: '2.1 TEST'; position: fixed; z-index: 90; top: calc(var(--safe-t) + 1px); left: 50%; transform: translateX(-50%);
   background: rgba(59,42,51,.82); color: #fff; font: 900 9px/1 var(--font); letter-spacing: 1px; padding: 3px 8px; border-radius: 0 0 8px 8px; pointer-events: none; }
-html[data-profile="seed"] body::after { content: '2.0 TEST · SEEDED SAVE'; background: rgba(169,139,240,.92); }
+html[data-profile="seed"] body::after { content: '2.1 TEST · SEEDED SAVE'; background: rgba(169,139,240,.92); }

@@ -47,7 +47,10 @@ export async function start() {
   note.textContent = `♪ ${t.title} · ${INTRO_ALBUM} · KEEPITIL on SoundCloud`;
   const close = document.createElement('button'); close.type = 'button'; close.className = 'intro-sc-stop'; close.setAttribute('aria-label', 'Stop intro music'); close.textContent = '✕';
   close.addEventListener('click', () => stop('user'));
-  el = document.createElement('div'); el.className = 'intro-music on-intro'; el.append(note, frame, close);
+  // 2.1 compact player: play/pause + track live in the SoundCloud mini widget itself; ♪ opens the full Music screen
+  const openBtn = document.createElement('button'); openBtn.type = 'button'; openBtn.className = 'intro-open intro-sc-stop'; openBtn.setAttribute('aria-label', 'Open Music'); openBtn.textContent = '♪';
+  openBtn.addEventListener('click', () => window.PokaApp?.go('music', { from: window.PokaApp.route }));
+  el = document.createElement('div'); el.className = 'intro-music on-intro'; el.append(note, frame, openBtn, close);
   document.body.append(el); document.body.classList.add('has-intro-music');
   window.__pokaQA?.log?.(`intro-music mounted autoplay=${!qa}`);
   // silent fallback: if the widget never loads, release the game music quietly

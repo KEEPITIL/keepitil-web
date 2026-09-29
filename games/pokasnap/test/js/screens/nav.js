@@ -1,4 +1,7 @@
-/* 2.0 permanent navigation: WINS | POKA | SNAP | PETS | ALBUM (order is locked; SNAP is the big centre).
+/* Permanent navigation: WINS | POKA | SNAP | PETS | ALBUM (order is locked; SNAP is the big raised centre).
+   2.1: the centre SNAP is the ONE shutter in the app. On the living world (or a game's photo moment) it
+   takes the photo via window.__snapAction; anywhere else it returns to the world. No screen ever draws a
+   second persistent shutter (tools/tests/v21.mjs counts them).
    Screens that belong to a tab mount inside shell(), which adds the bar and reserves its height,
    so no content ever sits under it. */
 
@@ -13,8 +16,10 @@ export function navBar(app, active) {
   let badge = 0; try { const st = get(); ensureV2(st); badge = winsView(st).claimable; } catch (e) {}
   return h('nav', { class: 'navbar', 'aria-label': 'Main' }, ...NAV.map(id => h('button', {
     class: 'nav-' + id + (id === active ? ' on' : ''), 'data-nav': id, 'aria-current': id === active ? 'page' : null, 'aria-label': NAV_LABEL[id],
-    onclick: () => { if (id === app.route && id !== 'snap') return; sfx.tap?.(); app.go(id); } },
-    h('span', { class: 'ni', 'aria-hidden': 'true' }, ICON[id]), h('span', { class: 'nl' }, NAV_LABEL[id]),
+    onclick: () => {
+      if (id === 'snap' && typeof window.__snapAction === 'function') return window.__snapAction();
+      if (id === app.route && id !== 'snap') return; sfx.tap?.(); app.go(id); } },
+    h('span', { class: 'ni', 'aria-hidden': 'true' }, id === 'snap' ? h('span', { class: 'shutter-ic' }) : ICON[id]), h('span', { class: 'nl' }, NAV_LABEL[id]),
     id === 'wins' && badge ? h('i', { class: 'nav-badge', 'aria-label': `${badge} to claim` }, String(badge)) : null)));
 }
 

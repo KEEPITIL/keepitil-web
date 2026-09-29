@@ -11,6 +11,7 @@
    State lives in st.v2 (additive; older saves gain it on first use and lose nothing). */
 
 import { earn, has as ledgerHas, dayKey } from './ledger.js';
+import { creditPhoto, albumView as album21View } from './core21.js';
 
 export const V2_SCHEMA = 1;
 
@@ -142,28 +143,28 @@ export function noteEventPoints(st, n, now = Date.now()) { bump(st, 'event_pts',
 /* ================================================================ WINS */
 export const WINS = {
   day: [
-    { id: 'snap3', label: 'Snap 3 moments in the world', key: 'snaps', n: 3, reward: { coins: 40 } },
-    { id: 'interact5', label: 'Interact with your Pokas 5 times', key: 'interacts', n: 5, reward: { coins: 30 } },
-    { id: 'great1', label: 'Take a great shot (80+)', key: 'great', n: 1, reward: { coins: 40 } },
-    { id: 'album1', label: 'Fill an Album slot', key: 'album', n: 1, reward: { coins: 50 } },
+    { id: 'sp300', label: 'Earn 300 Snap Points', key: 'sp', n: 300, reward: { coins: 40 } },
+    { id: 'react3', label: 'Capture 3 reactions', key: 'reacts', n: 3, reward: { coins: 30 } },
+    { id: 'album1', label: 'Unlock an Album photo', key: 'album', n: 1, reward: { coins: 50 } },
+    { id: 'train1', label: 'Complete a Training session', key: 'training', n: 1, reward: { coins: 40 } },
   ],
   week: [
-    { id: 'snap25', label: 'Snap 25 moments', key: 'snaps', n: 25, reward: { coins: 200 } },
+    { id: 'sp3000', label: 'Earn 3,000 Snap Points', key: 'sp', n: 3000, reward: { coins: 250 } },
+    { id: 'album8', label: 'Unlock 8 Album photos', key: 'album', n: 8, reward: { diamonds: 5 } },
+    { id: 'event10', label: 'Play 10 event actions', key: 'event_actions', n: 10, reward: { coins: 200 } },
     { id: 'rare2', label: 'Catch 2 Rare Moments', key: 'rare', n: 2, reward: { diamonds: 5 } },
-    { id: 'album6', label: 'Fill 6 Album slots', key: 'album', n: 6, reward: { coins: 250 } },
-    { id: 'event10', label: 'Earn 10 event points', key: 'event_pts', n: 10, reward: { coins: 150 } },
   ],
 };
 export const SEASON_ROAD = [
-  { id: 'r5', n: 5, reward: { coins: 150 } }, { id: 'r15', n: 15, reward: { coins: 300 } }, { id: 'r30', n: 30, reward: { diamonds: 10 } },
-  { id: 'r45', n: 45, reward: { coins: 600 } }, { id: 'r63', n: 63, reward: { diamonds: 25, badge: 'Season Photographer' } },
+  { id: 'r10', n: 10, reward: { coins: 150 } }, { id: 'r30', n: 30, reward: { coins: 300 } }, { id: 'r60', n: 60, reward: { diamonds: 10 } },
+  { id: 'r100', n: 100, reward: { coins: 800 } }, { id: 'r150', n: 150, reward: { diamonds: 20 } }, { id: 'r198', n: 198, reward: { diamonds: 40, badge: 'Season Photographer' } },
 ];
 const periodOf = (scope, now) => scope === 'day' ? dayKey(now) : scope === 'week' ? weekKey(now) : seasonId(now);
 export function winsView(st, now = Date.now()) {
   ensureV2(st, now);
   const g = scope => WINS[scope].map(w => { const have = Math.min(w.n, countIn(st, scope, w.key, now)), id = `wins:${scope}:${periodOf(scope, now)}:${w.id}`;
     return { ...w, scope, have, done: have >= w.n, claimed: ledgerHas(st, id), claimId: id }; });
-  const filled = albumFilled(st, now);
+  const filled = album21View(st, now).filled;   // 2.1: the season road follows the 22-set Album
   const road = SEASON_ROAD.map(r => { const id = `wins:season:${seasonId(now)}:${r.id}`; return { ...r, scope: 'season', have: Math.min(r.n, filled), done: filled >= r.n, claimed: ledgerHas(st, id), claimId: id }; });
   const d = new Date(now), eod = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
   const eow = new Date(d.getFullYear(), d.getMonth(), d.getDate() + (7 - ((d.getDay() + 6) % 7))).getTime();
@@ -324,41 +325,31 @@ export function claimEvent(st, ev, claimId, now = Date.now()) {
  * but skips Album / Wins / event credit. Returns what changed so the result card can show it.
  */
 export function onPhoto(st, meta, now = Date.now()) {
-  const out = { album: [], dupAlbum: 0, wins: [], event: null };
+  const out = { wins: [], album: null, sp: null, feed: null, event: null };
   ensureV2(st, now);
   if (meta.noCredit) return out;
   const m = photoFacts(meta);
-  const ev = currentEvent2(st, now);
   bump(st, 'snaps', 1, now);
   if ((m.score || 0) >= 80) bump(st, 'great', 1, now);
   if (RANK[m.rarity] >= 2) bump(st, 'rare', 1, now);
   if (m.n >= 2) bump(st, 'multi', 1, now);
-  // one photo = one memory = ONE Album slot: the most special new slot it qualifies for
-  const slots = seasonSlots(st, now);
-  const fresh = albumMatches(m).filter(({ set, slot }) => !slots[set]?.[slot]);
-  out.dupAlbum = albumMatches(m).length - fresh.length;
-  const pick = fresh.sort((a, b) => ALBUM_PRIORITY.indexOf(a.set) - ALBUM_PRIORITY.indexOf(b.set))[0];
-  if (pick) {
-    const s = (slots[pick.set] = slots[pick.set] || {});
-    s[pick.slot] = { photoId: meta.id || null, at: now };
-    const S = ALBUM_SETS.find(x => x.id === pick.set);
-    out.album.push({ set: pick.set, slot: pick.slot, setName: S.name, slotName: S.slots.find(x => x.id === pick.slot).name, setComplete: S.slots.every(x => s[x.id]) });
-    bump(st, 'album', 1, now);
-  }
-  if (ev) {
-    const pts = Math.max(0, Math.min(6, Math.round(ev.points(m) || 0)));
-    const e = (st.v2.events[ev.key] = st.v2.events[ev.key] || { pts: 0, snaps: 0, turns: 0 });
-    e.snaps++; if (pts) { e.pts += pts; noteEventPoints(st, pts, now); }
-    out.event = { id: ev.id, title: ev.title, pts };
-  }
+  if (m.reaction) bump(st, 'reacts', 1, now);
+  // 2.1: one photo → at most one Album slot, Snap Points (score + capped bonuses) → the live event
+  const c = creditPhoto(st, m, now);
+  if (c.album.slot) bump(st, 'album', 1, now);
+  if (c.sp.total) bump(st, 'sp', c.sp.total, now);
+  Object.assign(out, c);
   const w = winsView(st, now); out.wins = [...w.day, ...w.week].filter(x => x.done && !x.claimed).map(x => x.label);
   return out;
 }
+/** Counters other screens feed (training sessions, team contributions, puzzle stages, event actions). */
+export function note(st, key, n = 1, now = Date.now()) { ensureV2(st, now); bump(st, key, n, now); }
 
 /* ================================================================ IA map (every 1.x route has a 2.0 home) */
 export const NAV = ['wins', 'poka', 'snap', 'pets', 'album'];
 export const NAV_LABEL = { wins: 'WINS', poka: 'POKA', snap: 'SNAP', pets: 'PETS', album: 'ALBUM' };
 export const ROUTE_HOME = {
+  event21: 'snap', race: 'snap', build: 'snap', puzzle: 'snap', fashion: 'snap', dance: 'snap', training21: 'poka', trainFetch: 'poka', trainBuild: 'poka', trainPose: 'poka',
   home: 'snap', homeland: 'snap', snap: 'snap', camera: 'snap', result: 'snap', brief: 'snap', adventures: 'snap', walk: 'snap', recap: 'snap', event2: 'snap', community: 'pets', league: 'pets',
   wins: 'wins', missions: 'wins', catalog: 'wins', stars: 'wins', chapters: 'wins',
   poka: 'poka', pokaprofile: 'poka', pack: 'poka', 'album-life': 'poka', journal: 'poka', life: 'poka', party: 'poka', care: 'poka', train: 'poka', game: 'poka', learned: 'poka', academy: 'poka', discipline: 'poka', academyPlay: 'poka', closet: 'poka', lookback: 'poka',

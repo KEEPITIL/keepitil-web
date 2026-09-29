@@ -1,1 +1,1 @@
-PokaSnap 2.0.0 (14) Living World — Owner Test · branch feature/pokasnap-2-living-world · commit d28a696 (same commit as the iPhone/TestFlight build)
+PokaSnap 2.1.0 (15) Core Game — Owner Test · branch feature/pokasnap-2.1-core-game · frozen ad530dd (tag baseline-pokasnap-2.1-pre-owner-test) · content 99a2164

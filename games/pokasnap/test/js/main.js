@@ -35,15 +35,21 @@ import { academyScreen, disciplineScreen, academyPlayScreen } from './screens/ac
 import { catalogScreen, starsScreen } from './screens/catalog.js';
 import { homelandScreen, snapScreen } from './screens/homeland.js';
 import { winsScreen, pokaScreen, pokaProfileScreen, petsScreen, seasonAlbumScreen, event2Screen } from './screens/tabs.js';
+import { worldScreen } from './screens/world21.js';
+import { albumScreen as album21Screen, event21Screen, training21Screen } from './screens/album21.js';
+import { raceScreen, buildScreen, puzzleScreen, fashionScreen, danceScreen, fetchTraining, stackTraining, poseTraining } from './screens/games21.js';
 import { packScreen, lifeAlbumScreen, journalScreen, lifeScreen, partyScreen, communityScreen, leagueScreen, lookbackScreen, chaptersScreen } from './screens/world.js';
 import * as World from './game/world.js';
+import * as C21 from './game/core21.js';
 import './data/challenges.js';
 
-window.POKASNAP_VERSION = '2.0.0 (14)';
+window.POKASNAP_VERSION = '2.1.0 (15)';
 
 const ROUTES = {
   welcome: welcomeScreen, email: emailScreen, onboarding: onboardingScreen, create: createScreen,
-  home: snapScreen, snap: snapScreen, wins: winsScreen, poka: pokaScreen, pokaprofile: pokaProfileScreen, pets: petsScreen, album: seasonAlbumScreen, snaps: albumScreen, event2: event2Screen,
+  home: worldScreen, snap: worldScreen, homeland: worldScreen, wins: winsScreen, poka: pokaScreen, pokaprofile: pokaProfileScreen, pets: petsScreen, album: album21Screen, snaps: albumScreen, event2: event21Screen, event21: event21Screen,
+  race: raceScreen, build: buildScreen, puzzle: puzzleScreen, fashion: fashionScreen, dance: danceScreen, training21: training21Screen, trainFetch: fetchTraining, trainBuild: stackTraining, trainPose: poseTraining,
+  home20: snapScreen,
   home1: homeScreen, brief: briefScreen, camera: cameraScreen, result: resultScreen,
   missions: missionsScreen, closet: closetScreen, settings: settingsScreen,
   care: careScreen, train: trainScreen, game: gameScreen, learned: learnedScreen,
@@ -51,10 +57,10 @@ const ROUTES = {
   store: storeScreen, item: (app, p) => itemScreen(app, p.id), plus: plusScreen, rewarded: rewardedScreen,
   academy: academyScreen, discipline: disciplineScreen, academyPlay: academyPlayScreen,
   catalog: catalogScreen, stars: starsScreen,
-  homeland: homelandScreen, pack: packScreen, 'album-life': lifeAlbumScreen, journal: journalScreen, life: lifeScreen, party: partyScreen,
+  pack: packScreen, 'album-life': lifeAlbumScreen, journal: journalScreen, life: lifeScreen, party: partyScreen,
   community: communityScreen, music: musicScreen, friends: friendsScreen, help: helpScreen, league: leagueScreen, lookback: lookbackScreen, chapters: chaptersScreen,
 };
-const NEEDS_PET = new Set(['snap', 'wins', 'poka', 'pokaprofile', 'pets', 'snaps', 'event2', 'home1', 'music', 'friends', 'homeland', 'pack', 'album-life', 'journal', 'life', 'party', 'community', 'league', 'lookback', 'chapters', 'catalog', 'stars', 'academy', 'discipline', 'academyPlay', 'home', 'brief', 'camera', 'result', 'missions', 'album', 'closet', 'care', 'train', 'game', 'learned', 'adventures', 'walk', 'recap', 'store', 'item', 'plus', 'rewarded']);
+const NEEDS_PET = new Set(['event21', 'race', 'build', 'puzzle', 'fashion', 'dance', 'training21', 'trainFetch', 'trainBuild', 'trainPose', 'home20', 'snap', 'wins', 'poka', 'pokaprofile', 'pets', 'snaps', 'event2', 'home1', 'music', 'friends', 'homeland', 'pack', 'album-life', 'journal', 'life', 'party', 'community', 'league', 'lookback', 'chapters', 'catalog', 'stars', 'academy', 'discipline', 'academyPlay', 'home', 'brief', 'camera', 'result', 'missions', 'album', 'closet', 'care', 'train', 'game', 'learned', 'adventures', 'walk', 'recap', 'store', 'item', 'plus', 'rewarded']);
 // menu music plays everywhere except where it would compete (never over the camera or an ad)
 const QUIET = new Set(['camera', 'result', 'game', 'rewarded', 'music']);
 QUIET.add('academyPlay');   // 1.3: Academy games have their own sounds
@@ -73,7 +79,8 @@ export const app = {
     document.querySelectorAll('.sheet, .sheet-back, .viewer, .levelup').forEach(n => n.remove());
     app.route = name;
     if (QUIET.has(name)) { music.stop(); introMusic.stop('quiet'); } else if (audioReady) music.start();
-    const r = ROUTES[name] || snapScreen;
+    if (typeof window.__snapAction === 'function') delete window.__snapAction;   // the shutter belongs to the screen that registers it
+    const r = ROUTES[name] || worldScreen;
     const ret = r(app, params);
     if (typeof ret === 'function') cleanup = ret;
     window.scrollTo(0, 0);
@@ -85,7 +92,7 @@ let audioReady = false;
 /* Launch or return to the foreground: a break is celebrated, never punished. */
 function arrive() {
   if (!get().pet) return null;
-  let r, care = []; update(st => { clockOk(st); r = checkIn(st); applyPlusGrants(st); pruneEquipped(st); World.ensure(st); care = World.careTick(st); World.earnRevivalTreats(st); });
+  let r, care = []; update(st => { clockOk(st); r = checkIn(st); applyPlusGrants(st); pruneEquipped(st); World.ensure(st); C21.ensureV21(st); C21.migrateAlbum20(st); care = World.careTick(st); World.earnRevivalTreats(st); });
   // care news is factual and restrained: one line, never a threat
   const warn = care.find(c => c.warning), passed = care.find(c => c.passed), change = care.find(c => c.to && c.to !== 'healthy');
   if (passed) setTimeout(() => toast(`🕯️ ${passed.pet.name} has gone to rest in the Memorial Garden. Their Life Album is kept forever.`, 4200), 1200);

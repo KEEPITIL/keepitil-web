@@ -1,8 +1,8 @@
 {
   "schema": 2,
-  "updated": "2026-09-26",
+  "updated": "2026-09-29",
   "source": "Rendered keepitil.com/earn/ bottom partner rail (#affGrid), captured 2026-09-26 08:27-08:35 UTC. Evidence: Notion page 3e72463a64aa81cdba1eea004dea9c5d.",
-  "rules": "Fail closed. A campaign renders on the website only when enabled and websiteApproved; in the WiFi Remote app only when enabled and appApproved, on a surface listed in appPlacements. websiteApproved never implies appApproved. Artwork is the exact 1024x1536 (2:3) EARN creative; never substituted.",
+  "rules": "Fail closed. A campaign renders on the website only when enabled and websiteApproved; in the WiFi Remote app only when enabled and appApproved, on a surface listed in appPlacements. websiteApproved never implies appApproved. Artwork is the exact 1024x1536 (2:3) EARN creative; never substituted. Owner decisions 2026-09-29: Amazon Associates tag tuitea09-20 confirmed active; store renamed KStore; app placements keep the 4-per-surface cap, EARN order within each row, every partner shown at least once.",
   "campaigns": [
     {
       "id": "freecash",
@@ -11,7 +11,10 @@
       "alt": "Freecash x KEEPITIL - earn extra cash",
       "artworkBase": "https://keepitil.com/assets/sponsors/affiliate-freecash-2x3",
       "artwork": "https://keepitil.com/assets/sponsors/affiliate-freecash-2x3.webp",
-      "artworkSize": [1024, 1536],
+      "artworkSize": [
+        1024,
+        1536
+      ],
       "destination": "https://freecash.com/r/Tuitea",
       "referral": "Tuitea",
       "disclosure": "SPONSORED",
@@ -20,7 +23,10 @@
       "order": 1,
       "websiteApproved": true,
       "appApproved": true,
-      "appPlacements": ["home", "search"]
+      "appPlacements": [
+        "home",
+        "search"
+      ]
     },
     {
       "id": "distrokid",
@@ -29,7 +35,10 @@
       "alt": "DistroKid x KEEPITIL - release your music",
       "artworkBase": "https://keepitil.com/assets/sponsors/affiliate-distrokid-2x3",
       "artwork": "https://keepitil.com/assets/sponsors/affiliate-distrokid-2x3.webp",
-      "artworkSize": [1024, 1536],
+      "artworkSize": [
+        1024,
+        1536
+      ],
       "destination": "https://distrokid.com/vip/seven/11538316",
       "referral": "11538316",
       "disclosure": "AFFILIATE",
@@ -38,7 +47,9 @@
       "order": 2,
       "websiteApproved": true,
       "appApproved": true,
-      "appPlacements": ["home", "search"]
+      "appPlacements": [
+        "home"
+      ]
     },
     {
       "id": "posh",
@@ -47,7 +58,10 @@
       "alt": "Posh x KEEPITIL - promote your events",
       "artworkBase": "https://keepitil.com/assets/sponsors/affiliate-posh-2x3",
       "artwork": "https://keepitil.com/assets/sponsors/affiliate-posh-2x3.webp",
-      "artworkSize": [1024, 1536],
+      "artworkSize": [
+        1024,
+        1536
+      ],
       "destination": "https://posh.vip/create_group?ref=S-referral-mp9itc5j-wb9dbt",
       "referral": "S-referral-mp9itc5j-wb9dbt",
       "disclosure": "REFERRAL",
@@ -56,7 +70,10 @@
       "order": 3,
       "websiteApproved": true,
       "appApproved": true,
-      "appPlacements": ["home", "search"]
+      "appPlacements": [
+        "home",
+        "search"
+      ]
     },
     {
       "id": "amazon",
@@ -65,7 +82,10 @@
       "alt": "Amazon x KEEPITIL - shop and discover",
       "artworkBase": "https://keepitil.com/assets/sponsors/affiliate-amazon-2x3",
       "artwork": "https://keepitil.com/assets/sponsors/affiliate-amazon-2x3.webp",
-      "artworkSize": [1024, 1536],
+      "artworkSize": [
+        1024,
+        1536
+      ],
       "destination": "https://www.amazon.com/?tag=tuitea09-20",
       "referral": "tuitea09-20",
       "disclosure": "AFFILIATE",
@@ -73,18 +93,22 @@
       "enabled": true,
       "order": 4,
       "websiteApproved": true,
-      "appApproved": false,
-      "appBlockedReason": "Owner must confirm the active Amazon Associates tag (tuitea09-20 on the website vs tuitea-20 previously in the app).",
-      "appPlacements": []
+      "appApproved": true,
+      "appPlacements": [
+        "search"
+      ]
     },
     {
       "id": "keepitil-store",
       "partner": "KEEPITIL",
-      "name": "KEEPITIL Store",
+      "name": "KStore",
       "alt": "KEEPITIL official store",
       "artworkBase": "https://keepitil.com/assets/sponsors/affiliate-keepitil-store-2x3",
       "artwork": "https://keepitil.com/assets/sponsors/affiliate-keepitil-store-2x3.webp",
-      "artworkSize": [1024, 1536],
+      "artworkSize": [
+        1024,
+        1536
+      ],
       "destination": "https://illestratedlifestyle.com/collections/keepitil-apparel",
       "referral": null,
       "disclosure": "OFFICIAL",
@@ -93,7 +117,10 @@
       "order": 5,
       "websiteApproved": true,
       "appApproved": true,
-      "appPlacements": ["home", "search"]
+      "appPlacements": [
+        "home",
+        "search"
+      ]
     }
   ]
 }

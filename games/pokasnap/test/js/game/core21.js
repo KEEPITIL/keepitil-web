@@ -314,7 +314,7 @@ export const DISCIPLINES = {
   fashion: { name: 'Style', icon: '👒', blurb: 'Dress for a theme, walk, snap.' },
   dance: { name: 'Dance', icon: '💃', blurb: 'Follow the rhythm, then catch the finale.' },
 };
-export const TRAIN = { maxLevel: 10, xpPerLevel: 100, rewardedPerDay: 3 };
+export const TRAIN = { maxLevel: 10, xpPerLevel: 100, rewardedPerDay: 3, minScore: 20 };   // a run must actually get somewhere to earn XP
 export function trainState(st, petId, kind) { const t = (ensureV21(st).training[petId] = ensureV21(st).training[petId] || {}); return (t[kind] = t[kind] || { xp: 0, lvl: 0, best: 0, sessions: 0, day: null, today: 0 }); }
 /** Record a finished session (score 0..100). Only the first few sessions a day grant XP — no grinding, never bought. */
 export function trainSession(st, petId, kind, score, now = Date.now()) {
@@ -322,11 +322,12 @@ export function trainSession(st, petId, kind, score, now = Date.now()) {
   const s = trainState(st, petId, kind), d = dayKey(now);
   if (s.day !== d) { s.day = d; s.today = 0; }
   s.sessions++; s.best = Math.max(s.best, Math.round(score));
-  const rewarded = s.today < TRAIN.rewardedPerDay; s.today++;
+  const meaningful = score >= TRAIN.minScore;                      // tapping Train and doing nothing earns nothing
+  const rewarded = meaningful && s.today < TRAIN.rewardedPerDay; if (rewarded) s.today++;
   const gain = rewarded ? Math.round(10 + clamp(score, 0, 100) * 0.3) : 0, before = s.lvl;
   s.xp += gain; s.lvl = Math.min(TRAIN.maxLevel, Math.floor(s.xp / TRAIN.xpPerLevel));
-  const v = ensureV21(st, now), dd = (v.day[d] = v.day[d] || {}); dd.training = (dd.training || 0) + 1;
-  return { ok: true, gain, rewarded, level: s.lvl, levelUp: s.lvl > before, best: s.best };
+  if (meaningful) { const v = ensureV21(st, now), dd = (v.day[d] = v.day[d] || {}); dd.training = (dd.training || 0) + 1; }
+  return { ok: true, gain, rewarded, reason: rewarded ? null : !meaningful ? 'low' : 'daily', level: s.lvl, levelUp: s.lvl > before, best: s.best };
 }
 /* Modest, capped benefits. A level-10 Poka is noticeably better, never guaranteed to win. */
 export const benefit = {

@@ -48,6 +48,9 @@ function shell(app, title, back, sub = '') {
 }
 const leadPet = () => W.activePets(get())[0] || get().pet;
 function petAt(ctx, pet, x, y, k, pose, t, flip = 1) { ctx.save(); ctx.translate(x, y); ctx.scale(k * flip, k); drawPet(ctx, pet, pose, { t, alive: true }); ctx.restore(); }
+/** A training session counts toward Wins only when the run was meaningful; the message says why no XP came. */
+const trained = (x, petId, kind, score) => { const r = C.trainSession(x, petId, kind, score); if (r.reason !== 'low') V.note(x, 'training'); return r; };
+const trainMsg = (label, r) => r.rewarded ? `${label} +${r.gain} XP (level ${r.level}${r.levelUp ? ' — LEVEL UP!' : ''})` : r.reason === 'low' ? 'Too rough to count — a cleaner run earns XP.' : 'Daily training XP already earned';
 const idemFor = (ev, n) => `${ev.id}-${ev.key.slice(-5)}-${n}-${Math.random().toString(36).slice(2, 8)}`;
 
 /** Save a game photo through the SAME spine as the world (Album + SP + event). facts = show metadata. */
@@ -122,7 +125,7 @@ export function raceScreen(app, { practice = false } = {}) {
     G.snapState('challenge'); moment = { o: 'finish', until: performance.now() + 4000 };
     const score = clamp(Math.round(100 - mist * 10 - Math.max(0, ms - 14000) / 300), 10, 100);
     let lines = [`Time ${(ms / 1000).toFixed(1)} s · ${plural(mist, 'mistake')}`], srv = null;
-    if (practice) { let r; update(x => { r = C.trainSession(x, pet.id, 'agility', score); V.note(x, 'training'); }); lines.push(r.rewarded ? `Agility +${r.gain} XP (level ${r.level}${r.levelUp ? ' — LEVEL UP!' : ''})` : 'Practice logged (daily training XP already earned)'); run.levelUp = r.levelUp; }
+    if (practice) { let r; update(x => { r = trained(x, pet.id, 'agility', score); }); lines.push(trainMsg('Agility', r)); run.levelUp = r.levelUp; }
     else {
       const key = idemFor(ev, 'race'); srv = await E.contribute(ev.key, 'race_run', { ms, mistakes: mist, obstacles: course.length }, key);
       if (!srv.ok && srv.reason === 'server') srv = await E.contribute(ev.key, 'race_run', { ms, mistakes: mist, obstacles: course.length }, key);   // same key: can never count twice
@@ -310,7 +313,7 @@ export function fashionScreen(app, { practice = false } = {}) {
     phase = 'done'; G.snapState('ready');
     const ts = C.themeScore(theme, Object.values(outfit).map(id => ITEMS[id]?.draw)), timing = shots.length ? shots.reduce((a, s) => a + Math.max(0, 100 - s.off / 12), 0) / poses.length : 0;
     const score = Math.round(ts * 0.4 + timing * 0.35 + (shots.filter(s => s.peak).length / poses.length) * 25);
-    if (practice) { let r; update(x => { r = C.trainSession(x, pet.id, 'fashion', score); V.note(x, 'training'); }); }
+    if (practice) { let r; update(x => { r = trained(x, pet.id, 'fashion', score); }); }
     else update(x => { const w = C.wallet(x, ev); w.progress++; });
     track('fashion_show', { theme, score, practice });
     await gamePhoto(app, G.canvas, { show: practice ? null : 'fashion', training: practice ? 'fashion' : null, theme, showScore: score, pose: poses[poses.length - 1], dressed: Object.keys(outfit).length ? 1 : 0, score: 55 + score * 0.45, title: 'Fashion Show' });
@@ -348,7 +351,7 @@ export function danceScreen(app, { practice = false } = {}) {
   }
   window.__snapAction = async () => { if (phase !== 'finale' || performance.now() > finale) return toast(phase === 'play' ? 'Dance first — SNAP the finale!' : 'Start the dance.'); phase = 'done'; G.snapState('ready'); sfx.shutter(); haptic('heavy');
     const per = hits.filter(x => x === 'perfect').length, ok = hits.filter(x => x === 'ok').length, score = Math.round((per + ok * 0.5) / seq.length * 100);
-    if (practice) update(x => { C.trainSession(x, pet.id, 'dance', score); V.note(x, 'training'); }); else update(x => { C.wallet(x, ev).progress++; });
+    if (practice) update(x => { trained(x, pet.id, 'dance', score); }); else update(x => { C.wallet(x, ev).progress++; });
     track('dance_show', { score, best, practice });
     await gamePhoto(app, G.canvas, { show: practice ? null : 'dance', training: practice ? 'dance' : null, combo: best, finale: true, showScore: score, pose: 'disco', score: 55 + score * 0.45, title: 'Dance Party' });
     finishCard(`💃 ${score}/100`, [`Perfect ${per} · good ${ok} · best combo ${best}`], [['Again', () => { phase = 'ready'; fill(G.overlay, startBtn()); }], ['Done', () => app.go(practice ? 'training21' : 'event21'), true]]); };
@@ -383,8 +386,8 @@ export function fetchTraining(app) {
     if (a.s === 'keep') { ball.x = a.x + 0.04; a.keepT = (a.keepT || 0) + dt; if (a.keepT > 1.6) { a.keepT = 0; Phys.drop(ball, a.x, 0.9); results.push('keep'); a.s = 'walkback'; toast('Kept it… keep practising!', 1400); } }
     if (a.s === 'walkback') { a.x -= Math.min(a.x - 0.2, 0.3 * dt); if (a.x <= 0.201) { a.s = 'wait'; ball.x = 0.3; end(); } }
   }
-  function end() { if (throws < 5 || a.s !== 'wait') return; const score = good * 20; let r; update(x => { r = C.trainSession(x, pet.id, 'fetch', score); V.note(x, 'training'); });
-    finishCard('🎾 Fetch practice done', [`${good}/5 returns`, r.rewarded ? `Fetch +${r.gain} XP (level ${r.level}${r.levelUp ? ' — LEVEL UP!' : ''})` : 'Daily training XP already earned'], [['Again', () => { throws = good = 0; results = []; }], ['Done', () => app.go('training21'), true]]); }
+  function end() { if (throws < 5 || a.s !== 'wait') return; const score = good * 20; let r; update(x => { r = trained(x, pet.id, 'fetch', score); });
+    finishCard('🎾 Fetch practice done', [`${good}/5 returns`, trainMsg('Fetch', r)], [['Again', () => { throws = good = 0; results = []; }], ['Done', () => app.go('training21'), true]]); }
   window.__snapAction = async () => { if (performance.now() > snapWin) return toast('SNAP when your Poka brings the ball back!'); snapWin = 0; G.snapState('ready'); sfx.shutter(); await gamePhoto(app, G.canvas, { training: 'fetch', reaction: 'return', toy: 'ball', score: 80, pose: 'catch', title: 'Fetch Training' }); };
   let last = 0; const loop = now => { if (!alive) return; const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; step(dt, now); const c = G.ctx, GH = G.GH;
     c.fillStyle = '#bfe8ff'; c.fillRect(0, 0, GW, GH); c.fillStyle = '#9fdc7a'; c.fillRect(0, GH * 0.6, GW, GH * 0.4);
@@ -401,8 +404,8 @@ export function stackTraining(app) {
   G.canvas.addEventListener('pointerdown', () => { if (done) return; const top = tower[tower.length - 1], off = cur.x - top.x;
     if (Math.abs(off) > top.w * (0.5 + tol)) { done = true; finish(); return; }
     const w = clamp(top.w - Math.abs(off) * 0.6, 0.08, 0.4); tower.push({ x: cur.x, w }); cur = { x: 0.1, dir: 1, w }; sfx.tap?.(); if (tower.length > 9) { done = true; finish(); } });
-  function finish() { const score = clamp((tower.length - 1) * 12, 0, 100); let r; update(x => { r = C.trainSession(x, pet.id, 'build', score); V.note(x, 'training'); }); snapWin = performance.now() + 4000; G.snapState('challenge');
-    finishCard(`🧱 ${tower.length - 1} blocks`, [r.rewarded ? `Building +${r.gain} XP (level ${r.level})` : 'Daily training XP already earned', '📸 SNAP your builder!'], [['Again', () => { tower = [{ x: 0.5, w: 0.34 }]; cur = { x: 0, dir: 1, w: 0.34 }; done = false; }], ['Done', () => app.go('training21'), true]]); }
+  function finish() { const score = clamp((tower.length - 1) * 12, 0, 100); let r; update(x => { r = trained(x, pet.id, 'build', score); }); snapWin = performance.now() + 4000; G.snapState('challenge');
+    finishCard(`🧱 ${tower.length - 1} blocks`, [trainMsg('Building', r), '📸 SNAP your builder!'], [['Again', () => { tower = [{ x: 0.5, w: 0.34 }]; cur = { x: 0, dir: 1, w: 0.34 }; done = false; }], ['Done', () => app.go('training21'), true]]); }
   window.__snapAction = async () => { if (performance.now() > snapWin) return toast('Finish a tower, then SNAP!'); snapWin = 0; G.snapState('ready'); sfx.shutter(); await gamePhoto(app, G.canvas, { training: 'build', score: 60 + tower.length * 3, pose: 'happy', title: 'Building Training' }); };
   let last = 0; const loop = now => { if (!alive) return; const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; if (!done) { cur.x += cur.dir * dt * 0.45; if (cur.x > 0.9 || cur.x < 0.1) cur.dir *= -1; }
     const c = G.ctx, GH = G.GH; c.fillStyle = '#fff3e0'; c.fillRect(0, 0, GW, GH); c.fillStyle = '#e0b870'; c.fillRect(0, GH * 0.86, GW, GH * 0.14);
@@ -421,9 +424,9 @@ export function poseTraining(app) {
   window.__snapAction = async () => {
     if (cue < 0 || results[cue] != null) return toast('Cue a pose first.');
     const ok = peak(), d = performance.now() - at; results[cue] = ok ? 100 - Math.round(Math.abs(d - hold / 2) / hold * 60) : 0; sfx.shutter(); toast(ok ? '✨ Captured at the peak!' : d < 0 ? 'Too early!' : 'Too late!', 1400);
-    if (results.filter(x => x != null).length === POSES.length) { const score = Math.round(results.reduce((a, b) => a + b, 0) / POSES.length); let r; update(x => { r = C.trainSession(x, pet.id, 'pose', score); V.note(x, 'training'); });
+    if (results.filter(x => x != null).length === POSES.length) { const score = Math.round(results.reduce((a, b) => a + b, 0) / POSES.length); let r; update(x => { r = trained(x, pet.id, 'pose', score); });
       if (ok) await gamePhoto(app, G.canvas, { training: 'pose', trainingLevelUp: r.levelUp, score: 60 + score * 0.4, pose: POSES[cue], title: 'Posing Training' });
-      finishCard(`📸 ${score}/100`, [r.rewarded ? `Posing +${r.gain} XP (level ${r.level}${r.levelUp ? ' — LEVEL UP!' : ''})` : 'Daily training XP already earned'], [['Again', () => { cue = -1; results = []; }], ['Done', () => app.go('training21'), true]]); }
+      finishCard(`📸 ${score}/100`, [trainMsg('Posing', r)], [['Again', () => { cue = -1; results = []; }], ['Done', () => app.go('training21'), true]]); }
   };
   const loop = now => { if (!alive) return; const c = G.ctx, GH = G.GH; c.fillStyle = '#fbe3ec'; c.fillRect(0, 0, GW, GH);
     const p = cue >= 0 && results[cue] == null && now >= at ? (now - at <= hold ? POSES[cue] : 'idle') : 'idle';

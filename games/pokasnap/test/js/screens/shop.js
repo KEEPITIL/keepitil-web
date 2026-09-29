@@ -24,6 +24,7 @@ import { drawItemThumb, drawFrame } from '../render/items.js';
 import { track } from '../platform/analytics.js';
 import { sfx } from '../platform/sound.js';
 import { haptic, isNative } from '../platform/native.js';
+import { navBar } from './nav.js';
 
 /* 16 tabs. Coins/Diamonds tabs list what each currency can buy; Prestige
    Showcase is look-don't-buy (earn-only, shown so players know what exists). */
@@ -54,9 +55,10 @@ export async function storeScreen(app, opts = {}) {
   const coins = h('div', { class: 'row', style: 'gap:6px' }, h('div', { class: 'pill', 'aria-label': 'Poka Coins' }, coin(), h('span', {}, fmt(st.progress.coins))), h('div', { class: 'pill', 'aria-label': 'Poka Diamonds' }, '💎 ', h('span', {}, fmt(st.progress.diamonds || 0))));
   const tabs = h('div', { class: 'tabs wrap' }), grid = h('div', { class: 'shop-grid' }), packs = h('div', { class: 'packs' });
   const earn = earnCard(app);
-  app.mount(h('div', { class: 'screen shop' },
+  app.mount(h('div', { class: 'screen shop tabscreen' },   // 2.1: the permanent bar (its SNAP takes you back to the world) stays reachable in the shop
     h('div', { class: 'row between' }, h('div', { class: 'row' }, h('button', { class: 'icon-btn', 'aria-label': 'Back', onclick: () => app.go(opts.back || opts.from || 'snap') }, '←'), h('h1', { style: 'margin:0' }, 'Poka Shop')), coins),
-    testBadge(), plusBanner(app), earn, h('button', { class: 'linkbtn', onclick: () => app.go('catalog') }, `📚 Full catalog (${ITEMS.length} items) ›`), tabs, grid, packs));
+    h('div', { class: 'tab-body' }, testBadge(), plusBanner(app), earn, h('button', { class: 'linkbtn', onclick: () => app.go('catalog') }, `📚 Full catalog (${ITEMS.length} items) ›`), tabs, grid, packs),
+    navBar(app, 'snap')));
   await ensureProducts();
   const draw = () => {
     const s = get();

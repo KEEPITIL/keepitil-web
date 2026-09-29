@@ -140,3 +140,7 @@ body.has-intro-music .screen.tabscreen { padding-top: calc(var(--safe-t) + 14px 
   .snap-result.r21 .card > p.small:not(.dup-line) { display: none; }   /* the coaching tip; the numbers above are the point */
   .snap-result.r21 .res-actions { position: static; padding-top: 4px; margin-top: 4px; } .res-actions .btn { min-height: 40px; }
 }
+
+/* Poka Shop: fixed header, scrolling shelves, permanent bar */
+.screen.shop.tabscreen > .row.between { flex: none; margin-bottom: 8px; }
+.screen.shop .tab-body { gap: 10px; }

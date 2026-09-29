@@ -1,8 +1,8 @@
 {
-  "release": "62.3af66c9",
+  "release": "67.95976af",
   "appVersion": "1.0.0",
-  "buildNumber": "62",
-  "commit": "3af66c9",
-  "applicationRevision": "3af66c9",
-  "shellVersion": 560
+  "buildNumber": "67",
+  "commit": "95976af",
+  "applicationRevision": "a4494f8",
+  "shellVersion": 656
 }

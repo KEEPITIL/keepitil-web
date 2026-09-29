@@ -6,9 +6,9 @@
   const STATES = ['CALM', 'UNEASY', 'TENSION', 'DANGER', 'TERROR', 'RELEASE'];
   const POOL = {
     CALM: [['creak', 3], ['step_far', 1], ['nothing', 4]],
-    UNEASY: [['creak', 2], ['step_far', 3], ['whisper', 2], ['door_far', 1], ['nothing', 2]],
-    TENSION: [['step_near', 3], ['whisper', 3], ['door_slam', 2], ['flicker', 2], ['radio', 2], ['false_voice', 1], ['shadow', 1]],
-    DANGER: [['step_near', 3], ['flicker', 2], ['false_voice', 2], ['shadow', 2], ['radio', 1], ['silence', 2]],
+    UNEASY: [['creak', 2], ['step_far', 3], ['whisper', 2], ['door_far', 1], ['shadow', 1], ['nothing', 2]],
+    TENSION: [['step_near', 3], ['whisper', 3], ['door_slam', 2], ['flicker', 2], ['radio', 2], ['false_voice', 1], ['shadow', 2], ['blackout', 1]],
+    DANGER: [['step_near', 3], ['flicker', 2], ['false_voice', 2], ['shadow', 2], ['radio', 1], ['silence', 2], ['blackout', 2]],
     TERROR: [['flicker', 2], ['whisper', 1]],
     RELEASE: [['nothing', 1]],
   };

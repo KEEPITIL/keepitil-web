@@ -93,3 +93,38 @@ body.touch #keyhelp{display:none}
 .obox h1{font-weight:400;letter-spacing:.12em;color:#e8d4a8}
 .obox p{color:#c4b99f;line-height:1.55}
 .obox button{margin:8px}
+
+/* ---- HQ (3D room) ---- */
+#hq{background:transparent;pointer-events:none}
+#hq > *{pointer-events:auto}
+.hq-tag{position:absolute;transform:translate(-50%,-100%);background:#120e09d9;border:1px solid #6b5634;color:#efe0b8;font:600 11px/1 "Courier New",monospace;letter-spacing:.18em;padding:6px 9px;border-radius:3px;white-space:nowrap;box-shadow:0 4px 14px #000a;transition:opacity .25s,background .2s}
+.hq-tag.quiet{opacity:.5}.hq-tag.quiet:hover,.hq-tag.hover{opacity:1;background:#2a1f10ee;border-color:#c9a24a}
+.hq-tag::after{content:"";position:absolute;left:50%;top:100%;width:1px;height:10px;background:#6b5634}
+.hq-back{position:absolute;left:14px;top:calc(12px + env(safe-area-inset-top));background:#120e09d9;border:1px solid #6b5634;color:#efe0b8;font:600 12px "Courier New",monospace;letter-spacing:.2em;padding:9px 14px;border-radius:3px}
+/* ---- physical-world panels ---- */
+#panel{background:transparent}
+.pbox.paper{background:#e9dfc4 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='.8' numOctaves='2'/><feColorMatrix values='0 0 0 0 .3  0 0 0 0 .25  0 0 0 0 .18  0 0 0 .08 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");color:#26211a;border:0;border-radius:2px;box-shadow:0 20px 60px #000c,inset 0 0 60px #b89f6e55;font-family:"Courier New",monospace}
+.pbox.paper h2{color:#3a1d12;font-family:"Courier New",monospace;font-weight:700;letter-spacing:.2em}
+.pbox.paper h3{color:#7a2a1a}.pbox.paper p,.pbox.paper li{color:#2e281f;font-size:14px}
+.pbox.paper .tag{border-color:#8a7650;color:#5a4a30}.pbox.paper .case{border-color:#c9b98f}.pbox.paper .case b{color:#8a2a1a}.pbox.paper .case .locked{color:#8e8068}
+.pbox.paper .pclose{color:#3a2a1a}
+.pbox.card{width:min(420px,88vw);background:#f3ecd6;border-top:26px solid #f3ecd6;background-image:repeating-linear-gradient(#f3ecd6 0 25px,#9db2d8 25px 26px);color:#1b1a2a;font-family:"Bradley Hand","Segoe Print","Comic Sans MS",cursive;transform:rotate(-1.2deg)}
+.pbox.card h2{font-family:inherit;color:#8a1f18;letter-spacing:.05em}
+.pbox.card p{color:#1b1a2a;font-size:17px}
+.pbox.journal{background:#d8c9a2;border:12px solid #4a2a1a;border-radius:6px;font-family:Georgia,serif;color:#2a2012}
+.pbox.journal p{color:#2a2012;font-style:italic}
+.pbox.radio{background:#2a2016;border:10px solid #5a3c24;border-radius:10px;font-family:"Courier New",monospace}
+.dossier{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.dossier .file{background:#d9c18d;padding:12px;border-radius:2px 10px 2px 2px;box-shadow:0 3px 8px #0006}
+.dossier .file img{width:100%;border:6px solid #f2ecdc;box-shadow:0 2px 6px #0007;transform:rotate(-1.5deg);display:block}
+.dossier .file b{display:block;margin-top:8px;letter-spacing:.2em}
+#theater{position:fixed;z-index:25;overflow:auto;color:#fff4d8;font-family:Georgia,serif;text-shadow:0 0 12px #ffcf7a66;background:radial-gradient(ellipse,#fff3d122,#0000 70%);padding:10px}
+#theater h2{margin:0 0 6px;letter-spacing:.2em;font-weight:400;font-size:clamp(14px,2vw,22px)}
+#theater .case{border-bottom:1px solid #fff2d433;padding:4px 0;display:flex;gap:10px;font-size:clamp(11px,1.4vw,15px)}
+#theater .locked{opacity:.45}
+.bt b[data-t]{position:relative}
+.bt.glitch b{animation:glitch .5s steps(2) 2}
+@keyframes glitch{0%{transform:translate(0);filter:none}25%{transform:translate(-3px,1px) skewX(8deg);filter:blur(1px)}50%{transform:translate(4px,-2px);opacity:.6}75%{transform:translate(-1px,2px) skewX(-6deg)}100%{transform:none}}
+#bootShade{position:absolute;left:50%;top:50%;width:14vmin;height:60vmin;transform:translate(-50%,-50%) translateX(-60vw);background:radial-gradient(ellipse at 50% 20%,#000 0 35%,#0000 70%);filter:blur(6px);opacity:0}
+#bootShade.on{animation:pass 1.6s ease-in-out}
+@keyframes pass{0%{opacity:0;transform:translate(-50%,-50%) translateX(-40vw)}30%{opacity:.95}70%{opacity:.95}100%{opacity:0;transform:translate(-50%,-50%) translateX(40vw)}}

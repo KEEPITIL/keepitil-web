@@ -8,7 +8,7 @@
 <meta name="description" content="The Thirteen Anchors — Season One. A supernatural horror game presented by KEEPITIL, developed by TUITEA.">
 <title>The Thirteen Anchors</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="css/game.css?v=1">
+<link rel="stylesheet" href="css/game.css?v=2">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -17,29 +17,16 @@
 <div id="boot" class="layer">
   <div class="bt" id="bt1"><small>PRESENTED BY</small><b>KEEPITIL</b></div>
   <div class="bt" id="bt2"><small>DEVELOPED BY</small><b>TUITEA</b></div>
-  <div class="bt title" id="bt3"><b>THE THIRTEEN ANCHORS</b><small>SEASON ONE</small></div>
+  <div class="bt title" id="bt3"><b data-t="THE THIRTEEN ANCHORS">THE THIRTEEN ANCHORS</b><small>SEASON ONE</small></div>
   <button id="tapstart" class="ghost">Tap to begin — sound on 🎧</button>
 </div>
 
-<!-- Lantern HQ -->
-<div id="hq" class="layer hidden">
-  <div class="hq-room">
-    <div class="hq-lamp"></div>
-    <button class="hq-obj board" data-go="continue"><span>Evidence board</span><b>CONTINUE</b></button>
-    <button class="hq-obj map" data-go="cases"><span>World map</span><b>CASES</b></button>
-    <button class="hq-obj files" data-go="characters"><span>Three files</span><b>CHARACTERS</b></button>
-    <button class="hq-obj table" data-go="loadout"><span>Equipment table</span><b>LOADOUT</b></button>
-    <button class="hq-obj cabinet" data-go="dossiers"><span>Cabinet</span><b>DOSSIERS</b></button>
-    <button class="hq-obj projector" data-go="theater"><span>Projector</span><b>THEATER</b></button>
-    <button class="hq-obj journal" data-go="lore"><span>Journal</span><b>LORE</b></button>
-    <div class="hq-photo" id="hqphoto"></div>
-  </div>
-  <button class="hq-settings" data-go="settings" aria-label="Settings">⚙</button>
-  <div class="hq-build" id="hqbuild"></div>
-</div>
+<!-- Lantern HQ: a 3D room (js/hq.js); this layer only carries the object tags and the back control -->
+<div id="hq" class="layer hidden"><button id="hqBack" class="hq-back hidden">‹ BACK</button><div class="hq-build" id="hqbuild"></div></div>
 
 <!-- generic panel -->
 <div id="panel" class="layer hidden"><div class="pbox"><button class="pclose" aria-label="Close">✕</button><div id="pbody"></div></div></div>
+<div id="theater" class="hidden"><div id="theaterBody"></div></div>
 
 <!-- cinematic -->
 <div id="cine" class="layer hidden"><div class="cine-frame"><div id="cineText"></div></div><div class="cine-bar"><span id="cineWho"></span><button id="cineSkip" class="ghost hidden">SKIP ▸▸</button></div></div>
@@ -76,11 +63,15 @@
 <div id="over" class="layer hidden"><div class="obox"><h1 id="overT"></h1><p id="overP"></p><button id="overBtn" class="big">Try again</button><button id="overHQ" class="ghost">Back to Lantern HQ</button></div></div>
 
 <script src="vendor/three.min.js"></script>
-<script src="js/data.js?v=1"></script>
-<script src="js/audio.js?v=1"></script>
-<script src="js/director.js?v=1"></script>
-<script src="js/level.js?v=1"></script>
-<script src="js/game.js?v=1"></script>
-<script src="js/ui.js?v=1"></script>
+<script src="js/data.js?v=2"></script>
+<script src="js/gfx.js?v=2"></script>
+<script src="js/people.js?v=2"></script>
+<script src="js/hollow.js?v=2"></script>
+<script src="js/audio.js?v=2"></script>
+<script src="js/director.js?v=2"></script>
+<script src="js/level.js?v=2"></script>
+<script src="js/game.js?v=2"></script>
+<script src="js/hq.js?v=2"></script>
+<script src="js/ui.js?v=2"></script>
 </body>
 </html>

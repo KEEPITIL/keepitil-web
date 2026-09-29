@@ -10,46 +10,21 @@
   const stats = G.stats = { deaths: 0, hides: 0, powers: { mara: 0, gabriel: 0, daniel: 0 }, switches: 0, started: 0 };
   let s = null;   // run state
 
-  G.init = () => {
-    if (renderer) return;
-    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('view'), antialias: !touch, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, touch ? 1.25 : 1.75));
-    const size = () => { renderer.setSize(innerWidth, innerHeight, false); if (camera) { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); } };
-    addEventListener('resize', size); size();
-  };
+  G.init = () => { if (renderer) return; renderer = T13.gfx.initRenderer(document.getElementById('view')); };
 
   const loadSave = () => { try { return JSON.parse(localStorage.getItem('t13-save') || 'null'); } catch (e) { return null; } };
   const writeSave = (o) => { try { localStorage.setItem('t13-save', JSON.stringify(o)); } catch (e) {} };
   G.save = loadSave;
 
-  function sibMesh(sib) {
-    const g = new THREE.Group(), m = new THREE.MeshLambertMaterial({ color: sib.color });
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 1.2, 10), m); body.position.y = 0.95; g.add(body);
-    const legs = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.5, 8), new THREE.MeshLambertMaterial({ color: 0x1d1d22 })); legs.position.y = 0.25; g.add(legs);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 12, 10), new THREE.MeshLambertMaterial({ color: 0xc9a88a })); head.position.y = 1.72; g.add(head);
-    const lamp = new THREE.SpotLight(0xfff1d0, 0.9, 12, 0.45, 0.6, 1.2); lamp.position.set(0, 1.4, 0); const tg = new THREE.Object3D(); tg.position.set(0, 1.0, -4); g.add(tg); lamp.target = tg; g.add(lamp);
-    g.userData.lamp = lamp; return g;
-  }
-  function hollowMesh() {
-    const g = new THREE.Group(), dark = new THREE.MeshLambertMaterial({ color: 0x07070a }), pale = new THREE.MeshLambertMaterial({ color: 0x9c968a, emissive: 0x111111 });
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.3, 1.7, 8), dark); body.position.y = 1.35; g.add(body);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), pale); head.scale.set(0.9, 1.5, 0.9); head.position.y = 2.42; g.add(head); g.userData.head = head;
-    const eyeM = new THREE.MeshBasicMaterial({ color: 0xff2a1a });
-    [-0.07, 0.07].forEach(x => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 4), eyeM); e.position.set(x, 2.46, -0.17); g.add(e); });
-    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.12, 0.02), new THREE.MeshBasicMaterial({ color: 0x000000 })); mouth.position.set(0, 2.28, -0.18); g.add(mouth);
-    const arms = []; [-1, 1].forEach(sx => { const a = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.035, 1.55, 6), dark); a.position.set(sx * 0.3, 1.45, 0); a.rotation.z = sx * 0.12; g.add(a); arms.push(a); });
-    const legs = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.06, 0.6, 6), dark); legs.position.y = 0.3; g.add(legs);
-    g.userData.arms = arms; g.userData.mats = [dark, pale]; return g;
-  }
-
+  let hol = null, holShadow = null, hemi = null; const X = T13.gfx;
   /* ---------- start / restart ---------- */
   G.start = (fromCheckpoint = false) => {
     G.init(); A.init();
-    scene = new THREE.Scene(); scene.background = new THREE.Color(0x000000); scene.fog = new THREE.FogExp2(0x000000, 0.085);
-    camera = new THREE.PerspectiveCamera(touch ? 78 : 72, innerWidth / innerHeight, 0.05, 90);
-    ambient = new THREE.AmbientLight(0x2a2a3a, 0.32); scene.add(ambient);
+    scene = new THREE.Scene(); scene.background = new THREE.Color(0x07080b); scene.fog = new THREE.FogExp2(0x0a0b0f, 0.03);
+    camera = new THREE.PerspectiveCamera(touch ? 76 : 70, innerWidth / innerHeight, 0.05, X.Q().far); X.cams.add(camera);
+    hemi = new THREE.HemisphereLight(X.col(0x8c95a6), X.col(0x3e3428), 0.6); scene.add(hemi); ambient = hemi; X.setLighting('NORMAL'); X.light.cur = { ...X.LS.NORMAL }; X.light.until = 0;
     scene.add(camera);
-    spot = new THREE.SpotLight(0xfff3dc, 2.3, 28, 0.52, 0.55, 1.1); spot.position.set(0.18, -0.12, 0.1); camera.add(spot); spotTarget = new THREE.Object3D(); spotTarget.position.set(0, -0.3, -5); camera.add(spotTarget); spot.target = spotTarget;
+    spot = new THREE.SpotLight(X.col(0xfff2dc), 2.4, 26, 0.6, 0.5, 1.15); if (X.Q().shadows) { spot.castShadow = true; spot.shadow.mapSize.set(1024, 1024); spot.shadow.bias = -0.0008; spot.shadow.camera.near = 0.2; spot.shadow.camera.far = 20; } spot.position.set(0.18, -0.12, 0.1); camera.add(spot); spotTarget = new THREE.Object3D(); spotTarget.position.set(0, -0.3, -5); camera.add(spotTarget); spot.target = spotTarget;
     L.build(scene);
     const sp = L.find('S')[0], p0 = L.center(sp.c, sp.r);
     const cp = fromCheckpoint ? loadSave()?.checkpoint : null;
@@ -58,9 +33,10 @@
       hist: [], light: true, battery: 100, stamina: 1, hidden: null, dead: false, over: false, unmaskUntil: 0, resonanceUntil: 0, codeTries: 0, bob: 0, stepT: 0, said: {}, chatT: 25, keypad: false,
     };
     if (cp) { Object.assign(s.flags, cp.flags); s.stage = cp.stage; s.sibs.forEach((b, i) => { b.x = cp.x + (i - 1) * 0.6; b.z = cp.z + (i ? 0.7 : 0); }); applyFlags(); }
-    s.sibs.forEach(b => { b.mesh = sibMesh(b); scene.add(b.mesh); });
-    enemyMesh = hollowMesh(); scene.add(enemyMesh);
-    shadowMesh = hollowMesh(); shadowMesh.visible = false; scene.add(shadowMesh);
+    s.sibs.forEach(b => { b.p = T13.people.build(b.id); b.mesh = b.p.root; scene.add(b.mesh); b.lastX = b.x; b.lastZ = b.z; if (X.tier === 'HIGH') { const cl = new THREE.SpotLight(X.col(0xfff0d0), 0.9, 12, 0.45, 0.6, 1.3); cl.position.set(0.25, 1.25, -0.2); const tg = new THREE.Object3D(); tg.position.set(0.1, 0.9, -5); b.mesh.add(cl, tg); cl.target = tg; b.cl = cl; } });
+    s.sounds = [];
+    hol = T13.hollow.build(); enemyMesh = hol.root; scene.add(enemyMesh);
+    holShadow = T13.hollow.build(); shadowMesh = holShadow.root; shadowMesh.visible = false; scene.add(shadowMesh);
     const h = L.find('H')[0], hp = L.center(h.c, h.r);
     s.enemy = { x: hp.x, z: hp.z, yaw: 0, state: 'dormant', path: null, pi: 0, t: s.flags.fuseTaken ? 2 : 40, see: 0, lastSeen: null, repath: 0, stag: 0, sawHide: false, stepT: 0, contact: -99, manifestT: 0 };
     if (s.flags.fuseTaken) { s.enemy.state = 'patrol'; placeEnemyAway(24); s.enemy.contact = 8; wander(); }
@@ -84,7 +60,9 @@
   function objectiveText() { const O = CASE.objectives, f = s.flags; if (f.escaped) return ''; if (f.power) return O.exit; if (f.fuseTaken) return O.hunt; if (f.cabinetMoved) return O.fuse; if (f.cabinetSeen) return O.blocked; if (f.fuseboxSeen) return O.fusebox; return O.enter; }
 
   const cur = () => s.sibs[s.active];
-  const say = (id, text, ms) => { const b = SIB.find(x => x.id === id); T13.ui.sub(text, b ? b.name.toUpperCase() : id, b ? b.css : '#bbb', ms); };
+  const say = (id, text, ms = 4200, pointAt = null) => { const b = SIB.find(x => x.id === id); T13.ui.sub(text, b ? b.name.toUpperCase() : id, b ? b.css : '#bbb', ms);
+    if (s && s.sibs) { const sb = s.sibs.find(x => x.id === id); s.speaker = id; s.speakerUntil = s.t + Math.min(4, ms / 1000); if (sb && sb.p) { sb.p.say(Math.min(3500, text.length * 55)); if (pointAt && s.sibs[s.active] !== sb) { const q = L.center(pointAt[0], pointAt[1]); sb.p.act('point', new THREE.Vector3(q.x, 1.2, q.z)); } } } };
+  const heard = (x, y, z) => { if (s && s.sounds) s.sounds.push({ x, y, z, t: s.t }); };
   const once = (k, fn) => { if (s.said[k]) return; s.said[k] = 1; fn(); };
   function updateTeam() { T13.ui.team(s.sibs.map(b => ({ name: b.name, css: b.css, power: b.power, cd: Math.max(0, Math.ceil(b.cd)) })), s.active); }
 
@@ -140,7 +118,7 @@
   function die(why) {
     if (s.dead) return; s.dead = true; stats.deaths++; const a = cur(), e = s.enemy;
     // it lunges into your face
-    const f = new THREE.Vector3(0, 0, -0.75).applyQuaternion(camera.quaternion); enemyMesh.position.set(camera.position.x + f.x, camera.position.y - 2.35, camera.position.z + f.z); enemyMesh.rotation.y = s.sibs[s.active].yaw; enemyMesh.visible = true;
+    const f = new THREE.Vector3(0, 0, -0.75).applyQuaternion(camera.quaternion); enemyMesh.position.set(camera.position.x + f.x, camera.position.y - 2.35, camera.position.z + f.z); enemyMesh.rotation.y = s.sibs[s.active].yaw; enemyMesh.visible = true; hol.setReveal('full');
     A.sting(); A.growl(a.x, 1.6, a.z); T13.ui.flash(0.9);
     setTimeout(() => { running = false; T13.ui.hud(false); T13.ui.over('THE HOLLOW TOOK ' + a.name.toUpperCase(), (why ? why + ' ' : '') + 'It copies what it hears. Next time: listen first, keep the light low, and don’t let it see where you hide.'); }, 1100);
     void e;
@@ -150,8 +128,7 @@
   function setDoor(d, open, slam = false) { if (d.userData.open === open) return; d.userData.open = open; const p = L.center(d.userData.c, d.userData.r); A.door(p.x, 1.5, p.z, slam); if (slam) D.bump(0.12); }
   function knockCabinet(o, instant) { o.userData.fallen = true; if (instant) { o.rotation.z = Math.PI / 2; o.position.y = 0.8; o.position.x += 1.7; } else o.userData.fallT = 0; }
   function powerOn(silent) {
-    s.flags.power = true; L.lamps.forEach(l => { l.pl.intensity = 0.55; l.bulb.material.color.set(0xffe0a8); });
-    scene.fog.density = 0.05; ambient.intensity = 0.42;
+    s.flags.power = true; X.setLighting('RESTORED'); if (L.fixtureMat.emissive) L.fixtureMat.emissive.set(X.col(0xbfc6c8));
     L.objects.forEach(o => { if (o.userData.kind === 'fusebox') o.userData.lamp.material.color.set(0x33ff66); if (o.userData.kind === 'exit') o.userData.sign.visible = true; });
     if (!silent) { A.power(true); const e = s.enemy; e.state = 'flee'; e.t = 7; placeEnemyAway(20); wander(); e.state = 'flee'; e.t = 7; }
   }
@@ -186,7 +163,7 @@
     if (k === 'fusebox') {
       if (s.flags.fuseTaken && !s.flags.power) { powerOn(false); T13.ui.flash(0.3); say('daniel', 'Power’s back. Lights hurt it — look, it’s pulling away.'); checkpoint('power'); return; }
       if (s.flags.power) return say(a.id, 'Power’s on. Get to the exit.');
-      s.flags.fuseboxSeen = true; T13.ui.obj(objectiveText()); return say('gabriel', 'Main fuse is gone. Someone took it out on purpose.');
+      s.flags.fuseboxSeen = true; T13.ui.obj(objectiveText()); return say('gabriel', 'Main fuse is gone. Someone took it out on purpose.', 4200, [2, 3]);
     }
     if (k === 'cabinet') { s.flags.cabinetSeen = true; T13.ui.obj(objectiveText()); if (a.id === 'gabriel') return say('gabriel', 'Stand back. I can move this. [✦ / Q]'); return say(a.id === 'mara' ? 'mara' : 'daniel', 'Too heavy. Gabriel could shift it — switch to him. [⇄ / Tab]'); }
     if (k === 'falsewall') { if (a.id === 'daniel') return say('daniel', 'This wall is wrong. The plaster doesn’t match the plan. Let me look properly. [✦ / Q]'); return say(a.id, a.id === 'mara' ? 'Daniel keeps staring at this wall.' : 'Just a wall… right?'); }
@@ -245,11 +222,12 @@
   function fire(ev) {
     const a = cur(), e = s.enemy, back = { x: a.x + Math.sin(a.yaw) * 6, z: a.z + Math.cos(a.yaw) * 6 };
     const unmasked = s.t < s.unmaskUntil;
-    if (ev === 'creak') return A.creak(a.x + (Math.random() - 0.5) * 16, 2.8, a.z + (Math.random() - 0.5) * 16);
+    if (ev === 'creak') { const cx2 = a.x + (Math.random() - 0.5) * 16, cz2 = a.z + (Math.random() - 0.5) * 16; heard(cx2, 2.8, cz2); return A.creak(cx2, 2.8, cz2); }
+    if (false) return A.creak(a.x + (Math.random() - 0.5) * 16, 2.8, a.z + (Math.random() - 0.5) * 16);
     if (ev === 'step_far') return A.step(a.x + (Math.random() - 0.5) * 24, 0.2, a.z + (Math.random() - 0.5) * 24, true, 0.18);
-    if (ev === 'step_near') { A.step(back.x, 0.2, back.z, false, 0.35); setTimeout(() => A.step(back.x + 0.4, 0.2, back.z + 0.4, false, 0.35), 450); return; }
-    if (ev === 'whisper') return A.whisper(back.x, 1.6, back.z);
-    if (ev === 'door_far' || ev === 'door_slam') { const ds = L.doors.map(d => ({ d, p: L.center(d.userData.c, d.userData.r) })).filter(x => { const dd = Math.hypot(x.p.x - a.x, x.p.z - a.z); return dd > 5 && dd < 22; }); const pick = ds[Math.floor(Math.random() * ds.length)]; if (pick) setDoor(pick.d, !pick.d.userData.open, ev === 'door_slam'); return; }
+    if (ev === 'step_near') { heard(back.x, 0.3, back.z); if (Math.random() < 0.5) { const g = s.sibs.find(b => b.id === 'gabriel'); if (g && s.sibs[s.active] !== g) setTimeout(() => say('gabriel', 'Did you hear that?', 2500), 700); } A.step(back.x, 0.2, back.z, false, 0.35); setTimeout(() => A.step(back.x + 0.4, 0.2, back.z + 0.4, false, 0.35), 450); return; }
+    if (ev === 'whisper') { heard(back.x, 1.6, back.z); return A.whisper(back.x, 1.6, back.z); }
+    if (ev === 'door_far' || ev === 'door_slam') { const ds = L.doors.map(d => ({ d, p: L.center(d.userData.c, d.userData.r) })).filter(x => { const dd = Math.hypot(x.p.x - a.x, x.p.z - a.z); return dd > 5 && dd < 22; }); const pick = ds[Math.floor(Math.random() * ds.length)]; if (pick) { heard(pick.p.x, 1.5, pick.p.z); setDoor(pick.d, !pick.d.userData.open, ev === 'door_slam'); } return; }
     if (ev === 'flicker') { s.flickerUntil = s.t + 1.2; return; }
     if (ev === 'radio') { A.staticBurst(); return T13.ui.sub('… kkssh … not your father … kssh …', 'RADIO', '#8d8573', 3000); }
     if (ev === 'false_voice') {
@@ -258,8 +236,16 @@
       T13.ui.sub(`“${line}”${unmasked ? '  — COUNTERFEIT' : ''}`, who.name.toUpperCase() + '?', who.css, 3200);
       setTimeout(() => say(who.id, 'That wasn’t me. I’m right here.'), 2600); return;
     }
+    if (ev === 'blackout') { X.setLighting('BLACKOUT', 3.5 + Math.random() * 3); A.power(false); heard(a.x, 2.8, a.z); setTimeout(() => say('gabriel', 'Lights! Stay together — don’t move.', 3000), 500); if (e.state !== 'dormant' && e.state !== 'hunt' && Math.random() < 0.5) goTo(a.x, a.z, 'investigate'); return; }
     if (ev === 'shadow') {
-      const fx = -Math.sin(a.yaw), fz = -Math.cos(a.yaw); for (let dist = 13; dist > 6; dist -= 1.5) { const x = a.x + fx * dist, z = a.z + fz * dist, [c, r] = L.cell(x, z); if (!L.blocked(c, r) && L.los(a.x, a.z, x, z)) { shadowMesh.position.set(x, 0, z); shadowMesh.rotation.y = a.yaw + Math.PI; shadowMesh.visible = true; s.shadowUntil = s.t + 0.4; if (unmasked) T13.ui.sub('Not real. A picture of it.', 'DANIEL', SIB[2].css, 2000); return; } }
+      // a partial reveal: sometimes a silhouette, sometimes limbs round a doorframe, a face at a corner, a figure in a window — sometimes nothing
+      const kind = ['shadow', 'limbs', 'face', 'window', 'nothing'][Math.floor(Math.random() * 5)]; if (kind === 'nothing') return;
+      const fx = -Math.sin(a.yaw), fz = -Math.cos(a.yaw), show = (x, z, mode, secs, yaw) => { shadowMesh.position.set(x, 0, z); shadowMesh.rotation.y = yaw; holShadow.setReveal(mode); shadowMesh.visible = true; s.shadowUntil = s.t + secs; heard(x, 1.8, z); if (unmasked) T13.ui.sub('Not real. A picture of it.', 'DANIEL', SIB[2].css, 2000); };
+      if (kind === 'window') { const w = (L.windows || []).map(g => ({ g, d: Math.hypot(g.position.x - a.x, g.position.z - a.z) })).filter(o => o.d > 3 && o.d < 14 && L.los(a.x, a.z, o.g.position.x - Math.sin(o.g.rotation.y) * 0.4, o.g.position.z - Math.cos(o.g.rotation.y) * 0.4)).sort((p, q) => p.d - q.d)[0];
+        if (w) { const out = new THREE.Vector3(0, 0, -0.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), w.g.rotation.y); show(w.g.position.x + out.x, w.g.position.z + out.z, 'shadow', 0.7, w.g.rotation.y); } return; }
+      if (kind === 'limbs') { const d = L.doors.map(dd => ({ dd, p: L.center(dd.userData.c, dd.userData.r) })).filter(o => { const dist = Math.hypot(o.p.x - a.x, o.p.z - a.z); return dist > 5 && dist < 13 && L.los(a.x, a.z, o.p.x, o.p.z) && ((o.p.x - a.x) * fx + (o.p.z - a.z) * fz) / dist > 0.6; })[0];
+        if (d) { if (!d.dd.userData.open) setDoor(d.dd, true); show(d.p.x + fz * 0.9, d.p.z - fx * 0.9, 'limbs', 1.1, a.yaw + Math.PI); } return; }
+      for (let dist = 13; dist > 6; dist -= 1.5) { const x = a.x + fx * dist, z = a.z + fz * dist, [c, r] = L.cell(x, z); if (!L.blocked(c, r) && L.los(a.x, a.z, x, z)) { show(x, z, kind === 'face' ? 'face' : 'shadow', kind === 'face' ? 0.6 : 0.45, a.yaw + Math.PI); if (kind === 'face') shadowMesh.position.y = -0.4; return; } }
       return;
     }
     if (ev === 'silence') { D.silenceUntil = s.t + 6; return; }
@@ -288,33 +274,75 @@
     }
     if (!(moving && input.run)) s.stamina = Math.min(1, s.stamina + dt / 9);
     s.bob += moving ? dt * (input.run ? 11 : 7) : 0;
-    // companions follow the breadcrumb trail
-    let k = 0; s.sibs.forEach((b, i) => { if (i === s.active) { b.mesh.visible = false; return; } k++; b.mesh.visible = !s.hidden;
-      const tgt = s.hist[s.hist.length - 1 - k * 5] || s.hist[0]; if (tgt) { const dx = tgt.x - b.x, dz = tgt.z - b.z, dd = Math.hypot(dx, dz); if (dd > 0.6) { const spd = Math.min(dd * 2.2, 5); collide(b, b.x + dx / dd * spd * dt, b.z + dz / dd * spd * dt, 0.25); b.yaw = Math.atan2(-dx, -dz); } }
+    // companions: follow the breadcrumb trail, and BEHAVE — look at sounds, at whoever talks, at you, at the Hollow
+    const e = s.enemy, V3 = THREE.Vector3, camPos = new V3(a.x, (input.crouch ? CROUCH_EYE : EYE), a.z);
+    const holVis = e.state !== 'dormant' && enemyMesh.visible && Math.hypot(e.x - a.x, e.z - a.z) < 16 && L.los(a.x, a.z, e.x, e.z);
+    s.sounds = s.sounds.filter(q => s.t - q.t < 3.5);
+    let k = 0; s.sibs.forEach((b, i) => {
+      if (i === s.active) { b.mesh.visible = false; return; } k++; b.mesh.visible = !s.hidden;
+      const tgt = s.hist[s.hist.length - 1 - k * 5] || s.hist[0];
+      if (b.faceCam) { /* capture pose */ }
+      else if (tgt) { const dx = tgt.x - b.x, dz = tgt.z - b.z, dd = Math.hypot(dx, dz); if (dd > 0.6) { const spd = Math.min(dd * 2.2, 5); collide(b, b.x + dx / dd * spd * dt, b.z + dz / dd * spd * dt, 0.25); b.yaw = Math.atan2(-dx, -dz); } }
       else if (Math.hypot(b.x - a.x, b.z - a.z) > 9) { b.x = a.x + (k - 1.5) * 0.6; b.z = a.z + 0.7; }
+      // back away from the Hollow when it is close and seen
+      const de = Math.hypot(e.x - b.x, e.z - b.z), seesIt = holVis && de < 14 && L.los(b.x, b.z, e.x, e.z);
+      if (seesIt && de < 6 && !b.faceCam) { collide(b, b.x - (e.x - b.x) / de * 2.2 * dt, b.z - (e.z - b.z) / de * 2.2 * dt, 0.25); }
       if (s.hidden) { b.x = s.hidden.x; b.z = s.hidden.z; }
-      b.mesh.position.set(b.x, 0, b.z); b.mesh.rotation.y = b.yaw; b.mesh.userData.lamp.intensity = s.flags.power ? 0.3 : (s.light ? 0.75 : 0); });
+      const moved = Math.hypot(b.x - b.lastX, b.z - b.lastZ) / Math.max(dt, 1e-4); b.lastX = b.x; b.lastZ = b.z;
+      // what to look at, and how to feel about it
+      let look = null, expr = 'neutral';
+      if (seesIt) { look = new V3(e.x, 2.2, e.z); expr = de < 7 ? 'fear' : 'concern'; if (!b.sawHollow) { b.sawHollow = true; b.p.act('flinch'); } if (de < 5) b.p.act('guard'); }
+      else { b.sawHollow = false;
+        if (s.speaker && s.t < s.speakerUntil) { look = s.speaker === b.id ? camPos : (s.sibs.find(o => o.id === s.speaker && o !== s.sibs[s.active])?.p.head.getWorldPosition(new V3()) || camPos); }
+        else if (s.sounds.length) { const q = s.sounds[s.sounds.length - 1]; look = new V3(q.x, q.y, q.z); expr = 'concern'; }
+        else if (b.faceCam || ((s.t + i * 3.7) % 11) < 2.5) look = camPos; }
+      if (e.state === 'hunt' && !seesIt) expr = 'fear';
+      if (b.faceCam) { b.yaw = Math.atan2(-(a.x - b.x), -(a.z - b.z)); look = camPos; }
+      b.p.lookAt(look); b.p.setExpr(b.exprOverride && s.t < b.exprUntil ? b.exprOverride : expr);
+      b.mesh.position.set(b.x, 0, b.z); b.mesh.rotation.y = b.yaw;
+      b.p.update(dt, { speed: b.faceCam ? 0 : moved, crouch: input.crouch, lightOn: s.light && !s.flags.power, afraid: expr === 'fear' });
+      if (b.cl) b.cl.intensity = s.light && !s.flags.power && !s.hidden ? 0.9 : 0;
+    });
     // cooldowns
     s.sibs.forEach(b => { if (b.cd > 0) b.cd = Math.max(0, b.cd - dt); });
     // enemy
+    const ex0 = e.x, ez0 = e.z;
     if (!s.dead) updateEnemy(dt);
-    const e = s.enemy;
-    if (!s.dead) { enemyMesh.position.set(e.x, 0, e.z); enemyMesh.rotation.y = e.yaw + Math.sin(s.t * 13) * 0.04; enemyMesh.userData.head.rotation.z = Math.sin(s.t * 1.7) * 0.35 + (e.state === 'hunt' ? Math.sin(s.t * 31) * 0.12 : 0);
-      enemyMesh.userData.arms.forEach((ar, i) => { ar.rotation.x = Math.sin(s.t * (e.state === 'hunt' ? 9 : 3) + i * Math.PI) * 0.5; }); }
-    const resonance = s.t < s.resonanceUntil; enemyMesh.traverse(m => { if (m.material) { m.material.depthTest = !resonance; m.renderOrder = resonance ? 5 : 0; } }); enemyMesh.userData.mats[0].emissive.setHex(resonance ? 0x331040 : 0x000000);
+    const eSpeed = Math.hypot(e.x - ex0, e.z - ez0) / Math.max(dt, 1e-4);
+    if (e.state !== 'dormant' && eSpeed > 0.5 && (s.soundT = (s.soundT || 0) - dt) <= 0) { s.soundT = 1.2; s.sounds.push({ x: e.x, y: 0.5, z: e.z, t: s.t }); }
+    const dE = e.state === 'dormant' ? 99 : Math.hypot(e.x - a.x, e.z - a.z);
+    if (!s.dead) {
+      enemyMesh.position.set(e.x, 0, e.z); enemyMesh.rotation.y = e.yaw;
+      // do not reveal it fully all the time: far away it is a silhouette; in the beam, close, or hunting it is all there
+      const fx = -Math.sin(a.yaw), fz = -Math.cos(a.yaw), inBeam = s.light && dE < 11 && ((e.x - a.x) * fx + (e.z - a.z) * fz) / Math.max(dE, 0.01) > 0.8;
+      const want = e.state === 'hunt' || e.state === 'stagger' || inBeam || dE < 5 || s.forceReveal === 'full' ? 'full' : 'shadow';
+      if (hol.mode !== want) hol.setReveal(want);
+      hol.update(dt, { speed: eSpeed, hunting: e.state === 'hunt', stagger: e.state === 'stagger' });
+    }
+    const resonance = s.t < s.resonanceUntil; enemyMesh.traverse(m => { if (m.material) { m.material.depthTest = !resonance; m.renderOrder = resonance ? 5 : 0; } });
     // unmask: hidden writing, false wall shimmer
     const unmasked = s.t < s.unmaskUntil; L.hiddenDecals.forEach(dc => { dc.material.opacity += ((unmasked ? 1 : 0) - dc.material.opacity) * Math.min(1, dt * 3); });
-    L.objects.forEach(o => { if (o.userData.kind === 'falsewall' && o.visible) { if (o.userData.fade) { o.material.opacity = Math.max(0, o.material.opacity - dt * 0.8); if (o.material.opacity <= 0) o.visible = false; } else o.material.opacity = unmasked ? 0.55 + Math.sin(s.t * 12) * 0.2 : 1; }
-      if (o.userData.kind === 'cabinet' && o.userData.fallT !== undefined && o.userData.fallT < 1) { o.userData.fallT = Math.min(1, o.userData.fallT + dt * 2.4); o.rotation.z = o.userData.fallT * Math.PI / 2; o.position.y = 1.3 - o.userData.fallT * 0.5; o.position.x += dt * 4; }
+    L.objects.forEach(o => { if (o.userData.kind === 'falsewall' && o.visible) { const ms = o.userData.mats || []; if (o.userData.fade) { o.userData.op = Math.max(0, (o.userData.op ?? 1) - dt * 0.8); if (o.userData.op <= 0) o.visible = false; } else o.userData.op = unmasked ? 0.55 + Math.sin(s.t * 12) * 0.2 : 1; ms.forEach(m => { m.opacity = o.userData.op; }); }
+      if (o.userData.kind === 'cabinet' && o.userData.fallT !== undefined && o.userData.fallT < 1) { o.userData.fallT = Math.min(1, o.userData.fallT + dt * 2.4); o.rotation.z = o.userData.fallT * Math.PI / 2; o.position.y = 1.25 - o.userData.fallT * 0.65; o.position.x += dt * 4; }
       if (o.userData.kind === 'door') { const tgt = o.userData.base + (o.userData.open ? -Math.PI * 0.5 : 0); o.rotation.y += (tgt - o.rotation.y) * Math.min(1, dt * 7); }
       if (o.userData.kind === 'fuse' && o.userData.item.visible) o.userData.item.rotation.x += dt; });
-    if (shadowMesh.visible && s.t > s.shadowUntil) shadowMesh.visible = false;
+    if (shadowMesh.visible) { holShadow.update(dt, { speed: 0 }); if (s.t > s.shadowUntil) shadowMesh.visible = false; }
+    // LIGHTING STATE → hemisphere, zone lights (each kind has its own behaviour), fog, fixtures
+    if (!s.flags.power) X.setLighting(D.state === 'DANGER' || D.state === 'TERROR' ? 'DIM' : 'NORMAL'); else X.setLighting('RESTORED');
+    const Lc = X.stepLighting(dt); hemi.intensity = 0.62 * Lc.hemi; scene.fog.density = Lc.fog * (s.hidden ? 1.4 : 1);
+    const hollowNear = dE < 9;
+    L.lamps.forEach(l => { let f = 1, t = s.t + l.seed;
+      if (l.kind === 'fluor') f = Math.random() < 0.02 ? 0.15 : 0.85 + Math.sin(t * 50) * 0.03;
+      else if (l.kind === 'emergency') f = s.flags.power ? 0.25 : (Math.sin(t * 2.2) > -0.2 ? 1 : 0.1);
+      else if (l.kind === 'clinical') f = (t % 6) < 0.25 ? (Math.random() < 0.5 ? 0.1 : 1) : 1;
+      else if (l.kind === 'bulb') { f = 0.9 + Math.sin(t * 1.3) * 0.08; l.pl.position.x = l.bulb.position.x + Math.sin(t * 0.9) * 0.08; }
+      if (hollowNear && Math.hypot(l.pl.position.x - e.x, l.pl.position.z - e.z) < 10 && Math.random() < 0.35) f *= 0.1;   // it eats light
+      l.pl.intensity = l.base * Lc.zone * f * (s.flags.power && (l.kind === 'fluor' || l.kind === 'clinical') ? 1.3 : 1); if (l.bulb.visible) l.bulb.material.color.setScalar ? null : null; });
+    if (L.fixtureMat.emissive) L.fixtureMat.emissive.setScalar(s.flags.power ? 0.75 * Lc.zone : 0.04 * Lc.zone);
     // flashlight: battery, flicker near the Hollow
-    const dE = e.state === 'dormant' ? 99 : Math.hypot(e.x - a.x, e.z - a.z);
-    if (s.light) s.battery = Math.max(0, s.battery - dt * 0.45); else s.battery = Math.min(100, s.battery + dt * 1.2);
-    let li = s.light && s.battery > 0 ? 2.3 : 0; if (s.battery < 15 && s.light) li *= Math.random() < 0.15 ? 0.2 : 1; if ((s.flickerUntil && s.t < s.flickerUntil) || (dE < 7 && Math.random() < 0.25)) li *= Math.random() < 0.5 ? 0.05 : 1;
+    if (s.light) s.battery = Math.max(0, s.battery - dt * 0.4); else s.battery = Math.min(100, s.battery + dt * 1.4);
+    let li = s.light && s.battery > 0 ? 1.9 : 0; if (s.battery < 15 && s.light) li *= Math.random() < 0.15 ? 0.2 : 1; if ((s.flickerUntil && s.t < s.flickerUntil) || (dE < 7 && Math.random() < 0.25)) li *= Math.random() < 0.5 ? 0.05 : 1;
     spot.intensity = s.hidden ? 0 : li;
-    if (s.flags.power) L.lamps.forEach((l, i) => { l.pl.intensity = dE < 9 && Math.random() < 0.3 ? 0.05 : 0.55 + Math.sin(s.t * 3 + i) * 0.03; });
     // camera
     let eyeY = input.crouch ? CROUCH_EYE : EYE; let cx = a.x, cz = a.z;
     if (s.hidden) { const lp = L.center(s.hidden.o.userData.c, s.hidden.o.userData.r); cx = lp.x + (s.hidden.x - lp.x) * 0.25; cz = lp.z + (s.hidden.z - lp.z) * 0.25; eyeY = 1.55; }
@@ -327,18 +355,18 @@
     s.heartT = (s.heartT || 0) - dt; if (dir.k > 0.55 && s.heartT <= 0) { s.heartT = 1.2 - dir.k * 0.6; A.heart(dir.k - 0.4); }
     // contextual teaching lines — the siblings explain themselves, nobody reads a manual
     const near = (kind, dmax) => L.objects.some(o => { if (o.userData.kind !== kind) return false; const p = L.center(o.userData.c, o.userData.r); return Math.hypot(p.x - a.x, p.z - a.z) < dmax; });
-    if (!s.flags.cabinetMoved && near('cabinet', 5)) once('cab', () => { s.flags.cabinetSeen = true; T13.ui.obj(objectiveText()); say('gabriel', a.id === 'gabriel' ? 'That cabinet’s blocking the ward. I can move it. [✦ / Q]' : 'That cabinet’s blocking the ward. Let me — switch to me. [⇄ / Tab]'); });
-    if (s.flags.cabinetMoved && !s.flags.falseGone && near('falsewall', 5)) once('fw', () => say('daniel', a.id === 'daniel' ? 'That wall doesn’t belong on the plan. Let me look. [✦ / Q]' : 'Hold on. That wall shouldn’t be there. Let me see it — switch to me. [⇄ / Tab]'));
+    if (!s.flags.cabinetMoved && near('cabinet', 5)) once('cab', () => { s.flags.cabinetSeen = true; T13.ui.obj(objectiveText()); say('gabriel', a.id === 'gabriel' ? 'That cabinet’s blocking the ward. I can move it. [✦ / Q]' : 'That cabinet’s blocking the ward. Let me — switch to me. [⇄ / Tab]', 4200, [18, 7]); });
+    if (s.flags.cabinetMoved && !s.flags.falseGone && near('falsewall', 5)) once('fw', () => say('daniel', a.id === 'daniel' ? 'That wall doesn’t belong on the plan. Let me look. [✦ / Q]' : 'Hold on. That wall shouldn’t be there. Let me see it — switch to me. [⇄ / Tab]', 4200, [22, 9]));
     if (e.state !== 'dormant' && dE < 13 && !s.said.sense) once('sense', () => say('mara', a.id === 'mara' ? 'It’s here. I can feel where it is. [✦ / Q]' : 'It’s here. I can find it if you let me. [⇄ / Tab]'));
-    if (near('musicbox', 4) && !s.flags.musicbox) once('mb', () => say('mara', 'That music box… someone held it the night of the fire.'));
+    if (near('musicbox', 4) && !s.flags.musicbox) once('mb', () => say('mara', 'That music box… someone held it the night of the fire.', 4200, [23, 2]));
     s.chatT -= dt; if (s.chatT <= 0 && !s.hidden) { s.chatT = 30 + Math.random() * 25; const lines = { CALM: [['daniel', 'Fire doors, 1960s. Whatever happened here happened fast.'], ['mara', 'It’s quiet. I hate quiet.']], UNEASY: [['gabriel', 'Something moved. Keep the light low.'], ['daniel', 'Footsteps don’t echo like that in a room this size.']], TENSION: [['mara', 'It’s thinking about us. I can feel it.'], ['gabriel', 'If you see it, don’t run first. Hide first.']], DANGER: [['mara', 'Please. Let’s just go.']], TERROR: [], RELEASE: [['gabriel', 'Breathe. It lost us. For now.']] }[dir.state] || []; const pick = lines.filter(([id]) => id !== a.id)[0] || lines[0]; if (pick) say(pick[0], pick[1]); }
     // HUD
     const tg = s.hidden ? null : lookTarget(); T13.ui.prompt(s.hidden ? 'Leave the locker' : tg ? PROMPT[tg.userData.kind](tg) : '');
     T13.ui.fear(dir.k, dir.state, s.hidden, s.battery, s.stamina, a.cd);
     if ((s.hudT = (s.hudT || 0) - dt) <= 0) { s.hudT = 0.25; updateTeam(); }
-    renderer.render(scene, camera);
+    renderer.render(scene, camera); X.perfTick(renderer);
   }
 
   G.debug = () => s && ({ t: +s.t.toFixed(1), stage: s.stage, flags: { ...s.flags }, active: cur().id, pos: [+cur().x.toFixed(2), +cur().z.toFixed(2)], enemy: { state: s.enemy.state, x: +s.enemy.x.toFixed(1), z: +s.enemy.z.toFixed(1) }, director: D.state, k: +D.k.toFixed(2), hidden: !!s.hidden, dead: s.dead, battery: Math.round(s.battery), stats });
-  G.dev = { teleport: (c, r) => { const p = L.center(c, r); cur().x = p.x; cur().z = p.z; }, face: (yaw) => { cur().yaw = yaw; }, state: () => s };
+  G.dev = { lighting: st2 => X.setLighting(st2, st2 === 'NORMAL' ? 0 : 60), reveal: m => { if (s) { s.forceReveal = m; enemyMesh.visible = true; } }, teleport: (c, r) => { const p = L.center(c, r); cur().x = p.x; cur().z = p.z; }, face: (yaw) => { cur().yaw = yaw; }, state: () => s };
 })();

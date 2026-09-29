@@ -1,6 +1,6 @@
 /* THE THIRTEEN ANCHORS — static data: siblings, the 13-case schema, the prologue case. */
 window.T13 = window.T13 || {};
-T13.BUILD = 'Milestone A+B prototype · build 1';
+T13.BUILD = 'Milestone C0 visual pass · build 2';
 
 T13.SIBLINGS = [
   { id: 'mara', name: 'Mara', color: 0x9b7be0, css: '#9b7be0', domain: 'MIND', power: 'Resonance', powerHow: 'Sense the Hollow through walls and read the memory in a touched object. Near the Hollow, Influence turns it away.', cd: 14 },

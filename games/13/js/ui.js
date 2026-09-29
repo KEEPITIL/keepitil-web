@@ -17,8 +17,7 @@
   U.flash = (o = 0.5) => { const el = $('flash'); el.style.transition = 'none'; el.style.opacity = o; requestAnimationFrame(() => { el.style.transition = 'opacity .6s'; el.style.opacity = 0; }); };
   U.over = (title, text, kind) => { $('overT').textContent = title; $('overP').textContent = text; $('overBtn').textContent = kind === 'complete' ? 'Play again' : 'Try again (checkpoint)'; $('overBtn').dataset.kind = kind || 'dead'; $('over').classList.remove('hidden'); };
   $('overBtn').onclick = () => { $('over').classList.add('hidden'); if ($('overBtn').dataset.kind === 'complete') G.start(false); else G.start(true); lock(); };
-  $('overHQ').onclick = () => { $('over').classList.add('hidden'); showHQ(); };
-
+  
   /* ---------- keypad ---------- */
   let code = '';
   const kpShow = () => { $('kpShow').textContent = (code + '___').slice(0, 3).split('').join(' '); };
@@ -37,49 +36,67 @@
     sk.onclick = finish; show();
   };
 
-  /* ---------- HQ ---------- */
-  const PHOTO = s => s?.prologueDone ? 'A new photo is pinned to the board: the Ashgrove exit door, a lantern scratched into the paint.' : 'Five people in an old photograph. Two of the faces have been scratched out. Nobody here remembers doing it.';
-  function showHQ() {
-    G.stop(); $('hq').classList.remove('hidden'); const sv = G.save(); $('hqphoto').textContent = PHOTO(sv); $('hqbuild').textContent = T13.BUILD + ' · gray-box prototype';
-    $('hq').querySelector('.board b').textContent = sv?.checkpoint ? 'CONTINUE' : sv?.prologueDone ? 'REPLAY PROLOGUE' : 'NEW GAME';
+  /* ---------- HQ (3D room in js/hq.js) ---------- */
+  const SIBS = T13.SIBLINGS, esc = t => String(t).replace(/</g, '&lt;');
+  const hide = () => { $('panel').classList.add('hidden'); $('theater').classList.add('hidden'); };
+  const panel = (html, style = 'paper') => { const b = $('panel').querySelector('.pbox'); b.className = 'pbox ' + style; $('pbody').innerHTML = html; $('panel').classList.remove('hidden'); };
+  function showHQ(opts = {}) {
+    G.stop(); hide(); $('hq').classList.remove('hidden'); $('hqbuild').textContent = T13.BUILD + ' · ' + T13.gfx.tier; $('hqBack').classList.add('hidden');
+    T13.hq.enter(selectHQ, opts);
   }
-  const panel = html => { $('pbody').innerHTML = html; $('panel').classList.remove('hidden'); };
-  $('panel').addEventListener('click', e => { if (e.target.classList.contains('pclose') || e.target.id === 'panel') $('panel').classList.add('hidden'); });
-  const SIBS = T13.SIBLINGS;
+  U.showHQ = showHQ;
   const PANELS = {
-    cases: () => `<h2>CASES · SEASON ONE</h2><p>Thirteen cases. The prologue is playable now; each real-location case opens only after its history and paranormal reports have been verified with sources.</p>
+    continue: () => { const sv = G.save(); return ['card', `<h2>${sv?.checkpoint ? 'Pick up where we left off' : sv?.prologueDone ? 'Ashgrove — again?' : 'Case file XIII — open'}</h2><p>Prologue — <i>The Ashgrove Wing</i></p><p style="font-size:14px">${sv?.checkpoint ? 'Checkpoint saved.' : 'Three of us go in. Stay together.'}</p><p><button class="big" id="goPlay">${sv?.checkpoint ? 'CONTINUE' : sv?.prologueDone ? 'REPLAY' : 'NEW GAME'}</button></p>`]; },
+    cases: () => ['paper', `<h2>THE ATLAS · SEASON ONE</h2><p>Thirteen sites. A pin lights when a case is opened. Real-location cases open only after their history and paranormal reports are verified with sources.</p>
       <div class="case"><b>0</b><div><div>Prologue — The Ashgrove Wing</div><small class="tag">FICTIONAL</small><small class="tag">PLAYABLE</small></div></div>
-      ${T13.CASES.map(c => `<div class="case"><b>${c.number}</b><div class="locked">${c.title} — ${c.note}</div></div>`).join('')}`,
-    characters: () => `<h2>THE FILES</h2><div class="chars">${SIBS.map(b => `<div><b style="color:${b.css}">${b.name.toUpperCase()}</b> · ${b.domain}<p><b>${b.power}.</b> ${b.powerHow}</p></div>`).join('')}</div>
-      <h3>Controls</h3><p>${touch ? 'Left thumb moves. Drag the right side to look. ✋ interact · RUN · ⤓ crouch · 🔦 light · ✦ power · ⇄ switch sibling.' : 'WASD move · mouse look · E interact · Shift run · C crouch · F flashlight · Q power · Tab or 1-2-3 switch sibling · Esc pause.'}</p>`,
-    loadout: () => `<h2>EQUIPMENT TABLE</h2><p>Flashlight (battery drains while on, recharges while off). Everything else is found in the field.</p><p class="tag">MORE GEAR ARRIVES WITH CASE I</p>`,
-    dossiers: () => `<h2>LANTERN DOSSIER · PROLOGUE</h2>
+      ${T13.CASES.map(c => `<div class="case"><b>${c.number}</b><div class="locked">${c.title} — ${c.note}</div></div>`).join('')}`],
+    characters: () => ['paper', `<h2>INVESTIGATORS</h2><div class="dossier">${SIBS.map(b => `<div class="file"><img alt="${b.name}" src="${(T13.hq.portraitURL || {})[b.id] || ''}"><b style="color:${b.css};text-shadow:0 1px 0 #0006">${b.name.toUpperCase()}</b><small>${b.domain}</small><p><b>${b.power}.</b> ${b.powerHow}</p></div>`).join('')}</div>
+      <h3>Controls</h3><p>${touch ? 'Left thumb moves. Drag the right side to look. ✋ interact · RUN · ⤓ crouch · 🔦 light · ✦ power · ⇄ switch sibling.' : 'WASD move · mouse look · E interact · Shift run · C crouch · F flashlight · Q power · Tab or 1-2-3 switch sibling · Esc pause.'}</p>`],
+    loadout: () => ['paper', `<h2>EQUIPMENT</h2><p>Two Maglites · a camcorder · a 35mm camera · a cassette recorder · walkie-talkies · a crowbar · salt · the old lantern.</p><p>In the field each of us carries a flashlight. Its battery drains while it is on and recovers while it is off.</p><p class="tag">MORE GEAR ARRIVES WITH CASE I</p>`],
+    dossiers: () => ['paper', `<h2>CASE ARCHIVE · PROLOGUE</h2>
       <h3>Historical record</h3><p>None. The Ashgrove wing is a fictional location created for this prologue. It depicts no real place or real tragedy.</p>
       <h3>Paranormal reports</h3><p>None — fictional.</p><h3>Sources</h3><p>Real cases will carry full citations here.</p>
       <h3>Evidence found</h3><p>${G.save()?.prologueDone ? 'The fuse, the nurse’s count (4-1-3), a lantern scratched into the exit door.' : 'Nothing yet.'}</p>
-      <h3>Lantern notes</h3><p>“It copies voices.” — written where only Daniel could see it.</p><h3>Fictional interpretation</h3><p>The Hollow. It cannot create — only counterfeit.</p>`,
-    theater: () => { const f = G.save()?.films || []; const row = (id, t) => `<div class="case"><b>${f.includes(id) ? '▶' : '🔒'}</b><div class="${f.includes(id) ? '' : 'locked'}">${f.includes(id) ? t : '— locked —'}</div></div>`;
-      return `<h2>THEATER</h2><p><span class="tag">CASE FILMS</span><span class="tag">FAMILY STORY</span><span class="tag">WATCH SEASON</span><span class="tag">COMPLETE CUT</span></p>${row('case-0', 'Case film · Prologue: The Ashgrove Wing')}${row('family-1', 'Family film 1 · Day Zero')}${Array.from({ length: 12 }, (_, i) => row('case-' + (i + 1), '')).join('')}<p><small>27 films in Season One. Locked films show no spoilers.</small></p>`; },
-    lore: () => `<h2>JOURNAL</h2><p>Lantern investigates places where something is still listening. Our parents started it. Now it’s the three of us.</p><p><i>The rest of this journal is blank. For now.</i></p>`,
-    settings: () => `<h2>SETTINGS</h2><p><button class="ghost" id="wipe">Erase local progress</button></p><p><small>Progress is saved on this device for the prototype. Cloud save with a KEEPITIL account comes with the Case I build.</small></p><p><small>${T13.BUILD}</small></p>`,
+      <h3>Lantern notes</h3><p>“It copies voices.” — written where only Daniel could see it.</p><h3>Fictional interpretation</h3><p>The Hollow. It cannot create — only counterfeit.</p>`],
+    lore: () => ['journal', `<h2 style="font-family:Georgia;letter-spacing:.1em;color:#4a2a1a">E. V. — field journal</h2><p>Lantern investigates places where something is still listening. Evelyn and I started it with nothing but a borrowed camera and a lot of coffee.</p><p>If you are reading this, the children found the key. Good.</p><p style="opacity:.55">The rest of the pages are blank. For now.</p>`],
+    settings: () => ['radio', `<h2 style="color:#ffc27a">SETTINGS</h2><p>Graphics quality (reloads): ${['HIGH', 'MEDIUM', 'LOW'].map(q2 => `<button class="ghost qbtn" data-q="${q2}" style="${T13.gfx.tier === q2 ? 'border-color:#ffc27a;color:#ffc27a' : ''}">${q2}</button>`).join(' ')}</p><p><button class="ghost" id="perfToggle">Performance overlay</button> <button class="ghost" id="wipe">Erase local progress</button></p><p><small>Progress is saved on this device for the prototype. Cloud save with a KEEPITIL account comes with the Case I build.</small></p><p><small>${T13.BUILD}</small></p>`],
   };
-  $('hq').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (!b) return; A.init(); const go = b.dataset.go;
-    if (go === 'continue') { const sv = G.save(); $('hq').classList.add('hidden'); if (sv?.checkpoint) { G.start(true); lock(); return; }
-      U.cinematic(T13.PROLOGUE.film.lines, { mandatory: T13.PROLOGUE.film.mandatorySeconds, who: 'CASE FILM · PROLOGUE' }, () => { G.start(false); lock(); }); return; }
-    panel(PANELS[go]()); if (go === 'settings') $('wipe').onclick = () => { try { localStorage.removeItem('t13-save'); } catch (err) {} $('panel').classList.add('hidden'); showHQ(); }; });
+  function theater() { const f = G.save()?.films || []; const row = (id, t) => `<div class="case"><b>${f.includes(id) ? '▶' : '·'}</b><div class="${f.includes(id) ? '' : 'locked'}">${f.includes(id) ? t : '— locked —'}</div></div>`;
+    $('theaterBody').innerHTML = `<h2>THEATER</h2><div class="case"><span class="tag">CASE FILMS</span><span class="tag">FAMILY STORY</span><span class="tag">WATCH SEASON</span><span class="tag">COMPLETE CUT</span></div>${row('case-0', 'Case film · Prologue: The Ashgrove Wing')}${row('family-1', 'Family film 1 · Day Zero')}${Array.from({ length: 6 }, (_, i) => row('case-' + (i + 1), '')).join('')}<small style="opacity:.6">27 films in Season One</small>`;
+    const r = T13.hq.screenRect(); const el = $('theater'); if (r) { el.style.left = r.left + 'px'; el.style.top = r.top + 'px'; el.style.width = (r.right - r.left) + 'px'; el.style.height = (r.bottom - r.top) + 'px'; } el.classList.remove('hidden'); }
+  function selectHQ(name) {
+    A.init(); if (name === 'back') return; $('hqBack').classList.remove('hidden');
+    T13.hq.focusOn(name, () => {
+      if (name === 'theater') { setTimeout(theater, 900); return; }
+      const [style, html] = PANELS[name](); panel(html, style);
+      if (name === 'continue') $('goPlay').onclick = startPlay;
+      if (name === 'settings') { $('wipe').onclick = () => { try { localStorage.removeItem('t13-save'); } catch (err) {} hide(); T13.hq.back(); $('hqBack').classList.add('hidden'); T13.hq.setState({ markers: 0, newspapers: [], eliasNotes: 0 }); };
+        document.querySelectorAll('.qbtn').forEach(b => b.onclick = () => { T13.gfx.setTier(b.dataset.q); location.reload(); }); $('perfToggle').onclick = () => { const u = new URL(location.href); u.searchParams.set('perf', '1'); location.href = u; }; }
+    });
+  }
+  function backHQ() { hide(); $('hqBack').classList.add('hidden'); T13.hq.back(); }
+  $('hqBack').onclick = backHQ;
+  $('panel').addEventListener('click', e => { if (e.target.classList.contains('pclose') || e.target.id === 'panel') { if (T13.hq.isActive()) backHQ(); else $('panel').classList.add('hidden'); } });
+  function startPlay() { const sv = G.save(); hide(); T13.hq.exit(); $('hq').classList.add('hidden'); if (sv?.checkpoint) { G.start(true); lock(); return; }
+    U.cinematic(T13.PROLOGUE.film.lines, { mandatory: T13.PROLOGUE.film.mandatorySeconds, who: 'CASE FILM · PROLOGUE' }, () => { G.start(false); lock(); }); }
+  /* test/automation hook: drive the HQ by name */
+  U.go = name => { if (name === 'back') return backHQ(); if (name === 'continue-focus') return selectHQ('continue'); if (name === 'continue') { if (!T13.hq.isActive()) return; return startPlay(); } return selectHQ(name); };
 
-  /* ---------- boot ---------- */
+  /* ---------- title: KEEPITIL → TUITEA → darkness → distant sound → title → a brief manifestation → HQ reveal ---------- */
   function boot() {
-    const steps = [['bt1', 0, 2300], ['bt2', 2600, 4900], ['bt3', 5200, 8200]];
-    $('tapstart').classList.add('hidden');
-    steps.forEach(([id, on, off]) => { setTimeout(() => $(id).classList.add('on'), on); setTimeout(() => $(id).classList.remove('on'), off); });
-    // the short environmental scare before HQ
-    setTimeout(() => { A.whisper(2, 1.6, -1); }, 6400);
-    setTimeout(() => { U.flash(0.35); A.sting(); }, 8000);
-    setTimeout(() => { $('boot').classList.add('hidden'); showHQ(); }, 8700);
+    $('tapstart').classList.add('hidden'); const sh = document.createElement('div'); sh.id = 'bootShade'; $('boot').appendChild(sh);
+    const T = [['bt1', 200, 2600], ['bt2', 3000, 5300]]; T.forEach(([id, on, off]) => { setTimeout(() => $(id).classList.add('on'), on); setTimeout(() => $(id).classList.remove('on'), off); });
+    setTimeout(() => A.creak(-6, 2, -14), 6000);                               // darkness, then something far away
+    setTimeout(() => A.step(5, 0.2, -9, true, 0.25), 6900);
+    setTimeout(() => $('bt3').classList.add('on'), 7600);
+    setTimeout(() => { sh.classList.add('on'); A.whisper(0, 1.6, -2); }, 9300);   // a shape crosses behind the title
+    setTimeout(() => $('bt3').classList.add('glitch'), 9900);
+    setTimeout(() => $('bt3').classList.remove('on'), 11200);
+    setTimeout(() => { showHQ({ reveal: true }); $('boot').style.transition = 'opacity 1.4s'; $('boot').style.opacity = 0; setTimeout(() => $('boot').classList.add('hidden'), 1500); }, 11800);
   }
   $('tapstart').onclick = () => { A.init(); boot(); };
   $('boot').addEventListener('dblclick', () => { $('boot').classList.add('hidden'); showHQ(); });
+  $('overHQ').onclick = () => { $('over').classList.add('hidden'); showHQ(); };
 
   /* ---------- input: keyboard + mouse ---------- */
   const canvas = $('view'), keys = {};

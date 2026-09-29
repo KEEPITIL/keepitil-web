@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#050505">
+<meta name="robots" content="noindex,nofollow">
+<meta name="description" content="The Thirteen Anchors — Season One. A supernatural horror game presented by KEEPITIL, developed by TUITEA.">
+<title>The Thirteen Anchors</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="css/game.css?v=1">
+</head>
+<body>
+<canvas id="view"></canvas>
+
+<!-- boot -->
+<div id="boot" class="layer">
+  <div class="bt" id="bt1"><small>PRESENTED BY</small><b>KEEPITIL</b></div>
+  <div class="bt" id="bt2"><small>DEVELOPED BY</small><b>TUITEA</b></div>
+  <div class="bt title" id="bt3"><b>THE THIRTEEN ANCHORS</b><small>SEASON ONE</small></div>
+  <button id="tapstart" class="ghost">Tap to begin — sound on 🎧</button>
+</div>
+
+<!-- Lantern HQ -->
+<div id="hq" class="layer hidden">
+  <div class="hq-room">
+    <div class="hq-lamp"></div>
+    <button class="hq-obj board" data-go="continue"><span>Evidence board</span><b>CONTINUE</b></button>
+    <button class="hq-obj map" data-go="cases"><span>World map</span><b>CASES</b></button>
+    <button class="hq-obj files" data-go="characters"><span>Three files</span><b>CHARACTERS</b></button>
+    <button class="hq-obj table" data-go="loadout"><span>Equipment table</span><b>LOADOUT</b></button>
+    <button class="hq-obj cabinet" data-go="dossiers"><span>Cabinet</span><b>DOSSIERS</b></button>
+    <button class="hq-obj projector" data-go="theater"><span>Projector</span><b>THEATER</b></button>
+    <button class="hq-obj journal" data-go="lore"><span>Journal</span><b>LORE</b></button>
+    <div class="hq-photo" id="hqphoto"></div>
+  </div>
+  <button class="hq-settings" data-go="settings" aria-label="Settings">⚙</button>
+  <div class="hq-build" id="hqbuild"></div>
+</div>
+
+<!-- generic panel -->
+<div id="panel" class="layer hidden"><div class="pbox"><button class="pclose" aria-label="Close">✕</button><div id="pbody"></div></div></div>
+
+<!-- cinematic -->
+<div id="cine" class="layer hidden"><div class="cine-frame"><div id="cineText"></div></div><div class="cine-bar"><span id="cineWho"></span><button id="cineSkip" class="ghost hidden">SKIP ▸▸</button></div></div>
+
+<!-- in-game HUD -->
+<div id="hud" class="hidden">
+  <div class="hud-top">
+    <div id="team"></div>
+    <div id="obj"></div>
+    <button id="pauseBtn" class="round" aria-label="Pause">❚❚</button>
+  </div>
+  <div id="sub"></div>
+  <div id="prompt"></div>
+  <div id="fearbar"><i></i></div>
+  <div id="ability-cd"></div>
+  <div id="stick"><i></i></div>
+  <div id="touchBtns">
+    <button data-k="switch" class="tb sw">⇄</button>
+    <button data-k="ability" class="tb ab">✦</button>
+    <button data-k="interact" class="tb in">✋</button>
+    <button data-k="run" class="tb rn">RUN</button>
+    <button data-k="crouch" class="tb cr">⤓</button>
+    <button data-k="light" class="tb lt">🔦</button>
+  </div>
+  <div id="vignette"></div>
+  <div id="flash"></div>
+  <div id="keyhelp">WASD move · Mouse look · E interact · Shift run · C crouch · F flashlight · Q power · Tab / 1-2-3 switch · Esc pause</div>
+</div>
+
+<!-- keypad -->
+<div id="keypad" class="layer hidden"><div class="pbox kp"><div id="kpShow">_ _ _</div><div class="kpgrid"></div><div id="kpMsg"></div><button class="pclose" aria-label="Close">✕</button></div></div>
+
+<!-- death / end -->
+<div id="over" class="layer hidden"><div class="obox"><h1 id="overT"></h1><p id="overP"></p><button id="overBtn" class="big">Try again</button><button id="overHQ" class="ghost">Back to Lantern HQ</button></div></div>
+
+<script src="vendor/three.min.js"></script>
+<script src="js/data.js?v=1"></script>
+<script src="js/audio.js?v=1"></script>
+<script src="js/director.js?v=1"></script>
+<script src="js/level.js?v=1"></script>
+<script src="js/game.js?v=1"></script>
+<script src="js/ui.js?v=1"></script>
+</body>
+</html>

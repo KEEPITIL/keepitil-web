@@ -862,6 +862,116 @@
   }
   window.__kiloPublicMatch = kiloPublicMatch;   /* read-only, for tests */
 
+  /* ══ KEEPITIL SUPPORT MODE (2026-09-30) ═════════════════════════════════════════════════
+     keepitil.com/support opens this same assistant in support mode. Answers come ONLY from
+     this curated, customer-facing set - never the agent, the brain or ask-echo - so nothing
+     internal (dev notes, agents, repos, plans, diagnostics) can reach a customer. Anything
+     not covered goes to a person at info@keepitil.com. Product context is set by the page
+     (window.KIL_SUPPORT_PRODUCT: 'wifi-remote' | 'tuitea' | 'pokasnap' | 'general') and is
+     inferred from the question when the customer names a product. */
+  var KIL_SUPPORT_EMAIL = 'info@keepitil.com';
+  var KIL_SUPPORT_HUMAN = 'Need a person? Email the KEEPITIL team at ' + KIL_SUPPORT_EMAIL + '.';
+  var KIL_SUPPORT_PRODUCTS = {
+    'wifi-remote': { name:'WiFi Remote', kw:['wifi remote','wi-fi remote','tv remote','remote app'] },
+    'tuitea':      { name:'TUITEA',      kw:['tuitea','family tree','family app'] },
+    'pokasnap':    { name:'PokaSnap',    kw:['pokasnap','poka snap','plush pet'] },
+    'general':     { name:'KEEPITIL',    kw:['keepitil account','keepitil website','keepitil.com'] }
+  };
+  var KIL_SUPPORT_KB = [
+    { p:'wifi-remote', kw:['find my tv','find tv','find the tv','no tv','cant find','can\'t find','not showing','discover','scan','search for tv','tv not found','nothing found'],
+      title:'Finding your TV',
+      text:'Make sure your iPhone and your TV are on the same Wi-Fi network and the TV is switched on. Open WiFi Remote, go to Devices and tap the refresh button to scan. If iOS asked for Local Network access, it must be allowed: Settings > WiFi Remote > Local Network. Guest, hotel and campus networks often block devices from seeing each other; a home network works best. You can also connect by IP address with the keyboard button on Devices.' },
+    { p:'wifi-remote', kw:['pin','code','pair','pairing','accept','prompt','lg asking','lg is asking'],
+      title:'Your LG is asking for a PIN',
+      text:'That is normal the first time. Your LG TV shows a number on screen; WiFi Remote shows "Enter the PIN shown on your LG TV." Type that number and tap Pair. If it does not work, tap Retry to get a new PIN on the TV. You only need to do this once per TV; after that WiFi Remote reconnects on its own.' },
+    { p:'wifi-remote', kw:['roku','not supported','roku tv','roku stick','streaming stick'],
+      title:'Roku devices',
+      text:'Roku devices may be detected, but Roku remote control is not currently supported. Roku does not allow mobile apps other than its own to control Roku players and TVs, so WiFi Remote shows a Roku it finds as Not supported and does not try to connect. Please use the Roku remote or the Roku mobile app for those devices.' },
+    { p:'wifi-remote', kw:['unavailable','greyed','grayed','disabled','doesnt work','doesn\'t work','not working','control missing','button','volume','power','input','compatib','which tv','samsung','vizio','sony','bravia','support my tv'],
+      title:'Controls and compatibility',
+      text:'WiFi Remote works with compatible LG webOS, Samsung Tizen, Vizio SmartCast and Sony BRAVIA TVs over your own network. What it can do depends on the TV model and its software, so a control the TV does not support is shown as unavailable rather than pretending to work. Controls stay greyed out until a TV is connected.' },
+    { p:'wifi-remote', kw:['reconnect','saved tv','saved television','disconnected','offline','lost connection','keeps disconnecting','turn on','wake'],
+      title:'Reconnecting a saved TV',
+      text:'With Auto reconnect on (Account & Settings), WiFi Remote reconnects to your last TV when you open the app. If a TV shows Offline, check it is on and on the same Wi-Fi, then open Devices and tap it or tap refresh. A TV that has been paired before reconnects without a new PIN.' },
+    { p:'wifi-remote', kw:['apps','netflix','youtube','launch','quick apps','all apps','my tv apps','where are my'],
+      title:'Your TV apps',
+      text:'Once a TV is connected, its apps appear in Quick Apps on Home, under Your TV Apps in Search, and in All Apps (tap More on the Remote). Tap an app to open it on the TV. Some TVs do not share their app list; in that case use the Remote to open apps on the TV itself.' },
+    { p:'tuitea', kw:['invite','join','add family','add member','sign in','log in','login','account'],
+      title:'TUITEA accounts and invites',
+      text:'TUITEA is a private app for one family. Family members join by invitation from someone already in the family. If an invite or sign-in is not working, email us with the email address you used and we will help.' },
+    { p:'tuitea', kw:['tree','relative','relationship','photo','story','stories'],
+      title:'Using TUITEA',
+      text:'TUITEA keeps who everyone is and how they are related, the photographs and the stories behind them, and the everyday running of a household. For help with a specific screen or feature, tell us what you were trying to do and we will point you to it.' },
+    { p:'pokasnap', kw:['camera','pose','photo','mission','reward','pet','plush'],
+      title:'Using PokaSnap',
+      text:'PokaSnap lets you create a plush pet, pose it anywhere in the real world with your camera, complete photo missions and earn rewards. If the camera does not open, allow Camera access for PokaSnap in your device Settings.' },
+    { p:'*', kw:['refund','purchase','billing','charge','charged','payment','receipt','subscription','money back'],
+      title:'Purchases and billing',
+      text:'Purchases made through the App Store are handled by Apple: open Settings > your name > Media & Purchases > View Account > Purchase History, or report a problem at reportaproblem.apple.com. For anything bought on keepitil.com, see our Refund Policy (keepitil.com/refund) or email ' + KIL_SUPPORT_EMAIL + '.' },
+    { p:'*', kw:['privacy','data','delete my','personal information','safety','report a user','abuse'],
+      title:'Privacy and safety',
+      text:'Our privacy policies are at keepitil.com/privacy, and WiFi Remote has its own at keepitil.com/wifi-remote-privacy.html. To ask about your data, request deletion, or report a safety concern, email ' + KIL_SUPPORT_EMAIL + '.' },
+    { p:'*', kw:['bug','problem','crash','error','broken','report','issue'],
+      title:'Report a problem',
+      text:'Sorry about that. Email ' + KIL_SUPPORT_EMAIL + ' with the app name, your device (for example iPhone 15, iOS 18), what you tapped and what happened. A screenshot helps a lot.' },
+    { p:'*', kw:['feedback','feature','suggest','idea','request','wish'],
+      title:'Feedback and feature requests',
+      text:'We would love to hear it. Email your idea to ' + KIL_SUPPORT_EMAIL + ' and tell us which product it is for.' },
+    { p:'*', kw:['what is keepitil','about keepitil','who is keepitil','who are you','who makes','keepitil apps','what apps'],
+      title:'About KEEPITIL',
+      text:'KEEPITIL makes apps and runs keepitil.com, a platform for events, artists, culture and creators. Its apps include WiFi Remote (a TV remote for iPhone), TUITEA (a private family app) and PokaSnap (a photo game). Tell me which one you need help with.' },
+    { p:'*', kw:['contact','email','human','person','talk to','support team','help me','someone'],
+      title:'Contact KEEPITIL support',
+      text:'You can reach the KEEPITIL team at ' + KIL_SUPPORT_EMAIL + '. Tell us which app or product you need help with and what happened.' }
+  ];
+
+  function kilSupportProductFrom(q){
+    for (var id in KIL_SUPPORT_PRODUCTS){
+      if (!Object.prototype.hasOwnProperty.call(KIL_SUPPORT_PRODUCTS,id) || id==='general') continue;
+      var kws = KIL_SUPPORT_PRODUCTS[id].kw;
+      for (var i=0;i<kws.length;i++) if (q.indexOf(kws[i])!==-1) return id;
+    }
+    return null;
+  }
+
+  function kilSupportMatch(text){
+    var q = String(text||'').toLowerCase();
+    if (!q.trim()) return null;
+    var named = kilSupportProductFrom(q);
+    if (named) window.KIL_SUPPORT_PRODUCT = named;
+    var product = named || window.KIL_SUPPORT_PRODUCT || null;
+    var best=null, bestScore=0;
+    KIL_SUPPORT_KB.forEach(function(e){
+      if (e.p!=='*' && product && product!=='general' && e.p!==product) return;
+      var score=0;
+      e.kw.forEach(function(k){ if(q.indexOf(k)!==-1) score += k.length; });
+      if (e.p!=='*' && e.p===product) score *= 1.5;
+      if (score>bestScore){ bestScore=score; best=e; }
+    });
+    var chips = kilSupportChips(product);
+    if (best){
+      var prefix = (best.p!=='*' && KIL_SUPPORT_PRODUCTS[best.p]) ? KIL_SUPPORT_PRODUCTS[best.p].name + ' · ' : '';
+      return { title: prefix + best.title, text: best.text + '\n\n' + KIL_SUPPORT_HUMAN,
+               links:[{label:'Email Support', url:'mailto:' + KIL_SUPPORT_EMAIL}], chips:chips };
+    }
+    if (!product){
+      return { title:'Which product do you need help with?',
+               text:'Tell me which KEEPITIL product this is about - WiFi Remote, TUITEA, PokaSnap, or keepitil.com - and what is happening.\n\n' + KIL_SUPPORT_HUMAN,
+               chips:['WiFi Remote','TUITEA','PokaSnap','keepitil.com account'] };
+    }
+    return { title:'Let us get you to a person',
+             text:'I do not have an answer for that one. Please email ' + KIL_SUPPORT_EMAIL + ' with the product name, your device and what happened, and the KEEPITIL team will help.',
+             links:[{label:'Email Support', url:'mailto:' + KIL_SUPPORT_EMAIL}], chips:chips };
+  }
+
+  function kilSupportChips(product){
+    if (product==='wifi-remote') return ['How do I find my TV?','My LG is asking for a PIN','Why is Roku not supported?','Where are my TV apps?'];
+    if (product==='tuitea') return ['How do I join my family?','I cannot sign in','Report a problem'];
+    if (product==='pokasnap') return ['The camera will not open','How do missions work?','Report a problem'];
+    return ['WiFi Remote help','TUITEA help','PokaSnap help','Contact a person'];
+  }
+  window.__kilSupportMatch = kilSupportMatch;   /* read-only, for tests */
+
   function fallbackCard(text) {
     return matchIntent(text) || {
       title: '🔍 I\'m not sure about that',
@@ -1747,6 +1857,25 @@
     addMessage('user', text);
     showTyping();
 
+    /* SUPPORT MODE: curated support answers only (see KIL_SUPPORT_KB). */
+    if (window.KIL_SUPPORT_MODE) {
+      var chip = String(text).toLowerCase();
+      var pick = { 'wifi remote':'wifi-remote','wifi remote help':'wifi-remote','tuitea':'tuitea','tuitea help':'tuitea',
+                   'pokasnap':'pokasnap','pokasnap help':'pokasnap','keepitil.com account':'general' }[chip.trim()];
+      setTimeout(function(){
+        hideTyping();
+        if (pick) {
+          window.KIL_SUPPORT_PRODUCT = pick;
+          addMessage('bot', { title: KIL_SUPPORT_PRODUCTS[pick].name + ' support',
+            text: 'Got it. What do you need help with?\n\n' + KIL_SUPPORT_HUMAN, chips: kilSupportChips(pick) });
+          return;
+        }
+        if (/^contact a person$/i.test(text.trim())) { addMessage('bot', kilSupportMatch('contact email')); return; }
+        addMessage('bot', kilSupportMatch(text));
+      }, 250);
+      return;
+    }
+
     /* SIGNED OUT: concierge only. choAct() still runs first so deterministic navigation and
        Radio keep working, then the curated public set, then the boundary reply. The general
        brain is deliberately unreachable from here — see KILO_PUBLIC above. */
@@ -1888,6 +2017,17 @@
       kiloClearGate();
 
       // Welcome message on first open
+      if (!msgs.hasChildNodes() && window.KIL_SUPPORT_MODE) {
+        var sp = KIL_SUPPORT_PRODUCTS[window.KIL_SUPPORT_PRODUCT] || null;
+        addMessage('bot', {
+          title: 'KEEPITIL Support',
+          text: (sp && window.KIL_SUPPORT_PRODUCT!=='general'
+                  ? 'You are asking about ' + sp.name + '. What is happening?'
+                  : 'Which KEEPITIL product do you need help with, and what is happening?')
+                + '\n\n' + KIL_SUPPORT_HUMAN,
+          chips: kilSupportChips(window.KIL_SUPPORT_PRODUCT)
+        });
+      }
       if (!msgs.hasChildNodes()) {
         /* §50: the old greeting described KEEPITIL as a SoCal music guide. The product is an
            events + creators + competitions + culture + radio ecosystem and the data no longer
@@ -2017,6 +2157,14 @@
     }
 
     send.addEventListener('click', sendQuery);
+
+    /* Lets a page (keepitil.com/support) open this assistant and optionally ask a first
+       question on the customer's behalf. */
+    if (window.KIL_SUPPORT_MODE) { try { input.placeholder = 'Ask KEEPITIL Support...'; } catch (e) {} }
+    window.KIL_CHAT_OPEN = function (question) {
+      if (!isOpen) openPanel();
+      if (question) handleQuery(String(question));
+    };
     input.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') sendQuery();
     });

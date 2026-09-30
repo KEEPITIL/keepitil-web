@@ -3,242 +3,262 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>KEEPITIL Games — Kingdom Wars &amp; more</title>
-<meta name="description" content="Apps built by KEEPITIL — games, utilities and marketing tools. Play or use instantly in your browser, or install on your phone like a native app.">
+<title>KEEPITIL Games — Play what we're building</title>
+<meta name="description" content="KEEPITIL Games. Play PokaSnap and Kingdom Wars I in beta in your browser, updated weekly on the road to App Store launch. Kingdom Wars II, Kingdom Wars III and THIRTEEN are coming soon.">
 <link rel="icon" type="image/png" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<meta property="og:title" content="KEEPITIL APPS">
-<meta property="og:description" content="Games, utilities and marketing tools built by KEEPITIL.">
+<meta property="og:title" content="KEEPITIL GAMES">
+<meta property="og:description" content="Play what we're building. Beta games updated weekly on the road to App Store launch.">
+<link rel="canonical" href="https://keepitil.com/games/"/>
+<!--
+  KEEPITIL GAMES HUB (KODE directive, 2026-09-30).
+  One status system, two states, and nothing in between:
+    data-status="beta"  AVAILABLE FOR BETA GAMEPLAY  → a real <a class="cta play"> to the live route
+    data-status="soon"  COMING SOON                  → a <span class="cta soon"> that navigates nowhere
+  A "soon" card must never contain an <a> to gameplay. .github/internal/tests/games-hub.mjs holds
+  the roster, routes and statuses and fails if this page drifts from them.
+
+  Routes: Kingdom Wars I plays at /games/kwars. /games/kwars1 is the RETIRED route — a
+  "Kingdom Wars has moved" page kept only as the identity bridge for already-installed apps —
+  so the hub must not send players through it.
+-->
 <style>
   :root{
-    --bg:#141c24; --panel:#1d2833; --panel2:#22303c; --ink:#eef3f7; --dim:#93a5b3;
-    --gold:#e8c15a; --green:#63b85c; --line:#2e3f4e;
+    --bg:#07080c; --panel:#0e1117; --panel2:#121620; --line:rgba(255,255,255,.09);
+    --ink:#eef2f7; --dim:#97a3b3; --mute:#6c7686;
+    --neon:#00ff88; --neon-d:rgba(0,255,136,.14); --neon-l:rgba(0,255,136,.38);
+    --cyan:#22d3ee; --violet:#8b5cf6; --amber:#f5b83d;
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh}
-  .wrap{max-width:980px;margin:0 auto;padding:28px 18px 80px}
-  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
-  .brand{font-weight:800;letter-spacing:.14em;font-size:15px}
-  .brand a{color:var(--ink);text-decoration:none}
-  .brand span{color:var(--gold)}
-  .home{color:var(--dim);text-decoration:none;font-size:13px;border:1px solid var(--line);padding:7px 14px;border-radius:999px}
-  .home:hover{color:var(--ink);border-color:var(--dim)}
-  h1{font-size:clamp(28px,5vw,44px);margin:26px 0 10px;letter-spacing:.02em}
-  h1 em{font-style:normal;color:var(--gold)}
-  .sub{color:var(--dim);font-size:15px;line-height:1.6;max-width:620px;margin-bottom:22px}
-  /* filter tabs */
-  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
-  .filters button{background:var(--panel);border:1px solid var(--line);color:var(--dim);font:700 13px/1 inherit;letter-spacing:.06em;text-transform:uppercase;padding:10px 18px;border-radius:999px;cursor:pointer;transition:all .15s}
-  .filters button:hover{color:var(--ink);border-color:#456}
-  .filters button.on{background:var(--gold);border-color:var(--gold);color:#211}
-  /* ---- KWARS franchise showcase ------------------------------------------
-     The hub was a utility grid with filter chips. KWARS is the flagship, so it
-     leads with a hero and the three chapters read as one franchise. */
-  .hero{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:22px;
-        margin:6px 0 30px;padding:clamp(26px,5vw,46px) clamp(20px,4vw,40px);
-        background:radial-gradient(120% 130% at 78% 8%,#33424f 0%,#1b2732 48%,#141c24 100%)}
-  .hero::after{content:"";position:absolute;inset:auto 0 0 0;height:42%;
-        background:linear-gradient(180deg,rgba(20,28,36,0) 0%,rgba(20,28,36,.75) 100%);pointer-events:none}
-  .hero .eyebrow{position:relative;z-index:1;font:800 11px/1 inherit;letter-spacing:.24em;color:var(--gold);margin-bottom:14px}
-  .hero .crest{position:relative;z-index:1;font-size:26px;margin-bottom:6px}
-  .hero h2{position:relative;z-index:1;font:900 clamp(30px,7vw,58px)/0.98 inherit;letter-spacing:.06em;margin:0}
-  .hero h2 span{display:block;color:var(--gold)}
-  .hero p{position:relative;z-index:1;color:var(--dim);font-size:15px;line-height:1.65;max-width:34rem;margin:14px 0 22px}
-  .hero .acts{position:relative;z-index:1;display:flex;gap:10px;flex-wrap:wrap}
-  .hero .acts a{text-decoration:none;font:800 13px/1 inherit;letter-spacing:.12em;padding:14px 26px;border-radius:12px}
-  .hero .acts .primary{background:linear-gradient(#e8c15a,#b8871c);color:#221a05}
-  .hero .acts .second{border:1px solid var(--line);color:var(--ink)}
-  .chapters{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:0 0 34px}
-  .chapter{display:block;text-decoration:none;color:var(--ink);background:var(--panel);
-           border:1px solid var(--line);border-radius:16px;padding:16px 18px;transition:border-color .15s,transform .15s}
-  .chapter:hover{border-color:var(--gold);transform:translateY(-2px)}
-  .chapter b{display:block;font-size:14px;letter-spacing:.1em}
-  .chapter small{display:block;color:var(--dim);font-size:11.5px;line-height:1.5;margin-top:5px}
-  .chapter .state{display:inline-block;margin-top:10px;font:800 9.5px/1 inherit;letter-spacing:.14em;
-           padding:5px 9px;border-radius:999px;background:#2a3a47;color:var(--dim)}
-  .chapter .state.live{background:rgba(99,184,92,.16);color:var(--green)}
-  h3.secthead{font-size:13px;letter-spacing:.18em;color:var(--dim);margin:0 0 14px;text-transform:uppercase}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
-  .card{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;transition:transform .15s ease,border-color .15s ease}
-  .card:hover{transform:translateY(-3px);border-color:#456}
-  .art{position:relative;aspect-ratio:16/9;background:linear-gradient(180deg,#8fc4e8 0%,#bfe0f2 45%,#79b56a 45.5%,#5d9e50 100%);display:flex;align-items:center;justify-content:center;overflow:hidden}
-  .art.util{background:linear-gradient(135deg,#334b63,#22303c)}
-  .art.mkt{background:linear-gradient(135deg,#5a3d63,#22303c)}
-  .art img{width:84px;height:84px;border-radius:20px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
-  .art .glyph{font-size:52px}
-  .badge{position:absolute;top:10px;left:10px;background:rgba(20,28,36,.85);color:var(--gold);font-size:11px;font-weight:700;letter-spacing:.08em;padding:4px 10px;border-radius:999px}
-  .body{padding:18px 18px 20px;display:flex;flex-direction:column;gap:10px;flex:1}
-  .body h2{font-size:20px}
-  .body p{color:var(--dim);font-size:13.5px;line-height:1.55;flex:1}
-  .tags{display:flex;gap:6px;flex-wrap:wrap}
-  .tag{font-size:11px;color:var(--dim);border:1px solid var(--line);padding:3px 9px;border-radius:999px}
-  .play{display:block;text-align:center;background:var(--green);color:#0e1a10;font-weight:800;font-size:15px;letter-spacing:.04em;text-decoration:none;padding:13px;border-radius:12px;margin-top:6px}
-  .play:hover{filter:brightness(1.08)}
-  .soon .art{filter:grayscale(.6) brightness(.7)}
-  .soon .play{background:var(--line);color:var(--dim);pointer-events:none}
-  .empty{grid-column:1/-1;color:var(--dim);text-align:center;padding:40px 0}
-  .how{margin-top:52px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px 22px}
-  .how h3{font-size:17px;margin-bottom:14px;color:var(--gold)}
-  .how ol{margin-left:20px;color:var(--dim);font-size:14px;line-height:1.9}
-  .how b{color:var(--ink)}
-  footer{margin-top:56px;text-align:center;color:var(--dim);font-size:12px}
-  footer a{color:var(--dim)}
-</style>
+  html,body{background:var(--bg)}
+  body{color:var(--ink);font-family:'Space Grotesk','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+       min-height:100vh;overflow-x:hidden;
+       background:
+         radial-gradient(900px 480px at 12% -6%,rgba(139,92,246,.16),transparent 70%),
+         radial-gradient(760px 420px at 92% 4%,rgba(0,255,136,.10),transparent 70%),
+         var(--bg)}
+  a{color:inherit}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 20px 72px}
 
-<link rel="canonical" href="https://keepitil.com/games/"/>
+  /* ── top bar ─────────────────────────────────────────────── */
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .brand{font-weight:800;letter-spacing:.18em;font-size:14px}
+  .brand a{text-decoration:none}
+  .brand span{color:var(--neon)}
+  .home{color:var(--dim);text-decoration:none;font-size:13px;border:1px solid var(--line);padding:8px 14px;border-radius:999px}
+  .home:hover{color:var(--ink);border-color:var(--neon-l)}
+
+  /* ── hero: compact on purpose ────────────────────────────── */
+  .hero{padding:34px 0 26px}
+  .hero h1{font-size:clamp(32px,5.4vw,56px);font-weight:900;letter-spacing:.06em;line-height:1}
+  .hero h1 span{color:var(--neon);text-shadow:0 0 26px rgba(0,255,136,.35)}
+  .hero .lead{font-size:clamp(16px,2vw,19px);color:var(--ink);margin-top:12px;font-weight:600}
+  .hero .second{font-size:14px;color:var(--dim);margin-top:6px;line-height:1.55}
+
+  h2.sect{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:40px 0 16px;
+          font-size:15px;font-weight:900;letter-spacing:.22em;text-transform:uppercase}
+  h2.sect small{font-size:12px;font-weight:600;letter-spacing:.12em;color:var(--dim);text-transform:none}
+
+  /* ── the status system ───────────────────────────────────── */
+  .status{display:inline-flex;align-items:center;gap:7px;font-size:10.5px;font-weight:900;letter-spacing:.16em;
+          padding:6px 10px;border-radius:999px;text-transform:uppercase;white-space:nowrap}
+  .status::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+  .status.beta{color:var(--neon);background:var(--neon-d);border:1px solid var(--neon-l)}
+  .status.beta::before{box-shadow:0 0 8px var(--neon)}
+  .status.soon{color:var(--amber);background:rgba(245,184,61,.10);border:1px solid rgba(245,184,61,.34)}
+  .cta{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 20px;border-radius:12px;
+       font-size:13.5px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;text-align:center}
+  .cta.play{background:var(--neon);color:#04140b;box-shadow:0 0 22px rgba(0,255,136,.28);transition:filter .15s,transform .15s}
+  .cta.play:hover{filter:brightness(1.07);transform:translateY(-1px)}
+  .cta.play:focus-visible{outline:2px solid #fff;outline-offset:3px}
+  .cta.soon{background:transparent;color:var(--amber);border:1px dashed rgba(245,184,61,.45);cursor:default;user-select:none}
+  .note{font-size:12.5px;line-height:1.5;color:var(--dim)}
+  .note b{color:var(--ink);font-weight:700}
+
+  /* ── art panels: one ratio everywhere ────────────────────── */
+  .art{position:relative;aspect-ratio:16/9;overflow:hidden;display:flex;align-items:center;justify-content:center;
+       background:radial-gradient(80% 90% at 50% 45%,var(--glow,rgba(0,255,136,.20)) 0%,transparent 70%),
+                  linear-gradient(160deg,#141a26 0%,#0a0d14 100%);
+       border-bottom:1px solid var(--line)}
+  /* height:auto is load-bearing: the width/height ATTRIBUTES (512) otherwise set a 512px height
+     that beats aspect-ratio, and the icon renders as a cropped sliver of itself. */
+  .art img{width:34%;max-width:150px;height:auto;aspect-ratio:1;object-fit:cover;border-radius:22%;
+           box-shadow:0 10px 34px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06)}
+  .art .chap{position:absolute;right:14px;bottom:10px;font-size:42px;font-weight:900;letter-spacing:.04em;
+             color:rgba(255,255,255,.07);line-height:1}
+  .soon-card .art img{filter:saturate(.55) brightness(.72)}
+
+  /* ── featured ────────────────────────────────────────────── */
+  .feature{border:1px solid var(--neon-l);border-radius:22px;overflow:hidden;background:var(--panel);
+           box-shadow:0 0 0 1px rgba(0,255,136,.06),0 30px 80px rgba(0,0,0,.45)}
+  .feature .art{aspect-ratio:21/8;--glow:rgba(255,120,190,.24)}
+  .feature .art img{width:auto;height:74%;max-width:none}
+  .feature .art .poster{position:absolute;right:6%;top:50%;transform:translateY(-50%) rotate(4deg);height:86%;width:auto;
+             aspect-ratio:9/16;border-radius:14px;object-fit:cover;box-shadow:0 18px 50px rgba(0,0,0,.6)}
+  .feature .art .eyebrow{position:absolute;left:22px;top:18px;font-size:11px;font-weight:900;letter-spacing:.24em;color:var(--neon)}
+  .feature .row{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(250px,1fr);gap:24px;padding:24px 26px 26px}
+  .feature h3{font-size:clamp(26px,3.2vw,36px);font-weight:900;letter-spacing:.06em}
+  .feature .desc{font-size:16px;line-height:1.55;margin-top:10px}
+  .feature .sum{font-size:14px;line-height:1.6;color:var(--dim);margin-top:8px}
+  .feature .side{display:flex;flex-direction:column;gap:12px;justify-content:center;
+                 border-left:1px solid var(--line);padding-left:24px}
+  .feature .side .meta{font-size:12px;color:var(--mute);letter-spacing:.06em}
+
+  /* ── cards: identical geometry within a row ──────────────── */
+  .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:stretch}
+  .gridsoon{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+  .card{display:flex;flex-direction:column;background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);
+        border:1px solid var(--line);border-radius:18px;overflow:hidden;min-width:0}
+  .card.beta-card{border-color:var(--neon-l)}
+  .card .body{display:flex;flex-direction:column;gap:10px;padding:18px 18px 20px;flex:1}
+  .card h3{font-size:19px;font-weight:900;letter-spacing:.07em;min-height:1.25em}
+  .card .desc{font-size:14px;line-height:1.5}
+  .card .sum{font-size:13px;line-height:1.55;color:var(--dim)}
+  .card .foot{margin-top:auto;display:flex;flex-direction:column;gap:12px;padding-top:6px}
+  .kw .art{--glow:rgba(245,184,61,.22)}
+  .kw.soon-card .art{--glow:rgba(139,92,246,.20)}
+  .thirteen .art{--glow:rgba(220,38,38,.22)}
+
+  /* ── other apps: present, quiet ──────────────────────────── */
+  .others{margin-top:44px;border:1px solid var(--line);border-radius:16px;padding:16px 18px;
+          display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;background:rgba(255,255,255,.02)}
+  .others b{font-size:11px;letter-spacing:.2em;color:var(--mute);text-transform:uppercase}
+  .others span{font-size:13px;color:var(--dim)}
+  .others span i{font-style:normal;color:var(--amber);font-size:10.5px;font-weight:800;letter-spacing:.12em;margin-left:6px}
+
+  .how{margin-top:22px;border:1px solid var(--line);border-radius:16px;padding:18px 20px;background:rgba(255,255,255,.02)}
+  .how h3{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--neon);margin-bottom:8px}
+  .how p{font-size:13px;line-height:1.7;color:var(--dim)}
+  .how b{color:var(--ink)}
+  footer{margin-top:40px;text-align:center;color:var(--mute);font-size:12px}
+  footer a{color:var(--dim)}
+
+  /* ── tablet ──────────────────────────────────────────────── */
+  @media(max-width:980px){
+    .grid3{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  /* ── phone: everything stacks, no carousels ──────────────── */
+  @media(max-width:720px){
+    .wrap{padding:16px 16px 60px}
+    .hero{padding:26px 0 18px}
+    h2.sect{margin:32px 0 14px}
+    .grid3,.gridsoon{grid-template-columns:minmax(0,1fr)}
+    .feature .art{aspect-ratio:16/10}
+    .feature .art .poster{right:5%;height:80%}
+    .feature .row{grid-template-columns:minmax(0,1fr);padding:18px 18px 20px;gap:16px}
+    .feature .side{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:16px}
+  }
+</style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div class="brand"><a href="/">KEEP<span>ITIL</span> · APPS</a></div>
+  <header class="top">
+    <div class="brand"><a href="/">KEEP<span>ITIL</span> · GAMES</a></div>
     <a class="home" href="/">← keepitil.com</a>
   </header>
 
-  <h1>Build. Play. <em>Use.</em></h1>
-  <p class="sub">Apps built by KEEPITIL — games, utilities and marketing tools. Everything runs instantly in your browser, and games install on your phone as a full-screen app, no app store needed.</p>
-
-  <section class="hero" aria-labelledby="kwarshero">
-    <div class="eyebrow">KEEPITIL ORIGINAL SERIES</div>
-    <div class="crest" aria-hidden="true">⚔</div>
-    <h2 id="kwarshero">KINGDOM<span>WARS</span></h2>
-    <p>Raise an army, hold the gate and conquer seventy-five kingdoms across fifteen ages of war — from tribal stone to the industrial siege. Free, playable in the browser, and installable on your phone as a full-screen app.</p>
-    <div class="acts">
-      <a class="primary" href="/games/kwars">▶ PLAY KINGDOM WARS</a>
-      <a class="second" href="#chapters">SEE THE SERIES</a>
-    </div>
+  <section class="hero" aria-labelledby="hubtitle">
+    <h1 id="hubtitle">KEEPITIL <span>GAMES</span></h1>
+    <p class="lead">Play what we're building. Follow the games as they grow.</p>
+    <p class="second">Beta games are playable in your browser and updated weekly as we continue development toward App Store launch.</p>
   </section>
 
-  <h3 class="secthead" id="chapters">The series</h3>
-  <div class="chapters">
-    <a class="chapter" href="/games/kwars">
-      <b>KINGDOM WARS</b>
-      <small>The original. Fort-defense war across fifteen ages — raise your army, hold the gate, evolve your civilisation and break the enemy fort.</small>
-      <span class="state live">PLAY NOW</span>
-    </a>
-    <a class="chapter" href="/games/kwars2">
-      <b>KINGDOM WARS II</b>
-      <small>The 2.5D edition. The same war with depth, layered battlefields and a rebuilt army model.</small>
-      <span class="state">IN DEVELOPMENT</span>
-    </a>
-    <a class="chapter" href="/games/kwars3">
-      <b>KINGDOM WARS III</b>
-      <small>The true-3D chapter. A living army in real 3D across eight ages, with campaign missions and endless war.</small>
-      <span class="state">IN DEVELOPMENT</span>
-    </a>
+  <!-- FEATURED — the strongest active standalone game -->
+  <article class="feature" data-game="pokasnap" data-status="beta" aria-labelledby="g-pokasnap">
+    <div class="art">
+      <span class="eyebrow">FEATURED</span>
+      <img src="/games/pokasnap/play/img/icon-1024.png" alt="PokaSnap" loading="eager" width="512" height="512">
+      <img class="poster" src="/games/pokasnap/play/media/ads/pokasnap-dance-poster.jpg" alt="" aria-hidden="true" loading="lazy" width="720" height="1280">
+    </div>
+    <div class="row">
+      <div>
+        <h3 id="g-pokasnap">POKASNAP</h3>
+        <p class="desc">Pose, play and create with lovable pets in a lighthearted interactive game built around personality and customization.</p>
+        <p class="sum">PokaSnap starts with familiar household pets and gives players a playful world built around posing, interacting and personalizing their characters.</p>
+      </div>
+      <div class="side">
+        <span class="status beta">Available for beta gameplay</span>
+        <p class="note"><b>Available for beta gameplay.</b> Updated weekly as we continue development toward App Store launch.</p>
+        <a class="cta play" href="/games/pokasnap/">▶ Play beta</a>
+        <span class="meta">iPhone app — Coming soon</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- KINGDOM WARS — one franchise, three chapters, identical geometry -->
+  <h2 class="sect" id="kingdom-wars">Kingdom Wars <small>Build. Defend. Expand. Conquer.</small></h2>
+  <div class="grid3">
+    <article class="card kw beta-card" data-game="kwars1" data-status="beta" aria-labelledby="g-kwars1">
+      <div class="art"><img src="/games/kwars/app-icon-512.png" alt="Kingdom Wars I" loading="lazy" width="512" height="512"><span class="chap" aria-hidden="true">I</span></div>
+      <div class="body">
+        <h3 id="g-kwars1">KINGDOM WARS I</h3>
+        <span class="status beta">Beta · weekly updates</span>
+        <p class="desc">Build your base. Defend your kingdom. Grow your army and conquer the battlefield.</p>
+        <p class="sum">The original Kingdom Wars fort-defense experience combines base growth, resource control, army building and strategic combat.</p>
+        <div class="foot">
+          <p class="note"><b>Available for beta gameplay.</b> Updated weekly as we continue development toward App Store launch.</p>
+          <a class="cta play" href="/games/kwars/">▶ Play beta</a>
+        </div>
+      </div>
+    </article>
+    <article class="card kw soon-card" data-game="kwars2" data-status="soon" aria-labelledby="g-kwars2">
+      <div class="art"><img src="/games/kwars2/app-icon-512.png" alt="Kingdom Wars II" loading="lazy" width="512" height="512"><span class="chap" aria-hidden="true">II</span></div>
+      <div class="body">
+        <h3 id="g-kwars2">KINGDOM WARS II</h3>
+        <span class="status soon">Coming soon</span>
+        <p class="desc">The next evolution of Kingdom Wars. Build, defend, expand and fight across a more immersive 2.5D battlefield with deeper strategy and larger conflicts.</p>
+        <p class="sum">Kingdom Wars II expands the original fort-defense formula with a more dimensional battlefield, upgraded armies and a larger strategic war experience.</p>
+        <div class="foot">
+          <p class="note">Not yet playable. In development.</p>
+          <span class="cta soon" aria-disabled="true">Coming soon</span>
+        </div>
+      </div>
+    </article>
+    <article class="card kw soon-card" data-game="kwars3" data-status="soon" aria-labelledby="g-kwars3">
+      <div class="art"><img src="/games/kwars3/app-icon-512.png" alt="Kingdom Wars III" loading="lazy" width="512" height="512"><span class="chap" aria-hidden="true">III</span></div>
+      <div class="body">
+        <h3 id="g-kwars3">KINGDOM WARS III</h3>
+        <span class="status soon">Coming soon</span>
+        <p class="desc">Kingdom Wars enters true 3D. Command your forces, grow your territory and fight across fully dimensional battlefields.</p>
+        <p class="sum">Kingdom Wars III is the next major chapter of the series, moving the Kingdom Wars experience into a true-3D world with larger battles and deeper battlefield control.</p>
+        <div class="foot">
+          <p class="note">Not yet playable. In development.</p>
+          <span class="cta soon" aria-disabled="true">Coming soon</span>
+        </div>
+      </div>
+    </article>
   </div>
 
-  <h3 class="secthead">Everything else</h3>
-  <div class="filters" id="filters">
-    <button data-cat="all" class="on">All</button>
-    <button data-cat="games">Games</button>
-    <button data-cat="utility">Utility</button>
-    <button data-cat="marketing">Marketing</button>
+  <!-- COMING SOON — standalone titles not yet playable; room for more -->
+  <h2 class="sect" id="coming-soon">Coming soon</h2>
+  <div class="gridsoon">
+    <article class="card thirteen soon-card" data-game="thirteen" data-status="soon" aria-labelledby="g-thirteen">
+      <div class="art"><img src="/games/13/icon.svg" alt="THIRTEEN" loading="lazy" width="512" height="512"></div>
+      <div class="body">
+        <h3 id="g-thirteen">THIRTEEN</h3>
+        <span class="status soon">Coming soon</span>
+        <p class="desc">A supernatural horror series. Season One of The Thirteen Anchors.</p>
+        <p class="sum">Lead a team of investigators out of Lantern HQ and into the dark, with a flashlight to see what waits there.</p>
+        <div class="foot">
+          <p class="note">Not yet playable. In development.</p>
+          <span class="cta soon" aria-disabled="true">Coming soon</span>
+        </div>
+      </div>
+    </article>
   </div>
 
-  <div class="grid" id="grid">
-    <!-- GAMES -->
-    <div class="card" data-cat="games">
-      <div class="art">
-        <span class="badge">NEW · PHOTO GAME</span>
-        <img src="pokasnap/play/img/icon-192.png" alt="PokaSnap icon">
-      </div>
-      <div class="body">
-        <h2>PokaSnap</h2>
-        <p>Poke, pose and snap a plush pet into the real world. Complete silly photo missions, earn rewards and dress up your companion.</p>
-        <div class="tags"><span class="tag">Free</span><span class="tag">Camera game</span><span class="tag">Mobile first</span></div>
-        <a class="play" href="/games/pokasnap/">▶ PLAY NOW</a>
-      </div>
-    </div>
+  <aside class="others" aria-label="Other KEEPITIL apps">
+    <b>Other KEEPITIL apps</b>
+    <span>WIFI Remote<i>COMING SOON</i></span>
+    <span>KFORM<i>COMING SOON</i></span>
+  </aside>
 
-    <div class="card" data-cat="games">
-      <div class="art">
-        <span class="badge">KWARS · STRATEGY</span>
-        <img src="kwars/app-icon-192.png" alt="Kingdom Wars icon">
-      </div>
-      <div class="body">
-        <h2>Kingdom Wars</h2>
-        <p>The original. Fort-defense war across the ages — raise your army, hold the gate, evolve your civilisation and break the enemy fort.</p>
-        <div class="tags"><span class="tag">Free</span><span class="tag">Offline-ready</span><span class="tag">Desktop + Mobile</span></div>
-        <a class="play" href="/games/kwars">▶ PLAY NOW</a>
-      </div>
-    </div>
-
-    <div class="card" data-cat="games">
-      <div class="art">
-        <span class="badge">KWARS · STRATEGY</span>
-        <img src="kwars2/app-icon-192.png" alt="KWARS2 icon">
-      </div>
-      <div class="body">
-        <h2>KWARS2</h2>
-        <p>The second generation. Castle-to-castle war on a 3D-styled battlefield: formations, charge orders, castle builder, folklore sieges and giant bosses.</p>
-        <div class="tags"><span class="tag">Free</span><span class="tag">Offline-ready</span><span class="tag">Desktop + Mobile</span></div>
-        <a class="play" href="/games/kwars2">▶ PLAY NOW</a>
-      </div>
-    </div>
-
-    <div class="card" data-cat="games">
-      <div class="art">
-        <span class="badge">KWARS · 3D STRATEGY</span>
-        <img src="kwars3/app-icon-192.png" alt="KWARS3 icon">
-      </div>
-      <div class="body">
-        <h2>KWARS3</h2>
-        <p>The true-3D chapter. A living army in real 3D across eight ages, with campaign missions, perks, upgrades and endless war.</p>
-        <div class="tags"><span class="tag">Free</span><span class="tag">Offline-ready</span><span class="tag">Desktop + Mobile</span></div>
-        <a class="play" href="/games/kwars3">▶ PLAY NOW</a>
-      </div>
-    </div>
-
-    <div class="card soon" data-cat="utility">
-      <div class="art util"><span class="badge">UTILITY</span><span class="glyph">📡</span></div>
-      <div class="body">
-        <h2>WIFI Remote</h2>
-        <p>Turn your phone into a remote for the KEEPITIL radio and event screens over local WiFi. Coming soon.</p>
-        <div class="tags"><span class="tag">TBA</span></div>
-        <a class="play" href="#">COMING SOON</a>
-      </div>
-    </div>
-
-    <!-- MARKETING -->
-    <div class="card soon" data-cat="marketing">
-      <div class="art mkt"><span class="badge">MARKETING</span><span class="glyph">🧾</span></div>
-      <div class="body">
-        <h2>KFORM</h2>
-        <p>Fast form + lead-capture builder for events, RSVPs and creator sign-ups — wired straight into KEEPITIL. Coming soon.</p>
-        <div class="tags"><span class="tag">TBA</span></div>
-        <a class="play" href="#">COMING SOON</a>
-      </div>
-    </div>
-
-    <div class="empty" id="empty" style="display:none">Nothing here yet — check back soon.</div>
-  </div>
-
-  <div class="how">
-    <h3>📱 Install on your phone (free, no app store)</h3>
-    <ol>
-      <li>Open the app on your phone and tap <b>Play Now</b>.</li>
-      <li><b>iPhone / iPad:</b> tap the Share button <b>⬆</b> in Safari, then <b>Add to Home Screen</b>.</li>
-      <li><b>Android:</b> tap the <b>⋮</b> menu in Chrome, then <b>Install app</b> (or <b>Add to Home screen</b>).</li>
-      <li>Launch it from your home screen — it runs full-screen like a native app, even offline.</li>
-    </ol>
-  </div>
+  <section class="how">
+    <h3>About the beta</h3>
+    <p>Beta games are the real, current browser versions, updated weekly. On a phone you can add one to your home screen to play full-screen: in Safari tap <b>Share → Add to Home Screen</b>; in Chrome tap <b>⋮ → Install app</b>. Native App Store versions are coming soon.</p>
+  </section>
 
   <footer>© KEEPITIL · <a href="/">keepitil.com</a></footer>
 </div>
-<script>
-(function(){
-  var fbar=document.getElementById('filters'), grid=document.getElementById('grid'), empty=document.getElementById('empty');
-  function apply(cat){
-    var shown=0;
-    [].forEach.call(grid.querySelectorAll('.card'),function(c){
-      var ok=(cat==='all'||c.getAttribute('data-cat')===cat);
-      c.style.display=ok?'':'none'; if(ok)shown++;
-    });
-    empty.style.display=shown?'none':'block';
-    [].forEach.call(fbar.querySelectorAll('button'),function(b){b.classList.toggle('on',b.getAttribute('data-cat')===cat);});
-  }
-  fbar.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;apply(b.getAttribute('data-cat'));});
-})();
-</script>
 </body>
 </html>

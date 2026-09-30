@@ -11,7 +11,11 @@
       jacket: 0x6d4b2a, jacket2: 0x4f3620, shirt: 0x8a2d27, pants: 0x262b36, shoe: 0x3a2a1c, hairStyle: 'crop', stubble: true },
     daniel: { h: 1.77, sw: 0.97, skin: 0x7a5136, hair: 0x141010, eye: 0x2a1a10, lips: 0x6e3d33,
       jacket: 0x8a7350, jacket2: 0x6f5c3f, shirt: 0x2e5d58, pants: 0x746a52, shoe: 0x5a4636, hairStyle: 'curly', glasses: true },
+    elias: { h: 1.88, sw: 1.1, skin: 0xc49a7a, hair: 0x4a3a30, eye: 0x3c5a6a, lips: 0x8e5a50, jacket: 0x2e2f33, jacket2: 0x1f2024, shirt: 0x6a6a5e, pants: 0x2a2a2e, shoe: 0x241a12, hairStyle: 'crop', stubble: true },
+    evelyn: { h: 1.72, sw: 0.98, skin: 0xe0b89a, hair: 0x2a1a14, eye: 0x4f7d4b, lips: 0xa0584f, jacket: 0x6a4a5a, jacket2: 0x4e3644, shirt: 0xd8cbb0, pants: 0x33303a, shoe: 0x3a2a1c, hairStyle: 'long' },
+    stranger: { h: 1.8, sw: 1.0, skin: 0xd0a888, hair: 0x5a4a3a, eye: 0x6a6a6a, lips: 0x8e5a50, jacket: 0x4a4a44, jacket2: 0x3a3a34, shirt: 0xbfb8a8, pants: 0x3a3a40, shoe: 0x2a2020, hairStyle: 'crop' },
   };
+  P.SIBLING_IDS = ['mara', 'gabriel', 'daniel'];
   const EXPR = {
     neutral: { browY: 0, browRot: 0, lid: 0.82, curve: 0.15, open: 0 },
     concern: { browY: 0.004, browRot: 0.28, lid: 0.86, curve: -0.35, open: 0.05 },
@@ -30,9 +34,9 @@
   P.preload = async () => { if (!T13.assets || !T13.assets.loader) return;
     // ?pipeline=1 (or localStorage t13-pipeline=1): load the TEST asset for Mara to exercise the GLB path — never production
     let pipe = false; try { pipe = new URLSearchParams(location.search).has('pipeline') || (window.T13_BENCH === true && localStorage.getItem('t13-pipeline') === '1'); } catch (e) {}
-    for (const id of Object.keys(SPECS)) { const r = pipe && id === 'mara' ? await T13.assets.load('test', 'pipeline-rig') : await T13.assets.load('characters', id); if (r) P.loaded[id] = r; } };
+    for (const id of ['mara', 'gabriel', 'daniel', 'elias', 'evelyn']) { const r = pipe && id === 'mara' ? await T13.assets.load('test', 'pipeline-rig') : await T13.assets.load('characters', id); if (r) P.loaded[id] = r; } };
   P.build = (id) => { const L2 = P.loaded[id]; if (L2 && T13.peopleGLB) { try { return T13.peopleGLB.build(id, L2.gltf, L2.entry, SPECS[id]); } catch (e) { T13.assets.report.push({ level: 'error', msg: id + ': GLB adapter failed — procedural fallback', err: String(e) }); } } return P.buildProcedural(id); };
-  P.buildProcedural = (id) => {
+  P.buildProcedural = (id, opts = {}) => {
     const S = SPECS[id], k = S.h / 1.75, W = S.sw;
     const M = (color, o = {}) => X.mat({ color, ...o });
     const skin = M(S.skin, { shininess: 14 }), hairM = M(S.hair, { shininess: 22 }), jacket = M(S.jacket, { map: X.fabricTex('#ffffff', 'cloth') }), jacket2 = M(S.jacket2), shirt = M(S.shirt, { map: X.fabricTex('#ffffff', 'cloth') }), pants = M(S.pants, { map: X.fabricTex('#ffffff', 'cloth') }), shoe = M(S.shoe, { shininess: 30 });
@@ -191,6 +195,7 @@
       } };
     root.traverse(o => { if (o.isMesh) { o.receiveShadow = true; } });
     api.baked = X.bake(root, m => !!m.userData.anim);
+    if (opts.child) { root.scale.setScalar(opts.child); }
     return api;
   };
   P.SPECS = SPECS;

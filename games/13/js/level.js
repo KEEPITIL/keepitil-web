@@ -20,7 +20,8 @@
     '##########################',
   ];
   const S = 3, H = 3.2;
-  const L = T13.level = { MAP, S, H, W: MAP[0].length, R: MAP.length };
+  const BREAKABLE = [[18, 11]];   // walls a hazard can open (dynamic gating)
+  const L = T13.level = { MAP, S, H, W: MAP[0].length, R: MAP.length, BREAKABLE };
   L.cell = (x, z) => [Math.floor(x / S), Math.floor(z / S)];
   L.center = (c, r) => ({ x: c * S + S / 2, z: r * S + S / 2 });
   L.find = ch => { const out = []; MAP.forEach((row, r) => [...row].forEach((k, c) => { if (k === ch) out.push({ c, r }); })); return out; };
@@ -55,7 +56,8 @@
     }
     const ceilMat = X.mat({ map: X.ceilTex() }), concCeil = X.mat({ map: X.concreteTex(), color: 0x8a8a84 });
     // --- wall faces: one quad per floor-cell side that touches solid wall, textured by the zone it faces; merged per zone
-    const wallParts = {}, fwParts = {}, floorParts = {}, ceilParts = { tile: [], conc: [] };
+    const wallParts = {}, fwParts = {}, floorParts = {}, ceilParts = { tile: [], conc: [] }, brParts = {};
+    const BREAK = new Set((L.BREAKABLE || []).map(([c, r]) => c + ',' + r));
     const quad = new THREE.PlaneGeometry(S, H), fquad = new THREE.PlaneGeometry(S, S);
     const DIRS = [[0, -1, 0], [1, 0, -Math.PI / 2], [0, 1, Math.PI], [-1, 0, Math.PI / 2]];   // neighbour offset → quad faces back into this cell
     grid.forEach((row, r) => row.forEach((k, c) => {
@@ -64,9 +66,11 @@
       (z === 'utility' ? ceilParts.conc : ceilParts.tile).push({ geo: fquad, matrix: new THREE.Matrix4().makeRotationX(Math.PI / 2).premultiply(new THREE.Matrix4().makeTranslation(p.x, H, p.z)) });
       for (const [dc, dr, ry] of DIRS) { const nc = c + dc, nr = r + dr; const nk = (nr >= 0 && nc >= 0 && nr < L.R && nc < L.W) ? grid[nr][nc] : '#'; if (nk !== '#' && nk !== 'W') continue;
         const m = new THREE.Matrix4().makeRotationY(ry).premultiply(new THREE.Matrix4().makeTranslation(p.x + dc * S / 2, H / 2, p.z + dr * S / 2));
+        if (BREAK.has(nc + ',' + nr)) { const bk = nc + ',' + nr; (brParts[bk] = brParts[bk] || {}); (brParts[bk][z] = brParts[bk][z] || []).push({ geo: quad, matrix: m }); continue; }
         ((nk === 'W' ? fwParts : wallParts)[z] = (nk === 'W' ? fwParts : wallParts)[z] || []).push({ geo: quad, matrix: m }); }
     }));
     for (const z in wallParts) { const m = new THREE.Mesh(X.merge(wallParts[z]), ZM[z].wall); m.receiveShadow = true; scene.add(m); }
+    L.breakWalls = {}; for (const bk in brParts) { const g = new THREE.Group(); for (const z in brParts[bk]) g.add(new THREE.Mesh(X.merge(brParts[bk][z]), ZM[z].wall)); scene.add(g); L.breakWalls[bk] = g; }
     for (const z in floorParts) { const m = new THREE.Mesh(X.merge(floorParts[z]), ZM[z].floor); m.receiveShadow = true; scene.add(m); }
     scene.add(new THREE.Mesh(X.merge(ceilParts.tile), ceilMat)); if (ceilParts.conc.length) scene.add(new THREE.Mesh(X.merge(ceilParts.conc), concCeil));
     L.objects = []; const add = (o, c, r, kind) => { o.userData = { ...o.userData, c, r, kind }; scene.add(o); L.objects.push(o); return o; };
@@ -215,22 +219,23 @@
   /* blocking for the player (and companions) */
   L.blocked = (c, r, forEnemy = false) => {
     if (r < 0 || c < 0 || r >= L.R || c >= L.W) return true;
+    const hk = c + ',' + r; if (L.st.blockedCells && L.st.blockedCells.has(hk)) return true; if (L.st.openCells && L.st.openCells.has(hk)) return false;
     const k = L.grid[r][c];
     if (k === '#' || k === 'L' || k === 'F' || k === 'E') return true;
     if (k === 'C') return !L.st.cabinetMoved;
     if (k === 'W') return !L.st.falseGone;
-    if (k === 'D') { const d = L.doorAt(c, r); return forEnemy ? false : !(d && d.userData.open); }
+    if (k === 'D') { const d = L.doorAt(c, r); if (forEnemy && d && d.userData.jammedUntil > (T13.clock ? T13.clock() : 0)) return true; return forEnemy ? false : !(d && d.userData.open); }
     return false;
   };
   L.doorAt = (c, r) => L.doors.find(d => d.userData.c === c && d.userData.r === r);
-  L.opaque = (c, r) => { if (r < 0 || c < 0 || r >= L.R || c >= L.W) return true; const k = L.grid[r][c]; if (k === '#' || k === 'E' || k === 'F') return true; if (k === 'C') return !L.st.cabinetMoved; if (k === 'W') return !L.st.falseGone; if (k === 'D') { const d = L.doorAt(c, r); return !(d && d.userData.open); } return false; };
+  L.opaque = (c, r) => { if (r < 0 || c < 0 || r >= L.R || c >= L.W) return true; const hk = c + ',' + r; if (L.st.openCells && L.st.openCells.has(hk)) return false; const k = L.grid[r][c]; if (k === '#' || k === 'E' || k === 'F') return true; if (k === 'C') return !L.st.cabinetMoved; if (k === 'W') return !L.st.falseGone; if (k === 'D') { const d = L.doorAt(c, r); return !(d && d.userData.open); } return false; };
   /* grid line of sight */
   L.los = (x0, z0, x1, z1) => { const n = Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 0.5); for (let i = 1; i < n; i++) { const t = i / n, [c, r] = L.cell(x0 + (x1 - x0) * t, z0 + (z1 - z0) * t); if (L.opaque(c, r)) return false; } return true; };
   /* BFS path on the grid (the Hollow opens doors) */
-  L.path = (from, to) => {
+  L.path = (from, to, avoid) => {
     const key = (c, r) => r * L.W + c, prev = new Map([[key(from[0], from[1]), null]]), q = [from];
     while (q.length) { const [c, r] = q.shift(); if (c === to[0] && r === to[1]) break;
-      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nc = c + dc, nr = r + dr, k = key(nc, nr); if (prev.has(k) || L.blocked(nc, nr, true)) continue; prev.set(k, [c, r]); q.push([nc, nr]); } }
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nc = c + dc, nr = r + dr, k = key(nc, nr); if (prev.has(k) || L.blocked(nc, nr, true) || (avoid && avoid(nc, nr) && !(nc === to[0] && nr === to[1]))) continue; prev.set(k, [c, r]); q.push([nc, nr]); } }
     if (!prev.has(key(to[0], to[1]))) return null; const out = []; let cur = to; while (cur) { out.unshift(cur); cur = prev.get(key(cur[0], cur[1])); } return out;
   };
   L.floorCells = () => { const o = []; L.grid.forEach((row, r) => row.forEach((k, c) => { if (!L.blocked(c, r, true) && k !== 'D') o.push([c, r]); })); return o; };

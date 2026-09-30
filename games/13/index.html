@@ -6,9 +6,9 @@
 <meta name="theme-color" content="#050505">
 <meta name="robots" content="noindex,nofollow">
 <meta name="description" content="The Thirteen Anchors — Season One. A supernatural horror game presented by KEEPITIL, developed by TUITEA.">
-<title>The Thirteen Anchors</title>
+<title>THIRTEEN</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="css/game.css?v=3">
+<link rel="stylesheet" href="css/game.css?v=4">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -17,16 +17,23 @@
 <div id="boot" class="layer">
   <div class="bt" id="bt1"><small>PRESENTED BY</small><b>KEEPITIL</b></div>
   <div class="bt" id="bt2"><small>DEVELOPED BY</small><b>TUITEA</b></div>
-  <div class="bt title" id="bt3"><b data-t="THE THIRTEEN ANCHORS">THE THIRTEEN ANCHORS</b><small>SEASON ONE</small></div>
+  <div class="bt title" id="bt3"><b data-t="THIRTEEN">THIRTEEN</b><small>SEASON ONE</small></div>
   <button id="tapstart" class="ghost">Tap to begin — sound on 🎧</button>
 </div>
 
 <!-- Lantern HQ: a 3D room (js/hq.js); this layer only carries the object tags and the back control -->
-<div id="hq" class="layer hidden"><button id="hqBack" class="hq-back hidden">‹ BACK</button><div class="hq-build" id="hqbuild"></div></div>
+<div id="hq" class="layer hidden"><button id="hqBack" class="hq-back hidden">‹ BACK</button>
+  <div class="hq-nav" id="hqNav"><button id="hqContinue" class="hq-continue"><b>CONTINUE</b><small id="hqContinueSub"></small></button>
+    <nav><button data-hq="cases">ATLAS</button><button data-hq="characters">INVESTIGATORS</button><button data-hq="loadout">LOADOUT</button><button data-hq="theater">THEATER</button><button data-hq="dossiers">ARCHIVE</button></nav></div>
+  <button class="hq-gear" data-hq="settings" aria-label="Settings">⚙</button>
+  <div class="hq-build" id="hqbuild"></div></div>
 
 <!-- generic panel -->
 <div id="panel" class="layer hidden"><div class="pbox"><button class="pclose" aria-label="Close">✕</button><div id="pbody"></div></div></div>
 <div id="theater" class="hidden"><div id="theaterBody"></div></div>
+
+<!-- in-engine intro cinematic -->
+<div id="cinema" class="layer hidden"><div id="cinFade"></div><div id="cinCap"></div><div id="cinSub"></div><button id="cinSkip" class="ghost hidden">SKIP ▸▸</button></div>
 
 <!-- cinematic -->
 <div id="cine" class="layer hidden"><div class="cine-frame"><div id="cineText"></div></div><div class="cine-bar"><span id="cineWho"></span><button id="cineSkip" class="ghost hidden">SKIP ▸▸</button></div></div>
@@ -45,12 +52,14 @@
   <div id="stick"><i></i></div>
   <div id="touchBtns">
     <button data-k="switch" class="tb sw">⇄</button>
-    <button data-k="ability" class="tb ab">✦</button>
+    <button data-k="ability" class="tb ab">✦<small id="abLabel"></small></button>
     <button data-k="interact" class="tb in">✋</button>
     <button data-k="run" class="tb rn">RUN</button>
     <button data-k="crouch" class="tb cr">⤓</button>
     <button data-k="light" class="tb lt">🔦</button>
   </div>
+  <div id="senseCue"><span></span></div>
+  <div id="choice" class="hidden"><div class="ch-t"></div><div class="ch-o"></div></div>
   <div id="vignette"></div>
   <div id="flash"></div>
   <div id="keyhelp">WASD move · Mouse look · E interact · Shift run · C crouch · F flashlight · Q power · Tab / 1-2-3 switch · Esc pause</div>
@@ -68,17 +77,24 @@
 <script src="vendor/loaders/DRACOLoader.js"></script>
 <script src="vendor/loaders/meshopt_decoder.js"></script>
 <script src="vendor/loaders/SkeletonUtils.js"></script>
-<script src="js/data.js?v=3"></script>
-<script src="js/gfx.js?v=3"></script>
-<script src="js/assets.js?v=3"></script>
-<script src="js/people.js?v=3"></script>
-<script src="js/people-glb.js?v=3"></script>
-<script src="js/hollow.js?v=3"></script>
-<script src="js/audio.js?v=3"></script>
-<script src="js/director.js?v=3"></script>
-<script src="js/level.js?v=3"></script>
-<script src="js/game.js?v=3"></script>
-<script src="js/hq.js?v=3"></script>
-<script src="js/ui.js?v=3"></script>
+<script src="js/data.js?v=4"></script>
+<script src="js/gfx.js?v=4"></script>
+<script src="js/assets.js?v=4"></script>
+<script src="js/people.js?v=4"></script>
+<script src="js/people-glb.js?v=4"></script>
+<script src="js/hollow.js?v=4"></script>
+<script src="js/audio.js?v=4"></script>
+<script src="js/director.js?v=4"></script>
+<script src="js/story.js?v=4"></script>
+<script src="js/dialogue.js?v=4"></script>
+<script src="js/camera.js?v=4"></script>
+<script src="js/hazards.js?v=4"></script>
+<script src="js/echoes.js?v=4"></script>
+<script src="js/siblings.js?v=4"></script>
+<script src="js/level.js?v=4"></script>
+<script src="js/game.js?v=4"></script>
+<script src="js/cinema.js?v=4"></script>
+<script src="js/hq.js?v=4"></script>
+<script src="js/ui.js?v=4"></script>
 </body>
 </html>

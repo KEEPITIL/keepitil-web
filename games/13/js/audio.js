@@ -19,6 +19,7 @@
     if (ac.state === 'suspended') ac.resume().catch(() => {});
   };
   A.ready = () => !!ac;
+  let comp = null; A.nightMode = on => { if (!ac) return; if (on && !comp) { comp = ac.createDynamicsCompressor(); comp.threshold.value = -30; comp.ratio.value = 8; master.disconnect(); master.connect(comp).connect(ac.destination); } else if (!on && comp) { master.disconnect(); comp.disconnect(); comp = null; master.connect(ac.destination); } };
   A.setListener = (x, y, z, yaw) => {
     if (!ac || !listenerOk) return; const L = ac.listener, fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     if (L.positionX) { L.positionX.value = x; L.positionY.value = y; L.positionZ.value = z; L.forwardX.value = fx; L.forwardY.value = 0; L.forwardZ.value = fz; L.upX.value = 0; L.upY.value = 1; L.upZ.value = 0; }
@@ -46,6 +47,26 @@
   A.ability = (kind) => { if (!ac) return; const f = { mara: [300, 900], gabriel: [80, 30], daniel: [1200, 400] }[kind] || [400, 400]; tone(master, { f: f[0], f2: f[1], dur: 0.8, vol: 0.25, type: kind === 'gabriel' ? 'square' : 'sine' }); burst(master, { dur: 0.5, f: f[0] * 2, q: 2, type: 'bandpass', vol: 0.15 }); };
   A.pickup = () => { if (!ac) return; tone(master, { f: 660, dur: 0.15, vol: 0.12, type: 'triangle' }); tone(master, { f: 990, dur: 0.25, vol: 0.1, type: 'triangle', at: 0.1 }); };
   A.error = () => { if (!ac) return; tone(master, { f: 140, dur: 0.25, vol: 0.2, type: 'square' }); };
+  /* ---- positional cue library (used by the Hollow proximity stages and hazards) ---- */
+  A.breath = (x, y, z, vol = 0.3) => { if (!ac) return; const p = panner(x, y, z); burst(p, { dur: 0.9, f: 700, q: 1.5, type: 'bandpass', vol }); burst(p, { dur: 0.7, f: 500, q: 1.2, type: 'bandpass', vol: vol * 0.7, at: 1.1 }); };
+  A.scrape = (x, y, z, vol = 0.3) => { if (!ac) return; const p = panner(x, y, z); for (let i = 0; i < 5; i++) burst(p, { dur: 0.12, f: 2600 + Math.random() * 1500, q: 8, type: 'bandpass', vol, at: i * 0.07 }); };
+  A.claws = (x, y, z, vol = 0.3) => { if (!ac) return; const p = panner(x, y, z); for (let i = 0; i < 3; i++) burst(p, { dur: 0.05, f: 4000, q: 3, type: 'highpass', vol, at: i * 0.18 }); };
+  A.thump = (x, y, z, vol = 0.4) => { if (!ac) return; const p = panner(x, y, z); tone(p, { f: 48, f2: 30, dur: 0.5, vol }); burst(p, { dur: 0.3, f: 160, q: 1, vol: vol * 0.8 }); };
+  A.glass = (x, y, z) => { if (!ac) return; const p = panner(x, y, z); for (let i = 0; i < 9; i++) tone(p, { f: 2000 + Math.random() * 4000, dur: 0.25 + Math.random() * 0.4, vol: 0.08, type: 'triangle', at: i * 0.03 }); burst(p, { dur: 0.35, f: 5000, q: 0.5, type: 'highpass', vol: 0.5 }); };
+  A.collapse = (x, y, z) => { if (!ac) return; const p = panner(x, y, z); burst(p, { dur: 1.6, f: 180, q: 0.6, vol: 1.2 }); tone(p, { f: 60, f2: 25, dur: 1.4, vol: 0.7 }); for (let i = 0; i < 6; i++) burst(p, { dur: 0.1, f: 900, q: 2, vol: 0.4, at: 0.3 + i * 0.15 }); };
+  A.spark = (x, y, z) => { if (!ac) return; const p = panner(x, y, z); for (let i = 0; i < 8; i++) burst(p, { dur: 0.03, f: 6000, q: 1, type: 'highpass', vol: 0.4, at: Math.random() * 0.6 }); tone(p, { f: 120, dur: 0.6, vol: 0.2, type: 'square' }); };
+  /* a sibling's (or a counterfeit's) voice, placed in space: a formant murmur so the ear finds WHERE it came from.
+     Recorded VO will play through the same panner (A.playAt). pitch: mara 1.25 · daniel 1.0 · gabriel 0.8 */
+  A.voiceAt = (x, y, z, pitch = 1, secs = 1.2, vol = 0.22) => { if (!ac) return; const p = panner(x, y, z); const n = Math.max(3, Math.round(secs * 5)); for (let i = 0; i < n; i++) { const f = (180 + Math.random() * 60) * pitch; tone(p, { f, f2: f * (0.9 + Math.random() * 0.2), dur: 0.16, vol, type: 'sawtooth', at: i * 0.2 }); burst(p, { dur: 0.14, f: 900 * pitch + Math.random() * 600, q: 5, type: 'bandpass', vol: vol * 0.8, at: i * 0.2 }); } };
+  A.buffers = new Map();
+  A.playAt = async (url, x, y, z, spatial = true) => { if (!ac) return false; try { let buf = A.buffers.get(url); if (!buf) { const r = await fetch(url); if (!r.ok) return false; buf = await ac.decodeAudioData(await r.arrayBuffer()); A.buffers.set(url, buf); } const s2 = ac.createBufferSource(); s2.buffer = buf; s2.connect(spatial ? panner(x, y, z) : master); s2.start(); return true; } catch (e) { return false; } };
+  /* HOLLOW PROXIMITY STAGES: DISTANT → NEAR → SAME_AREA → HUNT → IMMEDIATE — each stage has its own cue set and cadence */
+  A.HOLLOW_STAGES = ['NONE', 'DISTANT', 'NEAR', 'SAME_AREA', 'HUNT', 'IMMEDIATE'];
+  A.hollowStage = ({ dist, hunting, sameZone, active }) => !active ? 'NONE' : dist < 3 ? 'IMMEDIATE' : hunting ? 'HUNT' : (sameZone && dist < 14) ? 'SAME_AREA' : dist < 20 ? 'NEAR' : 'DISTANT';
+  let stageT = 0; A.stageLog = [];
+  A.hollowTick = (dt, stage, x, z) => { if (!ac || stage === 'NONE') return; stageT -= dt; if (stageT > 0) return;
+    const cue = { DISTANT: () => { A.thump(x, 0.3, z, 0.25); stageT = 9 + Math.random() * 6; }, NEAR: () => { (Math.random() < 0.5 ? A.scrape : A.breath)(x, 1.6, z, 0.25); stageT = 5 + Math.random() * 4; }, SAME_AREA: () => { (Math.random() < 0.5 ? A.claws : A.breath)(x, 1.8, z, 0.35); stageT = 3 + Math.random() * 2; }, HUNT: () => { A.growl(x, 1.8, z); stageT = 2.2 + Math.random(); }, IMMEDIATE: () => { A.breath(x, 1.9, z, 0.6); stageT = 1.4; } }[stage];
+    if (cue) { cue(); A.stageLog.push({ stage, t: Math.round(performance.now()) }); if (A.stageLog.length > 200) A.stageLog.shift(); } };
   /* intensity 0..1 drives the drone; silence (drone dropping out) is itself a signal */
   A.setIntensity = (k, silence = false) => { if (!ac) return; const t = ac.currentTime; droneGain.gain.setTargetAtTime(silence ? 0 : 0.02 + k * 0.1, t, 0.8); droneF.frequency.setTargetAtTime(120 + k * 500, t, 1.2); };
   A.heart = (rate) => { if (!ac || rate <= 0) return; tone(heartGain, { f: 55, dur: 0.12, vol: 0.9 }); tone(heartGain, { f: 48, dur: 0.14, vol: 0.7, at: 0.18 }); heartGain.gain.setTargetAtTime(Math.min(0.5, rate), ac.currentTime, 0.1); };

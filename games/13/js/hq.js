@@ -7,7 +7,8 @@
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
   const OVERVIEW = { pos: new V(0, 1.75, 3.6), look: new V(0, 1.35, -1.6) };
   Q.state = { markers: 0, newspapers: [], photos: [], eliasNotes: 0, chairMoved: false, lampFailing: false, evelyn: 'normal', mirror: false, prologueDone: false };
-  const loadState = () => { try { const sv = JSON.parse(localStorage.getItem('t13-save') || 'null'); if (sv?.prologueDone) { Q.state.prologueDone = true; Q.state.markers = Math.max(Q.state.markers, 1); Q.state.newspapers = ['ashgrove']; Q.state.eliasNotes = 1; } } catch (e) {} };
+  const loadState = () => { try { const sv = JSON.parse(localStorage.getItem('t13-save') || 'null'); const hs = T13.story.hqState(sv?.progress); Q.state.hq = hs; Q.state.markers = hs.markers; Q.state.lampFailing = hs.lampFailing; Q.state.chairMoved = hs.chairMoved; Q.state.cultSymbol = hs.cultSymbol; Q.state.trophies = hs.trophies; Q.state.eliasTrace = hs.eliasTrace;
+      if (sv?.prologueDone) { Q.state.prologueDone = true; Q.state.markers = Math.max(Q.state.markers, 1); Q.state.newspapers = ['ashgrove']; Q.state.eliasNotes = 1; Q.state.trophies = Math.max(Q.state.trophies, 1); Q.state.echo = sv.echoes && sv.echoes['ashgrove.nurse']; } } catch (e) {} };
 
   // ---------- textures ----------
   const handwriting = (g, text, x, y, size = 22, col = '#1b1a2a', rot = 0) => { g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = col; g.font = `italic ${size}px "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive`; g.fillText(text, 0, 0); g.restore(); };
@@ -38,6 +39,8 @@
     if (Q.state.newspapers.includes('ashgrove')) clipping(1380, 330, 0.05, 'ASHGROVE LIGHTS SEEN AGAIN', 7);
     card(90, 560, -0.02, 'It copies voices.\nNever answer your\nown name.'); card(360, 580, 0.04, 'Something is\nharvesting them.\nWHAT? WHY?', '#5a1a14'); card(640, 540, -0.05, 'Mara: "it listens"\nGabriel: say nothing\nDaniel: 4 · 1 · 3');
     if (Q.state.eliasNotes) card(1380, 580, 0.03, "Don't follow me.", '#2a2a2a');
+    if (Q.state.cultSymbol > 0) { g.save(); g.globalAlpha = 0.25 + Q.state.cultSymbol * 0.6; g.strokeStyle = '#6b0f0f'; g.lineWidth = 6; g.beginPath(); g.arc(1490, 700, 60, 0, 7); g.stroke(); for (let i = 0; i < 13; i++) { const a = i / 13 * Math.PI * 2; g.beginPath(); g.moveTo(1490 + Math.cos(a) * 40, 700 + Math.sin(a) * 40); g.lineTo(1490 + Math.cos(a) * 78, 700 + Math.sin(a) * 78); g.stroke(); } g.restore(); }
+    if (Q.state.echo) card(1100, 600, -0.03, 'Nurse Hale: ' + Q.state.echo.toLowerCase(), '#2a2a5a');
     // XIII — the conspicuous empty section
     g.setLineDash([16, 12]); g.strokeStyle = 'rgba(245,235,210,.85)'; g.lineWidth = 5; g.strokeRect(1660, 330, 330, 440); g.setLineDash([]);
     g.fillStyle = 'rgba(20,14,8,.35)'; g.fillRect(1660, 330, 330, 440);
@@ -142,24 +145,61 @@
     // pendant ceiling lamp — the room's key light (it can fail)
     const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.7, 5), M.black); cord.position.set(0, H - 0.35, 0.2); scene.add(cord); const pshade = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.22, 20, 1, true), X.mat({ color: 0x2a3a2a, side: THREE.DoubleSide, shininess: 60 })); pshade.position.set(0, H - 0.78, 0.2); scene.add(pshade);
     const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffe0a0 })); bulb.position.set(0, H - 0.86, 0.2); bulb.userData.anim = true; scene.add(bulb); lamps.bulb = bulb;
-    lamps.key = new THREE.PointLight(X.col(0xffd9a0), 1.4, 9, 1.4); lamps.key.position.set(0, H - 0.95, 0.2); if (X.Q().shadows) { lamps.key.castShadow = true; lamps.key.shadow.mapSize.set(1024, 1024); lamps.key.shadow.bias = -0.001; } scene.add(lamps.key);
-    lamps.board = new THREE.SpotLight(X.col(0xffe6c0), 1.3, 8, 0.75, 0.6, 1.2); lamps.board.position.set(0, 2.9, -1.2); lamps.board.target.position.set(0, 1.6, -D / 2); scene.add(lamps.board, lamps.board.target);
+    lamps.key = new THREE.PointLight(X.col(0xffd9a0), 1.4, 9, 1.4); lamps.key.position.set(0, H - 0.95, 0.2); /* point-light shadows cost 6 passes — the board spot carries the one shadow on HIGH */ scene.add(lamps.key);
+    lamps.board = new THREE.SpotLight(X.col(0xffe6c0), 1.3, 8, 0.75, 0.6, 1.2); lamps.board.position.set(0, 2.9, -1.2); lamps.board.target.position.set(0, 1.6, -D / 2); scene.add(lamps.board, lamps.board.target); if (X.Q().shadows) { lamps.board.castShadow = true; lamps.board.shadow.mapSize.set(1024, 1024); lamps.board.shadow.bias = -0.001; }
     scene.add(new THREE.HemisphereLight(X.col(0x4a4f5e), X.col(0x2a1c12), 0.42));
     // Elias — reserved: a figure that can stand in the doorway after the reveal
     eliasGhost = T13.hollow.build(); eliasGhost.setReveal('shadow'); eliasGhost.root.position.set(3.9, 0, 3.2); eliasGhost.root.scale.setScalar(0.78); eliasGhost.root.visible = false; scene.add(eliasGhost.root);
+    // ---- WEAPONS / EQUIPMENT LOCKER (right wall, front) ----
+    const lock = new THREE.Group(); lock.position.set(4.25, 0, 1.9); lock.rotation.y = -Math.PI / 2; scene.add(lock);
+    const lb3 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.1, 0.5), M.olive); lb3.position.y = 1.05; lock.add(lb3); const inner = new THREE.Mesh(new THREE.BoxGeometry(1.36, 1.9, 0.02), X.mat({ color: 0x1c1c1a })); inner.position.set(0, 1.05, -0.24); lock.add(inner);
+    const gunM = X.mat({ color: 0x1a1a1a, shininess: 70 }), stock = X.mat({ map: X.woodTex('#5a3a22', 'stock') });
+    const shotgun = new THREE.Group(); shotgun.position.set(-0.35, 1.2, -0.2); lock.add(shotgun); const brl = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.75, 8), gunM); brl.position.y = 0.25; shotgun.add(brl); const stk = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.4, 0.09), stock); stk.position.y = -0.3; shotgun.add(stk);
+    const rev = new THREE.Group(); rev.position.set(0.3, 1.52, -0.18); lock.add(rev); const rb2 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.05, 0.04), gunM); rev.add(rb2); const grip = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.1, 0.035), stock); grip.position.set(0.08, -0.06, 0); rev.add(grip);
+    const bar2 = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.8, 6), X.mat({ color: 0x6d1f1a })); bar2.position.set(0.35, 0.9, -0.2); bar2.rotation.z = 0.2; lock.add(bar2);
+    [0.8, 1.15].forEach(y => { const sh2 = new THREE.Mesh(new THREE.BoxGeometry(1.36, 0.03, 0.4), M.metal); sh2.position.set(0, y, -0.05); lock.add(sh2); }); [0, 1, 2].forEach(i => { const box2 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.1, 0.1), X.mat({ color: 0x7a5a2a })); box2.position.set(-0.4 + i * 0.2, 0.86, -0.05); lock.add(box2); });
+    const lockSign = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.18), new THREE.MeshBasicMaterial({ map: X.signTex('EQUIPMENT', '#1c2418', '#d8c690') })); lockSign.position.set(0, 2.25, 0.26); lock.add(lockSign); Q.locker = lock;
+    // ---- BIBLICAL / RELIGIOUS RESEARCH DESK (left wall, back) ----
+    const bdesk = new THREE.Group(); bdesk.position.set(-3.9, 0, -1.0); bdesk.rotation.y = Math.PI / 2; scene.add(bdesk);
+    const bt = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.05, 0.7), M.wood); bt.position.y = 0.75; bdesk.add(bt); [[-0.62, -0.28], [0.62, -0.28], [-0.62, 0.28], [0.62, 0.28]].forEach(([a, b]) => { const l = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.74, 0.05), M.wood); l.position.set(a, 0.37, b); bdesk.add(l); });
+    const bible = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.3), new THREE.MeshBasicMaterial({ map: X.tex('bible', 512, 330, (g, w, h) => { g.fillStyle = '#e9e0c6'; g.fillRect(0, 0, w, h); g.fillStyle = '#2a2014'; g.fillRect(w / 2 - 2, 0, 4, h); g.font = 'bold 20px Georgia'; g.fillText('REVELATION 9', 24, 36); g.font = '13px Georgia'; for (let i = 0; i < 14; i++) g.fillText('— — — — — — — — — — —'.slice(0, 18 + (i % 3) * 3), 24, 60 + i * 17); g.fillStyle = 'rgba(180,30,30,.25)'; g.fillRect(20, 200, 200, 18); g.fillStyle = '#2a2014'; g.font = 'italic 13px Georgia'; g.fillText('v.11  Abaddon · Apollyon', 24, 214); g.font = 'bold 20px Georgia'; g.fillText('1 JOHN 4', w / 2 + 20, 36); g.font = 'italic 14px Georgia'; g.fillText('"test the spirits"', w / 2 + 20, 70); }), color: 0xcccccc }));
+    bible.rotation.x = -Math.PI / 2; bible.position.set(-0.1, 0.78, 0); bdesk.add(bible); const cover2 = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.03, 0.32), M.leather); cover2.position.set(-0.1, 0.765, 0); bdesk.add(cover2);
+    [0, 1, 2].forEach(i => { const bk = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.3), X.mat({ color: [0x3a2a1a, 0x2a3a4a, 0x4a1a1a][i] })); bk.position.set(0.45, 0.8 + i * 0.05, -0.05); bk.rotation.y = i * 0.2; bdesk.add(bk); });
+    const note = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.26), new THREE.MeshBasicMaterial({ map: X.tex('bnote', 128, 160, (g, w, h) => { g.fillStyle = '#f1ead4'; g.fillRect(0, 0, w, h); handwriting(g, 'Gen 14:4', 10, 30, 16); handwriting(g, '12 → order?', 10, 60, 16); handwriting(g, '13 → rebellion?', 10, 90, 16, '#6b1a14'); handwriting(g, 'who taught', 10, 125, 14); handwriting(g, 'them this?', 10, 145, 14); }) })); note.rotation.x = -Math.PI / 2; note.rotation.z = 0.2; note.position.set(0.3, 0.781, 0.2); bdesk.add(note); Q.bdesk = bdesk;
+    // ---- PHOTOGRAPHS OF ELIAS AND EVELYN (framed, left wall) ----
+    const parents = makeParentPortraits(); [['elias', -1.9], ['evelyn', -1.35]].forEach(([id, z]) => { const fr = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.5, 0.4), X.mat({ color: 0x3a2614, shininess: 40 })); fr.position.set(-4.47, 2.15, z); scene.add(fr); const ph2 = new THREE.Mesh(new THREE.PlaneGeometry(0.33, 0.42), new THREE.MeshBasicMaterial({ map: parents[id], color: 0xd8d0c0 })); ph2.position.set(-4.44, 2.15, z); ph2.rotation.y = Math.PI / 2; ph2.userData.anim = true; scene.add(ph2); Q['photo_' + id] = ph2; });
+    // ---- LANTERN ARTIFACTS + MISSION TROPHIES shelf (back wall, right of the board) ----
+    const shelfG = new THREE.Group(); shelfG.position.set(3.2, 0, -D / 2 + 0.2); scene.add(shelfG); [1.2, 1.7, 2.2].forEach(y => { const sh3 = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.04, 0.3), M.wood); sh3.position.set(0, y, 0); shelfG.add(sh3); });
+    const art = [[0x3a5a3a, 'jar'], [0xb48a3c, 'bell'], [0x5a5a6a, 'reel'], [0x7a2a2a, 'box'], [0x9a8a6a, 'jar'], [0x2a2a2a, 'box'], [0xc0b090, 'bell'], [0x4a3a2a, 'reel'], [0x6a6a3a, 'jar'], [0x8a2a4a, 'box'], [0x3a4a5a, 'bell'], [0xa07a3a, 'reel'], [0xd0c8b0, 'jar']];
+    Q.trophies = art.map(([c, k], i) => { const m = new THREE.Mesh(k === 'jar' ? new THREE.CylinderGeometry(0.05, 0.05, 0.14, 10) : k === 'bell' ? new THREE.ConeGeometry(0.06, 0.12, 10) : k === 'reel' ? new THREE.CylinderGeometry(0.07, 0.07, 0.02, 14) : new THREE.BoxGeometry(0.1, 0.08, 0.08), X.mat({ color: c, shininess: 50 })); m.position.set(-0.4 + (i % 5) * 0.2, 1.3 + Math.floor(i / 5) * 0.5, 0); if (k === 'reel') m.rotation.x = Math.PI / 2; m.userData.anim = true; shelfG.add(m); return m; });
+    const lanternArt = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.2, 12), X.mat({ color: 0xffd08a, emissive: 0x6a3a0a, transparent: true, opacity: 0.8 })); lanternArt.position.set(0.35, 2.34, 0); shelfG.add(lanternArt);
+    // ---- PERSONAL SPACES ----
+    const heavy = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.9, 14), X.mat({ color: 0x5a1f1a, shininess: 30 })); heavy.position.set(3.8, 1.4, 0.6); scene.add(heavy); const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1.1, 5), M.metal); chain.position.set(3.8, 2.4, 0.6); scene.add(chain);
+    const tapes = new THREE.Group(); tapes.position.set(-0.5, 0, -2.6); scene.add(tapes); const tt2 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.05, 0.45), M.wood); tt2.position.y = 0.72; tapes.add(tt2); const tl = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 6), M.wood); tl.position.y = 0.36; tapes.add(tl);
+    for (let i = 0; i < 6; i++) { const c3 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.016, 0.065), X.mat({ color: [0x1a1a1a, 0x8a1a1a, 0x1a3a6a][i % 3] })); c3.position.set(-0.15 + (i % 3) * 0.12, 0.755 + Math.floor(i / 3) * 0.017, 0.05); tapes.add(c3); } const hp2 = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.012, 6, 16, Math.PI), M.black); hp2.position.set(0.15, 0.8, -0.08); hp2.rotation.x = -0.3; tapes.add(hp2);
+    const tw = new THREE.Group(); tw.position.set(-2.05, 0.81, 0.35); tw.rotation.y = 0.35; scene.add(tw); const twb = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 0.25), X.mat({ color: 0x2a3a2a, shininess: 50 })); twb.position.y = 0.05; tw.add(twb); const pap = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.18), M.manila); pap.position.set(0, 0.17, 0.06); pap.rotation.x = -0.5; tw.add(pap);
+    // ---- THE SIBLINGS, physically in HQ ----
+    Q.sibs = [['mara', -0.9, -2.7, 0.2], ['gabriel', 3.3, 0.55, -1.75], ['daniel', -2.1, -0.2, 1.25]].map(([id, x, z, ry]) => { const p = T13.people.build(id); p.root.position.set(x, 0, z); p.root.rotation.y = ry; scene.add(p.root); return { id, p, look: 0 }; });
     // hotspots
     const SHORT = { cases: 'ATLAS', characters: 'FILES', dossiers: 'ARCHIVE', settings: 'RADIO' }; const HS = (name, label, obj, camPos, look) => hot.push({ name, label, short: SHORT[name], obj, cam: { pos: camPos, look } });
     HS('continue', 'CONTINUE', ev, new V(0.4, 1.7, -0.6), new V(0.4, 1.6, -D / 2));
-    HS('cases', 'CASES · ATLAS', globe, new V(-2.7, 1.55, -1.35), new V(-3.6, 1.28, -2.3));
+    HS('cases', 'ATLAS', globe, new V(-2.7, 1.55, -1.35), new V(-3.6, 1.28, -2.3));
     HS('characters', 'INVESTIGATORS', files, new V(-2.45, 1.75, 0.95), new V(-2.8, 0.8, 0.2));
     HS('loadout', 'LOADOUT', tbl, new V(0.1, 1.75, 2.4), new V(0.1, 0.8, 1.0));
     HS('theater', 'THEATER', pj, new V(0.6, 1.6, 1.6), new V(W / 2, 1.9, 0.0));
-    HS('dossiers', 'CASE ARCHIVE', cabs, new V(2.9, 1.55, -1.2), new V(3.45, 0.9, -3.05));
+    HS('dossiers', 'ARCHIVE', cabs, new V(2.9, 1.55, -1.2), new V(3.45, 0.9, -3.05));
     HS('lore', 'CODEX', book, new V(2.3, 1.3, -0.9), new V(2.9, 0.66, -1.75));
     HS('settings', 'SETTINGS', radio, new V(-1.6, 1.35, 0.7), new V(-2.15, 0.95, -0.15));
     scene.traverse(o => { if (o.isMesh && o.receiveShadow === false && o.material && !o.material.isMeshBasicMaterial) o.receiveShadow = true; });
     Q.evidence.userData.anim = true; xiii.userData.anim = true; Q.photo.userData.anim = true; const kept = new Set(hot.map(h => h.obj)); Q.baked = X.bake(scene, m => !!m.userData.anim || kept.has(m));
     applyState(); built = true;
+  }
+  function makeParentPortraits() {
+    const out = {}, r = X.renderer, sc = new THREE.Scene(); sc.background = new THREE.Color(0x8a7656); sc.add(new THREE.HemisphereLight(0xe8dcc0, 0x40362a, 1.0));
+    const pc = new THREE.PerspectiveCamera(22, 0.8, 0.05, 10);
+    ['elias', 'evelyn'].forEach(id => { const p = T13.people.build(id); sc.add(p.root); p.setExpr('neutral'); for (let i = 0; i < 10; i++) p.update(0.05, {}); const hy = p.head.getWorldPosition(new V()).y; pc.position.set(0, hy - 0.05, -1.0); pc.lookAt(0, hy - 0.1, 0);
+      const rt = new THREE.WebGLRenderTarget(192, 240); rt.texture.encoding = THREE.sRGBEncoding; r.setRenderTarget(rt); r.render(sc, pc); r.setRenderTarget(null); out[id] = rt.texture; sc.remove(p.root); });
+    return out;
   }
   function makePortraits() {
     // real portraits of the actual character models, rendered once into textures for the files and the dossier
@@ -174,6 +214,7 @@
   }
   function applyState() {
     const S = Q.state; if (!Q.evidence) return; Q.evidence.material.map = evidenceTex(); Q.evidence.material.needsUpdate = true;
+    if (Q.trophies) Q.trophies.forEach((m, i) => { m.visible = i < (S.trophies || 0); });
     if (chairObj) chairObj.position.x = S.chairMoved ? 1.9 : 1.35; if (chairObj) chairObj.rotation.y = S.chairMoved ? Math.PI - 0.6 : Math.PI + 0.2;
   }
   Q.setState = patch => { Object.assign(Q.state, patch); applyState(); };
@@ -191,9 +232,9 @@
   }
   // labels: small, period-appropriate tags floating near each object (always visible on touch, on hover with a mouse)
   let labelEls = [];
-  function showLabels() { hideLabels(); const touch = matchMedia('(pointer: coarse)').matches; hot.forEach(h => { const el = document.createElement('button'); el.className = 'hq-tag'; el.textContent = touch && h.short ? h.short : h.label; el.dataset.name = h.name; el.onclick = e => { e.stopPropagation(); select(h.name); }; if (!touch) el.classList.add('quiet'); document.getElementById('hq').appendChild(el); labelEls.push({ el, h }); }); }
+  function showLabels() { hideLabels(); const touch = matchMedia('(pointer: coarse)').matches; if (touch) return; hot.forEach(h => { const el = document.createElement('button'); el.className = 'hq-tag'; el.textContent = touch && h.short ? h.short : h.label; el.dataset.name = h.name; el.onclick = e => { e.stopPropagation(); select(h.name); }; el.classList.add('quiet'); document.getElementById('hq').appendChild(el); labelEls.push({ el, h }); }); }
   function hideLabels() { labelEls.forEach(l => l.el.remove()); labelEls = []; }
-  function placeLabels() { const boxes = []; labelEls.forEach(({ el, h }) => { const p = h.obj.getWorldPosition(new V()); p.y += h.name === 'continue' ? 1.25 : h.name === 'cases' ? 0.35 : 0.45; if (h.name === 'continue') p.x += 2.1; p.project(cam); const vis = p.z < 1; el.style.display = vis ? '' : 'none'; el.style.left = ((p.x + 1) / 2 * innerWidth) + 'px'; el.style.top = ((1 - p.y) / 2 * innerHeight) + 'px'; el.classList.toggle('hover', hover === h.name); if (!vis) return; let top = (1 - p.y) / 2 * innerHeight; const w2 = el.offsetWidth, h2 = el.offsetHeight, left = (p.x + 1) / 2 * innerWidth - w2 / 2; for (let k = 0; k < 6; k++) { const hit = boxes.find(b => left < b.r && left + w2 > b.l && top - h2 < b.b && top > b.t); if (!hit) break; top = hit.b + h2 + 3; } el.style.top = top + 'px'; boxes.push({ l: left, r: left + w2, t: top - h2, b: top }); }); }
+  function placeLabels() { const boxes = []; labelEls.forEach(({ el, h }) => { const p = h.obj.getWorldPosition(new V()); p.y += h.name === 'continue' ? 1.25 : h.name === 'cases' ? 0.35 : 0.45; if (h.name === 'continue') p.x += 2.1; p.project(cam); const vis = p.z < 1 && hover === h.name; el.style.display = vis ? '' : 'none'; el.style.left = ((p.x + 1) / 2 * innerWidth) + 'px'; el.style.top = ((1 - p.y) / 2 * innerHeight) + 'px'; el.classList.toggle('hover', hover === h.name); if (!vis) return; let top = (1 - p.y) / 2 * innerHeight; const w2 = el.offsetWidth, h2 = el.offsetHeight, left = (p.x + 1) / 2 * innerWidth - w2 / 2; for (let k = 0; k < 6; k++) { const hit = boxes.find(b => left < b.r && left + w2 > b.l && top - h2 < b.b && top > b.t); if (!hit) break; top = hit.b + h2 + 3; } el.style.top = top + 'px'; boxes.push({ l: left, r: left + w2, t: top - h2, b: top }); }); }
   function select(name) { T13.audio.init(); if (tween) return; onSelect && onSelect(name); }
   function pick(cx, cy) { ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(ndc, cam); const hits = ray.intersectObjects(hot.map(h => h.obj), true); if (!hits.length) return null; let o = hits[0].object; while (o) { const h = hot.find(x => x.obj === o); if (h) return h.name; o = o.parent; } return null; }
   function onDown(e) { if (!active || focus || e.target !== X.renderer.domElement) return; const n = pick(e.clientX, e.clientY); if (n) select(n); }
@@ -227,6 +268,7 @@
     if (rainTex) rainTex.offset.y -= dt * 0.6; if (Q.globe) Q.globe.rotation.y += dt * (focus === 'cases' ? 0.25 : 0.05);
     // occasional manifestation: a lamp stutter + a knock, or (after the reveal) a figure in the doorway for an instant
     manT -= dt; if (manT <= 0 && !focus) { manT = 35 + Math.random() * 50; lamps.key.intensity *= 0.1; T13.audio.step(3.9, 0.2, 3.2, true, 0.25); if (Q.state.eliasSeen) { eliasGhost.root.visible = true; setTimeout(() => { eliasGhost.root.visible = false; }, 350); } }
+    if (Q.sibs) Q.sibs.forEach((b, i) => { b.look -= dt; if (b.look <= 0) { b.look = 3 + Math.random() * 5; const r = Math.random(); b.target = r < 0.35 ? cam.position.clone() : r < 0.7 ? Q.sibs[(i + 1) % 3].p.root.position.clone().setY(1.6) : null; } b.p.lookAt(b.target || null); b.p.update(dt, { speed: 0 }); });
     placeLabels(); X.renderer.render(scene, cam); X.perfTick(X.renderer);
   }
 })();

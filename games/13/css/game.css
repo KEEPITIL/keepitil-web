@@ -128,3 +128,38 @@ body.touch #keyhelp{display:none}
 #bootShade{position:absolute;left:50%;top:50%;width:14vmin;height:60vmin;transform:translate(-50%,-50%) translateX(-60vw);background:radial-gradient(ellipse at 50% 20%,#000 0 35%,#0000 70%);filter:blur(6px);opacity:0}
 #bootShade.on{animation:pass 1.6s ease-in-out}
 @keyframes pass{0%{opacity:0;transform:translate(-50%,-50%) translateX(-40vw)}30%{opacity:.95}70%{opacity:.95}100%{opacity:0;transform:translate(-50%,-50%) translateX(40vw)}}
+
+/* sense / psychic direction: a soft glow on one edge, never a GPS line */
+#senseCue{position:absolute;inset:0;opacity:0;transition:opacity .8s;pointer-events:none}
+#senseCue.on{opacity:1}
+#senseCue.left{background:linear-gradient(90deg,#9b7be055,#0000 22%)}#senseCue.right{background:linear-gradient(270deg,#9b7be055,#0000 22%)}
+#senseCue.ahead{background:linear-gradient(180deg,#9b7be044,#0000 18%)}#senseCue.behind{background:linear-gradient(0deg,#9b7be055,#0000 22%)}
+#senseCue span{position:absolute;left:50%;top:30%;transform:translateX(-50%);font:600 12px system-ui,sans-serif;letter-spacing:.14em;color:#d9c9ff;text-shadow:0 1px 4px #000}
+#choice{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);pointer-events:auto;background:#0d0b14e6;border:1px solid #6d5aa0;border-radius:10px;padding:12px;min-width:min(420px,90vw)}
+.ch-t{font:600 11px system-ui,sans-serif;letter-spacing:.2em;color:#b9a6ea;margin-bottom:8px}
+.ch-o button{display:block;width:100%;text-align:left;margin:5px 0;background:#1b1628;border:1px solid #3c3160;border-radius:8px;padding:10px 12px;color:#e8e0ff;font:14px Georgia,serif}
+.tb.ab small{position:absolute;top:100%;left:50%;transform:translateX(-50%);font:600 9px system-ui,sans-serif;letter-spacing:.06em;white-space:nowrap;color:#e8dcc0;text-shadow:0 1px 3px #000}
+.tm .hs{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.tm.cap{opacity:.35;text-decoration:line-through}
+#sub{font-size:calc(clamp(14px,2.2vw,19px) * var(--subScale,1));background:var(--subBg,transparent);padding:4px 10px;border-radius:6px}
+
+/* HQ primary navigation: CONTINUE dominant, five destinations beneath it */
+.hq-nav{position:absolute;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:min(720px,94vw)}
+.hq-continue{background:linear-gradient(#d9b25e,#a8822f);color:#1a1206;border:0;border-radius:4px;padding:12px 46px;box-shadow:0 8px 30px #000c,0 0 0 1px #f3d99a55 inset;letter-spacing:.32em;font-family:Georgia,serif}
+.hq-continue b{display:block;font-size:22px;font-weight:700}.hq-continue small{display:block;font:600 10px system-ui,sans-serif;letter-spacing:.16em;opacity:.75;margin-top:3px}
+.hq-continue:hover{filter:brightness(1.08)}
+.hq-nav nav{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;background:#0b0907cc;border:1px solid #3d3222;border-radius:4px;padding:4px}
+.hq-nav nav button{background:none;border:0;color:#e2d4b0;font:600 11px "Courier New",monospace;letter-spacing:.18em;padding:8px 10px;border-radius:3px}
+.hq-nav nav button:hover{background:#2a2012}
+.hq-gear{position:absolute;right:14px;top:calc(12px + env(safe-area-inset-top));background:#120e09b0;border:1px solid #3d3222;color:#cdbf9a;border-radius:50%;width:38px;height:38px;font-size:18px}
+#hq.focused .hq-nav,#hq.focused .hq-gear{display:none}
+@media (max-height:430px){.hq-continue{padding:8px 34px}.hq-continue b{font-size:17px}.hq-nav nav button{padding:6px 7px;font-size:10px;letter-spacing:.1em}}
+
+#cinema{background:transparent;pointer-events:auto}
+#cinFade{position:absolute;inset:0;background:#000;opacity:1;transition:opacity 1.2s;pointer-events:none}
+#cinCap{position:absolute;left:6vw;top:8vh;font:600 12px system-ui,sans-serif;letter-spacing:.35em;color:#cdbf9a;text-transform:uppercase;opacity:0;transition:opacity 1s;text-shadow:0 1px 6px #000}
+#cinSub{position:absolute;left:50%;bottom:9vh;transform:translateX(-50%);max-width:82vw;text-align:center;font-size:calc(clamp(15px,2.3vw,21px) * var(--subScale,1));color:#efe6cf;text-shadow:0 2px 8px #000,0 0 2px #000;opacity:0;transition:opacity .5s}
+#cinSub b{letter-spacing:.12em;color:#d9b25e}
+#cinSkip{position:absolute;right:18px;bottom:calc(16px + env(safe-area-inset-bottom))}
+
+body.nosubs #sub,body.nosubs #cinSub{display:none}

@@ -1,6 +1,12 @@
 /* UI: boot → Lantern HQ → cinematic → play. HUD, panels, keypad, input (keyboard/mouse + touch). */
 (function () {
   const U = T13.ui = {}, $ = id => document.getElementById(id), G = T13.game, A = T13.audio;
+  const DEF = { subtitles: true, subSize: 1, subBg: true, labels: true, brightness: 1, sens: 1, invert: false, vibration: true, flash: 1, difficulty: 'normal', dynRange: 'full', runMode: 'hold' };
+  U.settings = () => { try { return { ...DEF, ...JSON.parse(localStorage.getItem('t13-settings') || '{}') }; } catch (e) { return { ...DEF }; } };
+  U.setSetting = (k, v) => { const s2 = U.settings(); s2[k] = v; try { localStorage.setItem('t13-settings', JSON.stringify(s2)); } catch (e) {} applySettings(); };
+  function applySettings() { const s2 = U.settings(); document.documentElement.style.setProperty('--subScale', s2.subSize); document.documentElement.style.setProperty('--subBg', s2.subBg ? '#000000a6' : 'transparent'); document.body.classList.toggle('nosubs', !s2.subtitles); document.body.classList.toggle('nolabels', !s2.labels); A.nightMode && A.nightMode(s2.dynRange === 'night'); }
+  setTimeout(applySettings, 0);
+  U.vibrate = ms => { if (U.settings().vibration && navigator.vibrate) try { navigator.vibrate(ms); } catch (e) {} };
   const touch = matchMedia('(pointer: coarse)').matches; if (touch) document.body.classList.add('touch');
   let paused = false, subT = 0, toastT = 0;
   U.paused = () => paused;
@@ -8,13 +14,17 @@
   /* ---------- HUD ---------- */
   U.hud = on => { $('hud').classList.toggle('hidden', !on); if (!on && document.pointerLockElement) document.exitPointerLock(); };
   U.obj = t => { $('obj').textContent = t || ''; };
-  U.sub = (text, who, css = '#ddd', ms = 4200) => { const el = $('sub'); el.innerHTML = `${who ? `<b style="color:${css}">${who}</b> — ` : ''}${text.replace(/</g, '&lt;')}`; el.style.opacity = 1; clearTimeout(subT); subT = setTimeout(() => { el.style.opacity = 0; }, ms); };
+  U.sub = (text, who, css = '#ddd', ms = 4200) => { const el = $('sub'); if (!U.settings().labels) who = ''; el.innerHTML = `${who ? `<b style="color:${css}">${who}</b> — ` : ''}${text.replace(/</g, '&lt;')}`; el.style.opacity = 1; clearTimeout(subT); subT = setTimeout(() => { el.style.opacity = 0; }, ms); };
   U.toast = t => { const el = $('ability-cd'); el.dataset.toast = t; clearTimeout(toastT); toastT = setTimeout(() => { el.dataset.toast = ''; }, 1600); };
   U.prompt = t => { const el = $('prompt'); el.textContent = t ? (touch ? '✋ ' : 'E · ') + t : ''; el.classList.toggle('on', !!t); };
-  U.team = (list, active) => { $('team').innerHTML = list.map((b, i) => `<button class="tm${i === active ? ' on' : ''}" data-sw="${i}" style="color:${b.css}">${b.name}<small>${b.power}${b.cd ? ' · ' + b.cd + 's' : ' · ready'}</small></button>`).join(''); };
+  const HCOL = { STABLE: '#6b5', HURT: '#d93', CRITICAL: '#c22', CAPTURED: '#555' };
+  U.team = (list, active) => { $('team').innerHTML = list.map((b, i) => `<button class="tm${i === active ? ' on' : ''}${b.health === 'CAPTURED' ? ' cap' : ''}" data-sw="${i}" style="color:${b.css}"><span class="hs" style="background:${HCOL[b.health] || '#6b5'}"></span>${b.name}${b.grabbed ? ' ⚠' : ''}<small>${b.health === 'CAPTURED' ? 'taken' : b.health === 'STABLE' ? b.power : b.health.toLowerCase() + ' · ' + b.power}</small></button>`).join(''); };
+  let senseT = 0; U.senseCue = (side, name) => { const el = $('senseCue'); el.className = 'on ' + side; el.firstElementChild.textContent = name ? `${name} — ${side === 'ahead' ? 'ahead' : side === 'behind' ? 'behind you' : 'to the ' + side}` : ''; clearTimeout(senseT); senseT = setTimeout(() => { el.className = ''; }, 2600); };
+  let choosing = false; U.choosing = () => choosing; U.choice = (title, opts) => { choosing = true; const el = $('choice'); el.querySelector('.ch-t').textContent = title; const o = el.querySelector('.ch-o'); o.innerHTML = ''; opts.forEach(op => { const b = document.createElement('button'); b.textContent = op.label; b.onclick = () => { el.classList.add('hidden'); choosing = false; op.go(); }; o.appendChild(b); }); el.classList.remove('hidden'); if (document.pointerLockElement) document.exitPointerLock(); };
+  U.power = (label, avail) => { const el = $('abLabel'); if (el) el.textContent = label || ''; const b = document.querySelector('.tb.ab'); if (b) b.style.opacity = avail ? 1 : 0.35; };
   U.fear = (k, state, hidden, battery, stamina) => { $('fearbar').firstElementChild.style.width = Math.round(k * 100) + '%'; const el = $('ability-cd'); el.textContent = el.dataset.toast || `${state.toLowerCase()} · 🔦 ${Math.round(battery)}% · stamina ${Math.round(stamina * 100)}%`;
     $('vignette').style.background = hidden ? 'linear-gradient(#000 0 34%,#0000 34% 66%,#000 66%)' : `radial-gradient(ellipse at center,#0000 ${45 - k * 20}%,#000${k > 0.7 ? 'e' : 'c'} 100%)`; };
-  U.flash = (o = 0.5) => { const el = $('flash'); el.style.transition = 'none'; el.style.opacity = o; requestAnimationFrame(() => { el.style.transition = 'opacity .6s'; el.style.opacity = 0; }); };
+  U.flash = (o = 0.5) => { o *= U.settings().flash; if (o <= 0) return; const el = $('flash'); el.style.transition = 'none'; el.style.opacity = o; requestAnimationFrame(() => { el.style.transition = 'opacity .6s'; el.style.opacity = 0; }); };
   U.over = (title, text, kind) => { $('overT').textContent = title; $('overP').textContent = text; $('overBtn').textContent = kind === 'complete' ? 'Play again' : 'Try again (checkpoint)'; $('overBtn').dataset.kind = kind || 'dead'; $('over').classList.remove('hidden'); };
   $('overBtn').onclick = () => { $('over').classList.add('hidden'); if ($('overBtn').dataset.kind === 'complete') G.start(false); else G.start(true); lock(); };
   
@@ -42,6 +52,7 @@
   const panel = (html, style = 'paper') => { const b = $('panel').querySelector('.pbox'); b.className = 'pbox ' + style; $('pbody').innerHTML = html; $('panel').classList.remove('hidden'); };
   function showHQ(opts = {}) {
     G.stop(); hide(); $('hq').classList.remove('hidden'); $('hqbuild').textContent = T13.BUILD + ' · ' + T13.gfx.tier; $('hqBack').classList.add('hidden');
+    const sv = G.save(); $('hqContinueSub').textContent = sv?.checkpoint ? 'PROLOGUE · CHECKPOINT' : sv?.prologueDone ? 'CASE I · WINCHESTER — IN PRODUCTION · REPLAY PROLOGUE' : 'NEW GAME · PROLOGUE'; $('hq').classList.remove('focused');
     T13.hq.enter(selectHQ, opts);
   }
   U.showHQ = showHQ;
@@ -59,22 +70,33 @@
       <h3>Evidence found</h3><p>${G.save()?.prologueDone ? 'The fuse, the nurse’s count (4-1-3), a lantern scratched into the exit door.' : 'Nothing yet.'}</p>
       <h3>Lantern notes</h3><p>“It copies voices.” — written where only Daniel could see it.</p><h3>Fictional interpretation</h3><p>The Hollow. It cannot create — only counterfeit.</p>`],
     lore: () => ['journal', `<h2 style="font-family:Georgia;letter-spacing:.1em;color:#4a2a1a">E. V. — field journal</h2><p>Lantern investigates places where something is still listening. Evelyn and I started it with nothing but a borrowed camera and a lot of coffee.</p><p>If you are reading this, the children found the key. Good.</p><p style="opacity:.55">The rest of the pages are blank. For now.</p>`],
-    settings: () => ['radio', `<h2 style="color:#ffc27a">SETTINGS</h2><p>Graphics quality (reloads): ${['HIGH', 'MEDIUM', 'LOW'].map(q2 => `<button class="ghost qbtn" data-q="${q2}" style="${T13.gfx.tier === q2 ? 'border-color:#ffc27a;color:#ffc27a' : ''}">${q2}</button>`).join(' ')}</p><p><button class="ghost" id="perfToggle">Performance overlay</button> <button class="ghost" id="wipe">Erase local progress</button></p><p><small>Progress is saved on this device for the prototype. Cloud save with a KEEPITIL account comes with the Case I build.</small></p><p><small>${T13.BUILD}</small></p>`],
+    settings: () => ['radio', `<h2 style="color:#ffc27a">SETTINGS</h2>${accessHTML()}<p>Graphics quality (reloads): ${['HIGH', 'MEDIUM', 'LOW'].map(q2 => `<button class="ghost qbtn" data-q="${q2}" style="${T13.gfx.tier === q2 ? 'border-color:#ffc27a;color:#ffc27a' : ''}">${q2}</button>`).join(' ')}</p><p><button class="ghost" id="perfToggle">Performance overlay</button> <button class="ghost" id="wipe">Erase local progress</button></p><p><small>Progress is saved on this device for the prototype. Cloud save with a KEEPITIL account comes with the Case I build.</small></p><p><small>${T13.BUILD}</small></p>`],
   };
+  function accessHTML() { const s2 = U.settings(); const opt = (k, vals) => vals.map(([v, l]) => `<button class="ghost acc" data-k="${k}" data-v='${JSON.stringify(v)}' style="${JSON.stringify(s2[k]) === JSON.stringify(v) ? 'border-color:#ffc27a;color:#ffc27a' : ''}">${l}</button>`).join(' ');
+    return `<h3 style="color:#ffc27a">Accessibility</h3><p>Subtitles: ${opt('subtitles', [[true, 'On'], [false, 'Off']])} · Size: ${opt('subSize', [[0.85, 'S'], [1, 'M'], [1.3, 'L'], [1.6, 'XL']])} · Background: ${opt('subBg', [[true, 'On'], [false, 'Off']])} · Speaker labels: ${opt('labels', [[true, 'On'], [false, 'Off']])}</p>
+      <p>Brightness: ${opt('brightness', [[0.8, 'Low'], [1, 'Default'], [1.25, 'High'], [1.5, 'Max']])}</p><p>Camera sensitivity: ${opt('sens', [[0.6, 'Low'], [1, 'Medium'], [1.5, 'High'], [2.2, 'Max']])} · Invert Y: ${opt('invert', [[false, 'Off'], [true, 'On']])}</p>
+      <p>Horror-flash intensity: ${opt('flash', [[0, 'Off'], [0.4, 'Low'], [1, 'Full']])} · Vibration: ${opt('vibration', [[true, 'On'], [false, 'Off']])}</p><p>Difficulty: ${opt('difficulty', [['story', 'Story'], ['normal', 'Normal'], ['hard', 'Hard']])} · Audio range: ${opt('dynRange', [['full', 'Full'], ['night', 'Night (compressed)']])} · Run: ${opt('runMode', [['hold', 'Hold'], ['toggle', 'Toggle']])}</p>`; }
   function theater() { const f = G.save()?.films || []; const row = (id, t) => `<div class="case"><b>${f.includes(id) ? '▶' : '·'}</b><div class="${f.includes(id) ? '' : 'locked'}">${f.includes(id) ? t : '— locked —'}</div></div>`;
-    $('theaterBody').innerHTML = `<h2>THEATER</h2><div class="case"><span class="tag">CASE FILMS</span><span class="tag">FAMILY STORY</span><span class="tag">WATCH SEASON</span><span class="tag">COMPLETE CUT</span></div>${row('case-0', 'Case film · Prologue: The Ashgrove Wing')}${row('family-1', 'Family film 1 · Day Zero')}${Array.from({ length: 6 }, (_, i) => row('case-' + (i + 1), '')).join('')}<small style="opacity:.6">27 films in Season One</small>`;
+    $('theaterBody').innerHTML = `<h2>THEATER</h2><div class="case"><span class="tag">CASE FILMS</span><span class="tag">FAMILY STORY</span><span class="tag">WATCH SEASON</span><span class="tag">COMPLETE CUT</span></div>${row('intro', 'Prologue film · The Vane family (intro)')}${row('case-0', 'Case film · Prologue: The Ashgrove Wing')}${row('family-1', 'Family film 1 · Day Zero')}${Array.from({ length: 6 }, (_, i) => row('case-' + (i + 1), '')).join('')}<small style="opacity:.6">27 films in Season One</small>`;
+    $('theaterBody').querySelectorAll('.case').forEach(el => { if (/Vane family/.test(el.textContent) && f.includes('intro')) { el.style.cursor = 'pointer'; el.onclick = () => { $('theater').classList.add('hidden'); T13.hq.exit(); $('hq').classList.add('hidden'); T13.cinema.play(() => showHQ(), { allowSkip: true }); }; } });
     const r = T13.hq.screenRect(); const el = $('theater'); if (r) { el.style.left = r.left + 'px'; el.style.top = r.top + 'px'; el.style.width = (r.right - r.left) + 'px'; el.style.height = (r.bottom - r.top) + 'px'; } el.classList.remove('hidden'); }
   function selectHQ(name) {
-    A.init(); if (name === 'back') return; $('hqBack').classList.remove('hidden');
+    A.init(); if (name === 'back') return; $('hqBack').classList.remove('hidden'); $('hq').classList.add('focused');
     T13.hq.focusOn(name, () => {
       if (name === 'theater') { setTimeout(theater, 900); return; }
       const [style, html] = PANELS[name](); panel(html, style);
       if (name === 'continue') $('goPlay').onclick = startPlay;
-      if (name === 'settings') { $('wipe').onclick = () => { try { localStorage.removeItem('t13-save'); } catch (err) {} hide(); T13.hq.back(); $('hqBack').classList.add('hidden'); T13.hq.setState({ markers: 0, newspapers: [], eliasNotes: 0 }); };
-        document.querySelectorAll('.qbtn').forEach(b => b.onclick = () => { T13.gfx.setTier(b.dataset.q); location.reload(); }); $('perfToggle').onclick = () => { const u = new URL(location.href); u.searchParams.set('perf', '1'); location.href = u; }; }
+      if (name === 'settings') bindSettings();
     });
   }
-  function backHQ() { hide(); $('hqBack').classList.add('hidden'); T13.hq.back(); }
+  function bindSettings() {
+    $('wipe').onclick = () => { try { localStorage.removeItem('t13-save'); } catch (err) {} hide(); T13.hq.back(); $('hqBack').classList.add('hidden'); $('hq').classList.remove('focused'); T13.hq.setState({ markers: 0, newspapers: [], eliasNotes: 0 }); };
+    document.querySelectorAll('.qbtn').forEach(b => b.onclick = () => { T13.gfx.setTier(b.dataset.q); location.reload(); });
+    $('perfToggle').onclick = () => { const u = new URL(location.href); u.searchParams.set('perf', '1'); location.href = u; };
+    document.querySelectorAll('.acc').forEach(b => b.onclick = () => { U.setSetting(b.dataset.k, JSON.parse(b.dataset.v)); const [, html] = PANELS.settings(); $('pbody').innerHTML = html; bindSettings(); }); }
+  function backHQ() { hide(); $('hqBack').classList.add('hidden'); $('hq').classList.remove('focused'); T13.hq.back(); }
+  $('hqContinue').onclick = () => { A.init(); startPlay(); };
+  document.querySelectorAll('[data-hq]').forEach(b => b.onclick = () => selectHQ(b.dataset.hq));
   $('hqBack').onclick = backHQ;
   $('panel').addEventListener('click', e => { if (e.target.classList.contains('pclose') || e.target.id === 'panel') { if (T13.hq.isActive()) backHQ(); else $('panel').classList.add('hidden'); } });
   function startPlay() { const sv = G.save(); hide(); T13.hq.exit(); $('hq').classList.add('hidden'); if (sv?.checkpoint) { G.start(true); lock(); return; }
@@ -96,7 +118,7 @@
   }
   // asset pipeline: start loading production/test models while the title plays (fallbacks are reported)
   T13.gfx.initRenderer($('view')); T13.assetsReady = T13.assets.init(T13.gfx.renderer).then(() => Promise.all([T13.people.preload(), T13.hollow.preload()])).catch(e => console.warn('[assets]', e));
-  $('tapstart').onclick = () => { A.init(); boot(); };
+  $('tapstart').onclick = () => { A.init(); let seen = false; try { seen = !!JSON.parse(localStorage.getItem('t13-save') || '{}').introSeen; } catch (e) {} if (!seen) { $('tapstart').classList.add('hidden'); $('boot').classList.add('hidden'); T13.cinema.play(() => { $('boot').classList.remove('hidden'); boot(); }); } else boot(); };
   $('boot').addEventListener('dblclick', () => { $('boot').classList.add('hidden'); showHQ(); });
   $('overHQ').onclick = () => { $('over').classList.add('hidden'); showHQ(); };
 
@@ -105,8 +127,9 @@
   const lock = () => { if (!touch && canvas.requestPointerLock) try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) {} };
   canvas.addEventListener('click', () => { if (G.isRunning() && !paused) lock(); });
   document.addEventListener('mousemove', e => { if (document.pointerLockElement === canvas) { G.input.dx += e.movementX; G.input.dy += e.movementY; } });
-  const axes = () => { G.input.mx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0); G.input.mz = (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0); G.input.run = !!(keys.ShiftLeft || keys.ShiftRight); };
+  const axes = () => { G.input.mx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0); G.input.mz = (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0); if (U.settings().runMode === 'hold') G.input.run = !!(keys.ShiftLeft || keys.ShiftRight); };
   addEventListener('keydown', e => { if (!G.isRunning()) return; if (e.code === 'Tab') e.preventDefault(); if (e.repeat) return; keys[e.code] = true; axes();
+    if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && U.settings().runMode === 'toggle') G.input.run = !G.input.run;
     const m = { KeyE: 'interact', KeyF: 'light', KeyQ: 'ability', Tab: 'switch', Digit1: 'switch1', Digit2: 'switch2', Digit3: 'switch3', KeyC: 'crouch' }[e.code]; if (m) G.act(m);
     if (e.code === 'Escape' || e.code === 'KeyP') togglePause(); });
   addEventListener('keyup', e => { keys[e.code] = false; axes(); });

@@ -94,6 +94,8 @@
     setTimeout(() => $('bt3').classList.remove('on'), 11200);
     setTimeout(() => { showHQ({ reveal: true }); $('boot').style.transition = 'opacity 1.4s'; $('boot').style.opacity = 0; setTimeout(() => $('boot').classList.add('hidden'), 1500); }, 11800);
   }
+  // asset pipeline: start loading production/test models while the title plays (fallbacks are reported)
+  T13.gfx.initRenderer($('view')); T13.assetsReady = T13.assets.init(T13.gfx.renderer).then(() => Promise.all([T13.people.preload(), T13.hollow.preload()])).catch(e => console.warn('[assets]', e));
   $('tapstart').onclick = () => { A.init(); boot(); };
   $('boot').addEventListener('dblclick', () => { $('boot').classList.add('hidden'); showHQ(); });
   $('overHQ').onclick = () => { $('over').classList.add('hidden'); showHQ(); };

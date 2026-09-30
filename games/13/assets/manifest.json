@@ -1,0 +1,12 @@
+{
+  "_doc": "THIRTEEN asset manifest. Every runtime asset is listed with provenance. status: production | test | missing. Only 'production' assets may ship as final art. A 'missing' asset falls back to the procedural rig and is reported, never silently substituted.",
+  "characters": {
+    "mara":    { "url": "assets/characters/mara.glb",    "status": "missing", "source": null, "license": null, "author": null, "notes": "Needs licensed rigged human (see docs/ASSET-SPEC.md)." },
+    "gabriel": { "url": "assets/characters/gabriel.glb", "status": "missing", "source": null, "license": null, "author": null, "notes": "Needs licensed rigged human (see docs/ASSET-SPEC.md)." },
+    "daniel":  { "url": "assets/characters/daniel.glb",  "status": "missing", "source": null, "license": null, "author": null, "notes": "Needs licensed rigged human (see docs/ASSET-SPEC.md)." },
+    "hollow":  { "url": "assets/characters/hollow.glb",  "status": "missing", "source": null, "license": null, "author": null, "notes": "Needs a creature model (see docs/ASSET-SPEC.md)." }
+  },
+  "test": {
+    "pipeline-rig": { "url": "assets/characters/_test-procedural-mara.glb", "status": "test", "source": "Exported from THIRTEEN's own procedural rig (web/js/people.js) by tools/assets/export-test-glb.js", "license": "Project-owned (TUITEA/KEEPITIL)", "author": "Kode", "notes": "PIPELINE TEST ONLY — proves GLB + Draco/Meshopt + manifest + adapter on the phone. Not production art." }
+  }
+}

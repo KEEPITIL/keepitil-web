@@ -25,17 +25,24 @@
   const box = (w, h, d, mat) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.castShadow = true; return m; };
   const at = (m, x, y, z) => { m.position.set(x, y, z); return m; };
 
-  P.build = (id) => {
+  /* GLB first (if the manifest has a loaded production/test asset), procedural otherwise */
+  P.loaded = {};
+  P.preload = async () => { if (!T13.assets || !T13.assets.loader) return;
+    // ?pipeline=1 (or localStorage t13-pipeline=1): load the TEST asset for Mara to exercise the GLB path — never production
+    let pipe = false; try { pipe = new URLSearchParams(location.search).has('pipeline') || (window.T13_BENCH === true && localStorage.getItem('t13-pipeline') === '1'); } catch (e) {}
+    for (const id of Object.keys(SPECS)) { const r = pipe && id === 'mara' ? await T13.assets.load('test', 'pipeline-rig') : await T13.assets.load('characters', id); if (r) P.loaded[id] = r; } };
+  P.build = (id) => { const L2 = P.loaded[id]; if (L2 && T13.peopleGLB) { try { return T13.peopleGLB.build(id, L2.gltf, L2.entry, SPECS[id]); } catch (e) { T13.assets.report.push({ level: 'error', msg: id + ': GLB adapter failed — procedural fallback', err: String(e) }); } } return P.buildProcedural(id); };
+  P.buildProcedural = (id) => {
     const S = SPECS[id], k = S.h / 1.75, W = S.sw;
     const M = (color, o = {}) => X.mat({ color, ...o });
     const skin = M(S.skin, { shininess: 14 }), hairM = M(S.hair, { shininess: 22 }), jacket = M(S.jacket, { map: X.fabricTex('#ffffff', 'cloth') }), jacket2 = M(S.jacket2), shirt = M(S.shirt, { map: X.fabricTex('#ffffff', 'cloth') }), pants = M(S.pants, { map: X.fabricTex('#ffffff', 'cloth') }), shoe = M(S.shoe, { shininess: 30 });
     const root = new THREE.Group(); root.name = id;
     // --- skeleton
-    const hips = at(new THREE.Group(), 0, 0.93 * k, 0); root.add(hips);
+    const hips = at(new THREE.Group(), 0, 0.93 * k, 0); root.add(hips); hips.name = 'mixamorigHips';
     const spine = at(new THREE.Group(), 0, 0.05 * k, 0); hips.add(spine);
     const chest = at(new THREE.Group(), 0, 0.26 * k, 0); spine.add(chest);
     const neck = at(new THREE.Group(), 0, 0.27 * k, 0); chest.add(neck);
-    const head = at(new THREE.Group(), 0, 0.12 * k, 0); neck.add(head);
+    const head = at(new THREE.Group(), 0, 0.12 * k, 0); neck.add(head); spine.name = 'mixamorigSpine'; chest.name = 'mixamorigSpine2'; neck.name = 'mixamorigNeck'; head.name = 'mixamorigHead';
     // --- torso (clothing)
     const pelvis = at(cyl(0.155 * W, 0.16 * W, 0.18 * k, pants), 0, 0.0, 0); pelvis.scale.z = 0.7; hips.add(pelvis);
     const belly = at(cyl(0.15 * W, 0.155 * W, 0.28 * k, shirt), 0, 0.12 * k, 0); belly.scale.z = 0.66; spine.add(belly);
@@ -99,6 +106,7 @@
       const palm = at(box(0.062, 0.085, 0.026, skin), 0, -0.045, 0); wr.add(palm);
       const fing = at(box(0.058, 0.07, 0.022, skin), 0, -0.115, -0.004); fing.rotation.x = -0.25; wr.add(fing);
       const th = at(box(0.018, 0.05, 0.02, skin), -s * 0.035, -0.04, -0.018); th.rotation.z = s * 0.5; wr.add(th);
+      const side = s < 0 ? 'Left' : 'Right'; sh.name = 'mixamorig' + side + 'Arm'; el.name = 'mixamorig' + side + 'ForeArm'; wr.name = 'mixamorig' + side + 'Hand';
       return { sh, el, wr, fing };
     };
     const armL = arm(-1), armR = arm(1);
@@ -111,6 +119,7 @@
       const an = at(new THREE.Group(), 0, -0.42 * k, 0); kn.add(an);
       const ft = at(box(0.1 * W, 0.075, 0.26, shoe), 0, -0.035, -0.055); an.add(ft);
       const toe = at(cyl(0.05 * W, 0.05 * W, 0.075, shoe, 10), 0, -0.035, -0.18); toe.rotation.z = Math.PI / 2; toe.scale.set(1, 1, 1); an.add(toe);
+      const side = s < 0 ? 'Left' : 'Right'; hp.name = 'mixamorig' + side + 'UpLeg'; kn.name = 'mixamorig' + side + 'Leg'; an.name = 'mixamorig' + side + 'Foot';
       return { hp, kn, an };
     };
     const legL = leg(-1), legR = leg(1);

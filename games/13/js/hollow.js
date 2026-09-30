@@ -3,7 +3,21 @@
    Reveal modes: full · shadow (pure silhouette) · limbs (only arms/hands) · face (only the head) · none. Forward is −z. */
 (function () {
   const H = T13.hollow = {}, X = T13.gfx;
-  H.build = () => {
+  /* production path: a GLB creature from the manifest (clips: idle/walk/hunt/lunge; bones matching LeftArm/RightArm/Head get limb/face reveal) */
+  H.loaded = null;
+  H.preload = async () => { if (T13.assets && T13.assets.loader) H.loaded = await T13.assets.load('characters', 'hollow'); };
+  H.buildGLB = ({ gltf }) => {
+    const root = new THREE.Group(), model = THREE.SkeletonUtils ? THREE.SkeletonUtils.clone(gltf.scene) : gltf.scene.clone(true); root.add(model);
+    model.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(model), h = bb.max.y - bb.min.y || 1, k = 2.5 / h; model.scale.setScalar(k); model.position.y = -bb.min.y * k;
+    const black = new THREE.MeshBasicMaterial({ color: 0x000000, skinning: true }), meshes = []; model.traverse(o => { if (o.isMesh) { o.userData.mat = o.material; o.castShadow = true; o.frustumCulled = false; meshes.push(o); } });
+    const mixer = new THREE.AnimationMixer(model), acts = {}; (gltf.animations || []).forEach(c => { for (const w of ['idle', 'walk', 'hunt', 'lunge']) if (c.name.toLowerCase().includes(w) && !acts[w]) acts[w] = mixer.clipAction(c); }); let cur = null;
+    const api = { root, head: root, mode: 'full', glb: true,
+      setReveal(mode) { api.mode = mode; meshes.forEach(m => { m.visible = mode !== 'none'; m.material = mode === 'shadow' ? black : m.userData.mat; }); },
+      update(dt, ctx = {}) { mixer.update(dt); const want = ctx.hunting ? (acts.hunt ? 'hunt' : 'walk') : (ctx.speed > 0.3 ? 'walk' : 'idle'); const a = acts[want]; if (a && a !== cur) { a.reset().fadeIn(0.2).play(); if (cur) cur.fadeOut(0.2); cur = a; } } };
+    return api;
+  };
+  H.build = () => { if (H.loaded) { try { return H.buildGLB(H.loaded); } catch (e) { T13.assets.report.push({ level: 'error', msg: 'hollow: GLB adapter failed — procedural fallback', err: String(e) }); } } return H.buildProcedural(); };
+  H.buildProcedural = () => {
     const skinT = X.tex('hollowskin', 256, 256, (g, w, h) => { g.fillStyle = '#8e8f86'; g.fillRect(0, 0, w, h); for (let i = 0; i < 500; i++) { g.fillStyle = `rgba(${X.rnd() < 0.5 ? '40,45,40' : '140,120,110'},${X.rnd() * 0.25})`; g.beginPath(); g.arc(X.rnd() * w, X.rnd() * h, 1 + X.rnd() * 7, 0, 7); g.fill(); } for (let i = 0; i < 30; i++) { g.strokeStyle = 'rgba(50,40,60,.35)'; g.beginPath(); let x = X.rnd() * w, y = X.rnd() * h; g.moveTo(x, y); for (let k = 0; k < 6; k++) { x += X.rnd() * 20 - 10; y += X.rnd() * 20; g.lineTo(x, y); } g.stroke(); } });
     const skin = X.mat({ color: 0xb0b0a6, map: skinT, shininess: 30 }), dark = X.mat({ color: 0x0f0f11 }), cloth = X.mat({ color: 0x1a1816, side: THREE.DoubleSide, map: X.fabricTex('#ffffff', 'cloth') });
     const black = new THREE.MeshBasicMaterial({ color: 0x000000 }), socket = new THREE.MeshBasicMaterial({ color: 0x020202 });

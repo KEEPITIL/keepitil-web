@@ -8,7 +8,7 @@
 <meta name="description" content="The Thirteen Anchors — Season One. A supernatural horror game presented by KEEPITIL, developed by TUITEA.">
 <title>The Thirteen Anchors</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="css/game.css?v=2">
+<link rel="stylesheet" href="css/game.css?v=3">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -62,16 +62,23 @@
 <!-- death / end -->
 <div id="over" class="layer hidden"><div class="obox"><h1 id="overT"></h1><p id="overP"></p><button id="overBtn" class="big">Try again</button><button id="overHQ" class="ghost">Back to Lantern HQ</button></div></div>
 
+<script type="importmap">{"imports":{"three":"./vendor/jsm/three-shim.js"}}</script>
 <script src="vendor/three.min.js"></script>
-<script src="js/data.js?v=2"></script>
-<script src="js/gfx.js?v=2"></script>
-<script src="js/people.js?v=2"></script>
-<script src="js/hollow.js?v=2"></script>
-<script src="js/audio.js?v=2"></script>
-<script src="js/director.js?v=2"></script>
-<script src="js/level.js?v=2"></script>
-<script src="js/game.js?v=2"></script>
-<script src="js/hq.js?v=2"></script>
-<script src="js/ui.js?v=2"></script>
+<script src="vendor/loaders/GLTFLoader.js"></script>
+<script src="vendor/loaders/DRACOLoader.js"></script>
+<script src="vendor/loaders/meshopt_decoder.js"></script>
+<script src="vendor/loaders/SkeletonUtils.js"></script>
+<script src="js/data.js?v=3"></script>
+<script src="js/gfx.js?v=3"></script>
+<script src="js/assets.js?v=3"></script>
+<script src="js/people.js?v=3"></script>
+<script src="js/people-glb.js?v=3"></script>
+<script src="js/hollow.js?v=3"></script>
+<script src="js/audio.js?v=3"></script>
+<script src="js/director.js?v=3"></script>
+<script src="js/level.js?v=3"></script>
+<script src="js/game.js?v=3"></script>
+<script src="js/hq.js?v=3"></script>
+<script src="js/ui.js?v=3"></script>
 </body>
 </html>

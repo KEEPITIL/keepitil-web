@@ -23,5 +23,12 @@ Disallow: /organizers/
 
 Disallow: /radio-tuner/
 
+# COMING SOON games (games hub, 2026-09-30). These routes still serve development builds,
+# which the games' own deploy pipelines own; the hub says COMING SOON and offers no play link.
+# Not retired routes - live builds that are not yet public - so they are kept out of search.
+Disallow: /games/kwars2/
+Disallow: /games/kwars3/
+Disallow: /games/13/
+
 Sitemap: https://keepitil.com/sitemap.xml
 Sitemap: https://keepitil.com/sitemap-events.xml

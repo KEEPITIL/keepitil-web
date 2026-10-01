@@ -49,7 +49,7 @@
    Generated. The compiled Dart in this same release reports
    `<build>.<commit>.<variant>` — same build number, same commit — so a
    telemetry row, this cache name and the deployed files can be lined up. */
-const RELEASE = '70.a43d61e';
+const RELEASE = '71.0932e22';
 const CACHE = 'tuitea-release-' + RELEASE;
 const SCOPE = '/app/tuitea/';
 
@@ -65,6 +65,9 @@ const RELEASE_FILES = [
   "/app/tuitea/app/assets/FontManifest.json",
   "/app/tuitea/app/assets/NOTICES",
   "/app/tuitea/app/assets/assets/audio/README.md",
+  "/app/tuitea/app/assets/assets/legal/health_privacy.md",
+  "/app/tuitea/app/assets/assets/legal/privacy.md",
+  "/app/tuitea/app/assets/assets/legal/terms.md",
   "/app/tuitea/app/assets/fonts/MaterialIcons-Regular.otf",
   "/app/tuitea/app/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
   "/app/tuitea/app/assets/packages/record_web/assets/js/record.fixwebmduration.js",

@@ -1,8 +1,8 @@
 {
-  "release": "70.a43d61e",
+  "release": "71.0932e22",
   "appVersion": "1.0.0",
-  "buildNumber": "70",
-  "commit": "a43d61e",
-  "applicationRevision": "6c9c5d6",
-  "shellVersion": 691
+  "buildNumber": "71",
+  "commit": "0932e22",
+  "applicationRevision": "0932e22",
+  "shellVersion": 718
 }

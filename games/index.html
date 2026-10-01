@@ -119,6 +119,30 @@
   .kw.soon-card .art{--glow:rgba(139,92,246,.20)}
   .thirteen .art{--glow:rgba(220,38,38,.22)}
 
+  /* ── scene art (KWARS II / III): full-bleed, same 16:9 panel ── */
+  .art.scene picture,.art.scene img{position:absolute;inset:0;width:100%;height:100%;max-width:none;border-radius:0;
+       aspect-ratio:auto;object-fit:cover;box-shadow:none}
+  .soon-card .art.scene img{filter:saturate(.8) brightness(.8)}
+  .art.scene .chap{color:rgba(255,255,255,.18);text-shadow:0 2px 14px rgba(0,0,0,.6)}
+
+  /* ── KEEPITIL APPS: same family, visibly not games ─────────── */
+  h2.apps-head{margin-top:56px;padding-top:28px;border-top:1px solid var(--line)}
+  .gridapps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch}
+  .app-card{display:flex;gap:16px;align-items:flex-start;padding:18px;border-radius:16px;min-width:0;
+       background:linear-gradient(180deg,rgba(34,211,238,.05),rgba(255,255,255,.015));border:1px solid rgba(34,211,238,.18)}
+  .app-card .mark{flex:0 0 64px;width:64px;height:64px;border-radius:15px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+  .app-body{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1;align-self:stretch}
+  .app-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .app-card h3{font-size:16px;font-weight:900;letter-spacing:.1em}
+  .kind{font-size:9.5px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);
+       border:1px solid rgba(34,211,238,.35);border-radius:6px;padding:3px 7px}
+  .app-card .desc{font-size:13.5px;line-height:1.45}
+  .app-card .sum{font-size:12.5px;line-height:1.5;color:var(--dim)}
+  .app-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:4px}
+  .status.store{color:var(--cyan);background:rgba(34,211,238,.10);border:1px solid rgba(34,211,238,.34)}
+  .cta.app{min-height:38px;padding:0 14px;font-size:11.5px;color:var(--cyan);border:1px solid rgba(34,211,238,.45);background:transparent}
+  .cta.app:hover{background:rgba(34,211,238,.10)}
+
   /* ── other apps: present, quiet ──────────────────────────── */
   .others{margin-top:44px;border:1px solid var(--line);border-radius:16px;padding:16px 18px;
           display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;background:rgba(255,255,255,.02)}
@@ -136,17 +160,24 @@
   /* ── tablet ──────────────────────────────────────────────── */
   @media(max-width:980px){
     .grid3{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .gridapps{grid-template-columns:minmax(0,1fr)}
   }
   /* ── phone: everything stacks, no carousels ──────────────── */
   @media(max-width:720px){
     .wrap{padding:16px 16px 60px}
     .hero{padding:26px 0 18px}
     h2.sect{margin:32px 0 14px}
-    .grid3,.gridsoon{grid-template-columns:minmax(0,1fr)}
+    .grid3,.gridsoon,.gridapps{grid-template-columns:minmax(0,1fr)}
     .feature .art{aspect-ratio:16/10}
     .feature .art .poster{right:5%;height:80%}
     .feature .row{grid-template-columns:minmax(0,1fr);padding:18px 18px 20px;gap:16px}
     .feature .side{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:16px}
+  }
+  /* 320-420px: beside a 64px icon the text column is ~170px, and "FREE ON THE APP STORE"
+     (no-wrap) needs ~180px — it ran 4px off-screen at 320. Stack the icon above instead. */
+  @media(max-width:420px){
+    .app-card{flex-direction:column;gap:12px}
+    .app-card .mark{flex-basis:auto;width:56px;height:56px}
   }
 </style>
 </head>
@@ -202,7 +233,9 @@
       </div>
     </article>
     <article class="card kw soon-card" data-game="kwars2" data-status="soon" aria-labelledby="g-kwars2">
-      <div class="art"><img src="/games/kwars2/app-icon-512.png" alt="Kingdom Wars II" loading="lazy" width="512" height="512"><span class="chap" aria-hidden="true">II</span></div>
+      <div class="art scene"><!-- original illustration (2.5D side-on) -->
+        <picture><source type="image/webp" srcset="/assets/games-hub/kwars2-card-800.webp 800w, /assets/games-hub/kwars2-card-1600.webp 1600w" sizes="(max-width:720px) 100vw, 380px">
+        <img src="/assets/games-hub/kwars2-card-1600.jpg" alt="Kingdom Wars II — armies clashing across a wide 2.5D battlefield" loading="lazy" width="1600" height="900"></picture><span class="chap" aria-hidden="true">II</span></div>
       <div class="body">
         <h3 id="g-kwars2">KINGDOM WARS II</h3>
         <span class="status soon">Coming soon</span>
@@ -215,7 +248,9 @@
       </div>
     </article>
     <article class="card kw soon-card" data-game="kwars3" data-status="soon" aria-labelledby="g-kwars3">
-      <div class="art"><img src="/games/kwars3/app-icon-512.png" alt="Kingdom Wars III" loading="lazy" width="512" height="512"><span class="chap" aria-hidden="true">III</span></div>
+      <div class="art scene"><!-- original illustration -->
+        <picture><source type="image/webp" srcset="/assets/games-hub/kwars3-card-800.webp 800w, /assets/games-hub/kwars3-card-1600.webp 1600w" sizes="(max-width:720px) 100vw, 380px">
+        <img src="/assets/games-hub/kwars3-card-1600.jpg" alt="Kingdom Wars III — forts and armies across a true-3D battlefield" loading="lazy" width="1600" height="900"></picture><span class="chap" aria-hidden="true">III</span></div>
       <div class="body">
         <h3 id="g-kwars3">KINGDOM WARS III</h3>
         <span class="status soon">Coming soon</span>
@@ -247,11 +282,43 @@
     </article>
   </div>
 
-  <aside class="others" aria-label="Other KEEPITIL apps">
-    <b>Other KEEPITIL apps</b>
-    <span>WIFI Remote<i>COMING SOON</i></span>
-    <span>KFORM<i>COMING SOON</i></span>
-  </aside>
+  <!-- KEEPITIL APPS — not games. Status and CTA come from each app's real public state:
+       TUITEA   public page keepitil.com/app/tuitea (its one advertised URL); not publicly
+                downloadable (private family distribution) → COMING SOON + LEARN MORE
+       KFORM    article /article/kform-lead-capture/ says coming soon → COMING SOON + LEARN MORE
+       WIFI REMOTE  live on the App Store (id6790006312, "WiFi Remote for Smart TVs", free,
+                released 2026-07-27) → FREE ON THE APP STORE. Copy from that listing.
+       An app card never says PLAY BETA; games-hub.mjs enforces it. -->
+  <h2 class="sect apps-head" id="keepitil-apps">KEEPITIL Apps <small>More tools and apps from KEEPITIL.</small></h2>
+  <div class="gridapps">
+    <article class="app-card" data-app="tuitea" data-status="soon" aria-labelledby="a-tuitea">
+      <img class="mark" src="/app/tuitea/icon-512.png" alt="TUITEA" width="512" height="512" loading="lazy">
+      <div class="app-body">
+        <div class="app-top"><h3 id="a-tuitea">TUITEA</h3><span class="kind">App</span></div>
+        <p class="desc">Everything your family wants to keep.</p>
+        <p class="sum">A private app for one family: who everyone is and how they are related, the photographs and the stories behind them, and the everyday running of a household.</p>
+        <div class="app-foot"><span class="status soon">Coming soon</span><a class="cta app" href="/app/tuitea">Learn more</a></div>
+      </div>
+    </article>
+    <article class="app-card" data-app="kform" data-status="soon" aria-labelledby="a-kform">
+      <img class="mark" src="/assets/games-hub/kform-mark.svg" alt="KFORM" width="512" height="512" loading="lazy">
+      <div class="app-body">
+        <div class="app-top"><h3 id="a-kform">KFORM</h3><span class="kind">App</span></div>
+        <p class="desc">A form and lead-capture builder for events, RSVPs and creator sign-ups.</p>
+        <p class="sum">Every submission flows straight into the KEEPITIL ecosystem.</p>
+        <div class="app-foot"><span class="status soon">Coming soon</span><a class="cta app" href="/article/kform-lead-capture/">Learn more</a></div>
+      </div>
+    </article>
+    <article class="app-card" data-app="wifi-remote" data-status="store" aria-labelledby="a-wifi">
+      <img class="mark" src="/assets/games-hub/wifi-remote-icon.jpg" alt="WiFi Remote" width="512" height="512" loading="lazy">
+      <div class="app-body">
+        <div class="app-top"><h3 id="a-wifi">WIFI REMOTE</h3><span class="kind">App</span></div>
+        <p class="desc">Turn your iPhone into a fast, reliable remote for your smart TV.</p>
+        <p class="sum">Finds the TVs on your Wi-Fi automatically. Works with LG, Roku, Samsung, Vizio and Sony Bravia.</p>
+        <div class="app-foot"><span class="status store">Free on the App Store</span><a class="cta app" href="https://apps.apple.com/app/id6790006312" target="_blank" rel="noopener">View on App Store ↗</a></div>
+      </div>
+    </article>
+  </div>
 
   <section class="how">
     <h3>About the beta</h3>

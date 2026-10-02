@@ -1,0 +1,258 @@
+/* KMOB character kit — original stylized miniature-warrior models built from sculpted primitives (lathe bodies,
+   oversized helmets, mitten hands, chunky boots), split along the shared skeleton in anim.js so every part can be
+   GPU-instanced. Vertices flagged tint=1 take the faction colour per instance; everything else keeps its own colour
+   (skin, steel, gold, leather). Baked vertical AO darkens lower areas for depth without extra lights.
+
+   Bone-local conventions: legs pivot at the hip (sole at y=-0.33); torso pivots at the hips (neck at y=0.40);
+   head pivots at the neck; arms pivot at the shoulder (fist at y=-0.27); weapons grip at the origin pointing +z. */
+(function (G) {
+  const KM = G.KM;
+  const V3 = THREE.Vector3, M4 = THREE.Matrix4, Q = THREE.Quaternion, E = THREE.Euler, C = THREE.Color;
+  const SKIN = 0xffcf9f, STEEL = 0xd4dae4, DSTEEL = 0x7d8796, GOLD = 0xf4c247, LEATHER = 0x6b4426, DLEATHER = 0x3d2818, IVORY = 0xf4ead0, DARK = 0x1c1c26, WOOD = 0x8f5c34, WHITE = 0xffffff;
+
+  const TRS = (x, y, z, rx, ry, rz, sx, sy, sz) => new M4().compose(new V3(x || 0, y || 0, z || 0), new Q().setFromEuler(new E(rx || 0, ry || 0, rz || 0)), new V3(sx || 1, sy == null ? (sx || 1) : sy, sz == null ? (sx || 1) : sz));
+  function part(geo, color, tint, m) { const g = geo.index ? geo.toNonIndexed() : geo.clone(); if (m) g.applyMatrix4(m); g.userData = { color: new C(color), tint: tint || 0 }; return g; }
+  // merge parts into one geometry with colour + aTint attributes; ao = [y0, y1, min] darkens below y1
+  function merge(parts, ao) {
+    let n = 0; for (const p of parts) n += p.attributes.position.count;
+    const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3), tin = new Float32Array(n);
+    let o = 0;
+    for (const p of parts) {
+      const c = p.attributes.position.count, pa = p.attributes.position.array; pos.set(pa, o * 3); nor.set(p.attributes.normal.array, o * 3);
+      const cc = p.userData.color;
+      for (let k = 0; k < c; k++) {
+        let f = 1; if (ao) { const y = pa[k * 3 + 1], u = Math.min(1, Math.max(0, (y - ao[0]) / (ao[1] - ao[0]))); f = ao[2] + (1 - ao[2]) * u * u * (3 - 2 * u); }
+        col[(o + k) * 3] = cc.r * f; col[(o + k) * 3 + 1] = cc.g * f; col[(o + k) * 3 + 2] = cc.b * f; tin[o + k] = p.userData.tint;
+      }
+      o += c;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('aTint', new THREE.BufferAttribute(tin, 1));
+    g.computeBoundingSphere(); return g;
+  }
+  const sph = (r, w, h, t0, tl) => new THREE.SphereGeometry(r, w || 14, h || 10, 0, Math.PI * 2, t0 || 0, tl || Math.PI);
+  const cyl = (a, b, h, s, open) => new THREE.CylinderGeometry(a, b, h, s || 14, 1, !!open);
+  const box = (a, b, c) => new THREE.BoxGeometry(a, b, c);
+  const cone = (r, h, s) => new THREE.ConeGeometry(r, h, s || 10);
+  const tor = (r, t, rs, ts, arc) => new THREE.TorusGeometry(r, t, rs || 6, ts || 18, arc || Math.PI * 2);
+  const lathe = (pts, seg) => { const g = new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg || 16); g.computeVertexNormals(); return g; };
+  const capsule = (r, len, col, tint, m, seg) => { const s = seg || 10, L = []; L.push(part(cyl(r, r, len, s, true), col, tint, new M4().multiplyMatrices(m || new M4(), TRS(0, -len / 2, 0)))); L.push(part(sph(r, s, 6, 0, Math.PI / 2), col, tint, m)); L.push(part(sph(r, s, 6, Math.PI / 2, Math.PI / 2), col, tint, new M4().multiplyMatrices(m || new M4(), TRS(0, -len, 0)))); return L; };
+
+  // ---------------- LEGS ----------------
+  function legStd() {
+    return merge([
+      ...capsule(0.078, 0.2, 0x5c6178, 1, TRS(0, -0.02, 0)),                                  // trousers (faction-dark)
+      part(sph(0.1, 12, 8), LEATHER, 0, TRS(0, -0.275, 0.035, 0, 0, 0, 1, 0.72, 1.45)),            // chunky boot
+      part(cyl(0.088, 0.092, 0.06, 12), DLEATHER, 0, TRS(0, -0.21, 0.0)),                           // boot cuff
+      part(box(0.17, 0.025, 0.25), DLEATHER, 0, TRS(0, -0.322, 0.04)),                             // sole
+    ], [-0.33, 0.0, 0.62]);
+  }
+  function legBrute() {
+    return merge([
+      ...capsule(0.13, 0.18, 0x8a5050, 1, TRS(0, -0.02, 0)),
+      part(sph(0.16, 12, 8), DLEATHER, 0, TRS(0, -0.27, 0.04, 0, 0, 0, 1, 0.65, 1.35)),
+      part(tor(0.135, 0.035, 6, 14), DSTEEL, 0, TRS(0, -0.19, 0, Math.PI / 2, 0, 0)),
+    ], [-0.33, 0.0, 0.6]);
+  }
+
+  // ---------------- TORSOS ----------------
+  function torsoLight(skirt) {
+    const L = [
+      part(lathe([[0.0, -0.02], [0.2, -0.0], [0.255, 0.1], [0.272, 0.22], [0.25, 0.33], [0.18, 0.4], [0.0, 0.43]], 18), 0xe6ebff, 1), // tunic
+      part(lathe([[0.235, 0.12], [0.268, 0.04], [0.29, -0.07], [0.0, -0.08]], 18), 0xa8b2dd, 1),          // skirt flare
+      part(cyl(0.262, 0.262, 0.065, 18), LEATHER, 0, TRS(0, 0.1, 0)),                                       // belt
+      part(box(0.085, 0.065, 0.03), GOLD, 0, TRS(0, 0.1, 0.262)),                                          // buckle
+      part(cyl(0.13, 0.15, 0.05, 14), 0xb8c2e8, 1, TRS(0, 0.405, 0)),                                      // collar
+      part(new THREE.CircleGeometry(0.075, 14), WHITE, 0, TRS(0, 0.25, 0.268)),                           // chest emblem
+      part(new THREE.CircleGeometry(0.05, 4), GOLD, 0, TRS(0, 0.25, 0.27, 0, 0, Math.PI / 4)),
+    ];
+    if (skirt) L.push(part(lathe([[0.27, 0.02], [0.3, -0.12], [0.0, -0.13]], 18), 0xc8d0f0, 1));
+    return L;
+  }
+  function torsoHeavy() {
+    return merge([
+      ...torsoLight(),
+      part(sph(0.235, 16, 10, 0, Math.PI * 0.6), STEEL, 0, TRS(0, 0.17, 0.05, -Math.PI / 2 + 0.35, 0, 0, 1, 1, 0.75)), // breastplate
+      part(sph(0.14, 12, 8, 0, Math.PI / 2), 0xd8e0ff, 1, TRS(-0.27, 0.34, 0, 0, 0, 0.45)),                   // pauldrons
+      part(sph(0.14, 12, 8, 0, Math.PI / 2), 0xd8e0ff, 1, TRS(0.27, 0.34, 0, 0, 0, -0.45)),
+      part(tor(0.12, 0.018, 5, 14, Math.PI), GOLD, 0, TRS(-0.27, 0.34, 0, 0, Math.PI / 2, 0.45)), part(tor(0.12, 0.018, 5, 14, Math.PI), GOLD, 0, TRS(0.27, 0.34, 0, 0, Math.PI / 2, -0.45)),
+    ], [-0.08, 0.3, 0.7]);
+  }
+  function torsoBrute() {
+    return merge([
+      part(lathe([[0.0, -0.04], [0.3, -0.02], [0.4, 0.1], [0.43, 0.24], [0.38, 0.36], [0.24, 0.44], [0.0, 0.47]], 18), 0xffd2c4, 1), // bulky skin torso
+      part(lathe([[0.36, 0.08], [0.39, -0.02], [0.4, -0.1], [0.0, -0.11]], 18), DLEATHER, 0),                 // loincloth belt
+      part(cyl(0.405, 0.405, 0.07, 18), LEATHER, 0, TRS(0, 0.06, 0)), part(sph(0.07, 8, 6), GOLD, 0, TRS(0, 0.06, 0.4)),
+      part(box(0.09, 0.62, 0.05), LEATHER, 0, TRS(0.02, 0.24, 0.36, 0.25, 0, 0.75)),                          // harness strap
+      part(sph(0.19, 12, 8, 0, Math.PI / 2), DSTEEL, 0, TRS(-0.38, 0.38, 0, 0, 0, 0.5)), part(sph(0.19, 12, 8, 0, Math.PI / 2), DSTEEL, 0, TRS(0.38, 0.38, 0, 0, 0, -0.5)),
+      part(cone(0.05, 0.18, 8), IVORY, 0, TRS(-0.44, 0.5, 0, 0, 0, 0.6)), part(cone(0.05, 0.18, 8), IVORY, 0, TRS(0.44, 0.5, 0, 0, 0, -0.6)),
+      part(cone(0.04, 0.14, 8), IVORY, 0, TRS(-0.34, 0.52, 0.06, 0.2, 0, 0.3)), part(cone(0.04, 0.14, 8), IVORY, 0, TRS(0.34, 0.52, 0.06, 0.2, 0, -0.3)),
+    ], [-0.1, 0.3, 0.68]);
+  }
+  function torsoRobe() { // shaman
+    return merge([
+      part(lathe([[0.0, -0.13], [0.33, -0.12], [0.29, 0.05], [0.26, 0.22], [0.22, 0.34], [0.15, 0.42], [0.0, 0.44]], 18), 0xd8c8ff, 1),
+      part(cyl(0.25, 0.25, 0.05, 18), 0x2b1f3a, 0, TRS(0, 0.12, 0)), part(box(0.07, 0.36, 0.02), GOLD, 0, TRS(0, 0.1, 0.27, -0.12, 0, 0)),
+      part(sph(0.05, 8, 6), 0xd77bff, 0, TRS(0, 0.28, 0.24)),
+    ], [-0.13, 0.3, 0.65]);
+  }
+
+  // ---------------- HEADS ---------------- (face at +z; oversized helmets are the silhouette)
+  const face = (skin, tint, r) => { r = r || 0.2; return [part(sph(r, 16, 12), skin, tint, TRS(0, 0.17, 0)), part(sph(0.03, 8, 6), DARK, 0, TRS(-0.072, 0.155, r * 0.93)), part(sph(0.03, 8, 6), DARK, 0, TRS(0.072, 0.155, r * 0.93)), part(sph(0.011, 5, 4), WHITE, 0, TRS(-0.062, 0.166, r * 0.97)), part(sph(0.011, 5, 4), WHITE, 0, TRS(0.082, 0.166, r * 0.97)), part(sph(0.03, 8, 6), new C(skin).offsetHSL(0, 0, -0.06).getHex(), tint, TRS(0, 0.115, r * 0.97, 0, 0, 0, 1, 0.8, 0.8))]; };
+  const dome = (r, col, tint, y, tl) => part(sph(r, 18, 12, 0, tl || Math.PI * 0.56), col, tint, TRS(0, y || 0.2, -0.012));
+  const H = {
+    blue: () => merge([...face(SKIN), dome(0.262, 0xe8eeff, 1), part(cyl(0.268, 0.268, 0.055, 20), 0xb4c0ff, 1, TRS(0, 0.17, -0.012)), part(box(0.05, 0.11, 0.42), 0xa4b2ff, 1, TRS(0, 0.43, -0.03, 0.12, 0, 0)),
+      part(box(0.04, 0.12, 0.03), STEEL, 0, TRS(0, 0.15, 0.255)), part(box(0.07, 0.12, 0.04), 0xb4c0ff, 1, TRS(-0.205, 0.08, 0.1, 0, 0.5, 0)), part(box(0.07, 0.12, 0.04), 0xb4c0ff, 1, TRS(0.205, 0.08, 0.1, 0, -0.5, 0))]),
+    knight: () => merge([...face(SKIN), dome(0.27, 0xe8eeff, 1), part(cyl(0.276, 0.276, 0.06, 20), GOLD, 0, TRS(0, 0.17, -0.012)), part(box(0.24, 0.04, 0.04), DARK, 0, TRS(0, 0.2, 0.25)),
+      part(box(0.05, 0.16, 0.03), GOLD, 0, TRS(0, 0.14, 0.27)), part(sph(0.1, 10, 8), GOLD, 0, TRS(0, 0.5, -0.06, 0, 0, 0, 0.55, 1.2, 1.6)), part(cone(0.04, 0.12, 6), GOLD, 0, TRS(0, 0.5, 0))]),
+    hood: () => merge([...face(SKIN), part(sph(0.255, 16, 10, 0, Math.PI * 0.62), 0xc0ccff, 1, TRS(0, 0.19, -0.03)), part(cone(0.1, 0.22, 8), 0xc0ccff, 1, TRS(0, 0.27, -0.24, -1.2, 0, 0)),
+      part(box(0.02, 0.24, 0.07), WHITE, 0, TRS(0.17, 0.36, -0.08, -0.4, 0, -0.5)), part(tor(0.205, 0.02, 5, 18), LEATHER, 0, TRS(0, 0.21, 0.02, Math.PI / 2 - 0.2, 0, 0))]),
+    horn: () => merge([...face(SKIN), dome(0.258, 0xeaeaea, 1), part(cyl(0.264, 0.264, 0.05, 20), DSTEEL, 0, TRS(0, 0.17, -0.012)),
+      part(cone(0.045, 0.2, 8), IVORY, 0, TRS(-0.21, 0.36, 0, 0, 0, 0.75)), part(cone(0.045, 0.2, 8), IVORY, 0, TRS(0.21, 0.36, 0, 0, 0, -0.75)), part(box(0.04, 0.12, 0.03), DSTEEL, 0, TRS(0, 0.15, 0.25))]),
+    bucket: () => merge([...face(SKIN), part(cyl(0.235, 0.25, 0.3, 18), 0xd8d8d8, 1, TRS(0, 0.21, 0)), part(sph(0.235, 18, 8, 0, Math.PI / 2), 0xd8d8d8, 1, TRS(0, 0.36, 0)),
+      part(box(0.3, 0.035, 0.04), DARK, 0, TRS(0, 0.2, 0.235)), part(box(0.03, 0.18, 0.04), DARK, 0, TRS(0, 0.13, 0.24)), part(tor(0.252, 0.02, 5, 20), DSTEEL, 0, TRS(0, 0.07, 0, Math.PI / 2, 0, 0)),
+      part(cone(0.035, 0.14, 6), DSTEEL, 0, TRS(0, 0.65, 0))]),
+    bandana: () => merge([...face(SKIN), part(sph(0.212, 16, 10, 0, Math.PI * 0.5), 0x3a2a2a, 0, TRS(0, 0.18, -0.01)), part(tor(0.205, 0.035, 6, 20), 0xeaeaea, 1, TRS(0, 0.22, 0, Math.PI / 2 - 0.15, 0, 0)),
+      part(box(0.05, 0.16, 0.04), 0xeaeaea, 1, TRS(0.04, 0.2, -0.22, 0.5, 0, 0.3)), part(box(0.05, 0.14, 0.04), 0xeaeaea, 1, TRS(-0.04, 0.18, -0.23, 0.7, 0, -0.3))]),
+    imp: () => merge([part(sph(0.23, 16, 12), 0xffc0b0, 1, TRS(0, 0.17, 0)), part(sph(0.04, 8, 6), 0xffe14a, 0, TRS(-0.08, 0.17, 0.2)), part(sph(0.04, 8, 6), 0xffe14a, 0, TRS(0.08, 0.17, 0.2)), part(sph(0.018, 5, 4), DARK, 0, TRS(-0.08, 0.17, 0.235)), part(sph(0.018, 5, 4), DARK, 0, TRS(0.08, 0.17, 0.235)),
+      part(cone(0.05, 0.2, 8), IVORY, 0, TRS(-0.13, 0.38, 0, 0, 0, 0.35)), part(cone(0.05, 0.2, 8), IVORY, 0, TRS(0.13, 0.38, 0, 0, 0, -0.35)), part(cone(0.06, 0.14, 6), 0xffc0b0, 1, TRS(-0.23, 0.2, 0, 0, 0, 1.3)), part(cone(0.06, 0.14, 6), 0xffc0b0, 1, TRS(0.23, 0.2, 0, 0, 0, -1.3)),
+      part(box(0.12, 0.025, 0.02), DARK, 0, TRS(0, 0.08, 0.215))]),
+    brute: () => merge([part(sph(0.21, 16, 12), 0xffc4b4, 1, TRS(0, 0.16, 0.02)), part(box(0.3, 0.12, 0.2), 0xffc4b4, 1, TRS(0, 0.06, 0.08)), part(cone(0.025, 0.09, 6), IVORY, 0, TRS(-0.09, 0.15, 0.17, 0, 0, 0.1)), part(cone(0.025, 0.09, 6), IVORY, 0, TRS(0.09, 0.15, 0.17, 0, 0, -0.1)),
+      part(sph(0.035, 8, 6), 0xffe14a, 0, TRS(-0.075, 0.21, 0.19)), part(sph(0.035, 8, 6), 0xffe14a, 0, TRS(0.075, 0.21, 0.19)), part(box(0.2, 0.03, 0.05), 0x5a1a1a, 0, TRS(0, 0.255, 0.19, 0, 0, 0)),
+      part(sph(0.225, 16, 8, 0, Math.PI * 0.45), DSTEEL, 0, TRS(0, 0.2, -0.02)), part(cone(0.07, 0.36, 10), IVORY, 0, TRS(-0.28, 0.42, 0, 0, 0, 0.9)), part(cone(0.07, 0.36, 10), IVORY, 0, TRS(0.28, 0.42, 0, 0, 0, -0.9))]),
+    warlord: () => { const b = H.brute(); const extra = merge([part(cyl(0.2, 0.22, 0.08, 14), GOLD, 0, TRS(0, 0.36, 0)), ...[0, 1, 2, 3, 4].map(k => part(cone(0.035, 0.16, 6), GOLD, 0, TRS(Math.cos(k * 1.26) * 0.17, 0.46, Math.sin(k * 1.26) * 0.17))), part(sph(0.04, 8, 6), 0xff3a3a, 0, TRS(0, 0.36, 0.21))]); return mergeGeo([b, extra]); },
+    shaman: () => merge([part(sph(0.2, 14, 10), 0x2a1a33, 0, TRS(0, 0.17, 0)), part(sph(0.17, 14, 10, 0, Math.PI * 0.6), IVORY, 0, TRS(0, 0.15, 0.06, Math.PI / 2, 0, 0)), part(sph(0.03, 8, 6), 0xe9a0ff, 0, TRS(-0.065, 0.17, 0.215)), part(sph(0.03, 8, 6), 0xe9a0ff, 0, TRS(0.065, 0.17, 0.215)),
+      part(cone(0.27, 0.58, 14), 0xd8c8ff, 1, TRS(0, 0.4, -0.04)), part(tor(0.235, 0.025, 5, 18), GOLD, 0, TRS(0, 0.18, 0, Math.PI / 2, 0, 0))]),
+    goggles: () => merge([...face(SKIN), dome(0.235, 0xeaeaea, 1, 0.21, Math.PI * 0.5), part(tor(0.215, 0.03, 6, 20), DLEATHER, 0, TRS(0, 0.2, 0, Math.PI / 2 - 0.1, 0, 0)),
+      part(cyl(0.06, 0.06, 0.05, 12), DARK, 0, TRS(-0.075, 0.22, 0.19, Math.PI / 2, 0, 0)), part(cyl(0.06, 0.06, 0.05, 12), DARK, 0, TRS(0.075, 0.22, 0.19, Math.PI / 2, 0, 0)),
+      part(new THREE.CircleGeometry(0.045, 12), 0xffb84a, 0, TRS(-0.075, 0.22, 0.216)), part(new THREE.CircleGeometry(0.045, 12), 0xffb84a, 0, TRS(0.075, 0.22, 0.216))]),
+  };
+  function mergeGeo(list) { const parts = []; for (const g of list) { const n = g.attributes.position.count, c = g.attributes.color.array, t = g.attributes.aTint.array; for (let k = 0; k < n; k++) { /* keep per-vertex colours */ } parts.push(g); } return concat(parts); }
+  function concat(gs) {
+    const keys = ['position', 'normal', 'color', 'aTint']; const out = new THREE.BufferGeometry();
+    for (const k of keys) { const size = gs[0].attributes[k].itemSize; let n = 0; for (const g of gs) n += g.attributes[k].array.length; const a = new Float32Array(n); let o = 0; for (const g of gs) { a.set(g.attributes[k].array, o); o += g.attributes[k].array.length; } out.setAttribute(k, new THREE.BufferAttribute(a, size)); }
+    out.computeBoundingSphere(); return out;
+  }
+
+  // ---------------- ARMS ---------------- (shoulder pivot; mitten fist at y=-0.27)
+  function armStd() {
+    return merge([part(sph(0.085, 10, 8), 0xd8e0ff, 1), ...capsule(0.068, 0.15, 0xd8e0ff, 1, TRS(0, -0.01, 0)), part(cyl(0.078, 0.07, 0.07, 10), LEATHER, 0, TRS(0, -0.2, 0)),
+      part(sph(0.088, 12, 9), SKIN, 0, TRS(0, -0.27, 0.012, 0, 0, 0, 1, 0.95, 1.05)), part(sph(0.04, 8, 6), SKIN, 0, TRS(0.05, -0.25, 0.06))], [-0.3, 0.0, 0.75]);
+  }
+  function armHeavy() {
+    return merge([part(sph(0.095, 10, 8), STEEL, 0), ...capsule(0.07, 0.14, 0xd8e0ff, 1, TRS(0, -0.01, 0)), part(cyl(0.09, 0.075, 0.1, 10), STEEL, 0, TRS(0, -0.2, 0)), part(tor(0.088, 0.015, 5, 12), GOLD, 0, TRS(0, -0.16, 0, Math.PI / 2, 0, 0)),
+      part(sph(0.096, 12, 9), DSTEEL, 0, TRS(0, -0.275, 0.012))], [-0.3, 0.0, 0.75]);
+  }
+  function armBrute() {
+    return merge([...capsule(0.12, 0.18, 0xffc4b4, 1, TRS(0, -0.0, 0)), part(cyl(0.13, 0.12, 0.09, 10), DSTEEL, 0, TRS(0, -0.22, 0)), part(sph(0.14, 12, 9), 0xffc4b4, 1, TRS(0, -0.31, 0.02))], [-0.35, 0.0, 0.72]);
+  }
+
+  // ---------------- WEAPONS ---------------- (grip at origin, pointing +z)
+  const W = {
+    sword: g => merge([part(box(0.075, 0.02, 0.6), g ? GOLD : STEEL, 0, TRS(0, 0, 0.4)), part(cone(0.0375, 0.1, 4), g ? GOLD : STEEL, 0, TRS(0, 0, 0.74, Math.PI / 2, 0, 0, 1, 1, 0.3)), part(box(0.025, 0.022, 0.52), WHITE, 0, TRS(0, 0.011, 0.4)),
+      part(box(0.2, 0.04, 0.045), GOLD, 0, TRS(0, 0, 0.075)), part(cyl(0.025, 0.025, 0.13, 6), LEATHER, 0, TRS(0, 0, 0, Math.PI / 2, 0, 0)), part(sph(0.035, 8, 6), GOLD, 0, TRS(0, 0, -0.075))]),
+    dagger: () => merge([part(box(0.05, 0.016, 0.24), STEEL, 0, TRS(0, 0, 0.18)), part(box(0.12, 0.03, 0.035), GOLD, 0, TRS(0, 0, 0.055)), part(cyl(0.022, 0.022, 0.09, 6), LEATHER, 0, TRS(0, 0, 0, Math.PI / 2, 0, 0))]),
+    axe: () => merge([part(cyl(0.035, 0.035, 0.95, 8), WOOD, 0, TRS(0, 0, 0.3, Math.PI / 2, 0, 0)), part(box(0.05, 0.3, 0.24), 0x9aa4b2, 0, TRS(0, 0.15, 0.68)), part(box(0.056, 0.035, 0.25), 0xe8eef6, 0, TRS(0, 0.31, 0.68)), part(box(0.07, 0.09, 0.09), DSTEEL, 0, TRS(0, 0, 0.68)), part(cone(0.04, 0.12, 6), DSTEEL, 0, TRS(0, 0, 0.83, Math.PI / 2, 0, 0))]),
+    bow: () => merge([part(tor(0.36, 0.025, 6, 16, Math.PI * 0.8), WOOD, 0, TRS(0, 0.1, 0, 0, Math.PI / 2, Math.PI / 2 + Math.PI * 0.1)), part(box(0.008, 0.008, 0.68), 0xf0f0f0, 0, TRS(0, 0.1 - 0.2, 0)), part(cyl(0.03, 0.03, 0.12, 6), LEATHER, 0, TRS(0, 0, 0, Math.PI / 2, 0, 0))]),
+    staff: () => merge([part(cyl(0.028, 0.034, 1.0, 7), 0x4a2f22, 0, TRS(0, 0, 0.35, Math.PI / 2, 0, 0)), part(new THREE.OctahedronGeometry(0.11), 0xe39aff, 0, TRS(0, 0, 0.9)), part(tor(0.08, 0.015, 5, 12), GOLD, 0, TRS(0, 0, 0.84))]),
+    bomb: () => merge([part(sph(0.15, 12, 10), 0x24252c, 0, TRS(0, 0.0, 0.09)), part(cyl(0.05, 0.05, 0.05, 8), DSTEEL, 0, TRS(0, 0.15, 0.09)), part(cyl(0.012, 0.012, 0.1, 5), 0xd9b27a, 0, TRS(0.02, 0.22, 0.09, 0, 0, -0.4)), part(sph(0.025, 6, 4), 0xffd24a, 0, TRS(0.04, 0.27, 0.09))]),
+    claws: () => merge([0, 1, 2].map(k => part(cone(0.018, 0.1, 5), IVORY, 0, TRS((k - 1) * 0.04, 0, 0.1, Math.PI / 2, 0, 0)))),
+  };
+  function shield() {
+    return merge([part(cyl(0.21, 0.21, 0.05, 20), 0xe6ecff, 1, TRS(0, 0, 0, Math.PI / 2, 0, 0)), part(tor(0.21, 0.025, 6, 22), GOLD, 0), part(sph(0.055, 10, 8, 0, Math.PI / 2), GOLD, 0, TRS(0, 0, 0.025, Math.PI / 2, 0, 0)),
+      part(box(0.06, 0.3, 0.012), WHITE, 0, TRS(0, 0, 0.028)), part(box(0.3, 0.06, 0.012), WHITE, 0, TRS(0, 0, 0.028))]);
+  }
+  function cannon() {
+    return merge([
+      part(cyl(0.2, 0.27, 1.25, 16), 0x34363f, 0, TRS(0, 0.62, 0.15, Math.PI / 2 - 0.22, 0, 0)), part(tor(0.215, 0.05, 6, 16), GOLD, 0, TRS(0, 0.76, 0.75, -0.22, 0, 0)), part(tor(0.24, 0.035, 6, 16), GOLD, 0, TRS(0, 0.56, -0.12, -0.22, 0, 0)),
+      part(box(0.74, 0.3, 1.0), 0xf0e0e0, 1, TRS(0, 0.36, -0.1)), part(box(0.78, 0.06, 1.04), DLEATHER, 0, TRS(0, 0.52, -0.1)),
+      part(cyl(0.32, 0.32, 0.1, 16), WOOD, 0, TRS(-0.45, 0.32, -0.12, 0, 0, Math.PI / 2)), part(cyl(0.32, 0.32, 0.1, 16), WOOD, 0, TRS(0.45, 0.32, -0.12, 0, 0, Math.PI / 2)),
+      part(cyl(0.08, 0.08, 0.12, 8), DSTEEL, 0, TRS(-0.5, 0.32, -0.12, 0, 0, Math.PI / 2)), part(cyl(0.08, 0.08, 0.12, 8), DSTEEL, 0, TRS(0.5, 0.32, -0.12, 0, 0, Math.PI / 2)),
+      part(box(0.12, 0.45, 0.08), 0xf0e0e0, 1, TRS(0, 0.75, -0.7, 0.4, 0, 0)), part(box(0.5, 0.35, 0.03), 0xf0e0e0, 1, TRS(0, 0.95, -0.82, 0.4, 0, 0)),
+    ], [0, 0.5, 0.7]);
+  }
+  // add-ons: gold pauldrons (friendly armour upgrade) on the torso, plume on the head
+  const pads = () => merge([part(sph(0.135, 12, 8, 0, Math.PI / 2), GOLD, 0, TRS(-0.28, 0.35, 0, 0, 0, 0.45)), part(sph(0.135, 12, 8, 0, Math.PI / 2), GOLD, 0, TRS(0.28, 0.35, 0, 0, 0, -0.45)), part(box(0.3, 0.05, 0.03), GOLD, 0, TRS(0, 0.36, 0.25))]);
+  const plume = () => merge([part(sph(0.09, 10, 8), 0xff4a4a, 0, TRS(0, 0.5, -0.05, 0, 0, 0, 0.5, 1.1, 1.8)), part(cyl(0.03, 0.04, 0.06, 6), GOLD, 0, TRS(0, 0.45, 0))]);
+
+  // ---------------- recipes: unit kind → parts ----------------
+  KM.RECIPE = {
+    soldier: { torso: 'tLight', head: 'hBlue', arm: 'aStd', leg: 'lStd', wpn: 'sword' },
+    archerF: { torso: 'tLight', head: 'hHood', arm: 'aStd', leg: 'lStd', wpn: 'bow' },
+    knightF: { torso: 'tHeavy', head: 'hKnight', arm: 'aHeavy', leg: 'lStd', wpn: 'sword', shield: 1 },
+    grunt: { torso: 'tLight', head: 'hHorn', arm: 'aStd', leg: 'lStd', wpn: 'sword' },
+    imp: { torso: 'tLight', head: 'hImp', arm: 'aStd', leg: 'lStd', wpn: 'claws' },
+    shield: { torso: 'tHeavy', head: 'hBucket', arm: 'aStd', leg: 'lStd', wpn: 'sword', shield: 1 },
+    runner: { torso: 'tLight', head: 'hBandana', arm: 'aStd', leg: 'lStd', wpn: 'dagger' },
+    archer: { torso: 'tLight', head: 'hHood', arm: 'aStd', leg: 'lStd', wpn: 'bow' },
+    knight: { torso: 'tHeavy', head: 'hBucket', arm: 'aHeavy', leg: 'lStd', wpn: 'axe', shield: 1 },
+    brute: { torso: 'tBrute', head: 'hBrute', arm: 'aBrute', leg: 'lBrute', wpn: 'axe' },
+    bomber: { torso: 'tLight', head: 'hGoggles', arm: 'aStd', leg: 'lStd', wpn: 'bomb' },
+    shaman: { torso: 'tRobe', head: 'hShaman', arm: 'aStd', leg: 'lStd', wpn: 'staff' },
+    warlord: { torso: 'tBrute', head: 'hWarlord', arm: 'aBrute', leg: 'lBrute', wpn: 'axe' },
+    cannon: { body: 'cannon' },
+  };
+  // skeleton offsets per body family (std vs brute proportions)
+  KM.RIG = {
+    std: { hip: [0.11, 0.33], torso: 0.34, neck: 0.4, shoulder: [0.3, 0.33], fist: -0.27, shieldAt: [-0.03, -0.17, 0.1] },
+    brute: { hip: [0.17, 0.33], torso: 0.32, neck: 0.44, shoulder: [0.47, 0.34], fist: -0.31, shieldAt: [0, -0.2, 0.12] },
+  };
+
+  // Build all part geometries + far-LOD statues (one merged mesh per kind posed at rest).
+  KM.buildKit = function () {
+    const parts = {
+      lStd: legStd(), lBrute: legBrute(), tLight: merge(torsoLight(), [-0.08, 0.3, 0.7]), tHeavy: torsoHeavy(), tBrute: torsoBrute(), tRobe: torsoRobe(),
+      hBlue: H.blue(), hKnight: H.knight(), hHood: H.hood(), hHorn: H.horn(), hBucket: H.bucket(), hBandana: H.bandana(), hImp: H.imp(), hBrute: H.brute(), hWarlord: H.warlord(), hShaman: H.shaman(), hGoggles: H.goggles(),
+      aStd: armStd(), aHeavy: armHeavy(), aBrute: armBrute(),
+      sword: W.sword(), swordGold: W.sword(true), dagger: W.dagger(), axe: W.axe(), bow: W.bow(), staff: W.staff(), bomb: W.bomb(), claws: W.claws(),
+      shield: shield(), cannon: cannon(), pads: pads(), plume: plume(),
+    };
+    const statues = {};
+    for (const [k, r] of Object.entries(KM.RECIPE)) {
+      if (r.body) continue;
+      const rig = r.torso === 'tBrute' ? KM.RIG.brute : KM.RIG.std, list = [];
+      const add = (g, m) => { const c = g.clone(); c.applyMatrix4(m); list.push(c); };
+      add(parts[r.leg], TRS(-rig.hip[0], rig.hip[1], 0, -0.1)); add(parts[r.leg], TRS(rig.hip[0], rig.hip[1], 0, 0.1));
+      const tor = TRS(0, rig.torso, 0, 0.08); add(parts[r.torso], tor);
+      add(parts[r.head], new M4().multiplyMatrices(tor, TRS(0, rig.neck, 0)));
+      const aL = new M4().multiplyMatrices(tor, TRS(-rig.shoulder[0], rig.shoulder[1], 0, -0.15, 0, 0.12)), aR = new M4().multiplyMatrices(tor, TRS(rig.shoulder[0], rig.shoulder[1], 0, -0.55, 0, -0.12));
+      add(parts[r.arm], aL); add(parts[r.arm], aR);
+      add(parts[r.wpn], new M4().multiplyMatrices(aR, TRS(0, rig.fist, 0.02)));
+      if (r.shield) add(parts.shield, new M4().multiplyMatrices(aL, TRS(...rig.shieldAt)));
+      statues[k] = concat(list);
+    }
+    return { parts, statues };
+  };
+
+  // Cel-shaded material: 3-band toon ramp + faction tint mask + soft rim light for silhouette separation.
+  let ramp = null;
+  KM.toonMat = function (opts) {
+    if (!ramp) { const d = new Uint8Array([120, 120, 120, 255, 200, 200, 200, 255, 255, 255, 255, 255]); ramp = new THREE.DataTexture(d, 3, 1, THREE.RGBAFormat); ramp.minFilter = ramp.magFilter = THREE.NearestFilter; ramp.needsUpdate = true; }
+    const m = new THREE.MeshToonMaterial(Object.assign({ vertexColors: true, gradientMap: ramp }, opts || {}));
+    m.onBeforeCompile = sh => {
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aTint;')
+        .replace('#include <color_vertex>', `#if defined(USE_COLOR) || defined(USE_INSTANCING_COLOR)
+          vColor = vec3(1.0);
+        #endif
+        #ifdef USE_COLOR
+          vColor.xyz *= color.xyz;
+        #endif
+        #ifdef USE_INSTANCING_COLOR
+          vColor.xyz *= mix(vec3(1.0), instanceColor.xyz, aTint);
+        #endif`);
+      sh.fragmentShader = sh.fragmentShader.replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );',
+        'float rimK = 1.0 - max(dot(normal, normalize(vViewPosition)), 0.0); outgoingLight += diffuseColor.rgb * pow(rimK, 2.6) * 0.55 + vec3(0.06) * pow(rimK, 4.0);\n\tgl_FragColor = vec4( outgoingLight, diffuseColor.a );');
+    };
+    return m;
+  };
+  // Plain cel-shaded material for props (launcher, towers): same ramp + rim as units, no vertex colours.
+  KM.toonPlain = function (color, o) {
+    if (!ramp) KM.toonMat();
+    o = Object.assign({}, o || {}); delete o.roughness; delete o.metalness;
+    const m = new THREE.MeshToonMaterial(Object.assign({ color, gradientMap: ramp }, o));
+    m.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );', 'float rimK = 1.0 - max(dot(normal, normalize(vViewPosition)), 0.0); outgoingLight += diffuseColor.rgb * pow(rimK, 2.6) * 0.45;\n\tgl_FragColor = vec4( outgoingLight, diffuseColor.a );'); };
+    return m;
+  };
+  KM.kitMerge = merge; KM.kitPart = part; KM.kitTRS = TRS;
+})(window);

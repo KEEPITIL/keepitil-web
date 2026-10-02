@@ -84,8 +84,8 @@
     return {
       cap: 45 + 8 * (perm.army || 0), rate: 4.8, hp: 20, dmg: 4.5, armor: 0, speed: 4.3, atk: 1,
       magnet: 2.4 * (1 + 0.1 * (perm.magnet || 0)), crit: 0.05, archer: 0, knight: 0,
-      maxHp: 100 + 10 * (perm.plating || 0), towerRate: 1, towerRange: 1, towerDmg: 1,
-      lv: { cap: 0, rate: 0, hp: 0, dmg: 0, armor: 0, speed: 0, atk: 0, magnet: 0, crit: 0, archer: 0, knight: 0, plating: 0, trate: 0, trange: 0 },
+      maxHp: 100 + 10 * (perm.plating || 0), towerRate: 1, towerRange: 1, towerDmg: 1, splash: 1, frost: 1, sniperCrit: 0.1, barracksRate: 1, bannerR: 1,
+      lv: { cap: 0, rate: 0, hp: 0, dmg: 0, armor: 0, speed: 0, atk: 0, magnet: 0, crit: 0, archer: 0, knight: 0, plating: 0, trate: 0, trange: 0, tdmg: 0, splash: 0, frost: 0, scrit: 0, brate: 0, bradius: 0 },
     };
   };
 
@@ -115,6 +115,12 @@
     { id: 'knight', cat: 'army', title: 'KNIGHTS',     val: '1 in ' , icon: 'helm', color: 'gold',  w: 3, max: 4, at: 3, apply: s => { s.knight = s.knight ? Math.max(4, s.knight - 3) : 12; } },
     { id: 'plating',cat: 'defense', title: 'LAUNCHER ARMOR', val: '+25 HP', icon: 'heart', color: 'green', w: 4, max: 8, apply: (s, run) => { s.maxHp += 25; if (run) run.heal(25); } },
     { id: 'trate',  cat: 'defense', title: 'TOWER FIRE RATE', val: '+12%', icon: 'tower', color: 'red', w: 4, needTower: 1, max: 8, apply: s => { s.towerRate *= 1.12; } },
+    { id: 'tdmg',   cat: 'defense', title: 'TOWER DAMAGE', val: '+15%', icon: 'tower', color: 'red', w: 4, needTower: 1, max: 8, apply: s => { s.towerDmg *= 1.15; } },
+    { id: 'splash', cat: 'defense', title: 'CANNON SPLASH', val: '+15%', icon: 't_cannon', color: 'tower', w: 3, needType: 'cannon', max: 5, apply: s => { s.splash *= 1.15; } },
+    { id: 'frost',  cat: 'defense', title: 'DEEP FREEZE', val: '+20%', icon: 't_frost', color: 'tower', w: 3, needType: 'frost', max: 5, apply: s => { s.frost *= 1.2; } },
+    { id: 'scrit',  cat: 'defense', title: 'SNIPER CRIT', val: '+10%', icon: 't_sniper', color: 'tower', w: 3, needType: 'sniper', max: 5, apply: s => { s.sniperCrit = Math.min(0.7, s.sniperCrit + 0.1); } },
+    { id: 'brate',  cat: 'defense', title: 'BARRACKS SPEED', val: '+15%', icon: 't_barracks', color: 'tower', w: 3, needType: 'barracks', max: 5, apply: s => { s.barracksRate *= 1.15; } },
+    { id: 'bradius',cat: 'defense', title: 'BANNER RADIUS', val: '+12%', icon: 't_banner', color: 'tower', w: 3, needType: 'banner', max: 5, apply: s => { s.bannerR *= 1.12; } },
     { id: 'trange', cat: 'defense', title: 'TOWER RANGE', val: '+10%', icon: 'tower', color: 'blue', w: 3, needTower: 1, max: 5, apply: s => { s.towerRange *= 1.1; } },
   ];
   KM.UPG_BY = Object.fromEntries(KM.UPGRADES.map(u => [u.id, u]));
@@ -128,6 +134,7 @@
       if (u.at && m < u.at) continue;
       if (u.max && (s.lv[u.id] || 0) >= u.max) continue;
       if (u.needTower && !run.towers.some(t => t)) continue;
+      if (u.needType && !run.towers.some(t => t && t.type === u.needType)) continue;
       opts.push({ id: u.id, w: u.w, title: u.title, val: u.id === 'knight' ? '1 in ' + (s.knight ? Math.max(4, s.knight - 3) : 12) : u.val, icon: u.icon, color: u.color, cat: u.cat });
     }
     const free = run.towers.findIndex((t, i) => !t && i < KM.slotsUnlocked(m));

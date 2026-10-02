@@ -4,7 +4,7 @@
   const KM = G.KM, W = KM.W;
   const V3 = THREE.Vector3, M4 = THREE.Matrix4, Q = THREE.Quaternion, E = THREE.Euler, C = THREE.Color;
   const TEAM = [new C(0x2f74ff), new C(0xe2312c)];
-  const ENEMY_COL = { grunt: 0xe2312c, imp: 0xff5243, shield: 0xd8282c, runner: 0xff5a1f, archer: 0xd13a3a, knight: 0x9e1f2c, brute: 0xc8202a, bomber: 0xff7a1c, cannon: 0x8e2a2a, shaman: 0x9a2cc8, warlord: 0x8f1020 };
+  const ENEMY_COL = { grunt: 0xe2312c, imp: 0xf0463a, shield: 0xd02a2e, runner: 0xe83c2c, archer: 0xd8352f, knight: 0xa51f2c, brute: 0xd0262c, bomber: 0xe8482a, cannon: 0x9a2a2a, shaman: 0xa02c9e, warlord: 0x9a1424 };
   const ERA_TINT = [0xffffff, 0xf2d6d6, 0xd9b8c0, 0xc8a8d8, 0xb0b0b8, 0x9ad8ff];
 
   // ---------- geometry helpers ----------
@@ -44,41 +44,6 @@
     return m;
   }
 
-  // ---------- character kit ----------
-  function buildKit() {
-    const sph = (r, ws, hs, ts) => new THREE.SphereGeometry(r, ws || 10, hs || 7, 0, Math.PI * 2, 0, ts || Math.PI);
-    const box = (a, b, c) => new THREE.BoxGeometry(a, b, c);
-    const cyl = (a, b, h, s) => new THREE.CylinderGeometry(a, b, h, s || 10);
-    const SKIN = 0xffd2a8, DARK = 0x262a36, STEEL = 0xd8dde6, GOLD = 0xf2c14e, WOOD = 0x8a5a33;
-    const doll = merge([
-      part(sph(0.3, 12, 9), 0xffffff, 1, TRS(0, 0.56, 0, 0, 0, 0, 1, 1.08, 0.86)),            // tunic
-      part(cyl(0.27, 0.29, 0.08, 12), 0x5a3a22, 0, T(0, 0.43, 0)),                          // belt
-      part(box(0.08, 0.06, 0.03), GOLD, 0, T(0, 0.43, 0.27)),                              // buckle
-      part(sph(0.2, 12, 9), SKIN, 0, T(0, 0.98, 0)),                                       // head
-      part(sph(0.226, 12, 6, Math.PI * 0.55), 0xc8d2ff, 1, T(0, 1.0, -0.005)),              // helmet dome
-      part(cyl(0.235, 0.235, 0.05, 14), 0xb0bcff, 1, T(0, 0.97, 0)),                        // helmet rim
-      part(box(0.05, 0.13, 0.2), 0x9aa8ff, 1, T(0, 1.23, -0.02)),                          // crest
-      part(sph(0.03, 6, 4), 0x1a1a22, 0, T(-0.075, 0.97, 0.185)), part(sph(0.03, 6, 4), 0x1a1a22, 0, T(0.075, 0.97, 0.185)),
-      part(sph(0.1, 8, 6), 0xe8ecff, 1, T(-0.31, 0.62, 0.02)), part(sph(0.1, 8, 6), 0xe8ecff, 1, T(0.31, 0.62, 0.02)), // arms/gauntlets
-    ]);
-    const leg = merge([part(box(0.13, 0.28, 0.14), DARK, 0, T(0, -0.13, 0)), part(box(0.15, 0.07, 0.2), 0x3a2a1e, 0, T(0, -0.26, 0.03))]);
-    const sword = merge([part(box(0.05, 0.5, 0.02), STEEL, 0, T(0, 0.33, 0)), part(box(0.18, 0.04, 0.05), GOLD, 0, T(0, 0.08, 0)), part(cyl(0.025, 0.025, 0.12, 6), WOOD, 0, T(0, 0.01, 0)), part(box(0.05, 0.06, 0.03), STEEL, 0, T(0, 0.6, 0))]);
-    const dagger = merge([part(box(0.05, 0.26, 0.02), STEEL, 0, T(0, 0.2, 0)), part(box(0.12, 0.03, 0.04), GOLD, 0, T(0, 0.06, 0))]);
-    const axe = merge([part(cyl(0.035, 0.035, 0.9, 6), WOOD, 0, T(0, 0.35, 0)), part(box(0.05, 0.3, 0.32), STEEL, 0, T(0, 0.68, 0.12)), part(box(0.06, 0.08, 0.08), 0x444444, 0, T(0, 0.68, -0.04))]);
-    const bow = merge([part(new THREE.TorusGeometry(0.3, 0.025, 5, 12, Math.PI), WOOD, 0, TRS(0, 0.3, 0, 0, Math.PI / 2, Math.PI / 2)), part(box(0.01, 0.6, 0.01), 0xeeeeee, 0, T(0, 0.3, 0))]);
-    const staff = merge([part(cyl(0.03, 0.03, 1.0, 6), 0x5a3a22, 0, T(0, 0.4, 0)), part(new THREE.OctahedronGeometry(0.11), 0xd77bff, 0, T(0, 0.98, 0))]);
-    const bomb = merge([part(sph(0.17, 10, 8), 0x22232a, 0, T(0, 0.12, 0.05)), part(cyl(0.02, 0.02, 0.12, 5), 0xd9b27a, 0, TRS(0, 0.32, 0.05, 0.4, 0, 0))]);
-    const shield = merge([part(cyl(0.25, 0.25, 0.06, 14), 0xc8d2ff, 1, TRS(0, 0, 0, Math.PI / 2, 0, 0)), part(new THREE.TorusGeometry(0.25, 0.03, 5, 16), GOLD, 0, T(0, 0, 0.0)), part(sph(0.06, 6, 4), GOLD, 0, T(0, 0, 0.04))]);
-    const horns = merge([part(new THREE.ConeGeometry(0.07, 0.3, 7), 0xf3ead2, 0, TRS(-0.22, 1.16, 0, 0, 0, 0.75)), part(new THREE.ConeGeometry(0.07, 0.3, 7), 0xf3ead2, 0, TRS(0.22, 1.16, 0, 0, 0, -0.75))]);
-    const pads = merge([part(sph(0.13, 8, 5, Math.PI / 2), GOLD, 0, TRS(-0.31, 0.68, 0.0, 0, 0, 0.3)), part(sph(0.13, 8, 5, Math.PI / 2), GOLD, 0, TRS(0.31, 0.68, 0, 0, 0, -0.3)), part(box(0.34, 0.06, 0.04), GOLD, 0, T(0, 0.74, 0.25))]);
-    const cannon = merge([
-      part(cyl(0.22, 0.28, 1.3, 12), 0x30323a, 0, TRS(0, 0.62, 0.1, Math.PI / 2 - 0.25, 0, 0)), part(new THREE.TorusGeometry(0.24, 0.05, 6, 12), GOLD, 0, TRS(0, 0.78, 0.7, -0.25, 0, 0)),
-      part(box(0.7, 0.32, 0.9), 0xffffff, 1, T(0, 0.38, -0.1)),
-      part(cyl(0.3, 0.3, 0.1, 12), 0x5a3a22, 0, TRS(-0.42, 0.3, -0.1, 0, 0, Math.PI / 2)), part(cyl(0.3, 0.3, 0.1, 12), 0x5a3a22, 0, TRS(0.42, 0.3, -0.1, 0, 0, Math.PI / 2)),
-    ]);
-    return { doll, leg, sword, dagger, axe, bow, staff, bomb, shield, horns, pads, cannon };
-  }
-
   function radialTex(inner, outer) {
     const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
     const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, inner); gr.addColorStop(1, outer); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
@@ -101,15 +66,17 @@
       const S = this.scene = new THREE.Scene();
       this.fogCol = new C(0xbfe3ff); S.fog = new THREE.Fog(this.fogCol, 55, 135); S.background = this.skyTex();
       this.cam = new THREE.PerspectiveCamera(48, 1, 0.5, 260);
-      S.add(this.hemi = new THREE.HemisphereLight(0xeaf4ff, 0x7a6a50, 0.62));
-      const sun = this.sun = new THREE.DirectionalLight(0xfff2dc, 0.62); sun.position.set(10, 26, 12); sun.castShadow = true;
+      S.add(this.hemi = new THREE.HemisphereLight(0xeaf4ff, 0x8a7a5c, 0.66));
+      const sun = this.sun = new THREE.DirectionalLight(0xfff0d4, 0.72); sun.position.set(10, 26, 12); sun.castShadow = true;
       sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -26, right: 26, top: 34, bottom: -34, near: 1, far: 90 }); sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.03;
       S.add(sun); S.add(sun.target);
       this.ry = new Float32Array(KM.Sim.CAP); this.shake = 0; this.time = 0; this.skin = KM.SHOP[3];
       this.m = new M4(); this.m2 = new M4(); this.q = new Q(); this.e = new E(0, 0, 0, 'YXZ'); this.v = new V3(); this.s3 = new V3(); this.col = new C();
+      this.col2 = new C(); this.fxBudget = 60;
       this.initCrowd(); this.initWorld(); this.initFx(); this.initProjectiles(); this.initCoins();
       this.launcher = this.buildLauncher(); S.add(this.launcher);
       this.towerObjs = [null, null, null, null, null, null];
+      this.tracers = []; for (let k = 0; k < 8; k++) { const tr = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 1), new THREE.MeshBasicMaterial({ color: 0xe4c2ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); tr.visible = false; this.scene.add(tr); this.tracers.push(tr); }
       this.resize();
     }
 
@@ -125,91 +92,127 @@
 
     // ---------- crowd ----------
     initCrowd() {
-      const kit = this.kit = buildKit(), N = KM.Sim.CAP;
-      const mk = (geo, n, mat) => { const im = new THREE.InstancedMesh(geo, mat || tintMat(), n); im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); im.frustumCulled = false; im.count = 0; this.scene.add(im); return im; };
-      const tm = null;
-      this.doll = mk(kit.doll, N, tm); this.doll.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(N * 3), 3); this.doll.instanceColor.setUsage(THREE.DynamicDrawUsage);
-      this.legs = mk(kit.leg, N * 2, tm);
-      const W8 = {}; for (const k of ['sword', 'dagger', 'axe', 'bow', 'staff', 'bomb']) W8[k] = mk(kit[k], k === 'sword' ? N : N / 2, tm);
-      this.wpn = W8;
-      this.shieldM = mk(kit.shield, N / 2, tm); this.shieldM.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(N / 2 * 3), 3);
-      this.hornM = mk(kit.horns, 512, tm); this.padM = mk(kit.pads, N / 2, tm);
-      this.cannonM = mk(kit.cannon, 256, tm); this.cannonM.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(256 * 3), 3);
-      const blob = new THREE.MeshBasicMaterial({ map: radialTex('rgba(0,0,0,0.42)', 'rgba(0,0,0,0)'), transparent: true, depthWrite: false });
-      this.blob = mk(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), N, blob); this.blob.renderOrder = 1;
-      // elite telegraph ring under dangerous units
-      this.ringM = mk(new THREE.RingGeometry(0.8, 1, 24).rotateX(-Math.PI / 2), 128, new THREE.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: 0.55, depthWrite: false }));
+      const kit = this.kit = KM.buildKit(), N = KM.Sim.CAP, A = KM.ANIM;
+      const caps = { lStd: N * 2, lBrute: 1024, tLight: N, tHeavy: 2048, tBrute: 512, tRobe: 512, aStd: N * 2, aHeavy: 4096, aBrute: 1024, sword: N, swordGold: N, shield: 2048, pads: N, plume: N, cannon: 256 };
+      const mk = (geo, n, color) => { const im = new THREE.InstancedMesh(geo, KM.toonMat(), n); im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); im.frustumCulled = false; im.count = 0; if (color) { im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3); im.instanceColor.setUsage(THREE.DynamicDrawUsage); } this.scene.add(im); return im; };
+      this.partM = {}; this.pn = {};
+      for (const [k, g] of Object.entries(kit.parts)) { const tinted = g.attributes.aTint.array.some(v => v > 0); this.partM[k] = mk(g, caps[k] || 1024, tinted); this.pn[k] = 0; }
+      for (const [k, g] of Object.entries(kit.statues)) { const name = 'S_' + k; this.partM[name] = mk(g, k === 'soldier' || k === 'grunt' || k === 'imp' ? N : 1024, true); this.pn[name] = 0; }
+      this.kindKey = []; for (const d of KM.ENEMY) this.kindKey[d.id] = d.k; for (const d of KM.FRIEND) this.kindKey[d.id] = d.k;
+      // animation state per unit slot
+      this.pose = new Float32Array(N * A.P); this.prev = new Float32Array(N * A.P); this.clip = new Int16Array(N).fill(-1); this.fade = new Float32Array(N); this.animT = new Uint8Array(N);
+      this.tmpPose = new Float32Array(A.P); this.vv = {}; this.mats = Array.from({ length: 8 }, () => new M4()); this.frameNo = 0;
+      const blob = new THREE.MeshBasicMaterial({ map: radialTex('rgba(20,20,40,0.45)', 'rgba(0,0,0,0)'), transparent: true, depthWrite: false });
+      this.blob = mk(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), N, false); this.blob.material = blob; this.blob.renderOrder = 1;
+      this.ringM = mk(new THREE.RingGeometry(0.8, 1, 28).rotateX(-Math.PI / 2), 160, false); this.ringM.material = new THREE.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: 0.6, depthWrite: false });
+      this.buffM = mk(new THREE.RingGeometry(0.55, 0.7, 20).rotateX(-Math.PI / 2), N, false); this.buffM.material = new THREE.MeshBasicMaterial({ color: 0x5cffa0, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending });
     }
 
     put(im, n, m) { m.toArray(im.instanceMatrix.array, n * 16); }
-
-    drawCrowd(sim, dt) {
-      const m = this.m, m2 = this.m2, q = this.q, e = this.e, pos = this.v, sc = this.s3, col = this.col;
-      const S = sim.stats, armorLv = S.lv.armor || 0, dmgLv = S.lv.dmg || 0, hpLv = S.lv.hp || 0;
-      let nd = 0, nl = 0, ns = 0, nh = 0, np = 0, nc = 0, nb = 0, nr = 0; const nw = { sword: 0, dagger: 0, axe: 0, bow: 0, staff: 0, bomb: 0 };
-      const cArr = this.doll.instanceColor.array, sArr = this.shieldM.instanceColor.array, kArr = this.cannonM.instanceColor.array;
-      const blue = TEAM[0], camZ = this.cam.position.z;
-      const fGold = Math.min(1, armorLv / 6);
-      for (let i = 0; i < sim.hi; i++) {
-        const st = sim.st[i]; if (!st) continue;
-        const z = sim.z[i]; if (z > camZ + 4 || z < camZ - 120) continue;   // off-camera: skip draw (sim keeps running)
-        const team = sim.team[i], def = sim.def(i);
-        let s = sim.sc[i]; if (team === 0) s *= 1 + hpLv * 0.025;
-        // facing (smoothed for organic turns)
-        let dy = sim.yaw[i] - this.ry[i]; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); this.ry[i] += dy * Math.min(1, dt * 10);
-        const sp = Math.abs(sim.vx[i]) + Math.abs(sim.vz[i]), moving = sp > 0.4;
-        const ph = sim.phase[i];
-        let y = moving ? Math.abs(Math.sin(ph)) * 0.09 * s : Math.sin(ph * 0.5) * 0.01;
-        let lean = moving ? 0.14 : 0.02, roll = 0;
-        lean -= Math.max(0, sim.flash[i]) * 0.25;            // hit flinch
-        if (sim.swing[i] > 0) lean += Math.sin(sim.swing[i] * Math.PI) * 0.18;
-        if (st === 2) { const d = sim.die[i]; roll = Math.min(1, d / 0.22) * 1.45 * (i & 1 ? 1 : -1); y -= Math.max(0, d - 0.35) * 1.4; s *= 1 - Math.max(0, d - 0.45) / 0.3; if (s <= 0.01) continue; }
-        const b = sim.birth[i]; if (b > 0) { const u = b / 0.4; y += Math.sin(u * Math.PI) * 1.3; s *= 0.55 + 0.45 * u; }
-        e.set(lean, this.ry[i], roll, 'YXZ'); q.setFromEuler(e); pos.set(sim.x[i], y, z); sc.set(s, s, s); m.compose(pos, q, sc);
-        // colour
-        let base = team ? ENEMY_COL[def.k] : blue.getHex();
-        col.setHex(base); if (team === 1 && sim.era[i]) col.multiply(this.col2.setHex(ERA_TINT[sim.era[i]]));
-        if (team === 0 && def.k === 'knightF') col.lerp(this.col2.setHex(0x8fb8ff), 0.3);
-        const f = Math.max(0, sim.flash[i]); if (f > 0) col.lerp(this.col2.setRGB(1, 1, 1), f * 0.75);
-        if (def.wpn === 'cannon') {
-          this.put(this.cannonM, nc, m); kArr[nc * 3] = col.r; kArr[nc * 3 + 1] = col.g; kArr[nc * 3 + 2] = col.b; nc++;
-        } else {
-          this.put(this.doll, nd, m); cArr[nd * 3] = col.r; cArr[nd * 3 + 1] = col.g; cArr[nd * 3 + 2] = col.b; nd++;
-          // legs swing in opposite phase
-          const sw = moving ? Math.sin(ph) * 0.85 : 0;
-          m2.makeRotationX(sw); m2.setPosition(-0.11, 0.3, 0); m2.premultiply(m); this.put(this.legs, nl++, m2);
-          m2.makeRotationX(-sw); m2.setPosition(0.11, 0.3, 0); m2.premultiply(m); this.put(this.legs, nl++, m2);
-          // weapon (swing arc on attack)
-          const wk = def.wpn; if (wk !== 'none') {
-            const im = this.wpn[wk]; if (nw[wk] < im.instanceMatrix.count) {
-              const swg = sim.swing[i] > 0 ? Math.sin((1 - sim.swing[i]) * Math.PI) : 0;
-              let rx = wk === 'bow' ? -0.15 : wk === 'staff' ? 0.1 + swg * 0.4 : 0.35 - swg * 2.1 + (moving ? Math.sin(ph) * 0.15 : 0);
-              const wsc = team === 0 && wk === 'sword' ? 1 + dmgLv * 0.07 : 1;
-              e.set(rx, 0, 0); q.setFromEuler(e); pos.set(wk === 'bow' ? 0.3 : 0.33, 0.58, wk === 'bow' ? 0.12 : 0.06); sc.set(wsc, wsc, wsc); m2.compose(pos, q, sc); m2.premultiply(m);
-              this.put(im, nw[wk]++, m2);
-            }
-          }
-          if (def.sh && ns < 2048) { m2.makeTranslation(-0.3, 0.58, 0.16); m2.premultiply(m); this.put(this.shieldM, ns, m2); sArr[ns * 3] = col.r; sArr[ns * 3 + 1] = col.g; sArr[ns * 3 + 2] = col.b; ns++; }
-          if ((def.el || (team === 1 && sim.era[i] >= 2 && def.k === 'knight')) && nh < 512) this.put(this.hornM, nh++, m);
-          if (team === 0 && armorLv > 0 && np < 2048) this.put(this.padM, np++, m);
-        }
-        if (nb < 4096) { pos.set(sim.x[i], 0.03, z); q.identity(); const bs = s * (def.wpn === 'cannon' ? 1.6 : 0.85); sc.set(bs, 1, bs); m2.compose(pos, q, sc); this.put(this.blob, nb++, m2); }
-        if (team === 1 && def.el && st === 1 && nr < 128) { pos.set(sim.x[i], 0.05, z); q.identity(); const rs = s * 0.75 * (1 + Math.sin(this.time * 6) * 0.06); sc.set(rs, 1, rs); m2.compose(pos, q, sc); this.put(this.ringM, nr++, m2); }
-      }
-      const fin = (im, n) => { im.count = n; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; };
-      fin(this.doll, nd); fin(this.legs, nl); for (const k in nw) fin(this.wpn[k], nw[k]); fin(this.shieldM, ns); fin(this.hornM, nh); fin(this.padM, np); fin(this.cannonM, nc); fin(this.blob, nb); fin(this.ringM, nr);
-      this.drawn = nd + nc;
-      this.goldPads = fGold;
+    putP(name, m, col) {
+      const im = this.partM[name], n = this.pn[name]; if (n >= im.instanceMatrix.count) return;
+      m.toArray(im.instanceMatrix.array, n * 16);
+      if (col && im.instanceColor) { const a = im.instanceColor.array; a[n * 3] = col.r; a[n * 3 + 1] = col.g; a[n * 3 + 2] = col.b; }
+      this.pn[name] = n + 1;
     }
 
+    // Pose one unit: pick clip from sim state, cross-fade on change, add hit reactions; half-rate at mid LOD.
+    animate(sim, i, dt, lodLevel) {
+      const A = KM.ANIM, P = A.P, o = i * P, v = A.variation(i, sim.stride[i] * 10, this.vv);
+      if (lodLevel === 1 && ((this.frameNo + i) & 1) && this.clip[i] >= 0) return v;       // mid LOD: reuse last pose on alternate frames
+      const id = A.select(sim, i, v);
+      const pose = this.pose.subarray(o, o + P), tmp = this.tmpPose;
+      if (id !== this.clip[i]) { if (this.clip[i] >= 0) this.prev.set(pose, o); else this.prev.fill(0, o, o + P); this.clip[i] = id; this.fade[i] = this.clip[i] >= A.ID.deathA ? 0.6 : 0; }
+      A.sample(id, A.clipTime(sim, i, id, v), v, tmp);
+      this.fade[i] = Math.min(1, this.fade[i] + dt / A.FADE);
+      const w = this.fade[i] * this.fade[i] * (3 - 2 * this.fade[i]);
+      for (let k = 0; k < P; k++) pose[k] = this.prev[o + k] + (tmp[k] - this.prev[o + k]) * w;
+      if (sim.st[i] === 1) {
+        const f = Math.max(0, sim.flash[i]);
+        if (f > 0) { const kb = Math.abs(sim.vz[i]) > sim.spd[i] * 1.6; A.additive(pose, kb ? 'stagger' : v.seed2 < 0.5 ? 'hitFront' : v.seed < 0.5 ? 'hitLeft' : 'hitRight', f * (kb ? 1 : 0.85)); }
+      }
+      return v;
+    }
+
+    drawCrowd(sim, dt) {
+      const A = KM.ANIM, I = A.I, P = A.P, M = this.mats, q = this.q, e = this.e, pos = this.v, sc = this.s3, col = this.col, col2 = this.col2;
+      const S = sim.stats, armorLv = S.lv.armor || 0, dmgLv = S.lv.dmg || 0, hpLv = S.lv.hp || 0;
+      for (const k in this.pn) this.pn[k] = 0;
+      let nb = 0, nr = 0, nf = 0; this.frameNo++;
+      const blue = TEAM[0], camZ = this.cam.position.z, camX = this.cam.position.x, crowd = sim.count[0] + sim.count[1];
+      const bannerTowers = sim.towers.filter(t => t && t.type === 'banner'), bR2 = 49 * sim.stats.towerRange;
+      const rot = (m, x, y, z, rx, ry, rz) => { e.set(rx, ry, rz, 'YXZ'); m.makeRotationFromEuler(e); m.setPosition(x, y, z); return m; };
+      let drawn = 0;
+      for (let i = 0; i < sim.hi; i++) {
+        const st = sim.st[i]; if (!st) { this.clip[i] = -1; continue; }
+        const z = sim.z[i]; if (z > camZ + 3 || z < camZ - 125) continue;
+        const team = sim.team[i], def = sim.def(i), key = this.kindKey[sim.kind[i]], R = KM.RECIPE[key];
+        let s = sim.sc[i]; if (team === 0) s *= 1 + hpLv * 0.02;
+        let dy = sim.yaw[i] - this.ry[i]; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); this.ry[i] += dy * Math.min(1, dt * (8 + (i % 5)));
+        let y = 0;
+        if (st === 2) { const d = sim.die[i]; y -= Math.max(0, d - 0.45) * 1.1; s *= 1 - Math.max(0, d - 0.5) / 0.22; if (s <= 0.02) continue; }
+        const b = sim.birth[i]; if (b > 0) { const u = b / 0.4; y += Math.sin(u * Math.PI) * 1.25; s *= 0.55 + 0.45 * u; }
+        // colour: faction, era, flash, frost
+        col.setHex(team ? ENEMY_COL[def.k] : blue.getHex());
+        if (team === 1 && sim.era[i]) col.multiply(col2.setHex(ERA_TINT[sim.era[i]]));
+        if (team === 0 && def.k === 'knightF') col.lerp(col2.setHex(0x6aa0ff), 0.35);
+        if (sim.slow[i] > 0) col.lerp(col2.setHex(0x9fe8ff), 0.45);
+        const f = Math.max(0, sim.flash[i]); if (f > 0) col.lerp(col2.setRGB(1, 1, 1), f * 0.7);
+        const dx = sim.x[i] - camX, dzc = z - camZ, lodL = A.lod(Math.sqrt(dx * dx + dzc * dzc) - 20, crowd);
+        drawn++;
+        if (R.body) { // siege cannon: rigid body with recoil
+          const rec = sim.swing[i] > 0 ? Math.sin((1 - sim.swing[i]) * Math.PI) * 0.25 : 0;
+          rot(M[0], sim.x[i], y, z - Math.cos(this.ry[i]) * rec, -rec * 0.4, this.ry[i], 0); M[0].scale(sc.set(s, s, s)); this.putP('cannon', M[0], col);
+        } else if (lodL === 2 && st === 1) { // far: single merged statue with bob + lean
+          const sp = Math.abs(sim.vx[i]) + Math.abs(sim.vz[i]), ph = sim.phase[i];
+          rot(M[0], sim.x[i], y + (sp > 0.45 ? Math.abs(Math.cos(ph)) * 0.07 * s : 0), z, sp > 0.45 ? 0.12 : 0, this.ry[i], Math.sin(ph) * 0.06); M[0].scale(sc.set(s, s, s));
+          this.putP('S_' + key, M[0], col); this.clip[i] = -1;
+        } else {
+          const v = this.animate(sim, i, dt, lodL), p = this.pose, o = i * P;
+          const rig = R.torso === 'tBrute' ? KM.RIG.brute : KM.RIG.std;
+          // root (pivot at feet so falls topple naturally)
+          rot(M[0], sim.x[i], y + p[o + I.y] * s, z, p[o + I.rootP], this.ry[i] + p[o + I.rootY], p[o + I.rootR]); M[0].scale(sc.set(s, s, s));
+          // legs
+          rot(M[1], -rig.hip[0], rig.hip[1], 0, p[o + I.legLP], 0, 0); M[1].premultiply(M[0]); this.putP(R.leg, M[1], col);
+          rot(M[1], rig.hip[0], rig.hip[1], 0, p[o + I.legRP], 0, 0); M[1].premultiply(M[0]); this.putP(R.leg, M[1], col);
+          // torso
+          rot(M[2], 0, rig.torso, 0, p[o + I.torsoP], p[o + I.torsoY], p[o + I.torsoR]); M[2].premultiply(M[0]); this.putP(R.torso, M[2], col);
+          if (team === 0 && armorLv > 0) this.putP('pads', M[2]);
+          // head
+          rot(M[3], 0, rig.neck, 0, p[o + I.headP], p[o + I.headY], 0); M[3].premultiply(M[2]); this.putP(R.head, M[3], col);
+          if (team === 0 && armorLv >= 4 && key === 'soldier') this.putP('plume', M[3]);
+          // arms + held items
+          rot(M[4], -rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armLP], 0, p[o + I.armLR]); M[4].premultiply(M[2]); this.putP(R.arm, M[4], col);
+          rot(M[5], rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armRP], p[o + I.armRY], p[o + I.armRR]); M[5].premultiply(M[2]); this.putP(R.arm, M[5], col);
+          let wk = R.wpn; if (wk === 'sword' && team === 0 && dmgLv >= 5) wk = 'swordGold';
+          const ws = team === 0 && wk.startsWith('sword') ? 1 + Math.min(8, dmgLv) * 0.06 : 1;
+          if (wk === 'bow') { M[6].makeTranslation(0, rig.fist, 0.02); M[6].premultiply(M[4]); }        // bow in the off hand
+          else { M[6].makeScale(ws, ws, ws); M[6].setPosition(0, rig.fist, 0.03); M[6].premultiply(M[5]); }
+          this.putP(wk, M[6]);
+          if (R.shield) { M[7].makeTranslation(rig.shieldAt[0], rig.shieldAt[1], rig.shieldAt[2]); M[7].premultiply(M[4]); this.putP('shield', M[7], col); }
+          // sword trail accent on near units mid-swing (density-scaled)
+          if (lodL === 0 && sim.swing[i] > 0.35 && sim.swing[i] < 0.62 && this.fxBudget > 0 && Math.random() < 0.5) { this.fxBudget--; pos.set(0, 0, 0.55 * ws).applyMatrix4(M[6]); this.emit(pos.x, pos.y, pos.z, 0, 0, 0, team ? 0xffd0c0 : 0xd8ecff, 0.32, 0.14, 0); }
+        }
+        if (nb < 4096) { q.identity(); const bs = s * (R.body ? 1.6 : R.torso === 'tBrute' ? 1.3 : 0.85); pos.set(sim.x[i], 0.03, z); sc.set(bs, 1, bs); M[0].compose(pos, q, sc); this.put(this.blob, nb++, M[0]); }
+        if (team === 1 && def.el && st === 1 && nr < 160) { q.identity(); const rs = s * 0.75 * (1 + Math.sin(this.time * 6) * 0.06); pos.set(sim.x[i], 0.05, z); sc.set(rs, 1, rs); M[0].compose(pos, q, sc); this.put(this.ringM, nr++, M[0]); }
+        if (team === 0 && st === 1 && bannerTowers.length && nf < 4096) { for (const t of bannerTowers) { const ddx = sim.x[i] - t.x, ddz = z - t.z; if (ddx * ddx + ddz * ddz < bR2) { q.identity(); pos.set(sim.x[i], 0.04, z); sc.set(s, 1, s); M[0].compose(pos, q, sc); this.put(this.buffM, nf++, M[0]); break; } } }
+      }
+      for (const k in this.partM) { const im = this.partM[k]; im.count = this.pn[k]; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; }
+      const fin = (im, n) => { im.count = n; im.instanceMatrix.needsUpdate = true; };
+      fin(this.blob, nb); fin(this.ringM, nr); fin(this.buffM, nf);
+      this.buffM.material.opacity = 0.3 + Math.sin(this.time * 4) * 0.12;
+      this.drawn = drawn;
+    }
     // ---------- world streaming ----------
     initWorld() {
       this.col2 = new C();
       this.groundMat = new THREE.MeshLambertMaterial({ vertexColors: true });
       this.decoMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+      this.farMat = new THREE.MeshLambertMaterial({ vertexColors: true, fog: true });
       this.waterMat = new THREE.MeshLambertMaterial({ color: 0x3fa9e0, transparent: true, opacity: 0.85 });
       this.chunks = new Map();
       const D = (geo, color, mat) => part(geo, color, 0, mat);
+      this.initClouds();
       this.deco = {
         tree: (c, s) => [D(new THREE.CylinderGeometry(0.18, 0.25, 1.2, 6), 0x7a4e2c, TRS(0, 0.6, 0, 0, 0, 0, s)), D(new THREE.ConeGeometry(1.25, 2.0, 8), c, TRS(0, 1.9 * s, 0, 0, 0, 0, s)), D(new THREE.ConeGeometry(0.95, 1.6, 8), new C(c).offsetHSL(0, 0, 0.06).getHex(), TRS(0, 2.8 * s, 0, 0, 0.4, 0, s))],
         round: (c, s) => [D(new THREE.CylinderGeometry(0.16, 0.22, 1.0, 6), 0x7a4e2c, TRS(0, 0.5, 0, 0, 0, 0, s)), D(new THREE.IcosahedronGeometry(1.0, 1), c, TRS(0, 1.7 * s, 0, 0, 0, 0, s * 1.1, s, s * 1.1))],
@@ -220,10 +223,20 @@
         banner: (c) => [D(new THREE.CylinderGeometry(0.06, 0.06, 3.4, 6), 0x5a3a22, T(0, 1.7, 0)), D(new THREE.BoxGeometry(0.9, 1.3, 0.04), c, T(0.48, 2.6, 0)), D(new THREE.BoxGeometry(0.5, 0.5, 0.06), 0xffffff, T(0.48, 2.65, 0.01)), D(new THREE.SphereGeometry(0.1, 6, 4), 0xf2c14e, T(0, 3.45, 0))],
         flower: (c) => [D(new THREE.SphereGeometry(0.12, 5, 4), c, T(0, 0.12, 0))],
         crystal: (c, s) => [D(new THREE.OctahedronGeometry(0.6), c, TRS(0, 0.8 * s, 0, 0, 0.5, 0.2, s * 0.7, s * 1.6, s * 0.7))],
+        bush: (c, s) => [D(new THREE.IcosahedronGeometry(0.7, 1), c, TRS(0, 0.35 * s, 0, 0, 0, 0, s * 1.2, s * 0.85, s)), D(new THREE.IcosahedronGeometry(0.5, 1), new C(c).offsetHSL(0, 0, 0.06).getHex(), TRS(0.5 * s, 0.3 * s, 0.2, 0, 0, 0, s))],
+        tuft: (c, s) => [0, 1, 2].map(k => D(new THREE.ConeGeometry(0.06, 0.35, 4), c, TRS(Math.cos(k * 2.1) * 0.08, 0.15 * s, Math.sin(k * 2.1) * 0.08, Math.cos(k * 2.1) * 0.3, 0, Math.sin(k * 2.1) * 0.3, s))),
+        sign: () => [D(new THREE.CylinderGeometry(0.07, 0.08, 1.6, 6), 0x7a4e2c, T(0, 0.8, 0)), D(new THREE.BoxGeometry(1.1, 0.42, 0.08), 0xb07a46, T(0.2, 1.35, 0)), D(new THREE.BoxGeometry(0.9, 0.06, 0.09), 0xf2c14e, T(0.2, 1.35, 0.01)), D(new THREE.ConeGeometry(0.22, 0.3, 3), 0xb07a46, TRS(0.82, 1.35, 0, 0, 0, -Math.PI / 2))],
+        tent: (c) => [D(new THREE.ConeGeometry(1.4, 1.8, 4), c, TRS(0, 0.9, 0, 0, Math.PI / 4, 0)), D(new THREE.BoxGeometry(0.5, 0.9, 0.05), 0x2a2018, T(0, 0.45, 1.0)), D(new THREE.CylinderGeometry(0.04, 0.04, 2.4, 5), 0x7a4e2c, T(0, 1.2, 0)), D(new THREE.BoxGeometry(0.03, 0.3, 0.45), 0xf2c14e, T(0, 2.2, 0.23))],
         stoneRail: () => [D(new THREE.BoxGeometry(0.5, 0.8, 2.2), 0xb8b0a0, T(0, 0.4, 1.1))],
       };
     }
 
+    initClouds() {
+      const parts = []; const r = KM.rng(77);
+      for (let k = 0; k < 6; k++) parts.push(part(new THREE.IcosahedronGeometry(1, 1), 0xffffff, 0, TRS((k - 2.5) * 1.3, Math.sin(k) * 0.3, 0, 0, 0, 0, 1.6 - Math.abs(k - 2.5) * 0.2, 0.9, 1.1)));
+      const geo = merge(parts), mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, fog: false });
+      this.clouds = []; for (let k = 0; k < 7; k++) { const m = new THREE.Mesh(geo, mat); m.position.set(r.range(-40, 40), r.range(18, 26), -r.range(0, 160)); m.scale.setScalar(r.range(1.6, 3)); this.scene.add(m); this.clouds.push(m); }
+    }
     biomeCol(plan, key) { const a = new C(KM.BIOMES[plan.biome][key]); if (plan.blend > 0) a.lerp(new C(KM.BIOMES[plan.next][key]), plan.blend); return a; }
 
     buildChunk(i) {
@@ -264,7 +277,21 @@
       for (let z = plan.z1; z > plan.z0 + 0.1; z -= 2) for (const sx of [-10.3, 10.3]) add(bridge ? this.deco.stoneRail() : this.deco.post(), sx, z - 2, 0);
       if (i % 2 === 0) { add(this.deco.banner(0x2f6dff), -10.9, plan.z1 - 6, 0); add(this.deco.banner(0xd83a3a), 10.9, plan.z1 - 18, Math.PI); }
       if (plan.biome !== 3 && plan.biome !== 4) for (let k = 0; k < 18; k++) add(this.deco.flower([0xffffff, 0xffe066, 0xff8fb0, 0xb4a0ff][k % 4]), (r() < 0.5 ? -1 : 1) * r.range(10.6, 16), plan.z1 - r() * CH);
+      // foreground: bushes + grass tufts hugging the fences (they frame the lane like the concept art)
+      for (let k = 0; k < 16; k++) { const side = r() < 0.5 ? -1 : 1, x = side * r.range(10.8, 14), z = plan.z1 - r() * CH; if (plan.biome === 3) { add(this.deco.rock(0xf2f7ff, r.range(0.35, 0.6)), x, z, r() * 6); continue; }
+        add(this.deco.bush(treeC.clone().offsetHSL(0, 0.05, (r() - 0.5) * 0.1).getHex(), r.range(0.5, 0.9)), x, z, r() * 6); }
+      for (let k = 0; k < 26; k++) add(this.deco.tuft(grass2.clone().offsetHSL(0, 0.05, -0.06).getHex(), r.range(0.6, 1.1)), (r() < 0.5 ? -1 : 1) * r.range(8.6, 10.1), plan.z1 - r() * CH, r() * 6);
+      // signage + camp props now and then
+      if (r() < 0.35) add(this.deco.sign(), (r() < 0.5 ? -1 : 1) * 11.2, plan.z1 - r() * CH, r() * 0.6 - 0.3);
+      if (r() < 0.25) add(this.deco.tent(r() < 0.5 ? 0x2f6dff : 0xd83a3a), (r() < 0.5 ? -1 : 1) * r.range(15, 19), plan.z1 - r() * CH, r() * 6);
       if (parts.length) { const dm = new THREE.Mesh(merge(parts), this.decoMat); dm.castShadow = true; dm.receiveShadow = true; g.add(dm); }
+      // distant scenery: big low-poly hills / mountains and a castle silhouette, outside the shadow map, cheap
+      const far = [];
+      for (let k = 0; k < 5; k++) { const side = k % 2 ? 1 : -1, sz = r.range(9, 16), hc = new C(plan.biome === 3 ? 0xdfe9f5 : plan.biome === 2 ? 0xd9a868 : plan.biome === 5 ? 0x8a7ce0 : 0x5fa04a).offsetHSL(0, 0, (r() - 0.5) * 0.08);
+        far.push(part(new THREE.IcosahedronGeometry(1, 1), hc.getHex(), 0, TRS(side * r.range(34, 52), -sz * 0.35, plan.z1 - r() * CH, r(), r(), 0, sz * 1.4, sz * r.range(0.5, 0.9), sz)));
+        if (plan.biome === 3 || plan.biome === 1) far.push(part(new THREE.ConeGeometry(1, 1, 7), 0xffffff, 0, TRS(side * r.range(40, 55), sz * 0.6, plan.z1 - r() * CH, 0, r(), 0, sz * 0.5, sz * 0.5, sz * 0.5))); }
+      if (i % 7 === 3) { const sx = (i % 2 ? 1 : -1) * 30, cz = (plan.z0 + plan.z1) / 2; for (const [dx, h] of [[-3, 7], [3, 7], [0, 9]]) { far.push(part(new THREE.CylinderGeometry(1.2, 1.4, h, 8), 0xc8c2b6, 0, T(sx + dx, h / 2, cz))); far.push(part(new THREE.ConeGeometry(1.6, 2.4, 8), 0x2f6dff, 0, T(sx + dx, h + 1.2, cz))); } far.push(part(new THREE.BoxGeometry(6, 4.5, 1.5), 0xbab4a8, 0, T(sx, 2.25, cz))); }
+      if (far.length) g.add(new THREE.Mesh(merge(far), this.farMat));
       return g;
     }
 
@@ -274,137 +301,245 @@
       let built = 0;
       for (const i of want) if (!this.chunks.has(i) && built < 2) { const g = this.buildChunk(i); this.scene.add(g); this.chunks.set(i, g); built++; }
       // fog/sky blend toward current biome
+      for (const c of this.clouds) { c.position.x += 0.6 / 60; if (c.position.z > front + 30) c.position.z -= 190; if (c.position.x > 50) c.position.x = -50; }
       const plan = KM.chunkPlan(Math.max(0, Math.floor(-front / W.CHUNK)));
       const fc = this.biomeCol(plan, 'fog'); this.fogCol.lerp(fc, 0.02); this.scene.fog.color.copy(this.fogCol);
     }
 
     // ---------- launcher ----------
-    std(color, o) { return new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.45, metalness: 0.25 }, o || {})); }
+    // Materials: cel-shaded like the units (std() kept for transparent/emissive bits).
+    std(color, o) { return KM.toonPlain(color, o); }
     buildLauncher() {
       const g = new THREE.Group(), skin = this.skin;
-      const paint = this.lPaint = this.std(skin.color, { roughness: 0.38, metalness: 0.3 }), gold = this.lGold = this.std(skin.trim, { metalness: 0.85, roughness: 0.28 }), dark = this.std(0x23262f, { roughness: 0.7 });
-      const sh = new THREE.Shape(), w = 1.05, d = 1.3, r = 0.38;
-      sh.moveTo(-w + r, -d); sh.lineTo(w - r, -d); sh.quadraticCurveTo(w, -d, w, -d + r); sh.lineTo(w, d - r); sh.quadraticCurveTo(w, d, w - r, d); sh.lineTo(-w + r, d); sh.quadraticCurveTo(-w, d, -w, d - r); sh.lineTo(-w, -d + r); sh.quadraticCurveTo(-w, -d, -w + r, -d);
-      const chassisG = new THREE.ExtrudeGeometry(sh, { depth: 0.55, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.1, bevelSegments: 3, curveSegments: 8 }); chassisG.rotateX(-Math.PI / 2);
+      const paint = this.lPaint = this.std(skin.color), paint2 = this.lPaint2 = this.std(new C(skin.color).offsetHSL(0, 0, -0.12).getHex()), gold = this.lGold = this.std(skin.trim), dark = this.std(0x26293a), wood = this.std(0x9a6a3c), white = this.std(0xffffff);
+      const glowMat = this.std(0x9ff2ff, { emissive: 0x2fb8ff, emissiveIntensity: 1.1 });
+      const rbox = (w, h, d, r, mat) => { const sh = new THREE.Shape(), x = w / 2 - r, z = d / 2 - r; sh.moveTo(-x, -d / 2); sh.lineTo(x, -d / 2); sh.quadraticCurveTo(w / 2, -d / 2, w / 2, -z); sh.lineTo(w / 2, z); sh.quadraticCurveTo(w / 2, d / 2, x, d / 2); sh.lineTo(-x, d / 2); sh.quadraticCurveTo(-w / 2, d / 2, -w / 2, z); sh.lineTo(-w / 2, -z); sh.quadraticCurveTo(-w / 2, -d / 2, -x, -d / 2);
+        const geo = new THREE.ExtrudeGeometry(sh, { depth: h, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 3, curveSegments: 6 }); geo.rotateX(-Math.PI / 2); return new THREE.Mesh(geo, mat); };
       const body = new THREE.Group(); g.add(body); this.lBody = body;
-      const ch = new THREE.Mesh(chassisG, paint); ch.position.y = 0.45; body.add(ch);
-      const trim = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.14, 0.14), gold); trim.position.set(0, 0.62, -1.42); body.add(trim); const t2 = trim.clone(); t2.position.z = 1.42; body.add(t2);
+      const st = this.lStage = {}; const grp = (k) => { const s = new THREE.Group(); body.add(s); st[k] = s; return s; };
+      // L1+ core chassis
+      const base = grp('base');
+      const ch = rbox(2.0, 0.5, 2.4, 0.35, paint); ch.position.y = 0.42; base.add(ch);
+      const deck = rbox(1.7, 0.12, 2.0, 0.3, paint2); deck.position.y = 1.0; base.add(deck);
+      for (const z of [-1.27, 1.27]) { const t = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.13, 0.12), gold); t.position.set(0, 0.6, z); base.add(t); }
+      for (const x of [-1.07, 1.07]) { const t = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.13, 2.3), gold); t.position.set(x, 0.6, 0); base.add(t); }
+      const bolt = new THREE.SphereGeometry(0.05, 6, 4); for (let k = 0; k < 6; k++) for (const x of [-1.08, 1.08]) { const b = new THREE.Mesh(bolt, gold); b.position.set(x * 1.01, 0.78, -0.9 + k * 0.36); base.add(b); }
+      // wheels: 4 at L1-2, 6 from L3
       this.wheels = [];
-      for (const [x, z] of [[-1.15, -0.85], [1.15, -0.85], [-1.15, 0.85], [1.15, 0.85]]) {
-        const wh = new THREE.Group(); wh.position.set(x, 0.42, z);
-        const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.32, 16).rotateZ(Math.PI / 2), dark); wh.add(tire);
-        const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.36, 8).rotateZ(Math.PI / 2), gold); wh.add(hub);
-        for (let k = 0; k < 4; k++) { const sp = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.06, 0.06), gold); sp.rotation.x = k * Math.PI / 4; wh.add(sp); }
-        body.add(wh); this.wheels.push(wh);
-      }
-      const tur = this.turret = new THREE.Group(); tur.position.y = 1.2; body.add(tur);
-      const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.9, 0.22, 20), gold); tur.add(ring);
-      const drum = new THREE.Mesh(new THREE.SphereGeometry(0.72, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2), paint); drum.position.y = 0.08; tur.add(drum);
+      const wheel = (x, z, r) => { const wh = new THREE.Group(); wh.position.set(x, r, z);
+        wh.add(new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.34, 18).rotateZ(Math.PI / 2), dark));
+        wh.add(new THREE.Mesh(new THREE.CylinderGeometry(r * 0.55, r * 0.55, 0.38, 12).rotateZ(Math.PI / 2), gold));
+        const tr = new THREE.Mesh(new THREE.TorusGeometry(r * 0.98, 0.05, 6, 20).rotateY(Math.PI / 2), this.std(0x3a3d4e)); tr.position.x = x > 0 ? 0.17 : -0.17; wh.add(tr);
+        for (let k = 0; k < 5; k++) { const sp = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.07, 0.07), gold); sp.rotation.x = k * Math.PI / 5; wh.add(sp); }
+        this.wheels.push(wh); return wh; };
+      for (const [x, z] of [[-1.17, -0.85], [1.17, -0.85], [-1.17, 0.85], [1.17, 0.85]]) base.add(wheel(x, z, 0.44));
+      const mid = grp('mid'); mid.add(wheel(-1.17, 0, 0.4)); mid.add(wheel(1.17, 0, 0.4));
+      // turret + barrels
+      const tur = this.turret = new THREE.Group(); tur.position.y = 1.1; body.add(tur);
+      tur.add(new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.88, 0.24, 22), gold));
+      const drum = new THREE.Mesh(new THREE.SphereGeometry(0.7, 22, 14, 0, Math.PI * 2, 0, Math.PI / 2), paint); drum.position.y = 0.1; tur.add(drum);
+      const band = new THREE.Mesh(new THREE.TorusGeometry(0.66, 0.05, 6, 24), gold); band.rotation.x = Math.PI / 2; band.position.y = 0.32; tur.add(band);
       this.barrels = [];
       for (let k = 0; k < 3; k++) {
-        const b = new THREE.Group(); const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 1.25, 14).rotateX(Math.PI / 2), paint); tube.position.z = -0.75; b.add(tube);
-        const muzzle = new THREE.Mesh(new THREE.TorusGeometry(0.23, 0.07, 8, 16), gold); muzzle.position.z = -1.36; b.add(muzzle);
-        const band = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.05, 6, 16), gold); band.position.z = -0.35; b.add(band);
-        b.position.set(0, 0.32, 0); tur.add(b); this.barrels.push(b);
+        const b = new THREE.Group();
+        const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 1.2, 16).rotateX(Math.PI / 2), paint); tube.position.z = -0.72; b.add(tube);
+        const brake = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.24, 0.24, 16).rotateX(Math.PI / 2), gold); brake.position.z = -1.38; b.add(brake); b.userData.brake = brake;
+        const mz = new THREE.Mesh(new THREE.TorusGeometry(0.21, 0.06, 8, 18), gold); mz.position.z = -1.5; b.add(mz);
+        const hole = new THREE.Mesh(new THREE.CircleGeometry(0.17, 16), this.std(0x0e1220)); hole.position.z = -1.505; hole.rotation.y = Math.PI; b.add(hole);
+        for (const zz of [-0.35, -0.95]) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.255, 0.04, 6, 16), gold); r.position.z = zz; b.add(r); }
+        b.position.set(0, 0.34, 0); tur.add(b); this.barrels.push(b);
       }
-      // crystal core (lv3+), side plates (lv4+), crown + second banner (lv5)
-      this.core = new THREE.Mesh(new THREE.OctahedronGeometry(0.32), this.std(0x7fe8ff, { emissive: 0x2fb8ff, emissiveIntensity: 1.2, roughness: 0.15, metalness: 0.1 })); this.core.position.y = 1.0; tur.add(this.core);
-      this.plates = new THREE.Group(); for (const x of [-1.22, 1.22]) { const pl = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.55, 2.0), gold); pl.position.set(x, 0.85, 0); this.plates.add(pl); const st = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.3, 1.5), paint); st.position.set(x * 1.03, 0.85, 0); this.plates.add(st); } body.add(this.plates);
-      this.crates = new THREE.Group(); for (const x of [-0.65, 0.65]) { const c = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.36, 0.5), this.std(0x9a6a3c, { roughness: 0.8, metalness: 0 })); c.position.set(x, 1.15, 0.95); this.crates.add(c); } body.add(this.crates);
-      this.crown = new THREE.Group(); for (let k = 0; k < 6; k++) { const sp = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.32, 6), gold); const a = k / 6 * Math.PI * 2; sp.position.set(Math.cos(a) * 0.55, 0.42, Math.sin(a) * 0.55); this.crown.add(sp); } tur.add(this.crown);
+      // L2: troop-capsule hopper + lanterns
+      const hop = grp('hopper');
+      const hp = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.32, 0.5, 14, 1, true), paint2); hp.position.set(0, 1.25, 0.85); hop.add(hp);
+      const hr = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.05, 6, 18), gold); hr.rotation.x = Math.PI / 2; hr.position.set(0, 1.5, 0.85); hop.add(hr);
+      this.capsules = []; for (let k = 0; k < 5; k++) { const c = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), this.std(0x4f8dff)); c.scale.y = 1.3; c.position.set(Math.cos(k * 1.26) * 0.2, 1.5, 0.85 + Math.sin(k * 1.26) * 0.2); hop.add(c); this.capsules.push(c); }
+      for (const x of [-0.9, 0.9]) { const lp = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5, 6), gold); lp.position.set(x, 1.3, 1.1); hop.add(lp); const lt = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), this.std(0xfff2b0, { emissive: 0xffc84a, emissiveIntensity: 0.9 })); lt.position.set(x, 1.58, 1.1); hop.add(lt); }
+      // L3: crystal reinforcement core on a pylon + rear deck crates
+      const core = grp('core');
+      const py = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.16, 0.5, 8), gold); py.position.y = 2.1 - 1.1 + 1.1; core.add(py);
+      this.core = new THREE.Mesh(new THREE.OctahedronGeometry(0.34), glowMat); this.core.position.y = 2.6; core.add(this.core);
+      const halo = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.035, 6, 24), gold); halo.rotation.x = Math.PI / 2; halo.position.y = 2.6; core.add(halo); this.halo = halo;
+      for (const x of [-0.6, 0.6]) { const c = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.34, 0.42), wood); c.position.set(x, 1.25, 0.2); core.add(c); const cb = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.06, 0.44), gold); cb.position.set(x, 1.3, 0.2); core.add(cb); }
+      // L4: armour skirts over the wheels, front ram + shield plates
+      const arm = grp('armor');
+      for (const x of [-1.32, 1.32]) { const sk = rbox(0.12, 0.5, 2.5, 0.05, paint2); sk.rotation.z = Math.PI / 2; sk.position.set(x, 0.85, 0); sk.rotation.set(0, 0, 0); sk.scale.set(1, 1, 1); const pl = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.42, 2.5), paint2); pl.position.set(x, 0.72, 0); arm.add(pl); const rim = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.07, 2.55), gold); rim.position.set(x, 0.95, 0); arm.add(rim); const rim2 = rim.clone(); rim2.position.y = 0.5; arm.add(rim2); }
+      const ram = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.6, 4).rotateX(-Math.PI / 2), gold); ram.position.set(0, 0.6, -1.5); arm.add(ram);
+      for (const x of [-0.65, 0.65]) { const sp = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.4, 6).rotateX(-Math.PI / 2), white); sp.position.set(x, 0.6, -1.42); arm.add(sp); }
+      for (const x of [-0.55, 0.55]) { const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.08, 18).rotateX(Math.PI / 2), paint); sh.position.set(x, 1.15, -1.0); arm.add(sh); const sr = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.04, 6, 18), gold); sr.position.copy(sh.position); arm.add(sr); }
+      // L5: crown, gold fins, second banner, hover energy ring
+      const top = grp('crown');
+      this.crown = new THREE.Group(); for (let k = 0; k < 8; k++) { const sp = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.34, 6), gold); const a = k / 8 * Math.PI * 2; sp.position.set(Math.cos(a) * 0.62, 0.42, Math.sin(a) * 0.62); this.crown.add(sp); } tur.add(this.crown);
+      for (const x of [-1, 1]) { const fin = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.55, 0.9), gold); fin.position.set(x * 1.0, 1.35, 0.55); fin.rotation.z = -x * 0.35; top.add(fin); }
+      this.eRing = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.05, 6, 40), new THREE.MeshBasicMaterial({ color: 0x9ff2ff, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false })); this.eRing.rotation.x = Math.PI / 2; this.eRing.position.y = 0.25; top.add(this.eRing);
       // flags
       const clothG = () => { const geo = new THREE.PlaneGeometry(0.95, 0.62, 10, 4); geo.translate(0.475, 0, 0); return geo; };
       this.flags = [];
       for (const [x, z] of [[-0.85, 1.1], [0.85, 1.1]]) {
         const fg = new THREE.Group(); fg.position.set(x, 0.9, z);
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 6), gold); pole.position.y = 1.1; fg.add(pole);
-        const cloth = new THREE.Mesh(clothG(), this.std(skin.color, { side: THREE.DoubleSide, roughness: 0.8, metalness: 0 })); cloth.position.y = 1.85; fg.add(cloth); cloth.userData.base = cloth.geometry.attributes.position.array.slice();
-        const em = new THREE.Mesh(new THREE.CircleGeometry(0.15, 12), this.std(0xffffff, { side: THREE.DoubleSide })); em.position.set(0.45, 1.85, 0.01); fg.add(em); fg.userData.em = em;
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.3, 6), gold); pole.position.y = 1.15; fg.add(pole);
+        const knob = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), gold); knob.position.y = 2.32; fg.add(knob);
+        const cloth = new THREE.Mesh(clothG(), this.std(skin.color, { side: THREE.DoubleSide })); cloth.position.y = 1.95; fg.add(cloth); cloth.userData.base = cloth.geometry.attributes.position.array.slice();
+        const em = new THREE.Mesh(new THREE.CircleGeometry(0.15, 14), this.std(0xffffff, { side: THREE.DoubleSide })); em.position.set(0.45, 1.95, 0.012); fg.add(em);
         body.add(fg); this.flags.push(fg);
       }
-      ch.castShadow = true; g.traverse(o => { if (o.isMesh) o.castShadow = true; });
-      // health + pickup rings on the ground
+      g.traverse(o => { if (o.isMesh && !o.material.transparent) o.castShadow = true; });
       this.hpRing = new THREE.Mesh(new THREE.RingGeometry(1.75, 1.95, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x4cff8a, transparent: true, opacity: 0.7, depthWrite: false })); this.hpRing.position.y = 0.05; g.add(this.hpRing);
       this.magRing = new THREE.Mesh(new THREE.RingGeometry(0.96, 1, 64).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffe28a, transparent: true, opacity: 0.35, depthWrite: false })); this.magRing.position.y = 0.04; g.add(this.magRing);
       const glow = new THREE.Mesh(new THREE.PlaneGeometry(5, 5).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: radialTex('rgba(80,160,255,0.55)', 'rgba(80,160,255,0)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); glow.position.y = 0.06; g.add(glow); this.lGlow = glow;
+      this.lastLv = 1; this.lPop = 9;
       return g;
     }
-    setSkin(item) { this.skin = item; if (this.lPaint) { this.lPaint.color.set(item.color); this.lGold.color.set(item.trim); this.flags.forEach(f => f.children[1].material.color.set(item.color)); } }
+    setSkin(item) { this.skin = item; if (this.lPaint) { this.lPaint.color.set(item.color); this.lPaint2.color.set(item.color).offsetHSL(0, 0, -0.12); this.lGold.color.set(item.trim); this.flags.forEach(f => f.children[2].material.color.set(item.color)); } }
 
     drawLauncher(sim, dt) {
-      const L = sim.L, g = this.launcher, lv = sim.level;
+      const L = sim.L, g = this.launcher, lv = sim.level, S = this.lStage;
       g.position.set(L.x, 0, L.z); g.visible = true;
+      if (lv !== this.lastLv) { if (lv > this.lastLv) { this.lPop = 0; this.burst(L.x, 1.5, L.z, 70, 0x9ff2ff, 7, 0.7, 0.8, 5); this.ring(L.x, L.z, 0x9ff2ff, 8, 0.8); this.ring(L.x, L.z, 0xffd23a, 5, 0.6); } this.lastLv = lv; }
+      this.lPop += dt;
       const tilt = Math.max(-0.25, Math.min(0.25, -L.vx * 0.03)); this.lBody.rotation.z += (tilt - this.lBody.rotation.z) * Math.min(1, dt * 8);
       this.lBody.position.y = Math.abs(Math.sin(this.time * 9)) * 0.02 + (L.hitT < 0.15 ? 0.08 : 0);
       for (const w of this.wheels) w.rotation.x = -L.wheel * 2.2;
-      const nb = lv >= 5 ? 3 : lv >= 3 ? 2 : 1;
-      this.barrels.forEach((b, k) => { b.visible = k < nb; b.position.x = nb === 1 ? 0 : nb === 2 ? (k ? 0.28 : -0.28) : (k - 1) * 0.42; b.position.z = L.fire * 0.18 * ((k + Math.floor(this.time * 8)) % nb === 0 ? 1 : 0.3); });
+      S.mid.visible = lv >= 3; S.hopper.visible = lv >= 2; S.core.visible = lv >= 3; S.armor.visible = lv >= 4; S.crown.visible = lv >= 5; this.crown.visible = lv >= 5; this.flags[1].visible = lv >= 5;
+      const nb = lv >= 5 ? 3 : lv >= 3 ? 2 : 1, blen = lv >= 2 ? 1.15 : 0.85;
+      this.barrels.forEach((b, k) => { b.visible = k < nb; b.position.x = nb === 1 ? 0 : nb === 2 ? (k ? 0.3 : -0.3) : (k - 1) * 0.44; b.scale.set(1, 1, blen); b.userData.brake.visible = lv >= 2; b.position.z = L.fire * 0.2 * ((k + Math.floor(this.time * 8)) % nb === 0 ? 1 : 0.3); });
       this.turret.rotation.y = Math.sin(this.time * 1.3) * 0.05 - L.vx * 0.02;
-      this.crates.visible = lv >= 2; this.core.visible = lv >= 3; this.plates.visible = lv >= 4; this.crown.visible = lv >= 5; this.flags[1].visible = lv >= 5;
-      this.core.rotation.y += dt * 2; this.core.position.y = 1.0 + Math.sin(this.time * 3) * 0.08;
-      const sc = 1 + (lv - 1) * 0.07; this.lBody.scale.setScalar(sc);
-      for (const f of this.flags) { const c = f.children[1], a = c.geometry.attributes.position, b = c.userData.base; for (let k = 0; k < a.count; k++) { const x = b[k * 3]; a.array[k * 3 + 2] = Math.sin(x * 5 - this.time * 7) * 0.09 * x; } a.needsUpdate = true; }
+      this.capsules.forEach((c, k) => { c.position.y = 1.48 + Math.abs(Math.sin(this.time * 6 + k)) * 0.06 - L.fire * 0.05; });
+      this.core.rotation.y += dt * 2; this.core.position.y = 2.6 + Math.sin(this.time * 3) * 0.08; this.halo.rotation.z += dt; this.eRing.rotation.z -= dt * 1.5; this.eRing.material.opacity = 0.45 + Math.sin(this.time * 4) * 0.2;
+      // stage transform pop: overshoot scale for ~0.6s
+      const pu = Math.min(1, this.lPop / 0.6), pop = pu < 1 ? Math.sin(pu * Math.PI) * 0.18 : 0;
+      const sc = (1 + (Math.min(lv, 5) - 1) * 0.06) * (1 + pop); this.lBody.scale.setScalar(sc);
+      for (const f of this.flags) { const c = f.children[2], a = c.geometry.attributes.position, b = c.userData.base; for (let k = 0; k < a.count; k++) { const x = b[k * 3]; a.array[k * 3 + 2] = Math.sin(x * 5 - this.time * 7) * 0.09 * x; } a.needsUpdate = true; }
       const hpF = L.hp / sim.stats.maxHp; this.hpRing.material.color.setHSL(0.33 * hpF, 0.9, 0.55); this.hpRing.material.opacity = 0.35 + (1 - hpF) * 0.5 + (L.hitT < 0.2 ? 0.3 : 0);
       this.hpRing.scale.setScalar(0.3 + 0.7 * hpF + 0.0001);
       const mg = sim.stats.magnet; this.magRing.scale.set(mg, 1, mg); this.magRing.material.opacity = 0.18 + Math.sin(this.time * 3) * 0.06;
-      this.lPaint.emissive.setRGB(L.hitT < 0.12 ? 0.6 : 0, 0, 0); if (L.inv > 0) this.lPaint.emissive.setRGB(0.1, 0.25, 0.5 * (0.5 + 0.5 * Math.sin(this.time * 20)));
+      this.lPaint.emissive.setRGB(L.hitT < 0.12 ? 0.6 : pop * 0.6, pop * 0.6, pop * 0.8); if (L.inv > 0 && L.inv < 100) this.lPaint.emissive.setRGB(0.1, 0.25, 0.5 * (0.5 + 0.5 * Math.sin(this.time * 20)));
       this.lGlow.material.opacity = 0.5 + L.fire * 0.5;
-      if (!sim.alive) g.visible = Math.floor(this.time * 4) % 2 === 0 && sim.t - 0 > 0 && this.deathT < 1.2; // flicker out
+      if (!sim.alive) g.visible = Math.floor(this.time * 4) % 2 === 0 && this.deathT < 1.2;
     }
 
     // ---------- towers ----------
     buildTower(t) {
-      const g = new THREE.Group(), lv = t.lvl, T = KM.TOWERS[t.type];
-      const stone = this.std(0xb4b9c2, { roughness: 0.85, metalness: 0 }), wood = this.std(0x9a6a3c, { roughness: 0.8, metalness: 0 }), gold = this.std(0xf2c14e, { metalness: 0.85, roughness: 0.3 }), blue = this.std(0x2f6dff, { roughness: 0.5 }), acc = this.std(T.color, { roughness: 0.4, emissive: T.color, emissiveIntensity: 0.15 });
-      const H = 1.4 + lv * 0.3;
-      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.9 + lv * 0.05, 1.15 + lv * 0.06, H, 10), stone); base.position.y = H / 2; g.add(base);
-      for (let k = 0; k < 6; k++) { const bl = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.3, 0.3), stone); const a = k / 6 * Math.PI * 2; bl.position.set(Math.cos(a) * (0.95 + lv * 0.05), H + 0.12, Math.sin(a) * (0.95 + lv * 0.05)); bl.rotation.y = -a; g.add(bl); }
-      for (let k = 1; k < lv; k++) { const rg = new THREE.Mesh(new THREE.TorusGeometry(1.0 + lv * 0.05, 0.06, 6, 20), gold); rg.rotation.x = Math.PI / 2; rg.position.y = H * k / lv; g.add(rg); }
-      if (lv >= 3) for (const x of [-1, 1]) { const bn = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.9, 0.5), blue); bn.position.set(x * (1.05 + lv * 0.05), H - 0.6, 0); g.add(bn); }
-      const head = new THREE.Group(); head.position.y = H + 0.2; g.add(head); g.userData.head = head;
-      const plat = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.16, 12), wood); head.add(plat);
-      const aimG = new THREE.Group(); head.add(aimG); g.userData.aim = aimG;
-      if (t.type === 'arrow') { const bdy = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, 1.2), wood); bdy.position.y = 0.4; aimG.add(bdy); const arms = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 0.1), acc); arms.position.set(0, 0.45, 0.35); aimG.add(arms); const tip = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.3, 6).rotateX(Math.PI / 2), gold); tip.position.set(0, 0.52, 0.75); aimG.add(tip); }
-      if (t.type === 'cannon') { const yoke = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 0.5), wood); yoke.position.y = 0.3; aimG.add(yoke); const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 1.3, 12).rotateX(Math.PI / 2), this.std(0x30323a, { metalness: 0.6, roughness: 0.4 })); bar.position.set(0, 0.6, 0.35); aimG.add(bar); const mz = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.06, 6, 12), acc); mz.position.set(0, 0.6, 1.0); aimG.add(mz); g.userData.barrel = bar; }
-      if (t.type === 'frost') { const cr = new THREE.Mesh(new THREE.OctahedronGeometry(0.45), this.std(0xaef4ff, { emissive: 0x3fd0ff, emissiveIntensity: 0.8, roughness: 0.1, transparent: true, opacity: 0.9 })); cr.position.y = 0.95; cr.scale.y = 1.5; aimG.add(cr); g.userData.spin = cr; for (let k = 0; k < 3; k++) { const s2 = new THREE.Mesh(new THREE.OctahedronGeometry(0.14), cr.material); s2.position.set(Math.cos(k * 2.1) * 0.6, 0.8, Math.sin(k * 2.1) * 0.6); cr.add(s2); } }
-      if (t.type === 'sniper') { const bdy = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.36, 0.7), this.std(0x3a2f5a)); bdy.position.y = 0.45; aimG.add(bdy); const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.8, 8).rotateX(Math.PI / 2), acc); bar.position.set(0, 0.5, 0.9); aimG.add(bar); const sc = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.4, 8).rotateX(Math.PI / 2), gold); sc.position.set(0, 0.75, 0.2); aimG.add(sc); }
-      if (t.type === 'barracks') { const hs = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 1.0), this.std(0xe8dcc0, { roughness: 0.8 })); hs.position.y = 0.45; head.add(hs); const rf = new THREE.Mesh(new THREE.ConeGeometry(0.95, 0.7, 4), blue); rf.position.y = 1.2; rf.rotation.y = Math.PI / 4; head.add(rf); const dr = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.5, 0.04), wood); dr.position.set(0, 0.3, 0.52); head.add(dr); head.rotation.y = Math.sign(-t.x || 1) * Math.PI / 2; }
-      if (t.type === 'banner') { const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.6, 6), gold); pole.position.y = 1.3; head.add(pole); const fl = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.0, 1.1), this.std(0x3cd27a, { emissive: 0x1a7a44, emissiveIntensity: 0.3 })); fl.position.set(0, 2.0, 0.58); head.add(fl); g.userData.flag = fl; const aura = new THREE.Mesh(new THREE.RingGeometry(0.97, 1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x3cd27a, transparent: true, opacity: 0.45, depthWrite: false })); aura.position.y = -H - 0.1; aura.scale.setScalar(7); head.add(aura); g.userData.aura = aura; }
-      if (t.type !== 'barracks' && t.type !== 'banner') { const roof = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.5, 6), blue); roof.position.set(0, -0.05, -0.62); head.add(roof); }
-      g.traverse(o => { if (o.isMesh && o.material !== undefined && !o.material.transparent) o.castShadow = true; });
-      g.userData.lvl = lv; g.userData.type = t.type;
+      const g = new THREE.Group(), lv = t.lvl, T = KM.TOWERS[t.type], L5 = lv >= 5;
+      const stone = this.std(0xc3c8d0), stone2 = this.std(0x9ea6b2), wood = this.std(0x9a6a3c), gold = this.std(0xf4c247), blue = this.std(0x2f6dff), steel = this.std(0xb8c2d0), dark = this.std(0x30323a);
+      const acc = this.std(T.color, { emissive: T.color, emissiveIntensity: 0.12 + lv * 0.05 });
+      const H = 0.95 + lv * 0.24, R0 = 0.85 + lv * 0.05;
+      const parts = []; const add = (m, par) => { (par || g).add(m); parts.push(m); return m; };
+      // stone base with brick courses, crenellations, gold rings per level, banners from L3
+      const base = add(new THREE.Mesh(new THREE.CylinderGeometry(R0 * 0.9, R0 * 1.15, H, 12), stone)); base.position.y = H / 2;
+      for (let k = 1; k <= Math.floor(H / 0.45); k++) { const c = add(new THREE.Mesh(new THREE.CylinderGeometry(R0 * (1.13 - k * 0.04), R0 * (1.14 - k * 0.04), 0.05, 12), stone2)); c.position.y = k * 0.45; }
+      const n = 6 + Math.floor(lv / 2) * 2; for (let k = 0; k < n; k++) { const bl = add(new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 0.3), lv >= 4 ? steel : stone)); const a = k / n * Math.PI * 2; bl.position.set(Math.cos(a) * R0 * 0.95, H + 0.14, Math.sin(a) * R0 * 0.95); bl.rotation.y = -a; }
+      for (let k = 1; k < lv; k++) { const rg = add(new THREE.Mesh(new THREE.TorusGeometry(R0 * (1.12 - k / lv * 0.2), 0.035, 6, 22), gold)); rg.rotation.x = Math.PI / 2; rg.position.y = H * k / lv; }
+      if (lv >= 3) for (const x of [-1, 1]) { const bn = add(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.9 + lv * 0.08, 0.55), blue)); bn.position.set(x * R0 * 1.02, H - 0.65, 0); const em = add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.24, 0.24), gold)); em.position.set(x * R0 * 1.03, H - 0.55, 0); em.rotation.x = Math.PI / 4; }
+      const door = add(new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.62, 0.06), wood)); door.position.set(0, 0.31, R0 * 1.08); door.rotation.x = -0.12;
+      const head = new THREE.Group(); head.position.y = H + 0.22; g.add(head); g.userData.head = head;
+      add(new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.78, 0.16, 14), wood), head);
+      const aim = new THREE.Group(); head.add(aim); g.userData.aim = aim; const s = 1 + (lv - 1) * 0.13;
+      if (t.type === 'arrow') {
+        const shots = 1 + Math.floor((lv - 1) / 2); g.userData.arms = [];
+        for (let k = 0; k < shots; k++) {
+          const bal = new THREE.Group(); bal.position.set((k - (shots - 1) / 2) * 0.42, 0, 0); aim.add(bal);
+          const bdy = add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 1.1 * s), lv >= 4 ? steel : wood), bal); bdy.position.y = 0.4;
+          const arms = new THREE.Group(); arms.position.set(0, 0.45, 0.3); bal.add(arms); g.userData.arms.push(arms);
+          for (const x of [-1, 1]) { const a = add(new THREE.Mesh(new THREE.BoxGeometry(0.62 * s, 0.08, 0.08), acc), arms); a.position.x = x * 0.32 * s; a.rotation.y = -x * 0.25; }
+          const bolt = add(new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.9, 5).rotateX(Math.PI / 2), wood), bal); bolt.position.set(0, 0.5, 0.25); g.userData.bolt = bolt;
+          const tip = add(new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 6).rotateX(Math.PI / 2), L5 ? this.std(0x9ff2ff, { emissive: 0x2fb8ff, emissiveIntensity: 1 }) : gold), bal); tip.position.set(0, 0.5, 0.75);
+        }
+      }
+      if (t.type === 'cannon') {
+        const yoke = add(new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.42, 0.55), wood), aim); yoke.position.y = 0.3;
+        const nb = lv >= 4 ? 2 : 1; g.userData.barrels = [];
+        for (let k = 0; k < nb; k++) { const bar = new THREE.Group(); bar.position.set(nb === 1 ? 0 : (k ? 0.26 : -0.26), 0.62, 0.3); aim.add(bar); g.userData.barrels.push(bar);
+          add(new THREE.Mesh(new THREE.CylinderGeometry(0.2 * s, 0.28 * s, 1.25 * s, 14).rotateX(Math.PI / 2), dark), bar).position.z = 0.1;
+          const mz = add(new THREE.Mesh(new THREE.TorusGeometry(0.22 * s, 0.06, 6, 14), acc), bar); mz.position.z = 0.72 * s;
+          if (lv >= 3) { const r2 = add(new THREE.Mesh(new THREE.TorusGeometry(0.27 * s, 0.04, 6, 14), gold), bar); r2.position.z = -0.25; } }
+      }
+      if (t.type === 'frost') {
+        const mat = this.std(0xbff6ff, { emissive: 0x3fd0ff, emissiveIntensity: 0.8, transparent: true, opacity: 0.92 });
+        const cr = new THREE.Mesh(new THREE.OctahedronGeometry(0.38 * s), mat); cr.position.y = 1.0; cr.scale.y = 1.6; aim.add(cr); g.userData.spin = cr; g.userData.frostMat = mat;
+        g.userData.shards = []; for (let k = 0; k < lv + 1; k++) { const sh = new THREE.Mesh(new THREE.OctahedronGeometry(0.12 + lv * 0.01), mat); aim.add(sh); g.userData.shards.push(sh); }
+        for (let k = 0; k < 4; k++) { const sp = add(new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.5, 5), steel), aim); const a = k * Math.PI / 2; sp.position.set(Math.cos(a) * 0.55, 0.3, Math.sin(a) * 0.55); sp.rotation.set(Math.sin(a) * 0.4, 0, -Math.cos(a) * 0.4); }
+      }
+      if (t.type === 'sniper') {
+        const bdy = add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.38, 0.8), this.std(0x3a2f5a)), aim); bdy.position.y = 0.45;
+        const bar = add(new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.08, 1.6 + lv * 0.2, 10).rotateX(Math.PI / 2), acc), aim); bar.position.set(0, 0.5, 0.9 + lv * 0.1); g.userData.barrel = bar;
+        const sc = add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.42, 10).rotateX(Math.PI / 2), gold), aim); sc.position.set(0, 0.76, 0.2);
+        const lens = add(new THREE.Mesh(new THREE.CircleGeometry(0.07, 12), this.std(0xff3a6a, { emissive: 0xff2a5a, emissiveIntensity: 1 })), aim); lens.position.set(0, 0.76, 0.415);
+        if (lv >= 4) { const br = add(new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.2, 10).rotateX(Math.PI / 2), gold), aim); br.position.set(0, 0.5, 1.7 + lv * 0.2); }
+      }
+      if (t.type === 'barracks') {
+        const fl = lv >= 3 ? 2 : 1, hs = add(new THREE.Mesh(new THREE.BoxGeometry(1.2 * s, 0.75 * fl, 1.0 * s), this.std(0xf0e4c8)), head); hs.position.y = 0.4 * fl;
+        const beams = add(new THREE.Mesh(new THREE.BoxGeometry(1.24 * s, 0.07, 1.04 * s), wood), head); beams.position.y = 0.75 * fl;
+        const rf = add(new THREE.Mesh(new THREE.ConeGeometry(0.98 * s, 0.75, 4), blue), head); rf.position.y = 0.78 * fl + 0.36; rf.rotation.y = Math.PI / 4;
+        const dl = new THREE.Group(), dr = new THREE.Group(); dl.position.set(-0.2, 0.28, 0.51 * s); dr.position.set(0.2, 0.28, 0.51 * s); head.add(dl); head.add(dr);
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.04), wood), dl).position.x = 0.1; add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.04), wood), dr).position.x = -0.1; g.userData.doors = [dl, dr];
+        const fp = add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.0, 6), gold), head); fp.position.set(0.5 * s, 0.78 * fl + 0.7, 0); const ff = add(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.3, 0.45), blue), head); ff.position.set(0.5 * s, 0.78 * fl + 1.0, 0.24); g.userData.flag = ff;
+        head.rotation.y = Math.sign(-t.x || 1) * Math.PI / 2;
+      }
+      if (t.type === 'banner') {
+        const pole = add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.4 + lv * 0.25, 6), gold), head); pole.position.y = 1.2 + lv * 0.12;
+        const fl = add(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.9 + lv * 0.12, 1.0 + lv * 0.1), this.std(0x3cd27a, { emissive: 0x1a7a44, emissiveIntensity: 0.35 })), head); fl.position.set(0, 1.9 + lv * 0.2, 0.55 + lv * 0.05); g.userData.flag = fl;
+        const crest = add(new THREE.Mesh(L5 ? new THREE.OctahedronGeometry(0.2) : new THREE.SphereGeometry(0.12, 10, 8), gold), head); crest.position.y = 2.45 + lv * 0.25;
+        if (lv >= 3) { const f2 = add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.6, 0.6), this.std(0x2f6dff)), head); f2.position.set(0, 1.3 + lv * 0.15, -0.35); }
+        const aura = new THREE.Mesh(new THREE.RingGeometry(0.96, 1, 56).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x3cd27a, transparent: true, opacity: 0.45, depthWrite: false })); aura.position.y = -H - 0.12; head.add(aura); g.userData.aura = aura;
+        const fill = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x3cd27a, transparent: true, opacity: 0.07, depthWrite: false })); fill.position.y = -H - 0.13; head.add(fill); g.userData.auraFill = fill;
+      }
+      if (t.type !== 'barracks' && t.type !== 'banner') { const roof = add(new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.5, 6), blue), head); roof.position.set(0, -0.02, -0.64); }
+      if (L5) { const halo = new THREE.Mesh(new THREE.TorusGeometry(R0 * 1.25, 0.05, 6, 32), new THREE.MeshBasicMaterial({ color: 0xffe28a, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false })); halo.rotation.x = Math.PI / 2; halo.position.y = 0.12; g.add(halo); g.userData.halo = halo; }
+      g.traverse(o => { if (o.isMesh && !o.material.transparent) o.castShadow = true; });
+      // construction: parts rise in from the ground, staggered by height
+      g.userData.parts = parts.map(m => ({ m, y: m.position.y, d: Math.random() * 0.15 + (m.position.y + (m.parent === head ? H : 0)) * 0.05 }));
+      g.userData.lvl = lv; g.userData.type = t.type; g.userData.build = 0;
       return g;
     }
     drawTowers(sim, dt) {
       for (let s = 0; s < 6; s++) {
         const t = sim.towers[s]; let o = this.towerObjs[s];
-        if (!t) { if (o) { this.scene.remove(o); this.towerObjs[s] = null; } continue; }
-        if (!o || o.userData.lvl !== t.lvl || o.userData.type !== t.type) { if (o) this.scene.remove(o); o = this.towerObjs[s] = this.buildTower(t); this.scene.add(o); this.burst(t.x, 2, t.z, 40, 0xffd23a, 6, 0.5); this.ring(t.x, t.z, 0xffd23a); }
-        o.position.set(t.x, 0, t.z);
-        const pop = Math.min(1, t.born / 0.35); o.scale.setScalar(pop < 1 ? 0.6 + 0.4 * Math.sin(pop * Math.PI / 2) + Math.sin(pop * Math.PI) * 0.15 : 1);
-        const a = o.userData.aim; let dy = t.aim - a.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); a.rotation.y += dy * Math.min(1, dt * 10);
-        a.position.z = -t.recoil * 0.12 * Math.cos(a.rotation.y); a.position.x = -t.recoil * 0.12 * Math.sin(a.rotation.y);
-        if (o.userData.spin) o.userData.spin.rotation.y += dt * 1.5;
-        if (o.userData.aura) { o.userData.aura.scale.setScalar(7 * Math.sqrt(sim.stats.towerRange) * (1 + Math.sin(this.time * 2) * 0.02)); }
-        if (o.userData.flag) o.userData.flag.rotation.y = Math.sin(this.time * 3) * 0.15;
+        if (!t) { if (o) { this.disposeObj(o); this.towerObjs[s] = null; } continue; }
+        if (!o || o.userData.lvl !== t.lvl || o.userData.type !== t.type) {
+          const upgrade = !!o; if (o) this.disposeObj(o);
+          o = this.towerObjs[s] = this.buildTower(t); this.scene.add(o); if (upgrade) o.userData.build = 0.3;
+          this.burst(t.x, 2, t.z, 50, 0xffd23a, 6, 0.55, 0.7, 6); this.ring(t.x, t.z, 0xffd23a, 4, 0.6); this.ring(t.x, t.z, KM.TOWERS[t.type].color, 6, 0.8);
+        }
+        o.position.set(t.x, 0, t.z); o.scale.setScalar(0.82);
+        const U = o.userData; U.build += dt;
+        if (U.build < 1.2) for (const p of U.parts) { const u = Math.min(1, Math.max(0, (U.build - p.d) / 0.35)); p.m.position.y = p.y - (1 - u * u * (3 - 2 * u)) * 2.2; p.m.visible = u > 0; }
+        const a = U.aim; let dy = t.aim - a.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); a.rotation.y += dy * Math.min(1, dt * (t.type === 'sniper' ? 4 : 10));
+        const r = t.recoil; a.position.z = -r * 0.14 * Math.cos(a.rotation.y); a.position.x = -r * 0.14 * Math.sin(a.rotation.y);
+        if (U.arms) U.arms.forEach(ar => { ar.scale.z = 1; ar.position.z = 0.3 - Math.max(0, r - 0.4) * 0.25; ar.rotation.x = r > 0.5 ? -0.3 * (r - 0.5) : -0.15 * Math.sin((1 - r) * Math.PI); });  // reload pull-back
+        if (U.barrels) U.barrels.forEach((b, k) => { b.position.z = 0.3 - r * 0.3 * (k === (sim.t * 2 | 0) % U.barrels.length ? 1 : 0.3); });
+        if (U.barrel && t.type === 'sniper') U.barrel.position.z = 0.9 + t.lvl * 0.1 - r * 0.3;
+        if (U.spin) { U.spin.rotation.y += dt * (1.5 + t.lvl * 0.3); U.frostMat.emissiveIntensity = 0.6 + Math.sin(this.time * 4) * 0.25 + r * 1.2; U.shards.forEach((sh, k) => { const ang = this.time * 1.8 + k / U.shards.length * Math.PI * 2; sh.position.set(Math.cos(ang) * 0.7, 1.0 + Math.sin(ang * 2) * 0.15, Math.sin(ang) * 0.7); sh.rotation.y = ang; }); }
+        if (U.doors) { const op = Math.min(1, r * 2.2); U.doors[0].rotation.y = -op * 1.4; U.doors[1].rotation.y = op * 1.4; }
+        if (U.flag) U.flag.rotation.y = Math.sin(this.time * 3 + s) * 0.18;
+        if (U.aura) { const k = 7 * Math.sqrt(sim.stats.towerRange) * (sim.stats.bannerR || 1) * (1 + Math.sin(this.time * 2) * 0.025); U.aura.scale.setScalar(k); U.auraFill.scale.setScalar(k); U.aura.material.opacity = 0.35 + Math.sin(this.time * 2) * 0.12; }
+        if (U.halo) { U.halo.rotation.z += dt; U.halo.material.opacity = 0.4 + Math.sin(this.time * 3) * 0.2; }
       }
+      // sniper tracers fade
+      for (const tr of this.tracers) { if (!tr.visible) continue; tr.userData.t += dt; tr.material.opacity = Math.max(0, 0.9 - tr.userData.t * 4); if (tr.userData.t > 0.25) tr.visible = false; }
     }
+    tracer(x0, z0, x1, z1, color) {
+      let tr = this.tracers.find(t => !t.visible); if (!tr) return;
+      const dx = x1 - x0, dz = z1 - z0, len = Math.hypot(dx, dz); tr.position.set((x0 + x1) / 2, 2.4, (z0 + z1) / 2); tr.rotation.set(0, Math.atan2(dx, dz), 0); tr.scale.set(1, 1, len);
+      tr.material.color.setHex(color); tr.userData.t = 0; tr.visible = true;
+    }
+    disposeObj(o) { this.scene.remove(o); o.traverse(m => { if (m.geometry) m.geometry.dispose(); if (m.material && m.material !== this.lGold) m.material.dispose && m.material.dispose(); }); }
 
     // ---------- coins ----------
     initCoins() {
       const geo = new THREE.CylinderGeometry(0.22, 0.22, 0.07, 16); geo.rotateX(Math.PI / 2);
       const mat = this.std(0xffc21a, { metalness: 0.35, roughness: 0.3, emissive: 0xb07000, emissiveIntensity: 0.55 });
       this.coinM = new THREE.InstancedMesh(geo, mat, KM.Sim.CCAP); this.coinM.frustumCulled = false; this.coinM.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.scene.add(this.coinM);
-      this.coinGlow = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: radialTex('rgba(255,210,80,0.6)', 'rgba(255,210,80,0)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), KM.Sim.CCAP); this.coinGlow.frustumCulled = false; this.scene.add(this.coinGlow);
+      this.coinGlow = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: radialTex('rgba(255,215,90,0.42)', 'rgba(255,210,80,0)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), KM.Sim.CCAP); this.coinGlow.frustumCulled = false; this.scene.add(this.coinGlow);
     }
     drawCoins(sim) {
       const C = sim.c, m = this.m, q = this.q, e = this.e, p = this.v, s = this.s3; let n = 0;
       for (let k = 0; k < KM.Sim.CCAP; k++) {
         if (!C.st[k]) continue;
-        const big = Math.min(1.8, 0.9 + Math.sqrt(C.v[k]) * 0.25), fade = C.st[k] === 1 && C.age[k] > 19 ? (Math.floor(C.age[k] * 8) % 2 ? 0.6 : 1) : 1;
+        const big = Math.min(2, 1.15 + Math.sqrt(C.v[k]) * 0.25), fade = C.st[k] === 1 && C.age[k] > 19 ? (Math.floor(C.age[k] * 8) % 2 ? 0.6 : 1) : 1;
         const y = C.y[k] + (C.st[k] === 1 && C.vy[k] === 0 ? 0.12 + Math.sin(this.time * 4 + k) * 0.08 : 0);
         e.set(0, this.time * 3 + k, 0); q.setFromEuler(e); p.set(C.x[k], y + 0.1, C.z[k]); s.setScalar(big * fade); m.compose(p, q, s); this.put(this.coinM, n, m);
-        q.identity(); p.set(C.x[k], 0.06, C.z[k]); s.setScalar(big * 1.6); m.compose(p, q, s); this.put(this.coinGlow, n, m); n++;
+        q.identity(); p.set(C.x[k], 0.06, C.z[k]); s.setScalar(big * 1.05); m.compose(p, q, s); this.put(this.coinGlow, n, m); n++;
       }
       this.coinM.count = this.coinGlow.count = n; this.coinM.instanceMatrix.needsUpdate = this.coinGlow.instanceMatrix.needsUpdate = true;
     }
@@ -490,7 +625,7 @@
         case 'heal': this.burst(sim.x[a], 1, sim.z[a], 6, 0x8aff7a, 2, 0.5, 0.6, -1); break;
         case 'death': this.burst(sim.L.x, 1, sim.L.z, 120, 0xffa040, 9, 1.0, 1.0, 6); this.burst(sim.L.x, 1, sim.L.z, 40, 0x666666, 4, 2, 1.6, -1.5); this.ring(sim.L.x, sim.L.z, 0xff6a2a, 10, 0.9); this.shake = 0.4; this.deathT = 0; break;
         case 'revive': this.ring(sim.L.x, sim.L.z, 0x7cc4ff, 12, 0.9); this.burst(sim.L.x, 1, sim.L.z, 80, 0x7cc4ff, 7, 0.8, 0.8); break;
-        case 'tower': { const t = a; if (t.type === 'arrow' || t.type === 'sniper') this.emit(t.x, 2.2 + t.lvl * 0.3, t.z, 0, 0.5, 0, t.type === 'sniper' ? 0xe4c2ff : 0xfff0c0, 0.9, 0.12, 0); if (t.type === 'cannon') this.burst(t.x + Math.sin(t.aim), 2.2 + t.lvl * 0.3, t.z + Math.cos(t.aim), 8, 0xaaaaaa, 2, 0.8, 0.5, -1); break; }
+        case 'tower': { const t = a; if (t.type === 'sniper' && t.tgt >= 0) this.tracer(t.x, t.z, sim.x[t.tgt], sim.z[t.tgt], 0xe4c2ff); if (t.type === 'barracks') this.burst(t.x - Math.sign(t.x) * 1.2, 0.6, t.z, 10, 0x7cc4ff, 3, 0.4, 0.4); if (t.type === 'arrow' || t.type === 'sniper') this.emit(t.x, 2.2 + t.lvl * 0.3, t.z, 0, 0.5, 0, t.type === 'sniper' ? 0xe4c2ff : 0xfff0c0, 0.9, 0.12, 0); if (t.type === 'cannon') this.burst(t.x + Math.sin(t.aim), 2.2 + t.lvl * 0.3, t.z + Math.cos(t.aim), 8, 0xaaaaaa, 2, 0.8, 0.5, -1); break; }
       }
     }
 
@@ -498,10 +633,11 @@
     drawCamera(sim, dt) {
       const L = sim.L, army = sim.count[0] + sim.count[1];
       const halfW = 9.6, fov = this.cam.fov * Math.PI / 180;
-      const pitch = 0.95; // ~54°
+      const pitch = this.aspect > 1 ? 0.95 : 1.0; // ~54-57°, like the concept framing
       let dist = halfW / (Math.tan(fov / 2) * Math.min(this.aspect, 1.15)) * 0.86;
-      dist = Math.max(dist, this.aspect > 1 ? 36 : 26) * (1 + Math.min(0.18, army / 3000));
-      const tx = L.x * 0.35, tz = sim.front - 11 + L.offZ * 0.3;
+      if (KM.camOverride) dist = KM.camOverride;
+      dist = Math.max(dist, KM.camOverride ? 4 : this.aspect > 1 ? 36 : 26) * (1 + Math.min(0.18, army / 3000));
+      const tx = L.x * 0.35, tz = sim.front - (this.aspect > 1 ? 11 : 14.5) + L.offZ * 0.3;
       if (!this.camT) this.camT = new V3(tx, 0, tz);
       this.camT.x += (tx - this.camT.x) * Math.min(1, dt * 3); this.camT.z += (tz - this.camT.z) * Math.min(1, dt * 4);
       this.camD = (this.camD || dist) + (dist - (this.camD || dist)) * Math.min(1, dt * 1.5);
@@ -515,12 +651,13 @@
 
     frame(sim, dt) {
       this.time += dt; if (this.deathT != null) this.deathT += dt;
+      this.fxBudget = Math.max(4, Math.round(60 * (1 - Math.min(0.93, (sim.count[0] + sim.count[1]) / 2200))));
       this.streamWorld(sim.front);
       this.drawCamera(sim, dt); this.drawLauncher(sim, dt); this.drawTowers(sim, dt);
       this.drawCrowd(sim, dt); this.drawCoins(sim); this.drawProjectiles(sim); this.stepFx(dt);
       this.R.render(this.scene, this.cam);
     }
-    resetRun() { this.deathT = null; this.camT = null; this.camD = null; for (let s = 0; s < 6; s++) if (this.towerObjs[s]) { this.scene.remove(this.towerObjs[s]); this.towerObjs[s] = null; } this.pl.fill(0); this.ry.fill(Math.PI); this.fogCol.setHex(KM.BIOMES[0].fog); }
+    resetRun() { this.deathT = null; this.camT = null; this.camD = null; for (let s = 0; s < 6; s++) if (this.towerObjs[s]) { this.disposeObj(this.towerObjs[s]); this.towerObjs[s] = null; } this.pl.fill(0); this.ry.fill(Math.PI); this.fogCol.setHex(KM.BIOMES[0].fog); }
   }
   KM.Render = Render;
 })(window);

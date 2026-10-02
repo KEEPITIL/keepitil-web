@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KMOB Character Lineup</title>
+<style>html,body{margin:0;height:100%;background:#9fd0ff;overflow:hidden;font:12px/1.3 system-ui,sans-serif}canvas{display:block}#lab{position:fixed;left:8px;top:8px;background:rgba(0,0,0,.6);color:#fff;padding:6px 10px;border-radius:8px}</style></head>
+<body><div id="lab"></div>
+<script src="../vendor/three.min.js"></script><script src="../js/core.js"></script><script src="../js/sim.js"></script><script src="../js/anim.js"></script><script src="../js/kit.js"></script>
+<script>
+/* Dev page: every unit kind on one shared skeleton, cycling through the clip library (?clip=run to lock one). */
+const KM = window.KM, Q = new URLSearchParams(location.search), A = KM.ANIM;
+const R = new THREE.WebGLRenderer({ antialias: true }); R.setPixelRatio(Math.min(2, devicePixelRatio)); R.setSize(innerWidth, innerHeight); document.body.appendChild(R.domElement);
+const S = new THREE.Scene(); S.background = new THREE.Color(0x9fd0ff);
+S.add(new THREE.HemisphereLight(0xeaf4ff, 0x7a6a50, 0.75)); const sun = new THREE.DirectionalLight(0xfff2dc, 0.7); sun.position.set(4, 8, 6); S.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 30), new THREE.MeshLambertMaterial({ color: 0xd2a66c })); ground.rotation.x = -Math.PI / 2; S.add(ground);
+const cam = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 100);
+const kit = KM.buildKit(), kinds = Q.get('kinds') ? Q.get('kinds').split(',') : ['soldier', 'archerF', 'knightF', 'grunt', 'imp', 'shield', 'runner', 'archer', 'knight', 'bomber', 'shaman', 'brute', 'warlord', 'cannon'];
+const COL = { soldier: 0x2f74ff, archerF: 0x2f74ff, knightF: 0x5a8fff, grunt: 0xe2312c, imp: 0xff5243, shield: 0xd8282c, runner: 0xff5a1f, archer: 0xd13a3a, knight: 0x9e1f2c, brute: 0xc8202a, bomber: 0xff7a1c, cannon: 0x8e2a2a, shaman: 0x9a2cc8, warlord: 0x8f1020 };
+const SC = { imp: 0.72, brute: 1.9, warlord: 2.3, knightF: 1.3, knight: 1.18, cannon: 1.4 };
+const mk = name => { const m = new THREE.Mesh(kit.parts[name], KM.toonMat()); m.matrixAutoUpdate = false; S.add(m); return m; };
+const units = kinds.map((k, n) => {
+  const r = KM.RECIPE[k], u = { k, r, x: (n - (kinds.length - 1) / 2) * 1.35, col: new THREE.Color(COL[k]) };
+  const tint = g => { const c = new Float32Array(g.attributes.position.count * 3); for (let i = 0; i < c.length; i += 3) { c[i] = u.col.r; c[i + 1] = u.col.g; c[i + 2] = u.col.b; } return c; };
+  const add = name => { const g = kit.parts[name].clone(); const m = new THREE.InstancedMesh(g, KM.toonMat(), 1); m.instanceColor = new THREE.InstancedBufferAttribute(tint({ attributes: { position: { count: 1 } } }), 3); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); S.add(m); return m; };
+  if (r.body) { u.body = add('cannon'); return u; }
+  u.m = { legL: add(r.leg), legR: add(r.leg), torso: add(r.torso), head: add(r.head), armL: add(r.arm), armR: add(r.arm), wpn: add(r.wpn) }; if (r.shield) u.m.shield = add('shield');
+  return u;
+});
+const pose = new Float32Array(A.P), v = { seed: 0.3, seed2: 0.3, amp: 1, lean: 0, tempo: 1 }, I = A.I, e = new THREE.Euler(), M = Array.from({ length: 8 }, () => new THREE.Matrix4());
+const rot = (m, x, y, z, rx, ry, rz) => { e.set(rx, ry, rz, 'YXZ'); m.makeRotationFromEuler(e); m.setPosition(x, y, z); return m; };
+const order = Q.get('clip') ? [Q.get('clip')] : ['idle', 'run', 'attackA', 'attackB', 'heavy', 'aim', 'fire', 'brace', 'cast', 'sprint', 'cheer', 'deathA', 'deathB', 'deathHeavy'];
+let t0 = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const t = (now - t0) / 1000, ci = Math.floor(t / 2.2) % order.length, name = order[ci], id = A.ID[name], c = A.CLIPS[name], lt = t % 2.2;
+  document.getElementById('lab').textContent = 'clip: ' + name + '  ·  kinds: ' + kinds.join(' ');
+  const yaw = +(Q.get('yaw') || 0.5);
+  for (const u of units) {
+    const s = SC[u.k] || 1;
+    if (u.body) { rot(M[0], u.x, 0, 0, 0, yaw, 0); M[0].scale(new THREE.Vector3(s, s, s)); u.body.setMatrixAt(0, M[0]); u.body.instanceMatrix.needsUpdate = true; continue; }
+    A.sample(id, c.loop ? lt * 9 : Math.min(1, lt / (c.dur * 1.6)), v, pose);
+    const rig = u.r.torso === 'tBrute' ? KM.RIG.brute : KM.RIG.std, m = u.m;
+    rot(M[0], u.x, pose[I.y] * s, 0, pose[I.rootP], yaw + pose[I.rootY], pose[I.rootR]); M[0].scale(new THREE.Vector3(s, s, s));
+    const set = (mesh, mm) => { mesh.setMatrixAt(0, mm); mesh.instanceMatrix.needsUpdate = true; };
+    rot(M[1], -rig.hip[0], rig.hip[1], 0, pose[I.legLP], 0, 0).premultiply(M[0]); set(m.legL, M[1]);
+    rot(M[1], rig.hip[0], rig.hip[1], 0, pose[I.legRP], 0, 0).premultiply(M[0]); set(m.legR, M[1]);
+    rot(M[2], 0, rig.torso, 0, pose[I.torsoP], pose[I.torsoY], pose[I.torsoR]).premultiply(M[0]); set(m.torso, M[2]);
+    rot(M[3], 0, rig.neck, 0, pose[I.headP], pose[I.headY], 0).premultiply(M[2]); set(m.head, M[3]);
+    rot(M[4], -rig.shoulder[0], rig.shoulder[1], 0, pose[I.armLP], 0, pose[I.armLR]).premultiply(M[2]); set(m.armL, M[4]);
+    rot(M[5], rig.shoulder[0], rig.shoulder[1], 0, pose[I.armRP], pose[I.armRY], pose[I.armRR]).premultiply(M[2]); set(m.armR, M[5]);
+    if (u.r.wpn === 'bow') M[6].makeTranslation(0, rig.fist, 0.02).premultiply(M[4]); else M[6].makeTranslation(0, rig.fist, 0.03).premultiply(M[5]); set(m.wpn, M[6]);
+    if (m.shield) { M[7].makeTranslation(...rig.shieldAt).premultiply(M[4]); set(m.shield, M[7]); }
+  }
+  const span = kinds.length * 1.35, d = +(Q.get('d') || span * 0.95 + 2);
+  cam.position.set(0, d * 0.32 + 0.8, d); cam.lookAt(0, 0.8, 0); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix();
+  R.render(S, cam);
+}
+requestAnimationFrame(frame);
+window.lineupReady = true;
+</script></body></html>

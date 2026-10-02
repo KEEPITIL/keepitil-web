@@ -18,7 +18,7 @@
         x: f(CAP), z: f(CAP), vx: f(CAP), vz: f(CAP), hp: f(CAP), mhp: f(CAP), dmg: f(CAP), cd: f(CAP), at: f(CAP), spd: f(CAP),
         rng_: f(CAP), arm: f(CAP), rad: f(CAP), sc: f(CAP), phase: f(CAP), swing: f(CAP), flash: f(CAP), die: f(CAP), slow: f(CAP),
         yaw: f(CAP), think: f(CAP), birth: f(CAP), stride: f(CAP), team: u(CAP), kind: u(CAP), st: u(CAP), era: u(CAP), elite: u(CAP),
-        tgt: i(CAP), next: i(CAP), freeL: i(CAP),
+        tgt: i(CAP), next: i(CAP), freeL: i(CAP), swd: f(CAP), pend: i(CAP), pcrit: u(CAP), pdmg: f(CAP),
         gh: i(GCOLS * GROWS * 2),
         p: { x: f(PCAP), z: f(PCAP), sx: f(PCAP), sz: f(PCAP), ex: f(PCAP), ez: f(PCAP), t: f(PCAP), tof: f(PCAP), dmg: f(PCAP), spl: f(PCAP), slow: f(PCAP), h: f(PCAP), team: u(PCAP), kind: u(PCAP), on: u(PCAP), tgt: i(PCAP), crit: u(PCAP) },
         c: { x: f(CCAP), z: f(CCAP), v: f(CCAP), age: f(CCAP), st: u(CCAP), y: f(CCAP), vy: f(CCAP), dx: f(CCAP), dz: f(CCAP) },
@@ -61,7 +61,7 @@
       const hp = def.hp * (mul.hp || 1); this.hp[i] = this.mhp[i] = hp;
       this.dmg[i] = def.dmg * (mul.dmg || 1); this.cd[i] = def.cd; this.at[i] = r() * def.cd; this.spd[i] = (def.spd || 4) * (mul.spd || 1) * (0.92 + r() * 0.16);
       this.rng_[i] = def.rng; this.arm[i] = (def.arm || 0) + (mul.arm || 0); this.rad[i] = def.rad; this.sc[i] = def.sc * (0.95 + r() * 0.1);
-      this.phase[i] = r() * 6.283; this.stride[i] = 0.9 + r() * 0.2; this.swing[i] = 0; this.flash[i] = 0; this.die[i] = 0; this.slow[i] = 0;
+      this.phase[i] = r() * 6.283; this.stride[i] = 0.9 + r() * 0.2; this.swing[i] = 0; this.pend[i] = -1; this.swd[i] = def.el || def.sc >= 1.3 || def.wpn === 'axe' ? 0.75 : def.wpn === 'staff' || def.wpn === 'cannon' ? 0.6 : 0.4; this.flash[i] = 0; this.die[i] = 0; this.slow[i] = 0;
       this.yaw[i] = team ? 0 : Math.PI; this.think[i] = r() * 0.2; this.birth[i] = mul.birth || 0; this.tgt[i] = -1; this.era[i] = mul.era || 0; this.elite[i] = def.el ? 1 : 0;
       this.count[team]++;
       return i;
@@ -193,7 +193,7 @@
     }
     auraArmor(x, z) {
       let a = 0;
-      for (let s = 0; s < 6; s++) { const t = this.towers[s]; if (!t || t.type !== 'banner') continue; const dx = x - t.x, dz = z - t.z; if (dx * dx + dz * dz < 49 * this.stats.towerRange) a += 3 * t.lvl; }
+      for (let s = 0; s < 6; s++) { const t = this.towers[s]; if (!t || t.type !== 'banner') continue; const dx = x - t.x, dz = z - t.z; if (dx * dx + dz * dz < 49 * this.stats.towerRange * this.stats.bannerR * this.stats.bannerR) a += 3 * t.lvl; }
       return a;
     }
 
@@ -347,7 +347,12 @@
         if (this.birth[i] > 0) { this.birth[i] += dt; if (this.birth[i] > 0.4) this.birth[i] = 0; }
         if (this.slow[i] > 0) this.slow[i] -= dt;
         if (this.flash[i] > 0) this.flash[i] -= dt * 5;
-        if (this.swing[i] > 0) this.swing[i] -= dt * 3.2;
+        if (this.swing[i] > 0) {
+          // the blow lands on the strike frame of the attack animation, not when the wind-up starts
+          const hitAt = this.rng_[i] > 2 ? 0.8 : 0.5, was = this.swing[i];
+          this.swing[i] -= dt / this.swd[i];
+          if (was > hitAt && this.swing[i] <= hitAt && this.pend[i] !== -1) this.strike(i, S);
+        }
         const sm = this.slow[i] > 0 ? 0.5 : 1;
         // retarget (staggered)
         this.think[i] -= dt;
@@ -413,11 +418,20 @@
     }
 
     attack(i, tg, tx, tz, S) {
+      const d = this.def(i);
+      if (d.ex) { this.kill(i); return; }                            // bomber: explode on contact
+      if (this.pend[i] !== -1) this.strike(i, S);                    // very fast attackers: resolve the previous blow first
+      this.swing[i] = 1; this.pend[i] = tg;                          // damage resolves in strike() at the hit frame
+    }
+
+    strike(i, S) {
       const d = this.def(i), team = this.team[i];
-      this.swing[i] = 1;
+      let tg = this.pend[i]; this.pend[i] = -1;
+      if (tg >= 0 && this.st[tg] !== ALIVE) { tg = this.nearest(i, this.rng_[i] + this.rad[i] + 1.2); if (tg < 0) { this.emit('whiff', i); return; } }
+      if (tg === -2 && !this.alive) return;
+      const tx = tg === -2 ? this.L.x : this.x[tg], tz = tg === -2 ? this.L.z : this.z[tg];
       let dmg = this.dmg[i], crit = false;
       if (team === 0) { dmg = S.dmg * d.dmg; if (this.rng() < S.crit) { dmg *= 2; crit = true; } }
-      if (d.ex) { this.kill(i); return; }                            // bomber: explode on contact
       if (d.he) { // shaman heals nearby enemies, then casts
         for (let j = 0; j < this.hi; j++) if (this.st[j] === ALIVE && this.team[j] === 1 && j !== i) { const dx = this.x[j] - this.x[i], dz = this.z[j] - this.z[i]; if (dx * dx + dz * dz < 16) this.hp[j] = Math.min(this.mhp[j], this.hp[j] + d.he * this.cd[i]); }
         this.emit('heal', i);
@@ -445,7 +459,7 @@
         t.cd -= dt * S.towerRate * (1 + 0.15 * (lv - 1));
         if (t.type === 'banner') continue;
         if (t.type === 'barracks') {
-          if (t.cd <= 0) { t.cd = T.cd / (1 + 0.25 * (lv - 1)); if (this.count[0] < S.cap + 6 * lv) for (let k = 0; k < 1 + Math.floor(lv / 2); k++) { const j = this.spawn(0, lv >= 4 ? KM.FRIEND[2] : KM.FRIEND[0], t.x - Math.sign(t.x) * 1.2, t.z - 0.5, { hp: S.hp, dmg: S.dmg, spd: S.speed / 4, birth: 0.0001 }); if (j >= 0) { this.vx[j] = -Math.sign(t.x) * 2; this.emit('deploy', j); } } t.recoil = 1; }
+          if (t.cd <= 0) { t.cd = T.cd / (1 + 0.25 * (lv - 1)) / S.barracksRate; if (this.count[0] < S.cap + 6 * lv) for (let k = 0; k < 1 + Math.floor(lv / 2); k++) { const j = this.spawn(0, lv >= 4 ? KM.FRIEND[2] : KM.FRIEND[0], t.x - Math.sign(t.x) * 1.2, t.z - 0.5, { hp: S.hp, dmg: S.dmg, spd: S.speed / 4, birth: 0.0001 }); if (j >= 0) { this.vx[j] = -Math.sign(t.x) * 2; this.emit('deploy', j); } } t.recoil = 1; this.emit('tower', t); }
           continue;
         }
         if (t.cd > 0) continue;
@@ -458,13 +472,13 @@
           if (sc > score) { score = sc; best = i; }
         }
         if (best < 0) { t.cd = 0.15; continue; }
-        t.cd = T.cd; t.recoil = 1;
+        t.cd = T.cd; t.recoil = 1; t.tgt = best;
         const tx = this.x[best], tz = this.z[best]; t.aim = Math.atan2(tx - t.x, tz - t.z);
-        const dmg = T.dmg * S.towerDmg * (1 + 0.45 * (lv - 1)), speed = t.type === 'cannon' ? 13 : t.type === 'sniper' ? 60 : 24;
+        let dmg = T.dmg * S.towerDmg * (1 + 0.45 * (lv - 1)); const tcrit = t.type === 'sniper' && this.rng() < S.sniperCrit; if (tcrit) dmg *= 2.5; const speed = t.type === 'cannon' ? 13 : t.type === 'sniper' ? 60 : 24;
         const tof = Math.hypot(tx - t.x, tz - t.z) / speed;
         const kind = t.type === 'cannon' ? 1 : t.type === 'frost' ? 2 : t.type === 'sniper' ? 4 : 0;
         const shots = t.type === 'arrow' ? 1 + Math.floor((lv - 1) / 2) : 1;
-        for (let k = 0; k < shots; k++) this.fire(0, t.x, t.z, best, tx + this.vx[best] * tof + (k ? (this.rng() - 0.5) * 1.5 : 0), tz + this.vz[best] * tof, dmg, kind, T.splash ? T.splash * (1 + 0.1 * (lv - 1)) : 0, T.slow ? T.slow + 0.3 * lv : 0, speed, false);
+        for (let k = 0; k < shots; k++) this.fire(0, t.x, t.z, best, tx + this.vx[best] * tof + (k ? (this.rng() - 0.5) * 1.5 : 0), tz + this.vz[best] * tof, dmg, kind, T.splash ? T.splash * (1 + 0.1 * (lv - 1)) * S.splash : 0, T.slow ? (T.slow + 0.3 * lv) * S.frost : 0, speed, tcrit);
         this.emit('tower', t);
       }
     }

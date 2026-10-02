@@ -256,7 +256,14 @@
   sim.reset({ seed: 7 }); for (let k = 0; k < 900; k++) { KM.bot(sim, STEP, 0.6); sim.step(STEP); }
   const attract = () => { if (state !== 'run' && sim.alive) KM.bot(sim, STEP, 0.6); if (state !== 'run' && !sim.alive) { sim.reset({ seed: 7 + Math.floor(Math.random() * 99) }); render.resetRun(); } };
   setInterval(attract, 50);
-  KM.game = { sim, render, audio, startRun, jumpTo, stress, get state() { return state; }, save, persist };
+  // Debug: force a build for screenshots (tower level 1-5 for all six slots, launcher level 1-5).
+  function showcase(towerLv, launcherLv) {
+    if (state !== 'run') startRun();
+    sim.t = Math.max(sim.t, 9 * 60); const types = Object.keys(KM.TOWERS);
+    for (let s = 0; s < 6; s++) sim.towers[s] = towerLv ? { type: types[s], lvl: towerLv, cd: 0.5, aim: Math.PI, recoil: 0, slot: s, x: 0, z: 0, tgt: -1, born: 0 } : null;
+    sim.upgrades = Math.max(0, ((launcherLv || 1) - 1) * 4);
+  }
+  KM.game = { sim, render, audio, startRun, jumpTo, stress, showcase, get state() { return state; }, save, persist };
   if (Q.has('autoplay')) startRun(); else goTitle();
   requestAnimationFrame(loop);
 })();

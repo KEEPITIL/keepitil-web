@@ -138,6 +138,7 @@
         if(score>bestScore){bestScore=score;best=o;}
       }
       if(u.tgt&&currentScore>-1e8&&best!==u.tgt&&bestScore<currentScore+20)best=u.tgt;
+      if(u.tgtLock>time)continue;   // 19th-contact rule locked an exposed target for a moment
       if(u.tgt!==best)u.tgt=best;
       if(best)claims.set(best,(claims.get(best)||0)+1);
       u.aiTargetScore=Math.round(bestScore);u.aiRetargetAt=time+prof.reevaluate;u.aiCommitUntil=time+.8+prof.reevaluate*.7;

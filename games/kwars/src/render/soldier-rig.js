@@ -265,7 +265,7 @@ function poseFor(cls,st,p,t,opt){
          relative to the torso was exactly 0.0. It now drives the weapon arm. */
       po.armF2={fwd:lerp(0.5,1.55,thr)-wind*0.25,bend:lerp(0.85,0.32,thr)};
       po.armN ={fwd:0.5+thr*0.10, bend:1.4-thr*0.15};     // shield stays a shield
-      po.extra.spearAng=-0.02; po.extra.brace=1-thr;
+      po.extra.spearAng=-0.02; po.extra.brace=OPT.holdShield?1:1-thr;   // §14 DEFEND keeps the shield forward through the thrust
     }
     else if(st==='throw'){                           // overhead arch throw to the furthest enemy
       const wind=ss(0,.34,p), rel=ss(.34,.52,p), fly=ss(.52,1,p);
@@ -347,6 +347,14 @@ function poseFor(cls,st,p,t,opt){
     po.extra.brace=1;
     po.py += b*1.6;
   }
+  /* Task F SHIELD RECOIL: a hit that lands on the shield drives it back into the body -- shield arm folds, torso and
+     hips give a little, then recover over 0.18s. A block now reads as an impact, not a flag. */
+  if(po.extra.blockRecoil>0){
+    const r=po.extra.blockRecoil;
+    po.armF2={fwd:po.armF2.fwd-r*0.22, bend:po.armF2.bend+r*0.38};
+    po.lean -= r*0.14; po.px -= r*7; po.headTilt=(po.headTilt||0)-r*0.10;
+    po.legF={fwd:po.legF.fwd+r*0.06, bend:po.legF.bend+r*0.12, tilt:po.legF.tilt||0};
+  }
   if(po.extra.stride!==undefined && st!=='attack' && st!=='throw' && st!=='overhead' && st!=='fury'){
     const g=po.extra.stride;                 // -1..1, in phase with the front leg
     const run=(st==='run');
@@ -360,11 +368,18 @@ function poseFor(cls,st,p,t,opt){
     po.extra.gait = g;
   }
   // ---- deaths ----
-  if(st==='die_kneel'||st==='die_impale'){
+  if(st==='die_impale'){
+    /* D-18: tip enters -> recoil -> fold around the shaft -> lose balance -> fall back -> settle. The embedded spear is
+       drawn inside the body's rotation, so it stays attached through the whole fall. p spans 1.4 s. */
+    const rec=ss(0,.12,p)*(1-ss(.12,.3,p)), fold=ss(.08,.36,p), fall=ss(.34,.74,p), bounce=Math.sin(Math.PI*ss(.74,.9,p))*(1-ss(.74,1,p));
+    po.px=-7*ss(0,.12,p)-5*fall; po.lean=0.35*fold*(1-fall)-0.12*rec; po.headTilt=0.5*fold-0.3*rec;
+    po.legF={fwd:0.05+0.25*fall,bend:0.16+0.9*fold*(1-fall*.6),tilt:0.3*fold};po.legB={fwd:-0.12,bend:0.16+1.1*fold*(1-fall*.5),tilt:0.4*fold};
+    po.armN={fwd:0.55*fold+0.4*fall,bend:0.9-0.3*fall};po.armF2={fwd:0.6*fold+0.3*fall,bend:1.0-0.4*fall};
+    po.py=fold*14*(1-fall)+fall*52-bounce*3; po.supine=fall; po.extra={impale:-0.18, dropGear:ss(.4,.7,p)};
+  } else if(st==='die_kneel'){
     const q=ss(0,.45,p),sl=ss(.4,.96,p);po.py=q*30;po.lean=sl*0.3;po.headTilt=sl*0.6;
     po.legF={fwd:0.02,bend:0.16+1.4*q,tilt:0.5*q};po.legB={fwd:-0.1,bend:0.16+1.5*q,tilt:0.6*q};
     po.armN={fwd:0.3-sl*0.1,bend:0.85-sl*0.3};po.armF2={fwd:0.3,bend:0.9};po.extra={};
-    if(st==='die_impale')po.extra.impale=Math.PI;
   } else if(st==='die_back'||st==='die_arrow'){
     const lay=ss(.24,.64,p),fly=ss(.05,.42,p);po.px=-(st==='die_arrow'?12:6)*fly;po.supine=lay;po.py=lay*55;po.headTilt=0.2;
     po.armN={fwd:0.7,bend:0.5};po.armF2={fwd:0.55,bend:0.55};po.legF={fwd:0.35,bend:0.4};po.legB={fwd:-0.1,bend:0.2};po.extra={dropGear:ss(.1,.4,p)};
@@ -384,9 +399,17 @@ function poseFor(cls,st,p,t,opt){
    re-balanced FORWARD -- more reach ahead of the hand, less butt behind it --
    and thickened, which is what actually makes it legible while moving. */
 const SPEAR={FWD:155, BACK:60, W:3.4, TIP:18, TIPW:5.2, SAUROTER:8};
-function drawSpear(ctx,h,ang,C){const d=[Math.cos(ang),Math.sin(ang)];
-  const b=[h[0]-d[0]*SPEAR.BACK,h[1]-d[1]*SPEAR.BACK],tp=[h[0]+d[0]*SPEAR.FWD,h[1]+d[1]*SPEAR.FWD];
-  ctx.strokeStyle=shade(C.wood,-.1);ctx.lineWidth=SPEAR.W;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(b[0],b[1]);ctx.lineTo(tp[0],tp[1]);ctx.stroke();
+function drawSpear(ctx,h,ang,C,X){const d=[Math.cos(ang),Math.sin(ang)];X=X||{};
+  const G=X.spearGrip||0, FWD=SPEAR.FWD+G, BACK=Math.max(4,SPEAR.BACK-G);   // §10 rear-rank grip: hands slide back, the point projects
+  const b=[h[0]-d[0]*BACK,h[1]-d[1]*BACK],tp=[h[0]+d[0]*FWD,h[1]+d[1]*FWD];
+  ctx.strokeStyle=shade(C.wood,-.1);ctx.lineWidth=SPEAR.W;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(b[0],b[1]);
+  if(X.spearStress>0){ /* §6 shaft under stress: a growing kink at 55% before it snaps */ const k=[h[0]+d[0]*FWD*0.55,h[1]+d[1]*FWD*0.55]; const bend=X.spearStress*0.45; const d2=[Math.cos(ang+bend),Math.sin(ang+bend)];
+    ctx.lineTo(k[0],k[1]); ctx.lineTo(k[0]+d2[0]*FWD*0.45,k[1]+d2[1]*FWD*0.45); ctx.stroke();
+    ctx.strokeStyle='#2a1a0c'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(k[0]-d[1]*3,k[1]+d[0]*3); ctx.lineTo(k[0]+d[1]*3,k[1]-d[0]*3); ctx.stroke(); return; }
+  ctx.lineTo(tp[0],tp[1]);ctx.stroke();
+  if(X.spearWear>=1){ /* §15 subtle wear marks: binding damage at light wear, a visible crack when critical */ ctx.strokeStyle='#2a1a0c'; ctx.lineWidth=1;
+    for(const q of (X.spearWear>=2?[0.40,0.48,0.55]:[0.44])){ const m=[h[0]+d[0]*FWD*q,h[1]+d[1]*FWD*q]; ctx.beginPath(); ctx.moveTo(m[0]-d[1]*2.2,m[1]+d[0]*2.2); ctx.lineTo(m[0]+d[1]*2.2,m[1]-d[0]*2.2); ctx.stroke(); }
+    if(X.spearWear>=2){ const m=[h[0]+d[0]*FWD*0.52,h[1]+d[1]*FWD*0.52]; ctx.strokeStyle='#d9c9a8'; ctx.beginPath(); ctx.moveTo(m[0]-d[0]*5,m[1]-d[1]*5); ctx.lineTo(m[0]+d[0]*5,m[1]+d[1]*5); ctx.stroke(); } }
   // bronze butt-spike (sauroter) at the rear
   ctx.strokeStyle=C.trim;ctx.lineWidth=SPEAR.W+0.6;ctx.beginPath();ctx.moveTo(b[0]-d[0]*SPEAR.SAUROTER,b[1]-d[1]*SPEAR.SAUROTER);ctx.lineTo(b[0]+d[0]*3,b[1]+d[1]*3);ctx.stroke();
   spearHead(ctx,tp,d,C);}
@@ -406,10 +429,10 @@ function spearHead(ctx,tp,d,C){
    outside the shield disc. Nothing about the weapon's geometry or its reach
    changes; this only stops the shield from hiding what should be in front of it. */
 function drawSpearAheadOfShield(ctx,J,po,C){
-  if(po.supine||po.extra.impale||po.extra.spearGone)return;
+  if(po.supine||po.extra.impale||po.extra.spearGone||po.extra.spearStress>0)return;
   const ang=po.extra.spearAng||0, d=[Math.cos(ang),Math.sin(ang)];
-  const h=J.armB[2];
-  const tip=[h[0]+d[0]*SPEAR.FWD,h[1]+d[1]*SPEAR.FWD];
+  const h=J.armB[2], FWD=SPEAR.FWD+(po.extra.spearGrip||0);
+  const tip=[h[0]+d[0]*FWD,h[1]+d[1]*FWD];
   const {cx,cy,R}=aspisDisc(J,po);
   /* Find where the shaft LAST leaves the shield disc. Scanning for the first
      clear point was wrong: the weapon hand sits on the far arm and is usually
@@ -417,13 +440,13 @@ function drawSpearAheadOfShield(ctx,J,po,C){
      silently skipped every soldier -- which is why the first attempt at this
      drew nothing at all. */
   let tIn=-1;
-  for(let t=0;t<=SPEAR.FWD;t+=3){
+  for(let t=0;t<=FWD;t+=3){
     const px=h[0]+d[0]*t, py=h[1]+d[1]*t;
     if(Math.hypot(px-cx,py-cy)<=R) tIn=t;
   }
   if(tIn<0) return;                 // shaft never crosses the shield: already visible
-  const t0=Math.min(SPEAR.FWD,tIn+3);
-  if(t0>=SPEAR.FWD) return;         // the disc swallows the whole shaft
+  const t0=Math.min(FWD,tIn+3);
+  if(t0>=FWD) return;         // the disc swallows the whole shaft
   const a=[h[0]+d[0]*t0,h[1]+d[1]*t0];
   ctx.strokeStyle=shade(C.wood,-.1);ctx.lineWidth=SPEAR.W;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(tip[0],tip[1]);ctx.stroke();
@@ -642,7 +665,7 @@ function drawSoldier(ctx,cls,po,C,team,armorCls){
   // far arm (weapon side for sword/spear; bow arm for bow; front for gun)
   limb(ctx,J.armB[0],J.armB[1],5.1,4.1,far);limb(ctx,J.armB[1],J.armB[2],4.1,3.0,far);hand(ctx,J.armB[2],J.armB[1],far);
   if(!po.supine&&!po.extra.impale){
-    if(cls==='spear'&&!po.extra.spearGone)drawSpear(ctx,J.armB[2],po.extra.spearAng,C);
+    if(cls==='spear'&&!po.extra.spearGone)drawSpear(ctx,J.armB[2],po.extra.spearAng,C,po.extra);
     if(cls==='bow')drawBow(ctx,J.armB[2],J.armF[2],po);
   }
   if(cls==='sword'&&!po.supine)drawGladius(ctx,J,po,C);
@@ -668,7 +691,7 @@ function drawSoldier(ctx,cls,po,C,team,armorCls){
       if(cls==='spear')drawSpearAheadOfShield(ctx,J,po,C);}
   }
   if(cls==='gun'&&!po.supine)drawRifle(ctx,J.armF[2],J.armB[2],po,C);
-  if(po.extra.impale){const cx=lerp(J.shoulder[0],J.pelvis[0],0.4),cy=lerp(J.shoulder[1],J.pelvis[1],0.42);const d=[Math.cos(po.extra.impale),Math.sin(po.extra.impale)];ctx.strokeStyle=shade(C.wood||'#8a5a2c',-.1);ctx.lineWidth=2.4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cx+d[0]*38,cy+d[1]*38);ctx.lineTo(cx-d[0]*16,cy-d[1]*16);ctx.stroke();ctx.fillStyle='#5a0e0e';ctx.beginPath();ctx.arc(cx,cy,2.4,0,7);ctx.fill();}
+  if(po.extra.impale){const cx=lerp(J.shoulder[0],J.pelvis[0],0.4),cy=lerp(J.shoulder[1],J.pelvis[1],0.42);const d=[Math.cos(po.extra.impale),Math.sin(po.extra.impale)];ctx.strokeStyle=shade(C.wood||'#8a5a2c',-.1);ctx.lineWidth=2.4;ctx.lineCap='round';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx+d[0]*120,cy+d[1]*120);ctx.lineTo(cx-d[0]*12,cy-d[1]*12);ctx.stroke();/* D-18: full-length dory shaft stays in the body; bronze point exits the back */const bx=cx-d[0]*12,by=cy-d[1]*12,nx=-d[1],ny=d[0];ctx.fillStyle=C.metal||'#b08d57';ctx.beginPath();ctx.moveTo(bx-d[0]*12,by-d[1]*12);ctx.lineTo(bx+nx*3,by+ny*3);ctx.lineTo(bx-nx*3,by-ny*3);ctx.closePath();ctx.fill();ctx.fillStyle='#5a0e0e';ctx.beginPath();ctx.arc(cx,cy,2.6,0,7);ctx.fill();}
   if(cls==='spear'&&po.extra.thrown>0){const f=po.extra.thrown;
     const sx=J.armF[2][0]+18+f*230;
     const sy=J.shoulder[1]-4 - 4*f*(1-f)*82 + f*f*34;   // parabolic arc: rises then descends

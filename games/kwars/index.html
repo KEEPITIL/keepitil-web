@@ -301,6 +301,7 @@
 <script src="src/core/balance.js"></script>
 <script src="src/render/greek-defender.js"></script>
 <script src="src/core/soldier-state.js"></script>
+<script src="src/core/spear-geometry.js"></script>
 <script src="src/core/ai.js"></script>
 <script src="src/core/core-runtime.js"></script>
 <script src="src/core/progression-system.js"></script>
@@ -557,8 +558,10 @@ function armyCount(){ let n=0; for(let i=0;i<S.units.length;i++){const u=S.units
 function enemyCount(){ let n=0; for(let i=0;i<S.units.length;i++){const u=S.units[i]; if(u.team===-1&&u.hp>0)n++;} return n; }
 
 const PROTECTION={
-  sword:[0,32], archer:[0,16], spear:[85,55], spartan:[105,72], gunner:[0,45], laser:[18,68],
-  aetherwing:[520,760], esword:[0,25], earcher:[0,12], espear:[72,44], egunner:[0,40], elaser:[14,62], eboss:[180,240]
+  /* D-17: swordsmen carry a real shield (25), chosen by the melee-lab sweep 0/25/50/85: at 25 an equal-gold
+     sword-vs-spear fight is even while spearmen still win man for man, and each block wears a spear down. */
+  sword:[25,32], archer:[0,16], spear:[85,55], spartan:[105,72], gunner:[0,45], laser:[18,68],
+  aetherwing:[520,760], esword:[25,25], earcher:[0,12], espear:[72,44], egunner:[0,40], elaser:[14,62], eboss:[180,240]
 };
 function progression(){return window.KWCampaign?.progression?.()||window.KWProgression?.calculate({},window.KW_DATA?.campaignKingdoms||[],false)||{armyCap:25,passiveIncome:6,combatMultiplier:1};}
 function armyMax(){return progression().armyCap;}
@@ -895,6 +898,9 @@ function setStance(s){
 const SLOT_STICK = 26;
 // §9 hard body radius: no two living bodies may settle closer than this.
 const BODY_MIN = 11;
+/* H-03: drawn half-width per weapon in hand (shared with tools/capture/spacing-lib.js). */
+const BODY_HALF = {bow:9, gun:9, laser:9, sword:8, spear:6, spartan:6};
+function bodyHalf(u){ const t=TYPES[u.type]; let k=t&&t.weapon; if((k==='spear'||k==='spartan')&&u.spearThrown) k='sword'; return BODY_HALF[k]||8; }
 /* Scratch reused across every call and frame. These ran per band per frame and
    were a steady source of the GC pauses that show up as frame spikes. */
 const _fgKey=new Map(); let _fgTaken=new Uint8Array(0); const _fgRemaining=[];
@@ -1249,6 +1255,7 @@ function steerMove(u, tx, ty, maxSpeed, dt, stopRadius){
   // (own spacing + SEP_MAX)/2 -- cull to exactly that, no wider.
   const uSep = u.preferredSpacing || 24;
   const band = (uSep + SEP_MAX) * .5;
+  let brake = 0;   // Task D/B: a teammate directly ahead in the lane slows the forward drive (columns keep spacing)
   const yBand = band / 1.35 + 1;
   const _pool = (SPAT.stamp === S.time) ? SPAT.all : S.units;
   let _i0 = 0, _i1 = _pool.length;
@@ -1261,13 +1268,15 @@ function steerMove(u, tx, ty, maxSpeed, dt, stopRadius){
     // gentle body separation from allies AND enemies
     const R = (o.team===u.team) ? (uSep + (o.preferredSpacing||24))*.5 : 16;
     const oy=oy2*1.35, od=Math.hypot(ox,oy);
+    if (o.team===u.team && oy2<7.5 && oy2>-7.5 && (-ox)*dx > 0){ const need = bodyHalf(u)+bodyHalf(o); const b = (need + 5 - od) / 5; if (b > brake) brake = Math.min(1, b); }
     if (od>0 && od<R){ const push=(R-od)/R; sx+=ox/od*push; sy+=oy/od*push*.7; }
   }
   // ARRIVAL: ease down over the last stride instead of running at full speed
   // into the stopping radius and jittering back and forth across it.
   const slowR=Math.max((stopRadius||1)*3,26);
   const arrive=dist<slowR?Math.max(.18,dist/slowR):1;
-  const desiredX=(dx+sx*.8)*maxSpeed*arrive, desiredY=(dy+sy*.8)*maxSpeed*arrive;
+  const fwd = 1 - brake;
+  const desiredX=(dx*fwd+sx*.8)*maxSpeed*arrive, desiredY=(dy*fwd+sy*.8)*maxSpeed*arrive;
   // Role weights how hard the soldier drives; retreat still overrides.
   let accel=(u.team===1 && S.retreatT>0) ? 8.5 : (u.moveAccel||6.2);
   // TURN DAMPING: reversing costs more than continuing, so a soldier leans
@@ -1301,10 +1310,20 @@ function enemyDirFor(u){
   // The enemy side is a property of the team and the field, not of a slot.
   return u.team===1?1:-1;
 }
+/* Task B/D: a target almost directly above or below (the next depth row) gives no horizontal direction worth
+   turning for: inside a 6px dead band the soldier keeps his facing instead of flipping on the sign of a wobble. */
+/* A soldier is held only against the spearman whose point holds him: he cannot close on THAT man, but the hold
+   never stops him fighting anyone else within reach (the standoff pass still keeps his body off the point). */
+function heldBy(u, target){ return u.spearHeldT > S.time - 0.12 && u.spearHeldBy === target; }
+function faceToward(u, tx){ const dx = tx - u.x; if (Math.abs(dx) < 6 && u.face) return u.face; return dx >= 0 ? 1 : -1; }
 function applyFacing(u){
   const st=u.faceState||'ENGAGE';
   if(st==='RETREAT_RUN'){
-    if(Math.abs(u.vx)>9)u.face=u.vx>=0?1:-1;    // running away: face the run
+    // Task B: face the run while running, the enemy once arrived; the 0.3s dwell (below, ENGAGE + RUN) stops
+    // spacing nudges near the wall flipping archers back and forth.
+    const tx=Number.isFinite(u.slotX)?u.slotX:u.x, ddx=tx-u.x;
+    if(Math.abs(u.vx||0)>4) u.face=u.vx>=0?1:-1;          // moving: face the run (a queue at the gate slows runners below the old 9px/s)
+    else if(Math.abs(ddx)<=22) u.face=enemyDirFor(u);      // arrived: face the enemy
     return;
   }
   // ENGAGE and RETREAT_SHIELDED both face the enemy.
@@ -1317,7 +1336,12 @@ function updateFaceState(u,dt){
   if(!retreating){ u.faceState='ENGAGE'; u.shieldUp=false; return; }
   // Under threat a shielded soldier must not expose his back.
   const threatened = u.shield>0 && projectileThreat(u);
-  u.faceState = threatened ? 'RETREAT_SHIELDED' : 'RETREAT_RUN';
+  // Task B: the retreat posture holds >=0.4s so passing arrows do not flip shield-up / run every few frames
+  const want = threatened ? 'RETREAT_SHIELDED' : 'RETREAT_RUN';
+  u.faceStateT=Math.max(0,(u.faceStateT||0)-dt);
+  if((u.faceState==='RETREAT_SHIELDED'||u.faceState==='RETREAT_RUN') && want!==u.faceState && u.faceStateT>0){ u.shieldUp=u.faceState==='RETREAT_SHIELDED'; return; }
+  if(want!==u.faceState) u.faceStateT=0.4;
+  u.faceState = want;
   u.shieldUp = threatened;
 }
 /* An incoming projectile owned by the other side, still airborne, heading at
@@ -1353,6 +1377,13 @@ let _denialSrc = [], _denialTeam1 = [], _denialTeamE = [];
    the old full scan found. Deriving it from the same list that is scanned makes
    the indexed window provably complete. */
 let _denialReach=0;
+/* Spear denial is measured from where the point actually rests (KW_SPEAR geometry), not from a numeric range. */
+const SPEAR_LANE = 12;
+function spearPointDist(d){ const g=d._spear; if(g&&g.tipGuard) return Math.abs(g.tipGuard[0]-d.x); return (Number.isFinite(d.attackRange)?d.attackRange:(TYPES[d.type]||{}).range||48); }
+function wallLane(y){ return Math.max(0, Math.min(7, Math.round((y - GROUND_TOP) / 15))); }
+function wallXFor(u){ if (!S._wallLanes) return S._wallX; const k = wallLane(u.y); let best = null;
+  for (const j of [k-1, k, k+1]){ if (j<0||j>7) continue; const wx = S._wallLanes[j]; if (wx==null) continue; if (Math.abs(u.y - (GROUND_TOP + j*15)) >= SPEAR_LANE + 7) continue; if (best==null || wx > best) best = wx; }
+  return best; }
 function buildSpearDenial(){
   _denialTeam1.length=0; _denialTeamE.length=0; _denialReach=0;
   const list=S.units;
@@ -1362,7 +1393,7 @@ function buildSpearDenial(){
     const w=(TYPES[d.type]||{}).weapon;
     if(w!=='spear'&&w!=='spartan') continue;
     (d.team===1?_denialTeam1:_denialTeamE).push(d);
-    const r=(Number.isFinite(d.attackRange)?d.attackRange:(TYPES[d.type]||{}).range||48);
+    const r=spearPointDist(d);
     if(r>_denialReach) _denialReach=r;
   }
   _denialTeam1.sort((a,b)=>a.x-b.x);
@@ -1387,10 +1418,10 @@ function spearDenial(u){
   for(let i=_lo;i<src.length;i++){
     const d=src[i];
     if(d.x > u.x+_denialReach) break;              // sorted: nothing further can reach
-    const dy=d.y-u.y; if(dy>22||dy<-22) continue;
+    const dy=d.y-u.y; if(dy>=SPEAR_LANE||dy<=-SPEAR_LANE) continue;   // the point covers its own lane, not +/-22px
     const dx=(u.x-d.x)*(d.team===1?1:-1);
     if(dx<=SPEAR_DENIAL_BODY) continue;
-    const reach=(Number.isFinite(d.attackRange)?d.attackRange:(TYPES[d.type]||{}).range||48);
+    const reach=spearPointDist(d) + 18;   // hesitation begins a stride before the visible point
     if(dx>reach) continue;
     const f=1-(dx-SPEAR_DENIAL_BODY)/Math.max(1,reach-SPEAR_DENIAL_BODY);
     if(f>worst){ worst=f; if(worst>0.97) break; }
@@ -1494,7 +1525,7 @@ function fireBullet(x, y, tg, dmg, team){
   S.projs.push({kind:'bullet', x, y, sourceX:x, vx:(tg.x-x)/d*880, vy:(tg.y-y)/d*880, g:0, dmg, team, life:2});
   window.KWRuntime?.events.emit('projectile_released',{kind:'bullet',team,damage:dmg});
 }
-function combatRange(u,t){let r=Number.isFinite(u.attackRange)?u.attackRange:(u.spearThrown&&(t.weapon==='spear'||t.weapon==='spartan')?22:t.range)*(u.equipMods?.range||1);if(u.team===-1&&['bow','gun','laser'].includes(t.weapon))r=Math.min(r,ENEMY_RANGE_CAP);return r;}
+function combatRange(u,t){if(u._spear&&window.KW_SPEAR&&KW_SPEAR.hasSpear(u,TYPES))return spearReach(u)+6;let r=Number.isFinite(u.attackRange)?u.attackRange:(u.spearThrown&&(t.weapon==='spear'||t.weapon==='spartan')?22:t.range)*(u.equipMods?.range||1);if(u.team===-1&&['bow','gun','laser'].includes(t.weapon))r=Math.min(r,ENEMY_RANGE_CAP);return r;}
 // Structures are hit with whatever is in hand too: a spear reaches the wall
 // from further out than a sword. Capped so long reaches don't let a soldier
 // hit the fort from the middle of the field.
@@ -1566,25 +1597,49 @@ function incomingThreat(u){
   }
   return best;
 }
-function throwLastSpear(u){
-  if(u.spearThrown||!(TYPES[u.type].weapon==='spear'||TYPES[u.type].weapon==='spartan'))return;
-  let target=null,far=-1;
-  // Only throw at the furthest enemy WITHIN half the map. If none are in range, keep the spear.
-  for(const o of S.units)if(o.team!==u.team&&o.hp>0){const d=Math.hypot(o.x-u.x,o.y-u.y);if(d<=SPEAR_THROW_MAX&&d>far){far=d;target=o;}}
-  if(!target)return;
-  const flight=Math.max(.5,Math.min(1.35,far/520));
-  S.projs.push({kind:'spearp',x:u.x+u.face*8,y:u.y-22,sourceX:u.x,vx:(target.x-u.x)/flight,vy:(target.y-u.y-20)/flight-.5*GRAV*flight,g:GRAV,dmg:Math.round((u.dmg||TYPES[u.type].dmg)*1.35),team:u.team,life:3});
-  window.KWRuntime?.events.emit('projectile_released',{kind:'spear',team:u.team,damage:Math.round((u.dmg||TYPES[u.type].dmg)*1.35)});
-  u.spearThrown=true;u.swordOpening=true;u.throwT=.55;u.anim=1;
-  // §18 The spear is gone, so the phalanx slot must be released IMMEDIATELY --
-  // not on the next formation pass -- or a sword soldier keeps a shield-wall
-  // vacancy blocked while the next equipped defender waits behind him.
-  u.slotKey=undefined; u.slotX=undefined; u.slotY=undefined;
-  u.slotRow=undefined; u.slotCol=undefined;
+/* CANONICAL SPEAR LOSS (§23). Thrown, broken or embedded: one cleanup, applied once. The spear and its hitbox are
+   gone, the phalanx slot is released immediately, soldier-state reclassifies him Sword/Assault and the formation
+   layer assigns a new slot that he walks to. */
+function loseSpear(u, how){
+  if(u.spearThrown) return false;
+  u.spearThrown=true; u.spearLost=how; u.swordOpening=true; u._spear=null; u.thrustArmed=false; u.spearStressT=0;
+  u.slotKey=undefined; u.slotX=undefined; u.slotY=undefined; u.slotRow=undefined; u.slotCol=undefined;
   if(window.KW_SOLDIER)try{KW_SOLDIER.refresh(u,TYPES,S.time||0);}catch(e){}
-  // Spear gone -> sword drawn. Shield is kept if still intact (single sword + shield);
-  // the 2nd sword and rage only come once the shield is broken (handled in hurt()).
-  addFloat(u.x,u.y-42,'SPEAR THROWN — SWORD OUT!',u.team===1?'#ffe27a':'#ff9b8f');
+  /* One readable label per burst: a volley of N losses of the same kind nearby updates ONE float ("12 SPEARS THROWN")
+     instead of stacking N identical labels into an unreadable block (Task E). */
+  const _w=how==='thrown'?'THROWN':how==='broken'?'BROKEN':'EMBEDDED';
+  const _g=(S.floats||[]).find(f=>f._spearLoss===_w+u.team && f.t>0.55 && Math.abs(f.x-u.x)<180);
+  if(_g){ _g._n++; _g.x+=(u.x-_g.x)/_g._n; _g.t=1.1; _g.txt=_g._n+' SPEARS '+_w+' — SWORDS OUT!'; }
+  else { addFloat(u.x,u.y-42, 'SPEAR '+_w+' — SWORD OUT!', u.team===1?'#ffe27a':'#ff9b8f'); const f=S.floats[S.floats.length-1]; f._spearLoss=_w+u.team; f._n=1; }
+  window.KWRuntime?.events.emit('spear_lost',{team:u.team,how});
+  return true;
+}
+function throwLastSpear(u, preferred){
+  if(u.spearThrown||u.hp<=0||u.spearStressT>0||!(TYPES[u.type].weapon==='spear'||TYPES[u.type].weapon==='spartan'))return;
+  let target=preferred&&preferred.hp>0?preferred:null,far=target?Math.hypot(target.x-u.x,target.y-u.y):-1;
+  // Only throw at the furthest enemy WITHIN half the map. If none are in range, keep the spear.
+  if(!target) for(const o of S.units)if(o.team!==u.team&&o.hp>0){const d=Math.hypot(o.x-u.x,o.y-u.y);if(d<=SPEAR_THROW_MAX&&d>far){far=d;target=o;}}
+  if(!target)return;
+  /* §8 the aim is solved from the LAUNCH point to the target's chest, and the flight time scales with the real
+     distance down to a flat 0.18s throw: the 0.5s floor was tuned for long throws and lobbed a point-blank spear
+     (the common case -- the enemy is held at the spear tip) clean over the target's head. */
+  const lx=u.x+u.face*8, ly=u.y-22, tx=target.x, ty=target.y-20;
+  const dist=Math.hypot(tx-lx,ty-ly), flight=Math.max(.18,Math.min(1.35,dist/520));
+  S.projs.push({kind:'spearp',x:lx,y:ly,sourceX:u.x,vx:(tx-lx)/flight,vy:(ty-ly)/flight-.5*GRAV*flight,g:GRAV,dmg:Math.round((u.dmg||TYPES[u.type].dmg)*1.35),team:u.team,life:3});
+  window.KWRuntime?.events.emit('projectile_released',{kind:'spear',team:u.team,damage:Math.round((u.dmg||TYPES[u.type].dmg)*1.35)});
+  loseSpear(u,'thrown'); u.throwT=.55; u.anim=1;
+}
+/* Task F: ONE melee beat for every side and stance. The shield thrust used to live only in the ENEMY's assault branch,
+   so the player's shield-bearers never thrust in ATTACK or DEFEND. Every third beat from an intact shield in contact
+   is a shield thrust; cadence (attack cooldown) is unchanged, so DPS is not rebalanced by moving it here. */
+function meleeStrike(u, t, foe){
+  u.meleeBeat = ((u.meleeBeat||0) + 1) % 3;
+  const w = TYPES[u.type].weapon;
+  const canBash = u.shield>0 && !u.rage && foe && foe.u && foe.u.hp>0 && foe.d <= (t.range||22)+6 && w!=='bow' && w!=='gun' && w!=='laser'
+                  && !(window.KW_SPEAR && KW_SPEAR.hasSpear(u, TYPES));   // a spearman fights with the point; his shield holds the line
+  u.cdT = attackCooldown(u,t);
+  if (canBash && u.meleeBeat===2){ u.shieldThrustT = 0.62; u.shieldTarget = foe.u; }
+  else { u.anim = 1; u.swingVar = !u.swingVar; unitFire(u, t, foe); }
 }
 // one unit fires at a foe (or at the opposing fort when foe is null)
 function unitFire(u, t, foe){
@@ -1614,12 +1669,24 @@ function unitFire(u, t, foe){
   else {
     if(u.spearThrown&&u.swordOpening&&foe){dmg=Math.round(dmg*1.6);u.swordOpening=false;u.jumpSlashT=.45;addFloat(u.x,u.y-42,'LEAP SLASH!','#ffe27a');}
     if(u.rage&&u.rageOpening&&foe){dmg=Math.round(dmg*1.7);u.rageOpening=false;u.jumpSlashT=.45;addFloat(u.x,u.y-42,'RAGE OVERHEAD!','#ff7a3c');}
-    if (foe) hurt(foe.u, dmg,{kind:'melee',damageType:t.damageType||'SLASHING',sourceX:u.x});
-    // Spear wall: an intact spearman (shield up, spear not thrown) drives attackers
-    // back — they cannot close to the body until the shield is broken or he's overwhelmed.
-    if(foe&&(t.weapon==='spear'||t.weapon==='spartan')&&u.shield>0&&!u.spearThrown){
-      const dir=Math.sign(foe.u.x-u.x)||u.face||1;
-      foe.u.x+=dir*4; foe.u.vx=(foe.u.vx||0)+dir*28; foe.u.speared=.2;
+    /* D-15 (found Build 62 Task D): the spear-wall block had been inserted BETWEEN `if (foe) hurt(...)`
+       and the structure chain, so the `else` re-bound to the spear-wall test and every melee hit on a
+       SOLDIER (by anyone but an intact spearman) also struck the opposing fortress -- 310 castle HP in
+       a 45s B61 field fight, all of it from mid-field melee -- and flashed the far wall. The chain is
+       restored to the shape the laser branch above always had: a soldier OR the structure, never both. */
+    if (foe && (t.weapon==='spear'||t.weapon==='spartan') && window.KW_SPEAR && KW_SPEAR.hasSpear(u,TYPES) && !(u.spearStressT>0)){
+      /* §2 the spear damages ONLY through its swept tip (resolved in updateSpears). Arming is all a strike does here;
+         a thrust whose tip meets nothing is a miss -- no damage, no integrity change. */
+      u.thrustArmed=true; u.thrustHit=false; u.thrustDmg=dmg; return;
+    }
+    if (foe){
+      hurt(foe.u, dmg,{kind:'melee',damageType:t.damageType||'SLASHING',sourceX:u.x});
+      // Spear wall: an intact spearman (shield up, spear not thrown) drives attackers
+      // back — they cannot close to the body until the shield is broken or he's overwhelmed.
+      if((t.weapon==='spear'||t.weapon==='spartan')&&u.shield>0&&!u.spearThrown){
+        const dir=Math.sign(foe.u.x-u.x)||u.face||1;
+        foe.u.shoveX=(foe.u.shoveX||0)+dir*4; foe.u.vx=(foe.u.vx||0)+dir*28; foe.u.speared=.2;   // Task B: shove spent in capped steps
+      }
     }
     else if (u.team === 1){ dmgCastle(dmg); S.fx.push({kind:'flash', x:E_WALL-8, y:u.y-26, t:0}); }
     else { dmgGate(dmg); S.fx.push({kind:'flash', x:P_WALL+14, y:u.y-18, t:0}); }
@@ -1700,13 +1767,17 @@ function hurt(u, dmg, hit){
   // enemy doubles defense (incoming damage halved) while the line stays intact.
   const inFormation = (u.team===1) ? (S.stance==='march'||S.stance==='defend') : (S.enemyPhase==='march'||S.enemyPhase==='form');
   if(inFormation && u.shieldUp && frontal && hit.kind!=='bleed') left *= 0.5;
-  if(u.shield>0&&hit.kind!=='bleed'){
+  /* Task F REAL SHIELD GEOMETRY: the shield is on the front of the body. It absorbs a hit from the front only; a blow
+     or shot from behind reaches armour and body exactly as if no shield were carried. (Build 61 drained the shield
+     pool for any direction, so a man struck in the back was still "saved by his shield".) */
+  if(u.shield>0&&hit.kind!=='bleed'&&frontal){
     const hadShield=u.shield>0;
     const raised=u.shieldUp&&frontal;
     if(raised)left*=hit.kind==='blast'?.82:.68;
     const layer=left*profile.shield,take=Math.min(u.shield,layer);u.shield-=take;left-=take/profile.shield;
     if(take>0){u.blockT=.18;S.fx.push({kind:u.shield<=0?'shieldbreak':'shieldhit',x:u.x+u.face*8,y:u.y-20,t:0});if(window.KWAudio)KWAudio.emit(u.shield<=0?'unit.break.shield':'unit.block.shield',{civ:u.team===1?S.civ:S.enemyCiv,team:u.team,material:(u.team===1?S.civ:S.enemyCiv)===1?'hide':'metal'});if(hadShield&&u.shield<=0){window.KWRuntime?.events.emit('shield_broken',{team:u.team,type:u.type});const _w=TYPES[u.type]?.weapon;if(_w==='sword'||_w==='spartan'||_w==='spear'){u.rage=true;u.rageOpening=true;u.anim=1;addFloat(u.x,u.y-48,'SHIELD BROKEN — RAGE!','#ff7a3c');}}}
   }
+  if(hit.shieldOnly) left=0;   // §5: a shield interception never damages the body on the same event
   if(left>0&&u.armor>0&&hit.kind!=='bleed'){const hadArmor=u.armor>0,layer=left*profile.armor,take=Math.min(u.armor,layer);u.armor-=take;left-=take/profile.armor;if(take>0){S.fx.push({kind:u.armor<=0?'armorbreak':'armorhit',x:u.x,y:u.y-16,t:0});if(window.KWAudio)KWAudio.emit(u.armor<=0?'unit.break.armor':'unit.hit.armor',{civ:u.team===1?S.civ:S.enemyCiv,team:u.team});if(hadArmor&&u.armor<=0)window.KWRuntime?.events.emit('armor_broken',{team:u.team,type:u.type});}}
   if(left>0){u.hp-=left*profile.health;if(window.KWAudio)KWAudio.emit('unit.hit.health',{civ:u.team===1?S.civ:S.enemyCiv,team:u.team});}
   u.hurtT = .15;
@@ -1726,7 +1797,7 @@ function hurt(u, dmg, hit){
       if(window.KWAudio)KWAudio.emit('reward.gold',{civ:S.civ});
       if(window.KWExperience) KWExperience.recordKill();
     }
-    S.corpses.push({x:u.x, y:u.y, t:0, type:u.type, team:u.team, death:u.impaled?'impale':null, spearThrown:!!u.spearThrown, ph:u.ph});
+    S.corpses.push({x:u.x, y:u.y, t:0, type:u.type, team:u.team, death:u.impaled?'impale':null, face:u.face, spearThrown:!!u.spearThrown, ph:u.ph});
     if ((!window.KWArt||KWArt.allowBlood())&&S.splats.length < 60) S.splats.push({x:u.x, y:u.y, seed:simRandom()*99});
     const _dw=TYPES[u.type]?.weapon;
     if((_dw==='gun'||_dw==='laser')&&!u._grenaded){ u._grenaded=true; addFloat(u.x,u.y-54,'GRENADE!','#ffcf5a'); S.fx.push({kind:'boom',x:u.x,y:u.y-14,r:60,t:0}); explode(u.x,u.y-14,64,Math.round((TYPES[u.type].dmg||14)*1.4),u.team); }
@@ -1948,11 +2019,16 @@ function update(dt){
   assignTargets();
   // Shield wall: while not on a full attack push, the player's frontmost living
   // melee defenders form a line the enemy cannot pass until that line is killed.
-  S._wallX = null;
+  /* The shield wall holds WHERE IT STANDS: one wall line per depth lane, set by the player's melee in that lane.
+     A single global line pinned enemies in empty lanes against an invisible wall at the front spearman's x, where
+     no spear could reach them and the swordsmen behind never would (a measured permanent stalemate). */
+  S._wallX = null; S._wallLanes = S._wallLanes || []; for (let i=0;i<8;i++) S._wallLanes[i] = null;
   if (S.stance !== 'attack'){
     for (const pu of S.units){
       if (pu.team===1 && pu.hp>0){ const w=TYPES[pu.type]?.weapon;
-        if ((w==='sword'||w==='spear'||w==='spartan') && (S._wallX==null || pu.x>S._wallX)) S._wallX = pu.x; }
+        if (w==='sword'||w==='spear'||w==='spartan'){
+          if (S._wallX==null || pu.x>S._wallX) S._wallX = pu.x;
+          const li = wallLane(pu.y); for (const k of [li-1, li, li+1]) if (k>=0 && k<8 && Math.abs(pu.y - (GROUND_TOP + k*15)) < SPEAR_LANE && (S._wallLanes[k]==null || pu.x > S._wallLanes[k])) S._wallLanes[k] = pu.x; } }
     }
   }
   buildSpearDenial();        // §1: collect denial sources once, not per unit
@@ -1983,7 +2059,7 @@ function update(dt){
           hurt(tgt, Math.round((u.dmg||TYPES[u.type].dmg)*0.55), {kind:'bash',sourceX:u.x});
           if(tgt.hp>0){
             tgt.staggerT=Math.max(tgt.staggerT||0,0.34);       // brief interruption
-            tgt.x += (u.face||1)*7;                            // space, not knockback
+            tgt.shoveX = (tgt.shoveX||0) + (u.face||1)*7;      // space, not knockback -- spent over frames (Task B: no 7px jump)
             S.fx.push({kind:'shieldhit',x:tgt.x-(u.face||1)*10,y:tgt.y-22,t:0});
           }
         }
@@ -2014,7 +2090,7 @@ function update(dt){
     u.staggerT = Math.max(0,(u.staggerT||0)-dt);
     const denialMul = u.staggerT>0 ? 0 : (denial>0 ? (1-0.55*denial) : 1);
     const spd = t.spd * (u.spdMul||1) * (.35+.65*u.mo) * ((u.team===1 && S.retreatT>0) ? 1.4 : 1) * (u.rage?1.35:1) * denialMul;
-    const foe = (u.tgt && u.tgt.hp > 0) ? {u:u.tgt, d:Math.hypot(u.tgt.x-u.x, (u.tgt.y-u.y)*1.6)} : null;
+    let foe = (u.tgt && u.tgt.hp > 0) ? {u:u.tgt, d:Math.hypot(u.tgt.x-u.x, (u.tgt.y-u.y)*1.6)} : null;
     const ranged = ['bow','gun','laser'].includes(t.weapon);
     /* §3/§8 Projectile reaction, with front-line melee priority.
        A soldier already committed to a swing keeps swinging -- interrupting a
@@ -2028,7 +2104,7 @@ function update(dt){
       // raise -> hold -> recover, so the block reads as an action, not a flag
       u.blockRaiseT = Math.min(1, (u.blockRaiseT||0) + dt*7.5);
       u.blockHoldT  = 0.30;
-      if(threat.sourceX!=null) u.face = threat.sourceX>=u.x?1:-1;
+      if(threat.sourceX!=null && u.faceState!=='RETREAT_RUN') u.face = threat.sourceX>=u.x?1:-1;   // a retreat posture decides facing: a man running for the gate does not spin to face each arrow
     } else {
       u.blockHoldT = Math.max(0,(u.blockHoldT||0)-dt);
       if(u.blockHoldT<=0) u.blockRaiseT = Math.max(0,(u.blockRaiseT||0) - dt*4.5);
@@ -2058,36 +2134,33 @@ function update(dt){
         continue;
       }
       const gateD = u.x - (P_WALL + 12);
+      /* a soldier strikes the enemy in front of him: when the assigned target is out of reach but another enemy is
+         within striking range, that one is attacked (assigned targets beyond a blocking body jammed whole lanes) */
+      { const nn = (foe && foe.d > range && !ranged) ? nearest(u) : null; if (nn && nn.d <= range && nn.u !== foe.u) foe = nn; }
       if (foe && foe.d < Math.max(range+10, 300)){
-        if (foe.d > range){ moving=steerMove(u,foe.u.x,foe.u.y+(ranged?0:(u.yPref||0)),spd,dt,range*.82); }
+        if (foe.d > range){ if(heldBy(u, foe.u) && !ranged){ u.face = faceToward(u, foe.u.x); } else moving=steerMove(u,foe.u.x,foe.u.y+(ranged?0:(u.yPref||0)),spd,dt,range*.82); }
         else if (u.cdT <= 0){
         /* §9 Every third melee beat from a shield-bearer is a shield thrust
            instead of a cut: it creates space rather than trading blows, which
            is what a shield is for. Cadence is unchanged -- it consumes the same
            attack cooldown -- so effective DPS is not rebalanced by this. */
-        u.meleeBeat = ((u.meleeBeat||0) + 1) % 3;
-        const canBash = u.shield>0 && !u.rage && foe && foe.d <= (t.range||22)+6
-                        && TYPES[u.type].weapon!=='bow' && TYPES[u.type].weapon!=='gun';
-        if (canBash && u.meleeBeat===2){
-          u.cdT = attackCooldown(u,t); u.shieldThrustT = 0.62; u.shieldTarget = foe.u;
-        } else {
-          u.cdT = attackCooldown(u,t); u.anim = 1; u.swingVar = !u.swingVar; unitFire(u, t, foe);
-        }
+        meleeStrike(u, t, foe);
       }
-        u.face = foe.u.x >= u.x ? 1 : -1;
+        u.face = faceToward(u, foe.u.x);
       } else if (gateD > (ranged ? range*.8 : Math.max(8,structureReach(u,range)-14))){
         moving=steerMove(u,P_WALL+8,u.y,spd,dt,3); u.face = -1;
       } else if (u.cdT <= 0 && !S.over){
-        u.cdT = attackCooldown(u,t); u.anim = 1; u.face = -1;
+        u.cdT = attackCooldown(u,t); u.anim = 1; u.swingVar = !u.swingVar; u.face = -1;
         unitFire(u, t, null);
       }
       u.x = Math.max(u.x, P_WALL + 12);
-      if (S._wallX != null && u.x < S._wallX) u.x = S._wallX;   // held at the shield wall
+      { const wx = wallXFor(u); if (wx != null && u.x < wx) u.x = wx; }   // held at the shield wall in HIS lane
     } else if (S.stance === 'attack' || (u.team===1 && u.charge)){
       // Only an explicit Attack stance or a per-class Charge order breaks a unit out to
       // hunt the enemy. In March/Defense everyone (raged or not) holds the formation
       // line so marching stays intact; rage still changes their weapon/animation & combat.
-      const tgt = (foe && foe.u.hp>0) ? foe : nearest(u);
+      let tgt = (foe && foe.u.hp>0) ? foe : nearest(u);
+      if (tgt && tgt.d > range && !ranged){ const nn = nearest(u); if (nn && nn.d <= range) tgt = nn; }   // strike the enemy in front of you
       if (tgt){
         if (tgt.d > range){
           /* §13 HELD DRAW. An archer whose target is closing but not yet in
@@ -2099,14 +2172,16 @@ function update(dt){
           } else if (u.holdDrawT) {
             u.holdDrawT = Math.max(0,u.holdDrawT-dt*2.2);   // §14 relax, never stick
           }
-          moving=steerMove(u,tgt.u.x,tgt.u.y+(ranged?0:(u.yPref||0)),spd,dt,range*.82);
+          // D-09: missile troops keep their own depth lane; steering to the target's y piled every archer onto one row
+          if(heldBy(u, tgt.u) && !ranged){ /* held at that spearman's point: cannot close on HIM (anyone else is fair game) */ }
+          else moving=steerMove(u,tgt.u.x,ranged?(Number.isFinite(u.slotY)?u.slotY:u.y):tgt.u.y+(u.yPref||0),spd,dt,range*.82);
         }
-        else if (u.cdT <= 0){ u.holdDrawT=0; u.cdT = attackCooldown(u,t); u.anim = 1; unitFire(u, t, tgt); }
-        u.face = tgt.u.x >= u.x ? 1 : -1;
+        else if (u.cdT <= 0){ u.holdDrawT=0; meleeStrike(u, t, tgt); }
+        u.face = faceToward(u, tgt.u.x);
       } else if (!sealed && S.castleHP > 0){
         const jit = u.jit||0, d = E_WALL - u.x, rng = ranged ? range : (structureReach(u,range) + jit);
         if (d > rng){ moving=steerMove(u,E_WALL-rng,u.y+(u.yPref||0)*.15,spd,dt,3); }
-        else if (u.cdT <= 0){ u.cdT = attackCooldown(u,t); u.anim = 1; unitFire(u, t, null); }
+        else if (u.cdT <= 0){ u.cdT = attackCooldown(u,t); u.anim = 1; u.swingVar = !u.swingVar; unitFire(u, t, null); }
         u.face = 1;
       } else if (!sealed && u.x < E_WALL - 80){ moving=steerMove(u,E_WALL-80,u.y,spd,dt,3); u.face = 1; }
       else if (sealed){ // no enemies left (between waves): hold a forward guard line, don't storm the wall
@@ -2128,21 +2203,24 @@ function update(dt){
       // a soldier away, and only when he is not shielding incoming fire.
       if(u.faceState==='RETREAT_RUN' && moving && dx < -22) u.face = -1;
       else applyFacing(u);
-      let ffoe = (foe && foe.d <= range + 6) ? foe : null;
-      if (!ffoe){ const nn = nearest(u); if (nn && nn.d <= range + 6) ffoe = nn; }
+      /* locked rule: a RETREAT run is a run. Until he reaches his post a retreating soldier without a raised shield does
+         not stop to fight (an archer used to turn and shoot, then walk backwards to the gate). Once there, he fights. */
+      const stillRunning = u.team===1 && S.retreatT>0 && u.faceState==='RETREAT_RUN' && (Math.abs((Number.isFinite(u.slotX)?u.slotX:u.x)-u.x) > 22 || Math.abs(u.vx||0) > 12);   // far from the post, or not yet stopped
+      let ffoe = stillRunning ? null : ((foe && foe.d <= range + 6) ? foe : null);
+      if (!ffoe && !stillRunning){ const nn = nearest(u); if (nn && nn.d <= range + 6) ffoe = nn; }
       if (ffoe){
-        if (u.cdT <= 0){ u.cdT = attackCooldown(u,t); u.anim = 1; unitFire(u, t, ffoe); }
-        u.face = ffoe.u.x >= u.x ? 1 : -1;
+        if (u.cdT <= 0){ meleeStrike(u, t, ffoe); }
+        u.face = faceToward(u, ffoe.u.x);
       } else if (!sealed && u.team===1 && S.stance==='march' && S.marchDir>0 && S.rallyX>=RALLY_MAX-1 && S.castleHP>0){
         // A forward march that reaches the end of the field becomes a wall
         // assault: melee presses to the gate instead of freezing 110px short.
         const d = E_WALL - u.x, rng = ranged ? range : (26 + (u.jit||0));
         if (d > rng){ moving = steerMove(u, E_WALL - rng, u.y + (u.yPref||0)*.15, spd, dt, 3); u.face = 1; }
-        else if (u.cdT <= 0){ u.cdT = attackCooldown(u,t); u.anim = 1; u.face = 1; unitFire(u, t, null); }
+        else if (u.cdT <= 0){ u.cdT = attackCooldown(u,t); u.anim = 1; u.swingVar = !u.swingVar; u.face = 1; unitFire(u, t, null); }
         u.x = Math.min(u.x, E_WALL - 18 - (u.jit||0)*.5);
       } else if (!foe && S.castleHP > 0){
         const d = E_WALL - u.x, rng = ranged ? range : 40;
-        if (d <= rng && u.cdT <= 0){ u.cdT = attackCooldown(u,t); u.anim = 1; unitFire(u, t, null); }
+        if (d <= rng && u.cdT <= 0){ u.cdT = attackCooldown(u,t); u.anim = 1; u.swingVar = !u.swingVar; unitFire(u, t, null); }
       }
       u.x = Math.min(u.x, E_WALL - 18);
     }
@@ -2152,7 +2230,13 @@ function update(dt){
     const stepLength=(S.stance==='march'||S.enemyPhase==='march')?6.5:8.25;
     u.walkPhase=(u.walkPhase||0)+(moving?actualSpeed*dt/stepLength:0);
     if(!moving)brakeUnit(u,dt);
-    if(threat&&threat.sourceX!=null)u.face=threat.sourceX>=u.x?1:-1;
+    if(threat&&threat.sourceX!=null&&u.faceState!=='RETREAT_RUN')u.face=threat.sourceX>=u.x?1:-1;
+    /* Task B: facing dwell. Every turn is legitimate on its own (target on the other side, shield up / run),
+       but several per second read as twitching. A soldier holds a new facing for at least 0.55s. */
+    u.faceHoldT=Math.max(0,(u.faceHoldT||0)-dt);
+    // a SHIELDED retreating soldier turns to the threat at once; everyone else dwells
+    if(u._faceLast!==undefined && u.face!==u._faceLast){ if(u.faceHoldT>0 && (u.faceState||'ENGAGE')!=='RETREAT_SHIELDED') u.face=u._faceLast; else u.faceHoldT=0.55; }
+    u._faceLast=u.face;
     u.y = clamp(u.y, GROUND_TOP, GROUND_BOT);
     u.pose = moving ? 'walk' : (u.anim > 0 ? 'attack' : 'idle');
   }
@@ -2166,7 +2250,7 @@ function update(dt){
   // Anti-overlap: engaged/attacking soldiers keep realistic spacing so they don't
   // stack on the same spot at the front line. A small capped push apart, run after
   // movement (covers stationary attackers that steerMove no longer separates).
-  for(const u of S.units){ if(u.hp<=0) continue;
+  for(const u of S.units){ if(u.hp<=0) continue; u._px=u.x; u._py=u.y;
     // A soldier calmly holding its formation slot must NOT be shoved apart: the slots
     // are already spaced, so a push just knocks it off-slot and it re-steers back every
     // frame — the "fidgeting/stuck" vibration. Only push units that are moving or
@@ -2187,23 +2271,36 @@ function update(dt){
       const dx=u.x-o.x; if(dx<-SEP_X) break;          // sorted: nothing further right can qualify
       if(o===u||o.hp<=0) continue;
       const dy=u.y-o.y; if(dy>15||dy<-15) continue;
-      const d=Math.hypot(dx,dy*1.3)||0.01, R=14;
+      const d=Math.hypot(dx,dy*1.3)||0.01, R=(o.team===u.team)?Math.max(14,bodyHalf(u)+bodyHalf(o)+3):14;   // H-03: real body extents (a drawn bow is wider than a gladius)
       // §9 ONE SOLDIER PER BODY SPACE. Settled soldiers used to skip separation
       // entirely (an anti-fidget optimisation), so two men whose slots ended up
       // close -- or who were knocked together -- stayed permanently overlapped:
       // the shield/body pile the owner rejected. BODY_MIN is a hard floor that
       // applies even to settled troops, while the soft push above it still only
       // acts on moving/fighting units so the line does not vibrate.
-      if(d<BODY_MIN){ const f=(BODY_MIN-d)/BODY_MIN; px+=dx/d*f*1.7; py+=dy/d*f*1.7; cnt++; hard++; }
+      const bmin=(o.team===u.team)?Math.max(BODY_MIN,bodyHalf(u)+bodyHalf(o)):BODY_MIN;   // H-03: hard floor = the full body widths (90% let a marching column rest 2px inside each other)
+      /* Task E: MAKE WAY. A soldier returning to a slot that lies between two settled ranks (typical after spear
+         loss: the sword slot interleaves the rows behind) used to be pushed back out by both of them for good -- the
+         gap between their bodies is narrower than his own. A calm teammate he is walking past (only for a soldier relocating after spear loss, so an intact phalanx never opens on its own; phalanx files let him pass the way real files did) now steps half a
+         body aside (bounded, and his own slot steering brings him back afterwards); the walker is not shoved back. */
+      if(u.spearLost && o.team===u.team && !settled && Number.isFinite(u.slotX) && (u.slotX-u.x)*(o.x-u.x)>0 && Math.abs(u.slotX-u.x)>Math.abs(o.x-u.x)-2 && d<R+8 && o.anim<=0 && !o._yielded && Number.isFinite(o.slotX) && Math.hypot(o.x-o.slotX,o.y-o.slotY)<10){
+        o._yieldY=(o._yieldY||0)+(dy>0?-1:1)*0.9; o._yielded=1; if(d>=bmin) continue; }
+      if(d<bmin){ const f=(bmin-d)/bmin; px+=dx/d*f*1.7; py+=dy/d*f*1.7; cnt++; hard++; }
       else if(d<R){ const f=(R-d)/R; px+=dx/d*f; py+=dy/d*f; cnt++; }
     }
     if(settled && !hard) continue;                 // calm and not overlapping: leave it alone
-    if(cnt){ u.x += Math.max(-5,Math.min(5,px*2.6)); u.y = clamp(u.y + Math.max(-4,Math.min(4,py*2.2)), GROUND_TOP, GROUND_BOT); }
+    if(cnt){ const cap=hard?3:1.6; u.x += Math.max(-cap,Math.min(cap,px*2.6)); u.y = clamp(u.y + Math.max(-cap,Math.min(cap,py*2.2)), GROUND_TOP, GROUND_BOT); }
   }
+  for(const u of S.units){ if(u._yieldY){ u.y=clamp(u.y+Math.max(-0.9,Math.min(0.9,u._yieldY)),GROUND_TOP,GROUND_BOT); u._yieldY=0; } u._yielded=0; }
+  updateSpears(dt);
   // apply + decay hit knockback, then re-bound to the field so nothing is shoved through a wall
   for(const u of S.units){ if(u.hp<=0) continue;
-    if(u.knockX){ u.x += u.knockX; u.knockX *= 0.80; if(Math.abs(u.knockX)<0.15) u.knockX=0; }
-    u.x=clamp(u.x,P_WALL+12,E_WALL-18); if(S._wallX!=null&&u.team===-1&&u.x<S._wallX)u.x=S._wallX; }
+    // hit knockback is spent over several frames (<=2.4px each) instead of a 7px jump
+    if(u.shoveX){ const k=Math.max(-2.4,Math.min(2.4,u.shoveX)); u.x += k; u.shoveX -= k; if(Math.abs(u.shoveX)<0.1) u.shoveX=0; }
+    if(u.knockX){ const k=Math.max(-2.4,Math.min(2.4,u.knockX)); u.x += k; u.knockX = (u.knockX-k)*0.86 + k*0.62; if(Math.abs(u.knockX)<0.15) u.knockX=0; }
+    u.x=clamp(u.x,P_WALL+12,E_WALL-18); if(u.team===-1){ const wx=wallXFor(u); if(wx!=null&&u.x<wx)u.x=wx; }
+    // Task B: a soldier shoved by contact or a hit takes a shuffle step instead of gliding on planted feet
+    if(u._px!==undefined){ const disp=Math.hypot(u.x-u._px,u.y-u._py); if(disp>0.35){ u.walkPhase=(u.walkPhase||0)+disp/7.5; if(u.pose==='idle') u.pose='walk'; } } }
   if(window.KW_AI){
     for(const u of S.units)KW_AI.syncState(u,{dt,retreating:u.team===1&&S.retreatT>0,forming:u.team===-1&&S.enemyPhase==='form',threatened:!!incomingThreat(u)});
   }
@@ -2316,15 +2413,20 @@ function update(dt){
            "the arrow just disappeared". The shield still takes its damage
            through hurt(), so durability stays on the one existing source of
            truth and a depleted shield offers no protection at all. */
-        const facingIt = (p.x - u.x) * (u.face||1) > -6;
-        if (u.shieldRaised && u.shield > 0 && facingIt && p.kind !== 'bomb' && p.kind !== 'boulder'){
+        const _sx = p.sourceX==null ? p.x-(p.vx||0)*.1 : p.sourceX;
+        const facingIt = p.deflected ? false : Math.sign(_sx - u.x) === (u.face||1);   // Task F: the SAME frontal rule hurt() uses (shooter's side), so a shot the shield absorbs is always drawn stopping on the shield
+        if (p.kind==='spearp' && window.KW_SPEAR){   /* §8 a thrown spear: a carried frontal shield intercepts it; an exposed ordinary body is impaled; either way it is spent */
+          if ((u.shield||0) > 0 && facingIt){ hurt(u, p.dmg, {kind:p.kind, sourceX:p.sourceX==null?p.x-(p.vx||0)*.1:p.sourceX, shieldOnly:true}); deflectProjectile(p, u); break; }
+          if (KW_SPEAR.ordinaryInfantry(u, TYPES)){ u.impaled=true; hurt(u, 1e6, {kind:'impale', damageType:'PIERCING', sourceX:p.sourceX==null?p.x-(p.vx||0)*.1:p.sourceX}); p.life=0; break; }
+        }
+        /* Task F: an intact shield facing the shot stops it AT THE SHIELD whether or not it was raised in time --
+           the shield pool absorbs it in hurt(), so the projectile must visibly stop and glance off there too,
+           never vanish inside the body it did not reach. A late, unraised block still costs extra (no 0.68 raise
+           bonus in hurt) but no longer looks like a body hit. */
+        if (u.shield > 0 && facingIt && canShieldBlock(u) && p.kind !== 'bomb' && p.kind !== 'boulder'){
+          if(!u.shieldRaised) u.blockRaiseT = Math.max(u.blockRaiseT||0, 0.6);   // a late block snaps the shield up on contact
           hurt(u, p.dmg, {kind:p.kind, sourceX:p.sourceX==null?p.x-(p.vx||0)*.1:p.sourceX});
-          // deflect: kick it up and back off the shield face, then let it die
-          const away = (u.face||1) >= 0 ? -1 : 1;
-          p.vx = Math.abs(p.vx||60) * away * (0.35 + simRandom()*0.25);
-          p.vy = -Math.abs(p.vy||0) * 0.3 - 90 - simRandom()*60;
-          p.g = GRAV; p.deflected = 1; p.life = Math.min(p.life, 0.55);
-          S.fx.push({kind:'shieldhit', x:u.x+(u.face||1)*11, y:u.y-22, t:0});
+          deflectProjectile(p, u);
           break;
         }
         hurt(u,p.dmg,{kind:p.kind,sourceX:p.sourceX==null?p.x-(p.vx||0)*.1:p.sourceX});
@@ -2450,6 +2552,209 @@ const GREEK_K = RIG_K * 140 / 7.5;
 // churn the Phase 1 pass removed.
 const WEAPON_RIG = {spear:'spear', spartan:'spear', sword:'sword', hammer:'sword',
                     mech:'sword', bow:'bow', gun:'gun', laser:'gun'};
+/* The renderer's animation-state selection, shared with KW_SPEAR so the simulation's spear is the drawn spear. */
+function rigStateFor(u, corpse, cls){
+  const liveWeapon = u.currentWeapon || null;
+  const rcls = (liveWeapon && WEAPON_RIG[liveWeapon]) || cls;   // weapon + swing motion
+  let st, p;
+  if(corpse){ st = u.death==='impale' ? 'die_impale' : ((rcls==='bow'||rcls==='gun') ? 'die_back' : 'die_kneel'); p = Math.min(1, (u.t||0)/1.4); }
+  else if(cls==='spear' && u.throwT>0){ st='throw'; p = Math.min(1, 1 - u.throwT/.55); }
+  else if(u.jumpSlashT>0){ st = rcls==='sword' ? 'overhead' : 'attack'; p = Math.min(1, 1 - u.jumpSlashT/.45); }
+  else if(u.shieldThrustT>0){ st='shieldthrust'; p = Math.min(1, 1 - u.shieldThrustT/0.62); }
+  else if(u.holdDrawT>0 && rcls==='bow'){ st='hold'; p = Math.min(1, u.holdDrawT/0.45); }
+  else if(u.anim>0){ st = (rcls==='sword' && u.rage) ? 'fury' : 'attack'; p = Math.min(1, Math.max(0, 1 - u.anim)); }
+  else if(u.pose==='walk'){ st='march'; p = ((((u.walkPhase||u.ph||0)/(Math.PI*2))%1)+1)%1; }
+  else { st='idle'; p = (((u.ph*0.16)%1)+1)%1; }
+  return {st, p, rcls};
+}
+/* pose options shared by the renderer and the spear geometry: both must see the same pose */
+function rigOptsFor(u){
+  const holding = u.team===1 ? (S.stance!=='attack' && !u.charge) : (S.enemyPhase!=='assault');
+  return {swingVar: u.swingVar ? 1 : 0, holdShield: holding};
+}
+function unitScale(u){
+  const depth = clamp((u.y - GROUND_TOP) / (GROUND_BOT - GROUND_TOP), 0, 1);
+  return (0.78 + depth*0.42) * (u.type==='aetherwing'?2.15:u.type==='eboss' ? 1.52 : u.type==='spartan' ? 1.08 : 1);
+}
+/* SPEAR GEOMETRY (Build 62 §2): grip and tip in WORLD px from the rig pose the renderer will draw for this unit
+   this step. The legacy rig is drawn at translate(x,y) scale(face*K, K) with K = RIG_K*unitScale(u), the spear from
+   the weapon hand J.armB[2] along po.extra.spearAng for KWRig.SPEAR.FWD rig units. The Greek vertical-slice renderer
+   draws a different dory; until it exposes its tip the record is flagged mismatch:true and the agreement guard fails
+   for that civilization rather than silently resolving combat on a weapon that is not the drawn one. */
+function spearGeometry(u){
+  if(!window.KW_SPEAR || !window.KWRig || !KW_SPEAR.hasSpear(u, TYPES)) return null;
+  const rs = rigStateFor(u, false, 'spear');
+  const po = KWRig.poseFor('spear', rs.st, rs.p, u.ph||0, rigOptsFor(u));
+  const J = KWRig.build(po), h = J.armB[2], ang = po.extra.spearAng||0, FWD = KWRig.SPEAR.FWD;
+  const K = RIG_K * unitScale(u), f = u.face || (u.team===1?1:-1);
+  const W = r => [u.x + f*K*r[0], u.y + K*r[1]];
+  const reachRig = FWD + (u.spearGrip||0);
+  const tipRig = [h[0]+Math.cos(ang)*reachRig, h[1]+Math.sin(ang)*reachRig];
+  const grip = W(h), tip = W(tipRig);
+  const thrustingNow = rs.st==='attack' || rs.st==='throw';
+  if(!thrustingNow || !u._restTipRig) u._restTipRig = thrustingNow ? (u._restTipRig||tipRig) : tipRig;   // the point's resting position, in rig units
+  const guard = W(u._restTipRig);
+  const dir = [Math.cos(ang)*f, Math.sin(ang)];
+  /* The Greek vertical slice draws the player's spearmen with its own rig (head units, y up): the same clip
+     selection and kit the renderer uses give the dory's hand and axis, so the simulation's spear is that spear. */
+  if(GREEK_RUNTIME && isGreekCiv() && u.team===1 && window.KWGreek){
+    const G = KWGreek, c = G.clipFor(u, false), Cc = G.CLIPS[c.name] || G.CLIPS.idle, P = Cc.pose(c.t);
+    let kit = Cc.kitAt ? Cc.kitAt(c.t) : Cc.kit; if (Cc.wristAt) kit = Object.assign({}, kit, {wrist: Cc.wristAt(c.t)});
+    if (u.spearGrip) kit = Object.assign({}, kit, {spearFwd: kit.spearFwd + u.spearGrip*RIG_K/GREEK_K, spearBack: Math.max(0.05, kit.spearBack - u.spearGrip*RIG_K/GREEK_K)});
+    if (kit.weapon !== 'spear') return KW_SPEAR.update(u, {grip, dir, len: 0, tip: grip, tipGuard: grip, phase: null, thrusting: false, mismatch: false});
+    const GJ = G.build(P), hand = GJ.weaponArm.hand, a = GJ.weaponArm.fore + (kit.wrist||0), gd = [Math.sin(a), Math.cos(a)];
+    const pxh = GREEK_K * unitScale(u), GW = r => [u.x + f*pxh*r[0], u.y - pxh*r[1]];
+    const gtip = [hand[0]+gd[0]*kit.spearFwd, hand[1]+gd[1]*kit.spearFwd];
+    const gThrust = c.name==='spear_thrust' || c.name==='throw';
+    if(!gThrust || !u._restTipG) u._restTipG = gThrust ? (u._restTipG||gtip) : gtip;
+    const guardG = GW(u._restTipG);
+    return KW_SPEAR.update(u, {grip: GW(hand), dir: [gd[0]*f, -gd[1]], len: kit.spearFwd*pxh, tip: GW(gtip), tipGuard: guardG, phase: c.name==='spear_thrust' ? c.t : null, thrusting: c.name==='spear_thrust', mismatch: false});
+  }
+  return KW_SPEAR.update(u, {grip, dir, len: reachRig*K, tip, tipGuard: guard, phase: rs.st==='attack' ? rs.p : null, thrusting: rs.st==='attack', mismatch: false});
+}
+/* FRONTAL STANDOFF (§3): while a spear is intact, an opposing body in the same lane cannot occupy the space between
+   the point and the spearman. The body is held at the guard tip -- moved at most HOLD_STEP per step, never teleported --
+   and its inward velocity is cancelled. The spearman is not moved: the spear establishes the contact geometry. */
+function deflectProjectile(p, u){
+  // deflect: kick it up and back off the shield face, then let it die
+  const away = (u.face||1) >= 0 ? -1 : 1;
+  p.vx = Math.abs(p.vx||60) * away * (0.35 + simRandom()*0.25);
+  p.vy = -Math.abs(p.vy||0) * 0.3 - 90 - simRandom()*60;
+  p.g = GRAV; p.deflected = 1; p.life = Math.min(p.life, 0.55);
+  S.fx.push({kind:'shieldhit', x:u.x+(u.face||1)*11, y:u.y-22, t:0});
+}
+function updateSpears(dt){
+  if(!window.KW_SPEAR || !window.KWRig) return;
+  const LANE = KW_SPEAR.LANE, STEP = KW_SPEAR.HOLD_STEP;
+  for(const u of S.units){
+    if(u.hp<=0 || !KW_SPEAR.hasSpear(u, TYPES)){ if(u._spear) u._spear=null; continue; }
+    /* §10 rear-rank grip: a spearman behind the front rank of a phalanx slides his hands back along the shaft so the
+       point projects past the front rank -- the reason a phalanx has depth. Blended, so a rank change never pops. */
+    const wantGrip = (u.formationType==='PHALANX' && (u.slotCol||0) >= 1) ? KW_SPEAR.REAR_GRIP : 0;
+    u.spearGrip = (u.spearGrip||0) + (wantGrip - (u.spearGrip||0)) * Math.min(1, dt*6);
+    const g = spearGeometry(u); if(!g) continue;
+    const f = u.face || (u.team===1?1:-1), lineX = g.tipGuard[0];
+    const lo = spatLower(_sepIdx, Math.min(u.x, lineX) - 20), hiX = Math.max(u.x, lineX) + 20;
+    for(let i=lo; i<_sepIdx.length; i++){ const o=_sepIdx[i]; if(o.x > hiX) break;
+      if(o===u || o.team===u.team || o.hp<=0 || Math.abs(o.y-u.y) >= LANE) continue;
+      if((o.x - u.x) * f <= 0) continue;                                   // behind the spearman: not frontal
+      const half = bodyHalf(o), front = o.x - f*half;                     // the body's near edge
+      const pen = (lineX - front) * f;                                     // >0: inside the point
+      if(pen <= 0) continue;
+      o.x += f * Math.min(STEP, pen);
+      if((o.vx||0) * f < 0) o.vx = 0;
+      o.spearHeldT = S.time; o.spearHeldBy = u;
+    }
+    /* §6 break in progress: the shaft is under stress for 0.22s, then snaps (fragments) and the loss cleanup runs */
+    if(u.spearStressT > 0){ u.spearStressT -= dt; if(u.spearStressT <= 0){ spawnSpearFragments(u, g); loseSpear(u,'broken'); } continue; }
+    /* §9 one blocked contact from breaking: prefer an exposed body in the lane, then an explicit throw in attack posture */
+    if(u.spearIntegrity === 1 && u.tgt && u.tgt.hp > 0 && KW_SPEAR.facingShield(u.tgt, u.x) && !(u.tgtLock > S.time)){
+      let exposed = null;
+      for(let i=lo; i<_sepIdx.length; i++){ const o=_sepIdx[i]; if(o.x > hiX + 40) break;
+        if(o.team===u.team || o.hp<=0 || Math.abs(o.y-u.y) >= LANE || (o.x-u.x)*f <= 0 || KW_SPEAR.facingShield(o,u.x) || !KW_SPEAR.ordinaryInfantry(o,TYPES)) continue;
+        if(Math.abs(o.x-u.x) <= spearReach(u) + bodyHalf(o)){ exposed = o; break; } }
+      if(exposed){ u.tgt = exposed; u.tgtLock = S.time + 1.0; }
+      else if(u.team===1 ? S.stance==='attack' : S.enemyPhase==='assault'){
+        const tgt = clearThrowTarget(u); if(tgt){ throwLastSpear(u, tgt); continue; } }
+    }
+    /* §2 swept-tip thrust collision inside the damaging window: facing shield first, then exposed body */
+    if(u.thrustArmed && !u.thrustHit && g.thrusting && g.phase >= KW_SPEAR.THRUST_WINDOW[0] && g.phase <= KW_SPEAR.THRUST_WINDOW[1]){
+      const a = g.prevTip, b = g.tip; let shieldHit = null, bodyHit = null;
+      /* §9: the last-contact thrust is AIMED at the locked exposed target's depth, so a shield standing in the next
+         depth slot is beside the thrust, not in front of it. Every other thrust uses the spearman's own depth. */
+      const aimed = u.spearIntegrity === 1 && u.tgt && u.tgt.hp > 0 && !KW_SPEAR.facingShield(u.tgt, u.x) && KW_SPEAR.ordinaryInfantry(u.tgt, TYPES) && Math.abs(u.tgt.y-u.y) < LANE;
+      const aimY = aimed ? u.tgt.y : u.y, AIM_BAND = aimed ? 6 : LANE;
+      const hi2 = Math.max(u.x, g.tip[0], g.prevTip[0]) + 24, lo2 = spatLower(_sepIdx, Math.min(u.x, g.tip[0], g.prevTip[0]) - 24);
+      for(let i=lo2; i<_sepIdx.length; i++){ const o=_sepIdx[i]; if(o.x > hi2) break;
+        if(o===u || o.team===u.team || o.hp<=0 || Math.abs(o.y-aimY) >= AIM_BAND || (o.x-u.x)*f <= 0) continue;
+        const half = bodyHalf(o);
+        if(KW_SPEAR.facingShield(o, u.x)){ const hit = KW_SPEAR.sweepHitsPlane(a, b, KW_SPEAR.shieldPlane(o, half)); if(hit && (!shieldHit || hit.t < shieldHit.hit.t)) shieldHit = {o, hit, shield:true}; }
+        else { const hit = KW_SPEAR.sweepHitsBody(a, b, o, half); if(hit && (!bodyHit || hit.t < bodyHit.hit.t)) bodyHit = {o, hit, shield:false}; }
+      }
+      /* contact priority (§2): whatever the point meets first -- a facing shield or an exposed body.
+         §9 exception: with ONE blocked contact left, an exposed ordinary infantryman the same sweep reaches is taken
+         in preference to the shield, so the last contact impales instead of snapping the spear. */
+      let best = null;
+      if(u.spearIntegrity === 1 && bodyHit && KW_SPEAR.ordinaryInfantry(bodyHit.o, TYPES)) best = bodyHit;
+      else if(shieldHit && bodyHit) best = shieldHit.hit.t <= bodyHit.hit.t ? shieldHit : bodyHit;
+      else best = shieldHit || bodyHit;
+      if(best){ u.thrustHit = true; resolveSpearContact(u, best); }
+    }
+    if(!g.thrusting) u.thrustArmed = false;
+  }
+  // fragments of broken shafts
+  if(S.spearFrags && S.spearFrags.length){ for(const fr of S.spearFrags){ fr.t+=dt; fr.vy+=420*dt; fr.x+=fr.vx*dt; fr.y+=fr.vy*dt; fr.ang+=fr.angV*dt; if(fr.y>fr.ground){ fr.y=fr.ground; fr.vy=0; fr.vx*=0.6; fr.angV*=0.5; } } S.spearFrags=S.spearFrags.filter(fr=>fr.t<0.9); }
+}
+/* reach of a full thrust from the soldier's centre (world px): guard tip + the drive, from the same rig pose */
+let _thrustExtraRig = null;
+function spearReach(u){
+  const g = u._spear; if(!g) return TYPES[u.type].range||48;
+  if(_thrustExtraRig===null){ let best=0; const gp=KWRig.poseFor('spear','idle',0,0,{}), gJ=KWRig.build(gp), gh=gJ.armB[2], ga=gp.extra.spearAng||0, g0=gh[0]+Math.cos(ga)*KWRig.SPEAR.FWD;
+    for(let k=0;k<=20;k++){ const po=KWRig.poseFor('spear','attack',k/20,0,{}), J=KWRig.build(po), h=J.armB[2], a=po.extra.spearAng||0; best=Math.max(best,(h[0]+Math.cos(a)*KWRig.SPEAR.FWD)-g0); } _thrustExtraRig=best; }
+  const f = u.face||(u.team===1?1:-1);
+  return (g.tipGuard[0]-u.x)*f + _thrustExtraRig*RIG_K*unitScale(u);
+}
+function resolveSpearContact(u, c){
+  const o = c.o, dmg = u.thrustDmg || TYPES[u.type].dmg;
+  if(c.shield){
+    hurt(o, dmg, {kind:'melee', damageType:'PIERCING', sourceX:u.x, shieldOnly:true});
+    S.fx.push({kind:'shieldhit', x:c.hit.x, y:c.hit.y, t:0});
+    const dir = Math.sign(o.x-u.x)||u.face||1; o.shoveX=(o.shoveX||0)+dir*3; o.staggerT=Math.max(o.staggerT||0,0.12);
+    u.spearIntegrity = Math.max(0, (u.spearIntegrity===undefined?KW_SPEAR.INTEGRITY:u.spearIntegrity) - 1);   // exactly once per blocked thrust
+    u.shieldContacts = (u.shieldContacts||0) + 1;
+    if(u.spearIntegrity <= 0) u.spearStressT = 0.22;                                                         // §6 the 20th contact: stress, then snap
+    return;
+  }
+  if(KW_SPEAR.ordinaryInfantry(o, TYPES)){
+    o.impaled = true;                                                                                            // §7 clean tip on an exposed body: lethal, spear embedded
+    hurt(o, 1e6, {kind:'impale', damageType:'PIERCING', sourceX:u.x});
+    S.fx.push({kind:'spark', x:c.hit.x, y:c.hit.y, t:0, dir:-(o.face||1)});
+    loseSpear(u, 'impaled');
+  } else {
+    hurt(o, dmg, {kind:'melee', damageType:'PIERCING', sourceX:u.x});                                           // giants/bosses/siege: pricked, spear kept (documented exception)
+  }
+}
+function spawnSpearFragments(u, g){
+  S.spearFrags = S.spearFrags || [];
+  const f = u.face||(u.team===1?1:-1), ground = u.y + 1;
+  const mid = [(g.grip[0]+g.tip[0])/2, (g.grip[1]+g.tip[1])/2];
+  S.spearFrags.push({x:mid[0]+f*6, y:mid[1], vx:f*55, vy:-120, ang:Math.atan2(g.tip[1]-g.grip[1], g.tip[0]-g.grip[0]), angV:5, len:g.len*0.42, t:0, ground, team:u.team});
+  S.spearFrags.push({x:mid[0]-f*4, y:mid[1]+2, vx:-f*25, vy:-70, ang:Math.atan2(g.tip[1]-g.grip[1], g.tip[0]-g.grip[0])+0.4, angV:-3, len:g.len*0.36, t:0, ground, team:u.team});
+  S.fx.push({kind:'spark', x:mid[0], y:mid[1], t:0, dir:f});
+}
+/* an exposed ordinary enemy within throw range with no ally body on the line (§9) */
+function clearThrowTarget(u){
+  const f = u.face||(u.team===1?1:-1); let best=null, bd=1e9;
+  for(const o of S.units){ if(o.team===u.team||o.hp<=0||(o.x-u.x)*f<=0) continue;
+    const d=Math.hypot(o.x-u.x,o.y-u.y); if(d>SPEAR_THROW_MAX||d<40) continue;
+    if(KW_SPEAR.facingShield(o,u.x)||!KW_SPEAR.ordinaryInfantry(o,TYPES)) continue;
+    /* the line must be clear of allies AND of enemy shields: never throw into an obviously blocking shield */
+    let blocked=false; for(const a of S.units){ if(a===u||a.hp<=0) continue; const ally=a.team===u.team; if(!ally&&!KW_SPEAR.facingShield(a,u.x)) continue; if((a.x-u.x)*f>0&&(o.x-a.x)*f>0&&Math.abs(a.y-o.y)<KW_SPEAR.LANE){ blocked=true; break; } }
+    if(!blocked && d<bd){ bd=d; best=o; } }
+  return best;
+}
+function drawSpearFrags(){
+  if(!S.spearFrags||!S.spearFrags.length) return;
+  ctx.save(); ctx.lineCap='round';
+  for(const fr of S.spearFrags){ ctx.globalAlpha=Math.max(0,1-fr.t/0.9); ctx.strokeStyle='#7a4a24'; ctx.lineWidth=1.3;
+    ctx.beginPath(); ctx.moveTo(fr.x-Math.cos(fr.ang)*fr.len/2, fr.y-Math.sin(fr.ang)*fr.len/2); ctx.lineTo(fr.x+Math.cos(fr.ang)*fr.len/2, fr.y+Math.sin(fr.ang)*fr.len/2); ctx.stroke(); }
+  ctx.restore();
+}
+function drawSpearDebug(){
+  ctx.save(); ctx.lineWidth = 1.2;
+  for(const u of S.units){ if(u.hp<=0) continue;
+    const g = u._spear;
+    if(g){ ctx.strokeStyle = g.mismatch ? 'rgba(255,80,80,.9)' : 'rgba(0,220,255,.9)'; ctx.beginPath(); ctx.moveTo(g.grip[0],g.grip[1]); ctx.lineTo(g.tip[0],g.tip[1]); ctx.stroke();
+      ctx.strokeStyle='rgba(255,220,0,.9)'; ctx.beginPath(); ctx.moveTo(g.prevTip[0],g.prevTip[1]); ctx.lineTo(g.tip[0],g.tip[1]); ctx.stroke();
+      ctx.fillStyle = g.thrusting ? 'rgba(255,60,60,.9)' : 'rgba(0,220,255,.9)'; ctx.beginPath(); ctx.arc(g.tip[0],g.tip[1],KW_SPEAR.TIP_R,0,7); ctx.fill();
+      ctx.strokeStyle='rgba(40,220,90,.9)'; ctx.beginPath(); ctx.moveTo(g.tipGuard[0],u.y-KW_SPEAR.BODY_H); ctx.lineTo(g.tipGuard[0],u.y+2); ctx.stroke();
+      ctx.fillStyle='#fff'; ctx.font='7px sans-serif'; ctx.fillText(String(u.spearIntegrity), u.x-4, u.y-KW_SPEAR.BODY_H-4); }
+    const hw = bodyHalf(u); ctx.strokeStyle = u.spearHeldT > S.time-0.12 ? 'rgba(255,120,0,.9)' : 'rgba(255,255,255,.35)';
+    ctx.beginPath(); ctx.ellipse(u.x, u.y-KW_SPEAR.BODY_H/2, hw, KW_SPEAR.BODY_H/2, 0, 0, 7); ctx.stroke();
+    if((u.shield||0)>0){ const pl = KW_SPEAR.shieldPlane(u, hw); ctx.strokeStyle='rgba(255,255,255,.8)'; ctx.beginPath(); ctx.moveTo(pl.x,pl.y0); ctx.lineTo(pl.x,pl.y1); ctx.stroke(); }
+  }
+  ctx.restore();
+}
 function drawRigUnit(u, corpse, cls, s, x, y){
   // A spearman who has thrown their spear keeps their spearman identity (armor,
   // shield, mohawk) but fights with a SWORD: sword weapon+motion (rcls), spear
@@ -2462,17 +2767,9 @@ function drawRigUnit(u, corpse, cls, s, x, y){
   // Armor/kit still comes from the SPAWN class - one universal body, identity
   // from helmet/armor/shield/crest - so a thrown spearman stays a spearman.
   const liveWeapon = u.currentWeapon || null;
-  const rcls = (liveWeapon && WEAPON_RIG[liveWeapon]) || cls;   // weapon + swing motion
   const armorCls = cls;                                         // keep the spawn class's armor/shield/helmet
-  let st, p, t = u.ph || 0;
-  if(corpse){ st = u.death==='impale' ? 'die_impale' : ((rcls==='bow'||rcls==='gun') ? 'die_back' : 'die_kneel'); p = Math.min(1, (u.t||0)/1.4); }
-  else if(cls==='spear' && u.throwT>0){ st='throw'; p = Math.min(1, 1 - u.throwT/.55); }
-  else if(u.jumpSlashT>0){ st = rcls==='sword' ? 'overhead' : 'attack'; p = Math.min(1, 1 - u.jumpSlashT/.45); }
-  else if(u.shieldThrustT>0){ st='shieldthrust'; p = Math.min(1, 1 - u.shieldThrustT/0.62); }
-  else if(u.holdDrawT>0 && rcls==='bow'){ st='hold'; p = Math.min(1, u.holdDrawT/0.45); }
-  else if(u.anim>0){ st = (rcls==='sword' && u.rage) ? 'fury' : 'attack'; p = Math.min(1, Math.max(0, 1 - u.anim)); }
-  else if(u.pose==='walk'){ st='march'; p = ((((u.walkPhase||u.ph||0)/(Math.PI*2))%1)+1)%1; }
-  else { st='idle'; p = (((u.ph*0.16)%1)+1)%1; }
+  const _rs = rigStateFor(u, corpse, cls);                      // ONE state selection, shared with the spear geometry
+  const rcls = _rs.rcls; let st = _rs.st, p = _rs.p, t = u.ph || 0;
   // ---- GREEK DEFENDER vertical slice -------------------------------------
   // The spear class renders on the new outside/inside-arm architecture with
   // true occlusion. Every other unit keeps the legacy rig below, so a fault
@@ -2487,6 +2784,11 @@ function drawRigUnit(u, corpse, cls, s, x, y){
     ctx.translate(x, y);
     const kx = (u.face || (u.team===1?1:-1));
     ctx.scale(kx, 1);
+    if(!corpse){ const G=KWGreek, c=G.clipFor(u,false), Cc=G.CLIPS[c.name]||G.CLIPS.idle, P=Cc.pose(c.t); let kit=Cc.kitAt?Cc.kitAt(c.t):Cc.kit; if(Cc.wristAt) kit=Object.assign({},kit,{wrist:Cc.wristAt(c.t)});
+      if(u.currentWeapon==='sword'||u.spearThrown) kit=G.SWORD_KIT;
+      if(kit.weapon==='spear' && u.spearGrip) kit=Object.assign({},kit,{spearFwd:kit.spearFwd+u.spearGrip*RIG_K/GREEK_K, spearBack:Math.max(0.05,kit.spearBack-u.spearGrip*RIG_K/GREEK_K)});
+      if(kit.weapon==='spear'){ const GJ=G.build(P), h=GJ.weaponArm.hand, a=GJ.weaponArm.fore+(kit.wrist||0), d=[Math.sin(a),Math.cos(a)], pxh=GREEK_K*s;
+        u._renderTip=[x + kx*pxh*(h[0]+d[0]*kit.spearFwd), y - pxh*(h[1]+d[1]*kit.spearFwd)]; } else u._renderTip=null; }   // agreement guard (Greek path)
     try { KWGreek.drawUnit(ctx, u, corpse, GREEK_K * s, 0, 0); }
     catch(e){ ctx.restore(); return legacyRig(); }
     ctx.restore();
@@ -2495,7 +2797,10 @@ function drawRigUnit(u, corpse, cls, s, x, y){
   /* §6 Alternate the two sword cuts per strike so repeated melee does not read
      as one looping animation. The flag is flipped when the attack fires, not
      here, so the whole swing keeps one style from wind-up to recovery. */
-  const po = KWRig.poseFor(rcls, st, p, t, {swingVar: u.swingVar ? 1 : 0}); po._t = t;
+  const po = KWRig.poseFor(rcls, st, p, t, rigOptsFor(u)); po._t = t;
+  if(rcls==='spear'){ po.extra.spearWear = u.spearIntegrity<=3 ? 2 : u.spearIntegrity<=10 ? 1 : 0; po.extra.spearStress = u.spearStressT>0 ? 1-u.spearStressT/0.22 : 0; po.extra.spearGrip = u.spearGrip||0; }
+  if(rcls==='spear' && !corpse && !po.extra.spearGone){ const _J = KWRig.build(po), _h=_J.armB[2], _a=po.extra.spearAng||0, _K=RIG_K*s, _f=(u.face||(u.team===1?1:-1));
+    const _R = KWRig.SPEAR.FWD + (po.extra.spearGrip||0); u._renderTip = [x + _f*_K*(_h[0]+Math.cos(_a)*_R), y + _K*(_h[1]+Math.sin(_a)*_R)]; }   // agreement guard: must equal u._spear.tip
   // The spear leaves the hand when the projectile leaves, not halfway through
   // the wind-down: soldier-state has already switched the weapon by then.
   if (liveWeapon && liveWeapon !== 'spear' && liveWeapon !== 'spartan') po.extra.spearGone = true;
@@ -2505,10 +2810,11 @@ function drawRigUnit(u, corpse, cls, s, x, y){
   if(rcls==='sword' && u.rage){ po.extra.bigSword = 1; } // shield broken -> raged, oversized blade(s)
   if(armorCls==='spear' && u.shieldUp && !u.charge){ po.extra.brace = 1; } // shield-wall brace when holding vs a threat
   po.extra.blockRaise = u.shield>0 ? (u.blockRaiseT||0) : 0;   // §4 visible projectile block
+  po.extra.blockRecoil = clamp((u.blockT||0)/0.18, 0, 1);       // Task F: impact recoil on every shield hit
   po.era = S ? (u.team===1 ? S.civ : S.enemyCiv) : 1;   // civilization-fitted armor tier
   // Layered defense visuals: shield is dropped once its HP is gone; the helmet is
   // lost once armor is depleted; only then does the bare soldier take HP damage.
-  po.dropShield = !corpse && (u.shieldMax>0) && u.shield<=0;
+  po.dropShield = !corpse && !((u.shield||0) > 0);   // D-17/Task F: a shield is drawn only while it really exists (shieldMax 0 used to render a full, functionless scutum)
   po.dropHelmet = !corpse && (u.armorMax>0) && u.armor<=0;
   if(corpse) po.alpha = Math.max(0, 1 - Math.max(0, (u.t||0) - 2.0) / 4.5);   // hold the death, then fade the corpse
   const C  = KWRig.teamTint(KWRig.PAL[armorCls], u.team);   // spearman keeps their palette (mohawk, colors)
@@ -2549,7 +2855,7 @@ function drawStick(u, corpse){
   const T = TYPES[u.type];
   const age=S ? (u.team===1?S.civ:S.enemyCiv) : 1;
   const depth = clamp((u.y - GROUND_TOP) / (GROUND_BOT - GROUND_TOP), 0, 1);
-  const s = (0.78 + depth*0.42) * (u.type==='aetherwing'?2.15:u.type==='eboss' ? 1.52 : u.type==='spartan' ? 1.08 : 1);
+  const s = unitScale(u);
   const x = u.x, y = u.y;
   if(u.type==='aetherwing'){
     ctx.save();ctx.translate(x,y);ctx.scale((u.face||1)*s,s);if(corpse){ctx.globalAlpha=Math.max(0,1-u.t/7);ctx.rotate(Math.PI/2*Math.min(1,u.t/.3));}
@@ -3601,6 +3907,8 @@ function render(){
 
   for (const d of S.defs) drawGarrisonArcher(d);
   for (const wz of S.wizes) drawWizard(wz);
+  drawSpearFrags();
+  if(window.KW_SPEAR_DEBUG) drawSpearDebug();
   for (const c of S.cats) drawCatapult(c);
   for (const d of S.enemyDefs) drawGarrisonArcher(d);
   for (const c of S.enemyCats) drawCatapult(c);

@@ -176,6 +176,10 @@
   }
   // add-ons: gold pauldrons (friendly armour upgrade) on the torso, plume on the head
   const pads = () => merge([part(sph(0.135, 12, 8, 0, Math.PI / 2), GOLD, 0, TRS(-0.28, 0.35, 0, 0, 0, 0.45)), part(sph(0.135, 12, 8, 0, Math.PI / 2), GOLD, 0, TRS(0.28, 0.35, 0, 0, 0, -0.45)), part(box(0.3, 0.05, 0.03), GOLD, 0, TRS(0, 0.36, 0.25))]);
+  // escalation add-ons for later enemy eras
+  const padsIron = () => merge([part(sph(0.14, 12, 8, 0, Math.PI / 2), DSTEEL, 0, TRS(-0.28, 0.35, 0, 0, 0, 0.45)), part(sph(0.14, 12, 8, 0, Math.PI / 2), DSTEEL, 0, TRS(0.28, 0.35, 0, 0, 0, -0.45)), part(cone(0.035, 0.12, 6), IVORY, 0, TRS(-0.33, 0.47, 0, 0, 0, 0.5)), part(cone(0.035, 0.12, 6), IVORY, 0, TRS(0.33, 0.47, 0, 0, 0, -0.5))]);
+  const hornsAdd = () => merge([part(cone(0.05, 0.24, 8), IVORY, 0, TRS(-0.2, 0.42, 0.02, 0.2, 0, 0.6)), part(cone(0.05, 0.24, 8), IVORY, 0, TRS(0.2, 0.42, 0.02, 0.2, 0, -0.6))]);
+  const eyesGlow = () => merge([part(sph(0.036, 8, 6), 0xffe05a, 0, TRS(-0.072, 0.158, 0.2)), part(sph(0.036, 8, 6), 0xffe05a, 0, TRS(0.072, 0.158, 0.2)), part(box(0.1, 0.02, 0.02), 0x2a0808, 0, TRS(-0.07, 0.205, 0.19, 0, 0, -0.35)), part(box(0.1, 0.02, 0.02), 0x2a0808, 0, TRS(0.07, 0.205, 0.19, 0, 0, 0.35))]);
   const plume = () => merge([part(sph(0.09, 10, 8), 0xff4a4a, 0, TRS(0, 0.5, -0.05, 0, 0, 0, 0.5, 1.1, 1.8)), part(cyl(0.03, 0.04, 0.06, 6), GOLD, 0, TRS(0, 0.45, 0))]);
 
   // ---------------- recipes: unit kind → parts ----------------
@@ -207,7 +211,7 @@
       hBlue: H.blue(), hKnight: H.knight(), hHood: H.hood(), hHorn: H.horn(), hBucket: H.bucket(), hBandana: H.bandana(), hImp: H.imp(), hBrute: H.brute(), hWarlord: H.warlord(), hShaman: H.shaman(), hGoggles: H.goggles(),
       aStd: armStd(), aHeavy: armHeavy(), aBrute: armBrute(),
       sword: W.sword(), swordGold: W.sword(true), dagger: W.dagger(), axe: W.axe(), bow: W.bow(), staff: W.staff(), bomb: W.bomb(), claws: W.claws(),
-      shield: shield(), cannon: cannon(), pads: pads(), plume: plume(),
+      shield: shield(), cannon: cannon(), pads: pads(), plume: plume(), padsIron: padsIron(), hornsAdd: hornsAdd(), eyesGlow: eyesGlow(),
   });
   KM.KIT_DETAIL = { near: 0.5 };
   // Lean bone parts (~300 tris/unit) for mid-distance animated units, and far statues composed from the same pieces.

@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "characters": null,
+  "notes": "Set \"characters\" to a GLB path (e.g. \"characters.glb\") when the production character file is delivered. See docs/CHARACTER-ASSET-SPEC.md. null = procedural kit."
+}

@@ -84,8 +84,8 @@
     return {
       cap: 45 + 8 * (perm.army || 0), rate: 4.8, hp: 20, dmg: 4.5, armor: 0, speed: 4.3, atk: 1,
       magnet: 2.4 * (1 + 0.1 * (perm.magnet || 0)), crit: 0.05, archer: 0, knight: 0,
-      maxHp: 100 + 10 * (perm.plating || 0), towerRate: 1, towerRange: 1, towerDmg: 1, splash: 1, frost: 1, sniperCrit: 0.1, barracksRate: 1, bannerR: 1,
-      lv: { cap: 0, rate: 0, hp: 0, dmg: 0, armor: 0, speed: 0, atk: 0, magnet: 0, crit: 0, archer: 0, knight: 0, plating: 0, trate: 0, trange: 0, tdmg: 0, splash: 0, frost: 0, scrit: 0, brate: 0, bradius: 0 },
+      maxHp: 100 + 10 * (perm.plating || 0), towerRate: 1, towerRange: 1, towerDmg: 1, splash: 1, frost: 1, sniperCrit: 0.1, barracksRate: 1, bannerR: 1, towerHp: 1, towerArmor: 0,
+      lv: { cap: 0, rate: 0, hp: 0, dmg: 0, armor: 0, speed: 0, atk: 0, magnet: 0, crit: 0, archer: 0, knight: 0, plating: 0, trate: 0, trange: 0, tdmg: 0, splash: 0, frost: 0, scrit: 0, brate: 0, bradius: 0, thp: 0, tarm: 0 },
     };
   };
 
@@ -98,6 +98,11 @@
     banner:   { name: 'Shield Banner', range: 7,  cd: 1,    dmg: 0,   color: '#3cd27a' },
   };
   KM.TOWER_SLOTS = [{ x: -7.3, dz: -3 }, { x: 7.3, dz: -3 }, { x: -7.6, dz: -9.5 }, { x: 7.6, dz: -9.5 }, { x: -7.9, dz: -16 }, { x: 7.9, dz: -16 }];
+  // Defensive lines (predefined positions relative to the advancing front; built automatically by upgrade cards)
+  KM.WALLS = {
+    barricade: { dz: -7.5, xs: [-5.6, -1.9, 1.9, 5.6], per: 2, hp: 90, arm: 2, w: 3.0, d: 0.8 },
+    wall: { dz: -4.5, xs: [-4.6, 0, 4.6], per: 3, hp: 260, arm: 8, w: 3.9, d: 0.9 },
+  };
   KM.slotsUnlocked = m => 2 + (m >= 3 ? 2 : 0) + (m >= 8 ? 2 : 0);
 
   // cat: army | defense ; color used for card face
@@ -115,6 +120,8 @@
     { id: 'knight', cat: 'army', title: 'KNIGHTS',     val: '1 in ' , icon: 'helm', color: 'gold',  w: 3, max: 4, at: 3, apply: s => { s.knight = s.knight ? Math.max(4, s.knight - 3) : 12; } },
     { id: 'plating',cat: 'defense', title: 'LAUNCHER ARMOR', val: '+25 HP', icon: 'heart', color: 'green', w: 4, max: 8, apply: (s, run) => { s.maxHp += 25; if (run) run.heal(25); } },
     { id: 'trate',  cat: 'defense', title: 'TOWER FIRE RATE', val: '+12%', icon: 'tower', color: 'red', w: 4, needTower: 1, max: 8, apply: s => { s.towerRate *= 1.12; } },
+    { id: 'thp',    cat: 'defense', title: 'TOWER HEALTH', val: '+25%', icon: 'heart', color: 'green', w: 3.5, needStruct: 1, max: 8, apply: s => { s.towerHp *= 1.25; } },
+    { id: 'tarm',   cat: 'defense', title: 'TOWER ARMOR', val: '+3', icon: 'shield', color: 'green', w: 3, needStruct: 1, max: 6, apply: s => { s.towerArmor += 3; } },
     { id: 'tdmg',   cat: 'defense', title: 'TOWER DAMAGE', val: '+15%', icon: 'tower', color: 'red', w: 4, needTower: 1, max: 8, apply: s => { s.towerDmg *= 1.15; } },
     { id: 'splash', cat: 'defense', title: 'CANNON SPLASH', val: '+15%', icon: 't_cannon', color: 'tower', w: 3, needType: 'cannon', max: 5, apply: s => { s.splash *= 1.15; } },
     { id: 'frost',  cat: 'defense', title: 'DEEP FREEZE', val: '+20%', icon: 't_frost', color: 'tower', w: 3, needType: 'frost', max: 5, apply: s => { s.frost *= 1.2; } },
@@ -134,6 +141,7 @@
       if (u.at && m < u.at) continue;
       if (u.max && (s.lv[u.id] || 0) >= u.max) continue;
       if (u.needTower && !run.towers.some(t => t)) continue;
+      if (u.needStruct && !run.towers.some(t => t) && !(run.walls && run.walls.length)) continue;
       if (u.needType && !run.towers.some(t => t && t.type === u.needType)) continue;
       opts.push({ id: u.id, w: u.w, title: u.title, val: u.id === 'knight' ? '1 in ' + (s.knight ? Math.max(4, s.knight - 3) : 12) : u.val, icon: u.icon, color: u.color, cat: u.cat });
     }
@@ -142,6 +150,9 @@
       if (k === 'sniper' && m < 4) continue; if (k === 'frost' && m < 2) continue;
       opts.push({ id: 'build:' + k, w: run.towers.some(t => t) ? 2.2 : 5, title: 'BUILD ' + KM.TOWERS[k].name.toUpperCase(), val: 'NEW', icon: 't_' + k, color: 'tower', cat: 'defense', tower: k });
     }
+    // automatic defensive lines at fixed positions ahead of the launcher
+    if (m >= 0.8) { const nb = (run.walls || []).filter(w => w.type === 'barricade').length; opts.push({ id: 'wall:barricade', w: nb ? 1.6 : 3.2, title: nb >= KM.WALLS.barricade.xs.length ? 'REINFORCE BARRICADES' : 'BUILD BARRICADE', val: nb >= KM.WALLS.barricade.xs.length ? '+35% HP' : '+2', icon: 'fence', color: 'gold', cat: 'defense' }); }
+    if (m >= 2.5) { const nw = (run.walls || []).filter(w => w.type === 'wall').length; opts.push({ id: 'wall:wall', w: nw ? 1.4 : 2.6, title: nw >= KM.WALLS.wall.xs.length ? 'REINFORCE SHIELD WALL' : 'BUILD SHIELD WALL', val: nw >= KM.WALLS.wall.xs.length ? '+35% HP' : 'NEW', icon: 'wall', color: 'tower', cat: 'defense' }); }
     run.towers.forEach((t, i) => { if (t && t.lvl < 5) opts.push({ id: 'tup:' + i, w: 3.2, title: 'UPGRADE ' + KM.TOWERS[t.type].name.toUpperCase(), val: 'LV ' + (t.lvl + 1), icon: 't_' + t.type, color: 'tower', cat: 'defense', tower: t.type }); });
     const out = [];
     while (out.length < 3 && opts.length) {
@@ -234,14 +245,14 @@
   ];
   KM.BIOME_LEN = 30; // chunks per biome (~11 min at march speed)
   KM.chunkPlan = function (i) {
-    const b = Math.floor(i / KM.BIOME_LEN), into = (i % KM.BIOME_LEN) / KM.BIOME_LEN;
+    const b = Math.max(0, Math.floor(i / KM.BIOME_LEN)), into = i < 0 ? 0 : (i % KM.BIOME_LEN) / KM.BIOME_LEN;   // behind the start line = first biome
     const kinds = ['field', 'field', 'forest', 'ruins', 'bridge', 'canyon'];
     const r = KM.rng(i * 9301 + 49297);
     return { i, z1: -i * KM.W.CHUNK, z0: -(i + 1) * KM.W.CHUNK, biome: ((b % KM.BIOMES.length) + KM.BIOMES.length) % KM.BIOMES.length, next: (((b + 1) % KM.BIOMES.length) + KM.BIOMES.length) % KM.BIOMES.length, blend: into > 0.8 ? (into - 0.8) / 0.2 : 0, kind: i < 2 && i > -3 ? 'field' : kinds[Math.floor(r() * kinds.length)], seed: Math.floor(r() * 1e9) };
   };
   // Which chunk indices must be live for a given front position (always contiguous).
   KM.chunksFor = function (frontZ) {
-    const ahead = 100, behind = 40;
+    const ahead = 100, behind = 72;
     const a = Math.floor(-(frontZ + behind) / KM.W.CHUNK), b = Math.floor(-(frontZ - ahead) / KM.W.CHUNK);
     const out = []; for (let i = a; i <= b; i++) out.push(i); return out;
   };

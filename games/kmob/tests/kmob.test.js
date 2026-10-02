@@ -88,7 +88,7 @@ const run = (sim, secs, bot) => { for (let k = 0; k < secs * 60 && sim.alive; k+
 // --- endless chunks ---
 {
   let gaps = false, prevMax = null;
-  for (let f = 0; f > -400000; f -= 7.3) { const c = KM.chunksFor(f); for (let k = 1; k < c.length; k++) if (c[k] !== c[k - 1] + 1) gaps = true; const lo = KM.chunkPlan(c[0]).z1, hi = KM.chunkPlan(c[c.length - 1]).z0; if (lo < f + 30 || hi > f - 90) gaps = true; prevMax = c; }
+  for (let f = 0; f > -400000; f -= 7.3) { const c = KM.chunksFor(f); for (let k = 1; k < c.length; k++) if (c[k] !== c[k - 1] + 1) gaps = true; const lo = KM.chunkPlan(c[0]).z1, hi = KM.chunkPlan(c[c.length - 1]).z0; if (lo < f + 60 || hi > f - 90) gaps = true; prevMax = c; }
   ok('chunk streaming is contiguous and covers the view for 400 km', !gaps);
   const a = KM.chunkPlan(1234), b = KM.chunkPlan(1235); ok('adjacent chunks share their edge', a.z0 === b.z1);
   ok('biomes cycle forever', KM.chunkPlan(1e6).biome >= 0 && KM.chunkPlan(1e6).biome < KM.BIOMES.length);
@@ -107,6 +107,35 @@ const run = (sim, secs, bot) => { for (let k = 0; k < secs * 60 && sim.alive; k+
   ok('60-minute soak: unit pool bounded', maxActive <= KM.Sim.CAP && soak.count[1] <= KM.W.MAX_ENEMY + 1, { maxActive, enemies: soak.count[1] });
   console.log(`      soak: 60 sim-min in ${((Date.now() - t0) / 1000).toFixed(1)}s, peak active ${maxActive}, kills ${soak.kills}, upgrades ${soak.upgrades}`);
   const big = KM.fmtNum(1e12); ok('huge numbers format without overflow', big === '1,000,000,000,000');
+}
+
+// --- defensive structures: tower HP/destruction/repair, barricades, shield walls ---
+{
+  const mk = () => { const s = new KM.Sim({ seed: 77 }); s.budget = -1e9; s.formT = 1e9; s.nextPush = s.nextBoss = 1e9; s.L.inv = 1e9; s.stats.rate = 0; return s; };
+  let s = mk(); s.t = 300; s.coins = 1e6; s.offer = [{ id: 'build:arrow', tower: 'arrow' }]; s.pick(0);
+  const t = s.towers[0]; ok('built tower has HP and armor', t && t.hp > 0 && t.hp === t.mhp);
+  s.hurtStruct(-10, t.mhp * 0.5); ok('tower takes damage', t.hp < t.mhp && t.hp > 0);
+  s.offer = [{ id: 'tup:0' }]; s.pick(0); ok('upgrading a tower fully repairs it and raises max HP', s.towers[0].hp === s.towers[0].mhp && s.towers[0].mhp > 140);
+  let downs = 0; s.on(e => { if (e === 'towerDown') downs++; }); s.hurtStruct(-10, 1e9);
+  ok('tower is destroyed at 0 HP and frees its slot', downs === 1 && s.towers[0] === null);
+  s.offer = [{ id: 'build:cannon', tower: 'cannon' }]; s.pick(0); ok('destroyed slot can be rebuilt', s.towers[0] && s.towers[0].type === 'cannon');
+  const hp0 = s.towers[0].mhp; s.offer = [{ id: 'thp' }]; s.pick(0); ok('TOWER HEALTH upgrade raises tower max HP', s.towers[0].mhp > hp0 * 1.2);
+  // enemies attack a tower they reach
+  s = mk(); s.t = 300; s.coins = 1e6; s.offer = [{ id: 'build:arrow', tower: 'arrow' }]; s.pick(0); const tw = s.towers[0]; tw.cd = 1e9;
+  for (let k = 0; k < 6; k++) s.spawn(1, KM.ENEMY_BY.knight, tw.x + 0.8, s.front + KM.TOWER_SLOTS[0].dz - 1.2 - k * 0.3, { hp: 1e5, dmg: 3, spd: 1 });
+  for (let k = 0; k < 60 * 8; k++) s.step(1 / 60);
+  ok('enemies that reach a tower attack it', !s.towers[0] || s.towers[0].hp < s.towers[0].mhp, s.towers[0] && s.towers[0].hp);
+  // barricade slows, shield wall blocks
+  const lane = (type) => { const q = mk(); q.coins = 1e6; q.t = 200; q.offer = [{ id: 'wall:' + type }]; q.pick(0); if (type === 'wall') { q.offer = [{ id: 'wall:wall' }]; } const w = q.walls[0];
+    const e = q.spawn(1, KM.ENEMY_BY.grunt, w.x, w.z - 3, { hp: 1e6, dmg: 0.0001, spd: 1 }); return { q, w, e }; };
+  { const { q, w, e } = lane('barricade'); ok('barricade build adds segments with HP', q.walls.length === 2 && w.hp > 0);
+    let slowed = false; for (let k = 0; k < 60 * 6; k++) { q.step(1 / 60); if (q.slow[e] > 0) slowed = true; } ok('barricade slows enemies in contact', slowed); }
+  { const { q, w, e } = lane('wall'); ok('shield wall builds 3 segments', q.walls.length === 3 && q.walls.every(x => x.type === 'wall'));
+    let passed = false; for (let k = 0; k < 60 * 6; k++) { q.step(1 / 60); if (q.z[e] > w.z + w.d) passed = true; } ok('shield wall blocks enemies until destroyed', !passed && q.walls[0].hp < q.walls[0].mhp);
+    let down = 0; q.on(ev => { if (ev === 'wallDown') down++; }); q.hurtStruct(-20, 1e9); ok('wall segment can be destroyed', down === 1 && q.walls.length === 2); }
+  { const q = mk(); q.coins = 1e6; q.t = 200; for (let k = 0; k < 3; k++) { q.offer = [{ id: 'wall:barricade' }]; q.pick(0); } const m1 = q.walls[0].mhp; q.offer = [{ id: 'wall:barricade' }]; q.pick(0);
+    ok('full barricade line is reinforced instead of over-built', q.walls.filter(w => w.type === 'barricade').length === 4 && q.walls[0].mhp > m1); }
+  ok('restart clears structures', (() => { const q = mk(); q.coins = 1e6; q.t = 200; q.offer = [{ id: 'wall:wall' }]; q.pick(0); q.reset({ seed: 1 }); return q.walls.length === 0 && q.towers.every(x => !x); })());
 }
 
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

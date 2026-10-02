@@ -15,12 +15,18 @@ games/kmob/
   js/audio.js         synthesized SFX, layered crowd beds (4 intensity bands), stereo placement, adaptive music
   js/main.js          game flow, one-finger input, HUD, analytics hooks, debug tools, adaptive quality, ?bench=1
   dev/lineup.html     every unit kind cycling through every clip (art review)
-  tests/kmob.test.js        34 sim/economy/save/soak tests            node tests/kmob.test.js
-  tests/anim.test.js        24 animation/LOD tests                    node tests/anim.test.js
-  tests/browser.test.js     14 rendering/memory/context-loss tests    PW=<playwright> node tests/browser.test.js
-  tests/acceptance-shots.js the 12-shot acceptance set, mobile + desktop
+  js/assets.js        production GLB character loader (part-by-part swap-in, validation, fallback)
+  assets/manifest.json            points at the production character GLB (null = procedural)
+  assets/template/kmob-parts-template.glb   every part on its pivot, for the artist to model over
+  tests/kmob.test.js        48 sim/economy/save/structures/soak tests  node tests/kmob.test.js
+  tests/anim.test.js        24 animation/LOD tests                     node tests/anim.test.js
+  tests/browser.test.js     27 rendering/assets/framing/memory tests   PW=<playwright> node tests/browser.test.js
+  tests/acceptance-shots.js the 20-shot acceptance set + 4 escalation shots, mobile + desktop
+  tests/export-template.js  regenerates the artist template GLB
   docs/shots/         acceptance captures (git-ignored here; committed in KEEPITIL/thirteen games/kmob/docs/shots)
   docs/DEVICE-TEST.md how to measure on a real iPhone
+  docs/CHARACTER-ASSET-SPEC.md   the contract for hand-modelled production characters
+  docs/MILESTONE-3.md            status report for the production/visual milestone
 ```
 
 **URL flags**

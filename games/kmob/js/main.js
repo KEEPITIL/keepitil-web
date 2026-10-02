@@ -22,6 +22,8 @@
     token: '<circle cx="12" cy="12" r="9.5" fill="#2fb8ff" stroke="#0a5a8a" stroke-width="1.5"/><path d="M12 5l2 5h5l-4 3 1.5 5L12 15l-4.5 3L9 13 5 10h5z" fill="#e6fbff"/>',
     skull: '<path d="M12 3a8 8 0 00-8 8c0 3 1.5 4.5 3 5.5V20h10v-3.5c1.5-1 3-2.5 3-5.5a8 8 0 00-8-8z" fill="#cfd6e2" stroke="#5a6478" stroke-width="1.2"/><circle cx="9" cy="11.5" r="2" fill="#26304a"/><circle cx="15" cy="11.5" r="2" fill="#26304a"/>',
     flag: '<path d="M5 2v20" stroke="#8a5a33" stroke-width="2"/><path d="M6 3h12l-3 4 3 4H6z" fill="#ffc21a" stroke="#b07000" stroke-width="1"/>',
+    fence: '<path d="M3 8l2-3 2 3v13H3zM10 8l2-3 2 3v13h-4zM17 8l2-3 2 3v13h-4z" fill="#d9a86a" stroke="#6a3a10" stroke-width="1"/><path d="M2 11h20v2H2zM2 16h20v2H2z" fill="#9a6a3c"/>',
+    wall: '<path d="M2 9h20v12H2z" fill="#3f7cff" stroke="#0e3a8a" stroke-width="1.2"/><path d="M2 9h20v2H2z" fill="#ffc21a"/><circle cx="7" cy="15" r="2" fill="#ffc21a"/><circle cx="17" cy="15" r="2" fill="#ffc21a"/><path d="M12 9v12" stroke="#0e3a8a"/>',
     home: '<path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z" fill="#fff"/>',
     shop: '<path d="M4 9h16l-1 12H5z" fill="#ff5a6a"/><path d="M3 6h18v4H3z" fill="#ffc21a"/><path d="M12 6v15" stroke="#fff" stroke-width="2"/><path d="M12 6c-2-4-6-3-5 0M12 6c2-4 6-3 5 0" stroke="#ffc21a" stroke-width="2" fill="none"/>',
   };
@@ -52,6 +54,8 @@
   try { render = new KM.Render(canvas, { lowPower: /Android/i.test(navigator.userAgent) }); }
   catch (e) { document.body.innerHTML = '<div style="padding:40px;font:16px Nunito,sans-serif;color:#fff">This game needs WebGL. Please try a newer browser or device.</div>'; return; }
   render.setSkin(KM.SHOP.find(s => s.id === save.equip.skin) || KM.SHOP[3]);
+  const assetBase = /^[\w-]+(\/[\w-]+)*\/$/.test(Q.get('assets') || '') ? Q.get('assets') : 'assets/';   // same-origin relative folders only
+  KM.assetsReady = KM.loadCharacterAssets(render, assetBase);   // authored characters swap in when available
   const audio = new KM.Audio(); audio.setSound(save.settings.sound); audio.setMusic(save.settings.music);
   const sim = new KM.Sim({ seed: 1 });
   let combatHits = 0, combatLvl = 0, combatT = 0;
@@ -74,6 +78,9 @@
       case 'warn': banner(a === 'boss' ? 'A WARLORD APPROACHES' : 'MASSIVE PUSH INCOMING', 3.2); audio.play('warn'); KM.haptic(25); $('vig').classList.add('warn'); setTimeout(() => $('vig').classList.remove('warn'), 3200); break;
       case 'elite': audio.play('elite', 0, 0); break;
       case 'death': onDeath(); break;
+      case 'towerDown': audio.play('boom', 0, a.x / 9); KM.haptic(30); banner('TOWER DESTROYED', 1.4); break;
+      case 'wallDown': audio.play('cannon', 0, a.x / 9); break;
+      case 'wall': audio.play('build'); break;
     }
   });
 

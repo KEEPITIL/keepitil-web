@@ -57,6 +57,58 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
     return { heapStart: heap[1], heapEnd: heap[heap.length - 1], max: Math.max(...heap), secs: (performance.now() - t0) / 1000, geo: g.render.R.info.memory.geometries, units: g.sim.count }; });
   console.log('      soak', JSON.stringify(soak));
   ok('browser soak (10 sim-min): JS heap stays bounded', !soak.heapStart || soak.heapEnd < soak.heapStart * 1.8 + 30e6, soak);
+
+  // ---- production asset pipeline: procedural default, GLB round-trip, budget/empty/unknown rejection, 404 + corrupt fallback ----
+  const assets0 = await p.evaluate(async () => { const r = await KM.assetsReady; return r; });
+  ok('no authored file → procedural kit (no errors)', assets0 && assets0.procedural === true);
+  await p.addScriptTag({ path: path.join(__dirname, 'vendor/GLTFExporter.js') });
+  const pipe = await p.evaluate(async () => {
+    const r = KM.game.render, kit = KM.buildKit(), scene = new THREE.Scene();
+    const node = (name, geo, matName, color) => { const g = new THREE.Group(); g.name = name; if (geo) { const m = new THREE.MeshStandardMaterial({ color: color || 0xffffff }); m.name = matName || 'base'; const me = new THREE.Mesh(geo, m); me.name = name + '_mesh'; g.add(me); } scene.add(g); return g; };
+    const tl = kit.parts.tLight; const plain = new THREE.BufferGeometry(); plain.setAttribute('position', tl.attributes.position.clone()); plain.setAttribute('normal', tl.attributes.normal.clone());
+    node('tLight', plain, 'tint_body', 0xffffff);                                          // valid authored part
+    node('sword', new THREE.BoxGeometry(0.06, 0.02, 0.7).translate(0, 0, 0.4), 'steel', 0xdddddd); // valid weapon
+    node('hBlue', new THREE.SphereGeometry(0.3, 96, 64), 'tint_helm');                      // over budget → rejected
+    node('aStd', null);                                                                     // empty → rejected
+    node('mysteryPart', new THREE.BoxGeometry(1, 1, 1));                                    // unknown → reported
+    const glb = await new Promise(res => new THREE.GLTFExporter().parse(scene, res, { binary: true }));
+    const gltf = await new Promise((res, rej) => new THREE.GLTFLoader().parse(glb, '', res, rej));
+    const before = r.partM.tLight.geometry, rep = KM.applyCharacterScene(r, gltf.scene, 'fixture.glb');
+    const tintOK = Array.from(r.partM.tLight.geometry.attributes.aTint.array).every(v => v === 1);
+    for (let k = 0; k < 20; k++) { KM.game.sim.step(1 / 60); r.frame(KM.game.sim, 1 / 60); }
+    return { replaced: rep.replaced.map(x => x.part), rejected: rep.rejected.map(x => x.part + ':' + x.why.split(' ')[0]), unknown: rep.unknown, swapped: r.partM.tLight.geometry !== before, tintOK, stillFallback: !!r.partM.hBlue.geometry.attributes.aTint, missing: rep.missing.length };
+  });
+  ok('authored GLB parts replace procedural parts (GLTFLoader round-trip)', pipe.replaced.includes('tLight') && pipe.replaced.includes('sword') && pipe.swapped, pipe);
+  ok('material named tint_* becomes faction-tinted', pipe.tintOK);
+  ok('over-budget and empty parts are rejected and keep the procedural fallback', pipe.rejected.some(x => x.startsWith('hBlue:over')) && pipe.rejected.some(x => x.startsWith('aStd:')) && pipe.stillFallback, pipe.rejected);
+  ok('unknown nodes are reported, not applied', pipe.unknown.includes('mysteryPart'));
+  ok('missing parts are listed for the artist', pipe.missing > 10);
+  for (const [label, body, ct] of [['404', null, null], ['corrupt', Buffer.from('not a glb at all'), 'model/gltf-binary']]) {
+    const q = await b.newPage({ viewport: { width: 390, height: 844 } }); const qe = []; q.on('pageerror', e => qe.push(e.message));
+    await q.route('**/assets/manifest.json', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ version: 1, characters: 'chars.glb' }) }));
+    await q.route('**/assets/chars.glb', r => body ? r.fulfill({ status: 200, contentType: ct, body }) : r.fulfill({ status: 404, body: '' }));
+    await q.goto(base + 'index.html?autoplay=1'); await q.bringToFront(); await q.evaluate(() => KM.game.setPause(false)); const rep = await q.evaluate(async () => { const r = await KM.assetsReady; for (let k = 0; k < 60 && KM.game.sim.t < 0.1; k++) await new Promise(z => setTimeout(z, 100)); return { r, t: KM.game.sim.t, drawn: KM.game.render.drawn }; });
+    ok(`${label} character file → fallback to procedural, game keeps running`, rep.r && rep.r.error && rep.t > 0.05 && qe.length === 0, { rep, qe });
+    await q.close();
+  }
+  // ---- camera framing on phone aspect ratios: launcher, towers, walls and the threat zone stay on screen ----
+  for (const [w, h] of [[375, 667], [390, 844], [430, 932], [1440, 900]]) {
+    const q = await b.newPage({ viewport: { width: w, height: h } }); await q.goto(base + 'index.html?autoplay=1'); await q.waitForTimeout(800);
+    const fr = await q.evaluate(() => { const g = KM.game, s = g.sim, r = g.render; s.L.inv = 1e9; g.showcase(5, 5); s.coins = 1e6; for (const id of ['wall:barricade', 'wall:barricade', 'wall:wall']) { s.offer = [{ id }]; s.pick(0); } s.offer = null;
+      const bad = [];
+      for (const lx of [-8.4, 0, 8.4]) { s.moveTo(lx, 0); for (let k = 0; k < 150; k++) { s.step(1 / 60); r.frame(s, 1 / 60); }
+        const pts = [['launcher', s.L.x, 0.5, s.L.z], ...s.towers.filter(Boolean).map(t => ['tower' + t.slot, t.x, 1.5, t.z]), ...s.walls.map((wl, k) => ['wall' + k, wl.x, 0.5, wl.z]), ['threat', 0, 0, s.front - 24]];
+        for (const [n, x, y, z] of pts) { const v = r.toScreen(x, y, z); if (Math.abs(v.x) > 1.0 || v.y < -1.0 || v.y > 0.97) bad.push(`${n}@${lx}:${v.x.toFixed(2)},${v.y.toFixed(2)}`); } }
+      return { bad, d: +r.camD.toFixed(1) }; });
+    ok(`framing ${w}x${h}: launcher, towers, walls, threats on screen`, fr.bad.length === 0, fr);
+    await q.close();
+  }
+  // ---- coins always face the camera (never edge-on streaks) ----
+  const coin = await p.evaluate(() => { const g = KM.game, s = g.sim, r = g.render; g.startRun(); s.L.inv = 1e9; for (let k = 0; k < 40; k++) s.dropCoin((Math.random() - 0.5) * 12, s.front - 4 - Math.random() * 10, 1);
+    let worst = 1; const m = new THREE.Matrix4(), n = new THREE.Vector3(), pos = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+    for (let f = 0; f < 90; f++) { s.step(1 / 60); r.frame(s, 1 / 60); if (f % 10) continue; for (let i = 0; i < r.coinM.count; i++) { m.fromArray(r.coinM.instanceMatrix.array, i * 16); m.decompose(pos, q, sc); n.set(0, 0, 1).applyQuaternion(q); const toCam = r.cam.position.clone().sub(pos).normalize(); worst = Math.min(worst, Math.abs(n.dot(toCam))); } }
+    return { worst: +worst.toFixed(2), n: r.coinM.count }; });
+  ok('coins always present their face to the camera (no edge-on streaks)', coin.n > 10 && coin.worst > 0.55, coin);
   ok('no runtime errors during the browser suite', errs.length === 0, errs.slice(0, 5));
   await b.close(); srv.close();
   console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

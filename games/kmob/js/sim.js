@@ -38,7 +38,7 @@
       this.L = { x: 0, z: 2, tx: 0, offZ: 0, toffZ: 0, hp: this.stats.maxHp, hitT: 9, inv: 0, vx: 0, fire: 0, wheel: 0 };
       this.deployAcc = 0; this.budget = 3; this.overflow = 0; this.formT = 0.6; this.nextPush = KM.TUNE.pushEvery; this.nextBoss = KM.TUNE.bossFrom * 60; this.warn = null;
       this.coins = 0; this.coinsTotal = 0; this.kills = 0; this.peakArmy = 0; this.upgrades = 0; this.offer = null; this.offerHold = 0;
-      this.towers = [null, null, null, null, null, null];
+      this.towers = [null, null, null, null, null, null]; this.walls = [];
       this.spawnCounter = 0; this.lastHit = 99; this.danger = 0; this.killsByKind = {};
       this.debugLog = []; this.diff = KM.difficulty(0);
     }
@@ -158,7 +158,7 @@
       const P = this.p; let k = -1;
       for (let n = 0; n < PCAP; n++) { const j = (this.pfree + n) % PCAP; if (!P.on[j]) { k = j; break; } }
       if (k < 0) { // pool exhausted: resolve instantly so damage is never lost
-        if (spl) this.area(1 - team, ex, ez, spl, dmg, slow, sz); else if (tgt >= 0) this.hurt(tgt, dmg, team, sz, crit); else if (tgt === -2) this.hurtLauncher(dmg, 'ranged');
+        if (spl) this.area(1 - team, ex, ez, spl, dmg, slow, sz); else if (tgt >= 0) this.hurt(tgt, dmg, team, sz, crit); else if (tgt === -2) this.hurtLauncher(dmg, 'ranged'); else if (tgt <= -10) this.hurtStruct(tgt, dmg);
         return;
       }
       this.pfree = (k + 1) % PCAP;
@@ -197,6 +197,41 @@
       return a;
     }
 
+    // ---------- defensive structures (towers, barricades, shield walls) ----------
+    // Target codes: -2 launcher, -(10+slot) tower, -(20+k) barricade/wall segment.
+    towerMaxHp(t) { return 140 * (1 + 0.45 * (t.lvl - 1)) * this.stats.towerHp; }
+    makeTower(type, lvl, slot) { const t = { type, lvl, cd: 0.5, aim: Math.PI, recoil: 0, slot, x: 0, z: 0, tgt: -1, born: 0, hp: 0, mhp: 0, hitT: 9, dmgT: 99 }; t.mhp = this.towerMaxHp(t); t.hp = t.mhp; const sl = KM.TOWER_SLOTS[slot]; t.x = sl.x; t.z = this.front + sl.dz; return t; }
+    buildWall(type) {
+      const W2 = KM.WALLS[type], have = this.walls.filter(w => w.type === type).length;
+      const xs = W2.xs; let added = 0;
+      for (const x of xs) { if (this.walls.some(w => w.type === type && w.x === x)) continue; this.walls.push({ type, x, dz: W2.dz, z: this.front + W2.dz, hp: W2.hp * this.stats.towerHp, mhp: W2.hp * this.stats.towerHp, arm: W2.arm, w: W2.w, d: W2.d, born: 0, hitT: 9 }); if (++added >= W2.per) break; }
+      if (!added) for (const w of this.walls) if (w.type === type) { w.mhp *= 1.35; w.hp = w.mhp; w.lvl = (w.lvl || 1) + 1; }   // full set: reinforce instead
+      this.emit('wall', type, have);
+    }
+    structAt(tg) {
+      if (tg <= -20) { const w = this.walls[-tg - 20]; return w && w.hp > 0 ? w : null; }
+      if (tg <= -10) { const t = this.towers[-tg - 10]; return t || null; }
+      return null;
+    }
+    hurtStruct(tg, amt, why) {
+      const o = this.structAt(tg); if (!o) return;
+      const arm = tg <= -20 ? o.arm : 4 + this.stats.towerArmor;
+      o.hp -= amt * (12 / (12 + arm)); o.hitT = 0; o.dmgT = 0;
+      if (o.hp <= 0) {
+        if (tg <= -20) { this.emit('wallDown', o); this.walls.splice(-tg - 20, 1); for (let i = 0; i < this.hi; i++) if (this.tgt[i] <= -20) this.tgt[i] = -1; }   // re-index safe
+        else { this.emit('towerDown', o); this.towers[-tg - 10] = null; for (let i = 0; i < this.hi; i++) if (this.tgt[i] === tg) this.tgt[i] = -1; }
+      } else this.emit('shit', o);
+    }
+    // nearest structure an enemy at (x,z) is in contact with (walls) or close to (towers)
+    structNear(x, z, r) {
+      for (let k = 0; k < this.walls.length; k++) { const w = this.walls[k]; if (Math.abs(x - w.x) < w.w / 2 + r + 0.3 && Math.abs(z - w.z) < w.d / 2 + r + 0.5) return -(20 + k); }
+      for (let s = 0; s < 6; s++) { const t = this.towers[s]; if (!t) continue; const dx = x - t.x, dz = z - t.z; if (dx * dx + dz * dz < (2.1 + r) * (2.1 + r)) return -(10 + s); }
+      return -1;
+    }
+    stepWalls(dt) {
+      for (const w of this.walls) { w.z = this.front + w.dz; w.born += dt; w.hitT += dt; }
+      for (const t of this.towers) if (t) { t.hitT = (t.hitT || 0) + dt; t.dmgT = (t.dmgT || 0) + dt; if (t.dmgT > 5 && t.hp < t.mhp) t.hp = Math.min(t.mhp, t.hp + t.mhp * 0.01 * dt); }
+    }
     // ---------- upgrades ----------
     pick(n) {
       const o = this.offer; if (!o || !o[n]) return false;
@@ -206,12 +241,15 @@
       const c = o[n], s = this.stats;
       if (c.id.startsWith('build:')) {
         const slot = this.towers.findIndex((t, i) => !t && i < KM.slotsUnlocked(this.t / 60));
-        if (slot >= 0) this.towers[slot] = { type: c.tower, lvl: 1, cd: 0.5, aim: Math.PI, recoil: 0, slot, x: 0, z: 0, tgt: -1, born: 0 };
+        if (slot >= 0) { this.towers[slot] = this.makeTower(c.tower, 1, slot); }
       } else if (c.id.startsWith('tup:')) {
-        const t = this.towers[+c.id.slice(4)]; if (t) { t.lvl++; t.born = 0; }
+        const t = this.towers[+c.id.slice(4)]; if (t) { t.lvl++; t.born = 0; t.mhp = this.towerMaxHp(t); t.hp = t.mhp; }  // upgrading also fully repairs
+      } else if (c.id.startsWith('wall:')) {
+        this.buildWall(c.id.slice(5));
       } else {
         const u = KM.UPG_BY[c.id]; const prevHp = s.hp;
         u.apply(s, this); s.lv[c.id] = (s.lv[c.id] || 0) + 1;
+        if (c.id === 'thp') for (const t of this.towers) if (t) { const f = t.hp / t.mhp; t.mhp = this.towerMaxHp(t); t.hp = t.mhp * f + t.mhp * 0.25; t.hp = Math.min(t.hp, t.mhp); }
         if (c.id === 'hp') { const f = s.hp / prevHp; for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i]) { this.mhp[i] *= f; this.hp[i] *= f; } }
       }
       this.offer = null; this.offerHold = 0.25;
@@ -235,6 +273,7 @@
       this.buildGrid();
       this.deploy(dt, S, D);
       this.director(dt, D);
+      this.stepWalls(dt);
       this.stepUnits(dt, S);
       this.stepTowers(dt, S);
       this.stepProjectiles(dt);
@@ -359,19 +398,22 @@
         this.think[i] -= dt;
         let tg = this.tgt[i];
         if (tg >= 0 && this.st[tg] !== ALIVE) tg = -1;
+        if (tg <= -10 && !this.structAt(tg)) { tg = -1; this.tgt[i] = -1; }
         if (this.think[i] <= 0) {
           this.think[i] = 0.18 + this.rng() * 0.16;
           const ranged = this.rng_[i] > 2;
           tg = this.nearest(i, team ? aggro1 + (ranged ? 4 : 0) : aggro0 + (ranged ? 4 : 0));
-          if (team === 1) { const ld = this.lDist(this.x[i], this.z[i]); if (ld < 6.5 && (tg < 0 || ld < 3)) tg = -2; }
+          if (team === 1) { const ld = this.lDist(this.x[i], this.z[i]); if (ld < 6.5 && (tg < 0 || ld < 3)) tg = -2;
+            const sn = this.structNear(this.x[i], this.z[i], this.rad[i] + (ranged ? 3 : 0)); if (sn !== -1 && (tg < 0 || sn <= -20 || this.rng() < 0.5)) tg = sn; }
           this.tgt[i] = tg;
         }
         let dvx = 0, dvz = 0, sp = this.spd[i] * sm * (team ? 1 : S.speed / 4.3);
         if (team === 0 && this.kind[i] !== 32) sp = sp; // all friendlies share stat speed
         if (tg !== -1) {
-          const tx = tg === -2 ? L.x : this.x[tg], tz = tg === -2 ? L.z : this.z[tg];
+          const so = tg <= -10 ? this.structAt(tg) : null;
+          const tx = so ? (tg <= -20 ? Math.max(so.x - so.w / 2, Math.min(so.x + so.w / 2, this.x[i])) : so.x) : tg === -2 ? L.x : this.x[tg], tz = so ? so.z : tg === -2 ? L.z : this.z[tg];
           const dx = tx - this.x[i], dz = tz - this.z[i], d = Math.sqrt(dx * dx + dz * dz) || 0.001;
-          const reach = this.rng_[i] + this.rad[i] + (tg === -2 ? 1.1 : this.rad[tg]);
+          const reach = this.rng_[i] + this.rad[i] + (so ? (tg <= -20 ? so.d / 2 : 1.1) : tg === -2 ? 1.1 : this.rad[tg]);
           this.yaw[i] = Math.atan2(dx, dz);
           if (d > reach) {
             dvx = dx / d * sp; dvz = dz / d * sp;
@@ -384,7 +426,7 @@
           }
         } else {
           // march with slight drift toward lane centre / formation cohesion
-          if (team === 0) { if (this.z[i] > front - W.HOLD_DZ) dvz = -sp; dvx = (L.x * 0.15 - this.x[i]) * 0.04 * sp; this.yaw[i] = Math.PI; }
+          if (team === 0) { if (this.z[i] > front - W.HOLD_DZ - ((i * 0.3819) % 1) * 7) dvz = -sp; dvx = (L.x * 0.15 - this.x[i]) * 0.04 * sp; this.yaw[i] = Math.PI; }
           else { dvz = sp; this.yaw[i] = 0; }
         }
         // steering (weighty, organic)
@@ -393,6 +435,9 @@
         // separation (crowd pressure) — same + opposite team
         this.separate(i, dt);
         this.x[i] += this.vx[i] * dt; this.z[i] += this.vz[i] * dt;
+        // barricades slow enemies passing through; shield walls block them until destroyed
+        if (team === 1) for (const w of this.walls) { const ox = this.x[i] - w.x, oz = this.z[i] - w.z, hw = w.w / 2 + this.rad[i], hd = w.d / 2 + this.rad[i];
+          if (Math.abs(ox) < hw && Math.abs(oz) < hd) { if (w.type === 'wall') this.z[i] = w.z - hd; else { this.slow[i] = Math.max(this.slow[i], 0.25); this.z[i] -= this.vz[i] * dt * 0.6; } } }
         // flow around tower footprints (soft circular obstacles)
         for (let s = 0; s < 6; s++) { const t = this.towers[s]; if (!t) continue; const ox = this.x[i] - t.x, oz = this.z[i] - t.z, rr = 1.05 + this.rad[i], dd = ox * ox + oz * oz; if (dd < rr * rr && dd > 1e-6) { const d = Math.sqrt(dd), push = (rr - d); this.x[i] += ox / d * push; this.z[i] += oz / d * push * 0.6; } }
         if (this.x[i] < -W.LANE) this.x[i] = -W.LANE; else if (this.x[i] > W.LANE) this.x[i] = W.LANE;
@@ -436,7 +481,8 @@
       let tg = this.pend[i]; this.pend[i] = -1;
       if (tg >= 0 && this.st[tg] !== ALIVE) { tg = this.nearest(i, this.rng_[i] + this.rad[i] + 1.2); if (tg < 0) { this.emit('whiff', i); return; } }
       if (tg === -2 && !this.alive) return;
-      const tx = tg === -2 ? this.L.x : this.x[tg], tz = tg === -2 ? this.L.z : this.z[tg];
+      const so = tg <= -10 ? this.structAt(tg) : null; if (tg <= -10 && !so) return;
+      const tx = so ? so.x : tg === -2 ? this.L.x : this.x[tg], tz = so ? so.z : tg === -2 ? this.L.z : this.z[tg];
       let dmg = this.dmg[i], crit = false;
       if (team === 0) { dmg = S.dmg * d.dmg; if (this.rng() < S.crit) { dmg *= 2; crit = true; } }
       if (d.he) { // shaman heals nearby enemies, then casts
@@ -451,6 +497,7 @@
         return;
       }
       if (tg === -2) { this.hurtLauncher(dmg, KM.ENEMY[this.kind[i]].k); return; }
+      if (so) { this.hurtStruct(tg, dmg * (d.el ? 1.6 : 1)); this.emit('hit', i, -1, false); return; }
       if (d.s) { this.area(1 - team, tx, tz, d.s, dmg, 0, this.z[i]); this.emit('cleave', i); }
       else this.hurt(tg, dmg, team, this.z[i], crit);
       this.emit('hit', i, tg, crit);
@@ -501,6 +548,7 @@
         const team = P.team[k], tg = P.tgt[k];
         if (P.spl[k] > 0) { this.area(1 - team, P.ex[k], P.ez[k], P.spl[k], P.dmg[k], P.slow[k], P.sz[k]); if (team === 1 && this.lDist(P.ex[k], P.ez[k]) < P.spl[k] + 0.8) this.hurtLauncher(P.dmg[k] * 0.7, 'siege'); this.emit('impact', P.kind[k], P.ex[k], P.ez[k], P.spl[k]); }
         else if (tg === -2) { if (this.lDist(P.ex[k], P.ez[k]) < 2.2) this.hurtLauncher(P.dmg[k], 'ranged'); }
+        else if (tg <= -10) this.hurtStruct(tg, P.dmg[k]);
         else if (tg >= 0 && this.st[tg] === ALIVE) {
           const dx = this.x[tg] - P.ex[k], dz = this.z[tg] - P.ez[k];
           if (dx * dx + dz * dz < 2.5) { this.hurt(tg, P.dmg[k], team, P.sz[k], !!P.crit[k]); this.emit('impact', P.kind[k], P.ex[k], P.ez[k], 0); }

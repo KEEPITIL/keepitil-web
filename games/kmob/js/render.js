@@ -65,9 +65,9 @@
       R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
       const S = this.scene = new THREE.Scene();
       this.fogCol = new C(0xbfe3ff); S.fog = new THREE.Fog(this.fogCol, 55, 135); S.background = this.skyTex();
-      this.cam = new THREE.PerspectiveCamera(48, 1, 0.5, 260);
-      S.add(this.hemi = new THREE.HemisphereLight(0xeaf4ff, 0x8a7a5c, 0.66));
-      const sun = this.sun = new THREE.DirectionalLight(0xfff0d4, 0.72); sun.position.set(10, 26, 12); sun.castShadow = true;
+      this.cam = new THREE.PerspectiveCamera(50, 1, 0.5, 260);
+      S.add(this.hemi = new THREE.HemisphereLight(0xf2f2ff, 0x9a7a54, 0.68));
+      const sun = this.sun = new THREE.DirectionalLight(0xffe6c0, 0.78); sun.position.set(10, 26, 12); sun.castShadow = true;
       sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -26, right: 26, top: 34, bottom: -34, near: 1, far: 90 }); sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.03;
       S.add(sun); S.add(sun.target);
       this.ry = new Float32Array(KM.Sim.CAP); this.shake = 0; this.time = 0; this.skin = KM.SHOP[3];
@@ -75,7 +75,7 @@
       this.col2 = new C(); this.fxBudget = 60; this.lodNear = this.opts.lowPower ? 80 : 120; this.lodMid = this.opts.lowPower ? 300 : 450;
       this.initCrowd(); this.initWorld(); this.initFx(); this.initProjectiles(); this.initCoins();
       this.launcher = this.buildLauncher(); S.add(this.launcher);
-      this.towerObjs = [null, null, null, null, null, null];
+      this.towerObjs = [null, null, null, null, null, null]; this.dyingObjs = []; this.wallObjs = new Map();
       this.tracers = []; for (let k = 0; k < 8; k++) { const tr = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 1), new THREE.MeshBasicMaterial({ color: 0xe4c2ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); tr.visible = false; this.scene.add(tr); this.tracers.push(tr); }
       this.resize();
     }
@@ -93,7 +93,7 @@
     // ---------- crowd ----------
     initCrowd() {
       const kit = this.kit = KM.buildKit(), N = KM.Sim.CAP, A = KM.ANIM;
-      const caps0 = { lStd: N * 2, lBrute: 1024, tLight: N, tHeavy: 2048, tBrute: 512, tRobe: 512, aStd: N * 2, aHeavy: 4096, aBrute: 1024, sword: N, swordGold: N, shield: 2048, pads: N, plume: N, cannon: 256 }, caps = {};
+      const caps0 = { padsIron: N, hornsAdd: N, eyesGlow: N, lStd: N * 2, lBrute: 1024, tLight: N, tHeavy: 2048, tBrute: 512, tRobe: 512, aStd: N * 2, aHeavy: 4096, aBrute: 1024, sword: N, swordGold: N, shield: 2048, pads: N, plume: N, cannon: 256 }, caps = {};
       Object.assign(caps, caps0, { m_leg: N * 2, m_legB: 1024, m_arm: N * 2, m_armB: 1024, m_shield: 2048, m_w_sword: N, m_w_swordGold: N, m_th_soldier: N, m_th_grunt: N, m_th_imp: N });
       const mk = (geo, n, color) => { const im = new THREE.InstancedMesh(geo, KM.toonMat(), n); im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); im.frustumCulled = false; im.count = 0; if (color) { im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3); im.instanceColor.setUsage(THREE.DynamicDrawUsage); } this.scene.add(im); return im; };
       this.partM = {}; this.pn = {};
@@ -101,11 +101,11 @@
       for (const [k, g] of Object.entries(kit.statues)) { const name = 'S_' + k; this.partM[name] = mk(g, k === 'soldier' || k === 'grunt' || k === 'imp' ? N : 1024, true); this.pn[name] = 0; }
       this.kindKey = []; for (const d of KM.ENEMY) this.kindKey[d.id] = d.k; for (const d of KM.FRIEND) this.kindKey[d.id] = d.k;
       // animation state per unit slot
-      this.pose = new Float32Array(N * A.P); this.prev = new Float32Array(N * A.P); this.clip = new Int16Array(N).fill(-1); this.fade = new Float32Array(N); this.animT = new Uint8Array(N);
+      this.pose = new Float32Array(N * A.P); this.prev = new Float32Array(N * A.P); this.clip = new Int16Array(N).fill(-1); this.pvel = new Float32Array(N); this.accL = new Float32Array(N); this.fade = new Float32Array(N); this.animT = new Uint8Array(N);
       this.tmpPose = new Float32Array(A.P); this.vv = {}; this.mats = Array.from({ length: 8 }, () => new M4()); this.frameNo = 0;
       const blob = new THREE.MeshBasicMaterial({ map: radialTex('rgba(20,20,40,0.45)', 'rgba(0,0,0,0)'), transparent: true, depthWrite: false });
       this.blob = mk(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), N, false); this.blob.material = blob; this.blob.renderOrder = 1;
-      this.ringM = mk(new THREE.RingGeometry(0.8, 1, 28).rotateX(-Math.PI / 2), 160, false); this.ringM.material = new THREE.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: 0.6, depthWrite: false });
+      this.ringM = mk(new THREE.RingGeometry(0.8, 1, 28).rotateX(-Math.PI / 2), 160, false); this.ringM.material = new THREE.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: 0.45, depthWrite: false });
       this.buffM = mk(new THREE.RingGeometry(0.55, 0.7, 20).rotateX(-Math.PI / 2), N, false); this.buffM.material = new THREE.MeshBasicMaterial({ color: 0x5cffa0, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending });
     }
 
@@ -141,7 +141,7 @@
       const S = sim.stats, armorLv = S.lv.armor || 0, dmgLv = S.lv.dmg || 0, hpLv = S.lv.hp || 0;
       for (const k in this.pn) this.pn[k] = 0;
       let nb = 0, nr = 0, nf = 0; this.frameNo++;
-      const blue = TEAM[0], camZ = this.cam.position.z, camX = this.cam.position.x, crowd = sim.count[0] + sim.count[1];
+      const blue = TEAM[0], camZ = this.cam.position.z, camX = this.cam.position.x, crowd = sim.count[0] + sim.count[1], flipCam = !!(KM.camFocus && KM.camFocus.flip);
       const bannerTowers = sim.towers.filter(t => t && t.type === 'banner'), bR2 = 49 * sim.stats.towerRange;
       // budgeted LOD thresholds from a camera-distance histogram
       const hist = this.lodHist || (this.lodHist = new Uint16Array(160)), dist = this.lodDist || (this.lodDist = new Float32Array(KM.Sim.CAP)); hist.fill(0);
@@ -151,7 +151,7 @@
       let drawn = 0;
       for (let i = 0; i < sim.hi; i++) {
         const st = sim.st[i]; if (!st) { this.clip[i] = -1; continue; }
-        const z = sim.z[i]; if (z > camZ + 3 || z < camZ - 125) continue;
+        const z = sim.z[i]; if (flipCam ? (z < camZ - 3 || z > camZ + 125) : (z > camZ + 3 || z < camZ - 125)) continue;
         const team = sim.team[i], def = sim.def(i), key = this.kindKey[sim.kind[i]], R = KM.RECIPE[key];
         let s = sim.sc[i]; if (team === 0) s *= 1 + hpLv * 0.02;
         let dy = sim.yaw[i] - this.ry[i]; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); this.ry[i] += dy * Math.min(1, dt * (8 + (i % 5)));
@@ -178,7 +178,10 @@
           const rig = R.torso === 'tBrute' ? KM.RIG.brute : KM.RIG.std, mid = lodL === 1, brute = R.torso === 'tBrute';
           const LEG = mid ? (brute ? 'm_legB' : 'm_leg') : R.leg, ARM = mid ? (brute ? 'm_armB' : 'm_arm') : R.arm;
           // root (pivot at feet so falls topple naturally)
-          rot(M[0], sim.x[i], y + p[o + I.y] * s, z, p[o + I.rootP], this.ry[i] + p[o + I.rootY], p[o + I.rootR]); M[0].scale(sc.set(s, s, s));
+          // acceleration / braking lean (centre of mass leads when speeding up, rocks back when stopping)
+          const spd = Math.hypot(sim.vx[i], sim.vz[i]), acc = (spd - this.pvel[i]) / Math.max(dt, 1e-3); this.pvel[i] = spd;
+          this.accL[i] += (Math.max(-0.22, Math.min(0.2, acc * 0.035)) - this.accL[i]) * Math.min(1, dt * 8);
+          rot(M[0], sim.x[i], y + p[o + I.y] * s, z, p[o + I.rootP] + (st === 1 ? this.accL[i] : 0), this.ry[i] + p[o + I.rootY], p[o + I.rootR]); M[0].scale(sc.set(s, s, s));
           // legs
           rot(M[1], -rig.hip[0], rig.hip[1], 0, p[o + I.legLP], 0, 0); M[1].premultiply(M[0]); this.putP(LEG, M[1], col);
           rot(M[1], rig.hip[0], rig.hip[1], 0, p[o + I.legRP], 0, 0); M[1].premultiply(M[0]); this.putP(LEG, M[1], col);
@@ -189,6 +192,10 @@
             this.putP(R.torso, M[2], col); if (team === 0 && armorLv > 0) this.putP('pads', M[2]);
             rot(M[3], 0, rig.neck, 0, p[o + I.headP], p[o + I.headY], 0); M[3].premultiply(M[2]); this.putP(R.head, M[3], col);
             if (team === 0 && armorLv >= 4 && key === 'soldier') this.putP('plume', M[3]);
+            if (team === 1) { const era = sim.era[i];                                   // later eras look harsher
+              if (era >= 1 && R.torso === 'tLight') this.putP('padsIron', M[2]);
+              if (era >= 2 && (key === 'grunt' || key === 'runner' || key === 'bomber' || key === 'archer')) this.putP('hornsAdd', M[3]);
+              if (era >= 3 && R.head !== 'hShaman' && R.head !== 'hImp') this.putP('eyesGlow', M[3]); }
           }
           // arms + held items
           rot(M[4], -rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armLP], 0, p[o + I.armLR]); M[4].premultiply(M[2]); this.putP(ARM, M[4], col);
@@ -203,7 +210,7 @@
           if (lodL === 0 && sim.swing[i] > 0.35 && sim.swing[i] < 0.62 && this.fxBudget > 0 && Math.random() < 0.5) { this.fxBudget--; pos.set(0, 0, 0.55 * ws).applyMatrix4(M[6]); this.emit(pos.x, pos.y, pos.z, 0, 0, 0, team ? 0xffd0c0 : 0xd8ecff, 0.32, 0.14, 0); }
         }
         if (nb < 4096) { q.identity(); const bs = s * (R.body ? 1.6 : R.torso === 'tBrute' ? 1.3 : 0.85); pos.set(sim.x[i], 0.03, z); sc.set(bs, 1, bs); M[0].compose(pos, q, sc); this.put(this.blob, nb++, M[0]); }
-        if (team === 1 && def.el && st === 1 && nr < 160) { q.identity(); const rs = s * 0.75 * (1 + Math.sin(this.time * 6) * 0.06); pos.set(sim.x[i], 0.05, z); sc.set(rs, 1, rs); M[0].compose(pos, q, sc); this.put(this.ringM, nr++, M[0]); }
+        if (team === 1 && def.el && st === 1 && nr < (def.boss ? 160 : 24)) { q.identity(); const rs = s * 0.75 * (1 + Math.sin(this.time * 6) * 0.06); pos.set(sim.x[i], 0.05, z); sc.set(rs, 1, rs); M[0].compose(pos, q, sc); this.put(this.ringM, nr++, M[0]); }
         if (team === 0 && st === 1 && bannerTowers.length && nf < 4096) { for (const t of bannerTowers) { const ddx = sim.x[i] - t.x, ddz = z - t.z; if (ddx * ddx + ddz * ddz < bR2) { q.identity(); pos.set(sim.x[i], 0.04, z); sc.set(s, 1, s); M[0].compose(pos, q, sc); this.put(this.buffM, nf++, M[0]); break; } } }
       }
       for (const k in this.partM) { const im = this.partM[k]; im.count = this.pn[k]; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; }
@@ -278,7 +285,12 @@
       for (let k = 0; k < 4; k++) add(this.deco.rock(rock.getHex(), r.range(0.3, 0.6)), (r() < 0.5 ? -1 : 1) * r.range(9.9, 11), plan.z1 - r() * CH, r() * 6);
       if (plan.kind === 'ruins') for (let k = 0; k < 4; k++) { const side = k % 2 ? 1 : -1; add(r() < 0.5 ? this.deco.pillar(0, r.range(0.6, 1.1)) : this.deco.wall(0, r.range(0.6, 1.1)), side * r.range(11, 13.5), plan.z1 - r() * CH, r() * 0.6); }
       for (let z = plan.z1; z > plan.z0 + 0.1; z -= 2) for (const sx of [-10.3, 10.3]) add(bridge ? this.deco.stoneRail() : this.deco.post(), sx, z - 2, 0);
-      if (i % 2 === 0) { add(this.deco.banner(0x2f6dff), -10.9, plan.z1 - 6, 0); add(this.deco.banner(0xd83a3a), 10.9, plan.z1 - 18, Math.PI); }
+      add(this.deco.banner(0x2f6dff), -10.9, plan.z1 - 4 - (i % 3) * 3, 0); add(this.deco.banner(0xd83a3a), 10.9, plan.z1 - 14 - (i % 2) * 4, Math.PI);
+      for (let k = 0; k < 2; k++) { const side = r() < 0.5 ? -1 : 1, cx0 = side * r.range(11, 13), cz0 = plan.z1 - r() * CH; for (let j = 0; j < 3; j++) add(this.deco.rock(rock.getHex(), r.range(0.4, 0.9)), cx0 + (r() - 0.5) * 1.6, cz0 + (r() - 0.5) * 1.6, r() * 6); }
+      // biome boundary: a great stone gate over the road announces the new region
+      if (i > 0 && i % KM.BIOME_LEN === 0) { const gz = plan.z1 - 2, bc = new C(KM.BIOMES[plan.biome].tree).getHex(), P0 = (g, c, m) => part(g, c, 0, m);
+        for (const sx of [-1, 1]) add([P0(new THREE.BoxGeometry(1.6, 7.5, 1.6), 0xcfc8b8, T(0, 3.75, 0)), P0(new THREE.BoxGeometry(2.0, 0.5, 2.0), 0xb8b0a0, T(0, 7.7, 0)), P0(new THREE.ConeGeometry(1.2, 1.4, 4), 0x2f6dff, TRS(0, 8.6, 0, 0, Math.PI / 4, 0)), P0(new THREE.BoxGeometry(0.08, 3.2, 1.3), bc, T(sx * -0.85, 4.5, 0)), P0(new THREE.BoxGeometry(0.1, 0.5, 0.5), 0xf2c14e, TRS(sx * -0.9, 5.2, 0, Math.PI / 4, 0, 0))], sx * 11.2, gz, 0);
+        add([P0(new THREE.BoxGeometry(24, 0.9, 1.0), 0xcfc8b8, T(0, 8.2, 0)), P0(new THREE.BoxGeometry(24.4, 0.25, 1.2), 0xf2c14e, T(0, 7.8, 0)), P0(new THREE.BoxGeometry(3.2, 1.1, 0.2), bc, T(0, 8.2, 0.55))], 0, gz, 0); }
       if (plan.biome !== 3 && plan.biome !== 4) for (let k = 0; k < 18; k++) add(this.deco.flower([0xffffff, 0xffe066, 0xff8fb0, 0xb4a0ff][k % 4]), (r() < 0.5 ? -1 : 1) * r.range(10.6, 16), plan.z1 - r() * CH);
       // foreground: bushes + grass tufts hugging the fences (they frame the lane like the concept art)
       for (let k = 0; k < 16; k++) { const side = r() < 0.5 ? -1 : 1, x = side * r.range(10.8, 14), z = plan.z1 - r() * CH; if (plan.biome === 3) { add(this.deco.rock(0xf2f7ff, r.range(0.35, 0.6)), x, z, r() * 6); continue; }
@@ -305,7 +317,10 @@
       for (const i of want) if (!this.chunks.has(i) && built < 2) { const g = this.buildChunk(i); this.scene.add(g); this.chunks.set(i, g); built++; }
       // fog/sky blend toward current biome
       const plan = KM.chunkPlan(Math.max(0, Math.floor(-front / W.CHUNK)));
-      const fc = this.biomeCol(plan, 'fog'); this.fogCol.lerp(fc, 0.02); this.scene.fog.color.copy(this.fogCol);
+      const fc = this.biomeCol(plan, 'fog'), war = Math.min(1, (this.simT || 0) / 60 / 40); fc.lerp(this.col2.setHex(0xffa070), war * 0.45);
+      this.fogCol.lerp(fc, 0.02); this.scene.fog.color.copy(this.fogCol);
+      this.hemi.intensity = 0.66 - war * 0.08; this.sun.color.setHex(0xffe6c0).lerp(this.col2.setHex(0xffb070), war * 0.5);
+      if (war > 0.3 && Math.random() < war * 0.6) this.emit(this.camT ? this.camT.x + (Math.random() - 0.5) * 24 : 0, 0.5, front - Math.random() * 40, (Math.random() - 0.5) * 0.4, 1.2 + Math.random(), 0, 0xff8a3a, 0.22, 3, -0.15);
     }
 
     // ---------- launcher ----------
@@ -402,7 +417,10 @@
       const tilt = Math.max(-0.25, Math.min(0.25, -L.vx * 0.03)); this.lBody.rotation.z += (tilt - this.lBody.rotation.z) * Math.min(1, dt * 8);
       this.lBody.position.y = Math.abs(Math.sin(this.time * 9)) * 0.02 + (L.hitT < 0.15 ? 0.08 : 0);
       for (const w of this.wheels) w.rotation.x = -L.wheel * 2.2;
-      S.mid.visible = lv >= 3; S.hopper.visible = lv >= 2; S.core.visible = lv >= 3; S.armor.visible = lv >= 4; S.crown.visible = lv >= 5; this.crown.visible = lv >= 5; this.flags[1].visible = lv >= 5;
+      const want = { mid: lv >= 3, hopper: lv >= 2, core: lv >= 3, armor: lv >= 4, crown: lv >= 5 };
+      for (const k in want) { const gS = S[k]; if (want[k] && !gS.visible) { gS.userData.pop = 0; } gS.visible = want[k];
+        if (gS.visible && gS.userData.pop != null && gS.userData.pop < 0.7) { gS.userData.pop += dt; const u = Math.min(1, gS.userData.pop / 0.55), k2 = u < 1 ? (1 - Math.pow(1 - u, 3)) * (1 + Math.sin(u * Math.PI) * 0.35) : 1; gS.scale.setScalar(Math.max(0.01, k2)); gS.position.y = (1 - u) * 1.2; } else if (gS.visible) { gS.scale.setScalar(1); gS.position.y = 0; } }
+      this.crown.visible = lv >= 5; this.flags[1].visible = lv >= 5;
       const nb = lv >= 5 ? 3 : lv >= 3 ? 2 : 1, blen = lv >= 2 ? 1.15 : 0.85;
       this.barrels.forEach((b, k) => { b.visible = k < nb; b.position.x = nb === 1 ? 0 : nb === 2 ? (k ? 0.3 : -0.3) : (k - 1) * 0.44; b.scale.set(1, 1, blen); b.userData.brake.visible = lv >= 2; b.position.z = L.fire * 0.2 * ((k + Math.floor(this.time * 8)) % nb === 0 ? 1 : 0.3); });
       this.turret.rotation.y = Math.sin(this.time * 1.3) * 0.05 - L.vx * 0.02;
@@ -497,7 +515,7 @@
     drawTowers(sim, dt) {
       for (let s = 0; s < 6; s++) {
         const t = sim.towers[s]; let o = this.towerObjs[s];
-        if (!t) { if (o) { this.disposeObj(o); this.towerObjs[s] = null; } continue; }
+        if (!t) { if (o) { if (!o.userData.dying) { o.userData.dying = 0; this.dyingObjs.push(o); } this.towerObjs[s] = null; } continue; }
         if (!o || o.userData.lvl !== t.lvl || o.userData.type !== t.type) {
           const upgrade = !!o; if (o) this.disposeObj(o);
           o = this.towerObjs[s] = this.buildTower(t); this.scene.add(o); if (upgrade) o.userData.build = 0.3;
@@ -515,10 +533,51 @@
         if (U.doors) { const op = Math.min(1, r * 2.2); U.doors[0].rotation.y = -op * 1.4; U.doors[1].rotation.y = op * 1.4; }
         if (U.flag) U.flag.rotation.y = Math.sin(this.time * 3 + s) * 0.18;
         if (U.aura) { const k = 7 * Math.sqrt(sim.stats.towerRange) * (sim.stats.bannerR || 1) * (1 + Math.sin(this.time * 2) * 0.025); U.aura.scale.setScalar(k); U.auraFill.scale.setScalar(k); U.aura.material.opacity = 0.35 + Math.sin(this.time * 2) * 0.12; }
+        // damage state: darken, shake on hit, smoke + sparks when low
+        const hf = t.mhp ? t.hp / t.mhp : 1; U.hpBar = U.hpBar || this.makeBar(o); U.hpBar.visible = hf < 0.999; U.hpBar.children[1].scale.x = Math.max(0.001, hf); U.hpBar.children[1].material.color.setHSL(0.33 * hf, 0.9, 0.5);
+        if (t.hitT < 0.15) { o.position.x += (Math.random() - 0.5) * 0.12; o.position.z += (Math.random() - 0.5) * 0.12; }
+        if (hf < 0.5 && Math.random() < (0.6 - hf) * 0.5) this.emit(t.x + (Math.random() - 0.5), 2 + Math.random(), t.z + (Math.random() - 0.5), 0, 1.2, 0, hf < 0.25 ? 0x3a3a3a : 0x777777, 1.2, 1.1, -0.6);
+        if (hf < 0.25 && Math.random() < 0.15) this.emit(t.x, 2.4, t.z, (Math.random() - 0.5) * 2, 2, (Math.random() - 0.5) * 2, 0xff8a2a, 0.35, 0.4, 6);
         if (U.halo) { U.halo.rotation.z += dt; U.halo.material.opacity = 0.4 + Math.sin(this.time * 3) * 0.2; }
       }
+      // collapsing towers: sink, tilt, debris
+      for (let k = this.dyingObjs.length - 1; k >= 0; k--) { const o = this.dyingObjs[k]; const u = (o.userData.dying += dt);
+        if (u < dt * 1.5) { this.burst(o.position.x, 1.5, o.position.z, 50, 0xb4b9c2, 6, 0.9, 1.0, 9); this.burst(o.position.x, 1, o.position.z, 20, 0x555555, 3, 1.6, 1.4, -1); this.ring(o.position.x, o.position.z, 0xffa040, 5, 0.6); this.shake = Math.max(this.shake, 0.18); }
+        o.position.y = -u * u * 2.5; o.rotation.z = u * 0.6; o.rotation.x = u * 0.3; if (u > 1.4) { this.disposeObj(o); this.dyingObjs.splice(k, 1); } }
+      this.drawWalls(sim, dt);
       // sniper tracers fade
       for (const tr of this.tracers) { if (!tr.visible) continue; tr.userData.t += dt; tr.material.opacity = Math.max(0, 0.9 - tr.userData.t * 4); if (tr.userData.t > 0.25) tr.visible = false; }
+    }
+    makeBar(parent) {
+      const g = new THREE.Group(), bg = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.18), new THREE.MeshBasicMaterial({ color: 0x1a1a22, depthTest: false, transparent: true, opacity: 0.8 })), fg = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.12).translate(0.75, 0, 0), new THREE.MeshBasicMaterial({ color: 0x4cff8a, depthTest: false }));
+      fg.position.x = -0.75; fg.position.z = 0.001; g.add(bg); g.add(fg); g.position.y = 4.2; g.rotation.x = -1.0; g.renderOrder = 5; bg.renderOrder = 5; fg.renderOrder = 6; parent.add(g); return g;
+    }
+    buildWall(w) {
+      const g = new THREE.Group(), wood = this.std(0x9a6a3c), dwood = this.std(0x6a4426), iron = this.std(0x7d8796), blue = this.std(0x2f6dff), gold = this.std(0xf4c247), stone = this.std(0xc3c8d0);
+      const parts = [], add = m => { g.add(m); parts.push(m); return m; };
+      if (w.type === 'barricade') {
+        for (const x of [-1.2, 0, 1.2]) { const p = add(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 1.1, 6), dwood)); p.position.set(x, 0.55, 0); }
+        for (const [y, r] of [[0.35, 0.08], [0.75, -0.06]]) { const b = add(new THREE.Mesh(new THREE.BoxGeometry(w.w, 0.16, 0.14), wood)); b.position.set(0, y, 0); b.rotation.z = r; }
+        for (let k = 0; k < 5; k++) { const sp = add(new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.8, 5), wood)); sp.position.set(-1.3 + k * 0.65, 0.5, -0.3); sp.rotation.x = -0.9; const tip = add(new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.16, 5), iron)); tip.position.set(-1.3 + k * 0.65, 0.84, -0.6); tip.rotation.x = -0.9; }
+      } else {
+        const base = add(new THREE.Mesh(new THREE.BoxGeometry(w.w, 0.4, w.d + 0.2), stone)); base.position.y = 0.2;
+        for (let k = 0; k < 3; k++) { const sh = add(new THREE.Mesh(new THREE.BoxGeometry(w.w / 3 - 0.08, 1.15, 0.22), blue)); sh.position.set((k - 1) * w.w / 3, 0.95, -0.1); const tr = add(new THREE.Mesh(new THREE.BoxGeometry(w.w / 3 - 0.02, 0.1, 0.26), gold)); tr.position.set((k - 1) * w.w / 3, 1.55, -0.1); const em = add(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.05, 10).rotateX(Math.PI / 2), gold)); em.position.set((k - 1) * w.w / 3, 1.0, -0.23); for (const x of [-0.45, 0.45]) { const rv = add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 4), iron)); rv.position.set((k - 1) * w.w / 3 + x, 0.55, -0.22); } }
+        for (const x of [-w.w / 2, w.w / 2]) { const pst = add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.7, 0.4), stone)); pst.position.set(x, 0.85, 0); const cap = add(new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.3, 4), gold)); cap.position.set(x, 1.85, 0); }
+      }
+      g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+      g.userData.parts = parts.map(m => ({ m, y: m.position.y, d: Math.random() * 0.2 })); g.userData.build = 0; return g;
+    }
+    drawWalls(sim, dt) {
+      const live = new Set();
+      for (const w of sim.walls) {
+        let g = this.wallObjs.get(w); if (!g) { g = this.buildWall(w); this.scene.add(g); this.wallObjs.set(w, g); this.burst(w.x, 0.8, w.z, 24, w.type === 'wall' ? 0x7cc4ff : 0xd9b27a, 4, 0.5, 0.6); this.ring(w.x, w.z, w.type === 'wall' ? 0x7cc4ff : 0xffd23a, 3.5, 0.5); }
+        live.add(w); g.position.set(w.x, 0, w.z); const U = g.userData; U.build += dt;
+        if (U.build < 1) for (const p of U.parts) { const u = Math.min(1, Math.max(0, (U.build - p.d) / 0.35)); p.m.position.y = p.y - (1 - u * u * (3 - 2 * u)) * 1.6; }
+        const hf = w.hp / w.mhp; U.hpBar = U.hpBar || this.makeBar(g); U.hpBar.position.y = w.type === 'wall' ? 2.4 : 1.6; U.hpBar.visible = hf < 0.999; U.hpBar.children[1].scale.x = Math.max(0.001, hf); U.hpBar.children[1].material.color.setHSL(0.33 * hf, 0.9, 0.5);
+        if (w.hitT < 0.12) g.position.x += (Math.random() - 0.5) * 0.1;
+        if (w.hitT < 0.05 && Math.random() < 0.5) this.burst(w.x + (Math.random() - 0.5) * w.w, 0.8, w.z - 0.5, 4, w.type === 'wall' ? 0xcfe6ff : 0xd9b27a, 3, 0.35, 0.3);
+      }
+      for (const [w, g] of this.wallObjs) if (!live.has(w)) { this.burst(g.position.x, 0.8, g.position.z, 40, w.type === 'wall' ? 0x7cc4ff : 0x9a6a3c, 6, 0.7, 0.9, 9); this.ring(g.position.x, g.position.z, 0xffa040, 3, 0.5); this.disposeObj(g); this.wallObjs.delete(w); }
     }
     tracer(x0, z0, x1, z1, color) {
       let tr = this.tracers.find(t => !t.visible); if (!tr) return;
@@ -529,8 +588,9 @@
 
     // ---------- coins ----------
     initCoins() {
-      const geo = new THREE.CylinderGeometry(0.22, 0.22, 0.07, 16); geo.rotateX(Math.PI / 2);
-      const mat = this.std(0xffc21a, { metalness: 0.35, roughness: 0.3, emissive: 0xb07000, emissiveIntensity: 0.55 });
+      const P = KM.kitPart, T2 = KM.kitTRS;
+      const geo = KM.kitMerge([P(new THREE.CylinderGeometry(0.24, 0.24, 0.09, 18), 0xffc21a, 0, T2(0, 0, 0, Math.PI / 2, 0, 0)), P(new THREE.TorusGeometry(0.235, 0.03, 6, 20), 0xffe27a, 0), P(new THREE.CircleGeometry(0.11, 5), 0xfff4b8, 0, T2(0, 0, 0.047, 0, 0, Math.PI / 2)), P(new THREE.CircleGeometry(0.11, 5), 0xfff4b8, 0, T2(0, 0, -0.047, 0, Math.PI, Math.PI / 2))]);
+      const mat = KM.toonMat({ emissive: 0x6a4300, emissiveIntensity: 0.35 });
       this.coinM = new THREE.InstancedMesh(geo, mat, KM.Sim.CCAP); this.coinM.frustumCulled = false; this.coinM.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.scene.add(this.coinM);
       this.coinGlow = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: radialTex('rgba(255,215,90,0.3)', 'rgba(255,210,80,0)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), KM.Sim.CCAP); this.coinGlow.frustumCulled = false; this.scene.add(this.coinGlow);
     }
@@ -540,7 +600,10 @@
         if (!C.st[k]) continue;
         const big = Math.min(1.6, 1.0 + Math.sqrt(C.v[k]) * 0.18), fade = C.st[k] === 1 && C.age[k] > 19 ? (Math.floor(C.age[k] * 8) % 2 ? 0.6 : 1) : 1;
         const y = C.y[k] + (C.st[k] === 1 && C.vy[k] === 0 ? 0.12 + Math.sin(this.time * 4 + k) * 0.08 : 0);
-        e.set(0, this.time * 3 + k, 0); q.setFromEuler(e); p.set(C.x[k], y + 0.1, C.z[k]); s.setScalar(big * fade); m.compose(p, q, s); this.put(this.coinM, n, m);
+        // face the camera (never edge-on → never a streak), with a ±35° wobble that reads as spinning
+        const cy = Math.atan2(this.cam.position.x - C.x[k], this.cam.position.z - C.z[k]), cp = -Math.atan2(this.cam.position.y - y, Math.hypot(this.cam.position.x - C.x[k], this.cam.position.z - C.z[k])) * 0.6;
+        e.set(cp, cy + Math.sin(this.time * 5 + k) * 0.6, 0, 'YXZ'); q.setFromEuler(e); p.set(C.x[k], y + 0.1, C.z[k]);
+        const pulse = 1 + Math.sin(this.time * 7 + k * 1.7) * 0.06; s.setScalar(big * fade * pulse); m.compose(p, q, s); this.put(this.coinM, n, m);
         q.identity(); p.set(C.x[k], 0.06, C.z[k]); s.setScalar(big * 0.8); m.compose(p, q, s); this.put(this.coinGlow, n, m); n++;
       }
       this.coinM.count = this.coinGlow.count = n; this.coinM.instanceMatrix.needsUpdate = this.coinGlow.instanceMatrix.needsUpdate = true;
@@ -635,35 +698,64 @@
     }
 
     // ---------- camera ----------
+    // Key gameplay points that must stay on screen: launcher (with bottom margin), built towers, wall lines,
+    // lane edges at the launcher's depth, and the incoming threat zone ahead of the front.
+    keyPoints(sim) {
+      const L = sim.L, P = this.kp || (this.kp = []); P.length = 0;
+      const add = (x, z, y, m) => P.push({ x, z, y: y || 0, m: m || 0 });
+      add(L.x, L.z + 1.6, 0, 0.12); add(L.x - 1.4, L.z, 1.5, 0.05); add(L.x + 1.4, L.z, 1.5, 0.05);
+      add(-6.8, L.z - 2, 0, 0); add(6.8, L.z - 2, 0, 0);                         // central lane (edges may crop, like the concept)
+      for (const t of sim.towers) if (t) { add(t.x - Math.sign(t.x) * -1.0, t.z, 2.2, 0.02); add(t.x, t.z + 1, 0, 0.02); }
+      for (const w of sim.walls) { add(w.x - w.w / 2, w.z, 0.5, 0.02); add(w.x + w.w / 2, w.z, 0.5, 0.02); }
+      add(0, sim.front - 26, 0, 0.0);                                              // threat zone (HUD covers the very top)
+      return P;
+    }
+    // Smallest camera distance (closest view, biggest characters) that keeps every key point inside the safe area.
+    fitDistance(sim, tx, tz, pitch, minD, maxD) {
+      const cam = this.fitCam || (this.fitCam = new THREE.PerspectiveCamera()), v = this.v, P = this.keyPoints(sim);
+      cam.fov = this.cam.fov; cam.aspect = this.aspect; cam.near = 0.5; cam.far = 300; cam.updateProjectionMatrix();
+      const hudTop = 1 - 2 * (this.safeTopPx || 118) / innerHeight;          // NDC y below the HUD pills + HP bar
+      const ok = d => { cam.position.set(tx, Math.sin(pitch) * d, tz + Math.cos(pitch) * d); cam.lookAt(tx, 0, tz); cam.updateMatrixWorld(); cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
+        for (const p of P) { v.set(p.x, p.y, p.z).project(cam); if (v.z > 1 || Math.abs(v.x) > 1 - p.m || v.y < -1 + p.m || v.y > hudTop) return false; } return true; };
+      let lo = minD, hi = maxD; if (ok(lo)) return lo; if (!ok(hi)) return hi;
+      for (let k = 0; k < 14; k++) { const mid = (lo + hi) / 2; if (ok(mid)) hi = mid; else lo = mid; }
+      return hi;
+    }
     drawCamera(sim, dt) {
       const L = sim.L, army = sim.count[0] + sim.count[1];
-      const halfW = 9.6, fov = this.cam.fov * Math.PI / 180;
-      const pitch = this.aspect > 1 ? 0.95 : 1.0; // ~54-57°, like the concept framing
-      let dist = halfW / (Math.tan(fov / 2) * Math.min(this.aspect, 1.15)) * 0.86;
-      if (KM.camOverride) dist = KM.camOverride;
-      dist = Math.max(dist, KM.camOverride ? 4 : this.aspect > 1 ? 36 : 26) * (1 + Math.min(0.18, army / 3000));
+      const pitch = this.aspect > 1 ? 0.86 : 0.9; // ~50°: lower, more cinematic like the concept
       let tx = L.x * 0.35, tz = sim.front - (this.aspect > 1 ? 11 : 14.5) + L.offZ * 0.3;
-      if (KM.camFocus === 'launcher') { tx = L.x; tz = L.z - 1; }
+      if (KM.camFocus === 'launcher') { tx = L.x; tz = L.z - 1; } else if (KM.camFocus && KM.camFocus.x != null) { tx = KM.camFocus.x; tz = KM.camFocus.z; }
+      // the target shifts toward the launcher on narrow screens so towers beside it stay framed
       if (!this.camT) this.camT = new V3(tx, 0, tz);
-      this.camT.x += (tx - this.camT.x) * Math.min(1, dt * 3); this.camT.z += (tz - this.camT.z) * Math.min(1, dt * 4);
-      this.camD = (this.camD || dist) + (dist - (this.camD || dist)) * Math.min(1, dt * 1.5);
+      if (KM.camFocus && KM.camFocus.x != null) this.camT.set(tx, 0, tz);          // staged close-ups snap
+      else { this.camT.x += (tx - this.camT.x) * Math.min(1, dt * 3); this.camT.z += (tz - this.camT.z) * Math.min(1, dt * 4); }
+      this.fitT = (this.fitT || 0) - dt;
+      if (this.fitT <= 0 || this.fitD == null) { this.fitT = 0.25; this.fitD = this.fitDistance(sim, this.camT.x, this.camT.z, pitch, this.aspect > 1 ? 30 : 24, 70); }
+      let dist = this.fitD * (1 + Math.min(0.12, army / 4000));
+      if (KM.camOverride) dist = KM.camOverride;
+      if (KM.camFocus && KM.camFocus.x != null) this.camD = dist;
+      this.camD = (this.camD || dist) + (dist - (this.camD || dist)) * Math.min(1, dt * 1.6);
       this.shake = Math.max(0, this.shake - dt * 1.2);
       const sx = (Math.random() - 0.5) * this.shake, sy = (Math.random() - 0.5) * this.shake;
-      this.cam.position.set(this.camT.x + sx, Math.sin(pitch) * this.camD + sy, this.camT.z + Math.cos(pitch) * this.camD);
+      const flip = KM.camFocus && KM.camFocus.flip ? -1 : 1, pch = KM.camFocus && KM.camFocus.pitch || pitch;   // close-up rigs can look at the army's faces
+      this.cam.position.set(this.camT.x + sx, Math.sin(pch) * this.camD + sy, this.camT.z + Math.cos(pch) * this.camD * flip);
       this.cam.lookAt(this.camT.x, 0, this.camT.z);
       this.scene.fog.near = this.camD + 6; this.scene.fog.far = this.camD + 95;
       this.sun.position.set(this.camT.x + 12, 30, this.camT.z + 14); this.sun.target.position.set(this.camT.x, 0, this.camT.z - 4);
     }
+    // NDC position of a world point under the live camera (used by the framing tests)
+    toScreen(x, y, z) { this.v.set(x, y, z).project(this.cam); return { x: this.v.x, y: this.v.y }; }
 
     frame(sim, dt) {
       this.time += dt; if (this.deathT != null) this.deathT += dt; this.cheerT = Math.max(0, (this.cheerT || 0) - dt);
       this.fxBudget = Math.max(4, Math.round(60 * (1 - Math.min(0.93, (sim.count[0] + sim.count[1]) / 2200))));
-      this.streamWorld(sim.front);
+      this.simT = sim.t; this.streamWorld(sim.front);
       this.drawCamera(sim, dt); this.drawLauncher(sim, dt); this.drawTowers(sim, dt);
       this.drawCrowd(sim, dt); this.drawCoins(sim); this.drawProjectiles(sim); this.stepFx(dt);
       this.R.render(this.scene, this.cam);
     }
-    resetRun() { this.deathT = null; this.camT = null; this.camD = null; for (let s = 0; s < 6; s++) if (this.towerObjs[s]) { this.disposeObj(this.towerObjs[s]); this.towerObjs[s] = null; } this.pl.fill(0); this.ry.fill(Math.PI); this.fogCol.setHex(KM.BIOMES[0].fog); }
+    resetRun() { this.deathT = null; this.camT = null; this.camD = null; this.fitD = null; for (let s = 0; s < 6; s++) if (this.towerObjs[s]) { this.disposeObj(this.towerObjs[s]); this.towerObjs[s] = null; } for (const o of this.dyingObjs) this.disposeObj(o); this.dyingObjs = []; for (const [, g] of this.wallObjs) this.disposeObj(g); this.wallObjs.clear(); this.pl.fill(0); this.ry.fill(Math.PI); this.fogCol.setHex(KM.BIOMES[0].fog); }
   }
   KM.Render = Render;
 })(window);

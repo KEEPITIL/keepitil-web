@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0e1a33">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="KMOB: Endless War. Drag to move your launcher. Your soldiers deploy on their own. See how long you can survive.">
+<title>KMOB · Endless War</title>
+<link rel="icon" href="icon.svg">
+<meta property="og:title" content="KMOB · Endless War"><meta property="og:description" content="One finger. One army. One endless war. How long can you survive?"><meta property="og:url" content="https://keepitil.com/games/kmob/">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0e1a33;--panel:rgba(14,26,51,.86);--line:rgba(255,255,255,.14);--gold:#ffc83a;--blue:#2f74ff;--red:#e2312c;--green:#2fbf4f;--tx:#fff;--disp:'Lilita One','Arial Rounded MT Bold','Trebuchet MS',system-ui,sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;background:#0e1a33;color:var(--tx);font-family:Nunito,system-ui,sans-serif;touch-action:none;overscroll-behavior:none}
+canvas#c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
+.disp{font-family:var(--disp);letter-spacing:.02em;font-weight:400}
+.hidden{display:none!important}
+/* HUD */
+#hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 10px) 12px 0;display:flex;gap:8px;align-items:flex-start;pointer-events:none;z-index:5}
+.pill{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px 12px 6px 8px;display:flex;align-items:center;gap:8px;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.pill svg{width:26px;height:26px;flex:none}
+.pill .v{font-family:var(--disp);font-size:24px;line-height:1}
+.pill .l{font-size:9px;font-weight:900;opacity:.8;letter-spacing:.08em;line-height:1;margin-top:2px}
+#hud .sp{flex:1}
+#pauseBtn{pointer-events:auto;width:44px;height:44px;border-radius:12px;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+#pauseBtn i{display:inline-block;width:5px;height:16px;background:#fff;margin:0 2px;border-radius:2px}
+#hpbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 64px);width:min(220px,46vw);height:8px;border-radius:6px;background:rgba(0,0,0,.35);overflow:hidden;z-index:5;pointer-events:none;border:1px solid rgba(255,255,255,.2)}
+#hpbar b{display:block;height:100%;width:100%;background:linear-gradient(90deg,#4cff8a,#2fbf4f);transition:width .15s}
+#vig{position:fixed;inset:0;pointer-events:none;z-index:4;box-shadow:inset 0 0 120px 30px rgba(220,20,20,.0);transition:box-shadow .3s}
+/* upgrade cards */
+#offer{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top) + 84px);display:flex;justify-content:center;gap:10px;z-index:6;padding:0 10px;pointer-events:none}
+.card{pointer-events:auto;width:min(31vw,148px);border-radius:16px;padding:10px 6px 10px;text-align:center;cursor:pointer;color:#fff;position:relative;border:3px solid rgba(255,255,255,.7);box-shadow:0 6px 0 rgba(0,0,0,.28),0 10px 24px rgba(0,0,0,.25);transform:translateY(-20px) scale(.8);opacity:0;animation:cardIn .28s cubic-bezier(.2,1.4,.4,1) forwards}
+.card:nth-child(2){animation-delay:.05s}.card:nth-child(3){animation-delay:.1s}
+.card:active{transform:scale(.95)!important}
+@keyframes cardIn{to{transform:none;opacity:1}}
+.card.blue{background:linear-gradient(180deg,#45a0ff,#1f5fe0)}.card.red{background:linear-gradient(180deg,#ff6a4a,#d6281f)}.card.green{background:linear-gradient(180deg,#4ed36a,#1f9a3a)}.card.gold{background:linear-gradient(180deg,#ffc84a,#e08a10)}.card.tower{background:linear-gradient(180deg,#9a7cff,#5a3fd0)}
+.card svg{width:52px;height:52px;filter:drop-shadow(0 3px 0 rgba(0,0,0,.25))}
+.card .t{font-family:var(--disp);font-size:14px;line-height:1.05;margin-top:4px;min-height:30px;display:flex;align-items:center;justify-content:center;text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.card .n{font-family:var(--disp);font-size:24px;line-height:1;text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.card .n:after{content:' ▲';color:#7dff6a;font-size:15px}
+#offerCost{position:fixed;left:50%;transform:translateX(-50%);z-index:6;font-size:12px;font-weight:900;background:var(--panel);padding:4px 10px;border-radius:10px;pointer-events:auto;border:1px solid var(--line)}
+#offerCost u{text-decoration:none;opacity:.7;margin-left:8px;cursor:pointer}
+/* prompts */
+#tip{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 21vh);text-align:center;z-index:5;pointer-events:none;transition:opacity .4s}
+#tip .big{font-family:var(--disp);font-size:clamp(28px,7vw,44px);text-shadow:0 3px 0 rgba(0,0,0,.35),0 0 20px rgba(0,0,0,.3)}
+#tip .sm{font-weight:900;font-size:13px;letter-spacing:.06em;text-shadow:0 2px 0 rgba(0,0,0,.4)}
+#tip .hand{width:130px;height:60px;margin:0 auto 4px;position:relative}
+#tip .hand svg{position:absolute;left:50%;top:0;width:46px;margin-left:-23px;animation:swipe 1.6s ease-in-out infinite}
+@keyframes swipe{0%,100%{transform:translateX(-40px)}50%{transform:translateX(40px)}}
+#banner{position:fixed;left:0;right:0;top:32%;text-align:center;z-index:6;pointer-events:none;font-family:var(--disp);font-size:clamp(26px,6.5vw,46px);color:#fff;text-shadow:0 3px 0 #7a0d0d,0 0 30px rgba(255,40,40,.7);opacity:0;transition:opacity .25s}
+#banner.on{opacity:1;animation:pulse .5s ease-in-out infinite alternate}
+@keyframes pulse{to{transform:scale(1.06)}}
+/* panels */
+.screen{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:radial-gradient(ellipse at center,rgba(14,26,51,.35),rgba(14,26,51,.82));padding:16px}
+.panel{width:min(92vw,400px);background:linear-gradient(180deg,#16284f,#0e1a33);border:2px solid rgba(255,255,255,.16);border-radius:22px;padding:20px 18px 18px;box-shadow:0 10px 0 rgba(0,0,0,.3),0 20px 60px rgba(0,0,0,.4);animation:pop .3s cubic-bezier(.2,1.3,.4,1)}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+.btn{font-family:var(--disp);font-size:26px;border:0;border-radius:16px;padding:12px 18px;color:#fff;cursor:pointer;background:linear-gradient(180deg,#7dff4a,#2fbf2f);box-shadow:0 6px 0 #1a7a1a,0 10px 20px rgba(0,0,0,.3);text-shadow:0 2px 0 rgba(0,0,0,.25);width:100%}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #1a7a1a}
+.btn.sec{background:linear-gradient(180deg,#3a5a9a,#24407a);box-shadow:0 6px 0 #142852;font-size:18px}
+.btn.sec:active{box-shadow:0 2px 0 #142852}
+.row{display:flex;gap:10px;align-items:stretch}
+.sq{width:64px;flex:none;padding:8px 0;font-size:13px;display:grid;place-items:center;gap:2px}
+.sq svg{width:28px;height:28px}
+#title h1{margin:0;font-size:clamp(54px,15vw,84px);line-height:.9;text-align:center;color:#fff;text-shadow:0 5px 0 #1f4fbf,0 10px 0 rgba(0,0,0,.25)}
+#title h2{margin:6px 0 2px;text-align:center;font-size:18px;color:var(--gold);letter-spacing:.12em}
+#title p{text-align:center;opacity:.85;font-weight:800;margin:10px 0 18px;font-size:14px}
+.best{display:flex;justify-content:center;gap:16px;margin:-6px 0 16px;font-weight:900;font-size:13px;opacity:.9}
+.best b{color:var(--gold);font-family:var(--disp);font-size:18px;margin-left:4px}
+#over .sv{text-align:center;font-family:var(--disp);letter-spacing:.06em}
+#over .tm{text-align:center;font-family:var(--disp);line-height:1;color:var(--gold);text-shadow:0 4px 0 #9a5a00}
+#over .pb{text-align:center;color:#7dff6a;font-family:var(--disp);margin-top:2px;min-height:22px}
+.stats{margin:12px 0 16px;border:1px solid var(--line);border-radius:14px;padding:6px 12px;background:rgba(0,0,0,.18)}
+.stats div{display:flex;align-items:center;gap:10px;padding:6px 0;font-weight:800;font-size:15px;border-bottom:1px solid rgba(255,255,255,.07)}
+.stats div:last-child{border:0}
+.stats svg{width:22px;height:22px;flex:none}
+.stats span{flex:1}.stats b{font-family:var(--disp);font-size:18px}
+.shopgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;max-height:52vh;overflow:auto}
+.item{border:1px solid var(--line);border-radius:12px;padding:10px;background:rgba(255,255,255,.04);cursor:pointer;font-weight:800;font-size:13px}
+.item .nm{font-family:var(--disp);font-size:16px}
+.item .ds{opacity:.75;font-size:11px;margin:2px 0 6px}
+.item .pr{color:var(--gold)}
+.item.eq{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.item.no{opacity:.5}
+.sw{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px;border:2px solid rgba(255,255,255,.6)}
+.toggles{display:grid;gap:8px;margin:12px 0}
+.toggles label{display:flex;justify-content:space-between;align-items:center;font-weight:900;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.04)}
+.toggles input{width:22px;height:22px;accent-color:#2fbf4f}
+.tok{display:inline-flex;align-items:center;gap:4px;font-family:var(--disp)}
+.tok svg{width:18px;height:18px}
+#dbg{position:fixed;right:8px;bottom:8px;z-index:20;background:rgba(0,0,0,.7);padding:8px;border-radius:10px;font:11px/1.4 monospace;max-width:260px}
+#dbg button{font:11px monospace;margin:2px;padding:4px 6px;border-radius:6px;border:0;background:#2f74ff;color:#fff;cursor:pointer}
+#fps{position:fixed;left:8px;bottom:8px;z-index:20;font:11px monospace;background:rgba(0,0,0,.5);padding:3px 6px;border-radius:6px}
+@media (min-width:900px) and (min-aspect-ratio:1/1){.card{width:170px}.card svg{width:64px;height:64px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="vig"></div>
+<div id="hud" class="hidden">
+  <div class="pill"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8.5" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M12 8v5l3 2" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M9 2.5h6" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg><div><div class="v" id="hTime">0:00</div><div class="l">SURVIVAL TIME</div></div></div>
+  <div class="pill"><svg viewBox="0 0 24 24" id="armyIco"></svg><div><div class="v" id="hArmy">0</div><div class="l">ARMY</div></div></div>
+  <div class="pill"><svg viewBox="0 0 24 24" id="coinIco"></svg><div><div class="v" id="hCoins">0</div><div class="l" id="hNext">NEXT 10</div></div></div>
+  <div class="sp"></div>
+  <div id="pauseBtn" aria-label="Pause"><span><i></i><i></i></span></div>
+</div>
+<div id="hpbar" class="hidden"><b id="hpFill"></b></div>
+<div id="offer"></div>
+<div id="offerCost" class="hidden"></div>
+<div id="tip" class="hidden"><div class="hand" id="tipHand"></div><div class="big" id="tipBig">DRAG TO MOVE</div><div class="sm" id="tipSm">SOLDIERS DEPLOY AUTOMATICALLY</div></div>
+<div id="banner"></div>
+
+<div id="title" class="screen hidden"><div class="panel">
+  <h1 class="disp">KMOB</h1><h2 class="disp">ENDLESS WAR</h2>
+  <p>Drag to move · Soldiers deploy themselves · Grab the coins · Survive</p>
+  <div class="best" id="titleBest"></div>
+  <button class="btn" id="playBtn">PLAY</button>
+  <div class="row" style="margin-top:12px"><button class="btn sec" id="shopBtn1">GIFT SHOP</button><button class="btn sec" id="setBtn1">SETTINGS</button></div>
+  <a href="/games/" style="display:block;text-align:center;margin-top:14px;color:#9fc4ff;font-weight:900;font-size:13px;text-decoration:none">← KEEPITIL GAMES</a>
+</div></div>
+
+<div id="over" class="screen hidden"><div class="panel">
+  <div class="sv">SURVIVED</div><div class="tm" id="oTime">0:00</div><div class="pb" id="oPb"></div>
+  <div class="stats" id="oStats"></div>
+  <div class="row"><button class="btn sec sq" id="homeBtn" aria-label="Home"></button><button class="btn" id="againBtn">TRY AGAIN</button><button class="btn sec sq" id="shopBtn2" aria-label="Shop"></button></div>
+  <button class="btn sec hidden" id="reviveBtn" style="margin-top:10px;font-size:16px">REVIVE (ONCE)</button>
+</div></div>
+
+<div id="pause" class="screen hidden"><div class="panel">
+  <h2 class="disp" style="text-align:center;margin:0 0 6px;font-size:34px">PAUSED</h2>
+  <div class="toggles" id="pToggles"></div>
+  <button class="btn" id="resumeBtn">RESUME</button>
+  <button class="btn sec" id="quitBtn" style="margin-top:10px">END RUN</button>
+</div></div>
+
+<div id="shop" class="screen hidden"><div class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="disp" style="margin:0;font-size:30px">GIFT SHOP</h2><span class="tok" id="shopTok"></span></div>
+  <div style="font-size:12px;opacity:.75;font-weight:800;margin-top:4px">You earn tokens by surviving. Bonuses stay small, and Competitive mode turns them off.</div>
+  <div class="shopgrid" id="shopGrid"></div>
+  <button class="btn sec" id="shopClose">BACK</button>
+</div></div>
+
+<div id="settings" class="screen hidden"><div class="panel">
+  <h2 class="disp" style="text-align:center;margin:0 0 6px;font-size:30px">SETTINGS</h2>
+  <div class="toggles" id="sToggles"></div>
+  <div style="font-size:12px;opacity:.75;font-weight:800">Competitive mode starts everyone the same: no permanent bonuses and no revive. It keeps its own best time.</div>
+  <button class="btn sec" id="setClose" style="margin-top:12px">BACK</button>
+</div></div>
+
+<div id="fps" class="hidden"></div>
+<script src="vendor/three.min.js"></script>
+<script src="js/core.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/render.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

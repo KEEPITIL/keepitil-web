@@ -1077,7 +1077,7 @@ function updateFormation(dt){
   {
     const slots=_slotList; slots.length=0;
     for(let i=0;i<ranged.length;i++){const row=i%rankRows,col=Math.floor(i/rankRows);
-      slots.push(_slot(S.rallyX-mCols*cs-70-col*cs,rows[row],row,col));}
+      slots.push(_slot(S.rallyX-mCols*cs-70-col*cs-(row%2)*cs*0.45,rows[row],row,col));}   // TASK G: checkerboard -- alternate rows stand half a column back so bows and bodies do not pile into one file
     fillFormationGaps(ranged,slots,place,1,'aR');
   }
 }
@@ -1145,7 +1145,8 @@ function updateEnemyFormation(dt){
     const groupSlots=_slotList; groupSlots.length=0;
     for(let i=0;i<group.length;i++){
       const u=group[i],row=i%rankRows,gcol=col+Math.floor(i/rankRows),sx=S.enemyRallyX+gcol*cs;
-      groupSlots.push(_slot(Math.min(sx,E_WALL-72),u.type==='eboss'?466:rows[row],row,gcol));
+      const stag=(u.type==='earcher'||u.type==='egunner')?(row%2)*cs*0.45:0;   // TASK G: same archer checkerboard as the player (back = +x)
+      groupSlots.push(_slot(Math.min(sx+stag,E_WALL-72),u.type==='eboss'?466:rows[row],row,gcol));
     }
     fillFormationGaps(group,groupSlots,(u,sx,sy,row)=>{
       const settled=S.enemyPhase==='march'&&Number.isFinite(u.slotX)&&Math.hypot(u.x-u.slotX,u.y-u.slotY)<7;
@@ -1641,13 +1642,35 @@ function meleeStrike(u, t, foe){
   if (canBash && u.meleeBeat===2){ u.shieldThrustT = 0.62; u.shieldTarget = foe.u; }
   else { u.anim = 1; u.swingVar = !u.swingVar; unitFire(u, t, foe); }
 }
+const BOW_RELEASE_P = 0.60;   // matches the rig: full draw at ~0.5, the string drops from 0.6 (soldier-rig.js bow 'attack')
+function updateDrawnShot(u){
+  const ps = u.pendingShot; if (!ps) return;
+  const p = 1 - (u.anim||0);
+  const lost = ps.unit ? !(ps.tg && ps.tg.hp > 0) : false;
+  const changed = u.team===1 && (S.stance !== ps.stance || (S.retreatT>0) !== ps.retreat);
+  if (lost || changed || S.over || u.hp <= 0 || u.onWall){
+    u.pendingShot = null; u.drawCancels = (u.drawCancels||0) + 1;
+    const pull = Math.max(0, Math.min(1, (p-0.1)/0.4));          // let down from where the draw had reached
+    u.anim = 0; u.holdDrawT = Math.max(u.holdDrawT||0, 0.45*pull);  // relaxes through the existing hold decay
+    return;
+  }
+  if (p >= BOW_RELEASE_P){
+    u.pendingShot = null;
+    fireArrow(u.x+u.face*6, u.y-22, ps.tg, ps.dmg, u.team);
+  }
+}
 // one unit fires at a foe (or at the opposing fort when foe is null)
 function unitFire(u, t, foe){
   let dmg = u.dmg || t.dmg;
   const fortX = u.team===1 ? E_WALL+8 : P_WALL+4;
   const tg = foe ? foe.u : {x:fortX, y:u.y-24};
   window.KWRuntime?.events.emit('unit_attacked',{team:u.team,type:u.type,weapon:t.weapon,target:foe?'unit':'fortress'});
-  if (t.weapon === 'bow'){ fireArrow(u.x+u.face*6, u.y-22, tg, dmg, u.team); }
+  if (t.weapon === 'bow'){
+    /* TASK G: the arrow leaves the string AT RELEASE, never at the start of the draw. The shot is armed here and
+       loosed by updateDrawnShot() when the bow pose crosses BOW_RELEASE_P; target loss, a command change or the end
+       of the battle cancels it and the archer lets down instead. (Build 61 spawned the arrow on frame 0 of the draw.) */
+    u.pendingShot = {tg: foe ? foe.u : tg, unit: !!foe, dmg, stance: S.stance, retreat: S.retreatT>0};
+  }
   else if (t.weapon === 'gun'){ fireBullet(u.x+u.face*14, u.y-23, tg, dmg, u.team); snd.gun(); }
   else if (t.weapon === 'laser'){
     S.fx.push({kind:'beam', x1:u.x+u.face*10, y1:u.y-20, x2:tg.x, y2:foe?tg.y-14:tg.y, t:0, team:u.team});
@@ -2034,7 +2057,7 @@ function update(dt){
   buildSpearDenial();        // §1: collect denial sources once, not per unit
   for (const u of S.units){
     updateFaceState(u,dt);   // §5/§26: tactical facing decided ONCE, before movement
-    u.cdT -= dt; u.anim = Math.max(0, u.anim - dt/((ATK_PROFILES[(TYPES[u.type]||{}).weapon]||{dur:.35}).dur)); u.ph += dt;
+    u.cdT -= dt; u.anim = Math.max(0, u.anim - dt/((ATK_PROFILES[(TYPES[u.type]||{}).weapon]||{dur:.35}).dur)); u.ph += dt; updateDrawnShot(u);
     u.jumpSlashT=Math.max(0,(u.jumpSlashT||0)-dt);
     u.throwT=Math.max(0,(u.throwT||0)-dt);
     u.reinforceT=Math.max(0,(u.reinforceT||0)-dt);
@@ -2176,7 +2199,7 @@ function update(dt){
           if(heldBy(u, tgt.u) && !ranged){ /* held at that spearman's point: cannot close on HIM (anyone else is fair game) */ }
           else moving=steerMove(u,tgt.u.x,ranged?(Number.isFinite(u.slotY)?u.slotY:u.y):tgt.u.y+(u.yPref||0),spd,dt,range*.82);
         }
-        else if (u.cdT <= 0){ u.holdDrawT=0; meleeStrike(u, t, tgt); }
+        else if (u.cdT <= 0){ const _held=u.holdDrawT||0; u.holdDrawT=0; meleeStrike(u, t, tgt); if(_held>0.3 && t.weapon==='bow' && u.pendingShot) u.anim=Math.min(u.anim,0.5); }   // loosing from a held draw starts AT full draw
         u.face = faceToward(u, tgt.u.x);
       } else if (!sealed && S.castleHP > 0){
         const jit = u.jit||0, d = E_WALL - u.x, rng = ranged ? range : (structureReach(u,range) + jit);
@@ -2208,9 +2231,16 @@ function update(dt){
       const stillRunning = u.team===1 && S.retreatT>0 && u.faceState==='RETREAT_RUN' && (Math.abs((Number.isFinite(u.slotX)?u.slotX:u.x)-u.x) > 22 || Math.abs(u.vx||0) > 12);   // far from the post, or not yet stopped
       let ffoe = stillRunning ? null : ((foe && foe.d <= range + 6) ? foe : null);
       if (!ffoe && !stillRunning){ const nn = nearest(u); if (nn && nn.d <= range + 6) ffoe = nn; }
+      /* TASK G: HELD DRAW while holding the line. The approach-band hold existed only in the ATTACK branch, so an
+         archer in DEFEND/MARCH -- where archers actually wait -- stood idle until the enemy crossed into range. */
+      const _band = (!ffoe && !stillRunning && ranged && t.weapon==='bow' && !(u.shield>0)) ? nearest(u) : null;
+      const _inBand = !!(_band && _band.d > range && _band.d < range*1.55);
+      if (!ffoe && u.holdDrawT && !_inBand) u.holdDrawT = Math.max(0, u.holdDrawT - dt*2.2);   // relax, never stick
       if (ffoe){
-        if (u.cdT <= 0){ meleeStrike(u, t, ffoe); }
+        if (u.cdT <= 0){ const _held=u.holdDrawT||0; u.holdDrawT=0; meleeStrike(u, t, ffoe); if(_held>0.3 && t.weapon==='bow' && u.pendingShot) u.anim=Math.min(u.anim,0.5); }   // loosing from a held draw starts AT full draw
         u.face = faceToward(u, ffoe.u.x);
+      } else if (_inBand && u.cdT <= 0){
+        u.holdDrawT = Math.min(0.45, (u.holdDrawT||0) + dt*1.6); u.face = faceToward(u, _band.u.x);
       } else if (!sealed && u.team===1 && S.stance==='march' && S.marchDir>0 && S.rallyX>=RALLY_MAX-1 && S.castleHP>0){
         // A forward march that reaches the end of the field becomes a wall
         // assault: melee presses to the gate instead of freezing 110px short.
@@ -4351,7 +4381,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 63;
+  const KW_PAGE_BUILD = 64;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }

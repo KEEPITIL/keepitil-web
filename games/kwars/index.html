@@ -4346,7 +4346,17 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
   // §39: never hot-replace game code mid-battle. A new build installs in the
   // background; the player is told at Home and reloads when they choose. The
   // worker never calls clients.claim(), so the running page keeps its assets.
-  window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js').then(reg=>{
+  /* COMPLETION DIRECTIVE §5 -- MIXED-BUILD HEAL. The page is fetched network-first but its scripts come from the
+     previous build's cache until the new worker takes over, and the CDN may keep serving the old sw.js for its
+     600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
+     registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
+     disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
+  const KW_PAGE_BUILD = 63;
+  if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
+    let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
+    if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }
+  } else { try { sessionStorage.removeItem('kw-build-heal'); } catch (e) {} }
+  window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js?b=' + KW_PAGE_BUILD).then(reg=>{
     if(!reg) return;
     const flag = () => { window.KWUpdateReady = true; window.KWShell && window.KWShell.paintHome && window.KWShell.paintHome(); };
     if (reg.waiting) flag();

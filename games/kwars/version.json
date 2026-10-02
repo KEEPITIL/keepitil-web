@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 62,
+  "build": 63,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 62 (Tasks A-F + D-18). Spear realism (standoff, 20-contact break, impale with full death fall, Throw Spears), shield geometry/recoil/player thrust, no phantom shields, smoother spear-loss regrouping, fortress unaffected by field melee, offline precache fixed."
+  "notes": "KINGDOM WARS 1.0.0 build 63 (Deploy safety). Returning players now move to a new build on their next visit instead of running a new page on old cached scripts."
 }

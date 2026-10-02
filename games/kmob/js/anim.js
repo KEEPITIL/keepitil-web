@@ -52,7 +52,7 @@
       o[I.torsoP] = (mix(-0.25 * w, 0.5, st)) * (1 - rc); o[I.y] = (0.05 * w - 0.14 * st) * (1 - rc); o[I.legLP] = -0.35 * st * (1 - rc); o[I.legRP] = 0.3 * st * (1 - rc);
     } },
     aim: { loop: true, fn(o, ph, v) { base(o, v); o[I.armLP] = -1.5; o[I.armLR] = 0.05; o[I.armRP] = -1.35; o[I.armRR] = -0.55; o[I.armRY] = 0.25; o[I.torsoY] = 0.35; o[I.headY] = -0.3; o[I.y] = sin(ph * 0.3) * 0.008; } },
-    fire: { dur: 0.32, fn(o, u, v) { C.aim.fn(o, 0, v); const r = ease(seg(u, 0, 0.18)), rc = ease(seg(u, 0.4, 1)); o[I.armRP] = mix(-1.35, -1.05, r); o[I.armRR] = mix(-0.55, 0.15, r) * (1 - rc) - 0.55 * rc; o[I.torsoP] = 0.04 - 0.06 * r * (1 - rc); } },
+    fire: { dur: 0.32, fn(o, u, v) { C.aim.fn(o, 0, v); const r = ease(seg(u, 0, 0.18)), rc = ease(seg(u, 0.4, 1)); o[I.armRP] = mix(-1.35, -1.05, r) * (1 - rc) - 1.35 * rc; o[I.armRR] = mix(-0.55, 0.15, r) * (1 - rc) - 0.55 * rc; o[I.torsoP] = 0.04 - 0.06 * r * (1 - rc); } },
     cast: { dur: 0.6, fn(o, u, v) { base(o, v); const w = ease(seg(u, 0, 0.45)), st = ease(seg(u, 0.45, 0.6)), rc = ease(seg(u, 0.65, 1)); o[I.armRP] = mix(mix(REST_R, -2.6, w), -1.5, st) * (1 - rc) + REST_R * rc; o[I.armLP] = -1.0 * w * (1 - rc); o[I.armLR] = 0.6 * w * (1 - rc); o[I.headP] = -0.2 * w * (1 - rc); o[I.torsoP] = (0.25 * st - 0.1 * w) * (1 - rc); } },
     brace: { loop: true, fn(o, ph, v) { base(o, v); o[I.armLP] = -0.45; o[I.armLR] = -0.4; o[I.torsoP] = 0.2; o[I.y] = -0.05 + sin(ph * 0.4) * 0.008; o[I.legLP] = -0.35; o[I.legRP] = 0.3; o[I.armRP] = -0.9; } },
     cheer: { loop: true, fn(o, ph, v) { base(o, v); const s = sin(ph * 1.6); o[I.armRP] = -2.7 + s * 0.3; o[I.armLP] = -2.6 - s * 0.3; o[I.armLR] = 0.4; o[I.armRR] = -0.4; o[I.y] = max(0, s) * 0.12; o[I.headP] = -0.25; } },
@@ -108,11 +108,18 @@
     const k = crowd > 1400 ? 0.65 : crowd > 800 ? 0.8 : 1;
     return dist < 26 * k ? 0 : dist < 46 * k ? 1 : 2;
   }
+  // Budgeted LOD: from a 1-unit distance histogram pick thresholds so at most nearMax units get the full skeleton
+  // and nearMax+midMax get any skeleton; the rest render as statues. O(n), stable frame cost at any crowd size.
+  function lodBudget(hist, nearMax, midMax, out) {
+    let acc = 0, dn = hist.length, dm = hist.length;
+    for (let d = 0; d < hist.length; d++) { acc += hist[d]; if (acc > nearMax && dn === hist.length) dn = d; if (acc > nearMax + midMax) { dm = d; break; } }
+    out.near = dn; out.mid = dm; return out;
+  }
   // Per-unit variation, deterministic from the slot index + spawn phase.
   function variation(i, phase, out) {
     const h = x => { const s = Math.sin(x * 12.9898 + 78.233) * 43758.5453; return s - Math.floor(s); };
     out.seed = h(i * 1.37 + phase); out.seed2 = h(i * 3.1 + phase * 7.7); out.amp = 0.85 + h(i + phase * 3) * 0.3; out.lean = (h(i * 7 + phase) - 0.5) * 0.1; out.tempo = 0.9 + h(i * 11 + phase) * 0.25;
     return out;
   }
-  KM.ANIM = { P, I, CLIPS: C, NAMES, ID, REQUIRED, ADD: Object.keys(ADD), sample, blend, additive, select, clipTime, lod, variation, FADE: 0.13 };
+  KM.ANIM = { P, I, CLIPS: C, NAMES, ID, REQUIRED, ADD: Object.keys(ADD), sample, blend, additive, select, clipTime, lod, lodBudget, variation, FADE: 0.13 };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,1 +1,1 @@
-KMOB · Endless War — commit a42ec66 (KEEPITIL/thirteen games/kmob)
+KMOB · Endless War — visual production pass (shared-skeleton character kit, launcher stages, tower levels). Source of truth: KEEPITIL/keepitil-web games/kmob

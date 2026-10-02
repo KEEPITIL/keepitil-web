@@ -32,7 +32,7 @@
     dmg: [1, 0.045, 0.0007],
     speedMax: 1.45, speedPerMin: 0.008,
     eliteStart: 5, elitePerMin: 0.012, eliteMax: 0.4,
-    coin: [0.67, 0.034, 0],
+    coin: [0.9, 0.034, 0],
     pushEvery: 90, bossFrom: 13, bossEvery: 180,
   };
   const poly = (k, m) => k[0] + k[1] * m + k[2] * m * m;

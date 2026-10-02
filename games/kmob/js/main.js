@@ -54,23 +54,25 @@
   render.setSkin(KM.SHOP.find(s => s.id === save.equip.skin) || KM.SHOP[3]);
   const audio = new KM.Audio(); audio.setSound(save.settings.sound); audio.setMusic(save.settings.music);
   const sim = new KM.Sim({ seed: 1 });
+  let combatHits = 0, combatLvl = 0, combatT = 0;
   let state = 'title', paused = false, runId = 0, tut = 0, lastResults = null, botOn = Q.has('bot');
 
   sim.on((type, a, b, c) => {
     render.onEvent(sim, type, a, b, c);
     switch (type) {
       case 'deploy': audio.play('deploy'); break;
-      case 'hit': audio.play(sim.def(b >= 0 ? b : a).sh ? 'clang' : 'hit'); break;
+      case 'hit': combatHits++; if (b >= 0 && sim.def(b).sh) audio.play('shieldhit'); else audio.play('hit'); break;
       case 'kill': audio.play('kill'); if (b.el) { KM.haptic(30); } Analytics.track && b.el && Analytics.track('enemy_type_death', { type: b.k, t: Math.floor(sim.t) }); break;
       case 'coin': audio.play('coin'); if (a >= 5) KM.haptic(8); if (tut === 1) setTip(2); break;
-      case 'shot': if (a === 1) audio.play('cannon'); else if (a === 0) audio.play('bow'); else if (a === 2) audio.play('frost'); break;
+      case 'shot': if (a === 1) audio.play('cannon', 0, b / 9); else if (a === 0) audio.play('bow'); else if (a === 2) audio.play('frost'); break;
       case 'boom': audio.play('boom'); break;
-      case 'lhit': audio.play('lhit'); KM.haptic(15); break;
+      case 'lhit': audio.play('lhit', 0, sim.L.x / 10); KM.haptic(15); break;
+      case 'tower': audio.play(a.type === 'sniper' ? 'snipe' : 'tower', 0, a.x / 9); break;
       case 'offer': showOffer(a); audio.play('offer'); if (tut === 2) setTip(3); break;
-      case 'upgrade': audio.play('upgrade'); KM.haptic(20); Analytics.track('upgrades_selected', { id: a.id, n: sim.upgrades, t: Math.floor(sim.t) }); break;
+      case 'upgrade': if (a.id.startsWith('build:') || a.id.startsWith('tup:')) audio.play('build', 0, a.id.startsWith('tup:') ? KM.TOWER_SLOTS[+a.id.slice(4)].x / 9 : 0); audio.play('upgrade'); KM.haptic(20); Analytics.track('upgrades_selected', { id: a.id, n: sim.upgrades, t: Math.floor(sim.t) }); break;
       case 'skip': Analytics.track('upgrade_skipped', { n: sim.upgrades }); break;
-      case 'warn': banner(a === 'boss' ? 'A WARLORD APPROACHES' : 'MASSIVE PUSH INCOMING', 3.2); audio.play('warn'); break;
-      case 'elite': audio.play('elite'); break;
+      case 'warn': banner(a === 'boss' ? 'A WARLORD APPROACHES' : 'MASSIVE PUSH INCOMING', 3.2); audio.play('warn'); KM.haptic(25); $('vig').classList.add('warn'); setTimeout(() => $('vig').classList.remove('warn'), 3200); break;
+      case 'elite': audio.play('elite', 0, 0); break;
       case 'death': onDeath(); break;
     }
   });
@@ -134,7 +136,7 @@
     Analytics.track('run_start', { run: save.totals.runs + 1, competitive: comp });
   }
   function onDeath() {
-    audio.play('death'); KM.haptic([40, 60, 80]); hideOffer();
+    audio.play('death'); audio.crowd(0, 0); KM.haptic([40, 60, 80]); hideOffer();
     const r = lastResults = sim.results();
     const { pb } = KM.recordRun(save, r); persist();
     Analytics.track('run_end', { survival_time: Math.floor(r.time), death_reason: r.reason, peak_army_size: r.peakArmy, currency_collected: r.coins, kills: r.kills, upgrades: r.upgrades, player_death_position: { x: +sim.L.x.toFixed(1), offZ: +sim.L.offZ.toFixed(1) }, revive_used: !!sim.revived });
@@ -153,7 +155,7 @@
       show('over');
     }, 1300);
   }
-  function setPause(p) { if (state !== 'run') return; paused = p; show(p ? 'pause' : null); audio.suspend(p); if (p) buildToggles($('pToggles')); }
+  function setPause(p) { if (state !== 'run') return; paused = p; show(p ? 'pause' : null); audio.suspend(p); if (p) { buildToggles($('pToggles')); audio.crowd(0, 0); } }
   function goTitle() {
     state = 'title'; $('hud').classList.add('hidden'); $('hpbar').classList.add('hidden'); $('tip').classList.add('hidden'); hideOffer();
     const b = save.settings.competitive ? save.best.comp : save.best.all;
@@ -198,6 +200,10 @@
   $('reviveBtn').onclick = () => { if (sim.revive()) { state = 'run'; show(null); Analytics.track('revive_used', {}); } };
   document.addEventListener('visibilitychange', () => { if (document.hidden) { if (state === 'run' && !paused) setPause(true); audio.suspend(true); } else if (!paused) audio.suspend(false); });
   addEventListener('resize', () => render.resize());
+  // WebGL context loss (iOS backgrounding, GPU resets): stop drawing, keep the run paused, resume when restored
+  let glLost = false;
+  canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); glLost = true; if (state === 'run' && !paused) setPause(true); Analytics.track('webgl_context_lost', {}); }, false);
+  canvas.addEventListener('webglcontextrestored', () => { glLost = false; render.resize(); Analytics.track('webgl_context_restored', {}); }, false);
 
   // ---------- debug tools (?debug=1): jump time, stress, bot ----------
   if (DEBUG) {
@@ -222,14 +228,14 @@
   }
 
   // ---------- adaptive quality ----------
-  let fpsAcc = 0, fpsN = 0, slow = 0, dprLevel = 0;
+  let fpsAcc = 0, fpsN = 0, slow = 0, dprLevel = 0, pendingDpr = 0;
   function adapt(dt) {
     fpsAcc += dt; fpsN++;
     if (fpsAcc >= 1) {
       const fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0;
       if (DEBUG) { $('fps').textContent = `${fps.toFixed(0)} fps · units ${sim.count[0] + sim.count[1]} · drawn ${render.drawn} · dpr ${render.R.getPixelRatio().toFixed(2)}`; $('dInfo').textContent = `t=${sim.t.toFixed(0)} hp×${sim.diff.hp.toFixed(2)} spawn ${sim.diff.spawnRate.toFixed(1)}/s era ${sim.diff.era}`; }
       KM.perf = { fps, units: sim.count[0] + sim.count[1], drawn: render.drawn, dpr: render.R.getPixelRatio() };
-      if (state === 'run' && !paused) { slow = fps < 48 ? slow + 1 : Math.max(0, slow - 1); if (slow >= 3 && dprLevel < 3) { dprLevel++; slow = 0; render.R.setPixelRatio(Math.max(0.75, render.dpr * [1, 0.8, 0.65, 0.5][dprLevel])); render.resize(); if (dprLevel >= 2) render.R.shadowMap.enabled = false; } }
+      if (state === 'run' && !paused && !Q.has('fixed')) { slow = fps < 48 ? slow + 1 : Math.max(0, slow - 1); if (slow >= 3 && dprLevel < 3) { dprLevel++; slow = 0; pendingDpr = Math.max(0.75, render.dpr * [1, 0.8, 0.65, 0.5][dprLevel]); } }
     }
   }
 
@@ -237,6 +243,8 @@
   let lastT = performance.now(), acc = 0; const STEP = 1 / 60;
   function loop(now) {
     requestAnimationFrame(loop);
+    // quality changes are applied before drawing so a resize never presents a cleared (black) canvas
+    if (pendingDpr) { render.R.setPixelRatio(pendingDpr); render.resize(); if (dprLevel >= 2) render.R.shadowMap.enabled = false; pendingDpr = 0; }
     let dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
     if (state === 'run' && !paused) {
       if (keys.ArrowLeft || keys.a) sim.moveBy(-dt * 14, 0); if (keys.ArrowRight || keys.d) sim.moveBy(dt * 14, 0);
@@ -246,11 +254,12 @@
       while (acc >= STEP && n < 4) { if (botOn) KM.bot(sim, STEP, 1); sim.step(STEP); acc -= STEP; n++; }
       if (n === 4) acc = 0;
       hud(dt);
+      combatT += dt; if (combatT > 0.5) { combatLvl += (Math.min(1, combatHits / combatT / 40) - combatLvl) * 0.5; combatHits = 0; combatT = 0; audio.crowd(combatLvl, sim.count[0] / 150); }
       audio.tick(Math.min(1, (sim.count[1] / 300) * 0.6 + sim.danger * 0.4 + (sim.diff.m / 30) * 0.3), true);
     } else if (state !== 'run') { sim.step(dt * 0.5); } // keep the battlefield alive behind menus
     if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('banner').classList.remove('on'); }
-    if (!paused) render.frame(sim, state === 'run' ? dt * (sim.offer ? 0.6 : 1) : dt);
-    adapt(dt);
+    if (!paused && !glLost) render.frame(sim, state === 'run' ? dt * (sim.offer ? 0.6 : 1) : dt);
+    adapt(dt); benchTick(dt);
   }
   // attract mode behind the title: the bot plays a demo battle
   sim.reset({ seed: 7 }); for (let k = 0; k < 900; k++) { KM.bot(sim, STEP, 0.6); sim.step(STEP); }
@@ -263,7 +272,29 @@
     for (let s = 0; s < 6; s++) sim.towers[s] = towerLv ? { type: types[s], lvl: towerLv, cd: 0.5, aim: Math.PI, recoil: 0, slot: s, x: 0, z: 0, tgt: -1, born: 0 } : null;
     sim.upgrades = Math.max(0, ((launcherLv || 1) - 1) * 4);
   }
-  KM.game = { sim, render, audio, startRun, jumpTo, stress, showcase, get state() { return state; }, save, persist };
-  if (Q.has('autoplay')) startRun(); else goTitle();
+  KM.game = { sim, render, audio, startRun, jumpTo, stress, showcase, get glLost() { return glLost; }, setPause, get state() { return state; }, save, persist };
+  // ---------- on-device benchmark (?bench=1): tiers of crowd size, FPS / frame-time spread / heap ----------
+  const bench = { on: Q.has('bench'), tiers: [['EARLY', 100], ['MEDIUM', 400], ['HEAVY', 900], ['EXTREME', 1600]], ti: -1, t: 0, ft: [], out: [] };
+  function benchTick(dt) {
+    if (!bench.on || state !== 'run') return;
+    bench.t += dt; if (bench.ti >= 0 && bench.t > 3) bench.ft.push(dt * 1000);
+    if (bench.ti < 0 || bench.t > 15) {
+      if (bench.ti >= 0) { const f = bench.ft.slice().sort((a, b) => a - b), avg = f.reduce((a, b) => a + b, 0) / Math.max(1, f.length), p = q => f[Math.min(f.length - 1, Math.floor(f.length * q))] || 0;
+        bench.out.push({ tier: bench.tiers[bench.ti][0], units: sim.count[0] + sim.count[1], fps: +(1000 / avg).toFixed(1), p50: +p(0.5).toFixed(1), p95: +p(0.95).toFixed(1), p99: +p(0.99).toFixed(1), heapMB: performance.memory ? +(performance.memory.usedJSHeapSize / 1e6).toFixed(0) : null, dpr: +render.R.getPixelRatio().toFixed(2) }); }
+      bench.ti++; bench.t = 0; bench.ft = [];
+      if (bench.ti >= bench.tiers.length) { bench.on = false; showBench(); return; }
+      sim.L.inv = 1e9; sim.budget = 0; const want = bench.tiers[bench.ti][1], have = sim.count[0] + sim.count[1]; if (want > have) stress(want - have);
+      banner('BENCH · ' + bench.tiers[bench.ti][0], 1.5);
+    }
+    sim.L.inv = 1e9; const want = bench.tiers[bench.ti][1], have = sim.count[0] + sim.count[1]; if (have < want * 0.8) stress(Math.min(200, want - have));
+  }
+  function showBench() {
+    const info = { ua: navigator.userAgent, screen: screen.width + 'x' + screen.height, dpr: devicePixelRatio, gpu: (() => { try { const gl = render.R.getContext(), e = gl.getExtension('WEBGL_debug_renderer_info'); return e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : 'n/a'; } catch (x) { return 'n/a'; } })() };
+    const txt = JSON.stringify({ build: 'kmob', info, results: bench.out }, null, 1); console.log(txt); KM.benchResult = { info, results: bench.out };
+    const d = document.createElement('div'); d.className = 'screen'; d.innerHTML = `<div class="panel"><h2 class="disp" style="margin:0 0 8px">BENCH RESULTS</h2><div class="stats">${bench.out.map(r => `<div><span>${r.tier} · ${r.units} units</span><b>${r.fps} fps</b></div><div style="font-size:12px;opacity:.75">frame p50 ${r.p50}ms · p95 ${r.p95}ms · p99 ${r.p99}ms${r.heapMB ? ' · heap ' + r.heapMB + 'MB' : ''}</div>`).join('')}</div><textarea style="width:100%;height:90px;font:10px monospace" readonly>${txt}</textarea><button class="btn" id="benchCopy" style="margin-top:8px">COPY RESULTS</button></div>`;
+    document.body.appendChild(d); d.querySelector('#benchCopy').onclick = () => { try { navigator.clipboard.writeText(txt); } catch (e) { /* ignore */ } d.querySelector('textarea').select(); };
+    Analytics.track('bench', { results: bench.out });
+  }
+  if (Q.has('autoplay') || bench.on) startRun(); else goTitle();
   requestAnimationFrame(loop);
 })();

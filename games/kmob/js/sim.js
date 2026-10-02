@@ -36,7 +36,7 @@
       this.t = 0; this.front = 0; this.alive = true; this.deathReason = ''; this.ended = false;
       this.stats = KM.baseStats(opts.perm);
       this.L = { x: 0, z: 2, tx: 0, offZ: 0, toffZ: 0, hp: this.stats.maxHp, hitT: 9, inv: 0, vx: 0, fire: 0, wheel: 0 };
-      this.deployAcc = 0; this.budget = 3; this.overflow = 0; this.formT = 1.5; this.nextPush = KM.TUNE.pushEvery; this.nextBoss = KM.TUNE.bossFrom * 60; this.warn = null;
+      this.deployAcc = 0; this.budget = 3; this.overflow = 0; this.formT = 0.6; this.nextPush = KM.TUNE.pushEvery; this.nextBoss = KM.TUNE.bossFrom * 60; this.warn = null;
       this.coins = 0; this.coinsTotal = 0; this.kills = 0; this.peakArmy = 0; this.upgrades = 0; this.offer = null; this.offerHold = 0;
       this.towers = [null, null, null, null, null, null];
       this.spawnCounter = 0; this.lastHit = 99; this.danger = 0; this.killsByKind = {};
@@ -299,7 +299,8 @@
     // Returns budget spent. Every unit placed is an unlocked type inside the lane.
     formation(type, D, budget) {
       const r = this.rng, m = D.m, un = KM.unlocked(m), E = KM.ENEMY_BY;
-      const z0 = this.front - W.SPAWN_DZ - r() * 6, cx = r.range(-W.LANE + 3, W.LANE - 3);
+      // the opening waves enter closer so the first clash happens within seconds, not after a long walk
+      const z0 = this.front - (this.t < 20 ? 30 + this.t : W.SPAWN_DZ) - r() * 6, cx = r.range(-W.LANE + 3, W.LANE - 3);
       const melee = un.filter(e => !e.r && !e.el && e.k !== 'bomber'), list = [];
       const pickMelee = () => { if (r() < D.eliteChance && m >= 6) return E.brute; const c = melee.filter(e => r() < 0.75 || e.k === 'grunt'); return r.pick(c.length ? c : melee); };
       const add = (def, x, z) => list.push([def, x, z]);
@@ -372,7 +373,11 @@
           const dx = tx - this.x[i], dz = tz - this.z[i], d = Math.sqrt(dx * dx + dz * dz) || 0.001;
           const reach = this.rng_[i] + this.rad[i] + (tg === -2 ? 1.1 : this.rad[tg]);
           this.yaw[i] = Math.atan2(dx, dz);
-          if (d > reach) { dvx = dx / d * sp; dvz = dz / d * sp; }
+          if (d > reach) {
+            dvx = dx / d * sp; dvz = dz / d * sp;
+            // fan out toward open combat positions instead of queueing behind the unit in front
+            if (d < reach + 4) { const fan = (((i * 0.6180339) % 1) - 0.5) * 0.9 * sp * Math.min(1, (d - reach) / 2); dvx += -dz / d * fan; dvz += dx / d * fan; }
+          }
           else {
             this.at[i] -= dt * (team ? 1 : S.atk) * sm;
             if (this.at[i] <= 0) { this.at[i] = this.cd[i] * (0.9 + this.rng() * 0.2); this.attack(i, tg, tx, tz, S); }
@@ -388,6 +393,8 @@
         // separation (crowd pressure) — same + opposite team
         this.separate(i, dt);
         this.x[i] += this.vx[i] * dt; this.z[i] += this.vz[i] * dt;
+        // flow around tower footprints (soft circular obstacles)
+        for (let s = 0; s < 6; s++) { const t = this.towers[s]; if (!t) continue; const ox = this.x[i] - t.x, oz = this.z[i] - t.z, rr = 1.05 + this.rad[i], dd = ox * ox + oz * oz; if (dd < rr * rr && dd > 1e-6) { const d = Math.sqrt(dd), push = (rr - d); this.x[i] += ox / d * push; this.z[i] += oz / d * push * 0.6; } }
         if (this.x[i] < -W.LANE) this.x[i] = -W.LANE; else if (this.x[i] > W.LANE) this.x[i] = W.LANE;
         const v = Math.abs(this.vx[i]) + Math.abs(this.vz[i]);
         this.phase[i] += dt * (2 + v * 2.3) * this.stride[i];

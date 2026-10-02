@@ -31,13 +31,15 @@
     g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('aTint', new THREE.BufferAttribute(tin, 1));
     g.computeBoundingSphere(); return g;
   }
-  const sph = (r, w, h, t0, tl) => new THREE.SphereGeometry(r, w || 14, h || 10, 0, Math.PI * 2, t0 || 0, tl || Math.PI);
-  const cyl = (a, b, h, s, open) => new THREE.CylinderGeometry(a, b, h, s || 14, 1, !!open);
+  // DETAIL scales every segment count: near-LOD parts and far-LOD statues are built at different detail levels.
+  let DETAIL = 1; const sg = (n, min) => Math.max(min || 3, Math.round(n * DETAIL));
+  const sph = (r, w, h, t0, tl) => new THREE.SphereGeometry(r, sg(w || 14, 5), sg(h || 10, 3), 0, Math.PI * 2, t0 || 0, tl || Math.PI);
+  const cyl = (a, b, h, s, open) => new THREE.CylinderGeometry(a, b, h, sg(s || 14, 5), 1, !!open);
   const box = (a, b, c) => new THREE.BoxGeometry(a, b, c);
-  const cone = (r, h, s) => new THREE.ConeGeometry(r, h, s || 10);
-  const tor = (r, t, rs, ts, arc) => new THREE.TorusGeometry(r, t, rs || 6, ts || 18, arc || Math.PI * 2);
-  const lathe = (pts, seg) => { const g = new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg || 16); g.computeVertexNormals(); return g; };
-  const capsule = (r, len, col, tint, m, seg) => { const s = seg || 10, L = []; L.push(part(cyl(r, r, len, s, true), col, tint, new M4().multiplyMatrices(m || new M4(), TRS(0, -len / 2, 0)))); L.push(part(sph(r, s, 6, 0, Math.PI / 2), col, tint, m)); L.push(part(sph(r, s, 6, Math.PI / 2, Math.PI / 2), col, tint, new M4().multiplyMatrices(m || new M4(), TRS(0, -len, 0)))); return L; };
+  const cone = (r, h, s) => new THREE.ConeGeometry(r, h, sg(s || 10, 4));
+  const tor = (r, t, rs, ts, arc) => new THREE.TorusGeometry(r, t, sg(rs || 6, 3), sg(ts || 18, 6), arc || Math.PI * 2);
+  const lathe = (pts, seg) => { const g = new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), sg(seg || 16, 6)); g.computeVertexNormals(); return g; };
+  const capsule = (r, len, col, tint, m, seg) => { const s = sg(seg || 10, 5), L = []; L.push(part(cyl(r, r, len, s, true), col, tint, new M4().multiplyMatrices(m || new M4(), TRS(0, -len / 2, 0)))); L.push(part(sph(r, s, 6, 0, Math.PI / 2), col, tint, m)); L.push(part(sph(r, s, 6, Math.PI / 2, Math.PI / 2), col, tint, new M4().multiplyMatrices(m || new M4(), TRS(0, -len, 0)))); return L; };
 
   // ---------------- LEGS ----------------
   function legStd() {
@@ -99,7 +101,7 @@
   }
 
   // ---------------- HEADS ---------------- (face at +z; oversized helmets are the silhouette)
-  const face = (skin, tint, r) => { r = r || 0.2; return [part(sph(r, 16, 12), skin, tint, TRS(0, 0.17, 0)), part(sph(0.03, 8, 6), DARK, 0, TRS(-0.072, 0.155, r * 0.93)), part(sph(0.03, 8, 6), DARK, 0, TRS(0.072, 0.155, r * 0.93)), part(sph(0.011, 5, 4), WHITE, 0, TRS(-0.062, 0.166, r * 0.97)), part(sph(0.011, 5, 4), WHITE, 0, TRS(0.082, 0.166, r * 0.97)), part(sph(0.03, 8, 6), new C(skin).offsetHSL(0, 0, -0.06).getHex(), tint, TRS(0, 0.115, r * 0.97, 0, 0, 0, 1, 0.8, 0.8))]; };
+  const face = (skin, tint, r) => { r = r || 0.2; return [part(sph(r, 16, 12), skin, tint, TRS(0, 0.17, 0)), part(sph(0.03, 8, 6), DARK, 0, TRS(-0.072, 0.155, r * 0.93)), part(sph(0.03, 8, 6), DARK, 0, TRS(0.072, 0.155, r * 0.93)), part(sph(0.03, 8, 6), new C(skin).offsetHSL(0, 0, -0.06).getHex(), tint, TRS(0, 0.115, r * 0.97, 0, 0, 0, 1, 0.8, 0.8))]; };
   const dome = (r, col, tint, y, tl) => part(sph(r, 18, 12, 0, tl || Math.PI * 0.56), col, tint, TRS(0, y || 0.2, -0.012));
   const H = {
     blue: () => merge([...face(SKIN), dome(0.262, 0xe8eeff, 1), part(cyl(0.268, 0.268, 0.055, 20), 0xb4c0ff, 1, TRS(0, 0.17, -0.012)), part(box(0.05, 0.11, 0.42), 0xa4b2ff, 1, TRS(0, 0.43, -0.03, 0.12, 0, 0)),
@@ -200,28 +202,65 @@
   };
 
   // Build all part geometries + far-LOD statues (one merged mesh per kind posed at rest).
-  KM.buildKit = function () {
-    const parts = {
+  const buildParts = () => ({
       lStd: legStd(), lBrute: legBrute(), tLight: merge(torsoLight(), [-0.08, 0.3, 0.7]), tHeavy: torsoHeavy(), tBrute: torsoBrute(), tRobe: torsoRobe(),
       hBlue: H.blue(), hKnight: H.knight(), hHood: H.hood(), hHorn: H.horn(), hBucket: H.bucket(), hBandana: H.bandana(), hImp: H.imp(), hBrute: H.brute(), hWarlord: H.warlord(), hShaman: H.shaman(), hGoggles: H.goggles(),
       aStd: armStd(), aHeavy: armHeavy(), aBrute: armBrute(),
       sword: W.sword(), swordGold: W.sword(true), dagger: W.dagger(), axe: W.axe(), bow: W.bow(), staff: W.staff(), bomb: W.bomb(), claws: W.claws(),
       shield: shield(), cannon: cannon(), pads: pads(), plume: plume(),
-    };
-    const statues = {};
+  });
+  KM.KIT_DETAIL = { near: 0.5 };
+  // Lean bone parts (~300 tris/unit) for mid-distance animated units, and far statues composed from the same pieces.
+  function leanParts() {
+    const P = {}, box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+    for (const [k, S] of [['m_leg', 1], ['m_legB', 1.45]]) P[k] = merge([part(box(0.14 * S, 0.28, 0.16 * S), 0x5c6178, 1, TRS(0, -0.15, 0)), part(box(0.17 * S, 0.08, 0.25 * S), LEATHER, 0, TRS(0, -0.29, 0.03))], [-0.33, 0, 0.62]);
+    for (const [k, S, c] of [['m_arm', 1, 0xd8e0ff], ['m_armB', 1.55, 0xffc4b4]]) P[k] = merge([part(box(0.12 * S, 0.24, 0.12 * S), c, 1, TRS(0, -0.11, 0)), part(new THREE.SphereGeometry(0.09 * S, 5, 3), c === 0xd8e0ff ? SKIN : c, c === 0xd8e0ff ? 0 : 1, TRS(0, -0.27, 0.01))], [-0.3, 0, 0.75]);
+    P.m_shield = merge([part(new THREE.CylinderGeometry(0.21, 0.21, 0.05, 7), 0xe6ecff, 1, TRS(0, 0, 0, Math.PI / 2, 0, 0)), part(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 5), GOLD, 0, TRS(0, 0, 0.03, Math.PI / 2, 0, 0))]);
+    const stick = (len, col, extra) => merge([part(box(0.05, 0.03, len), col, 0, TRS(0, 0, len / 2 + 0.05)), ...(extra || [])]);
+    P.m_w_sword = stick(0.62, STEEL, [part(box(0.18, 0.04, 0.05), GOLD, 0, TRS(0, 0, 0.08))]); P.m_w_swordGold = stick(0.62, GOLD, [part(box(0.18, 0.04, 0.05), GOLD, 0, TRS(0, 0, 0.08))]);
+    P.m_w_dagger = stick(0.3, STEEL); P.m_w_staff = stick(1.0, 0x4a2f22, [part(new THREE.OctahedronGeometry(0.1, 0), 0xe39aff, 0, TRS(0, 0, 0.95))]);
+    P.m_w_axe = stick(0.9, WOOD, [part(box(0.05, 0.3, 0.24), 0x9aa4b2, 0, TRS(0, 0.15, 0.7))]); P.m_w_bow = merge([part(box(0.03, 0.03, 0.7), WOOD, 0, TRS(0, 0.1, 0))]);
+    P.m_w_bomb = merge([part(new THREE.SphereGeometry(0.15, 5, 4), 0x24252c, 0, TRS(0, 0, 0.09))]); P.m_w_claws = merge([part(box(0.1, 0.02, 0.12), IVORY, 0, TRS(0, 0, 0.08))]);
     for (const [k, r] of Object.entries(KM.RECIPE)) {
       if (r.body) continue;
-      const rig = r.torso === 'tBrute' ? KM.RIG.brute : KM.RIG.std, list = [];
-      const add = (g, m) => { const c = g.clone(); c.applyMatrix4(m); list.push(c); };
-      add(parts[r.leg], TRS(-rig.hip[0], rig.hip[1], 0, -0.1)); add(parts[r.leg], TRS(rig.hip[0], rig.hip[1], 0, 0.1));
-      const tor = TRS(0, rig.torso, 0, 0.08); add(parts[r.torso], tor);
-      add(parts[r.head], new M4().multiplyMatrices(tor, TRS(0, rig.neck, 0)));
-      const aL = new M4().multiplyMatrices(tor, TRS(-rig.shoulder[0], rig.shoulder[1], 0, -0.15, 0, 0.12)), aR = new M4().multiplyMatrices(tor, TRS(rig.shoulder[0], rig.shoulder[1], 0, -0.55, 0, -0.12));
-      add(parts[r.arm], aL); add(parts[r.arm], aR);
-      add(parts[r.wpn], new M4().multiplyMatrices(aR, TRS(0, rig.fist, 0.02)));
-      if (r.shield) add(parts.shield, new M4().multiplyMatrices(aL, TRS(...rig.shieldAt)));
-      statues[k] = concat(list);
+      const brute = r.torso === 'tBrute', S = brute ? 1.45 : 1, rig = brute ? KM.RIG.brute : KM.RIG.std, L = [];
+      const hs = { hBlue: 'dome', hKnight: 'plume', hHood: 'hood', hHorn: 'horns', hBucket: 'bucket', hBandana: 'band', hImp: 'imp', hBrute: 'bhorns', hWarlord: 'crown', hShaman: 'cone', hGoggles: 'dome' }[r.head];
+      L.push(part(new THREE.LatheGeometry([[0, -0.02], [0.22, 0.0], [0.28, 0.13], [0.26, 0.3], [0.14, 0.4], [0, 0.42]].map(([a, b]) => new THREE.Vector2(a * S, b * (brute ? 1.08 : 1))), 7), r.torso === 'tRobe' ? 0xd8c8ff : brute ? 0xffd2c4 : 0xe6ebff, 1));
+      L.push(part(new THREE.CylinderGeometry(0.27 * S, 0.27 * S, 0.06, 7), LEATHER, 0, TRS(0, 0.1, 0)));
+      if (r.torso === 'tHeavy' || brute) for (const x of [-1, 1]) L.push(part(new THREE.SphereGeometry(0.13 * S, 5, 3, 0, Math.PI * 2, 0, Math.PI / 2), brute ? DSTEEL : 0xd8e0ff, brute ? 0 : 1, TRS(x * 0.27 * S, 0.34, 0)));
+      const hy = rig.neck + 0.17, skinTint = r.head === 'hImp' || brute ? 1 : 0, skinC = skinTint ? 0xffc4b4 : r.head === 'hShaman' ? 0x2a1a33 : SKIN;
+      L.push(part(new THREE.SphereGeometry(0.2 * (brute ? 1.08 : r.head === 'hImp' ? 1.12 : 1), 7, 5), skinC, skinTint, TRS(0, hy, 0)));
+      if (!skinTint && r.head !== 'hShaman') for (const x of [-1, 1]) L.push(part(new THREE.SphereGeometry(0.03, 4, 2), DARK, 0, TRS(x * 0.072, hy - 0.015, 0.186)));
+      const dome = (col, t, y) => L.push(part(new THREE.SphereGeometry(0.262, 8, 3, 0, Math.PI * 2, 0, Math.PI * 0.56), col, t, TRS(0, hy + (y || 0.03), -0.012)));
+      if (hs === 'dome' || hs === 'plume') { dome(0xe8eeff, 1); L.push(part(new THREE.CylinderGeometry(0.268, 0.268, 0.05, 8), 0xb4c0ff, 1, TRS(0, hy, -0.012))); }
+      if (hs === 'plume') L.push(part(new THREE.SphereGeometry(0.08, 5, 3), GOLD, 0, TRS(0, hy + 0.33, -0.05, 0, 0, 0, 0.6, 1.2, 1.6)));
+      if (hs === 'dome' && r.head === 'hBlue') L.push(part(new THREE.BoxGeometry(0.05, 0.1, 0.4), 0xa4b2ff, 1, TRS(0, hy + 0.26, -0.03)));
+      if (hs === 'hood') dome(0xc0ccff, 1, 0.02); if (hs === 'band') L.push(part(new THREE.CylinderGeometry(0.21, 0.21, 0.07, 7), 0xeaeaea, 1, TRS(0, hy + 0.05, 0)));
+      if (hs === 'horns' || hs === 'bhorns' || hs === 'imp' || hs === 'crown') { if (hs === 'horns') dome(0xeaeaea, 1); if (hs === 'bhorns' || hs === 'crown') L.push(part(new THREE.SphereGeometry(0.225, 7, 3, 0, Math.PI * 2, 0, Math.PI * 0.45), DSTEEL, 0, TRS(0, hy + 0.03, -0.02))); const hl = hs === 'bhorns' || hs === 'crown' ? 0.36 : 0.22; for (const x of [-1, 1]) L.push(part(new THREE.ConeGeometry(0.06, hl, 5), IVORY, 0, TRS(x * 0.22, hy + 0.2, 0, 0, 0, -x * 0.8))); }
+      if (hs === 'crown') L.push(part(new THREE.CylinderGeometry(0.2, 0.22, 0.1, 7), GOLD, 0, TRS(0, hy + 0.2, 0)));
+      if (hs === 'bucket') L.push(part(new THREE.CylinderGeometry(0.24, 0.25, 0.32, 8), 0xd8d8d8, 1, TRS(0, hy + 0.05, 0)), part(new THREE.BoxGeometry(0.3, 0.035, 0.04), DARK, 0, TRS(0, hy + 0.03, 0.24)));
+      if (hs === 'cone') L.push(part(new THREE.ConeGeometry(0.27, 0.58, 7), 0xd8c8ff, 1, TRS(0, hy + 0.23, -0.04)));
+      if (r.head === 'hGoggles') L.push(part(new THREE.BoxGeometry(0.26, 0.08, 0.05), DARK, 0, TRS(0, hy + 0.05, 0.19)));
+      P['m_th_' + k] = merge(L, [-0.05, 0.3, 0.7]);
     }
+    return P;
+  }
+  // Far statue: the lean pieces composed at the rest pose (single draw per kind, ~250 tris).
+  function statue(k, r, P) {
+    const brute = r.torso === 'tBrute', rig = brute ? KM.RIG.brute : KM.RIG.std, list = [], lg = brute ? 'm_legB' : 'm_leg', am = brute ? 'm_armB' : 'm_arm';
+    const add = (g, m) => { const c = g.clone(); c.applyMatrix4(m); list.push(c); };
+    add(P[lg], TRS(-rig.hip[0], rig.hip[1], 0, -0.1)); add(P[lg], TRS(rig.hip[0], rig.hip[1], 0, 0.1));
+    const tor = TRS(0, rig.torso, 0, 0.08); add(P['m_th_' + k], tor);
+    const aL = new M4().multiplyMatrices(tor, TRS(-rig.shoulder[0], rig.shoulder[1], 0, -0.15, 0, 0.12)), aR = new M4().multiplyMatrices(tor, TRS(rig.shoulder[0], rig.shoulder[1], 0, -0.55, 0, -0.12));
+    add(P[am], aL); add(P[am], aR); add(P['m_w_' + r.wpn], new M4().multiplyMatrices(r.wpn === 'bow' ? aL : aR, TRS(0, rig.fist, 0.02)));
+    if (r.shield) add(P.m_shield, new M4().multiplyMatrices(aL, TRS(...rig.shieldAt)));
+    const g = concat(list); list.forEach(x => x.dispose()); return g;
+  }
+  KM.buildKit = function () {
+    DETAIL = KM.KIT_DETAIL.near; const parts = buildParts(); DETAIL = 1;
+    Object.assign(parts, leanParts());
+    const statues = {};
+    for (const [k, r] of Object.entries(KM.RECIPE)) if (!r.body) statues[k] = statue(k, r, parts);
     return { parts, statues };
   };
 

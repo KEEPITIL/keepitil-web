@@ -30,6 +30,8 @@ canvas#c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
 #hpbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 64px);width:min(220px,46vw);height:8px;border-radius:6px;background:rgba(0,0,0,.35);overflow:hidden;z-index:5;pointer-events:none;border:1px solid rgba(255,255,255,.2)}
 #hpbar b{display:block;height:100%;width:100%;background:linear-gradient(90deg,#4cff8a,#2fbf4f);transition:width .15s}
 #vig{position:fixed;inset:0;pointer-events:none;z-index:4;box-shadow:inset 0 0 120px 30px rgba(220,20,20,.0);transition:box-shadow .3s}
+#vig.warn{animation:warnPulse .55s ease-in-out infinite alternate}
+@keyframes warnPulse{from{background:radial-gradient(ellipse at center,transparent 55%,rgba(255,30,30,.0))}to{background:radial-gradient(ellipse at center,transparent 55%,rgba(255,30,30,.32))}}
 /* upgrade cards */
 #offer{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top) + 84px);display:flex;justify-content:center;gap:10px;z-index:6;padding:0 10px;pointer-events:none}
 .card{pointer-events:auto;width:min(31vw,148px);border-radius:16px;padding:10px 6px 10px;text-align:center;cursor:pointer;color:#fff;position:relative;border:3px solid rgba(255,255,255,.7);box-shadow:0 6px 0 rgba(0,0,0,.28),0 10px 24px rgba(0,0,0,.25);transform:translateY(-20px) scale(.8);opacity:0;animation:cardIn .28s cubic-bezier(.2,1.4,.4,1) forwards}
@@ -68,18 +70,18 @@ canvas#c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
 #title h2{margin:6px 0 2px;text-align:center;font-size:18px;color:var(--gold);letter-spacing:.12em}
 #title p{text-align:center;opacity:.85;font-weight:800;margin:10px 0 18px;font-size:14px}
 .best{display:flex;justify-content:center;gap:16px;margin:-6px 0 16px;font-weight:900;font-size:13px;opacity:.9}
-.best b{color:var(--gold);font-family:var(--disp);font-size:18px;margin-left:4px}
-#over .sv{text-align:center;font-family:var(--disp);letter-spacing:.06em}
-#over .tm{text-align:center;font-family:var(--disp);line-height:1;color:var(--gold);text-shadow:0 4px 0 #9a5a00}
-#over .pb{text-align:center;color:#7dff6a;font-family:var(--disp);margin-top:2px;min-height:22px}
+.best b{color:var(--gold);font-family:var(--disp);font-weight:400;font-size:18px;margin-left:4px}
+#over .sv{text-align:center;font-family:var(--disp);font-size:22px;letter-spacing:.06em}
+#over .tm{text-align:center;font-family:var(--disp);font-size:clamp(56px,16vw,76px);line-height:1;color:var(--gold);text-shadow:0 4px 0 #9a5a00}
+#over .pb{text-align:center;color:#7dff6a;font-family:var(--disp);font-size:18px;margin-top:2px;min-height:22px}
 .stats{margin:12px 0 16px;border:1px solid var(--line);border-radius:14px;padding:6px 12px;background:rgba(0,0,0,.18)}
 .stats div{display:flex;align-items:center;gap:10px;padding:6px 0;font-weight:800;font-size:15px;border-bottom:1px solid rgba(255,255,255,.07)}
 .stats div:last-child{border:0}
 .stats svg{width:22px;height:22px;flex:none}
-.stats span{flex:1}.stats b{font-family:var(--disp);font-size:18px}
+.stats span{flex:1}.stats b{font-family:var(--disp);font-weight:400;font-size:18px}
 .shopgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;max-height:52vh;overflow:auto}
 .item{border:1px solid var(--line);border-radius:12px;padding:10px;background:rgba(255,255,255,.04);cursor:pointer;font-weight:800;font-size:13px}
-.item .nm{font-family:var(--disp);font-size:16px}
+.item .nm{font-family:var(--disp);font-weight:400;font-size:16px}
 .item .ds{opacity:.75;font-size:11px;margin:2px 0 6px}
 .item .pr{color:var(--gold)}
 .item.eq{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
@@ -88,7 +90,7 @@ canvas#c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
 .toggles{display:grid;gap:8px;margin:12px 0}
 .toggles label{display:flex;justify-content:space-between;align-items:center;font-weight:900;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.04)}
 .toggles input{width:22px;height:22px;accent-color:#2fbf4f}
-.tok{display:inline-flex;align-items:center;gap:4px;font-family:var(--disp)}
+.tok{display:inline-flex;align-items:center;gap:4px;font-family:var(--disp);color:#9ff2ff}
 .tok svg{width:18px;height:18px}
 #dbg{position:fixed;right:8px;bottom:8px;z-index:20;background:rgba(0,0,0,.7);padding:8px;border-radius:10px;font:11px/1.4 monospace;max-width:260px}
 #dbg button{font:11px monospace;margin:2px;padding:4px 6px;border-radius:6px;border:0;background:#2f74ff;color:#fff;cursor:pointer}

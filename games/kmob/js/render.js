@@ -72,7 +72,7 @@
       S.add(sun); S.add(sun.target);
       this.ry = new Float32Array(KM.Sim.CAP); this.shake = 0; this.time = 0; this.skin = KM.SHOP[3];
       this.m = new M4(); this.m2 = new M4(); this.q = new Q(); this.e = new E(0, 0, 0, 'YXZ'); this.v = new V3(); this.s3 = new V3(); this.col = new C();
-      this.col2 = new C(); this.fxBudget = 60;
+      this.col2 = new C(); this.fxBudget = 60; this.lodNear = this.opts.lowPower ? 80 : 120; this.lodMid = this.opts.lowPower ? 300 : 450;
       this.initCrowd(); this.initWorld(); this.initFx(); this.initProjectiles(); this.initCoins();
       this.launcher = this.buildLauncher(); S.add(this.launcher);
       this.towerObjs = [null, null, null, null, null, null];
@@ -93,7 +93,8 @@
     // ---------- crowd ----------
     initCrowd() {
       const kit = this.kit = KM.buildKit(), N = KM.Sim.CAP, A = KM.ANIM;
-      const caps = { lStd: N * 2, lBrute: 1024, tLight: N, tHeavy: 2048, tBrute: 512, tRobe: 512, aStd: N * 2, aHeavy: 4096, aBrute: 1024, sword: N, swordGold: N, shield: 2048, pads: N, plume: N, cannon: 256 };
+      const caps0 = { lStd: N * 2, lBrute: 1024, tLight: N, tHeavy: 2048, tBrute: 512, tRobe: 512, aStd: N * 2, aHeavy: 4096, aBrute: 1024, sword: N, swordGold: N, shield: 2048, pads: N, plume: N, cannon: 256 }, caps = {};
+      Object.assign(caps, caps0, { m_leg: N * 2, m_legB: 1024, m_arm: N * 2, m_armB: 1024, m_shield: 2048, m_w_sword: N, m_w_swordGold: N, m_th_soldier: N, m_th_grunt: N, m_th_imp: N });
       const mk = (geo, n, color) => { const im = new THREE.InstancedMesh(geo, KM.toonMat(), n); im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); im.frustumCulled = false; im.count = 0; if (color) { im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3); im.instanceColor.setUsage(THREE.DynamicDrawUsage); } this.scene.add(im); return im; };
       this.partM = {}; this.pn = {};
       for (const [k, g] of Object.entries(kit.parts)) { const tinted = g.attributes.aTint.array.some(v => v > 0); this.partM[k] = mk(g, caps[k] || 1024, tinted); this.pn[k] = 0; }
@@ -120,7 +121,8 @@
     animate(sim, i, dt, lodLevel) {
       const A = KM.ANIM, P = A.P, o = i * P, v = A.variation(i, sim.stride[i] * 10, this.vv);
       if (lodLevel === 1 && ((this.frameNo + i) & 1) && this.clip[i] >= 0) return v;       // mid LOD: reuse last pose on alternate frames
-      const id = A.select(sim, i, v);
+      let id = A.select(sim, i, v);
+      if (this.cheerT > 0 && sim.team[i] === 0 && sim.st[i] === 1 && sim.swing[i] <= 0 && sim.birth[i] <= 0 && v.seed < 0.7) id = A.ID.cheer; // brief celebration after an upgrade
       const pose = this.pose.subarray(o, o + P), tmp = this.tmpPose;
       if (id !== this.clip[i]) { if (this.clip[i] >= 0) this.prev.set(pose, o); else this.prev.fill(0, o, o + P); this.clip[i] = id; this.fade[i] = this.clip[i] >= A.ID.deathA ? 0.6 : 0; }
       A.sample(id, A.clipTime(sim, i, id, v), v, tmp);
@@ -141,6 +143,10 @@
       let nb = 0, nr = 0, nf = 0; this.frameNo++;
       const blue = TEAM[0], camZ = this.cam.position.z, camX = this.cam.position.x, crowd = sim.count[0] + sim.count[1];
       const bannerTowers = sim.towers.filter(t => t && t.type === 'banner'), bR2 = 49 * sim.stats.towerRange;
+      // budgeted LOD thresholds from a camera-distance histogram
+      const hist = this.lodHist || (this.lodHist = new Uint16Array(160)), dist = this.lodDist || (this.lodDist = new Float32Array(KM.Sim.CAP)); hist.fill(0);
+      for (let i = 0; i < sim.hi; i++) { if (!sim.st[i]) continue; const dx = sim.x[i] - camX, dz = sim.z[i] - camZ, d = Math.sqrt(dx * dx + dz * dz); dist[i] = d; hist[Math.min(159, d | 0)]++; }
+      const LB = A.lodBudget(hist, this.lodNear, this.lodMid, this.lodB || (this.lodB = {}));
       const rot = (m, x, y, z, rx, ry, rz) => { e.set(rx, ry, rz, 'YXZ'); m.makeRotationFromEuler(e); m.setPosition(x, y, z); return m; };
       let drawn = 0;
       for (let i = 0; i < sim.hi; i++) {
@@ -158,7 +164,7 @@
         if (team === 0 && def.k === 'knightF') col.lerp(col2.setHex(0x6aa0ff), 0.35);
         if (sim.slow[i] > 0) col.lerp(col2.setHex(0x9fe8ff), 0.45);
         const f = Math.max(0, sim.flash[i]); if (f > 0) col.lerp(col2.setRGB(1, 1, 1), f * 0.7);
-        const dx = sim.x[i] - camX, dzc = z - camZ, lodL = A.lod(Math.sqrt(dx * dx + dzc * dzc) - 20, crowd);
+        const dd = dist[i], lodL = dd < LB.near ? 0 : dd < LB.mid ? 1 : 2;
         drawn++;
         if (R.body) { // siege cannon: rigid body with recoil
           const rec = sim.swing[i] > 0 ? Math.sin((1 - sim.swing[i]) * Math.PI) * 0.25 : 0;
@@ -169,27 +175,30 @@
           this.putP('S_' + key, M[0], col); this.clip[i] = -1;
         } else {
           const v = this.animate(sim, i, dt, lodL), p = this.pose, o = i * P;
-          const rig = R.torso === 'tBrute' ? KM.RIG.brute : KM.RIG.std;
+          const rig = R.torso === 'tBrute' ? KM.RIG.brute : KM.RIG.std, mid = lodL === 1, brute = R.torso === 'tBrute';
+          const LEG = mid ? (brute ? 'm_legB' : 'm_leg') : R.leg, ARM = mid ? (brute ? 'm_armB' : 'm_arm') : R.arm;
           // root (pivot at feet so falls topple naturally)
           rot(M[0], sim.x[i], y + p[o + I.y] * s, z, p[o + I.rootP], this.ry[i] + p[o + I.rootY], p[o + I.rootR]); M[0].scale(sc.set(s, s, s));
           // legs
-          rot(M[1], -rig.hip[0], rig.hip[1], 0, p[o + I.legLP], 0, 0); M[1].premultiply(M[0]); this.putP(R.leg, M[1], col);
-          rot(M[1], rig.hip[0], rig.hip[1], 0, p[o + I.legRP], 0, 0); M[1].premultiply(M[0]); this.putP(R.leg, M[1], col);
-          // torso
-          rot(M[2], 0, rig.torso, 0, p[o + I.torsoP], p[o + I.torsoY], p[o + I.torsoR]); M[2].premultiply(M[0]); this.putP(R.torso, M[2], col);
-          if (team === 0 && armorLv > 0) this.putP('pads', M[2]);
-          // head
-          rot(M[3], 0, rig.neck, 0, p[o + I.headP], p[o + I.headY], 0); M[3].premultiply(M[2]); this.putP(R.head, M[3], col);
-          if (team === 0 && armorLv >= 4 && key === 'soldier') this.putP('plume', M[3]);
+          rot(M[1], -rig.hip[0], rig.hip[1], 0, p[o + I.legLP], 0, 0); M[1].premultiply(M[0]); this.putP(LEG, M[1], col);
+          rot(M[1], rig.hip[0], rig.hip[1], 0, p[o + I.legRP], 0, 0); M[1].premultiply(M[0]); this.putP(LEG, M[1], col);
+          // torso (+ head, separate bone at full LOD; merged into the torso piece at mid LOD)
+          rot(M[2], 0, rig.torso, 0, p[o + I.torsoP], p[o + I.torsoY], p[o + I.torsoR]); M[2].premultiply(M[0]);
+          if (mid) this.putP('m_th_' + key, M[2], col);
+          else {
+            this.putP(R.torso, M[2], col); if (team === 0 && armorLv > 0) this.putP('pads', M[2]);
+            rot(M[3], 0, rig.neck, 0, p[o + I.headP], p[o + I.headY], 0); M[3].premultiply(M[2]); this.putP(R.head, M[3], col);
+            if (team === 0 && armorLv >= 4 && key === 'soldier') this.putP('plume', M[3]);
+          }
           // arms + held items
-          rot(M[4], -rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armLP], 0, p[o + I.armLR]); M[4].premultiply(M[2]); this.putP(R.arm, M[4], col);
-          rot(M[5], rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armRP], p[o + I.armRY], p[o + I.armRR]); M[5].premultiply(M[2]); this.putP(R.arm, M[5], col);
+          rot(M[4], -rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armLP], 0, p[o + I.armLR]); M[4].premultiply(M[2]); this.putP(ARM, M[4], col);
+          rot(M[5], rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armRP], p[o + I.armRY], p[o + I.armRR]); M[5].premultiply(M[2]); this.putP(ARM, M[5], col);
           let wk = R.wpn; if (wk === 'sword' && team === 0 && dmgLv >= 5) wk = 'swordGold';
           const ws = team === 0 && wk.startsWith('sword') ? 1 + Math.min(8, dmgLv) * 0.06 : 1;
           if (wk === 'bow') { M[6].makeTranslation(0, rig.fist, 0.02); M[6].premultiply(M[4]); }        // bow in the off hand
           else { M[6].makeScale(ws, ws, ws); M[6].setPosition(0, rig.fist, 0.03); M[6].premultiply(M[5]); }
-          this.putP(wk, M[6]);
-          if (R.shield) { M[7].makeTranslation(rig.shieldAt[0], rig.shieldAt[1], rig.shieldAt[2]); M[7].premultiply(M[4]); this.putP('shield', M[7], col); }
+          this.putP(mid ? 'm_w_' + wk : wk, M[6]);
+          if (R.shield) { M[7].makeTranslation(rig.shieldAt[0], rig.shieldAt[1], rig.shieldAt[2]); M[7].premultiply(M[4]); this.putP(mid ? 'm_shield' : 'shield', M[7], col); }
           // sword trail accent on near units mid-swing (density-scaled)
           if (lodL === 0 && sim.swing[i] > 0.35 && sim.swing[i] < 0.62 && this.fxBudget > 0 && Math.random() < 0.5) { this.fxBudget--; pos.set(0, 0, 0.55 * ws).applyMatrix4(M[6]); this.emit(pos.x, pos.y, pos.z, 0, 0, 0, team ? 0xffd0c0 : 0xd8ecff, 0.32, 0.14, 0); }
         }
@@ -212,7 +221,7 @@
       this.waterMat = new THREE.MeshLambertMaterial({ color: 0x3fa9e0, transparent: true, opacity: 0.85 });
       this.chunks = new Map();
       const D = (geo, color, mat) => part(geo, color, 0, mat);
-      this.initClouds();
+
       this.deco = {
         tree: (c, s) => [D(new THREE.CylinderGeometry(0.18, 0.25, 1.2, 6), 0x7a4e2c, TRS(0, 0.6, 0, 0, 0, 0, s)), D(new THREE.ConeGeometry(1.25, 2.0, 8), c, TRS(0, 1.9 * s, 0, 0, 0, 0, s)), D(new THREE.ConeGeometry(0.95, 1.6, 8), new C(c).offsetHSL(0, 0, 0.06).getHex(), TRS(0, 2.8 * s, 0, 0, 0.4, 0, s))],
         round: (c, s) => [D(new THREE.CylinderGeometry(0.16, 0.22, 1.0, 6), 0x7a4e2c, TRS(0, 0.5, 0, 0, 0, 0, s)), D(new THREE.IcosahedronGeometry(1.0, 1), c, TRS(0, 1.7 * s, 0, 0, 0, 0, s * 1.1, s, s * 1.1))],
@@ -231,12 +240,6 @@
       };
     }
 
-    initClouds() {
-      const parts = []; const r = KM.rng(77);
-      for (let k = 0; k < 6; k++) parts.push(part(new THREE.IcosahedronGeometry(1, 1), 0xffffff, 0, TRS((k - 2.5) * 1.3, Math.sin(k) * 0.3, 0, 0, 0, 0, 1.6 - Math.abs(k - 2.5) * 0.2, 0.9, 1.1)));
-      const geo = merge(parts), mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, fog: false });
-      this.clouds = []; for (let k = 0; k < 7; k++) { const m = new THREE.Mesh(geo, mat); m.position.set(r.range(-40, 40), r.range(18, 26), -r.range(0, 160)); m.scale.setScalar(r.range(1.6, 3)); this.scene.add(m); this.clouds.push(m); }
-    }
     biomeCol(plan, key) { const a = new C(KM.BIOMES[plan.biome][key]); if (plan.blend > 0) a.lerp(new C(KM.BIOMES[plan.next][key]), plan.blend); return a; }
 
     buildChunk(i) {
@@ -301,7 +304,6 @@
       let built = 0;
       for (const i of want) if (!this.chunks.has(i) && built < 2) { const g = this.buildChunk(i); this.scene.add(g); this.chunks.set(i, g); built++; }
       // fog/sky blend toward current biome
-      for (const c of this.clouds) { c.position.x += 0.6 / 60; if (c.position.z > front + 30) c.position.z -= 190; if (c.position.x > 50) c.position.x = -50; }
       const plan = KM.chunkPlan(Math.max(0, Math.floor(-front / W.CHUNK)));
       const fc = this.biomeCol(plan, 'fog'); this.fogCol.lerp(fc, 0.02); this.scene.fog.color.copy(this.fogCol);
     }
@@ -312,7 +314,7 @@
     buildLauncher() {
       const g = new THREE.Group(), skin = this.skin;
       const paint = this.lPaint = this.std(skin.color), paint2 = this.lPaint2 = this.std(new C(skin.color).offsetHSL(0, 0, -0.12).getHex()), gold = this.lGold = this.std(skin.trim), dark = this.std(0x26293a), wood = this.std(0x9a6a3c), white = this.std(0xffffff);
-      const glowMat = this.std(0x9ff2ff, { emissive: 0x2fb8ff, emissiveIntensity: 1.1 });
+      const glowMat = this.std(0x6fd8ff, { emissive: 0x1f88dd, emissiveIntensity: 0.7 });
       const rbox = (w, h, d, r, mat) => { const sh = new THREE.Shape(), x = w / 2 - r, z = d / 2 - r; sh.moveTo(-x, -d / 2); sh.lineTo(x, -d / 2); sh.quadraticCurveTo(w / 2, -d / 2, w / 2, -z); sh.lineTo(w / 2, z); sh.quadraticCurveTo(w / 2, d / 2, x, d / 2); sh.lineTo(-x, d / 2); sh.quadraticCurveTo(-w / 2, d / 2, -w / 2, z); sh.lineTo(-w / 2, -z); sh.quadraticCurveTo(-w / 2, -d / 2, -x, -d / 2);
         const geo = new THREE.ExtrudeGeometry(sh, { depth: h, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 3, curveSegments: 6 }); geo.rotateX(-Math.PI / 2); return new THREE.Mesh(geo, mat); };
       const body = new THREE.Group(); g.add(body); this.lBody = body;
@@ -530,16 +532,16 @@
       const geo = new THREE.CylinderGeometry(0.22, 0.22, 0.07, 16); geo.rotateX(Math.PI / 2);
       const mat = this.std(0xffc21a, { metalness: 0.35, roughness: 0.3, emissive: 0xb07000, emissiveIntensity: 0.55 });
       this.coinM = new THREE.InstancedMesh(geo, mat, KM.Sim.CCAP); this.coinM.frustumCulled = false; this.coinM.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.scene.add(this.coinM);
-      this.coinGlow = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: radialTex('rgba(255,215,90,0.42)', 'rgba(255,210,80,0)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), KM.Sim.CCAP); this.coinGlow.frustumCulled = false; this.scene.add(this.coinGlow);
+      this.coinGlow = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: radialTex('rgba(255,215,90,0.3)', 'rgba(255,210,80,0)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), KM.Sim.CCAP); this.coinGlow.frustumCulled = false; this.scene.add(this.coinGlow);
     }
     drawCoins(sim) {
       const C = sim.c, m = this.m, q = this.q, e = this.e, p = this.v, s = this.s3; let n = 0;
       for (let k = 0; k < KM.Sim.CCAP; k++) {
         if (!C.st[k]) continue;
-        const big = Math.min(2, 1.15 + Math.sqrt(C.v[k]) * 0.25), fade = C.st[k] === 1 && C.age[k] > 19 ? (Math.floor(C.age[k] * 8) % 2 ? 0.6 : 1) : 1;
+        const big = Math.min(1.6, 1.0 + Math.sqrt(C.v[k]) * 0.18), fade = C.st[k] === 1 && C.age[k] > 19 ? (Math.floor(C.age[k] * 8) % 2 ? 0.6 : 1) : 1;
         const y = C.y[k] + (C.st[k] === 1 && C.vy[k] === 0 ? 0.12 + Math.sin(this.time * 4 + k) * 0.08 : 0);
         e.set(0, this.time * 3 + k, 0); q.setFromEuler(e); p.set(C.x[k], y + 0.1, C.z[k]); s.setScalar(big * fade); m.compose(p, q, s); this.put(this.coinM, n, m);
-        q.identity(); p.set(C.x[k], 0.06, C.z[k]); s.setScalar(big * 1.05); m.compose(p, q, s); this.put(this.coinGlow, n, m); n++;
+        q.identity(); p.set(C.x[k], 0.06, C.z[k]); s.setScalar(big * 0.8); m.compose(p, q, s); this.put(this.coinGlow, n, m); n++;
       }
       this.coinM.count = this.coinGlow.count = n; this.coinM.instanceMatrix.needsUpdate = this.coinGlow.instanceMatrix.needsUpdate = true;
     }
@@ -614,14 +616,17 @@
       switch (type) {
         case 'kill': { const i = a, d = b, s = sim.sc[i]; this.burst(sim.x[i], 0.6 * s, sim.z[i], d.el ? 30 : 6, ENEMY_COL[d.k], d.el ? 7 : 3.5, d.el ? 0.7 : 0.4, 0.45); if (d.el) this.ring(sim.x[i], sim.z[i], 0xff5a3a, 4); this.emit(sim.x[i], 0.3, sim.z[i], 0, 0.6, 0, 0xffe7a0, 1.4 * s, 0.25, 0); break; }
         case 'fdie': this.burst(sim.x[a], 0.6, sim.z[a], 4, 0x5aa0ff, 3, 0.35, 0.4); break;
-        case 'hit': if (Math.random() < 0.35) { const t = b; if (t >= 0) this.burst((sim.x[a] + sim.x[t]) / 2, 0.7, (sim.z[a] + sim.z[t]) / 2, c ? 8 : 2, c ? 0xffe14a : 0xfff4d0, c ? 4 : 2.5, c ? 0.5 : 0.28, 0.25); } break;
+        case 'hit': if (b >= 0 && sim.def(b).sh && this.fxBudget > 0) { this.fxBudget--; this.burst(sim.x[b], 0.65, sim.z[b] + (sim.team[b] ? 0.3 : -0.3), 5, 0xcfe6ff, 3.5, 0.35, 0.22, 4); }
+          if (Math.random() < 0.35 * Math.min(1, this.fxBudget / 30)) { const t = b; if (t >= 0) this.burst((sim.x[a] + sim.x[t]) / 2, 0.7, (sim.z[a] + sim.z[t]) / 2, c ? 8 : 2, c ? 0xffe14a : 0xfff4d0, c ? 4 : 2.5, c ? 0.5 : 0.28, 0.25); } break;
         case 'cleave': this.burst(sim.x[a], 0.5, sim.z[a] + 1, 14, 0xffffff, 4, 0.35, 0.3); this.ring(sim.x[a], sim.z[a] + 1, 0xffaaaa, 2.5, 0.35); break;
         case 'deploy': { const L = sim.L; this.burst(L.x, 1.6, L.z - 1.4, 3, 0x7cc4ff, 2.5, 0.45, 0.3, 2); break; }
         case 'boom': this.burst(a, 0.5, b, 40, 0xff8a2a, 7, 0.9, 0.6, 6); this.burst(a, 0.5, b, 14, 0x555555, 3, 1.4, 0.9, -1); this.ring(a, b, 0xff7a2a, c * 1.2, 0.4); this.shake = Math.max(this.shake, 0.15); break;
         case 'impact': if (a === 1) { this.burst(b, 0.4, c, 18, 0xffa040, 5, 0.7, 0.45); this.ring(b, c, 0xffa040, 2.6, 0.35); } else if (a === 2) { this.burst(b, 0.4, c, 18, 0x9ff0ff, 4, 0.6, 0.6, 2); this.ring(b, c, 0x9ff0ff, 3, 0.5); } else if (a === 4) this.burst(b, 0.8, c, 12, 0xe4c2ff, 5, 0.5, 0.35); break;
+        case 'wave': if (a === 'boss') { this.ring(0, sim.front - 50, 0xff2a2a, 14, 1.2); this.shake = Math.max(this.shake, 0.2); } break;
+        case 'elite': this.ring(0, sim.front - 52, 0xff5a3a, 8, 0.8); break;
         case 'coin': if (Math.random() < 0.5) this.burst(sim.L.x, 1.4, sim.L.z, 3, 0xffd34a, 3, 0.4, 0.35); break;
         case 'lhit': this.burst(sim.L.x, 1, sim.L.z, 10, 0xff4a3a, 4, 0.5, 0.35); this.shake = Math.max(this.shake, 0.12); break;
-        case 'upgrade': this.burst(sim.L.x, 1, sim.L.z, 60, 0xffd23a, 6, 0.6, 0.7, 5); this.ring(sim.L.x, sim.L.z, 0xffd23a, 6, 0.7); this.ring(sim.L.x, sim.L.z, 0x7cc4ff, 4, 0.5); break;
+        case 'upgrade': this.cheerT = 0.85; this.burst(sim.L.x, 1, sim.L.z, 60, 0xffd23a, 6, 0.6, 0.7, 5); this.ring(sim.L.x, sim.L.z, 0xffd23a, 6, 0.7); this.ring(sim.L.x, sim.L.z, 0x7cc4ff, 4, 0.5); break;
         case 'heal': this.burst(sim.x[a], 1, sim.z[a], 6, 0x8aff7a, 2, 0.5, 0.6, -1); break;
         case 'death': this.burst(sim.L.x, 1, sim.L.z, 120, 0xffa040, 9, 1.0, 1.0, 6); this.burst(sim.L.x, 1, sim.L.z, 40, 0x666666, 4, 2, 1.6, -1.5); this.ring(sim.L.x, sim.L.z, 0xff6a2a, 10, 0.9); this.shake = 0.4; this.deathT = 0; break;
         case 'revive': this.ring(sim.L.x, sim.L.z, 0x7cc4ff, 12, 0.9); this.burst(sim.L.x, 1, sim.L.z, 80, 0x7cc4ff, 7, 0.8, 0.8); break;
@@ -637,7 +642,8 @@
       let dist = halfW / (Math.tan(fov / 2) * Math.min(this.aspect, 1.15)) * 0.86;
       if (KM.camOverride) dist = KM.camOverride;
       dist = Math.max(dist, KM.camOverride ? 4 : this.aspect > 1 ? 36 : 26) * (1 + Math.min(0.18, army / 3000));
-      const tx = L.x * 0.35, tz = sim.front - (this.aspect > 1 ? 11 : 14.5) + L.offZ * 0.3;
+      let tx = L.x * 0.35, tz = sim.front - (this.aspect > 1 ? 11 : 14.5) + L.offZ * 0.3;
+      if (KM.camFocus === 'launcher') { tx = L.x; tz = L.z - 1; }
       if (!this.camT) this.camT = new V3(tx, 0, tz);
       this.camT.x += (tx - this.camT.x) * Math.min(1, dt * 3); this.camT.z += (tz - this.camT.z) * Math.min(1, dt * 4);
       this.camD = (this.camD || dist) + (dist - (this.camD || dist)) * Math.min(1, dt * 1.5);
@@ -650,7 +656,7 @@
     }
 
     frame(sim, dt) {
-      this.time += dt; if (this.deathT != null) this.deathT += dt;
+      this.time += dt; if (this.deathT != null) this.deathT += dt; this.cheerT = Math.max(0, (this.cheerT || 0) - dt);
       this.fxBudget = Math.max(4, Math.round(60 * (1 - Math.min(0.93, (sim.count[0] + sim.count[1]) / 2200))));
       this.streamWorld(sim.front);
       this.drawCamera(sim, dt); this.drawLauncher(sim, dt); this.drawTowers(sim, dt);

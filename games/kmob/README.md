@@ -1,57 +1,74 @@
 # KMOB · Endless War
 
-A one-finger endless army game. You drag the launcher, soldiers deploy on their own, enemies keep coming, and the score is how long you survive. It runs in the browser on desktop and mobile with three.js r128. The target URL is `keepitil.com/games/kmob/`.
+**Play:** https://keepitil.com/games/kmob/
+
+A one-finger endless army game. Drag the launcher; soldiers deploy on their own; enemies keep coming. The score is how long you survive. It runs in the browser on desktop and mobile with three.js r128 and needs no build step. This folder in **KEEPITIL/keepitil-web** is the canonical source. The site deploys from `main` through GitHub Pages and is mirrored to keepitil.github.io.
 
 ```
 games/kmob/
-  index.html        UI, HUD, upgrade cards, results, shop, settings (one page, no build step)
-  js/core.js        pure logic: difficulty curves, enemy roster, upgrades, towers, shop, save data, chunk plan
-  js/sim.js         headless simulation: army spawner, enemy director, combat grid, projectiles, coins, towers, launcher
-  js/render.js      three.js: instanced crowds, streamed battlefield, launcher/tower models, coins, particles, camera
-  js/audio.js       synthesized WebAudio SFX + adaptive music, voice-limited per category; haptics helper
-  js/main.js        game flow, input, HUD, analytics hooks, debug tools, adaptive quality
-  vendor/three.min.js  (r128, same build as /web/vendor)
-  tests/kmob.test.js   34 headless tests (node tests/kmob.test.js)
-  tests/shots.js       screenshot capture (Playwright + SwiftShader)
-  docs/shots/          captures: early, medium, large army, swarm, upgrade, results (mobile + desktop)
+  index.html          UI: HUD, upgrade cards, results, Gift Shop, settings
+  js/core.js          pure logic: difficulty, enemy roster, upgrades, towers, shop, save data, chunk plan
+  js/sim.js           headless simulation: deployment, enemy director, combat grid + steering, projectiles, coins, towers
+  js/anim.js          shared humanoid skeleton, 15-clip library, cross-fade blending, additive hit layers, LOD budget
+  js/kit.js           original character kit (13 unit kinds), lean mid-LOD parts, far statues, cel-shaded materials
+  js/render.js        instanced crowds on the skeleton, launcher (5 stages), towers (6 types × 5 levels), world, VFX, camera
+  js/audio.js         synthesized SFX, layered crowd beds (4 intensity bands), stereo placement, adaptive music
+  js/main.js          game flow, one-finger input, HUD, analytics hooks, debug tools, adaptive quality, ?bench=1
+  dev/lineup.html     every unit kind cycling through every clip (art review)
+  tests/kmob.test.js        34 sim/economy/save/soak tests            node tests/kmob.test.js
+  tests/anim.test.js        24 animation/LOD tests                    node tests/anim.test.js
+  tests/browser.test.js     14 rendering/memory/context-loss tests    PW=<playwright> node tests/browser.test.js
+  tests/acceptance-shots.js the 12-shot acceptance set, mobile + desktop
+  docs/shots/         acceptance captures (git-ignored here; committed in KEEPITIL/thirteen games/kmob/docs/shots)
+  docs/DEVICE-TEST.md how to measure on a real iPhone
 ```
 
-Run it locally with `npx http-server -p 8137 games/kmob`, then open `http://127.0.0.1:8137/`.
-URL flags:
-- `?debug=1` shows the FPS readout and the debug panel. The panel can jump to minute 1, 5, 10, 30, 60 or 120 with a comparable build, spawn stress tests of 500, 1000 or 2000 units, and toggle the bot, god mode and +500 coins.
-- `?autoplay=1` skips the title screen.
-- `?bot=1` plays the game automatically.
-- `?revive=1` shows the one-time revive button. It is a hook for a future rewarded ad.
+**URL flags**
+- `?debug=1`: FPS readout plus a panel to jump to minute 1, 5, 10, 30, 60 or 120, spawn 500/1000/2000-unit stress tests, and toggle bot or god mode.
+- `?bench=1`: on-device benchmark. See `docs/DEVICE-TEST.md`.
+- `?autoplay=1`: start a run straight away.
+- `?bot=1`: autopilot.
+- `?revive=1`: show the revive hook. No ads are wired to it.
 
-## How it plays
+## What this milestone changed (visual production pass)
 
-- **Input:** the only control is dragging, which moves the launcher. Drag left and right freely. Drag up and down for a small forward or back offset. The game never shows an attack button, ability tray or joystick. On desktop the arrow keys and WASD also move the launcher.
-- **Loop:** soldiers stream out of the launcher and march forward. Enemy formations come the other way. Dead enemies drop coins that stay on the ground for 22 seconds. The launcher's pickup ring has to touch a coin to collect it, so you have to move toward the fight to earn, which is where the risk comes from. Once you have enough coins, three upgrade cards appear. The game drops to 35% speed while they are up; it never fully pauses. Tap one card, or skip.
-- **Upgrades (in-run):** army size, deploy speed, damage, soldier health, armor, attack speed, march speed, coin magnet, crit chance, archers, knights and launcher armor. The defense cards build or upgrade towers and raise tower fire rate or range.
-- **Visible growth:** soldiers get gold shoulder pads with armor, bigger swords with damage, and a slightly larger body with health. The launcher goes through five levels: barrels go from 1 to 2 to 3, then it gains ammo crates, a crystal core, side armor, and finally a crown and a second banner.
-- **Towers:** these support the army. They are not a separate tower-defense mode. They auto-place into slots beside the lane that move forward with the front. Two slots are open at the start, four from minute 3, and six from minute 8. The six types are Arrow, Cannon (splash), Frost (slow), Sniper (targets the toughest enemy), Barracks (spawns soldiers) and Shield Banner (armor aura). Each type has five levels with visible changes: more height, gold rings, and side banners from level 3.
-- **Enemies:** eleven types unlock over time: grunt, imp swarm, shield, runner, archer, armored knight, horned brute (elite), bomber, siege cannon, shaman (heals), and the warlord boss. Each spawn uses one of 13 formations: line, wedge, column, blob, swarm, flank, shield wall, ranged backline, elite squad, siege, mixed, massive push and boss. Pushes and bosses get a 3–4 second warning banner, and elites have a red ring under them.
-- **Endless:** there are no levels. 24 m ground chunks stream in and out, and six biomes cycle every ~11 minutes (meadow, autumn, desert, snow, ashlands, crystal), with blended transitions. Chunk types are field, forest, ruins, bridge and canyon. Enemy eras change tint and armor every 8 minutes. The difficulty curves never cap. When the enemy count hits 1,700, the extra spawn budget makes enemies tougher instead of adding more bodies.
-- **Death and restart:** the run ends when the launcher's HP reaches 0. It loses HP to enemy hits and to enemies that get past the defensive line. The results screen shows survival time, enemies defeated, coins, peak army, distance, tokens earned, and whether you set a personal best. **TRY AGAIN** starts a new run instantly, with no loading and no ads.
-- **Meta:** tokens are rare and stay between runs (√(time/40s) + kills/1500 per run). The Gift Shop sells three small permanent bonuses, each with 3 levels, and five launcher skins. **Competitive mode** turns off all permanent bonuses and the revive, and keeps its own best time. The game tracks personal best, daily best and weekly best. Save data is versioned, validated and backed up, and a corrupt save falls back to the backup.
-- **Analytics hooks:** `KM.analytics.track` and `addSink`. The events are run_start, run_end (with survival time, death reason, peak army, coins, upgrades, death position and whether revive was used), upgrades_selected, upgrade_skipped, enemy_type_death, personal_best, shop_open, item_purchase and revive_used. No analytics provider is wired up yet.
+- **Characters:** the capsule placeholders are gone. There are 13 original models in one stylized miniature-warrior family:
+  - Blue: soldier (round crested helmet), archer (hood + bow), knight (gold plume, plate armor, shield).
+  - Red: grunt (horned helmet), imp, shield bearer (bucket helm), runner, archer, armored knight, bomber (goggles), shaman (hood + mask), brute (horned beast with axe), warlord (crowned boss), and the siege cannon.
 
-## Evidence (first playable build)
+  All of them are built from sculpted primitives: lathe bodies, oversized helmets, mitten hands, chunky boots and baked AO. They're drawn with a cel-shaded rim-lit material and faction-tinted per instance.
+- **Animation:** every infantry kind shares one skeleton (hips, torso, head, two arms, two legs). Clips: idle, run, sprint, two light attacks, a heavy attack, aim, fire, cast, shield brace, cheer, deploy hop, and three deaths. Clips cross-fade, hit reactions are layered on top, and a stagger plays on heavy knockback. Each unit varies in phase, stride, lean, tempo and attack choice. Melee damage now lands on the frame the swing connects instead of at the start of the wind-up.
+- **Crowd steering:** units spread out (soft separation), fan out to find open fighting room, and flow around towers. The front line compresses under knockback.
+- **Animation LOD:** budgeted from a distance histogram. The closest ~120 units get the full skeleton (~1,300 triangles each). The next ~450 get the same skeleton with lean parts (~300–500 triangles). The rest are single-mesh statues that bob and lean. At 1,600 units that comes to 776k triangles and ~100 draw calls, against 6.9M before the LOD work. Crowd JavaScript runs ~5 ms per frame.
+- **Launcher:** five clearly different stages:
+  1. Small spawner.
+  2. Long barrel with muzzle brake, troop-capsule hopper and lanterns.
+  3. Twin barrels, six wheels, crystal reinforcement core.
+  4. Armor skirts, front ram, shield plates.
+  5. Triple barrels, crown, gold fins, second banner and a hover energy ring.
+
+  Each stage-up plays a pop, burst and ring effect.
+- **Towers:** all six types (arrow, cannon, frost, sniper, barracks, shield banner) have five visible levels. Height, crenellations, gold rings, side banners (level 3+), weapon size and count, and a level-5 halo all change. Every build or upgrade rises out of the ground part by part. Each type has its own motion: ballista reload pull-back, cannon barrel recoil, frost crystal pulse and orbiting shards, sniper slow tracking with a tracer line, barracks doors swinging open as troops deploy, and a waving banner with a pulsing aura. Soldiers inside the aura get a green ring.
+- **Defense upgrades added:** tower damage, cannon splash, deep freeze, sniper crit, barracks speed and banner radius. Each card only appears if you own that tower type.
+- **World:** foreground bushes and grass tufts along the fences, signposts and camp tents. Distant hills, snow peaks and blue-roofed castle silhouettes vary by biome. Lighting is brighter and the camera framing follows the concept: launcher at the bottom, the clash filling the upper half.
+- **VFX:** sword-trail sparks, shield-hit sparks, elite and boss spawn rings, a pulsing red screen edge for boss and push warnings, tower construction bursts, launcher stage-up, and troops cheering after upgrades. Effect density scales down automatically as the crowd grows.
+- **Audio:** crowd beds for marching, clash and roar, driven by combat intensity in four bands. Towers, bosses and launcher hits are stereo-placed, and coin pickups chain upward in pitch.
+- **Early game:** the first clash comes at ~5 s, the first coin at ~10 s, the first upgrade at ~17–23 s and the second by ~35 s. Before this pass those were ~11 s, ~25 s, ~30 s and ~90 s.
+- **Robustness:** losing the WebGL context pauses the run and it recovers when the context comes back. Tower models are disposed of on rebuild. Quality changes are applied before a frame draws, which fixed a one-frame black flash.
+
+## Evidence
 
 | | |
 |---|---|
-| Tests | `node tests/kmob.test.js`: **34 passed, 0 failed**. They cover: difficulty never decreases over 6 h and stays finite at extreme values; upgrade values; coins never go negative; offer rules; director compositions are valid over 20 simulated minutes; death fires once; restart fully resets the run; tokens survive a restart and coins don't; corrupt-save fallback; no pool leaks over 5 runs; chunk streaming has no gaps across 400 km; and a 60-simulated-minute soak stays bounded (peak 1,905 active entities, 12,267 kills, enemy cap held). |
-| Balance | A bot that picks upgrades at random survives **4:47–8:01** across 8 seeded runs. A human choosing upgrades should do better. This is a starting point and needs real playtesting. |
-| Sim cost (Node) | ~0.2 ms per step early, ~0.5 ms at 300 enemies, ~2 ms at the 1,700-enemy cap. |
-| Max units tested | **~1,290 live units rendered** (stress 1000 at minute 10) on mobile (430×932) and desktop (1440×900) viewports. |
-| FPS | Measured only in **headless Chromium with software rendering (SwiftShader)**, where it runs at 11–18 fps. That number says nothing about real devices. **No physical-device testing has been done.** |
-| Screenshots | `docs/shots/{mobile,desktop}-{1-early,2-medium,3-large,4-swarm,5-upgrade,6-results}.png` |
+| Tests | **72 automated:** 34 sim/economy/save (including a 60-simulated-minute soak), 24 animation/LOD, 14 browser (kit, statues, launcher stages, tower levels, LOD tiers, no GPU leaks across 10 restarts, context loss/restore, 10-minute browser soak with bounded heap, no runtime errors). |
+| Balance (bot) | A bot picking upgrades at random survives 4:41–9:27 across 8 seeds. This is not a human playtest. |
+| Screenshots | `docs/shots/{mobile,desktop}-01…12`: opening, medium army, large army, ~1,000-unit battle, extreme swarm (~1,900), basic towers, max-level towers, upgrade selection, boss push, coin collection, upgraded launcher, results. |
+| Device FPS | **Not measured on a real device.** Headless capture uses software GL, so its fps means nothing. Run `?bench=1` on an iPhone (see `docs/DEVICE-TEST.md`). |
 
 ## Not done yet
 
-- **Physical devices:** the game has not run on a real iPhone or Android device. Still untested there: touch feel, thermals, battery, 60 fps, and the browser-side 60-minute memory soak. Adaptive quality lowers the pixel ratio below 48 fps and then turns off shadows, but it has not been tuned on hardware.
-- **Visual bar:** the characters are original stylized procedural models built to match the blue-vs-red concept art: round armored soldiers, horned red elites and a gold-trimmed launcher. They read well in crowds, but they are not hand-modelled, rigged or animated assets. Animation is procedural: bob, leg swing, weapon swing, flinch, a fall-over death, a deploy hop and staggered timing. A side-by-side review against Mob Control would rate this as clean, but not yet App Store premium. Getting there needs authored models, skinned or vertex-animated (VAT) run and attack cycles, better VFX textures, and post-processing such as bloom and color grading.
-- **Fonts:** Lilita One and Nunito load from Google Fonts. The capture sandbox couldn't reach them, so the screenshots show the fallback fonts.
-- **Network leaderboards:** not built. The architecture is in place: bests are stored per day and week, and the competitive mode gives equal starts. The revive is a placeholder with no rewarded-ad SDK behind it.
-- **Deployment:** the live site is published from the KEEPITIL/keepitil-web and keepitil.github.io repos, which this change doesn't touch. To deploy, copy `games/kmob/` to `games/kmob/` in those repos.
-- **Native builds:** none yet. The Capacitor wrapper in this repo ships `/web` (13 Anchors), and KMOB has not been added to it.
+- **Physical iPhone testing:** none so far. FPS, frame-time variance, CPU, GPU, memory, thermals, battery and touch latency are all unmeasured. The `?bench=1` tool and the procedure are ready.
+- **Human balancing:** not done. The targets are 3–7 minutes for a first-timer and 15+ for strong players, and they need real players to check.
+- **Art:** the models are procedural originals, not hand-sculpted or rigged assets, and the animation is procedural rigid-bone, not skinned mocap. Side by side with the concept they clearly belong to the same family: blue/red, oversized helmets, horned red brutes, a blue/gold launcher. Up close they are simpler, and faces, materials and silhouettes have less detail. Closing that gap needs authored GLB characters with skinned or VAT animation. The kit and skeleton are set up so per-part meshes can be swapped for authored ones.
+- **Later defense structures:** barricade, shield wall, healing post, beacon and mines are only planned. Tower health and armor upgrades are deferred because towers can't be damaged yet.
+- **Online leaderboards, ads and revive, more meta:** deferred by the directive.

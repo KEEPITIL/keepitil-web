@@ -127,5 +127,17 @@
     out.seed = h(i * 1.37 + phase); out.seed2 = h(i * 3.1 + phase * 7.7); out.amp = 0.85 + h(i + phase * 3) * 0.3; out.lean = (h(i * 7 + phase) - 0.5) * 0.1; out.tempo = 0.9 + h(i * 11 + phase) * 0.25;
     return out;
   }
-  KM.ANIM = { P, I, CLIPS: C, NAMES, ID, REQUIRED, ADD: Object.keys(ADD), sample, blend, additive, select, clipTime, lod, lodBudget, variation, FADE: 0.13 };
+  // Authored clip override (from assets.js): baked pose frames replace a procedural clip or additive layer.
+  // Loops map one stride cycle (2π of sim phase) onto the clip length; one-shots map u∈[0,1] onto it.
+  const overridden = {};
+  function override(name, baked) {
+    const sampleBaked = (o, t) => { const f = Math.max(0, Math.min(baked.N - 1, t * (baked.N - 1))), i0 = Math.floor(f), i1 = Math.min(baked.N - 1, i0 + 1), w = f - i0; for (let k = 0; k < P; k++) o[k] = baked.frames[i0 * P + k] * (1 - w) + baked.frames[i1 * P + k] * w; };
+    if (name[0] === '+') { const key = name.slice(1); ADD[key] = o => sampleBaked(o, 0.35); overridden[name] = baked; return true; }
+    const c = C[name]; if (!c) return false;
+    const proc = c.procFn || c.fn; c.procFn = proc;
+    c.fn = c.loop ? (o, ph) => sampleBaked(o, ((ph / (Math.PI * 2)) % 1 + 1) % 1) : (o, u) => sampleBaked(o, u);
+    if (!c.loop) c.dur = baked.duration || c.dur; overridden[name] = baked; return true;
+  }
+  function restore(name) { const c = C[name]; if (c && c.procFn) { c.fn = c.procFn; delete overridden[name]; } }
+  KM.ANIM = { P, I, CLIPS: C, NAMES, ID, REQUIRED, ADD: Object.keys(ADD), sample, blend, additive, select, clipTime, lod, lodBudget, variation, override, restore, overridden, FADE: 0.13 };
 })(typeof window !== 'undefined' ? window : globalThis);

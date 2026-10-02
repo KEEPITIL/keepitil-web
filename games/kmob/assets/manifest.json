@@ -1,5 +1,5 @@
 {
-  "version": 1,
-  "characters": null,
-  "notes": "Set \"characters\" to a GLB path (e.g. \"characters.glb\") when the production character file is delivered. See docs/CHARACTER-ASSET-SPEC.md. null = procedural kit."
+  "version": 2,
+  "characters": [],
+  "notes": "List delivered GLBs in load order, e.g. [\"characters/shared/weapons/weapons.glb\", \"characters/blue/basic/basic.glb\", \"characters/red/brute/brute.glb\"]. Later files override earlier parts. Empty = procedural kit. Paths are relative to assets/. See docs/CHARACTER-ASSET-SPEC.md."
 }

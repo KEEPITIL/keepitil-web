@@ -54,6 +54,13 @@
   try { render = new KM.Render(canvas, { lowPower: /Android/i.test(navigator.userAgent) }); }
   catch (e) { document.body.innerHTML = '<div style="padding:40px;font:16px Nunito,sans-serif;color:#fff">This game needs WebGL. Please try a newer browser or device.</div>'; return; }
   render.setSkin(KM.SHOP.find(s => s.id === save.equip.skin) || KM.SHOP[3]);
+  // quality tier: ?quality= forces, else the stored benchmark recommendation, else device heuristics
+  KM.loadScripts = list => list.reduce((pr, src) => pr.then(() => new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = src; sc.onload = res; sc.onerror = () => rej(new Error(src)); document.head.appendChild(sc); })), Promise.resolve());
+  let storedQ = null; try { storedQ = localStorage.getItem('kmob.quality'); } catch (e) { /* private mode */ }
+  KM.bloomAllowed = Q.has('bloom') || storedQ === 'high';
+  let quality = KM.detectQuality({ forced: Q.get('quality'), stored: Q.get('quality') ? null : storedQ, ua: navigator.userAgent, cores: navigator.hardwareConcurrency, touch: 'ontouchstart' in window, minSide: Math.min(screen.width, screen.height) });
+  if (Q.get('quality') && KM.QUALITY[Q.get('quality')]) quality = Q.get('quality');
+  render.applyQuality(quality);
   const assetBase = /^[\w-]+(\/[\w-]+)*\/$/.test(Q.get('assets') || '') ? Q.get('assets') : 'assets/';   // same-origin relative folders only
   KM.assetsReady = KM.loadCharacterAssets(render, assetBase);   // authored characters swap in when available
   const audio = new KM.Audio(); audio.setSound(save.settings.sound); audio.setMusic(save.settings.music);
@@ -141,6 +148,7 @@
     moved = 0; setTip(save.ach.tutorial ? 4 : 0);
     if (save.ach.tutorial) { tut = 4; banner('SURVIVE!', 1.2); }
     Analytics.track('run_start', { run: save.totals.runs + 1, competitive: comp });
+    PT.picks = []; PT.runNo++; const old = $('ptBox'); if (old) old.remove();
   }
   function onDeath() {
     audio.play('death'); audio.crowd(0, 0); KM.haptic([40, 60, 80]); hideOffer();
@@ -159,7 +167,7 @@
       $('oStats').innerHTML = [['skull', 'Enemies Defeated', KM.fmtNum(r.kills)], ['coin', 'Coins Collected', KM.fmtNum(r.coins)], ['army', 'Peak Army Size', r.peakArmy], ['flag', 'Distance Reached', KM.fmtNum(r.distance) + ' m'], ['token', 'Reward Tokens', '+' + r.tokens]]
         .map(([i, l, v]) => `<div>${svg(i)}<span>${l}</span><b>${v}</b></div>`).join('') + `<div style="opacity:.7;font-size:12px;justify-content:center">${reason}</div>`;
       $('reviveBtn').classList.toggle('hidden', !!sim.revived || !!save.settings.competitive || !Q.has('revive'));
-      show('over');
+      show('over'); showPlaytest(r);
     }, 1300);
   }
   function setPause(p) { if (state !== 'run') return; paused = p; show(p ? 'pause' : null); audio.suspend(p); if (p) { buildToggles($('pToggles')); audio.crowd(0, 0); } }
@@ -230,29 +238,31 @@
   }
   function stress(n) { // spawn n units split between both armies, ignoring caps
     const D = KM.difficulty(sim.t);
-    for (let k = 0; k < n / 2; k++) { sim.spawn(0, KM.FRIEND[0], (Math.random() - 0.5) * 17, sim.front - 4 - Math.random() * 18, { hp: sim.stats.hp, dmg: sim.stats.dmg, spd: 1 }); sim.spawn(1, KM.ENEMY[k % 5 === 0 ? 2 : 0], (Math.random() - 0.5) * 17, sim.front - 26 - Math.random() * 26, { hp: D.hp, dmg: D.dmg, spd: D.speed }); }
+    for (let k = 0; k < n / 2; k++) { const gx = (Math.random() - 0.5) * 17, arcF = Math.cos(gx * 0.25) * 4; sim.spawn(0, KM.FRIEND[0], gx, sim.front - 4 - Math.random() * 18 - arcF * Math.random(), { hp: sim.stats.hp, dmg: sim.stats.dmg, spd: 1 }); sim.spawn(1, KM.ENEMY[k % 5 === 0 ? 2 : k % 7 === 0 ? 4 : 0], (Math.random() - 0.5) * 17, sim.front - 26 - Math.random() * 26 - (Math.random() < 0.3 ? 12 : 0) - Math.abs(Math.sin(k)) * 6, { hp: D.hp, dmg: D.dmg, spd: D.speed }); }
     sim.stats.cap = Math.max(sim.stats.cap, sim.count[0]);
   }
 
-  // ---------- adaptive quality ----------
-  let fpsAcc = 0, fpsN = 0, slow = 0, dprLevel = 0, pendingDpr = 0;
+  // ---------- adaptive quality: sustained low fps steps the tier down (high → medium → low), never up mid-session ----------
+  let fpsAcc = 0, fpsN = 0, slow = 0, pendingQ = null;
   function adapt(dt) {
     fpsAcc += dt; fpsN++;
     if (fpsAcc >= 1) {
-      const fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0;
-      if (DEBUG) { $('fps').textContent = `${fps.toFixed(0)} fps · units ${sim.count[0] + sim.count[1]} · drawn ${render.drawn} · dpr ${render.R.getPixelRatio().toFixed(2)}`; $('dInfo').textContent = `t=${sim.t.toFixed(0)} hp×${sim.diff.hp.toFixed(2)} spawn ${sim.diff.spawnRate.toFixed(1)}/s era ${sim.diff.era}`; }
-      KM.perf = { fps, units: sim.count[0] + sim.count[1], drawn: render.drawn, dpr: render.R.getPixelRatio() };
-      if (state === 'run' && !paused && !Q.has('fixed')) { slow = fps < 48 ? slow + 1 : Math.max(0, slow - 1); if (slow >= 3 && dprLevel < 3) { dprLevel++; slow = 0; pendingDpr = Math.max(0.75, render.dpr * [1, 0.8, 0.65, 0.5][dprLevel]); } }
+      const fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; const ri = render.R.info.render;
+      if (DEBUG) { $('fps').textContent = `${fps.toFixed(0)} fps · ${render.quality} · units ${sim.count[0] + sim.count[1]} · tris ${(ri.triangles / 1000).toFixed(0)}k · calls ${ri.calls} · js ${jsCost.toFixed(1)}ms`; $('dInfo').textContent = `t=${sim.t.toFixed(0)} hp×${sim.diff.hp.toFixed(2)} spawn ${sim.diff.spawnRate.toFixed(1)}/s era ${sim.diff.era}`; }
+      KM.perf = { fps, units: sim.count[0] + sim.count[1], drawn: render.drawn, dpr: render.R.getPixelRatio(), quality: render.quality, tris: ri.triangles, calls: ri.calls, jsMs: jsCost };
+      if (state === 'run' && !paused && !Q.has('fixed') && !Q.get('quality') && !bench.on) { slow = fps < 45 ? slow + 1 : Math.max(0, slow - 1); if (slow >= 4 && render.quality !== 'low') { slow = 0; pendingQ = KM.nextLowerQuality(render.quality); Analytics.track('quality_down', { to: pendingQ, fps: Math.round(fps) }); } }
     }
   }
+  let jsCost = 0, rawMs = 16.7;
 
   // ---------- main loop (fixed-step sim, interpolated render) ----------
   let lastT = performance.now(), acc = 0; const STEP = 1 / 60;
   function loop(now) {
     requestAnimationFrame(loop);
     // quality changes are applied before drawing so a resize never presents a cleared (black) canvas
-    if (pendingDpr) { render.R.setPixelRatio(pendingDpr); render.resize(); if (dprLevel >= 2) render.R.shadowMap.enabled = false; pendingDpr = 0; }
-    let dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+    if (pendingQ) { render.applyQuality(pendingQ); pendingQ = null; }
+    const js0 = performance.now();
+    rawMs = now - lastT; let dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
     if (state === 'run' && !paused) {
       if (keys.ArrowLeft || keys.a) sim.moveBy(-dt * 14, 0); if (keys.ArrowRight || keys.d) sim.moveBy(dt * 14, 0);
       if (keys.ArrowUp || keys.w) sim.moveBy(0, -dt * 10); if (keys.ArrowDown || keys.s) sim.moveBy(0, dt * 10);
@@ -265,7 +275,8 @@
       audio.tick(Math.min(1, (sim.count[1] / 300) * 0.6 + sim.danger * 0.4 + (sim.diff.m / 30) * 0.3), true);
     } else if (state !== 'run') { sim.step(dt * 0.5); } // keep the battlefield alive behind menus
     if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('banner').classList.remove('on'); }
-    if (!paused && !glLost) render.frame(sim, state === 'run' ? dt * (sim.offer ? 0.6 : 1) : dt);
+    if (!paused && !glLost) { render.frame(sim, state === 'run' ? dt * (sim.offer ? 0.6 : 1) : dt); }
+    jsCost += ((performance.now() - js0) - jsCost) * 0.1;   // JS cost: sim + scene update + draw submission (GPU time excluded)
     adapt(dt); benchTick(dt);
   }
   // attract mode behind the title: the bot plays a demo battle
@@ -281,26 +292,51 @@
   }
   KM.game = { sim, render, audio, startRun, jumpTo, stress, showcase, get glLost() { return glLost; }, setPause, get state() { return state; }, save, persist };
   // ---------- on-device benchmark (?bench=1): tiers of crowd size, FPS / frame-time spread / heap ----------
-  const bench = { on: Q.has('bench'), tiers: [['EARLY', 100], ['MEDIUM', 400], ['HEAVY', 900], ['EXTREME', 1600]], ti: -1, t: 0, ft: [], out: [] };
+  // ---------- on-device benchmark (?bench=1): four crowd stages → numbers + recommended quality ----------
+  const bench = { on: Q.has('bench'), tiers: [['EARLY', 100], ['MEDIUM', 400], ['HEAVY', 900], ['EXTREME', 1600]], ti: -1, t: 0, ft: [], js: [], tri: 0, calls: 0, out: [], secs: Math.max(1, Math.min(30, +(Q.get('benchSecs') || 15))) };
+  if (bench.on && !Q.get('quality')) { quality = 'high'; render.applyQuality('high'); }   // measure the heaviest tier; the recommendation steps down from it
   function benchTick(dt) {
     if (!bench.on || state !== 'run') return;
-    bench.t += dt; if (bench.ti >= 0 && bench.t > 3) bench.ft.push(dt * 1000);
-    if (bench.ti < 0 || bench.t > 15) {
-      if (bench.ti >= 0) { const f = bench.ft.slice().sort((a, b) => a - b), avg = f.reduce((a, b) => a + b, 0) / Math.max(1, f.length), p = q => f[Math.min(f.length - 1, Math.floor(f.length * q))] || 0;
-        bench.out.push({ tier: bench.tiers[bench.ti][0], units: sim.count[0] + sim.count[1], fps: +(1000 / avg).toFixed(1), p50: +p(0.5).toFixed(1), p95: +p(0.95).toFixed(1), p99: +p(0.99).toFixed(1), heapMB: performance.memory ? +(performance.memory.usedJSHeapSize / 1e6).toFixed(0) : null, dpr: +render.R.getPixelRatio().toFixed(2) }); }
-      bench.ti++; bench.t = 0; bench.ft = [];
+    bench.t += dt; if (bench.ti >= 0 && bench.t > bench.secs * 0.2) { bench.ft.push(rawMs); bench.js.push(jsCost); const ri = render.R.info.render; bench.tri = Math.max(bench.tri, ri.triangles); bench.calls = Math.max(bench.calls, ri.calls); }
+    if (bench.ti < 0 || bench.t > bench.secs) {
+      if (bench.ti >= 0) bench.out.push(KM.benchStage(bench.tiers[bench.ti][0], sim.count[0] + sim.count[1], bench.ft, bench.js, bench.tri, bench.calls, performance.memory ? performance.memory.usedJSHeapSize : null));
+      bench.ti++; bench.t = 0; bench.ft = []; bench.js = []; bench.tri = 0; bench.calls = 0;
       if (bench.ti >= bench.tiers.length) { bench.on = false; showBench(); return; }
       sim.L.inv = 1e9; sim.budget = 0; const want = bench.tiers[bench.ti][1], have = sim.count[0] + sim.count[1]; if (want > have) stress(want - have);
-      banner('BENCH · ' + bench.tiers[bench.ti][0], 1.5);
+      banner('TESTING ' + bench.tiers[bench.ti][1] + ' UNITS · ' + (bench.ti + 1) + '/4', 2);
     }
-    sim.L.inv = 1e9; const want = bench.tiers[bench.ti][1], have = sim.count[0] + sim.count[1]; if (have < want * 0.8) stress(Math.min(200, want - have));
+    sim.L.inv = 1e9; const want = bench.tiers[bench.ti][1], have = sim.count[0] + sim.count[1]; if (have < want * 0.85) stress(Math.min(200, want - have));
   }
   function showBench() {
-    const info = { ua: navigator.userAgent, screen: screen.width + 'x' + screen.height, dpr: devicePixelRatio, gpu: (() => { try { const gl = render.R.getContext(), e = gl.getExtension('WEBGL_debug_renderer_info'); return e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : 'n/a'; } catch (x) { return 'n/a'; } })() };
-    const txt = JSON.stringify({ build: 'kmob', info, results: bench.out }, null, 1); console.log(txt); KM.benchResult = { info, results: bench.out };
-    const d = document.createElement('div'); d.className = 'screen'; d.innerHTML = `<div class="panel"><h2 class="disp" style="margin:0 0 8px">BENCH RESULTS</h2><div class="stats">${bench.out.map(r => `<div><span>${r.tier} · ${r.units} units</span><b>${r.fps} fps</b></div><div style="font-size:12px;opacity:.75">frame p50 ${r.p50}ms · p95 ${r.p95}ms · p99 ${r.p99}ms${r.heapMB ? ' · heap ' + r.heapMB + 'MB' : ''}</div>`).join('')}</div><textarea style="width:100%;height:90px;font:10px monospace" readonly>${txt}</textarea><button class="btn" id="benchCopy" style="margin-top:8px">COPY RESULTS</button></div>`;
-    document.body.appendChild(d); d.querySelector('#benchCopy').onclick = () => { try { navigator.clipboard.writeText(txt); } catch (e) { /* ignore */ } d.querySelector('textarea').select(); };
-    Analytics.track('bench', { results: bench.out });
+    const gl = render.R.getContext(), gpu = (() => { try { const e = gl.getExtension('WEBGL_debug_renderer_info'); return e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : 'n/a'; } catch (x) { return 'n/a'; } })();
+    const info = { ua: navigator.userAgent, gpu, screen: screen.width + 'x' + screen.height, viewport: innerWidth + 'x' + innerHeight, render: gl.drawingBufferWidth + 'x' + gl.drawingBufferHeight, dpr: +render.R.getPixelRatio().toFixed(2), deviceDpr: devicePixelRatio, quality: render.quality, bloom: !!render.bloomOn, cores: navigator.hardwareConcurrency || null };
+    const rec = KM.recommendQuality(bench.out); try { localStorage.setItem('kmob.quality', rec); } catch (e) { /* ignore */ }
+    const result = { kmob: 'bench', version: 2, when: new Date().toISOString(), info, recommended: rec.toUpperCase(), results: bench.out };
+    const txt = JSON.stringify(result, null, 1); KM.benchResult = result; console.log(txt);
+    const row = r => `<div><span>${r.units} units</span><b>${r.fps} fps</b></div><div style="font-size:12px;opacity:.8;display:block">avg ${r.avgMs} ms · 1% low ${r.low1} fps · worst ${r.worstMs} ms · ${Math.round(r.tris / 1000)}k tris · ${r.calls} calls · JS ${r.jsMs} ms${r.heapMB ? ' · ' + r.heapMB + ' MB' : ''}</div>`;
+    const d = document.createElement('div'); d.className = 'screen'; d.id = 'benchScreen';
+    d.innerHTML = `<div class="panel"><h2 class="disp" style="margin:0;text-align:center;font-size:30px">TEST COMPLETE</h2>
+      <div style="text-align:center;margin:6px 0 10px;font-weight:900">Recommended quality: <span class="disp" style="color:var(--gold);font-size:22px">${rec.toUpperCase()}</span></div>
+      <button class="btn" id="benchCopy" style="font-size:30px;padding:18px">COPY RESULTS</button>
+      <div style="text-align:center;font-size:12px;opacity:.8;margin:8px 0">Then paste them back into the chat. That's all.</div>
+      <div class="stats">${bench.out.map(row).join('')}</div>
+      <div style="font-size:11px;opacity:.7">${info.render} @ ${info.dpr}x · ${info.quality} · ${gpu}</div>
+      <textarea id="benchTxt" style="width:100%;height:70px;font:10px monospace;margin-top:8px" readonly>${txt}</textarea></div>`;
+    document.body.appendChild(d);
+    const copy = () => { const ta = d.querySelector('#benchTxt'); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) { /* ignore */ } try { navigator.clipboard.writeText(txt).then(() => { d.querySelector('#benchCopy').textContent = 'COPIED ✓'; }); } catch (e) { /* ignore */ } if (ok) d.querySelector('#benchCopy').textContent = 'COPIED ✓'; };
+    d.querySelector('#benchCopy').onclick = copy;
+    state = 'bench-done'; Analytics.track('bench', result);
+  }
+  // ---------- ?playtest=1: per-run summary + three yes/no questions + COPY PLAYTEST ----------
+  const PT = { on: Q.has('playtest'), picks: [], runNo: 0 };
+  sim.on((t, a) => { if (t === 'upgrade' && PT.on) PT.picks.push(a.title + (a.val ? ' ' + a.val : '')); });
+  function showPlaytest(r) {
+    if (!PT.on) return; const ans = {}; const box = document.createElement('div'); box.id = 'ptBox'; box.className = 'stats'; box.style.marginTop = '10px';
+    const q = (k, label) => `<div style="display:flex;gap:6px;align-items:center"><span style="flex:1;font-size:13px">${label}</span><button class="btn sec pt" data-k="${k}" data-v="1" style="width:auto;font-size:14px;padding:6px 12px">YES</button><button class="btn sec pt" data-k="${k}" data-v="0" style="width:auto;font-size:14px;padding:6px 12px">NO</button></div>`;
+    box.innerHTML = `<div style="font-weight:900;font-size:13px;display:block">PLAYTEST · run ${PT.runNo} · ${PT.picks.length} upgrades</div>` + q('easy', 'Was it easy to understand?') + q('fair', 'Did the death feel fair?') + q('again', 'Would you play again immediately?') + `<button class="btn" id="ptCopy" style="margin-top:8px;font-size:20px">COPY PLAYTEST</button>`;
+    $('oStats').after(box);
+    box.querySelectorAll('.pt').forEach(b => b.onclick = () => { ans[b.dataset.k] = b.dataset.v === '1'; box.querySelectorAll(`.pt[data-k="${b.dataset.k}"]`).forEach(x => x.style.outline = x === b ? '3px solid #7dff6a' : 'none'); });
+    box.querySelector('#ptCopy').onclick = () => { const rep = KM.playtestReport({ ...r, picks: PT.picks }, ans, { runNo: PT.runNo, ua: navigator.userAgent }); KM.lastPlaytest = rep; const t = rep.text + '\n' + JSON.stringify(rep); try { navigator.clipboard.writeText(t); } catch (e) { /* ignore */ } const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) { /* ignore */ } ta.remove(); box.querySelector('#ptCopy').textContent = 'COPIED ✓'; };
   }
   if (Q.has('autoplay') || bench.on) startRun(); else goTitle();
   requestAnimationFrame(loop);

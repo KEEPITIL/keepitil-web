@@ -138,4 +138,31 @@ const run = (sim, secs, bot) => { for (let k = 0; k < secs * 60 && sim.alive; k+
   ok('restart clears structures', (() => { const q = mk(); q.coins = 1e6; q.t = 200; q.offer = [{ id: 'wall:wall' }]; q.pick(0); q.reset({ seed: 1 }); return q.walls.length === 0 && q.towers.every(x => !x); })());
 }
 
+// --- quality tiers, benchmark stats, playtest report, battlefield edge modules ---
+{
+  ok('desktop auto-detects HIGH, phones MEDIUM, weak phones LOW', KM.detectQuality({ ua: 'Mozilla/5.0 (Macintosh)', cores: 8 }) === 'high' && KM.detectQuality({ ua: 'iPhone', cores: 6, touch: true }) === 'medium' && KM.detectQuality({ ua: 'Android Mobile', cores: 2 }) === 'low');
+  ok('stored benchmark recommendation wins over heuristics', KM.detectQuality({ ua: 'iPhone', stored: 'high' }) === 'high' && KM.detectQuality({ ua: 'Macintosh', stored: 'low', cores: 8 }) === 'low');
+  ok('quality tiers step down high → medium → low', KM.nextLowerQuality('high') === 'medium' && KM.nextLowerQuality('medium') === 'low' && KM.nextLowerQuality('low') === 'low');
+  ok('tiers shrink budgets monotonically', KM.QUALITY.high.lodNear > KM.QUALITY.medium.lodNear && KM.QUALITY.medium.lodNear > KM.QUALITY.low.lodNear && KM.QUALITY.low.shadows === false && !KM.QUALITY.medium.bloom && KM.QUALITY.high.bloom);
+  const st = (e, m, h, x) => [{ tier: 'EARLY', fps: e }, { tier: 'MEDIUM', fps: m }, { tier: 'HEAVY', fps: h }, { tier: 'EXTREME', fps: x }];
+  ok('recommendation HIGH / MEDIUM / LOW thresholds', KM.recommendQuality(st(60, 60, 58, 45)) === 'high' && KM.recommendQuality(st(60, 58, 45, 24)) === 'medium' && KM.recommendQuality(st(50, 35, 20, 12)) === 'low');
+  const frames = Array.from({ length: 200 }, (_, i) => i === 199 ? 80 : i > 196 ? 40 : 16.67), b = KM.benchStage('HEAVY', 900, frames, [4, 5, 6], 512000, 108, 64e6);
+  ok('bench stage: avg fps, 1% low, worst frame, tris, calls, JS, memory', Math.abs(b.fps - 57.4) < 2 && b.low1 < 25 && b.worstMs === 80 && b.tris === 512000 && b.calls === 108 && b.jsMs === 5 && b.heapMB === 64 && b.units === 900, b);
+  const pr = KM.playtestReport({ time: 312, reason: 'breach', peakArmy: 88, coins: 340, kills: 900, picks: ['ARMY SIZE +12', 'BUILD ARROW TOWER NEW'] }, { easy: true, fair: false, again: true }, { runNo: 3, when: 'T' });
+  ok('playtest report captures run + three answers', pr.survival === '5:12' && pr.death === 'breach' && pr.upgrades.length === 2 && pr.easyToUnderstand === 'YES' && pr.deathFair === 'NO' && pr.playAgain === 'YES' && /survived 5:12/.test(pr.text));
+  ok('playtest report tolerates unanswered questions', KM.playtestReport({ time: 5 }, {}, {}).deathFair === '—');
+  // edges: playable lane always flat, start area open, masks continuous, river and cliff never both strong on one side
+  let laneFlat = true, startOpen = true, both = false, jump = 0, prev = null;
+  for (let z = 0; z > -20000; z -= 3.7) for (const sd of [-1, 1]) {
+    const e = KM.edgeAt(sd, z); if (e.river > 0.6 && e.cliff > 0.6) both = true; if (z > -30 && (e.river > 0 || e.cliff > 0)) startOpen = false;
+    for (const x of [0, 4, 8, 9.4, 10]) if (Math.abs(KM.edgeHeight(sd * x, z, 0.5, 'field')) > 0.01) laneFlat = false;
+    if (sd === 1) { if (prev) jump = Math.max(jump, Math.abs(e.river - prev.river), Math.abs(e.cliff - prev.cliff)); prev = e; } }
+  ok('playable lane stays flat beside every edge module', laneFlat);
+  ok('start area is open meadow (no cliffs/water near the launch)', startOpen);
+  ok('a side never has a strong river and a strong cliff at once', !both);
+  ok('edge masks change smoothly (no seams between streamed chunks)', jump < 0.25, jump);
+  let rivers = 0, cliffs = 0; for (let z = -100; z > -12000; z -= 50) { const e = KM.edgeAt(1, z); if (e.river > 0.6) rivers++; if (e.cliff > 0.6) cliffs++; }
+  ok('rivers and cliffs both recur along the endless road', rivers > 10 && cliffs > 10, { rivers, cliffs });
+}
+
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

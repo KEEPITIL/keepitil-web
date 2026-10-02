@@ -18,20 +18,25 @@ games/kmob/
   js/assets.js        production GLB character loader (part-by-part swap-in, validation, fallback)
   assets/manifest.json            points at the production character GLB (null = procedural)
   assets/template/kmob-parts-template.glb   every part on its pivot, for the artist to model over
-  tests/kmob.test.js        48 sim/economy/save/structures/soak tests  node tests/kmob.test.js
+  tests/kmob.test.js        61 sim/economy/save/structures/quality/edges/soak  node tests/kmob.test.js
   tests/anim.test.js        24 animation/LOD tests                     node tests/anim.test.js
-  tests/browser.test.js     27 rendering/assets/framing/memory tests   PW=<playwright> node tests/browser.test.js
+  tests/browser.test.js     37 rendering/assets/atlas/clips/tiers/bench/playtest/framing  PW=<playwright> node tests/browser.test.js
   tests/acceptance-shots.js the 20-shot acceptance set + 4 escalation shots, mobile + desktop
   tests/export-template.js  regenerates the artist template GLB
   docs/shots/         acceptance captures (git-ignored here; committed in KEEPITIL/thirteen games/kmob/docs/shots)
   docs/DEVICE-TEST.md how to measure on a real iPhone
   docs/CHARACTER-ASSET-SPEC.md   the contract for hand-modelled production characters
   docs/MILESTONE-3.md            status report for the production/visual milestone
+  docs/MILESTONE-4.md            Track A report (atlas/material/clip pipeline, environment, lighting, tiers, bench, playtest)
+  assets/characters/…            drop folders per unit (README lists the part names)
+  vendor/post/                   bloom post-processing (loaded only on the HIGH tier when allowed)
 ```
 
 **URL flags**
 - `?debug=1`: FPS readout plus a panel to jump to minute 1, 5, 10, 30, 60 or 120, spawn 500/1000/2000-unit stress tests, and toggle bot or god mode.
-- `?bench=1`: on-device benchmark. See `docs/DEVICE-TEST.md`.
+- `?bench=1`: on-device benchmark → COPY RESULTS + recommended quality. See `docs/DEVICE-TEST.md`.
+- `?playtest=1`: after each run, a summary + 3 yes/no questions + COPY PLAYTEST.
+- `?quality=high|medium|low`: force a graphics tier (otherwise auto / benchmark recommendation). `?bloom=1` allows bloom on HIGH.
 - `?autoplay=1`: start a run straight away.
 - `?bot=1`: autopilot.
 - `?revive=1`: show the revive hook. No ads are wired to it.

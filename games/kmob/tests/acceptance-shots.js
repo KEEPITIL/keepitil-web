@@ -55,6 +55,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await reset(); await E(() => { const s = KM.game.sim; s.t = 660; s.front = -(KM.BIOME_LEN * KM.W.CHUNK) + 38; }); await run(5, { noOffer: true }); await shot('19-biome-transition', 4000);
     // escalation: minute 1 / 5 / 15 / 30
     for (const m of [1, 5, 15, 30]) { await reset(); await E(m => { const g = KM.game; if (m > 1) g.jumpTo(m); }, m); await run(m > 1 ? 30 : 60, { noOffer: true }); await shot(`E-minute-${String(m).padStart(2, '0')}`, 3200); }
+    // environment acceptance (road edges / cliffs / water / foliage / lighting / depth / large clash)
+    const envAt = async (name, pred, extra) => { await reset();
+      const zz = await p.evaluate(src => { const f = eval(src); for (let z = -80; z > -12000; z -= 7) if (f(KM.edgeAt(-1, z), KM.edgeAt(1, z))) return z; return -300; }, pred);
+      await E(([zz, extra]) => { const s = KM.game.sim; s.t = extra.t || 200; s.front = zz + 16; }, [zz, extra || {}]); await run(extra && extra.secs || 8, { noOffer: true }); if (extra && extra.fill) await fill(extra.fill); if (extra && extra.fill) await run(1.2, { noOffer: true }); await shot(name, 3600); };
+    await envAt('ENV-1-road-edges', '(L, R) => L.cliff > 0.5 && R.river > 0.5');
+    await envAt('ENV-2-cliffs', '(L, R) => L.cliff > 0.9 && R.cliff > 0.7');
+    await envAt('ENV-3-water', '(L, R) => R.river > 0.95');
+    await envAt('ENV-4-foliage', '(L, R) => L.river < 0.1 && L.cliff < 0.1 && R.river < 0.1 && R.cliff < 0.1');
+    await envAt('ENV-5-lighting', '(L, R) => L.river > 0.6', { t: 1500 });
+    await envAt('ENV-6-depth', '(L, R) => R.cliff > 0.8 && L.river > 0.5');
+    await envAt('ENV-7-large-clash', '(L, R) => L.cliff > 0.6 || R.river > 0.6', { t: 600, fill: 1300 });
     // 20 results
     await reset(); await run(80, { god: false }); await E(() => { const s = KM.game.sim; if (s.alive) { s.L.inv = 0; s.hurtLauncher(1e9, 'breach'); } }); await shot('20-results', 4500);
     console.log(view, 'errors:', errs.length ? errs.slice(0, 5) : 'none'); await p.close();

@@ -168,6 +168,48 @@
     return out;
   };
 
+  // ---------- Graphics quality tiers (auto-detected, benchmark-recommended) ----------
+  KM.QUALITY = {
+    high:   { dpr: 2,    shadows: true,  shadowMap: 2048, lodNear: 120, lodMid: 450, fx: 1.0,  glow: 1.0, bloom: true },
+    medium: { dpr: 1.5,  shadows: true,  shadowMap: 1024, lodNear: 80,  lodMid: 300, fx: 0.6,  glow: 1.25, bloom: false },
+    low:    { dpr: 1.0,  shadows: false, shadowMap: 512,  lodNear: 40,  lodMid: 160, fx: 0.3,  glow: 1.1, bloom: false },
+  };
+  // initial tier without any measurement: stored benchmark recommendation > desktop high > phones medium
+  KM.detectQuality = function (env) {
+    if (env.stored && KM.QUALITY[env.stored]) return env.stored;
+    if (env.forced && KM.QUALITY[env.forced]) return env.forced;
+    const mobile = /iPhone|iPad|Android|Mobile/i.test(env.ua || '') || (env.touch && env.minSide < 900);
+    if (!mobile) return (env.cores || 4) >= 4 ? 'high' : 'medium';
+    return (env.cores || 4) <= 2 ? 'low' : 'medium';
+  };
+  // Benchmark → recommendation. results = [{tier:'EARLY'|'MEDIUM'|'HEAVY'|'EXTREME', fps, low1}]
+  KM.recommendQuality = function (results) {
+    const f = n => { const r = results.find(x => x.tier === n); return r ? r.fps : 0; };
+    const e = f('EARLY'), m = f('MEDIUM'), h = f('HEAVY'), x = f('EXTREME');
+    if (h >= 55 && x >= 40) return 'high';
+    if (m >= 50 && h >= 38) return 'medium';
+    return 'low';
+  };
+  // One benchmark stage from per-frame samples (ms). 1% low = fps of the slowest 1% of frames.
+  KM.benchStage = function (tier, units, frames, js, tris, calls, heap) {
+    const f = frames.slice().sort((a, b) => a - b), n = f.length || 1, avg = f.reduce((a, b) => a + b, 0) / n;
+    const worst1 = f.slice(Math.floor(n * 0.99)); const low1Ms = worst1.length ? worst1.reduce((a, b) => a + b, 0) / worst1.length : avg;
+    const jsAvg = js.length ? js.reduce((a, b) => a + b, 0) / js.length : 0, r1 = x => Math.round(x * 10) / 10;
+    return { tier, units, frames: f.length, fps: r1(1000 / Math.max(avg, 0.001)), low1: r1(1000 / Math.max(low1Ms, 0.001)), avgMs: r1(avg), worstMs: r1(f[f.length - 1] || 0), p95: r1(f[Math.floor(n * 0.95)] || 0), tris: tris | 0, calls: calls | 0, jsMs: r1(jsAvg), heapMB: heap ? Math.round(heap / 1e6) : null };
+  };
+  KM.nextLowerQuality = q => q === 'high' ? 'medium' : 'low';
+
+  // ---------- Playtest summary (human feedback without analytics infrastructure) ----------
+  KM.playtestReport = function (run, answers, meta) {
+    const yn = v => v === true ? 'YES' : v === false ? 'NO' : '—';
+    const r = { kmob: 'playtest', when: (meta && meta.when) || new Date().toISOString(), run: (meta && meta.runNo) || null,
+      survival: KM.fmtTime(run.time), seconds: Math.floor(run.time), death: run.reason || 'unknown', peakArmy: run.peakArmy, coins: run.coins, kills: run.kills,
+      upgrades: (run.picks || []).slice(0, 60), easyToUnderstand: yn(answers.easy), deathFair: yn(answers.fair), playAgain: yn(answers.again), device: (meta && meta.ua) || '' };
+    r.text = `KMOB playtest #${r.run || '?'} — survived ${r.survival} (${r.death}); peak army ${r.peakArmy}; coins ${r.coins}; kills ${r.kills}\n` +
+      `upgrades: ${r.upgrades.join(', ') || 'none'}\nEasy to understand: ${r.easyToUnderstand} · Death fair: ${r.deathFair} · Play again: ${r.playAgain}`;
+    return r;
+  };
+
   // ---------- Tokens (rare, persistent) ----------
   KM.tokensFor = (tSec, kills) => Math.floor(Math.sqrt(Math.max(0, tSec) / 40)) + Math.floor(kills / 1500);
 
@@ -249,6 +291,27 @@
     const kinds = ['field', 'field', 'forest', 'ruins', 'bridge', 'canyon'];
     const r = KM.rng(i * 9301 + 49297);
     return { i, z1: -i * KM.W.CHUNK, z0: -(i + 1) * KM.W.CHUNK, biome: ((b % KM.BIOMES.length) + KM.BIOMES.length) % KM.BIOMES.length, next: (((b + 1) % KM.BIOMES.length) + KM.BIOMES.length) % KM.BIOMES.length, blend: into > 0.8 ? (into - 0.8) / 0.2 : 0, kind: i < 2 && i > -3 ? 'field' : kinds[Math.floor(r() * kinds.length)], seed: Math.floor(r() * 1e9) };
+  };
+  // ---------- Battlefield edges (visual only): world-space masks so cliffs/rivers flow seamlessly across chunks ----------
+  const hash1 = x => { const s = Math.sin(x * 127.1) * 43758.5453; return s - Math.floor(s); };
+  const vnoise1 = x => { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return hash1(i) * (1 - u) + hash1(i + 1) * u; };
+  const sstep = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  // side: -1 left, +1 right. Returns 0..1 strengths; never both strong on one side; the start area stays open meadow.
+  KM.edgeAt = function (side, wz) {
+    const d = Math.max(0, -wz), open = sstep(30, 70, d);
+    const river = sstep(0.4, 0.74, vnoise1(d * 0.0075 + (side > 0 ? 3.7 : 17.3))) * open;
+    const cliff = sstep(0.4, 0.72, vnoise1(d * 0.009 + (side > 0 ? 41.1 : 59.9))) * (1 - river) * open;
+    return { river, cliff };
+  };
+  // Terrain height beside the lane (the lane itself, |x| < 10.2, is always flat and playable).
+  KM.edgeHeight = function (x, wz, n, kind) {
+    const ax = Math.abs(x), side = x < 0 ? -1 : 1, e = KM.edgeAt(side, wz), canyon = kind === 'canyon';
+    let h = 0; const edge = canyon ? 11 : 12.5;
+    if (ax > edge) h = Math.pow((ax - edge) / 8, 1.4) * (canyon ? 9 : 4.5) * (0.6 + n);
+    const cl = Math.max(e.cliff, canyon ? 0.85 : 0);
+    if (cl > 0 && ax > 10.5) h += cl * (sstep(10.7, 12.0, ax) * (3.6 + n * 2.4) + sstep(14, 18, ax) * 2.6);      // wall just past the fence + upper shelf
+    if (e.river > 0 && ax > 10.5) h = h * (1 - e.river) + e.river * (-1.25 * sstep(10.7, 11.6, ax) * (1 - sstep(15.6, 17.4, ax)) + sstep(16.5, 21, ax) * (2 + n * 2));
+    return h;
   };
   // Which chunk indices must be live for a given front position (always contiguous).
   KM.chunksFor = function (frontZ) {

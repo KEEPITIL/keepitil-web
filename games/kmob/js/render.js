@@ -86,8 +86,25 @@
       g.fillStyle = gr; g.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); return t;
     }
 
+    // Quality tier: pixel ratio, shadows, animated-unit budgets, VFX density, emissive glow, optional bloom.
+    applyQuality(name) {
+      const Q = KM.QUALITY[name] || KM.QUALITY.medium; this.quality = name; this.Q = Q;
+      this.dpr = Math.min(window.devicePixelRatio || 1, Q.dpr); this.R.setPixelRatio(this.dpr);
+      this.R.shadowMap.enabled = Q.shadows; this.sun.castShadow = Q.shadows;
+      if (this.sun.shadow.mapSize.x !== Q.shadowMap) { this.sun.shadow.mapSize.set(Q.shadowMap, Q.shadowMap); if (this.sun.shadow.map) { this.sun.shadow.map.dispose(); this.sun.shadow.map = null; } }
+      this.lodNear = Q.lodNear; this.lodMid = Q.lodMid; this.fxScale = Q.fx; this.glow = Q.glow; KM.glowLevel = Q.glow;
+      this.scene.traverse(o => { const m = o.material; if (m && m.userData && m.userData.shader && m.userData.shader.uniforms.uGlow) m.userData.shader.uniforms.uGlow.value = Q.glow; });
+      this.setBloom(Q.bloom && (KM.bloomAllowed || false));
+      this.resize(); return Q;
+    }
+    setBloom(on) {
+      this.bloomOn = !!on; if (!on || this.composer) return;
+      if (!THREE.EffectComposer) { if (!this.bloomLoading) { this.bloomLoading = true; KM.loadScripts(['vendor/post/CopyShader.js', 'vendor/post/LuminosityHighPassShader.js', 'vendor/post/EffectComposer.js', 'vendor/post/RenderPass.js', 'vendor/post/ShaderPass.js', 'vendor/post/UnrealBloomPass.js']).then(() => this.setBloom(this.bloomOn)).catch(() => { this.bloomOn = false; }); } return; }
+      const c = this.composer = new THREE.EffectComposer(this.R); c.addPass(new THREE.RenderPass(this.scene, this.cam));
+      this.bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.5, 0.82); c.addPass(this.bloomPass); this.resize();
+    }
     resize() {
-      const w = innerWidth, h = innerHeight; this.R.setSize(w, h, false); this.cam.aspect = w / h; this.cam.updateProjectionMatrix(); this.aspect = w / h;
+      const w = innerWidth, h = innerHeight; this.R.setSize(w, h, false); if (this.composer) { this.composer.setPixelRatio(this.R.getPixelRatio()); this.composer.setSize(w, h); } this.cam.aspect = w / h; this.cam.updateProjectionMatrix(); this.aspect = w / h;
     }
 
     // ---------- crowd ----------
@@ -225,7 +242,23 @@
       this.groundMat = new THREE.MeshLambertMaterial({ vertexColors: true });
       this.decoMat = new THREE.MeshLambertMaterial({ vertexColors: true });
       this.farMat = new THREE.MeshLambertMaterial({ vertexColors: true, fog: true });
-      this.waterMat = new THREE.MeshLambertMaterial({ color: 0x3fa9e0, transparent: true, opacity: 0.85 });
+      // cheap animated water: Lambert + scrolling procedural ripples and sparkle bands (no textures, no extra passes)
+      this.waterGeo = new THREE.PlaneGeometry(7.6, W.CHUNK, 4, 8).rotateX(-Math.PI / 2);
+      this.waterMat = new THREE.MeshLambertMaterial({ color: 0x3aa6e6, transparent: true, opacity: 0.9, depthWrite: false });
+      this.waterU = { uTime: { value: 0 } };
+      this.waterMat.onBeforeCompile = sh => { sh.uniforms.uTime = this.waterU.uTime;
+        sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;').replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWp = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;\nuniform float uTime;')
+          .replace('#include <dithering_fragment>', `#include <dithering_fragment>
+            float w1 = sin(vWp.z * 1.3 + uTime * 2.2 + sin(vWp.x * 2.1) * 1.4), w2 = sin(vWp.z * 2.9 - uTime * 1.3 + vWp.x * 1.7);
+            float edge = 1.0 - smoothstep(2.4, 3.7, abs(vWp.x - sign(vWp.x) * 13.7));
+            float spark = smoothstep(0.86, 0.98, w1 * 0.6 + w2 * 0.4);
+            gl_FragColor.rgb = mix(gl_FragColor.rgb * vec3(0.8, 0.95, 1.05), vec3(0.9, 0.98, 1.0), spark * 0.7) + vec3(0.06) * w2;
+            gl_FragColor.rgb = mix(vec3(0.85, 0.95, 1.0), gl_FragColor.rgb, edge * 0.85 + 0.15);`); };
+      this.fallGeo = new THREE.PlaneGeometry(2.6, 4.4, 1, 6);
+      this.fallMat = new THREE.MeshBasicMaterial({ color: 0xd6f2ff, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false });
+      this.fallMat.onBeforeCompile = sh => { sh.uniforms.uTime = this.waterU.uTime; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vU;').replace('#include <uv_vertex>', '#include <uv_vertex>\nvU = uv;');
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec2 vU;\nuniform float uTime;').replace('#include <dithering_fragment>', '#include <dithering_fragment>\n float st = sin(vU.x * 40.0 + sin(vU.x * 7.0) * 2.0) * 0.5 + 0.5; float fl = fract(vU.y * 3.0 + uTime * 1.6 + st * 0.3); gl_FragColor.rgb = mix(vec3(0.55, 0.82, 0.98), vec3(1.0), smoothstep(0.6, 1.0, fl) * 0.8 + st * 0.15); gl_FragColor.a *= 0.75 + 0.25 * st;'); };
       this.chunks = new Map();
       const D = (geo, color, mat) => part(geo, color, 0, mat);
 
@@ -243,6 +276,11 @@
         tuft: (c, s) => [0, 1, 2].map(k => D(new THREE.ConeGeometry(0.06, 0.35, 4), c, TRS(Math.cos(k * 2.1) * 0.08, 0.15 * s, Math.sin(k * 2.1) * 0.08, Math.cos(k * 2.1) * 0.3, 0, Math.sin(k * 2.1) * 0.3, s))),
         sign: () => [D(new THREE.CylinderGeometry(0.07, 0.08, 1.6, 6), 0x7a4e2c, T(0, 0.8, 0)), D(new THREE.BoxGeometry(1.1, 0.42, 0.08), 0xb07a46, T(0.2, 1.35, 0)), D(new THREE.BoxGeometry(0.9, 0.06, 0.09), 0xf2c14e, T(0.2, 1.35, 0.01)), D(new THREE.ConeGeometry(0.22, 0.3, 3), 0xb07a46, TRS(0.82, 1.35, 0, 0, 0, -Math.PI / 2))],
         tent: (c) => [D(new THREE.ConeGeometry(1.4, 1.8, 4), c, TRS(0, 0.9, 0, 0, Math.PI / 4, 0)), D(new THREE.BoxGeometry(0.5, 0.9, 0.05), 0x2a2018, T(0, 0.45, 1.0)), D(new THREE.CylinderGeometry(0.04, 0.04, 2.4, 5), 0x7a4e2c, T(0, 1.2, 0)), D(new THREE.BoxGeometry(0.03, 0.3, 0.45), 0xf2c14e, T(0, 2.2, 0.23))],
+        brokenBridge: () => { const L = []; for (const x of [-3.4, -1.6]) { L.push(D(new THREE.BoxGeometry(0.4, 1.8, 0.4), 0x7a4e2c, T(x, 0.2, -1.1))); L.push(D(new THREE.BoxGeometry(0.4, 1.8, 0.4), 0x7a4e2c, T(x, 0.2, 1.1))); }
+          for (let k = 0; k < 6; k++) L.push(D(new THREE.BoxGeometry(0.5, 0.12, 2.6), k % 2 ? 0xa06a3c : 0x8a5a33, TRS(-3.6 + k * 0.48, 0.55 - k * 0.05 - (k > 3 ? (k - 3) * 0.25 : 0), 0, 0, 0, k > 3 ? -0.35 : 0)));
+          L.push(D(new THREE.BoxGeometry(2.6, 0.1, 0.1), 0x6a4426, TRS(-2.6, 1.0, -1.15, 0, 0, -0.08))); L.push(D(new THREE.BoxGeometry(2.6, 0.1, 0.1), 0x6a4426, TRS(-2.6, 1.0, 1.15, 0, 0, -0.08))); return L; },
+        wreck: () => [D(new THREE.BoxGeometry(1.8, 0.25, 0.9), 0x7a4e2c, TRS(0, 0.35, 0, 0, 0, 0.25)), D(new THREE.CylinderGeometry(0.42, 0.42, 0.12, 10), 0x5a3a22, TRS(-0.8, 0.42, 0.55, Math.PI / 2, 0, 0)), D(new THREE.CylinderGeometry(0.42, 0.42, 0.12, 10), 0x5a3a22, TRS(0.6, 0.15, -0.6, 0.3, 0, 1.4)),
+          D(new THREE.BoxGeometry(0.14, 1.6, 0.14), 0x8a5a33, TRS(0.3, 0.9, 0, 0, 0, -0.9)), D(new THREE.BoxGeometry(0.5, 0.4, 0.4), 0xd83a3a, TRS(-0.2, 0.6, 0.1, 0.2, 0.4, 0)), D(new THREE.SphereGeometry(0.22, 8, 6), 0x34363f, T(0.9, 0.22, 0.4))],
         stoneRail: () => [D(new THREE.BoxGeometry(0.5, 0.8, 2.2), 0xb8b0a0, T(0, 0.4, 1.1))],
       };
     }
@@ -252,33 +290,37 @@
     buildChunk(i) {
       const plan = KM.chunkPlan(i), CH = W.CHUNK, g = new THREE.Group(); g.userData.plan = plan;
       const grass = this.biomeCol(plan, 'grass'), grass2 = this.biomeCol(plan, 'grass2'), dirt = this.biomeCol(plan, 'dirt'), rock = this.biomeCol(plan, 'rock'), treeC = this.biomeCol(plan, 'tree');
-      const geo = new THREE.PlaneGeometry(76, CH, 38, 12); geo.rotateX(-Math.PI / 2);
+      const geo = new THREE.PlaneGeometry(80, CH, 64, 16); geo.rotateX(-Math.PI / 2);
       const p = geo.attributes.position, cols = new Float32Array(p.count * 3), tmp = new C();
-      const canyon = plan.kind === 'canyon', bridge = plan.kind === 'bridge';
+      const canyon = plan.kind === 'canyon', bridge = plan.kind === 'bridge', zc = (plan.z0 + plan.z1) / 2;
+      const hFn = (x, wz) => KM.edgeHeight(x, wz, fbm(x * 0.15, wz * 0.15), plan.kind) + (fbm(x * 0.15, wz * 0.15) - 0.5) * 0.25 * (Math.abs(x) > 10 ? 1 : 0.3);
+      for (let k = 0; k < p.count; k++) p.setY(k, hFn(p.getX(k), zc + p.getZ(k)));
+      geo.computeVertexNormals(); const nrm = geo.attributes.normal;
+      const sand = new C(0xe6d29a), moss = grass2.clone().offsetHSL(0, 0.05, -0.08);
       for (let k = 0; k < p.count; k++) {
-        const x = p.getX(k), lz = p.getZ(k), wz = (plan.z0 + plan.z1) / 2 + lz, ax = Math.abs(x);
-        const n = fbm(x * 0.15, wz * 0.15);
-        let h = 0; const edge = canyon ? 11 : 12.5;
-        if (ax > edge) h = Math.pow((ax - edge) / 8, 1.4) * (canyon ? 9 : 4.5) * (0.6 + n);
-        if (bridge && ax > 10.4 && ax < 16) h = -1.2;
-        h += (n - 0.5) * 0.25 * (ax > 10 ? 1 : 0.3);
-        p.setY(k, h);
+        const x = p.getX(k), wz = zc + p.getZ(k), ax = Math.abs(x), h = p.getY(k), n = fbm(x * 0.15, wz * 0.15), ny = nrm.getY(k);
         const pathT = Math.max(0, Math.min(1, (7.4 - ax + (n - 0.5) * 2.2) / 2.4));
         tmp.copy(grass).lerp(grass2, noise(x * 0.4, wz * 0.4)); tmp.lerp(dirt, pathT * (0.85 + n * 0.15));
         if (pathT > 0.5) { const tr = Math.abs(Math.sin(wz * 0.9 + x * 0.2)) < 0.06 ? 0.08 : 0; tmp.offsetHSL(0, 0, -tr + (n - 0.5) * 0.06); }
-        if (h > 2.2 || (canyon && h > 1.2)) tmp.lerp(rock, Math.min(1, (h - 1.2) / 3));
+        if (ny < 0.72 && h > 0.6) { const strata = 0.92 + 0.12 * Math.sin(h * 3.1 + n * 2); tmp.copy(rock).multiplyScalar(strata).lerp(moss, Math.max(0, ny - 0.45)); }   // cliff faces with strata
+        else if (h > 3.2 && ny >= 0.72) tmp.lerp(moss, 0.35);                                                                                    // mossy cliff tops
+        if (h < -0.15) tmp.copy(sand).lerp(rock, Math.min(1, -h * 0.4));                                                                            // riverbed
+        else if (h < 0.2 && KM.edgeAt(x < 0 ? -1 : 1, wz).river > 0.3 && ax > 11) tmp.lerp(sand, 0.6);                                          // banks
         cols[k * 3] = tmp.r; cols[k * 3 + 1] = tmp.g; cols[k * 3 + 2] = tmp.b;
       }
-      geo.setAttribute('color', new THREE.BufferAttribute(cols, 3)); geo.computeVertexNormals();
-      const ground = new THREE.Mesh(geo, this.groundMat); ground.position.z = (plan.z0 + plan.z1) / 2; ground.receiveShadow = true; g.add(ground);
-      if (bridge) { const wtr = new THREE.Mesh(new THREE.PlaneGeometry(5.6, CH).rotateX(-Math.PI / 2), this.waterMat); [-13.2, 13.2].forEach(x => { const w = wtr.clone(); w.position.set(x, -0.6, ground.position.z); g.add(w); }); }
+      geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+      const ground = new THREE.Mesh(geo, this.groundMat); ground.position.z = zc; ground.receiveShadow = true; g.add(ground);
+      // water: one animated strip per side wherever a river runs (or the bridge kind), plus a waterfall now and then
+      const riverHere = [-1, 1].map(sd => Math.max(KM.edgeAt(sd, plan.z0).river, KM.edgeAt(sd, plan.z1).river, KM.edgeAt(sd, zc).river));
+      [-1, 1].forEach((sd, k) => { if (riverHere[k] > 0.05 || bridge) { const w = new THREE.Mesh(this.waterGeo, this.waterMat); w.position.set(sd * 13.7, -0.42, zc); g.add(w); if (riverHere[k] > 0.6 && (i % 3 === k)) { const fall = new THREE.Mesh(this.fallGeo, this.fallMat); fall.position.set(sd * 18.4, 1.6, zc - 4); fall.rotation.y = -sd * Math.PI / 2; g.add(fall); g.userData.fall = (g.userData.fall || []).concat([{ x: sd * 17.4, z: zc - 4 }]); } } });
       // decor
       const r = KM.rng(plan.seed), parts = [], add = (list, x, z, ry) => { const mm = TRS(x, 0, z, 0, ry || 0, 0); for (const q of list) parts.push(q.applyMatrix4(mm)); };
-      const hAt = (x, wz) => { const ax = Math.abs(x), n = fbm(x * 0.15, wz * 0.15), edge = canyon ? 11 : 12.5; return ax > edge ? Math.pow((ax - edge) / 8, 1.4) * (canyon ? 9 : 4.5) * (0.6 + n) : 0; };
+      const hAt = (x, wz) => hFn(x, wz);
       const dense = plan.kind === 'forest' ? 26 : plan.kind === 'canyon' ? 8 : 15;
       for (let k = 0; k < dense; k++) {
         const side = r() < 0.5 ? -1 : 1, x = side * r.range(11.5, 30), z = plan.z1 - r() * CH, y = hAt(x, z);
         const kind = plan.biome === 5 && r() < 0.6 ? 'crystal' : r() < 0.68 ? (r() < 0.6 ? 'tree' : 'round') : 'rock';
+        if (y < -0.1) continue;   // nothing grows in the river
         const L = this.deco[kind](kind === 'rock' ? rock.getHex() : kind === 'crystal' ? 0x7fe8ff : treeC.clone().offsetHSL((r() - 0.5) * 0.04, 0, (r() - 0.5) * 0.08).getHex(), r.range(0.8, 1.5));
         const mm = T(0, y - 0.1, 0); L.forEach(q => q.applyMatrix4(mm)); add(L, x, z, r() * 6.28);
       }
@@ -287,6 +329,12 @@
       for (let z = plan.z1; z > plan.z0 + 0.1; z -= 2) for (const sx of [-10.3, 10.3]) add(bridge ? this.deco.stoneRail() : this.deco.post(), sx, z - 2, 0);
       add(this.deco.banner(0x2f6dff), -10.9, plan.z1 - 4 - (i % 3) * 3, 0); add(this.deco.banner(0xd83a3a), 10.9, plan.z1 - 14 - (i % 2) * 4, Math.PI);
       for (let k = 0; k < 2; k++) { const side = r() < 0.5 ? -1 : 1, cx0 = side * r.range(11, 13), cz0 = plan.z1 - r() * CH; for (let j = 0; j < 3; j++) add(this.deco.rock(rock.getHex(), r.range(0.4, 0.9)), cx0 + (r() - 0.5) * 1.6, cz0 + (r() - 0.5) * 1.6, r() * 6); }
+      // edge modules: broken bridges over rivers, ruined walls on cliff shelves, abandoned siege pieces, distant peaks
+      for (const sd of [-1, 1]) { const zz = plan.z1 - r.range(4, CH - 4), e = KM.edgeAt(sd, zz);
+        if (e.river > 0.6 && r() < 0.55) add(this.deco.brokenBridge(), sd * 13.9, zz, sd > 0 ? 0 : Math.PI);
+        if (e.cliff > 0.6 && r() < 0.6) { const yy = hAt(sd * 13.2, zz); const L = this.deco.wall(0, r.range(0.7, 1.0)); const mm = T(0, yy - 0.1, 0); L.forEach(q => q.applyMatrix4(mm)); add(L, sd * 13.2, zz, Math.PI / 2 + r() * 0.3); }
+        if (e.cliff > 0.4) for (let k = 0; k < 3; k++) { const z2 = plan.z1 - r() * CH, x2 = sd * r.range(10.5, 11.2); add(this.deco.rock(rock.getHex(), r.range(0.5, 1.0)), x2, z2, r() * 6); }
+        if (e.river < 0.3 && e.cliff < 0.3 && r() < 0.18) add(this.deco.wreck(), sd * r.range(11.2, 12.4), zz, r() * 6); }
       // biome boundary: a great stone gate over the road announces the new region
       if (i > 0 && i % KM.BIOME_LEN === 0) { const gz = plan.z1 - 2, bc = new C(KM.BIOMES[plan.biome].tree).getHex(), P0 = (g, c, m) => part(g, c, 0, m);
         for (const sx of [-1, 1]) add([P0(new THREE.BoxGeometry(1.6, 7.5, 1.6), 0xcfc8b8, T(0, 3.75, 0)), P0(new THREE.BoxGeometry(2.0, 0.5, 2.0), 0xb8b0a0, T(0, 7.7, 0)), P0(new THREE.ConeGeometry(1.2, 1.4, 4), 0x2f6dff, TRS(0, 8.6, 0, 0, Math.PI / 4, 0)), P0(new THREE.BoxGeometry(0.08, 3.2, 1.3), bc, T(sx * -0.85, 4.5, 0)), P0(new THREE.BoxGeometry(0.1, 0.5, 0.5), 0xf2c14e, TRS(sx * -0.9, 5.2, 0, Math.PI / 4, 0, 0))], sx * 11.2, gz, 0);
@@ -306,18 +354,21 @@
         far.push(part(new THREE.IcosahedronGeometry(1, 1), hc.getHex(), 0, TRS(side * r.range(34, 52), -sz * 0.35, plan.z1 - r() * CH, r(), r(), 0, sz * 1.4, sz * r.range(0.5, 0.9), sz)));
         if (plan.biome === 3 || plan.biome === 1) far.push(part(new THREE.ConeGeometry(1, 1, 7), 0xffffff, 0, TRS(side * r.range(40, 55), sz * 0.6, plan.z1 - r() * CH, 0, r(), 0, sz * 0.5, sz * 0.5, sz * 0.5))); }
       if (i % 7 === 3) { const sx = (i % 2 ? 1 : -1) * 30, cz = (plan.z0 + plan.z1) / 2; for (const [dx, h] of [[-3, 7], [3, 7], [0, 9]]) { far.push(part(new THREE.CylinderGeometry(1.2, 1.4, h, 8), 0xc8c2b6, 0, T(sx + dx, h / 2, cz))); far.push(part(new THREE.ConeGeometry(1.6, 2.4, 8), 0x2f6dff, 0, T(sx + dx, h + 1.2, cz))); } far.push(part(new THREE.BoxGeometry(6, 4.5, 1.5), 0xbab4a8, 0, T(sx, 2.25, cz))); }
+      for (let k = 0; k < 2; k++) { const sd = k ? 1 : -1, pk = r.range(18, 30); far.push(part(new THREE.ConeGeometry(1, 1, 6), plan.biome === 3 ? 0xe8f0fa : 0x8a9ab0, 0, TRS(sd * r.range(62, 85), pk * 0.42, plan.z1 - r() * CH, 0, r() * 3, 0, pk * 0.8, pk, pk * 0.8))); far.push(part(new THREE.ConeGeometry(1, 1, 6), 0xffffff, 0, TRS(sd * r.range(62, 85), pk * 0.75, plan.z1 - r() * CH, 0, r() * 3, 0, pk * 0.25, pk * 0.3, pk * 0.25))); }
       if (far.length) g.add(new THREE.Mesh(merge(far), this.farMat));
       return g;
     }
 
     streamWorld(front) {
       const want = KM.chunksFor(front), keep = new Set(want);
-      for (const [i, g] of this.chunks) if (!keep.has(i)) { this.scene.remove(g); g.traverse(o => { if (o.geometry && o.geometry !== this.waterGeo) o.geometry.dispose(); }); this.chunks.delete(i); }
+      for (const [i, g] of this.chunks) if (!keep.has(i)) { this.scene.remove(g); g.traverse(o => { if (o.geometry && o.geometry !== this.waterGeo && o.geometry !== this.fallGeo) o.geometry.dispose(); }); this.chunks.delete(i); }
       let built = 0;
       for (const i of want) if (!this.chunks.has(i) && built < 2) { const g = this.buildChunk(i); this.scene.add(g); this.chunks.set(i, g); built++; }
       // fog/sky blend toward current biome
+      this.waterU.uTime.value = this.time;
+      for (const [, g] of this.chunks) if (g.userData.fall) for (const f of g.userData.fall) if (Math.random() < 0.5 * (this.fxScale || 1)) this.emit(f.x + (Math.random() - 0.5) * 2, -0.2, f.z + (Math.random() - 0.5) * 2.4, (Math.random() - 0.5) * 1.5, 1.5 + Math.random(), (Math.random() - 0.5) * 1.5, 0xe8f8ff, 0.7, 0.7, 4);
       const plan = KM.chunkPlan(Math.max(0, Math.floor(-front / W.CHUNK)));
-      const fc = this.biomeCol(plan, 'fog'), war = Math.min(1, (this.simT || 0) / 60 / 40); fc.lerp(this.col2.setHex(0xffa070), war * 0.45);
+      const fc = this.biomeCol(plan, 'fog'), war = Math.min(1, (this.simT || 0) / 60 / 40); fc.lerp(this.col2.setHex(0xffe2b8), 0.22).lerp(this.col2.setHex(0xffa070), war * 0.45);
       this.fogCol.lerp(fc, 0.02); this.scene.fog.color.copy(this.fogCol);
       this.hemi.intensity = 0.66 - war * 0.08; this.sun.color.setHex(0xffe6c0).lerp(this.col2.setHex(0xffb070), war * 0.5);
       if (war > 0.3 && Math.random() < war * 0.6) this.emit(this.camT ? this.camT.x + (Math.random() - 0.5) * 24 : 0, 0.5, front - Math.random() * 40, (Math.random() - 0.5) * 0.4, 1.2 + Math.random(), 0, 0xff8a3a, 0.22, 3, -0.15);
@@ -590,7 +641,7 @@
     initCoins() {
       const P = KM.kitPart, T2 = KM.kitTRS;
       const geo = KM.kitMerge([P(new THREE.CylinderGeometry(0.24, 0.24, 0.09, 18), 0xffc21a, 0, T2(0, 0, 0, Math.PI / 2, 0, 0)), P(new THREE.TorusGeometry(0.235, 0.03, 6, 20), 0xffe27a, 0), P(new THREE.CircleGeometry(0.11, 5), 0xfff4b8, 0, T2(0, 0, 0.047, 0, 0, Math.PI / 2)), P(new THREE.CircleGeometry(0.11, 5), 0xfff4b8, 0, T2(0, 0, -0.047, 0, Math.PI, Math.PI / 2))]);
-      const mat = KM.toonMat({ emissive: 0x6a4300, emissiveIntensity: 0.35 });
+      const mat = KM.toonMat({ emissive: 0x8a5a00, emissiveIntensity: 0.6 });
       this.coinM = new THREE.InstancedMesh(geo, mat, KM.Sim.CCAP); this.coinM.frustumCulled = false; this.coinM.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.scene.add(this.coinM);
       this.coinGlow = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: radialTex('rgba(255,215,90,0.3)', 'rgba(255,210,80,0)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), KM.Sim.CCAP); this.coinGlow.frustumCulled = false; this.scene.add(this.coinGlow);
     }
@@ -749,11 +800,11 @@
 
     frame(sim, dt) {
       this.time += dt; if (this.deathT != null) this.deathT += dt; this.cheerT = Math.max(0, (this.cheerT || 0) - dt);
-      this.fxBudget = Math.max(4, Math.round(60 * (1 - Math.min(0.93, (sim.count[0] + sim.count[1]) / 2200))));
+      this.fxBudget = Math.max(3, Math.round(60 * (this.fxScale || 1) * (1 - Math.min(0.93, (sim.count[0] + sim.count[1]) / 2200))));
       this.simT = sim.t; this.streamWorld(sim.front);
       this.drawCamera(sim, dt); this.drawLauncher(sim, dt); this.drawTowers(sim, dt);
       this.drawCrowd(sim, dt); this.drawCoins(sim); this.drawProjectiles(sim); this.stepFx(dt);
-      this.R.render(this.scene, this.cam);
+      if (this.bloomOn && this.composer) this.composer.render(); else this.R.render(this.scene, this.cam);
     }
     resetRun() { this.deathT = null; this.camT = null; this.camD = null; this.fitD = null; for (let s = 0; s < 6; s++) if (this.towerObjs[s]) { this.disposeObj(this.towerObjs[s]); this.towerObjs[s] = null; } for (const o of this.dyingObjs) this.disposeObj(o); this.dyingObjs = []; for (const [, g] of this.wallObjs) this.disposeObj(g); this.wallObjs.clear(); this.pl.fill(0); this.ry.fill(Math.PI); this.fogCol.setHex(KM.BIOMES[0].fog); }
   }

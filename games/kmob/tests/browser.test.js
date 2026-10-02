@@ -67,7 +67,7 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
     const node = (name, geo, matName, color) => { const g = new THREE.Group(); g.name = name; if (geo) { const m = new THREE.MeshStandardMaterial({ color: color || 0xffffff }); m.name = matName || 'base'; const me = new THREE.Mesh(geo, m); me.name = name + '_mesh'; g.add(me); } scene.add(g); return g; };
     const tl = kit.parts.tLight; const plain = new THREE.BufferGeometry(); plain.setAttribute('position', tl.attributes.position.clone()); plain.setAttribute('normal', tl.attributes.normal.clone());
     node('tLight', plain, 'tint_body', 0xffffff);                                          // valid authored part
-    node('sword', new THREE.BoxGeometry(0.06, 0.02, 0.7).translate(0, 0, 0.4), 'steel', 0xdddddd); // valid weapon
+    node('sword', new THREE.BoxGeometry(0.18, 0.05, 0.78).translate(0, 0, 0.3), 'steel', 0xdddddd); // valid weapon
     node('hBlue', new THREE.SphereGeometry(0.3, 96, 64), 'tint_helm');                      // over budget → rejected
     node('aStd', null);                                                                     // empty → rejected
     node('mysteryPart', new THREE.BoxGeometry(1, 1, 1));                                    // unknown → reported
@@ -87,10 +87,30 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
     const q = await b.newPage({ viewport: { width: 390, height: 844 } }); const qe = []; q.on('pageerror', e => qe.push(e.message));
     await q.route('**/assets/manifest.json', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ version: 1, characters: 'chars.glb' }) }));
     await q.route('**/assets/chars.glb', r => body ? r.fulfill({ status: 200, contentType: ct, body }) : r.fulfill({ status: 404, body: '' }));
-    await q.goto(base + 'index.html?autoplay=1'); await q.bringToFront(); await q.evaluate(() => KM.game.setPause(false)); const rep = await q.evaluate(async () => { const r = await KM.assetsReady; for (let k = 0; k < 60 && KM.game.sim.t < 0.1; k++) await new Promise(z => setTimeout(z, 100)); return { r, t: KM.game.sim.t, drawn: KM.game.render.drawn }; });
+    await q.goto(base + 'index.html?autoplay=1'); await q.bringToFront(); await q.evaluate(() => KM.game.setPause(false)); const rep = await q.evaluate(async () => { const r = await KM.assetsReady; const g = KM.game; for (let k = 0; k < 30; k++) { g.sim.step(1 / 60); g.render.frame(g.sim, 1 / 60); } return { r, t: g.sim.t, drawn: g.render.drawn }; });
     ok(`${label} character file → fallback to procedural, game keeps running`, rep.r && rep.r.error && rep.t > 0.05 && qe.length === 0, { rep, qe });
     await q.close();
   }
+
+  // ---- ?bench=1 result generation + recommendation stored; ?playtest=1 summary + answers + COPY ----
+  { const bq = await b.newPage({ viewport: { width: 390, height: 844 } }); const be = []; bq.on('pageerror', e => be.push(e.message));
+    await bq.goto(base + 'index.html?bench=1&benchSecs=0.6'); await bq.bringToFront();
+    let br = null; for (let k = 0; k < 240 && !br; k++) { await bq.waitForTimeout(500); br = await bq.evaluate(() => KM.benchResult || null); }
+    const ui = await bq.evaluate(() => ({ copy: !!document.getElementById('benchCopy'), stored: localStorage.getItem('kmob.quality') }));
+    const fields = br && br.results.every(r => ['fps', 'low1', 'avgMs', 'worstMs', 'tris', 'calls', 'jsMs', 'units'].every(k => typeof r[k] === 'number'));
+    ok('benchmark runs 4 stages and reports fps/1% low/frame times/tris/calls/JS/units', br && br.results.length === 4 && fields && br.info && br.info.ua && br.info.render && br.info.quality, br && br.results);
+    ok('benchmark recommends a tier, stores it, shows COPY RESULTS', br && ['HIGH', 'MEDIUM', 'LOW'].includes(br.recommended) && ui.copy && ui.stored === br.recommended.toLowerCase(), { rec: br && br.recommended, ui, be });
+    await bq.close(); }
+  { const pq = await b.newPage({ viewport: { width: 390, height: 844 } }); await pq.goto(base + 'index.html?autoplay=1&playtest=1'); await pq.bringToFront(); await pq.waitForTimeout(800);
+    await pq.evaluate(() => { const s = KM.game.sim; for (let k = 0; k < 600; k++) { s.L.inv = 1e9; KM.bot(s, 1 / 60, 1); s.step(1 / 60); } s.L.inv = 0; s.hurtLauncher(1e9, 'breach'); });
+    let has = false; for (let k = 0; k < 40 && !has; k++) { await pq.waitForTimeout(250); has = await pq.evaluate(() => !!document.getElementById('ptBox')); }
+    const pt = has ? await pq.evaluate(() => { const box = document.getElementById('ptBox'); box.querySelector('.pt[data-k="easy"][data-v="1"]').click(); box.querySelector('.pt[data-k="fair"][data-v="0"]').click(); box.querySelector('.pt[data-k="again"][data-v="1"]').click(); box.querySelector('#ptCopy').click(); return KM.lastPlaytest; }) : null;
+    ok('?playtest=1 shows the summary + 3 questions and COPY PLAYTEST builds the report', pt && pt.easyToUnderstand === 'YES' && pt.deathFair === 'NO' && pt.playAgain === 'YES' && pt.death === 'breach' && pt.seconds >= 9, pt);
+    await pq.close(); }
+  // ---- edge modules stream with chunks: water appears beside a river section ----
+  const water = await p.evaluate(() => { const g = KM.game, s = g.sim, r = g.render; let z = -60; while (z > -6000 && KM.edgeAt(1, z).river < 0.9 && KM.edgeAt(-1, z).river < 0.9) z -= 10; s.front = z + 20; for (let k = 0; k < 8; k++) r.frame(s, 1 / 60);
+    let w = 0, falls = 0; for (const [, ch] of r.chunks) ch.traverse(o => { if (o.material === r.waterMat) w++; if (o.material === r.fallMat) falls++; }); return { z, w, falls, chunks: r.chunks.size }; });
+  ok('river sections stream animated water strips with their chunks', water.w > 0, water);
   // ---- camera framing on phone aspect ratios: launcher, towers, walls and the threat zone stay on screen ----
   for (const [w, h] of [[375, 667], [390, 844], [430, 932], [1440, 900]]) {
     const q = await b.newPage({ viewport: { width: w, height: h } }); await q.goto(base + 'index.html?autoplay=1'); await q.waitForTimeout(800);
@@ -109,6 +129,41 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
     for (let f = 0; f < 90; f++) { s.step(1 / 60); r.frame(s, 1 / 60); if (f % 10) continue; for (let i = 0; i < r.coinM.count; i++) { m.fromArray(r.coinM.instanceMatrix.array, i * 16); m.decompose(pos, q, sc); n.set(0, 0, 1).applyQuaternion(q); const toCam = r.cam.position.clone().sub(pos).normalize(); worst = Math.min(worst, Math.abs(n.dot(toCam))); } }
     return { worst: +worst.toFixed(2), n: r.coinM.count }; });
   ok('coins always present their face to the camera (no edge-on streaks)', coin.n > 10 && coin.worst > 0.55, coin);
+
+  // ---- texture atlas + PBR→cel materials + scale/pivot rejection + authored clips (GLB round-trips) ----
+  const tex = await p.evaluate(async () => {
+    const r = KM.game.render, scene = new THREE.Scene(), cv = document.createElement('canvas'); cv.width = cv.height = 256; const cx = cv.getContext('2d');
+    cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, 256, 128); cx.fillStyle = '#c0c0c0'; cx.fillRect(0, 128, 256, 128);
+    const atlas = new THREE.CanvasTexture(cv), emis = new THREE.CanvasTexture(cv);
+    const mk = (name, geo, mat) => { const g = new THREE.Group(); g.name = name; const me = new THREE.Mesh(geo, mat); g.add(me); scene.add(g); return g; };
+    const ref = kitPart => kitPart.attributes.position.clone();
+    const head = new THREE.SphereGeometry(0.24, 16, 12).translate(0, 0.2, 0);
+    const steel = new THREE.MeshStandardMaterial({ map: atlas, metalness: 1, roughness: 0.2, emissiveMap: emis, emissive: 0xffffff }); steel.name = 'tint_helmet';
+    mk('hBlue', head, steel);
+    mk('aStd', new THREE.BoxGeometry(0.15, 0.3, 0.15).translate(0, -0.15, 0).scale(6, 6, 6), new THREE.MeshStandardMaterial());          // 6× too big → scale reject
+    mk('lStd', new THREE.BoxGeometry(0.14, 0.3, 0.16).translate(3, -0.15, 0), new THREE.MeshStandardMaterial());                       // 3 m off pivot → reject
+    // rig + authored attack clip on armR
+    const rig = new THREE.Group(); rig.name = 'rig'; scene.add(rig); const hips = new THREE.Object3D(); hips.name = 'hips'; rig.add(hips); const torso = new THREE.Object3D(); torso.name = 'torso'; torso.position.y = 0.34; hips.add(torso); const armR = new THREE.Object3D(); armR.name = 'armR'; armR.position.set(0.3, 0.33, 0); torso.add(armR);
+    const qa = new THREE.Quaternion(), qb = new THREE.Quaternion().setFromEuler(new THREE.Euler(-1.0, 0, 0)), clip = new THREE.AnimationClip('attack_01', 0.5, [new THREE.QuaternionKeyframeTrack('armR.quaternion', [0, 0.25, 0.5], [...qa.toArray(), ...qb.toArray(), ...qa.toArray()])]);
+    const glb = await new Promise(res => new THREE.GLTFExporter().parse(scene, res, { binary: true, animations: [clip] }));
+    const gltf = await new Promise((res, rej) => new THREE.GLTFLoader().parse(glb, '', res, rej));
+    const rep = KM.applyCharacterScene(r, gltf.scene, 'atlas.glb', gltf.animations);
+    const pm = r.partM.hBlue, A = KM.ANIM, pose = new Float32Array(A.P); A.sample(A.ID.attackA, 0.5, A.variation(1, 1, {}), pose);
+    const res = { replaced: rep.replaced.map(x => x.part + (x.textured ? ':tex' : '')), rejected: rep.rejected.map(x => x.part + ':' + x.why.split(' ')[0]), map: !!pm.material.map, emissiveMap: !!pm.material.emissiveMap, metal: Math.max(...pm.geometry.attributes.aMetal.array), uv: !!pm.geometry.attributes.uv, textures: rep.textures, texMB: rep.texMB, clips: rep.clips, armRmid: +pose[A.I.armRP].toFixed(2) };
+    for (let k = 0; k < 10; k++) { KM.game.sim.step(1 / 60); r.frame(KM.game.sim, 1 / 60); }
+    A.restore('attackA'); return res;
+  });
+  ok('texture atlas: base-colour + emissive maps reach the instanced part material', tex.replaced.includes('hBlue:tex') && tex.map && tex.emissiveMap && tex.uv && tex.textures >= 1 && tex.texMB < 2, tex);
+  ok('metalness/roughness become the cel metal highlight attribute', tex.metal > 0.7, tex.metal);
+  ok('wrong scale and off-pivot parts are rejected with a reason', tex.rejected.some(x => x.startsWith('aStd:scale')) && tex.rejected.some(x => x.startsWith('lStd:pivot')), tex.rejected);
+  ok('authored clip "attack_01" is baked onto the skeleton and drives the pose', tex.clips.some(c => c.clip === 'attack_01' && c.as === 'attackA') && Math.abs(tex.armRmid + 1.0) < 0.15, { clips: tex.clips, armRmid: tex.armRmid });
+  // ---- quality tiers + bloom tier ----
+  const q = await p.evaluate(async () => { const r = KM.game.render, out = {};
+    for (const t of ['low', 'medium', 'high']) { r.applyQuality(t); out[t] = { near: r.lodNear, shadows: r.R.shadowMap.enabled, dpr: r.R.getPixelRatio(), fx: r.fxScale }; }
+    KM.bloomAllowed = true; r.applyQuality('high'); for (let k = 0; k < 40 && !r.composer; k++) await new Promise(z => setTimeout(z, 100));
+    for (let k = 0; k < 5; k++) r.frame(KM.game.sim, 1 / 60); out.bloom = !!(r.composer && r.bloomOn); r.setBloom(false); KM.bloomAllowed = false; r.applyQuality('medium'); out.after = r.bloomOn; return out; });
+  ok('quality tiers apply budgets, shadows and effect density', q.low.near < q.medium.near && q.medium.near < q.high.near && !q.low.shadows && q.high.shadows && q.low.fx < q.high.fx, q);
+  ok('bloom post-processing tier loads on demand and renders', q.bloom === true && q.after === false, q);
   ok('no runtime errors during the browser suite', errs.length === 0, errs.slice(0, 5));
   await b.close(); srv.close();
   console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

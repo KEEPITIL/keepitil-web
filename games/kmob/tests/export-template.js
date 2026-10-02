@@ -26,7 +26,23 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
       }
       x++;
     }
-    const glb = await new Promise(r => new THREE.GLTFExporter().parse(scene, r, { binary: true }));
+    // reference rig (empties) + every procedural clip exported under its authored name, so the artist can retime/replace
+    const R = KM.RIG.std, rig = new THREE.Group(); rig.name = 'rig'; scene.add(rig);
+    const bone = (name, parent, x, y, z) => { const b = new THREE.Object3D(); b.name = name; b.position.set(x, y, z); parent.add(b); return b; };
+    const hips = bone('hips', rig, 0, 0, 0), torso = bone('torso', hips, 0, R.torso, 0); bone('head', torso, 0, R.neck, 0); bone('armL', torso, -R.shoulder[0], R.shoulder[1], 0); bone('armR', torso, R.shoulder[0], R.shoulder[1], 0); bone('legL', hips, -R.hip[0], R.hip[1], 0); bone('legR', hips, R.hip[0], R.hip[1], 0);
+    const A = KM.ANIM, I = A.I, inv = {}; for (const [k, v] of Object.entries(KM.CLIP_MAP)) if (!inv[v] && v[0] !== '+') inv[v] = k;
+    const v = { seed: 0.4, seed2: 0.3, amp: 1, lean: 0, tempo: 1 }, pose = new Float32Array(A.P), q = new THREE.Quaternion(), e = new THREE.Euler();
+    const anims = [];
+    for (const [clipName, authored] of Object.entries(inv)) {
+      const c = A.CLIPS[clipName]; if (!c) continue; const dur = c.loop ? 0.8 : c.dur, N = Math.ceil(dur * 30) + 1, times = [], tr = { hips: [], torso: [], head: [], armL: [], armR: [], legL: [], legR: [] }, hipsY = [];
+      for (let f = 0; f < N; f++) { const t = f / 30; times.push(t); A.sample(A.ID[clipName], c.loop ? (t / dur) * Math.PI * 2 : t / dur, v, pose);
+        const put = (b, x, y, z) => { q.setFromEuler(e.set(x, y, z, 'YXZ')); tr[b].push(q.x, q.y, q.z, q.w); };
+        put('hips', pose[I.rootP], pose[I.rootY], pose[I.rootR]); put('torso', pose[I.torsoP], pose[I.torsoY], pose[I.torsoR]); put('head', pose[I.headP], pose[I.headY], 0);
+        put('armL', pose[I.armLP], 0, pose[I.armLR]); put('armR', pose[I.armRP], pose[I.armRY], pose[I.armRR]); put('legL', pose[I.legLP], 0, 0); put('legR', pose[I.legRP], 0, 0); hipsY.push(0, pose[I.y], 0); }
+      const tracks = Object.entries(tr).map(([b, vals]) => new THREE.QuaternionKeyframeTrack(b + '.quaternion', times, vals)); tracks.push(new THREE.VectorKeyframeTrack('hips.position', times, hipsY));
+      anims.push(new THREE.AnimationClip(authored, dur, tracks));
+    }
+    const glb = await new Promise(r => new THREE.GLTFExporter().parse(scene, r, { binary: true, animations: anims }));
     let s = ''; const u = new Uint8Array(glb); for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s);
   }, only);
   fs.mkdirSync(path.dirname(out), { recursive: true }); fs.writeFileSync(out, Buffer.from(b64, 'base64')); console.log('wrote', out, fs.statSync(out).size, 'bytes');

@@ -369,6 +369,9 @@
       if (spent > budget + 2) spent = budget; // last over-budget unit was rejected by spend()
       const mul = { hp: D.hp * (1 + this.overflow), dmg: D.dmg, spd: D.speed, era: Math.min(5, D.era), arm: Math.min(10, D.era * 1.5) };
       let placed = 0;
+      // organic mass: depth jitter, a random arc, small lateral clusters and late subgroups — never a ruler line
+      const arc = (r() - 0.5) * 0.35, nCl = 2 + Math.floor(r() * 3), cl = Array.from({ length: nCl }, () => [r.range(-1.2, 1.2), r() < 0.3 ? -r.range(3, 7) : 0]);
+      for (let q = 0; q < list.length; q++) { const it = list[q], c = cl[q % nCl]; it[1] = Math.max(-W.LANE, Math.min(W.LANE, it[1] + c[0] + (r() - 0.5) * 0.6)); it[2] += c[1] - Math.abs(it[1] - cx) * arc - r() * 1.6; }
       for (const [d, x, z] of list) {
         if (this.count[1] >= W.MAX_ENEMY && !d.boss) { this.overflow = Math.min(3, this.overflow + 0.002); continue; } // hard population cap: excess becomes strength
         if (this.spawn(1, d, Math.max(-W.LANE, Math.min(W.LANE, x)), z, mul) >= 0) placed++;
@@ -427,7 +430,7 @@
         } else {
           // march with slight drift toward lane centre / formation cohesion
           if (team === 0) { if (this.z[i] > front - W.HOLD_DZ - ((i * 0.3819) % 1) * 7) dvz = -sp; dvx = (L.x * 0.15 - this.x[i]) * 0.04 * sp; this.yaw[i] = Math.PI; }
-          else { dvz = sp; this.yaw[i] = 0; }
+          else { dvz = sp * (0.85 + ((i * 0.7548) % 1) * 0.3); dvx = Math.sin(this.t * 0.35 + i * 1.7) * 0.35 * sp - this.x[i] * 0.012 * sp; this.yaw[i] = Math.atan2(dvx, dvz); }   // uneven advance, gentle wander, centre bulge
         }
         // steering (weighty, organic)
         const k = Math.min(1, dt * 7);

@@ -1,75 +1,129 @@
-# KMOB production character spec (for the 3D artist)
+# KMOB production character package (artist spec)
 
 **Goal:** hand-modelled characters that look like the approved KMOB concept image, with chunky stylized miniature warriors:
-- oversized helmets and rounded bodies;
+- oversized helmets, rounded forms and small bodies;
 - mitten hands and big readable weapons;
-- a blue friendly army and a red enemy army;
-- horned red brutes and a crowned warlord.
+- blue heroes and red enemies;
+- expressive elites, horned brutes and a crowned warlord.
 
-The game already runs on code-built placeholder parts. Your files replace them piece by piece, and anything you haven't delivered keeps working with the placeholder.
+The style is a colourful premium mobile game. Don't make them realistic, stick-figure, generic low-poly or dark and gritty.
 
-## Start here
+The game already runs on code-built placeholder parts. Your files replace them **part by part and file by file**, with no code changes. Anything missing, broken or over budget keeps the placeholder, and the game never breaks.
 
-1. Open **`assets/template/kmob-parts-template.glb`** in Blender (File › Import › glTF 2.0). Every current part is a named object placed on its correct pivot.
-2. Model over each part, keeping its **object name, origin and orientation**. Replace the mesh, not the object.
-3. Export everything as **one GLB**: `assets/characters.glb`. Set the export to glTF Binary, +Y up, apply modifiers, and include custom properties off.
-4. In `assets/manifest.json`, set `"characters": "characters.glb"`. Reload the game. The loader prints a report (`KM.assetReport` in the browser console) listing each part as replaced, rejected (with the reason) or still placeholder.
-5. Use `dev/lineup.html` to review every unit kind cycling through every animation clip.
+## 1. Start here
 
-## Rig: segmented, rigid bones (no skinning)
+1. Open **`assets/template/kmob-parts-template.glb`** in Blender (File › Import › glTF 2.0). It contains:
+   - every body part as a named object sitting on its pivot (the reference);
+   - a `rig` empty with child bones `hips` › `torso` › `head`, `armL`, `armR`, plus `legL` and `legR`;
+   - every current animation as an action on that rig, named per §8.
+2. Model over each part, keeping its **object name, origin (pivot) and orientation**. Replace the mesh, not the object.
+3. Export each unit to its folder, for example `assets/characters/blue/basic/basic.glb`. Each folder's `README.md` lists the part names that unit uses.
+4. Add the file to `assets/manifest.json` → `"characters": ["characters/blue/basic/basic.glb", …]`, in load order. Later files override earlier parts.
+5. Reload the game. In the browser console, `KM.assetReport` lists for every part whether it was replaced, rejected (with the reason) or left missing, along with warnings, imported clips and texture memory.
+6. Review in `dev/lineup.html` (every unit cycling through every clip) and in a run with `?debug=1`.
 
-Hundreds to thousands of soldiers are drawn at once with GPU instancing, so each body part is a **separate rigid mesh** moved by the shared skeleton. Don't deliver a skinned or deformed mesh. Model the joints so the pieces overlap cleanly when they rotate: a sleeve over the shoulder, a boot cuff over the leg, a collar under the helmet.
+## 2. Folders
 
-Units are metres. The character faces **+Z**, with **+Y** up. A standard soldier is about 1.15 tall to the helmet top.
+```
+assets/characters/
+  shared/atlas/     shared faction atlas (see §6)
+  shared/weapons/   optional weapons.glb (sword, swordGold, dagger, axe, bow, staff, bomb, claws, shield)
+  blue/basic  blue/archer  blue/knight  blue/elite
+  red/grunt   red/shield   red/runner   red/archer  red/knight  red/bomber  red/shaman  red/brute  red/warlord  red/imp
+  special/siege
+```
 
-| Bone / part key | Origin (pivot) | What it contains | Max triangles |
-|---|---|---|---|
-| `lStd`, `lBrute` | hip joint; sole at y = -0.33 | thigh, shin, boot | 900 |
-| `tLight`, `tHeavy`, `tBrute`, `tRobe` | hips; neck at y = +0.40 (brute +0.44) | torso, belt, skirt, shoulders/pauldrons | 1200 |
-| `hBlue`, `hKnight`, `hHood`, `hHorn`, `hBucket`, `hBandana`, `hImp`, `hBrute`, `hWarlord`, `hShaman`, `hGoggles` | neck; face centre about y = +0.17 | head, face, helmet/hood/horns/crown | 1200 |
-| `aStd`, `aHeavy`, `aBrute` | shoulder; fist centre at y = -0.27 (brute -0.31) | upper arm, forearm, glove, **mitten hand** | 900 |
-| `sword`, `swordGold`, `dagger`, `axe`, `bow`, `staff`, `bomb`, `claws` | grip point (in the fist) | weapon pointing **+Z** from the grip (bow spans ±Z, bulging −Y) | 900 |
-| `shield` | handle on the forearm | round shield facing **+Z** | 900 |
-| `cannon` | ground centre | siege cannon + carriage | 900 |
-| `pads`, `plume`, `padsIron`, `hornsAdd`, `eyesGlow` | same as torso / head | upgrade and escalation add-ons | 900 |
+## 3. Rig: segmented, rigid bones (no skinning)
 
-Where each part goes on each unit (`KM.RECIPE` in `js/kit.js`):
+Hundreds to thousands of soldiers are drawn with GPU instancing, so each body part is a **separate rigid mesh** driven by the shared skeleton. Don't deliver skinned or deforming meshes. Design the joints so the pieces overlap cleanly when they rotate: sleeve over shoulder, boot cuff over leg, collar under helmet.
 
-| Unit | Torso | Head | Arms | Legs | Weapon | Shield |
-|---|---|---|---|---|---|---|
-| soldier (blue) | tLight | hBlue | aStd | lStd | sword | |
-| archerF (blue) | tLight | hHood | aStd | lStd | bow | |
-| knightF (blue) | tHeavy | hKnight | aHeavy | lStd | sword | ✔ |
-| grunt | tLight | hHorn | aStd | lStd | sword | |
-| imp | tLight | hImp | aStd | lStd | claws | |
-| shield | tHeavy | hBucket | aStd | lStd | sword | ✔ |
-| runner | tLight | hBandana | aStd | lStd | dagger | |
-| archer | tLight | hHood | aStd | lStd | bow | |
-| knight | tHeavy | hBucket | aHeavy | lStd | axe | ✔ |
-| bomber | tLight | hGoggles | aStd | lStd | bomb | |
-| shaman | tRobe | hShaman | aStd | lStd | staff | |
-| brute | tBrute | hBrute | aBrute | lBrute | axe | |
-| warlord | tBrute | hWarlord | aBrute | lBrute | axe | |
+| Rule | Value |
+|---|---|
+| Units | metres. A standard soldier is about 1.15 m to the helmet top; brute ×1.9; warlord ×2.7 (scaled in game, so model at the template size) |
+| Orientation | character faces **+Z**, **+Y** up (Blender: export with "+Y Up") |
+| Scale check | each part's bounding box must be within 0.35–2.8× the template part on every axis |
+| Pivot check | part centre within max(0.25 m, 60% of the part size) of the template part's centre |
+| Orientation check | a warning (not a rejection) if the long axis differs from the template's |
 
-Body parts are shared between blue and red, and the faction colour comes from the material (next section). Make shared pieces work in both colours.
+| Part key | Pivot | Contents |
+|---|---|---|
+| `lStd`, `lBrute` | hip joint; sole at y = −0.33 | thigh, shin, boot |
+| `tLight`, `tHeavy`, `tBrute`, `tRobe` | hips; neck at y = +0.40 (brute +0.44) | torso, belt, skirt, shoulders/pauldrons |
+| `hBlue`, `hKnight`, `hHood`, `hHorn`, `hBucket`, `hBandana`, `hImp`, `hBrute`, `hWarlord`, `hShaman`, `hGoggles` | neck; face centre about y = +0.17 | head, face, helmet/hood/horns/crown |
+| `aStd`, `aHeavy`, `aBrute` | shoulder; fist at y = −0.27 (brute −0.31) | upper arm, forearm, glove, mitten hand |
+| `sword`, `swordGold`, `dagger`, `axe`, `bow`, `staff`, `bomb`, `claws` | grip (in the fist) | weapon pointing **+Z** (bow spans ±Z, bulging −Y) |
+| `shield` | forearm handle | round shield facing **+Z** |
+| `cannon` | ground centre | siege cannon + carriage (the hero-budget prop) |
+| `pads`, `plume`, `padsIron`, `hornsAdd`, `eyesGlow` | torso / head | upgrade and escalation add-ons |
 
-## Materials and colour
+## 4. Triangle budgets (enforced on load)
 
-- Any material whose name starts with **`tint`** (for example `tint_cloth` or `tint_armor`) is recoloured per unit to the faction colour: blue, red, or the variant tints. Author tinted areas in **light grey or white**. Their base colour is multiplied by the faction colour, so a mid grey gives darker trim.
-- Every other material keeps its own **base colour**: skin, steel, gold, leather, horn, wood, eyes. Vertex colours are multiplied in, so you can paint AO or highlights into vertex colour.
-- Version 1 doesn't use textures. Separate metal, painted armour, leather, cloth, gold and bone through colour and geometry: bevels, rims, rivets, panel lines. The game's cel shader adds a 3-band ramp and a rim light. If you want texture atlases, say so and I'll add atlas support.
-- Faces: give friendly units appealing dot eyes and brows, and give enemies angrier brows or masks. Make the warlord and brutes unmistakable.
+| Tier | Budget per unit | Who supplies it |
+|---|---|---|
+| Hero / very near (cannon, set pieces) | 3,000–6,000 | you (`cannon` part limit 6,000) |
+| **Standard near unit** (closest ~120 units) | **1,500–3,000 total** | you. Per-part limits: leg 450, torso 900, head 1,100, arm 400, weapon 500, shield 400, add-ons 600 |
+| Mid LOD (next ~450 units) | 300–500 (target band 500–1,000) | procedural lean parts, kept on purpose |
+| Far LOD (the rest) | 230–500 statues (target band 200–350) | procedural statues, kept on purpose |
 
-## Validation (automatic)
+A part over its limit is **rejected** and keeps the placeholder. The 1,600-unit scene must stay near **750k triangles and ~105 draw calls**.
 
-The loader rejects a part, and keeps the placeholder for it, when:
-- it has no geometry;
-- it has invalid vertices;
-- it exceeds the triangle budget above.
+## 5. Materials
 
-Nodes with names that aren't part keys are reported and ignored. A missing or broken file falls back to the placeholders completely, and the game keeps running. All of this is covered by `tests/browser.test.js`.
+- A material whose name starts with **`tint`** (`tint_cloth`, `tint_armor`, …) takes the faction colour per unit (blue/red and the variant tints). Author it light grey or white, because the colour multiplies.
+- Every other material keeps its own **base colour or texture**: skin, steel, gold, leather, horn, wood, eyes.
+- **Metalness/roughness** on the material become a cel-shaded metal highlight. Use high metalness and low roughness for steel and gold, and 0 for cloth, leather and skin.
+- **Emissive** (emissive colour or map) is used for eyes, crystals and runes. Emissive accents are boosted on the MEDIUM quality tier and bloomed on HIGH.
+- Normal maps are supported, but keep them subtle so the cel look holds.
 
-## Performance contract
+## 6. Texture atlas rules
 
-- Only the closest ~120 units use your full parts. The next ~450 use lean animated parts, and the rest use statues, both code-built. A typical soldier built from your parts should stay **at or under ~1,500 triangles** in total.
-- Keep pivots exactly where the template has them. The animation clips (`js/anim.js`) are tuned to those joints.
+- One **shared faction atlas**: base colour, plus optional normal and emissive maps, with one image per map type, **max 2048×2048**. Bigger images are downscaled on load and reported. Lay out regions for cloth, armour, leather, gold, weapon metal, skin/face, horn and shield, and reuse UVs heavily.
+- Every part of every unit samples the **same** atlas images. A part with two different base-colour images gets a warning and only the first is kept.
+- Faction tint still works on textured parts: paint tint areas light grey and name the material `tint…`.
+- Budget: the atlas set should stay **under 24 MB of GPU memory** (`KM.assetReport.texMB`).
+
+## 7. Faces
+
+Friendly units get appealing eyes and brows. Enemies get angry brows, masks or visors. Make the warlord and brutes unmistakable: crown, tusks, big horns.
+
+## 8. Animation (optional; the procedural motion is the fallback)
+
+Animate the `rig` bones (`hips`, `torso`, `head`, `armL`, `armR`, `legL`, `legR`) with Blender actions using these names. Each imported clip replaces the matching procedural clip, and clips you don't deliver keep the procedural motion.
+
+| Clip | Replaces | Notes |
+|---|---|---|
+| `idle` | idle | loop |
+| `walk` / `run` | run | loop: **one full stride cycle**, starting on the left foot contact |
+| `sprint` | sprint | loop |
+| `attack_01`, `attack_02` | light attacks | strike frame about 50% through the clip (damage lands there) |
+| `heavy_attack` | heavy slam | strike about 55% |
+| `ranged_aim`, `ranged_fire` | archer aim / release | release about 20% |
+| `cast` | shaman cast | |
+| `shield_block` | shield brace | loop |
+| `cheer` | celebration | loop |
+| `hit_01`, `hit_02`, `hit_03` | hit front / left / right (additive) | the pose 35% through the clip is used as the reaction offset |
+| `stagger`, `knockback` | stagger (additive) | |
+| `death_01`, `death_02`, `death_heavy` | deaths | end lying on the ground |
+
+Only bone rotations (and `hips` height) are read. Root motion is ignored, because the simulation moves units. The template GLB contains every current clip, so you can retime them or replace them.
+
+## 9. Export settings (Blender 3.x/4.x glTF 2.0)
+
+- **Format:** glTF Binary (`.glb`).
+- **Include:** Selected Objects (the unit's parts, plus `rig` if animating).
+- **Transform:** +Y Up.
+- **Geometry:** Apply Modifiers ✔, UVs ✔, Normals ✔, Vertex Colors ✔ if used, Materials: Export.
+- **Compression:** off (Draco isn't loaded yet).
+- **Animation:** ✔ if delivering clips, with actions named per §8 and "Group by NLA Track" off.
+- **Images:** Automatic/PNG, embedded.
+
+## 10. What the loader checks (automatic, covered by `tests/browser.test.js`)
+
+- the file loads, or a 404 or corrupt file falls back to placeholders;
+- part names are known (unknown nodes are reported and ignored);
+- geometry is present, vertices are finite (no NaN/Infinity), and the part is within the triangle budget;
+- scale, pivot and orientation match the template;
+- materials: tint flag, textures, metal and emissive;
+- clips: mapped name, rig bones present, finite values;
+- missing parts are listed, and LOD tiers keep the procedural mid and far models;
+- swapping parts doesn't leak renderer geometry.

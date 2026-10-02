@@ -81,6 +81,46 @@
     background:linear-gradient(rgba(20,28,36,0), rgba(20,28,36,.55));
   }
   #unitbar::-webkit-scrollbar { display:none; }
+  /* TASK I/J COMMAND HIERARCHY: UNITS | RETREAT · DEFEND/MARCH · ATTACK | TACTICS. Secondary actions live in two drawers
+     that open above the bar on phones/tablets and sit inline on a wide mouse-driven screen -- one DOM, one hierarchy. */
+  #unitbar { justify-content:space-between; overflow:visible; }
+  .bargrp { display:flex; gap:5px; align-items:flex-end; }
+  #grp-orders { margin:0 auto; }
+  .drawer { position:fixed; z-index:6; bottom:calc(76px + env(safe-area-inset-bottom)); display:none; flex-wrap:wrap; gap:5px; align-items:flex-end;
+    padding:6px; border-radius:12px; background:rgba(20,28,36,.86); box-shadow:0 6px 20px rgba(0,0,0,.45); max-width:calc(100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)); }
+  .drawer.open { display:flex; }
+  #unitsdrawer { left:max(8px, env(safe-area-inset-left)); max-width:min(560px, calc(100vw - 16px)); }
+  #tacticsdrawer { right:max(8px, env(safe-area-inset-right)); }
+  .drawer .dhead { flex:1 0 100%; font:bold 10px/1 inherit; letter-spacing:1.2px; color:#9fb3c2; text-transform:uppercase; padding:2px 4px 0; }
+  .ubtn.toggle { min-width:76px; background:linear-gradient(#3e4f61,#28333e); }
+  .ubtn.toggle.open { background:linear-gradient(#f2c94d,#c98f1d); } .ubtn.toggle.open .nm, .ubtn.toggle.open .cost { color:#4a3405; }
+  .ubtn .kbd { font-size:9px; color:#c8d3dc; opacity:.85; }
+  .ubtn .sub { font-size:8.5px; color:#d9e4ec; opacity:.85; letter-spacing:.2px; }
+  .ubtn .badge { position:absolute; top:-6px; right:-6px; min-width:20px; height:20px; padding:0 5px; border-radius:10px; background:#c0392b; color:#fff; font:bold 11px/20px inherit; box-shadow:0 1px 3px rgba(0,0,0,.5); }
+  .ubtn .badge:empty { display:none; }
+  /* touch devices never show keyboard hints */
+  @media (pointer:coarse), (hover:none) { .ubtn .kbd { display:none; }
+    .iconbtn { min-width:40px; min-height:40px; }   /* touch-sized; pinch already zooms, so the +/- buttons go */
+    .zoombtn { display:none !important; } }
+  /* wide + mouse: there is room, so the drawers sit inline and the toggles are not needed */
+  @media (min-width:1180px) and (pointer:fine) {
+    .drawer { position:static; display:flex !important; background:none; box-shadow:none; padding:0; flex-wrap:nowrap; max-width:none; }
+    #unitsdrawer, #tacticsdrawer { max-width:none; }   /* the phone width cap made the inline drawer overflow onto Retreat */
+    .drawer .dhead { display:none; }
+    .ubtn.toggle { display:none; }
+    #unitbar { justify-content:flex-start; } #grp-orders { margin:0 6px; }
+  }
+  /* phone landscape: short screen -- compact bar so the battlefield keeps the screen */
+  @media (max-height:500px) {
+    .ubtn { min-width:58px; height:52px; border-radius:10px; padding:0 6px; }
+    .ubtn.order { min-width:70px; } .ubtn.toggle { min-width:68px; }
+    .ubtn svg { width:20px; height:20px; } .ubtn .big { font-size:17px; line-height:20px; }
+    .ubtn .nm, .ubtn .cost { font-size:9.5px; }
+    .drawer { bottom:calc(64px + env(safe-area-inset-bottom)); flex-wrap:nowrap; overflow-x:auto; }
+    .drawer .dhead { display:none; }   /* one compact row: the battlefield keeps the screen */
+    #unitsdrawer { max-width:calc(100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)); }
+    #unitbar { padding-top:4px; padding-bottom:max(6px, env(safe-area-inset-bottom)); }
+  }
   .ubtn {
     position:relative; flex:0 0 auto; min-width:60px; height:64px; border:none; border-radius:11px; cursor:pointer;
     background:linear-gradient(#4b5b6b,#33404d); color:#fff; box-shadow:0 3px 0 #1c252e, 0 4px 10px rgba(0,0,0,.4);
@@ -290,7 +330,7 @@
 <pre id="diag" aria-label="Developer diagnostics"></pre>
 
 <div id="msg"></div>
-<div id="unitbar"></div>
+<div id="unitbar"><div id="grp-units" class="bargrp"></div><div id="unitsdrawer" class="drawer" aria-label="Units and upgrades"></div><div id="grp-orders" class="bargrp"></div><div id="tacticsdrawer" class="drawer" aria-label="Tactics"></div><div id="grp-tactics" class="bargrp"></div></div>
 
 <div id="overlay" class="hidden"></div>
 
@@ -4164,7 +4204,7 @@ window.addEventListener('keydown', e => {
   else if (e.key === 'b' || e.key === 'B') issueCommand('charge',{group:'ranged'});
   else if (e.key === 'g' || e.key === 'G') issueCommand('garrison');
   else if (e.key === 't' || e.key === 'T') issueCommand('wizard');
-  else if (e.key === 'r' || e.key === 'R') issueCommand('defense');
+  else if (e.key === 'y' || e.key === 'Y') issueCommand('defense');   // was a second 'R' binding: Defense was unreachable from the keyboard
   else if (e.key === 'v' || e.key === 'V') issueCommand('evolve');
   else if (e.key === 'f' || e.key === 'F') { follow = !follow; syncFollowBtn(); }
   else if (e.key === 's' || e.key === 'S') document.getElementById('speedbtn').click();
@@ -4185,16 +4225,30 @@ const ICONS = {
   spear : '<svg viewBox="0 0 26 26"><g stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"><circle cx="10" cy="6" r="3" fill="#fff"/><path d="M10 9v7M10 12l-4 2M10 16l-3 7M10 16l4 7"/><path d="M5 15l18-4M23 11l-3-1M23 11l-2 2.5" stroke="#ffab91"/></g></svg>',
 };
 const btnEls = {};
+let _mkInto = 'grp-orders';
 function mkBtn(id, html, onTap, cls){
   const b = document.createElement('button');
-  b.className = 'ubtn' + (cls?' '+cls:''); b.innerHTML = html;
-  b.addEventListener('pointerdown', e => { e.preventDefault(); audio(); onTap(); });
-  document.getElementById('unitbar').appendChild(b);
+  b.className = 'ubtn' + (cls?' '+cls:''); b.innerHTML = html; b.dataset.cmd = id;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); audio(); onTap(); });
+  document.getElementById(_mkInto).appendChild(b);
   btnEls[id] = b;
   return b;
 }
-function mkSep(){ const s = document.createElement('div'); s.className = 'sep'; document.getElementById('unitbar').appendChild(s); }
+function mkSep(){ const s = document.createElement('div'); s.className = 'sep'; document.getElementById(_mkInto).appendChild(s); }
+function mkHead(t){ const h = document.createElement('div'); h.className = 'dhead'; h.textContent = t; document.getElementById(_mkInto).appendChild(h); }
+/* drawers: one open at a time; any tap on the battlefield closes them */
+function setDrawer(which){
+  for (const [d, b] of [['unitsdrawer','unitsbtn'],['tacticsdrawer','tacticsbtn']]){
+    const open = which === d && !document.getElementById(d).classList.contains('open');
+    document.getElementById(d).classList.toggle('open', open); btnEls[b] && btnEls[b].classList.toggle('open', open);
+  }
+}
+document.addEventListener('pointerdown', e => { if (!e.target.closest || !e.target.closest('#unitbar, .drawer')) { for (const d of ['unitsdrawer','tacticsdrawer']) document.getElementById(d)?.classList.remove('open'); btnEls.unitsbtn?.classList.remove('open'); btnEls.tacticsbtn?.classList.remove('open'); } }, true);
+function throwEligible(){ let n = 0; for (const u of S.units) if (u.team===1 && u.hp>0 && window.KW_SPEAR && KW_SPEAR.hasSpear(u, TYPES)) n++; return n; }
 function buildUI(){
+  _mkInto = 'grp-units';
+  mkBtn('unitsbtn', '<span class="big">\u2694\ufe0f</span><span class="nm">Units</span><span class="sub" id="unitsub"></span>', ()=>setDrawer('unitsdrawer'), 'toggle');
+  _mkInto = 'unitsdrawer'; mkHead('Recruit');
   for (const key of ['sword','archer','spear']){
     const T = TYPES[key];
     mkBtn(key, ICONS[key] + '<span class="nm">'+T.name+'</span><span class="cost">🪙'+T.cost+'</span>', ()=>issueCommand('recruit',{type:key}));
@@ -4202,25 +4256,31 @@ function buildUI(){
   mkBtn('gunner', '<span class="big">🔫</span><span class="nm">Gunner</span><span class="cost">🪙'+TYPES.gunner.cost+'</span>', ()=>issueCommand('recruit',{type:'gunner'})).style.display='none';
   mkBtn('laser',  '<span class="big">🔆</span><span class="nm">Laser</span><span class="cost">🪙'+TYPES.laser.cost+'</span>', ()=>issueCommand('recruit',{type:'laser'})).style.display='none';
   mkBtn('aetherwing','<span class="big">🪽</span><span class="nm">Colossus</span><span class="cost">🪙'+TYPES.aetherwing.cost+'</span>',()=>issueCommand('recruit',{type:'aetherwing'})).style.display=window.KWCommerce?.hasEntitlement?.('hero.aetherwing')?'flex':'none';
-  mkSep();
+  _mkInto = 'grp-orders';
   /* §4 THREE PRIMARY ORDERS. Retreat used to be a hidden double-tap on Defend
      and Defend/March were two separate buttons; both are now explicit. */
-  mkBtn('retreat','<span class="big">\u26e8</span><span class="nm">Retreat</span><span class="cost">[R]</span>', ()=>issueCommand('retreat'), 'order');
-  mkBtn('hold',   '<span class="big">\ud83d\udee1</span><span class="nm" id="holdlab">Defend</span><span class="cost">[Q]</span>', ()=>issueCommand('hold'), 'order');
-  mkBtn('attack', '<span class="big">\u2694\ufe0f</span><span class="nm">Attack</span><span class="cost">[E]</span>', ()=>issueCommand('stance',{stance:'attack'}), 'order');
+  mkBtn('retreat','<span class="big">\u26e8</span><span class="nm">Retreat</span><span class="kbd">[R]</span>', ()=>issueCommand('retreat'), 'order');
+  /* TASK I: the centre button shows the army's CURRENT holding state (DEFEND or MARCH) in large type; the small line
+     says what a tap switches to. It used to name only the NEXT order, so "March" meant "you are defending". */
+  mkBtn('hold',   '<span class="big">\ud83d\udee1</span><span class="nm" id="holdlab">Defend</span><span class="sub" id="holdsub"></span><span class="kbd">[Q]</span>', ()=>issueCommand('hold'), 'order');
+  mkBtn('attack', '<span class="big">\u2694\ufe0f</span><span class="nm">Attack</span><span class="kbd">[E]</span>', ()=>issueCommand('stance',{stance:'attack'}), 'order');
+  _mkInto = 'grp-tactics';
+  mkBtn('tacticsbtn', '<span class="big">\ud83c\udfaf</span><span class="nm">Tactics</span><span class="badge" id="tacbadge"></span>', ()=>setDrawer('tacticsdrawer'), 'toggle');
+  _mkInto = 'tacticsdrawer'; mkHead('Tactics');
   /* Class orders. Only meaningful while the army is holding a formation --
      that is the whole point: send one class, the shield wall stays up. */
-  mkBtn('chargesword', '<span class="big">\u2694\ufe0f</span><span class="nm">Swords</span><span class="cost">[Z]</span>', ()=>issueCommand('charge',{group:'sword'}), 'classorder');
-  mkBtn('chargespear', '<span class="big">\ud83d\udd31</span><span class="nm">Spears</span><span class="cost">[C]</span>', ()=>issueCommand('charge',{group:'spear'}), 'classorder');
-  mkBtn('chargeranged','<span class="big">\ud83c\udff9</span><span class="nm">Ranged</span><span class="cost">[B]</span>', ()=>issueCommand('charge',{group:'ranged'}), 'classorder');
-  mkBtn('throwspears', '<span class="big">\ud83d\udde1</span><span class="nm">Throw Spears</span><span class="cost">[X]</span>', ()=>issueCommand('throwspears'), 'classorder');
-  mkSep();
+  const tac = (cmd) => () => { cmd(); setDrawer(null); };   // a tactic is one decision: the tray closes after it
+  mkBtn('throwspears', '<span class="big">\ud83d\udde1</span><span class="nm" id="throwlab">Throw Spears</span><span class="kbd">[X]</span>', tac(()=>issueCommand('throwspears')), 'classorder');
+  mkBtn('chargesword', '<span class="big">\u2694\ufe0f</span><span class="nm">Charge Swords</span><span class="kbd">[Z]</span>', tac(()=>issueCommand('charge',{group:'sword'})), 'classorder');
+  mkBtn('chargespear', '<span class="big">\ud83d\udd31</span><span class="nm">Charge Spears</span><span class="kbd">[C]</span>', tac(()=>issueCommand('charge',{group:'spear'})), 'classorder');
+  mkBtn('chargeranged','<span class="big">\ud83c\udff9</span><span class="nm">Charge Ranged</span><span class="kbd">[B]</span>', tac(()=>issueCommand('charge',{group:'ranged'})), 'classorder');
+  _mkInto = 'unitsdrawer'; mkHead('Fort & powers');
   mkBtn('garrison','<span class="big">🏹</span><span class="nm" id="glab">Garrison</span><span class="cost">🪙'+GARRISON_COST+'</span>', ()=>issueCommand('garrison'));
   mkBtn('wizard', '<span class="big">🧙</span><span class="nm" id="wlab">Wizard</span><span class="cost">🪙'+WIZARD_COST+'</span>', ()=>issueCommand('wizard'));
   mkBtn('defense','<span class="big">🛠</span><span class="nm" id="dlab">Defense</span><span class="cost" id="dcost">🪙'+DEF_COSTS[0]+'</span>', ()=>issueCommand('defense'));
   mkBtn('taprate','<span class="big">⚡</span><span class="nm">Tap Rate</span><span class="cost">🪙'+tapCost(0)+'</span>', ()=>issueCommand('taprate'));
   mkBtn('tapaoe','<span class="big">💥</span><span class="nm">Tap Blast</span><span class="cost">🪙'+tapCost(0)+'</span>', ()=>issueCommand('tapaoe'));
-  mkSep();
+  mkHead('Advance');
   mkBtn('evolve', '<span class="big">♛</span><span class="nm" id="elab">Civilization</span><span class="cost" id="ecost">Wave 50</span>', ()=>issueCommand('evolve'), 'evolve');
 }
 function updateUI(){
@@ -4240,8 +4300,16 @@ function updateUI(){
      so the player always reads an action rather than a status. */
   const holding = S.stance === 'defend' || S.retreatMode;
   const holdLab = document.getElementById('holdlab');
-  if (holdLab) holdLab.textContent = S.retreatMode ? 'Reform' : (S.stance === 'defend' ? 'March' : 'Defend');
-  btnEls.hold.classList.toggle('active', S.stance === 'march');
+  /* TASK I: show the CURRENT state; the sub-line names what a tap switches to */
+  if (holdLab) holdLab.textContent = S.retreatMode ? 'Reform' : (S.stance === 'march' ? 'March' : 'Defend');
+  const holdSub = document.getElementById('holdsub');
+  if (holdSub) holdSub.textContent = S.retreatMode ? 'tap: hold line' : (S.stance === 'defend' ? '\u21c4 tap: March' : S.stance === 'march' ? '\u21c4 tap: Defend' : 'tap: hold');
+  btnEls.hold.classList.toggle('active', !S.retreatMode && (S.stance === 'march' || S.stance === 'defend'));
+  const nThrow = throwEligible(), tl = document.getElementById('throwlab'), tb = document.getElementById('tacbadge');
+  if (tl) tl.textContent = 'Throw Spears \u00b7 ' + nThrow;
+  if (tb) tb.textContent = nThrow ? String(nThrow) : '';
+  btnEls.throwspears.classList.toggle('inert', !nThrow);
+  const us = document.getElementById('unitsub'); if (us) us.textContent = armyCount() + '/' + armyMax();
   btnEls.attack.classList.toggle('active', S.stance === 'attack');
   btnEls.retreat.classList.toggle('active', !!S.retreatMode);
   // class orders only mean anything while a formation is being held
@@ -4430,7 +4498,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 65;
+  const KW_PAGE_BUILD = 66;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }

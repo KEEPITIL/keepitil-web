@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 64,
+  "build": 65,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 64 (Task G archers). Archers: arrows leave the bow at release instead of at the start of the draw; archers hold a full draw for an approaching enemy and loose from it; a draw is let down when the target dies, the command changes or the battle ends; archer files are staggered so every bow is readable."
+  "notes": "KINGDOM WARS 1.0.0 build 65 (Task H projectiles). Arrows stick where they land - in the ground, in the soldier they hit, or fall after glancing off a shield - and fade after a few seconds; thrown spears fly at the same length the soldier carried."
 }

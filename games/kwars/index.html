@@ -462,7 +462,7 @@ function reset(){
     civ: 1, atkCd: 0,
     gateHP: 1000, gateMax: 1000,
     castleHP: 2200, castleMax: 2200,
-    units: [], projs: [], fx: [], splats: [], corpses: [], floats: [],
+    units: [], projs: [], fx: [], splats: [], corpses: [], floats: [], stuck: [],
     wave: 0, localWave:0, conquestCycle:0, encounter:'normal', waveQueue: [], spawnT: 0, interT: 5, phase: 'inter',
     waveTotal:0, spawnedTotal:0, defeatedTotal:0, cohortPending:0, cohortT:0, cohortIndex:0,
     bossSpawned:false, bossDefeated:false, rewardClaimedWave:0,
@@ -1518,7 +1518,7 @@ function assignTargets(){
 }
 function fireArrow(x, y, tg, dmg, team, spd){
   const t = Math.max(.35, Math.hypot(tg.x-x, tg.y-y) / (spd||430));
-  S.projs.push({kind:'arrow', x, y, sourceX:x, vx:(tg.x-x)/t, vy:(tg.y-y)/t - .5*GRAV*t, g:GRAV, dmg, team, life:4});
+  S.projs.push({kind:'arrow', x, y, sourceX:x, groundY:(tg && tg.hp!==undefined) ? tg.y+3 : clamp((tg?tg.y:y)+24, GROUND_TOP, GROUND_BOT), vx:(tg.x-x)/t, vy:(tg.y-y)/t - .5*GRAV*t, g:GRAV, dmg, team, life:4});
   window.KWRuntime?.events.emit('projectile_released',{kind:'arrow',team,damage:dmg});
 }
 function fireBullet(x, y, tg, dmg, team){
@@ -1626,7 +1626,7 @@ function throwLastSpear(u, preferred){
      (the common case -- the enemy is held at the spear tip) clean over the target's head. */
   const lx=u.x+u.face*8, ly=u.y-22, tx=target.x, ty=target.y-20;
   const dist=Math.hypot(tx-lx,ty-ly), flight=Math.max(.18,Math.min(1.35,dist/520));
-  S.projs.push({kind:'spearp',x:lx,y:ly,sourceX:u.x,vx:(tx-lx)/flight,vy:(ty-ly)/flight-.5*GRAV*flight,g:GRAV,dmg:Math.round((u.dmg||TYPES[u.type].dmg)*1.35),team:u.team,life:3});
+  S.projs.push({kind:'spearp',x:lx,y:ly,sourceX:u.x,groundY:target.y+3,k:RIG_K*unitScale(u),vx:(tx-lx)/flight,vy:(ty-ly)/flight-.5*GRAV*flight,g:GRAV,dmg:Math.round((u.dmg||TYPES[u.type].dmg)*1.35),team:u.team,life:3});
   window.KWRuntime?.events.emit('projectile_released',{kind:'spear',team:u.team,damage:Math.round((u.dmg||TYPES[u.type].dmg)*1.35)});
   loseSpear(u,'thrown'); u.throwT=.55; u.anim=1;
 }
@@ -2431,6 +2431,7 @@ function update(dt){
     // arrow / bullet / falling spear vs units
     // A deflected shot is spent: it must not re-hit the shield it bounced off,
     // nor score a second hit on anyone while it tumbles away.
+    if ((p.kind==='arrow'||p.kind==='spearp') && p.groundY!=null && p.vy>0 && p.y>=p.groundY){ landProjectile(p); p.life=0; continue; }   // TASK H: misses and spent shots end IN the ground
     if (p.deflected) continue;
     const hw = p.kind==='spearp' ? 16 : 12;
     for (const u of S.units){
@@ -2460,6 +2461,7 @@ function update(dt){
           break;
         }
         hurt(u,p.dmg,{kind:p.kind,sourceX:p.sourceX==null?p.x-(p.vx||0)*.1:p.sourceX});
+        if(p.kind==='arrow') stickArrow(u,p);   // TASK H: the arrow stays where it struck
         if(p.kind==='spearp'&&u.hp>0){ u.bleed=(u.bleed||0)+1; u.impaled=true; addFloat(u.x,u.y-46,'IMPALED −1/s','#ff9b8f'); }
         p.life = 0; break;
       }
@@ -2475,6 +2477,8 @@ function update(dt){
   // fx / corpses / floats
   for (const f of S.fx) f.t += dt;
   S.fx = S.fx.filter(f=>f.t < (f.kind==='boom'?.6: f.kind==='gbeam'?.45 :.3));
+  if (S.stuck && S.stuck.length){ for (const q of S.stuck) q.t += dt; if (S.stuck[0].t >= STUCK_LIFE || S.stuck.some(q=>q.t>=STUCK_LIFE)) S.stuck = S.stuck.filter(q=>q.t<STUCK_LIFE); }
+  for (const u of S.units){ if (u.arrows && u.arrows.length){ if (u.hp<=0){ u.arrows=null; continue; } for (const q of u.arrows) q.t += dt; if (u.arrows[0].t >= STUCK_LIFE) u.arrows = u.arrows.filter(q=>q.t<STUCK_LIFE); } }
   for (const c of S.corpses) c.t += dt;
   S.corpses = S.corpses.filter(c=>c.t < (window.KWArt?KWArt.corpseLife():7));
   for (let i=S.floats.length-1;i>=0;i--){ const f=S.floats[i]; f.t-=dt; f.y-=26*dt; if(f.t<=0)S.floats.splice(i,1); }
@@ -2645,12 +2649,28 @@ function spearGeometry(u){
 /* FRONTAL STANDOFF (§3): while a spear is intact, an opposing body in the same lane cannot occupy the space between
    the point and the spearman. The body is held at the guard tip -- moved at most HOLD_STEP per step, never teleported --
    and its inward velocity is cancelled. The spearman is not moved: the spear establishes the contact geometry. */
+/* TASK H: SPENT PROJECTILES. Every arrow and thrown spear ends somewhere visible -- stuck in the ground of its lane,
+   stuck in the body it hit, or lying where it fell after glancing off a shield -- instead of vanishing. Bounded:
+   S.stuck holds at most STUCK_MAX (oldest dropped), a soldier carries at most 4 arrows, everything fades after
+   STUCK_LIFE seconds, and a new battle starts empty. */
+const STUCK_MAX = 160, STUCK_LIFE = 6;
+function landProjectile(p){
+  const S_ = S.stuck || (S.stuck = []);
+  S_.push({x:p.x, y:p.groundY, ang: p.deflected ? (p.vx>=0?0.12:Math.PI-0.12) : Math.atan2(p.vy, p.vx), kind:p.kind, k:p.k||0.3, team:p.team, flat:!!p.deflected, t:0});
+  if (S_.length > STUCK_MAX) S_.splice(0, S_.length - STUCK_MAX);
+}
+function stickArrow(u, p){
+  if (u.hp <= 0) return;
+  const f = u.face||1, a = u.arrows || (u.arrows = []);
+  a.push({ox:(p.x-u.x)*f, oy:Math.max(-38, Math.min(-6, p.y-u.y)), ang:Math.atan2(p.vy, p.vx*f), t:0, team:p.team});
+  if (a.length > 4) a.shift();
+}
 function deflectProjectile(p, u){
   // deflect: kick it up and back off the shield face, then let it die
   const away = (u.face||1) >= 0 ? -1 : 1;
   p.vx = Math.abs(p.vx||60) * away * (0.35 + simRandom()*0.25);
   p.vy = -Math.abs(p.vy||0) * 0.3 - 90 - simRandom()*60;
-  p.g = GRAV; p.deflected = 1; p.life = Math.min(p.life, 0.55);
+  p.g = GRAV; p.deflected = 1; p.life = Math.min(p.life, 1.6); p.groundY = u.y + 4;   // TASK H: tumbles long enough to land and lie spent on the ground
   S.fx.push({kind:'shieldhit', x:u.x+(u.face||1)*11, y:u.y-22, t:0});
 }
 function updateSpears(dt){
@@ -3743,6 +3763,37 @@ function drawWallMelee(side){
 }
 
 // ---------- projectiles / fx ----------
+/* the dory as carried (KWRig.SPEAR, rig units) at the thrower's own scale k; draws along +X with the point forward */
+function drawSpearShape(k, team){
+  const SP = (window.KWRig && KWRig.SPEAR) || {FWD:155, BACK:60, W:3.4, TIP:18, TIPW:5.2, SAUROTER:8};
+  const f = SP.FWD*k, b = SP.BACK*k, tip = SP.TIP*k, tw = SP.TIPW*k*0.5;
+  ctx.strokeStyle = team===1 && window.KWCommerce ? KWCommerce.color('effect','#5a3d22') : '#5a3d22'; ctx.lineWidth = Math.max(1.8, SP.W*k*1.6); ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-b,0); ctx.lineTo(f-tip*0.6,0); ctx.stroke();
+  ctx.fillStyle = '#b8bcc0'; ctx.beginPath(); ctx.moveTo(f,0); ctx.lineTo(f-tip,-tw); ctx.lineTo(f-tip*0.8,0); ctx.lineTo(f-tip,tw); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#8d7a5a'; ctx.fillRect(-b-SP.SAUROTER*k, -tw*0.4, SP.SAUROTER*k, tw*0.8);   // butt spike
+}
+function _stuckAlpha(q){ return Math.max(0, Math.min(1, (STUCK_LIFE - q.t)/1.0)); }
+function drawStuckGround(){
+  if (!S.stuck || !S.stuck.length) return;
+  for (const q of S.stuck){
+    ctx.save(); ctx.globalAlpha = _stuckAlpha(q);
+    if (!q.flat){ ctx.beginPath(); ctx.rect(q.x-90, q.y-120, 180, 120); ctx.clip(); }   // the buried part is below the ground line
+    ctx.translate(q.x, q.y); ctx.rotate(q.ang);
+    if (q.kind === 'spearp'){ ctx.translate(-(KWRig.SPEAR.FWD*q.k)+(q.flat?0:10), 0); drawSpearShape(q.k, q.team); }
+    else if (window.KWRig && KWRig.drawArrowShape){ const A=KWRig.ARROW; ctx.translate(-(A.LEN-A.BACK)+(q.flat?0:7), 0); KWRig.drawArrowShape(ctx, q.team===1?'#4a3a26':'#c9bda8', '#e6ebef', q.team===1?'#d9cfc0':'#efe6d6'); }
+    ctx.restore();
+  }
+}
+function drawBodyArrows(u){
+  if (!window.KWRig || !KWRig.drawArrowShape) return;
+  const f = u.face||1, s = unitScale(u);
+  for (const q of u.arrows){
+    ctx.save(); ctx.globalAlpha = _stuckAlpha(q); ctx.translate(u.x + q.ox*f, u.y + q.oy); ctx.scale(f*s, s); ctx.rotate(q.ang);
+    ctx.translate(-14, 0);   // head and front of the shaft are inside the body: only the back half and fletching show
+    KWRig.drawArrowShape(ctx, q.team===1?'#4a3a26':'#c9bda8', q.team===1?'#4a3a26':'#c9bda8', q.team===1?'#d9cfc0':'#efe6d6', 10);
+    ctx.restore();
+  }
+}
 function drawProj(p){
   if (p.kind === 'arrow'){
     /* §16/§18 The arrow uses the same silhouette the archer has nocked, and
@@ -3756,10 +3807,7 @@ function drawProj(p){
   } else if (p.kind === 'spearp'){
     const ang = Math.atan2(p.vy, p.vx||0.001);
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ang);
-    ctx.strokeStyle = p.team===1 && window.KWCommerce ? KWCommerce.color('effect','#4a3a26') : '#4a3a26'; ctx.lineWidth = 2.6; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(-13,0); ctx.lineTo(10,0); ctx.stroke();
-    ctx.fillStyle = '#c9c9c9';
-    ctx.beginPath(); ctx.moveTo(15,0); ctx.lineTo(9,-3); ctx.lineTo(9,3); ctx.closePath(); ctx.fill();
+    drawSpearShape(p.k||0.3, p.team);   // TASK H: the SAME length and head the soldier carried (was a 28px stick: a 2.3x pop on release)
     ctx.restore();
   } else if (p.kind === 'bullet'){
     ctx.strokeStyle = p.team===1 && window.KWCommerce ? KWCommerce.color('effect','rgba(255,220,120,.9)') : 'rgba(255,220,120,.9)'; ctx.lineWidth = 2.6;
@@ -3961,8 +4009,9 @@ function render(){
     }
   }
 
+  drawStuckGround();
   const sorted = S.units.slice().sort((a,b)=>a.y-b.y);
-  for (const u of sorted) drawStick(u, false);
+  for (const u of sorted){ drawStick(u, false); if (u.arrows && u.arrows.length) drawBodyArrows(u); }
 
   for (const p of S.projs) drawProj(p);
   for (const f of S.fx) drawFx(f);
@@ -4381,7 +4430,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 64;
+  const KW_PAGE_BUILD = 65;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }

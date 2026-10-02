@@ -1,4 +1,4 @@
 (function(){
   'use strict';
-  window.KWBuild=Object.freeze({appVersion:'1.0.0',buildNumber:64,commitHash:'build-64-task g archers',contentVersion:'2026.09.11.01',saveSchemaVersion:3,analyticsSchemaVersion:1,environment:'production',modeId:'UNIVERSAL_BASE_SOLDIER_RIG'});
+  window.KWBuild=Object.freeze({appVersion:'1.0.0',buildNumber:65,commitHash:'build-65-task h projectiles',contentVersion:'2026.09.11.01',saveSchemaVersion:3,analyticsSchemaVersion:1,environment:'production',modeId:'UNIVERSAL_BASE_SOLDIER_RIG'});
 })();

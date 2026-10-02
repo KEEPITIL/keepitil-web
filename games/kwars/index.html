@@ -421,6 +421,20 @@ function encounterForWave(globalWave){
   if(local%10===0)return {kind:'commander',label:'COMMANDER',scale:1.15};
   return {kind:'normal',label:'WAVE',scale:1};
 }
+/* TASK J2 / D-05: ONE opponent identity. A Crusade battle is fought against the kingdom node's leader
+   ("Tribal Stone Era Commander 1"), which the campaign map, the start message and the results already used -- but the
+   wave banner announced the same fight as "COMMANDER 10" because kingdom N is staged at local wave 10*N and the banner
+   printed the WAVE number after the encounter label. Every battle surface now asks this function. */
+function opponentIdentity(){
+  if (S && S.campaignMissionId && window.KWCampaign){
+    const n = KWCampaign.nodeById(S.campaignMissionId);
+    if (n){ const civ = (window.KW_DATA && KW_DATA.civilizations.find(c=>c.id===n.civilizationId)) || null;
+      return {mode:'crusade', name:n.leaderDisplayName, civilization:civ?civ.displayName:CIVILIZATION_NAMES[S.enemyCiv-1], kingdom:n.kingdomNumber, label:'Kingdom '+n.kingdomNumber}; }
+  }
+  const enc = encounterForWave(S ? S.wave : 1), civName = CIVILIZATION_NAMES[(S?S.enemyCiv:1)-1];
+  const title = enc.kind==='normal' ? null : enc.label.toLowerCase().replace(/\b\w/g, c=>c.toUpperCase());
+  return {mode:'war', name: title ? civName+' '+title : null, civilization:civName, kingdom:null, label:'Wave '+(S?S.wave:1)};
+}
 function globalEnemyHealthMult(){return (1+Math.max(0,S.wave-1)*.009)*(1+conquestCycleFor(S.wave)*.18);}
 function globalEnemyDamageMult(){return (1+Math.max(0,S.wave-1)*.0065)*(1+conquestCycleFor(S.wave)*.12);}
 function globalEnemyShieldMult(){return (1+Math.max(0,S.wave-1)*.007)*(1+conquestCycleFor(S.wave)*.14);}
@@ -1980,7 +1994,10 @@ function startWave(){
   // attack order is released. Later waves hold slightly longer as formations grow.
   S.enemyPhase='form';S.enemyRallyX=E_SPAWN-70;S.enemyFormT=2+Math.min(2,local*.04);
   const cycle=S.conquestCycle?' · Conquest '+S.conquestCycle:'';
-  showMsg((bossWave?'♛ '+encounter.label+' ':'⚔ WAVE ')+w+' ('+CIVILIZATION_NAMES[S.enemyCiv-1]+' '+local+'/50'+cycle+') — enemy forming ranks'); snd.horn();
+  { const id = opponentIdentity();   // D-05: the banner names the same opponent the map and the results name
+    showMsg(id.mode==='crusade' ? ('♛ '+id.name+' · '+id.label+' — enemy forming ranks')
+      : ((bossWave&&id.name ? '♛ '+id.name+' · Wave ' : '⚔ WAVE ')+w+' ('+CIVILIZATION_NAMES[S.enemyCiv-1]+' '+local+'/50'+cycle+') — enemy forming ranks')); }
+  snd.horn();
   if(window.KWAudio)KWAudio.emit('wave.start',{civ:S.civ});
   if(window.KWAnalytics)KWAnalytics.track('wave_started',{wave:S.wave,civilization:S.civ,enemyCivilization:S.enemyCiv,count:q.length},'critical');
   window.KWRuntime?.events.emit('wave_started',{wave:S.wave,count:q.length,civilization:S.civ,enemyCivilization:S.enemyCiv});
@@ -4498,7 +4515,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 66;
+  const KW_PAGE_BUILD = 67;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 66,
+  "build": 67,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 66 (Tasks I/J battle controls). New battle controls: one bar with UNITS, RETREAT, DEFEND/MARCH (shows the army's current state) and ATTACK, plus a TACTICS tray (Throw Spears with a live count, Charge Swords/Spears/Ranged). Phones get touch-sized buttons with nothing off-screen and no keyboard hints."
+  "notes": "KINGDOM WARS 1.0.0 build 67 (J2 commander identity). The battle banner now names the same opponent as the Crusade map and the results screen (no more Commander 10 in battle vs Commander 1 on the map)."
 }

@@ -23,6 +23,7 @@ function head(ctx,J,C,bare){const [hx,hy]=J.head,r=L.headR,tilt=Math.atan2(J.hea
     ctx.fillStyle=shade(C.skin,.05);ctx.beginPath();ctx.arc(0,-0.5,r,Math.PI,Math.PI*2);ctx.fill();
     ctx.restore();return;
   }
+  if(!ERA_HELM_DEFAULT.has(C._helm)){ drawHelm(ctx,r,C); ctx.restore(); return; }   // D-01 era headgear
   ctx.fillStyle=cyl(ctx,-r-1.5,r+1.5,C.metal,.32);ctx.strokeStyle=shade(C.metal,-.5);ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,-0.5,r+1.4,Math.PI*0.95,Math.PI*2.05);ctx.fill();ctx.stroke();
   ctx.fillStyle=shade(C.metal,.6);ctx.beginPath();ctx.ellipse(-2.2,-2.4,1.7,4.2,-.3,0,7);ctx.fill();
   if(C.mohawk){
@@ -31,7 +32,7 @@ function head(ctx,J,C,bare){const [hx,hy]=J.head,r=L.headR,tilt=Math.atan2(J.hea
     ctx.fillStyle=C.crest;ctx.beginPath();ctx.moveTo(-r*0.9,-r+1.5);ctx.quadraticCurveTo(0,-r-22,r*0.9,-r+1.5);ctx.quadraticCurveTo(0,-r-12,-r*0.9,-r+1.5);ctx.closePath();ctx.fill();
     ctx.strokeStyle=shade(C.crest,.22);ctx.lineWidth=0.5;for(let i=-4;i<=4;i++){const hx=i*1.5;ctx.beginPath();ctx.moveTo(hx,-r-1);ctx.lineTo(hx,-r-18+Math.abs(i)*1.4);ctx.stroke();}
     ctx.fillStyle=shade(C.metal,.1);ctx.fillRect(-1.4,-r-1,2.8,2);
-  } else if(C.crest){ctx.fillStyle=shade(C.crest,-.25);ctx.fillRect(-1.4,-r-1,2.8,2);ctx.fillStyle=C.crest;ctx.beginPath();ctx.moveTo(-r*0.8,-r);ctx.quadraticCurveTo(0,-r-9,r*0.8,-r);ctx.quadraticCurveTo(r*0.5,-r-3.5,0,-r-3);ctx.quadraticCurveTo(-r*0.5,-r-3.5,-r*0.8,-r);ctx.closePath();ctx.fill();ctx.fillStyle=shade(C.crest,.15);ctx.beginPath();ctx.moveTo(-r*0.7,-r);ctx.quadraticCurveTo(0,-r-8,r*0.2,-r-3.5);ctx.lineTo(-r*0.2,-r-1);ctx.closePath();ctx.fill();}
+  } else if(C.crest && C._helm!=='galea'){ctx.fillStyle=shade(C.crest,-.25);ctx.fillRect(-1.4,-r-1,2.8,2);ctx.fillStyle=C.crest;ctx.beginPath();ctx.moveTo(-r*0.8,-r);ctx.quadraticCurveTo(0,-r-9,r*0.8,-r);ctx.quadraticCurveTo(r*0.5,-r-3.5,0,-r-3);ctx.quadraticCurveTo(-r*0.5,-r-3.5,-r*0.8,-r);ctx.closePath();ctx.fill();ctx.fillStyle=shade(C.crest,.15);ctx.beginPath();ctx.moveTo(-r*0.7,-r);ctx.quadraticCurveTo(0,-r-8,r*0.2,-r-3.5);ctx.lineTo(-r*0.2,-r-1);ctx.closePath();ctx.fill();}
   if(C.hat==='cap'){                                   // archer soft leather cap over the dome
     ctx.fillStyle=cyl(ctx,-r-1,r+1,C.leather,.22);ctx.beginPath();ctx.arc(0,-1,r+1.2,Math.PI*0.9,Math.PI*2.1);ctx.fill();
     ctx.fillStyle=shade(C.leather,.15);ctx.beginPath();ctx.ellipse(-2,-2.2,1.5,3.4,-.3,0,7);ctx.fill();
@@ -416,6 +417,16 @@ function drawSpear(ctx,h,ang,C,X){const d=[Math.cos(ang),Math.sin(ang)];X=X||{};
 /* Leaf blade, drawn identically wherever the tip appears. */
 function spearHead(ctx,tp,d,C){
   const nx=-d[1],ny=d[0],hb=[tp[0]-d[0]*SPEAR.TIP,tp[1]-d[1]*SPEAR.TIP];
+  const k=C._head;   // D-01 era spearhead; the tip point (and so all spear geometry) is unchanged
+  if(k&&k!=='iron'){
+    const P=(t,o)=>[tp[0]-d[0]*t+nx*o,tp[1]-d[1]*t+ny*o];
+    if(k==='stone'){poly(ctx,[P(0,0),P(7,4.6),P(13,5.4),P(18,3),P(18,-3),P(12,-5.6),P(6,-4.2)],'#6e6b64',shade('#6e6b64',-.45),0.7);ctx.strokeStyle='#c8b48a';ctx.lineWidth=1.6;ctx.beginPath();const a=P(17,4),b=P(17,-4);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();return;}
+    if(k==='bronze'){poly(ctx,[P(0,0),P(7,5.8),P(15,4.2),P(19,1.6),P(19,-1.6),P(15,-4.2),P(7,-5.8)],'#d4a44a',shade('#d4a44a',-.4),0.6);return;}
+    if(k==='winged'){poly(ctx,[P(0,0),P(SPEAR.TIP,SPEAR.TIPW),P(SPEAR.TIP,-SPEAR.TIPW)],'#dfe4e8',shade('#dfe4e8',-.3),0.6);ctx.strokeStyle='#9ea4aa';ctx.lineWidth=2.2;ctx.beginPath();const a=P(SPEAR.TIP+3,6),b=P(SPEAR.TIP+3,-6);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();return;}
+    if(k==='yari'){poly(ctx,[P(0,0),P(22,2.4),P(24,0),P(22,-2.4)],'#e6eaee',shade('#e6eaee',-.35),0.6);return;}
+    if(k==='pike'){poly(ctx,[P(0,0),P(11,2.6),P(14,0),P(11,-2.6)],'#dfe4e8',shade('#dfe4e8',-.35),0.6);ctx.strokeStyle='#9ea4aa';ctx.lineWidth=1.2;ctx.beginPath();const a=P(13,0),b=P(30,0);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();return;}   // langets
+    if(k==='bayonet'){ctx.strokeStyle='#cfd4d8';ctx.lineWidth=2;ctx.lineCap='round';ctx.beginPath();const a=P(0,0),b=P(22,0);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();ctx.strokeStyle='#8a8f96';ctx.lineWidth=3.2;ctx.beginPath();const c=P(22,0),e=P(27,0);ctx.moveTo(c[0],c[1]);ctx.lineTo(e[0],e[1]);ctx.stroke();return;}
+  }
   poly(ctx,[[tp[0],tp[1]],[hb[0]+nx*SPEAR.TIPW,hb[1]+ny*SPEAR.TIPW],[hb[0]-nx*SPEAR.TIPW,hb[1]-ny*SPEAR.TIPW]],'#dfe4e8',shade('#dfe4e8',-.3),0.6);
   // socket collar: reads as a real head rather than a paper dart at small scale
   ctx.strokeStyle=C.trim;ctx.lineWidth=SPEAR.W;ctx.beginPath();
@@ -492,6 +503,10 @@ function drawScutum(ctx,J,C,po){const {cx,cy,HH,HW}=scutumRect(J,po);ctx.save();
    Re-draw only the part that lies outside the shield rectangle, after it. */
 function gladiusAheadOfShield(ctx,J,po,C){
   if(po.supine||po.extra.spearGone)return;
+  if(C._blade && C._blade!=='gladius'){ if(C._sS==='none') return;
+    const {cx,cy,HH,HW}=scutumRect(J,po), h=J.armB[2], ang=gladiusAngle(J,po,po.extra.trail||0,po.extra.swingStyle||0);
+    ctx.save(); ctx.beginPath(); ctx.rect(-1e4,-1e4,2e4,2e4); ctx.rect(cx-HW,cy-HH,HW*2,HH*2); ctx.clip('evenodd');
+    drawEraBlade(ctx,h,[Math.cos(ang),Math.sin(ang)],C._blade,C,po.extra.bigSword?1.35:1); ctx.restore(); return; }
   const h=J.armB[2], trail=po.extra.trail||0, style=po.extra.swingStyle||0;
   const ang = gladiusAngle(J,po,trail,style);   // §9 one source of truth
   const d=[Math.cos(ang),Math.sin(ang)],nx=-d[1],ny=d[0];
@@ -533,6 +548,7 @@ function drawGladius(ctx,J,po,C){
   const style = po.extra.swingStyle||0;
   const ang = gladiusAngle(J,po,trail,style);
   const d=[Math.cos(ang),Math.sin(ang)],nx=-d[1],ny=d[0];
+  if(C._blade && C._blade!=='gladius'){ drawEraBlade(ctx,h,d,C._blade,C,po.extra.bigSword?1.35:1); return; }   // D-01 era weapon, same grip/angle contract
   const big=po.extra.bigSword?1.6:1;                       // raged: oversized greatsword
   const blade=70*big,grip=9,guardW=8.2*big,bw=3.5*big;
   const tip=[h[0]+d[0]*blade,h[1]+d[1]*blade];
@@ -587,7 +603,7 @@ function drawArrowShape(ctx,shaftCol,headCol,fletchCol,tipAt){
     ctx.closePath(); ctx.fill();
   }
 }
-function drawBow(ctx,G,dh,po){const half=40,depth=15;const aim=po.extra.nocked?Math.atan2(G[1]-dh[1],G[0]-dh[0]):0;ctx.save();ctx.translate(G[0],G[1]);ctx.rotate(aim);const T=[-depth,-half],B=[-depth,half];ctx.strokeStyle='#8a5a2c';ctx.lineWidth=2.6;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(T[0],T[1]);ctx.quadraticCurveTo(2,-half*0.5,2,0);ctx.quadraticCurveTo(2,half*0.5,B[0],B[1]);ctx.stroke();let nock;if(po.extra.nocked){const dx=dh[0]-G[0],dy=dh[1]-G[1];nock=[dx*Math.cos(aim)+dy*Math.sin(aim),-dx*Math.sin(aim)+dy*Math.cos(aim)];}else nock=[-depth,0];ctx.strokeStyle='rgba(238,232,214,.8)';ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(T[0],T[1]);ctx.lineTo(nock[0],nock[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();if(po.extra.nocked){ctx.save();ctx.translate(nock[0],nock[1]);
+function drawBow(ctx,G,dh,po){const bk=po.extra.bowKind, half=bk==='long'?50:bk==='yumi'?46:bk==='composite'?35:40, depth=bk==='composite'?10:bk==='long'?13:15;   /* D-01 era bow profile */const aim=po.extra.nocked?Math.atan2(G[1]-dh[1],G[0]-dh[0]):0;ctx.save();ctx.translate(G[0],G[1]);ctx.rotate(aim);const T=[-depth,-half],B=[-depth,half];ctx.strokeStyle='#8a5a2c';ctx.lineWidth=2.6;ctx.lineCap='round';ctx.beginPath();if(bk==='yumi'){T[1]=-half*1.15;B[1]=half*0.7;}ctx.moveTo(T[0],T[1]);ctx.quadraticCurveTo(2,T[1]*0.5,2,0);ctx.quadraticCurveTo(2,B[1]*0.5,B[0],B[1]);ctx.stroke();if(bk==='composite'){ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(T[0],T[1]);ctx.lineTo(T[0]-4,T[1]-3);ctx.moveTo(B[0],B[1]);ctx.lineTo(B[0]-4,B[1]+3);ctx.stroke();}let nock;if(po.extra.nocked){const dx=dh[0]-G[0],dy=dh[1]-G[1];nock=[dx*Math.cos(aim)+dy*Math.sin(aim),-dx*Math.sin(aim)+dy*Math.cos(aim)];}else nock=[-depth,0];ctx.strokeStyle='rgba(238,232,214,.8)';ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(T[0],T[1]);ctx.lineTo(nock[0],nock[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();if(po.extra.nocked){ctx.save();ctx.translate(nock[0],nock[1]);
     drawArrowShape(ctx,'#7a5330','#e6ebef','#d9cfc0', 28-nock[0]);   // tip clears the bow
     ctx.restore();}ctx.restore();}
 function drawRifle(ctx,rear,front,po,C){const ang=Math.atan2(front[1]-rear[1],front[0]-rear[0]),len=Math.hypot(front[0]-rear[0],front[1]-rear[1]);ctx.save();ctx.translate(rear[0],rear[1]);ctx.rotate(ang);const muzzle=len+24;ctx.fillStyle=shade(C.wood,-.1);ctx.beginPath();ctx.moveTo(-16,-3.4);ctx.lineTo(-2,-2.2);ctx.lineTo(-2,2);ctx.lineTo(-16,3.6);ctx.closePath();ctx.fill();ctx.fillStyle=cyl(ctx,-3,3,C.metal,.3);ctx.beginPath();ctx.roundRect(-2,-2.4,len*0.5+4,4.2,1);ctx.fill();ctx.fillStyle=shade(C.metal,-.1);ctx.beginPath();ctx.moveTo(3,2);ctx.lineTo(8,2);ctx.lineTo(7,9);ctx.lineTo(4,9);ctx.closePath();ctx.fill();ctx.fillStyle=shade(C.metal,.1);ctx.fillRect(len*0.4,-1.2,muzzle-len*0.4,2.4);ctx.fillStyle=shade(C.wood,-.05);ctx.beginPath();ctx.roundRect(len-8,-2.2,16,4.4,1.2);ctx.fill();if(po.extra.fire>0.05){ctx.globalAlpha=Math.min(1,po.extra.fire*1.4);ctx.fillStyle='#ffd24a';poly(ctx,[[muzzle+2,0],[muzzle+9,-4],[muzzle+15,0],[muzzle+9,4]],'#ffd24a',null,0);ctx.globalAlpha=1;}ctx.restore();}
@@ -618,20 +634,108 @@ function drawPauldron(ctx,sh,C){
 // Civilization armor tiers across the 15 eras — recolors the metal/trim of every
 // worn piece (helmet, greaves, cuirass) and picks the chest style so a tribal
 // spearman, a bronze hoplite and an industrial trooper are unmistakable.
-function eraKit(civ){
-  civ=Math.max(1,Math.min(15,(civ|0)||1));
-  const T=[
-    [1,1,'#8a6a45','#c8a45a','hide'],   // tribal hide
-    [2,2,'#b5893c','#e8c46a','scale'],  // bronze scale
-    [3,4,'#9aa2aa','#c7ccce','plate'],  // late-bronze / iron
-    [5,6,'#c2a15a','#e8d28a','muscle'], // classical bronze muscle cuirass
-    [7,8,'#aeb4bb','#cfd4d8','mail'],   // late-antique / viking mail
-    [9,10,'#c6ccd2','#e8b23b','plate'], // medieval / steppe plate
-    [11,13,'#8f8f93','#c7ccce','coat'], // renaissance → napoleonic
-    [14,15,'#6f757c','#aab0b6','coat']  // industrial / world-war
-  ];
-  for(const t of T) if(civ>=t[0]&&civ<=t[1]) return {metal:t[2],trim:t[3],chest:t[4]};
-  return {metal:'#8f8f93',trim:'#c7ccce',chest:'coat'};
+/* D-01 ERA KITS -- the design source is docs/kwars-art/ERA_VISUAL_BIBLE.md. One row per canonical civilization
+   (civilizations.js order). Team identity stays in cloth/shield paint (C.tunic/C.shield); the kit changes the
+   SILHOUETTE: headgear, armour surface, blade, spearhead, both shield shapes and the bow.
+   sS = sword-class shield, pS = spear-class shield ('none' = carried as armour instead, see index.html spawn). */
+const ERA_KITS=[null,
+  {metal:'#77736a',trim:'#c8a45a',chest:'hide',  helm:'hair',     blade:'club',     head:'stone',  sS:'hide_oval', pS:'hide_oval', bow:'self',     emblem:'stripes'},
+  {metal:'#b5893c',trim:'#e8c46a',chest:'scale', helm:'cap',      blade:'axe',      head:'bronze', sS:'wicker',    pS:'wicker',    bow:'composite',emblem:'sun'},
+  {metal:'#c39a4a',trim:'#e8d28a',chest:'linen', helm:'headcloth',blade:'khopesh',  head:'bronze', sS:'tomb',      pS:'tomb',      bow:'composite',emblem:'bands'},
+  {metal:'#9aa2aa',trim:'#c7ccce',chest:'scale', helm:'conical',  blade:'short',    head:'iron',   sS:'spara',     pS:'round',     bow:'composite',emblem:'rosette'},
+  {metal:'#c2a15a',trim:'#e8d28a',chest:'muscle',helm:'crested',  blade:'xiphos',   head:'bronze', sS:'aspis',     pS:'aspis',     bow:'self',     emblem:'lambda'},
+  {metal:'#aeb4b8',trim:'#e0c060',chest:'plate', helm:'galea',    blade:'gladius',  head:'iron',   sS:'scutum',    pS:'scutum',    bow:'composite',emblem:'wings'},
+  {metal:'#aeb4bb',trim:'#e0c060',chest:'mail',  helm:'ridge',    blade:'spatha',   head:'iron',   sS:'oval',      pS:'oval',      bow:'composite',emblem:'cross'},
+  {metal:'#9ea4aa',trim:'#cfd4d8',chest:'mail',  helm:'nasal',    blade:'daneaxe',  head:'winged', sS:'roundboss', pS:'roundboss', bow:'self',     emblem:'quarter'},
+  {metal:'#c6ccd2',trim:'#e8b23b',chest:'surcoat',helm:'great',   blade:'arming',   head:'iron',   sS:'heater',    pS:'kite',      bow:'long',     emblem:'cross'},
+  {metal:'#a08a6a',trim:'#e8b23b',chest:'lamellar',helm:'steppe', blade:'saber',    head:'iron',   sS:'steppe',    pS:'steppe',    bow:'composite',emblem:'none'},
+  {metal:'#3d3a3a',trim:'#c9a24a',chest:'lamellar',helm:'kabuto', blade:'katana',   head:'yari',   sS:'none',      pS:'none',      bow:'yumi',     emblem:'mon'},
+  {metal:'#b9bec4',trim:'#d9c07a',chest:'plate', helm:'morion',   blade:'longsword',head:'pike',   sS:'buckler',   pS:'none',      bow:'composite',emblem:'none'},
+  {metal:'#8f8f93',trim:'#d6b45a',chest:'coat',  helm:'tricorne', blade:'hanger',   head:'bayonet',sS:'none',      pS:'none',      bow:'composite',emblem:'none'},
+  {metal:'#8f8f93',trim:'#e8e8e8',chest:'coat',  helm:'shako',    blade:'briquet',  head:'bayonet',sS:'none',      pS:'none',      bow:'composite',emblem:'none'},
+  {metal:'#5f6a5a',trim:'#aab0b6',chest:'coat',  helm:'brodie',   blade:'trench',   head:'bayonet',sS:'none',      pS:'none',      bow:'composite',emblem:'none'}
+];
+function eraKit(civ){ civ=Math.max(1,Math.min(15,(civ|0)||1)); return ERA_KITS[civ]; }
+/* ---- era headgear (drawn in head-local space: origin at the head centre, radius r) ---- */
+function drawHelm(ctx,r,C){
+  const k=C._helm, m=C.metal, dark=shade(m,-.5);
+  const dome=(col,lift)=>{ctx.fillStyle=cyl(ctx,-r-1.5,r+1.5,col,lift==null?.3:lift);ctx.strokeStyle=shade(col,-.5);ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,-0.5,r+1.4,Math.PI*0.95,Math.PI*2.05);ctx.fill();ctx.stroke();};
+  if(k==='hair'){ ctx.fillStyle='#2b1d12';ctx.beginPath();ctx.arc(0,-0.6,r+0.8,Math.PI*0.92,Math.PI*2.08);ctx.fill();ctx.beginPath();ctx.ellipse(-r*0.9,-r*0.5,3,3.6,0,0,7);ctx.fill();   // hair + knot
+    ctx.fillStyle=C.shield||'#b5562c';ctx.fillRect(-r-0.6,-2.2,2*r+1.2,2.2);                                               // painted headband (team)
+    ctx.strokeStyle='#e9e2cf';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(-r*0.7,-2);ctx.quadraticCurveTo(-r*1.6,-r*1.9,-r*0.9,-r*2.6);ctx.stroke(); return; }   // feather
+  if(k==='headcloth'){ ctx.fillStyle='#e8dcbc';ctx.beginPath();ctx.arc(0,-0.5,r+1.4,Math.PI*0.95,Math.PI*2.05);ctx.lineTo(-r*0.9,r*1.4);ctx.lineTo(-r-2.5,r*1.6);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=C.shield||'#2e5c9a';ctx.lineWidth=1.3;for(const y of [-r*0.6,-r*0.15,r*0.3])for(let i=0;i<1;i++){ctx.beginPath();ctx.moveTo(-r-1,y);ctx.lineTo(r+1,y);ctx.stroke();} return; }
+  if(k==='fur'||k==='steppe'){ dome(k==='steppe'?m:'#6b4a2a',.2);
+    if(k==='steppe'){ctx.fillStyle=shade(m,.1);ctx.beginPath();ctx.moveTo(-r*0.7,-r);ctx.lineTo(0,-r-8);ctx.lineTo(r*0.7,-r);ctx.closePath();ctx.fill();ctx.fillStyle=C.shield||'#a33';ctx.fillRect(-0.6,-r-11,1.2,4);}
+    ctx.fillStyle='#5a3d22';ctx.beginPath();ctx.ellipse(0,-r*0.05,r+2.6,2.6,0,Math.PI,Math.PI*2);ctx.fill(); return; }        // fur brim
+  if(k==='cap'){ dome(m,.35); ctx.fillStyle=shade(m,-.25);ctx.fillRect(-r-1,-0.8,2*r+2,1.6); return; }
+  if(k==='conical'){ ctx.fillStyle=cyl(ctx,-r-1.5,r+1.5,m,.3);ctx.strokeStyle=dark;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-r-1.4,0);ctx.lineTo(0,-r-9);ctx.lineTo(r+1.4,0);ctx.closePath();ctx.fill();ctx.stroke(); return; }
+  if(k==='ridge'){ dome(m,.3); ctx.strokeStyle=C.trim;ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(0,-0.5,r+1.4,Math.PI*1.05,Math.PI*1.95);ctx.stroke();ctx.fillStyle=dark;ctx.fillRect(r*0.2,-1,r*0.9,r*1.2); return; }
+  if(k==='nasal'){ ctx.fillStyle=cyl(ctx,-r-1.5,r+1.5,m,.3);ctx.strokeStyle=dark;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-r-1.4,0);ctx.quadraticCurveTo(-r,-r-4,0,-r-5.5);ctx.quadraticCurveTo(r,-r-4,r+1.4,0);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.strokeStyle=shade(m,-.3);ctx.lineWidth=0.9;ctx.beginPath();ctx.moveTo(0,-r-5);ctx.lineTo(0,0);ctx.stroke();ctx.fillStyle=dark;ctx.fillRect(r*0.55,-1,1.8,r*0.95); return; }   // band + nasal
+  if(k==='great'){ ctx.fillStyle=cyl(ctx,-r-2,r+2,m,.3);ctx.strokeStyle=dark;ctx.lineWidth=1;ctx.beginPath();ctx.rect(-r-1.8,-r-2.5,2*r+3.6,2*r+3);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#14171a';ctx.fillRect(r*0.1,-r*0.35,r+1.6,1.4);ctx.strokeStyle=C.trim;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(r*0.6,-r-2);ctx.lineTo(r*0.6,r);ctx.stroke(); return; }   // flat-top great helm + vision slit
+  if(k==='kabuto'){ dome(m,.25); ctx.fillStyle=shade(m,-.15);ctx.beginPath();ctx.moveTo(-r-1,-1);ctx.lineTo(-r-6,r*0.9);ctx.lineTo(-r*0.2,r*0.6);ctx.lineTo(-r*0.2,-1);ctx.closePath();ctx.fill();   // shikoro neck guard
+    ctx.strokeStyle=C.trim;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(r*0.2,-r);ctx.quadraticCurveTo(r*1.4,-r-6,r*1.8,-r-9);ctx.moveTo(r*0.2,-r);ctx.quadraticCurveTo(-r*0.6,-r-7,-r*0.3,-r-10);ctx.stroke(); return; }   // kuwagata horns
+  if(k==='morion'){ dome(m,.35); ctx.fillStyle=cyl(ctx,-r-5,r+5,m,.25);ctx.beginPath();ctx.moveTo(-r-5,-1);ctx.quadraticCurveTo(0,-4,r+5,-1);ctx.quadraticCurveTo(r+6,-4.5,r+4,-5.5);ctx.lineTo(-r-4,-5.5);ctx.quadraticCurveTo(-r-6,-4.5,-r-5,-1);ctx.fill();
+    ctx.fillStyle=shade(m,.15);ctx.beginPath();ctx.moveTo(-r*0.6,-r);ctx.quadraticCurveTo(0,-r-8,r*0.6,-r);ctx.closePath();ctx.fill(); return; }   // brim + comb
+  if(k==='tricorne'){ ctx.fillStyle='#1d1a17';ctx.beginPath();ctx.moveTo(-r-3,-r+2);ctx.quadraticCurveTo(0,-r-1.5,r+3,-r+2);ctx.quadraticCurveTo(r*0.55,-r-7,0,-r-7.5);ctx.quadraticCurveTo(-r*0.55,-r-7,-r-3,-r+2);ctx.closePath();ctx.fill();ctx.strokeStyle=C.trim;ctx.lineWidth=0.9;ctx.stroke(); return; }
+  if(k==='shako'){ ctx.fillStyle='#1b1d22';ctx.fillRect(-r-0.5,-r-9,2*r+1,r+8);ctx.fillStyle='#111';ctx.fillRect(-r-1,-1.4,2*r+4,1.8);ctx.fillStyle=C.trim;ctx.fillRect(-r-0.5,-r-9,2*r+1,1.4);
+    ctx.fillStyle=C.shield||'#b22';ctx.beginPath();ctx.ellipse(r*0.2,-r-11,1.8,3,0,0,7);ctx.fill(); return; }   // stovepipe + plume
+  if(k==='brodie'){ ctx.fillStyle=cyl(ctx,-r-5,r+5,m,.2);ctx.strokeStyle=shade(m,-.45);ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(0,-r*0.25,r+5,2.2,0,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(0,-r*0.25,r*0.95,Math.PI,Math.PI*2);ctx.fill();ctx.stroke(); return; }
+}
+const ERA_HELM_DEFAULT=new Set([undefined,'galea','crested']);
+/* ---- era shields: drawn centred at (cx,cy) inside the rect the shield occupies (HW,HH half sizes) ---- */
+function drawEraShield(ctx,kind,cx,cy,HW,HH,C){
+  const paint=C.shield||'#9e2b25', trim=C.trim, hide='#8a6340', wick='#b89a5e';
+  ctx.save();ctx.translate(cx,cy);ctx.lineWidth=1.3;
+  const fs=(fill,stroke)=>{ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.stroke();};
+  ctx.beginPath();
+  if(kind==='hide_oval'){ctx.ellipse(0,0,HW*1.0,HH*0.95,0,0,7);fs(cyl(ctx,-HW,HW,hide,.18),shade(hide,-.5));
+    ctx.strokeStyle=paint;ctx.lineWidth=2;for(const y of [-HH*0.35,0,HH*0.35]){ctx.beginPath();ctx.moveTo(-HW*0.75,y);ctx.lineTo(HW*0.75,y);ctx.stroke();}}
+  else if(kind==='wicker'||kind==='spara'){ctx.rect(-HW,-HH*(kind==='spara'?0.95:1.05),HW*2,HH*(kind==='spara'?1.9:2.1));fs(cyl(ctx,-HW,HW,wick,.18),shade(wick,-.5));
+    ctx.strokeStyle=shade(wick,-.3);ctx.lineWidth=0.7;for(let y=-HH;y<HH;y+=4){ctx.beginPath();ctx.moveTo(-HW,y);ctx.lineTo(HW,y);ctx.stroke();}ctx.fillStyle=paint;ctx.fillRect(-HW,-HH*0.12,HW*2,HH*0.24);}
+  else if(kind==='tomb'){ctx.moveTo(-HW,HH);ctx.lineTo(-HW,-HH*0.4);ctx.quadraticCurveTo(-HW,-HH*1.05,0,-HH*1.05);ctx.quadraticCurveTo(HW,-HH*1.05,HW,-HH*0.4);ctx.lineTo(HW,HH);ctx.closePath();fs(cyl(ctx,-HW,HW,hide,.2),shade(hide,-.5));
+    ctx.fillStyle=paint;ctx.beginPath();ctx.ellipse(0,-HH*0.25,HW*0.5,HH*0.3,0,0,7);ctx.fill();}
+  else if(kind==='round'||kind==='roundboss'||kind==='steppe'||kind==='buckler'){const R=kind==='buckler'?Math.min(HW,HH)*0.55:kind==='steppe'?Math.min(HW*1.1,HH*0.8):Math.min(HW*1.35,HH*0.95);
+    ctx.arc(0,0,R,0,7);fs(cyl(ctx,-R,R,kind==='round'?(C.metal||'#b5893c'):kind==='steppe'?wick:paint,.2),shade(paint,-.45));
+    if(kind==='roundboss'){ctx.strokeStyle=shade(paint,-.3);ctx.lineWidth=0.8;for(let x=-R+R/3;x<R;x+=R/3){ctx.beginPath();ctx.moveTo(x,-Math.sqrt(Math.max(0,R*R-x*x)));ctx.lineTo(x,Math.sqrt(Math.max(0,R*R-x*x)));ctx.stroke();}ctx.fillStyle=trim;ctx.fillRect(-R*0.08,-R,R*0.16,R*2);}
+    if(kind==='round'){ctx.strokeStyle=paint;ctx.lineWidth=2.4;ctx.beginPath();ctx.arc(0,0,R*0.6,0,7);ctx.stroke();}
+    if(kind==='steppe'){ctx.strokeStyle=shade(wick,-.35);ctx.lineWidth=0.7;for(let q=0.3;q<1;q+=0.25){ctx.beginPath();ctx.arc(0,0,R*q,0,7);ctx.stroke();}}
+    ctx.fillStyle=shade(C.metal||'#999',.2);ctx.beginPath();ctx.arc(0,0,R*0.22,0,7);ctx.fill();}
+  else if(kind==='scutum'){ctx.roundRect(-HW*0.85,-HH*1.0,HW*1.7,HH*2.0,4);fs(cyl(ctx,-HW,HW,paint,.14),shade(paint,-.4));ctx.strokeStyle=trim;ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(-HW*0.7,-HH*0.86,HW*1.4,HH*1.72,3);ctx.stroke();ctx.fillStyle=shade(C.metal,.2);ctx.beginPath();ctx.arc(0,0,HW*0.28,0,7);ctx.fill();}
+  else if(kind==='oval'){ctx.ellipse(0,0,HW*1.15,HH*1.0,0,0,7);fs(cyl(ctx,-HW,HW,paint,.16),shade(paint,-.45));ctx.strokeStyle=trim;ctx.lineWidth=1.4;ctx.beginPath();ctx.ellipse(0,0,HW*0.95,HH*0.84,0,0,7);ctx.stroke();
+    ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(0,-HH*0.55);ctx.lineTo(0,HH*0.55);ctx.moveTo(-HW*0.45,-HH*0.15);ctx.lineTo(HW*0.45,-HH*0.15);ctx.stroke();ctx.fillStyle=shade(C.metal,.2);ctx.beginPath();ctx.arc(0,0,HW*0.25,0,7);ctx.fill();}
+  else if(kind==='heater'||kind==='kite'){const top=-HH*(kind==='kite'?1.05:0.9), bot=HH*(kind==='kite'?1.2:0.95);
+    ctx.moveTo(-HW*1.05,top);ctx.lineTo(HW*1.05,top);ctx.quadraticCurveTo(HW*1.05,bot*(kind==='kite'?0.1:0.45),0,bot);ctx.quadraticCurveTo(-HW*1.05,bot*(kind==='kite'?0.1:0.45),-HW*1.05,top);ctx.closePath();fs(cyl(ctx,-HW,HW,paint,.16),shade(paint,-.45));
+    ctx.strokeStyle=trim;ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(0,top+2);ctx.lineTo(0,bot-4);ctx.moveTo(-HW*0.75,top+HH*0.45);ctx.lineTo(HW*0.75,top+HH*0.45);ctx.stroke();}
+  ctx.restore();
+}
+/* ---- era blades: one rigid object gripped at h along direction d (same contract as the gladius) ---- */
+function drawEraBlade(ctx,h,d,kind,C,big){
+  const nx=-d[1],ny=d[0], at=(t,o)=>[h[0]+d[0]*t+nx*o,h[1]+d[1]*t+ny*o], steel='#e2e6ea', wood='#6a4526';
+  const L={club:62,axe:64,khopesh:66,short:60,xiphos:64,gladius:70,spatha:76,daneaxe:78,arming:74,saber:72,katana:76,longsword:78,hanger:64,briquet:62,trench:62}[kind]*(big||1);
+  const grip=(len,col,w)=>{ctx.strokeStyle=col||shade(C.leather,-.05);ctx.lineWidth=w||3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(h[0],h[1]);const e=at(-len,0);ctx.lineTo(e[0],e[1]);ctx.stroke();};
+  const guard=(w,col)=>{ctx.strokeStyle=col||C.trim;ctx.lineWidth=2.4;ctx.beginPath();const a=at(0,w),b=at(0,-w);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();};
+  const haft=(len,w)=>{ctx.strokeStyle=wood;ctx.lineWidth=w||3.4;ctx.lineCap='round';ctx.beginPath();const a=at(-8,0),b=at(len,0);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();};
+  const curved=(len,bow,w,tipw)=>{const pts=[];for(let i=0;i<=10;i++){const t=i/10;pts.push(at(2+len*t,bow*t*t+w*(1-t)+tipw*t));}for(let i=10;i>=0;i--){const t=i/10;pts.push(at(2+len*t,bow*t*t-w*(1-t)*0.4));}poly(ctx,pts,steel,shade(steel,-.35),0.6);};
+  if(kind==='club'){haft(L-10,3.6);ctx.fillStyle='#6f6a60';ctx.beginPath();const c=at(L-6,0);ctx.ellipse(c[0],c[1],7,5.4,Math.atan2(d[1],d[0]),0,7);ctx.fill();ctx.strokeStyle='#c8b48a';ctx.lineWidth=1.2;const q=at(L-13,0);ctx.beginPath();ctx.arc(q[0],q[1],2.6,0,7);ctx.stroke();return;}
+  if(kind==='axe'||kind==='daneaxe'){haft(L,kind==='daneaxe'?3.2:3);const bw=kind==='daneaxe'?13:9, a0=at(L-(kind==='daneaxe'?16:12),0),a1=at(L,0),e0=at(L-(kind==='daneaxe'?20:14),bw),e1=at(L+3,bw);
+    poly(ctx,[a0,a1,e1,e0],kind==='daneaxe'?steel:'#c8813a',shade(steel,-.4),0.6);return;}
+  if(kind==='trench'){haft(L,4);ctx.fillStyle='#4a4a44';for(let t=L-14;t<=L;t+=5){const p=at(t,0);ctx.beginPath();ctx.arc(p[0],p[1],2.4,0,7);ctx.fill();}return;}
+  if(kind==='khopesh'){grip(10);const pts=[at(2,2.6),at(32,2.6),at(44,6),at(56,16),at(62,26),at(58,27),at(50,14),at(40,3),at(32,-1.2),at(2,-1.2)];poly(ctx,pts,'#d4a44a',shade('#d4a44a',-.4),0.6);return;}
+  if(kind==='saber'||kind==='katana'||kind==='hanger'||kind==='briquet'){
+    grip(kind==='katana'?16:9,kind==='katana'?'#22201e':null,kind==='katana'?3.4:3);
+    if(kind==='katana'){ctx.fillStyle=C.trim;const g=at(0,0);ctx.beginPath();ctx.arc(g[0],g[1],4,0,7);ctx.fill();} else guard(kind==='hanger'||kind==='briquet'?5.5:6.5);
+    if(kind==='hanger'||kind==='briquet'){ctx.strokeStyle=C.trim;ctx.lineWidth=1.4;ctx.beginPath();const a=at(0,5.5),b=at(-9,3.5);ctx.moveTo(a[0],a[1]);ctx.quadraticCurveTo(...at(-4,8),b[0],b[1]);ctx.stroke();}   // knuckle bow
+    curved(L,kind==='katana'?-6:-10,2.8,0.4);return;}
+  // straight blades
+  const w={short:3.6,xiphos:3.4,gladius:3.5,spatha:3.0,arming:3.2,longsword:3.0}[kind]||3.4;
+  grip(kind==='longsword'?17:9); guard({short:5,xiphos:5.5,gladius:8.2,spatha:7,arming:11,longsword:13}[kind]||7);
+  const b0=at(2,0),tip=at(L,0);
+  if(kind==='xiphos'){poly(ctx,[at(2,w*0.8),at(L*0.62,w*1.45),at(L,0.4),at(L+2.4,0),at(L,-0.4),at(L*0.62,-w*1.45),at(2,-w*0.8)],'#d9b468',shade('#d9b468',-.35),0.6);return;}
+  poly(ctx,[at(2,w),at(L,0.6),at(L+2.4,0),at(L,-0.6),at(2,-w)],steel,shade(steel,-.35),0.6);
+  ctx.strokeStyle=shade(steel,.25);ctx.lineWidth=0.8;ctx.beginPath();const f0=at(5,0),f1=at(L-5,0);ctx.moveTo(f0[0],f0[1]);ctx.lineTo(f1[0],f1[1]);ctx.stroke();
 }
 // A fitted breastplate that follows the torso (shoulder→pelvis) and carries an
 // era-specific surface: hide straps, bronze scales, mail rings, muscle relief, coat.
@@ -654,7 +758,7 @@ function drawCuirass(ctx,J,C,style){
 
 function drawSoldier(ctx,cls,po,C,team,armorCls){
   armorCls=armorCls||cls;   // motion/weapon follows `cls`; worn armor & shield follow `armorCls`
-  if(po.era){ const k=eraKit(po.era); C={...C, metal:k.metal, trim:k.trim, _chest:k.chest}; }  // civilization armor tier
+  if(po.era){ const k=eraKit(po.era); C={...C, metal:k.metal, trim:k.trim, _chest:k.chest, _helm:k.helm, _blade:k.blade, _head:k.head, _sS:k.sS, _pS:k.pS, _bow:k.bow, _emblem:k.emblem}; }  // D-01 civilization kit
   const J=build(po),sk=C.skin,far=shade(sk,team===1?0.1:-0.1);
   if(po.extra.dropGear){ctx.save();ctx.globalAlpha=po.alpha*po.extra.dropGear;ctx.fillStyle=cyl(ctx,po.px-16,po.px+16,C.shield||'#8a8f96',.1);ctx.strokeStyle='#3a3f45';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(po.px-6,1,15,5,0,0,7);ctx.fill();ctx.stroke();ctx.restore();}
   ctx.globalAlpha=po.alpha;
@@ -666,7 +770,7 @@ function drawSoldier(ctx,cls,po,C,team,armorCls){
   limb(ctx,J.armB[0],J.armB[1],5.1,4.1,far);limb(ctx,J.armB[1],J.armB[2],4.1,3.0,far);hand(ctx,J.armB[2],J.armB[1],far);
   if(!po.supine&&!po.extra.impale){
     if(cls==='spear'&&!po.extra.spearGone)drawSpear(ctx,J.armB[2],po.extra.spearAng,C,po.extra);
-    if(cls==='bow')drawBow(ctx,J.armB[2],J.armF[2],po);
+    if(cls==='bow'){ po.extra.bowKind=C._bow; drawBow(ctx,J.armB[2],J.armF[2],po); }
   }
   if(cls==='sword'&&!po.supine)drawGladius(ctx,J,po,C);
   if(cls==='sword'&&!po.supine&&po.extra.dualSword)drawGladius2(ctx,J,po,C);   // dual-blade ex-spearman
@@ -685,9 +789,9 @@ function drawSoldier(ctx,cls,po,C,team,armorCls){
   limb(ctx,J.armF[0],J.armF[1],5.1,4.1,sk);limb(ctx,J.armF[1],J.armF[2],4.1,3.0,sk);hand(ctx,J.armF[2],J.armF[1],shade(sk,.1));
   if(armorCls==='sword'&&!po.supine&&!po.extra.impale)drawPauldron(ctx,J.shoulder,C);
   if(!po.supine&&!po.extra.impale&&!po.extra.dropGear&&!po.dropShield){
-    if(armorCls==='sword'){drawScutum(ctx,J,C,po);
+    if(armorCls==='sword' && C._sS!=='none'){ if(!C._sS||C._sS==='scutum') drawScutum(ctx,J,C,po); else { const q=scutumRect(J,po); drawEraShield(ctx,C._sS,q.cx,q.cy,q.HW,q.HH,C); }
       if(cls==='sword')gladiusAheadOfShield(ctx,J,po,C);}
-    if(armorCls==='spear'){drawAspis(ctx,J,C,po);
+    if(armorCls==='spear' && C._pS!=='none'){ if(!C._pS||C._pS==='aspis') drawAspis(ctx,J,C,po); else { const q=aspisDisc(J,po); drawEraShield(ctx,C._pS,q.cx,q.cy,q.R*0.82,q.R*1.08,C); }
       if(cls==='spear')drawSpearAheadOfShield(ctx,J,po,C);}
   }
   if(cls==='gun'&&!po.supine)drawRifle(ctx,J.armF[2],J.armB[2],po,C);
@@ -725,5 +829,5 @@ function drawSoldierLite(ctx,cls,po,C,team){
   if((cls==='spear'||cls==='sword')&&!po.dropShield&&!po.supine){ctx.fillStyle=C.shield||'#9e2b25';ctx.beginPath();ctx.arc(J.armF[2][0],J.armF[2][1],6.5,0,7);ctx.fill();}
   ctx.globalAlpha=1;
 }
-return {drawSoldier,drawSoldierLite,poseFor,build,PAL,teamTint,poly,shade,SPEAR,aspisDisc,spearClearance,scutumRect,ARROW,drawArrowShape,ARM,gladiusAngle};
+return {eraKit,ERA_KITS,drawSoldier,drawSoldierLite,poseFor,build,PAL,teamTint,poly,shade,SPEAR,aspisDisc,spearClearance,scutumRect,ARROW,drawArrowShape,ARM,gladiusAngle};
 })();

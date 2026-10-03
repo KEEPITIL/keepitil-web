@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 69,
+  "build": 70,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 69 (D-13 no lasers). Future/laser units and the laser general power are gone from KWARS 1; every era's power is a period weapon."
+  "notes": "KINGDOM WARS 1.0.0 build 70 (D-01 era kits). Every civilization now looks like its own era: tribal clubs and hide shields, bronze axes, khopesh, Greek aspis, Roman scutum, Viking round shields and axes, knights' great helms, steppe sabers, samurai katana and yari, Renaissance morions and pikes, tricornes, shakos and steel helmets with bayonets. Long era names no longer cover the Retreat button."
 }

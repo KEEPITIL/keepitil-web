@@ -137,6 +137,7 @@
   .ubtn.active { background:linear-gradient(#f2c94d,#c98f1d); }
   .ubtn.active .nm, .ubtn.active .cost { color:#4a3405; }
   .ubtn.evolve { background:linear-gradient(#7a4fbc,#553083); }
+  .ubtn.evolve .nm { max-width:92px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }   /* long era names ("Industrial and World War Era") overlapped Retreat */
   /* §4 The three primary orders read as orders -- they are what the player
      reaches for under pressure, so they are larger and visually distinct from
      recruiting and from the upgrade shop. */
@@ -663,7 +664,14 @@ function unitProtection(type,team){
   const shieldScale=team===1 ? (1+.16*((S&&S.civ||1)-1)) : globalEnemyShieldMult();
   const armorScale=team===1 ? (1+.16*((S&&S.civ||1)-1)) : globalEnemyArmorMult();
   const logistics=team===1?(window.KWWarCouncil?.protectionMultiplier?.()||1):1;
-  return {shield:Math.round(p[0]*shieldScale*logistics),shieldMax:Math.round(p[0]*shieldScale*logistics),armor:Math.round(p[1]*armorScale*logistics),armorMax:Math.round(p[1]*armorScale*logistics),shieldUp:false,spearThrown:false};
+  let sh=Math.round(p[0]*shieldScale*logistics), ar=Math.round(p[1]*armorScale*logistics);
+  /* D-01/D-17: a shield exists only if the era kit draws one. Where the kit carries none (Feudal Japan onward for
+     swords, Japan + gunpowder eras for spears), the same protection is worn as armour, so balance is unchanged and
+     no soldier is secretly protected by an invisible shield. */
+  const kit=window.KWRig&&KWRig.eraKit ? KWRig.eraKit(team===1?(S&&S.civ||1):(S&&S.enemyCiv||1)) : null, w=(TYPES[type]||{}).weapon;
+  const slot = w==='sword' ? 'sS' : (w==='spear') ? 'pS' : null;
+  if(kit && slot && kit[slot]==='none' && sh>0){ ar+=sh; sh=0; }
+  return {shield:sh,shieldMax:sh,armor:ar,armorMax:ar,shieldUp:false,spearThrown:false};
 }
 
 // ---------- spawning ----------
@@ -4536,7 +4544,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 69;
+  const KW_PAGE_BUILD = 70;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }

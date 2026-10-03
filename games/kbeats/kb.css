@@ -1,0 +1,25 @@
+/* KBeats UI tokens — neon concert stage on KEEPITIL's dark base (#07080c, KEEPITIL neon green accent). */
+:root{
+  --bg:#07060f; --panel:#100c22; --panel2:#171233; --line:rgba(255,255,255,.09); --ink:#f3f1ff; --dim:#a39fc2; --mute:#6f6a92;
+  --blue:#1e7bff; --blue2:#3aa0ff; --cyan:#22d3ee; --pink:#e540ff; --yellow:#facc15; --green:#22e07a; --kil:#00ff88;
+  --hard:#f43f5e; --normal:#8b5cf6; --easy:#22c55e; --r:14px;
+  --font:'Space Grotesk','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-tap-highlight-color:transparent}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 22px;border-radius:12px;font-weight:800;letter-spacing:.02em;text-decoration:none;transition:transform .12s,filter .12s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:linear-gradient(180deg,var(--blue2),var(--blue));box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,0 6px 24px rgba(30,123,255,.45)}
+.btn.ghost{border:1.5px solid rgba(255,255,255,.28);background:rgba(255,255,255,.04)}
+.btn.pink{background:linear-gradient(180deg,#f472ff,#c026d3);box-shadow:0 6px 24px rgba(229,64,255,.35)}
+.btn.sm{padding:7px 14px;font-size:13px;border-radius:9px}
+.pill{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:6px}
+.pill.easy{background:rgba(34,197,94,.18);color:#4ade80}.pill.normal{background:rgba(139,92,246,.22);color:#c4b5fd}.pill.expert{background:rgba(244,63,94,.2);color:#fb7185}
+.pill.dev{background:rgba(250,204,21,.16);color:#fde047;border:1px solid rgba(250,204,21,.35)}
+.logo{font-weight:900;font-style:italic;letter-spacing:-.02em;background:linear-gradient(90deg,#4cc9ff,#e540ff 55%,#ff5ab4);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stars{color:var(--yellow);letter-spacing:1px;font-size:13px}
+.stars .off{color:#3b3660}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}

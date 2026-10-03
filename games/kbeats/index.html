@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KBeats — Play the Music · KEEPITIL Games</title>
+<meta name="description" content="KBeats is a four-lane rhythm game where every track comes from an independent artist. Play free in your browser, or turn your own music into a playable track.">
+<link rel="canonical" href="https://keepitil.com/games/kbeats/">
+<meta property="og:title" content="KBeats — Play the Music">
+<meta property="og:description" content="Discover music by playing it. A four-lane rhythm game built on independent artists.">
+<link rel="icon" href="/games/kbeats/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/games/kbeats/kb.css">
+<style>
+  body{background:radial-gradient(1000px 600px at 15% -10%,rgba(229,64,255,.22),transparent 70%),radial-gradient(900px 500px at 90% 0,rgba(34,211,238,.16),transparent 70%),var(--bg)}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+  nav.t{display:flex;align-items:center;gap:16px;padding:18px 0}
+  nav.t a{text-decoration:none;color:var(--dim);font-weight:600;font-size:14px}
+  nav.t .sp{flex:1}
+  @media (max-width:640px){nav.t a.sec{display:none}}
+  .shot{width:min(100%,360px)}
+  .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:40px 0 60px}
+  @media (max-width:860px){.hero{grid-template-columns:1fr;padding-top:10px}}
+  .hero h1{font-size:clamp(64px,12vw,128px);line-height:.9}
+  .tag{letter-spacing:.5em;font-weight:700;color:#e9d5ff;margin:14px 0 22px;font-size:14px}
+  .hero p.l{font-size:19px;color:var(--dim);max-width:520px;margin-bottom:26px}
+  .ctas{display:flex;gap:12px;flex-wrap:wrap}
+  .ctas .btn{font-size:17px;padding:15px 26px}
+  .shot{position:relative;aspect-ratio:9/16;max-height:640px;margin:0 auto;border-radius:28px;overflow:hidden;border:1px solid var(--line);box-shadow:0 30px 90px rgba(229,64,255,.25);background:#05030c}
+  .shot iframe{border:0;width:100%;height:100%;pointer-events:none}
+  .shot canvas{width:100%;height:100%;display:block}
+  section.b{padding:56px 0;border-top:1px solid var(--line)}
+  h2{font-size:clamp(28px,4vw,40px);font-weight:900;margin-bottom:12px}
+  .sub{color:var(--dim);font-size:17px;max-width:680px;margin-bottom:26px}
+  .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:760px){.g3,.g2{grid-template-columns:1fr}}
+  .c{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px}
+  .c h3{font-size:19px;margin-bottom:6px}.c p{color:var(--dim)}
+  .num{font-size:13px;font-weight:900;color:var(--cyan);letter-spacing:.1em}
+  .split{display:flex;height:56px;border-radius:14px;overflow:hidden;font-weight:900;margin:18px 0}
+  .split div{display:flex;align-items:center;justify-content:center}
+  .faq details{border-bottom:1px solid var(--line);padding:16px 0}.faq summary{font-weight:700;cursor:pointer;font-size:17px}.faq p{color:var(--dim);margin-top:8px}
+  footer{padding:40px 0 60px;color:var(--mute);font-size:13px;border-top:1px solid var(--line)}
+  footer a{color:var(--dim);margin-right:14px}
+  .lanes{display:flex;gap:10px;margin:18px 0}
+  .lanes span{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-size:22px;border:3px solid;background:rgba(0,0,0,.3)}
+  .songs .row{display:flex;gap:12px;align-items:center;padding:12px;border-radius:14px;background:var(--panel);border:1px solid var(--line);margin-bottom:10px}
+  .songs .row b{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="t" aria-label="KBeats"><a href="/games/" aria-label="KEEPITIL Games">← KEEPITIL Games</a><span class="sp"></span>
+    <a class="sec" href="#how">How it works</a><a class="sec" href="/games/kbeats/artists/">For artists</a><a class="sec" href="/games/kbeats/leaderboards/">Leaderboards</a><a class="btn sm primary" href="/games/kbeats/play/" style="color:#fff">Play now</a></nav>
+
+  <header class="hero">
+    <div>
+      <h1 class="logo">KBEATS</h1>
+      <div class="tag">PLAY THE MUSIC</div>
+      <p class="l">A four-lane rhythm game where every track comes from an independent artist. Tap, hold and swipe to the beat, build your combo, and find new music by playing it.</p>
+      <div class="ctas"><a class="btn primary" href="/games/kbeats/play/">▶ PLAY NOW</a><a class="btn ghost" href="/games/kbeats/submit/">SUBMIT YOUR MUSIC</a></div>
+      <p style="color:var(--mute);font-size:13px;margin-top:14px">Free in your browser on desktop and mobile · Beta, updated weekly. Native iPhone, Android, Mac and Windows builds are in development.</p>
+    </div>
+    <div class="shot" aria-hidden="true"><canvas id="demo"></canvas></div>
+  </header>
+
+  <section class="b" id="players"><h2>Discover music by playing it</h2>
+    <p class="sub">Four lanes. Four buttons. You get it in seconds. Notes ride the highway toward the pads; hit them on the beat for PERFECT, chain them for combo multipliers up to ×8, and fill HYPE for a double-score surge.</p>
+    <div class="lanes"><span style="border-color:#22d3ee;color:#22d3ee">◀</span><span style="border-color:#e540ff;color:#e540ff">▼</span><span style="border-color:#facc15;color:#facc15">▲</span><span style="border-color:#22e07a;color:#22e07a">▶</span></div>
+    <div class="g3">
+      <div class="c"><h3>Tap · Hold · Swipe · Chord</h3><p>Four simple note types. No strum bar, no menus mid-song. On a keyboard use D F J K or the arrow keys.</p></div>
+      <div class="c"><h3>Timing you can trust</h3><p>Notes follow the audio clock, not the frame rate. Calibrate once for speakers, wired headphones or Bluetooth.</p></div>
+      <div class="c"><h3>Easy, Normal, Expert</h3><p>Every track has three charts, from relaxed quarter notes to dense sixteenth-note runs.</p></div>
+    </div>
+  </section>
+
+  <section class="b" id="how"><h2>How it works</h2>
+    <div class="g3">
+      <div class="c"><div class="num">01 · ARTIST</div><h3>Upload a track you own</h3><p>Send KBeats your master directly. KBeats does not pull audio from any streaming service.</p></div>
+      <div class="c"><div class="num">02 · KBEATS</div><h3>We build the game</h3><p>Our analyser finds the tempo, beats, drops and sustained sections, then writes Easy, Normal and Expert charts that a validator checks are physically playable.</p></div>
+      <div class="c"><div class="num">03 · PLAYERS</div><h3>Players discover you</h3><p>Your track enters rotation. Players compete, follow you, and tap through to your SoundCloud.</p></div>
+    </div>
+  </section>
+
+  <section class="b" id="featured"><h2>Featured tracks</h2>
+    <p class="sub">Every track here is music an artist uploaded and KBeats approved. New tracks appear as submissions pass review.</p>
+    <div class="songs" id="songs"></div>
+  </section>
+
+  <section class="b" id="artists"><h2>Turn your music into a playable rhythm track</h2>
+    <p class="sub">KBeats turns independent music into a game and pays artists for the play it brings in.</p>
+    <div class="g2">
+      <div class="c"><h3>90% to the artist</h3><p>Of the distributable game revenue attributable to your track, 90% is yours and 10% is the KBeats platform fee. This is game revenue only: it never touches your SoundCloud or other streaming royalties.</p>
+        <div class="split"><div style="flex:9;background:linear-gradient(90deg,#1e7bff,#e540ff)">ARTIST 90%</div><div style="flex:1.4;background:#2a2450;font-size:12px">10%</div></div>
+        <p style="font-size:13px">Your dashboard will show earnings as Estimated, Finalized or Paid, and never shows an estimate as paid. Payout thresholds and timing are set in the <a href="/games/kbeats/artist-agreement/">Artist Agreement</a>.</p></div>
+      <div class="c"><h3>You stay in control</h3><p>Preview every chart, edit notes in the browser editor, and approve before anything goes live. You keep your rights. Disputed tracks are paused straight away.</p>
+        <a class="btn pink" href="/games/kbeats/submit/" style="margin-top:16px">Submit your music</a> <a class="btn ghost" href="/games/kbeats/artists/" style="margin-top:16px">Learn more</a></div>
+    </div>
+  </section>
+
+  <section class="b" id="download"><h2>Play</h2>
+    <div class="ctas"><a class="btn primary" href="/games/kbeats/play/">▶ PLAY ON WEB</a></div>
+    <p style="color:var(--mute);margin-top:12px">iPhone, Android, Mac and Windows apps are in development. Download buttons appear here once those builds are live in their stores.</p>
+  </section>
+
+  <section class="b faq" id="faq"><h2>FAQ</h2>
+    <details><summary>Is KBeats free?</summary><p>Yes. The core catalog, competitive play and leaderboards are free. Ads, if any, never play during a song, and nothing you can buy improves your score.</p></details>
+    <details><summary>Does KBeats use SoundCloud audio?</summary><p>No. Gameplay audio comes only from masters artists upload directly to KBeats. SoundCloud is used only for links to artists' pages. SoundCloud does not endorse or sponsor KBeats.</p></details>
+    <details><summary>My notes feel early or late.</summary><p>Open Settings → Calibrate and tap along to the click. KBeats stores a separate offset for speakers, wired headphones and Bluetooth.</p></details>
+    <details><summary>Who can submit music?</summary><p>Anyone who controls the master, the composition (or a licence covering this use), and every sample in the track. You confirm each of these when you submit.</p></details>
+    <details><summary>Are scores ranked?</summary><p>Yes. Global and weekly leaderboards only list scores the KBeats server has verified by replaying your input. You can play as a guest and keep your progress when you create an account.</p></details>
+  </section>
+
+  <footer>© KEEPITIL · KBeats beta · <a href="/games/kbeats/terms/">Terms</a><a href="/games/kbeats/privacy/">Privacy</a><a href="/games/kbeats/artist-agreement/">Artist Agreement</a><a href="/games/">KEEPITIL Games</a>
+    <p style="margin-top:8px">KBeats is an original KEEPITIL game and is not affiliated with any other rhythm game or music service.</p></footer>
+</div>
+<script type="module">
+  import { call } from '/games/kbeats/js/api.js';
+  import { coverArt } from '/games/kbeats/js/art.js';
+  import { Highway } from '/games/kbeats/js/render.js';
+  // featured tracks come from the live catalog (approved, published tracks only); empty until the first artist track is approved
+  const songs = document.getElementById('songs');
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const empty = '<p class="sub">The first artist tracks are in review. <a href="/games/kbeats/submit/">Submit your music</a> to be among them.</p>';
+  call('catalog', {}, { auth: false }).then(r => {
+    const t = (r.tracks || []).filter(x => !x.dev).slice(0, 4);
+    songs.innerHTML = t.length ? t.map(x => `<div class="row"><img src="${coverArt(x, 96)}" width="52" height="52" style="border-radius:10px" alt=""><b>${esc(x.title)}<br><small style="color:var(--dim);font-weight:500">${esc(x.artist)} · ${esc(x.genre)}</small></b><a class="btn sm primary" href="/games/kbeats/play/#/track/${encodeURIComponent(x.slug)}">Play</a></div>`).join('') : empty;
+  }).catch(() => { songs.innerHTML = empty; });
+  // attract-mode preview: the real renderer on a looping scripted pattern (no audio)
+  const cv = document.getElementById('demo'), hw = new Highway(cv, { reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches });
+  const pat = []; for (let i = 0; i < 64; i++) pat.push({ t: i * 0.25, lane: [0, 1, 2, 3, 2, 1, 3, 0][i % 8], type: i % 16 === 8 ? 'hold' : i % 16 === 12 ? 'swipe' : 'tap', dur: 0.75, dir: ['left', 'down', 'up', 'right'][[0, 1, 2, 3, 2, 1, 3, 0][i % 8]], state: 0 });
+  const t0 = performance.now(); let lastI = -1, combo = 0;
+  addEventListener('resize', () => hw.resize());
+  (function f() {
+    const now = ((performance.now() - t0) / 1000) % 16;
+    const i = Math.floor(now / 0.25);
+    if (i !== lastI) { if (i < lastI) { combo = 0; } lastI = i; const n = pat[i]; combo++; hw.feedback({ j: 'perfect', lane: n.lane, kind: 'head' }, now); }
+    hw.draw(now, { notes: pat.map(n => ({ ...n, state: n.t < now - 0.02 ? 2 : 0 })), cursor: 0, bpm: 120, offset: 0, lead: 1.5, combo, hype: (now % 8) / 8, hypeOn: now % 16 > 12, hypeLeft: (16 - now % 16) / 4, health: 0.8, energy: 0.8, practice: true });
+    requestAnimationFrame(f);
+  })();
+</script>
+</body>
+</html>

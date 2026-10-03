@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 74,
+  "build": 75,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 74 (Task L garrison). RETREAT now brings the whole army inside the fort (48 places, most wounded first; the Retreat button shows who is inside and when the fort is full). Wounds heal and damaged shields and armour are repaired, but broken shields and lost spears stay lost. Garrisoned soldiers are safe from ordinary attacks, and fight normally again as soon as you give a new order."
+  "notes": "KINGDOM WARS 1.0.0 build 75 (D-01a fortress eras). Fortresses now evolve with the civilization: timber palisade, mud brick, sandstone, glazed brick, marble, Roman masonry, Byzantine domes, Viking timber halls, the medieval castle, steppe ramparts with yurts, Japanese castle walls, Renaissance bastions, star forts, Napoleonic casemates and the industrial bunker."
 }

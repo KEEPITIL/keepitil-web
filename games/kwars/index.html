@@ -3533,60 +3533,106 @@ function flagAt(g,x,y,color){
   g.beginPath(); g.moveTo(x,y-25); g.lineTo(x+20,y-19); g.lineTo(x,y-13); g.closePath(); g.fill();
   g.strokeStyle = OUT; g.lineWidth = 1.4; g.stroke();
 }
+/* D-01a ERA FORTRESS KITS -- one row per canonical civilization (civilizations.js order), the fortress counterpart of
+   ERA_KITS. Components, not 15 engines: wall material + coursing, battlement shape, tower roof, gate, banner,
+   defensive weapon and ornament, painted over the shared fortress body by ONE routine (fortressArchitecture).
+   This only paints the baked fortress image: gate HP, castle HP, screening, wall/gate x-positions and every hitbox
+   are untouched (P_WALL/E_WALL and dmgGate/dmgCastle do not read any of it).                                        */
+const FORT_KITS=[null,
+  {wall:'palisade', tint:'#6e4728', course:'logs',    crest:'stakes',   roof:'thatch',  gate:'#8a5a30', weapon:'none',     orn:'skulls',  banner:'hide'},
+  {wall:'mudbrick', tint:'#b17030', course:'brick',   crest:'stepped',  roof:'flat',    gate:'#7a4a24', weapon:'brazier',  orn:'sun',     banner:'pennant'},
+  {wall:'sandstone',tint:'#d2b27a', course:'blocks',  crest:'rounded',  roof:'pylon',   gate:'#6a4422', weapon:'brazier',  orn:'obelisk', banner:'pennant'},
+  {wall:'glazed',   tint:'#3f6aa3', course:'brick',   crest:'stepped',  roof:'flat',    gate:'#8a6a2a', weapon:'ballista', orn:'lion',    banner:'square'},
+  {wall:'marble',   tint:'#ece6d2', course:'ashlar',  crest:'square',   roof:'gable',   gate:'#7a5a2c', weapon:'scorpion', orn:'columns', banner:'square'},
+  {wall:'roman',    tint:'#a9a39a', course:'opus',    crest:'square',   roof:'tile',    gate:'#6f4a27', weapon:'scorpion', orn:'eagle',   banner:'vexillum'},
+  {wall:'banded',   tint:'#c9b79a', course:'bands',   crest:'square',   roof:'dome',    gate:'#5a3a1e', weapon:'catapult', orn:'cross',   banner:'square'},
+  {wall:'timber',   tint:'#7a5634', course:'planks',  crest:'stakes',   roof:'longhouse',gate:'#5a3a1e',weapon:'none',     orn:'dragon',  banner:'raven'},
+  {wall:'castle',   tint:'#9c9a92', course:'ashlar',  crest:'square',   roof:'cone',    gate:'#5a3a1e', weapon:'trebuchet',orn:'shield',  banner:'heraldic'},
+  {wall:'rampart',  tint:'#9a7a52', course:'earth',   crest:'none',     roof:'yurt',    gate:'#6a4a2a', weapon:'none',     orn:'horsetail',banner:'horsetail'},
+  {wall:'ishigaki', tint:'#f2efe6', course:'plaster', crest:'tiles',    roof:'pagoda',  gate:'#2e2a26', weapon:'none',     orn:'mon',     banner:'nobori'},
+  {wall:'bastion',  tint:'#a85a3a', course:'brick',   crest:'embrasure',roof:'flat',    gate:'#4a3420', weapon:'cannon',   orn:'none',    banner:'square'},
+  {wall:'starfort', tint:'#8a8f74', course:'glacis',  crest:'embrasure',roof:'flat',    gate:'#3a2c1c', weapon:'cannon',   orn:'none',    banner:'ensign'},
+  {wall:'casemate', tint:'#8c8778', course:'casemate',crest:'gabion',   roof:'flat',    gate:'#33281a', weapon:'battery',  orn:'none',    banner:'tricolour'},
+  {wall:'concrete', tint:'#8a8c86', course:'concrete',crest:'sandbags', roof:'bunker',  gate:'#3b3f3a', weapon:'mg',       orn:'wire',    banner:'roundel'}
+];
+function fortKit(civ){ return FORT_KITS[Math.max(1,Math.min(15,(civ|0)||1))]; }
 function fortressArchitecture(g,lvl,side){
-  const banner=side?'#b3261e':'#6442b8';
-  if(lvl===1){
-    // Tribal hillfort: rough timber palisade, hide roofs and watch platforms.
-    g.fillStyle='#6e4728';
-    for(let x=4;x<560;x+=14){g.fillRect(x,308,9,188);g.fillStyle='#946339';g.fillRect(x+2,310,3,182);g.fillStyle='#6e4728';}
-    g.strokeStyle='#3e2a19';g.lineWidth=5;
-    for(const y of [338,420]){g.beginPath();g.moveTo(0,y);g.lineTo(560,y);g.stroke();}
-    g.fillStyle='#704429';
-    for(const x of [150,330,452]){g.beginPath();g.moveTo(x-10,270);g.lineTo(x+36,225);g.lineTo(x+82,270);g.closePath();g.fill();g.strokeStyle=OUT;g.lineWidth=2;g.stroke();}
-    for(const x of [96,276,426])flagAt(g,x,300,banner);
-  }else if(lvl===2){
-    // Bronze citadel: ochre mud brick, stepped parapets and glowing braziers.
-    g.fillStyle='rgba(177,112,48,.42)';g.fillRect(0,300,560,199);
-    g.strokeStyle='#8a5a2f';g.lineWidth=2;
-    for(let y=320;y<496;y+=18){g.beginPath();g.moveTo(0,y);g.lineTo(560,y);g.stroke();}
-    for(let x=14;x<560;x+=28){g.beginPath();g.moveTo(x,300);g.lineTo(x,499);g.stroke();}
-    for(const x of [174,354,488]){
-      g.fillStyle='#5d3520';g.fillRect(x-5,272,10,12);
-      const glow=g.createRadialGradient(x,268,1,x,268,15);glow.addColorStop(0,'#fff09a');glow.addColorStop(.35,'#ff8a28');glow.addColorStop(1,'rgba(255,90,20,0)');
-      g.fillStyle=glow;g.beginPath();g.arc(x,268,15,0,7);g.fill();
+  const shade=(c,a)=>(window.KWRig&&KWRig.shade)?KWRig.shade(c,a):c;
+  const k=fortKit(lvl), team=side?'#b3261e':'#6442b8';
+  // 1. wall material over the shared body (x 0..560, y 300..499) + coursing
+  g.save(); g.beginPath(); g.rect(0,300,560,199); g.rect(452,286,112,14); g.clip();
+  g.fillStyle=k.tint; g.globalAlpha=k.wall==='palisade'||k.wall==='timber'||k.wall==='concrete'||k.wall==='ishigaki'?0.92:0.62; g.fillRect(0,286,564,214); g.globalAlpha=1;
+  const line=(c,w)=>{g.strokeStyle=c;g.lineWidth=w;};
+  if(k.course==='logs'||k.course==='planks'){ for(let x=4;x<564;x+=k.course==='logs'?13:10){ g.fillStyle=shade(k.tint,(x/13)%2?-.12:.08); g.fillRect(x,300,k.course==='logs'?10:9,199); } line(shade(k.tint,-.45),4); for(const y of [338,420]){g.beginPath();g.moveTo(0,y);g.lineTo(564,y);g.stroke();} }
+  else if(k.course==='brick'){ line(shade(k.tint,-.35),1.4); for(let y=306,r=0;y<499;y+=12,r++){g.beginPath();g.moveTo(0,y);g.lineTo(564,y);g.stroke(); for(let x=(r%2)*14;x<564;x+=28){g.beginPath();g.moveTo(x,y);g.lineTo(x,y+12);g.stroke();}} }
+  else if(k.course==='blocks'||k.course==='ashlar'){ const bh=k.course==='blocks'?26:20, bw=k.course==='blocks'?52:40; line(shade(k.tint,-.32),1.6); for(let y=300,r=0;y<499;y+=bh,r++){g.beginPath();g.moveTo(0,y);g.lineTo(564,y);g.stroke(); for(let x=(r%2)*bw/2;x<564;x+=bw){g.beginPath();g.moveTo(x,y);g.lineTo(x,y+bh);g.stroke();}} }
+  else if(k.course==='opus'){ line(shade(k.tint,-.3),1.2); for(let y=310;y<499;y+=16){g.beginPath();g.moveTo(0,y);g.lineTo(564,y);g.stroke();} g.fillStyle='#9a4a32'; for(const y of [340,400,460]) g.fillRect(0,y,564,6); }
+  else if(k.course==='bands'){ for(let y=300,i=0;y<499;y+=18,i++){ g.fillStyle=i%2?'#b5584a':shade(k.tint,.05); g.fillRect(0,y,564,i%2?6:18); } }
+  else if(k.course==='earth'){ const gr=g.createLinearGradient(0,300,0,499); gr.addColorStop(0,'#8a6f45'); gr.addColorStop(1,'#5f4b2c'); g.fillStyle=gr; g.fillRect(0,300,564,199); line('#4a3a22',2); for(let x=10;x<564;x+=46){g.beginPath();g.moveTo(x,300);g.lineTo(x+20,499);g.stroke();} }
+  else if(k.course==='plaster'){ g.fillStyle='#7d7a72'; g.beginPath(); g.moveTo(0,420); g.lineTo(564,400); g.lineTo(564,499); g.lineTo(0,499); g.closePath(); g.fill(); line('#55524b',1.4); for(let y=410;y<499;y+=14){g.beginPath();g.moveTo(0,y+8);g.lineTo(564,y);g.stroke();} g.fillStyle='#2b2724'; g.fillRect(0,300,564,10); for(const x of [80,200,320,440]){ g.fillStyle='#2b2724'; g.fillRect(x,340,12,18);} }
+  else if(k.course==='glacis'){ g.fillStyle='#6f8a4a'; g.beginPath(); g.moveTo(0,430); g.lineTo(564,412); g.lineTo(564,499); g.lineTo(0,499); g.closePath(); g.fill(); line(shade(k.tint,-.3),1.2); for(let y=312;y<420;y+=14){g.beginPath();g.moveTo(0,y);g.lineTo(564,y);g.stroke();} }
+  else if(k.course==='casemate'){ line(shade(k.tint,-.32),1.5); for(let y=300,r=0;y<499;y+=22,r++){g.beginPath();g.moveTo(0,y);g.lineTo(564,y);g.stroke(); for(let x=(r%2)*30;x<564;x+=60){g.beginPath();g.moveTo(x,y);g.lineTo(x,y+22);g.stroke();}} g.fillStyle='#22231f'; for(const x of [40,130,220,310,400]){ g.beginPath(); g.moveTo(x,400); g.lineTo(x,384); g.arc(x+14,384,14,Math.PI,0); g.lineTo(x+28,400); g.closePath(); g.fill(); } }
+  else if(k.course==='concrete'){ line('#6b6d68',1.4); for(let x=0;x<564;x+=70){g.beginPath();g.moveTo(x,300);g.lineTo(x,499);g.stroke();} g.fillStyle='#55584f'; g.fillRect(0,360,564,4); for(const x of [60,190,330,470]){ g.fillStyle='#1a1c1a'; g.fillRect(x,330,40,8);} }
+  g.restore();
+  // 2. battlement crest along the wall walk (y ~ 286..300)
+  const crest=(x0,x1,y)=>{
+    if(k.crest==='none') return;
+    for(let x=x0;x<x1;x+=k.crest==='stakes'?9:16){
+      if(k.crest==='stakes'){ g.fillStyle=shade(k.tint,-.1); g.beginPath(); g.moveTo(x,y); g.lineTo(x+4,y-14); g.lineTo(x+8,y); g.closePath(); g.fill(); }
+      else if(k.crest==='rounded'){ g.fillStyle=shade(k.tint,.05); g.beginPath(); g.arc(x+6,y,6,Math.PI,0); g.fill(); }
+      else if(k.crest==='stepped'){ g.fillStyle=shade(k.tint,.05); g.fillRect(x,y-6,12,6); g.fillRect(x+3,y-11,6,5); }
+      else if(k.crest==='tiles'){ g.fillStyle='#2b2724'; g.beginPath(); g.moveTo(x-2,y); g.lineTo(x+18,y); g.lineTo(x+14,y-7); g.lineTo(x+2,y-7); g.closePath(); g.fill(); }
+      else if(k.crest==='embrasure'){ g.fillStyle=shade(k.tint,-.05); g.fillRect(x,y-9,11,9); }
+      else if(k.crest==='gabion'){ g.fillStyle='#6f6a52'; g.beginPath(); g.arc(x+7,y-5,7,0,7); g.fill(); g.strokeStyle='#4a4636'; g.lineWidth=1; g.stroke(); }
+      else if(k.crest==='sandbags'){ g.fillStyle='#b9a77a'; g.beginPath(); g.ellipse(x+8,y-4,8,4,0,0,7); g.fill(); g.strokeStyle='#7d6f4c'; g.lineWidth=1; g.stroke(); }
+      else { g.fillStyle=shade(k.tint,.02); g.fillRect(x,y-10,10,10); }
     }
-  }else if(lvl===3){
-    // Hellenic acropolis: marble courses, blue frieze and columned gatehouse.
-    g.fillStyle='rgba(239,234,213,.48)';g.fillRect(0,300,560,199);
-    g.fillStyle='#2f65b8';g.fillRect(0,330,560,8);g.fillRect(452,292,112,7);
-    g.fillStyle='#eee9d8';g.strokeStyle='#777268';g.lineWidth=1.5;
-    for(const x of [462,482,532,552]){g.fillRect(x,324,9,104);g.strokeRect(x,324,9,104);g.fillRect(x-3,320,15,5);}
-    g.fillStyle='#d9c46d';
-    for(const x of [90,277,420]){g.beginPath();g.arc(x,294,5,0,7);g.fill();g.strokeStyle=OUT;g.stroke();}
-  }else if(lvl===4){
-    // Roman castrum: squared battlements, red standards and artillery decks.
-    g.fillStyle='rgba(104,108,112,.28)';g.fillRect(0,300,560,199);
-    g.fillStyle='#a33a2c';g.fillRect(0,340,560,9);
-    g.strokeStyle='#4d5155';g.lineWidth=5;
-    for(const x of [36,132,244,420]){g.beginPath();g.moveTo(x,303);g.lineTo(x,496);g.stroke();}
-    for(const x of [180,360]){
-      g.fillStyle='#6f4a27';g.fillRect(x-24,282,48,7);g.fillRect(x-3,254,6,30);
-      g.strokeStyle='#444';g.lineWidth=3;g.beginPath();g.moveTo(x,258);g.lineTo(x+33,243);g.stroke();
-    }
-    for(const x of [120,300,500])flagAt(g,x,300,'#b3261e');
-  }else{
-    // Medieval royal castle: taller keeps, slate roofs, machicolations and energy wards.
-    g.fillStyle='rgba(62,70,82,.30)';g.fillRect(0,300,560,199);
-    for(const [x,w,top] of [[142,88,190],[322,88,210]]){
-      g.fillStyle='#69727c';g.fillRect(x,top,w,300-top);g.strokeStyle=OUT;g.lineWidth=3;g.strokeRect(x,top,w,300-top);
-      g.fillStyle='#33465c';g.beginPath();g.moveTo(x-10,top);g.lineTo(x+w/2,top-62);g.lineTo(x+w+10,top);g.closePath();g.fill();g.stroke();
-    }
-    g.fillStyle='#59636e';g.fillRect(446,232,124,274);g.strokeStyle=OUT;g.lineWidth=3;g.strokeRect(446,232,124,274);
-    g.fillStyle='#33465c';g.beginPath();g.moveTo(438,232);g.lineTo(508,164);g.lineTo(578,232);g.closePath();g.fill();g.stroke();
-    for(const [x,y] of [[186,218],[366,238],[508,254]]){
-      const glow=g.createRadialGradient(x,y,1,x,y,18);glow.addColorStop(0,'rgba(170,250,255,.95)');glow.addColorStop(1,'rgba(70,220,255,0)');g.fillStyle=glow;g.beginPath();g.arc(x,y,18,0,7);g.fill();
-    }
-  }
+  };
+  crest(0,452,300); crest(452,564,286);
+  // 3. tower roofs over the shared tower tops (x centres 186, 366, gatehouse 508)
+  const roof=(cx,topY,w)=>{
+    const r=k.roof, base=topY+34;
+    g.save(); g.strokeStyle=OUT; g.lineWidth=2;
+    if(r==='flat'||r==='pylon'||r==='bunker'){ g.fillStyle=k.tint; g.fillRect(cx-w/2,topY+4,w,base-topY-4); g.strokeRect(cx-w/2,topY+4,w,base-topY-4); if(r==='pylon'){ g.fillStyle=shade(k.tint,-.2); g.fillRect(cx-w/2-4,topY+2,w+8,5);} if(r==='bunker'){ g.fillStyle='#1a1c1a'; g.fillRect(cx-w/3,topY+16,w*0.66,6);} }
+    else if(r==='dome'){ g.fillStyle='#c8a24a'; g.beginPath(); g.arc(cx,base-2,w/2,Math.PI,0); g.fill(); g.stroke(); g.fillStyle='#e8c46a'; g.fillRect(cx-1.5,base-w/2-14,3,12); }
+    else if(r==='pagoda'){ g.fillStyle='#2b2724'; for(let t=0;t<2;t++){ const y=base-6-t*20, ww=w*(1.2-t*0.3); g.beginPath(); g.moveTo(cx-ww/2-8,y); g.quadraticCurveTo(cx,y-14,cx+ww/2+8,y); g.lineTo(cx+ww/2-4,y+6); g.lineTo(cx-ww/2+4,y+6); g.closePath(); g.fill(); } g.fillStyle='#f2efe6'; g.fillRect(cx-w/2+6,base-4,w-12,10); }
+    else if(r==='yurt'){ g.fillStyle='#e6dcc4'; g.beginPath(); g.moveTo(cx-w/2,base); g.lineTo(cx-w/2,base-14); g.quadraticCurveTo(cx,base-40,cx+w/2,base-14); g.lineTo(cx+w/2,base); g.closePath(); g.fill(); g.stroke(); g.strokeStyle='#8a3a2a'; g.lineWidth=2; g.beginPath(); g.moveTo(cx-w/2,base-14); g.lineTo(cx+w/2,base-14); g.stroke(); }
+    else if(r==='longhouse'||r==='thatch'){ g.fillStyle=r==='thatch'?'#a88a4a':'#5a3a22'; g.beginPath(); g.moveTo(cx-w/2-8,base); g.lineTo(cx,topY-6); g.lineTo(cx+w/2+8,base); g.closePath(); g.fill(); g.stroke(); if(r==='longhouse'){ g.strokeStyle='#c8a46a'; g.lineWidth=2; g.beginPath(); g.moveTo(cx-6,topY-2); g.lineTo(cx-14,topY-14); g.moveTo(cx+6,topY-2); g.lineTo(cx+14,topY-14); g.stroke(); } }
+    else if(r==='gable'||r==='tile'){ g.fillStyle=r==='tile'?'#9a4a32':'#ece6d2'; g.beginPath(); g.moveTo(cx-w/2-4,base); g.lineTo(cx,base-22); g.lineTo(cx+w/2+4,base); g.closePath(); g.fill(); g.stroke(); }
+    g.restore();
+  };
+  if(k.roof!=='cone'){ roof(186,228,72); roof(366,248,72); roof(508,252,112); }
+  // 4. gate leaf colour (iron/steel for the late eras), banners and ornament
+  g.save(); g.beginPath(); g.moveTo(476,506); g.lineTo(476,442); g.arc(508,442,32,Math.PI,0); g.lineTo(540,506); g.closePath(); g.clip(); g.fillStyle=k.gate; g.globalAlpha=0.7; g.fillRect(474,406,68,100); g.globalAlpha=1;
+  if(lvl>=12){ g.strokeStyle='#22252a'; g.lineWidth=2; for(let y=420;y<506;y+=14){ g.beginPath(); g.moveTo(474,y); g.lineTo(542,y); g.stroke(); } } g.restore();
+  const flag=(x,y)=>{ g.strokeStyle='#3a2a1a'; g.lineWidth=2.4; g.beginPath(); g.moveTo(x,y); g.lineTo(x,y-38); g.stroke(); g.fillStyle=team;
+    if(k.banner==='nobori'){ g.fillRect(x+1,y-38,9,30); g.fillStyle='#f2efe6'; g.beginPath(); g.arc(x+5.5,y-28,3,0,7); g.fill(); }
+    else if(k.banner==='horsetail'||k.banner==='raven'){ g.fillStyle=k.banner==='raven'?'#2b2724':'#e8dcc0'; g.beginPath(); g.moveTo(x,y-38); g.quadraticCurveTo(x+14,y-30,x+6,y-16); g.lineTo(x+1,y-24); g.closePath(); g.fill(); }
+    else if(k.banner==='tricolour'||k.banner==='roundel'||k.banner==='ensign'){ g.fillRect(x+1,y-38,22,14); g.fillStyle='#f2efe6'; g.fillRect(x+8,y-38,8,14); if(k.banner==='roundel'){ g.fillStyle=team; g.beginPath(); g.arc(x+12,y-31,3,0,7); g.fill(); } }
+    else if(k.banner==='pennant'){ g.beginPath(); g.moveTo(x+1,y-38); g.lineTo(x+24,y-32); g.lineTo(x+1,y-26); g.closePath(); g.fill(); }
+    else if(k.banner==='hide'){ g.fillStyle='#b88a5a'; g.fillRect(x+1,y-36,14,16); g.fillStyle=team; g.fillRect(x+3,y-31,10,3); }
+    else { g.fillRect(x+1,y-38,16,18); if(k.banner==='heraldic'||k.banner==='vexillum'){ g.fillStyle='#e8c46a'; g.fillRect(x+7,y-36,3,14); } }
+  };
+  for(const x of [96,276,426]) flag(x,300);
+  // 5. defensive weapon on the walk
+  const wpn=(x)=>{ g.save(); g.translate(x,300);
+    if(k.weapon==='brazier'){ g.fillStyle='#5d3520'; g.fillRect(-5,-12,10,12); const gl=g.createRadialGradient(0,-16,1,0,-16,14); gl.addColorStop(0,'#fff09a'); gl.addColorStop(.4,'#ff8a28'); gl.addColorStop(1,'rgba(255,90,20,0)'); g.fillStyle=gl; g.beginPath(); g.arc(0,-16,14,0,7); g.fill(); }
+    else if(k.weapon==='ballista'||k.weapon==='scorpion'){ g.fillStyle='#6f4a27'; g.fillRect(-14,-8,28,6); g.strokeStyle='#3a2a1a'; g.lineWidth=2.4; g.beginPath(); g.moveTo(-12,-8); g.quadraticCurveTo(0,-22,12,-8); g.stroke(); g.beginPath(); g.moveTo(0,-8); g.lineTo(-22,-14); g.stroke(); }
+    else if(k.weapon==='catapult'||k.weapon==='trebuchet'){ g.fillStyle='#6f4a27'; g.fillRect(-14,-10,28,8); g.strokeStyle='#4a3218'; g.lineWidth=3; g.beginPath(); g.moveTo(0,-10); g.lineTo(-12,-40); g.stroke(); g.fillStyle='#555'; g.beginPath(); g.arc(-12,-42,4,0,7); g.fill(); }
+    else if(k.weapon==='cannon'||k.weapon==='battery'){ g.fillStyle='#3a2a1a'; g.beginPath(); g.arc(-6,-5,6,0,7); g.fill(); g.fillStyle='#2b2f33'; g.save(); g.rotate(-0.1); g.fillRect(-10,-14,30,8); g.restore(); if(k.weapon==='battery'){ g.fillStyle='#2b2f33'; g.fillRect(-28,-12,14,6);} }
+    else if(k.weapon==='mg'){ g.fillStyle='#b9a77a'; g.beginPath(); g.ellipse(0,-6,16,7,0,0,7); g.fill(); g.fillStyle='#22252a'; g.fillRect(-2,-16,22,4); g.fillRect(-4,-14,6,8); }
+    g.restore(); };
+  for(const x of [180,360]) wpn(x);
+  // 6. ornament
+  g.save();
+  if(k.orn==='skulls'){ g.fillStyle='#e9e2cf'; for(const x of [120,300,440]){ g.beginPath(); g.arc(x,272,5,0,7); g.fill(); g.fillStyle='#3a2a1a'; g.fillRect(x-1,277,2,12); g.fillStyle='#e9e2cf'; } }
+  else if(k.orn==='sun'||k.orn==='mon'){ g.fillStyle=k.orn==='sun'?'#e8c46a':team; for(const x of [254]){ g.beginPath(); g.arc(x,330,11,0,7); g.fill(); } }
+  else if(k.orn==='obelisk'){ g.fillStyle='#d2b27a'; g.strokeStyle=OUT; g.lineWidth=1.5; g.beginPath(); g.moveTo(244,300); g.lineTo(250,236); g.lineTo(256,230); g.lineTo(262,236); g.lineTo(268,300); g.closePath(); g.fill(); g.stroke(); }
+  else if(k.orn==='lion'){ g.fillStyle='#e8c46a'; g.beginPath(); g.ellipse(254,330,16,8,0,0,7); g.fill(); g.beginPath(); g.arc(240,325,6,0,7); g.fill(); }
+  else if(k.orn==='columns'){ g.fillStyle='#ece6d2'; g.strokeStyle='#777268'; g.lineWidth=1.4; for(const x of [462,484,530,552]){ g.fillRect(x,324,9,104); g.strokeRect(x,324,9,104); } }
+  else if(k.orn==='eagle'||k.orn==='cross'||k.orn==='shield'||k.orn==='dragon'){ g.fillStyle=k.orn==='eagle'?'#e8c46a':team; g.beginPath(); if(k.orn==='cross'){ g.fillRect(250,318,8,26); g.fillRect(242,326,24,8); } else if(k.orn==='shield'){ g.moveTo(240,318); g.lineTo(268,318); g.lineTo(254,348); g.closePath(); g.fill(); } else { g.ellipse(254,330,14,7,0,0,7); g.fill(); } }
+  else if(k.orn==='wire'){ g.strokeStyle='#4a4d48'; g.lineWidth=1.2; for(let x=566;x<636;x+=8){ g.beginPath(); g.arc(x,494,5,0,7); g.stroke(); } }
+  g.restore();
 }
 function gatePath(g,off){
   off = off||0;
@@ -3702,8 +3748,7 @@ function paintCastle(g, side, lvl){
   g.fillStyle = 'rgba(30,25,18,.25)'; g.fillRect(0,499,564,7);
   dbomb(g,582,500,7); dbomb(g,612,503,6); dbomb(g,597,507,5);
   // Every civilization receives a distinct fortress silhouette and material pass.
-  fortressArchitecture(g,lvl,side);
-  if (lvl > 1) civAccents(g, lvl);
+  fortressArchitecture(g,lvl,side);   // D-01a: one kit-driven routine for all 15 eras (civAccents' generic flags are part of the kit now)
   // hostile tint for the enemy castle
   if (side){
     g.globalCompositeOperation = 'source-atop';
@@ -4589,7 +4634,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 74;
+  const KW_PAGE_BUILD = 75;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }

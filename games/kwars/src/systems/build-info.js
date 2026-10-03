@@ -1,4 +1,4 @@
 (function(){
   'use strict';
-  window.KWBuild=Object.freeze({appVersion:'1.0.0',buildNumber:84,commitHash:'build-84-update path heal',contentVersion:'2026.09.11.01',saveSchemaVersion:3,analyticsSchemaVersion:1,environment:'production',modeId:'UNIVERSAL_BASE_SOLDIER_RIG'});
+  window.KWBuild=Object.freeze({appVersion:'1.0.0',buildNumber:85,commitHash:'build-85-fortress siege victories',contentVersion:'2026.09.11.01',saveSchemaVersion:3,analyticsSchemaVersion:1,environment:'production',modeId:'UNIVERSAL_BASE_SOLDIER_RIG'});
 })();

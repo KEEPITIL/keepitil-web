@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 84,
+  "build": 85,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 84 (Update path heal). mixed-build heal check moved after build-info"
+  "notes": "KINGDOM WARS 1.0.0 build 85 (Fortress siege victories). kingdoms won by storming the fortress; sally + ruler balance"
 }

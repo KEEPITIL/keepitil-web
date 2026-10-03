@@ -2105,7 +2105,7 @@ function updateEnemyProgression(){
     showMsg('☠ Enemy fort defenses upgraded to '+S.enemyUpgrades+'/3');
   }
 }
-const SALLY_FIRST = 14, SALLY_EVERY = 20, SALLY_CAP = 10;   // Task K: siege-phase garrison sallies (seconds, seconds, max alive)
+const SALLY_FIRST = 14, SALLY_EVERY = 24, SALLY_CAP = 10;   // Task K: siege-phase garrison sallies (seconds, seconds, max alive)
 function startWave(){
   window.KWWarCouncil?.waveReset?.();
   S.wave++;
@@ -2129,7 +2129,7 @@ function startWave(){
      to 100% at the ruler), so the first battle a new player meets is winnable by sensible play, while War mode and
      the later kingdoms keep the full escalation. Measured with tools/capture/first-battle-lab.js. */
   const _ck = S.campaignMissionId && window.KWCampaign ? ((KWCampaign.nodeById(S.campaignMissionId)||{}).kingdomNumber||5) : 5;
-  const campaignScale = S.campaignMissionId ? Math.min(1, 0.5 + 0.1*_ck) : 1;
+  const campaignScale = S.campaignMissionId ? Math.min(0.85, 0.5 + 0.1*_ck) : 1;   // the ruler fields 85%, not the full wave: civ 1's ruler beat every persona in the field
   const _civGrowth = S.campaignMissionId ? 1 + CAMPAIGN_ARMY_STEP*(S.enemyCiv-1) : 1;
   const targetArmy=Math.max(20,Math.round((window.KWProgression?.enemyWavePopulation?.(scalingWave())||20)*campaignScale*_civGrowth))-(bossWave?1:0);
   const _doc=currentDoctrine(), _mix=_doc.mix;   // §23: the commander's doctrine decides the shape of the fill
@@ -2186,7 +2186,7 @@ function update(dt){
       if (S.sallyT <= 0){
         S.sallyT = SALLY_EVERY;
         const k = (window.KWCampaign && KWCampaign.nodeById(S.campaignMissionId)||{}).kingdomNumber || 1;
-        const n = Math.max(0, Math.min(SALLY_CAP - enemyCount(), 2 + k));
+        const n = Math.max(0, Math.min(SALLY_CAP - enemyCount(), 1 + Math.ceil(k/2)));   // 2 at kingdom 1 .. 4 at the ruler: the siege was never reached before Build 85 (victory fired as it opened), and 7 per 20 s outpaced a player's income
         const mix = ['esword','espear','earcher','esword','espear'];
         for (let i=0;i<n;i++) spawnEnemy(mix[i % mix.length]);
         if (n) showMsg('🏰 The garrison sallies out — '+n+' defenders', 1600);
@@ -2247,7 +2247,7 @@ function update(dt){
           if(window.KWAnalytics)KWAnalytics.track('boss_defeated',{wave:S.wave,bossTier:S.wave/10,gold:goldReward,gems:gemReward},'critical');
           if(window.KWExperience)KWExperience.recordBoss();
         }
-        if(ruler)startFolkloreSiege();
+        if(ruler&&!S.campaignMissionId)startFolkloreSiege();   // the era-ending Folklore Siege is ENDLESS WAR's event; a Crusade ruler battle ends at its own fortress
         window.KWRuntime?.events.emit('wave_completed',{wave:S.wave,civilization:S.civ,enemyCivilization:S.enemyCiv});
         window.KWExperience?.saveRun?.();
       }
@@ -4767,7 +4767,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 84;
+  const KW_PAGE_BUILD = 85;
   /* The comparison MUST run after build-info.js has executed. It used to run right here -- 20 lines BEFORE the
      build-info <script> -- so window.KWBuild was always undefined, the mismatch test was always false and the heal
      never fired (found by tools/tests/update-path-golden.js: a new page on stale scripts stayed mixed for good).

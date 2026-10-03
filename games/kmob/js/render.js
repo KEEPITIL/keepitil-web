@@ -66,8 +66,8 @@
       const S = this.scene = new THREE.Scene();
       this.fogCol = new C(0xbfe3ff); S.fog = new THREE.Fog(this.fogCol, 55, 135); S.background = this.skyTex();
       this.cam = new THREE.PerspectiveCamera(50, 1, 0.5, 260);
-      S.add(this.hemi = new THREE.HemisphereLight(0xf2f2ff, 0x9a7a54, 0.68));
-      const sun = this.sun = new THREE.DirectionalLight(0xffe6c0, 0.78); sun.position.set(10, 26, 12); sun.castShadow = true;
+      S.add(this.hemi = new THREE.HemisphereLight(0xf4eee6, 0xa07a4e, 0.64));
+      const sun = this.sun = new THREE.DirectionalLight(0xffd9a4, 0.9); sun.position.set(10, 26, 12); sun.castShadow = true;
       sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -26, right: 26, top: 34, bottom: -34, near: 1, far: 90 }); sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.03;
       S.add(sun); S.add(sun.target);
       this.ry = new Float32Array(KM.Sim.CAP); this.shake = 0; this.time = 0; this.skin = KM.SHOP[3];
@@ -299,8 +299,8 @@
       const sand = new C(0xe6d29a), moss = grass2.clone().offsetHSL(0, 0.05, -0.08);
       for (let k = 0; k < p.count; k++) {
         const x = p.getX(k), wz = zc + p.getZ(k), ax = Math.abs(x), h = p.getY(k), n = fbm(x * 0.15, wz * 0.15), ny = nrm.getY(k);
-        const pathT = Math.max(0, Math.min(1, (7.4 - ax + (n - 0.5) * 2.2) / 2.4));
-        tmp.copy(grass).lerp(grass2, noise(x * 0.4, wz * 0.4)); tmp.lerp(dirt, pathT * (0.85 + n * 0.15));
+        const pathT = Math.max(0, Math.min(1, (4.6 - ax + (n - 0.5) * 2.2) / 2.0)), wear = Math.max(0, Math.min(1, (7.6 - ax) / 2.4)) * 0.22;   // visual road (≈±5 m) narrower than the playable lane; trampled grass to the fences
+        tmp.copy(grass).lerp(grass2, noise(x * 0.4, wz * 0.4)); tmp.lerp(dirt, Math.max(pathT * (0.85 + n * 0.15), wear * (0.6 + noise(x * 1.3, wz * 1.3) * 0.8)));
         if (pathT > 0.5) { const tr = Math.abs(Math.sin(wz * 0.9 + x * 0.2)) < 0.06 ? 0.08 : 0; tmp.offsetHSL(0, 0, -tr + (n - 0.5) * 0.06); }
         if (ny < 0.72 && h > 0.6) { const strata = 0.92 + 0.12 * Math.sin(h * 3.1 + n * 2); tmp.copy(rock).multiplyScalar(strata).lerp(moss, Math.max(0, ny - 0.45)); }   // cliff faces with strata
         else if (h > 3.2 && ny >= 0.72) tmp.lerp(moss, 0.35);                                                                                    // mossy cliff tops
@@ -314,7 +314,15 @@
       const riverHere = [-1, 1].map(sd => Math.max(KM.edgeAt(sd, plan.z0).river, KM.edgeAt(sd, plan.z1).river, KM.edgeAt(sd, zc).river));
       [-1, 1].forEach((sd, k) => { if (riverHere[k] > 0.05 || bridge) { const w = new THREE.Mesh(this.waterGeo, this.waterMat); w.position.set(sd * 13.7, -0.42, zc); g.add(w); if (riverHere[k] > 0.6 && (i % 3 === k)) { const fall = new THREE.Mesh(this.fallGeo, this.fallMat); fall.position.set(sd * 18.4, 1.6, zc - 4); fall.rotation.y = -sd * Math.PI / 2; g.add(fall); g.userData.fall = (g.userData.fall || []).concat([{ x: sd * 17.4, z: zc - 4 }]); } } });
       // decor
-      const r = KM.rng(plan.seed), parts = [], add = (list, x, z, ry) => { const mm = TRS(x, 0, z, 0, ry || 0, 0); for (const q of list) parts.push(q.applyMatrix4(mm)); };
+      // decor placement guard: nothing may lean into the camera's sight-lines over the lane (launcher, coins, towers,
+      // frontline, warnings, incoming enemies). Taller props must stand further out; an offender is moved out, else lowered, else dropped.
+      const r = KM.rng(plan.seed), parts = [], gparts = [], G = this.decorGuard || (this.decorGuard = { placed: 0, moved: 0, lowered: 0, hidden: 0, boxes: [] }), bb = new THREE.Box3(), tb = new THREE.Box3();
+      const add = (list, x, z, ry) => { const mm = TRS(x, 0, z, 0, ry || 0, 0); bb.makeEmpty(); for (const q of list) { q.applyMatrix4(mm); q.computeBoundingBox(); tb.copy(q.boundingBox); bb.union(tb); }
+        const sd = (bb.min.x + bb.max.x) < 0 ? -1 : 1, inner = sd > 0 ? bb.min.x : -bb.max.x, h = Math.max(0, bb.max.y), need = h => KM.decorClear(h); G.placed++;
+        if (inner < need(h)) { const shift = need(h) - inner;
+          if (shift <= 2.5) { const tm = T(sd * shift, 0, 0); list.forEach(q => q.applyMatrix4(tm)); bb.translate(new THREE.Vector3(sd * shift, 0, 0)); G.moved++; }
+          else { const h2 = KM.decorMaxH(inner); if (h2 >= h * 0.45 && h2 > 0.3) { const sc = h2 / h, sm = new THREE.Matrix4().makeScale(1, sc, 1); list.forEach(q => q.applyMatrix4(sm)); bb.max.y = h2; G.lowered++; } else { G.hidden++; return; } } }
+        if (G.boxes.length < 4000) G.boxes.push([bb.min.x, bb.max.x, bb.min.z, bb.max.z, bb.max.y]); for (const q of list) parts.push(q); };
       const hAt = (x, wz) => hFn(x, wz);
       const dense = plan.kind === 'forest' ? 26 : plan.kind === 'canyon' ? 8 : 15;
       for (let k = 0; k < dense; k++) {
@@ -337,7 +345,7 @@
         if (e.river < 0.3 && e.cliff < 0.3 && r() < 0.18) add(this.deco.wreck(), sd * r.range(11.2, 12.4), zz, r() * 6); }
       // biome boundary: a great stone gate over the road announces the new region
       if (i > 0 && i % KM.BIOME_LEN === 0) { const gz = plan.z1 - 2, bc = new C(KM.BIOMES[plan.biome].tree).getHex(), P0 = (g, c, m) => part(g, c, 0, m);
-        for (const sx of [-1, 1]) add([P0(new THREE.BoxGeometry(1.6, 7.5, 1.6), 0xcfc8b8, T(0, 3.75, 0)), P0(new THREE.BoxGeometry(2.0, 0.5, 2.0), 0xb8b0a0, T(0, 7.7, 0)), P0(new THREE.ConeGeometry(1.2, 1.4, 4), 0x2f6dff, TRS(0, 8.6, 0, 0, Math.PI / 4, 0)), P0(new THREE.BoxGeometry(0.08, 3.2, 1.3), bc, T(sx * -0.85, 4.5, 0)), P0(new THREE.BoxGeometry(0.1, 0.5, 0.5), 0xf2c14e, TRS(sx * -0.9, 5.2, 0, Math.PI / 4, 0, 0))], sx * 11.2, gz, 0);
+        for (const sx of [-1, 1]) [P0(new THREE.BoxGeometry(1.6, 7.5, 1.6), 0xcfc8b8, T(0, 3.75, 0)), P0(new THREE.BoxGeometry(2.0, 0.5, 2.0), 0xb8b0a0, T(0, 7.7, 0)), P0(new THREE.ConeGeometry(1.2, 1.4, 4), 0x2f6dff, TRS(0, 8.6, 0, 0, Math.PI / 4, 0)), P0(new THREE.BoxGeometry(0.08, 3.2, 1.3), bc, T(sx * -0.85, 4.5, 0)), P0(new THREE.BoxGeometry(0.1, 0.5, 0.5), 0xf2c14e, TRS(sx * -0.9, 5.2, 0, Math.PI / 4, 0, 0))].map(q => q.applyMatrix4(T(sx * 13.4, 0, gz))).forEach(q => gparts.push(q));
         add([P0(new THREE.BoxGeometry(24, 0.9, 1.0), 0xcfc8b8, T(0, 8.2, 0)), P0(new THREE.BoxGeometry(24.4, 0.25, 1.2), 0xf2c14e, T(0, 7.8, 0)), P0(new THREE.BoxGeometry(3.2, 1.1, 0.2), bc, T(0, 8.2, 0.55))], 0, gz, 0); }
       if (plan.biome !== 3 && plan.biome !== 4) for (let k = 0; k < 18; k++) add(this.deco.flower([0xffffff, 0xffe066, 0xff8fb0, 0xb4a0ff][k % 4]), (r() < 0.5 ? -1 : 1) * r.range(10.6, 16), plan.z1 - r() * CH);
       // foreground: bushes + grass tufts hugging the fences (they frame the lane like the concept art)
@@ -347,7 +355,8 @@
       // signage + camp props now and then
       if (r() < 0.35) add(this.deco.sign(), (r() < 0.5 ? -1 : 1) * 11.2, plan.z1 - r() * CH, r() * 0.6 - 0.3);
       if (r() < 0.25) add(this.deco.tent(r() < 0.5 ? 0x2f6dff : 0xd83a3a), (r() < 0.5 ? -1 : 1) * r.range(15, 19), plan.z1 - r() * CH, r() * 6);
-      if (parts.length) { const dm = new THREE.Mesh(merge(parts), this.decoMat); dm.castShadow = true; dm.receiveShadow = true; g.add(dm); }
+      if (parts.length) { const dm = new THREE.Mesh(merge(parts), this.decoMat); dm.castShadow = true; dm.receiveShadow = true; dm.userData.decor = 1; g.add(dm); }
+      if (gparts.length) { const gm = new THREE.Mesh(merge(gparts), new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true })); gm.userData.decor = 1; gm.userData.gateZ = plan.z1 - 2; g.add(gm); g.userData.gate = gm; }
       // distant scenery: big low-poly hills / mountains and a castle silhouette, outside the shadow map, cheap
       const far = [];
       for (let k = 0; k < 5; k++) { const side = k % 2 ? 1 : -1, sz = r.range(9, 16), hc = new C(plan.biome === 3 ? 0xdfe9f5 : plan.biome === 2 ? 0xd9a868 : plan.biome === 5 ? 0x8a7ce0 : 0x5fa04a).offsetHSL(0, 0, (r() - 0.5) * 0.08);
@@ -361,14 +370,17 @@
 
     streamWorld(front) {
       const want = KM.chunksFor(front), keep = new Set(want);
-      for (const [i, g] of this.chunks) if (!keep.has(i)) { this.scene.remove(g); g.traverse(o => { if (o.geometry && o.geometry !== this.waterGeo && o.geometry !== this.fallGeo) o.geometry.dispose(); }); this.chunks.delete(i); }
+      for (const [i, g] of this.chunks) if (!keep.has(i)) { this.scene.remove(g); if (g.userData.gate) g.userData.gate.material.dispose(); g.traverse(o => { if (o.geometry && o.geometry !== this.waterGeo && o.geometry !== this.fallGeo) o.geometry.dispose(); }); this.chunks.delete(i); }
       let built = 0;
       for (const i of want) if (!this.chunks.has(i) && built < 2) { const g = this.buildChunk(i); this.scene.add(g); this.chunks.set(i, g); built++; }
+      // the overhead biome gate fades while it hangs over the fight (between the launcher and the threat zone)
+      for (const [, g] of this.chunks) { const gm = g.userData.gate; if (!gm) continue; const gz = gm.userData.gateZ, over = gz < (this.lzCache == null ? front + 14 : this.lzCache) + 4 && gz > front - 34, m = gm.material, o = over ? 0.22 : 1;
+        m.opacity += (o - m.opacity) * 0.15; m.depthWrite = m.opacity > 0.95; }
       // fog/sky blend toward current biome
       this.waterU.uTime.value = this.time;
       for (const [, g] of this.chunks) if (g.userData.fall) for (const f of g.userData.fall) if (Math.random() < 0.5 * (this.fxScale || 1)) this.emit(f.x + (Math.random() - 0.5) * 2, -0.2, f.z + (Math.random() - 0.5) * 2.4, (Math.random() - 0.5) * 1.5, 1.5 + Math.random(), (Math.random() - 0.5) * 1.5, 0xe8f8ff, 0.7, 0.7, 4);
       const plan = KM.chunkPlan(Math.max(0, Math.floor(-front / W.CHUNK)));
-      const fc = this.biomeCol(plan, 'fog'), war = Math.min(1, (this.simT || 0) / 60 / 40); fc.lerp(this.col2.setHex(0xffe2b8), 0.22).lerp(this.col2.setHex(0xffa070), war * 0.45);
+      const fc = this.biomeCol(plan, 'fog'), war = Math.min(1, (this.simT || 0) / 60 / 40); fc.lerp(this.col2.setHex(0xffdcae), 0.3).lerp(this.col2.setHex(0xffa070), war * 0.45);
       this.fogCol.lerp(fc, 0.02); this.scene.fog.color.copy(this.fogCol);
       this.hemi.intensity = 0.66 - war * 0.08; this.sun.color.setHex(0xffe6c0).lerp(this.col2.setHex(0xffb070), war * 0.5);
       if (war > 0.3 && Math.random() < war * 0.6) this.emit(this.camT ? this.camT.x + (Math.random() - 0.5) * 24 : 0, 0.5, front - Math.random() * 40, (Math.random() - 0.5) * 0.4, 1.2 + Math.random(), 0, 0xff8a3a, 0.22, 3, -0.15);
@@ -641,9 +653,9 @@
     initCoins() {
       const P = KM.kitPart, T2 = KM.kitTRS;
       const geo = KM.kitMerge([P(new THREE.CylinderGeometry(0.24, 0.24, 0.09, 18), 0xffc21a, 0, T2(0, 0, 0, Math.PI / 2, 0, 0)), P(new THREE.TorusGeometry(0.235, 0.03, 6, 20), 0xffe27a, 0), P(new THREE.CircleGeometry(0.11, 5), 0xfff4b8, 0, T2(0, 0, 0.047, 0, 0, Math.PI / 2)), P(new THREE.CircleGeometry(0.11, 5), 0xfff4b8, 0, T2(0, 0, -0.047, 0, Math.PI, Math.PI / 2))]);
-      const mat = KM.toonMat({ emissive: 0x8a5a00, emissiveIntensity: 0.6 });
+      const mat = KM.toonMat({ emissive: 0xa06a00, emissiveIntensity: 0.75 });
       this.coinM = new THREE.InstancedMesh(geo, mat, KM.Sim.CCAP); this.coinM.frustumCulled = false; this.coinM.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.scene.add(this.coinM);
-      this.coinGlow = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: radialTex('rgba(255,215,90,0.3)', 'rgba(255,210,80,0)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), KM.Sim.CCAP); this.coinGlow.frustumCulled = false; this.scene.add(this.coinGlow);
+      this.coinGlow = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: radialTex('rgba(255,210,80,0.46)', 'rgba(255,210,80,0)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), KM.Sim.CCAP); this.coinGlow.frustumCulled = false; this.scene.add(this.coinGlow);
     }
     drawCoins(sim) {
       const C = sim.c, m = this.m, q = this.q, e = this.e, p = this.v, s = this.s3; let n = 0;
@@ -726,9 +738,14 @@
     }
 
     // ---------- events → FX ----------
-    onEvent(sim, type, a, b, c) {
+    onEvent(sim, type, a, b, c, d, e) {
       switch (type) {
         case 'kill': { const i = a, d = b, s = sim.sc[i]; this.burst(sim.x[i], 0.6 * s, sim.z[i], d.el ? 30 : 6, ENEMY_COL[d.k], d.el ? 7 : 3.5, d.el ? 0.7 : 0.4, 0.45); if (d.el) this.ring(sim.x[i], sim.z[i], 0xff5a3a, 4); this.emit(sim.x[i], 0.3, sim.z[i], 0, 0.6, 0, 0xffe7a0, 1.4 * s, 0.25, 0); break; }
+        case 'shove': {                                                                       // heavy blow: radial dust, shock ring, hot spark, tiny camera kick for big ones
+          const x = c, z = d, r = e || 1.3, big = r >= 2 || b >= 4; if (this.shoveT > 0 && !big) break; this.shoveT = 0.06; if (this.fxBudget <= 0 && !big) break; this.fxBudget -= 4;
+          const nd = big ? 16 : 9; for (let k = 0; k < nd; k++) { const ang = k / nd * 6.283 + Math.random() * 0.3, sp = r * (2.2 + Math.random() * 1.4); this.emit(x + Math.cos(ang) * 0.3, 0.12, z + Math.sin(ang) * 0.3, Math.cos(ang) * sp, 0.5 + Math.random() * 0.6, Math.sin(ang) * sp, 0xd9b98a, 0.8 + r * 0.25, 0.42, 2.5); }
+          this.ring(x, z, 0xfff0c8, r * 1.5, 0.28); this.burst(x, 0.8, z, big ? 10 : 5, 0xffe27a, 5, 0.45, 0.22, 6); this.emit(x, 0.7, z, 0, 0.3, 0, 0xfff6d8, 1.3 + r * 0.4, 0.12, 0);
+          if (big && Math.abs(z - sim.L.z) < 40) this.shake = Math.max(this.shake, r >= 2.6 ? 0.07 : 0.045); break; }
         case 'fdie': this.burst(sim.x[a], 0.6, sim.z[a], 4, 0x5aa0ff, 3, 0.35, 0.4); break;
         case 'hit': if (b >= 0 && sim.def(b).sh && this.fxBudget > 0) { this.fxBudget--; this.burst(sim.x[b], 0.65, sim.z[b] + (sim.team[b] ? 0.3 : -0.3), 5, 0xcfe6ff, 3.5, 0.35, 0.22, 4); }
           if (Math.random() < 0.35 * Math.min(1, this.fxBudget / 30)) { const t = b; if (t >= 0) this.burst((sim.x[a] + sim.x[t]) / 2, 0.7, (sim.z[a] + sim.z[t]) / 2, c ? 8 : 2, c ? 0xffe14a : 0xfff4d0, c ? 4 : 2.5, c ? 0.5 : 0.28, 0.25); } break;
@@ -756,6 +773,7 @@
       const add = (x, z, y, m) => P.push({ x, z, y: y || 0, m: m || 0 });
       add(L.x, L.z + 1.6, 0, 0.12); add(L.x - 1.4, L.z, 1.5, 0.05); add(L.x + 1.4, L.z, 1.5, 0.05);
       add(-6.8, L.z - 2, 0, 0); add(6.8, L.z - 2, 0, 0);                         // central lane (edges may crop, like the concept)
+      if (this.aspect < 0.8) { add(-8.6, sim.front - 3, 0, 0); add(8.6, sim.front - 3, 0, 0); }    // portrait: the full fighting width at the clash (the yaw brings one shoulder in)
       for (const t of sim.towers) if (t) { add(t.x - Math.sign(t.x) * -1.0, t.z, 2.2, 0.02); add(t.x, t.z + 1, 0, 0.02); }
       for (const w of sim.walls) { add(w.x - w.w / 2, w.z, 0.5, 0.02); add(w.x + w.w / 2, w.z, 0.5, 0.02); }
       add(0, sim.front - 26, 0, 0.0);                                              // threat zone (HUD covers the very top)
@@ -766,7 +784,7 @@
       const cam = this.fitCam || (this.fitCam = new THREE.PerspectiveCamera()), v = this.v, P = this.keyPoints(sim);
       cam.fov = this.cam.fov; cam.aspect = this.aspect; cam.near = 0.5; cam.far = 300; cam.updateProjectionMatrix();
       const hudTop = 1 - 2 * (this.safeTopPx || 118) / innerHeight;          // NDC y below the HUD pills + HP bar
-      const ok = d => { cam.position.set(tx, Math.sin(pitch) * d, tz + Math.cos(pitch) * d); cam.lookAt(tx, 0, tz); cam.updateMatrixWorld(); cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
+      const yw = this.camYaw || 0, ok = d => { cam.position.set(tx + Math.sin(yw) * Math.cos(pitch) * d, Math.sin(pitch) * d, tz + Math.cos(yw) * Math.cos(pitch) * d); cam.lookAt(tx, 0, tz); cam.updateMatrixWorld(); cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
         for (const p of P) { v.set(p.x, p.y, p.z).project(cam); if (v.z > 1 || Math.abs(v.x) > 1 - p.m || v.y < -1 + p.m || v.y > hudTop) return false; } return true; };
       let lo = minD, hi = maxD; if (ok(lo)) return lo; if (!ok(hi)) return hi;
       for (let k = 0; k < 14; k++) { const mid = (lo + hi) / 2; if (ok(mid)) hi = mid; else lo = mid; }
@@ -775,7 +793,7 @@
     drawCamera(sim, dt) {
       const L = sim.L, army = sim.count[0] + sim.count[1];
       const pitch = this.aspect > 1 ? 0.86 : 0.9; // ~50°: lower, more cinematic like the concept
-      let tx = L.x * 0.35, tz = sim.front - (this.aspect > 1 ? 11 : 14.5) + L.offZ * 0.3;
+      let tx = L.x * 0.35, tz = sim.front - (this.aspect > 1 ? 11 : this.aspect < 0.8 ? 16 : 14.5) + L.offZ * 0.3;
       if (KM.camFocus === 'launcher') { tx = L.x; tz = L.z - 1; } else if (KM.camFocus && KM.camFocus.x != null) { tx = KM.camFocus.x; tz = KM.camFocus.z; }
       // the target shifts toward the launcher on narrow screens so towers beside it stay framed
       if (!this.camT) this.camT = new V3(tx, 0, tz);
@@ -787,10 +805,13 @@
       if (KM.camOverride) dist = KM.camOverride;
       if (KM.camFocus && KM.camFocus.x != null) this.camD = dist;
       this.camD = (this.camD || dist) + (dist - (this.camD || dist)) * Math.min(1, dt * 1.6);
-      this.shake = Math.max(0, this.shake - dt * 1.2);
+      this.shake = Math.max(0, this.shake - dt * 1.2); this.shoveT = Math.max(0, (this.shoveT || 0) - dt);
       const sx = (Math.random() - 0.5) * this.shake, sy = (Math.random() - 0.5) * this.shake;
       const flip = KM.camFocus && KM.camFocus.flip ? -1 : 1, pch = KM.camFocus && KM.camFocus.pitch || pitch;   // close-up rigs can look at the army's faces
-      this.cam.position.set(this.camT.x + sx, Math.sin(pch) * this.camD + sy, this.camT.z + Math.cos(pch) * this.camD * flip);
+      // portrait: a slight diagonal yaw lets one side's cliffs/water enter the frame (concept-style composition)
+      const yawT = KM.camFocus ? 0 : this.aspect < 0.8 ? 0.17 : this.aspect < 1.2 ? 0.1 : 0.05; this.camYaw = (this.camYaw == null ? yawT : this.camYaw + (yawT - this.camYaw) * Math.min(1, dt * 2));
+      const yw = this.camYaw;
+      this.cam.position.set(this.camT.x + sx + Math.sin(yw) * Math.cos(pch) * this.camD * flip, Math.sin(pch) * this.camD + sy, this.camT.z + Math.cos(yw) * Math.cos(pch) * this.camD * flip);
       this.cam.lookAt(this.camT.x, 0, this.camT.z);
       this.scene.fog.near = this.camD + 6; this.scene.fog.far = this.camD + 95;
       this.sun.position.set(this.camT.x + 12, 30, this.camT.z + 14); this.sun.target.position.set(this.camT.x, 0, this.camT.z - 4);
@@ -801,7 +822,7 @@
     frame(sim, dt) {
       this.time += dt; if (this.deathT != null) this.deathT += dt; this.cheerT = Math.max(0, (this.cheerT || 0) - dt);
       this.fxBudget = Math.max(3, Math.round(60 * (this.fxScale || 1) * (1 - Math.min(0.93, (sim.count[0] + sim.count[1]) / 2200))));
-      this.simT = sim.t; this.streamWorld(sim.front);
+      this.simT = sim.t; this.lzCache = sim.L.z; this.streamWorld(sim.front);
       this.drawCamera(sim, dt); this.drawLauncher(sim, dt); this.drawTowers(sim, dt);
       this.drawCrowd(sim, dt); this.drawCoins(sim); this.drawProjectiles(sim); this.stepFx(dt);
       if (this.bloomOn && this.composer) this.composer.render(); else this.R.render(this.scene, this.cam);

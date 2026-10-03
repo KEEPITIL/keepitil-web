@@ -1,6 +1,7 @@
 /* KMOB main — game flow (title → run → results → instant restart), one-finger input, HUD, upgrades, shop, save,
    analytics hooks, debug tools (?debug=1) and adaptive quality. */
 (function () {
+  if (window.KM_REDIRECT) return;               // ?assets=1 → dev/assets.html (validation page), no game
   const KM = window.KM, $ = id => document.getElementById(id);
   const Q = new URLSearchParams(location.search), DEBUG = Q.has('debug');
 
@@ -68,8 +69,8 @@
   let combatHits = 0, combatLvl = 0, combatT = 0;
   let state = 'title', paused = false, runId = 0, tut = 0, lastResults = null, botOn = Q.has('bot');
 
-  sim.on((type, a, b, c) => {
-    render.onEvent(sim, type, a, b, c);
+  sim.on((type, a, b, c, d, e) => {
+    render.onEvent(sim, type, a, b, c, d, e);
     switch (type) {
       case 'deploy': audio.play('deploy'); break;
       case 'hit': combatHits++; if (b >= 0 && sim.def(b).sh) audio.play('shieldhit'); else audio.play('hit'); break;
@@ -77,6 +78,7 @@
       case 'coin': audio.play('coin'); if (a >= 5) KM.haptic(8); if (tut === 1) setTip(2); break;
       case 'shot': if (a === 1) audio.play('cannon', 0, b / 9); else if (a === 0) audio.play('bow'); else if (a === 2) audio.play('frost'); break;
       case 'boom': audio.play('boom'); break;
+      case 'shove': if ((e || 0) >= 2) audio.play('thud', 0, c / 10); break;
       case 'lhit': audio.play('lhit', 0, sim.L.x / 10); KM.haptic(15); break;
       case 'tower': audio.play(a.type === 'sniper' ? 'snipe' : 'tower', 0, a.x / 9); break;
       case 'offer': showOffer(a); audio.play('offer'); if (tut === 2) setTip(3); break;
@@ -203,8 +205,8 @@
   }
 
   $('playBtn').onclick = () => startRun();
-  $('againBtn').onclick = () => startRun();
-  $('homeBtn').onclick = () => goTitle();
+  $('againBtn').onclick = () => { ptLeave(true); startRun(); };
+  $('homeBtn').onclick = () => { ptLeave(false); goTitle(); };
   $('shopBtn1').onclick = () => openShop(goTitle);
   $('shopBtn2').onclick = () => openShop(() => show('over'));
   $('setBtn1').onclick = () => { buildToggles($('sToggles')); show('settings'); };
@@ -250,7 +252,10 @@
       const fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; const ri = render.R.info.render;
       if (DEBUG) { $('fps').textContent = `${fps.toFixed(0)} fps · ${render.quality} · units ${sim.count[0] + sim.count[1]} · tris ${(ri.triangles / 1000).toFixed(0)}k · calls ${ri.calls} · js ${jsCost.toFixed(1)}ms`; $('dInfo').textContent = `t=${sim.t.toFixed(0)} hp×${sim.diff.hp.toFixed(2)} spawn ${sim.diff.spawnRate.toFixed(1)}/s era ${sim.diff.era}`; }
       KM.perf = { fps, units: sim.count[0] + sim.count[1], drawn: render.drawn, dpr: render.R.getPixelRatio(), quality: render.quality, tris: ri.triangles, calls: ri.calls, jsMs: jsCost };
-      if (state === 'run' && !paused && !Q.has('fixed') && !Q.get('quality') && !bench.on) { slow = fps < 45 ? slow + 1 : Math.max(0, slow - 1); if (slow >= 4 && render.quality !== 'low') { slow = 0; pendingQ = KM.nextLowerQuality(render.quality); Analytics.track('quality_down', { to: pendingQ, fps: Math.round(fps) }); } }
+      if (bench.qAfter && --bench.qAfter.wait <= 0) { bench.qAfter.fpsAfter = Math.round(fps * 10) / 10; bench.qAfter = null; }
+      if (state === 'run' && !paused && !Q.has('fixed') && !Q.get('quality')) { slow = fps < 45 ? slow + 1 : Math.max(0, slow - 1); if (slow >= 4 && render.quality !== 'low') { slow = 0; pendingQ = KM.nextLowerQuality(render.quality); Analytics.track('quality_down', { to: pendingQ, fps: Math.round(fps) });
+        // the benchmark keeps the same adaptive behaviour as real play, but every step-down is logged so it cannot hide poor performance
+        if (bench.on && bench.ti >= 0) { const c = { from: render.quality.toUpperCase(), to: pendingQ.toUpperCase(), stage: bench.tiers[bench.ti][0], units: sim.count[0] + sim.count[1], fpsBefore: Math.round(fps * 10) / 10, fpsAfter: null, atSec: Math.round(bench.el * 10) / 10, reason: 'fps < 45 for 4 consecutive seconds' }; bench.qlog.push(c); bench.qAfter = Object.assign(c, { wait: 2 }); } } }
     }
   }
   let jsCost = 0, rawMs = 16.7;
@@ -293,13 +298,14 @@
   KM.game = { sim, render, audio, startRun, jumpTo, stress, showcase, get glLost() { return glLost; }, setPause, get state() { return state; }, save, persist };
   // ---------- on-device benchmark (?bench=1): tiers of crowd size, FPS / frame-time spread / heap ----------
   // ---------- on-device benchmark (?bench=1): four crowd stages → numbers + recommended quality ----------
-  const bench = { on: Q.has('bench'), tiers: [['EARLY', 100], ['MEDIUM', 400], ['HEAVY', 900], ['EXTREME', 1600]], ti: -1, t: 0, ft: [], js: [], tri: 0, calls: 0, out: [], secs: Math.max(1, Math.min(30, +(Q.get('benchSecs') || 15))) };
+  const bench = { on: Q.has('bench'), tiers: [['EARLY', 100], ['MEDIUM', 400], ['HEAVY', 900], ['EXTREME', 1600]], ti: -1, t: 0, ft: [], js: [], tri: 0, calls: 0, out: [], qlog: [], qAfter: null, el: 0, startQ: null, secs: Math.max(1, Math.min(30, +(Q.get('benchSecs') || 15))) };
   if (bench.on && !Q.get('quality')) { quality = 'high'; render.applyQuality('high'); }   // measure the heaviest tier; the recommendation steps down from it
   function benchTick(dt) {
     if (!bench.on || state !== 'run') return;
+    if (!bench.startQ) bench.startQ = render.quality; bench.el += dt;
     bench.t += dt; if (bench.ti >= 0 && bench.t > bench.secs * 0.2) { bench.ft.push(rawMs); bench.js.push(jsCost); const ri = render.R.info.render; bench.tri = Math.max(bench.tri, ri.triangles); bench.calls = Math.max(bench.calls, ri.calls); }
     if (bench.ti < 0 || bench.t > bench.secs) {
-      if (bench.ti >= 0) bench.out.push(KM.benchStage(bench.tiers[bench.ti][0], sim.count[0] + sim.count[1], bench.ft, bench.js, bench.tri, bench.calls, performance.memory ? performance.memory.usedJSHeapSize : null));
+      if (bench.ti >= 0) bench.out.push(Object.assign(KM.benchStage(bench.tiers[bench.ti][0], sim.count[0] + sim.count[1], bench.ft, bench.js, bench.tri, bench.calls, performance.memory ? performance.memory.usedJSHeapSize : null), { quality: render.quality.toUpperCase() }));
       bench.ti++; bench.t = 0; bench.ft = []; bench.js = []; bench.tri = 0; bench.calls = 0;
       if (bench.ti >= bench.tiers.length) { bench.on = false; showBench(); return; }
       sim.L.inv = 1e9; sim.budget = 0; const want = bench.tiers[bench.ti][1], have = sim.count[0] + sim.count[1]; if (want > have) stress(want - have);
@@ -310,15 +316,17 @@
   function showBench() {
     const gl = render.R.getContext(), gpu = (() => { try { const e = gl.getExtension('WEBGL_debug_renderer_info'); return e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : 'n/a'; } catch (x) { return 'n/a'; } })();
     const info = { ua: navigator.userAgent, gpu, screen: screen.width + 'x' + screen.height, viewport: innerWidth + 'x' + innerHeight, render: gl.drawingBufferWidth + 'x' + gl.drawingBufferHeight, dpr: +render.R.getPixelRatio().toFixed(2), deviceDpr: devicePixelRatio, quality: render.quality, bloom: !!render.bloomOn, cores: navigator.hardwareConcurrency || null };
-    const rec = KM.recommendQuality(bench.out); try { localStorage.setItem('kmob.quality', rec); } catch (e) { /* ignore */ }
-    const result = { kmob: 'bench', version: 2, when: new Date().toISOString(), info, recommended: rec.toUpperCase(), results: bench.out };
+    const rec = KM.benchRecommend(bench.out, bench.qlog); try { localStorage.setItem('kmob.quality', rec); } catch (e) { /* ignore */ }
+    for (const c of bench.qlog) delete c.wait;
+    const result = { kmob: 'bench', version: 3, when: new Date().toISOString(), info, recommended: rec.toUpperCase(), startQuality: (bench.startQ || render.quality).toUpperCase(), finalQuality: render.quality.toUpperCase(), qualityChanges: bench.qlog, results: bench.out };
     const txt = JSON.stringify(result, null, 1); KM.benchResult = result; console.log(txt);
-    const row = r => `<div><span>${r.units} units</span><b>${r.fps} fps</b></div><div style="font-size:12px;opacity:.8;display:block">avg ${r.avgMs} ms · 1% low ${r.low1} fps · worst ${r.worstMs} ms · ${Math.round(r.tris / 1000)}k tris · ${r.calls} calls · JS ${r.jsMs} ms${r.heapMB ? ' · ' + r.heapMB + ' MB' : ''}</div>`;
+    const row = r => `<div><span>${r.units} units · ${r.quality}</span><b>${r.fps} fps</b></div><div style="font-size:12px;opacity:.8;display:block">avg ${r.avgMs} ms · 1% low ${r.low1} fps · worst ${r.worstMs} ms · ${Math.round(r.tris / 1000)}k tris · ${r.calls} calls · JS ${r.jsMs} ms${r.heapMB ? ' · ' + r.heapMB + ' MB' : ''}</div>`;
     const d = document.createElement('div'); d.className = 'screen'; d.id = 'benchScreen';
     d.innerHTML = `<div class="panel"><h2 class="disp" style="margin:0;text-align:center;font-size:30px">TEST COMPLETE</h2>
       <div style="text-align:center;margin:6px 0 10px;font-weight:900">Recommended quality: <span class="disp" style="color:var(--gold);font-size:22px">${rec.toUpperCase()}</span></div>
       <button class="btn" id="benchCopy" style="font-size:30px;padding:18px">COPY RESULTS</button>
       <div style="text-align:center;font-size:12px;opacity:.8;margin:8px 0">Then paste them back into the chat. That's all.</div>
+      ${bench.qlog.length ? `<div style="background:#5a1d1d;border-radius:10px;padding:8px;margin:6px 0;font-size:12px;font-weight:800">⚠ Quality dropped automatically during the test (${result.startQuality} → ${result.finalQuality}). Stages after the drop were measured at the lower tier.<br>${bench.qlog.map(c => `${c.stage} · ${c.units} units · ${c.from}→${c.to} · ${c.fpsBefore} → ${c.fpsAfter == null ? '?' : c.fpsAfter} fps · ${c.reason}`).join('<br>')}</div>` : `<div style="font-size:12px;opacity:.8;text-align:center">Quality stayed ${result.startQuality} for the whole test.</div>`}
       <div class="stats">${bench.out.map(row).join('')}</div>
       <div style="font-size:11px;opacity:.7">${info.render} @ ${info.dpr}x · ${info.quality} · ${gpu}</div>
       <textarea id="benchTxt" style="width:100%;height:70px;font:10px monospace;margin-top:8px" readonly>${txt}</textarea></div>`;
@@ -328,15 +336,20 @@
     state = 'bench-done'; Analytics.track('bench', result);
   }
   // ---------- ?playtest=1: per-run summary + three yes/no questions + COPY PLAYTEST ----------
-  const PT = { on: Q.has('playtest'), picks: [], runNo: 0 };
+  const PT = { on: Q.has('playtest'), picks: [], runNo: 0, cur: null, log: [] };
+  // the real retention signal: did the player actually press TRY AGAIN, and how long after the death screen appeared
+  function ptLeave(retried) { const c = PT.cur; if (!PT.on || !c || c.retried != null) return; c.retried = retried; c.secs = Math.round((performance.now() - c.at) / 100) / 10; PT.log.push({ run: c.run, retried, secs: c.secs });
+    try { localStorage.setItem('kmob.playtestLog', JSON.stringify(PT.log.slice(-50))); } catch (e) { /* ignore */ } KM.playtestRetries = PT.log; }
+  KM.ptLeave = ptLeave;
   sim.on((t, a) => { if (t === 'upgrade' && PT.on) PT.picks.push(a.title + (a.val ? ' ' + a.val : '')); });
   function showPlaytest(r) {
-    if (!PT.on) return; const ans = {}; const box = document.createElement('div'); box.id = 'ptBox'; box.className = 'stats'; box.style.marginTop = '10px';
+    if (!PT.on) return; PT.cur = { run: PT.runNo, at: performance.now(), retried: null }; const ans = {}; const box = document.createElement('div'); box.id = 'ptBox'; box.className = 'stats'; box.style.marginTop = '10px';
     const q = (k, label) => `<div style="display:flex;gap:6px;align-items:center"><span style="flex:1;font-size:13px">${label}</span><button class="btn sec pt" data-k="${k}" data-v="1" style="width:auto;font-size:14px;padding:6px 12px">YES</button><button class="btn sec pt" data-k="${k}" data-v="0" style="width:auto;font-size:14px;padding:6px 12px">NO</button></div>`;
-    box.innerHTML = `<div style="font-weight:900;font-size:13px;display:block">PLAYTEST · run ${PT.runNo} · ${PT.picks.length} upgrades</div>` + q('easy', 'Was it easy to understand?') + q('fair', 'Did the death feel fair?') + q('again', 'Would you play again immediately?') + `<button class="btn" id="ptCopy" style="margin-top:8px;font-size:20px">COPY PLAYTEST</button>`;
+    const prev = PT.log[PT.log.length - 1];
+    box.innerHTML = `<div style="font-weight:900;font-size:13px;display:block">PLAYTEST · run ${PT.runNo} · ${PT.picks.length} upgrades</div>` + (prev ? `<div style="font-size:12px;opacity:.85;display:block">Run ${prev.run}: TRY AGAIN ${prev.retried ? 'pressed after ' + prev.secs + ' s' : 'not pressed (left after ' + prev.secs + ' s)'}</div>` : '') + q('easy', 'Was it easy to understand?') + q('fair', 'Did the death feel fair?') + q('again', 'Would you play again immediately?') + `<button class="btn" id="ptCopy" style="margin-top:8px;font-size:20px">COPY PLAYTEST</button>`;
     $('oStats').after(box);
     box.querySelectorAll('.pt').forEach(b => b.onclick = () => { ans[b.dataset.k] = b.dataset.v === '1'; box.querySelectorAll(`.pt[data-k="${b.dataset.k}"]`).forEach(x => x.style.outline = x === b ? '3px solid #7dff6a' : 'none'); });
-    box.querySelector('#ptCopy').onclick = () => { const rep = KM.playtestReport({ ...r, picks: PT.picks }, ans, { runNo: PT.runNo, ua: navigator.userAgent }); KM.lastPlaytest = rep; const t = rep.text + '\n' + JSON.stringify(rep); try { navigator.clipboard.writeText(t); } catch (e) { /* ignore */ } const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) { /* ignore */ } ta.remove(); box.querySelector('#ptCopy').textContent = 'COPIED ✓'; };
+    box.querySelector('#ptCopy').onclick = () => { const rep = KM.playtestReport({ ...r, picks: PT.picks }, ans, { runNo: PT.runNo, ua: navigator.userAgent, retry: PT.cur, history: PT.log }); KM.lastPlaytest = rep; const t = rep.text + '\n' + JSON.stringify(rep); try { navigator.clipboard.writeText(t); } catch (e) { /* ignore */ } const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) { /* ignore */ } ta.remove(); box.querySelector('#ptCopy').textContent = 'COPIED ✓'; };
   }
   if (Q.has('autoplay') || bench.on) startRun(); else goTitle();
   requestAnimationFrame(loop);

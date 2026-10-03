@@ -197,6 +197,12 @@
     const jsAvg = js.length ? js.reduce((a, b) => a + b, 0) / js.length : 0, r1 = x => Math.round(x * 10) / 10;
     return { tier, units, frames: f.length, fps: r1(1000 / Math.max(avg, 0.001)), low1: r1(1000 / Math.max(low1Ms, 0.001)), avgMs: r1(avg), worstMs: r1(f[f.length - 1] || 0), p95: r1(f[Math.floor(n * 0.95)] || 0), tris: tris | 0, calls: calls | 0, jsMs: r1(jsAvg), heapMB: heap ? Math.round(heap / 1e6) : null };
   };
+  // recommendation never exceeds the tier the device actually ended the benchmark on (an automatic step-down is a failure of the higher tier)
+  KM.benchRecommend = function (results, changes) {
+    const order = ['low', 'medium', 'high']; let rec = KM.recommendQuality(results);
+    if (changes && changes.length) { const lowest = changes.reduce((m, c) => Math.min(m, order.indexOf(String(c.to).toLowerCase())), 2); rec = order[Math.min(order.indexOf(rec), lowest)]; }
+    return rec;
+  };
   KM.nextLowerQuality = q => q === 'high' ? 'medium' : 'low';
 
   // ---------- Playtest summary (human feedback without analytics infrastructure) ----------
@@ -205,8 +211,13 @@
     const r = { kmob: 'playtest', when: (meta && meta.when) || new Date().toISOString(), run: (meta && meta.runNo) || null,
       survival: KM.fmtTime(run.time), seconds: Math.floor(run.time), death: run.reason || 'unknown', peakArmy: run.peakArmy, coins: run.coins, kills: run.kills,
       upgrades: (run.picks || []).slice(0, 60), easyToUnderstand: yn(answers.easy), deathFair: yn(answers.fair), playAgain: yn(answers.again), device: (meta && meta.ua) || '' };
+    // actual behaviour, not the answer: TRY AGAIN pressed? (this run is still on its results screen when copied → pending)
+    const rt = meta && meta.retry; r.pressedTryAgain = !rt || rt.retried == null ? 'PENDING' : rt.retried ? 'YES' : 'NO'; r.retrySeconds = rt && rt.retried ? rt.secs : null;
+    const hist = (meta && meta.history) || []; r.sessionRetries = hist.map(h => ({ run: h.run, pressedTryAgain: h.retried ? 'YES' : 'NO', seconds: h.secs }));
+    r.retryRate = hist.length ? +(hist.filter(h => h.retried).length / hist.length).toFixed(2) : null;
     r.text = `KMOB playtest #${r.run || '?'} — survived ${r.survival} (${r.death}); peak army ${r.peakArmy}; coins ${r.coins}; kills ${r.kills}\n` +
-      `upgrades: ${r.upgrades.join(', ') || 'none'}\nEasy to understand: ${r.easyToUnderstand} · Death fair: ${r.deathFair} · Play again: ${r.playAgain}`;
+      `upgrades: ${r.upgrades.join(', ') || 'none'}\nEasy to understand: ${r.easyToUnderstand} · Death fair: ${r.deathFair} · Play again: ${r.playAgain}\n` +
+      `Pressed TRY AGAIN: ${r.pressedTryAgain}${r.retrySeconds != null ? ' after ' + r.retrySeconds + ' s' : ''}` + (hist.length ? ` · earlier runs: ${hist.map(h => '#' + h.run + ' ' + (h.retried ? 'retry ' + h.secs + 's' : 'left ' + h.secs + 's')).join(', ')} · retry rate ${Math.round(r.retryRate * 100)}%` : '');
     return r;
   };
 
@@ -277,8 +288,12 @@
   KM.fmtNum = n => Math.floor(n).toLocaleString('en-US');
 
   // ---------- Endless battlefield chunk plan ----------
+  // decor sight-line rule: a prop whose top is h metres high must keep its inner edge this far from the lane centre
+  // (the camera sits ~2–4 m off-centre and ~20 m up, so a tall prop at the fence would lean over the fight on screen)
+  KM.decorClear = h => KM.W.LANE - 0.3 + 0.42 * Math.max(0, h - 0.6);
+  KM.decorMaxH = inner => 0.6 + Math.max(0, inner - (KM.W.LANE - 0.3)) / 0.42;
   KM.BIOMES = [
-    { name: 'Meadow',   grass: 0x74c24c, grass2: 0x58a83c, dirt: 0xd2a66c, tree: 0x3f9a3a, rock: 0x9aa3ad, fog: 0xbfe3ff },
+    { name: 'Meadow',   grass: 0x7ac44a, grass2: 0x5aa83a, dirt: 0xd9a660, tree: 0x3f9a3a, rock: 0x9aa3ad, fog: 0xbfe3ff },
     { name: 'Autumn',   grass: 0xa8b543, grass2: 0x8c8a33, dirt: 0xd4a46b, tree: 0xe0862f, rock: 0xa59a8f, fog: 0xffe0bf },
     { name: 'Desert',   grass: 0xe2c27c, grass2: 0xd0a861, dirt: 0xf0d49a, tree: 0x7aa04a, rock: 0xc99a66, fog: 0xffe9c9 },
     { name: 'Snow',     grass: 0xe8f2fb, grass2: 0xcfe0ef, dirt: 0xbfc8d6, tree: 0x2f7a5c, rock: 0x8c9bb0, fog: 0xe2eefc },
@@ -308,6 +323,7 @@
     const ax = Math.abs(x), side = x < 0 ? -1 : 1, e = KM.edgeAt(side, wz), canyon = kind === 'canyon';
     let h = 0; const edge = canyon ? 11 : 12.5;
     if (ax > edge) h = Math.pow((ax - edge) / 8, 1.4) * (canyon ? 9 : 4.5) * (0.6 + n);
+    if (ax > 10.3) h += sstep(10.3, 11.8, ax) * (0.55 + n * 0.3);                                 // grass shoulder rises beside the road
     const cl = Math.max(e.cliff, canyon ? 0.85 : 0);
     if (cl > 0 && ax > 10.5) h += cl * (sstep(10.7, 12.0, ax) * (3.6 + n * 2.4) + sstep(14, 18, ax) * 2.6);      // wall just past the fence + upper shelf
     if (e.river > 0 && ax > 10.5) h = h * (1 - e.river) + e.river * (-1.25 * sstep(10.7, 11.6, ax) * (1 - sstep(15.6, 17.4, ax)) + sstep(16.5, 21, ax) * (2 + n * 2));

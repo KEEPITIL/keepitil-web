@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KMOB Asset Validation</title>
+<style>
+:root{--bg:#10141c;--panel:#1a2130;--line:#2c3548;--ink:#e8edf6;--dim:#93a0b8;--pass:#4fd17a;--warn:#ffc53d;--fail:#ff5d5d;--blue:#4f8dff;--gold:#f2c14e}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.4 system-ui,-apple-system,sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+h1{font-size:17px;margin:0 12px 0 0;letter-spacing:.04em}
+.btn{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font:inherit;font-weight:700;cursor:pointer}
+.btn.on{background:var(--blue);border-color:var(--blue)}
+#src{color:var(--dim)}
+main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding:12px 16px}
+@media(min-width:1100px){main{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}}
+.view{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pair figure{margin:0;background:#9fd0ff;border-radius:8px;overflow:hidden;position:relative;aspect-ratio:1/1}
+.pair canvas{width:100%;height:100%;display:block}
+.pair figcaption{position:absolute;left:6px;top:6px;background:rgba(0,0,0,.65);padding:3px 8px;border-radius:6px;font-weight:800;font-size:12px}
+.clips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:980px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap}
+th{color:var(--dim);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0;background:var(--panel)}
+tr.sel{background:#22304a}tr{cursor:pointer}
+.PASS{color:var(--pass);font-weight:900}.WARN{color:var(--warn);font-weight:900}.FAIL{color:var(--fail);font-weight:900}
+.note{color:var(--dim);font-size:12px}
+#detail{white-space:pre-wrap;font:12px/1.45 ui-monospace,monospace;color:var(--dim);margin-top:8px;max-height:260px;overflow:auto}
+#drop{border:2px dashed var(--line);border-radius:10px;padding:8px 12px;color:var(--dim)}
+#drop.hover{border-color:var(--gold);color:var(--gold)}
+</style></head>
+<body>
+<header>
+  <h1>KMOB · ASSET VALIDATION</h1>
+  <span id="src">loading…</span>
+  <label id="drop">Drop .glb files here or <input type="file" id="file" accept=".glb" multiple></label>
+  <button class="btn" id="copy">COPY REPORT</button>
+</header>
+<main>
+  <section class="view">
+    <div class="pair">
+      <figure><canvas id="cRef"></canvas><figcaption>REFERENCE · procedural</figcaption></figure>
+      <figure><canvas id="cProd"></canvas><figcaption id="prodCap">PRODUCTION · GLB</figcaption></figure>
+    </div>
+    <div class="clips" id="clips"></div>
+    <div class="note">Same skeleton, same clip, same camera. Left is the procedural reference kit; right is what the game will draw with the delivered GLB (procedural fallback where a part or clip is missing).</div>
+    <div id="detail"></div>
+  </section>
+  <section class="tablewrap"><table><thead><tr>
+    <th>Unit</th><th>Source</th><th>Tris</th><th>Draws / mats</th><th>Textures</th><th>Skeleton</th><th>Scale</th><th>Orient</th><th>Pivot</th><th>Clips found</th><th>Clips missing</th><th>Budget</th>
+  </tr></thead><tbody id="rows"></tbody></table></section>
+</main>
+<script src="../vendor/three.min.js"></script><script src="../js/core.js"></script><script src="../js/sim.js"></script><script src="../js/anim.js"></script><script src="../js/kit.js"></script>
+<script src="../vendor/loaders/GLTFLoader.js"></script><script src="../js/assets.js"></script>
+<script>
+/* Acceptance tool for delivered characters (?assets=1). Validates every unit against the procedural reference and
+   previews idle / run / attack / hit / death side by side. Warns only — the game refuses a part only if it is invalid. */
+const KM = window.KM, A = KM.ANIM, Q = new URLSearchParams(location.search);
+const KINDS = Object.keys(KM.RECIPE);
+const PREVIEW = [['idle', 'idle', 'idle'], ['run', 'run', 'run'], ['attack', 'attackA', 'attack_01'], ['hit', '+hitFront', 'hit_01'], ['death', 'deathA', 'death_01']];
+const COL = { soldier: 0x2f74ff, archerF: 0x2f74ff, knightF: 0x5a8fff, grunt: 0xe2312c, imp: 0xff5243, shield: 0xd8282c, runner: 0xff5a1f, archer: 0xd13a3a, knight: 0x9e1f2c, brute: 0xc8202a, bomber: 0xff7a1c, cannon: 0x8e2a2a, shaman: 0x9a2cc8, warlord: 0x8f1020 };
+const SC = { imp: 0.72, brute: 1.9, warlord: 2.3, knightF: 1.3, knight: 1.18, cannon: 1.4 };
+const NAME = { soldier: 'Blue soldier', archerF: 'Blue archer', knightF: 'Blue knight', grunt: 'Red grunt', imp: 'Imp', shield: 'Shield bearer', runner: 'Runner', archer: 'Red archer', knight: 'Red knight', brute: 'Brute', bomber: 'Bomber', shaman: 'Shaman', warlord: 'Warlord', cannon: 'Siege cannon' };
+
+// procedural reference poses are captured before any authored clip can override the shared library
+const refHit = new Float32Array(A.P); A.additive(refHit, 'hitFront', 1);
+const refFn = name => { const c = A.CLIPS[name]; return c.procFn || c.fn; };
+
+// reference kit + production kit (the production kit receives the GLB parts through the game's own loader)
+const ref = { kit: KM.buildKit(), partM: {} }, prod = { kit: KM.buildKit(), partM: {} };
+for (const R of [ref, prod]) for (const n of Object.keys(R.kit.parts)) R.partM[n] = { geometry: R.kit.parts[n], material: KM.toonMat() };
+let report = { replaced: [], rejected: [], flags: [], warnings: [], clips: [], parts: {}, missing: [], unknown: [] }, sources = [];
+const merge = r => { for (const k of ['replaced', 'rejected', 'flags', 'warnings', 'clips', 'unknown']) report[k] = report[k].concat(r[k] || []); Object.assign(report.parts, r.parts || {}); if (r.missing) report.missing = r.missing; if (r.error) report.warnings.push((r.src || '') + ': ' + r.error); };
+
+const partsOf = k => { const r = KM.RECIPE[k]; if (r.body) return [r.body]; const l = [r.leg, r.leg, r.torso, r.head, r.arm, r.arm, r.wpn]; if (r.shield) l.push('shield'); return l; };
+const tris = g => (g.index ? g.index.count : g.attributes.position.count) / 3;
+const budgetOf = k => partsOf(k).reduce((a, p) => a + KM.budgetFor(p), 0);
+
+function validate(k) {
+  const ps = partsOf(k), uniq = [...new Set(ps)], rep = new Set(report.replaced.map(x => x.part)), flags = report.flags.filter(f => uniq.includes(f.part)), rej = report.rejected.filter(f => uniq.includes(f.part));
+  const nRep = uniq.filter(p => rep.has(p)).length, t = ps.reduce((a, p) => a + tris(prod.kit.parts[p]), 0), budget = budgetOf(k);
+  const mats = new Set(uniq.map(p => { const m = prod.partM[p].material; return m.map ? m.map.uuid : 'flat-toon'; }));
+  const tex = [...new Set(uniq.map(p => report.parts[p] && report.parts[p].tex ? report.parts[p].tex.join('×') : null).filter(Boolean))];
+  const chk = key => { const bad = []; for (const p of uniq) { if (!rep.has(p)) continue; const c = KM.compareToReference(prod.kit.parts[p], ref.kit.parts[p]); if (c && c[key]) bad.push(p + (key === 'scaleBad' ? ' ' + c.ratio.join('/') : key === 'pivotBad' ? ' ' + c.offset + 'm' : '')); } return nRep ? (bad.length ? 'WARN ' + bad.join(', ') : 'PASS') : '—'; };
+  const brute = KM.RECIPE[k].torso === 'tBrute', authored = report.clips.map(c => c.as), rigOK = !report.rejected.some(r => String(r.part).startsWith('clip:'));
+  const found = PREVIEW.filter(p => authored.includes(p[1])).map(p => p[0]), missing = PREVIEW.filter(p => !authored.includes(p[1])).map(p => p[0]);
+  let budgetLv = 'PASS'; if (flags.some(f => f.level === 'WARN') || t > budget * 0.9) budgetLv = 'WARN'; if (flags.some(f => f.level === 'FAIL') || t > budget || rej.length) budgetLv = 'FAIL';
+  return { unit: k, name: NAME[k] || k, source: nRep === 0 ? 'PROCEDURAL FALLBACK' : nRep === uniq.length ? 'PRODUCTION GLB' : `PARTIAL GLB ${nRep}/${uniq.length}`, tris: Math.round(t), budget,
+    draws: ps.length, materials: mats.size, textures: tex.length ? tex.join(', ') : 'none', skeleton: KM.RECIPE[k].body ? 'rigid body (no skeleton)' : `shared rig · ${brute ? 'brute' : 'std'}${rigOK ? '' : ' · authored rig INVALID'}`,
+    scale: chk('scaleBad'), orient: chk('orientBad'), pivot: chk('pivotBad'), clipsFound: KM.RECIPE[k].body ? 'n/a (rigid)' : found.length ? found.join(', ') : 'none (procedural)', clipsMissing: KM.RECIPE[k].body ? 'n/a' : missing.join(', ') || '—', budgetLv,
+    flags: flags.map(f => `${f.level} ${f.part}: ${f.why}`), refused: rej.map(r => `${r.part}: ${r.why}`) };
+}
+
+// ---- viewers: one unit, two kits, shared clip ----
+function viewer(canvas, R) {
+  const gl = new THREE.WebGLRenderer({ canvas, antialias: true }); gl.setPixelRatio(Math.min(2, devicePixelRatio));
+  const S = new THREE.Scene(); S.background = new THREE.Color(0x9fd0ff); S.add(new THREE.HemisphereLight(0xf4eee6, 0xa07a4e, 0.64)); const sun = new THREE.DirectionalLight(0xffd9a4, 0.9); sun.position.set(4, 8, 6); S.add(sun);
+  const g = new THREE.Mesh(new THREE.CircleGeometry(3, 40), new THREE.MeshLambertMaterial({ color: 0xd9a660 })); g.rotation.x = -Math.PI / 2; S.add(g);
+  const cam = new THREE.PerspectiveCamera(32, 1, 0.1, 50); return { gl, S, cam, R, meshes: [] };
+}
+const V = [viewer(document.getElementById('cRef'), ref), viewer(document.getElementById('cProd'), prod)];
+let sel = Q.get('unit') && KM.RECIPE[Q.get('unit')] ? Q.get('unit') : 'soldier', clip = 'idle', auto = true, t0 = performance.now();
+function build(v) {
+  for (const m of v.meshes) v.S.remove(m); v.meshes = [];
+  const r = KM.RECIPE[sel], col = new THREE.Color(COL[sel] || 0xffffff);
+  const add = name => { const pm = v.R.partM[name], m = new THREE.InstancedMesh(v.R.kit.parts[name], pm.material, 1); m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array([col.r, col.g, col.b]), 3); m.frustumCulled = false; v.S.add(m); v.meshes.push(m); return m; };
+  if (r.body) { v.u = { body: add(r.body) }; return; }
+  v.u = { legL: add(r.leg), legR: add(r.leg), torso: add(r.torso), head: add(r.head), armL: add(r.arm), armR: add(r.arm), wpn: add(r.wpn) }; if (r.shield) v.u.shield = add('shield');
+}
+const pose = new Float32Array(A.P), vari = { seed: 0.3, seed2: 0.3, amp: 1, lean: 0, tempo: 1 }, I = A.I, e = new THREE.Euler(), M = Array.from({ length: 8 }, () => new THREE.Matrix4());
+const rot = (m, x, y, z, rx, ry, rz) => { e.set(rx, ry, rz, 'YXZ'); m.makeRotationFromEuler(e); m.setPosition(x, y, z); return m; };
+function poseFor(isRef, name, lt) {
+  const hit = name === '+hitFront', base = hit ? 'idle' : name, c = A.CLIPS[base], arg = c.loop ? lt * 9 : Math.min(1, (lt % 2.2) / (c.dur * 1.6));
+  if (isRef) refFn(base)(pose, arg, vari); else A.sample(A.ID[base], arg, vari, pose);
+  if (hit) { const w = Math.max(0, Math.sin(((lt % 1.1) / 1.1) * Math.PI)); if (isRef) for (let k = 0; k < A.P; k++) pose[k] += refHit[k] * w; else A.additive(pose, 'hitFront', w); }
+  return pose;
+}
+function draw(v, isRef, lt) {
+  const r = KM.RECIPE[sel], s = SC[sel] || 1, yaw = 0.6 + Math.sin(lt * 0.4) * 0.5, u = v.u, set = (mesh, mm) => { mesh.setMatrixAt(0, mm); mesh.instanceMatrix.needsUpdate = true; };
+  if (r.body) { rot(M[0], 0, 0, 0, 0, yaw, 0); M[0].scale(new THREE.Vector3(s, s, s)); set(u.body, M[0]); }
+  else {
+    const p = poseFor(isRef, clip, lt), rig = r.torso === 'tBrute' ? KM.RIG.brute : KM.RIG.std;
+    rot(M[0], 0, p[I.y] * s, 0, p[I.rootP], yaw + p[I.rootY], p[I.rootR]); M[0].scale(new THREE.Vector3(s, s, s));
+    rot(M[1], -rig.hip[0], rig.hip[1], 0, p[I.legLP], 0, 0).premultiply(M[0]); set(u.legL, M[1]);
+    rot(M[1], rig.hip[0], rig.hip[1], 0, p[I.legRP], 0, 0).premultiply(M[0]); set(u.legR, M[1]);
+    rot(M[2], 0, rig.torso, 0, p[I.torsoP], p[I.torsoY], p[I.torsoR]).premultiply(M[0]); set(u.torso, M[2]);
+    rot(M[3], 0, rig.neck, 0, p[I.headP], p[I.headY], 0).premultiply(M[2]); set(u.head, M[3]);
+    rot(M[4], -rig.shoulder[0], rig.shoulder[1], 0, p[I.armLP], 0, p[I.armLR]).premultiply(M[2]); set(u.armL, M[4]);
+    rot(M[5], rig.shoulder[0], rig.shoulder[1], 0, p[I.armRP], p[I.armRY], p[I.armRR]).premultiply(M[2]); set(u.armR, M[5]);
+    if (r.wpn === 'bow') M[6].makeTranslation(0, rig.fist, 0.02).premultiply(M[4]); else M[6].makeTranslation(0, rig.fist, 0.03).premultiply(M[5]); set(u.wpn, M[6]);
+    if (u.shield) { M[7].makeTranslation(...rig.shieldAt).premultiply(M[4]); set(u.shield, M[7]); }
+  }
+  const c = v.gl.domElement, w = c.clientWidth, h = c.clientHeight; if (c.width !== Math.floor(w * v.gl.getPixelRatio())) v.gl.setSize(w, h, false);
+  const d = 2.6 * s + 1; v.cam.aspect = w / Math.max(1, h); v.cam.position.set(0, 0.55 * s + d * 0.25, d); v.cam.lookAt(0, 0.5 * s, 0); v.cam.updateProjectionMatrix(); v.gl.render(v.S, v.cam);
+}
+function loop(now) { requestAnimationFrame(loop); const t = Math.max(0, (now - t0) / 1000); if (auto) { const want = PREVIEW[Math.floor(t / 2.4) % PREVIEW.length][1]; if (want !== clip) { clip = want; paintClips(); } } V.forEach((v, i) => draw(v, i === 0, t)); }
+
+// ---- UI ----
+function paintClips() { const el = document.getElementById('clips'); el.innerHTML = PREVIEW.map(p => `<button class="btn${clip === p[1] && !auto ? ' on' : ''}" data-c="${p[1]}">${p[0].toUpperCase()}${report.clips.some(c => c.as === p[1]) ? ' · GLB' : ''}</button>`).join('') + `<button class="btn${auto ? ' on' : ''}" data-c="auto">CYCLE</button>`;
+  el.querySelectorAll('button').forEach(b => b.onclick = () => { if (b.dataset.c === 'auto') auto = true; else { auto = false; clip = b.dataset.c; t0 = performance.now(); } paintClips(); }); }
+function paint() {
+  const rows = KINDS.map(validate); KM.assetValidation = { sources, units: rows, unknownNodes: report.unknown, warnings: report.warnings, clips: report.clips };
+  document.getElementById('rows').innerHTML = rows.map(r => `<tr data-k="${r.unit}" class="${r.unit === sel ? 'sel' : ''}"><td><b>${r.name}</b><div class="note">${r.unit}</div></td><td>${r.source}</td><td>${r.tris.toLocaleString()}<div class="note">budget ${r.budget.toLocaleString()}</div></td><td>${r.draws} / ${r.materials}</td><td>${r.textures}</td><td>${r.skeleton}</td>` +
+    ['scale', 'orient', 'pivot'].map(k => `<td class="${r[k].split(' ')[0]}">${r[k]}</td>`).join('') + `<td>${r.clipsFound}</td><td>${r.clipsMissing}</td><td class="${r.budgetLv}">${r.budgetLv}</td></tr>`).join('');
+  document.querySelectorAll('#rows tr').forEach(tr => tr.onclick = () => { sel = tr.dataset.k; V.forEach(build); paint(); });
+  const cur = rows.find(r => r.unit === sel);
+  document.getElementById('prodCap').textContent = 'PRODUCTION · ' + (cur.source === 'PROCEDURAL FALLBACK' ? 'waiting for GLB (fallback shown)' : cur.source);
+  document.getElementById('detail').textContent = `${cur.name}: ${cur.source} · ${cur.tris} tris (budget ${cur.budget}) · ${cur.draws} draws · ${cur.materials} material(s)\n` +
+    (cur.flags.length ? 'Flags:\n  ' + cur.flags.join('\n  ') + '\n' : 'No flags.\n') + (cur.refused.length ? 'Refused (technically invalid, procedural kept):\n  ' + cur.refused.join('\n  ') + '\n' : '') +
+    (report.unknown.length ? 'Unknown nodes (ignored): ' + report.unknown.join(', ') + '\n' : '') + (report.warnings.length ? 'Warnings:\n  ' + report.warnings.join('\n  ') : '');
+  paintClips();
+}
+function applyGltf(gltf, name) { const r = KM.applyCharacterScene(prod, gltf.scene, name, gltf.animations); merge(r); sources.push(name); V.forEach(build); paint(); document.getElementById('src').textContent = 'Loaded: ' + sources.join(', '); }
+function loadFiles(files) { for (const f of files) f.arrayBuffer().then(buf => new THREE.GLTFLoader().parse(buf, '', g => applyGltf(g, f.name), err => { report.rejected.push({ part: f.name, why: 'unreadable GLB: ' + (err && err.message || err) }); paint(); })); }
+document.getElementById('file').onchange = e => loadFiles(e.target.files);
+const drop = document.getElementById('drop'); addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('hover'); }); addEventListener('dragleave', () => drop.classList.remove('hover'));
+addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('hover'); loadFiles([...e.dataTransfer.files].filter(f => /\.glb$/i.test(f.name))); });
+document.getElementById('copy').onclick = () => { const t = JSON.stringify({ kmob: 'assets', when: new Date().toISOString(), ...KM.assetValidation }, null, 1); try { navigator.clipboard.writeText(t); } catch (x) { /* ignore */ } document.getElementById('copy').textContent = 'COPIED ✓'; };
+V.forEach(build); paint(); requestAnimationFrame(loop);
+// files from assets/manifest.json (same path the game uses), or ?glb=a.glb,b.glb relative to assets/
+const extra = (Q.get('glb') || '').split(',').filter(x => /^[\w\-./]+\.glb$/i.test(x) && !x.includes('..'));
+KM.assetsPageReady = KM.loadCharacterAssets(prod, '../assets/').then(r => { merge(r); if (r.src) sources.push(r.src); })
+  .then(() => extra.reduce((p, f) => p.then(() => new Promise(res => new THREE.GLTFLoader().load('../assets/' + f, g => { applyGltf(g, f); res(); }, undefined, () => { report.warnings.push(f + ': load failed'); res(); }))), Promise.resolve()))
+  .then(() => { V.forEach(build); paint(); document.getElementById('src').textContent = sources.length ? 'Loaded: ' + sources.join(', ') : 'No production GLB delivered yet: every unit shows its procedural fallback. Drop a .glb to validate it.'; return KM.assetValidation; });
+</script></body></html>

@@ -19,8 +19,8 @@ The game already runs on code-built placeholder parts. Your files replace them *
 2. Model over each part, keeping its **object name, origin (pivot) and orientation**. Replace the mesh, not the object.
 3. Export each unit to its folder, for example `assets/characters/blue/basic/basic.glb`. Each folder's `README.md` lists the part names that unit uses.
 4. Add the file to `assets/manifest.json` → `"characters": ["characters/blue/basic/basic.glb", …]`, in load order. Later files override earlier parts.
-5. Reload the game. In the browser console, `KM.assetReport` lists for every part whether it was replaced, rejected (with the reason) or left missing, along with warnings, imported clips and texture memory.
-6. Review in `dev/lineup.html` (every unit cycling through every clip) and in a run with `?debug=1`.
+5. Open **`https://keepitil.com/games/kmob/?assets=1`** (or drop the .glb straight onto that page, nothing to deploy). For every unit it shows: production GLB or procedural fallback, triangles vs budget, draws/materials, texture size, skeleton status, scale/orientation/pivot checks, clips found and missing, and a budget **PASS / WARN / FAIL**. Preview idle, run, attack, hit and death with the procedural reference beside your model. **COPY REPORT** gives the JSON.
+6. In a game run, `KM.assetReport` in the console lists every part as replaced, refused (technically invalid only) or missing, plus flags, warnings, clips and texture memory. `dev/lineup.html` cycles every unit through every clip.
 
 ## 2. Folders
 
@@ -41,9 +41,11 @@ Hundreds to thousands of soldiers are drawn with GPU instancing, so each body pa
 |---|---|
 | Units | metres. A standard soldier is about 1.15 m to the helmet top; brute ×1.9; warlord ×2.7 (scaled in game, so model at the template size) |
 | Orientation | character faces **+Z**, **+Y** up (Blender: export with "+Y Up") |
-| Scale check | each part's bounding box must be within 0.35–2.8× the template part on every axis |
-| Pivot check | part centre within max(0.25 m, 60% of the part size) of the template part's centre |
-| Orientation check | a warning (not a rejection) if the long axis differs from the template's |
+| Scale check | each part's bounding box should be within 0.35–2.8× the template part on every axis (WARN otherwise) |
+| Pivot check | part centre within max(0.25 m, 60% of the part size) of the template part's centre (WARN otherwise) |
+| Orientation check | WARN if the long axis differs from the template's |
+
+Policy: the game **warns, it does not refuse**. Only technically invalid data (no geometry, NaN/Infinity vertices, unreadable file) is refused and keeps the procedural part. Scale, pivot, orientation and budget problems load with a flag so you can see them in game and on `?assets=1`.
 
 | Part key | Pivot | Contents |
 |---|---|---|
@@ -65,7 +67,7 @@ Hundreds to thousands of soldiers are drawn with GPU instancing, so each body pa
 | Mid LOD (next ~450 units) | 300–500 (target band 500–1,000) | procedural lean parts, kept on purpose |
 | Far LOD (the rest) | 230–500 statues (target band 200–350) | procedural statues, kept on purpose |
 
-A part over its limit is **rejected** and keeps the placeholder. The 1,600-unit scene must stay near **750k triangles and ~105 draw calls**.
+A part over its limit still loads, flagged **FAIL** on `?assets=1` and in `KM.assetReport.flags`. The 1,600-unit scene must stay near **~800k triangles and ~110 draw calls**.
 
 ## 5. Materials
 

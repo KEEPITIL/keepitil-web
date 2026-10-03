@@ -271,7 +271,7 @@
   // Cel-shaded material: 3-band toon ramp + faction tint mask + soft rim light for silhouette separation.
   let ramp = null;
   KM.toonMat = function (opts) {
-    if (!ramp) { const d = new Uint8Array([108, 104, 118, 255, 196, 194, 204, 255, 255, 252, 246, 255]); /* cool shadow, warm light */ ramp = new THREE.DataTexture(d, 3, 1, THREE.RGBAFormat); ramp.minFilter = ramp.magFilter = THREE.NearestFilter; ramp.needsUpdate = true; }
+    if (!ramp) { const d = new Uint8Array([100, 96, 124, 255, 200, 190, 194, 255, 255, 247, 230, 255]); /* cool shadow, warm light */ ramp = new THREE.DataTexture(d, 3, 1, THREE.RGBAFormat); ramp.minFilter = ramp.magFilter = THREE.NearestFilter; ramp.needsUpdate = true; }
     const m = new THREE.MeshToonMaterial(Object.assign({ vertexColors: true, gradientMap: ramp }, opts || {}));
     m.onBeforeCompile = sh => {
       sh.uniforms.uGlow = { value: KM.glowLevel || 1 }; m.userData.shader = sh;
@@ -287,9 +287,9 @@
           vColor.xyz *= mix(vec3(1.0), instanceColor.xyz, aTint);
         #endif`);
       sh.fragmentShader = sh.fragmentShader.replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );',
-        'float rimK = 1.0 - max(dot(normal, normalize(vViewPosition)), 0.0); outgoingLight += diffuseColor.rgb * pow(rimK, 2.4) * 0.7 + vec3(0.1, 0.09, 0.07) * pow(rimK, 3.5);\n' +
+        'float rimK = 1.0 - max(dot(normal, normalize(vViewPosition)), 0.0); outgoingLight += diffuseColor.rgb * pow(rimK, 2.4) * 0.78 + vec3(0.17, 0.12, 0.05) * pow(rimK, 3.2);\n' +
         // metal (authored metalness/roughness → aMetal): bright cel highlight band from a fake sky reflection
-        '\tvec3 rv = reflect(normalize(-vViewPosition), normal); float hi = smoothstep(0.55, 0.75, rv.y); outgoingLight = mix(outgoingLight, outgoingLight * 0.75 + diffuseColor.rgb * hi * 0.9 + vec3(0.25) * hi, vMetal);\n' +
+        '\tvec3 rv = reflect(normalize(-vViewPosition), normal); float hi = smoothstep(0.55, 0.75, rv.y); outgoingLight = mix(outgoingLight, outgoingLight * 0.75 + diffuseColor.rgb * hi * 0.95 + vec3(0.34, 0.28, 0.15) * hi, vMetal);\n' +
         '\toutgoingLight += totalEmissiveRadiance * (uGlow - 1.0);\n\tgl_FragColor = vec4( outgoingLight, diffuseColor.a );')
         .replace('#include <common>', '#include <common>\nvarying float vMetal;\nuniform float uGlow;');
     };

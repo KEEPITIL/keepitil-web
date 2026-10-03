@@ -68,7 +68,7 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
     const tl = kit.parts.tLight; const plain = new THREE.BufferGeometry(); plain.setAttribute('position', tl.attributes.position.clone()); plain.setAttribute('normal', tl.attributes.normal.clone());
     node('tLight', plain, 'tint_body', 0xffffff);                                          // valid authored part
     node('sword', new THREE.BoxGeometry(0.18, 0.05, 0.78).translate(0, 0, 0.3), 'steel', 0xdddddd); // valid weapon
-    node('hBlue', new THREE.SphereGeometry(0.3, 96, 64), 'tint_helm');                      // over budget → rejected
+    node('hBlue', new THREE.SphereGeometry(0.3, 96, 64), 'tint_helm');                      // over budget → loads with a FAIL flag
     node('aStd', null);                                                                     // empty → rejected
     node('mysteryPart', new THREE.BoxGeometry(1, 1, 1));                                    // unknown → reported
     const glb = await new Promise(res => new THREE.GLTFExporter().parse(scene, res, { binary: true }));
@@ -76,11 +76,12 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
     const before = r.partM.tLight.geometry, rep = KM.applyCharacterScene(r, gltf.scene, 'fixture.glb');
     const tintOK = Array.from(r.partM.tLight.geometry.attributes.aTint.array).every(v => v === 1);
     for (let k = 0; k < 20; k++) { KM.game.sim.step(1 / 60); r.frame(KM.game.sim, 1 / 60); }
-    return { replaced: rep.replaced.map(x => x.part), rejected: rep.rejected.map(x => x.part + ':' + x.why.split(' ')[0]), unknown: rep.unknown, swapped: r.partM.tLight.geometry !== before, tintOK, stillFallback: !!r.partM.hBlue.geometry.attributes.aTint, missing: rep.missing.length };
+    return { replaced: rep.replaced.map(x => x.part), rejected: rep.rejected.map(x => x.part + ':' + x.why.split(' ')[0]), flags: rep.flags.map(x => x.part + ':' + x.level + ':' + x.why.split(' ')[0]), unknown: rep.unknown, swapped: r.partM.tLight.geometry !== before, tintOK, stillFallback: !!r.partM.aStd.geometry.attributes.aTint, missing: rep.missing.length };
   });
   ok('authored GLB parts replace procedural parts (GLTFLoader round-trip)', pipe.replaced.includes('tLight') && pipe.replaced.includes('sword') && pipe.swapped, pipe);
   ok('material named tint_* becomes faction-tinted', pipe.tintOK);
-  ok('over-budget and empty parts are rejected and keep the procedural fallback', pipe.rejected.some(x => x.startsWith('hBlue:over')) && pipe.rejected.some(x => x.startsWith('aStd:')) && pipe.stillFallback, pipe.rejected);
+  ok('over-budget parts load with a budget FAIL flag (warn, not refuse)', pipe.flags.some(x => x.startsWith('hBlue:FAIL:over')) && pipe.replaced.includes('hBlue'), pipe);
+  ok('technically invalid (empty) parts are refused and keep the procedural fallback', pipe.rejected.some(x => x.startsWith('aStd:')) && pipe.stillFallback, pipe.rejected);
   ok('unknown nodes are reported, not applied', pipe.unknown.includes('mysteryPart'));
   ok('missing parts are listed for the artist', pipe.missing > 10);
   for (const [label, body, ct] of [['404', null, null], ['corrupt', Buffer.from('not a glb at all'), 'model/gltf-binary']]) {
@@ -99,6 +100,9 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
     const ui = await bq.evaluate(() => ({ copy: !!document.getElementById('benchCopy'), stored: localStorage.getItem('kmob.quality') }));
     const fields = br && br.results.every(r => ['fps', 'low1', 'avgMs', 'worstMs', 'tris', 'calls', 'jsMs', 'units'].every(k => typeof r[k] === 'number'));
     ok('benchmark runs 4 stages and reports fps/1% low/frame times/tris/calls/JS/units', br && br.results.length === 4 && fields && br.info && br.info.ua && br.info.render && br.info.quality, br && br.results);
+    const ql = br && br.qualityChanges, qfields = ql && ql.every(c => ['from', 'to', 'stage', 'units', 'fpsBefore', 'reason'].every(k => c[k] != null) && 'fpsAfter' in c);
+    ok('benchmark report exposes start/final quality and every automatic quality change', br && br.startQuality && br.finalQuality && Array.isArray(ql) && qfields && br.results.every(r => r.quality) && (ql.length > 0 || br.startQuality === br.finalQuality), br && { s: br.startQuality, f: br.finalQuality, ql });
+    ok('benchmark recommendation never exceeds the tier it was stepped down to', !ql || !ql.length || ['low', 'medium', 'high'].indexOf(br.recommended.toLowerCase()) <= Math.min(...ql.map(c => ['low', 'medium', 'high'].indexOf(c.to.toLowerCase()))), br && br.recommended);
     ok('benchmark recommends a tier, stores it, shows COPY RESULTS', br && ['HIGH', 'MEDIUM', 'LOW'].includes(br.recommended) && ui.copy && ui.stored === br.recommended.toLowerCase(), { rec: br && br.recommended, ui, be });
     await bq.close(); }
   { const pq = await b.newPage({ viewport: { width: 390, height: 844 } }); await pq.goto(base + 'index.html?autoplay=1&playtest=1'); await pq.bringToFront(); await pq.waitForTimeout(800);
@@ -106,6 +110,12 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
     let has = false; for (let k = 0; k < 40 && !has; k++) { await pq.waitForTimeout(250); has = await pq.evaluate(() => !!document.getElementById('ptBox')); }
     const pt = has ? await pq.evaluate(() => { const box = document.getElementById('ptBox'); box.querySelector('.pt[data-k="easy"][data-v="1"]').click(); box.querySelector('.pt[data-k="fair"][data-v="0"]').click(); box.querySelector('.pt[data-k="again"][data-v="1"]').click(); box.querySelector('#ptCopy').click(); return KM.lastPlaytest; }) : null;
     ok('?playtest=1 shows the summary + 3 questions and COPY PLAYTEST builds the report', pt && pt.easyToUnderstand === 'YES' && pt.deathFair === 'NO' && pt.playAgain === 'YES' && pt.death === 'breach' && pt.seconds >= 9, pt);
+    // actual retry behaviour: press TRY AGAIN after a pause, die again, the next report carries it
+    await pq.waitForTimeout(700); await pq.evaluate(() => document.getElementById('againBtn').click());
+    await pq.evaluate(() => { const s = KM.game.sim; for (let k = 0; k < 120; k++) s.step(1 / 60); s.L.inv = 0; s.hurtLauncher(1e9, 'breach'); });
+    let has2 = false; for (let k = 0; k < 40 && !has2; k++) { await pq.waitForTimeout(250); has2 = await pq.evaluate(() => !!document.getElementById('ptBox') && /Run 1: TRY AGAIN/.test(document.getElementById('ptBox').textContent)); }
+    const pt2 = has2 ? await pq.evaluate(() => { document.querySelector('#ptBox #ptCopy').click(); return KM.lastPlaytest; }) : null;
+    ok('?playtest=1 records whether TRY AGAIN was actually pressed + seconds after the death screen', pt && pt.pressedTryAgain === 'PENDING' && pt2 && pt2.sessionRetries.length === 1 && pt2.sessionRetries[0].pressedTryAgain === 'YES' && pt2.sessionRetries[0].seconds >= 0.5 && pt2.retryRate === 1 && /Pressed TRY AGAIN/.test(pt2.text), pt2 && { r: pt2.sessionRetries, rate: pt2.retryRate });
     await pq.close(); }
   // ---- edge modules stream with chunks: water appears beside a river section ----
   const water = await p.evaluate(() => { const g = KM.game, s = g.sim, r = g.render; let z = -60; while (z > -6000 && KM.edgeAt(1, z).river < 0.9 && KM.edgeAt(-1, z).river < 0.9) z -= 10; s.front = z + 20; for (let k = 0; k < 8; k++) r.frame(s, 1 / 60);
@@ -149,13 +159,13 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
     const gltf = await new Promise((res, rej) => new THREE.GLTFLoader().parse(glb, '', res, rej));
     const rep = KM.applyCharacterScene(r, gltf.scene, 'atlas.glb', gltf.animations);
     const pm = r.partM.hBlue, A = KM.ANIM, pose = new Float32Array(A.P); A.sample(A.ID.attackA, 0.5, A.variation(1, 1, {}), pose);
-    const res = { replaced: rep.replaced.map(x => x.part + (x.textured ? ':tex' : '')), rejected: rep.rejected.map(x => x.part + ':' + x.why.split(' ')[0]), map: !!pm.material.map, emissiveMap: !!pm.material.emissiveMap, metal: Math.max(...pm.geometry.attributes.aMetal.array), uv: !!pm.geometry.attributes.uv, textures: rep.textures, texMB: rep.texMB, clips: rep.clips, armRmid: +pose[A.I.armRP].toFixed(2) };
+    const res = { replaced: rep.replaced.map(x => x.part + (x.textured ? ':tex' : '')), rejected: rep.rejected.map(x => x.part + ':' + x.why.split(' ')[0]), flags: rep.flags.map(x => x.part + ':' + x.level + ':' + x.why.split(' ')[0]), map: !!pm.material.map, emissiveMap: !!pm.material.emissiveMap, metal: Math.max(...pm.geometry.attributes.aMetal.array), uv: !!pm.geometry.attributes.uv, textures: rep.textures, texMB: rep.texMB, clips: rep.clips, armRmid: +pose[A.I.armRP].toFixed(2) };
     for (let k = 0; k < 10; k++) { KM.game.sim.step(1 / 60); r.frame(KM.game.sim, 1 / 60); }
     A.restore('attackA'); return res;
   });
   ok('texture atlas: base-colour + emissive maps reach the instanced part material', tex.replaced.includes('hBlue:tex') && tex.map && tex.emissiveMap && tex.uv && tex.textures >= 1 && tex.texMB < 2, tex);
   ok('metalness/roughness become the cel metal highlight attribute', tex.metal > 0.7, tex.metal);
-  ok('wrong scale and off-pivot parts are rejected with a reason', tex.rejected.some(x => x.startsWith('aStd:scale')) && tex.rejected.some(x => x.startsWith('lStd:pivot')), tex.rejected);
+  ok('wrong scale and off-pivot parts are flagged WARN with a reason (still loaded)', tex.flags.some(x => x.startsWith('aStd:WARN:scale')) && tex.flags.some(x => x.startsWith('lStd:WARN:pivot')), tex.flags);
   ok('authored clip "attack_01" is baked onto the skeleton and drives the pose', tex.clips.some(c => c.clip === 'attack_01' && c.as === 'attackA') && Math.abs(tex.armRmid + 1.0) < 0.15, { clips: tex.clips, armRmid: tex.armRmid });
   // ---- quality tiers + bloom tier ----
   const q = await p.evaluate(async () => { const r = KM.game.render, out = {};
@@ -164,6 +174,40 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
     for (let k = 0; k < 5; k++) r.frame(KM.game.sim, 1 / 60); out.bloom = !!(r.composer && r.bloomOn); r.setBloom(false); KM.bloomAllowed = false; r.applyQuality('medium'); out.after = r.bloomOn; return out; });
   ok('quality tiers apply budgets, shadows and effect density', q.low.near < q.medium.near && q.medium.near < q.high.near && !q.low.shadows && q.high.shadows && q.low.fx < q.high.fx, q);
   ok('bloom post-processing tier loads on demand and renders', q.bloom === true && q.after === false, q);
+  // ---- heavy hits are visible: shove → dust/ring/spark particles, tiny camera kick only for big blows ----
+  const shove = await p.evaluate(() => { const g = KM.game, s = g.sim, r = g.render; g.startRun(); s.L.inv = 1e9; for (let k = 0; k < 5; k++) r.frame(s, 1 / 60);
+    const rings = () => r.rings.filter(q => q.m.visible).length, r0 = rings(); r.shake = 0; r.shoveT = 0; r.fxBudget = 50;
+    r.onEvent(s, 'shove', 0, 5, 0, s.front, 2.6); const kick = r.shake; r.shoveT = 0; r.fxBudget = 50; r.shake = 0; r.onEvent(s, 'shove', 0, 1, 2, s.front, 1.3); const small = r.shake;
+    return { ring: rings() > r0, kick: +kick.toFixed(3), small }; });
+  ok('heavy impacts show a shock ring + dust, big blows add only a tiny camera kick', shove.ring && shove.kick > 0 && shove.kick <= 0.08 && shove.small === 0, shove);
+  // ---- decor never hides launcher / coins / towers / frontline / threats (camera ray test, phone + desktop) ----
+  for (const [w, h] of [[390, 844], [1440, 900]]) {
+    const q = await b.newPage({ viewport: { width: w, height: h } }); await q.goto(base + 'index.html?autoplay=1'); await q.waitForTimeout(800);
+    const oc = await q.evaluate(() => { const g = KM.game, s = g.sim, R = g.render; s.L.inv = 1e9; g.showcase(5, 5); const rc = new THREE.Raycaster(), dir = new THREE.Vector3(), tp = new THREE.Vector3(), bad = []; let rays = 0;
+      const cast = (objs, pts) => { let hits = 0; for (const [n, x, y, z] of pts) { tp.set(x, y, z); dir.copy(tp).sub(R.cam.position); const d = dir.length(); rc.set(R.cam.position, dir.normalize()); rc.far = d - 0.4; rays++; const hit = rc.intersectObjects(objs, false)[0]; if (hit) { hits++; if (bad.length < 8) bad.push(n + '@' + Math.round(s.front)); } } return hits; };
+      const scene = () => { const o = []; for (const [, ch] of R.chunks) ch.traverse(m => { if (m.isMesh && (m.userData.decor || m.material === R.groundMat || m.material === R.fallMat)) { if (m.userData.gateZ != null && m.material.opacity < 0.5) return; o.push(m); } }); return o; };
+      const pts = () => { const L = s.L; return [['launcher', L.x, 1, L.z], ['coin', L.x - 2, 1.2, L.z - 4], ['coin', L.x + 2, 1.2, L.z - 6], ...s.towers.filter(Boolean).map(t => ['tower', t.x, 2, t.z]), ['front', 0, 1, s.front], ['front', -7, 1, s.front], ['front', 7, 1, s.front], ['threat', 0, 1, s.front - 24], ['threat', -7, 1, s.front - 24], ['threat', 7, 1, s.front - 24]]; };
+      let hits = 0; for (let f = -60; f > -2200; f -= 61) { const dz = s.L.z - s.front; s.front = f; s.L.z = f + dz; s.L.tz = s.L.z; for (let k = 0; k < 4; k++) R.streamWorld(f); for (let k = 0; k < 12; k++) R.frame(s, 1 / 30); hits += cast(scene(), pts()); }
+      // the probe is not vacuous: a tall prop placed at the fence (bypassing the guard) is detected
+      const probe = new THREE.Mesh(new THREE.BoxGeometry(1.2, 9, 1.2).translate(0, 4.5, 0), R.decoMat); const on = R.cam.position.clone().lerp(new THREE.Vector3(s.L.x, 1, s.L.z), 0.93); probe.position.set(on.x, 0, on.z); probe.updateMatrixWorld(); probe.userData.decor = 1; R.scene.add(probe);
+      const pr = cast([probe], [['launcher', s.L.x, 1, s.L.z], ['coin', s.L.x + 2, 1.2, s.L.z - 4], ['front', 7, 1, s.front], ['front', 4, 1, s.front + 3]]); R.scene.remove(probe);
+      const G = R.decorGuard, viol = G.boxes.filter(b => { const inner = b[0] > 0 ? b[0] : b[1] < 0 ? -b[1] : 0; return inner < KM.decorClear(b[4]) - 0.02; }).length;
+      return { rays, hits, bad, probe: pr, viol, guard: { placed: G.placed, moved: G.moved, lowered: G.lowered, hidden: G.hidden } }; });
+    ok(`decor occlusion ${w}x${h}: no prop/cliff/gate hides launcher, coins, towers, frontline or threats`, oc.hits === 0 && oc.rays > 300, oc);
+    ok(`decor guard ${w}x${h}: every placed prop keeps clear of the sight-lines (moved/lowered/hidden when needed); probe detects a bad prop`, oc.viol === 0 && oc.probe > 0, { viol: oc.viol, probe: oc.probe, guard: oc.guard });
+    await q.close();
+  }
+  // ---- ?assets=1 validation page ----
+  { const aq = await b.newPage({ viewport: { width: 1280, height: 900 } }); const ae = []; aq.on('pageerror', e => ae.push(e.message));
+    await aq.goto(base + 'index.html?assets=1'); await aq.waitForFunction(() => window.KM && KM.assetsPageReady, null, { timeout: 15000 });
+    const v0 = await aq.evaluate(async () => { const v = await KM.assetsPageReady; await new Promise(r => setTimeout(r, 400)); return { path: location.pathname, n: v.units.length, src: v.units.map(u => u.source), lv: v.units.map(u => u.budgetLv), keys: Object.keys(v.units[0]), clips: document.querySelectorAll('#clips button').length }; });
+    ok('?assets=1 opens the validation page with every unit + clip controls (idle/run/attack/hit/death)', /dev\/assets\.html$/.test(v0.path) && v0.n === Object.keys(await aq.evaluate(() => KM.RECIPE)).length && v0.clips >= 5 && ['tris', 'materials', 'textures', 'skeleton', 'scale', 'orient', 'pivot', 'clipsFound', 'clipsMissing', 'budgetLv', 'source'].every(k => v0.keys.includes(k)), v0);
+    ok('?assets=1 with no GLB delivered: every unit is PROCEDURAL FALLBACK and within budget', v0.src.every(x => x === 'PROCEDURAL FALLBACK') && v0.lv.every(x => x === 'PASS'), v0);
+    await aq.goto(base + 'index.html?assets=1&glb=template/kmob-parts-template.glb&unit=brute'); await aq.waitForFunction(() => window.KM && KM.assetsPageReady, null, { timeout: 15000 });
+    const v1 = await aq.evaluate(async () => { const v = await KM.assetsPageReady; const u = v.units.find(x => x.unit === 'soldier'); return { src: u.source, found: u.clipsFound, scale: u.scale, pivot: u.pivot, cap: document.getElementById('prodCap').textContent }; });
+    ok('?assets=1 validates a delivered GLB: production source, clips found, scale/pivot checks', v1.src === 'PRODUCTION GLB' && /idle/.test(v1.found) && v1.scale === 'PASS' && v1.pivot === 'PASS', v1);
+    ok('?assets=1 page has no runtime errors', ae.length === 0, ae);
+    await aq.close(); }
   ok('no runtime errors during the browser suite', errs.length === 0, errs.slice(0, 5));
   await b.close(); srv.close();
   console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

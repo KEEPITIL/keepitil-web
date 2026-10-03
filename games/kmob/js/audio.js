@@ -55,6 +55,7 @@
         case 'tower': if (this.gate(k, 140)) this.hiss(t, 0.07, 2200, 3, 0.05, 'highpass', D); break;
         case 'build': [392, 523, 659].forEach((f, i) => this.tone(f, t + i * 0.07, 0.2, 'triangle', 0.1, 0, D)); this.hiss(t, 0.3, 800, 0.6, 0.12, 'lowpass', D); break;
         case 'shieldhit': if (this.gate(k, 110)) { this.tone(900 * r, t, 0.1, 'triangle', 0.05); this.hiss(t, 0.04, 3200, 5, 0.05); } break;
+        case 'thud': if (this.gate(k, 140)) { this.tone(85 * r, t, 0.16, 'sine', 0.18, 45, D); this.hiss(t, 0.12, 380, 0.8, 0.12, 'lowpass', D); } break;
         case 'boom': if (this.gate(k, 100)) { this.tone(70, t, 0.5, 'sine', 0.35, 30); this.hiss(t, 0.45, 600, 0.6, 0.25, 'lowpass'); } break;
         case 'frost': if (this.gate(k, 140)) { this.tone(2200, t, 0.25, 'sine', 0.04, 3400); this.hiss(t, 0.2, 6000, 4, 0.04); } break;
         case 'lhit': if (this.gate(k, 160)) { this.tone(110, t, 0.2, 'sawtooth', 0.12, 60, D); this.hiss(t, 0.15, 500, 1, 0.15, 'lowpass', D); } break;

@@ -29,9 +29,9 @@ const run = (sim, secs, bot) => { for (let k = 0; k < secs * 60 && sim.alive; k+
   let costs = []; for (let n = 0; n < 200; n++) costs.push(KM.upgradeCost(n));
   ok('upgrade cost strictly increases and stays finite', costs.every((c, i) => i === 0 || c > costs[i - 1]) && Number.isFinite(costs[199]));
   // build + tower upgrade
-  sim.coins = 1e6; sim.offer = [{ id: 'build:arrow', tower: 'arrow' }]; sim.pick(0);
-  ok('build tower places it in a free unlocked slot', sim.towers[0] && sim.towers[0].type === 'arrow' && sim.towers[0].lvl === 1);
-  sim.offer = [{ id: 'tup:0' }]; sim.pick(0); ok('tower upgrade raises level', sim.towers[0].lvl === 2);
+  sim.coins = 1e6; sim.offer = [{ id: 'build:gun', tower: 'gun' }]; sim.pick(0);
+  ok('support vehicle card places it in a free formation slot', sim.towers[0] && sim.towers[0].type === 'gun' && sim.towers[0].lvl === 1);
+  sim.offer = [{ id: 'tup:0' }]; sim.pick(0); ok('vehicle upgrade raises level', sim.towers[0].lvl === 2);
   const r = KM.rng(9); let valid = true;
   for (let k = 0; k < 300; k++) { sim.t = k * 20; const o = KM.makeOffer(sim, r); const ids = o.map(x => x.id); if (o.length !== 3 || new Set(ids).size !== 3 || !o.some(x => x.cat === 'army') || ids.filter(i => i.startsWith('build:')).length > 1) valid = false; }
   ok('offers: 3 distinct, ≥1 army card, ≤1 tower build', valid);
@@ -109,33 +109,124 @@ const run = (sim, secs, bot) => { for (let k = 0; k < secs * 60 && sim.alive; k+
   const big = KM.fmtNum(1e12); ok('huge numbers format without overflow', big === '1,000,000,000,000');
 }
 
-// --- defensive structures: tower HP/destruction/repair, barricades, shield walls ---
+// --- mobile support vehicles (they replaced the ground towers) ---
 {
   const mk = () => { const s = new KM.Sim({ seed: 77 }); s.budget = -1e9; s.formT = 1e9; s.nextPush = s.nextBoss = 1e9; s.L.inv = 1e9; s.stats.rate = 0; return s; };
-  let s = mk(); s.t = 300; s.coins = 1e6; s.offer = [{ id: 'build:arrow', tower: 'arrow' }]; s.pick(0);
-  const t = s.towers[0]; ok('built tower has HP and armor', t && t.hp > 0 && t.hp === t.mhp);
-  s.hurtStruct(-10, t.mhp * 0.5); ok('tower takes damage', t.hp < t.mhp && t.hp > 0);
-  s.offer = [{ id: 'tup:0' }]; s.pick(0); ok('upgrading a tower fully repairs it and raises max HP', s.towers[0].hp === s.towers[0].mhp && s.towers[0].mhp > 140);
-  let downs = 0; s.on(e => { if (e === 'towerDown') downs++; }); s.hurtStruct(-10, 1e9);
-  ok('tower is destroyed at 0 HP and frees its slot', downs === 1 && s.towers[0] === null);
-  s.offer = [{ id: 'build:cannon', tower: 'cannon' }]; s.pick(0); ok('destroyed slot can be rebuilt', s.towers[0] && s.towers[0].type === 'cannon');
-  const hp0 = s.towers[0].mhp; s.offer = [{ id: 'thp' }]; s.pick(0); ok('TOWER HEALTH upgrade raises tower max HP', s.towers[0].mhp > hp0 * 1.2);
-  // enemies attack a tower they reach
-  s = mk(); s.t = 300; s.coins = 1e6; s.offer = [{ id: 'build:arrow', tower: 'arrow' }]; s.pick(0); const tw = s.towers[0]; tw.cd = 1e9;
-  for (let k = 0; k < 6; k++) s.spawn(1, KM.ENEMY_BY.knight, tw.x + 0.8, s.front + KM.TOWER_SLOTS[0].dz - 1.2 - k * 0.3, { hp: 1e5, dmg: 3, spd: 1 });
-  for (let k = 0; k < 60 * 8; k++) s.step(1 / 60);
-  ok('enemies that reach a tower attack it', !s.towers[0] || s.towers[0].hp < s.towers[0].mhp, s.towers[0] && s.towers[0].hp);
-  // barricade slows, shield wall blocks
-  const lane = (type) => { const q = mk(); q.coins = 1e6; q.t = 200; q.offer = [{ id: 'wall:' + type }]; q.pick(0); if (type === 'wall') { q.offer = [{ id: 'wall:wall' }]; } const w = q.walls[0];
-    const e = q.spawn(1, KM.ENEMY_BY.grunt, w.x, w.z - 3, { hp: 1e6, dmg: 0.0001, spd: 1 }); return { q, w, e }; };
-  { const { q, w, e } = lane('barricade'); ok('barricade build adds segments with HP', q.walls.length === 2 && w.hp > 0);
-    let slowed = false; for (let k = 0; k < 60 * 6; k++) { q.step(1 / 60); if (q.slow[e] > 0) slowed = true; } ok('barricade slows enemies in contact', slowed); }
-  { const { q, w, e } = lane('wall'); ok('shield wall builds 3 segments', q.walls.length === 3 && q.walls.every(x => x.type === 'wall'));
-    let passed = false; for (let k = 0; k < 60 * 6; k++) { q.step(1 / 60); if (q.z[e] > w.z + w.d) passed = true; } ok('shield wall blocks enemies until destroyed', !passed && q.walls[0].hp < q.walls[0].mhp);
-    let down = 0; q.on(ev => { if (ev === 'wallDown') down++; }); q.hurtStruct(-20, 1e9); ok('wall segment can be destroyed', down === 1 && q.walls.length === 2); }
-  { const q = mk(); q.coins = 1e6; q.t = 200; for (let k = 0; k < 3; k++) { q.offer = [{ id: 'wall:barricade' }]; q.pick(0); } const m1 = q.walls[0].mhp; q.offer = [{ id: 'wall:barricade' }]; q.pick(0);
-    ok('full barricade line is reinforced instead of over-built', q.walls.filter(w => w.type === 'barricade').length === 4 && q.walls[0].mhp > m1); }
-  ok('restart clears structures', (() => { const q = mk(); q.coins = 1e6; q.t = 200; q.offer = [{ id: 'wall:wall' }]; q.pick(0); q.reset({ seed: 1 }); return q.walls.length === 0 && q.towers.every(x => !x); })());
+  let s = mk(); s.t = 300; s.coins = 1e6; s.offer = [{ id: 'build:gun', tower: 'gun' }]; s.pick(0);
+  const t = s.towers[0]; ok('support vehicle has HP', t && t.hp > 0 && t.hp === t.mhp);
+  s.hurtStruct(-10, t.mhp * 0.5); ok('support vehicle takes damage', t.hp < t.mhp && t.hp > 0);
+  s.offer = [{ id: 'tup:0' }]; s.pick(0); ok('upgrading a vehicle repairs it and raises max HP', s.towers[0].hp === s.towers[0].mhp && s.towers[0].mhp > 140);
+  let downs = 0, ups = 0; s.on(e => { if (e === 'towerDown') downs++; if (e === 'towerUp') ups++; }); s.hurtStruct(-10, 1e9);
+  ok('destroyed vehicle is knocked out (kept, not a target) instead of deleted', downs === 1 && s.towers[0] && s.towers[0].down > 0 && s.structAt(-10) === null);
+  ok('knocked-out vehicle offers a REBUILD card', KM.makeOffer(s, KM.rng(1)).length >= 0 && (() => { for (let k = 0; k < 60; k++) { const o = KM.makeOffer(s, KM.rng(k)); if (o.some(c => c.id === 'tup:0' && /REBUILD/.test(c.title))) return true; } return false; })());
+  for (let k = 0; k < 60 * 31; k++) s.step(1 / 60); ok('knocked-out vehicle auto-repairs after ~30 s', ups === 1 && s.towers[0].down === 0 && s.towers[0].hp > 0);
+  const hp0 = s.towers[0].mhp; s.offer = [{ id: 'thp' }]; s.pick(0); ok('VEHICLE ARMOR upgrade raises vehicle max HP', s.towers[0].mhp > hp0 * 1.2);
+  // vehicles drive with the command tank and never race ahead of it
+  s = mk(); s.t = 300; s.coins = 1e6; s.offer = [{ id: 'build:gun', tower: 'gun' }]; s.pick(0); s.offer = [{ id: 'build:artillery', tower: 'artillery' }];
+  s.towers[1] = s.makeTower('artillery', 1, 1); s.moveTo(-6, -8);
+  let ahead = 0; for (let k = 0; k < 60 * 6; k++) { s.step(1 / 60); for (const v of s.towers) if (v) ahead = Math.max(ahead, s.L.z - v.z); }
+  const v0 = s.towers[0], sl = KM.TOWER_SLOTS[0];
+  ok('support vehicles hold formation slots relative to the moving tank', Math.abs(v0.x - Math.max(-KM.W.LANE + 0.8, s.L.x + sl.x)) < 0.6 && Math.abs(v0.z - (s.L.z + sl.dz)) < 0.6, { vx: v0.x, lx: s.L.x, vz: v0.z, lz: s.L.z });
+  ok('support vehicles never race ahead of the tank (≤ 3 m)', ahead <= 3.01, ahead);
+  // enemies that break through attack a vehicle
+  s = mk(); s.t = 300; s.coins = 1e6; s.offer = [{ id: 'build:gun', tower: 'gun' }]; s.pick(0); for (let k = 0; k < 120; k++) s.step(1 / 60); const tw = s.towers[0]; tw.cd = 1e9;
+  for (let k = 0; k < 6; k++) s.spawn(1, KM.ENEMY_BY.knight, tw.x + 0.6, tw.z - 1.4 - k * 0.3, { hp: 1e5, dmg: 3, spd: 1 });
+  for (let k = 0; k < 60 * 8; k++) { s.step(1 / 60); s.towers[0].cd = 1e9; }
+  ok('enemies that break through damage support vehicles', s.towers[0].hp < s.towers[0].mhp || s.towers[0].down > 0, s.towers[0].hp);
+  // support vehicles fire
+  s = mk(); s.t = 300; s.coins = 1e6; s.offer = [{ id: 'build:gun', tower: 'gun' }]; s.pick(0); let shots = 0; s.on(e => { if (e === 'tower') shots++; });
+  s.spawn(1, KM.ENEMY_BY.grunt, 0, s.L.z - 10, { hp: 1e5, dmg: 0, spd: 0.01 }); for (let k = 0; k < 60 * 4; k++) s.step(1 / 60);
+  ok('gun carrier fires at enemies in range', shots > 2 && s.dmgBy[3] > 0, { shots, dmg: s.dmgBy[3] });
+  ok('restart clears vehicles', (() => { const q = mk(); q.coins = 1e6; q.t = 200; q.offer = [{ id: 'build:gun', tower: 'gun' }]; q.pick(0); q.reset({ seed: 1 }); return q.towers.every(x => !x) && q.towers.length === 4; })());
+  // the deck no longer contains anything that cannot travel
+  let bad = [], ids = new Set(); const q = mk(); q.coins = 1e6;
+  for (let k = 0; k < 400; k++) { q.t = (k % 40) * 30; if (k % 7 === 0 && q.offer == null) { const o = KM.makeOffer(q, KM.rng(k)); q.offer = o; q.pick(0); }
+    for (const c of KM.makeOffer(q, KM.rng(k * 13))) { ids.add(c.id.split(':')[0] + (c.tower ? ':' + c.tower : '')); if (/^wall:|build:(arrow|cannon|sniper|barracks|banner)/.test(c.id) || /WALL|BARRICADE|TOWER/.test(c.title)) bad.push(c.id + ' ' + c.title); } }
+  ok('no static walls, barricades or ground towers are ever offered', bad.length === 0, bad.slice(0, 5));
+}
+
+// --- command tank, force field, ATTACK/DEFEND, cohesion, ranged eras, collectors ---
+{
+  const mk = seed => { const s = new KM.Sim({ seed: seed || 5 }); s.budget = -1e9; s.formT = 1e9; s.nextPush = s.nextBoss = 1e12; s.L.inv = 0; s.stats.rate = 0; return s; };
+  // tank auto-fire
+  { const s = mk(); let shots = 0; s.on(e => { if (e === 'tankfire') shots++; }); for (let k = 0; k < 120; k++) s.step(1 / 60); const idle = shots;
+    s.spawn(1, KM.ENEMY_BY.knight, s.L.x, s.L.z - 14, { hp: 1e5, dmg: 0, spd: 0.01 }); for (let k = 0; k < 60 * 4; k++) s.step(1 / 60);
+    ok('command tank holds fire with no target, fires automatically in range', idle === 0 && shots >= 2 && s.dmgBy[2] > 0, { idle, shots, dmg: s.dmgBy[2] }); }
+  { const s = mk(), s0 = { ...s.stats }; s.coins = 1e9;
+    for (const id of ['tgun', 'tgun', 'trof', 'trof', 'trng']) { s.offer = [{ id }]; s.pick(0); }
+    const look = KM.tankLook(s.stats);
+    ok('tank upgrades raise damage / fire rate / range', s.stats.tankDmg > s0.tankDmg * 1.6 && s.stats.tankRate > s0.tankRate * 1.3 && s.stats.tankRange > s0.tankRange);
+    ok('tank upgrades are visible (barrels, longer cannon, antenna)', look.barrels === 2 && look.cannon && look.antenna && look.blen > KM.tankLook(KM.baseStats()).blen, look);
+    s.t = 400; s.offer = [{ id: 'tmis' }]; s.pick(0); let mis = 0; s.on(e => { if (e === 'missiles') mis++; });
+    for (let k = 0; k < 4; k++) s.spawn(1, KM.ENEMY_BY.knight, s.L.x - 2 + k, s.L.z - 16, { hp: 1e5, dmg: 0, spd: 0.01 }); for (let k = 0; k < 60 * 8; k++) s.step(1 / 60);
+    ok('missile pod fires salvos at the toughest targets', mis >= 1 && KM.tankLook(s.stats).missiles); }
+  // force field
+  { const s = mk(); s.coins = 1e9; s.offer = [{ id: 'shield' }]; s.pick(0); const L = s.L, hp0 = L.hp, sh0 = L.sh;
+    s.hurtLauncher(20, 'test'); ok('force field absorbs damage before tank HP', L.hp === hp0 && L.sh === sh0 - 20 && s.shAbsorbed === 20);
+    let brk = 0, up = 0; s.on(e => { if (e === 'shieldBreak') brk++; if (e === 'shieldUp') up++; }); s.hurtLauncher(60, 'test');
+    ok('force field collapses at 0 (overflow hits the tank) and goes down', brk === 1 && L.shDown > 0 && L.hp < hp0);
+    const hp1 = L.hp; s.hurtLauncher(5, 'test'); ok('collapsed field does not absorb', L.hp === hp1 - 5);
+    for (let k = 0; k < 60 * 20; k++) s.step(1 / 60); ok('force field rebuilds after its cooldown and recharges', up === 1 && L.sh > L.shMax * 0.6, { sh: L.sh, max: L.shMax });
+    const m1 = L.shMax; s.offer = [{ id: 'shield' }]; s.pick(0); s.step(1 / 60); ok('FORCE FIELD level raises capacity', L.shMax > m1); }
+  // upgrade prerequisites + era order
+  { const s = mk(); s.t = 30 * 60; let bad = [];
+    for (let k = 0; k < 300; k++) for (const c of KM.makeOffer(s, KM.rng(k))) { if (['tspl'].includes(c.id) || ['shrec', 'shrad'].includes(c.id) || ['cspd', 'ccap'].includes(c.id) || ['rtech', 'rdmg'].includes(c.id) || ['trate', 'tdmg', 'thp', 'splash', 'frost', 'scrit', 'brate'].includes(c.id)) bad.push(c.id); }
+    ok('upgrade prerequisites: no follow-up card before its system exists', bad.length === 0, [...new Set(bad)]);
+    s.stats.archer = 0.15; s.t = 3 * 60; let eraIds = 0; for (let k = 0; k < 200; k++) if (KM.makeOffer(s, KM.rng(k)).some(c => c.id === 'rtech')) eraIds++;
+    ok('weapon era 2 (javelins) unlocks after its minute gate', eraIds > 0);
+    s.stats.rtech = 1; s.t = 3 * 60; let early = 0; for (let k = 0; k < 200; k++) if (KM.makeOffer(s, KM.rng(k)).some(c => c.id === 'rtech')) early++;
+    ok('no technology jumps: the next era waits for its minute gate', early === 0);
+    let mono = true; for (let k = 1; k < KM.RTECH.length; k++) if (KM.RTECH[k].at <= KM.RTECH[k - 1].at || KM.RTECH[k].range < KM.RTECH[k - 1].range) mono = false;
+    s.offer = [{ id: 'rtech' }]; s.coins = 1e9; s.pick(0); ok('ranged eras advance one step at a time with rising range', mono && s.stats.rtech === 2 && KM.RTECH.map(r => r.wpn).join() === 'rock,spear,bow,xbow,musket,rifle,pulse'); }
+  // ATTACK / DEFEND + cohesion: an overwhelming army pushes far ahead, DEFEND pulls it back into formation
+  const stage = (seed) => { const s = new KM.Sim({ seed }); s.budget = -1e9; s.formT = 1e9; s.nextPush = s.nextBoss = 1e12; s.L.inv = 1e9; s.t = 300; s.stats.rate = 0;
+    for (let k = 0; k < 260; k++) s.spawn(0, KM.FRIEND[k % 6 === 0 ? 1 : k % 13 === 0 ? 2 : 0], (s.rng() - 0.5) * 16, s.L.z - 6 - s.rng() * 24, { hp: s.stats.hp * 6, dmg: s.stats.dmg * 3, spd: 1 });
+    return s; };
+  const feed = (s, n) => { for (let k = 0; k < n; k++) s.spawn(1, KM.ENEMY_BY.grunt, (s.rng() - 0.5) * 16, s.front - 40 - s.rng() * 20, { hp: 0.3, dmg: 0.5, spd: 1 }); };
+  const aheadStats = s => { let n = 0, sum = 0, far = 0, rz = 0, rn = 0, mz = 0, mn = 0; for (let i = 0; i < s.hi; i++) if (s.st[i] === 1 && s.team[i] === 0 && s.role[i] !== 4) { const a = s.L.z - s.z[i]; n++; sum += a; if (a > 35) far++; if (s.role[i] === 3) { rz += a; rn++; } else { mz += a; mn++; } } return { mean: sum / n, far, ranged: rz / Math.max(1, rn), melee: mz / Math.max(1, mn) }; };
+  { const s = stage(3); for (let k = 0; k < 60 * 25; k++) { if (k % 60 === 0) feed(s, 12); s.step(1 / 60); } const a = aheadStats(s);
+    ok('ATTACK: cohesion radius keeps the army in useful space (no runaway beyond ~35 m)', a.far <= 3, a);
+    ok('ATTACK: ranged troops stay behind the melee line', a.ranged < a.melee, a);
+    s.setPosture(1); let peak = 0; const t0 = Date.now(); for (let k = 0; k < 60 * 10; k++) { if (k % 60 === 0) feed(s, 6); s.step(1 / 60); } const b = aheadStats(s);
+    ok('DEFEND: the army contracts back around the command group', b.mean < 11 && b.mean < a.mean - 3, { attack: a.mean, defend: b.mean });
+    ok('DEFEND: ranged form the rear line, melee the front', b.ranged < b.melee - 1, b);
+    let farT = 0; for (let i = 0; i < s.hi; i++) if (s.st[i] === 1 && s.team[i] === 0 && s.tgt[i] >= 0 && s.L.z - s.z[s.tgt[i]] > 13.5) farT++;
+    ok('DEFEND: soldiers stop acquiring distant enemies', farT === 0, farT);
+    // moving formation: the group travels with the tank
+    const x0 = b; s.moveTo(-5, 0); for (let k = 0; k < 60 * 6; k++) s.step(1 / 60); let cx = 0, n = 0; for (let i = 0; i < s.hi; i++) if (s.st[i] === 1 && s.team[i] === 0) { cx += s.x[i]; n++; }
+    ok('DEFEND: formation travels with the tank (not a stationary base)', cx / n < -1.5, cx / n);
+    s.setPosture(0); for (let k = 0; k < 60 * 8; k++) { if (k % 60 === 0) feed(s, 12); s.step(1 / 60); } const c = aheadStats(s);
+    ok('ATTACK released: the line surges forward again', c.mean > b.mean + 4, { defend: b.mean, attack: c.mean }); }
+  { const s = stage(9); for (let k = 0; k < 600; k++) s.spawn(1, KM.ENEMY_BY.grunt, (s.rng() - 0.5) * 16, s.front - 30 - s.rng() * 30, { hp: 30, dmg: 1, spd: 1 }); for (let k = 0; k < 30; k++) s.step(1 / 60);
+    let t = process.hrtime.bigint(); for (let k = 0; k < 20; k++) s.step(1 / 60); const base = Number(process.hrtime.bigint() - t) / 20;
+    s.setPosture(1); t = process.hrtime.bigint(); for (let k = 0; k < 20; k++) s.step(1 / 60); const sw = Number(process.hrtime.bigint() - t) / 20;
+    ok('posture switch causes no simulation spike (~860 units)', sw < base * 2 + 2e6, { baseMs: (base / 1e6).toFixed(2), switchMs: (sw / 1e6).toFixed(2) }); }
+  // ranged spacing: archers keep their preferred distance and fall back from melee
+  { const s = mk(7); s.stats.rtech = 2; s.L.inv = 1e9; const a = s.spawn(0, KM.FRIEND[1], 0, s.L.z - 8, { hp: 1e5, dmg: 1, spd: 1 }); const e = s.spawn(1, KM.ENEMY_BY.grunt, 0, s.L.z - 13, { hp: 1e6, dmg: 0, spd: 0.6 });
+    let minD = 99; for (let k = 0; k < 60 * 6; k++) { s.step(1 / 60); minD = Math.min(minD, Math.hypot(s.x[a] - s.x[e], s.z[a] - s.z[e])); }
+    ok('ranged troops keep standoff distance (fall back instead of melee)', minD > 2.2, minD); }
+  // collectors: fetch → carry → return → deposit; currency only counts on deposit; death drops the load
+  { const s = mk(11); s.L.inv = 1e9; s.coins = 0; s.stats.collectors = 1; for (let k = 0; k < 30; k++) s.step(1 / 60);
+    const col = (() => { for (let i = 0; i < s.hi; i++) if (s.st[i] === 1 && s.role[i] === 4) return i; return -1; })();
+    ok('collector deploys when unlocked', col >= 0 && s.nCol === 1);
+    s.dropCoin(s.L.x + 7, s.L.z - 8, 5); let picked = false, dep = 0, coinsWhileCarrying = -1; s.on((e, i, v) => { if (e === 'pickup') picked = true; if (e === 'deposit') dep += v; });
+    for (let k = 0; k < 60 * 12 && !dep; k++) { s.step(1 / 60); if (picked && s.carry[col] > 0 && coinsWhileCarrying < 0) coinsWhileCarrying = s.coins; }
+    ok('collector retrieves a distant coin and currency does not rise while carrying', picked && coinsWhileCarrying === 0, { picked, coinsWhileCarrying });
+    ok('collector deposit adds the carried value to currency', dep === 5 && s.coins === 5 && s.colCoins === 5, { dep, coins: s.coins });
+    s.dropCoin(s.L.x - 7, s.L.z - 9, 8); for (let k = 0; k < 60 * 6 && !(s.carry[col] > 0); k++) s.step(1 / 60); const c0 = s.coins, carried = s.carry[col];
+    let dropped = 0; for (let k = 0; k < s.c.x.length; k++) if (s.c.st[k] === 1) dropped += s.c.v[k]; s.kill(col); let after = 0; for (let k = 0; k < s.c.x.length; k++) if (s.c.st[k] === 1) after += s.c.v[k];
+    ok('collector killed while carrying: currency unchanged, half the load dropped, half lost', carried === 8 && s.coins === c0 && Math.abs(after - dropped - 4) < 1e-6 && s.colLost === 4, { carried, after, dropped, lost: s.colLost });
+    s.stats.collectors = 3; for (let k = 0; k < 60 * 20; k++) s.step(1 / 60); let n = 0; for (let i = 0; i < s.hi; i++) if (s.st[i] === 1 && s.role[i] === 4) n++;
+    ok('collector cap: exactly the unlocked number of collectors', n === 3 && s.nCol === 3, n);
+    s.dropCoin(s.L.x + 0.5, s.L.z - 0.5, 2); const cc = s.coins; for (let k = 0; k < 60 * 2; k++) s.step(1 / 60);
+    ok('tank magnet still auto-collects nearby coins', s.coins >= cc + 2); }
+  { const s = mk(12); s.L.inv = 1e9; s.stats.collectors = 1; for (let k = 0; k < 30; k++) s.step(1 / 60); const col = (() => { for (let i = 0; i < s.hi; i++) if (s.st[i] === 1 && s.role[i] === 4) return i; return -1; })();
+    s.dropCoin(s.L.x + 3, s.L.z - 14, 9); for (let k = 0; k < 6; k++) s.spawn(1, KM.ENEMY_BY.grunt, s.L.x + 3 + k * 0.3, s.L.z - 14.5, { hp: 1e6, dmg: 0, spd: 0.01 });
+    let picked = false; s.on(e => { if (e === 'pickup') picked = true; }); for (let k = 0; k < 60 * 6; k++) s.step(1 / 60);
+    ok('collectors avoid coins under enemy pressure', !picked && col >= 0); }
+  // bot understands posture
+  { let toDef = 0, toAtk = 0; for (const seed of [21, 22, 23, 24]) { const s = new KM.Sim({ seed }); s.on((e, p) => { if (e === 'posture') p ? toDef++ : toAtk++; }); while (s.alive && s.t < 600) { KM.bot(s, 1 / 60, 1); s.step(1 / 60); } }
+    ok('bot switches to DEFEND under pressure and back to ATTACK when stable', toDef > 0 && toAtk > 0, { toDef, toAtk }); }
 }
 
 // --- quality tiers, benchmark stats, playtest report, battlefield edge modules ---

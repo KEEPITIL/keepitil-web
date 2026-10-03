@@ -76,8 +76,12 @@
       this.initCrowd(); this.initWorld(); this.initFx(); this.initProjectiles(); this.initCoins();
       this.launcher = this.buildLauncher(); S.add(this.launcher);
       // the launcher is always on screen: ~140 meshes → one draw per shared material within each stage group
+      for (const w of this.wheels) this.batchStatic(w);                              // each spinning wheel → one vertex-coloured mesh
       { const keep = [this.lBody, ...Object.values(this.lStage), ...this.wheels, ...this.barrels, ...this.barrels.map(b => b.userData.brake), this.turret, this.crown, this.core, this.halo, this.eRing, this.hpRing, this.magRing, this.lGlow, ...this.capsules].filter(Boolean);
-        this.lBatched = this.batchStatic(this.launcher, { byMaterial: true, keep, deep: this.flags }); }
+        this.lBatched = this.batchStatic(this.launcher, { byMaterial: true, keep: keep.concat([this.lPod, this.lAnt, this.lEmit]), deep: this.flags, pinned: [this.lPaint, this.lPaint2, this.lGold] }); }
+      // force-field bubble (state read from the shield itself: bright → flicker when weak → burst → slow rebuild)
+      this.shieldMat = new THREE.MeshBasicMaterial({ color: 0x7fd8ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+      this.shieldM = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), this.shieldMat); this.shieldM.visible = false; S.add(this.shieldM);
       this.towerObjs = [null, null, null, null, null, null]; this.dyingObjs = []; this.wallObjs = new Map();
       this.tracers = []; for (let k = 0; k < 8; k++) { const tr = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 1), new THREE.MeshBasicMaterial({ color: 0xe4c2ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); tr.visible = false; this.scene.add(tr); this.tracers.push(tr); }
       this.resize();
@@ -159,7 +163,7 @@
 
     drawCrowd(sim, dt) {
       const A = KM.ANIM, I = A.I, P = A.P, M = this.mats, q = this.q, e = this.e, pos = this.v, sc = this.s3, col = this.col, col2 = this.col2;
-      const S = sim.stats, armorLv = S.lv.armor || 0, dmgLv = S.lv.dmg || 0, hpLv = S.lv.hp || 0;
+      const S = sim.stats, armorLv = S.lv.armor || 0, dmgLv = S.lv.dmg || 0, hpLv = S.lv.hp || 0, rtW = KM.rtech(S).wpn, colCap = S.colCap;
       for (const k in this.pn) this.pn[k] = 0;
       let nb = 0, nr = 0, nf = 0; this.frameNo++;
       const blue = TEAM[0], camZ = this.cam.position.z, camX = this.cam.position.x, crowd = sim.count[0] + sim.count[1], flipCam = !!(KM.camFocus && KM.camFocus.flip);
@@ -180,7 +184,7 @@
         if (st === 2) { const d = sim.die[i]; y -= Math.max(0, d - 0.45) * 1.1; s *= 1 - Math.max(0, d - 0.5) / 0.22; if (s <= 0.02) continue; }
         const b = sim.birth[i]; if (b > 0) { const u = b / 0.4; y += Math.sin(u * Math.PI) * 1.25; s *= 0.55 + 0.45 * u; }
         // colour: faction, era, flash, frost
-        col.setHex(team ? ENEMY_COL[def.k] : blue.getHex());
+        col.setHex(team ? ENEMY_COL[def.k] : def.col ? 0xf2b632 : blue.getHex());
         if (team === 1 && sim.era[i]) col.multiply(col2.setHex(ERA_TINT[sim.era[i]]));
         if (team === 0 && def.k === 'knightF') col.lerp(col2.setHex(0x6aa0ff), 0.35);
         if (sim.slow[i] > 0) col.lerp(col2.setHex(0x9fe8ff), 0.45);
@@ -221,8 +225,8 @@
           // arms + held items
           rot(M[4], -rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armLP], 0, p[o + I.armLR]); M[4].premultiply(M[2]); this.putP(ARM, M[4], col);
           rot(M[5], rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armRP], p[o + I.armRY], p[o + I.armRR]); M[5].premultiply(M[2]); this.putP(ARM, M[5], col);
-          let wk = R.wpn; if (wk === 'sword' && team === 0 && dmgLv >= 5) wk = 'swordGold';
-          const ws = team === 0 && wk.startsWith('sword') ? 1 + Math.min(8, dmgLv) * 0.06 : 1;
+          let wk = R.wpn; if (wk === 'sword' && team === 0 && dmgLv >= 5) wk = 'swordGold'; if (team === 0 && key === 'archerF') wk = rtW;   // ranged troops carry their weapon era
+          const ws = team === 0 && wk.startsWith('sword') ? 1 + Math.min(8, dmgLv) * 0.06 : wk === 'sack' ? 0.55 + Math.min(1, sim.carry[i] / colCap) * 0.9 : 1;
           if (wk === 'bow') { M[6].makeTranslation(0, rig.fist, 0.02); M[6].premultiply(M[4]); }        // bow in the off hand
           else { M[6].makeScale(ws, ws, ws); M[6].setPosition(0, rig.fist, 0.03); M[6].premultiply(M[5]); }
           this.putP(mid ? 'm_w_' + wk : wk, M[6]);
@@ -234,6 +238,7 @@
         if (team === 1 && def.el && st === 1 && nr < (def.boss ? 160 : 24)) { q.identity(); const rs = s * 0.75 * (1 + Math.sin(this.time * 6) * 0.06); pos.set(sim.x[i], 0.05, z); sc.set(rs, 1, rs); M[0].compose(pos, q, sc); this.put(this.ringM, nr++, M[0]); }
         if (team === 0 && st === 1 && bannerTowers.length && nf < 4096) { for (const t of bannerTowers) { const ddx = sim.x[i] - t.x, ddz = z - t.z; if (ddx * ddx + ddz * ddz < bR2) { q.identity(); pos.set(sim.x[i], 0.04, z); sc.set(s, 1, s); M[0].compose(pos, q, sc); this.put(this.buffM, nf++, M[0]); break; } } }
       }
+      for (const t of sim.towers) if (t && nb < 4096) { q.identity(); pos.set(t.x, 0.03, t.z); sc.set(2.3, 1, 2.9); M[0].compose(pos, q, sc); this.put(this.blob, nb++, M[0]); }   // support vehicles: blob contact shadows
       for (const k in this.partM) { const im = this.partM[k]; im.count = this.pn[k]; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; }
       const fin = (im, n) => { im.count = n; im.instanceMatrix.needsUpdate = true; };
       fin(this.blob, nb); fin(this.ringM, nr); fin(this.buffM, nf);
@@ -404,7 +409,7 @@
       for (const node of nodes) {
         const groups = new Map();
         for (const m of node.children) { if (!m.isMesh || keepO.has(m) || keepM.has(m.material) || m.material.transparent || !m.visible || m.isInstancedMesh || !m.material.isMeshToonMaterial) continue;
-          const mt = m.material, key = opt.byMaterial ? mt.uuid : (mt.emissive ? mt.emissive.getHex() : 0) + ':' + (mt.emissiveIntensity || 0).toFixed(2) + ':' + !!mt.map; if (mt.map) continue;
+          const mt = m.material, sig = mt.type + ':' + (mt.color ? mt.color.getHex() : 0) + ':' + (mt.emissive ? mt.emissive.getHex() : 0) + ':' + (mt.emissiveIntensity || 0).toFixed(2), key = opt.byMaterial ? (opt.pinned && opt.pinned.includes(mt) ? mt.uuid : sig) : (mt.emissive ? mt.emissive.getHex() : 0) + ':' + (mt.emissiveIntensity || 0).toFixed(2) + ':' + !!mt.map; if (mt.map) continue;
           (groups.get(key) || groups.set(key, []).get(key)).push(m); }
         for (const [, list] of groups) { if (list.length < 2) continue;
           let n = 0; const geos = list.map(m => { m.updateMatrix(); const g = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()).applyMatrix4(m.matrix); n += g.attributes.position.count; return { g, c: m.material.color }; });
@@ -459,6 +464,16 @@
         for (const zz of [-0.35, -0.95]) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.255, 0.04, 6, 16), gold); r.position.z = zz; b.add(r); }
         b.position.set(0, 0.34, 0); tur.add(b); this.barrels.push(b);
       }
+      // visible tank upgrade hardware: missile pod (MISSILE POD), targeting mast (TARGETING SYSTEM), field emitters (FORCE FIELD)
+      const pod = this.lPod = new THREE.Group(); tur.add(pod);
+      for (const x of [-1, 1]) { const bx = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.3, 0.62), dark); bx.position.set(x * 0.92, 0.32, 0.05); pod.add(bx);
+        for (let k = 0; k < 4; k++) { const tip = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.12, 6).rotateX(-Math.PI / 2), this.std(0xff5a3a)); tip.position.set(x * 0.92 + ((k % 2) - 0.5) * 0.14, 0.32 + (k < 2 ? 0.07 : -0.07), -0.3); pod.add(tip); } }
+      const ant = this.lAnt = new THREE.Group(); ant.position.set(-0.55, 0.3, 0.55); tur.add(ant);
+      { const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 1.1, 6), dark); mast.position.y = 0.55; ant.add(mast); }
+      const dish = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 6, 0, Math.PI * 2, 0, Math.PI / 3), gold); dish.rotation.x = Math.PI * 0.6; dish.position.y = 1.0; ant.add(dish);
+      const tipL = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), this.std(0xff3a3a, { emissive: 0xff2020, emissiveIntensity: 1 })); tipL.position.y = 1.12; ant.add(tipL);
+      const emi = this.lEmit = new THREE.Group(); body.add(emi);
+      for (const [x, z] of [[-1.05, -1.1], [1.05, -1.1], [-1.05, 1.0], [1.05, 1.0]]) { const n = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.11, 0.34, 8), white); n.position.set(x, 1.0, z); emi.add(n); const g2 = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), glowMat); g2.position.set(x, 1.22, z); emi.add(g2); }
       // L2: troop-capsule hopper + lanterns
       const hop = grp('hopper');
       const hp = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.32, 0.5, 14, 1, true), paint2); hp.position.set(0, 1.25, 0.85); hop.add(hp);
@@ -510,13 +525,18 @@
       const tilt = Math.max(-0.25, Math.min(0.25, -L.vx * 0.03)); this.lBody.rotation.z += (tilt - this.lBody.rotation.z) * Math.min(1, dt * 8);
       this.lBody.position.y = Math.abs(Math.sin(this.time * 9)) * 0.02 + (L.hitT < 0.15 ? 0.08 : 0);
       for (const w of this.wheels) w.rotation.x = -L.wheel * 2.2;
-      const want = { mid: lv >= 3, hopper: lv >= 2, core: lv >= 3, armor: lv >= 4, crown: lv >= 5 };
+      const look = KM.tankLook(sim.stats), LV = sim.stats.lv, want = { mid: look.armor >= 1 || lv >= 3, hopper: (LV.cap || 0) + (LV.rate || 0) >= 2 || lv >= 2, core: look.shield >= 1, armor: look.armor >= 2, crown: look.heavy };
       for (const k in want) { const gS = S[k]; if (want[k] && !gS.visible) { gS.userData.pop = 0; } gS.visible = want[k];
         if (gS.visible && gS.userData.pop != null && gS.userData.pop < 0.7) { gS.userData.pop += dt; const u = Math.min(1, gS.userData.pop / 0.55), k2 = u < 1 ? (1 - Math.pow(1 - u, 3)) * (1 + Math.sin(u * Math.PI) * 0.35) : 1; gS.scale.setScalar(Math.max(0.01, k2)); gS.position.y = (1 - u) * 1.2; } else if (gS.visible) { gS.scale.setScalar(1); gS.position.y = 0; } }
-      this.crown.visible = lv >= 5; this.flags[1].visible = lv >= 5;
-      const nb = lv >= 5 ? 3 : lv >= 3 ? 2 : 1, blen = lv >= 2 ? 1.15 : 0.85;
-      this.barrels.forEach((b, k) => { b.visible = k < nb; b.position.x = nb === 1 ? 0 : nb === 2 ? (k ? 0.3 : -0.3) : (k - 1) * 0.44; b.scale.set(1, 1, blen); b.userData.brake.visible = lv >= 2; b.position.z = L.fire * 0.2 * ((k + Math.floor(this.time * 8)) % nb === 0 ? 1 : 0.3); });
-      this.turret.rotation.y = Math.sin(this.time * 1.3) * 0.05 - L.vx * 0.02;
+      this.crown.visible = look.heavy; this.flags[1].visible = look.heavy; this.lPod.visible = look.missiles; this.lAnt.visible = look.antenna; this.lEmit.visible = look.shield >= 1;
+      const nb = look.barrels, blen = look.blen + (look.cannon ? 0.15 : 0);
+      this.barrels.forEach((b, k) => { b.visible = k < nb; b.position.x = nb === 1 ? 0 : nb === 2 ? (k ? 0.3 : -0.3) : (k - 1) * 0.44; b.scale.set(1, 1, blen); b.userData.brake.visible = lv >= 2; b.position.z = L.fire * 0.2 * ((k + Math.floor(this.time * 8)) % nb === 0 ? 1 : 0.3) + (L.gun || 0) * 0.35; });
+      { let dy = (L.aim - Math.PI) - this.turret.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); this.turret.rotation.y += dy * Math.min(1, dt * 6); }   // turret tracks the cannon's target
+      { const S2 = sim.stats, M = this.shieldM, mt = this.shieldMat; M.visible = S2.shield > 0; if (M.visible) { const f = L.shMax ? L.sh / L.shMax : 0, down = L.shDown > 0;
+        this.shBurst = down ? (this.shBurst == null ? 0 : this.shBurst + dt) : null; const r = S2.shRadius * (down ? 1 + Math.min(1, (this.shBurst || 0) * 3) * 0.4 : 1);
+        M.position.set(L.x, 0, L.z); M.scale.set(r, r * 0.8, r);
+        mt.opacity = down ? Math.max(0, 0.35 - (this.shBurst || 0) * 1.2) : (0.08 + 0.2 * f) * (f < 0.3 ? 0.55 + 0.45 * Math.sin(this.time * 30) : 1) + (L.shHit < 0.15 ? 0.2 : 0);
+        mt.color.setHSL(0.54 - (1 - f) * 0.06, 0.9, 0.55 + S2.shield * 0.03); } }
       this.capsules.forEach((c, k) => { c.position.y = 1.48 + Math.abs(Math.sin(this.time * 6 + k)) * 0.06 - L.fire * 0.05; });
       this.core.rotation.y += dt * 2; this.core.position.y = 2.6 + Math.sin(this.time * 3) * 0.08; this.halo.rotation.z += dt; this.eRing.rotation.z -= dt * 1.5; this.eRing.material.opacity = 0.45 + Math.sin(this.time * 4) * 0.2;
       // stage transform pop: overshoot scale for ~0.6s
@@ -532,81 +552,58 @@
     }
 
     // ---------- towers ----------
+    // Mobile support vehicle (replaces the ground towers). Level visibly changes the machine:
+    // L1 small 4-wheel chassis · L2 armor side plates · L3 6 wheels + bigger turret · L4 tracks + extra barrel/plates · L5 gold trim + emitter halo.
     buildTower(t) {
       const g = new THREE.Group(), lv = t.lvl, T = KM.TOWERS[t.type], L5 = lv >= 5;
-      const stone = this.std(0xc3c8d0), stone2 = this.std(0x9ea6b2), wood = this.std(0x9a6a3c), gold = this.std(0xf4c247), blue = this.std(0x2f6dff), steel = this.std(0xb8c2d0), dark = this.std(0x30323a);
-      const acc = this.std(T.color, { emissive: T.color, emissiveIntensity: 0.12 + lv * 0.05 });
-      const H = 0.95 + lv * 0.24, R0 = 0.85 + lv * 0.05;
-      const parts = []; const add = (m, par) => { (par || g).add(m); parts.push(m); return m; };
-      // stone base with brick courses, crenellations, gold rings per level, banners from L3
-      const base = add(new THREE.Mesh(new THREE.CylinderGeometry(R0 * 0.9, R0 * 1.15, H, 12), stone)); base.position.y = H / 2;
-      for (let k = 1; k <= Math.floor(H / 0.45); k++) { const c = add(new THREE.Mesh(new THREE.CylinderGeometry(R0 * (1.13 - k * 0.04), R0 * (1.14 - k * 0.04), 0.05, 12), stone2)); c.position.y = k * 0.45; }
-      const n = 6 + Math.floor(lv / 2) * 2; for (let k = 0; k < n; k++) { const bl = add(new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 0.3), lv >= 4 ? steel : stone)); const a = k / n * Math.PI * 2; bl.position.set(Math.cos(a) * R0 * 0.95, H + 0.14, Math.sin(a) * R0 * 0.95); bl.rotation.y = -a; }
-      for (let k = 1; k < lv; k++) { const rg = add(new THREE.Mesh(new THREE.TorusGeometry(R0 * (1.12 - k / lv * 0.2), 0.035, 6, 22), gold)); rg.rotation.x = Math.PI / 2; rg.position.y = H * k / lv; }
-      if (lv >= 3) for (const x of [-1, 1]) { const bn = add(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.9 + lv * 0.08, 0.55), blue)); bn.position.set(x * R0 * 1.02, H - 0.65, 0); const em = add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.24, 0.24), gold)); em.position.set(x * R0 * 1.03, H - 0.55, 0); em.rotation.x = Math.PI / 4; }
-      const door = add(new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.62, 0.06), wood)); door.position.set(0, 0.31, R0 * 1.08); door.rotation.x = -0.12;
-      const head = new THREE.Group(); head.position.y = H + 0.22; g.add(head); g.userData.head = head;
-      add(new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.78, 0.16, 14), wood), head);
-      const aim = new THREE.Group(); head.add(aim); g.userData.aim = aim; const s = 1 + (lv - 1) * 0.13;
-      if (t.type === 'arrow') {
-        const shots = 1 + Math.floor((lv - 1) / 2); g.userData.arms = [];
-        for (let k = 0; k < shots; k++) {
-          const bal = new THREE.Group(); bal.position.set((k - (shots - 1) / 2) * 0.42, 0, 0); aim.add(bal);
-          const bdy = add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 1.1 * s), lv >= 4 ? steel : wood), bal); bdy.position.y = 0.4;
-          const arms = new THREE.Group(); arms.position.set(0, 0.45, 0.3); bal.add(arms); g.userData.arms.push(arms);
-          for (const x of [-1, 1]) { const a = add(new THREE.Mesh(new THREE.BoxGeometry(0.62 * s, 0.08, 0.08), acc), arms); a.position.x = x * 0.32 * s; a.rotation.y = -x * 0.25; }
-          const bolt = add(new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.9, 5).rotateX(Math.PI / 2), wood), bal); bolt.position.set(0, 0.5, 0.25); g.userData.bolt = bolt;
-          const tip = add(new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 6).rotateX(Math.PI / 2), L5 ? this.std(0x9ff2ff, { emissive: 0x2fb8ff, emissiveIntensity: 1 }) : gold), bal); tip.position.set(0, 0.5, 0.75);
-        }
+      const hull = this.std(0x2f6dff), hull2 = this.std(0x2353c7), steel = this.std(0xb8c2d0), dark = this.std(0x2a2d38), gold = this.std(0xf4c247), tire = this.std(0x22232b);
+      const acc = this.std(T.color, { emissive: T.color, emissiveIntensity: 0.15 + lv * 0.06 });
+      const Lh = 1.45 + lv * 0.12, Wd = 1.0 + lv * 0.06, H = 0.42 + lv * 0.03, parts = [];
+      const add = (m, par) => { (par || g).add(m); parts.push(m); return m; };
+      const box = (w, h, d, mat, x, y, z, par) => { const m = add(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat), par); m.position.set(x || 0, y || 0, z || 0); return m; };
+      box(Wd, H, Lh, hull, 0, 0.32 + H / 2, 0); box(Wd * 0.86, 0.1, Lh * 0.9, hull2, 0, 0.36 + H, 0);                                // hull + deck
+      box(Wd * 1.02, 0.06, 0.08, acc, 0, 0.38 + H * 0.6, -Lh / 2 - 0.02);                                                           // type stripe on the nose
+      g.userData.wheels = [];
+      if (lv >= 4) for (const x of [-1, 1]) { box(0.26, 0.42, Lh * 1.02, dark, x * (Wd / 2 + 0.12), 0.24, 0); for (let k = 0; k < 4; k++) { const w = add(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.3, 10).rotateZ(Math.PI / 2), steel)); w.position.set(x * (Wd / 2 + 0.12), 0.2, (k / 3 - 0.5) * Lh * 0.82); g.userData.wheels.push(w); } }
+      else { const nw = lv >= 3 ? 3 : 2; for (const x of [-1, 1]) for (let k = 0; k < nw; k++) { const w = add(new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.2, 12).rotateZ(Math.PI / 2), tire)); w.position.set(x * (Wd / 2 + 0.08), 0.24, (k / Math.max(1, nw - 1) - 0.5) * Lh * 0.72); g.userData.wheels.push(w); } }
+      if (lv >= 2) for (const x of [-1, 1]) box(0.06, H * 0.75, Lh * 0.7, steel, x * (Wd / 2 + 0.03), 0.4 + H * 0.45, 0);              // armor side plates
+      if (lv >= 3) box(Wd * 1.05, 0.22, 0.16, steel, 0, 0.36, -Lh / 2 - 0.08);                                                      // front ram
+      if (lv >= 4) box(Wd * 0.7, 0.12, 0.5, steel, 0, 0.42 + H, Lh * 0.3);
+      if (L5) { box(Wd * 1.04, 0.05, Lh * 1.02, gold, 0, 0.33 + H, 0); for (const x of [-1, 1]) { const e = add(new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), this.std(0x9ff2ff, { emissive: 0x3fd0ff, emissiveIntensity: 1 }))); e.position.set(x * Wd * 0.42, 0.6 + H, Lh * 0.4); } }
+      const top = 0.42 + H, aim = new THREE.Group(); aim.position.y = top; g.add(aim); g.userData.aim = aim; const s = 1 + (lv - 1) * 0.12;
+      g.userData.barrels = [];
+      if (t.type === 'gun') {
+        box(0.62 * s, 0.32, 0.7 * s, hull, 0, 0.18, 0, aim); box(0.5 * s, 0.06, 0.6 * s, acc, 0, 0.36, 0, aim);
+        const nb = 1 + Math.floor((lv - 1) / 2);
+        for (let k = 0; k < nb; k++) { const bar = new THREE.Group(); bar.position.set(nb === 1 ? 0 : (k - (nb - 1) / 2) * 0.2, 0.2, 0.3); aim.add(bar); g.userData.barrels.push(bar);
+          add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.065, 0.7 + lv * 0.08, 10).rotateX(Math.PI / 2), dark), bar).position.z = 0.35; }
+        if (lv >= 3) { const sc = box(0.12, 0.12, 0.34, gold, 0.22 * s, 0.42, 0.05, aim); sc.userData.k = 1; }                       // precision scope (old sniper role)
       }
-      if (t.type === 'cannon') {
-        const yoke = add(new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.42, 0.55), wood), aim); yoke.position.y = 0.3;
-        const nb = lv >= 4 ? 2 : 1; g.userData.barrels = [];
-        for (let k = 0; k < nb; k++) { const bar = new THREE.Group(); bar.position.set(nb === 1 ? 0 : (k ? 0.26 : -0.26), 0.62, 0.3); aim.add(bar); g.userData.barrels.push(bar);
-          add(new THREE.Mesh(new THREE.CylinderGeometry(0.2 * s, 0.28 * s, 1.25 * s, 14).rotateX(Math.PI / 2), dark), bar).position.z = 0.1;
-          const mz = add(new THREE.Mesh(new THREE.TorusGeometry(0.22 * s, 0.06, 6, 14), acc), bar); mz.position.z = 0.72 * s;
-          if (lv >= 3) { const r2 = add(new THREE.Mesh(new THREE.TorusGeometry(0.27 * s, 0.04, 6, 14), gold), bar); r2.position.z = -0.25; } }
+      if (t.type === 'artillery') {
+        box(0.78 * s, 0.34, 0.8 * s, hull, 0, 0.18, 0, aim); const nb = lv >= 3 ? 2 : 1;
+        for (let k = 0; k < nb; k++) { const bar = new THREE.Group(); bar.position.set(nb === 1 ? 0 : (k ? 0.22 : -0.22), 0.34, 0.15); bar.rotation.x = -0.45; aim.add(bar); g.userData.barrels.push(bar);
+          add(new THREE.Mesh(new THREE.CylinderGeometry(0.13 * s, 0.17 * s, 1.0 * s, 12).rotateX(Math.PI / 2), dark), bar).position.z = 0.45;
+          add(new THREE.Mesh(new THREE.TorusGeometry(0.15 * s, 0.04, 6, 12), acc), bar).position.z = 0.92 * s; }
+        if (lv >= 4) for (const x of [-1, 1]) box(0.18, 0.2, 0.36, gold, x * 0.5 * s, 0.12, -0.2, aim);                              // ammo racks
       }
       if (t.type === 'frost') {
+        box(0.5 * s, 0.24, 0.6 * s, hull, 0, 0.12, 0, aim); add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.7, 8), steel), aim).position.y = 0.55;
         const mat = this.std(0xbff6ff, { emissive: 0x3fd0ff, emissiveIntensity: 0.8, transparent: true, opacity: 0.92 });
-        const cr = new THREE.Mesh(new THREE.OctahedronGeometry(0.38 * s), mat); cr.position.y = 1.0; cr.scale.y = 1.6; aim.add(cr); g.userData.spin = cr; g.userData.frostMat = mat;
-        g.userData.shards = []; for (let k = 0; k < lv + 1; k++) { const sh = new THREE.Mesh(new THREE.OctahedronGeometry(0.12 + lv * 0.01), mat); aim.add(sh); g.userData.shards.push(sh); }
-        for (let k = 0; k < 4; k++) { const sp = add(new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.5, 5), steel), aim); const a = k * Math.PI / 2; sp.position.set(Math.cos(a) * 0.55, 0.3, Math.sin(a) * 0.55); sp.rotation.set(Math.sin(a) * 0.4, 0, -Math.cos(a) * 0.4); }
+        const cr = new THREE.Mesh(new THREE.OctahedronGeometry(0.26 * s), mat); cr.position.y = 1.0; cr.scale.y = 1.5; aim.add(cr); g.userData.spin = cr; g.userData.frostMat = mat;
+        g.userData.shards = []; for (let k = 0; k < lv + 1; k++) { const sh = new THREE.Mesh(new THREE.OctahedronGeometry(0.08 + lv * 0.01), mat); aim.add(sh); g.userData.shards.push(sh); }
       }
-      if (t.type === 'sniper') {
-        const bdy = add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.38, 0.8), this.std(0x3a2f5a)), aim); bdy.position.y = 0.45;
-        const bar = add(new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.08, 1.6 + lv * 0.2, 10).rotateX(Math.PI / 2), acc), aim); bar.position.set(0, 0.5, 0.9 + lv * 0.1); g.userData.barrel = bar;
-        const sc = add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.42, 10).rotateX(Math.PI / 2), gold), aim); sc.position.set(0, 0.76, 0.2);
-        const lens = add(new THREE.Mesh(new THREE.CircleGeometry(0.07, 12), this.std(0xff3a6a, { emissive: 0xff2a5a, emissiveIntensity: 1 })), aim); lens.position.set(0, 0.76, 0.415);
-        if (lv >= 4) { const br = add(new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.2, 10).rotateX(Math.PI / 2), gold), aim); br.position.set(0, 0.5, 1.7 + lv * 0.2); }
+      if (t.type === 'carrier') {
+        box(Wd * 0.9, 0.62 + lv * 0.04, Lh * 0.62, hull2, 0, 0.32, 0.1, aim); box(Wd * 0.6, 0.06, Lh * 0.4, acc, 0, 0.66 + lv * 0.04, 0.1, aim);
+        g.userData.doors = []; for (const x of [-1, 1]) { const dl = new THREE.Group(); dl.position.set(x * Wd * 0.44, 0.32, 0.1 + Lh * 0.31); aim.add(dl); const d = add(new THREE.Mesh(new THREE.BoxGeometry(Wd * 0.44, 0.56, 0.05), steel), dl); d.position.x = -x * Wd * 0.22; g.userData.doors.push(dl); }
+        if (lv >= 3) for (const x of [-1, 1]) box(0.08, 0.3, Lh * 0.5, gold, x * Wd * 0.47, 0.5, 0.1, aim);
       }
-      if (t.type === 'barracks') {
-        const fl = lv >= 3 ? 2 : 1, hs = add(new THREE.Mesh(new THREE.BoxGeometry(1.2 * s, 0.75 * fl, 1.0 * s), this.std(0xf0e4c8)), head); hs.position.y = 0.4 * fl;
-        const beams = add(new THREE.Mesh(new THREE.BoxGeometry(1.24 * s, 0.07, 1.04 * s), wood), head); beams.position.y = 0.75 * fl;
-        const rf = add(new THREE.Mesh(new THREE.ConeGeometry(0.98 * s, 0.75, 4), blue), head); rf.position.y = 0.78 * fl + 0.36; rf.rotation.y = Math.PI / 4;
-        const dl = new THREE.Group(), dr = new THREE.Group(); dl.position.set(-0.2, 0.28, 0.51 * s); dr.position.set(0.2, 0.28, 0.51 * s); head.add(dl); head.add(dr);
-        add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.04), wood), dl).position.x = 0.1; add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.04), wood), dr).position.x = -0.1; g.userData.doors = [dl, dr];
-        const fp = add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.0, 6), gold), head); fp.position.set(0.5 * s, 0.78 * fl + 0.7, 0); const ff = add(new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.3, 0.45), blue), head); ff.position.set(0.5 * s, 0.78 * fl + 1.0, 0.24); g.userData.flag = ff;
-        head.rotation.y = Math.sign(-t.x || 1) * Math.PI / 2;
-      }
-      if (t.type === 'banner') {
-        const pole = add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.4 + lv * 0.25, 6), gold), head); pole.position.y = 1.2 + lv * 0.12;
-        const fl = add(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.9 + lv * 0.12, 1.0 + lv * 0.1), this.std(0x3cd27a, { emissive: 0x1a7a44, emissiveIntensity: 0.35 })), head); fl.position.set(0, 1.9 + lv * 0.2, 0.55 + lv * 0.05); g.userData.flag = fl;
-        const crest = add(new THREE.Mesh(L5 ? new THREE.OctahedronGeometry(0.2) : new THREE.SphereGeometry(0.12, 10, 8), gold), head); crest.position.y = 2.45 + lv * 0.25;
-        if (lv >= 3) { const f2 = add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.6, 0.6), this.std(0x2f6dff)), head); f2.position.set(0, 1.3 + lv * 0.15, -0.35); }
-        const aura = new THREE.Mesh(new THREE.RingGeometry(0.96, 1, 56).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x3cd27a, transparent: true, opacity: 0.45, depthWrite: false })); aura.position.y = -H - 0.12; head.add(aura); g.userData.aura = aura;
-        const fill = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x3cd27a, transparent: true, opacity: 0.07, depthWrite: false })); fill.position.y = -H - 0.13; head.add(fill); g.userData.auraFill = fill;
-      }
-      if (t.type !== 'barracks' && t.type !== 'banner') { const roof = add(new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.5, 6), blue), head); roof.position.set(0, -0.02, -0.64); }
-      if (L5) { const halo = new THREE.Mesh(new THREE.TorusGeometry(R0 * 1.25, 0.05, 6, 32), new THREE.MeshBasicMaterial({ color: 0xffe28a, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false })); halo.rotation.x = Math.PI / 2; halo.position.y = 0.12; g.add(halo); g.userData.halo = halo; }
-      g.traverse(o => { if (o.isMesh && !o.material.transparent) o.castShadow = true; });
-      // construction: parts rise in from the ground, staggered by height
-      g.userData.parts = parts.map(m => ({ m, y: m.position.y, d: Math.random() * 0.15 + (m.position.y + (m.parent === head ? H : 0)) * 0.05 }));
-      g.userData.lvl = lv; g.userData.type = t.type; g.userData.build = 0;
+      const cast = !this.opts.mobile; g.traverse(o => { if (o.isMesh && !o.material.transparent) o.castShadow = cast; });   // phones: vehicles use the instanced blob shadows
+      g.userData.parts = parts.map(m => ({ m, y: m.position.y, d: Math.random() * 0.15 + m.position.y * 0.05 }));
+      g.userData.lvl = lv; g.userData.type = t.type; g.userData.build = 0; g.userData.head = aim;
       return g;
     }
     drawTowers(sim, dt) {
-      for (let s = 0; s < 6; s++) {
+      for (let s = 0; s < sim.towers.length; s++) {
         const t = sim.towers[s]; let o = this.towerObjs[s];
         if (!t) { if (o) { if (!o.userData.dying) { o.userData.dying = 0; this.dyingObjs.push(o); } this.towerObjs[s] = null; } continue; }
         if (!o || o.userData.lvl !== t.lvl || o.userData.type !== t.type) {
@@ -614,11 +611,13 @@
           o = this.towerObjs[s] = this.buildTower(t); this.scene.add(o); if (upgrade) o.userData.build = 0.3;
           this.burst(t.x, 2, t.z, 50, 0xffd23a, 6, 0.55, 0.7, 6); this.ring(t.x, t.z, 0xffd23a, 4, 0.6); this.ring(t.x, t.z, KM.TOWERS[t.type].color, 6, 0.8);
         }
-        o.position.set(t.x, 0, t.z); o.scale.setScalar(0.82);
+        o.position.set(t.x, 0, t.z); o.scale.setScalar(1.12); o.rotation.y = -(t.vx || 0) * 0.05;
+        const Ud = o.userData; if (Ud.wheels) for (const w of Ud.wheels) w.rotation.x -= dt * (1.05 + Math.abs(t.vx || 0)) * 3.2;
+        if (t.down > 0) { o.rotation.z = 0.12; o.position.y = -0.08; if (Math.random() < 0.35) this.emit(t.x + (Math.random() - 0.5), 1.2, t.z, 0, 1.1, 0, 0x3a3a3a, 1.2, 1.1, -0.6); } else { o.rotation.z = 0; o.position.y = Math.abs(Math.sin(this.time * 9 + s)) * 0.025; }
         const U = o.userData; U.build += dt;
         if (U.build < 1.2) for (const p of U.parts) { const u = Math.min(1, Math.max(0, (U.build - p.d) / 0.35)); p.m.position.y = p.y - (1 - u * u * (3 - 2 * u)) * 2.2; p.m.visible = u > 0; }
-        else if (!U.batched) { for (const p of U.parts) { p.m.position.y = p.y; p.m.visible = true; } this.batchStatic(o); }
-        const a = U.aim; let dy = t.aim - a.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); a.rotation.y += dy * Math.min(1, dt * (t.type === 'sniper' ? 4 : 10));
+        else if (!U.batched) { for (const p of U.parts) { p.m.position.y = p.y; p.m.visible = true; } U.wheelN = U.wheels.length; U.wheels = []; this.batchStatic(o); }   // wheels join the static batch (one draw per material)
+        const a = U.aim; let dy = t.aim - a.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); a.rotation.y += dy * Math.min(1, dt * (t.type === 'artillery' ? 4 : 10));
         const r = t.recoil; a.position.z = -r * 0.14 * Math.cos(a.rotation.y); a.position.x = -r * 0.14 * Math.sin(a.rotation.y);
         if (U.arms) U.arms.forEach(ar => { ar.scale.z = 1; ar.position.z = 0.3 - Math.max(0, r - 0.4) * 0.25; ar.rotation.x = r > 0.5 ? -0.3 * (r - 0.5) : -0.15 * Math.sin((1 - r) * Math.PI); });  // reload pull-back
         if (U.barrels) U.barrels.forEach((b, k) => { b.position.z = 0.3 - r * 0.3 * (k === (sim.t * 2 | 0) % U.barrels.length ? 1 : 0.3); });
@@ -715,19 +714,32 @@
         mk(new THREE.SphereGeometry(0.18, 8, 6), new THREE.MeshBasicMaterial({ color: 0xd77bff })),
         mk(new THREE.BoxGeometry(0.08, 0.08, 1.3), new THREE.MeshBasicMaterial({ color: 0xe4c2ff })),
       ];
+      // friendly ranged eras (10–16), tank shell (20), missile (21): each looks and flies differently (arc set in the sim)
+      const vc = new THREE.MeshLambertMaterial({ vertexColors: true }), basic = c => new THREE.MeshBasicMaterial({ color: c });
+      this.proj[10] = mk(new THREE.DodecahedronGeometry(0.11, 0), this.std(0x9a9488));
+      this.proj[11] = mk(merge([part(new THREE.BoxGeometry(0.04, 0.04, 1.0), 0x8f5c34, 0), part(new THREE.ConeGeometry(0.05, 0.18, 4).rotateX(Math.PI / 2), 0xd4dae4, 0, T(0, 0, 0.58))]), vc);
+      this.proj[12] = this.proj[0];
+      this.proj[13] = mk(merge([part(new THREE.BoxGeometry(0.05, 0.05, 0.45), 0x3d2818, 0), part(new THREE.ConeGeometry(0.05, 0.12, 4).rotateX(Math.PI / 2), 0xd4dae4, 0, T(0, 0, 0.28))]), vc);
+      this.proj[14] = mk(new THREE.BoxGeometry(0.06, 0.06, 0.9), basic(0xffe08a));
+      this.proj[15] = mk(new THREE.BoxGeometry(0.04, 0.04, 1.5), basic(0xfff2c0));
+      this.proj[16] = mk(new THREE.BoxGeometry(0.1, 0.1, 0.8), basic(0x6ff4ff));
+      this.proj[20] = mk(new THREE.SphereGeometry(0.17, 8, 6).scale(1, 1, 1.8), basic(0xffb347));
+      this.proj[21] = mk(merge([part(new THREE.CylinderGeometry(0.07, 0.07, 0.55, 6).rotateX(Math.PI / 2), 0xe8eef6, 0), part(new THREE.ConeGeometry(0.07, 0.16, 6).rotateX(Math.PI / 2), 0xff5a3a, 0, T(0, 0, 0.35)), part(new THREE.BoxGeometry(0.26, 0.02, 0.1), 0x7d8796, 0, T(0, 0, -0.22))]), vc);
+      this.projList = [...new Set(this.proj.filter(Boolean))];
     }
     drawProjectiles(sim) {
-      const P = sim.p, cnt = [0, 0, 0, 0, 0], m = this.m, p = this.v, s = this.s3, look = this.m2, up = new V3(0, 1, 0), tgt = new V3();
+      const P = sim.p, cnt = this.projCnt || (this.projCnt = new Map()), m = this.m, p = this.v, s = this.s3, look = this.m2, up = new V3(0, 1, 0), tgt = new V3();
       for (let k = 0; k < KM.Sim.PCAP; k++) {
         if (!P.on[k]) continue;
         const u = Math.min(1, P.t[k] / P.tof[k]), h = P.kind[k] === 4 ? 0.2 : P.h[k], y = 1.0 + h * 4 * u * (1 - u) - u * 0.6;
         const u2 = Math.min(1, u + 0.02), y2 = 1.0 + h * 4 * u2 * (1 - u2) - u2 * 0.6;
         p.set(P.x[k], y, P.z[k]); tgt.set(P.sx[k] + (P.ex[k] - P.sx[k]) * u2, y2, P.sz[k] + (P.ez[k] - P.sz[k]) * u2);
         look.lookAt(tgt, p, up); this.q.setFromRotationMatrix(look); s.setScalar(1); m.compose(p, this.q, s);
-        const im = this.proj[P.kind[k]]; this.put(im, cnt[P.kind[k]]++, m);
-        if (P.kind[k] !== 0 && Math.random() < 0.5) this.emit(p.x, y, p.z, 0, 0.3, 0, P.kind[k] === 1 ? 0x888888 : P.kind[k] === 2 ? 0x9ff0ff : 0xd77bff, 0.45, 0.35);
+        const kd = P.kind[k], im = this.proj[kd] || this.proj[0], n = cnt.get(im) || 0; this.put(im, n, m); cnt.set(im, n + 1);
+        const trail = kd === 21 ? 0xbbbbbb : kd === 20 ? 0xffa040 : kd === 16 ? 0x6ff4ff : kd === 1 ? 0x888888 : kd === 2 ? 0x9ff0ff : kd === 3 || kd === 4 ? 0xd77bff : 0;
+        if (trail && Math.random() < 0.5 * (this.loadK || 1)) this.emit(p.x, y, p.z, 0, 0.3, 0, trail, kd === 21 ? 0.6 : 0.45, 0.35);
       }
-      this.proj.forEach((im, i) => { im.count = cnt[i]; im.instanceMatrix.needsUpdate = true; });
+      for (const im of this.projList) { im.count = cnt.get(im) || 0; im.instanceMatrix.needsUpdate = true; } cnt.clear();
     }
 
     // ---------- particles ----------
@@ -779,13 +791,20 @@
           const nd = big ? 16 : 9; for (let k = 0; k < nd; k++) { const ang = k / nd * 6.283 + Math.random() * 0.3, sp = r * (2.2 + Math.random() * 1.4); this.emit(x + Math.cos(ang) * 0.3, 0.12, z + Math.sin(ang) * 0.3, Math.cos(ang) * sp, 0.5 + Math.random() * 0.6, Math.sin(ang) * sp, 0xd9b98a, 0.8 + r * 0.25, 0.42, 2.5); }
           this.ring(x, z, 0xfff0c8, r * 1.5, 0.28); this.burst(x, 0.8, z, big ? 10 : 5, 0xffe27a, 5, 0.45, 0.22, 6); this.emit(x, 0.7, z, 0, 0.3, 0, 0xfff6d8, 1.3 + r * 0.4, 0.12, 0);
           if (big && Math.abs(z - sim.L.z) < 40) this.shake = Math.max(this.shake, r >= 2.6 ? 0.07 : 0.045); break; }
+        case 'tankfire': { const L = sim.L, ya = L.aim, bx = L.x + Math.sin(ya) * 1.9, bz = L.z + Math.cos(ya) * 1.9; this.burst(bx, 1.45, bz, 8, 0xffd27a, 4, 0.45, 0.18, 2); this.emit(bx, 1.45, bz, 0, 0.2, 0, 0xfff1c0, 1.4, 0.08, 0); break; }
+        case 'missiles': this.burst(sim.L.x, 1.8, sim.L.z + 0.3, 10, 0xcccccc, 2.5, 0.6, 0.6, -1); break;
+        case 'shieldBreak': { const L = sim.L, r = sim.stats.shRadius; for (let k = 0; k < 28; k++) { const a2 = k / 28 * 6.283; this.emit(L.x + Math.cos(a2) * r, 0.6 + Math.random() * 1.2, L.z + Math.sin(a2) * r, Math.cos(a2) * 3, 1.5, Math.sin(a2) * 3, 0x9ff2ff, 0.6, 0.5, 4); } this.ring(L.x, L.z, 0x9ff2ff, r * 1.6, 0.5); this.shake = Math.max(this.shake, 0.06); break; }
+        case 'shieldUp': this.ring(sim.L.x, sim.L.z, 0x7fd8ff, sim.stats.shRadius * 1.2, 0.6); break;
+        case 'deposit': this.burst(sim.L.x, 1.4, sim.L.z, 10, 0xffd34a, 3.5, 0.45, 0.45); this.ring(sim.L.x, sim.L.z, 0xffd34a, 2.2, 0.35); break;
+        case 'colLost': this.burst(sim.x[a], 0.6, sim.z[a], 12, 0xffd34a, 3, 0.4, 0.5); break;
+        case 'posture': this.ring(sim.L.x, sim.L.z - 4, a ? 0x4f8dff : 0xff5a3a, 9, 0.7); this.ring(sim.L.x, sim.L.z, a ? 0x7fd8ff : 0xffd23a, 4, 0.45); break;
         case 'fdie': this.burst(sim.x[a], 0.6, sim.z[a], 4, 0x5aa0ff, 3, 0.35, 0.4); break;
         case 'hit': if (b >= 0 && sim.def(b).sh && this.fxBudget > 0) { this.fxBudget--; this.burst(sim.x[b], 0.65, sim.z[b] + (sim.team[b] ? 0.3 : -0.3), 5, 0xcfe6ff, 3.5, 0.35, 0.22, 4); }
           if (Math.random() < 0.35 * Math.min(1, this.fxBudget / 30)) { const t = b; if (t >= 0) this.burst((sim.x[a] + sim.x[t]) / 2, 0.7, (sim.z[a] + sim.z[t]) / 2, c ? 8 : 2, c ? 0xffe14a : 0xfff4d0, c ? 4 : 2.5, c ? 0.5 : 0.28, 0.25); } break;
         case 'cleave': this.burst(sim.x[a], 0.5, sim.z[a] + 1, 14, 0xffffff, 4, 0.35, 0.3); this.ring(sim.x[a], sim.z[a] + 1, 0xffaaaa, 2.5, 0.35); break;
         case 'deploy': { const L = sim.L; this.burst(L.x, 1.6, L.z - 1.4, 3, 0x7cc4ff, 2.5, 0.45, 0.3, 2); break; }
         case 'boom': this.burst(a, 0.5, b, 40, 0xff8a2a, 7, 0.9, 0.6, 6); this.burst(a, 0.5, b, 14, 0x555555, 3, 1.4, 0.9, -1); this.ring(a, b, 0xff7a2a, c * 1.2, 0.4); this.shake = Math.max(this.shake, 0.15); break;
-        case 'impact': if (a === 1) { this.burst(b, 0.4, c, 18, 0xffa040, 5, 0.7, 0.45); this.ring(b, c, 0xffa040, 2.6, 0.35); } else if (a === 2) { this.burst(b, 0.4, c, 18, 0x9ff0ff, 4, 0.6, 0.6, 2); this.ring(b, c, 0x9ff0ff, 3, 0.5); } else if (a === 4) this.burst(b, 0.8, c, 12, 0xe4c2ff, 5, 0.5, 0.35); break;
+        case 'impact': if (a === 1) { this.burst(b, 0.4, c, 18, 0xffa040, 5, 0.7, 0.45); this.ring(b, c, 0xffa040, 2.6, 0.35); } else if (a === 2) { this.burst(b, 0.4, c, 18, 0x9ff0ff, 4, 0.6, 0.6, 2); this.ring(b, c, 0x9ff0ff, 3, 0.5); } else if (a === 4) this.burst(b, 0.8, c, 12, 0xe4c2ff, 5, 0.5, 0.35); else if (a === 20 || a === 21) { this.burst(b, 0.5, c, a === 21 ? 22 : 14, 0xffa040, 5, 0.6, 0.4); this.ring(b, c, 0xffb347, 1.8, 0.3); } break;
         case 'wave': if (a === 'boss') { this.ring(0, sim.front - 50, 0xff2a2a, 14, 1.2); this.shake = Math.max(this.shake, 0.2); } break;
         case 'elite': this.ring(0, sim.front - 52, 0xff5a3a, 8, 0.8); break;
         case 'coin': if (Math.random() < 0.5) this.burst(sim.L.x, 1.4, sim.L.z, 3, 0xffd34a, 3, 0.4, 0.35); break;

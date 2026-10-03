@@ -18,11 +18,12 @@ games/kmob/
   js/assets.js        production GLB character loader (part-by-part swap-in, validation, fallback)
   assets/manifest.json            points at the production character GLB (null = procedural)
   assets/template/kmob-parts-template.glb   every part on its pivot, for the artist to model over
-  tests/kmob.test.js        80 sim/economy/save/structures/quality/edges/melee/pacing/soak  node tests/kmob.test.js
+  tests/kmob.test.js        109 sim/economy/save/structures/quality/edges/melee/pacing/soak  node tests/kmob.test.js
   tests/anim.test.js        24 animation/LOD tests                     node tests/anim.test.js
-  tests/browser.test.js     50 rendering/assets/atlas/clips/tiers/bench/playtest/framing/occlusion/asset page  PW=<playwright> node tests/browser.test.js
+  tests/browser.test.js     57 rendering/assets/atlas/clips/tiers/bench/playtest/framing/occlusion/asset page  PW=<playwright> node tests/browser.test.js
   dev/assets.html     ?assets=1 character validation + procedural-vs-GLB preview
   docs/MILESTONE-5.md pre-art polish report (mixed melee, phone composition, occlusion, lighting, asset page)
+  docs/MILESTONE-6.md mobile warfare rework (command tank, force field, support vehicles, ATTACK/DEFEND, collectors, weapon eras)
   tests/acceptance-shots.js the 20-shot acceptance set + 4 escalation shots, mobile + desktop
   tests/export-template.js  regenerates the artist template GLB
   docs/shots/         acceptance captures (git-ignored here; committed in KEEPITIL/thirteen games/kmob/docs/shots)

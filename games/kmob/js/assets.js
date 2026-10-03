@@ -8,7 +8,7 @@
   const KM = G.KM;
   // Near-LOD budgets (triangles). A whole standard near unit ≈ legs×2 + torso + head + arms×2 + weapon ≤ ~3,000.
   KM.PART_BUDGET = { leg: 450, torso: 900, head: 1100, arm: 400, weapon: 500, shield: 400, other: 600, hero: 6000 };
-  const kindOf = k => /^l[A-Z]/.test(k) ? 'leg' : /^t[A-Z]/.test(k) ? 'torso' : /^h[A-Z]/.test(k) ? 'head' : /^a[A-Z]/.test(k) ? 'arm' : k === 'shield' ? 'shield' : ['sword', 'swordGold', 'dagger', 'axe', 'bow', 'staff', 'bomb', 'claws'].includes(k) ? 'weapon' : k === 'cannon' ? 'hero' : 'other';
+  const kindOf = k => /^l[A-Z]/.test(k) ? 'leg' : /^t[A-Z]/.test(k) ? 'torso' : /^h[A-Z]/.test(k) ? 'head' : /^a[A-Z]/.test(k) ? 'arm' : k === 'shield' ? 'shield' : ['sword', 'swordGold', 'dagger', 'axe', 'bow', 'staff', 'bomb', 'claws', 'rock', 'spear', 'xbow', 'musket', 'rifle', 'pulse', 'sack'].includes(k) ? 'weapon' : k === 'cannon' ? 'hero' : 'other';
   KM.budgetFor = k => KM.PART_BUDGET[kindOf(k)];
   KM.TEX_MAX = 2048;   // largest atlas edge accepted on mobile (bigger images are downscaled)
   // authored clip name → skeleton clip it replaces (additive hits map onto the reaction layers)

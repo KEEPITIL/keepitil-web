@@ -44,10 +44,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await reset(); await E(() => { KM.camFocus = 'launcher'; KM.camOverride = 12; }); await run(3, { skill: 0, noOffer: true }); await shot('11-launcher-level-1');
     await E(() => { KM.game.sim.upgrades = 16; }); await run(1.5, { skill: 0, noOffer: true }); await shot('12-launcher-level-5', 3200);
     // 13-16 defenses (normal fitted camera)
-    await reset(); await E(() => KM.game.showcase(1, 1)); await run(6, { skill: 0, noOffer: true }); await shot('13-basic-towers');
-    await E(() => KM.game.showcase(5, 5)); await run(5, { skill: 0, noOffer: true }); await shot('14-max-towers');
-    await reset(); await E(() => { const s = KM.game.sim; s.t = 120; s.coins = 1e6; for (let k = 0; k < 2; k++) { s.offer = [{ id: 'wall:barricade' }]; s.pick(0); } s.coins = 0; }); await run(4, { skill: 0, noOffer: true }); await shot('15-barricade');
-    await E(() => { const s = KM.game.sim; s.t = 200; s.coins = 1e6; s.offer = [{ id: 'wall:wall' }]; s.pick(0); s.coins = 0; s.hurtStruct(-22, 120); }); await run(4, { skill: 0, noOffer: true }); await shot('16-shield-wall');
+    await reset(); await E(() => KM.game.showcase(1, 1)); await run(6, { skill: 0, noOffer: true }); await shot('13-basic-support');
+    await E(() => KM.game.showcase(5, 5)); await run(5, { skill: 0, noOffer: true }); await shot('14-max-support');
+    await reset(); await E(() => { const s = KM.game.sim; s.t = 200; s.stats.shield = 3; s.shieldUp(); }); await run(4, { skill: 0, noOffer: true }); await shot('15-force-field');
+    await E(() => { KM.game.sim.setPosture(1); }); await run(5, { skill: 0, noOffer: true }); await shot('16-defend-formation');
     // 17-18 coins + upgrade
     await reset(); await run(14); await E(() => { const s = KM.game.sim; for (let k = 0; k < 30; k++) s.dropCoin(s.L.x + (Math.random() - 0.5) * 5, s.L.z - 2.5 - Math.random() * 4, 2); s.moveTo(s.L.x, -4); }); await run(0.5, { skill: -1, noOffer: true }); await shot('17-coin-collection', 1600);
     await run(18); await E(() => { const s = KM.game.sim; s.coins += KM.upgradeCost(s.upgrades) + 1; s.offerHold = 0; s.step(1 / 60); }); await shot('18-upgrade-choice', 2000);

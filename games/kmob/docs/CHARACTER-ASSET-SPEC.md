@@ -129,3 +129,37 @@ Only bone rotations (and `hips` height) are read. Root motion is ignored, becaus
 - clips: mapped name, rig bones present, finite values;
 - missing parts are listed, and LOD tiers keep the procedural mid and far models;
 - swapping parts doesn't leak renderer geometry.
+
+## 10. Mobile-war additions (milestone 6)
+
+The army now travels as one group: command tank + melee + ranged + collectors + support vehicles + force field. Deliver these with the same GLB pipeline (validate on `?assets=1`).
+
+**Ranged weapon eras.** Ranged soldiers swap the item in the right-hand weapon socket (the same pivot as `sword`: grip at the origin, pointing +Z). Part names, in order of the eras: `rock`, `spear`, `bow` (off hand), `xbow`, `musket`, `rifle`, `pulse`. Weapon limit is 500 triangles each. Eras must read as a gradual progression, so keep one family look and don't jump to sci-fi early.
+
+**Collector.** Recipe `collector`: light torso, bandana head, standard arms and legs, plus a `sack` item in the weapon socket. The game scales the sack with the carried amount from 0.55× to 1.45×, so model it at 1× with its pivot at the hand. The faction tint is gold (`tint_*` materials take the instance colour).
+
+**Command tank (launcher).** It is modular, and each upgrade line turns on hardware:
+
+| Hardpoint / group | Shown when |
+|---|---|
+| barrels 1–3 (turret, pointing −Z, muzzle at z ≈ −1.5) | fire-rate upgrades (1 → 2 → 3) |
+| longer cannon (barrel Z scale 0.85 → 1.4) | cannon damage upgrades |
+| missile pod (two boxes on the turret sides) | MISSILE POD |
+| targeting mast (turret rear-left) | TARGETING SYSTEM |
+| four field emitters on the hull corners + crystal core | FORCE FIELD |
+| armour skirts / ram, then the heavy crown set | TANK ARMOR levels / heavy weapon build |
+
+Model each group as a separate node named as above, on the template pivots. Budget is 6,000 triangles for the full late-game tank, with at most 6 materials and at most 1 texture atlas.
+
+**Support vehicles** (`gun`, `artillery`, `frost`, `carrier`). There are 5 visual levels:
+- L1: 4 wheels.
+- L2: side armour.
+- L3: 6 wheels and a bigger turret.
+- L4: tracks and extra barrels.
+- L5: gold trim and emitters.
+
+Each level costs at most 2,500 triangles, and the turret is a separate node `aim` that rotates around Y. Static parts are batched at runtime, so keep the material count at 4 or fewer per vehicle.
+
+**Shield.** The force field is a runtime effect (a transparent dome scaled to the shield radius). Artists only supply the emitter nodes.
+
+**Art pilot (after the gameplay rework):** blue melee soldier, red grunt, red brute, one friendly ranged soldier (all 7 weapon items), the command tank and one support vehicle. Don't build the rest of the roster until these six are approved in a 500+ unit battle on the phone.

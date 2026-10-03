@@ -413,6 +413,36 @@ const TYPES = {
 
 // ---------- civilization ages ----------
 const CIV_DEFS=window.KW_DATA.civilizations;
+/* TASK RANGED -- ERA RANGED WEAPON FAMILIES. ONE table drives what a ranged soldier carries in each civilization and
+   how it behaves: animation family, projectile, the release/ignition phase of the attack, reload (cooldown), damage
+   and range multipliers, effects and sound. Nothing else in the game checks eras for ranged behaviour -- it asks
+   rangedFamily(u). Balance intent: later weapons hit much harder but reload much slower, so sustained fire stays
+   close to the bow's (melee still has time to close) and each volley matters more. Gunners keep their own stats
+   and get the matching firearm generation. Source of truth: docs/kwars-art/ERA_VISUAL_BIBLE.md.               */
+const RANGED_FAMILIES={
+  bow:      {id:'bow',      anim:'bow',  proj:'arrow', releaseP:0.60, cdMult:1.00, dmgMult:1.00, rangeMult:1.00, smoke:0,   sound:'ranged.bow'},
+  crossbow: {id:'crossbow', anim:'xbow', proj:'bolt',  releaseP:0.22, cdMult:1.65, dmgMult:1.85, rangeMult:0.95, smoke:0,   sound:'ranged.crossbow'},
+  musket:   {id:'musket',   anim:'gun',  proj:'ball',  releaseP:0.14, cdMult:2.20, dmgMult:2.70, rangeMult:0.90, smoke:1,   sound:'ranged.musket'},
+  rifle:    {id:'rifle',    anim:'gun',  proj:'ball',  releaseP:0.14, cdMult:1.55, dmgMult:2.60, rangeMult:1.10, smoke:0.5, sound:'ranged.rifle'},
+  matchlock:{id:'matchlock',anim:'gun',  proj:'ball',  releaseP:0.14, cdMult:1.15, dmgMult:1.00, rangeMult:0.90, smoke:1,   sound:'ranged.musket'},
+  flintlock:{id:'flintlock',anim:'gun',  proj:'ball',  releaseP:0.14, cdMult:1.00, dmgMult:1.05, rangeMult:0.95, smoke:1,   sound:'ranged.musket'},
+  boltrifle:{id:'boltrifle',anim:'gun',  proj:'ball',  releaseP:0.14, cdMult:0.75, dmgMult:1.10, rangeMult:1.05, smoke:0.5, sound:'ranged.rifle'},
+};
+const ERA_RANGED=[null,'bow','bow','bow','bow','bow','bow','bow','bow','bow','bow','bow','crossbow','musket','musket','rifle'];
+const ERA_GUN   =[null,'matchlock','matchlock','matchlock','matchlock','matchlock','matchlock','matchlock','matchlock','matchlock','matchlock','matchlock','matchlock','flintlock','flintlock','boltrifle'];
+/* TASK L: while retreating, a soldier walking to his fort place and a soldier WAITING at the full gate do not block or
+   push each other: the waiting crowd stands between the field and the gate, so it used to stop (or shove back) every
+   late arrival -- fort places stayed empty while men stood outside. The crowd parts; nothing else changes. */
+function fortPass(u, o){
+  if (!S.retreatMode || o.team !== u.team) return false;
+  const a = String(u.slotKey||''), b = String(o.slotKey||'');
+  return (a.startsWith('aF:') && !u.inFort && b.startsWith('aW:')) || (b.startsWith('aF:') && !o.inFort && a.startsWith('aW:'));
+}
+function rangedFamily(u){
+  const w=(TYPES[u.type]||{}).weapon; if(w!=='bow'&&w!=='gun') return null;
+  const era=Math.max(1,Math.min(15,u.team===1?((S&&S.civ)||1):((S&&S.enemyCiv)||1)));
+  return RANGED_FAMILIES[(w==='bow'?ERA_RANGED:ERA_GUN)[era]];
+}
 const CIV_NAMES=CIV_DEFS.map(c=>c.displayName);
 const CIVILIZATION_NAMES=CIV_NAMES;
 const RULER_NAMES=CIV_DEFS.map(c=>c.bossDisplayName);
@@ -1364,7 +1394,7 @@ function steerMove(u, tx, ty, maxSpeed, dt, stopRadius){
   if (_pool !== S.units){ _i0 = spatLower(_pool, u.x - band); _i1 = spatLower(_pool, u.x + band + 1e-6); }
   for (let _i = _i0; _i < _i1; _i++){
     const o = _pool[_i];
-    if (o===u || o.hp<=0) continue;
+    if (o===u || o.hp<=0 || fortPass(u,o)) continue;
     const ox=u.x-o.x; if (ox>band || ox<-band) continue;  // cheap x-band cull before the costlier math
     const oy2=(u.y-o.y); if (oy2>yBand || oy2<-yBand) continue;
     // gentle body separation from allies AND enemies
@@ -1623,17 +1653,32 @@ function fireArrow(x, y, tg, dmg, team, spd){
   S.projs.push({kind:'arrow', x, y, sourceX:x, groundY:(tg && tg.hp!==undefined) ? tg.y+3 : clamp((tg?tg.y:y)+24, GROUND_TOP, GROUND_BOT), vx:(tg.x-x)/t, vy:(tg.y-y)/t - .5*GRAV*t, g:GRAV, dmg, team, life:4});
   window.KWRuntime?.events.emit('projectile_released',{kind:'arrow',team,damage:dmg});
 }
+/* crossbow bolt: faster and flatter than an arrow (a third of the drop), lands and sticks like one */
+function fireBolt(x, y, tg, dmg, team){
+  const t = Math.max(.22, Math.hypot(tg.x-x, tg.y-y) / 640), G3 = GRAV*0.35;
+  S.projs.push({kind:'quarrel', x, y, sourceX:x, groundY:(tg && tg.hp!==undefined) ? tg.y+3 : clamp((tg?tg.y:y)+24, GROUND_TOP, GROUND_BOT), vx:(tg.x-x)/t, vy:(tg.y-y)/t - .5*G3*t, g:G3, dmg, team, life:3});
+  window.KWRuntime?.events.emit('projectile_released',{kind:'quarrel',team,damage:dmg});
+}
+/* musket / rifle ball: very fast, almost flat; never sticks -- a miss raises dust, a hit a puff (pushFx) */
+function fireBall(x, y, tg, dmg, team){
+  const d = Math.hypot(tg.x-x, tg.y-y) || 1, sp = 900;
+  S.projs.push({kind:'ball', x, y, sourceX:x, groundY:(tg && tg.hp!==undefined) ? tg.y+3 : clamp((tg?tg.y:y)+24, GROUND_TOP, GROUND_BOT), vx:(tg.x-x)/d*sp, vy:(tg.y-y)/d*sp, g:60, dmg, team, life:1.6});
+  window.KWRuntime?.events.emit('projectile_released',{kind:'ball',team,damage:dmg});
+}
+/* bounded effect push: transient smoke/dust can never grow the fx list without limit */
+const FX_MAX = 260;
+function pushFx(f){ S.fx.push(f); if (S.fx.length > FX_MAX){ const i = S.fx.findIndex(q=>q.kind==='smoke'||q.kind==='dust'); S.fx.splice(i>=0?i:0, 1); } }
 function fireBullet(x, y, tg, dmg, team){
   const d = Math.hypot(tg.x-x, tg.y-y) || 1;
   S.projs.push({kind:'bullet', x, y, sourceX:x, vx:(tg.x-x)/d*880, vy:(tg.y-y)/d*880, g:0, dmg, team, life:2});
   window.KWRuntime?.events.emit('projectile_released',{kind:'bullet',team,damage:dmg});
 }
-function combatRange(u,t){if(u._spear&&window.KW_SPEAR&&KW_SPEAR.hasSpear(u,TYPES))return spearReach(u)+6;let r=Number.isFinite(u.attackRange)?u.attackRange:(u.spearThrown&&(t.weapon==='spear'||t.weapon==='spartan')?22:t.range)*(u.equipMods?.range||1);if(u.team===-1&&['bow','gun','laser'].includes(t.weapon))r=Math.min(r,ENEMY_RANGE_CAP);return r;}
+function combatRange(u,t){if(u._spear&&window.KW_SPEAR&&KW_SPEAR.hasSpear(u,TYPES))return spearReach(u)+6;let r=Number.isFinite(u.attackRange)?u.attackRange:(u.spearThrown&&(t.weapon==='spear'||t.weapon==='spartan')?22:t.range)*(u.equipMods?.range||1);{const f=rangedFamily(u);if(f&&!Number.isFinite(u.attackRange))r*=f.rangeMult;}if(u.team===-1&&['bow','gun','laser'].includes(t.weapon))r=Math.min(r,ENEMY_RANGE_CAP);return r;}
 // Structures are hit with whatever is in hand too: a spear reaches the wall
 // from further out than a sword. Capped so long reaches don't let a soldier
 // hit the fort from the middle of the field.
 function structureReach(u,range){return Math.max(16,Math.min(range,44));}
-function attackCooldown(u,t){return t.cd/(u.equipMods?.attackSpeed||1);}
+function attackCooldown(u,t){const f=rangedFamily(u);return t.cd*(f?f.cdMult:1)/(u.equipMods?.attackSpeed||1);}   // ranged reload comes from the era family
 /* §3 REAR-RANK SHIELD DEFENCE ------------------------------------------------
    Owner defect (build 60): shield-bearers behind the front rank stand still
    while arrows fly into them. Two causes:
@@ -1647,7 +1692,7 @@ function attackCooldown(u,t){return t.cd/(u.equipMods?.attackSpeed||1);}
 const THREAT_BIN=48;                 // px of vertical lane per bin
 let _threatBins=new Map();
 const _fallingProjs=[];
-const THREAT_KINDS={arrow:1,bullet:1,spearp:1,rock:1,bomb:1,boulder:1};
+const THREAT_KINDS={arrow:1,bullet:1,quarrel:1,ball:1,spearp:1,rock:1,bomb:1,boulder:1};
 function buildThreatBins(){
   _threatBins.clear(); _fallingProjs.length=0;
   for(let i=0;i<S.projs.length;i++){
@@ -1756,9 +1801,13 @@ function updateDrawnShot(u){
     u.anim = 0; u.holdDrawT = Math.max(u.holdDrawT||0, 0.45*pull);  // relaxes through the existing hold decay
     return;
   }
-  if (p >= BOW_RELEASE_P){
+  const fam = ps.fam || RANGED_FAMILIES.bow;
+  if (p >= fam.releaseP){
     u.pendingShot = null;
-    fireArrow(u.x+u.face*6, u.y-22, ps.tg, ps.dmg, u.team);
+    if (fam.proj === 'arrow') fireArrow(u.x+u.face*6, u.y-22, ps.tg, ps.dmg, u.team);
+    else if (fam.proj === 'bolt') fireBolt(u.x+u.face*12, u.y-24, ps.tg, ps.dmg, u.team);
+    else { fireBall(u.x+u.face*18, u.y-23, ps.tg, ps.dmg, u.team); if (fam.smoke) pushFx({kind:'smoke', x:u.x+u.face*24, y:u.y-24, t:0, a:fam.smoke}); if (typeof snd!=='undefined' && snd.gun) snd.gun(); }
+    if (window.KWAudio) KWAudio.emit(fam.sound, {civ:u.team===1?S.civ:S.enemyCiv, team:u.team});
   }
 }
 // one unit fires at a foe (or at the opposing fort when foe is null)
@@ -1771,9 +1820,10 @@ function unitFire(u, t, foe){
     /* TASK G: the arrow leaves the string AT RELEASE, never at the start of the draw. The shot is armed here and
        loosed by updateDrawnShot() when the bow pose crosses BOW_RELEASE_P; target loss, a command change or the end
        of the battle cancels it and the archer lets down instead. (Build 61 spawned the arrow on frame 0 of the draw.) */
-    u.pendingShot = {tg: foe ? foe.u : tg, unit: !!foe, dmg, stance: S.stance, retreat: S.retreatT>0};
+    const f = rangedFamily(u);
+    u.pendingShot = {tg: foe ? foe.u : tg, unit: !!foe, dmg: dmg*(f?f.dmgMult:1), stance: S.stance, retreat: S.retreatT>0, fam: f||RANGED_FAMILIES.bow};
   }
-  else if (t.weapon === 'gun'){ fireBullet(u.x+u.face*14, u.y-23, tg, dmg, u.team); snd.gun(); }
+  else if (t.weapon === 'gun'){ const f = rangedFamily(u)||RANGED_FAMILIES.matchlock; u.pendingShot = {tg: foe ? foe.u : tg, unit: !!foe, dmg: dmg*f.dmgMult, stance: S.stance, retreat: S.retreatT>0, fam: f}; }   // the ball leaves at ignition, not at the start of the aim
   else if (t.weapon === 'laser'){
     S.fx.push({kind:'beam', x1:u.x+u.face*10, y1:u.y-20, x2:tg.x, y2:foe?tg.y-14:tg.y, t:0, team:u.team});
     if (foe) hurt(foe.u, dmg,{kind:'laser',sourceX:u.x});
@@ -1883,8 +1933,8 @@ function hurt(u, dmg, hit){
   // §21 garrison safety: ordinary damage cannot undo a garrison heal. Siege can.
   if (isGarrisoned(u) && !GARRISON_SIEGE_KINDS.has(hit.kind)) return;
   let left=dmg;
-  if(u.equipMods){if(hit.kind==='arrow'||hit.kind==='bullet'||hit.kind==='spearp')left*=1-(u.equipMods.rangedResist||0);else if(hit.kind==='blast'||hit.kind==='bomb'||hit.kind==='boulder'||hit.kind==='rock')left*=1-(u.equipMods.explosionResist||0);else if(hit.kind==='melee')left*=1-(u.equipMods.meleeResist||0);}
-  const inferred={arrow:'PIERCING',spearp:'PIERCING',bullet:'PIERCING',boulder:'SIEGE',rock:'SIEGE',bomb:'SIEGE',blast:'SIEGE',laser:'SPECIAL',magic:'SPECIAL'};
+  if(u.equipMods){if(hit.kind==='arrow'||hit.kind==='bullet'||hit.kind==='quarrel'||hit.kind==='ball'||hit.kind==='spearp')left*=1-(u.equipMods.rangedResist||0);else if(hit.kind==='blast'||hit.kind==='bomb'||hit.kind==='boulder'||hit.kind==='rock')left*=1-(u.equipMods.explosionResist||0);else if(hit.kind==='melee')left*=1-(u.equipMods.meleeResist||0);}
+  const inferred={arrow:'PIERCING',quarrel:'PIERCING',ball:'PIERCING',spearp:'PIERCING',bullet:'PIERCING',boulder:'SIEGE',rock:'SIEGE',bomb:'SIEGE',blast:'SIEGE',laser:'SPECIAL',magic:'SPECIAL'};
   const dtype=hit.damageType||inferred[hit.kind]||'SLASHING';
   const profile=(window.KW_BALANCE&&window.KW_BALANCE.damageTypes[dtype])||{shield:1,armor:1,health:1};
   const frontal=hit.sourceX==null||Math.sign(hit.sourceX-u.x)===(u.face||1);
@@ -2318,7 +2368,7 @@ function update(dt){
              range draws and WAITS, rather than standing idle or loosing into
              empty space. The hold is entered only inside an approach band, so
              a distant enemy does not lock every archer at full draw. */
-          if (ranged && u.shield<=0 && t.weapon==='bow' && u.cdT<=0 && tgt.d < range*1.55){
+          if (ranged && u.shield<=0 && t.weapon==='bow' && (rangedFamily(u)||{}).proj==='arrow' && u.cdT<=0 && tgt.d < range*1.55){
             u.holdDrawT = Math.min(0.45,(u.holdDrawT||0)+dt*1.6);
           } else if (u.holdDrawT) {
             u.holdDrawT = Math.max(0,u.holdDrawT-dt*2.2);   // §14 relax, never stick
@@ -2361,7 +2411,7 @@ function update(dt){
       if (!ffoe && !stillRunning){ const nn = nearest(u); if (nn && nn.d <= range + 6) ffoe = nn; }
       /* TASK G: HELD DRAW while holding the line. The approach-band hold existed only in the ATTACK branch, so an
          archer in DEFEND/MARCH -- where archers actually wait -- stood idle until the enemy crossed into range. */
-      const _band = (!ffoe && !stillRunning && ranged && t.weapon==='bow' && !(u.shield>0)) ? nearest(u) : null;
+      const _band = (!ffoe && !stillRunning && ranged && t.weapon==='bow' && (rangedFamily(u)||{}).proj==='arrow' && !(u.shield>0)) ? nearest(u) : null;
       const _inBand = !!(_band && _band.d > range && _band.d < range*1.55);
       if (!ffoe && u.holdDrawT && !_inBand) u.holdDrawT = Math.max(0, u.holdDrawT - dt*2.2);   // relax, never stick
       if (ffoe){
@@ -2428,6 +2478,8 @@ function update(dt){
     for(let _i=_lo;_i<_sepIdx.length;_i++){ const o=_sepIdx[_i];
       const dx=u.x-o.x; if(dx<-SEP_X) break;          // sorted: nothing further right can qualify
       if(o===u||o.hp<=0) continue;
+            /* TASK L: the crowd waiting at a FULL gate parts for a man sent inside (see fortPass). */
+      if(fortPass(u,o)) continue;
       const dy=u.y-o.y; if(dy>15||dy<-15) continue;
       const d=Math.hypot(dx,dy*1.3)||0.01, R=(o.team===u.team)?Math.max(14,bodyHalf(u)+bodyHalf(o)+3):14;   // H-03: real body extents (a drawn bow is wider than a gladius)
       // §9 ONE SOLDIER PER BODY SPACE. Settled soldiers used to skip separation
@@ -2443,7 +2495,6 @@ function update(dt){
          body aside (bounded, and his own slot steering brings him back afterwards); the walker is not shoved back. */
       if((u.spearLost || (S.retreatMode && String(u.slotKey||'').startsWith('aF:'))) && o.team===u.team && !settled && Number.isFinite(u.slotX) && (u.slotX-u.x)*(o.x-u.x)>0 && Math.abs(u.slotX-u.x)>Math.abs(o.x-u.x)-2 && d<R+8 && o.anim<=0 && !o._yielded && Number.isFinite(o.slotX) && Math.hypot(o.x-o.slotX,o.y-o.slotY)<10){
         o._yieldY=(o._yieldY||0)+(dy>0?-1:1)*0.9; o._yielded=1;
-        if(S.retreatMode && String(o.slotKey||'').startsWith('aW:')) o._yieldX=(o._yieldX||0)+1.4;   // Task L: a soldier waiting at a full gate steps BACK out of the way of one sent inside
         if(d>=bmin) continue; }
       if(d<bmin){ const f=(bmin-d)/bmin; px+=dx/d*f*1.7; py+=dy/d*f*1.7; cnt++; hard++; }
       else if(d<R){ const f=(R-d)/R; px+=dx/d*f; py+=dy/d*f; cnt++; }
@@ -2561,7 +2612,7 @@ function update(dt){
     // arrow / bullet / falling spear vs units
     // A deflected shot is spent: it must not re-hit the shield it bounced off,
     // nor score a second hit on anyone while it tumbles away.
-    if ((p.kind==='arrow'||p.kind==='spearp') && p.groundY!=null && p.vy>0 && p.y>=p.groundY){ landProjectile(p); p.life=0; continue; }   // TASK H: misses and spent shots end IN the ground
+    if ((p.kind==='arrow'||p.kind==='spearp'||p.kind==='quarrel'||p.kind==='ball') && p.groundY!=null && p.vy>0 && p.y>=p.groundY){ landProjectile(p); p.life=0; continue; }   // TASK H: misses and spent shots end IN the ground
     if (p.deflected) continue;
     const hw = p.kind==='spearp' ? 16 : 12;
     for (const u of S.units){
@@ -2591,7 +2642,8 @@ function update(dt){
           break;
         }
         hurt(u,p.dmg,{kind:p.kind,sourceX:p.sourceX==null?p.x-(p.vx||0)*.1:p.sourceX});
-        if(p.kind==='arrow') stickArrow(u,p);   // TASK H: the arrow stays where it struck
+        if(p.kind==='arrow'||p.kind==='quarrel') stickArrow(u,p);   // TASK H: the arrow (or bolt) stays where it struck
+        if(p.kind==='ball') pushFx({kind:'dust', x:p.x, y:p.y, t:0, hit:1});   // a ball strikes and is gone
         if(p.kind==='spearp'&&u.hp>0){ u.bleed=(u.bleed||0)+1; u.impaled=true; addFloat(u.x,u.y-46,'IMPALED −1/s','#ff9b8f'); }
         p.life = 0; break;
       }
@@ -2606,7 +2658,7 @@ function update(dt){
 
   // fx / corpses / floats
   for (const f of S.fx) f.t += dt;
-  S.fx = S.fx.filter(f=>f.t < (f.kind==='boom'?.6: f.kind==='gbeam'?.45 :.3));
+  S.fx = S.fx.filter(f=>f.t < (f.kind==='boom'?.6: f.kind==='gbeam'?.45 : f.kind==='smoke'?1.2 : f.kind==='dust'?.5 :.3));
   if (S.stuck && S.stuck.length){ for (const q of S.stuck) q.t += dt; if (S.stuck[0].t >= STUCK_LIFE || S.stuck.some(q=>q.t>=STUCK_LIFE)) S.stuck = S.stuck.filter(q=>q.t<STUCK_LIFE); }
   for (const u of S.units){ if (u.arrows && u.arrows.length){ if (u.hp<=0){ u.arrows=null; continue; } for (const q of u.arrows) q.t += dt; if (u.arrows[0].t >= STUCK_LIFE) u.arrows = u.arrows.filter(q=>q.t<STUCK_LIFE); } }
   for (const c of S.corpses) c.t += dt;
@@ -2719,7 +2771,8 @@ const WEAPON_RIG = {spear:'spear', spartan:'spear', sword:'sword', hammer:'sword
 /* The renderer's animation-state selection, shared with KW_SPEAR so the simulation's spear is the drawn spear. */
 function rigStateFor(u, corpse, cls){
   const liveWeapon = u.currentWeapon || null;
-  const rcls = (liveWeapon && WEAPON_RIG[liveWeapon]) || cls;   // weapon + swing motion
+  let rcls = (liveWeapon && WEAPON_RIG[liveWeapon]) || cls;   // weapon + swing motion
+  if(rcls==='bow'){ const f=rangedFamily(u); if(f && f.anim!=='bow') rcls='gun'; }   // TASK RANGED: a crossbowman / musketeer handles a stocked weapon, not a bow
   let st, p;
   if(corpse){ st = u.death==='impale' ? 'die_impale' : ((rcls==='bow'||rcls==='gun') ? 'die_back' : 'die_kneel'); p = Math.min(1, (u.t||0)/1.4); }
   else if(cls==='spear' && u.throwT>0){ st='throw'; p = Math.min(1, 1 - u.throwT/.55); }
@@ -2785,6 +2838,7 @@ function spearGeometry(u){
    STUCK_LIFE seconds, and a new battle starts empty. */
 const STUCK_MAX = 160, STUCK_LIFE = 6;
 function landProjectile(p){
+  if (p.kind === 'ball'){ pushFx({kind:'dust', x:p.x, y:p.groundY, t:0}); return; }   // a ball does not stick: it kicks up dust
   const S_ = S.stuck || (S.stuck = []);
   S_.push({x:p.x, y:p.groundY, ang: p.deflected ? (p.vx>=0?0.12:Math.PI-0.12) : Math.atan2(p.vy, p.vx), kind:p.kind, k:p.k||0.3, team:p.team, flat:!!p.deflected, t:0});
   if (S_.length > STUCK_MAX) S_.splice(0, S_.length - STUCK_MAX);
@@ -2792,7 +2846,7 @@ function landProjectile(p){
 function stickArrow(u, p){
   if (u.hp <= 0) return;
   const f = u.face||1, a = u.arrows || (u.arrows = []);
-  a.push({ox:(p.x-u.x)*f, oy:Math.max(-38, Math.min(-6, p.y-u.y)), ang:Math.atan2(p.vy, p.vx*f), t:0, team:p.team});
+  a.push({ox:(p.x-u.x)*f, oy:Math.max(-38, Math.min(-6, p.y-u.y)), ang:Math.atan2(p.vy, p.vx*f), t:0, team:p.team, kind:p.kind});
   if (a.length > 4) a.shift();
 }
 function deflectProjectile(p, u){
@@ -2990,6 +3044,7 @@ function drawRigUnit(u, corpse, cls, s, x, y){
   if(rcls==='sword' && u.rage){ po.extra.bigSword = 1; } // shield broken -> raged, oversized blade(s)
   if(armorCls==='spear' && u.shieldUp && !u.charge){ po.extra.brace = 1; } // shield-wall brace when holding vs a threat
   po.extra.blockRaise = u.shield>0 ? (u.blockRaiseT||0) : 0;   // §4 visible projectile block
+  po.extra.gunKind = u._gunKind || null;
   po.extra.blockRecoil = clamp((u.blockT||0)/0.18, 0, 1);       // Task F: impact recoil on every shield hit
   po.era = S ? (u.team===1 ? S.civ : S.enemyCiv) : 1;   // civilization-fitted armor tier
   // Layered defense visuals: shield is dropped once its HP is gone; the helmet is
@@ -3088,10 +3143,11 @@ function drawStick(u, corpse){
   }
   // === NEW MOTION RIG: standard troop types render with the shared soldier rig ===
   const RIGCLS=({sword:'sword',esword:'sword',spartan:'sword',spear:'spear',espear:'spear',archer:'bow',earcher:'bow',gunner:'gun',egunner:'gun',laser:'gun',elaser:'gun'})[u.type];
+  let _rc = RIGCLS; { const f = RIGCLS==='bow'||RIGCLS==='gun' ? rangedFamily(u) : null; if (f){ u._gunKind = f.anim==='xbow' ? 'xbow' : f.id; if (f.anim!=='bow') _rc='gun'; } }   // the era family decides the weapon drawn
   if(RIGCLS && window.KWRig){
     // ground shadow (kept from the old renderer)
     if(!corpse){ ctx.fillStyle='rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(x, y+1.5, 10*s, 3*s, 0, 0, 7); ctx.fill(); }
-    drawRigUnit(u, corpse, RIGCLS, s, x, y);
+    drawRigUnit(u, corpse, _rc, s, x, y);
   } else {
   // Soldiers always use the articulated rig. The reference atlas is retained
   // as the armor/weapon art standard, never as a static whole-body replacement.
@@ -3984,6 +4040,13 @@ function drawProj(p){
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ang);
     drawSpearShape(p.k||0.3, p.team);   // TASK H: the SAME length and head the soldier carried (was a 28px stick: a 2.3x pop on release)
     ctx.restore();
+  } else if (p.kind === 'quarrel'){   // crossbow bolt ('bolt' is the wizard's magic projectile)
+    const ang = Math.atan2(p.vy, p.vx); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ang); ctx.scale(0.72, 1.25);   // short, heavy quarrel
+    if (window.KWRig && KWRig.drawArrowShape) KWRig.drawArrowShape(ctx, '#3a2c1c', '#c9ccd0', '#9a8a6a');
+    ctx.restore();
+  } else if (p.kind === 'ball'){
+    ctx.strokeStyle = 'rgba(240,232,210,.55)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x-p.vx*.018, p.y-p.vy*.018); ctx.stroke();   // faint streak, stylized
+    ctx.fillStyle = '#2b2b2b'; ctx.beginPath(); ctx.arc(p.x, p.y, 1.8, 0, 7); ctx.fill();
   } else if (p.kind === 'bullet'){
     ctx.strokeStyle = p.team===1 && window.KWCommerce ? KWCommerce.color('effect','rgba(255,220,120,.9)') : 'rgba(255,220,120,.9)'; ctx.lineWidth = 2.6;
     ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x-p.vx*.02, p.y-p.vy*.02); ctx.stroke();
@@ -4001,6 +4064,8 @@ function drawProj(p){
   }
 }
 function drawFx(f){
+  if (f.kind === 'smoke'){ const k=f.t/1.2; ctx.globalAlpha=(f.a||1)*0.55*(1-k); ctx.fillStyle='#d8d4cc'; for(let i=0;i<3;i++){ ctx.beginPath(); ctx.arc(f.x+i*5+k*14, f.y-i*3-k*10, 3+k*9+i, 0, 7); ctx.fill(); } ctx.globalAlpha=1; return; }
+  if (f.kind === 'dust'){ const k=f.t/.5; ctx.globalAlpha=0.6*(1-k); ctx.fillStyle=f.hit?'#e6dcc4':'#b9a37a'; ctx.beginPath(); ctx.ellipse(f.x, f.y, 3+k*7, 2+k*3, 0, 0, 7); ctx.fill(); ctx.globalAlpha=1; return; }
   if (f.kind === 'spark'){
     const k=f.t/.3; ctx.globalAlpha=(1-k);
     const dir=f.dir||1;
@@ -4634,7 +4699,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 75;
+  const KW_PAGE_BUILD = 76;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }

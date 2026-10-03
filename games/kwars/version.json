@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 75,
+  "build": 76,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 75 (D-01a fortress eras). Fortresses now evolve with the civilization: timber palisade, mud brick, sandstone, glazed brick, marble, Roman masonry, Byzantine domes, Viking timber halls, the medieval castle, steppe ramparts with yurts, Japanese castle walls, Renaissance bastions, star forts, Napoleonic casemates and the industrial bunker."
+  "notes": "KINGDOM WARS 1.0.0 build 76 (Task ranged families). crossbow/musket/rifle eras + garrison gate deadlock fix"
 }

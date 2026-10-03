@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 77,
+  "build": 78,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 77 (Task battle-end loop). results/retry/replay certified; reward idempotence"
+  "notes": "KINGDOM WARS 1.0.0 build 78 (Task save migration). seal-before-migrate, five-age run remap, legacy unit sanitize"
 }

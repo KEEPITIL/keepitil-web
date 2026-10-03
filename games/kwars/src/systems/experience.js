@@ -14,7 +14,9 @@
         }
         const bridge=KWSave.read('experience');if(bridge.ok)return merge(bridge.payload);
       }
-      return merge(JSON.parse(localStorage.getItem(KEY)||'{}'));
+      const raw=JSON.parse(localStorage.getItem(KEY)||'{}');   // pre-envelope save: always the five-age game
+      if(raw&&raw.active&&window.KWSave?.remapFiveAge)raw.active=KWSave.remapFiveAge(raw.active);
+      return merge(raw);
     }catch(e){return JSON.parse(JSON.stringify(base));}
   }
   let data=load();
@@ -91,7 +93,7 @@
   function beginNew(){return window.KWEquipment?KWEquipment.renderPreBattle(showPanel,startNew,{civilization:1,mode:'ENDLESS'}):startNew();}
   function continueRun(){
     if(!data.active)return beginNew();
-    reset();S=data.active;S.units=(S.units||[]).map(u=>({...u,tgt:null}));S.projs=[];S.fx=[];S.floats=[];S.splats=[];S.corpses=[];
+    reset();S=data.active;S.civ=Math.max(1,Math.min(15,Math.round(Number(S.civ)||1)));S.enemyCiv=Math.max(1,Math.min(15,Math.round(Number(S.enemyCiv)||S.civ)));S.units=(S.units||[]).filter(u=>u&&TYPES[u.type]).map(u=>({...u,tgt:null}));   // a legacy run may carry unit types that no longer exist (the retired five-age lasers)S.projs=[];S.fx=[];S.floats=[];S.splats=[];S.corpses=[];
     bakeCastles();rebakePlayer();btnEls.gunner.style.display=S.civ>=11?'flex':'none';btnEls.laser&&(btnEls.laser.style.display='none');closeHub();document.getElementById('overlay').classList.add('hidden');started=true;paused=false;follow=true;syncFollowBtn();
     window.KWAnalytics?.track('run_started',{mode:'ENDLESS',newRun:false},'critical');showMsg(data.recoveryNotice?'Save recovered safely from backup':(S.checkpointNotice?'Run restored at a safe wave checkpoint':'War continued'));delete S.checkpointNotice;delete data.recoveryNotice;
   }

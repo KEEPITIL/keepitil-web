@@ -260,11 +260,30 @@
     if (r.shield) add(P.m_shield, new M4().multiplyMatrices(aL, TRS(...rig.shieldAt)));
     const g = concat(list); list.forEach(x => x.dispose()); return g;
   }
+  // Far crowd: three shared low-poly silhouettes (~90–130 tris) instead of one ~400-tri statue per kind. At that
+  // distance kind reads from colour + silhouette, and one instanced draw per family replaces fourteen.
+  KM.farFamily = r => r.torso === 'tBrute' ? 'F_brute' : r.shield ? 'F_shield' : 'F_std';
+  function farParts() {
+    const out = {};
+    for (const fam of ['F_std', 'F_shield', 'F_brute']) {
+      const brute = fam === 'F_brute', S = brute ? 1.45 : 1, ty = brute ? 0.32 : 0.34, hy = ty + (brute ? 0.44 : 0.4) + 0.17, L = [];
+      L.push(part(new THREE.BoxGeometry(0.34 * S, 0.32, 0.2 * S), 0x5c6178, 1, TRS(0, 0.16, 0.01)));                                  // legs as one block
+      L.push(part(new THREE.LatheGeometry([[0, -0.02], [0.23, 0], [0.28, 0.16], [0.2, 0.38], [0, 0.42]].map(([a, b]) => new THREE.Vector2(a * S, b)), 5), brute ? 0xffd2c4 : 0xe6ebff, 1, TRS(0, ty, 0)));
+      L.push(part(new THREE.SphereGeometry(0.2 * (brute ? 1.08 : 1), 5, 3), brute ? 0xffc4b4 : SKIN, brute ? 1 : 0, TRS(0, hy, 0)));
+      L.push(part(new THREE.SphereGeometry(0.265 * (brute ? 0.9 : 1), 5, 2, 0, Math.PI * 2, 0, Math.PI * 0.55), brute ? DSTEEL : 0xe8eeff, brute ? 0 : 1, TRS(0, hy + 0.03, -0.01)));
+      if (brute) for (const x of [-1, 1]) L.push(part(new THREE.ConeGeometry(0.07, 0.3, 4), IVORY, 0, TRS(x * 0.2, hy + 0.2, 0, 0, 0, -x * 0.6)));
+      L.push(part(new THREE.BoxGeometry(0.05, 0.05, brute ? 0.9 : 0.62), brute ? 0x9aa4b2 : STEEL, 0, TRS(0.3 * S, ty + 0.1, 0.25)));   // weapon stub
+      if (fam === 'F_shield') L.push(part(new THREE.CylinderGeometry(0.21, 0.21, 0.05, 6), 0xe6ecff, 1, TRS(-0.3, ty + 0.15, 0.12, Math.PI / 2, 0, 0)));
+      out[fam] = merge(L, [0, 0.6, 0.7]);
+    }
+    return out;
+  }
   KM.buildKit = function () {
     DETAIL = KM.KIT_DETAIL.near; const parts = buildParts(); DETAIL = 1;
     Object.assign(parts, leanParts());
     const statues = {};
     for (const [k, r] of Object.entries(KM.RECIPE)) if (!r.body) statues[k] = statue(k, r, parts);
+    Object.assign(parts, farParts());
     return { parts, statues };
   };
 

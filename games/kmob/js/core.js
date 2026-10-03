@@ -174,6 +174,14 @@
     medium: { dpr: 1.5,  shadows: true,  shadowMap: 1024, lodNear: 80,  lodMid: 300, fx: 0.6,  glow: 1.25, bloom: false },
     low:    { dpr: 1.0,  shadows: false, shadowMap: 512,  lodNear: 40,  lodMid: 160, fx: 0.3,  glow: 1.1, bloom: false },
   };
+  // Phones (measured on a physical iPhone): fewer full-skeleton units, a tighter lean band, smaller shadow map,
+  // and the environment never casts dynamic shadows — only the launcher, towers and walls do.
+  KM.QUALITY_MOBILE = {
+    high:   { lodNear: 80, lodMid: 340, shadowMap: 1024, decorShadows: false },
+    medium: { lodNear: 64, lodMid: 280, shadowMap: 1024, decorShadows: false },
+    low:    { lodNear: 40, lodMid: 200, shadowMap: 512,  decorShadows: false },
+  };
+  KM.isMobileEnv = (ua, touch, minSide) => /iPhone|iPad|iPod|Android|Mobile/i.test(ua || '') || (!!touch && minSide < 900);
   // initial tier without any measurement: stored benchmark recommendation > desktop high > phones medium
   KM.detectQuality = function (env) {
     if (env.stored && KM.QUALITY[env.stored]) return env.stored;

@@ -553,6 +553,9 @@ let paused = false, muted = false, started = false, gameSpeed = 1;
 let diagnosticsVisible = false;
 const perfStats = {fps:0,minFps:Infinity,frames:0,elapsed:0,simSteps:0,sampleSteps:0,uiT:0};
 
+/* TASK RESULTS (§13): what happened in this battle -- deployed / lost, gold earned / spent, fortress damage both ways.
+   Lazily attached to S so every start path (new, retry, campaign, continue) gets a fresh record with the new S. */
+function battleStats(){ return S.stats || (S.stats = {deployed:0, lost:0, earned:0, spent:0, castleDmg:0, gateDmg:0}); }
 function reset(){
   S = {
     time: 0, gold: 250,
@@ -726,7 +729,7 @@ function spawnAlly(type){
   if (T.civReq && S.civ < T.civReq){ showMsg('Unlocks in the '+CIV_NAMES[T.civReq-1]+' Age'); return; }
   if (S.gold < T.cost){ showMsg('Not enough gold!'); beep(160,.12,'square',.05); return; }
   if (armyCount() >= armyMax()){ showMsg('Army is full ('+armyMax()+' max)'); return; }
-  S.gold -= T.cost;
+  S.gold -= T.cost; battleStats().deployed++; battleStats().spent += T.cost;
   const m = civMult()*progression().combatMultiplier;
   const eq=window.KWEquipment?.modifiersFor?.(T.role,S.civ)||{damage:1,hp:1,shield:1,armor:1,speed:1,acceleration:1,attackSpeed:1,range:1,rangedResist:0,meleeResist:0,explosionResist:0,items:[]};
   const protection=unitProtection(type,1);protection.shield=protection.shieldMax=Math.round(protection.shield*eq.shield);protection.armor=protection.armorMax=Math.round(protection.armor*eq.armor);
@@ -1902,7 +1905,7 @@ function dmgCastle(d){
   // battles and Final Sieges keep castle destruction as their win condition.
   if (!S.folkSiege && !S.finalSiege && !S.campaignMissionId) return;
   if (baseScreened(-1)) return;   // enemy soldiers still screen their castle — clear them first
-  S.castleHP -= d;
+  battleStats().castleDmg += Math.min(d, S.castleHP); S.castleHP -= d;
   if (S.castleHP <= 0){
     S.castleHP = 0; S.shake = 14;
     window.KWRuntime?.events.emit('fortress_destroyed',{team:-1,wave:S.wave,civilization:S.enemyCiv});
@@ -1918,7 +1921,7 @@ function dmgCastle(d){
 function dmgGate(d){
   if (S.gateHP <= 0 || S.over) return;
   if (baseScreened(1)) return;    // our soldiers still hold the line — the gate is safe until they fall
-  S.gateHP -= d;
+  battleStats().gateDmg += Math.min(d, S.gateHP); S.gateHP -= d;
   if(window.KWAudio)KWAudio.emit('fortress.hit',{civ:S.civ,team:-1});
   if (S.gateHP <= 0){
     S.gateHP = 0; S.over = 'lose'; S.shake = 10;
@@ -1967,9 +1970,10 @@ function hurt(u, dmg, hit){
   if(u.shield<=0)throwLastSpear(u);   // shield broken & depleted -> hurl the last spear, then draw the sword
   if (u.hp <= 0){
     u.hp = 0;
+    if (u.team === 1) battleStats().lost++;
     if (u.team === -1){
       const b = TYPES[u.type].gold;
-      S.gold += b; addFloat(u.x, u.y-40, '+'+b); snd.coin();
+      S.gold += b; battleStats().earned += b; addFloat(u.x, u.y-40, '+'+b); snd.coin();
       if(window.KWAudio)KWAudio.emit('reward.gold',{civ:S.civ});
       if(window.KWExperience) KWExperience.recordKill();
     }
@@ -1980,6 +1984,7 @@ function hurt(u, dmg, hit){
     window.KWRuntime?.events.emit('unit_died',{team:u.team,type:u.type,wave:S.wave});
   }
 }
+function resultStats(){ const st=battleStats(); return {...st, time:S.time||0, castlePct:S.castleMax?Math.round(100*st.castleDmg/S.castleMax):0, gatePct:S.gateMax?Math.round(100*st.gateDmg/S.gateMax):0}; }
 function endGame(title, text){
   const result=/victory/i.test(title)?'victory':'defeat';
   if(window.KWAnalytics)KWAnalytics.track('battle_ended',{result,wave:S.wave,civilization:S.civ},'critical');
@@ -1993,7 +1998,7 @@ function endGame(title, text){
       result, mode:'ENDLESS', gold,
       scopeLabel:'WAVE REACHED', scopeValue:wave,
       subtitle:(text||'').replace(/<[^>]*>/g,' ').trim()+' · '+CIV_NAMES[civ-1]+' Age',
-      retry:{mode:'ENDLESS'}
+      retry:{mode:'ENDLESS'}, stats:resultStats()
     });
   }, 1500);
 }
@@ -4703,7 +4708,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 79;
+  const KW_PAGE_BUILD = 80;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }

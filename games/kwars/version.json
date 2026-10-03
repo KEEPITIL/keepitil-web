@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 79,
+  "build": 80,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 79 (Task audio). complete cue set + mixing + fail-safe"
+  "notes": "KINGDOM WARS 1.0.0 build 80 (Results data). battle stats on results, actions first, refresh/back certified"
 }

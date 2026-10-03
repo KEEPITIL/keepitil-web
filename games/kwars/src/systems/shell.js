@@ -501,7 +501,10 @@
       o.gold!=null?stat('GOLD HELD','🪙 '+Math.floor(o.gold)):'',
       xp?stat('LEGACY XP','+'+xp):'',
       gemGain?stat('GEMS EARNED','💎 +'+gemGain):'',
-      o.crowns!=null?stat('CROWNS','★'.repeat(o.crowns)+'☆'.repeat(3-o.crowns)):''
+      o.crowns!=null?stat('CROWNS','★'.repeat(o.crowns)+'☆'.repeat(3-o.crowns)):'',
+      o.stats?stat('ARMY',o.stats.deployed+' deployed · '+o.stats.lost+' lost'):'',
+      o.stats?stat('DURATION',Math.floor(o.stats.time/60)+'m '+String(Math.floor(o.stats.time%60)).padStart(2,'0')+'s'):'',
+      o.stats?stat('FORTRESS DAMAGE','theirs '+o.stats.castlePct+'% · ours '+o.stats.gatePct+'%'):''
     ].filter(Boolean).join('');
     const notes=[];
     if(o.unlocked)notes.push('🔓 '+esc(o.unlocked));
@@ -525,9 +528,9 @@
       '<div class="resultbanner '+(win?'victory':'defeat')+'">'+(win?'VICTORY':'DEFEAT')+'</div>'+
       '<div class="resultsub">'+esc(o.subtitle||'')+'</div>'+
       '<div class="resultstats">'+cells+'</div>'+
+      '<div class="resultacts">'+acts+'</div>'+   /* §13: what do I do next stays on the first screenful; notes + save offer follow */
       (notes.length?'<div class="resultnotes">'+notes.join('<br>')+'</div>':'')+
-      (saveOffer?savePromptHTML():'')+
-      '<div class="resultacts">'+acts+'</div></div>';
+      (saveOffer?savePromptHTML():'')+'</div>';
     ov.classList.remove('hidden');
     const sp=ov.querySelector('#saveProgressBtn');
     if(sp)sp.onclick=()=>{ ov.classList.add('hidden'); goHome(); savePrompt(); };

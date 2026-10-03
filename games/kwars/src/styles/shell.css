@@ -257,7 +257,7 @@
 .firstrun li{ list-style:none; margin:6px 0; font-size:11.5px; color:#e6edf1; line-height:1.45; }
 
 /* ---------------- results screen ---------------- */
-.resultwrap{ width:min(430px,94vw); text-align:center; }
+.resultwrap{ width:min(560px,94vw); text-align:center; }
 .resultbanner{
   font-size:clamp(26px,7vw,40px); letter-spacing:.14em; font-weight:bold; line-height:1.1;
   text-shadow:0 3px 0 rgba(0,0,0,.55);
@@ -275,7 +275,7 @@
 .resultstats small{ display:block; color:#8fa2ad; font-size:9.5px; letter-spacing:.1em; }
 .resultstats b{ font-size:15px; color:#f1f6f9; }
 .resultnotes{
-  margin:0 0 14px; padding:9px 11px; border:1px solid var(--kw-bronze); border-radius:9px;
+  margin:12px 0 0; padding:9px 11px; border:1px solid var(--kw-bronze); border-radius:9px;
   background:#2a2317; color:var(--kw-gold); font-size:11.5px; text-align:left; line-height:1.55;
 }
 .resultacts{ display:grid; grid-template-columns:1fr 1fr; gap:7px; }
@@ -438,7 +438,7 @@ body.kw-shell #rotate{ display:none !important; }
 
 /* §3 Save Progress offer, shown inside Results for guests with real progress. */
 .saveoffer{
-  margin:0 0 14px; padding:11px 12px; text-align:left;
+  margin:12px 0 0; padding:11px 12px; text-align:left;
   border:1px solid var(--kw-bronze); border-radius:11px; background:#2a2317;
 }
 .saveoffer b{ display:block; color:var(--kw-gold); letter-spacing:.10em; font-size:12px; }

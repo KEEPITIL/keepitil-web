@@ -75,6 +75,7 @@
     { k: 'soldier', hp: 1, dmg: 1, rng: 0.75, rad: 0.36, sc: 1, cd: 0.85, wpn: 'sword' },
     { k: 'archerF', hp: 0.7, dmg: 0.9, rng: 8, rad: 0.36, sc: 1, cd: 1.4, wpn: 'bow', r: 1 },
     { k: 'knightF', hp: 3.2, dmg: 2.2, rng: 0.9, rad: 0.5, sc: 1.35, cd: 1.0, wpn: 'sword', sh: 1 },
+    { k: 'collector', hp: 1.6, dmg: 0, rng: 0.5, rad: 0.32, sc: 0.95, cd: 9, wpn: 'sack', col: 1, spd: 5.4 },
   ];
   KM.FRIEND.forEach((e, i) => { e.id = 32 + i; });
 
@@ -84,51 +85,84 @@
     return {
       cap: 45 + 8 * (perm.army || 0), rate: 4.8, hp: 20, dmg: 4.5, armor: 0, speed: 4.3, atk: 1,
       magnet: 2.4 * (1 + 0.1 * (perm.magnet || 0)), crit: 0.05, archer: 0, knight: 0,
+      // command tank weapon · force-field shield · collectors · ranged tech era
+      tankDmg: 20, tankRate: 0.85, tankRange: 24, tankSplash: 0, tankBarrels: 1, missiles: 0,
+      shield: 0, shRecharge: 1, shRadius: 2.4, shDelay: 4,
+      collectors: 0, colSpeed: 1, colCap: 6, rtech: 0, rdmg: 1, posture: 0,
       maxHp: 100 + 10 * (perm.plating || 0), towerRate: 1, towerRange: 1, towerDmg: 1, splash: 1, frost: 1, sniperCrit: 0.1, barracksRate: 1, bannerR: 1, towerHp: 1, towerArmor: 0,
-      lv: { cap: 0, rate: 0, hp: 0, dmg: 0, armor: 0, speed: 0, atk: 0, magnet: 0, crit: 0, archer: 0, knight: 0, plating: 0, trate: 0, trange: 0, tdmg: 0, splash: 0, frost: 0, scrit: 0, brate: 0, bradius: 0, thp: 0, tarm: 0 },
+      lv: { tgun: 0, trof: 0, trng: 0, tspl: 0, tmis: 0, shield: 0, shrec: 0, shrad: 0, coll: 0, cspd: 0, ccap: 0, rtech: 0, rdmg: 0, cap: 0, rate: 0, hp: 0, dmg: 0, armor: 0, speed: 0, atk: 0, magnet: 0, crit: 0, archer: 0, knight: 0, plating: 0, trate: 0, trange: 0, tdmg: 0, splash: 0, frost: 0, scrit: 0, brate: 0, bradius: 0, thp: 0, tarm: 0 },
     };
   };
 
+  // Mobile support vehicles (they replace the old ground towers: everything travels with the command tank).
+  // Kept under KM.TOWERS / sim.towers so the existing combat, targeting and render plumbing stays shared.
   KM.TOWERS = {
-    arrow:    { name: 'Arrow Tower',   range: 13, cd: 0.55, dmg: 9,   color: '#3a8bff' },
-    cannon:   { name: 'Cannon Tower',  range: 12, cd: 2.2,  dmg: 32,  splash: 2.3, color: '#ff7a2f' },
-    frost:    { name: 'Frost Tower',   range: 11, cd: 1.6,  dmg: 4,   splash: 2.6, slow: 2.2, color: '#5fe0ff' },
-    sniper:   { name: 'Sniper Tower',  range: 24, cd: 2.6,  dmg: 140, color: '#c58cff' },
-    barracks: { name: 'Barracks',      range: 0,  cd: 5,    dmg: 0,   color: '#ffd23a' },
-    banner:   { name: 'Shield Banner', range: 7,  cd: 1,    dmg: 0,   color: '#3cd27a' },
+    gun:       { name: 'Gun Carrier',   range: 15, cd: 0.62, dmg: 11,  color: '#3a8bff' },
+    artillery: { name: 'Artillery',     range: 14, cd: 2.4,  dmg: 34,  splash: 2.4, color: '#ff7a2f' },
+    frost:     { name: 'Cryo Projector', range: 11, cd: 1.6,  dmg: 4,   splash: 2.6, slow: 2.2, color: '#5fe0ff' },
+    carrier:   { name: 'Troop Carrier', range: 0,  cd: 5,    dmg: 0,   color: '#ffd23a' },
   };
-  KM.TOWER_SLOTS = [{ x: -7.3, dz: -3 }, { x: 7.3, dz: -3 }, { x: -7.6, dz: -9.5 }, { x: 7.6, dz: -9.5 }, { x: -7.9, dz: -16 }, { x: 7.9, dz: -16 }];
-  // Defensive lines (predefined positions relative to the advancing front; built automatically by upgrade cards)
-  KM.WALLS = {
-    barricade: { dz: -7.5, xs: [-5.6, -1.9, 1.9, 5.6], per: 2, hp: 90, arm: 2, w: 3.0, d: 0.8 },
-    wall: { dz: -4.5, xs: [-4.6, 0, 4.6], per: 3, hp: 260, arm: 8, w: 3.9, d: 0.9 },
-  };
-  KM.slotsUnlocked = m => 2 + (m >= 3 ? 2 : 0) + (m >= 8 ? 2 : 0);
+  // formation slots relative to the command tank (x beside it, dz ahead of it); vehicles drive to them, never race ahead
+  KM.TOWER_SLOTS = [{ x: -3.1, dz: -2.4 }, { x: 3.1, dz: -2.4 }, { x: -5.4, dz: -0.4 }, { x: 5.4, dz: -0.4 }];
+  KM.WALLS = { barricade: { dz: -7.5, xs: [], per: 0, hp: 0, arm: 0, w: 0, d: 0 }, wall: { dz: -4.5, xs: [], per: 0, hp: 0, arm: 0, w: 0, d: 0 } };   // retired (static walls cannot travel)
+  KM.slotsUnlocked = m => 1 + (m >= 4 ? 1 : 0) + (m >= 8 ? 1 : 0) + (m >= 13 ? 1 : 0);
+  // Ranged weapon eras — earned one step at a time (minute gate per era), visual + mechanical changes together.
+  KM.RTECH = [
+    { name: 'ROCK THROWERS', at: 0,  range: 5.5,  dmg: 0.6,  cd: 1.6, speed: 10, arc: 1.0,  wpn: 'rock' },
+    { name: 'JAVELINS',      at: 2,  range: 6.8,  dmg: 0.85, cd: 1.5, speed: 14, arc: 0.55, wpn: 'spear' },
+    { name: 'ARCHERS',       at: 4,  range: 8.2,  dmg: 0.95, cd: 1.3, speed: 19, arc: 0.5,  wpn: 'bow' },
+    { name: 'CROSSBOWS',     at: 7,  range: 9.2,  dmg: 1.25, cd: 1.45, speed: 28, arc: 0.2, wpn: 'xbow' },
+    { name: 'MUSKETS',       at: 11, range: 10,   dmg: 1.8,  cd: 2.1, speed: 60, arc: 0,    wpn: 'musket' },
+    { name: 'RIFLES',        at: 15, range: 11.2, dmg: 2.0,  cd: 1.35, speed: 70, arc: 0,   wpn: 'rifle' },
+    { name: 'PULSE RIFLES',  at: 20, range: 12.5, dmg: 1.4,  cd: 0.6, speed: 48, arc: 0,    wpn: 'pulse' },
+  ];
+  KM.rtech = s => KM.RTECH[Math.min(KM.RTECH.length - 1, s.rtech || 0)];
+  // tank visual stage from its own upgrade lines (the tank shows what was built, not just how many cards were taken)
+  KM.tankLook = s => { const L = s.lv; return { barrels: Math.min(3, 1 + Math.floor((L.trof || 0) / 2)), blen: 0.85 + Math.min(6, L.tgun || 0) * 0.07, cannon: (L.tgun || 0) >= 2, armor: (L.plating || 0), antenna: (L.trng || 0) > 0, missiles: (L.tmis || 0) > 0, shield: (L.shield || 0), heavy: (L.tgun || 0) + (L.trof || 0) >= 6 }; };
 
   // cat: army | defense ; color used for card face
+  // cat → card colour: army (blue/red/green), ranged, tank, support, defense (shield), collect (gold)
+  // needs: prerequisite (the deck only offers what makes sense for this run's army)
   KM.UPGRADES = [
+    // ARMY
     { id: 'cap',    cat: 'army', title: 'ARMY SIZE',   val: '+12',  icon: 'army',   color: 'blue',  w: 10, apply: s => { s.cap += 12; } },
     { id: 'rate',   cat: 'army', title: 'DEPLOY SPEED', val: '+12%', icon: 'bolt',  color: 'blue',  w: 8, apply: s => { s.rate *= 1.12; } },
-    { id: 'dmg',    cat: 'army', title: 'DAMAGE',      val: '+12%', icon: 'sword',  color: 'red',   w: 9, apply: s => { s.dmg *= 1.12; } },
+    { id: 'dmg',    cat: 'army', title: 'MELEE DAMAGE', val: '+12%', icon: 'sword', color: 'red',   w: 9, apply: s => { s.dmg *= 1.12; } },
     { id: 'hp',     cat: 'army', title: 'SOLDIER HEALTH', val: '+12%', icon: 'helm', color: 'green', w: 9, apply: s => { s.hp *= 1.12; } },
-    { id: 'armor',  cat: 'army', title: 'ARMOR',       val: '+2',   icon: 'shield', color: 'green', w: 6, apply: s => { s.armor += 2; } },
+    { id: 'armor',  cat: 'army', title: 'SOLDIER ARMOR', val: '+2', icon: 'shield', color: 'green', w: 6, apply: s => { s.armor += 2; } },
     { id: 'atk',    cat: 'army', title: 'ATTACK SPEED', val: '+10%', icon: 'swords', color: 'red',  w: 6, apply: s => { s.atk *= 1.1; } },
     { id: 'speed',  cat: 'army', title: 'MARCH SPEED', val: '+8%',  icon: 'boot',   color: 'blue',  w: 4, max: 6, apply: s => { s.speed *= 1.08; } },
-    { id: 'magnet', cat: 'army', title: 'COIN MAGNET', val: '+20%', icon: 'magnet', color: 'gold',  w: 5, max: 8, apply: s => { s.magnet *= 1.2; } },
     { id: 'crit',   cat: 'army', title: 'CRITICAL',    val: '+5%',  icon: 'star',   color: 'red',   w: 4, max: 8, apply: s => { s.crit += 0.05; } },
-    { id: 'archer', cat: 'army', title: 'ARCHERS',     val: '+15%', icon: 'bow',    color: 'blue',  w: 4, max: 4, at: 1.5, apply: s => { s.archer = Math.min(0.6, s.archer + 0.15); } },
     { id: 'knight', cat: 'army', title: 'KNIGHTS',     val: '1 in ' , icon: 'helm', color: 'gold',  w: 3, max: 4, at: 3, apply: s => { s.knight = s.knight ? Math.max(4, s.knight - 3) : 12; } },
-    { id: 'plating',cat: 'defense', title: 'LAUNCHER ARMOR', val: '+25 HP', icon: 'heart', color: 'green', w: 4, max: 8, apply: (s, run) => { s.maxHp += 25; if (run) run.heal(25); } },
-    { id: 'trate',  cat: 'defense', title: 'TOWER FIRE RATE', val: '+12%', icon: 'tower', color: 'red', w: 4, needTower: 1, max: 8, apply: s => { s.towerRate *= 1.12; } },
-    { id: 'thp',    cat: 'defense', title: 'TOWER HEALTH', val: '+25%', icon: 'heart', color: 'green', w: 3.5, needStruct: 1, max: 8, apply: s => { s.towerHp *= 1.25; } },
-    { id: 'tarm',   cat: 'defense', title: 'TOWER ARMOR', val: '+3', icon: 'shield', color: 'green', w: 3, needStruct: 1, max: 6, apply: s => { s.towerArmor += 3; } },
-    { id: 'tdmg',   cat: 'defense', title: 'TOWER DAMAGE', val: '+15%', icon: 'tower', color: 'red', w: 4, needTower: 1, max: 8, apply: s => { s.towerDmg *= 1.15; } },
-    { id: 'splash', cat: 'defense', title: 'CANNON SPLASH', val: '+15%', icon: 't_cannon', color: 'tower', w: 3, needType: 'cannon', max: 5, apply: s => { s.splash *= 1.15; } },
-    { id: 'frost',  cat: 'defense', title: 'DEEP FREEZE', val: '+20%', icon: 't_frost', color: 'tower', w: 3, needType: 'frost', max: 5, apply: s => { s.frost *= 1.2; } },
-    { id: 'scrit',  cat: 'defense', title: 'SNIPER CRIT', val: '+10%', icon: 't_sniper', color: 'tower', w: 3, needType: 'sniper', max: 5, apply: s => { s.sniperCrit = Math.min(0.7, s.sniperCrit + 0.1); } },
-    { id: 'brate',  cat: 'defense', title: 'BARRACKS SPEED', val: '+15%', icon: 't_barracks', color: 'tower', w: 3, needType: 'barracks', max: 5, apply: s => { s.barracksRate *= 1.15; } },
-    { id: 'bradius',cat: 'defense', title: 'BANNER RADIUS', val: '+12%', icon: 't_banner', color: 'tower', w: 3, needType: 'banner', max: 5, apply: s => { s.bannerR *= 1.12; } },
-    { id: 'trange', cat: 'defense', title: 'TOWER RANGE', val: '+10%', icon: 'tower', color: 'blue', w: 3, needTower: 1, max: 5, apply: s => { s.towerRange *= 1.1; } },
+    // RANGED
+    { id: 'archer', cat: 'ranged', title: 'RANGED TROOPS', val: '+15%', icon: 'bow', color: 'blue', w: 5, max: 4, at: 1.0, apply: s => { s.archer = Math.min(0.6, s.archer + 0.15); } },
+    { id: 'rtech',  cat: 'ranged', title: 'WEAPON ERA', val: '', icon: 'bow', color: 'gold', w: 5, needRanged: 1, max: 6, apply: s => { s.rtech = Math.min(KM.RTECH.length - 1, s.rtech + 1); } },
+    { id: 'rdmg',   cat: 'ranged', title: 'RANGED DAMAGE', val: '+15%', icon: 'bow', color: 'red', w: 4, needRanged: 1, max: 8, apply: s => { s.rdmg *= 1.15; } },
+    // COMMAND TANK
+    { id: 'tgun',   cat: 'tank', title: 'TANK CANNON', val: '+30% DMG', icon: 'tank', color: 'red', w: 6, max: 8, apply: s => { s.tankDmg *= 1.3; } },
+    { id: 'trof',   cat: 'tank', title: 'TANK FIRE RATE', val: '+18%', icon: 'tank', color: 'red', w: 5, max: 6, apply: s => { s.tankRate *= 1.18; s.tankBarrels = Math.min(3, 1 + Math.floor(((s.lv.trof || 0) + 1) / 2)); } },
+    { id: 'trng',   cat: 'tank', title: 'TARGETING SYSTEM', val: '+12% RANGE', icon: 'tank', color: 'blue', w: 3, max: 4, at: 1.5, apply: s => { s.tankRange *= 1.12; } },
+    { id: 'tspl',   cat: 'tank', title: 'HE SHELLS', val: 'SPLASH', icon: 'tank', color: 'gold', w: 3, max: 4, needLv: ['tgun', 2], apply: s => { s.tankSplash = (s.tankSplash || 1.2) * (s.tankSplash ? 1.2 : 1); } },
+    { id: 'tmis',   cat: 'tank', title: 'MISSILE POD', val: '+2 MISSILES', icon: 'tank', color: 'gold', w: 3, max: 4, at: 5, needLv: ['tgun', 1], apply: s => { s.missiles += 2; } },
+    { id: 'plating',cat: 'tank', title: 'TANK ARMOR', val: '+25 HP', icon: 'heart', color: 'green', w: 4, max: 8, apply: (s, run) => { s.maxHp += 25; if (run) run.heal(25); } },
+    // DEFENSE — the force field travels with the tank
+    { id: 'shield', cat: 'defense', title: 'FORCE FIELD', val: '', icon: 'shield', color: 'tower', w: 5, max: 5, at: 2, apply: (s, run) => { s.shield++; if (run) run.shieldUp(); } },
+    { id: 'shrec',  cat: 'defense', title: 'SHIELD RECHARGE', val: '+30%', icon: 'shield', color: 'tower', w: 3, max: 5, needLv: ['shield', 1], apply: s => { s.shRecharge *= 1.3; s.shDelay = Math.max(1.5, s.shDelay * 0.82); } },
+    { id: 'shrad',  cat: 'defense', title: 'SHIELD RADIUS', val: '+1.2 m', icon: 'shield', color: 'tower', w: 3, max: 4, needLv: ['shield', 1], apply: s => { s.shRadius += 1.2; } },
+    // SUPPORT VEHICLES
+    { id: 'trate',  cat: 'support', title: 'SUPPORT FIRE RATE', val: '+12%', icon: 'tower', color: 'red', w: 4, needTower: 1, max: 8, apply: s => { s.towerRate *= 1.12; } },
+    { id: 'tdmg',   cat: 'support', title: 'SUPPORT DAMAGE', val: '+15%', icon: 'tower', color: 'red', w: 4, needTower: 1, max: 8, apply: s => { s.towerDmg *= 1.15; } },
+    { id: 'trange', cat: 'support', title: 'SUPPORT RANGE', val: '+10%', icon: 'tower', color: 'blue', w: 3, needTower: 1, max: 5, apply: s => { s.towerRange *= 1.1; } },
+    { id: 'thp',    cat: 'support', title: 'VEHICLE ARMOR', val: '+25% HP', icon: 'heart', color: 'green', w: 3, needTower: 1, max: 8, apply: s => { s.towerHp *= 1.25; s.towerArmor += 1; } },
+    { id: 'splash', cat: 'support', title: 'ARTILLERY SHELLS', val: '+15%', icon: 't_artillery', color: 'tower', w: 3, needType: 'artillery', max: 5, apply: s => { s.splash *= 1.15; } },
+    { id: 'frost',  cat: 'support', title: 'DEEP FREEZE', val: '+20%', icon: 't_frost', color: 'tower', w: 3, needType: 'frost', max: 5, apply: s => { s.frost *= 1.2; } },
+    { id: 'scrit',  cat: 'support', title: 'GUN CRIT', val: '+10%', icon: 't_gun', color: 'tower', w: 3, needType: 'gun', max: 5, apply: s => { s.sniperCrit = Math.min(0.7, s.sniperCrit + 0.1); } },
+    { id: 'brate',  cat: 'support', title: 'CARRIER SPEED', val: '+15%', icon: 't_carrier', color: 'tower', w: 3, needType: 'carrier', max: 5, apply: s => { s.barracksRate *= 1.15; } },
+    // COLLECTION
+    { id: 'magnet', cat: 'collect', title: 'COIN MAGNET', val: '+20%', icon: 'magnet', color: 'gold',  w: 5, max: 8, apply: s => { s.magnet *= 1.2; } },
+    { id: 'coll',   cat: 'collect', title: 'COLLECTOR', val: '+1', icon: 'coin', color: 'gold', w: 5, max: 5, at: 1.5, apply: s => { s.collectors++; } },
+    { id: 'cspd',   cat: 'collect', title: 'COLLECTOR SPEED', val: '+15%', icon: 'boot', color: 'gold', w: 3, max: 5, needLv: ['coll', 1], apply: s => { s.colSpeed *= 1.15; } },
+    { id: 'ccap',   cat: 'collect', title: 'COLLECTOR BAGS', val: '+50%', icon: 'coin', color: 'gold', w: 3, max: 5, needLv: ['coll', 1], apply: s => { s.colCap *= 1.5; } },
   ];
   KM.UPG_BY = Object.fromEntries(KM.UPGRADES.map(u => [u.id, u]));
 
@@ -143,17 +177,19 @@
       if (u.needTower && !run.towers.some(t => t)) continue;
       if (u.needStruct && !run.towers.some(t => t) && !(run.walls && run.walls.length)) continue;
       if (u.needType && !run.towers.some(t => t && t.type === u.needType)) continue;
-      opts.push({ id: u.id, w: u.w, title: u.title, val: u.id === 'knight' ? '1 in ' + (s.knight ? Math.max(4, s.knight - 3) : 12) : u.val, icon: u.icon, color: u.color, cat: u.cat });
+      if (u.needRanged && !(s.archer > 0)) continue;
+      if (u.needLv && (s.lv[u.needLv[0]] || 0) < u.needLv[1]) continue;
+      if (u.id === 'rtech') { const nx = KM.RTECH[(s.rtech || 0) + 1]; if (!nx || m < nx.at) continue; }
+      const val = u.id === 'knight' ? '1 in ' + (s.knight ? Math.max(4, s.knight - 3) : 12) : u.id === 'rtech' ? KM.RTECH[(s.rtech || 0) + 1].name : u.id === 'shield' ? (s.shield ? 'LV ' + (s.shield + 1) : 'NEW') : u.val;
+      opts.push({ id: u.id, w: u.w, title: u.title, val, icon: u.icon, color: u.color, cat: u.cat });
     }
     const free = run.towers.findIndex((t, i) => !t && i < KM.slotsUnlocked(m));
     if (free >= 0) for (const k of Object.keys(KM.TOWERS)) {
-      if (k === 'sniper' && m < 4) continue; if (k === 'frost' && m < 2) continue;
-      opts.push({ id: 'build:' + k, w: run.towers.some(t => t) ? 2.2 : 5, title: 'BUILD ' + KM.TOWERS[k].name.toUpperCase(), val: 'NEW', icon: 't_' + k, color: 'tower', cat: 'defense', tower: k });
+      if (m < 2.5) break; if (k === 'artillery' && m < 3.5) continue; if (k === 'carrier' && m < 4) continue; if (k === 'frost' && m < 5) continue;
+      if (run.towers.some(t => t && t.type === k)) continue;                                  // one of each type: upgrade it instead
+      opts.push({ id: 'build:' + k, w: run.towers.some(t => t) ? 2.2 : 4, title: KM.TOWERS[k].name.toUpperCase(), val: 'NEW VEHICLE', icon: 't_' + k, color: 'tower', cat: 'support', tower: k });
     }
-    // automatic defensive lines at fixed positions ahead of the launcher
-    if (m >= 0.8) { const nb = (run.walls || []).filter(w => w.type === 'barricade').length; opts.push({ id: 'wall:barricade', w: nb ? 1.6 : 3.2, title: nb >= KM.WALLS.barricade.xs.length ? 'REINFORCE BARRICADES' : 'BUILD BARRICADE', val: nb >= KM.WALLS.barricade.xs.length ? '+35% HP' : '+2', icon: 'fence', color: 'gold', cat: 'defense' }); }
-    if (m >= 2.5) { const nw = (run.walls || []).filter(w => w.type === 'wall').length; opts.push({ id: 'wall:wall', w: nw ? 1.4 : 2.6, title: nw >= KM.WALLS.wall.xs.length ? 'REINFORCE SHIELD WALL' : 'BUILD SHIELD WALL', val: nw >= KM.WALLS.wall.xs.length ? '+35% HP' : 'NEW', icon: 'wall', color: 'tower', cat: 'defense' }); }
-    run.towers.forEach((t, i) => { if (t && t.lvl < 5) opts.push({ id: 'tup:' + i, w: 3.2, title: 'UPGRADE ' + KM.TOWERS[t.type].name.toUpperCase(), val: 'LV ' + (t.lvl + 1), icon: 't_' + t.type, color: 'tower', cat: 'defense', tower: t.type }); });
+    run.towers.forEach((t, i) => { if (t && t.lvl < 5) opts.push({ id: 'tup:' + i, w: t.down > 0 ? 6 : 3.2, title: (t.down > 0 ? 'REBUILD ' : 'UPGRADE ') + KM.TOWERS[t.type].name.toUpperCase(), val: 'LV ' + (t.lvl + 1), icon: 't_' + t.type, color: 'tower', cat: 'support', tower: t.type }); });
     const out = [];
     while (out.length < 3 && opts.length) {
       // guarantee at least one army card

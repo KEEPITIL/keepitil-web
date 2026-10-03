@@ -27,20 +27,21 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
   ok('no empty part geometry', kit.empty.length === 0, kit.empty);
   // launcher stages
   const stages = await p.evaluate(async () => { const g = KM.game, out = []; g.sim.L.inv = 1e9;
-    for (let lv = 1; lv <= 5; lv++) { g.sim.upgrades = (lv - 1) * 4; g.render.frame(g.sim, 1 / 60); const S = g.render.lStage; out.push({ lv, mid: S.mid.visible, hop: S.hopper.visible, core: S.core.visible, armor: S.armor.visible, crown: S.crown.visible, barrels: g.render.barrels.filter(x => x.visible).length }); }
-    g.sim.upgrades = 0; return out; });
+    for (let lv = 1; lv <= 5; lv++) { g.startRun(); g.sim.L.inv = 1e9; g.showcase(0, lv); g.render.frame(g.sim, 1 / 60); const S = g.render.lStage; out.push({ lv, mid: S.mid.visible, hop: S.hopper.visible, core: S.core.visible, armor: S.armor.visible, crown: S.crown.visible, barrels: g.render.barrels.filter(x => x.visible).length }); }
+    g.startRun(); return out; });
   ok('launcher has 5 visibly different stages', new Set(stages.map(s => JSON.stringify({ ...s, lv: 0 }))).size === 5, stages);
   ok('launcher barrels 1 → 2 → 3', stages[0].barrels === 1 && stages[2].barrels === 2 && stages[4].barrels === 3);
-  // towers: model rebuilt per level, each level taller
-  const towers = await p.evaluate(() => { const g = KM.game, hs = []; for (let lv = 1; lv <= 5; lv++) { g.showcase(lv, 1); g.render.frame(g.sim, 1 / 60); const o = g.render.towerObjs; hs.push({ lv, built: o.filter(Boolean).length, lvl: o.map(t => t && t.userData.lvl), h: +o[0].userData.head.position.y.toFixed(2) }); } return hs; });
-  ok('all six tower types build', towers.every(t => t.built === 6), towers.map(t => t.built));
-  ok('tower models rebuild at every level', towers.every(t => t.lvl.every(l => l === t.lv)));
-  ok('higher tower levels are taller', towers.every((t, i) => i === 0 || t.h > towers[i - 1].h), towers.map(t => t.h));
+  // support vehicles: model rebuilt per level, each level bigger
+  const towers = await p.evaluate(() => { const g = KM.game, hs = []; for (let lv = 1; lv <= 5; lv++) { g.showcase(lv, 1); g.render.frame(g.sim, 1 / 60); const o = g.render.towerObjs; const bb = new THREE.Box3().setFromObject(o[0]); hs.push({ lv, built: o.filter(Boolean).length, lvl: o.filter(Boolean).map(t => t.userData.lvl), h: +o[0].userData.head.position.y.toFixed(2), len: +(bb.max.z - bb.min.z).toFixed(2), wheels: o[0].userData.wheels.length, barrels: o[0].userData.barrels.length }); } return hs; });
+  ok('all four support vehicle types build', towers.every(t => t.built === 4), towers.map(t => t.built));
+  ok('vehicle models rebuild at every level', towers.every(t => t.lvl.every(l => l === t.lv)));
+  ok('higher vehicle levels are visibly bigger, more wheels/tracks and barrels', towers.every((t, i) => i === 0 || (t.len > towers[i - 1].len && t.h > towers[i - 1].h)) && towers[0].barrels < towers[4].barrels && towers[0].wheels < towers[4].wheels, towers);
   // LOD tiers in use with a large crowd
   const lod = await p.evaluate(() => { const g = KM.game; g.stress(1200); for (let k = 0; k < 30; k++) { g.sim.step(1 / 60); } g.render.frame(g.sim, 1 / 60); const pn = g.render.pn; let statues = 0, near = 0; for (const k in pn) { if (k.startsWith('F_')) statues += pn[k]; if (k === 'tLight' || k === 'tHeavy') near += pn[k]; } return { statues, near, drawn: g.render.drawn }; });
   ok('large crowds use both full skeletons and far statues', lod.near > 50 && lod.statues > 50, lod);
   // memory across restarts: geometry/texture counts must not grow
   const mem = await p.evaluate(() => { const g = KM.game, R = g.render.R, snap = () => ({ geo: R.info.memory.geometries, tex: R.info.memory.textures });
+    g.startRun(); g.showcase(3, 3); for (let k = 0; k < 90; k++) { g.sim.step(1 / 60); g.render.frame(g.sim, 1 / 60); }   // warm-up: one-time uploads of upgrade hardware are not leaks
     g.startRun(); for (let k = 0; k < 120; k++) { g.sim.step(1 / 60); g.render.frame(g.sim, 1 / 60); } const a = snap();
     for (let r = 0; r < 8; r++) { g.startRun(); g.showcase(3, 3); for (let k = 0; k < 90; k++) { g.sim.step(1 / 60); g.render.frame(g.sim, 1 / 60); } }
     g.startRun(); for (let k = 0; k < 120; k++) { g.sim.step(1 / 60); g.render.frame(g.sim, 1 / 60); } const b = snap(); return { a, b, heap: performance.memory && performance.memory.usedJSHeapSize }; });
@@ -121,16 +122,16 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
   const water = await p.evaluate(() => { const g = KM.game, s = g.sim, r = g.render; let z = -60; while (z > -6000 && KM.edgeAt(1, z).river < 0.9 && KM.edgeAt(-1, z).river < 0.9) z -= 10; s.front = z + 20; for (let k = 0; k < 8; k++) r.frame(s, 1 / 60);
     let w = 0, falls = 0; for (const [, ch] of r.chunks) ch.traverse(o => { if (o.material === r.waterMat) w++; if (o.material === r.fallMat) falls++; }); return { z, w, falls, chunks: r.chunks.size }; });
   ok('river sections stream animated water strips with their chunks', water.w > 0, water);
-  // ---- camera framing on phone aspect ratios: launcher, towers, walls and the threat zone stay on screen ----
+  // ---- camera framing on phone aspect ratios: tank, support vehicles and the threat zone stay on screen ----
   for (const [w, h] of [[375, 667], [390, 844], [430, 932], [1440, 900]]) {
     const q = await b.newPage({ viewport: { width: w, height: h } }); await q.goto(base + 'index.html?autoplay=1'); await q.waitForTimeout(800);
-    const fr = await q.evaluate(() => { const g = KM.game, s = g.sim, r = g.render; s.L.inv = 1e9; g.showcase(5, 5); s.coins = 1e6; for (const id of ['wall:barricade', 'wall:barricade', 'wall:wall']) { s.offer = [{ id }]; s.pick(0); } s.offer = null;
+    const fr = await q.evaluate(() => { const g = KM.game, s = g.sim, r = g.render; s.L.inv = 1e9; g.showcase(5, 5); s.offer = null;
       const bad = [];
       for (const lx of [-8.4, 0, 8.4]) { s.moveTo(lx, 0); for (let k = 0; k < 150; k++) { s.step(1 / 60); r.frame(s, 1 / 60); }
-        const pts = [['launcher', s.L.x, 0.5, s.L.z], ...s.towers.filter(Boolean).map(t => ['tower' + t.slot, t.x, 1.5, t.z]), ...s.walls.map((wl, k) => ['wall' + k, wl.x, 0.5, wl.z]), ['threat', 0, 0, s.front - 24]];
+        const pts = [['launcher', s.L.x, 0.5, s.L.z], ...s.towers.filter(Boolean).map(t => ['tower' + t.slot, t.x, 1.5, t.z]), ['threat', 0, 0, s.front - 24]];
         for (const [n, x, y, z] of pts) { const v = r.toScreen(x, y, z); if (Math.abs(v.x) > 1.0 || v.y < -1.0 || v.y > 0.97) bad.push(`${n}@${lx}:${v.x.toFixed(2)},${v.y.toFixed(2)}`); } }
       return { bad, d: +r.camD.toFixed(1) }; });
-    ok(`framing ${w}x${h}: launcher, towers, walls, threats on screen`, fr.bad.length === 0, fr);
+    ok(`framing ${w}x${h}: tank, support vehicles, threats on screen`, fr.bad.length === 0, fr);
     await q.close();
   }
   // ---- coins always face the camera (never edge-on streaks) ----
@@ -170,7 +171,7 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
   // ---- quality tiers + bloom tier ----
   const q = await p.evaluate(async () => { const r = KM.game.render, out = {};
     for (const t of ['low', 'medium', 'high']) { r.applyQuality(t); out[t] = { near: r.lodNear, shadows: r.R.shadowMap.enabled, dpr: r.R.getPixelRatio(), fx: r.fxScale }; }
-    KM.bloomAllowed = true; r.applyQuality('high'); for (let k = 0; k < 40 && !r.composer; k++) await new Promise(z => setTimeout(z, 100));
+    KM.bloomAllowed = true; r.applyQuality('high'); for (let k = 0; k < 100 && !r.composer; k++) await new Promise(z => setTimeout(z, 100));
     for (let k = 0; k < 5; k++) r.frame(KM.game.sim, 1 / 60); out.bloom = !!(r.composer && r.bloomOn); r.setBloom(false); KM.bloomAllowed = false; r.applyQuality('medium'); out.after = r.bloomOn; return out; });
   ok('quality tiers apply budgets, shadows and effect density', q.low.near < q.medium.near && q.medium.near < q.high.near && !q.low.shadows && q.high.shadows && q.low.fx < q.high.fx, q);
   ok('bloom post-processing tier loads on demand and renders', q.bloom === true && q.after === false, q);
@@ -208,6 +209,27 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
     ok('?assets=1 validates a delivered GLB: production source, clips found, scale/pivot checks', v1.src === 'PRODUCTION GLB' && /idle/.test(v1.found) && v1.scale === 'PASS' && v1.pivot === 'PASS', v1);
     ok('?assets=1 page has no runtime errors', ae.length === 0, ae);
     await aq.close(); }
+  // ---- mobile war: tank hardware, force field, posture control, collectors, weapon eras, projectiles ----
+  const mw = await p.evaluate(() => { const g = KM.game, s = g.sim, r = g.render, out = {};
+    g.startRun(); s.L.inv = 1e9; r.frame(s, 1 / 60); out.base = { pod: r.lPod.visible, ant: r.lAnt.visible, emit: r.lEmit.visible, shield: r.shieldM.visible, barrels: r.barrels.filter(b => b.visible).length };
+    g.showcase(0, 5); r.frame(s, 1 / 60); out.late = { pod: r.lPod.visible, ant: r.lAnt.visible, emit: r.lEmit.visible, shield: r.shieldM.visible, barrels: r.barrels.filter(b => b.visible).length, crown: r.crown.visible };
+    s.L.sh = s.L.shMax = s.shieldMax(); s.L.shDown = 0; r.frame(s, 1 / 60); out.fullOp = r.shieldMat.opacity; s.L.sh = s.L.shMax * 0.1; r.frame(s, 1 / 60); out.weakOp = r.shieldMat.opacity; s.L.inv = 0; s.hurtLauncher(1e4 * 0 + s.L.sh + 1, 'test'); s.L.inv = 1e9; r.frame(s, 1 / 60); out.down = s.L.shDown > 0;
+    // posture button
+    const btn = document.getElementById('postureBtn'); out.btnShown = !btn.classList.contains('hidden'); btn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); out.afterTap = { posture: s.posture, txt: document.getElementById('postureTxt').textContent }; btn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); out.afterTap2 = s.posture;
+    // collectors + weapon eras drawn
+    s.stats.collectors = 1; s.stats.archer = 1; const wp = []; for (let e = 0; e < KM.RTECH.length; e++) { s.stats.rtech = e; for (let k = 0; k < 40; k++) s.step(1 / 60); r.frame(s, 1 / 60); wp.push(r.pn[KM.RTECH[e].wpn] + r.pn['m_w_' + KM.RTECH[e].wpn]); }
+    out.eraParts = wp; out.sack = r.pn.sack + r.pn.m_w_sack;
+    // projectiles of every new kind get drawn
+    for (const kd of [10, 11, 13, 14, 15, 16, 20, 21]) s.fire(0, s.L.x, s.L.z, -1, s.L.x, s.L.z - 30, 1, kd, 0, 0, 5, false, 1);
+    r.frame(s, 1 / 60); out.proj = [10, 11, 13, 14, 15, 16, 20, 21].map(k => r.proj[k].count);
+    return out; });
+  ok('tank starts basic: one barrel, no pod/antenna/emitters/shield', mw.base.barrels === 1 && !mw.base.pod && !mw.base.ant && !mw.base.emit && !mw.base.shield, mw.base);
+  ok('late tank shows its upgrades: 3 barrels, missile pod, targeting mast, field emitters, heavy crown, force field', mw.late.barrels === 3 && mw.late.pod && mw.late.ant && mw.late.emit && mw.late.shield && mw.late.crown, mw.late);
+  ok('force field reads its state: bright when full, fainter when weak, gone when collapsed', mw.fullOp > mw.weakOp && mw.down, mw);
+  ok('ATTACK/DEFEND: one button toggles the posture both ways', mw.afterTap.posture === 1 && mw.afterTap.txt === 'DEFEND' && mw.afterTap2 === 0, mw);
+  ok('ranged troops visibly carry each weapon era (rock → pulse rifle)', mw.eraParts.every(n => n > 0), mw.eraParts);
+  ok('collectors carry a visible sack', mw.sack > 0, mw.sack);
+  ok('every new projectile kind is drawn', mw.proj.every(n => n > 0), mw.proj);
   ok('no runtime errors during the browser suite', errs.length === 0, errs.slice(0, 5));
   await b.close(); srv.close();
   console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

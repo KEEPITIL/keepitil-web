@@ -75,7 +75,7 @@
     { k: 'soldier', hp: 1, dmg: 1, rng: 0.75, rad: 0.36, sc: 1, cd: 0.85, wpn: 'sword' },
     { k: 'archerF', hp: 0.7, dmg: 0.9, rng: 8, rad: 0.36, sc: 1, cd: 1.4, wpn: 'bow', r: 1 },
     { k: 'knightF', hp: 3.2, dmg: 2.2, rng: 0.9, rad: 0.5, sc: 1.35, cd: 1.0, wpn: 'sword', sh: 1 },
-    { k: 'collector', hp: 1.6, dmg: 0, rng: 0.5, rad: 0.32, sc: 0.95, cd: 9, wpn: 'sack', col: 1, spd: 5.4 },
+    { k: 'collector', hp: 1.6, dmg: 0, rng: 0.5, rad: 0.34, sc: 1.15, cd: 9, wpn: 'sack', col: 1, spd: 5.4 },
   ];
   KM.FRIEND.forEach((e, i) => { e.id = 32 + i; });
 
@@ -108,13 +108,13 @@
   KM.slotsUnlocked = m => 1 + (m >= 4 ? 1 : 0) + (m >= 8 ? 1 : 0) + (m >= 13 ? 1 : 0);
   // Ranged weapon eras — earned one step at a time (minute gate per era), visual + mechanical changes together.
   KM.RTECH = [
-    { name: 'ROCK THROWERS', at: 0,  range: 5.5,  dmg: 0.6,  cd: 1.6, speed: 10, arc: 1.0,  wpn: 'rock' },
-    { name: 'JAVELINS',      at: 2,  range: 6.8,  dmg: 0.85, cd: 1.5, speed: 14, arc: 0.55, wpn: 'spear' },
-    { name: 'ARCHERS',       at: 4,  range: 8.2,  dmg: 0.95, cd: 1.3, speed: 19, arc: 0.5,  wpn: 'bow' },
-    { name: 'CROSSBOWS',     at: 7,  range: 9.2,  dmg: 1.25, cd: 1.45, speed: 28, arc: 0.2, wpn: 'xbow' },
-    { name: 'MUSKETS',       at: 11, range: 10,   dmg: 1.8,  cd: 2.1, speed: 60, arc: 0,    wpn: 'musket' },
-    { name: 'RIFLES',        at: 15, range: 11.2, dmg: 2.0,  cd: 1.35, speed: 70, arc: 0,   wpn: 'rifle' },
-    { name: 'PULSE RIFLES',  at: 20, range: 12.5, dmg: 1.4,  cd: 0.6, speed: 48, arc: 0,    wpn: 'pulse' },
+    { name: 'ROCK THROWERS', at: 0,  range: 5.5,  dmg: 0.8,  cd: 1.6, speed: 10, arc: 1.0,  wpn: 'rock' },
+    { name: 'JAVELINS',      at: 2,  range: 6.8,  dmg: 1.0,  cd: 1.5, speed: 14, arc: 0.55, wpn: 'spear' },
+    { name: 'ARCHERS',       at: 4,  range: 8.2,  dmg: 1.1,  cd: 1.3, speed: 19, arc: 0.5,  wpn: 'bow' },
+    { name: 'CROSSBOWS',     at: 7,  range: 9.2,  dmg: 1.4,  cd: 1.45, speed: 28, arc: 0.2, wpn: 'xbow' },
+    { name: 'MUSKETS',       at: 11, range: 10,   dmg: 1.95, cd: 2.1, speed: 60, arc: 0,    wpn: 'musket' },
+    { name: 'RIFLES',        at: 15, range: 11.2, dmg: 2.2,  cd: 1.35, speed: 70, arc: 0,   wpn: 'rifle' },
+    { name: 'PULSE RIFLES',  at: 20, range: 12.5, dmg: 1.55, cd: 0.6, speed: 48, arc: 0,    wpn: 'pulse' },
   ];
   KM.rtech = s => KM.RTECH[Math.min(KM.RTECH.length - 1, s.rtech || 0)];
   // tank visual stage from its own upgrade lines (the tank shows what was built, not just how many cards were taken)

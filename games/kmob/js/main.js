@@ -28,7 +28,7 @@
     home: '<path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z" fill="#fff"/>',
     shop: '<path d="M4 9h16l-1 12H5z" fill="#ff5a6a"/><path d="M3 6h18v4H3z" fill="#ffc21a"/><path d="M12 6v15" stroke="#fff" stroke-width="2"/><path d="M12 6c-2-4-6-3-5 0M12 6c2-4 6-3 5 0" stroke="#ffc21a" stroke-width="2" fill="none"/>',
   };
-  const T_ICON = { arrow: '#3a8bff', cannon: '#ff7a2f', frost: '#5fe0ff', sniper: '#c58cff', barracks: '#ffd23a', banner: '#3cd27a' };
+  const T_ICON = { gun: '#3a8bff', artillery: '#ff7a2f', frost: '#5fe0ff', carrier: '#ffd23a' };
   const svg = k => {
     if (k && k.startsWith('t_')) { const c = T_ICON[k.slice(2)]; return `<svg viewBox="0 0 24 24">${ICON.tower}<circle cx="12" cy="13.5" r="3" fill="${c}" stroke="#fff" stroke-width="1"/></svg>`; }
     return `<svg viewBox="0 0 24 24">${ICON[k] || ICON.star}</svg>`;
@@ -80,14 +80,23 @@
       case 'boom': audio.play('boom'); break;
       case 'shove': if ((e || 0) >= 2) audio.play('thud', 0, c / 10); break;
       case 'lhit': audio.play('lhit', 0, sim.L.x / 10); KM.haptic(15); break;
-      case 'tower': audio.play(a.type === 'sniper' ? 'snipe' : 'tower', 0, a.x / 9); break;
+      case 'tower': audio.play(a.type === 'gun' && a.lvl >= 3 ? 'snipe' : 'tower', 0, a.x / 9); break;
+      case 'tankfire': audio.play('cannon', 0, sim.L.x / 10); break;
+      case 'missiles': audio.play('snipe', 0, sim.L.x / 10); break;
+      case 'shieldBreak': audio.play('boom'); KM.haptic(25); banner('SHIELD DOWN', 1.1); break;
+      case 'shieldUp': audio.play('frost'); break;
+      case 'deposit': audio.play('coin'); break;
+      case 'collector': if (!cue.col) { cue.col = 1; banner('COLLECTORS\nBRING COINS TO YOUR TANK', 2.4); } break;
+      case 'posture': setPostureUI(a); audio.play(a ? 'shieldhit' : 'upgrade'); KM.haptic(12); banner(a ? 'DEFEND\nHOLD FORMATION' : 'ATTACK\nPUSH FORWARD', 1.1); break;
+      case 'colLost': banner('COLLECTOR LOST', 0.9); break;
       case 'offer': showOffer(a); audio.play('offer'); if (tut === 2) setTip(3); break;
       case 'upgrade': if (a.id.startsWith('build:') || a.id.startsWith('tup:')) audio.play('build', 0, a.id.startsWith('tup:') ? KM.TOWER_SLOTS[+a.id.slice(4)].x / 9 : 0); audio.play('upgrade'); KM.haptic(20); Analytics.track('upgrades_selected', { id: a.id, n: sim.upgrades, t: Math.floor(sim.t) }); break;
       case 'skip': Analytics.track('upgrade_skipped', { n: sim.upgrades }); break;
       case 'warn': banner(a === 'boss' ? 'A WARLORD APPROACHES' : 'MASSIVE PUSH INCOMING', 3.2); audio.play('warn'); KM.haptic(25); $('vig').classList.add('warn'); setTimeout(() => $('vig').classList.remove('warn'), 3200); break;
       case 'elite': audio.play('elite', 0, 0); break;
       case 'death': onDeath(); break;
-      case 'towerDown': audio.play('boom', 0, a.x / 9); KM.haptic(30); banner('TOWER DESTROYED', 1.4); break;
+      case 'towerDown': audio.play('boom', 0, a.x / 9); KM.haptic(30); banner(KM.TOWERS[a.type].name.toUpperCase() + ' KNOCKED OUT', 1.4); break;
+      case 'towerUp': audio.play('build', 0, a.x / 9); break;
       case 'wallDown': audio.play('cannon', 0, a.x / 9); break;
       case 'wall': audio.play('build'); break;
     }
@@ -146,7 +155,7 @@
     sim.reset({ seed: (Date.now() ^ (runId * 2654435761)) >>> 0, perm: comp ? null : save.perm });
     render.resetRun(); render.setSkin(KM.SHOP.find(s => s.id === save.equip.skin) || KM.SHOP[3]); hideOffer();
     state = 'run'; paused = false; show(null);
-    $('hud').classList.remove('hidden'); $('hpbar').classList.remove('hidden');
+    $('hud').classList.remove('hidden'); $('hpbar').classList.remove('hidden'); setPostureUI(0);
     moved = 0; setTip(save.ach.tutorial ? 4 : 0);
     if (save.ach.tutorial) { tut = 4; banner('SURVIVE!', 1.2); }
     Analytics.track('run_start', { run: save.totals.runs + 1, competitive: comp });
@@ -169,12 +178,12 @@
       $('oStats').innerHTML = [['skull', 'Enemies Defeated', KM.fmtNum(r.kills)], ['coin', 'Coins Collected', KM.fmtNum(r.coins)], ['army', 'Peak Army Size', r.peakArmy], ['flag', 'Distance Reached', KM.fmtNum(r.distance) + ' m'], ['token', 'Reward Tokens', '+' + r.tokens]]
         .map(([i, l, v]) => `<div>${svg(i)}<span>${l}</span><b>${v}</b></div>`).join('') + `<div style="opacity:.7;font-size:12px;justify-content:center">${reason}</div>`;
       $('reviveBtn').classList.toggle('hidden', !!sim.revived || !!save.settings.competitive || !Q.has('revive'));
-      show('over'); showPlaytest(r);
+      $('postureBtn').classList.add('hidden'); show('over'); showPlaytest(r);
     }, 1300);
   }
   function setPause(p) { if (state !== 'run') return; paused = p; show(p ? 'pause' : null); audio.suspend(p); if (p) { buildToggles($('pToggles')); audio.crowd(0, 0); } }
   function goTitle() {
-    state = 'title'; $('hud').classList.add('hidden'); $('hpbar').classList.add('hidden'); $('tip').classList.add('hidden'); hideOffer();
+    state = 'title'; $('hud').classList.add('hidden'); $('hpbar').classList.add('hidden'); $('postureBtn').classList.add('hidden'); $('tip').classList.add('hidden'); hideOffer();
     const b = save.settings.competitive ? save.best.comp : save.best.all;
     $('titleBest').innerHTML = `<span>BEST<b>${KM.fmtTime(b)}</b></span><span>TODAY<b>${KM.fmtTime(save.best.daily.d === KM.dayKey(new Date()) ? save.best.daily.t : 0)}</b></span><span class="tok">${ICON.token ? `<svg viewBox="0 0 24 24">${ICON.token}</svg>` : ''}${save.tokens}</span>`;
     show('title');
@@ -280,6 +289,8 @@
       audio.tick(Math.min(1, (sim.count[1] / 300) * 0.6 + sim.danger * 0.4 + (sim.diff.m / 30) * 0.3), true);
     } else if (state !== 'run') { sim.step(dt * 0.5); } // keep the battlefield alive behind menus
     if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('banner').classList.remove('on'); }
+    // ATTACK/DEFEND arrives once the first fight has started (the first seconds stay: drag + auto-deploy only)
+    if (state === 'run' && sim.t > 25 && $('postureBtn').classList.contains('hidden') && sim.alive) { $('postureBtn').classList.remove('hidden'); if (!save.ach.posture) { save.ach.posture = 1; banner('TAP DEFEND\nTO HOLD FORMATION', 2.2); } }
     if (!paused && !glLost) { render.frame(sim, state === 'run' ? dt * (sim.offer ? 0.6 : 1) : dt); }
     jsCost += ((performance.now() - js0) - jsCost) * 0.1;   // JS cost: sim + scene update + draw submission (GPU time excluded)
     adapt(dt); benchTick(dt);
@@ -292,9 +303,17 @@
   function showcase(towerLv, launcherLv) {
     if (state !== 'run') startRun();
     sim.t = Math.max(sim.t, 9 * 60); const types = Object.keys(KM.TOWERS);
-    for (let s = 0; s < 6; s++) sim.towers[s] = towerLv ? { type: types[s], lvl: towerLv, cd: 0.5, aim: Math.PI, recoil: 0, slot: s, x: 0, z: 0, tgt: -1, born: 0 } : null;
-    sim.upgrades = Math.max(0, ((launcherLv || 1) - 1) * 4);
+    for (let s = 0; s < sim.towers.length; s++) sim.towers[s] = towerLv ? sim.makeTower(types[s], towerLv, s) : null;
+    // tank stage → its own upgrade lines (base · stronger cannon + armor · secondary barrels + targeting · heavy weapons + missiles + shield)
+    const L = Math.max(1, launcherLv || 1), S = sim.stats, want = { tgun: [0, 1, 2, 3, 5][L - 1], trof: [0, 0, 2, 3, 4][L - 1], plating: [0, 1, 2, 3, 4][L - 1], trng: [0, 0, 1, 1, 2][L - 1], tmis: [0, 0, 0, 1, 2][L - 1], shield: [0, 0, 1, 2, 4][L - 1] };
+    for (const id in want) { while ((S.lv[id] || 0) < want[id]) { KM.UPG_BY[id].apply(S, sim); S.lv[id] = (S.lv[id] || 0) + 1; } }
+    sim.upgrades = Math.max(0, (L - 1) * 4);
   }
+  // ---------- ATTACK / DEFEND: the one posture control ----------
+  const cue = {};
+  function setPostureUI(p) { const b = $('postureBtn'); b.classList.toggle('def', !!p); $('postureTxt').textContent = p ? 'DEFEND' : 'ATTACK'; $('postureSub').textContent = p ? 'TAP TO ATTACK' : 'TAP TO DEFEND'; }
+  $('postureBtn').addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); audio.unlock(); if (state === 'run' && !paused) sim.togglePosture(); });
+  addEventListener('keydown', e => { if (e.code === 'Space' && state === 'run' && !paused) { e.preventDefault(); sim.togglePosture(); } });
   KM.game = { sim, render, audio, startRun, jumpTo, stress, showcase, get glLost() { return glLost; }, setPause, get state() { return state; }, save, persist };
   // ---------- on-device benchmark (?bench=1): tiers of crowd size, FPS / frame-time spread / heap ----------
   // ---------- on-device benchmark (?bench=1): four crowd stages → numbers + recommended quality ----------

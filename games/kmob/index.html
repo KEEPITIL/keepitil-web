@@ -27,6 +27,10 @@ canvas#c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
 .pill .l{font-size:9px;font-weight:900;opacity:.8;letter-spacing:.08em;line-height:1;margin-top:2px}
 #hud .sp{flex:1}
 #pauseBtn{pointer-events:auto;width:44px;height:44px;border-radius:12px;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+#postureBtn{position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom) + 18px);z-index:6;pointer-events:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:92px;height:58px;padding:0 12px;border-radius:16px;font-family:var(--disp);font-size:22px;letter-spacing:.04em;color:#fff;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;border:2px solid rgba(255,255,255,.65);box-shadow:0 5px 0 rgba(0,0,0,.3);background:linear-gradient(#ff5a3a,#d8281c);transition:transform .08s}
+#postureBtn.def{background:linear-gradient(#4f8dff,#2353c7)}
+#postureBtn:active{transform:translateY(3px)}
+#postureBtn small{font-family:inherit;font-size:9px;font-weight:900;opacity:.85;letter-spacing:.1em;margin-top:2px}
 #pauseBtn i{display:inline-block;width:5px;height:16px;background:#fff;margin:0 2px;border-radius:2px}
 #hpbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 64px);width:min(220px,46vw);height:8px;border-radius:6px;background:rgba(0,0,0,.35);overflow:hidden;z-index:5;pointer-events:none;border:1px solid rgba(255,255,255,.2)}
 #hpbar b{display:block;height:100%;width:100%;background:linear-gradient(90deg,#4cff8a,#2fbf4f);transition:width .15s}
@@ -53,7 +57,7 @@ canvas#c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
 #tip .hand{width:130px;height:60px;margin:0 auto 4px;position:relative}
 #tip .hand svg{position:absolute;left:50%;top:0;width:46px;margin-left:-23px;animation:swipe 1.6s ease-in-out infinite}
 @keyframes swipe{0%,100%{transform:translateX(-40px)}50%{transform:translateX(40px)}}
-#banner{position:fixed;left:0;right:0;top:32%;text-align:center;z-index:6;pointer-events:none;font-family:var(--disp);font-size:clamp(26px,6.5vw,46px);color:#fff;text-shadow:0 3px 0 #7a0d0d,0 0 30px rgba(255,40,40,.7);opacity:0;transition:opacity .25s}
+#banner{position:fixed;left:0;right:0;top:32%;text-align:center;z-index:6;pointer-events:none;font-family:var(--disp);font-size:clamp(20px,6.5vw,46px);padding:0 12px;line-height:1.05;color:#fff;text-shadow:0 3px 0 #7a0d0d,0 0 30px rgba(255,40,40,.7);white-space:pre-line;opacity:0;transition:opacity .25s}
 #banner.on{opacity:1;animation:pulse .5s ease-in-out infinite alternate}
 @keyframes pulse{to{transform:scale(1.06)}}
 /* panels */
@@ -109,6 +113,7 @@ canvas#c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
   <div class="sp"></div>
   <div id="pauseBtn" aria-label="Pause"><span><i></i><i></i></span></div>
 </div>
+<div id="postureBtn" class="hidden" role="button" aria-label="Toggle attack or defend"><span id="postureTxt">ATTACK</span><small id="postureSub">TAP TO DEFEND</small></div>
 <div id="hpbar" class="hidden"><b id="hpFill"></b></div>
 <div id="offer"></div>
 <div id="offerCost" class="hidden"></div>

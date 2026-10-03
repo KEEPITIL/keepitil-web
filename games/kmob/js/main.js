@@ -52,7 +52,7 @@
   // ---------- systems ----------
   const canvas = $('c');
   let render;
-  try { render = new KM.Render(canvas, { lowPower: /Android/i.test(navigator.userAgent) }); }
+  try { render = new KM.Render(canvas, { lowPower: /Android/i.test(navigator.userAgent), mobile: Q.has('mobile') || KM.isMobileEnv(navigator.userAgent, 'ontouchstart' in window, Math.min(screen.width, screen.height)) }); }
   catch (e) { document.body.innerHTML = '<div style="padding:40px;font:16px Nunito,sans-serif;color:#fff">This game needs WebGL. Please try a newer browser or device.</div>'; return; }
   render.setSkin(KM.SHOP.find(s => s.id === save.equip.skin) || KM.SHOP[3]);
   // quality tier: ?quality= forces, else the stored benchmark recommendation, else device heuristics

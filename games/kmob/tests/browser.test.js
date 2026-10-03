@@ -37,7 +37,7 @@ const srv = http.createServer((q, r) => { let p = decodeURIComponent(q.url.split
   ok('tower models rebuild at every level', towers.every(t => t.lvl.every(l => l === t.lv)));
   ok('higher tower levels are taller', towers.every((t, i) => i === 0 || t.h > towers[i - 1].h), towers.map(t => t.h));
   // LOD tiers in use with a large crowd
-  const lod = await p.evaluate(() => { const g = KM.game; g.stress(1200); for (let k = 0; k < 30; k++) { g.sim.step(1 / 60); } g.render.frame(g.sim, 1 / 60); const pn = g.render.pn; let statues = 0, near = 0; for (const k in pn) { if (k.startsWith('S_')) statues += pn[k]; if (k === 'tLight' || k === 'tHeavy') near += pn[k]; } return { statues, near, drawn: g.render.drawn }; });
+  const lod = await p.evaluate(() => { const g = KM.game; g.stress(1200); for (let k = 0; k < 30; k++) { g.sim.step(1 / 60); } g.render.frame(g.sim, 1 / 60); const pn = g.render.pn; let statues = 0, near = 0; for (const k in pn) { if (k.startsWith('F_')) statues += pn[k]; if (k === 'tLight' || k === 'tHeavy') near += pn[k]; } return { statues, near, drawn: g.render.drawn }; });
   ok('large crowds use both full skeletons and far statues', lod.near > 50 && lod.statues > 50, lod);
   // memory across restarts: geometry/texture counts must not grow
   const mem = await p.evaluate(() => { const g = KM.game, R = g.render.R, snap = () => ({ geo: R.info.memory.geometries, tex: R.info.memory.textures });

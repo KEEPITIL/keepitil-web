@@ -97,7 +97,7 @@
   // Validate + apply an already-parsed glTF (scene + animations) to the renderer.
   KM.applyCharacterScene = function (render, scene, src, animations) {
     const report = { src, replaced: [], rejected: [], flags: [], missing: [], unknown: [], warnings: [], clips: [], parts: {}, textures: new Set(), texBytes: 0 }, known = render.partM, seen = new Set();
-    const isPart = n => n in known && !n.startsWith('S_') && !n.startsWith('m_');
+    const isPart = n => n in known && !n.startsWith('S_') && !n.startsWith('m_') && !n.startsWith('F_');
     scene.traverse(o => {
       if (!o.name || seen.has(o.name) || o === scene) return;
       if (!isPart(o.name)) { if ((o.isMesh || o.children.length) && !KM.RIG_BONES.includes(o.name) && !/_(tint|base|mesh)$/.test(o.name) && o.name !== 'rig') report.unknown.push(o.name); return; }

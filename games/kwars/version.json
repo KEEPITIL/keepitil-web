@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 72,
+  "build": 73,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 72 (Task M crusade map). The Crusade roadmap now shows your real conquered count, marks conquered, next and ruler battles clearly, says what unlocks each locked era, and a silent-audio crash that could abort a fortress victory is fixed."
+  "notes": "KINGDOM WARS 1.0.0 build 73 (Task N tutorial). New players get a quick hands-on tutorial in their first battle: recruit, march, defend, throw spears, attack, retreat and storm the fortress, one highlighted control at a time, never pausing the game, with Skip always available."
 }

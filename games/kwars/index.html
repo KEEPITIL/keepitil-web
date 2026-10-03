@@ -81,6 +81,17 @@
     background:linear-gradient(rgba(20,28,36,0), rgba(20,28,36,.55));
   }
   #unitbar::-webkit-scrollbar { display:none; }
+  /* TASK N tutorial: a slim, non-blocking coach line + a pulsing outline on the one control it names */
+  #kwtutorial { position:fixed; z-index:7; left:50%; transform:translateX(-50%); top:calc(env(safe-area-inset-top) + 124px);   /* below the battle message line, never on top of it */
+    display:flex; align-items:center; gap:10px; max-width:min(720px,92vw); padding:8px 8px 8px 12px; border-radius:12px;
+    background:rgba(18,26,34,.9); border:1px solid #e8c46a; color:#f6f9fb; font:600 13px/1.35 inherit; box-shadow:0 6px 18px rgba(0,0,0,.4); }
+  #kwtutorial .tut-step { color:#e8c46a; font-weight:bold; white-space:nowrap; }
+  #kwtutorial .tut-text { flex:1; }
+  #kwtutorial button { flex:0 0 auto; min-height:40px; padding:0 12px; border-radius:9px; border:1px solid #6a7b88; background:#2b3640; color:#cfd8df; font:600 12px inherit; cursor:pointer; }
+  .kw-tut-target { outline:3px solid #e8c46a; outline-offset:2px; animation:kwTutPulse 1.2s ease-in-out infinite; }
+  @keyframes kwTutPulse { 0%,100%{ outline-color:rgba(232,196,106,1);} 50%{ outline-color:rgba(232,196,106,.25);} }
+  @media (prefers-reduced-motion: reduce){ .kw-tut-target{ animation:none; } }
+  @media (max-height:500px){ #kwtutorial { top:calc(env(safe-area-inset-top) + 104px); font-size:12px; padding:6px 6px 6px 10px; } }
   /* TASK I/J COMMAND HIERARCHY: UNITS | RETREAT · DEFEND/MARCH · ATTACK | TACTICS. Secondary actions live in two drawers
      that open above the bar on phones/tablets and sit inline on a wide mouse-driven screen -- one DOM, one hierarchy. */
   #unitbar { justify-content:space-between; overflow:visible; }
@@ -4277,7 +4288,7 @@ let _mkInto = 'grp-orders';
 function mkBtn(id, html, onTap, cls){
   const b = document.createElement('button');
   b.className = 'ubtn' + (cls?' '+cls:''); b.innerHTML = html; b.dataset.cmd = id;
-  b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); audio(); onTap(); });
+  b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); audio(); onTap(); if ((cls||'').split(' ').includes('order')) setDrawer(null); });   // a primary order closes the drawers: the battlefield comes back
   document.getElementById(_mkInto).appendChild(b);
   btnEls[id] = b;
   return b;
@@ -4545,7 +4556,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 72;
+  const KW_PAGE_BUILD = 73;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }
@@ -4577,6 +4588,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
 <script src="src/vendor/supabase.min.js"></script>
 <script src="src/systems/cloud-save.js"></script>
 <script src="src/systems/shell.js"></script>
+<script src="src/systems/tutorial.js"></script>
 <script src="src/systems/account-ui.js"></script>
 </body>
 </html>

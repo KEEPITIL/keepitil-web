@@ -387,7 +387,7 @@ const TYPES = {
   archer: { name:'Archer', role:'RANGED', damageType:'PIERCING', cost:75,  hp:40,  dmg:7,  spd:56, range:440, cd:1.4,  weapon:'bow',     gold:0 },
   spear:  { name:'Spear',  role:'DEFENDER', damageType:'PIERCING', cost:125, hp:120, dmg:15, spd:50, range:48,  cd:1.0,  weapon:'spear',   gold:0 },
   gunner: { name:'Gunner', role:'SPECIALIST', cost:150, hp:80,  dmg:16, spd:44, range:560, cd:1.6,  weapon:'gun',     gold:0, civReq:11 },
-  laser:  { name:'Laser',  role:'SPECIALIST', cost:250, hp:100, dmg:28, spd:46, range:620, cd:1.5,  weapon:'laser',   gold:0, civReq:18 },
+  // D-13: no laser/future units in KWARS 1 -- the 'laser' and 'elaser' types were removed from production data.
   aetherwing:{name:'Aetherwing Colossus',role:'ELITE',damageType:'SPECIAL',cost:1800,hp:3600,dmg:145,spd:42,range:390,cd:1.35,weapon:'mech',gold:0,premium:true},
   spartan:{ name:'Spartan',role:'ELITE', cost:0,   hp:150, dmg:18, spd:55, range:44,  cd:0.9,  weapon:'spartan', gold:0 },
   // enemy
@@ -395,7 +395,6 @@ const TYPES = {
   espear: { name:'Spear',  role:'DEFENDER', hp:70,  dmg:12, spd:46, range:45,  cd:1.15, weapon:'spear', gold:18 },
   earcher:{ name:'Archer', role:'RANGED', hp:30,  dmg:6,  spd:50, range:310, cd:1.6,  weapon:'bow',   gold:15 },
   egunner:{ name:'Gunner', role:'SPECIALIST', hp:90,  dmg:16, spd:38, range:540, cd:1.9,  weapon:'gun',   gold:40 },
-  elaser: { name:'Laser',  role:'SPECIALIST', hp:120, dmg:22, spd:40, range:580, cd:1.8,  weapon:'laser', gold:60 },
   eboss:  { name:'Mammoth Chief', role:'BOSS', damageType:'SIEGE', hp:700, dmg:32, spd:34, range:34, cd:1.35, weapon:'hammer', gold:250 },
 };
 
@@ -670,7 +669,7 @@ function unitProtection(type,team){
 // ---------- spawning ----------
 function spawnAlly(type){
   if (!started || paused || S.over) return;
-  const T = TYPES[type];
+  const T = TYPES[type]; if (!T) return;   // D-13: unknown/retired types (laser) cannot be recruited
   if(T.premium&&!window.KWCommerce?.hasEntitlement?.('hero.aetherwing')){showMsg('Unlock the Aetherwing Vanguard bundle in the Store');return;}
   if(type==='aetherwing'&&S.units.some(u=>u.team===1&&u.type==='aetherwing'&&u.hp>0)){showMsg('Only one Aetherwing Colossus may deploy');return;}
   if (T.civReq && S.civ < T.civReq){ showMsg('Unlocks in the '+CIV_NAMES[T.civReq-1]+' Age'); return; }
@@ -698,6 +697,7 @@ function spawnSpartan(owner){
   return true;
 }
 function spawnEnemy(type){
+  if(!TYPES[type])return false;   // D-13
   if(enemyCount()>=enemyMax())return false;
   const T = TYPES[type],enc=encounterForWave(S.wave);
   const raid=S.wave>=6 && (type==='esword'||type==='espear') && simRandom()<Math.min(.35,.12+S.wave*.018);
@@ -1907,7 +1907,7 @@ function castGeneral(wp){
   window.KWRuntime?.events.emit('power_used',{civilization:S.civ,wave:S.wave});
   if(window.KWAudio)KWAudio.emit('power.warning',{civ:S.civ});
   const ty = clamp(wp.y, GROUND_TOP-6, GROUND_BOT);
-  const powerKind=GEN_ATKS[S.civ-1].kind;
+  const _pk=GEN_ATKS[S.civ-1].kind, powerKind=['rock','arrows','spears','bomb'].includes(_pk)?_pk:'bomb';   // D-13: never the retired laser
   if (powerKind==='rock'){
     S.projs.push({kind:'rock', x:wp.x, y:120, vx:0, vy:150, g:GRAV, dmg:Math.round(30*am), r:42*am, team:1, life:6, ty});
     beep(200,.12,'square',.05,80);
@@ -1923,7 +1923,7 @@ function castGeneral(wp){
   } else if(powerKind==='bomb'){
     S.projs.push({kind:'bomb', x:wp.x, y:120, vx:0, vy:120, g:GRAV, dmg:Math.round(60*am), r:70*am, team:1, life:6, ty});
     beep(240,.15,'square',.05,60);
-  } else {                 // reserved future-age laser
+  } else if (false) {      // D-13: the retired future-age laser strike can never fire; an unknown kind uses the bomb below
     S.fx.push({kind:'gbeam', x:wp.x, t:0});
     S.fx.push({kind:'boom', x:wp.x, y:ty, r:40, t:0});
     S.shake = Math.min(12, S.shake + 8);
@@ -4233,7 +4233,6 @@ window.addEventListener('keydown', e => {
   else if (e.key === '2') issueCommand('recruit',{type:'archer'});
   else if (e.key === '3') issueCommand('recruit',{type:'spear'});
   else if (e.key === '4') issueCommand('recruit',{type:'gunner'});
-  else if (e.key === '5') issueCommand('recruit',{type:'laser'});
   else if (e.key === 'q' || e.key === 'Q') issueCommand('hold');
   else if (e.key === 'w' || e.key === 'W') issueCommand('hold');
   else if (e.key === 'r' || e.key === 'R') issueCommand('retreat');
@@ -4294,7 +4293,6 @@ function buildUI(){
     mkBtn(key, ICONS[key] + '<span class="nm">'+T.name+'</span><span class="cost">🪙'+T.cost+'</span>', ()=>issueCommand('recruit',{type:key}));
   }
   mkBtn('gunner', '<span class="big">🔫</span><span class="nm">Gunner</span><span class="cost">🪙'+TYPES.gunner.cost+'</span>', ()=>issueCommand('recruit',{type:'gunner'})).style.display='none';
-  mkBtn('laser',  '<span class="big">🔆</span><span class="nm">Laser</span><span class="cost">🪙'+TYPES.laser.cost+'</span>', ()=>issueCommand('recruit',{type:'laser'})).style.display='none';
   mkBtn('aetherwing','<span class="big">🪽</span><span class="nm">Colossus</span><span class="cost">🪙'+TYPES.aetherwing.cost+'</span>',()=>issueCommand('recruit',{type:'aetherwing'})).style.display=window.KWCommerce?.hasEntitlement?.('hero.aetherwing')?'flex':'none';
   _mkInto = 'grp-orders';
   /* §4 THREE PRIMARY ORDERS. Retreat used to be a hidden double-tap on Defend
@@ -4334,7 +4332,7 @@ function updateUI(){
     + ' · ⚔ '+armyCount()+'/'+armyMax() + ' · ' + CIV_NAMES[S.civ-1] + ' Age'
     + ' · 🏰 '+FORTRESS_AGES[S.civ-1].name
     + ' · ☠ '+(S.phase==='wave'&&S.waveTotal?((S.defeatedTotal||0)+'/'+S.waveTotal+(S.waveQueue.length?' (↑'+enemyCount()+')':'')):(enemyCount()+'/'+enemyMax()))+' '+CIV_NAMES[S.enemyCiv-1]+' D'+S.enemyUpgrades;
-  for (const key of ['sword','archer','spear','gunner','laser','aetherwing'])
+  for (const key of ['sword','archer','spear','gunner','aetherwing'])
     btnEls[key].classList.toggle('poor', S.gold < TYPES[key].cost);
   /* §4 order bar state. The hold button names the order it will GIVE next,
      so the player always reads an action rather than a status. */
@@ -4538,7 +4536,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 68;
+  const KW_PAGE_BUILD = 69;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }

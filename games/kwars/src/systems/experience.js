@@ -87,12 +87,12 @@
     return persist();
   }
   function closeHub(){hub.classList.add('hidden');panel.classList.add('hidden');}
-  function startNew(){data.active=null;persist();audio();reset();bakeCastles();btnEls.gunner.style.display='none';btnEls.laser.style.display='none';document.getElementById('overlay').classList.add('hidden');closeHub();started=true;paused=false;follow=true;syncFollowBtn();window.KWAnalytics?.track('run_started',{mode:'ENDLESS',newRun:true},'critical');showMsg('TRIBAL STONE ERA · Survive and defend your kingdom!');}
+  function startNew(){data.active=null;persist();audio();reset();bakeCastles();btnEls.gunner.style.display='none';btnEls.laser&&(btnEls.laser.style.display='none');document.getElementById('overlay').classList.add('hidden');closeHub();started=true;paused=false;follow=true;syncFollowBtn();window.KWAnalytics?.track('run_started',{mode:'ENDLESS',newRun:true},'critical');showMsg('TRIBAL STONE ERA · Survive and defend your kingdom!');}
   function beginNew(){return window.KWEquipment?KWEquipment.renderPreBattle(showPanel,startNew,{civilization:1,mode:'ENDLESS'}):startNew();}
   function continueRun(){
     if(!data.active)return beginNew();
     reset();S=data.active;S.units=(S.units||[]).map(u=>({...u,tgt:null}));S.projs=[];S.fx=[];S.floats=[];S.splats=[];S.corpses=[];
-    bakeCastles();rebakePlayer();btnEls.gunner.style.display=S.civ>=11?'flex':'none';btnEls.laser.style.display='none';closeHub();document.getElementById('overlay').classList.add('hidden');started=true;paused=false;follow=true;syncFollowBtn();
+    bakeCastles();rebakePlayer();btnEls.gunner.style.display=S.civ>=11?'flex':'none';btnEls.laser&&(btnEls.laser.style.display='none');closeHub();document.getElementById('overlay').classList.add('hidden');started=true;paused=false;follow=true;syncFollowBtn();
     window.KWAnalytics?.track('run_started',{mode:'ENDLESS',newRun:false},'critical');showMsg(data.recoveryNotice?'Save recovered safely from backup':(S.checkpointNotice?'Run restored at a safe wave checkpoint':'War continued'));delete S.checkpointNotice;delete data.recoveryNotice;
   }
   /* ---- §1 CANONICAL BATTLE START ----------------------------------------

@@ -21,7 +21,7 @@
     S.civ=civ.order;S.enemyCiv=civ.order;S.wave=target-1;S.localWave=((S.wave-1)%50)+1;S.gold=250+node.kingdomNumber*90;
     S.campaignMissionId=id;S.campaignDifficulty=difficulty;S.campaignStartingGate=S.gateHP;S.phase='inter';S.interT=1.2;
     bakeCastles();rebakePlayer();
-    btnEls.gunner.style.display=S.civ>=11?'flex':'none';btnEls.laser.style.display='none';
+    btnEls.gunner.style.display=S.civ>=11?'flex':'none';btnEls.laser&&(btnEls.laser.style.display='none');
     document.getElementById('overlay').classList.add('hidden');document.getElementById('shell').classList.add('hidden');
     started=true;paused=false;follow=true;syncFollowBtn();
     window.KWAnalytics?.track('campaign_battle_started',{missionId:id,civilization:civ.id,kingdom:node.kingdomNumber,difficulty},'critical');

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 80,
+  "build": 81,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 80 (Results data). battle stats on results, actions first, refresh/back certified"
+  "notes": "KINGDOM WARS 1.0.0 build 81 (Task campaign balance). kingdom scaling, doctrines, firearm spear cap"
 }

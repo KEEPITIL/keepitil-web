@@ -436,8 +436,32 @@ const ERA_GUN   =[null,'matchlock','matchlock','matchlock','matchlock','matchloc
 function fortPass(u, o){
   if (!S.retreatMode || o.team !== u.team) return false;
   const a = String(u.slotKey||''), b = String(o.slotKey||'');
-  return (a.startsWith('aF:') && !u.inFort && b.startsWith('aW:')) || (b.startsWith('aF:') && !o.inFort && a.startsWith('aW:'));
+  /* a man still walking IN passes the waiting crowd AND the ranks already settled inside (a freed inner place lies
+     behind them); settled ranks never push him back out of the gate */
+  return (a.startsWith('aF:') && !u.inFort && (b.startsWith('aW:') || (b.startsWith('aF:') && o.inFort))) || (b.startsWith('aF:') && !o.inFort && (a.startsWith('aW:') || (a.startsWith('aF:') && u.inFort)));
 }
+/* TASK CAMPAIGN (§23) COMMANDER DOCTRINES: configured strategy profiles, not 75 code branches. A doctrine sets the
+   enemy army's composition (sword / spear / archer share of the fill), how long it forms up, how fast it marches, and
+   whether it holds a line and waits for the player to commit before the assault. Kingdom 1 of every civilization is
+   'balanced' (the tuned first battle); kingdoms 2-5 rotate through the doctrines, offset per civilization, so every
+   civilization's commanders fight differently and no two neighbouring kingdoms share a doctrine. Endless War = balanced. */
+const COMMANDER_DOCTRINES={
+  balanced:  {label:'Balanced',      mix:[.38,.34,.28], formMul:1.0, marchMul:1.0,  hold:0},
+  aggressive:{label:'Aggressive',    mix:[.56,.26,.18], formMul:.45, marchMul:1.45, hold:0},
+  spearwall: {label:'Spear wall',    mix:[.30,.45,.25], formMul:1.35,marchMul:.8,   hold:0},
+  ranged:    {label:'Ranged-heavy',  mix:[.28,.24,.48], formMul:1.2, marchMul:.85,  hold:1260},
+  defensive: {label:'Defensive',     mix:[.32,.40,.28], formMul:1.6, marchMul:.75,  hold:1180},
+  counter:   {label:'Counterattack', mix:[.42,.30,.28], formMul:1.0, marchMul:1.5,  hold:1200},
+};
+const DOCTRINE_ROTATION=['aggressive','spearwall','ranged','defensive','counter'];
+function doctrineFor(civOrder, kingdom){ if(!kingdom || kingdom<=1) return 'balanced'; return DOCTRINE_ROTATION[(civOrder + kingdom - 2) % DOCTRINE_ROTATION.length]; }
+/* In the firearm civilizations (13-15) the line is musket/rifle infantry, not pike: a doctrine's spear share is capped at
+   30% (the rest become swordsmen). Measured: civilization 15's ruler fielded ~89 spearmen whose tips impale unshielded
+   industrial-era soldiers outright -- 34 of 34 player deaths were impales and no player could win. */
+const FIREARM_SPEAR_CAP = 0.30;
+function currentDoctrine(){ const n = S.campaignMissionId && window.KWCampaign ? KWCampaign.nodeById(S.campaignMissionId) : null; const d = COMMANDER_DOCTRINES[n ? doctrineFor(S.enemyCiv, n.kingdomNumber) : 'balanced'];
+  if (S.enemyCiv >= 13 && d.mix[1] > FIREARM_SPEAR_CAP){ const x = d.mix[1] - FIREARM_SPEAR_CAP; return {...d, mix:[d.mix[0] + x, FIREARM_SPEAR_CAP, d.mix[2]]}; }
+  return d; }
 function rangedFamily(u){
   const w=(TYPES[u.type]||{}).weapon; if(w!=='bow'&&w!=='gun') return null;
   const era=Math.max(1,Math.min(15,u.team===1?((S&&S.civ)||1):((S&&S.enemyCiv)||1)));
@@ -477,10 +501,21 @@ function opponentIdentity(){
   const title = enc.kind==='normal' ? null : enc.label.toLowerCase().replace(/\b\w/g, c=>c.toUpperCase());
   return {mode:'war', name: title ? civName+' '+title : null, civilization:civName, kingdom:null, label:'Wave '+(S?S.wave:1)};
 }
-function globalEnemyHealthMult(){return (1+Math.max(0,S.wave-1)*.009)*(1+conquestCycleFor(S.wave)*.18);}
-function globalEnemyDamageMult(){return (1+Math.max(0,S.wave-1)*.0065)*(1+conquestCycleFor(S.wave)*.12);}
-function globalEnemyShieldMult(){return (1+Math.max(0,S.wave-1)*.007)*(1+conquestCycleFor(S.wave)*.14);}
-function globalEnemyArmorMult(){return (1+Math.max(0,S.wave-1)*.006)*(1+conquestCycleFor(S.wave)*.12);}
+/* TASK CAMPAIGN (§20-22): a Crusade kingdom battle scales from its KINGDOM (wave 10/20/30/40/50 of its civilization),
+   not from the absolute Endless wave. Kingdoms inherited Endless scaling -- at civilization 15 every enemy had ~7.7x
+   health and waves held up to 1500 soldiers -- and representative play lost every node after the first battle
+   (tools/capture/campaign-play-lab.js). Civilization 1 is unchanged (its scaling wave already IS its wave); later
+   civilizations keep their era multipliers on both sides, the player keeps campaign progression, and the army grows
+   ~11% per civilization. Endless War is untouched. */
+function scalingWave(){ if(S&&S.campaignMissionId&&window.KWCampaign){ const n=KWCampaign.nodeById(S.campaignMissionId); if(n) return 10*n.kingdomNumber; } return S.wave; }
+/* campaign difficulty climbs through the civilizations on top of the era multipliers (player era + progression growth outpaced the
+   enemy's: every persona won every node from civilization 4 on). 1 at civilization 1, so the first battles are unchanged. */
+function campaignTier(){ return S&&S.campaignMissionId ? 1 + CAMPAIGN_TIER_STEP*((S.enemyCiv||1)-1) : 1; }
+const CAMPAIGN_TIER_STEP=0.07, CAMPAIGN_ARMY_STEP=0.14;
+function globalEnemyHealthMult(){const w=scalingWave();return campaignTier()* (1+Math.max(0,w-1)*.009)*(1+conquestCycleFor(w)*.18);}
+function globalEnemyDamageMult(){const w=scalingWave();return campaignTier()* (1+Math.max(0,w-1)*.0065)*(1+conquestCycleFor(w)*.12);}
+function globalEnemyShieldMult(){const w=scalingWave();return (1+Math.max(0,w-1)*.007)*(1+conquestCycleFor(w)*.14);}
+function globalEnemyArmorMult(){const w=scalingWave();return (1+Math.max(0,w-1)*.006)*(1+conquestCycleFor(w)*.12);}
 const POWER_PRESENTATION={boulder_strike:['🪨','Boulder Strike','rock',2.5],sling_barrage:['🪨','Sling Barrage','arrows',2.8],royal_arrow_volley:['🏹','Royal Arrow Volley','arrows',3],siege_barrage:['💥','Siege Barrage','bomb',3.3],spear_storm:['🔱','Spear Storm','spears',3],artillery_barrage:['💥','Artillery Barrage','bomb',3.5],imperial_fire_barrage:['🔥','Imperial Fire Barrage','bomb',3.6],axe_storm:['🪓','Axe Storm','spears',3],trebuchet_strike:['🪨','Trebuchet Strike','rock',3.5],encircling_volley:['🏹','Encircling Volley','arrows',3],fire_arrow_volley:['🔥','Fire-Arrow Volley','arrows',3.2],cannon_bombardment:['💣','Cannon Bombardment','bomb',3.5],grand_cannon_volley:['💥','Grand Cannon Volley','bomb',3.6],grand_battery:['💥','Grand Battery','bomb',3.8],heavy_artillery_strike:['💣','Heavy Artillery Strike','bomb',4]};
 const GEN_ATKS=CIV_DEFS.map(c=>{const p=POWER_PRESENTATION[c.battlefieldPower]||['💥',c.battlefieldPower,'bomb',3.5];return{icon:p[0],name:p[1],kind:p[2],cd:p[3]};});
 function civMult(){ return 1 + .25*(S.civ-1); }
@@ -1245,9 +1280,15 @@ function updateEnemyFormation(dt){
     if(ranksReady||S.enemyFormWaitT>FORM_MAX_WAIT)S.enemyFormT-=dt;
     if(S.enemyFormT<=0){S.enemyPhase='march';showMsg('⚔ Enemy formation advances');snd.horn();}
   }else if(S.enemyPhase==='march'){
-    S.enemyRallyX=Math.max(880,S.enemyRallyX-(24+Math.min(12,S.wave))*dt);
-    const contact=S.units.some(a=>a.team===1&&a.hp>0&&S.enemyRallyX-a.x<105);
-    if(contact||S.enemyRallyX<=900){S.enemyPhase='assault';showMsg('⚔ Enemy full assault!');snd.horn();}
+    const _d=currentDoctrine();
+    /* a holding doctrine halts at its line and waits for the player to commit (an attack order, or soldiers closing to
+       260px); it never waits forever (25 s), so a passive player still gets a fight */
+    const _held=_d.hold&&S.enemyRallyX<=_d.hold+1;
+    if(_held){ S.enemyHoldT=(S.enemyHoldT||0)+dt; }
+    S.enemyRallyX=Math.max(_d.hold||880,S.enemyRallyX-(24+Math.min(12,S.wave))*_d.marchMul*dt);
+    const contact=S.units.some(a=>a.team===1&&a.hp>0&&S.enemyRallyX-a.x<(_d.hold?260:105));
+    const committed=_d.hold?(contact||S.stance==='attack'||S.enemyHoldT>25):(contact||S.enemyRallyX<=900);
+    if(committed){S.enemyPhase='assault';showMsg('⚔ Enemy full assault!');snd.horn();}
   }
   const rows=[428,443,458,473,488,503],cs=28,rankRows=rows.length;
   const rank=t=>(t==='espear'?0:t==='esword'?1:t==='eboss'?2:t==='egunner'||t==='elaser'?4:3);
@@ -2074,10 +2115,12 @@ function startWave(){
   const w = S.wave,local=S.localWave,q = [];
   // Early enemies rush loosely; later armies field a deliberate combined-arms
   // mix with a spear screen, sword reserves and increasingly strong fire support.
-  const pressure=Math.min(32,Math.floor((w-1)/8));
-  for (let i=0;i<4+Math.ceil(local*.32)+pressure;i++) q.push('esword');
-  for (let i=0;i<1+Math.floor(local*.22)+Math.floor(pressure*.4);i++) q.push('espear');
-  for (let i=0;i<1+Math.floor(local*.18)+Math.floor(pressure*.3);i++) q.push('earcher');
+  const pressure=Math.min(32,Math.floor((scalingWave()-1)/8));
+  { const nSw=4+Math.ceil(local*.32)+pressure, nSp=1+Math.floor(local*.22)+Math.floor(pressure*.4), nAr=1+Math.floor(local*.18)+Math.floor(pressure*.3);
+    const _dc=currentDoctrine();
+    if(_dc===COMMANDER_DOCTRINES.balanced){ for(let i=0;i<nSw;i++) q.push('esword'); for(let i=0;i<nSp;i++) q.push('espear'); for(let i=0;i<nAr;i++) q.push('earcher'); }
+    else { /* §23: the same opening company, shaped by the commander's doctrine */ const n=nSw+nSp+nAr, sp=Math.round(n*_dc.mix[1]), ar=Math.round(n*_dc.mix[2]);
+      for(let i=0;i<sp;i++) q.push('espear'); for(let i=0;i<ar;i++) q.push('earcher'); for(let i=0;i<n-sp-ar;i++) q.push('esword'); } }
   if (S.enemyCiv >= 11) for (let i=0;i<1+Math.floor(local/12);i++) q.push('egunner');
   const bossWave=encounter.kind!=='normal';
   // Enemy army opens at 50 soldiers on wave 1 and grows steadily to 100 by wave 50
@@ -2087,11 +2130,16 @@ function startWave(){
      the later kingdoms keep the full escalation. Measured with tools/capture/first-battle-lab.js. */
   const _ck = S.campaignMissionId && window.KWCampaign ? ((KWCampaign.nodeById(S.campaignMissionId)||{}).kingdomNumber||5) : 5;
   const campaignScale = S.campaignMissionId ? Math.min(1, 0.5 + 0.1*_ck) : 1;
-  const targetArmy=Math.max(20,Math.round((window.KWProgression?.enemyWavePopulation?.(w)||20)*campaignScale))-(bossWave?1:0);
+  const _civGrowth = S.campaignMissionId ? 1 + CAMPAIGN_ARMY_STEP*(S.enemyCiv-1) : 1;
+  const targetArmy=Math.max(20,Math.round((window.KWProgression?.enemyWavePopulation?.(scalingWave())||20)*campaignScale*_civGrowth))-(bossWave?1:0);
+  const _doc=currentDoctrine(), _mix=_doc.mix;   // §23: the commander's doctrine decides the shape of the fill
+  if(_doc!==COMMANDER_DOCTRINES.balanced && q.length<targetArmy){   // exact quota, so the army IS the doctrine (the shuffle below mixes the ranks)
+    const n=targetArmy-q.length, sp=Math.round(n*_mix[1]), ar=Math.round(n*_mix[2]);
+    for(let i=0;i<sp;i++) q.push('espear'); for(let i=0;i<ar;i++) q.push('earcher'); while(q.length<targetArmy) q.push('esword'); }
   while(q.length<targetArmy){
     const roll=simRandom();
-    if(roll<.34)q.push('espear');
-    else if(roll<.72)q.push('esword');
+    if(roll<_mix[1])q.push('espear');
+    else if(roll<_mix[1]+_mix[0])q.push('esword');
     else q.push('earcher');
   }
   if(bossWave)q.push('eboss');
@@ -2102,7 +2150,7 @@ function startWave(){
   S.enemyFormWaitT=0;S.bossSpawned=false;S.bossDefeated=false;
   // Every wave must assemble and hold its ranks before any march, raid, or
   // attack order is released. Later waves hold slightly longer as formations grow.
-  S.enemyPhase='form';S.enemyRallyX=E_SPAWN-70;S.enemyFormT=2+Math.min(2,local*.04);
+  S.enemyPhase='form';S.enemyRallyX=E_SPAWN-70;S.enemyFormT=(2+Math.min(2,local*.04))*currentDoctrine().formMul;S.enemyHoldT=0;
   const cycle=S.conquestCycle?' · Conquest '+S.conquestCycle:'';
   { const id = opponentIdentity();   // D-05: the banner names the same opponent the map and the results name
     showMsg(id.mode==='crusade' ? ('♛ '+id.name+' · '+id.label+' — enemy forming ranks')
@@ -4708,7 +4756,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 80;
+  const KW_PAGE_BUILD = 81;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }

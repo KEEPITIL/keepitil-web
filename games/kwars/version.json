@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 81,
+  "build": 82,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 81 (Task campaign balance). kingdom scaling, doctrines, firearm spear cap"
+  "notes": "KINGDOM WARS 1.0.0 build 82 (Perf safety + harness). adaptive soldier detail; isolated mutations"
 }

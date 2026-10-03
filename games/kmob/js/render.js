@@ -75,6 +75,9 @@
       this.col2 = new C(); this.fxBudget = 60; this.farKey = {}; this.lodNear = this.opts.lowPower ? 80 : 120; this.lodMid = this.opts.lowPower ? 300 : 450;
       this.initCrowd(); this.initWorld(); this.initFx(); this.initProjectiles(); this.initCoins();
       this.launcher = this.buildLauncher(); S.add(this.launcher);
+      // the launcher is always on screen: ~140 meshes → one draw per shared material within each stage group
+      { const keep = [this.lBody, ...Object.values(this.lStage), ...this.wheels, ...this.barrels, ...this.barrels.map(b => b.userData.brake), this.turret, this.crown, this.core, this.halo, this.eRing, this.hpRing, this.magRing, this.lGlow, ...this.capsules].filter(Boolean);
+        this.lBatched = this.batchStatic(this.launcher, { byMaterial: true, keep, deep: this.flags }); }
       this.towerObjs = [null, null, null, null, null, null]; this.dyingObjs = []; this.wallObjs = new Map();
       this.tracers = []; for (let k = 0; k < 8; k++) { const tr = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 1), new THREE.MeshBasicMaterial({ color: 0xe4c2ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); tr.visible = false; this.scene.add(tr); this.tracers.push(tr); }
       this.resize();
@@ -373,7 +376,7 @@
       const want = KM.chunksFor(front), keep = new Set(want);
       for (const [i, g] of this.chunks) if (!keep.has(i)) { this.scene.remove(g); if (g.userData.gate) g.userData.gate.material.dispose(); g.traverse(o => { if (o.geometry && o.geometry !== this.waterGeo && o.geometry !== this.fallGeo) o.geometry.dispose(); }); this.chunks.delete(i); }
       let built = 0;
-      for (const i of want) if (!this.chunks.has(i) && built < 2) { const g = this.buildChunk(i); this.scene.add(g); this.chunks.set(i, g); built++; }
+      for (const i of want) if (!this.chunks.has(i) && built < (this.chunks.size < 4 ? 3 : 1)) { const g = this.buildChunk(i); this.scene.add(g); this.chunks.set(i, g); built++; }
       // the overhead biome gate fades while it hangs over the fight (between the launcher and the threat zone)
       for (const [, g] of this.chunks) { const gm = g.userData.gate; if (!gm) continue; const gz = gm.userData.gateZ, over = gz < (this.lzCache == null ? front + 14 : this.lzCache) + 4 && gz > front - 34, m = gm.material, o = over ? 0.22 : 1;
         m.opacity += (o - m.opacity) * 0.15; m.depthWrite = m.opacity > 0.95; }
@@ -393,26 +396,28 @@
     // Static batching: under every node, merge the opaque, non-animated meshes that share an emissive signature into one
     // vertex-coloured mesh (towers/walls were 25–45 draws each). Meshes or materials referenced from userData (animated
     // barrels, flags, crystals…) and transparent pieces stay separate.
-    batchStatic(root) {
-      const keepO = new Set(), keepM = new Set(), scan = v => { if (!v) return; if (Array.isArray(v)) return v.forEach(scan); if (v.isObject3D) keepO.add(v); else if (v.isMaterial) keepM.add(v); else if (v.m && v.m.isObject3D) keepO.add(v.m); };
+    batchStatic(root, opt) {
+      opt = opt || {}; const keepO = new Set(opt.keep || []), keepM = new Set(), deep = new Set(), scan = v => { if (!v) return; if (Array.isArray(v)) return v.forEach(scan); if (v.isObject3D) keepO.add(v); else if (v.isMaterial) keepM.add(v); else if (v.m && v.m.isObject3D) keepO.add(v.m); };
       for (const k in root.userData) if (k !== 'parts') scan(root.userData[k]);
-      const nodes = []; root.traverse(o => { if (!o.isMesh) nodes.push(o); }); let merged = 0;
+      for (const d of opt.deep || []) d.traverse(x => deep.add(x));
+      const nodes = []; root.traverse(o => { if (!o.isMesh && !deep.has(o)) nodes.push(o); }); let merged = 0;
       for (const node of nodes) {
         const groups = new Map();
         for (const m of node.children) { if (!m.isMesh || keepO.has(m) || keepM.has(m.material) || m.material.transparent || !m.visible || m.isInstancedMesh || !m.material.isMeshToonMaterial) continue;
-          const mt = m.material, key = (mt.emissive ? mt.emissive.getHex() : 0) + ':' + (mt.emissiveIntensity || 0).toFixed(2) + ':' + !!mt.map; if (mt.map) continue;
+          const mt = m.material, key = opt.byMaterial ? mt.uuid : (mt.emissive ? mt.emissive.getHex() : 0) + ':' + (mt.emissiveIntensity || 0).toFixed(2) + ':' + !!mt.map; if (mt.map) continue;
           (groups.get(key) || groups.set(key, []).get(key)).push(m); }
         for (const [, list] of groups) { if (list.length < 2) continue;
           let n = 0; const geos = list.map(m => { m.updateMatrix(); const g = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()).applyMatrix4(m.matrix); n += g.attributes.position.count; return { g, c: m.material.color }; });
           const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3); let o = 0;
           for (const { g, c } of geos) { const k = g.attributes.position.count; pos.set(g.attributes.position.array, o * 3); if (!g.attributes.normal) g.computeVertexNormals(); nor.set(g.attributes.normal.array, o * 3); for (let v = 0; v < k; v++) { col[(o + v) * 3] = c.r; col[(o + v) * 3 + 1] = c.g; col[(o + v) * 3 + 2] = c.b; } o += k; g.dispose(); }
           const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); geo.computeBoundingSphere();
-          const m0 = list[0].material, mat = KM.toonPlain(0xffffff, { vertexColors: true, emissive: m0.emissive ? m0.emissive.getHex() : 0, emissiveIntensity: m0.emissiveIntensity || 0 });
+          const m0 = list[0].material, mat = opt.byMaterial ? m0 : KM.toonPlain(0xffffff, { vertexColors: true, emissive: m0.emissive ? m0.emissive.getHex() : 0, emissiveIntensity: m0.emissiveIntensity || 0 });
+          if (opt.byMaterial) geo.deleteAttribute('color');
           const mm = new THREE.Mesh(geo, mat); mm.castShadow = list.some(m => m.castShadow); mm.receiveShadow = list.some(m => m.receiveShadow); mm.userData.batched = list.length; node.add(mm);
-          const mats = new Set(); for (const m of list) { node.remove(m); m.geometry.dispose(); mats.add(m.material); } merged += list.length - 1;
+          const mats = new Set(); for (const m of list) { node.remove(m); m.geometry.dispose(); if (!opt.byMaterial) mats.add(m.material); } merged += list.length - 1;
           const still = new Set(); root.traverse(x => { if (x.material) still.add(x.material); }); for (const mt of mats) if (!still.has(mt)) mt.dispose(); }
       }
-      root.userData.parts = []; root.userData.batched = true; return merged;
+      if (!opt.byMaterial) root.userData.parts = []; root.userData.batched = true; return merged;
     }
     buildLauncher() {
       const g = new THREE.Group(), skin = this.skin;
@@ -748,7 +753,8 @@
       this.pp[i * 3] = x; this.pp[i * 3 + 1] = y; this.pp[i * 3 + 2] = z; this.pv[i * 3] = vx; this.pv[i * 3 + 1] = vy; this.pv[i * 3 + 2] = vz;
       this.pc[i * 3] = c.r; this.pc[i * 3 + 1] = c.g; this.pc[i * 3 + 2] = c.b; this.ps[i] = size; this.pl[i] = life; this.pm[i] = life; this.pg[i] = grav || 0;
     }
-    burst(x, y, z, n, color, speed, size, life, grav) { for (let k = 0; k < n; k++) { const a = Math.random() * 6.283, u = Math.random() * 2 - 1, s = speed * (0.4 + Math.random() * 0.6), r = Math.sqrt(1 - u * u); this.emit(x, y, z, Math.cos(a) * r * s, Math.abs(u) * s + speed * 0.2, Math.sin(a) * r * s, color, size * (0.6 + Math.random() * 0.8), (life || 0.5) * (0.6 + Math.random() * 0.6), grav == null ? 9 : grav); } }
+    // big battles: fewer, slightly larger particles (less transparent overdraw, same read)
+    burst(x, y, z, n, color, speed, size, life, grav) { const lk = this.loadK || 1; if (lk < 1 && n > 2) { n = Math.max(2, Math.round(n * lk)); size *= 1 + (1 - lk) * 0.5; } for (let k = 0; k < n; k++) { const a = Math.random() * 6.283, u = Math.random() * 2 - 1, s = speed * (0.4 + Math.random() * 0.6), r = Math.sqrt(1 - u * u); this.emit(x, y, z, Math.cos(a) * r * s, Math.abs(u) * s + speed * 0.2, Math.sin(a) * r * s, color, size * (0.6 + Math.random() * 0.8), (life || 0.5) * (0.6 + Math.random() * 0.6), grav == null ? 9 : grav); } }
     ring(x, z, color, size, life) { const r = this.rings[this.ri = (this.ri + 1) % this.rings.length]; r.m.material.color.setHex(color); r.m.position.x = x; r.m.position.z = z; r.t = 0; r.life = life || 0.6; r.size = size || 3; r.m.visible = true; }
     stepFx(dt) {
       const N = this.PN;
@@ -849,6 +855,7 @@
     frame(sim, dt) {
       this.time += dt; if (this.deathT != null) this.deathT += dt; this.cheerT = Math.max(0, (this.cheerT || 0) - dt);
       this.fxBudget = Math.max(3, Math.round(60 * (this.fxScale || 1) * (1 - Math.min(0.93, (sim.count[0] + sim.count[1]) / 2200))));
+      this.loadK = Math.max(0.35, Math.min(1, (this.fxScale || 1) * (1 - Math.max(0, sim.count[0] + sim.count[1] - 300) / 1800)));
       this.simT = sim.t; this.lzCache = sim.L.z; this.streamWorld(sim.front);
       this.drawCamera(sim, dt); this.drawLauncher(sim, dt); this.drawTowers(sim, dt);
       this.drawCrowd(sim, dt); this.drawCoins(sim); this.drawProjectiles(sim); this.stepFx(dt);

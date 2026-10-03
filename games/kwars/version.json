@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 71,
+  "build": 72,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 71 (Task Q home flow). Home and the Crusade/War entry now have one obvious next step: CONTINUE when you have progress (NEW GAME as the second choice, with a confirmation before it replaces your Crusade), BEGIN THE CRUSADE for a new player."
+  "notes": "KINGDOM WARS 1.0.0 build 72 (Task M crusade map). The Crusade roadmap now shows your real conquered count, marks conquered, next and ruler battles clearly, says what unlocks each locked era, and a silent-audio crash that could abort a fortress victory is fixed."
 }

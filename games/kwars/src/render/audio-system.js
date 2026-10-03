@@ -36,7 +36,9 @@
   function tone(freq,dur,wave,vol,slide,group,when){const c=context();if(!c||settings.master<=0)return;const o=c.createOscillator(),g=c.createGain(),t=when==null?c.currentTime:when;o.type=wave||'triangle';o.frequency.setValueAtTime(Math.max(28,freq),t);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(28,slide),t+dur);const peak=Math.max(.0001,(vol||.05)*busLevel(group||'IMPACTS'));g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(group==='MUSIC'?musicBus:master);o.start(t);o.stop(t+dur+.02);}
   function noise(dur,vol,group,filterFreq){const c=context();if(!c)return;const n=Math.max(1,Math.floor(c.sampleRate*dur)),b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);const s=c.createBufferSource(),g=c.createGain(),f=c.createBiquadFilter();s.buffer=b;f.type='lowpass';f.frequency.value=filterFreq||1800;g.gain.value=(vol||.05)*busLevel(group||'IMPACTS');s.connect(f);f.connect(g);g.connect(master);s.start();}
   function haptic(pattern){if(settings.haptics&&navigator.vibrate)try{navigator.vibrate(pattern);}catch(e){}}
-  function synth(id,p){const civ=CIVS[Math.max(0,Math.min(4,(p.civ||1)-1))],enemy=p.team===-1,base=enemy?civ.root*.84:civ.root;
+  /* TASK M finding: several cues read ac.currentTime directly; before the first user gesture there is no AudioContext,
+     so the victory cue THREW inside dmgCastle and aborted the win itself. A sound must never be able to break play. */
+  function synth(id,p){if(!ac)return;const civ=CIVS[Math.max(0,Math.min(4,(p.civ||1)-1))],enemy=p.team===-1,base=enemy?civ.root*.84:civ.root;
     if(id==='ui.tap')tone(620,.045,'sine',.025,760,'UI');else if(id==='ui.error')tone(170,.13,'square',.045,120,'UI');
     else if(id==='unit.recruit'){tone(base*2,.08,civ.wave,.045,base*3,'VOICE');tone(base*3,.09,civ.wave,.035,null,'VOICE',ac.currentTime+.07);}
     else if(id.includes('attack.arrow')){noise(.035,.028,'PROJECTILES',2600);tone(760,.055,'triangle',.025,310,'PROJECTILES');}

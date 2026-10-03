@@ -105,8 +105,8 @@
   .drawer .dhead { flex:1 0 100%; font:bold 10px/1 inherit; letter-spacing:1.2px; color:#9fb3c2; text-transform:uppercase; padding:2px 4px 0; }
   .ubtn.toggle { min-width:76px; background:linear-gradient(#3e4f61,#28333e); }
   .ubtn.toggle.open { background:linear-gradient(#f2c94d,#c98f1d); } .ubtn.toggle.open .nm, .ubtn.toggle.open .cost { color:#4a3405; }
-  .ubtn .kbd { font-size:9px; color:#c8d3dc; opacity:.85; }
-  .ubtn .sub { font-size:8.5px; color:#d9e4ec; opacity:.85; letter-spacing:.2px; }
+  .ubtn .kbd { font-size:10px; color:#c8d3dc; opacity:.85; }
+  .ubtn .sub { font-size:10px; color:#d9e4ec; opacity:.85; letter-spacing:.2px; }
   .ubtn .badge { position:absolute; top:-6px; right:-6px; min-width:20px; height:20px; padding:0 5px; border-radius:10px; background:#c0392b; color:#fff; font:bold 11px/20px inherit; box-shadow:0 1px 3px rgba(0,0,0,.5); }
   .ubtn .badge:empty { display:none; }
   /* touch devices never show keyboard hints */
@@ -126,7 +126,7 @@
     .ubtn { min-width:58px; height:52px; border-radius:10px; padding:0 6px; }
     .ubtn.order { min-width:70px; } .ubtn.toggle { min-width:68px; }
     .ubtn svg { width:20px; height:20px; } .ubtn .big { font-size:17px; line-height:20px; }
-    .ubtn .nm, .ubtn .cost { font-size:9.5px; }
+    .ubtn .nm, .ubtn .cost { font-size:10px; }
     .drawer { bottom:calc(64px + env(safe-area-inset-bottom)); flex-wrap:nowrap; overflow-x:auto; }
     .drawer .dhead { display:none; }   /* one compact row: the battlefield keeps the screen */
     #unitsdrawer { max-width:calc(100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)); }
@@ -158,7 +158,7 @@
   /* Class orders sit under the primary ones and grey out when there is no
      formation to hold -- they still work, they just do not invite a misclick. */
   .ubtn.classorder { min-width:56px; height:58px; background:linear-gradient(#45525f,#2e3944); }
-  .ubtn.classorder .nm { font-size:9.5px; }
+  .ubtn.classorder .nm { font-size:10px; }
   .ubtn.classorder.inert { opacity:.45; }
   .sep { flex:0 0 2px; height:52px; background:rgba(255,255,255,.14); border-radius:2px; align-self:center; }
 
@@ -191,7 +191,7 @@
   #installbtn { background:linear-gradient(#f2c94d,#c98f1d); color:#3d2b08; }
   #shell { position:fixed; inset:0; z-index:25; display:flex; align-items:center; justify-content:center; padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left)); background:linear-gradient(rgba(15,25,34,.82),rgba(10,15,22,.94)); color:#fff; }
   #shell.hidden,.shellpanel.hidden { display:none; }
-  .shellpanel { width:min(520px,94vw); max-height:92vh; overflow:auto; padding:22px; border:2px solid #98722b; border-radius:18px; background:rgba(29,40,50,.96); box-shadow:0 14px 50px rgba(0,0,0,.65); text-align:center; }
+  .shellpanel { width:min(520px,94vw); max-height:92vh; overflow:auto; padding:22px; border:2px solid #98722b; border-radius:18px; background:#1d2832; box-shadow:0 14px 50px rgba(0,0,0,.65); text-align:center; }
   .shellpanel h2 { color:#ffe27a; letter-spacing:2px; margin-bottom:12px; }
   .menubtn { display:block; width:100%; margin:8px 0; padding:11px 14px; border:1px solid #8ba0ad; border-radius:10px; background:linear-gradient(#516574,#34444f); color:#fff; font:bold 15px inherit; cursor:pointer; }
   .menubtn.primary { background:linear-gradient(#6fbd64,#357b38); }
@@ -201,7 +201,7 @@
   .shellpanel hr { border:0; border-top:1px solid #53636c; margin:15px 0; }
   .profilecrest { font-size:54px; color:#ffe27a; }
   .campaignnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 12px}.campaignnav button{border:1px solid #71838d;border-radius:7px;background:#34444f;color:#fff;padding:7px 12px}.campaigngrid{display:grid;gap:7px}.campaigncard,.councilrow{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;padding:10px;border:1px solid #526671;border-radius:9px;background:#263740;color:#fff;text-align:left}.campaigncard small,.councilrow small{display:block;color:#b9c7ce;margin-top:3px}.campaigncard.locked{opacity:.48}.councilrow button{border:1px solid #d7ae43;border-radius:7px;background:#5b4721;color:#ffe27a;padding:8px;white-space:nowrap}
-  .campaignroadmap{position:relative;display:grid;gap:10px;margin:14px 0;padding:5px 2px}.roadciv{position:relative;display:grid;grid-template-columns:38px 1fr auto;align-items:center;gap:9px;width:94%;min-height:64px;padding:8px 10px;border:2px solid #516773;border-radius:14px;background:linear-gradient(135deg,#263a45,#1d2c35);color:#fff;text-align:left;box-shadow:0 5px 12px rgba(0,0,0,.25)}.roadciv:nth-child(even){margin-left:6%}.roadciv:not(:last-child):after{content:'';position:absolute;left:49%;bottom:-13px;width:3px;height:13px;background:#718b98}.roadciv:nth-child(even):not(:last-child):after{left:44%}.roadciv.current{border-color:#ffe27a;box-shadow:0 0 14px rgba(255,226,122,.35)}.roadciv.complete{border-color:#69b879;background:linear-gradient(135deg,#26473b,#1c332c)}.roadciv.locked{opacity:.45;filter:saturate(.45)}.roadicon{font-size:25px;text-align:center}.roadname b,.roadname small{display:block}.roadname small{color:#b9c7ce;margin-top:3px}.roadnodes{display:flex;align-items:center;gap:2px}.roadnode{width:17px;height:17px;border:2px solid #8ca0aa;border-radius:50%;background:#17252d;color:#ffe27a;font-size:9px;line-height:13px;text-align:center}.roadnode.done{border-color:#69b879;background:#39734d}.roadnode.next{border-color:#ffe27a;animation:roadpulse 1.4s infinite}.roadflag{position:absolute;right:7px;top:-9px;font-size:17px}@keyframes roadpulse{50%{box-shadow:0 0 10px #ffe27a}}.roadlegend{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;color:#b9c7ce;font-size:11px}.roadsummary{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.roadsummary span{padding:7px;border-radius:8px;background:#21323b;font-size:11px}.campaignmapback{width:100%;margin:0 0 9px;padding:8px;border:1px solid #71838d;border-radius:8px;background:#34444f;color:#fff}
+  .campaignroadmap{position:relative;display:grid;gap:10px;margin:14px 0;padding:5px 2px}.roadciv{position:relative;display:grid;grid-template-columns:38px 1fr auto;align-items:center;gap:9px;width:94%;min-height:64px;padding:8px 10px;border:2px solid #516773;border-radius:14px;background:linear-gradient(135deg,#263a45,#1d2c35);color:#fff;text-align:left;box-shadow:0 5px 12px rgba(0,0,0,.25)}.roadciv:nth-child(even){margin-left:6%}.roadciv:not(:last-child):after{content:'';position:absolute;left:49%;bottom:-13px;width:3px;height:13px;background:#718b98}.roadciv:nth-child(even):not(:last-child):after{left:44%}.roadciv.current{border-color:#ffe27a;box-shadow:0 0 14px rgba(255,226,122,.35)}.roadciv.complete{border-color:#69b879;background:linear-gradient(135deg,#26473b,#1c332c)}.roadciv.locked{opacity:.45;filter:saturate(.45)}.roadicon{font-size:25px;text-align:center}.roadname b,.roadname small{display:block}.roadname small{color:#b9c7ce;margin-top:3px}.roadnodes{display:flex;align-items:center;gap:2px}.roadnode{width:20px;height:20px;border:2px solid #8ca0aa;border-radius:50%;background:#17252d;color:#ffe27a;font-size:10px;line-height:16px;text-align:center}.roadnode.done{border-color:#69b879;background:#39734d}.roadnode.next{border-color:#ffe27a;animation:roadpulse 1.4s infinite}.roadflag{position:absolute;right:7px;top:-9px;font-size:17px}@keyframes roadpulse{50%{box-shadow:0 0 10px #ffe27a}}.roadlegend{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;color:#b9c7ce;font-size:11px}.roadsummary{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.roadsummary span{padding:7px;border-radius:8px;background:#21323b;font-size:11px}.campaignmapback{width:100%;margin:0 0 9px;padding:8px;border:1px solid #71838d;border-radius:8px;background:#34444f;color:#fff}
   .mission,.storeitem { display:flex; justify-content:space-between; gap:15px; margin:8px 0; padding:10px; border-radius:8px; background:#263740; text-align:left; font-size:12px; }
   .shoptabs { display:flex; gap:5px; overflow-x:auto; padding-bottom:8px; }
   .shoptabs button { flex:0 0 auto; border:1px solid #71838d; border-radius:7px; padding:7px 9px; background:#263740; color:#dbe5ea; font:bold 10px inherit; }
@@ -224,7 +224,7 @@
     .ubtn svg { width:20px; height:20px; }
     .ubtn .big { font-size:17px; line-height:20px; }
     .shellpanel { width:min(620px,96vw); padding:14px; }.shopgrid{grid-template-columns:1fr}.shopcard{min-height:52px}
-    .ubtn .nm,.ubtn .cost { font-size:9px; }
+    .ubtn .nm,.ubtn .cost { font-size:10px; }
     .sep { height:44px; }
     #overlay { justify-content:flex-start; overflow-y:auto; padding:calc(env(safe-area-inset-top) + 16px) 18px calc(env(safe-area-inset-bottom) + 18px); }
     #overlay h1 { font-size:28px; margin-top:auto; }
@@ -761,7 +761,7 @@ function spawnAlly(type){
   const T = TYPES[type]; if (!T) return;   // D-13: unknown/retired types (laser) cannot be recruited
   if(T.premium&&!window.KWCommerce?.hasEntitlement?.('hero.aetherwing')){showMsg('Unlock the Aetherwing Vanguard bundle in the Store');return;}
   if(type==='aetherwing'&&S.units.some(u=>u.team===1&&u.type==='aetherwing'&&u.hp>0)){showMsg('Only one Aetherwing Colossus may deploy');return;}
-  if (T.civReq && S.civ < T.civReq){ showMsg('Unlocks in the '+CIV_NAMES[T.civReq-1]+' Age'); return; }
+  if (T.civReq && S.civ < T.civReq){ showMsg('Unlocks with '+CIV_NAMES[T.civReq-1]); return; }
   if (S.gold < T.cost){ showMsg('Not enough gold!'); beep(160,.12,'square',.05); return; }
   if (armyCount() >= armyMax()){ showMsg('Army is full ('+armyMax()+' max)'); return; }
   S.gold -= T.cost; battleStats().deployed++; battleStats().spent += T.cost;
@@ -2038,7 +2038,7 @@ function endGame(title, text){
     if(window.KWShell) window.KWShell.results({
       result, mode:'ENDLESS', gold,
       scopeLabel:'WAVE REACHED', scopeValue:wave,
-      subtitle:(text||'').replace(/<[^>]*>/g,' ').trim()+' · '+CIV_NAMES[civ-1]+' Age',
+      subtitle:(text||'').replace(/<[^>]*>/g,' ').trim()+' · '+CIV_NAMES[civ-1],
       retry:{mode:'ENDLESS'}, stats:resultStats()
     });
   }, 1500);
@@ -4557,9 +4557,9 @@ function updateUI(){
   document.getElementById('ehp').style.width = (clamp(S.castleHP/S.castleMax,0,1)*100)+'%';
   const wc = document.getElementById('wavechip');
   wc.textContent = (S.phase==='inter' && !S.over ? 'Next wave in '+Math.ceil(S.interT)+'s' : 'Wave '+S.wave)
-    + ' · ⚔ '+armyCount()+'/'+armyMax() + ' · ' + CIV_NAMES[S.civ-1] + ' Age'
+    + ' · ⚔ '+armyCount()+'/'+armyMax() + ' · ' + CIV_NAMES[S.civ-1]   /* civilization names are complete titles ('Viking Age', 'Feudal Japan'): no ' Age' suffix */
     + ' · 🏰 '+FORTRESS_AGES[S.civ-1].name
-    + ' · ☠ '+(S.phase==='wave'&&S.waveTotal?((S.defeatedTotal||0)+'/'+S.waveTotal+(S.waveQueue.length?' (↑'+enemyCount()+')':'')):(enemyCount()+'/'+enemyMax()))+' '+CIV_NAMES[S.enemyCiv-1]+' D'+S.enemyUpgrades;
+    + ' · ☠ '+(S.phase==='wave'&&S.waveTotal?((S.defeatedTotal||0)+'/'+S.waveTotal+(S.waveQueue.length?' (↑'+enemyCount()+')':'')):(enemyCount()+'/'+enemyMax()))+' '+CIV_NAMES[S.enemyCiv-1]+(S.enemyUpgrades?' +'+S.enemyUpgrades:'');
   for (const key of ['sword','archer','spear','gunner','aetherwing'])
     btnEls[key].classList.toggle('poor', S.gold < TYPES[key].cost);
   /* §4 order bar state. The hold button names the order it will GIVE next,
@@ -4767,7 +4767,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 82;
+  const KW_PAGE_BUILD = 83;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }

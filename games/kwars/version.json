@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 82,
+  "build": 83,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 82 (Perf safety + harness). adaptive soldier detail; isolated mutations"
+  "notes": "KINGDOM WARS 1.0.0 build 83 (UX final pass). SE results, 10px floor, panel ghosting, label fixes"
 }

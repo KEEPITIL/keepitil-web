@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 76,
+  "build": 77,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 76 (Task ranged families). crossbow/musket/rifle eras + garrison gate deadlock fix"
+  "notes": "KINGDOM WARS 1.0.0 build 77 (Task battle-end loop). results/retry/replay certified; reward idempotence"
 }

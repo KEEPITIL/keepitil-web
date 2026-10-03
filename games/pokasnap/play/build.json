@@ -1,0 +1,11 @@
+{
+ "app": "PokaSnap",
+ "version": "2.2.0",
+ "build": 22,
+ "phase": "C1.6A",
+ "commit": "e6928e5",
+ "hash": "ddbcf6905967",
+ "root": "board",
+ "builtAt": "2026-10-03T06:36:02.251Z",
+ "files": 25
+}

@@ -1,1 +1,0 @@
-PokaSnap 2.1.0 (15) Core Game — Owner Test · branch feature/pokasnap-2.1-core-game · commit 9c16873 (owner-final tag baseline-pokasnap-2.1-owner-final (owner-candidate 97390fc differs only by QA-only qa21.js); earlier freeze baseline-pokasnap-2.1-pre-owner-test = ad530dd)

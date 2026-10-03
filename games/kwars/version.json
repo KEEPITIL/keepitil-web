@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 78,
+  "build": 79,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 78 (Task save migration). seal-before-migrate, five-age run remap, legacy unit sanitize"
+  "notes": "KINGDOM WARS 1.0.0 build 79 (Task audio). complete cue set + mixing + fail-safe"
 }

@@ -1806,7 +1806,7 @@ function updateDrawnShot(u){
     u.pendingShot = null;
     if (fam.proj === 'arrow') fireArrow(u.x+u.face*6, u.y-22, ps.tg, ps.dmg, u.team);
     else if (fam.proj === 'bolt') fireBolt(u.x+u.face*12, u.y-24, ps.tg, ps.dmg, u.team);
-    else { fireBall(u.x+u.face*18, u.y-23, ps.tg, ps.dmg, u.team); if (fam.smoke) pushFx({kind:'smoke', x:u.x+u.face*24, y:u.y-24, t:0, a:fam.smoke}); if (typeof snd!=='undefined' && snd.gun) snd.gun(); }
+    else { fireBall(u.x+u.face*18, u.y-23, ps.tg, ps.dmg, u.team); if (fam.smoke) pushFx({kind:'smoke', x:u.x+u.face*24, y:u.y-24, t:0, a:fam.smoke}); }   // its sound is the family cue below
     if (window.KWAudio) KWAudio.emit(fam.sound, {civ:u.team===1?S.civ:S.enemyCiv, team:u.team});
   }
 }
@@ -1855,6 +1855,7 @@ function unitFire(u, t, foe){
       u.thrustArmed=true; u.thrustHit=false; u.thrustDmg=dmg; return;
     }
     if (foe){
+      if(window.KWAudio)KWAudio.emit('unit.attack.sword',{civ:u.team===1?S.civ:S.enemyCiv,team:u.team});   // TASK AUDIO: blade contact
       hurt(foe.u, dmg,{kind:'melee',damageType:t.damageType||'SLASHING',sourceX:u.x});
       // Spear wall: an intact spearman (shield up, spear not thrown) drives attackers
       // back — they cannot close to the body until the shield is broken or he's overwhelmed.
@@ -2642,6 +2643,7 @@ function update(dt){
           break;
         }
         hurt(u,p.dmg,{kind:p.kind,sourceX:p.sourceX==null?p.x-(p.vx||0)*.1:p.sourceX});
+        if((p.kind==='arrow'||p.kind==='quarrel'||p.kind==='ball')&&window.KWAudio) KWAudio.emit('projectile.hit.'+p.kind,{civ:S.civ,team:u.team});
         if(p.kind==='arrow'||p.kind==='quarrel') stickArrow(u,p);   // TASK H: the arrow (or bolt) stays where it struck
         if(p.kind==='ball') pushFx({kind:'dust', x:p.x, y:p.y, t:0, hit:1});   // a ball strikes and is gone
         if(p.kind==='spearp'&&u.hp>0){ u.bleed=(u.bleed||0)+1; u.impaled=true; addFloat(u.x,u.y-46,'IMPALED −1/s','#ff9b8f'); }
@@ -2880,7 +2882,7 @@ function updateSpears(dt){
       o.spearHeldT = S.time; o.spearHeldBy = u;
     }
     /* §6 break in progress: the shaft is under stress for 0.22s, then snaps (fragments) and the loss cleanup runs */
-    if(u.spearStressT > 0){ u.spearStressT -= dt; if(u.spearStressT <= 0){ spawnSpearFragments(u, g); loseSpear(u,'broken'); } continue; }
+    if(u.spearStressT > 0){ u.spearStressT -= dt; if(u.spearStressT <= 0){ spawnSpearFragments(u, g); loseSpear(u,'broken'); if(window.KWAudio)KWAudio.emit('unit.break.spear',{civ:u.team===1?S.civ:S.enemyCiv,team:u.team}); } continue; }
     /* §9 one blocked contact from breaking: prefer an exposed body in the lane, then an explicit throw in attack posture */
     if(u.spearIntegrity === 1 && u.tgt && u.tgt.hp > 0 && KW_SPEAR.facingShield(u.tgt, u.x) && !(u.tgtLock > S.time)){
       let exposed = null;
@@ -2931,6 +2933,7 @@ function spearReach(u){
 function resolveSpearContact(u, c){
   const o = c.o, dmg = u.thrustDmg || TYPES[u.type].dmg;
   if(c.shield){
+    if(window.KWAudio)KWAudio.emit('unit.attack.spear',{civ:u.team===1?S.civ:S.enemyCiv,team:u.team});
     hurt(o, dmg, {kind:'melee', damageType:'PIERCING', sourceX:u.x, shieldOnly:true});
     S.fx.push({kind:'shieldhit', x:c.hit.x, y:c.hit.y, t:0});
     const dir = Math.sign(o.x-u.x)||u.face||1; o.shoveX=(o.shoveX||0)+dir*3; o.staggerT=Math.max(o.staggerT||0,0.12);
@@ -2945,6 +2948,7 @@ function resolveSpearContact(u, c){
     S.fx.push({kind:'spark', x:c.hit.x, y:c.hit.y, t:0, dir:-(o.face||1)});
     loseSpear(u, 'impaled');
   } else {
+    if(window.KWAudio)KWAudio.emit('unit.attack.spear',{civ:u.team===1?S.civ:S.enemyCiv,team:u.team});
     hurt(o, dmg, {kind:'melee', damageType:'PIERCING', sourceX:u.x});                                           // giants/bosses/siege: pricked, spear kept (documented exception)
   }
 }
@@ -4699,7 +4703,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 78;
+  const KW_PAGE_BUILD = 79;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }

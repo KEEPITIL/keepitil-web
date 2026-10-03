@@ -478,6 +478,7 @@ const RETREAT_WALL_POSTS = [
   {x:508,y:264,s:.70},{x:420,y:264,s:.70},
   {x:276,y:260,s:.70},{x:120,y:240,s:.70},
 ];
+const FORT_COLS = 8, FORT_COL_STEP = 17, FORT_CAP = 6 * FORT_COLS;   // TASK L: 48 places inside the garrison band (+ RETREAT_WALL_MAX wall posts for ranged)
 const RETREAT_HEAL_PER_SEC = 0.06;   // fraction of max HP, only while garrisoned
 const GARRISON_BAND = 150;           // how far behind the wall counts as "safe"
 /* §21 GARRISON SAFETY CONTRACT.
@@ -502,7 +503,7 @@ const GARRISON_BAND = 150;           // how far behind the wall counts as "safe"
 const GARRISON_SIEGE_KINDS = new Set(['boulder','rock','bomb','blast']);
 function isGarrisoned(u){
   return u && u.team === 1 && S && S.retreatMode &&
-         (u.onWall === true || u.x <= P_WALL + GARRISON_BAND);
+         (u.onWall === true || (u.x <= P_WALL + GARRISON_BAND && u.fortIdx != null));   // TASK L: a fort PLACE, not just position -- a soldier waiting at a full gate who is jostled into the band is not garrisoned
 }
 // wall wizard spots (the fort starts with one on the fountain tower)
 const WIZ_SPOTS = [
@@ -894,6 +895,7 @@ function retreat(){
 function endRetreat(){
   if (!S || !S.retreatMode) return;
   S.retreatMode = false;
+  for (const u of S.units) if (u.team === 1){ u.inFort = false; u.fortIdx = null; }
   const back = S.wallArchers || [];
   for (const w of back){
     const i = S.defs.indexOf(w.def);
@@ -912,12 +914,18 @@ function retreatUpkeep(dt){
   const safeX = P_WALL + GARRISON_BAND;
   for (let i = S.units.length - 1; i >= 0; i--){
     const u = S.units[i];
-    if (u.team !== 1 || u.hp <= 0 || u.x > safeX) continue;
+    if (u.team !== 1 || u.hp <= 0 || u.x > safeX || (u.fortIdx == null && !u.onWall && u.type!=='archer' && u.type!=='gunner')){ if (u.team===1) u.inFort = false; continue; }   // heal/occupy only with a fort place (ranged still walk in to take a wall post)
     // recover while garrisoned
     // NOTE: the unit's ceiling is `max`, not `hpMax`. Guessing that name wrote
     // NaN into hp and silently killed the entire retreating army.
     if (u.max > 0) u.hp = Math.min(u.max, u.hp + u.max * RETREAT_HEAL_PER_SEC * dt);
-    if (u.shieldMax > 0) u.shield = Math.min(u.shieldMax, (u.shield||0) + u.shieldMax * RETREAT_HEAL_PER_SEC * dt);
+    /* TASK L GARRISON RULE -- "the fortress mends what is damaged, never what is destroyed":
+       HP heals; a DAMAGED shield or armour is repaired; a BROKEN shield (0), stripped armour (0) or a lost spear stays
+       lost (the man fights on with what he still carries). Build 61-73 regenerated a broken shield from 0, so a
+       dropped shield silently reappeared after a retreat. */
+    if (u.shieldMax > 0 && (u.shield||0) > 0) u.shield = Math.min(u.shieldMax, u.shield + u.shieldMax * RETREAT_HEAL_PER_SEC * dt);
+    if (u.armorMax > 0 && (u.armor||0) > 0) u.armor = Math.min(u.armorMax, u.armor + u.armorMax * RETREAT_HEAL_PER_SEC * dt);
+    u.inFort = true;
     // archers take a firing position on the parapet
     const ranged = u.type === 'archer' || u.type === 'gunner' || u.type === 'laser';
     if (ranged && S.wallArchers.length < RETREAT_WALL_MAX){
@@ -1086,6 +1094,25 @@ function updateFormation(dt){
   // Six ranks provide room for the 50-soldier army without creating a very
   // long snake. Settled troops are carried with the line as one body.
   const rows = [428,443,458,473,488,503], cs = 28, rankRows=rows.length;
+  /* TASK L: THE FORT HAS ROOM. RETREAT used to send the army to the ordinary rally line (front rank at x~725) -- but
+     the garrison band ends at P_WALL+GARRISON_BAND (710), so the front ranks stood OUTSIDE the fort: never healed,
+     never protected, while only archers (who walk to wall posts) really garrisoned. While RETREAT is the order, the
+     army is laid out on a grid INSIDE the band -- FORT_ROWS x FORT_COLS places, the most injured first -- and anyone
+     beyond capacity waits just outside the gate. Capacity, occupancy and FULL are shown on the Retreat button. */
+  if (S.retreatMode){
+    const safeX = P_WALL + GARRISON_BAND, taken = new Array(FORT_CAP).fill(null), pool = [];
+    /* places are STICKY for the whole retreat: re-sorting by health every frame swapped soldiers between the fort and
+       the gate as they healed, and they marched back and forth through each other. Free places go to the most injured. */
+    for (const u of allies){ if (u.hp <= 0 || u.onWall) continue; if (u.fortIdx != null && u.fortIdx < FORT_CAP && !taken[u.fortIdx]) taken[u.fortIdx] = u; else { u.fortIdx = null; pool.push(u); } }
+    pool.sort((a,b) => (a.hp/a.max) - (b.hp/b.max));
+    let k = 0, w = 0;
+    for (const u of pool){ while (k < FORT_CAP && taken[k]) k++; if (k < FORT_CAP){ taken[k] = u; u.fortIdx = k; } else { const col = Math.floor(w / rankRows); u.slotX = safeX + 26 + col*cs; u.slotY = rows[w % rankRows]; u.slotKey = 'aW:' + w; w++; } }   // waiting at the gate: fort is full
+    S.fortUsed = taken.filter(Boolean).length;
+    // places fill from the WALL outward: each newcomer takes the next place nearer the gate, so nobody has to pass a man already settled in his lane
+    for (let i = 0; i < FORT_CAP; i++){ const u = taken[i]; if (!u) continue; u.slotX = safeX - 12 - (FORT_COLS - 1 - Math.floor(i / rankRows))*FORT_COL_STEP; u.slotY = rows[i % rankRows]; u.slotKey = 'aF:' + i; }
+    return;   // the fort grid is the ONLY slot authority while retreating (an override after the normal layout churned slots every step)
+  }
+  S.fortUsed = 0;
   const RANGED = t=>['bow','gun','laser'].includes(TYPES[t].weapon);
   // Phalanx frontage: shields and long spears first, swords in support,
   // missile troops far enough behind to shoot over the formation.
@@ -1418,6 +1445,7 @@ function updateFaceState(u,dt){
   if(want!==u.faceState) u.faceStateT=0.4;
   u.faceState = want;
   u.shieldUp = threatened;
+  if(want==='RETREAT_SHIELDED') u.face = enemyDirFor(u);   // turn to the threat on the step the posture is entered, never one frame late
 }
 /* An incoming projectile owned by the other side, still airborne, heading at
    this soldier and close enough to matter. */
@@ -2413,15 +2441,17 @@ function update(dt){
          loss: the sword slot interleaves the rows behind) used to be pushed back out by both of them for good -- the
          gap between their bodies is narrower than his own. A calm teammate he is walking past (only for a soldier relocating after spear loss, so an intact phalanx never opens on its own; phalanx files let him pass the way real files did) now steps half a
          body aside (bounded, and his own slot steering brings him back afterwards); the walker is not shoved back. */
-      if(u.spearLost && o.team===u.team && !settled && Number.isFinite(u.slotX) && (u.slotX-u.x)*(o.x-u.x)>0 && Math.abs(u.slotX-u.x)>Math.abs(o.x-u.x)-2 && d<R+8 && o.anim<=0 && !o._yielded && Number.isFinite(o.slotX) && Math.hypot(o.x-o.slotX,o.y-o.slotY)<10){
-        o._yieldY=(o._yieldY||0)+(dy>0?-1:1)*0.9; o._yielded=1; if(d>=bmin) continue; }
+      if((u.spearLost || (S.retreatMode && String(u.slotKey||'').startsWith('aF:'))) && o.team===u.team && !settled && Number.isFinite(u.slotX) && (u.slotX-u.x)*(o.x-u.x)>0 && Math.abs(u.slotX-u.x)>Math.abs(o.x-u.x)-2 && d<R+8 && o.anim<=0 && !o._yielded && Number.isFinite(o.slotX) && Math.hypot(o.x-o.slotX,o.y-o.slotY)<10){
+        o._yieldY=(o._yieldY||0)+(dy>0?-1:1)*0.9; o._yielded=1;
+        if(S.retreatMode && String(o.slotKey||'').startsWith('aW:')) o._yieldX=(o._yieldX||0)+1.4;   // Task L: a soldier waiting at a full gate steps BACK out of the way of one sent inside
+        if(d>=bmin) continue; }
       if(d<bmin){ const f=(bmin-d)/bmin; px+=dx/d*f*1.7; py+=dy/d*f*1.7; cnt++; hard++; }
       else if(d<R){ const f=(R-d)/R; px+=dx/d*f; py+=dy/d*f; cnt++; }
     }
     if(settled && !hard) continue;                 // calm and not overlapping: leave it alone
     if(cnt){ const cap=hard?3:1.6; u.x += Math.max(-cap,Math.min(cap,px*2.6)); u.y = clamp(u.y + Math.max(-cap,Math.min(cap,py*2.2)), GROUND_TOP, GROUND_BOT); }
   }
-  for(const u of S.units){ if(u._yieldY){ u.y=clamp(u.y+Math.max(-0.9,Math.min(0.9,u._yieldY)),GROUND_TOP,GROUND_BOT); u._yieldY=0; } u._yielded=0; }
+  for(const u of S.units){ if(u._yieldY){ u.y=clamp(u.y+Math.max(-0.9,Math.min(0.9,u._yieldY)),GROUND_TOP,GROUND_BOT); u._yieldY=0; } if(u._yieldX){ u.x+=Math.min(1.4,u._yieldX); u._yieldX=0; } u._yielded=0; }
   updateSpears(dt);
   // apply + decay hit knockback, then re-bound to the field so nothing is shoved through a wall
   for(const u of S.units){ if(u.hp<=0) continue;
@@ -4317,7 +4347,7 @@ function buildUI(){
   _mkInto = 'grp-orders';
   /* §4 THREE PRIMARY ORDERS. Retreat used to be a hidden double-tap on Defend
      and Defend/March were two separate buttons; both are now explicit. */
-  mkBtn('retreat','<span class="big">\u26e8</span><span class="nm">Retreat</span><span class="kbd">[R]</span>', ()=>issueCommand('retreat'), 'order');
+  mkBtn('retreat','<span class="big">\u26e8</span><span class="nm">Retreat</span><span class="sub" id="retsub"></span><span class="kbd">[R]</span>', ()=>issueCommand('retreat'), 'order');
   /* TASK I: the centre button shows the army's CURRENT holding state (DEFEND or MARCH) in large type; the small line
      says what a tap switches to. It used to name only the NEXT order, so "March" meant "you are defending". */
   mkBtn('hold',   '<span class="big">\ud83d\udee1</span><span class="nm" id="holdlab">Defend</span><span class="sub" id="holdsub"></span><span class="kbd">[Q]</span>', ()=>issueCommand('hold'), 'order');
@@ -4375,8 +4405,11 @@ function updateUI(){
     btnEls[k].classList.toggle('inert', !holding);
   const wallN = (S.wallArchers||[]).length;
   btnEls.retreat.classList.toggle('maxed', wallN >= RETREAT_WALL_MAX);
+  { const rs = document.getElementById('retsub'); if (rs){ let inFort = 0; for (const u of S.units) if (u.team===1 && u.hp>0 && u.inFort) inFort++;
+      const cap = FORT_CAP + RETREAT_WALL_MAX, used = inFort + wallN, full = (S.fortUsed||0) >= FORT_CAP && S.units.some(u=>u.team===1&&u.hp>0&&!u.inFort&&String(u.slotKey||'').startsWith('aW:'));
+      rs.textContent = S.retreatMode ? ('In fort '+used+'/'+cap+(full?' · FULL':'')) : ''; } }   // TASK L: visible garrison occupancy
   const gMax = S.garrison >= GARRISON.length;
-  document.getElementById('glab').textContent = 'Garrison '+S.garrison+'/'+GARRISON.length;
+  document.getElementById('glab').textContent = 'Walls '+S.garrison+'/'+GARRISON.length;   // TASK L: the bought defenders, not the retreat garrison
   btnEls.garrison.classList.toggle('maxed', gMax);
   btnEls.garrison.classList.toggle('poor', !gMax && S.gold < GARRISON_COST);
   const wMax = S.wizes.length-1 >= WIZ_SPOTS.length;
@@ -4556,7 +4589,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 73;
+  const KW_PAGE_BUILD = 74;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }

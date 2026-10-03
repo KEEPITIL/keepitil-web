@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 73,
+  "build": 74,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 73 (Task N tutorial). New players get a quick hands-on tutorial in their first battle: recruit, march, defend, throw spears, attack, retreat and storm the fortress, one highlighted control at a time, never pausing the game, with Skip always available."
+  "notes": "KINGDOM WARS 1.0.0 build 74 (Task L garrison). RETREAT now brings the whole army inside the fort (48 places, most wounded first; the Retreat button shows who is inside and when the fort is full). Wounds heal and damaged shields and armour are repaired, but broken shields and lost spears stay lost. Garrisoned soldiers are safe from ordinary attacks, and fight normally again as soon as you give a new order."
 }

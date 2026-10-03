@@ -18,7 +18,7 @@
         x: f(CAP), z: f(CAP), vx: f(CAP), vz: f(CAP), hp: f(CAP), mhp: f(CAP), dmg: f(CAP), cd: f(CAP), at: f(CAP), spd: f(CAP),
         rng_: f(CAP), arm: f(CAP), rad: f(CAP), sc: f(CAP), phase: f(CAP), swing: f(CAP), flash: f(CAP), die: f(CAP), slow: f(CAP),
         yaw: f(CAP), think: f(CAP), birth: f(CAP), stride: f(CAP), team: u(CAP), kind: u(CAP), st: u(CAP), era: u(CAP), elite: u(CAP),
-        tgt: i(CAP), next: i(CAP), freeL: i(CAP), swd: f(CAP), pend: i(CAP), pcrit: u(CAP), pdmg: f(CAP),
+        tgt: i(CAP), next: i(CAP), freeL: i(CAP), role: u(CAP), roleT: f(CAP), atkN: u(CAP), swd: f(CAP), pend: i(CAP), pcrit: u(CAP), pdmg: f(CAP),
         gh: i(GCOLS * GROWS * 2),
         p: { x: f(PCAP), z: f(PCAP), sx: f(PCAP), sz: f(PCAP), ex: f(PCAP), ez: f(PCAP), t: f(PCAP), tof: f(PCAP), dmg: f(PCAP), spl: f(PCAP), slow: f(PCAP), h: f(PCAP), team: u(PCAP), kind: u(PCAP), on: u(PCAP), tgt: i(PCAP), crit: u(PCAP) },
         c: { x: f(CCAP), z: f(CCAP), v: f(CCAP), age: f(CCAP), st: u(CCAP), y: f(CCAP), vy: f(CCAP), dx: f(CCAP), dz: f(CCAP) },
@@ -63,6 +63,10 @@
       this.rng_[i] = def.rng; this.arm[i] = (def.arm || 0) + (mul.arm || 0); this.rad[i] = def.rad; this.sc[i] = def.sc * (0.95 + r() * 0.1);
       this.phase[i] = r() * 6.283; this.stride[i] = 0.9 + r() * 0.2; this.swing[i] = 0; this.pend[i] = -1; this.swd[i] = def.el || def.sc >= 1.3 || def.wpn === 'axe' ? 0.75 : def.wpn === 'staff' || def.wpn === 'cannon' ? 0.6 : 0.4; this.flash[i] = 0; this.die[i] = 0; this.slow[i] = 0;
       this.yaw[i] = team ? 0 : Math.PI; this.think[i] = r() * 0.2; this.birth[i] = mul.birth || 0; this.tgt[i] = -1; this.era[i] = mul.era || 0; this.elite[i] = def.el ? 1 : 0;
+      // melee role: 0 front · 1 pressure (fills openings) · 2 breakthrough (fast/heavy) · 3 rear (ranged/support)
+      const rr = r(); this.roleT[i] = 0;
+      this.role[i] = def.rng > 2 || def.he ? 3 : team ? (def.k === 'brute' || def.k === 'warlord' ? 2 : def.k === 'runner' ? (rr < 0.6 ? 2 : 1) : def.k === 'knight' ? (rr < 0.4 ? 2 : 0) : def.k === 'imp' ? (rr < 0.3 ? 2 : 1) : rr < 0.35 ? 1 : 0)
+        : (def.k === 'knightF' ? 2 : rr < 0.12 ? 2 : rr < 0.47 ? 1 : 0);
       this.count[team]++;
       return i;
     }
@@ -72,6 +76,7 @@
     kill(i, silent) {
       if (this.st[i] !== ALIVE) return;
       this.st[i] = DYING; this.die[i] = 0; this.count[this.team[i]]--; this.dying++;
+      if (!silent) this.openSpace(i);
       if (this.team[i] === 1) {
         const d = KM.ENEMY[this.kind[i]];
         if (!silent) {
@@ -86,6 +91,24 @@
       } else this.emit('fdie', i);
     }
 
+    // A death opens space: neighbours re-pick targets at once and the victors step into the gap.
+    openSpace(i) {
+      const x = this.x[i], z = this.z[i], dead = this.team[i], R = 2.6, c0 = this.cellX(x - R), c1 = this.cellX(x + R), r0 = this.cellZ(z - R), r1 = this.cellZ(z + R);
+      for (let gz = r0; gz <= r1; gz++) for (let gx = c0; gx <= c1; gx++) for (let t = 0; t < 2; t++) for (let j = this.gh[(gz * GCOLS + gx) * 2 + t]; j >= 0; j = this.next[j]) {
+        if (this.st[j] !== ALIVE || j === i) continue; const dx = x - this.x[j], dz = z - this.z[j], d = Math.sqrt(dx * dx + dz * dz); if (d > R || d < 1e-3) continue;
+        this.think[j] = Math.min(this.think[j], 0.05 * (1 + (j % 3)));
+        if (t !== dead) { const k = 1.6 * (1 - d / R); this.vx[j] += dx / d * k; this.vz[j] += dz / d * k; }      // surge into the gap
+      }
+    }
+    // Heavy blows (brutes, warlord, knights, heavy friendlies) shove a small group back and open a pocket.
+    shockwave(i, x, z, r, power) {
+      const ot = 1 - this.team[i], c0 = this.cellX(x - r), c1 = this.cellX(x + r), r0 = this.cellZ(z - r), r1 = this.cellZ(z + r); let n = 0;
+      for (let gz = r0; gz <= r1; gz++) for (let gx = c0; gx <= c1; gx++) for (let j = this.gh[(gz * GCOLS + gx) * 2 + ot]; j >= 0; j = this.next[j]) {
+        if (this.st[j] !== ALIVE) continue; const dx = this.x[j] - this.x[i], dz = this.z[j] - this.z[i], d = Math.sqrt(dx * dx + dz * dz) || 0.01; if (d > r + this.rad[i]) continue;
+        const k = power * (1 - Math.min(1, d / (r + this.rad[i]))) * (0.6 / Math.max(0.6, this.rad[j] * 1.7)); this.vx[j] += dx / d * k; this.vz[j] += dz / d * k; this.flash[j] = Math.max(this.flash[j], 0.6); this.think[j] = 0.25; n++;
+      }
+      if (n) this.emit('shove', i, n);
+    }
     explode(i, d) {
       const x = this.x[i], z = this.z[i];
       this.area(0, x, z, d.ex, this.dmg[i], 0, -1);
@@ -274,6 +297,7 @@
       this.deploy(dt, S, D);
       this.director(dt, D);
       this.stepWalls(dt);
+      this.stepZones(dt);
       this.stepUnits(dt, S);
       this.stepTowers(dt, S);
       this.stepProjectiles(dt);
@@ -382,6 +406,41 @@
       return Math.max(spent, placed ? 1 : 0);
     }
 
+    // Local pressure zones: the lane is split into 8 strips that win or lose ground independently (neighbours diffuse,
+    // slow per-zone noise keeps them from moving in lockstep) → a wavy, unstable battlefront with flanks that collapse.
+    stepZones(dt) {
+      const Z = 8, F = this.zF || (this.zF = new Float32Array(Z)), E = this.zE || (this.zE = new Float32Array(Z)), P = this.zP || (this.zP = new Float32Array(Z)), Q = this.zQ || (this.zQ = new Float32Array(Z));
+      F.fill(0); E.fill(0); this.atkN.fill(0, 0, this.hi);
+      // melee intensity: small skirmishes keep the crisp early game; mass battles turn into a mixed melee
+      this.mi = Math.max(0, Math.min(1, (this.count[0] + this.count[1] - 70) / 90));
+      for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE) continue; const t = this.tgt[i]; if (t >= 0 && this.atkN[t] < 250) this.atkN[t]++;
+        if (this.z[i] < this.front - 70) continue; const k = Math.max(0, Math.min(Z - 1, Math.floor((this.x[i] + W.LANE) / (2 * W.LANE) * Z))), w = Math.sqrt(this.hp[i] * (this.team[i] ? this.dmg[i] : this.stats.dmg)) * (this.role[i] === 3 ? 0.5 : 1);
+        if (this.team[i]) E[k] += w; else F[k] += w; }
+      for (let k = 0; k < Z; k++) Q[k] = (F[k] - E[k]) / (F[k] + E[k] + 4) + 0.28 * Math.sin(this.t * (0.11 + k * 0.013) + k * 1.9);
+      for (let k = 0; k < Z; k++) { const nb = ((k > 0 ? Q[k - 1] : Q[k]) + (k < Z - 1 ? Q[k + 1] : Q[k])) / 2, tgt = Math.max(-1, Math.min(1, Q[k] * 0.75 + nb * 0.25)); P[k] += (tgt - P[k]) * Math.min(1, dt * 0.8); }
+    }
+    zoneOf(x) { return Math.max(0, Math.min(7, Math.floor((x + W.LANE) / (2 * W.LANE) * 8))); }
+    // Choose among the nearest few enemies by role: spread attackers, finish the wounded, hunt specialists, save allies, dive deep.
+    pickTarget(i, R) {
+      const x = this.x[i], z = this.z[i], ot = 1 - this.team[i], role = this.role[i], team = this.team[i];
+      const C = this.cand || (this.cand = new Int32Array(8)), CD = this.candD || (this.candD = new Float32Array(8)); let n = 0, worst = 0;
+      const c0 = this.cellX(x - R), c1 = this.cellX(x + R), r0 = this.cellZ(z - R), r1 = this.cellZ(z + R), R2 = R * R;
+      for (let gz = r0; gz <= r1; gz++) for (let gx = c0; gx <= c1; gx++) for (let j = this.gh[(gz * GCOLS + gx) * 2 + ot]; j >= 0; j = this.next[j]) {
+        if (this.st[j] !== ALIVE) continue; const dx = this.x[j] - x, dz = this.z[j] - z, d = dx * dx + dz * dz; if (d > R2) continue;
+        if (n < 8) { C[n] = j; CD[n] = d; if (d > CD[worst]) worst = n; n++; if (n === 8) { worst = 0; for (let q = 1; q < 8; q++) if (CD[q] > CD[worst]) worst = q; } }
+        else if (d < CD[worst]) { C[worst] = j; CD[worst] = d; worst = 0; for (let q = 1; q < 8; q++) if (CD[q] > CD[worst]) worst = q; }
+      }
+      if (!n) return -1; if (role === 3 || n === 1) { let b = 0; for (let q = 1; q < n; q++) if (CD[q] < CD[b]) b = q; return C[b]; }
+      let best = -1, bs = 1e9;
+      for (let q = 0; q < n; q++) { const j = C[q], d = Math.sqrt(CD[q]), dj = this.def(j), depth = team === 0 ? z - this.z[j] : this.z[j] - z;
+        const mi = this.mi || 0; let sc = d + mi * (this.atkN[j] * (role === 1 ? 1.4 : 0.55) + this.rng() * 0.8);
+        if (role >= 1) sc -= mi * (1 - this.hp[j] / this.mhp[j]) * 1.6;                                   // finish the wounded
+        if (role >= 1 && (dj.rng > 2 || dj.he)) sc -= mi * 2.4;                                           // hunt archers / shamans / cannons
+        const tj = this.tgt[j]; if (tj >= 0 && this.team[tj] === team) sc -= mi * 0.6;                   // enemy threatening an ally
+        if (role === 2) sc -= mi * Math.max(0, depth) * 0.9;                                             // breakthrough: dive past the front rank
+        if (sc < bs) { bs = sc; best = j; } }
+      return best;
+    }
     stepUnits(dt, S) {
       const front = this.front, L = this.L, aggro0 = 11, aggro1 = 10;
       for (let i = 0; i < this.hi; i++) {
@@ -397,6 +456,10 @@
           if (was > hitAt && this.swing[i] <= hitAt && this.pend[i] !== -1) this.strike(i, S);
         }
         const sm = this.slow[i] > 0 ? 0.5 : 1;
+        // zone pressure: winning strips surge (a few units turn into breakthrough divers), losing strips give ground
+        const zk = this.zP ? this.zP[this.zoneOf(this.x[i])] * (this.mi || 0) : 0, adv = team ? -zk : zk;
+        if (this.roleT[i] > 0) { this.roleT[i] -= dt; if (this.roleT[i] <= 0 && this.role[i] === 2) this.role[i] = 1; }
+        else if (adv > 0.3 && this.role[i] < 2 && this.rng() < dt * 0.35) { this.role[i] = 2; this.roleT[i] = 3 + this.rng() * 3; this.think[i] = 0; }
         // retarget (staggered)
         this.think[i] -= dt;
         let tg = this.tgt[i];
@@ -405,12 +468,12 @@
         if (this.think[i] <= 0) {
           this.think[i] = 0.18 + this.rng() * 0.16;
           const ranged = this.rng_[i] > 2;
-          tg = this.nearest(i, team ? aggro1 + (ranged ? 4 : 0) : aggro0 + (ranged ? 4 : 0));
+          tg = this.pickTarget(i, team ? aggro1 + (ranged ? 4 : 0) : aggro0 + (ranged ? 4 : 0));
           if (team === 1) { const ld = this.lDist(this.x[i], this.z[i]); if (ld < 6.5 && (tg < 0 || ld < 3)) tg = -2;
             const sn = this.structNear(this.x[i], this.z[i], this.rad[i] + (ranged ? 3 : 0)); if (sn !== -1 && (tg < 0 || sn <= -20 || this.rng() < 0.5)) tg = sn; }
           this.tgt[i] = tg;
         }
-        let dvx = 0, dvz = 0, sp = this.spd[i] * sm * (team ? 1 : S.speed / 4.3);
+        let dvx = 0, dvz = 0, sp = this.spd[i] * sm * (team ? 1 : S.speed / 4.3) * (1 + 0.3 * adv) * (this.role[i] === 2 ? 1 + 0.15 * (this.mi || 0) : 1);
         if (team === 0 && this.kind[i] !== 32) sp = sp; // all friendlies share stat speed
         if (tg !== -1) {
           const so = tg <= -10 ? this.structAt(tg) : null;
@@ -418,12 +481,14 @@
           const dx = tx - this.x[i], dz = tz - this.z[i], d = Math.sqrt(dx * dx + dz * dz) || 0.001;
           const reach = this.rng_[i] + this.rad[i] + (so ? (tg <= -20 ? so.d / 2 : 1.1) : tg === -2 ? 1.1 : this.rad[tg]);
           this.yaw[i] = Math.atan2(dx, dz);
-          if (d > reach) {
+          if (this.role[i] === 3 && !so && tg >= 0 && d < this.rng_[i] * 0.5) { dvx = -dx / d * sp * 0.75; dvz = -dz / d * sp * 0.75; }   // ranged: back off to preferred range
+          else if (d > reach) {
             dvx = dx / d * sp; dvz = dz / d * sp;
             // fan out toward open combat positions instead of queueing behind the unit in front
             if (d < reach + 4) { const fan = (((i * 0.6180339) % 1) - 0.5) * 0.9 * sp * Math.min(1, (d - reach) / 2); dvx += -dz / d * fan; dvz += dx / d * fan; }
           }
           else {
+            if (adv < -0.4 && this.role[i] < 2) dvz = (team ? -1 : 1) * sp * 0.45 * (-adv - 0.4);   // losing strip gives ground while fighting
             this.at[i] -= dt * (team ? 1 : S.atk) * sm;
             if (this.at[i] <= 0) { this.at[i] = this.cd[i] * (0.9 + this.rng() * 0.2); this.attack(i, tg, tx, tz, S); }
           }
@@ -462,7 +527,7 @@
           for (let t = 0; t < 2; t++) for (let j = this.gh[base + t]; j >= 0; j = this.next[j]) {
             if (j === i) continue;
             if (++seen > 28) break outer; // bounded work per unit even inside a dense pile
-            const dx = x - this.x[j], dz = z - this.z[j], rr = ri + this.rad[j], dd = dx * dx + dz * dz;
+            const opp = t !== this.team[i], rr = (ri + this.rad[j]) * (opp ? 1 - (this.mi || 0) * (this.role[i] === 2 ? 0.55 : 0.42) : 1), dx = x - this.x[j], dz = z - this.z[j], dd = dx * dx + dz * dz;
             if (dd >= rr * rr || dd < 1e-6) continue;
             const d = Math.sqrt(dd), o = (rr - d) / rr, w = this.rad[j] / (ri + this.rad[j]) * 2;
             px += dx / d * o * w; pz += dz / d * o * w; if (++n > 10) break outer;
@@ -501,6 +566,7 @@
       }
       if (tg === -2) { this.hurtLauncher(dmg, KM.ENEMY[this.kind[i]].k); return; }
       if (so) { this.hurtStruct(tg, dmg * (d.el ? 1.6 : 1)); this.emit('hit', i, -1, false); return; }
+      if (d.el || d.sc >= 1.3 || d.wpn === 'axe') this.shockwave(i, tx, tz, d.boss ? 2.6 : d.el ? 2.0 : 1.3, d.boss ? 9 : d.el ? 7 : 4.5);
       if (d.s) { this.area(1 - team, tx, tz, d.s, dmg, 0, this.z[i]); this.emit('cleave', i); }
       else this.hurt(tg, dmg, team, this.z[i], crit);
       this.emit('hit', i, tg, crit);
@@ -591,6 +657,23 @@
     }
     activeCount() { let n = 0; for (let i = 0; i < this.hi; i++) if (this.st[i] !== DEAD) n++; return n; }
   }
+  // Battle-shape metrics (tests + debug): per-zone contact fronts, their spread, and how intermixed the armies are.
+  KM.meleeMetrics = function (sim) {
+    const Z = 8, fz = new Array(Z).fill(0), fn = new Array(Z).fill(0), ez = new Array(Z).fill(0), en = new Array(Z).fill(0);
+    const zi = x => Math.max(0, Math.min(Z - 1, Math.floor((x + W.LANE) / (2 * W.LANE) * Z)));
+    // front of each army per zone = its most advanced quartile (blue moves -z, red +z)
+    const byZone = [[], []].map(() => Array.from({ length: Z }, () => []));
+    for (let i = 0; i < sim.hi; i++) if (sim.st[i] === ALIVE) byZone[sim.team[i]][zi(sim.x[i])].push(sim.z[i]);
+    const fronts = []; for (let k = 0; k < Z; k++) { const b = byZone[0][k].sort((a, c) => a - c), r = byZone[1][k].sort((a, c) => c - a); if (b.length < 4 || r.length < 4) continue; fronts.push((b[Math.floor(b.length * 0.15)] + r[Math.floor(r.length * 0.15)]) / 2); }
+    const spread = fronts.length > 1 ? Math.max(...fronts) - Math.min(...fronts) : 0;
+    // mixing: units in the contact band with ≥2 of their 6 nearest neighbours from the other army
+    let band = 0, mixed = 0, pen = 0; const mean = fronts.length ? fronts.reduce((a, c) => a + c, 0) / fronts.length : 0;
+    for (let i = 0; i < sim.hi; i++) { if (sim.st[i] !== ALIVE || Math.abs(sim.z[i] - mean) > 7) continue; band++;
+      const nb = []; for (let j = 0; j < sim.hi; j++) { if (j === i || sim.st[j] !== ALIVE) continue; const dx = sim.x[j] - sim.x[i], dz = sim.z[j] - sim.z[i], d = dx * dx + dz * dz; if (d < 9) nb.push([d, sim.team[j]]); }
+      nb.sort((a, c) => a[0] - c[0]); const opp = nb.slice(0, 6).filter(n => n[1] !== sim.team[i]).length; if (opp >= 2) mixed++;
+      if (sim.team[i] === 0 ? sim.z[i] < mean - 2.5 : sim.z[i] > mean + 2.5) pen++; }      // units deep on the enemy side of the front
+    return { zones: fronts.length, fronts: fronts.map(f => +(f - mean).toFixed(1)), spread: +spread.toFixed(2), band, mixing: band ? +(mixed / band).toFixed(3) : 0, penetrated: band ? +(pen / band).toFixed(3) : 0 };
+  };
   Sim.CAP = CAP; Sim.PCAP = PCAP; Sim.CCAP = CCAP; Sim.ALIVE = ALIVE; Sim.DYING = DYING;
   KM.Sim = Sim;
 

@@ -299,7 +299,7 @@
       const sand = new C(0xe6d29a), moss = grass2.clone().offsetHSL(0, 0.05, -0.08);
       for (let k = 0; k < p.count; k++) {
         const x = p.getX(k), wz = zc + p.getZ(k), ax = Math.abs(x), h = p.getY(k), n = fbm(x * 0.15, wz * 0.15), ny = nrm.getY(k);
-        const pathT = Math.max(0, Math.min(1, (7.4 - ax + (n - 0.5) * 2.2) / 2.4));
+        const pathT = Math.max(0, Math.min(1, (6.3 - ax + (n - 0.5) * 2.0) / 2.2));                              // visual road narrower than the playable lane
         tmp.copy(grass).lerp(grass2, noise(x * 0.4, wz * 0.4)); tmp.lerp(dirt, pathT * (0.85 + n * 0.15));
         if (pathT > 0.5) { const tr = Math.abs(Math.sin(wz * 0.9 + x * 0.2)) < 0.06 ? 0.08 : 0; tmp.offsetHSL(0, 0, -tr + (n - 0.5) * 0.06); }
         if (ny < 0.72 && h > 0.6) { const strata = 0.92 + 0.12 * Math.sin(h * 3.1 + n * 2); tmp.copy(rock).multiplyScalar(strata).lerp(moss, Math.max(0, ny - 0.45)); }   // cliff faces with strata
@@ -766,7 +766,7 @@
       const cam = this.fitCam || (this.fitCam = new THREE.PerspectiveCamera()), v = this.v, P = this.keyPoints(sim);
       cam.fov = this.cam.fov; cam.aspect = this.aspect; cam.near = 0.5; cam.far = 300; cam.updateProjectionMatrix();
       const hudTop = 1 - 2 * (this.safeTopPx || 118) / innerHeight;          // NDC y below the HUD pills + HP bar
-      const ok = d => { cam.position.set(tx, Math.sin(pitch) * d, tz + Math.cos(pitch) * d); cam.lookAt(tx, 0, tz); cam.updateMatrixWorld(); cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
+      const yw = this.camYaw || 0, ok = d => { cam.position.set(tx + Math.sin(yw) * Math.cos(pitch) * d, Math.sin(pitch) * d, tz + Math.cos(yw) * Math.cos(pitch) * d); cam.lookAt(tx, 0, tz); cam.updateMatrixWorld(); cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
         for (const p of P) { v.set(p.x, p.y, p.z).project(cam); if (v.z > 1 || Math.abs(v.x) > 1 - p.m || v.y < -1 + p.m || v.y > hudTop) return false; } return true; };
       let lo = minD, hi = maxD; if (ok(lo)) return lo; if (!ok(hi)) return hi;
       for (let k = 0; k < 14; k++) { const mid = (lo + hi) / 2; if (ok(mid)) hi = mid; else lo = mid; }
@@ -790,7 +790,10 @@
       this.shake = Math.max(0, this.shake - dt * 1.2);
       const sx = (Math.random() - 0.5) * this.shake, sy = (Math.random() - 0.5) * this.shake;
       const flip = KM.camFocus && KM.camFocus.flip ? -1 : 1, pch = KM.camFocus && KM.camFocus.pitch || pitch;   // close-up rigs can look at the army's faces
-      this.cam.position.set(this.camT.x + sx, Math.sin(pch) * this.camD + sy, this.camT.z + Math.cos(pch) * this.camD * flip);
+      // portrait: a slight diagonal yaw lets one side's cliffs/water enter the frame (concept-style composition)
+      const yawT = KM.camFocus ? 0 : this.aspect < 0.8 ? 0.17 : this.aspect < 1.2 ? 0.1 : 0.05; this.camYaw = (this.camYaw == null ? yawT : this.camYaw + (yawT - this.camYaw) * Math.min(1, dt * 2));
+      const yw = this.camYaw;
+      this.cam.position.set(this.camT.x + sx + Math.sin(yw) * Math.cos(pch) * this.camD * flip, Math.sin(pch) * this.camD + sy, this.camT.z + Math.cos(yw) * Math.cos(pch) * this.camD * flip);
       this.cam.lookAt(this.camT.x, 0, this.camT.z);
       this.scene.fog.near = this.camD + 6; this.scene.fog.far = this.camD + 95;
       this.sun.position.set(this.camT.x + 12, 30, this.camT.z + 14); this.sun.target.position.set(this.camT.x, 0, this.camT.z - 4);

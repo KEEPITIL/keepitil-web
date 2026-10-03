@@ -10,7 +10,7 @@
   class Sim {
     constructor(opts) { this.opts = opts || {}; this.listeners = []; this.alloc(); this.reset(this.opts); }
     on(fn) { this.listeners.push(fn); }
-    emit(type, a, b, c) { for (const f of this.listeners) f(type, a, b, c); }
+    emit(type, a, b, c, d, e) { for (const f of this.listeners) f(type, a, b, c, d, e); }
 
     alloc() {
       const f = n => new Float32Array(n), i = n => new Int32Array(n), u = n => new Uint8Array(n);
@@ -107,7 +107,7 @@
         if (this.st[j] !== ALIVE) continue; const dx = this.x[j] - this.x[i], dz = this.z[j] - this.z[i], d = Math.sqrt(dx * dx + dz * dz) || 0.01; if (d > r + this.rad[i]) continue;
         const k = power * (1 - Math.min(1, d / (r + this.rad[i]))) * (0.6 / Math.max(0.6, this.rad[j] * 1.7)); this.vx[j] += dx / d * k; this.vz[j] += dz / d * k; this.flash[j] = Math.max(this.flash[j], 0.6); this.think[j] = 0.25; n++;
       }
-      if (n) this.emit('shove', i, n);
+      if (n) this.emit('shove', i, n, x, z, r);
     }
     explode(i, d) {
       const x = this.x[i], z = this.z[i];
@@ -413,6 +413,7 @@
       F.fill(0); E.fill(0); this.atkN.fill(0, 0, this.hi);
       // melee intensity: small skirmishes keep the crisp early game; mass battles turn into a mixed melee
       this.mi = Math.max(0, Math.min(1, (this.count[0] + this.count[1] - 70) / 90));
+      if (this.meleeOff) this.mi = 0;                                                               // A/B switch for tests: old banded line
       for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE) continue; const t = this.tgt[i]; if (t >= 0 && this.atkN[t] < 250) this.atkN[t]++;
         if (this.z[i] < this.front - 70) continue; const k = Math.max(0, Math.min(Z - 1, Math.floor((this.x[i] + W.LANE) / (2 * W.LANE) * Z))), w = Math.sqrt(this.hp[i] * (this.team[i] ? this.dmg[i] : this.stats.dmg)) * (this.role[i] === 3 ? 0.5 : 1);
         if (this.team[i]) E[k] += w; else F[k] += w; }

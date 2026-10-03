@@ -13,6 +13,8 @@ None of the frame-rate numbers in this repo come from a real device. Headless so
 3. The results panel lists, for each tier: average FPS, frame-time p50/p95/p99, the JS heap where Safari exposes it, and the pixel ratio actually used. Adaptive quality lowers the pixel ratio below 48 fps, and the panel shows the ratio each tier ran at.
 4. Tap **COPY RESULTS** and paste the JSON into the PR or chat. It includes the device's user agent and GPU string.
 
+The benchmark runs with the same automatic quality drop as real play (HIGH → MEDIUM → LOW after 4 s below 45 fps), so it can't hide a drop. The report has `startQuality`, `finalQuality` and `qualityChanges[]`, one entry per drop: from, to, stage, unit count, fps before, fps after (2 s later) and the reason. Every stage row says which tier it was measured at, a red banner on the results panel flags any drop, and the recommendation never goes above the tier the phone was dropped to.
+
 For a fixed render scale (no adaptive quality), add `&fixed=1`: `?bench=1&fixed=1`.
 
 ## 2. CPU, GPU, memory, thermals (Mac + cable)

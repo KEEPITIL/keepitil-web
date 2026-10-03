@@ -96,7 +96,7 @@
 
   // Validate + apply an already-parsed glTF (scene + animations) to the renderer.
   KM.applyCharacterScene = function (render, scene, src, animations) {
-    const report = { src, replaced: [], rejected: [], missing: [], unknown: [], warnings: [], clips: [], textures: new Set(), texBytes: 0 }, known = render.partM, seen = new Set();
+    const report = { src, replaced: [], rejected: [], flags: [], missing: [], unknown: [], warnings: [], clips: [], parts: {}, textures: new Set(), texBytes: 0 }, known = render.partM, seen = new Set();
     const isPart = n => n in known && !n.startsWith('S_') && !n.startsWith('m_');
     scene.traverse(o => {
       if (!o.name || seen.has(o.name) || o === scene) return;
@@ -106,10 +106,12 @@
       if (!r) { report.rejected.push({ part: o.name, why: 'no geometry' }); return; }
       const g = r.geo, tris = g.attributes.position.count / 3, max = KM.budgetFor(o.name);
       if (!(tris > 0) || !g.attributes.position.array.every(Number.isFinite)) { report.rejected.push({ part: o.name, why: 'invalid vertices (NaN/Infinity)' }); g.dispose(); return; }
-      if (tris > max) { report.rejected.push({ part: o.name, why: `over budget ${tris | 0} > ${max} tris` }); g.dispose(); return; }
+      // policy: warn, don't refuse — only technically invalid data (empty / NaN) is refused; budget and fit problems load with a flag
+      if (tris > max) report.flags.push({ part: o.name, level: 'FAIL', why: `over budget ${tris | 0} > ${max} tris` });
       const cmp = compareToReference(g, render.kit.refParts && render.kit.refParts[o.name] ? render.kit.refParts[o.name] : render.kit.parts[o.name]);
-      if (cmp && (cmp.scaleBad || cmp.pivotBad)) { report.rejected.push({ part: o.name, why: `${cmp.scaleBad ? 'scale ' + cmp.ratio.join('/') : ''}${cmp.pivotBad ? ' pivot off by ' + cmp.offset + 'm' : ''}`.trim() }); g.dispose(); return; }
-      if (cmp && cmp.orientBad) report.warnings.push(`${o.name}: long axis differs from the reference (check orientation: +Z forward, +Y up)`);
+      if (cmp && cmp.scaleBad) report.flags.push({ part: o.name, level: 'WARN', why: `scale ${cmp.ratio.join('/')} × reference` });
+      if (cmp && cmp.pivotBad) report.flags.push({ part: o.name, level: 'WARN', why: `pivot off by ${cmp.offset} m` });
+      if (cmp && cmp.orientBad) { report.flags.push({ part: o.name, level: 'WARN', why: 'orientation: long axis differs from the reference (+Z forward, +Y up)' }); report.warnings.push(`${o.name}: long axis differs from the reference (check orientation: +Z forward, +Y up)`); }
       const im = known[o.name], old = im.geometry; im.geometry = g;
       if (r.maps.map || r.maps.normalMap || r.maps.emissiveMap) {
         const opt = {}; for (const k of ['map', 'normalMap', 'emissiveMap']) if (r.maps[k]) opt[k] = fitTexture(r.maps[k], report);
@@ -120,6 +122,7 @@
       if (!render.kit.refParts) render.kit.refParts = {};
       if (!render.kit.refParts[o.name]) render.kit.refParts[o.name] = old; else old.dispose();   // keep the procedural part as reference/fallback
       render.kit.parts[o.name] = g; report.replaced.push({ part: o.name, tris: tris | 0, textured: !!r.maps.map });
+      const img = r.maps.map && r.maps.map.image; report.parts[o.name] = { tris: tris | 0, budget: max, cmp, textured: !!r.maps.map, tex: img ? [img.width | 0, img.height | 0] : null, materials: 1 };
     });
     // authored animation clips → skeleton overrides
     const rig = scene.getObjectByName('rig') || scene;
@@ -134,8 +137,9 @@
     return report;
   };
 
-  const emptyReport = (src, extra) => Object.assign({ src, replaced: [], rejected: [], missing: [], unknown: [], warnings: [], clips: [] }, extra);
-  const mergeReports = (a, b) => { for (const k of ['replaced', 'rejected', 'unknown', 'warnings', 'clips']) a[k] = a[k].concat(b[k] || []); if (b.missing) a.missing = b.missing; a.textures = (a.textures || 0) + (b.textures || 0); a.texMB = +((a.texMB || 0) + (b.texMB || 0)).toFixed(1); if (b.error) a.errors.push({ src: b.src, error: b.error }); return a; };
+  const emptyReport = (src, extra) => Object.assign({ src, replaced: [], rejected: [], flags: [], parts: {}, missing: [], unknown: [], warnings: [], clips: [] }, extra);
+  KM.compareToReference = compareToReference;
+  const mergeReports = (a, b) => { a.parts = Object.assign(a.parts || {}, b.parts || {}); for (const k of ['replaced', 'rejected', 'flags', 'unknown', 'warnings', 'clips']) a[k] = a[k].concat(b[k] || []); if (b.missing) a.missing = b.missing; a.textures = (a.textures || 0) + (b.textures || 0); a.texMB = +((a.texMB || 0) + (b.texMB || 0)).toFixed(1); if (b.error) a.errors.push({ src: b.src, error: b.error }); return a; };
   // Load the manifest → one or more GLBs (applied in order; later files override earlier parts). Never throws.
   KM.loadCharacterAssets = function (render, base) {
     base = base || 'assets/';

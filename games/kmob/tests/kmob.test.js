@@ -165,4 +165,70 @@ const run = (sim, secs, bot) => { for (let k = 0; k < secs * 60 && sim.alive; k+
   ok('rivers and cliffs both recur along the endless road', rivers > 10 && cliffs > 10, { rivers, cliffs });
 }
 
+// --- mixed melee (locked baseline; guards against a return to the old banded line) ---
+{
+  const W = KM.W, E = KM.ENEMY_BY;
+  const stage = (seed, off, n) => { const s = new KM.Sim({ seed }); s.meleeOff = !!off; s.t = 400; s.budget = -1e9; s.formT = 1e9; s.nextPush = s.nextBoss = 1e12; s.L.inv = 1e9; s.stats.rate = 0;
+    const D = KM.difficulty(s.t), r = KM.rng(seed * 7 + 1); n = n || 350;
+    for (let k = 0; k < n; k++) { s.spawn(0, KM.FRIEND[k % 9 === 0 ? 2 : k % 6 === 0 ? 1 : 0], (r() - 0.5) * 17, s.front - 6 - r() * 14, { hp: s.stats.hp * 3, dmg: s.stats.dmg, spd: 1 });
+      s.spawn(1, [E.grunt, E.grunt, E.shield, E.runner, E.archer, E.knight, E.grunt, E.imp, E.brute][k % 9], (r() - 0.5) * 17, s.front - 26 - r() * 14, { hp: D.hp * 2, dmg: D.dmg * 0.5, spd: D.speed }); }
+    return s; };
+  const measure = (off) => { const acc = { spread: 0, mixing: 0, pen: 0, n: 0 }; let bad = 0, esc = 0, minD = 9, fronts = [];
+    for (const seed of [3, 5, 8]) { const s = stage(seed, off); const ev = { shove: 0 }; s.listeners.push(t => { if (t === 'shove') ev.shove++; });
+      for (let f = 0; f < 60 * 14; f++) { s.step(1 / 60);
+        if (f > 60 * 5 && f % 30 === 0) { const m = KM.meleeMetrics(s); if (m.zones >= 4) { acc.spread += m.spread; acc.mixing += m.mixing; acc.pen += m.penetrated; acc.n++; fronts.push(m.fronts); } }
+        if (f % 60 === 0) for (let i = 0; i < s.hi; i++) if (s.st[i] === 1) { if (!Number.isFinite(s.x[i]) || !Number.isFinite(s.z[i])) bad++; if (Math.abs(s.x[i]) > W.LANE + 0.6) esc++; } }
+      acc.shove = (acc.shove || 0) + ev.shove; }
+    return { spread: acc.spread / acc.n, mixing: acc.mixing / acc.n, pen: acc.pen / acc.n, bad, esc, shove: acc.shove || 0, fronts }; };
+  const on = measure(false), off = measure(true);
+  ok('melee: mixing clearly above the banded baseline', on.mixing > 0.28 && on.mixing > off.mixing + 0.05, { on: on.mixing, off: off.mixing });
+  ok('melee: penetration meaningfully above baseline', on.pen > 0.07 && on.pen > off.pen * 2, { on: on.pen, off: off.pen });
+  ok('melee: zone fronts spread wider than the old ~1.9 m line', on.spread > 3, { on: on.spread, off: off.spread });
+  ok('melee: zone fronts diverge (not one straight line)', on.fronts.some(f => Math.max(...f) - Math.min(...f) > 5));
+  ok('melee: brutes/heavies generate displacement (shove events)', on.shove > 10, on.shove);
+  ok('melee: no NaN positions in mass battle', on.bad === 0, on.bad);
+  ok('melee: no unit escapes the playable bounds', on.esc === 0, on.esc);
+  // 8 independent zones: pressure varies across strips
+  { const s = stage(4); for (let f = 0; f < 60 * 8; f++) s.step(1 / 60); const P = Array.from(s.zP), mean = P.reduce((a, c) => a + c, 0) / 8, v = P.reduce((a, c) => a + (c - mean) ** 2, 0) / 8;
+    ok('melee: 8 independent pressure zones', P.length === 8 && v > 0.003, { v, P: P.map(p => +p.toFixed(2)) }); }
+  // breakthrough units cross the local line; rear units stay behind
+  { const s = stage(6); let deep2 = 0, n2 = 0, rearBehind = 0, n3 = 0;
+    for (let f = 0; f < 60 * 12; f++) { s.step(1 / 60); if (f > 60 * 5 && f % 60 === 0) { const m = KM.meleeMetrics(s); const fr = s.front;
+      const zf = []; for (let i = 0; i < s.hi; i++) if (s.st[i] === 1 && s.team[i] === 1) zf.push(s.z[i]); zf.sort((a, c) => c - a); const redFront = zf[Math.floor(zf.length * 0.15)];
+      const bz = []; for (let i = 0; i < s.hi; i++) if (s.st[i] === 1 && s.team[i] === 0) bz.push(s.z[i]); bz.sort((a, c) => a - c); const blueFront = bz[Math.floor(bz.length * 0.15)], line = (redFront + blueFront) / 2;
+      for (let i = 0; i < s.hi; i++) if (s.st[i] === 1 && s.team[i] === 1) { if (s.role[i] === 2) { n2++; if (s.z[i] > line + 1.5) deep2++; } if (s.role[i] === 3) { n3++; if (s.z[i] < line - 1) rearBehind++; } } } }
+    ok('melee: breakthrough units cross the local line', deep2 / n2 > 0.08, { r: deep2 / n2 });
+    ok('melee: rear (ranged) units prefer rear positions', rearBehind / n3 > 0.6, { r: rearBehind / n3 }); }
+  // death opens space: neighbours of a killed unit get impulses/think resets
+  { const s = stage(2); for (let f = 0; f < 60 * 7; f++) s.step(1 / 60); let v = -1; for (let i = 0; i < s.hi; i++) if (s.st[i] === 1 && s.team[i] === 1 && s.tgt[i] >= 0) { v = i; break; }
+    const nb = []; for (let j = 0; j < s.hi; j++) if (s.st[j] === 1 && s.team[j] === 0 && Math.hypot(s.x[j] - s.x[v], s.z[j] - s.z[v]) < 2.2) nb.push([j, s.vx[j], s.vz[j]]);
+    s.kill(v); let moved = 0; for (const [j, vx, vz] of nb) if (Math.hypot(s.vx[j] - vx, s.vz[j] - vz) > 0.05) moved++;
+    ok('melee: a death opens local space (victors surge into the gap)', nb.length > 0 && moved === nb.length, { nb: nb.length, moved }); }
+  // small battles stay crisp
+  { const s = stage(9, false, 25); s.step(1 / 60); ok('melee: small battles do not get full mixed-melee', s.mi === 0, s.mi);
+    const m = stage(9, false, 60); m.step(1 / 60); ok('melee: medium battles ramp (partial)', m.mi > 0 && m.mi < 1, m.mi);
+    const b = stage(9, false, 200); b.step(1 / 60); ok('melee: full effect by ~160 units', b.mi === 1, b.mi); }
+  // early pacing preserved
+  { let okP = true, n2 = 0; const info = [];
+    for (const seed of [1, 2, 3, 4]) { const s = new KM.Sim({ seed }); let clash = 0, coin = 0, up1 = 0, up2 = 0;
+      s.listeners.push((t) => { if (t === 'hit' && !clash) clash = s.t; if (t === 'coin' && !coin) coin = s.t; if (t === 'upgrade') { if (!up1) up1 = s.t; else if (!up2) up2 = s.t; } });
+      while (s.alive && s.t < 60 && !up2) { KM.bot(s, 1 / 60, 1); s.step(1 / 60); }
+      info.push([clash, coin, up1, up2].map(v => +v.toFixed(1)));
+      if (!(clash > 3.5 && clash < 7.5 && coin > 7 && coin < 15 && up1 >= 17 && up1 <= 24)) okP = false; if (up2 >= 33 && up2 <= 43) n2++; }
+    // the bot ignores coins >12 m ahead of the front, so one seed may stall before its 2nd upgrade (same with melee off)
+    ok('early pacing within tolerance (clash ~5–6, coin ~11, upgrades 18–23 / 35–41)', okP && n2 >= 3, info); }
+}
+
+// --- bench quality-change honesty + playtest retry signal ---
+{
+  const good = [{ tier: 'EARLY', fps: 60 }, { tier: 'MEDIUM', fps: 60 }, { tier: 'HEAVY', fps: 58 }, { tier: 'EXTREME', fps: 50 }];
+  ok('bench: no quality change → normal recommendation', KM.benchRecommend(good, []) === 'high');
+  ok('bench: an automatic step-down caps the recommendation at the lower tier', KM.benchRecommend(good, [{ from: 'HIGH', to: 'MEDIUM' }]) === 'medium' && KM.benchRecommend(good, [{ from: 'HIGH', to: 'MEDIUM' }, { from: 'MEDIUM', to: 'LOW' }]) === 'low');
+  const run = { time: 70, reason: 'breach', peakArmy: 50, coins: 30, kills: 90, picks: [] };
+  const a = KM.playtestReport(run, {}, { runNo: 2, retry: { retried: null }, history: [{ run: 1, retried: true, secs: 1.8 }, { run: 0, retried: false, secs: 6 }] });
+  ok('playtest: report carries actual TRY AGAIN presses, seconds and retry rate', a.pressedTryAgain === 'PENDING' && a.sessionRetries[0].pressedTryAgain === 'YES' && a.sessionRetries[0].seconds === 1.8 && a.retryRate === 0.5 && /Pressed TRY AGAIN: PENDING/.test(a.text) && /retry 1.8s/.test(a.text), a);
+  const b = KM.playtestReport(run, {}, { runNo: 1, retry: { retried: true, secs: 2.4 } });
+  ok('playtest: retried run reports YES + seconds', b.pressedTryAgain === 'YES' && b.retrySeconds === 2.4);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

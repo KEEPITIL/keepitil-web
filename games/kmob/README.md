@@ -18,9 +18,11 @@ games/kmob/
   js/assets.js        production GLB character loader (part-by-part swap-in, validation, fallback)
   assets/manifest.json            points at the production character GLB (null = procedural)
   assets/template/kmob-parts-template.glb   every part on its pivot, for the artist to model over
-  tests/kmob.test.js        61 sim/economy/save/structures/quality/edges/soak  node tests/kmob.test.js
+  tests/kmob.test.js        80 sim/economy/save/structures/quality/edges/melee/pacing/soak  node tests/kmob.test.js
   tests/anim.test.js        24 animation/LOD tests                     node tests/anim.test.js
-  tests/browser.test.js     37 rendering/assets/atlas/clips/tiers/bench/playtest/framing  PW=<playwright> node tests/browser.test.js
+  tests/browser.test.js     50 rendering/assets/atlas/clips/tiers/bench/playtest/framing/occlusion/asset page  PW=<playwright> node tests/browser.test.js
+  dev/assets.html     ?assets=1 character validation + procedural-vs-GLB preview
+  docs/MILESTONE-5.md pre-art polish report (mixed melee, phone composition, occlusion, lighting, asset page)
   tests/acceptance-shots.js the 20-shot acceptance set + 4 escalation shots, mobile + desktop
   tests/export-template.js  regenerates the artist template GLB
   docs/shots/         acceptance captures (git-ignored here; committed in KEEPITIL/thirteen games/kmob/docs/shots)
@@ -35,7 +37,8 @@ games/kmob/
 **URL flags**
 - `?debug=1`: FPS readout plus a panel to jump to minute 1, 5, 10, 30, 60 or 120, spawn 500/1000/2000-unit stress tests, and toggle bot or god mode.
 - `?bench=1`: on-device benchmark → COPY RESULTS + recommended quality. See `docs/DEVICE-TEST.md`.
-- `?playtest=1`: after each run, a summary + 3 yes/no questions + COPY PLAYTEST.
+- `?playtest=1`: after each run, a summary + 3 yes/no questions + whether TRY AGAIN was actually pressed (and after how long) + COPY PLAYTEST.
+- `?assets=1`: character asset validation page (drop a .glb to check it).
 - `?quality=high|medium|low`: force a graphics tier (otherwise auto / benchmark recommendation). `?bloom=1` allows bloom on HIGH.
 - `?autoplay=1`: start a run straight away.
 - `?bot=1`: autopilot.

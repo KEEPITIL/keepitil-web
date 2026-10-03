@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 67,
+  "build": 68,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 67 (J2 commander identity). The battle banner now names the same opponent as the Crusade map and the results screen (no more Commander 10 in battle vs Commander 1 on the map)."
+  "notes": "KINGDOM WARS 1.0.0 build 68 (Task K first battle). Crusade battles now end at the enemy fortress: break the kingdom's field army, then ATTACK to storm the walls while the garrison sallies out (waves no longer chain forever). Kingdom armies grow through each civilization's five kingdoms, so the first battle is winnable with sensible play."
 }

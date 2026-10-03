@@ -1960,6 +1960,7 @@ function updateEnemyProgression(){
     showMsg('☠ Enemy fort defenses upgraded to '+S.enemyUpgrades+'/3');
   }
 }
+const SALLY_FIRST = 14, SALLY_EVERY = 20, SALLY_CAP = 10;   // Task K: siege-phase garrison sallies (seconds, seconds, max alive)
 function startWave(){
   window.KWWarCouncil?.waveReset?.();
   S.wave++;
@@ -1977,7 +1978,12 @@ function startWave(){
   const bossWave=encounter.kind!=='normal';
   // Enemy army opens at 50 soldiers on wave 1 and grows steadily to 100 by wave 50
   // (see KWProgression.enemyWavePopulation), then keeps escalating in later eras.
-  const targetArmy=Math.max(20,(window.KWProgression?.enemyWavePopulation?.(w)||20))-(bossWave?1:0);
+  /* TASK K: a Crusade kingdom fields an army that grows through the civilization's five kingdoms (60% at kingdom 1
+     to 100% at the ruler), so the first battle a new player meets is winnable by sensible play, while War mode and
+     the later kingdoms keep the full escalation. Measured with tools/capture/first-battle-lab.js. */
+  const _ck = S.campaignMissionId && window.KWCampaign ? ((KWCampaign.nodeById(S.campaignMissionId)||{}).kingdomNumber||5) : 5;
+  const campaignScale = S.campaignMissionId ? Math.min(1, 0.5 + 0.1*_ck) : 1;
+  const targetArmy=Math.max(20,Math.round((window.KWProgression?.enemyWavePopulation?.(w)||20)*campaignScale))-(bossWave?1:0);
   while(q.length<targetArmy){
     const roll=simRandom();
     if(roll<.34)q.push('espear');
@@ -2022,6 +2028,17 @@ function update(dt){
     if (S.phase === 'inter'){
       S.interT -= dt;
       if (S.interT <= 0) startWave();
+    } else if (S.phase === 'siege'){
+      // fortress sallies: a few defenders at a time, never a new army
+      S.sallyT -= dt;
+      if (S.sallyT <= 0){
+        S.sallyT = SALLY_EVERY;
+        const k = (window.KWCampaign && KWCampaign.nodeById(S.campaignMissionId)||{}).kingdomNumber || 1;
+        const n = Math.max(0, Math.min(SALLY_CAP - enemyCount(), 2 + k));
+        const mix = ['esword','espear','earcher','esword','espear'];
+        for (let i=0;i<n;i++) spawnEnemy(mix[i % mix.length]);
+        if (n) showMsg('🏰 The garrison sallies out — '+n+' defenders', 1600);
+      }
     } else if(S.phase === 'wave' && S.folkSiege) {
       // Endless folklore siege: the era's giant leads a never-ending tide of
       // minions. It only ends when the player shatters the enemy castle (see dmgCastle).
@@ -2060,13 +2077,19 @@ function update(dt){
         // reload can never pay the same wave twice however the save is timed.
         const alreadyPaid = (S.rewardClaimedWave||0) >= S.wave;
         S.rewardClaimedWave = S.wave;
-        S.phase = 'inter'; S.interT = 6;
+        /* TASK K: A CRUSADE BATTLE ENDS AT THE FORTRESS. Each cleared wave used to start the next, so a kingdom battle
+           never let up: the first battle (wave 10) streamed waves 11, 12... and a player who won every exchange
+           (172 kills to 75) was still ground down without ever reaching the walls. Once the kingdom's field army is
+           broken the battle becomes a SIEGE: no new waves, only small defending sallies from the gate. */
+        if (S.campaignMissionId && !S.campaignSiege){ S.campaignSiege = true; S.phase = 'siege'; S.sallyT = SALLY_FIRST; }
+        else { S.phase = 'inter'; S.interT = 6; }
         const milestone=S.localWave%10===0;
         const ruler=S.localWave===50;
         const goldReward=milestone?350+S.localWave*8+S.conquestCycle*100:100+Math.floor(S.wave*.5);
         if(!alreadyPaid) S.gold += goldReward;
         const gemReward=(!alreadyPaid&&window.KWCommerce)?KWCommerce.rewardWave(S.wave):0;
         showMsg((ruler?'♛ Ruler defeated! ':milestone?'🏆 Encounter won! ':'Wave cleared!  ')+'+'+goldReward+' gold'+(gemReward?' · +'+gemReward+' gems':'')); snd.coin();
+        if(S.phase==='siege') showMsg('🏆 The field army is broken (+'+goldReward+' gold) — ATTACK to storm the fortress!', 4200);
         if(milestone&&!alreadyPaid){
           window.KWRuntime?.events.emit('boss_defeated',{wave:S.wave,tier:S.wave/10,civilization:S.enemyCiv});
           if(window.KWAnalytics)KWAnalytics.track('boss_defeated',{wave:S.wave,bossTier:S.wave/10,gold:goldReward,gems:gemReward},'critical');
@@ -4515,7 +4538,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 67;
+  const KW_PAGE_BUILD = 68;
   if (window.KWBuild && KWBuild.buildNumber !== KW_PAGE_BUILD) {
     let n = 0; try { n = +sessionStorage.getItem('kw-build-heal') || 0; sessionStorage.setItem('kw-build-heal', n + 1); } catch (e) {}
     if (n < 2) { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload()); setTimeout(() => location.reload(), 8000); }

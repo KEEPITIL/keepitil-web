@@ -132,7 +132,14 @@
     // CONTINUE is always offered: a signed-out player with no local save may
     // still have a save on their account, and that is precisely the case the
     // owner asked to route through login and come back.
-    cont.hidden=false;
+    /* TASK Q (D-02/D-03): CONTINUE appears only when there is something real to continue, and then it is the
+       primary action with NEW GAME secondary. With no save NEW GAME is the one primary; a signed-out player can still
+       reach an account save through the small sign-in line. */
+    cont.hidden=!have;
+    const nw=$('modenew'), si=$('modesignin');
+    nw.classList.toggle('primary',!have); cont.classList.toggle('primary',have);
+    if(have) nw.parentNode.insertBefore(cont,nw); else cont.parentNode.insertBefore(nw,cont);
+    if(si){ si.hidden = have || signedIn; si.dataset.mode=mode; }
     if(have){
       csub.textContent = mode==='CRUSADE'
         ? (nextKingdom()?('Next: '+nextKingdom().civ.displayName+' · Kingdom '+nextKingdom().node.kingdomNumber):'Resume the crusade')
@@ -143,7 +150,16 @@
     cont.dataset.mode=mode;
     $('modenew').dataset.mode=mode;
   }
+  function confirmNewCrusade(go){
+    const n=conquered();
+    X.showPanel('START A NEW CRUSADE?','<p class="note">Your current Crusade has <b>'+n+' of 75</b> kingdoms conquered. A new Crusade starts again at the first kingdom. Rewards you already received are kept.</p>'+
+      '<button class="menubtn primary" id="ncKeep">KEEP MY CRUSADE</button><button class="menubtn" id="ncNew">START A NEW CRUSADE</button>');
+    $('ncKeep').onclick=()=>{ crusadeScreen('home'); };
+    $('ncNew').onclick=()=>{ window.KWCampaign?.newCampaign?.(); go(); };
+    panelNav('home');
+  }
   function startMode(mode,fresh){
+    if(mode==='CRUSADE' && fresh && hasCrusadeSave()){ unlockHome(); title.classList.add('hidden'); X.mainMenu(); return confirmNewCrusade(()=>crusadeScreen('home')); }
     unlockHome();
     window.KWAudio?.resume?.();
     title.classList.add('hidden');
@@ -171,6 +187,7 @@
     if(!homeUnlocked() && window.KWAccount) KWAccount.showAccount();
   };
   if($('modeback'))    $('modeback').onclick    =showLanding;
+  if($('modesignin'))  $('modesignin').onclick  =function(){ continueMode(this.dataset.mode); };   // sign in, then come back to this mode
   if($('modenew'))     $('modenew').onclick     =function(){ startMode(this.dataset.mode,true); };
   if($('modecontinue'))$('modecontinue').onclick=function(){ continueMode(this.dataset.mode); };
 
@@ -221,7 +238,7 @@
     $('tileendless').textContent=first
       ? 'Survival · hold out as long as you can'
       : (D.records.highestWave?'Best wave '+D.records.highestWave:'Survival mode');
-    const badge=$('crusadebadge'); if(badge)badge.hidden=!first;
+    const badge=$('crusadebadge'); if(badge)badge.hidden=true;   // TASK Q: the hero button is the ONE primary action; no competing START HERE
     const intro=$('homeintro');
     if(intro){
       intro.hidden=!first;
@@ -233,7 +250,7 @@
                    :(nk?('World Crusade · '+nk.civ.displayName+' · Kingdom '+nk.node.kingdomNumber):null);
       psub.hidden=!where; if(where)psub.textContent=where;
     }
-    $('playbtn').firstChild.nodeValue=a?'▶ PLAY':(first?'▶ PLAY — START YOUR FIRST WAR':'▶ PLAY');
+    $('playbtn').firstChild.nodeValue=a?'▶ CONTINUE WAR':(first?'▶ BEGIN THE CRUSADE':(nk?'▶ CONTINUE CRUSADE':'▶ PLAY'));   // names exactly what it does
     // §39: a new build is ready. Offer it at Home only -- never mid-battle --
     // and reload on the player's word. Reloading never touches saved progress.
     const note=$('updatenote');

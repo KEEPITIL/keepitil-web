@@ -10,6 +10,9 @@
   function premiumUnlocked(){return !!window.KWCommerce?.hasEntitlement?.('progression.full_unlock');}
   function progression(){return window.KWProgression.calculate(state.completed,window.KW_DATA.campaignKingdoms,premiumUnlocked());}
   function save(){window.KWSave?.write?.(SAVE_NS,state,true);}
+  /* TASK Q: a NEW Crusade replaces conquest progress but keeps the record of first-clear rewards already paid
+     (state.claims), so restarting can never be used to farm them again. Called only after the player confirms. */
+  function newCampaign(){const keep=state.claims||{};for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh(),{claims:keep});save();}
   function nodeById(id){return window.KW_DATA.campaignKingdoms.find(n=>n.id===id);}
   function civFor(node){return window.KW_DATA.civilizations.find(c=>c.id===node.civilizationId);}
   function unlocked(node){if(premiumUnlocked())return true;const civ=civFor(node);if(!civ||civ.order>state.unlockedCivilization)return false;if(node.kingdomNumber===1)return true;return !!state.completed[civ.campaignKingdomIds[node.kingdomNumber-2]];}
@@ -73,5 +76,5 @@
   function details(showPanel,id,returnOrder){const n=nodeById(id),c=civFor(n),local=[10,20,30,40,50][n.kingdomNumber-1];showPanel(c.displayName+' · KINGDOM '+n.kingdomNumber,'<h3>'+n.leaderDisplayName+'</h3><p><b>'+objectiveText[n.objective]+'</b></p><p>Primary enemy specialty: <b>'+n.primaryRole+'</b><br>Battle milestone: local wave '+local+'<br>First-clear gems: '+victoryGems[n.kingdomNumber-1]+'<br>Three-Crown bonus: '+masteryGems[n.kingdomNumber-1]+'</p><p class="note">Crowns: Victory · finish above 50% fort health · finish above 75% fort health.</p><button class="menubtn primary" id="startCampaignMission">START BATTLE</button><button class="menubtn" id="campaignMapBack">BACK TO CIVILIZATION</button><button class="menubtn" id="campaignRoadBack">FULL ROADMAP</button>');document.getElementById('startCampaignMission').onclick=()=>window.KWEquipment?KWEquipment.renderPreBattle(showPanel,()=>start(id),{civilization:c.order,mode:'CAMPAIGN'}):start(id);document.getElementById('campaignMapBack').onclick=()=>renderCivilization(showPanel,returnOrder);document.getElementById('campaignRoadBack').onclick=()=>renderRoadmap(showPanel);}
   window.KWRuntime?.events.on('wave_completed',e=>{if(S?.campaignMissionId&&!S.campaignResolved&&e.wave>=targetWave(nodeById(S.campaignMissionId)))finish('victory');});
   function render(showPanel){return renderRoadmap(showPanel);}
-  window.KWCampaign=Object.freeze({state,nodeById,unlocked,targetWave,start,finish,render,renderRoadmap,renderCivilization,save,progression,premiumUnlocked});
+  window.KWCampaign=Object.freeze({state,newCampaign,nodeById,unlocked,targetWave,start,finish,render,renderRoadmap,renderCivilization,save,progression,premiumUnlocked});
 })();

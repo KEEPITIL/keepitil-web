@@ -454,3 +454,7 @@ body.kw-shell #rotate{ display:none !important; }
 .installsteps{ margin:10px 0 0; padding-left:20px; color:var(--kw-mute); font-size:12px; line-height:1.65; }
 .installsteps li{ margin:7px 0; }
 .installsteps b{ color:#f1f6f9; }
+/* TASK Q: the one primary action on a mode entry screen (CONTINUE when a save exists, otherwise NEW GAME) */
+.titlebtn.major.primary{ background:linear-gradient(#e9c25a,#b8861f); color:#2a1d05; border-color:#f4d27a; }
+.titlebtn.major.primary .titlebtnsub{ color:#3d2b08; }
+.titlebtn.minor#modesignin{ font-size:12px; letter-spacing:.5px; opacity:.85; }

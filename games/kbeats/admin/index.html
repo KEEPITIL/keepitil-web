@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>KBeats Admin</title>
+<link rel="icon" href="/games/kbeats/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/games/kbeats/kb.css">
+<style>
+  .wrap{max-width:1200px;margin:0 auto;padding:18px 16px 80px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:14px}header .sp{flex:1}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.tabs button{padding:8px 14px;border-radius:9px;background:var(--panel2);font-weight:700}.tabs button.on{background:var(--blue)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--dim)}
+  tr.click{cursor:pointer}tr.click:hover{background:var(--panel2)}
+  .st{font-size:11px;font-weight:800;text-transform:uppercase;padding:2px 7px;border-radius:6px;background:var(--panel2)}
+  .st.review{color:#fde047}.st.published{color:#4ade80}.st.development{color:#fde047}.st.disabled,.st.takedown,.st.rejected{color:#fb7185}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  input,select,textarea{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+  .x{color:var(--dim);font-size:13px}.mono{font-family:ui-monospace,monospace;font-size:12px}
+  .err{color:#fb7185}
+  canvas.mini{width:100%;height:70px;background:#0b0820;border-radius:8px;display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><span class="logo" style="font-size:26px">KBEATS</span><b>Admin</b><span class="sp"></span><span id="who" class="x"></span></header>
+  <div id="gate" class="card">Checking access…</div>
+  <div id="app" hidden>
+    <div class="tabs" id="tabs"><button data-t="queue" class="on">Review queue</button><button data-t="tracks">All tracks</button><button data-t="artists">Artists</button><button data-t="cases">Disputes</button><button data-t="revenue">Revenue ledger</button><button data-t="settings">Release mode</button><button data-t="audit">Audit log</button></div>
+    <div id="main"></div>
+  </div>
+</div>
+<script type="module" src="/games/kbeats/js/admin.js"></script>
+</body>
+</html>

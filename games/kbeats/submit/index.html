@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Submit your music — KBeats</title>
+<meta name="description" content="Upload a track you own. KBeats analyses it and builds Easy, Normal and Expert rhythm charts you can preview and edit.">
+<link rel="canonical" href="https://keepitil.com/games/kbeats/submit/">
+<link rel="icon" href="/games/kbeats/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/games/kbeats/kb.css">
+<style>
+  body{min-height:100vh;background:radial-gradient(900px 500px at 10% -10%,rgba(229,64,255,.16),transparent 70%),radial-gradient(800px 400px at 90% 0,rgba(34,211,238,.12),transparent 70%),var(--bg)}
+  .wrap{max-width:940px;margin:0 auto;padding:20px 16px 80px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  header .logo{font-size:28px;text-decoration:none}
+  header .sp{flex:1}
+  h1{font-size:30px;font-weight:900;margin-bottom:6px}
+  .lead{color:var(--dim);margin-bottom:18px}
+  .steps{display:flex;gap:6px;list-style:none;overflow-x:auto;margin-bottom:18px;scrollbar-width:none}
+  .steps li{padding:6px 12px;border-radius:999px;background:var(--panel2);color:var(--mute);font-size:13px;font-weight:700;white-space:nowrap}
+  .steps li.on{background:var(--blue);color:#fff}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
+  .f{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:640px){.f{grid-template-columns:1fr}}
+  label.i{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--dim)}
+  label.i input,label.i select,label.i textarea{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--ink);font:inherit}
+  .full{grid-column:1/-1}
+  .chk{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+  .chk input{margin-top:3px;width:18px;height:18px;flex:none}
+  #plog{list-style:none;font-family:ui-monospace,monospace;font-size:13px;color:var(--dim);line-height:1.8}
+  .ed-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+  .ed-tools select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px}
+  table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line)}th{color:var(--dim);font-weight:600}
+  .tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}.tabs button{padding:8px 14px;border-radius:9px;background:var(--panel2);font-weight:700}.tabs button.on{background:var(--blue)}
+  .mt{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}.mt .grow{flex:1;min-width:180px}.mt span{color:var(--dim);font-size:13px}
+  .st{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:6px;background:var(--panel2)}
+  .st.review{background:rgba(250,204,21,.15);color:#fde047}.st.published{background:rgba(34,197,94,.18);color:#4ade80}.st.changes_requested,.st.rejected,.st.disabled,.st.takedown{background:rgba(244,63,94,.18);color:#fb7185}.st.draft,.st.processing{background:rgba(139,92,246,.2);color:#c4b5fd}
+  .note{font-size:13px;color:var(--dim);padding:10px 12px;border-radius:10px;background:rgba(34,211,238,.06);border:1px solid rgba(34,211,238,.22)}
+  .err{color:#fb7185}
+  #status{font-size:13px;margin-top:8px;color:var(--dim)}
+  .kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px}.kpi div{background:var(--panel2);border-radius:12px;padding:12px}.kpi b{display:block;font-size:22px}.kpi small{color:var(--dim)}
+  .earn td.n{text-align:right;font-variant-numeric:tabular-nums}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><a class="logo" href="/games/kbeats/">KBEATS</a><span style="color:var(--dim)">for Artists</span><span class="sp"></span><span id="who" style="font-size:13px;color:var(--dim)"></span></header>
+
+  <section id="v-auth" hidden>
+    <h1>Artist sign in</h1><p class="lead">Use your KEEPITIL account. Your uploads, charts and submission status are saved to your account, so you can leave and come back at any step.</p>
+    <form class="card f" id="authf" onsubmit="return false">
+      <label class="i">Email<input type="email" id="em" required autocomplete="email"></label>
+      <label class="i">Password<input type="password" id="pw" minlength="6" autocomplete="current-password" placeholder="leave empty for a magic link"></label>
+      <div class="full" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" id="si">Sign in</button><button class="btn ghost" id="su">Create account</button><button class="btn ghost" id="gg">Continue with Google</button></div>
+      <p id="am" class="full" style="color:var(--dim);font-size:13px"></p>
+    </form>
+  </section>
+
+  <section id="v-dash" hidden>
+    <h1>Your artist dashboard</h1>
+    <div class="tabs" id="dtabs"><button data-dt="tracks" class="on">My tracks</button><button data-dt="analytics">Analytics</button><button data-dt="earnings">Earnings</button><button data-dt="profile">Profile</button></div>
+    <div id="d-tracks"><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h3>My tracks</h3><button class="btn pink" id="newTrack">+ Upload a track</button></div><div id="mine"></div></div></div>
+    <div id="d-analytics" hidden></div>
+    <div id="d-earnings" hidden></div>
+    <div id="d-profile" hidden></div>
+  </section>
+
+  <section id="v-flow" hidden>
+    <p><a href="#" id="toDash" style="color:var(--dim)">← Dashboard</a></p>
+    <ol class="steps"><li data-s="artist">1 · Artist</li><li data-s="track">2 · Track</li><li data-s="processing">3 · Upload &amp; analyse</li><li data-s="editor">4 · Charts</li><li data-s="rights">5 · Rights</li><li data-s="done">6 · Submitted</li></ol>
+
+    <section data-step="artist"><form class="card f" id="artistForm" onsubmit="return false">
+      <h3 class="full">Artist profile</h3>
+      <label class="i">Artist / stage name<input id="stage" required maxlength="60"></label>
+      <label class="i">Legal name<input id="legal" required maxlength="100" autocomplete="name"></label>
+      <label class="i">Contact email<input id="email" type="email" required autocomplete="email"></label>
+      <label class="i">SoundCloud profile URL (optional)<input id="scUrl" type="url" placeholder="https://soundcloud.com/your-name"></label>
+      <label class="i full">Short bio (optional)<textarea id="bio" rows="2" maxlength="600"></textarea></label>
+      <p class="full" style="font-size:12px;color:var(--mute)">KBeats only links to your SoundCloud page. It never streams, copies or analyses SoundCloud audio, and SoundCloud does not endorse KBeats.</p>
+      <div class="full"><button type="button" class="btn primary" id="saveArtist">Save &amp; continue</button></div>
+    </form></section>
+
+    <section data-step="track" hidden><form class="card f" id="trackForm" onsubmit="return false">
+      <label class="i full">Master file (WAV, FLAC, high-quality MP3 or M4A, 30 s – 12 min, up to 200 MB)<input id="file" type="file" accept=".wav,.flac,.mp3,.m4a,.aac,audio/*" required></label>
+      <label class="i">Track title<input id="title" required maxlength="100"></label>
+      <label class="i">Genre<select id="genre" required><option>Rock</option><option>Pop</option><option>Hip-Hop</option><option>R&amp;B</option><option>EDM</option><option>Country</option><option>Christian/Gospel</option><option>Alternative</option><option>Latin</option><option>Instrumental</option><option>Other</option></select></label>
+      <label class="i">SoundCloud track permalink (optional)<input id="scTrack" type="url" placeholder="https://soundcloud.com/you/track"></label>
+      <label class="chk full"><input type="checkbox" id="explicit"> <span>This track contains explicit content</span></label>
+      <div class="full"><button type="button" class="btn primary" id="process">Upload &amp; build charts</button><div id="status"></div></div>
+    </form></section>
+
+    <section data-step="processing" hidden><div class="card"><h3>Uploading &amp; analysing…</h3><ul id="plog"></ul></div></section>
+
+    <section data-step="editor" hidden>
+      <div class="card"><h3 id="edTitle">Charts</h3><p style="color:var(--dim);font-size:14px;margin:4px 0 10px">Preview each difficulty and adjust anything that doesn't feel right. Click the waveform to move the playhead. Each saved revision is stored as a new chart version on your account.</p>
+        <div class="tabs"><button data-ed="easy">Easy</button><button data-ed="normal" class="on">Normal</button><button data-ed="expert">Expert</button><button class="btn sm ghost" id="regen" style="margin-left:auto">Regenerate</button></div>
+        <div id="ed"></div></div>
+      <div class="card"><div id="report"></div></div>
+      <button class="btn primary" id="toRights">Continue to rights</button> <a class="btn ghost" id="playPreview" target="_blank">▶ Play it in KBeats</a>
+    </section>
+
+    <section data-step="rights" hidden><form class="card f" id="rightsForm" onsubmit="return false">
+      <h3 class="full">Rights &amp; credits</h3>
+      <label class="i">Writers<input id="writers" required maxlength="300"></label>
+      <label class="i">Master owner<input id="masterOwner" required maxlength="160"></label>
+      <label class="i">Publishing owner<input id="pubOwner" required maxlength="160"></label>
+      <label class="i">ISRC (if available)<input id="isrc" pattern="[A-Za-z]{2}-?[A-Za-z0-9]{3}-?[0-9]{2}-?[0-9]{5}" maxlength="15"></label>
+      <label class="i full">Territory restrictions (optional)<input id="territories" placeholder="e.g. worldwide"></label>
+      <div class="full" id="rights"></div>
+      <label class="chk full"><input type="checkbox" id="agree" required> <span>I have read and accept the <a href="/games/kbeats/artist-agreement/" target="_blank">KBeats Artist Agreement</a> (version <b id="agv"></b>), including the 90% artist / 10% KBeats split of game-attributable revenue.</span></label>
+      <div class="full"><button class="btn pink" id="submitBtn">Submit for review</button></div>
+    </form></section>
+
+    <section data-step="done" hidden><div class="card" style="text-align:center"><h2 style="font-size:28px">Submitted for review ✓</h2>
+      <p style="color:var(--dim);margin:8px 0 16px">The KBeats team will review the audio, charts and rights. You'll see the status on your dashboard. Once approved, your track goes into rotation for every player.</p>
+      <a class="btn primary" href="#" id="backDash">Back to dashboard</a></div></section>
+  </section>
+</div>
+<script type="module" src="/games/kbeats/js/submit.js"></script>
+</body>
+</html>

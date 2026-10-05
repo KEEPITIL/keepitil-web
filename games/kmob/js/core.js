@@ -2,6 +2,7 @@
    Loaded by the browser and by the Node tests (tests/kmob.test.js). */
 (function (G) {
   const KM = G.KM = G.KM || {};
+  if (G.KMOB_LT) { G.KMOB_LT.firstScript = performance.now(); KM.loadTimes = G.KMOB_LT; }   // startup timing (html → first script → engine → frame → interactive)
 
   // Deterministic RNG (mulberry32) so runs can be replayed for balancing/debugging.
   KM.rng = function (seed) {
@@ -33,7 +34,7 @@
     speedMax: 1.45, speedPerMin: 0.008,
     eliteStart: 5, elitePerMin: 0.012, eliteMax: 0.4,
     coin: [0.9, 0.034, 0],
-    pushEvery: 90, bossFrom: 13, bossEvery: 180,
+    pushEvery: 150, bossFrom: 8, bossEvery: 240, miniFrom: 4, miniEvery: 100,
   };
   const poly = (k, m) => k[0] + k[1] * m + k[2] * m * m;
   KM.difficulty = function (tSec) {
@@ -64,21 +65,53 @@
     { k: 'bomber',  at: 7.0,  hp: 20,   dmg: 34, cd: 9,   spd: 3.7, rng: 0.7,  rad: 0.36, sc: 0.95, arm: 0,  coin: 2,  cost: 1.7, wpn: 'bomb', ex: 2.3 },
     { k: 'cannon',  at: 8.5,  hp: 170,  dmg: 30, cd: 3.4, spd: 1.2, rng: 14,   rad: 0.75, sc: 1.4,  arm: 6,  coin: 10, cost: 10,  wpn: 'cannon', r: 1, s: 2.3 },
     { k: 'shaman',  at: 10,   hp: 60,   dmg: 6,  cd: 1.5, spd: 2.0, rng: 7,    rad: 0.4,  sc: 1.1,  arm: 2,  coin: 5,  cost: 5,   wpn: 'staff', r: 1, he: 8 },
-    { k: 'warlord', at: 13,   hp: 2100, dmg: 46, cd: 1.4, spd: 1.6, rng: 1.4,  rad: 1.15, sc: 2.7,  arm: 12, coin: 60, cost: 60,  wpn: 'axe', s: 2.0, el: 1, boss: 1 },
+    { k: 'warlord', at: 8,    hp: 8000, dmg: 50, cd: 1.4, spd: 1.5, rng: 2.0,  rad: 1.8,  sc: 5.2,  arm: 12, coin: 160, cost: 60, wpn: 'axe', s: 2.4, el: 1, boss: 1, mech: 'summon' },
+    { k: 'spearman',at: 3.5,  hp: 30,   dmg: 5,  cd: 1.2, spd: 2.3, rng: 1.6,  rad: 0.38, sc: 1.05, arm: 2,  coin: 2,  cost: 1.6, wpn: 'spear', sh: 1 },
+    { k: 'giant',   at: 4,    hp: 2600, dmg: 34, cd: 1.8, spd: 1.5, rng: 1.8,  rad: 1.4,  sc: 3.8,  arm: 8,  coin: 45, cost: 45,  wpn: 'axe', s: 2.4, el: 1, mini: 1, mech: 'stomp' },
+    { k: 'titan',   at: 8,    hp: 9000, dmg: 60, cd: 1.6, spd: 1.5, rng: 2.2,  rad: 2.0,  sc: 6.5,  arm: 14, coin: 180, cost: 60, wpn: 'axe', s: 2.8, el: 1, boss: 1, mech: 'charge' },
+    { k: 'colossus',at: 12,   hp: 12000,dmg: 55, cd: 2.0, spd: 1.1, rng: 2.4,  rad: 2.3,  sc: 7.5,  arm: 22, coin: 220, cost: 60, wpn: 'axe', s: 3.2, el: 1, boss: 1, mech: 'stomp', armR: 0.35 },
+    { k: 'hunter',  at: 16,   hp: 6000, dmg: 48, cd: 1.1, spd: 2.7, rng: 1.8,  rad: 1.8,  sc: 5.5,  arm: 10, coin: 160, cost: 60, wpn: 'axe', s: 2.0, el: 1, boss: 1, mech: 'hunt' },
   ];
   KM.ENEMY.forEach((e, i) => { e.id = i; });
   KM.ENEMY_BY = Object.fromEntries(KM.ENEMY.map(e => [e.k, e]));
-  KM.unlocked = m => KM.ENEMY.filter(e => e.at <= m && !e.boss);
+  KM.unlocked = m => KM.ENEMY.filter(e => e.at <= m && !e.boss && !e.mini);
+  KM.BOSS_ORDER = ['titan', 'warlord', 'colossus', 'hunter'];
 
   // Friendly unit kinds (index offset 32 so kind ids never collide with enemies)
   KM.FRIEND = [
     { k: 'soldier', hp: 1, dmg: 1, rng: 0.75, rad: 0.36, sc: 1, cd: 0.85, wpn: 'sword' },
     { k: 'archerF', hp: 0.7, dmg: 0.9, rng: 8, rad: 0.36, sc: 1, cd: 1.4, wpn: 'bow', r: 1 },
-    { k: 'knightF', hp: 3.2, dmg: 2.2, rng: 0.9, rad: 0.5, sc: 1.35, cd: 1.0, wpn: 'sword', sh: 1 },
+    { k: 'knightF', hp: 7, dmg: 3.6, rng: 1.05, rad: 0.62, sc: 1.8, cd: 1.0, wpn: 'axe', sh: 1, el: 1 },             // ELITE: big, armoured, heavy knockback
     { k: 'collector', hp: 1.6, dmg: 0, rng: 0.5, rad: 0.34, sc: 1.15, cd: 9, wpn: 'sack', col: 1, spd: 5.4 },
+    { k: 'medic', hp: 1.3, dmg: 0, rng: 0.5, rad: 0.34, sc: 1.05, cd: 1.1, wpn: 'medkit', med: 1, spd: 4.6 },
   ];
   KM.FRIEND.forEach((e, i) => { e.id = 32 + i; });
+  KM.FRIEND_BY = Object.fromEntries(KM.FRIEND.map(f => [f.k, f]));
+  // Production: the player chooses what the command vehicle deploys. cost = deploy points (rate accumulates points/s);
+  // specialists are capped (stat key), late types unlock by minute.
+  KM.PROD = {
+    auto:      { name: 'AUTO' },
+    melee:     { name: 'MELEE', kind: 'soldier', cost: 1 },
+    range:     { name: 'RANGE', kind: 'archerF', cost: 1.35 },
+    collector: { name: 'COLLECT', kind: 'collector', cost: 2.2, cap: 'collectors' },
+    medic:     { name: 'MEDIC', kind: 'medic', cost: 2.4, cap: 'medics', at: 1.5 },
+    elite:     { name: 'ELITE', kind: 'knightF', cost: 5, cap: 'elites', at: 2.5 },
+  };
+  KM.PROD_ORDER = ['auto', 'melee', 'range', 'collector', 'medic', 'elite'];
+  // medic equipment era follows the army's technology (satchel → field kit → modern kit → advanced)
+  KM.medTech = s => Math.min(3, Math.floor((s.rtech || 0) / 2));
 
+  // ---------- Encounter sectors: each emphasises a different tactical problem (soft counters, never hard locks) ----------
+  KM.SECTORS = {
+    opening:   { name: 'OPENING',        at: 0,   dur: 60, pool: ['line', 'blob', 'wedge', 'column'], prefer: [],                    bud: 1,    hp: 1,    spd: 1 },
+    swarm:     { name: 'SWARM',          at: 0.9, dur: 55, pool: ['swarm', 'blob', 'swarm'],          prefer: ['imp', 'grunt'],       bud: 1.35, hp: 0.75, spd: 1,    intro: 'imp' },
+    shield:    { name: 'SHIELD ARMY',    at: 1.3, dur: 60, pool: ['shieldwall', 'shieldwall', 'line'], prefer: ['shield', 'spearman'], bud: 1,    hp: 1.1,  spd: 0.95, intro: 'shield' },
+    charge:    { name: 'CHARGE',         at: 2.2, dur: 50, pool: ['wedge', 'column', 'flank'],        prefer: ['runner', 'knight', 'brute'], bud: 1, hp: 1,  spd: 1.15, intro: 'runner' },
+    ranged:    { name: 'RANGED PRESSURE', at: 3,  dur: 55, pool: ['backline', 'backline', 'mixed'],   prefer: ['archer', 'shaman'],   bud: 1,    hp: 1,    spd: 1,    intro: 'archer' },
+    attrition: { name: 'ATTRITION',      at: 4,   dur: 80, pool: ['mixed', 'line', 'blob'],           prefer: ['shaman', 'shield'],   bud: 1.1,  hp: 1.05, spd: 1 },
+    giant:     { name: 'GIANT HUNT',     at: 5,   dur: 55, pool: ['line'],                            prefer: ['knight'],             bud: 0.55, hp: 1,    spd: 1,    giants: 2 },
+    rout:      { name: 'ROUT',           at: 3,   dur: 30, pool: ['blob', 'swarm', 'line'],           prefer: ['grunt', 'imp'],       bud: 1.9,  hp: 0.35, spd: 1,    w: 0.5 },
+  };
   // ---------- Run stats + upgrades ----------
   KM.baseStats = function (perm) {
     perm = perm || {};
@@ -88,9 +121,9 @@
       // command tank weapon · force-field shield · collectors · ranged tech era
       tankDmg: 20, tankRate: 0.85, tankRange: 24, tankSplash: 0, tankBarrels: 1, missiles: 0,
       shield: 0, shRecharge: 1, shRadius: 2.4, shDelay: 4,
-      collectors: 0, colSpeed: 1, colCap: 6, rtech: 0, rdmg: 1, posture: 0,
-      maxHp: 100 + 10 * (perm.plating || 0), towerRate: 1, towerRange: 1, towerDmg: 1, splash: 1, frost: 1, sniperCrit: 0.1, barracksRate: 1, bannerR: 1, towerHp: 1, towerArmor: 0,
-      lv: { tgun: 0, trof: 0, trng: 0, tspl: 0, tmis: 0, shield: 0, shrec: 0, shrad: 0, coll: 0, cspd: 0, ccap: 0, rtech: 0, rdmg: 0, cap: 0, rate: 0, hp: 0, dmg: 0, armor: 0, speed: 0, atk: 0, magnet: 0, crit: 0, archer: 0, knight: 0, plating: 0, trate: 0, trange: 0, tdmg: 0, splash: 0, frost: 0, scrit: 0, brate: 0, bradius: 0, thp: 0, tarm: 0 },
+      collectors: 1, colSpeed: 1, colCap: 6, rtech: 0, rdmg: 1, medics: 1, medHeal: 7, elites: 1, elitePow: 1,
+      maxHp: 100 + 10 * (perm.plating || 0), towerRate: 1, towerRange: 1, towerDmg: 1, splash: 1, frost: 1, gunCrit: 0.1, carrierRate: 1, towerHp: 1, towerArmor: 0,
+      lv: { tmulti: 0, tpen: 0, medic: 0, mheal: 0, elite: 0, tgun: 0, trof: 0, trng: 0, tspl: 0, tmis: 0, shield: 0, shrec: 0, shrad: 0, coll: 0, cspd: 0, ccap: 0, rtech: 0, rdmg: 0, cap: 0, rate: 0, hp: 0, dmg: 0, armor: 0, speed: 0, atk: 0, magnet: 0, crit: 0, archer: 0, knight: 0, plating: 0, trate: 0, trange: 0, tdmg: 0, splash: 0, frost: 0, scrit: 0, brate: 0, thp: 0, tarm: 0 },
     };
   };
 
@@ -104,7 +137,6 @@
   };
   // formation slots relative to the command tank (x beside it, dz ahead of it); vehicles drive to them, never race ahead
   KM.TOWER_SLOTS = [{ x: -3.1, dz: -2.4 }, { x: 3.1, dz: -2.4 }, { x: -5.4, dz: -0.4 }, { x: 5.4, dz: -0.4 }];
-  KM.WALLS = { barricade: { dz: -7.5, xs: [], per: 0, hp: 0, arm: 0, w: 0, d: 0 }, wall: { dz: -4.5, xs: [], per: 0, hp: 0, arm: 0, w: 0, d: 0 } };   // retired (static walls cannot travel)
   KM.slotsUnlocked = m => 1 + (m >= 4 ? 1 : 0) + (m >= 8 ? 1 : 0) + (m >= 13 ? 1 : 0);
   // Ranged weapon eras — earned one step at a time (minute gate per era), visual + mechanical changes together.
   KM.RTECH = [
@@ -118,6 +150,19 @@
   ];
   KM.rtech = s => KM.RTECH[Math.min(KM.RTECH.length - 1, s.rtech || 0)];
   // tank visual stage from its own upgrade lines (the tank shows what was built, not just how many cards were taken)
+  // Command vehicle eras: it starts as a war wagon and becomes a tank only when time AND its own upgrades allow
+  KM.TANK_ERAS = [
+    { name: 'WAR WAGON',        at: 0,  ups: 0, proj: 13, speed: 24, dmg: 1.0 },
+    { name: 'ARMORED WAGON',    at: 2,  ups: 1, proj: 13, speed: 26, dmg: 1.1 },
+    { name: 'BALLISTA CARRIER', at: 4,  ups: 3, proj: 13, speed: 28, dmg: 1.25 },
+    { name: 'CANNON WAGON',     at: 6,  ups: 5, proj: 1,  speed: 22, dmg: 1.45 },
+    { name: 'IRONCLAD',         at: 9,  ups: 7, proj: 1,  speed: 24, dmg: 1.6 },
+    { name: 'COMMAND TANK',     at: 12, ups: 9, proj: 20, speed: 30, dmg: 1.8 },
+    { name: 'HEAVY TANK',       at: 16, ups: 12, proj: 20, speed: 36, dmg: 2.0 },
+    { name: 'SHIELD PLATFORM',  at: 21, ups: 15, proj: 16, speed: 44, dmg: 2.25 },
+  ];
+  KM.tankUps = s => ['tgun', 'trof', 'trng', 'tspl', 'tmis', 'plating', 'tmulti', 'tpen'].reduce((a, k) => a + (s.lv[k] || 0), 0);
+  KM.tankEra = (s, tSec) => { const m = (tSec || 0) / 60, u = KM.tankUps(s); let e = 0; for (let k = 1; k < KM.TANK_ERAS.length; k++) if (m >= KM.TANK_ERAS[k].at && u >= KM.TANK_ERAS[k].ups) e = k; return e; };
   KM.tankLook = s => { const L = s.lv; return { barrels: Math.min(3, 1 + Math.floor((L.trof || 0) / 2)), blen: 0.85 + Math.min(6, L.tgun || 0) * 0.07, cannon: (L.tgun || 0) >= 2, armor: (L.plating || 0), antenna: (L.trng || 0) > 0, missiles: (L.tmis || 0) > 0, shield: (L.shield || 0), heavy: (L.tgun || 0) + (L.trof || 0) >= 6 }; };
 
   // cat: army | defense ; color used for card face
@@ -133,9 +178,11 @@
     { id: 'atk',    cat: 'army', title: 'ATTACK SPEED', val: '+10%', icon: 'swords', color: 'red',  w: 6, apply: s => { s.atk *= 1.1; } },
     { id: 'speed',  cat: 'army', title: 'MARCH SPEED', val: '+8%',  icon: 'boot',   color: 'blue',  w: 4, max: 6, apply: s => { s.speed *= 1.08; } },
     { id: 'crit',   cat: 'army', title: 'CRITICAL',    val: '+5%',  icon: 'star',   color: 'red',   w: 4, max: 8, apply: s => { s.crit += 0.05; } },
-    { id: 'knight', cat: 'army', title: 'KNIGHTS',     val: '1 in ' , icon: 'helm', color: 'gold',  w: 3, max: 4, at: 3, apply: s => { s.knight = s.knight ? Math.max(4, s.knight - 3) : 12; } },
+    { id: 'elite',  cat: 'army', title: 'ELITE CORPS', val: '+1 ELITE', icon: 'helm', color: 'gold', w: 3, max: 6, at: 2.5, apply: s => { s.elites++; s.elitePow *= 1.12; } },
+    { id: 'medic',  cat: 'army', title: 'MEDICS', val: '+1 MEDIC', icon: 'heart', color: 'green', w: 3, max: 5, at: 1.5, apply: s => { s.medics++; } },
+    { id: 'mheal',  cat: 'army', title: 'FIELD MEDICINE', val: '+25% HEAL', icon: 'heart', color: 'green', w: 2.5, max: 5, at: 2, apply: s => { s.medHeal *= 1.25; } },
     // RANGED
-    { id: 'archer', cat: 'ranged', title: 'RANGED TROOPS', val: '+15%', icon: 'bow', color: 'blue', w: 5, max: 4, at: 1.0, apply: s => { s.archer = Math.min(0.6, s.archer + 0.15); } },
+    { id: 'archer', cat: 'ranged', title: 'RANGED TRAINING', val: '+10% DMG', icon: 'bow', color: 'blue', w: 4, max: 4, at: 1.0, apply: s => { s.archer = Math.min(0.6, s.archer + 0.08); s.rdmg *= 1.1; } },
     { id: 'rtech',  cat: 'ranged', title: 'WEAPON ERA', val: '', icon: 'bow', color: 'gold', w: 5, needRanged: 1, max: 6, apply: s => { s.rtech = Math.min(KM.RTECH.length - 1, s.rtech + 1); } },
     { id: 'rdmg',   cat: 'ranged', title: 'RANGED DAMAGE', val: '+15%', icon: 'bow', color: 'red', w: 4, needRanged: 1, max: 8, apply: s => { s.rdmg *= 1.15; } },
     // COMMAND TANK
@@ -143,7 +190,9 @@
     { id: 'trof',   cat: 'tank', title: 'TANK FIRE RATE', val: '+18%', icon: 'tank', color: 'red', w: 5, max: 6, apply: s => { s.tankRate *= 1.18; s.tankBarrels = Math.min(3, 1 + Math.floor(((s.lv.trof || 0) + 1) / 2)); } },
     { id: 'trng',   cat: 'tank', title: 'TARGETING SYSTEM', val: '+12% RANGE', icon: 'tank', color: 'blue', w: 3, max: 4, at: 1.5, apply: s => { s.tankRange *= 1.12; } },
     { id: 'tspl',   cat: 'tank', title: 'HE SHELLS', val: 'SPLASH', icon: 'tank', color: 'gold', w: 3, max: 4, needLv: ['tgun', 2], apply: s => { s.tankSplash = (s.tankSplash || 1.2) * (s.tankSplash ? 1.2 : 1); } },
-    { id: 'tmis',   cat: 'tank', title: 'MISSILE POD', val: '+2 MISSILES', icon: 'tank', color: 'gold', w: 3, max: 4, at: 5, needLv: ['tgun', 1], apply: s => { s.missiles += 2; } },
+    { id: 'tmis',   cat: 'tank', title: 'MISSILE POD', val: '+2 MISSILES', icon: 'tank', color: 'gold', w: 3, max: 4, needEra: 5, apply: s => { s.missiles += 2; } },
+    { id: 'tmulti', cat: 'tank', title: 'MULTISHOT', val: '+1 TARGET', icon: 'tank', color: 'blue', w: 3.5, max: 4, at: 1.5, apply: s => { s.tankMulti = (s.tankMulti || 1) + 1; } },
+    { id: 'tpen',   cat: 'tank', title: 'PENETRATION', val: '+1 PIERCE', icon: 'tank', color: 'red', w: 3, max: 3, at: 3, needLv: ['tgun', 1], apply: s => { s.tankPen = (s.tankPen || 0) + 1; } },
     { id: 'plating',cat: 'tank', title: 'TANK ARMOR', val: '+25 HP', icon: 'heart', color: 'green', w: 4, max: 8, apply: (s, run) => { s.maxHp += 25; if (run) run.heal(25); } },
     // DEFENSE — the force field travels with the tank
     { id: 'shield', cat: 'defense', title: 'FORCE FIELD', val: '', icon: 'shield', color: 'tower', w: 5, max: 5, at: 2, apply: (s, run) => { s.shield++; if (run) run.shieldUp(); } },
@@ -156,13 +205,13 @@
     { id: 'thp',    cat: 'support', title: 'VEHICLE ARMOR', val: '+25% HP', icon: 'heart', color: 'green', w: 3, needTower: 1, max: 8, apply: s => { s.towerHp *= 1.25; s.towerArmor += 1; } },
     { id: 'splash', cat: 'support', title: 'ARTILLERY SHELLS', val: '+15%', icon: 't_artillery', color: 'tower', w: 3, needType: 'artillery', max: 5, apply: s => { s.splash *= 1.15; } },
     { id: 'frost',  cat: 'support', title: 'DEEP FREEZE', val: '+20%', icon: 't_frost', color: 'tower', w: 3, needType: 'frost', max: 5, apply: s => { s.frost *= 1.2; } },
-    { id: 'scrit',  cat: 'support', title: 'GUN CRIT', val: '+10%', icon: 't_gun', color: 'tower', w: 3, needType: 'gun', max: 5, apply: s => { s.sniperCrit = Math.min(0.7, s.sniperCrit + 0.1); } },
-    { id: 'brate',  cat: 'support', title: 'CARRIER SPEED', val: '+15%', icon: 't_carrier', color: 'tower', w: 3, needType: 'carrier', max: 5, apply: s => { s.barracksRate *= 1.15; } },
+    { id: 'scrit',  cat: 'support', title: 'GUN CRIT', val: '+10%', icon: 't_gun', color: 'tower', w: 3, needType: 'gun', max: 5, apply: s => { s.gunCrit = Math.min(0.7, s.gunCrit + 0.1); } },
+    { id: 'brate',  cat: 'support', title: 'CARRIER SPEED', val: '+15%', icon: 't_carrier', color: 'tower', w: 3, needType: 'carrier', max: 5, apply: s => { s.carrierRate *= 1.15; } },
     // COLLECTION
     { id: 'magnet', cat: 'collect', title: 'COIN MAGNET', val: '+20%', icon: 'magnet', color: 'gold',  w: 5, max: 8, apply: s => { s.magnet *= 1.2; } },
-    { id: 'coll',   cat: 'collect', title: 'COLLECTOR', val: '+1', icon: 'coin', color: 'gold', w: 5, max: 5, at: 1.5, apply: s => { s.collectors++; } },
-    { id: 'cspd',   cat: 'collect', title: 'COLLECTOR SPEED', val: '+15%', icon: 'boot', color: 'gold', w: 3, max: 5, needLv: ['coll', 1], apply: s => { s.colSpeed *= 1.15; } },
-    { id: 'ccap',   cat: 'collect', title: 'COLLECTOR BAGS', val: '+50%', icon: 'coin', color: 'gold', w: 3, max: 5, needLv: ['coll', 1], apply: s => { s.colCap *= 1.5; } },
+    { id: 'coll',   cat: 'collect', title: 'MORE COLLECTORS', val: '+1 MAX', icon: 'coin', color: 'gold', w: 4, max: 4, at: 1.5, apply: s => { s.collectors++; } },
+    { id: 'cspd',   cat: 'collect', title: 'COLLECTOR SPEED', val: '+15%', icon: 'boot', color: 'gold', w: 3, max: 5, at: 1.5, apply: s => { s.colSpeed *= 1.15; } },
+    { id: 'ccap',   cat: 'collect', title: 'COLLECTOR BAGS', val: '+50%', icon: 'coin', color: 'gold', w: 3, max: 5, at: 1.5, apply: s => { s.colCap *= 1.5; } },
   ];
   KM.UPG_BY = Object.fromEntries(KM.UPGRADES.map(u => [u.id, u]));
 
@@ -175,12 +224,12 @@
       if (u.at && m < u.at) continue;
       if (u.max && (s.lv[u.id] || 0) >= u.max) continue;
       if (u.needTower && !run.towers.some(t => t)) continue;
-      if (u.needStruct && !run.towers.some(t => t) && !(run.walls && run.walls.length)) continue;
       if (u.needType && !run.towers.some(t => t && t.type === u.needType)) continue;
-      if (u.needRanged && !(s.archer > 0)) continue;
+      if (u.needRanged && !(s.archer > 0) && !(run.nKind && run.nKind[33] > 0)) continue;
       if (u.needLv && (s.lv[u.needLv[0]] || 0) < u.needLv[1]) continue;
+      if (u.needEra && KM.tankEra(s, run.t) < u.needEra) continue;
       if (u.id === 'rtech') { const nx = KM.RTECH[(s.rtech || 0) + 1]; if (!nx || m < nx.at) continue; }
-      const val = u.id === 'knight' ? '1 in ' + (s.knight ? Math.max(4, s.knight - 3) : 12) : u.id === 'rtech' ? KM.RTECH[(s.rtech || 0) + 1].name : u.id === 'shield' ? (s.shield ? 'LV ' + (s.shield + 1) : 'NEW') : u.val;
+      const val = u.id === 'rtech' ? KM.RTECH[(s.rtech || 0) + 1].name : u.id === 'shield' ? (s.shield ? 'LV ' + (s.shield + 1) : 'NEW') : u.val;
       opts.push({ id: u.id, w: u.w, title: u.title, val, icon: u.icon, color: u.color, cat: u.cat });
     }
     const free = run.towers.findIndex((t, i) => !t && i < KM.slotsUnlocked(m));
@@ -211,7 +260,7 @@
     low:    { dpr: 1.0,  shadows: false, shadowMap: 512,  lodNear: 40,  lodMid: 160, fx: 0.3,  glow: 1.1, bloom: false },
   };
   // Phones (measured on a physical iPhone): fewer full-skeleton units, a tighter lean band, smaller shadow map,
-  // and the environment never casts dynamic shadows — only the launcher, towers and walls do.
+  // and the environment never casts dynamic shadows — only the command vehicle and support vehicles do.
   KM.QUALITY_MOBILE = {
     high:   { lodNear: 80, lodMid: 340, shadowMap: 1024, decorShadows: false },
     medium: { lodNear: 64, lodMid: 280, shadowMap: 1024, decorShadows: false },
@@ -226,44 +275,7 @@
     if (!mobile) return (env.cores || 4) >= 4 ? 'high' : 'medium';
     return (env.cores || 4) <= 2 ? 'low' : 'medium';
   };
-  // Benchmark → recommendation. results = [{tier:'EARLY'|'MEDIUM'|'HEAVY'|'EXTREME', fps, low1}]
-  KM.recommendQuality = function (results) {
-    const f = n => { const r = results.find(x => x.tier === n); return r ? r.fps : 0; };
-    const e = f('EARLY'), m = f('MEDIUM'), h = f('HEAVY'), x = f('EXTREME');
-    if (h >= 55 && x >= 40) return 'high';
-    if (m >= 50 && h >= 38) return 'medium';
-    return 'low';
-  };
-  // One benchmark stage from per-frame samples (ms). 1% low = fps of the slowest 1% of frames.
-  KM.benchStage = function (tier, units, frames, js, tris, calls, heap) {
-    const f = frames.slice().sort((a, b) => a - b), n = f.length || 1, avg = f.reduce((a, b) => a + b, 0) / n;
-    const worst1 = f.slice(Math.floor(n * 0.99)); const low1Ms = worst1.length ? worst1.reduce((a, b) => a + b, 0) / worst1.length : avg;
-    const jsAvg = js.length ? js.reduce((a, b) => a + b, 0) / js.length : 0, r1 = x => Math.round(x * 10) / 10;
-    return { tier, units, frames: f.length, fps: r1(1000 / Math.max(avg, 0.001)), low1: r1(1000 / Math.max(low1Ms, 0.001)), avgMs: r1(avg), worstMs: r1(f[f.length - 1] || 0), p95: r1(f[Math.floor(n * 0.95)] || 0), tris: tris | 0, calls: calls | 0, jsMs: r1(jsAvg), heapMB: heap ? Math.round(heap / 1e6) : null };
-  };
-  // recommendation never exceeds the tier the device actually ended the benchmark on (an automatic step-down is a failure of the higher tier)
-  KM.benchRecommend = function (results, changes) {
-    const order = ['low', 'medium', 'high']; let rec = KM.recommendQuality(results);
-    if (changes && changes.length) { const lowest = changes.reduce((m, c) => Math.min(m, order.indexOf(String(c.to).toLowerCase())), 2); rec = order[Math.min(order.indexOf(rec), lowest)]; }
-    return rec;
-  };
   KM.nextLowerQuality = q => q === 'high' ? 'medium' : 'low';
-
-  // ---------- Playtest summary (human feedback without analytics infrastructure) ----------
-  KM.playtestReport = function (run, answers, meta) {
-    const yn = v => v === true ? 'YES' : v === false ? 'NO' : '—';
-    const r = { kmob: 'playtest', when: (meta && meta.when) || new Date().toISOString(), run: (meta && meta.runNo) || null,
-      survival: KM.fmtTime(run.time), seconds: Math.floor(run.time), death: run.reason || 'unknown', peakArmy: run.peakArmy, coins: run.coins, kills: run.kills,
-      upgrades: (run.picks || []).slice(0, 60), easyToUnderstand: yn(answers.easy), deathFair: yn(answers.fair), playAgain: yn(answers.again), device: (meta && meta.ua) || '' };
-    // actual behaviour, not the answer: TRY AGAIN pressed? (this run is still on its results screen when copied → pending)
-    const rt = meta && meta.retry; r.pressedTryAgain = !rt || rt.retried == null ? 'PENDING' : rt.retried ? 'YES' : 'NO'; r.retrySeconds = rt && rt.retried ? rt.secs : null;
-    const hist = (meta && meta.history) || []; r.sessionRetries = hist.map(h => ({ run: h.run, pressedTryAgain: h.retried ? 'YES' : 'NO', seconds: h.secs }));
-    r.retryRate = hist.length ? +(hist.filter(h => h.retried).length / hist.length).toFixed(2) : null;
-    r.text = `KMOB playtest #${r.run || '?'} — survived ${r.survival} (${r.death}); peak army ${r.peakArmy}; coins ${r.coins}; kills ${r.kills}\n` +
-      `upgrades: ${r.upgrades.join(', ') || 'none'}\nEasy to understand: ${r.easyToUnderstand} · Death fair: ${r.deathFair} · Play again: ${r.playAgain}\n` +
-      `Pressed TRY AGAIN: ${r.pressedTryAgain}${r.retrySeconds != null ? ' after ' + r.retrySeconds + ' s' : ''}` + (hist.length ? ` · earlier runs: ${hist.map(h => '#' + h.run + ' ' + (h.retried ? 'retry ' + h.secs + 's' : 'left ' + h.secs + 's')).join(', ')} · retry rate ${Math.round(r.retryRate * 100)}%` : '');
-    return r;
-  };
 
   // ---------- Tokens (rare, persistent) ----------
   KM.tokensFor = (tSec, kills) => Math.floor(Math.sqrt(Math.max(0, tSec) / 40)) + Math.floor(kills / 1500);

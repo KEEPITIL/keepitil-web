@@ -167,6 +167,10 @@
     musket: () => merge([part(box(0.07, 0.09, 0.42), WOOD, 0, TRS(0, -0.02, 0.05)), part(cyl(0.022, 0.026, 0.8, 8), DSTEEL, 0, TRS(0, 0.03, 0.55, Math.PI / 2, 0, 0)), part(box(0.03, 0.05, 0.05), GOLD, 0, TRS(0, 0.06, 0.12))]),
     rifle: () => merge([part(box(0.07, 0.1, 0.38), 0x3a3d48, 0, TRS(0, -0.02, 0.08)), part(cyl(0.022, 0.022, 0.62, 8), DARK, 0, TRS(0, 0.03, 0.55, Math.PI / 2, 0, 0)), part(box(0.05, 0.05, 0.22), DSTEEL, 0, TRS(0, 0.09, 0.2)), part(box(0.04, 0.12, 0.06), DARK, 0, TRS(0, -0.1, 0.18))]),
     pulse: () => merge([part(box(0.09, 0.12, 0.5), 0xe8eef6, 0, TRS(0, 0, 0.18)), part(cyl(0.035, 0.035, 0.45, 8), 0x3fd0ff, 0, TRS(0, 0.02, 0.6, Math.PI / 2, 0, 0)), part(box(0.1, 0.03, 0.3), 0x3fd0ff, 0, TRS(0, 0.08, 0.2))]),
+    // medic equipment eras: satchel → field kit → modern kit → advanced injector (weapon socket)
+    medkit: () => merge([part(box(0.22, 0.2, 0.12), 0xf4ead0, 0, TRS(0, 0, 0.06)), part(box(0.05, 0.14, 0.13), 0xe23a3a, 0, TRS(0, 0, 0.06)), part(box(0.14, 0.05, 0.13), 0xe23a3a, 0, TRS(0, 0, 0.06)), part(cyl(0.012, 0.012, 0.22, 5), LEATHER, 0, TRS(0, 0.12, 0.06, 0, 0, Math.PI / 2))]),
+    medkit2: () => merge([part(box(0.26, 0.2, 0.14), 0xffffff, 0, TRS(0, 0, 0.06)), part(box(0.06, 0.15, 0.15), 0xe23a3a, 0, TRS(0, 0, 0.06)), part(box(0.16, 0.06, 0.15), 0xe23a3a, 0, TRS(0, 0, 0.06)), part(box(0.28, 0.04, 0.16), DSTEEL, 0, TRS(0, 0.11, 0.06))]),
+    medkit3: () => merge([part(box(0.24, 0.24, 0.14), 0x3fd0ff, 0, TRS(0, 0, 0.06)), part(box(0.06, 0.16, 0.15), 0xffffff, 0, TRS(0, 0, 0.06)), part(box(0.16, 0.06, 0.15), 0xffffff, 0, TRS(0, 0, 0.06)), part(cyl(0.02, 0.02, 0.3, 6), 0x3fd0ff, 0, TRS(0, 0.05, 0.3, Math.PI / 2, 0, 0))]),
     sack: () => merge([part(sph(0.17, 10, 8), 0xd9b27a, 0, TRS(0, 0.05, -0.05, 0, 0, 0, 1, 0.85, 1)), part(cyl(0.05, 0.07, 0.08, 8), 0xa07a4a, 0, TRS(0, 0.2, -0.05)), part(sph(0.06, 8, 6), GOLD, 0, TRS(0, 0.24, -0.05))]),
   };
   function shield() {
@@ -192,7 +196,7 @@
 
   // ---------------- recipes: unit kind → parts ----------------
   KM.RECIPE = {
-    soldier: { torso: 'tLight', head: 'hBlue', arm: 'aStd', leg: 'lStd', wpn: 'sword' },
+    soldier: { torso: 'tLight', head: 'hBlue', arm: 'aStd', leg: 'lStd', wpn: 'sword', shield: 1 },   // shield + spear (thrown once) + sword
     archerF: { torso: 'tLight', head: 'hHood', arm: 'aStd', leg: 'lStd', wpn: 'bow' },
     knightF: { torso: 'tHeavy', head: 'hKnight', arm: 'aHeavy', leg: 'lStd', wpn: 'sword', shield: 1 },
     grunt: { torso: 'tLight', head: 'hHorn', arm: 'aStd', leg: 'lStd', wpn: 'sword' },
@@ -205,8 +209,14 @@
     bomber: { torso: 'tLight', head: 'hGoggles', arm: 'aStd', leg: 'lStd', wpn: 'bomb' },
     shaman: { torso: 'tRobe', head: 'hShaman', arm: 'aStd', leg: 'lStd', wpn: 'staff' },
     warlord: { torso: 'tBrute', head: 'hWarlord', arm: 'aBrute', leg: 'lBrute', wpn: 'axe' },
+    spearman: { torso: 'tHeavy', head: 'hKnight', arm: 'aStd', leg: 'lStd', wpn: 'spear', shield: 1 },
+    giant: { torso: 'tBrute', head: 'hBrute', arm: 'aBrute', leg: 'lBrute', wpn: 'axe' },
+    titan: { torso: 'tBrute', head: 'hHorn', arm: 'aBrute', leg: 'lBrute', wpn: 'axe' },
+    colossus: { torso: 'tBrute', head: 'hBucket', arm: 'aBrute', leg: 'lBrute', wpn: 'axe', shield: 1 },
+    hunter: { torso: 'tBrute', head: 'hGoggles', arm: 'aBrute', leg: 'lBrute', wpn: 'axe' },
     cannon: { body: 'cannon' },
     collector: { torso: 'tLight', head: 'hBandana', arm: 'aStd', leg: 'lStd', wpn: 'sack' },
+    medic: { torso: 'tRobe', head: 'hHood', arm: 'aStd', leg: 'lStd', wpn: 'medkit' },
   };
   // skeleton offsets per body family (std vs brute proportions)
   KM.RIG = {
@@ -220,7 +230,7 @@
       hBlue: H.blue(), hKnight: H.knight(), hHood: H.hood(), hHorn: H.horn(), hBucket: H.bucket(), hBandana: H.bandana(), hImp: H.imp(), hBrute: H.brute(), hWarlord: H.warlord(), hShaman: H.shaman(), hGoggles: H.goggles(),
       aStd: armStd(), aHeavy: armHeavy(), aBrute: armBrute(),
       sword: W.sword(), swordGold: W.sword(true), dagger: W.dagger(), axe: W.axe(), bow: W.bow(), staff: W.staff(), bomb: W.bomb(), claws: W.claws(),
-      rock: W.rock(), spear: W.spear(), xbow: W.xbow(), musket: W.musket(), rifle: W.rifle(), pulse: W.pulse(), sack: W.sack(),
+      medkit: W.medkit(), medkit2: W.medkit2(), medkit3: W.medkit3(),       rock: W.rock(), spear: W.spear(), xbow: W.xbow(), musket: W.musket(), rifle: W.rifle(), pulse: W.pulse(), sack: W.sack(),
       shield: shield(), cannon: cannon(), pads: pads(), plume: plume(), padsIron: padsIron(), hornsAdd: hornsAdd(), eyesGlow: eyesGlow(),
   });
   KM.KIT_DETAIL = { near: 0.5 };
@@ -236,7 +246,7 @@
     P.m_w_axe = stick(0.9, WOOD, [part(box(0.05, 0.3, 0.24), 0x9aa4b2, 0, TRS(0, 0.15, 0.7))]); P.m_w_bow = merge([part(box(0.03, 0.03, 0.7), WOOD, 0, TRS(0, 0.1, 0))]);
     P.m_w_bomb = merge([part(new THREE.SphereGeometry(0.15, 5, 4), 0x24252c, 0, TRS(0, 0, 0.09))]);
     P.m_w_rock = merge([part(new THREE.SphereGeometry(0.09, 4, 3), 0x9a9488, 0, TRS(0, 0, 0.06))]); P.m_w_spear = stick(1.1, WOOD); P.m_w_xbow = stick(0.5, WOOD, [part(box(0.4, 0.03, 0.04), DSTEEL, 0, TRS(0, 0, 0.42))]);
-    P.m_w_musket = stick(0.95, DSTEEL); P.m_w_rifle = stick(0.8, DARK); P.m_w_pulse = stick(0.75, 0x3fd0ff); P.m_w_sack = merge([part(new THREE.SphereGeometry(0.17, 5, 4), 0xd9b27a, 0, TRS(0, 0.05, -0.05))]); P.m_w_claws = merge([part(box(0.1, 0.02, 0.12), IVORY, 0, TRS(0, 0, 0.08))]);
+    P.m_w_musket = stick(0.95, DSTEEL); P.m_w_rifle = stick(0.8, DARK); P.m_w_pulse = stick(0.75, 0x3fd0ff); P.m_w_medkit = merge([part(box(0.22, 0.2, 0.12), 0xf4ead0, 0, TRS(0, 0, 0.06)), part(box(0.14, 0.05, 0.13), 0xe23a3a, 0, TRS(0, 0, 0.06))]); P.m_w_medkit2 = merge([part(box(0.26, 0.2, 0.14), 0xffffff, 0, TRS(0, 0, 0.06)), part(box(0.16, 0.06, 0.15), 0xe23a3a, 0, TRS(0, 0, 0.06))]); P.m_w_medkit3 = merge([part(box(0.24, 0.24, 0.14), 0x3fd0ff, 0, TRS(0, 0, 0.06))]); P.m_w_sack = merge([part(new THREE.SphereGeometry(0.17, 5, 4), 0xd9b27a, 0, TRS(0, 0.05, -0.05))]); P.m_w_claws = merge([part(box(0.1, 0.02, 0.12), IVORY, 0, TRS(0, 0, 0.08))]);
     for (const [k, r] of Object.entries(KM.RECIPE)) {
       if (r.body) continue;
       const brute = r.torso === 'tBrute', S = brute ? 1.45 : 1, rig = brute ? KM.RIG.brute : KM.RIG.std, L = [];

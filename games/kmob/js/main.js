@@ -51,6 +51,42 @@
   const save = KM.save = KM.loadSave(store);
   const persist = () => KM.writeSave(store, save);
 
+  // ---------- run telemetry: one anonymous record per run → private insert-only table (never read back by the client) ----------
+  // No personal data: random ids, coarse device class, gameplay numbers. Any failure is swallowed; gameplay never waits on it.
+  const Telemetry = KM.telemetry = (() => {
+    const URL_ = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/kmob_runs', KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ';
+    const rid = () => { try { return crypto.randomUUID(); } catch (e) { return (Date.now().toString(36) + Math.random().toString(36).slice(2, 12)); } };
+    let sid; try { sid = sessionStorage.getItem('kmob.sid') || rid(); sessionStorage.setItem('kmob.sid', sid); } catch (e) { sid = rid(); }
+    let R = null, pending = null;
+    const T = {
+      on: !(DEV && !DEV.telemetry), sent: [], fetch: (...a) => fetch(...a),
+      begin(sim, ctx) { this.flush('restart'); const ua = navigator.userAgent;
+        R = { v: 1, build: KM.BUILD, run: rid(), dev: /iPhone|iPad|iPod/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : 'desktop', cores: navigator.hardwareConcurrency || 0, mem: navigator.deviceMemory || 0,
+          vp: [innerWidth, innerHeight, +(devicePixelRatio || 1).toFixed(2)], q0: ctx.quality, spd0: ctx.speed, comp: ctx.comp, runN: ctx.runN,
+          prod: [['auto', 0]], posture: [], sectors: [], waves: { push: 0, mini: 0, boss: 0 }, bosses: [], ups: [], qdown: [], samples: [], fps: [], stalls: 0, worstMs: 0,
+          capFirst: -1, capSecs: 0, peak: 0, speedSecs: { 1: 0, 1.5: 0, 2: 0 } }; },
+      ev(sim, t, a, b) { if (!R) return; const tt = Math.round(sim.t);
+        if (t === 'prod') R.prod.push([a, tt]); else if (t === 'posture') R.posture.push([a, tt]); else if (t === 'sector') R.sectors.push([a, tt]);
+        else if (t === 'wave' && R.waves[a] != null) { R.waves[a]++; if (a !== 'push') R.bosses.push([b, tt]); } else if (t === 'upgrade') R.ups.push([a.id, tt]); },
+      frame(sim, dt, ms, speed) { if (!R) return; if (ms > 250) R.stalls++; if (ms > R.worstMs && ms < 5000) R.worstMs = Math.round(ms); R.speedSecs[speed] = (R.speedSecs[speed] || 0) + dt;
+        const n = sim.count[0]; if (n > R.peak) R.peak = n; if (n >= sim.stats.cap) { R.capSecs += dt; if (R.capFirst < 0) R.capFirst = Math.round(sim.t); } },
+      sample(sim, fps, perf) { if (!R) return; R.fps.push(Math.round(fps)); if (R.fps.length > 900) R.fps.splice(0, 300);
+        if (R.fps.length % 10 === 1) R.samples.push([Math.round(sim.t), sim.count[0], sim.count[1], Array.from(sim.nKind.slice(0, KM.FRIEND.length)), sim.posture, sim.sector, perf ? perf.quality : '', perf ? +perf.simMs.toFixed(2) : 0]); },
+      qdown(to, fps) { if (R) R.qdown.push([to, Math.round(fps)]); },
+      end(sim, r, ctx) { if (!R) return; const S = sim.stats;
+        Object.assign(R, { secs: Math.round(r.time), reason: r.reason, kills: r.kills, coins: r.coins, peakArmy: r.peakArmy, upgrades: r.upgrades, era: KM.tankEra(S, sim.t), q1: ctx.quality,
+          dmg: { melee: Math.round(sim.dmgBy[0]), ranged: Math.round(sim.dmgBy[1]), tank: Math.round(sim.dmgBy[2]), support: Math.round(sim.dmgBy[3]) },
+          collectors: { coins: Math.round(sim.colCoins), lost: sim.colLost }, healed: Math.round(sim.healed), shield: Math.round(sim.shAbsorbed), lastSector: sim.sector });
+        pending = R; R = null; },
+      flush(after) { if (R && after !== 'restart') { R.partial = 1; R.secs = R.secs || 0; pending = R; R = null; } if (!pending) return; pending.after = after; const p = pending; pending = null; this.send(p); },
+      send(p) { this.sent.push(p); if (this.sent.length > 5) this.sent.shift(); if (!this.on) return;
+        try { this.fetch(URL_, { method: 'POST', keepalive: true, headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify({ run_id: p.run, session_id: sid, build: p.build, kind: p.partial ? 'partial' : 'run', payload: p }) }).catch(() => {}); } catch (e) { /* telemetry never breaks the game */ } },
+    };
+    addEventListener('pagehide', () => { try { T.flush('left'); } catch (e) { /* ignore */ } });
+    return T;
+  })();
+
   // ---------- systems ----------
   const canvas = $('c');
   let render;
@@ -135,7 +171,7 @@
   let hudAcc = 0;
   function hud(dt) {
     hudAcc += dt; if (hudAcc < 0.1) return; hudAcc = 0;
-    $('hTime').textContent = KM.fmtTime(sim.t); $('hArmy').textContent = sim.count[0]; $('hCoins').textContent = KM.fmtNum(sim.coins);
+    $('hTime').textContent = KM.fmtTime(sim.t); $('hArmy').textContent = sim.count[0] + ' / ' + sim.stats.cap; $('hArmy').classList.toggle('full', sim.count[0] >= sim.stats.cap); $('hCoins').textContent = KM.fmtNum(sim.coins);
     const cost = KM.upgradeCost(sim.upgrades); $('hNext').textContent = sim.offer ? 'UPGRADE!' : 'NEXT ' + cost;
     const hp = sim.L.hp / sim.stats.maxHp; $('hpFill').style.width = (hp * 100).toFixed(1) + '%'; $('hpFill').style.background = hp > 0.5 ? 'linear-gradient(90deg,#4cff8a,#2fbf4f)' : hp > 0.25 ? 'linear-gradient(90deg,#ffe14a,#ff9a1f)' : 'linear-gradient(90deg,#ff6a4a,#d6281f)';
     $('vig').style.boxShadow = `inset 0 0 120px ${20 + 40 * (1 - hp)}px rgba(220,20,20,${hp < 0.35 ? (0.55 - hp) * (0.8 + 0.2 * Math.sin(performance.now() / 150)) : 0})`;
@@ -164,6 +200,7 @@
     moved = 0; setTip(save.ach.tutorial ? 4 : 0);
     if (save.ach.tutorial) { tut = 4; banner('SURVIVE!', 1.2); }
     Analytics.track('run_start', { run: save.totals.runs + 1, competitive: comp });
+    Telemetry.begin(sim, { quality: render.quality, speed: speedNow(), comp, runN: save.totals.runs + 1 });
     hook('start');
   }
   function onDeath() {
@@ -172,6 +209,7 @@
     const { pb } = KM.recordRun(save, r); persist();
     Analytics.track('run_end', { survival_time: Math.floor(r.time), death_reason: r.reason, peak_army_size: r.peakArmy, currency_collected: r.coins, kills: r.kills, upgrades: r.upgrades, player_death_position: { x: +sim.L.x.toFixed(1), offZ: +sim.L.offZ.toFixed(1) }, revive_used: !!sim.revived });
     if (pb) Analytics.track('personal_best', { t: Math.floor(r.time) });
+    Telemetry.end(sim, r, { quality: render.quality });
     setTimeout(() => {
       if (state !== 'run') return;
       state = 'over'; $('tip').classList.add('hidden');
@@ -188,6 +226,7 @@
   }
   function setPause(p) { if (state !== 'run') return; paused = p; show(p ? 'pause' : null); audio.suspend(p); if (p) { buildToggles($('pToggles')); audio.crowd(0, 0); } }
   function goTitle() {
+    Telemetry.flush('quit');
     state = 'title'; $('hud').classList.add('hidden'); $('hpbar').classList.add('hidden'); $('postureBtn').classList.add('hidden'); prodBar.classList.add('hidden'); $('tip').classList.add('hidden'); hideOffer();
     const b = save.settings.competitive ? save.best.comp : save.best.all;
     $('titleBest').innerHTML = `<span>BEST<b>${KM.fmtTime(b)}</b></span><span>TODAY<b>${KM.fmtTime(save.best.daily.d === KM.dayKey(new Date()) ? save.best.daily.t : 0)}</b></span><span class="tok">${ICON.token ? `<svg viewBox="0 0 24 24">${ICON.token}</svg>` : ''}${save.tokens}</span>`;
@@ -243,8 +282,8 @@
     if (fpsAcc >= 1) {
       const fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; const ri = render.R.info.render;
       KM.perf = { fps, units: sim.count[0] + sim.count[1], drawn: render.drawn, dpr: render.R.getPixelRatio(), quality: render.quality, tris: ri.triangles, calls: ri.calls, jsMs: jsCost, simMs, speed: speedNow(), simDebt };
-      hook('fps', fps);
-      if (state === 'run' && !paused && !forcedQ && !(DEV && DEV.fixed)) { slow = fps < 45 ? slow + 1 : Math.max(0, slow - 1); if (slow >= 4 && render.quality !== 'low') { slow = 0; pendingQ = KM.nextLowerQuality(render.quality); Analytics.track('quality_down', { to: pendingQ, fps: Math.round(fps) });
+      hook('fps', fps); if (state === 'run' && !paused) Telemetry.sample(sim, fps, KM.perf);
+      if (state === 'run' && !paused && !forcedQ && !(DEV && DEV.fixed)) { slow = fps < 45 ? slow + 1 : Math.max(0, slow - 1); if (slow >= 4 && render.quality !== 'low') { slow = 0; pendingQ = KM.nextLowerQuality(render.quality); Analytics.track('quality_down', { to: pendingQ, fps: Math.round(fps) }); Telemetry.qdown(pendingQ, fps);
         hook('qdown', fps, render.quality, pendingQ); } }
     }
   }
@@ -258,6 +297,7 @@
   function setSpeed(i) { speedI = (i + SPEEDS.length) % SPEEDS.length; save.settings.speed = SPEEDS[speedI]; persist(); $('speedBtn').textContent = SPEEDS[speedI] + '×'; $('speedBtn').classList.toggle('fast', speedI > 0); render.speed = SPEEDS[speedI]; }
   $('speedBtn').addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); audio.unlock(); setSpeed(speedI + 1); audio.play('tap'); });
   sim.on(t => { if (t === 'warn' || t === 'elite' || t === 'boss') hold1 = Math.max(hold1, 3.5); });
+  sim.on((t, a, b) => { if (state === 'run') Telemetry.ev(sim, t, a, b); });
   let lastT = performance.now(), acc = 0; const STEP = 1 / 60, MAX_STEPS = 8, MAX_DEBT = 0.2;
   function loop(now) {
     requestAnimationFrame(loop);
@@ -270,7 +310,7 @@
       if (keys.ArrowLeft || keys.a) sim.moveBy(-dt * 14, 0); if (keys.ArrowRight || keys.d) sim.moveBy(dt * 14, 0);
       if (keys.ArrowUp || keys.w) sim.moveBy(0, -dt * 10); if (keys.ArrowDown || keys.s) sim.moveBy(0, dt * 10);
       hold1 = Math.max(0, hold1 - dt);
-      const scale = sim.offer ? 0.35 : hold1 > 0 ? 1 : speedNow(); gdt = dt * scale;
+      const scale = sim.offer ? 0.35 : hold1 > 0 ? 1 : speedNow(); gdt = dt * scale; Telemetry.frame(sim, dt, rawMs, speedNow());
       acc += gdt; let n = 0; const s0 = performance.now();
       while (acc >= STEP && n < MAX_STEPS) { if (botOn) KM.bot(sim, STEP, 1); sim.step(STEP); acc -= STEP; n++; hook('tick', STEP); }
       if (acc > MAX_DEBT) { simDebt += acc; acc = 0; }                                   // spiral-of-death guard: drop the backlog, never stall
@@ -281,7 +321,7 @@
     } else if (state !== 'run') { sim.step(dt * 0.5); } // keep the battlefield alive behind menus
     if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('banner').classList.remove('on'); }
     // ATTACK/DEFEND arrives once the first fight has started (the first seconds stay: drag + auto-deploy only)
-    if (state === 'run' && sim.t > 35 && prodBar.classList.contains('hidden') && sim.alive) { prodBar.classList.remove('hidden'); prodUI(); if (!save.ach.prod) { save.ach.prod = 1; banner('CHOOSE WHAT\nYOUR TANK DEPLOYS', 2.2); } }
+    if (state === 'run' && prodBar.classList.contains('hidden') && sim.alive) { prodBar.classList.remove('hidden'); prodUI(); if (!save.ach.prod) { save.ach.prod = 1; banner('CHOOSE YOUR ARMY', 1.8); } }   // composition is a choice from the first second
     if (state === 'run' && sim.t > 25 && $('postureBtn').classList.contains('hidden') && sim.alive) { $('postureBtn').classList.remove('hidden'); if (!save.ach.posture) { save.ach.posture = 1; banner('TAP DEFEND\nTO HOLD FORMATION', 2.2); } }
     if (!paused && !glLost) { render.frame(sim, state === 'run' ? gdt : dt); mark('firstFrame'); if (state === 'run' && sim.t > 0.5) mark('gameplay'); }               // animation follows game time
     jsCost += ((performance.now() - js0) - jsCost) * 0.1;   // JS cost: sim + scene update + draw submission (GPU time excluded)

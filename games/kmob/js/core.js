@@ -89,6 +89,8 @@
   KM.FRIEND_BY = Object.fromEntries(KM.FRIEND.map(f => [f.k, f]));
   // Production: the player chooses what the command vehicle deploys. cost = deploy points (rate accumulates points/s);
   // specialists are capped (stat key), late types unlock by minute.
+  KM.BUILD = '2026.10.05-cap300';   // reported with telemetry; bump on every public deploy
+  KM.ARMY_CAP = 300;   // strategic cap on deployable soldiers (melee, ranged, collectors, medics, elites); not an engine limit — enemies are uncapped by it
   KM.PROD = {
     auto:      { name: 'AUTO' },
     melee:     { name: 'MELEE', kind: 'soldier', cost: 1 },
@@ -116,14 +118,14 @@
   KM.baseStats = function (perm) {
     perm = perm || {};
     return {
-      cap: 45 + 8 * (perm.army || 0), rate: 4.8, hp: 20, dmg: 4.5, armor: 0, speed: 4.3, atk: 1,
+      cap: KM.ARMY_CAP, rate: 4.8 * (1 + 0.06 * (perm.army || 0)), hp: 20, dmg: 4.5, armor: 0, speed: 4.3, atk: 1,
       magnet: 2.4 * (1 + 0.1 * (perm.magnet || 0)), crit: 0.05, archer: 0, knight: 0,
       // command tank weapon · force-field shield · collectors · ranged tech era
       tankDmg: 20, tankRate: 0.85, tankRange: 24, tankSplash: 0, tankBarrels: 1, missiles: 0,
       shield: 0, shRecharge: 1, shRadius: 2.4, shDelay: 4,
       collectors: 1, colSpeed: 1, colCap: 6, rtech: 0, rdmg: 1, medics: 1, medHeal: 7, elites: 1, elitePow: 1,
       maxHp: 100 + 10 * (perm.plating || 0), towerRate: 1, towerRange: 1, towerDmg: 1, splash: 1, frost: 1, gunCrit: 0.1, carrierRate: 1, towerHp: 1, towerArmor: 0,
-      lv: { tmulti: 0, tpen: 0, medic: 0, mheal: 0, elite: 0, tgun: 0, trof: 0, trng: 0, tspl: 0, tmis: 0, shield: 0, shrec: 0, shrad: 0, coll: 0, cspd: 0, ccap: 0, rtech: 0, rdmg: 0, cap: 0, rate: 0, hp: 0, dmg: 0, armor: 0, speed: 0, atk: 0, magnet: 0, crit: 0, archer: 0, knight: 0, plating: 0, trate: 0, trange: 0, tdmg: 0, splash: 0, frost: 0, scrit: 0, brate: 0, thp: 0, tarm: 0 },
+      lv: { tmulti: 0, tpen: 0, medic: 0, mheal: 0, elite: 0, tgun: 0, trof: 0, trng: 0, tspl: 0, tmis: 0, shield: 0, shrec: 0, shrad: 0, coll: 0, cspd: 0, ccap: 0, rtech: 0, rdmg: 0, rate: 0, hp: 0, dmg: 0, armor: 0, speed: 0, atk: 0, magnet: 0, crit: 0, archer: 0, knight: 0, plating: 0, trate: 0, trange: 0, tdmg: 0, splash: 0, frost: 0, scrit: 0, brate: 0, thp: 0, tarm: 0 },
     };
   };
 
@@ -140,15 +142,16 @@
   KM.slotsUnlocked = m => 1 + (m >= 4 ? 1 : 0) + (m >= 8 ? 1 : 0) + (m >= 13 ? 1 : 0);
   // Ranged weapon eras — earned one step at a time (minute gate per era), visual + mechanical changes together.
   KM.RTECH = [
-    { name: 'ROCK THROWERS', at: 0,  range: 5.5,  dmg: 0.8,  cd: 1.6, speed: 10, arc: 1.0,  wpn: 'rock' },
-    { name: 'JAVELINS',      at: 2,  range: 6.8,  dmg: 1.0,  cd: 1.5, speed: 14, arc: 0.55, wpn: 'spear' },
-    { name: 'ARCHERS',       at: 4,  range: 8.2,  dmg: 1.1,  cd: 1.3, speed: 19, arc: 0.5,  wpn: 'bow' },
-    { name: 'CROSSBOWS',     at: 7,  range: 9.2,  dmg: 1.4,  cd: 1.45, speed: 28, arc: 0.2, wpn: 'xbow' },
-    { name: 'MUSKETS',       at: 11, range: 10,   dmg: 1.95, cd: 2.1, speed: 60, arc: 0,    wpn: 'musket' },
-    { name: 'RIFLES',        at: 15, range: 11.2, dmg: 2.2,  cd: 1.35, speed: 70, arc: 0,   wpn: 'rifle' },
-    { name: 'PULSE RIFLES',  at: 20, range: 12.5, dmg: 1.55, cd: 0.6, speed: 48, arc: 0,    wpn: 'pulse' },
+    { name: 'ROCK THROWERS', at: 0,  range: 5.5,  dmg: 0.8,  cd: 1.6, speed: 10, arc: 1.0,  wpn: 'rock', gap: 3.2 },
+    { name: 'JAVELINS',      at: 2,  range: 6.8,  dmg: 1.0,  cd: 1.5, speed: 14, arc: 0.55, wpn: 'spear', gap: 4.0 },
+    { name: 'ARCHERS',       at: 4,  range: 8.2,  dmg: 1.1,  cd: 1.3, speed: 19, arc: 0.5,  wpn: 'bow', gap: 5.0 },
+    { name: 'CROSSBOWS',     at: 7,  range: 9.2,  dmg: 1.4,  cd: 1.45, speed: 28, arc: 0.2, wpn: 'xbow', gap: 5.8 },
+    { name: 'MUSKETS',       at: 11, range: 10,   dmg: 1.95, cd: 2.1, speed: 60, arc: 0,    wpn: 'musket', gap: 6.6 },
+    { name: 'RIFLES',        at: 15, range: 11.2, dmg: 2.2,  cd: 1.35, speed: 70, arc: 0,   wpn: 'rifle', gap: 7.4 },
+    { name: 'PULSE RIFLES',  at: 20, range: 12.5, dmg: 1.55, cd: 0.6, speed: 48, arc: 0,    wpn: 'pulse', gap: 8.2 },
   ];
   KM.rtech = s => KM.RTECH[Math.min(KM.RTECH.length - 1, s.rtech || 0)];
+  // gap = how far the ranged line stands behind the melee front (m): short throwing weapons close, firearms far back
   // tank visual stage from its own upgrade lines (the tank shows what was built, not just how many cards were taken)
   // Command vehicle eras: it starts as a war wagon and becomes a tank only when time AND its own upgrades allow
   KM.TANK_ERAS = [
@@ -170,7 +173,6 @@
   // needs: prerequisite (the deck only offers what makes sense for this run's army)
   KM.UPGRADES = [
     // ARMY
-    { id: 'cap',    cat: 'army', title: 'ARMY SIZE',   val: '+12',  icon: 'army',   color: 'blue',  w: 10, apply: s => { s.cap += 12; } },
     { id: 'rate',   cat: 'army', title: 'DEPLOY SPEED', val: '+12%', icon: 'bolt',  color: 'blue',  w: 8, apply: s => { s.rate *= 1.12; } },
     { id: 'dmg',    cat: 'army', title: 'MELEE DAMAGE', val: '+12%', icon: 'sword', color: 'red',   w: 9, apply: s => { s.dmg *= 1.12; } },
     { id: 'hp',     cat: 'army', title: 'SOLDIER HEALTH', val: '+12%', icon: 'helm', color: 'green', w: 9, apply: s => { s.hp *= 1.12; } },
@@ -282,7 +284,7 @@
 
   // ---------- Permanent shop ----------
   KM.SHOP = [
-    { id: 'army',    kind: 'bonus', name: 'Veteran Recruits', desc: '+5 starting army', max: 3, cost: l => 4 + l * 4 },
+    { id: 'army',    kind: 'bonus', name: 'Veteran Recruits', desc: '+6% deploy speed', max: 3, cost: l => 4 + l * 4 },
     { id: 'magnet',  kind: 'bonus', name: 'Coin Magnet',      desc: '+10% pickup radius', max: 3, cost: l => 3 + l * 3 },
     { id: 'plating', kind: 'bonus', name: 'Iron Plating',     desc: '+10 launcher HP', max: 3, cost: l => 3 + l * 4 },
     { id: 'skin_royal',   kind: 'skin', name: 'Royal Blue',  desc: 'Default launcher', cost: () => 0, color: '#2f6dff', trim: '#f2c14e' },

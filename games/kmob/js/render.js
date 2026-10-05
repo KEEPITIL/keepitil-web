@@ -4,7 +4,7 @@
   const KM = G.KM, W = KM.W;
   const V3 = THREE.Vector3, M4 = THREE.Matrix4, Q = THREE.Quaternion, E = THREE.Euler, C = THREE.Color;
   const TEAM = [new C(0x2f74ff), new C(0xe2312c)];
-  const ENEMY_COL = { grunt: 0xe2312c, imp: 0xf0463a, shield: 0xd02a2e, runner: 0xe83c2c, archer: 0xd8352f, knight: 0xa51f2c, brute: 0xd0262c, bomber: 0xe8482a, cannon: 0x9a2a2a, shaman: 0xa02c9e, warlord: 0x9a1424 };
+  const ENEMY_COL = { grunt: 0xe2312c, imp: 0xf0463a, shield: 0xd02a2e, runner: 0xe83c2c, archer: 0xd8352f, knight: 0xa51f2c, brute: 0xd0262c, bomber: 0xe8482a, cannon: 0x9a2a2a, shaman: 0xa02c9e, warlord: 0x9a1424, spearman: 0xc8302a, giant: 0x8e1c22, titan: 0x7a1020, colossus: 0x5e1a24, hunter: 0x8a2a10 };
   const ERA_TINT = [0xffffff, 0xf2d6d6, 0xd9b8c0, 0xc8a8d8, 0xb0b0b8, 0x9ad8ff];
 
   // ---------- geometry helpers ----------
@@ -78,11 +78,11 @@
       // the launcher is always on screen: ~140 meshes → one draw per shared material within each stage group
       for (const w of this.wheels) this.batchStatic(w);                              // each spinning wheel → one vertex-coloured mesh
       { const keep = [this.lBody, ...Object.values(this.lStage), ...this.wheels, ...this.barrels, ...this.barrels.map(b => b.userData.brake), this.turret, this.crown, this.core, this.halo, this.eRing, this.hpRing, this.magRing, this.lGlow, ...this.capsules].filter(Boolean);
-        this.lBatched = this.batchStatic(this.launcher, { byMaterial: true, keep: keep.concat([this.lPod, this.lAnt, this.lEmit]), deep: this.flags, pinned: [this.lPaint, this.lPaint2, this.lGold] }); }
+        this.lBatched = this.batchStatic(this.launcher, { byMaterial: true, keep: keep.concat([this.lPod, this.lAnt, this.lEmit, this.lWagon, this.lBallista]), deep: this.flags, pinned: [this.lPaint, this.lPaint2, this.lGold] }); }
       // force-field bubble (state read from the shield itself: bright → flicker when weak → burst → slow rebuild)
       this.shieldMat = new THREE.MeshBasicMaterial({ color: 0x7fd8ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
       this.shieldM = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), this.shieldMat); this.shieldM.visible = false; S.add(this.shieldM);
-      this.towerObjs = [null, null, null, null, null, null]; this.dyingObjs = []; this.wallObjs = new Map();
+      this.towerObjs = [null, null, null, null]; this.dyingObjs = [];
       this.tracers = []; for (let k = 0; k < 8; k++) { const tr = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 1), new THREE.MeshBasicMaterial({ color: 0xe4c2ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); tr.visible = false; this.scene.add(tr); this.tracers.push(tr); }
       this.resize();
     }
@@ -131,7 +131,6 @@
       const blob = new THREE.MeshBasicMaterial({ map: radialTex('rgba(20,20,40,0.45)', 'rgba(0,0,0,0)'), transparent: true, depthWrite: false });
       this.blob = mk(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), N, false); this.blob.material = blob; this.blob.renderOrder = 1;
       this.ringM = mk(new THREE.RingGeometry(0.8, 1, 28).rotateX(-Math.PI / 2), 160, false); this.ringM.material = new THREE.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: 0.45, depthWrite: false });
-      this.buffM = mk(new THREE.RingGeometry(0.55, 0.7, 20).rotateX(-Math.PI / 2), N, false); this.buffM.material = new THREE.MeshBasicMaterial({ color: 0x5cffa0, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending });
     }
 
     put(im, n, m) { m.toArray(im.instanceMatrix.array, n * 16); }
@@ -163,11 +162,10 @@
 
     drawCrowd(sim, dt) {
       const A = KM.ANIM, I = A.I, P = A.P, M = this.mats, q = this.q, e = this.e, pos = this.v, sc = this.s3, col = this.col, col2 = this.col2;
-      const S = sim.stats, armorLv = S.lv.armor || 0, dmgLv = S.lv.dmg || 0, hpLv = S.lv.hp || 0, rtW = KM.rtech(S).wpn, colCap = S.colCap;
+      const S = sim.stats, armorLv = S.lv.armor || 0, dmgLv = S.lv.dmg || 0, hpLv = S.lv.hp || 0, rtW = KM.rtech(S).wpn, colCap = S.colCap, medW = ['medkit', 'medkit2', 'medkit3', 'medkit3'][KM.medTech(S)];
       for (const k in this.pn) this.pn[k] = 0;
-      let nb = 0, nr = 0, nf = 0; this.frameNo++;
+      let nb = 0, nr = 0; this.frameNo++;
       const blue = TEAM[0], camZ = this.cam.position.z, camX = this.cam.position.x, crowd = sim.count[0] + sim.count[1], flipCam = !!(KM.camFocus && KM.camFocus.flip);
-      const bannerTowers = sim.towers.filter(t => t && t.type === 'banner'), bR2 = 49 * sim.stats.towerRange;
       // budgeted LOD thresholds from a camera-distance histogram
       const hist = this.lodHist || (this.lodHist = new Uint16Array(160)), dist = this.lodDist || (this.lodDist = new Float32Array(KM.Sim.CAP)); hist.fill(0);
       for (let i = 0; i < sim.hi; i++) { if (!sim.st[i]) continue; const dx = sim.x[i] - camX, dz = sim.z[i] - camZ, d = Math.sqrt(dx * dx + dz * dz); dist[i] = d; hist[Math.min(159, d | 0)]++; }
@@ -184,7 +182,7 @@
         if (st === 2) { const d = sim.die[i]; y -= Math.max(0, d - 0.45) * 1.1; s *= 1 - Math.max(0, d - 0.5) / 0.22; if (s <= 0.02) continue; }
         const b = sim.birth[i]; if (b > 0) { const u = b / 0.4; y += Math.sin(u * Math.PI) * 1.25; s *= 0.55 + 0.45 * u; }
         // colour: faction, era, flash, frost
-        col.setHex(team ? ENEMY_COL[def.k] : def.col ? 0xf2b632 : blue.getHex());
+        col.setHex(team ? ENEMY_COL[def.k] : def.col ? 0xf2b632 : def.med ? 0xeef3ff : blue.getHex());
         if (team === 1 && sim.era[i]) col.multiply(col2.setHex(ERA_TINT[sim.era[i]]));
         if (team === 0 && def.k === 'knightF') col.lerp(col2.setHex(0x6aa0ff), 0.35);
         if (sim.slow[i] > 0) col.lerp(col2.setHex(0x9fe8ff), 0.45);
@@ -226,6 +224,7 @@
           rot(M[4], -rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armLP], 0, p[o + I.armLR]); M[4].premultiply(M[2]); this.putP(ARM, M[4], col);
           rot(M[5], rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armRP], p[o + I.armRY], p[o + I.armRR]); M[5].premultiply(M[2]); this.putP(ARM, M[5], col);
           let wk = R.wpn; if (wk === 'sword' && team === 0 && dmgLv >= 5) wk = 'swordGold'; if (team === 0 && key === 'archerF') wk = rtW;   // ranged troops carry their weapon era
+          else if (team === 0 && key === 'soldier' && sim.spear[i]) wk = 'spear'; else if (key === 'medic') wk = medW;   // melee: spear until thrown, then sword
           const ws = team === 0 && wk.startsWith('sword') ? 1 + Math.min(8, dmgLv) * 0.06 : wk === 'sack' ? 0.55 + Math.min(1, sim.carry[i] / colCap) * 0.9 : 1;
           if (wk === 'bow') { M[6].makeTranslation(0, rig.fist, 0.02); M[6].premultiply(M[4]); }        // bow in the off hand
           else { M[6].makeScale(ws, ws, ws); M[6].setPosition(0, rig.fist, 0.03); M[6].premultiply(M[5]); }
@@ -236,13 +235,11 @@
         }
         if (nb < 4096) { q.identity(); const bs = s * (R.body ? 1.6 : R.torso === 'tBrute' ? 1.3 : 0.85); pos.set(sim.x[i], 0.03, z); sc.set(bs, 1, bs); M[0].compose(pos, q, sc); this.put(this.blob, nb++, M[0]); }
         if (team === 1 && def.el && st === 1 && nr < (def.boss ? 160 : 24)) { q.identity(); const rs = s * 0.75 * (1 + Math.sin(this.time * 6) * 0.06); pos.set(sim.x[i], 0.05, z); sc.set(rs, 1, rs); M[0].compose(pos, q, sc); this.put(this.ringM, nr++, M[0]); }
-        if (team === 0 && st === 1 && bannerTowers.length && nf < 4096) { for (const t of bannerTowers) { const ddx = sim.x[i] - t.x, ddz = z - t.z; if (ddx * ddx + ddz * ddz < bR2) { q.identity(); pos.set(sim.x[i], 0.04, z); sc.set(s, 1, s); M[0].compose(pos, q, sc); this.put(this.buffM, nf++, M[0]); break; } } }
       }
       for (const t of sim.towers) if (t && nb < 4096) { q.identity(); pos.set(t.x, 0.03, t.z); sc.set(2.3, 1, 2.9); M[0].compose(pos, q, sc); this.put(this.blob, nb++, M[0]); }   // support vehicles: blob contact shadows
       for (const k in this.partM) { const im = this.partM[k]; im.count = this.pn[k]; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; }
       const fin = (im, n) => { im.count = n; im.instanceMatrix.needsUpdate = true; };
-      fin(this.blob, nb); fin(this.ringM, nr); fin(this.buffM, nf);
-      this.buffM.material.opacity = 0.3 + Math.sin(this.time * 4) * 0.12;
+      fin(this.blob, nb); fin(this.ringM, nr);
       this.drawn = drawn;
     }
     // ---------- world streaming ----------
@@ -346,7 +343,7 @@
       for (let z = plan.z1; z > plan.z0 + 0.1; z -= 2) for (const sx of [-10.3, 10.3]) add(bridge ? this.deco.stoneRail() : this.deco.post(), sx, z - 2, 0);
       add(this.deco.banner(0x2f6dff), -10.9, plan.z1 - 4 - (i % 3) * 3, 0); add(this.deco.banner(0xd83a3a), 10.9, plan.z1 - 14 - (i % 2) * 4, Math.PI);
       for (let k = 0; k < 2; k++) { const side = r() < 0.5 ? -1 : 1, cx0 = side * r.range(11, 13), cz0 = plan.z1 - r() * CH; for (let j = 0; j < 3; j++) add(this.deco.rock(rock.getHex(), r.range(0.4, 0.9)), cx0 + (r() - 0.5) * 1.6, cz0 + (r() - 0.5) * 1.6, r() * 6); }
-      // edge modules: broken bridges over rivers, ruined walls on cliff shelves, abandoned siege pieces, distant peaks
+      // edge modules: broken bridges over rivers, ruins on cliff shelves, abandoned siege pieces, distant peaks
       for (const sd of [-1, 1]) { const zz = plan.z1 - r.range(4, CH - 4), e = KM.edgeAt(sd, zz);
         if (e.river > 0.6 && r() < 0.55) add(this.deco.brokenBridge(), sd * 13.9, zz, sd > 0 ? 0 : Math.PI);
         if (e.cliff > 0.6 && r() < 0.6) { const yy = hAt(sd * 13.2, zz); const L = this.deco.wall(0, r.range(0.7, 1.0)); const mm = T(0, yy - 0.1, 0); L.forEach(q => q.applyMatrix4(mm)); add(L, sd * 13.2, zz, Math.PI / 2 + r() * 0.3); }
@@ -399,7 +396,7 @@
     // Materials: cel-shaded like the units (std() kept for transparent/emissive bits).
     std(color, o) { return KM.toonPlain(color, o); }
     // Static batching: under every node, merge the opaque, non-animated meshes that share an emissive signature into one
-    // vertex-coloured mesh (towers/walls were 25–45 draws each). Meshes or materials referenced from userData (animated
+    // vertex-coloured mesh (support vehicles were 25–45 draws each). Meshes or materials referenced from userData (animated
     // barrels, flags, crystals…) and transparent pieces stay separate.
     batchStatic(root, opt) {
       opt = opt || {}; const keepO = new Set(opt.keep || []), keepM = new Set(), deep = new Set(), scan = v => { if (!v) return; if (Array.isArray(v)) return v.forEach(scan); if (v.isObject3D) keepO.add(v); else if (v.isMaterial) keepM.add(v); else if (v.m && v.m.isObject3D) keepO.add(v.m); };
@@ -464,6 +461,16 @@
         for (const zz of [-0.35, -0.95]) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.255, 0.04, 6, 16), gold); r.position.z = zz; b.add(r); }
         b.position.set(0, 0.34, 0); tur.add(b); this.barrels.push(b);
       }
+      // war-wagon era hardware (eras 0–2): canvas canopy hoops, wooden side rails, a ballista instead of gun barrels
+      const wag = this.lWagon = new THREE.Group(); body.add(wag); const canvasM = this.std(0xe8dcc0), woodM = this.std(0x8a5a33), ropeM = this.std(0xcfb98a);
+      { const cn = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 1.5, 14, 1, true, 0, Math.PI).rotateZ(Math.PI / 2).rotateY(Math.PI / 2), canvasM); cn.material.side = THREE.DoubleSide; cn.position.set(0, 1.35, 0.55); wag.add(cn);
+        for (const z of [-0.1, 0.55, 1.2]) { const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.96, 0.035, 5, 14, Math.PI), woodM); hoop.rotation.y = Math.PI / 2; hoop.position.set(0, 1.35, z); wag.add(hoop); }
+        for (const x of [-1.05, 1.05]) { const rail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.3, 2.3), woodM); rail.position.set(x, 1.12, 0); wag.add(rail); } }
+      const bal = this.lBallista = new THREE.Group(); bal.position.set(0, 0.34, -0.2); tur.add(bal);
+      { const stock = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.16, 1.5), woodM); stock.position.z = -0.6; bal.add(stock);
+        for (const x of [-1, 1]) { const arm = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.08, 0.1), woodM); arm.position.set(x * 0.38, 0.06, -1.15); arm.rotation.y = x * 0.35; bal.add(arm); }
+        const str = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.02, 0.02), ropeM); str.position.set(0, 0.06, -0.92); bal.add(str);
+        const blt = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.3, 5).rotateX(-Math.PI / 2), this.std(0x9aa4b2)); blt.position.set(0, 0.12, -1.5); bal.add(blt); }
       // visible tank upgrade hardware: missile pod (MISSILE POD), targeting mast (TARGETING SYSTEM), field emitters (FORCE FIELD)
       const pod = this.lPod = new THREE.Group(); tur.add(pod);
       for (const x of [-1, 1]) { const bx = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.3, 0.62), dark); bx.position.set(x * 0.92, 0.32, 0.05); pod.add(bx);
@@ -515,7 +522,10 @@
       this.lastLv = 1; this.lPop = 9;
       return g;
     }
-    setSkin(item) { this.skin = item; if (this.lPaint) { this.lPaint.color.set(item.color); this.lPaint2.color.set(item.color).offsetHSL(0, 0, -0.12); this.lGold.color.set(item.trim); this.flags.forEach(f => f.children[2].material.color.set(item.color)); } }
+    // era paint: wood → iron → (from the tank era) the player's skin colours
+    eraPaint(era) { if (!this.lPaint) return; const sk = this.skin, P = era <= 2 ? [0x9a6a3c, 0x7a5030, 0x4a4d55] : era <= 4 ? [0x7d8796, 0x5f6878, era === 3 ? 0xb8864a : 0x9aa4b2] : [new C(sk.color).getHex(), new C(sk.color).offsetHSL(0, 0, -0.12).getHex(), new C(sk.trim).getHex()];
+      this.lPaint.color.setHex(P[0]); this.lPaint2.color.setHex(P[1]); this.lGold.color.setHex(P[2]); }
+    setSkin(item) { this.skin = item; if (this.lEra != null && this.lEra < 5) { this.eraPaint(this.lEra); return; } if (this.lPaint) { this.lPaint.color.set(item.color); this.lPaint2.color.set(item.color).offsetHSL(0, 0, -0.12); this.lGold.color.set(item.trim); this.flags.forEach(f => f.children[2].material.color.set(item.color)); } }
 
     drawLauncher(sim, dt) {
       const L = sim.L, g = this.launcher, lv = sim.level, S = this.lStage;
@@ -525,11 +535,13 @@
       const tilt = Math.max(-0.25, Math.min(0.25, -L.vx * 0.03)); this.lBody.rotation.z += (tilt - this.lBody.rotation.z) * Math.min(1, dt * 8);
       this.lBody.position.y = Math.abs(Math.sin(this.time * 9)) * 0.02 + (L.hitT < 0.15 ? 0.08 : 0);
       for (const w of this.wheels) w.rotation.x = -L.wheel * 2.2;
-      const look = KM.tankLook(sim.stats), LV = sim.stats.lv, want = { mid: look.armor >= 1 || lv >= 3, hopper: (LV.cap || 0) + (LV.rate || 0) >= 2 || lv >= 2, core: look.shield >= 1, armor: look.armor >= 2, crown: look.heavy };
+      const era = KM.tankEra(sim.stats, sim.t); if (era !== this.lEra) { this.lEra = era; this.eraPaint(era); if (this.lEraSeen != null && era > this.lEraSeen) { this.burst(L.x, 1.5, L.z, 60, 0xffd23a, 6, 0.7, 0.8, 5); this.ring(L.x, L.z, 0xffd23a, 7, 0.8); } this.lEraSeen = era; }
+      this.lWagon.visible = era <= 2; this.lBallista.visible = era <= 2;
+      const look = KM.tankLook(sim.stats), LV = sim.stats.lv, want = { mid: look.armor >= 1 || lv >= 3, hopper: (LV.cap || 0) + (LV.rate || 0) >= 2 || lv >= 2, core: look.shield >= 1, armor: look.armor >= 2 || era >= 4, crown: look.heavy && era >= 5 };
       for (const k in want) { const gS = S[k]; if (want[k] && !gS.visible) { gS.userData.pop = 0; } gS.visible = want[k];
         if (gS.visible && gS.userData.pop != null && gS.userData.pop < 0.7) { gS.userData.pop += dt; const u = Math.min(1, gS.userData.pop / 0.55), k2 = u < 1 ? (1 - Math.pow(1 - u, 3)) * (1 + Math.sin(u * Math.PI) * 0.35) : 1; gS.scale.setScalar(Math.max(0.01, k2)); gS.position.y = (1 - u) * 1.2; } else if (gS.visible) { gS.scale.setScalar(1); gS.position.y = 0; } }
-      this.crown.visible = look.heavy; this.flags[1].visible = look.heavy; this.lPod.visible = look.missiles; this.lAnt.visible = look.antenna; this.lEmit.visible = look.shield >= 1;
-      const nb = look.barrels, blen = look.blen + (look.cannon ? 0.15 : 0);
+      this.crown.visible = look.heavy && era >= 5; this.flags[1].visible = look.heavy && era >= 5; this.lPod.visible = look.missiles; this.lAnt.visible = look.antenna; this.lEmit.visible = look.shield >= 1;
+      const nb = era <= 2 ? 0 : look.barrels, blen = look.blen + (look.cannon ? 0.15 : 0);   // no gun barrels before the cannon era
       this.barrels.forEach((b, k) => { b.visible = k < nb; b.position.x = nb === 1 ? 0 : nb === 2 ? (k ? 0.3 : -0.3) : (k - 1) * 0.44; b.scale.set(1, 1, blen); b.userData.brake.visible = lv >= 2; b.position.z = L.fire * 0.2 * ((k + Math.floor(this.time * 8)) % nb === 0 ? 1 : 0.3) + (L.gun || 0) * 0.35; });
       { let dy = (L.aim - Math.PI) - this.turret.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); this.turret.rotation.y += dy * Math.min(1, dt * 6); }   // turret tracks the cannon's target
       { const S2 = sim.stats, M = this.shieldM, mt = this.shieldMat; M.visible = S2.shield > 0; if (M.visible) { const f = L.shMax ? L.sh / L.shMax : 0, down = L.shDown > 0;
@@ -577,7 +589,7 @@
         const nb = 1 + Math.floor((lv - 1) / 2);
         for (let k = 0; k < nb; k++) { const bar = new THREE.Group(); bar.position.set(nb === 1 ? 0 : (k - (nb - 1) / 2) * 0.2, 0.2, 0.3); aim.add(bar); g.userData.barrels.push(bar);
           add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.065, 0.7 + lv * 0.08, 10).rotateX(Math.PI / 2), dark), bar).position.z = 0.35; }
-        if (lv >= 3) { const sc = box(0.12, 0.12, 0.34, gold, 0.22 * s, 0.42, 0.05, aim); sc.userData.k = 1; }                       // precision scope (old sniper role)
+        if (lv >= 3) { const sc = box(0.12, 0.12, 0.34, gold, 0.22 * s, 0.42, 0.05, aim); sc.userData.k = 1; }                       // precision scope (L3+ targets the toughest enemy)
       }
       if (t.type === 'artillery') {
         box(0.78 * s, 0.34, 0.8 * s, hull, 0, 0.18, 0, aim); const nb = lv >= 3 ? 2 : 1;
@@ -619,59 +631,25 @@
         else if (!U.batched) { for (const p of U.parts) { p.m.position.y = p.y; p.m.visible = true; } U.wheelN = U.wheels.length; U.wheels = []; this.batchStatic(o); }   // wheels join the static batch (one draw per material)
         const a = U.aim; let dy = t.aim - a.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); a.rotation.y += dy * Math.min(1, dt * (t.type === 'artillery' ? 4 : 10));
         const r = t.recoil; a.position.z = -r * 0.14 * Math.cos(a.rotation.y); a.position.x = -r * 0.14 * Math.sin(a.rotation.y);
-        if (U.arms) U.arms.forEach(ar => { ar.scale.z = 1; ar.position.z = 0.3 - Math.max(0, r - 0.4) * 0.25; ar.rotation.x = r > 0.5 ? -0.3 * (r - 0.5) : -0.15 * Math.sin((1 - r) * Math.PI); });  // reload pull-back
         if (U.barrels) U.barrels.forEach((b, k) => { b.position.z = 0.3 - r * 0.3 * (k === (sim.t * 2 | 0) % U.barrels.length ? 1 : 0.3); });
-        if (U.barrel && t.type === 'sniper') U.barrel.position.z = 0.9 + t.lvl * 0.1 - r * 0.3;
         if (U.spin) { U.spin.rotation.y += dt * (1.5 + t.lvl * 0.3); U.frostMat.emissiveIntensity = 0.6 + Math.sin(this.time * 4) * 0.25 + r * 1.2; U.shards.forEach((sh, k) => { const ang = this.time * 1.8 + k / U.shards.length * Math.PI * 2; sh.position.set(Math.cos(ang) * 0.7, 1.0 + Math.sin(ang * 2) * 0.15, Math.sin(ang) * 0.7); sh.rotation.y = ang; }); }
         if (U.doors) { const op = Math.min(1, r * 2.2); U.doors[0].rotation.y = -op * 1.4; U.doors[1].rotation.y = op * 1.4; }
-        if (U.flag) U.flag.rotation.y = Math.sin(this.time * 3 + s) * 0.18;
-        if (U.aura) { const k = 7 * Math.sqrt(sim.stats.towerRange) * (sim.stats.bannerR || 1) * (1 + Math.sin(this.time * 2) * 0.025); U.aura.scale.setScalar(k); U.auraFill.scale.setScalar(k); U.aura.material.opacity = 0.35 + Math.sin(this.time * 2) * 0.12; }
         // damage state: darken, shake on hit, smoke + sparks when low
         const hf = t.mhp ? t.hp / t.mhp : 1; U.hpBar = U.hpBar || this.makeBar(o); U.hpBar.visible = hf < 0.999; U.hpBar.children[1].scale.x = Math.max(0.001, hf); U.hpBar.children[1].material.color.setHSL(0.33 * hf, 0.9, 0.5);
         if (t.hitT < 0.15) { o.position.x += (Math.random() - 0.5) * 0.12; o.position.z += (Math.random() - 0.5) * 0.12; }
         if (hf < 0.5 && Math.random() < (0.6 - hf) * 0.5) this.emit(t.x + (Math.random() - 0.5), 2 + Math.random(), t.z + (Math.random() - 0.5), 0, 1.2, 0, hf < 0.25 ? 0x3a3a3a : 0x777777, 1.2, 1.1, -0.6);
         if (hf < 0.25 && Math.random() < 0.15) this.emit(t.x, 2.4, t.z, (Math.random() - 0.5) * 2, 2, (Math.random() - 0.5) * 2, 0xff8a2a, 0.35, 0.4, 6);
-        if (U.halo) { U.halo.rotation.z += dt; U.halo.material.opacity = 0.4 + Math.sin(this.time * 3) * 0.2; }
       }
-      // collapsing towers: sink, tilt, debris
+      // knocked-out vehicles being replaced: sink, tilt, debris
       for (let k = this.dyingObjs.length - 1; k >= 0; k--) { const o = this.dyingObjs[k]; const u = (o.userData.dying += dt);
         if (u < dt * 1.5) { this.burst(o.position.x, 1.5, o.position.z, 50, 0xb4b9c2, 6, 0.9, 1.0, 9); this.burst(o.position.x, 1, o.position.z, 20, 0x555555, 3, 1.6, 1.4, -1); this.ring(o.position.x, o.position.z, 0xffa040, 5, 0.6); this.shake = Math.max(this.shake, 0.18); }
         o.position.y = -u * u * 2.5; o.rotation.z = u * 0.6; o.rotation.x = u * 0.3; if (u > 1.4) { this.disposeObj(o); this.dyingObjs.splice(k, 1); } }
-      this.drawWalls(sim, dt);
-      // sniper tracers fade
+      // precision tracers fade
       for (const tr of this.tracers) { if (!tr.visible) continue; tr.userData.t += dt; tr.material.opacity = Math.max(0, 0.9 - tr.userData.t * 4); if (tr.userData.t > 0.25) tr.visible = false; }
     }
     makeBar(parent) {
       const g = new THREE.Group(), bg = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.18), new THREE.MeshBasicMaterial({ color: 0x1a1a22, depthTest: false, transparent: true, opacity: 0.8 })), fg = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.12).translate(0.75, 0, 0), new THREE.MeshBasicMaterial({ color: 0x4cff8a, depthTest: false }));
       fg.position.x = -0.75; fg.position.z = 0.001; g.add(bg); g.add(fg); g.position.y = 4.2; g.rotation.x = -1.0; g.renderOrder = 5; bg.renderOrder = 5; fg.renderOrder = 6; parent.add(g); return g;
-    }
-    buildWall(w) {
-      const g = new THREE.Group(), wood = this.std(0x9a6a3c), dwood = this.std(0x6a4426), iron = this.std(0x7d8796), blue = this.std(0x2f6dff), gold = this.std(0xf4c247), stone = this.std(0xc3c8d0);
-      const parts = [], add = m => { g.add(m); parts.push(m); return m; };
-      if (w.type === 'barricade') {
-        for (const x of [-1.2, 0, 1.2]) { const p = add(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 1.1, 6), dwood)); p.position.set(x, 0.55, 0); }
-        for (const [y, r] of [[0.35, 0.08], [0.75, -0.06]]) { const b = add(new THREE.Mesh(new THREE.BoxGeometry(w.w, 0.16, 0.14), wood)); b.position.set(0, y, 0); b.rotation.z = r; }
-        for (let k = 0; k < 5; k++) { const sp = add(new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.8, 5), wood)); sp.position.set(-1.3 + k * 0.65, 0.5, -0.3); sp.rotation.x = -0.9; const tip = add(new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.16, 5), iron)); tip.position.set(-1.3 + k * 0.65, 0.84, -0.6); tip.rotation.x = -0.9; }
-      } else {
-        const base = add(new THREE.Mesh(new THREE.BoxGeometry(w.w, 0.4, w.d + 0.2), stone)); base.position.y = 0.2;
-        for (let k = 0; k < 3; k++) { const sh = add(new THREE.Mesh(new THREE.BoxGeometry(w.w / 3 - 0.08, 1.15, 0.22), blue)); sh.position.set((k - 1) * w.w / 3, 0.95, -0.1); const tr = add(new THREE.Mesh(new THREE.BoxGeometry(w.w / 3 - 0.02, 0.1, 0.26), gold)); tr.position.set((k - 1) * w.w / 3, 1.55, -0.1); const em = add(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.05, 10).rotateX(Math.PI / 2), gold)); em.position.set((k - 1) * w.w / 3, 1.0, -0.23); for (const x of [-0.45, 0.45]) { const rv = add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 4), iron)); rv.position.set((k - 1) * w.w / 3 + x, 0.55, -0.22); } }
-        for (const x of [-w.w / 2, w.w / 2]) { const pst = add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.7, 0.4), stone)); pst.position.set(x, 0.85, 0); const cap = add(new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.3, 4), gold)); cap.position.set(x, 1.85, 0); }
-      }
-      g.traverse(o => { if (o.isMesh) o.castShadow = true; });
-      g.userData.parts = parts.map(m => ({ m, y: m.position.y, d: Math.random() * 0.2 })); g.userData.build = 0; return g;
-    }
-    drawWalls(sim, dt) {
-      const live = new Set();
-      for (const w of sim.walls) {
-        let g = this.wallObjs.get(w); if (!g) { g = this.buildWall(w); this.scene.add(g); this.wallObjs.set(w, g); this.burst(w.x, 0.8, w.z, 24, w.type === 'wall' ? 0x7cc4ff : 0xd9b27a, 4, 0.5, 0.6); this.ring(w.x, w.z, w.type === 'wall' ? 0x7cc4ff : 0xffd23a, 3.5, 0.5); }
-        live.add(w); g.position.set(w.x, 0, w.z); const U = g.userData; U.build += dt;
-        if (U.build < 1) for (const p of U.parts) { const u = Math.min(1, Math.max(0, (U.build - p.d) / 0.35)); p.m.position.y = p.y - (1 - u * u * (3 - 2 * u)) * 1.6; }
-        else if (!U.batched) { for (const p of U.parts) p.m.position.y = p.y; this.batchStatic(g); }
-        const hf = w.hp / w.mhp; U.hpBar = U.hpBar || this.makeBar(g); U.hpBar.position.y = w.type === 'wall' ? 2.4 : 1.6; U.hpBar.visible = hf < 0.999; U.hpBar.children[1].scale.x = Math.max(0.001, hf); U.hpBar.children[1].material.color.setHSL(0.33 * hf, 0.9, 0.5);
-        if (w.hitT < 0.12) g.position.x += (Math.random() - 0.5) * 0.1;
-        if (w.hitT < 0.05 && Math.random() < 0.5) this.burst(w.x + (Math.random() - 0.5) * w.w, 0.8, w.z - 0.5, 4, w.type === 'wall' ? 0xcfe6ff : 0xd9b27a, 3, 0.35, 0.3);
-      }
-      for (const [w, g] of this.wallObjs) if (!live.has(w)) { this.burst(g.position.x, 0.8, g.position.z, 40, w.type === 'wall' ? 0x7cc4ff : 0x9a6a3c, 6, 0.7, 0.9, 9); this.ring(g.position.x, g.position.z, 0xffa040, 3, 0.5); this.disposeObj(g); this.wallObjs.delete(w); }
     }
     tracer(x0, z0, x1, z1, color) {
       let tr = this.tracers.find(t => !t.visible); if (!tr) return;
@@ -725,6 +703,7 @@
       this.proj[16] = mk(new THREE.BoxGeometry(0.1, 0.1, 0.8), basic(0x6ff4ff));
       this.proj[20] = mk(new THREE.SphereGeometry(0.17, 8, 6).scale(1, 1, 1.8), basic(0xffb347));
       this.proj[21] = mk(merge([part(new THREE.CylinderGeometry(0.07, 0.07, 0.55, 6).rotateX(Math.PI / 2), 0xe8eef6, 0), part(new THREE.ConeGeometry(0.07, 0.16, 6).rotateX(Math.PI / 2), 0xff5a3a, 0, T(0, 0, 0.35)), part(new THREE.BoxGeometry(0.26, 0.02, 0.1), 0x7d8796, 0, T(0, 0, -0.22))]), vc);
+      this.proj[22] = this.proj[11];   // thrown melee spear
       this.projList = [...new Set(this.proj.filter(Boolean))];
     }
     drawProjectiles(sim) {
@@ -785,6 +764,8 @@
     // ---------- events → FX ----------
     onEvent(sim, type, a, b, c, d, e) {
       switch (type) {
+        case 'stomp': this.ring(a, b, 0xffb03a, c, 0.6); this.ring(a, b, 0xff5a3a, c * 0.6, 0.45); this.burst(a, 0.3, b, 30, 0xc8a070, 6, 0.6, 0.6, 2); break;
+        case 'bossTell': { const i = a; this.ring(sim.x[i], sim.z[i], b === 'charge' ? 0xff3a3a : 0xffd23a, sim.sc[i] * 0.9, 0.9); break; }
         case 'kill': { const i = a, d = b, s = sim.sc[i]; this.burst(sim.x[i], 0.6 * s, sim.z[i], d.el ? 30 : 6, ENEMY_COL[d.k], d.el ? 7 : 3.5, d.el ? 0.7 : 0.4, 0.45); if (d.el) this.ring(sim.x[i], sim.z[i], 0xff5a3a, 4); this.emit(sim.x[i], 0.3, sim.z[i], 0, 0.6, 0, 0xffe7a0, 1.4 * s, 0.25, 0); break; }
         case 'shove': {                                                                       // heavy blow: radial dust, shock ring, hot spark, tiny camera kick for big ones
           const x = c, z = d, r = e || 1.3, big = r >= 2 || b >= 4; if (this.shoveT > 0 && !big) break; this.shoveT = 0.06; if (this.fxBudget <= 0 && !big) break; this.fxBudget -= 4;
@@ -813,12 +794,12 @@
         case 'heal': this.burst(sim.x[a], 1, sim.z[a], 6, 0x8aff7a, 2, 0.5, 0.6, -1); break;
         case 'death': this.burst(sim.L.x, 1, sim.L.z, 120, 0xffa040, 9, 1.0, 1.0, 6); this.burst(sim.L.x, 1, sim.L.z, 40, 0x666666, 4, 2, 1.6, -1.5); this.ring(sim.L.x, sim.L.z, 0xff6a2a, 10, 0.9); this.shake = 0.4; this.deathT = 0; break;
         case 'revive': this.ring(sim.L.x, sim.L.z, 0x7cc4ff, 12, 0.9); this.burst(sim.L.x, 1, sim.L.z, 80, 0x7cc4ff, 7, 0.8, 0.8); break;
-        case 'tower': { const t = a; if (t.type === 'sniper' && t.tgt >= 0) this.tracer(t.x, t.z, sim.x[t.tgt], sim.z[t.tgt], 0xe4c2ff); if (t.type === 'barracks') this.burst(t.x - Math.sign(t.x) * 1.2, 0.6, t.z, 10, 0x7cc4ff, 3, 0.4, 0.4); if (t.type === 'arrow' || t.type === 'sniper') this.emit(t.x, 2.2 + t.lvl * 0.3, t.z, 0, 0.5, 0, t.type === 'sniper' ? 0xe4c2ff : 0xfff0c0, 0.9, 0.12, 0); if (t.type === 'cannon') this.burst(t.x + Math.sin(t.aim), 2.2 + t.lvl * 0.3, t.z + Math.cos(t.aim), 8, 0xaaaaaa, 2, 0.8, 0.5, -1); break; }
+        case 'tower': { const t = a, my = 1.2 + t.lvl * 0.05; if (t.type === 'gun' && t.lvl >= 3 && t.tgt >= 0) this.tracer(t.x, t.z, sim.x[t.tgt], sim.z[t.tgt], 0xffe9b0); if (t.type === 'carrier') this.burst(t.x, 0.6, t.z + 1.0, 10, 0x7cc4ff, 3, 0.4, 0.4); if (t.type === 'gun') this.emit(t.x + Math.sin(t.aim) * 1.1, my, t.z + Math.cos(t.aim) * 1.1, 0, 0.5, 0, 0xfff0c0, 0.9, 0.12, 0); if (t.type === 'artillery') this.burst(t.x + Math.sin(t.aim), my + 0.4, t.z + Math.cos(t.aim), 8, 0xaaaaaa, 2, 0.8, 0.5, -1); break; }
       }
     }
 
     // ---------- camera ----------
-    // Key gameplay points that must stay on screen: launcher (with bottom margin), built towers, wall lines,
+    // Key gameplay points that must stay on screen: command vehicle (with bottom margin), support vehicles,
     // lane edges at the launcher's depth, and the incoming threat zone ahead of the front.
     keyPoints(sim) {
       const L = sim.L, P = this.kp || (this.kp = []); P.length = 0;
@@ -827,7 +808,6 @@
       add(-6.8, L.z - 2, 0, 0); add(6.8, L.z - 2, 0, 0);                         // central lane (edges may crop, like the concept)
       if (this.aspect < 0.8) { add(-8.6, sim.front - 3, 0, 0); add(8.6, sim.front - 3, 0, 0); }    // portrait: the full fighting width at the clash (the yaw brings one shoulder in)
       for (const t of sim.towers) if (t) { add(t.x - Math.sign(t.x) * -1.0, t.z, 2.2, 0.02); add(t.x, t.z + 1, 0, 0.02); }
-      for (const w of sim.walls) { add(w.x - w.w / 2, w.z, 0.5, 0.02); add(w.x + w.w / 2, w.z, 0.5, 0.02); }
       add(0, sim.front - 26, 0, 0.0);                                              // threat zone (HUD covers the very top)
       return P;
     }
@@ -880,7 +860,7 @@
       this.drawCrowd(sim, dt); this.drawCoins(sim); this.drawProjectiles(sim); this.stepFx(dt);
       if (this.bloomOn && this.composer) this.composer.render(); else this.R.render(this.scene, this.cam);
     }
-    resetRun() { this.deathT = null; this.camT = null; this.camD = null; this.fitD = null; for (let s = 0; s < 6; s++) if (this.towerObjs[s]) { this.disposeObj(this.towerObjs[s]); this.towerObjs[s] = null; } for (const o of this.dyingObjs) this.disposeObj(o); this.dyingObjs = []; for (const [, g] of this.wallObjs) this.disposeObj(g); this.wallObjs.clear(); this.pl.fill(0); this.ry.fill(Math.PI); this.fogCol.setHex(KM.BIOMES[0].fog); }
+    resetRun() { this.lEra = null; this.lEraSeen = null; this.deathT = null; this.camT = null; this.camD = null; this.fitD = null; for (let s = 0; s < this.towerObjs.length; s++) if (this.towerObjs[s]) { this.disposeObj(this.towerObjs[s]); this.towerObjs[s] = null; } for (const o of this.dyingObjs) this.disposeObj(o); this.dyingObjs = []; this.pl.fill(0); this.ry.fill(Math.PI); this.fogCol.setHex(KM.BIOMES[0].fog); }
   }
   KM.Render = Render;
 })(window);

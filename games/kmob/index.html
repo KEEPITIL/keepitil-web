@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<script>if (/[?&]assets=1(&|$)/.test(location.search)) { window.KM_REDIRECT = 1; location.replace('dev/assets.html' + location.search); }</script>
+<script>window.KMOB_LT = { html: performance.now() };</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0e1a33">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -11,7 +11,7 @@
 <link rel="icon" href="icon.svg">
 <meta property="og:title" content="KMOB · Endless War"><meta property="og:description" content="One finger. One army. One endless war. How long can you survive?"><meta property="og:url" content="https://keepitil.com/games/kmob/">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">   <!-- fonts never block the first paint -->
 <style>
 :root{--ink:#0e1a33;--panel:rgba(14,26,51,.86);--line:rgba(255,255,255,.14);--gold:#ffc83a;--blue:#2f74ff;--red:#e2312c;--green:#2fbf4f;--tx:#fff;--disp:'Lilita One','Arial Rounded MT Bold','Trebuchet MS',system-ui,sans-serif}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
@@ -28,9 +28,16 @@ canvas#c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
 #hud .sp{flex:1}
 #pauseBtn{pointer-events:auto;width:44px;height:44px;border-radius:12px;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.25)}
 #postureBtn{position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom) + 18px);z-index:6;pointer-events:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:92px;height:58px;padding:0 12px;border-radius:16px;font-family:var(--disp);font-size:22px;letter-spacing:.04em;color:#fff;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;border:2px solid rgba(255,255,255,.65);box-shadow:0 5px 0 rgba(0,0,0,.3);background:linear-gradient(#ff5a3a,#d8281c);transition:transform .08s}
+#prodBar{position:fixed;left:10px;bottom:calc(env(safe-area-inset-bottom) + 18px);z-index:6;display:flex;flex-direction:column;gap:5px;pointer-events:auto}
+#prodBar .pb{width:66px;height:38px;border-radius:11px;background:var(--panel);border:1px solid var(--line);color:#fff;font-family:var(--disp);font-size:13px;letter-spacing:.03em;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;box-shadow:0 3px 0 rgba(0,0,0,.25);user-select:none;-webkit-user-select:none;touch-action:manipulation;cursor:pointer}
+#prodBar .pb small{font-family:inherit;font-size:8px;font-weight:900;opacity:.8;margin-top:2px;letter-spacing:.06em}
+#prodBar .pb.on{background:linear-gradient(#ffd23a,#f2a10c);color:#2a1a00;border-color:#fff3b0}
+#prodBar .pb.lock{opacity:.4}
 #postureBtn.def{background:linear-gradient(#4f8dff,#2353c7)}
 #postureBtn:active{transform:translateY(3px)}
 #postureBtn small{font-family:inherit;font-size:9px;font-weight:900;opacity:.85;letter-spacing:.1em;margin-top:2px}
+#speedBtn{pointer-events:auto;min-width:44px;height:44px;padding:0 8px;border-radius:12px;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.25);font-family:var(--disp);font-size:18px;color:#fff;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#speedBtn.fast{background:linear-gradient(#ffb02e,#e07a12);border-color:#ffd27a}
 #pauseBtn i{display:inline-block;width:5px;height:16px;background:#fff;margin:0 2px;border-radius:2px}
 #hpbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 64px);width:min(220px,46vw);height:8px;border-radius:6px;background:rgba(0,0,0,.35);overflow:hidden;z-index:5;pointer-events:none;border:1px solid rgba(255,255,255,.2)}
 #hpbar b{display:block;height:100%;width:100%;background:linear-gradient(90deg,#4cff8a,#2fbf4f);transition:width .15s}
@@ -111,8 +118,10 @@ canvas#c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
   <div class="pill"><svg viewBox="0 0 24 24" id="armyIco"></svg><div><div class="v" id="hArmy">0</div><div class="l">ARMY</div></div></div>
   <div class="pill"><svg viewBox="0 0 24 24" id="coinIco"></svg><div><div class="v" id="hCoins">0</div><div class="l" id="hNext">NEXT 10</div></div></div>
   <div class="sp"></div>
+  <div id="speedBtn" role="button" aria-label="Game speed">1×</div>
   <div id="pauseBtn" aria-label="Pause"><span><i></i><i></i></span></div>
 </div>
+<div id="prodBar" class="hidden" aria-label="Choose what the command vehicle deploys"></div>
 <div id="postureBtn" class="hidden" role="button" aria-label="Toggle attack or defend"><span id="postureTxt">ATTACK</span><small id="postureSub">TAP TO DEFEND</small></div>
 <div id="hpbar" class="hidden"><b id="hpFill"></b></div>
 <div id="offer"></div>
@@ -157,16 +166,14 @@ canvas#c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
   <button class="btn sec" id="setClose" style="margin-top:12px">BACK</button>
 </div></div>
 
-<div id="fps" class="hidden"></div>
-<script src="vendor/three.min.js"></script>
-<script src="js/core.js"></script>
-<script src="js/sim.js"></script>
-<script src="js/anim.js"></script>
-<script src="js/kit.js"></script>
-<script src="js/render.js"></script>
-<script src="vendor/loaders/GLTFLoader.js"></script>
-<script src="js/assets.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/main.js"></script>
+<script defer src="vendor/three.min.js"></script>
+<script defer src="js/core.js"></script>
+<script defer src="js/sim.js"></script>
+<script defer src="js/anim.js"></script>
+<script defer src="js/kit.js"></script>
+<script defer src="js/render.js"></script>
+<script defer src="js/assets.js"></script>
+<script defer src="js/audio.js"></script>
+<script defer src="js/main.js"></script>
 </body>
 </html>

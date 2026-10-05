@@ -8,7 +8,7 @@
   const KM = G.KM;
   // Near-LOD budgets (triangles). A whole standard near unit ≈ legs×2 + torso + head + arms×2 + weapon ≤ ~3,000.
   KM.PART_BUDGET = { leg: 450, torso: 900, head: 1100, arm: 400, weapon: 500, shield: 400, other: 600, hero: 6000 };
-  const kindOf = k => /^l[A-Z]/.test(k) ? 'leg' : /^t[A-Z]/.test(k) ? 'torso' : /^h[A-Z]/.test(k) ? 'head' : /^a[A-Z]/.test(k) ? 'arm' : k === 'shield' ? 'shield' : ['sword', 'swordGold', 'dagger', 'axe', 'bow', 'staff', 'bomb', 'claws', 'rock', 'spear', 'xbow', 'musket', 'rifle', 'pulse', 'sack'].includes(k) ? 'weapon' : k === 'cannon' ? 'hero' : 'other';
+  const kindOf = k => /^l[A-Z]/.test(k) ? 'leg' : /^t[A-Z]/.test(k) ? 'torso' : /^h[A-Z]/.test(k) ? 'head' : /^a[A-Z]/.test(k) ? 'arm' : k === 'shield' ? 'shield' : ['sword', 'swordGold', 'dagger', 'axe', 'bow', 'staff', 'bomb', 'claws', 'rock', 'spear', 'xbow', 'musket', 'rifle', 'pulse', 'sack', 'medkit', 'medkit2', 'medkit3'].includes(k) ? 'weapon' : k === 'cannon' ? 'hero' : 'other';
   KM.budgetFor = k => KM.PART_BUDGET[kindOf(k)];
   KM.TEX_MAX = 2048;   // largest atlas edge accepted on mobile (bigger images are downscaled)
   // authored clip name → skeleton clip it replaces (additive hits map onto the reaction layers)
@@ -149,13 +149,19 @@
       new THREE.GLTFLoader().load(base + file, gltf => { try { res(KM.applyCharacterScene(render, gltf.scene, file, gltf.animations)); } catch (e) { res(emptyReport(file, { error: e.message })); } },
         undefined, err => res(emptyReport(file, { error: err && err.message ? err.message : (err && err.target && err.target.status ? 'HTTP ' + err.target.status : 'load failed (missing file or network error)') })));
     });
-    return fetch(base + 'manifest.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : { characters: null }).catch(() => ({ characters: null }))
+    const chain = fetch(base + 'manifest.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : { characters: null }).catch(() => ({ characters: null }))
       .then(man => {
         const raw = !man || !man.characters ? [] : Array.isArray(man.characters) ? man.characters : [man.characters];
         const list = raw.filter(x => typeof x === 'string' && /^[\w\-./]+\.glb$/i.test(x) && !x.includes('..'));
         if (!list.length) return done(emptyReport(null, { procedural: true }));
+        // the GLTF loader is fetched only when production characters actually exist (keeps the first load small)
+        if (!THREE.GLTFLoader && KM.loadScripts) return KM.loadScripts([(base.replace(/assets\/?$/, '') || '') + 'vendor/loaders/GLTFLoader.js']).catch(() => null).then(() => go(list));
+        return go(list);
+      });
+    const go = list => {
         return list.reduce((pr, f) => pr.then(acc => one(f).then(r => mergeReports(acc, r))), Promise.resolve(emptyReport(list.join(','), { errors: [], textures: 0, texMB: 0 })))
           .then(acc => { if (acc.errors.length && !acc.replaced.length) acc.error = acc.errors.map(e => e.error).join('; '); return done(acc); });
-      });
+    };
+    return chain;
   };
 })(window);

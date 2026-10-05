@@ -375,7 +375,8 @@
       this.deployAcc += S.rate * dt * 1.25;   // cost points: a plain soldier costs 1, the AUTO mix averages ~1.25, so bodies/sec matches the pre-choice army
       if (this.deployAcc > 6) this.deployAcc = 6;
       for (let guard = 0; guard < 4; guard++) {
-        if (this.count[0] >= S.cap) { this.deployAcc = Math.min(this.deployAcc, 1); break; }
+        if (this.count[0] >= S.cap) { this.deployAcc = Math.min(this.deployAcc, 1); this.atCap = 1; break; }   // full army: production waits, one unit banked; losses restart it
+        this.atCap = 0;
         const key = this.prodNext || (this.prodNext = this.chooseProd()), P = KM.PROD[key];
         if (this.deployAcc < P.cost) break;
         this.deployAcc -= P.cost; this.spawnCounter++; this.prodNext = null;
@@ -582,7 +583,7 @@
           const dx = tx - this.x[i], dz = tz - this.z[i], d = Math.sqrt(dx * dx + dz * dz) || 0.001;
           const reach = this.rng_[i] + this.rad[i] + (so ? 1.1 : tg === -2 ? 1.1 : this.rad[tg]);
           this.yaw[i] = Math.atan2(dx, dz);
-          if (this.role[i] === 3 && !so && tg >= 0 && d < this.rng_[i] * 0.5) { dvx = -dx / d * sp * 0.75; dvz = -dz / d * sp * 0.75; }   // ranged: back off to preferred range
+          if (this.role[i] === 3 && !so && tg >= 0 && d < this.rng_[i] * 0.5) { if (this.z[i] < L.z - 2.4) { dvx = -dx / d * sp * 0.75; dvz = -dz / d * sp * 0.75; } else { dvx = (this.x[i] >= tx ? 1 : -1) * sp * 0.6; dvz = 0; } }   // ranged: back off to preferred range, but never past the tank: at the rear boundary sidestep and fight at emergency range
           else if (d > reach) {
             dvx = dx / d * sp; dvz = dz / d * sp;
             // fan out toward open combat positions instead of queueing behind the unit in front
@@ -601,7 +602,7 @@
             const ox = G[0] - this.x[i], oz = G[1] - this.z[i], od = Math.sqrt(ox * ox + oz * oz) || 1e-3, ak = Math.min(1, od / 2.2);
             if (od > 0.3) { dvx = ox / od * sp * 1.15 * ak; dvz = oz / od * sp * 1.15 * ak; } this.yaw[i] = od > 1.2 ? Math.atan2(dvx, dvz) : Math.PI;
           } else if (team === 0) {
-            const hold = front - W.HOLD_DZ + (this.role[i] === 3 ? 5 : 0) - ((i * 0.3819) % 1) * 7;   // ranged march behind the melee
+            const hold = this.role[i] === 3 ? Math.min(L.z - 2.4, (this.armyZ != null ? this.armyZ : front - W.HOLD_DZ) + KM.rtech(S).gap + ((i * 0.3819) % 1) * 2) : front - W.HOLD_DZ - ((i * 0.3819) % 1) * 7;   // ATTACK: the ranged line follows the moving melee mass at its weapon's gap
             if (L.z - this.z[i] > COH) dvz = sp * 0.7; else if (this.z[i] > hold) dvz = -sp; else if (this.role[i] === 3 && this.z[i] < hold - 2) dvz = sp * 0.5;
             dvx = (L.x * 0.15 - this.x[i]) * 0.04 * sp; this.yaw[i] = dvz > 0 ? 0 : Math.PI; }
           else { dvz = sp * (0.85 + ((i * 0.7548) % 1) * 0.3); dvx = Math.sin(this.t * 0.35 + i * 1.7) * 0.35 * sp - this.x[i] * 0.012 * sp; this.yaw[i] = Math.atan2(dvx, dvz); }   // uneven advance, gentle wander, centre bulge
@@ -613,6 +614,7 @@
         // separation (crowd pressure) — same + opposite team
         this.separate(i, dt);
         this.x[i] += this.vx[i] * dt; this.z[i] += this.vz[i] * dt;
+        if (!team && this.role[i] >= 3 && this.z[i] > L.z + 2) { this.z[i] = L.z + 2; if (this.vz[i] > 0) this.vz[i] = 0; }   // rear boundary: ranged/support never drift off behind the command group
         // flow around tower footprints (soft circular obstacles)
         for (let s = 0; s < this.towers.length; s++) { const t = this.towers[s]; if (!t) continue; const ox = this.x[i] - t.x, oz = this.z[i] - t.z, rr = 0.95 + this.rad[i], dd = ox * ox + oz * oz; if (dd < rr * rr && dd > 1e-6) { const d = Math.sqrt(dd), push = (rr - d); this.x[i] += ox / d * push; this.z[i] += oz / d * push * 0.6; } }
         if (this.x[i] < -W.LANE) this.x[i] = -W.LANE; else if (this.x[i] > W.LANE) this.x[i] = W.LANE;
@@ -651,7 +653,7 @@
       for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i] && this.role[i] < 3 && this.kind[i] !== 34) list.push(i);
       const M = list.length; if (!M) { F.M = 0; return; }
       const wdt = Math.min(W.LANE - 0.6, 2.6 + Math.sqrt(M) * 0.42), C = Math.max(4, Math.min(22, Math.round(wdt * 2 / 0.85))), R = Math.ceil(M / C);
-      F.wdt = wdt; F.frontZ = L.z - 4.6 - R * 0.95; F.cx = L.x * 0.8;
+      F.wdt = wdt; F.frontZ = L.z - 3.4 - KM.rtech(this.stats).gap - R * 0.95; F.cx = L.x * 0.8;   // built back-to-front: tank · medics · ranged line · era safety gap · melee ranks
       // flank pressure (enemies just ahead of the line, 8 lateral bins)
       F.press.fill(0); for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && this.z[i] > F.frontZ - 9 && this.z[i] < F.frontZ + 3) { const b = Math.max(0, Math.min(7, Math.floor((this.x[i] - F.cx + wdt) / (2 * wdt) * 8))); F.press[b]++; }
       let pb = 0; for (let b = 1; b < 8; b++) if (F.press[b] > F.press[pb]) pb = b; F.pressX = F.cx - wdt + (pb + 0.5) / 8 * 2 * wdt; F.pressN = F.press[pb];
@@ -675,7 +677,7 @@
       if (!F || !F.M) { out[0] = L.x; out[1] = L.z - 6; return; }
       const r3 = this.role[i] === 3, kind = this.kind[i];
       if (kind === 34) { out[0] = F.pressN > 2 ? F.pressX : F.cx + h * F.wdt * 0.6; out[1] = F.frontZ + 0.9; return; }     // ELITE anchors where pressure is greatest
-      if (r3) { out[0] = Math.max(-W.LANE + 0.5, Math.min(W.LANE - 0.5, F.cx + h * F.wdt)); out[1] = L.z - 3.5 - h2 * 1.1; return; }
+      if (r3) { out[0] = Math.max(-W.LANE + 0.5, Math.min(W.LANE - 0.5, F.cx + h * F.wdt)); out[1] = L.z - 3.4 - h2 * 1.2; return; }   // ranged line: behind the last melee rank by the era's gap, in front of medics and tank
       const r = this.frank[i] - 1, c = this.fcol[i]; if (r < 0 || r >= F.R) { out[0] = F.cx + h * F.wdt; out[1] = F.frontZ + F.R * 0.95; return; }
       let x = F.cx - F.wdt + (c + 0.5) / F.C * 2 * F.wdt; if (r >= 2 && F.pressN > 2) x += Math.max(-1.6, Math.min(1.6, (F.pressX - x) * 0.35));   // reserves lean toward the threatened flank
       out[0] = Math.max(-W.LANE + 0.5, Math.min(W.LANE - 0.5, x)); out[1] = F.frontZ + r * 0.95;
@@ -688,7 +690,7 @@
     // Medic: triage → move to a safe spot behind the patient → heal on a cadence. Never resurrects; backs off from threats.
     medic(i, dt, S) {
       const L = this.L, x = this.x[i], z = this.z[i], sp = this.spd[i] * (S.speed / 4.3), mt = KM.medTech(S), R = 16 + mt * 1.5;
-      let gx = L.x + ((i * 0.618) % 1 - 0.5) * 6, gz = Math.min(L.z - 3.2, (this.armyZ != null ? this.armyZ : L.z - 10) + 4);   // stay behind the fighting mass
+      let gx = L.x + ((i * 0.618) % 1 - 0.5) * 6, gz = this.posture === 1 ? L.z - 1.9 : Math.min(L.z - 1.8, (this.armyZ != null ? this.armyZ : L.z - 10) + KM.rtech(S).gap + 2.2);   // support line: just behind the ranged line, ahead of the tank
       const threat = this.nearestXZ(x, z, 1, 3.4) >= 0;
       this.think[i] -= dt;
       if (this.think[i] <= 0) { this.think[i] = 0.4 + (i % 4) * 0.05; let best = -1, bs = 0; const c0 = this.cellX(x - R), c1 = this.cellX(x + R), r0 = this.cellZ(z - R), r1 = this.cellZ(z + R);
@@ -800,7 +802,7 @@
         const T = KM.TOWERS[t.type], lv = t.lvl;
         t.cd -= dt * S.towerRate * (1 + 0.15 * (lv - 1));
         if (t.type === 'carrier') {
-          if (t.cd <= 0) { t.cd = T.cd / (1 + 0.25 * (lv - 1)) / S.carrierRate; if (this.count[0] < S.cap + 6 * lv) for (let k = 0; k < 1 + Math.floor(lv / 2); k++) { const j = this.spawn(0, KM.FRIEND[0], t.x - Math.sign(t.x) * 1.2, t.z - 0.5, { hp: S.hp, dmg: S.dmg, spd: S.speed / 4, birth: 0.0001 }); if (j >= 0) { this.vx[j] = -Math.sign(t.x) * 2; this.emit('deploy', j); } } t.recoil = 1; this.emit('tower', t); }
+          if (t.cd <= 0) { t.cd = T.cd / (1 + 0.25 * (lv - 1)) / S.carrierRate; for (let k = 0; k < 1 + Math.floor(lv / 2) && this.count[0] < S.cap; k++) {   /* carriers share the 300 cap */ const j = this.spawn(0, KM.FRIEND[0], t.x - Math.sign(t.x) * 1.2, t.z - 0.5, { hp: S.hp, dmg: S.dmg, spd: S.speed / 4, birth: 0.0001 }); if (j >= 0) { this.vx[j] = -Math.sign(t.x) * 2; this.emit('deploy', j); } } t.recoil = 1; this.emit('tower', t); }
           continue;
         }
         if (t.cd > 0) continue;

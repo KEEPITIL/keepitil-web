@@ -70,7 +70,7 @@
       const sun = this.sun = new THREE.DirectionalLight(0xffd9a4, 0.9); sun.position.set(10, 26, 12); sun.castShadow = true;
       sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -26, right: 26, top: 34, bottom: -34, near: 1, far: 90 }); sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.03;
       S.add(sun); S.add(sun.target);
-      this.ry = new Float32Array(KM.Sim.CAP); this.shake = 0; this.time = 0; this.skin = KM.SHOP[3];
+      this.ry = new Float32Array(KM.Sim.CAP); this.shake = 0; this.time = 0; this.skin = KM.SKIN_BY.skin_royal; this.classTint = {};
       this.m = new M4(); this.m2 = new M4(); this.q = new Q(); this.e = new E(0, 0, 0, 'YXZ'); this.v = new V3(); this.s3 = new V3(); this.col = new C();
       this.col2 = new C(); this.fxBudget = 60; this.farKey = {}; this.lodNear = this.opts.lowPower ? 80 : 120; this.lodMid = this.opts.lowPower ? 300 : 450;
       this.initCrowd(); this.initWorld(); this.initFx(); this.initProjectiles(); this.initCoins();
@@ -162,7 +162,7 @@
 
     drawCrowd(sim, dt) {
       const A = KM.ANIM, I = A.I, P = A.P, M = this.mats, q = this.q, e = this.e, pos = this.v, sc = this.s3, col = this.col, col2 = this.col2;
-      const S = sim.stats, armorLv = S.lv.armor || 0, dmgLv = S.lv.dmg || 0, hpLv = S.lv.hp || 0, rtW = KM.rtech(S).wpn, colCap = S.colCap, medW = ['medkit', 'medkit2', 'medkit3', 'medkit3'][KM.medTech(S)];
+      const S = sim.stats, armorLv = S.lv.armor || 0, dmgLv = S.lv.dmg || 0, hpLv = S.lv.hp || 0, rtW = KM.rtech(S).wpn, colCap = S.colCap;
       for (const k in this.pn) this.pn[k] = 0;
       let nb = 0, nr = 0; this.frameNo++;
       const blue = TEAM[0], camZ = this.cam.position.z, camX = this.cam.position.x, crowd = sim.count[0] + sim.count[1], flipCam = !!(KM.camFocus && KM.camFocus.flip);
@@ -182,7 +182,7 @@
         if (st === 2) { const d = sim.die[i]; y -= Math.max(0, d - 0.45) * 1.1; s *= 1 - Math.max(0, d - 0.5) / 0.22; if (s <= 0.02) continue; }
         const b = sim.birth[i]; if (b > 0) { const u = b / 0.4; y += Math.sin(u * Math.PI) * 1.25; s *= 0.55 + 0.45 * u; }
         // colour: faction, era, flash, frost
-        col.setHex(team ? ENEMY_COL[def.k] : def.col ? 0xf2b632 : def.med ? 0xeef3ff : blue.getHex());
+        col.setHex(team ? ENEMY_COL[def.k] : this.classTint[def.id] != null ? this.classTint[def.id] : def.col ? 0xf2b632 : def.med ? 0xb59cff : def.big ? 0x2a5fd8 : blue.getHex());   // Armory skins tint their class
         if (team === 1 && sim.era[i]) col.multiply(col2.setHex(ERA_TINT[sim.era[i]]));
         if (team === 0 && def.k === 'knightF') col.lerp(col2.setHex(0x6aa0ff), 0.35);
         if (sim.slow[i] > 0) col.lerp(col2.setHex(0x9fe8ff), 0.45);
@@ -225,7 +225,7 @@
           rot(M[5], rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armRP], p[o + I.armRY], p[o + I.armRR]); M[5].premultiply(M[2]); this.putP(ARM, M[5], col);
           let wk = R.wpn; if (wk === 'sword' && team === 0 && dmgLv >= 5) wk = 'swordGold'; if (team === 0 && key === 'archerF') wk = rtW;   // ranged troops carry their weapon era
           if (team === 0 && key === 'archerF' && sim.em[i]) wk = 'sword';                              // ranged: emergency sword when an enemy reaches them
-          else if (team === 0 && key === 'soldier' && (sim.posture === 1 ? sim.frank[i] === 2 || sim.frank[i] === 3 : sim.spear[i])) wk = 'spear';   // DEFEND: ranks 2–3 hold pikes; ATTACK: spear until thrown else if (key === 'medic') wk = medW;   // melee: spear until thrown, then sword
+          else if (team === 0 && key === 'soldier' && (sim.posture === 1 ? sim.frank[i] === 2 || sim.frank[i] === 3 : sim.spear[i])) wk = 'spear';   // DEFEND: ranks 2–3 hold pikes; ATTACK: spear until thrown   // melee: spear until thrown, then sword
           const ws = team === 0 && wk.startsWith('sword') ? 1 + Math.min(8, dmgLv) * 0.06 : wk === 'sack' ? 0.55 + Math.min(1, sim.carry[i] / colCap) * 0.9 : 1;
           if (wk === 'bow') { M[6].makeTranslation(0, rig.fist, 0.02); M[6].premultiply(M[4]); }        // bow in the off hand
           else { M[6].makeScale(ws, ws, ws); M[6].setPosition(0, rig.fist, 0.03); M[6].premultiply(M[5]); }
@@ -793,6 +793,8 @@
         case 'lhit': this.burst(sim.L.x, 1, sim.L.z, 10, 0xff4a3a, 4, 0.5, 0.35); this.shake = Math.max(this.shake, 0.12); break;
         case 'upgrade': this.cheerT = 0.85; this.burst(sim.L.x, 1, sim.L.z, 60, 0xffd23a, 6, 0.6, 0.7, 5); this.ring(sim.L.x, sim.L.z, 0xffd23a, 6, 0.7); this.ring(sim.L.x, sim.L.z, 0x7cc4ff, 4, 0.5); break;
         case 'heal': this.burst(sim.x[a], 1, sim.z[a], 6, 0x8aff7a, 2, 0.5, 0.6, -1); break;
+        case 'beam': this.beam(a, b); break;
+        case 'healBurst': this.ring(a, b, 0x8aff7a, c, 0.7); this.burst(a, 1, b, 14, 0xb9ffc8, 3, 0.6, 0.7, -1); break;
         case 'death': this.burst(sim.L.x, 1, sim.L.z, 120, 0xffa040, 9, 1.0, 1.0, 6); this.burst(sim.L.x, 1, sim.L.z, 40, 0x666666, 4, 2, 1.6, -1.5); this.ring(sim.L.x, sim.L.z, 0xff6a2a, 10, 0.9); this.shake = 0.4; this.deathT = 0; break;
         case 'revive': this.ring(sim.L.x, sim.L.z, 0x7cc4ff, 12, 0.9); this.burst(sim.L.x, 1, sim.L.z, 80, 0x7cc4ff, 7, 0.8, 0.8); break;
         case 'tower': { const t = a, my = 1.2 + t.lvl * 0.05; if (t.type === 'gun' && t.lvl >= 3 && t.tgt >= 0) this.tracer(t.x, t.z, sim.x[t.tgt], sim.z[t.tgt], 0xffe9b0); if (t.type === 'carrier') this.burst(t.x, 0.6, t.z + 1.0, 10, 0x7cc4ff, 3, 0.4, 0.4); if (t.type === 'gun') this.emit(t.x + Math.sin(t.aim) * 1.1, my, t.z + Math.cos(t.aim) * 1.1, 0, 0.5, 0, 0xfff0c0, 0.9, 0.12, 0); if (t.type === 'artillery') this.burst(t.x + Math.sin(t.aim), my + 0.4, t.z + Math.cos(t.aim), 8, 0xaaaaaa, 2, 0.8, 0.5, -1); break; }
@@ -850,16 +852,26 @@
     // NDC position of a world point under the live camera (used by the framing tests)
     toScreen(x, y, z) { this.v.set(x, y, z).project(this.cam); return { x: this.v.x, y: this.v.y }; }
 
+    // MIZARD healing beams: one pooled line-segment draw (staff tip → patient)
+    beam(a, b) { const B = this.beams || (this.beams = []); if (B.length < 96) B.push({ a, b, t: 0.28 }); }
+    drawBeams(sim, dt) {
+      if (!this.beamObj) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(96 * 6), 3)); g.setDrawRange(0, 0);
+        this.beamObj = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x9dffb0, transparent: true, opacity: 0.85, depthWrite: false })); this.beamObj.frustumCulled = false; this.scene.add(this.beamObj); }
+      const B = this.beams || [], P = this.beamObj.geometry.attributes.position.array; let n = 0;
+      for (let k = B.length - 1; k >= 0; k--) { const e = B[k]; e.t -= dt; if (e.t <= 0 || sim.st[e.a] !== 1 || sim.st[e.b] !== 1) { B.splice(k, 1); continue; }
+        const o = n++ * 6; P[o] = sim.x[e.a]; P[o + 1] = 1.25 * sim.sc[e.a]; P[o + 2] = sim.z[e.a]; P[o + 3] = sim.x[e.b]; P[o + 4] = 0.8 * sim.sc[e.b]; P[o + 5] = sim.z[e.b]; }
+      this.beamObj.geometry.setDrawRange(0, n * 2); this.beamObj.geometry.attributes.position.needsUpdate = true; this.beamObj.visible = n > 0;
+    }
     frame(sim, dt) {
       this.time += dt; if (this.deathT != null) this.deathT += dt; this.cheerT = Math.max(0, (this.cheerT || 0) - dt);
       this.fxBudget = Math.max(3, Math.round(60 * (this.fxScale || 1) * (1 - Math.min(0.93, (sim.count[0] + sim.count[1]) / 2200))));
       this.loadK = Math.max(0.35, Math.min(1, (this.fxScale || 1) * (1 - Math.max(0, sim.count[0] + sim.count[1] - 300) / 1800)));
       this.simT = sim.t; this.lzCache = sim.L.z; this.streamWorld(sim.front);
       this.drawCamera(sim, dt); this.drawLauncher(sim, dt); this.drawTowers(sim, dt);
-      this.drawCrowd(sim, dt); this.drawCoins(sim); this.drawProjectiles(sim); this.stepFx(dt);
+      this.drawCrowd(sim, dt); this.drawCoins(sim); this.drawProjectiles(sim); this.drawBeams(sim, dt); this.stepFx(dt);
       if (this.bloomOn && this.composer) this.composer.render(); else this.R.render(this.scene, this.cam);
     }
-    resetRun() { this.lEra = null; this.lEraSeen = null; this.deathT = null; this.camT = null; this.camD = null; this.fitD = null; for (let s = 0; s < this.towerObjs.length; s++) if (this.towerObjs[s]) { this.disposeObj(this.towerObjs[s]); this.towerObjs[s] = null; } for (const o of this.dyingObjs) this.disposeObj(o); this.dyingObjs = []; this.pl.fill(0); this.ry.fill(Math.PI); this.fogCol.setHex(KM.BIOMES[0].fog); }
+    resetRun() { this.beams = []; this.lEra = null; this.lEraSeen = null; this.deathT = null; this.camT = null; this.camD = null; this.fitD = null; for (let s = 0; s < this.towerObjs.length; s++) if (this.towerObjs[s]) { this.disposeObj(this.towerObjs[s]); this.towerObjs[s] = null; } for (const o of this.dyingObjs) this.disposeObj(o); this.dyingObjs = []; this.pl.fill(0); this.ry.fill(Math.PI); this.fogCol.setHex(KM.BIOMES[0].fog); }
   }
   KM.Render = Render;
 })(window);

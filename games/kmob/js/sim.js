@@ -38,7 +38,7 @@
       this.L = { x: 0, z: 2, tx: 0, hp: this.stats.maxHp, hitT: 9, inv: 0, vx: 0, fire: 0, wheel: 0, cd: 0.6, mcd: 2, aim: Math.PI, gun: 0, sh: 0, shMax: 0, shDown: 0, shHit: 9 };
       this.posture = 0; this.postureT = 0; this.src = 0; this.dmgBy = [0, 0, 0, 0]; this.shAbsorbed = 0; this.colCoins = 0; this.colLost = 0; this.nCol = 0; this.colT = 0; this.colList = []; this.prod = 'melee'; this.auto = true; this.sector = null; this.sectorT = 0; this.seenSector = {}; this.nextMini = KM.TUNE.miniFrom * 60; this.bossN = 0; this.nKind = new Int32Array(64); this.prodNext = null; this.healed = 0;
       this.deployAcc = 0; this.budget = 3; this.overflow = 0; this.formT = 0.6; this.nextPush = KM.TUNE.pushEvery; this.nextBoss = KM.TUNE.bossFrom * 60; this.warn = null;
-      this.coins = KM.START_BANK; this.coinsTotal = 0; this.kills = 0; this.peakArmy = 0; this.upgrades = 0; this.ups = null; this.upT = 0; this.groups = []; this.breaches = 0; this.rowLoss = [0, 0, 0, 0]; this.fillN = 0; this.fillSum = 0;
+      this.coins = KM.START_BANK; this.coinsTotal = 0; this.kills = 0; this.peakArmy = 0; this.upgrades = 0; this.ups = null; this.upT = 0; this.groups = []; this.nBoss = 0; this.bossI = -1; this.charge = { melee: 0, range: 0, elite: 0 }; this.breaches = 0; this.rowLoss = [0, 0, 0, 0]; this.fillN = 0; this.fillSum = 0;
       this.towers = [null, null, null, null];
       this.spawnCounter = 0; this.lastHit = 99; this.danger = 0; this.killsByKind = {};
       this.debugLog = []; this.diff = KM.difficulty(0);
@@ -57,6 +57,8 @@
     togglePosture() { this.setPosture(this.posture ? 0 : 1); }
     // ---------- production: what the command vehicle deploys ----------
     setProd(m) { if (!KM.PROD[m] || m === this.prod) return; this.prod = m; this.emit('prod', m); }   // one selected type; AUTO never picks another
+    typeOf(i) { const k = this.kind[i]; return k === 33 ? 'range' : k === 34 ? 'elite' : 'melee'; }
+    setCharge(type, on) { if (!(type in this.charge)) return; on = on ? 1 : 0; if (this.charge[type] === on) return; this.charge[type] = on; this.emit('charge', type, on); }   // DEFEND: one soldier type attacks, the rest hold
     setAuto(on) { on = !!on; if (on === this.auto) return; this.auto = on; this.emit('auto', on); }
     prodCost() { return KM.PROD[this.prod].cost; }
     canDeploy() { return this.alive && this.count[0] < this.stats.cap && this.coins >= this.prodCost(); }
@@ -131,7 +133,7 @@
       const rr = r(); this.roleT[i] = 0;
       this.role[i] = def.col ? 4 : def.med ? 5 : def.rng > 2 || def.he ? 3 : team ? (def.k === 'brute' || def.k === 'warlord' ? 2 : def.k === 'runner' ? (rr < 0.6 ? 2 : 1) : def.k === 'knight' ? (rr < 0.4 ? 2 : 0) : def.k === 'imp' ? (rr < 0.3 ? 2 : 1) : rr < 0.35 ? 1 : 0)
         : (def.k === 'knightF' ? 2 : rr < 0.12 ? 2 : rr < 0.47 ? 1 : 0);
-      this.count[team]++;
+      this.count[team]++; if (team === 1 && def.boss) { this.nBoss++; this.bossI = i; if (this.nBoss === 1) this.emit('bossFight', 1); }
       return i;
     }
     free(i) { this.st[i] = DEAD; this.freeL[this.nfree++] = i; }
@@ -142,7 +144,7 @@
       this.st[i] = DYING; this.die[i] = 0; this.count[this.team[i]]--; this.dying++; if (!this.team[i]) this.nKind[this.kind[i] - 32]--;
       if (!silent) this.openSpace(i);
       if (this.team[i] === 1) {
-        const d = KM.ENEMY[this.kind[i]]; if (this.grp[i] >= 0) { const g = this.groups[this.grp[i]]; if (g) g.alive--; this.grp[i] = -1; }
+        const d = KM.ENEMY[this.kind[i]]; if (d.boss && --this.nBoss <= 0) { this.nBoss = 0; this.bossI = -1; this.emit('bossFight', 0); } if (this.grp[i] >= 0) { const g = this.groups[this.grp[i]]; if (g) g.alive--; this.grp[i] = -1; }
         if (!silent) {
           this.kills++; this.killsByKind[d.k] = (this.killsByKind[d.k] || 0) + 1;
           let val = d.coin * this.diff.coinMul * KM.COIN_SCALE;
@@ -343,7 +345,7 @@
     // ---------- main step ----------
     step(dt) {
       if (!this.alive) { this.stepDying(dt); this.stepFx(dt); return; }
-      this.t += dt; this.front -= W.ADV * dt; this.postureT += dt;
+      this.t += dt; if (!this.nBoss) this.front -= W.ADV * dt; this.postureT += dt;   // boss fight: the march (and the tank) holds until the boss falls
       const D = this.diff = KM.difficulty(this.t), S = this.stats, L = this.L;
       // launcher movement (smoothed for weight)
       const px = L.x; L.x += (L.tx - L.x) * Math.min(1, dt * 12);
@@ -386,6 +388,7 @@
       const m = D.m;
       // telegraphed massive pushes + bosses (never instant: 3s warning)
       if (this.t >= this.nextPush - 3 && !this.warn) { this.warn = { type: 'push', at: this.nextPush }; this.emit('warn', 'push'); }
+      if (this.nBoss && this.nextBoss < this.t + 30) this.nextBoss = this.t + 30;   // one boss fight at a time: the next one waits until this boss falls
       if (this.t >= this.nextBoss - 4 && !this.warn) { this.warn = { type: 'boss', at: this.nextBoss }; this.emit('warn', 'boss'); }
       if (this.warn && this.warn.type !== 'mini' && this.t >= this.warn.at) {
         if (this.warn.type === 'push') { this.formation('push', D, 8 + D.spawnRate * 7); this.nextPush += KM.TUNE.pushEvery; }
@@ -542,7 +545,7 @@
         if (this.roleT[i] > 0) { this.roleT[i] -= dt; if (this.roleT[i] <= 0 && this.role[i] === 2) this.role[i] = 1; }
         else if (adv > 0.3 && this.role[i] < 2 && this.rng() < dt * 0.35) { this.role[i] = 2; this.roleT[i] = 3 + this.rng() * 3; this.think[i] = 0; }
         let dvx = 0, dvz = 0;
-        const isCol = team === 0 && this.role[i] === 4, defend = team === 0 && this.posture === 1;
+        const isCol = team === 0 && this.role[i] === 4, defend = team === 0 && this.posture === 1 && !this.charge[this.typeOf(i)];   // a type ordered to ATTACK leaves the formation
         if (isCol) { nCol++; this.colList.push(i); this.collector(i, dt, S); dvx = this.cvx; dvz = this.cvz; }
         else if (team === 0 && this.role[i] === 5) { this.medic(i, dt, S); dvx = this.cvx; dvz = this.cvz; }
         else {
@@ -566,9 +569,13 @@
           if (team === 0 && tg >= 0) {
             const ahead = L.z - this.z[tg];
             // DEFEND: only engage what comes into the formation · ATTACK: soft cohesion radius, never chase ever farther
-            if (defend ? !ranged && this.z[tg] < (this.form && this.form.M ? this.form.frontZ - 3 : L.z - 13) : ahead > COH && this.z[tg] < this.z[i]) tg = -1;   // DEFEND: melee only engage at the wall (ranged are already range-limited)
+            if (tg !== this.bossI && (defend ? !ranged && this.z[tg] < (this.form && this.form.M ? this.form.frontZ - 3 : L.z - 13) : ahead > COH && this.z[tg] < this.z[i])) tg = -1;   // DEFEND: melee only engage at the wall (ranged are already range-limited)
             // reserves (rank 4+) only answer breaches: an enemy already past the shield wall
-            if (defend && tg >= 0 && !ranged && !el && this.form && fr >= 4 && this.z[tg] < this.form.frontZ + 0.4) tg = -1;
+            if (defend && tg >= 0 && !ranged && this.form && (fr >= 4 || el) && this.z[tg] < this.form.frontZ + 0.4) tg = -1;   // giants too: they only fight what breaks the line
+            // ranged: once an enemy is past the giants' line they become melee soldiers
+            if (defend && ranged && this.form && this.form.M) { const th = this.nearest(i, 6); if (th >= 0 && this.z[th] > this.form.giantZ + 0.3) tg = th; }
+            // boss fight: troops in ATTACK go for the boss wherever it is
+            if (!defend && this.nBoss && this.bossI >= 0 && this.st[this.bossI] === ALIVE && (tg < 0 || this.rng() < 0.35)) tg = this.bossI;
           }
           if (team === 0 && !ranged && this.role[i] < 3) this.rng_[i] = defend && (fr === 2 || fr === 3) && !el ? 2.5 : 0.75;   // ranks 2–3: shield + pike reaching over row 1
           const gF = team === 1 && this.grp[i] >= 0 ? this.groups[this.grp[i]] : null;
@@ -589,8 +596,9 @@
           const reach = this.rng_[i] + this.rad[i] + (so ? 1.1 : tg === -2 ? 1.1 : this.rad[tg]);
           this.yaw[i] = Math.atan2(dx, dz);
           const hold = team === 0 && defend && this.role[i] < 3 && this.kind[i] !== 34 && this.frank[i] >= 1 && this.frank[i] <= 3;
-          const em = team === 0 && this.role[i] === 3 && tg >= 0 && d < this.rad[i] + this.rad[tg] + 1.1; this.em[i] = em ? 1 : 0;   // ranged: enemy in the personal zone → emergency sword
-          if (em) { this.at[i] -= dt * S.atk * sm; if (this.at[i] <= 0) { this.at[i] = 0.9; this.src = 0; this.hurt(tg, S.dmg * 0.8, 0, this.z[i], false); this.swing[i] = 1; this.emit('hit', i, tg, false); } }
+          const em = team === 0 && this.role[i] === 3 && tg >= 0 && (d < this.rad[i] + this.rad[tg] + 1.1 || (defend && this.form && this.form.M && this.z[tg] > this.form.giantZ + 0.3 && d < 6)); this.em[i] = em ? 1 : 0;   // ranged: enemy in the personal zone or past the giants → sword
+          if (em && d > this.rad[i] + this.rad[tg] + 0.9) { dvx = dx / d * sp; dvz = dz / d * sp; }
+          else if (em) { this.at[i] -= dt * S.atk * sm; if (this.at[i] <= 0) { this.at[i] = 0.9; this.src = 0; this.hurt(tg, S.dmg * 0.8, 0, this.z[i], false); this.swing[i] = 1; this.emit('hit', i, tg, false); } }
           else if (hold && d > reach) { const G = this.fg || (this.fg = [0, 0]); this.formGoal(i, G); const ox = G[0] - this.x[i], oz = G[1] - this.z[i], od = Math.hypot(ox, oz) || 1e-3; if (od > 0.3) { dvx = ox / od * sp * Math.min(1, od / 2.2); dvz = oz / od * sp * Math.min(1, od / 2.2); } this.yaw[i] = Math.PI; }   // the line holds; enemies come to it
           else if (this.role[i] === 3 && !so && tg >= 0 && d < this.rng_[i] * 0.5) { if (this.z[i] < L.z - 2.4) { dvx = -dx / d * sp * 0.75; dvz = -dz / d * sp * 0.75; } else { dvx = (this.x[i] >= tx ? 1 : -1) * sp * 0.6; dvz = 0; } }   // ranged: back off to preferred range, but never past the tank: at the rear boundary sidestep and fight at emergency range
           else if (d > reach) {
@@ -663,10 +671,10 @@
       if (this.posture !== 1) { F.M = 0; return; }
       F.t -= dt; F.rb -= dt; if (F.t > 0) return; F.t = 0.25;
       const L = this.L, list = F.list; list.length = 0;
-      for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i] && this.role[i] < 3 && this.kind[i] !== 34) list.push(i);
+      for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i] && this.role[i] < 3 && this.kind[i] !== 34 && !this.charge.melee) list.push(i);
       const M = list.length; if (!M) { F.M = 0; return; }
       const wdt = Math.min(W.LANE - 0.6, 2.6 + Math.sqrt(M) * 0.42), C = Math.max(4, Math.min(22, Math.round(wdt * 2 / 0.85))), R = Math.ceil(M / C);
-      F.wdt = wdt; F.frontZ = L.z - 3.4 - KM.rtech(this.stats).gap - R * 0.95; F.cx = W.LANE_CENTER_X;   // centred on the lane, never dragged by the tank · built back-to-front: tank · medics · ranged line · era safety gap · melee ranks
+      F.wdt = wdt; F.giantZ = L.z - 3.4 - KM.rtech(this.stats).gap - (this.nKind[2] ? 1.2 : 0); F.frontZ = F.giantZ - (this.nKind[2] ? 1.6 : 0) - R * 0.95; F.cx = W.LANE_CENTER_X;   // back-to-front: tank · medics · ranged · era gap · giants · melee rows;   // centred on the lane, never dragged by the tank · built back-to-front: tank · medics · ranged line · era safety gap · melee ranks
       // flank pressure (enemies just ahead of the line, 8 lateral bins)
       F.press.fill(0); for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && this.z[i] > F.frontZ - 9 && this.z[i] < F.frontZ + 3) { const b = Math.max(0, Math.min(7, Math.floor((this.x[i] - F.cx + wdt) / (2 * wdt) * 8))); F.press[b]++; }
       for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && !this.br[i] && this.z[i] > F.frontZ + 0.6 && this.z[i] < L.z + 2) { this.br[i] = 1; this.breaches++; }   // breach: an enemy got past the shield wall
@@ -697,7 +705,7 @@
       const F = this.form, L = this.L, h2 = (i * 0.3819660) % 1, h = ((i * 0.6180339) % 1) * 2 - 1;
       if (!F || !F.M) { out[0] = L.x; out[1] = L.z - 6; return; }
       const r3 = this.role[i] === 3, kind = this.kind[i];
-      if (kind === 34) { out[0] = F.pressN > 2 ? F.pressX : F.cx + h * F.wdt * 0.6; out[1] = F.frontZ + 0.9; return; }     // ELITE anchors where pressure is greatest
+      if (kind === 34) { out[0] = Math.max(-W.LANE + 0.6, Math.min(W.LANE - 0.6, F.cx + h * F.wdt * 0.95)); out[1] = F.giantZ - h2 * 0.6; return; }     // GIANTS: their own line behind the melee rows
       if (r3) { out[0] = Math.max(-W.LANE + 0.5, Math.min(W.LANE - 0.5, F.cx + h * F.wdt)); out[1] = L.z - 3.4 - h2 * 1.2; return; }   // ranged line: behind the last melee rank by the era's gap, in front of medics and tank
       const r = this.frank[i] - 1, c = this.fcol[i]; if (r < 0 || r >= F.R) { out[0] = F.cx + h * F.wdt; out[1] = F.frontZ + F.R * 0.95; return; }
       let x = F.cx - F.wdt + (c + 0.5) / F.C * 2 * F.wdt; if (r >= 2 && F.pressN > 2) x += Math.max(-1.6, Math.min(1.6, (F.pressX - x) * 0.35));   // reserves lean toward the threatened flank
@@ -900,7 +908,7 @@
     // ---------- one-slot autosave: the meaningful run state (not every body). The army is rebuilt by kind around the tank. ----------
     snapshot() {
       const L = this.L, keys = ['t', 'front', 'coins', 'coinsTotal', 'kills', 'peakArmy', 'upgrades', 'budget', 'overflow', 'nextPush', 'nextBoss', 'nextMini', 'bossN', 'sector', 'sectorT', 'seenSector', 'posture', 'prod', 'auto',
-        'dmgBy', 'healed', 'shAbsorbed', 'colCoins', 'colLost', 'killsByKind', 'spawnCounter'], o = { v: 1, seed: this.seed };
+        'dmgBy', 'healed', 'shAbsorbed', 'colCoins', 'colLost', 'killsByKind', 'spawnCounter', 'charge'], o = { v: 1, seed: this.seed };
       for (const k of keys) o[k] = this[k];
       o.stats = this.stats; o.L = { x: L.x, tx: L.tx, hp: L.hp, sh: L.sh, shMax: L.shMax, shDown: L.shDown };
       o.army = Array.from(this.nKind.slice(0, KM.FRIEND.length)); o.towers = this.towers.map(t => t && { type: t.type, lvl: t.lvl, hp: t.hp, down: t.down || 0 });
@@ -961,8 +969,9 @@
     if (sim.postureT > 2) {
       let close = 0; for (let i = 0; i < sim.hi; i++) if (sim.st[i] === 1 && sim.team[i] === 1) { const dx = sim.x[i] - L.x, dz = sim.z[i] - L.z; if (dx * dx + dz * dz < 81) close++; }
       const hpF = L.hp / sim.stats.maxHp, vehHit = sim.towers.some(t => t && t.hitT < 1), shBroken = sim.stats.shield && L.shDown > 0;
-      if (!sim.posture && (hpF < 0.4 || close > 6 || vehHit || (shBroken && close > 2))) sim.setPosture(1);
-      else if (sim.posture && hpF > 0.55 && !vehHit && ((close <= 1 && sim.postureT > 6) || sim.postureT > 14)) sim.setPosture(0);
+      const brace = (sim.warn && sim.warn.type !== 'boss') || sim.sector === 'charge' && sim.sectorT > 20;   // a sensible player holds formation for mass waves, giants and charges
+      if (!sim.posture && (hpF < 0.4 || close > 6 || vehHit || (shBroken && close > 2) || brace)) sim.setPosture(1);
+      else if (sim.posture && !vehHit && !brace && ((hpF > 0.55 && close <= 1 && sim.postureT > 6) || (close <= 3 && sim.postureT > 20))) sim.setPosture(0);
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

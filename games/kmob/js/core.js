@@ -11,6 +11,7 @@
     f.range = (lo, hi) => lo + (hi - lo) * f();
     f.int = (lo, hi) => Math.floor(lo + (hi - lo + 1) * f());
     f.pick = arr => arr[Math.floor(f() * arr.length)];
+    f.shuffle = arr => { for (let k = arr.length - 1; k > 0; k--) { const j = Math.floor(f() * (k + 1)); [arr[k], arr[j]] = [arr[j], arr[k]]; } return arr; };
     return f;
   };
 
@@ -56,13 +57,13 @@
   // flags: r=ranged, s=splash, sh=frontal shield, he=healer, el=elite, ex=explodes, boss
   KM.ENEMY = [
     { k: 'grunt',   at: 0,    hp: 22,   dmg: 4,  cd: 1.0, spd: 2.6, rng: 0.75, rad: 0.36, sc: 1.0,  arm: 0,  coin: 1,  cost: 1,   wpn: 'sword' },
-    { k: 'imp',     at: 0.6,  hp: 9,    dmg: 2,  cd: 0.7, spd: 3.5, rng: 0.6,  rad: 0.28, sc: 0.72, arm: 0,  coin: 0.5, cost: 0.45, wpn: 'none' },
+    { k: 'imp',     at: 0.6,  hp: 9,    dmg: 2,  cd: 0.7, spd: 3.5, rng: 0.6,  rad: 0.36, sc: 1.0 , arm: 0,  coin: 0.5, cost: 0.45, wpn: 'none' },
     { k: 'shield',  at: 1.3,  hp: 34,   dmg: 4,  cd: 1.1, spd: 2.2, rng: 0.75, rad: 0.4,  sc: 1.05, arm: 4,  coin: 2,  cost: 1.7, wpn: 'sword', sh: 1 },
-    { k: 'runner',  at: 2.2,  hp: 15,   dmg: 4,  cd: 0.8, spd: 5.2, rng: 0.7,  rad: 0.34, sc: 0.92, arm: 0,  coin: 1,  cost: 1.0, wpn: 'dagger' },
+    { k: 'runner',  at: 2.2,  hp: 15,   dmg: 4,  cd: 0.8, spd: 5.2, rng: 0.7,  rad: 0.34, sc: 1.0, arm: 0,  coin: 1,  cost: 1.0, wpn: 'dagger' },
     { k: 'archer',  at: 3.0,  hp: 18,   dmg: 5,  cd: 1.7, spd: 2.3, rng: 8.5,  rad: 0.36, sc: 1.0,  arm: 0,  coin: 2,  cost: 1.6, wpn: 'bow', r: 1 },
     { k: 'knight',  at: 4.5,  hp: 72,   dmg: 7,  cd: 1.1, spd: 2.1, rng: 0.8,  rad: 0.44, sc: 1.18, arm: 9,  coin: 3,  cost: 3.2, wpn: 'sword', sh: 1 },
     { k: 'brute',   at: 6.0,  hp: 330,  dmg: 22, cd: 1.6, spd: 1.9, rng: 1.1,  rad: 0.8,  sc: 1.9,  arm: 4,  coin: 12, cost: 13,  wpn: 'axe', s: 1.4, el: 1 },
-    { k: 'bomber',  at: 7.0,  hp: 20,   dmg: 34, cd: 9,   spd: 3.7, rng: 0.7,  rad: 0.36, sc: 0.95, arm: 0,  coin: 2,  cost: 1.7, wpn: 'bomb', ex: 2.3 },
+    { k: 'bomber',  at: 7.0,  hp: 20,   dmg: 34, cd: 9,   spd: 3.7, rng: 0.7,  rad: 0.36, sc: 1.0, arm: 0,  coin: 2,  cost: 1.7, wpn: 'bomb', ex: 2.3 },
     { k: 'cannon',  at: 8.5,  hp: 170,  dmg: 30, cd: 3.4, spd: 1.2, rng: 14,   rad: 0.75, sc: 1.4,  arm: 6,  coin: 10, cost: 10,  wpn: 'cannon', r: 1, s: 2.3 },
     { k: 'shaman',  at: 10,   hp: 60,   dmg: 6,  cd: 1.5, spd: 2.0, rng: 7,    rad: 0.4,  sc: 1.1,  arm: 2,  coin: 5,  cost: 5,   wpn: 'staff', r: 1, he: 8 },
     { k: 'warlord', at: 8,    hp: 8000, dmg: 50, cd: 1.4, spd: 1.5, rng: 2.0,  rad: 1.8,  sc: 5.2,  arm: 12, coin: 160, cost: 60, wpn: 'axe', s: 2.4, el: 1, boss: 1, mech: 'summon' },
@@ -83,27 +84,47 @@
     { k: 'archerF', hp: 0.7, dmg: 0.9, rng: 8, rad: 0.36, sc: 1, cd: 1.4, wpn: 'bow', r: 1 },
     { k: 'knightF', hp: 7, dmg: 3.6, rng: 1.05, rad: 0.62, sc: 1.8, cd: 1.0, wpn: 'axe', sh: 1, el: 1 },             // ELITE: big, armoured, heavy knockback
     { k: 'collector', hp: 1.6, dmg: 0, rng: 0.5, rad: 0.34, sc: 1.15, cd: 9, wpn: 'sack', col: 1, spd: 5.4 },
-    { k: 'medic', hp: 1.3, dmg: 0, rng: 0.5, rad: 0.34, sc: 1.05, cd: 1.1, wpn: 'medkit', med: 1, spd: 4.6 },
+    { k: 'medic', hp: 1.3, dmg: 0, rng: 0.5, rad: 0.34, sc: 1.05, cd: 1.1, wpn: 'staff', med: 1, spd: 4.6 },                 // MIZARD: staff healer (beam + area burst)
+    { k: 'giantF', hp: 22, dmg: 7, rng: 1.3, rad: 0.95, sc: 2.5, cd: 1.3, wpn: 'axe', sh: 1, big: 1, spd: 3.4 },          // GIANT: allied heavy anchor
   ];
   KM.FRIEND.forEach((e, i) => { e.id = 32 + i; });
   KM.FRIEND_BY = Object.fromEntries(KM.FRIEND.map(f => [f.k, f]));
-  // Production: the player chooses what the command vehicle deploys. cost = deploy points (rate accumulates points/s);
-  // specialists are capped (stat key), late types unlock by minute.
-  KM.BUILD = '2026.10.06-simplify';   // reported with telemetry; bump on every public deploy
-  KM.ARMY_CAP = 300;   // strategic cap on deployable soldiers (melee, ranged, collectors, medics, elites); not an engine limit — enemies are uncapped by it
+  // Six player classes. Gold pays for deployment and for each class's own level track (no shared price inflation).
+  KM.BUILD = '2026.10.07-endless';   // reported with telemetry; bump on every public deploy
+  KM.ARMY_CAP = 300;   // army POINTS (never grows); evolved soldiers take more points
   KM.PROD = {
-    melee:     { name: 'MELEE', kind: 'soldier', cost: 2 },
-    range:     { name: 'RANGE', kind: 'archerF', cost: 3 },
-    collector: { name: 'COLLECT', kind: 'collector', cost: 4 },
-    medic:     { name: 'MEDIC', kind: 'medic', cost: 5 },
-    elite:     { name: 'ELITE', kind: 'knightF', cost: 10 },
+    collector: { name: 'COLLECTOR', kind: 'collector', cost: 25,  pts: 1 },
+    range:     { name: 'RANGE',     kind: 'archerF',   cost: 75,  pts: 1 },
+    melee:     { name: 'MELEE',     kind: 'soldier',   cost: 100, pts: 1 },
+    elite:     { name: 'ELITE',     kind: 'knightF',   cost: 250, pts: 2 },
+    mizard:    { name: 'MIZARD',    kind: 'medic',     cost: 150, pts: 1 },
+    giant:     { name: 'GIANT',     kind: 'giantF',    cost: 500, pts: 4 },
   };
-  KM.PROD_ORDER = ['melee', 'range', 'collector', 'medic', 'elite'];
-  KM.COIN_SCALE = 5;                                   // one currency pays for soldiers and upgrades; drops are scaled so deployment fits the same income
+  KM.PROD_ORDER = ['collector', 'range', 'melee', 'elite', 'mizard', 'giant'];
+  KM.CLASS_OF = Object.fromEntries(KM.PROD_ORDER.map(k => [KM.FRIEND_BY[KM.PROD[k].kind].id, k]));
+  KM.CLASS_MAX = 10; KM.EVOLVE_AT = 8;
+  KM.clsUpCost = (key, lv) => Math.round(KM.PROD[key].cost * (25 + 20 * (lv - 1)) / 5) * 5;   // own track per class: level 2 ≈ 25 soldiers' price, level 10 ≈ 185
+  KM.clsMul = (key, lv) => ({ hp: 1 + 0.13 * (lv - 1), dmg: 1 + 0.09 * (lv - 1), arm: Math.min(4, 0.45 * (lv - 1)) });   // level 10 ≈ 2–2.5× usefulness, armour tightly capped
+  KM.unitPts = (key, evolved) => KM.PROD[key].pts + (evolved ? 1 : 0);   // final evolution: bigger, tougher, one more point (1 → 2 for basic soldiers)
+  KM.ERA_BY_LV = [0, 0, 1, 2, 2, 3, 4, 4, 5, 6];
+  KM.COIN_SCALE = 250;                                 // Gold: kills pay in the same scale as class prices
   KM.BOUNTY = 0.6;                                     // share of each kill paid instantly (the tank only slides sideways, so most drops are out of reach)
-  KM.START_BANK = 50 * KM.PROD.melee.cost;             // every run opens with the price of 50 basic soldiers (nothing pre-spawned)
-  // medic equipment era follows the army's technology (satchel → field kit → modern kit → advanced)
-  KM.medTech = s => Math.min(3, Math.floor((s.rtech || 0) / 2));
+  KM.START_BANK = 3000;                                // opening decision: e.g. 30 melee, or 20 melee + 10 range + 2 collectors…
+  // ---------- Endless War waves (wave = level) ----------
+  KM.WAVE_SECS = 33;                                                   // nominal length of a wave on the difficulty clock
+  KM.waveBudget = n => (10 + 5.5 * n) * (1 + n / 80);                  // threat points per wave (quality also rises through the difficulty clock)
+  KM.waveGold = n => Math.round((150 + 45 * n) / 5) * 5;               // wave-clear Gold
+  // ---------- tank powers (in-run Energy; permanent levels from War Tokens; boss rewards add run boosts) ----------
+  KM.POWERS = {
+    linebreaker: { name: 'LINEBREAKER', cost: 100, cd: 4, boostTxt: '+12% DMG', desc: 'Huge strike straight down the tank lane' },
+    arrowstorm:  { name: 'ARROW STORM', cost: 100, cd: 4, boostTxt: '+1 VOLLEY', desc: 'Arrow rain over the densest enemy formation' },
+    elemental:   { name: 'ELEMENTAL WAVE', cost: 100, cd: 4, boostTxt: '+12% DMG', desc: 'Energy wave in front of the army: damage + slow' },
+    mercenary:   { name: 'MERCENARY CALL', cost: 120, cd: 6, boostTxt: '+10 MERCS', desc: 'Temporary soldiers beyond the 300 points' },
+    fortress:    { name: 'FORTRESS SURGE', cost: 100, cd: 6, boostTxt: '+12% SHIELD', desc: 'Restore shield, repair tank + vehicles, harden the line' },
+  };
+  KM.POWER_IDS = Object.keys(KM.POWERS);
+  KM.ENERGY_MAX = 300;
+  KM.tankUpCost = n => Math.round(400 * Math.pow(1.12, n) / 5) * 5;   // the tank is the endless track
 
   // ---------- Encounter sectors: each emphasises a different tactical problem (soft counters, never hard locks) ----------
   KM.SECTORS = {
@@ -117,16 +138,15 @@
     rout:      { name: 'ROUT',           at: 3,   dur: 30, pool: ['blob', 'swarm', 'line'],           prefer: ['grunt', 'imp'],       bud: 1.9,  hp: 0.35, spd: 1,    w: 0.5 },
   };
   // ---------- Run stats + upgrades ----------
-  KM.baseStats = function (perm) {
-    perm = perm || {};
+  KM.baseStats = function () {
     return {
-      cap: KM.ARMY_CAP, rate: 4.8 * (1 + 0.06 * (perm.army || 0)), hp: 20, dmg: 4.5, armor: 0, speed: 4.3, atk: 1,
-      magnet: 2.4 * (1 + 0.1 * (perm.magnet || 0)), crit: 0.05, archer: 0, knight: 0,
+      cap: KM.ARMY_CAP, rate: 4.8, hp: 20, dmg: 4.5, armor: 0, speed: 4.3, atk: 1,
+      magnet: 2.4, crit: 0.05, archer: 0, knight: 0,
       // command tank weapon · force-field shield · collectors · ranged tech era
       tankDmg: 20, tankRate: 0.85, tankRange: 24, tankSplash: 0, tankBarrels: 1, missiles: 0,
       shield: 0, shRecharge: 1, shRadius: 2.4, shDelay: 4,
-      colSpeed: 1, colCap: 6, rtech: 0, rdmg: 1, medHeal: 7, elitePow: 1,
-      maxHp: 100 + 10 * (perm.plating || 0), towerRate: 1, towerRange: 1, towerDmg: 1, splash: 1, frost: 1, gunCrit: 0.1, carrierRate: 1, towerHp: 1, towerArmor: 0,
+      colSpeed: 1, colCap: 6, rtech: 0, rdmg: 1, medHeal: 7, cls: { collector: 1, range: 1, melee: 1, elite: 1, mizard: 1, giant: 1 },
+      maxHp: 100, towerRate: 1, towerRange: 1, towerDmg: 1, splash: 1, frost: 1, gunCrit: 0.1, carrierRate: 1, towerHp: 1, towerArmor: 0,
       lv: { tmulti: 0, tpen: 0, medic: 0, mheal: 0, elite: 0, tgun: 0, trof: 0, trng: 0, tspl: 0, tmis: 0, shield: 0, shrec: 0, shrad: 0, coll: 0, cspd: 0, ccap: 0, rtech: 0, rdmg: 0, rate: 0, hp: 0, dmg: 0, armor: 0, speed: 0, atk: 0, magnet: 0, crit: 0, archer: 0, knight: 0, plating: 0, trate: 0, trange: 0, tdmg: 0, splash: 0, frost: 0, scrit: 0, brate: 0, thp: 0, tarm: 0 },
     };
   };
@@ -174,20 +194,8 @@
   // cat → card colour: army (blue/red/green), ranged, tank, support, defense (shield), collect (gold)
   // needs: prerequisite (the deck only offers what makes sense for this run's army)
   KM.UPGRADES = [
-    // ARMY
+    // DEPLOYMENT
     { id: 'rate',   cat: 'army', title: 'DEPLOY SPEED', val: '+12%', icon: 'bolt',  color: 'blue',  w: 8, apply: s => { s.rate *= 1.12; } },
-    { id: 'dmg',    cat: 'army', title: 'MELEE DAMAGE', val: '+12%', icon: 'sword', color: 'red',   w: 9, apply: s => { s.dmg *= 1.12; } },
-    { id: 'hp',     cat: 'army', title: 'SOLDIER HEALTH', val: '+12%', icon: 'helm', color: 'green', w: 9, apply: s => { s.hp *= 1.12; } },
-    { id: 'armor',  cat: 'army', title: 'SOLDIER ARMOR', val: '+2', icon: 'shield', color: 'green', w: 6, apply: s => { s.armor += 2; } },
-    { id: 'atk',    cat: 'army', title: 'ATTACK SPEED', val: '+10%', icon: 'swords', color: 'red',  w: 6, apply: s => { s.atk *= 1.1; } },
-    { id: 'speed',  cat: 'army', title: 'MARCH SPEED', val: '+8%',  icon: 'boot',   color: 'blue',  w: 4, max: 6, apply: s => { s.speed *= 1.08; } },
-    { id: 'crit',   cat: 'army', title: 'CRITICAL',    val: '+5%',  icon: 'star',   color: 'red',   w: 4, max: 8, apply: s => { s.crit += 0.05; } },
-    { id: 'elite',  cat: 'army', title: 'ELITE CORPS', val: '+15% ELITE', icon: 'helm', color: 'gold', w: 3, max: 8, apply: s => { s.elitePow *= 1.15; } },
-    { id: 'mheal',  cat: 'army', title: 'FIELD MEDICINE', val: '+25% HEAL', icon: 'heart', color: 'green', w: 2.5, max: 5, at: 2, apply: s => { s.medHeal *= 1.25; } },
-    // RANGED
-    { id: 'archer', cat: 'ranged', title: 'RANGED TRAINING', val: '+10% DMG', icon: 'bow', color: 'blue', w: 4, max: 4, at: 1.0, apply: s => { s.archer = Math.min(0.6, s.archer + 0.08); s.rdmg *= 1.1; } },
-    { id: 'rtech',  cat: 'ranged', title: 'WEAPON ERA', val: '', icon: 'bow', color: 'gold', w: 5, needRanged: 1, max: 6, apply: s => { s.rtech = Math.min(KM.RTECH.length - 1, s.rtech + 1); } },
-    { id: 'rdmg',   cat: 'ranged', title: 'RANGED DAMAGE', val: '+15%', icon: 'bow', color: 'red', w: 4, needRanged: 1, max: 8, apply: s => { s.rdmg *= 1.15; } },
     // COMMAND TANK
     { id: 'tgun',   cat: 'tank', title: 'TANK CANNON', val: '+30% DMG', icon: 'tank', color: 'red', w: 6, max: 8, apply: s => { s.tankDmg *= 1.3; } },
     { id: 'trof',   cat: 'tank', title: 'TANK FIRE RATE', val: '+18%', icon: 'tank', color: 'red', w: 5, max: 6, apply: s => { s.tankRate *= 1.18; s.tankBarrels = Math.min(3, 1 + Math.floor(((s.lv.trof || 0) + 1) / 2)); } },
@@ -197,6 +205,7 @@
     { id: 'tmulti', cat: 'tank', title: 'MULTISHOT', val: '+1 TARGET', icon: 'tank', color: 'blue', w: 3.5, max: 4, at: 1.5, apply: s => { s.tankMulti = (s.tankMulti || 1) + 1; } },
     { id: 'tpen',   cat: 'tank', title: 'PENETRATION', val: '+1 PIERCE', icon: 'tank', color: 'red', w: 3, max: 3, at: 3, needLv: ['tgun', 1], apply: s => { s.tankPen = (s.tankPen || 0) + 1; } },
     { id: 'plating',cat: 'tank', title: 'TANK ARMOR', val: '+25 HP', icon: 'heart', color: 'green', w: 4, max: 8, apply: (s, run) => { s.maxHp += 25; if (run) run.heal(25); } },
+    { id: 'mastery', cat: 'tank', title: 'TANK MASTERY', val: '+DMG +HP', icon: 'star', color: 'gold', w: 2, apply: (s, run) => { const k = s.lv.mastery || 0, g = 0.12 / (1 + 0.08 * k); s.tankDmg *= 1 + g; s.maxHp *= 1 + g * 0.6; if (run) run.heal(s.maxHp * g * 0.6); } },   // endless, diminishing returns
     // DEFENSE — the force field travels with the tank
     { id: 'shield', cat: 'defense', title: 'FORCE FIELD', val: '', icon: 'shield', color: 'tower', w: 5, max: 5, at: 2, apply: (s, run) => { s.shield++; if (run) run.shieldUp(); } },
     { id: 'shrec',  cat: 'defense', title: 'SHIELD RECHARGE', val: '+30%', icon: 'shield', color: 'tower', w: 3, max: 5, needLv: ['shield', 1], apply: s => { s.shRecharge *= 1.3; s.shDelay = Math.max(1.5, s.shDelay * 0.82); } },
@@ -212,17 +221,13 @@
     { id: 'brate',  cat: 'support', title: 'CARRIER SPEED', val: '+15%', icon: 't_carrier', color: 'tower', w: 3, needType: 'carrier', max: 5, apply: s => { s.carrierRate *= 1.15; } },
     // COLLECTION
     { id: 'magnet', cat: 'collect', title: 'COIN MAGNET', val: '+20%', icon: 'magnet', color: 'gold',  w: 5, max: 8, apply: s => { s.magnet *= 1.2; } },
-    { id: 'cspd',   cat: 'collect', title: 'COLLECTOR SPEED', val: '+15%', icon: 'boot', color: 'gold', w: 3, max: 5, at: 1.5, apply: s => { s.colSpeed *= 1.15; } },
-    { id: 'ccap',   cat: 'collect', title: 'COLLECTOR BAGS', val: '+50%', icon: 'coin', color: 'gold', w: 3, max: 5, at: 1.5, apply: s => { s.colCap *= 1.5; } },
   ];
   KM.UPG_BY = Object.fromEntries(KM.UPGRADES.map(u => [u.id, u]));
 
-  KM.upgradeCost = n => Math.round((10 * Math.pow(1.14, n) + 5 * n) * KM.COIN_SCALE);
 
   // Inline upgrades: each soldier category (and the tank) carries one rolled "next upgrade" badge; one tap buys it. No modal, no slowdown.
-  KM.UPG_GROUPS = ['melee', 'range', 'collector', 'medic', 'elite', 'tank'];
-  const GROUP_OF = { dmg: 'melee', hp: 'melee', armor: 'melee', atk: 'melee', speed: 'melee', crit: 'melee', archer: 'range', rtech: 'range', rdmg: 'range', magnet: 'collector', cspd: 'collector', ccap: 'collector', mheal: 'medic', elite: 'elite' };
-  KM.upgGroup = id => GROUP_OF[id] || 'tank';   // tank weapon, deploy speed, force field, support vehicles
+  KM.UPG_GROUPS = ['tank'];   // soldier classes level up on their own tracks; everything else is the tank's endless track
+  KM.upgGroup = () => 'tank';
   // every upgrade currently valid for this run, grouped by category
   KM.upgradeOptions = function (run) {
     const s = run.stats, m = run.t / 60, G = Object.fromEntries(KM.UPG_GROUPS.map(g => [g, []]));
@@ -234,8 +239,7 @@
       if (u.needRanged && !(s.archer > 0) && !(run.nKind && run.nKind[33] > 0)) continue;
       if (u.needLv && (s.lv[u.needLv[0]] || 0) < u.needLv[1]) continue;
       if (u.needEra && KM.tankEra(s, run.t) < u.needEra) continue;
-      if (u.id === 'rtech') { const nx = KM.RTECH[(s.rtech || 0) + 1]; if (!nx || m < nx.at) continue; }
-      const val = u.id === 'rtech' ? KM.RTECH[(s.rtech || 0) + 1].name : u.id === 'shield' ? (s.shield ? 'LV ' + (s.shield + 1) : 'NEW') : u.val;
+      const val = u.id === 'shield' ? (s.shield ? 'LV ' + (s.shield + 1) : 'NEW') : u.val;
       G[KM.upgGroup(u.id)].push({ id: u.id, w: u.w, title: u.title, val, icon: u.icon, color: u.color, cat: u.cat });
     }
     const free = run.towers.findIndex((t, i) => !t && i < KM.slotsUnlocked(m));
@@ -272,28 +276,51 @@
   };
   KM.nextLowerQuality = q => q === 'high' ? 'medium' : 'low';
 
-  // ---------- Tokens (rare, persistent) ----------
-  KM.tokensFor = (tSec, kills) => Math.floor(Math.sqrt(Math.max(0, tSec) / 40)) + Math.floor(kills / 1500);
-
-  // ---------- Permanent shop ----------
-  KM.SHOP = [
-    { id: 'army',    kind: 'bonus', name: 'Veteran Recruits', desc: '+6% deploy speed', max: 3, cost: l => 4 + l * 4 },
-    { id: 'magnet',  kind: 'bonus', name: 'Coin Magnet',      desc: '+10% pickup radius', max: 3, cost: l => 3 + l * 3 },
-    { id: 'plating', kind: 'bonus', name: 'Iron Plating',     desc: '+10 launcher HP', max: 3, cost: l => 3 + l * 4 },
-    { id: 'skin_royal',   kind: 'skin', name: 'Royal Blue',  desc: 'Default launcher', cost: () => 0, color: '#2f6dff', trim: '#f2c14e' },
-    { id: 'skin_emerald', kind: 'skin', name: 'Emerald',     desc: 'Launcher skin', cost: () => 6,  color: '#18a86b', trim: '#f2c14e' },
-    { id: 'skin_ember',   kind: 'skin', name: 'Ember',       desc: 'Launcher skin', cost: () => 8,  color: '#e0632a', trim: '#2b2b33' },
-    { id: 'skin_midnight',kind: 'skin', name: 'Midnight',    desc: 'Launcher skin', cost: () => 10, color: '#3b2f86', trim: '#9ff2ff' },
-    { id: 'skin_gold',    kind: 'skin', name: 'Gilded',      desc: 'Launcher skin', cost: () => 18, color: '#e8b52e', trim: '#fff4c2' },
+  // ---------- Meta economy: GOLD (in run) · WAR TOKENS (earned, permanent) · DIAMONDS (premium accelerator) ----------
+  // ARMORY: one starter skin per class + tank skins. Each = unique attire + a small bounded specialisation; all earnable with War Tokens.
+  KM.SKINS = [
+    { id: 'col_prospector', cls: 'collector', name: 'Prospector', color: '#e6b43a', bonus: { carry: 0.10, speed: 0.05 }, desc: '+10% carry · +5% speed', tokens: 10, diamonds: 50 },
+    { id: 'rng_falcon',     cls: 'range',     name: 'Falcon Corps', color: '#3fae5a', bonus: { range: 0.06, rof: 0.05 }, desc: '+6% range · +5% fire rate', tokens: 12, diamonds: 60 },
+    { id: 'mel_ironguard',  cls: 'melee',     name: 'Ironguard', color: '#8f9bb0', bonus: { armor: 1, dmg: 0.05 }, desc: '+1 armour · +5% attack', tokens: 12, diamonds: 60 },
+    { id: 'eli_crimson',    cls: 'elite',     name: 'Crimson Guard', color: '#c8323a', bonus: { dmg: 0.08, armor: 1 }, desc: '+8% attack · +1 armour', tokens: 14, diamonds: 70 },
+    { id: 'miz_aurora',     cls: 'mizard',    name: 'Aurora', color: '#3fd0c8', bonus: { healR: 0.15, heal: 0.08 }, desc: '+15% heal radius · +8% heal', tokens: 14, diamonds: 70 },
+    { id: 'gia_titanborn',  cls: 'giant',     name: 'Titanborn', color: '#b07a3a', bonus: { hp: 0.12, steady: 0.3 }, desc: '+12% HP · knockback resist', tokens: 16, diamonds: 80 },
+    { id: 'skin_royal',     cls: 'tank', name: 'Royal Blue', color: '#2f6dff', trim: '#f2c14e', bonus: {}, desc: 'Standard command vehicle', tokens: 0, diamonds: 0 },
+    { id: 'skin_emerald',   cls: 'tank', name: 'Emerald', color: '#18a86b', trim: '#f2c14e', bonus: { tankRof: 0.05 }, desc: '+5% tank fire rate', tokens: 8, diamonds: 40 },
+    { id: 'skin_ember',     cls: 'tank', name: 'Ember', color: '#e0632a', trim: '#2b2b33', bonus: { tankDmg: 0.05 }, desc: '+5% tank damage', tokens: 10, diamonds: 50 },
+    { id: 'skin_midnight',  cls: 'tank', name: 'Midnight', color: '#3b2f86', trim: '#9ff2ff', bonus: { tankRange: 0.05 }, desc: '+5% tank range', tokens: 12, diamonds: 60 },
+    { id: 'skin_gold',      cls: 'tank', name: 'Gilded', color: '#e8b52e', trim: '#fff4c2', bonus: { shield: 0.08 }, desc: '+8% force field', tokens: 18, diamonds: 90 },
   ];
+  KM.SKIN_BY = Object.fromEntries(KM.SKINS.map(k => [k.id, k]));
+  KM.SKIN_CLASSES = ['collector', 'range', 'melee', 'elite', 'mizard', 'giant', 'tank'];
+  KM.powerCost = lv => ({ tokens: 3 + 2 * lv, diamonds: 15 + 10 * lv });   // POWERS tab: permanent level 0…10, +10% each
+  KM.POWER_MAX = 10;
+  KM.BUNDLES = [   // CURRENCY tab: architecture only — prices are set once earning-rate telemetry exists
+    { id: 'd_small', name: 'Diamond Pouch', diamonds: 100, price: null }, { id: 'd_mid', name: 'Diamond Chest', diamonds: 550, price: null }, { id: 'd_big', name: 'Diamond Vault', diamonds: 1200, price: null },
+  ];
+  // Records + milestones: banked the moment they happen (a long run can never be lost)
+  KM.MILESTONES = [
+    { wave: 10, title: 'FIRST BOSS', tokens: 2 }, { wave: 25, title: 'BRONZE COMMANDER', tokens: 5, diamonds: 5 }, { wave: 50, title: 'SILVER COMMANDER', tokens: 10, diamonds: 10 },
+    { wave: 100, title: 'GOLD COMMANDER', tokens: 20, diamonds: 20 }, { wave: 250, title: 'WARLORD', tokens: 40, diamonds: 30 }, { wave: 500, title: 'ENDLESS COMMANDER', tokens: 60, diamonds: 50 }, { wave: 1000, title: 'ENDLESS CROWN', tokens: 100, diamonds: 100 },
+  ];
+  KM.WEEKLY_TIERS = [{ top: 0.01, tokens: 40, diamonds: 30, title: 'WEEKLY ELITE' }, { top: 0.05, tokens: 25, badge: 1 }, { top: 0.10, tokens: 15 }, { top: 0.25, tokens: 8 }, { top: 0.50, tokens: 3 }];
+  KM.weeklyReward = pct => KM.WEEKLY_TIERS.find(t => pct <= t.top) || null;   // reward tiers by percentile, not only #1
+  // leaderboard order: highest wave → survival time → bosses defeated
+  KM.lbCompare = (a, b) => b.wave - a.wave || b.secs - a.secs || b.bosses - a.bosses;
 
+  KM.applySkins = function (S, equip) {   // small bounded specialisations from equipped Armory skins
+    const b = {}; for (const c in equip || {}) { const sk = KM.SKIN_BY[equip[c]]; if (sk) b[c] = sk.bonus; } S.skin = b;
+    const t = b.tank || {}; S.tankRate *= 1 + (t.tankRof || 0); S.tankDmg *= 1 + (t.tankDmg || 0); S.tankRange *= 1 + (t.tankRange || 0); S.shieldMul = 1 + (t.shield || 0);
+    return S;
+  };
   // ---------- Save data (versioned, validated, crash-safe double write) ----------
   const KEY = 'kmob.save.v1';
   KM.defaultSave = () => ({
-    v: 1, tokens: 0,
+    v: 1, tokens: 0, diamonds: 0, player: '', titles: [],
+    records: { wave: 0, time: 0, bosses: 0, kills: 0, army: 0 },
+    powers: { lv: {}, equip: ['linebreaker', 'arrowstorm', 'fortress'] }, skins: { owned: { skin_royal: 1 }, equip: { tank: 'skin_royal' } },
     best: { all: 0, comp: 0, daily: { d: '', t: 0 }, weekly: { w: '', t: 0 } },
     totals: { runs: 0, kills: 0, time: 0, coins: 0 },
-    perm: { army: 0, magnet: 0, plating: 0 }, owned: { skin_royal: 1 }, equip: { skin: 'skin_royal' },
     settings: { sound: 1, music: 1, haptics: 1, competitive: 0, speed: 1 },
     ach: {},
   });
@@ -305,9 +332,15 @@
     if (b.daily && typeof b.daily.d === 'string') d.best.daily = { d: b.daily.d, t: num(b.daily.t, 0) };
     if (b.weekly && typeof b.weekly.w === 'string') d.best.weekly = { w: b.weekly.w, t: num(b.weekly.t, 0) };
     for (const k of Object.keys(d.totals)) d.totals[k] = num((raw.totals || {})[k], 0);
-    for (const k of Object.keys(d.perm)) { const it = KM.SHOP.find(s => s.id === k); d.perm[k] = Math.min(it.max, Math.floor(num((raw.perm || {})[k], 0))); }
-    if (raw.owned && typeof raw.owned === 'object') for (const k of Object.keys(raw.owned)) if (KM.SHOP.some(s => s.id === k && s.kind === 'skin')) d.owned[k] = 1;
-    const eq = raw.equip && raw.equip.skin; if (eq && d.owned[eq]) d.equip.skin = eq;
+    d.diamonds = Math.floor(num(raw.diamonds, 0)); if (typeof raw.player === 'string' && /^[A-Z0-9]{4,12}$/.test(raw.player)) d.player = raw.player;
+    if (Array.isArray(raw.titles)) d.titles = raw.titles.filter(t => KM.MILESTONES.some(m => m.title === t));
+    for (const k of Object.keys(d.records)) d.records[k] = num((raw.records || {})[k], 0);
+    const pw = raw.powers || {}; for (const id of KM.POWER_IDS) { const l = Math.floor(num((pw.lv || {})[id], 0)); if (l) d.powers.lv[id] = Math.min(KM.POWER_MAX, l); }
+    if (Array.isArray(pw.equip)) { const e = [...new Set(pw.equip.filter(id => KM.POWERS[id]))].slice(0, 3); if (e.length) d.powers.equip = e; }
+    const sk = raw.skins || {}, owned = Object.assign({}, sk.owned, raw.owned);   // legacy launcher skins migrate into the Armory
+    for (const id of Object.keys(owned)) if (KM.SKIN_BY[id]) d.skins.owned[id] = 1;
+    const eq = Object.assign({}, sk.equip); if (raw.equip && raw.equip.skin) eq.tank = eq.tank || raw.equip.skin;
+    for (const c of KM.SKIN_CLASSES) { const id = eq[c]; if (id && d.skins.owned[id] && KM.SKIN_BY[id].cls === c) d.skins.equip[c] = id; }
     for (const k of Object.keys(d.settings)) { const v = (raw.settings || {})[k]; if (k === 'speed' ? [1, 1.5, 2].includes(v) : v === 0 || v === 1) d.settings[k] = v; }   // game speed is remembered between runs
     if (raw.ach && typeof raw.ach === 'object') for (const k of Object.keys(raw.ach)) d.ach[k] = num(raw.ach[k], 0);
     return d;
@@ -331,9 +364,10 @@
     if (save.best.daily.d !== dk) save.best.daily = { d: dk, t: 0 }; save.best.daily.t = Math.max(save.best.daily.t, r.time);
     if (save.best.weekly.w !== wk) save.best.weekly = { w: wk, t: 0 }; save.best.weekly.t = Math.max(save.best.weekly.t, r.time);
     save.totals.runs++; save.totals.kills += r.kills; save.totals.time += r.time; save.totals.coins += r.coins;
-    save.tokens += r.tokens;
     save.ach.peakArmy = Math.max(save.ach.peakArmy || 0, r.peakArmy);
-    return { pb };
+    const R = save.records, nr = [];   // permanent personal records
+    for (const [k, v] of [['wave', r.wave || 0], ['time', r.time], ['bosses', r.bosses || 0], ['kills', r.kills], ['army', r.armyDev || 0]]) if (v > R[k]) { R[k] = v; nr.push(k); }
+    return { pb, records: nr };
   };
   KM.fmtTime = s => { s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
   KM.fmtNum = n => Math.floor(n).toLocaleString('en-US');

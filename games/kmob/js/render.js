@@ -107,7 +107,7 @@
     }
     setBloom(on) {
       this.bloomOn = !!on; if (!on || this.composer) return;
-      if (!THREE.EffectComposer) { if (!this.bloomLoading) { this.bloomLoading = true; KM.loadScripts(['vendor/post/CopyShader.js', 'vendor/post/LuminosityHighPassShader.js', 'vendor/post/EffectComposer.js', 'vendor/post/RenderPass.js', 'vendor/post/ShaderPass.js', 'vendor/post/UnrealBloomPass.js']).then(() => this.setBloom(this.bloomOn)).catch(() => { this.bloomOn = false; }); } return; }
+      if (!THREE.EffectComposer) { if (!this.bloomLoading) { this.bloomLoading = true; this.bloomReady = KM.loadScripts(['vendor/post/CopyShader.js', 'vendor/post/LuminosityHighPassShader.js', 'vendor/post/EffectComposer.js', 'vendor/post/RenderPass.js', 'vendor/post/ShaderPass.js', 'vendor/post/UnrealBloomPass.js']).then(() => this.setBloom(this.bloomOn)).catch(() => { this.bloomOn = false; }); } return; }
       const c = this.composer = new THREE.EffectComposer(this.R); c.addPass(new THREE.RenderPass(this.scene, this.cam));
       this.bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.5, 0.82); c.addPass(this.bloomPass); this.resize();
     }
@@ -224,7 +224,8 @@
           rot(M[4], -rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armLP], 0, p[o + I.armLR]); M[4].premultiply(M[2]); this.putP(ARM, M[4], col);
           rot(M[5], rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armRP], p[o + I.armRY], p[o + I.armRR]); M[5].premultiply(M[2]); this.putP(ARM, M[5], col);
           let wk = R.wpn; if (wk === 'sword' && team === 0 && dmgLv >= 5) wk = 'swordGold'; if (team === 0 && key === 'archerF') wk = rtW;   // ranged troops carry their weapon era
-          else if (team === 0 && key === 'soldier' && sim.spear[i]) wk = 'spear'; else if (key === 'medic') wk = medW;   // melee: spear until thrown, then sword
+          if (team === 0 && key === 'archerF' && sim.em[i]) wk = 'sword';                              // ranged: emergency sword when an enemy reaches them
+          else if (team === 0 && key === 'soldier' && (sim.posture === 1 ? sim.frank[i] === 2 || sim.frank[i] === 3 : sim.spear[i])) wk = 'spear';   // DEFEND: ranks 2–3 hold pikes; ATTACK: spear until thrown else if (key === 'medic') wk = medW;   // melee: spear until thrown, then sword
           const ws = team === 0 && wk.startsWith('sword') ? 1 + Math.min(8, dmgLv) * 0.06 : wk === 'sack' ? 0.55 + Math.min(1, sim.carry[i] / colCap) * 0.9 : 1;
           if (wk === 'bow') { M[6].makeTranslation(0, rig.fist, 0.02); M[6].premultiply(M[4]); }        // bow in the off hand
           else { M[6].makeScale(ws, ws, ws); M[6].setPosition(0, rig.fist, 0.03); M[6].premultiply(M[5]); }
@@ -816,7 +817,7 @@
       const cam = this.fitCam || (this.fitCam = new THREE.PerspectiveCamera()), v = this.v, P = this.keyPoints(sim);
       cam.fov = this.cam.fov; cam.aspect = this.aspect; cam.near = 0.5; cam.far = 300; cam.updateProjectionMatrix();
       const hudTop = 1 - 2 * (this.safeTopPx || 118) / innerHeight;          // NDC y below the HUD pills + HP bar
-      const yw = this.camYaw || 0, ok = d => { cam.position.set(tx + Math.sin(yw) * Math.cos(pitch) * d, Math.sin(pitch) * d, tz + Math.cos(yw) * Math.cos(pitch) * d); cam.lookAt(tx, 0, tz); cam.updateMatrixWorld(); cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
+      const ok = d => { cam.position.set(tx, Math.sin(pitch) * d, tz + Math.cos(pitch) * d); cam.lookAt(tx, 0, tz); cam.updateMatrixWorld(); cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
         for (const p of P) { v.set(p.x, p.y, p.z).project(cam); if (v.z > 1 || Math.abs(v.x) > 1 - p.m || v.y < -1 + p.m || v.y > hudTop) return false; } return true; };
       let lo = minD, hi = maxD; if (ok(lo)) return lo; if (!ok(hi)) return hi;
       for (let k = 0; k < 14; k++) { const mid = (lo + hi) / 2; if (ok(mid)) hi = mid; else lo = mid; }
@@ -825,7 +826,7 @@
     drawCamera(sim, dt) {
       const L = sim.L, army = sim.count[0] + sim.count[1];
       const pitch = this.aspect > 1 ? 0.86 : 0.9; // ~50°: lower, more cinematic like the concept
-      let tx = L.x * 0.35, tz = sim.front - (this.aspect > 1 ? 11 : this.aspect < 0.8 ? 16 : 14.5) + L.offZ * 0.3;
+      let tx = KM.W.LANE_CENTER_X, tz = sim.front - (this.aspect > 1 ? 11 : this.aspect < 0.8 ? 16 : 14.5);   // the lane stays centred; only the tank slides
       if (KM.camFocus === 'launcher') { tx = L.x; tz = L.z - 1; } else if (KM.camFocus && KM.camFocus.x != null) { tx = KM.camFocus.x; tz = KM.camFocus.z; }
       // the target shifts toward the launcher on narrow screens so towers beside it stay framed
       if (!this.camT) this.camT = new V3(tx, 0, tz);
@@ -840,10 +841,8 @@
       this.shake = Math.max(0, this.shake - dt * 1.2); this.shoveT = Math.max(0, (this.shoveT || 0) - dt);
       const sx = (Math.random() - 0.5) * this.shake, sy = (Math.random() - 0.5) * this.shake;
       const flip = KM.camFocus && KM.camFocus.flip ? -1 : 1, pch = KM.camFocus && KM.camFocus.pitch || pitch;   // close-up rigs can look at the army's faces
-      // portrait: a slight diagonal yaw lets one side's cliffs/water enter the frame (concept-style composition)
-      const yawT = KM.camFocus ? 0 : this.aspect < 0.8 ? 0.17 : this.aspect < 1.2 ? 0.1 : 0.05; this.camYaw = (this.camYaw == null ? yawT : this.camYaw + (yawT - this.camYaw) * Math.min(1, dt * 2));
-      const yw = this.camYaw;
-      this.cam.position.set(this.camT.x + sx + Math.sin(yw) * Math.cos(pch) * this.camD * flip, Math.sin(pch) * this.camD + sy, this.camT.z + Math.cos(yw) * Math.cos(pch) * this.camD * flip);
+      // straight down the lane: no yaw, no roll — enemy up, tank bottom, battle straight ahead
+      this.cam.position.set(this.camT.x + sx, Math.sin(pch) * this.camD + sy, this.camT.z + Math.cos(pch) * this.camD * flip);
       this.cam.lookAt(this.camT.x, 0, this.camT.z);
       this.scene.fog.near = this.camD + 6; this.scene.fog.far = this.camD + 95;
       this.sun.position.set(this.camT.x + 12, 30, this.camT.z + 14); this.sun.target.position.set(this.camT.x, 0, this.camT.z - 4);

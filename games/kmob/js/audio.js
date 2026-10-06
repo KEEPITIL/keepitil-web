@@ -60,7 +60,6 @@
         case 'frost': if (this.gate(k, 140)) { this.tone(2200, t, 0.25, 'sine', 0.04, 3400); this.hiss(t, 0.2, 6000, 4, 0.04); } break;
         case 'lhit': if (this.gate(k, 160)) { this.tone(110, t, 0.2, 'sawtooth', 0.12, 60, D); this.hiss(t, 0.15, 500, 1, 0.15, 'lowpass', D); } break;
         case 'upgrade': [523, 659, 784, 1046].forEach((f, i) => this.tone(f, t + i * 0.06, 0.25, 'triangle', 0.12)); this.hiss(t, 0.4, 5000, 0.8, 0.05, 'highpass'); break;
-        case 'offer': this.tone(880, t, 0.12, 'sine', 0.08); this.tone(1320, t + 0.08, 0.16, 'sine', 0.07); break;
         case 'elite': if (this.gate(k, 1500)) { this.tone(98, t, 0.9, 'sawtooth', 0.12, 92, D); this.tone(147, t + 0.05, 0.9, 'sawtooth', 0.07, 140, D); } break;
         case 'warn': this.tone(196, t, 0.5, 'sawtooth', 0.1, 185); this.tone(196, t + 0.6, 0.5, 'sawtooth', 0.1, 185); break;
         case 'death': [392, 330, 262, 196].forEach((f, i) => this.tone(f, t + i * 0.16, 0.4, 'triangle', 0.14)); this.hiss(t, 1.2, 300, 0.5, 0.3, 'lowpass'); break;
@@ -86,5 +85,5 @@
     }
   }
   KM.Audio = Audio;
-  KM.haptic = (ms) => { try { if (KM.save && KM.save.settings.haptics && navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* unsupported */ } };
+  KM.haptic = (ms) => { try { const ua = navigator.userActivation; if (KM.save && KM.save.settings.haptics && navigator.vibrate && (!ua || ua.hasBeenActive)) navigator.vibrate(ms); } catch (e) { /* unsupported */ } };   // browsers refuse vibration before the first real tap
 })(window);

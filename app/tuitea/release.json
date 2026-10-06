@@ -1,8 +1,8 @@
 {
-  "release": "74.de76543",
+  "release": "76.5b2aca3",
   "appVersion": "1.0.0",
-  "buildNumber": "74",
-  "commit": "de76543",
-  "applicationRevision": "de76543",
-  "shellVersion": 769
+  "buildNumber": "76",
+  "commit": "5b2aca3",
+  "applicationRevision": "ee24a89",
+  "shellVersion": 951
 }

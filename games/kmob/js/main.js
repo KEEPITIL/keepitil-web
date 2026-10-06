@@ -71,7 +71,7 @@
       count(how) { if (R) R.deploys[how] = (R.deploys[how] || 0) + 1; },
       move(x) { if (R) R.moves++; },
       ev(sim, t, a, b) { if (!R) return; const tt = Math.round(sim.t);
-        if (t === 'prod') R.prod.push([a, tt]); else if (t === 'auto') R.auto.push([a ? 1 : 0, tt]); else if (t === 'posture') R.posture.push([a, tt]); else if (t === 'sector') R.sectors.push([a, tt]);
+        if (t === 'prod') R.prod.push([a, tt]); else if (t === 'auto') R.auto.push([a ? 1 : 0, tt]); else if (t === 'charge' && typeof a === 'string') (R.charges = R.charges || []).push([a, b, tt]); else if (t === 'bossFight') (R.bossFights = R.bossFights || []).push([a, tt]); else if (t === 'posture') R.posture.push([a, tt]); else if (t === 'sector') R.sectors.push([a, tt]);
         else if (t === 'wave' && R.waves[a] != null) { R.waves[a]++; if (a !== 'push') R.bosses.push([b, tt]); } else if (t === 'upgrade') R.ups.push([a.id, tt, b || '']); },
       frame(sim, dt, ms, speed) { if (!R) return; if (ms > 250) R.stalls++; if (ms > R.worstMs && ms < 5000) R.worstMs = Math.round(ms); R.speedSecs[speed] = (R.speedSecs[speed] || 0) + dt;
         R.lane[Math.max(0, Math.min(4, Math.floor((sim.L.x + KM.W.LANE) / (2 * KM.W.LANE) * 5)))] += dt; if (sim.posture) R.defendSecs += dt;
@@ -148,7 +148,8 @@
       case 'sector': { const S = KM.SECTORS[a]; if (a !== 'opening') banner(S.name + (b ? '\nNEW THREAT' : ''), 1.8); Analytics.track('sector', { k: a, t: Math.floor(sim.t) }); break; }
       case 'bossTell': audio.play('warn'); KM.haptic(15); break;
       case 'stomp': audio.play('boom'); KM.haptic(35); break;
-      case 'charge': banner('BRACE!', 0.9); break;
+      case 'charge': if (typeof a === 'string') { banner((a === 'elite' ? 'GIANTS' : a.toUpperCase()) + (b ? '\nATTACK' : '\nBACK IN FORMATION'), 1); break; } banner('BRACE!', 0.9); break;
+      case 'bossFight': banner(a ? 'BOSS FIGHT\nTHE WAR HOLDS' : 'BOSS DOWN\nADVANCE!', 1.6); if (!a) audio.play('upgrade'); break;
       case 'summon': audio.play('elite', 0, 0); break;
       case 'warn': banner(a === 'boss' ? 'A BOSS APPROACHES' : a === 'mini' ? 'GIANT INCOMING' : 'MASS WAVE INCOMING', 3.2); audio.play('warn'); KM.haptic(25); $('vig').classList.add('warn'); setTimeout(() => $('vig').classList.remove('warn'), 3200); break;
       case 'elite': audio.play('elite', 0, 0); break;
@@ -353,8 +354,9 @@
   const metric = k => { const S = sim.stats, N = sim.nKind, F = KM.FRIEND_BY, n = k === 'tank' ? 0 : N[F[KM.PROD[k].kind].id - 32];
     if (k === 'melee') return [n, 'DMG ' + S.dmg.toFixed(1)]; if (k === 'range') return [n, KM.rtech(S).wpn.toUpperCase()]; if (k === 'collector') return [n, 'BAG ' + Math.round(S.colCap)];
     if (k === 'medic') return [n, 'HEAL ' + Math.round(S.medHeal)]; if (k === 'elite') return [n, 'PWR ' + S.elitePow.toFixed(2)]; return ['ERA ' + (KM.tankEra(S, sim.t) + 1), 'LV ' + sim.upgrades]; };
-  prodBar.innerHTML = TILE.map(k => `<div class="pb${k === 'tank' ? ' tk' : ''}" data-p="${k}" role="button"><b>${k === 'tank' ? 'TANK' : KM.PROD[k].name}</b><i></i><small></small><u class="ub hidden" data-g="${k}" role="button"></u></div>`).join('') + '<div class="pb auto" id="autoBtn" role="button"><b>AUTO</b><small>ON</small></div>';
+  prodBar.innerHTML = TILE.map(k => `<div class="pb${k === 'tank' ? ' tk' : ''}" data-p="${k}" role="button"><b>${k === 'tank' ? 'TANK' : KM.PROD[k].name}</b><i></i><small></small><u class="ub hidden" data-g="${k}" role="button"></u>${['melee', 'range', 'elite'].includes(k) ? `<em class="ch hidden" data-c="${k}" role="button" aria-label="${k} attack">⚔</em>` : ''}</div>`).join('') + '<div class="pb auto" id="autoBtn" role="button"><b>AUTO</b><small>ON</small></div>';
   prodBar.querySelectorAll('.pb').forEach(b => b.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); audio.unlock(); if (state !== 'run' || paused) return;
+    if (e.target.classList.contains('ch')) { const c = e.target.dataset.c; sim.setCharge(c, !sim.charge[c]); audio.play('tap'); KM.haptic(10); prodUI(); return; }   // DEFEND: this type attacks, the rest hold
     if (e.target.classList.contains('ub')) { if (sim.buy(e.target.dataset.g)) { audio.play('upgrade'); KM.haptic(15); } prodUI(); return; }   // the small badge buys; the tile selects
     if (b.id === 'autoBtn') { sim.setAuto(!sim.auto); audio.play('tap'); prodUI(); return; }
     if (b.dataset.p !== 'tank') { sim.setProd(b.dataset.p); audio.play('tap'); prodUI(); } }));
@@ -363,10 +365,11 @@
     for (const b of prodBar.children) { if (b.id === 'autoBtn') { b.classList.toggle('on', sim.auto); b.lastChild.textContent = sim.auto ? 'ON' : 'TAP TANK'; continue; }
       const k = b.dataset.p, m = metric(k), up = sim.ups && sim.ups[k], ub = b.querySelector('.ub');
       b.classList.toggle('on', sim.prod === k); b.children[1].textContent = k === 'tank' ? m[0] : m[0] + (k !== 'tank' ? ' · ' + KM.PROD[k].cost + '¢' : ''); b.children[2].textContent = m[1];
+      const ch = b.querySelector('.ch'); if (ch) { ch.classList.toggle('hidden', sim.posture !== 1); ch.classList.toggle('on', !!sim.charge[k]); }
       ub.classList.toggle('hidden', !up); ub.classList.toggle('can', !!up && afford); if (up) { ub.textContent = (up.val || up.title).split(' ')[0].slice(0, 6); ub.title = up.title + ' ' + (up.val || ''); } if (up && afford && tut === 2) setTip(3); }
   }
   setInterval(() => { if (state === 'run' && !prodBar.classList.contains('hidden')) prodUI(); }, 300);
-  sim.on(t => { if (t === 'prod' || t === 'auto' || t === 'upgrade') prodUI(); });
+  sim.on(t => { if (t === 'prod' || t === 'auto' || t === 'upgrade' || t === 'posture' || t === 'charge') prodUI(); });
   // ---------- ATTACK / DEFEND: the one posture control ----------
   const cue = {};
   function setPostureUI(p) { const b = $('postureBtn'); b.classList.toggle('def', !!p); $('postureTxt').textContent = p ? 'DEFEND' : 'ATTACK'; $('postureSub').textContent = p ? 'TAP TO ATTACK' : 'TAP TO DEFEND'; }

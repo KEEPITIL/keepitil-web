@@ -107,7 +107,7 @@
     }
     setBloom(on) {
       this.bloomOn = !!on; if (!on || this.composer) return;
-      if (!THREE.EffectComposer) { if (!this.bloomLoading) { this.bloomLoading = true; this.bloomReady = KM.loadScripts(['vendor/post/CopyShader.js', 'vendor/post/LuminosityHighPassShader.js', 'vendor/post/EffectComposer.js', 'vendor/post/RenderPass.js', 'vendor/post/ShaderPass.js', 'vendor/post/UnrealBloomPass.js']).then(() => this.setBloom(this.bloomOn)).catch(() => { this.bloomOn = false; }); } return; }
+      if (!THREE.EffectComposer) { if (!this.bloomLoading) { this.bloomLoading = true; this.bloomReady = KM.loadScripts(['vendor/post/CopyShader.js', 'vendor/post/LuminosityHighPassShader.js', 'vendor/post/EffectComposer.js', 'vendor/post/RenderPass.js', 'vendor/post/ShaderPass.js', 'vendor/post/UnrealBloomPass.js']).then(() => this.setBloom(this.bloomOn)).catch(e => { this.bloomOn = false; this.bloomLoading = false; this.bloomErr = String(e && e.message || e); }); } return; }   // a failed load can be retried later
       const c = this.composer = new THREE.EffectComposer(this.R); c.addPass(new THREE.RenderPass(this.scene, this.cam));
       this.bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.5, 0.82); c.addPass(this.bloomPass); this.resize();
     }

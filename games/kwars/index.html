@@ -3138,21 +3138,12 @@ function drawRigUnit(u, corpse, cls, s, x, y){
 }
 // Weaker / performance "lite" soldiers: on when the graphics setting is 'lite', or
 // auto when the battlefield is very crowded so weak devices keep a smooth framerate.
-/* TASK PERF (§24) ADAPTIVE SOLDIER DETAIL (auto mode only; Settings -> Soldier detail still forces lite/high). Profiling
-   a 150-soldier melee showed ~60% of frame CPU in canvas rasterisation of the full vector rig. When the measured render
-   time stays above 22 ms (below ~45 fps with update) for a second, auto switches to the light rig; it returns to full
-   detail once renders stay under 9 ms for two seconds -- hysteresis, so it never flickers. */
-const RENDER_ADAPT = {ema:0, hi:0, lo:0, lite:false};
-function renderAdapt(ms){
-  const A = RENDER_ADAPT; A.ema = A.ema ? A.ema*0.9 + ms*0.1 : ms;
-  if (!A.lite){ A.hi = A.ema > 22 ? A.hi+1 : 0; if (A.hi > 60){ A.lite = true; A.lo = 0; } }
-  else { A.lo = A.ema < 9 ? A.lo+1 : 0; if (A.lo > 120){ A.lite = false; A.hi = 0; } }
-}
+/* SOLDIER FOUNDATION §3 (V1 hotfix, Build 86): the full soldier rig is the ONLY normal renderer. Build 82's frame-time
+   adaptation and the older >320-unit rule could swap players' soldiers for the light rig mid-battle on slower devices
+   (reported from live play). Nothing switches automatically any more; the light rig is reachable only by a player who
+   explicitly picks it in Settings -> Soldier detail. */
 function rigLite(){
-  if(window.KWArt && KWArt.settings && KWArt.settings.graphics==='lite') return true;
-  if(window.KWArt && KWArt.settings && KWArt.settings.graphics==='high') return false;
-  if (RENDER_ADAPT.lite) return true;   // auto: a device that cannot hold the frame rate drops to the light rig (see renderAdapt)
-  return !!(S && S.units && S.units.length > 320);   // auto: stay full-detail through normal battles; simplify only in massive sieges. Force via Settings → Soldier detail.
+  return !!(window.KWArt && KWArt.settings && KWArt.settings.graphics==='lite');
 }
 function drawStick(u, corpse){
   const T = TYPES[u.type];
@@ -4686,7 +4677,7 @@ function frame(ts){
   }
   if(started&&!paused&&window.KWAudio)KWAudio.update(S,{dt:dt*gameSpeed*BASE_SPEED_MULT,speed:gameSpeed,camera:camX+viewW/2});
   followCam(dt);
-  { const _t0 = performance.now(); render(); if (started && !paused) renderAdapt(performance.now() - _t0); }   // only REAL frames teach the adaptive detail
+  render();
   updateUI();
   updateDiagnostics();
 }
@@ -4767,7 +4758,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 85;
+  const KW_PAGE_BUILD = 86;
   /* The comparison MUST run after build-info.js has executed. It used to run right here -- 20 lines BEFORE the
      build-info <script> -- so window.KWBuild was always undefined, the mismatch test was always false and the heal
      never fired (found by tools/tests/update-path-golden.js: a new page on stale scripts stayed mixed for good).

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 85,
+  "build": 86,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 85 (Fortress siege victories). kingdoms won by storming the fortress; sally + ruler balance"
+  "notes": "KINGDOM WARS 1.0.0 build 86 (V1 hotfix: no auto soldier degradation). full rig always; lite only by Settings"
 }

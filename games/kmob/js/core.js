@@ -16,12 +16,12 @@
 
   // ---------- World constants ----------
   KM.W = {
+    LANE_CENTER_X: 0,             // canonical centre line: road, formation and forward battle axis resolve around x = 0
     LANE: 9.4,          // half-width of the playable lane
     ADV: 1.05,          // forward march speed of the battle front (u/s)
     SPAWN_DZ: 58,       // enemies enter this far ahead of the front
     BREACH_DZ: 7,       // enemies this far behind the front breach the line
     HOLD_DZ: 20,        // friendlies stop advancing this far ahead
-    OFFZ_MIN: -12, OFFZ_MAX: 1.5, // launcher forward/back freedom (relative to front)
     CHUNK: 24,
     MAX_ENEMY: 1700, MAX_FRIEND: 1600,
   };
@@ -89,17 +89,19 @@
   KM.FRIEND_BY = Object.fromEntries(KM.FRIEND.map(f => [f.k, f]));
   // Production: the player chooses what the command vehicle deploys. cost = deploy points (rate accumulates points/s);
   // specialists are capped (stat key), late types unlock by minute.
-  KM.BUILD = '2026.10.05-cap300';   // reported with telemetry; bump on every public deploy
+  KM.BUILD = '2026.10.06-simplify';   // reported with telemetry; bump on every public deploy
   KM.ARMY_CAP = 300;   // strategic cap on deployable soldiers (melee, ranged, collectors, medics, elites); not an engine limit — enemies are uncapped by it
   KM.PROD = {
-    auto:      { name: 'AUTO' },
-    melee:     { name: 'MELEE', kind: 'soldier', cost: 1 },
-    range:     { name: 'RANGE', kind: 'archerF', cost: 1.35 },
-    collector: { name: 'COLLECT', kind: 'collector', cost: 2.2, cap: 'collectors' },
-    medic:     { name: 'MEDIC', kind: 'medic', cost: 2.4, cap: 'medics', at: 1.5 },
-    elite:     { name: 'ELITE', kind: 'knightF', cost: 5, cap: 'elites', at: 2.5 },
+    melee:     { name: 'MELEE', kind: 'soldier', cost: 2 },
+    range:     { name: 'RANGE', kind: 'archerF', cost: 3 },
+    collector: { name: 'COLLECT', kind: 'collector', cost: 4 },
+    medic:     { name: 'MEDIC', kind: 'medic', cost: 5 },
+    elite:     { name: 'ELITE', kind: 'knightF', cost: 10 },
   };
-  KM.PROD_ORDER = ['auto', 'melee', 'range', 'collector', 'medic', 'elite'];
+  KM.PROD_ORDER = ['melee', 'range', 'collector', 'medic', 'elite'];
+  KM.COIN_SCALE = 5;                                   // one currency pays for soldiers and upgrades; drops are scaled so deployment fits the same income
+  KM.BOUNTY = 0.6;                                     // share of each kill paid instantly (the tank only slides sideways, so most drops are out of reach)
+  KM.START_BANK = 50 * KM.PROD.melee.cost;             // every run opens with the price of 50 basic soldiers (nothing pre-spawned)
   // medic equipment era follows the army's technology (satchel → field kit → modern kit → advanced)
   KM.medTech = s => Math.min(3, Math.floor((s.rtech || 0) / 2));
 
@@ -123,7 +125,7 @@
       // command tank weapon · force-field shield · collectors · ranged tech era
       tankDmg: 20, tankRate: 0.85, tankRange: 24, tankSplash: 0, tankBarrels: 1, missiles: 0,
       shield: 0, shRecharge: 1, shRadius: 2.4, shDelay: 4,
-      collectors: 1, colSpeed: 1, colCap: 6, rtech: 0, rdmg: 1, medics: 1, medHeal: 7, elites: 1, elitePow: 1,
+      colSpeed: 1, colCap: 6, rtech: 0, rdmg: 1, medHeal: 7, elitePow: 1,
       maxHp: 100 + 10 * (perm.plating || 0), towerRate: 1, towerRange: 1, towerDmg: 1, splash: 1, frost: 1, gunCrit: 0.1, carrierRate: 1, towerHp: 1, towerArmor: 0,
       lv: { tmulti: 0, tpen: 0, medic: 0, mheal: 0, elite: 0, tgun: 0, trof: 0, trng: 0, tspl: 0, tmis: 0, shield: 0, shrec: 0, shrad: 0, coll: 0, cspd: 0, ccap: 0, rtech: 0, rdmg: 0, rate: 0, hp: 0, dmg: 0, armor: 0, speed: 0, atk: 0, magnet: 0, crit: 0, archer: 0, knight: 0, plating: 0, trate: 0, trange: 0, tdmg: 0, splash: 0, frost: 0, scrit: 0, brate: 0, thp: 0, tarm: 0 },
     };
@@ -180,8 +182,7 @@
     { id: 'atk',    cat: 'army', title: 'ATTACK SPEED', val: '+10%', icon: 'swords', color: 'red',  w: 6, apply: s => { s.atk *= 1.1; } },
     { id: 'speed',  cat: 'army', title: 'MARCH SPEED', val: '+8%',  icon: 'boot',   color: 'blue',  w: 4, max: 6, apply: s => { s.speed *= 1.08; } },
     { id: 'crit',   cat: 'army', title: 'CRITICAL',    val: '+5%',  icon: 'star',   color: 'red',   w: 4, max: 8, apply: s => { s.crit += 0.05; } },
-    { id: 'elite',  cat: 'army', title: 'ELITE CORPS', val: '+1 ELITE', icon: 'helm', color: 'gold', w: 3, max: 6, at: 2.5, apply: s => { s.elites++; s.elitePow *= 1.12; } },
-    { id: 'medic',  cat: 'army', title: 'MEDICS', val: '+1 MEDIC', icon: 'heart', color: 'green', w: 3, max: 5, at: 1.5, apply: s => { s.medics++; } },
+    { id: 'elite',  cat: 'army', title: 'ELITE CORPS', val: '+15% ELITE', icon: 'helm', color: 'gold', w: 3, max: 8, apply: s => { s.elitePow *= 1.15; } },
     { id: 'mheal',  cat: 'army', title: 'FIELD MEDICINE', val: '+25% HEAL', icon: 'heart', color: 'green', w: 2.5, max: 5, at: 2, apply: s => { s.medHeal *= 1.25; } },
     // RANGED
     { id: 'archer', cat: 'ranged', title: 'RANGED TRAINING', val: '+10% DMG', icon: 'bow', color: 'blue', w: 4, max: 4, at: 1.0, apply: s => { s.archer = Math.min(0.6, s.archer + 0.08); s.rdmg *= 1.1; } },
@@ -211,17 +212,20 @@
     { id: 'brate',  cat: 'support', title: 'CARRIER SPEED', val: '+15%', icon: 't_carrier', color: 'tower', w: 3, needType: 'carrier', max: 5, apply: s => { s.carrierRate *= 1.15; } },
     // COLLECTION
     { id: 'magnet', cat: 'collect', title: 'COIN MAGNET', val: '+20%', icon: 'magnet', color: 'gold',  w: 5, max: 8, apply: s => { s.magnet *= 1.2; } },
-    { id: 'coll',   cat: 'collect', title: 'MORE COLLECTORS', val: '+1 MAX', icon: 'coin', color: 'gold', w: 4, max: 4, at: 1.5, apply: s => { s.collectors++; } },
     { id: 'cspd',   cat: 'collect', title: 'COLLECTOR SPEED', val: '+15%', icon: 'boot', color: 'gold', w: 3, max: 5, at: 1.5, apply: s => { s.colSpeed *= 1.15; } },
     { id: 'ccap',   cat: 'collect', title: 'COLLECTOR BAGS', val: '+50%', icon: 'coin', color: 'gold', w: 3, max: 5, at: 1.5, apply: s => { s.colCap *= 1.5; } },
   ];
   KM.UPG_BY = Object.fromEntries(KM.UPGRADES.map(u => [u.id, u]));
 
-  KM.upgradeCost = n => Math.round(10 * Math.pow(1.14, n) + 5 * n);
+  KM.upgradeCost = n => Math.round((10 * Math.pow(1.14, n) + 5 * n) * KM.COIN_SCALE);
 
-  // Offer 3 distinct choices; tower build/upgrade cards are generated from current tower state.
-  KM.makeOffer = function (run, rng) {
-    const s = run.stats, m = run.t / 60, opts = [];
+  // Inline upgrades: each soldier category (and the tank) carries one rolled "next upgrade" badge; one tap buys it. No modal, no slowdown.
+  KM.UPG_GROUPS = ['melee', 'range', 'collector', 'medic', 'elite', 'tank'];
+  const GROUP_OF = { dmg: 'melee', hp: 'melee', armor: 'melee', atk: 'melee', speed: 'melee', crit: 'melee', archer: 'range', rtech: 'range', rdmg: 'range', magnet: 'collector', cspd: 'collector', ccap: 'collector', mheal: 'medic', elite: 'elite' };
+  KM.upgGroup = id => GROUP_OF[id] || 'tank';   // tank weapon, deploy speed, force field, support vehicles
+  // every upgrade currently valid for this run, grouped by category
+  KM.upgradeOptions = function (run) {
+    const s = run.stats, m = run.t / 60, G = Object.fromEntries(KM.UPG_GROUPS.map(g => [g, []]));
     for (const u of KM.UPGRADES) {
       if (u.at && m < u.at) continue;
       if (u.max && (s.lv[u.id] || 0) >= u.max) continue;
@@ -232,27 +236,16 @@
       if (u.needEra && KM.tankEra(s, run.t) < u.needEra) continue;
       if (u.id === 'rtech') { const nx = KM.RTECH[(s.rtech || 0) + 1]; if (!nx || m < nx.at) continue; }
       const val = u.id === 'rtech' ? KM.RTECH[(s.rtech || 0) + 1].name : u.id === 'shield' ? (s.shield ? 'LV ' + (s.shield + 1) : 'NEW') : u.val;
-      opts.push({ id: u.id, w: u.w, title: u.title, val, icon: u.icon, color: u.color, cat: u.cat });
+      G[KM.upgGroup(u.id)].push({ id: u.id, w: u.w, title: u.title, val, icon: u.icon, color: u.color, cat: u.cat });
     }
     const free = run.towers.findIndex((t, i) => !t && i < KM.slotsUnlocked(m));
     if (free >= 0) for (const k of Object.keys(KM.TOWERS)) {
       if (m < 2.5) break; if (k === 'artillery' && m < 3.5) continue; if (k === 'carrier' && m < 4) continue; if (k === 'frost' && m < 5) continue;
-      if (run.towers.some(t => t && t.type === k)) continue;                                  // one of each type: upgrade it instead
-      opts.push({ id: 'build:' + k, w: run.towers.some(t => t) ? 2.2 : 4, title: KM.TOWERS[k].name.toUpperCase(), val: 'NEW VEHICLE', icon: 't_' + k, color: 'tower', cat: 'support', tower: k });
+      if (run.towers.some(t => t && t.type === k)) continue;
+      G.tank.push({ id: 'build:' + k, w: run.towers.some(t => t) ? 2.2 : 4, title: KM.TOWERS[k].name.toUpperCase(), val: 'NEW VEHICLE', icon: 't_' + k, color: 'tower', cat: 'support', tower: k });
     }
-    run.towers.forEach((t, i) => { if (t && t.lvl < 5) opts.push({ id: 'tup:' + i, w: t.down > 0 ? 6 : 3.2, title: (t.down > 0 ? 'REBUILD ' : 'UPGRADE ') + KM.TOWERS[t.type].name.toUpperCase(), val: 'LV ' + (t.lvl + 1), icon: 't_' + t.type, color: 'tower', cat: 'support', tower: t.type }); });
-    const out = [];
-    while (out.length < 3 && opts.length) {
-      // guarantee at least one army card
-      let pool = opts; if (out.length === 2 && !out.some(o => o.cat === 'army')) pool = opts.filter(o => o.cat === 'army');
-      if (!pool.length) pool = opts;
-      let tot = pool.reduce((a, o) => a + o.w, 0), r = rng() * tot, pick = pool[pool.length - 1];
-      for (const o of pool) { r -= o.w; if (r <= 0) { pick = o; break; } }
-      out.push(pick); opts.splice(opts.indexOf(pick), 1);
-      // never two tower builds in one offer
-      if (pick.id.startsWith('build:')) for (let i = opts.length - 1; i >= 0; i--) if (opts[i].id.startsWith('build:')) opts.splice(i, 1);
-    }
-    return out;
+    run.towers.forEach((t, i) => { if (t && t.lvl < 5) G.tank.push({ id: 'tup:' + i, w: t.down > 0 ? 6 : 3.2, title: (t.down > 0 ? 'REBUILD ' : 'UPGRADE ') + KM.TOWERS[t.type].name.toUpperCase(), val: 'LV ' + (t.lvl + 1), icon: 't_' + t.type, color: 'tower', cat: 'support' }); });
+    return G;
   };
 
   // ---------- Graphics quality tiers (auto-detected, benchmark-recommended) ----------
@@ -301,7 +294,7 @@
     best: { all: 0, comp: 0, daily: { d: '', t: 0 }, weekly: { w: '', t: 0 } },
     totals: { runs: 0, kills: 0, time: 0, coins: 0 },
     perm: { army: 0, magnet: 0, plating: 0 }, owned: { skin_royal: 1 }, equip: { skin: 'skin_royal' },
-    settings: { sound: 1, music: 1, haptics: 1, competitive: 0 },
+    settings: { sound: 1, music: 1, haptics: 1, competitive: 0, speed: 1 },
     ach: {},
   });
   const num = (v, d, max) => (typeof v === 'number' && isFinite(v) && v >= 0) ? Math.min(v, max || 1e15) : d;
@@ -315,7 +308,7 @@
     for (const k of Object.keys(d.perm)) { const it = KM.SHOP.find(s => s.id === k); d.perm[k] = Math.min(it.max, Math.floor(num((raw.perm || {})[k], 0))); }
     if (raw.owned && typeof raw.owned === 'object') for (const k of Object.keys(raw.owned)) if (KM.SHOP.some(s => s.id === k && s.kind === 'skin')) d.owned[k] = 1;
     const eq = raw.equip && raw.equip.skin; if (eq && d.owned[eq]) d.equip.skin = eq;
-    for (const k of Object.keys(d.settings)) { const v = (raw.settings || {})[k]; if (v === 0 || v === 1) d.settings[k] = v; }
+    for (const k of Object.keys(d.settings)) { const v = (raw.settings || {})[k]; if (k === 'speed' ? [1, 1.5, 2].includes(v) : v === 0 || v === 1) d.settings[k] = v; }   // game speed is remembered between runs
     if (raw.ach && typeof raw.ach === 'object') for (const k of Object.keys(raw.ach)) d.ach[k] = num(raw.ach[k], 0);
     return d;
   };
@@ -344,6 +337,7 @@
   };
   KM.fmtTime = s => { s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
   KM.fmtNum = n => Math.floor(n).toLocaleString('en-US');
+  KM.fmtShort = n => { n = Math.floor(n); if (n < 10000) return n.toLocaleString('en-US'); for (const [v, u] of [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']]) if (n >= v) { const x = n / v; return (x < 100 ? x.toFixed(1) : Math.floor(x)) + u; } return String(n); };   // HUD: always fits the pill
 
   // ---------- Endless battlefield chunk plan ----------
   // decor sight-line rule: a prop whose top is h metres high must keep its inner edge this far from the lane centre

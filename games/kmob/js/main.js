@@ -28,6 +28,7 @@
     skull: '<path d="M12 3a8 8 0 00-8 8c0 3 1.5 4.5 3 5.5V20h10v-3.5c1.5-1 3-2.5 3-5.5a8 8 0 00-8-8z" fill="#cfd6e2" stroke="#5a6478" stroke-width="1.2"/><circle cx="9" cy="11.5" r="2" fill="#26304a"/><circle cx="15" cy="11.5" r="2" fill="#26304a"/>',
     flag: '<path d="M5 2v20" stroke="#8a5a33" stroke-width="2"/><path d="M6 3h12l-3 4 3 4H6z" fill="#ffc21a" stroke="#b07000" stroke-width="1"/>',
     home: '<path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z" fill="#fff"/>',
+    gear: '<g fill="#cfe2ff" stroke="#0e1a33" stroke-width="1.2"><path d="M12 2l2 3 3.5-.8.8 3.5 3 2-2 3 2 3-3 2-.8 3.5-3.5-.8-2 3-2-3-3.5.8-.8-3.5-3-2 2-3-2-3 3-2 .8-3.5 3.5.8z"/><circle cx="12" cy="12" r="3.4" fill="#0e1a33"/></g>',
     shop: '<path d="M4 9h16l-1 12H5z" fill="#ff5a6a"/><path d="M3 6h18v4H3z" fill="#ffc21a"/><path d="M12 6v15" stroke="#fff" stroke-width="2"/><path d="M12 6c-2-4-6-3-5 0M12 6c2-4 6-3 5 0" stroke="#ffc21a" stroke-width="2" fill="none"/>',
   };
   const T_ICON = { gun: '#3a8bff', artillery: '#ff7a2f', frost: '#5fe0ff', carrier: '#ffd23a' };
@@ -36,6 +37,7 @@
     return `<svg viewBox="0 0 24 24">${ICON[k] || ICON.star}</svg>`;
   };
   $('armyIco').innerHTML = ICON.army; $('coinIco').innerHTML = ICON.coin;
+  $('setBtn1').innerHTML = svg('gear');
   $('homeBtn').innerHTML = svg('home') + 'HOME'; $('shopBtn2').innerHTML = svg('shop') + 'SHOP';
   $('tipHand').innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 11V4.5a1.5 1.5 0 013 0V10l5.2 1.1c1.2.3 1.9 1.4 1.7 2.6L18 20H9.5l-4-5.2c-.6-.8-.4-1.9.4-2.4.7-.5 1.7-.3 2.3.3z" fill="#fff" stroke="#0e1a33" stroke-width="1.2"/></svg>';
 
@@ -62,13 +64,18 @@
       on: !(DEV && !DEV.telemetry), sent: [], fetch: (...a) => fetch(...a),
       begin(sim, ctx) { this.flush('restart'); const ua = navigator.userAgent;
         R = { v: 1, build: KM.BUILD, run: rid(), dev: /iPhone|iPad|iPod/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : 'desktop', cores: navigator.hardwareConcurrency || 0, mem: navigator.deviceMemory || 0,
-          vp: [innerWidth, innerHeight, +(devicePixelRatio || 1).toFixed(2)], q0: ctx.quality, spd0: ctx.speed, comp: ctx.comp, runN: ctx.runN,
-          prod: [['auto', 0]], posture: [], sectors: [], waves: { push: 0, mini: 0, boss: 0 }, bosses: [], ups: [], qdown: [], samples: [], fps: [], stalls: 0, worstMs: 0,
+          vp: [innerWidth, innerHeight, +(devicePixelRatio || 1).toFixed(2)], landing: this.pre || '', resumed: !!ctx.resumed, resumeFailed: !!ctx.resumeFailed, t0: Math.round(sim.t), q0: ctx.quality, spd0: ctx.speed, comp: ctx.comp, runN: ctx.runN,
+          prod: [[sim.prod, 0]], auto: [[sim.auto ? 1 : 0, 0]], deploys: {}, moves: 0, lane: [0, 0, 0, 0, 0], defendSecs: 0, comp30: null, posture: [], sectors: [], waves: { push: 0, mini: 0, boss: 0 }, bosses: [], ups: [], qdown: [], samples: [], fps: [], stalls: 0, worstMs: 0,
           capFirst: -1, capSecs: 0, peak: 0, speedSecs: { 1: 0, 1.5: 0, 2: 0 } }; },
+      landing(c) { this.pre = c; },
+      count(how) { if (R) R.deploys[how] = (R.deploys[how] || 0) + 1; },
+      move(x) { if (R) R.moves++; },
       ev(sim, t, a, b) { if (!R) return; const tt = Math.round(sim.t);
-        if (t === 'prod') R.prod.push([a, tt]); else if (t === 'posture') R.posture.push([a, tt]); else if (t === 'sector') R.sectors.push([a, tt]);
-        else if (t === 'wave' && R.waves[a] != null) { R.waves[a]++; if (a !== 'push') R.bosses.push([b, tt]); } else if (t === 'upgrade') R.ups.push([a.id, tt]); },
+        if (t === 'prod') R.prod.push([a, tt]); else if (t === 'auto') R.auto.push([a ? 1 : 0, tt]); else if (t === 'posture') R.posture.push([a, tt]); else if (t === 'sector') R.sectors.push([a, tt]);
+        else if (t === 'wave' && R.waves[a] != null) { R.waves[a]++; if (a !== 'push') R.bosses.push([b, tt]); } else if (t === 'upgrade') R.ups.push([a.id, tt, b || '']); },
       frame(sim, dt, ms, speed) { if (!R) return; if (ms > 250) R.stalls++; if (ms > R.worstMs && ms < 5000) R.worstMs = Math.round(ms); R.speedSecs[speed] = (R.speedSecs[speed] || 0) + dt;
+        R.lane[Math.max(0, Math.min(4, Math.floor((sim.L.x + KM.W.LANE) / (2 * KM.W.LANE) * 5)))] += dt; if (sim.posture) R.defendSecs += dt;
+        if (!R.comp30 && sim.t >= 30) R.comp30 = Array.from(sim.nKind.slice(0, KM.FRIEND.length));
         const n = sim.count[0]; if (n > R.peak) R.peak = n; if (n >= sim.stats.cap) { R.capSecs += dt; if (R.capFirst < 0) R.capFirst = Math.round(sim.t); } },
       sample(sim, fps, perf) { if (!R) return; R.fps.push(Math.round(fps)); if (R.fps.length > 900) R.fps.splice(0, 300);
         if (R.fps.length % 10 === 1) R.samples.push([Math.round(sim.t), sim.count[0], sim.count[1], Array.from(sim.nKind.slice(0, KM.FRIEND.length)), sim.posture, sim.sector, perf ? perf.quality : '', perf ? +perf.simMs.toFixed(2) : 0]); },
@@ -76,7 +83,8 @@
       end(sim, r, ctx) { if (!R) return; const S = sim.stats;
         Object.assign(R, { secs: Math.round(r.time), reason: r.reason, kills: r.kills, coins: r.coins, peakArmy: r.peakArmy, upgrades: r.upgrades, era: KM.tankEra(S, sim.t), q1: ctx.quality,
           dmg: { melee: Math.round(sim.dmgBy[0]), ranged: Math.round(sim.dmgBy[1]), tank: Math.round(sim.dmgBy[2]), support: Math.round(sim.dmgBy[3]) },
-          collectors: { coins: Math.round(sim.colCoins), lost: sim.colLost }, healed: Math.round(sim.healed), shield: Math.round(sim.shAbsorbed), lastSector: sim.sector });
+          collectors: { coins: Math.round(sim.colCoins), lost: sim.colLost }, healed: Math.round(sim.healed), shield: Math.round(sim.shAbsorbed), lastSector: sim.sector,
+          breaches: sim.breaches, rowLoss: sim.rowLoss.slice(), refillAvg: sim.fillN ? +(sim.fillSum / sim.fillN).toFixed(2) : null, refills: sim.fillN });
         pending = R; R = null; },
       flush(after) { if (R && after !== 'restart') { R.partial = 1; R.secs = R.secs || 0; pending = R; R = null; } if (!pending) return; pending.after = after; const p = pending; pending = null; this.send(p); },
       send(p) { this.sent.push(p); if (this.sent.length > 5) this.sent.shift(); if (!this.on) return;
@@ -86,6 +94,15 @@
     addEventListener('pagehide', () => { try { T.flush('left'); } catch (e) { /* ignore */ } });
     return T;
   })();
+
+  // ---------- one-slot run autosave (gameplay-critical; independent of telemetry) ----------
+  const RUNKEY = 'kmob.run.v1';
+  const RunSave = {
+    load() { try { const raw = store.getItem(RUNKEY); if (!raw) return null; const r = JSON.parse(raw); if (!r || !r.snap || r.snap.v !== 1 || !(r.snap.t > 0)) throw 0; return r; } catch (e) { this.clear(); return null; } },
+    write(sim) { if (!sim.alive || sim.t < 1) return; try { store.setItem(RUNKEY, JSON.stringify({ at: Date.now(), build: KM.BUILD, speed: save.settings.speed || 1, snap: sim.snapshot() })); } catch (e) { /* storage full / private mode: the run simply is not resumable */ } },
+    clear() { try { store.setItem(RUNKEY, ''); } catch (e) { /* ignore */ } },
+  };
+  KM.runSave = RunSave;
 
   // ---------- systems ----------
   const canvas = $('c');
@@ -113,7 +130,7 @@
       case 'deploy': audio.play('deploy'); break;
       case 'hit': combatHits++; if (b >= 0 && sim.def(b).sh) audio.play('shieldhit'); else audio.play('hit'); break;
       case 'kill': audio.play('kill'); if (b.el) { KM.haptic(30); } Analytics.track && b.el && Analytics.track('enemy_type_death', { type: b.k, t: Math.floor(sim.t) }); break;
-      case 'coin': audio.play('coin'); if (a >= 5) KM.haptic(8); if (tut === 1) setTip(2); break;
+      case 'coin': audio.play('coin'); if (a >= 5) KM.haptic(8); break;
       case 'shot': if (a === 1) audio.play('cannon', 0, b / 9); else if (a === 0) audio.play('bow'); else if (a === 2) audio.play('frost'); break;
       case 'boom': audio.play('boom'); break;
       case 'shove': if ((e || 0) >= 2) audio.play('thud', 0, c / 10); break;
@@ -127,9 +144,7 @@
       case 'collector': if (!cue.col) { cue.col = 1; banner('COLLECTORS\nBRING COINS TO YOUR TANK', 2.4); } break;
       case 'posture': setPostureUI(a); audio.play(a ? 'shieldhit' : 'upgrade'); KM.haptic(12); banner(a ? 'DEFEND\nHOLD FORMATION' : 'ATTACK\nPUSH FORWARD', 1.1); break;
       case 'colLost': banner('COLLECTOR LOST', 0.9); break;
-      case 'offer': showOffer(a); audio.play('offer'); if (tut === 2) setTip(3); break;
       case 'upgrade': if (a.id.startsWith('build:') || a.id.startsWith('tup:')) audio.play('build', 0, a.id.startsWith('tup:') ? KM.TOWER_SLOTS[+a.id.slice(4)].x / 9 : 0); audio.play('upgrade'); KM.haptic(20); Analytics.track('upgrades_selected', { id: a.id, n: sim.upgrades, t: Math.floor(sim.t) }); break;
-      case 'skip': Analytics.track('upgrade_skipped', { n: sim.upgrades }); break;
       case 'sector': { const S = KM.SECTORS[a]; if (a !== 'opening') banner(S.name + (b ? '\nNEW THREAT' : ''), 1.8); Analytics.track('sector', { k: a, t: Math.floor(sim.t) }); break; }
       case 'bossTell': audio.play('warn'); KM.haptic(15); break;
       case 'stomp': audio.play('boom'); KM.haptic(35); break;
@@ -143,24 +158,29 @@
     }
   });
 
-  // ---------- one-finger input: relative drag moves the launcher ----------
+  // ---------- input: horizontal drag slides the tank (= attack lane) · tap the tank deploys one · hold the tank keeps deploying ----------
   let drag = null, moved = 0;
-  const worldPerPx = () => 23 / Math.min(innerWidth, innerHeight * 1.1);
-  canvas.addEventListener('pointerdown', e => { audio.unlock(); if (state !== 'run' || paused) return; drag = { x: e.clientX, y: e.clientY, id: e.pointerId }; try { canvas.setPointerCapture(e.pointerId); } catch (x) { /* ok */ } });
+  const worldPerPx = () => 23 / Math.min(innerWidth, innerHeight * 1.1), MOVE_PX = 10, HOLD_MS = 260, HOLD_EVERY = 0.12;
+  const onTank = e => { const v = render.toScreen(sim.L.x, 0.6, sim.L.z), sx = (v.x + 1) / 2 * innerWidth, sy = (1 - v.y) / 2 * innerHeight; return Math.hypot(e.clientX - sx, e.clientY - sy) < Math.max(56, innerWidth * 0.16); };
+  const tapDeploy = how => { const ok = sim.deployOne(how); if (ok) { Telemetry.count(how); if (tut === 1) setTip(2); } else if (sim.count[0] >= sim.stats.cap) banner('ARMY ' + sim.stats.cap + ' / ' + sim.stats.cap, 0.6); return ok; };
+  canvas.addEventListener('pointerdown', e => { audio.unlock(); if (state !== 'run' || paused) return; drag = { x: e.clientX, x0: e.clientX, y0: e.clientY, id: e.pointerId, t0: performance.now(), tank: onTank(e), held: 0, acc: 0, horiz: false }; try { canvas.setPointerCapture(e.pointerId); } catch (x) { /* ok */ } });
   canvas.addEventListener('pointermove', e => {
     if (!drag || e.pointerId !== drag.id) return;
-    const k = worldPerPx() * 1.15, dx = (e.clientX - drag.x) * k, dz = (e.clientY - drag.y) * k * 0.9;
-    sim.moveBy(dx, dz); drag.x = e.clientX; drag.y = e.clientY; moved += Math.abs(dx) + Math.abs(dz);
+    if (!drag.horiz && Math.abs(e.clientX - drag.x0) > MOVE_PX) drag.horiz = true;   // past the threshold this touch is a slide, never a deploy
+    if (!drag.horiz) return;
+    const dx = (e.clientX - drag.x) * worldPerPx() * 1.15; sim.moveBy(dx); drag.x = e.clientX; moved += Math.abs(dx); Telemetry.move(sim.L.tx);
     if (tut === 0 && moved > 4) setTip(1);
   });
-  const up = e => { if (drag && e.pointerId === drag.id) drag = null; };
-  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
-  // keyboard fallback for desktop (still one control: move)
-  const keys = {}; addEventListener('keydown', e => { keys[e.key] = 1; if (e.key === 'Escape' && state === 'run') setPause(!paused); if ((e.key === ' ' || e.key === 'Enter') && state === 'over') startRun(); if (state === 'run' && sim.offer && '123'.includes(e.key)) pickCard(+e.key - 1); });
+  const up = e => { if (!drag || e.pointerId !== drag.id) return; if (drag.tank && !drag.horiz && !drag.held && !sim.auto) tapDeploy('tap'); drag = null; };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', e => { if (drag && e.pointerId === drag.id) drag = null; });
+  function holdTick(dt) { if (!drag || !drag.tank || drag.horiz || sim.auto || state !== 'run' || paused) return; if (performance.now() - drag.t0 < HOLD_MS) return;
+    drag.acc -= dt; if (drag.acc <= 0) { drag.acc = HOLD_EVERY; if (tapDeploy('hold')) drag.held++; } }
+  // keyboard fallback for desktop: arrows/A-D slide, Enter deploys
+  const keys = {}; addEventListener('keydown', e => { keys[e.key] = 1; if (e.key === 'Escape' && state === 'run') setPause(!paused); if ((e.key === ' ' || e.key === 'Enter') && state === 'over') startRun(); if (e.key === 'Enter' && state === 'run' && !paused && !sim.auto) tapDeploy('tap'); });
   addEventListener('keyup', e => { keys[e.key] = 0; });
 
   // ---------- HUD + prompts ----------
-  const tips = [['DRAG TO MOVE', 'SOLDIERS DEPLOY AUTOMATICALLY'], ['MOVE OVER COINS', 'GET CLOSE TO THE FIGHT TO GRAB THEM'], ['GROW YOUR ARMY', 'TAP AN UPGRADE. THE FIGHT KEEPS GOING'], null];
+  const tips = [['DRAG LEFT / RIGHT', 'THE TANK CHOOSES THE ATTACK LANE'], ['TAP THE TANK', 'DEPLOYS YOUR SELECTED SOLDIER'], ['UPGRADE', 'TAP A GOLD BADGE · THE FIGHT KEEPS GOING'], null];
   function setTip(n) {
     tut = n; const t = tips[n], el = $('tip');
     if (!t) { el.classList.add('hidden'); save.ach.tutorial = 1; persist(); return; }
@@ -171,43 +191,36 @@
   let hudAcc = 0;
   function hud(dt) {
     hudAcc += dt; if (hudAcc < 0.1) return; hudAcc = 0;
-    $('hTime').textContent = KM.fmtTime(sim.t); $('hArmy').textContent = sim.count[0] + ' / ' + sim.stats.cap; $('hArmy').classList.toggle('full', sim.count[0] >= sim.stats.cap); $('hCoins').textContent = KM.fmtNum(sim.coins);
-    const cost = KM.upgradeCost(sim.upgrades); $('hNext').textContent = sim.offer ? 'UPGRADE!' : 'NEXT ' + cost;
+    $('hTime').textContent = KM.fmtTime(sim.t); $('hArmy').innerHTML = sim.count[0] + '<small>/' + sim.stats.cap + '</small>'; $('hArmy').classList.toggle('full', sim.count[0] >= sim.stats.cap); $('hCoins').textContent = KM.fmtShort(sim.coins);
+    $('hNext').textContent = 'UPGRADE ' + KM.fmtShort(sim.upCost());
     const hp = sim.L.hp / sim.stats.maxHp; $('hpFill').style.width = (hp * 100).toFixed(1) + '%'; $('hpFill').style.background = hp > 0.5 ? 'linear-gradient(90deg,#4cff8a,#2fbf4f)' : hp > 0.25 ? 'linear-gradient(90deg,#ffe14a,#ff9a1f)' : 'linear-gradient(90deg,#ff6a4a,#d6281f)';
     $('vig').style.boxShadow = `inset 0 0 120px ${20 + 40 * (1 - hp)}px rgba(220,20,20,${hp < 0.35 ? (0.55 - hp) * (0.8 + 0.2 * Math.sin(performance.now() / 150)) : 0})`;
   }
 
-  // ---------- upgrade offer (combat keeps going in slow-motion) ----------
-  function showOffer(list) {
-    const el = $('offer'); el.innerHTML = '';
-    list.forEach((o, i) => { const d = document.createElement('div'); d.className = 'card ' + o.color; d.innerHTML = svg(o.icon) + `<div class="t">${o.title}</div><div class="n">${o.val}</div>`; d.addEventListener('pointerdown', e => { e.stopPropagation(); pickCard(i); }); el.appendChild(d); });
-    const c = $('offerCost'); c.innerHTML = `COST ${KM.upgradeCost(sim.upgrades)} <u id="skipBtn">SKIP</u>`; c.classList.remove('hidden');
-    requestAnimationFrame(() => { const r = el.getBoundingClientRect(); c.style.top = (r.bottom + 6) + 'px'; });
-    $('skipBtn').onpointerdown = e => { e.stopPropagation(); sim.skipOffer(); hideOffer(); };
-  }
-  function hideOffer() { $('offer').innerHTML = ''; $('offerCost').classList.add('hidden'); }
-  function pickCard(i) { if (sim.pick(i)) { hideOffer(); audio.play('tap'); } }
 
   // ---------- flow ----------
   function show(id) { for (const s of ['title', 'over', 'pause', 'shop', 'settings']) $(s).classList.toggle('hidden', s !== id); }
-  function startRun() {
-    audio.unlock(); runId++;
+  function startRun(resume) {
+    audio.unlock(); runId++; RunSave.clear();
     const comp = !!save.settings.competitive;
-    sim.reset({ seed: (Date.now() ^ (runId * 2654435761)) >>> 0, perm: comp ? null : save.perm });
-    render.resetRun(); render.setSkin(KM.SHOP.find(s => s.id === save.equip.skin) || KM.SHOP[3]); hideOffer();
+    let resumed = false;
+    if (resume) { try { sim.restore(resume.snap); resumed = true; } catch (e) { sim.reset({ seed: (Date.now() ^ (runId * 2654435761)) >>> 0, perm: comp ? null : save.perm }); banner('SAVED RUN COULD NOT BE RESTORED', 2); } }
+    else sim.reset({ seed: (Date.now() ^ (runId * 2654435761)) >>> 0, perm: comp ? null : save.perm });
+    render.resetRun(); render.setSkin(KM.SHOP.find(s => s.id === save.equip.skin) || KM.SHOP[3]);
     state = 'run'; paused = false; show(null);
-    $('hud').classList.remove('hidden'); $('hpbar').classList.remove('hidden'); setPostureUI(0);
+    $('hud').classList.remove('hidden'); $('hpbar').classList.remove('hidden'); setPostureUI(sim.posture);
     moved = 0; setTip(save.ach.tutorial ? 4 : 0);
     if (save.ach.tutorial) { tut = 4; banner('SURVIVE!', 1.2); }
-    Analytics.track('run_start', { run: save.totals.runs + 1, competitive: comp });
-    Telemetry.begin(sim, { quality: render.quality, speed: speedNow(), comp, runN: save.totals.runs + 1 });
+    Analytics.track(resumed ? 'run_resume' : 'run_start', { run: save.totals.runs + 1, competitive: comp, resumeFailed: !!resume && !resumed });
+    if (resumed) { banner('CONTINUE', 1); RunSave.write(sim); }
+    Telemetry.begin(sim, { quality: render.quality, speed: speedNow(), comp, runN: save.totals.runs + 1, resumed, resumeFailed: !!resume && !resumed });
     hook('start');
   }
   function onDeath() {
-    audio.play('death'); audio.crowd(0, 0); KM.haptic([40, 60, 80]); hideOffer();
-    const r = lastResults = sim.results();
+    audio.play('death'); audio.crowd(0, 0); KM.haptic([40, 60, 80]);
+    const r = lastResults = sim.results(); RunSave.clear();
     const { pb } = KM.recordRun(save, r); persist();
-    Analytics.track('run_end', { survival_time: Math.floor(r.time), death_reason: r.reason, peak_army_size: r.peakArmy, currency_collected: r.coins, kills: r.kills, upgrades: r.upgrades, player_death_position: { x: +sim.L.x.toFixed(1), offZ: +sim.L.offZ.toFixed(1) }, revive_used: !!sim.revived });
+    Analytics.track('run_end', { survival_time: Math.floor(r.time), death_reason: r.reason, peak_army_size: r.peakArmy, currency_collected: r.coins, kills: r.kills, upgrades: r.upgrades, player_death_x: +sim.L.x.toFixed(1), revive_used: !!sim.revived });
     if (pb) Analytics.track('personal_best', { t: Math.floor(r.time) });
     Telemetry.end(sim, r, { quality: render.quality });
     setTimeout(() => {
@@ -227,7 +240,8 @@
   function setPause(p) { if (state !== 'run') return; paused = p; show(p ? 'pause' : null); audio.suspend(p); if (p) { buildToggles($('pToggles')); audio.crowd(0, 0); } }
   function goTitle() {
     Telemetry.flush('quit');
-    state = 'title'; $('hud').classList.add('hidden'); $('hpbar').classList.add('hidden'); $('postureBtn').classList.add('hidden'); prodBar.classList.add('hidden'); $('tip').classList.add('hidden'); hideOffer();
+    const rs = RunSave.load(); $('contBtn').classList.toggle('hidden', !rs); if (rs) $('contInfo').textContent = KM.fmtTime(rs.snap.t) + ' · ARMY ' + rs.snap.army.reduce((a, b) => a + b, 0);
+    state = 'title'; $('hud').classList.add('hidden'); $('hpbar').classList.add('hidden'); $('postureBtn').classList.add('hidden'); prodBar.classList.add('hidden'); $('tip').classList.add('hidden');
     const b = save.settings.competitive ? save.best.comp : save.best.all;
     $('titleBest').innerHTML = `<span>BEST<b>${KM.fmtTime(b)}</b></span><span>TODAY<b>${KM.fmtTime(save.best.daily.d === KM.dayKey(new Date()) ? save.best.daily.t : 0)}</b></span><span class="tok">${ICON.token ? `<svg viewBox="0 0 24 24">${ICON.token}</svg>` : ''}${save.tokens}</span>`;
     show('title'); mark('interactive');
@@ -257,10 +271,12 @@
     draw(); show('shop'); $('shopClose').onclick = () => { audio.play('tap'); back(); };
   }
 
-  $('playBtn').onclick = () => startRun();
+  $('playBtn').onclick = () => { Telemetry.landing('play'); startRun(); };
+  $('contBtn').onclick = () => { const rs = RunSave.load(); Telemetry.landing('continue'); startRun(rs || null); };
+  $('menuBtn').onclick = () => { RunSave.write(sim); paused = false; audio.suspend(false); state = 'menu'; hook('leave', false); goTitle(); };
   $('againBtn').onclick = () => { hook('leave', true); startRun(); };
   $('homeBtn').onclick = () => { hook('leave', false); goTitle(); };
-  $('shopBtn1').onclick = () => openShop(goTitle);
+  $('shopBtn1').onclick = () => { Telemetry.landing('shop'); openShop(goTitle); };
   $('shopBtn2').onclick = () => openShop(() => show('over'));
   $('setBtn1').onclick = () => { buildToggles($('sToggles')); show('settings'); };
   $('setClose').onclick = () => goTitle();
@@ -268,7 +284,7 @@
   $('resumeBtn').onclick = () => setPause(false);
   $('quitBtn').onclick = () => { paused = false; show(null); audio.suspend(false); sim.hurtLauncher(1e9, 'quit'); };
   $('reviveBtn').onclick = () => { if (sim.revive()) { state = 'run'; show(null); Analytics.track('revive_used', {}); } };
-  document.addEventListener('visibilitychange', () => { if (document.hidden) { if (state === 'run' && !paused) setPause(true); audio.suspend(true); } else if (!paused) audio.suspend(false); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { if (state === 'run') RunSave.write(sim); if (state === 'run' && !paused) setPause(true); audio.suspend(true); } else if (!paused) audio.suspend(false); });
   addEventListener('resize', () => render.resize());
   // WebGL context loss (iOS backgrounding, GPU resets): stop drawing, keep the run paused, resume when restored
   let glLost = false;
@@ -292,6 +308,7 @@
   // ---------- game speed: 1× / 1.5× / 2× on ONE authoritative clock ----------
   // game time = real time × speed, consumed in fixed 1/60 s simulation steps (same results on every device / FPS);
   // upgrade choices run in slow motion and introductions hold 1× so nothing important is decided at 2×.
+  let autoT = 0, introOn = false;   // the opaque intro covers the canvas: skip drawing so the credits stay on time on slow devices
   const SPEEDS = [1, 1.5, 2]; let speedI = Math.max(0, SPEEDS.indexOf(save.settings.speed || 1)), hold1 = 0, simMs = 0, simDebt = 0;
   const speedNow = () => SPEEDS[speedI];
   function setSpeed(i) { speedI = (i + SPEEDS.length) % SPEEDS.length; save.settings.speed = SPEEDS[speedI]; persist(); $('speedBtn').textContent = SPEEDS[speedI] + '×'; $('speedBtn').classList.toggle('fast', speedI > 0); render.speed = SPEEDS[speedI]; }
@@ -307,10 +324,10 @@
     rawMs = now - lastT; let dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
     let gdt = dt;
     if (state === 'run' && !paused) {
-      if (keys.ArrowLeft || keys.a) sim.moveBy(-dt * 14, 0); if (keys.ArrowRight || keys.d) sim.moveBy(dt * 14, 0);
-      if (keys.ArrowUp || keys.w) sim.moveBy(0, -dt * 10); if (keys.ArrowDown || keys.s) sim.moveBy(0, dt * 10);
+      if (keys.ArrowLeft || keys.a) sim.moveBy(-dt * 14); if (keys.ArrowRight || keys.d) sim.moveBy(dt * 14);
+      holdTick(dt);
       hold1 = Math.max(0, hold1 - dt);
-      const scale = sim.offer ? 0.35 : hold1 > 0 ? 1 : speedNow(); gdt = dt * scale; Telemetry.frame(sim, dt, rawMs, speedNow());
+      const scale = hold1 > 0 ? 1 : speedNow(); gdt = dt * scale; Telemetry.frame(sim, dt, rawMs, speedNow()); if ((autoT += dt) > 10) { autoT = 0; RunSave.write(sim); }
       acc += gdt; let n = 0; const s0 = performance.now();
       while (acc >= STEP && n < MAX_STEPS) { if (botOn) KM.bot(sim, STEP, 1); sim.step(STEP); acc -= STEP; n++; hook('tick', STEP); }
       if (acc > MAX_DEBT) { simDebt += acc; acc = 0; }                                   // spiral-of-death guard: drop the backlog, never stall
@@ -323,7 +340,7 @@
     // ATTACK/DEFEND arrives once the first fight has started (the first seconds stay: drag + auto-deploy only)
     if (state === 'run' && prodBar.classList.contains('hidden') && sim.alive) { prodBar.classList.remove('hidden'); prodUI(); if (!save.ach.prod) { save.ach.prod = 1; banner('CHOOSE YOUR ARMY', 1.8); } }   // composition is a choice from the first second
     if (state === 'run' && sim.t > 25 && $('postureBtn').classList.contains('hidden') && sim.alive) { $('postureBtn').classList.remove('hidden'); if (!save.ach.posture) { save.ach.posture = 1; banner('TAP DEFEND\nTO HOLD FORMATION', 2.2); } }
-    if (!paused && !glLost) { render.frame(sim, state === 'run' ? gdt : dt); mark('firstFrame'); if (state === 'run' && sim.t > 0.5) mark('gameplay'); }               // animation follows game time
+    if (!paused && !glLost && !introOn) { render.frame(sim, state === 'run' ? gdt : dt); mark('firstFrame'); if (state === 'run' && sim.t > 0.5) mark('gameplay'); }               // animation follows game time
     jsCost += ((performance.now() - js0) - jsCost) * 0.1;   // JS cost: sim + scene update + draw submission (GPU time excluded)
     adapt(dt); hook('frame', dt);
   }
@@ -331,17 +348,25 @@
   sim.reset({ seed: 7 }); for (let k = 0; k < 240; k++) { KM.bot(sim, STEP, 0.6); sim.step(STEP); }
   const attract = () => { if (state !== 'run' && sim.alive) KM.bot(sim, STEP, 0.6); if (state !== 'run' && !sim.alive) { sim.reset({ seed: 7 + Math.floor(Math.random() * 99) }); render.resetRun(); } };
   setInterval(attract, 50);
-  // ---------- deployment choice: what the command vehicle produces (AUTO keeps the original simplicity) ----------
-  const prodBar = $('prodBar');
-  prodBar.innerHTML = KM.PROD_ORDER.map(k => `<div class="pb" data-p="${k}" role="button">${KM.PROD[k].name}<small></small></div>`).join('');
-  prodBar.querySelectorAll('.pb').forEach(b => b.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); audio.unlock(); if (state === 'run' && !paused) { sim.setProd(b.dataset.p); audio.play('tap'); prodUI(); } }));
+  // ---------- army bar: pick the soldier (tile) · buy its upgrade (gold badge) · AUTO on/off ----------
+  const prodBar = $('prodBar'), TILE = [...KM.PROD_ORDER, 'tank'];
+  const metric = k => { const S = sim.stats, N = sim.nKind, F = KM.FRIEND_BY, n = k === 'tank' ? 0 : N[F[KM.PROD[k].kind].id - 32];
+    if (k === 'melee') return [n, 'DMG ' + S.dmg.toFixed(1)]; if (k === 'range') return [n, KM.rtech(S).wpn.toUpperCase()]; if (k === 'collector') return [n, 'BAG ' + Math.round(S.colCap)];
+    if (k === 'medic') return [n, 'HEAL ' + Math.round(S.medHeal)]; if (k === 'elite') return [n, 'PWR ' + S.elitePow.toFixed(2)]; return ['ERA ' + (KM.tankEra(S, sim.t) + 1), 'LV ' + sim.upgrades]; };
+  prodBar.innerHTML = TILE.map(k => `<div class="pb${k === 'tank' ? ' tk' : ''}" data-p="${k}" role="button"><b>${k === 'tank' ? 'TANK' : KM.PROD[k].name}</b><i></i><small></small><u class="ub hidden" data-g="${k}" role="button"></u></div>`).join('') + '<div class="pb auto" id="autoBtn" role="button"><b>AUTO</b><small>ON</small></div>';
+  prodBar.querySelectorAll('.pb').forEach(b => b.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); audio.unlock(); if (state !== 'run' || paused) return;
+    if (e.target.classList.contains('ub')) { if (sim.buy(e.target.dataset.g)) { audio.play('upgrade'); KM.haptic(15); } prodUI(); return; }   // the small badge buys; the tile selects
+    if (b.id === 'autoBtn') { sim.setAuto(!sim.auto); audio.play('tap'); prodUI(); return; }
+    if (b.dataset.p !== 'tank') { sim.setProd(b.dataset.p); audio.play('tap'); prodUI(); } }));
   function prodUI() {
-    for (const b of prodBar.children) { const k = b.dataset.p, P = KM.PROD[k], lock = !sim.prodAvail(k), cap = P.cap ? sim.stats[P.cap] : 0, have = P.kind ? sim.nKind[KM.FRIEND_BY[P.kind].id - 32] : 0;
-      b.classList.toggle('on', sim.prod === k); b.classList.toggle('lock', lock);
-      b.lastChild.textContent = lock ? 'MIN ' + P.at : P.cap ? (have >= cap ? 'MAX ' : '') + have + '/' + cap : k === 'auto' ? 'BALANCED' : have; }
+    const cost = sim.upCost(), afford = sim.coins >= cost;
+    for (const b of prodBar.children) { if (b.id === 'autoBtn') { b.classList.toggle('on', sim.auto); b.lastChild.textContent = sim.auto ? 'ON' : 'TAP TANK'; continue; }
+      const k = b.dataset.p, m = metric(k), up = sim.ups && sim.ups[k], ub = b.querySelector('.ub');
+      b.classList.toggle('on', sim.prod === k); b.children[1].textContent = k === 'tank' ? m[0] : m[0] + (k !== 'tank' ? ' · ' + KM.PROD[k].cost + '¢' : ''); b.children[2].textContent = m[1];
+      ub.classList.toggle('hidden', !up); ub.classList.toggle('can', !!up && afford); if (up) { ub.textContent = (up.val || up.title).split(' ')[0].slice(0, 6); ub.title = up.title + ' ' + (up.val || ''); } if (up && afford && tut === 2) setTip(3); }
   }
-  setInterval(() => { if (state === 'run' && !prodBar.classList.contains('hidden')) prodUI(); }, 400);
-  sim.on(t => { if (t === 'prod') prodUI(); });
+  setInterval(() => { if (state === 'run' && !prodBar.classList.contains('hidden')) prodUI(); }, 300);
+  sim.on(t => { if (t === 'prod' || t === 'auto' || t === 'upgrade') prodUI(); });
   // ---------- ATTACK / DEFEND: the one posture control ----------
   const cue = {};
   function setPostureUI(p) { const b = $('postureBtn'); b.classList.toggle('def', !!p); $('postureTxt').textContent = p ? 'DEFEND' : 'ATTACK'; $('postureSub').textContent = p ? 'TAP TO ATTACK' : 'TAP TO DEFEND'; }
@@ -349,7 +374,18 @@
   addEventListener('keydown', e => { if (e.code === 'Space' && state === 'run' && !paused) { e.preventDefault(); sim.togglePosture(); } });
   setSpeed(speedI);
   // the private build attaches its tools here; the public build has no KM.internalInit and ships none of them
-  const api = { sim, render, audio, startRun, setPause, goTitle, banner, hideOffer, save, persist, H, setSpeed, speedNow, get glLost() { return glLost; }, get state() { return state; }, set state(v) { state = v; }, get jsCost() { return jsCost; }, get rawMs() { return rawMs; }, get botOn() { return botOn; }, set botOn(v) { botOn = !!v; }, setQuality: q => { pendingQ = q; } };
-  if (KM.internalInit) KM.internalInit(api); else goTitle();
+  const api = { sim, render, audio, startRun, setPause, goTitle, banner, save, persist, H, setSpeed, speedNow, get glLost() { return glLost; }, get state() { return state; }, set state(v) { state = v; }, get jsCost() { return jsCost; }, get rawMs() { return rawMs; }, get botOn() { return botOn; }, set botOn(v) { botOn = !!v; }, setQuality: q => { pendingQ = q; } };
+  addEventListener('pagehide', () => { if (state === 'run') RunSave.write(sim); });
+  // short credits on a fresh session (tap to skip), then the landing screen; gameplay assets finish loading underneath
+  function intro(done) {
+    let seen = false; try { seen = sessionStorage.getItem('kmob.intro') === '1'; sessionStorage.setItem('kmob.intro', '1'); } catch (e) { /* ignore */ }
+    if (seen) return done();
+    const el = $('intro'), ln = $('introLine'), cards = ['<small>PRESENTED BY</small><b>KEEPITIL</b>', '<small>DEVELOPED BY</small><b>TUITEA</b>', '<b class="logo">KMOB</b>'];
+    let k = 0, t = 0, end = false; el.classList.remove('hidden'); introOn = true; mark('credits');
+    const fin = () => { if (end) return; end = true; introOn = false; clearTimeout(t); el.classList.add('hidden'); done(); };
+    const next = () => { if (k >= cards.length) return fin(); ln.classList.remove('on'); setTimeout(() => { ln.innerHTML = cards[k++]; ln.classList.add('on'); t = setTimeout(next, k === cards.length ? 900 : 780); }, k ? 160 : 0); };
+    el.addEventListener('pointerdown', fin); next();
+  }
+  if (KM.internalInit) KM.internalInit(api); else intro(goTitle);
   requestAnimationFrame(loop);
 })();

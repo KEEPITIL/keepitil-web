@@ -1,7 +1,7 @@
 /* KWSkeletal — skeletal/sprite render path (Evolution Directive §4, Volume 0).
  *
  * Third branch of the renderer selector in drawRigUnit():
- *   procedural (KWRig.drawSoldier) | lite (KWRig.drawSoldierLite) | skeletal (this)
+ *   procedural (KWRig.drawSoldier) | skeletal (this)
  *
  * The game keeps its animation-state contract (idle, march, run, attack, overhead,
  * fury, throw, die_kneel, die_back, die_impale — giants: idle, walk, slam, stomp,

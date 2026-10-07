@@ -3129,22 +3129,14 @@ function drawRigUnit(u, corpse, cls, s, x, y){
     KWSkeletal.draw(ctx, rcls, st, p, {team:u.team, era:po.era, alpha:po.alpha,
       dropShield:po.dropShield, dropHelmet:po.dropHelmet, extra:po.extra});
   if (!skel){
-    if (rigLite()) KWRig.drawSoldierLite(ctx, rcls, po, C, u.team);
-    else KWRig.drawSoldier(ctx, rcls, po, C, u.team, armorCls);
+    KWRig.drawSoldier(ctx, rcls, po, C, u.team, armorCls);
   }
   }
   legacyRig();
   ctx.restore();
 }
-// Weaker / performance "lite" soldiers: on when the graphics setting is 'lite', or
-// auto when the battlefield is very crowded so weak devices keep a smooth framerate.
-/* SOLDIER FOUNDATION §3 (V1 hotfix, Build 86): the full soldier rig is the ONLY normal renderer. Build 82's frame-time
-   adaptation and the older >320-unit rule could swap players' soldiers for the light rig mid-battle on slower devices
-   (reported from live play). Nothing switches automatically any more; the light rig is reachable only by a player who
-   explicitly picks it in Settings -> Soldier detail. */
-function rigLite(){
-  return !!(window.KWArt && KWArt.settings && KWArt.settings.graphics==='lite');
-}
+/* C2 (Directive Candidate 2 §9): the full articulated rig is the ONLY production soldier renderer. The rejected thin "Lite"
+   renderer, its Settings option and every automatic switch to it were removed; Git history (kwars-b86) keeps them. */
 function drawStick(u, corpse){
   const T = TYPES[u.type];
   const age=S ? (u.team===1?S.civ:S.enemyCiv) : 1;
@@ -4758,7 +4750,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:'){
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 86;
+  const KW_PAGE_BUILD = 87;
   /* The comparison MUST run after build-info.js has executed. It used to run right here -- 20 lines BEFORE the
      build-info <script> -- so window.KWBuild was always undefined, the mismatch test was always false and the heal
      never fired (found by tools/tests/update-path-golden.js: a new page on stale scripts stayed mixed for good).

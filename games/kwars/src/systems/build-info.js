@@ -1,4 +1,4 @@
 (function(){
   'use strict';
-  window.KWBuild=Object.freeze({appVersion:'1.0.0',buildNumber:86,commitHash:'build-86-v1 hotfix: no auto soldier degradation',contentVersion:'2026.09.11.01',saveSchemaVersion:3,analyticsSchemaVersion:1,environment:'production',modeId:'UNIVERSAL_BASE_SOLDIER_RIG'});
+  window.KWBuild=Object.freeze({appVersion:'1.0.0',buildNumber:87,commitHash:'build-87-c2',contentVersion:'2026.09.11.01',saveSchemaVersion:3,analyticsSchemaVersion:1,environment:'production',modeId:'UNIVERSAL_BASE_SOLDIER_RIG'});
 })();

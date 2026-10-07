@@ -18,7 +18,7 @@
         x: f(CAP), z: f(CAP), vx: f(CAP), vz: f(CAP), hp: f(CAP), mhp: f(CAP), dmg: f(CAP), cd: f(CAP), at: f(CAP), spd: f(CAP),
         rng_: f(CAP), arm: f(CAP), rad: f(CAP), sc: f(CAP), phase: f(CAP), swing: f(CAP), flash: f(CAP), die: f(CAP), slow: f(CAP),
         yaw: f(CAP), think: f(CAP), birth: f(CAP), stride: f(CAP), team: u(CAP), kind: u(CAP), st: u(CAP), era: u(CAP), elite: u(CAP),
-        tgt: i(CAP), next: i(CAP), freeL: i(CAP), carry: f(CAP), ctg: i(CAP), mt: f(CAP), mph: u(CAP), em: u(CAP), br: u(CAP), wv: i(CAP), pt: u(CAP), evo: u(CAP), merc: f(CAP), grp: i(CAP), gox: f(CAP), goz: f(CAP), spear: u(CAP), frank: u(CAP), fcol: i(CAP), role: u(CAP), roleT: f(CAP), atkN: u(CAP), swd: f(CAP), pend: i(CAP), pcrit: u(CAP), pdmg: f(CAP),
+        tgt: i(CAP), next: i(CAP), freeL: i(CAP), carry: f(CAP), ctg: i(CAP), repairing: u(CAP), mt: f(CAP), mph: u(CAP), em: u(CAP), br: u(CAP), wv: i(CAP), pt: u(CAP), evo: u(CAP), merc: f(CAP), grp: i(CAP), gox: f(CAP), goz: f(CAP), spear: u(CAP), frank: u(CAP), fcol: i(CAP), role: u(CAP), roleT: f(CAP), atkN: u(CAP), swd: f(CAP), pend: i(CAP), pcrit: u(CAP), pdmg: f(CAP),
         gh: i(GCOLS * GROWS * 2),
         p: { x: f(PCAP), z: f(PCAP), sx: f(PCAP), sz: f(PCAP), ex: f(PCAP), ez: f(PCAP), t: f(PCAP), tof: f(PCAP), dmg: f(PCAP), spl: f(PCAP), slow: f(PCAP), h: f(PCAP), team: u(PCAP), kind: u(PCAP), on: u(PCAP), tgt: i(PCAP), crit: u(PCAP), src: u(PCAP), pen: u(PCAP) },
         c: { x: f(CCAP), z: f(CCAP), v: f(CCAP), age: f(CCAP), st: u(CCAP), y: f(CCAP), vy: f(CCAP), dx: f(CCAP), dz: f(CCAP) },
@@ -38,9 +38,9 @@
       this.t = 0; this.front = 0; this.alive = true; this.deathReason = ''; this.ended = false;
       this.stats = KM.applySkins(KM.baseStats(), this.skins);
       this.L = { x: 0, z: 2, tx: 0, hp: this.stats.maxHp, hitT: 9, inv: 0, vx: 0, fire: 0, wheel: 0, cd: 0.6, mcd: 2, aim: Math.PI, gun: 0, sh: 0, shMax: 0, shDown: 0, shHit: 9 };
-      this.posture = 0; this.postureT = 0; this.src = 0; this.dmgBy = [0, 0, 0, 0]; this.shAbsorbed = 0; this.colCoins = 0; this.colLost = 0; this.nCol = 0; this.colT = 0; this.colList = []; this.prod = 'melee'; this.auto = true; this.sector = null; this.seenSector = {}; this.bossN = 0; this.wave = 0; this.wState = 0; this.wGap = 3; this.wQueue = []; this.waveLeft = 0; this.waveSpawned = 0; this.waveStart = 0; this.energy = 0; this.choice = null; this.bossesKilled = 0; this.warTokens = 0; this.pcd = {}; this.storm = null; this.fortT = 0; this.mercs = 0; this.nKind = new Int32Array(64); this.prodNext = null; this.healed = 0;
+      this.posture = 0; this.postureT = 0; this.src = 0; this.dmgBy = [0, 0, 0, 0]; this.shAbsorbed = 0; this.colCoins = 0; this.colLost = 0; this.nCol = 0; this.colT = 0; this.colList = []; this.prod = 'melee'; this.auto = true; this.sector = null; this.seenSector = {}; this.bossN = 0; this.wave = 0; this.wState = 0; this.wGap = 3; this.wQueue = []; this.waveLeft = 0; this.waveSpawned = 0; this.waveStart = 0; this.energy = 0; this.choice = null; this.bossesKilled = 0; this.warTokens = 0; this.pcd = {}; this.storm = null; this.fortT = 0; this.mercs = 0; this.nKind = new Int32Array(64); this.prodNext = null; this.healed = 0; this.repaired = 0; this.repairOn = 0; this.nRepair = 0;
       this.deployAcc = 0; this.budget = 3; this.overflow = 0; this.formT = 0.6; this.warn = null;
-      this.coins = KM.START_BANK; this.coinsTotal = 0; this.kills = 0; this.peakArmy = 0; this.upgrades = 0; this.ups = null; this.upT = 0; this.groups = []; this.pts = 0; this.emergency = 0; this.nBoss = 0; this.bossI = -1; this.charge = { melee: 0, range: 0, elite: 0, giant: 0 }; this.breaches = 0; this.rowLoss = [0, 0, 0, 0]; this.fillN = 0; this.fillSum = 0;
+      this.coins = KM.START_BANK; this.coinsTotal = 0; this.kills = 0; this.peakArmy = 0; this.upgrades = 0; this.ups = null; this.upT = 0; this.groups = []; this.pts = 0; this.emergency = 0; this.nBoss = 0; this.bossI = -1; this.charge = { collector: 0, range: 0, melee: 0, elite: 0, giant: 0 }; this.posture = 1; this.breaches = 0; this.rowLoss = [0, 0, 0, 0]; this.fillN = 0; this.fillSum = 0;
       this.towers = [null, null, null, null];
       this.spawnCounter = 0; this.lastHit = 99; this.danger = 0; this.killsByKind = {};
       this.debugLog = []; this.diff = KM.difficulty(0);
@@ -59,8 +59,16 @@
     togglePosture() { this.setPosture(this.posture ? 0 : 1); }
     // ---------- production: what the command vehicle deploys ----------
     setProd(m) { if (!KM.PROD[m] || m === this.prod) return; this.prod = m; this.emit('prod', m); }   // one selected type; AUTO never picks another
-    typeOf(i) { const k = this.kind[i]; return k === 33 ? 'range' : k === 34 ? 'elite' : k === 37 ? 'giant' : 'melee'; }
-    setCharge(type, on) { if (!(type in this.charge)) return; on = on ? 1 : 0; if (this.charge[type] === on) return; if (on) for (const k in this.charge) if (k !== type && this.charge[k]) { this.charge[k] = 0; this.emit('charge', k, 0); } this.charge[type] = on; this.emit('charge', type, on); }   // one order at a time: a new one recalls the previous   // DEFEND: one soldier type attacks, the rest hold
+    typeOf(i) { const k = this.kind[i]; return k === 33 ? 'range' : k === 34 ? 'elite' : k === 37 ? 'giant' : k === 35 ? 'collector' : k === 36 ? 'mizard' : 'melee'; }
+    setCharge(type, on) { if (!(type in this.charge)) return; on = on ? 1 : 0; if (this.charge[type] === on) return; this.charge[type] = on; this.emit('charge', type, on); }   // DEFEND: this class leaves the formation and attacks; the others keep their orders
+    attacking(type) { return this.posture === 0 || !!this.charge[type]; }
+    // tap ATTACK / DEFEND: the selected class only. From ALL ATTACK, recalling one class keeps every other class attacking.
+    orderClass(type, on) { if (!(type in this.charge)) return false; on = on ? 1 : 0; if (this.attacking(type) === !!on) return false;
+      if (this.posture === 0) { for (const k in this.charge) this.charge[k] = k === type ? 0 : 1; this.setPosture(1); this.emit('charge', type, 0); return true; }
+      this.setCharge(type, on); return true; }
+    // hold: the whole army (Looters included)
+    allAttack() { for (const k in this.charge) this.charge[k] = 0; this.setPosture(0); this.emit('allOrder', 0); }
+    allDefend() { for (const k in this.charge) this.charge[k] = 0; this.setPosture(1); this.emit('allOrder', 1); }
     setAuto(on) { on = !!on; if (on === this.auto) return; this.auto = on; this.emit('auto', on); }
     prodCost() { return KM.PROD[this.prod].cost; }
     clsLv(key) { return this.stats.cls[key]; }
@@ -72,7 +80,7 @@
       const P = KM.PROD[key], S = this.stats, def = KM.FRIEND_BY[P.kind], lv = S.cls[key], M = this.clsM(key, lv), ev = lv >= KM.EVOLVE_AT;
       const j = this.spawn(0, def, x, z, { hp: S.hp * M.hp * (ev ? 1.25 : 1), dmg: S.dmg, arm: M.arm, spd: def.col ? S.colSpeed : S.speed / 4, birth });
       if (j < 0) return -1; this.pt[j] = KM.unitPts(key, ev); this.pts += this.pt[j]; this.nKind[def.id - 32]++;
-      if (ev) { this.evo[j] = 1; this.sc[j] *= 1.3; this.rad[j] *= 1.2; } if (key === 'giant') this.sc[j] *= 1 + 0.04 * (lv - 1);
+      if (ev) { this.evo[j] = 1; this.rad[j] *= 1.2; }   // evolved: stronger and costs 2 points, but the model never changes with level
       return j;
     }
     deployOne(how) {
@@ -301,7 +309,7 @@
       this.pfree = (k + 1) % PCAP;
       const d = Math.hypot(ex - sx, ez - sz);
       P.on[k] = 1; P.team[k] = team; P.kind[k] = kind; P.sx[k] = P.x[k] = sx; P.sz[k] = P.z[k] = sz; P.ex[k] = ex; P.ez[k] = ez; P.t[k] = 0;
-      P.tof[k] = Math.max(0.12, d / speed); P.dmg[k] = dmg; P.spl[k] = spl || 0; P.slow[k] = slow || 0; P.tgt[k] = tgt; P.h[k] = Math.min(4, 0.6 + d * 0.18) * (kind >= 10 && kind <= 16 ? KM.RTECH[kind - 10].arc : kind === 20 ? 0.15 : kind === 21 ? 0.9 : kind === 22 ? 0.45 : 1); P.crit[k] = crit ? 1 : 0; P.src[k] = src || 0; P.pen[k] = 0; this.lastShot = k;
+      P.tof[k] = Math.max(0.12, d / speed); P.dmg[k] = dmg; P.spl[k] = spl || 0; P.slow[k] = slow || 0; P.tgt[k] = tgt; P.h[k] = Math.min(4, 0.6 + d * 0.18) * (kind === 12 && team === 0 ? KM.rtech(this.stats).arc : kind >= 10 && kind <= 16 ? KM.RTECH[kind - 10].arc : kind === 20 ? 0.15 : kind === 21 ? 0.9 : kind === 22 ? 0.45 : 1); P.crit[k] = crit ? 1 : 0; P.src[k] = src || 0; P.pen[k] = 0; this.lastShot = k;
       this.emit('shot', kind, sx, sz);
     }
 
@@ -358,6 +366,11 @@
     // ---------- inline upgrades ----------
     // ---------- class levels (independent tracks, 1…10; level 8 = final evolution) ----------
     clsM(key, lv) { const M = KM.clsMul(key, lv), b = (this.stats.skin || {})[key]; if (b) { M.hp *= 1 + (b.hp || 0); M.dmg *= 1 + (b.dmg || 0); M.arm += b.armor || 0; } return M; }   // class level × Armory skin
+    // per-unit numbers of a class at level lv (HUD: Lv · DMG, upgrade preview): hp, attack damage (Mizard: heal per beam), armour
+    classInfo(key, lv) { const S = this.stats, d = KM.FRIEND_BY[KM.PROD[key].kind], M = this.clsM(key, lv), ev = lv >= KM.EVOLVE_AT;
+      let dmg = S.dmg * d.dmg * M.dmg * (ev ? 1.2 : 1); if (d.r) dmg *= KM.RTECH[Math.min(KM.RTECH.length - 1, KM.ERA_BY_LV[lv - 1])].dmg * (1 + 0.08 * (lv - 1));
+      if (d.med) dmg = 7 * (1 + 0.12 * (lv - 1)) * (1 + (((S.skin || {}).mizard || {}).heal || 0));
+      return { hp: S.hp * d.hp * M.hp * (ev ? 1.25 : 1), dmg, arm: M.arm, heal: !!d.med }; }
     clsCost(key) { const lv = this.stats.cls[key]; return lv >= KM.CLASS_MAX ? Infinity : KM.clsUpCost(key, lv); }
     levelUp(key) {
       const S = this.stats, lv = S.cls[key]; if (!this.alive || lv >= KM.CLASS_MAX || this.coins < KM.clsUpCost(key, lv)) return false;
@@ -367,7 +380,7 @@
       const S = this.stats, A = this.clsM(key, from), B = this.clsM(key, to), kind = KM.FRIEND_BY[KM.PROD[key].kind].id, evolve = from < KM.EVOLVE_AT && to >= KM.EVOLVE_AT;
       for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE || this.team[i] || this.kind[i] !== kind || this.merc[i]) continue;
         const f = B.hp / A.hp; this.mhp[i] *= f; this.hp[i] *= f; this.arm[i] += B.arm - A.arm;
-        if (key === 'giant') this.sc[i] *= (1 + 0.04 * (to - 1)) / (1 + 0.04 * (from - 1)); }
+      }
       this.classStats();
       if (evolve) this.emit('evolve', key);
     }
@@ -380,7 +393,7 @@
       // final evolution happens soldier by soldier, only while a free army point exists — the 300 points are never exceeded
       for (const key of KM.PROD_ORDER) { if (C[key] < KM.EVOLVE_AT) continue; const kind = KM.FRIEND_BY[KM.PROD[key].kind].id;
         for (let i = 0; i < this.hi && this.pts < S.cap; i++) if (this.st[i] === ALIVE && !this.team[i] && this.kind[i] === kind && !this.evo[i] && !this.merc[i]) {
-          this.evo[i] = 1; this.sc[i] *= 1.3; this.rad[i] *= 1.2; this.mhp[i] *= 1.25; this.hp[i] *= 1.25; const np = KM.unitPts(key, true); this.pts += np - this.pt[i]; this.pt[i] = np; } }
+          this.evo[i] = 1; this.rad[i] *= 1.2; this.mhp[i] *= 1.25; this.hp[i] *= 1.25; const np = KM.unitPts(key, true); this.pts += np - this.pt[i]; this.pt[i] = np; } }
     }
     rollUps() {                                                                                    // keep one valid next-upgrade per category (stable until bought or invalid)
       const G = KM.upgradeOptions(this), ups = this.ups || (this.ups = {});
@@ -605,7 +618,7 @@
       return best;
     }
     stepUnits(dt, S) {
-      const front = this.front, L = this.L, aggro0 = 11, aggro1 = 10, COH = 27, fN = Math.max(1, this.count[0] - this.nCol); let nCol = 0; this.colList.length = 0;
+      const front = this.front, L = this.L, aggro0 = 11, aggro1 = 10, COH = 27, fN = Math.max(1, this.count[0] - this.nCol); let nCol = 0; this.colList.length = 0; this.nRepair = 0;
       for (let i = 0; i < this.hi; i++) {
         if (this.st[i] !== ALIVE) continue;
         const team = this.team[i];
@@ -624,7 +637,7 @@
         if (this.roleT[i] > 0) { this.roleT[i] -= dt; if (this.roleT[i] <= 0 && this.role[i] === 2) this.role[i] = 1; }
         else if (adv > 0.3 && this.role[i] < 2 && this.rng() < dt * 0.35) { this.role[i] = 2; this.roleT[i] = 3 + this.rng() * 3; this.think[i] = 0; }
         let dvx = 0, dvz = 0;
-        const isCol = team === 0 && this.role[i] === 4, defend = team === 0 && this.posture === 1 && !this.charge[this.typeOf(i)];   // a type ordered to ATTACK leaves the formation
+        const isCol = team === 0 && this.role[i] === 4 && !this.attacking('collector'), defend = team === 0 && this.posture === 1 && !this.charge[this.typeOf(i)];   // a type ordered to ATTACK leaves the formation
         if (isCol) { nCol++; this.colList.push(i); this.collector(i, dt, S); dvx = this.cvx; dvz = this.cvz; }
         else if (team === 0 && this.role[i] === 5) { this.medic(i, dt, S); dvx = this.cvx; dvz = this.cvz; }
         else {
@@ -846,9 +859,22 @@
 
     // Collector: find a coin beyond the tank's magnet (inside a retrieval radius, not near enemies, not claimed) → carry → return → deposit.
     // Currency only counts once deposited; a collector killed on the way drops half its load.
+    // LOOTER (automatic): 1) loot dropped coins and carry them home · 2) repair the tank when it is badly damaged ·
+    // 3) knife self-defense when enemies break through to them or to the tank. ALL ATTACK sends them into the assault instead.
     collector(i, dt, S) {
       const L = this.L, C = this.c, x = this.x[i], z = this.z[i], sp = this.spd[i] * (S.speed / 4.3), cap = S.colCap, RR = 17, mg = S.magnet;
       let gx = L.x + 0.9, gz = L.z - 0.4, run = 0.75;
+      this.repairing[i] = 0;
+      // self / rear defense: an enemy at arm's length, or one hitting the tank close by
+      let foe = this.nearestXZ(x, z, 1, 2.4); if (foe < 0 && this.lDist(x, z) < 4) { const t = this.nearestXZ(L.x, L.z, 1, 2.6); if (t >= 0) foe = t; }
+      if (foe >= 0) {
+        const dx = this.x[foe] - x, dz = this.z[foe] - z, d = Math.sqrt(dx * dx + dz * dz) || 1e-3, reach = this.rng_[i] + this.rad[i] + this.rad[foe];
+        this.ctg[i] = -1; this.yaw[i] = Math.atan2(dx, dz);
+        if (d > reach) { this.cvx = dx / d * sp; this.cvz = dz / d * sp; return; }
+        this.cvx = this.cvz = 0; this.at[i] -= dt * S.atk;
+        if (this.at[i] <= 0) { this.at[i] = this.cd[i] * (0.9 + this.rng() * 0.2); this.attack(i, foe, this.x[foe], this.z[foe], S); }
+        return;
+      }
       const threat = this.nearestXZ(x, z, 1, 3.2) >= 0;
       if (this.ctg[i] >= 0 && C.st[this.ctg[i]] !== 1) this.ctg[i] = -1;
       this.think[i] -= dt;
@@ -865,9 +891,15 @@
       if (threat) this.ctg[i] = -1;                                                    // pressure: drop the run, head home
       else if (k >= 0 && this.carry[i] < cap) { gx = C.x[k]; gz = C.z[k]; run = 1;
         if (Math.abs(C.x[k] - x) < 0.7 && Math.abs(C.z[k] - z) < 0.7) { this.carry[i] += C.v[k]; C.st[k] = 0; this.ctg[i] = -1; this.emit('pickup', i, C.v[k]); } }
+      // nothing to loot and nothing carried: repair a meaningfully damaged tank (from 75% HP until 92%)
+      const hpF = L.hp / S.maxHp; if (hpF < 0.75) this.repairOn = 1; else if (hpF > 0.92) this.repairOn = 0;
+      if (k < 0 && !this.carry[i] && this.repairOn && this.nRepair < 6 && this.alive) {
+        const side = (i % 2 ? 1 : -1) * 1.15; gx = L.x + side; gz = L.z + 0.2; run = 1; this.nRepair++;
+        if (Math.hypot(gx - x, gz - z) < 0.9) { this.repairing[i] = 1; const h = S.maxHp * 0.0025 * (1 + 0.1 * (S.cls.collector - 1)) * dt; this.heal(h); this.repaired += h; this.swing[i] = this.swing[i] > 0 ? this.swing[i] : 1; if ((this.stepN + i) % 40 === 0) this.emit('repair', i); }
+      }
       const dx = gx - x, dz = gz - z, d = Math.sqrt(dx * dx + dz * dz) || 1e-3;
       if (this.carry[i] > 0 && this.lDist(x, z) < 1.6) { const v = this.carry[i]; this.carry[i] = 0; this.coins += v; this.coinsTotal += v; this.colCoins += v; this.emit('coin', v); this.emit('deposit', i, v); }
-      const s2 = d > 0.3 ? sp * run * Math.min(1, d / 1.5) : 0; this.cvx = dx / d * s2; this.cvz = dz / d * s2; this.yaw[i] = Math.atan2(dx, dz);
+      const s2 = d > 0.3 ? sp * run * Math.min(1, d / 1.5) : 0; this.cvx = dx / d * s2; this.cvz = dz / d * s2; this.yaw[i] = this.repairing[i] ? Math.atan2(L.x - x, L.z - z) : Math.atan2(dx, dz);
     }
 
     separate(i, dt) {
@@ -912,7 +944,7 @@
       }
       if (d.r) {
         let kind = d.wpn === 'cannon' ? 1 : d.wpn === 'staff' ? 3 : 0, speed = kind === 1 ? 11 : 18;
-        if (team === 0) { const T = KM.rtech(S); kind = 10 + (S.rtech || 0); speed = T.speed; dmg *= T.dmg * S.rdmg; }   // friendly ranged: weapon era
+        if (team === 0) { const T = KM.rtech(S); kind = 12; speed = T.speed; dmg *= T.dmg * S.rdmg; }   // friendly ranged: always arrows (bow tier sets speed / damage)
         let ex = tx, ez = tz;
         if (tg >= 0) { const tof = Math.hypot(tx - this.x[i], tz - this.z[i]) / speed; ex += this.vx[tg] * tof; ez += this.vz[tg] * tof; }
         this.fire(team, this.x[i], this.z[i], tg, ex, ez, dmg, kind, d.s || 0, 0, speed, crit, 1);
@@ -1026,7 +1058,7 @@
       if (!o || o.v !== 1 || !(o.t > 0) || !o.stats || !Array.isArray(o.army)) throw new Error('bad snapshot');
       this.reset({ seed: (o.seed ^ Math.floor(o.t * 977)) >>> 0 });
       const { stats, L, army, towers } = o; delete o.stats; delete o.L; delete o.army; delete o.towers; delete o.v; delete o.seed;
-      Object.assign(this.stats, stats); for (const k in o) if (k in this || k === 'auto') this[k] = o[k];
+      Object.assign(this.stats, stats); for (const k in o) if (k in this || k === 'auto') this[k] = o[k]; this.charge = Object.assign({ collector: 0, range: 0, melee: 0, elite: 0, giant: 0 }, this.charge);
       if (this.wave && this.wState === 1) this.wave -= 1; this.wState = 0; this.wGap = 2.5; this.choice = null; Object.assign(this.L, L); this.L.z = this.front; this.diff = KM.difficulty(this.t);
       towers.forEach((t, s) => { if (t && KM.TOWERS[t.type]) { const T = this.makeTower(t.type, t.lvl, s); T.hp = Math.min(T.mhp, t.hp); T.down = t.down; this.towers[s] = T; } });
       const S = this.stats; let n = 0;

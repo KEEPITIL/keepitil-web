@@ -51,8 +51,6 @@
     if (k && k.startsWith('t_')) { const c = T_ICON[k.slice(2)]; return `<svg viewBox="0 0 24 24">${ICON.tower}<circle cx="12" cy="13.5" r="3" fill="${c}" stroke="#fff" stroke-width="1"/></svg>`; }
     return `<svg viewBox="0 0 24 24">${ICON[k] || ICON.star}</svg>`;
   };
-  for (const [id, k] of [['icT', 'clock'], ['icA', 'army'], ['icW', 'wave'], ['icG', 'coin'], ['icD', 'diamond'], ['icTank', 'tank']]) $(id).innerHTML = svg(k);
-  $('pauseBtn').innerHTML = svg('gear');
   $('setBtn1').innerHTML = svg('gear');
   $('homeBtn').innerHTML = svg('home') + 'HOME'; $('shopBtn2').innerHTML = svg('shop') + 'SHOP';
   $('tipHand').innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 11V4.5a1.5 1.5 0 013 0V10l5.2 1.1c1.2.3 1.9 1.4 1.7 2.6L18 20H9.5l-4-5.2c-.6-.8-.4-1.9.4-2.4.7-.5 1.7-.3 2.3.3z" fill="#fff" stroke="#0e1a33" stroke-width="1.2"/></svg>';
@@ -88,7 +86,7 @@
       move(x) { if (R) R.moves++; },
       ev(sim, t, a, b) { if (!R) return; const tt = Math.round(sim.t);
         if (t === 'prod') R.prod.push([a, tt]); else if (t === 'auto') R.auto.push([a ? 1 : 0, tt]); else if (t === 'charge' && typeof a === 'string') (R.charges = R.charges || []).push([a, b, tt]); else if (t === 'bossFight') (R.bossFights = R.bossFights || []).push([a, tt]); else if (t === 'posture') R.posture.push([a, tt]); else if (t === 'sector') R.sectors.push([a, tt]);
-        else if (t === 'bossReward') (R.bossKills = R.bossKills || []).push([sim.wave, tt]); else if (t === 'power') (R.powerUse = R.powerUse || []).push([a, tt]); else if (t === 'levelUp') (R.levels = R.levels || []).push([a, b, tt]); else if (t === 'emergency') R.emerg = (R.emerg || 0) + 1;
+        else if (t === 'bossReward') (R.bossKills = R.bossKills || []).push([sim.wave, tt]); else if (t === 'power') (R.powerUse = R.powerUse || []).push([a, tt]); else if (t === 'levelUp') (R.levels = R.levels || []).push([a, b, tt]); else if (t === 'emergency') R.emerg = (R.emerg || 0) + 1; else if (t === 'allOrder') (R.allOrders = R.allOrders || []).push([a, tt]);
         else if (t === 'wave' && R.waves[a] != null) { R.waves[a]++; if (a !== 'push') R.bosses.push([b, tt]); } else if (t === 'upgrade') R.ups.push([a.id, tt, b || '']); },
       frame(sim, dt, ms, speed) { if (!R) return; if (ms > 250) R.stalls++; if (ms > R.worstMs && ms < 5000) R.worstMs = Math.round(ms); R.speedSecs[speed] = (R.speedSecs[speed] || 0) + dt;
         R.lane[Math.max(0, Math.min(4, Math.floor((sim.L.x + KM.W.LANE) / (2 * KM.W.LANE) * 5)))] += dt; if (sim.posture) R.defendSecs += dt;
@@ -98,7 +96,7 @@
         if (R.fps.length % 10 === 1) R.samples.push([Math.round(sim.t), sim.count[0], sim.count[1], Array.from(sim.nKind.slice(0, KM.FRIEND.length)), sim.posture, sim.sector, perf ? perf.quality : '', perf ? +perf.simMs.toFixed(2) : 0]); },
       qdown(to, fps) { if (R) R.qdown.push([to, Math.round(fps)]); },
       end(sim, r, ctx) { if (!R) return; const S = sim.stats;
-        Object.assign(R, { wave: sim.wave, bossesKilled: sim.bossesKilled, warTokens: sim.warTokens, cls: Object.assign({}, S.cls), goldSpent: Math.max(0, Math.round(sim.coinsTotal + KM.START_BANK - sim.coins)), energyUsed: sim.powersUsed || 0, emergencies: sim.emergencies || 0, mizardHeal: Math.round(sim.healed || 0), giants: sim.nKind[KM.FRIEND_BY.giantF.id - 32], pts: sim.pts, equipped: sim.equipped.slice() });
+        Object.assign(R, { wave: sim.wave, bossesKilled: sim.bossesKilled, warTokens: sim.warTokens, cls: Object.assign({}, S.cls), goldSpent: Math.max(0, Math.round(sim.coinsTotal + KM.START_BANK - sim.coins)), energyUsed: sim.powersUsed || 0, emergencies: sim.emergencies || 0, mizardHeal: Math.round(sim.healed || 0), looterRepair: Math.round(sim.repaired || 0), speedLabel: speedI + 1, giants: sim.nKind[KM.FRIEND_BY.giantF.id - 32], pts: sim.pts, equipped: sim.equipped.slice() });
         Object.assign(R, { secs: Math.round(r.time), reason: r.reason, kills: r.kills, coins: r.coins, peakArmy: r.peakArmy, upgrades: r.upgrades, era: KM.tankEra(S, sim.t), q1: ctx.quality,
           dmg: { melee: Math.round(sim.dmgBy[0]), ranged: Math.round(sim.dmgBy[1]), tank: Math.round(sim.dmgBy[2]), support: Math.round(sim.dmgBy[3]) },
           collectors: { coins: Math.round(sim.colCoins), lost: sim.colLost }, healed: Math.round(sim.healed), shield: Math.round(sim.shAbsorbed), lastSector: sim.sector,
@@ -141,7 +139,7 @@
   const audio = new KM.Audio(); audio.setSound(save.settings.sound); audio.setMusic(save.settings.music);
   const sim = new KM.Sim({ seed: 1 });
   let combatHits = 0, combatLvl = 0, combatT = 0;
-  let state = 'title', paused = false, runId = 0, tut = 0, lastResults = null, botOn = !!(DEV && DEV.bot);
+  let state = 'title', paused = false, runId = 0, tut = 0, lastResults = null, botOn = !!(DEV && DEV.bot); const cue = {};
 
   sim.on((type, a, b, c, d, e) => {
     render.onEvent(sim, type, a, b, c, d, e);
@@ -160,14 +158,16 @@
       case 'shieldBreak': audio.play('boom'); KM.haptic(25); banner('SHIELD DOWN', 1.1); break;
       case 'shieldUp': audio.play('frost'); break;
       case 'deposit': audio.play('coin'); break;
-      case 'collector': if (!cue.col) { cue.col = 1; banner('COLLECTORS\nBRING COINS TO YOUR TANK', 2.4); } break;
-      case 'posture': setPostureUI(a); audio.play(a ? 'shieldhit' : 'upgrade'); KM.haptic(12); banner(a ? 'DEFEND\nHOLD FORMATION' : 'ATTACK\nPUSH FORWARD', 1.1); break;
-      case 'colLost': banner('COLLECTOR LOST', 0.9); break;
+      case 'collector': if (!cue.col) { cue.col = 1; banner('LOOTERS\nBRING COINS TO YOUR TANK', 2.4); } break;
+      case 'repair': if (!cue.rep) { cue.rep = 1; banner('LOOTERS\nREPAIR THE TANK', 1.6); } break;
+      case 'posture': setPostureUI(); break;
+      case 'allOrder': allTip(a ? 'ALL DEFEND' : 'ALL ATTACK'); audio.play(a ? 'shieldhit' : 'upgrade'); KM.haptic([20, 30, 20]); setPostureUI(); break;
+      case 'colLost': banner('LOOTER LOST', 0.9); break;
       case 'upgrade': if (a.id === 'mastery') banner('TANK MASTERY ' + (sim.stats.lv.mastery || 0), 0.9); if (a.id.startsWith('build:') || a.id.startsWith('tup:')) audio.play('build', 0, a.id.startsWith('tup:') ? KM.TOWER_SLOTS[+a.id.slice(4)].x / 9 : 0); audio.play('upgrade'); KM.haptic(20); Analytics.track('upgrades_selected', { id: a.id, n: sim.upgrades, t: Math.floor(sim.t) }); break;
       case 'sector': { const S = KM.SECTORS[a]; if (a !== 'opening') banner(S.name + (b ? '\nNEW THREAT' : ''), 1.8); Analytics.track('sector', { k: a, t: Math.floor(sim.t) }); break; }
       case 'bossTell': audio.play('warn'); KM.haptic(15); break;
       case 'stomp': audio.play('boom'); KM.haptic(35); break;
-      case 'charge': if (typeof a === 'string') { banner((a === 'elite' ? 'GIANTS' : a.toUpperCase()) + (b ? '\nATTACK' : '\nBACK IN FORMATION'), 1); break; } banner('BRACE!', 0.9); break;
+      case 'charge': if (typeof a === 'string') { if (KM.PROD[a]) banner(KM.PROD[a].name + (b ? '\nATTACK' : '\nDEFEND'), 0.9); audio.play(b ? 'upgrade' : 'shieldhit'); KM.haptic(12); setPostureUI(); break; } banner('BRACE!', 0.9); break;
       case 'bossFight': banner(a ? 'BOSS FIGHT\nTHE WAR HOLDS' : 'BOSS DOWN\nADVANCE!', 1.6); if (!a) audio.play('upgrade'); break;
       case 'summon': audio.play('elite', 0, 0); break;
       case 'warn': banner(a === 'boss' ? 'A BOSS APPROACHES' : a === 'mini' ? 'GIANT INCOMING' : 'MASS WAVE INCOMING', 3.2); audio.play('warn'); KM.haptic(25); $('vig').classList.add('warn'); setTimeout(() => $('vig').classList.remove('warn'), 3200); break;
@@ -177,7 +177,7 @@
       case 'waveClear': checkMilestones(); RunSave.write(sim); break;
       case 'bossReward': bank(a.tokens, 0, 'boss'); banner('BOSS DEFEATED\n+' + a.tokens + ' WAR TOKEN · +' + KM.fmtShort(a.gold) + ' GOLD', 2.2); RunSave.write(sim); break;
       case 'levelUp': banner(KM.PROD[a].name + ' LEVEL ' + b, 0.9); break;
-      case 'evolve': banner(KM.PROD[a].name + '\nFINAL EVOLUTION', 1.6); audio.play('pb'); break;
+      case 'evolve': banner(KM.PROD[a].name + ' VETERANS\nSTRONGER · 2 ARMY POINTS', 1.6); audio.play('pb'); break;
       case 'emergency': if (a) { banner('EMERGENCY DEFENSE', 1.2); KM.haptic(30); } break;
       case 'power': audio.play('boom'); break;
       case 'towerDown': audio.play('boom', 0, a.x / 9); KM.haptic(30); banner(KM.TOWERS[a.type].name.toUpperCase() + ' KNOCKED OUT', 1.4); break;
@@ -207,7 +207,7 @@
   addEventListener('keyup', e => { keys[e.key] = 0; });
 
   // ---------- HUD + prompts ----------
-  const tips = [['DRAG LEFT / RIGHT', 'THE TANK CHOOSES THE ATTACK LANE'], ['TAP THE TANK', 'DEPLOYS YOUR SELECTED SOLDIER'], ['LEVEL UP', 'TAP A GOLD ▲ BADGE · THE FIGHT KEEPS GOING'], null];
+  const tips = [['DRAG LEFT / RIGHT', 'THE TANK CHOOSES THE ATTACK LANE'], ['TAP THE TANK', 'DEPLOYS YOUR SELECTED SOLDIER'], ['LEVEL UP', 'TAP THE SELECTED CLASS AGAIN · THE FIGHT KEEPS GOING'], null];
   function setTip(n) {
     tut = n; const t = tips[n], el = $('tip');
     if (!t) { el.classList.add('hidden'); save.ach.tutorial = 1; persist(); return; }
@@ -218,16 +218,16 @@
   let hudAcc = 0;
   function hud(dt) {
     hudAcc += dt; if (hudAcc < 0.1) return; hudAcc = 0;
-    const p = (sim.wave - 1) % 10 + 1, boss = sim.nBoss > 0;
-    $('hTime').textContent = KM.fmtTime(sim.t); $('hArmy').innerHTML = sim.pts + '<small>/' + sim.stats.cap + '</small>'; $('hArmy').classList.toggle('full', sim.pts + sim.prodPts() > sim.stats.cap);
-    $('hWave').textContent = 'WAVE ' + Math.max(1, sim.wave); $('hCoins').textContent = KM.fmtShort(sim.coins); $('hDia').textContent = KM.fmtShort(save.diamonds);
-    const prog = boss && sim.bossI >= 0 ? 1 - sim.hp[sim.bossI] / sim.mhp[sim.bossI] : sim.wState ? 1 - Math.max(0, sim.waveLeft) / Math.max(1, sim.waveSpawned || 1) : 1;
-    $('hProg').style.width = (Math.max(0, Math.min(1, prog)) * 100).toFixed(0) + '%'; $('hC').classList.toggle('boss', boss);
-    $('hSector').textContent = boss ? 'BOSS FIGHT' : (p === 10 ? 'BOSS WAVE' : p === 5 ? 'SUPPLY WAVE' : (KM.SECTORS[sim.sector] || KM.SECTORS.opening).name) + ' · ' + p + '/10';
+    $('hTime').textContent = KM.fmtTime(sim.t); $('hArmy').textContent = sim.count[0]; $('hWave').textContent = Math.max(1, sim.wave);   // icons say what they are: no labels, no maximums
+    const cur = v => v < 1e6 ? KM.fmtNum(Math.floor(v)) : KM.fmtShort(v); $('hCoins').textContent = cur(sim.coins); $('hDia').textContent = cur(save.diamonds);
     $('enFill').style.width = (sim.energy / KM.ENERGY_MAX * 100).toFixed(0) + '%';
     const hp = sim.L.hp / sim.stats.maxHp; $('hpFill').style.width = (hp * 100).toFixed(1) + '%'; $('hpFill').style.background = hp > 0.5 ? 'linear-gradient(90deg,#4cff8a,#2fbf4f)' : hp > 0.25 ? 'linear-gradient(90deg,#ffe14a,#ff9a1f)' : 'linear-gradient(90deg,#ff6a4a,#d6281f)';
+    $('shFill').style.width = (sim.L.shMax ? Math.min(1, sim.L.sh / sim.L.shMax) * 100 : 0).toFixed(0) + '%';
     $('vig').style.boxShadow = `inset 0 0 120px ${20 + 40 * (1 - hp)}px rgba(220,20,20,${hp < 0.35 ? (0.55 - hp) * (0.8 + 0.2 * Math.sin(performance.now() / 150)) : 0})`;
   }
+  // tank HP rides above the tank (the top of the screen stays: time · army · wave · gold · diamonds · settings · speed · mode)
+  function tankHpUI() { const el = $('tankHp'); if (state !== 'run') return; const v = render.toScreen(sim.L.x, 2.3, sim.L.z), x = (v.x + 1) / 2 * innerWidth, y = (1 - v.y) / 2 * innerHeight;
+    el.style.left = Math.max(44, Math.min(innerWidth - 44, x)) + 'px'; el.style.top = Math.max(60, Math.min(innerHeight - 20, y)) + 'px'; }
 
 
 
@@ -243,7 +243,7 @@
     else sim.reset(runOpts());
     render.resetRun(); applyLooks(); recordShown = false;
     state = 'run'; paused = false; show(null);
-    for (const id of ['hud', 'hpbar', 'drawer', 'rightCol', 'energy']) $(id).classList.remove('hidden'); setPostureUI(sim.posture); powersUI(); drawerUI(); choiceUI();
+    for (const id of ['hud', 'tankHp', 'drawer', 'rightCol']) $(id).classList.remove('hidden'); closePops(); setPostureUI(); drawerUI(); choiceUI();
     moved = 0; setTip(save.ach.tutorial ? 4 : 0);
     if (save.ach.tutorial) { tut = 4; banner(resumed ? 'CONTINUE WAR' : 'CHOOSE YOUR ARMY', 1.4); }
     Analytics.track(resumed ? 'run_resume' : 'run_start', { run: save.totals.runs + 1, resumeFailed: !!resume && !resumed });
@@ -276,7 +276,7 @@
       $('oStats').innerHTML = [['clock', 'Survival Time', KM.fmtTime(r.time)], ['skull', 'Enemies Defeated', KM.fmtNum(r.kills)], ['star', 'Bosses Defeated', r.bosses], ['token', 'War Tokens (banked)', '+' + (r.warTokens + (records.includes('wave') ? 1 : 0))], ['army', 'Army Development', r.armyDev + ' / 60']]
         .map(([i, l, v]) => `<div>${svg(i)}<span>${l}</span><b>${v}</b></div>`).join('') + `<div style="opacity:.7;font-size:12px;justify-content:center">${reason}</div><div id="lbBox" style="font-size:11px;opacity:.85;justify-content:center"></div>`;
       $('reviveBtn').classList.toggle('hidden', !!sim.revived || !(DEV && DEV.revive));
-      for (const id of ['postureBtn', 'drawer', 'rightCol', 'energy', 'choice', 'bossBar']) $(id).classList.add('hidden'); show('over'); hook('death', r);
+      for (const id of ['drawer', 'rightCol', 'powers', 'clsPop', 'choice', 'bossBar', 'tankHp']) $(id).classList.add('hidden'); show('over'); hook('death', r);
       LB.top('weekly').then(rows => { const el = $('lbBox'); if (!el || !rows || !rows.length) return; el.innerHTML = 'THIS WEEK: ' + rows.map((x, k) => `${k + 1}. ${x.player === save.player ? 'YOU' : x.player.slice(0, 4)} W${x.wave}`).join(' · '); });
     }, 1300);
   }
@@ -284,7 +284,7 @@
   function goTitle() {
     Telemetry.flush('quit');
     const rs = RunSave.load(); $('contBtn').classList.toggle('hidden', !rs); if (rs) $('contInfo').textContent = 'WAVE ' + (rs.snap.wave || 1) + ' · ' + KM.fmtTime(rs.snap.t);
-    state = 'title'; for (const id of ['hud', 'hpbar', 'postureBtn', 'drawer', 'rightCol', 'energy', 'choice', 'bossBar', 'tip']) $(id).classList.add('hidden');
+    state = 'title'; for (const id of ['hud', 'tankHp', 'drawer', 'rightCol', 'powers', 'clsPop', 'choice', 'bossBar', 'tip']) $(id).classList.add('hidden');
     const R = save.records; $('titleBest').innerHTML = `<div class="titleRec"><span>BEST WAVE<b>${R.wave}</b></span><span>LONGEST<b>${KM.fmtTime(R.time)}</b></span><span>BOSSES<b>${R.bosses}</b></span><span>${svg('token')}<b>${save.tokens}</b></span><span>${svg('diamond')}<b>${save.diamonds}</b></span></div>` + (save.titles.length ? `<div style="font-size:10px;font-weight:900;opacity:.75;margin-top:4px">${save.titles[save.titles.length - 1]}</div>` : '');
     show('title'); mark('interactive');
   }
@@ -355,13 +355,13 @@
   }
   let jsCost = 0, rawMs = 16.7;
 
-  // ---------- game speed: 1× / 1.5× / 2× on ONE authoritative clock ----------
+  // ---------- game speed: 1 / 2 / 3 on the HUD = 1× / 1.5× / 2× on ONE authoritative clock ----------
   // game time = real time × speed, consumed in fixed 1/60 s simulation steps (same results on every device / FPS);
   // upgrade choices run in slow motion and introductions hold 1× so nothing important is decided at 2×.
   let autoT = 0, introOn = false;   // the opaque intro covers the canvas: skip drawing so the credits stay on time on slow devices
   const SPEEDS = [1, 1.5, 2]; let speedI = Math.max(0, SPEEDS.indexOf(save.settings.speed || 1)), simMs = 0, simDebt = 0;
   const speedNow = () => SPEEDS[speedI];
-  function setSpeed(i) { speedI = (i + SPEEDS.length) % SPEEDS.length; save.settings.speed = SPEEDS[speedI]; persist(); $('speedBtn').textContent = SPEEDS[speedI] + '×'; $('speedBtn').classList.toggle('fast', speedI > 0); render.speed = SPEEDS[speedI]; }
+  function setSpeed(i) { speedI = (i + SPEEDS.length) % SPEEDS.length; save.settings.speed = SPEEDS[speedI]; persist(); $('speedTxt').textContent = String(speedI + 1); render.speed = SPEEDS[speedI]; }   // shown as 1 · 2 · 3 (normal · faster · fastest)
   $('speedBtn').addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); audio.unlock(); setSpeed(speedI + 1); audio.play('tap'); });
   sim.on((t, a, b) => { if (state === 'run') Telemetry.ev(sim, t, a, b); });
   let lastT = performance.now(), acc = 0; const STEP = 1 / 60, MAX_STEPS = 8, MAX_DEBT = 0.2;
@@ -386,8 +386,8 @@
     } else if (state !== 'run') { sim.step(dt * 0.5); } // keep the battlefield alive behind menus
     if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('banner').classList.remove('on'); }
     // ATTACK/DEFEND arrives once the first fight has started (the first seconds stay: drag + auto-deploy only)
-    if (state === 'run') bossUI();
-    if (state === 'run' && sim.t > 25 && $('postureBtn').classList.contains('hidden') && sim.alive) { $('postureBtn').classList.remove('hidden'); if (!save.ach.posture) { save.ach.posture = 1; banner('TAP DEFEND\nTO HOLD FORMATION', 2.2); } }
+    if (state === 'run') { bossUI(); tankHpUI(); }
+    if (state === 'run' && sim.t > 25 && !save.ach.posture && sim.alive) { save.ach.posture = 1; persist(); banner('TAP ATTACK: SELECTED CLASS\nHOLD: WHOLE ARMY', 2.4); }
     if (!paused && !glLost && !introOn) { render.frame(sim, state === 'run' ? gdt : dt); mark('firstFrame'); if (state === 'run' && sim.t > 0.5) mark('gameplay'); }               // animation follows game time
     jsCost += ((performance.now() - js0) - jsCost) * 0.1;   // JS cost: sim + scene update + draw submission (GPU time excluded)
     adapt(dt); hook('frame', dt);
@@ -396,31 +396,51 @@
   sim.reset({ seed: 7 }); for (let k = 0; k < 240; k++) { KM.bot(sim, STEP, 0.6); sim.step(STEP); }
   const attract = () => { if (state !== 'run' && sim.alive) KM.bot(sim, STEP, 0.6); if (state !== 'run' && !sim.alive) { sim.reset({ seed: 7 + Math.floor(Math.random() * 99) }); render.resetRun(); } };
   setInterval(attract, 50);
-  // ---------- class drawer (left, swipeable): tap a class = select · gold badge = level up · ⚔ chip (DEFEND) = that class attacks ----------
-  const drawer = $('drawer'), classes = $('classes'), CHARGE = ['melee', 'range', 'elite', 'giant'];
-  classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}">${svg(k)}<div class="tx"><b>${KM.PROD[k].name}</b><i></i></div><span class="lv"></span><u class="ub hidden" data-g="${k}" role="button"></u>${CHARGE.includes(k) ? `<em class="ch hidden" data-c="${k}" role="button" aria-label="${k} attack">⚔</em>` : ''}</div>`).join('');
+  // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
+  const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
+  const PORTRAIT = k => `assets/ui/p_${k}.webp`, GOLD_IMG = '<img src="assets/ui/i_gold.png" alt="">';
+  classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name}</b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
+  const setDrawer = open => { drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };
   let dStart = null;
   drawer.addEventListener('pointerdown', e => { dStart = { x: e.clientX, y: e.clientY }; });
-  drawer.addEventListener('pointerup', e => { if (!dStart) return; const dx = e.clientX - dStart.x; dStart = null;
-    if (dx < -30) { drawer.classList.add('away'); drawer.classList.remove('wide'); } else if (dx > 30) { if (drawer.classList.contains('away')) drawer.classList.remove('away'); else drawer.classList.add('wide'); } });   // swipe left = hide · swipe right = show / expand
-  $('drawerTab').addEventListener('click', e => { e.stopPropagation(); if (drawer.classList.contains('away')) drawer.classList.remove('away'); else drawer.classList.toggle('wide'); audio.play('tap'); });
-  classes.querySelectorAll('.cl').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); audio.unlock(); if (state !== 'run' || paused) return;
-    if (e.target.classList.contains('ch')) { const c = e.target.dataset.c; sim.setCharge(c, !sim.charge[c]); audio.play('tap'); KM.haptic(10); drawerUI(); return; }   // DEFEND: this class attacks, the rest hold
-    if (e.target.classList.contains('ub')) { if (sim.levelUp(e.target.dataset.g)) { audio.play('upgrade'); KM.haptic(15); } drawerUI(); return; }   // the small badge levels the class; the tile selects
-    sim.setProd(b.dataset.p); audio.play('tap'); drawerUI(); }));
+  drawer.addEventListener('pointerup', e => { if (!dStart) return; const dx = e.clientX - dStart.x; dStart = null; if (dx < -30) setDrawer(false); else if (dx > 30) setDrawer(true); });   // swipe left = collapse · swipe right = open
+  $('drawerTab').addEventListener('click', e => { e.stopPropagation(); setDrawer(drawer.classList.contains('away')); audio.play('tap'); });
+  const fmtStat = v => v >= 100 ? KM.fmtShort(Math.round(v)) : v >= 10 ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
+  function popUI() { const k = pop.dataset.k; if (!k || pop.classList.contains('hidden')) return;
+    const lv = sim.stats.cls[k], max = lv >= KM.CLASS_MAX, A = sim.classInfo(k, lv), B = max ? A : sim.classInfo(k, lv + 1), cost = sim.clsCost(k), arr = (a, b) => fmtStat(a) + (max ? '' : ` <em>→ ${fmtStat(b)}</em>`);
+    pop.innerHTML = `<h4>${KM.PROD[k].name}<small>LV ${lv}${max ? ' · MAX' : ' → ' + (lv + 1)}</small></h4><div class="st"><span>HP</span><b>${arr(A.hp, B.hp)}</b><span>${A.heal ? 'HEAL' : 'DMG'}</span><b>${arr(A.dmg, B.dmg)}</b><span>ARMOR</span><b>${arr(A.arm, B.arm)}</b></div>` +
+      (max ? '<button disabled>MAX LEVEL</button>' : `<button ${sim.coins >= cost ? '' : 'disabled'}>UPGRADE ${GOLD_IMG}${KM.fmtShort(cost)}</button>`);
+    const bt = pop.querySelector('button'); if (!max) bt.addEventListener('click', e => { e.stopPropagation(); if (sim.levelUp(k)) { audio.play('upgrade'); KM.haptic(15); if (tut === 3) setTip(4); } drawerUI(); popUI(); });
+    const card = classes.querySelector(`[data-p="${k}"]`).getBoundingClientRect(), wide = innerWidth > innerHeight * 1.25 && innerWidth >= 820;
+    if (wide) { pop.style.left = Math.min(innerWidth - 190, card.left) + 'px'; pop.style.top = Math.max(8, card.top - pop.offsetHeight - 8) + 'px'; }
+    else { pop.style.left = (card.right + 8) + 'px'; pop.style.top = Math.max(8, Math.min(innerHeight - pop.offsetHeight - 8, card.top + card.height / 2 - pop.offsetHeight / 2)) + 'px'; } }
+  function openPop(k) { closePops(); pop.dataset.k = k; pop.classList.remove('hidden'); popUI(); }
+  function closePops() { pop.classList.add('hidden'); pop.dataset.k = ''; $('powers').classList.add('hidden'); }
+  classes.querySelectorAll('.cl').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); audio.unlock(); if (state !== 'run' || paused) return; const k = b.dataset.p;
+    if (sim.prod === k) { if (pop.dataset.k === k && !pop.classList.contains('hidden')) closePops(); else openPop(k); }   // second tap: upgrade details for the selected class only
+    else { sim.setProd(k); closePops(); }
+    audio.play('tap'); drawerUI(); setPostureUI(); }));
+  addEventListener('pointerdown', e => { if (!e.target.closest || e.target.closest('#clsPop,#classes,#powers,#powerBtn')) return; if (!pop.classList.contains('hidden') || !$('powers').classList.contains('hidden')) closePops(); }, true);
   function drawerUI() {
-    for (const b of classes.children) { const k = b.dataset.p, lv = sim.stats.cls[k], cost = sim.clsCost(k), ub = b.querySelector('.ub'), N = sim.nKind[KM.FRIEND_BY[KM.PROD[k].kind].id - 32];
-      b.classList.toggle('on', sim.prod === k); b.querySelector('.lv').textContent = (lv >= KM.EVOLVE_AT ? '★' : '') + 'L' + lv; b.querySelector('.tx i').textContent = KM.fmtShort(KM.PROD[k].cost) + ' · ' + N + ' · ' + KM.unitPts(k, sim.evolved(k)) + 'PT';
-      const max = lv >= KM.CLASS_MAX; ub.classList.toggle('hidden', max); ub.classList.toggle('can', !max && sim.coins >= cost); if (!max) { ub.textContent = '▲'; ub.title = 'LEVEL ' + (lv + 1) + ' · ' + KM.fmtShort(cost); }
-      const ch = b.querySelector('.ch'); if (ch) { ch.classList.toggle('hidden', sim.posture !== 1); ch.classList.toggle('on', !!sim.charge[k]); } if (!max && sim.coins >= cost && tut === 2) setTip(3); }
-    $('autoBtn').classList.toggle('on', sim.auto); $('autoBtn').textContent = sim.auto ? 'AUTO' : 'TAP';
-    const tb = $('tankBtn'), tc = sim.upCost(), up = sim.ups && sim.ups.tank; tb.classList.toggle('can', !!up && sim.coins >= tc); $('tankCost').textContent = up ? KM.fmtShort(tc) : '—'; tb.title = up ? up.title + ' ' + (up.val || '') : '';
-    for (const p of $('powers').children) { const id = p.dataset.id; p.classList.toggle('ready', sim.canPower(id)); p.classList.toggle('cd', (sim.pcd[id] || 0) > 0); }
+    for (const b of classes.children) { const k = b.dataset.p, lv = sim.stats.cls[k], cost = sim.clsCost(k), info = sim.classInfo(k, lv);
+      b.classList.toggle('on', sim.prod === k); b.classList.toggle('atk', CHARGE.includes(k) && sim.attacking(k));
+      b.querySelector('.tx i').textContent = `Lv ${lv} · ${info.heal ? 'HEAL' : 'DMG'} ${fmtStat(info.dmg)}`;
+      const can = lv < KM.CLASS_MAX && sim.coins >= cost; b.querySelector('.ub').classList.toggle('hidden', !(can && sim.prod === k)); if (can && tut === 2) setTip(3); }
+    $('autoTxt').textContent = sim.auto ? 'AUTO' : 'TAP'; $('autoBtn').classList.toggle('tap', !sim.auto);   // one word: the current mode
+    const tb = $('tankBtn'), tc = sim.upCost(), up = sim.ups && sim.ups.tank; tb.classList.toggle('can', !!up && sim.coins >= tc); $('tankCost').textContent = up ? KM.fmtShort(tc) : ''; $('tankCost').classList.toggle('hidden', !up); tb.title = up ? up.title + ' ' + (up.val || '') : '';
+    $('powerBtn').classList.toggle('ready', sim.equipped.some(id => sim.canPower(id))); powersUI(true); popUI();
   }
   $('autoBtn').addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); audio.unlock(); if (state !== 'run' || paused) return; sim.setAuto(!sim.auto); audio.play('tap'); drawerUI(); });   // AUTO = auto deploy + auto aim · TAP = manual deploy + lane aim
-  $('tankBtn').addEventListener('click', e => { e.stopPropagation(); if (state !== 'run' || paused) return; if (sim.buy('tank')) { audio.play('upgrade'); KM.haptic(15); } drawerUI(); });
-  function powersUI() { $('powers').innerHTML = sim.equipped.map(id => `<div class="rb" data-id="${id}" role="button" aria-label="${KM.POWERS[id].name}">${svg(id)}<small>${KM.POWERS[id].cost}</small></div>`).join('');
-    $('powers').querySelectorAll('.rb').forEach(p => p.addEventListener('click', e => { e.stopPropagation(); if (state !== 'run' || paused) return; if (sim.usePower(p.dataset.id)) { audio.play('boom'); KM.haptic(30); banner(KM.POWERS[p.dataset.id].name, 0.9); } drawerUI(); })); }
+  $('tankBtn').addEventListener('click', e => { e.stopPropagation(); if (state !== 'run' || paused) return; if (sim.buy('tank')) { audio.play('upgrade'); KM.haptic(15); } else if (sim.ups && sim.ups.tank) banner('UPGRADE · ' + KM.fmtShort(sim.upCost()) + ' GOLD', 0.8); drawerUI(); });
+  // POWER opens the three equipped powers beside it; using one closes the selection again
+  function powersUI(refresh) { const el = $('powers');
+    if (!refresh) el.innerHTML = sim.equipped.map(id => `<div class="pw" data-id="${id}" role="button" aria-label="${KM.POWERS[id].name}">${svg(id)}<b>${KM.POWERS[id].name}</b><small></small></div>`).join('');
+    for (const p of el.children) { const id = p.dataset.id, cd = sim.pcd[id] || 0; p.classList.toggle('ready', sim.canPower(id)); p.classList.toggle('cd', cd > 0); p.querySelector('small').textContent = cd > 0 ? Math.ceil(cd) + 's' : KM.POWERS[id].cost + ' ⚡'; }
+    if (!refresh) el.querySelectorAll('.pw').forEach(p => p.addEventListener('click', e => { e.stopPropagation(); if (state !== 'run' || paused) return; const id = p.dataset.id;
+      if (sim.usePower(id)) { audio.play('boom'); KM.haptic(30); banner(KM.POWERS[id].name, 0.9); closePops(); } else banner((sim.pcd[id] || 0) > 0 ? 'RECHARGING' : 'NEED ' + KM.POWERS[id].cost + ' ENERGY', 0.7); drawerUI(); })); }
+  $('powerBtn').addEventListener('click', e => { e.stopPropagation(); audio.unlock(); if (state !== 'run' || paused) return; const el = $('powers'), open = el.classList.contains('hidden'); closePops(); if (!open) return;
+    powersUI(); el.classList.remove('hidden'); const r = $('powerBtn').getBoundingClientRect(), wide = innerWidth > innerHeight * 1.25 && innerWidth >= 820;
+    if (wide) { el.style.left = r.left + 'px'; el.style.top = (r.top - el.offsetHeight - 12) + 'px'; } else { el.style.left = (r.left - el.offsetWidth - 8) + 'px'; el.style.top = Math.max(8, r.bottom - el.offsetHeight) + 'px'; } audio.play('tap'); });
   // choices (supply on waves 5, 15… · power boost after every boss): a small strip, the war keeps going
   function choiceUI() { const c = sim.choice, el = $('choice'); if (!c) { el.classList.add('hidden'); return; } el.classList.remove('hidden'); $('drawer').classList.remove('wide');
     $('choiceT').textContent = c.kind === 'supply' ? 'SUPPLY — CHOOSE ONE' : 'BOSS REWARD — TANK POWER';
@@ -433,11 +453,20 @@
     $('bossName').textContent = KM.ENEMY[sim.kind[i]].k.toUpperCase(); $('bossFill').style.width = Math.max(0, sim.hp[i] / sim.mhp[i] * 100).toFixed(1) + '%'; $('bossHp').textContent = KM.fmtShort(Math.max(0, sim.hp[i])) + ' / ' + KM.fmtShort(sim.mhp[i]); }
   setInterval(() => { if (state === 'run') drawerUI(); }, 300);
   sim.on(t => { if (t === 'prod' || t === 'auto' || t === 'upgrade' || t === 'posture' || t === 'charge' || t === 'levelUp') drawerUI(); if (t === 'choice' || t === 'chose') choiceUI(); });
-  // ---------- ATTACK / DEFEND: the one posture control ----------
-  const cue = {};
-  function setPostureUI(p) { const b = $('postureBtn'); b.classList.toggle('def', !!p); $('postureTxt').textContent = p ? 'DEFEND' : 'ATTACK'; $('postureSub').textContent = p ? 'TAP TO ATTACK' : 'TAP TO DEFEND'; }
-  $('postureBtn').addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); audio.unlock(); if (state === 'run' && !paused) sim.togglePosture(); });
-  addEventListener('keydown', e => { if (e.code === 'Space' && state === 'run' && !paused) { e.preventDefault(); sim.togglePosture(); } });
+  // ---------- ATTACK / DEFEND: one word = the action · tap = the selected class · hold = the whole army (Looters included) ----------
+  const HOLD_ALL_MS = 450;
+  const wordNow = () => (KM.PROD[sim.prod] && CHARGE.includes(sim.prod) ? sim.attacking(sim.prod) : sim.posture === 0) ? 'DEFEND' : 'ATTACK';
+  function setPostureUI() { if (state !== 'run') return; const w = wordNow(); $('postureTxt').textContent = w; $('postureBtn').classList.toggle('def', w === 'DEFEND'); for (const b of classes.children) b.classList.toggle('atk', CHARGE.includes(b.dataset.p) && sim.attacking(b.dataset.p)); }
+  let allT = 0; function allTip(t) { if (state !== 'run') return; const el = $('allTip'), r = $('postureBtn').getBoundingClientRect(); el.textContent = t; el.style.left = Math.max(8, r.left - 150) + 'px'; el.style.top = (r.top - 34) + 'px'; el.classList.add('on'); clearTimeout(allT); allT = setTimeout(() => el.classList.remove('on'), 900); }
+  function orderTap() { const k = sim.prod; if (!CHARGE.includes(k)) { banner(KM.PROD[k].name + ' HEALS FROM THE REAR\nHOLD FOR ALL ATTACK / DEFEND', 1.4); return; }
+    sim.orderClass(k, !sim.attacking(k)); setPostureUI(); }
+  function orderHold() { if (wordNow() === 'ATTACK') sim.allAttack(); else sim.allDefend(); setPostureUI(); }
+  let pHold = null;
+  $('postureBtn').addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); audio.unlock(); if (state !== 'run' || paused) return; const id = e.pointerId;
+    pHold = { id, done: false, t: setTimeout(() => { if (pHold && pHold.id === id) { pHold.done = true; orderHold(); } }, HOLD_ALL_MS) }; });
+  const pEnd = e => { if (!pHold || e.pointerId !== pHold.id) return; clearTimeout(pHold.t); const held = pHold.done; pHold = null; if (!held && e.type === 'pointerup' && state === 'run' && !paused) orderTap(); };
+  $('postureBtn').addEventListener('pointerup', pEnd); $('postureBtn').addEventListener('pointercancel', pEnd); $('postureBtn').addEventListener('pointerleave', e => { if (pHold && !pHold.done && e.pointerId === pHold.id) { clearTimeout(pHold.t); pHold = null; } });
+  addEventListener('keydown', e => { if (e.code === 'Space' && state === 'run' && !paused) { e.preventDefault(); if (e.shiftKey) orderHold(); else orderTap(); } });   // desktop: Space = selected class · Shift+Space = whole army
   setSpeed(speedI);
   // the private build attaches its tools here; the public build has no KM.internalInit and ships none of them
   const api = { sim, render, audio, startRun, setPause, goTitle, banner, save, persist, H, setSpeed, speedNow, get glLost() { return glLost; }, get state() { return state; }, set state(v) { state = v; }, get jsCost() { return jsCost; }, get rawMs() { return rawMs; }, get botOn() { return botOn; }, set botOn(v) { botOn = !!v; }, setQuality: q => { pendingQ = q; } };

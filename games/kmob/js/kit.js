@@ -9,6 +9,7 @@
   const KM = G.KM;
   const V3 = THREE.Vector3, M4 = THREE.Matrix4, Q = THREE.Quaternion, E = THREE.Euler, C = THREE.Color;
   const SKIN = 0xffcf9f, STEEL = 0xd4dae4, DSTEEL = 0x7d8796, GOLD = 0xf4c247, LEATHER = 0x6b4426, DLEATHER = 0x3d2818, IVORY = 0xf4ead0, DARK = 0x1c1c26, WOOD = 0x8f5c34, WHITE = 0xffffff;
+  const HAIR = 0x5a3820, BEARD = 0xf4f4f0, CRYSTAL = 0x6fe0ff, SHIRT = 0xf3efe4, PLATE = 0xd6dde8, HELM = 0xb8c2d0, GLOW = 0x9ff0ff;
 
   const TRS = (x, y, z, rx, ry, rz, sx, sy, sz) => new M4().compose(new V3(x || 0, y || 0, z || 0), new Q().setFromEuler(new E(rx || 0, ry || 0, rz || 0)), new V3(sx || 1, sy == null ? (sx || 1) : sy, sz == null ? (sx || 1) : sz));
   function part(geo, color, tint, m) { const g = geo.index ? geo.toNonIndexed() : geo.clone(); if (m) g.applyMatrix4(m); g.userData = { color: new C(color), tint: tint || 0 }; return g; }
@@ -92,6 +93,35 @@
       part(cone(0.04, 0.14, 8), IVORY, 0, TRS(-0.34, 0.52, 0.06, 0.2, 0, 0.3)), part(cone(0.04, 0.14, 8), IVORY, 0, TRS(0.34, 0.52, 0.06, 0.2, 0, -0.3)),
     ], [-0.1, 0.3, 0.68]);
   }
+  // LOOTER: white work shirt under an open blue vest, belt pouch, wooden supply crate on the back
+  function torsoLooter() {
+    const vest = new THREE.LatheGeometry([[0.212, 0.02], [0.262, 0.1], [0.279, 0.22], [0.26, 0.33], [0.19, 0.405], [0.12, 0.425]].map(([r, y]) => new THREE.Vector2(r, y)), sg(18, 6), 0.55, Math.PI * 2 - 1.1); vest.computeVertexNormals();
+    return merge([
+      part(lathe([[0.0, -0.02], [0.2, -0.0], [0.25, 0.1], [0.265, 0.22], [0.245, 0.33], [0.18, 0.4], [0.0, 0.43]], 18), SHIRT, 0),
+      part(vest, 0xe6ebff, 1), part(lathe([[0.235, 0.12], [0.262, 0.04], [0.28, -0.07], [0.0, -0.08]], 18), 0xa8b2dd, 1),
+      part(cyl(0.258, 0.258, 0.06, 18), LEATHER, 0, TRS(0, 0.1, 0)), part(box(0.1, 0.09, 0.06), DLEATHER, 0, TRS(0.17, 0.07, 0.2, 0, 0.6, 0)),
+      part(box(0.04, 0.4, 0.025), LEATHER, 0, TRS(-0.12, 0.27, 0.235, -0.12, 0, 0)), part(box(0.04, 0.4, 0.025), LEATHER, 0, TRS(0.12, 0.27, 0.235, -0.12, 0, 0)),
+      part(box(0.4, 0.36, 0.22), WOOD, 0, TRS(0, 0.25, -0.34)), part(box(0.42, 0.05, 0.24), DLEATHER, 0, TRS(0, 0.12, -0.34)), part(box(0.42, 0.05, 0.24), DLEATHER, 0, TRS(0, 0.38, -0.34)),
+      part(box(0.05, 0.38, 0.24), DLEATHER, 0, TRS(0, 0.25, -0.34)), part(box(0.36, 0.08, 0.2), 0xd9b27a, 0, TRS(0, 0.46, -0.34)),
+    ], [-0.08, 0.3, 0.7]);
+  }
+  // RANGE: light tunic + diagonal strap + quiver of arrows on the back
+  function torsoArcher() {
+    return merge([...torsoLight(), part(box(0.05, 0.62, 0.03), LEATHER, 0, TRS(0.02, 0.24, 0.255, 0, 0, 0.7)),
+      part(cyl(0.07, 0.075, 0.44, 10), LEATHER, 0, TRS(0.12, 0.3, -0.27, 0, 0, -0.35)), part(cyl(0.077, 0.077, 0.04, 10), DLEATHER, 0, TRS(0.04, 0.5, -0.27, 0, 0, -0.35)),
+      ...[-0.03, 0.02, 0.07].map((dx, k) => part(box(0.018, 0.12, 0.05), WHITE, 0, TRS(0.0 + dx, 0.6 + k * 0.01, -0.27, 0, 0, -0.35)))], [-0.08, 0.3, 0.7]);
+  }
+  // friendly GIANT: blocky armoured golem in the army's blue, white/steel plates, smooth pauldrons — no horns, no spikes
+  function torsoGolem() {
+    return merge([
+      part(box(0.8, 0.52, 0.52), 0xe2eaff, 1, TRS(0, 0.22, 0)), part(box(0.62, 0.2, 0.44), 0xe2eaff, 1, TRS(0, -0.06, 0)),
+      part(box(0.36, 0.06, 0.05), PLATE, 0, TRS(0, 0.36, 0.27)), part(box(0.3, 0.06, 0.05), PLATE, 0, TRS(0, 0.26, 0.27)), part(box(0.24, 0.06, 0.05), PLATE, 0, TRS(0, 0.16, 0.27)),
+      part(box(0.68, 0.07, 0.48), DSTEEL, 0, TRS(0, 0.03, 0)), part(box(0.12, 0.08, 0.04), GOLD, 0, TRS(0, 0.03, 0.25)),
+      part(box(0.36, 0.17, 0.46), PLATE, 0, TRS(-0.47, 0.47, 0, 0, 0, 0.22)), part(box(0.36, 0.17, 0.46), PLATE, 0, TRS(0.47, 0.47, 0, 0, 0, -0.22)),
+      part(box(0.3, 0.1, 0.4), 0xe2eaff, 1, TRS(-0.45, 0.36, 0, 0, 0, 0.22)), part(box(0.3, 0.1, 0.4), 0xe2eaff, 1, TRS(0.45, 0.36, 0, 0, 0, -0.22)),
+      part(box(0.5, 0.3, 0.06), 0xc8d4f0, 1, TRS(0, 0.3, -0.27)),
+    ], [-0.15, 0.4, 0.72]);
+  }
   function torsoRobe() { // shaman
     return merge([
       part(lathe([[0.0, -0.13], [0.33, -0.12], [0.29, 0.05], [0.26, 0.22], [0.22, 0.34], [0.15, 0.42], [0.0, 0.44]], 18), 0xd8c8ff, 1),
@@ -129,6 +159,21 @@
     goggles: () => merge([...face(SKIN), dome(0.235, 0xeaeaea, 1, 0.21, Math.PI * 0.5), part(tor(0.215, 0.03, 6, 20), DLEATHER, 0, TRS(0, 0.2, 0, Math.PI / 2 - 0.1, 0, 0)),
       part(cyl(0.06, 0.06, 0.05, 12), DARK, 0, TRS(-0.075, 0.22, 0.19, Math.PI / 2, 0, 0)), part(cyl(0.06, 0.06, 0.05, 12), DARK, 0, TRS(0.075, 0.22, 0.19, Math.PI / 2, 0, 0)),
       part(new THREE.CircleGeometry(0.045, 12), 0xffb84a, 0, TRS(-0.075, 0.22, 0.216)), part(new THREE.CircleGeometry(0.045, 12), 0xffb84a, 0, TRS(0.075, 0.22, 0.216))]),
+    looter: () => merge([...face(SKIN), part(sph(0.214, 16, 10, 0, Math.PI * 0.52), HAIR, 0, TRS(0, 0.19, -0.015)), part(box(0.3, 0.06, 0.12), HAIR, 0, TRS(0, 0.33, 0.12, 0.35, 0, 0)),
+      part(sph(0.07, 8, 6), HAIR, 0, TRS(-0.17, 0.16, -0.05)), part(sph(0.07, 8, 6), HAIR, 0, TRS(0.17, 0.16, -0.05)),
+      part(tor(0.213, 0.036, 6, 20), 0xe8eeff, 1, TRS(0, 0.25, 0, Math.PI / 2 - 0.12, 0, 0)), part(box(0.05, 0.17, 0.04), 0xe8eeff, 1, TRS(0.05, 0.19, -0.24, 0.55, 0, 0.3)), part(box(0.05, 0.15, 0.04), 0xe8eeff, 1, TRS(-0.04, 0.17, -0.245, 0.75, 0, -0.3))]),
+    wizard: () => merge([...face(SKIN), part(sph(0.165, 12, 10), BEARD, 0, TRS(0, 0.04, 0.12, 0, 0, 0, 1.05, 1.35, 0.75)), part(box(0.2, 0.04, 0.05), BEARD, 0, TRS(0, 0.115, 0.205)),
+      part(box(0.07, 0.025, 0.03), BEARD, 0, TRS(-0.07, 0.215, 0.19, 0, 0, -0.2)), part(box(0.07, 0.025, 0.03), BEARD, 0, TRS(0.07, 0.215, 0.19, 0, 0, 0.2)),
+      part(sph(0.08, 8, 6), BEARD, 0, TRS(-0.18, 0.15, -0.02)), part(sph(0.08, 8, 6), BEARD, 0, TRS(0.18, 0.15, -0.02)),
+      part(cyl(0.34, 0.34, 0.04, 22), 0xe8eeff, 1, TRS(0, 0.3, -0.01)), part(cyl(0.225, 0.235, 0.07, 18), DLEATHER, 0, TRS(0, 0.345, -0.01)),
+      part(cone(0.225, 0.62, 14), 0xe8eeff, 1, TRS(0, 0.68, -0.07, -0.22, 0, 0)), part(sph(0.035, 6, 4), CRYSTAL, 0, TRS(0, 0.98, -0.15))]),
+    elite: () => merge([part(cyl(0.25, 0.262, 0.26, 20), HELM, 0, TRS(0, 0.16, 0)), dome(0.252, HELM, 0, 0.29, Math.PI / 2), part(tor(0.262, 0.022, 5, 20), GOLD, 0, TRS(0, 0.03, 0, Math.PI / 2, 0, 0)),
+      part(box(0.32, 0.045, 0.05), DARK, 0, TRS(0, 0.2, 0.245)), part(box(0.04, 0.15, 0.05), HELM, 0, TRS(0, 0.12, 0.258)), ...[-0.08, -0.04, 0.04, 0.08].map(x => part(box(0.015, 0.06, 0.03), DARK, 0, TRS(x, 0.1, 0.26))),
+      part(box(0.07, 0.11, 0.42), 0xe8eeff, 1, TRS(0, 0.5, -0.03, 0.1, 0, 0)), part(box(0.05, 0.05, 0.05), GOLD, 0, TRS(0, 0.45, 0.19))]),
+    golem: () => merge([part(box(0.38, 0.32, 0.36), 0xe2eaff, 1, TRS(0, 0.14, 0)), part(box(0.32, 0.17, 0.05), PLATE, 0, TRS(0, 0.12, 0.185)), part(box(0.25, 0.045, 0.03), DARK, 0, TRS(0, 0.15, 0.212)),
+      part(sph(0.03, 6, 4), GLOW, 0, TRS(-0.07, 0.15, 0.222)), part(sph(0.03, 6, 4), GLOW, 0, TRS(0.07, 0.15, 0.222)), part(box(0.4, 0.08, 0.38), 0xc8d4f0, 1, TRS(0, 0.32, 0)), part(box(0.1, 0.08, 0.36), PLATE, 0, TRS(0, 0.38, 0))]),
+    hoodE: () => merge([...face(SKIN), part(sph(0.255, 16, 10, 0, Math.PI * 0.62), 0xc0ccff, 1, TRS(0, 0.19, -0.03)), part(box(0.34, 0.07, 0.04), DARK, 0, TRS(0, 0.1, 0.205)),
+      part(cone(0.045, 0.2, 6), DARK, 0, TRS(-0.15, 0.42, -0.02, 0, 0, 0.5)), part(cone(0.045, 0.2, 6), DARK, 0, TRS(0.15, 0.42, -0.02, 0, 0, -0.5))]),
   };
   function mergeGeo(list) { const parts = []; for (const g of list) { const n = g.attributes.position.count, c = g.attributes.color.array, t = g.attributes.aTint.array; for (let k = 0; k < n; k++) { /* keep per-vertex colours */ } parts.push(g); } return concat(parts); }
   function concat(gs) {
@@ -146,6 +191,17 @@
     return merge([part(sph(0.095, 10, 8), STEEL, 0), ...capsule(0.07, 0.14, 0xd8e0ff, 1, TRS(0, -0.01, 0)), part(cyl(0.09, 0.075, 0.1, 10), STEEL, 0, TRS(0, -0.2, 0)), part(tor(0.088, 0.015, 5, 12), GOLD, 0, TRS(0, -0.16, 0, Math.PI / 2, 0, 0)),
       part(sph(0.096, 12, 9), DSTEEL, 0, TRS(0, -0.275, 0.012))], [-0.3, 0.0, 0.75]);
   }
+  function armLooter() {   // rolled white sleeves, bare forearms, fingerless leather gloves
+    return merge([part(sph(0.085, 10, 8), SHIRT, 0), ...capsule(0.07, 0.07, SHIRT, 0, TRS(0, -0.01, 0)), ...capsule(0.058, 0.09, SKIN, 0, TRS(0, -0.1, 0)), part(cyl(0.066, 0.066, 0.06, 10), DLEATHER, 0, TRS(0, -0.2, 0)),
+      part(sph(0.085, 12, 9), LEATHER, 0, TRS(0, -0.27, 0.012, 0, 0, 0, 1, 0.95, 1.05))], [-0.3, 0.0, 0.75]);
+  }
+  function armGolem() {
+    return merge([part(box(0.22, 0.24, 0.24), 0xe2eaff, 1, TRS(0, -0.08, 0)), part(box(0.25, 0.14, 0.26), PLATE, 0, TRS(0, -0.22, 0)), part(box(0.28, 0.22, 0.28), 0xe2eaff, 1, TRS(0, -0.35, 0.01)),
+      part(box(0.29, 0.05, 0.12), PLATE, 0, TRS(0, -0.3, 0.1))], [-0.45, 0.0, 0.72]);
+  }
+  function legGolem() {
+    return merge([part(box(0.24, 0.24, 0.26), 0xe2eaff, 1, TRS(0, -0.1, 0)), part(box(0.2, 0.1, 0.07), PLATE, 0, TRS(0, -0.07, 0.14)), part(box(0.28, 0.12, 0.34), DSTEEL, 0, TRS(0, -0.27, 0.04))], [-0.33, 0.0, 0.6]);
+  }
   function armBrute() {
     return merge([...capsule(0.12, 0.18, 0xffc4b4, 1, TRS(0, -0.0, 0)), part(cyl(0.13, 0.12, 0.09, 10), DSTEEL, 0, TRS(0, -0.22, 0)), part(sph(0.14, 12, 9), 0xffc4b4, 1, TRS(0, -0.31, 0.02))], [-0.35, 0.0, 0.72]);
   }
@@ -157,7 +213,7 @@
     dagger: () => merge([part(box(0.05, 0.016, 0.24), STEEL, 0, TRS(0, 0, 0.18)), part(box(0.12, 0.03, 0.035), GOLD, 0, TRS(0, 0, 0.055)), part(cyl(0.022, 0.022, 0.09, 6), LEATHER, 0, TRS(0, 0, 0, Math.PI / 2, 0, 0))]),
     axe: () => merge([part(cyl(0.035, 0.035, 0.95, 8), WOOD, 0, TRS(0, 0, 0.3, Math.PI / 2, 0, 0)), part(box(0.05, 0.3, 0.24), 0x9aa4b2, 0, TRS(0, 0.15, 0.68)), part(box(0.056, 0.035, 0.25), 0xe8eef6, 0, TRS(0, 0.31, 0.68)), part(box(0.07, 0.09, 0.09), DSTEEL, 0, TRS(0, 0, 0.68)), part(cone(0.04, 0.12, 6), DSTEEL, 0, TRS(0, 0, 0.83, Math.PI / 2, 0, 0))]),
     bow: () => merge([part(tor(0.36, 0.025, 6, 16, Math.PI * 0.8), WOOD, 0, TRS(0, 0.1, 0, 0, Math.PI / 2, Math.PI / 2 + Math.PI * 0.1)), part(box(0.008, 0.008, 0.68), 0xf0f0f0, 0, TRS(0, 0.1 - 0.2, 0)), part(cyl(0.03, 0.03, 0.12, 6), LEATHER, 0, TRS(0, 0, 0, Math.PI / 2, 0, 0))]),
-    staff: () => merge([part(cyl(0.028, 0.034, 1.0, 7), 0x4a2f22, 0, TRS(0, 0, 0.35, Math.PI / 2, 0, 0)), part(new THREE.OctahedronGeometry(0.11), 0xe39aff, 0, TRS(0, 0, 0.9)), part(tor(0.08, 0.015, 5, 12), GOLD, 0, TRS(0, 0, 0.84))]),
+    staff: () => merge([part(cyl(0.028, 0.034, 1.0, 7), 0x4a2f22, 0, TRS(0, 0, 0.35, Math.PI / 2, 0, 0)), part(new THREE.OctahedronGeometry(0.11), CRYSTAL, 0, TRS(0, 0, 0.92, 0, 0, 0, 0.8, 0.8, 1.5)), part(tor(0.08, 0.015, 5, 12), GOLD, 0, TRS(0, 0, 0.82)), part(tor(0.06, 0.012, 4, 10), 0x4a2f22, 0, TRS(0, 0, 0.78))]),
     bomb: () => merge([part(sph(0.15, 12, 10), 0x24252c, 0, TRS(0, 0.0, 0.09)), part(cyl(0.05, 0.05, 0.05, 8), DSTEEL, 0, TRS(0, 0.15, 0.09)), part(cyl(0.012, 0.012, 0.1, 5), 0xd9b27a, 0, TRS(0.02, 0.22, 0.09, 0, 0, -0.4)), part(sph(0.025, 6, 4), 0xffd24a, 0, TRS(0.04, 0.27, 0.09))]),
     claws: () => merge([0, 1, 2].map(k => part(cone(0.018, 0.1, 5), IVORY, 0, TRS((k - 1) * 0.04, 0, 0.1, Math.PI / 2, 0, 0)))),
     // ranged weapon eras (held in the right hand, pointing +Z): rock → javelin → (bow) → crossbow → musket → rifle → pulse rifle
@@ -193,14 +249,15 @@
 
   // ---------------- recipes: unit kind → parts ----------------
   KM.RECIPE = {
-    soldier: { torso: 'tLight', head: 'hBlue', arm: 'aStd', leg: 'lStd', wpn: 'sword', shield: 1 },   // shield + spear (thrown once) + sword
-    archerF: { torso: 'tLight', head: 'hHood', arm: 'aStd', leg: 'lStd', wpn: 'bow' },
-    knightF: { torso: 'tHeavy', head: 'hKnight', arm: 'aHeavy', leg: 'lStd', wpn: 'sword', shield: 1 },
+    // friendly classes follow the approved reference portraits (LOOTER · RANGE · MELEE · MIZARD · ELITE · GIANT)
+    soldier: { torso: 'tLight', head: 'hBlue', arm: 'aStd', leg: 'lStd', wpn: 'sword', shield: 1 },   // MELEE: blue helmet + sword (shield wall in DEFEND)
+    archerF: { torso: 'tArcher', head: 'hHood', arm: 'aStd', leg: 'lStd', wpn: 'bow' },                // RANGE: hood, bow, quiver
+    knightF: { torso: 'tHeavy', head: 'hElite', arm: 'aHeavy', leg: 'lStd', wpn: 'sword', shield: 1 },   // ELITE: steel great helm, heavy plate
     grunt: { torso: 'tLight', head: 'hHorn', arm: 'aStd', leg: 'lStd', wpn: 'sword' },
     imp: { torso: 'tLight', head: 'hImp', arm: 'aStd', leg: 'lStd', wpn: 'claws' },
     shield: { torso: 'tHeavy', head: 'hBucket', arm: 'aStd', leg: 'lStd', wpn: 'sword', shield: 1 },
     runner: { torso: 'tLight', head: 'hBandana', arm: 'aStd', leg: 'lStd', wpn: 'dagger' },
-    archer: { torso: 'tLight', head: 'hHood', arm: 'aStd', leg: 'lStd', wpn: 'bow' },
+    archer: { torso: 'tLight', head: 'hHoodE', arm: 'aStd', leg: 'lStd', wpn: 'bow' },   // enemy ranged: masked hood with dark horns (never the friendly archer silhouette)
     knight: { torso: 'tHeavy', head: 'hBucket', arm: 'aHeavy', leg: 'lStd', wpn: 'axe', shield: 1 },
     brute: { torso: 'tBrute', head: 'hBrute', arm: 'aBrute', leg: 'lBrute', wpn: 'axe' },
     bomber: { torso: 'tLight', head: 'hGoggles', arm: 'aStd', leg: 'lStd', wpn: 'bomb' },
@@ -212,21 +269,24 @@
     colossus: { torso: 'tBrute', head: 'hBucket', arm: 'aBrute', leg: 'lBrute', wpn: 'axe', shield: 1 },
     hunter: { torso: 'tBrute', head: 'hGoggles', arm: 'aBrute', leg: 'lBrute', wpn: 'axe' },
     cannon: { body: 'cannon' },
-    collector: { torso: 'tLight', head: 'hBandana', arm: 'aStd', leg: 'lStd', wpn: 'sack' },
-    medic: { torso: 'tRobe', head: 'hHood', arm: 'aStd', leg: 'lStd', wpn: 'staff' },   // MIZARD
-    giantF: { torso: 'tBrute', head: 'hKnight', arm: 'aBrute', leg: 'lBrute', wpn: 'axe', shield: 1 },   // allied GIANT
+    collector: { torso: 'tLooter', head: 'hLooter', arm: 'aLooter', leg: 'lStd', wpn: 'dagger' },   // LOOTER: headband, crate backpack, knife
+    medic: { torso: 'tRobe', head: 'hWizard', arm: 'aStd', leg: 'lStd', wpn: 'staff' },   // MIZARD: pointed hat, white beard, crystal staff
+    giantF: { torso: 'tGolem', head: 'hGolem', arm: 'aGolem', leg: 'lGolem', wpn: 'none' },   // GIANT: blue armoured golem, fists
   };
   // skeleton offsets per body family (std vs brute proportions)
+  KM.isBig = r => r.torso === 'tBrute' || r.torso === 'tGolem';
+  KM.rigOf = r => r.torso === 'tGolem' ? KM.RIG.golem : r.torso === 'tBrute' ? KM.RIG.brute : KM.RIG.std;
   KM.RIG = {
     std: { hip: [0.11, 0.33], torso: 0.34, neck: 0.4, shoulder: [0.3, 0.33], fist: -0.27, shieldAt: [-0.03, -0.17, 0.1] },
     brute: { hip: [0.17, 0.33], torso: 0.32, neck: 0.44, shoulder: [0.47, 0.34], fist: -0.31, shieldAt: [0, -0.2, 0.12] },
+    golem: { hip: [0.17, 0.33], torso: 0.34, neck: 0.44, shoulder: [0.52, 0.36], fist: -0.35, shieldAt: [0, -0.2, 0.12] },
   };
 
   // Build all part geometries + far-LOD statues (one merged mesh per kind posed at rest).
   const buildParts = () => ({
-      lStd: legStd(), lBrute: legBrute(), tLight: merge(torsoLight(), [-0.08, 0.3, 0.7]), tHeavy: torsoHeavy(), tBrute: torsoBrute(), tRobe: torsoRobe(),
-      hBlue: H.blue(), hKnight: H.knight(), hHood: H.hood(), hHorn: H.horn(), hBucket: H.bucket(), hBandana: H.bandana(), hImp: H.imp(), hBrute: H.brute(), hWarlord: H.warlord(), hShaman: H.shaman(), hGoggles: H.goggles(),
-      aStd: armStd(), aHeavy: armHeavy(), aBrute: armBrute(),
+      lStd: legStd(), lBrute: legBrute(), lGolem: legGolem(), tLight: merge(torsoLight(), [-0.08, 0.3, 0.7]), tHeavy: torsoHeavy(), tBrute: torsoBrute(), tRobe: torsoRobe(), tLooter: torsoLooter(), tArcher: torsoArcher(), tGolem: torsoGolem(),
+      hBlue: H.blue(), hKnight: H.knight(), hHood: H.hood(), hHorn: H.horn(), hBucket: H.bucket(), hBandana: H.bandana(), hImp: H.imp(), hBrute: H.brute(), hWarlord: H.warlord(), hShaman: H.shaman(), hGoggles: H.goggles(), hLooter: H.looter(), hWizard: H.wizard(), hElite: H.elite(), hGolem: H.golem(), hHoodE: H.hoodE(),
+      aStd: armStd(), aHeavy: armHeavy(), aBrute: armBrute(), aLooter: armLooter(), aGolem: armGolem(),
       sword: W.sword(), swordGold: W.sword(true), dagger: W.dagger(), axe: W.axe(), bow: W.bow(), staff: W.staff(), bomb: W.bomb(), claws: W.claws(),
             rock: W.rock(), spear: W.spear(), xbow: W.xbow(), musket: W.musket(), rifle: W.rifle(), pulse: W.pulse(), sack: W.sack(),
       shield: shield(), cannon: cannon(), pads: pads(), plume: plume(), padsIron: padsIron(), hornsAdd: hornsAdd(), eyesGlow: eyesGlow(),
@@ -237,6 +297,8 @@
     const P = {}, box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
     for (const [k, S] of [['m_leg', 1], ['m_legB', 1.45]]) P[k] = merge([part(box(0.14 * S, 0.28, 0.16 * S), 0x5c6178, 1, TRS(0, -0.15, 0)), part(box(0.17 * S, 0.08, 0.25 * S), LEATHER, 0, TRS(0, -0.29, 0.03))], [-0.33, 0, 0.62]);
     for (const [k, S, c] of [['m_arm', 1, 0xd8e0ff], ['m_armB', 1.55, 0xffc4b4]]) P[k] = merge([part(box(0.12 * S, 0.24, 0.12 * S), c, 1, TRS(0, -0.11, 0)), part(new THREE.SphereGeometry(0.09 * S, 5, 3), c === 0xd8e0ff ? SKIN : c, c === 0xd8e0ff ? 0 : 1, TRS(0, -0.27, 0.01))], [-0.3, 0, 0.75]);
+    P.m_legG = merge([part(box(0.24, 0.26, 0.26), 0xe2eaff, 1, TRS(0, -0.12, 0)), part(box(0.28, 0.1, 0.32), DSTEEL, 0, TRS(0, -0.28, 0.04))], [-0.33, 0, 0.62]);
+    P.m_armG = merge([part(box(0.22, 0.26, 0.24), 0xe2eaff, 1, TRS(0, -0.1, 0)), part(box(0.25, 0.1, 0.26), PLATE, 0, TRS(0, -0.23, 0)), part(box(0.28, 0.22, 0.28), 0xe2eaff, 1, TRS(0, -0.35, 0.01))], [-0.45, 0, 0.72]);
     P.m_shield = merge([part(new THREE.CylinderGeometry(0.21, 0.21, 0.05, 7), 0xe6ecff, 1, TRS(0, 0, 0, Math.PI / 2, 0, 0)), part(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 5), GOLD, 0, TRS(0, 0, 0.03, Math.PI / 2, 0, 0))]);
     const stick = (len, col, extra) => merge([part(box(0.05, 0.03, len), col, 0, TRS(0, 0, len / 2 + 0.05)), ...(extra || [])]);
     P.m_w_sword = stick(0.62, STEEL, [part(box(0.18, 0.04, 0.05), GOLD, 0, TRS(0, 0, 0.08))]); P.m_w_swordGold = stick(0.62, GOLD, [part(box(0.18, 0.04, 0.05), GOLD, 0, TRS(0, 0, 0.08))]);
@@ -247,8 +309,13 @@
     P.m_w_musket = stick(0.95, DSTEEL); P.m_w_rifle = stick(0.8, DARK); P.m_w_pulse = stick(0.75, 0x3fd0ff); P.m_w_sack = merge([part(new THREE.SphereGeometry(0.17, 5, 4), 0xd9b27a, 0, TRS(0, 0.05, -0.05))]); P.m_w_claws = merge([part(box(0.1, 0.02, 0.12), IVORY, 0, TRS(0, 0, 0.08))]);
     for (const [k, r] of Object.entries(KM.RECIPE)) {
       if (r.body) continue;
+      if (r.torso === 'tGolem') { const G = KM.RIG.golem, hy = G.neck;   // friendly giant: blocky blue golem with white plates
+        P['m_th_' + k] = merge([part(box(0.8, 0.52, 0.52), 0xe2eaff, 1, TRS(0, 0.22, 0)), part(box(0.52, 0.36, 0.06), PLATE, 0, TRS(0, 0.26, 0.27)), part(box(0.68, 0.07, 0.48), DSTEEL, 0, TRS(0, 0.03, 0)),
+          part(box(0.36, 0.17, 0.46), PLATE, 0, TRS(-0.47, 0.47, 0, 0, 0, 0.22)), part(box(0.36, 0.17, 0.46), PLATE, 0, TRS(0.47, 0.47, 0, 0, 0, -0.22)),
+          part(box(0.38, 0.32, 0.36), 0xe2eaff, 1, TRS(0, hy + 0.14, 0)), part(box(0.32, 0.17, 0.05), PLATE, 0, TRS(0, hy + 0.12, 0.185)), part(box(0.25, 0.045, 0.03), DARK, 0, TRS(0, hy + 0.15, 0.212)), part(box(0.4, 0.09, 0.38), PLATE, 0, TRS(0, hy + 0.33, 0))], [-0.15, 0.4, 0.72]);
+        continue; }
       const brute = r.torso === 'tBrute', S = brute ? 1.45 : 1, rig = brute ? KM.RIG.brute : KM.RIG.std, L = [];
-      const hs = { hBlue: 'dome', hKnight: 'plume', hHood: 'hood', hHorn: 'horns', hBucket: 'bucket', hBandana: 'band', hImp: 'imp', hBrute: 'bhorns', hWarlord: 'crown', hShaman: 'cone', hGoggles: 'dome' }[r.head];
+      const hs = { hBlue: 'dome', hKnight: 'plume', hHood: 'hood', hHoodE: 'hood', hHorn: 'horns', hBucket: 'bucket', hBandana: 'band', hLooter: 'band', hImp: 'imp', hBrute: 'bhorns', hWarlord: 'crown', hShaman: 'cone', hWizard: 'cone', hElite: 'helm', hGoggles: 'dome' }[r.head];
       L.push(part(new THREE.LatheGeometry([[0, -0.02], [0.22, 0.0], [0.28, 0.13], [0.26, 0.3], [0.14, 0.4], [0, 0.42]].map(([a, b]) => new THREE.Vector2(a * S, b * (brute ? 1.08 : 1))), 7), r.torso === 'tRobe' ? 0xd8c8ff : brute ? 0xffd2c4 : 0xe6ebff, 1));
       L.push(part(new THREE.CylinderGeometry(0.27 * S, 0.27 * S, 0.06, 7), LEATHER, 0, TRS(0, 0.1, 0)));
       if (r.torso === 'tHeavy' || brute) for (const x of [-1, 1]) L.push(part(new THREE.SphereGeometry(0.13 * S, 5, 3, 0, Math.PI * 2, 0, Math.PI / 2), brute ? DSTEEL : 0xd8e0ff, brute ? 0 : 1, TRS(x * 0.27 * S, 0.34, 0)));
@@ -264,6 +331,11 @@
       if (hs === 'crown') L.push(part(new THREE.CylinderGeometry(0.2, 0.22, 0.1, 7), GOLD, 0, TRS(0, hy + 0.2, 0)));
       if (hs === 'bucket') L.push(part(new THREE.CylinderGeometry(0.24, 0.25, 0.32, 8), 0xd8d8d8, 1, TRS(0, hy + 0.05, 0)), part(new THREE.BoxGeometry(0.3, 0.035, 0.04), DARK, 0, TRS(0, hy + 0.03, 0.24)));
       if (hs === 'cone') L.push(part(new THREE.ConeGeometry(0.27, 0.58, 7), 0xd8c8ff, 1, TRS(0, hy + 0.23, -0.04)));
+      if (hs === 'helm') { L.push(part(new THREE.CylinderGeometry(0.25, 0.262, 0.28, 8), HELM, 0, TRS(0, hy + 0.02, 0)), part(new THREE.BoxGeometry(0.3, 0.045, 0.05), DARK, 0, TRS(0, hy + 0.04, 0.245)), part(new THREE.BoxGeometry(0.07, 0.12, 0.42), 0xe8eeff, 1, TRS(0, hy + 0.36, -0.03))); }
+      if (r.head === 'hWizard') L.push(part(new THREE.SphereGeometry(0.16, 6, 4), BEARD, 0, TRS(0, hy - 0.12, 0.12, 0, 0, 0, 1, 1.3, 0.75)), part(new THREE.CylinderGeometry(0.34, 0.34, 0.04, 8), 0xe8eeff, 1, TRS(0, hy + 0.14, 0)));
+      if (r.head === 'hLooter') L.push(part(new THREE.SphereGeometry(0.214, 7, 3, 0, Math.PI * 2, 0, Math.PI * 0.5), HAIR, 0, TRS(0, hy + 0.02, -0.015)), part(new THREE.BoxGeometry(0.4, 0.36, 0.22), WOOD, 0, TRS(0, 0.25, -0.34)));
+      if (r.torso === 'tArcher') L.push(part(new THREE.CylinderGeometry(0.07, 0.075, 0.44, 6), LEATHER, 0, TRS(0.12, 0.3, -0.27, 0, 0, -0.35)));
+      if (r.head === 'hHoodE') for (const x of [-1, 1]) L.push(part(new THREE.ConeGeometry(0.045, 0.2, 4), DARK, 0, TRS(x * 0.15, hy + 0.25, -0.02, 0, 0, -x * 0.5)));
       if (r.head === 'hGoggles') L.push(part(new THREE.BoxGeometry(0.26, 0.08, 0.05), DARK, 0, TRS(0, hy + 0.05, 0.19)));
       P['m_th_' + k] = merge(L, [-0.05, 0.3, 0.7]);
     }
@@ -271,18 +343,18 @@
   }
   // Far statue: the lean pieces composed at the rest pose (single draw per kind, ~250 tris).
   function statue(k, r, P) {
-    const brute = r.torso === 'tBrute', rig = brute ? KM.RIG.brute : KM.RIG.std, list = [], lg = brute ? 'm_legB' : 'm_leg', am = brute ? 'm_armB' : 'm_arm';
+    const golem = r.torso === 'tGolem', brute = r.torso === 'tBrute', rig = KM.rigOf(r), list = [], lg = golem ? 'm_legG' : brute ? 'm_legB' : 'm_leg', am = golem ? 'm_armG' : brute ? 'm_armB' : 'm_arm';
     const add = (g, m) => { const c = g.clone(); c.applyMatrix4(m); list.push(c); };
     add(P[lg], TRS(-rig.hip[0], rig.hip[1], 0, -0.1)); add(P[lg], TRS(rig.hip[0], rig.hip[1], 0, 0.1));
     const tor = TRS(0, rig.torso, 0, 0.08); add(P['m_th_' + k], tor);
     const aL = new M4().multiplyMatrices(tor, TRS(-rig.shoulder[0], rig.shoulder[1], 0, -0.15, 0, 0.12)), aR = new M4().multiplyMatrices(tor, TRS(rig.shoulder[0], rig.shoulder[1], 0, -0.55, 0, -0.12));
-    add(P[am], aL); add(P[am], aR); add(P['m_w_' + r.wpn], new M4().multiplyMatrices(r.wpn === 'bow' ? aL : aR, TRS(0, rig.fist, 0.02)));
+    add(P[am], aL); add(P[am], aR); if (r.wpn !== 'none') add(P['m_w_' + r.wpn], new M4().multiplyMatrices(r.wpn === 'bow' ? aL : aR, TRS(0, rig.fist, 0.02)));
     if (r.shield) add(P.m_shield, new M4().multiplyMatrices(aL, TRS(...rig.shieldAt)));
     const g = concat(list); list.forEach(x => x.dispose()); return g;
   }
   // Far crowd: three shared low-poly silhouettes (~90–130 tris) instead of one ~400-tri statue per kind. At that
   // distance kind reads from colour + silhouette, and one instanced draw per family replaces fourteen.
-  KM.farFamily = r => r.torso === 'tBrute' ? 'F_brute' : r.shield ? 'F_shield' : 'F_std';
+  KM.farFamily = r => r.torso === 'tGolem' ? 'F_golem' : r.torso === 'tBrute' ? 'F_brute' : r.head === 'hWizard' ? 'F_hat' : r.shield ? 'F_shield' : 'F_std';
   function farParts() {
     const out = {};
     for (const fam of ['F_std', 'F_shield', 'F_brute']) {
@@ -296,6 +368,15 @@
       if (fam === 'F_shield') L.push(part(new THREE.CylinderGeometry(0.21, 0.21, 0.05, 6), 0xe6ecff, 1, TRS(-0.3, ty + 0.15, 0.12, Math.PI / 2, 0, 0)));
       out[fam] = merge(L, [0, 0.6, 0.7]);
     }
+    { const G = KM.RIG.golem, ty = G.torso, hy = ty + G.neck, L = [];   // friendly giant far silhouette: square blue body, white shoulder plates, no horns
+      L.push(part(new THREE.BoxGeometry(0.5, 0.34, 0.28), 0xe2eaff, 1, TRS(0, 0.17, 0)), part(new THREE.BoxGeometry(0.8, 0.56, 0.5), 0xe2eaff, 1, TRS(0, ty + 0.22, 0)),
+        part(new THREE.BoxGeometry(1.1, 0.16, 0.44), PLATE, 0, TRS(0, ty + 0.47, 0)), part(new THREE.BoxGeometry(0.38, 0.4, 0.36), 0xe2eaff, 1, TRS(0, hy + 0.16, 0)),
+        part(new THREE.BoxGeometry(0.24, 0.5, 0.26), 0xe2eaff, 1, TRS(-0.52, ty + 0.1, 0)), part(new THREE.BoxGeometry(0.24, 0.5, 0.26), 0xe2eaff, 1, TRS(0.52, ty + 0.1, 0)));
+      out.F_golem = merge(L, [0, 0.6, 0.7]); }
+    { const L = [];   // Mizard far silhouette: robe + tall pointed hat
+      L.push(part(new THREE.CylinderGeometry(0.2, 0.32, 0.72, 6), 0xe6ebff, 1, TRS(0, 0.36, 0)), part(new THREE.SphereGeometry(0.2, 5, 3), SKIN, 0, TRS(0, 0.91, 0)), part(new THREE.SphereGeometry(0.15, 5, 3), BEARD, 0, TRS(0, 0.8, 0.1)),
+        part(new THREE.CylinderGeometry(0.34, 0.34, 0.04, 6), 0xe8eeff, 1, TRS(0, 1.04, 0)), part(new THREE.ConeGeometry(0.22, 0.6, 5), 0xe8eeff, 1, TRS(0, 1.36, -0.05)), part(new THREE.BoxGeometry(0.04, 0.04, 1.0), 0x4a2f22, 0, TRS(0.32, 0.5, 0.2)));
+      out.F_hat = merge(L, [0, 0.6, 0.7]); }
     return out;
   }
   KM.buildKit = function () {

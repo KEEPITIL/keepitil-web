@@ -162,7 +162,7 @@
 
     drawCrowd(sim, dt) {
       const A = KM.ANIM, I = A.I, P = A.P, M = this.mats, q = this.q, e = this.e, pos = this.v, sc = this.s3, col = this.col, col2 = this.col2;
-      const S = sim.stats, armorLv = S.lv.armor || 0, dmgLv = S.lv.dmg || 0, hpLv = S.lv.hp || 0, rtW = KM.rtech(S).wpn, colCap = S.colCap;
+      const S = sim.stats, colCap = S.colCap;
       for (const k in this.pn) this.pn[k] = 0;
       let nb = 0, nr = 0; this.frameNo++;
       const blue = TEAM[0], camZ = this.cam.position.z, camX = this.cam.position.x, crowd = sim.count[0] + sim.count[1], flipCam = !!(KM.camFocus && KM.camFocus.flip);
@@ -176,13 +176,13 @@
         const st = sim.st[i]; if (!st) { this.clip[i] = -1; continue; }
         const z = sim.z[i]; if (flipCam ? (z < camZ - 3 || z > camZ + 125) : (z > camZ + 3 || z < camZ - 125)) continue;
         const team = sim.team[i], def = sim.def(i), key = this.kindKey[sim.kind[i]], R = KM.RECIPE[key];
-        let s = sim.sc[i]; if (team === 0) s *= 1 + hpLv * 0.02;
+        let s = sim.sc[i];   // class levels never rescale a model
         let dy = sim.yaw[i] - this.ry[i]; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); this.ry[i] += dy * Math.min(1, dt * (8 + (i % 5)));
         let y = 0;
         if (st === 2) { const d = sim.die[i]; y -= Math.max(0, d - 0.45) * 1.1; s *= 1 - Math.max(0, d - 0.5) / 0.22; if (s <= 0.02) continue; }
         const b = sim.birth[i]; if (b > 0) { const u = b / 0.4; y += Math.sin(u * Math.PI) * 1.25; s *= 0.55 + 0.45 * u; }
         // colour: faction, era, flash, frost
-        col.setHex(team ? ENEMY_COL[def.k] : this.classTint[def.id] != null ? this.classTint[def.id] : def.col ? 0xf2b632 : def.med ? 0xb59cff : def.big ? 0x2a5fd8 : blue.getHex());   // Armory skins tint their class
+        col.setHex(team ? ENEMY_COL[def.k] : this.classTint[def.id] != null ? this.classTint[def.id] : def.col ? 0x3f7cff : def.med ? 0x3a66f0 : def.big ? 0x2a5fd8 : blue.getHex());   // the whole army reads BLUE; Armory skins tint their class
         if (team === 1 && sim.era[i]) col.multiply(col2.setHex(ERA_TINT[sim.era[i]]));
         if (team === 0 && def.k === 'knightF') col.lerp(col2.setHex(0x6aa0ff), 0.35);
         if (sim.slow[i] > 0) col.lerp(col2.setHex(0x9fe8ff), 0.45);
@@ -198,8 +198,8 @@
           this.putP(this.farKey[key] || (this.farKey[key] = KM.farFamily(R)), M[0], col); this.clip[i] = -1;
         } else {
           const v = this.animate(sim, i, dt, lodL), p = this.pose, o = i * P;
-          const rig = R.torso === 'tBrute' ? KM.RIG.brute : KM.RIG.std, mid = lodL === 1, brute = R.torso === 'tBrute';
-          const LEG = mid ? (brute ? 'm_legB' : 'm_leg') : R.leg, ARM = mid ? (brute ? 'm_armB' : 'm_arm') : R.arm;
+          const rig = KM.rigOf(R), mid = lodL === 1, golem = R.torso === 'tGolem', brute = R.torso === 'tBrute';
+          const LEG = mid ? (golem ? 'm_legG' : brute ? 'm_legB' : 'm_leg') : R.leg, ARM = mid ? (golem ? 'm_armG' : brute ? 'm_armB' : 'm_arm') : R.arm;
           // root (pivot at feet so falls topple naturally)
           // acceleration / braking lean (centre of mass leads when speeding up, rocks back when stopping)
           const spd = Math.hypot(sim.vx[i], sim.vz[i]), acc = (spd - this.pvel[i]) / Math.max(dt, 1e-3); this.pvel[i] = spd;
@@ -212,29 +212,29 @@
           rot(M[2], 0, rig.torso, 0, p[o + I.torsoP], p[o + I.torsoY], p[o + I.torsoR]); M[2].premultiply(M[0]);
           if (mid) this.putP('m_th_' + key, M[2], col);
           else {
-            this.putP(R.torso, M[2], col); if (team === 0 && armorLv > 0) this.putP('pads', M[2]);
+            this.putP(R.torso, M[2], col);
             rot(M[3], 0, rig.neck, 0, p[o + I.headP], p[o + I.headY], 0); M[3].premultiply(M[2]); this.putP(R.head, M[3], col);
-            if (team === 0 && armorLv >= 4 && key === 'soldier') this.putP('plume', M[3]);
-            if (team === 1) { const era = sim.era[i];                                   // later eras look harsher
-              if (era >= 1 && R.torso === 'tLight') this.putP('padsIron', M[2]);
-              if (era >= 2 && (key === 'grunt' || key === 'runner' || key === 'bomber' || key === 'archer')) this.putP('hornsAdd', M[3]);
+            if (team === 1) { const era = sim.era[i];                                   // red faction silhouette: spiked iron pauldrons + horns; later eras look harsher
+              if (R.torso === 'tLight') this.putP('padsIron', M[2]);
+              if (key === 'spearman' || (era >= 2 && (key === 'runner' || key === 'bomber'))) this.putP('hornsAdd', M[3]);
               if (era >= 3 && R.head !== 'hShaman' && R.head !== 'hImp') this.putP('eyesGlow', M[3]); }
           }
           // arms + held items
           rot(M[4], -rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armLP], 0, p[o + I.armLR]); M[4].premultiply(M[2]); this.putP(ARM, M[4], col);
           rot(M[5], rig.shoulder[0], rig.shoulder[1], 0, p[o + I.armRP], p[o + I.armRY], p[o + I.armRR]); M[5].premultiply(M[2]); this.putP(ARM, M[5], col);
-          let wk = R.wpn; if (wk === 'sword' && team === 0 && dmgLv >= 5) wk = 'swordGold'; if (team === 0 && key === 'archerF') wk = rtW;   // ranged troops carry their weapon era
+          let wk = R.wpn;   // every class keeps its reference weapon at every level (Range is always an archer)
           if (team === 0 && key === 'archerF' && sim.em[i]) wk = 'sword';                              // ranged: emergency sword when an enemy reaches them
           else if (team === 0 && key === 'soldier' && (sim.posture === 1 ? sim.frank[i] === 2 || sim.frank[i] === 3 : sim.spear[i])) wk = 'spear';   // DEFEND: ranks 2–3 hold pikes; ATTACK: spear until thrown   // melee: spear until thrown, then sword
-          const ws = team === 0 && wk.startsWith('sword') ? 1 + Math.min(8, dmgLv) * 0.06 : wk === 'sack' ? 0.55 + Math.min(1, sim.carry[i] / colCap) * 0.9 : 1;
+          const ws = 1;
           if (wk === 'bow') { M[6].makeTranslation(0, rig.fist, 0.02); M[6].premultiply(M[4]); }        // bow in the off hand
           else { M[6].makeScale(ws, ws, ws); M[6].setPosition(0, rig.fist, 0.03); M[6].premultiply(M[5]); }
-          this.putP(mid ? 'm_w_' + wk : wk, M[6]);
+          if (wk !== 'none') this.putP(mid ? 'm_w_' + wk : wk, M[6]);
+          if (key === 'collector' && sim.carry[i] > 0) { const ls = 0.55 + Math.min(1, sim.carry[i] / colCap) * 0.9; M[7].makeScale(ls, ls, ls); M[7].setPosition(0, rig.fist, 0.03); M[7].premultiply(M[4]); this.putP(mid ? 'm_w_sack' : 'sack', M[7]); }   // Looter: loot sack in the free hand
           if (R.shield) { M[7].makeTranslation(rig.shieldAt[0], rig.shieldAt[1], rig.shieldAt[2]); M[7].premultiply(M[4]); this.putP(mid ? 'm_shield' : 'shield', M[7], col); }
           // sword trail accent on near units mid-swing (density-scaled)
           if (lodL === 0 && sim.swing[i] > 0.35 && sim.swing[i] < 0.62 && this.fxBudget > 0 && Math.random() < 0.5) { this.fxBudget--; pos.set(0, 0, 0.55 * ws).applyMatrix4(M[6]); this.emit(pos.x, pos.y, pos.z, 0, 0, 0, team ? 0xffd0c0 : 0xd8ecff, 0.32, 0.14, 0); }
         }
-        if (nb < 4096) { q.identity(); const bs = s * (R.body ? 1.6 : R.torso === 'tBrute' ? 1.3 : 0.85); pos.set(sim.x[i], 0.03, z); sc.set(bs, 1, bs); M[0].compose(pos, q, sc); this.put(this.blob, nb++, M[0]); }
+        if (nb < 4096) { q.identity(); const bs = s * (R.body ? 1.6 : KM.isBig(R) ? 1.3 : 0.85); pos.set(sim.x[i], 0.03, z); sc.set(bs, 1, bs); M[0].compose(pos, q, sc); this.put(this.blob, nb++, M[0]); }
         if (team === 1 && def.el && st === 1 && nr < (def.boss ? 160 : 24)) { q.identity(); const rs = s * 0.75 * (1 + Math.sin(this.time * 6) * 0.06); pos.set(sim.x[i], 0.05, z); sc.set(rs, 1, rs); M[0].compose(pos, q, sc); this.put(this.ringM, nr++, M[0]); }
       }
       for (const t of sim.towers) if (t && nb < 4096) { q.identity(); pos.set(t.x, 0.03, t.z); sc.set(2.3, 1, 2.9); M[0].compose(pos, q, sc); this.put(this.blob, nb++, M[0]); }   // support vehicles: blob contact shadows

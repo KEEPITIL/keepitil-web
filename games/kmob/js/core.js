@@ -83,7 +83,7 @@
     { k: 'soldier', hp: 1, dmg: 1, rng: 0.75, rad: 0.36, sc: 1, cd: 0.85, wpn: 'sword' },
     { k: 'archerF', hp: 0.7, dmg: 0.9, rng: 8, rad: 0.36, sc: 1, cd: 1.4, wpn: 'bow', r: 1 },
     { k: 'knightF', hp: 7, dmg: 3.6, rng: 1.05, rad: 0.62, sc: 1.8, cd: 1.0, wpn: 'axe', sh: 1, el: 1 },             // ELITE: big, armoured, heavy knockback
-    { k: 'collector', hp: 1.6, dmg: 0, rng: 0.5, rad: 0.34, sc: 1.15, cd: 9, wpn: 'sack', col: 1, spd: 5.4 },
+    { k: 'collector', hp: 1.6, dmg: 0.5, rng: 0.6, rad: 0.34, sc: 1.0, cd: 0.9, wpn: 'dagger', col: 1, spd: 5.4 },   // LOOTER: loots, repairs the tank, knife at half Melee damage
     { k: 'medic', hp: 1.3, dmg: 0, rng: 0.5, rad: 0.34, sc: 1.05, cd: 1.1, wpn: 'staff', med: 1, spd: 4.6 },                 // MIZARD: staff healer (beam + area burst)
     { k: 'giantF', hp: 22, dmg: 7, rng: 1.3, rad: 0.95, sc: 2.5, cd: 1.3, wpn: 'axe', sh: 1, big: 1, spd: 3.4 },          // GIANT: allied heavy anchor
   ];
@@ -93,14 +93,14 @@
   KM.BUILD = '2026.10.07-endless';   // reported with telemetry; bump on every public deploy
   KM.ARMY_CAP = 300;   // army POINTS (never grows); evolved soldiers take more points
   KM.PROD = {
-    collector: { name: 'COLLECTOR', kind: 'collector', cost: 25,  pts: 1 },
+    collector: { name: 'LOOTER',    kind: 'collector', cost: 25,  pts: 1 },
     range:     { name: 'RANGE',     kind: 'archerF',   cost: 75,  pts: 1 },
     melee:     { name: 'MELEE',     kind: 'soldier',   cost: 100, pts: 1 },
     elite:     { name: 'ELITE',     kind: 'knightF',   cost: 250, pts: 2 },
     mizard:    { name: 'MIZARD',    kind: 'medic',     cost: 150, pts: 1 },
     giant:     { name: 'GIANT',     kind: 'giantF',    cost: 500, pts: 4 },
   };
-  KM.PROD_ORDER = ['collector', 'range', 'melee', 'elite', 'mizard', 'giant'];
+  KM.PROD_ORDER = ['collector', 'range', 'melee', 'mizard', 'elite', 'giant'];
   KM.CLASS_OF = Object.fromEntries(KM.PROD_ORDER.map(k => [KM.FRIEND_BY[KM.PROD[k].kind].id, k]));
   KM.CLASS_MAX = 10; KM.EVOLVE_AT = 8;
   KM.clsUpCost = (key, lv) => Math.round(KM.PROD[key].cost * (25 + 20 * (lv - 1)) / 5) * 5;   // own track per class: level 2 ≈ 25 soldiers' price, level 10 ≈ 185
@@ -163,14 +163,14 @@
   KM.TOWER_SLOTS = [{ x: -3.1, dz: -2.4 }, { x: 3.1, dz: -2.4 }, { x: -5.4, dz: -0.4 }, { x: 5.4, dz: -0.4 }];
   KM.slotsUnlocked = m => 1 + (m >= 4 ? 1 : 0) + (m >= 8 ? 1 : 0) + (m >= 13 ? 1 : 0);
   // Ranged weapon eras — earned one step at a time (minute gate per era), visual + mechanical changes together.
-  KM.RTECH = [
-    { name: 'ROCK THROWERS', at: 0,  range: 5.5,  dmg: 0.8,  cd: 1.6, speed: 10, arc: 1.0,  wpn: 'rock', gap: 3.2 },
-    { name: 'JAVELINS',      at: 2,  range: 6.8,  dmg: 1.0,  cd: 1.5, speed: 14, arc: 0.55, wpn: 'spear', gap: 4.0 },
-    { name: 'ARCHERS',       at: 4,  range: 8.2,  dmg: 1.1,  cd: 1.3, speed: 19, arc: 0.5,  wpn: 'bow', gap: 5.0 },
-    { name: 'CROSSBOWS',     at: 7,  range: 9.2,  dmg: 1.4,  cd: 1.45, speed: 28, arc: 0.2, wpn: 'xbow', gap: 5.8 },
-    { name: 'MUSKETS',       at: 11, range: 10,   dmg: 1.95, cd: 2.1, speed: 60, arc: 0,    wpn: 'musket', gap: 6.6 },
-    { name: 'RIFLES',        at: 15, range: 11.2, dmg: 2.2,  cd: 1.35, speed: 70, arc: 0,   wpn: 'rifle', gap: 7.4 },
-    { name: 'PULSE RIFLES',  at: 20, range: 12.5, dmg: 1.55, cd: 0.6, speed: 48, arc: 0,    wpn: 'pulse', gap: 8.2 },
+  KM.RTECH = [   // RANGE stays an archer at every level: bow tiers improve range / rate / damage, never the weapon type
+    { name: 'SHORTBOWS', at: 0,  range: 5.5,  dmg: 0.8,  cd: 1.6, speed: 10, arc: 1.0,  wpn: 'bow', gap: 3.2 },
+    { name: 'HUNTING BOWS',      at: 2,  range: 6.8,  dmg: 1.0,  cd: 1.5, speed: 14, arc: 0.55, wpn: 'bow', gap: 4.0 },
+    { name: 'LONGBOWS',       at: 4,  range: 8.2,  dmg: 1.1,  cd: 1.3, speed: 19, arc: 0.5,  wpn: 'bow', gap: 5.0 },
+    { name: 'RECURVE BOWS',     at: 7,  range: 9.2,  dmg: 1.4,  cd: 1.45, speed: 28, arc: 0.2, wpn: 'bow', gap: 5.8 },
+    { name: 'WAR BOWS',       at: 11, range: 10,   dmg: 1.95, cd: 2.1, speed: 60, arc: 0,    wpn: 'bow', gap: 6.6 },
+    { name: 'MASTER BOWS',        at: 15, range: 11.2, dmg: 2.2,  cd: 1.35, speed: 70, arc: 0,   wpn: 'bow', gap: 7.4 },
+    { name: 'LEGEND BOWS',  at: 20, range: 12.5, dmg: 1.55, cd: 0.6, speed: 48, arc: 0,    wpn: 'bow', gap: 8.2 },
   ];
   KM.rtech = s => KM.RTECH[Math.min(KM.RTECH.length - 1, s.rtech || 0)];
   // gap = how far the ranged line stands behind the melee front (m): short throwing weapons close, firearms far back

@@ -4,7 +4,7 @@
   const KM = G.KM, W = KM.W;
   const V3 = THREE.Vector3, M4 = THREE.Matrix4, Q = THREE.Quaternion, E = THREE.Euler, C = THREE.Color;
   const TEAM = [new C(0x2f74ff), new C(0xe2312c)];
-  const ENEMY_COL = { grunt: 0xe2312c, imp: 0xf0463a, shield: 0xd02a2e, runner: 0xe83c2c, archer: 0xd8352f, knight: 0xa51f2c, brute: 0xd0262c, bomber: 0xe8482a, cannon: 0x9a2a2a, shaman: 0xa02c9e, warlord: 0x9a1424, spearman: 0xc8302a, giant: 0x8e1c22, titan: 0x7a1020, colossus: 0x5e1a24, hunter: 0x8a2a10 };
+  const ENEMY_COL = { grunt: 0xe2312c, imp: 0xf0463a, shield: 0xd02a2e, runner: 0xe83c2c, archer: 0xd8352f, knight: 0xa51f2c, brute: 0xd0262c, bomber: 0xe8482a, cannon: 0x9a2a2a, shaman: 0xc0242c, warlord: 0x9a1424, spearman: 0xc8302a, giant: 0x8e1c22, titan: 0x7a1020, colossus: 0x5e1a24, hunter: 0x8a2a10 };
   const ERA_TINT = [0xffffff, 0xf2d6d6, 0xd9b8c0, 0xc8a8d8, 0xb0b0b8, 0x9ad8ff];
 
   // ---------- geometry helpers ----------
@@ -215,7 +215,7 @@
             this.putP(R.torso, M[2], col);
             rot(M[3], 0, rig.neck, 0, p[o + I.headP], p[o + I.headY], 0); M[3].premultiply(M[2]); this.putP(R.head, M[3], col);
             if (team === 1) { const era = sim.era[i];                                   // red faction silhouette: spiked iron pauldrons + horns; later eras look harsher
-              if (R.torso === 'tLight') this.putP('padsIron', M[2]);
+              if (R.torso === 'tLight' || key === 'knight') this.putP('padsIron', M[2]);
               if (key === 'spearman' || (era >= 2 && (key === 'runner' || key === 'bomber'))) this.putP('hornsAdd', M[3]);
               if (era >= 3 && R.head !== 'hShaman' && R.head !== 'hImp') this.putP('eyesGlow', M[3]); }
           }

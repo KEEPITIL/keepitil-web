@@ -172,6 +172,11 @@
       part(box(0.07, 0.11, 0.42), 0xe8eeff, 1, TRS(0, 0.5, -0.03, 0.1, 0, 0)), part(box(0.05, 0.05, 0.05), GOLD, 0, TRS(0, 0.45, 0.19))]),
     golem: () => merge([part(box(0.38, 0.32, 0.36), 0xe2eaff, 1, TRS(0, 0.14, 0)), part(box(0.32, 0.17, 0.05), PLATE, 0, TRS(0, 0.12, 0.185)), part(box(0.25, 0.045, 0.03), DARK, 0, TRS(0, 0.15, 0.212)),
       part(sph(0.03, 6, 4), GLOW, 0, TRS(-0.07, 0.15, 0.222)), part(sph(0.03, 6, 4), GLOW, 0, TRS(0.07, 0.15, 0.222)), part(box(0.4, 0.08, 0.38), 0xc8d4f0, 1, TRS(0, 0.32, 0)), part(box(0.1, 0.08, 0.36), PLATE, 0, TRS(0, 0.38, 0))]),
+    hoodI: () => merge([...face(SKIN), part(sph(0.258, 16, 10, 0, Math.PI * 0.64), 0xc0ccff, 1, TRS(0, 0.19, -0.03)), part(cone(0.11, 0.24, 8), 0xc0ccff, 1, TRS(0, 0.3, -0.25, -1.1, 0, 0)), part(box(0.3, 0.035, 0.04), DARK, 0, TRS(0, 0.215, 0.2))]),   // enemy infantry: red hood, dark brow band
+    heavyE: () => merge([...face(SKIN), dome(0.268, 0xeaeaea, 1, 0.21, Math.PI * 0.6), part(box(0.3, 0.05, 0.05), DARK, 0, TRS(0, 0.2, 0.245)), part(box(0.05, 0.14, 0.05), DSTEEL, 0, TRS(0, 0.13, 0.255)),
+      part(cone(0.06, 0.3, 8), IVORY, 0, TRS(-0.24, 0.42, 0, 0.1, 0, 0.85)), part(cone(0.06, 0.3, 8), IVORY, 0, TRS(0.24, 0.42, 0, 0.1, 0, -0.85))]),   // enemy heavy: horned red helm
+    eliteE: () => merge([...face(SKIN), dome(0.27, 0xeaeaea, 1, 0.21, Math.PI * 0.62), part(box(0.3, 0.05, 0.05), DARK, 0, TRS(0, 0.2, 0.245)), part(cone(0.06, 0.32, 8), IVORY, 0, TRS(-0.24, 0.44, 0, 0.1, 0, 0.8)), part(cone(0.06, 0.32, 8), IVORY, 0, TRS(0.24, 0.44, 0, 0.1, 0, -0.8)),
+      ...[-0.1, 0, 0.1].map((x, k) => part(cone(0.035, k === 1 ? 0.2 : 0.14, 6), DSTEEL, 0, TRS(x, 0.5, -0.02)))]),   // enemy elite: horns + spiked crest
     hoodE: () => merge([...face(SKIN), part(sph(0.255, 16, 10, 0, Math.PI * 0.62), 0xc0ccff, 1, TRS(0, 0.19, -0.03)), part(box(0.34, 0.07, 0.04), DARK, 0, TRS(0, 0.1, 0.205)),
       part(cone(0.045, 0.2, 6), DARK, 0, TRS(-0.15, 0.42, -0.02, 0, 0, 0.5)), part(cone(0.045, 0.2, 6), DARK, 0, TRS(0.15, 0.42, -0.02, 0, 0, -0.5))]),
   };
@@ -214,6 +219,7 @@
     axe: () => merge([part(cyl(0.035, 0.035, 0.95, 8), WOOD, 0, TRS(0, 0, 0.3, Math.PI / 2, 0, 0)), part(box(0.05, 0.3, 0.24), 0x9aa4b2, 0, TRS(0, 0.15, 0.68)), part(box(0.056, 0.035, 0.25), 0xe8eef6, 0, TRS(0, 0.31, 0.68)), part(box(0.07, 0.09, 0.09), DSTEEL, 0, TRS(0, 0, 0.68)), part(cone(0.04, 0.12, 6), DSTEEL, 0, TRS(0, 0, 0.83, Math.PI / 2, 0, 0))]),
     bow: () => merge([part(tor(0.36, 0.025, 6, 16, Math.PI * 0.8), WOOD, 0, TRS(0, 0.1, 0, 0, Math.PI / 2, Math.PI / 2 + Math.PI * 0.1)), part(box(0.008, 0.008, 0.68), 0xf0f0f0, 0, TRS(0, 0.1 - 0.2, 0)), part(cyl(0.03, 0.03, 0.12, 6), LEATHER, 0, TRS(0, 0, 0, Math.PI / 2, 0, 0))]),
     staff: () => merge([part(cyl(0.028, 0.034, 1.0, 7), 0x4a2f22, 0, TRS(0, 0, 0.35, Math.PI / 2, 0, 0)), part(new THREE.OctahedronGeometry(0.11), CRYSTAL, 0, TRS(0, 0, 0.92, 0, 0, 0, 0.8, 0.8, 1.5)), part(tor(0.08, 0.015, 5, 12), GOLD, 0, TRS(0, 0, 0.82)), part(tor(0.06, 0.012, 4, 10), 0x4a2f22, 0, TRS(0, 0, 0.78))]),
+    staffE: () => merge([part(cyl(0.028, 0.034, 1.0, 7), 0x2a1a1a, 0, TRS(0, 0, 0.35, Math.PI / 2, 0, 0)), part(new THREE.OctahedronGeometry(0.11), 0xff3a3a, 0, TRS(0, 0, 0.92, 0, 0, 0, 0.8, 0.8, 1.5)), part(tor(0.08, 0.015, 5, 12), DSTEEL, 0, TRS(0, 0, 0.82))]),
     bomb: () => merge([part(sph(0.15, 12, 10), 0x24252c, 0, TRS(0, 0.0, 0.09)), part(cyl(0.05, 0.05, 0.05, 8), DSTEEL, 0, TRS(0, 0.15, 0.09)), part(cyl(0.012, 0.012, 0.1, 5), 0xd9b27a, 0, TRS(0.02, 0.22, 0.09, 0, 0, -0.4)), part(sph(0.025, 6, 4), 0xffd24a, 0, TRS(0.04, 0.27, 0.09))]),
     claws: () => merge([0, 1, 2].map(k => part(cone(0.018, 0.1, 5), IVORY, 0, TRS((k - 1) * 0.04, 0, 0.1, Math.PI / 2, 0, 0)))),
     // ranged weapon eras (held in the right hand, pointing +Z): rock → javelin → (bow) → crossbow → musket → rifle → pulse rifle
@@ -253,15 +259,15 @@
     soldier: { torso: 'tLight', head: 'hBlue', arm: 'aStd', leg: 'lStd', wpn: 'sword', shield: 1 },   // MELEE: blue helmet + sword (shield wall in DEFEND)
     archerF: { torso: 'tArcher', head: 'hHood', arm: 'aStd', leg: 'lStd', wpn: 'bow' },                // RANGE: hood, bow, quiver
     knightF: { torso: 'tHeavy', head: 'hElite', arm: 'aHeavy', leg: 'lStd', wpn: 'sword', shield: 1 },   // ELITE: steel great helm, heavy plate
-    grunt: { torso: 'tLight', head: 'hHorn', arm: 'aStd', leg: 'lStd', wpn: 'sword' },
+    grunt: { torso: 'tLight', head: 'hHoodI', arm: 'aStd', leg: 'lStd', wpn: 'sword' },
     imp: { torso: 'tLight', head: 'hImp', arm: 'aStd', leg: 'lStd', wpn: 'claws' },
-    shield: { torso: 'tHeavy', head: 'hBucket', arm: 'aStd', leg: 'lStd', wpn: 'sword', shield: 1 },
+    shield: { torso: 'tHeavy', head: 'hHeavyE', arm: 'aStd', leg: 'lStd', wpn: 'sword', shield: 1 },
     runner: { torso: 'tLight', head: 'hBandana', arm: 'aStd', leg: 'lStd', wpn: 'dagger' },
     archer: { torso: 'tLight', head: 'hHoodE', arm: 'aStd', leg: 'lStd', wpn: 'bow' },   // enemy ranged: masked hood with dark horns (never the friendly archer silhouette)
-    knight: { torso: 'tHeavy', head: 'hBucket', arm: 'aHeavy', leg: 'lStd', wpn: 'axe', shield: 1 },
+    knight: { torso: 'tHeavy', head: 'hEliteE', arm: 'aHeavy', leg: 'lStd', wpn: 'axe', shield: 1 },
     brute: { torso: 'tBrute', head: 'hBrute', arm: 'aBrute', leg: 'lBrute', wpn: 'axe' },
     bomber: { torso: 'tLight', head: 'hGoggles', arm: 'aStd', leg: 'lStd', wpn: 'bomb' },
-    shaman: { torso: 'tRobe', head: 'hShaman', arm: 'aStd', leg: 'lStd', wpn: 'staff' },
+    shaman: { torso: 'tRobe', head: 'hWizard', arm: 'aStd', leg: 'lStd', wpn: 'staffE' },   // enemy Mizard: red hat, red crystal
     warlord: { torso: 'tBrute', head: 'hWarlord', arm: 'aBrute', leg: 'lBrute', wpn: 'axe' },
     spearman: { torso: 'tHeavy', head: 'hKnight', arm: 'aStd', leg: 'lStd', wpn: 'spear', shield: 1 },
     giant: { torso: 'tBrute', head: 'hBrute', arm: 'aBrute', leg: 'lBrute', wpn: 'axe' },
@@ -285,9 +291,9 @@
   // Build all part geometries + far-LOD statues (one merged mesh per kind posed at rest).
   const buildParts = () => ({
       lStd: legStd(), lBrute: legBrute(), lGolem: legGolem(), tLight: merge(torsoLight(), [-0.08, 0.3, 0.7]), tHeavy: torsoHeavy(), tBrute: torsoBrute(), tRobe: torsoRobe(), tLooter: torsoLooter(), tArcher: torsoArcher(), tGolem: torsoGolem(),
-      hBlue: H.blue(), hKnight: H.knight(), hHood: H.hood(), hHorn: H.horn(), hBucket: H.bucket(), hBandana: H.bandana(), hImp: H.imp(), hBrute: H.brute(), hWarlord: H.warlord(), hShaman: H.shaman(), hGoggles: H.goggles(), hLooter: H.looter(), hWizard: H.wizard(), hElite: H.elite(), hGolem: H.golem(), hHoodE: H.hoodE(),
+      hBlue: H.blue(), hKnight: H.knight(), hHood: H.hood(), hHorn: H.horn(), hBucket: H.bucket(), hBandana: H.bandana(), hImp: H.imp(), hBrute: H.brute(), hWarlord: H.warlord(), hShaman: H.shaman(), hGoggles: H.goggles(), hLooter: H.looter(), hWizard: H.wizard(), hElite: H.elite(), hGolem: H.golem(), hHoodE: H.hoodE(), hHoodI: H.hoodI(), hHeavyE: H.heavyE(), hEliteE: H.eliteE(),
       aStd: armStd(), aHeavy: armHeavy(), aBrute: armBrute(), aLooter: armLooter(), aGolem: armGolem(),
-      sword: W.sword(), swordGold: W.sword(true), dagger: W.dagger(), axe: W.axe(), bow: W.bow(), staff: W.staff(), bomb: W.bomb(), claws: W.claws(),
+      sword: W.sword(), swordGold: W.sword(true), dagger: W.dagger(), axe: W.axe(), bow: W.bow(), staff: W.staff(), bomb: W.bomb(), staffE: W.staffE(), claws: W.claws(),
             rock: W.rock(), spear: W.spear(), xbow: W.xbow(), musket: W.musket(), rifle: W.rifle(), pulse: W.pulse(), sack: W.sack(),
       shield: shield(), cannon: cannon(), pads: pads(), plume: plume(), padsIron: padsIron(), hornsAdd: hornsAdd(), eyesGlow: eyesGlow(),
   });
@@ -302,7 +308,7 @@
     P.m_shield = merge([part(new THREE.CylinderGeometry(0.21, 0.21, 0.05, 7), 0xe6ecff, 1, TRS(0, 0, 0, Math.PI / 2, 0, 0)), part(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 5), GOLD, 0, TRS(0, 0, 0.03, Math.PI / 2, 0, 0))]);
     const stick = (len, col, extra) => merge([part(box(0.05, 0.03, len), col, 0, TRS(0, 0, len / 2 + 0.05)), ...(extra || [])]);
     P.m_w_sword = stick(0.62, STEEL, [part(box(0.18, 0.04, 0.05), GOLD, 0, TRS(0, 0, 0.08))]); P.m_w_swordGold = stick(0.62, GOLD, [part(box(0.18, 0.04, 0.05), GOLD, 0, TRS(0, 0, 0.08))]);
-    P.m_w_dagger = stick(0.3, STEEL); P.m_w_staff = stick(1.0, 0x4a2f22, [part(new THREE.OctahedronGeometry(0.1, 0), 0xe39aff, 0, TRS(0, 0, 0.95))]);
+    P.m_w_dagger = stick(0.3, STEEL); P.m_w_staffE = stick(1.0, 0x2a1a1a, [part(new THREE.OctahedronGeometry(0.1, 0), 0xff3a3a, 0, TRS(0, 0, 0.95))]); P.m_w_staff = stick(1.0, 0x4a2f22, [part(new THREE.OctahedronGeometry(0.1, 0), 0xe39aff, 0, TRS(0, 0, 0.95))]);
     P.m_w_axe = stick(0.9, WOOD, [part(box(0.05, 0.3, 0.24), 0x9aa4b2, 0, TRS(0, 0.15, 0.7))]); P.m_w_bow = merge([part(box(0.03, 0.03, 0.7), WOOD, 0, TRS(0, 0.1, 0))]);
     P.m_w_bomb = merge([part(new THREE.SphereGeometry(0.15, 5, 4), 0x24252c, 0, TRS(0, 0, 0.09))]);
     P.m_w_rock = merge([part(new THREE.SphereGeometry(0.09, 4, 3), 0x9a9488, 0, TRS(0, 0, 0.06))]); P.m_w_spear = stick(1.1, WOOD); P.m_w_xbow = stick(0.5, WOOD, [part(box(0.4, 0.03, 0.04), DSTEEL, 0, TRS(0, 0, 0.42))]);
@@ -315,7 +321,7 @@
           part(box(0.38, 0.32, 0.36), 0xe2eaff, 1, TRS(0, hy + 0.14, 0)), part(box(0.32, 0.17, 0.05), PLATE, 0, TRS(0, hy + 0.12, 0.185)), part(box(0.25, 0.045, 0.03), DARK, 0, TRS(0, hy + 0.15, 0.212)), part(box(0.4, 0.09, 0.38), PLATE, 0, TRS(0, hy + 0.33, 0))], [-0.15, 0.4, 0.72]);
         continue; }
       const brute = r.torso === 'tBrute', S = brute ? 1.45 : 1, rig = brute ? KM.RIG.brute : KM.RIG.std, L = [];
-      const hs = { hBlue: 'dome', hKnight: 'plume', hHood: 'hood', hHoodE: 'hood', hHorn: 'horns', hBucket: 'bucket', hBandana: 'band', hLooter: 'band', hImp: 'imp', hBrute: 'bhorns', hWarlord: 'crown', hShaman: 'cone', hWizard: 'cone', hElite: 'helm', hGoggles: 'dome' }[r.head];
+      const hs = { hBlue: 'dome', hKnight: 'plume', hHood: 'hood', hHoodE: 'hood', hHoodI: 'hood', hHeavyE: 'horns', hEliteE: 'horns', hHorn: 'horns', hBucket: 'bucket', hBandana: 'band', hLooter: 'band', hImp: 'imp', hBrute: 'bhorns', hWarlord: 'crown', hShaman: 'cone', hWizard: 'cone', hElite: 'helm', hGoggles: 'dome' }[r.head];
       L.push(part(new THREE.LatheGeometry([[0, -0.02], [0.22, 0.0], [0.28, 0.13], [0.26, 0.3], [0.14, 0.4], [0, 0.42]].map(([a, b]) => new THREE.Vector2(a * S, b * (brute ? 1.08 : 1))), 7), r.torso === 'tRobe' ? 0xd8c8ff : brute ? 0xffd2c4 : 0xe6ebff, 1));
       L.push(part(new THREE.CylinderGeometry(0.27 * S, 0.27 * S, 0.06, 7), LEATHER, 0, TRS(0, 0.1, 0)));
       if (r.torso === 'tHeavy' || brute) for (const x of [-1, 1]) L.push(part(new THREE.SphereGeometry(0.13 * S, 5, 3, 0, Math.PI * 2, 0, Math.PI / 2), brute ? DSTEEL : 0xd8e0ff, brute ? 0 : 1, TRS(x * 0.27 * S, 0.34, 0)));

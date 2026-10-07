@@ -125,6 +125,8 @@ canvas#c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
 #choice .co{display:flex;gap:5px;margin-top:3px}#choice button{border:1px solid #fff3b0;border-radius:10px;background:linear-gradient(#ffe06a,#f29a10);color:#2a1a00;font-family:var(--disp);font-size:11px;padding:5px 7px;line-height:1.1;cursor:pointer;max-width:96px}#choice button small{display:block;font-family:Nunito,sans-serif;font-weight:900;font-size:9px}
 #bossBar{position:fixed;z-index:6;width:150px;margin-left:-75px;text-align:center;pointer-events:none}#bossBar .bn{font-family:var(--disp);font-size:13px;color:#fff;text-shadow:0 2px 0 #000}#bossBar .bb{height:8px;border-radius:4px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.4);overflow:hidden}#bossBar .bb b{display:block;height:100%;background:linear-gradient(90deg,#ff6a4a,#d6281f)}#bossBar .bh{font-size:9px;font-weight:900;color:#fff;text-shadow:0 1px 0 #000}
 /* landscape / desktop: top-right controls in a row, soldiers in a bottom row, the three controls side by side */
+#rotate{display:none;position:fixed;inset:0;z-index:50;place-items:center;text-align:center;background:#0e1a33;color:#fff;font-weight:800;font-size:22px;letter-spacing:.04em;padding:16px}
+@media (orientation:landscape) and (max-height:500px) and (pointer:coarse){#rotate{display:grid}}
 @media (min-aspect-ratio:5/4) and (min-width:820px){
   :root{--hs:clamp(1,calc(100vw / 1280px),1.35)}
   #hud{padding:12px 14px 0}#hL{width:calc(118px * var(--hs));gap:6px}.pill{height:calc(40px * var(--hs));font-size:calc(22px * var(--hs));padding:0 12px 0 8px;border-radius:11px}.pill img{width:calc(27px * var(--hs));height:calc(27px * var(--hs))}
@@ -214,5 +216,6 @@ canvas#c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
 <script defer src="js/assets.js"></script>
 <script defer src="js/audio.js"></script>
 <script defer src="js/main.js"></script>
+<div id="rotate"><div>ROTATE YOUR PHONE<br><small style="font-weight:600;opacity:.75">KMOB plays in portrait</small></div></div>
 </body>
 </html>

@@ -335,6 +335,7 @@
   $('quitBtn').onclick = () => { paused = false; show(null); audio.suspend(false); sim.hurtLauncher(1e9, 'quit'); };
   $('reviveBtn').onclick = () => { if (sim.revive()) { state = 'run'; show(null); Analytics.track('revive_used', {}); } };
   document.addEventListener('visibilitychange', () => { if (document.hidden) { if (state === 'run') RunSave.write(sim); if (state === 'run' && !paused) setPause(true); audio.suspend(true); } else if (!paused) audio.suspend(false); });
+  { const rot = matchMedia('(orientation:landscape) and (max-height:500px) and (pointer:coarse)'); const onRot = () => { if (rot.matches && state === 'run' && !paused) { RunSave.write(sim); setPause(true); } }; (rot.addEventListener ? rot.addEventListener('change', onRot) : rot.addListener(onRot)); }   // short-landscape phone: rotate overlay covers the game, so pause it
   addEventListener('resize', () => render.resize());
   // WebGL context loss (iOS backgrounding, GPU resets): stop drawing, keep the run paused, resume when restored
   let glLost = false;

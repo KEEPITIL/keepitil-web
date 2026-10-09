@@ -29,6 +29,8 @@ Disallow: /radio-tuner/
 Disallow: /games/kwars2/
 Disallow: /games/kwars3/
 Disallow: /games/13/
+# KMOB phone-test candidate (isolated from production /games/kmob/; removed after acceptance)
+Disallow: /games/kmob-rc/
 
 Sitemap: https://keepitil.com/sitemap.xml
 Sitemap: https://keepitil.com/sitemap-events.xml

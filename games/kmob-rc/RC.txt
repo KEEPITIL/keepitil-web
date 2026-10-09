@@ -1,0 +1,2 @@
+KEEPITIL/KMOB 507c8ba (approved stabilization candidate, phone test only)
+build 00542f675e6c · production stays games/kmob/ (757c247)

@@ -1,0 +1,9 @@
+{
+ "product": "KMOB",
+ "channel": "test",
+ "source_repo": "KEEPITIL/KMOB",
+ "source_sha": "0ec180699101369bc86937a5910dc004e2d45105",
+ "build": "a99acee405e3",
+ "deployed": "2026-10-09T22:27:26Z",
+ "production_unchanged": "games/kmob/ (KMOB 757c247)"
+}

@@ -1,0 +1,2 @@
+KEEPITIL/KMOB 0ec180699101369bc86937a5910dc004e2d45105 (RC2 candidate, test channel)
+build a99acee405e3 · production stays games/kmob/ (757c247) · comparison build stays games/kmob-rc/ (507c8ba)

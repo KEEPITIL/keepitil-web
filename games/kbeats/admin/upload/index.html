@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>KBeats — Owner master upload (STAGING)</title>
+<link rel="icon" href="/games/kbeats/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/games/kbeats/kb.css">
+<style>
+  .wrap{max-width:1100px;margin:0 auto;padding:18px 16px 80px}
+  .banner{background:#7c2d12;color:#fff;font-weight:800;letter-spacing:.06em;text-align:center;padding:8px;border-radius:10px;margin-bottom:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--dim)}
+  input,textarea{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+  .x{color:var(--dim);font-size:13px}.mono{font-family:ui-monospace,monospace;font-size:12px}.err{color:#fb7185}.ok{color:#4ade80}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">STAGING · OWNER MASTER UPLOAD · nothing here is imported or published</div>
+  <header style="display:flex;gap:12px;align-items:center;margin-bottom:12px"><span class="logo" style="font-size:24px">KBEATS</span><b>Owner master upload</b><span style="flex:1"></span><span id="who" class="x"></span></header>
+  <div id="gate" class="card">Checking access…</div>
+  <div id="app" hidden>
+    <div class="card">
+      <p class="x">Original masters only: never audio downloaded, streamed or recorded from SoundCloud (your own original files re-downloaded with SoundCloud's <i>Download file</i> are originals). Files go privately to <span class="mono">kbeats-masters/owner-import/&lt;folder&gt;/</span> on the KBeats <b>staging</b> service.</p>
+      <table><tr><th>Format</th><th>Accepted for upload</th><th>Automatic charts</th></tr>
+        <tr><td>WAV</td><td class="ok">yes</td><td class="ok">yes</td></tr>
+        <tr><td>FLAC, MP3, M4A, AAC</td><td class="ok">yes</td><td>no: stored, marked “Needs WAV for automatic charts”</td></tr>
+        <tr><td>AIFF</td><td class="err">not yet: export WAV (same quality)</td><td>—</td></tr></table>
+      <p class="x">Max 200 MB per file. Names are made storage-safe automatically. An existing file is never overwritten. If anything fails, press Upload again: finished files are skipped.</p>
+      <div class="grid" style="margin-top:10px">
+        <label>Folder<br><input id="fold" value="illestratedlifestyle"></label>
+        <label>Artist name (for credit checks)<br><input id="own" value="Illestrated Lifestyle"></label>
+        <label>Files<br><input id="files" type="file" multiple accept=".wav,.flac,.mp3,.m4a,.aac,audio/*"></label>
+      </div>
+      <p><button class="btn primary" id="go">Upload</button> <span class="x" id="msg"></span></p>
+      <div id="list"></div>
+    </div>
+    <div class="card">
+      <h3>Preview inventory</h3>
+      <p class="x">Reads the folder only. Optionally paste a track list or SoundCloud account export you already have (CSV/JSON as-is) to link SoundCloud pages and list songs with no master yet.</p>
+      <p><textarea id="exp" rows="3" style="width:100%"></textarea></p>
+      <p><button class="btn ghost" id="inv">Build inventory</button> <span class="x" id="imsg"></span></p>
+      <div id="invout"></div>
+    </div>
+  </div>
+</div>
+<script type="module" src="/games/kbeats/admin/upload/upload.js"></script>
+</body>
+</html>

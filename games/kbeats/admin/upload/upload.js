@@ -14,7 +14,8 @@ const $ = s => document.querySelector(s);
 let sb;
 async function client() {
   if (sb) return sb;
-  if (!window.supabase?.createClient) await new Promise((res, rej) => { const s = document.createElement('script'); s.src = '/games/kbeats/vendor/supabase-js.min.js'; s.onload = res; s.onerror = () => rej(new Error('could not load supabase-js')); document.head.appendChild(s); });
+  if (!window.supabase?.createClient) await new Promise((res, rej) => { const s = document.createElement('script'); s.src = '/games/kbeats/vendor/supabase-js.min.js'; s.onload = res; s.onerror = () => { s.remove(); rej(new Error('could not load supabase-js (check your connection)')); }; document.head.appendChild(s); });
+  if (!window.supabase?.createClient) throw new Error('supabase-js did not initialise');
   return (sb = window.supabase.createClient(SUPA_URL, SUPA_ANON));
 }
 async function call(op, body = {}, timeoutMs = 60000) {
@@ -32,12 +33,18 @@ async function gate() {
   const s = (await (await client()).auth.getSession()).data.session;
   if (!s || s.user.is_anonymous) {
     $('#gate').innerHTML = `<p>Admins only. Sign in with your KEEPITIL admin email:</p><form id="si"><input id="em" type="email" required placeholder="Email"> <button class="btn primary">Email me a sign-in link</button> <span class="x" id="sim"></span></form>`;
-    $('#si').onsubmit = async e => { e.preventDefault(); const r = await (await client()).auth.signInWithOtp({ email: $('#em').value, options: { emailRedirectTo: location.href, shouldCreateUser: false } }); $('#sim').textContent = r.error ? r.error.message : 'Check your email.'; };
+    $('#si').onsubmit = async e => {
+      e.preventDefault(); const b = e.submitter || $('#si button'); b.disabled = true;
+      try { const r = await (await client()).auth.signInWithOtp({ email: $('#em').value, options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: false } });
+        $('#sim').innerHTML = r.error ? `<span class="err">${esc(r.error.message)}</span>` : 'Check your email for the sign-in link.'; }
+      catch (err) { $('#sim').innerHTML = `<span class="err">${esc(err?.message || err)}. Try again.</span>`; }
+      finally { b.disabled = false; }
+    };
     return;
   }
   $('#who').textContent = s.user.email || '';
   try { await call('admin_overview'); }            // read-only probe: 403 for anyone who is not a KBeats admin
-  catch (e) { $('#gate').innerHTML = e.status === 403 ? '<p class="err">This account is not a KBeats admin.</p>' : `<p class="err">${esc(e.message)}</p>`; return; }
+  catch (e) { if (e.status === 403) { $('#gate').innerHTML = '<p class="err">This account is not a KBeats admin.</p>'; return; } throw e; }   // anything else: start() offers a retry
   $('#gate').hidden = true; $('#app').hidden = false;
 }
 
@@ -47,23 +54,28 @@ function showRows(rows) {
 }
 
 $('#go').onclick = async () => {
+  const btn = $('#go'), msg = $('#msg');
   const folder = importFolder($('#fold').value.trim().toLowerCase());
-  if (!folder) { $('#msg').innerHTML = '<span class="err">Folder: lowercase letters, digits, - or _</span>'; return; }
-  const files = [...$('#files').files]; if (!files.length) { $('#msg').textContent = 'Choose files first.'; return; }
-  $('#go').disabled = true; $('#msg').textContent = 'Uploading…';
-  const sbc = await client();
+  if (!folder) { msg.innerHTML = '<span class="err">Folder: lowercase letters, digits, - or _</span>'; return; }
+  const files = [...$('#files').files]; if (!files.length) { msg.textContent = 'Choose files first.'; return; }
+  btn.disabled = true; msg.textContent = 'Uploading…';
   try {
+    const sbc = await client();
     const r = await uploadQueue(files, {
       sign: list => call('admin_import_upload_urls', { folder, files: list }),
       put: async (path, token, file, mime) => { const u = await sbc.storage.from('kbeats-masters').uploadToSignedUrl(path, token, file, { contentType: mime, upsert: false }); if (u.error) throw u.error; },
       onChange: showRows });
-    $('#msg').textContent = `${r.uploaded} uploaded · ${r.already} already there · ${r.refused} refused · ${r.failed} failed${r.failed ? ' (press Upload again to resume)' : ''}`;
-  } finally { $('#go').disabled = false; }
+    msg.textContent = `${r.uploaded} uploaded · ${r.already} already there · ${r.refused} refused · ${r.failed} failed${r.failed ? ' (press Upload again to resume)' : ''}`;
+  } catch (e) {
+    // anything unexpected (client failed to load, session expired, network): say so and let the owner retry
+    msg.innerHTML = `<span class="err">Upload stopped: ${esc(e?.message || e)}. Nothing is lost: press Upload again to resume${e?.status === 401 ? ' after signing in again (reload the page)' : ''}.</span>`;
+  } finally { btn.disabled = false; }
 };
 
 $('#inv').onclick = async () => {
   const folder = importFolder($('#fold').value.trim().toLowerCase());
   if (!folder) { $('#imsg').innerHTML = '<span class="err">Folder: lowercase letters, digits, - or _</span>'; return; }
+  const btn = $('#inv'); btn.disabled = true;
   $('#imsg').textContent = 'Reading the folder…';
   try {
     const inv = await call('admin_import_inventory', { folder, export: $('#exp').value, ownerName: $('#own').value.trim() }, 120000);
@@ -75,7 +87,16 @@ $('#inv').onclick = async () => {
         <td>${esc((i.format || '').toUpperCase())}</td><td>${esc(i.chartAnalysis)}</td><td>${i.scUrl ? `<a href="${esc(i.scUrl)}" target="_blank" rel="noopener">link</a>` : '—'}</td>
         <td>${esc(i.status)}</td><td class="x">${esc([...(i.flags || []).map(x => 'flag: ' + x), ...i.issues].join(' · '))}</td></tr>`).join('')}</table>
       ${inv.missing.length ? `<h3>Missing original audio (${inv.missing.length})</h3><p class="x">${inv.missing.map(x => esc(x.title)).join(' · ')}</p>` : ''}`;
-  } catch (e) { $('#imsg').innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+  } catch (e) { $('#imsg').innerHTML = `<span class="err">Could not build the inventory: ${esc(e?.message || e)}. Try again.</span>`; }
+  finally { btn.disabled = false; }
 };
 
-gate().catch(e => { $('#gate').innerHTML = `<p class="err">${esc(e.message)}</p>`; });
+// a failed start (supabase-js did not load, network down) shows the reason and a retry, never a dead page
+function start() {
+  $('#gate').innerHTML = 'Checking access…';
+  gate().catch(e => {
+    $('#gate').innerHTML = `<p class="err">Could not start the uploader: ${esc(e?.message || e)}</p><p><button class="btn ghost" id="retry">Try again</button></p>`;
+    $('#retry').onclick = () => { sb = null; start(); };
+  });
+}
+start();

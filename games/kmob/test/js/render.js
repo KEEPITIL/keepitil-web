@@ -684,6 +684,7 @@
       this.rings = []; const rg = new THREE.RingGeometry(0.85, 1, 48).rotateX(-Math.PI / 2);
       for (let k = 0; k < 16; k++) { const r = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); r.visible = false; r.position.y = 0.08; this.scene.add(r); this.rings.push({ m: r, t: 9 }); }
       this.ri = 0;
+      this.pfx = KM.PowerFX ? new KM.PowerFX(THREE, this.scene) : null;   // dedicated, always-readable power cues (js/powerfx.js)
     }
     emit(x, y, z, vx, vy, vz, color, size, life, grav) {
       this.emitN = (this.emitN || 0) + 1;   // particle counter (effect-density checks)
@@ -744,7 +745,7 @@
         case 'deploy': { const L = sim.L; this.burst(L.x, 1.6, L.z - 1.4, 3, 0x7cc4ff, 2.5, 0.45, 0.3, 2); break; }
         case 'boom': this.burst(a, 0.5, b, 40, 0xff8a2a, 7, 0.9, 0.6, 6); this.burst(a, 0.5, b, 14, 0x555555, 3, 1.4, 0.9, -1); this.ring(a, b, 0xff7a2a, c * 1.2, 0.4); this.shake = Math.max(this.shake, 0.15); break;
         // POWERS: each one is visible where it acts (the mechanics are in sim.usePower; these are the readable cues)
-        case 'power': { const L = sim.L, d = b || {}; this.shake = Math.max(this.shake, 0.25);
+        case 'power': { const L = sim.L, d = b || {}; this.shake = Math.max(this.shake, 0.25); if (this.pfx) this.pfx.start(a, d, sim);
           if (a === 'linebreaker') { for (let z = d.z0 - 2; z > d.z1; z -= 1.6) { this.emit(d.x, 0.9, z, 0, 0.3, -2, 0xfff1c0, 1.7, 0.35, 0); this.emit(d.x + (Math.random() - 0.5) * 2.6, 0.5, z, 0, 1.2, 0, 0xffa040, 0.9, 0.5, 2); }   // a blazing lane strike from the tank to its full reach
             this.ring(d.x, d.z1 + 3, 0xffc060, 4, 0.6); this.burst(d.x, 1.4, L.z - 2.2, 26, 0xffe0a0, 8, 0.7, 0.4, 2); }
           else if (a === 'arrowstorm') { this.ring(d.x, d.z, 0xffe27a, 6.5, 1.1); this.ring(d.x, d.z, 0xff9a3a, 3.5, 0.8); }   // the target zone; volleys follow
@@ -753,7 +754,7 @@
           else if (a === 'mercenary') { this.ring(L.x, L.z - 2.5, 0xffd23a, 7, 0.9); this.burst(L.x, 1, L.z - 3, 50, 0xffd23a, 6, 0.6, 0.7, 3); }   // reinforcements burst out of the tank
           else if (a === 'fortress') { this.ring(L.x, L.z, 0x7fd8ff, 5.5, 1.2); this.ring(L.x, L.z, 0xffffff, 3.2, 0.8); this.burst(L.x, 1.6, L.z, 40, 0x9fe8ff, 4, 0.6, 0.9, -1); }   // the hull hardens: shield flare + repair sparks
           break; }
-        case 'volley': { for (let k = 0; k < 18; k++) { const x = a + (Math.random() - 0.5) * 6, z = b + (Math.random() - 0.5) * 6; this.emit(x, 9 + Math.random() * 3, z + 2, 0, -22, -3, 0xffe9b0, 0.5, 0.45, 0); }   // a rain of arrows onto the zone
+        case 'volley': { if (this.pfx) this.pfx.volley(a, b); for (let k = 0; k < 18; k++) { const x = a + (Math.random() - 0.5) * 6, z = b + (Math.random() - 0.5) * 6; this.emit(x, 9 + Math.random() * 3, z + 2, 0, -22, -3, 0xffe9b0, 0.5, 0.45, 0); }   // a rain of arrows onto the zone
           this.ring(a, b, 0xffd27a, 4.5, 0.45); this.burst(a, 0.4, b, 16, 0xc8a070, 4, 0.5, 0.5, 3); break; }
         case 'impact': if (sim.src === 2 && a !== 21) { const sc = this.shellSc || 1.5; this.emit(b, 0.9, c, 0, 0.4, 0, 0xfff1c0, 1.6 * sc, 0.12, 0); this.burst(b, 0.6, c, 12, 0xffc060, 5.5, 0.55, 0.4, 4); this.ring(b, c, 0xffd08a, 1.4 * sc, 0.3); }   // cannon hit: a bright flash + ring wherever a shell lands
         if (a === 1) { this.burst(b, 0.4, c, 18, 0xffa040, 5, 0.7, 0.45); this.ring(b, c, 0xffa040, 2.6, 0.35); } else if (a === 2) { this.burst(b, 0.4, c, 18, 0x9ff0ff, 4, 0.6, 0.6, 2); this.ring(b, c, 0x9ff0ff, 3, 0.5); } else if (a === 4) this.burst(b, 0.8, c, 12, 0xe4c2ff, 5, 0.5, 0.35); else if (a === 20 || a === 21) { this.burst(b, 0.5, c, a === 21 ? 22 : 14, 0xffa040, 5, 0.6, 0.4); this.ring(b, c, 0xffb347, 1.8, 0.3); } break;
@@ -845,7 +846,7 @@
       this.loadK = Math.max(0.35, Math.min(1, (this.fxScale || 1) * (1 - Math.max(0, sim.count[0] + sim.count[1] - 300) / 1800)));
       this.simT = sim.t; this.lzCache = sim.L.z; this.streamWorld(sim.front);
       this.drawCamera(sim, dt); this.drawLauncher(sim, dt);
-      this.drawCrowd(sim, dt); this.drawCoins(sim); this.drawProjectiles(sim); this.drawBeams(sim, dt); this.stepFx(dt);
+      this.drawCrowd(sim, dt); this.drawCoins(sim); this.drawProjectiles(sim); this.drawBeams(sim, dt); this.stepFx(dt); if (this.pfx) this.pfx.update(sim, dt);
       if (this.bloomOn && this.composer) this.composer.render(); else this.R.render(this.scene, this.cam);
     }
     resetRun() { this.beams = []; this.lEra = null; this.lEraSeen = null; this.deathT = null; this.camT = null; this.camD = null; this.fitD = null; for (const o of this.dyingObjs) this.disposeObj(o); this.dyingObjs = []; this.pl.fill(0); this.ry.fill(Math.PI); this.fogCol.setHex(KM.BIOMES[0].fog); }

@@ -1,7 +1,7 @@
 /* KMOB audio — fully synthesized WebAudio (no asset downloads). Every category is voice-limited so 500 soldiers
    never produce 500 overlapping sounds; music is a low, slowly-intensifying loop tied to battle pressure. */
 (function (G) {
-  const KM = G.KM, PRIORITY = { lhit: 1, boom: 1, cannon: 1, elite: 1, warn: 1, death: 1, pb: 1, tap: 1, upgrade: 1, build: 1 };   // tank damage, explosions, the cannon, boss / UI cues
+  const KM = G.KM, PRIORITY = { lhit: 1, boom: 1, cannon: 1, elite: 1, warn: 1, death: 1, pb: 1, tap: 1, upgrade: 1, build: 1, pw_lb: 1, pw_as: 1, pw_rain: 1, pw_el: 1, pw_mc: 1, pw_fo: 1 };   // + tank powers: never dropped by the voice budget   // tank damage, explosions, the cannon, boss / UI cues
   class Audio {
     constructor() { this.ctx = null; this.on = true; this.music = true; this.last = {}; this.intensity = 0; }
     unlock() {
@@ -69,6 +69,13 @@
         case 'death': [392, 330, 262, 196].forEach((f, i) => this.tone(f, t + i * 0.16, 0.4, 'triangle', 0.14)); this.hiss(t, 1.2, 300, 0.5, 0.3, 'lowpass'); break;
         case 'pb': [523, 659, 784, 1046, 1318].forEach((f, i) => this.tone(f, t + i * 0.09, 0.4, 'triangle', 0.12)); break;
         case 'tap': this.tone(700, t, 0.05, 'sine', 0.06); break;
+        // TANK POWERS — one signature each, played at the moment the effect lands (sim emits once per activation / per volley)
+        case 'pw_lb': this.tone(220, t, 0.12, 'sawtooth', 0.09, 880, D); this.tone(58, t + 0.1, 0.7, 'sine', 0.36, 30, D); this.hiss(t + 0.1, 0.55, 2400, 0.5, 0.2, 'bandpass', D); this.metal(t + 0.12, 1320, 0.05); break;   // LINEBREAKER: rising charge → lane-long crack
+        case 'pw_as': [660, 880].forEach((f, i) => this.tone(f, t + i * 0.09, 0.16, 'square', 0.035, f * 0.98, D)); this.hiss(t, 0.5, 4200, 1.2, 0.06, 'highpass', D); break;   // ARROW STORM: target lock chirp + wind
+        case 'pw_rain': if (this.gate(k, 120)) { for (let q = 0; q < 6; q++) this.hiss(t + q * 0.035, 0.04, 3000 + q * 300, 3, 0.05, 'highpass', D); this.tone(150, t + 0.24, 0.12, 'sine', 0.08, 90, D); } break;   // a volley lands: arrow hiss cascade + thuds
+        case 'pw_el': this.hiss(t, 0.7, 900, 0.7, 0.2, 'lowpass', D); this.tone(1760, t, 0.5, 'sine', 0.05, 2640, D); this.tone(2640, t + 0.08, 0.45, 'sine', 0.035, 3960, D); this.metal(t + 0.05, 2100, 0.03); break;   // ELEMENTAL WAVE: surging water + glassy frost
+        case 'pw_mc': [196, 262, 330].forEach((f, i) => this.tone(f, t + i * 0.11, 0.32, 'sawtooth', 0.07, f, D)); [0, 0.22, 0.44].forEach(d => this.tone(80, t + d, 0.12, 'sine', 0.2, 50, D)); break;   // MERCENARY CALL: war horn + marching drums
+        case 'pw_fo': this.tone(110, t, 0.9, 'triangle', 0.14, 165, D); this.tone(330, t + 0.05, 0.8, 'sine', 0.05, 495, D); this.metal(t + 0.02, 760, 0.05); this.metal(t + 0.09, 1020, 0.04); break;   // FORTRESS SURGE: shield hum + bright clang
         case 'heal': if (this.gate(k, 260)) { const f = pick([880, 988, 1108]) * r; this.tone(f, t, 0.35, 'sine', 0.025); this.tone(f * 1.5, t + 0.05, 0.4, 'sine', 0.018); this.hiss(t, 0.3, 7000, 1, 0.012, 'highpass'); } break;   // Mizard heal: soft sparkle chime
       }
     }

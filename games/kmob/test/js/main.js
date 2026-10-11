@@ -39,11 +39,11 @@
     clock: '<circle cx="12" cy="13" r="8.5" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M12 8v5l3 2" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>',
     wave: '<path d="M2 16c3-4 5-4 8 0s5 4 8 0 3-2 4-1" fill="none" stroke="#7cc4ff" stroke-width="2.4"/><path d="M2 9c3-4 5-4 8 0s5 4 8 0" fill="none" stroke="#cfe2ff" stroke-width="1.8"/>',
     diamond: '<path d="M6 3h12l4 6-10 12L2 9z" fill="#5fe0ff" stroke="#0a6a8a" stroke-width="1.2"/><path d="M2 9h20M9 3l3 18 3-18" stroke="#e6fbff" stroke-width="1" fill="none"/>',
-    linebreaker: '<path d="M12 23V4" stroke="#ffd23a" stroke-width="4.5"/><path d="M6 9l6-7 6 7" fill="none" stroke="#fff" stroke-width="2.2"/>',
-    arrowstorm: '<g stroke="#e8eef8" stroke-width="1.8"><path d="M6 2v14M12 4v14M18 2v14"/></g><g fill="#ffd23a"><path d="M3.5 15h5L6 21zM9.5 17h5L12 23zM15.5 15h5L18 21z"/></g>',
-    elemental: '<path d="M13 2L5 13h6l-2 9 10-13h-6l2-7z" fill="#5fe0ff" stroke="#0a6a8a" stroke-width="1.2" stroke-linejoin="round"/>',
-    mercenary: '<path d="M4 14a8 8 0 0116 0v4h-5v-4h-6v4H4z" fill="#d8dee8" stroke="#5a6478" stroke-width="1.2"/><path d="M17 1v8M13 5h8" stroke="#4cff8a" stroke-width="2.6"/>',
-    fortress: '<path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z" fill="#4cff8a" stroke="#0e5a2a" stroke-width="1.4"/><path d="M12 7v9M7.5 11.5h9" stroke="#fff" stroke-width="2.4"/>',
+    linebreaker: '<path d="M8 21h8l1.5-3h-11z" fill="#2d58b8" stroke="#0a1a3a" stroke-width="1.2" stroke-linejoin="round"/><rect x="10.6" y="2" width="2.8" height="15" rx="1" fill="#ffd23a" stroke="#6a3c00" stroke-width="1"/><path d="M8.5 9l3.5-3 3.5 3M8.5 13.5l3.5-3 3.5 3" fill="none" stroke="#fff6d8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+    arrowstorm: '<circle cx="12" cy="16" r="6.5" fill="none" stroke="#ff5a2a" stroke-width="2"/><path d="M12 8.6v2.2M12 21.2v1.6M4.6 16h1.6M17.8 16h1.6" stroke="#ff5a2a" stroke-width="1.8" stroke-linecap="round"/><g stroke="#3a2410" stroke-width="1.6" stroke-linecap="round"><path d="M7 1.5l2.2 9M12 1v10M17 1.5l-2.2 9"/></g><g fill="#fff"><path d="M7.6 9.5l2.6-.4.2 2.6z"/><path d="M10.7 10h2.6L12 12.6z"/><path d="M13.6 11.7l.2-2.6 2.6.4z"/></g>',
+    elemental: '<path d="M2 18c3-6 7-8 11-6 3 1.5 3.5 4.5 1 5.5 3 1 6-1 8-4v8H2z" fill="#3fc8ff" stroke="#08506e" stroke-width="1.3" stroke-linejoin="round"/><path d="M5 16c2-3.5 5-4.6 8-3.4" fill="none" stroke="#e8fbff" stroke-width="1.6" stroke-linecap="round"/><path d="M17 2v8M13.5 4l7 4M20.5 4l-7 4" stroke="#e8fbff" stroke-width="1.6" stroke-linecap="round"/>',
+    mercenary: '<path d="M12 1.5l2.2 3-2.2 3-2.2-3z" fill="#ffd23a" stroke="#6a3c00" stroke-width="1"/><path d="M4 18a8 8 0 0116 0v3h-5.2v-3.4H9.2V21H4z" fill="#d8dee8" stroke="#3a4458" stroke-width="1.3"/><path d="M12 10v7.4" stroke="#3a4458" stroke-width="1.3"/><path d="M1.5 12.5l3 1.2v2.6l-3 1.2z" fill="#ffd23a" stroke="#6a3c00" stroke-width="1"/>',
+    fortress: '<path d="M3 19a9 9 0 0118 0z" fill="#3fa8ff" fill-opacity=".35" stroke="#8fe0ff" stroke-width="1.6"/><path d="M7.5 12.2l4.5-2.6 4.5 2.6M12 9.6V19M7.5 12.2V19M16.5 12.2V19M3.6 16l8.4-2.2 8.4 2.2" fill="none" stroke="#e8fbff" stroke-width="1.1"/><path d="M6 19h12l-1.5 3h-9z" fill="#2d58b8" stroke="#0a1a3a" stroke-width="1.2"/>',
     shop: '<path d="M4 9h16l-1 12H5z" fill="#ff5a6a"/><path d="M3 6h18v4H3z" fill="#ffc21a"/><path d="M12 6v15" stroke="#fff" stroke-width="2"/><path d="M12 6c-2-4-6-3-5 0M12 6c2-4 6-3 5 0" stroke="#ffc21a" stroke-width="2" fill="none"/>',
   };
   const svg = k => {
@@ -176,8 +176,8 @@
       case 'levelUp': banner(KM.PROD[a].name + ' LEVEL ' + b, 0.9); break;
       case 'evolve': banner(KM.PROD[a].name + ' VETERANS\nSTRONGER · 2 ARMY POINTS', 1.6); audio.play('pb'); break;
       case 'emergency': if (a) { banner('EMERGENCY DEFENSE', 1.2); KM.haptic(30); } break;
-      case 'power': audio.play(a === 'linebreaker' ? 'cannon' : a === 'arrowstorm' ? 'bow' : a === 'elemental' ? 'frost' : a === 'mercenary' ? 'deploy' : 'build'); audio.play('boom'); break;   // each power has its own sound
-      case 'volley': audio.play('bow'); break;
+      case 'power': audio.play({ linebreaker: 'pw_lb', arrowstorm: 'pw_as', elemental: 'pw_el', mercenary: 'pw_mc', fortress: 'pw_fo' }[a] || 'boom'); break;   // each power has its own signature, at the moment it lands
+      case 'volley': audio.play('pw_rain'); break;   // every Arrow Storm volley, when its damage lands
       case 'beam': audio.play('heal'); break;
     }
   });
@@ -440,13 +440,27 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=a99acee405e3`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=a99acee405e3" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=8c8b16ccf2a7`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=8c8b16ccf2a7" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };
   let dStart = null;
   drawer.addEventListener('pointerdown', e => { dStart = { x: e.clientX, y: e.clientY }; });
   drawer.addEventListener('pointerup', e => { if (!dStart) return; const dx = e.clientX - dStart.x; dStart = null; if (dx < -30) setDrawer(false); else if (dx > 30) setDrawer(true); });   // swipe left = collapse · swipe right = open
   $('drawerTab').addEventListener('click', e => { e.stopPropagation(); setDrawer(drawer.classList.contains('away')); audio.play('tap'); });
+  // PORTRAIT AUTO-TUCK (owner option A): in portrait combat the roster folds into its tab so the fence-to-fence army is never under it.
+  // Any touch on the roster or its upgrade popover keeps it open; 2.5 s after the last one (and never while a popover is open) it tucks
+  // away again. Tucking only hides the panel: the selected class, AUTO / TAP and every purchase rule are untouched. Outside portrait it
+  // stays as the player left it, and a roster the auto-tuck folded comes back when the screen leaves portrait.
+  const TUCK_MS = 2500; let rosterT = performance.now(), autoTucked = false;
+  const rosterTouch = () => { rosterT = performance.now(); };
+  for (const el of [drawer, pop]) for (const ev of ['pointerdown', 'pointermove', 'pointerup', 'click']) el.addEventListener(ev, rosterTouch, { passive: true });
+  KM.rosterTuck = () => { const portrait = render.layout === 'portrait', away = drawer.classList.contains('away');
+    if (!portrait) { if (autoTucked && away) setDrawer(true); autoTucked = false; return; }
+    if (state !== 'run' || paused || away) { if (!away) autoTucked = false; return; }
+    if (!pop.classList.contains('hidden') || performance.now() - rosterT < TUCK_MS) return;
+    setDrawer(false); autoTucked = true; };
+  setInterval(() => KM.rosterTuck(), 250);
+  $('drawerTab').addEventListener('click', () => { rosterTouch(); autoTucked = false; });
   const fmtStat = v => v >= 100 ? KM.fmtShort(Math.round(v)) : v >= 10 ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
   const choiceBottom = () => { const c = $('choice'); return c.classList.contains('hidden') ? 0 : c.getBoundingClientRect().bottom + 6; };   // landscape popovers open below the supply strip while it is up
   function popUI() { const k = pop.dataset.k; if (!k || pop.classList.contains('hidden')) return;
@@ -481,7 +495,7 @@
     if (!refresh) el.innerHTML = sim.equipped.map(id => `<div class="pw" data-id="${id}" role="button" aria-label="${KM.POWERS[id].name}">${svg(id)}<b>${KM.POWERS[id].name}</b><small></small></div>`).join('');
     for (const p of el.children) { const id = p.dataset.id, cd = sim.pcd[id] || 0; p.classList.toggle('ready', sim.canPower(id)); p.classList.toggle('cd', cd > 0); p.querySelector('small').textContent = cd > 0 ? Math.ceil(cd) + 's' : KM.POWERS[id].cost + ' ⚡'; }
     if (!refresh) el.querySelectorAll('.pw').forEach(p => p.addEventListener('click', e => { e.stopPropagation(); if (state !== 'run' || paused) return; const id = p.dataset.id;
-      if (sim.usePower(id)) { audio.play('boom'); KM.haptic(30); banner(KM.POWERS[id].name, 0.9); closePops(); } else banner((sim.pcd[id] || 0) > 0 ? 'RECHARGING' : 'NEED ' + KM.POWERS[id].cost + ' ENERGY', 0.7); drawerUI(); })); }
+      if (sim.usePower(id)) { KM.haptic(30); banner(KM.POWERS[id].name, 0.9); closePops(); } else banner((sim.pcd[id] || 0) > 0 ? 'RECHARGING' : 'NEED ' + KM.POWERS[id].cost + ' ENERGY', 0.7); drawerUI(); })); }
   $('powerBtn').addEventListener('click', e => { e.stopPropagation(); audio.unlock(); if (state !== 'run' || paused) return; const el = $('powers'), open = el.classList.contains('hidden'); closePops(); if (!open) return;
     powersUI(); el.classList.remove('hidden'); const r = $('powerBtn').getBoundingClientRect(), wide = DESK_Q.matches;
     if (wide) { el.style.left = r.left + 'px'; el.style.top = (r.top - el.offsetHeight - 12) + 'px'; } else { const lo = render.layout === 'landscape' ? Math.max(8, choiceBottom()) : 8; el.style.left = (r.left - el.offsetWidth - 8) + 'px'; el.style.top = Math.max(lo, r.bottom - el.offsetHeight) + 'px'; } audio.play('tap'); });
@@ -491,11 +505,11 @@
     gold: '<circle cx="32" cy="36" r="17" fill="#f2b21c" stroke="#8a5a08" stroke-width="3"/><circle cx="32" cy="36" r="11" fill="none" stroke="#ffe48a" stroke-width="2.5"/><circle cx="22" cy="24" r="12" fill="#ffd04a" stroke="#8a5a08" stroke-width="3"/><path d="M17 20a7 7 0 0 1 9-3" stroke="#fff6c8" stroke-width="2.5" fill="none" stroke-linecap="round"/>',
     energy: '<path d="M36 6L14 38h14l-4 22 24-34H34z" fill="#6fd8ff" stroke="#14507a" stroke-width="3" stroke-linejoin="round"/><path d="M33 13L22 30" stroke="#e8fbff" stroke-width="3" stroke-linecap="round"/>',
     recover: '<path d="M32 56S10 42 10 25a11 11 0 0 1 22-3 11 11 0 0 1 22 3c0 17-22 31-22 31z" fill="#ff5a6a" stroke="#7a1022" stroke-width="3"/><path d="M32 22v20M22 32h20" stroke="#fff" stroke-width="5" stroke-linecap="round"/>',
-    linebreaker: '<rect x="27" y="4" width="10" height="44" rx="4" fill="#ffd27a" stroke="#8a4a08" stroke-width="2.5"/><path d="M32 6v40" stroke="#fff4d0" stroke-width="3"/><path d="M14 48h36l-6 10H20z" fill="#3a6bd8" stroke="#10285a" stroke-width="3"/><circle cx="32" cy="8" r="7" fill="#fff2c0" opacity=".9"/>',
-    arrowstorm: '<g stroke="#5a3a16" stroke-width="2.6" stroke-linecap="round"><path d="M14 6l10 34M30 4l4 36M46 8l-6 32"/></g><g fill="#e8e8f0" stroke="#3a3a48" stroke-width="1.5"><path d="M24 40l-4 8 8-4z"/><path d="M34 40l-4 8 8-3z"/><path d="M40 40l-1 9 6-6z"/></g><ellipse cx="32" cy="54" rx="22" ry="5" fill="none" stroke="#ffd27a" stroke-width="3"/>',
-    elemental: '<path d="M4 44c8-12 16-12 24 0s16 12 24 0 8-6 8-6v14H4z" fill="#5fd0ff" stroke="#145a7a" stroke-width="3"/><path d="M8 30c8-10 14-10 22 0" stroke="#d8f6ff" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M40 12l4 8 8 1-6 5 2 8-8-4-7 4 2-8-6-5 8-1z" fill="#e8fbff" stroke="#145a7a" stroke-width="2"/>',
-    mercenary: '<path d="M18 58V34l-6-4 6-14h12l4 8" fill="#3a6bd8" stroke="#10285a" stroke-width="3"/><circle cx="24" cy="12" r="7" fill="#f2c79a" stroke="#6a3a10" stroke-width="2.5"/><path d="M42 58V34l-4-4 4-12h10l4 12-4 4v24z" fill="#2d58b8" stroke="#10285a" stroke-width="3"/><circle cx="47" cy="12" r="6" fill="#f2c79a" stroke="#6a3a10" stroke-width="2.5"/><path d="M36 30l14-22" stroke="#d8dde8" stroke-width="3" stroke-linecap="round"/>',
-    fortress: '<path d="M32 4l22 8v18c0 14-10 23-22 28C20 53 10 44 10 30V12z" fill="#7fd8ff" stroke="#14507a" stroke-width="3"/><path d="M32 12l14 5v13c0 9-6 15-14 19-8-4-14-10-14-19V17z" fill="#2d58b8"/><path d="M24 32l6 6 12-14" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+    linebreaker: '<rect x="0" y="0" width="64" height="64" rx="10" fill="#1a2a50"/><path d="M24 4h16l-2 44H26z" fill="#ffb02e" opacity=".55"/><rect x="28.5" y="4" width="7" height="44" rx="2.5" fill="#fff2c0"/><path d="M21 22l11-8 11 8M21 34l11-8 11 8" fill="none" stroke="#ffe08a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 50h32l4 9H12z" fill="#2d58b8" stroke="#0a1a3a" stroke-width="2.4" stroke-linejoin="round"/><rect x="29" y="44" width="6" height="9" rx="2" fill="#3a6bd8" stroke="#0a1a3a" stroke-width="2"/>',
+    arrowstorm: '<rect x="0" y="0" width="64" height="64" rx="10" fill="#2a1a18"/><ellipse cx="32" cy="46" rx="22" ry="11" fill="#ff5a2a" opacity=".18" stroke="#ff5a2a" stroke-width="3"/><ellipse cx="32" cy="46" rx="12" ry="6" fill="none" stroke="#ffb02e" stroke-width="2.4"/><path d="M32 30v5M32 57v4M8 46h4M52 46h4" stroke="#ff5a2a" stroke-width="3" stroke-linecap="round"/><g stroke="#e8d0a8" stroke-width="2.6" stroke-linecap="round"><path d="M18 4l7 32M32 2v34M46 4l-7 32"/></g><g fill="#ffffff" stroke="#3a2410" stroke-width="1.2"><path d="M22 34l6-1 0 6z"/><path d="M29 35h6l-3 6z"/><path d="M36 33l6 1-6 5z"/></g>',
+    elemental: '<rect x="0" y="0" width="64" height="64" rx="10" fill="#0e2a3a"/><path d="M2 46c8-18 22-24 34-17 9 5 8 14 1 16 9 3 18-3 25-12v29H2z" fill="#3fc8ff" stroke="#08506e" stroke-width="3" stroke-linejoin="round"/><path d="M10 42c6-11 15-14 24-10" fill="none" stroke="#e8fbff" stroke-width="3.4" stroke-linecap="round"/><g stroke="#e8fbff" stroke-width="3" stroke-linecap="round"><path d="M46 4v20M37 9l18 10M55 9L37 19"/></g><circle cx="46" cy="14" r="3" fill="#8ff0ff"/>',
+    mercenary: '<rect x="0" y="0" width="64" height="64" rx="10" fill="#1e2a1a"/><path d="M32 2l6 8-6 8-6-8z" fill="#ffd23a" stroke="#6a3c00" stroke-width="2"/><path d="M12 50a20 20 0 0140 0v10H38V50H26v10H12z" fill="#d8dee8" stroke="#3a4458" stroke-width="3" stroke-linejoin="round"/><path d="M32 30v18" stroke="#3a4458" stroke-width="3"/><path d="M14 44h36" stroke="#9aa6b8" stroke-width="2.4"/><path d="M2 28l10 4v8l-10 4z" fill="#ffd23a" stroke="#6a3c00" stroke-width="2" stroke-linejoin="round"/><path d="M12 32h4v8h-4" fill="#c88a1a" stroke="#6a3c00" stroke-width="2"/>',
+    fortress: '<rect x="0" y="0" width="64" height="64" rx="10" fill="#0e1a33"/><path d="M6 50a26 26 0 0152 0z" fill="#3fa8ff" fill-opacity=".3" stroke="#8fe0ff" stroke-width="3.2"/><path d="M19 31l13-7 13 7M32 24v26M19 31v19M45 31v19M8 42l24-6 24 6" fill="none" stroke="#e8fbff" stroke-width="2.2" stroke-linejoin="round"/><path d="M14 50h36l-4 9H18z" fill="#2d58b8" stroke="#0a1a3a" stroke-width="2.4" stroke-linejoin="round"/>',
   };
   function choiceUI() { const c = sim.choice, el = $('choice'); if (!c) { el.classList.add('hidden'); return; } el.classList.remove('hidden'); $('drawer').classList.remove('wide');
     $('choiceT').textContent = c.kind === 'supply' ? 'SUPPLY — CHOOSE ONE' : 'BOSS REWARD — TANK POWER';

@@ -30,8 +30,11 @@
     HULL_HW: 1.1, HULL_HL: 1.4,   // tank hull half-width / half-length: enemies stand at its front and front sides
     TANK_RANGE: 39,     // cannon lane range: about two-thirds of the tank-to-spawn depth (SPAWN_DZ 58)
     TANK_LANE: 0.55,    // cannon shell half-width; an enemy is hit when |dx| < TANK_LANE + its footprint
-    DEF_FRONT_DZ: 16,   // DEFEND: wall distance ahead of the tank for a full-size army (mid-field)
+    DEF_REAR_DZ: 3.7,   // DEFEND: the rear band's slots sit this far ahead of the tank centre (hull 1.4 m + room for looters, the cannon and Giant intercepts)
     ROW_MAX: { elite: 15, melee: 20, range: 20, mizard: 20, giant: 10 },   // LOCKED DEFEND row widths (more soldiers add rows inside the class tier)
+    // FENCE-TO-FENCE: a full row of a class spans the whole lane (2 × LANE): slot pitch = 2·LANE / ROW_MAX and each class's collision
+    // radius is half that pitch (KM.FRIEND rad), so neighbours touch and a complete row leaves no traversable gap; partial rows keep the same
+    // pitch (centred) and therefore show — and leave — real openings at their ends.
     PIKE_PUSH_P: 0.3,   // Elite pike / shield hits push the enemy back only occasionally
     CAM_AIM_PORTRAIT: 24, CAM_AIM_LAND: 16, CAM_AIM_DESK: 18, CAM_PITCH_LAND: 0.65,   // camera aim point ahead of the tank: portrait / phone landscape (short screen: the lane stays ≥ 30 % wide) / desktop
     ENGAGE_DZ: 42,      // an engaged boss / mini is never pushed farther upfield than this from the tank (on screen in portrait and landscape)
@@ -99,18 +102,18 @@
 
   // Friendly unit kinds (index offset 32 so kind ids never collide with enemies)
   KM.FRIEND = [
-    { k: 'soldier', hp: 1, dmg: 1, rng: 0.75, rad: 0.36, sc: 1, cd: 0.85, wpn: 'sword' },
-    { k: 'archerF', hp: 0.7, dmg: 0.9, rng: 8, rad: 0.36, sc: 1, cd: 1.4, wpn: 'bow', r: 1 },
-    { k: 'knightF', hp: 7, dmg: 3.6, rng: 1.05, rad: 0.62, sc: 1.8, cd: 1.0, wpn: 'axe', sh: 1, el: 1 },             // ELITE: big, armoured, heavy knockback
+    { k: 'soldier', hp: 1, dmg: 1, rng: 0.75, rad: 0.47, sc: 1.3, cd: 0.85, wpn: 'sword' },
+    { k: 'archerF', hp: 0.7, dmg: 0.9, rng: 8, rad: 0.47, sc: 1.3, cd: 1.4, wpn: 'bow', r: 1 },
+    { k: 'knightF', hp: 7, dmg: 3.6, rng: 1.05, rad: 0.627, sc: 1.8, cd: 1.0, wpn: 'axe', sh: 1, el: 1 },             // ELITE: big, armoured, heavy knockback
     { k: 'collector', hp: 1.6, dmg: 0.5, rng: 0.6, rad: 0.34, sc: 1.0, cd: 0.9, wpn: 'dagger', col: 1, spd: 5.4 },   // LOOTER: loots, repairs the tank, knife at half Melee damage
-    { k: 'medic', hp: 1.3, dmg: 0, rng: 0.5, rad: 0.34, sc: 1.05, cd: 1.1, wpn: 'staff', med: 1, spd: 4.6 },                 // MIZARD: staff healer (beam + area burst)
-    { k: 'giantF', hp: 22, dmg: 7, rng: 1.3, rad: 0.95, sc: 2.5, cd: 1.3, wpn: 'axe', sh: 1, big: 1, spd: 3.4 },          // GIANT: allied heavy anchor
+    { k: 'medic', hp: 1.3, dmg: 0, rng: 0.5, rad: 0.47, sc: 1.36, cd: 1.1, wpn: 'staff', med: 1, spd: 4.6 },                 // MIZARD: staff healer (beam + area burst)
+    { k: 'giantF', hp: 22, dmg: 7, rng: 1.3, rad: 0.94, sc: 2.5, cd: 1.3, wpn: 'axe', sh: 1, big: 1, spd: 3.4 },          // GIANT: allied heavy anchor
   ];
   KM.FRIEND.forEach((e, i) => { e.id = 32 + i; });
   KM.FRIEND_BY = Object.fromEntries(KM.FRIEND.map(f => [f.k, f]));
   // Six player classes. Gold pays for deployment and for each class's own level track (no shared price inflation).
   KM.BUILD = '2026.10.07-endless';   // reported with telemetry; bump on every public deploy
-  KM.ARMY_CAP = 300;   // army POINTS (never grows); evolved soldiers take more points
+  KM.ARMY_CAP = 300;   // army POINTS (never grows); LOCKED cost per soldier is fixed by class (evolution never changes it)
   KM.PROD = {
     collector: { name: 'LOOTER',    kind: 'collector', cost: 25,  pts: 1 },
     range:     { name: 'RANGE',     kind: 'archerF',   cost: 75,  pts: 1 },
@@ -144,7 +147,7 @@
     arrowstorm:  { name: 'ARROW STORM', cost: 100, cd: 4, boostTxt: '+1 VOLLEY', desc: 'Arrow rain over the densest enemy formation' },
     elemental:   { name: 'ELEMENTAL WAVE', cost: 100, cd: 4, boostTxt: '+12% DMG', desc: 'Energy wave in front of the army: damage + slow' },
     mercenary:   { name: 'MERCENARY CALL', cost: 120, cd: 6, boostTxt: '+10 MERCS', desc: 'Temporary soldiers beyond the 300 points' },
-    fortress:    { name: 'FORTRESS SURGE', cost: 100, cd: 6, boostTxt: '+12% SHIELD', desc: 'Restore shield, repair tank + vehicles, harden the line' },
+    fortress:    { name: 'FORTRESS SURGE', cost: 100, cd: 6, boostTxt: '+12% SHIELD', desc: 'Restore shield, repair the tank, harden the line' },
   };
   KM.POWER_IDS = Object.keys(KM.POWERS);
   KM.ENERGY_MAX = 300;
@@ -256,7 +259,7 @@
     low:    { dpr: 1.0,  shadows: false, shadowMap: 512,  lodNear: 40,  lodMid: 160, fx: 0.3,  glow: 1.1, bloom: false },
   };
   // Phones (measured on a physical iPhone): fewer full-skeleton units, a tighter lean band, smaller shadow map,
-  // and the environment never casts dynamic shadows — only the command vehicle and support vehicles do.
+  // and the environment never casts dynamic shadows — only the command tank does.
   KM.QUALITY_MOBILE = {
     high:   { lodNear: 80, lodMid: 340, shadowMap: 1024, decorShadows: false },
     medium: { lodNear: 64, lodMid: 280, shadowMap: 1024, decorShadows: false },

@@ -1,2 +1,3 @@
-KEEPITIL/KMOB 0ec180699101369bc86937a5910dc004e2d45105 (RC2 candidate, test channel)
-build a99acee405e3 · production stays games/kmob/ (757c247) · comparison build stays games/kmob-rc/ (507c8ba)
+KEEPITIL/KMOB b0d46842d5ffd34ca5df9dac688f95bae11659fa (test channel)
+build 8c8b16ccf2a7 · production stays games/kmob/ (757c247) · comparison build games/kmob-rc/ (507c8ba) kept
+previous test build: 0ec1806 / a99acee405e3 (website bae38e9) — restore with: git checkout bae38e9 -- games/kmob/test

@@ -1,0 +1,9 @@
+{
+  "_note": "TUITEA native builds per distribution channel, read by the app's update check (lib/services/native_update.dart). Written by hand by the release owner when a build is distributed on that channel. Never put an installer URL here; appStore.url may only be the apps.apple.com listing Apple issues.",
+  "schema": 1,
+  "latest": {
+    "appStore": { "build": null, "url": null },
+    "testFlight": { "build": null },
+    "internal": { "build": "82" }
+  }
+}

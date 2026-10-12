@@ -8,15 +8,15 @@
   RETIRED 2026-10-12 (owner directive "TUITEA website cleanup"). This was the public marketing
   and over-the-air install page for Build 76 ("Free. Nothing to buy…", itms-services install).
   The installers are removed; no product claims remain. Two jobs other live code depends on are
-  kept, then the visitor goes to the one approved TUITEA destination, https://keepitil.com/apps/tuitea/support/
+  kept, then the visitor goes to the one approved TUITEA destination, https://keepitil.com/support/?product=tuitea
     1. A home-screen (PWA) launch that still opens /app/tuitea/ goes to the web app, as pwa.js did.
     2. An invitation link (/join -> ?invite=<token>) still saves its token for the web app.
   Static hosting cannot send a 301: canonical tag, meta refresh (no-JS), and replace().
   The manifest id stays /app/tuitea/, so this path must exist; do not delete it.
 -->
-<link rel="canonical" href="https://keepitil.com/apps/tuitea/support/">
+<link rel="canonical" href="https://keepitil.com/support/?product=tuitea">
 <meta name="robots" content="noindex, follow">
-<noscript><meta http-equiv="refresh" content="0; url=https://keepitil.com/apps/tuitea/support/"></noscript>
+<noscript><meta http-equiv="refresh" content="0; url=https://keepitil.com/support/?product=tuitea"></noscript>
 <script>
 (function () {
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
@@ -26,9 +26,9 @@
     var t = (new URLSearchParams(location.search).get('invite') || '').toLowerCase();
     if (/^[0-9a-f]{32}$/.test(t)) localStorage.setItem('tuitea-pending-invite', t);
   } catch (e) {}
-  window.location.replace("https://keepitil.com/apps/tuitea/support/");
+  window.location.replace("https://keepitil.com/support/?product=tuitea");
 })();
 </script>
 </head>
-<body><p>TUITEA's page is now <a href="https://keepitil.com/apps/tuitea/support/">keepitil.com/apps/tuitea/support</a>.</p></body>
+<body><p>TUITEA's page is now <a href="https://keepitil.com/support/?product=tuitea">keepitil.com/support</a>.</p></body>
 </html>

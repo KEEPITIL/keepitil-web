@@ -8,94 +8,97 @@ main{max-width:720px;margin:0 auto;padding-block:32px 64px;padding-left:20px;pad
 h1{font-size:28px;margin:0 0 4px;text-wrap:balance}
 h2{font-size:19px;margin:30px 0 8px;color:var(--accent)}
 .up{color:var(--lo);font-size:14px;margin:0 0 24px}
+li{margin:4px 0}
+ul{padding-left:22px}
 .note{border:1px solid var(--stroke);border-radius:12px;padding:12px 15px;color:var(--lo);font-size:14px;margin:20px 0}
 a{color:var(--accent)}
 nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-size:14px;display:flex;flex-wrap:wrap;gap:14px}
 </style>
 <title>TUITEA Privacy Policy</title>
+<link rel="canonical" href="https://keepitil.com/apps/tuitea/legal/privacy/">
+<meta name="description" content="How TUITEA, the private family app from KEEPITIL, collects, uses, shares and deletes your information.">
 <main>
 <h1>TUITEA Privacy Policy</h1>
-<p class="up">Last updated: 17 September 2026</p>
-
-<p>TUITEA is a family app made by KEEPITIL. This policy describes the app as it is
-actually built. Every statement below was checked against the code and the database
-rather than written from intent, and where something is only partly true it says so.</p>
-
+<p class="up">Last updated: 12 October 2026</p>
+<p>TUITEA is a family app made by KEEPITIL. This policy describes how the app works today.</p>
 <h2>Who we are</h2>
-<p>TUITEA is operated by KEEPITIL. Contact: <a href="mailto:info@keepitil.com">info@keepitil.com</a>.</p>
-
-<h2>What TUITEA stores</h2>
-<p><strong>Your account.</strong> Your email address, and a session on your device. You sign in
-with an email address and a password. Password reset links go to your email.</p>
-<p><strong>Your household.</strong> The people you add, their names, relationships, dates and
-notes, and who belongs to which household.</p>
-<p><strong>What you record.</strong> Memories and their photos, family history, meals, groceries,
-plans, routines, habits, sleep, and any health entries you type in yourself.</p>
-<p><strong>Health data from Apple Health.</strong> Only if you turn it on. This has its own page:
-<a href="/apps/tuitea/legal/health-privacy/">Health &amp; Apple Health</a>.</p>
-<p><strong>Your conversations with Tupu.</strong> What you ask, and what Tupu answers, so a
-conversation continues across sessions. These are kept in your own account in TUITEA's
-database, protected by row-level security so that only you can read them. Storing a
-conversation is not the same as sending it: what is stored is described here, and what may
-be sent to an AI provider is described under "Tupu and AI providers" below.</p>
-<p><strong>Photos and media.</strong> Some media currently lives only on your device. Where that is
-true, TUITEA cannot restore it if the app is removed. This is stated plainly because it is
-true today.</p>
-
+<p>TUITEA is run by KEEPITIL, 9252 Garden Grove Blvd, Ste 19 PMB 1066, Garden Grove, CA 92844, USA. Contact: <a href="mailto:info@keepitil.com">info@keepitil.com</a>. Help: <a href="https://keepitil.com/support/?product=tuitea">keepitil.com/support/?product=tuitea</a>.</p>
+<h2>What TUITEA collects</h2>
+<p><strong>Your account.</strong> Your email address and password (Apple and Supabase never show us your password; it is stored hashed). We also keep a user ID and a session on your device.</p>
+<p><strong>Your household and family tree.</strong> The people you add, with their names, relationships, sex, birth and death dates, birthplaces, notes, photos, and who belongs to which household. Invites hold the email address of the person you invite.</p>
+<p><strong>What you record.</strong> Memories, photos, videos, audio stories, documents, family records (medical history, heritage, traditions, legacy), meals, recipes, groceries and lists, plans, schedules, pets, routines, habits, sleep, and health entries you type in.</p>
+<p><strong>Heritage and culture.</strong> Heritage and tradition records can show where your family comes from, the languages you speak and the practices you keep. We treat these as sensitive and use them only to show them to your household and to answer your own questions.</p>
+<p><strong>Health data from Apple Health.</strong> Only if you turn it on. TUITEA reads it and never writes to Apple Health. See "Health and Apple Health" below.</p>
+<p><strong>Conversations with Tupu.</strong> What you ask and what Tupu answers, so a conversation can continue. When you talk to Tupu, iPhone turns your speech into text on the phone itself; your voice recording is not sent to us. Only the text is.</p>
+<p><strong>Purchases.</strong> TUITEA is free; optional Family Storage plans add shared storage for your household. If you buy a plan in the iPhone app, Apple handles the payment and we receive Apple's signed record of the purchase (product, dates, status). If you buy a plan on our website, Stripe handles the payment and we receive Stripe's record of the subscription (plan, dates, status, and the email and customer reference Stripe uses for receipts). Either way we use it only to turn the plan on for your household, and we never see your full card number.</p>
+<p><strong>Support reports.</strong> What you write in "Report a problem", with the app version and the screen you were on.</p>
+<p><strong>Service and diagnostic information.</strong> A random ID created by the app on your phone (not Apple's advertising or vendor ID), sign-in attempts and their result with the app version, and for each Tupu turn the time it took and which route answered it. We also keep daily counts of how Tupu turns went (for example, how many were answered or needed a retry). These counts contain no names, no content and no per-person record.</p>
+<p><strong>What we do not collect.</strong> Your location, your phone contacts, your browsing history, advertising identifiers, or crash reports from third-party crash tools. TUITEA has no advertising and no tracking, and does not use Apple's advertising identifier.</p>
+<h2>Why we use it</h2>
+<p>To run TUITEA for you and your household: to store and show your family's records, sync them between your devices and your family members, answer your questions in Tupu, turn on what you paid for, help when you report a problem, and keep the service secure and working. We do not use your data for advertising, do not sell it, and do not build profiles to share with others.</p>
 <h2>Who can see it</h2>
-<p>Members of your household see what is shared with the household; a record you keep private
-stays private to you. Nobody outside your household sees any of it. TUITEA does not sell
-personal data and does not use family content for advertising.</p>
-<p><strong>Service providers.</strong> TUITEA uses Supabase for its database, storage and
-authentication.</p>
-
-<h2>Tupu and AI providers</h2>
-<p>Many of Tupu's answers never reach an AI provider at all: questions about your own family,
-your schedule and your recorded health readings are answered from your own records on the
-spot.</p>
-<p>When a question does need a model, what may be sent is decided by a provider registry that
-records, for each provider, which classes of data it is approved for, whether it retains data,
-and whether it trains on data. A provider that has not been approved for a class of data does
-not receive it, and an unverified provider is treated as not approved rather than as approved.</p>
-<p>The current provider is <strong>Cloudflare Workers AI</strong>, approved for general and personal
-content. Cloudflare's Data Processing Addendum is incorporated into its Self-Serve Subscription
-Agreement, so it applies to this account.</p>
-<p>Health information is in a stricter class that no remote provider is approved for. See
-<a href="/apps/tuitea/legal/health-privacy/">Health &amp; Apple Health</a> for the exceptions and
-the rule that governs them.</p>
-
-<h2>Children</h2>
-<p>TUITEA is built for families and expects a parent or guardian to create and manage records
-about a child. Those records belong to the household.</p>
-
-<h2>Your choices</h2>
+<p>Members of your household see what is shared with the household. Something you mark private stays private to you; another adult's private memories and their files cannot be opened by other members. Only the author of a family record, or a household admin, can change or delete it. Nobody outside your household sees your data.</p>
+<h2>Service providers we use</h2>
 <ul>
-<li>See and edit what is stored, in the app.</li>
-<li>Delete a record. TUITEA asks first.</li>
-<li>Turn Apple Health off in TUITEA, or revoke it in iOS Settings.</li>
-<li><strong>Delete your account</strong>, from Your account &rarr; Delete account. This deletes it
-immediately: your account and the records only you own are removed at once, and it cannot be
-undone. Records you shared with your household stay with the household. If you started a
-household, it passes to the member who has been there longest so that nobody else loses
-access.</li>
-<li>Ask for a copy of your data at <a href="mailto:info@keepitil.com">info@keepitil.com</a>.</li>
+<li><strong>Supabase</strong> — database, sign-in and server functions.</li>
+<li><strong>Cloudflare R2</strong> — storage for your photos, videos, audio and documents.</li>
+<li><strong>Cloudflare Workers AI</strong> — the AI model that answers Tupu and reads photos you ask about. It is used under terms of zero data retention and no training on your data.</li>
+<li><strong>NEXUS</strong> — KEEPITIL's own AI service that routes Tupu's questions, keeps Tupu's conversation history and remembered preferences, and keeps the daily counts above.</li>
+<li><strong>Apple</strong> — App Store purchases, Apple Health (on your phone) and on-device speech recognition.</li>
+<li><strong>Stripe</strong> — payments for storage plans bought on our website (card processing, receipts and subscription management).</li>
+<li><strong>USDA FoodData Central, Spoonacular and TheMealDB</strong> — when you look up a food or a recipe, our server sends them the words you searched. Nothing that identifies you is sent.</li>
+<li><strong>Recipe import</strong> — when you paste a recipe link, our server fetches that page.</li>
+<li><strong>Email</strong> — sign-in, password reset and invite emails are sent by Supabase through our email delivery provider, Resend. Household invitations are not emailed by us: TUITEA gives you an invite link that you share yourself from your phone.</li>
 </ul>
-
-<h2>How long it is kept</h2>
-<p>Until you delete it, or until you delete your account.</p>
-
+<h2>Tupu and AI</h2>
+<p>Many questions are answered from your own records without any AI model. When a model is needed, each question is classed by the most sensitive information in it:</p>
+<ul>
+<li>Questions with no personal information normally go to Cloudflare Workers AI, and may also go to Google (Gemini) or Groq, which KEEPITIL has approved only for questions that contain no personal information.</li>
+<li>Questions that include your or your family's personal information go only to a provider approved for personal data with zero data retention and no training. Today that is Cloudflare Workers AI.</li>
+<li>Questions that include health information are not sent to any AI model. Tupu answers them from your records or tells you it cannot.</li>
+</ul>
+<p>Photos you share with Tupu are read by Cloudflare Workers AI only. If that fails, they are not sent anywhere else.</p>
+<h2>Health and Apple Health</h2>
+<p>TUITEA can read steps, sleep, water, exercise minutes, active energy, walking and running distance, resting heart rate and weight, only after you allow each one. Apple Health readings are shown on your phone. They are not saved on our servers. If you ask Tupu a health-related question while Apple Health is on, a short summary (for example, today's steps and last night's sleep) is sent to our server with the question so Tupu can answer. It is not given to any AI model or other company and is not stored. Apple Health data is never used for advertising or marketing, and never sold or shared with data brokers. Health entries and sleep records you type in are stored like your other records, private to you unless you share them.</p>
+<h2>Children</h2>
+<p>TUITEA is for families. A parent or guardian can add children to the family tree and keep records about them. Those profiles are managed by the household and are not accounts: a child does not sign in. TUITEA is not meant for children to create their own accounts, and we do not knowingly let a child under 13 sign up. Sign-up does not ask for your age, so please do not create an account for a child. If you think a child has made an account, write to <a href="mailto:info@keepitil.com">info@keepitil.com</a> and we will delete it.</p>
+<h2>Deleting your data</h2>
+<ul>
+<li><strong>One record:</strong> delete it in the app. TUITEA asks first.</li>
+<li><strong>Apple Health:</strong> turn it off in TUITEA or in iOS Settings. TUITEA then clears the Apple Health values it was holding.</li>
+<li><strong>Your account:</strong> Your account → Delete account. It happens straight away and cannot be undone. You can also ask us to delete it by writing to <a href="mailto:info@keepitil.com">info@keepitil.com</a> from your account email address.</li>
+<ul>
+<li>Your login is deleted.</li>
+<li>Your <strong>private</strong> content is deleted: private memories, meal entries, health records and the documents attached to them, sleep entries, private family-tree, event, recipe and task entries, progress photos, Tupu's conversation state, and the push-notification tokens for your devices. Your Tupu conversations, remembered preferences, support reports and household memberships on TUITEA's server are deleted too.</li>
+<li>What you <strong>shared</strong> with your household stays with your family, with your name and author link removed: shared memories and their photos and videos, family records, shared health and sleep entries, family-tree people, meal logs, pets, recipes, events and tasks.</li>
+<li>Your own profile in the family tree stays with the household and becomes unclaimed (it is no longer linked to any account).</li>
+<li>If you started a household that still has other members, it passes to an admin, or else to the longest-standing member. If you were the only person in the household, the household and everything in it is deleted.</li>
+<li>Records in other KEEPITIL services linked to your login are kept with your identity removed. Payment and terms-acceptance records are kept with your identity removed, where the law requires us to keep them.</li>
+</ul>
+<li><strong>Photo, video and document files.</strong> When content is deleted, its files in our storage provider (Cloudflare R2) are made unreadable through TUITEA straight away. The files themselves are removed from storage by a separate clean-up, which is not yet switched on; until it is, a deleted file can remain in storage, unreadable through TUITEA. You can ask us to remove it sooner by writing to <a href="mailto:info@keepitil.com">info@keepitil.com</a>.</li>
+<li><strong>Tupu conversations held by NEXUS.</strong> NEXUS, KEEPITIL's AI service, keeps its own copy of your Tupu conversations, messages and the facts Tupu remembered about you. When you delete your account, these copies are deleted automatically, normally within a few minutes. Spending and audit records are kept with your identity removed, and a one-way fingerprint of your account ID is kept as proof of deletion.</li>
+<li><strong>Backups.</strong> TUITEA's main database does not currently keep automatic backups. We may take occasional encrypted manual backups to protect against data loss; data you delete may remain in such a backup until it is replaced or deleted, and backups are never used to restore deleted personal data except to recover from a failure. NEXUS is hosted by a database provider that may keep its own backups; data deleted from NEXUS can remain in such a backup until the provider's backup schedule replaces it. Backups are never used to restore deleted personal data except to recover from a failure.</li>
+<li><strong>Service logs.</strong> Our providers' platform logs may hold request details (such as IDs, not message content) for a short period set by the provider.</li>
+</ul>
+<h2>Getting a copy of your data</h2>
+<p>There is no export feature in the app. Email <a href="mailto:info@keepitil.com">info@keepitil.com</a> from your account email address and we will send you a copy.</p>
+<h2>How long we keep it</h2>
+<p>Until you delete it or delete your account, apart from what is described in "Deleting your data" (files awaiting clean-up, backups and logs). Daily counts of Tupu turns contain nothing personal and are kept for running the service.</p>
+<h2>Security</h2>
+<p>Data is encrypted in transit (HTTPS) and protected in the database by per-household access rules. Media is stored privately and only issued to signed-in household members. No system is perfectly secure. If a breach affects you, we will tell you.</p>
+<h2>Where your data is processed</h2>
+<p>KEEPITIL's providers may process data outside your country, including in the United States. Where the law requires, we rely on our providers' standard data-protection terms. TUITEA's database is hosted by Supabase in the United States (AWS us-west-1, Northern California).</p>
+<h2>Your rights</h2>
+<p>Depending on where you live, you can ask to see, correct, delete or get a copy of your data, or object to how it is used. Write to <a href="mailto:info@keepitil.com">info@keepitil.com</a>.</p>
 <h2>Changes</h2>
-<p>Material changes are announced in the app before they take effect.</p>
-
+<p>We will tell you in the app before a material change takes effect.</p>
 <h2>Contact</h2>
 <p><a href="mailto:info@keepitil.com">info@keepitil.com</a></p>
-
-<div class="note">This policy describes how the app behaves. It is not legal advice and has not
-been reviewed by a lawyer.</div>
+<p>---</p>
 <nav>
 <a href="/apps/tuitea/legal/privacy/">Privacy</a>
 <a href="/apps/tuitea/legal/health-privacy/">Health &amp; Apple Health</a>
 <a href="/apps/tuitea/legal/terms/">Terms</a>
-<a href="/apps/tuitea/support/">Support</a>
+<a href="/support/?product=tuitea">Support</a>
 </nav>
 </main>

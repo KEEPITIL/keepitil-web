@@ -41,6 +41,24 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
 .legal{margin-top:44px;padding-top:18px;border-top:1px solid rgba(255,255,255,.1);font-size:.88rem;color:var(--muted,#a8a3bd)}
 .legal a{color:#7fdcff}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.req{background:#10162a;border:1px solid rgba(0,180,255,.18);border-radius:18px;padding:22px 20px;margin-top:8px}
+.req label{display:block;font-weight:700;font-size:.92rem;margin:14px 0 6px}
+.req input,.req select,.req textarea{width:100%;min-height:48px;background:#0b1020;color:var(--text,#e8e8f0);border:1.5px solid rgba(255,255,255,.22);border-radius:12px;padding:12px 14px;font:inherit;font-size:1rem}
+.req textarea{min-height:140px;resize:vertical}
+.req input:focus-visible,.req select:focus-visible,.req textarea:focus-visible{outline:3px solid #ffd54a;outline-offset:2px}
+.req .hint{color:var(--muted,#a8a3bd);font-size:.85rem;margin-top:4px}
+.req .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.req .actions{margin-top:18px}
+.msg{margin-top:16px;border-radius:12px;padding:14px 16px;font-size:.95rem}
+.msg.ok{background:#0f2a22;border:1px solid #00e1b0}
+.msg.err{background:#2a1414;border:1px solid #ff6b6b}
+.ref{font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:1.15rem;letter-spacing:.06em}
+.faq details{background:#121726;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 16px;margin-bottom:8px}
+.faq summary{cursor:pointer;font-weight:700;min-height:28px}
+.faq p{margin-top:8px;color:var(--muted,#c3bed6)}
+.faq a,.plinks a{color:#7fdcff}
+.plinks{background:#121726;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:14px 16px;margin-top:12px;font-size:.95rem}
+.plinks[hidden]{display:none}
 @media (max-width:480px){.btn{width:100%}.wrap{padding-top:32px}}
 </style>
 </head>
@@ -68,6 +86,46 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
     <div class="prods" id="prods" role="group" aria-label="Products"></div>
   </section>
 
+  <div class="plinks" id="plinks" hidden aria-live="polite"></div>
+
+  <section aria-labelledby="req-title">
+    <h2 id="req-title">Send a support request</h2>
+    <form class="req" id="req" novalidate>
+      <label for="f-product">Product</label>
+      <select id="f-product" name="product" required></select>
+      <label for="f-category">What do you need help with?</label>
+      <select id="f-category" name="category" required>
+        <option value="">Choose one</option>
+        <option value="account">Account access or sign-in</option>
+        <option value="billing">Billing, purchases or subscriptions</option>
+        <option value="bug">Something is not working</option>
+        <option value="privacy">Privacy, my data, or deleting my account</option>
+        <option value="feature">Feedback or a feature request</option>
+        <option value="other">Something else</option>
+      </select>
+      <label for="f-subject">Subject</label>
+      <input id="f-subject" name="subject" maxlength="120" required autocomplete="off">
+      <label for="f-message">Tell us what happened</label>
+      <textarea id="f-message" name="message" maxlength="4000" required aria-describedby="f-message-hint"></textarea>
+      <p class="hint" id="f-message-hint">What you were doing, what you expected, and what happened. Please do not include passwords, payment card numbers or health details.</p>
+      <label for="f-email">Your email address (for our reply)</label>
+      <input id="f-email" name="email" type="email" maxlength="254" required autocomplete="email" inputmode="email">
+      <div class="hp" aria-hidden="true"><label for="f-website">Leave this empty</label><input id="f-website" name="website" tabindex="-1" autocomplete="off"></div>
+      <p class="hint">We use your email only to reply to this request. Requests are kept for up to 12 months after they are resolved. See our <a href="/privacy" style="color:#7fdcff">Privacy Policy</a>.</p>
+      <div class="actions"><button type="submit" class="btn btn-primary" id="f-send">Send request</button></div>
+      <div id="f-result" role="status" aria-live="polite"></div>
+    </form>
+  </section>
+
+  <section class="faq" aria-labelledby="faq-title">
+    <h2 id="faq-title">Frequently asked questions</h2>
+    <details><summary>I can't sign in</summary><p>Use the password-reset option in the app (for TUITEA: <em>Forgot password</em>) and follow the link we email you. Links expire, so request a new one if it does not work. Still stuck? Send a request above with the email address you sign in with.</p></details>
+    <details><summary>How do I get a refund or cancel a subscription?</summary><p>Purchases made inside an iPhone app are handled by Apple: cancel in iPhone Settings &rarr; your name &rarr; Subscriptions, and request refunds at <a href="https://reportaproblem.apple.com" rel="noopener">reportaproblem.apple.com</a>. For purchases made on keepitil.com, see our <a href="/refund">Refund Policy</a>. In TUITEA, <em>Restore purchases</em> brings back a plan you already pay for.</p></details>
+    <details><summary>Something isn't working</summary><p>Close and reopen the app, check your connection, then send a request above with the app and what you were doing. A screenshot helps &mdash; email it to <a href="mailto:info@keepitil.com">info@keepitil.com</a> with your reference number.</p></details>
+    <details><summary>How do I delete my account or my data?</summary><p>Most apps have <em>Delete account</em> in their account or settings screen. For TUITEA: Your account &rarr; Delete account (you confirm with your password). You can also send a privacy request above.</p></details>
+    <details><summary>Can I suggest a feature?</summary><p>Yes &mdash; choose <em>Feedback or a feature request</em> above. Every request is read by the KEEPITIL team.</p></details>
+  </section>
+
   <section aria-labelledby="topics-title">
     <h2 id="topics-title">Quick help</h2>
     <div class="chips" id="topics"></div>
@@ -84,11 +142,26 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
    product; the assistant's knowledge lives in keepitil-ai.js (KIL_SUPPORT_KB). */
 (function(){
   var PRODUCTS = [
-    { id:'wifi-remote', name:'WiFi Remote', note:'TV remote for iPhone' },
-    { id:'tuitea',      name:'TUITEA',      note:'Private family app' },
-    { id:'pokasnap',    name:'PokaSnap',    note:'Photo game' },
+    { id:'wifi-remote', name:'WiFi Remote', note:'TV remote for iPhone · App Store' },
+    { id:'tuitea',      name:'TUITEA',      note:'Private family app · coming soon' },
+    { id:'pokasnap',    name:'PokaSnap',    note:'Photo game · beta' },
+    { id:'kbeats',      name:'KBeats',      note:'Music game · beta' },
+    { id:'kwars',       name:'K WARS',      note:'Strategy game · beta' },
+    { id:'games',       name:'Other games', note:'KEEPITIL games' },
     { id:'general',     name:'KEEPITIL',    note:'Website & account' }
   ];
+  /* Each product keeps its OWN legal documents; this page only links to them. */
+  var LINKS = {
+    'tuitea': [['TUITEA Privacy Policy','/apps/tuitea/legal/privacy/'],['TUITEA Terms','/apps/tuitea/legal/terms/'],['Health information & Apple Health','/apps/tuitea/legal/health-privacy/'],['TUITEA help: sign-in, account deletion','/apps/tuitea/support/']],
+    'wifi-remote': [['WiFi Remote Privacy','/wifi-remote-privacy.html'],['Terms','/terms'],['Refund Policy','/refund']],
+    'pokasnap': [['PokaSnap Privacy','/games/pokasnap/privacy.html'],['PokaSnap help','/games/pokasnap/support.html']],
+    'kbeats': [['KBeats Privacy','/games/kbeats/privacy/'],['KBeats Terms','/games/kbeats/terms/']],
+    'kwars': [['Privacy Policy','/privacy'],['Terms','/terms']],
+    'games': [['Privacy Policy','/privacy'],['Terms','/terms']],
+    'general': [['Privacy Policy','/privacy'],['Terms','/terms'],['Refund Policy','/refund']]
+  };
+  /* ?product= accepts the short names other pages link with. */
+  var ALIAS = { 'keepitil':'general', 'wifiremote':'wifi-remote', 'k-wars':'kwars', 'kwars1':'kwars' };
   var TOPICS = [
     ['Getting Started','How do I get started?'],
     ['Connection & Device Help','I cannot find or connect my device'],
@@ -102,6 +175,7 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
   /* Support is a utility page: no radio player (keepitil-ai.js loads it unless this is set). */
   window.__kilRadioInit = true;
   var q = new URLSearchParams(location.search).get('product');
+  if (q && ALIAS[q]) q = ALIAS[q];
   var valid = PRODUCTS.some(function(p){ return p.id === q; });
   window.KIL_SUPPORT_PRODUCT = valid ? q : null;
 
@@ -113,6 +187,49 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
     }).join('');
   }
   renderProducts();
+  var plinks = document.getElementById('plinks');
+  var fProduct = document.getElementById('f-product');
+  fProduct.innerHTML = '<option value="">Choose one</option>' + PRODUCTS.map(function(p){
+    return '<option value="'+(p.id==='general'?'keepitil':p.id)+'">'+esc(p.name)+'</option>'; }).join('');
+  function renderLinks(){
+    var id = window.KIL_SUPPORT_PRODUCT, l = id && LINKS[id];
+    if (!l) { plinks.hidden = true; return; }
+    var p = PRODUCTS.filter(function(x){return x.id===id;})[0];
+    plinks.innerHTML = '<b>'+esc(p.name)+'</b> &mdash; ' + l.map(function(x){ return '<a href="'+x[1]+'">'+esc(x[0])+'</a>'; }).join(' · ');
+    plinks.hidden = false;
+    fProduct.value = id === 'general' ? 'keepitil' : id;
+  }
+  renderLinks();
+  /* ── Support request ──────────────────────────────────────────────────────────────────── */
+  var form = document.getElementById('req'), result = document.getElementById('f-result'), send = document.getElementById('f-send');
+  var shownAt = Date.now();
+  var ENDPOINT = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co/functions/v1/support-request';
+  function say(kind, html){ result.className = 'msg ' + kind; result.innerHTML = html; }
+  function fallback(why){
+    say('err', esc(why) + ' You can also email <a href="mailto:info@keepitil.com">info@keepitil.com</a> and we will reply there.');
+  }
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var d = { product: fProduct.value, category: form.category.value, subject: form.subject.value.trim(),
+              message: form.message.value.trim(), email: form.email.value.trim(), website: form.website.value,
+              elapsed_ms: Date.now() - shownAt };
+    if (!d.product) { fallback('Choose a product.'); fProduct.focus(); return; }
+    if (!d.category) { fallback('Choose what you need help with.'); form.category.focus(); return; }
+    if (d.subject.length < 3) { fallback('Add a short subject.'); form.subject.focus(); return; }
+    if (d.message.length < 10) { fallback('Tell us a little more about what happened.'); form.message.focus(); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) { fallback('Enter an email address we can reply to.'); form.email.focus(); return; }
+    send.disabled = true; send.textContent = 'Sending…'; result.className = ''; result.textContent = '';
+    fetch(ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(d) })
+      .then(function(r){ return r.json().then(function(j){ return { status: r.status, j: j }; }); })
+      .then(function(x){
+        if (x.j && x.j.ok && x.j.reference) {
+          say('ok', '<b>Thank you &mdash; your request was received.</b><br>Your reference number is <span class="ref">'+esc(x.j.reference)+'</span>. Please keep it; quote it if you email us. We will reply to '+esc(d.email)+'.');
+          form.reset(); renderLinks();
+        } else { fallback((x.j && x.j.error) || 'We could not send your request just now.'); }
+      })
+      .catch(function(){ fallback('We could not send your request just now.'); })
+      .then(function(){ send.disabled = false; send.textContent = 'Send request'; result.focus && result.setAttribute('tabindex','-1'); });
+  });
   function open(question){
     if (typeof window.KIL_CHAT_OPEN === 'function') { window.KIL_CHAT_OPEN(question); return; }
     location.href = 'mailto:info@keepitil.com';   // assistant failed to load: a person instead
@@ -122,7 +239,7 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
     window.KIL_SUPPORT_PRODUCT = b.getAttribute('data-id');
     var u = new URL(location.href); u.searchParams.set('product', window.KIL_SUPPORT_PRODUCT);
     history.replaceState(null,'',u);
-    renderProducts();
+    renderProducts(); renderLinks();
     var p = PRODUCTS.filter(function(x){return x.id===window.KIL_SUPPORT_PRODUCT;})[0];
     open(p.id === 'general' ? 'keepitil.com account' : p.name);
   });

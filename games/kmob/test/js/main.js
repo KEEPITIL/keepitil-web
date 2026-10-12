@@ -123,10 +123,10 @@
   const canvas = $('c');
   let render;
   try { render = new KM.Render(canvas, { lowPower: /Android/i.test(navigator.userAgent), mobile: !!(DEV && DEV.mobile) || KM.isMobileEnv(navigator.userAgent, 'ontouchstart' in window, Math.min(screen.width, screen.height)) }); }
-  catch (e) { document.body.innerHTML = '<div style="padding:40px;font:16px Nunito,sans-serif;color:#fff">This game needs WebGL. Please try a newer browser or device.</div>'; return; }
+  catch (e) { window.__kmErr = e && (e.stack || e.message); document.body.innerHTML = '<div style="padding:40px;font:16px Nunito,sans-serif;color:#fff">This game needs WebGL. Please try a newer browser or device.</div>'; return; }
   const applyLooks = () => { const st = KM.SEASON_BY[save.season.equip.tank]; render.setSkin(st ? { id: st.id, name: st.name, color: st.color, trim: '#fff4c2', bonus: {} } : KM.SKIN_BY[save.skins.equip.tank] || KM.SKIN_BY.skin_royal); const tint = {};
     const mix = (a, b, t) => [16, 8, 0].reduce((o, sh) => o | Math.round(((a >> sh) & 255) * (1 - t) + ((b >> sh) & 255) * t) << sh, 0);   // seasonal themes keep a blue base so the army never reads as the (red) enemy
-    for (const c of KM.PROD_ORDER) { const se = KM.SEASON_BY[save.season.equip[c]], sk = se || KM.SKIN_BY[save.skins.equip[c]]; if (sk) { const hex = parseInt(sk.color.slice(1), 16); tint[KM.FRIEND_BY[KM.PROD[c].kind].id] = se ? mix(0x3a66f0, hex, 0.4) : hex; } } render.classTint = tint; };   // one skin per unit: a seasonal set wins over a legacy class skin
+    for (const c of KM.PROD_ORDER) { const se = KM.SEASON_BY[save.season.equip[c]], sk = se || KM.SKIN_BY[save.skins.equip[c]]; if (sk) { const hex = parseInt(sk.color.slice(1), 16); tint[KM.FRIEND_BY[KM.PROD[c].kind].id] = se ? mix(0x3a66f0, hex, 0.4) : hex; } } render.classTint = tint; const gl = {}; for (const c of KM.PROD_ORDER) gl[KM.FRIEND_BY[KM.PROD[c].kind].id] = KM.gearLook(c, save.gear.equip[c]); render.gearLook = gl; };   // one skin per unit: a seasonal set wins over a legacy class skin
   applyLooks(); mark('engine');
   // quality tier: the stored benchmark recommendation, else device heuristics (internal builds may force one)
   KM.loadScripts = list => list.reduce((pr, src) => pr.then(() => new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = src; sc.onload = res; sc.onerror = () => rej(new Error(src)); document.head.appendChild(sc); })), Promise.resolve());
@@ -503,7 +503,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=e285086b0c95`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=e285086b0c95" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=30135ff005e9`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=30135ff005e9" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };
   let dStart = null;

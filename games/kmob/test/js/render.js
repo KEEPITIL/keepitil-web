@@ -70,7 +70,7 @@
       const sun = this.sun = new THREE.DirectionalLight(0xffd9a4, 0.9); sun.position.set(10, 26, 12); sun.castShadow = true;
       sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -26, right: 26, top: 34, bottom: -34, near: 1, far: 90 }); sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.03;
       S.add(sun); S.add(sun.target);
-      this.ry = new Float32Array(KM.Sim.CAP); this.shake = 0; this.time = 0; this.skin = KM.SKIN_BY.skin_royal; this.classTint = {};
+      this.ry = new Float32Array(KM.Sim.CAP); this.shake = 0; this.time = 0; this.skin = KM.SKIN_BY.skin_royal; this.classTint = {}; this.gearLook = {}; this.gcol = new C();
       this.m = new M4(); this.m2 = new M4(); this.q = new Q(); this.e = new E(0, 0, 0, 'YXZ'); this.v = new V3(); this.s3 = new V3(); this.col = new C();
       this.col2 = new C(); this.fxBudget = 60; this.farKey = {}; this.lodNear = this.opts.lowPower ? 80 : 120; this.lodMid = this.opts.lowPower ? 300 : 450;
       this.initCrowd(); this.initWorld(); this.initFx(); this.initProjectiles(); this.initCoins();
@@ -120,7 +120,7 @@
     // ---------- crowd ----------
     initCrowd() {
       const kit = this.kit = KM.buildKit(), N = KM.Sim.CAP, A = KM.ANIM;
-      const caps0 = { padsIron: N, hornsAdd: N, eyesGlow: N, lStd: N * 2, lBrute: 1024, tLight: N, tHeavy: 2048, tBrute: 512, tRobe: 512, aStd: N * 2, aHeavy: 4096, aBrute: 1024, sword: N, swordGold: N, shield: 2048, pads: N, plume: N, cannon: 256 }, caps = {};
+      const caps0 = { padsGear: N, gearBand: N, gearCuff: N * 2, padsIron: N, hornsAdd: N, eyesGlow: N, lStd: N * 2, lBrute: 1024, tLight: N, tHeavy: 2048, tBrute: 512, tRobe: 512, aStd: N * 2, aHeavy: 4096, aBrute: 1024, sword: N, swordGold: N, shield: 2048, pads: N, plume: N, cannon: 256 }, caps = {};
       Object.assign(caps, caps0, { m_leg: N * 2, m_legB: 1024, m_arm: N * 2, m_armB: 1024, m_shield: 2048, m_w_sword: N, m_w_swordGold: N, m_th_soldier: N, m_th_grunt: N, m_th_imp: N, F_std: N, F_shield: 4096, F_brute: 2048,
         m_w_swordS: 2048, m_th_archerF: 2048, m_w_bowF: 2048, F_melee: 2048, F_range: 2048 });
       // two shared cel materials (faction-tinted parts / plain parts) instead of one per part: consecutive part draws reuse the
@@ -232,12 +232,16 @@
               if (era >= 3 && R.head !== 'hShaman' && R.head !== 'hImp') this.putP('eyesGlow', M[4]); }
           }
           // arms + held items
+          const GL = team === 0 ? this.gearLook[def.id] : null, gc = this.gcol;   // EQUIPMENT TIERS: one look per class
+          if (GL && GL.pads && !mid) this.putP('padsGear', M[3], gc.setHex(GL.pads.col));
           this.putP(ARM, M[5], col); this.putP(ARM, M[6], col);
+          if (GL && GL.arm && lodL === 0) { gc.setHex(GL.arm.col); this.putP('gearCuff', M[5], gc); this.putP('gearCuff', M[6], gc); }
           const wk = R.wpn;
+          if (GL && GL.wpn && wk !== 'none') { const g = GL.wpn; M[7].scale(pos.set(g.scale, g.scale, g.scale)); if (!mid) this.putP('gearBand', M[7], gc.setHex(g.col)); }   // tiered weapon: bigger + a metal grip band
           if (wk !== 'none') this.putP(mid ? 'm_w_' + wk : wk, M[7], col);   // (only tinted weapon parts take the colour)
           if (wk === 'staff') { pos.set(0, 0, KM.STAFF_TIP).applyMatrix4(M[7]); this.tip(i, pos, s, ng++); }
-          if (key === 'collector' && sim.carry[i] > 0) { const ls = 0.55 + Math.min(1, sim.carry[i] / colCap) * 0.9; M[9].makeScale(ls, ls, ls); M[9].setPosition(0, KM.rigOf(R).fist, 0.03); M[9].premultiply(M[5]); this.putP(mid ? 'm_w_sack' : 'sack', M[9]); }   // Looter: loot sack in the free hand
-          if (R.shield && !(mid && R.midShield)) { const sk = this.shieldKey[key] || (this.shieldKey[key] = KM.shieldOf(R)); this.putP(mid ? 'm_' + sk : sk, M[8], col); }   // (mid Melee / Elite: shield inside the torso piece)
+          if (key === 'collector' && sim.carry[i] > 0) { const ls = (0.55 + Math.min(1, sim.carry[i] / colCap) * 0.9) * (GL && GL.sack ? GL.sack.scale : 1); M[9].makeScale(ls, ls, ls); M[9].setPosition(0, KM.rigOf(R).fist, 0.03); M[9].premultiply(M[5]); this.putP(mid ? 'm_w_sack' : 'sack', M[9]); }   // Looter: loot sack in the free hand
+          if (R.shield && !(mid && R.midShield)) { const sk = this.shieldKey[key] || (this.shieldKey[key] = KM.shieldOf(R)); this.putP(mid ? 'm_' + sk : sk, M[8], GL && GL.shield ? gc.setHex(GL.shield.col) : col); }   // a tiered Shield shows its metal on the face   // (mid Melee / Elite: shield inside the torso piece)
           // sword trail accent on near units mid-swing (density-scaled)
           if (lodL === 0 && sim.swing[i] > 0.35 && sim.swing[i] < 0.62 && this.fxBudget > 0 && Math.random() < 0.5) { this.fxBudget--; pos.set(0, 0, wk === 'pike' ? KM.PIKE.tip - 0.2 : 0.55).applyMatrix4(M[7]); this.emit(pos.x, pos.y, pos.z, 0, 0, 0, team ? 0xffd0c0 : 0xd8ecff, 0.32, 0.14, 0); }
         }

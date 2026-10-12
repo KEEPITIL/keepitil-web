@@ -400,6 +400,13 @@
     giant:     [{ id: 'hammer', name: 'Hammer', stat: 'dmg' }, { id: 'bodyarmor', name: 'Body Armor', stat: 'hp' }, { id: 'gauntlets', name: 'Gauntlets', stat: 'steady' }],
   };
   KM.EQUIP_TIERS = ['BASIC', 'INTERMEDIATE', 'ADVANCED', 'PREMIUM'];
+  // EQUIPMENT APPEARANCE: every equipped tier shows on the 3D soldier in that tier's metal (bronze · silver · gold · crystal) on the part its
+  // slot owns — weapon slots also grow slightly with tier; armour slots add tier-coloured pauldrons; Bag grows the loot sack; Quiver / Spellbook /
+  // Focus Crystal / Boots / Arm Guard / Gauntlets colour the arms. One look per class (every soldier of the class wears the loadout).
+  KM.TIER_METAL = [0xc08040, 0xd0d8e4, 0xffd23a, 0x7fe8ff];
+  KM.GEAR_PART = { bag: 'sack', dagger: 'wpn', boots: 'arm', bow: 'wpn', quiver: 'arm', armguard: 'arm', sword: 'wpn', shield: 'shield', bodyarmor: 'pads', staff: 'wpn', spellbook: 'arm', crystal: 'arm', pike: 'wpn', helmet: 'pads', chest: 'pads', hammer: 'wpn', gauntlets: 'arm' };
+  KM.gearLook = (cls, eq) => { const o = {}; for (const sl of KM.EQUIP[cls]) { const t = (eq || {})[sl.id] || 0; if (!t) continue; const part = KM.GEAR_PART[sl.id], cur = o[part];
+      if (!cur || t > cur.tier) o[part] = { tier: t, col: KM.TIER_METAL[t - 1], scale: part === 'wpn' ? 1 + 0.07 * t : part === 'sack' ? 1 + 0.15 * t : 1 }; } return o; };
   KM.equipCost = tier => ({ diamonds: 5 * tier, tokens: 15 * tier });
   KM.equipBonus = (stat, tier) => !tier ? 0 : stat === 'arm' ? 2 * tier : 0.05 * tier;
   KM.STAT_TXT = { dmg: 'damage', hp: 'HP', arm: 'armour', rof: 'attack speed', speed: 'move / collect speed', carry: 'carry capacity', healR: 'heal area', steady: 'knockback resist' };

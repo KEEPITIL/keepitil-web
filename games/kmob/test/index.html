@@ -201,18 +201,18 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}   /* the p
 <canvas id="c"></canvas>
 <div id="vig"></div>
 <div id="hud" class="hidden">
-  <div id="hL"><div class="pill"><img src="assets/ui/i_clock.png?v=e285086b0c95" alt="Time"><b id="hTime">0:00</b></div><div class="pill"><img src="assets/ui/i_army.png?v=e285086b0c95" alt="Army"><b id="hArmy">0</b></div><div class="pill"><img src="assets/ui/i_skull.png?v=e285086b0c95" alt="Wave"><b id="hWave">1</b></div></div>
-  <div id="hC" class="pill"><span class="g"><img src="assets/ui/i_gold.png?v=e285086b0c95" alt="Gold"><b id="hCoins">0</b></span><i class="sep"></i><span class="d"><img src="assets/ui/i_diamond.png?v=e285086b0c95" alt="Diamonds"><b id="hDia">0</b></span></div>
-  <div id="hR"><div id="pauseBtn" class="pill" role="button" aria-label="Settings"><img src="assets/ui/i_gear.png?v=e285086b0c95" alt=""><b class="sm">SETTINGS</b></div><div id="speedBtn" class="pill" role="button" aria-label="Game speed"><img src="assets/ui/i_speed.png?v=e285086b0c95" alt=""><b id="speedTxt">1</b></div><div id="autoBtn" class="pill" role="button" aria-label="Control mode"><img src="assets/ui/i_auto.png?v=e285086b0c95" alt=""><b id="autoTxt">AUTO</b></div></div>
+  <div id="hL"><div class="pill"><img src="assets/ui/i_clock.png?v=30135ff005e9" alt="Time"><b id="hTime">0:00</b></div><div class="pill"><img src="assets/ui/i_army.png?v=30135ff005e9" alt="Army"><b id="hArmy">0</b></div><div class="pill"><img src="assets/ui/i_skull.png?v=30135ff005e9" alt="Wave"><b id="hWave">1</b></div></div>
+  <div id="hC" class="pill"><span class="g"><img src="assets/ui/i_gold.png?v=30135ff005e9" alt="Gold"><b id="hCoins">0</b></span><i class="sep"></i><span class="d"><img src="assets/ui/i_diamond.png?v=30135ff005e9" alt="Diamonds"><b id="hDia">0</b></span></div>
+  <div id="hR"><div id="pauseBtn" class="pill" role="button" aria-label="Settings"><img src="assets/ui/i_gear.png?v=30135ff005e9" alt=""><b class="sm">SETTINGS</b></div><div id="speedBtn" class="pill" role="button" aria-label="Game speed"><img src="assets/ui/i_speed.png?v=30135ff005e9" alt=""><b id="speedTxt">1</b></div><div id="autoBtn" class="pill" role="button" aria-label="Control mode"><img src="assets/ui/i_auto.png?v=30135ff005e9" alt=""><b id="autoTxt">AUTO</b></div></div>
 </div>
 <div id="drawer" class="hidden" aria-label="Soldier classes"><div id="classes"></div><div id="drawerTab" role="button" aria-label="Show or hide the soldier panel">‹</div></div>
 <div id="clsPop" class="hidden"></div>
 <div id="tankMark" class="hidden" aria-hidden="true"><i></i></div>
 <div id="rightCol" class="hidden">
   <div id="consBtn" class="rb" role="button" aria-label="Consumables"><svg viewBox="0 0 64 64" aria-hidden="true" style="width:30px;height:30px"><path d="M24 8h16v8l8 10v28a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6V26l8-10z" fill="#b36cff" stroke="#3a1a5a" stroke-width="3" stroke-linejoin="round"/><path d="M22 34h20v18H22z" fill="#e8d0ff" opacity=".55"/><path d="M32 38l3 6h-6z" fill="#ffd23a"/></svg><b>ITEMS</b><small id="consN"></small></div>
-  <div id="powerBtn" class="rb" role="button" aria-label="Power"><img src="assets/ui/i_power.png?v=e285086b0c95" alt=""><b>POWER</b><i class="en"><u id="enFill"></u></i></div>
-  <div id="tankBtn" class="rb" role="button" aria-label="Tank upgrade"><img src="assets/ui/i_upgrade.png?v=e285086b0c95" alt=""><b>UPGRADE</b><small id="tankCost"></small></div>
-  <div id="postureBtn" class="rb" role="button" aria-label="Attack or defend: tap = selected class, hold = whole army"><img src="assets/ui/i_attack.png?v=e285086b0c95" alt=""><b id="postureTxt">ATTACK</b></div>
+  <div id="powerBtn" class="rb" role="button" aria-label="Power"><img src="assets/ui/i_power.png?v=30135ff005e9" alt=""><b>POWER</b><i class="en"><u id="enFill"></u></i></div>
+  <div id="tankBtn" class="rb" role="button" aria-label="Tank upgrade"><img src="assets/ui/i_upgrade.png?v=30135ff005e9" alt=""><b>UPGRADE</b><small id="tankCost"></small></div>
+  <div id="postureBtn" class="rb" role="button" aria-label="Attack or defend: tap = selected class, hold = whole army"><img src="assets/ui/i_attack.png?v=30135ff005e9" alt=""><b id="postureTxt">ATTACK</b></div>
 </div>
 <div id="powers" class="hidden"></div>
 <div id="tankUps" class="hidden"></div>
@@ -263,15 +263,15 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}   /* the p
     <button class="btn sec" id="setClose" style="margin-top:12px">BACK</button>
 </div></div>
 
-<script defer src="vendor/three.min.js?v=e285086b0c95"></script>
-<script defer src="js/core.js?v=e285086b0c95"></script>
-<script defer src="js/sim.js?v=e285086b0c95"></script>
-<script defer src="js/anim.js?v=e285086b0c95"></script>
-<script defer src="js/kit.js?v=e285086b0c95"></script>
-<script defer src="js/render.js?v=e285086b0c95"></script>
-<script defer src="js/powerfx.js?v=e285086b0c95"></script>
-<script defer src="js/assets.js?v=e285086b0c95"></script>
-<script defer src="js/audio.js?v=e285086b0c95"></script>
-<script defer src="js/main.js?v=e285086b0c95"></script>
+<script defer src="vendor/three.min.js?v=30135ff005e9"></script>
+<script defer src="js/core.js?v=30135ff005e9"></script>
+<script defer src="js/sim.js?v=30135ff005e9"></script>
+<script defer src="js/anim.js?v=30135ff005e9"></script>
+<script defer src="js/kit.js?v=30135ff005e9"></script>
+<script defer src="js/render.js?v=30135ff005e9"></script>
+<script defer src="js/powerfx.js?v=30135ff005e9"></script>
+<script defer src="js/assets.js?v=30135ff005e9"></script>
+<script defer src="js/audio.js?v=30135ff005e9"></script>
+<script defer src="js/main.js?v=30135ff005e9"></script>
 </body>
 </html>

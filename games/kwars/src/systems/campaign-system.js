@@ -21,7 +21,7 @@
     const node=nodeById(id),civ=node&&civFor(node);if(!node||!civ||!unlocked(node))return false;
     reset();
     const target=targetWave(node);
-    S.civ=civ.order;S.enemyCiv=civ.order;S.wave=target-1;S.localWave=((S.wave-1)%50)+1;S.gold=250+node.kingdomNumber*90;
+    S.civ=civ.order;S.enemyCiv=civ.order;S.wave=target-1;S.localWave=((S.wave-1)%50)+1;S.gold=node.kingdomNumber===1?1000:250+node.kingdomNumber*90;   /* kingdom 1 (a new player's first battle): enough gold for a first line of ~16 (2026-10-09 beginner target) */
     S.campaignMissionId=id;S.campaignDifficulty=difficulty;S.campaignStartingGate=S.gateHP;S.phase='inter';S.interT=1.2;
     bakeCastles();rebakePlayer();
     btnEls.gunner.style.display=S.civ>=11?'flex':'none';btnEls.laser&&(btnEls.laser.style.display='none');

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 87,
+  "build": 88,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 87 (C2). Soldier Foundation Candidate 2: Lite soldier renderer removed; full rig is the only soldier renderer"
+  "notes": "KINGDOM WARS 1.0.0 build 88 (K1-FINAL). Certified K WARS 1 gameplay (source freeze 861e92b; certification test commit 79f32d7). Website only."
 }

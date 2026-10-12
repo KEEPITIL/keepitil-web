@@ -8,9 +8,16 @@ const L={spine:46,neck:7,headR:11,thigh:33,shin:32,foot:10,uarm:22,farm:20};
 function fk(p,a,l){return [p[0]+Math.cos(a)*l,p[1]+Math.sin(a)*l];}
 function ss(e0,e1,x){const t=Math.max(0,Math.min(1,(x-e0)/(e1-e0)));return t*t*(3-2*t);}
 function lerp(a,b,t){return a+(b-a)*t;}
-function shade(hex,amt){const n=parseInt(hex.slice(1),16);let r=(n>>16)&255,g=(n>>8)&255,b=n&255;const f=amt<0?0:255,p=Math.abs(amt);r=Math.round(r+(f-r)*p);g=Math.round(g+(f-g)*p);b=Math.round(b+(f-b)*p);return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);}
-function cyl(ctx,x0,x1,base,lit){const g=ctx.createLinearGradient(x0,0,x1,0);g.addColorStop(0,shade(base,-.34));g.addColorStop(.5,shade(base,lit==null?.3:lit));g.addColorStop(1,shade(base,-.34));return g;}
-function vg(ctx,y0,y1,a,b){const g=ctx.createLinearGradient(0,y0,0,y1);g.addColorStop(0,a);g.addColorStop(1,b);return g;}
+/* PERF (caching, identical output): shade() and the cylinder/vertical gradients are pure -- memoised per colour/geometry (gradients per
+   canvas context; their coordinates are in the rig's local space, so a cached gradient draws exactly the same). */
+const _shadeC=new Map(), _gradC=new WeakMap();
+function shade(hex,amt){const k=hex+'|'+amt;let v=_shadeC.get(k);if(v===undefined){v=_shade(hex,amt);if(_shadeC.size<4096)_shadeC.set(k,v);}return v;}
+function _shade(hex,amt){const n=parseInt(hex.slice(1),16);let r=(n>>16)&255,g=(n>>8)&255,b=n&255;const f=amt<0?0:255,p=Math.abs(amt);r=Math.round(r+(f-r)*p);g=Math.round(g+(f-g)*p);b=Math.round(b+(f-b)*p);return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);}
+function _gc(ctx){let m=_gradC.get(ctx);if(!m){m=new Map();_gradC.set(ctx,m);}if(m.size>8192)m.clear();return m;}
+function cyl(ctx,x0,x1,base,lit){const m=_gc(ctx),k='c'+x0+'|'+x1+'|'+base+'|'+lit;let c=m.get(k);if(!c){c=_cyl(ctx,x0,x1,base,lit);m.set(k,c);}return c;}
+function _cyl(ctx,x0,x1,base,lit){const g=ctx.createLinearGradient(x0,0,x1,0);g.addColorStop(0,shade(base,-.34));g.addColorStop(.5,shade(base,lit==null?.3:lit));g.addColorStop(1,shade(base,-.34));return g;}
+function vg(ctx,y0,y1,a,b){const m=_gc(ctx),k='v'+y0+'|'+y1+'|'+a+'|'+b;let c=m.get(k);if(!c){c=_vg(ctx,y0,y1,a,b);m.set(k,c);}return c;}
+function _vg(ctx,y0,y1,a,b){const g=ctx.createLinearGradient(0,y0,0,y1);g.addColorStop(0,a);g.addColorStop(1,b);return g;}
 function limb(ctx,a,b,wa,wb,col){const dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(a[0]+nx*wa,a[1]+ny*wa);ctx.lineTo(b[0]+nx*wb,b[1]+ny*wb);ctx.lineTo(b[0]-nx*wb,b[1]-ny*wb);ctx.lineTo(a[0]-nx*wa,a[1]-ny*wa);ctx.closePath();ctx.fill();ctx.beginPath();ctx.arc(a[0],a[1],wa,0,7);ctx.fill();ctx.beginPath();ctx.arc(b[0],b[1],wb,0,7);ctx.fill();}
 function poly(ctx,pts,fill,st,lw){ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(st){ctx.strokeStyle=st;ctx.lineWidth=lw||1;ctx.stroke();}}
 function rot(pt,piv,a){const dx=pt[0]-piv[0],dy=pt[1]-piv[1];return [piv[0]+dx*Math.cos(a)-dy*Math.sin(a),piv[1]+dx*Math.sin(a)+dy*Math.cos(a)];}

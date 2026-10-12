@@ -74,8 +74,7 @@
         }
       }
     }
-    data.active={...S,
-      units:S.units.filter(u=>u.hp>0&&(!activeBattle||u.team===1)).map(safeUnit),
+    data.active={...KWBattle.saveable(S),   // a roster of the army, never the live simulation (canonical integration)
       projs:[],fx:[],floats:[],splats:[],corpses:[],
       waveQueue:queue,
       spawnedTotal:Math.max(0,spawned),
@@ -91,9 +90,11 @@
   function closeHub(){hub.classList.add('hidden');panel.classList.add('hidden');}
   function startNew(){data.active=null;persist();audio();reset();bakeCastles();btnEls.gunner.style.display='none';btnEls.laser&&(btnEls.laser.style.display='none');document.getElementById('overlay').classList.add('hidden');closeHub();started=true;paused=false;follow=true;syncFollowBtn();window.KWAnalytics?.track('run_started',{mode:'ENDLESS',newRun:true},'critical');showMsg('TRIBAL STONE ERA · Survive and defend your kingdom!');}
   function beginNew(){return window.KWEquipment?KWEquipment.renderPreBattle(showPanel,startNew,{civilization:1,mode:'ENDLESS'}):startNew();}
+  /* Continue builds the battle from a DETACHED copy of the saved run: the live World must never hang off data.active, or every later
+     persist() (mission progress on recruit / wave / power) fails on a circular structure and the run save goes silently stale. */
   function continueRun(){
     if(!data.active)return beginNew();
-    reset();S=data.active;S.civ=Math.max(1,Math.min(15,Math.round(Number(S.civ)||1)));S.enemyCiv=Math.max(1,Math.min(15,Math.round(Number(S.enemyCiv)||S.civ)));S.units=(S.units||[]).filter(u=>u&&TYPES[u.type]).map(u=>({...u,tgt:null}));   // a legacy run may carry unit types that no longer exist (the retired five-age lasers)S.projs=[];S.fx=[];S.floats=[];S.splats=[];S.corpses=[];
+    reset();S=structuredClone(data.active);S.civ=Math.max(1,Math.min(15,Math.round(Number(S.civ)||1)));S.enemyCiv=Math.max(1,Math.min(15,Math.round(Number(S.enemyCiv)||S.civ)));const _roster=S.units||[];KWBattle.begin();KWBattle.restore(_roster);S.stance=S.stance||'defend';KWBattle.setMode(1,KWBattle.MODE_OF[S.stance]||'DEFEND');   // a legacy run may carry unit types that no longer exist (the retired five-age lasers)S.projs=[];S.fx=[];S.floats=[];S.splats=[];S.corpses=[];
     bakeCastles();rebakePlayer();btnEls.gunner.style.display=S.civ>=11?'flex':'none';btnEls.laser&&(btnEls.laser.style.display='none');closeHub();document.getElementById('overlay').classList.add('hidden');started=true;paused=false;follow=true;syncFollowBtn();
     window.KWAnalytics?.track('run_started',{mode:'ENDLESS',newRun:false},'critical');showMsg(data.recoveryNotice?'Save recovered safely from backup':(S.checkpointNotice?'Run restored at a safe wave checkpoint':'War continued'));delete S.checkpointNotice;delete data.recoveryNotice;
   }

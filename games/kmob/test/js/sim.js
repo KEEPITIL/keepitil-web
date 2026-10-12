@@ -23,14 +23,15 @@
         yaw: f(CAP), think: f(CAP), birth: f(CAP), stride: f(CAP), team: u(CAP), kind: u(CAP), st: u(CAP), era: u(CAP), elite: u(CAP),
         tgt: i(CAP), eng: u(CAP), next: i(CAP), freeL: i(CAP), carry: f(CAP), ctg: i(CAP), repairing: u(CAP), mt: f(CAP), mph: u(CAP), em: u(CAP), br: u(CAP), wv: i(CAP), pt: u(CAP), evo: u(CAP), merc: f(CAP), grp: i(CAP), gox: f(CAP), goz: f(CAP), spear: u(CAP), ft: f(CAP), frank: u(CAP), fcol: i(CAP), role: u(CAP), roleT: f(CAP), atkN: u(CAP), swd: f(CAP), pend: i(CAP), pcrit: u(CAP), pdmg: f(CAP),
         gh: i(GCOLS * GROWS * 2),
-        p: { x: f(PCAP), z: f(PCAP), sx: f(PCAP), sz: f(PCAP), ex: f(PCAP), ez: f(PCAP), t: f(PCAP), tof: f(PCAP), dmg: f(PCAP), spl: f(PCAP), slow: f(PCAP), h: f(PCAP), team: u(PCAP), kind: u(PCAP), on: u(PCAP), tgt: i(PCAP), crit: u(PCAP), src: u(PCAP), pen: u(PCAP), lane: u(PCAP) },
+        burnD: f(CAP), burnT: f(CAP), poisD: f(CAP), poisT: f(CAP), healRed: f(CAP), iceM: f(CAP), iceT: f(CAP),
+        p: { x: f(PCAP), el: u(PCAP), z: f(PCAP), sx: f(PCAP), sz: f(PCAP), ex: f(PCAP), ez: f(PCAP), t: f(PCAP), tof: f(PCAP), dmg: f(PCAP), spl: f(PCAP), slow: f(PCAP), h: f(PCAP), team: u(PCAP), kind: u(PCAP), on: u(PCAP), tgt: i(PCAP), crit: u(PCAP), src: u(PCAP), pen: u(PCAP), lane: u(PCAP) },
         c: { x: f(CCAP), z: f(CCAP), v: f(CCAP), age: f(CCAP), st: u(CCAP), y: f(CCAP), vy: f(CCAP), dx: f(CCAP), dz: f(CCAP) },
       });
     }
 
     reset(opts) {
       this.gh.fill(-1);   // empty spatial grid until the first step (a kill before it must not walk stale links)
-      opts = opts || {};
+      opts = opts || {}; this.opts = opts;
       this.seed = (opts.seed != null ? opts.seed : (Date.now() & 0x7fffffff)) >>> 0;
       this.rng = KM.rng(this.seed);
       this.pboost = {}; this.equipped = (opts.equip && opts.equip.length ? opts.equip : KM.POWER_IDS.slice(0, 3)).slice(0, 3); this.powerLv = opts.powerLv || {}; this.skins = opts.skins || {};
@@ -40,6 +41,14 @@
       this.pfree = 0; this.cfree = 0;
       this.t = 0; this.front = 0; this.alive = true; this.deathReason = ''; this.ended = false;
       this.stats = KM.applySkins(KM.baseStats(), this.skins);
+      this.buffs = { cls: JSON.parse(JSON.stringify((opts.buffs && opts.buffs.cls) || {})), tank: Object.assign({}, opts.buffs && opts.buffs.tank) };   // permanent boss-card buffs (saved by the shell)
+      for (const k in this.buffs.tank) if (k in KM.TANK_BUFF_STATS) this.stats[k] *= KM.buffMul(this.buffs.tank[k]);
+      this.mods = KM.loadoutMods(opts.loadout); const PK = this.mods.perks, TK = this.mods.tank;   // Phase C: class equipment + seasonal skins + perks
+      this.stats.magnet *= 1 + 0.1 * (PK.magnet || 0); this.stats.maxHp += 10 * (PK.plating || 0);
+      this.stats.tankDmg *= 1 + TK.dmg; this.stats.tankRate *= 1 + TK.rof; this.stats.maxHp *= 1 + TK.hp; this.tankArm = 1 + TK.armPct;
+      this.elemK = {}; for (const k of KM.PROD_ORDER) { const e = this.mods.elem[k]; if (e) this.elemK[KM.FRIEND_BY[KM.PROD[k].kind].id] = e; } this.elemTank = this.mods.elem.tank || null; this.elemNow = null;
+      this.mercTier = [1, 2, 3].includes(opts.mercTier) ? opts.mercTier : 1; this.recruitN = 0;
+      this.diamondsWon = 0; this.cons = Object.assign({}, opts.cons); this.cfx = {}; this.titans = 0;   // consumable inventory (mirrors the save) · active one-wave effects {id: wave}
       this.L = { x: 0, z: 2, tx: 0, hp: this.stats.maxHp, hitT: 9, inv: 0, vx: 0, fire: 0, wheel: 0, cd: 0.6, mcd: 2, aim: Math.PI, gun: 0, sh: 0, shMax: 0, shDown: 0, shHit: 9, man: 0, atg: -1, atT: 0 };   // man: manual-steering hold (s) · atg/atT: AUTO lane target + re-aim timer (none saved)
       this.posture = 0; this.postureT = 0; this.src = 0; this.dmgBy = [0, 0, 0, 0]; this.shAbsorbed = 0; this.colCoins = 0; this.colLost = 0; this.nCol = 0; this.colT = 0; this.colList = []; this.prod = 'melee'; this.auto = true; this.sector = null; this.seenSector = {}; this.bossN = 0; this.wave = 0; this.wState = 0; this.wGap = 3; this.wQueue = []; this.waveLeft = 0; this.waveSpawned = 0; this.waveStart = 0; this.energy = 0; this.choice = null; this.bossesKilled = 0; this.warTokens = 0; this.pcd = {}; this.storm = null; this.fortT = 0; this.mercs = 0; this.nKind = new Int32Array(64); this.prodNext = null; this.healed = 0; this.repaired = 0; this.repairOn = 0; this.nRepair = 0;
       this.deployAcc = 0; this.budget = 3; this.overflow = 0; this.formT = 0.6; this.warn = null;
@@ -75,23 +84,22 @@
     allAttack() { for (const k in this.charge) this.charge[k] = 0; this.setPosture(0); this.emit('allOrder', 0); }
     allDefend() { for (const k in this.charge) this.charge[k] = 0; this.setPosture(1); this.emit('allOrder', 1); }
     setAuto(on) { on = !!on; if (on === this.auto) return; this.auto = on; this.emit('auto', on); }
-    prodCost() { return KM.PROD[this.prod].cost; }
+    prodCost() { return KM.deployCost(this.prod, this.stats.cls[this.prod]); }
     clsLv(key) { return this.stats.cls[key]; }
     evolved(key) { return this.stats.cls[key] >= KM.EVOLVE_AT; }
     prodPts() { return KM.unitPts(this.prod, this.evolved(this.prod)); }
     canDeploy() { return this.alive && this.pts + this.prodPts() <= this.stats.cap && this.coins >= this.prodCost(); }
     // one soldier of the selected class at that class's level, paid in Gold; false when the 300 army points are used or Gold is short
     makeSoldier(key, x, z, birth) {
-      const P = KM.PROD[key], S = this.stats, def = KM.FRIEND_BY[P.kind], lv = S.cls[key], M = this.clsM(key, lv), ev = lv >= KM.EVOLVE_AT;
-      const j = this.spawn(0, def, x, z, { hp: S.hp * M.hp * (ev ? 1.25 : 1), dmg: S.dmg, arm: M.arm, spd: def.col ? S.colSpeed : S.speed / 4, birth });
-      if (j < 0) return -1; this.pt[j] = KM.unitPts(key, ev); this.pts += this.pt[j]; this.nKind[def.id - 32]++;
-      if (ev) { this.evo[j] = 1; this.rad[j] *= 1.2; }   // evolved: stronger and costs 2 points, but the model never changes with level
+      const P = KM.PROD[key], S = this.stats, def = KM.FRIEND_BY[P.kind], lv = S.cls[key], M = this.clsM(key, lv);
+      const j = this.spawn(0, def, x, z, { hp: M.hp / def.hp, dmg: def.dmg ? M.dmg / def.dmg : 0, arm: M.arm, spd: def.col ? S.colSpeed : S.speed / 4, birth });   // absolute owner-table numbers
+      if (j < 0) return -1; this.pt[j] = KM.unitPts(key); this.pts += this.pt[j]; this.nKind[def.id - 32]++;
       return j;
     }
     deployOne(how) {
       if (!this.canDeploy()) return false; const P = KM.PROD[this.prod], S = this.stats, L = this.L, def = KM.FRIEND_BY[P.kind];
       const j = this.makeSoldier(this.prod, L.x + (this.rng() - 0.5) * 0.6, L.z - 1.4, 0.0001);
-      if (j < 0) return false; this.coins -= P.cost; this.spawnCounter++;
+      if (j < 0) return false; this.coins -= KM.deployCost(this.prod, S.cls[this.prod]); this.spawnCounter++;
       this.vz[j] = -S.speed * 1.6; this.vx[j] = (this.rng() - 0.5) * 3; L.fire = 1; this.emit('deploy', j, how || 'auto'); if (def.col) this.emit('collector', j); return true;
     }
 
@@ -121,9 +129,23 @@
     // Cannon range: a fixed world distance from the tank, W.TANK_RANGE (about two-thirds of the tank-to-spawn depth). Only the
     // existing explicit range rules scale it, both through stats.tankRange: TARGETING SYSTEM cards and the Midnight skin. Tank
     // level, eras and every other tank upgrade leave it unchanged; it never depends on where the enemies are.
+    // ---------- energy-free consumables (inventory, activated only by the player) ----------
+    cOn(id) { return this.cfx[id] === this.wave; }                                                    // a one-wave effect lasts for the wave it was used in
+    dmgFx() { return this.cOn('warcry') ? 1.25 : 1; } spdFx() { return this.cOn('rapid') ? 1.25 : 1; } armFx() { return this.cOn('fortress') ? 1.25 : 1; }
+    canCons(id) { return this.alive && KM.CONSUMABLES[id] && (this.cons[id] || 0) > 0 && (id === 'titan' || !this.cOn(id)); }   // the same one-wave effect never stacks; different ones may run together
+    useCons(id) {
+      if (!this.canCons(id)) return false; this.cons[id]--;
+      if (id === 'titan') this.summonTitan(); else { this.cfx[id] = this.wave; if (id === 'barrage') this.L.bcd = 0; }
+      this.emit('consUse', id); return true;
+    }
+    summonTitan() {                                                                                   // TITAN GIANT: 2× size / HP / damage of the current Giant level, no CAP, fights until it falls
+      const S = this.stats, def = KM.FRIEND_BY.giantF, M = this.clsM('giant', S.cls.giant), L = this.L;
+      const j = this.spawn(0, def, L.x, L.z - 4, { hp: 2 * M.hp / def.hp, dmg: 2 * M.dmg / def.dmg, arm: M.arm, spd: S.speed / 4 }); if (j < 0) return -1;
+      this.merc[j] = 1e12; this.evo[j] = 2; this.pt[j] = 0; this.sc[j] *= 2; this.rad[j] *= 2; this.ft[j] = KM.footOf(def, this.rad[j], this.sc[j]); this.titans++; this.emit('titan', j); return j;
+    }
     cannonRange() { return W.TANK_RANGE * (this.stats.tankRange / BASE_TANK_RANGE); }
     stepTank(dt, S) {
-      const L = this.L; L.cd -= dt * S.tankRate; L.mcd -= dt; L.gun = Math.max(0, L.gun - dt * 4);
+      this.elemNow = this.elemTank; const L = this.L; L.cd -= dt * S.tankRate * this.spdFx(); L.mcd -= dt; L.gun = Math.max(0, L.gun - dt * 4);
       if (L.cd <= 0) {
         // The cannon never waits for a target: on its normal cadence it fires straight ahead (-z) down the tank's current lane
         // to its fixed range, in AUTO and TAP alike (no acquisition, no lead, no homing). Lining the lane up is the steering's
@@ -131,7 +153,7 @@
         L.cd = 1; L.aim = Math.PI; L.gun = 1;
         const E = KM.TANK_ERAS[this.tankEra = KM.tankEra(S, this.t)], n = S.tankMulti || 1, z0 = L.z - W.HULL_HL, z1 = L.z - this.cannonRange();
         for (let k = 0; k < n; k++) { const x = Math.max(-W.LANE, Math.min(W.LANE, L.x + (k ? (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.9 : 0)));
-          this.laneShot(x, z0, z1, S.tankDmg * E.dmg, E.proj, S.tankSplash, E.speed, S.tankPen || 0); }
+          this.laneShot(x, z0, z1, S.tankDmg * E.dmg * this.dmgFx(), E.proj, S.tankSplash, E.speed, S.tankPen || 0); }
         this.emit('tankfire', -1, n);
       }
       if (S.missiles > 0 && L.mcd <= 0) {
@@ -141,6 +163,10 @@
         for (let k = 0; k < Math.min(S.missiles, list.length); k++) { const tg = list[k]; this.fire(0, L.x + (k % 2 ? 0.6 : -0.6), L.z + 0.3, tg, this.x[tg], this.z[tg], S.tankDmg * 1.6, 21, 1.4, 0, 15, false, 2); }
         if (list.length) this.emit('missiles', Math.min(S.missiles, list.length));
       }
+      // TANK BARRAGE: a mounted auto-targeting weapon for one wave (AUTO and TAP alike): every 0.5 s it fires at the nearest enemy in cannon
+      // range for 25 % of a cannon shell (War Cry multiplies it once, like every tank shot)
+      if (this.cOn('barrage') && (L.bcd = (L.bcd || 0) - dt) <= 0) { L.bcd = 0.5; const tg = this.nearestXZ(L.x, L.z - 1, 1, this.cannonRange());
+        if (tg >= 0) { this.fire(0, L.x, L.z - 0.5, tg, this.x[tg], this.z[tg], S.tankDmg * 0.25 * this.dmgFx(), 21, 0, 0, 30, false, 2); this.emit('barrage', tg); } }
     }
     // One cannon shell flying straight down -z at x, from the muzzle (z0) to the end of the range (z1). It is a lane shell: it
     // strikes the first enemy in its lane on the way (stepProjectiles) and is flat, so it never lobs over what it hits.
@@ -211,6 +237,7 @@
       this.eng[i] = team === 1 && (def.boss || def.mini) ? 1 : 0;   // bosses / minis: 1 = still marching in, 2 = engaged (held on the battlefield)
       this.rng_[i] = def.rng; this.arm[i] = (def.arm || 0) + (mul.arm || 0); this.rad[i] = def.rad; this.sc[i] = def.sc * (0.95 + r() * 0.1); this.ft[i] = KM.footOf(def, this.rad[i], this.sc[i]);
       this.phase[i] = r() * 6.283; this.stride[i] = 0.9 + r() * 0.2; this.swing[i] = 0; this.pend[i] = -1; this.swd[i] = def.el || (team === 1 && def.sc >= 1.3) || def.wpn === 'axe' ? 0.75 : def.wpn === 'staff' || def.wpn === 'cannon' ? 0.6 : 0.4; this.flash[i] = 0; this.die[i] = 0; this.slow[i] = 0;
+      this.burnT[i] = this.poisT[i] = this.iceT[i] = 0; this.burnD[i] = this.poisD[i] = this.healRed[i] = this.iceM[i] = 0;
       this.carry[i] = 0; this.ctg[i] = -1; this.mt[i] = def.mech ? 4 + r() * 2 : def.med ? 6 + r() * 4 : 0; this.mph[i] = 0; this.em[i] = 0; this.br[i] = 0; this.wv[i] = 0; this.grp[i] = -1; this.pt[i] = 0; this.evo[i] = 0; this.merc[i] = 0; this.spear[i] = def.k === 'soldier' ? 1 : 0; this.frank[i] = 0; this.fcol[i] = -1;   // melee: one opening spear per deployment
       this.yaw[i] = team ? 0 : Math.PI; this.think[i] = r() * 0.2; this.birth[i] = mul.birth || 0; this.tgt[i] = -1; this.era[i] = mul.era || 0; this.elite[i] = def.el ? 1 : 0;
       // melee role: 0 front · 1 pressure (fills openings) · 2 breakthrough (fast/heavy) · 3 rear (ranged/support)
@@ -233,7 +260,7 @@
         if (d.boss) { if (!silent) this.bossDown(d); if (--this.nBoss <= 0) { this.nBoss = 0; this.bossI = -1; this.emit('bossFight', 0); } } if (this.grp[i] >= 0) { const g = this.groups[this.grp[i]]; if (g) g.alive--; this.grp[i] = -1; }
         if (!silent) {
           this.kills++; this.killsByKind[d.k] = (this.killsByKind[d.k] || 0) + 1;
-          let val = d.coin * this.diff.coinMul * KM.COIN_SCALE;
+          let val = d.coin * KM.COIN_BASE * KM.COIN_SCALE;   // owner rule: a kill's Gold depends on the enemy type only — never on its level or the wave
           const bounty = val * KM.BOUNTY; this.coins += bounty; this.coinsTotal += bounty; val -= bounty;   // war bounty goes straight to the bank; the rest drops for the tank/collectors
           // LOCKED: an ordinary enemy drops exactly ONE visible coin carrying its whole value (same expected gold as before);
           // only bosses scatter several coins. Values come from the enemy's configured coin and the run's coin multiplier.
@@ -271,10 +298,30 @@
       this.emit('boom', x, z, d.ex);
     }
 
+    // ---------- elemental skin powers (per hit; a unit's one skin = one element; the same element never stacks on a target: it refreshes
+    // its timer and keeps the stronger value; different elements coexist) ----------
+    applyElem(i, dmg, e) {
+      const E = KM.ELEMENTS[e.el]; if (!E || !(dmg > 0) || !isFinite(dmg) || this.st[i] !== ALIVE) return;
+      if (e.el === 'fire') { const d = dmg * e.dot / E.dur; if (!(this.burnT[i] > 0) || d >= this.burnD[i]) this.burnD[i] = d; this.burnT[i] = E.dur; this.emit('elem', 'fire', i); }
+      else if (e.el === 'poison') { const d = dmg * e.dot / E.dur; if (!(this.poisT[i] > 0) || d >= this.poisD[i]) this.poisD[i] = d; this.healRed[i] = Math.max(this.poisT[i] > 0 ? this.healRed[i] : 0, e.heal); this.poisT[i] = E.dur; this.emit('elem', 'poison', i); }
+      else if (e.el === 'ice') { this.iceM[i] = Math.max(this.iceT[i] > 0 ? this.iceM[i] : 0, e.slow); this.iceT[i] = E.dur; this.emit('elem', 'ice', i); }
+      else if (e.el === 'lightning') { const R2 = E.R * E.R, x = this.x[i], z = this.z[i], c0 = this.cellX(x - E.R), c1 = this.cellX(x + E.R), r0 = this.cellZ(z - E.R), r1 = this.cellZ(z + E.R), C = [];
+        for (let gz = r0; gz <= r1; gz++) for (let gx = c0; gx <= c1; gx++) for (let j = this.gh[(gz * GCOLS + gx) * 2 + 1]; j >= 0; j = this.next[j]) { if (j === i || this.st[j] !== ALIVE) continue; const dx = this.x[j] - x, dz = this.z[j] - z, dd = dx * dx + dz * dz; if (dd < R2) C.push([dd, j]); }
+        C.sort((a, b) => a[0] - b[0] || a[1] - b[1]); const keep = this.elemNow; this.elemNow = null;   // chain hits never chain again
+        for (let k = 0; k < Math.min(e.n, C.length); k++) { const j = C[k][1]; if (this.st[j] !== ALIVE) continue; this.emit('chain', i, j); this.trueDmg(j, dmg * e.frac); }
+        this.elemNow = keep; }
+    }
+    stepElements(dt) {   // burn / poison ticks (true damage: already a share of a mitigated hit), ice and healing-reduction timers
+      for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE || this.team[i] !== 1) continue;
+        if (this.iceT[i] > 0) { this.iceT[i] -= dt; if (this.iceT[i] <= 0) this.iceM[i] = 0; }
+        let d = 0; if (this.burnT[i] > 0) { d += this.burnD[i] * Math.min(dt, this.burnT[i]); this.burnT[i] -= dt; } if (this.poisT[i] > 0) { d += this.poisD[i] * Math.min(dt, this.poisT[i]); this.poisT[i] -= dt; if (this.poisT[i] <= 0) this.healRed[i] = 0; }   // the last tick only covers the time left: exactly the approved total
+        if (d > 0) this.trueDmg(i, d); }
+    }
+    trueDmg(i, d) { if (this.st[i] !== ALIVE || !(d > 0) || !isFinite(d)) return; this.elemDmg = (this.elemDmg || 0) + Math.min(d, Math.max(0, this.hp[i])); this.hp[i] -= d; if (this.hp[i] <= 0) this.kill(i); }   // elemental damage: a share of an already-mitigated hit (armour is not applied twice)
     hurt(i, amt, fromTeam, srcZ, crit) {
       if (this.st[i] !== ALIVE) return;
       let a = this.arm[i];
-      if (this.team[i] === 0) a += this.stats.armor;
+      if (this.team[i] === 0) a = (a + this.stats.armor) * this.armFx();
       let dmg = amt * (12 / (12 + a)); if (this.team[i] === 0 && this.fortT > 0) dmg *= 0.7;
       const d = this.def(i);
       if (this.team[i] === 0 && this.posture === 1 && srcZ < this.z[i]) { const n = this.shieldWall(i); if (n) dmg *= n === 2 ? 0.65 : 0.78; }   // overlapping shields
@@ -284,8 +331,9 @@
       if (fromTeam === 0 && d.armR && this.src === 1) dmg *= d.armR;                                // ARMORED GIANT: shrugs off ordinary ranged fire
       if (fromTeam === 0) this.dmgBy[this.src] += Math.min(dmg, Math.max(0, this.hp[i]));
       this.hp[i] -= dmg; this.flash[i] = 1;
+      if (fromTeam === 0 && this.team[i] === 1 && this.elemNow && dmg > 0) this.applyElem(i, dmg, this.elemNow);
       // small knockback along the attack axis keeps the front line pushing like a mass
-      const kb = Math.min(1.2, dmg / this.mhp[i] * 3) * (crit ? 2 : 1);
+      const kb = Math.min(1.2, dmg / this.mhp[i] * 3) * (crit ? 2 : 1) * (this.team[i] === 0 && this.steadyK ? 1 - (this.steadyK[this.kind[i]] || 0) : 1);   // Helmet / Gauntlets: knockback resist
       this.vz[i] += (this.team[i] ? -1 : 1) * kb * 2;
       if (crit) this.emit('crit', i);
       if (this.hp[i] <= 0) this.kill(i);
@@ -312,9 +360,10 @@
     // ---------- tank energy + powers ----------
     gainEnergy(e) { this.energy = Math.min(KM.ENERGY_MAX, this.energy + e); }
     powerMul(id) { return (1 + 0.1 * (this.powerLv[id] || 0)) * (1 + 0.12 * (this.pboost[id] || 0)); }   // permanent level × this run's boss boosts
-    canPower(id) { const P = KM.POWERS[id]; return !!P && this.alive && this.equipped.includes(id) && this.energy >= P.cost && !((this.pcd[id] || 0) > 0); }
+    powerCost(id) { if (id === 'mercenary') return KM.MERC_TIERS[this.mercTier - 1].energy; if (id === 'recruits') { const t = (this.mods.perks.recruits || 0); return t ? KM.RECRUITS(t).energy : Infinity; } return KM.POWERS[id].cost; }
+    canPower(id) { const P = KM.POWERS[id]; return !!P && this.alive && (id === 'recruits' ? (this.mods.perks.recruits || 0) > 0 : this.equipped.includes(id)) && this.energy >= this.powerCost(id) && !((this.pcd[id] || 0) > 0); }
     usePower(id) {
-      if (!this.canPower(id)) return false; const P = KM.POWERS[id], S = this.stats, L = this.L, mul = this.powerMul(id); this.energy -= P.cost; this.pcd[id] = P.cd; this.powersUsed = (this.powersUsed || 0) + 1;
+      if (!this.canPower(id)) return false; const P = KM.POWERS[id], S = this.stats, L = this.L, mul = this.powerMul(id); this.energy -= this.powerCost(id); this.pcd[id] = P.cd; this.powersUsed = (this.powersUsed || 0) + 1;
       if (id === 'linebreaker') { const dmg = S.tankDmg * 9 * mul; let n = 0; this.src = 2;   // straight down the tank's lane
         for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && Math.abs(this.x[i] - L.x) < 1.9 + this.rad[i] && this.z[i] < L.z + 0.5 && this.z[i] > L.z - 48) { this.hurt(i, dmg, 0, L.z, false); this.z[i] -= 0.6; n++; }
         this.emit('power', id, { x: L.x, z0: L.z, z1: L.z - 48, n }); }
@@ -323,9 +372,13 @@
       else if (id === 'elemental') { const dmg = S.tankDmg * 2.2 * mul, z0 = (this.form && this.form.on ? this.form.frontZ : this.armyZ || L.z - 10); this.src = 2;
         for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && this.z[i] > z0 - 14 && this.z[i] < L.z + 0.5) { this.hurt(i, dmg, 0, z0, false); this.slow[i] = Math.max(this.slow[i], 2.2); }
         this.emit('power', id, { z: z0 - 7 }); }
-      else if (id === 'mercenary') { const n = Math.min(100, 50 + 10 * (this.pboost[id] || 0) + 5 * (this.powerLv[id] || 0)); let k = 0;
+      else if (id === 'mercenary') { const n = KM.MERC_TIERS[this.mercTier - 1].n; let k = 0;   // MERCENARY CALL tier (500 / 1,000 / 1,500 energy)
         for (; k < n; k++) { const j = this.makeSoldier('melee', Math.max(-W.LANE + 1, Math.min(W.LANE - 1, L.x + (this.rng() - 0.5) * 10)), L.z - 1.5 - this.rng() * 3, 0.0001); if (j < 0) break; this.pts -= this.pt[j]; this.pt[j] = 0; this.merc[j] = this.t + 30; }   // beyond the 300 points, for 30 s
         this.mercs = k; this.emit('power', id, { n: k }); }
+      else if (id === 'recruits') { const R_ = KM.RECRUITS(this.mods.perks.recruits); let k = 0;   // RECRUITS: Gold Elites beyond the 300 CAP, until they fall; the living total never exceeds the tier's count
+        for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i] && this.evo[i] === 3) k++; const want = Math.max(0, R_.n - k); let m = 0;
+        for (; m < want; m++) { const j = this.makeSoldier('elite', Math.max(-W.LANE + 1, Math.min(W.LANE - 1, L.x + (this.rng() - 0.5) * 12)), L.z - 2 - this.rng() * 4, 0.0001); if (j < 0) break; this.pts -= this.pt[j]; this.pt[j] = 0; this.merc[j] = 1e12; this.evo[j] = 3; }
+        this.recruitN = k + m; this.emit('power', id, { n: m }); }
       else if (id === 'fortress') { const m = this.shieldMax(); if (m) { L.shMax = m; L.sh = m * Math.min(1.5, mul); L.shDown = 0; } this.heal(S.maxHp * 0.3 * mul);
         this.fortT = 8 * Math.min(1.6, mul); this.emit('power', id, {}); }
       return true;
@@ -395,6 +448,7 @@
     hurtLauncher(a, why) {
       if (!this.alive || this.L.inv > 0) return;
       if (this.fortT > 0) a *= 0.5;   // FORTRESS SURGE hardens the tank
+      a /= this.armFx() * (this.tankArm || 1);   // IRON FORTRESS consumable (+25 %) · seasonal tank-skin armour perk
       a = this.absorb(a); if (a <= 0) { this.emit('shieldHit'); return; }
       this.L.hp -= a; this.L.hitT = 0; this.lastHit = 0; this.emit('lhit', a);
       if (this.L.hp <= 0) { this.L.hp = 0; this.alive = false; this.deathReason = why || 'overrun'; this.emit('death', why); }
@@ -420,6 +474,7 @@
 
     // ---------- projectiles ----------
     fire(team, sx, sz, tgt, ex, ez, dmg, kind, spl, slow, speed, crit, src) {
+      this.fireEl = team === 0 ? this.elemNow : null;
       const P = this.p; let k = -1; this.lastShot = PCAP;
       for (let n = 0; n < PCAP; n++) { const j = (this.pfree + n) % PCAP; if (!P.on[j]) { k = j; break; } }
       if (k < 0) { // pool exhausted: resolve instantly so damage is never lost (a cannon lane shell sweeps its whole lane at once)
@@ -431,7 +486,7 @@
       this.pfree = (k + 1) % PCAP;
       const d = Math.hypot(ex - sx, ez - sz);
       P.on[k] = 1; P.team[k] = team; P.kind[k] = kind; P.sx[k] = P.x[k] = sx; P.sz[k] = P.z[k] = sz; P.ex[k] = ex; P.ez[k] = ez; P.t[k] = 0;
-      P.tof[k] = Math.max(0.12, d / speed); P.dmg[k] = dmg; P.spl[k] = spl || 0; P.slow[k] = slow || 0; P.tgt[k] = tgt; P.h[k] = Math.min(4, 0.6 + d * 0.18) * (kind === 12 && team === 0 ? KM.rtech(this.stats).arc : kind >= 10 && kind <= 16 ? KM.RTECH[kind - 10].arc : kind === 20 ? 0.15 : kind === 21 ? 0.9 : kind === 22 ? 0.45 : 1); P.crit[k] = crit ? 1 : 0; P.src[k] = src || 0; P.pen[k] = 0; P.lane[k] = 0; this.lastShot = k;
+      (this.pEl || (this.pEl = new Array(PCAP).fill(null)))[k] = this.fireEl; P.tof[k] = Math.max(0.12, d / speed); P.dmg[k] = dmg; P.spl[k] = spl || 0; P.slow[k] = slow || 0; P.tgt[k] = tgt; P.h[k] = Math.min(4, 0.6 + d * 0.18) * (kind === 12 && team === 0 ? KM.rtech(this.stats).arc : kind >= 10 && kind <= 16 ? KM.RTECH[kind - 10].arc : kind === 20 ? 0.15 : kind === 21 ? 0.9 : kind === 22 ? 0.45 : 1); P.crit[k] = crit ? 1 : 0; P.src[k] = src || 0; P.pen[k] = 0; P.lane[k] = 0; this.lastShot = k;
       this.emit('shot', kind, sx, sz);
     }
 
@@ -461,12 +516,13 @@
     // ---------- upgrades ----------
     // ---------- inline upgrades ----------
     // ---------- class levels (independent tracks, 1…10; level 8 = final evolution) ----------
-    clsM(key, lv) { const M = KM.clsMul(key, lv), b = (this.stats.skin || {})[key]; if (b) { M.hp *= 1 + (b.hp || 0); M.dmg *= 1 + (b.dmg || 0); M.arm += b.armor || 0; } return M; }   // class level × Armory skin
+    // absolute class numbers at level lv × Armory skin × permanent boss-card buffs (+5 % multiplicative per card, KM.buffMul)
+    clsM(key, lv) { const M = KM.clsStat(key, lv), b = (this.stats.skin || {})[key], f = (this.buffs && this.buffs.cls && this.buffs.cls[key]) || {}, q = this.mods && this.mods.cls[key];
+      if (q) { M.hp *= 1 + q.hp; M.dmg *= 1 + q.dmg; M.arm = (M.arm + q.arm) * (1 + q.armPct); }   // class equipment + seasonal skin
+      if (b) { M.hp *= 1 + (b.hp || 0); M.dmg *= 1 + (M.heal ? b.heal || 0 : b.dmg || 0); M.arm += b.armor || 0; }
+      M.hp *= KM.buffMul(f.hp); M.dmg *= KM.buffMul(f.dmg); M.arm *= KM.buffMul(f.arm); return M; }   // class level × Armory skin
     // per-unit numbers of a class at level lv (HUD: Lv · DMG, upgrade preview): hp, attack damage (Mizard: heal per beam), armour
-    classInfo(key, lv) { const S = this.stats, d = KM.FRIEND_BY[KM.PROD[key].kind], M = this.clsM(key, lv), ev = lv >= KM.EVOLVE_AT;
-      let dmg = S.dmg * d.dmg * M.dmg * (ev ? 1.2 : 1); if (d.r) dmg *= KM.RTECH[Math.min(KM.RTECH.length - 1, KM.ERA_BY_LV[lv - 1])].dmg * (1 + 0.08 * (lv - 1));
-      if (d.med) dmg = 7 * (1 + 0.12 * (lv - 1)) * (1 + (((S.skin || {}).mizard || {}).heal || 0));
-      return { hp: S.hp * d.hp * M.hp * (ev ? 1.25 : 1), dmg, arm: M.arm, heal: !!d.med }; }
+    classInfo(key, lv) { const M = this.clsM(key, lv); return { hp: M.hp, dmg: M.dmg, arm: M.arm, heal: M.heal, cost: KM.deployCost(key, lv) }; }
     clsCost(key) { const lv = this.stats.cls[key]; return lv >= KM.CLASS_MAX ? Infinity : KM.clsUpCost(key, lv); }
     levelUp(key) {
       const S = this.stats, lv = S.cls[key]; if (!this.alive || lv >= KM.CLASS_MAX || this.coins < KM.clsUpCost(key, lv)) return false;
@@ -475,7 +531,7 @@
     applyClass(key, from, to) {                                                                       // living soldiers of the class improve in place (no deletion)
       const S = this.stats, A = this.clsM(key, from), B = this.clsM(key, to), kind = KM.FRIEND_BY[KM.PROD[key].kind].id, evolve = from < KM.EVOLVE_AT && to >= KM.EVOLVE_AT;
       for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE || this.team[i] || this.kind[i] !== kind || this.merc[i]) continue;
-        const f = B.hp / A.hp; this.mhp[i] *= f; this.hp[i] *= f; this.arm[i] += B.arm - A.arm;
+        const f = B.hp / A.hp; this.mhp[i] *= f; this.hp[i] *= f; this.arm[i] += B.arm - A.arm; if (A.dmg) this.dmg[i] *= B.dmg / A.dmg;
       }
       this.classStats();
       if (evolve) this.emit('evolve', key);
@@ -484,19 +540,29 @@
       const S = this.stats, C = S.cls, m = this.t / 60;
       const B = S.skin || {}, bc = B.collector || {}, bm = B.mizard || {}, br = B.range || {};
       S.colCap = 6 * (1 + 0.15 * (C.collector - 1)) * (1 + (bc.carry || 0)); S.colSpeed = (1 + 0.06 * (C.collector - 1)) * (1 + (bc.speed || 0)); S.rangeMul = 1 + (br.range || 0); S.rofMul = 1 + (br.rof || 0); S.healR = 1 + (bm.healR || 0);
-      S.rdmg = 1 + 0.08 * (C.range - 1); let era = KM.ERA_BY_LV[C.range - 1]; while (era > 0 && KM.RTECH[era].at > m) era--; S.rtech = era;   // weapon era by level, gated by the war's minute
-      S.medHeal = 7 * (1 + 0.12 * (C.mizard - 1)) * (1 + (bm.heal || 0));
-      // final evolution happens soldier by soldier, only while a free army point exists — the 300 points are never exceeded
-      for (const key of KM.PROD_ORDER) { if (C[key] < KM.EVOLVE_AT) continue; const kind = KM.FRIEND_BY[KM.PROD[key].kind].id;
-        for (let i = 0; i < this.hi && this.pts < S.cap; i++) if (this.st[i] === ALIVE && !this.team[i] && this.kind[i] === kind && !this.evo[i] && !this.merc[i]) {
-          this.evo[i] = 1; this.mhp[i] *= 1.25; this.hp[i] *= 1.25; const np = KM.unitPts(key, true); this.pts += np - this.pt[i]; this.pt[i] = np; } }
+      S.rdmg = 1; let era = KM.ERA_BY_LV[C.range - 1]; while (era > 0 && KM.RTECH[era].at > m) era--; S.rtech = era;   // weapon era by level, gated by the war's minute
+      S.medHeal = this.clsM('mizard', C.mizard).dmg;
+      const Q = this.mods ? this.mods.cls : null; if (Q) { S.colCap *= 1 + Q.collector.carry; S.colSpeed *= 1 + Q.collector.speed; S.rofMul *= 1 + Q.range.rof; S.healR *= 1 + Q.mizard.healR;
+        this.rofK = {}; for (const k of KM.PROD_ORDER) this.rofK[KM.FRIEND_BY[KM.PROD[k].kind].id] = 1 + (k === 'range' ? 0 : Q[k].rof); this.steadyK = {}; for (const k of KM.PROD_ORDER) this.steadyK[KM.FRIEND_BY[KM.PROD[k].kind].id] = Math.min(0.8, Q[k].steady); }   // owner table: 5 HEAL + 2 per level
     }
     rollUps() {                                                                                    // keep one valid next-upgrade per category (stable until bought or invalid)
       const G = KM.upgradeOptions(this), ups = this.ups || (this.ups = {});
       for (const g of KM.UPG_GROUPS) { const opts = G[g], cur = ups[g]; if (cur && opts.some(o => o.id === cur.id)) { ups[g] = opts.find(o => o.id === cur.id); continue; }
         if (!opts.length) { ups[g] = null; continue; } let r = this.rng() * opts.reduce((a, o) => a + o.w, 0), p = opts[opts.length - 1]; for (const o of opts) { r -= o.w; if (r <= 0) { p = o; break; } } ups[g] = p; }
     }
-    upCost() { return KM.tankUpCost(this.upgrades); }   // tank track only
+    upCost() { return KM.tankUpCost(this.upgrades); }   // legacy random-card path (kept for old tests / saves; the HUD uses the skill tracks)
+    tankLv(id) { return 1 + ((this.stats.lv && this.stats.lv[id]) || 0); }
+    tankCost(id) { return KM.tankSkillCost(this.tankLv(id)); }
+    tankValue(id, lv) { const t = KM.TANK_SKILL_BY[id], B = KM.baseStats(), base = t.kind === 'count' ? (t.base || 0) : B[t.stat] || 0, now = this.tankLv(id);
+      const cur = this.stats[t.stat] != null ? this.stats[t.stat] : base; return cur - KM.tankSkillAdd(t, now, base) + KM.tankSkillAdd(t, lv, base); }
+    // one level of one tank skill, paid in Gold; never random, never past Lv10
+    tankUp(id) {
+      const t = KM.TANK_SKILL_BY[id]; if (!t || !this.alive) return false; const lv = this.tankLv(id), cost = KM.tankSkillCost(lv); if (!(this.coins >= cost)) return false;
+      const S = this.stats, base = t.kind === 'count' ? (t.base || 0) : KM.baseStats()[t.stat] || 0, d = KM.tankSkillAdd(t, lv + 1, base) - KM.tankSkillAdd(t, lv, base);
+      this.coins -= cost; S[t.stat] = (S[t.stat] != null ? S[t.stat] : base) + d; S.lv[id] = lv; this.upgrades++;
+      if (id === 'plating') this.heal(d); if (id === 'shield') this.shieldUp(); if (id === 'trof') S.tankBarrels = Math.min(3, 1 + Math.floor(lv / 2));
+      this.emit('upgrade', { id, title: t.title, val: 'LV ' + (lv + 1) }, 'tank'); return true;
+    }
     buy(group) {
       const c = this.ups && this.ups[group]; if (!c || !this.alive) return false;
       const cost = this.upCost(); if (this.coins < cost) return false;
@@ -532,10 +598,11 @@
       if ((this.stepN = (this.stepN || 0) + 1) % 30 === 0) this.recount();
       this.stepZones(dt);
       this.formUpdate(dt); this.stepGroups(dt);
-      this.stepUnits(dt, S);
-      this.stepTank(dt, S);
+      this.stepUnits(dt, S); this.elemNow = null;
+      this.stepTank(dt, S); this.elemNow = null;
       this.stepShield(dt); this.stepPowers(dt);
-      this.stepProjectiles(dt);
+      this.stepProjectiles(dt); this.elemNow = null;
+      this.stepElements(dt);
       this.stepCoins(dt, S);
       this.stepDying(dt);
       this.stepFx(dt);
@@ -599,24 +666,53 @@
       this.emit('waveClear', n, g);
       if (p === 5) this.offerChoice('supply');
     }
+    // enemy type / boss level at this spawn (a type levels once per distinct wave it appears in; a boss once per encounter)
+    lvMul(d, mul) {
+      let f;
+      if (d.boss) { if (this.bossSeen !== this.wave) { this.bossSeen = this.wave; this.bossLv = (this.bossLv || 0) + 1; } f = KM.bossLvMul(this.bossLv); }
+      else { const E = this.eLv || (this.eLv = {}), W_ = this.eWave || (this.eWave = {}); if (W_[d.k] !== this.wave) { W_[d.k] = this.wave; E[d.k] = (E[d.k] || 0) + 1; } f = KM.enemyLvMul(d.k, E[d.k]); }
+      return Object.assign({}, mul, { hp: mul.hp * f.hp, dmg: mul.dmg * f.dmg, arm: (mul.arm || 0) + (d.boss ? (d.arm || 0) * (f.arm - 1) : f.arm) });
+    }
     // ---------- rewards + choices (non-blocking: the war keeps going until the player taps one) ----------
     offerChoice(kind) {
       if (this.choice) this.takeChoice(0);                                                              // an untaken older choice resolves to its first option
       const n = this.wave, opts = kind === 'supply'
         ? [{ id: 'gold', title: 'GOLD CACHE', val: '+' + KM.waveGold(n) * 3 }, { id: 'energy', title: 'TANK ENERGY', val: '+100' }, { id: 'recover', title: 'ARMY RECOVERY', val: 'HEAL ALL' }]
-        : this.rng.shuffle((this.equipped || KM.POWER_IDS.slice(0, 3)).slice()).slice(0, 3).map(id => ({ id, title: KM.POWERS[id].name, val: KM.POWERS[id].boostTxt }));
+        : this.bossCards();
       this.choice = { kind, opts }; this.emit('choice', this.choice);
     }
     takeChoice(k) {
       const c = this.choice; if (!c || !c.opts[k]) return false; const o = c.opts[k]; this.choice = null;
       if (c.kind === 'supply') { if (o.id === 'gold') { const g = KM.waveGold(this.wave) * 3; this.coins += g; this.coinsTotal += g; } else if (o.id === 'energy') this.gainEnergy(100);
         else for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i]) this.hp[i] = this.mhp[i]; }
-      else { this.pboost[o.id] = (this.pboost[o.id] || 0) + 1; }                                          // boss reward: one step of that tank power for the rest of the run
+      else this.applyBossCard(o);                                                                          // boss card: permanent buff / consumable (the shell saves it)
       this.emit('chose', c.kind, o.id); return true;
     }
+    // three boss cards: (1) +5 % to ONE random attribute of ONE random soldier class, (2) +5 % to ONE continuous tank stat, (3) one random
+    // consumable into the inventory (never auto-fired). All permanent; only the chosen card applies.
+    bossCards() {
+      const r = this.rng, cls = r.pick(KM.PROD_ORDER), at = r.pick(KM.BUFF_ATTRS), ts = r.pick(Object.keys(KM.TANK_BUFF_STATS)), cn = r.pick(KM.CONS_IDS);
+      const AT = { hp: 'HP', dmg: cls === 'mizard' ? 'HEAL' : 'DAMAGE', arm: 'ARMOR' };
+      return [{ id: 'cls', cls, attr: at, title: KM.PROD[cls].name, val: '+5% ' + AT[at] },
+        { id: 'tank', stat: ts, title: KM.TANK_BUFF_STATS[ts], val: '+5%' },
+        { id: 'cons', item: cn, title: KM.CONSUMABLES[cn].name, val: '+1 ITEM' }];
+    }
+    applyBossCard(o) {
+      const B = this.buffs;
+      if (o.id === 'cls') { const lv = this.stats.cls[o.cls], A = this.clsM(o.cls, lv); const c = B.cls[o.cls] || (B.cls[o.cls] = {}); c[o.attr] = (c[o.attr] || 0) + 1; this.reClass(o.cls, A); }
+      else if (o.id === 'tank') { B.tank[o.stat] = (B.tank[o.stat] || 0) + 1; this.stats[o.stat] *= 1.05; if (o.stat === 'maxHp') this.heal(this.stats.maxHp * 0.05 / 1.05); }
+      else if (o.id === 'cons') { this.consWon = this.consWon || {}; this.consWon[o.item] = (this.consWon[o.item] || 0) + 1; this.cons[o.item] = (this.cons[o.item] || 0) + 1; }
+      this.emit('bossCard', o);
+    }
+    reClass(key, A) {                                                                                 // living soldiers of a class take a new buff in place
+      const B = this.clsM(key, this.stats.cls[key]), kind = KM.FRIEND_BY[KM.PROD[key].kind].id;
+      for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE || this.team[i] || this.kind[i] !== kind || this.merc[i]) continue;
+        const f = B.hp / A.hp; this.mhp[i] *= f; this.hp[i] *= f; this.arm[i] += B.arm - A.arm; if (A.dmg) this.dmg[i] *= B.dmg / A.dmg; }
+      this.classStats();
+    }
     bossDown(d) {
-      const g = KM.waveGold(this.wave) * 4; this.coins += g; this.coinsTotal += g; this.bossesKilled++; this.warTokens++; this.gainEnergy(60);
-      this.emit('bossReward', { wave: this.wave, gold: g, tokens: 1, kind: d.k }); this.offerChoice('power');
+      const g = KM.BOSS_GOLD, draw = KM.bossDraw(this.rng()); this.coins += g; this.coinsTotal += g; this.bossesKilled++; this.warTokens += draw.tokens; this.diamondsWon += draw.diamonds; this.gainEnergy(60);
+      this.emit('bossReward', { wave: this.wave, gold: g, tokens: draw.tokens, diamonds: draw.diamonds, kind: d.k, id: this.seed + ':' + this.wave }); this.offerChoice('boss');
     }
 
     // Returns budget spent. Every unit placed is an unlocked type inside the lane.
@@ -654,7 +750,9 @@
       }
       if (!list.length && type !== 'boss') { add(E.grunt, cx, z0); spent = Math.max(spent, E.grunt.cost); }   // an expensive first pick never leaves a formation empty
       if (spent > budget + 2) spent = budget; // last over-budget unit was rejected by spend()
-      const mul = { hp: D.hp * (1 + this.overflow) * (type === 'push' || type === 'boss' || type === 'mini' ? 1 : SEC.hp), dmg: D.dmg, spd: D.speed * SEC.spd, era: Math.min(5, D.era), arm: Math.min(10, D.era * 1.5) };
+      const mul = { hp: Math.min(1, D.hp) * (1 + this.overflow) *   // the existing opening ramp (D.hp < 1 until ~wave 10) stays so a 0-Gold start is survivable; it never adds strength
+           (type === 'push' || type === 'boss' || type === 'mini' ? 1 : SEC.hp), dmg: 1,   // strength comes from enemy / boss levels (lvMul), count from the wave budget
+         spd: D.speed * SEC.spd, era: Math.min(5, D.era), arm: 0 };
       let placed = 0;
       // organic mass: depth jitter, a random arc, small lateral clusters and late subgroups — never a ruler line
       const arc = (r() - 0.5) * 0.35, nCl = 2 + Math.floor(r() * 3), cl = Array.from({ length: nCl }, () => [r.range(-1.2, 1.2), r() < 0.3 ? -r.range(3, 7) : 0]);
@@ -663,7 +761,7 @@
       const G = type === 'boss' || type === 'mini' ? null : { cx, z: z0, v: 9, n0: 0, alive: 0, st: 0, t: 0 }, gid = G ? this.groups.push(G) - 1 : -1;
       for (const [d, x, z] of list) {
         if (this.count[1] >= W.MAX_ENEMY && !d.boss) { this.overflow = Math.min(3, this.overflow + 0.002); continue; } // hard population cap: excess becomes strength
-        const j = this.spawn(1, d, Math.max(-W.LANE, Math.min(W.LANE, x)), z, mul); if (j < 0) continue; placed++; if (this.spawnTag) { this.wv[j] = this.spawnTag; this.waveLeft++; this.waveSpawned++; }
+        const j = this.spawn(1, d, Math.max(-W.LANE, Math.min(W.LANE, x)), z, this.lvMul(d, mul)); if (j < 0) continue; placed++; if (this.spawnTag) { this.wv[j] = this.spawnTag; this.waveLeft++; this.waveSpawned++; }
         if (G && !d.mech) { this.grp[j] = gid; this.gox[j] = this.x[j] - cx; this.goz[j] = z - z0; G.n0++; G.alive++; G.v = Math.min(G.v, this.spd[j] * 0.8); }
       }
       if (this.opts.trace) this.debugLog.push({ t: this.t, m: D.m, type, kinds: list.map(l => l[0].k), xs: list.map(l => l[1]) });
@@ -801,7 +899,7 @@
           this.swing[i] -= dt / this.swd[i];
           if (was > hitAt && this.swing[i] <= hitAt && this.pend[i] !== -1) this.strike(i, S);
         }
-        const sm = this.slow[i] > 0 ? 0.5 : 1;
+        const sm = (this.slow[i] > 0 ? 0.5 : 1) * (team === 1 && this.iceT[i] > 0 ? 1 - this.iceM[i] : 1);   // ICE: slower movement and attacks
         // zone pressure: winning strips surge (a few units turn into breakthrough divers), losing strips give ground
         const zk = this.zP ? this.zP[this.zoneOf(this.x[i])] * (this.mi || 0) : 0, adv = team ? -zk : zk;
         if (this.roleT[i] > 0) { this.roleT[i] -= dt; if (this.roleT[i] <= 0 && this.role[i] === 2) this.role[i] = 1; }
@@ -822,13 +920,13 @@
         if (this.think[i] <= 0) {
           this.think[i] = 0.18 + this.rng() * 0.16;
           const ranged = team === 0 ? this.role[i] === 3 : this.rng_[i] > 2;   // friendlies by role (the Elite pike reaches 2.3 but is melee)
-          if (team === 0 && ranged) { const T = KM.rtech(S); this.rng_[i] = T.range * (S.rangeMul || 1); this.cd[i] = T.cd / (S.rofMul || 1); }
+          if (team === 0 && ranged) { const T = KM.rtech(S); this.rng_[i] = (this.merc[i] ? T.range : KM.W.RANGE_RANGE) * (S.rangeMul || 1); this.cd[i] = T.cd / (S.rofMul || 1); }
           tg = gq >= 0 ? gq : defend ? this.defTarget(i, ranged) : this.pickTarget(i, team ? aggro1 + (ranged ? 4 : 0) : aggro0 + (ranged ? 4 : 0));   // DEFEND: tank guard · emergency · local zones only
           if (team === 0 && this.spear[i]) {
             this.rng_[i] = 0.75;
             if (tg >= 0) { const sd = Math.hypot(this.x[tg] - this.x[i], this.z[tg] - this.z[i]), big = this.elite[tg] || KM.ENEMY[this.kind[tg]].boss;
               if (sd > 3 && sd < 9.5 && (!defend || big)) { this.spear[i] = 0; this.rng_[i] = 0.75; const tof = sd / 17;   // opening spear throw, then the sword
-                this.fire(0, this.x[i], this.z[i], tg, this.x[tg] + this.vx[tg] * tof, this.z[tg] + this.vz[tg] * tof, S.dmg * 3.2, 22, 0, 0, 17, false, 0); this.emit('spear', i); } }
+                this.fire(0, this.x[i], this.z[i], tg, this.x[tg] + this.vx[tg] * tof, this.z[tg] + this.vz[tg] * tof, this.clsM('elite', S.cls.elite).dmg, 22, 0, 0, 17, false, 0); this.emit('spear', i); } }
           }
           if (team === 0 && tg >= 0 && !defend) {
             // ATTACK: soft cohesion radius, never chase ever farther
@@ -872,7 +970,7 @@
           else {
             if (adv < -0.4 && this.role[i] < 2 && !hold) dvz = (team ? -1 : 1) * sp * 0.45 * (-adv - 0.4);   // losing strip gives ground while fighting (a DEFEND wall holds its slot instead)
             if (hold) { /* DEFEND wall (Elite, front-rank Melee, archers): fight from the slot and step back into it */ const G = this.fg || (this.fg = [0, 0]); this.formGoal(i, G); const ox = G[0] - this.x[i], oz = G[1] - this.z[i], od = Math.hypot(ox, oz) || 1e-3; if (od > 0.3) { dvx = ox / od * sp * 0.5 * Math.min(1, od / 2.2); dvz = oz / od * sp * 0.5 * Math.min(1, od / 2.2); } dvz += vm; }   // the phalanx and the archers fight from their slots
-            this.at[i] -= dt * (team ? 1 : S.atk) * sm;
+            this.at[i] -= dt * (team ? 1 : S.atk * this.spdFx() * ((this.rofK && this.rofK[this.kind[i]]) || 1)) * sm;
             if (this.at[i] <= 0) { this.at[i] = this.cd[i] * (0.9 + this.rng() * 0.2); this.attack(i, tg, tx, tz, S); }
           }
         } else {
@@ -1056,7 +1154,7 @@
     // Medic: triage → move to a safe spot behind the patient → heal on a cadence. Never resurrects; backs off from threats.
     // MIZARD: holds a rear slot (never runs into the fight) · heals by beam at range · charges an area burst on a fixed cadence.
     medic(i, dt, S) {
-      const L = this.L, x = this.x[i], z = this.z[i], sp = this.spd[i] * (S.speed / 4.3), lv = S.cls.mizard, R = (9 + 0.6 * (lv - 1)) * (S.healR || 1);
+      const L = this.L, x = this.x[i], z = this.z[i], sp = this.spd[i] * (S.speed / 4.3), lv = S.cls.mizard, R = KM.W.MIZARD_RANGE * (S.healR || 1);
       let gx, gz, inSlot = 0;
       if (this.posture === 1 && this.form && this.form.on) { const G = this.fg || (this.fg = [0, 0]); this.formGoal(i, G); gx = G[0]; gz = G[1]; inSlot = 1; }   // MIZARD slot: right behind the rearmost combat band
       else { gx = (this.armyX != null ? this.armyX : L.x) * 0.6 + ((i * 0.618) % 1 - 0.5) * 7; gz = Math.min(L.z - 1.8, (this.armyZ != null ? this.armyZ : L.z - 10) + KM.rtech(S).gap + 4); }
@@ -1174,20 +1272,20 @@
     }
 
     strike(i, S) {
-      const d = this.def(i), team = this.team[i];
+      const d = this.def(i), team = this.team[i]; this.elemNow = team === 0 ? this.elemK[this.kind[i]] || null : null;   // the attacker's skin element rides on this blow / its arrow
       let tg = this.pend[i]; this.pend[i] = -1;
       if (tg >= 0 && this.st[tg] !== ALIVE) { tg = this.nearest(i, this.rng_[i] + this.rad[i] + 1.2); if (tg < 0) { this.emit('whiff', i); return; } }
       if (tg === -2 && !this.alive) return;
       const tx = tg === -2 ? this.L.x : this.x[tg], tz = tg === -2 ? this.L.z : this.z[tg];
       let dmg = this.dmg[i], crit = false;
-      if (team === 0) { const ck = KM.CLASS_OF[this.kind[i]]; dmg = S.dmg * d.dmg * (this.merc[i] ? 1 : this.clsM(ck, S.cls[ck]).dmg) * (this.evo[i] ? 1.2 : 1); if (this.rng() < S.crit) { dmg *= 2; crit = true; } }
+      if (team === 0) { const ck = KM.CLASS_OF[this.kind[i]]; dmg = (this.evo[i] === 2 ? this.dmg[i] : this.merc[i] ? S.dmg * d.dmg : this.clsM(ck, S.cls[ck]).dmg) * this.dmgFx(); if (this.rng() < S.crit) { dmg *= 2; crit = true; } }
       if (d.he) { // shaman heals nearby enemies, then casts
-        for (let j = 0; j < this.hi; j++) if (this.st[j] === ALIVE && this.team[j] === 1 && j !== i) { const dx = this.x[j] - this.x[i], dz = this.z[j] - this.z[i]; if (dx * dx + dz * dz < 16) this.hp[j] = Math.min(this.mhp[j], this.hp[j] + d.he * this.cd[i]); }
+        for (let j = 0; j < this.hi; j++) if (this.st[j] === ALIVE && this.team[j] === 1 && j !== i) { const dx = this.x[j] - this.x[i], dz = this.z[j] - this.z[i]; if (dx * dx + dz * dz < 16) this.hp[j] = Math.min(this.mhp[j], this.hp[j] + d.he * this.cd[i] * (this.poisT[j] > 0 ? 1 - this.healRed[j] : 1)); }   // POISON: less healing
         this.emit('heal', i);
       }
       if (d.r) {
         let kind = d.wpn === 'cannon' ? 1 : d.wpn === 'staff' ? 3 : 0, speed = kind === 1 ? 11 : 18;
-        if (team === 0) { const T = KM.rtech(S); kind = 12; speed = T.speed; dmg *= T.dmg * S.rdmg; }   // friendly ranged: always arrows (bow tier sets speed / damage)
+        if (team === 0) { const T = KM.rtech(S); kind = 12; speed = T.speed; if (this.merc[i]) dmg *= T.dmg; }   // friendly ranged: always arrows (bow tier sets speed / damage)
         let ex = tx, ez = tz;
         if (tg >= 0) { const tof = Math.hypot(tx - this.x[i], tz - this.z[i]) / speed; ex += this.vx[tg] * tof; ez += this.vz[tg] * tof; }
         this.fire(team, this.x[i], this.z[i], tg, ex, ez, dmg, kind, d.s || 0, 0, speed, crit, 1);
@@ -1244,13 +1342,13 @@
         if (P.lane[k]) {   // cannon shell: the first enemy in its lane on the stretch flown this step takes the hit; at full range it fizzles
           if (fmax < 0) fmax = this.maxFoot(1 - P.team[k]);
           const j = this.laneTarget(P.x[k], 1 - P.team[k], zPrev, P.z[k], fmax);
-          if (j >= 0) { P.on[k] = 0; this.src = P.src[k]; this.laneHit(j, P.x[k], P.team[k], P.dmg[k], P.kind[k], P.spl[k], P.slow[k], P.pen[k], P.sz[k]); if (!this.alive) return; }
+          if (j >= 0) { P.on[k] = 0; this.src = P.src[k]; this.elemNow = this.pEl ? this.pEl[k] : null; this.laneHit(j, P.x[k], P.team[k], P.dmg[k], P.kind[k], P.spl[k], P.slow[k], P.pen[k], P.sz[k]); if (!this.alive) return; }
           else if (u >= 1) { P.on[k] = 0; this.emit('tankExpire', P.kind[k], P.x[k], P.ez[k]); }
           continue;
         }
         if (u < 1) continue;
         P.on[k] = 0;
-        const team = P.team[k], tg = P.tgt[k]; this.src = P.src[k];
+        const team = P.team[k], tg = P.tgt[k]; this.src = P.src[k]; this.elemNow = this.pEl ? this.pEl[k] : null;
         if (P.spl[k] > 0) { this.area(1 - team, P.ex[k], P.ez[k], P.spl[k], P.dmg[k], P.slow[k], P.sz[k]); if (team === 1 && this.lDist(P.ex[k], P.ez[k]) < P.spl[k] + 0.8) this.hurtLauncher(P.dmg[k] * 0.7, 'siege'); this.emit('impact', P.kind[k], P.ex[k], P.ez[k], P.spl[k]); }
         else if (tg === -2) { if (this.lDist(P.ex[k], P.ez[k]) < 2.2) this.hurtLauncher(P.dmg[k], 'ranged'); }
         else if (tg >= 0 && this.st[tg] === ALIVE) {
@@ -1293,7 +1391,7 @@
     // ---------- results ----------
     // ---------- one-slot autosave: the meaningful run state (not every body). The army is rebuilt by kind around the tank. ----------
     snapshot() {
-      const L = this.L, keys = ['t', 'front', 'coins', 'coinsTotal', 'kills', 'peakArmy', 'upgrades', 'budget', 'overflow', 'bossN', 'sector', 'seenSector', 'wave', 'wState', 'energy', 'bossesKilled', 'warTokens', 'pboost', 'emergencies', 'posture', 'prod', 'auto',
+      const L = this.L, keys = ['t', 'front', 'coins', 'coinsTotal', 'kills', 'peakArmy', 'upgrades', 'budget', 'overflow', 'bossN', 'sector', 'seenSector', 'wave', 'wState', 'energy', 'bossesKilled', 'warTokens', 'pboost', 'eLv', 'eWave', 'bossLv', 'bossSeen', 'diamondsWon', 'consWon', 'buffs', 'emergencies', 'posture', 'prod', 'auto',
         'dmgBy', 'healed', 'shAbsorbed', 'colCoins', 'colLost', 'killsByKind', 'spawnCounter', 'charge'], o = { v: 1, seed: this.seed };
       for (const k of keys) o[k] = this[k];
       o.stats = this.stats; o.L = { x: L.x, tx: L.tx, hp: L.hp, sh: L.sh, shMax: L.shMax, shDown: L.shDown };
@@ -1302,7 +1400,7 @@
     }
     restore(o) {
       if (!o || o.v !== 1 || !(o.t > 0) || !o.stats || !Array.isArray(o.army)) throw new Error('bad snapshot');
-      this.reset({ seed: (o.seed ^ Math.floor(o.t * 977)) >>> 0 });
+      this.reset(Object.assign({}, this.opts, { seed: (o.seed ^ Math.floor(o.t * 977)) >>> 0 }));   // keep the account loadout (powers, skins, equipment, perks, buffs) across a resume
       const { stats, L, army, towers } = o; delete o.stats; delete o.L; delete o.army; delete o.towers; delete o.v; delete o.seed;
       Object.assign(this.stats, stats); for (const k in o) if (k in this || k === 'auto') this[k] = o[k]; this.charge = Object.assign({ collector: 0, range: 0, melee: 0, elite: 0, giant: 0 }, this.charge);
       if (this.wave && this.wState === 1) this.wave -= 1; this.wState = 0; this.wGap = 2.5; this.choice = null; Object.assign(this.L, L); this.L.z = this.front; this.diff = KM.difficulty(this.t);
@@ -1356,10 +1454,11 @@
     else sim.moveTo(L.tx - Math.sign(near) * 0.2);
     // spending like a sensible player: fill the army first, then alternate class levels and tank upgrades
     if ((sim.botT = (sim.botT || 0) - dt) <= 0) { sim.botT = 0.5; sim.setAuto(true); const N = sim.nKind, F = KM.FRIEND_BY, n = Math.max(1, sim.count[0]), sh = k => N[F[k].id - 32] / n;
-      sim.setProd(sim.t > 30 && sh('collector') < 0.03 ? 'collector' : sim.t > 40 && sh('medic') < 0.03 ? 'mizard' : sim.t > 90 && sh('knightF') < 0.04 ? 'elite' : sim.t > 150 && sh('giantF') < 0.015 ? 'giant' : sh('archerF') < 0.25 ? 'range' : 'melee');
+      sim.setProd(sim.t > 6 && sh('collector') < 0.03 ? 'collector' : sim.t > 40 && sh('medic') < 0.03 ? 'mizard' : sim.t > 90 && sh('knightF') < 0.04 ? 'elite' : sim.t > 150 && sh('giantF') < 0.015 ? 'giant' : sh('archerF') < 0.25 ? 'range' : 'melee');
       const full = sim.pts + sim.prodPts() > sim.stats.cap * 0.92;
       if (full || sim.coins > 3000) { const opts = ['melee', 'range', 'elite', 'mizard', 'giant', 'collector'].filter(k => sim.stats.cls[k] < KM.CLASS_MAX).sort((a, b) => sim.clsCost(a) - sim.clsCost(b));
-        if (sim.ups && sim.ups.tank && sim.coins >= sim.upCost() && (!opts.length || sim.upCost() <= sim.clsCost(opts[0]) || sim.rng() < 0.4)) sim.buy('tank'); else if (opts.length) sim.levelUp(opts[0]); } }
+        const tk = KM.TANK_SKILLS.map(t => t.id).filter(id => sim.tankLv(id) < KM.CLASS_MAX).sort((a, b) => sim.tankCost(a) - sim.tankCost(b) || (sim.rng() - 0.5))[0];
+        if (tk && sim.coins >= sim.tankCost(tk) && (!opts.length || sim.tankCost(tk) <= sim.clsCost(opts[0]) || sim.rng() < 0.4)) sim.tankUp(tk); else if (opts.length) sim.levelUp(opts[0]); } }
     // powers: a sensible player spends Energy — FORTRESS when the tank is in trouble, otherwise whatever is ready
     if (sim.energy >= 100 && (sim.stepN || 0) % 30 === 0) { const hp = L.hp / sim.stats.maxHp, ids = sim.equipped.filter(id => sim.canPower(id)); const id = hp < 0.4 && ids.includes('fortress') ? 'fortress' : ids.filter(x => x !== 'fortress')[0]; if (id) sim.usePower(id); }
     if (sim.choice && sim.rng() < 0.02) sim.takeChoice(Math.floor(sim.rng() * sim.choice.opts.length));

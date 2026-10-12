@@ -28,7 +28,7 @@
     // tank boundary, tank fire and DEFEND formation (world units; never derived from the viewport)
     REAR_DZ: 0,         // protected plane: no enemy footprint may cross z = tank.z + REAR_DZ (behind the tank)
     HULL_HW: 1.1, HULL_HL: 1.4,   // tank hull half-width / half-length: enemies stand at its front and front sides
-    TANK_RANGE: 39,     // cannon lane range: about two-thirds of the tank-to-spawn depth (SPAWN_DZ 58)
+    TANK_RANGE: 40,     // cannon lane range: about two-thirds of the tank-to-spawn depth (SPAWN_DZ 58)
     TANK_LANE: 0.55,    // cannon shell half-width; an enemy is hit when |dx| < TANK_LANE + its footprint
     DEF_REAR_DZ: 3.7,   // DEFEND: the rear band's slots sit this far ahead of the tank centre (hull 1.4 m + room for looters, the cannon and Giant intercepts)
     ROW_MAX: { elite: 15, melee: 20, range: 20, mizard: 20, giant: 10 },   // LOCKED DEFEND row widths (more soldiers add rows inside the class tier)
@@ -42,6 +42,7 @@
     FORM_MARGIN: 0.12,  // DEFEND: spacing between neighbouring rows beyond the two collision radii
     TANK_GUARD_R: 6,    // an enemy whose footprint edge is this close to the tank is a tank intruder
     LEASH: 6,           // DEFEND: a local interceptor never chases further than this from its slot
+    RANGE_RANGE: 20, MIZARD_RANGE: 15,   // owner-approved base reach (world units): Range archers 20, Mizard healing search 15 (tank: TANK_RANGE 40)
     ELITE_RNG: 2.3,     // DEFEND Elite pike reach beyond its own radius: the spear tip sits rng + rad (~2.9 m) ahead of the body
   };
 
@@ -97,6 +98,26 @@
   ];
   KM.ENEMY.forEach((e, i) => { e.id = i; });
   KM.ENEMY_BY = Object.fromEntries(KM.ENEMY.map(e => [e.k, e]));
+  // ENEMY TYPE LEVELS (owner rule): a type gains one level on each distinct wave it actually appears in (max displayed Lv10); its growth
+  // follows the matched soldier-class profile of the owner table (HP, damage, cumulative armour). Past Lv10 every further appearance
+  // compounds +5 % on HP, damage and armour. Bosses: own Lv1..10 track at double the tank's gain (+40 % of base per level), then ×1.2 per encounter.
+  KM.ENEMY_PROFILE = { imp: 'collector', runner: 'collector', grunt: 'melee', shield: 'melee', spearman: 'melee', bomber: 'melee', archer: 'range', shaman: 'mizard', knight: 'elite', brute: 'elite', cannon: 'giant', giant: 'giant' };
+  KM.enemyLvMul = (k, n) => { n = Math.max(1, n || 1); const c = KM.ENEMY_PROFILE[k] || 'melee', L = Math.min(10, n), a = KM.clsStat(c, 1), b = KM.clsStat(c, L), x = Math.pow(1.05, Math.max(0, n - 10));
+    return { lv: L, hp: b.hp / a.hp * x, dmg: b.dmg / a.dmg * x, arm: (b.arm - a.arm) * x }; };
+  KM.bossLvMul = n => { n = Math.max(1, n || 1); const L = Math.min(10, n), f = (1 + 0.4 * (L - 1)) * Math.pow(1.2, Math.max(0, n - 10)); return { lv: L, hp: f, dmg: f, arm: f }; };
+  // boss victory payout: fixed 100,000 run Gold + a fair 50/50 draw of 2 War Tokens OR 1 Diamond (seeded run RNG, fresh draw every boss)
+  KM.BOSS_GOLD = 100000;
+  KM.bossDraw = r => r < 0.5 ? { tokens: 2, diamonds: 0 } : { tokens: 0, diamonds: 1 };
+  KM.CONSUMABLES = {
+    warcry:   { name: 'WAR CRY',      desc: '+25% damage, soldiers + tank, 1 wave' },
+    titan:    { name: 'TITAN GIANT',  desc: 'A 2× Giant joins (no CAP) until it falls' },
+    barrage:  { name: 'TANK BARRAGE', desc: 'Auto-targeting barrage weapon, 1 wave' },
+    fortress: { name: 'IRON FORTRESS', desc: '+25% armour, soldiers + tank, 1 wave' },
+    rapid:    { name: 'RAPID FIRE',   desc: '+25% attack speed, soldiers + tank, 1 wave' },
+  };
+  KM.CONS_IDS = Object.keys(KM.CONSUMABLES);
+  KM.BUFF_ATTRS = ['hp', 'dmg', 'arm'];
+  KM.TANK_BUFF_STATS = { tankDmg: 'CANNON DAMAGE', tankRate: 'FIRE RATE', tankRange: 'CANNON RANGE', maxHp: 'TANK HP' };   // continuous stats only: no fractional shells / missiles
   KM.unlocked = m => KM.ENEMY.filter(e => e.at <= m && !e.boss && !e.mini);
   KM.BOSS_ORDER = ['titan', 'warlord', 'colossus', 'hunter'];
 
@@ -114,18 +135,32 @@
   // Six player classes. Gold pays for deployment and for each class's own level track (no shared price inflation).
   KM.BUILD = '2026.10.07-endless';   // reported with telemetry; bump on every public deploy
   KM.ARMY_CAP = 300;   // army POINTS (never grows); LOCKED cost per soldier is fixed by class (evolution never changes it)
+  // OWNER-APPROVED class table (2026-10-11): Lv1 deploy Gold, CAP points, Lv1 HP / DMG (Mizard: HEAL), per-level gains, Gold price INTO Lv2..Lv10
+  // (Melee / Mizard Lv8 = 11,500 is intentional) and the armour GAINED at each level 1..10 (cumulative).
+  KM.CLASS_SPEC = {
+    collector: { dep: 25,  dDep: 5,  hp: 30,  dHp: 10,  dmg: 2,  dDmg: 1, up: [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500],          arm: [0, 1, 0, 2, 0, 3, 0, 4, 0, 5] },
+    range:     { dep: 75,  dDep: 5,  hp: 60,  dHp: 10,  dmg: 5,  dDmg: 2, up: [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000],        arm: [0, 1, 0, 2, 0, 3, 0, 4, 0, 5] },
+    melee:     { dep: 125, dDep: 5,  hp: 100, dHp: 50,  dmg: 7,  dDmg: 3, up: [1500, 3000, 4500, 6000, 7500, 9000, 11500, 13000, 14500],      arm: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] },
+    mizard:    { dep: 175, dDep: 5,  hp: 60,  dHp: 10,  dmg: 5,  dDmg: 2, up: [1500, 3000, 4500, 6000, 7500, 9000, 11500, 13000, 14500],      arm: [0, 1, 0, 2, 0, 3, 0, 4, 0, 5], heal: 1 },
+    elite:     { dep: 225, dDep: 5,  hp: 300, dHp: 50,  dmg: 14, dDmg: 4, up: [4000, 8000, 12000, 16000, 20000, 24000, 28000, 32000, 36000],  arm: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18] },
+    giant:     { dep: 275, dDep: 25, hp: 500, dHp: 100, dmg: 55, dDmg: 5, up: [5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000, 45000], arm: [0, 10, 12, 14, 16, 18, 20, 22, 24, 26] },
+  };
   KM.PROD = {
     collector: { name: 'LOOTER',    kind: 'collector', cost: 25,  pts: 1 },
     range:     { name: 'RANGE',     kind: 'archerF',   cost: 75,  pts: 1 },
-    melee:     { name: 'MELEE',     kind: 'soldier',   cost: 100, pts: 2 },
-    elite:     { name: 'ELITE',     kind: 'knightF',   cost: 250, pts: 4 },
-    mizard:    { name: 'MIZARD',    kind: 'medic',     cost: 150, pts: 3 },
-    giant:     { name: 'GIANT',     kind: 'giantF',    cost: 500, pts: 5 },
+    melee:     { name: 'MELEE',     kind: 'soldier',   cost: 125, pts: 2 },
+    elite:     { name: 'ELITE',     kind: 'knightF',   cost: 225, pts: 4 },
+    mizard:    { name: 'MIZARD',    kind: 'medic',     cost: 175, pts: 3 },
+    giant:     { name: 'GIANT',     kind: 'giantF',    cost: 275, pts: 5 },
   };
+  KM.deployCost = (key, lv) => { const C = KM.CLASS_SPEC[key]; return C.dep + C.dDep * ((lv || 1) - 1); };
+  // absolute per-unit numbers of a class at level lv: hp, dmg (Mizard: heal per beam), cumulative armour
+  KM.clsStat = (key, lv) => { const C = KM.CLASS_SPEC[key], n = (lv || 1) - 1; let a = 0; for (let k = 0; k <= n; k++) a += C.arm[k]; return { hp: C.hp + C.dHp * n, dmg: C.dmg + C.dDmg * n, arm: a, heal: !!C.heal }; };
   KM.PROD_ORDER = ['collector', 'range', 'melee', 'mizard', 'elite', 'giant'];
   KM.CLASS_OF = Object.fromEntries(KM.PROD_ORDER.map(k => [KM.FRIEND_BY[KM.PROD[k].kind].id, k]));
   KM.CLASS_MAX = 10; KM.EVOLVE_AT = 8;
-  KM.clsUpCost = (key, lv) => Math.round(KM.PROD[key].cost * (25 + 20 * (lv - 1)) / 5) * 5;   // own track per class: level 2 ≈ 25 soldiers' price, level 10 ≈ 185
+  KM.clsUpCost = (key, lv) => KM.CLASS_SPEC[key].up[lv - 1];   // Gold price from level lv to lv + 1 (owner table)
+  KM.buffMul = n => Math.pow(1.05, n || 0);   // boss reward cards: +5 % multiplicative per card taken, permanent
   KM.clsMul = (key, lv) => ({ hp: 1 + 0.13 * (lv - 1), dmg: 1 + 0.09 * (lv - 1), arm: Math.min(4, 0.45 * (lv - 1)) });   // level 10 ≈ 2–2.5× usefulness, armour tightly capped
   // Frame pacing (shared by the game loop and its tests): one display frame of wall time `rawDt` at game `speed` advances the fixed
   // 1/60 s simulation by n steps. Frame time is clamped to 0.1 s and at most 8 steps run per frame; a backlog beyond 0.2 s is
@@ -134,9 +169,10 @@
   KM.frameSteps = (acc, rawDt, speed) => { const F = KM.FRAME; acc += Math.min(F.MAX_DT, rawDt) * speed; let n = 0; while (acc >= F.STEP - 1e-9 && n < F.MAX_STEPS) { acc -= F.STEP; n++; } let dropped = 0; if (acc > F.MAX_DEBT) { dropped = acc; acc = 0; } return { n, acc, dropped }; };
   KM.unitPts = key => KM.PROD[key].pts;   // LOCKED army capacity per soldier (Looter 1 · Range 1 · Melee 2 · Mizard 3 · Elite 4 · Giant 5), the same at every level
   KM.ERA_BY_LV = [0, 0, 1, 2, 2, 3, 4, 4, 5, 6];
+  KM.COIN_BASE = KM.TUNE.coin[0];                     // the existing opening coin multiplier (0.9), frozen: per-type values stay as configured
   KM.COIN_SCALE = 250;                                 // Gold: kills pay in the same scale as class prices
   KM.BOUNTY = 0.6;                                     // share of each kill paid instantly (the tank only slides sideways, so most drops are out of reach)
-  KM.START_BANK = 3000;                                // opening decision: e.g. 30 melee, or 20 melee + 10 range + 2 collectors…
+  KM.START_BANK = 0;                                   // opening decision: e.g. 30 melee, or 20 melee + 10 range + 2 collectors…
   // ---------- Endless War waves (wave = level) ----------
   KM.WAVE_SECS = 33;                                                   // nominal length of a wave on the difficulty clock
   KM.waveBudget = n => (10 + 5.5 * n) * (1 + n / 80);                  // threat points per wave (quality also rises through the difficulty clock)
@@ -147,10 +183,11 @@
     arrowstorm:  { name: 'ARROW STORM', cost: 100, cd: 4, boostTxt: '+1 VOLLEY', desc: 'Arrow rain over the densest enemy formation' },
     elemental:   { name: 'ELEMENTAL WAVE', cost: 100, cd: 4, boostTxt: '+12% DMG', desc: 'Energy wave in front of the army: damage + slow' },
     mercenary:   { name: 'MERCENARY CALL', cost: 120, cd: 6, boostTxt: '+10 MERCS', desc: 'Temporary soldiers beyond the 300 points' },
+    recruits:    { name: 'RECRUITS', cost: 300, cd: 8, boostTxt: '', desc: 'Gold Elites join beyond the 300 CAP (shop perk)', shop: 1 },
     fortress:    { name: 'FORTRESS SURGE', cost: 100, cd: 6, boostTxt: '+12% SHIELD', desc: 'Restore shield, repair the tank, harden the line' },
   };
-  KM.POWER_IDS = Object.keys(KM.POWERS);
-  KM.ENERGY_MAX = 300;
+  KM.POWER_IDS = Object.keys(KM.POWERS).filter(id => !KM.POWERS[id].shop);   // the five core powers (RECRUITS is a shop perk power)
+  KM.ENERGY_MAX = 1500;
   KM.tankUpCost = n => Math.round(400 * Math.pow(1.12, n) / 5) * 5;   // the tank is the endless track
 
   // ---------- Encounter sectors: each emphasises a different tactical problem (soft counters, never hard locks) ----------
@@ -215,7 +252,7 @@
     // COMMAND TANK
     { id: 'tgun',   cat: 'tank', title: 'TANK CANNON', val: '+30% DMG', icon: 'tank', color: 'red', w: 6, max: 8, apply: s => { s.tankDmg *= 1.3; } },
     { id: 'trof',   cat: 'tank', title: 'TANK FIRE RATE', val: '+18%', icon: 'tank', color: 'red', w: 5, max: 6, apply: s => { s.tankRate *= 1.18; s.tankBarrels = Math.min(3, 1 + Math.floor(((s.lv.trof || 0) + 1) / 2)); } },
-    { id: 'trng',   cat: 'tank', title: 'TARGETING SYSTEM', val: '+12% RANGE', icon: 'tank', color: 'blue', w: 3, max: 4, at: 1.5, apply: s => { s.tankRange *= 1.12; } },
+    { id: 'trng',   cat: 'tank', title: 'TARGETING SYSTEM', val: '+10% RANGE', icon: 'tank', color: 'blue', w: 3, max: 4, at: 1.5, apply: s => { s.tankRange += 0.1 * KM.baseStats().tankRange; } },
     { id: 'tspl',   cat: 'tank', title: 'HE SHELLS', val: 'SPLASH', icon: 'tank', color: 'gold', w: 3, max: 4, needLv: ['tgun', 2], apply: s => { s.tankSplash = (s.tankSplash || 1.2) * (s.tankSplash ? 1.2 : 1); } },
     { id: 'tmis',   cat: 'tank', title: 'MISSILE POD', val: '+2 MISSILES', icon: 'tank', color: 'gold', w: 3, max: 4, needEra: 5, apply: s => { s.missiles += 2; } },
     { id: 'tmulti', cat: 'tank', title: 'MULTISHOT', val: '+1 SHELL', icon: 'tank', color: 'blue', w: 3.5, max: 4, at: 1.5, apply: s => { s.tankMulti = (s.tankMulti || 1) + 1; } },
@@ -230,6 +267,31 @@
     // COLLECTION
     { id: 'magnet', cat: 'collect', title: 'COIN MAGNET', val: '+20%', icon: 'magnet', color: 'gold',  w: 5, max: 8, apply: s => { s.magnet *= 1.2; } },
   ];
+  // COMMAND TANK SKILL TRACKS (owner rule): every skill is its own Lv1..10 plus-button track — no random cards. Percentage skills gain +20 % of
+  // their BASE value per level (additive, Lv10 = 280 %); count skills +1 per level; TANK HP +100 per level; TARGETING SYSTEM keeps its approved
+  // +10 % of base range per level. Gold price into Lv2..Lv10 follows the Giant curve (5,000 … 45,000), each track priced on its own.
+  KM.TANK_SKILLS = [
+    { id: 'tgun',    title: 'CANNON DAMAGE',   kind: 'pct',   stat: 'tankDmg' },
+    { id: 'trof',    title: 'FIRE RATE',       kind: 'pct',   stat: 'tankRate' },
+    { id: 'trng',    title: 'TARGETING SYSTEM', kind: 'pct',  stat: 'tankRange', step: 0.1 },
+    { id: 'plating', title: 'TANK HP',         kind: 'hp',    stat: 'maxHp', step: 100 },
+    { id: 'tmulti',  title: 'MULTISHOT',       kind: 'count', stat: 'tankMulti', base: 1 },
+    { id: 'tpen',    title: 'PENETRATION',     kind: 'count', stat: 'tankPen', base: 0 },
+    { id: 'tmis',    title: 'MISSILE POD',     kind: 'count', stat: 'missiles', base: 0 },
+    { id: 'tspl',    title: 'HE SHELLS',       kind: 'pct',   stat: 'tankSplash', zero: 1.2 },   // Lv1 = no splash; Lv2 opens the existing 1.2 m blast, +20 % of it per further level
+    { id: 'shield',  title: 'FORCE FIELD',     kind: 'count', stat: 'shield', base: 0 },
+    { id: 'shrec',   title: 'SHIELD RECHARGE', kind: 'pct',   stat: 'shRecharge' },
+    { id: 'shrad',   title: 'SHIELD RADIUS',   kind: 'pct',   stat: 'shRadius' },
+    { id: 'magnet',  title: 'COIN MAGNET',     kind: 'pct',   stat: 'magnet' },
+    { id: 'rate',    title: 'DEPLOY SPEED',    kind: 'pct',   stat: 'rate' },
+  ];
+  KM.TANK_SKILL_BY = Object.fromEntries(KM.TANK_SKILLS.map(t => [t.id, t]));
+  KM.TANK_UP = [5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000, 45000];
+  KM.tankSkillCost = lv => lv >= KM.CLASS_MAX ? Infinity : KM.TANK_UP[lv - 1];
+  // the value a skill adds at level lv on top of the run's base stats
+  KM.tankSkillAdd = (t, lv, base) => { const n = Math.max(0, lv - 1);
+    if (t.kind === 'count') return n; if (t.kind === 'hp') return t.step * n;
+    if (t.zero) return n ? t.zero * (1 + 0.2 * (n - 1)) : 0; return base * (t.step || 0.2) * n; };
   KM.UPG_BY = Object.fromEntries(KM.UPGRADES.map(u => [u.id, u]));
 
 
@@ -288,7 +350,7 @@
     { id: 'skin_royal',     cls: 'tank', name: 'Royal Blue', color: '#2f6dff', trim: '#f2c14e', bonus: {}, desc: 'Standard command vehicle', tokens: 0, diamonds: 0 },
     { id: 'skin_emerald',   cls: 'tank', name: 'Emerald', color: '#18a86b', trim: '#f2c14e', bonus: { tankRof: 0.05 }, desc: '+5% tank fire rate', tokens: 8, diamonds: 40 },
     { id: 'skin_ember',     cls: 'tank', name: 'Ember', color: '#e0632a', trim: '#2b2b33', bonus: { tankDmg: 0.05 }, desc: '+5% tank damage', tokens: 10, diamonds: 50 },
-    { id: 'skin_midnight',  cls: 'tank', name: 'Midnight', color: '#3b2f86', trim: '#9ff2ff', bonus: { tankRange: 0.05 }, desc: '+5% tank range', tokens: 12, diamonds: 60 },
+    { id: 'skin_midnight',  cls: 'tank', name: 'Midnight', color: '#3b2f86', trim: '#9ff2ff', bonus: { tankRange: 0.10 }, desc: '+10% tank range', tokens: 12, diamonds: 60 },
     { id: 'skin_gold',      cls: 'tank', name: 'Gilded', color: '#e8b52e', trim: '#fff4c2', bonus: { shield: 0.08 }, desc: '+8% force field', tokens: 18, diamonds: 90 },
   ];
   KM.SKIN_BY = Object.fromEntries(KM.SKINS.map(k => [k.id, k]));
@@ -310,8 +372,81 @@
 
   KM.applySkins = function (S, equip) {   // small bounded specialisations from equipped Armory skins
     const b = {}; for (const c in equip || {}) { const sk = KM.SKIN_BY[equip[c]]; if (sk) b[c] = sk.bonus; } S.skin = b;
-    const t = b.tank || {}; S.tankRate *= 1 + (t.tankRof || 0); S.tankDmg *= 1 + (t.tankDmg || 0); S.tankRange *= 1 + (t.tankRange || 0); S.shieldMul = 1 + (t.shield || 0);
+    const t = b.tank || {}; S.tankRate *= 1 + (t.tankRof || 0); S.tankDmg *= 1 + (t.tankDmg || 0); S.tankRange += KM.baseStats().tankRange * (t.tankRange || 0); S.shieldMul = 1 + (t.shield || 0);
     return S;
+  };
+  // ================= PHASE C: permanent shop perks, class equipment, seasonal skin sets (owner directive 2026-10-11) =================
+  // Prices: perks / buffs tier 1·2·3 = 1·3·5 Diamonds OR 3·9·15 War Tokens; equipment tier 1–4 = 5·10·15·20 D OR 15·30·45·60 T;
+  // skins T1–T4 = 10·20·30·40 D OR 30·60·90·120 T; consumables 1 D OR 3 T (strict 3× token-to-diamond). No real-money checkout is active.
+  KM.PERKS = {
+    recruits: { name: 'RECRUITS', desc: t => `Tank power: summon ${25 * t} Gold Elites (beyond CAP) for ${200 + 100 * t} energy`, max: 3 },
+    magnet:   { name: 'MAGNET',   desc: t => `+${10 * t}% coin pickup radius (passive)`, max: 3 },
+    plating:  { name: 'PLATING',  desc: t => `+${10 * t} tank HP (passive)`, max: 3 },
+  };
+  KM.PERK_IDS = Object.keys(KM.PERKS);
+  KM.perkCost = tier => ({ diamonds: [1, 3, 5][tier - 1], tokens: [3, 9, 15][tier - 1] });   // price of buying tier `tier`
+  KM.RECRUITS = t => ({ n: [25, 50, 75][t - 1], energy: [300, 400, 500][t - 1] });
+  KM.MERC_TIERS = [{ energy: 500, n: 50 }, { energy: 1000, n: 75 }, { energy: 1500, n: 100 }];   // MERCENARY CALL by tier (merc counts per tier: pending owner approval)
+  KM.CONS_PRICE = { diamonds: 1, tokens: 3 };
+  KM.DIAMOND_PACKS = [{ id: 'dp1', usd: 0.99, diamonds: 5, bonus: 0 }, { id: 'dp2', usd: 4.99, diamonds: 40, bonus: 15 }, { id: 'dp3', usd: 9.99, diamonds: 100, bonus: 20 }];   // storefront preview only
+  // CLASS EQUIPMENT: one loadout per class (every soldier of the class uses it); four fixed tiers per slot, bought directly, owned forever.
+  // Bonus per tier (DEFAULT pending the owner's economy sign-off): percentage slots +5 / +10 / +15 / +20 %; armour slots +2 / +4 / +6 / +8 armour.
+  KM.EQUIP = {
+    collector: [{ id: 'bag', name: 'Bag', stat: 'carry' }, { id: 'dagger', name: 'Dagger', stat: 'dmg' }, { id: 'boots', name: 'Boots', stat: 'speed' }],
+    range:     [{ id: 'bow', name: 'Bow', stat: 'dmg' }, { id: 'quiver', name: 'Quiver', stat: 'rof' }, { id: 'armguard', name: 'Arm Guard', stat: 'arm' }],
+    melee:     [{ id: 'sword', name: 'Sword', stat: 'dmg' }, { id: 'shield', name: 'Shield', stat: 'arm' }, { id: 'bodyarmor', name: 'Body Armor', stat: 'hp' }],
+    mizard:    [{ id: 'staff', name: 'Staff', stat: 'dmg' }, { id: 'spellbook', name: 'Spellbook', stat: 'rof' }, { id: 'crystal', name: 'Focus Crystal', stat: 'healR' }],
+    elite:     [{ id: 'pike', name: 'Pike', stat: 'dmg' }, { id: 'shield', name: 'Shield', stat: 'arm' }, { id: 'helmet', name: 'Helmet', stat: 'steady' }, { id: 'chest', name: 'Chest Armor', stat: 'hp' }],
+    giant:     [{ id: 'hammer', name: 'Hammer', stat: 'dmg' }, { id: 'bodyarmor', name: 'Body Armor', stat: 'hp' }, { id: 'gauntlets', name: 'Gauntlets', stat: 'steady' }],
+  };
+  KM.EQUIP_TIERS = ['BASIC', 'INTERMEDIATE', 'ADVANCED', 'PREMIUM'];
+  KM.equipCost = tier => ({ diamonds: 5 * tier, tokens: 15 * tier });
+  KM.equipBonus = (stat, tier) => !tier ? 0 : stat === 'arm' ? 2 * tier : 0.05 * tier;
+  KM.STAT_TXT = { dmg: 'damage', hp: 'HP', arm: 'armour', rof: 'attack speed', speed: 'move / collect speed', carry: 'carry capacity', healR: 'heal area', steady: 'knockback resist' };
+  KM.equipTxt = (cls, slot, tier) => { const st = slot.stat, b = KM.equipBonus(st, tier); return (st === 'arm' ? '+' + b : '+' + Math.round(b * 100) + '%') + ' ' + (cls === 'mizard' && st === 'dmg' ? 'healing' : KM.STAT_TXT[st]); };
+  // SEASON 1 SKIN SETS: one purchase unlocks the theme for all six classes AND the tank; equip globally or per class; one skin per unit.
+  // Perks are identical on every class (Mizard: "damage" = its healing output). Stat perks +10 % (T4: +20 % each of HP, armour, damage,
+  // attack speed). Elemental perks (fire, ice, poison, radiant, shadow, lightning) have NO approved magnitude yet: shown, no effect.
+  KM.SEASON = [
+    { id: 's1_berserker', name: 'Berserker',      tier: 1, color: '#c8323a', perks: { dmg: 0.1 } },
+    { id: 's1_swift',     name: 'Swiftstrike',    tier: 1, color: '#2fb8ff', perks: { rof: 0.1 } },
+    { id: 's1_ember',     name: 'Ember',          tier: 1, color: '#ff7a2a', perks: {}, elem: 'fire' },
+    { id: 's1_vanguard',  name: 'Iron Vanguard',  tier: 2, color: '#8f9bb0', perks: { arm: 0.1, dmg: 0.1 } },
+    { id: 's1_gstorm',    name: 'Guardian Storm', tier: 2, color: '#4f6dff', perks: { hp: 0.1, rof: 0.1 } },
+    { id: 's1_frost',     name: 'Frost Guard',    tier: 2, color: '#9fe8ff', perks: { arm: 0.1 }, elem: 'ice' },
+    { id: 's1_inferno',   name: 'Inferno Legion', tier: 3, color: '#ff3a1a', perks: { hp: 0.1, dmg: 0.1 }, elem: 'fire' },
+    { id: 's1_venom',     name: 'Venom Ward',     tier: 3, color: '#5fd84a', perks: { arm: 0.1, rof: 0.1 }, elem: 'poison' },
+    { id: 's1_glacier',   name: 'Glacier Crown',  tier: 3, color: '#cfefff', perks: { hp: 0.1, dmg: 0.1 }, elem: 'ice' },
+    { id: 's1_celestial', name: 'Celestial War',  tier: 4, color: '#fff2a8', perks: { hp: 0.2, arm: 0.2, dmg: 0.2, rof: 0.2 }, elem: 'radiant' },
+    { id: 's1_shadow',    name: 'Shadow Dominion', tier: 4, color: '#3a2a5a', perks: { hp: 0.2, arm: 0.2, dmg: 0.2, rof: 0.2 }, elem: 'shadow' },
+    { id: 's1_titan',     name: 'Titan Emperor',  tier: 4, color: '#e8b52e', perks: { hp: 0.2, arm: 0.2, dmg: 0.2, rof: 0.2 }, elem: 'lightning' },
+  ];
+  KM.SEASON_BY = Object.fromEntries(KM.SEASON.map(k => [k.id, k]));
+  KM.skinCost = tier => ({ diamonds: 10 * tier, tokens: 30 * tier });
+  // ELEMENTAL SKIN POWERS (owner-approved 2026-10-12). t = values for skin tiers 1–3, t4 = tier 4. Fractions are of the triggering hit's damage
+  // AFTER its normal armour / shield mitigation, so burn, poison and chain damage never bypass protection and armour is never applied twice.
+  // Same element on a target: the timer refreshes, the stronger magnitude is kept (a weaker hit never overwrites a stronger effect); no stacking.
+  // Lightning: the nearest distinct enemies within 4 m (distance, then unit index as a stable tie-break); chain hits never proc again.
+  // Radiant and Shadow (Celestial War, Shadow Dominion) are not approved yet: listed, no effect.
+  KM.ELEMENTS = {
+    fire:      { code: 1, t: { dot: 0.10 }, t4: { dot: 0.20 }, dur: 3, txt: e => `${e.dot * 100}% burn over 3 s` },
+    ice:       { code: 2, t: { slow: 0.20 }, t4: { slow: 0.40 }, dur: 3, txt: e => `${e.slow * 100}% slower move + attack for 3 s` },
+    poison:    { code: 3, t: { dot: 0.10, heal: 0.20 }, t4: { dot: 0.20, heal: 0.40 }, dur: 5, txt: e => `${e.dot * 100}% poison over 5 s · ${e.heal * 100}% less healing` },
+    lightning: { code: 4, t: { n: 2, frac: 0.10 }, t4: { n: 4, frac: 0.20 }, R: 4, txt: e => `chains to ${e.n} nearby enemies for ${e.frac * 100}% each` },
+  };
+  KM.ELEM_BY_CODE = Object.fromEntries(Object.entries(KM.ELEMENTS).map(([k, v]) => [v.code, k]));
+  KM.elemOf = sk => { if (!sk || !sk.elem || !KM.ELEMENTS[sk.elem]) return null; const E = KM.ELEMENTS[sk.elem]; return Object.assign({ el: sk.elem, code: E.code }, sk.tier >= 4 ? E.t4 : E.t); };
+  KM.ELEM_TXT = { fire: 'fire', ice: 'ice', poison: 'poison', radiant: 'radiant', shadow: 'shadow', lightning: 'lightning' };
+  KM.perkTxt = sk => { const e = KM.elemOf(sk); return [...Object.entries(sk.perks).map(([k, v]) => '+' + Math.round(v * 100) + '% ' + KM.STAT_TXT[k]), ...(sk.elem ? [e ? sk.elem.toUpperCase() + ': ' + KM.ELEMENTS[sk.elem].txt(e) : KM.ELEM_TXT[sk.elem] + ' (effect pending approval)'] : [])].join(' · '); };
+  // the per-class modifiers a run gets from the saved loadout: { cls: { hp, dmg, arm(flat), armPct, rof, speed, carry, healR, steady }, tank: {...}, perks }
+  KM.loadoutMods = function (L) {
+    L = L || {}; const out = { cls: {}, tank: { hp: 0, dmg: 0, rof: 0, armPct: 0 }, perks: Object.assign({}, L.perks) };
+    for (const c of KM.PROD_ORDER) { const m = out.cls[c] = { hp: 0, dmg: 0, arm: 0, armPct: 0, rof: 0, speed: 0, carry: 0, healR: 0, steady: 0 };
+      for (const sl of KM.EQUIP[c]) { const t = ((L.equip || {})[c] || {})[sl.id] || 0; if (t) m[sl.stat] += KM.equipBonus(sl.stat, t); }
+      const sk = KM.SEASON_BY[(L.skin || {})[c]]; if (sk) for (const [k, v] of Object.entries(sk.perks)) { if (k === 'arm') m.armPct += v; else m[k] += v; } }
+    out.elem = {}; for (const c of [...KM.PROD_ORDER, 'tank']) { const e = KM.elemOf(KM.SEASON_BY[(L.skin || {})[c]]); if (e) out.elem[c] = e; }   // one skin per unit = at most one element
+    const tk = KM.SEASON_BY[(L.skin || {}).tank]; if (tk) for (const [k, v] of Object.entries(tk.perks)) { if (k === 'arm') out.tank.armPct += v; else out.tank[k] += v; }
+    return out;
   };
   // ---------- Save data (versioned, validated, crash-safe double write) ----------
   const KEY = 'kmob.save.v1';
@@ -323,6 +458,8 @@
     totals: { runs: 0, kills: 0, time: 0, coins: 0 },
     settings: { sound: 1, music: 1, haptics: 1, competitive: 0, speed: 1 },
     ach: {},
+    buffs: { cls: {}, tank: {} }, cons: {}, paid: [],
+    perks: {}, gear: { owned: {}, equip: {} }, season: { owned: {}, equip: {} }, mercTier: 1,   // Phase C: perk tiers · class equipment (owned tiers, equipped tier per slot) · seasonal skin sets · chosen Mercenary tier   // permanent boss-card buffs (counts of +5 %), consumable inventory, banked boss-payout ids (exactly once)
   });
   const num = (v, d, max) => (typeof v === 'number' && isFinite(v) && v >= 0) ? Math.min(v, max || 1e15) : d;
   KM.validateSave = function (raw) {
@@ -343,6 +480,18 @@
     for (const c of KM.SKIN_CLASSES) { const id = eq[c]; if (id && d.skins.owned[id] && KM.SKIN_BY[id].cls === c) d.skins.equip[c] = id; }
     for (const k of Object.keys(d.settings)) { const v = (raw.settings || {})[k]; if (k === 'speed' ? [1, 1.5, 2].includes(v) : v === 0 || v === 1) d.settings[k] = v; }   // game speed is remembered between runs
     if (raw.ach && typeof raw.ach === 'object') for (const k of Object.keys(raw.ach)) d.ach[k] = num(raw.ach[k], 0);
+    const bf = raw.buffs || {};
+    for (const c of KM.PROD_ORDER) { const o = (bf.cls || {})[c]; if (!o) continue; for (const a of KM.BUFF_ATTRS) { const n = Math.floor(num(o[a], 0, 1e6)); if (n) (d.buffs.cls[c] = d.buffs.cls[c] || {})[a] = n; } }
+    for (const k of Object.keys(KM.TANK_BUFF_STATS)) { const n = Math.floor(num((bf.tank || {})[k], 0, 1e6)); if (n) d.buffs.tank[k] = n; }
+    for (const id of KM.CONS_IDS) { const n = Math.floor(num((raw.cons || {})[id], 0, 1e6)); if (n) d.cons[id] = n; }
+    if (Array.isArray(raw.paid)) d.paid = raw.paid.filter(x => typeof x === 'string').slice(-200);
+    for (const id of KM.PERK_IDS) { const t = Math.floor(num((raw.perks || {})[id], 0, 3)); if (t) d.perks[id] = t; }
+    const ge = raw.gear || {};
+    for (const c of KM.PROD_ORDER) for (const sl of KM.EQUIP[c]) { const key = c + '.' + sl.id, o = (ge.owned || {})[key]; if (Array.isArray(o)) { const t = [...new Set(o.filter(x => [1, 2, 3, 4].includes(x)))].sort(); if (t.length) d.gear.owned[key] = t; }
+      const eq = ((ge.equip || {})[c] || {})[sl.id]; if (eq && d.gear.owned[key] && d.gear.owned[key].includes(eq)) (d.gear.equip[c] = d.gear.equip[c] || {})[sl.id] = eq; }
+    const se = raw.season || {}; for (const id of Object.keys(se.owned || {})) if (KM.SEASON_BY[id]) d.season.owned[id] = 1;
+    for (const c of [...KM.PROD_ORDER, 'tank']) { const id = (se.equip || {})[c]; if (id && d.season.owned[id]) d.season.equip[c] = id; }
+    if ([1, 2, 3].includes(raw.mercTier)) d.mercTier = raw.mercTier;
     return d;
   };
   KM.loadSave = function (store) {

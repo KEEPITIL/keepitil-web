@@ -197,6 +197,8 @@
         col.setHex(team ? ENEMY_COL[def.k] : this.classTint[def.id] != null ? this.classTint[def.id] : def.col ? 0x3f7cff : def.med ? 0x3a66f0 : def.big ? 0x2a5fd8 : blue.getHex());   // the whole army reads BLUE; Armory skins tint their class
         if (team === 1 && sim.era[i]) col.multiply(col2.setHex(ERA_TINT[sim.era[i]]));
         if (team === 0 && def.k === 'knightF') col.lerp(col2.setHex(0x6aa0ff), 0.35);
+        if (team === 0 && sim.evo[i] === 3) col.setHex(0xe8b52e);   // RECRUITS: Gold Elites
+        if (team === 1 && sim.burnT) { if (sim.burnT[i] > 0) col.lerp(col2.setHex(0xffd23a), 0.5 + 0.2 * Math.sin(this.time * 18 + i)); if (sim.poisT[i] > 0) col.lerp(col2.setHex(0x5fd84a), 0.45); if (sim.iceT[i] > 0) col.lerp(col2.setHex(0x9fe8ff), 0.55); }   // elemental status reads on the body
         if (sim.slow[i] > 0) col.lerp(col2.setHex(0x9fe8ff), 0.45);
         const f = Math.max(0, sim.flash[i]); if (f > 0) col.lerp(col2.setRGB(1, 1, 1), f * 0.7);
         const dd = dist[i], lodL = dd < LB.near ? 0 : dd < LB.mid ? 1 : 2;
@@ -764,6 +766,7 @@
         case 'lhit': this.burst(sim.L.x, 1, sim.L.z, 10, 0xff4a3a, 4, 0.5, 0.35); this.shake = Math.max(this.shake, 0.12); break;
         case 'upgrade': this.cheerT = 0.85; this.burst(sim.L.x, 1, sim.L.z, 60, 0xffd23a, 6, 0.6, 0.7, 5); this.ring(sim.L.x, sim.L.z, 0xffd23a, 6, 0.7); this.ring(sim.L.x, sim.L.z, 0x7cc4ff, 4, 0.5); break;
         case 'heal': this.burst(sim.x[a], 1, sim.z[a], 6, 0x8aff7a, 2, 0.5, 0.6, -1); break;   // enemy shaman heal
+        case 'chain': if (this.fxBudget > 0 && (!this.Q || this.Q.fx >= 0.5 || (this.chainN = (this.chainN || 0) + 1) % 3 === 0)) { this.fxBudget--;   /* Low preset: one arc in three */ this.tracer(sim.x[a], sim.z[a], sim.x[b], sim.z[b], 0xd8f4ff); } break;   // LIGHTNING: arc to each chained enemy
         case 'beam': this.beam(a, b); this.glowPulse[a] = 1; if (this.fxBudget > 0) { this.fxBudget--; this.burst(sim.x[b], 0.9 * sim.sc[b], sim.z[b], 4, 0x8fd0ff, 2, 0.42, 0.5, -1); } break;   // MIZARD: blue beam + sparkle on the patient, crystal flares
         case 'healBurst': {   // density-aware: many Mizards pulsing together read as a few clear rings, not a stack (healing itself is unchanged)
           const H = this.hbFx || (this.hbFx = []), now = this.clock || 0; let near = 0; for (const h of H) if (now - h.t < 0.45 && Math.abs(h.x - a) < c && Math.abs(h.z - b) < c) near++;

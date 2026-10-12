@@ -64,6 +64,12 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}   /* the p
 .stats div:last-child{border:0}
 .stats svg{width:22px;height:22px;flex:none}
 .stats span{flex:1}.stats b{font-family:var(--disp);font-weight:400;font-size:18px}
+#shop .tabs{flex-wrap:wrap}#shop .tabs button{min-width:56px}
+.item .art{display:block;width:56px;height:56px;margin:0 auto 4px}.item .art svg{width:100%;height:100%}
+.item .bt{display:flex;gap:4px;flex-wrap:wrap}.item .bt button{flex:1;min-width:64px;min-height:34px;border-radius:8px;border:1px solid var(--line);background:#1b2a4a;color:#fff;font-weight:900;font-size:11px;cursor:pointer}.item .bt button:disabled{opacity:.4}.item .bt button.on{border-color:#7dff9a;color:#7dff9a}
+.item .own{color:#7dff9a;font-size:11px}.item .tierRow{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:4px}.item .tierRow button{min-width:0;min-height:34px;padding:4px 2px;font-size:10px;line-height:1.15;border-radius:8px;border:1px solid var(--line);background:#1b2a4a;color:#fff;font-weight:800;cursor:pointer;touch-action:manipulation}.item .tierRow button.on{border-color:#7dff9a;color:#7dff9a}.item .tierRow button:disabled{opacity:.4}
+.prev7{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:4px 0}.prev7 span{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;background:#0d1730}.prev7 img{width:100%;height:100%;object-fit:cover}.prev7 span::after{content:"";position:absolute;inset:0;background:var(--c);mix-blend-mode:color;opacity:.75}.prev7 svg{width:100%;height:100%}
+.item.span2{grid-column:1/-1}.item .sub{font-size:10px;opacity:.7}
 .shopgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;max-height:52vh;overflow:auto}
 .item{border:1px solid var(--line);border-radius:12px;padding:10px;background:rgba(255,255,255,.04);cursor:pointer;font-weight:800;font-size:13px}
 .item .nm{font-family:var(--disp);font-weight:400;font-size:16px}
@@ -120,6 +126,13 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}   /* the p
 #postureBtn.def{border-color:#8fc4ff;box-shadow:0 3px 0 rgba(0,0,0,.35),0 0 14px rgba(90,160,255,.6),inset 0 0 12px rgba(90,160,255,.2)}
 #allTip{position:fixed;z-index:9;pointer-events:none;font-family:var(--disp);font-size:22px;color:#fff;text-shadow:0 2px 0 #000,0 0 12px rgba(255,190,50,.8);transition:opacity .25s;opacity:0}#allTip.on{opacity:1}
 /* power selection: the three equipped powers open beside POWER; using one closes it */
+#tankUps{position:fixed;z-index:8;display:grid;grid-template-columns:1fr;gap:4px;max-height:calc(100vh - 24px);overflow-y:auto;overscroll-behavior:contain;pointer-events:auto;padding:6px;border-radius:12px;background:rgba(9,15,30,.95);border:1.5px solid var(--cardB);width:248px}
+#tankUps .tu{display:flex;align-items:center;gap:6px;min-height:38px;padding:2px 4px 2px 8px;border-radius:9px;background:rgba(255,255,255,.04);color:#fff}#tankUps .tu b{font-family:var(--disp);font-weight:400;font-size:12px;flex:1;line-height:1.1}#tankUps .tu b em{display:block;font-style:normal;font-family:inherit;font-size:10px;color:#9fb4d8}
+#tankUps .tu button{min-width:62px;height:32px;border-radius:8px;border:1.5px solid #ffd84a;background:#1b2a4a;color:#ffd84a;font-weight:900;font-size:11px;cursor:pointer;touch-action:manipulation}#tankUps .tu button:disabled{opacity:.4;border-color:var(--cardB);color:#9fb4d8}#tankUps .tu.max button{border-color:#7dff9a;color:#7dff9a}
+#consPop{position:fixed;z-index:8;display:flex;flex-direction:column;gap:4px;pointer-events:auto;padding:6px;border-radius:12px;background:rgba(9,15,30,.95);border:1.5px solid var(--cardB);width:240px}
+#consPop .cs{display:flex;align-items:center;gap:7px;min-height:44px;padding:2px 4px 2px 6px;border-radius:9px;background:rgba(255,255,255,.04);color:#fff}#consPop .cs svg{width:32px;height:32px;flex:none}#consPop .cs b{font-family:var(--disp);font-weight:400;font-size:12px;flex:1;line-height:1.1}#consPop .cs b em{display:block;font-style:normal;font-family:inherit;font-size:9.5px;color:#9fb4d8}
+#consPop .cs button{min-width:54px;height:34px;border-radius:8px;border:1.5px solid #c9a6ff;background:#2a1a3a;color:#e8d0ff;font-weight:900;font-size:11px;cursor:pointer;touch-action:manipulation}#consPop .cs button:disabled{opacity:.4}#consPop .cs.on button{border-color:#7dff9a;color:#7dff9a}
+#consBtn small{position:absolute;top:-7px;left:-6px;padding:1px 5px;border-radius:7px;background:#1b2a4a;border:1px solid var(--cardB);font-family:var(--disp);font-size:10px;color:#e8d0ff}#consBtn small:empty{display:none}
 #powers{position:fixed;z-index:8;display:flex;flex-direction:column;gap:5px;pointer-events:auto}
 #powers .pw{display:flex;align-items:center;gap:7px;min-width:150px;height:44px;padding:0 10px 0 6px;border-radius:11px;background:rgba(9,15,30,.95);border:1.5px solid var(--cardB);color:#fff;cursor:pointer}#powers .pw svg{width:28px;height:28px;flex:none}
 #powers .pw b{font-family:var(--disp);font-weight:400;font-size:13px;flex:1}#powers .pw small{font-size:10px;font-weight:900;color:#d8b8ff}#powers .pw.ready{border-color:#c9a6ff;background:linear-gradient(90deg,rgba(90,50,200,.95),rgba(9,15,30,.95))}#powers .pw.cd{opacity:.5}
@@ -188,19 +201,22 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}   /* the p
 <canvas id="c"></canvas>
 <div id="vig"></div>
 <div id="hud" class="hidden">
-  <div id="hL"><div class="pill"><img src="assets/ui/i_clock.png?v=8c8b16ccf2a7" alt="Time"><b id="hTime">0:00</b></div><div class="pill"><img src="assets/ui/i_army.png?v=8c8b16ccf2a7" alt="Army"><b id="hArmy">0</b></div><div class="pill"><img src="assets/ui/i_skull.png?v=8c8b16ccf2a7" alt="Wave"><b id="hWave">1</b></div></div>
-  <div id="hC" class="pill"><span class="g"><img src="assets/ui/i_gold.png?v=8c8b16ccf2a7" alt="Gold"><b id="hCoins">0</b></span><i class="sep"></i><span class="d"><img src="assets/ui/i_diamond.png?v=8c8b16ccf2a7" alt="Diamonds"><b id="hDia">0</b></span></div>
-  <div id="hR"><div id="pauseBtn" class="pill" role="button" aria-label="Settings"><img src="assets/ui/i_gear.png?v=8c8b16ccf2a7" alt=""><b class="sm">SETTINGS</b></div><div id="speedBtn" class="pill" role="button" aria-label="Game speed"><img src="assets/ui/i_speed.png?v=8c8b16ccf2a7" alt=""><b id="speedTxt">1</b></div><div id="autoBtn" class="pill" role="button" aria-label="Control mode"><img src="assets/ui/i_auto.png?v=8c8b16ccf2a7" alt=""><b id="autoTxt">AUTO</b></div></div>
+  <div id="hL"><div class="pill"><img src="assets/ui/i_clock.png?v=e285086b0c95" alt="Time"><b id="hTime">0:00</b></div><div class="pill"><img src="assets/ui/i_army.png?v=e285086b0c95" alt="Army"><b id="hArmy">0</b></div><div class="pill"><img src="assets/ui/i_skull.png?v=e285086b0c95" alt="Wave"><b id="hWave">1</b></div></div>
+  <div id="hC" class="pill"><span class="g"><img src="assets/ui/i_gold.png?v=e285086b0c95" alt="Gold"><b id="hCoins">0</b></span><i class="sep"></i><span class="d"><img src="assets/ui/i_diamond.png?v=e285086b0c95" alt="Diamonds"><b id="hDia">0</b></span></div>
+  <div id="hR"><div id="pauseBtn" class="pill" role="button" aria-label="Settings"><img src="assets/ui/i_gear.png?v=e285086b0c95" alt=""><b class="sm">SETTINGS</b></div><div id="speedBtn" class="pill" role="button" aria-label="Game speed"><img src="assets/ui/i_speed.png?v=e285086b0c95" alt=""><b id="speedTxt">1</b></div><div id="autoBtn" class="pill" role="button" aria-label="Control mode"><img src="assets/ui/i_auto.png?v=e285086b0c95" alt=""><b id="autoTxt">AUTO</b></div></div>
 </div>
 <div id="drawer" class="hidden" aria-label="Soldier classes"><div id="classes"></div><div id="drawerTab" role="button" aria-label="Show or hide the soldier panel">‹</div></div>
 <div id="clsPop" class="hidden"></div>
 <div id="tankMark" class="hidden" aria-hidden="true"><i></i></div>
 <div id="rightCol" class="hidden">
-  <div id="powerBtn" class="rb" role="button" aria-label="Power"><img src="assets/ui/i_power.png?v=8c8b16ccf2a7" alt=""><b>POWER</b><i class="en"><u id="enFill"></u></i></div>
-  <div id="tankBtn" class="rb" role="button" aria-label="Tank upgrade"><img src="assets/ui/i_upgrade.png?v=8c8b16ccf2a7" alt=""><b>UPGRADE</b><small id="tankCost"></small></div>
-  <div id="postureBtn" class="rb" role="button" aria-label="Attack or defend: tap = selected class, hold = whole army"><img src="assets/ui/i_attack.png?v=8c8b16ccf2a7" alt=""><b id="postureTxt">ATTACK</b></div>
+  <div id="consBtn" class="rb" role="button" aria-label="Consumables"><svg viewBox="0 0 64 64" aria-hidden="true" style="width:30px;height:30px"><path d="M24 8h16v8l8 10v28a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6V26l8-10z" fill="#b36cff" stroke="#3a1a5a" stroke-width="3" stroke-linejoin="round"/><path d="M22 34h20v18H22z" fill="#e8d0ff" opacity=".55"/><path d="M32 38l3 6h-6z" fill="#ffd23a"/></svg><b>ITEMS</b><small id="consN"></small></div>
+  <div id="powerBtn" class="rb" role="button" aria-label="Power"><img src="assets/ui/i_power.png?v=e285086b0c95" alt=""><b>POWER</b><i class="en"><u id="enFill"></u></i></div>
+  <div id="tankBtn" class="rb" role="button" aria-label="Tank upgrade"><img src="assets/ui/i_upgrade.png?v=e285086b0c95" alt=""><b>UPGRADE</b><small id="tankCost"></small></div>
+  <div id="postureBtn" class="rb" role="button" aria-label="Attack or defend: tap = selected class, hold = whole army"><img src="assets/ui/i_attack.png?v=e285086b0c95" alt=""><b id="postureTxt">ATTACK</b></div>
 </div>
 <div id="powers" class="hidden"></div>
+<div id="tankUps" class="hidden"></div>
+<div id="consPop" class="hidden"></div>
 <div id="allTip"></div>
 <div id="choice" class="hidden"><div class="ct" id="choiceT"></div><div class="co" id="choiceO"></div></div>
 <div id="bossBar" class="hidden"><div class="bn" id="bossName"></div><div class="bb"><b id="bossFill"></b></div><div class="bh" id="bossHp"></div></div>
@@ -236,7 +252,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}   /* the p
 
 <div id="shop" class="screen hidden"><div class="panel">
   <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="disp" style="margin:0;font-size:28px">SHOP</h2><span class="tok" id="shopTok"></span></div>
-  <div class="tabs" id="shopTabs"><button data-t="armory" class="on">ARMORY</button><button data-t="powers">POWERS</button><button data-t="currency">CURRENCY</button></div>
+  <div class="tabs" id="shopTabs"><button data-t="skins" class="on">SKINS</button><button data-t="gear">GEAR</button><button data-t="perks">PERKS</button><button data-t="items">ITEMS</button><button data-t="powers">POWERS</button><button data-t="armory">OWNED</button><button data-t="currency">💎</button></div>
   <div class="shopgrid" id="shopGrid"></div>
   <button class="btn sec" id="shopClose">BACK</button>
 </div></div>
@@ -247,15 +263,15 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}   /* the p
     <button class="btn sec" id="setClose" style="margin-top:12px">BACK</button>
 </div></div>
 
-<script defer src="vendor/three.min.js?v=8c8b16ccf2a7"></script>
-<script defer src="js/core.js?v=8c8b16ccf2a7"></script>
-<script defer src="js/sim.js?v=8c8b16ccf2a7"></script>
-<script defer src="js/anim.js?v=8c8b16ccf2a7"></script>
-<script defer src="js/kit.js?v=8c8b16ccf2a7"></script>
-<script defer src="js/render.js?v=8c8b16ccf2a7"></script>
-<script defer src="js/powerfx.js?v=8c8b16ccf2a7"></script>
-<script defer src="js/assets.js?v=8c8b16ccf2a7"></script>
-<script defer src="js/audio.js?v=8c8b16ccf2a7"></script>
-<script defer src="js/main.js?v=8c8b16ccf2a7"></script>
+<script defer src="vendor/three.min.js?v=e285086b0c95"></script>
+<script defer src="js/core.js?v=e285086b0c95"></script>
+<script defer src="js/sim.js?v=e285086b0c95"></script>
+<script defer src="js/anim.js?v=e285086b0c95"></script>
+<script defer src="js/kit.js?v=e285086b0c95"></script>
+<script defer src="js/render.js?v=e285086b0c95"></script>
+<script defer src="js/powerfx.js?v=e285086b0c95"></script>
+<script defer src="js/assets.js?v=e285086b0c95"></script>
+<script defer src="js/audio.js?v=e285086b0c95"></script>
+<script defer src="js/main.js?v=e285086b0c95"></script>
 </body>
 </html>

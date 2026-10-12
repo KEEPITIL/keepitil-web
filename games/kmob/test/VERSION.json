@@ -2,10 +2,10 @@
  "product": "KMOB",
  "channel": "test",
  "source_repo": "KEEPITIL/KMOB",
- "source_sha": "b0d46842d5ffd34ca5df9dac688f95bae11659fa",
- "build": "8c8b16ccf2a7",
- "includes": ["fence-to-fence DEFEND formation overhaul", "power attack visual overhaul", "portrait roster auto-tuck (option A)"],
- "previous_test_build": {"source_sha": "0ec180699101369bc86937a5910dc004e2d45105", "build": "a99acee405e3", "website_commit": "bae38e9"},
- "deployed": "2026-10-11T04:47:18Z",
+ "source_sha": "bffab56b65f3204a70910ab66f06d7e28cc1c87b",
+ "build": "e285086b0c95",
+ "includes": ["Endless War Phase B (class table, enemy/boss levels, boss rewards, tank skill tracks, consumables)", "Phase C shop (perks, Mercenary tiers, class equipment, Season 1 skins)", "elemental skin powers: fire, ice, poison, lightning"],
+ "previous_test_build": {"source_sha": "b0d46842d5ffd34ca5df9dac688f95bae11659fa", "build": "8c8b16ccf2a7", "website_commit": "26b158b"},
+ "deployed": "2026-10-12T08:04:07Z",
  "production_unchanged": "games/kmob/ (KMOB 757c247)"
 }

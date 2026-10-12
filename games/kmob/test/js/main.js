@@ -43,6 +43,7 @@
     arrowstorm: '<circle cx="12" cy="16" r="6.5" fill="none" stroke="#ff5a2a" stroke-width="2"/><path d="M12 8.6v2.2M12 21.2v1.6M4.6 16h1.6M17.8 16h1.6" stroke="#ff5a2a" stroke-width="1.8" stroke-linecap="round"/><g stroke="#3a2410" stroke-width="1.6" stroke-linecap="round"><path d="M7 1.5l2.2 9M12 1v10M17 1.5l-2.2 9"/></g><g fill="#fff"><path d="M7.6 9.5l2.6-.4.2 2.6z"/><path d="M10.7 10h2.6L12 12.6z"/><path d="M13.6 11.7l.2-2.6 2.6.4z"/></g>',
     elemental: '<path d="M2 18c3-6 7-8 11-6 3 1.5 3.5 4.5 1 5.5 3 1 6-1 8-4v8H2z" fill="#3fc8ff" stroke="#08506e" stroke-width="1.3" stroke-linejoin="round"/><path d="M5 16c2-3.5 5-4.6 8-3.4" fill="none" stroke="#e8fbff" stroke-width="1.6" stroke-linecap="round"/><path d="M17 2v8M13.5 4l7 4M20.5 4l-7 4" stroke="#e8fbff" stroke-width="1.6" stroke-linecap="round"/>',
     mercenary: '<path d="M12 1.5l2.2 3-2.2 3-2.2-3z" fill="#ffd23a" stroke="#6a3c00" stroke-width="1"/><path d="M4 18a8 8 0 0116 0v3h-5.2v-3.4H9.2V21H4z" fill="#d8dee8" stroke="#3a4458" stroke-width="1.3"/><path d="M12 10v7.4" stroke="#3a4458" stroke-width="1.3"/><path d="M1.5 12.5l3 1.2v2.6l-3 1.2z" fill="#ffd23a" stroke="#6a3c00" stroke-width="1"/>',
+    recruits: '<circle cx="12" cy="7" r="4" fill="#e8b52e" stroke="#6a4a00" stroke-width="1.2"/><path d="M4 22c0-6 4-10 8-10s8 4 8 10z" fill="#e8b52e" stroke="#6a4a00" stroke-width="1.2"/>',
     fortress: '<path d="M3 19a9 9 0 0118 0z" fill="#3fa8ff" fill-opacity=".35" stroke="#8fe0ff" stroke-width="1.6"/><path d="M7.5 12.2l4.5-2.6 4.5 2.6M12 9.6V19M7.5 12.2V19M16.5 12.2V19M3.6 16l8.4-2.2 8.4 2.2" fill="none" stroke="#e8fbff" stroke-width="1.1"/><path d="M6 19h12l-1.5 3h-9z" fill="#2d58b8" stroke="#0a1a3a" stroke-width="1.2"/>',
     shop: '<path d="M4 9h16l-1 12H5z" fill="#ff5a6a"/><path d="M3 6h18v4H3z" fill="#ffc21a"/><path d="M12 6v15" stroke="#fff" stroke-width="2"/><path d="M12 6c-2-4-6-3-5 0M12 6c2-4 6-3 5 0" stroke="#ffc21a" stroke-width="2" fill="none"/>',
   };
@@ -123,7 +124,9 @@
   let render;
   try { render = new KM.Render(canvas, { lowPower: /Android/i.test(navigator.userAgent), mobile: !!(DEV && DEV.mobile) || KM.isMobileEnv(navigator.userAgent, 'ontouchstart' in window, Math.min(screen.width, screen.height)) }); }
   catch (e) { document.body.innerHTML = '<div style="padding:40px;font:16px Nunito,sans-serif;color:#fff">This game needs WebGL. Please try a newer browser or device.</div>'; return; }
-  const applyLooks = () => { render.setSkin(KM.SKIN_BY[save.skins.equip.tank] || KM.SKIN_BY.skin_royal); const tint = {}; for (const c of KM.PROD_ORDER) { const sk = KM.SKIN_BY[save.skins.equip[c]]; if (sk) tint[KM.FRIEND_BY[KM.PROD[c].kind].id] = parseInt(sk.color.slice(1), 16); } render.classTint = tint; };
+  const applyLooks = () => { const st = KM.SEASON_BY[save.season.equip.tank]; render.setSkin(st ? { id: st.id, name: st.name, color: st.color, trim: '#fff4c2', bonus: {} } : KM.SKIN_BY[save.skins.equip.tank] || KM.SKIN_BY.skin_royal); const tint = {};
+    const mix = (a, b, t) => [16, 8, 0].reduce((o, sh) => o | Math.round(((a >> sh) & 255) * (1 - t) + ((b >> sh) & 255) * t) << sh, 0);   // seasonal themes keep a blue base so the army never reads as the (red) enemy
+    for (const c of KM.PROD_ORDER) { const se = KM.SEASON_BY[save.season.equip[c]], sk = se || KM.SKIN_BY[save.skins.equip[c]]; if (sk) { const hex = parseInt(sk.color.slice(1), 16); tint[KM.FRIEND_BY[KM.PROD[c].kind].id] = se ? mix(0x3a66f0, hex, 0.4) : hex; } } render.classTint = tint; };   // one skin per unit: a seasonal set wins over a legacy class skin
   applyLooks(); mark('engine');
   // quality tier: the stored benchmark recommendation, else device heuristics (internal builds may force one)
   KM.loadScripts = list => list.reduce((pr, src) => pr.then(() => new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = src; sc.onload = res; sc.onerror = () => rej(new Error(src)); document.head.appendChild(sc); })), Promise.resolve());
@@ -172,7 +175,10 @@
       case 'death': onDeath(); break;
       case 'waveStart': { const S = KM.SECTORS[c] || KM.SECTORS.opening; banner('WAVE ' + a + (b === 10 ? '\nBOSS' : '\n' + S.name), 1.4); if (!recordShown && save.records.wave && a > save.records.wave) { recordShown = true; setTimeout(() => banner('NEW RECORD\nWAVE ' + a, 1.8), 1500); audio.play('pb'); } break; }
       case 'waveClear': checkMilestones(); RunSave.write(sim); break;
-      case 'bossReward': bank(a.tokens, 0, 'boss'); banner('BOSS DEFEATED\n+' + a.tokens + ' WAR TOKEN · +' + KM.fmtShort(a.gold) + ' GOLD', 2.2); RunSave.write(sim); break;
+      case 'bossReward': if (!save.paid.includes(a.id)) { save.paid.push(a.id); save.paid = save.paid.slice(-200); bank(a.tokens, a.diamonds, 'boss'); }   // exactly once per boss, even after a reload
+        banner('BOSS DEFEATED\n+' + KM.fmtShort(a.gold) + ' GOLD · ' + (a.tokens ? '+' + a.tokens + ' WAR TOKENS' : '+' + a.diamonds + ' DIAMOND'), 2.2); RunSave.write(sim); break;
+      case 'consUse': save.cons[a] = Math.max(0, (save.cons[a] || 0) - 1); persist(); banner(KM.CONSUMABLES[a].name, 1.0); audio.play('c_' + a); break;
+      case 'bossCard': save.buffs = JSON.parse(JSON.stringify(sim.buffs)); if (a.id === 'cons') save.cons[a.item] = (save.cons[a.item] || 0) + 1; persist(); break;
       case 'levelUp': banner(KM.PROD[a].name + ' LEVEL ' + b, 0.9); break;
       case 'evolve': banner(KM.PROD[a].name + ' VETERANS\nSTRONGER · 2 ARMY POINTS', 1.6); audio.play('pb'); break;
       case 'emergency': if (a) { banner('EMERGENCY DEFENSE', 1.2); KM.haptic(30); } break;
@@ -238,7 +244,7 @@
   // ---------- flow ----------
   function show(id) { for (const s of ['title', 'over', 'pause', 'shop', 'settings']) $(s).classList.toggle('hidden', s !== id); }
   if (!save.player) { save.player = Array.from({ length: 8 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join(''); persist(); }   // anonymous commander id for the boards
-  const runOpts = () => ({ seed: (Date.now() ^ (runId * 2654435761)) >>> 0, equip: save.powers.equip, powerLv: save.powers.lv, skins: save.skins.equip });
+  const runOpts = () => ({ seed: (Date.now() ^ (runId * 2654435761)) >>> 0, equip: save.powers.equip, powerLv: save.powers.lv, skins: save.skins.equip, buffs: save.buffs, cons: save.cons, loadout: { perks: save.perks, equip: save.gear.equip, skin: save.season.equip }, mercTier: save.mercTier });
   let recordShown = false;
   function startRun(resume) {
     audio.unlock(); runId++; RunSave.clear();
@@ -280,7 +286,7 @@
       $('oStats').innerHTML = [['clock', 'Survival Time', KM.fmtTime(r.time)], ['skull', 'Enemies Defeated', KM.fmtNum(r.kills)], ['star', 'Bosses Defeated', r.bosses], ['token', 'War Tokens (banked)', '+' + (r.warTokens + (records.includes('wave') ? 1 : 0))], ['army', 'Army Development', r.armyDev + ' / 60']]
         .map(([i, l, v]) => `<div>${svg(i)}<span>${l}</span><b>${v}</b></div>`).join('') + `<div style="opacity:.7;font-size:12px;justify-content:center">${reason}</div><div id="lbBox" style="font-size:11px;opacity:.85;justify-content:center"></div>`;
       $('reviveBtn').classList.toggle('hidden', !!sim.revived || !(DEV && DEV.revive));
-      for (const id of ['drawer', 'rightCol', 'powers', 'clsPop', 'choice', 'bossBar', 'tankHp']) $(id).classList.add('hidden'); show('over'); hook('death', r);
+      for (const id of ['drawer', 'rightCol', 'powers', 'tankUps', 'consPop', 'clsPop', 'choice', 'bossBar', 'tankHp']) $(id).classList.add('hidden'); show('over'); hook('death', r);
       LB.top('weekly').then(rows => { const el = $('lbBox'); if (!el || !rows || !rows.length) return; el.innerHTML = 'THIS WEEK: ' + rows.map((x, k) => `${k + 1}. ${x.player === save.player ? 'YOU' : x.player.slice(0, 4)} W${x.wave}`).join(' · '); });
     }, 1300);
   }
@@ -288,7 +294,7 @@
   function goTitle() {
     Telemetry.flush('quit');
     const rs = RunSave.load(); $('contBtn').classList.toggle('hidden', !rs); if (rs) $('contInfo').textContent = 'WAVE ' + (rs.snap.wave || 1) + ' · ' + KM.fmtTime(rs.snap.t);
-    state = 'title'; for (const id of ['hud', 'tankHp', 'drawer', 'rightCol', 'powers', 'clsPop', 'choice', 'bossBar', 'tip']) $(id).classList.add('hidden');
+    state = 'title'; for (const id of ['hud', 'tankHp', 'drawer', 'rightCol', 'powers', 'tankUps', 'consPop', 'clsPop', 'choice', 'bossBar', 'tip']) $(id).classList.add('hidden');
     const R = save.records; $('titleBest').innerHTML = `<div class="titleRec"><span>BEST WAVE<b>${R.wave}</b></span><span>LONGEST<b>${KM.fmtTime(R.time)}</b></span><span>BOSSES<b>${R.bosses}</b></span><span>${svg('token')}<b>${save.tokens}</b></span><span>${svg('diamond')}<b>${save.diamonds}</b></span></div>` + (save.titles.length ? `<div style="font-size:10px;font-weight:900;opacity:.75;margin-top:4px">${save.titles[save.titles.length - 1]}</div>` : '');
     show('title'); mark('interactive');
   }
@@ -297,28 +303,85 @@
     el.innerHTML = rows.map(([k, l]) => `<label>${l}<input type="checkbox" data-k="${k}" ${save.settings[k] ? 'checked' : ''}></label>`).join('');
     el.querySelectorAll('input').forEach(inp => inp.onchange = () => { const k = inp.dataset.k; save.settings[k] = inp.checked ? 1 : 0; persist(); if (k === 'sound') audio.setSound(inp.checked); if (k === 'music') audio.setMusic(inp.checked); });
   }
-  // SHOP: ARMORY (one starter skin per class + tank skins) · POWERS (levels + equip 3) · CURRENCY (bundles, priced later from telemetry)
-  let shopTab = 'armory';
+  // SHOP (Phase C): SKINS (Season 1 sets) · GEAR (class equipment) · PERKS (Recruits / Magnet / Plating) · ITEMS (consumables) · POWERS
+  // (existing permanent power levels + Mercenary tier) · OWNED (legacy skins already bought, equip only) · 💎 (package preview, no checkout)
+  let shopTab = 'skins', gearCls = 'melee';
+  const TIER_COL = ['#c08040', '#c8d0dc', '#ffd23a', '#7fe8ff'];
+  const GEAR_GLYPH = {
+    bag: '<path d="M18 26h28l4 28H14z" fill="#8a5a2a" stroke="#2a1a0a" stroke-width="2.5"/><path d="M24 26c0-8 16-8 16 0" fill="none" stroke="#2a1a0a" stroke-width="3"/>',
+    dagger: '<path d="M32 6l5 30h-10z" fill="#e8eef8" stroke="#3a4458" stroke-width="2"/><rect x="24" y="36" width="16" height="5" rx="2" fill="#8a5a2a"/><rect x="29" y="41" width="6" height="14" rx="2" fill="#5a3a1a"/>',
+    boots: '<path d="M20 12h14v26l14 6v8H20z" fill="#6a4a2a" stroke="#2a1a0a" stroke-width="2.5" stroke-linejoin="round"/>',
+    bow: '<path d="M22 6c22 10 22 42 0 52" fill="none" stroke="#8a5a2a" stroke-width="4"/><path d="M22 6v52" stroke="#e8e0c8" stroke-width="1.5"/><path d="M12 32h34l-6-4M46 32l-6 4" stroke="#e8eef8" stroke-width="2.5" fill="none"/>',
+    quiver: '<rect x="22" y="18" width="18" height="38" rx="5" fill="#8a5a2a" stroke="#2a1a0a" stroke-width="2.5"/><path d="M26 18l-2-12M31 18V4M36 18l2-12" stroke="#e8eef8" stroke-width="2.5"/>',
+    armguard: '<path d="M18 16h28l-4 34H22z" fill="#8f9bb0" stroke="#2a3448" stroke-width="2.5"/><path d="M22 26h20M23 36h18" stroke="#2a3448" stroke-width="2"/>',
+    sword: '<path d="M32 4l5 38h-10z" fill="#e8eef8" stroke="#3a4458" stroke-width="2"/><rect x="20" y="42" width="24" height="5" rx="2" fill="#ffd23a"/><rect x="29" y="47" width="6" height="12" rx="2" fill="#5a3a1a"/>',
+    shield: '<path d="M32 6l20 8v16c0 14-9 23-20 28-11-5-20-14-20-28V14z" fill="#2d58b8" stroke="#0a1a3a" stroke-width="3" stroke-linejoin="round"/><path d="M32 16v34M20 26h24" stroke="#e8eef8" stroke-width="3"/>',
+    bodyarmor: '<path d="M18 12l8-4h12l8 4 6 14-8 4v26H20V30l-8-4z" fill="#8f9bb0" stroke="#2a3448" stroke-width="2.5" stroke-linejoin="round"/><path d="M32 12v44" stroke="#2a3448" stroke-width="2"/>',
+    staff: '<path d="M30 20l4 0 -2 40z" fill="#8a5a2a"/><circle cx="32" cy="14" r="9" fill="#7fe8ff" stroke="#0a5a8a" stroke-width="2.5"/>',
+    spellbook: '<rect x="14" y="12" width="36" height="42" rx="4" fill="#5a2a8a" stroke="#1a0a2a" stroke-width="2.5"/><path d="M32 12v42" stroke="#1a0a2a" stroke-width="2"/><circle cx="41" cy="30" r="5" fill="#ffd23a"/>',
+    crystal: '<path d="M32 4l14 18-14 38-14-38z" fill="#9fe8ff" stroke="#0a5a8a" stroke-width="2.5" stroke-linejoin="round"/><path d="M18 22h28" stroke="#0a5a8a" stroke-width="2"/>',
+    pike: '<path d="M30 14h4v46h-4z" fill="#8a5a2a"/><path d="M32 2l7 14h-14z" fill="#e8eef8" stroke="#3a4458" stroke-width="2"/>',
+    helmet: '<path d="M14 40c0-16 8-28 18-28s18 12 18 28z" fill="#8f9bb0" stroke="#2a3448" stroke-width="2.5"/><rect x="14" y="40" width="36" height="8" rx="3" fill="#6a7690"/><path d="M32 12v-8" stroke="#c8323a" stroke-width="4"/>',
+    chest: '<path d="M16 14h32l-2 40H18z" fill="#c8d0dc" stroke="#2a3448" stroke-width="2.5"/><path d="M22 24h20M22 34h20M22 44h20" stroke="#6a7690" stroke-width="2"/>',
+    hammer: '<rect x="14" y="8" width="36" height="18" rx="4" fill="#8f9bb0" stroke="#2a3448" stroke-width="2.5"/><rect x="29" y="26" width="6" height="32" rx="2" fill="#5a3a1a"/>',
+    gauntlets: '<path d="M20 22h24v24c0 8-6 12-12 12s-12-4-12-12z" fill="#8f9bb0" stroke="#2a3448" stroke-width="2.5"/><path d="M24 22v-10M30 22V8M36 22V9M42 22v-8" stroke="#8f9bb0" stroke-width="5" stroke-linecap="round"/>',
+    recruits: '<circle cx="32" cy="18" r="9" fill="#e8b52e" stroke="#6a4a00" stroke-width="2.4"/><path d="M14 58c0-14 8-24 18-24s18 10 18 24z" fill="#e8b52e" stroke="#6a4a00" stroke-width="2.6"/><path d="M22 6l10 4 10-4" stroke="#fff4c2" stroke-width="3" fill="none"/>',
+    magnet: '<path d="M16 10v22a16 16 0 0 0 32 0V10h-10v22a6 6 0 0 1-12 0V10z" fill="#ff4a5a" stroke="#5a0a1a" stroke-width="2.5"/><rect x="16" y="10" width="10" height="8" fill="#e8eef8"/><rect x="38" y="10" width="10" height="8" fill="#e8eef8"/>',
+    plating: '<rect x="8" y="30" width="48" height="18" rx="5" fill="#2f6dff" stroke="#0a1a3a" stroke-width="2.6"/><path d="M14 30V20h36v10" fill="#8f9bb0" stroke="#2a3448" stroke-width="2.4"/><path d="M20 24h24" stroke="#2a3448" stroke-width="2"/>',
+  };
+  const art = (glyph, tier) => `<span class="art"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="1" y="1" width="62" height="62" rx="12" fill="#101c38" stroke="${tier ? TIER_COL[tier - 1] : '#3a4a6a'}" stroke-width="3"/>${glyph}</svg></span>`;
+  const TANK_MINI = c => `<svg viewBox="0 0 64 64"><rect x="6" y="30" width="52" height="18" rx="5" fill="${c}" stroke="#0a1a3a" stroke-width="2.6"/><rect x="18" y="20" width="24" height="12" rx="4" fill="${c}" stroke="#0a1a3a" stroke-width="2.4"/><path d="M40 25h18" stroke="#cfd8e8" stroke-width="5" stroke-linecap="round"/></svg>`;
+  const prev7 = c => `<div class="prev7" style="--c:${c}">${KM.PROD_ORDER.map(k => `<span><img src="${PORTRAIT(k)}" alt=""></span>`).join('')}<span>${TANK_MINI(c)}</span></div>`;
+  const priceBtns = (c, key) => `<button data-buy="t" data-k="${key}" ${save.tokens < c.tokens ? 'disabled' : ''}>${c.tokens} TOKENS</button><button data-buy="d" data-k="${key}" ${save.diamonds < c.diamonds ? 'disabled' : ''}>${c.diamonds} 💎</button>`;
   function openShop(back) {
     Analytics.track('shop_open', { tokens: save.tokens, diamonds: save.diamonds });
-    const pay = (c) => { if (save.tokens >= c.tokens) { save.tokens -= c.tokens; return 'tokens'; } return null; }, payD = (c) => { if (save.diamonds >= c.diamonds) { save.diamonds -= c.diamonds; return 'diamonds'; } return null; };
+    const pay = (c, how) => { if (how === 't' && save.tokens >= c.tokens) { save.tokens -= c.tokens; return 'tokens'; } if (how === 'd' && save.diamonds >= c.diamonds) { save.diamonds -= c.diamonds; return 'diamonds'; } return null; };   // one press = one charge, only when affordable
     const draw = () => {
       $('shopTok').innerHTML = `${svg('token')}${save.tokens} &nbsp; ${svg('diamond')}${save.diamonds}`;
       for (const b of $('shopTabs').children) b.classList.toggle('on', b.dataset.t === shopTab);
       let html = '';
-      if (shopTab === 'armory') html = KM.SKIN_CLASSES.map(c => KM.SKINS.filter(k => k.cls === c).map(k => { const own = save.skins.owned[k.id], eq = save.skins.equip[c] === k.id;
-        return `<div class="item ${eq ? 'eq' : ''}" data-id="${k.id}"><div class="nm"><span class="sw" style="background:${k.color}"></span>${c.toUpperCase()} · ${k.name}</div><div class="ds">${k.desc}</div>${own ? `<div class="pr">${eq ? 'EQUIPPED · TAP TO REMOVE' : 'TAP TO EQUIP'}</div>` : `<div class="bt"><button data-buy="t" ${save.tokens < k.tokens ? 'disabled' : ''}>${k.tokens} TOKENS</button><button data-buy="d" ${save.diamonds < k.diamonds ? 'disabled' : ''}>${k.diamonds} ◆</button></div>`}</div>`; }).join('')).join('');
+      if (shopTab === 'skins') html = KM.SEASON.map(k => { const own = save.season.owned[k.id], c = KM.skinCost(k.tier), eqAll = [...KM.PROD_ORDER, 'tank'].every(x => save.season.equip[x] === k.id);
+        return `<div class="item" data-sk="${k.id}"><div class="nm">${k.name} <span class="sub">T${k.tier}</span></div>${prev7(k.color)}<div class="ds">${KM.perkTxt(k) || 'cosmetic'}</div>` + (own
+          ? `<div class="own">OWNED · all 6 classes + tank</div><div class="bt"><button data-eqall="1" class="${eqAll ? 'on' : ''}">${eqAll ? 'EQUIPPED ALL' : 'EQUIP ALL'}</button></div><div class="tierRow">${[...KM.PROD_ORDER, 'tank'].map(x => `<button data-eq1="${x}" class="${save.season.equip[x] === k.id ? 'on' : ''}">${x === 'tank' ? 'TANK' : KM.PROD[x].name.slice(0, 4)}</button>`).join('')}</div>`
+          : `<div class="bt">${priceBtns(c, k.id)}</div>`) + '</div>'; }).join('') + '<div class="item span2 no"><div class="ds">One skin per unit; an unequipped skin gives no bonus. Elemental effects are shown but inactive until their numbers are approved.</div></div>';
+      else if (shopTab === 'gear') {
+        html = `<div class="item span2 no"><div class="tierRow" style="grid-template-columns:repeat(6,1fr)">${KM.PROD_ORDER.map(c => `<button data-gc="${c}" class="${gearCls === c ? 'on' : ''}">${KM.PROD[c].name}</button>`).join('')}</div><div class="ds">Bought once per class; every ${KM.PROD[gearCls].name} uses the equipped tier. Bonus values are defaults pending approval.</div></div>`;
+        html += KM.EQUIP[gearCls].map(sl => { const key = gearCls + '.' + sl.id, owned = save.gear.owned[key] || [], eq = ((save.gear.equip[gearCls] || {})[sl.id]) || 0;
+          return `<div class="item span2" data-gs="${sl.id}">${art(GEAR_GLYPH[sl.id], eq)}<div class="nm">${sl.name}</div><div class="ds">${KM.STAT_TXT[sl.stat] === 'damage' && gearCls === 'mizard' ? 'healing' : KM.STAT_TXT[sl.stat]} · ${eq ? 'T' + eq + ' ' + KM.EQUIP_TIERS[eq - 1].toLowerCase() + ' equipped (' + KM.equipTxt(gearCls, sl, eq) + ')' : 'nothing equipped'}</div>
+            <div class="tierRow">${[1, 2, 3, 4].map(t => { const has = owned.includes(t), c = KM.equipCost(t);
+              return has ? `<button data-geq="${t}" class="${eq === t ? 'on' : ''}">T${t}<br>${KM.equipTxt(gearCls, sl, t).split(' ')[0]}<br>${eq === t ? 'ON' : 'EQUIP'}</button>`
+                : `<button data-gbuy="${t}" data-buy="t" ${save.tokens < c.tokens ? 'disabled' : ''}>T${t}<br>${KM.equipTxt(gearCls, sl, t).split(' ')[0]}<br>${c.tokens} T</button>`; }).join('')}</div>
+            <div class="tierRow">${[1, 2, 3, 4].map(t => owned.includes(t) ? '<span></span>' : `<button data-gbuy="${t}" data-buy="d" ${save.diamonds < KM.equipCost(t).diamonds ? 'disabled' : ''}>${KM.equipCost(t).diamonds} 💎</button>`).join('')}</div></div>`; }).join('');
+      } else if (shopTab === 'perks') html = KM.PERK_IDS.map(id => { const P = KM.PERKS[id], t = save.perks[id] || 0, max = t >= P.max, c = max ? null : KM.perkCost(t + 1);
+        return `<div class="item" data-pk="${id}">${art(GEAR_GLYPH[id], t)}<div class="nm">${P.name} · TIER ${t}/${P.max}</div><div class="ds">${t ? P.desc(t) : 'not owned'}${max ? '' : ' → next: ' + P.desc(t + 1)}</div><div class="bt">${max ? '<button disabled>MAX</button>' : priceBtns(c, id)}</div></div>`; }).join('');
+      else if (shopTab === 'items') html = KM.CONS_IDS.map(id => `<div class="item" data-cs="${id}"><span class="art"><svg viewBox="0 0 64 64" aria-hidden="true">${CONS_ART[id]}</svg></span><div class="nm">${KM.CONSUMABLES[id].name} ×${save.cons[id] || 0}</div><div class="ds">${KM.CONSUMABLES[id].desc} · never fires on purchase</div><div class="bt">${priceBtns(KM.CONS_PRICE, id)}</div></div>`).join('');
       else if (shopTab === 'powers') html = KM.POWER_IDS.map(id => { const P = KM.POWERS[id], lv = save.powers.lv[id] || 0, c = KM.powerCost(lv), eq = save.powers.equip.includes(id), max = lv >= KM.POWER_MAX;
-        return `<div class="item ${eq ? 'eq' : ''}" data-pw="${id}"><div class="nm">${svg(id)} ${P.name} · LV ${lv}</div><div class="ds">${P.desc} · ${P.cost} energy</div><div class="bt"><button data-eq="1">${eq ? 'EQUIPPED' : 'EQUIP'}</button>${max ? '<button disabled>MAX</button>' : `<button data-up="t" ${save.tokens < c.tokens ? 'disabled' : ''}>+1 · ${c.tokens} T</button><button data-up="d" ${save.diamonds < c.diamonds ? 'disabled' : ''}>+1 · ${c.diamonds} ◆</button>`}</div></div>`; }).join('') + '<div style="font-size:11px;opacity:.75;font-weight:800">Equip up to 3 powers for a run.</div>';
-      else html = KM.BUNDLES.map(b => `<div class="item no"><div class="nm">${svg('diamond')} ${b.name}</div><div class="ds">${b.diamonds} Diamonds</div><div class="pr">COMING SOON</div></div>`).join('') + '<div style="font-size:11px;opacity:.75;font-weight:800">Diamonds only speed things up — everything in the Armory and Powers can be earned with War Tokens.</div>';
+        const cost = id === 'mercenary' ? KM.MERC_TIERS[save.mercTier - 1].energy : P.cost;
+        return `<div class="item ${eq ? 'eq' : ''}" data-pw="${id}"><div class="nm">${svg(id)} ${P.name} · LV ${lv}</div><div class="ds">${P.desc} · ${cost} energy</div>${id === 'mercenary' ? `<div class="tierRow" style="grid-template-columns:repeat(3,1fr)">${KM.MERC_TIERS.map((m, k) => `<button data-mt="${k + 1}" class="${save.mercTier === k + 1 ? 'on' : ''}">TIER ${k + 1}<br>${m.n} mercs · ${m.energy} ⚡</button>`).join('')}</div>` : ''}<div class="bt"><button data-eq="1">${eq ? 'EQUIPPED' : 'EQUIP'}</button>${max ? '<button disabled>MAX</button>' : `<button data-up="t" ${save.tokens < c.tokens ? 'disabled' : ''}>+1 · ${c.tokens} T</button><button data-up="d" ${save.diamonds < c.diamonds ? 'disabled' : ''}>+1 · ${c.diamonds} 💎</button>`}</div></div>`; }).join('');
+      else if (shopTab === 'armory') { const own = KM.SKINS.filter(k => save.skins.owned[k.id]);
+        html = own.map(k => { const eq = save.skins.equip[k.cls] === k.id; return `<div class="item ${eq ? 'eq' : ''}" data-id="${k.id}"><div class="nm"><span class="sw" style="background:${k.color}"></span>${k.cls.toUpperCase()} · ${k.name}</div><div class="ds">${k.desc} · legacy (no longer sold)</div><div class="pr">${eq ? 'EQUIPPED · TAP TO REMOVE' : 'TAP TO EQUIP'}</div></div>`; }).join('') || '<div class="item span2 no"><div class="ds">No legacy skins owned.</div></div>'; }
+      else html = KM.DIAMOND_PACKS.map(b => `<div class="item no">${art('<path d="M16 14h32l8 12-24 30L8 26z" fill="#5fe0ff" stroke="#0a6a8a" stroke-width="2.4"/>', 4)}<div class="nm">${b.diamonds + b.bonus} 💎</div><div class="ds">${b.diamonds}${b.bonus ? ' + ' + b.bonus + ' bonus' : ''} · $${b.usd.toFixed(2)}</div><div class="pr">COMING SOON — checkout is not active</div></div>`).join('');
       $('shopGrid').innerHTML = html;
-      $('shopGrid').querySelectorAll('[data-id]').forEach(n => n.addEventListener('click', e => { const k = KM.SKIN_BY[n.dataset.id], b = e.target.dataset.buy;
-        if (save.skins.owned[k.id]) { if (save.skins.equip[k.cls] === k.id) { if (k.cls !== 'tank') delete save.skins.equip[k.cls]; } else save.skins.equip[k.cls] = k.id; audio.play('tap'); }
-        else if (b) { const how = b === 't' ? pay(k) : payD(k); if (how) { save.skins.owned[k.id] = 1; save.skins.equip[k.cls] = k.id; audio.play('upgrade'); Analytics.track('item_purchase', { id: k.id, with: how }); } }
+      const G = $('shopGrid'), done = (what, how) => { audio.play('upgrade'); Analytics.track('item_purchase', { id: what, with: how }); };
+      G.querySelectorAll('[data-sk]').forEach(n => n.addEventListener('click', e => { const id = n.dataset.sk, k = KM.SEASON_BY[id], t = e.target.dataset;
+        if (!save.season.owned[id]) { if (t.buy) { const how = pay(KM.skinCost(k.tier), t.buy); if (how) { save.season.owned[id] = 1; done(id, how); } } }
+        else if (t.eqall) { const all = [...KM.PROD_ORDER, 'tank'], on = all.every(x => save.season.equip[x] === id); for (const x of all) { if (on) delete save.season.equip[x]; else save.season.equip[x] = id; } audio.play('tap'); }
+        else if (t.eq1) { const x = t.eq1; if (save.season.equip[x] === id) delete save.season.equip[x]; else save.season.equip[x] = id; audio.play('tap'); }
         persist(); applyLooks(); draw(); }));
-      $('shopGrid').querySelectorAll('[data-pw]').forEach(n => n.addEventListener('click', e => { const id = n.dataset.pw, t = e.target.dataset, lv = save.powers.lv[id] || 0, c = KM.powerCost(lv);
-        if (t.eq) { const E = save.powers.equip; if (E.includes(id)) { if (E.length > 1) E.splice(E.indexOf(id), 1); } else { E.push(id); if (E.length > 3) E.shift(); } audio.play('tap'); }
-        else if (t.up && lv < KM.POWER_MAX) { const how = t.up === 't' ? pay(c) : payD(c); if (how) { save.powers.lv[id] = lv + 1; audio.play('upgrade'); Analytics.track('power_up', { id, lv: lv + 1, with: how }); } }
+      G.querySelectorAll('[data-gc]').forEach(n => n.addEventListener('click', () => { gearCls = n.dataset.gc; audio.play('tap'); draw(); }));
+      G.querySelectorAll('[data-gs]').forEach(n => n.addEventListener('click', e => { const sl = n.dataset.gs, t = e.target.dataset, key = gearCls + '.' + sl, owned = save.gear.owned[key] || [];
+        if (t.gbuy) { const tier = +t.gbuy; if (!owned.includes(tier)) { const how = pay(KM.equipCost(tier), t.buy); if (how) { save.gear.owned[key] = [...owned, tier].sort(); (save.gear.equip[gearCls] = save.gear.equip[gearCls] || {})[sl] = tier; done(key + ':' + tier, how); } } }
+        else if (t.geq) { const tier = +t.geq, E = save.gear.equip[gearCls] = save.gear.equip[gearCls] || {}; if (E[sl] === tier) delete E[sl]; else E[sl] = tier; audio.play('tap'); }
+        persist(); draw(); }));
+      G.querySelectorAll('[data-pk]').forEach(n => n.addEventListener('click', e => { const id = n.dataset.pk, t = save.perks[id] || 0, b = e.target.dataset.buy; if (!b || t >= KM.PERKS[id].max) return;
+        const how = pay(KM.perkCost(t + 1), b); if (how) { save.perks[id] = t + 1; done(id + ':' + (t + 1), how); } persist(); draw(); }));
+      G.querySelectorAll('[data-cs]').forEach(n => n.addEventListener('click', e => { const id = n.dataset.cs, b = e.target.dataset.buy; if (!b) return; const how = pay(KM.CONS_PRICE, b); if (how) { save.cons[id] = (save.cons[id] || 0) + 1; done(id, how); } persist(); draw(); }));
+      G.querySelectorAll('[data-id]').forEach(n => n.addEventListener('click', () => { const k = KM.SKIN_BY[n.dataset.id]; if (!save.skins.owned[k.id]) return;
+        if (save.skins.equip[k.cls] === k.id) { if (k.cls !== 'tank') delete save.skins.equip[k.cls]; } else save.skins.equip[k.cls] = k.id; audio.play('tap'); persist(); applyLooks(); draw(); }));
+      G.querySelectorAll('[data-pw]').forEach(n => n.addEventListener('click', e => { const id = n.dataset.pw, t = e.target.dataset, lv = save.powers.lv[id] || 0, c = KM.powerCost(lv);
+        if (t.mt) { save.mercTier = +t.mt; audio.play('tap'); }
+        else if (t.eq) { const E = save.powers.equip; if (E.includes(id)) { if (E.length > 1) E.splice(E.indexOf(id), 1); } else { E.push(id); if (E.length > 3) E.shift(); } audio.play('tap'); }
+        else if (t.up && lv < KM.POWER_MAX) { const how = pay(c, t.up); if (how) { save.powers.lv[id] = lv + 1; audio.play('upgrade'); Analytics.track('power_up', { id, lv: lv + 1, with: how }); } }
         persist(); draw(); }));
     };
     for (const b of $('shopTabs').children) b.onclick = () => { shopTab = b.dataset.t; audio.play('tap'); draw(); };
@@ -440,7 +503,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=8c8b16ccf2a7`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=8c8b16ccf2a7" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=e285086b0c95`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=e285086b0c95" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };
   let dStart = null;
@@ -473,32 +536,63 @@
     else { const land = render.layout === 'landscape', lo = land ? Math.max(render.safeTopPx || 8, choiceBottom()) : 8, hi = innerHeight - pop.offsetHeight - (land ? (render.safeBotPx || 0) + 6 : 8);   // landscape: below the HUD row and the supply strip, above the home bar
       pop.style.left = (card.right + 8) + 'px'; pop.style.top = Math.max(lo, Math.min(hi, card.top + card.height / 2 - pop.offsetHeight / 2)) + 'px'; } }
   function openPop(k) { closePops(); pop.dataset.k = k; pop.classList.remove('hidden'); popUI(); }
-  function closePops() { pop.classList.add('hidden'); pop.dataset.k = ''; $('powers').classList.add('hidden'); }
+  function closePops() { pop.classList.add('hidden'); pop.dataset.k = ''; $('powers').classList.add('hidden'); $('tankUps').classList.add('hidden'); $('consPop').classList.add('hidden'); }
   classes.querySelectorAll('.cl').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); audio.unlock(); if (state !== 'run' || paused) return; const k = b.dataset.p;
     if (sim.prod === k) { if (pop.dataset.k === k && !pop.classList.contains('hidden')) closePops(); else openPop(k); }   // second tap: upgrade details for the selected class only
     else { sim.setProd(k); closePops(); }
     audio.play('tap'); drawerUI(); setPostureUI(); }));
-  addEventListener('pointerdown', e => { if (!e.target.closest || e.target.closest('#clsPop,#classes,#powers,#powerBtn')) return; if (!pop.classList.contains('hidden') || !$('powers').classList.contains('hidden')) closePops(); }, true);
+  addEventListener('pointerdown', e => { if (!e.target.closest || e.target.closest('#clsPop,#classes,#powers,#powerBtn,#tankUps,#tankBtn,#consPop,#consBtn')) return; if (!pop.classList.contains('hidden') || !$('powers').classList.contains('hidden') || !$('tankUps').classList.contains('hidden') || !$('consPop').classList.contains('hidden')) closePops(); }, true);
   function drawerUI() {
     for (const b of classes.children) { const k = b.dataset.p, lv = sim.stats.cls[k], cost = sim.clsCost(k), info = sim.classInfo(k, lv);
       b.classList.toggle('on', sim.prod === k); b.classList.toggle('atk', CHARGE.includes(k) && sim.attacking(k));
       b.querySelector('.tx i').textContent = `Lv ${lv} · ${info.heal ? 'HEAL' : 'DMG'} ${fmtStat(info.dmg)}`;
+      const pr = b.querySelector('.pr'); if (pr.dataset.c !== String(info.cost)) { pr.dataset.c = info.cost; pr.innerHTML = GOLD_IMG + info.cost; }   // deploy price rises +5 (Giant +25) per level
       const can = lv < KM.CLASS_MAX && sim.coins >= cost; b.querySelector('.ub').classList.toggle('hidden', !(can && sim.prod === k)); if (can && tut === 2) setTip(3); }
     $('autoTxt').textContent = sim.auto ? 'AUTO' : 'TAP'; $('autoBtn').classList.toggle('tap', !sim.auto);   // one word: the current mode
-    const tb = $('tankBtn'), tc = sim.upCost(), up = sim.ups && sim.ups.tank; tb.classList.toggle('can', !!up && sim.coins >= tc); $('tankCost').textContent = up ? KM.fmtShort(tc) : ''; $('tankCost').classList.toggle('hidden', !up); tb.title = up ? up.title + ' ' + (up.val || '') : '';
+    const tb = $('tankBtn'), tc = Math.min(...KM.TANK_SKILLS.map(t => sim.tankCost(t.id))), up = isFinite(tc); tb.classList.toggle('can', up && sim.coins >= tc); $('tankCost').textContent = up ? KM.fmtShort(tc) : ''; $('tankCost').classList.toggle('hidden', !up); tb.title = 'Tank skills';
+    if (!$('tankUps').classList.contains('hidden')) tankUI(true); if (!$('consPop').classList.contains('hidden')) consUI(true); { const n = consCount(); $('consN').textContent = n ? String(n) : ''; }
     $('powerBtn').classList.toggle('ready', sim.equipped.some(id => sim.canPower(id))); powersUI(true); popUI();
   }
   $('autoBtn').addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); audio.unlock(); if (state !== 'run' || paused) return; sim.setAuto(!sim.auto); audio.play('tap'); drawerUI(); });   // AUTO = auto deploy + auto aim · TAP = manual deploy + lane aim
-  $('tankBtn').addEventListener('click', e => { e.stopPropagation(); if (state !== 'run' || paused) return; if (sim.buy('tank')) { audio.play('upgrade'); KM.haptic(15); } else if (sim.ups && sim.ups.tank) banner('UPGRADE · ' + KM.fmtShort(sim.upCost()) + ' GOLD', 0.8); drawerUI(); });
+  // UPGRADE opens the command tank's skill tracks: each row shows Lv, current → next value and its own Gold price; + buys one level
+  const fmtTV = (t, v) => t.kind === 'count' ? String(Math.round(v)) : t.stat === 'maxHp' ? String(Math.round(v)) : t.stat === 'tankRate' ? v.toFixed(2) + '/s' : t.stat === 'tankRange' ? (KM.W.TANK_RANGE * v / KM.baseStats().tankRange).toFixed(0) + ' m' : t.stat === 'tankSplash' ? v.toFixed(2) + ' m' : v.toFixed(1);
+  function tankUI(refresh) { const el = $('tankUps');
+    if (!refresh) el.innerHTML = KM.TANK_SKILLS.map(t => `<div class="tu" data-id="${t.id}"><b>${t.title}<em></em></b><button type="button"></button></div>`).join('');
+    for (const r of el.children) { const id = r.dataset.id, t = KM.TANK_SKILL_BY[id], lv = sim.tankLv(id), max = lv >= KM.CLASS_MAX, c = sim.tankCost(id), b = r.querySelector('button');
+      r.classList.toggle('max', max); r.querySelector('em').textContent = 'LV ' + lv + ' · ' + fmtTV(t, sim.tankValue(id, lv)) + (max ? '' : ' → ' + fmtTV(t, sim.tankValue(id, lv + 1)));
+      b.textContent = max ? 'MAX' : '+ ' + KM.fmtShort(c); b.disabled = max || sim.coins < c; }
+    if (!refresh) el.querySelectorAll('.tu button').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); if (state !== 'run' || paused) return; const id = b.parentNode.dataset.id;
+      if (sim.tankUp(id)) { audio.play('upgrade'); KM.haptic(15); } else banner(sim.tankLv(id) >= KM.CLASS_MAX ? 'MAX LEVEL' : 'NEED ' + KM.fmtShort(sim.tankCost(id)) + ' GOLD', 0.8); tankUI(true); drawerUI(); })); }
+  $('tankBtn').addEventListener('click', e => { e.stopPropagation(); audio.unlock(); if (state !== 'run' || paused) return; const el = $('tankUps'), open = el.classList.contains('hidden'); closePops(); if (!open) return;
+    tankUI(); el.classList.remove('hidden'); const r = $('tankBtn').getBoundingClientRect(), wide = DESK_Q.matches, lo = render.layout === 'landscape' ? Math.max(8, choiceBottom()) : 8;
+    void wide; el.style.left = Math.max(8, r.left - el.offsetWidth - 8) + 'px'; el.style.top = Math.max(lo, Math.min(innerHeight - el.offsetHeight - 8, r.bottom - el.offsetHeight)) + 'px'; audio.play('tap'); });   // always opens LEFT of the column, never over it
+  // ITEMS: the five energy-free consumables with art, quantity, effect and USE; opens to the left of the column like POWER
+  const CONS_ART = {
+    warcry: '<rect width="64" height="64" rx="10" fill="#3a1414"/><path d="M14 40l14-6V22l-14-6z" fill="#ffb02e" stroke="#5a2a00" stroke-width="2.5" stroke-linejoin="round"/><path d="M28 24h8l14-10v36L36 40h-8z" fill="#ff6a3a" stroke="#5a1a00" stroke-width="2.5" stroke-linejoin="round"/><path d="M54 22l6-4M54 32h8M54 42l6 4" stroke="#ffd23a" stroke-width="3" stroke-linecap="round"/>',
+    titan: '<rect width="64" height="64" rx="10" fill="#14243a"/><circle cx="32" cy="16" r="9" fill="#7fb0ff" stroke="#0a1a3a" stroke-width="2.4"/><path d="M10 60c0-20 9-34 22-34s22 14 22 34z" fill="#3a6dd8" stroke="#0a1a3a" stroke-width="2.6"/><path d="M6 6h10M11 1v10M48 6h10M53 1v10" stroke="#ffd23a" stroke-width="3" stroke-linecap="round"/>',
+    barrage: '<rect width="64" height="64" rx="10" fill="#1a2030"/><rect x="10" y="40" width="40" height="14" rx="4" fill="#2f6dff" stroke="#0a1a3a" stroke-width="2.4"/><path d="M26 40V30h12v10" fill="#4f8bff" stroke="#0a1a3a" stroke-width="2.4"/><g stroke="#ffb02e" stroke-width="3" stroke-linecap="round"><path d="M32 28l-10-18M32 28l0-20M32 28l10-18"/></g><circle cx="22" cy="10" r="3" fill="#fff2c0"/><circle cx="32" cy="8" r="3" fill="#fff2c0"/><circle cx="42" cy="10" r="3" fill="#fff2c0"/>',
+    fortress: '<rect width="64" height="64" rx="10" fill="#10203a"/><path d="M32 6l20 8v16c0 14-9 23-20 28-11-5-20-14-20-28V14z" fill="#8f9bb0" stroke="#1a2438" stroke-width="3" stroke-linejoin="round"/><path d="M32 14l12 5v11c0 9-5 15-12 18z" fill="#cfd8e8"/>',
+    rapid: '<rect width="64" height="64" rx="10" fill="#2a2410"/><path d="M8 44h20M12 34h22M8 24h18" stroke="#ffd23a" stroke-width="4" stroke-linecap="round"/><path d="M38 10L26 34h10l-4 20 18-28H40z" fill="#ffe08a" stroke="#6a4a00" stroke-width="2.6" stroke-linejoin="round"/>',
+  };
+  function consUI(refresh) { const el = $('consPop');
+    if (!refresh) el.innerHTML = KM.CONS_IDS.map(id => `<div class="cs" data-id="${id}"><svg viewBox="0 0 64 64" aria-hidden="true">${CONS_ART[id]}</svg><b>${KM.CONSUMABLES[id].name} <span class="n"></span><em>${KM.CONSUMABLES[id].desc}</em></b><button type="button">USE</button></div>`).join('');
+    for (const r of el.children) { const id = r.dataset.id, n = sim.cons[id] || 0, on = id !== 'titan' && sim.cOn(id); r.classList.toggle('on', on); r.querySelector('.n').textContent = '×' + n;
+      const b = r.querySelector('button'); b.textContent = on ? 'ACTIVE' : 'USE'; b.disabled = !sim.canCons(id); }
+    if (!refresh) el.querySelectorAll('.cs button').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); if (state !== 'run' || paused) return;   // one press = at most one unit (useCons refuses a second same-wave effect)
+      if (sim.useCons(b.parentNode.dataset.id)) { KM.haptic(30); closePops(); } else consUI(true); })); }
+  const consCount = () => KM.CONS_IDS.reduce((a, id) => a + (sim.cons[id] || 0), 0);
+  $('consBtn').addEventListener('click', e => { e.stopPropagation(); audio.unlock(); if (state !== 'run' || paused) return; const el = $('consPop'), open = el.classList.contains('hidden'); closePops(); if (!open) return;
+    consUI(); el.classList.remove('hidden'); const r = $('consBtn').getBoundingClientRect(), lo = render.layout === 'landscape' ? Math.max(8, choiceBottom()) : 8;
+    el.style.left = Math.max(8, r.left - el.offsetWidth - 8) + 'px'; el.style.top = Math.max(lo, Math.min(innerHeight - el.offsetHeight - 8, r.top)) + 'px'; audio.play('tap'); });
   // POWER opens the three equipped powers beside it; using one closes the selection again
   function powersUI(refresh) { const el = $('powers');
-    if (!refresh) el.innerHTML = sim.equipped.map(id => `<div class="pw" data-id="${id}" role="button" aria-label="${KM.POWERS[id].name}">${svg(id)}<b>${KM.POWERS[id].name}</b><small></small></div>`).join('');
-    for (const p of el.children) { const id = p.dataset.id, cd = sim.pcd[id] || 0; p.classList.toggle('ready', sim.canPower(id)); p.classList.toggle('cd', cd > 0); p.querySelector('small').textContent = cd > 0 ? Math.ceil(cd) + 's' : KM.POWERS[id].cost + ' ⚡'; }
+    if (!refresh) el.innerHTML = [...sim.equipped, ...((sim.mods.perks.recruits || 0) ? ['recruits'] : [])].map(id => `<div class="pw" data-id="${id}" role="button" aria-label="${KM.POWERS[id].name}">${svg(id)}<b>${KM.POWERS[id].name}</b><small></small></div>`).join('');
+    for (const p of el.children) { const id = p.dataset.id, cd = sim.pcd[id] || 0; p.classList.toggle('ready', sim.canPower(id)); p.classList.toggle('cd', cd > 0); p.querySelector('small').textContent = cd > 0 ? Math.ceil(cd) + 's' : sim.powerCost(id) + ' ⚡'; }
     if (!refresh) el.querySelectorAll('.pw').forEach(p => p.addEventListener('click', e => { e.stopPropagation(); if (state !== 'run' || paused) return; const id = p.dataset.id;
-      if (sim.usePower(id)) { KM.haptic(30); banner(KM.POWERS[id].name, 0.9); closePops(); } else banner((sim.pcd[id] || 0) > 0 ? 'RECHARGING' : 'NEED ' + KM.POWERS[id].cost + ' ENERGY', 0.7); drawerUI(); })); }
+      if (sim.usePower(id)) { KM.haptic(30); banner(KM.POWERS[id].name, 0.9); closePops(); } else banner((sim.pcd[id] || 0) > 0 ? 'RECHARGING' : 'NEED ' + sim.powerCost(id) + ' ENERGY', 0.7); drawerUI(); })); }
   $('powerBtn').addEventListener('click', e => { e.stopPropagation(); audio.unlock(); if (state !== 'run' || paused) return; const el = $('powers'), open = el.classList.contains('hidden'); closePops(); if (!open) return;
     powersUI(); el.classList.remove('hidden'); const r = $('powerBtn').getBoundingClientRect(), wide = DESK_Q.matches;
-    if (wide) { el.style.left = r.left + 'px'; el.style.top = (r.top - el.offsetHeight - 12) + 'px'; } else { const lo = render.layout === 'landscape' ? Math.max(8, choiceBottom()) : 8; el.style.left = (r.left - el.offsetWidth - 8) + 'px'; el.style.top = Math.max(lo, r.bottom - el.offsetHeight) + 'px'; } audio.play('tap'); });
+    void wide; { const lo = render.layout === 'landscape' ? Math.max(8, choiceBottom()) : 8; el.style.left = (r.left - el.offsetWidth - 8) + 'px'; el.style.top = Math.max(lo, r.bottom - el.offsetHeight) + 'px'; } audio.play('tap'); });   // leftward on every layout
   // choices (supply on waves 5, 15… · power boost after every boss): a small strip, the war keeps going
   // original card art for every prompted choice (supply rewards + tank powers): one 2:3 card style, the KMOB palette
   const CARD_ART = {
@@ -509,10 +603,13 @@
     arrowstorm: '<rect x="0" y="0" width="64" height="64" rx="10" fill="#2a1a18"/><ellipse cx="32" cy="46" rx="22" ry="11" fill="#ff5a2a" opacity=".18" stroke="#ff5a2a" stroke-width="3"/><ellipse cx="32" cy="46" rx="12" ry="6" fill="none" stroke="#ffb02e" stroke-width="2.4"/><path d="M32 30v5M32 57v4M8 46h4M52 46h4" stroke="#ff5a2a" stroke-width="3" stroke-linecap="round"/><g stroke="#e8d0a8" stroke-width="2.6" stroke-linecap="round"><path d="M18 4l7 32M32 2v34M46 4l-7 32"/></g><g fill="#ffffff" stroke="#3a2410" stroke-width="1.2"><path d="M22 34l6-1 0 6z"/><path d="M29 35h6l-3 6z"/><path d="M36 33l6 1-6 5z"/></g>',
     elemental: '<rect x="0" y="0" width="64" height="64" rx="10" fill="#0e2a3a"/><path d="M2 46c8-18 22-24 34-17 9 5 8 14 1 16 9 3 18-3 25-12v29H2z" fill="#3fc8ff" stroke="#08506e" stroke-width="3" stroke-linejoin="round"/><path d="M10 42c6-11 15-14 24-10" fill="none" stroke="#e8fbff" stroke-width="3.4" stroke-linecap="round"/><g stroke="#e8fbff" stroke-width="3" stroke-linecap="round"><path d="M46 4v20M37 9l18 10M55 9L37 19"/></g><circle cx="46" cy="14" r="3" fill="#8ff0ff"/>',
     mercenary: '<rect x="0" y="0" width="64" height="64" rx="10" fill="#1e2a1a"/><path d="M32 2l6 8-6 8-6-8z" fill="#ffd23a" stroke="#6a3c00" stroke-width="2"/><path d="M12 50a20 20 0 0140 0v10H38V50H26v10H12z" fill="#d8dee8" stroke="#3a4458" stroke-width="3" stroke-linejoin="round"/><path d="M32 30v18" stroke="#3a4458" stroke-width="3"/><path d="M14 44h36" stroke="#9aa6b8" stroke-width="2.4"/><path d="M2 28l10 4v8l-10 4z" fill="#ffd23a" stroke="#6a3c00" stroke-width="2" stroke-linejoin="round"/><path d="M12 32h4v8h-4" fill="#c88a1a" stroke="#6a3c00" stroke-width="2"/>',
+    cls: '<rect x="0" y="0" width="64" height="64" rx="10" fill="#1a2a50"/><circle cx="32" cy="20" r="9" fill="#ffd2b0" stroke="#3a2a1a" stroke-width="2.4"/><path d="M14 58c0-14 8-24 18-24s18 10 18 24z" fill="#2d58b8" stroke="#0a1a3a" stroke-width="2.6"/><path d="M44 8l6-6 6 6M50 2v18" stroke="#7dff9a" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+    tank: '<rect x="0" y="0" width="64" height="64" rx="10" fill="#14243a"/><rect x="8" y="34" width="44" height="16" rx="5" fill="#2f6dff" stroke="#0a1a3a" stroke-width="2.6"/><rect x="18" y="24" width="22" height="12" rx="4" fill="#4f8bff" stroke="#0a1a3a" stroke-width="2.4"/><path d="M38 28h20" stroke="#cfd8e8" stroke-width="5" stroke-linecap="round"/><circle cx="16" cy="54" r="4" fill="#1a1a22"/><circle cx="30" cy="54" r="4" fill="#1a1a22"/><circle cx="44" cy="54" r="4" fill="#1a1a22"/><path d="M50 4l5-4 5 4M55 0v14" stroke="#7dff9a" stroke-width="3" fill="none" stroke-linecap="round"/>',
+    cons: '<rect x="0" y="0" width="64" height="64" rx="10" fill="#2a1a3a"/><path d="M24 8h16v8l8 10v28a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6V26l8-10z" fill="#b36cff" stroke="#3a1a5a" stroke-width="2.6" stroke-linejoin="round"/><path d="M22 34h20v18H22z" fill="#e8d0ff" opacity=".55"/><path d="M28 14h8" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M32 38l3 6h-6z" fill="#ffd23a"/>',
     fortress: '<rect x="0" y="0" width="64" height="64" rx="10" fill="#0e1a33"/><path d="M6 50a26 26 0 0152 0z" fill="#3fa8ff" fill-opacity=".3" stroke="#8fe0ff" stroke-width="3.2"/><path d="M19 31l13-7 13 7M32 24v26M19 31v19M45 31v19M8 42l24-6 24 6" fill="none" stroke="#e8fbff" stroke-width="2.2" stroke-linejoin="round"/><path d="M14 50h36l-4 9H18z" fill="#2d58b8" stroke="#0a1a3a" stroke-width="2.4" stroke-linejoin="round"/>',
   };
   function choiceUI() { const c = sim.choice, el = $('choice'); if (!c) { el.classList.add('hidden'); return; } el.classList.remove('hidden'); $('drawer').classList.remove('wide');
-    $('choiceT').textContent = c.kind === 'supply' ? 'SUPPLY — CHOOSE ONE' : 'BOSS REWARD — TANK POWER';
+    $('choiceT').textContent = c.kind === 'supply' ? 'SUPPLY — CHOOSE ONE' : 'BOSS REWARD — CHOOSE ONE (PERMANENT)';
     $('choiceO').innerHTML = c.opts.map((o, k) => `<button data-k="${k}" class="card23"><span class="art"><svg viewBox="0 0 64 64" aria-hidden="true">${CARD_ART[o.id] || CARD_ART.energy}</svg></span><span class="tt">${o.title}</span><small>${o.val}</small></button>`).join('');
     $('choiceO').querySelectorAll('button').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); sim.takeChoice(+b.dataset.k); audio.play('upgrade'); choiceUI(); })); }
   // boss name + HP right above the boss

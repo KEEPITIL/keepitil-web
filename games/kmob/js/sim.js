@@ -1,11 +1,14 @@
 /* KMOB simulation — headless, deterministic for a given seed + input stream.
    Systems: FriendlyArmy/ArmySpawner (deploy), EnemyDirector, CombatSystem (grid + projectiles), CurrencySystem,
-   RunUpgradeSystem, Towers, Launcher. Renderer/audio/UI only read state and listen to events. */
+   RunUpgradeSystem, Launcher (the command tank is the only tank). Renderer/audio/UI only read state and listen to events. */
 (function (G) {
   const KM = G.KM, W = KM.W;
   const CAP = 4096, PCAP = 900, CCAP = 900;
   const GX0 = -12, GCS = 2, GCOLS = 12, GROWS = 56; // grid: x in [-12,12], z in [front-90, front+22]
   const DEAD = 0, ALIVE = 1, DYING = 2;
+  const BASE_TANK_RANGE = KM.baseStats().tankRange, MANUAL_HOLD = 1.5, AUTO_SPD = 10;   // cannon range scale reference · AUTO aim waits MANUAL_HOLD s after the player steers · AUTO slides the tank at AUTO_SPD m/s
+  const TANK_PAD = 0.12;    // an enemy strikes the tank when its body is within weapon range + this of the hull surface
+  const BESIDE = 0.05;      // an enemy deeper than this past the hull front plane stands beside the hull (Float32 slack for front-face attackers)
 
   class Sim {
     constructor(opts) { this.opts = opts || {}; this.listeners = []; this.alloc(); this.reset(this.opts); }
@@ -18,16 +21,17 @@
         x: f(CAP), z: f(CAP), vx: f(CAP), vz: f(CAP), hp: f(CAP), mhp: f(CAP), dmg: f(CAP), cd: f(CAP), at: f(CAP), spd: f(CAP),
         rng_: f(CAP), arm: f(CAP), rad: f(CAP), sc: f(CAP), phase: f(CAP), swing: f(CAP), flash: f(CAP), die: f(CAP), slow: f(CAP),
         yaw: f(CAP), think: f(CAP), birth: f(CAP), stride: f(CAP), team: u(CAP), kind: u(CAP), st: u(CAP), era: u(CAP), elite: u(CAP),
-        tgt: i(CAP), next: i(CAP), freeL: i(CAP), carry: f(CAP), ctg: i(CAP), repairing: u(CAP), mt: f(CAP), mph: u(CAP), em: u(CAP), br: u(CAP), wv: i(CAP), pt: u(CAP), evo: u(CAP), merc: f(CAP), grp: i(CAP), gox: f(CAP), goz: f(CAP), spear: u(CAP), frank: u(CAP), fcol: i(CAP), role: u(CAP), roleT: f(CAP), atkN: u(CAP), swd: f(CAP), pend: i(CAP), pcrit: u(CAP), pdmg: f(CAP),
+        tgt: i(CAP), eng: u(CAP), next: i(CAP), freeL: i(CAP), carry: f(CAP), ctg: i(CAP), repairing: u(CAP), mt: f(CAP), mph: u(CAP), em: u(CAP), br: u(CAP), wv: i(CAP), pt: u(CAP), evo: u(CAP), merc: f(CAP), grp: i(CAP), gox: f(CAP), goz: f(CAP), spear: u(CAP), ft: f(CAP), frank: u(CAP), fcol: i(CAP), role: u(CAP), roleT: f(CAP), atkN: u(CAP), swd: f(CAP), pend: i(CAP), pcrit: u(CAP), pdmg: f(CAP),
         gh: i(GCOLS * GROWS * 2),
-        p: { x: f(PCAP), z: f(PCAP), sx: f(PCAP), sz: f(PCAP), ex: f(PCAP), ez: f(PCAP), t: f(PCAP), tof: f(PCAP), dmg: f(PCAP), spl: f(PCAP), slow: f(PCAP), h: f(PCAP), team: u(PCAP), kind: u(PCAP), on: u(PCAP), tgt: i(PCAP), crit: u(PCAP), src: u(PCAP), pen: u(PCAP) },
+        burnD: f(CAP), burnT: f(CAP), poisD: f(CAP), poisT: f(CAP), healRed: f(CAP), iceM: f(CAP), iceT: f(CAP),
+        p: { x: f(PCAP), el: u(PCAP), z: f(PCAP), sx: f(PCAP), sz: f(PCAP), ex: f(PCAP), ez: f(PCAP), t: f(PCAP), tof: f(PCAP), dmg: f(PCAP), spl: f(PCAP), slow: f(PCAP), h: f(PCAP), team: u(PCAP), kind: u(PCAP), on: u(PCAP), tgt: i(PCAP), crit: u(PCAP), src: u(PCAP), pen: u(PCAP), lane: u(PCAP) },
         c: { x: f(CCAP), z: f(CCAP), v: f(CCAP), age: f(CCAP), st: u(CCAP), y: f(CCAP), vy: f(CCAP), dx: f(CCAP), dz: f(CCAP) },
       });
     }
 
     reset(opts) {
       this.gh.fill(-1);   // empty spatial grid until the first step (a kill before it must not walk stale links)
-      opts = opts || {};
+      opts = opts || {}; this.opts = opts;
       this.seed = (opts.seed != null ? opts.seed : (Date.now() & 0x7fffffff)) >>> 0;
       this.rng = KM.rng(this.seed);
       this.pboost = {}; this.equipped = (opts.equip && opts.equip.length ? opts.equip : KM.POWER_IDS.slice(0, 3)).slice(0, 3); this.powerLv = opts.powerLv || {}; this.skins = opts.skins || {};
@@ -37,11 +41,20 @@
       this.pfree = 0; this.cfree = 0;
       this.t = 0; this.front = 0; this.alive = true; this.deathReason = ''; this.ended = false;
       this.stats = KM.applySkins(KM.baseStats(), this.skins);
-      this.L = { x: 0, z: 2, tx: 0, hp: this.stats.maxHp, hitT: 9, inv: 0, vx: 0, fire: 0, wheel: 0, cd: 0.6, mcd: 2, aim: Math.PI, gun: 0, sh: 0, shMax: 0, shDown: 0, shHit: 9 };
-      this.posture = 0; this.postureT = 0; this.src = 0; this.dmgBy = [0, 0, 0, 0]; this.shAbsorbed = 0; this.colCoins = 0; this.colLost = 0; this.nCol = 0; this.colT = 0; this.colList = []; this.prod = 'melee'; this.auto = true; this.sector = null; this.seenSector = {}; this.bossN = 0; this.wave = 0; this.wState = 0; this.wGap = 3; this.wQueue = []; this.waveLeft = 0; this.waveSpawned = 0; this.waveStart = 0; this.energy = 0; this.choice = null; this.bossesKilled = 0; this.warTokens = 0; this.pcd = {}; this.storm = null; this.fortT = 0; this.mercs = 0; this.nKind = new Int32Array(64); this.prodNext = null; this.healed = 0; this.repaired = 0; this.repairOn = 0; this.nRepair = 0;
+      this.buffs = { cls: JSON.parse(JSON.stringify((opts.buffs && opts.buffs.cls) || {})), tank: Object.assign({}, opts.buffs && opts.buffs.tank) };   // permanent boss-card buffs (saved by the shell)
+      for (const k in this.buffs.tank) if (k in KM.TANK_BUFF_STATS) this.stats[k] *= KM.buffMul(this.buffs.tank[k]);
+      this.mods = KM.loadoutMods(opts.loadout); const PK = this.mods.perks, TK = this.mods.tank;   // Phase C: class equipment + seasonal skins + perks
+      this.stats.magnet *= 1 + 0.1 * (PK.magnet || 0); this.stats.maxHp += 10 * (PK.plating || 0);
+      this.stats.tankDmg *= 1 + TK.dmg; this.stats.tankRate *= 1 + TK.rof; this.stats.maxHp *= 1 + TK.hp; this.tankArm = 1 + TK.armPct;
+      this.elemK = {}; for (const k of KM.PROD_ORDER) { const e = this.mods.elem[k]; if (e) this.elemK[KM.FRIEND_BY[KM.PROD[k].kind].id] = e; } this.elemTank = this.mods.elem.tank || null; this.elemNow = null;
+      this.mercTier = [1, 2, 3].includes(opts.mercTier) ? opts.mercTier : 1; this.recruitN = 0;
+      this.diamondsWon = 0; this.cons = Object.assign({}, opts.cons); this.cfx = {}; this.titans = 0;   // consumable inventory (mirrors the save) · active one-wave effects {id: wave}
+      this.L = { x: 0, z: 2, tx: 0, hp: this.stats.maxHp, hitT: 9, inv: 0, vx: 0, fire: 0, wheel: 0, cd: 0.6, mcd: 2, aim: Math.PI, gun: 0, sh: 0, shMax: 0, shDown: 0, shHit: 9, man: 0, atg: -1, atT: 0 };   // man: manual-steering hold (s) · atg/atT: AUTO lane target + re-aim timer (none saved)
+      this.posture = 0; this.postureT = 0; this.src = 0; this.dmgBy = [0, 0, 0, 0]; this.shAbsorbed = 0; this.colCoins = 0; this.colLost = 0; this.nCol = 0; this.colT = 0; this.colList = []; this.prod = 'melee'; this.auto = true; this.plan = KM.validPlan(opts.plan); this.planRR = 0; this.sector = null; this.seenSector = {}; this.bossN = 0; this.wave = 0; this.wState = 0; this.wGap = 3; this.wQueue = []; this.waveLeft = 0; this.waveSpawned = 0; this.waveStart = 0; this.energy = 0; this.choice = null; this.bossesKilled = 0; this.warTokens = 0; this.pcd = {}; this.storm = null; this.fortT = 0; this.mercs = 0; this.nKind = new Int32Array(64); this.prodNext = null; this.healed = 0; this.repaired = 0; this.repairOn = 0; this.nRepair = 0;
       this.deployAcc = 0; this.budget = 3; this.overflow = 0; this.formT = 0.6; this.warn = null;
       this.coins = KM.START_BANK; this.coinsTotal = 0; this.kills = 0; this.peakArmy = 0; this.upgrades = 0; this.ups = null; this.upT = 0; this.groups = []; this.pts = 0; this.emergency = 0; this.nBoss = 0; this.bossI = -1; this.charge = { collector: 0, range: 0, melee: 0, elite: 0, giant: 0 }; this.posture = 1; this.breaches = 0; this.rowLoss = [0, 0, 0, 0]; this.fillN = 0; this.fillSum = 0;
       this.towers = [null, null, null, null];
+      this.form = null; this.guardN = 0; this.gOn = 0; this.gDrop();   // DEFEND formation + tank guard state starts fresh (main.js reuses one Sim after the attract run)
       this.spawnCounter = 0; this.lastHit = 99; this.danger = 0; this.killsByKind = {};
       this.debugLog = []; this.diff = KM.difficulty(0);
     }
@@ -51,8 +64,9 @@
     heal(n) { this.L.hp = Math.min(this.stats.maxHp, this.L.hp + n); }
 
     // ---------- input ----------
-    moveBy(dx) { this.L.tx = Math.max(-W.LANE + 1, Math.min(W.LANE - 1, this.L.tx + dx)); }   // the command vehicle slides left/right along the rear lane only
-    moveTo(x) { this.L.tx = Math.max(-W.LANE + 1, Math.min(W.LANE - 1, x)); }
+    moveBy(dx) { this.L.tx = Math.max(-W.LANE + 1, Math.min(W.LANE - 1, this.L.tx + dx)); this.L.man = MANUAL_HOLD; }   // the command vehicle slides left/right along the rear lane only
+    moveTo(x) { this.L.tx = Math.max(-W.LANE + 1, Math.min(W.LANE - 1, x)); this.L.man = MANUAL_HOLD; }                  // (any steering input pauses AUTO aim for MANUAL_HOLD s)
+    holdManual() { this.L.man = MANUAL_HOLD; }   // the player's finger is still on a slide: AUTO aim keeps waiting even while it does not move
 
     // ---------- army posture (the only control besides movement + upgrade cards) ----------
     setPosture(p) { p = p ? 1 : 0; if (p === this.posture) return; this.posture = p; this.postureT = 0; for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i]) { this.think[i] = Math.min(this.think[i], 0.05 + (i % 7) * 0.04); if (p) this.tgt[i] = -1; } this.emit('posture', p); }
@@ -70,23 +84,32 @@
     allAttack() { for (const k in this.charge) this.charge[k] = 0; this.setPosture(0); this.emit('allOrder', 0); }
     allDefend() { for (const k in this.charge) this.charge[k] = 0; this.setPosture(1); this.emit('allOrder', 1); }
     setAuto(on) { on = !!on; if (on === this.auto) return; this.auto = on; this.emit('auto', on); }
-    prodCost() { return KM.PROD[this.prod].cost; }
+    prodCost() { return KM.deployCost(this.prod, this.stats.cls[this.prod]); }
     clsLv(key) { return this.stats.cls[key]; }
     evolved(key) { return this.stats.cls[key] >= KM.EVOLVE_AT; }
     prodPts() { return KM.unitPts(this.prod, this.evolved(this.prod)); }
-    canDeploy() { return this.alive && this.pts + this.prodPts() <= this.stats.cap && this.coins >= this.prodCost(); }
+    canDeploy(key) { key = key || this.prod; return this.alive && this.pts + KM.unitPts(key) <= this.stats.cap && this.coins >= KM.deployCost(key, this.stats.cls[key]); }
+    // WAR PLAN: targets for LIVING ordinary soldiers (Mercenaries, Recruits and Titans are CAP-exempt and never count)
+    setPlan(p) { this.plan = KM.validPlan(p); this.emit('plan', this.plan); }
+    planActive() { return KM.planOn(this.plan); }
+    liveOrdinary() { const o = KM.emptyPlan(); for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE || this.team[i] || this.merc[i] || !this.pt[i]) continue; const k = KM.CLASS_OF[this.kind[i]]; if (k) o[k]++; } return o; }
+    // one deployment toward the plan: round robin over Looter → Giant from the class after the last one served; under-target classes that
+    // are unaffordable or would break the 300 CAP are skipped this time (never free, never over CAP, nothing despawned when over target)
+    deployPlanned(how) { const O = KM.PROD_ORDER, live = this.liveOrdinary();
+      for (let r = 0; r < O.length; r++) { const q = (this.planRR + r) % O.length, k = O[q]; if (live[k] >= this.plan[k] || !this.canDeploy(k)) continue;
+        if (this.deployOne(how || 'plan', k)) { this.planRR = (q + 1) % O.length; return true; } }
+      return false; }
     // one soldier of the selected class at that class's level, paid in Gold; false when the 300 army points are used or Gold is short
     makeSoldier(key, x, z, birth) {
-      const P = KM.PROD[key], S = this.stats, def = KM.FRIEND_BY[P.kind], lv = S.cls[key], M = this.clsM(key, lv), ev = lv >= KM.EVOLVE_AT;
-      const j = this.spawn(0, def, x, z, { hp: S.hp * M.hp * (ev ? 1.25 : 1), dmg: S.dmg, arm: M.arm, spd: def.col ? S.colSpeed : S.speed / 4, birth });
-      if (j < 0) return -1; this.pt[j] = KM.unitPts(key, ev); this.pts += this.pt[j]; this.nKind[def.id - 32]++;
-      if (ev) { this.evo[j] = 1; this.rad[j] *= 1.2; }   // evolved: stronger and costs 2 points, but the model never changes with level
+      const P = KM.PROD[key], S = this.stats, def = KM.FRIEND_BY[P.kind], lv = S.cls[key], M = this.clsM(key, lv);
+      const j = this.spawn(0, def, x, z, { hp: M.hp / def.hp, dmg: def.dmg ? M.dmg / def.dmg : 0, arm: M.arm, spd: def.col ? S.colSpeed : S.speed / 4, birth });   // absolute owner-table numbers
+      if (j < 0) return -1; this.pt[j] = KM.unitPts(key); this.pts += this.pt[j]; this.nKind[def.id - 32]++;
       return j;
     }
-    deployOne(how) {
-      if (!this.canDeploy()) return false; const P = KM.PROD[this.prod], S = this.stats, L = this.L, def = KM.FRIEND_BY[P.kind];
-      const j = this.makeSoldier(this.prod, L.x + (this.rng() - 0.5) * 0.6, L.z - 1.4, 0.0001);
-      if (j < 0) return false; this.coins -= P.cost; this.spawnCounter++;
+    deployOne(how, key) {
+      key = key || this.prod; if (!this.canDeploy(key)) return false; const P = KM.PROD[key], S = this.stats, L = this.L, def = KM.FRIEND_BY[P.kind];
+      const j = this.makeSoldier(key, L.x + (this.rng() - 0.5) * 0.6, L.z - 1.4, 0.0001);
+      if (j < 0) return false; this.coins -= KM.deployCost(key, S.cls[key]); this.spawnCounter++;
       this.vz[j] = -S.speed * 1.6; this.vx[j] = (this.rng() - 0.5) * 3; L.fire = 1; this.emit('deploy', j, how || 'auto'); if (def.col) this.emit('collector', j); return true;
     }
 
@@ -113,20 +136,35 @@
         if (this.st[j] !== ALIVE) continue; const dx = this.x[j] - x, dz = this.z[j] - z, dd = dx * dx + dz * dz; if (dd < bd) { bd = dd; best = j; } }
       return best;
     }
+    // Cannon range: a fixed world distance from the tank, W.TANK_RANGE (about two-thirds of the tank-to-spawn depth). Only the
+    // existing explicit range rules scale it, both through stats.tankRange: TARGETING SYSTEM cards and the Midnight skin. Tank
+    // level, eras and every other tank upgrade leave it unchanged; it never depends on where the enemies are.
+    // ---------- energy-free consumables (inventory, activated only by the player) ----------
+    cOn(id) { return this.cfx[id] === this.wave; }                                                    // a one-wave effect lasts for the wave it was used in
+    dmgFx() { return this.cOn('warcry') ? 1.25 : 1; } spdFx() { return this.cOn('rapid') ? 1.25 : 1; } armFx() { return this.cOn('fortress') ? 1.25 : 1; }
+    canCons(id) { return this.alive && KM.CONSUMABLES[id] && (this.cons[id] || 0) > 0 && (id === 'titan' || !this.cOn(id)); }   // the same one-wave effect never stacks; different ones may run together
+    useCons(id) {
+      if (!this.canCons(id)) return false; this.cons[id]--;
+      if (id === 'titan') this.summonTitan(); else { this.cfx[id] = this.wave; if (id === 'barrage') this.L.bcd = 0; }
+      this.emit('consUse', id); return true;
+    }
+    summonTitan() {                                                                                   // TITAN GIANT: 2× size / HP / damage of the current Giant level, no CAP, fights until it falls
+      const S = this.stats, def = KM.FRIEND_BY.giantF, M = this.clsM('giant', S.cls.giant), L = this.L;
+      const j = this.spawn(0, def, L.x, L.z - 4, { hp: 2 * M.hp / def.hp, dmg: 2 * M.dmg / def.dmg, arm: M.arm, spd: S.speed / 4 }); if (j < 0) return -1;
+      this.merc[j] = 1e12; this.evo[j] = 2; this.pt[j] = 0; this.sc[j] *= 2; this.rad[j] *= 2; this.ft[j] = KM.footOf(def, this.rad[j], this.sc[j]); this.titans++; this.emit('titan', j); return j;
+    }
+    cannonRange() { return W.TANK_RANGE * (this.stats.tankRange / BASE_TANK_RANGE); }
     stepTank(dt, S) {
-      const L = this.L; L.cd -= dt * S.tankRate; L.mcd -= dt; L.gun = Math.max(0, L.gun - dt * 4);
+      this.elemNow = this.elemTank; const L = this.L; L.cd -= dt * S.tankRate * this.spdFx(); L.mcd -= dt; L.gun = Math.max(0, L.gun - dt * 4);
       if (L.cd <= 0) {
-        // the main gun picks the toughest threat in range (elites, brutes, siege) — soldiers handle the small fry
-        let tg = -1, bs = -1e9; const R2 = S.tankRange * S.tankRange, lane = !this.auto;   // TAP mode: no auto-aim — the tank fires straight down its own lane
-        for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE || this.team[i] !== 1) continue; const dx = this.x[i] - L.x, dz = this.z[i] - L.z, dd = dx * dx + dz * dz; if (dd > R2) continue;
-          if (lane && (Math.abs(dx) > 1.6 + this.rad[i] || dz > 0.5)) continue;
-          const sc = lane ? dz : this.hp[i] * (this.elite[i] ? 3 : 1) - Math.sqrt(dd) * 3; if (sc > bs) { bs = sc; tg = i; } }
-        if (tg < 0) L.cd = 0.12;
-        else { L.cd = 1; const E = KM.TANK_ERAS[this.tankEra = KM.tankEra(S, this.t)], tx = this.x[tg], tz = this.z[tg], d = Math.hypot(tx - L.x, tz - L.z), tof = d / E.speed; L.aim = lane ? Math.PI : Math.atan2(tx - L.x, tz - L.z); L.gun = 1;
-          const shots = [tg]; for (let k = 1; k < (S.tankMulti || 1); k++) { const j = this.nearestXZ(tx + (k % 2 ? 2.5 : -2.5), tz - k, 1, 4); if (j >= 0 && !shots.includes(j)) shots.push(j); }   // MULTISHOT: extra nearby targets
-          for (const j of shots) { const jx = this.x[j], jz = this.z[j], jt = Math.hypot(jx - L.x, jz - L.z) / E.speed;
-            this.fire(0, L.x, L.z - 1.2, j, jx + this.vx[j] * jt, jz + this.vz[j] * jt, S.tankDmg * E.dmg, E.proj, S.tankSplash, 0, E.speed, false, 2); this.p.pen[this.lastShot] = S.tankPen || 0; }
-          this.emit('tankfire', tg, shots.length); }
+        // The cannon never waits for a target: on its normal cadence it fires straight ahead (-z) down the tank's current lane
+        // to its fixed range, in AUTO and TAP alike (no acquisition, no lead, no homing). Lining the lane up is the steering's
+        // job. MULTISHOT adds parallel shells 0.9 m apart, alternating sides, kept inside the lane.
+        L.cd = 1; L.aim = Math.PI; L.gun = 1;
+        const E = KM.TANK_ERAS[this.tankEra = KM.tankEra(S, this.t)], n = S.tankMulti || 1, z0 = L.z - W.HULL_HL, z1 = L.z - this.cannonRange();
+        for (let k = 0; k < n; k++) { const x = Math.max(-W.LANE, Math.min(W.LANE, L.x + (k ? (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.9 : 0)));
+          this.laneShot(x, z0, z1, S.tankDmg * E.dmg * this.dmgFx(), E.proj, S.tankSplash, E.speed, S.tankPen || 0); }
+        this.emit('tankfire', -1, n);
       }
       if (S.missiles > 0 && L.mcd <= 0) {
         L.mcd = 3.2; const R = S.tankRange * 1.4, list = [];
@@ -135,6 +173,66 @@
         for (let k = 0; k < Math.min(S.missiles, list.length); k++) { const tg = list[k]; this.fire(0, L.x + (k % 2 ? 0.6 : -0.6), L.z + 0.3, tg, this.x[tg], this.z[tg], S.tankDmg * 1.6, 21, 1.4, 0, 15, false, 2); }
         if (list.length) this.emit('missiles', Math.min(S.missiles, list.length));
       }
+      // TANK BARRAGE: a mounted auto-targeting weapon for one wave (AUTO and TAP alike): every 0.5 s it fires at the nearest enemy in cannon
+      // range for 25 % of a cannon shell (War Cry multiplies it once, like every tank shot)
+      if (this.cOn('barrage') && (L.bcd = (L.bcd || 0) - dt) <= 0) { L.bcd = 0.5; const tg = this.nearestXZ(L.x, L.z - 1, 1, this.cannonRange());
+        if (tg >= 0) { this.fire(0, L.x, L.z - 0.5, tg, this.x[tg], this.z[tg], S.tankDmg * 0.25 * this.dmgFx(), 21, 0, 0, 30, false, 2); this.emit('barrage', tg); } }
+    }
+    // One cannon shell flying straight down -z at x, from the muzzle (z0) to the end of the range (z1). It is a lane shell: it
+    // strikes the first enemy in its lane on the way (stepProjectiles) and is flat, so it never lobs over what it hits.
+    laneShot(x, z0, z1, dmg, kind, spl, speed, pen) {
+      this.laneOn = 1; this.lanePen = pen; this.fire(0, x, z0, -1, x, z1, dmg, kind, spl, 0, speed, false, 2); this.laneOn = 0;
+      const k = this.lastShot; if (k < PCAP) { const P = this.p; P.lane[k] = 1; P.pen[k] = pen; P.h[k] = 0.3; }
+    }
+    // AUTO aim (TAP never steers on its own): once the player has not steered for MANUAL_HOLD s, slide the tank under the
+    // toughest threat its cannon can strike (the old auto-aim score: hp × 3 for elites − 3 × distance) among the enemies
+    // between the end of the cannon range and the tank's rear plane. Enemies no shell can reach from where the tank may
+    // go (laneFor) are skipped. The current pick is kept unless another is clearly better, and the tank only re-aims when
+    // its lane is more than 0.6 m off. AUTO never drives the hull into an enemy beside it (slideRange): every step it is
+    // moving, its slide stops where the hull meets the nearest one on that side. Deterministic, no RNG.
+    autoSteer(dt) {
+      const L = this.L, tick = (L.atT -= dt) <= 0; if (!tick && Math.abs(L.tx - L.x) < 1e-4) return;
+      const R = this.slideRange();
+      if (tick) { L.atT = 0.1;
+        const zr = L.z - this.cannonRange(), P = L.z + W.REAR_DZ, n = this.stats.tankMulti || 1;
+        let tg = -1, bs = -Infinity, bx = 0, cur = -Infinity, cx = 0;
+        for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE || this.team[i] !== 1) continue; const z = this.z[i];
+          if (z + this.ft[i] < zr || z > P) continue;
+          const dx = this.x[i] - L.x, dz = z - L.z, sc = this.hp[i] * (this.elite[i] ? 3 : 1) - Math.sqrt(dx * dx + dz * dz) * 3;
+          if (sc <= bs && i !== L.atg) continue;
+          const x = this.laneFor(i, n, R); if (x !== x) continue;   // NaN: no reachable tank position puts a shell on it
+          if (sc > bs) { bs = sc; tg = i; bx = x; } if (i === L.atg) { cur = sc; cx = x; } }
+        if (cur > -Infinity && cur >= bs - Math.abs(bs) * 0.1 - 4) { tg = L.atg; bx = cx; }   // hysteresis on the pick: no flicker between near-equal threats
+        L.atg = tg;
+        if (tg >= 0) {   // re-aim when the current lane misses the target; the 0.6 m deadband only stops creep on a target already covered
+          const w = W.TANK_LANE + this.ft[tg] - 0.05, at = Math.max(R[0], Math.min(R[1], L.tx)); let cov = false;
+          for (let k = 0; k < n && !cov; k++) { const o = k ? (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.9 : 0; cov = Math.abs(Math.max(-W.LANE, Math.min(W.LANE, at + o)) - this.x[tg]) < w; }
+          if (!cov || Math.abs(bx - L.tx) > 0.6) L.tx = bx; } }
+      L.tx = Math.max(R[0], Math.min(R[1], L.tx));
+    }
+    // How far AUTO may slide the tank, [lo, hi] (reused): up to the point where the hull touches the nearest enemy beside it
+    // on each side (deeper than BESIDE past the hull front plane). Driving into one would shove it sideways down the lane
+    // (the minimal hull push-out). Enemies in front of the hull face do not limit it: the face slides under them. The range
+    // always contains the tank's own x, so it only ever stops a slide, never starts one.
+    slideRange() {
+      const L = this.L, R = this.tR || (this.tR = [0, 0]); let lo = -Infinity, hi = Infinity;
+      for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE || this.team[i] !== 1) continue; const f = this.ft[i], x = this.x[i];
+        if (this.z[i] <= L.z - W.HULL_HL - f + BESIDE) continue;
+        if (x < L.x) lo = Math.max(lo, x + W.HULL_HW + f); else hi = Math.min(hi, x - W.HULL_HW - f); }
+      R[0] = Math.min(lo, L.x); R[1] = Math.max(hi, L.x); return R;
+    }
+    // Where AUTO puts the tank to strike enemy i with one of its n parallel shells: the tank x (inside ±(LANE − 1) and the
+    // slide range R) nearest its current lane, or NaN if there is none (e.g. a small enemy hugging the lane edge, or one
+    // past an enemy beside the hull). An enemy beside the hull bounds R itself, so no centre-shell lane reaches it: it
+    // counts only while a MULTISHOT side shell covers it from within R.
+    laneFor(i, n, R) {
+      const L = this.L, x = this.x[i], w = W.TANK_LANE + this.ft[i] - 0.05, lim = W.LANE - 1;
+      const lo = Math.max(-lim, R[0]), hi = Math.min(lim, R[1]);
+      let best = NaN, bd = Infinity;
+      for (let k = 0; k < n; k++) { const o = k ? (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.9 : 0, tx = Math.max(lo, Math.min(hi, x - o));
+        if (Math.abs(Math.max(-W.LANE, Math.min(W.LANE, tx + o)) - x) >= w) continue;
+        const d = Math.abs(tx - L.tx); if (d < bd) { bd = d; best = tx; } }
+      return best;
     }
 
     // ---------- units ----------
@@ -146,14 +244,17 @@
       this.x[i] = x; this.z[i] = z; this.vx[i] = 0; this.vz[i] = 0;
       const hp = def.hp * (mul.hp || 1); this.hp[i] = this.mhp[i] = hp;
       this.dmg[i] = def.dmg * (mul.dmg || 1); this.cd[i] = def.cd; this.at[i] = r() * def.cd; this.spd[i] = (def.spd || 4) * (mul.spd || 1) * (0.92 + r() * 0.16);
-      this.rng_[i] = def.rng; this.arm[i] = (def.arm || 0) + (mul.arm || 0); this.rad[i] = def.rad; this.sc[i] = def.sc * (0.95 + r() * 0.1);
-      this.phase[i] = r() * 6.283; this.stride[i] = 0.9 + r() * 0.2; this.swing[i] = 0; this.pend[i] = -1; this.swd[i] = def.el || def.sc >= 1.3 || def.wpn === 'axe' ? 0.75 : def.wpn === 'staff' || def.wpn === 'cannon' ? 0.6 : 0.4; this.flash[i] = 0; this.die[i] = 0; this.slow[i] = 0;
+      this.eng[i] = team === 1 && (def.boss || def.mini) ? 1 : 0;   // bosses / minis: 1 = still marching in, 2 = engaged (held on the battlefield)
+      this.rng_[i] = def.rng; this.arm[i] = (def.arm || 0) + (mul.arm || 0); this.rad[i] = def.rad; this.sc[i] = def.sc * (0.95 + r() * 0.1); this.ft[i] = KM.footOf(def, this.rad[i], this.sc[i]);
+      this.phase[i] = r() * 6.283; this.stride[i] = 0.9 + r() * 0.2; this.swing[i] = 0; this.pend[i] = -1; this.swd[i] = def.el || (team === 1 && def.sc >= 1.3) || def.wpn === 'axe' ? 0.75 : def.wpn === 'staff' || def.wpn === 'cannon' ? 0.6 : 0.4; this.flash[i] = 0; this.die[i] = 0; this.slow[i] = 0;
+      this.burnT[i] = this.poisT[i] = this.iceT[i] = 0; this.burnD[i] = this.poisD[i] = this.healRed[i] = this.iceM[i] = 0;
       this.carry[i] = 0; this.ctg[i] = -1; this.mt[i] = def.mech ? 4 + r() * 2 : def.med ? 6 + r() * 4 : 0; this.mph[i] = 0; this.em[i] = 0; this.br[i] = 0; this.wv[i] = 0; this.grp[i] = -1; this.pt[i] = 0; this.evo[i] = 0; this.merc[i] = 0; this.spear[i] = def.k === 'soldier' ? 1 : 0; this.frank[i] = 0; this.fcol[i] = -1;   // melee: one opening spear per deployment
       this.yaw[i] = team ? 0 : Math.PI; this.think[i] = r() * 0.2; this.birth[i] = mul.birth || 0; this.tgt[i] = -1; this.era[i] = mul.era || 0; this.elite[i] = def.el ? 1 : 0;
       // melee role: 0 front · 1 pressure (fills openings) · 2 breakthrough (fast/heavy) · 3 rear (ranged/support)
       const rr = r(); this.roleT[i] = 0;
       this.role[i] = def.col ? 4 : def.med ? 5 : def.rng > 2 || def.he ? 3 : team ? (def.k === 'brute' || def.k === 'warlord' ? 2 : def.k === 'runner' ? (rr < 0.6 ? 2 : 1) : def.k === 'knight' ? (rr < 0.4 ? 2 : 0) : def.k === 'imp' ? (rr < 0.3 ? 2 : 1) : rr < 0.35 ? 1 : 0)
         : (def.k === 'knightF' || def.big ? 2 : rr < 0.12 ? 2 : rr < 0.47 ? 1 : 0);
+      if (team === 1) this.rearClamp(i);   // summons, waves and staged spawns never appear behind or inside the tank
       this.count[team]++; if (team === 1 && def.boss) { this.nBoss++; this.bossI = i; if (this.nBoss === 1) this.emit('bossFight', 1); }
       return i;
     }
@@ -169,11 +270,12 @@
         if (d.boss) { if (!silent) this.bossDown(d); if (--this.nBoss <= 0) { this.nBoss = 0; this.bossI = -1; this.emit('bossFight', 0); } } if (this.grp[i] >= 0) { const g = this.groups[this.grp[i]]; if (g) g.alive--; this.grp[i] = -1; }
         if (!silent) {
           this.kills++; this.killsByKind[d.k] = (this.killsByKind[d.k] || 0) + 1;
-          let val = d.coin * this.diff.coinMul * KM.COIN_SCALE;
+          let val = d.coin * KM.COIN_BASE * KM.COIN_SCALE;   // owner rule: a kill's Gold depends on the enemy type only — never on its level or the wave
           const bounty = val * KM.BOUNTY; this.coins += bounty; this.coinsTotal += bounty; val -= bounty;   // war bounty goes straight to the bank; the rest drops for the tank/collectors
-          if (val < 1) { if (this.rng() < val) val = 1; else val = 0; }
-          const n = Math.min(8, Math.max(1, Math.round(Math.sqrt(val))));
-          for (let k = 0; k < n && val > 0; k++) this.dropCoin(this.x[i], this.z[i], val / n);
+          // LOCKED: an ordinary enemy drops exactly ONE visible coin carrying its whole value (same expected gold as before);
+          // only bosses scatter several coins. Values come from the enemy's configured coin and the run's coin multiplier.
+          const n = d.boss ? Math.min(8, Math.max(1, Math.round(Math.sqrt(val)))) : 1;
+          if (val > 0) for (let k = 0; k < n; k++) this.dropCoin(this.x[i], this.z[i], val / n);
           this.emit('kill', i, d);
         }
         if (d.ex && !silent) this.explode(i, d);
@@ -206,10 +308,30 @@
       this.emit('boom', x, z, d.ex);
     }
 
+    // ---------- elemental skin powers (per hit; a unit's one skin = one element; the same element never stacks on a target: it refreshes
+    // its timer and keeps the stronger value; different elements coexist) ----------
+    applyElem(i, dmg, e) {
+      const E = KM.ELEMENTS[e.el]; if (!E || !(dmg > 0) || !isFinite(dmg) || this.st[i] !== ALIVE) return;
+      if (e.el === 'fire') { const d = dmg * e.dot / E.dur; if (!(this.burnT[i] > 0) || d >= this.burnD[i]) this.burnD[i] = d; this.burnT[i] = E.dur; this.emit('elem', 'fire', i); }
+      else if (e.el === 'poison') { const d = dmg * e.dot / E.dur; if (!(this.poisT[i] > 0) || d >= this.poisD[i]) this.poisD[i] = d; this.healRed[i] = Math.max(this.poisT[i] > 0 ? this.healRed[i] : 0, e.heal); this.poisT[i] = E.dur; this.emit('elem', 'poison', i); }
+      else if (e.el === 'ice') { this.iceM[i] = Math.max(this.iceT[i] > 0 ? this.iceM[i] : 0, e.slow); this.iceT[i] = E.dur; this.emit('elem', 'ice', i); }
+      else if (e.el === 'lightning') { const R2 = E.R * E.R, x = this.x[i], z = this.z[i], c0 = this.cellX(x - E.R), c1 = this.cellX(x + E.R), r0 = this.cellZ(z - E.R), r1 = this.cellZ(z + E.R), C = [];
+        for (let gz = r0; gz <= r1; gz++) for (let gx = c0; gx <= c1; gx++) for (let j = this.gh[(gz * GCOLS + gx) * 2 + 1]; j >= 0; j = this.next[j]) { if (j === i || this.st[j] !== ALIVE) continue; const dx = this.x[j] - x, dz = this.z[j] - z, dd = dx * dx + dz * dz; if (dd < R2) C.push([dd, j]); }
+        C.sort((a, b) => a[0] - b[0] || a[1] - b[1]); const keep = this.elemNow; this.elemNow = null;   // chain hits never chain again
+        for (let k = 0; k < Math.min(e.n, C.length); k++) { const j = C[k][1]; if (this.st[j] !== ALIVE) continue; this.emit('chain', i, j); this.trueDmg(j, dmg * e.frac); }
+        this.elemNow = keep; }
+    }
+    stepElements(dt) {   // burn / poison ticks (true damage: already a share of a mitigated hit), ice and healing-reduction timers
+      for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE || this.team[i] !== 1) continue;
+        if (this.iceT[i] > 0) { this.iceT[i] -= dt; if (this.iceT[i] <= 0) this.iceM[i] = 0; }
+        let d = 0; if (this.burnT[i] > 0) { d += this.burnD[i] * Math.min(dt, this.burnT[i]); this.burnT[i] -= dt; } if (this.poisT[i] > 0) { d += this.poisD[i] * Math.min(dt, this.poisT[i]); this.poisT[i] -= dt; if (this.poisT[i] <= 0) this.healRed[i] = 0; }   // the last tick only covers the time left: exactly the approved total
+        if (d > 0) this.trueDmg(i, d); }
+    }
+    trueDmg(i, d) { if (this.st[i] !== ALIVE || !(d > 0) || !isFinite(d)) return; this.elemDmg = (this.elemDmg || 0) + Math.min(d, Math.max(0, this.hp[i])); this.hp[i] -= d; if (this.hp[i] <= 0) this.kill(i); }   // elemental damage: a share of an already-mitigated hit (armour is not applied twice)
     hurt(i, amt, fromTeam, srcZ, crit) {
       if (this.st[i] !== ALIVE) return;
       let a = this.arm[i];
-      if (this.team[i] === 0) a += this.stats.armor;
+      if (this.team[i] === 0) a = (a + this.stats.armor) * this.armFx();
       let dmg = amt * (12 / (12 + a)); if (this.team[i] === 0 && this.fortT > 0) dmg *= 0.7;
       const d = this.def(i);
       if (this.team[i] === 0 && this.posture === 1 && srcZ < this.z[i]) { const n = this.shieldWall(i); if (n) dmg *= n === 2 ? 0.65 : 0.78; }   // overlapping shields
@@ -219,8 +341,9 @@
       if (fromTeam === 0 && d.armR && this.src === 1) dmg *= d.armR;                                // ARMORED GIANT: shrugs off ordinary ranged fire
       if (fromTeam === 0) this.dmgBy[this.src] += Math.min(dmg, Math.max(0, this.hp[i]));
       this.hp[i] -= dmg; this.flash[i] = 1;
+      if (fromTeam === 0 && this.team[i] === 1 && this.elemNow && dmg > 0) this.applyElem(i, dmg, this.elemNow);
       // small knockback along the attack axis keeps the front line pushing like a mass
-      const kb = Math.min(1.2, dmg / this.mhp[i] * 3) * (crit ? 2 : 1);
+      const kb = Math.min(1.2, dmg / this.mhp[i] * 3) * (crit ? 2 : 1) * (this.team[i] === 0 && this.steadyK ? 1 - (this.steadyK[this.kind[i]] || 0) : 1);   // Helmet / Gauntlets: knockback resist
       this.vz[i] += (this.team[i] ? -1 : 1) * kb * 2;
       if (crit) this.emit('crit', i);
       if (this.hp[i] <= 0) this.kill(i);
@@ -247,9 +370,10 @@
     // ---------- tank energy + powers ----------
     gainEnergy(e) { this.energy = Math.min(KM.ENERGY_MAX, this.energy + e); }
     powerMul(id) { return (1 + 0.1 * (this.powerLv[id] || 0)) * (1 + 0.12 * (this.pboost[id] || 0)); }   // permanent level × this run's boss boosts
-    canPower(id) { const P = KM.POWERS[id]; return !!P && this.alive && this.equipped.includes(id) && this.energy >= P.cost && !((this.pcd[id] || 0) > 0); }
+    powerCost(id) { if (id === 'mercenary') return KM.MERC_TIERS[this.mercTier - 1].energy; if (id === 'recruits') { const t = (this.mods.perks.recruits || 0); return t ? KM.RECRUITS(t).energy : Infinity; } return KM.POWERS[id].cost; }
+    canPower(id) { const P = KM.POWERS[id]; return !!P && this.alive && (id === 'recruits' ? (this.mods.perks.recruits || 0) > 0 : this.equipped.includes(id)) && this.energy >= this.powerCost(id) && !((this.pcd[id] || 0) > 0); }
     usePower(id) {
-      if (!this.canPower(id)) return false; const P = KM.POWERS[id], S = this.stats, L = this.L, mul = this.powerMul(id); this.energy -= P.cost; this.pcd[id] = P.cd; this.powersUsed = (this.powersUsed || 0) + 1;
+      if (!this.canPower(id)) return false; const P = KM.POWERS[id], S = this.stats, L = this.L, mul = this.powerMul(id); this.energy -= this.powerCost(id); this.pcd[id] = P.cd; this.powersUsed = (this.powersUsed || 0) + 1;
       if (id === 'linebreaker') { const dmg = S.tankDmg * 9 * mul; let n = 0; this.src = 2;   // straight down the tank's lane
         for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && Math.abs(this.x[i] - L.x) < 1.9 + this.rad[i] && this.z[i] < L.z + 0.5 && this.z[i] > L.z - 48) { this.hurt(i, dmg, 0, L.z, false); this.z[i] -= 0.6; n++; }
         this.emit('power', id, { x: L.x, z0: L.z, z1: L.z - 48, n }); }
@@ -258,10 +382,14 @@
       else if (id === 'elemental') { const dmg = S.tankDmg * 2.2 * mul, z0 = (this.form && this.form.on ? this.form.frontZ : this.armyZ || L.z - 10); this.src = 2;
         for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && this.z[i] > z0 - 14 && this.z[i] < L.z + 0.5) { this.hurt(i, dmg, 0, z0, false); this.slow[i] = Math.max(this.slow[i], 2.2); }
         this.emit('power', id, { z: z0 - 7 }); }
-      else if (id === 'mercenary') { const n = Math.min(100, 50 + 10 * (this.pboost[id] || 0) + 5 * (this.powerLv[id] || 0)); let k = 0;
+      else if (id === 'mercenary') { const n = KM.MERC_TIERS[this.mercTier - 1].n; let k = 0;   // MERCENARY CALL tier (500 / 1,000 / 1,500 energy)
         for (; k < n; k++) { const j = this.makeSoldier('melee', Math.max(-W.LANE + 1, Math.min(W.LANE - 1, L.x + (this.rng() - 0.5) * 10)), L.z - 1.5 - this.rng() * 3, 0.0001); if (j < 0) break; this.pts -= this.pt[j]; this.pt[j] = 0; this.merc[j] = this.t + 30; }   // beyond the 300 points, for 30 s
         this.mercs = k; this.emit('power', id, { n: k }); }
-      else if (id === 'fortress') { const m = this.shieldMax(); if (m) { L.shMax = m; L.sh = m * Math.min(1.5, mul); L.shDown = 0; } this.heal(S.maxHp * 0.3 * mul); for (const t of this.towers) if (t) { t.down = 0; t.hp = Math.min(t.mhp, t.hp + t.mhp * 0.5); }
+      else if (id === 'recruits') { const R_ = KM.RECRUITS(this.mods.perks.recruits); let k = 0;   // RECRUITS: Gold Elites beyond the 300 CAP, until they fall; the living total never exceeds the tier's count
+        for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i] && this.evo[i] === 3) k++; const want = Math.max(0, R_.n - k); let m = 0;
+        for (; m < want; m++) { const j = this.makeSoldier('elite', Math.max(-W.LANE + 1, Math.min(W.LANE - 1, L.x + (this.rng() - 0.5) * 12)), L.z - 2 - this.rng() * 4, 0.0001); if (j < 0) break; this.pts -= this.pt[j]; this.pt[j] = 0; this.merc[j] = 1e12; this.evo[j] = 3; }
+        this.recruitN = k + m; this.emit('power', id, { n: m }); }
+      else if (id === 'fortress') { const m = this.shieldMax(); if (m) { L.shMax = m; L.sh = m * Math.min(1.5, mul); L.shDown = 0; } this.heal(S.maxHp * 0.3 * mul);
         this.fortT = 8 * Math.min(1.6, mul); this.emit('power', id, {}); }
       return true;
     }
@@ -272,9 +400,65 @@
     }
     // ---------- launcher ----------
     lDist(x, z) { const dx = x - this.L.x, dz = z - this.L.z; return Math.sqrt(dx * dx + dz * dz); }
+    // Hard tank boundary. Rear plane z = L.z + W.REAR_DZ across the whole lane: no enemy's ground footprint (ft) crosses it.
+    // The hull (HULL_HW × HULL_HL around the tank centre) is solid: an enemy overlapping it takes the smaller legal way out,
+    // sideways off a flank (when that stays inside the lane) or forward off the front face, never toward the rear. It is the
+    // last position write of every enemy in stepUnits, and also runs at spawn and on falling corpses, so it holds after
+    // every step whatever moved the unit (march, crowding, knockback, charges, the tank sliding into it).
+    rearClamp(i) {
+      const L = this.L, f = this.ft[i], hw = W.HULL_HW + f, rx = this.x[i] - L.x, zf = L.z - W.HULL_HL - f;
+      if (rx < hw && rx > -hw && this.z[i] > zf) {
+        const s = rx < 0 ? -1 : 1, nx = L.x + s * hw;
+        if (hw - s * rx < this.z[i] - zf && nx >= -W.LANE && nx <= W.LANE) { this.x[i] = nx; if (this.vx[i] * s < 0) this.vx[i] = 0; }
+        else { this.z[i] = zf; if (this.vz[i] > 0) this.vz[i] = 0; }
+      }
+      // Engagement bound: once a boss or mini has come within W.ENGAGE_DZ of the tank, nothing (knockback, shoves, the army
+      // pressing in, its own stand-off) takes it farther upfield than that line, so an engaged boss stays on screen and in reach.
+      if (this.eng[i]) { const zF = L.z - W.ENGAGE_DZ; if (this.eng[i] === 1) { if (this.z[i] >= zF) this.eng[i] = 2; }
+        else if (this.z[i] < zF) { this.z[i] = zF; if (this.vz[i] < 0) this.vz[i] = 0; } }
+      const zMax = L.z + W.REAR_DZ - f - 1e-3;   // margin: positions are Float32, the plane is a double
+      if (this.z[i] > zMax) { this.z[i] = zMax; if (this.vz[i] > 0) this.vz[i] = 0; }
+    }
+    // The tank's footprint is solid for the player's own soldiers too: a friendly overlapping the hull (plus its body and a
+    // W.FORM_CLEAR margin) leaves it the shorter way, sideways off a flank (inside the lane) or forward off the front face, so
+    // the tank never disappears under Range, Mizards, Looters or a repacking army. Last position write of every soldier.
+    hullClear(i) {
+      const L = this.L, f = this.rad[i] + W.FORM_CLEAR, hw = W.HULL_HW + f, hl = W.HULL_HL + f, rx = this.x[i] - L.x, rz = this.z[i] - L.z;
+      if (rx >= hw || rx <= -hw || rz >= hl || rz <= -hl) return;
+      const s = rx < 0 ? -1 : 1, nx = L.x + s * hw, side = hw - s * rx, front = rz + hl;
+      if (side < front && nx >= -W.LANE && nx <= W.LANE) { this.x[i] = nx; if (this.vx[i] * s < 0) this.vx[i] = 0; }
+      else { this.z[i] = L.z - hl; if (this.vz[i] > 0) this.vz[i] = 0; }
+    }
+    // Enemy i going for the tank: unit vector toward its contact point (tankContact), so attackers spread along the hull
+    // front instead of piling into its centre. Within 0.25 m of that point it leans on the hull (steers at the tank centre);
+    // the hull clamp turns that into a slide along the face or flank toward the centre, which only shortens the distance.
+    tankApproach(i) {
+      const L = this.L, C = this.tankContact(i), x = this.x[i], z = this.z[i];
+      let dx = C[0] - x, dz = C[1] - z, d = Math.sqrt(dx * dx + dz * dz);
+      if (d < 0.25) { dx = L.x - x; dz = L.z - z; d = Math.sqrt(dx * dx + dz * dz) || 1; }
+      const A = this.tA || (this.tA = [0, 0]); A[0] = dx / d; A[1] = dz / d; return A;
+    }
+    // Distance from enemy i's centre to the tank hull rectangle (0 inside it). The tank is struck from its surface: an enemy is
+    // in reach when this is below rng + ft + TANK_PAD, so a second rank pressed behind the first still reaches the hull.
+    hullDist(i) {
+      const L = this.L, ax = Math.max(0, Math.abs(this.x[i] - L.x) - W.HULL_HW), az = Math.max(0, Math.abs(this.z[i] - L.z) - W.HULL_HL);
+      return Math.sqrt(ax * ax + az * az) || 0.001;
+    }
+    // The nearest legal point from which enemy i strikes the tank: on the hull's front face (z = L.z − HULL_HL − ft) or the
+    // front half of a flank (x = L.x ± (HULL_HW + ft), not past the rear plane), inside the lane. Every such point touches the
+    // hull, so it is inside any enemy's reach. Returns [x, z] (reused).
+    tankContact(i) {
+      const L = this.L, f = this.ft[i], hw = W.HULL_HW + f, zo = W.HULL_HL + f, rx = this.x[i] - L.x, rz = this.z[i] - L.z;
+      let cx = Math.max(-hw, Math.min(hw, rx)), cz = -zo;   // front face (between the tank's x and the enemy's, so inside the lane)
+      const fx = rx < 0 ? -hw : hw, zr = W.REAR_DZ - f - 1e-3;
+      if (-zo <= zr && Math.abs(L.x + fx) <= W.LANE) { const fz = Math.max(-zo, Math.min(zr, rz));                // its flank, if inside the lane
+        if ((fx - rx) * (fx - rx) + (fz - rz) * (fz - rz) < (cx - rx) * (cx - rx) + (cz - rz) * (cz - rz)) { cx = fx; cz = fz; } }
+      const C = this.tC || (this.tC = [0, 0]); C[0] = L.x + cx; C[1] = L.z + cz; return C;
+    }
     hurtLauncher(a, why) {
       if (!this.alive || this.L.inv > 0) return;
       if (this.fortT > 0) a *= 0.5;   // FORTRESS SURGE hardens the tank
+      a /= this.armFx() * (this.tankArm || 1);   // IRON FORTRESS consumable (+25 %) · seasonal tank-skin armour perk
       a = this.absorb(a); if (a <= 0) { this.emit('shieldHit'); return; }
       this.L.hp -= a; this.L.hitT = 0; this.lastHit = 0; this.emit('lhit', a);
       if (this.L.hp <= 0) { this.L.hp = 0; this.alive = false; this.deathReason = why || 'overrun'; this.emit('death', why); }
@@ -300,16 +484,19 @@
 
     // ---------- projectiles ----------
     fire(team, sx, sz, tgt, ex, ez, dmg, kind, spl, slow, speed, crit, src) {
+      this.fireEl = team === 0 ? this.elemNow : null;
       const P = this.p; let k = -1; this.lastShot = PCAP;
       for (let n = 0; n < PCAP; n++) { const j = (this.pfree + n) % PCAP; if (!P.on[j]) { k = j; break; } }
-      if (k < 0) { // pool exhausted: resolve instantly so damage is never lost
-        this.src = src || 0; if (spl) this.area(1 - team, ex, ez, spl, dmg, slow, sz); else if (tgt >= 0) this.hurt(tgt, dmg, team, sz, crit); else if (tgt === -2) this.hurtLauncher(dmg, 'ranged'); else if (tgt <= -10) this.hurtStruct(tgt, dmg);
+      if (k < 0) { // pool exhausted: resolve instantly so damage is never lost (a cannon lane shell sweeps its whole lane at once)
+        this.src = src || 0;
+        if (this.laneOn) { const j = this.laneTarget(sx, 1 - team, this.L.z + W.REAR_DZ, ez, this.maxFoot(1 - team)); if (j >= 0) this.laneHit(j, sx, team, dmg, kind, spl, slow, this.lanePen, sz); }
+        else if (spl) this.area(1 - team, ex, ez, spl, dmg, slow, sz); else if (tgt >= 0) this.hurt(tgt, dmg, team, sz, crit); else if (tgt === -2) this.hurtLauncher(dmg, 'ranged');
         return;
       }
       this.pfree = (k + 1) % PCAP;
       const d = Math.hypot(ex - sx, ez - sz);
       P.on[k] = 1; P.team[k] = team; P.kind[k] = kind; P.sx[k] = P.x[k] = sx; P.sz[k] = P.z[k] = sz; P.ex[k] = ex; P.ez[k] = ez; P.t[k] = 0;
-      P.tof[k] = Math.max(0.12, d / speed); P.dmg[k] = dmg; P.spl[k] = spl || 0; P.slow[k] = slow || 0; P.tgt[k] = tgt; P.h[k] = Math.min(4, 0.6 + d * 0.18) * (kind === 12 && team === 0 ? KM.rtech(this.stats).arc : kind >= 10 && kind <= 16 ? KM.RTECH[kind - 10].arc : kind === 20 ? 0.15 : kind === 21 ? 0.9 : kind === 22 ? 0.45 : 1); P.crit[k] = crit ? 1 : 0; P.src[k] = src || 0; P.pen[k] = 0; this.lastShot = k;
+      (this.pEl || (this.pEl = new Array(PCAP).fill(null)))[k] = this.fireEl; P.tof[k] = Math.max(0.12, d / speed); P.dmg[k] = dmg; P.spl[k] = spl || 0; P.slow[k] = slow || 0; P.tgt[k] = tgt; P.h[k] = Math.min(4, 0.6 + d * 0.18) * (kind === 12 && team === 0 ? KM.rtech(this.stats).arc : kind >= 10 && kind <= 16 ? KM.RTECH[kind - 10].arc : kind === 20 ? 0.15 : kind === 21 ? 0.9 : kind === 22 ? 0.45 : 1); P.crit[k] = crit ? 1 : 0; P.src[k] = src || 0; P.pen[k] = 0; P.lane[k] = 0; this.lastShot = k;
       this.emit('shot', kind, sx, sz);
     }
 
@@ -336,41 +523,16 @@
       }
       return best;
     }
-    // ---------- support vehicles as targets ----------
-    // Target codes: -2 command vehicle, -(10+slot) support vehicle.
-    towerMaxHp(t) { return 140 * (1 + 0.45 * (t.lvl - 1)) * this.stats.towerHp; }
-    makeTower(type, lvl, slot) { const t = { type, lvl, cd: 0.5, aim: Math.PI, recoil: 0, slot, x: 0, z: 0, tgt: -1, born: 0, hp: 0, mhp: 0, hitT: 9, dmgT: 99, down: 0, vx: 0 }; t.mhp = this.towerMaxHp(t); t.hp = t.mhp; const sl = KM.TOWER_SLOTS[slot]; t.x = Math.max(-W.LANE + 0.8, Math.min(W.LANE - 0.8, this.L.x + sl.x)); t.z = this.L.z + 2; return t; }   // rolls in from behind the tank
-    structAt(tg) {
-      if (tg <= -10) { const t = this.towers[-tg - 10]; return t && !(t.down > 0) ? t : null; }
-      return null;
-    }
-    hurtStruct(tg, amt, why) {
-      const o = this.structAt(tg); if (!o) return;
-      const arm = 4 + this.stats.towerArmor;
-      if (this.stats.shRadius > 3.4 && this.inShield(o.x, o.z, 0.6)) amt = this.absorb(amt);     // the widened field covers the support vehicles
-      if (amt <= 0) return;
-      o.hp -= amt * (12 / (12 + arm)); o.hitT = 0; o.dmgT = 0;
-      if (o.hp <= 0) {
-        { o.hp = 0; o.down = 30; this.emit('towerDown', o); for (let i = 0; i < this.hi; i++) if (this.tgt[i] === tg) this.tgt[i] = -1; }   // knocked out: auto-repairs, or rebuild via its card
-      } else this.emit('shit', o);
-    }
-    // nearest support vehicle an enemy at (x,z) is in contact with
-    structNear(x, z, r) {
-      for (let s = 0; s < this.towers.length; s++) { const t = this.towers[s]; if (!t || t.down > 0) continue; const dx = x - t.x, dz = z - t.z; if (dx * dx + dz * dz < (1.6 + r) * (1.6 + r)) return -(10 + s); }
-      return -1;
-    }
-    stepVehicleState(dt) {
-      for (const t of this.towers) if (t) { t.hitT = (t.hitT || 0) + dt; t.dmgT = (t.dmgT || 0) + dt; if (t.down > 0) { t.down -= dt; if (t.down <= 0) { t.down = 0; t.hp = t.mhp * 0.4; this.emit('towerUp', t); } } else if (t.dmgT > 5 && t.hp < t.mhp) t.hp = Math.min(t.mhp, t.hp + t.mhp * 0.01 * dt); }
-    }
     // ---------- upgrades ----------
     // ---------- inline upgrades ----------
     // ---------- class levels (independent tracks, 1…10; level 8 = final evolution) ----------
-    clsM(key, lv) { const M = KM.clsMul(key, lv), b = (this.stats.skin || {})[key]; if (b) { M.hp *= 1 + (b.hp || 0); M.dmg *= 1 + (b.dmg || 0); M.arm += b.armor || 0; } return M; }   // class level × Armory skin
+    // absolute class numbers at level lv × Armory skin × permanent boss-card buffs (+5 % multiplicative per card, KM.buffMul)
+    clsM(key, lv) { const M = KM.clsStat(key, lv), b = (this.stats.skin || {})[key], f = (this.buffs && this.buffs.cls && this.buffs.cls[key]) || {}, q = this.mods && this.mods.cls[key];
+      if (q) { M.hp *= 1 + q.hp; M.dmg *= 1 + q.dmg; M.arm = (M.arm + q.arm) * (1 + q.armPct); }   // class equipment + seasonal skin
+      if (b) { M.hp *= 1 + (b.hp || 0); M.dmg *= 1 + (M.heal ? b.heal || 0 : b.dmg || 0); M.arm += b.armor || 0; }
+      M.hp *= KM.buffMul(f.hp); M.dmg *= KM.buffMul(f.dmg); M.arm *= KM.buffMul(f.arm); return M; }   // class level × Armory skin
     // per-unit numbers of a class at level lv (HUD: Lv · DMG, upgrade preview): hp, attack damage (Mizard: heal per beam), armour
-    classInfo(key, lv) { const S = this.stats, d = KM.FRIEND_BY[KM.PROD[key].kind], M = this.clsM(key, lv), ev = lv >= KM.EVOLVE_AT;
-      let dmg = S.dmg * d.dmg * M.dmg * (ev ? 1.2 : 1); if (d.r) dmg *= KM.RTECH[Math.min(KM.RTECH.length - 1, KM.ERA_BY_LV[lv - 1])].dmg * (1 + 0.08 * (lv - 1));
-      if (d.med) dmg = 7 * (1 + 0.12 * (lv - 1)) * (1 + (((S.skin || {}).mizard || {}).heal || 0));
-      return { hp: S.hp * d.hp * M.hp * (ev ? 1.25 : 1), dmg, arm: M.arm, heal: !!d.med }; }
+    classInfo(key, lv) { const M = this.clsM(key, lv); return { hp: M.hp, dmg: M.dmg, arm: M.arm, heal: M.heal, cost: KM.deployCost(key, lv) }; }
     clsCost(key) { const lv = this.stats.cls[key]; return lv >= KM.CLASS_MAX ? Infinity : KM.clsUpCost(key, lv); }
     levelUp(key) {
       const S = this.stats, lv = S.cls[key]; if (!this.alive || lv >= KM.CLASS_MAX || this.coins < KM.clsUpCost(key, lv)) return false;
@@ -379,7 +541,7 @@
     applyClass(key, from, to) {                                                                       // living soldiers of the class improve in place (no deletion)
       const S = this.stats, A = this.clsM(key, from), B = this.clsM(key, to), kind = KM.FRIEND_BY[KM.PROD[key].kind].id, evolve = from < KM.EVOLVE_AT && to >= KM.EVOLVE_AT;
       for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE || this.team[i] || this.kind[i] !== kind || this.merc[i]) continue;
-        const f = B.hp / A.hp; this.mhp[i] *= f; this.hp[i] *= f; this.arm[i] += B.arm - A.arm;
+        const f = B.hp / A.hp; this.mhp[i] *= f; this.hp[i] *= f; this.arm[i] += B.arm - A.arm; if (A.dmg) this.dmg[i] *= B.dmg / A.dmg;
       }
       this.classStats();
       if (evolve) this.emit('evolve', key);
@@ -388,19 +550,29 @@
       const S = this.stats, C = S.cls, m = this.t / 60;
       const B = S.skin || {}, bc = B.collector || {}, bm = B.mizard || {}, br = B.range || {};
       S.colCap = 6 * (1 + 0.15 * (C.collector - 1)) * (1 + (bc.carry || 0)); S.colSpeed = (1 + 0.06 * (C.collector - 1)) * (1 + (bc.speed || 0)); S.rangeMul = 1 + (br.range || 0); S.rofMul = 1 + (br.rof || 0); S.healR = 1 + (bm.healR || 0);
-      S.rdmg = 1 + 0.08 * (C.range - 1); let era = KM.ERA_BY_LV[C.range - 1]; while (era > 0 && KM.RTECH[era].at > m) era--; S.rtech = era;   // weapon era by level, gated by the war's minute
-      S.medHeal = 7 * (1 + 0.12 * (C.mizard - 1)) * (1 + (bm.heal || 0));
-      // final evolution happens soldier by soldier, only while a free army point exists — the 300 points are never exceeded
-      for (const key of KM.PROD_ORDER) { if (C[key] < KM.EVOLVE_AT) continue; const kind = KM.FRIEND_BY[KM.PROD[key].kind].id;
-        for (let i = 0; i < this.hi && this.pts < S.cap; i++) if (this.st[i] === ALIVE && !this.team[i] && this.kind[i] === kind && !this.evo[i] && !this.merc[i]) {
-          this.evo[i] = 1; this.rad[i] *= 1.2; this.mhp[i] *= 1.25; this.hp[i] *= 1.25; const np = KM.unitPts(key, true); this.pts += np - this.pt[i]; this.pt[i] = np; } }
+      S.rdmg = 1; let era = KM.ERA_BY_LV[C.range - 1]; while (era > 0 && KM.RTECH[era].at > m) era--; S.rtech = era;   // weapon era by level, gated by the war's minute
+      S.medHeal = this.clsM('mizard', C.mizard).dmg;
+      const Q = this.mods ? this.mods.cls : null; if (Q) { S.colCap *= 1 + Q.collector.carry; S.colSpeed *= 1 + Q.collector.speed; S.rofMul *= 1 + Q.range.rof; S.healR *= 1 + Q.mizard.healR;
+        this.rofK = {}; for (const k of KM.PROD_ORDER) this.rofK[KM.FRIEND_BY[KM.PROD[k].kind].id] = 1 + (k === 'range' ? 0 : Q[k].rof); this.steadyK = {}; for (const k of KM.PROD_ORDER) this.steadyK[KM.FRIEND_BY[KM.PROD[k].kind].id] = Math.min(0.8, Q[k].steady); }   // owner table: 5 HEAL + 2 per level
     }
     rollUps() {                                                                                    // keep one valid next-upgrade per category (stable until bought or invalid)
       const G = KM.upgradeOptions(this), ups = this.ups || (this.ups = {});
       for (const g of KM.UPG_GROUPS) { const opts = G[g], cur = ups[g]; if (cur && opts.some(o => o.id === cur.id)) { ups[g] = opts.find(o => o.id === cur.id); continue; }
         if (!opts.length) { ups[g] = null; continue; } let r = this.rng() * opts.reduce((a, o) => a + o.w, 0), p = opts[opts.length - 1]; for (const o of opts) { r -= o.w; if (r <= 0) { p = o; break; } } ups[g] = p; }
     }
-    upCost() { return KM.tankUpCost(this.upgrades); }   // tank track only
+    upCost() { return KM.tankUpCost(this.upgrades); }   // legacy random-card path (kept for old tests / saves; the HUD uses the skill tracks)
+    tankLv(id) { return 1 + ((this.stats.lv && this.stats.lv[id]) || 0); }
+    tankCost(id) { return KM.tankSkillCost(this.tankLv(id)); }
+    tankValue(id, lv) { const t = KM.TANK_SKILL_BY[id], B = KM.baseStats(), base = t.kind === 'count' ? (t.base || 0) : B[t.stat] || 0, now = this.tankLv(id);
+      const cur = this.stats[t.stat] != null ? this.stats[t.stat] : base; return cur - KM.tankSkillAdd(t, now, base) + KM.tankSkillAdd(t, lv, base); }
+    // one level of one tank skill, paid in Gold; never random, never past Lv10
+    tankUp(id) {
+      const t = KM.TANK_SKILL_BY[id]; if (!t || !this.alive) return false; const lv = this.tankLv(id), cost = KM.tankSkillCost(lv); if (!(this.coins >= cost)) return false;
+      const S = this.stats, base = t.kind === 'count' ? (t.base || 0) : KM.baseStats()[t.stat] || 0, d = KM.tankSkillAdd(t, lv + 1, base) - KM.tankSkillAdd(t, lv, base);
+      this.coins -= cost; S[t.stat] = (S[t.stat] != null ? S[t.stat] : base) + d; S.lv[id] = lv; this.upgrades++;
+      if (id === 'plating') this.heal(d); if (id === 'shield') this.shieldUp(); if (id === 'trof') S.tankBarrels = Math.min(3, 1 + Math.floor(lv / 2));
+      this.emit('upgrade', { id, title: t.title, val: 'LV ' + (lv + 1) }, 'tank'); return true;
+    }
     buy(group) {
       const c = this.ups && this.ups[group]; if (!c || !this.alive) return false;
       const cost = this.upCost(); if (this.coins < cost) return false;
@@ -409,15 +581,9 @@
     }
     applyUpgrade(c) {
       const s = this.stats;
-      if (c.id.startsWith('build:')) {
-        const slot = this.towers.findIndex((t, i) => !t && i < KM.slotsUnlocked(this.t / 60));
-        if (slot >= 0) { this.towers[slot] = this.makeTower(c.tower, 1, slot); }
-      } else if (c.id.startsWith('tup:')) {
-        const t = this.towers[+c.id.slice(4)]; if (t) { t.lvl++; t.born = 0; t.down = 0; t.mhp = this.towerMaxHp(t); t.hp = t.mhp; }  // upgrading also fully repairs / rebuilds
-      } else {
+      {
         const u = KM.UPG_BY[c.id]; const prevHp = s.hp;
         u.apply(s, this); s.lv[c.id] = (s.lv[c.id] || 0) + 1;
-        if (c.id === 'thp') for (const t of this.towers) if (t) { const f = t.hp / t.mhp; t.mhp = this.towerMaxHp(t); t.hp = t.mhp * f + t.mhp * 0.25; t.hp = Math.min(t.hp, t.mhp); }
         if (c.id === 'hp') { const f = s.hp / prevHp; for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i]) { this.mhp[i] *= f; this.hp[i] *= f; } }
       }
     }
@@ -427,8 +593,10 @@
       if (!this.alive) { this.stepDying(dt); this.stepFx(dt); return; }
       this.t += dt; if (!this.nBoss) this.front -= W.ADV * dt; this.postureT += dt;   // boss fight: the march (and the tank) holds until the boss falls
       const D = this.diff = KM.difficulty(this.budget < -1e8 ? this.t : this.warT()), S = this.stats, L = this.L;
-      // launcher movement (smoothed for weight)
-      const px = L.x; L.x += (L.tx - L.x) * Math.min(1, dt * 12);
+      // launcher movement (smoothed for weight); AUTO lines the cannon lane up on its own while the player is not steering
+      L.man = Math.max(0, L.man - dt); const aim = this.auto && L.man <= 0; if (aim) this.autoSteer(dt);
+      const px = L.x; let mx = (L.tx - L.x) * Math.min(1, dt * 12); if (aim) mx = Math.max(-AUTO_SPD * dt, Math.min(AUTO_SPD * dt, mx));   // AUTO slides at a steady drive speed; the player's drag keeps its direct feel
+      L.x += mx;
       L.z = this.front; L.vx = (L.x - px) / dt; L.wheel += (Math.abs(L.vx) + W.ADV) * dt;
       L.hitT += dt; L.inv = Math.max(0, L.inv - dt); this.lastHit += dt;
       if (this.lastHit > 4) this.heal(S.maxHp * 0.02 * dt);
@@ -437,14 +605,14 @@
       this.buildGrid();
       this.deploy(dt, S, D);
       this.director(dt, D);
-      this.stepVehicleState(dt); if ((this.stepN = (this.stepN || 0) + 1) % 30 === 0) this.recount();
+      if ((this.stepN = (this.stepN || 0) + 1) % 30 === 0) this.recount();
       this.stepZones(dt);
       this.formUpdate(dt); this.stepGroups(dt);
-      this.stepUnits(dt, S);
-      this.stepTowers(dt, S);
-      this.stepTank(dt, S);
+      this.stepUnits(dt, S); this.elemNow = null;
+      this.stepTank(dt, S); this.elemNow = null;
       this.stepShield(dt); this.stepPowers(dt);
-      this.stepProjectiles(dt);
+      this.stepProjectiles(dt); this.elemNow = null;
+      this.stepElements(dt);
       this.stepCoins(dt, S);
       this.stepDying(dt);
       this.stepFx(dt);
@@ -460,6 +628,7 @@
       this.atCap = this.pts + this.prodPts() > S.cap ? 1 : 0;
       this.deployAcc = Math.min(3, this.deployAcc + S.rate * dt);
       if (!this.auto) return;
+      if (this.planActive()) { while (this.deployAcc >= 1 && this.deployPlanned('plan')) this.deployAcc -= 1; return; }   // a WAR PLAN steers AUTO; an all-zero plan keeps the selected-class AUTO
       while (this.deployAcc >= 1 && this.deployOne('auto')) this.deployAcc -= 1;
     }
 
@@ -508,24 +677,55 @@
       this.emit('waveClear', n, g);
       if (p === 5) this.offerChoice('supply');
     }
+    // enemy type / boss level at this spawn (a type levels once per distinct wave it appears in; a boss once per encounter)
+    lvMul(d, mul) {
+      let f;
+      if (d.boss) { if (this.bossSeen !== this.wave) { this.bossSeen = this.wave; this.bossLv = (this.bossLv || 0) + 1; } f = KM.bossLvMul(this.bossLv); }
+      else { const E = this.eLv || (this.eLv = {}), W_ = this.eWave || (this.eWave = {}); if (W_[d.k] !== this.wave) { W_[d.k] = this.wave; E[d.k] = (E[d.k] || 0) + 1; } f = KM.enemyLvMul(d.k, E[d.k]); }
+      const o = Object.assign({}, mul, { hp: mul.hp * f.hp, dmg: mul.dmg * f.dmg, arm: (mul.arm || 0) + (d.boss ? (d.arm || 0) * (f.arm - 1) : f.arm) });
+      if (!d.boss && !d.mini) { const b = KM.beginnerMul(this.wave); o.hp *= b.hp; o.dmg *= b.dmg; o.arm = (o.arm + (d.arm || 0)) * b.arm - (d.arm || 0); }   // beginner opening: base armour scaled too (spawn adds def.arm)
+      return o;
+    }
     // ---------- rewards + choices (non-blocking: the war keeps going until the player taps one) ----------
     offerChoice(kind) {
       if (this.choice) this.takeChoice(0);                                                              // an untaken older choice resolves to its first option
       const n = this.wave, opts = kind === 'supply'
         ? [{ id: 'gold', title: 'GOLD CACHE', val: '+' + KM.waveGold(n) * 3 }, { id: 'energy', title: 'TANK ENERGY', val: '+100' }, { id: 'recover', title: 'ARMY RECOVERY', val: 'HEAL ALL' }]
-        : this.rng.shuffle((this.equipped || KM.POWER_IDS.slice(0, 3)).slice()).slice(0, 3).map(id => ({ id, title: KM.POWERS[id].name, val: KM.POWERS[id].boostTxt }));
+        : this.bossCards();
       this.choice = { kind, opts }; this.emit('choice', this.choice);
     }
     takeChoice(k) {
       const c = this.choice; if (!c || !c.opts[k]) return false; const o = c.opts[k]; this.choice = null;
       if (c.kind === 'supply') { if (o.id === 'gold') { const g = KM.waveGold(this.wave) * 3; this.coins += g; this.coinsTotal += g; } else if (o.id === 'energy') this.gainEnergy(100);
         else for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i]) this.hp[i] = this.mhp[i]; }
-      else { this.pboost[o.id] = (this.pboost[o.id] || 0) + 1; }                                          // boss reward: one step of that tank power for the rest of the run
+      else this.applyBossCard(o);                                                                          // boss card: permanent buff / consumable (the shell saves it)
       this.emit('chose', c.kind, o.id); return true;
     }
+    // three boss cards: (1) +5 % to ONE random attribute of ONE random soldier class, (2) +5 % to ONE continuous tank stat, (3) one random
+    // consumable into the inventory (never auto-fired). All permanent; only the chosen card applies.
+    bossCards() {
+      const r = this.rng, cls = r.pick(KM.PROD_ORDER), at = r.pick(KM.BUFF_ATTRS), ts = r.pick(Object.keys(KM.TANK_BUFF_STATS)), cn = r.pick(KM.CONS_IDS);
+      const AT = { hp: 'HP', dmg: cls === 'mizard' ? 'HEAL' : 'DAMAGE', arm: 'ARMOR' };
+      return [{ id: 'cls', cls, attr: at, title: KM.PROD[cls].name, val: '+5% ' + AT[at] },
+        { id: 'tank', stat: ts, title: KM.TANK_BUFF_STATS[ts], val: '+5%' },
+        { id: 'cons', item: cn, title: KM.CONSUMABLES[cn].name, val: '+1 ITEM' }];
+    }
+    applyBossCard(o) {
+      const B = this.buffs;
+      if (o.id === 'cls') { const lv = this.stats.cls[o.cls], A = this.clsM(o.cls, lv); const c = B.cls[o.cls] || (B.cls[o.cls] = {}); c[o.attr] = (c[o.attr] || 0) + 1; this.reClass(o.cls, A); }
+      else if (o.id === 'tank') { B.tank[o.stat] = (B.tank[o.stat] || 0) + 1; this.stats[o.stat] *= 1.05; if (o.stat === 'maxHp') this.heal(this.stats.maxHp * 0.05 / 1.05); }
+      else if (o.id === 'cons') { this.consWon = this.consWon || {}; this.consWon[o.item] = (this.consWon[o.item] || 0) + 1; this.cons[o.item] = (this.cons[o.item] || 0) + 1; }
+      this.emit('bossCard', o);
+    }
+    reClass(key, A) {                                                                                 // living soldiers of a class take a new buff in place
+      const B = this.clsM(key, this.stats.cls[key]), kind = KM.FRIEND_BY[KM.PROD[key].kind].id;
+      for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE || this.team[i] || this.kind[i] !== kind || this.merc[i]) continue;
+        const f = B.hp / A.hp; this.mhp[i] *= f; this.hp[i] *= f; this.arm[i] += B.arm - A.arm; if (A.dmg) this.dmg[i] *= B.dmg / A.dmg; }
+      this.classStats();
+    }
     bossDown(d) {
-      const g = KM.waveGold(this.wave) * 4; this.coins += g; this.coinsTotal += g; this.bossesKilled++; this.warTokens++; this.gainEnergy(60);
-      this.emit('bossReward', { wave: this.wave, gold: g, tokens: 1, kind: d.k }); this.offerChoice('power');
+      const g = KM.BOSS_GOLD, draw = KM.bossDraw(this.rng()); this.coins += g; this.coinsTotal += g; this.bossesKilled++; this.warTokens += draw.tokens; this.diamondsWon += draw.diamonds; this.gainEnergy(60);
+      this.emit('bossReward', { wave: this.wave, gold: g, tokens: draw.tokens, diamonds: draw.diamonds, kind: d.k, id: this.seed + ':' + this.wave }); this.offerChoice('boss');
     }
 
     // Returns budget spent. Every unit placed is an unlocked type inside the lane.
@@ -563,7 +763,9 @@
       }
       if (!list.length && type !== 'boss') { add(E.grunt, cx, z0); spent = Math.max(spent, E.grunt.cost); }   // an expensive first pick never leaves a formation empty
       if (spent > budget + 2) spent = budget; // last over-budget unit was rejected by spend()
-      const mul = { hp: D.hp * (1 + this.overflow) * (type === 'push' || type === 'boss' || type === 'mini' ? 1 : SEC.hp), dmg: D.dmg, spd: D.speed * SEC.spd, era: Math.min(5, D.era), arm: Math.min(10, D.era * 1.5) };
+      const mul = { hp: (1 + this.overflow) *   // waves 1–5: KM.beginnerMul (in lvMul); standard numbers from wave 6
+           (type === 'push' || type === 'boss' || type === 'mini' ? 1 : SEC.hp), dmg: 1,   // strength comes from enemy / boss levels (lvMul), count from the wave budget
+         spd: D.speed * SEC.spd, era: Math.min(5, D.era), arm: 0 };
       let placed = 0;
       // organic mass: depth jitter, a random arc, small lateral clusters and late subgroups — never a ruler line
       const arc = (r() - 0.5) * 0.35, nCl = 2 + Math.floor(r() * 3), cl = Array.from({ length: nCl }, () => [r.range(-1.2, 1.2), r() < 0.3 ? -r.range(3, 7) : 0]);
@@ -572,7 +774,7 @@
       const G = type === 'boss' || type === 'mini' ? null : { cx, z: z0, v: 9, n0: 0, alive: 0, st: 0, t: 0 }, gid = G ? this.groups.push(G) - 1 : -1;
       for (const [d, x, z] of list) {
         if (this.count[1] >= W.MAX_ENEMY && !d.boss) { this.overflow = Math.min(3, this.overflow + 0.002); continue; } // hard population cap: excess becomes strength
-        const j = this.spawn(1, d, Math.max(-W.LANE, Math.min(W.LANE, x)), z, mul); if (j < 0) continue; placed++; if (this.spawnTag) { this.wv[j] = this.spawnTag; this.waveLeft++; this.waveSpawned++; }
+        const j = this.spawn(1, d, Math.max(-W.LANE, Math.min(W.LANE, x)), z, this.lvMul(d, mul)); if (j < 0) continue; placed++; if (this.spawnTag) { this.wv[j] = this.spawnTag; this.waveLeft++; this.waveSpawned++; }
         if (G && !d.mech) { this.grp[j] = gid; this.gox[j] = this.x[j] - cx; this.goz[j] = z - z0; G.n0++; G.alive++; G.v = Math.min(G.v, this.spd[j] * 0.8); }
       }
       if (this.opts.trace) this.debugLog.push({ t: this.t, m: D.m, type, kinds: list.map(l => l[0].k), xs: list.map(l => l[1]) });
@@ -617,8 +819,87 @@
         if (sc < bs) { bs = sc; best = j; } }
       return best;
     }
+    // nearest unit of `team` by footprint edge (centre distance minus ground footprint, or minus collision radius when byRad)
+    // within R of (x, z), optionally only those with z > zMin. The grid scan is padded by the largest footprint.
+    nearestEdge(x, z, team, R, zMin, byRad) {
+      const P = R + (byRad ? RAD_PAD : FT_PAD), P2 = P * P, c0 = this.cellX(x - P), c1 = this.cellX(x + P), r0 = this.cellZ(z - P), r1 = this.cellZ(z + P), f = byRad ? this.rad : this.ft; let best = -1, bd = R;
+      for (let gz = r0; gz <= r1; gz++) for (let gx = c0; gx <= c1; gx++) for (let j = this.gh[(gz * GCOLS + gx) * 2 + team]; j >= 0; j = this.next[j]) {
+        if (this.st[j] !== ALIVE || (zMin != null && this.z[j] <= zMin)) continue; const dx = this.x[j] - x, dz = this.z[j] - z, dd = dx * dx + dz * dz; if (dd > P2) continue;
+        const e = Math.sqrt(dd) - f[j]; if (e <= bd) { bd = e; best = j; } }
+      return best;
+    }
+    // TANK GUARD (once per step): up to 16 enemies at the tank (footprint edge within TANK_GUARD_R of it, or level with the hull
+    // beside it). In DEFEND each intruder is engaged by the nearest Melee / Elite / Giant whose slot lies within 12 m of it
+    // (more responders for bigger foes, the heavies first for a big one, and always everyone already within 2 m of its body),
+    // whatever their hold rules say; Range shoots intruders from where it stands.
+    gDrop() { if (this.gWas) { this.gtg.fill(-1); this.gWas = 0; } }   // no tank guard this step: forget the responders, so a later guard starts without stale hysteresis
+    guardScan() {
+      if (this.posture !== 1) { this.guardN = 0; this.gOn = 0; this.gDrop(); return; }   // only DEFEND reads the intruder list
+      const L = this.L, GL = this.gL || (this.gL = new Int32Array(16)), GD = this.gD || (this.gD = new Float32Array(16)), PL = this.gPL || (this.gPL = new Int32Array(16)), pn = this.guardN | 0, GR = W.TANK_GUARD_R, lat = W.HULL_HW + GR; let n = 0;
+      const FW = this.form && this.form.on ? this.form : null;
+      PL.set(GL);   // last step's intruders keep that status for 1.5 m more (hysteresis: no flicker at the zone edge)
+      const c0 = this.cellX(L.x - lat - FT_PAD - 1.5), c1 = this.cellX(L.x + lat + FT_PAD + 1.5), r0 = this.cellZ(L.z - GR - FT_PAD - 1.5), r1 = this.cellZ(L.z + 2);
+      for (let gz = r0; gz <= r1; gz++) for (let gx = c0; gx <= c1; gx++) for (let j = this.gh[(gz * GCOLS + gx) * 2 + 1]; j >= 0; j = this.next[j]) {
+        if (this.st[j] !== ALIVE) continue; const dx = this.x[j] - L.x, dz = this.z[j] - L.z, f = this.ft[j], e = Math.sqrt(dx * dx + dz * dz) - f; let h = 0; for (let q = 0; q < pn; q++) if (PL[q] === j) { h = 1.5; break; }
+        if (!(e < GR + h || (dz + f > -4 - h && Math.abs(dx) - f < lat + h))) continue;
+        if (FW && this.z[j] < FW.frontZ + 0.3) continue;   // still in front of the shield line: the wall fights it; only an enemy past the wall is a tank intruder
+        if (n === 16 && e >= GD[15]) continue; let k = n < 16 ? n++ : 15; while (k > 0 && GD[k - 1] > e) { GD[k] = GD[k - 1]; GL[k] = GL[k - 1]; k--; } GD[k] = e; GL[k] = j; }
+      this.guardN = n; this.gOn = 0;
+      const F = this.form; if (!n || !F || !F.on || !F.mem) { this.gDrop(); return; }
+      const A = this.gtg || (this.gtg = new Int32Array(CAP)), cI = this.gcI || (this.gcI = new Int32Array(CAP)), cQ = this.gcQ || (this.gcQ = new Uint8Array(CAP)), cD = this.gcD || (this.gcD = new Float32Array(CAP)), ord = this.gcO || (this.gcO = []), G = this.gp || (this.gp = [0, 0]);
+      const PA = this.gpA || (this.gpA = new Int32Array(CAP)); PA.set(A.subarray(0, this.hi)); A.fill(-1, 0, this.hi); let nc = 0;   // PA: last step's responders (hysteresis)
+      const take = arr => { for (const i of arr) { if (this.st[i] !== ALIVE || this.team[i] || this.charge[this.typeOf(i)] || nc >= CAP) continue; this.formGoal(i, G); let bq = -1, bd = 1e9, pq = -1, pd = 1e9;
+        const xi = this.x[i], zi = this.z[i], gx = G[0], gz = G[1];
+        for (let q = 0; q < n; q++) { const j = GL[q]; if (this.st[j] !== ALIVE) continue; const xj = this.x[j], zj = this.z[j], fj = this.ft[j], ax = xi - xj, az = zi - zj, dc = Math.sqrt(ax * ax + az * az) - fj;
+          if (dc >= 2) { const sx = gx - xj, sz = gz - zj, r = 12 + fj + (PA[i] === j ? 1.5 : 0); if (sx * sx + sz * sz > r * r) continue; }   // a unit already at its body answers wherever its slot is
+          if (PA[i] === j) { pq = q; pd = dc; } if (dc < bd) { bd = dc; bq = q; } }
+        if (pq >= 0 && pd < bd + 1.5) { bq = pq; bd = pd; }   // hysteresis: keep last step's intruder unless another is clearly nearer
+        if (bq >= 0) { cI[nc] = i; cQ[nc] = bq; cD[nc] = bd; nc++; } } };
+      take(F.list); take(F.mem[34]); take(F.mem[37]);
+      const hv = c => this.kind[cI[c]] !== 32 && this.ft[GL[cQ[c]]] >= 1.5 ? 0 : 1;   // a big intruder draws the heavies (Elite, Giant) first
+      ord.length = nc; for (let k = 0; k < nc; k++) ord[k] = k; ord.sort((a, b) => cQ[a] - cQ[b] || hv(a) - hv(b) || (PA[cI[a]] === GL[cQ[a]] ? 0 : 1) - (PA[cI[b]] === GL[cQ[b]] ? 0 : 1) || cD[a] - cD[b] || cI[a] - cI[b]);   // a unit already answering keeps its place in the cap
+      // per intruder: the nearest few by its size (at most 2 Giants, 4 for a big body), plus anyone already within 2 m of it
+      for (let k = 0, q = -1, used = 0, cap = 0, big = 0; k < nc; k++) { const c = ord[k]; if (cQ[c] !== q) { q = cQ[c]; used = 0; big = 0; cap = 4 + Math.round(5 * this.ft[GL[q]]); }
+        const isG = this.kind[cI[c]] === 37; if ((used < cap && (!isG || big < 2 + (this.ft[GL[q]] >= 1.5 ? 2 : 0))) || cD[c] < 2) { if (isG) big++; A[cI[c]] = GL[q]; used++; } }
+      this.gOn = 1; this.gWas = 1;
+    }
+    // DEFEND: does a local interceptor (sword reserve or giant) keep its target? It lets go once pulled more than W.LEASH from its
+    // slot or once the target leaves the protection zone (with a little hysteresis) — then the return-to-slot path runs.
+    defKeep(i, tg) {
+      const k = this.kind[i], F = this.form; if (this.emergency || !F || !F.on) return true;
+      if (k === 34) return Math.hypot(this.x[tg] - this.x[i], this.z[tg] - this.z[i]) - this.rad[i] - this.rad[tg] <= W.ELITE_RNG + 0.6;   // Elite: only what the pike reaches (+ hysteresis)
+      if (k === 32 && this.frank[i] === 1) { const G = this.fg || (this.fg = [0, 0]); this.formGoal(i, G); return Math.hypot(this.x[tg] - G[0], this.z[tg] - G[1]) - this.rad[i] - this.ft[tg] <= this.rng_[i] + 0.9; }   // shield line: only what the sword reaches from its own slot (it never walks off the wall)
+      if (!(k === 37 || (k === 32 && this.frank[i] !== 1))) return true;
+      const G = this.fg || (this.fg = [0, 0]); this.formGoal(i, G);
+      if (Math.hypot(this.x[i] - G[0], this.z[i] - G[1]) > W.LEASH) return false;
+      return this.z[tg] > (k === 37 ? F.breachZ : F.frontZ) - 1 && Math.hypot(this.x[tg] - G[0], this.z[tg] - G[1]) - this.ft[tg] <= (k === 37 ? PROT_GIANT + 2 : PROT_MELEE) + 1;
+    }
+    // DEFEND target acquisition (the tank guard is applied per step before this): emergency → class rules. Range shoots the nearest
+    // footprint within bow range from where it stands (tank intruders first); the Elite thrusts at anything its pike reaches from the
+    // second line, including enemies in front of the shield rank; the shield rank fights what reaches it; sword reserves and giants
+    // intercept enemies that are inside the formation within their protection radius of their own slot.
+    defTarget(i, ranged) {
+      const F = this.form, kind = this.kind[i];
+      if (!F || !F.on) return this.pickTarget(i, ranged ? this.rng_[i] + 1 : 6);   // before the first formation tick
+      if (this.emergency && !ranged) { const th = this.nearest(i, 12); if (th >= 0 && this.lDist(this.x[th], this.z[th]) < 12) return th; }   // EMERGENCY DEFENSE: the first three rows collapsed
+      if (ranged) { const R = this.rng_[i] + this.rad[i]; let best = -1, bd = R;
+        for (let q = 0; q < (this.guardN | 0); q++) { const j = this.gL[q]; if (this.st[j] !== ALIVE) continue; const e = Math.hypot(this.x[j] - this.x[i], this.z[j] - this.z[i]) - this.ft[j]; if (e <= bd) { bd = e; best = j; } }
+        if (best >= 0) return best;
+        // enemy archers / cannons shooting the line from range are the next priority, still only within this archer's real bow range
+        const g = this.nearestEdge(this.x[i], this.z[i], 1, R); if (g < 0) return -1; let rb = -1, rd = R;
+        for (const j of this.rngL) { if (this.st[j] !== ALIVE) continue; const e = Math.hypot(this.x[j] - this.x[i], this.z[j] - this.z[i]) - this.ft[j]; if (e <= rd) { rd = e; rb = j; } }
+        return rb >= 0 ? rb : g; }
+      const G = this.fg || (this.fg = [0, 0]); this.formGoal(i, G); if (Math.hypot(this.x[i] - G[0], this.z[i] - G[1]) > W.LEASH) return -1;   // pulled off its slot: walk back first
+      if (kind === 34) return this.nearestEdge(this.x[i], this.z[i], 1, W.ELITE_RNG + this.rad[i] + 0.3, null, true);   // pike reach (rng + own radius + target radius) + 0.3
+      if (kind === 32 && this.frank[i] === 1) { let tg = this.pickTarget(i, 1.9); if (tg >= 0 && tg !== this.bossI && this.z[tg] < F.frontZ - 3) tg = -1;
+        return tg >= 0 ? tg : this.nearestEdge(this.x[i], this.z[i], 1, this.rng_[i] + this.rad[i] + 0.2, null, true); }   // a big body pressing on the shield (centre beyond 1.9 m) is still within the sword's reach
+      if (kind === 37) return this.nearestEdge(G[0], G[1], 1, PROT_GIANT + 2, F.breachZ - 0.5);   // GIANTS (last line): only enemies that broke through Elite + Melee and reach the Range / Mizard ranks
+      return this.nearestEdge(G[0], G[1], 1, PROT_MELEE, F.frontZ - 0.5);
+    }
     stepUnits(dt, S) {
       const front = this.front, L = this.L, aggro0 = 11, aggro1 = 10, COH = 27, fN = Math.max(1, this.count[0] - this.nCol); let nCol = 0; this.colList.length = 0; this.nRepair = 0;
+      const RL = this.rngL || (this.rngL = []); RL.length = 0; for (let j = 0; j < this.hi; j++) if (this.st[j] === ALIVE && this.team[j] === 1 && this.rng_[j] >= 3) RL.push(j);   // enemy archers / cannons this step (archer priority)
+      this.guardScan(); const vm = this.nBoss ? 0 : -W.ADV;   // DEFEND slots march with the war at this speed
       for (let i = 0; i < this.hi; i++) {
         if (this.st[i] !== ALIVE) continue;
         const team = this.team[i];
@@ -631,7 +912,7 @@
           this.swing[i] -= dt / this.swd[i];
           if (was > hitAt && this.swing[i] <= hitAt && this.pend[i] !== -1) this.strike(i, S);
         }
-        const sm = this.slow[i] > 0 ? 0.5 : 1;
+        const sm = (this.slow[i] > 0 ? 0.5 : 1) * (team === 1 && this.iceT[i] > 0 ? 1 - this.iceM[i] : 1);   // ICE: slower movement and attacks
         // zone pressure: winning strips surge (a few units turn into breakthrough divers), losing strips give ground
         const zk = this.zP ? this.zP[this.zoneOf(this.x[i])] * (this.mi || 0) : 0, adv = team ? -zk : zk;
         if (this.roleT[i] > 0) { this.roleT[i] -= dt; if (this.roleT[i] <= 0 && this.role[i] === 2) this.role[i] = 1; }
@@ -645,38 +926,33 @@
         this.think[i] -= dt;
         let tg = this.tgt[i];
         if (tg >= 0 && this.st[tg] !== ALIVE) tg = -1;
-        if (tg <= -10 && !this.structAt(tg)) { tg = -1; this.tgt[i] = -1; }
+        // DEFEND: the tank guard overrides every hold rule; a local interceptor drops a target that left its zone or pulled it off its leash
+        const gq = defend && this.gOn ? this.gtg[i] : -1;
+        if (gq >= 0) { if (tg !== gq) this.tgt[i] = tg = gq; }
+        else if (defend && tg >= 0 && !this.defKeep(i, tg)) { tg = -1; this.tgt[i] = -1; this.think[i] = 0; }
         if (this.think[i] <= 0) {
           this.think[i] = 0.18 + this.rng() * 0.16;
-          const ranged = team === 0 ? this.role[i] === 3 : this.rng_[i] > 2;   // friendlies by role (pikes reach 2.5 but are melee)
-          if (team === 0 && ranged) { const T = KM.rtech(S); this.rng_[i] = T.range * (S.rangeMul || 1); this.cd[i] = T.cd / (S.rofMul || 1); }
-          const fr = this.frank[i], el = this.kind[i] === 34 || this.kind[i] === 37;
-          tg = this.pickTarget(i, team ? aggro1 + (ranged ? 4 : 0) : defend ? (ranged ? this.rng_[i] + 1 : el ? 7 : fr === 1 ? 1.9 : fr === 2 || fr === 3 ? 2.9 : 6) : aggro0 + (ranged ? 4 : 0));   // DEFEND: local zones only
+          const ranged = team === 0 ? this.role[i] === 3 : this.rng_[i] > 2;   // friendlies by role (the Elite pike reaches 2.3 but is melee)
+          if (team === 0 && ranged) { const T = KM.rtech(S); this.rng_[i] = (this.merc[i] ? T.range : KM.W.RANGE_RANGE) * (S.rangeMul || 1); this.cd[i] = T.cd / (S.rofMul || 1); }
+          tg = gq >= 0 ? gq : defend ? this.defTarget(i, ranged) : this.pickTarget(i, team ? aggro1 + (ranged ? 4 : 0) : aggro0 + (ranged ? 4 : 0));   // DEFEND: tank guard · emergency · local zones only
           if (team === 0 && this.spear[i]) {
             this.rng_[i] = 0.75;
             if (tg >= 0) { const sd = Math.hypot(this.x[tg] - this.x[i], this.z[tg] - this.z[i]), big = this.elite[tg] || KM.ENEMY[this.kind[tg]].boss;
               if (sd > 3 && sd < 9.5 && (!defend || big)) { this.spear[i] = 0; this.rng_[i] = 0.75; const tof = sd / 17;   // opening spear throw, then the sword
-                this.fire(0, this.x[i], this.z[i], tg, this.x[tg] + this.vx[tg] * tof, this.z[tg] + this.vz[tg] * tof, S.dmg * 3.2, 22, 0, 0, 17, false, 0); this.emit('spear', i); } }
+                this.fire(0, this.x[i], this.z[i], tg, this.x[tg] + this.vx[tg] * tof, this.z[tg] + this.vz[tg] * tof, this.clsM('elite', S.cls.elite).dmg, 22, 0, 0, 17, false, 0); this.emit('spear', i); } }
           }
-          if (team === 0 && tg >= 0) {
-            const ahead = L.z - this.z[tg];
-            // DEFEND: only engage what comes into the formation · ATTACK: soft cohesion radius, never chase ever farther
-            if (tg !== this.bossI && (defend ? !ranged && this.z[tg] < (this.form && this.form.M ? this.form.frontZ - 3 : L.z - 13) : ahead > COH && this.z[tg] < this.z[i])) tg = -1;   // DEFEND: melee only engage at the wall (ranged are already range-limited)
-            // reserves (rank 4+) only answer breaches: an enemy already past the shield wall
-            if (defend && tg >= 0 && !ranged && this.form && (fr >= 4 || el) && this.z[tg] < this.form.frontZ + 0.4) tg = -1;   // giants too: they only fight what breaks the line
-            // ranged: once an enemy is past the giants' line they become melee soldiers
-            if (defend && ranged && this.form && this.form.on) { const th = this.nearest(i, 6); if (th >= 0 && this.z[th] > this.form.lineZ + 0.3) tg = th; }
-            // boss fight: troops in ATTACK go for the boss wherever it is
-            if (!defend && this.nBoss && this.bossI >= 0 && this.st[this.bossI] === ALIVE && (tg < 0 || this.rng() < 0.35)) tg = this.bossI;
-            // EMERGENCY DEFENSE (first three rows collapsed): every combat class turns on the enemies nearest the tank
-            if (defend && this.emergency) { const th = this.nearest(i, 12); if (th >= 0 && this.lDist(this.x[th], this.z[th]) < 12) tg = th; }
+          if (team === 0 && tg >= 0 && !defend) {
+            // ATTACK: soft cohesion radius, never chase ever farther
+            if (tg !== this.bossI && L.z - this.z[tg] > COH && this.z[tg] < this.z[i]) tg = -1;
           }
-          if (team === 0 && !ranged && this.role[i] < 3) this.rng_[i] = defend && (fr === 2 || fr === 3) && !el ? 2.5 : 0.75;   // ranks 2–3: shield + pike reaching over row 1
+          // boss fight: troops in ATTACK go for the boss wherever it is, also when nothing else is in sight (an idle soldier
+          // never leaves a boss standing off upfield unattacked)
+          if (team === 0 && !defend && this.nBoss && this.bossI >= 0 && this.st[this.bossI] === ALIVE && (tg < 0 || this.rng() < 0.35)) tg = this.bossI;
+          if (team === 0 && !ranged && this.role[i] < 3) this.rng_[i] = defend && this.kind[i] === 34 ? W.ELITE_RNG : 0.75;   // DEFEND Elite: the phalanx pike reaches over the shield rank
           const gF = team === 1 && this.grp[i] >= 0 ? this.groups[this.grp[i]] : null;
           if (gF && gF.st < 2 && tg >= 0 && Math.hypot(this.x[tg] - this.x[i], this.z[tg] - this.z[i]) > (ranged ? this.rng_[i] + 0.5 : this.rad[i] + this.rad[tg] + 1.6)) tg = -1;   // in formation: hold ranks, engage only on contact
           if (gF && tg >= 0 && gF.st === 0) gF.st = 1;   // impact
-          if (team === 1) { const ld = this.lDist(this.x[i], this.z[i]); if (ld < 6.5 && (tg < 0 || ld < 3)) tg = -2;
-            const sn = this.structNear(this.x[i], this.z[i], this.rad[i] + (ranged ? 3 : 0)); if (sn !== -1 && (tg < 0 || this.rng() < 0.5)) tg = sn; }
+          if (team === 1) { const ld = this.lDist(this.x[i], this.z[i]) - this.ft[i] + 0.36; if (ld < 6.5 && (tg < 0 || ld < 3)) tg = -2; }   // tank in sight / in contact, from the body edge (grunt-sized numbers): bosses held at the hull still find it
           this.tgt[i] = tg;
         }
         if (team === 1 && this.mt[i] > 0 || (team === 1 && KM.ENEMY[this.kind[i]].mech)) this.bossMech(i, dt, KM.ENEMY[this.kind[i]]);
@@ -684,36 +960,39 @@
         if (team === 0 && this.kind[i] !== 32) sp = sp; // all friendlies share stat speed
         if (this.mph[i] === 2 && team === 1) { tg = -1; }                                              // charging: ignore targets, run the line over
         if (tg !== -1) {
-          const so = tg <= -10 ? this.structAt(tg) : null;
-          const tx = so ? so.x : tg === -2 ? L.x : this.x[tg], tz = so ? so.z : tg === -2 ? L.z : this.z[tg];
-          const dx = tx - this.x[i], dz = tz - this.z[i], d = Math.sqrt(dx * dx + dz * dz) || 0.001;
-          const reach = this.rng_[i] + this.rad[i] + (so ? 1.1 : tg === -2 ? 1.1 : this.rad[tg]);
+          const tx = tg === -2 ? L.x : this.x[tg], tz = tg === -2 ? L.z : this.z[tg];
+          let dx = tx - this.x[i], dz = tz - this.z[i], d = Math.sqrt(dx * dx + dz * dz) || 0.001;
           this.yaw[i] = Math.atan2(dx, dz);
-          const hold = team === 0 && defend && !this.emergency && this.kind[i] === 32 && this.frank[i] >= 1 && this.frank[i] <= 3;
-          const em = team === 0 && this.role[i] === 3 && tg >= 0 && (d < this.rad[i] + this.rad[tg] + 1.1 || (defend && this.form && this.form.on && (this.emergency || this.z[tg] > this.form.lineZ + 0.3) && d < 6)); this.em[i] = em ? 1 : 0;   // ranged: enemy in the personal zone or past the giants → sword
-          if (em && d > this.rad[i] + this.rad[tg] + 0.9) { dvx = dx / d * sp; dvz = dz / d * sp; }
-          else if (em) { this.at[i] -= dt * S.atk * sm; if (this.at[i] <= 0) { this.at[i] = 0.9; this.src = 0; this.hurt(tg, S.dmg * 0.8, 0, this.z[i], false); this.swing[i] = 1; this.emit('hit', i, tg, false); } }
-          else if (hold && d > reach) { const G = this.fg || (this.fg = [0, 0]); this.formGoal(i, G); const ox = G[0] - this.x[i], oz = G[1] - this.z[i], od = Math.hypot(ox, oz) || 1e-3; if (od > 0.3) { dvx = ox / od * sp * Math.min(1, od / 2.2); dvz = oz / od * sp * Math.min(1, od / 2.2); } this.yaw[i] = Math.PI; }   // the line holds; enemies come to it
-          else if (this.role[i] === 3 && !so && tg >= 0 && d < this.rng_[i] * 0.5) { if (this.z[i] < L.z - 2.4) { dvx = -dx / d * sp * 0.75; dvz = -dz / d * sp * 0.75; } else { dvx = (this.x[i] >= tx ? 1 : -1) * sp * 0.6; dvz = 0; } }   // ranged: back off to preferred range, but never past the tank: at the rear boundary sidestep and fight at emergency range
-          else if (d > reach) {
+          if (tg === -2) { d = this.hullDist(i); const A = this.tankApproach(i); dx = A[0] * d; dz = A[1] * d; }   // the tank: steer at a legal hull contact point; d = distance from this body's centre to the hull surface
+          const reach = tg === -2 ? this.rng_[i] + this.ft[i] + TANK_PAD : this.rng_[i] + this.rad[i] + this.rad[tg];
+          // DEFEND: the shield rank, the Elite phalanx and the archers hold their slots (enemies come to them); reserves and giants
+          // intercept inside their zone; a tank-guard target overrides both. Archers reach a big enemy's footprint edge.
+          const rch = defend && this.role[i] === 3 && tg >= 0 ? this.rng_[i] + this.rad[i] + this.ft[tg] : reach;
+          const hold = defend && gq < 0 && (this.role[i] === 3 || !this.emergency && (this.kind[i] === 34 || this.kind[i] === 32 && this.frank[i] === 1));
+          if (hold && d > rch) { const G = this.fg || (this.fg = [0, 0]); this.formGoal(i, G); const ox = G[0] - this.x[i], oz = G[1] - this.z[i], od = Math.hypot(ox, oz) || 1e-3; if (od > 0.3) { dvx = ox / od * sp * Math.min(1, od / 2.2); dvz = oz / od * sp * Math.min(1, od / 2.2); } dvz += vm; this.yaw[i] = Math.PI; }   // the line holds; enemies come to it
+          else if (this.role[i] === 3 && !defend && tg >= 0 && d < this.rng_[i] * 0.5) { const hb = W.HULL_HW + this.rad[i] + W.FORM_CLEAR, blk = Math.abs(this.x[i] - L.x) < hb && this.z[i] < L.z && this.z[i] > L.z - W.HULL_HL - 4;
+            if (blk) { const sd = this.x[i] >= L.x ? 1 : -1; dvx = sd * sp * 0.7; dvz = Math.max(0, -dz / d) * sp * 0.4; }   // the solid hull is behind it: peel off toward the nearer flank first
+            else if (this.z[i] < L.z - 2.4 || Math.abs(this.x[i] - L.x) >= hb) { dvx = -dx / d * sp * 0.75; dvz = -dz / d * sp * 0.75; } else { dvx = (this.x[i] >= tx ? 1 : -1) * sp * 0.6; dvz = 0; } }   // ATTACK ranged: back off to preferred range, never through the tank, never past the rear boundary
+          else if (d > rch && hold) { const G = this.fg || (this.fg = [0, 0]); this.formGoal(i, G); const ox = G[0] - this.x[i], oz = G[1] - this.z[i], od = Math.hypot(ox, oz) || 1e-3;   /* DEFEND wall: never walks off its slot toward a target it cannot reach — the enemy has to come to the wall */
+            if (od > 0.06) { dvx = ox / od * sp * Math.min(1, od / 1.5); dvz = oz / od * sp * Math.min(1, od / 1.5); } dvz += vm; }
+          else if (d > rch) {
             dvx = dx / d * sp; dvz = dz / d * sp;
             // fan out toward open combat positions instead of queueing behind the unit in front
-            if (d < reach + 4) { const fan = (((i * 0.6180339) % 1) - 0.5) * 0.9 * sp * Math.min(1, (d - reach) / 2); dvx += -dz / d * fan; dvz += dx / d * fan; }
+            if (d < rch + 4) { const fan = (((i * 0.6180339) % 1) - 0.5) * 0.9 * sp * Math.min(1, (d - rch) / 2); dvx += -dz / d * fan; dvz += dx / d * fan; }
           }
           else {
-            if (adv < -0.4 && this.role[i] < 2) dvz = (team ? -1 : 1) * sp * 0.45 * (-adv - 0.4);   // losing strip gives ground while fighting
-            this.at[i] -= dt * (team ? 1 : S.atk) * sm;
-            if (this.at[i] <= 0) { this.at[i] = this.cd[i] * (0.9 + this.rng() * 0.2); this.attack(i, tg, tx, tz, S);
-              if (team === 0 && defend && (this.frank[i] === 2 || this.frank[i] === 3) && this.role[i] < 3 && this.kind[i] !== 34 && tg >= 0) { const e = KM.ENEMY[this.kind[tg]], k = e.boss ? 0.15 : e.mini || this.elite[tg] ? 0.35 : 1; this.z[tg] -= 0.32 * k; this.vz[tg] *= 1 - 0.6 * k; if (this.mph[tg] === 2) this.mt[tg] -= 0.3 * k; this.emit('pike', tg, 0.32 * k); }   // pike pushback: ordinary foes give ground, charges lose momentum, giants barely move
-            }
+            if (adv < -0.4 && this.role[i] < 2 && !hold) dvz = (team ? -1 : 1) * sp * 0.45 * (-adv - 0.4);   // losing strip gives ground while fighting (a DEFEND wall holds its slot instead)
+            if (hold) { /* DEFEND wall (Elite, front-rank Melee, archers): fight from the slot and step back into it */ const G = this.fg || (this.fg = [0, 0]); this.formGoal(i, G); const ox = G[0] - this.x[i], oz = G[1] - this.z[i], od = Math.hypot(ox, oz) || 1e-3; if (od > 0.3) { dvx = ox / od * sp * 0.5 * Math.min(1, od / 2.2); dvz = oz / od * sp * 0.5 * Math.min(1, od / 2.2); } dvz += vm; }   // the phalanx and the archers fight from their slots
+            this.at[i] -= dt * (team ? 1 : S.atk * this.spdFx() * ((this.rofK && this.rofK[this.kind[i]]) || 1)) * sm;
+            if (this.at[i] <= 0) { this.at[i] = this.cd[i] * (0.9 + this.rng() * 0.2); this.attack(i, tg, tx, tz, S); }
           }
         } else {
           // march with slight drift toward lane centre / formation cohesion
           if (team === 0 && defend) {
-            // DEFEND: walk to the formation cell (gaps are re-assigned by formUpdate; arrival is weighty, never a teleport)
+            // DEFEND: walk to the formation slot (gaps are re-assigned by formUpdate; arrival is weighty, never a teleport) and march with it
             const G = this.fg || (this.fg = [0, 0]); this.formGoal(i, G);
             const ox = G[0] - this.x[i], oz = G[1] - this.z[i], od = Math.sqrt(ox * ox + oz * oz) || 1e-3, ak = Math.min(1, od / 2.2);
-            if (od > 0.3) { dvx = ox / od * sp * 1.15 * ak; dvz = oz / od * sp * 1.15 * ak; } this.yaw[i] = od > 1.2 ? Math.atan2(dvx, dvz) : Math.PI;
+            if (od > 0.06) { dvx = ox / od * sp * 1.15 * ak; dvz = oz / od * sp * 1.15 * ak; } dvz += vm; /* settle into the slot: fence-to-fence rows need the full pitch, not a 0.3 m arrival slack */ this.yaw[i] = od > 1.2 ? Math.atan2(dvx, dvz) : Math.PI;
           } else if (team === 0) {
             const hold = this.role[i] === 3 ? Math.min(L.z - 2.4, (this.armyZ != null ? this.armyZ : front - W.HOLD_DZ) + KM.rtech(S).gap + ((i * 0.3819) % 1) * 2) : front - W.HOLD_DZ - ((i * 0.3819) % 1) * 7;   // ATTACK: the ranged line follows the moving melee mass at its weapon's gap
             if (L.z - this.z[i] > COH) dvz = sp * 0.7; else if (this.z[i] > hold) dvz = -sp; else if (this.role[i] === 3 && this.z[i] < hold - 2) dvz = sp * 0.5;
@@ -729,11 +1008,9 @@
         // separation (crowd pressure) — same + opposite team
         this.separate(i, dt);
         this.x[i] += this.vx[i] * dt; this.z[i] += this.vz[i] * dt;
-        if (!team && this.role[i] >= 3 && this.z[i] > L.z + 2) { this.z[i] = L.z + 2; if (this.vz[i] > 0) this.vz[i] = 0; }
-        if (team && this.z[i] > L.z + 0.6) { this.z[i] = L.z + 0.6; if (this.vz[i] > 0) this.vz[i] = 0; }   // the command tank is the battlefield's rear boundary: enemies reach it, never pass it   // rear boundary: ranged/support never drift off behind the command group
-        // flow around tower footprints (soft circular obstacles)
-        for (let s = 0; s < this.towers.length; s++) { const t = this.towers[s]; if (!t) continue; const ox = this.x[i] - t.x, oz = this.z[i] - t.z, rr = 0.95 + this.rad[i], dd = ox * ox + oz * oz; if (dd < rr * rr && dd > 1e-6) { const d = Math.sqrt(dd), push = (rr - d); this.x[i] += ox / d * push; this.z[i] += oz / d * push * 0.6; } }
+        if (!team && this.role[i] >= 3 && this.z[i] > L.z + 2) { this.z[i] = L.z + 2; if (this.vz[i] > 0) this.vz[i] = 0; }   // rear boundary: ranged/support never drift off behind the command group
         if (this.x[i] < -W.LANE) this.x[i] = -W.LANE; else if (this.x[i] > W.LANE) this.x[i] = W.LANE;
+        if (team) { if (this.posture === 1 && !this.bossLike(i)) this.lineBlock(i); this.rearClamp(i); } else this.hullClear(i);   // the command tank is the battlefield's rear boundary: enemies reach it, never pass it (last position write)
         const v = Math.abs(this.vx[i]) + Math.abs(this.vz[i]);
         this.phase[i] += dt * (2 + v * 2.3) * this.stride[i];
         if (team === 1) {
@@ -758,35 +1035,65 @@
         if (this.mt[i] <= 0) { this.mph[i] = 0; this.mt[i] = 7; } }
     }
 
-    // ---------- DEFEND formation: phalanx cells (rank × column) with lightweight vacancy filling ----------
-    // rank 0 shield line · rank 1 spears (thrust through) · ranks 2+ sword reserve; rebuilt only when the melee count shifts,
-    // otherwise holes are filled front-to-back from the nearest unit behind (no solver, no per-frame re-sort).
+    // ---------- DEFEND formation: fence-to-fence bands with stable slots ----------
+    // From the front: Elite shield wall + pikes · Melee rank 1 · Melee ranks 2..R · Range · Mizard · Giants (last line). Looters are not a row.
+    // Every band spans the whole lane: ROW_MAX columns at pitch 2·LANE / ROW_MAX, and each class's collision radius is half that pitch, so a
+    // complete row covers fence to fence with neighbours touching; partial rows keep the pitch (centred) and leave real openings at their ends.
+    // Rows touch: pitch = the two collision radii + W.FORM_MARGIN. The army stands right ahead of the tank — the rear band's slots W.DEF_REAR_DZ
+    // ahead of it, the front as far up as the army is deep. Melee keeps rank × column cells (rebuilt only when the melee count shifts, otherwise
+    // holes are filled front-to-back from the nearest unit behind); every other band keeps a persistent slot per unit (slotBand). Classes ordered
+    // to ATTACK leave their band (it collapses) but still count for the anchor, so the wall does not move with the orders.
     formUpdate(dt) {
-      const F = this.form || (this.form = { t: 0, rb: 0, M: 0, C: 0, R: 0, owner: new Int32Array(4096).fill(-1), vt: new Float32Array(4096), list: [], press: new Float32Array(8) });
-      if (this.posture !== 1) { F.M = 0; F.on = 0; this.emergency = 0; return; }
+      const F = this.form || (this.form = { t: 0, rb: 0, M: 0, C: 0, R: 0, owner: new Int32Array(4096).fill(-1), vt: new Float32Array(4096), list: [], press: new Float32Array(8),
+        g: { 34: [], 37: [], 33: [], 36: [] }, mem: { 34: [], 37: [], 33: [], 36: [] }, band: { 34: { n: 0 }, 37: { n: 0 }, 33: { n: 0 }, 36: { n: 0 } }, nAll: {}, la: {}, lp: {}, gv: 0, zRef: 0 });
+      if (this.posture !== 1) { F.M = 0; F.on = 0; F.gv = 0; this.emergency = 0; return; }
+      const L = this.L;
+      if (F.on && L.z !== F.zRef) { const sh = L.z - F.zRef; F.zRef = L.z; F.frontZ += sh; F.r2Z += sh; F.m1Z += sh; F.breachZ += sh; F.backZ += sh;   // between rebuilds the slots march with the war
+        for (const k in F.band) if (F.band[k].n) F.band[k].z0 += sh; if (F.eliteZ != null) F.eliteZ += sh; if (F.giantZ != null) F.giantZ += sh; if (F.rangeZ != null) F.rangeZ += sh; if (F.medZ != null) F.medZ += sh; }
       F.t -= dt; F.rb -= dt; if (F.t > 0) return; F.t = 0.25;
-      const L = this.L, list = F.list; list.length = 0;
-      // the other lines: elites, giants, ranged rows, mizards — stable slot index in each group
-      const G = F.g || (F.g = { 34: [], 37: [], 33: [], 36: [] }); for (const k in G) G[k].length = 0;
+      const ch = this.charge, list = F.list, mem = F.mem, nAll = F.nAll; list.length = 0; nAll[32] = 0;
+      for (const k in mem) { mem[k].length = 0; nAll[k] = 0; }
       for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE || this.team[i]) continue; const k = this.kind[i];
-        if (k === 32) { if (this.role[i] < 3 && !this.charge.melee) list.push(i); } else if (G[k]) { G[k].push(i); this.fcol[i] = G[k].length - 1; } }
-      const M = list.length, evoM = this.evolved('melee') ? 1.55 : 1, evoR = this.evolved('range') ? 1.6 : 1;   // evolved soldiers are bigger: fewer per row over the same width
-      const wdt = Math.min(W.LANE - 0.6, 2.6 + Math.sqrt(Math.max(M, 60)) * 0.42), C = Math.max(4, Math.min(22, Math.round(wdt * 2 / (0.85 * evoM)))), R = Math.max(1, Math.ceil(M / C)), dz = 0.95 * (evoM > 1 ? 1.3 : 1);
-      // back-to-front from the tank: mizards · ranged rows · era gap · giants · elites · melee rows
-      const nR = G[33].length, nG = G[37].length, nE = G[34].length, Cr = Math.max(6, Math.round(18 / evoR)), Rr = Math.ceil(nR / Cr), Cg = Math.max(3, Math.round(wdt * 2 / 2.4)), Rg = Math.ceil(nG / Cg), Ce = Math.max(4, Math.round(wdt * 2 / 1.5)), Re = Math.ceil(nE / Ce);
-      let z = L.z - 3.4; F.medZ = L.z - 1.9; F.rangeZ = z; F.Cr = Cr; z -= Math.max(0, Rr - 1) * 0.95 + KM.rtech(this.stats).gap;
-      if (nG) { z -= 1.3; F.giantZ = z; F.Cg = Cg; z -= (Rg - 1) * 2.4 + 1.5; } else F.giantZ = null;
-      if (nE) { z -= 0.7; F.eliteZ = z; F.Ce = Ce; z -= (Re - 1) * 1.5 + 1.0; } else F.eliteZ = null;
-      F.lineZ = nG ? F.giantZ : nE ? F.eliteZ : z;   // the last heavy line in front of the ranged rows
-      F.on = 1; F.dz = dz; if (!M) { F.M = 0; F.frontZ = z - 1; F.wdt = wdt; F.cx = W.LANE_CENTER_X; return; }
-      F.wdt = wdt; F.frontZ = z - R * dz; F.cx = W.LANE_CENTER_X;
+        if (k === 32) { if (this.role[i] < 3) { nAll[32]++; if (!ch.melee) list.push(i); } } else if (mem[k]) { nAll[k]++; if (!ch[this.typeOf(i)]) mem[k].push(i); } }
+      // geometry: class radii (fixed per class; evolution never widens a soldier), fence-to-fence widths, columns, row pitches
+      const m = W.FORM_MARGIN, rOf = (key, kind) => KM.FRIEND[kind - 32].rad;
+      const rm = rOf('melee', 32), re = rOf('elite', 34), rg = rOf('giant', 37), rr = rOf('range', 33), rz = rOf('mizard', 36);
+      F.nw = F.on && F.nw != null && Math.abs(nAll[32] - F.nw) < Math.max(3, F.nw * 0.08) ? F.nw : nAll[32];   // width hysteresis: deaths and refills around a column threshold do not flip the band widths back and forth
+      // FENCE-TO-FENCE rows: every class band spans the full lane (half-width W.LANE) with ROW_MAX columns; pitch = 2·LANE / ROW_MAX = 2 × class radius
+      const M = list.length, wdt = W.LANE, hw = W.LANE, RM_ = W.ROW_MAX;
+      const C = RM_.melee, R = Math.max(1, Math.ceil(M / C)), dz = 2 * rm + m;
+      const CE = RM_.elite, pxE = 2 * W.LANE / CE, pzE = 2 * re + m;                                                       // Elite: shields touching, fence to fence
+      const CG = RM_.giant, pxG = 2 * W.LANE / CG, brick = true, pzG = Math.sqrt((2 * rg + m) ** 2 - (pxG / 2) ** 2);       // Giants: staggered brick rows (10 / 9)
+      const CR = RM_.range, pxR = 2 * W.LANE / CR, pzR = 2 * rr + m, CZ = RM_.mizard, pxZ = 2 * W.LANE / CZ, pzZ = 2 * rz + m;
+      const rows = (n, Cc, br) => { if (!n) return 0; if (!br) return Math.ceil(n / Cc); const p = 2 * Cc - 1, q = Math.floor(n / p), r = n - q * p; return 2 * q + (!r ? 0 : r <= Cc ? 1 : 2); };
+      const reb = M > 0 && (!F.M || F.rb <= 0 || C !== F.C || Math.abs(M - F.M) > Math.max(3, F.M * 0.12)), RM = M ? (reb ? R : F.R) : 0;   // present melee rows = the cell grid
+      // band offsets from the front row (rows touch: radius + radius + margin between neighbouring bands)
+      const lay = (rM, nE, nG, nR, nZ, o) => { let z = -1, pr = 0;
+        const put = (key, nRows, rad, pz) => { if (!nRows) { o[key] = null; return; } z = z < 0 ? 0 : z + pr + rad + m; o[key] = z; z += (nRows - 1) * pz; pr = rad; };
+        // LOCKED front-to-back order: Elite shield wall + pikes → Melee → Range → Mizards → Giants (last line). Looters are not a row.
+        put('e', rows(nE, CE), re, pzE); put('m1', rM ? 1 : 0, rm, dz); o.m2At = z < 0 ? 0 : z + (rM ? dz : pr + rm + m); put('m2', Math.max(0, rM - 1), rm, dz);
+        o.mEnd = z < 0 ? 0 : z; put('r', rows(nR, CR), rr, pzR); put('z', rows(nZ, CZ), rz, pzZ); put('g', rows(nG, CG, brick), rg, pzG); o.depth = Math.max(0, z); return o; };
+      const A = lay(Math.max(RM, Math.ceil(nAll[32] / C)), nAll[34], nAll[37], nAll[33], nAll[36], F.la), P = lay(RM, mem[34].length, mem[37].length, mem[33].length, mem[36].length, F.lp);
+      // anchor: the army stands right ahead of the tank — its rear band's slots W.DEF_REAR_DZ ahead of the tank centre, the front as far up as the army is deep
+      const dzT = A.depth + W.DEF_REAR_DZ;
+      F.fdz = F.on && F.fdz != null && dzT <= F.fdz && dzT > F.fdz - 1.8 ? F.fdz : dzT;   // anchor hysteresis: a deeper army moves the wall up at once (the rear stays clear of the tank zone); losing up to a row of depth leaves it standing
+      const frontDZ = F.fdz, frontZ = L.z - frontDZ, at = key => P[key] == null ? null : frontZ + P[key];
+      F.on = 1; F.zRef = L.z; F.wdt = wdt; F.cx = W.LANE_CENTER_X; F.dz = dz; F.frontZ = frontZ; F.depth = A.depth; F.backZ = frontZ + P.depth; F.r2Z = frontZ + (P.m2 != null ? P.m2 : P.m2At); F.m1Z = frontZ + (P.m1 != null ? P.m1 : 0); F.breachZ = frontZ + P.mEnd;
+      F.eliteZ = at('e'); F.giantZ = at('g'); F.rangeZ = at('r'); F.medZ = at('z');
+      const BS = [[34, CE, pxE, pzE, 0, F.eliteZ, wdt], [37, CG, pxG, pzG, brick ? 1 : 0, F.giantZ, hw], [33, CR, pxR, pzR, 0, F.rangeZ, hw], [36, CZ, pxZ, pzZ, 0, F.medZ, hw]];
+      for (const [k, Cc, px, pz, br, z0, h] of BS) { const B = F.band[k], mode = !F.gv ? 2 : B.C !== Cc || B.brick !== br ? 1 : 0;
+        if (mode === 1) { const S = F.g[k], X = this.slX || (this.slX = new Float32Array(CAP)), Q = this.sp2 || (this.sp2 = [0, 0]); for (const i of mem[k]) { const q = this.fcol[i]; if (q >= 0 && q < B.n && S[q] === i) { this.bandPos(B, q, Q); X[i] = Q[0]; } else X[i] = this.x[i]; } }   // the old slot x, before the band changes
+        B.n = mem[k].length; B.C = Cc; B.px = px; B.pz = pz; B.brick = br; B.z0 = z0; B.hw = h; B.cx = F.cx; this.slotBand(k, B, mem[k], mode); }
+      F.gv = 1;
       // flank pressure (enemies just ahead of the line, 8 lateral bins)
       F.press.fill(0); for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && this.z[i] > F.frontZ - 9 && this.z[i] < F.frontZ + 3) { const b = Math.max(0, Math.min(7, Math.floor((this.x[i] - F.cx + wdt) / (2 * wdt) * 8))); F.press[b]++; }
-      for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && !this.br[i] && this.z[i] > F.frontZ + 0.6 && this.z[i] < L.z + 2) { this.br[i] = 1; this.breaches++; }   // breach: an enemy got past the shield wall
-      { let alive = 0; const FC = F.C || C, rows = Math.min(3, F.R || R); for (let k = 0; k < rows * FC; k++) { const o = F.owner[k]; if (o >= 0 && this.st[o] === ALIVE) alive++; }
-        const em = rows && alive < rows * FC * 0.35 ? 1 : 0; if (em !== this.emergency) { this.emergency = em; if (em) this.emergencies = (this.emergencies || 0) + 1; this.emit('emergency', em); } }   // three-row collapse
+      for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && !this.br[i] && this.z[i] > F.frontZ + 0.6 && this.z[i] < L.z + 2) { this.br[i] = 1; this.breaches++; }   // breach: an enemy got past the shield line
+      { let alive = 0; const FC = F.C || C, rws = M && F.M ? Math.min(3, F.R || R) : 0; for (let k = 0; k < rws * FC; k++) { const o = F.owner[k]; if (o >= 0 && this.st[o] === ALIVE) alive++; }
+        // rws is 0 until the melee grid is built: no false alarm on the first tick
+        const em = rws && alive < rws * FC * 0.35 ? 1 : 0; if (em !== this.emergency) { this.emergency = em; if (em) this.emergencies = (this.emergencies || 0) + 1; this.emit('emergency', em); } }   // three-row collapse (recomputed even with no melee in the formation)
       let pb = 0; for (let b = 1; b < 8; b++) if (F.press[b] > F.press[pb]) pb = b; F.pressX = F.cx - wdt + (pb + 0.5) / 8 * 2 * wdt; F.pressN = F.press[pb];
-      if (F.rb <= 0 || C !== F.C || Math.abs(M - F.M) > Math.max(3, F.M * 0.12)) {               // full rebuild: one sort, O(M log M)
+      if (!M) { F.M = 0; return; }
+      if (reb) {                                                                                     // full rebuild: one sort, O(M log M)
         F.rb = 6; F.C = C; F.R = R; F.M = M; F.owner.fill(-1, 0, R * C); F.vt.fill(0);
         list.sort((a, b) => this.z[a] - this.z[b]);
         for (let r = 0; r < R; r++) { const row = list.slice(r * C, (r + 1) * C).sort((a, b) => this.x[a] - this.x[b]), off = Math.floor((C - row.length) / 2);
@@ -800,6 +1107,39 @@
         }
       }
     }
+    // Stable slots for one non-melee band: a unit keeps its slot index; the hole a death leaves is filled by the unit holding a
+    // now out-of-range index, newcomers take the nearest free slots (mode 0). A column change re-packs in the old slot order (mode 1):
+    // most units shift about half a pitch sideways, while those at the ends of a row that no longer fit drop into the next row near
+    // its end on their side (several metres sideways when that row is a short partial one). Entering DEFEND, or a band forming from
+    // nothing, packs by position, front to back (mode 2). Rows fill left to right by x. Never re-indexed by array order.
+    slotBand(k, B, mem, mode) {
+      const S = this.form.g[k], n = mem.length, old = S.length, P = this.sp2 || (this.sp2 = [0, 0]), nx = this.slNx || (this.slNx = new Int32Array(CAP)), mv = this.slMv || (this.slMv = []), hl = this.slH || (this.slH = []);
+      if (!old) mode = 2;
+      if (mode) { const key = this.slK || (this.slK = new Float64Array(CAP)), cs = this.slCs || (this.slCs = []), X = mode === 1 ? this.slX : this.x;
+        for (const i of mem) { const s = this.fcol[i]; key[i] = mode === 1 && s >= 0 && s < old && S[s] === i ? s - 1e6 : this.z[i]; }   // mode 1: slotted units in slot order (and by old slot x within a row), then the rest front to back
+        mem.sort((a, b) => key[a] - key[b] || a - b); S.length = n;
+        for (let s = 0, r = 0; s < n; r++) { const size = B.brick && r % 2 ? B.C - 1 : B.C, sz = Math.min(n - s, size), row = mem.slice(s, s + sz).sort((a, b) => X[a] - X[b] || a - b);
+          cs.length = sz; for (let c = 0; c < sz; c++) cs[c] = c; cs.sort((a, b) => slotCol(a, size) - slotCol(b, size));   // the row's slots in lattice order, left to right
+          for (let q = 0; q < sz; q++) { S[s + cs[q]] = row[q]; this.fcol[row[q]] = s + cs[q]; } s += sz; }
+        return; }
+      mv.length = 0; nx.fill(-1, 0, n);
+      for (const i of mem) { const s = this.fcol[i]; if (s >= 0 && s < old && S[s] === i && s < n) nx[s] = i; else mv.push(i); }
+      hl.length = 0; for (let s = 0; s < n; s++) if (nx[s] < 0) hl.push(s);
+      const place = i => { let bh = -1, bd = 1e18; for (let h = 0; h < hl.length; h++) { if (hl[h] < 0) continue; this.bandPos(B, hl[h], P); const d = (P[0] - this.x[i]) ** 2 + (P[1] - this.z[i]) ** 2; if (d < bd) { bd = d; bh = h; } } nx[hl[bh]] = i; this.fcol[i] = hl[bh]; hl[bh] = -1; };
+      mv.sort((a, b) => (S[this.fcol[b]] === b ? this.fcol[b] : -1) - (S[this.fcol[a]] === a ? this.fcol[a] : -1) || a - b);   // out-of-range indices (last first), then newcomers
+      for (const i of mv) place(i);
+      S.length = n; for (let s = 0; s < n; s++) S[s] = nx[s];
+    }
+    // slot s of band B → world (x, z): rows run from the band's front toward the tank; brick bands alternate C / C−1 slots per row
+    // shifted half a pitch. Slots map centre-out onto the row lattice, so the partial last row is centred (within half a pitch)
+    // and an arrival or a death never shifts the units already standing in it.
+    bandPos(B, s, out) {
+      const C = B.C; let r, start, size = C;
+      if (B.brick) { const p = 2 * C - 1, q = Math.floor(s / p); r = 2 * q; start = q * p; if (s - start >= C) { r++; start += C; size = C - 1; } }
+      else { r = Math.floor(s / C); start = r * C; }
+      const off = slotCol(s - start, size) - (size - 1) / 2;
+      out[0] = Math.max(-W.LANE + 0.46, Math.min(W.LANE - 0.46, B.cx + off * B.px)); out[1] = B.z0 + r * B.pz;
+    }
     stepGroups(dt) {                                                                                // FORMATION → IMPACT → BREAK → CHAOS
       const Gs = this.groups; let live = 0;
       for (let k = 0; k < Gs.length; k++) { const g = Gs[k]; if (!g) continue; if (g.alive <= 0 || g.st === 3) { Gs[k] = null; continue; } live++;
@@ -811,17 +1151,13 @@
     formGoal(i, out) {                                                                               // where unit i stands in DEFEND
       const F = this.form, L = this.L, h = ((i * 0.6180339) % 1) * 2 - 1, kind = this.kind[i];
       if (!F || !F.on) { out[0] = L.x; out[1] = L.z - 6; return; }
-      const row = (k, n, C, z0, depth, dir) => { const r = Math.floor(k / C), inRow = Math.min(C, n - r * C), c = k - r * C, w = Math.min(F.wdt, 0.6 + inRow * (2 * F.wdt / C) / 2);
-        out[0] = Math.max(-W.LANE + 0.5, Math.min(W.LANE - 0.5, F.cx - w + (c + 0.5) / inRow * 2 * w)); out[1] = z0 + dir * r * depth; };   // centred rows
-      const G = F.g;
-      if (kind === 34 && F.eliteZ != null) return row(this.fcol[i], G[34].length, F.Ce, F.eliteZ, 1.5, -1);   // ELITE line behind the melee rows
-      if (kind === 37 && F.giantZ != null) return row(this.fcol[i], G[37].length, F.Cg, F.giantZ, 2.4, -1);  // GIANT line behind the elites
-      if (kind === 33) return row(this.fcol[i], G[33].length, F.Cr, F.rangeZ, 0.95, -1);                    // RANGE rows, centred, behind the heavy lines
-      if (kind === 36) return row(this.fcol[i], G[36].length, 12, F.medZ, 1.0, 1);                          // MIZARD row just ahead of the tank
-      if (!F.M) { out[0] = F.cx + h * F.wdt; out[1] = F.frontZ; return; }
-      const r = this.frank[i] - 1, c = this.fcol[i]; if (r < 0 || r >= F.R) { out[0] = F.cx + h * F.wdt; out[1] = F.frontZ + F.R * F.dz; return; }
+      if (kind !== 32) { const B = F.band[kind], s = this.fcol[i];                                   // ELITE · GIANT · RANGE · MIZARD: the unit's own slot
+        if (B && B.n && s >= 0 && s < B.n && F.g[kind][s] === i) return this.bandPos(B, s, out);
+        out[0] = F.cx + h * (B ? B.hw : F.wdt) * 0.5; out[1] = B && B.n ? B.z0 : F.backZ; return; }   // not slotted yet (deployed since the last tick)
+      if (!F.M) { out[0] = F.cx + h * F.wdt; out[1] = F.m1Z; return; }
+      const r = this.frank[i] - 1, c = this.fcol[i]; if (r < 0 || r >= F.R) { out[0] = F.cx + h * F.wdt; out[1] = F.r2Z + Math.max(0, F.R - 1) * F.dz; return; }
       let x = F.cx - F.wdt + (c + 0.5) / F.C * 2 * F.wdt; if (r >= 2 && F.pressN > 2) x += Math.max(-1.6, Math.min(1.6, (F.pressX - x) * 0.35));   // reserves lean toward the threatened flank
-      out[0] = Math.max(-W.LANE + 0.5, Math.min(W.LANE - 0.5, x)); out[1] = F.frontZ + r * F.dz;
+      out[0] = Math.max(-W.LANE + 0.46, Math.min(W.LANE - 0.46, x)); out[1] = r ? F.r2Z + (r - 1) * F.dz : F.m1Z;   // (Elite band) · melee rank 1 · ranks 2..R
     }
     shieldWall(i) {                                                                                  // living shield neighbours in the front rank
       const F = this.form; if (!F || !F.M || this.frank[i] !== 1) return 0; const c = this.fcol[i]; let n = 0;
@@ -831,11 +1167,11 @@
     // Medic: triage → move to a safe spot behind the patient → heal on a cadence. Never resurrects; backs off from threats.
     // MIZARD: holds a rear slot (never runs into the fight) · heals by beam at range · charges an area burst on a fixed cadence.
     medic(i, dt, S) {
-      const L = this.L, x = this.x[i], z = this.z[i], sp = this.spd[i] * (S.speed / 4.3), lv = S.cls.mizard, R = (9 + 0.6 * (lv - 1)) * (S.healR || 1);
-      let gx, gz;
-      if (this.posture === 1 && this.form && this.form.M) { const G = this.fg || (this.fg = [0, 0]); this.formGoal(i, G); gx = G[0]; gz = G[1]; }
+      const L = this.L, x = this.x[i], z = this.z[i], sp = this.spd[i] * (S.speed / 4.3), lv = S.cls.mizard, R = KM.W.MIZARD_RANGE * (S.healR || 1);
+      let gx, gz, inSlot = 0;
+      if (this.posture === 1 && this.form && this.form.on) { const G = this.fg || (this.fg = [0, 0]); this.formGoal(i, G); gx = G[0]; gz = G[1]; inSlot = 1; }   // MIZARD slot: right behind the rearmost combat band
       else { gx = (this.armyX != null ? this.armyX : L.x) * 0.6 + ((i * 0.618) % 1 - 0.5) * 7; gz = Math.min(L.z - 1.8, (this.armyZ != null ? this.armyZ : L.z - 10) + KM.rtech(S).gap + 4); }
-      if (this.nearestXZ(x, z, 1, 3) >= 0) { gx = L.x + ((i * 0.618) % 1 - 0.5) * 3; gz = L.z - 1.2; }   // threatened: step back to the tank, never toward the fight
+      if (this.nearestXZ(x, z, 1, 3) >= 0) { gx = L.x + ((i * 0.618) % 1 - 0.5) * 3; gz = L.z - 1.2; inSlot = 0; }   // threatened: step back to the tank, never toward the fight
       this.think[i] -= dt;
       if (this.think[i] <= 0) { this.think[i] = 0.35 + (i % 4) * 0.05; let best = -1, bs = 0; const c0 = this.cellX(x - R), c1 = this.cellX(x + R), r0 = this.cellZ(z - R), r1 = this.cellZ(z + R);
         for (let gz2 = r0; gz2 <= r1; gz2++) for (let gx2 = c0; gx2 <= c1; gx2++) for (let j = this.gh[(gz2 * GCOLS + gx2) * 2]; j >= 0; j = this.next[j]) {
@@ -854,7 +1190,7 @@
         for (const j of list.slice(0, N)) { const h = Math.min(this.mhp[j] - this.hp[j], S.medHeal * 2.5); this.hp[j] += h; this.healed += h; n++; }
         this.emit('healBurst', cx, cz, Rb, n); }
       const dx = gx - x, dz = gz - z, d = Math.sqrt(dx * dx + dz * dz) || 1e-3, s2 = d > 0.3 ? sp * Math.min(1, d / 1.4) : 0;
-      this.cvx = dx / d * s2; this.cvz = dz / d * s2; if (!(p >= 0)) this.yaw[i] = d > 0.5 ? Math.atan2(dx, dz) : Math.PI;
+      this.cvx = dx / d * s2; this.cvz = dz / d * s2 + (inSlot && !this.nBoss ? -W.ADV : 0); if (!(p >= 0)) this.yaw[i] = d > 0.5 ? Math.atan2(dx, dz) : Math.PI;   // a slotted Mizard marches with the formation
     }
 
     // Collector: find a coin beyond the tank's magnet (inside a retrieval radius, not near enemies, not claimed) → carry → return → deposit.
@@ -863,10 +1199,10 @@
     // 3) knife self-defense when enemies break through to them or to the tank. ALL ATTACK sends them into the assault instead.
     collector(i, dt, S) {
       const L = this.L, C = this.c, x = this.x[i], z = this.z[i], sp = this.spd[i] * (S.speed / 4.3), cap = S.colCap, RR = 17, mg = S.magnet;
-      let gx = L.x + 0.9, gz = L.z - 0.4, run = 0.75;
+      let gx = L.x + (L.x > W.LANE - 3 ? -1 : 1) * (W.HULL_HW + this.rad[i] + W.FORM_CLEAR + 0.02), gz = L.z - 0.4, run = 0.75;   // home: against the tank's flank (outside its solid hull, in reach to bank)
       this.repairing[i] = 0;
       // self / rear defense: an enemy at arm's length, or one hitting the tank close by
-      let foe = this.nearestXZ(x, z, 1, 2.4); if (foe < 0 && this.lDist(x, z) < 4) { const t = this.nearestXZ(L.x, L.z, 1, 2.6); if (t >= 0) foe = t; }
+      let foe = this.nearestEdge(x, z, 1, 2.4); if (foe < 0 && this.lDist(x, z) < 4) { const t = this.nearestEdge(L.x, L.z, 1, TANK_TOUCH); if (t >= 0) foe = t; }   // footprint edges: a boss striking the tank counts
       if (foe >= 0) {
         const dx = this.x[foe] - x, dz = this.z[foe] - z, d = Math.sqrt(dx * dx + dz * dz) || 1e-3, reach = this.rng_[i] + this.rad[i] + this.rad[foe];
         this.ctg[i] = -1; this.yaw[i] = Math.atan2(dx, dz);
@@ -894,16 +1230,35 @@
       // nothing to loot and nothing carried: repair a meaningfully damaged tank (from 75% HP until 92%)
       const hpF = L.hp / S.maxHp; if (hpF < 0.75) this.repairOn = 1; else if (hpF > 0.92) this.repairOn = 0;
       if (k < 0 && !this.carry[i] && this.repairOn && this.nRepair < 6 && this.alive) {
-        const side = (i % 2 ? 1 : -1) * 1.15; gx = L.x + side; gz = L.z + 0.2; run = 1; this.nRepair++;
+        const off = W.HULL_HW + this.rad[i] + W.FORM_CLEAR + 0.05; let sd = i % 2 ? 1 : -1; if (Math.abs(L.x + sd * off) > W.LANE - this.rad[i]) sd = -sd;   // repair from a hull flank inside the lane (the hull is solid)
+        gx = L.x + sd * off; gz = L.z + 0.2; run = 1; this.nRepair++;
         if (Math.hypot(gx - x, gz - z) < 0.9) { this.repairing[i] = 1; const h = S.maxHp * 0.0025 * (1 + 0.1 * (S.cls.collector - 1)) * dt; this.heal(h); this.repaired += h; this.swing[i] = this.swing[i] > 0 ? this.swing[i] : 1; if ((this.stepN + i) % 40 === 0) this.emit('repair', i); }
       }
       const dx = gx - x, dz = gz - z, d = Math.sqrt(dx * dx + dz * dz) || 1e-3;
-      if (this.carry[i] > 0 && this.lDist(x, z) < 1.6) { const v = this.carry[i]; this.carry[i] = 0; this.coins += v; this.coinsTotal += v; this.colCoins += v; this.emit('coin', v); this.emit('deposit', i, v); }
+      if (this.carry[i] > 0 && this.hullDist(i) < this.rad[i] + W.FORM_CLEAR + 0.05) { const v = this.carry[i]; this.carry[i] = 0; this.coins += v; this.coinsTotal += v; this.colCoins += v; this.emit('coin', v); this.emit('deposit', i, v); }
       const s2 = d > 0.3 ? sp * run * Math.min(1, d / 1.5) : 0; this.cvx = dx / d * s2; this.cvz = dz / d * s2; this.yaw[i] = this.repairing[i] ? Math.atan2(L.x - x, L.z - z) : Math.atan2(dx, dz);
     }
 
+    holdsSlot(j) { return this.role[j] === 3 ? !this.charge.range : this.kind[j] === 34 && !this.charge.elite; }   // DEFEND: the archer rows and the Elite phalanx hold their slots
+    bossLike(i) { const e = KM.ENEMY[this.kind[i]]; return !!(e && (e.boss || e.mini)); }
+    // DEFEND line contact (hard): an ordinary enemy never overlaps a living defender — it is pushed out along the contact normal, so it
+    // cannot squeeze between touching neighbours of a complete row or slide past one along a fence; it has to fight, push or kill its way
+    // through. Only living units count (a dead defender leaves a real opening), Looters never block, and bosses / minis keep their shoving rules.
+    lineBlock(i) {
+      const ri = this.rad[i];
+      for (let pass = 0; pass < 2; pass++) { let x = this.x[i], z = this.z[i], moved = false, seen = 0;
+        const gx = this.cellX(x), gz = this.cellZ(z);
+        for (let cz = gz - 1; cz <= gz + 1; cz++) { if (cz < 0 || cz >= GROWS) continue;
+          for (let cx = gx - 1; cx <= gx + 1; cx++) { if (cx < 0 || cx >= GCOLS) continue;
+            for (let j = this.gh[(cz * GCOLS + cx) * 2]; j >= 0; j = this.next[j]) { if (this.st[j] !== ALIVE || this.kind[j] === 35) continue; if (++seen > 32) break;
+              const rr = (ri + this.rad[j]) * 0.96, dx = x - this.x[j], dz = z - this.z[j], dd = dx * dx + dz * dz;
+              if (dd >= rr * rr) continue; let d = Math.sqrt(dd), nx, nz; if (d < 1e-4) { nx = 0; nz = -1; d = 0; } else { nx = dx / d; nz = dz / d; }
+              x = this.x[j] + nx * rr; z = this.z[j] + nz * rr; moved = true; } } }
+        if (x < -W.LANE) x = -W.LANE; else if (x > W.LANE) x = W.LANE;
+        this.x[i] = x; this.z[i] = z; if (!moved) break; }
+    }
     separate(i, dt) {
-      const x = this.x[i], z = this.z[i], ri = this.rad[i];
+      const x = this.x[i], z = this.z[i], ri = this.rad[i], ki = this.kind[i], df = this.team[i] === 0 && this.posture === 1, hi = df && this.holdsSlot(i);
       const gx = this.cellX(x), gz = this.cellZ(z);
       let px = 0, pz = 0, n = 0, seen = 0;
       outer: for (let cz = gz - 1; cz <= gz + 1; cz++) { if (cz < 0 || cz >= GROWS) continue;
@@ -912,9 +1267,9 @@
           for (let t = 0; t < 2; t++) for (let j = this.gh[base + t]; j >= 0; j = this.next[j]) {
             if (j === i) continue;
             if (++seen > 28) break outer; // bounded work per unit even inside a dense pile
-            const opp = t !== this.team[i], rr = (ri + this.rad[j]) * (opp ? 1 - (this.mi || 0) * (this.role[i] === 2 ? 0.55 : 0.42) : 1), dx = x - this.x[j], dz = z - this.z[j], dd = dx * dx + dz * dz;
+            const opp = t !== this.team[i], rr = (ri + this.rad[j]) * (opp ? 1 - (this.mi || 0) * (this.role[i] === 2 ? 0.55 : 0.42) : !df && !this.team[i] && ri < 0.5 && this.rad[j] < 0.5 ? 0.8 : 1),   /* ATTACK swarm: standard soldiers (enlarged for fence-to-fence DEFEND rows) crowd as closely as before the enlargement */ dx = x - this.x[j], dz = z - this.z[j], dd = dx * dx + dz * dz;
             if (dd >= rr * rr || dd < 1e-6) continue;
-            const d = Math.sqrt(dd), o = (rr - d) / rr, w = this.rad[j] / (ri + this.rad[j]) * 2;
+            const d = Math.sqrt(dd), o = (rr - d) / rr, w = this.rad[j] / (ri + this.rad[j]) * 2 * (df && !opp && this.kind[j] !== ki && (hi || this.holdsSlot(j) || ki === 35 || this.kind[j] === 35) ? 0.15 : 1) * (df && opp && !this.bossLike(j) ? 0.12 : 1);   // a DEFEND soldier is barely shoved by an ordinary enemy (the enemy side is resolved hard by lineBlock): the wall yields to blows, shockwaves and deaths, not to leaning   // files open: another class passes softly through a holding band (no shoving the rows apart, no blocking the way)
             px += dx / d * o * w; pz += dz / d * o * w; if (++n > 10) break outer;
           }
         }
@@ -930,21 +1285,20 @@
     }
 
     strike(i, S) {
-      const d = this.def(i), team = this.team[i];
+      const d = this.def(i), team = this.team[i]; this.elemNow = team === 0 ? this.elemK[this.kind[i]] || null : null;   // the attacker's skin element rides on this blow / its arrow
       let tg = this.pend[i]; this.pend[i] = -1;
       if (tg >= 0 && this.st[tg] !== ALIVE) { tg = this.nearest(i, this.rng_[i] + this.rad[i] + 1.2); if (tg < 0) { this.emit('whiff', i); return; } }
       if (tg === -2 && !this.alive) return;
-      const so = tg <= -10 ? this.structAt(tg) : null; if (tg <= -10 && !so) return;
-      const tx = so ? so.x : tg === -2 ? this.L.x : this.x[tg], tz = so ? so.z : tg === -2 ? this.L.z : this.z[tg];
+      const tx = tg === -2 ? this.L.x : this.x[tg], tz = tg === -2 ? this.L.z : this.z[tg];
       let dmg = this.dmg[i], crit = false;
-      if (team === 0) { const ck = KM.CLASS_OF[this.kind[i]]; dmg = S.dmg * d.dmg * (this.merc[i] ? 1 : this.clsM(ck, S.cls[ck]).dmg) * (this.evo[i] ? 1.2 : 1); if (this.rng() < S.crit) { dmg *= 2; crit = true; } }
+      if (team === 0) { const ck = KM.CLASS_OF[this.kind[i]]; dmg = (this.evo[i] === 2 ? this.dmg[i] : this.merc[i] ? S.dmg * d.dmg : this.clsM(ck, S.cls[ck]).dmg) * this.dmgFx(); if (this.rng() < S.crit) { dmg *= 2; crit = true; } }
       if (d.he) { // shaman heals nearby enemies, then casts
-        for (let j = 0; j < this.hi; j++) if (this.st[j] === ALIVE && this.team[j] === 1 && j !== i) { const dx = this.x[j] - this.x[i], dz = this.z[j] - this.z[i]; if (dx * dx + dz * dz < 16) this.hp[j] = Math.min(this.mhp[j], this.hp[j] + d.he * this.cd[i]); }
+        for (let j = 0; j < this.hi; j++) if (this.st[j] === ALIVE && this.team[j] === 1 && j !== i) { const dx = this.x[j] - this.x[i], dz = this.z[j] - this.z[i]; if (dx * dx + dz * dz < 16) this.hp[j] = Math.min(this.mhp[j], this.hp[j] + d.he * this.cd[i] * (this.poisT[j] > 0 ? 1 - this.healRed[j] : 1)); }   // POISON: less healing
         this.emit('heal', i);
       }
       if (d.r) {
         let kind = d.wpn === 'cannon' ? 1 : d.wpn === 'staff' ? 3 : 0, speed = kind === 1 ? 11 : 18;
-        if (team === 0) { const T = KM.rtech(S); kind = 12; speed = T.speed; dmg *= T.dmg * S.rdmg; }   // friendly ranged: always arrows (bow tier sets speed / damage)
+        if (team === 0) { const T = KM.rtech(S); kind = 12; speed = T.speed; if (this.merc[i]) dmg *= T.dmg; }   // friendly ranged: always arrows (bow tier sets speed / damage)
         let ex = tx, ez = tz;
         if (tg >= 0) { const tof = Math.hypot(tx - this.x[i], tz - this.z[i]) / speed; ex += this.vx[tg] * tof; ez += this.vz[tg] * tof; }
         this.fire(team, this.x[i], this.z[i], tg, ex, ez, dmg, kind, d.s || 0, 0, speed, crit, 1);
@@ -952,61 +1306,64 @@
       }
       this.src = 0;
       if (tg === -2) { this.hurtLauncher(dmg, KM.ENEMY[this.kind[i]].k); return; }
-      if (so) { this.hurtStruct(tg, dmg * (d.el ? 1.6 : 1)); this.emit('hit', i, -1, false); return; }
-      if (d.el || d.sc >= 1.3 || d.wpn === 'axe') this.shockwave(i, tx, tz, d.boss ? 2.6 : d.el ? 2.0 : 1.3, d.boss ? 9 : d.el ? 7 : 4.5);
+      if (team === 0 && this.kind[i] === 34 && this.posture === 1 && !this.charge.elite) { if (tg >= 0 && this.rng() < W.PIKE_PUSH_P) this.pikePush(tg); }   // DEFEND Elite: a straight pike thrust, never a radial shove
+      else if (d.el || (team === 1 && d.sc >= 1.3) || d.wpn === 'axe') this.shockwave(i, tx, tz, d.boss ? 2.6 : d.el ? 2.0 : 1.3, d.boss ? 9 : d.el ? 7 : 4.5);
       if (d.s) { this.area(1 - team, tx, tz, d.s, dmg, 0, this.z[i]); this.emit('cleave', i); }
       else this.hurt(tg, dmg, team, this.z[i], crit);
       this.emit('hit', i, tg, crit);
     }
 
-    stepTowers(dt, S) {
-      const m = this.t / 60;
-      for (let s = 0; s < this.towers.length; s++) {
-        const t = this.towers[s]; if (!t) continue;
-        // drive to the formation slot beside/ahead of the command tank (weighty, never through the melee)
-        const slot = KM.TOWER_SLOTS[s], gx = Math.max(-W.LANE + 0.8, Math.min(W.LANE - 0.8, this.L.x + slot.x)), gz = this.L.z + slot.dz;
-        const px = t.x; t.x += (gx - t.x) * Math.min(1, dt * 2.6); t.z += (gz - t.z) * Math.min(1, dt * 3.2); t.vx = (t.x - px) / Math.max(dt, 1e-4); t.born += dt;
-        if (t.down > 0) continue;
-        t.recoil = Math.max(0, t.recoil - dt * 4);
-        const T = KM.TOWERS[t.type], lv = t.lvl;
-        t.cd -= dt * S.towerRate * (1 + 0.15 * (lv - 1));
-        if (t.type === 'carrier') {
-          if (t.cd <= 0) { t.cd = T.cd / (1 + 0.25 * (lv - 1)) / S.carrierRate; for (let k = 0; k < 1 + Math.floor(lv / 2) && this.pts + KM.unitPts('melee', this.evolved('melee')) <= S.cap; k++) {   /* carriers share the army points */ const j = this.makeSoldier('melee', t.x - Math.sign(t.x) * 1.2, t.z - 0.5, 0.0001); if (j >= 0) { this.vx[j] = -Math.sign(t.x) * 2; this.emit('deploy', j); } } t.recoil = 1; this.emit('tower', t); }
-          continue;
-        }
-        if (t.cd > 0) continue;
-        // target selection: L3+ gun carriers pick the toughest enemy (precision), others the most advanced
-        const R = T.range * S.towerRange * (1 + 0.08 * (lv - 1)); let best = -1, score = -1e9;
-        for (let i = 0; i < this.hi; i++) {
-          if (this.st[i] !== ALIVE || this.team[i] !== 1) continue;
-          const dx = this.x[i] - t.x, dz = this.z[i] - t.z; if (dx * dx + dz * dz > R * R) continue;
-          const sc = t.type === 'gun' && lv >= 3 ? this.mhp[i] + this.elite[i] * 1e4 : this.z[i];
-          if (sc > score) { score = sc; best = i; }
-        }
-        if (best < 0) { t.cd = 0.15; continue; }
-        t.cd = T.cd; t.recoil = 1; t.tgt = best;
-        const tx = this.x[best], tz = this.z[best]; t.aim = Math.atan2(tx - t.x, tz - t.z);
-        let dmg = T.dmg * S.towerDmg * (1 + 0.45 * (lv - 1)); const tcrit = t.type === 'gun' && this.rng() < S.gunCrit; if (tcrit) dmg *= 2.5; const speed = t.type === 'artillery' ? 13 : t.type === 'gun' ? 46 : 24;
-        const tof = Math.hypot(tx - t.x, tz - t.z) / speed;
-        const kind = t.type === 'artillery' ? 1 : t.type === 'frost' ? 2 : 4;
-        const shots = t.type === 'gun' ? 1 + Math.floor((lv - 1) / 2) : 1;
-        for (let k = 0; k < shots; k++) this.fire(0, t.x, t.z, best, tx + this.vx[best] * tof + (k ? (this.rng() - 0.5) * 1.5 : 0), tz + this.vz[best] * tof, dmg, kind, T.splash ? T.splash * (1 + 0.1 * (lv - 1)) * S.splash : 0, T.slow ? (T.slow + 0.3 * lv) * S.frost : 0, speed, tcrit, 3);
-        this.emit('tower', t);
-      }
+    // Elite phalanx pike hit: a bounded, deterministic push straight upfield (−z only, never sideways or toward the tank):
+    // ordinary foes give 0.25 m and lose half their momentum, minis / elites barely move, bosses hardly at all
+    pikePush(tg) {
+      const e = KM.ENEMY[this.kind[tg]], k = e.boss ? 0.15 : e.mini || this.elite[tg] ? 0.35 : 1;
+      this.z[tg] -= 0.25 * k; this.vz[tg] *= 1 - 0.5 * k; this.emit('pike', tg, 0.25 * k);
+    }
+
+
+    // ---------- cannon lane shells ----------
+    // The first enemy of team ot a lane shell at x meets while flying from za back to zb (za > zb): footprint-aware, i.e.
+    // |dx| < TANK_LANE + ft and z within [zb - ft, za + ft]; the first in its path (largest z) wins, ties → lowest index.
+    // The grid is built at step start, so the scan is padded by the largest footprint fmax plus 1 m of movement.
+    laneTarget(x, ot, za, zb, fmax) {
+      const hw = W.TANK_LANE, pad = fmax + 1, c0 = this.cellX(x - hw - pad), c1 = this.cellX(x + hw + pad), r0 = this.cellZ(zb - pad), r1 = this.cellZ(za + pad);
+      let best = -1, bz = -Infinity;
+      for (let gz = r0; gz <= r1; gz++) for (let gx = c0; gx <= c1; gx++) for (let j = this.gh[(gz * GCOLS + gx) * 2 + ot]; j >= 0; j = this.next[j]) {
+        if (this.st[j] !== ALIVE) continue; const f = this.ft[j], zj = this.z[j], dx = this.x[j] - x;
+        if (dx >= hw + f || dx <= -hw - f || zj < zb - f || zj > za + f) continue;
+        if (zj > bz || (zj === bz && j < best)) { bz = zj; best = j; } }
+      return best;
+    }
+    maxFoot(team) { let m = 0; for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === team && this.ft[i] > m) m = this.ft[i]; return m; }
+    // A lane shell strikes enemy j: the usual shell resolution at the struck enemy. HE splash detonates there; otherwise a
+    // direct hit, and PENETRATION carries on straight down the lane (-z) through the next enemies in line.
+    laneHit(j, x, team, dmg, kind, spl, slow, pen, srcZ) {
+      const hx = this.x[j], hz = this.z[j], ot = 1 - team;
+      if (spl > 0) { this.area(ot, hx, hz, spl, dmg, slow, srcZ); this.emit('impact', kind, hx, hz, spl); return; }
+      this.hurt(j, dmg, team, srcZ, false); this.emit('impact', kind, hx, hz, 0);
+      if (pen) { let pz = hz; const hit = [j];
+        for (let n = 0; n < pen; n++) { pz -= 1.3; const q = this.nearestXZ(x, pz, ot, 1.2); if (q < 0 || hit.includes(q)) break; hit.push(q); this.hurt(q, dmg * 0.75, team, srcZ, false); } }
     }
 
     stepProjectiles(dt) {
-      const P = this.p;
+      const P = this.p; let fmax = -1;
       for (let k = 0; k < PCAP; k++) {
         if (!P.on[k]) continue;
+        const zPrev = P.t[k] > 0 ? P.z[k] : this.L.z + W.REAR_DZ;   // a fresh lane shell sweeps from the tank's rear plane: attackers pressed on the hull are in its lane too
         P.t[k] += dt; const u = Math.min(1, P.t[k] / P.tof[k]);
         P.x[k] = P.sx[k] + (P.ex[k] - P.sx[k]) * u; P.z[k] = P.sz[k] + (P.ez[k] - P.sz[k]) * u;
+        if (P.lane[k]) {   // cannon shell: the first enemy in its lane on the stretch flown this step takes the hit; at full range it fizzles
+          if (fmax < 0) fmax = this.maxFoot(1 - P.team[k]);
+          const j = this.laneTarget(P.x[k], 1 - P.team[k], zPrev, P.z[k], fmax);
+          if (j >= 0) { P.on[k] = 0; this.src = P.src[k]; this.elemNow = this.pEl ? this.pEl[k] : null; this.laneHit(j, P.x[k], P.team[k], P.dmg[k], P.kind[k], P.spl[k], P.slow[k], P.pen[k], P.sz[k]); if (!this.alive) return; }
+          else if (u >= 1) { P.on[k] = 0; this.emit('tankExpire', P.kind[k], P.x[k], P.ez[k]); }
+          continue;
+        }
         if (u < 1) continue;
         P.on[k] = 0;
-        const team = P.team[k], tg = P.tgt[k]; this.src = P.src[k];
+        const team = P.team[k], tg = P.tgt[k]; this.src = P.src[k]; this.elemNow = this.pEl ? this.pEl[k] : null;
         if (P.spl[k] > 0) { this.area(1 - team, P.ex[k], P.ez[k], P.spl[k], P.dmg[k], P.slow[k], P.sz[k]); if (team === 1 && this.lDist(P.ex[k], P.ez[k]) < P.spl[k] + 0.8) this.hurtLauncher(P.dmg[k] * 0.7, 'siege'); this.emit('impact', P.kind[k], P.ex[k], P.ez[k], P.spl[k]); }
         else if (tg === -2) { if (this.lDist(P.ex[k], P.ez[k]) < 2.2) this.hurtLauncher(P.dmg[k], 'ranged'); }
-        else if (tg <= -10) this.hurtStruct(tg, P.dmg[k]);
         else if (tg >= 0 && this.st[tg] === ALIVE) {
           const dx = this.x[tg] - P.ex[k], dz = this.z[tg] - P.ez[k];
           if (dx * dx + dz * dz < 2.5) { this.hurt(tg, P.dmg[k], team, P.sz[k], !!P.crit[k]); this.emit('impact', P.kind[k], P.ex[k], P.ez[k], 0);
@@ -1040,29 +1397,29 @@
 
     stepDying(dt) {
       if (!this.dying) return;
-      for (let i = 0; i < this.hi; i++) if (this.st[i] === DYING) { this.die[i] += dt; this.x[i] += this.vx[i] * dt * 0.3; this.z[i] += this.vz[i] * dt * 0.3; if (this.die[i] > 0.7) { this.dying--; this.free(i); } }
+      for (let i = 0; i < this.hi; i++) if (this.st[i] === DYING) { this.die[i] += dt; this.x[i] += this.vx[i] * dt * 0.3; this.z[i] += this.vz[i] * dt * 0.3; if (this.team[i] === 1) this.rearClamp(i); if (this.die[i] > 0.7) { this.dying--; this.free(i); } }   // enemy corpses never slide behind the tank either
     }
     stepFx() {}
 
     // ---------- results ----------
     // ---------- one-slot autosave: the meaningful run state (not every body). The army is rebuilt by kind around the tank. ----------
     snapshot() {
-      const L = this.L, keys = ['t', 'front', 'coins', 'coinsTotal', 'kills', 'peakArmy', 'upgrades', 'budget', 'overflow', 'bossN', 'sector', 'seenSector', 'wave', 'wState', 'energy', 'bossesKilled', 'warTokens', 'pboost', 'emergencies', 'posture', 'prod', 'auto',
+      const L = this.L, keys = ['t', 'front', 'coins', 'coinsTotal', 'kills', 'peakArmy', 'upgrades', 'budget', 'overflow', 'bossN', 'sector', 'seenSector', 'wave', 'wState', 'energy', 'bossesKilled', 'warTokens', 'pboost', 'eLv', 'eWave', 'bossLv', 'bossSeen', 'diamondsWon', 'consWon', 'buffs', 'emergencies', 'posture', 'prod', 'auto', 'plan', 'planRR',
         'dmgBy', 'healed', 'shAbsorbed', 'colCoins', 'colLost', 'killsByKind', 'spawnCounter', 'charge'], o = { v: 1, seed: this.seed };
       for (const k of keys) o[k] = this[k];
       o.stats = this.stats; o.L = { x: L.x, tx: L.tx, hp: L.hp, sh: L.sh, shMax: L.shMax, shDown: L.shDown };
-      o.army = Array.from(this.nKind.slice(0, KM.FRIEND.length)); o.towers = this.towers.map(t => t && { type: t.type, lvl: t.lvl, hp: t.hp, down: t.down || 0 });
+      o.army = new Array(KM.FRIEND.length).fill(0); for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i] && !this.merc[i]) { const k = this.kind[i] - 32; if (k >= 0 && k < o.army.length) o.army[k]++; }   // temporary mercenaries are never saved as soldiers
       return JSON.parse(JSON.stringify(o));
     }
     restore(o) {
       if (!o || o.v !== 1 || !(o.t > 0) || !o.stats || !Array.isArray(o.army)) throw new Error('bad snapshot');
-      this.reset({ seed: (o.seed ^ Math.floor(o.t * 977)) >>> 0 });
+      this.reset(Object.assign({}, this.opts, { seed: (o.seed ^ Math.floor(o.t * 977)) >>> 0 }));   // keep the account loadout (powers, skins, equipment, perks, buffs) across a resume
       const { stats, L, army, towers } = o; delete o.stats; delete o.L; delete o.army; delete o.towers; delete o.v; delete o.seed;
-      Object.assign(this.stats, stats); for (const k in o) if (k in this || k === 'auto') this[k] = o[k]; this.charge = Object.assign({ collector: 0, range: 0, melee: 0, elite: 0, giant: 0 }, this.charge);
+      Object.assign(this.stats, stats); for (const k in o) if (k in this || k === 'auto') this[k] = o[k]; this.charge = Object.assign({ collector: 0, range: 0, melee: 0, elite: 0, giant: 0 }, this.charge); this.plan = KM.validPlan(this.plan); this.planRR = (this.planRR >>> 0) % KM.PROD_ORDER.length;
       if (this.wave && this.wState === 1) this.wave -= 1; this.wState = 0; this.wGap = 2.5; this.choice = null; Object.assign(this.L, L); this.L.z = this.front; this.diff = KM.difficulty(this.t);
-      towers.forEach((t, s) => { if (t && KM.TOWERS[t.type]) { const T = this.makeTower(t.type, t.lvl, s); T.hp = Math.min(T.mhp, t.hp); T.down = t.down; this.towers[s] = T; } });
+      void towers;   // support vehicles from older saves are not restored: the command tank is the only tank
       const S = this.stats; let n = 0;
-      this.classStats(); army.forEach((cnt, k) => { const key = KM.CLASS_OF[32 + k]; if (!key) return; for (let q = 0; q < cnt && n < S.cap * 2; q++, n++)
+      this.classStats(); army.forEach((cnt, k) => { const key = KM.CLASS_OF[32 + k]; if (!key) return; for (let q = 0; q < cnt && this.pts + KM.unitPts(key) <= KM.ARMY_CAP; q++, n++)   // restore within the 300-point capacity
         this.makeSoldier(key, Math.max(-W.LANE + 1, Math.min(W.LANE - 1, this.L.x + (this.rng() - 0.5) * 12)), this.L.z - 3 - this.rng() * 10, 0); });
       this.formT = 2; this.ups = null; this.rollUps(); this.recount();
     }
@@ -1089,6 +1446,13 @@
       if (sim.team[i] === 0 ? sim.z[i] < mean - 2.5 : sim.z[i] > mean + 2.5) pen++; }      // units deep on the enemy side of the front
     return { zones: fronts.length, fronts: fronts.map(f => +(f - mean).toFixed(1)), spread: +spread.toFixed(2), band, mixing: band ? +(mixed / band).toFixed(3) : 0, penetrated: band ? +(pen / band).toFixed(3) : 0 };
   };
+  // grid pads for footprint-edge queries: the largest enemy ground footprint / collision radius (+5% size variation)
+  const FT_PAD = KM.ENEMY.reduce((a, e) => Math.max(a, KM.footOf(e, e.rad, e.sc * 1.05)), 0), RAD_PAD = KM.ENEMY.reduce((a, e) => Math.max(a, e.rad), 0);
+  const PROT_MELEE = 3, PROT_GIANT = 4;   // DEFEND local intercept: footprint edge within this of the defender's own slot
+  // lattice column of the c-th slot of a band row with `size` columns: centre-out (middle, right of it, left of it, …), so a partly
+  // filled row is a centred block and a row filling up or thinning out never moves the units already in it
+  const slotCol = (c, size) => Math.floor((size - 1) / 2) + (c & 1 ? (c + 1) >> 1 : -(c >> 1));
+  const TANK_TOUCH = W.HULL_HL + 2.2;       // a footprint edge this close to the tank centre is striking it (longest enemy reach 2.4 + contact pad)
   Sim.CAP = CAP; Sim.PCAP = PCAP; Sim.CCAP = CCAP; Sim.ALIVE = ALIVE; Sim.DYING = DYING;
   KM.Sim = Sim;
 
@@ -1099,23 +1463,25 @@
     for (let k = 0; k < C.x.length; k++) if (C.st[k] === 1) { const dz = C.z[k] - sim.front; if (dz < -12 * skill) continue; const s = Math.abs(C.x[k] - L.x) + Math.abs(dz) * 0.5; if (s < bs) { bs = s; best = k; } }
     let near = 0; for (let i = 0; i < sim.hi; i++) if (sim.st[i] === 1 && sim.team[i] === 1 && sim.z[i] > sim.front - 10) near += sim.x[i] - L.x;
     if (best >= 0) sim.moveTo(C.x[best]);
+    else if (sim.nBoss && sim.bossI >= 0 && sim.st[sim.bossI] === 1) sim.moveTo(sim.x[sim.bossI]);   // boss fight: line the cannon lane up on the boss
     else sim.moveTo(L.tx - Math.sign(near) * 0.2);
     // spending like a sensible player: fill the army first, then alternate class levels and tank upgrades
     if ((sim.botT = (sim.botT || 0) - dt) <= 0) { sim.botT = 0.5; sim.setAuto(true); const N = sim.nKind, F = KM.FRIEND_BY, n = Math.max(1, sim.count[0]), sh = k => N[F[k].id - 32] / n;
-      sim.setProd(sim.t > 30 && sh('collector') < 0.03 ? 'collector' : sim.t > 40 && sh('medic') < 0.03 ? 'mizard' : sim.t > 90 && sh('knightF') < 0.04 ? 'elite' : sim.t > 150 && sh('giantF') < 0.015 ? 'giant' : sh('archerF') < 0.25 ? 'range' : 'melee');
+      sim.setProd(sim.t > 6 && sh('collector') < 0.03 ? 'collector' : sim.t > 40 && sh('medic') < 0.03 ? 'mizard' : sim.t > 90 && sh('knightF') < 0.04 ? 'elite' : sim.t > 150 && sh('giantF') < 0.015 ? 'giant' : sh('archerF') < 0.25 ? 'range' : 'melee');
       const full = sim.pts + sim.prodPts() > sim.stats.cap * 0.92;
       if (full || sim.coins > 3000) { const opts = ['melee', 'range', 'elite', 'mizard', 'giant', 'collector'].filter(k => sim.stats.cls[k] < KM.CLASS_MAX).sort((a, b) => sim.clsCost(a) - sim.clsCost(b));
-        if (sim.ups && sim.ups.tank && sim.coins >= sim.upCost() && (!opts.length || sim.upCost() <= sim.clsCost(opts[0]) || sim.rng() < 0.4)) sim.buy('tank'); else if (opts.length) sim.levelUp(opts[0]); } }
+        const tk = KM.TANK_SKILLS.map(t => t.id).filter(id => sim.tankLv(id) < KM.CLASS_MAX).sort((a, b) => sim.tankCost(a) - sim.tankCost(b) || (sim.rng() - 0.5))[0];
+        if (tk && sim.coins >= sim.tankCost(tk) && (!opts.length || sim.tankCost(tk) <= sim.clsCost(opts[0]) || sim.rng() < 0.4)) sim.tankUp(tk); else if (opts.length) sim.levelUp(opts[0]); } }
     // powers: a sensible player spends Energy — FORTRESS when the tank is in trouble, otherwise whatever is ready
     if (sim.energy >= 100 && (sim.stepN || 0) % 30 === 0) { const hp = L.hp / sim.stats.maxHp, ids = sim.equipped.filter(id => sim.canPower(id)); const id = hp < 0.4 && ids.includes('fortress') ? 'fortress' : ids.filter(x => x !== 'fortress')[0]; if (id) sim.usePower(id); }
     if (sim.choice && sim.rng() < 0.02) sim.takeChoice(Math.floor(sim.rng() * sim.choice.opts.length));
     // posture: DEFEND when the tank is hurt, the field is down with pressure close, or vehicles are under attack; ATTACK once stable
     if (sim.postureT > 2) {
       let close = 0; for (let i = 0; i < sim.hi; i++) if (sim.st[i] === 1 && sim.team[i] === 1) { const dx = sim.x[i] - L.x, dz = sim.z[i] - L.z; if (dx * dx + dz * dz < 81) close++; }
-      const hpF = L.hp / sim.stats.maxHp, vehHit = sim.towers.some(t => t && t.hitT < 1), shBroken = sim.stats.shield && L.shDown > 0;
+      const hpF = L.hp / sim.stats.maxHp, shBroken = sim.stats.shield && L.shDown > 0;
       const wp = (sim.wave - 1) % 10 + 1, brace = sim.wState === 1 && (wp === 5 || wp === 7 || sim.sector === 'charge');   // a sensible player holds formation for mass waves, giants and charges
-      if (!sim.posture && (hpF < 0.4 || close > 6 || vehHit || (shBroken && close > 2) || brace)) sim.setPosture(1);
-      else if (sim.posture && !vehHit && !brace && ((hpF > 0.55 && close <= 1 && sim.postureT > 6) || (close <= 3 && sim.postureT > 20))) sim.setPosture(0);
+      if (!sim.posture && (hpF < 0.4 || close > 6 || (shBroken && close > 2) || brace)) sim.setPosture(1);
+      else if (sim.posture && !brace && ((hpF > 0.55 && close <= 1 && sim.postureT > 6) || (close <= 3 && sim.postureT > 20))) sim.setPosture(0);
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

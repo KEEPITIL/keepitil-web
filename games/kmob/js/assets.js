@@ -8,11 +8,11 @@
   const KM = G.KM;
   // Near-LOD budgets (triangles). A whole standard near unit ≈ legs×2 + torso + head + arms×2 + weapon ≤ ~3,000.
   KM.PART_BUDGET = { leg: 450, torso: 900, head: 1100, arm: 400, weapon: 500, shield: 400, other: 600, hero: 6000 };
-  const kindOf = k => /^l[A-Z]/.test(k) ? 'leg' : /^t[A-Z]/.test(k) ? 'torso' : /^h[A-Z]/.test(k) ? 'head' : /^a[A-Z]/.test(k) ? 'arm' : k === 'shield' ? 'shield' : ['sword', 'swordGold', 'dagger', 'axe', 'bow', 'staff', 'bomb', 'claws', 'rock', 'spear', 'xbow', 'musket', 'rifle', 'pulse', 'sack'].includes(k) ? 'weapon' : k === 'cannon' ? 'hero' : 'other';
+  const kindOf = k => /^l[A-Z]/.test(k) ? 'leg' : /^t[A-Z]/.test(k) ? 'torso' : /^h[A-Z]/.test(k) ? 'head' : /^a[A-Z]/.test(k) ? 'arm' : /^shield/.test(k) ? 'shield' : ['sword', 'swordGold', 'swordS', 'knife', 'dagger', 'axe', 'bow', 'bowF', 'staff', 'bomb', 'claws', 'rock', 'spear', 'pike', 'hammer', 'xbow', 'musket', 'rifle', 'pulse', 'sack'].includes(k) ? 'weapon' : k === 'cannon' ? 'hero' : 'other';
   KM.budgetFor = k => KM.PART_BUDGET[kindOf(k)];
   KM.TEX_MAX = 2048;   // largest atlas edge accepted on mobile (bigger images are downscaled)
   // authored clip name → skeleton clip it replaces (additive hits map onto the reaction layers)
-  KM.CLIP_MAP = { idle: 'idle', walk: 'run', run: 'run', sprint: 'sprint', attack_01: 'attackA', attack_02: 'attackB', heavy_attack: 'heavy', ranged_aim: 'aim', ranged_fire: 'fire', cast: 'cast', shield_block: 'brace', cheer: 'cheer', death_01: 'deathA', death_02: 'deathB', death_heavy: 'deathHeavy', hit_01: '+hitFront', hit_02: '+hitLeft', hit_03: '+hitRight', stagger: '+stagger', knockback: '+stagger' };
+  KM.CLIP_MAP = { idle: 'idle', walk: 'run', run: 'run', sprint: 'sprint', attack_01: 'attackA', attack_02: 'attackB', heavy_attack: 'heavy', ranged_aim: 'aim', ranged_fire: 'fire', cast: 'cast', shield_block: 'brace', phalanx_brace: 'phalanx', phalanx_walk: 'phalanxWalk', spear_thrust: 'thrust', cheer: 'cheer', death_01: 'deathA', death_02: 'deathB', death_heavy: 'deathHeavy', hit_01: '+hitFront', hit_02: '+hitLeft', hit_03: '+hitRight', stagger: '+stagger', knockback: '+stagger' };
   KM.RIG_BONES = ['hips', 'torso', 'head', 'armL', 'armR', 'legL', 'legR'];
 
   const texCache = new Map();
@@ -117,7 +117,7 @@
         const opt = {}; for (const k of ['map', 'normalMap', 'emissiveMap']) if (r.maps[k]) opt[k] = fitTexture(r.maps[k], report);
         if (opt.emissiveMap) opt.emissive = new THREE.Color(1, 1, 1);
         if (opt.map && !r.hasUV) report.warnings.push(`${o.name}: textured but has no UVs`);
-        const om = im.material; im.material = KM.toonMat(opt); if (om && om.dispose) om.dispose();
+        const om = im.material; im.material = KM.toonMat(opt); if (om && om.dispose && !(om.userData && om.userData.shared)) om.dispose();   // the crowd's shared cel materials stay
       }
       if (!render.kit.refParts) render.kit.refParts = {};
       if (!render.kit.refParts[o.name]) render.kit.refParts[o.name] = old; else old.dispose();   // keep the procedural part as reference/fallback

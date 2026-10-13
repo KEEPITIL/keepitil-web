@@ -16,7 +16,7 @@
   const seg = (u, a, b) => min(1, max(0, (u - a) / (b - a)));
   const mix = (a, b, u) => a + (b - a) * u;
   // arm pitch: negative = forward/up. Weapons point forward from the fist, so -1.6 holds a sword upright.
-  const REST_R = -0.55, REST_L = -0.15;
+  const REST_R = -0.55, REST_L = -0.15, PHALANX_ARM = -1.9;   // phalanx: weapon arm raised just above the shoulder (pike over the front rank)
 
   function gait(o, ph, v, k) {
     base(o, v); const a = v.amp * k, TAU = Math.PI * 2;
@@ -59,10 +59,22 @@
     } },
     aim: { loop: true, fn(o, ph, v) { base(o, v); o[I.armLP] = -1.5; o[I.armLR] = 0.05; o[I.armRP] = -1.35; o[I.armRR] = -0.55; o[I.armRY] = 0.25; o[I.torsoY] = 0.35; o[I.headY] = -0.3; o[I.y] = sin(ph * 0.3) * 0.008; } },
     fire: { dur: 0.32, fn(o, u, v) { C.aim.fn(o, 0, v); const r = ease(seg(u, 0, 0.18)), rc = ease(seg(u, 0.4, 1)); o[I.armRP] = mix(-1.35, -1.05, r) * (1 - rc) - 1.35 * rc; o[I.armRR] = mix(-0.55, 0.15, r) * (1 - rc) - 0.55 * rc; o[I.torsoP] = 0.04 - 0.06 * r * (1 - rc); } },
-    cast: { dur: 0.6, fn(o, u, v) { base(o, v); const w = ease(seg(u, 0, 0.45)), st = ease(seg(u, 0.45, 0.6)), rc = ease(seg(u, 0.65, 1)); o[I.armRP] = mix(mix(REST_R, -2.6, w), -1.5, st) * (1 - rc) + REST_R * rc; o[I.armLP] = -1.0 * w * (1 - rc); o[I.armLR] = 0.6 * w * (1 - rc); o[I.headP] = -0.2 * w * (1 - rc); o[I.torsoP] = (0.25 * st - 0.1 * w) * (1 - rc); } },
+    cast: { dur: 0.6, fn(o, u, v) { base(o, v); const w = ease(seg(u, 0, 0.45)), st = ease(seg(u, 0.45, 0.6)), rc = ease(seg(u, 0.65, 1)); o[I.armRP] = mix(mix(REST_R, -2.6, w), -1.5, st) * (1 - rc) + REST_R * rc; o[I.armRR] = 0.25 * w * (1 - rc); o[I.armLP] = -1.0 * w * (1 - rc); o[I.armLR] = 0.6 * w * (1 - rc); o[I.headP] = -0.2 * w * (1 - rc); o[I.torsoP] = (0.25 * st - 0.1 * w) * (1 - rc); } },
     brace: { loop: true, fn(o, ph, v) { base(o, v); o[I.armLP] = -0.45; o[I.armLR] = -0.4; o[I.torsoP] = 0.2; o[I.y] = -0.05 + sin(ph * 0.4) * 0.008; o[I.legLP] = -0.35; o[I.legRP] = 0.3; o[I.armRP] = -0.9; } },
     cheer: { loop: true, fn(o, ph, v) { base(o, v); const s = sin(ph * 1.6); o[I.armRP] = -2.7 + s * 0.3; o[I.armLP] = -2.6 - s * 0.3; o[I.armLR] = 0.4; o[I.armRR] = -0.4; o[I.y] = max(0, s) * 0.12; o[I.headP] = -0.25; } },
     deploy: { dur: 0.4, fn(o, u, v) { base(o, v); const a = sin(u * PI); o[I.armLP] = -1.2 * a; o[I.armLR] = 0.8 * a; o[I.armRR] = -0.8 * a; o[I.legLP] = -0.6 * a; o[I.legRP] = 0.5 * a; o[I.torsoP] = 0.2 * a; } },
+    // ELITE phalanx stance: pike levelled at shoulder height over the front rank (see WRIST.pike), shield pushed forward, feet split
+    phalanx: { loop: true, fn(o, ph, v) { base(o, v); const b = sin(ph * 0.4 + v.seed * 5);
+      o[I.armRP] = PHALANX_ARM; o[I.armRR] = -0.08; o[I.armLP] = -0.5; o[I.armLR] = -0.32; o[I.torsoP] = 0.1 + b * 0.012; o[I.headP] = -0.05;
+      o[I.legLP] = -0.32; o[I.legRP] = 0.26; o[I.y] = -0.045 + b * 0.006; } },
+    // ELITE phalanx on the march (the DEFEND line advances with the war): walking legs, pike levelled and steady, shield forward
+    phalanxWalk: { loop: true, fn(o, ph, v) { gait(o, ph, v, 0.75); o[I.armRP] = PHALANX_ARM; o[I.armRR] = -0.08; o[I.armRY] = -o[I.torsoY]; o[I.armLP] = -0.5; o[I.armLR] = -0.32; o[I.torsoP] = 0.12 + abs(cos(ph)) * 0.02; o[I.headP] = -0.06; } },
+    // ELITE pike thrust from the phalanx stance: draw the weapon shoulder back, drive it forward along the pike axis (the torso turn is
+    // cancelled at the arm so the pike stays on its line), hold at full reach across the strike frame (sim swing 0.5), recover
+    thrust: { dur: 0.75, fn(o, u, v) { C.phalanx.fn(o, 0, v);
+      const w = ease(seg(u, 0.04, 0.36)), st = ease(seg(u, 0.36, 0.5)), rc = ease(seg(u, 0.66, 1)), d = mix(-w, 1, st) * (1 - rc), f = max(0, d), bk = max(0, -d);
+      o[I.torsoY] = -0.36 * d; o[I.armRY] = 0.36 * d; o[I.armRP] = PHALANX_ARM - 0.1 * d; o[I.torsoP] += 0.22 * f - 0.06 * bk; o[I.rootP] = 0.07 * f;
+      o[I.legLP] -= 0.24 * f; o[I.legRP] += 0.2 * f; o[I.y] -= 0.035 * f; o[I.headP] -= 0.08 * f; } },
     deathA: { dur: 0.7, fn(o, u, v) { base(o, v); const f = ease(seg(u, 0, 0.32)), b = seg(u, 0.32, 0.6); const bounce = sin(b * PI) * 0.18 * (1 - b); o[I.rootP] = -1.5 * f + bounce; o[I.armLP] = -2.5 * f + bounce * 3; o[I.armRP] = mix(REST_R, -2.3, f); o[I.legLP] = -0.7 * f; o[I.legRP] = -0.3 * f; o[I.headP] = -0.45 * f; o[I.y] = 0.12 * sin(f * PI); o[I.rootR] = (v.seed2 - 0.5) * 0.5 * f; } },
     deathB: { dur: 0.7, fn(o, u, v) { base(o, v); const st = ease(seg(u, 0, 0.12)), f = ease(seg(u, 0.08, 0.38)), b = seg(u, 0.38, 0.62); const bounce = sin(b * PI) * 0.16 * (1 - b); o[I.rootP] = 1.45 * f - bounce - 0.15 * st * (1 - f); o[I.rootR] = 0.45 * f * (v.seed > 0.5 ? 1 : -1); o[I.armLP] = -1.7 * f; o[I.armRP] = -2.0 * f; o[I.legRP] = 0.55 * f; o[I.legLP] = -0.2 * f; o[I.headP] = 0.35 * f; o[I.y] = 0.06 * st * (1 - f); } },
     deathHeavy: { dur: 1.0, fn(o, u, v) { base(o, v); const k = ease(seg(u, 0, 0.3)), f = ease(seg(u, 0.25, 0.68)), b = seg(u, 0.68, 0.9); o[I.y] = -0.25 * k + sin(b * PI) * 0.06 * (1 - b); o[I.legLP] = -1.3 * k; o[I.legRP] = -1.1 * k; o[I.rootP] = 1.35 * f; o[I.armRP] = mix(REST_R, 0.3, k); o[I.armLP] = -0.4 * f; o[I.headP] = 0.4 * k; } },
@@ -75,7 +87,19 @@
     stagger: o => { o.fill(0); o[I.rootP] = -0.5; o[I.torsoP] = -0.4; o[I.headP] = -0.35; o[I.armLP] = -1.1; o[I.armLR] = 0.5; o[I.armRP] = -0.8; o[I.armRR] = -0.4; o[I.legLP] = -0.45; o[I.legRP] = 0.35; o[I.y] = 0.06; },
   };
   const NAMES = Object.keys(C), ID = Object.fromEntries(NAMES.map((n, i) => [n, i])), CL = NAMES.map(n => C[n]);
-  const REQUIRED = ['idle', 'run', 'sprint', 'attackA', 'attackB', 'heavy', 'aim', 'fire', 'cast', 'brace', 'cheer', 'deploy', 'deathA', 'deathB', 'deathHeavy'];
+  const REQUIRED = ['idle', 'run', 'sprint', 'attackA', 'attackB', 'heavy', 'aim', 'fire', 'cast', 'brace', 'cheer', 'deploy', 'phalanx', 'phalanxWalk', 'thrust', 'deathA', 'deathB', 'deathHeavy'];
+  // Held items: a weapon points along +z from the fist, so its pitch follows the arm (held angle above horizontal = -armPitch).
+  // Long items keep a readable held angle instead: HELD[w].at(armPitch) is that angle (radians above horizontal) and wrist()
+  // returns the fist pitch that produces it. Held angles are against the body lean (level/upright in the world,
+  // so a lunging thrust stays on its line, and a bent-over slam still lands the hammer head flat).
+  const sstep = (a, b, x) => { const u = min(1, max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+  const HELD = {
+    pike: { lean: 1, at: a => mix(1.38, -0.05, sstep(-0.95, -1.35, a) * (1 - sstep(-2.25, -2.6, a))) },   // carried upright; levelled when the arm comes up (phalanx/thrust)
+    staff: { lean: 1, at: () => 1.42 },                                                                  // always upright: the crystal rises with the casting hand
+    bowF: { lean: 1, at: a => 1.2 * sstep(-1.15, -0.6, a) - a },                                         // upright at the side while walking and in the aim pose
+    hammer: { lean: 1, at: a => mix(Math.max(-1.2, 0.62 - a), 0, sstep(-0.1, 0.15, a)) },   // raised arms (cheer) keep the head over the shoulder, never behind the back                               // carried head-up; the overhead slam lands it flat on the ground
+  };
+  const wrist = (wpn, p, o, arm) => { const h = HELD[wpn]; if (!h) return 0; const a = p[o + arm]; return -(h.at(a) + a + (h.lean ? p[o + I.torsoP] + p[o + I.rootP] : 0)); };
 
   const tmp = new Float32Array(P);
   const sample = (id, t, v, out) => { CL[id].fn(out, CL[id].loop ? t : min(1, max(0, t)), v); return out; };
@@ -89,12 +113,15 @@
     if (sim.birth[i] > 0) return ID.deploy;
     if (sim.swing[i] > 0) {
       if (d.r) return d.wpn === 'staff' || d.wpn === 'cannon' ? ID.cast : ID.fire;
+      if (d.k === 'knightF') return ID.thrust;                                   // ELITE: pike thrust (same swing timing as the heavy blow)
       if (d.el || d.sc >= 1.3 || d.wpn === 'axe') return ID.heavy;
       return v.seed2 < 0.55 ? ID.attackA : ID.attackB;
     }
-    const sp = abs(sim.vx[i]) + abs(sim.vz[i]);
+    const sp = abs(sim.vx[i]) + abs(sim.vz[i]), defend = sim.team[i] === 0 && sim.posture === 1 && !(sim.charge && sim.typeOf && sim.charge[sim.typeOf(i)]);
     if (d.r && sim.tgt[i] !== -1 && sp < 0.6) return ID.aim;
-    if (d.sh && sim.tgt[i] !== -1 && sp < 0.6) return ID.brace;
+    if (d.k === 'knightF' && sp < 0.6 && (defend || sim.tgt[i] !== -1)) return ID.phalanx;   // ELITE holds the pike levelled in DEFEND / when engaged
+    if (d.k === 'knightF' && defend && sp <= 4.6) return ID.phalanxWalk;                       // ... and keeps it levelled while the line marches
+    if ((d.sh || d.k === 'soldier') && sim.tgt[i] !== -1 && sp < 0.6) return ID.brace;      // MELEE braces behind its kite shield when engaged
     if (sp > 4.6) return ID.sprint;
     if (sp > 0.45) return ID.run;
     if (sim.team[i] === 0 && sim.tgt[i] === -1 && v.seed > 0.82) return ID.cheer;
@@ -139,5 +166,5 @@
     if (!c.loop) c.dur = baked.duration || c.dur; overridden[name] = baked; return true;
   }
   function restore(name) { const c = C[name]; if (c && c.procFn) { c.fn = c.procFn; delete overridden[name]; } }
-  KM.ANIM = { P, I, CLIPS: C, NAMES, ID, REQUIRED, ADD: Object.keys(ADD), sample, blend, additive, select, clipTime, lod, lodBudget, variation, override, restore, overridden, FADE: 0.13 };
+  KM.ANIM = { P, I, CLIPS: C, NAMES, ID, REQUIRED, ADD: Object.keys(ADD), sample, blend, additive, select, clipTime, lod, lodBudget, variation, override, restore, overridden, wrist, HELD, PHALANX_ARM, FADE: 0.13 };
 })(typeof window !== 'undefined' ? window : globalThis);

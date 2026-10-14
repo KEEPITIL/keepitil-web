@@ -837,7 +837,7 @@
       if (KM.camFocus === 'launcher') { tx = L.x; tz = L.z - 1; } else if (KM.camFocus && KM.camFocus.x != null) { tx = KM.camFocus.x; tz = KM.camFocus.z; }
       if (!this.camT) this.camT = new V3(tx, 0, tz);
       if (KM.camFocus && KM.camFocus.x != null) this.camT.set(tx, 0, tz);          // staged close-ups snap
-      else { this.camT.x += (tx - this.camT.x) * Math.min(1, dt * 3); this.camT.z += (tz - this.camT.z) * Math.min(1, dt * 4); }
+      else { this.camT.x += (tx - this.camT.x) * Math.min(1, dt * 3); this.camT.z = KM.camFocus === 'launcher' ? this.camT.z + (tz - this.camT.z) * Math.min(1, dt * 4) : tz; }   // depth follows the front exactly: the tank keeps its screen height whether the army marches or holds
       this.fitT = (this.fitT || 0) - dt;
       if (this.fitT <= 0 || this.fitD == null) { this.fitT = 0.25; this.fitD = this.fitDistance(sim, this.camT.x, this.camT.z, pitch, land ? 22 : this.aspect > 1 ? 30 : 24, 70); this.zoomFrame(sim, tx, tz, pitch); }
       // ZOOM (owner correction 2026-10-13): pull back AND slide the aim toward the enemy so the tank and the army keep their 1× place

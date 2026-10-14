@@ -39,7 +39,7 @@
       for (let k = 0; k < CAP; k++) this.freeL[k] = CAP - 1 - k;
       this.nfree = CAP; this.hi = 0; this.count = [0, 0]; this.dying = 0;
       this.pfree = 0; this.cfree = 0;
-      this.t = 0; this.front = 0; this.alive = true; this.deathReason = ''; this.ended = false;
+      this.t = 0; this.front = 0; this.halt = false; this.engaged = false; this.clearT = 0; this.alive = true; this.deathReason = ''; this.ended = false;
       this.stats = KM.applySkins(KM.baseStats(), this.skins);
       this.buffs = { cls: JSON.parse(JSON.stringify((opts.buffs && opts.buffs.cls) || {})), tank: Object.assign({}, opts.buffs && opts.buffs.tank) };   // permanent boss-card buffs (saved by the shell)
       for (const k in this.buffs.tank) if (k in KM.TANK_BUFF_STATS) this.stats[k] *= KM.buffMul(this.buffs.tank[k]);
@@ -83,6 +83,12 @@
     // hold: the whole army (Looters included)
     allAttack() { for (const k in this.charge) this.charge[k] = 0; this.setPosture(0); this.emit('allOrder', 0); }
     allDefend() { for (const k in this.charge) this.charge[k] = 0; this.setPosture(1); this.emit('allOrder', 1); }
+    // FRONT-LINE CONTACT (owner 2026-10-14): any living enemy within 2.5 m of the army's front rank (or past it) stops the march; it resumes
+    // once the front has been out of contact for 0.75 s (no stutter). A foe standing off out of reach does not hold the army: it is marched into
+    frontEngaged(dt) { const F = this.form, line = F && F.on ? F.frontZ : (this.armyZ != null ? this.armyZ : this.L.z - 10); let near = false;
+      if (this.count[0] > 0) for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE || this.team[i] !== 1) continue; if (this.z[i] > line - 2.5) { near = true; break; } }   // contact only: a foe standing off out of reach is marched into
+      if (near) this.clearT = 0; else this.clearT = (this.clearT || 0) + dt;
+      this.engaged = near || (this.engaged && this.clearT < 0.75); return this.engaged; }
     setAuto(on) { on = !!on; if (on === this.auto) return; this.auto = on; this.emit('auto', on); }
     prodCost() { return KM.deployCost(this.prod, this.stats.cls[this.prod]); }
     clsLv(key) { return this.stats.cls[key]; }
@@ -591,13 +597,14 @@
     // ---------- main step ----------
     step(dt) {
       if (!this.alive) { this.stepDying(dt); this.stepFx(dt); return; }
-      this.t += dt; if (!this.nBoss) this.front -= W.ADV * dt; this.postureT += dt;   // boss fight: the march (and the tank) holds until the boss falls
+      this.halt = this.nBoss > 0 || this.frontEngaged(dt);   // the march holds while a boss lives or while the army's front line is fighting
+      this.t += dt; if (!this.halt) this.front -= W.ADV * dt; this.postureT += dt;
       const D = this.diff = KM.difficulty(this.budget < -1e8 ? this.t : this.warT()), S = this.stats, L = this.L;
       // launcher movement (smoothed for weight); AUTO lines the cannon lane up on its own while the player is not steering
       L.man = Math.max(0, L.man - dt); const aim = this.auto && L.man <= 0; if (aim) this.autoSteer(dt);
       const px = L.x; let mx = (L.tx - L.x) * Math.min(1, dt * 12); if (aim) mx = Math.max(-AUTO_SPD * dt, Math.min(AUTO_SPD * dt, mx));   // AUTO slides at a steady drive speed; the player's drag keeps its direct feel
       L.x += mx;
-      L.z = this.front; L.vx = (L.x - px) / dt; L.wheel += (Math.abs(L.vx) + W.ADV) * dt;
+      L.z = this.front; L.vx = (L.x - px) / dt; L.wheel += (Math.abs(L.vx) + (this.halt ? 0 : W.ADV)) * dt;
       L.hitT += dt; L.inv = Math.max(0, L.inv - dt); this.lastHit += dt;
       if (this.lastHit > 4) this.heal(S.maxHp * 0.02 * dt);
       L.fire = Math.max(0, L.fire - dt * 5);
@@ -609,6 +616,8 @@
       this.stepZones(dt);
       this.formUpdate(dt); this.stepGroups(dt);
       this.stepUnits(dt, S); this.elemNow = null;
+      if (this.halt && !this.nBoss) { const F = this.form, line = F && F.on ? F.frontZ : (this.armyZ != null ? this.armyZ : this.L.z - 10), dz = W.ADV * dt;   // the army holds: enemies still marching in close the gap the march would have closed (same pace), the fight itself is untouched
+        for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && !this.eng[i] && this.z[i] < line - 8) this.z[i] += dz; }
       this.stepTank(dt, S); this.elemNow = null;
       this.stepShield(dt); this.stepPowers(dt);
       this.stepProjectiles(dt); this.elemNow = null;
@@ -899,7 +908,7 @@
     stepUnits(dt, S) {
       const front = this.front, L = this.L, aggro0 = 11, aggro1 = 10, COH = 27, fN = Math.max(1, this.count[0] - this.nCol); let nCol = 0; this.colList.length = 0; this.nRepair = 0;
       const RL = this.rngL || (this.rngL = []); RL.length = 0; for (let j = 0; j < this.hi; j++) if (this.st[j] === ALIVE && this.team[j] === 1 && this.rng_[j] >= 3) RL.push(j);   // enemy archers / cannons this step (archer priority)
-      this.guardScan(); const vm = this.nBoss ? 0 : -W.ADV;   // DEFEND slots march with the war at this speed
+      this.guardScan(); const vm = this.halt ? 0 : -W.ADV;   // DEFEND slots march with the war at this speed (and hold with it)
       for (let i = 0; i < this.hi; i++) {
         if (this.st[i] !== ALIVE) continue;
         const team = this.team[i];
@@ -1190,7 +1199,7 @@
         for (const j of list.slice(0, N)) { const h = Math.min(this.mhp[j] - this.hp[j], S.medHeal * 2.5); this.hp[j] += h; this.healed += h; n++; }
         this.emit('healBurst', cx, cz, Rb, n); }
       const dx = gx - x, dz = gz - z, d = Math.sqrt(dx * dx + dz * dz) || 1e-3, s2 = d > 0.3 ? sp * Math.min(1, d / 1.4) : 0;
-      this.cvx = dx / d * s2; this.cvz = dz / d * s2 + (inSlot && !this.nBoss ? -W.ADV : 0); if (!(p >= 0)) this.yaw[i] = d > 0.5 ? Math.atan2(dx, dz) : Math.PI;   // a slotted Mizard marches with the formation
+      this.cvx = dx / d * s2; this.cvz = dz / d * s2 + (inSlot && !this.halt ? -W.ADV : 0); if (!(p >= 0)) this.yaw[i] = d > 0.5 ? Math.atan2(dx, dz) : Math.PI;   // a slotted Mizard marches with the formation
     }
 
     // Collector: find a coin beyond the tank's magnet (inside a retrieval radius, not near enemies, not claimed) → carry → return → deposit.

@@ -365,13 +365,14 @@ async function startGame(t, diff, opts = {}) {
   const judge = new Judge(notes, { practice: !!opts.practice || !!opts.battle });
   const ch = t.charts[diff];
   const energy = t.analysis?.energy || [], barSec = t.analysis?.barSec || 2, down = t.analysis?.downbeatSec || 0;
-  Object.assign(game, { t, diff, opts, judge, ch, session, notes: judge.notes.slice().sort((a, b) => a.t - b.t), cursor: 0, duration: buffer ? buffer.duration : ch.durationMs / 1000, ended: false, paused: false, buffer,
+  Object.assign(game, { lastJT: null, t, diff, opts, judge, ch, session, notes: judge.notes.slice().sort((a, b) => a.t - b.t), cursor: 0, duration: buffer ? buffer.duration : ch.durationMs / 1000, ended: false, paused: false, buffer,
     st: { bpm: ch.bpm, offset: ch.offsetMs / 1000, lead: CONFIG.leadSec[diff], practice: !!opts.practice } });
   game.energyAt = s => energy[Math.max(0, Math.min(energy.length - 1, Math.floor((s - down) / barSec)))] ?? 0.5;
   $('#hTitle').textContent = t.title; $('#hArtist').textContent = t.artist + (opts.battle ? ' · LIVE 1V1' : opts.practice ? ' · PRACTICE' : session ? '' : ' · UNRANKED');
   const dp = $('#hDiff'); dp.className = 'pill dpill ' + diff; dp.textContent = DIFF[diff].toUpperCase();
   $('#sideL').innerHTML = `<img src="${coverArt(t, 256)}" alt=""><h4>${esc(t.title)}</h4><p>${esc(t.artist)}</p>`;
   $('#sideR').innerHTML = `<p>${t.analysis?.bpm || t.bpm} BPM · ${ch.notes.length} notes</p><div class="keys">${LANES.map(l => `<kbd style="color:${l.color}">${l.key}</kbd>`).join('')}</div><p style="margin-top:8px;font-size:12px">Esc to pause</p>`;
+  if (opts.battle) BT.session(session?.sessionId);                 // shared with the opponent so the SERVER can pair the two runs
   D.track('track_started', { track: t.slug, diff, practice: !!opts.practice });
   $('#loading').classList.remove('on');
   $('#oppo').style.display = opts.battle ? '' : 'none'; $('#restartBtn').style.display = opts.battle ? 'none' : '';
@@ -442,13 +443,17 @@ function laneFromKey(e) {
   return LANES.findIndex(l => l.key === k || l.alt === k);
 }
 const pointers = new Map();
+/* Input time for the judge. In a live 1v1 the server rejects a run whose input log ever goes backwards
+   (the audio-clock mapping can step back by a few ms between two inputs, and a swipe is logged at its
+   touch-down time), so battle runs keep the log monotonic. Solo play is unchanged. */
+function jt(t) { if (!game.opts?.battle) return t; return (game.lastJT = Math.max(game.lastJT ?? -Infinity, t)); }
 function onKeyDown(e) {
   if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { e.preventDefault(); return game.paused ? resume() : pause(); }
   const lane = laneFromKey(e); if (lane < 0 || e.repeat || game.paused) return;
   e.preventDefault(); hw.pressed[lane] = true;
-  game.judge.press(lane, clock.judgeTimeAt(e.timeStamp), 'key');
+  game.judge.press(lane, jt(clock.judgeTimeAt(e.timeStamp)), 'key');
 }
-function onKeyUp(e) { const lane = laneFromKey(e); if (lane < 0) return; hw.pressed[lane] = false; if (!game.paused) game.judge.release(lane, clock.judgeTimeAt(e.timeStamp)); }
+function onKeyUp(e) { const lane = laneFromKey(e); if (lane < 0) return; hw.pressed[lane] = false; if (!game.paused) game.judge.release(lane, jt(clock.judgeTimeAt(e.timeStamp))); }
 function onDown(e) {
   if (game.paused || e.target.closest('.pause')) return;
   e.preventDefault();
@@ -457,7 +462,7 @@ function onDown(e) {
   const lane = hw.laneAtX(x);
   pointers.set(e.pointerId, { lane, x, y, t: clock.judgeTimeAt(e.timeStamp), swiped: false });
   hw.pressed[lane] = true;
-  game.judge.press(lane, clock.judgeTimeAt(e.timeStamp), 'touch');
+  game.judge.press(lane, jt(clock.judgeTimeAt(e.timeStamp)), 'touch');
 }
 function onMove(e) {
   const p = pointers.get(e.pointerId); if (!p || p.swiped) return;
@@ -465,12 +470,12 @@ function onMove(e) {
   if (Math.hypot(dx, dy) < CONFIG.swipeMinPx) return;
   p.swiped = true;
   const dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
-  game.judge.swipe(p.lane, p.t, dir);
+  game.judge.swipe(p.lane, jt(p.t), dir);
 }
 function onUp(e) {
   const p = pointers.get(e.pointerId); if (!p) return; pointers.delete(e.pointerId);
   if (![...pointers.values()].some(q => q.lane === p.lane)) hw.pressed[p.lane] = false;
-  if (!game.paused) game.judge.release(p.lane, clock.judgeTimeAt(e.timeStamp));
+  if (!game.paused) game.judge.release(p.lane, jt(clock.judgeTimeAt(e.timeStamp)));
 }
 function onVis() { if (document.hidden && game.active && !game.paused && !game.opts.battle) pause(); }
 function bindInput(on) {

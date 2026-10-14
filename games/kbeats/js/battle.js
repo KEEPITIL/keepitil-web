@@ -74,7 +74,8 @@ const TYPES = {
   start: ['id', 'match', 'epoch', 'track', 'diff', 'chartHash', 'tvAudio'],
   live: ['id', 'match', 'st'],             // ~5 Hz score/combo/accuracy
   j: ['id', 'match', 'ev'],                // judgement events for the TV playfield [[noteIndex, judgement, lane]…]
-  done: ['id', 'match', 'scoreId', 'result'],
+  sess: ['id', 'match', 'sessionId'],      // a player's server session for this match (the server checks the pair)
+  done: ['id', 'match'],                   // hint only: re-check the server result now
   quit: ['id', 'match'],
   cal: ['epoch', 'bpm', 'beats'],          // TV metronome for in-room calibration
   hb: ['id'],
@@ -100,3 +101,32 @@ export function acceptRoom(current, senderId, incoming, hostOnline) {
 }
 export const PHONE_PAD_PX = 378 / 8 * 0.88;     // pad radius on a 390-px-wide phone (render.js geometry)
 export function tvPadRadius(bw, scale = 2) { return Math.min(PHONE_PAD_PX * scale, bw / 8 * 0.98); }
+
+/* ── server-side match outcome ────────────────────────────────────────────
+   The ONLY source of a battle result. Inputs are server rows (never broadcast messages):
+   each side = { sessionId, userId, beatmapId, startedAt (ms), practice, platform, score }
+   where score = null (nothing submitted) or the stored, replay-validated row
+   { scoreId, valid (server replay matched), failed, score, accuracy, maxCombo, … }.
+   A forfeit is only ever declared by time on the server: one side has a valid run and the other
+   session has no run after the song length + grace. Client "done"/"quit" messages decide nothing. */
+export const RESULT_GRACE_MS = 3 * 60e3;
+export function matchOutcome(a, b, { nowMs, durationMs, graceMs = RESULT_GRACE_MS }) {
+  const bad = reason => ({ status: 'invalid', winner: null, decidedBy: reason });
+  if (!a || !b) return bad('unknown session');
+  if (a.sessionId === b.sessionId) return bad('same session');
+  for (const s of [a, b]) if (!s.practice || !String(s.platform || '').startsWith('battle-')) return bad('not a battle session');
+  if (a.beatmapId !== b.beatmapId) return bad('not the same chart');
+  if (a.userId === b.userId) return bad('same player');
+  if (Math.abs(a.startedAt - b.startedAt) > 60e3) return bad('not the same match');
+  const deadline = Math.max(a.startedAt, b.startedAt) + (durationMs || 0) + graceMs;
+  const view = s => s.score && { ...s.score, verified: !!s.score.valid };
+  if (a.score && b.score) {
+    const d = decideWinner(view(a), view(b));
+    if (!a.score.valid && !b.score.valid) return { status: 'final', winner: null, decidedBy: 'no valid run' };
+    return { status: 'final', winner: d.winner === 'a' ? a.sessionId : d.winner === 'b' ? b.sessionId : null, decidedBy: d.decidedBy };
+  }
+  if (nowMs < deadline) return { status: 'pending', winner: null, decidedBy: 'waiting for both verified runs', deadline };
+  const only = a.score ? a : b.score ? b : null;
+  if (only?.score.valid) return { status: 'final', winner: only.sessionId, decidedBy: 'forfeit (opponent submitted no run)' };
+  return { status: 'void', winner: null, decidedBy: 'no valid run from either player' };
+}

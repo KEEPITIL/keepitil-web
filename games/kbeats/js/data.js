@@ -38,21 +38,22 @@ const mock = {
   async favorite({ track, on }) { const s = this.st(); s.fav = s.fav.filter(x => x !== track); if (on) s.fav.push(track); this.save(s); return { on }; },
   async follow({ artist, on }) { const s = this.st(); s.follow = s.follow.filter(x => x !== artist); if (on) s.follow.push(artist); this.save(s); return { on }; },
   async calibration_save({ output, offset }) { const s = this.st(); s.cal[output] = offset; this.save(s); return { ok: true }; },
-  async session_start({ track, difficulty, practice }) { const id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  async session_start({ track, difficulty, practice, platform }) { const id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const t = (await this.catalog()).tracks.find(x => x.slug === track);
     // one key per session/score: DEV tabs share localStorage only eventually, so a shared array would lose writes (live 1v1 tests)
-    LS.set('mock.session.' + id, { user_id: 'mock-user', started_at: new Date().toISOString(), practice: !!practice, track, difficulty, used_at: null });
+    let uid = 'mock-user'; try { uid = sessionStorage.getItem('kb.battle.id') || uid; } catch {}       // each DEV tab is its own player
+    LS.set('mock.session.' + id, { id, user_id: uid, started_at: new Date().toISOString(), practice: !!practice, platform: String(platform || 'web'), track, difficulty, used_at: null, scoreId: null });
     return { sessionId: id, nonce: 'mock', chartHash: t.charts[difficulty].hash, chartVersion: t.charts[difficulty].chartVersion }; },
   async score_submit({ sessionId, log, result, chartHash }) {
     const cat = await this.catalog();
     const s = this.st(); const sess = LS.get('mock.session.' + sessionId, null) || s.sessions[sessionId]; if (!sess) throw Object.assign(new Error('session'), { status: 404 });
     const t = cat.tracks.find(x => x.slug === sess.track);
-    const v = verifyRanked({ chart: t.charts[sess.difficulty], session: sess, userId: 'mock-user', claimed: result, log, clientHash: chartHash, nowMs: Date.now() }, { maxInputsPerNote: 6, extraInputs: 300, maxInputsPerSec: 40, minPlayFraction: 0, sessionMaxAgeMs: 3 * 3600e3, minHitStdMs: 0 });
-    sess.used_at = new Date().toISOString(); LS.set('mock.session.' + sessionId, sess);
+    const v = verifyRanked({ chart: t.charts[sess.difficulty], session: sess, userId: sess.user_id, claimed: result, log, clientHash: chartHash, nowMs: Date.now() }, { maxInputsPerNote: 6, extraInputs: 300, maxInputsPerSec: 40, minPlayFraction: 0, sessionMaxAgeMs: 3 * 3600e3, minHitStdMs: 0 });
+    sess.used_at = new Date().toISOString();
     const r = v.replay || result; const id = 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
     s.scores.push({ id, track: sess.track, difficulty: sess.difficulty, score: r.score, accuracy: r.accuracy, grade: r.grade, stars: r.stars, maxCombo: r.maxCombo, perfect: r.perfect, great: r.great, good: r.good, miss: r.miss, verified: v.ranked, ok: v.ok, reasons: v.reasons, name: s.name, at: new Date().toISOString() });
     if (v.ranked) s.xp += Math.round(r.score / 100);
-    this.save(s); LS.set('mock.score.' + id, s.scores[s.scores.length - 1]);
+    this.save(s); LS.set('mock.score.' + id, s.scores[s.scores.length - 1]); sess.scoreId = id; LS.set('mock.session.' + sessionId, sess);
     const board = s.scores.filter(x => x.verified && x.track === sess.track && x.difficulty === sess.difficulty).sort((a, b) => b.score - a.score);
     return { scoreId: id, verified: v.ok, ranked: v.ranked, reasons: v.reasons, rank: v.ranked ? board.findIndex(x => x.id === id) + 1 : null, replay: v.replay };
   },

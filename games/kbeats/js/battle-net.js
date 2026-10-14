@@ -93,15 +93,24 @@ export class RoomChannel {
   close() { this.closed = true; clearInterval(this._hb); clearTimeout(this._rt); this.bc?.close(); if (this.ch) API.supabase().then(sb => sb.removeChannel(this.ch)).catch(() => {}); }
 }
 
-/* ── verified result ──────────────────────────────────────────────────── */
-const mockScore = id => { try { return JSON.parse(localStorage.getItem('kb.mock.score.' + id) || 'null'); } catch { return null; } };
-export async function battleResult(match, scoreIds) {
-  if (RELEASE.mock) {           // DEV: the mock backend already replayed each log in score_submit
-    const { decideWinner } = await import('./battle.js');
-    const rows = scoreIds.map(id => { const s = mockScore(id); return s ? { scoreId: s.id, verified: !!s.ok && !s.verified, score: s.score, accuracy: s.accuracy, maxCombo: s.maxCombo, failed: false, perfect: s.perfect, great: s.great, good: s.good, miss: s.miss } : null; });
-    const d = decideWinner(rows[0], rows[1]);
-    return { match, entries: rows.filter(Boolean), winner: d.winner === 'a' ? rows[0]?.scoreId : d.winner === 'b' ? rows[1]?.scoreId : null, decidedBy: d.decidedBy };
+/* ── verified result ──────────────────────────────────────────────────────
+   The outcome is decided by the server from the two battle SESSIONS (matchOutcome over stored,
+   replay-validated rows). DEV mock mode applies the same rule to the mock store. */
+const LSget = k => { try { return JSON.parse(localStorage.getItem('kb.' + k) || 'null'); } catch { return null; } };
+export async function battleResult(match, sessionIds) {
+  if (RELEASE.mock) {
+    const { matchOutcome } = await import('./battle.js');
+    const cat = await (await fetch('/games/kbeats/data/catalog.json')).json();
+    const side = id => { const s = LSget('mock.session.' + id); if (!s) return null; const sc = s.scoreId && LSget('mock.score.' + s.scoreId);
+      return { sessionId: id, userId: s.user_id, beatmapId: s.track + '|' + s.difficulty, practice: s.practice, platform: s.platform, startedAt: +new Date(s.started_at), name: sc?.name || 'Player',
+        score: sc ? { scoreId: sc.id, valid: !!sc.ok && !sc.verified, failed: false, score: sc.score, accuracy: sc.accuracy, maxCombo: sc.maxCombo, perfect: sc.perfect, great: sc.great, good: sc.good, miss: sc.miss } : null }; };
+    const [a, b] = sessionIds.map(side);
+    const t = a && cat.tracks.find(x => x.id === a.beatmapId.split('|')[0]);
+    const grace = Number(new URLSearchParams(location.search).get('grace')) || undefined;     // DEV only: shorten the forfeit wait in tests
+    const o = matchOutcome(a, b, { nowMs: Date.now(), durationMs: t?.charts[a.beatmapId.split('|')[1]]?.durationMs || 0, graceMs: grace });
+    const view = x => x && { sessionId: x.sessionId, name: x.name, submitted: !!x.score, ...(x.score ? { verified: x.score.valid, ...x.score } : {}) };
+    return { match, ...o, entries: o.status === 'invalid' ? [] : [view(a), view(b)] };
   }
-  return staging('battle_result', { match, scoreIds });
+  return staging('battle_result', { match, sessionIds });
 }
 export { PROTO };

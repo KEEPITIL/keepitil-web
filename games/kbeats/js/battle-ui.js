@@ -4,7 +4,7 @@
    the player opens #/battle, so solo play is untouched. */
 import * as S from './store.js';
 import * as D from './data.js';
-import { makeCode, normCode, validCode, seat, liveSnapshot, decideWinner, ROOM_TTL_MS, expired, acceptRoom } from './battle.js';
+import { makeCode, normCode, validCode, seat, liveSnapshot, ROOM_TTL_MS, expired, acceptRoom } from './battle.js';
 import { RoomChannel, SharedClock, deviceId, battleResult } from './battle-net.js';
 
 let A = null;                 // app context (injected by app.js)
@@ -23,7 +23,7 @@ async function enter(code) {
   leave();
   B.code = code; B.me = { id: deviceId(), role: 'player', name: (A.me()?.name || S.settings().name || 'Player').slice(0, 20) };
   B.shared = new SharedClock();
-  B.room = null; B.result = null; B.mine = B.theirs = null;
+  B.room = null; B.result = null; B.mySess = B.oppSess = null; B.submitted = false;
   render();
   await syncClock();
   B.net = new RoomChannel(code, B.me); B.net.on(onMsg);
@@ -82,12 +82,14 @@ function onMsg(type, p, self = false) {
     if (type === 'pick' && B.room.phase === 'lobby') { B.room.track = p.track; B.room.diff = p.diff; B.room.ready = {}; publish(); }
     if (type === 'ready' && B.room.phase === 'lobby') { B.room.ready[p.id] = !!p.ready; maybeStart(); publish(); }
     if (type === 'mode' && B.room.phase === 'lobby') { B.room.tvAudio = !!p.tvAudio; B.room.ready = {}; publish(); }
-    if (type === 'done' || type === 'quit') { B.room.phase = 'lobby'; B.room.ready = {}; }
+    if ((type === 'done' || type === 'quit') && players(B.room).some(x => x.id === p.id)) { B.room.phase = 'lobby'; B.room.ready = {}; }
   }
   if (type === 'start') { if (p.id !== B.room.host) return; return start(p); }   // starts are accepted from the room host only
   if (type === 'live' && B.match && p.match === B.match.match) { B.opp = p.st; paintOpp(); }
-  if (type === 'done' && B.match && p.match === B.match.match) { B.theirs = { scoreId: p.scoreId, result: p.result }; settle(); }
-  if (type === 'quit' && B.match && p.match === B.match.match) { B.theirs = B.theirs || { quit: true }; B.opp = { ...(B.opp || {}), left: true }; paintOpp(); settle(); }
+  // untrusted hints: a session id is only a claim (the server checks the pair); done/quit only trigger a server re-check
+  if (type === 'sess' && B.match && p.match === B.match.match && players(B.room).some(x => x.id === p.id)) { B.oppSess = String(p.sessionId).slice(0, 64); poll(); }
+  if (type === 'done' && B.match && p.match === B.match.match) poll();
+  if (type === 'quit' && B.match && p.match === B.match.match) { B.opp = { ...(B.opp || {}), left: true }; paintOpp(); poll(); }
 }
 
 function maybeStart() {
@@ -106,7 +108,7 @@ function start(s) {
   if (B.shared?.delta == null) { A.toast('Match clock not ready — the match was not started on this device'); return; }
   const t = A.findTrack(s.track);
   if (!t || t.charts[s.diff]?.hash !== s.chartHash) { A.toast('Your game has a different version of this song — reload'); return; }
-  B.match = s; B.opp = null; B.mine = B.theirs = null; B.result = null; B.jq = [];
+  B.match = s; B.opp = null; B.mySess = B.oppSess = null; B.submitted = false; B.result = null; B.jq = []; clearInterval(B.pollT);
   const opp = players(B.room).find(p => p.id !== B.me.id);
   B.oppName = opp?.name || 'Opponent';
   A.startGame(t, s.diff, { battle: { match: s.match, zeroPerf: B.shared.perfAt(s.epoch), tvAudio: s.tvAudio, oppName: B.oppName } });
@@ -127,49 +129,48 @@ function paintOpp() {
     <b>${(o?.score ?? 0).toLocaleString()}</b><div class="on-sub">${o ? `${o.acc.toFixed(1)}% · ${o.combo}x` : 'waiting…'}</div>
     <i style="width:${o && o.total ? Math.min(100, o.judged / o.total * 100) : 0}%"></i>`;
 }
+/* ── result: server-decided only ──────────────────────────────────────────
+   The client never decides an outcome. It shares its server session id, submits its run through the
+   normal verified path, then asks the server (battle_result over both sessions) until it says final. */
+export function session(sessionId) {
+  if (!B.match || !sessionId) return;
+  B.mySess = sessionId;
+  const m = B.match, share = () => B.net?.send('sess', { id: B.me.id, match: m.match, sessionId });
+  share(); let n = 0; clearInterval(B.sessT);
+  B.sessT = setInterval(() => { if (B.match !== m || B.result?.status === 'final' || ++n > 60) return clearInterval(B.sessT); share(); }, 3000);
+}
 export async function finished(r, submit) {
   if (!B.match) return;
-  const m = B.match;
-  const res = await submit;                                          // the normal verified score_submit
-  B.mine = { scoreId: res?.scoreId || null, result: { score: r.score, accuracy: r.accuracy, maxCombo: r.maxCombo, failed: !!r.failed } };
-  // resend until the opponent's result arrives: a dropped or late Realtime connection never loses the outcome
-  const sendDone = () => B.net?.send('done', { id: B.me.id, match: m.match, scoreId: B.mine.scoreId || '', result: B.mine.result });
-  sendDone(); let n = 0;
-  const rs = setInterval(() => { if (B.result || B.match !== m || ++n > 20) return clearInterval(rs); sendDone(); }, 3000);
-  setTimeout(() => { if (B.match === m && !B.result) { B.theirs = B.theirs || { timeout: true }; settle(true); } }, 60000);
-  settle();
+  await submit;                                                       // the normal score_submit (server replay)
+  B.submitted = true;
+  B.net?.send('done', { id: B.me.id, match: B.match.match });
+  renderResultCard(); poll();
+  clearInterval(B.pollT); const m = B.match;
+  B.pollT = setInterval(() => { if (B.match !== m || ['final', 'void', 'invalid'].includes(B.result?.status)) return clearInterval(B.pollT); poll(); }, 5000);
 }
-export function forfeit() { if (B.match && B.net) B.net.send('quit', { id: B.me.id, match: B.match.match }); B.match = null; }
+export function forfeit() { if (B.match && B.net) B.net.send('quit', { id: B.me.id, match: B.match.match }); clearInterval(B.pollT); B.match = null; }
 
-async function settle(force) {
-  if (!B.mine || B.result) return;
-  if (!B.theirs && !force) return renderResultCard();
-  if (B.mine.scoreId && B.theirs?.scoreId) {
-    try { B.result = await battleResult(B.match.match, [B.mine.scoreId, B.theirs.scoreId]); }
-    catch (e) { B.result = { error: e.message }; }
-  } else if (B.theirs?.timeout) {
-    // no word from the opponent: never claim a win we cannot verify
-    B.result = { pending: true, entries: [], winner: null, decidedBy: 'opponent result not received' };
-  } else {
-    // opponent forfeited or left: decided on the one verified row there is
-    const d = decideWinner(B.mine.scoreId ? { verified: true, ...B.mine.result } : null, B.theirs?.scoreId ? { verified: true, ...B.theirs.result } : null);
-    B.result = { provisional: !B.mine.scoreId, entries: [], winner: d.winner === 'a' ? B.mine.scoreId || 'me' : d.winner === 'b' ? 'them' : null, decidedBy: B.theirs?.quit ? 'forfeit' : B.theirs?.timeout ? 'opponent did not finish' : d.decidedBy };
-  }
-  if (B.room) { B.room.phase = 'lobby'; B.room.ready = {}; }
+let polling = false;
+async function poll() {
+  if (!B.match || !B.submitted || !B.mySess || polling) return renderResultCard();
+  if (!B.oppSess) { B.result = { status: 'pending', decidedBy: 'waiting for the opponent’s session' }; return renderResultCard(); }
+  polling = true;
+  try { B.result = await battleResult(B.match.match, [B.mySess, B.oppSess]); }
+  catch (e) { B.result = { status: 'pending', decidedBy: 'could not reach the result service (' + e.message + ') — retrying' }; }
+  finally { polling = false; }
+  if (B.result?.status !== 'pending' && B.room) { B.room.phase = 'lobby'; B.room.ready = {}; }
   renderResultCard();
 }
 export function resultCard() {
-  if (!B.mine && !B.match) return '';
-  const r = B.result, mine = B.mine;
-  if (!r) return `<div class="card battle-res"><h3>LIVE 1V1 vs ${A.esc(B.oppName || '')}</h3><p class="x">${mine ? 'Waiting for your opponent to finish…' : 'Verifying your run…'}</p></div>`;
-  if (r.error) return `<div class="card battle-res"><h3>LIVE 1V1</h3><p class="x">Could not verify the winner: ${A.esc(r.error)}</p></div>`;
-  if (r.pending) return `<div class="card battle-res"><h3>NO RESULT</h3><p class="x">Your opponent's result did not arrive (connection lost). Your run was saved; no winner is declared.</p><a class="btn primary" href="#/battle/${B.code || ''}" style="width:100%;margin-top:10px">Back to the room</a></div>`;
-  const won = r.winner && (r.winner === mine?.scoreId || r.winner === 'me'), draw = !r.winner;
-  const row = e => `<tr><td>${A.esc(e.name)}${e.scoreId === r.winner ? ' 👑' : ''}</td><td>${e.score.toLocaleString()}</td><td>${(+e.accuracy).toFixed(2)}%</td><td>${e.maxCombo}</td><td>${e.perfect}/${e.great}/${e.good}/${e.miss}</td><td>${e.verified ? '✓' : '✗'}</td></tr>`;
+  if (!B.match && !B.result) return '';
+  const r = B.result, back = `<a class="btn primary" href="#/battle/${B.code || ''}" style="width:100%;margin-top:10px">${r?.status === 'final' ? 'Rematch' : 'Back to the room'}</a>`;
+  if (!B.submitted || !r || r.status === 'pending') return `<div class="card battle-res"><h3>RESULT PENDING</h3><p class="x">${A.esc(!B.submitted ? 'Submitting your run for server verification…' : r?.decidedBy || 'Waiting for the server-verified result…')}</p></div>`;
+  if (r.status !== 'final') return `<div class="card battle-res"><h3>NO RESULT</h3><p class="x">${A.esc(r.decidedBy || 'The match could not be verified')} · no winner is declared.</p>${back}</div>`;
+  const won = r.winner === B.mySess, draw = !r.winner;
+  const row = e => `<tr><td>${A.esc(e.name)}${e.sessionId === r.winner ? ' 👑' : ''}</td>${e.submitted ? `<td>${e.score.toLocaleString()}</td><td>${(+e.accuracy).toFixed(2)}%</td><td>${e.maxCombo}</td><td>${e.perfect}/${e.great}/${e.good}/${e.miss}</td><td>${e.verified ? '✓' : '✗'}</td>` : '<td colspan="5">no run submitted</td>'}</tr>`;
   return `<div class="card battle-res ${won ? 'won' : draw ? '' : 'lost'}"><h3>${draw ? 'DRAW' : won ? 'YOU WIN!' : `${A.esc(B.oppName)} WINS`}</h3>
-    <p class="x">Decided by ${A.esc(r.decidedBy)}${r.entries?.length ? ' · server-verified replays' : ''}</p>
-    ${r.entries?.filter(Boolean).length ? `<table class="bt"><tr><th></th><th>Score</th><th>Acc.</th><th>Combo</th><th>P/G/G/M</th><th>Verified</th></tr>${r.entries.filter(Boolean).map(row).join('')}</table>` : ''}
-    <a class="btn primary" href="#/battle/${B.code || ''}" style="width:100%;margin-top:10px">Rematch</a></div>`;
+    <p class="x">Decided by ${A.esc(r.decidedBy)} · server-verified</p>
+    ${r.entries?.filter(Boolean).length ? `<table class="bt"><tr><th></th><th>Score</th><th>Acc.</th><th>Combo</th><th>P/G/G/M</th><th>Valid</th></tr>${r.entries.filter(Boolean).map(row).join('')}</table>` : ''}${back}</div>`;
 }
 function renderResultCard() { const el = document.querySelector('#battleCard'); if (el) el.innerHTML = resultCard(); }
 export function endMatch() { B.match = null; }

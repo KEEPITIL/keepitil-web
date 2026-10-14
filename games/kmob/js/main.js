@@ -489,7 +489,7 @@
   // ZOOM (camera only): 1× · 1.5× · 2× · 3× the fitted camera distance; world, units, aim, range and speed are untouched
   const ZOOMS = KM.ZOOMS; let zoomI = Math.max(0, ZOOMS.indexOf(save.settings.zoom || 1));
   const zoomNow = () => ZOOMS[zoomI];
-  function setZoom(i) { zoomI = (i + ZOOMS.length) % ZOOMS.length; save.settings.zoom = ZOOMS[zoomI]; persist(); render.zoom = ZOOMS[zoomI]; $('zoomTxt').textContent = fmtX(ZOOMS[zoomI]); $('zoomBtn').setAttribute('aria-label', 'Camera zoom out ' + fmtX(ZOOMS[zoomI])); $('zoomBtn').title = 'Zoom ' + fmtX(ZOOMS[zoomI]); }
+  function setZoom(i) { zoomI = (i + ZOOMS.length) % ZOOMS.length; save.settings.zoom = ZOOMS[zoomI]; persist(); render.zoom = ZOOMS[zoomI]; render.fitT = 0; $('zoomTxt').textContent = fmtX(ZOOMS[zoomI]); $('zoomBtn').setAttribute('aria-label', 'Camera zoom out ' + fmtX(ZOOMS[zoomI])); $('zoomBtn').title = 'Zoom ' + fmtX(ZOOMS[zoomI]); }
   $('zoomBtn').addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); audio.unlock(); if (planMode) return; setZoom(zoomI + 1); audio.play('tap'); if (state === 'run') banner('ZOOM ' + fmtX(zoomNow()), 0.8); });
   sim.on((t, a, b) => { if (state === 'run') Telemetry.ev(sim, t, a, b); });
   let lastT = performance.now(), acc = 0; const STEP = KM.FRAME.STEP;
@@ -528,7 +528,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=382eb248f8a8`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=382eb248f8a8" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=6aae1e1b4087`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=6aae1e1b4087" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };

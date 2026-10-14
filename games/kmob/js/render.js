@@ -799,8 +799,8 @@
       return P;
     }
     // Smallest camera distance (closest view, biggest characters) that keeps every key point inside the safe area.
-    fitDistance(sim, tx, tz, pitch, minD, maxD) {
-      const cam = this.fitCam || (this.fitCam = new THREE.PerspectiveCamera()), v = this.v, P = this.keyPoints(sim);
+    fitDistance(sim, tx, tz, pitch, minD, maxD, nearOnly) {
+      const cam = this.fitCam || (this.fitCam = new THREE.PerspectiveCamera()), v = this.v, P = nearOnly ? this.keyPoints(sim).filter(p => p.z > sim.L.z - 3) : this.keyPoints(sim);   // nearOnly: just the tank's travel and the lane at its row
       cam.fov = this.cam.fov; cam.aspect = this.aspect; cam.near = 0.5; cam.far = 300; cam.updateProjectionMatrix();
       const hudTop = 1 - 2 * (this.safeTopPx || 118) / innerHeight;          // NDC y below the HUD pills + HP bar
       const ok = d => { cam.position.set(tx, Math.sin(pitch) * d, tz + Math.cos(pitch) * d); cam.lookAt(tx, 0, tz); cam.updateMatrixWorld(); cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
@@ -808,6 +808,26 @@
       let lo = minD, hi = maxD; if (ok(lo)) return lo; if (!ok(hi)) return hi;
       for (let k = 0; k < 14; k++) { const mid = (lo + hi) / 2; if (ok(mid)) hi = mid; else lo = mid; }
       return hi;
+    }
+    // ZOOM framing (owner decision 2026-10-13): a zoom step = how far up the enemy approach the view reaches, with the tank and the army
+    // held at their usual lower-screen height. 1× sees ~62% of the tank-to-entry depth (closer, bigger soldiers), 1.5× ~74%, 2× ~86%,
+    // 3× the whole approach up to the enemy entry line and never beyond it. Spawn distance, ranges and combat are untouched.
+    zoomFrame(sim, tx, tz, pitch) {
+      const Z = Math.max(1, Math.min(3, this.zoom || 1)), cam = this.fitCam, v = this.v, L = sim.L, d0 = this.fitD; this.zoomZ = Z;
+      const hc = typeof document !== 'undefined' && document.getElementById('hC'), hcB = hc && hc.getClientRects().length ? hc.getBoundingClientRect().bottom + 4 : (this.safeTopPx || 118);   // the lane shows right under the currency bar
+      const hudTop = 1 - 2 * hcB / innerHeight, depth = W.SPAWN_DZ + 4, f = KM.zoomDepth(Z);
+      const place = (d, sh) => { const z = tz - sh; cam.position.set(tx, Math.sin(pitch) * d, z + Math.cos(pitch) * d); cam.lookAt(tx, 0, z); cam.updateMatrixWorld(); cam.matrixWorldInverse.copy(cam.matrixWorld).invert(); };
+      const tankY = () => { v.set(tx, 0, L.z + 2.4).project(cam); return v.z < 1 ? v.y : -9; };   // the tank's REAR edge keeps its height (a closer camera never pushes the tank off the bottom) · behind the camera = off the bottom
+      const topZ = () => { v.set(0, hudTop, 0.5).unproject(cam); const o = cam.position, dy = v.y - o.y; if (dy >= -1e-6) return -1e9; return o.z + (v.z - o.z) * (-o.y / dy); };
+      place(d0, 0); const yRef = tankY();
+      const solve = d => { let lo = -1.2 * d0, hi = d0 * 3; for (let k = 0; k < 18; k++) { const m = (lo + hi) / 2; place(d, m); if (tankY() > yRef) lo = m; else hi = m; } return (lo + hi) / 2; };
+      const top = d => { place(d, solve(d)); return topZ(); };
+      // closest camera: the nearest distance that still shows the tank's whole side-to-side travel and the lane at its row
+      const dMin = d0 * 0.6, dMax = d0 * 3.5;   // the closest view crops the lane edges, so the camera then follows the tank sideways (drawCamera)
+      const share = d => (sim.front - top(d)) / depth, sMin = Math.min(1, share(dMin)), want = sim.front - depth * (sMin + (1 - sMin) * f);   // 1× = closest · 3× = the full approach
+      let lo = dMin, hi = dMax; if (top(lo) <= want) hi = lo; else if (top(hi) >= want) lo = hi;
+      for (let k = 0; k < 18 && hi - lo > 0.05; k++) { const m = (lo + hi) / 2; if (top(m) > want) lo = m; else hi = m; }
+      const d = (lo + hi) / 2; this.zoomEff = d / d0; this.zoomShift = solve(d); place(d, this.zoomShift); this.zoomTop = topZ(); this.zoomPan = Math.max(0, Math.min(1, (d0 - d) / (d0 - dMin)));   // 1 = fully follow the tank (closest), 0 = lane centred (≥ the old 1× distance)
     }
     drawCamera(sim, dt) {
       const L = sim.L, army = sim.count[0] + sim.count[1];
@@ -819,8 +839,12 @@
       if (KM.camFocus && KM.camFocus.x != null) this.camT.set(tx, 0, tz);          // staged close-ups snap
       else { this.camT.x += (tx - this.camT.x) * Math.min(1, dt * 3); this.camT.z += (tz - this.camT.z) * Math.min(1, dt * 4); }
       this.fitT = (this.fitT || 0) - dt;
-      if (this.fitT <= 0 || this.fitD == null) { this.fitT = 0.25; this.fitD = this.fitDistance(sim, this.camT.x, this.camT.z, pitch, land ? 22 : this.aspect > 1 ? 30 : 24, 70); }
-      let dist = this.fitD * (KM.camFocus ? 1 : this.zoom || 1);   // stable scale: no zoom with tank position or army size · ZOOM button: 1× / 1.5× / 2× / 3× the FITTED distance (never a fixed one)
+      if (this.fitT <= 0 || this.fitD == null) { this.fitT = 0.25; this.fitD = this.fitDistance(sim, this.camT.x, this.camT.z, pitch, land ? 22 : this.aspect > 1 ? 30 : 24, 70); this.zoomFrame(sim, tx, tz, pitch); }
+      // ZOOM (owner correction 2026-10-13): pull back AND slide the aim toward the enemy so the tank and the army keep their 1× place
+      // in the lower screen; the extra view goes to the approach. Both values ease at the same rate, so nothing snaps.
+      const zk = Math.min(1, dt * 1.6), fit = KM.camFocus || KM.camFit, zf = fit ? 1 : this.zoomEff || 1, zs = fit ? 0 : this.zoomShift || 0;   // KM.camFit: the plain fitted framing (tests of the base geometry)
+      if (this.zEffS == null || KM.camFit) { this.zEffS = zf; this.zShiftS = zs; } this.zEffS += (zf - this.zEffS) * zk; this.zShiftS += (zs - this.zShiftS) * zk;
+      let dist = this.fitD * this.zEffS;   // stable scale: no zoom with tank position or army size
       if (KM.camOverride) dist = KM.camOverride;
       if (KM.camFocus && KM.camFocus.x != null) this.camD = dist;
       this.camD = (this.camD || dist) + (dist - (this.camD || dist)) * Math.min(1, dt * 1.6);
@@ -828,8 +852,11 @@
       const sx = (Math.random() - 0.5) * this.shake, sy = (Math.random() - 0.5) * this.shake;
       const flip = KM.camFocus && KM.camFocus.flip ? -1 : 1, pch = KM.camFocus && KM.camFocus.pitch || pitch;   // close-up rigs can look at the army's faces
       // straight down the lane: no yaw, no roll — enemy up, tank bottom, battle straight ahead
-      this.cam.position.set(this.camT.x + sx, Math.sin(pch) * this.camD + sy, this.camT.z + Math.cos(pch) * this.camD * flip);
-      this.cam.lookAt(this.camT.x, 0, this.camT.z);
+      const pw = fit ? 0 : this.zoomPan || 0; if (this.panS == null || KM.camFit) this.panS = pw; this.panS += (pw - this.panS) * zk;
+      const aimX = this.camT.x + (L.x - this.camT.x) * this.panS * 0.85;   // closer zoom: the view follows the tank so it never leaves the screen
+      const aimZ = this.camT.z - this.zShiftS;   // zoom slides the aim upfield (toward the enemy); the tank keeps its screen place
+      this.cam.position.set(aimX + sx, Math.sin(pch) * this.camD + sy, aimZ + Math.cos(pch) * this.camD * flip);
+      this.cam.lookAt(aimX, 0, aimZ);
       this.scene.fog.near = this.camD + 6; this.scene.fog.far = this.camD + 95;
       const far = Math.max(260, Math.ceil((this.camD + 110) / 20) * 20); if (this.cam.far !== far) { this.cam.far = far; this.cam.updateProjectionMatrix(); }   // the zoomed-out view never clips the horizon
       this.sun.position.set(this.camT.x + 12, 30, this.camT.z + 14); this.sun.target.position.set(this.camT.x, 0, this.camT.z - 4);
@@ -857,7 +884,7 @@
       this.drawCrowd(sim, dt); this.drawCoins(sim); this.drawProjectiles(sim); this.drawBeams(sim, dt); this.stepFx(dt); if (this.pfx) this.pfx.update(sim, dt);
       if (this.bloomOn && this.composer) this.composer.render(); else this.R.render(this.scene, this.cam);
     }
-    resetRun() { this.beams = []; this.lEra = null; this.lEraSeen = null; this.deathT = null; this.camT = null; this.camD = null; this.fitD = null; for (const o of this.dyingObjs) this.disposeObj(o); this.dyingObjs = []; this.pl.fill(0); this.ry.fill(Math.PI); this.fogCol.setHex(KM.BIOMES[0].fog); }
+    resetRun() { this.beams = []; this.lEra = null; this.lEraSeen = null; this.deathT = null; this.camT = null; this.camD = null; this.fitD = null; this.zEffS = this.zShiftS = this.panS = null; /* a new run starts on its zoom framing (no easing in from the menu camera) */ for (const o of this.dyingObjs) this.disposeObj(o); this.dyingObjs = []; this.pl.fill(0); this.ry.fill(Math.PI); this.fogCol.setHex(KM.BIOMES[0].fog); }
   }
   KM.Render = Render;
 })(window);

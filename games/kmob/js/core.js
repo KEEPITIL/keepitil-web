@@ -170,7 +170,8 @@
   // WAR PLAN (owner-approved 2026-10-13): target counts of LIVING ordinary soldiers per class, shown Looter → Giant. Shared 300 weighted CAP;
   // row limit = the DEFEND formation's row width (W.ROW_MAX; Looters hold no formation row); class max = what that class could fill alone.
   KM.PLAN_LABEL = { collector: 'LOOTER', range: 'ARCHER', melee: 'SWORD', mizard: 'MIZARD', elite: 'ELITE', giant: 'GIANT' };
-  KM.SPEEDS = [1, 1.5, 2, 3, 5]; KM.ZOOMS = [1, 1.5, 2, 3];   // game speed multipliers · camera zoom-OUT factors on the fitted distance
+  KM.SPEEDS = [1, 1.5, 2, 3, 5]; KM.ZOOMS = [1, 1.5, 2, 3];
+  KM.zoomDepth = z => z >= 3 ? 1 : z >= 2 ? 0.65 + 0.35 * (z - 2) : z >= 1.5 ? 0.35 + 0.6 * (z - 1.5) : 0.7 * (Math.max(1, z) - 1);   // 0 = closest view (1×) … 1 = the whole approach up to the enemy entry (3×)
   KM.emptyPlan = () => Object.fromEntries(KM.PROD_ORDER.map(k => [k, 0]));
   KM.planMax = k => Math.floor(KM.ARMY_CAP / KM.PROD[k].pts);
   KM.planRow = k => KM.W.ROW_MAX[k] || 0;

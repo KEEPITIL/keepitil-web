@@ -5,7 +5,7 @@
   const KM = window.KM, $ = id => document.getElementById(id);
   // Public build reads no URL flags. Internal tooling (benchmark, playtest, debug, stress, showcase) lives in js/internal.js,
   // which only the private build loads; it sets KM.DEV and receives the game API through KM.internalInit.
-  const DEV = KM.DEV || null;
+  const DEV = KM.DEV || null, NATIVE = !!window.KMOB_NATIVE;   // NATIVE: the bundled iOS app (no network telemetry, no boards, no real-money storefront)
   const LT = KM.loadTimes || {}, mark = k => { if (LT[k] == null) LT[k] = Math.round(performance.now()); };
   const H = { tick: [], start: [], death: [], leave: [], fps: [], qdown: [], frame: [] }, hook = (k, a, b, c) => { for (const f of H[k]) f(a, b, c); };
 
@@ -74,7 +74,7 @@
     let sid; try { sid = sessionStorage.getItem('kmob.sid') || rid(); sessionStorage.setItem('kmob.sid', sid); } catch (e) { sid = rid(); }
     let R = null, pending = null;
     const T = {
-      on: !(DEV && !DEV.telemetry), key: KEY, sent: [], fetch: (...a) => fetch(...a),
+      on: !(DEV && !DEV.telemetry) && !NATIVE, key: KEY, sent: [], fetch: (...a) => fetch(...a),
       begin(sim, ctx) { this.flush('restart'); const ua = navigator.userAgent;
         R = { v: 1, build: KM.BUILD, run: rid(), dev: /iPhone|iPad|iPod/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : 'desktop', cores: navigator.hardwareConcurrency || 0, mem: navigator.deviceMemory || 0,
           vp: [innerWidth, innerHeight, +(devicePixelRatio || 1).toFixed(2)], landing: this.pre || '', resumed: !!ctx.resumed, resumeFailed: !!ctx.resumeFailed, t0: Math.round(sim.t), q0: ctx.quality, spd0: ctx.speed, comp: ctx.comp, runN: ctx.runN,
@@ -250,6 +250,7 @@
   function khShow() { if (!KH || khOn()) return; KH.hidden = false; KH.scrollTop = 0; document.body.classList.add('kh-on'); try { if (history.state && history.state.kmob) history.back(); } catch (e) { /* ok */ } }   // drop the in-game history entry: Back from the home page leaves the site as usual
   function khHide() { if (!KH || !khOn()) return; KH.hidden = true; document.body.classList.remove('kh-on'); try { if (!(history.state && history.state.kmob)) history.pushState({ kmob: 'game' }, ''); } catch (e) { /* ok */ } }
   if (KH) {
+    const deep = /^#kh-(privacy|support)$/.test(location.hash) && $(location.hash.slice(1)); if (deep) setTimeout(() => deep.scrollIntoView({ block: 'start' }), 0);   // keepitil.com/games/kmob/#kh-privacy (store privacy / support URLs) opens on that section
     KH.addEventListener('click', e => { const play = e.target.closest('[data-kmob-play]'), sc = e.target.closest('[data-kmob-scroll]');
       if (play) { e.preventDefault(); audio.unlock(); Telemetry.landing('home_play'); khHide(); const rs = RunSave.load(); if (rs) { $('contBtn').classList.remove('hidden'); $('contInfo').textContent = 'WAVE ' + (rs.snap.wave || 1) + ' · ' + KM.fmtTime(rs.snap.t); show('title'); } else openPlan('start'); return; }   // a saved run: the menu offers CONTINUE and PLAY
       if (sc) { const el = $(sc.dataset.kmobScroll); if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); } });
@@ -399,6 +400,7 @@
         else if (t.up && lv < KM.POWER_MAX) { const how = pay(c, t.up); if (how) { save.powers.lv[id] = lv + 1; audio.play('upgrade'); Analytics.track('power_up', { id, lv: lv + 1, with: how }); } }
         persist(); draw(); }));
     };
+    if (NATIVE) { const cb = $('shopTabs').querySelector('[data-t="currency"]'); if (cb) cb.remove(); }   // iOS 1.0: no real-money storefront until Apple In-App Purchase + receipt checks exist
     for (const b of $('shopTabs').children) b.onclick = () => { shopTab = b.dataset.t; audio.play('tap'); draw(); };
     draw(); show('shop'); $('shopClose').onclick = () => { audio.play('tap'); back(); };
   }
@@ -528,7 +530,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=f29984ed1fda`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=f29984ed1fda" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=b4100fb31c6f`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=b4100fb31c6f" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };

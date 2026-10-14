@@ -118,8 +118,8 @@ $('#mk').onclick = async () => {
     if (!rows.length) throw new Error('no WAV files in this folder');
     msg.textContent = `Creating ${rows.length} private drafts…`;
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(slug + '|' + folder + '|' + rows.map(r => r.file).sort().join('|')));
-    const key = 'up-' + [...new Uint8Array(digest)].slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
-    const plan = await call('admin_import_plan', { ownerArtistSlug: slug, mastersPrefix: 'owner-import/' + folder, label: folder, rows, idempotencyKey: key }, 180000);
+    const key = 'mk-' + [...new Uint8Array(digest)].slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
+    const plan = await call('admin_import_plan', { ownerArtistSlug: slug, mastersPrefix: folder, label: folder, rows, idempotencyKey: key }, 180000);
     const batch = await call('admin_import_batch', { batchId: plan.batchId });
     const ready = batch.items.filter(i => i.track_id && i.intake_id);
     const skipped = batch.items.filter(i => !(i.track_id && i.intake_id));

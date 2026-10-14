@@ -31,8 +31,8 @@
         <tr><td>AIFF</td><td class="err">not yet: export WAV (same quality)</td><td>—</td></tr></table>
       <p class="x">Max 200 MB per file. Names are made storage-safe automatically. An existing file is never overwritten. If anything fails, press Upload again: finished files are skipped.</p>
       <div class="grid" style="margin-top:10px">
-        <label>Folder<br><input id="fold" value="illestratedlifestyle"></label>
-        <label>Artist name (for credit checks)<br><input id="own" value="Illestrated Lifestyle"></label>
+        <label>Folder<br><input id="fold" value="keepitil"></label>
+        <label>Artist name (for credit checks)<br><input id="own" value="keepitil"></label>
         <label>Files<br><input id="files" type="file" multiple accept=".wav,.flac,.mp3,.m4a,.aac,audio/*"></label>
       </div>
       <p><button class="btn primary" id="go">Upload</button> <span class="x" id="msg"></span></p>
@@ -44,6 +44,14 @@
       <p><textarea id="exp" rows="3" style="width:100%"></textarea></p>
       <p><button class="btn ghost" id="inv">Build inventory</button> <span class="x" id="imsg"></span></p>
       <div id="invout"></div>
+    </div>
+    <div class="card">
+      <h3>Make KBeats drafts</h3>
+      <p class="x">Turns the WAVs in the folder above into <b>private draft tracks</b> credited to the artist below, builds Easy/Normal/Expert charts and sends them to moderation. The shortest song is processed first; the rest run only if it succeeds. Nothing is published: every track still needs your approval in moderation.</p>
+      <label>Credit to artist (KBeats artist id)<br><input id="slug" value="keepitil"></label>
+      <div id="rights" style="margin:10px 0"></div>
+      <p><button class="btn primary" id="mk">Make drafts</button> <span class="x" id="mmsg"></span></p>
+      <div id="mkout"></div>
     </div>
   </div>
 </div>

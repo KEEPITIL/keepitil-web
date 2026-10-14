@@ -25,6 +25,7 @@ export class SongClock {
   }
   songTimeAt(perfMs) {
     if (this.pausedAt != null) return this.pausedAt;
+    if (this.ext != null) return (perfMs - this.ext) / 1000;      // silent battle mode: song time follows the match clock
     return this._audibleCtxAt(perfMs) - this.startCtx;
   }
   /* For rendering: lightly smoothed so getOutputTimestamp quantisation does not jitter notes, but
@@ -53,9 +54,19 @@ export class SongClock {
     const s = this.ctx.createBufferSource(); s.buffer = buffer; s.connect(this.music);
     const when = this.ctx.currentTime + lead;
     this.startCtx = when - from + 0;    // ctx time at which song position 0 plays
-    s.start(when, Math.max(0, from)); this.src = s; this.pausedAt = null; this.smooth = null;
+    s.start(when, Math.max(0, from)); this.src = s; this.pausedAt = null; this.smooth = null; this.ext = null;
     return s;
   }
+  /* Live 1v1: start so that song position 0 is AUDIBLE at performance.now() === zeroPerf (the shared
+     match epoch on this device). A device that is already late joins mid-song at the right position. */
+  playAtPerf(buffer, zeroPerf) {
+    const when = this._audibleCtxAt(zeroPerf), now = this.ctx.currentTime;
+    if (when > now + 0.02) return this.play(buffer, when - now, 0);
+    return this.play(buffer, 0.05, now + 0.05 - when);
+  }
+  /* Live 1v1 with TV audio: no local music; song time is the match clock (zeroPerf = epoch on this
+     device). Judging stays local and uses the player's TV calibration offset. */
+  followTimeline(zeroPerf) { this.stop(); this.buffer = null; this.pausedAt = null; this.smooth = null; this.ext = zeroPerf; }
   pause() {
     if (!this.src || this.pausedAt != null) return;
     this.pausedAt = Math.max(0, this.songTimeAt(performance.now()));
@@ -63,7 +74,7 @@ export class SongClock {
     this.src = null;
   }
   resume(lead = 1.5) { if (this.pausedAt == null || !this.buffer) return; const at = this.pausedAt; this.play(this.buffer, lead, at); }
-  stop() { if (this.src) { try { this.src.stop(); } catch {} this.src.disconnect(); } this.src = null; }
+  stop() { this.ext = null; if (this.src) { try { this.src.stop(); } catch {} this.src.disconnect(); } this.src = null; }
 
   click(when, accent = false) {
     const o = this.ctx.createOscillator(), g = this.ctx.createGain();

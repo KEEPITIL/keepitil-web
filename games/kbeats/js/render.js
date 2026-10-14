@@ -22,8 +22,10 @@ export class Highway {
     const w = this.c.clientWidth || innerWidth, h = this.c.clientHeight || innerHeight;
     this.c.width = Math.round(w * dpr); this.c.height = Math.round(h * dpr);
     this.dpr = dpr; this.W = w; this.H = h;
-    const bw = Math.min(w * 0.97, h * 0.6, 640);
-    this.geo = { cx: w / 2, topY: h * 0.12, hitY: h * 0.83, bw, tw: bw * 0.3, padR: bw / 8 * 0.88, hypeY: h * 0.94 };
+    const bw = Math.min(w * 0.97, h * 0.6, this.opts.maxBw || 640);
+    // padPx (TV battle view): pads drawn at a target radius, never wider than their lane allows
+    const padR = this.opts.padPx ? Math.min(this.opts.padPx, bw / 8 * 0.98) : bw / 8 * 0.88;
+    this.geo = { cx: w / 2, topY: h * 0.12, hitY: h * 0.83, bw, tw: bw * 0.3, padR, hypeY: h * 0.94 };
     this._bg = null; this._sprites = null;
   }
 

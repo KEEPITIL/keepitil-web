@@ -11,6 +11,7 @@ import { renderDevTrack } from './devtracks.js';
 import { coverArt } from './art.js';
 import * as S from './store.js';
 import * as D from './data.js';
+import * as BT from './battle-ui.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -71,6 +72,7 @@ function selectRow(t) {
 
 /* ── screens ─────────────────────────────────────────────────────────── */
 const screens = {
+  battle(code) { BT.screen(code); },
   home(tab = 'foryou') {
     const live = catalog.filter(t => ['published', 'development'].includes(t.status));
     const lists = {
@@ -293,6 +295,8 @@ function scLink(t) {
 }
 function bindSc() { document.querySelectorAll('[data-sc]').forEach(a => { if (a.tagName === 'A') a.onclick = () => { D.track('soundcloud_outbound', { track: a.dataset.sc }); D.flushEvents(); }; }); }
 
+BT.init({ catalog: () => catalog, findTrack, startGame, toast, go, esc, me: () => ME, DIFF, icon: k => I[k], inGame: () => game.active });
+
 /* ── router ──────────────────────────────────────────────────────────── */
 function go(h) { if (location.hash === h) route(); else location.hash = h; }
 function route() {
@@ -341,33 +345,38 @@ async function startGame(t, diff, opts = {}) {
   try {
     await ensureClock();
     notes = loadChart(t.charts[diff]);                           // verifies chart hash
-    buffer = await loadAudio(t);
-    if (Math.abs(buffer.duration * 1000 - t.charts[diff].durationMs) > 2000) throw new Error('chart/audio duration mismatch');
-    if (!QA_AUTOPLAY) {
-      try { session = await D.sessionStart(t.slug, diff, t.charts[diff].hash, !!opts.practice, platform()); }
+    // live 1v1 with music on the TV: this device plays silently on the match clock (no download)
+    buffer = opts.battle?.tvAudio ? null : await loadAudio(t);
+    if (buffer && Math.abs(buffer.duration * 1000 - t.charts[diff].durationMs) > 2000) throw new Error('chart/audio duration mismatch');
+    if (!QA_AUTOPLAY || opts.battle) {
+      // live 1v1 runs go through the staging API (same database) until battles are approved for production
+      // friendly battles are unranked practice sessions (never on leaderboards, no XP), tagged battle-* for the result check
+      try { session = await D.sessionStart(t.slug, diff, t.charts[diff].hash, !!opts.practice || !!opts.battle, opts.battle ? ('battle-' + platform()).slice(0, 20) : platform(), opts.battle ? { staging: true } : undefined); }
       catch (e) { if (e.status === 409) throw new Error('this chart was updated, reload the page'); session = null; }   // offline: play unranked
     }
   } catch (e) {
     $('#loading').classList.remove('on'); gEl.classList.remove('on'); game.active = false; toast('Could not start: ' + e.message); return;
   }
   settings = S.settings();
-  clock.inputOffset = settings.offsets[settings.output] || 0;
+  clock.inputOffset = opts.battle?.tvAudio ? (settings.offsets.tv ?? 0) : (settings.offsets[settings.output] || 0);
   clock.setVolumes(settings.music * (t.gain || 1), settings.sfx);   // loudness-normalised playback; master untouched
   if (!hw) { hw = new Highway($('#cv')); addEventListener('resize', () => hw.resize()); }
   hw.setOpts({ effects: settings.effects, reducedMotion: settings.reducedMotion, reducedFlash: settings.reducedFlash }); hw.resize();
-  const judge = new Judge(notes, { practice: !!opts.practice });
+  const judge = new Judge(notes, { practice: !!opts.practice || !!opts.battle });
   const ch = t.charts[diff];
   const energy = t.analysis?.energy || [], barSec = t.analysis?.barSec || 2, down = t.analysis?.downbeatSec || 0;
-  Object.assign(game, { t, diff, opts, judge, ch, session, notes: judge.notes.slice().sort((a, b) => a.t - b.t), cursor: 0, duration: buffer.duration, ended: false, paused: false, buffer,
+  Object.assign(game, { t, diff, opts, judge, ch, session, notes: judge.notes.slice().sort((a, b) => a.t - b.t), cursor: 0, duration: buffer ? buffer.duration : ch.durationMs / 1000, ended: false, paused: false, buffer,
     st: { bpm: ch.bpm, offset: ch.offsetMs / 1000, lead: CONFIG.leadSec[diff], practice: !!opts.practice } });
   game.energyAt = s => energy[Math.max(0, Math.min(energy.length - 1, Math.floor((s - down) / barSec)))] ?? 0.5;
-  $('#hTitle').textContent = t.title; $('#hArtist').textContent = t.artist + (opts.practice ? ' · PRACTICE' : session ? '' : ' · UNRANKED');
+  $('#hTitle').textContent = t.title; $('#hArtist').textContent = t.artist + (opts.battle ? ' · LIVE 1V1' : opts.practice ? ' · PRACTICE' : session ? '' : ' · UNRANKED');
   const dp = $('#hDiff'); dp.className = 'pill dpill ' + diff; dp.textContent = DIFF[diff].toUpperCase();
   $('#sideL').innerHTML = `<img src="${coverArt(t, 256)}" alt=""><h4>${esc(t.title)}</h4><p>${esc(t.artist)}</p>`;
   $('#sideR').innerHTML = `<p>${t.analysis?.bpm || t.bpm} BPM · ${ch.notes.length} notes</p><div class="keys">${LANES.map(l => `<kbd style="color:${l.color}">${l.key}</kbd>`).join('')}</div><p style="margin-top:8px;font-size:12px">Esc to pause</p>`;
   D.track('track_started', { track: t.slug, diff, practice: !!opts.practice });
   $('#loading').classList.remove('on');
-  clock.play(buffer, 3);                                         // song t=0 three seconds from now
+  $('#oppo').style.display = opts.battle ? '' : 'none'; $('#restartBtn').style.display = opts.battle ? 'none' : '';
+  if (opts.battle) { if (opts.battle.tvAudio) clock.followTimeline(opts.battle.zeroPerf); else clock.playAtPerf(buffer, opts.battle.zeroPerf); }   // shared match start
+  else clock.play(buffer, 3);                                    // song t=0 three seconds from now
   bindInput(true);
   requestAnimationFrame(frame);
 }
@@ -378,7 +387,8 @@ function frame() {
   const now = clock.renderTime(pn);
   const j = game.judge;
   if (!game.paused) j.update(clock.judgeTimeAt(pn) - CONFIG.expireLagMs / 1000);
-  for (const ev of j.events.splice(0)) {
+  const evs = j.events.splice(0);
+  for (const ev of evs) {
     hw.feedback(ev, now);
     if (ev.j !== 'miss' && ev.j !== 'hype' && settings.hitSounds) clock.tick(0.08);
     haptic(ev.j);
@@ -387,6 +397,7 @@ function frame() {
   st.notes = game.notes; st.cursor = game.cursor; st.combo = j.combo; st.hype = j.hype; st.hypeOn = j.hypeActive(now);
   st.hypeLeft = st.hypeOn ? (j.hypeUntil - now) / CONFIG.hype.durationSec : 0; st.health = j.health; st.energy = game.energyAt(now);
   hw.draw(now, st); game.cursor = st.cursor;
+  if (game.opts.battle) BT.frame(j, now, evs);
   if (QA_AUTOPLAY) autoplay(pn);
   $('#count').textContent = now < 0 ? (now < -2 ? '3' : now < -1 ? '2' : '1') : now < 0.5 ? 'GO' : '';
   const sc = j.score.toLocaleString(); if ($('#hScore').textContent !== sc) $('#hScore').textContent = sc;
@@ -461,7 +472,7 @@ function onUp(e) {
   if (![...pointers.values()].some(q => q.lane === p.lane)) hw.pressed[p.lane] = false;
   if (!game.paused) game.judge.release(p.lane, clock.judgeTimeAt(e.timeStamp));
 }
-function onVis() { if (document.hidden && game.active && !game.paused) pause(); }
+function onVis() { if (document.hidden && game.active && !game.paused && !game.opts.battle) pause(); }
 function bindInput(on) {
   const f = on ? addEventListener : removeEventListener, cv = $('#cv');
   f('keydown', onKeyDown); f('keyup', onKeyUp); document[on ? 'addEventListener' : 'removeEventListener']('visibilitychange', onVis);
@@ -469,18 +480,19 @@ function bindInput(on) {
 }
 function pause() {
   if (!game.active || game.paused || game.ended) return;
+  if (game.opts.battle) { $('#pauseO').classList.add('on'); return; }     // live 1v1: the song keeps playing; the menu only offers Resume / Quit (forfeit)
   game.paused = true; clock.pause();
   for (let l = 0; l < 4; l++) { hw.pressed[l] = false; if (game.judge.holding[l]) game.judge.release(l, clock.pausedAt); }
   pointers.clear(); $('#pauseO').classList.add('on');
 }
-function resume() { if (!game.paused) return; $('#pauseO').classList.remove('on'); clock.resume(1.5); game.paused = false; }
+function resume() { if (game.opts?.battle) return $('#pauseO').classList.remove('on'); if (!game.paused) return; $('#pauseO').classList.remove('on'); clock.resume(1.5); game.paused = false; }
 $('#pauseBtn').onclick = pause;
 $('#resumeBtn').onclick = resume;
 $('#restartBtn').onclick = () => { const { t, diff, opts } = game; quit(true); startGame(t, diff, opts); };
 $('#quitBtn').onclick = () => quit();
-function quit(silent) { clock.stop(); bindInput(false); game.active = false; game.paused = false; $('#pauseO').classList.remove('on'); $('#game').classList.remove('on'); if (!silent) { D.flushEvents(); route(); } }
+function quit(silent) { if (game.opts?.battle) BT.forfeit(); clock.stop(); bindInput(false); game.active = false; game.paused = false; $('#pauseO').classList.remove('on'); $('#game').classList.remove('on'); if (!silent) { D.flushEvents(); route(); } }
 // app suspended / resumed (Capacitor): pause gameplay, re-unlock audio on return
-document.addEventListener('pause', () => game.active && !game.paused && pause());
+document.addEventListener('pause', () => game.active && !game.paused && !game.opts.battle && pause());
 document.addEventListener('resume', () => clock?.unlock());
 
 function endGame(failed) {
@@ -496,13 +508,15 @@ function endGame(failed) {
   renderResults(); location.hash = '#/results'; route();
   // network only now, after the results are on screen
   (async () => {
-    if (session && !QA_AUTOPLAY) {
+    if (session && (!QA_AUTOPLAY || opts.battle)) {
       const res = await D.submitScore({ sessionId: session.sessionId, nonce: session.nonce, chartHash: ch.hash, log: judge.log,
-        result: { score: r.score, perfect: r.perfect, great: r.great, good: r.good, miss: r.miss, maxCombo: r.maxCombo, accuracy: r.accuracy } }).catch(e => ({ error: e.message }));
+        result: { score: r.score, perfect: r.perfect, great: r.great, good: r.good, miss: r.miss, maxCombo: r.maxCombo, accuracy: r.accuracy } }, opts.battle ? { staging: true } : {}).catch(e => ({ error: e.message }));
       Object.assign(lastPlay, res.queued ? { status: 'queued' } : res.error ? { status: 'error', reason: res.error } : { status: res.ranked ? 'ranked' : res.verified ? (r.practice ? 'practice' : 'unranked') : 'rejected', rank: res.rank, scoreId: res.scoreId, reasons: res.reasons });
+      if (opts.battle) BT.finished(r, Promise.resolve(res));
       if (res.ranked) await refreshMe();
       if (location.hash === '#/results') renderResults();
     }
+    else if (opts.battle) BT.finished(r, Promise.resolve({}));
     await D.flushEvents();
   })();
 }
@@ -511,7 +525,7 @@ function renderResults() {
   const { t, diff, r, rank, newBest, opts, status } = lastPlay;
   const chall = opts.challenge;
   const conf = settings.reducedMotion ? '' : Array.from({ length: 26 }, (_, i) => `<i style="left:${(i * 37) % 100}%;top:${(i * 53) % 60}%;background:hsl(${(i * 47) % 360},90%,60%);transform:rotate(${i * 29}deg)"></i>`).join('');
-  const statusLine = { ranked: `Verified · global rank #${rank}`, verifying: 'Verifying score…', queued: 'Offline: score will be submitted when you reconnect', unranked: 'Unranked run', practice: 'Practice (unranked)', rejected: 'Score could not be verified (unranked)', error: 'Score not saved: ' + (lastPlay.reason || '') }[status] || '';
+  const statusLine = opts.battle ? 'Friendly live 1v1 · unranked (not on leaderboards)' : { ranked: `Verified · global rank #${rank}`, verifying: 'Verifying score…', queued: 'Offline: score will be submitted when you reconnect', unranked: 'Unranked run', practice: 'Practice (unranked)', rejected: 'Score could not be verified (unranked)', error: 'Score not saved: ' + (lastPlay.reason || '') }[status] || '';
   $('#s-results').innerHTML = `<div class="confetti" aria-hidden="true">${conf}</div><div class="wrapc res">
     <h1 class="sc">${r.failed ? 'TRACK FAILED' : 'SONG COMPLETE'}</h1>
     <div class="res-grade ${r.failed ? 'f' : ''}">${r.grade}</div>${starsHtml(r.stars, 'big-stars')}
@@ -520,11 +534,11 @@ function renderResults() {
     <div class="card stats"><span>Score</span><b class="s1">${r.score.toLocaleString()} ${newBest && !r.practice && !r.failed ? '<span class="nb">NEW BEST!</span>' : ''}</b>
       <span>Accuracy</span><b class="s1">${r.accuracy}%</b><span class="p">Perfect</span><b>${r.perfect}</b><span class="g">Great</span><b>${r.great}</b>
       <span class="o">Good</span><b>${r.good}</b><span class="m">Miss</span><b>${r.miss}</b><span>Max Combo</span><b>${r.maxCombo}${r.fullCombo ? ' · FC' : ''}</b></div>
-    <p class="fine ctr" id="rstat">${esc(statusLine)}</p>
+    <p class="fine ctr" id="rstat">${esc(statusLine)}</p>${opts.battle ? `<div id="battleCard">${BT.resultCard()}</div>` : ''}
     <div class="grid2"><button class="btn ghost big" id="rp">REPLAY</button><button class="btn primary big" id="nx">NEXT TRACK</button></div>
     <div class="acts four"><button id="fv" class="${isFav(t) ? 'on' : ''}"><b>${I.heart}</b>Favorite</button><button id="fo" class="${isFol(t.artistId) ? 'on' : ''}"><b>${I.user}</b>${isFol(t.artistId) ? 'Following' : 'Follow Artist'}</button>
       <button id="sh"><b>${I.share}</b>Share</button>${scLink(t)}</div></div>`;
-  $('#rp').onclick = () => { D.track('track_replayed', { track: t.slug }); startGame(t, diff, opts); };
+  $('#rp').onclick = () => { if (opts.battle) return go('#/battle'); D.track('track_replayed', { track: t.slug }); startGame(t, diff, opts); };
   $('#nx').onclick = () => { const live = catalog.filter(x => ['published', 'development'].includes(x.status)); const nx = live[(live.findIndex(x => x.slug === t.slug) + 1) % live.length]; go('#/track/' + encodeURIComponent(nx.slug)); };
   $('#fv').onclick = () => toggleFav(t, renderResults);
   $('#fo').onclick = () => toggleFollow(t.artistId, renderResults, 'results');

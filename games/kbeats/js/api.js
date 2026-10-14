@@ -6,6 +6,7 @@
 export const SUPA_URL = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
 export const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ';
 const FN = SUPA_URL + '/functions/v1/kbeats-api';
+export const STAGING_FN = SUPA_URL + '/functions/v1/kbeats-api-staging';
 
 let sbPromise = null;
 export function supabase() {
@@ -31,12 +32,12 @@ export async function session({ guest = true } = {}) {
   return data.session;
 }
 
-export async function call(op, body = {}, { auth = true, timeoutMs = 20000 } = {}) {
+export async function call(op, body = {}, { auth = true, timeoutMs = 20000, staging = false } = {}) {
   let token = SUPA_ANON;
   if (auth) { const s = await session(); if (s) token = s.access_token; }
   const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), timeoutMs);
   try {
-    const r = await fetch(FN, { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/json', apikey: SUPA_ANON, Authorization: 'Bearer ' + token }, body: JSON.stringify({ op, ...body }) });
+    const r = await fetch(staging ? STAGING_FN : FN, { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/json', apikey: SUPA_ANON, Authorization: 'Bearer ' + token }, body: JSON.stringify({ op, ...body }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { const e = new Error(j.error || `HTTP ${r.status}`); e.status = r.status; throw e; }
     return j;

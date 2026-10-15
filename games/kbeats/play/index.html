@@ -78,6 +78,20 @@
   .overlay{position:absolute;inset:0;background:rgba(5,3,12,.82);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:3;padding:20px;text-align:center}
   .overlay.on{display:flex}
   .overlay h2{font-size:34px;font-weight:900;font-style:italic}
+  /* live 1v1: opponent panel sits beside the narrow top of the highway (phones) or in the right margin
+     (desktop) — never over the notes, the hit line or the pads */
+  #oppo{position:absolute;left:6px;top:calc(env(safe-area-inset-top) + 12vh + 4px);width:min(27vw,128px);padding:7px 9px 9px;border-radius:12px;background:rgba(10,6,28,.72);border:1px solid rgba(255,255,255,.14);pointer-events:none;font-size:11px;line-height:1.25;overflow:hidden}
+  #oppo .on-name{color:var(--dim);font-weight:800;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #oppo b{display:block;font-size:17px}#oppo .on-sub{color:#cbd5e1}
+  #oppo i{position:absolute;left:0;bottom:0;height:3px;background:linear-gradient(90deg,#22d3ee,#e540ff)}
+  @media (min-width:1100px) and (min-aspect-ratio:4/3){ #oppo{left:auto;right:28px;top:auto;bottom:14vh;width:min(240px,calc((100vw - 660px)/2 - 30px));font-size:14px;padding:12px 14px 14px} #oppo b{font-size:28px} }
+  .bl-code{display:flex;align-items:center;gap:14px;justify-content:space-between}.bl-code b{display:block;font-size:40px;letter-spacing:.18em}.bl-code small{display:block}
+  #bQr{width:132px;height:132px;border-radius:8px;background:#fff}
+  .bl-p{display:flex;align-items:center;gap:8px;padding:6px 0}.dot{width:9px;height:9px;border-radius:50%;background:#475569;display:inline-block}.dot.on{background:#22e07a}
+  .battle-res h3{font-size:24px}.battle-res.won h3{color:#facc15}.battle-res.lost h3{color:#94a3b8}
+  .bt{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}.bt td,.bt th{padding:5px 4px;text-align:left;border-bottom:1px solid rgba(255,255,255,.1)}
+  .bl-cal{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(5,3,12,.96)}
+  .bl-tap{width:180px;height:180px;border-radius:50%;display:grid;place-items:center;font-size:28px;font-weight:900;border:3px solid #22d3ee}
   .side{position:absolute;top:50%;transform:translateY(-50%);width:min(240px,calc((100vw - 660px)/2 - 30px));display:none}
   @media (min-width:1100px) and (min-aspect-ratio:4/3){ .side{display:block} }
   .side.l{left:28px}.side.r{right:28px}
@@ -186,6 +200,7 @@
   <section class="screen" id="s-artist"></section>
   <section class="screen" id="s-results"></section>
   <section class="screen" id="s-challenges"></section>
+  <section class="screen" id="s-battle"></section>
   <nav class="bottom" aria-label="KBeats">
     <a href="#/home" data-nav="home"><b>⌂</b>Home</a>
     <a href="#/discover" data-nav="discover"><b>⌕</b>Discover</a>
@@ -205,6 +220,7 @@
       <div class="prog"><i id="hProg"></i></div><div class="times"><span id="hT0">0:00</span><span id="hT1">-0:00</span></div></div>
     <div class="rt"><span class="pill dpill" id="hDiff"></span><div class="scorebox" id="hScore">0</div><div class="combo" id="hCombo"></div></div>
   </div>
+  <div id="oppo" style="display:none" aria-live="off"></div>
   <div class="count" id="count"></div>
   <div class="loading" id="loading">LOADING…</div>
   <div class="overlay" id="pauseO">

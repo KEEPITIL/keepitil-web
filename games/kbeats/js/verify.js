@@ -11,6 +11,7 @@
      7. hit timing is not machine-perfect (a stddev under 1 ms across 30+ hits is a bot)
    Practice runs and failed runs are stored but never ranked. */
 import { simulate, perfectRun, Judge } from './judge.js';
+import { CONFIG } from './config.js';
 import { loadChart } from './chart.js';
 
 export const LIMITS = { maxInputsPerNote: 6, extraInputs: 300, maxInputsPerSec: 40, minPlayFraction: 0.9, sessionMaxAgeMs: 3 * 3600e3, minHitStdMs: 1 };
@@ -47,7 +48,10 @@ export function verifyRanked({ chart, session, userId, claimed, log, clientHash,
   if (nowMs - started < needMs) reasons.push('submitted faster than the song can be played');
   for (const k of ['score', 'perfect', 'great', 'good', 'miss', 'maxCombo'])
     if (claimed?.[k] !== replay[k]) { reasons.push(`claimed ${k} ${claimed?.[k]} ≠ replay ${replay[k]}`); }
-  const max = perfectRun(notes).score;
+  // A true upper bound: every judgement perfect and, once Hype first triggers, every later note doubled.
+  // (A plain perfect run is NOT the maximum: hitting a little late inside the perfect window shifts the
+  // 8-s Hype window and can legitimately cover more notes. The exact replay above is the real check.)
+  const max = perfectRun(notes, { config: { ...CONFIG, hype: { ...CONFIG.hype, durationSec: 1e9 } } }).score;
   if (replay.score > max || (claimed?.score ?? 0) > max) reasons.push('score above theoretical maximum');
   const j = new Judge(notes); for (const [t, l, k, x] of log) { k === 'p' ? j.press(l, t, x) : k === 'r' ? j.release(l, t) : j.swipe(l, t, x); }
   const d = j.deltas.map(x => x[1] * 1000);

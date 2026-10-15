@@ -5,7 +5,7 @@
 import * as S from './store.js';
 import * as D from './data.js';
 import { makeCode, normCode, validCode, seat, liveSnapshot, ROOM_TTL_MS, expired, acceptRoom } from './battle.js';
-import { RoomChannel, SharedClock, deviceId, battleResult } from './battle-net.js';
+import { RoomChannel, SharedClock, deviceId, battleResult, battleCreate, battleJoin, battleSession } from './battle-net.js';
 
 let A = null;                 // app context (injected by app.js)
 const B = { net: null, shared: null, room: null, me: null, code: null, match: null, opp: null, mine: null, theirs: null, result: null, lastLive: 0, jq: [], lastJ: 0, cal: null };
@@ -23,7 +23,7 @@ async function enter(code) {
   leave();
   B.code = code; B.me = { id: deviceId(), role: 'player', name: (A.me()?.name || S.settings().name || 'Player').slice(0, 20) };
   B.shared = new SharedClock();
-  B.room = null; B.result = null; B.mySess = B.oppSess = null; B.submitted = false;
+  B.room = null; B.result = null; B.mySlot = null; B.submitted = false;
   render();
   await syncClock();
   B.net = new RoomChannel(code, B.me); B.net.on(onMsg);
@@ -87,18 +87,23 @@ function onMsg(type, p, self = false) {
   if (type === 'start') { if (p.id !== B.room.host) return; return start(p); }   // starts are accepted from the room host only
   if (type === 'live' && B.match && p.match === B.match.match) { B.opp = p.st; paintOpp(); }
   // untrusted hints: a session id is only a claim (the server checks the pair); done/quit only trigger a server re-check
-  if (type === 'sess' && B.match && p.match === B.match.match && players(B.room).some(x => x.id === p.id)) { B.oppSess = String(p.sessionId).slice(0, 64); poll(); }
   if (type === 'done' && B.match && p.match === B.match.match) poll();
   if (type === 'quit' && B.match && p.match === B.match.match) { B.opp = { ...(B.opp || {}), left: true }; paintOpp(); poll(); }
 }
 
-function maybeStart() {
-  if (B.shared?.delta == null || expired(B.room, nowMs())) return;
+let creating = false;
+async function maybeStart() {
+  if (creating || B.shared?.delta == null || expired(B.room, nowMs())) return;
   const ps = players(B.room);
   if (ps.length !== 2 || !B.room.track || !ps.every(p => B.room.ready[p.id])) return;
   const t = A.findTrack(B.room.track); if (!t) return;
   const ch = t.charts[B.room.diff]; if (!ch) return;
-  const s = { id: B.me.id, match: 'm' + Date.now().toString(36), epoch: Math.round(B.shared.now() + 6000), track: B.room.track, diff: B.room.diff, chartHash: ch.hash, tvAudio: !!(B.room.tvAudio && tvIn(B.room)) };
+  // the server owns the match: create its record first (the host is slot 1); players join it with their own identity
+  creating = true; let created;
+  try { created = await battleCreate(B.code, B.room.track, B.room.diff, ch.hash); }
+  catch (e) { A.toast('Could not start the match: ' + e.message); B.room.ready = {}; publish(); return; }
+  finally { creating = false; }
+  const s = { id: B.me.id, match: 'm' + Date.now().toString(36), matchId: created.matchId, epoch: Math.round(B.shared.now() + 6000), track: B.room.track, diff: B.room.diff, chartHash: ch.hash, tvAudio: !!(B.room.tvAudio && tvIn(B.room)) };
   Object.assign(B.room, { phase: 'playing', match: s.match, start: s });
   B.net.send('start', s); start(s);
 }
@@ -108,7 +113,7 @@ function start(s) {
   if (B.shared?.delta == null) { A.toast('Match clock not ready — the match was not started on this device'); return; }
   const t = A.findTrack(s.track);
   if (!t || t.charts[s.diff]?.hash !== s.chartHash) { A.toast('Your game has a different version of this song — reload'); return; }
-  B.match = s; B.opp = null; B.mySess = B.oppSess = null; B.submitted = false; B.result = null; B.jq = []; clearInterval(B.pollT);
+  B.match = s; B.opp = null; B.mySlot = null; B.submitted = false; B.result = null; B.jq = []; clearInterval(B.pollT);
   const opp = players(B.room).find(p => p.id !== B.me.id);
   B.oppName = opp?.name || 'Opponent';
   A.startGame(t, s.diff, { battle: { match: s.match, zeroPerf: B.shared.perfAt(s.epoch), tvAudio: s.tvAudio, oppName: B.oppName } });
@@ -132,12 +137,12 @@ function paintOpp() {
 /* ── result: server-decided only ──────────────────────────────────────────
    The client never decides an outcome. It shares its server session id, submits its run through the
    normal verified path, then asks the server (battle_result over both sessions) until it says final. */
-export function session(sessionId) {
-  if (!B.match || !sessionId) return;
-  B.mySess = sessionId;
-  const m = B.match, share = () => B.net?.send('sess', { id: B.me.id, match: m.match, sessionId });
-  share(); let n = 0; clearInterval(B.sessT);
-  B.sessT = setInterval(() => { if (B.match !== m || B.result?.status === 'final' || ++n > 60) return clearInterval(B.sessT); share(); }, 3000);
+/** Join the server's match record with this device's signed-in identity and open the match's only play
+    session (called by app.js before the countdown). Errors (full, expired, not a member) stop this device's run. */
+export async function matchSession(platform) {
+  if (!B.match?.matchId) throw new Error('no match');
+  const j = await battleJoin(B.match.matchId); B.mySlot = j.slot;
+  return battleSession(B.match.matchId, platform);
 }
 export async function finished(r, submit) {
   if (!B.match) return;
@@ -152,10 +157,9 @@ export function forfeit() { if (B.match && B.net) B.net.send('quit', { id: B.me.
 
 let polling = false;
 async function poll() {
-  if (!B.match || !B.submitted || !B.mySess || polling) return renderResultCard();
-  if (!B.oppSess) { B.result = { status: 'pending', decidedBy: 'waiting for the opponent’s session' }; return renderResultCard(); }
+  if (!B.match?.matchId || !B.submitted || polling) return renderResultCard();
   polling = true;
-  try { B.result = await battleResult(B.match.match, [B.mySess, B.oppSess]); }
+  try { B.result = await battleResult(B.match.matchId); }
   catch (e) { B.result = { status: 'pending', decidedBy: 'could not reach the result service (' + e.message + ') — retrying' }; }
   finally { polling = false; }
   if (B.result?.status !== 'pending' && B.room) { B.room.phase = 'lobby'; B.room.ready = {}; }
@@ -166,8 +170,8 @@ export function resultCard() {
   const r = B.result, back = `<a class="btn primary" href="#/battle/${B.code || ''}" style="width:100%;margin-top:10px">${r?.status === 'final' ? 'Rematch' : 'Back to the room'}</a>`;
   if (!B.submitted || !r || r.status === 'pending') return `<div class="card battle-res"><h3>RESULT PENDING</h3><p class="x">${A.esc(!B.submitted ? 'Submitting your run for server verification…' : r?.decidedBy || 'Waiting for the server-verified result…')}</p></div>`;
   if (r.status !== 'final') return `<div class="card battle-res"><h3>NO RESULT</h3><p class="x">${A.esc(r.decidedBy || 'The match could not be verified')} · no winner is declared.</p>${back}</div>`;
-  const won = r.winner === B.mySess, draw = !r.winner;
-  const row = e => `<tr><td>${A.esc(e.name)}${e.sessionId === r.winner ? ' 👑' : ''}</td>${e.submitted ? `<td>${e.score.toLocaleString()}</td><td>${(+e.accuracy).toFixed(2)}%</td><td>${e.maxCombo}</td><td>${e.perfect}/${e.great}/${e.good}/${e.miss}</td><td>${e.verified ? '✓' : '✗'}</td>` : '<td colspan="5">no run submitted</td>'}</tr>`;
+  const won = r.winnerSlot != null && r.winnerSlot === B.mySlot, draw = !r.winner;
+  const row = e => `<tr><td>P${e.slot} · ${A.esc(e.name)}${e.slot === B.mySlot ? ' (you)' : ''}${e.slot === r.winnerSlot ? ' 👑' : ''}</td>${e.submitted ? `<td>${e.score.toLocaleString()}</td><td>${(+e.accuracy).toFixed(2)}%</td><td>${e.maxCombo}</td><td>${e.perfect}/${e.great}/${e.good}/${e.miss}</td><td>${e.verified ? '✓' : '✗'}</td>` : '<td colspan="5">no run submitted</td>'}</tr>`;
   return `<div class="card battle-res ${won ? 'won' : draw ? '' : 'lost'}"><h3>${draw ? 'DRAW' : won ? 'YOU WIN!' : `${A.esc(B.oppName)} WINS`}</h3>
     <p class="x">Decided by ${A.esc(r.decidedBy)} · server-verified</p>
     ${r.entries?.filter(Boolean).length ? `<table class="bt"><tr><th></th><th>Score</th><th>Acc.</th><th>Combo</th><th>P/G/G/M</th><th>Valid</th></tr>${r.entries.filter(Boolean).map(row).join('')}</table>` : ''}${back}</div>`;

@@ -66,8 +66,7 @@ function onMsg(type, p) {
   const pl = P[slot];
   if (type === 'live') { pl.live = p.st; paintHud(); }
   if (type === 'j') for (const [i, j, lane, head] of p.ev) { const n = pl.byIndex[i]; if (n) n.state = head && n.type === 'hold' && j !== 'miss' ? 1 : 2; pl.hw.feedback({ j, lane, kind: head ? 'head' : 'tail' }, clock.renderTime()); }
-  // untrusted hints only: a session id is checked by the server; done/quit just trigger a server re-check
-  if (type === 'sess') { pl.sess = String(p.sessionId).slice(0, 64); }
+  // untrusted hints only: done/quit just trigger a server re-check of the match record
   if (type === 'done' || type === 'quit') { pl.left = type === 'quit'; settle(); }
 }
 
@@ -136,17 +135,16 @@ function paintHud() {
 let polling = false, resultShown = null;
 async function settle() {
   if (!match || polling) return;
-  const m = match, s1 = P[1]?.sess, s2 = P[2]?.sess;
+  const m = match;
   let r;
-  if (!s1 || !s2) r = { status: 'pending', decidedBy: 'waiting for both players’ sessions' };
-  else { polling = true; try { r = await battleResult(m.match, [s1, s2]); } catch (e) { r = { status: 'pending', decidedBy: 'result service unreachable — retrying' }; } finally { polling = false; } }
+  polling = true; try { r = await battleResult(m.matchId); } catch (e) { r = { status: 'pending', decidedBy: 'result service unreachable — retrying' }; } finally { polling = false; }
   if (match !== m) return;
-  const nameOf = sid => sid === P[1]?.sess ? P[1].name : P[2]?.name;
+  const nameOf = slot => P[slot]?.name || 'P' + slot;
   let html;
   if (r.status === 'final') {
-    html = `<h1>${r.winner ? esc(nameOf(r.winner)) + ' WINS' : 'DRAW'}</h1><div>Decided by ${esc(r.decidedBy)} · server-verified</div>
+    html = `<h1>${r.winnerSlot ? esc(nameOf(r.winnerSlot)) + ' WINS' : 'DRAW'}</h1><div>Decided by ${esc(r.decidedBy)} · server-verified</div>
       <table><tr><th></th><th>Score</th><th>Accuracy</th><th>Max combo</th><th>Perfect / Great / Good / Miss</th></tr>
-      ${(r.entries || []).filter(Boolean).map(e => `<tr><td>${esc(nameOf(e.sessionId))}${e.sessionId === r.winner ? ' 👑' : ''}</td>${e.submitted ? `<td>${e.score.toLocaleString()}</td><td>${(+e.accuracy).toFixed(2)}%</td><td>${e.maxCombo}</td><td>${e.perfect} / ${e.great} / ${e.good} / ${e.miss}</td>` : '<td colspan="4">no run submitted</td>'}</tr>`).join('')}</table>`;
+      ${(r.entries || []).filter(Boolean).map(e => `<tr><td>${esc(nameOf(e.slot))}${e.slot === r.winnerSlot ? ' 👑' : ''}</td>${e.submitted ? `<td>${e.score.toLocaleString()}</td><td>${(+e.accuracy).toFixed(2)}%</td><td>${e.maxCombo}</td><td>${e.perfect} / ${e.great} / ${e.good} / ${e.miss}</td>` : '<td colspan="4">no run submitted</td>'}</tr>`).join('')}</table>`;
   } else if (r.status === 'pending') html = `<h1 style="color:#a5b4fc">RESULT PENDING</h1><div>${esc(r.decidedBy)}</div>`;
   else html = `<h1 style="color:#94a3b8">NO RESULT</h1><div>${esc(r.decidedBy)}</div>`;
   $('#res').innerHTML = html + '<div style="color:#a5a3c4">Rematch: both players tap Ready on their phones.</div>'; $('#res').classList.add('on');

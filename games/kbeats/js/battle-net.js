@@ -93,24 +93,68 @@ export class RoomChannel {
   close() { this.closed = true; clearInterval(this._hb); clearTimeout(this._rt); this.bc?.close(); if (this.ch) API.supabase().then(sb => sb.removeChannel(this.ch)).catch(() => {}); }
 }
 
-/* ── verified result ──────────────────────────────────────────────────────
-   The outcome is decided by the server from the two battle SESSIONS (matchOutcome over stored,
-   replay-validated rows). DEV mock mode applies the same rule to the mock store. */
+/* ── server-owned match ───────────────────────────────────────────────────
+   battle_create (host) → battle_join (each player, own signed-in identity) → battle_session (the match's
+   only play session) → score_submit → battle_result (decided by the server from the match record).
+   DEV mock mode keeps the same flow and the same decision rule (matchOutcome) in localStorage. */
 const LSget = k => { try { return JSON.parse(localStorage.getItem('kb.' + k) || 'null'); } catch { return null; } };
-export async function battleResult(match, sessionIds) {
-  if (RELEASE.mock) {
-    const { matchOutcome } = await import('./battle.js');
-    const cat = await (await fetch('/games/kbeats/data/catalog.json')).json();
-    const side = id => { const s = LSget('mock.session.' + id); if (!s) return null; const sc = s.scoreId && LSget('mock.score.' + s.scoreId);
-      return { sessionId: id, userId: s.user_id, beatmapId: s.track + '|' + s.difficulty, practice: s.practice, platform: s.platform, startedAt: +new Date(s.started_at), name: sc?.name || 'Player',
-        score: sc ? { scoreId: sc.id, valid: !!sc.ok && !sc.verified, failed: false, score: sc.score, accuracy: sc.accuracy, maxCombo: sc.maxCombo, perfect: sc.perfect, great: sc.great, good: sc.good, miss: sc.miss } : null }; };
-    const [a, b] = sessionIds.map(side);
-    const t = a && cat.tracks.find(x => x.id === a.beatmapId.split('|')[0]);
-    const grace = Number(new URLSearchParams(location.search).get('grace')) || undefined;     // DEV only: shorten the forfeit wait in tests
-    const o = matchOutcome(a, b, { nowMs: Date.now(), durationMs: t?.charts[a.beatmapId.split('|')[1]]?.durationMs || 0, graceMs: grace });
-    const view = x => x && { sessionId: x.sessionId, name: x.name, submitted: !!x.score, ...(x.score ? { verified: x.score.valid, ...x.score } : {}) };
-    return { match, ...o, entries: o.status === 'invalid' ? [] : [view(a), view(b)] };
-  }
-  return staging('battle_result', { match, sessionIds });
+const LSset = (k, v) => { try { localStorage.setItem('kb.' + k, JSON.stringify(v)); } catch {} };
+const mockUid = () => { try { return sessionStorage.getItem('kb.battle.id') || 'mock-user'; } catch { return 'mock-user'; } };
+const err = (status, message) => Object.assign(new Error(message), { status });
+let mockCat = null;
+const catalogMock = async () => mockCat ||= await (await fetch('/games/kbeats/data/catalog.json')).json();
+
+export async function battleCreate(roomCode, track, difficulty, chartHash) {
+  if (!RELEASE.mock) return staging('battle_create', { roomCode, track, difficulty, chartHash });
+  const id = 'bm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  LSset('mock.bm.' + id, { id, code: roomCode, host: mockUid(), beatmap: track + '|' + difficulty, created: Date.now(), expires: Date.now() + 2 * 3600e3, status: 'open', result: null });
+  LSset(`mock.bm.${id}.s1`, { user_id: mockUid(), session_id: null });
+  return { matchId: id, slot: 1, chartHash };
+}
+export async function battleJoin(matchId) {
+  if (!RELEASE.mock) return staging('battle_join', { matchId });
+  const m = LSget('mock.bm.' + matchId); if (!m) throw err(404, 'match not found');
+  if (Date.now() > m.expires) throw err(410, 'match expired');
+  for (const slot of [1, 2]) if (LSget(`mock.bm.${matchId}.s${slot}`)?.user_id === mockUid()) return { matchId, slot };
+  if (m.status !== 'open') throw err(409, 'match already started');
+  if (LSget(`mock.bm.${matchId}.s2`)) throw err(409, 'room is full');
+  LSset(`mock.bm.${matchId}.s2`, { user_id: mockUid(), session_id: null });
+  return { matchId, slot: 2 };
+}
+export async function battleSession(matchId, platform) {
+  if (!RELEASE.mock) return staging('battle_session', { matchId, platform });
+  const m = LSget('mock.bm.' + matchId); if (!m) throw err(404, 'match not found');
+  const slot = [1, 2].find(s => LSget(`mock.bm.${matchId}.s${s}`)?.user_id === mockUid()); if (!slot) throw err(403, 'not a member of this match');
+  const mem = LSget(`mock.bm.${matchId}.s${slot}`);
+  if (mem.session_id) { const ps = LSget('mock.session.' + mem.session_id); if (ps?.used_at) throw err(409, "this match's run was already submitted"); return { sessionId: mem.session_id, nonce: 'mock' }; }
+  const [track, difficulty] = m.beatmap.split('|');
+  const sid = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  LSset('mock.session.' + sid, { id: sid, user_id: mockUid(), started_at: new Date().toISOString(), practice: true, platform: ('battle-' + (platform || 'web')).slice(0, 20), track, difficulty, used_at: null, scoreId: null });
+  LSset(`mock.bm.${matchId}.s${slot}`, { ...mem, session_id: sid }); m.status = 'playing'; LSset('mock.bm.' + matchId, m);
+  return { sessionId: sid, nonce: 'mock' };
+}
+export async function battleResult(matchId) {
+  if (!RELEASE.mock) return staging('battle_result', { matchId });
+  const { matchOutcome, RESULT_GRACE_MS } = await import('./battle.js');
+  const m = LSget('mock.bm.' + matchId); if (!m) throw err(404, 'match not found');
+  if (m.result) return { matchId, ...m.result };
+  const cat = await catalogMock(); const [track, diff] = m.beatmap.split('|');
+  const durationMs = cat.tracks.find(x => x.id === track)?.charts[diff]?.durationMs || 0;
+  const grace = Number(new URLSearchParams(location.search).get('grace')) || RESULT_GRACE_MS;     // DEV only: shorter forfeit wait in tests
+  const row = slot => { const mem = LSget(`mock.bm.${matchId}.s${slot}`); if (!mem) return null; const s = mem.session_id && LSget('mock.session.' + mem.session_id); const sc = s?.scoreId && LSget('mock.score.' + s.scoreId);
+    return { slot, mem, side: s ? { sessionId: s.id, userId: s.user_id, beatmapId: s.track + '|' + s.difficulty, practice: s.practice, platform: s.platform, startedAt: +new Date(s.started_at), name: sc?.name || 'Player',
+      score: sc ? { scoreId: sc.id, valid: !!sc.ok && !sc.verified, failed: false, score: sc.score, accuracy: sc.accuracy, maxCombo: sc.maxCombo, perfect: sc.perfect, great: sc.great, good: sc.good, miss: sc.miss } : null } : null }; };
+  const [r1, r2] = [row(1), row(2)];
+  let o;
+  if (!r1?.side || !r2?.side) {
+    const startedAt = Math.max(m.created, ...[r1, r2].filter(r => r?.side).map(r => r.side.startedAt));
+    const done = Date.now() > startedAt + durationMs + grace;
+    const only = [r1, r2].map(r => r?.side).find(x => x?.score?.valid);
+    o = !done ? { status: 'pending', winner: null, decidedBy: 'waiting for both players' } : only && r1 && r2 ? { status: 'final', winner: only.sessionId, decidedBy: 'forfeit (opponent never started)' } : { status: 'void', winner: null, decidedBy: 'the match did not have two players' };
+  } else o = matchOutcome(r1.side, r2.side, { nowMs: Date.now(), durationMs, graceMs: grace });
+  const view = r => r && { slot: r.slot, sessionId: r.side?.sessionId || null, name: r.side?.name || 'Player', submitted: !!r.side?.score, ...(r.side?.score ? { verified: r.side.score.valid, ...r.side.score } : {}) };
+  const out = { status: o.status, winner: o.winner, winnerSlot: o.winner ? [r1, r2].find(r => r?.side?.sessionId === o.winner)?.slot ?? null : null, decidedBy: o.decidedBy, entries: [view(r1), view(r2)] };
+  if (['final', 'void', 'invalid'].includes(o.status)) { m.result = out; m.status = o.status === 'final' ? 'final' : 'void'; LSset('mock.bm.' + matchId, m); }
+  return { matchId, ...out };
 }
 export { PROTO };

@@ -229,13 +229,13 @@ section{padding:30px 0;border-top:1px solid var(--brd)}
 /* CREATE rail: ONE row, always (Founder 2026-08-22: "a single carousel row under CREATE").
    The generic .grid is already a nowrap flex rail, but the section-expand toggle could turn
    it back into a wrapping grid; this pins it. */
-#earnGrid,#affGrid,#plList,#stationGrid{display:flex!important;flex-wrap:nowrap!important;
+#earnGrid,#affGrid,#plList,#stationGrid,#gamesGrid{display:flex!important;flex-wrap:nowrap!important;
   overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x proximity;
   -webkit-overflow-scrolling:touch}
 #earnGrid::-webkit-scrollbar,#affGrid::-webkit-scrollbar,#plList::-webkit-scrollbar,
 #stationGrid::-webkit-scrollbar{display:none}
-#earnGrid>*,#affGrid>*,#plList>*,#stationGrid>*{flex:0 0 240px;scroll-snap-align:start}
-@media(max-width:860px){#earnGrid>*,#affGrid>*,#plList>*,#stationGrid>*{flex:0 0 220px}}
+#earnGrid>*,#affGrid>*,#plList>*,#stationGrid>*,#gamesGrid>*{flex:0 0 240px;scroll-snap-align:start}
+@media(max-width:860px){#earnGrid>*,#affGrid>*,#plList>*,#stationGrid>*,#gamesGrid>*{flex:0 0 220px}}
 
 /* ── MOBILE SECTION RHYTHM (Founder 2026-09-03) ────────────────────────────────────────
    Sections were 30px top and bottom plus the rail's own 14px bottom padding, so scrolling
@@ -640,6 +640,15 @@ footer{margin-top:auto}
        (Founder). The radio_airplay_requests table and submitAirplay() are left in place — the
        terms were still pending review, so nothing is lost by taking the form down and it can be
        re-mounted without rebuilding it. -->
+</section>
+
+<!-- GAMES — re-added as the LAST section (Founder 2026-10-15), reversing the 2026-08-18 removal
+     noted below. Same order as /games/: KMOB first, KBeats second. Cards render from GAMES[] in
+     the script, which also feeds the header's Games counter (#eG), so the two cannot disagree. -->
+<section id="games">
+  <div class="sh"><h2>GAMES</h2></div>
+  <div class="grid g-cards" id="gamesGrid"></div>
+  <p style="margin-top:10px"><a href="/games/" style="color:inherit;font-weight:700;letter-spacing:.06em">ALL KEEPITIL GAMES →</a></p>
 </section>
 
 <!-- CREATOR SERVICES / GAMES / MOBILE APP sections REMOVED 2026-08-18 (Founder).
@@ -1351,11 +1360,14 @@ var _g_servicesGrid=document.getElementById('servicesGrid'); if(_g_servicesGrid)
 
 /* ---- Games (all live at /games/) ---- */
 /* Games: only real, playable titles (Founder 2026-08-04) — the Games hub link lives in the section footer */
-var GAMES=[['Age of Wars','⚔️',12,'Strategy war game — build, battle, conquer.','/games/ageofwars/'],
- ];  /* Kingdom Wars removed 2026-08-26: /games/kingdom-wars/ does not exist. */
+/* 2026-10-15 (Founder): KMOB first, KBeats second — the two playable titles on /games/.
+   The old Age of Wars entry is gone; everything else on the hub is Coming soon. [name, icon, hue, blurb, url, chip] */
+var GAMES=[['KMOB · Endless War','🪖',12,'Plan your army, command the tank and defend against endless waves of enemies.','/games/kmob/','Play free'],
+ ['KBeats','🎵',275,'Four-lane rhythm game built on independent artists\u2019 music. In beta and currently being updated.','/games/kbeats/','Beta'],
+ ];
 var _g_gamesGrid=document.getElementById('gamesGrid'); if(_g_gamesGrid) _g_gamesGrid.innerHTML=GAMES.map(function(g){
   return '<a class="card" href="'+g[4]+'" style="display:block;color:inherit">'+band(g[2],g[1])
-    +'<span class="chip">Play free</span><h3 style="margin-top:8px">'+g[0]+'</h3><p>'+g[3]+'</p></a>';
+    +'<span class="chip">'+(g[5]||'Play free')+'</span><h3 style="margin-top:8px">'+g[0]+'</h3><p>'+g[3]+'</p></a>';
 }).join('');
 
 /* ---- Mobile App ---- */

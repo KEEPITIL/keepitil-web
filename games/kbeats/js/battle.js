@@ -71,10 +71,9 @@ const TYPES = {
   pick: ['id', 'track', 'diff'],           // player → host
   ready: ['id', 'ready'],
   mode: ['id', 'tvAudio'],
-  start: ['id', 'match', 'epoch', 'track', 'diff', 'chartHash', 'tvAudio'],
+  start: ['id', 'match', 'matchId', 'epoch', 'track', 'diff', 'chartHash', 'tvAudio'],
   live: ['id', 'match', 'st'],             // ~5 Hz score/combo/accuracy
   j: ['id', 'match', 'ev'],                // judgement events for the TV playfield [[noteIndex, judgement, lane]…]
-  sess: ['id', 'match', 'sessionId'],      // a player's server session for this match (the server checks the pair)
   done: ['id', 'match'],                   // hint only: re-check the server result now
   quit: ['id', 'match'],
   cal: ['epoch', 'bpm', 'beats'],          // TV metronome for in-room calibration

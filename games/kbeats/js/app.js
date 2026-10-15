@@ -350,8 +350,9 @@ async function startGame(t, diff, opts = {}) {
     if (buffer && Math.abs(buffer.duration * 1000 - t.charts[diff].durationMs) > 2000) throw new Error('chart/audio duration mismatch');
     if (!QA_AUTOPLAY || opts.battle) {
       // live 1v1 runs go through the staging API (same database) until battles are approved for production
-      // friendly battles are unranked practice sessions (never on leaderboards, no XP), tagged battle-* for the result check
-      try { session = await D.sessionStart(t.slug, diff, t.charts[diff].hash, !!opts.practice || !!opts.battle, opts.battle ? ('battle-' + platform()).slice(0, 20) : platform(), opts.battle ? { staging: true } : undefined); }
+      // live 1v1: the match's only session comes from the server match record (membership checked server-side)
+      if (opts.battle) session = await BT.matchSession(platform());
+      else try { session = await D.sessionStart(t.slug, diff, t.charts[diff].hash, !!opts.practice, platform()); }
       catch (e) { if (e.status === 409) throw new Error('this chart was updated, reload the page'); session = null; }   // offline: play unranked
     }
   } catch (e) {
@@ -372,7 +373,6 @@ async function startGame(t, diff, opts = {}) {
   const dp = $('#hDiff'); dp.className = 'pill dpill ' + diff; dp.textContent = DIFF[diff].toUpperCase();
   $('#sideL').innerHTML = `<img src="${coverArt(t, 256)}" alt=""><h4>${esc(t.title)}</h4><p>${esc(t.artist)}</p>`;
   $('#sideR').innerHTML = `<p>${t.analysis?.bpm || t.bpm} BPM · ${ch.notes.length} notes</p><div class="keys">${LANES.map(l => `<kbd style="color:${l.color}">${l.key}</kbd>`).join('')}</div><p style="margin-top:8px;font-size:12px">Esc to pause</p>`;
-  if (opts.battle) BT.session(session?.sessionId);                 // shared with the opponent so the SERVER can pair the two runs
   D.track('track_started', { track: t.slug, diff, practice: !!opts.practice });
   $('#loading').classList.remove('on');
   $('#oppo').style.display = opts.battle ? '' : 'none'; $('#restartBtn').style.display = opts.battle ? 'none' : '';

@@ -4,7 +4,7 @@
    the player opens #/battle, so solo play is untouched. */
 import * as S from './store.js';
 import * as D from './data.js';
-import { makeCode, normCode, validCode, seat, liveSnapshot, ROOM_TTL_MS, expired, acceptRoom, tvAudioGate, AUD_STATES } from './battle.js';
+import { makeCode, normCode, validCode, seat, liveSnapshot, ROOM_TTL_MS, expired, acceptRoom, tvAudioGate, AUD_TEXT } from './battle.js';
 import { RoomChannel, SharedClock, deviceId, battleResult, battleCreate, battleJoin, battleSession } from './battle-net.js';
 
 let A = null;                 // app context (injected by app.js)
@@ -34,7 +34,7 @@ async function enter(code) {
   B.net.send('join', B.me);
   // nobody answered with a room: this device founds it as player 1 (the TV, if any, is seated as it says hello)
   setTimeout(() => { if (!B.room && B.code === code && B.net) { B.room = { code, host: B.me.id, members: [{ ...B.me, slot: 1 }], track: null, diff: 'normal', tvAudio: true, ready: {}, phase: 'lobby', rev: 1, expires: nowMs() + ROOM_TTL_MS }; seatKnown(); publish(); } }, 1500);
-  B.hostTick = setInterval(hostDuty, 2000);
+  B.hostTick = setInterval(hostDuty, 2000); B.audTick = setInterval(audDuty, 1000);
 }
 // the match clock is required before anyone can start; a failure is shown with a retry, never a dead lobby
 async function syncClock() {
@@ -44,13 +44,22 @@ async function syncClock() {
 const nowMs = () => (B.shared?.delta != null ? B.shared.now() : Date.now());
 function leave() {
   if (B.net) { if (B.match) B.net.send('quit', { id: B.me.id, match: B.match.match }); B.net.close(); }
-  clearInterval(B.hostTick); B.shared?.stop();
+  clearInterval(B.hostTick); clearInterval(B.audTick); B.shared?.stop();
   Object.assign(B, { net: null, room: null, code: null, match: null, opp: null });
 }
 const isHost = () => B.room?.host === B.me?.id;
 const known = new Map();      // id → {role, name} from hello/join
 function seatKnown() {
   for (const [id, k] of known) if (!B.room.members.some(m => m.id === id)) { const s = seat(B.room.members, id, k.role); if (s != null) B.room.members.push({ id, role: k.role, name: k.name, slot: s }); }
+}
+/** host: TV music readiness, now (see tvAudioGate); the state is published for the other player's lobby */
+function hostGate() { const tv = B.room?.members.find(m => m.role === 'tv'); return tvAudioGate(B.room, B.aud, performance.now(), !!tv && B.net?.online(tv.id, 3000)); }
+function audDuty() {
+  if (!isHost() || !B.room) return;
+  const tv = B.room.members.find(m => m.role === 'tv'), ok = !!tv && !!known.get(tv.id)?.aud;
+  if (tv && B.room.tvAudOk !== ok) B.room.tvAudOk = ok;          // does the seated TV's page report readiness?
+  const st = hostGate().state; if (B.room.tvAudState !== st) { B.room.tvAudState = st; publish(); }
+  maybeStart();
 }
 function publish() { M.room = B.room && { phase: B.room.phase, host: B.room.host === B.me.id ? 'me' : 'other', ready: Object.keys(B.room.ready || {}).length, track: B.room.track, rev: B.room.rev }; if (!isHost()) return; B.room.rev++; B.net.send('room', { id: B.me.id, room: B.room }); render(); }
 function hostDuty() {
@@ -69,8 +78,9 @@ function onMsg(type, p, self = false) {
   if (type === '_status') return render();
   if (p.id === B.me.id && !self) return;
   if (type === 'hello' || type === 'join') {
-    known.set(p.id, { role: p.role === 'tv' ? 'tv' : 'player', name: String(p.name || '').slice(0, 20) });
-    if (isHost() && p.role === 'tv' && p.aud === 1 && B.room && !B.room.tvAud) B.room.tvAud = { track: null, state: 'loading' };
+    known.set(p.id, { role: p.role === 'tv' ? 'tv' : 'player', name: String(p.name || '').slice(0, 20), aud: p.aud === 1 });
+    // a TV (re)connecting or reloading: its readiness is unknown until it reports again
+    if (p.role === 'tv' && B.aud?.id === p.id) B.aud = null;
     if (isHost()) { seatKnown(); publish(); }
     return;
   }
@@ -86,8 +96,7 @@ function onMsg(type, p, self = false) {
     if (type === 'pick' && B.room.phase === 'lobby') { B.room.track = p.track; B.room.diff = p.diff; B.room.ready = {}; publish(); }
     if (type === 'ready' && B.room.phase === 'lobby') { B.room.ready[p.id] = !!p.ready; maybeStart(); publish(); }
     if (type === 'mode' && B.room.phase === 'lobby') { B.room.tvAudio = !!p.tvAudio; B.room.ready = {}; publish(); }
-    if (type === 'aud' && AUD_STATES.includes(p.state) && B.room.members.some(m => m.id === p.id && m.role === 'tv')
-      && (B.room.tvAud?.track !== p.track || B.room.tvAud?.state !== p.state)) { B.room.tvAud = { track: String(p.track), state: p.state }; maybeStart(); publish(); }
+    if (type === 'aud' && B.room.members.some(m => m.id === p.id && m.role === 'tv')) { B.aud = { id: p.id, track: String(p.track), state: String(p.state), at: performance.now() }; audDuty(); }
     if ((type === 'done' || type === 'quit') && players(B.room).some(x => x.id === p.id)) { B.room.phase = 'lobby'; B.room.ready = {}; }
   }
   if (type === 'start') { if (p.id !== B.room.host) return; return start(p); }   // starts are accepted from the room host only
@@ -99,23 +108,30 @@ function onMsg(type, p, self = false) {
 
 let creating = false;
 async function maybeStart() {
-  if (creating || B.shared?.delta == null || expired(B.room, nowMs())) return;
+  if (creating || !isHost() || B.room?.phase !== 'lobby' || B.shared?.delta == null || expired(B.room, nowMs())) return;
   const ps = players(B.room);
   if (ps.length !== 2 || !B.room.track || !ps.every(p => B.room.ready[p.id])) return;
-  if (!tvAudioGate(B.room).ok) return;            // music on the TV: wait until the TV has the song decoded (re-checked on each 'aud')
+  if (!hostGate().ok) return;                     // music on the TV: wait for a fresh "decoded" report from the connected TV
   const t = A.findTrack(B.room.track); if (!t) return;
   const ch = t.charts[B.room.diff]; if (!ch) return;
-  // the server owns the match: create its record first (the host is slot 1); players join it with their own identity
-  creating = true; let created;
-  try { created = await battleCreate(B.code, B.room.track, B.room.diff, ch.hash); }
+  // the server owns the match: create its record first (the host is slot 1); players join it with their own identity.
+  // A record created for a start that was then held back is reused for the same song.
+  const key = [B.code, B.room.track, B.room.diff, ch.hash].join('|');
+  creating = true; let created = B.created?.key === key ? B.created : null;
+  try { if (!created) { M.creates = (M.creates || 0) + 1; created = B.created = { key, ...(await battleCreate(B.code, B.room.track, B.room.diff, ch.hash)) }; } }
   catch (e) { M.startError = e.message; A.toast('Could not start the match: ' + e.message); B.room.ready = {}; publish(); return; }
   finally { creating = false; }
+  // re-check everything after the server round trip, immediately before broadcasting the start
+  const now = players(B.room);
+  if (!isHost() || B.room.phase !== 'lobby' || [B.code, B.room.track, B.room.diff, ch.hash].join('|') !== key || now.length !== 2 || !now.every(p => B.room.ready[p.id])) return;
+  if (!hostGate().ok) { M.heldBack = (M.heldBack || 0) + 1; audDuty(); return render(); }
+  B.created = null;
   const s = { id: B.me.id, match: 'm' + Date.now().toString(36), matchId: created.matchId, epoch: Math.round(B.shared.now() + 6000), track: B.room.track, diff: B.room.diff, chartHash: ch.hash, tvAudio: !!(B.room.tvAudio && tvIn(B.room)) };
   Object.assign(B.room, { phase: 'playing', match: s.match, start: s });
   B.net.send('start', s); start(s);
 }
 
-function start(s) {
+async function start(s) {
   if (B.match?.match === s.match) return;
   if (B.shared?.delta == null) { A.toast('Match clock not ready — the match was not started on this device'); return; }
   const t = A.findTrack(s.track);
@@ -123,6 +139,10 @@ function start(s) {
   B.match = s; B.opp = null; B.mySlot = null; B.submitted = false; B.result = null; B.jq = []; clearInterval(B.pollT);
   const opp = players(B.room).find(p => p.id !== B.me.id);
   B.oppName = opp?.name || 'Opponent';
+  // the countdown leaves ~6 s: a quick burst of clock samples tightens this device's estimate of the shared start moment
+  const lead = B.shared.perfAt(s.epoch) - performance.now();
+  if (lead > 3000 && B.net?.status === 'online') { try { await Promise.race([B.shared.sync(6), new Promise(r => setTimeout(r, Math.min(2500, lead - 2500)))]); } catch {} }
+  if (B.match !== s) return;
   M.starts.push({ match: s.match, matchId: s.matchId, wallZero: performance.timeOrigin + B.shared.perfAt(s.epoch), receivedBeforeMs: Math.round(B.shared.perfAt(s.epoch) - performance.now()), clockErrMs: B.shared.errMs });
   A.startGame(t, s.diff, { battle: { match: s.match, zeroPerf: B.shared.perfAt(s.epoch), tvAudio: s.tvAudio, oppName: B.oppName } });
 }
@@ -208,16 +228,16 @@ function render() {
   const el = document.querySelector('#s-battle'); if (!el || !B.code) return;
   if (B.match && A.inGame()) return paintOpp();
   const r = B.room, me = r?.members.find(m => m.id === B.me.id), ps = players(r), tv = tvIn(r);
-  const tracks = keepitil(), gate = tvAudioGate(r);
+  const tracks = keepitil(), gate = isHost() ? hostGate() : { state: r?.tvAudio && tv && r?.track ? r.tvAudState || 'offline' : null };
   const t = r?.track ? A.findTrack(r.track) : null;
   if (r && expired(r, nowMs())) { el.innerHTML = `<div class="wrapc"><div class="card"><h3>Room ${B.code} expired</h3><p class="x">Private rooms last 2 hours.</p><a class="btn primary" href="#/battle" style="width:100%;margin-top:10px">Create a new room</a></div></div>`; return; }
-  const status = B.clockErr ? 'Match clock unavailable: ' + B.clockErr : !B.net ? 'Connecting…' : B.net.status === 'offline' ? 'Live connection unavailable' : B.net.status !== 'online' ? 'Reconnecting…' : !r ? 'Joining room…' : !me ? 'Room is full (2 players)' : ps.length < 2 ? 'Waiting for your opponent…' : !r.track ? 'Pick a song' : ps.every(p => r.ready[p.id]) ? (gate.state === 'loading' ? 'Waiting for the TV to load the music…' : gate.state === 'error' ? 'The TV could not load the music — choose Wired earbuds or another song' : 'Starting…') : 'Both players tap Ready';
+  const status = B.clockErr ? 'Match clock unavailable: ' + B.clockErr : !B.net ? 'Connecting…' : B.net.status === 'offline' ? 'Live connection unavailable' : B.net.status !== 'online' ? 'Reconnecting…' : !r ? 'Joining room…' : !me ? 'Room is full (2 players)' : ps.length < 2 ? 'Waiting for your opponent…' : !r.track ? 'Pick a song' : ps.every(p => r.ready[p.id]) ? (gate.state && gate.state !== 'ready' ? 'Waiting for the TV music: ' + AUD_TEXT[gate.state] + ' — or choose Wired earbuds' : 'Starting…') : 'Both players tap Ready';
   const dot = id => id === B.me.id || B.net?.online(id) ? '<i class="dot on"></i>' : '<i class="dot"></i>';
   el.innerHTML = `<div class="wrapc"><header class="top bar"><a class="ico" href="#/battle" aria-label="Leave room">${A.icon('back')}</a><b class="ttl">LIVE 1V1</b></header>
     <div class="card bl-code"><div><small>ROOM CODE</small><b>${B.code}</b><small class="x">${A.esc(status)}${B.shared?.errMs != null ? ` · clock ±${Math.round(B.shared.errMs)} ms` : ''}</small></div><canvas id="bQr" width="132" height="132" aria-label="QR code to join"></canvas></div>
     ${B.clockErr || B.net?.status === 'offline' ? `<div class="card"><p class="x">The live connection is not available right now. Nothing is lost: retry, or play solo meanwhile.</p><button class="btn primary" id="bRetry" style="width:100%;margin-top:8px">Retry connection</button></div>` : ''}
     <div class="card"><h3>Players</h3>${[1, 2].map(s => { const p = ps.find(x => x.slot === s); return `<div class="bl-p">${p ? dot(p.id) : '<i class="dot"></i>'}<b>P${s}</b> ${p ? A.esc(p.name) + (p.id === B.me.id ? ' (you)' : '') : '<span class="x">open seat — share the code or QR</span>'}${p && r.ready[p.id] ? ' <span class="pill easy">READY</span>' : ''}</div>`; }).join('')}
-      ${tv ? `<div class="bl-p">${dot(r.members.find(m => m.role === 'tv').id)}<b>TV</b> connected${gate.state ? ` · <span id="bTvAud" data-state="${gate.state}" class="${gate.state === 'ready' ? '' : 'x'}">${gate.state === 'ready' ? 'music ready ✓' : gate.state === 'error' ? 'music failed to load' : 'loading music…'}</span>` : ''}</div>` : ''}</div>
+      ${tv ? `<div class="bl-p">${dot(r.members.find(m => m.role === 'tv').id)}<b>TV</b> connected${gate.state ? ` · <span id="bTvAud" data-state="${gate.state}" class="${gate.state === 'ready' ? '' : 'x'}">${AUD_TEXT[gate.state] || gate.state}</span>` : ''}</div>` : ''}</div>
     ${me ? `<div class="card"><h3>Song</h3><select id="bTrack" style="width:100%"><option value="">Choose a song…</option>${tracks.map(x => `<option value="${A.esc(x.slug)}" ${x.slug === r?.track ? 'selected' : ''}>${A.esc(x.title)} — ${A.esc(x.artist)}</option>`).join('')}</select>
       <div class="seg" style="margin-top:10px">${['easy', 'normal', 'expert'].map(d => `<button class="btn ${r?.diff === d ? 'primary' : 'ghost'}" data-d="${d}" ${t && !t.charts[d] ? 'disabled' : ''}>${A.DIFF[d]}</button>`).join(' ')}</div>
       ${tv ? `<div class="seg" style="margin-top:10px"><button class="btn ${r.tvAudio ? 'primary' : 'ghost'}" data-a="1">Music on TV</button> <button class="btn ${!r.tvAudio ? 'primary' : 'ghost'}" data-a="0">Wired earbuds</button></div>

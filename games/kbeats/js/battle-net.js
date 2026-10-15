@@ -62,7 +62,7 @@ export class RoomChannel {
       this._setStatus('online');
     } else await this._openRealtime();
     clearInterval(this._hb); this._hb = setInterval(() => this.send('hb', { id: this.me.id }), 1000);
-    this.send('hello', { id: this.me.id, role: this.me.role, name: this.me.name });
+    this.send('hello', { ...this.me });
     return this;
   }
   async _openRealtime() {
@@ -76,7 +76,7 @@ export class RoomChannel {
     const giveUp = new Promise(res => { this._giveUp = setTimeout(() => { if (live() && this.status !== 'online') { this._setStatus('offline'); this._retry(); } res(); }, 8000); });
     const joined = new Promise(res => ch.subscribe(st => {
       if (!live()) return res(); // events from a channel this one replaced are ignored
-      if (st === 'SUBSCRIBED') { clearTimeout(this._giveUp); this._backoff = 1000; this._setStatus('online'); this.send('hello', { id: this.me.id, role: this.me.role, name: this.me.name }); res(); }
+      if (st === 'SUBSCRIBED') { clearTimeout(this._giveUp); this._backoff = 1000; this._setStatus('online'); this.send('hello', { ...this.me }); res(); }
       else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') { clearTimeout(this._giveUp); this._setStatus('reconnecting'); res(); this._retry(); }
     }));
     if (!this._net && typeof addEventListener === 'function') {

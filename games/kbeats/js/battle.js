@@ -71,6 +71,7 @@ const TYPES = {
   pick: ['id', 'track', 'diff'],           // player → host
   ready: ['id', 'ready'],
   mode: ['id', 'tvAudio'],
+  aud: ['id', 'track', 'state'],          // TV → host: music for the picked song is loading | ready | error
   start: ['id', 'match', 'matchId', 'epoch', 'track', 'diff', 'chartHash', 'tvAudio'],
   live: ['id', 'match', 'st'],             // ~5 Hz score/combo/accuracy
   j: ['id', 'match', 'ev'],                // judgement events for the TV playfield [[noteIndex, judgement, lane]…]
@@ -85,6 +86,15 @@ export function validMsg(type, p) {
   return need.every(k => p[k] !== undefined);
 }
 export const msg = (type, body) => ({ type, payload: { v: PROTO, ...body } });
+
+/** With music on the TV, a match may start only once the TV has downloaded and decoded the picked song.
+    room.tvAud is set by the host when a TV that reports audio readiness joins; a room without it has no such TV. */
+export const AUD_STATES = ['loading', 'ready', 'error'];
+export function tvAudioGate(room) {
+  if (!room?.tvAudio || !room.track || !(room.members || []).some(m => m.role === 'tv') || !room.tvAud) return { ok: true, state: null };
+  const a = room.tvAud, state = a.track === room.track && AUD_STATES.includes(a.state) ? a.state : 'loading';
+  return { ok: state === 'ready', state };
+}
 
 /* ── TV playfield sizing ──────────────────────────────────────────────────
    Directional keys are drawn at `scale` × the phone's pad size, but never wider than a lane allows. */

@@ -67,8 +67,8 @@ function onMsg(type, p) {
   if (!match || p.match !== match.match) return;
   const slot = Object.keys(P).find(s => P[s].id === p.id); if (!slot) return;
   const pl = P[slot];
-  if (type === 'live') { pl.live = p.st; paintHud(); if (p.st.t > 0) { M.lagMs.push(Math.round(clock.renderTime() * 1000 - p.st.t * 1000)); if (M.lagMs.length > 400) M.lagMs.shift(); } }
-  if (type === 'j') for (const [i, j, lane, head] of p.ev) { const n = pl.byIndex[i]; if (n) n.state = head && n.type === 'hold' && j !== 'miss' ? 1 : 2; pl.hw.feedback({ j, lane, kind: head ? 'head' : 'tail' }, clock.renderTime()); }
+  if (type === 'live') { if (!p.st || typeof p.st !== 'object') return; pl.live = p.st; paintHud(); if (p.st.t > 0) { M.lagMs.push(Math.round(clock.renderTime() * 1000 - p.st.t * 1000)); if (M.lagMs.length > 400) M.lagMs.shift(); } }
+  if (type === 'j' && Array.isArray(p.ev)) for (const [i, j, lane, head] of p.ev) { const n = pl.byIndex[i]; if (n) n.state = head && n.type === 'hold' && j !== 'miss' ? 1 : 2; pl.hw.feedback({ j, lane, kind: head ? 'head' : 'tail' }, clock.renderTime()); }
   // untrusted hints only: done/quit just trigger a server re-check of the match record
   if (type === 'done' || type === 'quit') { pl.left = type === 'quit'; settle(); }
 }
@@ -87,6 +87,7 @@ async function begin(s) {
     box.querySelector('.nm').textContent = `P${pl.slot} · ${pl.name}`;
   }
   game.ch = ch; game.duration = ch.durationMs / 1000; game.lead = ({ easy: 1.9, normal: 1.6, expert: 1.3 })[s.diff];
+  clock.followTimeline(shared.perfAt(s.epoch));                // leave the previous song's clock now (countdown runs on the match clock)
   const lead = shared.perfAt(s.epoch) - performance.now();   // countdown: a quick burst of clock samples tightens the start estimate
   if (lead > 3000 && net?.status === 'online') { try { await Promise.race([shared.sync(6), new Promise(r => setTimeout(r, Math.min(2500, lead - 2500)))]); } catch {} }
   if (match !== s) return;

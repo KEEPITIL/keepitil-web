@@ -31,9 +31,9 @@ export class SharedClock {
   }
   async sync(n = 10) {
     // the first round trips include connection set-up (DNS/TLS/cold function) and are discarded; samples are
-    // pooled across syncs (5 min) so the estimate keeps improving toward the tightest round trip seen
+    // pooled across syncs (60 s, so a phone that slept does not keep a stale offset) so the estimate keeps improving toward the tightest round trip seen
     const s = []; for (let i = 0; i < n; i++) { try { const x = await this._sample(); if (i >= 2 || RELEASE.mock) s.push({ ...x, at: performance.now() }); } catch {} }
-    this.pool = [...this.pool.filter(x => performance.now() - x.at < 300e3), ...s].slice(-60);
+    this.pool = [...this.pool.filter(x => performance.now() - x.at < 60e3), ...s].slice(-60);
     const e = estimateDelta(this.pool); if (!e) throw new Error('could not reach the match clock');
     this.delta = e.delta; this.errMs = e.errMs; return e;
   }

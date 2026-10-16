@@ -53,10 +53,11 @@ function seatKnown() {
   for (const [id, k] of known) if (!B.room.members.some(m => m.id === id)) { const s = seat(B.room.members, id, k.role); if (s != null) B.room.members.push({ id, role: k.role, name: k.name, slot: s }); }
 }
 /** host: TV music readiness, now (see tvAudioGate); the state is published for the other player's lobby */
-function hostGate() { const tv = B.room?.members.find(m => m.role === 'tv'); return tvAudioGate(B.room, B.aud, performance.now(), !!tv && B.net?.online(tv.id, 3000)); }
+const seatedTv = r => { const tvs = (r?.members || []).filter(m => m.role === 'tv'); return tvs.find(m => B.net?.online(m.id, 3000)) || tvs[0]; };
+function hostGate() { const tv = seatedTv(B.room); return tvAudioGate(B.room && tv ? { ...B.room, members: B.room.members.filter(m => m.role !== 'tv' || m.id === tv.id) } : B.room, B.aud, performance.now(), !!tv && B.net?.online(tv.id, 3000)); }
 function audDuty() {
   if (!isHost() || !B.room) return;
-  const tv = B.room.members.find(m => m.role === 'tv'), ok = !!tv && !!known.get(tv.id)?.aud;
+  const tv = seatedTv(B.room), ok = !!tv && !!known.get(tv.id)?.aud;
   if (tv && B.room.tvAudOk !== ok) B.room.tvAudOk = ok;          // does the seated TV's page report readiness?
   const st = hostGate().state; if (B.room.tvAudState !== st) { B.room.tvAudState = st; publish(); }
   maybeStart();
@@ -96,11 +97,11 @@ function onMsg(type, p, self = false) {
     if (type === 'pick' && B.room.phase === 'lobby') { B.room.track = p.track; B.room.diff = p.diff; B.room.ready = {}; publish(); }
     if (type === 'ready' && B.room.phase === 'lobby') { B.room.ready[p.id] = !!p.ready; maybeStart(); publish(); }
     if (type === 'mode' && B.room.phase === 'lobby') { B.room.tvAudio = !!p.tvAudio; B.room.ready = {}; publish(); }
-    if (type === 'aud' && B.room.members.some(m => m.id === p.id && m.role === 'tv')) { B.aud = { id: p.id, track: String(p.track), state: String(p.state), at: performance.now() }; audDuty(); }
+    if (type === 'aud' && seatedTv(B.room)?.id === p.id && typeof p.track === 'string' && p.track.length <= 120) { known.set(p.id, { ...(known.get(p.id) || { role: 'tv', name: 'TV' }), aud: true }); B.aud = { id: p.id, track: String(p.track), state: String(p.state), at: performance.now() }; audDuty(); }
     if ((type === 'done' || type === 'quit') && players(B.room).some(x => x.id === p.id)) { B.room.phase = 'lobby'; B.room.ready = {}; }
   }
   if (type === 'start') { if (p.id !== B.room.host) return; return start(p); }   // starts are accepted from the room host only
-  if (type === 'live' && B.match && p.match === B.match.match) { B.opp = p.st; paintOpp(); const z = B.shared?.perfAt(B.match.epoch); if (z != null && p.st.t > 0) { M.lagMs.push(Math.round((performance.now() - z) / 1000 * 1000 - p.st.t * 1000)); if (M.lagMs.length > 400) M.lagMs.shift(); } }
+  if (type === 'live' && B.match && p.match === B.match.match && p.st && typeof p.st === 'object') { B.opp = p.st; paintOpp(); const z = B.shared?.perfAt(B.match.epoch); if (z != null && p.st.t > 0) { M.lagMs.push(Math.round((performance.now() - z) / 1000 * 1000 - p.st.t * 1000)); if (M.lagMs.length > 400) M.lagMs.shift(); } }
   // untrusted hints: a session id is only a claim (the server checks the pair); done/quit only trigger a server re-check
   if (type === 'done' && B.match && p.match === B.match.match) poll();
   if (type === 'quit' && B.match && p.match === B.match.match) { B.opp = { ...(B.opp || {}), left: true }; paintOpp(); poll(); }
@@ -108,7 +109,7 @@ function onMsg(type, p, self = false) {
 
 let creating = false;
 async function maybeStart() {
-  if (creating || !isHost() || B.room?.phase !== 'lobby' || B.shared?.delta == null || expired(B.room, nowMs())) return;
+  if (creating || !isHost() || A.inGame() || B.room?.phase !== 'lobby' || B.shared?.delta == null || expired(B.room, nowMs())) return;
   const ps = players(B.room);
   if (ps.length !== 2 || !B.room.track || !ps.every(p => B.room.ready[p.id])) return;
   if (!hostGate().ok) return;                     // music on the TV: wait for a fresh "decoded" report from the connected TV
@@ -119,11 +120,11 @@ async function maybeStart() {
   const key = [B.code, B.room.track, B.room.diff, ch.hash].join('|');
   creating = true; let created = B.created?.key === key ? B.created : null;
   try { if (!created) { M.creates = (M.creates || 0) + 1; created = B.created = { key, ...(await battleCreate(B.code, B.room.track, B.room.diff, ch.hash)) }; } }
-  catch (e) { M.startError = e.message; A.toast('Could not start the match: ' + e.message); B.room.ready = {}; publish(); return; }
+  catch (e) { M.startError = e.message; A.toast('Could not start the match: ' + e.message); if (B.room) { B.room.ready = {}; publish(); } return; }
   finally { creating = false; }
   // re-check everything after the server round trip, immediately before broadcasting the start
   const now = players(B.room);
-  if (!isHost() || B.room.phase !== 'lobby' || [B.code, B.room.track, B.room.diff, ch.hash].join('|') !== key || now.length !== 2 || !now.every(p => B.room.ready[p.id])) return;
+  if (!B.room || A.inGame() || !isHost() || B.room.phase !== 'lobby' || [B.code, B.room.track, B.room.diff, ch.hash].join('|') !== key || now.length !== 2 || !now.every(p => B.room.ready[p.id])) return;
   if (!hostGate().ok) { M.heldBack = (M.heldBack || 0) + 1; audDuty(); return render(); }
   B.created = null;
   const s = { id: B.me.id, match: 'm' + Date.now().toString(36), matchId: created.matchId, epoch: Math.round(B.shared.now() + 6000), track: B.room.track, diff: B.room.diff, chartHash: ch.hash, tvAudio: !!(B.room.tvAudio && tvIn(B.room)) };
@@ -136,13 +137,16 @@ async function start(s) {
   if (B.shared?.delta == null) { A.toast('Match clock not ready — the match was not started on this device'); return; }
   const t = A.findTrack(s.track);
   if (!t || t.charts[s.diff]?.hash !== s.chartHash) { A.toast('Your game has a different version of this song — reload'); return; }
-  B.match = s; B.opp = null; B.mySlot = null; B.submitted = false; B.result = null; B.jq = []; clearInterval(B.pollT);
-  const opp = players(B.room).find(p => p.id !== B.me.id);
-  B.oppName = opp?.name || 'Opponent';
+  if (B.starting === s.match) return; B.starting = s.match;
+  // claim this device's seat in the server match at once: the server closes joining as soon as either side opens its run
+  B.joinP = { matchId: s.matchId, p: battleJoin(s.matchId) }; B.joinP.p.catch(() => {});
   // the countdown leaves ~6 s: a quick burst of clock samples tightens this device's estimate of the shared start moment
   const lead = B.shared.perfAt(s.epoch) - performance.now();
   if (lead > 3000 && B.net?.status === 'online') { try { await Promise.race([B.shared.sync(6), new Promise(r => setTimeout(r, Math.min(2500, lead - 2500)))]); } catch {} }
-  if (B.match !== s) return;
+  if (B.starting !== s.match || B.match?.match === s.match || !B.room) return;
+  B.match = s; B.opp = null; B.mySlot = null; B.submitted = false; B.result = null; B.jq = []; clearInterval(B.pollT);
+  const opp = players(B.room).find(p => p.id !== B.me.id);
+  B.oppName = opp?.name || 'Opponent';
   M.starts.push({ match: s.match, matchId: s.matchId, wallZero: performance.timeOrigin + B.shared.perfAt(s.epoch), receivedBeforeMs: Math.round(B.shared.perfAt(s.epoch) - performance.now()), clockErrMs: B.shared.errMs });
   A.startGame(t, s.diff, { battle: { match: s.match, zeroPerf: B.shared.perfAt(s.epoch), tvAudio: s.tvAudio, oppName: B.oppName } });
 }
@@ -169,7 +173,7 @@ function paintOpp() {
     session (called by app.js before the countdown). Errors (full, expired, not a member) stop this device's run. */
 export async function matchSession(platform) {
   if (!B.match?.matchId) throw new Error('no match');
-  const j = await battleJoin(B.match.matchId); B.mySlot = j.slot;
+  const j = await (B.joinP?.matchId === B.match.matchId ? B.joinP.p : battleJoin(B.match.matchId)); B.mySlot = j.slot;
   return battleSession(B.match.matchId, platform);
 }
 export async function finished(r, submit) {
@@ -228,7 +232,7 @@ function render() {
   const el = document.querySelector('#s-battle'); if (!el || !B.code) return;
   if (B.match && A.inGame()) return paintOpp();
   const r = B.room, me = r?.members.find(m => m.id === B.me.id), ps = players(r), tv = tvIn(r);
-  const tracks = keepitil(), gate = isHost() ? hostGate() : { state: r?.tvAudio && tv && r?.track ? r.tvAudState || 'offline' : null };
+  const tracks = keepitil(), gate = isHost() ? hostGate() : { state: r?.tvAudio && tv && r?.track ? (Object.hasOwn(AUD_TEXT, r.tvAudState) ? r.tvAudState : 'offline') : null };
   const t = r?.track ? A.findTrack(r.track) : null;
   if (r && expired(r, nowMs())) { el.innerHTML = `<div class="wrapc"><div class="card"><h3>Room ${B.code} expired</h3><p class="x">Private rooms last 2 hours.</p><a class="btn primary" href="#/battle" style="width:100%;margin-top:10px">Create a new room</a></div></div>`; return; }
   const status = B.clockErr ? 'Match clock unavailable: ' + B.clockErr : !B.net ? 'Connecting…' : B.net.status === 'offline' ? 'Live connection unavailable' : B.net.status !== 'online' ? 'Reconnecting…' : !r ? 'Joining room…' : !me ? 'Room is full (2 players)' : ps.length < 2 ? 'Waiting for your opponent…' : !r.track ? 'Pick a song' : ps.every(p => r.ready[p.id]) ? (gate.state && gate.state !== 'ready' ? 'Waiting for the TV music: ' + AUD_TEXT[gate.state] + ' — or choose Wired earbuds' : 'Starting…') : 'Both players tap Ready';
@@ -237,7 +241,7 @@ function render() {
     <div class="card bl-code"><div><small>ROOM CODE</small><b>${B.code}</b><small class="x">${A.esc(status)}${B.shared?.errMs != null ? ` · clock ±${Math.round(B.shared.errMs)} ms` : ''}</small></div><canvas id="bQr" width="132" height="132" aria-label="QR code to join"></canvas></div>
     ${B.clockErr || B.net?.status === 'offline' ? `<div class="card"><p class="x">The live connection is not available right now. Nothing is lost: retry, or play solo meanwhile.</p><button class="btn primary" id="bRetry" style="width:100%;margin-top:8px">Retry connection</button></div>` : ''}
     <div class="card"><h3>Players</h3>${[1, 2].map(s => { const p = ps.find(x => x.slot === s); return `<div class="bl-p">${p ? dot(p.id) : '<i class="dot"></i>'}<b>P${s}</b> ${p ? A.esc(p.name) + (p.id === B.me.id ? ' (you)' : '') : '<span class="x">open seat — share the code or QR</span>'}${p && r.ready[p.id] ? ' <span class="pill easy">READY</span>' : ''}</div>`; }).join('')}
-      ${tv ? `<div class="bl-p">${dot(r.members.find(m => m.role === 'tv').id)}<b>TV</b> connected${gate.state ? ` · <span id="bTvAud" data-state="${gate.state}" class="${gate.state === 'ready' ? '' : 'x'}">${AUD_TEXT[gate.state] || gate.state}</span>` : ''}</div>` : ''}</div>
+      ${tv ? `<div class="bl-p">${dot(seatedTv(r).id)}<b>TV</b> connected${gate.state ? ` · <span id="bTvAud" data-state="${gate.state}" class="${gate.state === 'ready' ? '' : 'x'}">${AUD_TEXT[gate.state]}</span>` : ''}</div>` : ''}</div>
     ${me ? `<div class="card"><h3>Song</h3><select id="bTrack" style="width:100%"><option value="">Choose a song…</option>${tracks.map(x => `<option value="${A.esc(x.slug)}" ${x.slug === r?.track ? 'selected' : ''}>${A.esc(x.title)} — ${A.esc(x.artist)}</option>`).join('')}</select>
       <div class="seg" style="margin-top:10px">${['easy', 'normal', 'expert'].map(d => `<button class="btn ${r?.diff === d ? 'primary' : 'ghost'}" data-d="${d}" ${t && !t.charts[d] ? 'disabled' : ''}>${A.DIFF[d]}</button>`).join(' ')}</div>
       ${tv ? `<div class="seg" style="margin-top:10px"><button class="btn ${r.tvAudio ? 'primary' : 'ghost'}" data-a="1">Music on TV</button> <button class="btn ${!r.tvAudio ? 'primary' : 'ghost'}" data-a="0">Wired earbuds</button></div>

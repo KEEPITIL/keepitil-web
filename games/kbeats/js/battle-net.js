@@ -24,14 +24,17 @@ async function staging(op, body = {}, auth = true) {
 
 /* ── shared clock ─────────────────────────────────────────────────────── */
 export class SharedClock {
-  constructor() { this.delta = null; this.errMs = null; this._t = null; }
+  constructor() { this.delta = null; this.errMs = null; this._t = null; this.pool = []; }
   async _sample() {
     if (RELEASE.mock) { const t0 = performance.now(); return clockSample(t0, Date.now(), t0); }     // one machine: wall clock is shared
     const t0 = performance.now(); const { now } = await staging('time', {}, false); return clockSample(t0, now, performance.now());
   }
-  async sync(n = 8) {
-    const s = []; for (let i = 0; i < n; i++) { try { s.push(await this._sample()); } catch {} }
-    const e = estimateDelta(s); if (!e) throw new Error('could not reach the match clock');
+  async sync(n = 10) {
+    // the first round trips include connection set-up (DNS/TLS/cold function) and are discarded; samples are
+    // pooled across syncs (60 s, so a phone that slept does not keep a stale offset) so the estimate keeps improving toward the tightest round trip seen
+    const s = []; for (let i = 0; i < n; i++) { try { const x = await this._sample(); if (i >= 2 || RELEASE.mock) s.push({ ...x, at: performance.now() }); } catch {} }
+    this.pool = [...this.pool.filter(x => performance.now() - x.at < 60e3), ...s].slice(-60);
+    const e = estimateDelta(this.pool); if (!e) throw new Error('could not reach the match clock');
     this.delta = e.delta; this.errMs = e.errMs; return e;
   }
   start(everyMs = 30000) { this.stop(); this._t = setInterval(() => this.sync(4).catch(() => {}), everyMs); }
@@ -59,23 +62,27 @@ export class RoomChannel {
       this._setStatus('online');
     } else await this._openRealtime();
     clearInterval(this._hb); this._hb = setInterval(() => this.send('hb', { id: this.me.id }), 1000);
-    this.send('hello', { id: this.me.id, role: this.me.role, name: this.me.name });
+    this.send('hello', { ...this.me });
     return this;
   }
   async _openRealtime() {
     const sb = await API.supabase().catch(e => { this._setStatus('offline'); throw e; });
-    if (this.ch) { try { sb.removeChannel(this.ch); } catch {} }
+    const n = this._attempt = (this._attempt || 0) + 1, live = () => !this.closed && n === this._attempt;
+    clearTimeout(this._giveUp);
+    if (this.ch) { const old = this.ch; this.ch = null; try { sb.removeChannel(old); } catch {} }
     const ch = sb.channel('kbeats-battle-' + this.code, { config: { broadcast: { self: false, ack: false } } });
-    ch.on('broadcast', { event: '*' }, ({ event, payload }) => this._emit(event, payload));
+    ch.on('broadcast', { event: '*' }, ({ event, payload }) => { if (live()) this._emit(event, payload); });
     this.ch = ch;
-    const giveUp = new Promise(res => setTimeout(() => { if (this.status !== 'online') { this._setStatus('offline'); this._retry(); } res(); }, 8000));
+    const giveUp = new Promise(res => { this._giveUp = setTimeout(() => { if (live() && this.status !== 'online') { this._setStatus('offline'); this._retry(); } res(); }, 8000); });
     const joined = new Promise(res => ch.subscribe(st => {
-      if (st === 'SUBSCRIBED') { this._backoff = 1000; this._setStatus('online'); this.send('hello', { id: this.me.id, role: this.me.role, name: this.me.name }); res(); }
-      else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') {
-        if (this.closed) return;
-        this._setStatus('reconnecting'); res(); this._retry();
-      }
+      if (!live()) return res(); // events from a channel this one replaced are ignored
+      if (st === 'SUBSCRIBED') { clearTimeout(this._giveUp); this._backoff = 1000; this._setStatus('online'); this.send('hello', { ...this.me }); res(); }
+      else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') { clearTimeout(this._giveUp); this._setStatus('reconnecting'); res(); this._retry(); }
     }));
+    if (!this._net && typeof addEventListener === 'function') {
+      this._net = () => { if (navigator.onLine) this.retryNow(); else this._setStatus('offline'); };
+      addEventListener('online', this._net); addEventListener('offline', this._net);
+    }
     await Promise.race([joined, giveUp]);
   }
   _retry() { if (this.closed || RELEASE.mock) return; clearTimeout(this._rt); this._rt = setTimeout(() => this._openRealtime().catch(() => this._retry()), this._backoff); this._backoff = Math.min(this._backoff * 2, 8000); }
@@ -90,7 +97,7 @@ export class RoomChannel {
     if (this.bc) { this.bc.postMessage(m); return; }
     if (this.ch && this.status === 'online') this.ch.send({ type: 'broadcast', event: type, payload: m.payload }).catch(() => {});
   }
-  close() { this.closed = true; clearInterval(this._hb); clearTimeout(this._rt); this.bc?.close(); if (this.ch) API.supabase().then(sb => sb.removeChannel(this.ch)).catch(() => {}); }
+  close() { this.closed = true; clearInterval(this._hb); clearTimeout(this._rt); clearTimeout(this._giveUp); if (this._net) { removeEventListener('online', this._net); removeEventListener('offline', this._net); } this.bc?.close(); if (this.ch) API.supabase().then(sb => sb.removeChannel(this.ch)).catch(() => {}); }
 }
 
 /* ── server-owned match ───────────────────────────────────────────────────
@@ -104,12 +111,18 @@ const err = (status, message) => Object.assign(new Error(message), { status });
 let mockCat = null;
 const catalogMock = async () => mockCat ||= await (await fetch('/games/kbeats/data/catalog.json')).json();
 
-export async function battleCreate(roomCode, track, difficulty, chartHash) {
-  if (!RELEASE.mock) return staging('battle_create', { roomCode, track, difficulty, chartHash });
+/** this device's signed-in identity (anonymous guests included); the host reserves the opponent's seat with it */
+export async function myUserId() {
+  if (RELEASE.mock) return mockUid();
+  try { return (await API.session())?.user?.id || null; } catch { return null; }
+}
+export async function battleCreate(roomCode, track, difficulty, chartHash, opponentUser = null) {
+  if (!RELEASE.mock) return staging('battle_create', { roomCode, track, difficulty, chartHash, ...(opponentUser ? { opponentUser } : {}) });
   const id = 'bm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   LSset('mock.bm.' + id, { id, code: roomCode, host: mockUid(), beatmap: track + '|' + difficulty, created: Date.now(), expires: Date.now() + 2 * 3600e3, status: 'open', result: null });
   LSset(`mock.bm.${id}.s1`, { user_id: mockUid(), session_id: null });
-  return { matchId: id, slot: 1, chartHash };
+  if (opponentUser) LSset(`mock.bm.${id}.s2`, { user_id: opponentUser, session_id: null });   // seat 2 reserved for the opponent
+  return { matchId: id, slot: 1, chartHash, reserved: !!opponentUser };
 }
 export async function battleJoin(matchId) {
   if (!RELEASE.mock) return staging('battle_join', { matchId });

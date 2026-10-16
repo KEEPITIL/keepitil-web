@@ -71,6 +71,7 @@ const TYPES = {
   pick: ['id', 'track', 'diff'],           // player → host
   ready: ['id', 'ready'],
   mode: ['id', 'tvAudio'],
+  aud: ['id', 'track', 'state'],          // TV → host, every second: music for the picked song is loading | ready | error | locked
   start: ['id', 'match', 'matchId', 'epoch', 'track', 'diff', 'chartHash', 'tvAudio'],
   live: ['id', 'match', 'st'],             // ~5 Hz score/combo/accuracy
   j: ['id', 'match', 'ev'],                // judgement events for the TV playfield [[noteIndex, judgement, lane]…]
@@ -85,6 +86,24 @@ export function validMsg(type, p) {
   return need.every(k => p[k] !== undefined);
 }
 export const msg = (type, body) => ({ type, payload: { v: PROTO, ...body } });
+
+/** Music on the TV: a match may start only when the seated TV is connected, has unlocked audio and has decoded the
+    picked song — confirmed by a report received in the last AUD_FRESH_MS. Host side; evaluated again right before the
+    start is broadcast. `aud` = the host's last report from the TV ({ id, track, state, at: host receive time }), cleared
+    whenever the TV (re)connects. room.tvAudOk = the seated TV's page sends reports; an older TV page cannot confirm
+    readiness, so music on the TV is blocked for it (wired earbuds still work). */
+export const AUD_STATES = ['loading', 'ready', 'error', 'locked'];
+export const AUD_FRESH_MS = 3000;
+export function tvAudioGate(room, aud, nowMs, tvOnline) {
+  const tv = (room?.members || []).find(m => m.role === 'tv');
+  if (!room?.tvAudio || !room.track || !tv) return { ok: true, state: null };
+  if (!room.tvAudOk) return { ok: false, state: 'unverified' };
+  if (!tvOnline || !aud || aud.id !== tv.id || !(nowMs - aud.at <= AUD_FRESH_MS)) return { ok: false, state: 'offline' };
+  if (aud.track !== room.track || !AUD_STATES.includes(aud.state)) return { ok: false, state: 'loading' };
+  return { ok: aud.state === 'ready', state: aud.state };
+}
+export const AUD_TEXT = { ready: 'music ready ✓', loading: 'loading music…', error: 'music failed to load', locked: 'TV sound is locked — press the button on the TV',
+  offline: 'TV not responding — music not confirmed', unverified: 'this TV page cannot confirm its music — reload the TV page' };
 
 /* ── TV playfield sizing ──────────────────────────────────────────────────
    Directional keys are drawn at `scale` × the phone's pad size, but never wider than a lane allows. */

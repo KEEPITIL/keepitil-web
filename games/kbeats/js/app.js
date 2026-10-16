@@ -566,6 +566,9 @@ async function refreshMe(rerender) {
 (async function boot() {
   applyA11y();
   D.track('app_open');
+  // the signed-in profile does not depend on the catalog: fetch both at once (same results, one round trip shorter)
+  const wasMock = D.RELEASE.mock;
+  const meP = (async () => { await D.auth.finishPendingMigration?.().catch(() => {}); await refreshMe(); })();
   try {
     const cat = await D.loadCatalog();
     catalog = cat.tracks.map(t => ({ ...t, slug: t.slug || t.id }));
@@ -574,8 +577,8 @@ async function refreshMe(rerender) {
     $('#s-home').innerHTML = `<div class="wrapc"><p class="empty">Could not reach KBeats. Check your connection and reload.<br><small>${esc(e.message)}</small></p></div>`; $('#s-home').classList.add('on'); return;
   }
   document.body.dataset.mode = D.RELEASE.mode;
-  await D.auth.finishPendingMigration?.().catch(() => {});
-  await refreshMe();
+  await meP;
+  if (D.RELEASE.mock !== wasMock) await refreshMe();   // offline dev fallback switched to the mock after the profile was fetched
   const q = new URLSearchParams(location.search);
   if (q.get('track') && !location.hash) location.hash = '#/track/' + encodeURIComponent(q.get('track'));
   route();

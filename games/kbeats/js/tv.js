@@ -81,7 +81,7 @@ async function begin(s) {
   for (const pl of players()) {
     const notes = loadChart(ch).map((n, i) => ({ ...n, i, state: 0 })).sort((a, b) => a.t - b.t);
     const box = $('#pf' + pl.slot), cv = box.querySelector('canvas');
-    const hw = P[pl.slot]?.hw || new Highway(cv, { padPx: PHONE_PAD_PX * 2, maxBw: 1600 });   // directional keys at 2× the phone size, fitted to the half screen
+    const hw = P[pl.slot]?.hw || new Highway(cv, { padPx: PHONE_PAD_PX * 2, maxBw: 1600, accent: pl.slot === 1 ? '#4f8cff' : '#ff7a3d' });   // directional keys at 2× the phone size, fitted to the half screen
     hw.resize();
     P[pl.slot] = { id: pl.id, name: `P${pl.slot} · ${pl.name}`, hw, notes, byIndex: Object.fromEntries(notes.map(n => [n.i, n])), st: null, live: null, done: null };
     box.querySelector('.nm').textContent = `P${pl.slot} · ${pl.name}`;
@@ -141,7 +141,8 @@ function loop() {
     Object.assign(st, { bpm: game.ch.bpm, offset: game.ch.offsetMs / 1000, lead: game.lead, combo: L.combo || 0, hype: 0, hypeOn: false, hypeLeft: 0, health: L.hp ?? 0.6, energy: 0.5, practice: false });
     pl.hw.draw(now, st);
   }
-  $('#count').textContent = now < 0 ? String(Math.min(3, Math.ceil(-now))) : now < 0.6 ? 'GO' : '';
+  { const c = now < 0 ? String(Math.min(3, Math.ceil(-now))) : now < 0.6 ? 'GO' : '', el = $('#count');
+    if (el.textContent !== c) { el.textContent = c; el.classList.remove('tick'); if (c) { void el.offsetWidth; el.classList.add('tick'); } } }
   $('#prog').style.width = Math.max(0, Math.min(100, now / game.duration * 100)) + '%';
   $('#tleft').textContent = '-' + fmt(game.duration - now);
   if (now > game.duration + 3 && !$('#res').classList.contains('on')) settle();

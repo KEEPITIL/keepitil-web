@@ -1,5 +1,8 @@
-/* KBeats highway renderer (Canvas 2D). Original art: perspective four-lane highway, glowing capsule
-   notes, chevron swipe notes, four large circular hit pads, concert stage + crowd, Hype bar.
+/* KBeats highway renderer (Canvas 2D). Original art: perspective four-lane highway on a dark arena floor,
+   glowing capsule notes, chevron swipe notes, four large circular hit pads behind a lit strike bar,
+   beat-driven equalizer skyline + crowd, hit shockwaves, combo milestones, Hype bar.
+   Readability rules: lanes stay dark so notes are the brightest objects on screen; effects never sit on the
+   note path above the strike bar; everything decorative honours effects / reducedMotion / reducedFlash.
    Every lane is told apart by colour AND glyph (◀ ▼ ▲ ▶), never colour alone.
    Draw cost is bounded: note/glow sprites are pre-rendered per lane, particles are pre-pooled. */
 import { LANES } from './config.js';
@@ -13,6 +16,8 @@ export class Highway {
     this.parts = Array.from({ length: POOL }, () => ({ life: 0 }));
     this.pi = 0; this.flash = [0, 0, 0, 0]; this.pressed = [false, false, false, false];
     this.judgeText = null; this.fps = 60; this._ft = []; this.quality = 1;
+    this.rings = Array.from({ length: 16 }, () => ({ life: 0 })); this.ri = 0;   // hit shockwaves (pooled)
+    this.milestone = null; this._lastCombo = 0;
     this.resize();
   }
   setOpts(o) { Object.assign(this.opts, o); this._bg = null; }
@@ -54,26 +59,56 @@ export class Highway {
   }
 
   _makeBg() {
-    const { W, H, dpr } = this; const cv = document.createElement('canvas'); cv.width = W * dpr; cv.height = H * dpr;
+    const { W, H, dpr, geo } = this; const cv = document.createElement('canvas'); cv.width = W * dpr; cv.height = H * dpr;
     const g = cv.getContext('2d'); g.scale(dpr, dpr);
-    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0a0420'); bg.addColorStop(0.45, '#1a0838'); bg.addColorStop(1, '#05030c');
+    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#05021a'); bg.addColorStop(0.42, '#150637'); bg.addColorStop(1, '#03020a');
     g.fillStyle = bg; g.fillRect(0, 0, W, H);
-    // stage screens
-    for (let i = 0; i < 6; i++) { const x = W * (0.06 + i * 0.18), y = H * 0.16; g.fillStyle = `hsla(${280 + i * 25},90%,55%,.18)`; g.fillRect(x, y, W * 0.09, H * 0.07); }
-    // crowd silhouettes (deterministic)
+    // horizon glow behind the far end of the highway
+    const hz = g.createRadialGradient(geo.cx, geo.topY, 0, geo.cx, geo.topY, Math.max(W, H) * 0.6);
+    hz.addColorStop(0, 'rgba(160,80,255,.38)'); hz.addColorStop(0.35, 'rgba(60,40,200,.14)'); hz.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = hz; g.fillRect(0, 0, W, H);
+    // arena floor grid fading into the horizon (either side of the highway)
+    g.strokeStyle = 'rgba(120,90,255,.10)'; g.lineWidth = 1;
+    for (let k = -12; k <= 12; k++) { g.beginPath(); g.moveTo(geo.cx + k * W * 0.012, geo.topY); g.lineTo(geo.cx + k * W * 0.16, H); g.stroke(); }
+    for (let k = 1; k < 9; k++) { const y = geo.topY + (H - geo.topY) * Math.pow(k / 9, 2.2); g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+    // crowd silhouettes (deterministic), darker and lower so they frame rather than compete
     let seed = 7; const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    g.fillStyle = '#05020c';
+    g.fillStyle = '#05020e';
     for (let row = 0; row < 3; row++) {
-      const base = H * (0.5 + row * 0.1);
+      const base = H * (0.58 + row * 0.09);
       for (let x = -10; x < W + 20; x += 14 + r() * 10) {
         const hr = 6 + r() * 5 + row * 2, y = base - r() * 8;
         g.beginPath(); g.arc(x, y, hr, 0, Math.PI * 2); g.fill();
         g.fillRect(x - hr * 1.3, y + hr * 0.8, hr * 2.6, H);
         if (r() < 0.25) { g.save(); g.translate(x, y); g.rotate(-0.4 + r() * 0.8); g.fillRect(-2, -hr * 4, 4, hr * 3.2); g.restore(); }
       }
-      g.fillStyle = row === 0 ? '#080314' : '#04020a';
+      g.fillStyle = row === 0 ? '#070313' : '#030209';
     }
+    // vignette
+    const vg = g.createRadialGradient(W / 2, H * 0.55, Math.min(W, H) * 0.35, W / 2, H * 0.55, Math.max(W, H) * 0.85);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
     this._bg = cv;
+  }
+
+  // beat-reactive equalizer skyline on the horizon (cheap: ~40 rects; frozen under reducedMotion)
+  _skyline(now, pulse, energy, fx) {
+    const { g, W, geo, opts } = this; const n = Math.max(16, Math.round(W / 34)), bw = W / n, base = geo.topY + 6;
+    g.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < n; i++) {
+      const d = Math.abs(i + 0.5 - n / 2) / (n / 2);                 // 0 centre → 1 edge
+      const wob = opts.reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(now * (1.3 + (i % 5) * 0.37) + i * 1.7);
+      const h = (12 + 46 * energy * wob * (0.55 + 0.45 * pulse)) * (0.45 + 0.75 * d) * (0.4 + 0.6 * fx);
+      const hue = 190 + (i / n) * 140;
+      g.fillStyle = `hsla(${hue},95%,60%,${0.12 + 0.2 * pulse * fx})`;
+      g.fillRect(i * bw + bw * 0.18, base - h, bw * 0.64, h);
+    }
+    g.globalCompositeOperation = 'source-over';
+  }
+
+  // expanding ring at a pad on every hit (Perfect = white core + lane colour)
+  ring(lane, color, big) {
+    const r = this.rings[this.ri = (this.ri + 1) % this.rings.length];
+    r.lane = lane; r.c = color; r.life = r.max = big ? 0.34 : 0.26; r.big = big;
   }
 
   burst(lane, color, n = 18) {
@@ -89,7 +124,7 @@ export class Highway {
   feedback(ev, t) {
     if (ev.j === 'hype') { this.hypeFlash = 1; return; }
     const L = LANES[ev.lane] || LANES[0];
-    if (ev.j !== 'miss') { this.flash[ev.lane] = 1; this.burst(ev.lane, ev.j === 'perfect' ? '#ffffff' : L.color, ev.j === 'perfect' ? 22 : 12); }
+    if (ev.j !== 'miss') { this.flash[ev.lane] = 1; this.burst(ev.lane, ev.j === 'perfect' ? '#ffffff' : L.color, ev.j === 'perfect' ? 22 : 12); this.ring(ev.lane, L.color, ev.j === 'perfect'); }
     if (ev.kind === 'head' || ev.j === 'miss') this.judgeText = { j: ev.j, t };
   }
 
@@ -111,28 +146,29 @@ export class Highway {
     const beams = Math.round(6 * fx);
     for (let i = 0; i < beams; i++) {
       const sx = W * (0.1 + i * 0.16), sw = opts.reducedMotion ? 0 : Math.sin(now * 0.6 + i) * 0.25;
-      const a = (0.05 + 0.12 * energy * (0.6 + 0.4 * pulse) + 0.08 * hype) * (opts.reducedFlash ? 0.5 : 1);
+      const a = (0.03 + 0.08 * energy * (0.6 + 0.4 * pulse) + 0.08 * hype) * (opts.reducedFlash ? 0.5 : 1);
       const grd = g.createLinearGradient(sx, 0, sx, H * 0.75); const hue = (i % 3 === 0 ? 190 : i % 3 === 1 ? 300 : 50);
       grd.addColorStop(0, `hsla(${hue},100%,65%,${a})`); grd.addColorStop(1, 'hsla(0,0%,0%,0)');
       g.fillStyle = grd; g.beginPath(); g.moveTo(sx - 6, 0); g.lineTo(sx + 6, 0); g.lineTo(sx + W * (sw + 0.12), H * 0.75); g.lineTo(sx + W * (sw - 0.12), H * 0.75); g.fill();
     }
     g.globalCompositeOperation = 'source-over';
+    this._skyline(now, pulse, energy, fx);
     // highway body
     const fTop = this.f(1), fBot = this.f(-0.12);
     const quad = (fa, fb, xa0, xa1, xb0, xb1) => { g.beginPath(); g.moveTo(xa0, this.yAt(fa)); g.lineTo(xa1, this.yAt(fa)); g.lineTo(xb1, this.yAt(fb)); g.lineTo(xb0, this.yAt(fb)); g.closePath(); };
     const edgeX = (k, fz) => geo.cx + (k / 4 - 0.5) * this.widthAt(fz);
     quad(fTop, fBot, edgeX(0, fTop), edgeX(4, fTop), edgeX(0, fBot), edgeX(4, fBot));
-    const hg = g.createLinearGradient(0, geo.topY, 0, geo.hitY); hg.addColorStop(0, 'rgba(10,6,30,.55)'); hg.addColorStop(1, 'rgba(14,8,40,.92)');
+    const hg = g.createLinearGradient(0, geo.topY, 0, geo.hitY); hg.addColorStop(0, 'rgba(6,4,22,.62)'); hg.addColorStop(1, 'rgba(8,5,26,.96)');
     g.fillStyle = hg; g.fill();
     for (let l = 0; l < 4; l++) {   // lane tint + held-lane glow
       const L = LANES[l]; const on = this.pressed[l] ? 0.22 : 0; const fl = this.flash[l];
       quad(fTop, fBot, edgeX(l, fTop), edgeX(l + 1, fTop), edgeX(l, fBot), edgeX(l + 1, fBot));
-      const lg = g.createLinearGradient(0, geo.topY, 0, geo.hitY); lg.addColorStop(0, hexA(L.color, 0.04)); lg.addColorStop(1, hexA(L.color, 0.2 + on + fl * 0.25 + hype * 0.08));
+      const lg = g.createLinearGradient(0, geo.topY, 0, geo.hitY); lg.addColorStop(0, hexA(L.color, 0.0)); lg.addColorStop(0.55, hexA(L.color, 0.04 + on * 0.4 + fl * 0.1)); lg.addColorStop(1, hexA(L.color, 0.13 + on + fl * 0.3 + hype * 0.08));
       g.fillStyle = lg; g.fill();
     }
     g.lineWidth = 2;
     for (let k = 0; k <= 4; k++) {
-      const L = LANES[Math.min(3, k)]; g.strokeStyle = k === 0 || k === 4 ? hexA(k ? LANES[3].color : LANES[0].color, 0.9) : 'rgba(255,255,255,.18)';
+      const L = LANES[Math.min(3, k)]; g.strokeStyle = k === 0 || k === 4 ? hexA(k ? LANES[3].color : LANES[0].color, 0.95) : 'rgba(255,255,255,.13)';
       g.shadowColor = g.strokeStyle; g.shadowBlur = k === 0 || k === 4 ? 12 * fx : 0;
       g.beginPath(); g.moveTo(edgeX(k, fTop), this.yAt(fTop)); g.lineTo(edgeX(k, fBot), this.yAt(fBot)); g.stroke();
       void L;
@@ -167,6 +203,14 @@ export class Highway {
       if (n.type === 'swipe') this._chevron(x, y, w, L.color, n.dir);
       else { const sp = this._sprites[n.lane]; g.drawImage(sp, x - w / 2, y - w / 4, w, w / 2); }
     }
+    // strike bar: a lit line across the highway at the hit point, breathing with the beat
+    { const y = geo.hitY, x0 = edgeX(0, 1), x1 = edgeX(4, 1);
+      g.globalCompositeOperation = 'lighter';
+      const sb = g.createLinearGradient(x0, 0, x1, 0); LANES.forEach((L, i) => sb.addColorStop(i / 3, hexA(L.color, 0.55 + 0.35 * pulse)));
+      g.fillStyle = sb; g.fillRect(x0, y - 2, x1 - x0, 4);
+      const halo = g.createLinearGradient(0, y - geo.padR * 1.3, 0, y + 2); halo.addColorStop(0, 'rgba(255,255,255,0)'); halo.addColorStop(1, `rgba(190,170,255,${0.10 + 0.10 * pulse * fx})`);
+      g.fillStyle = halo; g.fillRect(x0, y - geo.padR * 1.3, x1 - x0, geo.padR * 1.3);
+      g.globalCompositeOperation = 'source-over'; }
     // hit pads
     for (let l = 0; l < 4; l++) {
       const L = LANES[l], x = this.laneX(l, 1), y = geo.hitY, r = geo.padR, p = this.pressed[l], fl = this.flash[l];
@@ -177,23 +221,53 @@ export class Highway {
       g.lineWidth = Math.max(3, r * 0.1); g.strokeStyle = L.color; g.stroke(); g.shadowBlur = 0;
       g.lineWidth = Math.max(4, r * 0.16); g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#fff';
       this._arrow(x, y, r * 0.42, L.dir);
+      if (!opts.reducedMotion && fx > 0.3) { g.lineWidth = 2; g.strokeStyle = hexA(L.color, 0.35 * pulse); g.beginPath(); g.arc(x, y, r * (1.08 + 0.1 * (1 - pulse)), 0, Math.PI * 2); g.stroke(); }
       this.flash[l] = Math.max(0, fl - 0.08);
     }
+    // shockwave rings
+    g.globalCompositeOperation = 'lighter';
+    for (const rg of this.rings) { if (rg.life <= 0) continue; rg.life -= 1 / 60; const k = 1 - Math.max(0, rg.life) / rg.max;
+      const x = this.laneX(rg.lane, 1), y = geo.hitY, r0 = geo.padR * (1 + k * (rg.big ? 0.9 : 0.6));
+      g.lineWidth = Math.max(2, geo.padR * 0.14 * (1 - k)); g.strokeStyle = hexA(rg.big ? '#ffffff' : rg.c, (1 - k) * 0.85 * fx);
+      g.beginPath(); g.arc(x, y, r0, 0, Math.PI * 2); g.stroke();
+      if (rg.big) { g.strokeStyle = hexA(rg.c, (1 - k) * 0.7 * fx); g.lineWidth *= 0.6; g.beginPath(); g.arc(x, y, r0 * 1.12, 0, Math.PI * 2); g.stroke(); } }
+    g.globalCompositeOperation = 'source-over';
     // particles
     g.globalCompositeOperation = 'lighter';
     const dt = 1 / 60;
     for (const p of this.parts) { if (p.life <= 0) continue; p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 700 * dt;
-      g.fillStyle = hexA(p.c, Math.max(0, p.life / p.max)); g.fillRect(p.x - 2, p.y - 2, 4, 4); }
+      const a = Math.max(0, p.life / p.max), sz = 1.5 + 2.5 * a; g.fillStyle = hexA(p.c, a); g.fillRect(p.x - sz / 2, p.y - sz / 2, sz, sz); }
     g.globalCompositeOperation = 'source-over';
-    // judgement
-    if (this.judgeText && now - this.judgeText.t < 0.6) {
-      const a = 1 - (now - this.judgeText.t) / 0.6, j = this.judgeText.j, s = Math.min(W, 520) * 0.13 * (1 + (opts.reducedMotion ? 0 : 0.15 * a));
-      const col = { perfect: ['#ff7ad9', '#ffd6f5'], great: ['#22d3ee', '#cffafe'], good: ['#facc15', '#fef9c3'], miss: ['#94a3b8', '#e2e8f0'] }[j];
-      g.globalAlpha = a; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `italic 900 ${s}px "Space Grotesk",system-ui,sans-serif`;
-      g.shadowColor = col[0]; g.shadowBlur = 24 * fx; g.fillStyle = col[1]; g.fillText(j.toUpperCase(), W / 2, H * 0.47); g.shadowBlur = 0;
-      if (st.combo > 1 && j !== 'miss') { g.font = `800 ${s * 0.62}px "Space Grotesk",system-ui,sans-serif`; g.fillStyle = '#fff'; g.fillText(String(st.combo), W / 2, H * 0.47 + s * 0.85); }
+    // judgement: compact, just above the pads (off the far note path), outlined for contrast
+    if (this.judgeText && now - this.judgeText.t < 0.5) {
+      const a = 1 - (now - this.judgeText.t) / 0.5, j = this.judgeText.j, s = Math.min(W, 520) * 0.085 * (1 + (opts.reducedMotion ? 0 : 0.18 * a * a));
+      const col = { perfect: ['#ff7ad9', '#ffffff', '#ffd6f5'], great: ['#22d3ee', '#ecfeff', '#a5f3fc'], good: ['#facc15', '#fefce8', '#fde68a'], miss: ['#64748b', '#e2e8f0', '#94a3b8'] }[j];
+      const y = geo.hitY - geo.padR * 2.15;
+      g.globalAlpha = Math.min(1, a * 1.6); g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `italic 900 ${s}px "Space Grotesk",system-ui,sans-serif`;
+      g.lineWidth = Math.max(3, s * 0.12); g.strokeStyle = 'rgba(5,3,16,.85)'; g.lineJoin = 'round'; g.strokeText(j.toUpperCase(), geo.cx, y);
+      const tg = g.createLinearGradient(0, y - s / 2, 0, y + s / 2); tg.addColorStop(0, col[1]); tg.addColorStop(1, col[2]);
+      g.shadowColor = col[0]; g.shadowBlur = 18 * fx; g.fillStyle = tg; g.fillText(j.toUpperCase(), geo.cx, y); g.shadowBlur = 0;
+      if (st.combo > 1 && j !== 'miss') { const cs = s * 0.55; g.font = `800 ${cs}px "Space Grotesk",system-ui,sans-serif`; g.strokeText(st.combo + ' COMBO', geo.cx, y + s * 0.78); g.fillStyle = '#fff'; g.fillText(st.combo + ' COMBO', geo.cx, y + s * 0.78); }
       g.globalAlpha = 1;
     }
+    // combo milestones: 25, 50, then every 50
+    { const c = st.combo || 0, ms = c >= 25 && (c === 25 || c % 50 === 0) ? c : 0;
+      if (ms && ms !== this._lastCombo) { this.milestone = { n: ms, t: now }; this._lastCombo = ms; }
+      if (c < this._lastCombo && c < 25) this._lastCombo = 0;
+      const m = this.milestone;
+      if (m && now - m.t < 1.1 && now >= m.t) {
+        const k = (now - m.t) / 1.1, a = k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85, s = Math.min(W, 560) * 0.11 * (opts.reducedMotion ? 1 : 0.85 + 0.25 * Math.min(1, k * 6));
+        const y = geo.topY + (geo.hitY - geo.topY) * 0.16;
+        g.globalAlpha = Math.max(0, a); g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `italic 900 ${s}px "Space Grotesk",system-ui,sans-serif`;
+        const mg = g.createLinearGradient(geo.cx - s * 2, 0, geo.cx + s * 2, 0); mg.addColorStop(0, '#4cc9ff'); mg.addColorStop(0.5, '#ffffff'); mg.addColorStop(1, '#ff5ab4');
+        g.lineWidth = Math.max(3, s * 0.1); g.strokeStyle = 'rgba(5,3,16,.8)'; g.strokeText(m.n + ' COMBO!', geo.cx, y);
+        g.shadowColor = '#e540ff'; g.shadowBlur = 26 * fx; g.fillStyle = mg; g.fillText(m.n + ' COMBO!', geo.cx, y); g.shadowBlur = 0; g.globalAlpha = 1;
+        if (!opts.reducedFlash && k < 0.3) { const eg = g.createLinearGradient(0, 0, W, 0); eg.addColorStop(0, `rgba(76,201,255,${0.22 * (1 - k / 0.3)})`); eg.addColorStop(0.12, 'rgba(0,0,0,0)'); eg.addColorStop(0.88, 'rgba(0,0,0,0)'); eg.addColorStop(1, `rgba(255,90,180,${0.22 * (1 - k / 0.3)})`); g.fillStyle = eg; g.fillRect(0, 0, W, H); }
+      }
+    }
+    // accent frame (TV battle view: the player's colour identity)
+    if (opts.accent) { const ag = g.createLinearGradient(0, 0, 0, H); ag.addColorStop(0, hexA(opts.accent, 0.32)); ag.addColorStop(0.25, hexA(opts.accent, 0)); g.fillStyle = ag; g.fillRect(0, 0, W, H * 0.25);
+      g.strokeStyle = hexA(opts.accent, 0.9); g.lineWidth = 3; g.strokeRect(1.5, 1.5, W - 3, H - 3); }
     // hype bar
     const hb = { w: geo.bw * 0.8, h: 14 }; const hx = geo.cx - hb.w / 2, hy = geo.hypeY;
     g.font = '800 13px "Space Grotesk",system-ui'; g.fillStyle = '#ffd34d'; g.textAlign = 'center'; g.fillText(st.hypeOn ? 'HYPE ×2' : 'HYPE', geo.cx, hy - 10);

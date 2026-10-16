@@ -5,7 +5,7 @@
 import * as S from './store.js';
 import * as D from './data.js';
 import { makeCode, normCode, validCode, seat, liveSnapshot, ROOM_TTL_MS, expired, acceptRoom, tvAudioGate, AUD_TEXT } from './battle.js';
-import { RoomChannel, SharedClock, deviceId, battleResult, battleCreate, battleJoin, battleSession } from './battle-net.js';
+import { RoomChannel, SharedClock, deviceId, battleResult, battleCreate, battleJoin, battleSession, myUserId } from './battle-net.js';
 
 let A = null;                 // app context (injected by app.js)
 /* Measurements for acceptance tests (read by automation; never sent anywhere). wallZero = wall-clock ms at
@@ -28,10 +28,13 @@ async function enter(code) {
   B.shared = new SharedClock();
   B.room = null; B.result = null; B.mySlot = null; B.submitted = false;
   render();
+  const uidP = myUserId();                        // signed-in identity, fetched alongside the clock (never delays joining the room)
   await syncClock();
   B.net = new RoomChannel(code, B.me); B.net.on(onMsg);
   try { await B.net.open(); } catch { B.net._setStatus('offline'); B.net._retry?.(); }   // shown with a Retry button; the lobby never dead-ends
   B.net.send('join', B.me);
+  // announced in the room so the host can reserve this player's seat in the server match (hello/join carry B.me)
+  uidP.then(uid => { if (uid && B.code === code && B.net) { B.me.uid = uid; const mm = B.room?.members.find(m => m.id === B.me.id); if (mm && isHost()) { mm.uid = uid; publish(); } B.net.send('join', B.me); } });
   // nobody answered with a room: this device founds it as player 1 (the TV, if any, is seated as it says hello)
   setTimeout(() => { if (!B.room && B.code === code && B.net) { B.room = { code, host: B.me.id, members: [{ ...B.me, slot: 1 }], track: null, diff: 'normal', tvAudio: true, ready: {}, phase: 'lobby', rev: 1, expires: nowMs() + ROOM_TTL_MS }; seatKnown(); publish(); } }, 1500);
   B.hostTick = setInterval(hostDuty, 2000); B.audTick = setInterval(audDuty, 1000);
@@ -50,7 +53,7 @@ function leave() {
 const isHost = () => B.room?.host === B.me?.id;
 const known = new Map();      // id → {role, name} from hello/join
 function seatKnown() {
-  for (const [id, k] of known) if (!B.room.members.some(m => m.id === id)) { const s = seat(B.room.members, id, k.role); if (s != null) B.room.members.push({ id, role: k.role, name: k.name, slot: s }); }
+  for (const [id, k] of known) if (!B.room.members.some(m => m.id === id)) { const s = seat(B.room.members, id, k.role); if (s != null) B.room.members.push({ id, role: k.role, name: k.name, slot: s, ...(k.uid && k.role === 'player' ? { uid: k.uid } : {}) }); }
 }
 /** host: TV music readiness, now (see tvAudioGate); the state is published for the other player's lobby */
 const seatedTv = r => { const tvs = (r?.members || []).filter(m => m.role === 'tv'); return tvs.find(m => B.net?.online(m.id, 3000)) || tvs[0]; };
@@ -79,7 +82,9 @@ function onMsg(type, p, self = false) {
   if (type === '_status') return render();
   if (p.id === B.me.id && !self) return;
   if (type === 'hello' || type === 'join') {
-    known.set(p.id, { role: p.role === 'tv' ? 'tv' : 'player', name: String(p.name || '').slice(0, 20), aud: p.aud === 1 });
+    const uid = typeof p.uid === 'string' && /^[\w-]{1,64}$/.test(p.uid) ? p.uid : null;
+    known.set(p.id, { role: p.role === 'tv' ? 'tv' : 'player', name: String(p.name || '').slice(0, 20), aud: p.aud === 1, uid: known.get(p.id)?.uid || uid });   // first identity seen for a device sticks
+    if (isHost() && B.room && uid) { const mm = B.room.members.find(m => m.id === p.id && m.role === 'player'); if (mm && !mm.uid) mm.uid = uid; }
     // a TV (re)connecting or reloading: its readiness is unknown until it reports again
     if (p.role === 'tv' && B.aud?.id === p.id) B.aud = null;
     if (isHost()) { seatKnown(); publish(); }
@@ -117,14 +122,16 @@ async function maybeStart() {
   const ch = t.charts[B.room.diff]; if (!ch) return;
   // the server owns the match: create its record first (the host is slot 1); players join it with their own identity.
   // A record created for a start that was then held back is reused for the same song.
-  const key = [B.code, B.room.track, B.room.diff, ch.hash].join('|');
+  const oppUid = ps.find(p => p.id !== B.me.id)?.uid || null;      // reserves seat 2 for exactly this account
+  if (!oppUid || !B.me.uid) return;                // both identities must be known so the server can bind seat 2 (retried each second)
+  const key = [B.code, B.room.track, B.room.diff, ch.hash, oppUid].join('|');
   creating = true; let created = B.created?.key === key ? B.created : null;
-  try { if (!created) { M.creates = (M.creates || 0) + 1; created = B.created = { key, ...(await battleCreate(B.code, B.room.track, B.room.diff, ch.hash)) }; } }
+  try { if (!created) { M.creates = (M.creates || 0) + 1; created = B.created = { key, ...(await battleCreate(B.code, B.room.track, B.room.diff, ch.hash, oppUid)) }; } }
   catch (e) { M.startError = e.message; A.toast('Could not start the match: ' + e.message); if (B.room) { B.room.ready = {}; publish(); } return; }
   finally { creating = false; }
   // re-check everything after the server round trip, immediately before broadcasting the start
   const now = players(B.room);
-  if (!B.room || A.inGame() || !isHost() || B.room.phase !== 'lobby' || [B.code, B.room.track, B.room.diff, ch.hash].join('|') !== key || now.length !== 2 || !now.every(p => B.room.ready[p.id])) return;
+  if (!B.room || A.inGame() || !isHost() || B.room.phase !== 'lobby' || [B.code, B.room.track, B.room.diff, ch.hash, players(B.room).find(p => p.id !== B.me.id)?.uid || null].join('|') !== key || now.length !== 2 || !now.every(p => B.room.ready[p.id])) return;
   if (!hostGate().ok) { M.heldBack = (M.heldBack || 0) + 1; audDuty(); return render(); }
   B.created = null;
   const s = { id: B.me.id, match: 'm' + Date.now().toString(36), matchId: created.matchId, epoch: Math.round(B.shared.now() + 6000), track: B.room.track, diff: B.room.diff, chartHash: ch.hash, tvAudio: !!(B.room.tvAudio && tvIn(B.room)) };
@@ -238,7 +245,7 @@ function render() {
   const status = B.clockErr ? 'Match clock unavailable: ' + B.clockErr : !B.net ? 'Connecting…' : B.net.status === 'offline' ? 'Live connection unavailable' : B.net.status !== 'online' ? 'Reconnecting…' : !r ? 'Joining room…' : !me ? 'Room is full (2 players)' : ps.length < 2 ? 'Waiting for your opponent…' : !r.track ? 'Pick a song' : ps.every(p => r.ready[p.id]) ? (gate.state && gate.state !== 'ready' ? 'Waiting for the TV music: ' + AUD_TEXT[gate.state] + ' — or choose Wired earbuds' : 'Starting…') : 'Both players tap Ready';
   const dot = id => id === B.me.id || B.net?.online(id) ? '<i class="dot on"></i>' : '<i class="dot"></i>';
   el.innerHTML = `<div class="wrapc"><header class="top bar"><a class="ico" href="#/battle" aria-label="Leave room">${A.icon('back')}</a><b class="ttl">LIVE 1V1</b></header>
-    <div class="card bl-code"><div><small>ROOM CODE</small><b>${B.code}</b><small class="x">${A.esc(status)}${B.shared?.errMs != null ? ` · clock ±${Math.round(B.shared.errMs)} ms` : ''}</small></div><canvas id="bQr" width="132" height="132" aria-label="QR code to join"></canvas></div>
+    <div class="card bl-code"><div><small>ROOM CODE</small><b>${B.code}</b><small class="x">${A.esc(status)}${B.shared?.errMs != null ? ` · software clock estimate ±${Math.round(B.shared.errMs)} ms` : ''}</small></div><canvas id="bQr" width="132" height="132" aria-label="QR code to join"></canvas></div>
     ${B.clockErr || B.net?.status === 'offline' ? `<div class="card"><p class="x">The live connection is not available right now. Nothing is lost: retry, or play solo meanwhile.</p><button class="btn primary" id="bRetry" style="width:100%;margin-top:8px">Retry connection</button></div>` : ''}
     <div class="card"><h3>Players</h3>${[1, 2].map(s => { const p = ps.find(x => x.slot === s); return `<div class="bl-p">${p ? dot(p.id) : '<i class="dot"></i>'}<b>P${s}</b> ${p ? A.esc(p.name) + (p.id === B.me.id ? ' (you)' : '') : '<span class="x">open seat — share the code or QR</span>'}${p && r.ready[p.id] ? ' <span class="pill easy">READY</span>' : ''}</div>`; }).join('')}
       ${tv ? `<div class="bl-p">${dot(seatedTv(r).id)}<b>TV</b> connected${gate.state ? ` · <span id="bTvAud" data-state="${gate.state}" class="${gate.state === 'ready' ? '' : 'x'}">${AUD_TEXT[gate.state]}</span>` : ''}</div>` : ''}</div>

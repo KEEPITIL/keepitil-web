@@ -111,12 +111,18 @@ const err = (status, message) => Object.assign(new Error(message), { status });
 let mockCat = null;
 const catalogMock = async () => mockCat ||= await (await fetch('/games/kbeats/data/catalog.json')).json();
 
-export async function battleCreate(roomCode, track, difficulty, chartHash) {
-  if (!RELEASE.mock) return staging('battle_create', { roomCode, track, difficulty, chartHash });
+/** this device's signed-in identity (anonymous guests included); the host reserves the opponent's seat with it */
+export async function myUserId() {
+  if (RELEASE.mock) return mockUid();
+  try { return (await API.session())?.user?.id || null; } catch { return null; }
+}
+export async function battleCreate(roomCode, track, difficulty, chartHash, opponentUser = null) {
+  if (!RELEASE.mock) return staging('battle_create', { roomCode, track, difficulty, chartHash, ...(opponentUser ? { opponentUser } : {}) });
   const id = 'bm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   LSset('mock.bm.' + id, { id, code: roomCode, host: mockUid(), beatmap: track + '|' + difficulty, created: Date.now(), expires: Date.now() + 2 * 3600e3, status: 'open', result: null });
   LSset(`mock.bm.${id}.s1`, { user_id: mockUid(), session_id: null });
-  return { matchId: id, slot: 1, chartHash };
+  if (opponentUser) LSset(`mock.bm.${id}.s2`, { user_id: opponentUser, session_id: null });   // seat 2 reserved for the opponent
+  return { matchId: id, slot: 1, chartHash, reserved: !!opponentUser };
 }
 export async function battleJoin(matchId) {
   if (!RELEASE.mock) return staging('battle_join', { matchId });

@@ -52,7 +52,7 @@ function paintSeats() {
   const ps = players();
   $('#seats').innerHTML = [1, 2].map(s => { const p = ps.find(x => x.slot === s); return `<div><i class="dot ${p && net?.online(p.id) ? 'on' : ''}"></i>P${s} · ${p ? esc(p.name) + (room.ready?.[p.id] ? ' — READY' : '') : 'waiting…'}</div>`; }).join('')
     + (room?.track ? `<div>♪ ${esc(catalog.find(t => t.slug === room.track)?.title || room.track)} · ${esc(room.diff)} · ${room.tvAudio ? 'music on TV' : 'earbuds'}${room.tvAudio && aud?.track === room.track ? ` · <span id="audState" data-state="${audNow()}">${AUD_TEXT[audNow()]}</span>` : ''}</div>` : '')
-    + `<div style="font-size:.6em;color:${clockErr || net?.status === 'offline' ? '#fbbf24' : '#64748b'}">${clockErr ? 'match clock unavailable — retrying' : net?.status === 'offline' ? 'live connection unavailable — retrying' : net?.status || 'connecting'}${shared.errMs != null ? ` · clock ±${Math.round(shared.errMs)} ms` : ''}</div>`;
+    + `<div style="font-size:.6em;color:${clockErr || net?.status === 'offline' ? '#fbbf24' : '#64748b'}">${clockErr ? 'match clock unavailable — retrying' : net?.status === 'offline' ? 'live connection unavailable — retrying' : net?.status || 'connecting'}${shared.errMs != null ? ` · software clock estimate ±${Math.round(shared.errMs)} ms` : ''}</div>`;
   for (const s of [1, 2]) { const p = P[s]; if (p) $('#pf' + s).classList.toggle('gone', !!match && !p.done && !net?.online(p.id)); }
 }
 

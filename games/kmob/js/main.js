@@ -177,6 +177,7 @@
       case 'waveClear': checkMilestones(); RunSave.write(sim); break;
       case 'bossReward': if (!save.paid.includes(a.id)) { save.paid.push(a.id); save.paid = save.paid.slice(-200); bank(a.tokens, a.diamonds, 'boss'); }   // exactly once per boss, even after a reload
         banner('BOSS DEFEATED\n+' + KM.fmtShort(a.gold) + ' GOLD · ' + (a.tokens ? '+' + a.tokens + ' WAR TOKENS' : '+' + a.diamonds + ' DIAMOND'), 2.2); RunSave.write(sim); break;
+      case 'forge': audio.play('upgrade'); KM.haptic(15); break;
       case 'consUse': save.cons[a] = Math.max(0, (save.cons[a] || 0) - 1); persist(); banner(KM.CONSUMABLES[a].name, 1.0); audio.play('c_' + a); break;
       case 'bossCard': save.buffs = JSON.parse(JSON.stringify(sim.buffs)); if (a.id === 'cons') save.cons[a.item] = (save.cons[a.item] || 0) + 1; persist(); break;
       case 'levelUp': banner(KM.PROD[a].name + ' LEVEL ' + b, 0.9); break;
@@ -281,6 +282,7 @@
   function bank(t, d, why) { if (t) save.tokens += t; if (d) save.diamonds += d; persist(); Analytics.track('bank', { tokens: t || 0, diamonds: d || 0, why }); }
   function checkMilestones() { for (const m of KM.MILESTONES) if (sim.wave >= m.wave && !save.titles.includes(m.title)) { save.titles.push(m.title); bank(m.tokens, m.diamonds || 0, 'milestone'); banner(m.title + '\n+' + m.tokens + ' WAR TOKENS', 2.4); audio.play('pb'); } }
   // leaderboard: anonymous best runs — LIFETIME (highest wave ever) and WEEKLY (best run this week); order wave → time → bosses
+  KM.PUBLIC_KEY = Telemetry.key; if (KM.Account) KM.Account.load();   // public anon key (same as leaderboards); account stays dormant while KM.ACCOUNT_ENABLED is false
   const LB = (() => { const BASE = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/', KEY = Telemetry.key;
     const H = { apikey: KEY, Authorization: 'Bearer ' + KEY };
     return { on: Telemetry.on,
@@ -530,7 +532,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=b4100fb31c6f`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=b4100fb31c6f" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=01d76573e2d3`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=01d76573e2d3" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };
@@ -556,6 +558,7 @@
   const choiceBottom = () => { const c = $('choice'); return c.classList.contains('hidden') ? 0 : c.getBoundingClientRect().bottom + 6; };   // landscape popovers open below the supply strip while it is up
   function popUI() { const k = pop.dataset.k; if (!k || pop.classList.contains('hidden')) return;
     const lv = sim.stats.cls[k], max = lv >= KM.CLASS_MAX, A = sim.classInfo(k, lv), B = max ? A : sim.classInfo(k, lv + 1), cost = sim.clsCost(k), arr = (a, b) => fmtStat(a) + (max ? '' : ` <em>→ ${fmtStat(b)}</em>`);
+    if (max) return forgeUI(k);
     pop.innerHTML = `<h4>${KM.PROD[k].name}<small>LV ${lv}${max ? ' · MAX' : ' → ' + (lv + 1)}</small></h4><div class="st"><span>HP</span><b>${arr(A.hp, B.hp)}</b><span>${A.heal ? 'HEAL' : 'DMG'}</span><b>${arr(A.dmg, B.dmg)}</b><span>ARMOR</span><b>${arr(A.arm, B.arm)}</b></div>` +
       (max ? '<button disabled>MAX LEVEL</button>' : `<button ${sim.coins >= cost ? '' : 'disabled'}>UPGRADE ${GOLD_IMG}${KM.fmtShort(cost)}</button>`);
     const bt = pop.querySelector('button'); if (!max) bt.addEventListener('click', e => { e.stopPropagation(); if (sim.levelUp(k)) { audio.play('upgrade'); KM.haptic(15); if (tut === 3) setTip(4); } drawerUI(); popUI(); });
@@ -563,6 +566,13 @@
     if (wide) { pop.style.left = Math.min(innerWidth - 190, card.left) + 'px'; pop.style.top = Math.max(8, card.top - pop.offsetHeight - 8) + 'px'; }
     else { const land = render.layout === 'landscape', lo = land ? Math.max(render.safeTopPx || 8, choiceBottom()) : 8, hi = innerHeight - pop.offsetHeight - (land ? (render.safeBotPx || 0) + 6 : 8);   // landscape: below the HUD row and the supply strip, above the home bar
       pop.style.left = (card.right + 8) + 'px'; pop.style.top = Math.max(lo, Math.min(hi, card.top + card.height / 2 - pop.offsetHeight / 2)) + 'px'; } }
+  // WAR FORGE (Lv10 classes): two Gold tracks with exact before → after numbers; one tap = one purchase (sim.forgeBuy is atomic)
+  function forgeUI(k) { const F = sim.forge[k], A = sim.classInfo(k, KM.CLASS_MAX), heal = A.heal, nx = t => (KM.forgeGain(F[t] + 1) - KM.forgeGain(F[t])) * ((KM.FORGE.pts[t] || {})[k] || 1);
+    const row = (t, label, now) => { const c = sim.forgeCost(k, t), ok = sim.canForge(k, t); return `<div class="st"><span>${label}</span><b>${fmtStat(now)} <em>→ ${fmtStat(now + nx(t))}</em></b><span>FORGED</span><b>×${F[t]}</b></div><button data-ft="${t}" ${ok ? '' : 'disabled'}>${label} ${GOLD_IMG}${KM.fmtShort(c)}${ok ? '' : ' · NEED ' + KM.fmtShort(Math.max(0, c - sim.coins))}</button>`; };
+    pop.innerHTML = `<h4>${KM.PROD[k].name}<small>LV 10 · WAR FORGE</small></h4><div class="st"><span>GOLD</span><b>${KM.fmtShort(Math.floor(sim.coins))}</b><span>HP</span><b>${fmtStat(A.hp)}</b></div>` + (sim.forgeOpen() ? row('a', heal ? 'HEAL' : 'DMG', A.dmg) + row('d', 'ARMOR', A.arm)
+      : `<div class="st"><span>${heal ? 'HEAL' : 'DMG'}</span><b>${fmtStat(A.dmg)}</b><span>ARMOR</span><b>${fmtStat(A.arm)}</b></div><button disabled data-forge-lock>WAR FORGE UNLOCKS AFTER THE FIRST BOSS</button>`);
+    pop.querySelectorAll('[data-ft]').forEach(bt => bt.addEventListener('click', e => { e.stopPropagation(); sim.forgeBuy(k, bt.dataset.ft); drawerUI(); popUI(); }));
+    const card = classes.querySelector(`[data-p="${k}"]`).getBoundingClientRect(); pop.style.left = (DESK_Q.matches ? Math.min(innerWidth - 190, card.left) : card.right + 8) + 'px'; pop.style.top = Math.max(8, Math.min(innerHeight - pop.offsetHeight - 8, DESK_Q.matches ? card.top - pop.offsetHeight - 8 : card.top + card.height / 2 - pop.offsetHeight / 2)) + 'px'; }
   function openPop(k) { closePops(); pop.dataset.k = k; pop.classList.remove('hidden'); popUI(); }
   function closePops() { pop.classList.add('hidden'); pop.dataset.k = ''; $('powers').classList.add('hidden'); $('tankUps').classList.add('hidden'); $('consPop').classList.add('hidden'); }
   classes.querySelectorAll('.cl').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); audio.unlock(); if (state !== 'run' || paused) return; const k = b.dataset.p;
@@ -600,11 +610,12 @@
     titan: '<rect width="64" height="64" rx="10" fill="#14243a"/><circle cx="32" cy="16" r="9" fill="#7fb0ff" stroke="#0a1a3a" stroke-width="2.4"/><path d="M10 60c0-20 9-34 22-34s22 14 22 34z" fill="#3a6dd8" stroke="#0a1a3a" stroke-width="2.6"/><path d="M6 6h10M11 1v10M48 6h10M53 1v10" stroke="#ffd23a" stroke-width="3" stroke-linecap="round"/>',
     barrage: '<rect width="64" height="64" rx="10" fill="#1a2030"/><rect x="10" y="40" width="40" height="14" rx="4" fill="#2f6dff" stroke="#0a1a3a" stroke-width="2.4"/><path d="M26 40V30h12v10" fill="#4f8bff" stroke="#0a1a3a" stroke-width="2.4"/><g stroke="#ffb02e" stroke-width="3" stroke-linecap="round"><path d="M32 28l-10-18M32 28l0-20M32 28l10-18"/></g><circle cx="22" cy="10" r="3" fill="#fff2c0"/><circle cx="32" cy="8" r="3" fill="#fff2c0"/><circle cx="42" cy="10" r="3" fill="#fff2c0"/>',
     fortress: '<rect width="64" height="64" rx="10" fill="#10203a"/><path d="M32 6l20 8v16c0 14-9 23-20 28-11-5-20-14-20-28V14z" fill="#8f9bb0" stroke="#1a2438" stroke-width="3" stroke-linejoin="round"/><path d="M32 14l12 5v11c0 9-5 15-12 18z" fill="#cfd8e8"/>',
+    contract: '<rect width="64" height="64" rx="10" fill="#2a1418"/><path d="M14 10h30l6 6v38H14z" fill="#efe2bf" stroke="#5a3a1a" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 20h22M20 27h22M20 34h14" stroke="#8a6a3a" stroke-width="2.5" stroke-linecap="round"/><circle cx="42" cy="46" r="8" fill="#c8323a" stroke="#5a0a10" stroke-width="2.4"/><path d="M38 46l3 3 5-6" stroke="#ffd23a" stroke-width="2.4" fill="none" stroke-linecap="round"/>',
     rapid: '<rect width="64" height="64" rx="10" fill="#2a2410"/><path d="M8 44h20M12 34h22M8 24h18" stroke="#ffd23a" stroke-width="4" stroke-linecap="round"/><path d="M38 10L26 34h10l-4 20 18-28H40z" fill="#ffe08a" stroke="#6a4a00" stroke-width="2.6" stroke-linejoin="round"/>',
   };
   function consUI(refresh) { const el = $('consPop');
     if (!refresh) el.innerHTML = KM.CONS_IDS.map(id => `<div class="cs" data-id="${id}"><svg viewBox="0 0 64 64" aria-hidden="true">${CONS_ART[id]}</svg><b>${KM.CONSUMABLES[id].name} <span class="n"></span><em>${KM.CONSUMABLES[id].desc}</em></b><button type="button">USE</button></div>`).join('');
-    for (const r of el.children) { const id = r.dataset.id, n = sim.cons[id] || 0, on = id !== 'titan' && sim.cOn(id); r.classList.toggle('on', on); r.querySelector('.n').textContent = '×' + n;
+    for (const r of el.children) { const id = r.dataset.id, n = sim.cons[id] || 0, on = sim.consActive(id); r.classList.toggle('on', on); r.querySelector('.n').textContent = '×' + n;
       const b = r.querySelector('button'); b.textContent = on ? 'ACTIVE' : 'USE'; b.disabled = !sim.canCons(id); }
     if (!refresh) el.querySelectorAll('.cs button').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); if (state !== 'run' || paused) return;   // one press = at most one unit (useCons refuses a second same-wave effect)
       if (sim.useCons(b.parentNode.dataset.id)) { KM.haptic(30); closePops(); } else consUI(true); })); }

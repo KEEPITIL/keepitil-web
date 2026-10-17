@@ -760,6 +760,7 @@
           else if (a === 'mercenary') { this.ring(L.x, L.z - 2.5, 0xffd23a, 7, 0.9); this.burst(L.x, 1, L.z - 3, 50, 0xffd23a, 6, 0.6, 0.7, 3); }   // reinforcements burst out of the tank
           else if (a === 'fortress') { this.ring(L.x, L.z, 0x7fd8ff, 5.5, 1.2); this.ring(L.x, L.z, 0xffffff, 3.2, 0.8); this.burst(L.x, 1.6, L.z, 40, 0x9fe8ff, 4, 0.6, 0.9, -1); }   // the hull hardens: shield flare + repair sparks
           break; }
+        case 'contract': { const L = sim.L; this.ring(L.x, L.z - 2.5, 0xff4a3a, 6, 0.9); this.ring(L.x, L.z - 2.5, 0xffd23a, 3.5, 0.7); this.burst(L.x, 1, L.z - 3, 30, 0xff6a4a, 5, 0.6, 0.7, 3); break; }   // MERCENARY CONTRACT: crimson seal ring (distinct from the gold Mercenary Call)
         case 'volley': { if (this.pfx) this.pfx.volley(a, b); for (let k = 0; k < 18; k++) { const x = a + (Math.random() - 0.5) * 6, z = b + (Math.random() - 0.5) * 6; this.emit(x, 9 + Math.random() * 3, z + 2, 0, -22, -3, 0xffe9b0, 0.5, 0.45, 0); }   // a rain of arrows onto the zone
           this.ring(a, b, 0xffd27a, 4.5, 0.45); this.burst(a, 0.4, b, 16, 0xc8a070, 4, 0.5, 0.5, 3); break; }
         case 'impact': if (sim.src === 2 && a !== 21) { const sc = this.shellSc || 1.5; this.emit(b, 0.9, c, 0, 0.4, 0, 0xfff1c0, 1.6 * sc, 0.12, 0); this.burst(b, 0.6, c, 12, 0xffc060, 5.5, 0.55, 0.4, 4); this.ring(b, c, 0xffd08a, 1.4 * sc, 0.3); }   // cannon hit: a bright flash + ring wherever a shell lands

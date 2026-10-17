@@ -1,13 +1,15 @@
 /* KMOB audio — fully synthesized WebAudio (no asset downloads). Every category is voice-limited so 500 soldiers
    never produce 500 overlapping sounds; music is a low, slowly-intensifying loop tied to battle pressure. */
 (function (G) {
-  const KM = G.KM, PRIORITY = { lhit: 1, boom: 1, cannon: 1, elite: 1, warn: 1, death: 1, pb: 1, tap: 1, upgrade: 1, build: 1, pw_lb: 1, pw_as: 1, pw_rain: 1, pw_el: 1, pw_mc: 1, pw_fo: 1, c_warcry: 1, c_titan: 1, c_barrage: 1, c_fortress: 1, c_rapid: 1 };   // + tank powers: never dropped by the voice budget   // tank damage, explosions, the cannon, boss / UI cues
+  const KM = G.KM, PRIORITY = { lhit: 1, boom: 1, cannon: 1, elite: 1, warn: 1, death: 1, pb: 1, tap: 1, upgrade: 1, build: 1, pw_lb: 1, pw_as: 1, pw_rain: 1, pw_el: 1, pw_mc: 1, pw_fo: 1, c_warcry: 1, c_titan: 1, c_barrage: 1, c_fortress: 1, c_rapid: 1, c_contract: 1 };   // + tank powers: never dropped by the voice budget   // tank damage, explosions, the cannon, boss / UI cues
   class Audio {
     constructor() { this.ctx = null; this.on = true; this.music = true; this.last = {}; this.intensity = 0; }
     unlock() {
-      if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+      // iOS leaves the context 'interrupted' after a call / Siri / alarm; any non-running state is resumed unless the game holds it paused
+      if (this.ctx) { if (this.ctx.state !== 'running' && this.ctx.state !== 'closed' && !this.held) this.ctx.resume().catch(() => {}); return; }
       const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
       const c = this.ctx = new AC();
+      c.onstatechange = () => { if (c.state === 'interrupted' || (c.state === 'suspended' && !this.held && !document.hidden)) setTimeout(() => { if (!this.held && !document.hidden && c.state !== 'running') c.resume().catch(() => {}); }, 400); };
       this.master = c.createGain(); this.master.gain.value = 0.8;
       const comp = c.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4; this.master.connect(comp); comp.connect(c.destination);
       this.sfx = c.createGain(); this.sfx.gain.value = this.on ? 0.9 : 0; this.sfx.connect(this.master);
@@ -19,13 +21,26 @@
       const bed = (type, freq, q) => { const src = c.createBufferSource(); src.buffer = this.noise; src.loop = true; const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q; const g = c.createGain(); g.gain.value = 0; src.connect(f); f.connect(g); g.connect(this.sfx); src.start(); return g; };
       this.beds = { march: bed('lowpass', 260, 0.7), clash: bed('bandpass', 1900, 0.8), roar: bed('bandpass', 520, 0.5) };
       this.coinCombo = 0; this.coinT = 0;
+      // dense combat one-shots pre-rendered once (pure synthesis, no assets) and replayed with pitch variation:
+      // 2 nodes per sound instead of 5-13, so big fights stay under iOS's audio rate limits
+      const SR = c.sampleRate, mk = (sec, fn) => { const n = Math.floor(SR * sec), b = c.createBuffer(1, n, SR), d = b.getChannelData(0); fn(d, n, SR); let pk = 0; for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(d[i])); if (pk) for (let i = 0; i < n; i++) d[i] /= pk; return b; };
+      const noise = () => Math.random() * 2 - 1;
+      this.buf = {
+        steel: mk(0.4, (d, n, S) => { const P = [1, 2.76, 5.4, 8.93]; for (let i = 0; i < n; i++) { const s = i / S; let v = 0; for (let j = 0; j < 4; j++) v += Math.sin(2 * Math.PI * 1000 * P[j] * s) * Math.exp(-s / (0.05 / (1 + j * 0.6))) / (1 + j * 1.4); d[i] = v; } let h = 0; for (let i = 0; i < Math.min(n, S * 0.03); i++) { const x = noise(); d[i] += (x - h) * 0.25 * (1 - i / (S * 0.03)); h = x; } }),
+        cannon: mk(0.75, (d, n, S) => { let lp = 0, lp2 = 0, ph = 0, hp = 0; for (let i = 0; i < n; i++) { const s = i / S, f = 95 * Math.pow(38 / 95, Math.min(1, s / 0.38)); ph += 2 * Math.PI * f / S; const x = noise(); lp += (x - lp) * 0.07; lp2 += (x - lp2) * 0.035;
+          d[i] = Math.sin(ph) * Math.exp(-s / 0.12) * 1.1 + lp * 2.2 * Math.exp(-s / 0.1) + lp2 * 1.2 * Math.exp(-Math.max(0, s - 0.06) / 0.18) * (s > 0.06) + (s < 0.05 ? (x - hp) * 0.35 * (1 - s / 0.05) : 0); hp = x; } }),
+        hit: mk(0.12, (d, n, S) => { let a = 0, b = 0, ph = 0; for (let i = 0; i < n; i++) { const s = i / S, x = noise(); a += (x - a) * 0.15; b += (a - b) * 0.05; ph += 2 * Math.PI * (140 * Math.pow(90 / 140, Math.min(1, s / 0.06))) / S;
+          d[i] = (a - b) * 3 * Math.exp(-s / 0.015) + Math.sin(ph) * 0.5 * Math.exp(-s / 0.02); } }),
+      };
     }
     setSound(v) { this.on = !!v; if (this.sfx) this.sfx.gain.value = v ? 0.9 : 0; }
     setMusic(v) { this.music = !!v; if (this.mus) this.mus.gain.value = v ? 0.32 : 0; }
-    suspend(s) { if (!this.ctx) return; s ? this.ctx.suspend() : this.ctx.resume(); }
+    suspend(s) { this.held = !!s; if (!this.ctx) return; (s ? this.ctx.suspend() : this.ctx.resume()).catch(() => {}); }
     gate(k, ms) { const n = performance.now(); if (n - (this.last[k] || 0) < ms) return false; if (!PRIORITY[k] && this.ctx && !this.voice(k === 'boom' || k === 'cannon' ? 0.45 : 0.22)) return false; this.last[k] = n; return true; }   // the voice budget is only spent by sounds that will play; priority sounds never wait for it
     // pan helper: route a one-shot through a stereo panner (pseudo-spatial for towers, bosses, launcher)
-    out(pan) { if (pan == null || !this.ctx.createStereoPanner) return this.sfx; const p = this.ctx.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); p.connect(this.sfx); setTimeout(() => p.disconnect(), 1500); return p; }
+    // nine persistent panners (pan quantised to 0.25) instead of a new node + timer per positioned sound
+    out(pan) { if (pan == null || !this.ctx.createStereoPanner) return this.sfx; const i = Math.round((Math.max(-1, Math.min(1, pan)) + 1) * 4), P = this.pans || (this.pans = []);
+      if (!P[i]) { this.made = (this.made || 0) + 1; const p = P[i] = this.ctx.createStereoPanner(); p.pan.value = i / 4 - 1; p.connect(this.sfx); } return P[i]; }
     // combat intensity 0..1 → four bands (light / moderate / heavy / massive clash), smoothed so beds never pump
     crowd(level, marching) {
       if (!this.ctx || !this.beds) return; const t = this.ctx.currentTime, band = level < 0.08 ? 0 : level < 0.3 ? 1 : level < 0.6 ? 2 : level < 0.85 ? 3 : 4;
@@ -33,32 +48,34 @@
       g(this.beds.march, 0.05 + Math.min(1, marching) * 0.07); g(this.beds.clash, [0, 0.03, 0.06, 0.09, 0.12][band]); g(this.beds.roar, [0, 0, 0.03, 0.06, 0.1][band]); this.band = band;
     }
     tone(f, t, dur, type, vol, f2, dest) {
-      const c = this.ctx, o = c.createOscillator(), g = c.createGain(); o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+      this.made = (this.made || 0) + 2; const c = this.ctx, o = c.createOscillator(), g = c.createGain(); o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       o.connect(g); g.connect(dest || this.sfx); o.start(t); o.stop(t + dur + 0.02);
     }
     hiss(t, dur, freq, q, vol, type, dest) {
-      const c = this.ctx, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); s.buffer = this.noise; f.type = type || 'bandpass'; f.frequency.value = freq; f.Q.value = q || 1;
+      this.made = (this.made || 0) + 3; const c = this.ctx, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); s.buffer = this.noise; f.type = type || 'bandpass'; f.frequency.value = freq; f.Q.value = q || 1;
       g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); s.connect(f); f.connect(g); g.connect(dest || this.sfx); s.start(t, Math.random() * 0.3); s.stop(t + dur + 0.02);
     }
+    shot(name, t, rate, vol, dest) { const b = this.buf && this.buf[name]; if (!b) return false; this.made = (this.made || 0) + 2; const c = this.ctx, s = c.createBufferSource(), g = c.createGain();
+      s.buffer = b; s.playbackRate.value = rate; g.gain.value = vol; s.connect(g); g.connect(dest || this.sfx); s.start(t); s.stop(t + b.duration / rate + 0.02); return true; }
     // metallic strike: a few inharmonic partials (struck steel, not a beep) + a short bright noise transient; base pitch varies per hit
-    metal(t, base, vol, dest) { const P = [1, 2.76, 5.4, 8.93]; for (let i = 0; i < P.length; i++) this.tone(base * P[i] * (1 + (Math.random() - 0.5) * 0.02), t, 0.22 / (1 + i * 0.6), i ? 'sine' : 'triangle', vol / (1 + i * 1.4), 0, dest); this.hiss(t, 0.03, 5200 + Math.random() * 1800, 3, vol * 1.2, 'bandpass', dest); }
+    metal(t, base, vol, dest) { if (this.shot('steel', t, base / 1000 * (1 + (Math.random() - 0.5) * 0.02), vol * 1.4, dest)) return; const P = [1, 2.76, 5.4, 8.93]; for (let i = 0; i < P.length; i++) this.tone(base * P[i] * (1 + (Math.random() - 0.5) * 0.02), t, 0.22 / (1 + i * 0.6), i ? 'sine' : 'triangle', vol / (1 + i * 1.4), 0, dest); this.hiss(t, 0.03, 5200 + Math.random() * 1800, 3, vol * 1.2, 'bandpass', dest); }
     // global voice budget: dense battles never stack dozens of one-shots
     voice(n) { const now = this.ctx.currentTime; this.vq = (this.vq || []).filter(e => e > now); if (this.vq.length > 22) return false; this.vq.push(now + (n || 0.25)); return true; }
     play(k, v, pan) {
-      if (!this.ctx || !this.on) return; const t = this.ctx.currentTime, r = 1 + (Math.random() - 0.5) * 0.12, D = pan == null ? undefined : this.out(pan), pick = a => a[Math.floor(Math.random() * a.length)];
+      if (!this.ctx || !this.on) return; const m0 = this.made || 0; const t = this.ctx.currentTime, r = 1 + (Math.random() - 0.5) * 0.12, D = pan == null ? undefined : this.out(pan), pick = a => a[Math.floor(Math.random() * a.length)];
       switch (k) {
         case 'deploy': if (this.gate(k, 70)) { this.tone(180 * r, t, 0.09, 'sine', 0.12, 70); this.hiss(t, 0.05, 1800, 1, 0.05); } break;
-        case 'hit': if (this.gate(k, 45)) { this.hiss(t, 0.05, 700 * r + Math.random() * 500, 1.5, 0.1); this.tone(140 * r, t, 0.06, 'sine', 0.05, 90); } break;   // body blow: dull slap + low knock
+        case 'hit': if (this.gate(k, 45) && !this.shot('hit', t, r * (0.85 + Math.random() * 0.4), 0.11)) { this.hiss(t, 0.05, 700 * r + Math.random() * 500, 1.5, 0.1); this.tone(140 * r, t, 0.06, 'sine', 0.05, 90); } break;   // body blow: dull slap + low knock
         case 'clang': if (this.gate(k, 90)) this.metal(t + Math.random() * 0.012, pick([820, 940, 1060, 1180]) * r, 0.05); break;   // sword on sword / shield: struck steel, four voicings
         case 'kill': if (this.gate(k, 55)) { this.hiss(t, 0.12, 420 * r, 1.2, 0.07, 'lowpass'); this.tone(pick([180, 200, 225]) * r, t, 0.14, 'sawtooth', 0.025, 110); } break;   // a short grunt + fall, not a beep
         case 'coin': if (this.gate(k, 60)) { const now = performance.now(); this.coinCombo = now - this.coinT < 500 ? Math.min(12, this.coinCombo + 1) : 0; this.coinT = now; const cp = Math.pow(2, this.coinCombo / 12); this.tone(1320 * cp, t, 0.07, 'sine', 0.07); this.tone(1980 * cp, t + 0.05, 0.12, 'sine', 0.06); } break;
         case 'bow': if (this.gate(k, 80)) { this.tone(pick([196, 220, 247]) * r, t, 0.09, 'triangle', 0.05, 120); this.hiss(t, 0.03, 3600, 2, 0.05, 'highpass'); this.hiss(t + 0.02, 0.16, 1500 * r, 0.8, 0.035, 'bandpass'); } break;   // string twang + release + arrow whoosh
-        case 'cannon': if (this.gate(k, 120)) { this.hiss(t, 0.05, 2600, 0.7, 0.16, 'highpass', D); this.tone(95 * r, t, 0.38, 'sine', 0.3, 38, D); this.hiss(t, 0.42, 520, 0.7, 0.18, 'lowpass', D); this.hiss(t + 0.06, 0.6, 260, 0.5, 0.06, 'lowpass', D); } break;   // report crack + body + rolling tail
+        case 'cannon': if (this.gate(k, 120)) { if (!this.shot('cannon', t, r, 0.3, D)) { this.hiss(t, 0.05, 2600, 0.7, 0.16, 'highpass', D); this.tone(95 * r, t, 0.38, 'sine', 0.3, 38, D); this.hiss(t, 0.42, 520, 0.7, 0.18, 'lowpass', D); this.hiss(t + 0.06, 0.6, 260, 0.5, 0.06, 'lowpass', D); } } break;   // report crack + body + rolling tail
         case 'snipe': if (this.gate(k, 200)) { this.tone(2400, t, 0.08, 'square', 0.05, 600, D); this.hiss(t, 0.18, 3000, 2, 0.12, 'bandpass', D); } break;
         case 'tower': if (this.gate(k, 140)) this.hiss(t, 0.07, 2200, 3, 0.05, 'highpass', D); break;
         case 'build': [392, 523, 659].forEach((f, i) => this.tone(f, t + i * 0.07, 0.2, 'triangle', 0.1, 0, D)); this.hiss(t, 0.3, 800, 0.6, 0.12, 'lowpass', D); break;
-        case 'shieldhit': if (this.gate(k, 110)) { this.metal(t, pick([520, 600, 680]) * r, 0.035); this.tone(120 * r, t, 0.08, 'sine', 0.06, 80); } break;   // pike / blade on a wooden-rimmed shield: lower ring + wood knock
+        case 'shieldhit': if (this.gate(k, 110)) { if (!this.shot('steel', t, pick([520, 600, 680]) * r / 1000, 0.05)) this.metal(t, pick([520, 600, 680]) * r, 0.035); this.shot('hit', t, 0.6 * r, 0.05); } break;   // pike / blade on a wooden-rimmed shield: lower ring + wood knock
         case 'thud': if (this.gate(k, 140)) { this.tone(pick([70, 78, 86]) * r, t, 0.22, 'sine', 0.22, 38, D); this.hiss(t, 0.16, 360, 0.8, 0.14, 'lowpass', D); this.hiss(t + 0.03, 0.22, 1200, 0.6, 0.04, 'bandpass', D); } break;   // giant hammer: deep body + earth + debris
         case 'boom': if (this.gate(k, 100)) { this.hiss(t, 0.06, 1800, 0.6, 0.14, 'highpass'); this.tone(66 * r, t, 0.6, 'sine', 0.35, 28); this.hiss(t, 0.7, 520, 0.6, 0.25, 'lowpass'); } break;
         case 'frost': if (this.gate(k, 140)) { this.tone(2200, t, 0.25, 'sine', 0.04, 3400); this.hiss(t, 0.2, 6000, 4, 0.04); } break;
@@ -82,8 +99,10 @@
         case 'c_barrage': for (let q = 0; q < 5; q++) this.tone(180 - q * 12, t + q * 0.07, 0.08, 'square', 0.07, 90, D); this.metal(t, 1600, 0.05); break;   // TANK BARRAGE: rapid clatter
         case 'c_fortress': this.metal(t, 520, 0.08); this.metal(t + 0.12, 690, 0.07); this.tone(130, t, 0.7, 'triangle', 0.12, 130, D); break;   // IRON FORTRESS: anvil strikes + low hold
         case 'c_rapid': [880, 1175, 1568, 2093].forEach((f, i) => this.tone(f, t + i * 0.035, 0.08, 'square', 0.03, f, D)); this.hiss(t, 0.25, 6000, 1.5, 0.05, 'highpass', D); break;   // RAPID FIRE: fast up-arpeggio
+        case 'c_contract': this.metal(t, 1180, 0.06); [220, 277, 330, 440].forEach((f, i) => this.tone(f, t + 0.08 + i * 0.07, 0.3, 'sawtooth', 0.06, f, D)); [0.1, 0.3].forEach(d => this.tone(70, t + d, 0.14, 'sine', 0.22, 45, D)); break;   // MERCENARY CONTRACT: seal strike + hired-blade fanfare + two drum hits
         case 'heal': if (this.gate(k, 260)) { const f = pick([880, 988, 1108]) * r; this.tone(f, t, 0.35, 'sine', 0.025); this.tone(f * 1.5, t + 0.05, 0.4, 'sine', 0.018); this.hiss(t, 0.3, 7000, 1, 0.012, 'highpass'); } break;   // Mizard heal: soft sparkle chime
       }
+      if ((this.made || 0) > m0) { const P = this.perKey || (this.perKey = {}); P[k] = (P[k] || 0) + (this.made - m0); }
     }
     // gentle procedural war-drum loop; intensity 0..1 adds layers instead of restarting
     tick(intensity, playing) {

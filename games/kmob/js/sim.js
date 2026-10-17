@@ -42,6 +42,7 @@
       this.t = 0; this.front = 0; this.halt = false; this.engaged = false; this.clearT = 0; this.alive = true; this.deathReason = ''; this.ended = false;
       this.stats = KM.applySkins(KM.baseStats(), this.skins);
       this.buffs = { cls: JSON.parse(JSON.stringify((opts.buffs && opts.buffs.cls) || {})), tank: Object.assign({}, opts.buffs && opts.buffs.tank) };   // permanent boss-card buffs (saved by the shell)
+      this.forge = KM.emptyForge(); this.forgeSpent = 0; this.contractUntil = 0;   // War Forge resets on a new run; restore() brings it back on resume
       for (const k in this.buffs.tank) if (k in KM.TANK_BUFF_STATS) this.stats[k] *= KM.buffMul(this.buffs.tank[k]);
       this.mods = KM.loadoutMods(opts.loadout); const PK = this.mods.perks, TK = this.mods.tank;   // Phase C: class equipment + seasonal skins + perks
       this.stats.magnet *= 1 + 0.1 * (PK.magnet || 0); this.stats.maxHp += 10 * (PK.plating || 0);
@@ -57,6 +58,11 @@
       this.form = null; this.guardN = 0; this.gOn = 0; this.gDrop();   // DEFEND formation + tank guard state starts fresh (main.js reuses one Sim after the attract run)
       this.spawnCounter = 0; this.lastHit = 99; this.danger = 0; this.killsByKind = {};
       this.debugLog = []; this.diff = KM.difficulty(0);
+      // TRY AGAIN defect (owner report 2026-10-15): these were lazily created on first use and survived reset(), so a restarted run met
+      // enemies at the previous run's levels (eLv / bossLv) and sector state with a brand-new army. Every new run starts them clean.
+      this.eLv = {}; this.eWave = {}; this.bossLv = 0; this.bossSeen = -1; this.sector2 = null; this.lastHard = false; this.sectorIntro = false;
+      this.emergencies = 0; this.powersUsed = {}; this.stepN = 0; this.botT = 0; this.atCap = 0; this.mi = 0; this.tankEra = 0; this.laneOn = 0; this.lanePen = 0; this.fireEl = null; this.lastShot = 0;
+      this.armyX = 0; this.armyZ = 0; this.cvx = 0; this.cvz = 0; this.spawnTag = null; this.gWas = 0; this.rofK = null; this.steadyK = null;
     }
 
     get distance() { return -this.front; }
@@ -148,10 +154,23 @@
     // ---------- energy-free consumables (inventory, activated only by the player) ----------
     cOn(id) { return this.cfx[id] === this.wave; }                                                    // a one-wave effect lasts for the wave it was used in
     dmgFx() { return this.cOn('warcry') ? 1.25 : 1; } spdFx() { return this.cOn('rapid') ? 1.25 : 1; } armFx() { return this.cOn('fortress') ? 1.25 : 1; }
-    canCons(id) { return this.alive && KM.CONSUMABLES[id] && (this.cons[id] || 0) > 0 && (id === 'titan' || !this.cOn(id)); }   // the same one-wave effect never stacks; different ones may run together
+    canCons(id) { return this.alive && KM.CONSUMABLES[id] && (this.cons[id] || 0) > 0 && (id === 'contract' ? !this.consActive(id) : id === 'titan' || !this.cOn(id)); }
+    consActive(id) { return id === 'contract' ? this.contractUntil > this.t : id !== 'titan' && this.cOn(id); }
+    // WAR FORGE: points owned on a track (diminishing), the next price, and an atomic purchase (one call = one deduction = one point)
+    forgeK(k, t) { const f = this.forge && this.forge[k]; return f ? KM.forgeGain(f[t]) * ((KM.FORGE.pts[t] || {})[k] || 1) : 0; }
+    forgeArm(i) { if (this.merc[i]) return 0; const k = KM.CLASS_OF[this.kind[i]]; return k ? this.forgeK(k, 'd') : 0; }
+    forgeCost(k, t) { return KM.forgeCost(this.forge[k][t]); }
+    forgeOpen() { return (this.bossesKilled || 0) >= 1; }   // owner 2026-10-15: War Forge unlocks once the first boss has fallen (cheap Lv10 Looters must not drain the Gold the first boss needs)
+    canForge(k, t) { return this.alive && this.forgeOpen() && !!(this.forge[k] && (t === 'a' || t === 'd')) && this.stats.cls[k] >= KM.CLASS_MAX && this.forge[k][t] < KM.FORGE.maxN && this.coins >= this.forgeCost(k, t); }
+    forgeBuy(k, t) { if (!this.canForge(k, t)) return false; this.coins -= this.forgeCost(k, t); this.forge[k][t]++; this.forgeSpent = (this.forgeSpent || 0) + KM.forgeCost(this.forge[k][t] - 1); this.emit('forge', k, t, this.forge[k][t]); return true; }
+    // MERCENARY CONTRACT item: 20 CAP-exempt mercenaries for 30 s; consumed only when at least one actually joins
+    signContract() { const L = this.L, C = KM.CONTRACT; let k = 0;
+      for (; k < C.n; k++) { const j = this.makeSoldier('melee', Math.max(-W.LANE + 1, Math.min(W.LANE - 1, L.x + (this.rng() - 0.5) * 10)), L.z - 1.5 - this.rng() * 3, 0.0001); if (j < 0) break; this.pts -= this.pt[j]; this.pt[j] = 0; this.merc[j] = this.t + C.dur; }
+      if (k) { this.mercs = (this.mercs || 0) + k; this.contractUntil = this.t + C.dur; this.emit('contract', k); } return k; }   // the same one-wave effect never stacks; different ones may run together
     useCons(id) {
       if (!this.canCons(id)) return false; this.cons[id]--;
-      if (id === 'titan') this.summonTitan(); else { this.cfx[id] = this.wave; if (id === 'barrage') this.L.bcd = 0; }
+      if (id === 'contract') { if (!this.signContract()) { this.cons[id]++; return false; } }   // nothing joined (unit pool full): the item is kept
+      else if (id === 'titan') this.summonTitan(); else { this.cfx[id] = this.wave; if (id === 'barrage') this.L.bcd = 0; }
       this.emit('consUse', id); return true;
     }
     summonTitan() {                                                                                   // TITAN GIANT: 2× size / HP / damage of the current Giant level, no CAP, fights until it falls
@@ -337,7 +356,7 @@
     hurt(i, amt, fromTeam, srcZ, crit) {
       if (this.st[i] !== ALIVE) return;
       let a = this.arm[i];
-      if (this.team[i] === 0) a = (a + this.stats.armor) * this.armFx();
+      if (this.team[i] === 0) a = (a + this.stats.armor) * this.armFx() * KM.ALLY_ARM + this.forgeArm(i);   // allies: 25 % of every armour source, then War Forge points
       let dmg = amt * (12 / (12 + a)); if (this.team[i] === 0 && this.fortT > 0) dmg *= 0.7;
       const d = this.def(i);
       if (this.team[i] === 0 && this.posture === 1 && srcZ < this.z[i]) { const n = this.shieldWall(i); if (n) dmg *= n === 2 ? 0.65 : 0.78; }   // overlapping shields
@@ -390,7 +409,7 @@
         this.emit('power', id, { z: z0 - 7 }); }
       else if (id === 'mercenary') { const n = KM.MERC_TIERS[this.mercTier - 1].n; let k = 0;   // MERCENARY CALL tier (500 / 1,000 / 1,500 energy)
         for (; k < n; k++) { const j = this.makeSoldier('melee', Math.max(-W.LANE + 1, Math.min(W.LANE - 1, L.x + (this.rng() - 0.5) * 10)), L.z - 1.5 - this.rng() * 3, 0.0001); if (j < 0) break; this.pts -= this.pt[j]; this.pt[j] = 0; this.merc[j] = this.t + 30; }   // beyond the 300 points, for 30 s
-        this.mercs = k; this.emit('power', id, { n: k }); }
+        this.mercs = (this.mercs || 0) + k; this.emit('power', id, { n: k }); }   // add, never overwrite: contract mercenaries keep their own expiry
       else if (id === 'recruits') { const R_ = KM.RECRUITS(this.mods.perks.recruits); let k = 0;   // RECRUITS: Gold Elites beyond the 300 CAP, until they fall; the living total never exceeds the tier's count
         for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i] && this.evo[i] === 3) k++; const want = Math.max(0, R_.n - k); let m = 0;
         for (; m < want; m++) { const j = this.makeSoldier('elite', Math.max(-W.LANE + 1, Math.min(W.LANE - 1, L.x + (this.rng() - 0.5) * 12)), L.z - 2 - this.rng() * 4, 0.0001); if (j < 0) break; this.pts -= this.pt[j]; this.pt[j] = 0; this.merc[j] = 1e12; this.evo[j] = 3; }
@@ -538,7 +557,7 @@
       if (b) { M.hp *= 1 + (b.hp || 0); M.dmg *= 1 + (M.heal ? b.heal || 0 : b.dmg || 0); M.arm += b.armor || 0; }
       M.hp *= KM.buffMul(f.hp); M.dmg *= KM.buffMul(f.dmg); M.arm *= KM.buffMul(f.arm); return M; }   // class level × Armory skin
     // per-unit numbers of a class at level lv (HUD: Lv · DMG, upgrade preview): hp, attack damage (Mizard: heal per beam), armour
-    classInfo(key, lv) { const M = this.clsM(key, lv); return { hp: M.hp, dmg: M.dmg, arm: M.arm, heal: M.heal, cost: KM.deployCost(key, lv) }; }
+    classInfo(key, lv) { const M = this.clsM(key, lv); return { hp: M.hp, dmg: M.dmg + this.forgeK(key, 'a'), arm: M.arm * KM.ALLY_ARM + this.forgeK(key, 'd'), heal: M.heal, cost: KM.deployCost(key, lv) }; }
     clsCost(key) { const lv = this.stats.cls[key]; return lv >= KM.CLASS_MAX ? Infinity : KM.clsUpCost(key, lv); }
     levelUp(key) {
       const S = this.stats, lv = S.cls[key]; if (!this.alive || lv >= KM.CLASS_MAX || this.coins < KM.clsUpCost(key, lv)) return false;
@@ -1190,13 +1209,13 @@
         this.ctg[i] = best; }
       const p = this.ctg[i];
       if (p >= 0 && this.st[p] === ALIVE && Math.hypot(this.x[p] - x, this.z[p] - z) <= R) { this.at[i] -= dt; this.yaw[i] = Math.atan2(this.x[p] - x, this.z[p] - z);
-        if (this.at[i] <= 0) { this.at[i] = this.cd[i]; const h = Math.min(this.mhp[p] - this.hp[p], S.medHeal); this.hp[p] += h; this.healed += h; this.swing[i] = 1; this.emit('beam', i, p, h); } }
+        if (this.at[i] <= 0) { this.at[i] = this.cd[i]; const h = Math.min(this.mhp[p] - this.hp[p], S.medHeal + this.forgeK('mizard', 'a')); this.hp[p] += h; this.healed += h; this.swing[i] = 1; this.emit('beam', i, p, h); } }
       // area burst: energy fills on a fixed cadence (deterministic), then heals the most wounded allies around the beam target
       this.mt[i] -= dt;
       if (this.mt[i] <= 0) { this.mt[i] = Math.max(6, 12 - 0.4 * (lv - 1)); const cx = p >= 0 && this.st[p] === ALIVE ? this.x[p] : x, cz = p >= 0 && this.st[p] === ALIVE ? this.z[p] : z - 4, Rb = 3.5 + 0.45 * (lv - 1), N = 5 + (lv - 1), list = [];
         for (let j = 0; j < this.hi; j++) if (this.st[j] === ALIVE && !this.team[j] && this.hp[j] < this.mhp[j] && Math.hypot(this.x[j] - cx, this.z[j] - cz) <= Rb) list.push(j);
         list.sort((a, b) => this.hp[a] / this.mhp[a] - this.hp[b] / this.mhp[b]); let n = 0;
-        for (const j of list.slice(0, N)) { const h = Math.min(this.mhp[j] - this.hp[j], S.medHeal * 2.5); this.hp[j] += h; this.healed += h; n++; }
+        for (const j of list.slice(0, N)) { const h = Math.min(this.mhp[j] - this.hp[j], (S.medHeal + this.forgeK('mizard', 'a')) * 2.5); this.hp[j] += h; this.healed += h; n++; }
         this.emit('healBurst', cx, cz, Rb, n); }
       const dx = gx - x, dz = gz - z, d = Math.sqrt(dx * dx + dz * dz) || 1e-3, s2 = d > 0.3 ? sp * Math.min(1, d / 1.4) : 0;
       this.cvx = dx / d * s2; this.cvz = dz / d * s2 + (inSlot && !this.halt ? -W.ADV : 0); if (!(p >= 0)) this.yaw[i] = d > 0.5 ? Math.atan2(dx, dz) : Math.PI;   // a slotted Mizard marches with the formation
@@ -1300,7 +1319,7 @@
       if (tg === -2 && !this.alive) return;
       const tx = tg === -2 ? this.L.x : this.x[tg], tz = tg === -2 ? this.L.z : this.z[tg];
       let dmg = this.dmg[i], crit = false;
-      if (team === 0) { const ck = KM.CLASS_OF[this.kind[i]]; dmg = (this.evo[i] === 2 ? this.dmg[i] : this.merc[i] ? S.dmg * d.dmg : this.clsM(ck, S.cls[ck]).dmg) * this.dmgFx(); if (this.rng() < S.crit) { dmg *= 2; crit = true; } }
+      if (team === 0) { const ck = KM.CLASS_OF[this.kind[i]]; dmg = (this.evo[i] === 2 ? this.dmg[i] : this.merc[i] ? S.dmg * d.dmg : this.clsM(ck, S.cls[ck]).dmg + (this.merc[i] ? 0 : this.forgeK(ck, 'a'))) * this.dmgFx(); if (this.rng() < S.crit) { dmg *= 2; crit = true; } }
       if (d.he) { // shaman heals nearby enemies, then casts
         for (let j = 0; j < this.hi; j++) if (this.st[j] === ALIVE && this.team[j] === 1 && j !== i) { const dx = this.x[j] - this.x[i], dz = this.z[j] - this.z[i]; if (dx * dx + dz * dz < 16) this.hp[j] = Math.min(this.mhp[j], this.hp[j] + d.he * this.cd[i] * (this.poisT[j] > 0 ? 1 - this.healRed[j] : 1)); }   // POISON: less healing
         this.emit('heal', i);
@@ -1414,7 +1433,7 @@
     // ---------- one-slot autosave: the meaningful run state (not every body). The army is rebuilt by kind around the tank. ----------
     snapshot() {
       const L = this.L, keys = ['t', 'front', 'coins', 'coinsTotal', 'kills', 'peakArmy', 'upgrades', 'budget', 'overflow', 'bossN', 'sector', 'seenSector', 'wave', 'wState', 'energy', 'bossesKilled', 'warTokens', 'pboost', 'eLv', 'eWave', 'bossLv', 'bossSeen', 'diamondsWon', 'consWon', 'buffs', 'emergencies', 'posture', 'prod', 'auto', 'plan', 'planRR',
-        'dmgBy', 'healed', 'shAbsorbed', 'colCoins', 'colLost', 'killsByKind', 'spawnCounter', 'charge'], o = { v: 1, seed: this.seed };
+        'dmgBy', 'healed', 'shAbsorbed', 'colCoins', 'colLost', 'killsByKind', 'spawnCounter', 'charge', 'forge', 'forgeSpent'], o = { v: 1, seed: this.seed };
       for (const k of keys) o[k] = this[k];
       o.stats = this.stats; o.L = { x: L.x, tx: L.tx, hp: L.hp, sh: L.sh, shMax: L.shMax, shDown: L.shDown };
       o.army = new Array(KM.FRIEND.length).fill(0); for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i] && !this.merc[i]) { const k = this.kind[i] - 32; if (k >= 0 && k < o.army.length) o.army[k]++; }   // temporary mercenaries are never saved as soldiers
@@ -1424,7 +1443,7 @@
       if (!o || o.v !== 1 || !(o.t > 0) || !o.stats || !Array.isArray(o.army)) throw new Error('bad snapshot');
       this.reset(Object.assign({}, this.opts, { seed: (o.seed ^ Math.floor(o.t * 977)) >>> 0 }));   // keep the account loadout (powers, skins, equipment, perks, buffs) across a resume
       const { stats, L, army, towers } = o; delete o.stats; delete o.L; delete o.army; delete o.towers; delete o.v; delete o.seed;
-      Object.assign(this.stats, stats); for (const k in o) if (k in this || k === 'auto') this[k] = o[k]; this.charge = Object.assign({ collector: 0, range: 0, melee: 0, elite: 0, giant: 0 }, this.charge); this.plan = KM.validPlan(this.plan); this.planRR = (this.planRR >>> 0) % KM.PROD_ORDER.length;
+      Object.assign(this.stats, stats); for (const k in o) if (k in this || k === 'auto') this[k] = o[k]; this.charge = Object.assign({ collector: 0, range: 0, melee: 0, elite: 0, giant: 0 }, this.charge); this.plan = KM.validPlan(this.plan); this.forge = KM.validForge(this.forge); this.forgeSpent = Number.isFinite(this.forgeSpent) && this.forgeSpent > 0 ? this.forgeSpent : 0; if (!(Number.isFinite(this.coins) && this.coins >= 0)) this.coins = 0; this.planRR = (this.planRR >>> 0) % KM.PROD_ORDER.length;
       if (this.wave && this.wState === 1) this.wave -= 1; this.wState = 0; this.wGap = 2.5; this.choice = null; Object.assign(this.L, L); this.L.z = this.front; this.diff = KM.difficulty(this.t);
       void towers;   // support vehicles from older saves are not restored: the command tank is the only tank
       const S = this.stats; let n = 0;

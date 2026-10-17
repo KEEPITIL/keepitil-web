@@ -122,7 +122,19 @@
     barrage:  { name: 'TANK BARRAGE', desc: 'Auto-targeting barrage weapon, 1 wave' },
     fortress: { name: 'IRON FORTRESS', desc: '+25% armour, soldiers + tank, 1 wave' },
     rapid:    { name: 'RAPID FIRE',   desc: '+25% attack speed, soldiers + tank, 1 wave' },
+    contract: { name: 'MERCENARY CONTRACT', desc: '20 mercenaries join for 30 s (no CAP, no energy)' },
   };
+  KM.CONTRACT = { n: 20, dur: 30 };   // one purchased contract at a time; separate from the MERCENARY CALL power
+  // LATE-GAME BALANCE (owner 2026-10-15): allied soldiers keep 25 % of their armour (every source, applied once at mitigation; the tank is separate)
+  KM.ALLY_ARM = 0.25;
+  // WAR FORGE: in-run Gold sink after a class reaches Lv10. Two tracks per class (a: attack / Mizard heal, d: armour), priced per track.
+  // Purchase n (1-based) adds 1 / (1 + (n-1)/DECAY) points: +1 first, slowly fading, never capped but never runaway (no compounding).
+  KM.FORGE = { base: 100000, step: 25000, decay: 15, maxN: 10000,
+    pts: { a: { collector: 1, range: 1, melee: 1, mizard: 1, elite: 1, giant: 1 }, d: { collector: 1, range: 1, melee: 1, mizard: 1, elite: 1, giant: 1 } } };   // points per purchase by class (owner spec: +1 everywhere)
+  KM.forgeCost = n => KM.FORGE.base + KM.FORGE.step * Math.max(0, n | 0);   // price of the next purchase when n are already owned
+  KM.forgeGain = n => { let g = 0; n = Math.max(0, Math.min(KM.FORGE.maxN, n | 0)); for (let k = 0; k < n; k++) g += 1 / (1 + k / KM.FORGE.decay); return g; };
+  KM.emptyForge = () => Object.fromEntries(KM.PROD_ORDER.map(k => [k, { a: 0, d: 0 }]));
+  KM.validForge = o => { const f = KM.emptyForge(); if (o && typeof o === 'object') for (const k of KM.PROD_ORDER) for (const t of ['a', 'd']) { const v = o[k] && o[k][t]; if (Number.isFinite(v) && v > 0) f[k][t] = Math.min(KM.FORGE.maxN, Math.floor(v)); } return f; };
   KM.CONS_IDS = Object.keys(KM.CONSUMABLES);
   KM.BUFF_ATTRS = ['hp', 'dmg', 'arm'];
   KM.TANK_BUFF_STATS = { tankDmg: 'CANNON DAMAGE', tankRate: 'FIRE RATE', tankRange: 'CANNON RANGE', maxHp: 'TANK HP' };   // continuous stats only: no fractional shells / missiles
@@ -141,7 +153,7 @@
   KM.FRIEND.forEach((e, i) => { e.id = 32 + i; });
   KM.FRIEND_BY = Object.fromEntries(KM.FRIEND.map(f => [f.k, f]));
   // Six player classes. Gold pays for deployment and for each class's own level track (no shared price inflation).
-  KM.BUILD = '2026.10.13-oneurl';   // reported with telemetry; bump on every public deploy
+  KM.BUILD = '2026.10.17-balance-audio';   // reported with telemetry; bump on every public deploy
   KM.ARMY_CAP = 300;   // army POINTS (never grows); LOCKED cost per soldier is fixed by class (evolution never changes it)
   // OWNER-APPROVED class table (2026-10-11): Lv1 deploy Gold, CAP points, Lv1 HP / DMG (Mizard: HEAL), per-level gains, Gold price INTO Lv2..Lv10
   // (Melee / Mizard Lv8 = 11,500 is intentional) and the armour GAINED at each level 1..10 (cumulative).
@@ -365,21 +377,21 @@
   // ---------- Meta economy: GOLD (in run) · WAR TOKENS (earned, permanent) · DIAMONDS (premium accelerator) ----------
   // ARMORY: one starter skin per class + tank skins. Each = unique attire + a small bounded specialisation; all earnable with War Tokens.
   KM.SKINS = [
-    { id: 'col_prospector', cls: 'collector', name: 'Prospector', color: '#e6b43a', bonus: { carry: 0.10, speed: 0.05 }, desc: '+10% carry · +5% speed', tokens: 10, diamonds: 50 },
-    { id: 'rng_falcon',     cls: 'range',     name: 'Falcon Corps', color: '#3fae5a', bonus: { range: 0.06, rof: 0.05 }, desc: '+6% range · +5% fire rate', tokens: 12, diamonds: 60 },
-    { id: 'mel_ironguard',  cls: 'melee',     name: 'Ironguard', color: '#8f9bb0', bonus: { armor: 1, dmg: 0.05 }, desc: '+1 armour · +5% attack', tokens: 12, diamonds: 60 },
-    { id: 'eli_crimson',    cls: 'elite',     name: 'Crimson Guard', color: '#c8323a', bonus: { dmg: 0.08, armor: 1 }, desc: '+8% attack · +1 armour', tokens: 14, diamonds: 70 },
-    { id: 'miz_aurora',     cls: 'mizard',    name: 'Aurora', color: '#3fd0c8', bonus: { healR: 0.15, heal: 0.08 }, desc: '+15% heal radius · +8% heal', tokens: 14, diamonds: 70 },
-    { id: 'gia_titanborn',  cls: 'giant',     name: 'Titanborn', color: '#b07a3a', bonus: { hp: 0.12, steady: 0.3 }, desc: '+12% HP · knockback resist', tokens: 16, diamonds: 80 },
+    { id: 'col_prospector', cls: 'collector', name: 'Prospector', color: '#e6b43a', bonus: { carry: 0.10, speed: 0.05 }, desc: '+10% carry · +5% speed', tokens: 10, diamonds: 4 },
+    { id: 'rng_falcon',     cls: 'range',     name: 'Falcon Corps', color: '#3fae5a', bonus: { range: 0.06, rof: 0.05 }, desc: '+6% range · +5% fire rate', tokens: 12, diamonds: 4 },
+    { id: 'mel_ironguard',  cls: 'melee',     name: 'Ironguard', color: '#8f9bb0', bonus: { armor: 1, dmg: 0.05 }, desc: '+1 armour · +5% attack', tokens: 12, diamonds: 4 },
+    { id: 'eli_crimson',    cls: 'elite',     name: 'Crimson Guard', color: '#c8323a', bonus: { dmg: 0.08, armor: 1 }, desc: '+8% attack · +1 armour', tokens: 14, diamonds: 5 },
+    { id: 'miz_aurora',     cls: 'mizard',    name: 'Aurora', color: '#3fd0c8', bonus: { healR: 0.15, heal: 0.08 }, desc: '+15% heal radius · +8% heal', tokens: 14, diamonds: 5 },
+    { id: 'gia_titanborn',  cls: 'giant',     name: 'Titanborn', color: '#b07a3a', bonus: { hp: 0.12, steady: 0.3 }, desc: '+12% HP · knockback resist', tokens: 16, diamonds: 6 },
     { id: 'skin_royal',     cls: 'tank', name: 'Royal Blue', color: '#2f6dff', trim: '#f2c14e', bonus: {}, desc: 'Standard command vehicle', tokens: 0, diamonds: 0 },
-    { id: 'skin_emerald',   cls: 'tank', name: 'Emerald', color: '#18a86b', trim: '#f2c14e', bonus: { tankRof: 0.05 }, desc: '+5% tank fire rate', tokens: 8, diamonds: 40 },
-    { id: 'skin_ember',     cls: 'tank', name: 'Ember', color: '#e0632a', trim: '#2b2b33', bonus: { tankDmg: 0.05 }, desc: '+5% tank damage', tokens: 10, diamonds: 50 },
-    { id: 'skin_midnight',  cls: 'tank', name: 'Midnight', color: '#3b2f86', trim: '#9ff2ff', bonus: { tankRange: 0.10 }, desc: '+10% tank range', tokens: 12, diamonds: 60 },
-    { id: 'skin_gold',      cls: 'tank', name: 'Gilded', color: '#e8b52e', trim: '#fff4c2', bonus: { shield: 0.08 }, desc: '+8% force field', tokens: 18, diamonds: 90 },
+    { id: 'skin_emerald',   cls: 'tank', name: 'Emerald', color: '#18a86b', trim: '#f2c14e', bonus: { tankRof: 0.05 }, desc: '+5% tank fire rate', tokens: 8, diamonds: 3 },
+    { id: 'skin_ember',     cls: 'tank', name: 'Ember', color: '#e0632a', trim: '#2b2b33', bonus: { tankDmg: 0.05 }, desc: '+5% tank damage', tokens: 10, diamonds: 4 },
+    { id: 'skin_midnight',  cls: 'tank', name: 'Midnight', color: '#3b2f86', trim: '#9ff2ff', bonus: { tankRange: 0.10 }, desc: '+10% tank range', tokens: 12, diamonds: 4 },
+    { id: 'skin_gold',      cls: 'tank', name: 'Gilded', color: '#e8b52e', trim: '#fff4c2', bonus: { shield: 0.08 }, desc: '+8% force field', tokens: 18, diamonds: 6 },
   ];
   KM.SKIN_BY = Object.fromEntries(KM.SKINS.map(k => [k.id, k]));
   KM.SKIN_CLASSES = ['collector', 'range', 'melee', 'elite', 'mizard', 'giant', 'tank'];
-  KM.powerCost = lv => ({ tokens: 3 + 2 * lv, diamonds: 15 + 10 * lv });   // POWERS tab: permanent level 0…10, +10% each
+  KM.powerCost = lv => ({ tokens: 3 + 2 * lv, diamonds: Math.ceil((3 + 2 * lv) / 3) });   // one shop-wide rate: 1 Diamond = 3 War Tokens (rounded up)   // POWERS tab: permanent level 0…10, +10% each
   KM.POWER_MAX = 10;
   KM.BUNDLES = [   // CURRENCY tab: architecture only — prices are set once earning-rate telemetry exists
     { id: 'd_small', name: 'Diamond Pouch', diamonds: 100, price: null }, { id: 'd_mid', name: 'Diamond Chest', diamonds: 550, price: null }, { id: 'd_big', name: 'Diamond Vault', diamonds: 1200, price: null },

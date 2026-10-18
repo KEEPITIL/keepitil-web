@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#1d6fd8">
+<title>Traffic Pop — KEEPITIL</title>
+<meta name="description" content="Traffic Pop: clear the jam, park smart and load matching passengers. A free puzzle game by KEEPITIL.">
+<link rel="stylesheet" href="style.css?v=f39245ee48">
+</head>
+<body>
+<main id="app">
+  <section id="map" class="screen">
+    <h1 class="logo"><span>Traffic</span><span>Pop</span></h1>
+    <p class="tag">Clear the traffic · Park smart · Match the passengers</p>
+    <button class="big" id="play">PLAY</button>
+    <div id="levels" class="levels"></div>
+    <p class="legal">A free KEEPITIL game · no ads · progress saved on this device</p>
+  </section>
+
+  <section id="game" class="screen hidden">
+    <header class="hud">
+      <div class="pill"><small>LEVEL</small><b id="lvl">1</b></div>
+      <div class="pill wide"><small>PASSENGERS <span id="goal">0 / 0</span></small><div class="meter"><i id="bar"></i></div></div>
+      <div class="pill"><small>MOVES</small><b id="moves">0</b></div>
+      <button class="pill icon" id="snd" aria-label="Sound">🔊</button>
+    </header>
+    <div class="docks">
+      <div class="dock" id="dockA" aria-live="polite"></div>
+      <div class="dock" id="dockB" aria-live="polite"></div>
+    </div>
+    <div class="parking">
+      <div class="park-title" id="parkCount">PARKING 0 / 6</div>
+      <div class="slots" id="slots"></div>
+    </div>
+    <div id="board" class="board"></div>
+    <nav class="tools">
+      <button id="hint">💡 Hint</button><button id="undo">↶ Undo</button><button id="restart">⟳ Restart</button><button id="home">☰ Levels</button>
+    </nav>
+  </section>
+
+  <div id="overlay" class="overlay hidden"><div class="card" id="ovBody"></div></div>
+  <div id="toast" class="toast" role="status"></div>
+</main>
+<script src="app.js?v=f39245ee48"></script>
+</body>
+</html>

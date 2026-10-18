@@ -1,0 +1,1 @@
+window.KB_PREVIEW_CFG = {"url":"https://fvxifgzxtdzgdhgbtrxo.supabase.co","anon":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2eGlmZ3p4dGR6Z2RoZ2J0cnhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyNjM5ODIsImV4cCI6MjEwNzgzOTk4Mn0.Px-XwR0Xyigz5vwVV5oSnSvKs7_tcZMcuxWrzLGN2dg"};

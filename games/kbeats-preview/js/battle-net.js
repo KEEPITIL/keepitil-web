@@ -7,7 +7,7 @@ import * as API from './api.js';
 import { RELEASE } from './data.js';
 import { PROTO, msg, validMsg, clockSample, estimateDelta, perfAt } from './battle.js';
 
-const STAGING_FN = API.SUPA_URL + '/functions/v1/kbeats-api-staging';
+/* battle ops go through API.call: the same invite, config fail-closed and invite-required handling as every other call */
 
 /** Stable per-tab device id: survives a reload (rejoin), differs between tabs/devices. */
 export function deviceId() {
@@ -15,12 +15,7 @@ export function deviceId() {
   catch { return 'd' + Math.random().toString(36).slice(2, 10); }
 }
 
-async function staging(op, body = {}, auth = true) {
-  let token = API.SUPA_ANON; if (auth) { const s = await API.session(); if (s) token = s.access_token; }
-  const r = await fetch(STAGING_FN, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: API.SUPA_ANON, Authorization: 'Bearer ' + token }, body: JSON.stringify({ op, ...body }) });
-  const j = await r.json().catch(() => ({})); if (!r.ok) throw Object.assign(new Error(j.error || `HTTP ${r.status}`), { status: r.status });
-  return j;
-}
+const staging = (op, body = {}, auth = true) => API.call(op, body, { auth, staging: true });
 
 /* ── shared clock ─────────────────────────────────────────────────────── */
 export class SharedClock {

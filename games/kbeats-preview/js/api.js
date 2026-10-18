@@ -8,11 +8,21 @@ const PROD_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
 /* Private preview (/kbeats-preview/): a SEPARATE Supabase project (its own database, logins and storage), named
    in /games/kbeats-preview/preview-config.js. Every call goes there, with the tester's invite code, which that
    server checks. Only song audio comes from production's public, read-only audio_url (no login, no writes). */
-const PV = /\/kbeats-preview\//.test(globalThis.location?.pathname || '') ? globalThis.KB_PREVIEW_CFG || null : null;
-export const PREVIEW_BACKEND = !!PV;
-export const SUPA_URL = PV ? PV.url : PROD_URL;
-export const SUPA_ANON = PV ? PV.anon : PROD_ANON;
-const FN = SUPA_URL + (PV ? '/functions/v1/kbeats-api-staging' : '/functions/v1/kbeats-api');
+/* Fails CLOSED: under /kbeats-preview/ a missing, malformed or production config never falls back to production.
+   Every call then throws before any network request and the page shows a configuration error instead. */
+export const PREVIEW_PATH = /\/kbeats-preview\//.test(globalThis.location?.pathname || '');
+export function previewConfig(cfg) {
+  const ok = cfg && typeof cfg === 'object' && typeof cfg.url === 'string' && typeof cfg.anon === 'string' && cfg.anon.length > 20
+    && /^https:\/\/[a-z0-9]{20}\.supabase\.co$/.test(cfg.url) && cfg.url !== PROD_URL;
+  return ok ? { url: cfg.url, anon: cfg.anon } : null;
+}
+const PV = PREVIEW_PATH ? previewConfig(globalThis.KB_PREVIEW_CFG) : null;
+export const PREVIEW_BACKEND = PREVIEW_PATH;
+export const PREVIEW_CONFIG_ERROR = PREVIEW_PATH && !PV;
+const BLOCKED = () => { globalThis.dispatchEvent?.(new Event('kb-preview-config-error')); return Object.assign(new Error('preview is not configured'), { status: 0, previewConfig: true }); };
+export const SUPA_URL = PREVIEW_PATH ? (PV ? PV.url : '') : PROD_URL;
+export const SUPA_ANON = PREVIEW_PATH ? (PV ? PV.anon : '') : PROD_ANON;
+const FN = SUPA_URL + (PREVIEW_PATH ? '/functions/v1/kbeats-api-staging' : '/functions/v1/kbeats-api');
 export const STAGING_FN = SUPA_URL + '/functions/v1/kbeats-api-staging';
 const INVITE_KEY = 'kb.preview.invite';
 export const previewInvite = () => { try { return localStorage.getItem(INVITE_KEY) || ''; } catch { return ''; } };
@@ -21,6 +31,7 @@ export const setPreviewInvite = v => { try { v ? localStorage.setItem(INVITE_KEY
 let sbPromise = null;
 export function supabase() {
   if (sbPromise) return sbPromise;
+  if (PREVIEW_CONFIG_ERROR) return (sbPromise = Promise.reject(BLOCKED()));
   sbPromise = new Promise((res, rej) => {
     if (window.supabase?.createClient) return res(window.supabase.createClient(SUPA_URL, SUPA_ANON));
     const s = document.createElement('script'); s.src = '/games/kbeats-preview/vendor/supabase-js.min.js';
@@ -43,13 +54,14 @@ export async function session({ guest = true } = {}) {
 }
 
 export async function call(op, body = {}, { auth = true, timeoutMs = 20000, staging = false } = {}) {
+  if (PREVIEW_CONFIG_ERROR) throw BLOCKED();
   let token = SUPA_ANON;
   if (auth) { const s = await session(); if (s) token = s.access_token; }
   const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), timeoutMs);
   try {
-    const r = await fetch(staging ? STAGING_FN : FN, { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/json', apikey: SUPA_ANON, Authorization: 'Bearer ' + token }, body: JSON.stringify({ op, ...body, ...(PV ? { invite: previewInvite() } : {}) }) });
+    const r = await fetch(staging ? STAGING_FN : FN, { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/json', apikey: SUPA_ANON, Authorization: 'Bearer ' + token }, body: JSON.stringify({ op, ...body, ...(PREVIEW_PATH ? { invite: previewInvite() } : {}) }) });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) { const e = new Error(j.error || `HTTP ${r.status}`); e.status = r.status; if (PV && j.error === 'invite required') globalThis.dispatchEvent?.(new Event('kb-invite-required')); throw e; }
+    if (!r.ok) { const e = new Error(j.error || `HTTP ${r.status}`); e.status = r.status; if (PREVIEW_PATH && j.error === 'invite required') globalThis.dispatchEvent?.(new Event('kb-invite-required')); throw e; }
     return j;
   } finally { clearTimeout(tm); }
 }
@@ -96,6 +108,7 @@ export async function uploadSigned(bucket, path, token, file) {
 
 /* Preview only: song audio straight from production's public read-only op (no login, so no account is created there). */
 export async function prodAudioUrl(track) {
+  if (PREVIEW_CONFIG_ERROR) throw BLOCKED();
   const r = await fetch(PROD_URL + '/functions/v1/kbeats-api', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: PROD_ANON, Authorization: 'Bearer ' + PROD_ANON }, body: JSON.stringify({ op: 'audio_url', track }) });
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`); return j;
 }

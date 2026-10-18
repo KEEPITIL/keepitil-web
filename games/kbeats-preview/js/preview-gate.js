@@ -1,6 +1,6 @@
 /* Private preview: asks for the invite code (checked by the preview server, never here) and stores it on
    this device. Shown on first visit and whenever the server answers "invite required". */
-import { PREVIEW_BACKEND, previewInvite, setPreviewInvite } from './api.js';
+import { PREVIEW_BACKEND, PREVIEW_CONFIG_ERROR, previewInvite, setPreviewInvite } from './api.js';
 
 function ask(msg) {
   if (document.getElementById('pvgate')) return;
@@ -13,7 +13,17 @@ function ask(msg) {
   d.querySelector('form').onsubmit = e => { e.preventDefault(); const v = d.querySelector('input').value.trim(); if (v) { setPreviewInvite(v); location.reload(); } };
   document.body.appendChild(d); d.querySelector('input').focus();
 }
-if (PREVIEW_BACKEND) {
+function configError() {
+  if (document.getElementById('pvcfg')) return;
+  const d = document.createElement('div'); d.id = 'pvcfg'; d.setAttribute('role', 'alert');
+  d.style.cssText = 'position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:#05030f;font-family:system-ui;color:#fff;padding:16px;text-align:center';
+  d.innerHTML = '<div style="max-width:420px"><b style="font-size:20px">KBEATS · Private preview unavailable</b><p style="color:#c4c1e6">The preview configuration is missing or invalid, so nothing was loaded. Please tell the KBEATS team.</p></div>';
+  (document.body || document.documentElement).appendChild(d);
+}
+if (PREVIEW_CONFIG_ERROR) {
+  if (document.body) configError(); else addEventListener('DOMContentLoaded', configError);
+  addEventListener('kb-preview-config-error', configError);
+} else if (PREVIEW_BACKEND) {
   if (!previewInvite()) ask('Enter the invite code you were given to play.');
   addEventListener('kb-invite-required', () => { setPreviewInvite(''); ask('That invite code was not accepted. Please enter it again.'); });
 }

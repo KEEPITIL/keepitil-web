@@ -1,0 +1,7 @@
+TRAFFIC POP — changelog (newest first)
+
+2026-10-18  first public web release
+- 60 Journey levels, each proven solvable by the solver under the real parking and dock rules
+- Tap vehicles whose arrow path is clear; 6 parking slots; two passenger docks with NOW / NEXT forecasts
+- Hint, Undo, Restart, 3-star results, level map, progress saved on this device
+- Colour + shape markers for colour-blind players; reduced-motion support; sound + vibration

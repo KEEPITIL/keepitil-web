@@ -9,7 +9,7 @@
   const store = () => { try { return G.localStorage; } catch (e) { return null; } };
   const anon = () => KM.PUBLIC_KEY || '';
   const Account = {
-    session: null, wallet: null, status: 'signed-out',   // signed-out · code-sent · signed-in · offline · error
+    session: null, wallet: null, status: 'signed-out', mode: 'live',   // 'test' = Apple Sandbox / Stripe test mode balance (never mixed with live)   // signed-out · code-sent · signed-in · offline · error
     load() { try { const s = JSON.parse(store().getItem(SKEY) || 'null'); if (s && s.access_token && s.refresh_token && s.user && s.user.id) this.session = s; } catch (e) { this.session = null; }
       this.status = this.session ? 'signed-in' : 'signed-out'; return this; },
     save() { try { if (this.session) store().setItem(SKEY, JSON.stringify(this.session)); else store().removeItem(SKEY); } catch (e) { /* private mode */ } },
@@ -27,7 +27,7 @@
       if (s.expires_at - 60 > Date.now() / 1000) return s.access_token;
       try { this.adopt(await this.call('/auth/v1/token?grant_type=refresh_token', { refresh_token: s.refresh_token })); return this.session.access_token; }
       catch (e) { if (e.status === 400 || e.status === 401) this.signOut(); else this.status = 'offline'; return null; } },
-    async wallet_(body) { const t = await this.token(); if (!t) throw new Error('sign in required'); return this.call('/functions/v1/kmob-wallet', body, t); },
+    async wallet_(body) { const t = await this.token(); if (!t) throw new Error('sign in required'); return this.call('/functions/v1/kmob-wallet', Object.assign({ mode: this.mode }, body), t); },
     // server balance is authoritative for PURCHASED currency; the local save keeps earned currency as before
     async refreshWallet() { try { const w = await this.wallet_({ action: 'balance' }); if (!Number.isInteger(w.diamonds) || !Number.isInteger(w.tokens) || w.diamonds < 0 || w.tokens < 0) throw new Error('bad wallet'); this.wallet = w; this.status = 'signed-in'; return w; }
       catch (e) { if (this.session) this.status = 'offline'; throw e; } },
@@ -35,6 +35,9 @@
     // finish() ONLY after this resolves — so a charge can never be lost; an unfinished transaction is re-delivered at launch.
     async creditApple(signedTransaction) { const w = await this.wallet_({ action: 'apple_credit', signedTransaction }); this.wallet = { diamonds: w.diamonds, tokens: w.tokens }; return w; },
     async spend(currency, amount, key, ref) { const w = await this.wallet_({ action: 'spend', currency, amount, key, ref }); this.wallet = { diamonds: w.diamonds, tokens: w.tokens }; return w; },
+    // in-app account deletion (App Store 5.1.1(v)); Sign in with Apple players pass a fresh authorizationCode so Apple's token is revoked
+    async deleteAccount(appleAuthorizationCode) { const r = await this.wallet_({ action: 'delete_account', confirm: 'DELETE', appleAuthorizationCode: appleAuthorizationCode || undefined });
+      this.signOut(); return r; },
     signOut() { this.session = null; this.wallet = null; this.pending = null; this.status = 'signed-out'; this.save(); },
   };
   KM.Account = Account;

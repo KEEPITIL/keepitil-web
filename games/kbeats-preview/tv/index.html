@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex,nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>KBeats TV — Live 1v1</title>
+<link rel="icon" href="/games/kbeats-preview/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/games/kbeats-preview/kb.css">
+<style>
+  html,body{margin:0;height:100%;background:#05030c;color:#fff;overflow:hidden;font-family:"Space Grotesk",system-ui,sans-serif}
+  /* TV-safe area: 5% overscan margin on every side */
+  .safe{position:absolute;inset:5vh 5vw}
+  #lobby{display:flex;align-items:center;justify-content:center;gap:6vw;height:100%}
+  #lobby .code{font-size:clamp(48px,9vw,140px);font-weight:900;letter-spacing:.16em}
+  #lobby small{display:block;color:#a5a3c4;font-size:clamp(14px,1.6vw,26px)}
+  #qr{width:clamp(180px,26vh,360px);height:clamp(180px,26vh,360px);background:#fff;border-radius:14px}
+  .seats{margin-top:3vh;font-size:clamp(16px,2vw,32px)}.seats div{padding:.3em 0}.dot{display:inline-block;width:.6em;height:.6em;border-radius:50%;background:#475569;margin-right:.4em}.dot.on{background:#22e07a}
+  #arena{display:none;height:100%;flex-direction:column}
+  #arena.on{display:flex}
+  .bar{display:flex;align-items:center;justify-content:center;gap:2vw;height:7vh;font-size:clamp(14px,1.8vw,30px)}
+  .bar .t{font-weight:800}.prog{width:24vw;height:6px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}.prog i{display:block;height:100%;background:linear-gradient(90deg,#22d3ee,#e540ff)}
+  .fields{flex:1;display:flex;gap:1.5vw;min-height:0}
+  .pf{flex:1;position:relative;min-width:0}
+  .pf canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:12px}
+  .pf .hd{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;padding:1vh 1.2vw;font-size:clamp(14px,1.7vw,30px);z-index:2;text-shadow:0 2px 8px #000}
+  .pf .hd b{font-size:1.5em}.pf .st{color:#cbd5e1}
+  .pf.lead .hd .nm::after{content:" 👑"}
+  .pf .off{position:absolute;inset:auto 0 45% 0;text-align:center;font-weight:900;font-size:clamp(18px,2.4vw,40px);color:#fbbf24;z-index:2;display:none}
+  .pf.gone .off{display:block}
+  #count{position:absolute;inset:0;display:grid;place-items:center;font-size:20vh;font-weight:900;pointer-events:none;text-shadow:0 0 40px #e540ff}
+  #res{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(5,3,12,.86);z-index:5;flex-direction:column;gap:2vh;font-size:clamp(16px,2vw,34px);text-align:center}
+  #res.on{display:flex}#res h1{font-size:clamp(40px,7vw,120px);margin:0;color:#facc15}
+  #res table{border-collapse:collapse}#res td,#res th{padding:.3em .8em;border-bottom:1px solid rgba(255,255,255,.15)}
+  #unlock{position:absolute;inset:0;display:grid;place-items:center;background:rgba(5,3,12,.9);z-index:9}
+  #unlock button{font-size:clamp(18px,2.4vw,40px);padding:.6em 1.4em}
+  .stamp{position:absolute;right:1vw;bottom:1vh;font-size:12px;color:#64748b;z-index:3}
+  /* ── launch identity (shared tokens from kb.css) ── */
+  #lobby .code{background:linear-gradient(90deg,#fff,#c4b5fd 60%,#ff4fd8);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 24px rgba(124,92,255,.5))}
+  #qr{box-shadow:0 0 0 6px rgba(255,255,255,.06),0 20px 60px rgba(124,92,255,.35)}
+  .bar{gap:1.6vw}.bar .t{font-size:1.15em;letter-spacing:.01em}
+  .prog{height:8px;border-radius:999px}.prog i{background:linear-gradient(90deg,var(--p1),var(--accent) 50%,var(--p2))}
+  .pf canvas{border-radius:18px}
+  .pf .hd{padding:1.2vh 1.4vw;align-items:flex-start;text-shadow:0 2px 10px #000,0 0 3px #000;background:linear-gradient(180deg,rgba(5,3,14,.72),rgba(5,3,14,0));border-radius:18px 18px 0 0}
+  .pf .hd .nm{font-weight:900;font-size:1.15em;letter-spacing:.02em}
+  .pf .hd b.sc{font-size:2.1em;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+  #pf1 .hd .nm,#pf1 .hd .sc{color:#fff}#pf1 .hd .nm{color:var(--p1)}
+  #pf2 .hd .nm{color:var(--p2)}
+  #pf1.lead .hd .sc{text-shadow:0 0 22px var(--p1-glow)}#pf2.lead .hd .sc{text-shadow:0 0 22px var(--p2-glow)}
+  #count{color:transparent;background:linear-gradient(180deg,#fff,#c4b5fd 55%,#ff4fd8);-webkit-background-clip:text;background-clip:text;text-shadow:none;filter:drop-shadow(0 0 40px rgba(124,92,255,.9));font-style:italic;font-size:26vh}
+  #count.tick{animation:kb-count .9s cubic-bezier(.2,.9,.3,1.2)}
+  @keyframes kb-count{0%{transform:scale(1.9);opacity:0}25%{transform:scale(1);opacity:1}80%{opacity:1}100%{transform:scale(.85);opacity:0}}
+  #res{background:radial-gradient(60% 60% at 50% 40%,rgba(124,92,255,.25),transparent 70%),rgba(5,3,12,.9)}
+  #res h1{font-style:italic;background:linear-gradient(180deg,#fff7c2,#facc15 55%,#f97316);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 30px rgba(250,204,21,.45))}
+  @media (prefers-reduced-motion:reduce){ #count.tick{animation:none} }
+  /* ── TV arena polish: readable across a room ── */
+  #arena .bar .t{font-size:clamp(18px,2vw,40px)}
+  #diff{font-size:clamp(14px,1.4vw,28px)!important;padding:.25em .9em!important;letter-spacing:.08em;font-weight:900}
+  #mom{position:relative;height:clamp(10px,1.2vh,18px);margin:0 1vw 1vh;border-radius:999px;background:var(--p2);box-shadow:0 0 18px rgba(255,122,61,.5);overflow:visible}
+  #mom i{position:absolute;left:0;top:0;bottom:0;width:50%;border-radius:999px;background:linear-gradient(90deg,#2b5fd9,var(--p1));box-shadow:0 0 18px rgba(79,140,255,.7);transition:width .4s ease}
+  #mom .vs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:900;font-style:italic;font-size:clamp(12px,1.2vw,22px);padding:.1em .6em;border-radius:999px;background:#0b0620;border:2px solid #fff;box-shadow:0 0 14px rgba(255,255,255,.4)}
+  .pf .hd{display:grid!important;grid-template-columns:1fr auto;grid-template-rows:auto auto;align-items:start}
+  .pf .hd .nm{font-size:clamp(18px,2vw,40px)!important}
+  .pf .hd .sc{grid-column:2;grid-row:1/3;font-size:clamp(34px,4.4vw,88px)!important;text-align:right}
+  .pf .hd .stats{display:flex;gap:1.6vw;margin-top:.3vh}
+  .pf .hd .stats span{display:flex;flex-direction:column;line-height:1}
+  .pf .hd .stats b{font-size:clamp(20px,2.4vw,48px);font-weight:900;font-variant-numeric:tabular-nums}
+  .pf .hd .stats small{font-size:clamp(9px,.7vw,14px);letter-spacing:.14em;color:#cbd5e1;font-weight:700}
+  #pf1 .stats b{color:#9cc0ff}#pf2 .stats b{color:#ffb38a}
+  #intro{position:absolute;inset:0;display:none;align-items:center;justify-content:center;gap:4vw;z-index:4;background:radial-gradient(60% 60% at 50% 50%,rgba(124,92,255,.25),rgba(5,3,12,.88))}
+  #intro.on{display:flex}
+  #intro .side{display:flex;flex-direction:column;align-items:center;gap:1vh;font-weight:900;font-size:clamp(28px,4vw,80px);font-style:italic}
+  #intro .side small{font-size:.35em;letter-spacing:.2em;font-style:normal;opacity:.85}
+  #intro .p1{color:var(--p1);text-shadow:0 0 30px rgba(79,140,255,.8);animation:kb-in-l .7s cubic-bezier(.2,.9,.3,1.1)}
+  #intro .p2{color:var(--p2);text-shadow:0 0 30px rgba(255,122,61,.8);animation:kb-in-r .7s cubic-bezier(.2,.9,.3,1.1)}
+  #intro .mid{display:flex;flex-direction:column;align-items:center;gap:1.4vh;text-align:center}
+  #intro .mid .vsb{font-size:clamp(48px,7vw,140px);font-weight:900;font-style:italic;color:#fff;text-shadow:0 0 40px #e540ff}
+  #intro .mid .song{font-size:clamp(16px,1.8vw,34px);font-weight:800}
+  #intro .mid .pill{font-size:clamp(14px,1.4vw,28px);padding:.3em 1em;font-weight:900;letter-spacing:.08em}
+  @keyframes kb-in-l{from{transform:translateX(-40vw);opacity:0}}@keyframes kb-in-r{from{transform:translateX(40vw);opacity:0}}
+  #res .vic{font-size:clamp(56px,9vw,170px)}
+  #res .who{font-size:clamp(28px,3.6vw,72px);font-weight:900;margin-top:-1vh}
+  #res .cards{display:flex;gap:2vw}
+  #res .card{min-width:22vw;padding:2vh 2vw;border-radius:22px;background:rgba(15,10,40,.85);border:2px solid var(--edge,rgba(255,255,255,.15))}
+  #res .card.p1{border-color:var(--p1)}#res .card.p2{border-color:var(--p2)}
+  #res .card.win{box-shadow:0 0 50px rgba(250,204,21,.55);transform:scale(1.06)}
+  #res .card .nm{font-weight:900;font-size:1.2em}#res .card.p1 .nm{color:var(--p1)}#res .card.p2 .nm{color:var(--p2)}
+  #res .card .big{font-size:2.2em;font-weight:900;font-variant-numeric:tabular-nums}
+  #res .card .row{display:flex;justify-content:space-around;gap:1.4vw;margin-top:1vh}#res .card .row b{display:block;font-size:1.3em}#res .card .row small{letter-spacing:.12em;opacity:.75;font-size:.6em}
+  #res .fine{font-size:.6em;color:#a5a3c4}
+  @media (prefers-reduced-motion:reduce){ #intro .p1,#intro .p2{animation:none} #mom i{transition:none} }
+</style>
+<script>if(/\/kbeats-preview\//.test(location.pathname))document.write('<script src="/games/kbeats-preview/preview-config.js"><\/script>')</script>
+</head>
+<body>
+<div class="safe">
+  <div id="pvtv" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:9;padding:.4em 1em;background:rgba(250,204,21,.15);border-top:1px solid #facc15;color:#fde68a;font:700 clamp(11px,1vw,18px) system-ui;text-align:center"></div>
+  <div id="lobby">
+    <div><small>KBEATS · LIVE 1V1 · ROOM</small><div class="code" id="code">······</div>
+      <small>Scan with both phones, or open <b id="jurl"></b> and enter the code.</small>
+      <div class="seats" id="seats"></div></div>
+    <canvas id="qr" width="360" height="360" aria-label="QR code to join"></canvas>
+  </div>
+  <div id="arena">
+    <div class="bar"><span class="t" id="title"></span><span id="diff" class="pill"></span><div class="prog"><i id="prog" style="width:0"></i></div><span id="tleft"></span></div>
+    <div id="mom" aria-hidden="true"><i id="momP1"></i><span class="vs">VS</span></div>
+    <div class="fields">
+      <div class="pf" id="pf1"><canvas></canvas><div class="hd"><span class="nm"></span><b class="sc">0</b><div class="stats"><span class="acc"><b>—</b><small>ACCURACY</small></span><span class="cmb"><b>0</b><small>COMBO</small></span></div></div><div class="off">RECONNECTING…</div></div>
+      <div class="pf" id="pf2"><canvas></canvas><div class="hd"><span class="nm"></span><b class="sc">0</b><div class="stats"><span class="acc"><b>—</b><small>ACCURACY</small></span><span class="cmb"><b>0</b><small>COMBO</small></span></div></div><div class="off">RECONNECTING…</div></div>
+    </div>
+    <div id="count"></div>
+    <div id="intro" aria-live="polite"></div>
+  </div>
+  <div id="res"></div>
+</div>
+<div id="unlock"><button class="btn primary" id="unlockBtn">Start KBeats TV (enables sound)</button></div>
+<div class="stamp" id="stamp"></div>
+<script src="/games/kbeats-preview/vendor/qrcode.js"></script>
+<script type="module" src="/games/kbeats-preview/js/tv.js"></script>
+</body>
+</html>

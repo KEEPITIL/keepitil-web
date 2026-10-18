@@ -214,6 +214,7 @@
   // ---------- HUD + prompts ----------
   const tips = [['DRAG LEFT / RIGHT', 'THE TANK CHOOSES THE ATTACK LANE'], ['TAP THE TANK', 'DEPLOYS YOUR SELECTED SOLDIER'], ['LEVEL UP', 'TAP THE SELECTED CLASS AGAIN · THE FIGHT KEEPS GOING'], null];
   function setTip(n) {
+    if (n >= 1 && n <= 2 && sim && sim.auto) n = 4;   // AUTO War Plan ignores tank taps: the tap / level-up hints could never be completed
     tut = n; const t = tips[n], el = $('tip');
     if (!t) { el.classList.add('hidden'); save.ach.tutorial = 1; persist(); return; }
     $('tipBig').textContent = t[0]; $('tipSm').textContent = t[1]; $('tipHand').style.display = n === 0 ? '' : 'none'; el.classList.remove('hidden');
@@ -536,7 +537,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=59e97e2f7f2b`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=59e97e2f7f2b" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=323e8eb927ff`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=323e8eb927ff" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };

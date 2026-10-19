@@ -283,7 +283,7 @@
   function bank(t, d, why) { if (t) save.tokens += t; if (d) save.diamonds += d; persist(); Analytics.track('bank', { tokens: t || 0, diamonds: d || 0, why }); }
   function checkMilestones() { for (const m of KM.MILESTONES) if (sim.wave >= m.wave && !save.titles.includes(m.title)) { save.titles.push(m.title); bank(m.tokens, m.diamonds || 0, 'milestone'); banner(m.title + '\n+' + m.tokens + ' WAR TOKENS', 2.4); audio.play('pb'); } }
   // leaderboard: anonymous best runs — LIFETIME (highest wave ever) and WEEKLY (best run this week); order wave → time → bosses
-  KM.PUBLIC_KEY = Telemetry.key; if (KM.Account) KM.Account.load();   // public anon key (same as leaderboards); account stays dormant while KM.ACCOUNT_ENABLED is false
+  KM.PUBLIC_KEY = Telemetry.key; if (KM.Account) KM.Account.load(); if (KM.walletStart) KM.walletStart();   // public anon key (same as leaderboards); account stays dormant while KM.ACCOUNT_ENABLED is false
   const LB = (() => { const BASE = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/', KEY = Telemetry.key;
     const H = { apikey: KEY, Authorization: 'Bearer ' + KEY };
     return { on: Telemetry.on,
@@ -410,14 +410,30 @@
       return { key: 'ar:' + k.id, name: k.name, tag: k.cls.toUpperCase(), art: k.cls === 'tank' ? `<span class="pv-ico">${TANK_MINI(k.color)}</span>` : `<div class="pv-gear" style="--m:${k.color}"><img src="${PORTRAIT(k.cls)}" alt=""></div>`,
         chips: [[k.desc, '']], state: 'owned', btn: eq ? 'EQUIPPED ✓' : 'EQUIP', on: eq, use: () => { if (eq) { if (k.cls !== 'tank') delete save.skins.equip[k.cls]; } else save.skins.equip[k.cls] = k.id; applyLooks(); },
         info: { desc: 'Legacy skin (no longer sold).', rows: [['Class', k.cls], ['Bonus', k.desc]] } }; });
-    return KM.DIAMOND_PACKS.map(b => ({ key: 'dp:' + b.id, name: (b.diamonds + b.bonus) + ' Diamonds', art: `<span class="pv-ico pv-cur">💎</span>`, chips: b.bonus ? [['BONUS', '+' + b.bonus]] : [],
-      state: 'soon', price: '$' + b.usd.toFixed(2), info: { desc: 'Diamond pack preview.', rows: [['Diamonds', b.diamonds + (b.bonus ? ' + ' + b.bonus + ' bonus' : '')], ['Price', '$' + b.usd.toFixed(2)]], notes: 'Website checkout is not active yet.' } }));
+    // 💎 (website only): the six approved packs, bought with Stripe Checkout; credited by the server webhook, never by the browser
+    const A = KM.Account, open = !!(KM.WEB_STORE && A && (KM.WEB_PUBLIC || KM.WEB_PREVIEW)), signed = !!(A && A.session), ready = open && (KM.WEB_PUBLIC || !!(A.wallet && A.wallet.webBuy));
+    return WEB_PACKS.map(([id, n, cur, usd]) => ({ key: 'wp:' + id, name: n + ' ' + CUR[cur][1], art: `<span class="pv-ico pv-cur">${cur === 'diamonds' ? '💎' : '⚔️'}</span>`, chips: [[CUR[cur][1].toUpperCase(), '+' + n]],
+      state: ready ? 'web' : 'soon', price: usd, pid: id,
+      info: { desc: n + ' ' + CUR[cur][1] + ' for your KMOB account, paid with Stripe Checkout. They are added to the same account on the website and the iPhone app.', rows: [['Price', usd + ' (USD)'], ['You get', n + ' ' + CUR[cur][1]], ['Payment', 'Stripe Checkout (card, Apple Pay, Google Pay where available)']],
+        notes: ready ? (signed ? '' : 'Sign in above to buy.') : 'Website checkout is not active yet.' } }));
+  }
+  const WEB_PACKS = [['diamonds_5', 5, 'diamonds', '$0.99'], ['diamonds_55', 55, 'diamonds', '$4.99'], ['diamonds_120', 120, 'diamonds', '$9.99'], ['tokens_15', 15, 'tokens', '$0.99'], ['tokens_165', 165, 'tokens', '$4.99'], ['tokens_360', 360, 'tokens', '$9.99']];
+  let webMsg = '', webBusy = false;
+  function accountCard() {
+    const A = KM.Account; if (!A || !KM.WEB_STORE || !(KM.WEB_PUBLIC || KM.WEB_PREVIEW)) return '';
+    if (!A.session) return `<div class="pc pc-acct"><b class="pc-n">YOUR ACCOUNT</b><p>Free play never needs an account. Sign in to buy — purchases stay on your KEEPITIL account, on this website and in the iPhone app.</p>
+      <button class="pc-act sec" data-web="apple"> Sign in with Apple</button><button class="pc-act sec" data-web="google">Sign in with Google</button>
+      <div class="pc-email"><input id="webEmail" type="email" placeholder="email for a sign-in link" autocomplete="email"><button class="pc-act sec" data-web="link">SEND LINK</button></div>${webMsg || KM.webNotice ? `<p class="pc-msg">${esc(webMsg || KM.webNotice)}</p>` : ''}</div>`;
+    const w = A.wallet || {};
+    return `<div class="pc pc-acct"><b class="pc-n">SIGNED IN</b><p>${esc(A.session.user.email || 'KEEPITIL account')}${A.mode === 'test' ? ' · TEST MODE (no real charges)' : ''}</p>
+      <div class="pc-m"><span><i>PURCHASED 💎</i><b>${w.diamonds ?? '…'}</b></span><span><i>PURCHASED ⚔</i><b>${w.tokens ?? '…'}</b></span></div>
+      <div class="pc-cost"><button data-web="signout">SIGN OUT</button><button data-web="del">DELETE ACCOUNT</button></div>${webMsg || KM.webNotice ? `<p class="pc-msg">${esc(webMsg || KM.webNotice)}</p>` : ''}</div>`;
   }
   const perkChips = (id, t) => id === 'recruits' ? [['ELITES', '+' + KM.RECRUITS(t).n], ['ENERGY', String(KM.RECRUITS(t).energy)]] : id === 'magnet' ? [['PICKUP', '+' + 10 * t + '%']] : [['TANK HP', '+' + 10 * t]];
   const consChips = id => ({ warcry: [['DMG', '+25%'], ['TIME', '1 WAVE']], titan: [['GIANT', '2×'], ['CAP', 'FREE']], barrage: [['WEAPON', 'AUTO'], ['TIME', '1 WAVE']], fortress: [['ARMOR', '+25%'], ['TIME', '1 WAVE']], rapid: [['ATK SPD', '+25%'], ['TIME', '1 WAVE']], contract: [['MERCS', '+' + KM.CONTRACT.n], ['TIME', KM.CONTRACT.dur + ' S']] })[id] || [];
   // the tier a card shows: what the player picked, else the highest owned (else the first); never above what exists
   const view = P => { if (!P.tiers) return P; const n = P.tiers.length; let i = tierSel[P.key]; if (i == null) i = P.tiers.findIndex(x => x.t === P.def); i = Math.max(0, Math.min(n - 1, i)); tierSel[P.key] = i; return Object.assign({}, P, P.tiers[i], { idx: i }); };
-  const pickCur = (key, cost) => { let c = curSel[key]; if (c && !short(c, cost[c])) return c; c = !short('tokens', cost.tokens) ? 'tokens' : !short('diamonds', cost.diamonds) ? 'diamonds' : (c || 'tokens'); return c; };
+  const pickCur = (key, cost) => curSel[key] || (!short('tokens', cost.tokens) ? 'tokens' : !short('diamonds', cost.diamonds) ? 'diamonds' : 'tokens');   // a currency the player picked is never swapped for them; the default is the first affordable one
   function card(P) {
     const V = view(P), k = P.key, cf = conf && conf.key === k;
     let foot = '';
@@ -428,6 +444,7 @@
     else if (V.state === 'owned') foot = V.use ? `<button class="pc-act ${V.on ? 'on' : 'sec'}" data-act="use">${V.btn}</button>` : `<button class="pc-act on" disabled>${V.btn}</button>`;
     else if (V.state === 'locked') foot = `<button class="pc-act" disabled>🔒 ${V.lock}</button>`;
     else if (V.state === 'max') foot = '<button class="pc-act on" disabled>MAX LEVEL ✓</button>';
+    else if (V.state === 'web') foot = `<div class="pc-cost"><span class="pc-price">${V.price}</span></div><button class="pc-act" data-act="checkout" ${webBusy || !(KM.Account && KM.Account.session) ? 'disabled' : ''}>${KM.Account && KM.Account.session ? 'BUY' : 'SIGN IN TO BUY'}</button>`;
     else foot = `<div class="pc-cost"><span class="pc-price">${V.price}</span></div><button class="pc-act" disabled>COMING SOON</button>`;
     const nav = P.tiers ? `<div class="pc-tn"><button data-tier="-1" aria-label="Lower tier" ${V.idx === 0 || cf ? 'disabled' : ''}>‹</button><div class="pc-dots">${P.tiers.map((x, i) => `<button data-ti="${i}" class="${i === V.idx ? 'sel ' : ''}${x.state === 'owned' ? 'own' : x.state === 'locked' ? 'lock' : ''}" aria-label="Tier ${x.t}${x.state === 'owned' ? ', owned' : x.state === 'locked' ? ', locked' : ''}" ${cf ? 'disabled' : ''}>${x.t}</button>`).join('')}</div><button data-tier="1" aria-label="Higher tier" ${V.idx === P.tiers.length - 1 || cf ? 'disabled' : ''}>›</button></div>` : '';
     return `<div class="pc ${V.on ? 'eq' : ''}" data-p="${k}"><div class="pc-h"><b class="pc-n">${esc(P.name)}</b>${V.label || P.tag ? `<span class="pc-tag">${esc(V.label || P.tag)}</span>` : ''}<button class="pc-i" data-act="info" aria-label="Details: ${esc(P.name)}">i</button></div>` +
@@ -445,6 +462,7 @@
       for (const b of $('shopTabs').children) b.classList.toggle('on', b.dataset.t === shopTab);
       list = products(); const G = $('shopGrid');
       const sub = shopTab === 'gear' ? `<div class="pc-sub">${KM.PROD_ORDER.map(c => `<button data-gc="${c}" class="${gearCls === c ? 'on' : ''}"><img src="${PORTRAIT(c)}" alt=""><span>${KM.PROD[c].name}</span></button>`).join('')}</div>`
+        : shopTab === 'currency' ? accountCard()
         : shopTab === 'skins' ? `<div class="pc-sub pc-tiers">${[1, 2, 3, 4].map(t => `<button data-st="${t}" class="${skinTier === t ? 'on' : ''}${KM.SEASON.some(k => k.tier === t && save.season.owned[k.id]) ? ' own' : ''}">TIER ${t}</button>`).join('')}</div>` : '';
       G.innerHTML = sub + (list.map(card).join('') || '<div class="pc-empty">No legacy skins owned.</div>');
       const I = infoKey && list.find(x => x.key === infoKey);
@@ -461,13 +479,22 @@
         const W = P.tiers ? Object.assign({}, P, P.tiers[c.idx]) : P; if (W.state !== 'buy' || W.cost[c.cur] !== c.n) return draw();
         const how = pay(W.cost, c.cur === 'tokens' ? 't' : 'd'); if (how) { W.buy(); audio.play('upgrade'); Analytics.track(P.key.startsWith('pw:') ? 'power_up' : 'item_purchase', { id: P.key + (W.t ? ':' + W.t : ''), with: how }); persist(); applyLooks(); }
         return draw(); }
-      if (a === 'use' && V.use) { V.use(); audio.play('tap'); persist(); return draw(); } };
+      if (a === 'use' && V.use) { V.use(); audio.play('tap'); persist(); return draw(); }
+      if (a === 'checkout' && KM.Account && KM.Account.session && !webBusy) { webBusy = true; webMsg = 'Opening secure checkout…'; draw();   // Stripe's hosted page is the confirmation step
+        KM.Account.wallet_({ action: 'stripe_checkout', productId: V.pid }).then(r => { if (r && /^https:\/\/checkout\.stripe\.com\//.test(r.url)) location.href = r.url; else throw new Error('checkout unavailable'); })
+          .catch(e => { webBusy = false; webMsg = 'Checkout unavailable: ' + e.message; draw(); }); } };
     const G = $('shopGrid');
     let sw = null;
     G.onpointerdown = e => { const im = e.target.closest('[data-swipe="1"]'); sw = im ? { x: e.clientX, y: e.clientY, key: im.closest('.pc').dataset.p } : null; };
     G.onpointerup = e => { if (!sw || conf) { sw = null; return; } const dx = e.clientX - sw.x, dy = e.clientY - sw.y, P = list.find(x => x.key === sw.key); sw = null;
       if (P && Math.abs(dx) > 36 && Math.abs(dx) > 1.5 * Math.abs(dy)) { tierSel[P.key] = (tierSel[P.key] || 0) + (dx < 0 ? 1 : -1); audio.play('tap'); draw(); } };
     G.onclick = e => { const t = e.target.closest('button'); if (!t) { if (conf) { cancelConf(); draw(); } return; } const d = t.dataset;
+      if (d.web) { const A = KM.Account, done = m => { webMsg = m; webBusy = false; draw(); }; audio.play('tap'); webMsg = '';
+        if (d.web === 'apple' || d.web === 'google') return A.signInWith(d.web);
+        if (d.web === 'link') { webBusy = true; return A.sendLink(($('webEmail') || {}).value).then(() => done('Check your email and open the KEEPITIL sign-in link on this device.'), e => done(e.message)); }
+        if (d.web === 'signout') { A.signOut(); return done('Signed out.'); }
+        if (d.web === 'del') { if (t.dataset.sure) return A.deleteAccount().then(() => done('Your KMOB account was deleted. Your KEEPITIL login for other apps is unchanged.'), e => done(e.message));
+          t.dataset.sure = 1; t.textContent = 'TAP AGAIN TO DELETE'; return; } }
       if (d.gc) { gearCls = d.gc; cancelConf(); audio.play('tap'); return draw(); }
       if (d.st) { skinTier = +d.st; cancelConf(); audio.play('tap'); return draw(); }
       const P = list.find(x => x.key === (t.closest('.pc') || {}).dataset?.p); if (!P) return;
@@ -614,7 +641,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=a30bf43f9859`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=a30bf43f9859" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=599dcbafec77`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=599dcbafec77" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };

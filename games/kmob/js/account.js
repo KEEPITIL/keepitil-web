@@ -38,6 +38,20 @@
     // in-app account deletion (App Store 5.1.1(v)); Sign in with Apple players pass a fresh authorizationCode so Apple's token is revoked
     async deleteAccount(appleAuthorizationCode) { const r = await this.wallet_({ action: 'delete_account', confirm: 'DELETE', appleAuthorizationCode: appleAuthorizationCode || undefined });
       this.signOut(); return r; },
+    // WEBSITE sign-in (iPhone uses native Sign in with Apple). Apple / Google go through KEEPITIL's auth server and return here
+    // with the session in the URL fragment; the email option sends KEEPITIL's sign-in LINK (the shared template sends a link, not a code).
+    // The same Apple ID gives the same KEEPITIL account as the iPhone app, so one wallet follows the player.
+    returnUrl: () => 'https://keepitil.com/games/kmob/',
+    signInWith(provider) { if (!/^(apple|google)$/.test(provider)) throw new Error('unsupported provider');
+      G.location.href = BASE + '/auth/v1/authorize?provider=' + provider + '&redirect_to=' + encodeURIComponent(this.returnUrl()); },
+    async sendLink(email) { email = String(email || '').trim().toLowerCase(); if (!this.validEmail(email)) throw new Error('Enter a valid email');
+      await this.call('/auth/v1/otp?redirect_to=' + encodeURIComponent(this.returnUrl()), { email, create_user: true }); this.pending = email; this.status = 'link-sent'; },
+    // called once at start-up on the website: adopt a session handed back in the URL fragment, then remove it from the address bar
+    async fromRedirect() { const h = (G.location && G.location.hash || '').replace(/^#/, ''); if (!/access_token=/.test(h)) return false;
+      const f = new URLSearchParams(h); try { G.history.replaceState(null, '', G.location.pathname + G.location.search); } catch (e) { /* old browser */ }
+      const at = f.get('access_token'), rt = f.get('refresh_token'); if (!at || !rt) return false;
+      const r = await fetch(BASE + '/auth/v1/user', { headers: { apikey: anon(), Authorization: 'Bearer ' + at } }); if (!r.ok) return false;
+      this.adopt({ access_token: at, refresh_token: rt, expires_in: +f.get('expires_in') || 3600, user: await r.json() }); return true; },
     signOut() { this.session = null; this.wallet = null; this.pending = null; this.status = 'signed-out'; this.save(); },
   };
   KM.Account = Account;

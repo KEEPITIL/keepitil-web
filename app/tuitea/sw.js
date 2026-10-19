@@ -49,7 +49,7 @@
    Generated. The compiled Dart in this same release reports
    `<build>.<commit>.<variant>` — same build number, same commit — so a
    telemetry row, this cache name and the deployed files can be lined up. */
-const RELEASE = '76.5b2aca3';
+const RELEASE = '86.684b6fd';
 const CACHE = 'tuitea-release-' + RELEASE;
 const SCOPE = '/app/tuitea/';
 
@@ -65,6 +65,15 @@ const RELEASE_FILES = [
   "/app/tuitea/app/assets/FontManifest.json",
   "/app/tuitea/app/assets/NOTICES",
   "/app/tuitea/app/assets/assets/audio/README.md",
+  "/app/tuitea/app/assets/assets/brand/backgrounds/home_desktop.webp",
+  "/app/tuitea/app/assets/assets/brand/backgrounds/home_mobile.webp",
+  "/app/tuitea/app/assets/assets/brand/backgrounds/login_dark_desktop.webp",
+  "/app/tuitea/app/assets/assets/brand/backgrounds/login_light_desktop.webp",
+  "/app/tuitea/app/assets/assets/brand/icons/benefit_keep_every_photo.png",
+  "/app/tuitea/app/assets/assets/brand/icons/benefit_memories_for_generations.png",
+  "/app/tuitea/app/assets/assets/brand/icons/benefit_nothing_ever_disappears.png",
+  "/app/tuitea/app/assets/assets/brand/icons/benefit_room_for_videos.png",
+  "/app/tuitea/app/assets/assets/brand/mark/tuitea_mark.webp",
   "/app/tuitea/app/assets/assets/legal/health_privacy.md",
   "/app/tuitea/app/assets/assets/legal/privacy.md",
   "/app/tuitea/app/assets/assets/legal/terms.md",
@@ -86,6 +95,7 @@ const RELEASE_FILES = [
   "/app/tuitea/app/icons/Icon-512.png",
   "/app/tuitea/app/icons/Icon-maskable-192.png",
   "/app/tuitea/app/icons/Icon-maskable-512.png",
+  "/app/tuitea/app/icons/apple-touch-icon.png",
   "/app/tuitea/app/main.dart.js",
   "/app/tuitea/app/main.stamped.dart.js",
   "/app/tuitea/app/manifest.json",

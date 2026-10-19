@@ -1,7 +1,8 @@
-/* KMOB audio — fully synthesized WebAudio (no asset downloads). Every category is voice-limited so 500 soldiers
+/* KMOB audio — synthesized WebAudio effects plus one music file (assets/audio/moove-it.m4a). Every category is voice-limited so 500 soldiers
    never produce 500 overlapping sounds; music is a low, slowly-intensifying loop tied to battle pressure. */
 (function (G) {
   const KM = G.KM, PRIORITY = { lhit: 1, boom: 1, cannon: 1, elite: 1, warn: 1, death: 1, pb: 1, tap: 1, upgrade: 1, build: 1, pw_lb: 1, pw_as: 1, pw_rain: 1, pw_el: 1, pw_mc: 1, pw_fo: 1, c_warcry: 1, c_titan: 1, c_barrage: 1, c_fortress: 1, c_rapid: 1, c_contract: 1 };   // + tank powers: never dropped by the voice budget   // tank damage, explosions, the cannon, boss / UI cues
+  const MUSIC = { src: 'assets/audio/moove-it.m4a', start: 1.0611, bar: 1.875, bars: 76, gain: 0.6 };   // first downbeat + 76 bars of 1.875 s (128 BPM) = a seamless loop inside the 145.4 s master
   class Audio {
     constructor() { this.ctx = null; this.on = true; this.music = true; this.last = {}; this.intensity = 0; }
     unlock() {
@@ -21,6 +22,9 @@
       const bed = (type, freq, q) => { const src = c.createBufferSource(); src.buffer = this.noise; src.loop = true; const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q; const g = c.createGain(); g.gain.value = 0; src.connect(f); f.connect(g); g.connect(this.sfx); src.start(); return g; };
       this.beds = { march: bed('lowpass', 260, 0.7), clash: bed('bandpass', 1900, 0.8), roar: bed('bandpass', 520, 0.5) };
       this.coinCombo = 0; this.coinT = 0;
+      // GAMEPLAY MUSIC: "MOOOVE IT" by KEEPITIL (KBeats catalogue, 128 BPM). Decoded once, looped bar-aligned while a battle runs;
+      // the synthesized drum loop below plays only until it is ready (or if it cannot load, e.g. offline on the first web visit).
+      fetch(MUSIC.src).then(r => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then(a => new Promise((ok, no) => c.decodeAudioData(a, ok, no))).then(b => { this.track = b; }, () => { /* fallback loop */ });
       // dense combat one-shots pre-rendered once (pure synthesis, no assets) and replayed with pitch variation:
       // 2 nodes per sound instead of 5-13, so big fights stay under iOS's audio rate limits
       const SR = c.sampleRate, mk = (sec, fn) => { const n = Math.floor(SR * sec), b = c.createBuffer(1, n, SR), d = b.getChannelData(0); fn(d, n, SR); let pk = 0; for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(d[i])); if (pk) for (let i = 0; i < n; i++) d[i] /= pk; return b; };
@@ -35,6 +39,7 @@
     }
     setSound(v) { this.on = !!v; if (this.sfx) this.sfx.gain.value = v ? 0.9 : 0; }
     setMusic(v) { this.music = !!v; if (this.mus) this.mus.gain.value = v ? 0.32 : 0; }
+    stopMusic() { if (this.song) { try { this.song.stop(); } catch (e) { /* already stopped */ } this.song = null; } }   // menus / results: the next battle starts the song from its first downbeat
     suspend(s) { this.held = !!s; if (!this.ctx) return; (s ? this.ctx.suspend() : this.ctx.resume()).catch(() => {}); }
     gate(k, ms) { const n = performance.now(); if (n - (this.last[k] || 0) < ms) return false; if (!PRIORITY[k] && this.ctx && !this.voice(k === 'boom' || k === 'cannon' ? 0.45 : 0.22)) return false; this.last[k] = n; return true; }   // the voice budget is only spent by sounds that will play; priority sounds never wait for it
     // pan helper: route a one-shot through a stereo panner (pseudo-spatial for towers, bosses, launcher)
@@ -107,6 +112,9 @@
     // gentle procedural war-drum loop; intensity 0..1 adds layers instead of restarting
     tick(intensity, playing) {
       if (!this.ctx || !this.music || !playing) return;
+      if (this.track) { if (!this.song) { const c = this.ctx, src = c.createBufferSource(), g = c.createGain(); src.buffer = this.track; src.loop = true;
+          src.loopStart = MUSIC.start; src.loopEnd = Math.min(this.track.duration, MUSIC.start + MUSIC.bars * MUSIC.bar); g.gain.value = MUSIC.gain; src.connect(g); g.connect(this.mus); src.start(c.currentTime + 0.05, MUSIC.start); this.song = src; }
+        return; }
       this.intensity += (intensity - this.intensity) * 0.02;
       const c = this.ctx, bpm = 96 + this.intensity * 30, spb = 60 / bpm / 2;
       while (this.nextBeat < c.currentTime + 0.15) {

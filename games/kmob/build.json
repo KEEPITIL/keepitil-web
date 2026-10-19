@@ -1,7 +1,7 @@
 {
- "build": "323e8eb927ff",
+ "build": "a30bf43f9859",
  "files": {
-  "index.html": "465e1cd5714a19aabdca90a436c302d0cbe22de11a075a853d7bf4a3a560c9fe",
+  "index.html": "e7ee075c857e22fa86318ff09c3dc5e7600dc1a8fe19e031bbebecfe57676307",
   "icon.svg": "6a16a0fa99028659ca1c9d99d4e4101de4438a6bd2991f1fef922c0628037a3c",
   "icon-180.png": "60990f11f2f69aed6e207a092a38c965e27254a20960e7b80e403ccb7da1e2ab",
   "icon-192.png": "5b33f413a6062e1c16da34eba8ce5c773a33ec0dbec63b4ae8a5a612732d96ad",
@@ -16,9 +16,9 @@
   "js/render.js": "f8ab28805af03dfccd5de1b09d38a1716f615e1469eff845663ae786f0f263b5",
   "js/powerfx.js": "d35813d7ce375fd4a7045acc9b20c309fa6bc5f33ed8891abceb1780beee8590",
   "js/assets.js": "815b5edaf194806d167499eb82d56ceb8ba8c7fbab025dc7d43aceaab408e09f",
-  "js/audio.js": "bbd6a20315c107ac9fe96a63131afa1103cdf89d365127137f6e7f0780ef7ead",
+  "js/audio.js": "582212bb76a0530a6ebb70149f781ca70b440726021acfee54abf67631a4baf9",
   "js/account.js": "a13724ee14999116b458d237f8b0598c4ca0e107778c2ef9423362b511eb1eef",
-  "js/main.js": "19f7570371e0ebeca456d6deb491ea9d7096e25dd4a1c977a1c27295c9edfd49",
+  "js/main.js": "f01e044dc716000eecd34b04ff8dbcf17fe7b9a305c62b9104b58c3e740d992e",
   "vendor/three.min.js": "9274bbcec8d96168626c732b5d31c775aa8cfb7eaa0599bec0c175908a2c1ce2",
   "vendor/loaders/GLTFLoader.js": "5c15967ba830918a9caea6338712c994c354bccd4edc4569bde411c3ec06a3e6",
   "vendor/post/CopyShader.js": "6b5da4fe3b410286974590885f82fe4a446f25c728f7d6c888e2a2a331333949",
@@ -48,6 +48,7 @@
   "assets/kmob-home/soldier-classes.webp": "4684b75aadb0b267febaaf7cf0ed3624f0e92a31029a9c846022e43d739616a2",
   "assets/kmob-home/looter-mascot.webp": "fd974ea7fb3a329296a8d6b3250e8f8ed906ec21caf5f36871a0e004b999ab5b",
   "assets/kmob-home/battle-action.webp": "52fc088d71ce68fa5e54b501bc86e86a45ab30bcfa636de9791a49f358589630",
-  "assets/kmob-home/kmob-social.jpg": "2dad18cd12ab0fcdc29ec82192b96cffd050b4e85d44745d63b8bad5687b40b1"
+  "assets/kmob-home/kmob-social.jpg": "2dad18cd12ab0fcdc29ec82192b96cffd050b4e85d44745d63b8bad5687b40b1",
+  "assets/audio/moove-it.m4a": "8b66bbc70e137fc590a021b21d32f24a53761e46c217c8c23cf5af07a7cec89a"
  }
 }

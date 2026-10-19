@@ -260,7 +260,7 @@
       if (planMode) { const m = planMode; planClose(); if (m === 'run') { paused = false; } }
       if (state === 'run') $('menuBtn').onclick(); else goTitle(); });
   }
-  function show(id) { for (const s of ['title', 'over', 'pause', 'shop', 'settings', 'plan']) $(s).classList.toggle('hidden', s !== id); }
+  function show(id) { for (const s of ['title', 'over', 'pause', 'shop', 'settings', 'plan']) $(s).classList.toggle('hidden', s !== id); if (id === 'title' || id === 'over') audio.stopMusic(); }
   if (!save.player) { save.player = Array.from({ length: 8 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join(''); persist(); }   // anonymous commander id for the boards
   const runOpts = () => ({ seed: (Date.now() ^ (runId * 2654435761)) >>> 0, equip: save.powers.equip, powerLv: save.powers.lv, skins: save.skins.equip, buffs: save.buffs, cons: save.cons, loadout: { perks: save.perks, equip: save.gear.equip, skin: save.season.equip }, mercTier: save.mercTier, plan: save.plan });   // the saved WAR PLAN becomes this run's active plan
   let recordShown = false;
@@ -319,12 +319,12 @@
   }
   function buildToggles(el) {
     const rows = [['sound', 'Sound effects'], ['music', 'Music'], ['haptics', 'Vibration']];
-    el.innerHTML = rows.map(([k, l]) => `<label>${l}<input type="checkbox" data-k="${k}" ${save.settings[k] ? 'checked' : ''}></label>`).join('');
+    el.innerHTML = rows.map(([k, l]) => `<label>${l}<input type="checkbox" data-k="${k}" ${save.settings[k] ? 'checked' : ''}></label>`).join('') +
+      '<label class="soon" aria-disabled="true">War chants <small>COMING SOON</small><input type="checkbox" disabled></label>';   // 2.0: a radio control for war chants; shown, not active
     el.querySelectorAll('input').forEach(inp => inp.onchange = () => { const k = inp.dataset.k; save.settings[k] = inp.checked ? 1 : 0; persist(); if (k === 'sound') audio.setSound(inp.checked); if (k === 'music') audio.setMusic(inp.checked); });
+    // (the War chants row has no data-k and stays disabled)
   }
-  // SHOP (Phase C): SKINS (Season 1 sets) · GEAR (class equipment) · PERKS (Recruits / Magnet / Plating) · ITEMS (consumables) · POWERS
-  // (existing permanent power levels + Mercenary tier) · OWNED (legacy skins already bought, equip only) · 💎 (package preview, no checkout)
-  let shopTab = 'skins', gearCls = 'melee';
+  let shopTab = 'skins', gearCls = 'melee', skinTier = 0;
   const TIER_COL = ['#c08040', '#c8d0dc', '#ffd23a', '#7fe8ff'];
   const GEAR_GLYPH = {
     bag: '<path d="M18 26h28l4 28H14z" fill="#8a5a2a" stroke="#2a1a0a" stroke-width="2.5"/><path d="M24 26c0-8 16-8 16 0" fill="none" stroke="#2a1a0a" stroke-width="3"/>',
@@ -348,68 +348,145 @@
     magnet: '<path d="M16 10v22a16 16 0 0 0 32 0V10h-10v22a6 6 0 0 1-12 0V10z" fill="#ff4a5a" stroke="#5a0a1a" stroke-width="2.5"/><rect x="16" y="10" width="10" height="8" fill="#e8eef8"/><rect x="38" y="10" width="10" height="8" fill="#e8eef8"/>',
     plating: '<rect x="8" y="30" width="48" height="18" rx="5" fill="#2f6dff" stroke="#0a1a3a" stroke-width="2.6"/><path d="M14 30V20h36v10" fill="#8f9bb0" stroke="#2a3448" stroke-width="2.4"/><path d="M20 24h24" stroke="#2a3448" stroke-width="2"/>',
   };
-  const art = (glyph, tier) => `<span class="art"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="1" y="1" width="62" height="62" rx="12" fill="#101c38" stroke="${tier ? TIER_COL[tier - 1] : '#3a4a6a'}" stroke-width="3"/>${glyph}</svg></span>`;
   const TANK_MINI = c => `<svg viewBox="0 0 64 64"><rect x="6" y="30" width="52" height="18" rx="5" fill="${c}" stroke="#0a1a3a" stroke-width="2.6"/><rect x="18" y="20" width="24" height="12" rx="4" fill="${c}" stroke="#0a1a3a" stroke-width="2.4"/><path d="M40 25h18" stroke="#cfd8e8" stroke-width="5" stroke-linecap="round"/></svg>`;
-  const prev7 = c => `<div class="prev7" style="--c:${c}">${KM.PROD_ORDER.map(k => `<span><img src="${PORTRAIT(k)}" alt=""></span>`).join('')}<span>${TANK_MINI(c)}</span></div>`;
+  // SHOP UI (2026-10-19 redesign, layout only). One card per product: name + (i), one large image, short metric chips, the tier being viewed,
+  // its cost and ONE action button. Tiered products open on the highest tier the player owns; ‹ › / swipe / dots browse the others.
+  // Buying takes two taps (BUY → CONFIRM, which names the exact tier and price); a swipe never buys and nothing moves while confirming.
+  // Effects, prices, unlock rules and what a purchase grants are unchanged: every action calls the same pay() / save mutations as before.
+  const STAT_S = { dmg: 'DMG', hp: 'HP', arm: 'ARMOR', rof: 'ATK SPD', speed: 'SPEED', carry: 'CARRY', healR: 'HEAL AREA', steady: 'STEADY' };
+  const statS = (cls, st) => cls === 'mizard' && st === 'dmg' ? 'HEALING' : STAT_S[st];
+  const gearVal = (sl, t) => { const b = KM.equipBonus(sl.stat, t); return sl.stat === 'arm' ? '+' + b : '+' + Math.round(b * 100) + '%'; };
+  const skinChips = k => { const e = KM.elemOf(k); return [...Object.entries(k.perks).map(([st, v]) => [STAT_S[st], '+' + Math.round(v * 100) + '%']), ...(k.elem ? [[k.elem.toUpperCase(), e ? 'ON HIT' : 'PENDING']] : [])]; };
+  const esc = x => String(x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   // purchased Diamonds / War Tokens live on the server (iOS app: KM.Purchased mirrors them); earned currency stays in the local save
-  const short = (cur, n) => save[cur] < n && !(KM.Purchased && KM.Purchased[cur] >= n);
-  const priceBtns = (c, key) => `<button data-buy="t" data-k="${key}" ${short('tokens', c.tokens) ? 'disabled' : ''}>${c.tokens} TOKENS</button><button data-buy="d" data-k="${key}" ${short('diamonds', c.diamonds) ? 'disabled' : ''}>${c.diamonds} 💎</button>`;
+  const has = cur => save[cur] + (KM.Purchased && KM.Purchased[cur] || 0), short = (cur, n) => save[cur] < n && !(KM.Purchased && KM.Purchased[cur] >= n);
+  const box = (inner, tier) => `<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="60" height="60" rx="14" fill="#0e1a36" stroke="${tier ? TIER_COL[tier - 1] : '#3a4a6a'}" stroke-width="3"/>${inner}</svg>`;
+  const skinArt = c => `<div class="pv-skin" style="--c:${c}">${['melee', 'range', 'mizard'].map(k => `<span><img src="${PORTRAIT(k)}" alt=""></span>`).join('')}<span>${TANK_MINI(c)}</span></div>`;   // the set covers all six classes + the tank (listed in (i))
+  const gearArt = (cls, sl, t) => `<div class="pv-gear" style="--m:${t ? TIER_COL[t - 1] : '#3a4a6a'}"><img src="${PORTRAIT(cls)}" alt=""><span class="gb"><svg viewBox="0 0 64 64" aria-hidden="true">${GEAR_GLYPH[sl.id]}</svg></span></div>`;
+  const CUR = { tokens: ['⚔', 'War Tokens'], diamonds: ['💎', 'Diamonds'] };
+  const tierSel = {}, curSel = {}; let conf = null, confTimer = 0, infoKey = null;
+  // a product: { key, name, tag, art, chips:[[label,value]], tiers:[{ t, label, art, chips, state, cost, act, btn }], sel, info:{ desc, rows, notes, ctrl } }
+  // state: 'buy' (cost + BUY) · 'owned' (btn names the select/equip action) · 'locked' (why) · 'max' · 'free' (select only)
+  function products() {
+    if (shopTab === 'skins') {
+      const best = Math.max(0, ...KM.SEASON.filter(k => save.season.owned[k.id]).map(k => k.tier));
+      if (!skinTier) skinTier = best || 1;
+      return KM.SEASON.filter(k => k.tier === skinTier).map(k => { const own = save.season.owned[k.id], all = [...KM.PROD_ORDER, 'tank'], eqAll = all.every(x => save.season.equip[x] === k.id);
+        return { key: 'sk:' + k.id, name: k.name, tag: 'T' + k.tier, art: skinArt(k.color), chips: skinChips(k),
+          state: own ? 'owned' : 'buy', cost: KM.skinCost(k.tier), btn: own ? (eqAll ? 'EQUIPPED ✓' : 'EQUIP ALL') : null, on: own && eqAll,
+          buy: () => { save.season.owned[k.id] = 1; }, use: () => { for (const x of all) { if (eqAll) delete save.season.equip[x]; else save.season.equip[x] = k.id; } applyLooks(); },
+          info: { desc: 'Season 1 skin set. One purchase covers all six soldier classes and the tank. One skin per unit; an unequipped skin gives no bonus.', rows: [['Tier', 'T' + k.tier], ['Bonus', KM.perkTxt(k) || 'cosmetic'], ['Price', KM.skinCost(k.tier).tokens + ' War Tokens or ' + KM.skinCost(k.tier).diamonds + ' Diamonds']],
+            notes: k.elem && !KM.elemOf(k) ? 'The ' + k.elem + ' effect is shown but has no effect until its numbers are approved.' : '',
+            ctrl: own ? all.map(x => `<button data-eq1="${x}" class="${save.season.equip[x] === k.id ? 'on' : ''}">${x === 'tank' ? 'TANK' : KM.PROD[x].name}</button>`).join('') : '' },
+          eq1: x => { if (save.season.equip[x] === k.id) delete save.season.equip[x]; else save.season.equip[x] = k.id; applyLooks(); } }; });
+    }
+    if (shopTab === 'gear') return KM.EQUIP[gearCls].map(sl => { const key = gearCls + '.' + sl.id, owned = save.gear.owned[key] || [], E = save.gear.equip[gearCls] || {}, eq = E[sl.id] || 0;
+      return { key: 'g:' + key, name: sl.name, def: Math.max(0, ...owned) || 1,
+        tiers: [1, 2, 3, 4].map(t => { const own = owned.includes(t);
+          return { t, label: 'T' + t + ' · ' + KM.EQUIP_TIERS[t - 1], art: gearArt(gearCls, sl, t), chips: [[statS(gearCls, sl.stat), gearVal(sl, t)]], state: own ? 'owned' : 'buy', cost: KM.equipCost(t),
+            btn: own ? (eq === t ? 'EQUIPPED ✓' : 'EQUIP') : null, on: own && eq === t,
+            buy: () => { save.gear.owned[key] = [...owned, t].sort(); (save.gear.equip[gearCls] = save.gear.equip[gearCls] || {})[sl.id] = t; },
+            use: () => { const X = save.gear.equip[gearCls] = save.gear.equip[gearCls] || {}; if (X[sl.id] === t) delete X[sl.id]; else X[sl.id] = t; } }; }),
+        info: { desc: `${KM.PROD[gearCls].name} equipment. Bought once per class and owned forever; every ${KM.PROD[gearCls].name} uses the equipped tier, and it shows on the soldier in that tier's metal.`,
+          rows: [1, 2, 3, 4].map(t => ['T' + t + ' ' + KM.EQUIP_TIERS[t - 1], gearVal(sl, t) + ' ' + statS(gearCls, sl.stat).toLowerCase() + ' · ' + KM.equipCost(t).tokens + ' ⚔ / ' + KM.equipCost(t).diamonds + ' 💎' + (owned.includes(t) ? ' · owned' : '')]),
+          notes: 'Equipment bonus values are defaults pending approval.' } }; });
+    if (shopTab === 'perks') return KM.PERK_IDS.map(id => { const P = KM.PERKS[id], cur = save.perks[id] || 0;
+      return { key: 'pk:' + id, name: P.name, def: cur || 1,
+        tiers: [1, 2, 3].slice(0, P.max).map(t => ({ t, label: 'TIER ' + t, art: box(GEAR_GLYPH[id], t), chips: perkChips(id, t),
+          state: t <= cur ? 'owned' : t === cur + 1 ? 'buy' : 'locked', cost: KM.perkCost(t), lock: 'BUY TIER ' + (cur + 1) + ' FIRST', btn: 'OWNED ✓', on: t <= cur,
+          buy: () => { save.perks[id] = t; } })),
+        info: { desc: P.desc(1).replace(/\d+/g, '…'), rows: [1, 2, 3].slice(0, P.max).map(t => ['Tier ' + t, P.desc(t) + ' · ' + KM.perkCost(t).tokens + ' ⚔ / ' + KM.perkCost(t).diamonds + ' 💎']), notes: 'Tiers are bought in order and kept forever.' } }; });
+    if (shopTab === 'items') return KM.CONS_IDS.map(id => ({ key: 'cs:' + id, name: KM.CONSUMABLES[id].name, tag: 'OWNED ×' + (save.cons[id] || 0), art: box(CONS_ART[id]), chips: consChips(id),
+      state: 'buy', cost: KM.CONS_PRICE, buy: () => { save.cons[id] = (save.cons[id] || 0) + 1; },
+      info: { desc: KM.CONSUMABLES[id].desc + '.', rows: [['Price', KM.CONS_PRICE.tokens + ' War Tokens or ' + KM.CONS_PRICE.diamonds + ' Diamond'], ['You own', String(save.cons[id] || 0)]], notes: 'Kept until you use it from ITEMS during a battle; buying never fires it.' } }));
+    if (shopTab === 'powers') return KM.POWER_IDS.map(id => { const P = KM.POWERS[id], lv = save.powers.lv[id] || 0, eq = save.powers.equip.includes(id), max = lv >= KM.POWER_MAX;
+      const ctrl = `<button data-peq="1" class="${eq ? 'on' : ''}">${eq ? 'EQUIPPED ✓ (tap to remove)' : 'EQUIP (max 3)'}</button>` + (id === 'mercenary' ? KM.MERC_TIERS.map((m, k) => `<button data-mt="${k + 1}" class="${save.mercTier === k + 1 ? 'on' : ''}">TIER ${k + 1} · ${m.n} mercs · ${m.energy} ⚡</button>`).join('') : '');
+      return { key: 'pw:' + id, name: P.name, tag: (eq ? 'EQUIPPED · ' : '') + 'LV ' + lv + '/' + KM.POWER_MAX, art: `<span class="pv-ico">${svg(id)}</span>`,
+        chips: [['POWER', '+' + lv * 10 + '%'], ['ENERGY', String(id === 'mercenary' ? KM.MERC_TIERS[save.mercTier - 1].energy : P.cost)]].concat(max ? [] : [['NEXT', '+' + (lv + 1) * 10 + '%']]),
+        state: max ? 'max' : 'buy', cost: KM.powerCost(lv), buyLabel: 'LEVEL ' + (lv + 1), buy: () => { save.powers.lv[id] = lv + 1; },
+        info: { desc: P.desc + '. Each permanent level adds +10% power.', rows: [['Level', lv + ' / ' + KM.POWER_MAX], ['Energy', String(id === 'mercenary' ? KM.MERC_TIERS[save.mercTier - 1].energy : P.cost)], ['Next level', max ? '—' : KM.powerCost(lv).tokens + ' ⚔ / ' + KM.powerCost(lv).diamonds + ' 💎']],
+          notes: 'Up to 3 powers are equipped for battle.' + (id === 'mercenary' ? ' Choose the Mercenary tier below.' : ''), ctrl } }; });
+    if (shopTab === 'armory') return KM.SKINS.filter(k => save.skins.owned[k.id]).map(k => { const eq = save.skins.equip[k.cls] === k.id;
+      return { key: 'ar:' + k.id, name: k.name, tag: k.cls.toUpperCase(), art: k.cls === 'tank' ? `<span class="pv-ico">${TANK_MINI(k.color)}</span>` : `<div class="pv-gear" style="--m:${k.color}"><img src="${PORTRAIT(k.cls)}" alt=""></div>`,
+        chips: [[k.desc, '']], state: 'owned', btn: eq ? 'EQUIPPED ✓' : 'EQUIP', on: eq, use: () => { if (eq) { if (k.cls !== 'tank') delete save.skins.equip[k.cls]; } else save.skins.equip[k.cls] = k.id; applyLooks(); },
+        info: { desc: 'Legacy skin (no longer sold).', rows: [['Class', k.cls], ['Bonus', k.desc]] } }; });
+    return KM.DIAMOND_PACKS.map(b => ({ key: 'dp:' + b.id, name: (b.diamonds + b.bonus) + ' Diamonds', art: `<span class="pv-ico pv-cur">💎</span>`, chips: b.bonus ? [['BONUS', '+' + b.bonus]] : [],
+      state: 'soon', price: '$' + b.usd.toFixed(2), info: { desc: 'Diamond pack preview.', rows: [['Diamonds', b.diamonds + (b.bonus ? ' + ' + b.bonus + ' bonus' : '')], ['Price', '$' + b.usd.toFixed(2)]], notes: 'Website checkout is not active yet.' } }));
+  }
+  const perkChips = (id, t) => id === 'recruits' ? [['ELITES', '+' + KM.RECRUITS(t).n], ['ENERGY', String(KM.RECRUITS(t).energy)]] : id === 'magnet' ? [['PICKUP', '+' + 10 * t + '%']] : [['TANK HP', '+' + 10 * t]];
+  const consChips = id => ({ warcry: [['DMG', '+25%'], ['TIME', '1 WAVE']], titan: [['GIANT', '2×'], ['CAP', 'FREE']], barrage: [['WEAPON', 'AUTO'], ['TIME', '1 WAVE']], fortress: [['ARMOR', '+25%'], ['TIME', '1 WAVE']], rapid: [['ATK SPD', '+25%'], ['TIME', '1 WAVE']], contract: [['MERCS', '+' + KM.CONTRACT.n], ['TIME', KM.CONTRACT.dur + ' S']] })[id] || [];
+  // the tier a card shows: what the player picked, else the highest owned (else the first); never above what exists
+  const view = P => { if (!P.tiers) return P; const n = P.tiers.length; let i = tierSel[P.key]; if (i == null) i = P.tiers.findIndex(x => x.t === P.def); i = Math.max(0, Math.min(n - 1, i)); tierSel[P.key] = i; return Object.assign({}, P, P.tiers[i], { idx: i }); };
+  const pickCur = (key, cost) => { let c = curSel[key]; if (c && !short(c, cost[c])) return c; c = !short('tokens', cost.tokens) ? 'tokens' : !short('diamonds', cost.diamonds) ? 'diamonds' : (c || 'tokens'); return c; };
+  function card(P) {
+    const V = view(P), k = P.key, cf = conf && conf.key === k;
+    let foot = '';
+    if (V.state === 'buy') { const cur = pickCur(k, V.cost); curSel[k] = cur;
+      foot = `<div class="pc-cost">${['tokens', 'diamonds'].map(c => `<button data-cur="${c}" class="${c === cur ? 'on' : ''}" ${cf ? 'disabled' : ''} aria-pressed="${c === cur}">${CUR[c][0]} ${V.cost[c]}</button>`).join('')}</div>` +
+        (cf ? `<button class="pc-act cf" data-act="confirm">CONFIRM · ${conf.label}</button>`
+          : `<button class="pc-act" data-act="buy" ${short(cur, V.cost[cur]) ? 'disabled' : ''}>${short(cur, V.cost[cur]) ? 'NEED ' + V.cost[cur] + ' ' + CUR[cur][0] : 'BUY ' + (V.buyLabel || (V.tiers ? 'T' + V.t : ''))}</button>`); }
+    else if (V.state === 'owned') foot = V.use ? `<button class="pc-act ${V.on ? 'on' : 'sec'}" data-act="use">${V.btn}</button>` : `<button class="pc-act on" disabled>${V.btn}</button>`;
+    else if (V.state === 'locked') foot = `<button class="pc-act" disabled>🔒 ${V.lock}</button>`;
+    else if (V.state === 'max') foot = '<button class="pc-act on" disabled>MAX LEVEL ✓</button>';
+    else foot = `<div class="pc-cost"><span class="pc-price">${V.price}</span></div><button class="pc-act" disabled>COMING SOON</button>`;
+    const nav = P.tiers ? `<div class="pc-tn"><button data-tier="-1" aria-label="Lower tier" ${V.idx === 0 || cf ? 'disabled' : ''}>‹</button><div class="pc-dots">${P.tiers.map((x, i) => `<button data-ti="${i}" class="${i === V.idx ? 'sel ' : ''}${x.state === 'owned' ? 'own' : x.state === 'locked' ? 'lock' : ''}" aria-label="Tier ${x.t}${x.state === 'owned' ? ', owned' : x.state === 'locked' ? ', locked' : ''}" ${cf ? 'disabled' : ''}>${x.t}</button>`).join('')}</div><button data-tier="1" aria-label="Higher tier" ${V.idx === P.tiers.length - 1 || cf ? 'disabled' : ''}>›</button></div>` : '';
+    return `<div class="pc ${V.on ? 'eq' : ''}" data-p="${k}"><div class="pc-h"><b class="pc-n">${esc(P.name)}</b>${V.label || P.tag ? `<span class="pc-tag">${esc(V.label || P.tag)}</span>` : ''}<button class="pc-i" data-act="info" aria-label="Details: ${esc(P.name)}">i</button></div>` +
+      `<div class="pc-img" data-swipe="${P.tiers ? 1 : ''}">${V.art}</div>${nav}<div class="pc-m">${(V.chips || []).map(([a, b]) => `<span><i>${esc(a)}</i>${b ? `<b>${esc(b)}</b>` : ''}</span>`).join('')}</div>${foot}</div>`;
+  }
   function openShop(back) {
     Analytics.track('shop_open', { tokens: save.tokens, diamonds: save.diamonds });
     const pay = (c, how) => { if (how === 't' && save.tokens >= c.tokens) { save.tokens -= c.tokens; return 'tokens'; } if (how === 'd' && save.diamonds >= c.diamonds) { save.diamonds -= c.diamonds; return 'diamonds'; }
       const P = KM.Purchased, cur = how === 't' ? 'tokens' : how === 'd' ? 'diamonds' : null;   // not enough earned: spend purchased currency once, through the server
-      if (P && cur && P[cur] >= c[cur] && P.spend(cur, c[cur])) return cur + ':purchased'; return null; };   // one press = one charge, only when affordable
+      if (P && cur && P[cur] >= c[cur] && P.spend(cur, c[cur])) return cur + ':purchased'; return null; };   // one confirmed press = one charge, only when affordable
+    const cancelConf = () => { conf = null; clearTimeout(confTimer); };
+    let list = [];
     const draw = () => {
-      $('shopTok').innerHTML = `${svg('token')}${save.tokens}${KM.Purchased && KM.Purchased.tokens ? '+' + KM.Purchased.tokens : ''} &nbsp; ${svg('diamond')}${save.diamonds}${KM.Purchased && KM.Purchased.diamonds ? '+' + KM.Purchased.diamonds : ''}`;
+      $('shopTok').innerHTML = ['tokens', 'diamonds'].map(c => `<span class="bal">${svg(c === 'tokens' ? 'token' : 'diamond')}<b>${has(c)}</b></span>`).join('');
       for (const b of $('shopTabs').children) b.classList.toggle('on', b.dataset.t === shopTab);
-      let html = '';
-      if (shopTab === 'skins') html = KM.SEASON.map(k => { const own = save.season.owned[k.id], c = KM.skinCost(k.tier), eqAll = [...KM.PROD_ORDER, 'tank'].every(x => save.season.equip[x] === k.id);
-        return `<div class="item" data-sk="${k.id}"><div class="nm">${k.name} <span class="sub">T${k.tier}</span></div>${prev7(k.color)}<div class="ds">${KM.perkTxt(k) || 'cosmetic'}</div>` + (own
-          ? `<div class="own">OWNED · all 6 classes + tank</div><div class="bt"><button data-eqall="1" class="${eqAll ? 'on' : ''}">${eqAll ? 'EQUIPPED ALL' : 'EQUIP ALL'}</button></div><div class="tierRow">${[...KM.PROD_ORDER, 'tank'].map(x => `<button data-eq1="${x}" class="${save.season.equip[x] === k.id ? 'on' : ''}">${x === 'tank' ? 'TANK' : KM.PROD[x].name.slice(0, 4)}</button>`).join('')}</div>`
-          : `<div class="bt">${priceBtns(c, k.id)}</div>`) + '</div>'; }).join('') + '<div class="item span2 no"><div class="ds">One skin per unit; an unequipped skin gives no bonus. Elemental effects are shown but inactive until their numbers are approved.</div></div>';
-      else if (shopTab === 'gear') {
-        html = `<div class="item span2 no"><div class="tierRow" style="grid-template-columns:repeat(6,1fr)">${KM.PROD_ORDER.map(c => `<button data-gc="${c}" class="${gearCls === c ? 'on' : ''}">${KM.PROD[c].name}</button>`).join('')}</div><div class="ds">Bought once per class; every ${KM.PROD[gearCls].name} uses the equipped tier. Bonus values are defaults pending approval.</div></div>`;
-        html += KM.EQUIP[gearCls].map(sl => { const key = gearCls + '.' + sl.id, owned = save.gear.owned[key] || [], eq = ((save.gear.equip[gearCls] || {})[sl.id]) || 0;
-          return `<div class="item span2" data-gs="${sl.id}">${art(GEAR_GLYPH[sl.id], eq)}<div class="nm">${sl.name}</div><div class="ds">${KM.STAT_TXT[sl.stat] === 'damage' && gearCls === 'mizard' ? 'healing' : KM.STAT_TXT[sl.stat]} · ${eq ? 'T' + eq + ' ' + KM.EQUIP_TIERS[eq - 1].toLowerCase() + ' equipped (' + KM.equipTxt(gearCls, sl, eq) + ')' : 'nothing equipped'}</div>
-            <div class="tierRow">${[1, 2, 3, 4].map(t => { const has = owned.includes(t), c = KM.equipCost(t);
-              return has ? `<button data-geq="${t}" class="${eq === t ? 'on' : ''}">T${t}<br>${KM.equipTxt(gearCls, sl, t).split(' ')[0]}<br>${eq === t ? 'ON' : 'EQUIP'}</button>`
-                : `<button data-gbuy="${t}" data-buy="t" ${short('tokens', c.tokens) ? 'disabled' : ''}>T${t}<br>${KM.equipTxt(gearCls, sl, t).split(' ')[0]}<br>${c.tokens} T</button>`; }).join('')}</div>
-            <div class="tierRow">${[1, 2, 3, 4].map(t => owned.includes(t) ? '<span></span>' : `<button data-gbuy="${t}" data-buy="d" ${short('diamonds', KM.equipCost(t).diamonds) ? 'disabled' : ''}>${KM.equipCost(t).diamonds} 💎</button>`).join('')}</div></div>`; }).join('');
-      } else if (shopTab === 'perks') html = KM.PERK_IDS.map(id => { const P = KM.PERKS[id], t = save.perks[id] || 0, max = t >= P.max, c = max ? null : KM.perkCost(t + 1);
-        return `<div class="item" data-pk="${id}">${art(GEAR_GLYPH[id], t)}<div class="nm">${P.name} · TIER ${t}/${P.max}</div><div class="ds">${t ? P.desc(t) : 'not owned'}${max ? '' : ' → next: ' + P.desc(t + 1)}</div><div class="bt">${max ? '<button disabled>MAX</button>' : priceBtns(c, id)}</div></div>`; }).join('');
-      else if (shopTab === 'items') html = KM.CONS_IDS.map(id => `<div class="item" data-cs="${id}"><span class="art"><svg viewBox="0 0 64 64" aria-hidden="true">${CONS_ART[id]}</svg></span><div class="nm">${KM.CONSUMABLES[id].name} ×${save.cons[id] || 0}</div><div class="ds">${KM.CONSUMABLES[id].desc} · never fires on purchase</div><div class="bt">${priceBtns(KM.CONS_PRICE, id)}</div></div>`).join('');
-      else if (shopTab === 'powers') html = KM.POWER_IDS.map(id => { const P = KM.POWERS[id], lv = save.powers.lv[id] || 0, c = KM.powerCost(lv), eq = save.powers.equip.includes(id), max = lv >= KM.POWER_MAX;
-        const cost = id === 'mercenary' ? KM.MERC_TIERS[save.mercTier - 1].energy : P.cost;
-        return `<div class="item ${eq ? 'eq' : ''}" data-pw="${id}"><div class="nm">${svg(id)} ${P.name} · LV ${lv}</div><div class="ds">${P.desc} · ${cost} energy</div>${id === 'mercenary' ? `<div class="tierRow" style="grid-template-columns:repeat(3,1fr)">${KM.MERC_TIERS.map((m, k) => `<button data-mt="${k + 1}" class="${save.mercTier === k + 1 ? 'on' : ''}">TIER ${k + 1}<br>${m.n} mercs · ${m.energy} ⚡</button>`).join('')}</div>` : ''}<div class="bt"><button data-eq="1">${eq ? 'EQUIPPED' : 'EQUIP'}</button>${max ? '<button disabled>MAX</button>' : `<button data-up="t" ${short('tokens', c.tokens) ? 'disabled' : ''}>+1 · ${c.tokens} T</button><button data-up="d" ${short('diamonds', c.diamonds) ? 'disabled' : ''}>+1 · ${c.diamonds} 💎</button>`}</div></div>`; }).join('');
-      else if (shopTab === 'armory') { const own = KM.SKINS.filter(k => save.skins.owned[k.id]);
-        html = own.map(k => { const eq = save.skins.equip[k.cls] === k.id; return `<div class="item ${eq ? 'eq' : ''}" data-id="${k.id}"><div class="nm"><span class="sw" style="background:${k.color}"></span>${k.cls.toUpperCase()} · ${k.name}</div><div class="ds">${k.desc} · legacy (no longer sold)</div><div class="pr">${eq ? 'EQUIPPED · TAP TO REMOVE' : 'TAP TO EQUIP'}</div></div>`; }).join('') || '<div class="item span2 no"><div class="ds">No legacy skins owned.</div></div>'; }
-      else html = KM.DIAMOND_PACKS.map(b => `<div class="item no">${art('<path d="M16 14h32l8 12-24 30L8 26z" fill="#5fe0ff" stroke="#0a6a8a" stroke-width="2.4"/>', 4)}<div class="nm">${b.diamonds + b.bonus} 💎</div><div class="ds">${b.diamonds}${b.bonus ? ' + ' + b.bonus + ' bonus' : ''} · $${b.usd.toFixed(2)}</div><div class="pr">COMING SOON — checkout is not active</div></div>`).join('');
-      $('shopGrid').innerHTML = html;
-      const G = $('shopGrid'), done = (what, how) => { audio.play('upgrade'); Analytics.track('item_purchase', { id: what, with: how }); };
-      G.querySelectorAll('[data-sk]').forEach(n => n.addEventListener('click', e => { const id = n.dataset.sk, k = KM.SEASON_BY[id], t = e.target.dataset;
-        if (!save.season.owned[id]) { if (t.buy) { const how = pay(KM.skinCost(k.tier), t.buy); if (how) { save.season.owned[id] = 1; done(id, how); } } }
-        else if (t.eqall) { const all = [...KM.PROD_ORDER, 'tank'], on = all.every(x => save.season.equip[x] === id); for (const x of all) { if (on) delete save.season.equip[x]; else save.season.equip[x] = id; } audio.play('tap'); }
-        else if (t.eq1) { const x = t.eq1; if (save.season.equip[x] === id) delete save.season.equip[x]; else save.season.equip[x] = id; audio.play('tap'); }
-        persist(); applyLooks(); draw(); }));
-      G.querySelectorAll('[data-gc]').forEach(n => n.addEventListener('click', () => { gearCls = n.dataset.gc; audio.play('tap'); draw(); }));
-      G.querySelectorAll('[data-gs]').forEach(n => n.addEventListener('click', e => { const sl = n.dataset.gs, t = e.target.dataset, key = gearCls + '.' + sl, owned = save.gear.owned[key] || [];
-        if (t.gbuy) { const tier = +t.gbuy; if (!owned.includes(tier)) { const how = pay(KM.equipCost(tier), t.buy); if (how) { save.gear.owned[key] = [...owned, tier].sort(); (save.gear.equip[gearCls] = save.gear.equip[gearCls] || {})[sl] = tier; done(key + ':' + tier, how); } } }
-        else if (t.geq) { const tier = +t.geq, E = save.gear.equip[gearCls] = save.gear.equip[gearCls] || {}; if (E[sl] === tier) delete E[sl]; else E[sl] = tier; audio.play('tap'); }
-        persist(); draw(); }));
-      G.querySelectorAll('[data-pk]').forEach(n => n.addEventListener('click', e => { const id = n.dataset.pk, t = save.perks[id] || 0, b = e.target.dataset.buy; if (!b || t >= KM.PERKS[id].max) return;
-        const how = pay(KM.perkCost(t + 1), b); if (how) { save.perks[id] = t + 1; done(id + ':' + (t + 1), how); } persist(); draw(); }));
-      G.querySelectorAll('[data-cs]').forEach(n => n.addEventListener('click', e => { const id = n.dataset.cs, b = e.target.dataset.buy; if (!b) return; const how = pay(KM.CONS_PRICE, b); if (how) { save.cons[id] = (save.cons[id] || 0) + 1; done(id, how); } persist(); draw(); }));
-      G.querySelectorAll('[data-id]').forEach(n => n.addEventListener('click', () => { const k = KM.SKIN_BY[n.dataset.id]; if (!save.skins.owned[k.id]) return;
-        if (save.skins.equip[k.cls] === k.id) { if (k.cls !== 'tank') delete save.skins.equip[k.cls]; } else save.skins.equip[k.cls] = k.id; audio.play('tap'); persist(); applyLooks(); draw(); }));
-      G.querySelectorAll('[data-pw]').forEach(n => n.addEventListener('click', e => { const id = n.dataset.pw, t = e.target.dataset, lv = save.powers.lv[id] || 0, c = KM.powerCost(lv);
-        if (t.mt) { save.mercTier = +t.mt; audio.play('tap'); }
-        else if (t.eq) { const E = save.powers.equip; if (E.includes(id)) { if (E.length > 1) E.splice(E.indexOf(id), 1); } else { E.push(id); if (E.length > 3) E.shift(); } audio.play('tap'); }
-        else if (t.up && lv < KM.POWER_MAX) { const how = pay(c, t.up); if (how) { save.powers.lv[id] = lv + 1; audio.play('upgrade'); Analytics.track('power_up', { id, lv: lv + 1, with: how }); } }
-        persist(); draw(); }));
+      list = products(); const G = $('shopGrid');
+      const sub = shopTab === 'gear' ? `<div class="pc-sub">${KM.PROD_ORDER.map(c => `<button data-gc="${c}" class="${gearCls === c ? 'on' : ''}"><img src="${PORTRAIT(c)}" alt=""><span>${KM.PROD[c].name}</span></button>`).join('')}</div>`
+        : shopTab === 'skins' ? `<div class="pc-sub pc-tiers">${[1, 2, 3, 4].map(t => `<button data-st="${t}" class="${skinTier === t ? 'on' : ''}${KM.SEASON.some(k => k.tier === t && save.season.owned[k.id]) ? ' own' : ''}">TIER ${t}</button>`).join('')}</div>` : '';
+      G.innerHTML = sub + (list.map(card).join('') || '<div class="pc-empty">No legacy skins owned.</div>');
+      const I = infoKey && list.find(x => x.key === infoKey);
+      $('shopInfo').classList.toggle('hidden', !I);
+      if (I) { const V = view(I); $('shopInfo').innerHTML = `<div class="si-card" role="dialog" aria-label="${esc(I.name)} details"><div class="pc-h"><b class="pc-n">${esc(I.name)}</b><button class="pc-i" data-close aria-label="Close details">✕</button></div><div class="pc-img">${V.art}</div>` +
+        `<p>${esc(I.info.desc)}</p><table>${I.info.rows.map(([a, b]) => `<tr><th>${esc(a)}</th><td>${esc(b)}</td></tr>`).join('')}</table>${I.info.notes ? `<p class="si-n">${esc(I.info.notes)}</p>` : ''}${I.info.ctrl ? `<div class="si-ctrl">${I.info.ctrl}</div>` : ''}</div>`; }
     };
-    if (NATIVE) { const cb = $('shopTabs').querySelector('[data-t="currency"]'); if (cb) cb.remove(); }   // iOS 1.0: no real-money storefront until Apple In-App Purchase + receipt checks exist
-    for (const b of $('shopTabs').children) b.onclick = () => { shopTab = b.dataset.t; audio.play('tap'); draw(); };
-    draw(); show('shop'); $('shopClose').onclick = () => { audio.play('tap'); back(); };
+    const act = (P, a) => { const V = view(P);
+      if (a === 'info') { infoKey = P.key; cancelConf(); audio.play('tap'); return draw(); }
+      if (a === 'buy' && V.state === 'buy') { const cur = curSel[P.key]; if (short(cur, V.cost[cur])) return;
+        conf = { key: P.key, idx: V.idx, cur, n: V.cost[cur], label: (V.tiers ? 'T' + V.t + ' · ' : '') + V.cost[cur] + ' ' + CUR[cur][0] }; audio.play('tap');
+        clearTimeout(confTimer); confTimer = setTimeout(() => { conf = null; draw(); }, 4000); return draw(); }
+      if (a === 'confirm' && conf && conf.key === P.key) { const c = conf; cancelConf();   // buy exactly the tier + price that were confirmed
+        const W = P.tiers ? Object.assign({}, P, P.tiers[c.idx]) : P; if (W.state !== 'buy' || W.cost[c.cur] !== c.n) return draw();
+        const how = pay(W.cost, c.cur === 'tokens' ? 't' : 'd'); if (how) { W.buy(); audio.play('upgrade'); Analytics.track(P.key.startsWith('pw:') ? 'power_up' : 'item_purchase', { id: P.key + (W.t ? ':' + W.t : ''), with: how }); persist(); applyLooks(); }
+        return draw(); }
+      if (a === 'use' && V.use) { V.use(); audio.play('tap'); persist(); return draw(); } };
+    const G = $('shopGrid');
+    let sw = null;
+    G.onpointerdown = e => { const im = e.target.closest('[data-swipe="1"]'); sw = im ? { x: e.clientX, y: e.clientY, key: im.closest('.pc').dataset.p } : null; };
+    G.onpointerup = e => { if (!sw || conf) { sw = null; return; } const dx = e.clientX - sw.x, dy = e.clientY - sw.y, P = list.find(x => x.key === sw.key); sw = null;
+      if (P && Math.abs(dx) > 36 && Math.abs(dx) > 1.5 * Math.abs(dy)) { tierSel[P.key] = (tierSel[P.key] || 0) + (dx < 0 ? 1 : -1); audio.play('tap'); draw(); } };
+    G.onclick = e => { const t = e.target.closest('button'); if (!t) { if (conf) { cancelConf(); draw(); } return; } const d = t.dataset;
+      if (d.gc) { gearCls = d.gc; cancelConf(); audio.play('tap'); return draw(); }
+      if (d.st) { skinTier = +d.st; cancelConf(); audio.play('tap'); return draw(); }
+      const P = list.find(x => x.key === (t.closest('.pc') || {}).dataset?.p); if (!P) return;
+      if (conf && conf.key !== P.key) cancelConf();
+      if (d.tier) { tierSel[P.key] = (tierSel[P.key] || 0) + +d.tier; audio.play('tap'); return draw(); }
+      if (d.ti) { tierSel[P.key] = +d.ti; audio.play('tap'); return draw(); }
+      if (d.cur) { curSel[P.key] = d.cur; audio.play('tap'); return draw(); }
+      if (d.act) act(P, d.act); };
+    $('shopInfo').onclick = e => { const t = e.target.closest('button'); const P = list.find(x => x.key === infoKey);
+      if (e.target === $('shopInfo') || (t && t.dataset.close != null)) { infoKey = null; audio.play('tap'); return draw(); }
+      if (!t || !P) return; const d = t.dataset;
+      if (d.eq1 && P.eq1) { P.eq1(d.eq1); audio.play('tap'); persist(); return draw(); }
+      if (d.peq) { const id = P.key.slice(3), E = save.powers.equip; if (E.includes(id)) { if (E.length > 1) E.splice(E.indexOf(id), 1); } else { E.push(id); if (E.length > 3) E.shift(); } audio.play('tap'); persist(); return draw(); }
+      if (d.mt) { save.mercTier = +d.mt; audio.play('tap'); persist(); return draw(); } };
+    if (NATIVE) { const cb = $('shopTabs').querySelector('[data-t="currency"]'); if (cb) cb.remove(); }   // iOS: real-money packs are in the STORE (Apple In-App Purchase)
+    for (const b of $('shopTabs').children) b.onclick = () => { shopTab = b.dataset.t; cancelConf(); infoKey = null; audio.play('tap'); draw(); };
+    KM.shopRedraw = draw;   // the native STORE redraws the SHOP balance after a purchase
+    cancelConf(); infoKey = null; skinTier = 0; for (const k in tierSel) delete tierSel[k]; for (const k in curSel) delete curSel[k];   // every visit opens on the highest owned tier
+    draw(); show('shop'); $('shopClose').onclick = () => { cancelConf(); infoKey = null; audio.play('tap'); back(); };
   }
 
   $('playBtn').onclick = () => { Telemetry.landing('play'); openPlan('start'); };   // HOME → PLAY → WAR PLAN → START BATTLE
@@ -537,7 +614,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=323e8eb927ff`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=323e8eb927ff" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=a30bf43f9859`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=a30bf43f9859" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };

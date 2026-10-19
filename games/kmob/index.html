@@ -17,7 +17,7 @@
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="KMOB Endless War — Build Your Army. Outlast the War."><meta name="twitter:description" content="Plan your six-class army, command your tank, and battle through endless waves. Play free on phone or desktop."><meta name="twitter:image" content="https://keepitil.com/games/kmob/assets/kmob-home/kmob-social.jpg">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"KMOB: Endless War","url":"https://keepitil.com/games/kmob/","description":"Free-to-play browser strategy game with six soldier classes, army deployment planning, command tank combat, elemental skins, and endless enemy waves.","genre":["Strategy","Action","Survival"],"playMode":"SinglePlayer","gamePlatform":["Web browser","Mobile browser","Desktop browser"],"isAccessibleForFree":true,"inLanguage":"en","publisher":{"@type":"Organization","name":"KEEPITIL"},"image":"https://keepitil.com/games/kmob/assets/kmob-home/kmob-social.jpg"}</script>
 <link rel="preload" as="image" href="assets/kmob-home/soldier-classes.webp">
-<link rel="stylesheet" href="kmob-home.css?v=323e8eb927ff">   <!-- the ONE public KMOB address: this marketing home and the game share this document -->
+<link rel="stylesheet" href="kmob-home.css?v=a30bf43f9859">   <!-- the ONE public KMOB address: this marketing home and the game share this document -->
 <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192" type="image/png"><link rel="apple-touch-icon" href="icon-180.png"><link rel="manifest" href="manifest.webmanifest"><meta name="apple-mobile-web-app-title" content="KMOB"><meta name="application-name" content="KMOB">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">   <!-- fonts never block the first paint -->
@@ -248,6 +248,35 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}   /* the p
 @media (orientation:landscape) and (max-height:540px){.cl .tx i{display:none}.cl .tx{gap:2px}.cl .tx b{white-space:nowrap}.cl .tx b .cap{font-size:.55em;padding:0 2px;margin-left:1px}}   /* phone landscape: the class cards keep name · CAP · price; Lv / DMG stays in the upgrade popover */
 @media (orientation:landscape) and (max-height:540px){.rb{height:min(calc(60px * var(--hs)),calc((100vh - var(--st) - var(--sb) - 4 * 36px * var(--hs) - 46px) / 4));height:min(calc(60px * var(--hs)),calc((100dvh - var(--st) - var(--sb) - 4 * 36px * var(--hs) - 46px) / 4));min-height:40px}.rb img{max-height:55%}}   /* ITEMS · POWER · UPGRADE · ATTACK fit under the four corner buttons */
 .kh-id{display:flex;align-items:center;gap:10px}.kh-mascot{width:46px;height:46px;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.35)}.title-mascot{display:block;width:84px;height:84px;margin:0 auto 6px;border-radius:20px;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+/* SHOP cards (2026-10-19): one image, short metrics, tier ‹ dots ›, cost, one action */
+.pcgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px}
+.pc{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:14px;padding:10px;background:rgba(255,255,255,.045);min-width:0}
+.pc.eq{border-color:#7dff9a;box-shadow:inset 0 0 0 1px #7dff9a}
+.pc-h{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:6px;row-gap:2px;min-width:0}.pc-h .pc-tag{grid-column:1;grid-row:2;justify-self:start}.pc-h .pc-i{grid-column:2;grid-row:1/span 2}.pc-n{font-family:var(--disp);font-weight:400;font-size:16px;line-height:1.1;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc-tag{font-size:10px;font-weight:900;letter-spacing:.04em;padding:2px 6px;border-radius:6px;background:#24365e;white-space:nowrap}
+.pc-i{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#1b2a4a;color:#fff;font:italic 900 15px Georgia,serif;cursor:pointer}
+.pc-img{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:12px;background:radial-gradient(circle at 50% 40%,#1d3366,#0b1530);overflow:hidden;touch-action:pan-y}
+.pc-img>svg{width:78%;height:78%}.pv-ico{display:flex;width:70%;height:70%}.pv-ico svg{width:100%;height:100%}.pv-cur{font-size:64px;align-items:center;justify-content:center}
+.pv-skin{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;width:76%}.pv-skin span{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:#0d1730;border:2px solid var(--c)}.pv-skin img{width:100%;height:100%;object-fit:cover}.pv-skin span::after{content:"";position:absolute;inset:0;background:var(--c);mix-blend-mode:color;opacity:.55}.pv-skin svg{width:100%;height:100%}
+.pv-gear{position:relative;width:86%;aspect-ratio:1;border-radius:50%;border:4px solid var(--m);overflow:hidden;background:#0d1730}.pv-gear img{width:100%;height:100%;object-fit:cover}
+.pv-gear .gb{position:absolute;right:2%;bottom:2%;width:44%;height:44%;border-radius:12px;background:#0e1a36;border:3px solid var(--m);display:flex}.pv-gear .gb svg{width:100%;height:100%}
+.pc-tn{display:flex;align-items:center;gap:2px;min-width:0}.pc-tn>button{flex:none;width:30px;height:34px;border-radius:10px;border:1px solid var(--line);background:#1b2a4a;color:#fff;font-size:22px;font-weight:900;cursor:pointer}.pc-tn>button:disabled{opacity:.3}
+.pc-dots{flex:1;display:flex;justify-content:center;gap:3px;min-width:0}.pc-dots button{width:24px;height:24px;flex:none;border-radius:50%;border:2px solid #3a4a6a;background:#0e1a36;color:#9fb0d0;font-size:11px;font-weight:900;padding:0;cursor:pointer}
+.pc-dots button.own{background:#1f5a3a;border-color:#7dff9a;color:#fff}.pc-dots button.lock{opacity:.45}.pc-dots button.sel{border-color:#ffd23a;box-shadow:0 0 0 2px #ffd23a;color:#fff}
+.pc-m{display:flex;flex-wrap:wrap;gap:4px;min-height:24px}.pc-m span{display:inline-flex;gap:4px;align-items:baseline;padding:3px 7px;border-radius:7px;background:#16264a;font-size:11px;font-weight:800}.pc-m i{font-style:normal;opacity:.7;font-size:10px;letter-spacing:.03em}.pc-m b{color:#7dff9a;font-size:13px}
+.pc-cost{display:flex;gap:4px}.pc-cost button{flex:1;min-height:32px;border-radius:9px;border:1px solid var(--line);background:#16264a;color:#cfd8ee;font-weight:900;font-size:13px;cursor:pointer}.pc-cost button.on{background:#24365e;border-color:#ffd23a;color:#fff}.pc-price{flex:1;text-align:center;font-weight:900;font-size:16px;color:var(--gold)}
+.pc-act{min-height:42px;border-radius:11px;border:0;background:linear-gradient(#ffd23a,#f2a10c);color:#3a2400;font-family:var(--disp);font-size:15px;cursor:pointer;box-shadow:0 3px 0 #a86a00}
+.pc-act.sec{background:#2d4a86;color:#fff;box-shadow:0 3px 0 #16264a}.pc-act.on{background:#1f5a3a;color:#bfffd0;box-shadow:none}.pc-act.cf{background:linear-gradient(#7dff9a,#2fbf5a);color:#062a12;box-shadow:0 3px 0 #1a7a3a}.pc-act:disabled{opacity:.55;cursor:default}
+.pc-sub{grid-column:1/-1;display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}.pc-sub button{flex:1 0 auto;min-height:40px;display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:10px;border:1px solid var(--line);background:#1b2a4a;color:#fff;font-weight:900;font-size:11px;cursor:pointer}
+.pc-sub button img{width:26px;height:26px;border-radius:50%;object-fit:cover}.pc-sub button.on{border-color:#ffd23a;box-shadow:inset 0 0 0 1px #ffd23a}.pc-tiers button{justify-content:center}.pc-tiers button.own::after{content:"●";color:#7dff9a;margin-left:4px}
+.pc-empty{grid-column:1/-1;opacity:.6;text-align:center;padding:20px}
+#shopTok{display:flex;gap:8px}#shopTok .bal{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:999px;background:#16264a;font-weight:900}#shopTok .bal svg{width:18px;height:18px}
+#shopInfo{position:fixed;inset:0;z-index:40;background:rgba(3,8,20,.72);display:flex;align-items:flex-end;justify-content:center;padding:16px calc(16px + var(--sr)) calc(16px + var(--sb)) calc(16px + var(--sl))}#shopInfo.hidden{display:none}
+.si-card{width:min(440px,100%);max-height:85vh;overflow:auto;background:#101c3a;border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:8px}.si-card .pc-img{width:120px;align-self:center}.si-card p{margin:0;font-size:13px;line-height:1.4;opacity:.9}.si-card .si-n{opacity:.65;font-size:12px}
+.si-card table{border-collapse:collapse;font-size:12px}.si-card th{text-align:left;opacity:.7;padding:4px 8px 4px 0;white-space:nowrap;vertical-align:top}.si-card td{padding:4px 0;font-weight:800}
+.si-ctrl{display:flex;flex-wrap:wrap;gap:6px}.si-ctrl button{flex:1 1 30%;min-height:40px;border-radius:10px;border:1px solid var(--line);background:#1b2a4a;color:#fff;font-weight:900;font-size:11px;cursor:pointer}.si-ctrl button.on{border-color:#7dff9a;background:#1f5a3a}
+@media (max-width:400px){.pcgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.pc-n{font-size:14px}.pc{padding:8px}.pc-tn>button{display:none}.pc-dots{gap:5px}.pc-dots button{width:28px;height:28px;font-size:12px}}
+label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-spacing:.06em;color:var(--gold);margin-left:6px}
 </style>
 </head>
 <body class="kh-on">
@@ -354,18 +383,18 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}   /* the p
 <canvas id="c"></canvas>
 <div id="vig"></div>
 <div id="hud" class="hidden">
-  <div id="hL"><div class="pill"><img src="assets/ui/i_clock.png?v=323e8eb927ff" alt="Time"><b id="hTime">0:00</b></div><div class="pill"><img src="assets/ui/i_army.png?v=323e8eb927ff" alt="Army"><b id="hArmy">0</b></div><div class="pill"><img src="assets/ui/i_skull.png?v=323e8eb927ff" alt="Wave"><b id="hWave">1</b></div></div>
-  <div id="hC" class="pill"><span class="g"><img src="assets/ui/i_gold.png?v=323e8eb927ff" alt="Gold"><b id="hCoins">0</b></span><i class="sep"></i><span class="d"><img src="assets/ui/i_diamond.png?v=323e8eb927ff" alt="Diamonds"><b id="hDia">0</b></span></div>
-  <div id="hR"><div id="pauseBtn" class="pill" role="button" aria-label="Settings"><img src="assets/ui/i_gear.png?v=323e8eb927ff" alt=""><b class="sm">SETTINGS</b></div><div id="zoomBtn" class="pill" role="button" aria-label="Camera zoom out"><svg class="zi" viewBox="0 0 32 32" aria-hidden="true"><circle cx="13" cy="13" r="8.5" fill="#7fc6ff" stroke="#0c2346" stroke-width="3"/><path d="M19.5 19.5l7 7" stroke="#0c2346" stroke-width="5" stroke-linecap="round"/><path d="M19.5 19.5l7 7" stroke="#ffd23a" stroke-width="2.5" stroke-linecap="round"/><path d="M9 13h8" stroke="#0c2346" stroke-width="3" stroke-linecap="round"/></svg><b id="zoomTxt">1×</b></div><div id="speedBtn" class="pill" role="button" aria-label="Game speed"><img src="assets/ui/i_speed.png?v=323e8eb927ff" alt=""><b id="speedTxt">1×</b></div><div id="autoBtn" class="pill" role="button" aria-label="Control mode"><img src="assets/ui/i_auto.png?v=323e8eb927ff" alt=""><svg class="ti" viewBox="0 0 32 32" aria-hidden="true"><path d="M12 5.5a2.5 2.5 0 0 1 5 0V15l1-.3a2.4 2.4 0 0 1 4.6.9l.2-.1a2.4 2.4 0 0 1 3.2 2.3V22a8 8 0 0 1-8 8h-1.6a8 8 0 0 1-6.6-3.5l-4.2-6.2a2.4 2.4 0 0 1 3.7-3L12 20z" fill="#9fd0ff" stroke="#0c2346" stroke-width="2.2" stroke-linejoin="round"/></svg><b id="autoTxt">AUTO</b></div></div>
+  <div id="hL"><div class="pill"><img src="assets/ui/i_clock.png?v=a30bf43f9859" alt="Time"><b id="hTime">0:00</b></div><div class="pill"><img src="assets/ui/i_army.png?v=a30bf43f9859" alt="Army"><b id="hArmy">0</b></div><div class="pill"><img src="assets/ui/i_skull.png?v=a30bf43f9859" alt="Wave"><b id="hWave">1</b></div></div>
+  <div id="hC" class="pill"><span class="g"><img src="assets/ui/i_gold.png?v=a30bf43f9859" alt="Gold"><b id="hCoins">0</b></span><i class="sep"></i><span class="d"><img src="assets/ui/i_diamond.png?v=a30bf43f9859" alt="Diamonds"><b id="hDia">0</b></span></div>
+  <div id="hR"><div id="pauseBtn" class="pill" role="button" aria-label="Settings"><img src="assets/ui/i_gear.png?v=a30bf43f9859" alt=""><b class="sm">SETTINGS</b></div><div id="zoomBtn" class="pill" role="button" aria-label="Camera zoom out"><svg class="zi" viewBox="0 0 32 32" aria-hidden="true"><circle cx="13" cy="13" r="8.5" fill="#7fc6ff" stroke="#0c2346" stroke-width="3"/><path d="M19.5 19.5l7 7" stroke="#0c2346" stroke-width="5" stroke-linecap="round"/><path d="M19.5 19.5l7 7" stroke="#ffd23a" stroke-width="2.5" stroke-linecap="round"/><path d="M9 13h8" stroke="#0c2346" stroke-width="3" stroke-linecap="round"/></svg><b id="zoomTxt">1×</b></div><div id="speedBtn" class="pill" role="button" aria-label="Game speed"><img src="assets/ui/i_speed.png?v=a30bf43f9859" alt=""><b id="speedTxt">1×</b></div><div id="autoBtn" class="pill" role="button" aria-label="Control mode"><img src="assets/ui/i_auto.png?v=a30bf43f9859" alt=""><svg class="ti" viewBox="0 0 32 32" aria-hidden="true"><path d="M12 5.5a2.5 2.5 0 0 1 5 0V15l1-.3a2.4 2.4 0 0 1 4.6.9l.2-.1a2.4 2.4 0 0 1 3.2 2.3V22a8 8 0 0 1-8 8h-1.6a8 8 0 0 1-6.6-3.5l-4.2-6.2a2.4 2.4 0 0 1 3.7-3L12 20z" fill="#9fd0ff" stroke="#0c2346" stroke-width="2.2" stroke-linejoin="round"/></svg><b id="autoTxt">AUTO</b></div></div>
 </div>
 <div id="drawer" class="hidden" aria-label="Soldier classes"><div id="classes"></div><div id="drawerTab" role="button" aria-label="Show or hide the soldier panel">‹</div></div>
 <div id="clsPop" class="hidden"></div>
 <div id="tankMark" class="hidden" aria-hidden="true"><i></i></div>
 <div id="rightCol" class="hidden">
   <div id="consBtn" class="rb" role="button" aria-label="Consumables"><svg viewBox="0 0 64 64" aria-hidden="true" style="width:30px;height:30px"><path d="M24 8h16v8l8 10v28a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6V26l8-10z" fill="#b36cff" stroke="#3a1a5a" stroke-width="3" stroke-linejoin="round"/><path d="M22 34h20v18H22z" fill="#e8d0ff" opacity=".55"/><path d="M32 38l3 6h-6z" fill="#ffd23a"/></svg><b>ITEMS</b><small id="consN"></small></div>
-  <div id="powerBtn" class="rb" role="button" aria-label="Power"><img src="assets/ui/i_power.png?v=323e8eb927ff" alt=""><b>POWER</b><i class="en"><u id="enFill"></u></i></div>
-  <div id="tankBtn" class="rb" role="button" aria-label="Tank upgrade"><img src="assets/ui/i_upgrade.png?v=323e8eb927ff" alt=""><b>UPGRADE</b><small id="tankCost"></small></div>
-  <div id="postureBtn" class="rb" role="button" aria-label="Attack or defend: tap = selected class, hold = whole army"><img src="assets/ui/i_attack.png?v=323e8eb927ff" alt=""><b id="postureTxt">ATTACK</b></div>
+  <div id="powerBtn" class="rb" role="button" aria-label="Power"><img src="assets/ui/i_power.png?v=a30bf43f9859" alt=""><b>POWER</b><i class="en"><u id="enFill"></u></i></div>
+  <div id="tankBtn" class="rb" role="button" aria-label="Tank upgrade"><img src="assets/ui/i_upgrade.png?v=a30bf43f9859" alt=""><b>UPGRADE</b><small id="tankCost"></small></div>
+  <div id="postureBtn" class="rb" role="button" aria-label="Attack or defend: tap = selected class, hold = whole army"><img src="assets/ui/i_attack.png?v=a30bf43f9859" alt=""><b id="postureTxt">ATTACK</b></div>
 </div>
 <div id="powers" class="hidden"></div>
 <div id="tankUps" class="hidden"></div>
@@ -417,8 +446,9 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}   /* the p
 <div id="shop" class="screen hidden"><div class="panel">
   <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="disp" style="margin:0;font-size:28px">SHOP</h2><span class="tok" id="shopTok"></span></div>
   <div class="tabs" id="shopTabs"><button data-t="skins" class="on">SKINS</button><button data-t="gear">GEAR</button><button data-t="perks">PERKS</button><button data-t="items">ITEMS</button><button data-t="powers">POWERS</button><button data-t="armory">OWNED</button><button data-t="currency">💎</button></div>
-  <div class="shopgrid" id="shopGrid"></div>
+  <div class="shopgrid pcgrid" id="shopGrid"></div>
   <button class="btn sec" id="shopClose">BACK</button>
+  <div id="shopInfo" class="hidden"></div>
 </div></div>
 
 <div id="settings" class="screen hidden"><div class="panel">
@@ -427,16 +457,16 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}   /* the p
     <button class="btn sec" id="setClose" style="margin-top:12px">BACK</button>
 </div></div>
 
-<script defer src="vendor/three.min.js?v=323e8eb927ff"></script>
-<script defer src="js/core.js?v=323e8eb927ff"></script>
-<script defer src="js/sim.js?v=323e8eb927ff"></script>
-<script defer src="js/anim.js?v=323e8eb927ff"></script>
-<script defer src="js/kit.js?v=323e8eb927ff"></script>
-<script defer src="js/render.js?v=323e8eb927ff"></script>
-<script defer src="js/powerfx.js?v=323e8eb927ff"></script>
-<script defer src="js/assets.js?v=323e8eb927ff"></script>
-<script defer src="js/audio.js?v=323e8eb927ff"></script>
-<script defer src="js/account.js?v=323e8eb927ff"></script>
-<script defer src="js/main.js?v=323e8eb927ff"></script>
+<script defer src="vendor/three.min.js?v=a30bf43f9859"></script>
+<script defer src="js/core.js?v=a30bf43f9859"></script>
+<script defer src="js/sim.js?v=a30bf43f9859"></script>
+<script defer src="js/anim.js?v=a30bf43f9859"></script>
+<script defer src="js/kit.js?v=a30bf43f9859"></script>
+<script defer src="js/render.js?v=a30bf43f9859"></script>
+<script defer src="js/powerfx.js?v=a30bf43f9859"></script>
+<script defer src="js/assets.js?v=a30bf43f9859"></script>
+<script defer src="js/audio.js?v=a30bf43f9859"></script>
+<script defer src="js/account.js?v=a30bf43f9859"></script>
+<script defer src="js/main.js?v=a30bf43f9859"></script>
 </body>
 </html>

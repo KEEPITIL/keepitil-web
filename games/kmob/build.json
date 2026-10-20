@@ -1,7 +1,7 @@
 {
- "build": "599dcbafec77",
+ "build": "f7973b21058e",
  "files": {
-  "index.html": "cb8fbf377c2d51e152cf05da66553d9bd2e8f7c63914d259dda0048495d5a2a8",
+  "index.html": "16207b8927a42e07472b923223d4939d3abc56c93c8bb2036c870ced6b549e63",
   "icon.svg": "6a16a0fa99028659ca1c9d99d4e4101de4438a6bd2991f1fef922c0628037a3c",
   "icon-180.png": "60990f11f2f69aed6e207a092a38c965e27254a20960e7b80e403ccb7da1e2ab",
   "icon-192.png": "5b33f413a6062e1c16da34eba8ce5c773a33ec0dbec63b4ae8a5a612732d96ad",
@@ -16,10 +16,10 @@
   "js/render.js": "f8ab28805af03dfccd5de1b09d38a1716f615e1469eff845663ae786f0f263b5",
   "js/powerfx.js": "d35813d7ce375fd4a7045acc9b20c309fa6bc5f33ed8891abceb1780beee8590",
   "js/assets.js": "815b5edaf194806d167499eb82d56ceb8ba8c7fbab025dc7d43aceaab408e09f",
-  "js/audio.js": "582212bb76a0530a6ebb70149f781ca70b440726021acfee54abf67631a4baf9",
+  "js/audio.js": "7a06bcf549ae3d75c6e5c964fb3199f1922b864a37b71f19618451d4bb10526c",
   "js/account.js": "d4fef21cd5bc8ef116731011b0287c1aa5d1a02b2404ad60f68c26e57bec2bd1",
   "js/wallet.js": "e83b04fa74398c30f6dddce11a3a0940140a3f1ad2745b95633b2168802ac1ed",
-  "js/main.js": "d2534532c3e8e847f690d1a4a22d5cd0640593bd442ecb04375c2c904c033b92",
+  "js/main.js": "ef0dc3d786efe78d31ad744585de7b348f3f70f320eca4a3d46c5008d1eaff99",
   "vendor/three.min.js": "9274bbcec8d96168626c732b5d31c775aa8cfb7eaa0599bec0c175908a2c1ce2",
   "vendor/loaders/GLTFLoader.js": "5c15967ba830918a9caea6338712c994c354bccd4edc4569bde411c3ec06a3e6",
   "vendor/post/CopyShader.js": "6b5da4fe3b410286974590885f82fe4a446f25c728f7d6c888e2a2a331333949",
@@ -50,6 +50,9 @@
   "assets/kmob-home/looter-mascot.webp": "fd974ea7fb3a329296a8d6b3250e8f8ed906ec21caf5f36871a0e004b999ab5b",
   "assets/kmob-home/battle-action.webp": "52fc088d71ce68fa5e54b501bc86e86a45ab30bcfa636de9791a49f358589630",
   "assets/kmob-home/kmob-social.jpg": "2dad18cd12ab0fcdc29ec82192b96cffd050b4e85d44745d63b8bad5687b40b1",
-  "assets/audio/moove-it.m4a": "8b66bbc70e137fc590a021b21d32f24a53761e46c217c8c23cf5af07a7cec89a"
+  "assets/audio/moove-it.m4a": "8b66bbc70e137fc590a021b21d32f24a53761e46c217c8c23cf5af07a7cec89a",
+  "assets/audio/boss-woof-woof.m4a": "713f60091297feb4fd768cb4055e99e10318d8e515fa80974b129c9d4b12cfd4",
+  "assets/audio/boss-quack-quack.m4a": "842c6e1ede6298de031e5848e4716067b9ce3bfde3caa4d21e3b5dc44c4ceac9",
+  "assets/audio/boss-fcawf-fcawf.m4a": "05904017153e1a1f9858948648e566542fe9cfaeed8ac1b146bac03151d81b7d"
  }
 }

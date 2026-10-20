@@ -2,7 +2,10 @@
    never produce 500 overlapping sounds; music is a low, slowly-intensifying loop tied to battle pressure. */
 (function (G) {
   const KM = G.KM, PRIORITY = { lhit: 1, boom: 1, cannon: 1, elite: 1, warn: 1, death: 1, pb: 1, tap: 1, upgrade: 1, build: 1, pw_lb: 1, pw_as: 1, pw_rain: 1, pw_el: 1, pw_mc: 1, pw_fo: 1, c_warcry: 1, c_titan: 1, c_barrage: 1, c_fortress: 1, c_rapid: 1, c_contract: 1 };   // + tank powers: never dropped by the voice budget   // tank damage, explosions, the cannon, boss / UI cues
-  const MUSIC = { src: 'assets/audio/moove-it.m4a', start: 1.0611, bar: 1.875, bars: 76, gain: 0.6 };   // first downbeat + 76 bars of 1.875 s (128 BPM) = a seamless loop inside the 145.4 s master
+  const MUSIC = { src: 'assets/audio/moove-it.m4a', start: 1.0611 + 17 * 1.875, bar: 1.875, bars: 59, gain: 0.6 };   // (owner audio review) skip the slow intro: start at the drop (bar 17, 32.9 s) and loop bars 17–76 of the 145.4 s master
+  // BOSS MUSIC (owner audio review 2026-10-19): KEEPITIL's own KBeats tracks, one per boss in rotation, each looping its most energetic
+  // bar-aligned section; crossfaded in when a boss fight starts and back to the battle music (which keeps its place) when it ends.
+  const BOSS = [{ src: 'assets/audio/boss-woof-woof.m4a', start: 54.427, end: 73.627 }, { src: 'assets/audio/boss-quack-quack.m4a', start: 81.098, end: 94.339 }, { src: 'assets/audio/boss-fcawf-fcawf.m4a', start: 113.533, end: 135.518 }];
   class Audio {
     constructor() { this.ctx = null; this.on = true; this.music = true; this.last = {}; this.intensity = 0; }
     unlock() {
@@ -20,7 +23,7 @@
       this.beat = 0; this.nextBeat = c.currentTime + 0.1;
       // layered crowd beds: one continuous source per layer instead of one sound per soldier
       const bed = (type, freq, q) => { const src = c.createBufferSource(); src.buffer = this.noise; src.loop = true; const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q; const g = c.createGain(); g.gain.value = 0; src.connect(f); f.connect(g); g.connect(this.sfx); src.start(); return g; };
-      this.beds = { march: bed('lowpass', 260, 0.7), clash: bed('bandpass', 1900, 0.8), roar: bed('bandpass', 520, 0.5) };
+      this.beds = null; void bed;   // crowd beds REMOVED (owner audio review 2026-10-19): no continuous noise layers
       this.coinCombo = 0; this.coinT = 0;
       // GAMEPLAY MUSIC: "MOOOVE IT" by KEEPITIL (KBeats catalogue, 128 BPM). Decoded once, looped bar-aligned while a battle runs;
       // the synthesized drum loop below plays only until it is ready (or if it cannot load, e.g. offline on the first web visit).
@@ -39,7 +42,17 @@
     }
     setSound(v) { this.on = !!v; if (this.sfx) this.sfx.gain.value = v ? 0.9 : 0; }
     setMusic(v) { this.music = !!v; if (this.mus) this.mus.gain.value = v ? 0.32 : 0; }
-    stopMusic() { if (this.song) { try { this.song.stop(); } catch (e) { /* already stopped */ } this.song = null; } }   // menus / results: the next battle starts the song from its first downbeat
+    stopMusic() { for (const k of ['song', 'bossSong']) if (this[k]) { try { this[k].stop(); } catch (e) { /* already stopped */ } this[k] = null; } this.inBoss = false; }
+    // boss fight on/off: 1.5 s crossfade into the next boss track (rotating), 2 s back; battle music keeps playing silently underneath
+    boss(on) { if (!this.ctx || !this.music) return; const c = this.ctx, now = c.currentTime;
+      if (on && !this.inBoss) { this.inBoss = true; const B = BOSS[(this.bossN = ((this.bossN ?? -1) + 1) % BOSS.length)], go = buf => { if (!this.inBoss || this.bossSong) return;
+          const src = c.createBufferSource(), g = c.createGain(), t0 = c.currentTime; src.buffer = buf; src.loop = true; src.loopStart = B.start; src.loopEnd = Math.min(buf.duration, B.end);
+          g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(MUSIC.gain, t0 + 1.5); src.connect(g); g.connect(this.mus); src.start(t0, B.start); this.bossSong = src; this.bossGain = g;
+          if (this.songGain) { this.songGain.gain.setValueAtTime(this.songGain.gain.value, t0); this.songGain.gain.linearRampToValueAtTime(0.0001, t0 + 1.5); } };
+        (this.bossBufs = this.bossBufs || {})[B.src] ? go(this.bossBufs[B.src]) : fetch(B.src).then(r => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then(a => new Promise((ok, no) => c.decodeAudioData(a, ok, no))).then(b => { this.bossBufs[B.src] = b; go(b); }, () => { /* offline: battle music continues */ }); }
+      if (!on && this.inBoss) { this.inBoss = false; const s0 = this.bossSong, g0 = this.bossGain; this.bossSong = null;
+        if (g0) { g0.gain.setValueAtTime(g0.gain.value, now); g0.gain.linearRampToValueAtTime(0.0001, now + 2); setTimeout(() => { try { s0.stop(); } catch (e) { /* stopped */ } }, 2300); }
+        if (this.songGain) { this.songGain.gain.setValueAtTime(this.songGain.gain.value, now); this.songGain.gain.linearRampToValueAtTime(MUSIC.gain, now + 2); } } }   // menus / results: the next battle starts the song from its first downbeat
     suspend(s) { this.held = !!s; if (!this.ctx) return; (s ? this.ctx.suspend() : this.ctx.resume()).catch(() => {}); }
     gate(k, ms) { const n = performance.now(); if (n - (this.last[k] || 0) < ms) return false; if (!PRIORITY[k] && this.ctx && !this.voice(k === 'boom' || k === 'cannon' ? 0.45 : 0.22)) return false; this.last[k] = n; return true; }   // the voice budget is only spent by sounds that will play; priority sounds never wait for it
     // pan helper: route a one-shot through a stereo panner (pseudo-spatial for towers, bosses, launcher)
@@ -75,58 +88,46 @@
         case 'clang': if (this.gate(k, 90)) this.metal(t + Math.random() * 0.012, pick([820, 940, 1060, 1180]) * r, 0.05); break;   // sword on sword / shield: struck steel, four voicings
         case 'kill': if (this.gate(k, 55)) { this.hiss(t, 0.12, 420 * r, 1.2, 0.07, 'lowpass'); this.tone(pick([180, 200, 225]) * r, t, 0.14, 'sawtooth', 0.025, 110); } break;   // a short grunt + fall, not a beep
         case 'coin': if (this.gate(k, 60)) { const now = performance.now(); this.coinCombo = now - this.coinT < 500 ? Math.min(12, this.coinCombo + 1) : 0; this.coinT = now; const cp = Math.pow(2, this.coinCombo / 12); this.tone(1320 * cp, t, 0.07, 'sine', 0.07); this.tone(1980 * cp, t + 0.05, 0.12, 'sine', 0.06); } break;
-        case 'bow': if (this.gate(k, 80)) { this.tone(pick([196, 220, 247]) * r, t, 0.09, 'triangle', 0.05, 120); this.hiss(t, 0.03, 3600, 2, 0.05, 'highpass'); this.hiss(t + 0.02, 0.16, 1500 * r, 0.8, 0.035, 'bandpass'); } break;   // string twang + release + arrow whoosh
-        case 'cannon': if (this.gate(k, 120)) { if (!this.shot('cannon', t, r, 0.3, D)) { this.hiss(t, 0.05, 2600, 0.7, 0.16, 'highpass', D); this.tone(95 * r, t, 0.38, 'sine', 0.3, 38, D); this.hiss(t, 0.42, 520, 0.7, 0.18, 'lowpass', D); this.hiss(t + 0.06, 0.6, 260, 0.5, 0.06, 'lowpass', D); } } break;   // report crack + body + rolling tail
+        case 'bow': if (this.gate(k, 80)) { const f = pick([196, 220, 247]) * r; this.tone(f, t, 0.1, 'triangle', 0.14, f * 0.6); this.tone(110 * r, t, 0.06, 'sine', 0.14, 70); this.hiss(t, 0.035, 3800, 2, 0.12, 'highpass'); this.hiss(t + 0.02, 0.2, 1700 * r, 0.9, 0.1, 'bandpass'); } break;   // (owner: IMPROVE) taut string snap + low thump + louder arrow whoosh
+        case 'cannon': if (this.gate(k, 120)) { if (!this.shot('cannon', t, r, 0.36, D)) { this.hiss(t, 0.05, 2600, 0.7, 0.18, 'highpass', D); this.tone(95 * r, t, 0.38, 'sine', 0.32, 38, D); this.hiss(t, 0.42, 520, 0.7, 0.18, 'lowpass', D); this.hiss(t + 0.06, 0.6, 260, 0.5, 0.06, 'lowpass', D); } this.tone(48 * r, t, 0.3, 'sine', 0.3, 30, D); this.hiss(t + 0.01, 0.07, 4200, 1.4, 0.06, 'highpass', D); } break;   // (owner: IMPROVE) report + added sub punch + sharper crack
         case 'snipe': if (this.gate(k, 200)) { this.tone(2400, t, 0.08, 'square', 0.05, 600, D); this.hiss(t, 0.18, 3000, 2, 0.12, 'bandpass', D); } break;
         case 'tower': if (this.gate(k, 140)) this.hiss(t, 0.07, 2200, 3, 0.05, 'highpass', D); break;
         case 'build': [392, 523, 659].forEach((f, i) => this.tone(f, t + i * 0.07, 0.2, 'triangle', 0.1, 0, D)); this.hiss(t, 0.3, 800, 0.6, 0.12, 'lowpass', D); break;
         case 'shieldhit': if (this.gate(k, 110)) { if (!this.shot('steel', t, pick([520, 600, 680]) * r / 1000, 0.05)) this.metal(t, pick([520, 600, 680]) * r, 0.035); this.shot('hit', t, 0.6 * r, 0.05); } break;   // pike / blade on a wooden-rimmed shield: lower ring + wood knock
         case 'thud': if (this.gate(k, 140)) { this.tone(pick([70, 78, 86]) * r, t, 0.22, 'sine', 0.22, 38, D); this.hiss(t, 0.16, 360, 0.8, 0.14, 'lowpass', D); this.hiss(t + 0.03, 0.22, 1200, 0.6, 0.04, 'bandpass', D); } break;   // giant hammer: deep body + earth + debris
-        case 'boom': if (this.gate(k, 100)) { this.hiss(t, 0.06, 1800, 0.6, 0.14, 'highpass'); this.tone(66 * r, t, 0.6, 'sine', 0.35, 28); this.hiss(t, 0.7, 520, 0.6, 0.25, 'lowpass'); } break;
+        case 'boom': if (this.gate(k, 100)) { this.hiss(t, 0.06, 1800, 0.6, 0.18, 'highpass'); this.tone(66 * r, t, 0.6, 'sine', 0.38, 28); this.tone(42 * r, t + 0.02, 0.8, 'sine', 0.3, 24); this.hiss(t, 0.8, 520, 0.6, 0.28, 'lowpass'); this.hiss(t + 0.08, 0.5, 3000, 1.5, 0.05, 'bandpass'); } break;   // (owner: IMPROVE) deeper double-layer blast + debris crackle
         case 'frost': if (this.gate(k, 140)) { this.tone(2200, t, 0.25, 'sine', 0.04, 3400); this.hiss(t, 0.2, 6000, 4, 0.04); } break;
         case 'lhit': if (this.gate(k, 160)) { this.tone(110, t, 0.2, 'sawtooth', 0.12, 60, D); this.hiss(t, 0.15, 500, 1, 0.15, 'lowpass', D); } break;
         case 'upgrade': [523, 659, 784, 1046].forEach((f, i) => this.tone(f, t + i * 0.06, 0.25, 'triangle', 0.12)); this.hiss(t, 0.4, 5000, 0.8, 0.05, 'highpass'); break;
-        case 'elite': if (this.gate(k, 1500)) { this.tone(98, t, 0.9, 'sawtooth', 0.12, 92, D); this.tone(147, t + 0.05, 0.9, 'sawtooth', 0.07, 140, D); } break;
-        case 'warn': this.tone(196, t, 0.5, 'sawtooth', 0.1, 185); this.tone(196, t + 0.6, 0.5, 'sawtooth', 0.1, 185); break;
+        case 'elite': if (this.gate(k, 1500)) { [98, 98.6, 147].forEach((f, i) => this.tone(f * 0.94, t + i * 0.03, 0.12, 'sawtooth', 0.1, f, D)); [98, 98.6, 147].forEach((f, i) => this.tone(f, t + 0.12 + i * 0.03, 0.85, 'sawtooth', 0.09, f * 0.97, D)); this.tone(62, t, 0.35, 'sine', 0.3, 40, D); this.hiss(t, 0.3, 700, 0.6, 0.08, 'lowpass', D); } break;   // (owner: IMPROVE) detuned brass horn with a scoop + war-drum hit
+        case 'warn': for (let q = 0; q < 2; q++) { const u = t + q * 0.55; this.tone(196, u, 0.22, 'sawtooth', 0.07, 294); this.tone(294, u + 0.22, 0.26, 'sawtooth', 0.07, 196); this.tone(55, u, 0.3, 'sine', 0.2, 38); } break;   // (owner: IMPROVE) rising-falling alarm, two pulses, each on a low drum
         case 'death': [392, 330, 262, 196].forEach((f, i) => this.tone(f, t + i * 0.16, 0.4, 'triangle', 0.14)); this.hiss(t, 1.2, 300, 0.5, 0.3, 'lowpass'); break;
         case 'pb': [523, 659, 784, 1046, 1318].forEach((f, i) => this.tone(f, t + i * 0.09, 0.4, 'triangle', 0.12)); break;
         case 'tap': this.tone(700, t, 0.05, 'sine', 0.06); break;
         // TANK POWERS — one signature each, played at the moment the effect lands (sim emits once per activation / per volley)
-        case 'pw_lb': this.tone(220, t, 0.12, 'sawtooth', 0.09, 880, D); this.tone(58, t + 0.1, 0.7, 'sine', 0.36, 30, D); this.hiss(t + 0.1, 0.55, 2400, 0.5, 0.2, 'bandpass', D); this.metal(t + 0.12, 1320, 0.05); break;   // LINEBREAKER: rising charge → lane-long crack
-        case 'pw_as': [660, 880].forEach((f, i) => this.tone(f, t + i * 0.09, 0.16, 'square', 0.035, f * 0.98, D)); this.hiss(t, 0.5, 4200, 1.2, 0.06, 'highpass', D); break;   // ARROW STORM: target lock chirp + wind
+        case 'pw_lb': this.tone(220, t, 0.18, 'sawtooth', 0.11, 1320, D); this.hiss(t, 0.18, 1200, 1.2, 0.06, 'bandpass', D); this.tone(58, t + 0.16, 0.8, 'sine', 0.42, 28, D); this.tone(40, t + 0.16, 0.9, 'sine', 0.3, 22, D); this.hiss(t + 0.16, 0.6, 2400, 0.5, 0.24, 'bandpass', D); this.hiss(t + 0.16, 0.08, 6000, 1, 0.12, 'highpass', D); this.metal(t + 0.17, 1320, 0.07); break;   // (owner: IMPROVE) longer charge → heavier sub impact + crack
+        case 'pw_as': [660, 880].forEach((f, i) => this.tone(f, t + i * 0.09, 0.16, 'square', 0.06, f * 0.98, D)); for (let q = 0; q < 6; q++) { const f = 2400 + q * 260; this.tone(f, t + 0.2 + q * 0.05, 0.22, 'sine', 0.05, f * 0.45, D); } this.hiss(t, 0.7, 4200, 1.2, 0.12, 'highpass', D); break;   // (owner: IMPROVE) lock chirp + a sky full of falling arrow whistles + wind
         case 'pw_rain': if (this.gate(k, 120)) { for (let q = 0; q < 6; q++) this.hiss(t + q * 0.035, 0.04, 3000 + q * 300, 3, 0.05, 'highpass', D); this.tone(150, t + 0.24, 0.12, 'sine', 0.08, 90, D); } break;   // a volley lands: arrow hiss cascade + thuds
-        case 'pw_el': this.hiss(t, 0.7, 900, 0.7, 0.2, 'lowpass', D); this.tone(1760, t, 0.5, 'sine', 0.05, 2640, D); this.tone(2640, t + 0.08, 0.45, 'sine', 0.035, 3960, D); this.metal(t + 0.05, 2100, 0.03); break;   // ELEMENTAL WAVE: surging water + glassy frost
-        case 'pw_mc': [196, 262, 330].forEach((f, i) => this.tone(f, t + i * 0.11, 0.32, 'sawtooth', 0.07, f, D)); [0, 0.22, 0.44].forEach(d => this.tone(80, t + d, 0.12, 'sine', 0.2, 50, D)); break;   // MERCENARY CALL: war horn + marching drums
+        case 'pw_el': this.hiss(t, 0.15, 400, 0.7, 0.08, 'lowpass', D); this.hiss(t + 0.1, 0.8, 900, 0.7, 0.34, 'lowpass', D); this.tone(70, t + 0.1, 0.6, 'sine', 0.22, 45, D); this.tone(1760, t + 0.1, 0.5, 'sine', 0.08, 2640, D); this.tone(2640, t + 0.18, 0.45, 'sine', 0.06, 3960, D); this.metal(t + 0.12, 2100, 0.05); break;   // (owner: IMPROVE) swelling wave with weight + brighter frost shimmer
+        case 'pw_mc': [[196, 0], [294, 0.32]].forEach(([f, d]) => { this.tone(f * 0.95, t + d, 0.08, 'sawtooth', 0.09, f, D); this.tone(f, t + d + 0.08, 0.36, 'sawtooth', 0.1, f, D); this.tone(f * 1.006, t + d + 0.08, 0.36, 'sawtooth', 0.06, f, D); }); [0, 0.16, 0.32, 0.48, 0.64].forEach(d => this.tone(80, t + d, 0.12, 'sine', 0.26, 48, D)); break;   // (owner: IMPROVE) two-note war horn (root → fifth) over five marching drums
         case 'pw_fo': this.tone(110, t, 0.9, 'triangle', 0.14, 165, D); this.tone(330, t + 0.05, 0.8, 'sine', 0.05, 495, D); this.metal(t + 0.02, 760, 0.05); this.metal(t + 0.09, 1020, 0.04); break;   // FORTRESS SURGE: shield hum + bright clang
         // CONSUMABLES — five signatures distinct from the energy powers
-        case 'c_warcry': [294, 370, 440].forEach((f, i) => this.tone(f, t + i * 0.06, 0.5, 'sawtooth', 0.08, f * 1.06, D)); this.hiss(t, 0.4, 1600, 0.8, 0.12, 'bandpass', D); break;   // WAR CRY: rising roar chord
+        case 'c_warcry': [294, 370, 440, 587].forEach((f, i) => this.tone(f, t + i * 0.05, 0.6, 'sawtooth', 0.08, f * 1.08, D)); this.hiss(t, 0.5, 900, 0.7, 0.16, 'bandpass', D); this.hiss(t + 0.1, 0.4, 1800, 0.8, 0.12, 'bandpass', D); this.tone(62, t, 0.3, 'sine', 0.3, 40, D); break;   // (owner: IMPROVE) bigger rising roar chord + crowd shout + drum
         case 'c_titan': [0, 0.28, 0.56].forEach(d => this.tone(46, t + d, 0.3, 'sine', 0.4, 30, D)); this.tone(98, t + 0.6, 0.8, 'triangle', 0.12, 147, D); break;   // TITAN GIANT: three ground-shaking steps + call
-        case 'c_barrage': for (let q = 0; q < 5; q++) this.tone(180 - q * 12, t + q * 0.07, 0.08, 'square', 0.07, 90, D); this.metal(t, 1600, 0.05); break;   // TANK BARRAGE: rapid clatter
-        case 'c_fortress': this.metal(t, 520, 0.08); this.metal(t + 0.12, 690, 0.07); this.tone(130, t, 0.7, 'triangle', 0.12, 130, D); break;   // IRON FORTRESS: anvil strikes + low hold
-        case 'c_rapid': [880, 1175, 1568, 2093].forEach((f, i) => this.tone(f, t + i * 0.035, 0.08, 'square', 0.03, f, D)); this.hiss(t, 0.25, 6000, 1.5, 0.05, 'highpass', D); break;   // RAPID FIRE: fast up-arpeggio
-        case 'c_contract': this.metal(t, 1180, 0.06); [220, 277, 330, 440].forEach((f, i) => this.tone(f, t + 0.08 + i * 0.07, 0.3, 'sawtooth', 0.06, f, D)); [0.1, 0.3].forEach(d => this.tone(70, t + d, 0.14, 'sine', 0.22, 45, D)); break;   // MERCENARY CONTRACT: seal strike + hired-blade fanfare + two drum hits
+        case 'c_barrage': for (let q = 0; q < 8; q++) { const u = t + q * 0.06; this.tone(170 - q * 10, u, 0.07, 'square', 0.08, 85, D); this.hiss(u, 0.04, 2400, 1, 0.1, 'highpass', D); this.tone(55, u, 0.08, 'sine', 0.14, 40, D); } this.metal(t, 1600, 0.06); break;   // (owner: IMPROVE) eight-shot rapid barrage, each with crack + thump
+        case 'c_fortress': this.metal(t, 520, 0.11); this.metal(t + 0.14, 690, 0.1); this.tone(130, t, 0.8, 'triangle', 0.16, 130, D); this.tone(65, t, 0.8, 'sine', 0.2, 60, D); this.hiss(t + 0.14, 0.5, 5000, 1, 0.04, 'highpass', D); break;   // (owner: IMPROVE) heavier anvil strikes + low hold + armour shimmer
+        case 'c_rapid': [880, 1175, 1568, 2093, 2637].forEach((f, i) => { this.tone(f, t + i * 0.035, 0.09, 'square', 0.022, f, D); this.hiss(t + i * 0.035, 0.02, 6000, 1, 0.025, 'highpass', D); }); this.hiss(t, 0.3, 6000, 1.5, 0.04, 'highpass', D); break;   // (owner: IMPROVE) louder up-arpeggio with a click per step
+        case 'c_contract': this.metal(t, 1180, 0.09); this.tone(90, t, 0.2, 'sine', 0.24, 50, D); [220, 277, 330, 440].forEach((f, i) => { this.tone(f, t + 0.1 + i * 0.08, 0.32, 'sawtooth', 0.08, f, D); this.tone(f * 1.005, t + 0.1 + i * 0.08, 0.32, 'sawtooth', 0.04, f, D); }); [0.12, 0.32, 0.52].forEach(d => this.tone(70, t + d, 0.14, 'sine', 0.26, 45, D)); break;   // (owner: IMPROVE) seal strike + fuller fanfare + three drum hits
         case 'heal': if (this.gate(k, 260)) { const f = pick([880, 988, 1108]) * r; this.tone(f, t, 0.35, 'sine', 0.025); this.tone(f * 1.5, t + 0.05, 0.4, 'sine', 0.018); this.hiss(t, 0.3, 7000, 1, 0.012, 'highpass'); } break;   // Mizard heal: soft sparkle chime
       }
       if ((this.made || 0) > m0) { const P = this.perKey || (this.perKey = {}); P[k] = (P[k] || 0) + (this.made - m0); }
     }
-    // gentle procedural war-drum loop; intensity 0..1 adds layers instead of restarting
+    // battle music: the KEEPITIL song once it has loaded (intensity is no longer used)
     tick(intensity, playing) {
       if (!this.ctx || !this.music || !playing) return;
       if (this.track) { if (!this.song) { const c = this.ctx, src = c.createBufferSource(), g = c.createGain(); src.buffer = this.track; src.loop = true;
-          src.loopStart = MUSIC.start; src.loopEnd = Math.min(this.track.duration, MUSIC.start + MUSIC.bars * MUSIC.bar); g.gain.value = MUSIC.gain; src.connect(g); g.connect(this.mus); src.start(c.currentTime + 0.05, MUSIC.start); this.song = src; }
-        return; }
-      this.intensity += (intensity - this.intensity) * 0.02;
-      const c = this.ctx, bpm = 96 + this.intensity * 30, spb = 60 / bpm / 2;
-      while (this.nextBeat < c.currentTime + 0.15) {
-        const t = this.nextBeat, b = this.beat++ % 16, I = this.intensity;
-        if (b % 8 === 0 || b === 11) this.tone(62, t, 0.3, 'sine', 0.5, 40, this.mus);
-        if (b % 8 === 4) this.hiss(t, 0.12, 1400, 0.8, 0.22, 'bandpass', this.mus);
-        if (I > 0.3 && b % 2 === 1) this.hiss(t, 0.03, 7000, 1, 0.06, 'highpass', this.mus);
-        const scale = [0, 3, 5, 7, 10], root = 110 * (this.beat % 128 < 64 ? 1 : 0.89);
-        if (b % 4 === 0) this.tone(root * Math.pow(2, scale[(b / 4 + Math.floor(this.beat / 16)) % 3] / 12), t, spb * 3.5, 'triangle', 0.09 + I * 0.05, 0, this.mus);
-        if (I > 0.6 && b % 4 === 2) this.tone(root * 2 * Math.pow(2, scale[(this.beat >> 2) % 5] / 12), t, spb * 1.5, 'square', 0.025, 0, this.mus);
-        this.nextBeat += spb;
-      }
+          src.loopStart = MUSIC.start; src.loopEnd = Math.min(this.track.duration, MUSIC.start + MUSIC.bars * MUSIC.bar); g.gain.value = this.inBoss ? 0.0001 : MUSIC.gain; src.connect(g); g.connect(this.mus); src.start(c.currentTime + 0.05, MUSIC.start); this.song = src; this.songGain = g; } }
+      // the synthesized drum loop was REMOVED (owner audio review 2026-10-19): silence until the song has loaded
     }
   }
   KM.Audio = Audio;

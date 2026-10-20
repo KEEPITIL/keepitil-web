@@ -146,8 +146,8 @@
     render.onEvent(sim, type, a, b, c, d, e);
     switch (type) {
       case 'deploy': audio.play('deploy'); break;
-      case 'hit': combatHits++; if (b >= 0 && sim.def(b).sh) audio.play('shieldhit'); else audio.play('hit'); break;
-      case 'kill': audio.play('kill'); if (b.el) { KM.haptic(30); } Analytics.track && b.el && Analytics.track('enemy_type_death', { type: b.k, t: Math.floor(sim.t) }); break;
+      case 'hit': combatHits++; break;   // (owner audio review 2026-10-19: hit + shieldhit REMOVED)
+      case 'kill': if (b.el) { KM.haptic(30); } Analytics.track && b.el && Analytics.track('enemy_type_death', { type: b.k, t: Math.floor(sim.t) }); break;
       case 'coin': audio.play('coin'); if (a >= 5) KM.haptic(8); break;
       case 'shot': if (a === 1) audio.play('cannon', 0, b / 9); else if (a === 0) audio.play('bow'); else if (a === 2) audio.play('frost'); break;
       case 'boom': audio.play('boom'); break;
@@ -161,14 +161,14 @@
       case 'collector': if (!cue.col) { cue.col = 1; banner('LOOTERS\nBRING COINS TO YOUR TANK', 2.4); } break;
       case 'repair': if (!cue.rep) { cue.rep = 1; banner('LOOTERS\nREPAIR THE TANK', 1.6); } break;
       case 'posture': setPostureUI(); break;
-      case 'allOrder': allTip(a ? 'ALL DEFEND' : 'ALL ATTACK'); audio.play(a ? 'shieldhit' : 'upgrade'); KM.haptic([20, 30, 20]); setPostureUI(); break;
+      case 'allOrder': allTip(a ? 'ALL DEFEND' : 'ALL ATTACK'); if (!a) audio.play('upgrade'); KM.haptic([20, 30, 20]); setPostureUI(); break;   // DEFEND order is silent now (shieldhit removed); banner + haptic stay
       case 'colLost': banner('LOOTER LOST', 0.9); break;
       case 'upgrade': if (a.id === 'mastery') banner('TANK MASTERY ' + (sim.stats.lv.mastery || 0), 0.9); audio.play('upgrade'); KM.haptic(20); Analytics.track('upgrades_selected', { id: a.id, n: sim.upgrades, t: Math.floor(sim.t) }); break;
       case 'sector': { const S = KM.SECTORS[a]; if (a !== 'opening') banner(S.name + (b ? '\nNEW THREAT' : ''), 1.8); Analytics.track('sector', { k: a, t: Math.floor(sim.t) }); break; }
       case 'bossTell': audio.play('warn'); KM.haptic(15); break;
       case 'stomp': audio.play('boom'); KM.haptic(35); break;
-      case 'charge': if (typeof a === 'string') { if (KM.PROD[a]) banner(KM.PROD[a].name + (b ? '\nATTACK' : '\nDEFEND'), 0.9); audio.play(b ? 'upgrade' : 'shieldhit'); KM.haptic(12); setPostureUI(); break; } banner('BRACE!', 0.9); break;
-      case 'bossFight': render.viewGuard && render.viewGuard(); setTimeout(() => render.viewGuard && render.viewGuard(), 400); banner(a ? 'BOSS FIGHT\nTHE WAR HOLDS' : 'BOSS DOWN\nADVANCE!', 1.6); if (!a) audio.play('upgrade'); break;
+      case 'charge': if (typeof a === 'string') { if (KM.PROD[a]) banner(KM.PROD[a].name + (b ? '\nATTACK' : '\nDEFEND'), 0.9); if (b) audio.play('upgrade'); KM.haptic(12); setPostureUI(); break; } banner('BRACE!', 0.9); break;
+      case 'bossFight': audio.boss(!!a); render.viewGuard && render.viewGuard(); setTimeout(() => render.viewGuard && render.viewGuard(), 400); banner(a ? 'BOSS FIGHT\nTHE WAR HOLDS' : 'BOSS DOWN\nADVANCE!', 1.6); if (!a) audio.play('upgrade'); break;
       case 'summon': audio.play('elite', 0, 0); break;
       case 'warn': banner(a === 'boss' ? 'A BOSS APPROACHES' : a === 'mini' ? 'GIANT INCOMING' : 'MASS WAVE INCOMING', 3.2); audio.play('warn'); KM.haptic(25); $('vig').classList.add('warn'); setTimeout(() => $('vig').classList.remove('warn'), 3200); break;
       case 'elite': audio.play('elite', 0, 0); break;
@@ -185,7 +185,7 @@
       case 'emergency': if (a) { banner('EMERGENCY DEFENSE', 1.2); KM.haptic(30); } break;
       case 'power': audio.play({ linebreaker: 'pw_lb', arrowstorm: 'pw_as', elemental: 'pw_el', mercenary: 'pw_mc', fortress: 'pw_fo' }[a] || 'boom'); break;   // each power has its own signature, at the moment it lands
       case 'volley': audio.play('pw_rain'); break;   // every Arrow Storm volley, when its damage lands
-      case 'beam': audio.play('heal'); break;
+      case 'beam': break;   // heal sound REMOVED (owner audio review)
     }
   });
 
@@ -641,7 +641,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=599dcbafec77`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=599dcbafec77" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=f7973b21058e`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=f7973b21058e" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };

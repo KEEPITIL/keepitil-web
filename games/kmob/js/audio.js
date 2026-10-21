@@ -24,6 +24,7 @@
       this.master = c.createGain(); this.master.gain.value = 0.8;
       const comp = c.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4; this.master.connect(comp); comp.connect(c.destination);
       this.sfx = c.createGain(); this.sfx.gain.value = this.on ? 0.9 : 0; this.sfx.connect(this.master);
+      this.chantG = c.createGain(); this.chantG.gain.value = (this.chantVol ?? 1) * 0.9; this.chantG.connect(this.master);   // WAR CHANTS stingers: their own volume (Settings)
       this.mus = c.createGain(); this.mus.gain.value = this.music ? 0.32 : 0; this.mus.connect(this.master);
       const len = c.sampleRate * 0.5, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1; this.noise = buf;
       try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* optional */ }
@@ -34,7 +35,7 @@
       this.coinCombo = 0; this.coinT = 0;
       // GAMEPLAY MUSIC: "MOOOVE IT" by KEEPITIL (KBeats catalogue, 128 BPM). Decoded once, looped bar-aligned while a battle runs;
       // the synthesized drum loop below plays only until it is ready (or if it cannot load, e.g. offline on the first web visit).
-      this.musicState = 'loading'; fetch(MUSIC.src).then(r => (r.ok || r.status === 0) ? r.arrayBuffer() : Promise.reject(new Error('HTTP ' + r.status))).then(a => { this.musicBytes = a.byteLength; if (!a.byteLength) throw new Error('empty'); return new Promise((ok, no) => c.decodeAudioData(a, ok, no)); }).then(b => { this.track = loopSlice(c, b, MUSIC.start, MUSIC.start + MUSIC.bars * MUSIC.bar); this.musicState = 'ready'; }, e => { this.musicState = 'failed: ' + (e && (e.message || e.name) || String(e)); });   // musicState: diagnostics (debug self-test 'music')
+      this.musicState = 'loading'; fetch(MUSIC.src).then(r => (r.ok || r.status === 0) ? r.arrayBuffer() : Promise.reject(new Error('HTTP ' + r.status))).then(a => { this.musicBytes = a.byteLength; if (!a.byteLength) throw new Error('empty'); return new Promise((ok, no) => c.decodeAudioData(a, ok, no)); }).then(b => { this.track = loopSlice(c, b, MUSIC.start, MUSIC.start + MUSIC.bars * MUSIC.bar); this.trackId = 'steel'; if (this.wantSt && this.wantSt !== 'steel') this.station(this.wantSt === 'steel' ? null : this.wantSt, true); this.musicState = 'ready'; }, e => { this.musicState = 'failed: ' + (e && (e.message || e.name) || String(e)); });   // musicState: diagnostics (debug self-test 'music')
       // dense combat one-shots pre-rendered once (pure synthesis, no assets) and replayed with pitch variation:
       // 2 nodes per sound instead of 5-13, so big fights stay under iOS's audio rate limits
       const SR = c.sampleRate, mk = (sec, fn) => { const n = Math.floor(SR * sec), b = c.createBuffer(1, n, SR), d = b.getChannelData(0); fn(d, n, SR); let pk = 0; for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(d[i])); if (pk) for (let i = 0; i < n; i++) d[i] /= pk; return b; };
@@ -59,7 +60,7 @@
         (this.bossBufs = this.bossBufs || {})[B.src] ? go(this.bossBufs[B.src]) : fetch(B.src).then(r => (r.ok || r.status === 0) ? r.arrayBuffer() : Promise.reject(r.status)).then(a => a.byteLength ? new Promise((ok, no) => c.decodeAudioData(a, ok, no)) : Promise.reject('empty')).then(b => { this.bossBufs[B.src] = loopSlice(c, b, B.start, B.end); go(this.bossBufs[B.src]); }, () => { /* offline: battle music continues */ }); }
       if (!on && this.inBoss) { this.inBoss = false; const s0 = this.bossSong, g0 = this.bossGain; this.bossSong = null;
         if (g0) { g0.gain.setValueAtTime(g0.gain.value, now); g0.gain.linearRampToValueAtTime(0.0001, now + 2); setTimeout(() => { try { s0.stop(); } catch (e) { /* stopped */ } }, 2300); }
-        if (this.songGain) { this.songGain.gain.setValueAtTime(this.songGain.gain.value, now); this.songGain.gain.linearRampToValueAtTime(MUSIC.gain, now + 2); } } }   // menus / results: the next battle starts the song from its first downbeat
+        if (this.songGain) { this.songGain.gain.setValueAtTime(this.songGain.gain.value, now); this.songGain.gain.linearRampToValueAtTime(this.songLevel(), now + 2); } } }   // menus / results: the next battle starts the song from its first downbeat
     suspend(s) { this.held = !!s; if (!this.ctx) return; (s ? this.ctx.suspend() : this.ctx.resume()).catch(() => {}); }
     gate(k, ms) { const n = performance.now(); if (n - (this.last[k] || 0) < ms) return false; if (!PRIORITY[k] && this.ctx && !this.voice(k === 'boom' || k === 'cannon' ? 0.45 : 0.22)) return false; this.last[k] = n; return true; }   // the voice budget is only spent by sounds that will play; priority sounds never wait for it
     // pan helper: route a one-shot through a stereo panner (pseudo-spatial for towers, bosses, launcher)
@@ -129,11 +130,39 @@
       }
       if ((this.made || 0) > m0) { const P = this.perKey || (this.perKey = {}); P[k] = (P[k] || 0) + (this.made - m0); }
     }
+    // ---------- WAR CHANTS (2.0) ----------
+    // the battle song is the selected station's loop (null = MOOOVE IT exactly as in 1.x). Only one station is decoded at a time
+    // (memory: station loop + boss loops stay under ~70 MB). The sim's bar grid is the authority; the music follows it at 1×.
+    songLevel() { return MUSIC.gain * (this.stationOn && this.fast ? 0.35 : 1); }   // owner 2026-10-21: above 1× the chant layer fades down
+    startSong(offset, lead, level) { const c = this.ctx, src = c.createBufferSource(), g = c.createGain(), d = this.track.duration, t0 = c.currentTime + lead; offset = ((offset % d) + d) % d;
+      src.buffer = this.track; src.loop = true; src.loopStart = 0; src.loopEnd = d; g.gain.value = level; src.connect(g); g.connect(this.mus); src.start(t0, offset);
+      this.song = src; this.songGain = g; this.songT0 = t0 - offset; this.lastSync = null; this.steady = 0; this.sinceSync = 4; return g; }
+    station(id, force) { const P = id && KM.CHANT_PACKS && KM.CHANT_PACKS[id], want = P ? id : 'steel'; this.stationOn = !!P; this.wantSt = want;
+      if (!this.ctx || this.musicState === 'loading' && !force || this.trackId === want || this.loadingSt === want) return;
+      const c = this.ctx, src = P ? P.src : MUSIC.src, a = P ? P.audio.start : MUSIC.start, b = P ? P.audio.end : MUSIC.start + MUSIC.bars * MUSIC.bar; this.loadingSt = want;
+      fetch(src).then(r => (r.ok || r.status === 0) ? r.arrayBuffer() : Promise.reject(r.status)).then(x => x.byteLength ? new Promise((ok, no) => c.decodeAudioData(x, ok, no)) : Promise.reject('empty')).then(buf => {
+        if (this.loadingSt === want) this.loadingSt = null; if (this.wantSt !== want) return; const old = this.song, og = this.songGain;
+        this.track = loopSlice(c, buf, a, b); this.trackId = want; this.song = null;   // the old station's buffer is released; tick() starts the new loop at the sim's position
+        if (old) { const n = c.currentTime; og.gain.setValueAtTime(og.gain.value, n); og.gain.linearRampToValueAtTime(0.0001, n + 0.6); setTimeout(() => { try { old.stop(); } catch (e) { /* stopped */ } }, 700); } },
+      () => { if (this.loadingSt === want) this.loadingSt = null; }); }   // offline / missing: keep the current song; gameplay never depends on audio
+    // called on every bar and on a speed change: fade above 1×, and at 1× re-align to the sim when the music drifts more than 80 ms
+    sync(speed) { if (!this.ctx || !this.song || !this.stationOn || !this.pos) return; const c = this.ctx, fast = speed > 1.01;
+      if (fast !== this.fast) { this.fast = fast; if (!this.inBoss) this.songGain.gain.setTargetAtTime(this.songLevel(), c.currentTime, 0.35); }
+      if (fast || this.inBoss || this.held) return; const d = this.track.duration, p = this.pos(), want = ((p % d) + d) % d, have = ((c.currentTime - this.songT0) % d + d) % d, L = this.lastSync;
+      // only re-align while the game keeps real time: a device that drops sim time (load, low power) would otherwise jump the song back every bar
+      const rate = L && c.currentTime > L.c + 0.5 ? (p - L.p) / (c.currentTime - L.c) : 0; this.lastSync = { c: c.currentTime, p }; this.steady = rate > 0.97 && rate < 1.03 ? (this.steady || 0) + 1 : 0; this.sinceSync = (this.sinceSync || 0) + 1;
+      let e = have - want; if (e > d / 2) e -= d; if (e < -d / 2) e += d; this.drift = e; if (Math.abs(e) <= 0.08 || this.steady < 2 || this.sinceSync < 4) return; this.sinceSync = 0;
+      const old = this.song, og = this.songGain, n = c.currentTime; this.resyncs = (this.resyncs || 0) + 1; this.startSong(want + 0.03, 0.03, 0.0001).gain.linearRampToValueAtTime(this.songLevel(), n + 0.08);
+      og.gain.setValueAtTime(og.gain.value, n + 0.03); og.gain.linearRampToValueAtTime(0.0001, n + 0.08); setTimeout(() => { try { old.stop(); } catch (e2) { /* stopped */ } }, 150); }
+    setChantVol(v) { this.chantVol = v; if (this.chantG) this.chantG.gain.value = v * 0.9; }
+    // synthesized stingers on the sim's grid: a war drum + horn stab on a crescendo, a short two-note call on a Rally Swap (1× only)
+    stinger(k) { if (!this.ctx || !this.stationOn || this.fast || this.quiet || !(this.chantVol ?? 1)) return; const t = this.ctx.currentTime, D = this.chantG;
+      if (k === 'cres') { this.tone(55, t, 0.5, 'sine', 0.5, 34, D); this.hiss(t, 0.25, 900, 0.7, 0.22, 'lowpass', D); [147, 220, 294].forEach((f, i) => { this.tone(f, t + 0.02 + i * 0.015, 0.7, 'sawtooth', 0.08, f * 1.01, D); this.tone(f * 1.004, t + 0.02 + i * 0.015, 0.7, 'sawtooth', 0.04, f, D); }); }
+      else if (k === 'rally') { this.tone(392, t, 0.14, 'triangle', 0.12, 0, D); this.tone(523, t + 0.08, 0.22, 'triangle', 0.12, 0, D); this.tone(80, t, 0.12, 'sine', 0.2, 50, D); } }
     // battle music: the KEEPITIL song once it has loaded (intensity is no longer used)
     tick(intensity, playing) {
       if (!this.ctx || !this.music || !playing) return;
-      if (this.track) { if (!this.song) { const c = this.ctx, src = c.createBufferSource(), g = c.createGain(); src.buffer = this.track; src.loop = true;
-          src.loopStart = 0; src.loopEnd = this.track.duration; g.gain.value = this.inBoss ? 0.0001 : MUSIC.gain; src.connect(g); g.connect(this.mus); src.start(c.currentTime + 0.05, 0); this.song = src; this.songGain = g; } }   // the buffer IS the loop section
+      if (this.track && !this.song) this.startSong(this.stationOn && this.pos ? this.pos() + 0.05 : 0, 0.05, this.inBoss ? 0.0001 : this.songLevel());   // the buffer IS the loop section; a war-chant station starts where the sim's bar grid is
       // the synthesized drum loop was REMOVED (owner audio review 2026-10-19): silence until the song has loaded
     }
   }

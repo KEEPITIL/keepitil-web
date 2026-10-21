@@ -42,7 +42,7 @@
       this.t = 0; this.front = 0; this.halt = false; this.engaged = false; this.clearT = 0; this.alive = true; this.deathReason = ''; this.ended = false;
       this.stats = KM.applySkins(KM.baseStats(), this.skins);
       this.buffs = { cls: JSON.parse(JSON.stringify((opts.buffs && opts.buffs.cls) || {})), tank: Object.assign({}, opts.buffs && opts.buffs.tank) };   // permanent boss-card buffs (saved by the shell)
-      this.forge = KM.emptyForge(); this.forgeSpent = 0; this.contractUntil = 0;   // War Forge resets on a new run; restore() brings it back on resume
+      this.forge = KM.emptyForge(); this.forgeSpent = 0; this.contractUntil = 0; this.chant = { pack: opts.chant && KM.CHANT_PACKS && KM.CHANT_PACKS[opts.chant] ? opts.chant : null, t0: 0 }; this.chantNext = undefined; this.chantBar = -1; this.cB = null; this.cLast = {}; this.cBuf = {}; this.cAtt = {}; this.chantFx = { cres: 0, rally: 0, plunder: 0, volley: 0, hymn: 0, shake: 0 };   // 2.0 WAR CHANTS: opts.chant = station id (null/absent = chants off = 1.x balance exactly)   // War Forge resets on a new run; restore() brings it back on resume
       for (const k in this.buffs.tank) if (k in KM.TANK_BUFF_STATS) this.stats[k] *= KM.buffMul(this.buffs.tank[k]);
       this.mods = KM.loadoutMods(opts.loadout); const PK = this.mods.perks, TK = this.mods.tank;   // Phase C: class equipment + seasonal skins + perks
       this.stats.magnet *= 1 + 0.1 * (PK.magnet || 0); this.stats.maxHp += 10 * (PK.plating || 0);
@@ -95,6 +95,7 @@
       if (this.count[0] > 0) for (let i = 0; i < this.hi; i++) { if (this.st[i] !== ALIVE || this.team[i] !== 1) continue; if (this.z[i] > line - 2.5) { near = true; break; } }   // contact only: a foe standing off out of reach is marched into
       if (near) this.clearT = 0; else this.clearT = (this.clearT || 0) + dt;
       this.engaged = near || (this.engaged && this.clearT < 0.75); return this.engaged; }
+    setStation(id) { this.chantNext = id && KM.CHANT_PACKS && KM.CHANT_PACKS[id] ? id : null; this.emit('stationNext', this.chantNext); }   // WAR CHANTS radio: takes effect at the next wave start (one input, never mid-wave)
     setAuto(on) { on = !!on; if (on === this.auto) return; this.auto = on; this.emit('auto', on); }
     prodCost() { return KM.deployCost(this.prod, this.stats.cls[this.prod]); }
     clsLv(key) { return this.stats.cls[key]; }
@@ -356,7 +357,7 @@
     hurt(i, amt, fromTeam, srcZ, crit) {
       if (this.st[i] !== ALIVE) return;
       let a = this.arm[i];
-      if (this.team[i] === 0) a = (a + this.stats.armor) * this.armFx() * KM.ALLY_ARM + this.forgeArm(i);   // allies: 25 % of every armour source, then War Forge points
+      if (this.team[i] === 0) a = (a + this.stats.armor) * this.armFx() * KM.ALLY_ARM * (this.cB ? this.chantK(KM.CLASS_OF[this.kind[i]], 'arm') : 1) + this.forgeArm(i);   // allies: 25 % of every armour source, then War Forge points
       let dmg = amt * (12 / (12 + a)); if (this.team[i] === 0 && this.fortT > 0) dmg *= 0.7;
       const d = this.def(i);
       if (this.team[i] === 0 && this.posture === 1 && srcZ < this.z[i]) { const n = this.shieldWall(i); if (n) dmg *= n === 2 ? 0.65 : 0.78; }   // overlapping shields
@@ -614,10 +615,45 @@
     }
 
     // ---------- main step ----------
+    // 2.0 Phase 0: where the war-chant grid is now (bar, beat, surge/breath state, crescendo) — read by the HUD pulse only
+    chantNow() { const P = KM.CHANT_PACKS && this.chant && KM.CHANT_PACKS[this.chant.pack]; return P && KM.chantAt ? KM.chantAt(P, this.t, this.chant.t0) : null; }
+    // ---------- WAR CHANTS (2.0): a pure function of sim time + posture, never of the audio clock (muted / 5× / resumed play identically) ----------
+    chantBarStart(c) { const P = KM.CHANT_PACKS[this.chant.pack], n = P.loop.bars, prev = P.bars[(c.loopBar + n - 1) % n];
+      this.cB = { state: c.state, first: c.state !== prev, bar: c.bar, end: this.chant.t0 + (c.bar + 1) * P.barSec, b: P.tune.bar, str: P.tune.str, barSec: P.barSec };
+      if (c.crescendo) this.crescendo(P.tune.str, P.barSec); }
+    // a class's chant multiplier for one stat: Cadence (always) + the bar's Surge (ATTACKING classes) or Breath (DEFENDING classes) bonus,
+    // capped at ×1.10; then the class's timed Crescendo buff and Rally Swap (+10 % move) on top
+    chantK(ck, stat) { const B = this.cB; if (!B || !ck) return 1; const S = KM.CHANT_STAT; let k = S.cad[ck] === stat ? KM.CHANT.CAD : 0;
+      if (B.state === 'S' ? S.surge[ck] === stat && this.attacking(ck) : B.state === 'B' && S.breath[ck] === stat && !this.attacking(ck)) k += B.b;
+      const f = this.cBuf[ck]; return (1 + Math.min(KM.CHANT.CAP - 1, k)) * (f && f.until > this.t && f.m[stat] || 1) * (f && f.rally > this.t && stat === 'spd' ? 1.1 : 1); }
+    // RALLY SWAP: a class whose orders flip INTO the bar's state on the first bar of a surge (to ATTACK) or breath (to DEFEND) run gets +10 % move for one bar
+    chantRally() { const B = this.cB;
+      for (const ck of KM.PROD_ORDER) { const a = this.attacking(ck), was = this.cAtt[ck]; this.cAtt[ck] = a;
+        if (was === undefined || was === a || !B || !B.first || (a ? B.state !== 'S' : B.state !== 'B')) continue;
+        (this.cBuf[ck] = this.cBuf[ck] || { until: 0, m: {} }).rally = this.t + B.barSec; this.chantFx.rally++; this.emit('rally', ck); } }
+    // CRESCENDO (a drop bar): each class in the field with its 8-bar cooldown ready performs its signature action once
+    crescendo(str, barSec) { const live = {}, idx = {}; for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i]) { const ck = this.typeOf(i); live[ck] = (live[ck] || 0) + 1; (idx[ck] = idx[ck] || []).push(i); }
+      for (const ck of KM.PROD_ORDER) { if (!live[ck] || this.chantBar - (this.cLast[ck] ?? -1e9) < KM.CHANT.CRES_CD) continue; this.cLast[ck] = this.chantBar; this.chantFx.cres++; this.cresAct(ck, idx[ck], str, barSec); this.emit('crescendo', ck); } }
+    cresAct(ck, list, str, barSec) { const until = this.t + barSec, buf = m => { this.cBuf[ck] = Object.assign(this.cBuf[ck] || { rally: 0 }, { until, m }); };
+      if (ck === 'melee') buf({ spd: 1 + 0.25 * str, dmg: 1 + 0.2 * str });   // CHARGE STEP: one bar of +25 % speed / +20 % damage
+      else if (ck === 'elite') buf({ arm: 1 + 0.3 * str });                    // BRACE: one bar of +30 % armour
+      else if (ck === 'collector') { const C = this.c, R2 = 36 * str; let n = 0;   // PLUNDER: coins already on the ground within ~6 m of a Looter fly to the tank
+        for (let k = 0; k < CCAP; k++) { if (C.st[k] !== 1 || C.age[k] <= 0.3) continue; for (let q = 0; q < Math.min(40, list.length); q++) { const i = list[q], dx = this.x[i] - C.x[k], dz = this.z[i] - C.z[k]; if (dx * dx + dz * dz < R2) { C.st[k] = 2; C.age[k] = 0; n++; break; } } }
+        this.chantFx.plunder += n; }
+      else if (ck === 'range') { let bx = 0, bz = 0, best = 0;   // CHANT VOLLEY: one free volley (40 % of an Arrow Storm volley) on the densest enemy cluster
+        for (let i = 0; i < this.hi; i += 4) { if (this.st[i] !== ALIVE || this.team[i] !== 1) continue; let c = 0; for (let j = 0; j < this.hi; j += 3) if (this.st[j] === ALIVE && this.team[j] === 1 && Math.abs(this.x[j] - this.x[i]) < 5 && Math.abs(this.z[j] - this.z[i]) < 5) c++; if (c > best) { best = c; bx = this.x[i]; bz = this.z[i]; } }
+        if (best) { this.src = 1; this.area(1, bx, bz, 6, this.stats.dmg * 1.2 * str, 0, bz); this.chantFx.volley++; this.emit('volley', bx, bz); } }
+      else if (ck === 'mizard') { let h = 0;   // HYMN PULSE: each Mizard heals allies within 5 m by 5 % of their max HP
+        for (let q = 0; q < Math.min(12, list.length); q++) { const m = list[q]; for (let j = 0; j < this.hi; j++) { if (this.st[j] !== ALIVE || this.team[j] || this.hp[j] >= this.mhp[j]) continue; const dx = this.x[j] - this.x[m], dz = this.z[j] - this.z[m]; if (dx * dx + dz * dz > 25) continue; const a = Math.min(this.mhp[j] - this.hp[j], this.mhp[j] * 0.05 * str); this.hp[j] += a; h += a; } }
+        this.healed += h; this.chantFx.hymn += h; }
+      else if (ck === 'giant') { let n = 0;   // EARTHSHAKE: non-boss enemies within 4 m of a Giant are staggered (half speed + half attack) for ~1 s
+        for (let q = 0; q < Math.min(12, list.length); q++) { const g = list[q]; for (let j = 0; j < this.hi; j++) { if (this.st[j] !== ALIVE || this.team[j] !== 1 || (KM.ENEMY[this.kind[j]] || {}).boss) continue; const dx = this.x[j] - this.x[g], dz = this.z[j] - this.z[g]; if (dx * dx + dz * dz > 16) continue; this.slow[j] = Math.max(this.slow[j], str); n++; } }
+        this.chantFx.shake += n; } }
     step(dt) {
       if (!this.alive) { this.stepDying(dt); this.stepFx(dt); return; }
       this.halt = this.nBoss > 0 || this.frontEngaged(dt);   // the march holds while a boss lives or while the army's front line is fighting
       this.t += dt; if (!this.halt) this.front -= W.ADV * dt; this.postureT += dt;
+      { const c = this.chantNow(); if (!c) this.cB = null; else { if (c.bar !== this.chantBar) { this.chantBar = c.bar; this.chantBarStart(c); this.emit('chantBar', c.loopBar, c.state, c.crescendo); } this.chantRally(); } }
       const D = this.diff = KM.difficulty(this.budget < -1e8 ? this.t : this.warT()), S = this.stats, L = this.L;
       // launcher movement (smoothed for weight); AUTO lines the cannon lane up on its own while the player is not steering
       L.man = Math.max(0, L.man - dt); const aim = this.auto && L.man <= 0; if (aim) this.autoSteer(dt);
@@ -673,6 +709,7 @@
     startWave(n) {
       const p = (n - 1) % 10 + 1, tier = Math.floor((n - 1) / 10), m = ((n - 1) * KM.WAVE_SECS) / 60, B = KM.waveBudget(n), Q = [], t = this.t;
       this.wave = n; this.wState = 1; this.waveStart = t; this.waveLeft = 0; this.waveSpawned = 0;
+      if (this.chantNext !== undefined) { if (this.chantNext !== this.chant.pack) { this.chant = { pack: this.chantNext, t0: t }; this.chantBar = -1; this.cB = null; this.cLast = {}; this.emit('station', this.chant.pack); } this.chantNext = undefined; }   // a new station starts its loop on this wave's first beat
       if (p === 1 || !this.sector) this.chooseSector(m, tier);
       const A = KM.SECTORS[this.sector], other = this.sector2 || this.sector, pool = s => KM.SECTORS[s].pool, pick = s => this.rng.pick(pool(s));
       if (p === 10) { Q.push({ at: t, warn: 'boss' }, { at: t + 2.5, type: 'boss', bud: 0 }, { at: t + 3, type: 'line', bud: B * 0.45 }); }
@@ -984,7 +1021,7 @@
           this.tgt[i] = tg;
         }
         if (team === 1 && this.mt[i] > 0 || (team === 1 && KM.ENEMY[this.kind[i]].mech)) this.bossMech(i, dt, KM.ENEMY[this.kind[i]]);
-        let sp = this.spd[i] * sm * (team ? 1 : S.speed / 4.3) * (1 + 0.3 * adv) * (this.role[i] === 2 ? 1 + 0.15 * (this.mi || 0) : 1);
+        let sp = this.spd[i] * sm * (team ? 1 : S.speed / 4.3 * (this.cB ? this.chantK(KM.CLASS_OF[this.kind[i]], 'spd') : 1)) * (1 + 0.3 * adv) * (this.role[i] === 2 ? 1 + 0.15 * (this.mi || 0) : 1);
         if (team === 0 && this.kind[i] !== 32) sp = sp; // all friendlies share stat speed
         if (this.mph[i] === 2 && team === 1) { tg = -1; }                                              // charging: ignore targets, run the line over
         if (tg !== -1) {
@@ -1011,7 +1048,7 @@
           else {
             if (adv < -0.4 && this.role[i] < 2 && !hold) dvz = (team ? -1 : 1) * sp * 0.45 * (-adv - 0.4);   // losing strip gives ground while fighting (a DEFEND wall holds its slot instead)
             if (hold) { /* DEFEND wall (Elite, front-rank Melee, archers): fight from the slot and step back into it */ const G = this.fg || (this.fg = [0, 0]); this.formGoal(i, G); const ox = G[0] - this.x[i], oz = G[1] - this.z[i], od = Math.hypot(ox, oz) || 1e-3; if (od > 0.3) { dvx = ox / od * sp * 0.5 * Math.min(1, od / 2.2); dvz = oz / od * sp * 0.5 * Math.min(1, od / 2.2); } dvz += vm; }   // the phalanx and the archers fight from their slots
-            this.at[i] -= dt * (team ? 1 : S.atk * this.spdFx() * ((this.rofK && this.rofK[this.kind[i]]) || 1)) * sm;
+            this.at[i] -= dt * (team ? 1 : S.atk * this.spdFx() * ((this.rofK && this.rofK[this.kind[i]]) || 1) * (this.cB ? this.chantK(KM.CLASS_OF[this.kind[i]], 'rof') : 1)) * sm;
             if (this.at[i] <= 0) { this.at[i] = this.cd[i] * (0.9 + this.rng() * 0.2); this.attack(i, tg, tx, tz, S); }
           }
         } else {
@@ -1209,13 +1246,13 @@
         this.ctg[i] = best; }
       const p = this.ctg[i];
       if (p >= 0 && this.st[p] === ALIVE && Math.hypot(this.x[p] - x, this.z[p] - z) <= R) { this.at[i] -= dt; this.yaw[i] = Math.atan2(this.x[p] - x, this.z[p] - z);
-        if (this.at[i] <= 0) { this.at[i] = this.cd[i]; const h = Math.min(this.mhp[p] - this.hp[p], S.medHeal + this.forgeK('mizard', 'a')); this.hp[p] += h; this.healed += h; this.swing[i] = 1; this.emit('beam', i, p, h); } }
+        if (this.at[i] <= 0) { this.at[i] = this.cd[i]; const h = Math.min(this.mhp[p] - this.hp[p], (S.medHeal + this.forgeK('mizard', 'a')) * (this.cB ? this.chantK('mizard', 'heal') : 1)); this.hp[p] += h; this.healed += h; this.swing[i] = 1; this.emit('beam', i, p, h); } }
       // area burst: energy fills on a fixed cadence (deterministic), then heals the most wounded allies around the beam target
       this.mt[i] -= dt;
       if (this.mt[i] <= 0) { this.mt[i] = Math.max(6, 12 - 0.4 * (lv - 1)); const cx = p >= 0 && this.st[p] === ALIVE ? this.x[p] : x, cz = p >= 0 && this.st[p] === ALIVE ? this.z[p] : z - 4, Rb = 3.5 + 0.45 * (lv - 1), N = 5 + (lv - 1), list = [];
         for (let j = 0; j < this.hi; j++) if (this.st[j] === ALIVE && !this.team[j] && this.hp[j] < this.mhp[j] && Math.hypot(this.x[j] - cx, this.z[j] - cz) <= Rb) list.push(j);
         list.sort((a, b) => this.hp[a] / this.mhp[a] - this.hp[b] / this.mhp[b]); let n = 0;
-        for (const j of list.slice(0, N)) { const h = Math.min(this.mhp[j] - this.hp[j], (S.medHeal + this.forgeK('mizard', 'a')) * 2.5); this.hp[j] += h; this.healed += h; n++; }
+        for (const j of list.slice(0, N)) { const h = Math.min(this.mhp[j] - this.hp[j], (S.medHeal + this.forgeK('mizard', 'a')) * 2.5 * (this.cB ? this.chantK('mizard', 'heal') : 1)); this.hp[j] += h; this.healed += h; n++; }
         this.emit('healBurst', cx, cz, Rb, n); }
       const dx = gx - x, dz = gz - z, d = Math.sqrt(dx * dx + dz * dz) || 1e-3, s2 = d > 0.3 ? sp * Math.min(1, d / 1.4) : 0;
       this.cvx = dx / d * s2; this.cvz = dz / d * s2 + (inSlot && !this.halt ? -W.ADV : 0); if (!(p >= 0)) this.yaw[i] = d > 0.5 ? Math.atan2(dx, dz) : Math.PI;   // a slotted Mizard marches with the formation
@@ -1319,7 +1356,7 @@
       if (tg === -2 && !this.alive) return;
       const tx = tg === -2 ? this.L.x : this.x[tg], tz = tg === -2 ? this.L.z : this.z[tg];
       let dmg = this.dmg[i], crit = false;
-      if (team === 0) { const ck = KM.CLASS_OF[this.kind[i]]; dmg = (this.evo[i] === 2 ? this.dmg[i] : this.merc[i] ? S.dmg * d.dmg : this.clsM(ck, S.cls[ck]).dmg + (this.merc[i] ? 0 : this.forgeK(ck, 'a'))) * this.dmgFx(); if (this.rng() < S.crit) { dmg *= 2; crit = true; } }
+      if (team === 0) { const ck = KM.CLASS_OF[this.kind[i]]; dmg = (this.evo[i] === 2 ? this.dmg[i] : this.merc[i] ? S.dmg * d.dmg : this.clsM(ck, S.cls[ck]).dmg + (this.merc[i] ? 0 : this.forgeK(ck, 'a'))) * this.dmgFx() * (this.cB ? this.chantK(ck, 'dmg') : 1); if (this.rng() < S.crit) { dmg *= 2; crit = true; } }
       if (d.he) { // shaman heals nearby enemies, then casts
         for (let j = 0; j < this.hi; j++) if (this.st[j] === ALIVE && this.team[j] === 1 && j !== i) { const dx = this.x[j] - this.x[i], dz = this.z[j] - this.z[i]; if (dx * dx + dz * dz < 16) this.hp[j] = Math.min(this.mhp[j], this.hp[j] + d.he * this.cd[i] * (this.poisT[j] > 0 ? 1 - this.healRed[j] : 1)); }   // POISON: less healing
         this.emit('heal', i);
@@ -1433,7 +1470,7 @@
     // ---------- one-slot autosave: the meaningful run state (not every body). The army is rebuilt by kind around the tank. ----------
     snapshot() {
       const L = this.L, keys = ['t', 'front', 'coins', 'coinsTotal', 'kills', 'peakArmy', 'upgrades', 'budget', 'overflow', 'bossN', 'sector', 'seenSector', 'wave', 'wState', 'energy', 'bossesKilled', 'warTokens', 'pboost', 'eLv', 'eWave', 'bossLv', 'bossSeen', 'diamondsWon', 'consWon', 'buffs', 'emergencies', 'posture', 'prod', 'auto', 'plan', 'planRR',
-        'dmgBy', 'healed', 'shAbsorbed', 'colCoins', 'colLost', 'killsByKind', 'spawnCounter', 'charge', 'forge', 'forgeSpent'], o = { v: 1, seed: this.seed };
+        'dmgBy', 'healed', 'shAbsorbed', 'colCoins', 'colLost', 'killsByKind', 'spawnCounter', 'charge', 'forge', 'forgeSpent', 'chant', 'chantNext', 'cLast', 'chantFx'], o = { v: 1, seed: this.seed };
       for (const k of keys) o[k] = this[k];
       o.stats = this.stats; o.L = { x: L.x, tx: L.tx, hp: L.hp, sh: L.sh, shMax: L.shMax, shDown: L.shDown };
       o.army = new Array(KM.FRIEND.length).fill(0); for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i] && !this.merc[i]) { const k = this.kind[i] - 32; if (k >= 0 && k < o.army.length) o.army[k]++; }   // temporary mercenaries are never saved as soldiers

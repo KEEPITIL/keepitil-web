@@ -502,6 +502,7 @@
     settings: { sound: 1, music: 1, haptics: 1, competitive: 0, speed: 1, zoom: 1 }, plan: KM.emptyPlan(),
     ach: {},
     buffs: { cls: {}, tank: {} }, cons: {}, paid: [],
+    chants: { on: 1, station: 'steel', owned: { steel: 1 }, vol: 1 },   // 2.0 WAR CHANTS: radio on/off, selected station, unlocked stations, stinger volume 0–1
     perks: {}, gear: { owned: {}, equip: {} }, season: { owned: {}, equip: {} }, mercTier: 1,   // Phase C: perk tiers · class equipment (owned tiers, equipped tier per slot) · seasonal skin sets · chosen Mercenary tier   // permanent boss-card buffs (counts of +5 %), consumable inventory, banked boss-payout ids (exactly once)
   });
   const num = (v, d, max) => (typeof v === 'number' && isFinite(v) && v >= 0) ? Math.min(v, max || 1e15) : d;
@@ -536,6 +537,9 @@
     const se = raw.season || {}; for (const id of Object.keys(se.owned || {})) if (KM.SEASON_BY[id]) d.season.owned[id] = 1;
     for (const c of [...KM.PROD_ORDER, 'tank']) { const id = (se.equip || {})[c]; if (id && d.season.owned[id]) d.season.equip[c] = id; }
     if ([1, 2, 3].includes(raw.mercTier)) d.mercTier = raw.mercTier;
+    const ch = raw.chants || {}, ST = ['steel', 'iron', 'fury'];   // WAR CHANTS: only known stations; the selected one must be owned (STEEL is always owned)
+    for (const id of ST) if ((ch.owned || {})[id]) d.chants.owned[id] = 1;
+    if (ST.includes(ch.station) && d.chants.owned[ch.station]) d.chants.station = ch.station; if (ch.on === 0) d.chants.on = 0; d.chants.vol = Math.min(1, num(ch.vol, 1));
     return d;
   };
   KM.loadSave = function (store) {

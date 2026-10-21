@@ -95,7 +95,7 @@
         if (R.fps.length % 10 === 1) R.samples.push([Math.round(sim.t), sim.count[0], sim.count[1], Array.from(sim.nKind.slice(0, KM.FRIEND.length)), sim.posture, sim.sector, perf ? perf.quality : '', perf ? +perf.simMs.toFixed(2) : 0]); },
       qdown(to, fps) { if (R) R.qdown.push([to, Math.round(fps)]); },
       end(sim, r, ctx) { if (!R) return; const S = sim.stats;
-        Object.assign(R, { wave: sim.wave, bossesKilled: sim.bossesKilled, warTokens: sim.warTokens, cls: Object.assign({}, S.cls), goldSpent: Math.max(0, Math.round(sim.coinsTotal + KM.START_BANK - sim.coins)), energyUsed: sim.powersUsed || 0, emergencies: sim.emergencies || 0, mizardHeal: Math.round(sim.healed || 0), looterRepair: Math.round(sim.repaired || 0), speedLabel: speedI + 1, giants: sim.nKind[KM.FRIEND_BY.giantF.id - 32], pts: sim.pts, equipped: sim.equipped.slice() });
+        Object.assign(R, { chant: sim.chant.pack || 'off', chantFx: Object.assign({}, sim.chantFx), wave: sim.wave, bossesKilled: sim.bossesKilled, warTokens: sim.warTokens, cls: Object.assign({}, S.cls), goldSpent: Math.max(0, Math.round(sim.coinsTotal + KM.START_BANK - sim.coins)), energyUsed: sim.powersUsed || 0, emergencies: sim.emergencies || 0, mizardHeal: Math.round(sim.healed || 0), looterRepair: Math.round(sim.repaired || 0), speedLabel: speedI + 1, giants: sim.nKind[KM.FRIEND_BY.giantF.id - 32], pts: sim.pts, equipped: sim.equipped.slice() });
         Object.assign(R, { secs: Math.round(r.time), reason: r.reason, kills: r.kills, coins: r.coins, peakArmy: r.peakArmy, upgrades: r.upgrades, era: KM.tankEra(S, sim.t), q1: ctx.quality,
           dmg: { melee: Math.round(sim.dmgBy[0]), ranged: Math.round(sim.dmgBy[1]), tank: Math.round(sim.dmgBy[2]), support: Math.round(sim.dmgBy[3]) },
           collectors: { coins: Math.round(sim.colCoins), lost: sim.colLost }, healed: Math.round(sim.healed), shield: Math.round(sim.shAbsorbed), lastSector: sim.sector,
@@ -137,7 +137,10 @@
   if (forcedQ) quality = forcedQ;
   render.applyQuality(quality);
   KM.assetsReady = KM.loadCharacterAssets ? KM.loadCharacterAssets(render, (DEV && DEV.assetBase) || 'assets/') : Promise.resolve({ procedural: true });   // authored characters swap in when available
-  const audio = new KM.Audio(); audio.setSound(save.settings.sound); audio.setMusic(save.settings.music);
+  const audio = new KM.Audio(); audio.setSound(save.settings.sound); audio.setMusic(save.settings.music); audio.setChantVol(save.chants.vol);
+  audio.pos = () => sim.chant && sim.chant.pack ? sim.t - sim.chant.t0 : 0;   // WAR CHANTS: seconds into the station loop, from SIM time (the music follows the sim, never the reverse)
+  for (const id of KM.stationEarned(save.chants.owned, { bosses: save.records.bosses, wave: save.records.wave })) save.chants.owned[id] = 1;   // players who already beat a boss / reached wave 30 before 2.0 keep that progress
+  let cresBar = false;
   const sim = new KM.Sim({ seed: 1 });
   let combatHits = 0, combatLvl = 0, combatT = 0;
   let state = 'title', paused = false, runId = 0, tut = 0, lastResults = null, botOn = !!(DEV && DEV.bot); const cue = {};
@@ -174,9 +177,9 @@
       case 'elite': audio.play('elite', 0, 0); break;
       case 'death': onDeath(); break;
       case 'waveStart': { const S = KM.SECTORS[c] || KM.SECTORS.opening; banner('WAVE ' + a + (b === 10 ? '\nBOSS' : '\n' + S.name), 1.4); if (!recordShown && save.records.wave && a > save.records.wave) { recordShown = true; setTimeout(() => banner('NEW RECORD\nWAVE ' + a, 1.8), 1500); audio.play('pb'); } break; }
-      case 'waveClear': checkMilestones(); RunSave.write(sim); break;
+      case 'waveClear': checkMilestones(); earnStations(); RunSave.write(sim); break;
       case 'bossReward': if (!save.paid.includes(a.id)) { save.paid.push(a.id); save.paid = save.paid.slice(-200); bank(a.tokens, a.diamonds, 'boss'); }   // exactly once per boss, even after a reload
-        banner('BOSS DEFEATED\n+' + KM.fmtShort(a.gold) + ' GOLD · ' + (a.tokens ? '+' + a.tokens + ' WAR TOKENS' : '+' + a.diamonds + ' DIAMOND'), 2.2); RunSave.write(sim); break;
+        banner('BOSS DEFEATED\n+' + KM.fmtShort(a.gold) + ' GOLD · ' + (a.tokens ? '+' + a.tokens + ' WAR TOKENS' : '+' + a.diamonds + ' DIAMOND'), 2.2); setTimeout(earnStations, 2400); RunSave.write(sim); break;
       case 'forge': audio.play('upgrade'); KM.haptic(15); break;
       case 'consUse': save.cons[a] = Math.max(0, (save.cons[a] || 0) - 1); persist(); banner(KM.CONSUMABLES[a].name, 1.0); audio.play('c_' + a); break;
       case 'bossCard': save.buffs = JSON.parse(JSON.stringify(sim.buffs)); if (a.id === 'cons') save.cons[a.item] = (save.cons[a.item] || 0) + 1; persist(); break;
@@ -186,6 +189,10 @@
       case 'power': audio.play({ linebreaker: 'pw_lb', arrowstorm: 'pw_as', elemental: 'pw_el', mercenary: 'pw_mc', fortress: 'pw_fo' }[a] || 'boom'); break;   // each power has its own signature, at the moment it lands
       case 'volley': audio.play('pw_rain'); break;   // every Arrow Storm volley, when its damage lands
       case 'beam': break;   // heal sound REMOVED (owner audio review)
+      case 'station': audio.station(a); banner('WAR CHANT\n' + (a ? KM.STATION_BY[a].name : 'OFF'), 1.2); break;   // a station picked mid-run starts on this wave's first beat
+      case 'crescendo': cresBar = true; break;
+      case 'chantBar': audio.sync(SPEEDS[speedI]); if (cresBar) { cresBar = false; audio.stinger('cres'); KM.haptic(12); } break;   // one stinger per drop bar, however many classes answer it
+      case 'rally': audio.stinger('rally'); KM.haptic(8); break;
     }
   });
 
@@ -262,14 +269,14 @@
   }
   function show(id) { for (const s of ['title', 'over', 'pause', 'shop', 'settings', 'plan']) $(s).classList.toggle('hidden', s !== id); if (id === 'title' || id === 'over') audio.stopMusic(); }
   if (!save.player) { save.player = Array.from({ length: 8 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join(''); persist(); }   // anonymous commander id for the boards
-  const runOpts = () => ({ seed: (Date.now() ^ (runId * 2654435761)) >>> 0, equip: save.powers.equip, powerLv: save.powers.lv, skins: save.skins.equip, buffs: save.buffs, cons: save.cons, loadout: { perks: save.perks, equip: save.gear.equip, skin: save.season.equip }, mercTier: save.mercTier, plan: save.plan });   // the saved WAR PLAN becomes this run's active plan
+  const runOpts = () => ({ seed: (Date.now() ^ (runId * 2654435761)) >>> 0, equip: save.powers.equip, powerLv: save.powers.lv, skins: save.skins.equip, buffs: save.buffs, cons: save.cons, loadout: { perks: save.perks, equip: save.gear.equip, skin: save.season.equip }, mercTier: save.mercTier, plan: save.plan, chant: save.chants.on ? save.chants.station : null });   // the saved WAR PLAN becomes this run's active plan
   let recordShown = false;
   function startRun(resume) {
     khHide(); audio.unlock(); runId++; RunSave.clear();
     let resumed = false;
     if (resume) { try { sim.reset(runOpts()); sim.restore(resume.snap); resumed = true; } catch (e) { sim.reset(runOpts()); banner('SAVED RUN COULD NOT BE RESTORED', 2); } }
     else sim.reset(runOpts());
-    render.resetRun(); applyLooks(); recordShown = false;
+    render.resetRun(); applyLooks(); recordShown = false; cresBar = false; audio.station(sim.chant.pack);
     state = 'run'; paused = false; show(null);
     for (const id of ['hud', 'tankHp', 'drawer', 'rightCol']) $(id).classList.remove('hidden'); closePops(); setPostureUI(); drawerUI(); choiceUI(); safeFrame();
     moved = 0; setTip(save.ach.tutorial ? 4 : 0);
@@ -279,6 +286,9 @@
     Telemetry.begin(sim, { quality: render.quality, speed: speedNow(), runN: save.totals.runs + 1, resumed, resumeFailed: !!resume && !resumed });
     hook('start');
   }
+  // WAR CHANTS play unlocks (IRON: first boss · FURY: wave 30); kept forever like the other permanent rewards
+  function earnStations() { const got = KM.stationEarned(save.chants.owned, { bosses: Math.max(sim.bossesKilled || 0, save.records.bosses || 0), wave: Math.max(sim.wave || 0, save.records.wave || 0) }); if (!got.length) return;
+    for (const id of got) save.chants.owned[id] = 1; persist(); banner('NEW WAR CHANT\n' + got.map(id => KM.STATION_BY[id].name).join(' · ') + ' UNLOCKED', 2.2); audio.play('pb'); Analytics.track('chant_unlock', { ids: got.join(','), how: 'play' }); }
   // permanent rewards bank the moment they are earned (bosses, milestones, records) — a long run can never be lost
   function bank(t, d, why) { if (t) save.tokens += t; if (d) save.diamonds += d; persist(); Analytics.track('bank', { tokens: t || 0, diamonds: d || 0, why }); }
   function checkMilestones() { for (const m of KM.MILESTONES) if (sim.wave >= m.wave && !save.titles.includes(m.title)) { save.titles.push(m.title); bank(m.tokens, m.diamonds || 0, 'milestone'); banner(m.title + '\n+' + m.tokens + ' WAR TOKENS', 2.4); audio.play('pb'); } }
@@ -321,10 +331,18 @@
   function buildToggles(el) {
     const rows = [['sound', 'Sound effects'], ['music', 'Music'], ['haptics', 'Vibration']];
     el.innerHTML = rows.map(([k, l]) => `<label>${l}<input type="checkbox" data-k="${k}" ${save.settings[k] ? 'checked' : ''}></label>`).join('') +
-      '<label class="soon" aria-disabled="true">War chants <small>COMING SOON</small><input type="checkbox" disabled></label>';   // 2.0: a radio control for war chants; shown, not active
-    el.querySelectorAll('input').forEach(inp => inp.onchange = () => { const k = inp.dataset.k; save.settings[k] = inp.checked ? 1 : 0; persist(); if (k === 'sound') audio.setSound(inp.checked); if (k === 'music') audio.setMusic(inp.checked); });
-    // (the War chants row has no data-k and stays disabled)
+      `<div class="chantRow"></div><label class="cvol">Chant sounds<input type="range" min="0" max="100" step="10" data-cv value="${Math.round(save.chants.vol * 100)}" aria-label="Chant sounds volume"></label>`;   // 2.0 WAR CHANTS radio + stinger volume
+    el.querySelectorAll('input[data-k]').forEach(inp => inp.onchange = () => { const k = inp.dataset.k; save.settings[k] = inp.checked ? 1 : 0; persist(); if (k === 'sound') audio.setSound(inp.checked); if (k === 'music') audio.setMusic(inp.checked); });
+    const cv = el.querySelector('[data-cv]'); cv.oninput = () => audio.setChantVol(+cv.value / 100); cv.onchange = () => { save.chants.vol = +cv.value / 100; persist(); audio.setChantVol(save.chants.vol); };
+    chantRow(el.querySelector('.chantRow'));
   }
+  // WAR CHANTS radio dial (Settings, pause menu and the WAR PLAN page): OFF or an unlocked station. In a battle the change starts at the next wave.
+  function chantRow(el) { if (!el) return; const C = save.chants, run = state === 'run', cur = run ? (sim.chantNext !== undefined ? sim.chantNext : sim.chant.pack) : (C.on ? C.station : null);
+    el.innerHTML = `<div class="ch-h"><b>WAR CHANT</b><small>${run ? 'CHANGES AT THE NEXT WAVE' : 'ALL EQUALLY STRONG · DIFFERENT RHYTHM'}</small></div><div class="ch-b">` +
+      [null, ...KM.STATIONS.map(x => x.id)].map(id => { const st = id && KM.STATION_BY[id], own = !id || C.owned[id];
+        return `<button type="button" data-ch="${id || ''}" class="${cur === id ? 'on' : ''}" ${own ? '' : 'disabled'} aria-pressed="${cur === id}">${st ? (own ? '' : '🔒 ') + st.name + '<small>' + (own ? st.lean : st.unlock.text) + '</small>' : 'OFF<small>NO BONUS</small>'}</button>`; }).join('') + '</div>';
+    el.querySelectorAll('button').forEach(b => b.onclick = e => { e.stopPropagation(); const id = b.dataset.ch || null; if (id) { C.station = id; C.on = 1; } else C.on = 0; persist();
+      if (run) { sim.setStation(id); banner('WAR CHANT: ' + (id ? KM.STATION_BY[id].name : 'OFF') + '\nSTARTS NEXT WAVE', 1.2); } audio.play('tap'); Analytics.track('chant_pick', { id: id || 'off', run }); chantRow(el); }); }
   let shopTab = 'skins', gearCls = 'melee', skinTier = 0;
   const TIER_COL = ['#c08040', '#c8d0dc', '#ffd23a', '#7fe8ff'];
   const GEAR_GLYPH = {
@@ -365,6 +383,7 @@
   const skinArt = c => `<div class="pv-skin" style="--c:${c}">${['melee', 'range', 'mizard'].map(k => `<span><img src="${PORTRAIT(k)}" alt=""></span>`).join('')}<span>${TANK_MINI(c)}</span></div>`;   // the set covers all six classes + the tank (listed in (i))
   const gearArt = (cls, sl, t) => `<div class="pv-gear" style="--m:${t ? TIER_COL[t - 1] : '#3a4a6a'}"><img src="${PORTRAIT(cls)}" alt=""><span class="gb"><svg viewBox="0 0 64 64" aria-hidden="true">${GEAR_GLYPH[sl.id]}</svg></span></div>`;
   const CUR = { tokens: ['⚔', 'War Tokens'], diamonds: ['💎', 'Diamonds'] };
+  const chantArt = id => { const c = { steel: '#c8d0dc', iron: '#6fb6ff', fury: '#ff6a3a' }[id], h = [5, 9, 14, 7, 12, 4, 10, 15, 8, 6, 13, 9]; return `<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="60" height="60" rx="14" fill="#0e1a36" stroke="${c}" stroke-width="3"/>${h.map((v, i) => `<rect x="${9 + i * 4}" y="${32 - v}" width="2.6" height="${v * 2}" rx="1.3" fill="${c}" opacity="${0.55 + (i % 3) * 0.15}"/>`).join('')}<circle cx="32" cy="52" r="3" fill="${c}"/></svg>`; };   // WAR CHANTS card: a station's beat bars
   const tierSel = {}, curSel = {}; let conf = null, confTimer = 0, infoKey = null;
   // a product: { key, name, tag, art, chips:[[label,value]], tiers:[{ t, label, art, chips, state, cost, act, btn }], sel, info:{ desc, rows, notes, ctrl } }
   // state: 'buy' (cost + BUY) · 'owned' (btn names the select/equip action) · 'locked' (why) · 'max' · 'free' (select only)
@@ -407,6 +426,12 @@
         state: max ? 'max' : 'buy', cost: KM.powerCost(lv), buyLabel: 'LEVEL ' + (lv + 1), buy: () => { save.powers.lv[id] = lv + 1; },
         info: { desc: P.desc + '. Each permanent level adds +10% power.', rows: [['Level', lv + ' / ' + KM.POWER_MAX], ['Energy', String(id === 'mercenary' ? KM.MERC_TIERS[save.mercTier - 1].energy : P.cost)], ['Next level', max ? '—' : KM.powerCost(lv).tokens + ' ⚔ / ' + KM.powerCost(lv).diamonds + ' 💎']],
           notes: 'Up to 3 powers are equipped for battle.' + (id === 'mercenary' ? ' Choose the Mercenary tier below.' : ''), ctrl } }; });
+    if (shopTab === 'chants') return KM.STATIONS.map(st => { const own = !!save.chants.owned[st.id], eq = !!save.chants.on && save.chants.station === st.id, P = KM.CHANT_PACKS[st.id];
+      return { key: 'ch:' + st.id, name: st.name, tag: own ? st.lean : '🔒 ' + st.unlock.text, art: chantArt(st.id), chips: [['SONG', st.song], ['BPM', String(P.bpm)]],
+        state: own ? 'owned' : 'buy', cost: KM.STATION_COST, buyLabel: 'UNLOCK', btn: own ? (eq ? 'PLAYING ✓' : 'PLAY') : null, on: eq,
+        buy: () => { save.chants.owned[st.id] = 1; save.chants.station = st.id; save.chants.on = 1; }, use: () => { save.chants.station = st.id; save.chants.on = 1; },
+        info: { desc: st.desc + ' Every war chant is equally strong: they change WHEN your army is strong, not how strong.', rows: [['Song', st.song + ' by KEEPITIL'], ['Tempo', P.bpm + ' BPM'], ['Unlock', st.unlock ? st.unlock.text + ' (free), or ' + KM.STATION_COST.tokens + ' War Tokens / ' + KM.STATION_COST.diamonds + ' Diamonds' : 'Free']],
+          notes: 'Loud bars boost classes on ATTACK, calm bars boost classes on DEFEND, and each drop fires every class\'s Crescendo. It all works with the sound off.' } }; });
     if (shopTab === 'armory') return KM.SKINS.filter(k => save.skins.owned[k.id]).map(k => { const eq = save.skins.equip[k.cls] === k.id;
       return { key: 'ar:' + k.id, name: k.name, tag: k.cls.toUpperCase(), art: k.cls === 'tank' ? `<span class="pv-ico">${TANK_MINI(k.color)}</span>` : `<div class="pv-gear" style="--m:${k.color}"><img src="${PORTRAIT(k.cls)}" alt=""></div>`,
         chips: [[k.desc, '']], state: 'owned', btn: eq ? 'EQUIPPED ✓' : 'EQUIP', on: eq, use: () => { if (eq) { if (k.cls !== 'tank') delete save.skins.equip[k.cls]; } else save.skins.equip[k.cls] = k.id; applyLooks(); },
@@ -598,7 +623,7 @@
   // label turns amber with "~" and the real rate (the simulation stays exact, it just runs slower than asked — never a fake label)
   let spWant = 0, spGot = 0, speedEff = 1;
   function speedLabel() { const v = speedNow(), lag = v > 1 && speedEff < v * 0.9; $('speedTxt').textContent = lag ? '~' + fmtX(Math.round(speedEff * 10) / 10) : fmtX(v); $('speedBtn').classList.toggle('lag', lag); $('speedBtn').setAttribute('aria-label', 'Game speed ' + fmtX(v)); $('speedBtn').title = lag ? 'This device is running ' + fmtX(Math.round(speedEff * 10) / 10) + ' of the chosen ' + fmtX(v) : ''; }
-  function setSpeed(i) { speedI = (i + SPEEDS.length) % SPEEDS.length; save.settings.speed = SPEEDS[speedI]; persist(); render.speed = SPEEDS[speedI]; spWant = spGot = 0; speedEff = SPEEDS[speedI]; speedLabel(); }   // shown as the real multiplier: 1× · 1.5× · 2× · 3× · 5×
+  function setSpeed(i) { speedI = (i + SPEEDS.length) % SPEEDS.length; save.settings.speed = SPEEDS[speedI]; persist(); render.speed = SPEEDS[speedI]; spWant = spGot = 0; speedEff = SPEEDS[speedI]; speedLabel(); audio.sync(SPEEDS[speedI]); }   // shown as the real multiplier: 1× · 1.5× · 2× · 3× · 5×
   $('speedBtn').addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); audio.unlock(); if (planMode) return; setSpeed(speedI + 1); audio.play('tap'); if (state === 'run') banner('SPEED ' + fmtX(speedNow()), 0.8); });   // icon-only button: the new value flashes as a banner
   // ZOOM (camera only): 1× · 1.5× · 2× · 3× the fitted camera distance; world, units, aim, range and speed are untouched
   const ZOOMS = KM.ZOOMS; let zoomI = Math.max(0, ZOOMS.indexOf(save.settings.zoom || 1));
@@ -615,7 +640,8 @@
     if (pendingQ) { render.applyQuality(pendingQ); pendingQ = null; }
     const js0 = performance.now();
     rawMs = now - lastT; let dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
-    audio.quiet = state !== 'run' || paused;   // the demo battle behind the menus / shop / pause is silent (owner 2026-10-20)
+    audio.quiet = state !== 'run' || paused;
+    if (state === 'run') { const c = sim.chantNow(), el = $('chantPulse'); if (c && el) { const k = (1 - c.beatPhase) * (1 - c.beatPhase); el.style.setProperty('--cp', (k * (c.beat === 0 ? 1.4 : 0.9)).toFixed(3)); el.style.setProperty('--cc', c.crescendo ? '#7dff9a' : c.state === 'S' ? '#ffd23a' : c.state === 'B' ? '#6fb6ff' : '#ffffff'); } }   // 2.0 Phase 0: beat pulse on the sim's chant grid (visual only)   // the demo battle behind the menus / shop / pause is silent (owner 2026-10-20)
     let gdt = dt;
     if (state === 'run' && !paused) {
       if (keys.ArrowLeft || keys.a) sim.moveBy(-dt * 14); if (keys.ArrowRight || keys.d) sim.moveBy(dt * 14);
@@ -643,7 +669,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=a6f1b84515dd`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=a6f1b84515dd" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=587a197a679a`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=587a197a679a" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };
@@ -805,7 +831,7 @@
     for (const r of $('planRows').children) { const k = r.dataset.k, inp = r.querySelector('input');
       r.querySelectorAll('button').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); planStep(k, +b.dataset.d); }));
       inp.addEventListener('change', () => planSet(k, inp.value)); inp.addEventListener('focus', () => inp.select()); }
-    $('planMsg').textContent = ''; planUI(); show('plan'); $('plan').querySelector('.panel').scrollTop = 0;
+    $('planMsg').textContent = ''; planUI(); chantRow($('planChant')); show('plan'); $('plan').querySelector('.panel').scrollTop = 0;
   }
   function planStep(k, d) { if (d > 0 && !KM.planCanAdd(planDraft, k)) { $('planMsg').textContent = planDraft[k] >= KM.planMax(k) ? KM.PLAN_LABEL[k] + ' MAX IS ' + KM.planMax(k) : 'NOT ENOUGH CAP: ' + KM.PLAN_LABEL[k] + ' NEEDS ' + KM.PROD[k].pts; return; }
     planDraft[k] = Math.max(0, planDraft[k] + d); $('planMsg').textContent = ''; audio.play('tap'); planUI(); }

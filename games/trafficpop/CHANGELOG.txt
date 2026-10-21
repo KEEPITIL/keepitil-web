@@ -1,5 +1,14 @@
 TRAFFIC POP — changelog (newest first)
 
+2026-10-21  release 3: new journey
+- 60 rebuilt levels: packed traffic jams (most vehicles start blocked), 9 to 30+ vehicles per level
+- Planned difficulty: it climbs across the journey, every 5th level is a HARD level, and the level after is a breather
+- Every colour has spare seats, so one vehicle leaving part-empty is no longer an instant dead end
+- Stars now reward smart parking: 3 stars for using few parking spaces; undo is free and never costs stars
+- Helpers: +1 Space (an extra parking bay) and Lift (pick up any vehicle, even a blocked one). 3 of each free;
+  earn more with first-time 3-star clears and HARD level clears. Using a helper or hint caps that win at 2 stars
+- Your unlocked levels and stars carry over (a copy of your old save is kept on this device)
+
 2026-10-21  release 2: new look
 - One connected traffic-terminal scene: two colour-coded loading docks, six parking bays, the jam below (beside it in landscape)
 - Toy-style vehicles with windows, wheels, seat dots and a large colour symbol; real passenger figures

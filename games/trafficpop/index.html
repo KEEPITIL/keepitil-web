@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#2a7de1">
 <title>Traffic Pop — KEEPITIL</title>
 <meta name="description" content="Traffic Pop: clear the jam, park smart and load matching passengers. A free puzzle game by KEEPITIL.">
-<link rel="stylesheet" href="style.css?v=12b279b29b">
+<link rel="stylesheet" href="style.css?v=77099048d5">
 </head>
 <body>
 <main id="app">
@@ -18,7 +18,7 @@
       <button class="big" id="play">PLAY</button>
     </div>
     <div id="levels" class="levels"></div>
-    <p class="legal">A free KEEPITIL game · no ads · progress saved on this device · <a href="CHANGELOG.txt">build 12b279b29b</a></p>
+    <p class="legal">A free KEEPITIL game · no ads · progress saved on this device · <a href="CHANGELOG.txt">build 77099048d5</a></p>
   </section>
 
   <section id="game" class="screen hidden">
@@ -41,6 +41,8 @@
         <button id="hint"><span class="ic"></span><span>Hint</span></button>
         <button id="undo"><span class="ic"></span><span>Undo</span></button>
         <button id="restart"><span class="ic"></span><span>Restart</span></button>
+        <button id="space" class="helper" aria-label="Add a parking space"><span class="ic"></span><span>Space</span><b id="spaceN">0</b></button>
+        <button id="lift" class="helper" aria-label="Lift a vehicle"><span class="ic"></span><span>Lift</span><b id="liftN">0</b></button>
       </nav>
     </div>
     <div id="board" class="board"></div>
@@ -50,6 +52,6 @@
   <div id="overlay" class="overlay hidden"><div class="card" id="ovBody"></div></div>
   <div id="toast" class="toast" role="status"></div>
 </main>
-<script src="app.js?v=12b279b29b"></script>
+<script src="app.js?v=77099048d5"></script>
 </body>
 </html>

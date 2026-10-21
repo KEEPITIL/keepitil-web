@@ -1,5 +1,15 @@
 TRAFFIC POP — changelog (newest first)
 
+2026-10-21  release 2: new look
+- One connected traffic-terminal scene: two colour-coded loading docks, six parking bays, the jam below (beside it in landscape)
+- Toy-style vehicles with windows, wheels, seat dots and a large colour symbol; real passenger figures
+- Full passenger forecast for each dock
+- Animated turns: vehicles drive out of the jam into a bay, passengers hop aboard one by one, full vehicles depart
+- Blocked taps show which vehicle is in the way; parking warns when it is nearly full; combo pop-ups
+- Hints are worked out in the background and never freeze the game
+- Landscape layout on phones, tablets and desktops; settings for sound, vibration, fast animations and reduced motion
+- Tap again during an animation to skip it; same rules, same 60 levels, your progress carries over
+
 2026-10-18  first public web release
 - 60 Journey levels, each proven solvable by the solver under the real parking and dock rules
 - Tap vehicles whose arrow path is clear; 6 parking slots; two passenger docks with NOW / NEXT forecasts

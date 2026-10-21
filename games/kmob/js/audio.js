@@ -6,6 +6,13 @@
   // BOSS MUSIC (owner audio review 2026-10-19): KEEPITIL's own KBeats tracks, one per boss in rotation, each looping its most energetic
   // bar-aligned section; crossfaded in when a boss fight starts and back to the battle music (which keeps its place) when it ends.
   const BOSS = [{ src: 'assets/audio/boss-woof-woof.m4a', start: 54.427, end: 73.627 }, { src: 'assets/audio/boss-quack-quack.m4a', start: 81.098, end: 94.339 }, { src: 'assets/audio/boss-fcawf-fcawf.m4a', start: 113.533, end: 135.518 }];
+  // iPhone app: files bundled in the app come through Capacitor's local scheme, which WebKit reports as status 0 (not 200) with the full body,
+  // so status 0 is accepted when bytes actually arrived (found on device 2026-10-20: the battle music never loaded in the app)
+  // 1.0.1 memory: keep only the section that actually loops. A decoded track is ~0.38 MB per second (48 kHz stereo float), so
+  // whole tracks cost ~190 MB once all three bosses have played; the loop sections cost ~64 MB. The full decode is dropped right away.
+  const loopSlice = (c, buf, start, end) => { const r = buf.sampleRate, a = Math.max(0, Math.floor(start * r)), b = Math.min(buf.length, Math.floor(end * r));
+    if (b - a < r) return buf; const out = c.createBuffer(buf.numberOfChannels, b - a, r); for (let ch = 0; ch < buf.numberOfChannels; ch++) out.copyToChannel(buf.getChannelData(ch).subarray(a, b), ch); return out; };
+  const UI_SFX = { tap: 1, upgrade: 1, pb: 1, death: 1 };   // the only effects heard in menus, the shop and the results screen (owner 2026-10-20)
   class Audio {
     constructor() { this.ctx = null; this.on = true; this.music = true; this.last = {}; this.intensity = 0; }
     unlock() {
@@ -27,7 +34,7 @@
       this.coinCombo = 0; this.coinT = 0;
       // GAMEPLAY MUSIC: "MOOOVE IT" by KEEPITIL (KBeats catalogue, 128 BPM). Decoded once, looped bar-aligned while a battle runs;
       // the synthesized drum loop below plays only until it is ready (or if it cannot load, e.g. offline on the first web visit).
-      fetch(MUSIC.src).then(r => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then(a => new Promise((ok, no) => c.decodeAudioData(a, ok, no))).then(b => { this.track = b; }, () => { /* fallback loop */ });
+      this.musicState = 'loading'; fetch(MUSIC.src).then(r => (r.ok || r.status === 0) ? r.arrayBuffer() : Promise.reject(new Error('HTTP ' + r.status))).then(a => { this.musicBytes = a.byteLength; if (!a.byteLength) throw new Error('empty'); return new Promise((ok, no) => c.decodeAudioData(a, ok, no)); }).then(b => { this.track = loopSlice(c, b, MUSIC.start, MUSIC.start + MUSIC.bars * MUSIC.bar); this.musicState = 'ready'; }, e => { this.musicState = 'failed: ' + (e && (e.message || e.name) || String(e)); });   // musicState: diagnostics (debug self-test 'music')
       // dense combat one-shots pre-rendered once (pure synthesis, no assets) and replayed with pitch variation:
       // 2 nodes per sound instead of 5-13, so big fights stay under iOS's audio rate limits
       const SR = c.sampleRate, mk = (sec, fn) => { const n = Math.floor(SR * sec), b = c.createBuffer(1, n, SR), d = b.getChannelData(0); fn(d, n, SR); let pk = 0; for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(d[i])); if (pk) for (let i = 0; i < n; i++) d[i] /= pk; return b; };
@@ -46,10 +53,10 @@
     // boss fight on/off: 1.5 s crossfade into the next boss track (rotating), 2 s back; battle music keeps playing silently underneath
     boss(on) { if (!this.ctx || !this.music) return; const c = this.ctx, now = c.currentTime;
       if (on && !this.inBoss) { this.inBoss = true; const B = BOSS[(this.bossN = ((this.bossN ?? -1) + 1) % BOSS.length)], go = buf => { if (!this.inBoss || this.bossSong) return;
-          const src = c.createBufferSource(), g = c.createGain(), t0 = c.currentTime; src.buffer = buf; src.loop = true; src.loopStart = B.start; src.loopEnd = Math.min(buf.duration, B.end);
-          g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(MUSIC.gain, t0 + 1.5); src.connect(g); g.connect(this.mus); src.start(t0, B.start); this.bossSong = src; this.bossGain = g;
+          const src = c.createBufferSource(), g = c.createGain(), t0 = c.currentTime; src.buffer = buf; src.loop = true; src.loopStart = 0; src.loopEnd = buf.duration;
+          g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(MUSIC.gain, t0 + 1.5); src.connect(g); g.connect(this.mus); src.start(t0, 0); this.bossSong = src; this.bossGain = g;
           if (this.songGain) { this.songGain.gain.setValueAtTime(this.songGain.gain.value, t0); this.songGain.gain.linearRampToValueAtTime(0.0001, t0 + 1.5); } };
-        (this.bossBufs = this.bossBufs || {})[B.src] ? go(this.bossBufs[B.src]) : fetch(B.src).then(r => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then(a => new Promise((ok, no) => c.decodeAudioData(a, ok, no))).then(b => { this.bossBufs[B.src] = b; go(b); }, () => { /* offline: battle music continues */ }); }
+        (this.bossBufs = this.bossBufs || {})[B.src] ? go(this.bossBufs[B.src]) : fetch(B.src).then(r => (r.ok || r.status === 0) ? r.arrayBuffer() : Promise.reject(r.status)).then(a => a.byteLength ? new Promise((ok, no) => c.decodeAudioData(a, ok, no)) : Promise.reject('empty')).then(b => { this.bossBufs[B.src] = loopSlice(c, b, B.start, B.end); go(this.bossBufs[B.src]); }, () => { /* offline: battle music continues */ }); }
       if (!on && this.inBoss) { this.inBoss = false; const s0 = this.bossSong, g0 = this.bossGain; this.bossSong = null;
         if (g0) { g0.gain.setValueAtTime(g0.gain.value, now); g0.gain.linearRampToValueAtTime(0.0001, now + 2); setTimeout(() => { try { s0.stop(); } catch (e) { /* stopped */ } }, 2300); }
         if (this.songGain) { this.songGain.gain.setValueAtTime(this.songGain.gain.value, now); this.songGain.gain.linearRampToValueAtTime(MUSIC.gain, now + 2); } } }   // menus / results: the next battle starts the song from its first downbeat
@@ -81,7 +88,7 @@
     // global voice budget: dense battles never stack dozens of one-shots
     voice(n) { const now = this.ctx.currentTime; this.vq = (this.vq || []).filter(e => e > now); if (this.vq.length > 22) return false; this.vq.push(now + (n || 0.25)); return true; }
     play(k, v, pan) {
-      if (!this.ctx || !this.on) return; const m0 = this.made || 0; const t = this.ctx.currentTime, r = 1 + (Math.random() - 0.5) * 0.12, D = pan == null ? undefined : this.out(pan), pick = a => a[Math.floor(Math.random() * a.length)];
+      if (!this.ctx || !this.on || (this.quiet && !UI_SFX[k])) return; const m0 = this.made || 0; const t = this.ctx.currentTime, r = 1 + (Math.random() - 0.5) * 0.12, D = pan == null ? undefined : this.out(pan), pick = a => a[Math.floor(Math.random() * a.length)];   // quiet = not in a battle: only button / purchase feedback plays
       switch (k) {
         case 'deploy': if (this.gate(k, 70)) { this.tone(180 * r, t, 0.09, 'sine', 0.12, 70); this.hiss(t, 0.05, 1800, 1, 0.05); } break;
         case 'hit': if (this.gate(k, 45) && !this.shot('hit', t, r * (0.85 + Math.random() * 0.4), 0.11)) { this.hiss(t, 0.05, 700 * r + Math.random() * 500, 1.5, 0.1); this.tone(140 * r, t, 0.06, 'sine', 0.05, 90); } break;   // body blow: dull slap + low knock
@@ -89,7 +96,7 @@
         case 'kill': if (this.gate(k, 55)) { this.hiss(t, 0.12, 420 * r, 1.2, 0.07, 'lowpass'); this.tone(pick([180, 200, 225]) * r, t, 0.14, 'sawtooth', 0.025, 110); } break;   // a short grunt + fall, not a beep
         case 'coin': if (this.gate(k, 60)) { const now = performance.now(); this.coinCombo = now - this.coinT < 500 ? Math.min(12, this.coinCombo + 1) : 0; this.coinT = now; const cp = Math.pow(2, this.coinCombo / 12); this.tone(1320 * cp, t, 0.07, 'sine', 0.07); this.tone(1980 * cp, t + 0.05, 0.12, 'sine', 0.06); } break;
         case 'bow': if (this.gate(k, 80)) { const f = pick([196, 220, 247]) * r; this.tone(f, t, 0.1, 'triangle', 0.14, f * 0.6); this.tone(110 * r, t, 0.06, 'sine', 0.14, 70); this.hiss(t, 0.035, 3800, 2, 0.12, 'highpass'); this.hiss(t + 0.02, 0.2, 1700 * r, 0.9, 0.1, 'bandpass'); } break;   // (owner: IMPROVE) taut string snap + low thump + louder arrow whoosh
-        case 'cannon': if (this.gate(k, 120)) { if (!this.shot('cannon', t, r, 0.36, D)) { this.hiss(t, 0.05, 2600, 0.7, 0.18, 'highpass', D); this.tone(95 * r, t, 0.38, 'sine', 0.32, 38, D); this.hiss(t, 0.42, 520, 0.7, 0.18, 'lowpass', D); this.hiss(t + 0.06, 0.6, 260, 0.5, 0.06, 'lowpass', D); } this.tone(48 * r, t, 0.3, 'sine', 0.3, 30, D); this.hiss(t + 0.01, 0.07, 4200, 1.4, 0.06, 'highpass', D); } break;   // (owner: IMPROVE) report + added sub punch + sharper crack
+        case 'cannon': if (this.gate(k, 120)) { const V = 0.25; if (!this.shot('cannon', t, r, 0.36 * V, D)) { this.hiss(t, 0.05, 2600, 0.7, 0.18 * V, 'highpass', D); this.tone(95 * r, t, 0.38, 'sine', 0.32 * V, 38, D); this.hiss(t, 0.42, 520, 0.7, 0.18 * V, 'lowpass', D); this.hiss(t + 0.06, 0.6, 260, 0.5, 0.06 * V, 'lowpass', D); } this.tone(48 * r, t, 0.3, 'sine', 0.3 * V, 30, D); this.hiss(t + 0.01, 0.07, 4200, 1.4, 0.06 * V, 'highpass', D); } break;   // owner 2026-10-20: cannon 75% quieter (every layer × 0.25)   // (owner: IMPROVE) report + added sub punch + sharper crack
         case 'snipe': if (this.gate(k, 200)) { this.tone(2400, t, 0.08, 'square', 0.05, 600, D); this.hiss(t, 0.18, 3000, 2, 0.12, 'bandpass', D); } break;
         case 'tower': if (this.gate(k, 140)) this.hiss(t, 0.07, 2200, 3, 0.05, 'highpass', D); break;
         case 'build': [392, 523, 659].forEach((f, i) => this.tone(f, t + i * 0.07, 0.2, 'triangle', 0.1, 0, D)); this.hiss(t, 0.3, 800, 0.6, 0.12, 'lowpass', D); break;
@@ -126,7 +133,7 @@
     tick(intensity, playing) {
       if (!this.ctx || !this.music || !playing) return;
       if (this.track) { if (!this.song) { const c = this.ctx, src = c.createBufferSource(), g = c.createGain(); src.buffer = this.track; src.loop = true;
-          src.loopStart = MUSIC.start; src.loopEnd = Math.min(this.track.duration, MUSIC.start + MUSIC.bars * MUSIC.bar); g.gain.value = this.inBoss ? 0.0001 : MUSIC.gain; src.connect(g); g.connect(this.mus); src.start(c.currentTime + 0.05, MUSIC.start); this.song = src; this.songGain = g; } }
+          src.loopStart = 0; src.loopEnd = this.track.duration; g.gain.value = this.inBoss ? 0.0001 : MUSIC.gain; src.connect(g); g.connect(this.mus); src.start(c.currentTime + 0.05, 0); this.song = src; this.songGain = g; } }   // the buffer IS the loop section
       // the synthesized drum loop was REMOVED (owner audio review 2026-10-19): silence until the song has loaded
     }
   }

@@ -314,7 +314,8 @@
     Telemetry.flush('quit');
     const rs = RunSave.load(); $('contBtn').classList.toggle('hidden', !rs); if (rs) $('contInfo').textContent = 'WAVE ' + (rs.snap.wave || 1) + ' · ' + KM.fmtTime(rs.snap.t);
     state = 'title'; for (const id of ['hud', 'tankHp', 'drawer', 'rightCol', 'powers', 'tankUps', 'consPop', 'clsPop', 'choice', 'bossBar', 'tip']) $(id).classList.add('hidden');
-    const R = save.records; $('titleBest').innerHTML = `<div class="titleRec"><span>BEST WAVE<b>${R.wave}</b></span><span>LONGEST<b>${KM.fmtTime(R.time)}</b></span><span>BOSSES<b>${R.bosses}</b></span><span>${svg('token')}<b>${save.tokens}</b></span><span>${svg('diamond')}<b>${save.diamonds}</b></span></div>` + (save.titles.length ? `<div style="font-size:10px;font-weight:900;opacity:.75;margin-top:4px">${save.titles[save.titles.length - 1]}</div>` : '');
+    const R = save.records; $('titleBest').innerHTML = `<div class="titleRec"><span><i>BEST WAVE</i><b>${R.wave}</b></span><span><i>LONGEST</i><b>${KM.fmtTime(R.time)}</b></span><span><i>BOSSES</i><b>${R.bosses}</b></span></div>` +
+      `<div class="titleBadges"><span>${svg('token')}<b>${save.tokens}</b></span><span>${svg('diamond')}<b>${save.diamonds}</b></span>${save.titles.length ? `<span class="rank">${save.titles[save.titles.length - 1]}</span>` : ''}</div>`;   // records card + currency / rank badges (owner 2026-10-20)
     show('title'); khShow(); mark('interactive');
   }
   function buildToggles(el) {
@@ -614,6 +615,7 @@
     if (pendingQ) { render.applyQuality(pendingQ); pendingQ = null; }
     const js0 = performance.now();
     rawMs = now - lastT; let dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+    audio.quiet = state !== 'run' || paused;   // the demo battle behind the menus / shop / pause is silent (owner 2026-10-20)
     let gdt = dt;
     if (state === 'run' && !paused) {
       if (keys.ArrowLeft || keys.a) sim.moveBy(-dt * 14); if (keys.ArrowRight || keys.d) sim.moveBy(dt * 14);
@@ -641,7 +643,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=f7973b21058e`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=f7973b21058e" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=a6f1b84515dd`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=a6f1b84515dd" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };

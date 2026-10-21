@@ -586,7 +586,7 @@ const DEF_COSTS = [300,450,600];
 // ---------- state ----------
 let S = null;
 let camX = 0, sPx = 1, viewW = 800, dpr = 1, cssW = 0, cssH = 0;
-let zoom = 1, sBase = 1, minZoom = .5, follow = true;
+let zoom = 1.25, sBase = 1, minZoom = .5, follow = true;   // Build 89: battles open zoomed in (soldiers ~1.25x larger on screen; the sky is cropped, the ground stays above the bar)
 let paused = false, muted = false, started = false, gameSpeed = 1;
 let diagnosticsVisible = false;
 const perfStats = {fps:0,minFps:Infinity,frames:0,elapsed:0,simSteps:0,sampleSteps:0,uiT:0};
@@ -1578,7 +1578,7 @@ function resize(){
   const usableH = Math.max(240, cssH - UI_BAR);      // keep the field above the buttons
   sBase = Math.max(usableH / VH, cssW / W);
   minZoom = Math.min(1, cssW / (W * sBase));
-  zoom = clamp(zoom, minZoom, 1.8);
+  zoom = clamp(zoom, minZoom, 2.4);
   sPx = sBase * zoom;
   viewW = cssW / sPx;
   mini.width = mini.clientWidth * dpr; mini.height = mini.clientHeight * dpr;
@@ -1590,7 +1590,7 @@ function clampCam(){
   else camX = clamp(camX, 0, W - viewW);
 }
 function setZoom(z, anchorX){
-  zoom = clamp(z, minZoom, 1.8);
+  zoom = clamp(z, minZoom, 2.4);
   const ax = anchorX === undefined ? cssW/2 : anchorX;
   const wx = camX + ax / sPx;
   sPx = sBase * zoom; viewW = cssW / sPx;

@@ -29,7 +29,7 @@ const T = Object.freeze({
   COL: { SWORDSMAN: 42, SPEARMAN: 44, RANGED: 48 },       // Build 89: rank spacing -- each rank of 10 reads as its own line in the oblique view
   BAND_GAP: 46,                                            // Build 89: a clear gap between class blocks
   RANK_MAX: 10,
-  PIKE_SUPPORT: 34, PIKE_PUSH: 170,                          // Build 89: the 2nd spear rank strikes past the 1st; a spear hit has a 50% chance to push the enemy back                                           // Build 89: at most 10 soldiers of one class per rank
+  PIKE_SUPPORT: 34, PIKE_PUSH: 170, PUSH_CHANCE: 0.5, PUSH_IMMUNE: 1.5,                          // Build 89: the 2nd spear rank strikes past the 1st; a spear hit has a 50% chance to push the enemy back                                           // Build 89: at most 10 soldiers of one class per rank
   QUEUE_GAP: 28,                                          // C3: a soldier waiting behind a fighter keeps this distance (a place, not a body)                                           // empty space between the role bands, so they read as lines
   REACH: { SWORDSMAN: 30, SPEARMAN: 62, RANGED: 280 },   // a spear reaches past the front rank    // centre-to-centre engagement distance
   ENGAGE: { DEFEND: { SWORDSMAN: 64, SPEARMAN: 50, RANGED: 280 }, ATTACK: { SWORDSMAN: 120, SPEARMAN: 70, RANGED: 280 } },
@@ -404,7 +404,10 @@ class World {
     if (tg.ext){ const ex = (tg.x - u.x) * u.face - (tg.hx || 0); if (ex <= 0 || ex > T.REACH[u.role] + 8){ this.event('miss', u); return; } tg.takeDamage(u.atkDmg !== undefined ? u.atkDmg : A.dmg, u.x, u, u.role === 'SPEARMAN' ? 'thrust' : 'cut'); this.event('strikeExt', u, { ext: tg.id }); return; }   // E6: a structure takes the blow through its host
     const dx = (tg.x - u.x) * u.face; if (dx <= 0 || dx > T.REACH[u.role] + 8 + this.supportReach(u) || Math.abs(tg.y - u.y) > 13){ this.event('miss', u); return; }
     this.damage(tg, u.atkDmg !== undefined ? u.atkDmg : A.dmg, u.x, u, u.role === 'SPEARMAN' ? 'thrust' : 'cut');
-    if (u.role === 'SPEARMAN' && tg.alive && this.rand() < 0.5){ tg.vx += u.team * T.PIKE_PUSH; tg.hitT = Math.max(tg.hitT, 0.35); if (tg.act === 'ATTACK') tg.act = null; this.event('pushback', tg, { by: u.id }); }   // Build 89: 50% push back + damage, else damage only
+    /* Build 89 spear push (tunable, not locked): only the FRONT spearman pushes (2nd-rank strikes are damage only), 50% on a landed
+       strike, and a pushed soldier cannot be pushed again for PUSH_IMMUNE s -- so a spear wall staggers a line but cannot stun-lock it. */
+    if (u.role === 'SPEARMAN' && tg.alive && !this.supportReach(u) && !(tg.pushImmuneUntil > this.t) && this.rand() < T.PUSH_CHANCE){
+      tg.vx += u.team * T.PIKE_PUSH; tg.hitT = Math.max(tg.hitT, 0.35); if (tg.act === 'ATTACK') tg.act = null; tg.pushImmuneUntil = this.t + T.PUSH_IMMUNE; this.event('pushback', tg, { by: u.id }); }
     if (u.role === 'SPEARMAN' && tg.blockedLast){ u.spearIntegrity--; if (u.spearIntegrity <= 0){ this.loseSpear(u, 'broken'); this.event('spearBroken', u); } }
   }
   launchSpear(u){

@@ -38,7 +38,7 @@ svg{display:block;width:100%;height:100%}
 @media (max-aspect-ratio:5/4) and (max-height:740px){
   #game{gap:5px;padding:4px 0}.hud{padding:4px 6px}.chip-btn{width:34px;height:34px;padding:7px}.hud-mid small{display:none}.hud-moves b{font-size:19px}
   .queue{min-height:21px;margin:2px 0 1px}.person{width:13px;height:20px}.want{font-size:14px}.bay{height:46px}.lot-title{font-size:11px}
-  .tools button{padding:8px 0;font-size:14px}
+  .tools button{padding:5px 0 4px;font-size:11px}
 }
 @media (min-aspect-ratio:5/4){
   #app{max-width:1200px}
@@ -47,7 +47,7 @@ svg{display:block;width:100%;height:100%}
 }
 @media (min-aspect-ratio:5/4) and (max-height:500px){
   .hud{padding:3px 8px}.hud-moves b{font-size:18px}.chip-btn{width:36px;height:36px}
-  .dock .queue{min-height:20px}.person{width:12px;height:18px}.bay{height:46px}.tools button{padding:6px 0;font-size:13px}
+  .dock .queue{min-height:20px}.person{width:12px;height:18px}.bay{height:46px}.tools button{padding:4px 0;font-size:11px}
 }
 
 /* ---------- HUD ---------- */
@@ -104,10 +104,18 @@ svg{display:block;width:100%;height:100%}
 .busy .veh{cursor:default}
 
 /* ---------- tools ---------- */
-.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.tools button{display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(#4b9cff,#1d6fd8);color:#fff;font-weight:900;padding:10px 0;border-radius:14px;box-shadow:0 4px 0 #11468f;font-size:15px}
+.tools{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.tools button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:linear-gradient(#4b9cff,#1d6fd8);color:#fff;font-weight:900;padding:6px 0 5px;border-radius:14px;box-shadow:0 4px 0 #11468f;font-size:12px}
 .tools button:active{transform:translateY(3px);box-shadow:0 1px 0 #11468f}
 .tools .ic{width:20px;height:20px}
+.tools .helper{background:linear-gradient(#ffb340,#f08a00);box-shadow:0 4px 0 #a85d00}
+.tools .helper b{position:absolute;top:-5px;right:-3px;min-width:19px;height:19px;border-radius:10px;background:#e0413b;color:#fff;font-size:11px;line-height:19px;padding:0 4px;box-shadow:0 1px 0 rgba(0,0,0,.3)}
+.tools .helper.on{background:linear-gradient(#ffe066,#ffb340);color:#5a3d00;outline:3px solid #fff}
+.lifting #board .veh{animation:wiggle .9s ease-in-out infinite}
+@keyframes wiggle{50%{filter:brightness(1.15)}}
+.lv.hard{box-shadow:0 4px 0 #b3261e,0 0 0 3px #e0413b}.lv.hard::after{content:"HARD";position:absolute;bottom:-9px;font-size:9px;font-weight:900;background:#e0413b;color:#fff;border-radius:6px;padding:1px 4px}
+.lv{position:relative}
+.reward{color:#c77700;font-weight:900}
 .tools button:disabled{background:#8fa6c9;box-shadow:0 4px 0 #6b7f9f}
 #hint.thinking .ic{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 

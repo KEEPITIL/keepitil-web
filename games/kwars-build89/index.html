@@ -1644,6 +1644,7 @@ function unitScale(u){
 const STUCK_MAX = 160, STUCK_LIFE = 6;
 function landProjectile(p){
   if (p.kind === 'ball'){ pushFx({kind:'dust', x:p.x, y:p.groundY, t:0}); return; }   // a ball does not stick: it kicks up dust
+  if (!p.deflected) pushFx({kind:'dust', x:p.x, y:p.groundY, t:0});   // Build 89: an arrow or spear landing kicks a little dust
   const S_ = S.stuck || (S.stuck = []);
   S_.push({x:p.x, y:p.groundY, ang: p.deflected ? (p.vx>=0?0.12:Math.PI-0.12) : Math.atan2(p.vy, p.vx), kind:p.kind, k:p.k||0.3, team:p.team, flat:!!p.deflected, t:0});
   if (S_.length > STUCK_MAX) S_.splice(0, S_.length - STUCK_MAX);
@@ -2240,6 +2241,11 @@ function drawFx(f){
   if (f.kind === 'spark'){
     const k=f.t/.3; ctx.globalAlpha=(1-k);
     const dir=f.dir||1;
+    /* Build 89 impact: a brief white flash plus the weapon's mark -- a slash arc for a cut, a straight streak for a thrust */
+    ctx.fillStyle='rgba(255,255,255,'+(0.85*(1-k))+')'; ctx.beginPath(); ctx.arc(f.x,f.y,(5+6*k),0,7); ctx.fill();
+    ctx.strokeStyle='#fffbe8'; ctx.lineWidth=2.6*(1-k)+0.6; ctx.lineCap='round';
+    if (f.how==='thrust'){ ctx.beginPath(); ctx.moveTo(f.x-dir*16*(1-k*.5),f.y); ctx.lineTo(f.x+dir*10,f.y); ctx.stroke(); }
+    else if (f.how==='cut'){ ctx.beginPath(); ctx.arc(f.x-dir*4,f.y,12+4*k, dir>0?-1.1:Math.PI-0.5, dir>0?0.5:Math.PI+1.1); ctx.stroke(); }
     ctx.strokeStyle='#ffe9a8'; ctx.lineWidth=1.6; ctx.lineCap='round';
     for(let i=0;i<5;i++){ const a=(-0.9+i*0.45)*dir - 0.3; const L=(6+11*k); ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(f.x+Math.cos(a)*L*dir, f.y+Math.sin(a)*L); ctx.stroke(); }
     ctx.fillStyle='#fff4cf'; ctx.beginPath(); ctx.arc(f.x,f.y,2.4*(1-k),0,7); ctx.fill();
@@ -2262,8 +2268,17 @@ function drawFx(f){
     for (let i=0;i<5;i++){ const a = i/5*Math.PI*2 + k*3;
       ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(f.x+Math.cos(a)*20*(1+k), f.y+Math.sin(a)*20*(1+k)); ctx.stroke(); }
     ctx.globalAlpha = 1;
+  } else if (f.kind === 'push'){   /* Build 89: stagger cue -- short motion streaks behind a pushed soldier */
+    const k=f.t/.3; ctx.globalAlpha=0.7*(1-k); ctx.strokeStyle='#ffffff'; ctx.lineWidth=2; ctx.lineCap='round';
+    for(let i=0;i<3;i++){ const yy=f.y-14-i*10; ctx.beginPath(); ctx.moveTo(f.x-f.dir*(8+k*10),yy); ctx.lineTo(f.x-f.dir*(22+k*14),yy); ctx.stroke(); }
+    ctx.globalAlpha=1;
+  } else if (f.kind === 'chips'){   /* Build 89: a blow on a gate or wall throws chips */
+    const k=f.t/.3; ctx.globalAlpha=1-k; ctx.fillStyle='#8a7a62';
+    for(let i=0;i<6;i++){ const a=-1.2+i*0.42; ctx.fillRect(f.x+f.dir*Math.cos(a)*(4+22*k), f.y+Math.sin(a)*(4+18*k)+k*k*14, 3, 3); }
+    ctx.fillStyle='rgba(255,240,200,'+(0.6*(1-k))+')'; ctx.beginPath(); ctx.arc(f.x,f.y,6*(1-k)+2,0,7); ctx.fill(); ctx.globalAlpha=1;
   } else if (['shieldhit','shieldbreak','armorhit','armorbreak','healthhit'].includes(f.kind)){
     const k=f.t/.3,scale=window.KWArt?KWArt.effectsScale():1;
+    if (f.kind==='shieldhit'&&f.face){ ctx.globalAlpha=0.9*(1-k); ctx.strokeStyle='#e9f8ff'; ctx.lineWidth=3*(1-k)+0.8; ctx.beginPath(); ctx.arc(f.x-f.face*6,f.y,13+3*k, f.face>0?-0.9:Math.PI-0.9, f.face>0?0.9:Math.PI+0.9); ctx.stroke(); }
     ctx.globalAlpha=1-k;ctx.lineWidth=f.kind.includes('break')?3:2;
     ctx.strokeStyle=f.kind.startsWith('shield')?'#72d5ff':f.kind.startsWith('armor')?'#f3e3b1':(window.KWArt&&KWArt.settings.violence!=='standard'?'#d8c9a1':'#d94a3d');
     const rays=f.kind.includes('break')?8:4;for(let i=0;i<rays;i++){const a=i/rays*Math.PI*2;ctx.beginPath();ctx.moveTo(f.x+Math.cos(a)*3,f.y+Math.sin(a)*3);ctx.lineTo(f.x+Math.cos(a)*(8+10*k)*scale,f.y+Math.sin(a)*(8+10*k)*scale);ctx.stroke();}

@@ -29,6 +29,8 @@ const T = Object.freeze({
   COL: { SWORDSMAN: 42, SPEARMAN: 44, RANGED: 48 },       // Build 89: rank spacing -- each rank of 10 reads as its own line in the oblique view
   BAND_GAP: 46,                                            // Build 89: a clear gap between class blocks
   RANK_MAX: 10,
+  STUCK_T: 0.8,                                            // Build 89: a soldier blocked this long threads through his own ranks
+  BREACH_ZONE: 90, BREACH_DEPTH: 220, BREACH_LEASH: 260, BREACH_HOLD: 0.8,   // Build 89: contact-phase sword support (see breaches())
   PIKE_SUPPORT: 34, PIKE_PUSH: 170, PUSH_CHANCE: 0.5, PUSH_IMMUNE: 1.5,                          // Build 89: the 2nd spear rank strikes past the 1st; a spear hit has a 50% chance to push the enemy back                                           // Build 89: at most 10 soldiers of one class per rank
   QUEUE_GAP: 28,                                          // C3: a soldier waiting behind a fighter keeps this distance (a place, not a body)                                           // empty space between the role bands, so they read as lines
   REACH: { SWORDSMAN: 30, SPEARMAN: 62, RANGED: 280 },   // a spear reaches past the front rank    // centre-to-centre engagement distance
@@ -221,6 +223,9 @@ class World {
     const slotP = F.slotPos(u.slot);
     const leash = T.LEASH[mode] || 60;
     if (u.targetLock && u.target && u.target.alive) return;                // lab scripts may pin a target
+    if (u.breach){ const ly = this.lanes[u.breach.lane]; let best = null, bs = 1e9;   // Build 89: a breach sword fights only in his breach lane
+      for (const e of this.units){ if (!e.alive || e.team === u.team || e.entering || Math.abs(e.y - ly) >= 12) continue; const s = Math.abs(e.x - u.x); if (s < bs && s < T.BREACH_LEASH){ bs = s; best = e; } }
+      u.target = best; return; }
     /* C3 CONTACT LINE (ATTACK): only the lane's fighter fights; everyone else in the row waits in his formation place (the queue).
        The fighter takes an enemy in HIS lane only -- never the nearest enemy anywhere. */
     if (mode === 'ATTACK' && u.role !== 'RANGED'){
@@ -273,7 +278,8 @@ class World {
     if (u.target && u.role !== 'RANGED'){
       const reach = T.REACH[u.role];
       gx = u.target.x - u.team * (reach + (u.target.hx || 0)); gy = u.engLane != null ? this.lanes[u.engLane] : u.target.ext ? u.y : u.y + Math.max(-0.6, Math.min(0.6, (u.target.y - u.y) * 0.05));   // C3: a lane fighter fights ON his lane
-      for (const c of this.units){   // a comrade ahead of me in this row: queue one body behind him, never squeeze into him
+      if (u.breach) gy = this.lanes[u.breach.lane];
+      if (!u.breach) for (const c of this.units){   // a comrade ahead of me in this row: queue one body behind him, never squeeze into him
         if (c === u || !c.alive || c.team !== u.team || Math.abs(c.y - u.y) > 8 || (c.x - u.x) * u.team <= 0) continue;   // ANY comrade ahead in my row
         const behind = c.x - u.team * (T.BODY_HX * 2 + 6); if ((gx - behind) * u.team > 0) gx = behind;
       }
@@ -308,9 +314,14 @@ class World {
     /* separation is part of the desired velocity (never a positional shove after locomotion) */
     /* bodies are solid for comrades too: a soldier may move along or away from a comrade, never into him;
        overlapping pairs separate through velocity (so the legs explain it) */
+    /* Build 89 regroup fix: with 10 occupied depth lanes a soldier who must cross his own ranks could be blocked by every side-step
+       (an existing deadlock: spearmen left idle 50-150 px from their places after a fight). Blocked for STUCK_T s with his place more
+       than 20 px away, he threads through his own files (comrades only -- enemies stay solid) until he arrives. */
+    { const far = Math.hypot(gx - u.x, gy - u.y); if (!busy && far > 20 && Math.hypot(u.vx, u.vy) < 6) u.stuckT = (u.stuckT || 0) + dt; else if (far <= T.ARRIVE) u.stuckT = 0; }
+    const thread = (u.stuckT || 0) > T.STUCK_T;
     const nb = this.near(u);
     for (const o of nb){
-      if (o === u || !o.alive || o.team !== u.team) continue;
+      if (o === u || !o.alive || o.team !== u.team || thread) continue;
       let ex = (u.x - o.x) / (u.bodyHX || o.bodyHX ? ((u.bodyHX || T.BODY_HX) + (o.bodyHX || T.BODY_HX)) * 1.1 : T.BODY_HX * 2.2), ey = (u.y - o.y) / (u.bodyHY || o.bodyHY ? (u.bodyHY || T.BODY_HY) + (o.bodyHY || T.BODY_HY) : T.BODY_HY * 2), dd = Math.hypot(ex, ey);
       if (dd >= 1) continue;
       if (dd < 1e-3){ ex = (u.id > o.id ? 1 : -1) * 0.01; ey = 0; dd = 0.01; }
@@ -537,6 +548,44 @@ class FormationController {
     this.anchor = Math.max(this.w.bounds.MIN + 60, Math.min(this.w.bounds.MAX - 60, this.anchor));
     this.vel = this.lastAnchor === undefined ? 0 : Math.max(-T.RUN, Math.min(T.RUN, (this.anchor - this.lastAnchor) / dt)); this.lastAnchor = this.anchor;   // C4: the formation's measured speed (px/s, signed), from step to step -- however the anchor was moved
     this.assignLanes(dt);
+    this.breaches(dt);
+  }
+  /* BUILD 89 CONTACT-PHASE SWORD SUPPORT (owner decision 2026-10-21): swords are a second melee echelon that EXPLOITS BREACHES.
+     Marching and holding, they stay in their block behind the spears. Once enemies are at our front, a lane is OPEN when an enemy
+     is in it and: no spearman holds it, its spearman is recovering (hit/stagger), an enemy is inside normal spear spacing, or two
+     enemies share that frontage. The nearest free swordsman (shield-bearing ex-spearmen first) takes that lane until it has been
+     quiet for BREACH_HOLD s, then walks back to his own place; the block re-forms by itself because his place was never given away.
+     A breach sword fights only enemies in his breach lane (no chasing through the enemy army), and at most half the sword block
+     may be out at once (the block never collapses into the spear wall). */
+  breaches(dt){
+    const dir = this.team, lanes = this.w.lanes, units = this.w.units;
+    const mine = units.filter(u => u.alive && u.team === dir && !u.entering && this.w.fcOf(u) === this);
+    const swords = mine.filter(u => u.role === 'SWORDSMAN' && u.slot);
+    const release = u => { u.breach = null; u.target = null; };
+    if (this.mode !== 'ATTACK' && this.mode !== 'DEFEND'){ for (const u of swords) if (u.breach) release(u); return; }
+    const melee = mine.filter(u => u.role !== 'RANGED'); if (!melee.length) return;
+    const front = Math.max(...melee.map(u => u.x * dir));
+    const foes = units.filter(e => e.alive && e.team !== dir && !e.entering && !e.ext && e.x * dir - front < T.BREACH_ZONE && e.x * dir - front > -T.BREACH_DEPTH);
+    const laneFoes = l => foes.filter(e => Math.abs(e.y - lanes[l]) < 10);
+    // keep or release current breaches
+    for (const u of swords){ if (!u.breach) continue;
+      const lf = laneFoes(u.breach.lane), far = u.slot ? Math.abs(this.slotPos(u.slot).x - u.x) > T.BREACH_LEASH : true;
+      u.breach.quiet = lf.length ? 0 : (u.breach.quiet || 0) + dt;
+      if (u.breach.quiet > T.BREACH_HOLD || far) release(u); }
+    if (!foes.length) return;
+    const cap = Math.max(2, Math.ceil(swords.length * 0.5));
+    let out = swords.filter(u => u.breach).length;
+    for (let l = 0; l < lanes.length && out < cap; l++){
+      const lf = laneFoes(l); if (!lf.length) continue;
+      if (swords.some(u => u.breach && u.breach.lane === l)) continue;
+      const spear = mine.filter(u => u.role === 'SPEARMAN' && Math.abs(u.y - lanes[l]) < 6).sort((a, b) => b.x * dir - a.x * dir)[0];
+      const local = spear ? lf.filter(e => Math.abs(e.x - spear.x) < T.REACH.SPEARMAN + 12) : lf;   // the spearman's own frontage
+      const open = !spear || spear.hitT > 0 || local.length >= 2 || lf.some(e => (e.x - spear.x) * dir < T.REACH.SPEARMAN * 0.45);
+      if (!open) continue;
+      const fx = (spear ? spear.x : front * dir), fy = lanes[l];
+      const pick = swords.filter(u => !u.breach && Math.abs(u.x - fx) < T.BREACH_LEASH).sort((a, b) => ((b.eq.shield ? 1 : 0) - (a.eq.shield ? 1 : 0)) || (Math.abs(a.x - fx) + Math.abs(a.y - fy) * 3) - (Math.abs(b.x - fx) + Math.abs(b.y - fy) * 3))[0];
+      if (pick){ pick.breach = { lane: l, quiet: 0 }; out++; this.breachCount = (this.breachCount || 0) + 1; }
+    }
   }
   /* C3 ENGAGEMENT SLOTS + MELEE QUEUES -- the one owner. In ATTACK every depth row is a combat lane with at most ONE active fighter
      per team: the front-most soldier of that row (a spearman only when no swordsman stands in his row -- an exposed spear lane).

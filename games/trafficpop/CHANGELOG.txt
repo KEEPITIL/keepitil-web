@@ -1,5 +1,14 @@
 TRAFFIC POP — changelog (newest first)
 
+2026-10-22  release 4: terminal flow
+- Boarding now follows the whole route: the vehicle pulls out of its bay (the space frees), drives to the
+  highlighted loading dock, passengers walk aboard one by one, and it drives away
+- Exit lanes are marked around every edge of the lot; taxis join the traffic (they behave like cars)
+- A blocked tap now shows the road the vehicle wanted and the vehicle in its way
+- New engine and boarding sounds, star chimes and a fuller win fanfare (all generated, no audio files)
+- The level you are playing is saved after every move: reload or come back later and CONTINUE where you were
+- Settings → Playtest data: attempts, wins, times and helper use per level, stored only on this device
+
 2026-10-21  release 3: new journey
 - 60 rebuilt levels: packed traffic jams (most vehicles start blocked), 9 to 30+ vehicles per level
 - Planned difficulty: it climbs across the journey, every 5th level is a HARD level, and the level after is a breather

@@ -67,6 +67,8 @@ svg{display:block;width:100%;height:100%}
 .want{font-weight:900;font-size:15px;color:var(--c);filter:brightness(.82);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.want em{font-style:normal;margin-right:3px}
 .all{font-weight:900;color:var(--good);font-size:15px}
 .dock.done{opacity:.85}
+.dock.loading{box-shadow:0 4px 0 #9fb3cf,0 0 0 3px var(--c),0 0 18px 2px var(--c)}
+.fx .docked{z-index:2}
 .queue{display:flex;flex-wrap:wrap;gap:1px;align-items:flex-end;min-height:26px;margin:3px 0 2px}
 .person{display:inline-block;width:15px;height:23px}
 .more{font-style:normal;font-size:11px;font-weight:900;color:#4a5874;margin-left:2px;align-self:center}
@@ -92,6 +94,7 @@ svg{display:block;width:100%;height:100%}
 /* ---------- the jam ---------- */
 .board{position:relative;min-height:0;min-width:0}
 .ground{position:absolute;background:var(--asphalt);border-radius:14px;box-shadow:0 0 0 5px var(--kerb),0 0 0 9px #9aa3b3,0 10px 24px rgba(0,0,0,.3)}
+.exits{position:absolute;inset:0;pointer-events:none}
 .cells{position:absolute;inset:8px;background-image:radial-gradient(circle at 100% 100%,rgba(255,255,255,.22) 1.6px,transparent 2.2px);background-size:var(--cell) var(--cell);opacity:.9}
 .veh{position:absolute;padding:0;background:none;transform-origin:center;touch-action:manipulation}
 .veh svg{overflow:visible;pointer-events:none}
@@ -138,3 +141,6 @@ svg{display:block;width:100%;height:100%}
 @keyframes rise{0%{opacity:0;transform:translate(-50%,-30%) scale(.7)}20%{opacity:1;transform:translate(-50%,-60%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-160%) scale(1)}}
 .confetto{position:fixed;top:0;width:8px;height:13px;border-radius:2px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.board .path{position:absolute;border-radius:8px;background:rgba(255,210,58,.28);box-shadow:inset 0 0 0 2px rgba(255,210,58,.7);pointer-events:none;z-index:3;animation:flashx .65s ease-out}
+.board .path.hit{background:rgba(255,75,75,.35);box-shadow:inset 0 0 0 3px #ff4b4b}
+.pt{max-height:50vh;overflow:auto;margin:8px 0}.pt table{width:100%;border-collapse:collapse;font-size:12px}.pt td,.pt th{padding:3px 2px;border-bottom:1px solid #e6ebf3}

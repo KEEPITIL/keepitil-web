@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-template="artist-article">
+<head>
+<!-- ══ ARTIST ARTICLE TEMPLATE ══════════════════════════════════════════════════════
+     KEEPITIL runs TWO article templates (Founder 2026-08-26):
+       1. /article/<title>          — editorial / history pieces. Closes with Sources.
+       2. /article/artist/<name>    — THIS ONE. Artist features. Closes with TAP IN (four
+                                      icons on one row) then SUPPORT KEEPITIL last.
+     Everything else is shared: landing panel, sticky composer bar, reading panel, backdrop
+     set per article on <body> via --artbg / --artbg-m.
+     ══════════════════════════════════════════════════════════════════════════════════ -->
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
+<meta name="robots" content="index,follow"/>
+<title>crooki3 — The Inland Empire's Closing-Time Specialist — KEEPITIL</title>
+<meta name="description" content="crooki3 (Rachelle Anne Crook) is a Lake Elsinore house, tech/bass/Latin house and techno DJ, Club Rattlers resident and Bass Invaders main-stage act at Dave &amp; Buster&rsquo;s Ontario."/>
+<meta property="og:title" content="crooki3 — The Inland Empire's Closing-Time Specialist"/>
+<meta property="og:description" content="Club Rattlers resident, El Gato Rojo afters regular, Bass Invaders main stage — a Lake Elsinore DJ trusted with the end of the night."/>
+<meta property="og:image" content="https://keepitil.com/assets/images/artbg-crooki3.jpg"/>
+<meta property="og:type" content="article"/>
+<meta property="article:published_time" content="2026-10-21"/>
+<meta property="article:author" content="KEEPITIL"/>
+<meta property="og:url" content="https://keepitil.com/article/artist/crooki3/"/>
+<meta property="og:site_name" content="KEEPITIL"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="crooki3 — The Inland Empire's Closing-Time Specialist"/>
+<meta name="twitter:description" content="crooki3 (Rachelle Anne Crook) is a Lake Elsinore house, tech/bass/Latin house and techno DJ, Club Rattlers resident and Bass Invaders main-stage act at Dave &amp; Buster&rsquo;s Ontario."/>
+<meta name="twitter:image" content="https://keepitil.com/assets/images/artbg-crooki3.jpg"/>
+<link rel="canonical" href="https://keepitil.com/article/artist/crooki3/"/>
+<link rel="stylesheet" href="/assets/css/tokens.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--measure:764px;--page:#f6f4fb;--card:#ffffff;--card2:#f2eefb;--ink:#191426;--ink2:#544c6b;--ink3:#8b839e;--line:rgba(30,15,60,.12);--blue:#5b21b6;--blue2:#7c3aed;--accent:#0071e3;--good:#0a8f5b;--fh:'Bebas Neue',sans-serif;--fs:'Fraunces',Georgia,serif;--fb:'Inter',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+/* ⚠ COLOUR ON <html>, BODY TRANSPARENT. An opaque body background paints OVER a negative
+   z-index ::before — the same trap that hid the backdrops on /create and /earn. */
+html{background:#0a0a0f}
+body{background:transparent;color:var(--ink);font-family:var(--fb);line-height:1.75;padding-bottom:40px}
+/* THE COVER IS FIXED FOR THE WHOLE ARTICLE (Founder 2026-08-23: "does not stay locked like the
+   homepage, through out the entire article"). It used to live inside .artlead, so it scrolled
+   away with the landing panel. position:fixed on body::before makes the article scroll OVER a
+   stationary image, exactly like the homepage. --artbg is set on <body style="--artbg:url('/assets/images/artbg-smoke.jpg');--artbg-m:url('/assets/images/artbg-smoke.jpg')"> per article. */
+/* DEFAULT BACKDROP = THE HOMEPAGE IMAGE (Founder 2026-08-23: "use the current background image
+   from the homepage as the default image always"). Articles used to point --artbg at a generated
+   pollinations.ai URL — a third-party image service that, when it fails to answer, leaves the
+   page with no backdrop at all. That is why it was missing. /assets/images/logo-bg.jpg is the same file the
+   homepage uses and it is served from our own origin, so it cannot disappear. An article may
+   still override --artbg with its own art; the default is now a real image, not nothing. */
+body::before{content:"";display:block!important;position:fixed;inset:0;z-index:-2;background:var(--bg,#0a0a0f) var(--artbg,url('/assets/images/logo-bg.jpg')) center/cover no-repeat;opacity:1}
+@media(max-width:860px){body::before{background-image:var(--artbg-m,var(--artbg,url('/assets/images/logo-bg.jpg')))}}
+/* ⚠ THE BACKDROP IS NEVER DARKENED (Founder 2026-08-23). No scrim, no filter, no opacity
+   change — the line above is the homepage's, verbatim. Two scrims were stacking here to roughly
+   84% black at the foot of the first screen. Text legibility is handled by text-shadow on the
+   type and by the reading panel's own background, NOT by dimming the artwork. Do not add an
+   overlay to this page. */
+/* NO page scrim — the image is never darkened. */
+.kil-social-bar{display:none!important}
+.hero{max-width:900px;margin:0 auto;padding:96px 22px 8px;text-align:center}
+.kick{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--blue2);background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:6px 16px;margin-bottom:18px}
+.hero h1{font-family:var(--fs);font-weight:900;font-size:clamp(2rem,5vw,3.2rem);line-height:1.07;letter-spacing:-.01em;color:#120e1f}
+.hero .deck{color:var(--ink2);font-size:1.16rem;line-height:1.55;margin:18px auto 0;max-width:620px}
+.meta{max-width:720px;margin:22px auto 0;padding:0 22px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;justify-content:center;color:var(--ink3);font-size:.82rem;font-weight:600}
+.meta .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue2));display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.78rem}
+.meta .who{color:var(--ink);font-weight:700}.meta .dot{color:var(--line)}
+.meta .share{display:inline-flex;gap:6px;margin-left:auto}
+.meta .share button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink2);cursor:pointer;font-size:.9rem;display:inline-flex;align-items:center;justify-content:center}
+.meta .share button:hover{border-color:var(--blue2);color:var(--blue2)}
+@media(max-width:560px){.meta .share{margin-left:0;width:100%;justify-content:center}}
+.cover{max-width:900px;margin:24px auto 0;padding:0 22px}
+.cover .band{position:relative;overflow:hidden;height:300px;border-radius:20px;background:linear-gradient(130deg,#f0a72022,#7c3aed22);border:1px solid var(--line)}
+.cover .band img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+@media(max-width:560px){.cover .band{height:220px}}
+.art{margin:0 auto}
+.art p{font-size:1.13rem;color:#2b2540;margin:22px 0;line-height:1.78}
+.art .lead{font-family:var(--fs);font-size:1.34rem;line-height:1.5;color:#170f26;font-weight:500}
+.art h2{font-family:var(--fs);font-weight:900;font-size:1.62rem;line-height:1.2;letter-spacing:-.01em;margin:48px 0 4px;color:#160f24}
+.art strong{color:#160f24;font-weight:700}
+.art a.inline{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(0,113,227,.35)}
+hr{border:0;border-top:1px solid var(--line);margin:42px 0}
+.pull{font-family:var(--fs);font-weight:600;font-size:1.5rem;line-height:1.35;color:var(--blue);border-left:4px solid var(--blue2);padding:6px 0 6px 20px;margin:34px 0}
+/* listen box */
+.listen{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0}
+.listen a{font-weight:800;font-size:.9rem;text-decoration:none;padding:12px 20px;border-radius:999px}
+.l-sc{background:none;border:2px solid #ff7700;color:#ff5500}
+.l-lyr{background:linear-gradient(90deg,var(--blue2),var(--accent));color:#fff}
+.support{max-width:760px;margin:44px auto 0;padding:0 22px}
+.support .box{border:1px solid var(--line);background:linear-gradient(180deg,#ffffff,#f4effc);border-radius:16px;padding:22px 24px}
+.support .hd{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.02rem;color:#160f24}.support .hd .dot{color:var(--good);font-size:.7rem}
+.support .lede{color:var(--ink2);font-size:.9rem;line-height:1.5;margin-top:8px}
+#tpl-support{display:flex;gap:12px;margin-top:16px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px}
+#tpl-support::-webkit-scrollbar{display:none}#tpl-support>a{flex:0 0 168px;scroll-snap-align:start}
+@media(max-width:560px){#tpl-support>a{flex:0 0 150px}}
+.related{max-width:760px;margin:46px auto 0;padding:0 22px}
+.related h3{font-family:var(--fh);font-size:1.5rem;letter-spacing:.03em;color:#160f24;margin-bottom:14px}
+.rel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.rel-card{display:block;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;transition:transform .18s,border-color .18s;box-shadow:0 4px 16px rgba(30,15,60,.04)}
+.rel-card:hover{transform:translateY(-3px);border-color:var(--blue2)}
+.rel-card .rc-cov{aspect-ratio:16/9;background:#eee7fb center/cover}
+.rel-card .rc-bd{padding:13px 15px 16px}.rel-card .rc-k{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--blue2)}
+.rel-card h4{font-family:var(--fs);font-weight:600;font-size:1.02rem;line-height:1.2;color:#160f24;margin-top:6px}
+.foot-note{max-width:720px;margin:42px auto 0;padding:16px 22px 0;color:var(--ink3);font-size:.86rem;border-top:1px solid var(--line);text-align:center}
+.src-wrap{margin:0 auto}
+.src-wrap h2{font-family:var(--fs);font-weight:900;font-size:1.4rem;margin:40px 0 6px;color:#160f24}
+.src-list{padding:0 0 0 20px;color:var(--ink2);font-size:.9rem}.src-list li{margin:8px 0}.src-list a{color:var(--accent)}
+
+/* ═══ ARTICLE TEMPLATE v2 (Founder 2026-08-23) ═══════════════════════════════════════════
+   Opens like the homepage: the cover art fills the first screen and the title sits at the foot
+   of it. Scroll, and the title collapses into a sticky bar with the byline + socials. Then the
+   body, then SUPPORT KEEPITIL, then Sources. */
+.artlead{position:relative;min-height:calc(100svh - 70px);min-height:calc(100dvh - 70px);
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:40px 22px 46px;margin:0;isolation:isolate}
+/* The panel is transparent — the art is the FIXED body backdrop now. This gradient only
+   deepens the foot of the first screen so the title reads against whatever is behind it. */
+/* NO landing scrim. Title legibility comes from text-shadow on the type only. */
+/* ONE MEASURE (Founder 2026-08-23: "the sides are different for the title, the filter and the
+   body ... needs to be uniformed"). Landing 900, bar 900, body 720 — three different left edges
+   down the page. All three now share --measure with the same 22px gutter, so the title, the
+   locked bar and the paragraphs start and end on exactly the same x. */
+.artlead .inner{max-width:var(--measure,764px);margin:0 auto;width:100%;padding:0 22px}
+.artlead .kick{display:inline-block;font-size:.68rem;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;color:#c9b8ff;margin-bottom:12px}
+.artlead h1{font-family:var(--fs);font-weight:900;color:#fff;line-height:1.03;letter-spacing:-.01em;
+  font-size:clamp(2.1rem,6.2vw,4rem);text-shadow:0 2px 8px rgba(0,0,0,.85),0 6px 34px rgba(0,0,0,.7)}
+.artlead .deck{color:#e4dff2;font-size:1.06rem;line-height:1.55;margin-top:14px;max-width:640px;
+  text-shadow:0 2px 6px rgba(0,0,0,.9),0 4px 18px rgba(0,0,0,.6)}
+/* 16:9 on desktop, 9:16 on mobile — the same two-crop rule the section pages use. */
+@media(max-width:860px){
+  .artlead{min-height:calc(100svh - env(safe-area-inset-top,0px));
+    min-height:calc(100dvh - env(safe-area-inset-top,0px))}
+}
+/* Sticky bar: title + byline + socials. Under 950 so it passes BEHIND the bottom nav. */
+/* Sticks UNDER the shell's fixed 70px top nav — top:0 parked it behind that nav, which reads as
+   "not locking" because you never see it (Founder 2026-08-23). z-index 940 keeps it below the
+   bottom nav (950) and the radio bar (9998), so it passes BEHIND both, which is what the rest of
+   the site does. Mobile has no fixed top bar, so there it grows into the status-bar band. */
+/* top:62px — the shell nav is 66px tall. The bar tucks 4px UNDER it so there is no seam,
+   and the nav is on a higher layer so the overlap is never visible.
+   ⚠ The old fix was a ::before painting 18px of bar colour ABOVE the bar. That worked while
+   the bar was stuck (the strip hid behind the nav) but the bar starts life IN FLOW under the
+   hero, where nothing covered it — so the strip rendered as a band of dead space above the
+   row. Founder 2026-08-26: "extra space at the top of the filter bar ... needs to be the
+   same space above and below evenly." Overlap closes the seam without painting anything. */
+.artbar{position:sticky;top:62px;z-index:940;background:#0b0b12;color:#fff;
+  border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.45)}
+
+.artbar .row{max-width:var(--measure,764px);margin:0 auto;padding:10px 22px;display:flex;align-items:center;gap:12px}
+.artbar .soc{margin-left:auto}
+.artbar .t{font-family:var(--fs);font-weight:900;font-size:.98rem;line-height:1.15;color:#fff;
+  flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.artbar .who{font:800 .78rem Inter,sans-serif;letter-spacing:.02em;color:#fff}
+.artbar .soc{display:inline-flex;gap:4px;flex:0 0 auto}
+.artbar .soc a,.artbar .soc button{width:32px;height:32px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#cfd3df;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;font-size:.82rem;text-decoration:none}
+.artbar .soc a:hover,.artbar .soc button:hover{border-color:#00e0a4;color:#00e0a4}
+.artbar .soc svg{width:16px;height:16px;display:block}
+@media(max-width:520px){.artbar .soc a,.artbar .soc button{width:28px;height:28px}.artbar .soc svg{width:14px;height:14px}}
+/* Founder 2026-08-26: offset BELOW the black status layer, no padding. The old rule was
+   grow-and-pad (top:0 + padding-top:inset) — that padding is bar-coloured, so on a notched
+   phone it rendered as empty chrome above the row and the bar looked top-heavy. Same fix
+   already applied to every other sticky deck on the site. */
+@media(max-width:860px){.artbar{top:var(--kil-safe-top,0px)}}
+@media(max-width:700px){.artbar .who{font-size:.72rem}}
+
+/* READING PANEL (Founder 2026-08-23: "some transparency behind the articles text to make the
+   font color easier to read"). The article is dark type on a light theme, so the panel is light
+   and translucent — dark-on-photo would be unreadable. Opaque enough to hold body copy, sheer
+   enough that the artwork still shows through. */
+.artpanel{max-width:var(--measure,764px);margin:0 auto;background:rgba(252,250,255,.86);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.55);border-radius:20px;
+  box-shadow:0 20px 60px rgba(0,0,0,.45);padding:30px 0 34px;margin-top:26px}
+.artpanel .art,.artpanel .src-wrap,.artpanel .support .box{max-width:none;padding-left:22px;padding-right:22px}
+.artpanel .foot-note{border-top-color:rgba(30,15,60,.14)}
+/* The panel already provides the space above the first line via its own padding. Without this
+   the lead paragraph adds its 22px `.art p` top margin on top of that — 52px of dead space
+   above the opening sentence, and visibly more than the gap under the last one.
+   Founder 2026-08-26: "extra spacing above the text ... shorten it". */
+.artpanel .art>*:first-child{margin-top:0}
+@media(max-width:700px){.artpanel{border-radius:14px;padding:22px 0 26px;margin-top:16px}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* TAP IN — four marks on one row (Founder 2026-08-26), directly above SUPPORT KEEPITIL, which
+   is now always the closing block of an article unless there are Sources. */
+.tapin .with{font-weight:600;opacity:.62}
+.tap-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.tap-row a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  padding:16px 6px;border-radius:14px;text-decoration:none;color:#160f24;
+  border:1px solid rgba(30,15,60,.14);background:rgba(255,255,255,.62);
+  transition:border-color .18s,transform .18s,background .18s}
+.tap-row a:hover{border-color:#7c3aed;color:#7c3aed;transform:translateY(-2px);background:#fff}
+.tap-row svg{width:24px;height:24px;display:block}
+.tap-row span{font:800 .68rem Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:center}
+@media(max-width:520px){.tap-row{gap:7px}.tap-row a{padding:13px 4px}
+  .tap-row svg{width:21px;height:21px}.tap-row span{font-size:.58rem;letter-spacing:.03em}}
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"crooki3 - The Inland Empire's Closing-Time Specialist","description":"crooki3 (Rachelle Anne Crook) is a Lake Elsinore house, tech/bass/Latin house and techno DJ, resident at Club Rattlers in Murrieta and a main-stage act at Bass Invaders in Ontario.","image":["https://keepitil.com/assets/images/artbg-crooki3.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://keepitil.com/article/artist/crooki3"},"about":{"@type":"Person","name":"Rachelle Anne Crook","alternateName":"crooki3","jobTitle":"DJ","sameAs":["https://www.instagram.com/crooki3official/"]},"author":{"@type":"Organization","name":"KEEPITIL","url":"https://keepitil.com"},"publisher":{"@type":"Organization","name":"KEEPITIL","logo":{"@type":"ImageObject","url":"https://keepitil.com/icon-512.png"}},"inLanguage":"en-US"}</script>
+</head>
+<body style="--artbg:url('/assets/images/artbg-crooki3.jpg');--artbg-m:url('/assets/images/artbg-crooki3.jpg')">
+<main id="content">
+<!-- LANDING: cover art fills the screen, title at the foot of it. The image is set as a CSS
+     variable so this template works for any article by swapping one value. -->
+<header class="artlead">
+  <div class="inner">
+    <span class="kick">KEEPITIL PRESENTS</span>
+    <h1>crooki3 — The Inland Empire's Closing-Time Specialist</h1>
+    <p class="deck">Resident at Club Rattlers, closer of techno stages and afters across the Inland Empire &mdash; and headed for the Bass Invaders main stage.</p>
+  </div>
+</header>
+
+<!-- Locked bar: composer + KEEPITIL socials + share. No title — the headline belongs to the
+     landing panel and is not repeated here (Founder 2026-08-23). -->
+<!-- Locked bar: composer + real KEEPITIL social marks + share. No "K" badge — that letter was
+     never the brand (Founder 2026-08-23). Same measure as the title and the body copy. -->
+<div class="artbar">
+  <div class="row">
+    <span class="who">KEEPITIL</span>
+    <span class="soc">
+      <a href="https://www.instagram.com/keepitil/" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg></a>
+      <a href="https://www.facebook.com/keepitil" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06C2 17.08 5.66 21.25 10.44 22v-7.03H7.9v-2.91h2.54V9.85c0-2.52 1.49-3.91 3.77-3.91 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.89h2.78l-.44 2.91h-2.34V22C18.34 21.25 22 17.08 22 12.06z"/></svg></a>
+      <a href="https://www.tiktok.com/@keepitil" target="_blank" rel="noopener" aria-label="TikTok" title="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.82A4.96 4.96 0 0 1 15.4 2.5h-3.23v13.02a2.61 2.61 0 1 1-1.86-2.5V9.72a5.83 5.83 0 1 0 5.09 5.79V9.3a8.2 8.2 0 0 0 4.6 1.42V7.5a4.96 4.96 0 0 1-3.4-1.68z"/></svg></a>
+      <a href="https://youtube.com/@keepitil" target="_blank" rel="noopener" aria-label="YouTube" title="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 12s0-3.9-.5-5.79a3 3 0 0 0-2.11-2.11C18.5 3.6 12 3.6 12 3.6s-6.5 0-8.39.5A3 3 0 0 0 1.5 6.21C1 8.1 1 12 1 12s0 3.9.5 5.79a3 3 0 0 0 2.11 2.11c1.89.5 8.39.5 8.39.5s6.5 0 8.39-.5a3 3 0 0 0 2.11-2.11C23 15.9 23 12 23 12zM9.8 15.6V8.4l6.2 3.6-6.2 3.6z"/></svg></a>
+      <a href="https://x.com/keepitil" target="_blank" rel="noopener" aria-label="X" title="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.65l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.82l4.71 6.23 5.46-6.23zm-1.16 17.52h1.83L7.01 4.13H5.05l12.03 15.64z"/></svg></a>
+      <a href="mailto:info@keepitil.com" aria-label="Email" title="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="4.5" width="19" height="15" rx="2.6"/><path d="M3 6.5l9 6.2 9-6.2"/></svg></a>
+      <button aria-label="Share" title="Share" onclick="kilShare('native')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
+    </span>
+  </div>
+</div>
+
+<div class="artpanel">
+<article class="art">
+  <p class="lead">Read her Instagram bio the way a promoter reads it, and it isn&rsquo;t a bio at all &mdash; it&rsquo;s a calendar. Three dates, three rooms: 10.10 at Club Rattlers, 10.23 at Dave &amp; Buster&rsquo;s Ontario, 10.24 at 4th &amp; Mill. No slogan, no genre list, just where crooki3 will be and when. That is the whole story of Rachelle Anne Crook of Lake Elsinore in one glance: a house and techno DJ whose career, right now, is a run of Inland Empire rooms &mdash; and whose name keeps landing in the slots that close the night out.</p>
+
+  <p>The next one is the biggest of the three. On October 23 she plays the main stage at Bass Invaders, the EDM night staged inside Dave &amp; Buster&rsquo;s in Ontario &mdash; &ldquo;Catch me at the main stage for Bass Invaders on October 23rd!&rdquo; she posted on October 8, tickets through @bass_invadersofficial, 18+. Bass Invaders bills itself as &ldquo;EDM &bull; HOUSE &bull; TECHNO &bull; BASS&rdquo; from Southern California, and this is not her first time on its stage: in July she was back at the same Dave &amp; Buster&rsquo;s room closing out its techno stage at midnight &mdash; &ldquo;CATCH ME CLOSING OUT THE TECHNO STAGE @12AM&rdquo; &mdash; and her recap of that night is pure gratitude: &ldquo;it was amazing catching up with familiar faces and meeting so many new people. You all brought that incredible festival energy!&rdquo;</p>
+
+  <p>Closing the techno stage at midnight. Closing the afters at 2 a.m. Holding the 11-to-12 hour at her residency. Slot by slot, the pattern is the point: crooki3 is the DJ this circuit trusts with the end of the night.</p>
+
+  <h2>A resident, not a guest</h2>
+  <p>Club Rattlers &mdash; &ldquo;Cali Natives&rsquo; House Experiences,&rdquo; run by CEO @951_chico out of The Champion in Murrieta &mdash; says it outright in its bio: &ldquo;Resident DJ&rsquo;s: @crooki3official.&rdquo; Residency is the underground&rsquo;s real currency, and hers is documented across the crew&rsquo;s whole first season. When Rattlers threw its first event of 2026 at The Champion, the flyer ran open decks 7&ndash;9 and crooki3 11&ndash;12. In May she was on the same room&rsquo;s bill again, 11 p.m. to midnight. In June she went back-to-back with 951_chico himself for a 90-minute set &mdash; 12:30 to 2 a.m., the deepest slot on a &ldquo;HOUSE MUSIC ALL NIGHT&rdquo; bill at 39400 Murrieta Hot Springs Rd, free entry. Her own reels from the room say what the flyers can&rsquo;t: &ldquo;Always the best time @clubrattlers @the_champion_murrieta.&rdquo;</p>
+  <p>And the Rattlers connection travels. In August 2025 she played Avalon Hollywood back-to-back with 951_chico &mdash; &ldquo;Thanks for dancing with us LA&rdquo; &mdash; on a three-day weekend that also took her to Newport. A residency that exports its resident to Hollywood is doing something right, and so is the resident.</p>
+
+  <h2>The afters shift</h2>
+  <p>If the clubs are her day job, the afters are her signature. El Gato Rojo &mdash; the Inland Empire afters run through @el.gato_rojo, with locations dropped to followers &mdash; books her long and late: a two-hour back-to-back with SergCat in May 2026 (&ldquo;SERGCAT X CROOKI3 LET&rsquo;S GOOOOO &mdash; 2 HR B2B WHO&rsquo;S READYYYY&rdquo;), and a 12:30&ndash;2 a.m. solo slot on another weekend, after the pregame&rsquo;s open decks wrapped at Sushi Mamba in Wildomar. A third El Gato Rojo bill ran SergCat x crooki3 from 1 to 3 a.m.</p>
+  <p>Her words about that room explain why she keeps getting the call. After one May set she posted: &ldquo;Thank you for having me and being such a safe space for creativity and growth!&rdquo; &mdash; and, about a different night in the same run, the most PLUR review an afters has ever earned: &ldquo;Y&rsquo;ALL NEVER SEEN AN AFTERS LIKE THIS IN THE IE!! &hellip; vibes, venue, and hospitality were 100 + them constantly asking if we needed water is such a small but significant thing #PLUR.&rdquo; That&rsquo;s not a DJ collecting a fee; that&rsquo;s a DJ who is part of the room&rsquo;s culture &mdash; and who says so, on the record, in her own feed.</p>
+
+  <h2>The circuit</h2>
+  <p>Around the residency and the afters, the map fills in. Downtown Riverside: a basement set at Aurea Vista Night Club in April 2026, billed 11:45 p.m.&ndash;12:45 a.m. on a LoKo Bird Collective night, and a Funday House Sessions night at The W at Worthington&rsquo;s where she posted &ldquo;Good vibes and good times all night long.&rdquo; Redlands: PROJEKT, where LoKo Bird brought her back repeatedly &mdash; the NIGHTWAVE takeover on January 16 alongside Mikey Quest and SallyThatGirl (9 p.m. to close, free entry), and a St. Patrick&rsquo;s Day date in March. Rialto: Uptown Downtown, on a Cream Sundays Wednesday, where she wrote &ldquo;LOVE the spot, the people, and the vibes!!!&rdquo; &mdash; and posed for the portrait on this page under the room&rsquo;s neon sign. Rancho Cucamonga: 4th &amp; Mill, where she played the Halloween EDM party in 2025 and where her bio has her returning on October 24, the night after Bass Invaders. Pomona and a studio date closed out a December 2025 week: &ldquo;Come dance with me this coming week &mdash; 12.11 @flexxpomona, 12.14 @rendezvoustudios.&rdquo;</p>
+  <p>She has also already played a KEEPITIL room. On June 6, 2026, KEEPITIL&rsquo;s own account posted the patio night at Bleu Nightclub in Westminster &mdash; Casual Hippies x KEEPITIL, &ldquo;a curated night of original sounds, smooth grooves, and an intimate open-air atmosphere&rdquo; &mdash; with a lineup of CROOKI3, SWERVE and DOC MARIO, billed as &ldquo;a refined blend of rhythm and energy designed for those who appreciate the deeper side of house music,&rdquo; with open decks before it and a techno room running all night. She applied to this platform in June 2026. She had, in a sense, already played for it.</p>
+
+  <h2>The sound</h2>
+  <p>Her application splits it four ways: house, tech/bass/latin house, techno. The bookings prove each word of that. The Rattlers bills are house music all night; the Bass Invaders stage is techno at midnight; the hashtags on her Club Rattlers reels read #techhouse; the Bleu patio was the deeper side of house. And then there is the livestream chapter: in April 2026, C.R.E.A.M. Sundays &mdash; the crew behind the C.R.E.A.M. Studios livestream, &ldquo;Global House | Deep House | Disco House&rdquo; &mdash; put her on Episode 004 of the stream alongside Blerry, Cisco (MX), WhereYourNot and CL Audio, promising &ldquo;deep grooves, unexpected turns, and raw creativity from start to finish.&rdquo; Her own Cream Sundays reel, captioned &ldquo;This one is for the ladies,&rdquo; is a DJ having fun with a room that knows her.</p>
+  <p>What ties the range together is feel rather than genre loyalty. Her most-liked reel of the summer is a Club Rattlers clip captioned: &ldquo;That drop hit so hard I forgot I was the one playing it &mdash; I went through all the phases like it was the first time.&rdquo; Promoters can book a lot of things; a DJ who still reacts to her own drop like a fan is the thing they book twice.</p>
+
+  <h2>Why book crooki3</h2>
+  <ul>
+    <li>A proven closer: midnight techno-stage close at Bass Invaders (Dave &amp; Buster&rsquo;s Ontario, July 2026), 12:30&ndash;2 a.m. and 1&ndash;3 a.m. afters slots with El Gato Rojo, and a main-stage return at Bass Invaders on October 23, 2026</li>
+    <li>A resident with a home room: Club Rattlers&rsquo; named resident DJ at The Champion, Murrieta &mdash; with documented back-to-back chemistry with the crew&rsquo;s own 951_chico, including at Avalon Hollywood</li>
+    <li>Range on one application line: house, tech house, bass house and Latin house through to techno &mdash; club sets, patio sets, basement sets and a Twitch livestream (C.R.E.A.M. Studios Episode 004) all on the record</li>
+    <li>A circuit that spans the IE and beyond: Lake Elsinore base; Murrieta, Ontario, Riverside, Redlands, Rialto, Rancho Cucamonga, Pomona, Westminster and Hollywood on her recent map</li>
+    <li>She promotes the rooms that book her &mdash; recap reels, thank-you posts and a bio that is literally her next three dates</li>
+  </ul>
+
+  <hr/>
+  <h2>The quick version</h2>
+  <p>crooki3 (Rachelle Anne Crook) is a Lake Elsinore house, tech/bass/Latin house and techno DJ, resident at Club Rattlers in Murrieta, a repeat closer on the Inland Empire&rsquo;s afters circuit with El Gato Rojo, and a main-stage act at Bass Invaders inside Dave &amp; Buster&rsquo;s Ontario &mdash; where she closed the techno stage at midnight in July 2026 and returns to the main stage on October 23. Recent rooms run from PROJEKT Redlands and Aurea Vista Riverside to Avalon Hollywood and KEEPITIL&rsquo;s own Bleu patio night in Westminster, with a C.R.E.A.M. Studios livestream set in between.</p>
+
+  <h2>Additional Details</h2>
+  <ul>
+    <li><strong>Name:</strong> crooki3 (Rachelle Anne Crook)</li>
+    <li><strong>Description:</strong> House, tech/bass/Latin house and techno DJ from Lake Elsinore. Resident DJ for Club Rattlers (The Champion, Murrieta), regular on the El Gato Rojo afters circuit, Bass Invaders main-stage act, and C.R.E.A.M. Studios livestream guest. Known on her circuit for late, closing-time slots.</li>
+    <li><strong>Genres:</strong> House, tech/bass/latin house, techno (per her application)</li>
+    <li><strong>Location:</strong> Lake Elsinore, California (Inland Empire)</li>
+    <li><strong>Bookings:</strong> Email crooki3official@gmail.com &middot; Phone 951-265-9870 &middot; Instagram @crooki3official</li>
+    <li><strong>Listen / watch:</strong> C.R.E.A.M. Studios livestream, Episode 004 (Twitch, via @cream.sundays) &mdash; no SoundCloud, Mixcloud or Spotify profile was linked from her Instagram bio as of October 21, 2026</li>
+  </ul>
+</article>
+
+<!-- ORDER (Founder 2026-08-26): body -> TAP IN -> SUPPORT KEEPITIL -> Sources.
+     Support is the closing block of an article unless the article carries Sources, which take
+     the last slot instead. This article is research-based, so Sources close it. -->
+<div class="src-wrap tapin">
+  <h2>Tap in <span class="with">with crooki3</span></h2>
+  <div class="tap-row">
+    <a href="https://www.instagram.com/crooki3official/" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg><span>Instagram</span></a>
+    <a href="https://www.instagram.com/clubrattlers/" target="_blank" rel="noopener" aria-label="Club Rattlers on Instagram" title="Club Rattlers on Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg><span>Club Rattlers</span></a>
+    <a href="tel:+19512659870" target="_blank" rel="noopener" aria-label="Bookings phone" title="Bookings phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Call</span></a>
+    <a href="mailto:crooki3official@gmail.com" aria-label="Bookings email" title="Bookings email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="4.5" width="19" height="15" rx="2.6"/><path d="M3 6.5l9 6.2 9-6.2"/></svg><span>Bookings</span></a>
+  </div>
+</div>
+<div class="foot-note">Quotes are crooki3&rsquo;s own, from her Instagram posts. Bookings: <a class="inline" href="mailto:crooki3official@gmail.com">crooki3official@gmail.com</a> &middot; <a class="inline" href="tel:+19512659870">951-265-9870</a>.</div>
+
+<section class="support">
+  <div class="box">
+    <div class="hd"><span class="dot">●</span> SUPPORT KEEPITIL</div>
+    <div class="lede">Partner referrals &amp; affiliate links — every link supports the scene. <em>(Amazon links are affiliate; KEEPITIL earns from qualifying purchases.)</em></div>
+    <div id="tpl-support"></div>
+  </div>
+</section>
+
+<div class="src-wrap">
+  <h2>Sources</h2>
+  <ul class="src-list">
+    <li>Her KEEPITIL DJ application (as submitted) &mdash; artist name crooki3, legal name Rachelle Anne Crook, city Lake Elsinore, genres &ldquo;House, tech/bass/latin house, techno&rdquo;, Instagram @crooki3official, email crooki3official@gmail.com, phone 9512659870, applied 6/7/2026</li>
+    <li>Instagram profile @crooki3official (via connector, 2026-10-21) &mdash; name Rachelle Crook, creator account, 435 followers, 64 posts, bio (&ldquo;CROOKi3 / 10.10 @clubrattlers / 10.23 @dnbontarioca / 10.24 @4thandmill&rdquo;), no external bio links &mdash; <a class="inline" href="https://www.instagram.com/crooki3official/" target="_blank" rel="noopener">instagram.com/crooki3official</a></li>
+    <li>@crooki3official post, 2026-10-08 &mdash; <a class="inline" href="https://www.instagram.com/p/DeP3oo4SGc6/" target="_blank" rel="noopener">instagram.com/p/DeP3oo4SGc6</a> (main stage, Bass Invaders, October 23, Dave &amp; Buster&rsquo;s Ontario, 18+, tickets via @bass_invadersofficial)</li>
+    <li>@crooki3official post, 2026-06-30 &mdash; <a class="inline" href="https://www.instagram.com/p/DaOr1uqGAgx/" target="_blank" rel="noopener">instagram.com/p/DaOr1uqGAgx</a> (closing the techno stage at 12AM, Friday July 3, @dnbontarioca) and recap reel, 2026-07-04 &mdash; <a class="inline" href="https://www.instagram.com/reel/DaYVEltpd1x/" target="_blank" rel="noopener">instagram.com/reel/DaYVEltpd1x</a> (&ldquo;festival energy&rdquo; quote)</li>
+    <li>Instagram profile @bass_invadersofficial (via connector, 2026-10-21) &mdash; &ldquo;BASS INVADERS / EDM &bull; HOUSE &bull; TECHNO &bull; BASS / Southern California,&rdquo; Posh/Eventbrite ticket links</li>
+    <li>Instagram profile @clubrattlers (via connector, 2026-10-21) &mdash; &ldquo;Cali Natives&rsquo; House Experiences / CEO: @951_chico / Resident DJ&rsquo;s: @crooki3official,&rdquo; events at @the_champion_murrieta</li>
+    <li>@clubrattlers post, 2026-04-02 &mdash; <a class="inline" href="https://www.instagram.com/p/DWpivf1j_GE/" target="_blank" rel="noopener">instagram.com/p/DWpivf1j_GE</a> (first event of 2026 at The Champion, Murrieta; open decks 7&ndash;9, @crooki3official 11&ndash;12)</li>
+    <li>@clubrattlers reel, 2026-05-11 &mdash; <a class="inline" href="https://www.instagram.com/reel/DYNXMc1vk6w/" target="_blank" rel="noopener">instagram.com/reel/DYNXMc1vk6w</a> (05.23 at The Champion, 39400 Murrieta Hot Springs Rd; crooki3official 11pm&ndash;12am) and @951_chico reel, 2026-06-22 &mdash; <a class="inline" href="https://www.instagram.com/reel/DZ5RjvkA46w/" target="_blank" rel="noopener">instagram.com/reel/DZ5RjvkA46w</a> (June 27, house music all night, @951_chico B2B @crooki3official 12:30&ndash;2am, free entry, 21+)</li>
+    <li>@crooki3official post, 2026-05-04 &mdash; <a class="inline" href="https://www.instagram.com/p/DX8CcHeFB1t/" target="_blank" rel="noopener">instagram.com/p/DX8CcHeFB1t</a> (&ldquo;SERGCAT X CROOKI3 &hellip; 2 HR B2B,&rdquo; @el.gato_rojo afters) and @951_chico reels, May 2026 (El Gato Rojo afters: crooki3official 12:30&ndash;2am; SergCat x crooki3 1am&ndash;3am)</li>
+    <li>@crooki3official reels, 2026-05-18 and 2026-05-10 &mdash; <a class="inline" href="https://www.instagram.com/reel/DYf_uOeu7pC/" target="_blank" rel="noopener">instagram.com/reel/DYf_uOeu7pC</a> (&ldquo;safe space for creativity and growth&rdquo;) and <a class="inline" href="https://www.instagram.com/reel/DYLsBCYBGDW/" target="_blank" rel="noopener">instagram.com/reel/DYLsBCYBGDW</a> (El Gato Rojo &ldquo;afters like this in the IE&rdquo; / water / #PLUR quote)</li>
+    <li>@crooki3official post, 2026-04-08 &mdash; <a class="inline" href="https://www.instagram.com/p/DW4hQFNAVda/" target="_blank" rel="noopener">instagram.com/p/DW4hQFNAVda</a> (Aurea Vista Club basement, Riverside; crooki3official 11:45&ndash;12:45, @lokobirdcollective); post, 2026-03-28 &mdash; <a class="inline" href="https://www.instagram.com/p/DWdL2B3FO5_/" target="_blank" rel="noopener">instagram.com/p/DWdL2B3FO5_</a> (Funday House Sessions at The W at Worthington&rsquo;s, Riverside)</li>
+    <li>@crooki3official post, 2026-01-17 &mdash; <a class="inline" href="https://www.instagram.com/p/DTn7dgTEiCq/" target="_blank" rel="noopener">instagram.com/p/DTn7dgTEiCq</a> (PROJEKT Redlands) and @trvesomusic post, 2026-01-10 &mdash; <a class="inline" href="https://www.instagram.com/p/DTWbrJQDqZf/" target="_blank" rel="noopener">instagram.com/p/DTWbrJQDqZf</a> (NIGHTWAVE, Jan 16, PROJEKT Redlands, 9PM&ndash;close, free entry, 21+)</li>
+    <li>@crooki3official post, 2026-06-11 &mdash; <a class="inline" href="https://www.instagram.com/p/DZcHx0oG1Kz/" target="_blank" rel="noopener">instagram.com/p/DZcHx0oG1Kz</a> (Uptown Downtown, Rialto, with @cream.sundays; &ldquo;LOVE the spot, the people, and the vibes!!!&rdquo;) &mdash; also the source of this page&rsquo;s cover portrait</li>
+    <li>@cream.sundays post, 2026-04-27 &mdash; <a class="inline" href="https://www.instagram.com/p/DXqZXZiHEq-/" target="_blank" rel="noopener">instagram.com/p/DXqZXZiHEq-</a> (C.R.E.A.M. Studios Livestream Episode 004 starring CROOKI3, on Twitch) and Instagram profile @cream.sundays (via connector, 2026-10-21) &mdash; &ldquo;Global House | Deep House | Disco House&rdquo;</li>
+    <li>@keepitil reel, 2026-06-06 &mdash; <a class="inline" href="https://www.instagram.com/reel/DZRQYh4JbL_/" target="_blank" rel="noopener">instagram.com/reel/DZRQYh4JbL_</a> (Bleu Nightclub patio, Westminster CA; Casual Hippies x KEEPITIL; featuring CROOKI3, SWERVE, DOC MARIO; open decks 9&ndash;10PM)</li>
+    <li>@crooki3official post, 2025-09-01 &mdash; <a class="inline" href="https://www.instagram.com/p/DOEfnhNAT_h/" target="_blank" rel="noopener">instagram.com/p/DOEfnhNAT_h</a> (Avalon Hollywood) and reel, 2025-08-27 (8.31 @avalonhollywood b2b @951_chico); post, 2025-12-06 &mdash; <a class="inline" href="https://www.instagram.com/p/DR7jq2dgcZq/" target="_blank" rel="noopener">instagram.com/p/DR7jq2dgcZq</a> (12.11 @flexxpomona, 12.14 @rendezvoustudios)</li>
+    <li>@crooki3official reel, 2025-10-27 &mdash; <a class="inline" href="https://www.instagram.com/reel/DQUymJEgUKm/" target="_blank" rel="noopener">instagram.com/reel/DQUymJEgUKm</a> (4th &amp; Mill Halloween party) and reels, 2026-10-11 / 2026-06-02 (&ldquo;Always the best time @clubrattlers&rdquo;; &ldquo;That drop hit so hard I forgot I was the one playing it&rdquo;)</li>
+  </ul>
+</div>
+</div>
+</main>
+<!-- "Keep reading" removed 2026-08-23 (Founder). -->
+
+<script>
+function kilShare(kind){var url=location.href,t=document.title;if(kind==='x'){window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(t)+'&url='+encodeURIComponent(url),'_blank');return;}if(kind==='native'&&navigator.share){navigator.share({title:t,url:url});return;}try{navigator.clipboard.writeText(url);var b=event&&event.currentTarget;if(b){var o=b.textContent;b.textContent='✓';setTimeout(function(){b.textContent=o;},1200);}}catch(e){prompt('Copy link:',url);}}
+(function(){var sh=document.getElementById('tpl-support');if(!sh)return;var items=[['Partner','FREECASH','Earn for the next fest','https://freecash.com/r/Tuitea','linear-gradient(160deg,#fbf3e6,#ffffff)',false],['Partner','DISTROKID','Put your music everywhere','https://distrokid.com/vip/seven/11538316','linear-gradient(160deg,#e6f6ef,#ffffff)',false],['Partner','POSH','List your event','https://posh.vip/create_group?ref=S-referral-mp9itc5j-wb9dbt','linear-gradient(160deg,#efe9fb,#ffffff)',false],['Partner','AMAZON','Shop gear &amp; support the scene','https://www.amazon.com/?tag=tuitea09-20','linear-gradient(160deg,#f5eefb,#ffffff)',true],['Shop','KEEPITIL STORE','Apparel, straight from the underground','https://illestratedlifestyle.com/collections/keepitil-apparel','linear-gradient(160deg,#e9f0fb,#ffffff)',false],['$34','KEEPITIL Logo Tee','Straight From The Underground','https://illestratedlifestyle.com/products/keepitil-logo-tee-straight-from-the-underground','linear-gradient(160deg,#eefbf3,#ffffff)',false],['$64','Create Loud Hoodie','Create Loud · Live Louder','https://illestratedlifestyle.com/products/keepitil-create-loud-live-louder-hoodie-1','linear-gradient(160deg,#fbeef6,#ffffff)',false],['$55','KEEPITIL Logo Crewneck','Underground EDM','https://illestratedlifestyle.com/products/keepitil-logo-crewneck-underground-edm','linear-gradient(160deg,#eef6fb,#ffffff)',false],['$30','KEEPITIL Logo Hat','Embroidered','https://illestratedlifestyle.com/products/keepitil-dad-hat-embroidered-underground-mark','linear-gradient(160deg,#fbf8e6,#ffffff)',false],['$45',"Women's Racerback Tank",'KEEPITIL Apparel','https://illestratedlifestyle.com/products/womens-racerback-tank','linear-gradient(160deg,#fbeeee,#ffffff)',false],['$37.50',"Men's Tank Top",'KEEPITIL Apparel','https://illestratedlifestyle.com/products/mens-tank-top','linear-gradient(160deg,#eefbfb,#ffffff)',false]];sh.innerHTML=items.map(function(it){var badge=it[5]?'<span style="position:absolute;top:8px;right:8px;background:#ff9900;color:#111;font-size:.56rem;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:5px;z-index:2">Amazon</span>':'';var cta=it[5]?'Shop on Amazon →':'Open →';return '<a href="'+it[3]+'" target="_blank" rel="noopener'+(it[5]?' sponsored nofollow':'')+'" data-kt="affiliate_click" style="position:relative;display:block;min-height:118px;border-radius:12px;overflow:hidden;border:1px solid rgba(30,15,60,.12);background:'+it[4]+';padding:14px;text-decoration:none;color:#160f24">'+badge+'<div style="position:relative;z-index:2"><div style="font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:#7c3aed">'+it[0]+'</div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.32rem;letter-spacing:.02em;margin:2px 0;line-height:1.05;color:#160f24">'+it[1]+'</div><div style="font-size:.76rem;color:#544c6b;line-height:1.35">'+it[2]+'</div><div style="font-size:.76rem;color:#0a8f5b;font-weight:700;margin-top:6px">'+cta+'</div></div></a>';}).join('');})();
+</script>
+<script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
+<script src="/keepitil-shell.js?v=20260929a" defer></script>
+</body>
+</html>

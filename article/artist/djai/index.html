@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-template="artist-article">
+<head>
+<!-- ══ ARTIST ARTICLE TEMPLATE ══════════════════════════════════════════════════════
+     KEEPITIL runs TWO article templates (Founder 2026-08-26):
+       1. /article/<title>          — editorial / history pieces. Closes with Sources.
+       2. /article/artist/<name>    — THIS ONE. Artist features. Closes with TAP IN (four
+                                      icons on one row) then SUPPORT KEEPITIL last.
+     Everything else is shared: landing panel, sticky composer bar, reading panel, backdrop
+     set per article on <body> via --artbg / --artbg-m.
+     ══════════════════════════════════════════════════════════════════════════════════ -->
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
+<meta name="robots" content="index,follow"/>
+<title>DjAi — Three Genres, One Signature: THT — KEEPITIL</title>
+<meta name="description" content="DjAi (Anthony Italia) is an Irvine trance, house and techno DJ, founder and curator of THT Radio and THT Recordings, with a Kristina Sky b2b, Episode 55 of his radio show, his original &ldquo;Sleep Awake&rdquo; and a Christopher Lawrence support date in his bio."/>
+<meta property="og:title" content="DjAi — Three Genres, One Signature: THT"/>
+<meta property="og:description" content="Founder of THT Radio, curator of 55+ episodes, Irvine&rsquo;s three-genre DJ &mdash; trance, house, techno, signed THT."/>
+<meta property="og:image" content="https://keepitil.com/assets/images/artbg-djai.jpg"/>
+<meta property="og:type" content="article"/>
+<meta property="article:published_time" content="2026-10-21"/>
+<meta property="article:author" content="KEEPITIL"/>
+<meta property="og:url" content="https://keepitil.com/article/artist/djai/"/>
+<meta property="og:site_name" content="KEEPITIL"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="DjAi — Three Genres, One Signature: THT"/>
+<meta name="twitter:description" content="DjAi (Anthony Italia) is an Irvine trance, house and techno DJ, founder and curator of THT Radio and THT Recordings, with a Kristina Sky b2b, Episode 55 of his radio show, his original &ldquo;Sleep Awake&rdquo; and a Christopher Lawrence support date in his bio."/>
+<meta name="twitter:image" content="https://keepitil.com/assets/images/artbg-djai.jpg"/>
+<link rel="canonical" href="https://keepitil.com/article/artist/djai/"/>
+<link rel="stylesheet" href="/assets/css/tokens.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--measure:764px;--page:#f6f4fb;--card:#ffffff;--card2:#f2eefb;--ink:#191426;--ink2:#544c6b;--ink3:#8b839e;--line:rgba(30,15,60,.12);--blue:#5b21b6;--blue2:#7c3aed;--accent:#0071e3;--good:#0a8f5b;--fh:'Bebas Neue',sans-serif;--fs:'Fraunces',Georgia,serif;--fb:'Inter',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+/* ⚠ COLOUR ON <html>, BODY TRANSPARENT. An opaque body background paints OVER a negative
+   z-index ::before — the same trap that hid the backdrops on /create and /earn. */
+html{background:#0a0a0f}
+body{background:transparent;color:var(--ink);font-family:var(--fb);line-height:1.75;padding-bottom:40px}
+/* THE COVER IS FIXED FOR THE WHOLE ARTICLE (Founder 2026-08-23: "does not stay locked like the
+   homepage, through out the entire article"). It used to live inside .artlead, so it scrolled
+   away with the landing panel. position:fixed on body::before makes the article scroll OVER a
+   stationary image, exactly like the homepage. --artbg is set on <body style="--artbg:url('/assets/images/artbg-djai.jpg');--artbg-m:url('/assets/images/artbg-djai.jpg')"> per article. */
+/* DEFAULT BACKDROP = THE HOMEPAGE IMAGE (Founder 2026-08-23: "use the current background image
+   from the homepage as the default image always"). Articles used to point --artbg at a generated
+   pollinations.ai URL — a third-party image service that, when it fails to answer, leaves the
+   page with no backdrop at all. That is why it was missing. /assets/images/logo-bg.jpg is the same file the
+   homepage uses and it is served from our own origin, so it cannot disappear. An article may
+   still override --artbg with its own art; the default is now a real image, not nothing. */
+body::before{content:"";display:block!important;position:fixed;inset:0;z-index:-2;background:var(--bg,#0a0a0f) var(--artbg,url('/assets/images/logo-bg.jpg')) center/cover no-repeat;opacity:1}
+@media(max-width:860px){body::before{background-image:var(--artbg-m,var(--artbg,url('/assets/images/logo-bg.jpg')))}}
+/* ⚠ THE BACKDROP IS NEVER DARKENED (Founder 2026-08-23). No scrim, no filter, no opacity
+   change — the line above is the homepage's, verbatim. Two scrims were stacking here to roughly
+   84% black at the foot of the first screen. Text legibility is handled by text-shadow on the
+   type and by the reading panel's own background, NOT by dimming the artwork. Do not add an
+   overlay to this page. */
+/* NO page scrim — the image is never darkened. */
+.kil-social-bar{display:none!important}
+.hero{max-width:900px;margin:0 auto;padding:96px 22px 8px;text-align:center}
+.kick{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--blue2);background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:6px 16px;margin-bottom:18px}
+.hero h1{font-family:var(--fs);font-weight:900;font-size:clamp(2rem,5vw,3.2rem);line-height:1.07;letter-spacing:-.01em;color:#120e1f}
+.hero .deck{color:var(--ink2);font-size:1.16rem;line-height:1.55;margin:18px auto 0;max-width:620px}
+.meta{max-width:720px;margin:22px auto 0;padding:0 22px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;justify-content:center;color:var(--ink3);font-size:.82rem;font-weight:600}
+.meta .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue2));display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.78rem}
+.meta .who{color:var(--ink);font-weight:700}.meta .dot{color:var(--line)}
+.meta .share{display:inline-flex;gap:6px;margin-left:auto}
+.meta .share button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink2);cursor:pointer;font-size:.9rem;display:inline-flex;align-items:center;justify-content:center}
+.meta .share button:hover{border-color:var(--blue2);color:var(--blue2)}
+@media(max-width:560px){.meta .share{margin-left:0;width:100%;justify-content:center}}
+.cover{max-width:900px;margin:24px auto 0;padding:0 22px}
+.cover .band{position:relative;overflow:hidden;height:300px;border-radius:20px;background:linear-gradient(130deg,#f0a72022,#7c3aed22);border:1px solid var(--line)}
+.cover .band img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+@media(max-width:560px){.cover .band{height:220px}}
+.art{margin:0 auto}
+.art p{font-size:1.13rem;color:#2b2540;margin:22px 0;line-height:1.78}
+.art .lead{font-family:var(--fs);font-size:1.34rem;line-height:1.5;color:#170f26;font-weight:500}
+.art h2{font-family:var(--fs);font-weight:900;font-size:1.62rem;line-height:1.2;letter-spacing:-.01em;margin:48px 0 4px;color:#160f24}
+.art strong{color:#160f24;font-weight:700}
+.art a.inline{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(0,113,227,.35)}
+hr{border:0;border-top:1px solid var(--line);margin:42px 0}
+.pull{font-family:var(--fs);font-weight:600;font-size:1.5rem;line-height:1.35;color:var(--blue);border-left:4px solid var(--blue2);padding:6px 0 6px 20px;margin:34px 0}
+/* listen box */
+.listen{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0}
+.listen a{font-weight:800;font-size:.9rem;text-decoration:none;padding:12px 20px;border-radius:999px}
+.l-sc{background:none;border:2px solid #ff7700;color:#ff5500}
+.l-lyr{background:linear-gradient(90deg,var(--blue2),var(--accent));color:#fff}
+.support{max-width:760px;margin:44px auto 0;padding:0 22px}
+.support .box{border:1px solid var(--line);background:linear-gradient(180deg,#ffffff,#f4effc);border-radius:16px;padding:22px 24px}
+.support .hd{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.02rem;color:#160f24}.support .hd .dot{color:var(--good);font-size:.7rem}
+.support .lede{color:var(--ink2);font-size:.9rem;line-height:1.5;margin-top:8px}
+#tpl-support{display:flex;gap:12px;margin-top:16px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px}
+#tpl-support::-webkit-scrollbar{display:none}#tpl-support>a{flex:0 0 168px;scroll-snap-align:start}
+@media(max-width:560px){#tpl-support>a{flex:0 0 150px}}
+.related{max-width:760px;margin:46px auto 0;padding:0 22px}
+.related h3{font-family:var(--fh);font-size:1.5rem;letter-spacing:.03em;color:#160f24;margin-bottom:14px}
+.rel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.rel-card{display:block;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;transition:transform .18s,border-color .18s;box-shadow:0 4px 16px rgba(30,15,60,.04)}
+.rel-card:hover{transform:translateY(-3px);border-color:var(--blue2)}
+.rel-card .rc-cov{aspect-ratio:16/9;background:#eee7fb center/cover}
+.rel-card .rc-bd{padding:13px 15px 16px}.rel-card .rc-k{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--blue2)}
+.rel-card h4{font-family:var(--fs);font-weight:600;font-size:1.02rem;line-height:1.2;color:#160f24;margin-top:6px}
+.foot-note{max-width:720px;margin:42px auto 0;padding:16px 22px 0;color:var(--ink3);font-size:.86rem;border-top:1px solid var(--line);text-align:center}
+.src-wrap{margin:0 auto}
+.src-wrap h2{font-family:var(--fs);font-weight:900;font-size:1.4rem;margin:40px 0 6px;color:#160f24}
+.src-list{padding:0 0 0 20px;color:var(--ink2);font-size:.9rem}.src-list li{margin:8px 0}.src-list a{color:var(--accent)}
+
+/* ═══ ARTICLE TEMPLATE v2 (Founder 2026-08-23) ═══════════════════════════════════════════
+   Opens like the homepage: the cover art fills the first screen and the title sits at the foot
+   of it. Scroll, and the title collapses into a sticky bar with the byline + socials. Then the
+   body, then SUPPORT KEEPITIL, then Sources. */
+.artlead{position:relative;min-height:calc(100svh - 70px);min-height:calc(100dvh - 70px);
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:40px 22px 46px;margin:0;isolation:isolate}
+/* The panel is transparent — the art is the FIXED body backdrop now. This gradient only
+   deepens the foot of the first screen so the title reads against whatever is behind it. */
+/* NO landing scrim. Title legibility comes from text-shadow on the type only. */
+/* ONE MEASURE (Founder 2026-08-23: "the sides are different for the title, the filter and the
+   body ... needs to be uniformed"). Landing 900, bar 900, body 720 — three different left edges
+   down the page. All three now share --measure with the same 22px gutter, so the title, the
+   locked bar and the paragraphs start and end on exactly the same x. */
+.artlead .inner{max-width:var(--measure,764px);margin:0 auto;width:100%;padding:0 22px}
+.artlead .kick{display:inline-block;font-size:.68rem;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;color:#c9b8ff;margin-bottom:12px}
+.artlead h1{font-family:var(--fs);font-weight:900;color:#fff;line-height:1.03;letter-spacing:-.01em;
+  font-size:clamp(2.1rem,6.2vw,4rem);text-shadow:0 2px 8px rgba(0,0,0,.85),0 6px 34px rgba(0,0,0,.7)}
+.artlead .deck{color:#e4dff2;font-size:1.06rem;line-height:1.55;margin-top:14px;max-width:640px;
+  text-shadow:0 2px 6px rgba(0,0,0,.9),0 4px 18px rgba(0,0,0,.6)}
+/* 16:9 on desktop, 9:16 on mobile — the same two-crop rule the section pages use. */
+@media(max-width:860px){
+  .artlead{min-height:calc(100svh - env(safe-area-inset-top,0px));
+    min-height:calc(100dvh - env(safe-area-inset-top,0px))}
+}
+/* Sticky bar: title + byline + socials. Under 950 so it passes BEHIND the bottom nav. */
+/* Sticks UNDER the shell's fixed 70px top nav — top:0 parked it behind that nav, which reads as
+   "not locking" because you never see it (Founder 2026-08-23). z-index 940 keeps it below the
+   bottom nav (950) and the radio bar (9998), so it passes BEHIND both, which is what the rest of
+   the site does. Mobile has no fixed top bar, so there it grows into the status-bar band. */
+/* top:62px — the shell nav is 66px tall. The bar tucks 4px UNDER it so there is no seam,
+   and the nav is on a higher layer so the overlap is never visible.
+   ⚠ The old fix was a ::before painting 18px of bar colour ABOVE the bar. That worked while
+   the bar was stuck (the strip hid behind the nav) but the bar starts life IN FLOW under the
+   hero, where nothing covered it — so the strip rendered as a band of dead space above the
+   row. Founder 2026-08-26: "extra space at the top of the filter bar ... needs to be the
+   same space above and below evenly." Overlap closes the seam without painting anything. */
+.artbar{position:sticky;top:62px;z-index:940;background:#0b0b12;color:#fff;
+  border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.45)}
+
+.artbar .row{max-width:var(--measure,764px);margin:0 auto;padding:10px 22px;display:flex;align-items:center;gap:12px}
+.artbar .soc{margin-left:auto}
+.artbar .t{font-family:var(--fs);font-weight:900;font-size:.98rem;line-height:1.15;color:#fff;
+  flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.artbar .who{font:800 .78rem Inter,sans-serif;letter-spacing:.02em;color:#fff}
+.artbar .soc{display:inline-flex;gap:4px;flex:0 0 auto}
+.artbar .soc a,.artbar .soc button{width:32px;height:32px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#cfd3df;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;font-size:.82rem;text-decoration:none}
+.artbar .soc a:hover,.artbar .soc button:hover{border-color:#00e0a4;color:#00e0a4}
+.artbar .soc svg{width:16px;height:16px;display:block}
+@media(max-width:520px){.artbar .soc a,.artbar .soc button{width:28px;height:28px}.artbar .soc svg{width:14px;height:14px}}
+/* Founder 2026-08-26: offset BELOW the black status layer, no padding. The old rule was
+   grow-and-pad (top:0 + padding-top:inset) — that padding is bar-coloured, so on a notched
+   phone it rendered as empty chrome above the row and the bar looked top-heavy. Same fix
+   already applied to every other sticky deck on the site. */
+@media(max-width:860px){.artbar{top:var(--kil-safe-top,0px)}}
+@media(max-width:700px){.artbar .who{font-size:.72rem}}
+
+/* READING PANEL (Founder 2026-08-23: "some transparency behind the articles text to make the
+   font color easier to read"). The article is dark type on a light theme, so the panel is light
+   and translucent — dark-on-photo would be unreadable. Opaque enough to hold body copy, sheer
+   enough that the artwork still shows through. */
+.artpanel{max-width:var(--measure,764px);margin:0 auto;background:rgba(252,250,255,.86);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.55);border-radius:20px;
+  box-shadow:0 20px 60px rgba(0,0,0,.45);padding:30px 0 34px;margin-top:26px}
+.artpanel .art,.artpanel .src-wrap,.artpanel .support .box{max-width:none;padding-left:22px;padding-right:22px}
+.artpanel .foot-note{border-top-color:rgba(30,15,60,.14)}
+/* The panel already provides the space above the first line via its own padding. Without this
+   the lead paragraph adds its 22px `.art p` top margin on top of that — 52px of dead space
+   above the opening sentence, and visibly more than the gap under the last one.
+   Founder 2026-08-26: "extra spacing above the text ... shorten it". */
+.artpanel .art>*:first-child{margin-top:0}
+@media(max-width:700px){.artpanel{border-radius:14px;padding:22px 0 26px;margin-top:16px}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* TAP IN — four marks on one row (Founder 2026-08-26), directly above SUPPORT KEEPITIL, which
+   is now always the closing block of an article unless there are Sources. */
+.tapin .with{font-weight:600;opacity:.62}
+.tap-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.tap-row a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  padding:16px 6px;border-radius:14px;text-decoration:none;color:#160f24;
+  border:1px solid rgba(30,15,60,.14);background:rgba(255,255,255,.62);
+  transition:border-color .18s,transform .18s,background .18s}
+.tap-row a:hover{border-color:#7c3aed;color:#7c3aed;transform:translateY(-2px);background:#fff}
+.tap-row svg{width:24px;height:24px;display:block}
+.tap-row span{font:800 .68rem Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:center}
+@media(max-width:520px){.tap-row{gap:7px}.tap-row a{padding:13px 4px}
+  .tap-row svg{width:21px;height:21px}.tap-row span{font-size:.58rem;letter-spacing:.03em}}
+</style>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "DjAi - Three Genres, One Signature: THT", "description": "DjAi (Anthony Italia) is an Irvine trance, house and techno DJ, founder and curator of THT Radio and THT Recordings, with a Kristina Sky b2b, Episode 55 of his radio show, his original &ldquo;Sleep Awake&rdquo; and a Christopher Lawrence support date in his bio.", "image": ["https://keepitil.com/assets/images/artbg-djai.jpg"], "mainEntityOfPage": {"@type": "WebPage", "@id": "https://keepitil.com/article/artist/djai"}, "about": {"@type": "Person", "name": "Anthony Italia", "alternateName": "DjAi", "jobTitle": "DJ", "sameAs": ["https://www.instagram.com/_djai._/", "https://www.instagram.com/tht.radio/", "https://paa.ge/soundsofdjai"]}, "author": {"@type": "Organization", "name": "KEEPITIL", "url": "https://keepitil.com"}, "publisher": {"@type": "Organization", "name": "KEEPITIL", "logo": {"@type": "ImageObject", "url": "https://keepitil.com/icon-512.png"}}, "inLanguage": "en-US"}</script>
+</head>
+<body style="--artbg:url('/assets/images/artbg-djai.jpg');--artbg-m:url('/assets/images/artbg-djai.jpg')">
+<main id="content">
+<!-- LANDING: cover art fills the screen, title at the foot of it. The image is set as a CSS
+     variable so this template works for any article by swapping one value. -->
+<header class="artlead">
+  <div class="inner">
+    <span class="kick">KEEPITIL PRESENTS · DJAI — THREE GENRES, ONE SIGNATURE: THT</span>
+    <h1>DjAi — Three Genres, One Signature: THT</h1>
+    <p class="deck">Trance, house and techno &mdash; all subgenres &mdash; signed with three letters. The Irvine founder of THT Radio is taking them to a Christopher Lawrence support slot.</p>
+  </div>
+</header>
+
+<!-- Locked bar: composer + KEEPITIL socials + share. No title — the headline belongs to the
+     landing panel and is not repeated here (Founder 2026-08-23). -->
+<!-- Locked bar: composer + real KEEPITIL social marks + share. No "K" badge — that letter was
+     never the brand (Founder 2026-08-23). Same measure as the title and the body copy. -->
+<div class="artbar">
+  <div class="row">
+    <span class="who">KEEPITIL</span>
+    <span class="soc">
+      <a href="https://www.instagram.com/keepitil/" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg></a>
+      <a href="https://www.facebook.com/keepitil" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06C2 17.08 5.66 21.25 10.44 22v-7.03H7.9v-2.91h2.54V9.85c0-2.52 1.49-3.91 3.77-3.91 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.89h2.78l-.44 2.91h-2.34V22C18.34 21.25 22 17.08 22 12.06z"/></svg></a>
+      <a href="https://www.tiktok.com/@keepitil" target="_blank" rel="noopener" aria-label="TikTok" title="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.82A4.96 4.96 0 0 1 15.4 2.5h-3.23v13.02a2.61 2.61 0 1 1-1.86-2.5V9.72a5.83 5.83 0 1 0 5.09 5.79V9.3a8.2 8.2 0 0 0 4.6 1.42V7.5a4.96 4.96 0 0 1-3.4-1.68z"/></svg></a>
+      <a href="https://youtube.com/@keepitil" target="_blank" rel="noopener" aria-label="YouTube" title="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 12s0-3.9-.5-5.79a3 3 0 0 0-2.11-2.11C18.5 3.6 12 3.6 12 3.6s-6.5 0-8.39.5A3 3 0 0 0 1.5 6.21C1 8.1 1 12 1 12s0 3.9.5 5.79a3 3 0 0 0 2.11 2.11c1.89.5 8.39.5 8.39.5s6.5 0 8.39-.5a3 3 0 0 0 2.11-2.11C23 15.9 23 12 23 12zM9.8 15.6V8.4l6.2 3.6-6.2 3.6z"/></svg></a>
+      <a href="https://x.com/keepitil" target="_blank" rel="noopener" aria-label="X" title="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.65l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.82l4.71 6.23 5.46-6.23zm-1.16 17.52h1.83L7.01 4.13H5.05l12.03 15.64z"/></svg></a>
+      <a href="mailto:info@keepitil.com" aria-label="Email" title="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="4.5" width="19" height="15" rx="2.6"/><path d="M3 6.5l9 6.2 9-6.2"/></svg></a>
+      <button aria-label="Share" title="Share" onclick="kilShare('native')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
+    </span>
+  </div>
+</div>
+
+<div class="artpanel">
+<article class="art">
+
+  <p class="lead">Plenty of DJs put the genres they play in their bio. DjAi put his in an acronym and then built a radio station around it. THT &mdash; Techno, House, Trance &mdash; is how the Irvine DJ signs his sets (&ldquo;Caught me mixing some THT&hellip; Techno, House, &amp; Trance&rdquo;), the name of the radio show and recordings project he founded, and, as of his current Instagram bio, the sound he is taking into the biggest support slot on his calendar: &ldquo;Events: 12/11 &mdash; Christopher Lawrence Support.&rdquo; A post shared across his own page and THT Radio&rsquo;s put the same energy in four words: &ldquo;See you all in December!&rdquo;</p>
+
+  <h2>Three letters, one promise</h2>
+  <p>The bio does the whole pitch in one line: &ldquo;Book me for #trance #house #techno.&rdquo; Underneath it sit two flags &mdash; Swiss and Italian, the heritage of Anthony Italia, the man behind the name &mdash; and one job description he gave himself: &ldquo;Founder, DJ &amp; Curator of @tht.radio.&rdquo;</p>
+  <p>That founder title is the centre of the DjAi story. He isn&rsquo;t only a guest on other people&rsquo;s bills; he curates a platform of his own. THT Radio&rsquo;s own page bills &ldquo;THT Radio + THT Recordings&rdquo; with &ldquo;Exclusive Sets &bull; Guest Mixes &bull; Original Releases,&rdquo; names @_djai._ as its owner, and signs off with the same three genres. By early 2026 the show was deep into its run &mdash; &ldquo;THT Radio Episode 55 features a special guest mix from fast growing trance artist @vangarmusic,&rdquo; he wrote, noting her multiple appearances at Dreamstate and Captured Festival and a new track dropping March 2nd. Episode 55 is not a starting point; it&rsquo;s a catalogue, and DjAi is its curator.</p>
+
+  <h2>The circuit he actually plays</h2>
+  <p>DjAi&rsquo;s feed is a working SoCal trance circuit, documented set by set. One of the earliest receipts is also one of the biggest: in 2023 he played a b2b set with Al3rro &mdash; a DJ whose own billing in the event post credits &ldquo;over 20 years in DJ career&rdquo; &mdash; on a bill with LA trance legend Kristina Sky, a moment he called &ldquo;one of the biggest and best moments to start off my potential DJ career,&rdquo; thanking Unroasted Music for the stage. Days earlier in that run, his one-line caption under a photo of himself cueing said what the whole career since has backed up: &ldquo;The passion I have being behind the decks keeps on growing.&rdquo;</p>
+  <p>From there the rooms stack up. Techno at SoundTech OC (&ldquo;Had a blast spinning techno&hellip; Can&rsquo;t wait to be back behind the decks somewhere in the world bringing you more techno!&rdquo;). Techno at the Mob Bar in Pomona, &ldquo;ready to bring more.&rdquo; A Halloween 2024 bill &mdash; &ldquo;Trick or Trance?&rdquo; &mdash; alongside Mizz0cheese and DJ Aaron Funk. A November 21, 2024 slot on Darkroom Events&rsquo; Dreamstate pre-party, &ldquo;performing alongside a family of DJs, producers, and artists.&rdquo; An opening set on &ldquo;a night of house &amp; techno in Santa Ana&hellip; Bringing my unique THT style set.&rdquo; A throwback photo with Victor Ruiz, posted with the Tranceformity group tagged. And in December 2025, a resident&rsquo;s spot at Brooks Bar in Riverside, where Tranceformity and Epic Sounds closed out the year with &ldquo;our residents @technician_86 and @_djai._&rdquo; on the bill.</p>
+  <p>Then there&rsquo;s the hometown thread KEEPITIL readers will recognise. In the summer of 2024 he played the iL Summer Music Festival b2b with Garfelli &mdash; &ldquo;Super excited to be a part of @keepitil and playing at il Summer music festival!&rdquo; &mdash; and called it the &ldquo;Highlight of the year!&rdquo; The connection didn&rsquo;t end there: in July 2026 he was promoting KEEPITIL Summer at Magnolia &amp; CA-1, a beach-day bill he shared with Bakhubass and Summer Bopz Radio. The Irvine DJ and the Garden Grove platform keep crossing paths &mdash; which is, in the end, how he got here: he applied.</p>
+
+  <h2>The nights he helps build</h2>
+  <p>The curator side shows up in the bills, too. In 2026, Tranceformity Group teamed up with THT Recordings &mdash; his recordings arm &mdash; for nights in Corona at Rockafellas, with Epic Sounds building &ldquo;a fully immersive sound and lighting experience&rdquo; and lineups billed as &ldquo;a multi genre journey, featuring high energy selections across trance, house, and dubstep.&rdquo; He also played support at a Vangar release party in 2026, &ldquo;grateful to be part of this release party and to support @vangarmusic on a day that&rsquo;s all about TRANCEformation through sound.&rdquo; Support slots, residency slots, co-presented nights: the pattern is a DJ who is inside the production, not just on the poster.</p>
+
+  <h2>The producer: &ldquo;Sleep Awake&rdquo;</h2>
+  <p>The DJing came first &mdash; &ldquo;Deejaying is the beginning for me. The producing is coming soon,&rdquo; he posted early on &mdash; and then, in 2025, the first finished original arrived. &ldquo;After almost 2 years of learning electronic music production, starting and not finishing many projects, I finally finished this one!&rdquo; he wrote. &ldquo;Sleep Awake is exactly what the title entails, no sleep and constantly trying to stay awake to finish this track.&rdquo; He thanked Eric P for teaching him Ableton, Vangar for inspiring him, and BMO among the friends and strangers whose feedback he chased. It&rsquo;s an honest producer&rsquo;s origin story &mdash; two years of unfinished projects and one finished track that kept him up at night, named for exactly that.</p>
+  <p>The recorded side runs through his link-in-bio page, titled &ldquo;Sounds and Sets of Ai,&rdquo; and his SoundCloud, where the mix from his Sensory Sessions radio appearance lives: &ldquo;I am really excited to share this and also have the opportunity to be a part of a radio show! &hellip; If you missed the live stream, no worries, the mix is posted up on my SoundCloud!&rdquo;</p>
+
+  <h2>The sound, in his own words</h2>
+  <p>Ask what holds techno, house and trance together in one set and his captions answer it. The genre he returns to, emotionally, is trance: &ldquo;Trance &mdash; I love it. I love spinning it. Thank you @_darkroom_events &amp; @tranceformity for having me!&rdquo; The other two are the tools that let a trance DJ play any room on the poster &mdash; a techno room in Pomona, a house-and-techno opener in Santa Ana, a hypertechno and uplifting trance bill in Corona. The application he filed says the same thing in paperwork form: Trance, House, Techno &mdash; all subgenres.</p>
+
+  <h2>Why book DjAi</h2>
+  <ul>
+    <li><strong>A headline support slot on the books:</strong> his bio lists a December 11 Christopher Lawrence support date &mdash; direct support for one of trance&rsquo;s defining names</li>
+    <li><strong>Three genres, genuinely played:</strong> trance, house and techno (all subgenres, per his application), with documented sets in each &mdash; techno rooms, house openers and trance bills</li>
+    <li><strong>A platform, not just a set:</strong> founder, DJ and curator of THT Radio and THT Recordings &mdash; 55+ radio episodes in, with guest mixes from rising trance artists, plus co-presented nights with Tranceformity Group</li>
+    <li><strong>Proven b2b chemistry:</strong> back-to-back sets with Al3rro (on a Kristina Sky bill) and with Garfelli at the iL Summer Music Festival</li>
+    <li><strong>An original in the catalogue:</strong> &ldquo;Sleep Awake,&rdquo; his first finished production after two years of learning the craft, alongside mixes on SoundCloud</li>
+    <li><strong>Scene-loyal and local:</strong> Irvine-based, playing OC, Riverside and Corona rooms, residencies and pre-parties across the SoCal underground &mdash; and a repeat face at KEEPITIL&rsquo;s own summer events</li>
+  </ul>
+
+  <hr/>
+  <h2>The quick version</h2>
+  <p>DjAi (Anthony Italia) is an Irvine DJ who plays trance, house and techno &mdash; all subgenres &mdash; and signs the combination THT: Techno, House, Trance. He is the founder, DJ and curator of THT Radio and THT Recordings, which passed Episode 55 in 2026, and a working fixture of the SoCal trance circuit: a b2b set on a Kristina Sky bill, a Dreamstate pre-party, a Brooks Bar residency night, co-presented Tranceformity &times; THT Recordings shows in Corona, festival sets for KEEPITIL, and his first finished original, &ldquo;Sleep Awake.&rdquo; His bio currently lists the biggest line yet &mdash; December 11, supporting Christopher Lawrence.</p>
+
+  <h2>Additional Details</h2>
+  <ul>
+    <li><strong>Name:</strong> Anthony Italia (legal name, as submitted)</li>
+    <li><strong>Artist name:</strong> DjAi</li>
+    <li><strong>Description:</strong> Irvine DJ and founder/curator of THT Radio and THT Recordings. Plays trance, house and techno across the Southern California underground, solo and back-to-back, with mixes on SoundCloud and a first original production, &ldquo;Sleep Awake.&rdquo;</li>
+    <li><strong>Genres:</strong> Trance, House, Techno (all subgenres) &mdash; as submitted on his application</li>
+    <li><strong>Location:</strong> Irvine, California (as submitted)</li>
+    <li><strong>Bookings:</strong> Email <a class="inline" href="mailto:a.italia.1212@gmail.com">a.italia.1212@gmail.com</a> &middot; Phone <a class="inline" href="tel:+19492203215">949-220-3215</a> &middot; Instagram @_djai._</li>
+    <li><strong>Listen:</strong> &ldquo;Sounds and Sets of Ai&rdquo; link page (paa.ge/soundsofdjai, in his Instagram bio) &mdash; sets and SoundCloud mixes</li>
+  </ul>
+
+</article>
+
+<!-- ORDER (Founder 2026-08-26): body -> TAP IN -> SUPPORT KEEPITIL -> Sources.
+     Support is the closing block of an article unless the article carries Sources, which take
+     the last slot instead. This article is research-based, so Sources close it. -->
+<div class="src-wrap tapin">
+  <h2>Tap in <span class="with">with DjAi</span></h2>
+  <div class="tap-row">
+    <a href="https://www.instagram.com/_djai._/" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg><span>Instagram</span></a>
+    <a href="https://www.instagram.com/tht.radio/" target="_blank" rel="noopener" aria-label="THT Radio" title="THT Radio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg><span>THT Radio</span></a>
+    <a href="https://paa.ge/soundsofdjai" target="_blank" rel="noopener" aria-label="Sounds &amp; Sets" title="Sounds &amp; Sets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Sounds &amp; Sets</span></a>
+    <a href="tel:+19492203215" target="_blank" rel="noopener" aria-label="Call" title="Call"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Call</span></a>
+    <a href="mailto:a.italia.1212@gmail.com" aria-label="Bookings" title="Bookings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="4.5" width="19" height="15" rx="2.6"/><path d="M3 6.5l9 6.2 9-6.2"/></svg><span>Bookings</span></a>
+  </div>
+</div>
+
+<div class="foot-note">Quotes are DjAi&rsquo;s own, from his Instagram posts and bio. Bookings: <a class="inline" href="mailto:a.italia.1212@gmail.com">a.italia.1212@gmail.com</a> &middot; <a class="inline" href="tel:+19492203215">949-220-3215</a>.</div>
+
+<section class="support">
+  <div class="box">
+    <div class="hd"><span class="dot">●</span> SUPPORT KEEPITIL</div>
+    <div class="lede">Partner referrals &amp; affiliate links — every link supports the scene. <em>(Amazon links are affiliate; KEEPITIL earns from qualifying purchases.)</em></div>
+    <div id="tpl-support"></div>
+  </div>
+</section>
+
+<div class="src-wrap">
+  <h2>Sources</h2>
+  <ul class="src-list">
+    <li>His KEEPITIL DJ application (submitted 6/17/2026) &mdash; artist name (DjAi), legal name (Anthony Italia), city (Irvine), genres (Trance, House, Techno &mdash; all subgenres), Instagram (@_djai._), bookings email and phone, as supplied for this article</li>
+    <li>Instagram profile @_djai._ (via connector, 2026-10-21) &mdash; bio (&ldquo;Founder, DJ &amp; Curator of @tht.radio / Book me for #trance #house #techno / Events: 12/11 &mdash; Christopher Lawrence Support / Send me a DM&rdquo;), display name &ldquo;Ai,&rdquo; 458 followers, 30 posts, link-in-bio page <a class="inline" href="https://paa.ge/soundsofdjai" target="_blank" rel="noopener">paa.ge/soundsofdjai</a></li>
+    <li>Link-in-bio page &ldquo;Sounds and Sets of Ai&rdquo; &mdash; <a class="inline" href="https://paa.ge/soundsofdjai" target="_blank" rel="noopener">paa.ge/soundsofdjai</a></li>
+    <li>Instagram profile @tht.radio (via connector, 2026-10-21) &mdash; &ldquo;THT Radio | Trance &bull; House &bull; Techno&rdquo;; bio: &ldquo;THT Radio + THT Recordings / Exclusive Sets &bull; Guest Mixes &bull; Original Releases / Owner &mdash; @_djai._&rdquo;</li>
+    <li>@_djai._ post, 2026-10-15 &mdash; <a class="inline" href="https://www.instagram.com/p/Dehxa5uhRXo/" target="_blank" rel="noopener">instagram.com/p/Dehxa5uhRXo</a> (&ldquo;See you all in December!&rdquo;; also shared on @tht.radio)</li>
+    <li>@_djai._ post, 2025-06-01 &mdash; <a class="inline" href="https://www.instagram.com/p/DKYh1ayx74B/" target="_blank" rel="noopener">instagram.com/p/DKYh1ayx74B</a> (&ldquo;Sleep Awake&rdquo; &mdash; almost 2 years learning production, Ableton thanks to @eric_p95, inspiration from @vangarmusic)</li>
+    <li>@_djai._ post, 2026-02-19 &mdash; <a class="inline" href="https://www.instagram.com/p/DU8i1byjDje/" target="_blank" rel="noopener">instagram.com/p/DU8i1byjDje</a> (THT Radio Episode 55, guest mix from @vangarmusic)</li>
+    <li>@_djai._ posts/reels, 2026-02-02 and 2026-03-12 &mdash; <a class="inline" href="https://www.instagram.com/p/DURQ4yekrPU/" target="_blank" rel="noopener">instagram.com/p/DURQ4yekrPU</a> and <a class="inline" href="https://www.instagram.com/reel/DVzr1cVivY5/" target="_blank" rel="noopener">instagram.com/reel/DVzr1cVivY5</a> (Tranceformity Group &times; THT Recordings, Corona, March 13, 2026; Epic Sounds)</li>
+    <li>@_djai._ post, 2026-02-23 &mdash; <a class="inline" href="https://www.instagram.com/p/DVIJekukfF-/" target="_blank" rel="noopener">instagram.com/p/DVIJekukfF-</a> (support at @vangarmusic release party)</li>
+    <li>@_djai._ post, 2026-08-21 &mdash; <a class="inline" href="https://www.instagram.com/p/DcTuloJm_L9/" target="_blank" rel="noopener">instagram.com/p/DcTuloJm_L9</a> (opening a night of house &amp; techno in Santa Ana, &ldquo;my unique THT style set&rdquo;)</li>
+    <li>@_djai._ reel, 2025-12-12 &mdash; <a class="inline" href="https://www.instagram.com/reel/DSLovb5klTh/" target="_blank" rel="noopener">instagram.com/reel/DSLovb5klTh</a> (Brooks Bar, Riverside; residents @technician_86 and @_djai._)</li>
+    <li>@_djai._ posts, 2023 &mdash; <a class="inline" href="https://www.instagram.com/p/CzWyRx5v4eS/" target="_blank" rel="noopener">instagram.com/p/CzWyRx5v4eS</a> (2023-11-07; b2b with @al3rro_dj on a Kristina Sky bill), <a class="inline" href="https://www.instagram.com/p/CyDWOPjuycS/" target="_blank" rel="noopener">instagram.com/p/CyDWOPjuycS</a> (event billing), <a class="inline" href="https://www.instagram.com/p/CyNG_IGriDf/" target="_blank" rel="noopener">instagram.com/p/CyNG_IGriDf</a> (&ldquo;The passion I have being behind the decks keeps on growing&rdquo;)</li>
+    <li>@_djai._ posts, 2024 &mdash; <a class="inline" href="https://www.instagram.com/p/C8aYoxOy7OM/" target="_blank" rel="noopener">instagram.com/p/C8aYoxOy7OM</a> and <a class="inline" href="https://www.instagram.com/p/C9xw11QSEKl/" target="_blank" rel="noopener">instagram.com/p/C9xw11QSEKl</a> (iL Summer Music Festival, b2b @garfelli_music, via @keepitil), <a class="inline" href="https://www.instagram.com/p/C8UwBeHPeLO/" target="_blank" rel="noopener">instagram.com/p/C8UwBeHPeLO</a> (&ldquo;Caught me mixing some THT&hellip; Techno, House, &amp; Trance&rdquo;; also the cover photo source), <a class="inline" href="https://www.instagram.com/p/DCkzWFmvmJW/" target="_blank" rel="noopener">instagram.com/p/DCkzWFmvmJW</a> (Darkroom Events Dreamstate pre-party, 11/21/24), <a class="inline" href="https://www.instagram.com/p/DBfdiXjPufe/" target="_blank" rel="noopener">instagram.com/p/DBfdiXjPufe</a> (Halloween 2024)</li>
+    <li>@_djai._ posts &mdash; <a class="inline" href="https://www.instagram.com/p/C95IRTBvXz3/" target="_blank" rel="noopener">instagram.com/p/C95IRTBvXz3</a> (&ldquo;Trance &mdash; I love it. I love spinning it.&rdquo;), <a class="inline" href="https://www.instagram.com/p/C3JFpv3PGew/" target="_blank" rel="noopener">instagram.com/p/C3JFpv3PGew</a> (techno at @soundtech.oc), <a class="inline" href="https://www.instagram.com/reel/Ctc9y1epau0/" target="_blank" rel="noopener">instagram.com/reel/Ctc9y1epau0</a> (techno at @mobbarpomona), <a class="inline" href="https://www.instagram.com/p/DAtvd1zzW8I/" target="_blank" rel="noopener">instagram.com/p/DAtvd1zzW8I</a> (Sensory Sessions radio show; mix on his SoundCloud)</li>
+    <li>@_djai._ post, 2026-05-14 &mdash; <a class="inline" href="https://www.instagram.com/p/DYU5z1YM8Vo/" target="_blank" rel="noopener">instagram.com/p/DYU5z1YM8Vo</a> (throwback photo with @victorruizdj and @mizz0cheese, @tranceformity__group)</li>
+    <li>@_djai._ reel, 2026 &mdash; <a class="inline" href="https://www.instagram.com/reel/DZu7AfJBt5D/" target="_blank" rel="noopener">instagram.com/reel/DZu7AfJBt5D</a> (KEEPITIL Summer, Sun July 12, Magnolia &amp; CA-1; @_djai._ &times; @bakhubass &times; @summerbopzradio)</li>
+    <li>@tht.radio posts (via connector, 2026-10-21) &mdash; <a class="inline" href="https://www.instagram.com/p/DdIErFPSWq4/" target="_blank" rel="noopener">instagram.com/p/DdIErFPSWq4</a> (&ldquo;Trance | House | Techno &mdash; This is THT&rdquo;) and Halloween 2026 post <a class="inline" href="https://www.instagram.com/p/DenABExyi-g/" target="_blank" rel="noopener">instagram.com/p/DenABExyi-g</a></li>
+    <li>Cover photo: @_djai._ post, 2024-06-17 &mdash; <a class="inline" href="https://www.instagram.com/p/C8UwBeHPeLO/" target="_blank" rel="noopener">instagram.com/p/C8UwBeHPeLO</a> (DjAi at a Pioneer controller, Casual Hippies cap)</li>
+  </ul>
+</div>
+</div>
+</main>
+<!-- "Keep reading" removed 2026-08-23 (Founder). -->
+
+<script>
+function kilShare(kind){var url=location.href,t=document.title;if(kind==='x'){window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(t)+'&url='+encodeURIComponent(url),'_blank');return;}if(kind==='native'&&navigator.share){navigator.share({title:t,url:url});return;}try{navigator.clipboard.writeText(url);var b=event&&event.currentTarget;if(b){var o=b.textContent;b.textContent='✓';setTimeout(function(){b.textContent=o;},1200);}}catch(e){prompt('Copy link:',url);}}
+(function(){var sh=document.getElementById('tpl-support');if(!sh)return;var items=[['Partner','FREECASH','Earn for the next fest','https://freecash.com/r/Tuitea','linear-gradient(160deg,#fbf3e6,#ffffff)',false],['Partner','DISTROKID','Put your music everywhere','https://distrokid.com/vip/seven/11538316','linear-gradient(160deg,#e6f6ef,#ffffff)',false],['Partner','POSH','List your event','https://posh.vip/create_group?ref=S-referral-mp9itc5j-wb9dbt','linear-gradient(160deg,#efe9fb,#ffffff)',false],['Partner','AMAZON','Shop gear &amp; support the scene','https://www.amazon.com/?tag=tuitea09-20','linear-gradient(160deg,#f5eefb,#ffffff)',true],['Shop','KEEPITIL STORE','Apparel, straight from the underground','https://illestratedlifestyle.com/collections/keepitil-apparel','linear-gradient(160deg,#e9f0fb,#ffffff)',false],['$34','KEEPITIL Logo Tee','Straight From The Underground','https://illestratedlifestyle.com/products/keepitil-logo-tee-straight-from-the-underground','linear-gradient(160deg,#eefbf3,#ffffff)',false],['$64','Create Loud Hoodie','Create Loud · Live Louder','https://illestratedlifestyle.com/products/keepitil-create-loud-live-louder-hoodie-1','linear-gradient(160deg,#fbeef6,#ffffff)',false],['$55','KEEPITIL Logo Crewneck','Underground EDM','https://illestratedlifestyle.com/products/keepitil-logo-crewneck-underground-edm','linear-gradient(160deg,#eef6fb,#ffffff)',false],['$30','KEEPITIL Logo Hat','Embroidered','https://illestratedlifestyle.com/products/keepitil-dad-hat-embroidered-underground-mark','linear-gradient(160deg,#fbf8e6,#ffffff)',false],['$45',"Women's Racerback Tank",'KEEPITIL Apparel','https://illestratedlifestyle.com/products/womens-racerback-tank','linear-gradient(160deg,#fbeeee,#ffffff)',false],['$37.50',"Men's Tank Top",'KEEPITIL Apparel','https://illestratedlifestyle.com/products/mens-tank-top','linear-gradient(160deg,#eefbfb,#ffffff)',false]];sh.innerHTML=items.map(function(it){var badge=it[5]?'<span style="position:absolute;top:8px;right:8px;background:#ff9900;color:#111;font-size:.56rem;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:5px;z-index:2">Amazon</span>':'';var cta=it[5]?'Shop on Amazon →':'Open →';return '<a href="'+it[3]+'" target="_blank" rel="noopener'+(it[5]?' sponsored nofollow':'')+'" data-kt="affiliate_click" style="position:relative;display:block;min-height:118px;border-radius:12px;overflow:hidden;border:1px solid rgba(30,15,60,.12);background:'+it[4]+';padding:14px;text-decoration:none;color:#160f24">'+badge+'<div style="position:relative;z-index:2"><div style="font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:#7c3aed">'+it[0]+'</div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.32rem;letter-spacing:.02em;margin:2px 0;line-height:1.05;color:#160f24">'+it[1]+'</div><div style="font-size:.76rem;color:#544c6b;line-height:1.35">'+it[2]+'</div><div style="font-size:.76rem;color:#0a8f5b;font-weight:700;margin-top:6px">'+cta+'</div></div></a>';}).join('');})();
+</script>
+<script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
+<script src="/keepitil-shell.js?v=20260929a" defer></script>
+</body>
+</html>

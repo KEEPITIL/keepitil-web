@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1920" viewBox="0 0 1280 1920">
+  <!-- PLACEHOLDER NAME CARD (2026-10-21): no press photo yet — Kai requested one from the
+       artist on 2026-10-21. Swap this file for the real 2:3 photo (same path, .jpg) when it lands. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#150b2e"/>
+      <stop offset="0.55" stop-color="#0a0a0f"/>
+      <stop offset="1" stop-color="#2a1650"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.38" r="0.55">
+      <stop offset="0" stop-color="#7c3aed" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="1920" fill="url(#bg)"/>
+  <rect width="1280" height="1920" fill="url(#glow)"/>
+  <text x="640" y="330" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="700" letter-spacing="18" fill="#c9b8ff">KEEPITIL PRESENTS</text>
+  <rect x="490" y="392" width="300" height="6" fill="#f0a720"/>
+  <text x="640" y="880" text-anchor="middle" font-family="'Arial Black', Arial, Helvetica, sans-serif" font-size="300" font-weight="900" letter-spacing="6" fill="#ffffff">RAVE</text>
+  <text x="640" y="1180" text-anchor="middle" font-family="'Arial Black', Arial, Helvetica, sans-serif" font-size="300" font-weight="900" letter-spacing="6" fill="#ffffff">GOD</text>
+  <rect x="490" y="1290" width="300" height="6" fill="#f0a720"/>
+  <text x="640" y="1420" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="46" font-weight="700" letter-spacing="10" fill="#e4dff2">HUNTINGTON BEACH, CA</text>
+  <text x="640" y="1510" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="40" letter-spacing="8" fill="#b7aed6">HARD TECHNO · TECH HOUSE</text>
+  <text x="640" y="1760" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="34" letter-spacing="6" fill="#8b839e">KEEPITIL.COM/CONNECT</text>
+</svg>

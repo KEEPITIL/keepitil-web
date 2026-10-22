@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-template="artist-article">
+<head>
+<!-- ══ ARTIST ARTICLE TEMPLATE ══════════════════════════════════════════════════════
+     KEEPITIL runs TWO article templates (Founder 2026-08-26):
+       1. /article/<title>          — editorial / history pieces. Closes with Sources.
+       2. /article/artist/<name>    — THIS ONE. Artist features. Closes with TAP IN (four
+                                      icons on one row) then SUPPORT KEEPITIL last.
+     Everything else is shared: landing panel, sticky composer bar, reading panel, backdrop
+     set per article on <body> via --artbg / --artbg-m.
+     ══════════════════════════════════════════════════════════════════════════════════ -->
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
+<meta name="robots" content="index,follow"/>
+<title>GalacticGumby — The Inland Empire's Speed Garage Selecta — KEEPITIL</title>
+<meta name="description" content="GalacticGumby (Joel Mondragon) is a San Jacinto speed garage/UKG, house, hard house and techno DJ with repeat bookings at Projekt Redlands, The W Riverside and across the Inland Empire underground."/>
+<meta property="og:title" content="GalacticGumby — The Inland Empire's Speed Garage Selecta"/>
+<meta property="og:description" content="San Jacinto's Joel Mondragon — a speed garage/UKG selecta with a residency pattern at Projekt Redlands, W Riverside lobby slots, and a barber's chair and a Twitch channel besides."/>
+<meta property="og:image" content="https://keepitil.com/assets/images/artbg-galacticgumby.jpg"/>
+<meta property="og:type" content="article"/>
+<meta property="article:published_time" content="2026-10-22"/>
+<meta property="article:author" content="KEEPITIL"/>
+<meta property="og:url" content="https://keepitil.com/article/artist/galacticgumby/"/>
+<meta property="og:site_name" content="KEEPITIL"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="GalacticGumby — The Inland Empire's Speed Garage Selecta"/>
+<meta name="twitter:description" content="GalacticGumby (Joel Mondragon) is a San Jacinto speed garage/UKG, house, hard house and techno DJ with repeat bookings at Projekt Redlands, The W Riverside and across the Inland Empire underground."/>
+<meta name="twitter:image" content="https://keepitil.com/assets/images/artbg-galacticgumby.jpg"/>
+<link rel="canonical" href="https://keepitil.com/article/artist/galacticgumby/"/>
+<link rel="stylesheet" href="/assets/css/tokens.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--measure:764px;--page:#f6f4fb;--card:#ffffff;--card2:#f2eefb;--ink:#191426;--ink2:#544c6b;--ink3:#8b839e;--line:rgba(30,15,60,.12);--blue:#5b21b6;--blue2:#7c3aed;--accent:#0071e3;--good:#0a8f5b;--fh:'Bebas Neue',sans-serif;--fs:'Fraunces',Georgia,serif;--fb:'Inter',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+/* ⚠ COLOUR ON <html>, BODY TRANSPARENT. An opaque body background paints OVER a negative
+   z-index ::before — the same trap that hid the backdrops on /create and /earn. */
+html{background:#0a0a0f}
+body{background:transparent;color:var(--ink);font-family:var(--fb);line-height:1.75;padding-bottom:40px}
+/* THE COVER IS FIXED FOR THE WHOLE ARTICLE (Founder 2026-08-23: "does not stay locked like the
+   homepage, through out the entire article"). It used to live inside .artlead, so it scrolled
+   away with the landing panel. position:fixed on body::before makes the article scroll OVER a
+   stationary image, exactly like the homepage. --artbg is set on <body style="--artbg:url('/assets/images/artbg-galacticgumby.jpg');--artbg-m:url('/assets/images/artbg-galacticgumby.jpg')"> per article. */
+/* DEFAULT BACKDROP = THE HOMEPAGE IMAGE (Founder 2026-08-23: "use the current background image
+   from the homepage as the default image always"). Articles used to point --artbg at a generated
+   pollinations.ai URL — a third-party image service that, when it fails to answer, leaves the
+   page with no backdrop at all. That is why it was missing. /assets/images/logo-bg.jpg is the same file the
+   homepage uses and it is served from our own origin, so it cannot disappear. An article may
+   still override --artbg with its own art; the default is now a real image, not nothing. */
+body::before{content:"";display:block!important;position:fixed;inset:0;z-index:-2;background:var(--bg,#0a0a0f) var(--artbg,url('/assets/images/logo-bg.jpg')) center/cover no-repeat;opacity:1}
+@media(max-width:860px){body::before{background-image:var(--artbg-m,var(--artbg,url('/assets/images/logo-bg.jpg')))}}
+/* ⚠ THE BACKDROP IS NEVER DARKENED (Founder 2026-08-23). No scrim, no filter, no opacity
+   change — the line above is the homepage's, verbatim. Two scrims were stacking here to roughly
+   84% black at the foot of the first screen. Text legibility is handled by text-shadow on the
+   type and by the reading panel's own background, NOT by dimming the artwork. Do not add an
+   overlay to this page. */
+/* NO page scrim — the image is never darkened. */
+.kil-social-bar{display:none!important}
+.hero{max-width:900px;margin:0 auto;padding:96px 22px 8px;text-align:center}
+.kick{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--blue2);background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:6px 16px;margin-bottom:18px}
+.hero h1{font-family:var(--fs);font-weight:900;font-size:clamp(2rem,5vw,3.2rem);line-height:1.07;letter-spacing:-.01em;color:#120e1f}
+.hero .deck{color:var(--ink2);font-size:1.16rem;line-height:1.55;margin:18px auto 0;max-width:620px}
+.meta{max-width:720px;margin:22px auto 0;padding:0 22px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;justify-content:center;color:var(--ink3);font-size:.82rem;font-weight:600}
+.meta .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue2));display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.78rem}
+.meta .who{color:var(--ink);font-weight:700}.meta .dot{color:var(--line)}
+.meta .share{display:inline-flex;gap:6px;margin-left:auto}
+.meta .share button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink2);cursor:pointer;font-size:.9rem;display:inline-flex;align-items:center;justify-content:center}
+.meta .share button:hover{border-color:var(--blue2);color:var(--blue2)}
+@media(max-width:560px){.meta .share{margin-left:0;width:100%;justify-content:center}}
+.cover{max-width:900px;margin:24px auto 0;padding:0 22px}
+.cover .band{position:relative;overflow:hidden;height:300px;border-radius:20px;background:linear-gradient(130deg,#f0a72022,#7c3aed22);border:1px solid var(--line)}
+.cover .band img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+@media(max-width:560px){.cover .band{height:220px}}
+.art{margin:0 auto}
+.art p{font-size:1.13rem;color:#2b2540;margin:22px 0;line-height:1.78}
+.art .lead{font-family:var(--fs);font-size:1.34rem;line-height:1.5;color:#170f26;font-weight:500}
+.art h2{font-family:var(--fs);font-weight:900;font-size:1.62rem;line-height:1.2;letter-spacing:-.01em;margin:48px 0 4px;color:#160f24}
+.art strong{color:#160f24;font-weight:700}
+.art a.inline{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(0,113,227,.35)}
+hr{border:0;border-top:1px solid var(--line);margin:42px 0}
+.pull{font-family:var(--fs);font-weight:600;font-size:1.5rem;line-height:1.35;color:var(--blue);border-left:4px solid var(--blue2);padding:6px 0 6px 20px;margin:34px 0}
+/* listen box */
+.listen{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0}
+.listen a{font-weight:800;font-size:.9rem;text-decoration:none;padding:12px 20px;border-radius:999px}
+.l-sc{background:none;border:2px solid #ff7700;color:#ff5500}
+.l-lyr{background:linear-gradient(90deg,var(--blue2),var(--accent));color:#fff}
+.support{max-width:760px;margin:44px auto 0;padding:0 22px}
+.support .box{border:1px solid var(--line);background:linear-gradient(180deg,#ffffff,#f4effc);border-radius:16px;padding:22px 24px}
+.support .hd{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.02rem;color:#160f24}.support .hd .dot{color:var(--good);font-size:.7rem}
+.support .lede{color:var(--ink2);font-size:.9rem;line-height:1.5;margin-top:8px}
+#tpl-support{display:flex;gap:12px;margin-top:16px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px}
+#tpl-support::-webkit-scrollbar{display:none}#tpl-support>a{flex:0 0 168px;scroll-snap-align:start}
+@media(max-width:560px){#tpl-support>a{flex:0 0 150px}}
+.related{max-width:760px;margin:46px auto 0;padding:0 22px}
+.related h3{font-family:var(--fh);font-size:1.5rem;letter-spacing:.03em;color:#160f24;margin-bottom:14px}
+.rel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.rel-card{display:block;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;transition:transform .18s,border-color .18s;box-shadow:0 4px 16px rgba(30,15,60,.04)}
+.rel-card:hover{transform:translateY(-3px);border-color:var(--blue2)}
+.rel-card .rc-cov{aspect-ratio:16/9;background:#eee7fb center/cover}
+.rel-card .rc-bd{padding:13px 15px 16px}.rel-card .rc-k{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--blue2)}
+.rel-card h4{font-family:var(--fs);font-weight:600;font-size:1.02rem;line-height:1.2;color:#160f24;margin-top:6px}
+.foot-note{max-width:720px;margin:42px auto 0;padding:16px 22px 0;color:var(--ink3);font-size:.86rem;border-top:1px solid var(--line);text-align:center}
+.src-wrap{margin:0 auto}
+.src-wrap h2{font-family:var(--fs);font-weight:900;font-size:1.4rem;margin:40px 0 6px;color:#160f24}
+.src-list{padding:0 0 0 20px;color:var(--ink2);font-size:.9rem}.src-list li{margin:8px 0}.src-list a{color:var(--accent)}
+
+/* ═══ ARTICLE TEMPLATE v2 (Founder 2026-08-23) ═══════════════════════════════════════════
+   Opens like the homepage: the cover art fills the first screen and the title sits at the foot
+   of it. Scroll, and the title collapses into a sticky bar with the byline + socials. Then the
+   body, then SUPPORT KEEPITIL, then Sources. */
+.artlead{position:relative;min-height:calc(100svh - 70px);min-height:calc(100dvh - 70px);
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:40px 22px 46px;margin:0;isolation:isolate}
+/* The panel is transparent — the art is the FIXED body backdrop now. This gradient only
+   deepens the foot of the first screen so the title reads against whatever is behind it. */
+/* NO landing scrim. Title legibility comes from text-shadow on the type only. */
+/* ONE MEASURE (Founder 2026-08-23: "the sides are different for the title, the filter and the
+   body ... needs to be uniformed"). Landing 900, bar 900, body 720 — three different left edges
+   down the page. All three now share --measure with the same 22px gutter, so the title, the
+   locked bar and the paragraphs start and end on exactly the same x. */
+.artlead .inner{max-width:var(--measure,764px);margin:0 auto;width:100%;padding:0 22px}
+.artlead .kick{display:inline-block;font-size:.68rem;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;color:#c9b8ff;margin-bottom:12px}
+.artlead h1{font-family:var(--fs);font-weight:900;color:#fff;line-height:1.03;letter-spacing:-.01em;
+  font-size:clamp(2.1rem,6.2vw,4rem);text-shadow:0 2px 8px rgba(0,0,0,.85),0 6px 34px rgba(0,0,0,.7)}
+.artlead .deck{color:#e4dff2;font-size:1.06rem;line-height:1.55;margin-top:14px;max-width:640px;
+  text-shadow:0 2px 6px rgba(0,0,0,.9),0 4px 18px rgba(0,0,0,.6)}
+/* 16:9 on desktop, 9:16 on mobile — the same two-crop rule the section pages use. */
+@media(max-width:860px){
+  .artlead{min-height:calc(100svh - env(safe-area-inset-top,0px));
+    min-height:calc(100dvh - env(safe-area-inset-top,0px))}
+}
+/* Sticky bar: title + byline + socials. Under 950 so it passes BEHIND the bottom nav. */
+/* Sticks UNDER the shell's fixed 70px top nav — top:0 parked it behind that nav, which reads as
+   "not locking" because you never see it (Founder 2026-08-23). z-index 940 keeps it below the
+   bottom nav (950) and the radio bar (9998), so it passes BEHIND both, which is what the rest of
+   the site does. Mobile has no fixed top bar, so there it grows into the status-bar band. */
+/* top:62px — the shell nav is 66px tall. The bar tucks 4px UNDER it so there is no seam,
+   and the nav is on a higher layer so the overlap is never visible.
+   ⚠ The old fix was a ::before painting 18px of bar colour ABOVE the bar. That worked while
+   the bar was stuck (the strip hid behind the nav) but the bar starts life IN FLOW under the
+   hero, where nothing covered it — so the strip rendered as a band of dead space above the
+   row. Founder 2026-08-26: "extra space at the top of the filter bar ... needs to be the
+   same space above and below evenly." Overlap closes the seam without painting anything. */
+.artbar{position:sticky;top:62px;z-index:940;background:#0b0b12;color:#fff;
+  border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.45)}
+
+.artbar .row{max-width:var(--measure,764px);margin:0 auto;padding:10px 22px;display:flex;align-items:center;gap:12px}
+.artbar .soc{margin-left:auto}
+.artbar .t{font-family:var(--fs);font-weight:900;font-size:.98rem;line-height:1.15;color:#fff;
+  flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.artbar .who{font:800 .78rem Inter,sans-serif;letter-spacing:.02em;color:#fff}
+.artbar .soc{display:inline-flex;gap:4px;flex:0 0 auto}
+.artbar .soc a,.artbar .soc button{width:32px;height:32px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#cfd3df;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;font-size:.82rem;text-decoration:none}
+.artbar .soc a:hover,.artbar .soc button:hover{border-color:#00e0a4;color:#00e0a4}
+.artbar .soc svg{width:16px;height:16px;display:block}
+@media(max-width:520px){.artbar .soc a,.artbar .soc button{width:28px;height:28px}.artbar .soc svg{width:14px;height:14px}}
+/* Founder 2026-08-26: offset BELOW the black status layer, no padding. The old rule was
+   grow-and-pad (top:0 + padding-top:inset) — that padding is bar-coloured, so on a notched
+   phone it rendered as empty chrome above the row and the bar looked top-heavy. Same fix
+   already applied to every other sticky deck on the site. */
+@media(max-width:860px){.artbar{top:var(--kil-safe-top,0px)}}
+@media(max-width:700px){.artbar .who{font-size:.72rem}}
+
+/* READING PANEL (Founder 2026-08-23: "some transparency behind the articles text to make the
+   font color easier to read"). The article is dark type on a light theme, so the panel is light
+   and translucent — dark-on-photo would be unreadable. Opaque enough to hold body copy, sheer
+   enough that the artwork still shows through. */
+.artpanel{max-width:var(--measure,764px);margin:0 auto;background:rgba(252,250,255,.86);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.55);border-radius:20px;
+  box-shadow:0 20px 60px rgba(0,0,0,.45);padding:30px 0 34px;margin-top:26px}
+.artpanel .art,.artpanel .src-wrap,.artpanel .support .box{max-width:none;padding-left:22px;padding-right:22px}
+.artpanel .foot-note{border-top-color:rgba(30,15,60,.14)}
+/* The panel already provides the space above the first line via its own padding. Without this
+   the lead paragraph adds its 22px `.art p` top margin on top of that — 52px of dead space
+   above the opening sentence, and visibly more than the gap under the last one.
+   Founder 2026-08-26: "extra spacing above the text ... shorten it". */
+.artpanel .art>*:first-child{margin-top:0}
+@media(max-width:700px){.artpanel{border-radius:14px;padding:22px 0 26px;margin-top:16px}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* TAP IN — four marks on one row (Founder 2026-08-26), directly above SUPPORT KEEPITIL, which
+   is now always the closing block of an article unless there are Sources. */
+.tapin .with{font-weight:600;opacity:.62}
+.tap-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.tap-row a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  padding:16px 6px;border-radius:14px;text-decoration:none;color:#160f24;
+  border:1px solid rgba(30,15,60,.14);background:rgba(255,255,255,.62);
+  transition:border-color .18s,transform .18s,background .18s}
+.tap-row a:hover{border-color:#7c3aed;color:#7c3aed;transform:translateY(-2px);background:#fff}
+.tap-row svg{width:24px;height:24px;display:block}
+.tap-row span{font:800 .68rem Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:center}
+@media(max-width:520px){.tap-row{gap:7px}.tap-row a{padding:13px 4px}
+  .tap-row svg{width:21px;height:21px}.tap-row span{font-size:.58rem;letter-spacing:.03em}}
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"GalacticGumby - The Inland Empire's Speed Garage Selecta","description":"GalacticGumby (Joel Mondragon) is a San Jacinto speed garage/UKG, house, hard house and techno DJ.","image":["https://keepitil.com/assets/images/artbg-galacticgumby.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://keepitil.com/article/artist/galacticgumby"},"about":{"@type":"Person","name":"Joel Mondragon","alternateName":"GalacticGumby","jobTitle":"DJ","sameAs":["https://www.instagram.com/press_play_gumby/","https://www.instagram.com/galactic_gumby/","https://www.twitch.tv/DJ_GalacticGumby"]},"author":{"@type":"Organization","name":"KEEPITIL","url":"https://keepitil.com"},"publisher":{"@type":"Organization","name":"KEEPITIL","logo":{"@type":"ImageObject","url":"https://keepitil.com/icon-512.png"}},"inLanguage":"en-US"}</script>
+</head>
+<body style="--artbg:url('/assets/images/artbg-galacticgumby.jpg');--artbg-m:url('/assets/images/artbg-galacticgumby.jpg')">
+<main id="content">
+<!-- LANDING: cover art fills the screen, title at the foot of it. The image is set as a CSS
+     variable so this template works for any article by swapping one value. -->
+<header class="artlead">
+  <div class="inner">
+    <span class="kick">KEEPITIL PRESENTS · GALACTICGUMBY — THE INLAND EMPIRE'S SPEED GARAGE SELECTA</span>
+    <h1>GalacticGumby — The Inland Empire's Speed Garage Selecta</h1>
+    <p class="deck">San Jacinto&rsquo;s Joel Mondragon &mdash; a speed garage/UKG selecta with a residency pattern at Projekt Redlands, W Riverside lobby slots, and a barber&rsquo;s chair and a Twitch channel besides.</p>
+  </div>
+</header>
+
+<!-- Locked bar: composer + KEEPITIL socials + share. No title — the headline belongs to the
+     landing panel and is not repeated here (Founder 2026-08-23). -->
+<!-- Locked bar: composer + real KEEPITIL social marks + share. No "K" badge — that letter was
+     never the brand (Founder 2026-08-23). Same measure as the title and the body copy. -->
+<div class="artbar">
+  <div class="row">
+    <span class="who">KEEPITIL</span>
+    <span class="soc">
+      <a href="https://www.instagram.com/keepitil/" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg></a>
+      <a href="https://www.facebook.com/keepitil" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06C2 17.08 5.66 21.25 10.44 22v-7.03H7.9v-2.91h2.54V9.85c0-2.52 1.49-3.91 3.77-3.91 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.89h2.78l-.44 2.91h-2.34V22C18.34 21.25 22 17.08 22 12.06z"/></svg></a>
+      <a href="https://www.tiktok.com/@keepitil" target="_blank" rel="noopener" aria-label="TikTok" title="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.82A4.96 4.96 0 0 1 15.4 2.5h-3.23v13.02a2.61 2.61 0 1 1-1.86-2.5V9.72a5.83 5.83 0 1 0 5.09 5.79V9.3a8.2 8.2 0 0 0 4.6 1.42V7.5a4.96 4.96 0 0 1-3.4-1.68z"/></svg></a>
+      <a href="https://youtube.com/@keepitil" target="_blank" rel="noopener" aria-label="YouTube" title="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 12s0-3.9-.5-5.79a3 3 0 0 0-2.11-2.11C18.5 3.6 12 3.6 12 3.6s-6.5 0-8.39.5A3 3 0 0 0 1.5 6.21C1 8.1 1 12 1 12s0 3.9.5 5.79a3 3 0 0 0 2.11 2.11c1.89.5 8.39.5 8.39.5s6.5 0 8.39-.5a3 3 0 0 0 2.11-2.11C23 15.9 23 12 23 12zM9.8 15.6V8.4l6.2 3.6-6.2 3.6z"/></svg></a>
+      <a href="https://x.com/keepitil" target="_blank" rel="noopener" aria-label="X" title="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.65l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.82l4.71 6.23 5.46-6.23zm-1.16 17.52h1.83L7.01 4.13H5.05l12.03 15.64z"/></svg></a>
+      <a href="mailto:info@keepitil.com" aria-label="Email" title="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="4.5" width="19" height="15" rx="2.6"/><path d="M3 6.5l9 6.2 9-6.2"/></svg></a>
+      <button aria-label="Share" title="Share" onclick="kilShare('native')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
+    </span>
+  </div>
+</div>
+
+<div class="artpanel">
+<article class="art">
+
+  <p class="lead">Some DJs launch with a logo, a press kit and a plan. GalacticGumby launched with a jam session. The first post on @press_play_gumby &mdash; the dedicated music account of San Jacinto&rsquo;s Joel Mondragon &mdash; is a clip from February 2026 captioned, in full: &ldquo;Having fun during my jam session and using this as my first clip/post hope you enjoy and more to come.&rdquo; No hype copy, no announcement. Just a working DJ, a pair of decks, and an open invitation to listen. Eight months later, that account&rsquo;s receipts tell the story of one of the Inland Empire&rsquo;s busiest underground regulars: speed garage and UKG at a skate shop&rsquo;s anniversary, house in the lobby of the W in Riverside, techno at a brewery in Ontario, and a standing Tuesday-night home at Projekt Redlands that the flyers keep coming back to.</p>
+
+  <p>GalacticGumby is the DJ identity Mondragon built alongside &mdash; not instead of &mdash; everything else in his feed. His main account, @galactic_gumby (1,278 followers, 632 posts), points straight at it: the bio routes music followers to @press_play_gumby and streams to Twitch, and it also carries the other trade in his hands, barbering, via @gumby_cuts_hair. The music account is where the work is documented. Its bio is the whole pitch in five lines: &ldquo;Welcome, let&rsquo;s listen to some tunes &mdash; Speed garage / HardHouse/house / Techno &mdash; DJ/music account &mdash; Spinnin a lil of everything &mdash; Tunes On Twitch.&rdquo;</p>
+
+  <h2>Two accounts, one DJ</h2>
+  <p>The split is deliberate and worth understanding, because it is how the bookings actually happen. @galactic_gumby is the person &mdash; the account promoters tag, the account with the years of history on it. @press_play_gumby is the act: four posts deep at research time, every one of them a performance clip, with the Twitch link (twitch.tv/DJ_GalacticGumby) in the bio for the livestream side of the project. When RaveX IE and Knight Skate had him spin, the thank-you went on the music account. When Vibe Junkies booked him, same. The personal account carries the flyers and the community; the music account carries the proof of work.</p>
+  <p>That community is the Inland Empire&rsquo;s underground in miniature. The names around him recur like a repertory cast: Vibe Junkies, Planet Techno California, Sinergy Entertainment, RaveX IE, Funday House Sessions. He is not a touring name dropping into these rooms &mdash; he is part of the furniture, and the flyers prove it month after month.</p>
+
+  <h2>The sound: garage first, but &ldquo;a lil of everything&rdquo;</h2>
+  <p>His application to KEEPITIL lists the full range: speed garage/UKG, house, hard house, techno, hard techno. The music account&rsquo;s bio leads with speed garage, and the clips back the billing. His Knight Skate set is tagged #speedgarage #ukg #selecta; his Vibe Junkies clip is tagged #ukg #speedgarage #dj. &ldquo;Selecta&rdquo; is the right word for the approach &mdash; this is UK garage culture, where the DJ&rsquo;s job is the tune selection and the reload-worthy moment, played out in rooms that reward energy over ego.</p>
+  <p>But the range in the application is real, not r&eacute;sum&eacute; inflation. The same DJ who plays garage at the skate shop played a techno set for Planet Techno California at Projekt Redlands in May 2025 &mdash; his own caption for that one is the most honest debut line in his feed: &ldquo;Babys first techno set. Thank you @planettechnocalifornia for the opportunity I had a blast!!&rdquo; A year later Planet Techno&rsquo;s Black Mass lineup at the same venue listed him on the outdoor stage in a run of back-to-back sets billed as &ldquo;Techno &amp; House vibes,&rdquo; and by January 2026 the crew&rsquo;s house-and-techno night at Metabolic Brewing in Ontario was announcing &ldquo;Sound system ready. Drinks flowing. Underground energy all night.&rdquo; with Galactic Gumby in its orbit. A garage DJ who can be trusted with a techno stage, and a techno-capable DJ whose home genre is UKG &mdash; that combination is exactly what small-room promoters in the IE are short of.</p>
+
+  <h2>The circuit: Redlands, Riverside, Ontario</h2>
+  <p>Projekt Redlands is the home room. Vibe Junkies&rsquo; Tuesday nights there have carried his name again and again: a March 10, 2026 date; an August 2026 bill alongside Its Nihilo, Dawliciouss, DJ Treesap, The Real King Pins and Kimibex (&ldquo;See you tomorrow &mdash; come catch a vibe with our djs for the night, this Tuesday in downtown Redlands&rdquo;); a September 2026 Tuesday with The Millennium Music, Casa Dola and Car Car Mixes; an October 2026 Sunday bill; and a &ldquo;UKG + DNB this Tuesday&rdquo; flyer in October 2026. That is not a guest spot &mdash; that is a residency pattern, earned one Tuesday at a time in a downtown Redlands bar room.</p>
+  <p>Riverside is the second home. In March 2026, Funday House Sessions&rsquo; &ldquo;EROTICA RETURNS&rdquo; took over The W Riverside with three stages and two patios of non-stop house music &mdash; open air, lobby and indoor rooms &mdash; and GalacticGumby held a lobby slot on a bill with JSnax, Xhakraw, LilMatthew DLR, Louuu Dawg and Gingerbeerdman. The same month, Sinergy Entertainment&rsquo;s takeover of the W lobby listed him on its stage, and Sinergy&rsquo;s Sunday Reset series &mdash; the Beyond Wonderland recovery party edition included &mdash; put him on a house, minimal and Latin bill (&ldquo;Pull up. Reset. Run it back.&rdquo;) with open decks before the main run. Open decks matter here: this is a scene that keeps its doors open to the next DJ, and Gumby plays both sides of that door &mdash; booked name and community regular.</p>
+  <p>Then there are the rooms that show the range. Knight Skate &mdash; the San Bernardino skate shop whose sixth anniversary RaveX IE soundtracked in August 2026, music running 6 p.m. to 11 p.m. after a day of skate sessions &mdash; got a speed garage set; his recap is pure gratitude: &ldquo;Thank you @ravex.ie &amp; @crowqui for having me spin for knight skate had a blast.&rdquo; The Kitsch Bar got a curated night of &ldquo;house, disco &amp; UKG&rdquo; in June 2026. His story highlights carry a thank-you to Space Taco Tuesdays, Party Pat, Fuchie Events and V Lounge Fox &ldquo;for having me.&rdquo; Skate shops, breweries, hotel lobbies, bar rooms and Tuesday nights &mdash; it is the working circuit of the Inland Empire underground, and he is on all of it.</p>
+
+  <h2>The other trades</h2>
+  <p>The main account explains where the stagecraft comes from. Mondragon is a trained barber &mdash; the feed documents barber school in 2022 (&ldquo;Last full day of school today. Graduate on monday&rdquo;), graduation that December (&ldquo;Mission complete!&rdquo;), and a working chair after it, from quiffhawks and mid-fades to volunteering cuts for West Valley High School students getting ready for prom in 2023. The @gumby_cuts_hair handle sits at the top of his bio, first line, ahead of the music. He is also a Twitch streamer &mdash; the galactic_gumby channel predates the DJ clips, with gaming streams going back years &mdash; and the DJ project inherited that instinct: &ldquo;Tunes On Twitch&rdquo; is the music account&rsquo;s standing offer, sets streamed under DJ_GalacticGumby for anyone who can&rsquo;t make it to Redlands on a Tuesday.</p>
+  <p>None of that is decoration. A barber-DJ-streamer from San Jacinto brings three communities to every booking, and the rooms booking him &mdash; skate shops and breweries, not superclubs &mdash; are exactly the rooms where a DJ who is genuinely of the place outdraws a bigger name passing through.</p>
+
+  <h2>Why book GalacticGumby</h2>
+  <ul>
+    <li>A genuine speed garage / UKG selecta &mdash; a sound with heat right now and very few working specialists in the Inland Empire; his clips and hashtags lead with it because it is the headline act</li>
+    <li>Range the flyers verify: house (W Riverside lobby, Funday House Sessions; Sunday Reset), hard house, techno and hard techno (Planet Techno California, Black Mass outdoor stage) &mdash; one booking covers a whole night&rsquo;s arc</li>
+    <li>A residency pattern at Projekt Redlands with Vibe Junkies &mdash; repeat Tuesday and Sunday bookings across 2025&ndash;2026, the clearest reliability signal a small-room DJ can show</li>
+    <li>Community draw across three audiences: the IE underground, the skate scene (Knight Skate anniversary), and a Twitch following that gets &ldquo;Tunes On Twitch&rdquo; streams under DJ_GalacticGumby</li>
+    <li>Room-agnostic: skate shop, brewery (Metabolic Brewing, Ontario), hotel lobby, bar room &mdash; he plays the IE&rsquo;s real circuit, not just its clubs</li>
+  </ul>
+
+  <hr/>
+  <h2>The quick version</h2>
+  <p>GalacticGumby is Joel Mondragon of San Jacinto: a speed garage/UKG-first DJ &mdash; house, hard house, techno and hard techno all in the bag &mdash; holding a repeat-booking pattern at Projekt Redlands with Vibe Junkies, lobby and stage slots in Riverside with Funday House Sessions and Sinergy Entertainment, techno bills with Planet Techno California, and a garage set at Knight Skate&rsquo;s sixth anniversary. A barber and a Twitch streamer besides, he documents it all on @press_play_gumby, the music account he launched in February 2026 with a jam session and the words &ldquo;more to come.&rdquo; More came.</p>
+
+  <h2>Additional Details</h2>
+  <ul>
+    <li><strong>Name:</strong> GalacticGumby (Joel Mondragon)</li>
+    <li><strong>Artist name:</strong> GalacticGumby</li>
+    <li><strong>Legal name:</strong> Joel Mondragon</li>
+    <li><strong>Description:</strong> San Jacinto DJ specialising in speed garage and UKG, with house, hard house, techno and hard techno in range. Repeat bookings at Projekt Redlands (Vibe Junkies), The W Riverside and across the Inland Empire underground; also a barber (@gumby_cuts_hair) and Twitch streamer (&ldquo;Tunes On Twitch&rdquo;).</li>
+    <li><strong>Genres:</strong> Speed garage/UKG, house, hard house, techno, hard techno (per his application)</li>
+    <li><strong>Location:</strong> San Jacinto, California (Inland Empire)</li>
+    <li><strong>Bookings:</strong> Email mondragonjoel@hotmail.com &middot; Phone 951-577-5028 &middot; Instagram @press_play_gumby (music) / @galactic_gumby (main)</li>
+  </ul>
+</article>
+
+<!-- ORDER (Founder 2026-08-26): body -> TAP IN -> SUPPORT KEEPITIL -> Sources.
+     Support is the closing block of an article unless the article carries Sources, which take
+     the last slot instead. This article is research-based, so Sources close it. -->
+<div class="src-wrap tapin">
+  <h2>Tap in <span class="with">with GalacticGumby</span></h2>
+  <div class="tap-row">
+    <a href="https://www.instagram.com/press_play_gumby/" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg><span>Instagram</span></a>
+    <a href="https://www.instagram.com/galactic_gumby/" target="_blank" rel="noopener" aria-label="Main IG" title="Main IG"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg><span>Main IG</span></a>
+    <a href="https://www.twitch.tv/DJ_GalacticGumby" target="_blank" rel="noopener" aria-label="Twitch" title="Twitch"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg><span>Twitch</span></a>
+    <a href="tel:+19515775028" target="_blank" rel="noopener" aria-label="Call" title="Call"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Call</span></a>
+    <a href="mailto:mondragonjoel@hotmail.com" aria-label="Bookings" title="Bookings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="4.5" width="19" height="15" rx="2.6"/><path d="M3 6.5l9 6.2 9-6.2"/></svg><span>Bookings</span></a>
+  </div>
+</div>
+
+<div class="foot-note">Quotes are GalacticGumby&rsquo;s own, from his Instagram posts. Bookings: <a class="inline" href="mailto:mondragonjoel@hotmail.com">mondragonjoel@hotmail.com</a> &middot; <a class="inline" href="tel:+19515775028">951-577-5028</a>.</div>
+
+<section class="support">
+  <div class="box">
+    <div class="hd"><span class="dot">●</span> SUPPORT KEEPITIL</div>
+    <div class="lede">Partner referrals &amp; affiliate links — every link supports the scene. <em>(Amazon links are affiliate; KEEPITIL earns from qualifying purchases.)</em></div>
+    <div id="tpl-support"></div>
+  </div>
+</section>
+
+<div class="src-wrap">
+  <h2>Sources</h2>
+  <ul class="src-list">
+
+    <li>His KEEPITIL DJ application &mdash; artist name (GalacticGumby), legal name (Joel Mondragon), city (San Jacinto), genres (speed garage/UKG, house, hard house, techno, hard techno), both Instagram handles, bookings email (mondragonjoel@hotmail.com), phone (9515775028), applied 4/24/2026</li>
+    <li>Instagram profile @press_play_gumby (via connector, 2026-10-21) &mdash; bio, Twitch bio link (twitch.tv/DJ_GalacticGumby), 122 followers, 4 posts &mdash; <a class="inline" href="https://www.instagram.com/press_play_gumby/" target="_blank" rel="noopener">instagram.com/press_play_gumby</a></li>
+    <li>Instagram profile @galactic_gumby (via connector, 2026-10-21) &mdash; bio (barber @gumby_cuts_hair; @press_play_gumby), Twitch link (twitch.tv/galactic_gumby), 1,278 followers, 632 posts &mdash; <a class="inline" href="https://www.instagram.com/galactic_gumby/" target="_blank" rel="noopener">instagram.com/galactic_gumby</a></li>
+    <li>@press_play_gumby reel, 2026-02-04 &mdash; first post / jam session clip &mdash; <a class="inline" href="https://www.instagram.com/reel/DUXBRgykcM3/" target="_blank" rel="noopener">instagram.com/reel/DUXBRgykcM3</a></li>
+    <li>@press_play_gumby reel, 2026-09-03 &mdash; Knight Skate set for @ravex.ie / @crowqui (#speedgarage #ukg #selecta) &mdash; <a class="inline" href="https://www.instagram.com/reel/Dc2cRLdsmKl/" target="_blank" rel="noopener">instagram.com/reel/Dc2cRLdsmKl</a></li>
+    <li>@press_play_gumby reel, 2026-08-05 &mdash; Vibe Junkies set (#ukg #speedgarage) &mdash; <a class="inline" href="https://www.instagram.com/reel/Dbr7JT_sYbR/" target="_blank" rel="noopener">instagram.com/reel/Dbr7JT_sYbR</a></li>
+    <li>@press_play_gumby reel, 2026-03-19 &mdash; Funday House Sessions &ldquo;EROTICA RETURNS,&rdquo; The W Riverside (three stages, lobby slot) &mdash; <a class="inline" href="https://www.instagram.com/reel/DWFub1LDFZI/" target="_blank" rel="noopener">instagram.com/reel/DWFub1LDFZI</a></li>
+    <li>@vibe_junkies posts (via connector) &mdash; Projekt Redlands bills naming Galactic Gumby: <a class="inline" href="https://www.instagram.com/p/DVhRBPSEn9J/" target="_blank" rel="noopener">Mar 10, 2026</a> &middot; <a class="inline" href="https://www.instagram.com/p/DbmSE6jPEZ1/" target="_blank" rel="noopener">Aug 2026</a> &middot; <a class="inline" href="https://www.instagram.com/p/DdKYvVJykk8/" target="_blank" rel="noopener">Sep 2026</a> &middot; <a class="inline" href="https://www.instagram.com/p/DeSIfBEvoUU/" target="_blank" rel="noopener">Oct 2026</a> &middot; <a class="inline" href="https://www.instagram.com/p/DelHe8Kvs81/" target="_blank" rel="noopener">&ldquo;UKG + DNB this Tuesday&rdquo;</a></li>
+    <li>@ravex.ie post, 2026-08-14 &mdash; Knight Skates 6-year anniversary, Sat Aug 29, music 6&ndash;11 p.m. &mdash; <a class="inline" href="https://www.instagram.com/p/DcC5FrxyYHt/" target="_blank" rel="noopener">instagram.com/p/DcC5FrxyYHt</a></li>
+    <li>@sinergy_ent posts (via connector) &mdash; Sunday Reset, Projekt Redlands, Jul 19, 2026; W Riverside lobby takeover, 2026-03-20; Sunday Reset / Beyond Wonderland recovery reel, 2026-03-27 &mdash; <a class="inline" href="https://www.instagram.com/p/Da6WHNRvgJl/" target="_blank" rel="noopener">instagram.com/p/Da6WHNRvgJl</a></li>
+    <li>Planet Techno California posts (via promoter account, via connector) &mdash; Black Mass lineup, Projekt Redlands, May 2025; House &amp; Techno, Metabolic Brewing Ontario, 2026-01-30 &mdash; <a class="inline" href="https://www.instagram.com/p/DJ8GpkQpyQI/" target="_blank" rel="noopener">instagram.com/p/DJ8GpkQpyQI</a></li>
+    <li>@galactic_gumby reel, 2025-05-23 &mdash; &ldquo;Babys first techno set&rdquo; (Planet Techno California, Projekt Redlands) &mdash; <a class="inline" href="https://www.instagram.com/reel/DKBj_nWRbvm/" target="_blank" rel="noopener">instagram.com/reel/DKBj_nWRbvm</a></li>
+    <li>@thisisnoctrnl post, 2026-05-19 &mdash; Kitsch Bar, Fri June 5, 2026, curated night of house, disco &amp; UKG &mdash; <a class="inline" href="https://www.instagram.com/p/DYh_wZdA38i/" target="_blank" rel="noopener">instagram.com/p/DYh_wZdA38i</a></li>
+    <li>@galactic_gumby posts, 2022&ndash;2023 (via connector) &mdash; barber school and graduation (Dec 2022), prom cuts for West Valley High School students (2023), Twitch streaming history &mdash; <a class="inline" href="https://www.instagram.com/galactic_gumby/" target="_blank" rel="noopener">instagram.com/galactic_gumby</a></li>
+  </ul>
+</div>
+</div>
+</main>
+<!-- "Keep reading" removed 2026-08-23 (Founder). -->
+
+<script>
+function kilShare(kind){var url=location.href,t=document.title;if(kind==='x'){window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(t)+'&url='+encodeURIComponent(url),'_blank');return;}if(kind==='native'&&navigator.share){navigator.share({title:t,url:url});return;}try{navigator.clipboard.writeText(url);var b=event&&event.currentTarget;if(b){var o=b.textContent;b.textContent='✓';setTimeout(function(){b.textContent=o;},1200);}}catch(e){prompt('Copy link:',url);}}
+(function(){var sh=document.getElementById('tpl-support');if(!sh)return;var items=[['Partner','FREECASH','Earn for the next fest','https://freecash.com/r/Tuitea','linear-gradient(160deg,#fbf3e6,#ffffff)',false],['Partner','DISTROKID','Put your music everywhere','https://distrokid.com/vip/seven/11538316','linear-gradient(160deg,#e6f6ef,#ffffff)',false],['Partner','POSH','List your event','https://posh.vip/create_group?ref=S-referral-mp9itc5j-wb9dbt','linear-gradient(160deg,#efe9fb,#ffffff)',false],['Partner','AMAZON','Shop gear &amp; support the scene','https://www.amazon.com/?tag=tuitea09-20','linear-gradient(160deg,#f5eefb,#ffffff)',true],['Shop','KEEPITIL STORE','Apparel, straight from the underground','https://illestratedlifestyle.com/collections/keepitil-apparel','linear-gradient(160deg,#e9f0fb,#ffffff)',false],['$34','KEEPITIL Logo Tee','Straight From The Underground','https://illestratedlifestyle.com/products/keepitil-logo-tee-straight-from-the-underground','linear-gradient(160deg,#eefbf3,#ffffff)',false],['$64','Create Loud Hoodie','Create Loud · Live Louder','https://illestratedlifestyle.com/products/keepitil-create-loud-live-louder-hoodie-1','linear-gradient(160deg,#fbeef6,#ffffff)',false],['$55','KEEPITIL Logo Crewneck','Underground EDM','https://illestratedlifestyle.com/products/keepitil-logo-crewneck-underground-edm','linear-gradient(160deg,#eef6fb,#ffffff)',false],['$30','KEEPITIL Logo Hat','Embroidered','https://illestratedlifestyle.com/products/keepitil-dad-hat-embroidered-underground-mark','linear-gradient(160deg,#fbf8e6,#ffffff)',false],['$45',"Women's Racerback Tank",'KEEPITIL Apparel','https://illestratedlifestyle.com/products/womens-racerback-tank','linear-gradient(160deg,#fbeeee,#ffffff)',false],['$37.50',"Men's Tank Top",'KEEPITIL Apparel','https://illestratedlifestyle.com/products/mens-tank-top','linear-gradient(160deg,#eefbfb,#ffffff)',false]];sh.innerHTML=items.map(function(it){var badge=it[5]?'<span style="position:absolute;top:8px;right:8px;background:#ff9900;color:#111;font-size:.56rem;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:5px;z-index:2">Amazon</span>':'';var cta=it[5]?'Shop on Amazon →':'Open →';return '<a href="'+it[3]+'" target="_blank" rel="noopener'+(it[5]?' sponsored nofollow':'')+'" data-kt="affiliate_click" style="position:relative;display:block;min-height:118px;border-radius:12px;overflow:hidden;border:1px solid rgba(30,15,60,.12);background:'+it[4]+';padding:14px;text-decoration:none;color:#160f24">'+badge+'<div style="position:relative;z-index:2"><div style="font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:#7c3aed">'+it[0]+'</div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.32rem;letter-spacing:.02em;margin:2px 0;line-height:1.05;color:#160f24">'+it[1]+'</div><div style="font-size:.76rem;color:#544c6b;line-height:1.35">'+it[2]+'</div><div style="font-size:.76rem;color:#0a8f5b;font-weight:700;margin-top:6px">'+cta+'</div></div></a>';}).join('');})();
+</script>
+<script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
+<script src="/keepitil-shell.js?v=20260929a" defer></script>
+</body>
+</html>

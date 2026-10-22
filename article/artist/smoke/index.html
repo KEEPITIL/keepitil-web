@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-template="artist-article">
+<head>
+<!-- ══ ARTIST ARTICLE TEMPLATE ══════════════════════════════════════════════════════
+     KEEPITIL runs TWO article templates (Founder 2026-08-26):
+       1. /article/<title>          — editorial / history pieces. Closes with Sources.
+       2. /article/artist/<name>    — THIS ONE. Artist features. Closes with TAP IN (four
+                                      icons on one row) then SUPPORT KEEPITIL last.
+     Everything else is shared: landing panel, sticky composer bar, reading panel, backdrop
+     set per article on <body> via --artbg / --artbg-m.
+     ══════════════════════════════════════════════════════════════════════════════════ -->
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
+<meta name="robots" content="index,follow"/>
+<title>Smoke — The DJ Who Builds His Own Rooms — KEEPITIL</title>
+<meta name="description" content="Smoke (Daniel Herrera) is a Santa Ana house, tech house and techno DJ/producer and the founder of Savage Entertainment, with a Gene Farris support slot, the duo SMOKE’N’TRAXXX, and rooms across OC, LA and the IE."/>
+<meta property="og:title" content="Smoke — The DJ Who Builds His Own Rooms"/>
+<meta property="og:description" content="Founder of Savage Entertainment, support for Gene Farris, half of SMOKE’N’TRAXXX — a Santa Ana DJ who builds the rooms he plays."/>
+<meta property="og:image" content="https://keepitil.com/assets/images/artbg-smoke.jpg"/>
+<meta property="og:type" content="article"/>
+<meta property="article:published_time" content="2026-10-21"/>
+<meta property="article:author" content="KEEPITIL"/>
+<meta property="og:url" content="https://keepitil.com/article/artist/smoke/"/>
+<meta property="og:site_name" content="KEEPITIL"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Smoke — The DJ Who Builds His Own Rooms"/>
+<meta name="twitter:description" content="Smoke (Daniel Herrera) is a Santa Ana house, tech house and techno DJ/producer and the founder of Savage Entertainment, with a Gene Farris support slot, the duo SMOKE’N’TRAXXX, and rooms across OC, LA and the IE."/>
+<meta name="twitter:image" content="https://keepitil.com/assets/images/artbg-smoke.jpg"/>
+<link rel="canonical" href="https://keepitil.com/article/artist/smoke/"/>
+<link rel="stylesheet" href="/assets/css/tokens.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--measure:764px;--page:#f6f4fb;--card:#ffffff;--card2:#f2eefb;--ink:#191426;--ink2:#544c6b;--ink3:#8b839e;--line:rgba(30,15,60,.12);--blue:#5b21b6;--blue2:#7c3aed;--accent:#0071e3;--good:#0a8f5b;--fh:'Bebas Neue',sans-serif;--fs:'Fraunces',Georgia,serif;--fb:'Inter',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+/* ⚠ COLOUR ON <html>, BODY TRANSPARENT. An opaque body background paints OVER a negative
+   z-index ::before — the same trap that hid the backdrops on /create and /earn. */
+html{background:#0a0a0f}
+body{background:transparent;color:var(--ink);font-family:var(--fb);line-height:1.75;padding-bottom:40px}
+/* THE COVER IS FIXED FOR THE WHOLE ARTICLE (Founder 2026-08-23: "does not stay locked like the
+   homepage, through out the entire article"). It used to live inside .artlead, so it scrolled
+   away with the landing panel. position:fixed on body::before makes the article scroll OVER a
+   stationary image, exactly like the homepage. --artbg is set on <body style="--artbg:url('/assets/images/artbg-smoke.jpg');--artbg-m:url('/assets/images/artbg-smoke.jpg')"> per article. */
+/* DEFAULT BACKDROP = THE HOMEPAGE IMAGE (Founder 2026-08-23: "use the current background image
+   from the homepage as the default image always"). Articles used to point --artbg at a generated
+   pollinations.ai URL — a third-party image service that, when it fails to answer, leaves the
+   page with no backdrop at all. That is why it was missing. /assets/images/logo-bg.jpg is the same file the
+   homepage uses and it is served from our own origin, so it cannot disappear. An article may
+   still override --artbg with its own art; the default is now a real image, not nothing. */
+body::before{content:"";display:block!important;position:fixed;inset:0;z-index:-2;background:var(--bg,#0a0a0f) var(--artbg,url('/assets/images/logo-bg.jpg')) center/cover no-repeat;opacity:1}
+@media(max-width:860px){body::before{background-image:var(--artbg-m,var(--artbg,url('/assets/images/logo-bg.jpg')))}}
+/* ⚠ THE BACKDROP IS NEVER DARKENED (Founder 2026-08-23). No scrim, no filter, no opacity
+   change — the line above is the homepage's, verbatim. Two scrims were stacking here to roughly
+   84% black at the foot of the first screen. Text legibility is handled by text-shadow on the
+   type and by the reading panel's own background, NOT by dimming the artwork. Do not add an
+   overlay to this page. */
+/* NO page scrim — the image is never darkened. */
+.kil-social-bar{display:none!important}
+.hero{max-width:900px;margin:0 auto;padding:96px 22px 8px;text-align:center}
+.kick{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--blue2);background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:6px 16px;margin-bottom:18px}
+.hero h1{font-family:var(--fs);font-weight:900;font-size:clamp(2rem,5vw,3.2rem);line-height:1.07;letter-spacing:-.01em;color:#120e1f}
+.hero .deck{color:var(--ink2);font-size:1.16rem;line-height:1.55;margin:18px auto 0;max-width:620px}
+.meta{max-width:720px;margin:22px auto 0;padding:0 22px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;justify-content:center;color:var(--ink3);font-size:.82rem;font-weight:600}
+.meta .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue2));display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.78rem}
+.meta .who{color:var(--ink);font-weight:700}.meta .dot{color:var(--line)}
+.meta .share{display:inline-flex;gap:6px;margin-left:auto}
+.meta .share button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink2);cursor:pointer;font-size:.9rem;display:inline-flex;align-items:center;justify-content:center}
+.meta .share button:hover{border-color:var(--blue2);color:var(--blue2)}
+@media(max-width:560px){.meta .share{margin-left:0;width:100%;justify-content:center}}
+.cover{max-width:900px;margin:24px auto 0;padding:0 22px}
+.cover .band{position:relative;overflow:hidden;height:300px;border-radius:20px;background:linear-gradient(130deg,#f0a72022,#7c3aed22);border:1px solid var(--line)}
+.cover .band img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+@media(max-width:560px){.cover .band{height:220px}}
+.art{margin:0 auto}
+.art p{font-size:1.13rem;color:#2b2540;margin:22px 0;line-height:1.78}
+.art .lead{font-family:var(--fs);font-size:1.34rem;line-height:1.5;color:#170f26;font-weight:500}
+.art h2{font-family:var(--fs);font-weight:900;font-size:1.62rem;line-height:1.2;letter-spacing:-.01em;margin:48px 0 4px;color:#160f24}
+.art strong{color:#160f24;font-weight:700}
+.art a.inline{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(0,113,227,.35)}
+hr{border:0;border-top:1px solid var(--line);margin:42px 0}
+.pull{font-family:var(--fs);font-weight:600;font-size:1.5rem;line-height:1.35;color:var(--blue);border-left:4px solid var(--blue2);padding:6px 0 6px 20px;margin:34px 0}
+/* listen box */
+.listen{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0}
+.listen a{font-weight:800;font-size:.9rem;text-decoration:none;padding:12px 20px;border-radius:999px}
+.l-sc{background:none;border:2px solid #ff7700;color:#ff5500}
+.l-lyr{background:linear-gradient(90deg,var(--blue2),var(--accent));color:#fff}
+.support{max-width:760px;margin:44px auto 0;padding:0 22px}
+.support .box{border:1px solid var(--line);background:linear-gradient(180deg,#ffffff,#f4effc);border-radius:16px;padding:22px 24px}
+.support .hd{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.02rem;color:#160f24}.support .hd .dot{color:var(--good);font-size:.7rem}
+.support .lede{color:var(--ink2);font-size:.9rem;line-height:1.5;margin-top:8px}
+#tpl-support{display:flex;gap:12px;margin-top:16px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px}
+#tpl-support::-webkit-scrollbar{display:none}#tpl-support>a{flex:0 0 168px;scroll-snap-align:start}
+@media(max-width:560px){#tpl-support>a{flex:0 0 150px}}
+.related{max-width:760px;margin:46px auto 0;padding:0 22px}
+.related h3{font-family:var(--fh);font-size:1.5rem;letter-spacing:.03em;color:#160f24;margin-bottom:14px}
+.rel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.rel-card{display:block;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;transition:transform .18s,border-color .18s;box-shadow:0 4px 16px rgba(30,15,60,.04)}
+.rel-card:hover{transform:translateY(-3px);border-color:var(--blue2)}
+.rel-card .rc-cov{aspect-ratio:16/9;background:#eee7fb center/cover}
+.rel-card .rc-bd{padding:13px 15px 16px}.rel-card .rc-k{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--blue2)}
+.rel-card h4{font-family:var(--fs);font-weight:600;font-size:1.02rem;line-height:1.2;color:#160f24;margin-top:6px}
+.foot-note{max-width:720px;margin:42px auto 0;padding:16px 22px 0;color:var(--ink3);font-size:.86rem;border-top:1px solid var(--line);text-align:center}
+.src-wrap{margin:0 auto}
+.src-wrap h2{font-family:var(--fs);font-weight:900;font-size:1.4rem;margin:40px 0 6px;color:#160f24}
+.src-list{padding:0 0 0 20px;color:var(--ink2);font-size:.9rem}.src-list li{margin:8px 0}.src-list a{color:var(--accent)}
+
+/* ═══ ARTICLE TEMPLATE v2 (Founder 2026-08-23) ═══════════════════════════════════════════
+   Opens like the homepage: the cover art fills the first screen and the title sits at the foot
+   of it. Scroll, and the title collapses into a sticky bar with the byline + socials. Then the
+   body, then SUPPORT KEEPITIL, then Sources. */
+.artlead{position:relative;min-height:calc(100svh - 70px);min-height:calc(100dvh - 70px);
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:40px 22px 46px;margin:0;isolation:isolate}
+/* The panel is transparent — the art is the FIXED body backdrop now. This gradient only
+   deepens the foot of the first screen so the title reads against whatever is behind it. */
+/* NO landing scrim. Title legibility comes from text-shadow on the type only. */
+/* ONE MEASURE (Founder 2026-08-23: "the sides are different for the title, the filter and the
+   body ... needs to be uniformed"). Landing 900, bar 900, body 720 — three different left edges
+   down the page. All three now share --measure with the same 22px gutter, so the title, the
+   locked bar and the paragraphs start and end on exactly the same x. */
+.artlead .inner{max-width:var(--measure,764px);margin:0 auto;width:100%;padding:0 22px}
+.artlead .kick{display:inline-block;font-size:.68rem;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;color:#c9b8ff;margin-bottom:12px}
+.artlead h1{font-family:var(--fs);font-weight:900;color:#fff;line-height:1.03;letter-spacing:-.01em;
+  font-size:clamp(2.1rem,6.2vw,4rem);text-shadow:0 2px 8px rgba(0,0,0,.85),0 6px 34px rgba(0,0,0,.7)}
+.artlead .deck{color:#e4dff2;font-size:1.06rem;line-height:1.55;margin-top:14px;max-width:640px;
+  text-shadow:0 2px 6px rgba(0,0,0,.9),0 4px 18px rgba(0,0,0,.6)}
+/* 16:9 on desktop, 9:16 on mobile — the same two-crop rule the section pages use. */
+@media(max-width:860px){
+  .artlead{min-height:calc(100svh - env(safe-area-inset-top,0px));
+    min-height:calc(100dvh - env(safe-area-inset-top,0px))}
+}
+/* Sticky bar: title + byline + socials. Under 950 so it passes BEHIND the bottom nav. */
+/* Sticks UNDER the shell's fixed 70px top nav — top:0 parked it behind that nav, which reads as
+   "not locking" because you never see it (Founder 2026-08-23). z-index 940 keeps it below the
+   bottom nav (950) and the radio bar (9998), so it passes BEHIND both, which is what the rest of
+   the site does. Mobile has no fixed top bar, so there it grows into the status-bar band. */
+/* top:62px — the shell nav is 66px tall. The bar tucks 4px UNDER it so there is no seam,
+   and the nav is on a higher layer so the overlap is never visible.
+   ⚠ The old fix was a ::before painting 18px of bar colour ABOVE the bar. That worked while
+   the bar was stuck (the strip hid behind the nav) but the bar starts life IN FLOW under the
+   hero, where nothing covered it — so the strip rendered as a band of dead space above the
+   row. Founder 2026-08-26: "extra space at the top of the filter bar ... needs to be the
+   same space above and below evenly." Overlap closes the seam without painting anything. */
+.artbar{position:sticky;top:62px;z-index:940;background:#0b0b12;color:#fff;
+  border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.45)}
+
+.artbar .row{max-width:var(--measure,764px);margin:0 auto;padding:10px 22px;display:flex;align-items:center;gap:12px}
+.artbar .soc{margin-left:auto}
+.artbar .t{font-family:var(--fs);font-weight:900;font-size:.98rem;line-height:1.15;color:#fff;
+  flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.artbar .who{font:800 .78rem Inter,sans-serif;letter-spacing:.02em;color:#fff}
+.artbar .soc{display:inline-flex;gap:4px;flex:0 0 auto}
+.artbar .soc a,.artbar .soc button{width:32px;height:32px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#cfd3df;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;font-size:.82rem;text-decoration:none}
+.artbar .soc a:hover,.artbar .soc button:hover{border-color:#00e0a4;color:#00e0a4}
+.artbar .soc svg{width:16px;height:16px;display:block}
+@media(max-width:520px){.artbar .soc a,.artbar .soc button{width:28px;height:28px}.artbar .soc svg{width:14px;height:14px}}
+/* Founder 2026-08-26: offset BELOW the black status layer, no padding. The old rule was
+   grow-and-pad (top:0 + padding-top:inset) — that padding is bar-coloured, so on a notched
+   phone it rendered as empty chrome above the row and the bar looked top-heavy. Same fix
+   already applied to every other sticky deck on the site. */
+@media(max-width:860px){.artbar{top:var(--kil-safe-top,0px)}}
+@media(max-width:700px){.artbar .who{font-size:.72rem}}
+
+/* READING PANEL (Founder 2026-08-23: "some transparency behind the articles text to make the
+   font color easier to read"). The article is dark type on a light theme, so the panel is light
+   and translucent — dark-on-photo would be unreadable. Opaque enough to hold body copy, sheer
+   enough that the artwork still shows through. */
+.artpanel{max-width:var(--measure,764px);margin:0 auto;background:rgba(252,250,255,.86);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.55);border-radius:20px;
+  box-shadow:0 20px 60px rgba(0,0,0,.45);padding:30px 0 34px;margin-top:26px}
+.artpanel .art,.artpanel .src-wrap,.artpanel .support .box{max-width:none;padding-left:22px;padding-right:22px}
+.artpanel .foot-note{border-top-color:rgba(30,15,60,.14)}
+/* The panel already provides the space above the first line via its own padding. Without this
+   the lead paragraph adds its 22px `.art p` top margin on top of that — 52px of dead space
+   above the opening sentence, and visibly more than the gap under the last one.
+   Founder 2026-08-26: "extra spacing above the text ... shorten it". */
+.artpanel .art>*:first-child{margin-top:0}
+@media(max-width:700px){.artpanel{border-radius:14px;padding:22px 0 26px;margin-top:16px}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* TAP IN — four marks on one row (Founder 2026-08-26), directly above SUPPORT KEEPITIL, which
+   is now always the closing block of an article unless there are Sources. */
+.tapin .with{font-weight:600;opacity:.62}
+.tap-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.tap-row a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  padding:16px 6px;border-radius:14px;text-decoration:none;color:#160f24;
+  border:1px solid rgba(30,15,60,.14);background:rgba(255,255,255,.62);
+  transition:border-color .18s,transform .18s,background .18s}
+.tap-row a:hover{border-color:#7c3aed;color:#7c3aed;transform:translateY(-2px);background:#fff}
+.tap-row svg{width:24px;height:24px;display:block}
+.tap-row span{font:800 .68rem Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:center}
+@media(max-width:520px){.tap-row{gap:7px}.tap-row a{padding:13px 4px}
+  .tap-row svg{width:21px;height:21px}.tap-row span{font-size:.58rem;letter-spacing:.03em}}
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Smoke - The DJ Who Builds His Own Rooms","description":"Smoke (Daniel Herrera) is a Santa Ana house, tech house and techno DJ/producer and the founder of Savage Entertainment.","image":["https://keepitil.com/assets/images/artbg-smoke.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://keepitil.com/article/artist/smoke"},"about":{"@type":"Person","name":"Daniel Herrera","alternateName":"Smoke","jobTitle":"DJ","sameAs":["https://www.instagram.com/allsmokeverything/","https://www.instagram.com/savage.ent420/"]},"author":{"@type":"Organization","name":"KEEPITIL","url":"https://keepitil.com"},"publisher":{"@type":"Organization","name":"KEEPITIL","logo":{"@type":"ImageObject","url":"https://keepitil.com/icon-512.png"}},"inLanguage":"en-US"}</script>
+</head>
+<body style="--artbg:url('/assets/images/artbg-smoke.jpg');--artbg-m:url('/assets/images/artbg-smoke.jpg')">
+<main id="content">
+<!-- LANDING: cover art fills the screen, title at the foot of it. The image is set as a CSS
+     variable so this template works for any article by swapping one value. -->
+<header class="artlead">
+  <div class="inner">
+    <span class="kick">KEEPITIL PRESENTS</span>
+    <h1>Smoke — The DJ Who Builds His Own Rooms</h1>
+    <p class="deck">Plenty of DJs wait for the phone to ring. Smoke &mdash; founder of Savage Entertainment &mdash; built the phone.</p>
+  </div>
+</header>
+
+<!-- Locked bar: composer + KEEPITIL socials + share. No title — the headline belongs to the
+     landing panel and is not repeated here (Founder 2026-08-23). -->
+<!-- Locked bar: composer + real KEEPITIL social marks + share. No "K" badge — that letter was
+     never the brand (Founder 2026-08-23). Same measure as the title and the body copy. -->
+<div class="artbar">
+  <div class="row">
+    <span class="who">KEEPITIL</span>
+    <span class="soc">
+      <a href="https://www.instagram.com/keepitil/" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg></a>
+      <a href="https://www.facebook.com/keepitil" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06C2 17.08 5.66 21.25 10.44 22v-7.03H7.9v-2.91h2.54V9.85c0-2.52 1.49-3.91 3.77-3.91 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.89h2.78l-.44 2.91h-2.34V22C18.34 21.25 22 17.08 22 12.06z"/></svg></a>
+      <a href="https://www.tiktok.com/@keepitil" target="_blank" rel="noopener" aria-label="TikTok" title="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.82A4.96 4.96 0 0 1 15.4 2.5h-3.23v13.02a2.61 2.61 0 1 1-1.86-2.5V9.72a5.83 5.83 0 1 0 5.09 5.79V9.3a8.2 8.2 0 0 0 4.6 1.42V7.5a4.96 4.96 0 0 1-3.4-1.68z"/></svg></a>
+      <a href="https://youtube.com/@keepitil" target="_blank" rel="noopener" aria-label="YouTube" title="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 12s0-3.9-.5-5.79a3 3 0 0 0-2.11-2.11C18.5 3.6 12 3.6 12 3.6s-6.5 0-8.39.5A3 3 0 0 0 1.5 6.21C1 8.1 1 12 1 12s0 3.9.5 5.79a3 3 0 0 0 2.11 2.11c1.89.5 8.39.5 8.39.5s6.5 0 8.39-.5a3 3 0 0 0 2.11-2.11C23 15.9 23 12 23 12zM9.8 15.6V8.4l6.2 3.6-6.2 3.6z"/></svg></a>
+      <a href="https://x.com/keepitil" target="_blank" rel="noopener" aria-label="X" title="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.65l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.82l4.71 6.23 5.46-6.23zm-1.16 17.52h1.83L7.01 4.13H5.05l12.03 15.64z"/></svg></a>
+      <a href="mailto:info@keepitil.com" aria-label="Email" title="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="4.5" width="19" height="15" rx="2.6"/><path d="M3 6.5l9 6.2 9-6.2"/></svg></a>
+      <button aria-label="Share" title="Share" onclick="kilShare('native')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
+    </span>
+  </div>
+</div>
+
+<div class="artpanel">
+<article class="art">
+  <p class="lead">On October 2, 2026, in a DTLA warehouse running four dance floors and more than 47 DJs, Smoke played support for Gene Farris &mdash; the Chicago house legend whose name anchors the top of the bill at Putivuelta + Groove-ism + Refuze&rsquo;s mini-festival. Smoke wasn&rsquo;t just on that bill; he was selling it. His Instagram bio carried the ticket link with his own promo code &mdash; SMOKENTRAXX &mdash; the mark of a DJ who moves tickets, not just decks. For an Orange County house DJ, a support slot under Gene Farris is a career line. For Smoke, it&rsquo;s almost a side hustle: the rest of the time, he&rsquo;s the one building the room.</p>
+
+  <p>That&rsquo;s the thing the r&eacute;sum&eacute; keeps proving. Smoke &mdash; Daniel Herrera, of Santa Ana &mdash; is a DJ/producer who also founded Savage Entertainment, the OC events company behind a stack of the county&rsquo;s underground nights. Plenty of DJs wait for the phone to ring. Smoke built the phone.</p>
+
+  <h2>Founder first</h2>
+  <p>His Instagram bio says it in four words: &ldquo;Founder @savage.ent420.&rdquo; Savage Entertainment &mdash; Savage ENT &mdash; describes its mission as &ldquo;bringing people together through electrifying events, creating a vibrant community where music, energy, and connection come to life,&rdquo; and its home base is Top Floor, the downtown Santa Ana room at 315 N Main St whose handle sits in the company&rsquo;s bio. The Savage catalogue is a working promoter&rsquo;s catalogue: the Hypnotic one-year anniversary in January 2025 &mdash; two stages of house and techno headlined by Diskreet, with Smoke himself on the bill and Savage ENT hosting; Riddim Rapture in June 2025, a night of riddim at Top Floor; Subby Wubby, a dubstep night co-hosted with Animal Styl Events; a &ldquo;Savage room&rdquo; hosting Miami talent at a Rollerz Club takeover. In March 2026, Savage ENT co-presented SPLIT SIGNAL with 6H0ST Recordings &mdash; &ldquo;No genres. No boundaries. Just sound.&rdquo; &mdash; at Top Floor, with open decks from 9 p.m. for anyone ready to step up.</p>
+  <p>That open-decks detail matters. Smoke&rsquo;s rooms aren&rsquo;t closed shops; they&rsquo;re infrastructure other DJs climb on. And his company is genre-agnostic in a way his own sets mirror: the same promoter who books riddim and dubstep nights DJs house and techno.</p>
+
+  <h2>The sound</h2>
+  <p>Ask the application and the answer is plain: house, tech house and techno. The wider record agrees and adds shading &mdash; KEEPITIL&rsquo;s own directory tags him &ldquo;House / Minimal / Techno / Afro / Latin,&rdquo; and the rooms fill in the rest. At Verde in Costa Mesa, the Microdose night he played in March 2026 was billed, in all caps, &ldquo;MINIMAL DEEP TECH HOUSE.&rdquo; His warehouse afters reels promise &ldquo;HOUSE AND TECHNO ALL NIGHT LONG&rdquo; &mdash; 11 p.m. to 5 a.m. And then there&rsquo;s the range nobody can fake: in August 2026, at Mission Bar in Santa Ana, DJ Smoke spun rock en espa&ntilde;ol and &rsquo;80s all night next to a live band, Hijos de Don Ramon, for a $5 door &mdash; an open-format left turn that a one-genre DJ doesn&rsquo;t get booked for twice.</p>
+  <p>The duo work shows the funkier end of the spectrum. SMOKE&rsquo;N&rsquo;TRAXXX &mdash; Smoke and Jacob Pagoaga, aka TRAXXX &mdash; is his standing back-to-back project, and his own pitch for it is pure confidence: at The Compound LA with Plur Eventz, the pair ran &ldquo;the grooviest most funky set you ever heard,&rdquo; with &ldquo;giveaways, tattoos, vendors, and most important you. See you on the dance floor.&rdquo; The duo also has live tape &mdash; a b2b set broadcast from Future Studios OC &mdash; and the SMOKENTRAXX name doubles as his ticket promo code, brand and act in one word.</p>
+
+  <h2>The circuit</h2>
+  <p>Smoke&rsquo;s map is the SoCal underground&rsquo;s working circuit, and he&rsquo;s been on it for years. The earliest receipts in his feed are 2023: a main-stage slot at Circle OC for MERGE&rsquo;s house &amp; techno night &mdash; billed, in that era, as &ldquo;420 Savage&rdquo; &mdash; and thank-you posts to Heat Ultra Lounge OC and Mayhem Events (&ldquo;I want to thank all of you for showing up to my shows &mdash; I hope you have as much fun dancing as I have playing tunes for y&rsquo;all&rdquo;). Earlier still, a 2022 set at Catch One in Los Angeles and a NOS Events Center night where the crowd stayed till the end.</p>
+  <p>The current circuit is denser. Proof Bar in Santa Ana is a recurring room &mdash; in July 2026 he played the TMZEE takeover presented by 6HOST Recordings LLC, on a bill with fellow KEEPITIL applicant Richrunthat; days earlier, 6HOST&rsquo;s foundation celebration at the same bar name-checked &ldquo;Darce, TMZEE, Smoke N Traxxx, Manuel Silva&rdquo; as part of the label&rsquo;s journey. The Continental Room in downtown Fullerton earned his loudest review: &ldquo;THE CONTINENTAL ROOM LIVED UP TO THE HYPE!! WE CAN&rsquo;T WAIT TO BE BACK!&rdquo; In May 2026 he closed the Huntington Beach House day party &mdash; his own announcement: &ldquo;I will be closing up the event from 6pm to 7pm and do I got a fun set for y&rsquo;all&rdquo; &mdash; the closing slot, again, being the trust slot. And with Microdose, the OC warehouse-afters brand (&ldquo;A DOSE OF HOUSE MUSIC &mdash; OC&rdquo;), his reels document the 11-to-5 a.m. warehouse run that is the underground&rsquo;s real economy.</p>
+  <p>Then there are the formats that show the showman. In September 2026, Smoke went head-to-head with Mr. Sir in Moo Talk&rsquo;s Face-to-Face DJ Battle &mdash; &ldquo;Two DJs. Face-to-face. No hiding behind the decks&rdquo; &mdash; hosted by Kaytexs and livestreamed. In October he was on the bill for Enter the Cage in DTLA, a Jersey club, footwork and bass night &mdash; one more genre room he can walk into. Battle DJ, afters DJ, day-party closer, rock en espa&ntilde;ol opener: the bookings keep asking different questions, and he keeps answering them.</p>
+
+  <h2>The work behind the decks</h2>
+  <p>The &ldquo;producer&rdquo; half of his DJ/producer billing is documented, if modestly publicized. His SoundCloud &mdash; the first link in his bio &mdash; carries his mixes; a 2023 reel ribs his own followers about it: &ldquo;Some of y&rsquo;all never even heard my mixes lol.&rdquo; His story highlights announce an original, &ldquo;Liquid Jungle,&rdquo; out on SoundCloud with a music video teased. Add the promoter&rsquo;s workload &mdash; Savage ENT&rsquo;s own calendar, the duo, the battle and support slots &mdash; and Smoke reads less like a DJ looking for a break than like a small company with a resident DJ who happens to be its founder.</p>
+  <p>He is also, not incidentally, already in the KEEPITIL pipeline the honest way: he applied to the platform&rsquo;s DJ intake twice (April and June 2026) &mdash; a repeat applicant, like Queue #1 RAVE GOD, whose 6HOST orbit he shares. The scene he&rsquo;s part of is already applying. This feature is the paperwork catching up.</p>
+
+  <h2>Why book Smoke</h2>
+  <ul>
+    <li>A founder&rsquo;s draw: he runs Savage Entertainment (Top Floor DTSA&rsquo;s orbit) and sells tickets with his own promo code &mdash; he played support for Gene Farris (Oct 2, 2026, DTLA) on a 47-DJ, four-floor bill, and he promotes what he plays</li>
+    <li>Slot-proof: day-party closer (Huntington Beach House), warehouse afters (Microdose, 11p&ndash;5a), main stage (Circle OC), support for a global headliner, and a face-to-face battle format (Moo Talk vs Mr. Sir, livestreamed)</li>
+    <li>Two acts in one booking: solo Smoke, or SMOKE&rsquo;N&rsquo;TRAXXX, his b2b with Jacob Pagoaga (live tape from Future Studios OC)</li>
+    <li>Range beyond the underground: house / tech house / techno / minimal at the core, with documented open-format work (rock en espa&ntilde;ol &amp; &rsquo;80s night at Mission Bar, Santa Ana)</li>
+    <li>Promoter infrastructure, not just a guest: his own events brand, a label circle (6HOST Recordings), and rooms across OC, LA and the IE &mdash; his bio&rsquo;s territory line is &ldquo;OC&bull;LA&bull;IE&rdquo; and the receipts back it</li>
+  </ul>
+
+  <hr/>
+  <h2>The quick version</h2>
+  <p>Smoke (Daniel Herrera) is a Santa Ana house, tech house and techno DJ/producer who founded Savage Entertainment &mdash; the events company behind Hypnotic&rsquo;s anniversary, Riddim Rapture and SPLIT SIGNAL at Top Floor DTSA &mdash; and plays the circuit he helps build: Proof Bar, the Continental Room, Circle OC, Microdose&rsquo;s warehouse afters, a closing set at Huntington Beach House, a face-to-face DJ battle, and an October 2026 support slot for Gene Farris in DTLA. Half of the duo SMOKE&rsquo;N&rsquo;TRAXXX, with mixes and an original (&ldquo;Liquid Jungle&rdquo;) on SoundCloud, he is the rare booking who is also the infrastructure.</p>
+
+  <h2>Additional Details</h2>
+  <ul>
+    <li><strong>Name:</strong> Smoke (Daniel Herrera)</li>
+    <li><strong>Description:</strong> DJ/producer and founder of Savage Entertainment. House, tech house and techno at the core, with minimal, Afro and Latin shades and documented open-format range. One half of SMOKE&rsquo;N&rsquo;TRAXXX (with Jacob Pagoaga). Plays &mdash; and promotes &mdash; across Orange County, Los Angeles and the Inland Empire.</li>
+    <li><strong>Genres:</strong> House, Tech House, Techno (per his application); House / Minimal / Techno / Afro / Latin (KEEPITIL directory)</li>
+    <li><strong>Location:</strong> Santa Ana, California (Orange County) &mdash; his April application also listed Westminster; Savage ENT&rsquo;s home room, Top Floor, is in downtown Santa Ana</li>
+    <li><strong>Bookings:</strong> Email glowstickraveboy420@gmail.com &middot; Phone 714-631-4394 &middot; Instagram @allsmokeverything</li>
+    <li><strong>Listen:</strong> SoundCloud (link in his Instagram bio) &mdash; mixes; &ldquo;Liquid Jungle&rdquo; (original)</li>
+  </ul>
+</article>
+
+<!-- ORDER (Founder 2026-08-26): body -> TAP IN -> SUPPORT KEEPITIL -> Sources.
+     Support is the closing block of an article unless the article carries Sources, which take
+     the last slot instead. This article is research-based, so Sources close it. -->
+<div class="src-wrap tapin">
+  <h2>Tap in <span class="with">with Smoke</span></h2>
+  <div class="tap-row">
+    <a href="https://www.instagram.com/allsmokeverything/" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg><span>Instagram</span></a>
+    <a href="https://www.instagram.com/savage.ent420/" target="_blank" rel="noopener" aria-label="Savage Entertainment on Instagram" title="Savage Entertainment on Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg><span>Savage ENT</span></a>
+    <a href="tel:+17146314394" target="_blank" rel="noopener" aria-label="Bookings phone" title="Bookings phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Call</span></a>
+    <a href="mailto:glowstickraveboy420@gmail.com" aria-label="Bookings email" title="Bookings email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="4.5" width="19" height="15" rx="2.6"/><path d="M3 6.5l9 6.2 9-6.2"/></svg><span>Bookings</span></a>
+  </div>
+</div>
+
+<div class="foot-note">Quotes are Smoke&rsquo;s own, from his Instagram posts. Bookings: <a class="inline" href="mailto:glowstickraveboy420@gmail.com">glowstickraveboy420@gmail.com</a> &middot; <a class="inline" href="tel:+17146314394">714-631-4394</a>.</div>
+
+<section class="support">
+  <div class="box">
+    <div class="hd"><span class="dot">●</span> SUPPORT KEEPITIL</div>
+    <div class="lede">Partner referrals &amp; affiliate links — every link supports the scene. <em>(Amazon links are affiliate; KEEPITIL earns from qualifying purchases.)</em></div>
+    <div id="tpl-support"></div>
+  </div>
+</section>
+
+<div class="src-wrap">
+  <h2>Sources</h2>
+  <ul class="src-list">
+    <li>His KEEPITIL DJ application (ARTIST workbook, &ldquo;DJ Applications&rdquo; tab) &mdash; name, legal name, city (Santa Ana; Westminster in the April filing), genres, Instagram, email, phone (714-631-4394; 715&hellip; variant in the June filing), application dates (4/21/2026 + 6/16/2026, merged)</li>
+    <li>THE SCENE (V3): DIRECTORY sheet, row 12 &mdash; Smoke listed as a live artist (Westminster / Orange County, genre &ldquo;House / Minimal / Techno / Afro / Latin&rdquo;, IG @Allsmokeverything, SoundCloud avatar image URL, profile slug blog-smoke.html)</li>
+    <li>Instagram profile @allsmokeverything (via connector, 2026-10-21) &mdash; bio (&ldquo;DJ/Producer / Founder @savage.ent420 / OC&bull;LA&bull;IE / Booking&rdquo;), bio links (SoundCloud; SimpleTix Gene Farris ticket link with promocode SMOKENTRAXX; Partiful), 2,624 followers, 133 posts, public creator account</li>
+    <li>Instagram profile @savage.ent420 (via connector, 2026-10-21) &mdash; &ldquo;SAVAGE ENTERTAINMENT,&rdquo; mission bio, @topfloordtsa, 798 followers, 163 posts, Linktree + Posh event links</li>
+    <li>Instagram profile @6host.records (via connector, 2026-10-21) &mdash; 6HOST RECORDINGS LLC, founder @the_only_6host, bookings email</li>
+    <li>Instagram profile @microdoseevents (via connector, 2026-10-21) &mdash; &ldquo;A DOSE OF HOUSE MUSIC &mdash; OC,&rdquo; text-to-RSVP line</li>
+    <li>@refuze.events post, 2026-09-02 &mdash; <a class="inline" href="https://www.instagram.com/p/DcxQ6fsNCOS/" target="_blank" rel="noopener">instagram.com/p/DcxQ6fsNCOS</a> (Smoke playing support for Gene Farris at District 7, Oct 2, 2026, 20+ local DJs)</li>
+    <li>SimpleTix event page &mdash; &ldquo;Putivuelta + Groove-ism + Refuze Presents &mdash; GENE FARRIS,&rdquo; Oct 2, 2026, 9 PM&ndash;5 AM, DTLA Warehouse, 1926 East 7th Place, Los Angeles (4 dance floors, 47+ DJs) &mdash; <a class="inline" href="https://www.simpletix.com/e/putivuelta-groove-ism-refuze-presents-gene-tickets-286208" target="_blank" rel="noopener">simpletix.com</a></li>
+    <li>@allsmokeverything post, 2026-06-18 &mdash; <a class="inline" href="https://www.instagram.com/p/DZvdHtoSvIX/" target="_blank" rel="noopener">instagram.com/p/DZvdHtoSvIX</a> (SMOKE&rsquo;N&rsquo;TRAXXX at The Compound LA with Plur Eventz; &ldquo;grooviest most funky set&rdquo; quote)</li>
+    <li>@allsmokeverything reel &mdash; SMOKE&rsquo;N&rsquo;TRAXXX live b2b at Future Studios OC (@jacobpagoaga1)</li>
+    <li>@allsmokeverything posts, 2026-05-06 and May 2026 &mdash; <a class="inline" href="https://www.instagram.com/p/DYAJbOVlIQh/" target="_blank" rel="noopener">Huntington Beach House closing set</a> (6&ndash;7 PM, via @elote.boys) and <a class="inline" href="https://www.instagram.com/p/DYs1k3JmIqH/" target="_blank" rel="noopener">recap carousel</a> (portraits; MICRODOSE cap; Pioneer booth)</li>
+    <li>@6host.records posts, 2026-07-14 and 2026-06-12 &mdash; TMZEE takeover at Proof Bar, July 16 (lineup: SMOKE, RICHRUNTHAT, TMZEE, Manuel Silva; presented by 6HOST Recordings LLC); 6HOST foundation celebration at Proof Bar (&ldquo;Huge love to Darce, TMZEE, Smoke N Traxxx, Manuel Silva&rdquo;)</li>
+    <li>@6host.records post, 2026-03-24 &mdash; <a class="inline" href="https://www.instagram.com/p/DWRy1OPj_WX/" target="_blank" rel="noopener">instagram.com/p/DWRy1OPj_WX</a> (SPLIT SIGNAL, presented by 6H0ST &times; Savage ENT, March 28, Top Floor, open decks)</li>
+    <li>@savage.ent420 post, 2025-06-16 &mdash; Riddim Rapture, June 21, Top Floor, Santa Ana (Savage ENT presents)</li>
+    <li>@animalstylevents post, 2025-09-02 &mdash; Subby Wubby recap, hosted by @savage.ent420 &amp; @animalstylevents (Smoke on the bill)</li>
+    <li>@hypnoticdancerecords post, 2025-01-16 &mdash; Hypnotic 1-year anniversary, Jan 18, 2025 (two stages, headliner Diskreet, Smoke on the lineup, hosted by Savage Ent.)</li>
+    <li>@microdoseevents post, 2026-03-03 &mdash; Microdose at Verde, Costa Mesa, March 14 (&ldquo;MINIMAL DEEP TECH HOUSE&rdquo;); @allsmokeverything reels, Jul&ndash;Aug 2025 &mdash; Microdose warehouse afters (11p&ndash;5a, house &amp; techno; Sept 20 warehouse date)</li>
+    <li>@allsmokeverything reel &mdash; &ldquo;THE CONTINENTAL ROOM LIVED UP TO THE HYPE!!&rdquo; (Continental Room, downtown Fullerton; next stop a Beyond Wonderland pre-party at The Speakeasy OC)</li>
+    <li>@circleoc post, 2023-08-22 &mdash; MERGE house &amp; techno night, Circle OC main stage, Aug 23, 2023 (&ldquo;420 SAVAGE &bull; @ALLSMOKEVERYTHING&rdquo;)</li>
+    <li>@allsmokeverything posts, 2023 &mdash; Heat Ultra Lounge OC thank-you posts with @mayhemevents.oc (photos by @zayneamason); NOS Events Center thank-you post; post, 2022 &mdash; show at Catch One, Los Angeles</li>
+    <li>@vivaelrockoc post, 2026-08-17 &mdash; <a class="inline" href="https://www.instagram.com/p/DcIRmTVTUq5/" target="_blank" rel="noopener">instagram.com/p/DcIRmTVTUq5</a> (Viva El Rock, Aug 29, Mission Bar Santa Ana: &ldquo;Dj Smoke spinning: Rock En Espanol, 80s and more,&rdquo; with live band @hijosdedonramon)</li>
+    <li>Moo Talk battle posts, 2026-09-28 &mdash; <a class="inline" href="https://www.instagram.com/p/Dd15NVXB3oA/" target="_blank" rel="noopener">instagram.com/p/Dd15NVXB3oA</a> and reel (SMOKE vs MR. SIR, Face-to-Face DJ Battle, hosted by Kaytexs, live at 8 PM); earlier Moo Talk appearance reel with @pvt.reserve</li>
+    <li>Event post, 2026-10-05 &mdash; &ldquo;Enter the Cage,&rdquo; Friday Oct 16, DTLA (Jersey Shore club sounds / footwork / bass / techno; bill: @fnyssedon, @allsmokeverything, @itsltrainshouse)</li>
+    <li>@allsmokeverything reel, 2025-07-02 &mdash; Electro Fest, Norco (WATATRIP B2B SMOKE)</li>
+    <li>@allsmokeverything reel, 2023-04-20 &mdash; his mixes on SoundCloud (&ldquo;Some of y&rsquo;all never even heard my mixes lol&rdquo; + SoundCloud link); his Instagram story highlight &mdash; &ldquo;Liquid Jungle &hellip; Out on SoundCloud now&rdquo;</li>
+    <li>Partiful event page (current bio link) &mdash; DROP THE PIN, Drop The Pin Collective, Oct 3, 2026, Los Angeles (community clothes-swap/music event)</li>
+  </ul>
+</div>
+</div>
+</main>
+<!-- "Keep reading" removed 2026-08-23 (Founder). -->
+
+<script>
+function kilShare(kind){var url=location.href,t=document.title;if(kind==='x'){window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(t)+'&url='+encodeURIComponent(url),'_blank');return;}if(kind==='native'&&navigator.share){navigator.share({title:t,url:url});return;}try{navigator.clipboard.writeText(url);var b=event&&event.currentTarget;if(b){var o=b.textContent;b.textContent='✓';setTimeout(function(){b.textContent=o;},1200);}}catch(e){prompt('Copy link:',url);}}
+(function(){var sh=document.getElementById('tpl-support');if(!sh)return;var items=[['Partner','FREECASH','Earn for the next fest','https://freecash.com/r/Tuitea','linear-gradient(160deg,#fbf3e6,#ffffff)',false],['Partner','DISTROKID','Put your music everywhere','https://distrokid.com/vip/seven/11538316','linear-gradient(160deg,#e6f6ef,#ffffff)',false],['Partner','POSH','List your event','https://posh.vip/create_group?ref=S-referral-mp9itc5j-wb9dbt','linear-gradient(160deg,#efe9fb,#ffffff)',false],['Partner','AMAZON','Shop gear &amp; support the scene','https://www.amazon.com/?tag=tuitea09-20','linear-gradient(160deg,#f5eefb,#ffffff)',true],['Shop','KEEPITIL STORE','Apparel, straight from the underground','https://illestratedlifestyle.com/collections/keepitil-apparel','linear-gradient(160deg,#e9f0fb,#ffffff)',false],['$34','KEEPITIL Logo Tee','Straight From The Underground','https://illestratedlifestyle.com/products/keepitil-logo-tee-straight-from-the-underground','linear-gradient(160deg,#eefbf3,#ffffff)',false],['$64','Create Loud Hoodie','Create Loud · Live Louder','https://illestratedlifestyle.com/products/keepitil-create-loud-live-louder-hoodie-1','linear-gradient(160deg,#fbeef6,#ffffff)',false],['$55','KEEPITIL Logo Crewneck','Underground EDM','https://illestratedlifestyle.com/products/keepitil-logo-crewneck-underground-edm','linear-gradient(160deg,#eef6fb,#ffffff)',false],['$30','KEEPITIL Logo Hat','Embroidered','https://illestratedlifestyle.com/products/keepitil-dad-hat-embroidered-underground-mark','linear-gradient(160deg,#fbf8e6,#ffffff)',false],['$45',"Women's Racerback Tank",'KEEPITIL Apparel','https://illestratedlifestyle.com/products/womens-racerback-tank','linear-gradient(160deg,#fbeeee,#ffffff)',false],['$37.50',"Men's Tank Top",'KEEPITIL Apparel','https://illestratedlifestyle.com/products/mens-tank-top','linear-gradient(160deg,#eefbfb,#ffffff)',false]];sh.innerHTML=items.map(function(it){var badge=it[5]?'<span style="position:absolute;top:8px;right:8px;background:#ff9900;color:#111;font-size:.56rem;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:5px;z-index:2">Amazon</span>':'';var cta=it[5]?'Shop on Amazon →':'Open →';return '<a href="'+it[3]+'" target="_blank" rel="noopener'+(it[5]?' sponsored nofollow':'')+'" data-kt="affiliate_click" style="position:relative;display:block;min-height:118px;border-radius:12px;overflow:hidden;border:1px solid rgba(30,15,60,.12);background:'+it[4]+';padding:14px;text-decoration:none;color:#160f24">'+badge+'<div style="position:relative;z-index:2"><div style="font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:#7c3aed">'+it[0]+'</div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.32rem;letter-spacing:.02em;margin:2px 0;line-height:1.05;color:#160f24">'+it[1]+'</div><div style="font-size:.76rem;color:#544c6b;line-height:1.35">'+it[2]+'</div><div style="font-size:.76rem;color:#0a8f5b;font-weight:700;margin-top:6px">'+cta+'</div></div></a>';}).join('');})();
+</script>
+<script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
+<script src="/keepitil-shell.js?v=20260929a" defer></script>
+</body>
+</html>

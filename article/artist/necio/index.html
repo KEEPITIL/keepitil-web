@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-template="artist-article">
+<head>
+<!-- ══ ARTIST ARTICLE TEMPLATE ══════════════════════════════════════════════════════
+     KEEPITIL runs TWO article templates (Founder 2026-08-26):
+       1. /article/<title>          — editorial / history pieces. Closes with Sources.
+       2. /article/artist/<name>    — THIS ONE. Artist features. Closes with TAP IN (four
+                                      icons on one row) then SUPPORT KEEPITIL last.
+     Everything else is shared: landing panel, sticky composer bar, reading panel, backdrop
+     set per article on <body> via --artbg / --artbg-m.
+     ══════════════════════════════════════════════════════════════════════════════════ -->
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
+<meta name="robots" content="index,follow"/>
+<title>Necio — The Finalist Who Came Up Through the Festival Crowd — KEEPITIL</title>
+<meta name="description" content="Necio (Jovanny Gonzalez) is a San Fernando Valley Latin House / Tech House DJ and YourShot USA finalist who debuted at Catch One, LA, with bookings in Fresno, Salinas and Los Globos."/>
+<meta property="og:title" content="Necio — The Finalist Who Came Up Through the Festival Crowd"/>
+<meta property="og:description" content="YourShot USA finalist from the San Fernando Valley — Latin House / Tech House, a debut at Catch One, and bookings from Fresno to Los Globos."/>
+<meta property="og:image" content="https://keepitil.com/assets/images/artbg-necio.jpg"/>
+<meta property="og:type" content="article"/>
+<meta property="article:published_time" content="2026-10-21"/>
+<meta property="article:author" content="KEEPITIL"/>
+<meta property="og:url" content="https://keepitil.com/article/artist/necio/"/>
+<meta property="og:site_name" content="KEEPITIL"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Necio — The Finalist Who Came Up Through the Festival Crowd"/>
+<meta name="twitter:description" content="Necio (Jovanny Gonzalez) is a San Fernando Valley Latin House / Tech House DJ and YourShot USA finalist who debuted at Catch One, LA, with bookings in Fresno, Salinas and Los Globos."/>
+<meta name="twitter:image" content="https://keepitil.com/assets/images/artbg-necio.jpg"/>
+<link rel="canonical" href="https://keepitil.com/article/artist/necio/"/>
+<link rel="stylesheet" href="/assets/css/tokens.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--measure:764px;--page:#f6f4fb;--card:#ffffff;--card2:#f2eefb;--ink:#191426;--ink2:#544c6b;--ink3:#8b839e;--line:rgba(30,15,60,.12);--blue:#5b21b6;--blue2:#7c3aed;--accent:#0071e3;--good:#0a8f5b;--fh:'Bebas Neue',sans-serif;--fs:'Fraunces',Georgia,serif;--fb:'Inter',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+/* ⚠ COLOUR ON <html>, BODY TRANSPARENT. An opaque body background paints OVER a negative
+   z-index ::before — the same trap that hid the backdrops on /create and /earn. */
+html{background:#0a0a0f}
+body{background:transparent;color:var(--ink);font-family:var(--fb);line-height:1.75;padding-bottom:40px}
+/* THE COVER IS FIXED FOR THE WHOLE ARTICLE (Founder 2026-08-23: "does not stay locked like the
+   homepage, through out the entire article"). It used to live inside .artlead, so it scrolled
+   away with the landing panel. position:fixed on body::before makes the article scroll OVER a
+   stationary image, exactly like the homepage. --artbg is set on <body style="--artbg:url('/assets/images/artbg-necio.jpg');--artbg-m:url('/assets/images/artbg-necio.jpg')"> per article. */
+/* DEFAULT BACKDROP = THE HOMEPAGE IMAGE (Founder 2026-08-23: "use the current background image
+   from the homepage as the default image always"). Articles used to point --artbg at a generated
+   pollinations.ai URL — a third-party image service that, when it fails to answer, leaves the
+   page with no backdrop at all. That is why it was missing. /assets/images/logo-bg.jpg is the same file the
+   homepage uses and it is served from our own origin, so it cannot disappear. An article may
+   still override --artbg with its own art; the default is now a real image, not nothing. */
+body::before{content:"";display:block!important;position:fixed;inset:0;z-index:-2;background:var(--bg,#0a0a0f) var(--artbg,url('/assets/images/logo-bg.jpg')) center/cover no-repeat;opacity:1}
+@media(max-width:860px){body::before{background-image:var(--artbg-m,var(--artbg,url('/assets/images/logo-bg.jpg')))}}
+/* ⚠ THE BACKDROP IS NEVER DARKENED (Founder 2026-08-23). No scrim, no filter, no opacity
+   change — the line above is the homepage's, verbatim. Two scrims were stacking here to roughly
+   84% black at the foot of the first screen. Text legibility is handled by text-shadow on the
+   type and by the reading panel's own background, NOT by dimming the artwork. Do not add an
+   overlay to this page. */
+/* NO page scrim — the image is never darkened. */
+.kil-social-bar{display:none!important}
+.hero{max-width:900px;margin:0 auto;padding:96px 22px 8px;text-align:center}
+.kick{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--blue2);background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:6px 16px;margin-bottom:18px}
+.hero h1{font-family:var(--fs);font-weight:900;font-size:clamp(2rem,5vw,3.2rem);line-height:1.07;letter-spacing:-.01em;color:#120e1f}
+.hero .deck{color:var(--ink2);font-size:1.16rem;line-height:1.55;margin:18px auto 0;max-width:620px}
+.meta{max-width:720px;margin:22px auto 0;padding:0 22px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;justify-content:center;color:var(--ink3);font-size:.82rem;font-weight:600}
+.meta .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue2));display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.78rem}
+.meta .who{color:var(--ink);font-weight:700}.meta .dot{color:var(--line)}
+.meta .share{display:inline-flex;gap:6px;margin-left:auto}
+.meta .share button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink2);cursor:pointer;font-size:.9rem;display:inline-flex;align-items:center;justify-content:center}
+.meta .share button:hover{border-color:var(--blue2);color:var(--blue2)}
+@media(max-width:560px){.meta .share{margin-left:0;width:100%;justify-content:center}}
+.cover{max-width:900px;margin:24px auto 0;padding:0 22px}
+.cover .band{position:relative;overflow:hidden;height:300px;border-radius:20px;background:linear-gradient(130deg,#f0a72022,#7c3aed22);border:1px solid var(--line)}
+.cover .band img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+@media(max-width:560px){.cover .band{height:220px}}
+.art{margin:0 auto}
+.art p{font-size:1.13rem;color:#2b2540;margin:22px 0;line-height:1.78}
+.art .lead{font-family:var(--fs);font-size:1.34rem;line-height:1.5;color:#170f26;font-weight:500}
+.art h2{font-family:var(--fs);font-weight:900;font-size:1.62rem;line-height:1.2;letter-spacing:-.01em;margin:48px 0 4px;color:#160f24}
+.art strong{color:#160f24;font-weight:700}
+.art a.inline{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(0,113,227,.35)}
+hr{border:0;border-top:1px solid var(--line);margin:42px 0}
+.pull{font-family:var(--fs);font-weight:600;font-size:1.5rem;line-height:1.35;color:var(--blue);border-left:4px solid var(--blue2);padding:6px 0 6px 20px;margin:34px 0}
+/* listen box */
+.listen{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0}
+.listen a{font-weight:800;font-size:.9rem;text-decoration:none;padding:12px 20px;border-radius:999px}
+.l-sc{background:none;border:2px solid #ff7700;color:#ff5500}
+.l-lyr{background:linear-gradient(90deg,var(--blue2),var(--accent));color:#fff}
+.support{max-width:760px;margin:44px auto 0;padding:0 22px}
+.support .box{border:1px solid var(--line);background:linear-gradient(180deg,#ffffff,#f4effc);border-radius:16px;padding:22px 24px}
+.support .hd{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.02rem;color:#160f24}.support .hd .dot{color:var(--good);font-size:.7rem}
+.support .lede{color:var(--ink2);font-size:.9rem;line-height:1.5;margin-top:8px}
+#tpl-support{display:flex;gap:12px;margin-top:16px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px}
+#tpl-support::-webkit-scrollbar{display:none}#tpl-support>a{flex:0 0 168px;scroll-snap-align:start}
+@media(max-width:560px){#tpl-support>a{flex:0 0 150px}}
+.related{max-width:760px;margin:46px auto 0;padding:0 22px}
+.related h3{font-family:var(--fh);font-size:1.5rem;letter-spacing:.03em;color:#160f24;margin-bottom:14px}
+.rel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.rel-card{display:block;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;transition:transform .18s,border-color .18s;box-shadow:0 4px 16px rgba(30,15,60,.04)}
+.rel-card:hover{transform:translateY(-3px);border-color:var(--blue2)}
+.rel-card .rc-cov{aspect-ratio:16/9;background:#eee7fb center/cover}
+.rel-card .rc-bd{padding:13px 15px 16px}.rel-card .rc-k{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--blue2)}
+.rel-card h4{font-family:var(--fs);font-weight:600;font-size:1.02rem;line-height:1.2;color:#160f24;margin-top:6px}
+.foot-note{max-width:720px;margin:42px auto 0;padding:16px 22px 0;color:var(--ink3);font-size:.86rem;border-top:1px solid var(--line);text-align:center}
+.src-wrap{margin:0 auto}
+.src-wrap h2{font-family:var(--fs);font-weight:900;font-size:1.4rem;margin:40px 0 6px;color:#160f24}
+.src-list{padding:0 0 0 20px;color:var(--ink2);font-size:.9rem}.src-list li{margin:8px 0}.src-list a{color:var(--accent)}
+
+/* ═══ ARTICLE TEMPLATE v2 (Founder 2026-08-23) ═══════════════════════════════════════════
+   Opens like the homepage: the cover art fills the first screen and the title sits at the foot
+   of it. Scroll, and the title collapses into a sticky bar with the byline + socials. Then the
+   body, then SUPPORT KEEPITIL, then Sources. */
+.artlead{position:relative;min-height:calc(100svh - 70px);min-height:calc(100dvh - 70px);
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:40px 22px 46px;margin:0;isolation:isolate}
+/* The panel is transparent — the art is the FIXED body backdrop now. This gradient only
+   deepens the foot of the first screen so the title reads against whatever is behind it. */
+/* NO landing scrim. Title legibility comes from text-shadow on the type only. */
+/* ONE MEASURE (Founder 2026-08-23: "the sides are different for the title, the filter and the
+   body ... needs to be uniformed"). Landing 900, bar 900, body 720 — three different left edges
+   down the page. All three now share --measure with the same 22px gutter, so the title, the
+   locked bar and the paragraphs start and end on exactly the same x. */
+.artlead .inner{max-width:var(--measure,764px);margin:0 auto;width:100%;padding:0 22px}
+.artlead .kick{display:inline-block;font-size:.68rem;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;color:#c9b8ff;margin-bottom:12px}
+.artlead h1{font-family:var(--fs);font-weight:900;color:#fff;line-height:1.03;letter-spacing:-.01em;
+  font-size:clamp(2.1rem,6.2vw,4rem);text-shadow:0 2px 8px rgba(0,0,0,.85),0 6px 34px rgba(0,0,0,.7)}
+.artlead .deck{color:#e4dff2;font-size:1.06rem;line-height:1.55;margin-top:14px;max-width:640px;
+  text-shadow:0 2px 6px rgba(0,0,0,.9),0 4px 18px rgba(0,0,0,.6)}
+/* 16:9 on desktop, 9:16 on mobile — the same two-crop rule the section pages use. */
+@media(max-width:860px){
+  .artlead{min-height:calc(100svh - env(safe-area-inset-top,0px));
+    min-height:calc(100dvh - env(safe-area-inset-top,0px))}
+}
+/* Sticky bar: title + byline + socials. Under 950 so it passes BEHIND the bottom nav. */
+/* Sticks UNDER the shell's fixed 70px top nav — top:0 parked it behind that nav, which reads as
+   "not locking" because you never see it (Founder 2026-08-23). z-index 940 keeps it below the
+   bottom nav (950) and the radio bar (9998), so it passes BEHIND both, which is what the rest of
+   the site does. Mobile has no fixed top bar, so there it grows into the status-bar band. */
+/* top:62px — the shell nav is 66px tall. The bar tucks 4px UNDER it so there is no seam,
+   and the nav is on a higher layer so the overlap is never visible.
+   ⚠ The old fix was a ::before painting 18px of bar colour ABOVE the bar. That worked while
+   the bar was stuck (the strip hid behind the nav) but the bar starts life IN FLOW under the
+   hero, where nothing covered it — so the strip rendered as a band of dead space above the
+   row. Founder 2026-08-26: "extra space at the top of the filter bar ... needs to be the
+   same space above and below evenly." Overlap closes the seam without painting anything. */
+.artbar{position:sticky;top:62px;z-index:940;background:#0b0b12;color:#fff;
+  border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.45)}
+
+.artbar .row{max-width:var(--measure,764px);margin:0 auto;padding:10px 22px;display:flex;align-items:center;gap:12px}
+.artbar .soc{margin-left:auto}
+.artbar .t{font-family:var(--fs);font-weight:900;font-size:.98rem;line-height:1.15;color:#fff;
+  flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.artbar .who{font:800 .78rem Inter,sans-serif;letter-spacing:.02em;color:#fff}
+.artbar .soc{display:inline-flex;gap:4px;flex:0 0 auto}
+.artbar .soc a,.artbar .soc button{width:32px;height:32px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#cfd3df;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;font-size:.82rem;text-decoration:none}
+.artbar .soc a:hover,.artbar .soc button:hover{border-color:#00e0a4;color:#00e0a4}
+.artbar .soc svg{width:16px;height:16px;display:block}
+@media(max-width:520px){.artbar .soc a,.artbar .soc button{width:28px;height:28px}.artbar .soc svg{width:14px;height:14px}}
+/* Founder 2026-08-26: offset BELOW the black status layer, no padding. The old rule was
+   grow-and-pad (top:0 + padding-top:inset) — that padding is bar-coloured, so on a notched
+   phone it rendered as empty chrome above the row and the bar looked top-heavy. Same fix
+   already applied to every other sticky deck on the site. */
+@media(max-width:860px){.artbar{top:var(--kil-safe-top,0px)}}
+@media(max-width:700px){.artbar .who{font-size:.72rem}}
+
+/* READING PANEL (Founder 2026-08-23: "some transparency behind the articles text to make the
+   font color easier to read"). The article is dark type on a light theme, so the panel is light
+   and translucent — dark-on-photo would be unreadable. Opaque enough to hold body copy, sheer
+   enough that the artwork still shows through. */
+.artpanel{max-width:var(--measure,764px);margin:0 auto;background:rgba(252,250,255,.86);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.55);border-radius:20px;
+  box-shadow:0 20px 60px rgba(0,0,0,.45);padding:30px 0 34px;margin-top:26px}
+.artpanel .art,.artpanel .src-wrap,.artpanel .support .box{max-width:none;padding-left:22px;padding-right:22px}
+.artpanel .foot-note{border-top-color:rgba(30,15,60,.14)}
+/* The panel already provides the space above the first line via its own padding. Without this
+   the lead paragraph adds its 22px `.art p` top margin on top of that — 52px of dead space
+   above the opening sentence, and visibly more than the gap under the last one.
+   Founder 2026-08-26: "extra spacing above the text ... shorten it". */
+.artpanel .art>*:first-child{margin-top:0}
+@media(max-width:700px){.artpanel{border-radius:14px;padding:22px 0 26px;margin-top:16px}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* TAP IN — four marks on one row (Founder 2026-08-26), directly above SUPPORT KEEPITIL, which
+   is now always the closing block of an article unless there are Sources. */
+.tapin .with{font-weight:600;opacity:.62}
+.tap-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.tap-row a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  padding:16px 6px;border-radius:14px;text-decoration:none;color:#160f24;
+  border:1px solid rgba(30,15,60,.14);background:rgba(255,255,255,.62);
+  transition:border-color .18s,transform .18s,background .18s}
+.tap-row a:hover{border-color:#7c3aed;color:#7c3aed;transform:translateY(-2px);background:#fff}
+.tap-row svg{width:24px;height:24px;display:block}
+.tap-row span{font:800 .68rem Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:center}
+@media(max-width:520px){.tap-row{gap:7px}.tap-row a{padding:13px 4px}
+  .tap-row svg{width:21px;height:21px}.tap-row span{font-size:.58rem;letter-spacing:.03em}}
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Necio - The Finalist Who Came Up Through the Festival Crowd","description":"Necio (Jovanny Gonzalez) is a San Fernando Valley Latin House / Tech House DJ and YourShot USA finalist who debuted at Catch One in Los Angeles.","image":["https://keepitil.com/assets/images/artbg-necio.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://keepitil.com/article/artist/necio"},"about":{"@type":"Person","name":"Jovanny Gonzalez","alternateName":"Necio","jobTitle":"DJ","sameAs":["https://www.instagram.com/thats.necio/"]},"author":{"@type":"Organization","name":"KEEPITIL","url":"https://keepitil.com"},"publisher":{"@type":"Organization","name":"KEEPITIL","logo":{"@type":"ImageObject","url":"https://keepitil.com/icon-512.png"}},"inLanguage":"en-US"}</script>
+</head>
+<body style="--artbg:url('/assets/images/artbg-necio.jpg');--artbg-m:url('/assets/images/artbg-necio.jpg')">
+<main id="content">
+<!-- LANDING: cover art fills the screen, title at the foot of it. The image is set as a CSS
+     variable so this template works for any article by swapping one value. -->
+<header class="artlead">
+  <div class="inner">
+    <span class="kick">KEEPITIL PRESENTS</span>
+    <h1>Necio — The Finalist Who Came Up Through the Festival Crowd</h1>
+    <p class="deck">A festival kid who crossed the barrier &mdash; YourShot USA finalist, Latin house in his hands, and a ticket link that is always his own.</p>
+  </div>
+</header>
+
+<!-- Locked bar: composer + KEEPITIL socials + share. No title — the headline belongs to the
+     landing panel and is not repeated here (Founder 2026-08-23). -->
+<!-- Locked bar: composer + real KEEPITIL social marks + share. No "K" badge — that letter was
+     never the brand (Founder 2026-08-23). Same measure as the title and the body copy. -->
+<div class="artbar">
+  <div class="row">
+    <span class="who">KEEPITIL</span>
+    <span class="soc">
+      <a href="https://www.instagram.com/keepitil/" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg></a>
+      <a href="https://www.facebook.com/keepitil" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06C2 17.08 5.66 21.25 10.44 22v-7.03H7.9v-2.91h2.54V9.85c0-2.52 1.49-3.91 3.77-3.91 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.89h2.78l-.44 2.91h-2.34V22C18.34 21.25 22 17.08 22 12.06z"/></svg></a>
+      <a href="https://www.tiktok.com/@keepitil" target="_blank" rel="noopener" aria-label="TikTok" title="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.82A4.96 4.96 0 0 1 15.4 2.5h-3.23v13.02a2.61 2.61 0 1 1-1.86-2.5V9.72a5.83 5.83 0 1 0 5.09 5.79V9.3a8.2 8.2 0 0 0 4.6 1.42V7.5a4.96 4.96 0 0 1-3.4-1.68z"/></svg></a>
+      <a href="https://youtube.com/@keepitil" target="_blank" rel="noopener" aria-label="YouTube" title="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 12s0-3.9-.5-5.79a3 3 0 0 0-2.11-2.11C18.5 3.6 12 3.6 12 3.6s-6.5 0-8.39.5A3 3 0 0 0 1.5 6.21C1 8.1 1 12 1 12s0 3.9.5 5.79a3 3 0 0 0 2.11 2.11c1.89.5 8.39.5 8.39.5s6.5 0 8.39-.5a3 3 0 0 0 2.11-2.11C23 15.9 23 12 23 12zM9.8 15.6V8.4l6.2 3.6-6.2 3.6z"/></svg></a>
+      <a href="https://x.com/keepitil" target="_blank" rel="noopener" aria-label="X" title="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.65l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.82l4.71 6.23 5.46-6.23zm-1.16 17.52h1.83L7.01 4.13H5.05l12.03 15.64z"/></svg></a>
+      <a href="mailto:info@keepitil.com" aria-label="Email" title="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="4.5" width="19" height="15" rx="2.6"/><path d="M3 6.5l9 6.2 9-6.2"/></svg></a>
+      <button aria-label="Share" title="Share" onclick="kilShare('native')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
+    </span>
+  </div>
+</div>
+
+<div class="artpanel">
+<article class="art">
+  <p class="lead">Most DJs announce a debut. Necio announced his with a date, a venue, a promo code and physical tickets in hand. On October 16, 2025, he posted it plainly: &ldquo;Making my DJ debut with @yourshot_usa NOV. 15!!! I&rsquo;ll be performing at Catch ONE in Los Angeles.. 18+&rdquo; &mdash; and then the part that tells you how he works: &ldquo;DM me for $20 physical tickets &mdash; Online Tickets Promo Code: NECIO.&rdquo; A first gig is usually something that happens to a new DJ. Necio sold his, in person, one DM at a time. By the time he applied to KEEPITIL in June 2026, his Instagram bio carried a title most debut DJs never get: &ldquo;@yourshot_usa FINALIST.&rdquo;</p>
+
+  <p>Necio &mdash; Jovanny Gonzalez, initials J.G., the first line of his own bio &mdash; is a Latin House and Tech House DJ from the San Fernando Valley, the &ldquo;LA&bull;SFV&rdquo; pin in that same bio. His is a short public record so far, and this article doesn&rsquo;t pretend otherwise. What the record does show, post by post, is a specific and increasingly rare path: a decade-deep festival fan who studied the circuit from the crowd side of the barrier, then crossed it &mdash; finalist first, club bookings after, and a map that already stretches from Los Angeles to Fresno to Salinas.</p>
+
+  <h2>Raised under the Electric Sky</h2>
+  <p>Before there was a Necio set, there was a Necio in the crowd &mdash; and the receipts go back years. His feed is a festival diary long before it is a DJ page. EDC Las Vegas runs through it like a spine: 2022 (&ldquo;A weekend full of amazing music, people, experiences and emotions!&rdquo;), 2023 &mdash; his third EDC, and the one where he wrote the line that explains the act &mdash; &ldquo;EDC is where my imagination goes wild&rdquo; &mdash; and May 2026, when he marked 30 years of EDC by spending &ldquo;another year in the desert &mdash; Under the Electric Sky,&rdquo; at his first official Camp EDC and his fifth EDC overall. &ldquo;Feeling inspired as I continue my music journey,&rdquo; he wrote that weekend, &ldquo;and can&rsquo;t wait to make it to the big stages alongside my family and friends who have supported me in any way, big or small.&rdquo;</p>
+  <p>The diary is wider than one festival. Coachella 2024 (&ldquo;here for the music&rdquo;). Beyond Wonderland in 2021 and again in 2025. Nocturnal Wonderland 2022, camping and silent discos. Countdown NYE to open 2022. HARD Summer 2025. And, closest to his own sound, Skyline Festival in February 2022, where he posted the thesis of his future sets in all caps: &ldquo;HOUSE MUSIC ALL DAY LONG&rdquo; &mdash; &ldquo;house and techno being blasted down the streets of L.A. is the most beautiful thing to happen so far.&rdquo; The DJs he tagged that day &mdash; Chris Lake, Lee Foss, Cloonee, Carl Cox &mdash; are a fair map of the Latin house / tech house lane he now plays in.</p>
+
+  <h2>The debut: a final, not a first gig</h2>
+  <p>YourShot USA bills itself, in its own bio, as &ldquo;The World&rsquo;s Most Transformative DJ Competition&rdquo; &mdash; full training provided, no experience necessary. That is the door Necio walked through, and he walked out the far end of it: a finalist, performing at Catch One in Los Angeles on November 15, 2025. His announcement carousel pairs the event poster (&ldquo;I&rsquo;M PLAYING,&rdquo; Saturday Nov 15, 12 PM&ndash;late, Catch One Nightclub) with a portrait of him smiling in a green-and-white Mexico jersey, hand over his heart, under a banner reading &ldquo;YOUR 2025 USA SHOT LOS ANGELES.&rdquo; The Mexican flag in his bio is not decoration; it is the brand &mdash; the same identity his Latin house sets are built on &mdash; worn on the flyer of his first-ever show.</p>
+  <p>The debut also set the working pattern every later booking follows: he promotes what he plays. Physical tickets by DM, a personal promo code online, and a thank-you list that names the people around the competition. Plenty of finalists treat a contest final as a finish line. His next posts treat it as a starting gun.</p>
+
+  <h2>The circuit since</h2>
+  <p>The bookings that follow the final sketch a working regional circuit, and each one stretches a different muscle. <strong>Winter Jamz, Woodley Park (January 2026)</strong> &mdash; Summer Bopz Radio&rsquo;s community day party, 10 a.m. to 10 p.m. in the park, billed &ldquo;&hellip;for the children &amp; the animals!!&rdquo; Necio played an 11 a.m.&ndash;12 p.m. back-to-back as NECIO b2b I.M.EARL, alongside Johnny V Jr. <strong>Banda Rave, Los Arcos, Fresno (March 20, 2026)</strong> &mdash; the event posts promise &ldquo;HEAVY LATIN HOUSE, HEAVY TECHNO BANGERS, BANDA AND NONSTOP VIBES,&rdquo; with Necio beside DJ Ferny, DJ Aaron and Maznoize, plus live banda from Los Ases de la Banda, at 1435 Fresno St. <strong>Pattern Bar, DTLA (June 2026)</strong> &mdash; when Pattern Bar closed after 15 years, DJ Tensi&oacute;n&rsquo;s vlog of the last Saturday night billed it &ldquo;One Last Dance with @thats.necio&rdquo; and documented an impromptu back-to-back between the two of them. <strong>Raveton, Salinas (July 18, 2026)</strong> &mdash; a boiler-room-format Latin EDM night for Salinas Rodeo weekend at 201 Social Nights. <strong>Los Globos Red Room, Los Angeles (August 7, 2026)</strong> &mdash; &ldquo;B2B ALERT!!&rdquo; with fellow KEEPITIL applicant ManyyVibezz, and, in his words, &ldquo;First time playing this historic venue in Los Angeles.&rdquo; And his current bio link is his ticket link for the <strong>SoundPeak 1 Year Anniversary at Melrose House (November 7, 2026)</strong>.</p>
+  <p>Read together, the pattern is range inside a lane: park sets and club sets, a banda-rave hybrid in Fresno, a boiler-room format in Salinas, back-to-back chemistry with at least three different partners, and a Los Angeles room with real history. All of it inside ten months of his debut.</p>
+
+  <h2>The sound</h2>
+  <p>His application answers the genre question in four words &mdash; Latin House / Tech House &mdash; and his bio repeats it verbatim: &ldquo;DJ - Latin House/Tech House.&rdquo; The event billing fills in the edges without contradicting it: Banda Rave sells his set as heavy Latin house next to heavy techno bangers; Raveton files him under Latin EDM; the Los Globos flyer footage shows him working DJ gear outdoors in a Chris Lake t-shirt, Latin house playing. There are no releases or mixes publicly linked from his profiles that this research could verify, so the honest description of the sound is the one the rooms themselves give: Latin-rooted house and tech house, played by a DJ whose formation was five years of standing in festival crowds listening for exactly those records.</p>
+
+  <h2>Why book Necio</h2>
+  <ul>
+    <li>A competition-validated debut: YourShot USA finalist, with his first performance at Catch One, Los Angeles (Nov 15, 2025) &mdash; a final, not an open-decks slot</li>
+    <li>He moves tickets himself: physical tickets sold by DM and a personal promo code (NECIO) for the debut; his current bio link is his own ticket link for SoundPeak&rsquo;s anniversary at Melrose House (Nov 7, 2026)</li>
+    <li>Back-to-back ready, repeatedly: documented b2bs with ManyyVibezz (Los Globos Red Room), I.M.EARL (Winter Jamz) and an impromptu b2b on Pattern Bar&rsquo;s closing night</li>
+    <li>A defined, bookable lane: Latin House / Tech House with proven hybrid formats &mdash; Banda Rave (Fresno, with live banda) and Raveton&rsquo;s Latin EDM boiler-room night (Salinas)</li>
+    <li>Regional reach in year one: Los Angeles, Fresno and Salinas bookings, from a community park day party (Woodley Park) to a historic club room (Los Globos)</li>
+    <li>A crowd-side education: five EDCs, Coachella, Beyond and Nocturnal Wonderland and Skyline documented on his own feed &mdash; he programs for festival crowds because he has been one</li>
+  </ul>
+
+  <hr/>
+  <h2>The quick version</h2>
+  <p>Necio (Jovanny Gonzalez) is a San Fernando Valley Latin House / Tech House DJ who came up through the crowd &mdash; five EDC Las Vegas editions and a shelf of Insomniac festivals documented on his own feed &mdash; before crossing the barrier as a YourShot USA finalist, debuting at Catch One in Los Angeles on November 15, 2025. In the ten months since, he has played a community park party in the Valley, Banda Rave in Fresno, a boiler-room Latin EDM night in Salinas, Pattern Bar&rsquo;s closing night in DTLA and a back-to-back at Los Globos&rsquo; Red Room, and his bio already points at his next date: SoundPeak&rsquo;s anniversary at Melrose House on November 7, 2026.</p>
+
+  <h2>Additional Details</h2>
+  <ul>
+    <li><strong>Name:</strong> Necio (Jovanny Gonzalez)</li>
+    <li><strong>Description:</strong> Latin House / Tech House DJ from the San Fernando Valley. YourShot USA finalist (debut at Catch One, Los Angeles, Nov 2025) with bookings across Los Angeles, Fresno and Salinas, including Banda Rave, Raveton and Los Globos&rsquo; Red Room.</li>
+    <li><strong>Genres:</strong> Latin House, Tech House (as submitted on his application; Banda Rave billing adds heavy techno, Raveton bills Latin EDM)</li>
+    <li><strong>Location:</strong> San Fernando Valley, California (as submitted &mdash; a region; his bio pins &ldquo;LA&bull;SFV&rdquo;)</li>
+    <li><strong>Bookings:</strong> Email jovannyg00.jg@gmail.com &middot; Phone 8187449883 &middot; Instagram @thats.necio</li>
+  </ul>
+</article>
+
+<!-- ORDER (Founder 2026-08-26): body -> TAP IN -> SUPPORT KEEPITIL -> Sources.
+     Support is the closing block of an article unless the article carries Sources, which take
+     the last slot instead. This article is research-based, so Sources close it. -->
+<div class="src-wrap tapin">
+  <h2>Tap in <span class="with">with Necio</span></h2>
+  <div class="tap-row">
+    <a href="https://www.instagram.com/thats.necio/" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg><span>Instagram</span></a>
+    <a href="https://posh.vip/f/eea44?t=neciob2bvangels" target="_blank" rel="noopener" aria-label="SoundPeak tickets on Posh" title="SoundPeak tickets on Posh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>SoundPeak 11/7</span></a>
+    <a href="tel:+18187449883" target="_blank" rel="noopener" aria-label="Bookings phone" title="Bookings phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Call</span></a>
+    <a href="mailto:jovannyg00.jg@gmail.com" aria-label="Bookings email" title="Bookings email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="4.5" width="19" height="15" rx="2.6"/><path d="M3 6.5l9 6.2 9-6.2"/></svg><span>Bookings</span></a>
+  </div>
+</div>
+
+<div class="foot-note">Quotes are Necio&rsquo;s own, from his Instagram posts and the event posts that bill him. Bookings: <a class="inline" href="mailto:jovannyg00.jg@gmail.com">jovannyg00.jg@gmail.com</a> &middot; <a class="inline" href="tel:+18187449883">818-744-9883</a>.</div>
+
+<section class="support">
+  <div class="box">
+    <div class="hd"><span class="dot">●</span> SUPPORT KEEPITIL</div>
+    <div class="lede">Partner referrals &amp; affiliate links — every link supports the scene. <em>(Amazon links are affiliate; KEEPITIL earns from qualifying purchases.)</em></div>
+    <div id="tpl-support"></div>
+  </div>
+</section>
+
+<div class="src-wrap">
+  <h2>Sources</h2>
+  <ul class="src-list">
+    <li>His KEEPITIL DJ application (ARTIST workbook, &ldquo;DJ Applications&rdquo; tab) &mdash; artist name, legal name, city (San Fernando Valley), genres, Instagram, bookings email, phone; applied 6/16/2026</li>
+    <li>Instagram profile @thats.necio (via connector, 2026-10-21) &mdash; bio (&ldquo;J.G. / LA&bull;SFV / DJ - Latin House/Tech House / @yourshot_usa FINALIST&rdquo;), 1,736 followers, 19 posts, bio link titled &ldquo;SOUNDPEAK 11/7&rdquo; &mdash; <a class="inline" href="https://www.instagram.com/thats.necio/" target="_blank" rel="noopener">instagram.com/thats.necio</a></li>
+    <li>Posh event page (his bio link) &mdash; SoundPeak 1 Year Anniversary @ Melrose House, Sat Nov 7, 2026 &mdash; <a class="inline" href="https://posh.vip/f/eea44?t=neciob2bvangels" target="_blank" rel="noopener">posh.vip</a></li>
+    <li>Instagram profile @yourshot_usa (via connector, 2026-10-21) &mdash; &ldquo;The World&rsquo;s Most Transformative DJ Competition&rdquo;</li>
+    <li>@thats.necio post, 2025-10-16 &mdash; <a class="inline" href="https://www.instagram.com/p/DP5fXRnlG8L/" target="_blank" rel="noopener">instagram.com/p/DP5fXRnlG8L</a> (DJ debut with @yourshot_usa, Nov 15, Catch One, Los Angeles; $20 physical tickets; promo code NECIO)</li>
+    <li>@thats.necio post, 2026-07-29 &mdash; <a class="inline" href="https://www.instagram.com/p/DbZ92fPFCDG/" target="_blank" rel="noopener">instagram.com/p/DbZ92fPFCDG</a> (b2b with @_manyyvibezz_, Aug 7, Los Globos Red Room; Electric Ave. flyer, 3040 Sunset Blvd, Los Angeles)</li>
+    <li>@thats.necio post, 2026-01-09 &mdash; <a class="inline" href="https://www.instagram.com/p/DTUgpPnFBDY/" target="_blank" rel="noopener">instagram.com/p/DTUgpPnFBDY</a> (Winter Jamz, Woodley Park, NECIO b2b I.M.EARL)</li>
+    <li>@leovillalobos reel, 2026-06-14 &mdash; <a class="inline" href="https://www.instagram.com/reel/DZlP620StbA/" target="_blank" rel="noopener">instagram.com/reel/DZlP620StbA</a> (Pattern Bar closing night, &ldquo;One Last Dance with @thats.necio&rdquo;)</li>
+    <li>@dndentertainment_official reel, 2026-03-15 &mdash; <a class="inline" href="https://www.instagram.com/reel/DV6sM6wkqkL/" target="_blank" rel="noopener">instagram.com/reel/DV6sM6wkqkL</a> and @dj_aaron01 post, 2026-03-04 &mdash; <a class="inline" href="https://www.instagram.com/p/DVfQO-0CjFo/" target="_blank" rel="noopener">instagram.com/p/DVfQO-0CjFo</a> (Banda Rave, Los Arcos, 1435 Fresno St, Fresno, Mar 20, 2026)</li>
+    <li>@montereycountyplur post, 2026-06-29 &mdash; <a class="inline" href="https://www.instagram.com/p/DaMbhiABoB3/" target="_blank" rel="noopener">instagram.com/p/DaMbhiABoB3</a> (Raveton, Salinas Rodeo weekend, July 18, boiler-room format)</li>
+    <li>@thats.necio festival posts &mdash; <a class="inline" href="https://www.instagram.com/p/DYmzgbTlOy5/" target="_blank" rel="noopener">EDC 2026</a>, <a class="inline" href="https://www.instagram.com/p/Cso8IZGykw8/" target="_blank" rel="noopener">EDC 2023</a>, <a class="inline" href="https://www.instagram.com/p/C6GAzztL_4k/" target="_blank" rel="noopener">Coachella 2024</a>, <a class="inline" href="https://www.instagram.com/p/CafoFOcP7x6/" target="_blank" rel="noopener">Skyline 2022</a>, plus EDC 2022, Nocturnal Wonderland 2022, Beyond Wonderland 2021/2025, Countdown NYE and HARD Summer 2025 posts on the same profile</li>
+  </ul>
+</div>
+</div>
+</main>
+<!-- "Keep reading" removed 2026-08-23 (Founder). -->
+
+<script>
+function kilShare(kind){var url=location.href,t=document.title;if(kind==='x'){window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(t)+'&url='+encodeURIComponent(url),'_blank');return;}if(kind==='native'&&navigator.share){navigator.share({title:t,url:url});return;}try{navigator.clipboard.writeText(url);var b=event&&event.currentTarget;if(b){var o=b.textContent;b.textContent='✓';setTimeout(function(){b.textContent=o;},1200);}}catch(e){prompt('Copy link:',url);}}
+(function(){var sh=document.getElementById('tpl-support');if(!sh)return;var items=[['Partner','FREECASH','Earn for the next fest','https://freecash.com/r/Tuitea','linear-gradient(160deg,#fbf3e6,#ffffff)',false],['Partner','DISTROKID','Put your music everywhere','https://distrokid.com/vip/seven/11538316','linear-gradient(160deg,#e6f6ef,#ffffff)',false],['Partner','POSH','List your event','https://posh.vip/create_group?ref=S-referral-mp9itc5j-wb9dbt','linear-gradient(160deg,#efe9fb,#ffffff)',false],['Partner','AMAZON','Shop gear &amp; support the scene','https://www.amazon.com/?tag=tuitea09-20','linear-gradient(160deg,#f5eefb,#ffffff)',true],['Shop','KEEPITIL STORE','Apparel, straight from the underground','https://illestratedlifestyle.com/collections/keepitil-apparel','linear-gradient(160deg,#e9f0fb,#ffffff)',false],['$34','KEEPITIL Logo Tee','Straight From The Underground','https://illestratedlifestyle.com/products/keepitil-logo-tee-straight-from-the-underground','linear-gradient(160deg,#eefbf3,#ffffff)',false],['$64','Create Loud Hoodie','Create Loud · Live Louder','https://illestratedlifestyle.com/products/keepitil-create-loud-live-louder-hoodie-1','linear-gradient(160deg,#fbeef6,#ffffff)',false],['$55','KEEPITIL Logo Crewneck','Underground EDM','https://illestratedlifestyle.com/products/keepitil-logo-crewneck-underground-edm','linear-gradient(160deg,#eef6fb,#ffffff)',false],['$30','KEEPITIL Logo Hat','Embroidered','https://illestratedlifestyle.com/products/keepitil-dad-hat-embroidered-underground-mark','linear-gradient(160deg,#fbf8e6,#ffffff)',false],['$45',"Women's Racerback Tank",'KEEPITIL Apparel','https://illestratedlifestyle.com/products/womens-racerback-tank','linear-gradient(160deg,#fbeeee,#ffffff)',false],['$37.50',"Men's Tank Top",'KEEPITIL Apparel','https://illestratedlifestyle.com/products/mens-tank-top','linear-gradient(160deg,#eefbfb,#ffffff)',false]];sh.innerHTML=items.map(function(it){var badge=it[5]?'<span style="position:absolute;top:8px;right:8px;background:#ff9900;color:#111;font-size:.56rem;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:5px;z-index:2">Amazon</span>':'';var cta=it[5]?'Shop on Amazon →':'Open →';return '<a href="'+it[3]+'" target="_blank" rel="noopener'+(it[5]?' sponsored nofollow':'')+'" data-kt="affiliate_click" style="position:relative;display:block;min-height:118px;border-radius:12px;overflow:hidden;border:1px solid rgba(30,15,60,.12);background:'+it[4]+';padding:14px;text-decoration:none;color:#160f24">'+badge+'<div style="position:relative;z-index:2"><div style="font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:#7c3aed">'+it[0]+'</div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.32rem;letter-spacing:.02em;margin:2px 0;line-height:1.05;color:#160f24">'+it[1]+'</div><div style="font-size:.76rem;color:#544c6b;line-height:1.35">'+it[2]+'</div><div style="font-size:.76rem;color:#0a8f5b;font-weight:700;margin-top:6px">'+cta+'</div></div></a>';}).join('');})();
+</script>
+<script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
+<script src="/keepitil-shell.js?v=20260929a" defer></script>
+</body>
+</html>

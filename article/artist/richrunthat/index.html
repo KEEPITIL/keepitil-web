@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-template="artist-article">
+<head>
+<!-- ══ ARTIST ARTICLE TEMPLATE ══════════════════════════════════════════════════════
+     KEEPITIL runs TWO article templates (Founder 2026-08-26):
+       1. /article/<title>          — editorial / history pieces. Closes with Sources.
+       2. /article/artist/<name>    — THIS ONE. Artist features. Closes with TAP IN (four
+                                      icons on one row) then SUPPORT KEEPITIL last.
+     Everything else is shared: landing panel, sticky composer bar, reading panel, backdrop
+     set per article on <body> via --artbg / --artbg-m.
+     ══════════════════════════════════════════════════════════════════════════════════ -->
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
+<meta name="robots" content="index,follow"/>
+<title>Richrunthat — The Vinyl Kid Who Came Back to Run the Room — KEEPITIL</title>
+<meta name="description" content="Richrunthat (Richard Barahona) is an Inglewood tech house, acid techno and hard techno producer/DJ, Duck Pond LA and Redline Records resident, and 6HOST&rsquo;s inaugural Headliner Academy headliner."/>
+<meta property="og:title" content="Richrunthat — The Vinyl Kid Who Came Back to Run the Room"/>
+<meta property="og:description" content="Vinyl-trained, back from an eight-year hiatus, now a Duck Pond LA resident and 6HOST&rsquo;s first Headliner Academy headliner — Inglewood&rsquo;s Richrunthat runs the room."/>
+<meta property="og:image" content="https://keepitil.com/assets/images/artbg-richrunthat.jpg"/>
+<meta property="og:type" content="article"/>
+<meta property="article:published_time" content="2026-10-21"/>
+<meta property="article:author" content="KEEPITIL"/>
+<meta property="og:url" content="https://keepitil.com/article/artist/richrunthat/"/>
+<meta property="og:site_name" content="KEEPITIL"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Richrunthat — The Vinyl Kid Who Came Back to Run the Room"/>
+<meta name="twitter:description" content="Richrunthat (Richard Barahona) is an Inglewood tech house, acid techno and hard techno producer/DJ, Duck Pond LA and Redline Records resident, and 6HOST&rsquo;s inaugural Headliner Academy headliner."/>
+<meta name="twitter:image" content="https://keepitil.com/assets/images/artbg-richrunthat.jpg"/>
+<link rel="canonical" href="https://keepitil.com/article/artist/richrunthat/"/>
+<link rel="stylesheet" href="/assets/css/tokens.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--measure:764px;--page:#f6f4fb;--card:#ffffff;--card2:#f2eefb;--ink:#191426;--ink2:#544c6b;--ink3:#8b839e;--line:rgba(30,15,60,.12);--blue:#5b21b6;--blue2:#7c3aed;--accent:#0071e3;--good:#0a8f5b;--fh:'Bebas Neue',sans-serif;--fs:'Fraunces',Georgia,serif;--fb:'Inter',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+/* ⚠ COLOUR ON <html>, BODY TRANSPARENT. An opaque body background paints OVER a negative
+   z-index ::before — the same trap that hid the backdrops on /create and /earn. */
+html{background:#0a0a0f}
+body{background:transparent;color:var(--ink);font-family:var(--fb);line-height:1.75;padding-bottom:40px}
+/* THE COVER IS FIXED FOR THE WHOLE ARTICLE (Founder 2026-08-23: "does not stay locked like the
+   homepage, through out the entire article"). It used to live inside .artlead, so it scrolled
+   away with the landing panel. position:fixed on body::before makes the article scroll OVER a
+   stationary image, exactly like the homepage. --artbg is set on <body style="--artbg:url('/assets/images/artbg-smoke.jpg');--artbg-m:url('/assets/images/artbg-smoke.jpg')"> per article. */
+/* DEFAULT BACKDROP = THE HOMEPAGE IMAGE (Founder 2026-08-23: "use the current background image
+   from the homepage as the default image always"). Articles used to point --artbg at a generated
+   pollinations.ai URL — a third-party image service that, when it fails to answer, leaves the
+   page with no backdrop at all. That is why it was missing. /assets/images/logo-bg.jpg is the same file the
+   homepage uses and it is served from our own origin, so it cannot disappear. An article may
+   still override --artbg with its own art; the default is now a real image, not nothing. */
+body::before{content:"";display:block!important;position:fixed;inset:0;z-index:-2;background:var(--bg,#0a0a0f) var(--artbg,url('/assets/images/logo-bg.jpg')) center/cover no-repeat;opacity:1}
+@media(max-width:860px){body::before{background-image:var(--artbg-m,var(--artbg,url('/assets/images/logo-bg.jpg')))}}
+/* ⚠ THE BACKDROP IS NEVER DARKENED (Founder 2026-08-23). No scrim, no filter, no opacity
+   change — the line above is the homepage's, verbatim. Two scrims were stacking here to roughly
+   84% black at the foot of the first screen. Text legibility is handled by text-shadow on the
+   type and by the reading panel's own background, NOT by dimming the artwork. Do not add an
+   overlay to this page. */
+/* NO page scrim — the image is never darkened. */
+.kil-social-bar{display:none!important}
+.hero{max-width:900px;margin:0 auto;padding:96px 22px 8px;text-align:center}
+.kick{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--blue2);background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:6px 16px;margin-bottom:18px}
+.hero h1{font-family:var(--fs);font-weight:900;font-size:clamp(2rem,5vw,3.2rem);line-height:1.07;letter-spacing:-.01em;color:#120e1f}
+.hero .deck{color:var(--ink2);font-size:1.16rem;line-height:1.55;margin:18px auto 0;max-width:620px}
+.meta{max-width:720px;margin:22px auto 0;padding:0 22px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;justify-content:center;color:var(--ink3);font-size:.82rem;font-weight:600}
+.meta .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue2));display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.78rem}
+.meta .who{color:var(--ink);font-weight:700}.meta .dot{color:var(--line)}
+.meta .share{display:inline-flex;gap:6px;margin-left:auto}
+.meta .share button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink2);cursor:pointer;font-size:.9rem;display:inline-flex;align-items:center;justify-content:center}
+.meta .share button:hover{border-color:var(--blue2);color:var(--blue2)}
+@media(max-width:560px){.meta .share{margin-left:0;width:100%;justify-content:center}}
+.cover{max-width:900px;margin:24px auto 0;padding:0 22px}
+.cover .band{position:relative;overflow:hidden;height:300px;border-radius:20px;background:linear-gradient(130deg,#f0a72022,#7c3aed22);border:1px solid var(--line)}
+.cover .band img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+@media(max-width:560px){.cover .band{height:220px}}
+.art{margin:0 auto}
+.art p{font-size:1.13rem;color:#2b2540;margin:22px 0;line-height:1.78}
+.art .lead{font-family:var(--fs);font-size:1.34rem;line-height:1.5;color:#170f26;font-weight:500}
+.art h2{font-family:var(--fs);font-weight:900;font-size:1.62rem;line-height:1.2;letter-spacing:-.01em;margin:48px 0 4px;color:#160f24}
+.art strong{color:#160f24;font-weight:700}
+.art a.inline{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(0,113,227,.35)}
+hr{border:0;border-top:1px solid var(--line);margin:42px 0}
+.pull{font-family:var(--fs);font-weight:600;font-size:1.5rem;line-height:1.35;color:var(--blue);border-left:4px solid var(--blue2);padding:6px 0 6px 20px;margin:34px 0}
+/* listen box */
+.listen{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0}
+.listen a{font-weight:800;font-size:.9rem;text-decoration:none;padding:12px 20px;border-radius:999px}
+.l-sc{background:none;border:2px solid #ff7700;color:#ff5500}
+.l-lyr{background:linear-gradient(90deg,var(--blue2),var(--accent));color:#fff}
+.support{max-width:760px;margin:44px auto 0;padding:0 22px}
+.support .box{border:1px solid var(--line);background:linear-gradient(180deg,#ffffff,#f4effc);border-radius:16px;padding:22px 24px}
+.support .hd{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.02rem;color:#160f24}.support .hd .dot{color:var(--good);font-size:.7rem}
+.support .lede{color:var(--ink2);font-size:.9rem;line-height:1.5;margin-top:8px}
+#tpl-support{display:flex;gap:12px;margin-top:16px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px}
+#tpl-support::-webkit-scrollbar{display:none}#tpl-support>a{flex:0 0 168px;scroll-snap-align:start}
+@media(max-width:560px){#tpl-support>a{flex:0 0 150px}}
+.related{max-width:760px;margin:46px auto 0;padding:0 22px}
+.related h3{font-family:var(--fh);font-size:1.5rem;letter-spacing:.03em;color:#160f24;margin-bottom:14px}
+.rel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.rel-card{display:block;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;transition:transform .18s,border-color .18s;box-shadow:0 4px 16px rgba(30,15,60,.04)}
+.rel-card:hover{transform:translateY(-3px);border-color:var(--blue2)}
+.rel-card .rc-cov{aspect-ratio:16/9;background:#eee7fb center/cover}
+.rel-card .rc-bd{padding:13px 15px 16px}.rel-card .rc-k{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--blue2)}
+.rel-card h4{font-family:var(--fs);font-weight:600;font-size:1.02rem;line-height:1.2;color:#160f24;margin-top:6px}
+.foot-note{max-width:720px;margin:42px auto 0;padding:16px 22px 0;color:var(--ink3);font-size:.86rem;border-top:1px solid var(--line);text-align:center}
+.src-wrap{margin:0 auto}
+.src-wrap h2{font-family:var(--fs);font-weight:900;font-size:1.4rem;margin:40px 0 6px;color:#160f24}
+.src-list{padding:0 0 0 20px;color:var(--ink2);font-size:.9rem}.src-list li{margin:8px 0}.src-list a{color:var(--accent)}
+
+/* ═══ ARTICLE TEMPLATE v2 (Founder 2026-08-23) ═══════════════════════════════════════════
+   Opens like the homepage: the cover art fills the first screen and the title sits at the foot
+   of it. Scroll, and the title collapses into a sticky bar with the byline + socials. Then the
+   body, then SUPPORT KEEPITIL, then Sources. */
+.artlead{position:relative;min-height:calc(100svh - 70px);min-height:calc(100dvh - 70px);
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:40px 22px 46px;margin:0;isolation:isolate}
+/* The panel is transparent — the art is the FIXED body backdrop now. This gradient only
+   deepens the foot of the first screen so the title reads against whatever is behind it. */
+/* NO landing scrim. Title legibility comes from text-shadow on the type only. */
+/* ONE MEASURE (Founder 2026-08-23: "the sides are different for the title, the filter and the
+   body ... needs to be uniformed"). Landing 900, bar 900, body 720 — three different left edges
+   down the page. All three now share --measure with the same 22px gutter, so the title, the
+   locked bar and the paragraphs start and end on exactly the same x. */
+.artlead .inner{max-width:var(--measure,764px);margin:0 auto;width:100%;padding:0 22px}
+.artlead .kick{display:inline-block;font-size:.68rem;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;color:#c9b8ff;margin-bottom:12px}
+.artlead h1{font-family:var(--fs);font-weight:900;color:#fff;line-height:1.03;letter-spacing:-.01em;
+  font-size:clamp(2.1rem,6.2vw,4rem);text-shadow:0 2px 8px rgba(0,0,0,.85),0 6px 34px rgba(0,0,0,.7)}
+.artlead .deck{color:#e4dff2;font-size:1.06rem;line-height:1.55;margin-top:14px;max-width:640px;
+  text-shadow:0 2px 6px rgba(0,0,0,.9),0 4px 18px rgba(0,0,0,.6)}
+/* 16:9 on desktop, 9:16 on mobile — the same two-crop rule the section pages use. */
+@media(max-width:860px){
+  .artlead{min-height:calc(100svh - env(safe-area-inset-top,0px));
+    min-height:calc(100dvh - env(safe-area-inset-top,0px))}
+}
+/* Sticky bar: title + byline + socials. Under 950 so it passes BEHIND the bottom nav. */
+/* Sticks UNDER the shell's fixed 70px top nav — top:0 parked it behind that nav, which reads as
+   "not locking" because you never see it (Founder 2026-08-23). z-index 940 keeps it below the
+   bottom nav (950) and the radio bar (9998), so it passes BEHIND both, which is what the rest of
+   the site does. Mobile has no fixed top bar, so there it grows into the status-bar band. */
+/* top:62px — the shell nav is 66px tall. The bar tucks 4px UNDER it so there is no seam,
+   and the nav is on a higher layer so the overlap is never visible.
+   ⚠ The old fix was a ::before painting 18px of bar colour ABOVE the bar. That worked while
+   the bar was stuck (the strip hid behind the nav) but the bar starts life IN FLOW under the
+   hero, where nothing covered it — so the strip rendered as a band of dead space above the
+   row. Founder 2026-08-26: "extra space at the top of the filter bar ... needs to be the
+   same space above and below evenly." Overlap closes the seam without painting anything. */
+.artbar{position:sticky;top:62px;z-index:940;background:#0b0b12;color:#fff;
+  border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.45)}
+
+.artbar .row{max-width:var(--measure,764px);margin:0 auto;padding:10px 22px;display:flex;align-items:center;gap:12px}
+.artbar .soc{margin-left:auto}
+.artbar .t{font-family:var(--fs);font-weight:900;font-size:.98rem;line-height:1.15;color:#fff;
+  flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.artbar .who{font:800 .78rem Inter,sans-serif;letter-spacing:.02em;color:#fff}
+.artbar .soc{display:inline-flex;gap:4px;flex:0 0 auto}
+.artbar .soc a,.artbar .soc button{width:32px;height:32px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#cfd3df;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;font-size:.82rem;text-decoration:none}
+.artbar .soc a:hover,.artbar .soc button:hover{border-color:#00e0a4;color:#00e0a4}
+.artbar .soc svg{width:16px;height:16px;display:block}
+@media(max-width:520px){.artbar .soc a,.artbar .soc button{width:28px;height:28px}.artbar .soc svg{width:14px;height:14px}}
+/* Founder 2026-08-26: offset BELOW the black status layer, no padding. The old rule was
+   grow-and-pad (top:0 + padding-top:inset) — that padding is bar-coloured, so on a notched
+   phone it rendered as empty chrome above the row and the bar looked top-heavy. Same fix
+   already applied to every other sticky deck on the site. */
+@media(max-width:860px){.artbar{top:var(--kil-safe-top,0px)}}
+@media(max-width:700px){.artbar .who{font-size:.72rem}}
+
+/* READING PANEL (Founder 2026-08-23: "some transparency behind the articles text to make the
+   font color easier to read"). The article is dark type on a light theme, so the panel is light
+   and translucent — dark-on-photo would be unreadable. Opaque enough to hold body copy, sheer
+   enough that the artwork still shows through. */
+.artpanel{max-width:var(--measure,764px);margin:0 auto;background:rgba(252,250,255,.86);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.55);border-radius:20px;
+  box-shadow:0 20px 60px rgba(0,0,0,.45);padding:30px 0 34px;margin-top:26px}
+.artpanel .art,.artpanel .src-wrap,.artpanel .support .box{max-width:none;padding-left:22px;padding-right:22px}
+.artpanel .foot-note{border-top-color:rgba(30,15,60,.14)}
+/* The panel already provides the space above the first line via its own padding. Without this
+   the lead paragraph adds its 22px `.art p` top margin on top of that — 52px of dead space
+   above the opening sentence, and visibly more than the gap under the last one.
+   Founder 2026-08-26: "extra spacing above the text ... shorten it". */
+.artpanel .art>*:first-child{margin-top:0}
+@media(max-width:700px){.artpanel{border-radius:14px;padding:22px 0 26px;margin-top:16px}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* TAP IN — four marks on one row (Founder 2026-08-26), directly above SUPPORT KEEPITIL, which
+   is now always the closing block of an article unless there are Sources. */
+.tapin .with{font-weight:600;opacity:.62}
+.tap-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.tap-row a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  padding:16px 6px;border-radius:14px;text-decoration:none;color:#160f24;
+  border:1px solid rgba(30,15,60,.14);background:rgba(255,255,255,.62);
+  transition:border-color .18s,transform .18s,background .18s}
+.tap-row a:hover{border-color:#7c3aed;color:#7c3aed;transform:translateY(-2px);background:#fff}
+.tap-row svg{width:24px;height:24px;display:block}
+.tap-row span{font:800 .68rem Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:center}
+@media(max-width:520px){.tap-row{gap:7px}.tap-row a{padding:13px 4px}
+  .tap-row svg{width:21px;height:21px}.tap-row span{font-size:.58rem;letter-spacing:.03em}}
+</style>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Richrunthat - The Vinyl Kid Who Came Back to Run the Room", "description": "Richrunthat (Richard Barahona) is an Inglewood tech house, acid techno and hard techno producer/DJ, Duck Pond LA and Redline Records resident, and 6HOST’s inaugural Headliner Academy headliner.", "image": ["https://keepitil.com/assets/images/artbg-richrunthat.jpg"], "mainEntityOfPage": {"@type": "WebPage", "@id": "https://keepitil.com/article/artist/richrunthat"}, "about": {"@type": "Person", "name": "Richard Barahona", "alternateName": "Richrunthat", "jobTitle": "DJ", "sameAs": ["https://www.instagram.com/richrunthat/", "https://richrunthat.merlin.site", "https://on.soundcloud.com/1qLnPFnYLeda80Ev7V"]}, "author": {"@type": "Organization", "name": "KEEPITIL", "url": "https://keepitil.com"}, "publisher": {"@type": "Organization", "name": "KEEPITIL", "logo": {"@type": "ImageObject", "url": "https://keepitil.com/icon-512.png"}}, "inLanguage": "en-US"}</script>
+</head>
+<body style="--artbg:url('/assets/images/artbg-richrunthat.jpg');--artbg-m:url('/assets/images/artbg-richrunthat.jpg')">
+<main id="content">
+<!-- LANDING: cover art fills the screen, title at the foot of it. The image is set as a CSS
+     variable so this template works for any article by swapping one value. -->
+<header class="artlead">
+  <div class="inner">
+    <span class="kick">KEEPITIL PRESENTS</span>
+    <h1>Richrunthat — The Vinyl Kid Who Came Back to Run the Room</h1>
+    <p class="deck">Plenty of DJs come back. Richrunthat came back, took the residencies, the rooftops and the warehouse openers &mdash; and got named his scene&rsquo;s first headliner.</p>
+  </div>
+</header>
+
+<!-- Locked bar: composer + KEEPITIL socials + share. No title — the headline belongs to the
+     landing panel and is not repeated here (Founder 2026-08-23). -->
+<!-- Locked bar: composer + real KEEPITIL social marks + share. No "K" badge — that letter was
+     never the brand (Founder 2026-08-23). Same measure as the title and the body copy. -->
+<div class="artbar">
+  <div class="row">
+    <span class="who">KEEPITIL</span>
+    <span class="soc">
+      <a href="https://www.instagram.com/keepitil/" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg></a>
+      <a href="https://www.facebook.com/keepitil" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06C2 17.08 5.66 21.25 10.44 22v-7.03H7.9v-2.91h2.54V9.85c0-2.52 1.49-3.91 3.77-3.91 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.89h2.78l-.44 2.91h-2.34V22C18.34 21.25 22 17.08 22 12.06z"/></svg></a>
+      <a href="https://www.tiktok.com/@keepitil" target="_blank" rel="noopener" aria-label="TikTok" title="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.82A4.96 4.96 0 0 1 15.4 2.5h-3.23v13.02a2.61 2.61 0 1 1-1.86-2.5V9.72a5.83 5.83 0 1 0 5.09 5.79V9.3a8.2 8.2 0 0 0 4.6 1.42V7.5a4.96 4.96 0 0 1-3.4-1.68z"/></svg></a>
+      <a href="https://youtube.com/@keepitil" target="_blank" rel="noopener" aria-label="YouTube" title="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 12s0-3.9-.5-5.79a3 3 0 0 0-2.11-2.11C18.5 3.6 12 3.6 12 3.6s-6.5 0-8.39.5A3 3 0 0 0 1.5 6.21C1 8.1 1 12 1 12s0 3.9.5 5.79a3 3 0 0 0 2.11 2.11c1.89.5 8.39.5 8.39.5s6.5 0 8.39-.5a3 3 0 0 0 2.11-2.11C23 15.9 23 12 23 12zM9.8 15.6V8.4l6.2 3.6-6.2 3.6z"/></svg></a>
+      <a href="https://x.com/keepitil" target="_blank" rel="noopener" aria-label="X" title="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.65l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.82l4.71 6.23 5.46-6.23zm-1.16 17.52h1.83L7.01 4.13H5.05l12.03 15.64z"/></svg></a>
+      <a href="mailto:info@keepitil.com" aria-label="Email" title="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="4.5" width="19" height="15" rx="2.6"/><path d="M3 6.5l9 6.2 9-6.2"/></svg></a>
+      <button aria-label="Share" title="Share" onclick="kilShare('native')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
+    </span>
+  </div>
+</div>
+
+<div class="artpanel">
+<article class="art">
+
+  <p class="lead">In August 2026, 6HOST Records did something it had never done: it named a headliner. Not booked one &mdash; named one, the way a school names a graduating class. &ldquo;RICHRUNTHAT HAS OFFICIALLY BEEN SELECTED AS THE INAUGURAL HEADLINER OF HEADLINER ACADEMY &mdash; CLASS I,&rdquo; the announcement read. &ldquo;Not because he was given the title. Because he earned it.&rdquo; The room was Proof Bar in Santa Ana, the date was Thursday, August 20, and the DJ being inducted was an Inglewood producer who, fifteen years earlier, had learned to mix on vinyl &mdash; then walked away from the decks for eight years.</p>
+
+  <p>That arc &mdash; vinyl kid, long silence, full-time comeback &mdash; is the whole Richrunthat story in one line. Richrunthat (Richard Barahona) plays tech house, acid techno and hard techno, holds residencies with Duck Pond LA and Redline Records, and in the span of a single year went from returning DJ to the first name on his scene&rsquo;s headliner roster. His own website puts the offer plainly: &ldquo;Producer and DJ delivering high-energy tech house and hard techno sets.&rdquo;</p>
+
+  <h2>Learned on vinyl, lost to the pause</h2>
+  <p>His most complete biography is one he posted himself, in the VOLUME 031 feature his feed carried in May 2025: &ldquo;RICH RUN THAT is a passionate Tech House and Techno DJ with a rich musical background rooted in 90&rsquo;s hip hop. He learned to DJ on vinyl 15 years ago, honing his craft on Technics 1200MK5s paired with a Vestax PMC-05 Pro. After an 8-year hiatus, he rediscovered his love for DJing two years ago and made the bold decision to pursue his dream of becoming a full-time DJ. Known for his seamless mixing and deep grooves, RICH RUN THAT delivers an authentic and energetic vibe with every set.&rdquo;</p>
+  <p>Read that gear list again. Technics 1200MK5s and a Vestax PMC-05 Pro are a hip-hop DJ&rsquo;s tools &mdash; a battle-era setup, learned by hand, with no sync button to lean on. The &rsquo;90s hip-hop root explains a lot about what came later: the edits catalogue is built from Dr. Dre, Juicy J and Bad Bunny, flipped into tech house weapons. The eight-year hiatus explains the rest &mdash; the hunger in the current run doesn&rsquo;t read like a hobbyist&rsquo;s. It reads like a man making up for a decade.</p>
+
+  <h2>The sound: three lanes, one driver</h2>
+  <p>His application to KEEPITIL lists tech house and acid techno; his Instagram bio widens it to &ldquo;Tech House/ Acid Techno / Hard Techno,&rdquo; and his website&rsquo;s About section states the mission in his own words: &ldquo;I&rsquo;m Rich, a producer and DJ creating high-energy sets across tech house, acid techno, and hard techno. I play for listeners, dancers, and event teams looking for a bold underground sound with real crowd connection. From edits and original production to live DJ sets, I bring intensity, rhythm, and a personal edge to every room.&rdquo;</p>
+  <p>The lanes show up as distinct bookings, not just bio copy. The tech house side is the Breach Fridays and Space Taco Tuesdays side &mdash; groovy, vocal, edit-heavy. The acid side is the Framed Events side: a midnight rooftop set in LA (&ldquo;Had so much fun playing Acid Techno on a rooftop in LA! Thank you @framed.events for having me!&rdquo;) and a 4 a.m. set he billed himself with &ldquo;Give me some f**king Acid techno&rdquo; and the hashtag #DemonTime. The hard techno side is the warehouse side: his September 2026 debut for Tech My Warehouse LA&rsquo;s WIDE AWAKE, where he took the 10 p.m. opening set on the hard techno stage &mdash; &ldquo;I&rsquo;m setting the tone for WIDE AWAKE all night&rdquo; &mdash; and a week later posted the opener&rsquo;s creed: &ldquo;Opening a warehouse rave hits different.&rdquo;</p>
+
+  <h2>Resident, not guest</h2>
+  <p>His bio carries the line promoters look for first: &ldquo;Resident DJ @duckpxndla / @redlinerecords.us.&rdquo; Duck Pond LA (Duckpxnd) bills itself &ldquo;HARD TECHNO | HOUSE | &amp; MORE,&rdquo; and Richrunthat is woven through its 2026 calendar &mdash; a 1&ndash;2 a.m. set in May, a midnight set the following week plus the 3&ndash;4:30 a.m. closing back-to-back with RAVE GOD, a 2&ndash;3 a.m. slot at ENTRAPMENT, the opening slot at ERROR in June, and a 4&ndash;5 a.m. close he announced as &ldquo;closing out the night with industrial.&rdquo; With Redline Records &mdash; a house and techno events label &mdash; he plays the Rave &amp; Brew series with Floored Entertainment at Dayli Coffee, including a 12:35 a.m. night-edition set.</p>
+  <p>Residency is a different credential from a guest slot. A guest gets booked for a night; a resident gets trusted with the room&rsquo;s shape &mdash; opening it, closing it, and going back-to-back with the headliner in the final ninety minutes. His Duck Pond run covers all three jobs.</p>
+
+  <h2>The circuit</h2>
+  <p>Around the residencies sits a working SoCal underground circuit. Breach Fridays is family &mdash; Space Taco&rsquo;s own birthday post for him notes he comes &ldquo;straight from our Breach Fridays family,&rdquo; and his posted Breach tracklists are a signature in miniature: his own Dr. Dre &ldquo;Let&rsquo;s Get High&rdquo; edit and ATC &ldquo;Around The World&rdquo; edit next to Chris Lorenzo, HNTR, Odd Mob and FOVOS, plus his unreleased original &ldquo;Cocaine&rdquo; tested mid-set. Space Taco Tuesdays in Pomona gave him a debut that doubled as his birthday set in August 2026 &mdash; &ldquo;Tonight, Rich is throwing down a special birthday set AND making his Space Taco debut!&rdquo; &mdash; and his own recap tracklist leads with his original &ldquo;Alcoholic&rdquo; and his Bad Bunny &ldquo;Soy Peor&rdquo; edit.</p>
+  <p>The rest of the map: Proof Bar in Santa Ana, repeatedly, with the 6HOST circle (including the July 2026 TMZEE takeover bill he shared with fellow KEEPITIL applicant Smoke); HOLYSH#T &times; 6HOST nights at 1926 E 7th Place in DTLA, where his back-to-back with RAVE GOD drew his favorite review &mdash; his own: &ldquo;One of the best feelings of DJ is getting crowd reactions like this&rdquo;; a DTLA rooftop for Teknlgy and Human Saint at Somewhere Special LA; Helipad Society&rsquo;s SHUFFLES, where he sits at the top of the flyer; an NYE 2026 afters lineup in Orange County alongside RAVE GOD and TMZEE; and a beach day in July 2026 &mdash; the KEEPITIL Summer gathering at Magnolia &amp; CA-1 &mdash; where he played his Bad Bunny edit on the sand and &ldquo;ended the night with a crazy techno b2b2b&rdquo; with Lyk N Key and RAVE GOD. In July he was also campaigning, link in bio, for votes to become the Splash House opener &mdash; the hustle running in every direction at once.</p>
+  <p>And then the Headliner Academy induction in August, which is what a year of that circuit adds up to. 6HOST&rsquo;s citation is specific about why: &ldquo;After a year of watching artists grow, evolve, take risks, command rooms, and help build the 6H0ST movement&hellip;&rdquo; He didn&rsquo;t just play the scene&rsquo;s rooms; he helped build the movement that runs them, and the movement said so on the record.</p>
+
+  <h2>The production pivot</h2>
+  <p>The most telling post in his feed might be the quiet one from June 2026: &ldquo;Haven&rsquo;t recorded a tech house set in months since I&rsquo;ve been putting all my focus on production. Here&rsquo;s a new set with a bunch of my personal ID&rsquo;s.&rdquo; The IDs became a catalogue. Originals out on all platforms include &ldquo;Alcoholic,&rdquo; &ldquo;Illegal Export&rdquo; and &ldquo;Drug Addiction.&rdquo; The edit run &mdash; most of it posted to SoundCloud as free downloads, five of them pinned in his Instagram bio links &mdash; reworks Kaskade&rsquo;s &ldquo;Angel On My Shoulder&rdquo; (his pinned link), Bad Bunny&rsquo;s &ldquo;Soy Peor,&rdquo; Dr. Dre&rsquo;s &ldquo;Let&rsquo;s Get High,&rdquo; Juicy J&rsquo;s &ldquo;Bandz A Make Her Dance,&rdquo; ATC&rsquo;s &ldquo;Around The World&rdquo; and Calvin Harris&rsquo;s &ldquo;One Kiss&rdquo; (an acid edit). The workflow is documented in his reels: &ldquo;Straight from #FLStudio to the USB and SoundCloud.&rdquo;</p>
+  <p>In July he set the pace publicly &mdash; &ldquo;Dropping music weekly till a label notices me&rdquo; &mdash; and in October he was on the radio side of the craft, interviewed by Alley Kat on UGN Rave Radio. The clip he chose to share is the producer&rsquo;s confession every producer recognizes: &ldquo;You finish a session in the middle of the night thinking you just made the best song of your life&hellip; wake up the next morning, press play, and it sounds like a completely different track.&rdquo; That&rsquo;s not a DJ talking about other people&rsquo;s records. That&rsquo;s a producer talking about his own.</p>
+
+  <h2>Why book Richrunthat</h2>
+  <ul>
+    <li>Residency-tested: resident DJ for Duck Pond LA and Redline Records &mdash; trusted to open (WIDE AWAKE hard techno stage, 10 p.m.), close (Duck Pond 4&ndash;5 a.m. industrial close) and go b2b with headliners in the final slot</li>
+    <li>A named headliner: selected by 6HOST Records as the inaugural Headliner Academy &mdash; Class I headliner (Proof Bar, Santa Ana, Aug 20, 2026) &mdash; &ldquo;Not because he was given the title. Because he earned it.&rdquo;</li>
+    <li>Three bookable lanes in one DJ: tech house (Breach Fridays, Space Taco Tuesdays), acid techno (Framed Events rooftops and afters), hard techno (Tech My Warehouse LA, Duck Pond)</li>
+    <li>A producer&rsquo;s set, not just a selector&rsquo;s: originals on all platforms (&ldquo;Alcoholic,&rdquo; &ldquo;Illegal Export,&rdquo; &ldquo;Drug Addiction&rdquo;) plus a SoundCloud free-download edit catalogue (Kaskade, Bad Bunny, Dr. Dre, Juicy J, ATC) that he tests in his own sets</li>
+    <li>Vinyl foundation: learned on Technics 1200MK5s with a &rsquo;90s hip-hop background &mdash; &ldquo;seamless mixing and deep grooves,&rdquo; per his VOLUME 031 bio &mdash; and a full-time DJ since his return, interviewed on UGN Rave Radio</li>
+  </ul>
+
+  <hr/>
+  <h2>The quick version</h2>
+  <p>Richrunthat (Richard Barahona) is an Inglewood producer and DJ working tech house, acid techno and hard techno. He learned to DJ on vinyl fifteen years ago, took an eight-year hiatus, and came back two years ago to do it full-time &mdash; since then he has become a resident for Duck Pond LA and Redline Records, a Breach Fridays and Space Taco regular, a Framed Events and Tech My Warehouse LA player, and, in August 2026, 6HOST Records&rsquo; inaugural Headliner Academy headliner. His originals (&ldquo;Alcoholic,&rdquo; &ldquo;Illegal Export,&rdquo; &ldquo;Drug Addiction&rdquo;) and his hip-hop-flip edit catalogue are the sound; the residencies are the proof.</p>
+
+  <h2>Additional Details</h2>
+  <ul>
+    <li><strong>Name:</strong> Richrunthat (Richard Barahona)</li>
+    <li><strong>Description:</strong> Inglewood producer/DJ. Tech house, acid techno and hard techno. Resident DJ for Duck Pond LA (@duckpxndla) and Redline Records (@redlinerecords.us); 6HOST Records&rsquo; inaugural Headliner Academy headliner. Vinyl-trained (Technics 1200MK5s, Vestax PMC-05 Pro), rooted in &rsquo;90s hip hop, full-time since returning from an eight-year hiatus.</li>
+    <li><strong>Genres:</strong> Tech House / Acid Techno (per his application); Tech House / Acid Techno / Hard Techno (his Instagram bio and website)</li>
+    <li><strong>Location:</strong> Inglewood, California &mdash; his April application listed Anaheim; the later June submission says Inglewood, which is used here</li>
+    <li><strong>Bookings:</strong> Email richardbarahona86@gmail.com &middot; Phone 310-462-1550 &middot; Instagram @Richrunthat (&ldquo;DM me for bookings&rdquo;)</li>
+    <li><strong>Listen:</strong> SoundCloud via his Instagram bio links &mdash; &ldquo;Angel On My Shoulder (richrunthat edit)&rdquo; (pinned), &ldquo;Bandz A Make Her Dance&rdquo; (Juicy J edit), &ldquo;Let&rsquo;s Get High&rdquo; (Dr. Dre edit), &ldquo;Around The World&rdquo; (ATC remix); website richrunthat.com</li>
+  </ul>
+</article>
+
+<!-- ORDER (Founder 2026-08-26): body -> TAP IN -> SUPPORT KEEPITIL -> Sources.
+     Support is the closing block of an article unless the article carries Sources, which take
+     the last slot instead. This article is research-based, so Sources close it. -->
+<div class="src-wrap tapin">
+  <h2>Tap in <span class="with">with Richrunthat</span></h2>
+  <div class="tap-row">
+    <a href="https://www.instagram.com/richrunthat/" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg><span>Instagram</span></a>
+    <a href="https://on.soundcloud.com/1qLnPFnYLeda80Ev7V" target="_blank" rel="noopener" aria-label="SoundCloud" title="SoundCloud"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M1.8 14.6l.6 1.9.6-1.9-.6-4-.6 4zm2.1-4.3l.65 5.1.65-5.1-.65-2.5-.65 2.5zm2.15-1.9l.65 8.3.65-8.3-.65-1.7-.65 1.7zm2.15-.9l.65 10 .65-10-.65-1.3-.65 1.3zm2.15-.7v11.3l.7.35c.45.2.95.3 1.5.3h4.35c1.95 0 3.5-1.55 3.5-3.5 0-1.8-1.3-3.25-3.05-3.45-.3-1.9-1.95-3.3-3.95-3.3-.5 0-1 .08-1.45.25l-.6-.95z"/></svg><span>SoundCloud</span></a>
+    <a href="https://richrunthat.merlin.site" target="_blank" rel="noopener" aria-label="richrunthat.com" title="richrunthat.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5c2.6 2.6 3.9 5.9 3.9 9.5s-1.3 6.9-3.9 9.5c-2.6-2.6-3.9-5.9-3.9-9.5S9.4 5.1 12 2.5z"/></svg><span>Website</span></a>
+    <a href="tel:+13104621550" target="_blank" rel="noopener" aria-label="Bookings phone" title="Bookings phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Call</span></a>
+    <a href="mailto:richardbarahona86@gmail.com" aria-label="Bookings email" title="Bookings email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="4.5" width="19" height="15" rx="2.6"/><path d="M3 6.5l9 6.2 9-6.2"/></svg><span>Bookings</span></a>
+  </div>
+</div>
+
+<div class="foot-note">Quotes are Richrunthat&rsquo;s own, from his Instagram posts, his VOLUME 031 bio and his website. Bookings: <a class="inline" href="mailto:richardbarahona86@gmail.com">richardbarahona86@gmail.com</a> &middot; <a class="inline" href="tel:+13104621550">310-462-1550</a>.</div>
+
+<section class="support">
+  <div class="box">
+    <div class="hd"><span class="dot">●</span> SUPPORT KEEPITIL</div>
+    <div class="lede">Partner referrals &amp; affiliate links — every link supports the scene. <em>(Amazon links are affiliate; KEEPITIL earns from qualifying purchases.)</em></div>
+    <div id="tpl-support"></div>
+  </div>
+</section>
+
+<div class="src-wrap">
+  <h2>Sources</h2>
+  <ul class="src-list">
+
+    <li>His KEEPITIL DJ application (ARTIST workbook, &ldquo;DJ Applications&rdquo; tab) &mdash; name, legal name, city (Inglewood; Anaheim in the April filing), genres, Instagram, email, phone, application date 4/14/2026 (two submissions merged)</li>
+    <li>Instagram profile @richrunthat (via connector, 2026-10-21) &mdash; bio (&ldquo;Producer / Tech House/ Acid Techno / Hard Techno DM me for bookings / Resident DJ @duckpxndla / @redlinerecords.us&rdquo;), bio links (four SoundCloud edit links + richrunthat.com), 1,899 followers, 936 following, 141 posts, public creator account</li>
+    <li>His website, richrunthat.com &mdash; <a class="inline" href="https://richrunthat.merlin.site" target="_blank" rel="noopener">richrunthat.merlin.site</a> (fetched 2026-10-21) &mdash; &ldquo;Producer and DJ delivering high-energy tech house and hard techno sets&rdquo;; About section (quoted); follower count shown 1,883</li>
+    <li>@richrunthat post, 2025-05-12 &mdash; <a class="inline" href="https://www.instagram.com/p/DJkqdkMyoJC/" target="_blank" rel="noopener">instagram.com/p/DJkqdkMyoJC</a> (VOLUME 031 bio: vinyl on Technics 1200MK5s + Vestax PMC-05 Pro, &rsquo;90s hip-hop roots, 8-year hiatus, full-time return &mdash; quoted in full)</li>
+    <li>@6host.records / @richrunthat post, 2026-08-12 &mdash; <a class="inline" href="https://www.instagram.com/p/Db8gmBonFrR/" target="_blank" rel="noopener">instagram.com/p/Db8gmBonFrR</a> (Headliner Academy &mdash; Class I inaugural headliner announcement; Proof Bar, Santa Ana, Thursday August 20; &ldquo;Not because he was given the title. Because he earned it.&rdquo;)</li>
+    <li>Instagram profile @duckpxndla (via connector, 2026-10-21) &mdash; &ldquo;SWIM WITH DUCKPOND / HARD TECHNO | HOUSE | &amp; MORE,&rdquo; 3,172 followers, 121 posts; Instagram profile @redlinerecords.us (via connector, 2026-10-21) &mdash; &ldquo;House + Techno Events / Record Label,&rdquo; 4,152 followers</li>
+    <li>Duck Pond set-time posts, 2026-05-13, 2026-05-18, 2026-05-26, 2026-06-21 &mdash; <a class="inline" href="https://www.instagram.com/p/DYTgBoRziU8/" target="_blank" rel="noopener">1&ndash;2 a.m. set</a>; <a class="inline" href="https://www.instagram.com/p/DYgWB4dTTM1/" target="_blank" rel="noopener">midnight set + 3&ndash;4:30 a.m. closing b2b with RAVE GOD</a>; <a class="inline" href="https://www.instagram.com/p/DY0mfVKTvnj/" target="_blank" rel="noopener">ENTRAPMENT 2&ndash;3 a.m.</a>; <a class="inline" href="https://www.instagram.com/p/DZ3hab3Tvpf/" target="_blank" rel="noopener">ERROR opening slot</a>; @richrunthat post, 2026-06-03 &mdash; <a class="inline" href="https://www.instagram.com/p/DZIazzCR_hv/" target="_blank" rel="noopener">instagram.com/p/DZIazzCR_hv</a> (4&ndash;5 a.m. close, &ldquo;closing out the night with industrial&rdquo;)</li>
+    <li>@richrunthat posts, 2026-08-13 and 2026-08-15 &mdash; <a class="inline" href="https://www.instagram.com/p/Db_RevpHGOo/" target="_blank" rel="noopener">instagram.com/p/Db_RevpHGOo</a>, <a class="inline" href="https://www.instagram.com/p/Db84qHND2wf/" target="_blank" rel="noopener">instagram.com/p/Db84qHND2wf</a> (HOLYSH#T &times; 6HOST, 1926 E 7th Pl, DTLA, Aug 14, 2026); reel, 2026-08-17 &mdash; &ldquo;One of the best feelings of DJ is getting crowd reactions like this&rdquo; (b2b with @imravegod)</li>
+    <li>@6host.records posts, 2026-07-14 and 2026-06-12 &mdash; TMZEE takeover at Proof Bar, July 16, 2026 (lineup: SMOKE, RICHRUNTHAT, TMZEE, Manuel Silva); @imravegod post, 2026-09-14 &mdash; <a class="inline" href="https://www.instagram.com/p/DdSMxuMAduN/" target="_blank" rel="noopener">instagram.com/p/DdSMxuMAduN</a> (Rave God takeover of Proof Bar bringing @richrunthat and @mamicrvsh)</li>
+    <li>@spacetaco.tuesdays posts, 2026-08-25 and 2026-08-28 &mdash; <a class="inline" href="https://www.instagram.com/p/DcePtTGmlEB/" target="_blank" rel="noopener">instagram.com/p/DcePtTGmlEB</a> (birthday set + Space Taco debut; &ldquo;Coming straight from our Breach Fridays family&rdquo;) and <a class="inline" href="https://www.instagram.com/p/Dcl0z66Gx-V/" target="_blank" rel="noopener">instagram.com/p/Dcl0z66Gx-V</a> (set recap tracklist: &ldquo;Alcoholic,&rdquo; Bad Bunny &ldquo;Soy Peor&rdquo; edit; location The Basement)</li>
+    <li>@richrunthat posts, 2026-07-04 and 2026-08-11 &mdash; <a class="inline" href="https://www.instagram.com/p/DaZOudBFI0e/" target="_blank" rel="noopener">instagram.com/p/DaZOudBFI0e</a>, <a class="inline" href="https://www.instagram.com/p/Db6UsihD4Um/" target="_blank" rel="noopener">instagram.com/p/Db6UsihD4Um</a> (Breach Fridays recaps with full tracklists, incl. his Dr. Dre and ATC edits and the unreleased ID &ldquo;Cocaine&rdquo;)</li>
+    <li>@richrunthat posts, 2026-09-05 and 2026-09-06 &mdash; <a class="inline" href="https://www.instagram.com/p/Dc7KGrLvBuG/" target="_blank" rel="noopener">instagram.com/p/Dc7KGrLvBuG</a>, <a class="inline" href="https://www.instagram.com/p/Dc-Nvi1FF3j/" target="_blank" rel="noopener">instagram.com/p/Dc-Nvi1FF3j</a> (Framed Events rooftop acid techno); post, 2026-08-08 &mdash; <a class="inline" href="https://www.instagram.com/p/DbysINySXDl/" target="_blank" rel="noopener">instagram.com/p/DbysINySXDl</a> (4 a.m. acid techno set, #DemonTime)</li>
+    <li>@richrunthat posts, 2026-09-16 and 2026-09-24 &mdash; <a class="inline" href="https://www.instagram.com/p/DdW2YG-BI9F/" target="_blank" rel="noopener">instagram.com/p/DdW2YG-BI9F</a>, <a class="inline" href="https://www.instagram.com/p/DdsA_QFj8pt/" target="_blank" rel="noopener">instagram.com/p/DdsA_QFj8pt</a> (Tech My Warehouse LA debut, WIDE AWAKE, Sept 26, 2026, opening set 10 p.m., hard techno stage); his website gallery flyer (WIDE AWAKE Hard Techno Stage lineup, Sept 26th, secret DTLA location); reel, 2026-10-01 &mdash; &ldquo;Opening a warehouse rave hits different&rdquo;</li>
+    <li>@richrunthat production posts &mdash; 2026-06-21 <a class="inline" href="https://www.instagram.com/p/DZ3jU7dMQlj/" target="_blank" rel="noopener">instagram.com/p/DZ3jU7dMQlj</a> (&ldquo;putting all my focus on production&rdquo;); 2026-06-26 &ldquo;Drug Addiction&rdquo; on all platforms; 2026-07-15 reel (&ldquo;Dropping music weekly till a label notices me&rdquo;); 2026-07-18 &ldquo;Illegal Export&rdquo; on all platforms; 2026-08-30 &ldquo;Alcoholic&rdquo; on all platforms; FL Studio / SoundCloud workflow reels, July 2026</li>
+    <li>@richrunthat reel, 2026-10-16 &mdash; <a class="inline" href="https://www.instagram.com/reel/DelKEhMBl75/" target="_blank" rel="noopener">instagram.com/reel/DelKEhMBl75</a> (interview clip with @alleykatdj on @ugnraveradio &mdash; the overnight-session quote)</li>
+    <li>@richrunthat posts, 2026-09-02/04 &mdash; Teknlgy &times; Human Saint DTLA rooftop set at Somewhere Special LA; post, 2026-08-07 (Rave &amp; Brew, Floored Entertainment &times; Redline Records at Dayli Coffee, Aug 15) and 2026-08-15 (night edition, his set 12:35 a.m.); his website gallery flyer (Helipad Society SHUFFLES &mdash; RICHRUNTHAT top-billed, Sunday September 20, secret LA location)</li>
+    <li>Post, 2025-12-29 &mdash; <a class="inline" href="https://www.instagram.com/p/DS3e4o7ErgK/" target="_blank" rel="noopener">instagram.com/p/DS3e4o7ErgK</a> (NYE 2026 Afters OC lineup incl. RAVE GOD, RICHRUNTHAT, TMZEE); post, 2026-07-21 &mdash; <a class="inline" href="https://www.instagram.com/p/DbD_Pd9Mh1L/" target="_blank" rel="noopener">instagram.com/p/DbD_Pd9Mh1L</a> (Splash House opener vote campaign); posts, 2026-07-07/13 &mdash; KEEPITIL Summer beach event (Magnolia &amp; CA-1, July 12) and recap (closing techno b2b2b with @lyknkey and @imravegod)</li>
+  </ul>
+</div>
+</div>
+</main>
+<!-- "Keep reading" removed 2026-08-23 (Founder). -->
+
+<script>
+function kilShare(kind){var url=location.href,t=document.title;if(kind==='x'){window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(t)+'&url='+encodeURIComponent(url),'_blank');return;}if(kind==='native'&&navigator.share){navigator.share({title:t,url:url});return;}try{navigator.clipboard.writeText(url);var b=event&&event.currentTarget;if(b){var o=b.textContent;b.textContent='✓';setTimeout(function(){b.textContent=o;},1200);}}catch(e){prompt('Copy link:',url);}}
+(function(){var sh=document.getElementById('tpl-support');if(!sh)return;var items=[['Partner','FREECASH','Earn for the next fest','https://freecash.com/r/Tuitea','linear-gradient(160deg,#fbf3e6,#ffffff)',false],['Partner','DISTROKID','Put your music everywhere','https://distrokid.com/vip/seven/11538316','linear-gradient(160deg,#e6f6ef,#ffffff)',false],['Partner','POSH','List your event','https://posh.vip/create_group?ref=S-referral-mp9itc5j-wb9dbt','linear-gradient(160deg,#efe9fb,#ffffff)',false],['Partner','AMAZON','Shop gear &amp; support the scene','https://www.amazon.com/?tag=tuitea09-20','linear-gradient(160deg,#f5eefb,#ffffff)',true],['Shop','KEEPITIL STORE','Apparel, straight from the underground','https://illestratedlifestyle.com/collections/keepitil-apparel','linear-gradient(160deg,#e9f0fb,#ffffff)',false],['$34','KEEPITIL Logo Tee','Straight From The Underground','https://illestratedlifestyle.com/products/keepitil-logo-tee-straight-from-the-underground','linear-gradient(160deg,#eefbf3,#ffffff)',false],['$64','Create Loud Hoodie','Create Loud · Live Louder','https://illestratedlifestyle.com/products/keepitil-create-loud-live-louder-hoodie-1','linear-gradient(160deg,#fbeef6,#ffffff)',false],['$55','KEEPITIL Logo Crewneck','Underground EDM','https://illestratedlifestyle.com/products/keepitil-logo-crewneck-underground-edm','linear-gradient(160deg,#eef6fb,#ffffff)',false],['$30','KEEPITIL Logo Hat','Embroidered','https://illestratedlifestyle.com/products/keepitil-dad-hat-embroidered-underground-mark','linear-gradient(160deg,#fbf8e6,#ffffff)',false],['$45',"Women's Racerback Tank",'KEEPITIL Apparel','https://illestratedlifestyle.com/products/womens-racerback-tank','linear-gradient(160deg,#fbeeee,#ffffff)',false],['$37.50',"Men's Tank Top",'KEEPITIL Apparel','https://illestratedlifestyle.com/products/mens-tank-top','linear-gradient(160deg,#eefbfb,#ffffff)',false]];sh.innerHTML=items.map(function(it){var badge=it[5]?'<span style="position:absolute;top:8px;right:8px;background:#ff9900;color:#111;font-size:.56rem;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:5px;z-index:2">Amazon</span>':'';var cta=it[5]?'Shop on Amazon →':'Open →';return '<a href="'+it[3]+'" target="_blank" rel="noopener'+(it[5]?' sponsored nofollow':'')+'" data-kt="affiliate_click" style="position:relative;display:block;min-height:118px;border-radius:12px;overflow:hidden;border:1px solid rgba(30,15,60,.12);background:'+it[4]+';padding:14px;text-decoration:none;color:#160f24">'+badge+'<div style="position:relative;z-index:2"><div style="font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:#7c3aed">'+it[0]+'</div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.32rem;letter-spacing:.02em;margin:2px 0;line-height:1.05;color:#160f24">'+it[1]+'</div><div style="font-size:.76rem;color:#544c6b;line-height:1.35">'+it[2]+'</div><div style="font-size:.76rem;color:#0a8f5b;font-weight:700;margin-top:6px">'+cta+'</div></div></a>';}).join('');})();
+</script>
+<script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
+<script src="/keepitil-shell.js?v=20260929a" defer></script>
+</body>
+</html>

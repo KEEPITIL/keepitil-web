@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>window.KMOB_LT = { html: performance.now() };</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0e1a33">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>KMOB Endless War | Build Your Army. Survive the Waves. | KEEPITIL</title>
+<meta name="description" content="Play KMOB Endless War free in your browser. Build six soldier classes, command your tank, plan deployments, unlock elemental skins, and survive endless waves.">
+<meta name="robots" content="noindex,nofollow">
+<link rel="canonical" href="https://keepitil.com/games/kmob/">
+<meta property="og:type" content="website"><meta property="og:site_name" content="KEEPITIL"><meta property="og:url" content="https://keepitil.com/games/kmob/">
+<meta property="og:title" content="KMOB Endless War — Build Your Army. Outlast the War.">
+<meta property="og:description" content="One tank. Six soldier classes. Endless waves. Plan your army, defend your line, and see how far you can go—play free in your browser.">
+<meta property="og:image" content="https://keepitil.com/games/kmob/assets/kmob-home/kmob-social.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="KMOB Endless War: six soldier classes in a stylized valley battlefield">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="KMOB Endless War — Build Your Army. Outlast the War."><meta name="twitter:description" content="Plan your six-class army, command your tank, and battle through endless waves. Play free on phone or desktop."><meta name="twitter:image" content="https://keepitil.com/games/kmob/assets/kmob-home/kmob-social.jpg">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"KMOB: Endless War","url":"https://keepitil.com/games/kmob/","description":"Free-to-play browser strategy game with six soldier classes, army deployment planning, command tank combat, elemental skins, and endless enemy waves.","genre":["Strategy","Action","Survival"],"playMode":"SinglePlayer","gamePlatform":["Web browser","Mobile browser","Desktop browser"],"isAccessibleForFree":true,"inLanguage":"en","publisher":{"@type":"Organization","name":"KEEPITIL"},"image":"https://keepitil.com/games/kmob/assets/kmob-home/kmob-social.jpg"}</script>
+<link rel="preload" as="image" href="assets/kmob-home/soldier-classes.webp">
+<link rel="stylesheet" href="kmob-home.css?v=b78e56a78a61">   <!-- the ONE public KMOB address: this marketing home and the game share this document -->
+<link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192" type="image/png"><link rel="apple-touch-icon" href="icon-180.png"><link rel="manifest" href="manifest.webmanifest"><meta name="apple-mobile-web-app-title" content="KMOB"><meta name="application-name" content="KMOB">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">   <!-- fonts never block the first paint -->
+<style>
+:root{--ink:#0e1a33;--panel:rgba(14,26,51,.86);--line:rgba(255,255,255,.14);--gold:#ffc83a;--blue:#2f74ff;--red:#e2312c;--green:#2fbf4f;--tx:#fff;--disp:'Lilita One','Arial Rounded MT Bold','Trebuchet MS',system-ui,sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+/* gameplay controls are not images: no iOS long-press preview / share sheet / drag ghost on any HUD icon */
+#hud img,#drawer img,#rightCol img,.rb img,.cl img{-webkit-touch-callout:none;-webkit-user-drag:none;user-drag:none;pointer-events:none}
+.rb,.cl,#postureBtn{-webkit-touch-callout:none;touch-action:none}
+html,body{margin:0;position:fixed;inset:0;width:100%;height:100%;overflow:hidden;background:#0e1a33;color:var(--tx);font-family:Nunito,system-ui,sans-serif;touch-action:none;overscroll-behavior:none}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}   /* the page box, never 100vh (iOS Safari's toolbar makes 100vh taller than the screen) */
+.disp{font-family:var(--disp);letter-spacing:.02em;font-weight:400}
+.hidden{display:none!important}
+/* HUD */
+@keyframes ubp{50%{transform:scale(1.08)}}
+#intro{position:fixed;inset:0;z-index:40;background:#070d1c;display:grid;place-items:center;color:#fff;text-align:center;cursor:pointer}
+#intro .il{font-family:var(--disp);letter-spacing:.12em;opacity:0;transition:opacity .22s}#intro .il.on{opacity:1}#intro small{display:block;font-family:Nunito,sans-serif;font-weight:900;font-size:12px;letter-spacing:.3em;opacity:.7;margin-bottom:6px}#intro b{font-size:44px;font-weight:400}#intro b.logo{font-size:76px;color:#ffd23a;text-shadow:0 4px 0 #b4560c}
+#vig{position:fixed;inset:0;pointer-events:none;z-index:4;box-shadow:inset 0 0 120px 30px rgba(220,20,20,.0);transition:box-shadow .3s}
+#vig.warn{animation:warnPulse .55s ease-in-out infinite alternate}
+@keyframes warnPulse{from{background:radial-gradient(ellipse at center,transparent 55%,rgba(255,30,30,.0))}to{background:radial-gradient(ellipse at center,transparent 55%,rgba(255,30,30,.32))}}
+/* upgrade cards */
+/* prompts */
+#tip{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 44vh);text-align:center;padding-left:84px;padding-right:12px;z-index:5;pointer-events:none;transition:opacity .4s}
+#tip .big{font-family:var(--disp);font-size:clamp(28px,7vw,44px);text-shadow:0 3px 0 rgba(0,0,0,.35),0 0 20px rgba(0,0,0,.3)}
+#tip .sm{font-weight:900;font-size:13px;letter-spacing:.06em;text-shadow:0 2px 0 rgba(0,0,0,.4)}
+#tip .hand{width:130px;height:60px;margin:0 auto 4px;position:relative}
+#tip .hand svg{position:absolute;left:50%;top:0;width:46px;margin-left:-23px;animation:swipe 1.6s ease-in-out infinite}
+@keyframes swipe{0%,100%{transform:translateX(-40px)}50%{transform:translateX(40px)}}
+#banner{position:fixed;left:0;right:0;top:32%;text-align:center;z-index:6;pointer-events:none;font-family:var(--disp);font-size:clamp(20px,6.5vw,46px);padding:0 12px;line-height:1.05;color:#fff;text-shadow:0 3px 0 #7a0d0d,0 0 30px rgba(255,40,40,.7);white-space:pre-line;opacity:0;transition:opacity .25s}
+#banner.on{opacity:1;animation:pulse .5s ease-in-out infinite alternate}
+@keyframes pulse{to{transform:scale(1.06)}}
+/* panels */
+.screen{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:radial-gradient(ellipse at center,rgba(14,26,51,.35),rgba(14,26,51,.82));padding:16px}
+.panel{width:min(92vw,400px);background:linear-gradient(180deg,#16284f,#0e1a33);border:2px solid rgba(255,255,255,.16);border-radius:22px;padding:20px 18px 18px;box-shadow:0 10px 0 rgba(0,0,0,.3),0 20px 60px rgba(0,0,0,.4);animation:pop .3s cubic-bezier(.2,1.3,.4,1)}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+.btn{font-family:var(--disp);font-size:26px;border:0;border-radius:16px;padding:12px 18px;color:#fff;cursor:pointer;background:linear-gradient(180deg,#7dff4a,#2fbf2f);box-shadow:0 6px 0 #1a7a1a,0 10px 20px rgba(0,0,0,.3);text-shadow:0 2px 0 rgba(0,0,0,.25);width:100%}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #1a7a1a}
+.btn.sec{background:linear-gradient(180deg,#3a5a9a,#24407a);box-shadow:0 6px 0 #142852;font-size:18px}
+.btn.sec:active{box-shadow:0 2px 0 #142852}
+.row{display:flex;gap:10px;align-items:stretch}
+.sq{width:64px;flex:none;padding:8px 0;font-size:13px;display:grid;place-items:center;gap:2px}
+.sq svg{width:28px;height:28px}
+#title h1{margin:0;font-size:clamp(54px,15vw,84px);line-height:.9;text-align:center;color:#fff;text-shadow:0 5px 0 #1f4fbf,0 10px 0 rgba(0,0,0,.25)}
+#title h2{margin:6px 0 2px;text-align:center;font-size:18px;color:var(--gold);letter-spacing:.12em}
+#title p{text-align:center;opacity:.85;font-weight:800;margin:10px 0 18px;font-size:14px}
+.best{display:flex;justify-content:center;gap:16px;margin:-6px 0 16px;font-weight:900;font-size:13px;opacity:.9}
+.best b{color:var(--gold);font-family:var(--disp);font-weight:400;font-size:18px;margin-left:4px}
+#over .sv{text-align:center;font-family:var(--disp);font-size:22px;letter-spacing:.06em}
+#over .tm{text-align:center;font-family:var(--disp);font-size:clamp(56px,16vw,76px);line-height:1;color:var(--gold);text-shadow:0 4px 0 #9a5a00}
+#over .pb{text-align:center;color:#7dff6a;font-family:var(--disp);font-size:18px;margin-top:2px;min-height:22px}
+.stats{margin:12px 0 16px;border:1px solid var(--line);border-radius:14px;padding:6px 12px;background:rgba(0,0,0,.18)}
+.stats div{display:flex;align-items:center;gap:10px;padding:6px 0;font-weight:800;font-size:15px;border-bottom:1px solid rgba(255,255,255,.07)}
+.stats div:last-child{border:0}
+.stats svg{width:22px;height:22px;flex:none}
+.stats span{flex:1}.stats b{font-family:var(--disp);font-weight:400;font-size:18px}
+#shop .tabs{flex-wrap:wrap}#shop .tabs button{min-width:56px}
+.item .art{display:block;width:56px;height:56px;margin:0 auto 4px}.item .art svg{width:100%;height:100%}
+.item .bt{display:flex;gap:4px;flex-wrap:wrap}.item .bt button{flex:1;min-width:64px;min-height:34px;border-radius:8px;border:1px solid var(--line);background:#1b2a4a;color:#fff;font-weight:900;font-size:11px;cursor:pointer}.item .bt button:disabled{opacity:.4}.item .bt button.on{border-color:#7dff9a;color:#7dff9a}
+.item .own{color:#7dff9a;font-size:11px}.item .tierRow{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:4px}.item .tierRow button{min-width:0;min-height:34px;padding:4px 2px;font-size:10px;line-height:1.15;border-radius:8px;border:1px solid var(--line);background:#1b2a4a;color:#fff;font-weight:800;cursor:pointer;touch-action:manipulation}.item .tierRow button.on{border-color:#7dff9a;color:#7dff9a}.item .tierRow button:disabled{opacity:.4}
+.prev7{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:4px 0}.prev7 span{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;background:#0d1730}.prev7 img{width:100%;height:100%;object-fit:cover}.prev7 span::after{content:"";position:absolute;inset:0;background:var(--c);mix-blend-mode:color;opacity:.75}.prev7 svg{width:100%;height:100%}
+.item.span2{grid-column:1/-1}.item .sub{font-size:10px;opacity:.7}
+.shopgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;max-height:52vh;overflow:auto}
+.item{border:1px solid var(--line);border-radius:12px;padding:10px;background:rgba(255,255,255,.04);cursor:pointer;font-weight:800;font-size:13px}
+.item .nm{font-family:var(--disp);font-weight:400;font-size:16px}
+.item .ds{opacity:.75;font-size:11px;margin:2px 0 6px}
+.item .pr{color:var(--gold)}
+.item.eq{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.item.no{opacity:.5}
+.sw{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px;border:2px solid rgba(255,255,255,.6)}
+.toggles{display:grid;gap:8px;margin:12px 0}
+.toggles label{display:flex;justify-content:space-between;align-items:center;font-weight:900;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.04)}
+.toggles input{width:22px;height:22px;accent-color:#2fbf4f}
+.tok{display:inline-flex;align-items:center;gap:4px;font-family:var(--disp);color:#9ff2ff}
+.tok svg{width:18px;height:18px}
+#dbg{position:fixed;right:8px;bottom:8px;z-index:20;background:rgba(0,0,0,.7);padding:8px;border-radius:10px;font:11px/1.4 monospace;max-width:260px}
+#dbg button{font:11px monospace;margin:2px;padding:4px 6px;border-radius:6px;border:0;background:#2f74ff;color:#fff;cursor:pointer}
+#fps{position:fixed;left:8px;bottom:8px;z-index:20;font:11px monospace;background:rgba(0,0,0,.5);padding:3px 6px;border-radius:6px}
+
+/* ===== HUD — clone of the approved reference (portrait phone layout; desktop and phone-landscape layouts below) ===== */
+:root{--card:rgba(9,15,30,.84);--cardB:rgba(140,170,225,.34);--hs:clamp(.82,calc(100vw / 430px),1)}
+#hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 8px) 8px 0;display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:start;pointer-events:none;z-index:5}
+.pill{display:flex;align-items:center;gap:6px;height:calc(31px * var(--hs));padding:0 9px 0 6px;border-radius:9px;background:var(--card);border:1.5px solid var(--cardB);box-shadow:0 2px 0 rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.06);color:#fff;font-family:var(--disp);font-size:calc(17px * var(--hs));line-height:1;white-space:nowrap}
+.pill img{width:calc(21px * var(--hs));height:calc(21px * var(--hs));flex:none;object-fit:contain}.pill b{font-weight:400}
+#hL,#hR{display:flex;flex-direction:column;gap:5px;width:calc(94px * var(--hs))}
+#hR{pointer-events:auto}#hR .pill{cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}#hR .pill:active{transform:translateY(2px)}
+#hR .sm{font-size:calc(11.5px * var(--hs));letter-spacing:.02em}#autoTxt{color:#ffd23a}#autoBtn.tap #autoTxt{color:#9fd0ff}
+#hC{justify-self:center;width:100%;max-width:236px;justify-content:center;gap:0;padding:0 6px;font-size:calc(16px * var(--hs))}#hC span{display:flex;align-items:center;gap:4px;flex:1 1 auto;justify-content:center;min-width:0}#hC .g{flex-grow:1.4}#hC img{width:calc(19px * var(--hs));height:calc(19px * var(--hs))}
+#hC .g b{color:#ffd84a}#hC .d b{color:#5fe0ff}#hC .sep{width:1.5px;height:62%;background:rgba(160,185,235,.35);margin:0 5px;flex:none}
+/* soldier panel: six portrait cards, collapsible to a small handle */
+#drawer{position:fixed;left:6px;bottom:calc(env(safe-area-inset-bottom) + 10px);z-index:6;display:flex;align-items:flex-end;transition:transform .22s ease;pointer-events:auto;touch-action:pan-y}
+#classes{display:flex;flex-direction:column;gap:4px;padding:4px;border-radius:12px;background:rgba(9,15,30,.55);border:1.5px solid var(--cardB);box-shadow:0 0 12px rgba(60,120,255,.25)}
+#drawer.away{transform:translateX(calc(-100% + 18px))}#classes{transition:opacity .2s}#drawer.away #classes{opacity:0;pointer-events:none}
+#drawerTab{width:20px;height:54px;margin:0 0 30px 2px;border-radius:0 9px 9px 0;background:var(--card);border:1.5px solid var(--cardB);border-left:0;color:#fff;display:grid;place-items:center;font-family:var(--disp);font-size:20px;cursor:pointer}
+.cl{position:relative;display:flex;align-items:center;gap:4px;width:calc(136px * var(--hs));height:min(calc(52px * var(--hs)),calc((100vh - 362px) / 6.4));min-height:38px;padding:2px 6px 2px 2px;border-radius:9px;background:linear-gradient(180deg,rgba(26,40,72,.92),rgba(12,20,40,.92));border:1.5px solid rgba(120,150,210,.3);color:#fff;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.cl>img{height:100%;aspect-ratio:1;width:auto;object-fit:cover;border-radius:7px;flex:none}
+.cl .tx{display:flex;flex-direction:column;justify-content:center;line-height:1.02;min-width:0;gap:1px;overflow:hidden}.cl .tx b{font-family:var(--disp);font-weight:400;font-size:calc(13px * var(--hs));letter-spacing:.02em}
+.cl .pr{display:flex;align-items:center;gap:3px;font-family:var(--disp);font-size:calc(15px * var(--hs));color:#ffd84a}.cl .pr img{width:calc(14px * var(--hs));height:calc(14px * var(--hs))}
+.cl .tx i{font-style:normal;font-size:calc(9px * var(--hs));font-weight:900;opacity:.9;white-space:nowrap;letter-spacing:-.01em}
+.cl.on{background:linear-gradient(180deg,#2f6fe8,#1a3f9e);border:2px solid #9fd0ff;box-shadow:0 0 10px rgba(80,160,255,.7)}
+.cl.atk::after{content:'';position:absolute;right:4px;top:4px;width:7px;height:7px;border-radius:4px;background:#ff5a3a;box-shadow:0 0 6px #ff5a3a}
+.cl .ub{position:absolute;right:-7px;top:-7px;width:18px;height:18px;border-radius:9px;background:linear-gradient(#ffe06a,#f29a10);border:1px solid #fff3b0;color:#2a1a00;font-size:9px;font-weight:900;line-height:16px;text-align:center;text-decoration:none;animation:ubp 1s ease-in-out infinite}@keyframes ubp{50%{transform:scale(1.12)}}
+/* selected-class upgrade details (second tap on the selected class) */
+#clsPop{position:fixed;z-index:8;width:178px;padding:8px 9px;border-radius:12px;background:rgba(9,15,30,.95);border:1.5px solid #9fd0ff;box-shadow:0 6px 18px rgba(0,0,0,.45);color:#fff;pointer-events:auto}
+#clsPop h4{margin:0 0 4px;font-family:var(--disp);font-weight:400;font-size:15px}#clsPop h4 small{font-family:Nunito,sans-serif;font-weight:900;font-size:10px;opacity:.85;margin-left:4px}
+#clsPop .st{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;font-size:11px;font-weight:900;margin-bottom:6px}#clsPop .st span{opacity:.75}#clsPop .st em{font-style:normal;color:#7dff8a}
+#clsPop button{width:100%;border:1px solid #fff3b0;border-radius:9px;background:linear-gradient(#ffe06a,#f29a10);color:#2a1a00;font-family:var(--disp);font-size:14px;padding:6px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px}#clsPop button img{width:15px;height:15px}#clsPop button[disabled]{filter:grayscale(.8);opacity:.55}
+/* right-side controls: POWER · UPGRADE · ATTACK/DEFEND */
+#rightCol{position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom) + 10px);z-index:6;display:flex;flex-direction:column;gap:6px;pointer-events:auto}
+.rb{position:relative;width:calc(72px * var(--hs));height:calc(60px * var(--hs));border-radius:12px;background:var(--card);border:1.5px solid var(--cardB);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#fff;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.35);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.rb:active{transform:translateY(2px)}.rb img{width:calc(32px * var(--hs));height:calc(32px * var(--hs));object-fit:contain}.rb b{font-family:var(--disp);font-weight:400;font-size:calc(12.5px * var(--hs));letter-spacing:.03em}
+.rb .en{position:absolute;left:8px;right:8px;bottom:4px;height:3px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden}.rb .en u{display:block;height:100%;width:0;background:linear-gradient(90deg,#9f7aff,#d18bff)}
+#powerBtn.ready{border-color:#c9a6ff;box-shadow:0 3px 0 rgba(0,0,0,.35),0 0 12px rgba(170,110,255,.7)}
+#tankBtn small{position:absolute;top:-7px;left:-6px;padding:1px 5px;border-radius:7px;background:#1b2a4a;border:1px solid var(--cardB);font-family:var(--disp);font-size:10px;color:#ffd84a}#tankBtn.can{border-color:#ffd84a;box-shadow:0 3px 0 rgba(0,0,0,.35),0 0 10px rgba(255,200,60,.55)}#tankBtn.can small{background:linear-gradient(#ffe06a,#f29a10);color:#2a1a00}
+#postureBtn{border:2px solid #ffc83a;box-shadow:0 3px 0 rgba(0,0,0,.35),0 0 14px rgba(255,190,50,.55),inset 0 0 12px rgba(255,180,40,.18)}#postureBtn b{font-size:calc(14px * var(--hs))}
+#postureBtn.def{border-color:#8fc4ff;box-shadow:0 3px 0 rgba(0,0,0,.35),0 0 14px rgba(90,160,255,.6),inset 0 0 12px rgba(90,160,255,.2)}
+#allTip{position:fixed;z-index:9;pointer-events:none;font-family:var(--disp);font-size:22px;color:#fff;text-shadow:0 2px 0 #000,0 0 12px rgba(255,190,50,.8);transition:opacity .25s;opacity:0}#allTip.on{opacity:1}
+/* power selection: the three equipped powers open beside POWER; using one closes it */
+#tankUps{position:fixed;z-index:8;display:grid;grid-template-columns:1fr;gap:4px;max-height:calc(100vh - 24px);overflow-y:auto;overscroll-behavior:contain;pointer-events:auto;padding:6px;border-radius:12px;background:rgba(9,15,30,.95);border:1.5px solid var(--cardB);width:248px}
+#tankUps .tu{display:flex;align-items:center;gap:6px;min-height:38px;padding:2px 4px 2px 8px;border-radius:9px;background:rgba(255,255,255,.04);color:#fff}#tankUps .tu b{font-family:var(--disp);font-weight:400;font-size:12px;flex:1;line-height:1.1}#tankUps .tu b em{display:block;font-style:normal;font-family:inherit;font-size:10px;color:#9fb4d8}
+#tankUps .tu button{min-width:62px;height:32px;border-radius:8px;border:1.5px solid #ffd84a;background:#1b2a4a;color:#ffd84a;font-weight:900;font-size:11px;cursor:pointer;touch-action:manipulation}#tankUps .tu button:disabled{opacity:.4;border-color:var(--cardB);color:#9fb4d8}#tankUps .tu.max button{border-color:#7dff9a;color:#7dff9a}
+#consPop{position:fixed;z-index:8;display:flex;flex-direction:column;gap:4px;pointer-events:auto;padding:6px;border-radius:12px;background:rgba(9,15,30,.95);border:1.5px solid var(--cardB);width:240px}
+#consPop .cs{display:flex;align-items:center;gap:7px;min-height:44px;padding:2px 4px 2px 6px;border-radius:9px;background:rgba(255,255,255,.04);color:#fff}#consPop .cs svg{width:32px;height:32px;flex:none}#consPop .cs b{font-family:var(--disp);font-weight:400;font-size:12px;flex:1;line-height:1.1}#consPop .cs b em{display:block;font-style:normal;font-family:inherit;font-size:9.5px;color:#9fb4d8}
+#consPop .cs button{min-width:54px;height:34px;border-radius:8px;border:1.5px solid #c9a6ff;background:#2a1a3a;color:#e8d0ff;font-weight:900;font-size:11px;cursor:pointer;touch-action:manipulation}#consPop .cs button:disabled{opacity:.4}#consPop .cs.on button{border-color:#7dff9a;color:#7dff9a}
+#consBtn small{position:absolute;top:-7px;left:-6px;padding:1px 5px;border-radius:7px;background:#1b2a4a;border:1px solid var(--cardB);font-family:var(--disp);font-size:10px;color:#e8d0ff}#consBtn small:empty{display:none}
+#powers{position:fixed;z-index:8;display:flex;flex-direction:column;gap:5px;pointer-events:auto}
+#powers .pw{display:flex;align-items:center;gap:7px;min-width:150px;height:44px;padding:0 10px 0 6px;border-radius:11px;background:rgba(9,15,30,.95);border:1.5px solid var(--cardB);color:#fff;cursor:pointer}#powers .pw svg{width:28px;height:28px;flex:none}
+#powers .pw b{font-family:var(--disp);font-weight:400;font-size:13px;flex:1}#powers .pw small{font-size:10px;font-weight:900;color:#d8b8ff}#powers .pw.ready{border-color:#c9a6ff;background:linear-gradient(90deg,rgba(90,50,200,.95),rgba(9,15,30,.95))}#powers .pw.cd{opacity:.5}
+#tankHp{position:fixed;z-index:4;width:76px;margin-left:-38px;height:7px;border-radius:4px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.35);overflow:hidden;pointer-events:none}#tankHp b{display:block;height:100%;width:100%;background:linear-gradient(90deg,#4cff8a,#2fbf4f)}#tankHp i{position:absolute;left:0;top:0;height:100%;background:rgba(120,210,255,.75)}
+.cl .tx b .cap{text-decoration:none;font-size:.62em;font-weight:900;color:#9fd6ff;background:rgba(10,30,70,.55);border:1px solid rgba(143,196,255,.5);border-radius:5px;padding:0 3px;margin-left:2px;vertical-align:1px;white-space:nowrap}   /* fixed army capacity per soldier */
+#tankMark{position:fixed;z-index:6;width:30px;height:22px;margin-left:-15px;pointer-events:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,.55))}#tankMark i{display:block;width:0;height:0;margin:0 auto;border-left:12px solid transparent;border-right:12px solid transparent;border-top:16px solid #4cff8a}   /* the tank is under a side panel: its lane position stays readable */
+#choice{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 18px + 105px * var(--hs));z-index:7;text-align:center;pointer-events:auto}#choice .ct{font-family:var(--disp);font-size:13px;color:#ffd23a;text-shadow:0 2px 0 rgba(0,0,0,.4)}
+#choice .co{display:flex;gap:5px;margin-top:3px}#choice button{border:1px solid #fff3b0;border-radius:10px;background:linear-gradient(#ffe06a,#f29a10);color:#2a1a00;font-family:var(--disp);font-size:11px;padding:5px 7px;line-height:1.1;cursor:pointer;max-width:96px}#choice button small{display:block;font-family:Nunito,sans-serif;font-weight:900;font-size:9px}
+/* prompted power / reward choices: one 2:3 card style (art medallion, title, effect), the same in portrait, landscape and desktop */
+#choice .co{gap:calc(7px * var(--hs));justify-content:center}
+#choice button.card23{width:calc(78px * var(--hs));max-width:none;aspect-ratio:2/3;height:auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:calc(3px * var(--hs));padding:calc(6px * var(--hs)) calc(4px * var(--hs));border:2px solid #fff3b0;border-radius:12px;background:linear-gradient(170deg,#ffe58a 0%,#f6b12a 48%,#d97a06 100%);box-shadow:0 3px 0 rgba(0,0,0,.35),inset 0 0 0 2px rgba(255,255,255,.25)}
+#choice button.card23 .art{width:86%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 40% 35%,#1d3a7a,#0b1838);border:2px solid rgba(255,243,176,.85);display:flex;align-items:center;justify-content:center}
+#choice button.card23 .art svg{width:78%;height:78%}
+#choice button.card23 .tt{font-size:calc(10.5px * var(--hs));line-height:1.05;color:#2a1a00;letter-spacing:.2px}
+#choice button.card23 small{font-size:calc(9.5px * var(--hs));color:#4a2a00;margin-top:auto}
+#bossBar{position:fixed;z-index:6;width:150px;margin-left:-75px;text-align:center;pointer-events:none}#bossBar .bn{font-family:var(--disp);font-size:13px;color:#fff;text-shadow:0 2px 0 #000}#bossBar .bb{height:8px;border-radius:4px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.4);overflow:hidden}#bossBar .bb b{display:block;height:100%;background:linear-gradient(90deg,#ff6a4a,#d6281f)}#bossBar .bh{font-size:9px;font-weight:900;color:#fff;text-shadow:0 1px 0 #000}
+/* desktop (wide and tall enough): top-right controls in a row, soldiers in a bottom row, the three controls side by side */
+@media (min-aspect-ratio:5/4) and (min-width:820px) and (min-height:541px){
+  :root{--hs:clamp(1,calc(100vw / 1280px),1.35)}
+  #hud{padding:12px 14px 0}#hL{width:calc(118px * var(--hs));gap:6px}.pill{height:calc(40px * var(--hs));font-size:calc(22px * var(--hs));padding:0 12px 0 8px;border-radius:11px}.pill img{width:calc(27px * var(--hs));height:calc(27px * var(--hs))}
+  #hR{flex-direction:row;width:auto;gap:8px}#hC{font-size:calc(22px * var(--hs))}#hC img{width:calc(26px * var(--hs));height:calc(26px * var(--hs))}#hR .pill{padding:0 14px 0 10px}#hR .sm{font-size:calc(14px * var(--hs))}#hC{max-width:calc(380px * var(--hs));padding:0 14px}#hC .sep{margin:0 12px}
+  /* desktop = the phone-landscape arrangement: one collapsible column of the six class cards on the left, POWER · UPGRADE · ATTACK
+     stacked on the right, nothing across the bottom over the tank */
+  #drawer{left:10px;bottom:12px}
+  #drawer.away{transform:translateX(calc(-100% + 22px))}
+  .cl{width:calc(150px * var(--hs));height:min(calc(58px * var(--hs)),calc((100vh - 182px) / 6))}
+  #rightCol{right:14px;bottom:14px}
+  .rb{width:calc(92px * var(--hs));height:calc(86px * var(--hs))}.rb img{width:calc(44px * var(--hs));height:calc(44px * var(--hs))}.rb b{font-size:calc(15px * var(--hs))}#postureBtn b{font-size:calc(16px * var(--hs))}
+  #choice{top:calc(12px + 52px * var(--hs))}
+}
+/* phone landscape (short screens, any width): one top row (time · army · wave | gold · diamonds | settings · speed · mode),
+   the class roster down the left, the battlefield in the centre, POWER · UPGRADE · ATTACK down the right.
+   Same pills, cards and buttons as portrait, sized by the screen height, clear of the notch / Dynamic Island / home bar. */
+@media (orientation:landscape) and (max-height:540px){
+  :root{--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--hs:clamp(.82,min(calc(100vh / 430px),calc((100vw - var(--sl) - var(--sr)) / 690px)),1)}
+  canvas#c{width:100%;height:100%}
+  #hud{padding:calc(var(--st) + 6px) max(8px,var(--sr)) 0 max(8px,var(--sl));grid-template-columns:minmax(max-content,1fr) minmax(calc(150px * var(--hs)),calc(224px * var(--hs))) minmax(max-content,1fr);gap:8px}
+  #hL,#hR{flex-direction:row;width:auto}#hL{justify-self:start}#hR{justify-self:end}
+  #hL .pill{min-width:calc(50px * var(--hs))}
+  #drawer{left:max(6px,var(--sl));bottom:calc(var(--sb) + 6px)}
+  #drawer.away{transform:translateX(calc(-100% + 22px))}
+  .cl{height:min(calc(52px * var(--hs)),calc((100vh - var(--st) - var(--sb) - 112px) / 6));height:min(calc(52px * var(--hs)),calc((100dvh - var(--st) - var(--sb) - 112px) / 6));min-height:34px}
+  #rightCol{right:max(8px,var(--sr));bottom:calc(var(--sb) + 6px)}
+  #choice{top:calc(var(--st) + 14px + 31px * var(--hs))}
+  #tip{bottom:calc(var(--sb) + 20vh);padding:0 calc(max(8px,var(--sr)) + 72px * var(--hs) + 12px) 0 calc(max(6px,var(--sl)) + 136px * var(--hs) + 36px)}   /* centred in the battlefield column, clear of the roster and the controls */
+  #tip .big{font-size:clamp(20px,7.5vh,32px)}
+  #banner{top:28%;font-size:clamp(18px,7.5vh,34px)}
+  /* menus: never under the notch or the home bar; the tall ones use the width (two columns) so their buttons stay on screen; scroll as a last resort */
+  .screen{padding:max(8px,var(--st)) max(16px,var(--sr)) max(8px,var(--sb)) max(16px,var(--sl))}
+  .panel{max-height:100%;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+  #pause .panel,#over .panel,#shop .panel{width:min(calc(100vw - 32px - var(--sl) - var(--sr)),720px)}
+  #pause .panel,#over .panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:18px;align-items:center}
+  #pause h2{grid-column:1 / -1}#pause .toggles{grid-column:1;grid-row:2 / span 3;margin:0}#pause .btn{grid-column:2}
+  #pause .toggles{gap:5px}#pause .toggles label{padding:3px 12px}#pause .chantRow{padding:5px 8px;gap:4px}#pause .chantRow .ch-h{display:none}#pause .chantRow button{min-height:38px;padding:3px 2px}#pause .chantRow button small{display:none}   /* 2.0: the War Chant row + Chant sounds fit beside the buttons on short phones, inside the home-bar inset (a pick in battle shows a STARTS NEXT WAVE banner instead of the heading) */
+  #over .sv,#over .tm,#over .pb,#over .row,#reviveBtn{grid-column:1}#over .stats{grid-column:2;grid-row:1 / span 5;margin:0}#over .tm{font-size:clamp(40px,14vh,64px);white-space:nowrap}
+  .shopgrid{grid-template-columns:repeat(3,minmax(0,1fr));max-height:calc(100vh - var(--st) - var(--sb) - 216px)}
+  #shop .item .nm svg{width:28px;height:28px;vertical-align:middle}   /* the power icon stays an icon in the short landscape grid */
+  #shop .item{padding:7px 9px}
+}
+@media (orientation:landscape) and (max-height:400px){ .shopgrid{grid-template-columns:repeat(2,minmax(0,1fr))} }   /* shortest phones: wider cards, fewer wrapped lines */
+#shop .tabs{display:flex;gap:6px;margin:8px 0}#shop .tabs button{flex:1;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:#fff;font-family:var(--disp);font-size:13px;padding:7px 0;cursor:pointer}#shop .tabs button.on{background:linear-gradient(#ffd23a,#f2a10c);color:#2a1a00}
+#shop .item .bt{display:flex;gap:5px;margin-top:5px}#shop .item .bt button{flex:1;border-radius:8px;border:1px solid var(--line);background:#24365e;color:#fff;font-size:10px;font-weight:900;padding:4px 0;cursor:pointer}#shop .item .bt button[disabled]{opacity:.35}
+#titleBest{flex-direction:column;align-items:stretch;gap:8px;margin:-2px 0 16px}.titleRec{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.titleRec span{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 4px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}.titleRec i{font-style:normal;font-size:9px;font-weight:900;letter-spacing:.08em;opacity:.7;white-space:nowrap}.titleBadges{display:flex;justify-content:center;flex-wrap:wrap;gap:6px}.titleBadges span{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;background:rgba(0,0,0,.25);font-size:12px}.titleBadges svg{width:15px;height:15px}.titleBadges b{font-family:var(--disp);font-weight:400;font-size:15px;color:var(--gold);margin:0}.titleBadges .rank{font-size:10px;font-weight:900;letter-spacing:.08em;color:#cfd8ee}.titleRec b{font-family:var(--disp);font-size:20px;font-weight:400;display:block;margin:0;line-height:1.05;color:var(--gold)}
+.pill .zi{width:calc(21px * var(--hs));height:calc(21px * var(--hs));flex:none}
+#speedBtn.lag b{color:#ffb35a}
+#planCard{display:flex;align-items:center;justify-content:center;gap:6px;height:calc(26px * var(--hs));min-height:24px;border-radius:9px;background:linear-gradient(180deg,#3a2a08,#241804);border:1.5px solid #ffd23a;color:#ffd84a;font-family:var(--disp);font-size:calc(14px * var(--hs));letter-spacing:.04em;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#planCard small{font-family:system-ui,sans-serif;font-weight:900;font-size:calc(9px * var(--hs));color:#fff;opacity:.85}
+#planCard:active{transform:translateY(2px)}
+#plan{padding:max(8px,var(--st)) max(12px,var(--sr,0px)) max(8px,var(--sb)) max(12px,var(--sl,0px))}
+#plan .panel{display:flex;flex-direction:column;gap:8px;width:min(calc(100vw - 24px),460px);max-height:calc(100vh - 16px - var(--st) - var(--sb));max-height:calc(100dvh - 16px - var(--st) - var(--sb));overflow:hidden;padding:14px 14px 12px}
+#plan .rows{flex:1 1 auto}   /* only the class list scrolls: TOTAL and the START / APPLY buttons always stay on screen, above notches and home bars */
+#plan h2{margin:0;text-align:center;font-size:30px}
+#plan .ph{display:grid;grid-template-columns:1fr auto;font-size:10px;font-weight:900;opacity:.75;padding:0 4px}
+#plan .rows{display:flex;flex-direction:column;gap:5px;overflow-y:auto;min-height:0}
+#plan .pr{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:8px;padding:5px 6px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+#plan .pr img{width:34px;height:34px;border-radius:8px}
+#plan .pr .nm{font-family:var(--disp);font-size:16px;line-height:1}#plan .pr .nm small{display:block;font-family:system-ui,sans-serif;font-size:10px;font-weight:900;opacity:.75;margin-top:2px}
+#plan .ct{display:flex;align-items:center;gap:4px}#plan .ct button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:#24365e;color:#fff;font-size:20px;font-weight:900;cursor:pointer;touch-action:manipulation}#plan .ct button[disabled]{opacity:.3}
+#plan .ct input{width:46px;height:34px;text-align:center;border-radius:8px;border:1px solid var(--line);background:#0b1530;color:#fff;font-family:var(--disp);font-size:18px}
+#plan .tot{display:flex;justify-content:space-between;align-items:center;font-weight:900;font-size:12px;padding:2px 4px}#plan .tot b{font-family:var(--disp);font-size:24px;font-weight:400}#plan .tot b.full{color:#ffd23a}
+#plan .msg{min-height:14px;font-size:11px;font-weight:900;color:#ffb35a;text-align:center}
+#plan .gold{font-size:11px;font-weight:900;opacity:.8;text-align:center}
+#plan .foot{display:flex;flex-direction:column;gap:8px}#plan .bts{display:grid;grid-template-columns:1fr 1fr;gap:8px}#plan .bts .btn{margin:0}
+@media (orientation:landscape) and (max-height:540px){#plan .ph{display:none}#plan .panel{gap:5px;padding:8px 12px}#plan .foot{display:grid;grid-template-columns:1fr 1fr;gap:8px}#plan .foot .btn{padding:8px 6px;font-size:16px;margin:0;grid-column:auto}#plan .tot b{font-size:20px}#plan .gold,#plan .msg{font-size:10px}#plan .msg{min-height:0}#plan .panel{width:min(calc(100vw - 24px - var(--sl,0px) - var(--sr,0px)),760px)}#plan .rows{display:grid;grid-template-columns:1fr 1fr;align-content:start}#plan h2{font-size:22px}#plan .pr{padding:3px 6px}#plan .pr img{width:28px;height:28px}#plan .ct button,#plan .ct input{height:30px}}
+/* TOP CORNERS (owner 2026-10-13, every layout alike): metrics stacked top-left, four ICON-ONLY buttons stacked top-right
+   (SETTINGS → ZOOM → SPEED → control mode) with exactly the metric pills' width and height; the currency bar fills the gap between. */
+#hud{grid-template-columns:auto minmax(0,1fr) auto}
+#hL,#hR{flex-direction:column;width:calc(94px * var(--hs))}
+#hR .pill{justify-content:center;padding:0;min-width:0}#hR .pill b{display:none}
+#hR .pill img,#hR .pill .zi,#hR .pill .ti{width:calc(23px * var(--hs));height:calc(23px * var(--hs))}
+#autoBtn .ti{display:none}#autoBtn.tap .ti{display:block}#autoBtn.tap img{display:none}#autoBtn.tap{border-color:#9fd0ff}
+#speedBtn.lag{border-color:#ffb35a;box-shadow:0 0 8px rgba(255,170,60,.6)}
+#hC{max-width:none;width:100%}
+@media (min-aspect-ratio:5/4) and (min-width:820px) and (min-height:541px){
+  #hL,#hR{flex-direction:column;width:calc(118px * var(--hs));gap:6px}#hR .pill{padding:0}#hC{max-width:none}
+  #hR .pill img,#hR .pill .zi,#hR .pill .ti{width:calc(29px * var(--hs));height:calc(29px * var(--hs))}
+  #drawerTab{display:none}#drawer.away{transform:none}#drawer.away #classes{opacity:1;pointer-events:auto}   /* desktop: the soldier cards always show */
+  .cl{height:min(calc(58px * var(--hs)),calc((100vh - 182px - 3 * 46px * var(--hs)) / 6))}
+}
+@media (orientation:landscape) and (max-height:540px){
+  #hud{grid-template-columns:auto minmax(0,1fr) auto}
+  #hL,#hR{flex-direction:column;width:calc(94px * var(--hs));justify-self:auto}#hL .pill{min-width:0}
+  .cl{height:min(calc(52px * var(--hs)),calc((100vh - var(--st) - var(--sb) - 3 * 36px * var(--hs) - 74px) / 6));height:min(calc(52px * var(--hs)),calc((100dvh - var(--st) - var(--sb) - 3 * 36px * var(--hs) - 74px) / 6));min-height:30px}
+}
+@media (orientation:landscape) and (max-height:540px){.cl .tx i{display:none}.cl .tx{gap:2px}.cl .tx b{white-space:nowrap}.cl .tx b .cap{font-size:.55em;padding:0 2px;margin-left:1px}}   /* phone landscape: the class cards keep name · CAP · price; Lv / DMG stays in the upgrade popover */
+@media (orientation:landscape) and (max-height:540px){.rb{height:min(calc(60px * var(--hs)),calc((100vh - var(--st) - var(--sb) - 4 * 36px * var(--hs) - 46px) / 4));height:min(calc(60px * var(--hs)),calc((100dvh - var(--st) - var(--sb) - 4 * 36px * var(--hs) - 46px) / 4));min-height:40px}.rb img{max-height:55%}}   /* ITEMS · POWER · UPGRADE · ATTACK fit under the four corner buttons */
+.kh-id{display:flex;align-items:center;gap:10px}.kh-mascot{width:46px;height:46px;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.35)}.title-mascot{display:block;width:84px;height:84px;margin:0 auto 6px;border-radius:20px;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+/* SHOP cards (2026-10-19): one image, short metrics, tier ‹ dots ›, cost, one action */
+.pcgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px}
+.pc{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:14px;padding:10px;background:rgba(255,255,255,.045);min-width:0}
+.pc.eq{border-color:#7dff9a;box-shadow:inset 0 0 0 1px #7dff9a}
+.pc-h{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:6px;row-gap:2px;min-width:0}.pc-h .pc-tag{grid-column:1;grid-row:2;justify-self:start}.pc-h .pc-i{grid-column:2;grid-row:1/span 2}.pc-n{font-family:var(--disp);font-weight:400;font-size:16px;line-height:1.1;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc-tag{font-size:10px;font-weight:900;letter-spacing:.04em;padding:2px 6px;border-radius:6px;background:#24365e;white-space:nowrap}
+.pc-i{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#1b2a4a;color:#fff;font:italic 900 15px Georgia,serif;cursor:pointer}
+.pc-img{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:12px;background:radial-gradient(circle at 50% 40%,#1d3366,#0b1530);overflow:hidden;touch-action:pan-y}
+.pc-img>svg{width:78%;height:78%}.pv-ico{display:flex;width:70%;height:70%}.pv-ico svg{width:100%;height:100%}.pv-cur{font-size:64px;align-items:center;justify-content:center}
+.pv-skin{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;width:76%}.pv-skin span{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:#0d1730;border:2px solid var(--c)}.pv-skin img{width:100%;height:100%;object-fit:cover}.pv-skin span::after{content:"";position:absolute;inset:0;background:var(--c);mix-blend-mode:color;opacity:.55}.pv-skin svg{width:100%;height:100%}
+.pv-gear{position:relative;width:86%;aspect-ratio:1;border-radius:50%;border:4px solid var(--m);overflow:hidden;background:#0d1730}.pv-gear img{width:100%;height:100%;object-fit:cover}
+.pv-gear .gb{position:absolute;right:2%;bottom:2%;width:44%;height:44%;border-radius:12px;background:#0e1a36;border:3px solid var(--m);display:flex}.pv-gear .gb svg{width:100%;height:100%}
+.pc-tn{display:flex;align-items:center;gap:2px;min-width:0}.pc-tn>button{flex:none;width:30px;height:34px;border-radius:10px;border:1px solid var(--line);background:#1b2a4a;color:#fff;font-size:22px;font-weight:900;cursor:pointer}.pc-tn>button:disabled{opacity:.3}
+.pc-dots{flex:1;display:flex;justify-content:center;gap:3px;min-width:0}.pc-dots button{width:24px;height:24px;flex:none;border-radius:50%;border:2px solid #3a4a6a;background:#0e1a36;color:#9fb0d0;font-size:11px;font-weight:900;padding:0;cursor:pointer}
+.pc-dots button.own{background:#1f5a3a;border-color:#7dff9a;color:#fff}.pc-dots button.lock{opacity:.45}.pc-dots button.sel{border-color:#ffd23a;box-shadow:0 0 0 2px #ffd23a;color:#fff}
+.pc-m{display:flex;flex-wrap:wrap;gap:4px;min-height:24px}.pc-m span{display:inline-flex;gap:4px;align-items:baseline;padding:3px 7px;border-radius:7px;background:#16264a;font-size:11px;font-weight:800}.pc-m i{font-style:normal;opacity:.7;font-size:10px;letter-spacing:.03em}.pc-m b{color:#7dff9a;font-size:13px}
+.pc-cost{display:flex;gap:4px}.pc-cost button{flex:1;min-height:32px;border-radius:9px;border:1px solid var(--line);background:#16264a;color:#cfd8ee;font-weight:900;font-size:13px;cursor:pointer}.pc-cost button.on{background:#24365e;border-color:#ffd23a;color:#fff}.pc-price{flex:1;text-align:center;font-weight:900;font-size:16px;color:var(--gold)}
+.pc-act{min-height:42px;border-radius:11px;border:0;background:linear-gradient(#ffd23a,#f2a10c);color:#3a2400;font-family:var(--disp);font-size:15px;cursor:pointer;box-shadow:0 3px 0 #a86a00}
+.pc-act.sec{background:#2d4a86;color:#fff;box-shadow:0 3px 0 #16264a}.pc-act.on{background:#1f5a3a;color:#bfffd0;box-shadow:none}.pc-act.cf{background:linear-gradient(#7dff9a,#2fbf5a);color:#062a12;box-shadow:0 3px 0 #1a7a3a}.pc-act:disabled{opacity:.55;cursor:default}
+.pc-sub{grid-column:1/-1;display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}.pc-sub button{flex:1 0 auto;min-height:40px;display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:10px;border:1px solid var(--line);background:#1b2a4a;color:#fff;font-weight:900;font-size:11px;cursor:pointer}
+.pc-sub button img{width:26px;height:26px;border-radius:50%;object-fit:cover}.pc-sub button.on{border-color:#ffd23a;box-shadow:inset 0 0 0 1px #ffd23a}.pc-tiers button{justify-content:center}.pc-tiers button.own::after{content:"●";color:#7dff9a;margin-left:4px}
+.pc-empty{grid-column:1/-1;opacity:.6;text-align:center;padding:20px}
+#shopTok{display:flex;gap:8px}#shopTok .bal{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:999px;background:#16264a;font-weight:900}#shopTok .bal svg{width:18px;height:18px}
+#shopInfo{position:fixed;inset:0;z-index:40;background:rgba(3,8,20,.72);display:flex;align-items:flex-end;justify-content:center;padding:16px calc(16px + var(--sr)) calc(16px + var(--sb)) calc(16px + var(--sl))}#shopInfo.hidden{display:none}
+.si-card{width:min(440px,100%);max-height:85vh;overflow:auto;background:#101c3a;border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:8px}.si-card .pc-img{width:120px;align-self:center}.si-card p{margin:0;font-size:13px;line-height:1.4;opacity:.9}.si-card .si-n{opacity:.65;font-size:12px}
+.si-card table{border-collapse:collapse;font-size:12px}.si-card th{text-align:left;opacity:.7;padding:4px 8px 4px 0;white-space:nowrap;vertical-align:top}.si-card td{padding:4px 0;font-weight:800}
+.si-ctrl{display:flex;flex-wrap:wrap;gap:6px}.si-ctrl button{flex:1 1 30%;min-height:40px;border-radius:10px;border:1px solid var(--line);background:#1b2a4a;color:#fff;font-weight:900;font-size:11px;cursor:pointer}.si-ctrl button.on{border-color:#7dff9a;background:#1f5a3a}
+@media (max-width:400px){.pcgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.pc-n{font-size:14px}.pc{padding:8px}.pc-tn>button{display:none}.pc-dots{gap:5px}.pc-dots button{width:28px;height:28px;font-size:12px}}
+.chantRow{display:grid;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.04)}.chantRow .ch-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.chantRow .ch-h b{font-weight:900;font-size:13px}.chantRow .ch-h small{font-size:10px;font-weight:900;letter-spacing:.04em;opacity:.7;text-align:right}
+.chantRow .ch-b{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.chantRow button{font:inherit;font-weight:900;font-size:12px;color:#eef3ff;padding:6px 2px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);line-height:1.15;min-height:44px}.chantRow button small{display:block;font-size:8.5px;letter-spacing:.03em;opacity:.75}.chantRow button.on{border-color:var(--gold);background:rgba(255,210,58,.16);color:var(--gold)}.chantRow button:disabled{opacity:.62;color:#b8c4dc}
+.chantRow .ch-h small,.chantRow button small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chantRow .ch-h b{white-space:nowrap}.chantRow button{overflow:hidden}label.cvol{white-space:nowrap;gap:10px}
+label.cvol input{width:46%}   /* 2.0 WAR CHANTS radio dial + stinger volume */   /* one line each, whatever the font (Linux fallback fonts are wider and wrapped the labels) */
+.btn.dailyb{background:linear-gradient(180deg,#ffd23a,#e8a810);color:#2a1a00;line-height:1.1}.btn.dailyb small{display:block;font-size:10.5px;letter-spacing:.03em;opacity:.8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dailyScr .panel{display:flex;flex-direction:column;gap:8px;width:min(calc(100vw - 24px),460px);max-height:calc(100vh - 16px - var(--st) - var(--sb));max-height:calc(100dvh - 16px - var(--st) - var(--sb));overflow-y:auto}#dailyScr h2{text-align:center;margin:0}.dName{text-align:center;font-weight:900;font-size:22px;color:var(--gold);letter-spacing:.04em}.dDesc{margin:0;text-align:center;font-weight:700;font-size:13px;opacity:.9}
+.dInfo{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.dInfo span{display:flex;flex-direction:column;align-items:center;padding:6px 4px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.04)}.dInfo i{font-style:normal;font-size:9.5px;font-weight:900;opacity:.7;letter-spacing:.04em;text-align:center}.dInfo b{font-size:16px;font-weight:900;color:#eef3ff}
+.dRules{margin:0;font-size:11.5px;line-height:1.45;opacity:.9}.dRules b{color:var(--gold)}.dLb{margin:0;font-size:11px;opacity:.65;text-align:center}#dailyScr .btn{margin:0}#dailyScr .bts{display:grid;grid-template-columns:1fr 1fr;gap:8px}#dRanked:disabled{opacity:.5}.dL,.dR{display:flex;flex-direction:column;gap:8px}
+@media (orientation:landscape) and (max-height:540px){#dailyScr .panel{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);column-gap:16px;align-items:start;width:min(calc(100vw - 32px - var(--sl) - var(--sr)),760px);padding:8px 14px}#dailyScr .panel{overflow:hidden;max-height:calc(100vh - 16px - var(--st) - var(--sb))}#dailyScr h2{grid-column:1 / -1;font-size:20px}.dL,.dR{gap:6px}.dL{max-height:calc(100vh - 82px - var(--st) - var(--sb));overflow-y:auto;overscroll-behavior:contain}.dName{font-size:18px}.dRules{font-size:10.5px;line-height:1.35}#dailyScr .dInfo b{font-size:14px}#dailyScr .chantRow .ch-h small{display:none}#dailyScr .chantRow button{min-height:40px}#dRanked{font-size:20px;padding:9px 8px;white-space:nowrap}#dailyScr .bts .btn{padding:8px 6px;font-size:15px}.dLb{font-size:10px}}   /* DAILY DEFENSE (short landscape phones: two columns, buttons always on screen) */
+label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-spacing:.06em;color:var(--gold);margin-left:6px}
+.pc-acct{grid-column:1/-1;gap:8px}.pc-acct p{margin:0;font-size:12px;opacity:.85;line-height:1.35}.pc-acct .pc-msg{color:#7dff9a;opacity:1;font-weight:800}.pc-email{display:flex;gap:6px}.pc-email input{flex:1;min-width:0;min-height:42px;border-radius:10px;border:1px solid var(--line);background:#0e1a36;color:#fff;padding:0 10px;font-size:16px}
+#chantPulse{display:inline-block;width:8px;height:8px;margin-left:6px;border-radius:50%;background:var(--cc,#fff);transform:scale(var(--cp,0));opacity:calc(.35 + var(--cp,0) * .65);vertical-align:middle}   /* 2.0 Phase 0: war-chant beat pulse (visual only) */
+</style>
+</head>
+<body class="kh-on">
+<main id="kmob-home" data-kmob-landing aria-label="KMOB Endless War home">
+  <div class="kh-hero">
+    <header class="kh-nav kh-wrap">
+      <div class="kh-id"><img class="kh-mascot" src="assets/kmob-home/looter-mascot.webp" alt="" width="46" height="46"><div><div class="kh-logo">K<em>MOB</em><span style="color:#fff">.</span></div><div class="kh-brand">ENDLESS WAR · BY KEEPITIL</div></div></div>
+      <button type="button" class="kh-nav-cta" data-kmob-play>PLAY FREE ↗</button>
+    </header>
+    <div class="kh-wrap kh-hero-inner">
+      <div>
+        <div class="kh-kicker">ONE ARMY. ENDLESS CHOICES.</div>
+        <h1>BUILD THE ARMY.<br>HOLD THE LINE.<br><span>OUTLAST THE WAR.</span></h1>
+        <p class="kh-lead">An endless strategy battle built for quick decisions and big comebacks. Command your tank, create a six-class army, upgrade your soldiers, and see how far you can survive. Every wave is a new chance to get stronger—or lose everything.</p>
+        <div class="kh-actions"><button type="button" class="kh-primary" data-kmob-play>⚔ PLAY KMOB — FREE</button><button type="button" class="kh-daily" data-kmob-daily>🛡 DAILY DEFENSE<small id="khDaily"></small></button><button type="button" class="kh-secondary" data-kmob-scroll="kh-how">HOW TO PLAY ↓</button></div>
+        <p class="kh-small-note">Play now in your browser · Works on phones and desktop · Mobile App Store release planned</p>
+      </div>
+      <figure class="kh-hero-art"><img src="assets/kmob-home/soldier-classes.webp" width="1500" height="715" alt="KMOB's six stylized blue-army character classes assembled on a bright battlefield" fetchpriority="high"><figcaption class="kh-photo-caption"><b>YOU COMMAND THE WAR</b>Six soldier classes. One command tank. No two runs exactly alike.</figcaption></figure>
+    </div>
+  </div>
+  <div class="kh-wrap"><div class="kh-stats" aria-label="Game highlights">
+    <div class="kh-stat"><strong>6</strong><span>Soldier classes</span></div>
+    <div class="kh-stat"><strong>300</strong><span>Army capacity</span></div>
+    <div class="kh-stat"><strong>∞</strong><span>Endless waves</span></div>
+    <div class="kh-stat"><strong>5×</strong><span>Speed control</span></div>
+  </div></div>
+  <section class="kh-section" id="kh-features"><div class="kh-wrap">
+    <p class="kh-eyebrow">STRATEGY YOU CAN FEEL</p><h2>More than a tower defense game. This is your battlefield.</h2>
+    <p class="kh-desc">KMOB combines the rush of an endless survival game with deliberate troop choices. Your army isn't a decoration: how you build it, protect it, and spend your resources decides whether you make it through the next wave.</p>
+    <div class="kh-cards">
+      <article class="kh-card"><div class="kh-symbol" aria-hidden="true">▦</div><h3>Plan your army</h3><p>Build a preset across six soldier classes with a 300-point weighted capacity. Change your War Plan during battle as the enemy changes tactics.</p></article>
+      <article class="kh-card"><div class="kh-symbol" aria-hidden="true">◎</div><h3>Command the tank</h3><p>Slide to line up your cannon, switch between automatic and manual deployment, and decide when your army attacks or holds the line.</p></article>
+      <article class="kh-card"><div class="kh-symbol" aria-hidden="true">✧</div><h3>Earn your next advantage</h3><p>Spend battle gold on soldiers and upgrades. Defeat bosses to earn rewards and choose lasting bonuses that shape future fights.</p></article>
+      <article class="kh-card"><div class="kh-symbol" aria-hidden="true">⚡</div><h3>Four elemental powers</h3><p>Fire burns, Ice slows, Poison weakens healing, and Lightning jumps between enemies. Equipped skins give your strategy a new layer.</p></article>
+      <article class="kh-card"><div class="kh-symbol" aria-hidden="true">✺</div><h3>See the bigger battle</h3><p>Zoom out up to 3× for a wider view or accelerate play up to 5× when you're ready to move faster. Your choices still matter.</p></article>
+      <article class="kh-card"><div class="kh-symbol" aria-hidden="true">∞</div><h3>No final wave</h3><p>The fight gets tougher as your army grows. Aim for a new personal best, experiment with different plans, and come back smarter.</p></article>
+    </div>
+  </div></section>
+  <section class="kh-section kh-how" id="kh-how"><div class="kh-wrap kh-how-layout">
+    <div><p class="kh-eyebrow">YOUR FIRST BATTLE</p><h2>Easy to start.<br>Hard to master.</h2>
+      <div class="kh-steps">
+        <div class="kh-step"><div><b>Choose your War Plan</b><span>Pick the soldiers you want to deploy. Stay inside the 300-cap limit, then enter the battle.</span></div></div>
+        <div class="kh-step"><div><b>Build from 1,000 starting gold</b><span>Deploy your first troops, earn more gold from combat, and upgrade your chosen classes.</span></div></div>
+        <div class="kh-step"><div><b>Move the tank. Protect the line.</b><span>Drag to aim your cannon across the battlefield. Switch between attack and defense as threats approach.</span></div></div>
+        <div class="kh-step"><div><b>Survive, adapt, repeat</b><span>Spend energy strategically, use your powers and consumables, and take on bigger bosses every ten waves.</span></div></div>
+      </div>
+    </div>
+    <figure class="kh-game-visual"><img src="assets/kmob-home/battle-action.webp" width="844" height="255" loading="lazy" alt="Blue KMOB soldiers defending their tank against a mass of approaching enemies"><figcaption>Real KMOB development gameplay capture. The interface and models continue to evolve.</figcaption></figure>
+  </div></section>
+  <section class="kh-section" id="kh-army"><div class="kh-wrap">
+    <p class="kh-eyebrow">SIX CLASSES. YOUR COMBINATION.</p><h2>There is no perfect army. Only the one you build.</h2>
+    <p class="kh-desc">Balanced squads survive differently from heavy front lines. Your War Plan gives you the freedom to try something new every run.</p>
+    <div class="kh-six">
+      <div class="kh-unit"><b>01 · LOOTER</b><span>Collect gold and support the tank</span></div>
+      <div class="kh-unit"><b>02 · ARCHER</b><span>Ranged support from behind your line</span></div>
+      <div class="kh-unit"><b>03 · SWORD</b><span>Your core frontline defenders</span></div>
+      <div class="kh-unit"><b>04 · MIZARD</b><span>Heals and keeps your army alive</span></div>
+      <div class="kh-unit"><b>05 · ELITE</b><span>Heavy-hitting armored specialists</span></div>
+      <div class="kh-unit"><b>06 · GIANT</b><span>Massive power at a capacity cost</span></div>
+    </div>
+  </div></section>
+  <section class="kh-future" id="kh-future"><div class="kh-wrap">
+    <strong>NEXT CHAPTER · KMOB 2.0</strong><h2 style="margin-top:14px">The war is only getting bigger.</h2>
+    <p class="kh-desc" style="margin-bottom:10px;color:#c7d0e1">We're building KMOB as an evolving strategy world, not a one-time mini-game. Future directions being explored include competitive battles, a Crusade experience, and deeper ways to personalize your army. These features are planned, not available in today's browser game.</p>
+    <ul><li>Head-to-head battles</li><li>Crusade mode</li><li>Expanded army strategy</li><li>New audiovisual experiences</li></ul>
+  </div></section>
+  <section class="kh-section" id="kh-install"><div class="kh-wrap">
+    <p class="kh-eyebrow">PLAY IT ON YOUR PHONE TODAY</p><h2>Your battlefield is one tap from your home screen.</h2>
+    <p class="kh-desc">KMOB plays in your mobile browser right now. Add its web app icon to your phone for quick access—no App Store download needed. A native App Store version is planned for the future.</p>
+    <div class="kh-install">
+      <div class="kh-install-card"><div class="kh-tag">IPHONE · SAFARI</div><h3>Add KMOB to your Home Screen</h3><ol><li>Open this page in <b>Safari</b> on your iPhone.</li><li>Tap the <b>Share</b> button.</li><li>Choose <b>Add to Home Screen</b>, then tap <b>Add</b>.</li><li>Open KMOB from its new home-screen icon.</li></ol><p>If the option is hidden, scroll the Share menu or use its action-editing options.</p></div>
+      <div class="kh-install-card"><div class="kh-tag">ANDROID · CHROME</div><h3>Install the web experience</h3><ol><li>Open this page in <b>Chrome</b> on your phone.</li><li>Tap the <b>three-dot menu (⋮)</b>.</li><li>Choose <b>Install app</b> or <b>Add to Home screen</b>.</li><li>Confirm, then launch KMOB from your home screen.</li></ol><p>The button name varies by Android and browser version. Home-screen installation is not a native store download.</p></div>
+    </div>
+  </div></section>
+  <section class="kh-section" style="padding-top:12px" id="kh-faq"><div class="kh-wrap">
+    <p class="kh-eyebrow">QUICK ANSWERS</p><h2>Before you join the war.</h2>
+    <div class="kh-faq">
+      <details><summary>Can I play KMOB for free?</summary><p>Yes. The current browser version is available to play for free. Optional purchases and future releases may add more choices later.</p></details>
+      <details><summary>Do I need to download an app?</summary><p>No. Play directly on this page, or add KMOB to your phone's home screen for a convenient icon. This doesn't mean the native App Store version has launched.</p></details>
+      <details><summary>Can I play on desktop?</summary><p>Yes. KMOB is designed for mobile and desktop browsers, with adjustable speed, zoom, and game controls.</p></details>
+      <details><summary>When will KMOB 2.0 arrive?</summary><p>It's part of the future roadmap. Competitive and expanded game modes are being planned, with no confirmed release date yet.</p></details>
+    </div>
+  </div></section>
+  <section class="kh-section" id="kh-privacy" aria-labelledby="kh-privacy-h"><div class="kh-wrap">
+    <p class="kh-eyebrow">PRIVACY</p><h2 id="kh-privacy-h">KMOB privacy statement</h2>
+    <p class="kh-desc"><b>Last updated: 18 October 2026.</b> KMOB: Endless War is published by KEEPITIL. KMOB has no ads and no tracking cookies, and we do not sell or share player data. You can play without an account. An optional account is used only for purchased Diamonds and War Tokens.</p>
+    <div class="kh-faq">
+      <details open><summary>KMOB for iPhone (app)</summary><p>Free play runs entirely on your iPhone and works offline without an account. Your progress, settings and saved battle are stored on your iPhone and are removed when you delete the app.</p></details>
+      <details><summary>Optional account (Sign in with Apple)</summary><p>Signing in is needed only to buy Diamonds or War Tokens, so purchases are kept safe and follow you to a new phone. On iPhone you sign in with Apple. When you sign in we store your email address (or Apple's private relay address), a user ID, and your purchased Diamond and War Token balance with its history. Your sign-in is a KEEPITIL account hosted by our database provider, Supabase, in the United States.</p></details>
+      <details><summary>In-app purchases</summary><p>On iPhone, Diamonds and War Tokens are sold through Apple In-App Purchase. Apple processes the payment; we receive Apple's signed record of the purchase (product, transaction ID, date, price and whether it was a test or live purchase). We use purchase records only to credit your balance, handle refunds and prevent fraud. Apple decides refunds; request one at reportaproblem.apple.com. If a purchase is refunded, the matching currency is removed from your balance.</p></details>
+      <details><summary>Deleting your account</summary><p>In the app, open SHOP, then BUY DIAMONDS &amp; WAR TOKENS, and choose Delete account. This permanently deletes your KMOB player data and purchased balance and revokes the app's Sign in with Apple access. Purchase records are kept with your identity removed where the law requires it. Your KEEPITIL sign-in can be shared with other KEEPITIL apps; to delete it as well, email <a href="mailto:info@keepitil.com">info@keepitil.com</a>.</p></details>
+      <details><summary>KMOB in your web browser (this page)</summary><p>Your progress and settings are saved in your browser's local storage on your device. To help us balance and fix the game, the browser version sends one anonymous record per battle to our database host (Supabase): a random run code, the game version, a coarse device type (iPhone, Android or desktop), processor core count, memory class, screen size, graphics and speed settings, gameplay numbers (waves, time, soldiers, upgrades) and performance timings. Weekly and all-time leaderboards store a random 8-character player code with your wave, time and bosses defeated. None of this includes your name, email, contacts or location. Like any website, the servers that deliver the page, its fonts (Google Fonts) and this data see your device's IP address as part of the connection.</p></details>
+      <details><summary>Your choices</summary><p>Clearing this site's data in your browser deletes your web progress and player code. Deleting the iPhone app deletes its saved progress. For questions about privacy, or to ask us to remove leaderboard entries, email <a href="mailto:info@keepitil.com">info@keepitil.com</a>.</p></details>
+    </div>
+  </div></section>
+  <section class="kh-section" id="kh-support" aria-labelledby="kh-support-h" style="padding-top:12px"><div class="kh-wrap">
+    <p class="kh-eyebrow">SUPPORT</p><h2 id="kh-support-h">Need help with KMOB?</h2>
+    <p class="kh-desc">Email <a href="mailto:info@keepitil.com">info@keepitil.com</a> with what happened, your device and whether you play in the browser or the iPhone app. Saved progress lives on your device, so clearing browser data or deleting the app also removes it.</p>
+  </div></section>
+  <div class="kh-wrap"><div class="kh-last"><div><strong>One tank. Six classes. Your story.</strong><p>We created KMOB to put meaningful army-building decisions inside a fast, accessible survival game—something you can pick up on your phone and keep mastering over time.</p></div><button type="button" class="kh-primary" data-kmob-play>PLAY NOW →</button></div>
+    <footer class="kh-footer"><span>© KEEPITIL · KMOB: Endless War</span><span>Browser game available now · iPhone app coming to the App Store</span><span><a href="#kh-privacy" data-kmob-scroll="kh-privacy">Privacy</a> · <a href="#kh-support" data-kmob-scroll="kh-support">Support</a></span></footer>
+  </div>
+</main>
+<canvas id="c"></canvas>
+<div id="vig"></div>
+<div id="hud" class="hidden">
+  <div id="hL"><div class="pill"><img src="assets/ui/i_clock.png?v=b78e56a78a61" alt="Time"><b id="hTime">0:00</b><i id="chantPulse" aria-hidden="true"></i></div><div class="pill"><img src="assets/ui/i_army.png?v=b78e56a78a61" alt="Army"><b id="hArmy">0</b></div><div class="pill"><img src="assets/ui/i_skull.png?v=b78e56a78a61" alt="Wave"><b id="hWave">1</b></div></div>
+  <div id="hC" class="pill"><span class="g"><img src="assets/ui/i_gold.png?v=b78e56a78a61" alt="Gold"><b id="hCoins">0</b></span><i class="sep"></i><span class="d"><img src="assets/ui/i_diamond.png?v=b78e56a78a61" alt="Diamonds"><b id="hDia">0</b></span></div>
+  <div id="hR"><div id="pauseBtn" class="pill" role="button" aria-label="Settings"><img src="assets/ui/i_gear.png?v=b78e56a78a61" alt=""><b class="sm">SETTINGS</b></div><div id="zoomBtn" class="pill" role="button" aria-label="Camera zoom out"><svg class="zi" viewBox="0 0 32 32" aria-hidden="true"><circle cx="13" cy="13" r="8.5" fill="#7fc6ff" stroke="#0c2346" stroke-width="3"/><path d="M19.5 19.5l7 7" stroke="#0c2346" stroke-width="5" stroke-linecap="round"/><path d="M19.5 19.5l7 7" stroke="#ffd23a" stroke-width="2.5" stroke-linecap="round"/><path d="M9 13h8" stroke="#0c2346" stroke-width="3" stroke-linecap="round"/></svg><b id="zoomTxt">1×</b></div><div id="speedBtn" class="pill" role="button" aria-label="Game speed"><img src="assets/ui/i_speed.png?v=b78e56a78a61" alt=""><b id="speedTxt">1×</b></div><div id="autoBtn" class="pill" role="button" aria-label="Control mode"><img src="assets/ui/i_auto.png?v=b78e56a78a61" alt=""><svg class="ti" viewBox="0 0 32 32" aria-hidden="true"><path d="M12 5.5a2.5 2.5 0 0 1 5 0V15l1-.3a2.4 2.4 0 0 1 4.6.9l.2-.1a2.4 2.4 0 0 1 3.2 2.3V22a8 8 0 0 1-8 8h-1.6a8 8 0 0 1-6.6-3.5l-4.2-6.2a2.4 2.4 0 0 1 3.7-3L12 20z" fill="#9fd0ff" stroke="#0c2346" stroke-width="2.2" stroke-linejoin="round"/></svg><b id="autoTxt">AUTO</b></div></div>
+</div>
+<div id="drawer" class="hidden" aria-label="Soldier classes"><div id="classes"></div><div id="drawerTab" role="button" aria-label="Show or hide the soldier panel">‹</div></div>
+<div id="clsPop" class="hidden"></div>
+<div id="tankMark" class="hidden" aria-hidden="true"><i></i></div>
+<div id="rightCol" class="hidden">
+  <div id="consBtn" class="rb" role="button" aria-label="Consumables"><svg viewBox="0 0 64 64" aria-hidden="true" style="width:30px;height:30px"><path d="M24 8h16v8l8 10v28a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6V26l8-10z" fill="#b36cff" stroke="#3a1a5a" stroke-width="3" stroke-linejoin="round"/><path d="M22 34h20v18H22z" fill="#e8d0ff" opacity=".55"/><path d="M32 38l3 6h-6z" fill="#ffd23a"/></svg><b>ITEMS</b><small id="consN"></small></div>
+  <div id="powerBtn" class="rb" role="button" aria-label="Power"><img src="assets/ui/i_power.png?v=b78e56a78a61" alt=""><b>POWER</b><i class="en"><u id="enFill"></u></i></div>
+  <div id="tankBtn" class="rb" role="button" aria-label="Tank upgrade"><img src="assets/ui/i_upgrade.png?v=b78e56a78a61" alt=""><b>UPGRADE</b><small id="tankCost"></small></div>
+  <div id="postureBtn" class="rb" role="button" aria-label="Attack or defend: tap = selected class, hold = whole army"><img src="assets/ui/i_attack.png?v=b78e56a78a61" alt=""><b id="postureTxt">ATTACK</b></div>
+</div>
+<div id="powers" class="hidden"></div>
+<div id="tankUps" class="hidden"></div>
+<div id="consPop" class="hidden"></div>
+<div id="allTip"></div>
+<div id="choice" class="hidden"><div class="ct" id="choiceT"></div><div class="co" id="choiceO"></div></div>
+<div id="bossBar" class="hidden"><div class="bn" id="bossName"></div><div class="bb"><b id="bossFill"></b></div><div class="bh" id="bossHp"></div></div>
+<div id="tankHp" class="hidden"><b id="hpFill"></b><i id="shFill"></i></div>
+<div id="tip" class="hidden"><div class="hand" id="tipHand"></div><div class="big" id="tipBig">DRAG TO MOVE</div><div class="sm" id="tipSm">SOLDIERS DEPLOY AUTOMATICALLY</div></div>
+<div id="banner"></div>
+
+<div id="intro" class="hidden" role="button" aria-label="Skip intro"><div class="il" id="introLine"></div></div>
+<div id="title" class="screen hidden"><div class="panel">
+  <button class="btn sec sq" id="setBtn1" aria-label="Settings" style="position:absolute;top:12px;right:12px;width:40px;height:40px;padding:0"></button>
+  <img class="title-mascot" src="assets/kmob-home/looter-mascot.webp" alt="" width="84" height="84"><h1 class="disp">KMOB</h1><h2 class="disp">ENDLESS WAR</h2>
+  <div class="best" id="titleBest"></div>
+  <button class="btn" id="playBtn">PLAY</button>
+  <button class="btn dailyb" id="dailyBtn" style="margin-top:10px">DAILY DEFENSE<small></small></button>
+  <button class="btn sec hidden" id="contBtn" style="margin-top:10px">CONTINUE<small id="contInfo" style="display:block;font-size:11px;opacity:.75"></small></button>
+  <button class="btn sec" id="shopBtn1" style="margin-top:10px">SHOP</button>
+  <a href="/games/" style="display:block;text-align:center;margin-top:14px;color:#9fc4ff;font-weight:900;font-size:13px;text-decoration:none">← KEEPITIL GAMES</a>
+</div></div>
+
+<div id="dailyScr" class="screen hidden"><div class="panel" role="dialog" aria-label="Daily Defense">
+  <h2 class="disp">DAILY DEFENSE</h2>
+  <div class="dL"><div class="dName" id="dName"></div><p class="dDesc" id="dDesc"></p>
+  <div class="dInfo" id="dInfo"></div>
+  <p class="dRules" id="dRules"></p></div>
+  <div class="dR"><div class="chantRow" id="dChant"></div>
+  <p class="dLb" id="dLb"></p>
+  <button class="btn" id="dRanked">PLAY RANKED</button>
+  <div class="bts"><button class="btn sec" id="dPractice">PRACTICE</button><button class="btn sec" id="dBack">BACK</button></div></div>
+</div></div>
+
+<div id="plan" class="screen hidden"><div class="panel" role="dialog" aria-label="War plan">
+  <h2 class="disp">WAR PLAN</h2>
+  <div class="ph"><span>CAP per soldier / Row limit / Class max</span><span>TARGET</span></div>
+  <div class="rows" id="planRows"></div>
+  <div class="tot"><span>TOTAL ARMY CAPACITY</span><b id="planTot">0 / 300</b></div>
+  <div class="gold" id="planGold"></div>
+  <div class="msg" id="planMsg"></div>
+  <div class="chantRow" id="planChant"></div>
+  <div class="foot"><div class="bts"><button class="btn sec" id="planReset">RESET TO ZERO</button><button class="btn sec" id="planBack">BACK</button></div>
+  <button class="btn" id="planGo">START BATTLE</button></div>
+</div></div>
+
+<div id="over" class="screen hidden"><div class="panel">
+  <div class="sv">REACHED</div><div class="tm" id="oTime">WAVE 1</div><div class="pb" id="oPb"></div>
+  <div class="stats" id="oStats"></div>
+  <div class="row"><button class="btn sec sq" id="homeBtn" aria-label="Home"></button><button class="btn" id="againBtn">TRY AGAIN</button><button class="btn sec sq" id="shopBtn2" aria-label="Shop"></button></div>
+  <button class="btn sec hidden" id="reviveBtn" style="margin-top:10px;font-size:16px">REVIVE (ONCE)</button>
+</div></div>
+
+<div id="pause" class="screen hidden"><div class="panel">
+  <h2 class="disp" style="text-align:center;margin:0 0 6px;font-size:34px">PAUSED</h2>
+  <div class="toggles" id="pToggles"></div>
+  <button class="btn" id="resumeBtn">RESUME</button>
+  <button class="btn sec" id="menuBtn" style="margin-top:10px">SAVE &amp; MENU</button>
+  <button class="btn sec" id="quitBtn" style="margin-top:10px">END RUN</button>
+</div></div>
+
+<div id="shop" class="screen hidden"><div class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="disp" style="margin:0;font-size:28px">SHOP</h2><span class="tok" id="shopTok"></span></div>
+  <div class="tabs" id="shopTabs"><button data-t="skins" class="on">SKINS</button><button data-t="gear">GEAR</button><button data-t="perks">PERKS</button><button data-t="items">ITEMS</button><button data-t="powers">POWERS</button><button data-t="chants">CHANTS</button><button data-t="armory">OWNED</button><button data-t="currency">💎</button></div>
+  <div class="shopgrid pcgrid" id="shopGrid"></div>
+  <button class="btn sec" id="shopClose">BACK</button>
+  <div id="shopInfo" class="hidden"></div>
+</div></div>
+
+<div id="settings" class="screen hidden"><div class="panel">
+  <h2 class="disp" style="text-align:center;margin:0 0 6px;font-size:30px">SETTINGS</h2>
+  <div class="toggles" id="sToggles"></div>
+    <button class="btn sec" id="setClose" style="margin-top:12px">BACK</button>
+</div></div>
+
+<script defer src="vendor/three.min.js?v=b78e56a78a61"></script>
+<script defer src="js/core.js?v=b78e56a78a61"></script>
+<script defer src="js/chants.js?v=b78e56a78a61"></script>
+<script defer src="js/chant-packs.js?v=b78e56a78a61"></script>
+<script defer src="js/sim.js?v=b78e56a78a61"></script>
+<script defer src="js/daily.js?v=b78e56a78a61"></script>
+<script defer src="js/anim.js?v=b78e56a78a61"></script>
+<script defer src="js/kit.js?v=b78e56a78a61"></script>
+<script defer src="js/render.js?v=b78e56a78a61"></script>
+<script defer src="js/powerfx.js?v=b78e56a78a61"></script>
+<script defer src="js/assets.js?v=b78e56a78a61"></script>
+<script defer src="js/audio.js?v=b78e56a78a61"></script>
+<script defer src="js/account.js?v=b78e56a78a61"></script>
+<script defer src="js/wallet.js?v=b78e56a78a61"></script>
+<script defer src="js/main.js?v=b78e56a78a61"></script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+/* KMOB single-address, mobile-first homepage. Scoped to avoid conflict with the 3D game. */
+#kmob-home{--kh-bg:#07111a;--kh-panel:#101e2a;--kh-line:rgba(201,235,246,.15);--kh-white:#f4f9fd;--kh-muted:#b1c3ce;--kh-lime:#b9f75b;--kh-blue:#75bcff;--kh-gold:#ffd478;position:fixed;inset:0;z-index:100;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;background:var(--kh-bg);color:var(--kh-white);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.55;text-align:left;scroll-behavior:smooth;-webkit-user-select:text;user-select:text}
+#kmob-home *{box-sizing:border-box}
+#kmob-home[hidden]{display:none!important}
+#kmob-home :is(button,a){-webkit-tap-highlight-color:transparent}
+#kmob-home button{font:inherit;cursor:pointer}
+#kmob-home button:focus-visible{outline:3px solid #fff;outline-offset:3px}
+#kmob-home img{display:block;max-width:100%;height:auto}
+#kmob-home .kh-wrap{max-width:1200px;margin:auto;padding:0 22px}
+#kmob-home .kh-nav{position:relative;display:flex;align-items:center;justify-content:space-between;gap:20px;padding-top:22px;padding-bottom:20px}
+#kmob-home .kh-logo{font-size:27px;font-weight:1000;letter-spacing:-1.2px;line-height:1}
+#kmob-home .kh-logo em{color:var(--kh-lime);font-style:normal}
+#kmob-home .kh-brand{font-size:10px;letter-spacing:.22em;color:var(--kh-muted);font-weight:850;margin-top:5px}
+#kmob-home .kh-nav-cta{border:1px solid rgba(185,247,91,.5);color:var(--kh-lime);background:rgba(185,247,91,.08);padding:10px 16px;border-radius:11px;font-size:12px;font-weight:900;letter-spacing:.14em;white-space:nowrap}
+#kmob-home .kh-hero{position:relative;isolation:isolate;background:radial-gradient(ellipse at 78% 22%,rgba(50,132,166,.30),transparent 55%),radial-gradient(ellipse at 0 90%,rgba(72,139,88,.14),transparent 45%);padding:48px 0 84px;border-bottom:1px solid var(--kh-line)}
+#kmob-home .kh-hero-inner{display:grid;grid-template-columns:minmax(0,1.22fr) minmax(0,.88fr);align-items:center;gap:36px}
+#kmob-home .kh-kicker{display:inline-flex;align-items:center;gap:9px;color:var(--kh-lime);font-size:11px;letter-spacing:.22em;font-weight:900;text-transform:uppercase}
+#kmob-home .kh-kicker:before{content:"";width:8px;height:8px;background:var(--kh-lime);border-radius:100%;box-shadow:0 0 13px rgba(185,247,91,.7)}
+#kmob-home h1{font-size:clamp(47px,4.5vw,68px);font-weight:1000;letter-spacing:-.065em;line-height:.99;margin:16px 0 22px;text-wrap:balance}
+#kmob-home h1 span{color:var(--kh-lime)}
+#kmob-home .kh-lead{font-size:clamp(16px,1.5vw,19px);line-height:1.65;color:#dce9ef;max-width:590px;margin:0 0 24px}
+#kmob-home .kh-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+#kmob-home .kh-primary{border:0;border-radius:14px;background:linear-gradient(135deg,#d6ff72,#a9ec4e);color:#08221b;padding:16px 24px;min-height:56px;font-size:14px;font-weight:1000;letter-spacing:.09em;box-shadow:0 11px 38px rgba(144,236,50,.2)}
+#kmob-home .kh-primary:hover{filter:brightness(1.055);transform:translateY(-1px)}
+#kmob-home .kh-daily{border:0;border-radius:14px;background:linear-gradient(135deg,#ffd23a,#e8a810);color:#2a1a00;padding:10px 20px;min-height:56px;font-size:14px;font-weight:1000;letter-spacing:.06em;line-height:1.15;text-align:left}#kmob-home .kh-daily small{display:block;font-size:10.5px;font-weight:850;letter-spacing:.04em;opacity:.8}#kmob-home .kh-daily:hover{filter:brightness(1.055);transform:translateY(-1px)}
+#kmob-home .kh-secondary{background:transparent;border:1px solid rgba(221,241,250,.34);border-radius:14px;color:#f3f7fa;padding:15px 20px;min-height:56px;font-weight:850;font-size:14px}
+#kmob-home .kh-small-note{font-size:12px;margin-top:18px;color:var(--kh-muted)}
+#kmob-home .kh-hero-art{position:relative;margin:0;filter:drop-shadow(0 25px 55px rgba(0,0,0,.4))}
+#kmob-home .kh-hero-art img{border:1px solid rgba(223,248,255,.2);border-radius:24px;aspect-ratio:1.66;object-fit:cover;object-position:center;box-shadow:0 0 0 8px rgba(87,159,200,.07)}
+#kmob-home .kh-photo-caption{position:absolute;right:-12px;bottom:-16px;max-width:230px;background:rgba(12,25,36,.95);border:1px solid rgba(185,247,91,.38);border-radius:14px;padding:13px 16px;line-height:1.35;box-shadow:0 16px 36px rgba(0,0,0,.35);color:var(--kh-muted);font-size:12px}
+#kmob-home .kh-photo-caption b{display:block;color:var(--kh-lime);font-size:19px;letter-spacing:.02em}
+#kmob-home .kh-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:#0d1b25;border:1px solid var(--kh-line);border-radius:18px;transform:translateY(-35px);overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.22)}
+#kmob-home .kh-stat{padding:22px;text-align:center;border-right:1px solid var(--kh-line)}
+#kmob-home .kh-stat:last-child{border:0}
+#kmob-home .kh-stat strong{display:block;color:var(--kh-lime);font-size:clamp(22px,2.4vw,32px);letter-spacing:-.05em;line-height:1.1}
+#kmob-home .kh-stat span{font-size:11px;color:var(--kh-muted);font-weight:800;letter-spacing:.11em;text-transform:uppercase}
+#kmob-home section.kh-section{padding:70px 0}
+#kmob-home .kh-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.21em;color:var(--kh-lime);font-weight:1000;margin:0 0 12px}
+#kmob-home h2{font-size:clamp(30px,4.3vw,51px);line-height:1.05;font-weight:1000;letter-spacing:-.045em;max-width:780px;margin:0 0 20px;text-wrap:balance}
+#kmob-home h3{font-size:20px;letter-spacing:-.02em;margin:0 0 9px;line-height:1.18}
+#kmob-home .kh-desc{color:var(--kh-muted);font-size:16px;max-width:690px;line-height:1.7;margin:0 0 31px}
+#kmob-home .kh-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+#kmob-home .kh-card{background:linear-gradient(165deg,#122331,#0d1a23);border:1px solid var(--kh-line);border-radius:18px;padding:24px;min-height:211px}
+#kmob-home .kh-card p{color:var(--kh-muted);font-size:14px;line-height:1.7;margin:0}
+#kmob-home .kh-symbol{display:grid;place-items:center;font-size:24px;width:48px;height:48px;border-radius:14px;background:rgba(120,188,255,.12);border:1px solid rgba(120,188,255,.22);margin-bottom:22px}
+#kmob-home .kh-how{background:linear-gradient(180deg,rgba(24,44,56,.50),rgba(6,17,26,0));border-block:1px solid var(--kh-line)}
+#kmob-home .kh-how-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:45px;align-items:center}
+#kmob-home .kh-steps{counter-reset:khstep;display:grid;gap:16px}
+#kmob-home .kh-step{counter-increment:khstep;display:flex;align-items:start;gap:16px}
+#kmob-home .kh-step:before{content:counter(khstep, decimal-leading-zero);font-size:15px;color:var(--kh-lime);font-weight:1000;line-height:2;background:rgba(185,247,91,.08);border:1px solid rgba(185,247,91,.22);border-radius:11px;min-width:44px;height:43px;text-align:center}
+#kmob-home .kh-step b{display:block;color:#fff;margin:0 0 2px;font-size:16px}
+#kmob-home .kh-step span{font-size:13px;color:var(--kh-muted)}
+#kmob-home .kh-game-visual{margin:0;background:#0a161e;border-radius:20px;border:1px solid var(--kh-line);overflow:hidden}
+#kmob-home .kh-game-visual img{width:100%;aspect-ratio:1.7;object-fit:cover}
+#kmob-home .kh-game-visual figcaption{padding:12px 18px;color:var(--kh-muted);font-size:12px}
+#kmob-home .kh-six{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:32px}
+#kmob-home .kh-unit{padding:16px 18px;background:#101e2a;border:1px solid var(--kh-line);border-radius:14px}
+#kmob-home .kh-unit b{display:block;color:#fff;letter-spacing:.02em;font-size:15px;margin-bottom:3px}
+#kmob-home .kh-unit span{font-size:12px;color:var(--kh-muted)}
+#kmob-home .kh-future{padding:64px 0;background:radial-gradient(ellipse at 85% 35%,rgba(112,60,196,.28),transparent 60%),#0c1824;border-block:1px solid rgba(157,133,239,.24)}
+#kmob-home .kh-future strong{font-size:13px;letter-spacing:.14em;color:#cfb5ff;text-transform:uppercase}
+#kmob-home .kh-future ul{list-style:none;padding:0;margin:16px 0 0;display:flex;gap:10px;flex-wrap:wrap}
+#kmob-home .kh-future li{font-size:13px;border:1px solid rgba(205,171,255,.3);border-radius:30px;padding:9px 14px;background:rgba(205,171,255,.08);color:#eadfff}
+#kmob-home .kh-install{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+#kmob-home .kh-install-card{padding:28px;background:#10202b;border:1px solid var(--kh-line);border-radius:19px}
+#kmob-home .kh-install-card .kh-tag{font-size:11px;color:var(--kh-lime);font-weight:950;letter-spacing:.19em;text-transform:uppercase;margin-bottom:12px}
+#kmob-home .kh-install-card ol{padding-left:22px;margin:0;color:#d4e1e8;line-height:1.9;font-size:14px}
+#kmob-home .kh-install-card p{color:var(--kh-muted);font-size:13px;margin:13px 0 0}
+#kmob-home .kh-faq{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#kmob-home details{border-radius:13px;background:#11202b;border:1px solid var(--kh-line);padding:16px 18px;align-self:start}
+#kmob-home summary{list-style:none;cursor:pointer;font-weight:800;font-size:14px}
+#kmob-home summary::-webkit-details-marker{display:none}
+#kmob-home summary:after{content:'+';float:right;color:var(--kh-lime);font-size:20px;line-height:1}
+#kmob-home details[open] summary:after{content:'−'}
+#kmob-home details p{font-size:13px;color:var(--kh-muted);margin:10px 0 0;line-height:1.6}
+#kmob-home .kh-last{border-top:1px solid var(--kh-line);padding:45px 0 52px;display:flex;justify-content:space-between;gap:24px;align-items:center}
+#kmob-home .kh-last strong{display:block;font-size:23px;line-height:1.1;margin-bottom:7px;letter-spacing:-.03em}
+#kmob-home .kh-last p{color:var(--kh-muted);margin:0;font-size:13px;max-width:650px}
+#kmob-home .kh-footer{font-size:11px;color:#7a96a9;border-top:1px solid var(--kh-line);padding:16px 0 25px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media(max-width:850px){#kmob-home .kh-hero-inner{grid-template-columns:1fr;gap:32px}#kmob-home .kh-hero{padding:34px 0 80px}#kmob-home .kh-hero-art{max-width:700px}#kmob-home .kh-how-layout{grid-template-columns:1fr;gap:30px}#kmob-home .kh-cards{grid-template-columns:1fr 1fr}#kmob-home .kh-card{min-height:180px}#kmob-home .kh-last{flex-direction:column;align-items:start}}
+@media(max-width:580px){#kmob-home .kh-wrap{padding:0 18px}#kmob-home .kh-nav{padding-top:17px;padding-bottom:18px}#kmob-home .kh-nav-cta{padding:9px 11px;font-size:11px}#kmob-home .kh-logo{font-size:24px}#kmob-home h1{font-size:clamp(42px,10vw,59px)}#kmob-home .kh-hero{padding:25px 0 64px}#kmob-home .kh-lead{font-size:15px}#kmob-home .kh-primary,#kmob-home .kh-secondary{min-height:52px}#kmob-home .kh-actions button{flex:1 1 100%}#kmob-home .kh-photo-caption{max-width:170px;right:-7px;bottom:-17px;padding:10px;font-size:10px}#kmob-home .kh-photo-caption b{font-size:15px}#kmob-home .kh-stats{grid-template-columns:1fr 1fr;transform:translateY(-25px)}#kmob-home .kh-stat{padding:15px 10px}#kmob-home .kh-stat:nth-child(2){border-right:0}#kmob-home .kh-stat:nth-child(-n+2){border-bottom:1px solid var(--kh-line)}#kmob-home section.kh-section{padding:54px 0}#kmob-home .kh-cards,#kmob-home .kh-install,#kmob-home .kh-faq{grid-template-columns:1fr}#kmob-home .kh-card{min-height:auto}#kmob-home .kh-six{grid-template-columns:1fr 1fr}#kmob-home .kh-unit{padding:12px}#kmob-home .kh-future{padding:50px 0}#kmob-home .kh-last{padding:36px 0}#kmob-home .kh-footer{font-size:10px}}
+@media(prefers-reduced-motion:reduce){#kmob-home{scroll-behavior:auto}#kmob-home .kh-primary:hover{transform:none}}
+#kmob-home a{color:var(--kh-blue);text-underline-offset:2px}#kmob-home .kh-footer a{color:#9fc4ff}

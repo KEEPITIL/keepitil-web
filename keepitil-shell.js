@@ -1923,8 +1923,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
       watch();
     }catch(e){}
   }
-  if(document.readyState!=='loading') setTimeout(mountArticleEnd,0);
-  else document.addEventListener('DOMContentLoaded', function(){ setTimeout(mountArticleEnd,0); });
+  /* 2026-10-22 (Kai): the standalone sponsor flyer no longer auto-mounts on article pages - affiliate, referral and product promos appear only in the SUPPORT KEEPITIL 2:3 image carousel. mountArticleEnd() is intentionally not invoked. */
 
   /* Styles for the article placement travel with the module, since any page may carry one. */
   try{

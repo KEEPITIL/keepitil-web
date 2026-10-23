@@ -92,8 +92,9 @@
   }
   function transactionHistory(){return state.wallet.transactionHistory.slice().reverse();}
   function spendGems(amount,sourceId){return transact(-Math.max(0,Math.round(amount||0)),'EQUIPMENT_SPEND',sourceId);}
-  // Credit gems from a verified real-money purchase (Stripe/store). sourceId = pack id.
-  function creditPurchase(amount,sourceId,status){return transact(Math.max(0,Math.round(amount||0)),'PURCHASE',sourceId,status||'SERVER_VERIFIED');}
+  // HOTFIX B89 (security): there is no server-verified purchase grant in this build, so
+  // purchase gems are never credited client-side. Kept in the API so callers do not throw.
+  function creditPurchase(){return {ok:false,error:'PURCHASES_DISABLED'};}
   function renderHistory(showPanel){const rows=transactionHistory().map(t=>'<div class="storeitem"><span>'+t.transactionType+'<small class="menusub">'+new Date(t.timestamp).toLocaleString()+' · '+t.sourceId+'</small></span><b>'+(t.amount>0?'+':'')+t.amount+' 💎</b></div>').join('');showPanel('GEM TRANSACTION HISTORY',rows||'<p class="note">No gem transactions yet.</p>');}
   function hasEntitlement(id){return !!state.entitlements[id];}
   function grantEntitlement(id,source='LOCAL_MIGRATION'){if(!id||state.entitlements[id])return false;state.entitlements[id]={grantedAt:Date.now(),source,validationStatus:'LOCAL_ONLY'};save();return true;}

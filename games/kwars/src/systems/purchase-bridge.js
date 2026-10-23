@@ -2,8 +2,8 @@
  * One entry point for buying gem packs across platforms, plus secure fulfillment.
  *   - Web / PWA / desktop  -> Stripe (KWStripe.purchase)
  *   - Native store app      -> store billing (KWStoreBilling.buy) when present
- * On return from Stripe Checkout, it asks the fulfillment worker to VERIFY the
- * payment and credits gems once. Never trusts the browser to credit unverified. */
+ * HOTFIX B89: purchases are disabled. Nothing on the client credits purchase gems
+ * (no URL, no stored pack, no worker reply); see docs/HOTFIX-B89-SECURITY.md. */
 (function () {
   'use strict';
   // Stable anonymous player id (ties purchases to this device/account).
@@ -22,49 +22,35 @@
     }
   };
 
-  // Fulfillment on return from Stripe (?checkout=success). Prefer the secure worker
-  // (verifies the payment with Stripe); if no worker is configured, fall back to
-  // crediting the pack the player just bought — provisional, replace with the worker
-  // to harden against spoofing.
+  // HOTFIX B89 (security): this build has NO server-verified fulfillment, so the
+  // client never credits purchase gems. A "?checkout=success" return URL, a
+  // session_id, a stored kw-pending-pack or a worker response are all
+  // attacker-controllable and grant NOTHING here. Verified grants arrive with the
+  // server fulfillment work (PR #1, security/server-verified-gems).
+  var PURCHASE_UNAVAILABLE = 'Gem purchases are not available yet, so no gems were added. If you were charged, contact info@keepitil.com.';
+  // A self-contained notice: the battle toast (#msg) is hidden on the home/shell
+  // screens, which is exactly where a checkout return lands.
+  function notice(text) {
+    try {
+      var old = document.getElementById('kwPurchaseNotice'); if (old) old.remove();
+      var el = document.createElement('div');
+      el.id = 'kwPurchaseNotice'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
+      el.textContent = text;
+      el.style.cssText = 'position:fixed;left:50%;bottom:max(16px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:2147483000;max-width:min(92vw,520px);box-sizing:border-box;padding:12px 16px;border-radius:10px;background:rgba(14,20,28,.94);color:#eef2f5;border:1px solid rgba(242,201,77,.55);font:600 14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.45);cursor:pointer';
+      el.onclick = function () { el.remove(); };
+      document.body.appendChild(el);
+      setTimeout(function () { if (el.parentNode) el.remove(); }, 9000);
+    } catch (e) { if (window.showMsg) showMsg(text, 6000); }
+  }
   function claimCheckout() {
     var q; try { q = new URLSearchParams(location.search); } catch (e) { return; }
-    if (q.get('checkout') !== 'success') return;
-    var sid = q.get('session_id'), base = window.KW_FULFILL_URL;
-    var clean = function () { try { history.replaceState({}, '', location.pathname); } catch (e) {} };
-    var done; try { done = JSON.parse(localStorage.getItem('ageofwars-fulfilled') || '[]'); } catch (e) { done = []; }
-    var key = sid || ('nos_' + Date.now());
-    if (sid && done.indexOf(sid) !== -1) { clean(); return; }   // already credited this session
-
-    function creditProvisional() {
-      var pend = null; try { pend = localStorage.getItem('kw-pending-pack'); } catch (e) {}
-      var packs = (window.KWStripe && KWStripe.packs) || [];
-      var pack = packs.filter(function (p) { return p.id === pend; })[0];
-      if (pack && window.KWCommerce && KWCommerce.creditPurchase) {
-        KWCommerce.creditPurchase(pack.gems, pack.id, 'CLIENT_PROVISIONAL');
-        done.push(key); try { localStorage.setItem('ageofwars-fulfilled', JSON.stringify(done)); localStorage.removeItem('kw-pending-pack'); } catch (e) {}
-        if (window.showMsg) showMsg('✅ Purchase complete — +' + pack.gems + ' gems');
-      }
-      clean();
-    }
-
-    // Secure path: verify with the worker when configured.
-    if (base && sid) {
-      fetch(base.replace(/\/$/, '') + '/verify?session_id=' + encodeURIComponent(sid))
-        .then(function (r) { return r.json(); })
-        .then(function (g) {
-          if (g && g.ok && window.KWCommerce && KWCommerce.creditPurchase) {
-            KWCommerce.creditPurchase(g.gems, g.pack, 'SERVER_VERIFIED');
-            done.push(sid); try { localStorage.setItem('ageofwars-fulfilled', JSON.stringify(done)); localStorage.removeItem('kw-pending-pack'); } catch (e) {}
-            if (window.showMsg) showMsg('✅ Purchase complete — +' + g.gems + ' gems');
-            clean();
-          } else { creditProvisional(); }   // worker reachable but couldn't verify → provisional
-        })
-        .catch(creditProvisional);           // worker unreachable → provisional
-      return;
-    }
-    // No worker configured → provisional credit.
-    creditProvisional();
+    if (!q.has('checkout') && !q.has('session_id')) return;
+    try { localStorage.removeItem('kw-pending-pack'); } catch (e) {}
+    try { history.replaceState({}, '', location.pathname); } catch (e) {}
+    notice(PURCHASE_UNAVAILABLE);
   }
+  window.KWPurchaseUnavailableMessage = PURCHASE_UNAVAILABLE;
+  window.KWPurchaseNotice = notice;
   if (document.readyState !== 'loading') claimCheckout();
   else document.addEventListener('DOMContentLoaded', claimCheckout);
 })();

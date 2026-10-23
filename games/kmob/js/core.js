@@ -401,6 +401,7 @@
     { wave: 10, title: 'FIRST BOSS', tokens: 2 }, { wave: 25, title: 'BRONZE COMMANDER', tokens: 5, diamonds: 5 }, { wave: 50, title: 'SILVER COMMANDER', tokens: 10, diamonds: 10 },
     { wave: 100, title: 'GOLD COMMANDER', tokens: 20, diamonds: 20 }, { wave: 250, title: 'WARLORD', tokens: 40, diamonds: 30 }, { wave: 500, title: 'ENDLESS COMMANDER', tokens: 60, diamonds: 50 }, { wave: 1000, title: 'ENDLESS CROWN', tokens: 100, diamonds: 100 },
   ];
+  KM.DAILY_BADGES = ['FIRST DEFENSE', 'WEEK WARDEN', 'IRON VIGIL', 'ETERNAL GUARD'];   // Daily Defense day-count badges (js/main.js DBADGES)
   KM.WEEKLY_TIERS = [{ top: 0.01, tokens: 40, diamonds: 30, title: 'WEEKLY ELITE' }, { top: 0.05, tokens: 25, badge: 1 }, { top: 0.10, tokens: 15 }, { top: 0.25, tokens: 8 }, { top: 0.50, tokens: 3 }];
   KM.weeklyReward = pct => KM.WEEKLY_TIERS.find(t => pct <= t.top) || null;   // reward tiers by percentile, not only #1
   // leaderboard order: highest wave → survival time → bosses defeated
@@ -503,6 +504,7 @@
     ach: {},
     buffs: { cls: {}, tank: {} }, cons: {}, paid: [],
     chants: { on: 1, station: 'steel', owned: { steel: 1 }, vol: 1 },
+    goals: null,   // GOALS & COMMANDER RANK (js/goals.js): banked daily/weekly goals, XP, rank
     daily: { day: '', ranked: 0, practice: 0, best: 0, bestParts: null, done: 0, station: 'steel', days: [], total: 0 },   // DAILY DEFENSE: today's attempts / best, completed days (badges, weekly participation)   // 2.0 WAR CHANTS: radio on/off, selected station, unlocked stations, stinger volume 0–1
     perks: {}, gear: { owned: {}, equip: {} }, season: { owned: {}, equip: {} }, mercTier: 1,   // Phase C: perk tiers · class equipment (owned tiers, equipped tier per slot) · seasonal skin sets · chosen Mercenary tier   // permanent boss-card buffs (counts of +5 %), consumable inventory, banked boss-payout ids (exactly once)
   });
@@ -515,7 +517,8 @@
     if (b.weekly && typeof b.weekly.w === 'string') d.best.weekly = { w: b.weekly.w, t: num(b.weekly.t, 0) };
     for (const k of Object.keys(d.totals)) d.totals[k] = num((raw.totals || {})[k], 0);
     d.diamonds = Math.floor(num(raw.diamonds, 0)); if (typeof raw.player === 'string' && /^[A-Z0-9]{4,12}$/.test(raw.player)) d.player = raw.player;
-    if (Array.isArray(raw.titles)) d.titles = raw.titles.filter(t => KM.MILESTONES.some(m => m.title === t));
+    const TITLES = new Set([...KM.MILESTONES.map(m => m.title), ...KM.DAILY_BADGES, ...(KM.EARLY_TITLES || []).map(m => m.title)]);   // wave milestones + Daily Defense badges + early wave titles (a Daily badge was dropped on reload before 2026-10-23)
+    if (Array.isArray(raw.titles)) d.titles = [...new Set(raw.titles.filter(t => TITLES.has(t)))];
     for (const k of Object.keys(d.records)) d.records[k] = num((raw.records || {})[k], 0);
     const pw = raw.powers || {}; for (const id of KM.POWER_IDS) { const l = Math.floor(num((pw.lv || {})[id], 0)); if (l) d.powers.lv[id] = Math.min(KM.POWER_MAX, l); }
     if (Array.isArray(pw.equip)) { const e = [...new Set(pw.equip.filter(id => KM.POWERS[id]))].slice(0, 3); if (e.length) d.powers.equip = e; }
@@ -538,6 +541,7 @@
     const se = raw.season || {}; for (const id of Object.keys(se.owned || {})) if (KM.SEASON_BY[id]) d.season.owned[id] = 1;
     for (const c of [...KM.PROD_ORDER, 'tank']) { const id = (se.equip || {})[c]; if (id && d.season.owned[id]) d.season.equip[c] = id; }
     if ([1, 2, 3].includes(raw.mercTier)) d.mercTier = raw.mercTier;
+    d.goals = KM.validGoals ? KM.validGoals(raw.goals) : null;
     const dl = raw.daily || {}, DD = d.daily;   // DAILY DEFENSE: today's counters only survive for the same UTC day (attempts never carry over)
     if (typeof dl.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dl.day)) { DD.day = dl.day; DD.ranked = Math.min(3, Math.floor(num(dl.ranked, 0))); DD.practice = Math.floor(num(dl.practice, 0, 1e6)); DD.best = Math.floor(num(dl.best, 0, 1e9)); DD.done = dl.done ? 1 : 0;
       if (dl.bestParts && typeof dl.bestParts === 'object') DD.bestParts = Object.fromEntries(Object.entries(dl.bestParts).filter(([k, v]) => typeof v === 'number' && isFinite(v)).slice(0, 8)); }

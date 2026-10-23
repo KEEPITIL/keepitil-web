@@ -7,15 +7,13 @@
     {id:'gems_3500',gems:3500,label:'Imperial Vault',price:'$29.99 USD'},
     {id:'gems_7500',gems:7500,label:'Conquest Vault',price:'$49.99 USD'}
   ]);
+  // HOTFIX B89 (security): checkout is disabled in this build. Gems could not be
+  // credited after payment (there is no server-verified fulfillment yet), so no
+  // checkout is opened and no pending pack is stored, in test or live mode.
   async function purchase(id){
-    const p=packs.find(x=>x.id===id);if(!p)return;
-    try{localStorage.setItem('kw-pending-pack',id);}catch(e){}   // remember which pack for return crediting
-    const direct=window.KW_STRIPE_PAYMENT_LINKS?.[id];
-    if(direct){location.href=direct;return;}
-    try{
-      const r=await fetch('/api/create-checkout-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({priceId:id,successUrl:location.origin+location.pathname+'?checkout=success',cancelUrl:location.href})});
-      if(!r.ok)throw Error('checkout unavailable');const data=await r.json();if(!data.url)throw Error('missing checkout URL');location.href=data.url;
-    }catch(e){alert('Stripe Checkout is safely scaffolded but not connected yet. Add server-side Stripe price IDs and a verified webhook before accepting real payments. No charge was made.');}
+    const msg=window.KWPurchaseUnavailableMessage||'Gem purchases are not available yet, so no gems were added. If you were charged, contact info@keepitil.com.';
+    if(window.KWPurchaseNotice)window.KWPurchaseNotice(msg);else if(window.showMsg)showMsg(msg,6000);else alert(msg);
+    return {ok:false,error:'PURCHASES_DISABLED'};
   }
   window.KWStripe=Object.freeze({packs,purchase});
 })();

@@ -2557,8 +2557,11 @@ mini.addEventListener('pointerdown', e => {
 
 // ---- Hidden QA debug (players never see this): enable with ?debug=1 or
 //      localStorage 'kw-debug'='1'. Keys: B = jump to next boss/commander wave,
-//      N = jump to next ruler wave (triggers the Folklore Siege), K = +5000 gold. ----
-const KW_DEBUG = /[?&]debug=1\b/.test(location.search) || (function(){try{return localStorage.getItem('kw-debug')==='1';}catch(e){return false;}})();
+//      N = jump to next ruler wave (triggers the Folklore Siege), K = +5000 gold.
+//      HOTFIX B89 (security): LOCAL DEV HOSTS ONLY. On any other host (keepitil.com)
+//      neither the URL flag nor the localStorage flag can turn these keys on. ----
+const KW_LOCAL_DEV_HOST = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+const KW_DEBUG = KW_LOCAL_DEV_HOST && (/[?&]debug=1\b/.test(location.search) || (function(){try{return localStorage.getItem('kw-debug')==='1';}catch(e){return false;}})());
 if (KW_DEBUG) try{ console.log('%c[KW] debug wave-jump ON — B: next boss · N: next ruler/siege · K: +5000 gold','color:#e0452f;font-weight:700'); }catch(e){}
 function debugJump(target){
   if(!started || S.over) return;
@@ -2897,7 +2900,7 @@ if (false){   /* PREVIEW: no service worker (origin-wide caches belong to produc
      600s max-age -- so a returning player could run a NEW page on OLD scripts (seen live on build 62). The worker is
      registered under a per-build URL, which forces an immediate update check past the CDN, and a page whose scripts
      disagree with its own build reloads ONCE when the new worker takes control. Never mid-battle: this runs at load. */
-  const KW_PAGE_BUILD = 88;
+  const KW_PAGE_BUILD = 90;
   /* The comparison MUST run after build-info.js has executed. It used to run right here -- 20 lines BEFORE the
      build-info <script> -- so window.KWBuild was always undefined, the mismatch test was always false and the heal
      never fired (found by tools/tests/update-path-golden.js: a new page on stale scripts stayed mixed for good).

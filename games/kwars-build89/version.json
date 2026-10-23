@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "build": 88,
+  "build": 90,
   "channel": "production",
-  "notes": "KINGDOM WARS 1.0.0 build 88 (K1-FINAL). Certified K WARS 1 gameplay (source freeze 861e92b; certification test commit 79f32d7). Website only."
+  "notes": "KINGDOM WARS 1.0.0 build 90 (B90-SECURITY). Gem security hotfix: no client-granted gems, checkout disabled, debug cheats local-dev only. Build 88 gameplay unchanged."
 }

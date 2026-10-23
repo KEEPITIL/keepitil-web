@@ -67,8 +67,12 @@ hr{border:0;border-top:1px solid var(--line);margin:42px 0}
 .support .hd .dot{color:var(--good);font-size:.7rem}
 .support .lede{color:var(--ink2);font-size:.9rem;line-height:1.5;margin-top:8px}
 #tpl-support{display:flex;gap:12px;margin-top:16px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px}
-#tpl-support::-webkit-scrollbar{display:none}
-#tpl-support>a{flex:0 0 168px;scroll-snap-align:start}
+#tpl-support::-webkit-scrollbar{display:none}#tpl-support>a{flex:0 0 176px;scroll-snap-align:start;position:relative;display:block;aspect-ratio:2/3;border-radius:12px;overflow:hidden;border:1px solid rgba(30,15,60,.12);text-decoration:none;background:#0b0b12}
+#tpl-support img{width:100%;height:100%;object-fit:cover;display:block}
+#tpl-support .tag{position:absolute;top:8px;left:8px;background:rgba(10,8,20,.78);color:#fff;font-size:.56rem;font-weight:800;letter-spacing:.07em;padding:2px 6px;border-radius:5px;z-index:2}
+#tpl-support .lbl{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,rgba(10,8,20,0),rgba(10,8,20,.88) 40%);color:#fff;padding:20px 10px 9px;z-index:2}
+#tpl-support .lbl .n{display:block;font-size:.8rem;font-weight:700;line-height:1.25}
+#tpl-support .lbl .p{display:block;font-size:.78rem;font-weight:800;color:#8be9c1;margin-top:2px}
 @media(max-width:560px){#tpl-support>a{flex:0 0 150px}}
 .related{max-width:760px;margin:46px auto 0;padding:0 22px}
 .related h3{font-family:var(--fh);font-size:1.5rem;letter-spacing:.03em;color:#160f24;margin-bottom:14px}
@@ -254,25 +258,7 @@ function kilShare(kind){
   if(kind==='native' && navigator.share){ navigator.share({title:t,url:url}); return; }
   try{ navigator.clipboard.writeText(url); var b=event&&event.currentTarget; if(b){var o=b.textContent;b.textContent='✓';setTimeout(function(){b.textContent=o;},1200);} }catch(e){ prompt('Copy link:',url); }
 }
-(function(){
-  var sh=document.getElementById('tpl-support'); if(!sh) return;
-  var items=[
-    ['Partner','POSH','List your event','https://posh.vip/create_group?ref=S-referral-mp9itc5j-wb9dbt','linear-gradient(160deg,#efe9fb,#ffffff)',false],
-    ['Partner','DISTROKID','Put your music everywhere','https://distrokid.com/vip/seven/11538316','linear-gradient(160deg,#e6f6ef,#ffffff)',false],
-    ['Partner','FREECASH','Earn for the next fest','https://freecash.com/r/Tuitea','linear-gradient(160deg,#fbf3e6,#ffffff)',false],
-    ['$29.99','Mobile Game Controller','Level up your play','https://www.amazon.com/s?k=mobile+game+controller+phone&tag=tuitea09-20','linear-gradient(160deg,#f3eefb,#ffffff)',true],
-    ['$15.99','Phone Grip Stand','Play hands-free','https://www.amazon.com/s?k=phone+grip+stand&tag=tuitea09-20','linear-gradient(160deg,#f5eefb,#ffffff)',true]
-  ];
-  sh.innerHTML=items.map(function(it){
-    var badge=it[5]?'<span style="position:absolute;top:8px;right:8px;background:#ff9900;color:#111;font-size:.56rem;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:5px;z-index:2">Amazon</span>':'';
-    var cta=it[5]?'Shop on Amazon →':'Open →';
-    return '<a href="'+it[3]+'" target="_blank" rel="noopener'+(it[5]?' sponsored nofollow':'')+'" data-kt="affiliate_click" style="position:relative;display:block;min-height:118px;border-radius:12px;overflow:hidden;border:1px solid rgba(30,15,60,.12);background:'+it[4]+';padding:14px;text-decoration:none;color:#160f24">'+badge
-      +'<div style="position:relative;z-index:2"><div style="font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:#7c3aed">'+it[0]+'</div>'
-      +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.32rem;letter-spacing:.02em;margin:2px 0;line-height:1.05;color:#160f24">'+it[1]+'</div>'
-      +'<div style="font-size:.76rem;color:#544c6b;line-height:1.35">'+it[2]+'</div>'
-      +'<div style="font-size:.76rem;color:#0a8f5b;font-weight:700;margin-top:6px">'+cta+'</div></div></a>';
-  }).join('');
-})();
+(function(){var sh=document.getElementById('tpl-support');if(!sh)return;function pic(b,alt){return '<picture><source type="image/avif" srcset="'+b+'.avif"><source type="image/webp" srcset="'+b+'-400.webp 400w,'+b+'-600.webp 600w,'+b+'-900.webp 900w,'+b+'-1024.webp 1024w" sizes="(max-width:560px) 150px, 176px"><img src="'+b+'-400.webp" alt="'+alt+'" loading="lazy" decoding="async"></picture>';}var partners=[['/assets/sponsors/affiliate-posh-2x3','Posh x KEEPITIL - promote your events','REFERRAL','https://posh.vip/create_group?ref=S-referral-mp9itc5j-wb9dbt',1],['/assets/sponsors/affiliate-distrokid-2x3','DistroKid x KEEPITIL - release your music','AFFILIATE','https://distrokid.com/vip/seven/11538316',1],['/assets/sponsors/affiliate-freecash-2x3','Freecash x KEEPITIL - earn extra cash','SPONSORED','https://freecash.com/r/Tuitea',1]];var picks=[['Mobile Game Controller','$29.99','Level up your play','https://www.amazon.com/s?k=mobile+game+controller+phone&tag=tuitea09-20','linear-gradient(160deg,#f3eefb,#ffffff)'],['Phone Grip Stand','$15.99','Play hands-free','https://www.amazon.com/s?k=phone+grip+stand&tag=tuitea09-20','linear-gradient(160deg,#f5eefb,#ffffff)']];var h=partners.map(function(p){return '<a href="'+p[3]+'" target="_blank" rel="noopener'+(p[4]?' sponsored nofollow':'')+'" data-kt="affiliate_click">'+pic(p[0],p[1])+'<span class="tag">'+p[2]+'</span></a>';}).join('');h+=picks.map(function(p){return '<a href="'+p[3]+'" target="_blank" rel="noopener sponsored nofollow" data-kt="affiliate_click" style="background:'+p[4]+'"><span style="position:absolute;top:8px;right:8px;background:#ff9900;color:#111;font-size:.56rem;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:5px;z-index:2">Amazon</span><span style="position:relative;z-index:1;display:flex;flex-direction:column;box-sizing:border-box;height:100%;padding:16px 14px;color:#160f24"><span style="font-family:\'Bebas Neue\',sans-serif;font-size:1.55rem;letter-spacing:.02em;line-height:1.08;display:block">'+p[0]+'</span><span style="font-size:.78rem;color:#544c6b;line-height:1.35;display:block;margin-top:6px">'+p[2]+'</span><span style="margin-top:auto;display:block"><span style="font-size:1.05rem;font-weight:800;display:block">'+p[1]+'</span><span style="font-size:.76rem;color:#0a8f5b;font-weight:700;display:block;margin-top:2px">Shop on Amazon →</span></span></span></a>';}).join('');sh.innerHTML=h;})();
 </script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
 <script src="/keepitil-shell.js?v=20260929a" defer></script>

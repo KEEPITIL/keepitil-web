@@ -22,6 +22,7 @@
 #kmob-home .kh-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 #kmob-home .kh-primary{border:0;border-radius:14px;background:linear-gradient(135deg,#d6ff72,#a9ec4e);color:#08221b;padding:16px 24px;min-height:56px;font-size:14px;font-weight:1000;letter-spacing:.09em;box-shadow:0 11px 38px rgba(144,236,50,.2)}
 #kmob-home .kh-primary:hover{filter:brightness(1.055);transform:translateY(-1px)}
+#kmob-home .kh-daily{border:0;border-radius:14px;background:linear-gradient(135deg,#ffd23a,#e8a810);color:#2a1a00;padding:10px 20px;min-height:56px;font-size:14px;font-weight:1000;letter-spacing:.06em;line-height:1.15;text-align:left}#kmob-home .kh-daily small{display:block;font-size:10.5px;font-weight:850;letter-spacing:.04em;opacity:.8}#kmob-home .kh-daily:hover{filter:brightness(1.055);transform:translateY(-1px)}
 #kmob-home .kh-secondary{background:transparent;border:1px solid rgba(221,241,250,.34);border-radius:14px;color:#f3f7fa;padding:15px 20px;min-height:56px;font-weight:850;font-size:14px}
 #kmob-home .kh-small-note{font-size:12px;margin-top:18px;color:var(--kh-muted)}
 #kmob-home .kh-hero-art{position:relative;margin:0;filter:drop-shadow(0 25px 55px rgba(0,0,0,.4))}

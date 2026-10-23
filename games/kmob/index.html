@@ -17,7 +17,7 @@
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="KMOB Endless War — Build Your Army. Outlast the War."><meta name="twitter:description" content="Plan your six-class army, command your tank, and battle through endless waves. Play free on phone or desktop."><meta name="twitter:image" content="https://keepitil.com/games/kmob/assets/kmob-home/kmob-social.jpg">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"KMOB: Endless War","url":"https://keepitil.com/games/kmob/","description":"Free-to-play browser strategy game with six soldier classes, army deployment planning, command tank combat, elemental skins, and endless enemy waves.","genre":["Strategy","Action","Survival"],"playMode":"SinglePlayer","gamePlatform":["Web browser","Mobile browser","Desktop browser"],"isAccessibleForFree":true,"inLanguage":"en","publisher":{"@type":"Organization","name":"KEEPITIL"},"image":"https://keepitil.com/games/kmob/assets/kmob-home/kmob-social.jpg"}</script>
 <link rel="preload" as="image" href="assets/kmob-home/soldier-classes.webp">
-<link rel="stylesheet" href="kmob-home.css?v=587a197a679a">   <!-- the ONE public KMOB address: this marketing home and the game share this document -->
+<link rel="stylesheet" href="kmob-home.css?v=b78e56a78a61">   <!-- the ONE public KMOB address: this marketing home and the game share this document -->
 <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192" type="image/png"><link rel="apple-touch-icon" href="icon-180.png"><link rel="manifest" href="manifest.webmanifest"><meta name="apple-mobile-web-app-title" content="KMOB"><meta name="application-name" content="KMOB">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">   <!-- fonts never block the first paint -->
@@ -278,9 +278,14 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}   /* the p
 .si-ctrl{display:flex;flex-wrap:wrap;gap:6px}.si-ctrl button{flex:1 1 30%;min-height:40px;border-radius:10px;border:1px solid var(--line);background:#1b2a4a;color:#fff;font-weight:900;font-size:11px;cursor:pointer}.si-ctrl button.on{border-color:#7dff9a;background:#1f5a3a}
 @media (max-width:400px){.pcgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.pc-n{font-size:14px}.pc{padding:8px}.pc-tn>button{display:none}.pc-dots{gap:5px}.pc-dots button{width:28px;height:28px;font-size:12px}}
 .chantRow{display:grid;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.04)}.chantRow .ch-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.chantRow .ch-h b{font-weight:900;font-size:13px}.chantRow .ch-h small{font-size:10px;font-weight:900;letter-spacing:.04em;opacity:.7;text-align:right}
-.chantRow .ch-b{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.chantRow button{font:inherit;font-weight:900;font-size:12px;color:#eef3ff;padding:6px 2px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);line-height:1.15;min-height:44px}.chantRow button small{display:block;font-size:8.5px;letter-spacing:.03em;opacity:.75}.chantRow button.on{border-color:var(--gold);background:rgba(255,210,58,.16);color:var(--gold)}.chantRow button:disabled{opacity:.62;color:#b8c4dc}
+.chantRow .ch-b{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.chantRow button{font:inherit;font-weight:900;font-size:12px;color:#eef3ff;padding:6px 2px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);line-height:1.15;min-height:44px}.chantRow button small{display:block;font-size:8.5px;letter-spacing:.03em;opacity:.75}.chantRow button.on{border-color:var(--gold);background:rgba(255,210,58,.16);color:var(--gold)}.chantRow button:disabled{opacity:.62;color:#b8c4dc}
 .chantRow .ch-h small,.chantRow button small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chantRow .ch-h b{white-space:nowrap}.chantRow button{overflow:hidden}label.cvol{white-space:nowrap;gap:10px}
 label.cvol input{width:46%}   /* 2.0 WAR CHANTS radio dial + stinger volume */   /* one line each, whatever the font (Linux fallback fonts are wider and wrapped the labels) */
+.btn.dailyb{background:linear-gradient(180deg,#ffd23a,#e8a810);color:#2a1a00;line-height:1.1}.btn.dailyb small{display:block;font-size:10.5px;letter-spacing:.03em;opacity:.8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dailyScr .panel{display:flex;flex-direction:column;gap:8px;width:min(calc(100vw - 24px),460px);max-height:calc(100vh - 16px - var(--st) - var(--sb));max-height:calc(100dvh - 16px - var(--st) - var(--sb));overflow-y:auto}#dailyScr h2{text-align:center;margin:0}.dName{text-align:center;font-weight:900;font-size:22px;color:var(--gold);letter-spacing:.04em}.dDesc{margin:0;text-align:center;font-weight:700;font-size:13px;opacity:.9}
+.dInfo{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.dInfo span{display:flex;flex-direction:column;align-items:center;padding:6px 4px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.04)}.dInfo i{font-style:normal;font-size:9.5px;font-weight:900;opacity:.7;letter-spacing:.04em;text-align:center}.dInfo b{font-size:16px;font-weight:900;color:#eef3ff}
+.dRules{margin:0;font-size:11.5px;line-height:1.45;opacity:.9}.dRules b{color:var(--gold)}.dLb{margin:0;font-size:11px;opacity:.65;text-align:center}#dailyScr .btn{margin:0}#dailyScr .bts{display:grid;grid-template-columns:1fr 1fr;gap:8px}#dRanked:disabled{opacity:.5}.dL,.dR{display:flex;flex-direction:column;gap:8px}
+@media (orientation:landscape) and (max-height:540px){#dailyScr .panel{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);column-gap:16px;align-items:start;width:min(calc(100vw - 32px - var(--sl) - var(--sr)),760px);padding:8px 14px}#dailyScr .panel{overflow:hidden;max-height:calc(100vh - 16px - var(--st) - var(--sb))}#dailyScr h2{grid-column:1 / -1;font-size:20px}.dL,.dR{gap:6px}.dL{max-height:calc(100vh - 82px - var(--st) - var(--sb));overflow-y:auto;overscroll-behavior:contain}.dName{font-size:18px}.dRules{font-size:10.5px;line-height:1.35}#dailyScr .dInfo b{font-size:14px}#dailyScr .chantRow .ch-h small{display:none}#dailyScr .chantRow button{min-height:40px}#dRanked{font-size:20px;padding:9px 8px;white-space:nowrap}#dailyScr .bts .btn{padding:8px 6px;font-size:15px}.dLb{font-size:10px}}   /* DAILY DEFENSE (short landscape phones: two columns, buttons always on screen) */
 label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-spacing:.06em;color:var(--gold);margin-left:6px}
 .pc-acct{grid-column:1/-1;gap:8px}.pc-acct p{margin:0;font-size:12px;opacity:.85;line-height:1.35}.pc-acct .pc-msg{color:#7dff9a;opacity:1;font-weight:800}.pc-email{display:flex;gap:6px}.pc-email input{flex:1;min-width:0;min-height:42px;border-radius:10px;border:1px solid var(--line);background:#0e1a36;color:#fff;padding:0 10px;font-size:16px}
 #chantPulse{display:inline-block;width:8px;height:8px;margin-left:6px;border-radius:50%;background:var(--cc,#fff);transform:scale(var(--cp,0));opacity:calc(.35 + var(--cp,0) * .65);vertical-align:middle}   /* 2.0 Phase 0: war-chant beat pulse (visual only) */
@@ -298,7 +303,7 @@ label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-sp
         <div class="kh-kicker">ONE ARMY. ENDLESS CHOICES.</div>
         <h1>BUILD THE ARMY.<br>HOLD THE LINE.<br><span>OUTLAST THE WAR.</span></h1>
         <p class="kh-lead">An endless strategy battle built for quick decisions and big comebacks. Command your tank, create a six-class army, upgrade your soldiers, and see how far you can survive. Every wave is a new chance to get stronger—or lose everything.</p>
-        <div class="kh-actions"><button type="button" class="kh-primary" data-kmob-play>⚔ PLAY KMOB — FREE</button><button type="button" class="kh-secondary" data-kmob-scroll="kh-how">HOW TO PLAY ↓</button></div>
+        <div class="kh-actions"><button type="button" class="kh-primary" data-kmob-play>⚔ PLAY KMOB — FREE</button><button type="button" class="kh-daily" data-kmob-daily>🛡 DAILY DEFENSE<small id="khDaily"></small></button><button type="button" class="kh-secondary" data-kmob-scroll="kh-how">HOW TO PLAY ↓</button></div>
         <p class="kh-small-note">Play now in your browser · Works on phones and desktop · Mobile App Store release planned</p>
       </div>
       <figure class="kh-hero-art"><img src="assets/kmob-home/soldier-classes.webp" width="1500" height="715" alt="KMOB's six stylized blue-army character classes assembled on a bright battlefield" fetchpriority="high"><figcaption class="kh-photo-caption"><b>YOU COMMAND THE WAR</b>Six soldier classes. One command tank. No two runs exactly alike.</figcaption></figure>
@@ -390,18 +395,18 @@ label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-sp
 <canvas id="c"></canvas>
 <div id="vig"></div>
 <div id="hud" class="hidden">
-  <div id="hL"><div class="pill"><img src="assets/ui/i_clock.png?v=587a197a679a" alt="Time"><b id="hTime">0:00</b><i id="chantPulse" aria-hidden="true"></i></div><div class="pill"><img src="assets/ui/i_army.png?v=587a197a679a" alt="Army"><b id="hArmy">0</b></div><div class="pill"><img src="assets/ui/i_skull.png?v=587a197a679a" alt="Wave"><b id="hWave">1</b></div></div>
-  <div id="hC" class="pill"><span class="g"><img src="assets/ui/i_gold.png?v=587a197a679a" alt="Gold"><b id="hCoins">0</b></span><i class="sep"></i><span class="d"><img src="assets/ui/i_diamond.png?v=587a197a679a" alt="Diamonds"><b id="hDia">0</b></span></div>
-  <div id="hR"><div id="pauseBtn" class="pill" role="button" aria-label="Settings"><img src="assets/ui/i_gear.png?v=587a197a679a" alt=""><b class="sm">SETTINGS</b></div><div id="zoomBtn" class="pill" role="button" aria-label="Camera zoom out"><svg class="zi" viewBox="0 0 32 32" aria-hidden="true"><circle cx="13" cy="13" r="8.5" fill="#7fc6ff" stroke="#0c2346" stroke-width="3"/><path d="M19.5 19.5l7 7" stroke="#0c2346" stroke-width="5" stroke-linecap="round"/><path d="M19.5 19.5l7 7" stroke="#ffd23a" stroke-width="2.5" stroke-linecap="round"/><path d="M9 13h8" stroke="#0c2346" stroke-width="3" stroke-linecap="round"/></svg><b id="zoomTxt">1×</b></div><div id="speedBtn" class="pill" role="button" aria-label="Game speed"><img src="assets/ui/i_speed.png?v=587a197a679a" alt=""><b id="speedTxt">1×</b></div><div id="autoBtn" class="pill" role="button" aria-label="Control mode"><img src="assets/ui/i_auto.png?v=587a197a679a" alt=""><svg class="ti" viewBox="0 0 32 32" aria-hidden="true"><path d="M12 5.5a2.5 2.5 0 0 1 5 0V15l1-.3a2.4 2.4 0 0 1 4.6.9l.2-.1a2.4 2.4 0 0 1 3.2 2.3V22a8 8 0 0 1-8 8h-1.6a8 8 0 0 1-6.6-3.5l-4.2-6.2a2.4 2.4 0 0 1 3.7-3L12 20z" fill="#9fd0ff" stroke="#0c2346" stroke-width="2.2" stroke-linejoin="round"/></svg><b id="autoTxt">AUTO</b></div></div>
+  <div id="hL"><div class="pill"><img src="assets/ui/i_clock.png?v=b78e56a78a61" alt="Time"><b id="hTime">0:00</b><i id="chantPulse" aria-hidden="true"></i></div><div class="pill"><img src="assets/ui/i_army.png?v=b78e56a78a61" alt="Army"><b id="hArmy">0</b></div><div class="pill"><img src="assets/ui/i_skull.png?v=b78e56a78a61" alt="Wave"><b id="hWave">1</b></div></div>
+  <div id="hC" class="pill"><span class="g"><img src="assets/ui/i_gold.png?v=b78e56a78a61" alt="Gold"><b id="hCoins">0</b></span><i class="sep"></i><span class="d"><img src="assets/ui/i_diamond.png?v=b78e56a78a61" alt="Diamonds"><b id="hDia">0</b></span></div>
+  <div id="hR"><div id="pauseBtn" class="pill" role="button" aria-label="Settings"><img src="assets/ui/i_gear.png?v=b78e56a78a61" alt=""><b class="sm">SETTINGS</b></div><div id="zoomBtn" class="pill" role="button" aria-label="Camera zoom out"><svg class="zi" viewBox="0 0 32 32" aria-hidden="true"><circle cx="13" cy="13" r="8.5" fill="#7fc6ff" stroke="#0c2346" stroke-width="3"/><path d="M19.5 19.5l7 7" stroke="#0c2346" stroke-width="5" stroke-linecap="round"/><path d="M19.5 19.5l7 7" stroke="#ffd23a" stroke-width="2.5" stroke-linecap="round"/><path d="M9 13h8" stroke="#0c2346" stroke-width="3" stroke-linecap="round"/></svg><b id="zoomTxt">1×</b></div><div id="speedBtn" class="pill" role="button" aria-label="Game speed"><img src="assets/ui/i_speed.png?v=b78e56a78a61" alt=""><b id="speedTxt">1×</b></div><div id="autoBtn" class="pill" role="button" aria-label="Control mode"><img src="assets/ui/i_auto.png?v=b78e56a78a61" alt=""><svg class="ti" viewBox="0 0 32 32" aria-hidden="true"><path d="M12 5.5a2.5 2.5 0 0 1 5 0V15l1-.3a2.4 2.4 0 0 1 4.6.9l.2-.1a2.4 2.4 0 0 1 3.2 2.3V22a8 8 0 0 1-8 8h-1.6a8 8 0 0 1-6.6-3.5l-4.2-6.2a2.4 2.4 0 0 1 3.7-3L12 20z" fill="#9fd0ff" stroke="#0c2346" stroke-width="2.2" stroke-linejoin="round"/></svg><b id="autoTxt">AUTO</b></div></div>
 </div>
 <div id="drawer" class="hidden" aria-label="Soldier classes"><div id="classes"></div><div id="drawerTab" role="button" aria-label="Show or hide the soldier panel">‹</div></div>
 <div id="clsPop" class="hidden"></div>
 <div id="tankMark" class="hidden" aria-hidden="true"><i></i></div>
 <div id="rightCol" class="hidden">
   <div id="consBtn" class="rb" role="button" aria-label="Consumables"><svg viewBox="0 0 64 64" aria-hidden="true" style="width:30px;height:30px"><path d="M24 8h16v8l8 10v28a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6V26l8-10z" fill="#b36cff" stroke="#3a1a5a" stroke-width="3" stroke-linejoin="round"/><path d="M22 34h20v18H22z" fill="#e8d0ff" opacity=".55"/><path d="M32 38l3 6h-6z" fill="#ffd23a"/></svg><b>ITEMS</b><small id="consN"></small></div>
-  <div id="powerBtn" class="rb" role="button" aria-label="Power"><img src="assets/ui/i_power.png?v=587a197a679a" alt=""><b>POWER</b><i class="en"><u id="enFill"></u></i></div>
-  <div id="tankBtn" class="rb" role="button" aria-label="Tank upgrade"><img src="assets/ui/i_upgrade.png?v=587a197a679a" alt=""><b>UPGRADE</b><small id="tankCost"></small></div>
-  <div id="postureBtn" class="rb" role="button" aria-label="Attack or defend: tap = selected class, hold = whole army"><img src="assets/ui/i_attack.png?v=587a197a679a" alt=""><b id="postureTxt">ATTACK</b></div>
+  <div id="powerBtn" class="rb" role="button" aria-label="Power"><img src="assets/ui/i_power.png?v=b78e56a78a61" alt=""><b>POWER</b><i class="en"><u id="enFill"></u></i></div>
+  <div id="tankBtn" class="rb" role="button" aria-label="Tank upgrade"><img src="assets/ui/i_upgrade.png?v=b78e56a78a61" alt=""><b>UPGRADE</b><small id="tankCost"></small></div>
+  <div id="postureBtn" class="rb" role="button" aria-label="Attack or defend: tap = selected class, hold = whole army"><img src="assets/ui/i_attack.png?v=b78e56a78a61" alt=""><b id="postureTxt">ATTACK</b></div>
 </div>
 <div id="powers" class="hidden"></div>
 <div id="tankUps" class="hidden"></div>
@@ -419,9 +424,21 @@ label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-sp
   <img class="title-mascot" src="assets/kmob-home/looter-mascot.webp" alt="" width="84" height="84"><h1 class="disp">KMOB</h1><h2 class="disp">ENDLESS WAR</h2>
   <div class="best" id="titleBest"></div>
   <button class="btn" id="playBtn">PLAY</button>
+  <button class="btn dailyb" id="dailyBtn" style="margin-top:10px">DAILY DEFENSE<small></small></button>
   <button class="btn sec hidden" id="contBtn" style="margin-top:10px">CONTINUE<small id="contInfo" style="display:block;font-size:11px;opacity:.75"></small></button>
   <button class="btn sec" id="shopBtn1" style="margin-top:10px">SHOP</button>
   <a href="/games/" style="display:block;text-align:center;margin-top:14px;color:#9fc4ff;font-weight:900;font-size:13px;text-decoration:none">← KEEPITIL GAMES</a>
+</div></div>
+
+<div id="dailyScr" class="screen hidden"><div class="panel" role="dialog" aria-label="Daily Defense">
+  <h2 class="disp">DAILY DEFENSE</h2>
+  <div class="dL"><div class="dName" id="dName"></div><p class="dDesc" id="dDesc"></p>
+  <div class="dInfo" id="dInfo"></div>
+  <p class="dRules" id="dRules"></p></div>
+  <div class="dR"><div class="chantRow" id="dChant"></div>
+  <p class="dLb" id="dLb"></p>
+  <button class="btn" id="dRanked">PLAY RANKED</button>
+  <div class="bts"><button class="btn sec" id="dPractice">PRACTICE</button><button class="btn sec" id="dBack">BACK</button></div></div>
 </div></div>
 
 <div id="plan" class="screen hidden"><div class="panel" role="dialog" aria-label="War plan">
@@ -465,19 +482,20 @@ label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-sp
     <button class="btn sec" id="setClose" style="margin-top:12px">BACK</button>
 </div></div>
 
-<script defer src="vendor/three.min.js?v=587a197a679a"></script>
-<script defer src="js/core.js?v=587a197a679a"></script>
-<script defer src="js/chants.js?v=587a197a679a"></script>
-<script defer src="js/chant-packs.js?v=587a197a679a"></script>
-<script defer src="js/sim.js?v=587a197a679a"></script>
-<script defer src="js/anim.js?v=587a197a679a"></script>
-<script defer src="js/kit.js?v=587a197a679a"></script>
-<script defer src="js/render.js?v=587a197a679a"></script>
-<script defer src="js/powerfx.js?v=587a197a679a"></script>
-<script defer src="js/assets.js?v=587a197a679a"></script>
-<script defer src="js/audio.js?v=587a197a679a"></script>
-<script defer src="js/account.js?v=587a197a679a"></script>
-<script defer src="js/wallet.js?v=587a197a679a"></script>
-<script defer src="js/main.js?v=587a197a679a"></script>
+<script defer src="vendor/three.min.js?v=b78e56a78a61"></script>
+<script defer src="js/core.js?v=b78e56a78a61"></script>
+<script defer src="js/chants.js?v=b78e56a78a61"></script>
+<script defer src="js/chant-packs.js?v=b78e56a78a61"></script>
+<script defer src="js/sim.js?v=b78e56a78a61"></script>
+<script defer src="js/daily.js?v=b78e56a78a61"></script>
+<script defer src="js/anim.js?v=b78e56a78a61"></script>
+<script defer src="js/kit.js?v=b78e56a78a61"></script>
+<script defer src="js/render.js?v=b78e56a78a61"></script>
+<script defer src="js/powerfx.js?v=b78e56a78a61"></script>
+<script defer src="js/assets.js?v=b78e56a78a61"></script>
+<script defer src="js/audio.js?v=b78e56a78a61"></script>
+<script defer src="js/account.js?v=b78e56a78a61"></script>
+<script defer src="js/wallet.js?v=b78e56a78a61"></script>
+<script defer src="js/main.js?v=b78e56a78a61"></script>
 </body>
 </html>

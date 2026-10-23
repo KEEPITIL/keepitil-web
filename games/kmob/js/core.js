@@ -153,7 +153,7 @@
   KM.FRIEND.forEach((e, i) => { e.id = 32 + i; });
   KM.FRIEND_BY = Object.fromEntries(KM.FRIEND.map(f => [f.k, f]));
   // Six player classes. Gold pays for deployment and for each class's own level track (no shared price inflation).
-  KM.BUILD = '2026.10.17-balance-audio';   // reported with telemetry; bump on every public deploy
+  KM.BUILD = '2026.10.23-daily-defense';   // reported with telemetry; bump on every public deploy
   KM.ARMY_CAP = 300;   // army POINTS (never grows); LOCKED cost per soldier is fixed by class (evolution never changes it)
   // OWNER-APPROVED class table (2026-10-11): Lv1 deploy Gold, CAP points, Lv1 HP / DMG (Mizard: HEAL), per-level gains, Gold price INTO Lv2..Lv10
   // (Melee / Mizard Lv8 = 11,500 is intentional) and the armour GAINED at each level 1..10 (cumulative).
@@ -502,7 +502,8 @@
     settings: { sound: 1, music: 1, haptics: 1, competitive: 0, speed: 1, zoom: 1 }, plan: KM.emptyPlan(),
     ach: {},
     buffs: { cls: {}, tank: {} }, cons: {}, paid: [],
-    chants: { on: 1, station: 'steel', owned: { steel: 1 }, vol: 1 },   // 2.0 WAR CHANTS: radio on/off, selected station, unlocked stations, stinger volume 0–1
+    chants: { on: 1, station: 'steel', owned: { steel: 1 }, vol: 1 },
+    daily: { day: '', ranked: 0, practice: 0, best: 0, bestParts: null, done: 0, station: 'steel', days: [], total: 0 },   // DAILY DEFENSE: today's attempts / best, completed days (badges, weekly participation)   // 2.0 WAR CHANTS: radio on/off, selected station, unlocked stations, stinger volume 0–1
     perks: {}, gear: { owned: {}, equip: {} }, season: { owned: {}, equip: {} }, mercTier: 1,   // Phase C: perk tiers · class equipment (owned tiers, equipped tier per slot) · seasonal skin sets · chosen Mercenary tier   // permanent boss-card buffs (counts of +5 %), consumable inventory, banked boss-payout ids (exactly once)
   });
   const num = (v, d, max) => (typeof v === 'number' && isFinite(v) && v >= 0) ? Math.min(v, max || 1e15) : d;
@@ -537,6 +538,11 @@
     const se = raw.season || {}; for (const id of Object.keys(se.owned || {})) if (KM.SEASON_BY[id]) d.season.owned[id] = 1;
     for (const c of [...KM.PROD_ORDER, 'tank']) { const id = (se.equip || {})[c]; if (id && d.season.owned[id]) d.season.equip[c] = id; }
     if ([1, 2, 3].includes(raw.mercTier)) d.mercTier = raw.mercTier;
+    const dl = raw.daily || {}, DD = d.daily;   // DAILY DEFENSE: today's counters only survive for the same UTC day (attempts never carry over)
+    if (typeof dl.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dl.day)) { DD.day = dl.day; DD.ranked = Math.min(3, Math.floor(num(dl.ranked, 0))); DD.practice = Math.floor(num(dl.practice, 0, 1e6)); DD.best = Math.floor(num(dl.best, 0, 1e9)); DD.done = dl.done ? 1 : 0;
+      if (dl.bestParts && typeof dl.bestParts === 'object') DD.bestParts = Object.fromEntries(Object.entries(dl.bestParts).filter(([k, v]) => typeof v === 'number' && isFinite(v)).slice(0, 8)); }
+    if (['steel', 'iron', 'fury', 'off'].includes(dl.station)) DD.station = dl.station;
+    if (Array.isArray(dl.days)) DD.days = [...new Set(dl.days.filter(x => typeof x === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x)))].sort().slice(-400); DD.total = Math.max(DD.days.length, Math.floor(num(dl.total, 0, 1e6)));
     const ch = raw.chants || {}, ST = ['steel', 'iron', 'fury'];   // WAR CHANTS: only known stations; the selected one must be owned (STEEL is always owned)
     for (const id of ST) if ((ch.owned || {})[id]) d.chants.owned[id] = 1;
     if (ST.includes(ch.station) && d.chants.owned[ch.station]) d.chants.station = ch.station; if (ch.on === 0) d.chants.on = 0; d.chants.vol = Math.min(1, num(ch.vol, 1));

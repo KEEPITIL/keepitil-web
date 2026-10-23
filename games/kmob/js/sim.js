@@ -54,6 +54,12 @@
       this.posture = 0; this.postureT = 0; this.src = 0; this.dmgBy = [0, 0, 0, 0]; this.shAbsorbed = 0; this.colCoins = 0; this.colLost = 0; this.nCol = 0; this.colT = 0; this.colList = []; this.prod = 'melee'; this.auto = true; this.plan = KM.validPlan(opts.plan); this.planRR = 0; this.sector = null; this.seenSector = {}; this.bossN = 0; this.wave = 0; this.wState = 0; this.wGap = 3; this.wQueue = []; this.waveLeft = 0; this.waveSpawned = 0; this.waveStart = 0; this.energy = 0; this.choice = null; this.bossesKilled = 0; this.warTokens = 0; this.pcd = {}; this.storm = null; this.fortT = 0; this.mercs = 0; this.nKind = new Int32Array(64); this.prodNext = null; this.healed = 0; this.repaired = 0; this.repairOn = 0; this.nRepair = 0;
       this.deployAcc = 0; this.budget = 3; this.overflow = 0; this.formT = 0.6; this.warn = null;
       this.coins = KM.START_BANK; this.coinsTotal = 0; this.kills = 0; this.peakArmy = 0; this.upgrades = 0; this.ups = null; this.upT = 0; this.groups = []; this.pts = 0; this.emergency = 0; this.nBoss = 0; this.bossI = -1; this.charge = { collector: 0, range: 0, melee: 0, elite: 0, giant: 0 }; this.posture = 1; this.breaches = 0; this.rowLoss = [0, 0, 0, 0]; this.fillN = 0; this.fillSum = 0;
+      // DAILY DEFENSE (opts.daily = KM.dailyRules(day)): equal starting conditions + a finish line; absent = Endless War exactly as before
+      const DR = this.daily = opts.daily || null; this.cleared = 0; this.done = false; this.stepN = 0; this.inStep = false;
+      if (DR) { if (DR.bank != null) this.coins = DR.bank; if (DR.startWave) this.wave = DR.startWave - 1; if (DR.allow && !DR.allow.includes(this.prod)) this.prod = DR.allow.find(k => k !== 'collector') || DR.allow[0]; }
+      // INPUT RECORDER (verified runs): every player command between steps, keyed by the step count, so a server can replay the run exactly
+      this.rec = opts.record ? [] : null; if (this.rec) for (const m of Sim.INPUTS) this[m] = (...a) => { if (!this.inStep && !this.recD) this.rec.push([this.stepN, m, JSON.parse(JSON.stringify(a))]); this.recD = (this.recD || 0) + 1; try { return Sim.prototype[m].apply(this, a); } finally { this.recD--; } };   // nested commands (orderClass → setPosture) are not recorded twice
+      else for (const m of Sim.INPUTS) if (Object.prototype.hasOwnProperty.call(this, m)) delete this[m];
       this.towers = [null, null, null, null];
       this.form = null; this.guardN = 0; this.gOn = 0; this.gDrop();   // DEFEND formation + tank guard state starts fresh (main.js reuses one Sim after the attract run)
       this.spawnCounter = 0; this.lastHit = 99; this.danger = 0; this.killsByKind = {};
@@ -78,7 +84,7 @@
     setPosture(p) { p = p ? 1 : 0; if (p === this.posture) return; this.posture = p; this.postureT = 0; for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i]) { this.think[i] = Math.min(this.think[i], 0.05 + (i % 7) * 0.04); if (p) this.tgt[i] = -1; } this.emit('posture', p); }
     togglePosture() { this.setPosture(this.posture ? 0 : 1); }
     // ---------- production: what the command vehicle deploys ----------
-    setProd(m) { if (!KM.PROD[m] || m === this.prod) return; this.prod = m; this.emit('prod', m); }   // one selected type; AUTO never picks another
+    setProd(m) { if (!KM.PROD[m] || m === this.prod || (this.daily && this.daily.allow && !this.daily.allow.includes(m))) return; this.prod = m; this.emit('prod', m); }   // one selected type; AUTO never picks another
     typeOf(i) { const k = this.kind[i]; return k === 33 ? 'range' : k === 34 ? 'elite' : k === 37 ? 'giant' : k === 35 ? 'collector' : k === 36 ? 'mizard' : 'melee'; }
     setCharge(type, on) { if (!(type in this.charge)) return; on = on ? 1 : 0; if (this.charge[type] === on) return; this.charge[type] = on; this.emit('charge', type, on); }   // DEFEND: this class leaves the formation and attacks; the others keep their orders
     attacking(type) { return this.posture === 0 || !!this.charge[type]; }
@@ -101,7 +107,7 @@
     clsLv(key) { return this.stats.cls[key]; }
     evolved(key) { return this.stats.cls[key] >= KM.EVOLVE_AT; }
     prodPts() { return KM.unitPts(this.prod, this.evolved(this.prod)); }
-    canDeploy(key) { key = key || this.prod; return this.alive && this.pts + KM.unitPts(key) <= this.stats.cap && this.coins >= KM.deployCost(key, this.stats.cls[key]); }
+    canDeploy(key) { key = key || this.prod; if (this.daily && this.daily.allow && !this.daily.allow.includes(key)) return false; return this.alive && this.pts + KM.unitPts(key) <= this.stats.cap && this.coins >= KM.deployCost(key, this.stats.cls[key]); }
     // WAR PLAN: targets for LIVING ordinary soldiers (Mercenaries, Recruits and Titans are CAP-exempt and never count)
     setPlan(p) { this.plan = KM.validPlan(p); this.emit('plan', this.plan); }
     planActive() { return KM.planOn(this.plan); }
@@ -489,8 +495,9 @@
       this.L.hp -= a; this.L.hitT = 0; this.lastHit = 0; this.emit('lhit', a);
       if (this.L.hp <= 0) { this.L.hp = 0; this.alive = false; this.deathReason = why || 'overrun'; this.emit('death', why); }
     }
+    forfeit() { if (!this.alive) return; this.alive = false; this.deathReason = 'quit'; this.emit('death', 'quit'); }   // END RUN: ends the run now, whatever shields or invulnerability are up
     revive() { // optional single revive hook (rewarded ad / earned resource later)
-      if (this.alive || this.revived) return false;
+      if (this.alive || this.revived || this.daily) return false;   // DAILY: no revives (equal conditions)
       this.revived = true; this.alive = true; this.ended = false; this.L.hp = this.stats.maxHp * 0.6; this.L.inv = 4;
       for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && this.z[i] > this.front - 18) this.kill(i, true);
       this.emit('revive'); return true;
@@ -650,7 +657,12 @@
         for (let q = 0; q < Math.min(12, list.length); q++) { const g = list[q]; for (let j = 0; j < this.hi; j++) { if (this.st[j] !== ALIVE || this.team[j] !== 1 || (KM.ENEMY[this.kind[j]] || {}).boss) continue; const dx = this.x[j] - this.x[g], dz = this.z[j] - this.z[g]; if (dx * dx + dz * dz > 16) continue; this.slow[j] = Math.max(this.slow[j], str); n++; } }
         this.chantFx.shake += n; } }
     step(dt) {
+      if (this.done) return;   // DAILY: the finish line was reached; the result is final
       if (!this.alive) { this.stepDying(dt); this.stepFx(dt); return; }
+      this.inStep = true; try { this.stepCore(dt); } finally { this.inStep = false; }
+      if (this.daily && this.alive && this.t >= this.daily.cap) { this.done = true; this.emit('dailyEnd'); }
+    }
+    stepCore(dt) {
       this.halt = this.nBoss > 0 || this.frontEngaged(dt);   // the march holds while a boss lives or while the army's front line is fighting
       this.t += dt; if (!this.halt) this.front -= W.ADV * dt; this.postureT += dt;
       { const c = this.chantNow(); if (!c) this.cB = null; else { if (c.bar !== this.chantBar) { this.chantBar = c.bar; this.chantBarStart(c); this.emit('chantBar', c.loopBar, c.state, c.crescendo); } this.chantRally(); } }
@@ -737,8 +749,9 @@
       this.emit('sector', k, intro);
     }
     clearWave() {
-      const n = this.wave, p = (n - 1) % 10 + 1, g = KM.waveGold(n);
-      this.wState = 0; this.wGap = p === 10 ? 4 : 2.5; this.coins += g; this.coinsTotal += g; this.gainEnergy(15);
+      const n = this.wave, p = (n - 1) % 10 + 1; let g = KM.waveGold(n);
+      if (this.daily && this.daily.waveGoldMul != null) g = Math.round(g * this.daily.waveGoldMul);   // DAILY: Lean Purse
+      this.wState = 0; this.wGap = p === 10 ? 4 : 2.5; this.coins += g; this.coinsTotal += g; this.gainEnergy(15); this.cleared++;
       this.emit('waveClear', n, g);
       if (p === 5) this.offerChoice('supply');
     }
@@ -1519,11 +1532,13 @@
   const slotCol = (c, size) => Math.floor((size - 1) / 2) + (c & 1 ? (c + 1) >> 1 : -(c >> 1));
   const TANK_TOUCH = W.HULL_HL + 2.2;       // a footprint edge this close to the tank centre is striking it (longest enemy reach 2.4 + contact pad)
   Sim.CAP = CAP; Sim.PCAP = PCAP; Sim.CCAP = CCAP; Sim.ALIVE = ALIVE; Sim.DYING = DYING;
+  // every command the UI (or a bot) can give the sim between steps — the recorder replays exactly these
+  Sim.INPUTS = ['moveBy', 'moveTo', 'holdManual', 'deployOne', 'setProd', 'setAuto', 'orderClass', 'allAttack', 'allDefend', 'setCharge', 'setPosture', 'togglePosture', 'usePower', 'useCons', 'tankUp', 'levelUp', 'takeChoice', 'forgeBuy', 'setPlan', 'setStation', 'hurtLauncher', 'revive', 'forfeit'];
   KM.Sim = Sim;
 
   // Simple autopilot used by tests, soak and the debug "bot" toggle: hover behind the army, dart for nearby coins.
   KM.bot = function (sim, dt, skill) {
-    skill = skill == null ? 1 : skill;
+    skill = skill == null ? 1 : skill; const R = sim.botRng || sim.rng;   // recorded runs give the bot its own generator: a player never draws from the battle's
     const L = sim.L, C = sim.c; let best = -1, bs = 1e9;
     for (let k = 0; k < C.x.length; k++) if (C.st[k] === 1) { const dz = C.z[k] - sim.front; if (dz < -12 * skill) continue; const s = Math.abs(C.x[k] - L.x) + Math.abs(dz) * 0.5; if (s < bs) { bs = s; best = k; } }
     let near = 0; for (let i = 0; i < sim.hi; i++) if (sim.st[i] === 1 && sim.team[i] === 1 && sim.z[i] > sim.front - 10) near += sim.x[i] - L.x;
@@ -1535,11 +1550,12 @@
       sim.setProd(sim.t > 6 && sh('collector') < 0.03 ? 'collector' : sim.t > 40 && sh('medic') < 0.03 ? 'mizard' : sim.t > 90 && sh('knightF') < 0.04 ? 'elite' : sim.t > 150 && sh('giantF') < 0.015 ? 'giant' : sh('archerF') < 0.25 ? 'range' : 'melee');
       const full = sim.pts + sim.prodPts() > sim.stats.cap * 0.92;
       if (full || sim.coins > 3000) { const opts = ['melee', 'range', 'elite', 'mizard', 'giant', 'collector'].filter(k => sim.stats.cls[k] < KM.CLASS_MAX).sort((a, b) => sim.clsCost(a) - sim.clsCost(b));
-        const tk = KM.TANK_SKILLS.map(t => t.id).filter(id => sim.tankLv(id) < KM.CLASS_MAX).sort((a, b) => sim.tankCost(a) - sim.tankCost(b) || (sim.rng() - 0.5))[0];
-        if (tk && sim.coins >= sim.tankCost(tk) && (!opts.length || sim.tankCost(tk) <= sim.clsCost(opts[0]) || sim.rng() < 0.4)) sim.tankUp(tk); else if (opts.length) sim.levelUp(opts[0]); } }
+        const ids = KM.TANK_SKILLS.map(t => t.id).filter(id => sim.tankLv(id) < KM.CLASS_MAX), jit = {}; for (const id of ids) jit[id] = R();   // random tie-break drawn BEFORE sorting: a random comparator is called a different number of times by each engine's sort (Safari vs Chrome diverged)
+        const tk = ids.sort((a, b) => sim.tankCost(a) - sim.tankCost(b) || jit[a] - jit[b])[0];
+        if (tk && sim.coins >= sim.tankCost(tk) && (!opts.length || sim.tankCost(tk) <= sim.clsCost(opts[0]) || R() < 0.4)) sim.tankUp(tk); else if (opts.length) sim.levelUp(opts[0]); } }
     // powers: a sensible player spends Energy — FORTRESS when the tank is in trouble, otherwise whatever is ready
     if (sim.energy >= 100 && (sim.stepN || 0) % 30 === 0) { const hp = L.hp / sim.stats.maxHp, ids = sim.equipped.filter(id => sim.canPower(id)); const id = hp < 0.4 && ids.includes('fortress') ? 'fortress' : ids.filter(x => x !== 'fortress')[0]; if (id) sim.usePower(id); }
-    if (sim.choice && sim.rng() < 0.02) sim.takeChoice(Math.floor(sim.rng() * sim.choice.opts.length));
+    if (sim.choice && R() < 0.02) sim.takeChoice(Math.floor(R() * sim.choice.opts.length));
     // posture: DEFEND when the tank is hurt, the field is down with pressure close, or vehicles are under attack; ATTACK once stable
     if (sim.postureT > 2) {
       let close = 0; for (let i = 0; i < sim.hi; i++) if (sim.st[i] === 1 && sim.team[i] === 1) { const dx = sim.x[i] - L.x, dz = sim.z[i] - L.z; if (dx * dx + dz * dz < 81) close++; }

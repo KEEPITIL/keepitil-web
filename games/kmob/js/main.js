@@ -143,6 +143,7 @@
   let cresBar = false;
   const sim = new KM.Sim({ seed: 1 });
   let combatHits = 0, combatLvl = 0, combatT = 0;
+  let daily = null, lastDaily = false;   // DAILY DEFENSE: the active daily run { day, rules, station, ranked } · results screen belongs to a daily
   let state = 'title', paused = false, runId = 0, tut = 0, lastResults = null, botOn = !!(DEV && DEV.bot); const cue = {};
 
   sim.on((type, a, b, c, d, e) => {
@@ -175,10 +176,11 @@
       case 'summon': audio.play('elite', 0, 0); break;
       case 'warn': banner(a === 'boss' ? 'A BOSS APPROACHES' : a === 'mini' ? 'GIANT INCOMING' : 'MASS WAVE INCOMING', 3.2); audio.play('warn'); KM.haptic(25); $('vig').classList.add('warn'); setTimeout(() => $('vig').classList.remove('warn'), 3200); break;
       case 'elite': audio.play('elite', 0, 0); break;
-      case 'death': onDeath(); break;
+      case 'death': if (daily) onDailyEnd(); else onDeath(); break;
+      case 'dailyEnd': onDailyEnd(); break;
       case 'waveStart': { const S = KM.SECTORS[c] || KM.SECTORS.opening; banner('WAVE ' + a + (b === 10 ? '\nBOSS' : '\n' + S.name), 1.4); if (!recordShown && save.records.wave && a > save.records.wave) { recordShown = true; setTimeout(() => banner('NEW RECORD\nWAVE ' + a, 1.8), 1500); audio.play('pb'); } break; }
-      case 'waveClear': checkMilestones(); earnStations(); RunSave.write(sim); break;
-      case 'bossReward': if (!save.paid.includes(a.id)) { save.paid.push(a.id); save.paid = save.paid.slice(-200); bank(a.tokens, a.diamonds, 'boss'); }   // exactly once per boss, even after a reload
+      case 'waveClear': if (!daily) { checkMilestones(); earnStations(); RunSave.write(sim); } break;   // DAILY: no records, unlocks or saved run
+      case 'bossReward': if (daily) { banner('BOSS DEFEATED\n+2,500 POINTS', 1.8); break; } if (!save.paid.includes(a.id)) { save.paid.push(a.id); save.paid = save.paid.slice(-200); bank(a.tokens, a.diamonds, 'boss'); }   // exactly once per boss, even after a reload
         banner('BOSS DEFEATED\n+' + KM.fmtShort(a.gold) + ' GOLD · ' + (a.tokens ? '+' + a.tokens + ' WAR TOKENS' : '+' + a.diamonds + ' DIAMOND'), 2.2); setTimeout(earnStations, 2400); RunSave.write(sim); break;
       case 'forge': audio.play('upgrade'); KM.haptic(15); break;
       case 'consUse': save.cons[a] = Math.max(0, (save.cons[a] || 0) - 1); persist(); banner(KM.CONSUMABLES[a].name, 1.0); audio.play('c_' + a); break;
@@ -237,7 +239,7 @@
   function hud(dt) {
     hudAcc += dt; if (hudAcc < 0.1) return; hudAcc = 0;
     tankMark();
-    $('hTime').textContent = KM.fmtTime(sim.t); $('hArmy').textContent = sim.count[0]; $('hWave').textContent = Math.max(1, sim.wave);   // icons say what they are: no labels, no maximums
+    $('hTime').textContent = daily ? KM.fmtTime(Math.max(0, daily.rules.cap - sim.t)) : KM.fmtTime(sim.t); $('hArmy').textContent = sim.count[0]; $('hWave').textContent = Math.max(1, sim.wave);   // icons say what they are: no labels, no maximums
     const cur = v => v < 1e6 ? KM.fmtNum(Math.floor(v)) : KM.fmtShort(v); $('hCoins').textContent = cur(sim.coins); $('hDia').textContent = cur(save.diamonds);
     $('enFill').style.width = (sim.energy / KM.ENERGY_MAX * 100).toFixed(0) + '%';
     const hp = sim.L.hp / sim.stats.maxHp; $('hpFill').style.width = (hp * 100).toFixed(1) + '%'; $('hpFill').style.background = hp > 0.5 ? 'linear-gradient(90deg,#4cff8a,#2fbf4f)' : hp > 0.25 ? 'linear-gradient(90deg,#ffe14a,#ff9a1f)' : 'linear-gradient(90deg,#ff6a4a,#d6281f)';
@@ -262,26 +264,29 @@
     const deep = /^#kh-(privacy|support)$/.test(location.hash) && $(location.hash.slice(1)); if (deep) setTimeout(() => deep.scrollIntoView({ block: 'start' }), 0);   // keepitil.com/games/kmob/#kh-privacy (store privacy / support URLs) opens on that section
     KH.addEventListener('click', e => { const play = e.target.closest('[data-kmob-play]'), sc = e.target.closest('[data-kmob-scroll]');
       if (play) { e.preventDefault(); audio.unlock(); Telemetry.landing('home_play'); khHide(); const rs = RunSave.load(); if (rs) { $('contBtn').classList.remove('hidden'); $('contInfo').textContent = 'WAVE ' + (rs.snap.wave || 1) + ' · ' + KM.fmtTime(rs.snap.t); show('title'); } else openPlan('start'); return; }   // a saved run: the menu offers CONTINUE and PLAY
+      if (e.target.closest('[data-kmob-daily]')) { e.preventDefault(); audio.unlock(); Telemetry.landing('home_daily'); khHide(); openDaily(); return; }   // DAILY DEFENSE straight from the home page
       if (sc) { const el = $(sc.dataset.kmobScroll); if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); } });
     addEventListener('popstate', () => { if (khOn()) return;   // browser Back from the game: save the run and show the home page (same address)
       if (planMode) { const m = planMode; planClose(); if (m === 'run') { paused = false; } }
+      if (state === 'run' && daily) { sim.forfeit(); return; }   // Back during a daily ends that attempt (it was counted when it started)
       if (state === 'run') $('menuBtn').onclick(); else goTitle(); });
   }
-  function show(id) { for (const s of ['title', 'over', 'pause', 'shop', 'settings', 'plan']) $(s).classList.toggle('hidden', s !== id); if (id === 'title' || id === 'over') audio.stopMusic(); }
+  function show(id) { for (const s of ['title', 'over', 'pause', 'shop', 'settings', 'plan', 'dailyScr']) $(s).classList.toggle('hidden', s !== id); if (id === 'title' || id === 'over') audio.stopMusic(); }
   if (!save.player) { save.player = Array.from({ length: 8 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join(''); persist(); }   // anonymous commander id for the boards
   const runOpts = () => ({ seed: (Date.now() ^ (runId * 2654435761)) >>> 0, equip: save.powers.equip, powerLv: save.powers.lv, skins: save.skins.equip, buffs: save.buffs, cons: save.cons, loadout: { perks: save.perks, equip: save.gear.equip, skin: save.season.equip }, mercTier: save.mercTier, plan: save.plan, chant: save.chants.on ? save.chants.station : null });   // the saved WAR PLAN becomes this run's active plan
   let recordShown = false;
-  function startRun(resume) {
-    khHide(); audio.unlock(); runId++; RunSave.clear();
+  function startRun(resume, dr) {
+    khHide(); audio.unlock(); runId++; if (!dr) RunSave.clear(); daily = dr || null;   // DAILY DEFENSE runs leave a saved Endless War run untouched
     let resumed = false;
-    if (resume) { try { sim.reset(runOpts()); sim.restore(resume.snap); resumed = true; } catch (e) { sim.reset(runOpts()); banner('SAVED RUN COULD NOT BE RESTORED', 2); } }
+    if (dr) sim.reset(KM.dailyOpts(dr.rules, dr.station, true));
+    else if (resume) { try { sim.reset(runOpts()); sim.restore(resume.snap); resumed = true; } catch (e) { sim.reset(runOpts()); banner('SAVED RUN COULD NOT BE RESTORED', 2); } }
     else sim.reset(runOpts());
     render.resetRun(); applyLooks(); recordShown = false; cresBar = false; audio.station(sim.chant.pack);
     state = 'run'; paused = false; show(null);
     for (const id of ['hud', 'tankHp', 'drawer', 'rightCol']) $(id).classList.remove('hidden'); closePops(); setPostureUI(); drawerUI(); choiceUI(); safeFrame();
     moved = 0; setTip(save.ach.tutorial ? 4 : 0);
-    if (save.ach.tutorial) { tut = 4; banner(resumed ? 'CONTINUE WAR' : 'CHOOSE YOUR ARMY', 1.4); }
-    Analytics.track(resumed ? 'run_resume' : 'run_start', { run: save.totals.runs + 1, resumeFailed: !!resume && !resumed });
+    if (save.ach.tutorial) { tut = 4; banner(dr ? 'DAILY DEFENSE\n' + dr.rules.name + (dr.ranked ? '' : ' · PRACTICE') : resumed ? 'CONTINUE WAR' : 'CHOOSE YOUR ARMY', 1.6); }
+    Analytics.track(dr ? 'daily_start' : resumed ? 'run_resume' : 'run_start', dr ? { day: dr.day, type: dr.rules.id, ranked: dr.ranked ? 1 : 0, station: dr.station || 'off', attempt: save.daily.ranked } : { run: save.totals.runs + 1, resumeFailed: !!resume && !resumed });
     if (resumed) RunSave.write(sim);
     Telemetry.begin(sim, { quality: render.quality, speed: speedNow(), runN: save.totals.runs + 1, resumed, resumeFailed: !!resume && !resumed });
     hook('start');
@@ -308,7 +313,7 @@
     Telemetry.end(sim, r, { quality: render.quality });
     setTimeout(() => {
       if (state !== 'run') return;
-      state = 'over'; $('tip').classList.add('hidden');
+      state = 'over'; $('tip').classList.add('hidden'); lastDaily = false; $('againBtn').textContent = 'TRY AGAIN'; $('over').querySelector('.sv').textContent = 'REACHED';
       $('oTime').textContent = 'WAVE ' + r.wave; $('oPb').textContent = records.length ? '★ NEW RECORD: ' + records.map(k => ({ wave: 'WAVE', time: 'TIME', bosses: 'BOSSES', kills: 'KILLS', army: 'ARMY' })[k]).join(' · ') + ' ★' : 'BEST WAVE ' + save.records.wave + ' · ' + KM.fmtTime(save.records.time);
       if (records.length) audio.play('pb');
       const reason = { breach: 'Enemies broke through the line', bomber: 'Hit by a bomber', siege: 'Hit by siege fire', ranged: 'Shot down', overrun: 'Overrun', quit: 'Run ended' }[r.reason] || 'Overrun by ' + r.reason + 's';
@@ -319,14 +324,14 @@
       LB.top('weekly').then(rows => { const el = $('lbBox'); if (!el || !rows || !rows.length) return; el.innerHTML = 'THIS WEEK: ' + rows.map((x, k) => `${k + 1}. ${x.player === save.player ? 'YOU' : x.player.slice(0, 4)} W${x.wave}`).join(' · '); });
     }, 1300);
   }
-  function setPause(p) { if (state !== 'run') return; paused = p; show(p ? 'pause' : null); audio.suspend(p); if (p) { buildToggles($('pToggles')); audio.crowd(0, 0); } }
+  function setPause(p) { if (state !== 'run') return; paused = p; show(p ? 'pause' : null); audio.suspend(p); if (p) { buildToggles($('pToggles')); audio.crowd(0, 0); $('menuBtn').textContent = daily ? 'LEAVE' + (daily.ranked ? ' (ATTEMPT USED)' : '') : 'SAVE & MENU'; } }
   function goTitle() {
     Telemetry.flush('quit');
     const rs = RunSave.load(); $('contBtn').classList.toggle('hidden', !rs); if (rs) $('contInfo').textContent = 'WAVE ' + (rs.snap.wave || 1) + ' · ' + KM.fmtTime(rs.snap.t);
     state = 'title'; for (const id of ['hud', 'tankHp', 'drawer', 'rightCol', 'powers', 'tankUps', 'consPop', 'clsPop', 'choice', 'bossBar', 'tip']) $(id).classList.add('hidden');
     const R = save.records; $('titleBest').innerHTML = `<div class="titleRec"><span><i>BEST WAVE</i><b>${R.wave}</b></span><span><i>LONGEST</i><b>${KM.fmtTime(R.time)}</b></span><span><i>BOSSES</i><b>${R.bosses}</b></span></div>` +
       `<div class="titleBadges"><span>${svg('token')}<b>${save.tokens}</b></span><span>${svg('diamond')}<b>${save.diamonds}</b></span>${save.titles.length ? `<span class="rank">${save.titles[save.titles.length - 1]}</span>` : ''}</div>`;   // records card + currency / rank badges (owner 2026-10-20)
-    show('title'); khShow(); mark('interactive');
+    dailyTitle(); show('title'); khShow(); mark('interactive');
   }
   function buildToggles(el) {
     const rows = [['sound', 'Sound effects'], ['music', 'Music'], ['haptics', 'Vibration']];
@@ -544,8 +549,8 @@
 
   $('playBtn').onclick = () => { Telemetry.landing('play'); openPlan('start'); };   // HOME → PLAY → WAR PLAN → START BATTLE
   $('contBtn').onclick = () => { const rs = RunSave.load(); Telemetry.landing('continue'); startRun(rs || null); };
-  $('menuBtn').onclick = () => { RunSave.write(sim); paused = false; audio.suspend(false); state = 'menu'; hook('leave', false); goTitle(); };
-  $('againBtn').onclick = () => { hook('leave', true); startRun(); };
+  $('menuBtn').onclick = () => { if (daily) { paused = false; show(null); audio.suspend(false); sim.forfeit(); return; } RunSave.write(sim); paused = false; audio.suspend(false); state = 'menu'; hook('leave', false); goTitle(); };
+  $('againBtn').onclick = () => { hook('leave', true); if (lastDaily) return openDaily(); startRun(); };
   $('homeBtn').onclick = () => { hook('leave', false); goTitle(); };
   $('shopBtn1').onclick = () => { Telemetry.landing('shop'); openShop(goTitle); };
   $('shopBtn2').onclick = () => openShop(() => show('over'));
@@ -553,7 +558,7 @@
   $('setClose').onclick = () => goTitle();
   $('pauseBtn').onclick = () => setPause(true);
   $('resumeBtn').onclick = () => setPause(false);
-  $('quitBtn').onclick = () => { paused = false; show(null); audio.suspend(false); sim.hurtLauncher(1e9, 'quit'); };
+  $('quitBtn').onclick = () => { paused = false; show(null); audio.suspend(false); if (daily) sim.forfeit(); else sim.hurtLauncher(1e9, 'quit'); };
   $('reviveBtn').onclick = () => { if (sim.revive()) { state = 'run'; show(null); Analytics.track('revive_used', {}); } };
   document.addEventListener('visibilitychange', () => { if (document.hidden) { if (state === 'run') RunSave.write(sim); if (state === 'run' && !paused) setPause(true); audio.suspend(true); } else if (!paused) audio.suspend(false); });
   // ---------- layout: portrait (base CSS) · desktop · phone landscape — one simulation; only the HUD and the camera reflow ----------
@@ -646,7 +651,7 @@
     if (state === 'run' && !paused) {
       if (keys.ArrowLeft || keys.a) sim.moveBy(-dt * 14); if (keys.ArrowRight || keys.d) sim.moveBy(dt * 14);
       holdTick(dt);
-      const scale = speedNow(); gdt = now < holdUntil ? 0 : dt * scale; Telemetry.frame(sim, dt, rawMs, speedNow()); if ((autoT += dt) > 10) { autoT = 0; RunSave.write(sim); }
+      const scale = speedNow(); gdt = now < holdUntil ? 0 : dt * scale; Telemetry.frame(sim, dt, rawMs, speedNow()); if ((autoT += dt) > 10) { autoT = 0; if (!daily) RunSave.write(sim); }
       const fs = KM.frameSteps(acc, now < holdUntil ? 0 : dt, scale); acc = fs.acc; simDebt += fs.dropped; const s0 = performance.now();   // pacing: KM.frameSteps (tested without a GPU)
       for (let n = 0; n < fs.n; n++) { if (botOn) KM.bot(sim, STEP, 1); sim.step(STEP); hook('tick', STEP); }
       if (now >= holdUntil && !sim.choice) { spWant += Math.min(KM.FRAME.MAX_DT, dt) * scale; spGot += fs.n * STEP; if (spWant >= scale) { speedEff = spGot / spWant * scale; spWant = spGot = 0; speedLabel(); } }
@@ -669,7 +674,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=587a197a679a`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=587a197a679a" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=b78e56a78a61`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=b78e56a78a61" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };
@@ -815,6 +820,67 @@
   addEventListener('dragstart', e => { if (isCtl(e.target)) e.preventDefault(); }, { capture: true });
   addEventListener('selectstart', e => { if (isCtl(e.target)) e.preventDefault(); }, { capture: true });
   addEventListener('keydown', e => { if (e.code === 'Space' && state === 'run' && !paused) { e.preventDefault(); if (e.shiftKey) orderHold(); else orderTap(); } });   // desktop: Space = selected class · Shift+Space = whole army
+
+  // ---------- DAILY DEFENSE (owner 2026-10-22): one free challenge per UTC day · 3 ranked attempts + unlimited practice · badges + 1 War Token ----------
+  // Ranked attempts are counted when they START (leaving early never refunds one). Everything a player owns is ignored (KM.dailyOpts).
+  const DBADGES = [[1, 'FIRST DEFENSE'], [7, 'WEEK WARDEN'], [30, 'IRON VIGIL'], [100, 'ETERNAL GUARD']];
+  const dToday = () => { const D = save.daily, day = KM.dailyDay(); if (D.day !== day) Object.assign(D, { day, ranked: 0, practice: 0, best: 0, bestParts: null, done: 0 }); return D; };
+  const dWeek = () => { const wk = KM.weekKey(new Date()); return save.daily.days.filter(d => KM.weekKey(new Date(d + 'T12:00:00Z')) === wk).length; };
+  const dCount = ms => { const t = Math.max(0, Math.floor(ms / 1000)); return Math.floor(t / 3600) + ':' + String(Math.floor(t / 60) % 60).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+  function dailyTitle() { const D = dToday(), r = KM.dailyRules(D.day), left = KM.DAILY.RANKED - D.ranked;
+    if ($('khDaily')) $('khDaily').textContent = r.name + ' · ' + (left ? left + ' ranked left' : 'practice only') + ' · new in ' + dCount(KM.dailyResetIn());
+    $('dailyBtn').innerHTML = `DAILY DEFENSE<small>${r.name} · ${left ? left + ' RANKED LEFT' : 'PRACTICE ONLY'} · NEW IN ${dCount(KM.dailyResetIn())}</small>`; }
+  function dStationRow() { const el = $('dChant'), cur = save.daily.station;
+    el.innerHTML = `<div class="ch-h"><b>WAR CHANT</b><small>ALL STATIONS FREE IN DAILY DEFENSE</small></div><div class="ch-b">` + ['off', 'steel', 'iron', 'fury'].map(id => { const st = KM.STATION_BY[id];
+      return `<button type="button" data-ch="${id}" class="${cur === id ? 'on' : ''}" aria-pressed="${cur === id}">${st ? st.name + '<small>' + st.lean + '</small>' : 'OFF<small>NO BONUS</small>'}</button>`; }).join('') + '</div>';
+    el.querySelectorAll('button').forEach(b => b.onclick = () => { save.daily.station = b.dataset.ch; persist(); audio.play('tap'); dStationRow(); }); }
+  function openDaily() { khHide(); audio.unlock(); state = 'daily'; lastDaily = false; const D = dToday(), r = KM.dailyRules(D.day), left = KM.DAILY.RANKED - D.ranked;
+    $('dName').textContent = r.name; $('dDesc').textContent = r.desc;
+    $('dInfo').innerHTML = `<span><i>RANKED LEFT</i><b>${left} / ${KM.DAILY.RANKED}</b></span><span><i>BEST TODAY</i><b>${D.best ? KM.fmtNum(D.best) : '—'}</b></span><span><i>NEW CHALLENGE IN</i><b id="dCount">${dCount(KM.dailyResetIn())}</b></span>`;
+    $('dRules').innerHTML = `<b>SCORING</b> enemies ×10 · waves cleared ×300 · bosses ×2,500 · reach the 4:00 finish +1,000 (+10 per % tank HP)${r.goldScore ? ' · +5 % of Gold left' : ''}.<br><b>FAIR START</b> everyone gets the same battle, ${KM.fmtNum(r.bank != null ? r.bank : KM.START_BANK)} Gold and Linebreaker / Arrow Storm / Fortress at level 0. Upgrades, skins, gear, perks and items you own are not used.<br><b>PROGRESS</b> days completed ${save.daily.total} · this week ${dWeek()} / 5${D.done ? ' · today ✓ (+1 War Token earned)' : ' · finish a ranked attempt (4:00 or 2+ minutes) for +1 War Token'}`;
+    $('dLb').textContent = KM.DAILY_VERIFY_URL ? 'Loading today\'s verified scores…' : 'Verified daily leaderboard: launching after server verification is approved. Your best today is kept on this device.'; dBoard(); dFlush();
+    $('dRanked').textContent = left ? `PLAY RANKED (${left} LEFT)` : 'NO RANKED ATTEMPTS LEFT'; $('dRanked').disabled = !left;
+    dStationRow(); show('dailyScr'); Analytics.track('daily_open', { day: D.day, type: r.id, left }); }
+  // VERIFIED SCORES (active only when KM.DAILY_VERIFY_URL is set): ranked runs go to the verifier IN ORDER (attempt numbers must be
+  // consecutive), gzip-compressed; an offline run waits in a small queue and is retried on the next Daily visit (its day stays open 15 min).
+  const DQ = 'kmob.daily.queue', dq = { load() { try { return JSON.parse(store.getItem(DQ) || '[]'); } catch (e) { return []; } }, save(q) { try { store.setItem(DQ, JSON.stringify(q.slice(-3))); } catch (e) { /* storage full: the run stays local */ } } };
+  async function dSend(item) { const raw = JSON.stringify(item); let body = raw, h = { 'content-type': 'application/json' };
+    try { if (window.CompressionStream) { body = await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer(); h['content-encoding'] = 'gzip'; } } catch (e) { body = raw; delete h['content-encoding']; }
+    const r = await fetch(KM.DAILY_VERIFY_URL + '/submit', { method: 'POST', headers: h, body }); return r.json(); }
+  async function dFlush(onResult) { if (!KM.DAILY_VERIFY_URL || dFlush.busy) return; dFlush.busy = true; let q = dq.load();
+    try { while (q.length) { const it = q[0]; let r; try { r = await dSend(it); } catch (e) { break; }   // offline: keep it for later
+        q.shift(); dq.save(q); Analytics.track('daily_verify', { ok: r && r.ok ? 1 : 0, reason: r && r.reason || '', attempt: it.attempt }); if (onResult) onResult(it, r); } } finally { dFlush.busy = false; } }
+  function dBoard() { if (!KM.DAILY_VERIFY_URL) return; const day = dToday().day, H = { apikey: Telemetry.key, Authorization: 'Bearer ' + Telemetry.key };
+    fetch('https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/kmob_daily_lb?select=player,score&day=eq.' + day + '&order=score.desc&limit=10', { headers: H }).then(x => x.ok ? x.json() : null).then(rows => {
+      if (!rows || state !== 'daily') return; $('dLb').innerHTML = rows.length ? 'TODAY · VERIFIED: ' + rows.map((x, k) => `${k + 1}. ${x.player === save.player ? '<b>YOU</b>' : esc(x.player.slice(0, 4))} ${KM.fmtNum(x.score)}`).join(' · ') : 'No verified scores yet today. Be the first.'; }).catch(() => {}); }
+  function playDaily(ranked) { const D = dToday(); if (ranked && D.ranked >= KM.DAILY.RANKED) return; if (ranked) D.ranked++; else D.practice++; persist();
+    const st = save.daily.station === 'off' ? null : save.daily.station; startRun(false, { day: D.day, rules: KM.dailyRules(D.day), station: st, ranked: !!ranked, attempt: ranked ? D.ranked : 0 }); }
+  function onDailyEnd() { const dr = daily; if (!dr || dr.ended) return; dr.ended = true;
+    const res = KM.dailyScore(sim, dr.rules), D = dToday(), sameDay = D.day === dr.day, newBest = dr.ranked && sameDay && res.score > D.best; let token = 0, badge = '';
+    if (dr.ranked && sameDay) { if (newBest) { D.best = res.score; D.bestParts = res.parts; }
+      if (!D.done && (res.done || res.t >= 120)) { D.done = 1; token = 1; save.daily.days = [...new Set([...save.daily.days, dr.day])].slice(-400); save.daily.total = save.daily.days.length; bank(1, 0, 'daily');
+        const b = DBADGES.find(([n]) => n === save.daily.total); if (b) { badge = b[1]; if (!save.titles.includes(b[1])) save.titles.push(b[1]); } if (dWeek() === 5) badge = badge || 'FULL WEEK'; } }
+    persist(); audio.play(res.done ? 'pb' : 'death'); KM.haptic([30, 40, 30]);
+    if (dr.ranked && KM.DAILY_VERIFY_URL && sim.rec) { const q = dq.load(); q.push({ day: dr.day, player: save.player, attempt: dr.attempt, station: dr.station || 'off', rec: sim.rec, endStep: sim.stepN, claim: res.score, build: KM.BUILD || '' }); dq.save(q);
+      dFlush((it, r) => { if (it.attempt !== dr.attempt || !$('dVer')) return; $('dVer').textContent = r && r.ok ? '✓ VERIFIED · RANK ' + r.rank + ' OF ' + r.of + ' TODAY' : 'NOT VERIFIED: ' + (r && r.reason || 'unknown'); }); }
+    Analytics.track('daily_end', { day: dr.day, type: dr.rules.id, ranked: dr.ranked ? 1 : 0, station: dr.station || 'off', score: res.score, done: res.done ? 1 : 0, t: Math.round(res.t), inputs: sim.rec ? sim.rec.length : 0, best: newBest ? 1 : 0 });
+    Telemetry.end(sim, Object.assign(sim.results(), { daily: { day: dr.day, type: dr.rules.id, ranked: dr.ranked, score: res.score } }), { quality: render.quality });
+    setTimeout(() => { if (state !== 'run' || daily !== dr) return; state = 'over'; lastDaily = true; daily = null; $('tip').classList.add('hidden');
+      const P = res.parts, left = KM.DAILY.RANKED - D.ranked;
+      $('over').querySelector('.sv').textContent = 'DAILY DEFENSE · ' + dr.rules.name + (dr.ranked ? '' : ' · PRACTICE'); $('oTime').textContent = KM.fmtNum(res.score);
+      $('oPb').textContent = newBest ? '★ NEW BEST TODAY ★' : dr.ranked ? 'BEST TODAY ' + KM.fmtNum(D.best) : 'PRACTICE (NOT RANKED) · BEST TODAY ' + (D.best ? KM.fmtNum(D.best) : '—');
+      $('oStats').innerHTML = [['skull', 'Enemies ×10', '+' + KM.fmtNum(P.kills)], ['wave', 'Waves cleared ×300', '+' + KM.fmtNum(P.waves)], ['star', 'Bosses ×2,500', '+' + KM.fmtNum(P.bosses)], ['clock', res.done ? 'Finished 4:00 (+' + res.hp + '% HP)' : 'Fell at ' + KM.fmtTime(res.t), '+' + KM.fmtNum(P.finish)]]
+        .concat(P.gold ? [['coin', 'Gold left (5 %)', '+' + KM.fmtNum(P.gold)]] : []).concat(token ? [['token', 'Daily completed', '+1 War Token']] : [])
+        .map(([i, l, v]) => `<div>${svg(i)}<span>${l}</span><b>${v}</b></div>`).join('') + (badge ? `<div style="justify-content:center;color:var(--gold);font-weight:900">BADGE: ${badge}</div>` : '') +
+        `<div style="opacity:.75;font-size:12px;justify-content:center">${left ? left + ' ranked attempt' + (left > 1 ? 's' : '') + ' left today' : 'No ranked attempts left · practice is unlimited'}</div>` + (dr.ranked && KM.DAILY_VERIFY_URL ? '<div id="dVer" style="font-size:12px;justify-content:center;font-weight:900">VERIFYING…</div>' : '');
+      $('againBtn').textContent = 'DAILY DEFENSE'; $('reviveBtn').classList.add('hidden');
+      for (const id of ['drawer', 'rightCol', 'powers', 'tankUps', 'consPop', 'clsPop', 'choice', 'bossBar', 'tankHp']) $(id).classList.add('hidden'); show('over'); hook('death', res); }, 1300); }
+  $('dailyBtn').onclick = () => { audio.play('tap'); openDaily(); };
+  $('dRanked').onclick = () => { audio.play('tap'); playDaily(true); };
+  $('dPractice').onclick = () => { audio.play('tap'); playDaily(false); };
+  $('dBack').onclick = () => { audio.play('tap'); goTitle(); };
+  setInterval(() => { if (state === 'title' || khOn()) dailyTitle(); else if (state === 'daily' && $('dCount')) { $('dCount').textContent = dCount(KM.dailyResetIn()); if (save.daily.day !== KM.dailyDay()) openDaily(); } }, 1000);   // the countdown ticks; a new day refreshes the screen
+
   // ---------- WAR PLAN (owner-approved 2026-10-13): pre-battle page and in-run PLAN card (left soldier column, under the six classes) ----------
   // A plan is a TARGET of living ordinary soldiers per class. AUTO deploys toward it as Gold and CAP allow (round robin Looter → Giant);
   // nothing is free, nothing is despawned, TAP stays manual. In battle the editor pauses the simulation and restores the prior state.
@@ -850,8 +916,8 @@
   setSpeed(speedI); setZoom(zoomI);
   relayout(false);
   // the private build attaches its tools here; the public build has no KM.internalInit and ships none of them
-  const api = { sim, render, audio, startRun, setPause, goTitle, banner, save, persist, H, setSpeed, speedNow, setZoom, zoomNow, openPlan, get speedEff() { return speedEff; }, get planMode() { return planMode; }, get planDraft() { return planDraft; }, get glLost() { return glLost; }, get state() { return state; }, set state(v) { state = v; }, get jsCost() { return jsCost; }, get rawMs() { return rawMs; }, get botOn() { return botOn; }, set botOn(v) { botOn = !!v; }, setQuality: q => { pendingQ = q; } };
-  addEventListener('pagehide', () => { if (state === 'run') RunSave.write(sim); });
+  const api = { sim, render, audio, startRun, setPause, goTitle, banner, save, persist, H, setSpeed, speedNow, setZoom, zoomNow, openPlan, openDaily, closeDaily: st0 => { if (st0 === 'run') { state = 'run'; show(paused ? 'pause' : null); } else goTitle(); }, get speedEff() { return speedEff; }, get planMode() { return planMode; }, get planDraft() { return planDraft; }, get glLost() { return glLost; }, get state() { return state; }, set state(v) { state = v; }, get jsCost() { return jsCost; }, get rawMs() { return rawMs; }, get botOn() { return botOn; }, set botOn(v) { botOn = !!v; }, setQuality: q => { pendingQ = q; } };
+  addEventListener('pagehide', () => { if (state === 'run' && !daily) RunSave.write(sim); });
   // short credits on a fresh session (tap to skip), then the landing screen; gameplay assets finish loading underneath
   function intro(done) {
     let seen = false; try { seen = sessionStorage.getItem('kmob.intro') === '1'; sessionStorage.setItem('kmob.intro', '1'); } catch (e) { /* ignore */ }

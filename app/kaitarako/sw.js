@@ -1,10 +1,11 @@
 // Kai Tarako offline cache. Same-origin GETs only; no data is ever sent anywhere.
-const CACHE = 'kai-tarako-v4';
+const CACHE = 'kai-tarako-v5';
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon-192.png', './brand/logo.webp', './mascot/wave.webp', './mascot/badge-happy.webp', './mascot/badge-wave.webp', './mascot/badge-cheer.webp', './mascot/badge-nudge.webp', './mascot/lets-trace.webp', './mascot/you-did-it.webp', './mascot/great-job.webp'])).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  // Cache storage is shared by every app on keepitil.com: only ever remove OUR old caches.
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k.startsWith('kai-tarako-') && k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', (e) => {
   const req = e.request;

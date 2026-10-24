@@ -153,7 +153,7 @@
   KM.FRIEND.forEach((e, i) => { e.id = 32 + i; });
   KM.FRIEND_BY = Object.fromEntries(KM.FRIEND.map(f => [f.k, f]));
   // Six player classes. Gold pays for deployment and for each class's own level track (no shared price inflation).
-  KM.BUILD = '2026.10.23-daily-defense';   // reported with telemetry; bump on every public deploy
+  KM.BUILD = '2026.10.24-ranked';   // reported with telemetry; bump on every public deploy
   KM.ARMY_CAP = 300;   // army POINTS (never grows); LOCKED cost per soldier is fixed by class (evolution never changes it)
   // OWNER-APPROVED class table (2026-10-11): Lv1 deploy Gold, CAP points, Lv1 HP / DMG (Mizard: HEAL), per-level gains, Gold price INTO Lv2..Lv10
   // (Melee / Mizard Lv8 = 11,500 is intentional) and the armour GAINED at each level 1..10 (cumulative).

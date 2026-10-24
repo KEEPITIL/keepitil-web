@@ -677,7 +677,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=4597fb68ff13`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=4597fb68ff13" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=1a378a3c9803`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=1a378a3c9803" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };
@@ -838,7 +838,7 @@
       return `<div class="gItem ${done ? 'done' : ''}"><div class="gTxt"><small>${x.kind === 'weekly' ? 'WEEKLY' : 'DAILY'} · +${d.xp} XP</small><b>${esc(d.text)}</b><span class="gBar"><i style="width:${Math.round(100 * x.got / d.n)}%"></i></span><small>${KM.fmtNum(x.got)} / ${KM.fmtNum(d.n)}</small></div>${done ? `<button class="btn" data-claim="${i}">CLAIM</button>` : ''}</div>`; }).join('')
       : '<p class="gNote">All caught up. A new goal arrives every day at 00:00 UTC.</p>';
     $('gList').querySelectorAll('[data-claim]').forEach(b => b.onclick = () => { const x = G.list[+b.dataset.claim], r2 = KM.goalClaim(G, x); if (!r2) return; if (r2.tokens) bank(r2.tokens, 0, 'rank'); persist(); audio.play(r2.rankUp ? 'pb' : 'upgrade'); KM.haptic(15);
-      Analytics.track('goal_claim', { id: x.id, kind: x.kind, rank: G.rank }); if (r2.rankUp) banner('RANK UP\n' + KM.rankName(r2.rankUp), 1.8); openGoals(back); });
+      Analytics.track('goal_claim', { id: x.id, kind: x.kind, rank: G.rank }); if (r2.rankUp) banner('RANK UP\n' + KM.rankName(r2.rankUp) + (r2.tokens ? ' · +' + r2.tokens + ' WAR TOKEN' + (r2.tokens > 1 ? 'S' : '') : ''), 2); openGoals(back); });
     $('gBack').onclick = () => { audio.play('tap'); if (back === 'daily') openDaily(); else goTitle(); }; show('goalsScr'); }
 
   // ---------- DAILY DEFENSE (owner 2026-10-22): one free challenge per UTC day · 3 ranked attempts + unlimited practice · badges + 1 War Token ----------

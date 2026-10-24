@@ -3,10 +3,10 @@
      days never loses anything and there is no streak to break;
    - goals progress from ordinary play (Endless War and Daily Defense) and complete on their own; claiming gives Commander XP;
    - COMMANDER RANK 1–30 is cosmetic, front-loaded (the first ranks arrive in a session or two);
-   - currency: KM.GOALS_TOKENS (War Tokens per rank-up) is 0 until the owner approves an amount (economy change). */
+   - currency: KM.GOALS_TOKENS War Tokens per rank-up (owner-approved 1, 2026-10-23). */
 (function (G) {
   const KM = G.KM = G.KM || {};
-  KM.GOALS_TOKENS = 0;   // OWNER DECISION PENDING: War Tokens granted per Commander rank-up (0 = recognition only)
+  KM.GOALS_TOKENS = 1;   // owner-approved 2026-10-23 (D7): 1 War Token per Commander rank-up (29 over the whole ladder)
   KM.GOAL_BANK = { daily: 6, weekly: 2 };
   // stat: what one finished battle reports (KM.goalStats). n: target. xp: Commander XP on claim. sum = totals across battles; best = in one battle
   KM.GOAL_POOL = {

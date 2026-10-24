@@ -8,7 +8,7 @@
   const KM = G.KM = G.KM || {};
   const CAP = 240;   // 4 minutes of battle time (target 3–5 minutes at 1×; faster game speeds finish sooner in real time)
   KM.DAILY = { RANKED: 3, CAP, STEP: 1 / 60, POWERS: ['linebreaker', 'arrowstorm', 'fortress'], STATIONS: [null, 'steel', 'iron', 'fury'], VERSION: 1 };
-  KM.DAILY_VERIFY_URL = null;   // the score verifier (server/verifier). null until the owner approves it: no submissions, no board, local bests only
+  KM.DAILY_VERIFY_URL = "https://kmob-daily-verify-staging.illestratedlifestyle.workers.dev";   // the score verifier (server/verifier). null until the owner approves it: no submissions, no board, local bests only
   // one objective per weekday (UTC), so the week has variety and players learn each one
   // one objective per weekday (UTC). Each day starts mid-war with a war chest (tuned with the bot 2026-10-22: early waves never threaten
   // the tank in 4 minutes, so the challenge is the SCORE; the restricted days at wave 16 also carry real risk of falling)

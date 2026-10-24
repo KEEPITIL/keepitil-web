@@ -452,7 +452,7 @@
         notes: ready ? (signed ? '' : 'Sign in above to buy.') : 'Website checkout is not active yet.' } }));
   }
   const WEB_PACKS = [['diamonds_5', 5, 'diamonds', '$0.99'], ['diamonds_55', 55, 'diamonds', '$4.99'], ['diamonds_120', 120, 'diamonds', '$9.99'], ['tokens_15', 15, 'tokens', '$0.99'], ['tokens_165', 165, 'tokens', '$4.99'], ['tokens_360', 360, 'tokens', '$9.99']];
-  let webMsg = '', webBusy = false;
+  let webMsg = '', webBusy = false, signAsk = false;   // signAsk: false | 'buy' | 'ranked'   // signAsk: the "create an account" reminder shown when a signed-out player taps BUY (owner 2026-10-24)
   function accountCard() {
     const A = KM.Account; if (!A || !KM.WEB_STORE || !(KM.WEB_PUBLIC || KM.WEB_PREVIEW)) return '';
     if (!A.session) return `<div class="pc pc-acct"><b class="pc-n">YOUR ACCOUNT</b><p>Free play never needs an account. Sign in to buy — purchases stay on your KEEPITIL account, on this website and in the iPhone app.</p>
@@ -478,7 +478,7 @@
     else if (V.state === 'owned') foot = V.use ? `<button class="pc-act ${V.on ? 'on' : 'sec'}" data-act="use">${V.btn}</button>` : `<button class="pc-act on" disabled>${V.btn}</button>`;
     else if (V.state === 'locked') foot = `<button class="pc-act" disabled>🔒 ${V.lock}</button>`;
     else if (V.state === 'max') foot = '<button class="pc-act on" disabled>MAX LEVEL ✓</button>';
-    else if (V.state === 'web') foot = `<div class="pc-cost"><span class="pc-price">${V.price}</span></div><button class="pc-act" data-act="checkout" ${webBusy || !(KM.Account && KM.Account.session) ? 'disabled' : ''}>${KM.Account && KM.Account.session ? 'BUY' : 'SIGN IN TO BUY'}</button>`;
+    else if (V.state === 'web') foot = `<div class="pc-cost"><span class="pc-price">${V.price}</span></div><button class="pc-act" data-act="checkout" ${webBusy ? 'disabled' : ''}>BUY</button>`;
     else foot = `<div class="pc-cost"><span class="pc-price">${V.price}</span></div><button class="pc-act" disabled>COMING SOON</button>`;
     const nav = P.tiers ? `<div class="pc-tn"><button data-tier="-1" aria-label="Lower tier" ${V.idx === 0 || cf ? 'disabled' : ''}>‹</button><div class="pc-dots">${P.tiers.map((x, i) => `<button data-ti="${i}" class="${i === V.idx ? 'sel ' : ''}${x.state === 'owned' ? 'own' : x.state === 'locked' ? 'lock' : ''}" aria-label="Tier ${x.t}${x.state === 'owned' ? ', owned' : x.state === 'locked' ? ', locked' : ''}" ${cf ? 'disabled' : ''}>${x.t}</button>`).join('')}</div><button data-tier="1" aria-label="Higher tier" ${V.idx === P.tiers.length - 1 || cf ? 'disabled' : ''}>›</button></div>` : '';
     return `<div class="pc ${V.on ? 'eq' : ''}" data-p="${k}"><div class="pc-h"><b class="pc-n">${esc(P.name)}</b>${V.label || P.tag ? `<span class="pc-tag">${esc(V.label || P.tag)}</span>` : ''}<button class="pc-i" data-act="info" aria-label="Details: ${esc(P.name)}">i</button></div>` +
@@ -500,7 +500,11 @@
         : shopTab === 'skins' ? `<div class="pc-sub pc-tiers">${[1, 2, 3, 4].map(t => `<button data-st="${t}" class="${skinTier === t ? 'on' : ''}${KM.SEASON.some(k => k.tier === t && save.season.owned[k.id]) ? ' own' : ''}">TIER ${t}</button>`).join('')}</div>` : '';
       G.innerHTML = sub + (list.map(card).join('') || '<div class="pc-empty">No legacy skins owned.</div>');
       const I = infoKey && list.find(x => x.key === infoKey);
-      $('shopInfo').classList.toggle('hidden', !I);
+      $('shopInfo').classList.toggle('hidden', !I && !signAsk);
+      if (signAsk && !I) $('shopInfo').innerHTML = `<div class="si-card si-sign" role="dialog" aria-label="Create an account"><div class="pc-h"><b class="pc-n">CREATE AN ACCOUNT</b><button class="pc-i" data-close aria-label="Close">✕</button></div>` +
+        `<p>${signAsk === 'ranked' ? 'Sign in to play ranked Daily Defense. Verified scores, badges and War Tokens are saved to your KEEPITIL account. Practice never needs an account.' : 'To save your purchase history, create an account. Your Diamonds and War Tokens stay on your KEEPITIL account, on this website and in the iPhone app.'}</p>` +
+        `<button class="pc-act sec" data-web="apple"> Sign in with Apple</button><button class="pc-act sec" data-web="google">Sign in with Google</button>` +
+        `<div class="pc-email"><input id="webEmail2" type="email" placeholder="email for a sign-in link" autocomplete="email"><button class="pc-act sec" data-web="link">SEND LINK</button></div>${webMsg ? `<p class="pc-msg">${esc(webMsg)}</p>` : ''}<button class="pc-act sec" data-close>NOT NOW</button></div>`;
       if (I) { const V = view(I); $('shopInfo').innerHTML = `<div class="si-card" role="dialog" aria-label="${esc(I.name)} details"><div class="pc-h"><b class="pc-n">${esc(I.name)}</b><button class="pc-i" data-close aria-label="Close details">✕</button></div><div class="pc-img">${V.art}</div>` +
         `<p>${esc(I.info.desc)}</p><table>${I.info.rows.map(([a, b]) => `<tr><th>${esc(a)}</th><td>${esc(b)}</td></tr>`).join('')}</table>${I.info.notes ? `<p class="si-n">${esc(I.info.notes)}</p>` : ''}${I.info.ctrl ? `<div class="si-ctrl">${I.info.ctrl}</div>` : ''}</div>`; }
     };
@@ -514,6 +518,7 @@
         const how = pay(W.cost, c.cur === 'tokens' ? 't' : 'd'); if (how) { W.buy(); audio.play('upgrade'); Analytics.track(P.key.startsWith('pw:') ? 'power_up' : 'item_purchase', { id: P.key + (W.t ? ':' + W.t : ''), with: how }); persist(); applyLooks(); }
         return draw(); }
       if (a === 'use' && V.use) { V.use(); audio.play('tap'); persist(); return draw(); }
+      if (a === 'checkout' && KM.Account && !KM.Account.session) { signAsk = 'buy'; infoKey = null; webMsg = ''; audio.play('tap'); return draw(); }   // reminder first: purchases need an account
       if (a === 'checkout' && KM.Account && KM.Account.session && !webBusy) { webBusy = true; webMsg = 'Opening secure checkout…'; draw();   // Stripe's hosted page is the confirmation step
         KM.Account.wallet_({ action: 'stripe_checkout', productId: V.pid }).then(r => { if (r && /^https:\/\/checkout\.stripe\.com\//.test(r.url)) location.href = r.url; else throw new Error('checkout unavailable'); })
           .catch(e => { webBusy = false; webMsg = 'Checkout unavailable: ' + e.message; draw(); }); } };
@@ -523,12 +528,8 @@
     G.onpointerup = e => { if (!sw || conf) { sw = null; return; } const dx = e.clientX - sw.x, dy = e.clientY - sw.y, P = list.find(x => x.key === sw.key); sw = null;
       if (P && Math.abs(dx) > 36 && Math.abs(dx) > 1.5 * Math.abs(dy)) { tierSel[P.key] = (tierSel[P.key] || 0) + (dx < 0 ? 1 : -1); audio.play('tap'); draw(); } };
     G.onclick = e => { const t = e.target.closest('button'); if (!t) { if (conf) { cancelConf(); draw(); } return; } const d = t.dataset;
-      if (d.web) { const A = KM.Account, done = m => { webMsg = m; webBusy = false; draw(); }; audio.play('tap'); webMsg = '';
-        if (d.web === 'apple' || d.web === 'google') return A.signInWith(d.web);
-        if (d.web === 'link') { webBusy = true; return A.sendLink(($('webEmail') || {}).value).then(() => done('Check your email and open the KEEPITIL sign-in link on this device.'), e => done(e.message)); }
-        if (d.web === 'signout') { A.signOut(); return done('Signed out.'); }
-        if (d.web === 'del') { if (t.dataset.sure) return A.deleteAccount().then(() => done('Your KMOB account was deleted. Your KEEPITIL login for other apps is unchanged.'), e => done(e.message));
-          t.dataset.sure = 1; t.textContent = 'TAP AGAIN TO DELETE'; return; } }
+      if (d.web) return webAct(t, d);
+
       if (d.gc) { gearCls = d.gc; cancelConf(); audio.play('tap'); return draw(); }
       if (d.st) { skinTier = +d.st; cancelConf(); audio.play('tap'); return draw(); }
       const P = list.find(x => x.key === (t.closest('.pc') || {}).dataset?.p); if (!P) return;
@@ -537,8 +538,15 @@
       if (d.ti) { tierSel[P.key] = +d.ti; audio.play('tap'); return draw(); }
       if (d.cur) { curSel[P.key] = d.cur; audio.play('tap'); return draw(); }
       if (d.act) act(P, d.act); };
+    function webAct(t, d) { const A = KM.Account, done = m => { webMsg = m; webBusy = false; draw(); }; audio.play('tap'); webMsg = '';
+        if (d.web === 'apple' || d.web === 'google') return A.signInWith(d.web);
+        if (d.web === 'link') { webBusy = true; return A.sendLink((($('webEmail2') || $('webEmail')) || {}).value).then(() => done('Check your email and open the KEEPITIL sign-in link on this device.'), e => done(e.message)); }
+        if (d.web === 'signout') { A.signOut(); return done('Signed out.'); }
+        if (d.web === 'del') { if (t.dataset.sure) return A.deleteAccount().then(() => done('Your KMOB account was deleted. Your KEEPITIL login for other apps is unchanged.'), e => done(e.message));
+          t.dataset.sure = 1; t.textContent = 'TAP AGAIN TO DELETE'; return; } }
     $('shopInfo').onclick = e => { const t = e.target.closest('button'); const P = list.find(x => x.key === infoKey);
-      if (e.target === $('shopInfo') || (t && t.dataset.close != null)) { infoKey = null; audio.play('tap'); return draw(); }
+      if (e.target === $('shopInfo') || (t && t.dataset.close != null)) { infoKey = null; signAsk = false; audio.play('tap'); return draw(); }
+      if (t && t.dataset.web) return webAct(t, t.dataset);
       if (!t || !P) return; const d = t.dataset;
       if (d.eq1 && P.eq1) { P.eq1(d.eq1); audio.play('tap'); persist(); return draw(); }
       if (d.peq) { const id = P.key.slice(3), E = save.powers.equip; if (E.includes(id)) { if (E.length > 1) E.splice(E.indexOf(id), 1); } else { E.push(id); if (E.length > 3) E.shift(); } audio.play('tap'); persist(); return draw(); }
@@ -677,7 +685,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=68d3826f92aa`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=68d3826f92aa" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=c4b94502b435`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=c4b94502b435" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };
@@ -887,7 +895,8 @@
     let ticket = 0;
     if (ranked && KM.DAILY_VERIFY_URL) { $('dRanked').disabled = true; $('dRanked').textContent = 'RESERVING ATTEMPT…'; let r;
       try { r = await dCall('/start', { player: save.player }); } catch (e) { r = { ok: false, reason: 'offline' }; }
-      if (!r || !r.ok) { $('dLb').textContent = r && r.reason === 'sign in to play ranked' ? 'Sign in (SHOP → 💎) to play ranked. Practice is open to everyone.' : r && r.reason === 'no ranked attempts left' ? 'No ranked attempts left today. Practice is unlimited.' : 'Ranked is unavailable right now (' + (r && r.reason || 'offline') + '). Practice works as usual.';
+      if (r && r.reason === 'sign in to play ranked') { $('dRanked').disabled = false; signAsk = 'ranked'; webMsg = ''; shopTab = 'currency'; return openShop(() => openDaily()); }   // the sign-in pop-up, then back to Daily
+      if (!r || !r.ok) { $('dLb').textContent = r && r.reason === 'no ranked attempts left' ? 'No ranked attempts left today. Practice is unlimited.' : 'Ranked is unavailable right now (' + (r && r.reason || 'offline') + '). Practice works as usual.';
         if (r && r.reason === 'no ranked attempts left') D.ranked = KM.DAILY.RANKED; persist(); return openDaily(true); }
       ticket = r.ticket; D.ranked = Math.max(D.ranked, r.attempt); }   // the server's count is the truth
     else if (ranked) D.ranked++; else D.practice++;

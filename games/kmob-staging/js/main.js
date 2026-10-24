@@ -677,7 +677,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=1a378a3c9803`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=1a378a3c9803" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=68d3826f92aa`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=68d3826f92aa" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };
@@ -707,17 +707,18 @@
     pop.innerHTML = `<h4>${KM.PROD[k].name}<small>LV ${lv}${max ? ' · MAX' : ' → ' + (lv + 1)}</small></h4><div class="st"><span>HP</span><b>${arr(A.hp, B.hp)}</b><span>${A.heal ? 'HEAL' : 'DMG'}</span><b>${arr(A.dmg, B.dmg)}</b><span>ARMOR</span><b>${arr(A.arm, B.arm)}</b></div>` +
       (max ? '<button disabled>MAX LEVEL</button>' : `<button ${sim.coins >= cost ? '' : 'disabled'}>UPGRADE ${GOLD_IMG}${KM.fmtShort(cost)}</button>`);
     const bt = pop.querySelector('button'); if (!max) bt.addEventListener('click', e => { e.stopPropagation(); if (sim.levelUp(k)) { audio.play('upgrade'); KM.haptic(15); if (tut === 3) setTip(4); } drawerUI(); popUI(); });
-    const card = classes.querySelector(`[data-p="${k}"]`).getBoundingClientRect(), wide = DESK_Q.matches;
-    if (wide) { pop.style.left = Math.min(innerWidth - 190, card.left) + 'px'; pop.style.top = Math.max(8, card.top - pop.offsetHeight - 8) + 'px'; }
-    else { const land = render.layout === 'landscape', lo = land ? Math.max(render.safeTopPx || 8, choiceBottom()) : 8, hi = innerHeight - pop.offsetHeight - (land ? (render.safeBotPx || 0) + 6 : 8);   // landscape: below the HUD row and the supply strip, above the home bar
-      pop.style.left = (card.right + 8) + 'px'; pop.style.top = Math.max(lo, Math.min(hi, card.top + card.height / 2 - pop.offsetHeight / 2)) + 'px'; } }
+    placePop(k); }
+  // every screen (owner 2026-10-24: desktop matches mobile): the popover opens to the RIGHT of the soldier card, centred on it, kept inside the window
+  function placePop(k) { const card = classes.querySelector(`[data-p="${k}"]`).getBoundingClientRect(), land = !DESK_Q.matches && render.layout === 'landscape',
+      lo = land ? Math.max(render.safeTopPx || 8, choiceBottom()) : 8, hi = innerHeight - pop.offsetHeight - (land ? (render.safeBotPx || 0) + 6 : 8);   // phone landscape: below the HUD row and the supply strip, above the home bar
+    pop.style.left = Math.max(8, Math.min(innerWidth - pop.offsetWidth - 8, card.right + 8)) + 'px'; pop.style.top = Math.max(lo, Math.min(hi, card.top + card.height / 2 - pop.offsetHeight / 2)) + 'px'; }
   // WAR FORGE (Lv10 classes): two Gold tracks with exact before → after numbers; one tap = one purchase (sim.forgeBuy is atomic)
   function forgeUI(k) { const F = sim.forge[k], A = sim.classInfo(k, KM.CLASS_MAX), heal = A.heal, nx = t => (KM.forgeGain(F[t] + 1) - KM.forgeGain(F[t])) * ((KM.FORGE.pts[t] || {})[k] || 1);
     const row = (t, label, now) => { const c = sim.forgeCost(k, t), ok = sim.canForge(k, t); return `<div class="st"><span>${label}</span><b>${fmtStat(now)} <em>→ ${fmtStat(now + nx(t))}</em></b><span>FORGED</span><b>×${F[t]}</b></div><button data-ft="${t}" ${ok ? '' : 'disabled'}>${label} ${GOLD_IMG}${KM.fmtShort(c)}${ok ? '' : ' · NEED ' + KM.fmtShort(Math.max(0, c - sim.coins))}</button>`; };
     pop.innerHTML = `<h4>${KM.PROD[k].name}<small>LV 10 · WAR FORGE</small></h4><div class="st"><span>GOLD</span><b>${KM.fmtShort(Math.floor(sim.coins))}</b><span>HP</span><b>${fmtStat(A.hp)}</b></div>` + (sim.forgeOpen() ? row('a', heal ? 'HEAL' : 'DMG', A.dmg) + row('d', 'ARMOR', A.arm)
       : `<div class="st"><span>${heal ? 'HEAL' : 'DMG'}</span><b>${fmtStat(A.dmg)}</b><span>ARMOR</span><b>${fmtStat(A.arm)}</b></div><button disabled data-forge-lock>WAR FORGE UNLOCKS AFTER THE FIRST BOSS</button>`);
     pop.querySelectorAll('[data-ft]').forEach(bt => bt.addEventListener('click', e => { e.stopPropagation(); sim.forgeBuy(k, bt.dataset.ft); drawerUI(); popUI(); }));
-    const card = classes.querySelector(`[data-p="${k}"]`).getBoundingClientRect(); pop.style.left = (DESK_Q.matches ? Math.min(innerWidth - 190, card.left) : card.right + 8) + 'px'; pop.style.top = Math.max(8, Math.min(innerHeight - pop.offsetHeight - 8, DESK_Q.matches ? card.top - pop.offsetHeight - 8 : card.top + card.height / 2 - pop.offsetHeight / 2)) + 'px'; }
+    placePop(k); }
   function openPop(k) { closePops(); pop.dataset.k = k; pop.classList.remove('hidden'); popUI(); }
   function closePops() { pop.classList.add('hidden'); pop.dataset.k = ''; $('powers').classList.add('hidden'); $('tankUps').classList.add('hidden'); $('consPop').classList.add('hidden'); }
   classes.querySelectorAll('.cl').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); audio.unlock(); if (state !== 'run' || paused) return; const k = b.dataset.p;

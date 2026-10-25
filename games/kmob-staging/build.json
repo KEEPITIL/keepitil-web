@@ -1,7 +1,7 @@
 {
- "build": "404a1eb66b6d",
+ "build": "28402e1df5d9",
  "files": {
-  "index.html": "b6020b21122562a9ab01093b7560264e3944111357a4da664fce31bd3a2401bf",
+  "index.html": "c6d9c185108e94e68a7c040ef1b7052263bb8ed46e6df8aa94628851d0205178",
   "icon.svg": "6a16a0fa99028659ca1c9d99d4e4101de4438a6bd2991f1fef922c0628037a3c",
   "icon-180.png": "60990f11f2f69aed6e207a092a38c965e27254a20960e7b80e403ccb7da1e2ab",
   "icon-192.png": "5b33f413a6062e1c16da34eba8ce5c773a33ec0dbec63b4ae8a5a612732d96ad",
@@ -24,7 +24,7 @@
   "js/audio.js": "64251be4357309adc0495101f3e9538354c9eac097205e38c8902e1821e0be50",
   "js/account.js": "d4fef21cd5bc8ef116731011b0287c1aa5d1a02b2404ad60f68c26e57bec2bd1",
   "js/wallet.js": "e83b04fa74398c30f6dddce11a3a0940140a3f1ad2745b95633b2168802ac1ed",
-  "js/main.js": "3c51678dc4c8873fb82cbdc8d8289f248cfe51c85fa985308537ab0cefedabc1",
+  "js/main.js": "e2b8ba47200d72277fb3bc840b7b3964fce8a0c0d5556fa1cd380fc6d82ffaa2",
   "vendor/three.min.js": "9274bbcec8d96168626c732b5d31c775aa8cfb7eaa0599bec0c175908a2c1ce2",
   "vendor/loaders/GLTFLoader.js": "5c15967ba830918a9caea6338712c994c354bccd4edc4569bde411c3ec06a3e6",
   "vendor/post/CopyShader.js": "6b5da4fe3b410286974590885f82fe4a446f25c728f7d6c888e2a2a331333949",

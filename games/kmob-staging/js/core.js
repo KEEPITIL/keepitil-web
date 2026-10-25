@@ -504,6 +504,7 @@
     ach: {},
     buffs: { cls: {}, tank: {} }, cons: {}, paid: [],
     chants: { on: 1, station: 'steel', owned: { steel: 1 }, vol: 1 },
+    crusades: null,   // CRUSADES (js/crusades.js): stars, best results, earned rewards (granted once), equipped earned looks
     goals: null,   // GOALS & COMMANDER RANK (js/goals.js): banked daily/weekly goals, XP, rank
     daily: { day: '', ranked: 0, practice: 0, best: 0, bestParts: null, done: 0, station: 'steel', days: [], total: 0 },   // DAILY DEFENSE: today's attempts / best, completed days (badges, weekly participation)   // 2.0 WAR CHANTS: radio on/off, selected station, unlocked stations, stinger volume 0–1
     perks: {}, gear: { owned: {}, equip: {} }, season: { owned: {}, equip: {} }, mercTier: 1,   // Phase C: perk tiers · class equipment (owned tiers, equipped tier per slot) · seasonal skin sets · chosen Mercenary tier   // permanent boss-card buffs (counts of +5 %), consumable inventory, banked boss-payout ids (exactly once)
@@ -517,8 +518,9 @@
     if (b.weekly && typeof b.weekly.w === 'string') d.best.weekly = { w: b.weekly.w, t: num(b.weekly.t, 0) };
     for (const k of Object.keys(d.totals)) d.totals[k] = num((raw.totals || {})[k], 0);
     d.diamonds = Math.floor(num(raw.diamonds, 0)); if (typeof raw.player === 'string' && /^[A-Z0-9]{4,12}$/.test(raw.player)) d.player = raw.player;
-    const TITLES = new Set([...KM.MILESTONES.map(m => m.title), ...KM.DAILY_BADGES, ...(KM.EARLY_TITLES || []).map(m => m.title)]);   // wave milestones + Daily Defense badges + early wave titles (a Daily badge was dropped on reload before 2026-10-23)
+    const TITLES = new Set([...KM.MILESTONES.map(m => m.title), ...KM.DAILY_BADGES, ...(KM.EARLY_TITLES || []).map(m => m.title), ...(KM.CRUSADE_TITLES || [])]);   // wave milestones + Daily Defense badges + early wave titles (a Daily badge was dropped on reload before 2026-10-23)
     if (Array.isArray(raw.titles)) d.titles = [...new Set(raw.titles.filter(t => TITLES.has(t)))];
+    d.crusades = KM.crusadeValid ? KM.crusadeValid(raw.crusades) : (raw.crusades && typeof raw.crusades === 'object' ? raw.crusades : null);   // validated where the catalog is loaded
     for (const k of Object.keys(d.records)) d.records[k] = num((raw.records || {})[k], 0);
     const pw = raw.powers || {}; for (const id of KM.POWER_IDS) { const l = Math.floor(num((pw.lv || {})[id], 0)); if (l) d.powers.lv[id] = Math.min(KM.POWER_MAX, l); }
     if (Array.isArray(pw.equip)) { const e = [...new Set(pw.equip.filter(id => KM.POWERS[id]))].slice(0, 3); if (e.length) d.powers.equip = e; }

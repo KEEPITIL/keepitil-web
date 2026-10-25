@@ -18,7 +18,7 @@
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="KMOB Endless War — Build Your Army. Outlast the War."><meta name="twitter:description" content="Plan your six-class army, command your tank, and battle through endless waves. Play free on phone or desktop."><meta name="twitter:image" content="https://keepitil.com/games/kmob/assets/kmob-home/kmob-social.jpg">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"KMOB: Endless War","url":"https://keepitil.com/games/kmob/","description":"Free-to-play browser strategy game with six soldier classes, army deployment planning, command tank combat, elemental skins, and endless enemy waves.","genre":["Strategy","Action","Survival"],"playMode":"SinglePlayer","gamePlatform":["Web browser","Mobile browser","Desktop browser"],"isAccessibleForFree":true,"inLanguage":"en","publisher":{"@type":"Organization","name":"KEEPITIL"},"image":"https://keepitil.com/games/kmob/assets/kmob-home/kmob-social.jpg"}</script>
 <link rel="preload" as="image" href="assets/kmob-home/soldier-classes.webp">
-<link rel="stylesheet" href="kmob-home.css?v=4b32a21cd556">   <!-- the ONE public KMOB address: this marketing home and the game share this document -->
+<link rel="stylesheet" href="kmob-home.css?v=fcdf86e1e0d4">   <!-- the ONE public KMOB address: this marketing home and the game share this document -->
 <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192" type="image/png"><link rel="apple-touch-icon" href="icon-180.png"><link rel="manifest" href="manifest.webmanifest"><meta name="apple-mobile-web-app-title" content="KMOB"><meta name="application-name" content="KMOB">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">   <!-- fonts never block the first paint -->
@@ -283,6 +283,20 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}   /* the p
 .chantRow .ch-h small,.chantRow button small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chantRow .ch-h b{white-space:nowrap}.chantRow button{overflow:hidden}label.cvol{white-space:nowrap;gap:10px}
 label.cvol input{width:46%}   /* 2.0 WAR CHANTS radio dial + stinger volume */   /* one line each, whatever the font (Linux fallback fonts are wider and wrapped the labels) */
 .btn.dailyb{background:linear-gradient(180deg,#ffd23a,#e8a810);color:#2a1a00;line-height:1.1}.btn.dailyb small{display:block;font-size:10.5px;letter-spacing:.03em;opacity:.8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#crScr .panel{display:flex;flex-direction:column;gap:8px;width:min(calc(100vw - 24px),640px);max-height:calc(100dvh - 16px - var(--st) - var(--sb));overflow:auto}
+.crTabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.crTabs button{border:1.5px solid var(--cardB);border-radius:10px;background:var(--card);color:#fff;font-family:var(--disp);font-size:13px;padding:6px 4px;cursor:pointer;line-height:1.1}.crTabs button small{display:block;font-family:Nunito,sans-serif;font-size:10px;font-weight:900;opacity:.8}.crTabs button.on{border-color:#9fd0ff;background:linear-gradient(180deg,#2f6fe8,#1a3f9e)}.crTabs button[aria-disabled=true]{opacity:.5}
+.crBody{display:flex;flex-direction:column;gap:8px}.crSide{display:flex;flex-direction:column;gap:8px}.crSide .btn{margin:0}
+.crCr{margin:0 0 6px}.crCr h3{margin:0 0 4px;font-family:var(--disp);font-weight:400;font-size:14px;letter-spacing:.03em}.crCr h3 small{font-family:Nunito,sans-serif;font-size:10px;font-weight:900;opacity:.7;margin-left:6px}
+.crRow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.crM{position:relative;aspect-ratio:1;border-radius:12px;border:1.5px solid var(--cardB);background:var(--card);color:#fff;font-family:var(--disp);font-size:18px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0}
+.crM i{font-style:normal;font-size:10px;letter-spacing:1px;color:#ffd84a}.crM.boss{border-color:#ff8a5a}.crM.on{border-color:#9fd0ff;box-shadow:0 0 10px rgba(80,160,255,.7)}.crM.lock{opacity:.45}.crM.won{background:linear-gradient(180deg,#22407e,#162a55)}
+.crCard{padding:10px;border-radius:12px;background:rgba(9,15,30,.6);border:1.5px solid var(--cardB);font-size:12px;line-height:1.45}.crCard h4{margin:0 0 2px;font-family:var(--disp);font-weight:400;font-size:17px}.crCard .crSub{font-size:10px;font-weight:900;opacity:.7;letter-spacing:.04em}.crCard p{margin:6px 0}
+.crObj{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;margin:6px 0}.crObj b{color:#ffd84a;white-space:nowrap}.crObj .ok{color:#7dff8a}.crRos{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.crRos span{font-size:10px;font-weight:900;padding:2px 6px;border-radius:7px;background:#1b2a4a;border:1px solid var(--cardB)}.crRos span.new{border-color:#ffd84a;color:#ffd84a}
+.crColl .crSk{display:flex;align-items:center;gap:6px;margin:3px 0}.crColl .crSk i{width:14px;height:14px;border-radius:7px;display:inline-block}.crColl button{margin-left:auto;font-size:10px;font-weight:900;border-radius:7px;border:1px solid var(--cardB);background:#1b2a4a;color:#fff;padding:2px 8px;cursor:pointer}
+.btn.crb{background:linear-gradient(#ff8a5a,#c8323a);border-color:#ffc0a0}
+.kh-cr{background:linear-gradient(135deg,#ff8a5a,#c8323a)!important;color:#fff!important}
+#crTip{position:fixed;left:50%;top:calc(var(--st) + 54px);transform:translateX(-50%);z-index:9;max-width:min(92vw,420px);padding:8px 12px;border-radius:12px;background:rgba(9,15,30,.92);border:1.5px solid #ffd84a;color:#fff;font-size:13px;font-weight:900;line-height:1.35;text-align:center;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+@media (min-width:700px){.crBody{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px;align-items:start}}
+@media (orientation:landscape) and (max-height:540px){#crScr .panel{width:min(calc(100vw - 24px - var(--sl,0px) - var(--sr,0px)),760px);overflow:hidden;gap:5px;padding-top:8px;padding-bottom:8px}#crScr h2{display:none}.crTabs button{padding:3px 4px;font-size:11px}.crTabs button small{display:none}.crBody{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:10px;min-height:0}.crCr{margin:0 0 3px}.crCr h3{font-size:12px;margin:0 0 2px}.crCr h3 small{display:none}.crRow{gap:4px}.crM{aspect-ratio:auto;height:36px;font-size:15px}.crSide{gap:5px;min-height:0;display:grid;grid-template-columns:1fr 1fr}.crSide .bts{display:contents}.crCard,#crPlay{grid-column:1/-1}#crBack,#crColl{margin:0!important;font-size:13px}.crCard{max-height:calc(100dvh - 150px - var(--st,0px) - var(--sb,0px));overflow:auto;padding:7px 9px;font-size:11px}.crCard h4{font-size:14px}.crSide .btn{padding-top:6px;padding-bottom:6px}}
 #dailyScr .panel{display:flex;flex-direction:column;gap:8px;width:min(calc(100vw - 24px),460px);max-height:calc(100vh - 16px - var(--st) - var(--sb));max-height:calc(100dvh - 16px - var(--st) - var(--sb));overflow-y:auto}#dailyScr h2{text-align:center;margin:0}.dName{text-align:center;font-weight:900;font-size:22px;color:var(--gold);letter-spacing:.04em}.dDesc{margin:0;text-align:center;font-weight:700;font-size:13px;opacity:.9}
 .dInfo{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.dInfo span{display:flex;flex-direction:column;align-items:center;padding:6px 4px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.04)}.dInfo i{font-style:normal;font-size:9.5px;font-weight:900;opacity:.7;letter-spacing:.04em;text-align:center}.dInfo b{font-size:16px;font-weight:900;color:#eef3ff}
 .dRules{margin:0;font-size:11.5px;line-height:1.45;opacity:.9}.dRules b{color:var(--gold)}.dLb{margin:0;font-size:11px;opacity:.65;text-align:center}#dailyScr .btn{margin:0}#dailyScr .bts{display:grid;grid-template-columns:1fr 1fr;gap:8px}#dRanked:disabled{opacity:.5}.dL,.dR{display:flex;flex-direction:column;gap:8px}
@@ -309,7 +323,7 @@ label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-sp
         <div class="kh-kicker">ONE ARMY. ENDLESS CHOICES.</div>
         <h1>BUILD THE ARMY.<br>HOLD THE LINE.<br><span>OUTLAST THE WAR.</span></h1>
         <p class="kh-lead">An endless strategy battle built for quick decisions and big comebacks. Command your tank, create a six-class army, upgrade your soldiers, and see how far you can survive. Every wave is a new chance to get stronger—or lose everything.</p>
-        <div class="kh-actions"><button type="button" class="kh-primary" data-kmob-play>⚔ PLAY KMOB — FREE</button><button type="button" class="kh-daily" data-kmob-daily>🛡 DAILY DEFENSE<small id="khDaily"></small></button><button type="button" class="kh-secondary" data-kmob-goals>🎯 <span id="khGoals">GOALS</span></button><button type="button" class="kh-secondary" data-kmob-scroll="kh-how">HOW TO PLAY ↓</button></div>
+        <div class="kh-actions"><button type="button" class="kh-primary" data-kmob-play>⚔ PLAY KMOB — FREE</button><button type="button" class="kh-daily kh-cr" data-kmob-crusades>⚔ CRUSADES<small id="khCr">30 missions · new</small></button><button type="button" class="kh-daily" data-kmob-daily>🛡 DAILY DEFENSE<small id="khDaily"></small></button><button type="button" class="kh-secondary" data-kmob-goals>🎯 <span id="khGoals">GOALS</span></button><button type="button" class="kh-secondary" data-kmob-scroll="kh-how">HOW TO PLAY ↓</button></div>
         <p class="kh-small-note">Play now in your browser · Works on phones and desktop · Mobile App Store release planned</p>
       </div>
       <figure class="kh-hero-art"><img src="assets/kmob-home/soldier-classes.webp" width="1500" height="715" alt="KMOB's six stylized blue-army character classes assembled on a bright battlefield" fetchpriority="high"><figcaption class="kh-photo-caption"><b>YOU COMMAND THE WAR</b>Six soldier classes. One command tank. No two runs exactly alike.</figcaption></figure>
@@ -401,18 +415,18 @@ label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-sp
 <canvas id="c"></canvas>
 <div id="vig"></div>
 <div id="hud" class="hidden">
-  <div id="hL"><div class="pill"><img src="assets/ui/i_clock.png?v=4b32a21cd556" alt="Time"><b id="hTime">0:00</b><i id="chantPulse" aria-hidden="true"></i></div><div class="pill"><img src="assets/ui/i_army.png?v=4b32a21cd556" alt="Army"><b id="hArmy">0</b></div><div class="pill"><img src="assets/ui/i_skull.png?v=4b32a21cd556" alt="Wave"><b id="hWave">1</b></div></div>
-  <div id="hC" class="pill"><span class="g"><img src="assets/ui/i_gold.png?v=4b32a21cd556" alt="Gold"><b id="hCoins">0</b></span><i class="sep"></i><span class="d"><img src="assets/ui/i_diamond.png?v=4b32a21cd556" alt="Diamonds"><b id="hDia">0</b></span></div>
-  <div id="hR"><div id="pauseBtn" class="pill" role="button" aria-label="Settings"><img src="assets/ui/i_gear.png?v=4b32a21cd556" alt=""><b class="sm">SETTINGS</b></div><div id="zoomBtn" class="pill" role="button" aria-label="Camera zoom out"><svg class="zi" viewBox="0 0 32 32" aria-hidden="true"><circle cx="13" cy="13" r="8.5" fill="#7fc6ff" stroke="#0c2346" stroke-width="3"/><path d="M19.5 19.5l7 7" stroke="#0c2346" stroke-width="5" stroke-linecap="round"/><path d="M19.5 19.5l7 7" stroke="#ffd23a" stroke-width="2.5" stroke-linecap="round"/><path d="M9 13h8" stroke="#0c2346" stroke-width="3" stroke-linecap="round"/></svg><b id="zoomTxt">1×</b></div><div id="speedBtn" class="pill" role="button" aria-label="Game speed"><img src="assets/ui/i_speed.png?v=4b32a21cd556" alt=""><b id="speedTxt">1×</b></div><div id="autoBtn" class="pill" role="button" aria-label="Control mode"><img src="assets/ui/i_auto.png?v=4b32a21cd556" alt=""><svg class="ti" viewBox="0 0 32 32" aria-hidden="true"><path d="M12 5.5a2.5 2.5 0 0 1 5 0V15l1-.3a2.4 2.4 0 0 1 4.6.9l.2-.1a2.4 2.4 0 0 1 3.2 2.3V22a8 8 0 0 1-8 8h-1.6a8 8 0 0 1-6.6-3.5l-4.2-6.2a2.4 2.4 0 0 1 3.7-3L12 20z" fill="#9fd0ff" stroke="#0c2346" stroke-width="2.2" stroke-linejoin="round"/></svg><b id="autoTxt">AUTO</b></div></div>
+  <div id="hL"><div class="pill"><img src="assets/ui/i_clock.png?v=fcdf86e1e0d4" alt="Time"><b id="hTime">0:00</b><i id="chantPulse" aria-hidden="true"></i></div><div class="pill"><img src="assets/ui/i_army.png?v=fcdf86e1e0d4" alt="Army"><b id="hArmy">0</b></div><div class="pill"><img src="assets/ui/i_skull.png?v=fcdf86e1e0d4" alt="Wave"><b id="hWave">1</b></div></div>
+  <div id="hC" class="pill"><span class="g"><img src="assets/ui/i_gold.png?v=fcdf86e1e0d4" alt="Gold"><b id="hCoins">0</b></span><i class="sep"></i><span class="d"><img src="assets/ui/i_diamond.png?v=fcdf86e1e0d4" alt="Diamonds"><b id="hDia">0</b></span></div>
+  <div id="hR"><div id="pauseBtn" class="pill" role="button" aria-label="Settings"><img src="assets/ui/i_gear.png?v=fcdf86e1e0d4" alt=""><b class="sm">SETTINGS</b></div><div id="zoomBtn" class="pill" role="button" aria-label="Camera zoom out"><svg class="zi" viewBox="0 0 32 32" aria-hidden="true"><circle cx="13" cy="13" r="8.5" fill="#7fc6ff" stroke="#0c2346" stroke-width="3"/><path d="M19.5 19.5l7 7" stroke="#0c2346" stroke-width="5" stroke-linecap="round"/><path d="M19.5 19.5l7 7" stroke="#ffd23a" stroke-width="2.5" stroke-linecap="round"/><path d="M9 13h8" stroke="#0c2346" stroke-width="3" stroke-linecap="round"/></svg><b id="zoomTxt">1×</b></div><div id="speedBtn" class="pill" role="button" aria-label="Game speed"><img src="assets/ui/i_speed.png?v=fcdf86e1e0d4" alt=""><b id="speedTxt">1×</b></div><div id="autoBtn" class="pill" role="button" aria-label="Control mode"><img src="assets/ui/i_auto.png?v=fcdf86e1e0d4" alt=""><svg class="ti" viewBox="0 0 32 32" aria-hidden="true"><path d="M12 5.5a2.5 2.5 0 0 1 5 0V15l1-.3a2.4 2.4 0 0 1 4.6.9l.2-.1a2.4 2.4 0 0 1 3.2 2.3V22a8 8 0 0 1-8 8h-1.6a8 8 0 0 1-6.6-3.5l-4.2-6.2a2.4 2.4 0 0 1 3.7-3L12 20z" fill="#9fd0ff" stroke="#0c2346" stroke-width="2.2" stroke-linejoin="round"/></svg><b id="autoTxt">AUTO</b></div></div>
 </div>
 <div id="drawer" class="hidden" aria-label="Soldier classes"><div id="classes"></div><div id="drawerTab" role="button" aria-label="Show or hide the soldier panel">‹</div></div>
 <div id="clsPop" class="hidden"></div>
 <div id="tankMark" class="hidden" aria-hidden="true"><i></i></div>
 <div id="rightCol" class="hidden">
   <div id="consBtn" class="rb" role="button" aria-label="Consumables"><svg viewBox="0 0 64 64" aria-hidden="true" style="width:30px;height:30px"><path d="M24 8h16v8l8 10v28a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6V26l8-10z" fill="#b36cff" stroke="#3a1a5a" stroke-width="3" stroke-linejoin="round"/><path d="M22 34h20v18H22z" fill="#e8d0ff" opacity=".55"/><path d="M32 38l3 6h-6z" fill="#ffd23a"/></svg><b>ITEMS</b><small id="consN"></small></div>
-  <div id="powerBtn" class="rb" role="button" aria-label="Power"><img src="assets/ui/i_power.png?v=4b32a21cd556" alt=""><b>POWER</b><i class="en"><u id="enFill"></u></i></div>
-  <div id="tankBtn" class="rb" role="button" aria-label="Tank upgrade"><img src="assets/ui/i_upgrade.png?v=4b32a21cd556" alt=""><b>UPGRADE</b><small id="tankCost"></small></div>
-  <div id="postureBtn" class="rb" role="button" aria-label="Attack or defend: tap = selected class, hold = whole army"><img src="assets/ui/i_attack.png?v=4b32a21cd556" alt=""><b id="postureTxt">ATTACK</b></div>
+  <div id="powerBtn" class="rb" role="button" aria-label="Power"><img src="assets/ui/i_power.png?v=fcdf86e1e0d4" alt=""><b>POWER</b><i class="en"><u id="enFill"></u></i></div>
+  <div id="tankBtn" class="rb" role="button" aria-label="Tank upgrade"><img src="assets/ui/i_upgrade.png?v=fcdf86e1e0d4" alt=""><b>UPGRADE</b><small id="tankCost"></small></div>
+  <div id="postureBtn" class="rb" role="button" aria-label="Attack or defend: tap = selected class, hold = whole army"><img src="assets/ui/i_attack.png?v=fcdf86e1e0d4" alt=""><b id="postureTxt">ATTACK</b></div>
 </div>
 <div id="powers" class="hidden"></div>
 <div id="tankUps" class="hidden"></div>
@@ -430,6 +444,7 @@ label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-sp
   <img class="title-mascot" src="assets/kmob-home/looter-mascot.webp" alt="" width="84" height="84"><h1 class="disp">KMOB</h1><h2 class="disp">ENDLESS WAR</h2>
   <div class="best" id="titleBest"></div>
   <button class="btn" id="playBtn">PLAY</button>
+  <button class="btn crb" id="crBtn" style="margin-top:10px">CRUSADES<small id="crInfo"></small></button>
   <button class="btn dailyb" id="dailyBtn" style="margin-top:10px">DAILY DEFENSE<small></small></button>
   <button class="btn sec" id="goalsBtn" style="margin-top:10px">GOALS</button>
   <button class="btn sec hidden" id="contBtn" style="margin-top:10px">CONTINUE<small id="contInfo" style="display:block;font-size:11px;opacity:.75"></small></button>
@@ -448,6 +463,16 @@ label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-sp
   <div class="bts"><button class="btn sec" id="dPractice">PRACTICE</button><button class="btn sec" id="dBack">BACK</button></div>
   <button class="btn sec gLink" id="dGoals">🎯 GOALS</button></div>
 </div></div>
+
+<div id="crScr" class="screen hidden"><div class="panel" role="dialog" aria-label="Crusades">
+  <h2 class="disp">CRUSADES</h2>
+  <div class="crTabs" id="crTabs" role="tablist"></div>
+  <div class="crBody"><div class="crMap" id="crMap"></div>
+  <div class="crSide"><div class="crCard" id="crCard"></div>
+  <div class="bts"><button class="btn" id="crPlay">PLAY MISSION</button><button class="btn sec" id="crBack">BACK</button></div>
+  <button class="btn sec gLink" id="crColl">🏅 COLLECTION</button></div></div>
+</div></div>
+<div id="crTip" class="hidden" role="status" aria-live="polite"></div>
 
 <div id="goalsScr" class="screen hidden"><div class="panel" role="dialog" aria-label="Goals and Commander Rank">
   <h2 class="disp">GOALS</h2>
@@ -498,21 +523,22 @@ label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-sp
     <button class="btn sec" id="setClose" style="margin-top:12px">BACK</button>
 </div></div>
 
-<script defer src="vendor/three.min.js?v=4b32a21cd556"></script>
-<script defer src="js/core.js?v=4b32a21cd556"></script>
-<script defer src="js/chants.js?v=4b32a21cd556"></script>
-<script defer src="js/chant-packs.js?v=4b32a21cd556"></script>
-<script defer src="js/sim.js?v=4b32a21cd556"></script>
-<script defer src="js/daily.js?v=4b32a21cd556"></script>
-<script defer src="js/goals.js?v=4b32a21cd556"></script>
-<script defer src="js/anim.js?v=4b32a21cd556"></script>
-<script defer src="js/kit.js?v=4b32a21cd556"></script>
-<script defer src="js/render.js?v=4b32a21cd556"></script>
-<script defer src="js/powerfx.js?v=4b32a21cd556"></script>
-<script defer src="js/assets.js?v=4b32a21cd556"></script>
-<script defer src="js/audio.js?v=4b32a21cd556"></script>
-<script defer src="js/account.js?v=4b32a21cd556"></script>
-<script defer src="js/wallet.js?v=4b32a21cd556"></script>
-<script defer src="js/main.js?v=4b32a21cd556"></script>
+<script defer src="vendor/three.min.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/core.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/chants.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/chant-packs.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/sim.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/daily.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/goals.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/crusades.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/anim.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/kit.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/render.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/powerfx.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/assets.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/audio.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/account.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/wallet.js?v=fcdf86e1e0d4"></script>
+<script defer src="js/main.js?v=fcdf86e1e0d4"></script>
 </body>
 </html>

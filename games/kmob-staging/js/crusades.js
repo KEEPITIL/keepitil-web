@@ -178,7 +178,7 @@
     M.id = 'm' + M.n; M.camp = KM.CRUSADES.find(c => c.id === M.cr).c; M.goal = M.goal || 'waves'; });
   // BALANCE (tests/crusades-tune.js, reference bot on two seeds): wave strength `mul` and boss damage `bdmg` per mission
   KM.MISSION_TUNE = {   // tuned 2026-10-24 (tests/crusades-tune.js); M17 eased 2.4 → 2.0 after a seed loss
-    1: {mul: 1, s2: {k: 'col', v: 6}, s3: {k: 'lost', v: 7}},
+    1: {mul: 1, s2: {k: 'col', v: 6}, s3: {k: 'gold', v: 500}},   // 3★ owner request 2026-10-25: hands-off AUTO ends with 240–315 Gold; choosing Looters reaches 500+
     2: {mul: 1, s2: {k: 'lost', v: 72}, s3: {k: 'time', v: 110}},
     3: {mul: 1, s2: {k: 'gold', v: 550}, s3: {k: 'col', v: 16}},
     4: {mul: 1.1, s2: {k: 'lost', v: 108}, s3: {k: 'lost', v: 82}},

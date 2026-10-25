@@ -691,7 +691,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=28402e1df5d9`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=28402e1df5d9" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=587d383f819b`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=587d383f819b" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };
@@ -815,7 +815,7 @@
   function bossUI() { const el = $('bossBar'), i = sim.bossI; if (state !== 'run' || !sim.nBoss || i < 0 || sim.st[i] !== 1) { el.classList.add('hidden'); return; }
     const v = render.toScreen(sim.x[i], 3.2 * sim.sc[i] * 0.55 + 1, sim.z[i]), x = (v.x + 1) / 2 * innerWidth, y = (1 - v.y) / 2 * innerHeight;
     el.classList.remove('hidden'); const lo = render.layout === 'landscape' ? safeCol[0] + 80 : 80, hi = render.layout === 'landscape' ? safeCol[1] - 80 : innerWidth - 80; el.style.left = Math.max(lo, Math.min(hi, x)) + 'px'; el.style.top = Math.max(110, Math.min(innerHeight - 140, y - 40)) + 'px';
-    $('bossName').textContent = KM.ENEMY[sim.kind[i]].k.toUpperCase(); $('bossFill').style.width = Math.max(0, sim.hp[i] / sim.mhp[i] * 100).toFixed(1) + '%'; $('bossHp').textContent = KM.fmtShort(Math.max(0, sim.hp[i])) + ' / ' + KM.fmtShort(sim.mhp[i]); }
+    $('bossName').textContent = (sim.mission && sim.mission.bossName) || KM.ENEMY[sim.kind[i]].k.toUpperCase(); $('bossFill').style.width = Math.max(0, sim.hp[i] / sim.mhp[i] * 100).toFixed(1) + '%'; $('bossHp').textContent = KM.fmtShort(Math.max(0, sim.hp[i])) + ' / ' + KM.fmtShort(sim.mhp[i]); }
   setInterval(() => { if (state === 'run') drawerUI(); }, 300);
   sim.on(t => { if (t === 'prod' || t === 'auto' || t === 'upgrade' || t === 'posture' || t === 'charge' || t === 'levelUp') drawerUI(); if (t === 'choice' || t === 'chose') choiceUI(); });
   // ---------- ATTACK / DEFEND: one word = the action · tap = the selected class · hold = the whole army (Looters included) ----------

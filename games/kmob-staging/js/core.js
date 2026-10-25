@@ -554,13 +554,23 @@
     if (ST.includes(ch.station) && d.chants.owned[ch.station]) d.chants.station = ch.station; if (ch.on === 0) d.chants.on = 0; d.chants.vol = Math.min(1, num(ch.vol, 1));
     return d;
   };
+  // CRUSADES progress also lives under its OWN key (+ backup). Builds that predate Crusades rewrite kmob.save.v1 without the field
+  // (validateSave keeps known fields only), so an old open tab or cached copy would erase it; they never touch this key. Reads merge
+  // every copy (own key, its backup, the copy inside the main save) and writes merge with what is stored: progress only goes up.
+  const KEYC = 'kmob.crusades.v1';
+  const readJSON = (store, k) => { try { const s = store.getItem(k); return s ? JSON.parse(s) : null; } catch (e) { return null; } };
   KM.loadSave = function (store) {
-    for (const k of [KEY, KEY + '.bak']) { try { const s = store.getItem(k); if (s) return KM.validateSave(JSON.parse(s)); } catch (e) { /* try backup */ } }
-    return KM.defaultSave();
+    let d = null; for (const k of [KEY, KEY + '.bak']) { try { const s = store.getItem(k); if (s) { d = KM.validateSave(JSON.parse(s)); break; } } catch (e) { /* try backup */ } }
+    d = d || KM.defaultSave();
+    if (KM.crusadeMerge) { let c = d.crusades; for (const k of [KEYC, KEYC + '.bak']) { const x = readJSON(store, k); if (x) c = KM.crusadeMerge(c, x); } d.crusades = KM.crusadeValid(c); }
+    return d;
   };
   KM.writeSave = function (store, data) {
-    const s = JSON.stringify(KM.validateSave(data));
-    try { store.setItem(KEY + '.bak', store.getItem(KEY) || s); store.setItem(KEY, s); return true; } catch (e) { return false; }
+    const v = KM.validateSave(data), s = JSON.stringify(v);
+    try { store.setItem(KEY + '.bak', store.getItem(KEY) || s); store.setItem(KEY, s); } catch (e) { return false; }
+    if (KM.crusadeMerge && v.crusades) { try { const old = store.getItem(KEYC), c = JSON.stringify(KM.crusadeMerge(v.crusades, readJSON(store, KEYC)));   // in-memory copy first: its equipped looks win
+      if (old) store.setItem(KEYC + '.bak', old); store.setItem(KEYC, c); } catch (e) { return false; } }
+    return true;
   };
   KM.dayKey = d => d.toISOString().slice(0, 10);
   KM.weekKey = d => { const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day); const y = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return t.getUTCFullYear() + '-W' + Math.ceil(((t - y) / 864e5 + 1) / 7); };

@@ -173,7 +173,9 @@
       phases: [{ at: 0.75, summon: 'siege', bud: 0.5, text: 'The Iron King calls his cannons!' }, { at: 0.5, summon: 'mini', text: 'A Giant champion joins!' }, { at: 0.3, summon: 'elite', bud: 0.6, near: true, text: 'The royal guard!' }, { at: 0.12, enrage: 1.3, text: 'The Iron King rages!' }],
       s2: star('hp', 35), s3: star('time', 300),
       tips: [{ on: 'boss', text: 'Four phases. Save FORTRESS SURGE for the last one.' }], reward: { skin: 'cr_ironking', title: 'IRON CONQUEROR', grand: 'GRAND CRUSADER' } }];
-  KM.MISSIONS.forEach(M => { M.id = 'm' + M.n; M.camp = KM.CRUSADES.find(c => c.id === M.cr).c; M.goal = M.goal || 'waves'; });
+  const BOSS_NAMES = { 5: 'BORDER CAPTAIN', 10: 'CITADEL GENERAL', 15: 'OUTBREAK HUNTER', 20: 'PHANTOM COMMANDER', 25: 'RINGMASTER', 30: 'IRON KING' };   // the boss bar shows the story name, not the model's
+  KM.MISSIONS.forEach(M => { if (BOSS_NAMES[M.n]) M.bossName = BOSS_NAMES[M.n];
+    M.id = 'm' + M.n; M.camp = KM.CRUSADES.find(c => c.id === M.cr).c; M.goal = M.goal || 'waves'; });
   // BALANCE (tests/crusades-tune.js, reference bot on two seeds): wave strength `mul` and boss damage `bdmg` per mission
   KM.MISSION_TUNE = {   // tuned 2026-10-24 (tests/crusades-tune.js); M17 eased 2.4 → 2.0 after a seed loss
     1: {mul: 1, s2: {k: 'col', v: 6}, s3: {k: 'lost', v: 7}},
@@ -213,7 +215,7 @@
   KM.crusadeBlank = () => ({ v: KM.CRUSADE_V, stars: {}, best: {}, got: {}, equip: {}, plays: 0 });
   KM.crusadeValid = c => { const o = KM.crusadeBlank(); if (!c || typeof c !== 'object') return o;
     for (const M of KM.MISSIONS) { const s = c.stars && c.stars[M.id]; if (Number.isInteger(s) && s >= 1 && s <= 3) o.stars[M.id] = s; const b = c.best && c.best[M.id]; if (b && typeof b === 'object') o.best[M.id] = { t: +b.t || 0, hp: +b.hp || 0 }; }
-    for (const k in (c.got || {})) if (/^[a-z0-9_:]{1,40}$/i.test(k) && c.got[k]) o.got[k] = 1;
+    for (const k in (c.got || {})) if (/^[a-z0-9_:]+( [A-Z0-9]+)*$/i.test(k) && k.length <= 40 && c.got[k]) o.got[k] = 1;   // reward ids; titles contain spaces ("title:FIRST COMMAND")
     for (const k in (c.equip || {})) if (KM.CRUSADE_SKINS.some(x => x.id === c.equip[k]) && o.got['skin:' + c.equip[k]]) o.equip[k] = c.equip[k];   // only earned looks can be worn
     o.plays = Number.isInteger(c.plays) && c.plays >= 0 ? c.plays : 0; return o; };
   const won = (P, n) => (P.stars['m' + n] || 0) >= 1;

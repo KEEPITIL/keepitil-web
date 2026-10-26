@@ -14,6 +14,7 @@
       this.status = this.session ? 'signed-in' : 'signed-out'; return this; },
     save() { try { if (this.session) store().setItem(SKEY, JSON.stringify(this.session)); else store().removeItem(SKEY); } catch (e) { /* private mode */ } },
     async call(path, body, token) {
+      if (typeof window !== 'undefined' && window.KMOB_STAGING && !(path === '/functions/v1/kmob-wallet' && body && body.action === 'status')) { const e = new Error('Purchases unavailable in preview.'); e.status = 403; e.preview = true; throw e; }   // STAGING: read-only store status only; no checkout, spend, credit, account or sign-in call reaches production
       const r = await fetch(BASE + path, { method: 'POST', headers: { 'content-type': 'application/json', apikey: anon(), Authorization: 'Bearer ' + (token || anon()) }, body: JSON.stringify(body) });
       const j = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(j.error_description || j.msg || j.error || ('HTTP ' + r.status)); e.status = r.status; throw e; } return j;
     },
@@ -42,7 +43,7 @@
     // with the session in the URL fragment; the email option sends KEEPITIL's sign-in LINK (the shared template sends a link, not a code).
     // The same Apple ID gives the same KEEPITIL account as the iPhone app, so one wallet follows the player.
     returnUrl: () => 'https://keepitil.com/games/kmob/',
-    signInWith(provider) { if (!/^(apple|google)$/.test(provider)) throw new Error('unsupported provider');
+    signInWith(provider) { if (typeof window !== 'undefined' && window.KMOB_STAGING) throw new Error('Purchases unavailable in preview.'); if (!/^(apple|google)$/.test(provider)) throw new Error('unsupported provider');
       G.location.href = BASE + '/auth/v1/authorize?provider=' + provider + '&redirect_to=' + encodeURIComponent(this.returnUrl()); },
     async sendLink(email) { email = String(email || '').trim().toLowerCase(); if (!this.validEmail(email)) throw new Error('Enter a valid email');
       await this.call('/auth/v1/otp?redirect_to=' + encodeURIComponent(this.returnUrl()), { email, create_user: true }); this.pending = email; this.status = 'link-sent'; },

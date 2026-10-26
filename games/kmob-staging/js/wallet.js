@@ -12,10 +12,10 @@
   const P = KM.Purchased = { diamonds: 0, tokens: 0, flushing: false,
     apply(w) { const pend = q(), sum = c => pend.filter(x => x.cur === c).reduce((s, x) => s + x.n, 0);
       P.diamonds = Math.max(0, (w && w.diamonds || 0) - sum('diamonds')); P.tokens = Math.max(0, (w && w.tokens || 0) - sum('tokens')); },
-    spend(cur, n) { if (!envReady || !A2.session || !(n > 0) || P[cur] < n) return false;
+    spend(cur, n) { if (G.KMOB_STAGING || !envReady || !A2.session || !(n > 0) || P[cur] < n) return false;
       const b = new Uint8Array(12); G.crypto.getRandomValues(b); const key = 'shop-' + Array.prototype.map.call(b, x => ('0' + x.toString(16)).slice(-2)).join('');
       P[cur] -= n; const a = q(); a.push({ key, cur, n, mode: A2.mode, user: A2.session.user.id }); setq(a); P.flush(); return true; },
-    flush() { if (P.flushing || !A2.session) return; const a = q(), it = a[0]; if (!it) return;
+    flush() { if (G.KMOB_STAGING || P.flushing || !A2.session) return; const a = q(), it = a[0]; if (!it) return;   // STAGING never sends a queued deduction
       if (it.user !== A2.session.user.id || it.mode !== A2.mode) { setq(a.slice(1)); return P.flush(); }   // belongs to another account / wallet: drop, never charge it elsewhere
       P.flushing = true; A2.spend(it.cur, it.n, it.key, 'shop').then(w => { setq(q().filter(x => x.key !== it.key)); if (!w.ok) log({ spendRefused: it });
         P.flushing = false; P.apply(A2.wallet); P.flush(); }, () => { P.flushing = false; G.setTimeout(P.flush, 15000); }); } };   // offline: keep it, retry

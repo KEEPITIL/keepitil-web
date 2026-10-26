@@ -22,7 +22,7 @@ if(!ok){console.warn("KMOB preview blocked "+m+" "+h+url.pathname);return Promis
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="KMOB Endless War — Build Your Army. Outlast the War."><meta name="twitter:description" content="Plan your six-class army, command your tank, and battle through endless waves. Play free on phone or desktop."><meta name="twitter:image" content="https://keepitil.com/games/kmob/assets/kmob-home/kmob-social.jpg">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"KMOB: Endless War","url":"https://keepitil.com/games/kmob/","description":"Free-to-play browser strategy game with six soldier classes, army deployment planning, command tank combat, elemental skins, and endless enemy waves.","genre":["Strategy","Action","Survival"],"playMode":"SinglePlayer","gamePlatform":["Web browser","Mobile browser","Desktop browser"],"isAccessibleForFree":true,"inLanguage":"en","publisher":{"@type":"Organization","name":"KEEPITIL"},"image":"https://keepitil.com/games/kmob/assets/kmob-home/kmob-social.jpg"}</script>
 <link rel="preload" as="image" href="assets/kmob-home/soldier-classes.webp">
-<link rel="stylesheet" href="kmob-home.css?v=43a2b8b53f75">   <!-- the ONE public KMOB address: this marketing home and the game share this document -->
+<link rel="stylesheet" href="kmob-home.css?v=c5c9c69de2b0">   <!-- the ONE public KMOB address: this marketing home and the game share this document -->
 <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192" type="image/png"><link rel="apple-touch-icon" href="icon-180.png"><link rel="manifest" href="manifest.webmanifest"><meta name="apple-mobile-web-app-title" content="KMOB"><meta name="application-name" content="KMOB">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">   <!-- fonts never block the first paint -->
@@ -298,6 +298,17 @@ label.cvol input{width:46%}   /* 2.0 WAR CHANTS radio dial + stinger volume */  
 .crColl .crSk{display:flex;align-items:center;gap:6px;margin:3px 0}.crColl .crSk i{width:14px;height:14px;border-radius:7px;display:inline-block}.crColl button{margin-left:auto;font-size:10px;font-weight:900;border-radius:7px;border:1px solid var(--cardB);background:#1b2a4a;color:#fff;padding:2px 8px;cursor:pointer}
 .btn.crb{background:linear-gradient(#ff8a5a,#c8323a);border-color:#ffc0a0}
 .kh-cr{background:linear-gradient(135deg,#ff8a5a,#c8323a)!important;color:#fff!important}
+#over.cr-win .tm{color:var(--gold);text-shadow:0 0 18px rgba(255,210,60,.55)}#over.cr-loss .tm{color:#ff6a5a}#over.cr-loss .panel{border-color:#ff6a5a}
+#crOverRow{gap:8px;margin-top:8px}#crOverRow .btn{margin:0;flex:1;font-size:15px}
+.crStar{display:inline-block;opacity:0;transform:scale(.3);animation:crStar .45s cubic-bezier(.2,1.6,.4,1) forwards}.crStar.off{color:#556}
+@keyframes crStar{to{opacity:1;transform:scale(1)}}
+#crReveal{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(4,8,18,.72)}
+#crReveal .rv{width:min(86vw,360px);padding:18px 16px;border-radius:16px;background:linear-gradient(180deg,#22407e,#162a55);border:2px solid #ffd84a;text-align:center;color:#fff;box-shadow:0 0 30px rgba(255,200,60,.45);animation:crRv .4s cubic-bezier(.2,1.5,.4,1)}
+#crReveal .rv small{display:block;font-weight:900;font-size:11px;letter-spacing:.08em;opacity:.8}#crReveal .rv b{display:block;font-family:var(--disp);font-weight:400;font-size:24px;margin:6px 0 10px;color:#ffd84a}#crReveal .rv i{display:block;font-style:normal;font-size:12px;opacity:.85;margin-bottom:12px}
+#crReveal .btn{margin:0}@keyframes crRv{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+#crSkip{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 18px);transform:translateX(-50%);z-index:12;font-weight:900;font-size:12px;letter-spacing:.08em;color:#fff;opacity:.75;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.crStar,#crReveal .rv{animation:none;opacity:1;transform:none}}
+#crTip.boss{top:calc(env(safe-area-inset-top) + 196px)}
 #crTip{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 132px);transform:translateX(-50%);z-index:9;max-width:min(92vw,420px);padding:8px 12px;border-radius:12px;background:rgba(9,15,30,.92);border:1.5px solid #ffd84a;color:#fff;font-size:13px;font-weight:900;line-height:1.35;text-align:center;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.45)}
 @media (min-width:700px){.crBody{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px;align-items:start}}
 @media (orientation:landscape) and (max-height:540px){#crScr .panel{width:min(calc(100vw - 24px - var(--sl,0px) - var(--sr,0px)),760px);overflow:hidden;gap:5px;padding-top:8px;padding-bottom:8px}#crScr h2{display:none}.crTabs button{padding:3px 4px;font-size:11px}.crTabs button small{display:none}.crBody{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:10px;min-height:0}.crCr{margin:0 0 3px}.crCr h3{font-size:12px;margin:0 0 2px}.crCr h3 small{display:none}.crRow{gap:4px}.crM{aspect-ratio:auto;height:36px;font-size:15px}.crSide{gap:5px;min-height:0;display:grid;grid-template-columns:1fr 1fr}.crSide .bts{display:contents}.crCard,#crPlay{grid-column:1/-1}#crBack,#crColl{margin:0!important;font-size:13px}.crCard{max-height:calc(100dvh - 150px - var(--st,0px) - var(--sb,0px));overflow:auto;padding:7px 9px;font-size:11px}.crCard h4{font-size:14px}.crSide .btn{padding-top:6px;padding-bottom:6px}}
@@ -419,18 +430,18 @@ label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-sp
 <canvas id="c"></canvas>
 <div id="vig"></div>
 <div id="hud" class="hidden">
-  <div id="hL"><div class="pill"><img src="assets/ui/i_clock.png?v=43a2b8b53f75" alt="Time"><b id="hTime">0:00</b><i id="chantPulse" aria-hidden="true"></i></div><div class="pill"><img src="assets/ui/i_army.png?v=43a2b8b53f75" alt="Army"><b id="hArmy">0</b></div><div class="pill"><img src="assets/ui/i_skull.png?v=43a2b8b53f75" alt="Wave"><b id="hWave">1</b></div></div>
-  <div id="hC" class="pill"><span class="g"><img src="assets/ui/i_gold.png?v=43a2b8b53f75" alt="Gold"><b id="hCoins">0</b></span><i class="sep"></i><span class="d"><img src="assets/ui/i_diamond.png?v=43a2b8b53f75" alt="Diamonds"><b id="hDia">0</b></span></div>
-  <div id="hR"><div id="pauseBtn" class="pill" role="button" aria-label="Settings"><img src="assets/ui/i_gear.png?v=43a2b8b53f75" alt=""><b class="sm">SETTINGS</b></div><div id="zoomBtn" class="pill" role="button" aria-label="Camera zoom out"><svg class="zi" viewBox="0 0 32 32" aria-hidden="true"><circle cx="13" cy="13" r="8.5" fill="#7fc6ff" stroke="#0c2346" stroke-width="3"/><path d="M19.5 19.5l7 7" stroke="#0c2346" stroke-width="5" stroke-linecap="round"/><path d="M19.5 19.5l7 7" stroke="#ffd23a" stroke-width="2.5" stroke-linecap="round"/><path d="M9 13h8" stroke="#0c2346" stroke-width="3" stroke-linecap="round"/></svg><b id="zoomTxt">1×</b></div><div id="speedBtn" class="pill" role="button" aria-label="Game speed"><img src="assets/ui/i_speed.png?v=43a2b8b53f75" alt=""><b id="speedTxt">1×</b></div><div id="autoBtn" class="pill" role="button" aria-label="Control mode"><img src="assets/ui/i_auto.png?v=43a2b8b53f75" alt=""><svg class="ti" viewBox="0 0 32 32" aria-hidden="true"><path d="M12 5.5a2.5 2.5 0 0 1 5 0V15l1-.3a2.4 2.4 0 0 1 4.6.9l.2-.1a2.4 2.4 0 0 1 3.2 2.3V22a8 8 0 0 1-8 8h-1.6a8 8 0 0 1-6.6-3.5l-4.2-6.2a2.4 2.4 0 0 1 3.7-3L12 20z" fill="#9fd0ff" stroke="#0c2346" stroke-width="2.2" stroke-linejoin="round"/></svg><b id="autoTxt">AUTO</b></div></div>
+  <div id="hL"><div class="pill"><img src="assets/ui/i_clock.png?v=c5c9c69de2b0" alt="Time"><b id="hTime">0:00</b><i id="chantPulse" aria-hidden="true"></i></div><div class="pill"><img src="assets/ui/i_army.png?v=c5c9c69de2b0" alt="Army"><b id="hArmy">0</b></div><div class="pill"><img src="assets/ui/i_skull.png?v=c5c9c69de2b0" alt="Wave"><b id="hWave">1</b></div></div>
+  <div id="hC" class="pill"><span class="g"><img src="assets/ui/i_gold.png?v=c5c9c69de2b0" alt="Gold"><b id="hCoins">0</b></span><i class="sep"></i><span class="d"><img src="assets/ui/i_diamond.png?v=c5c9c69de2b0" alt="Diamonds"><b id="hDia">0</b></span></div>
+  <div id="hR"><div id="pauseBtn" class="pill" role="button" aria-label="Settings"><img src="assets/ui/i_gear.png?v=c5c9c69de2b0" alt=""><b class="sm">SETTINGS</b></div><div id="zoomBtn" class="pill" role="button" aria-label="Camera zoom out"><svg class="zi" viewBox="0 0 32 32" aria-hidden="true"><circle cx="13" cy="13" r="8.5" fill="#7fc6ff" stroke="#0c2346" stroke-width="3"/><path d="M19.5 19.5l7 7" stroke="#0c2346" stroke-width="5" stroke-linecap="round"/><path d="M19.5 19.5l7 7" stroke="#ffd23a" stroke-width="2.5" stroke-linecap="round"/><path d="M9 13h8" stroke="#0c2346" stroke-width="3" stroke-linecap="round"/></svg><b id="zoomTxt">1×</b></div><div id="speedBtn" class="pill" role="button" aria-label="Game speed"><img src="assets/ui/i_speed.png?v=c5c9c69de2b0" alt=""><b id="speedTxt">1×</b></div><div id="autoBtn" class="pill" role="button" aria-label="Control mode"><img src="assets/ui/i_auto.png?v=c5c9c69de2b0" alt=""><svg class="ti" viewBox="0 0 32 32" aria-hidden="true"><path d="M12 5.5a2.5 2.5 0 0 1 5 0V15l1-.3a2.4 2.4 0 0 1 4.6.9l.2-.1a2.4 2.4 0 0 1 3.2 2.3V22a8 8 0 0 1-8 8h-1.6a8 8 0 0 1-6.6-3.5l-4.2-6.2a2.4 2.4 0 0 1 3.7-3L12 20z" fill="#9fd0ff" stroke="#0c2346" stroke-width="2.2" stroke-linejoin="round"/></svg><b id="autoTxt">AUTO</b></div></div>
 </div>
 <div id="drawer" class="hidden" aria-label="Soldier classes"><div id="classes"></div><div id="drawerTab" role="button" aria-label="Show or hide the soldier panel">‹</div></div>
 <div id="clsPop" class="hidden"></div>
 <div id="tankMark" class="hidden" aria-hidden="true"><i></i></div>
 <div id="rightCol" class="hidden">
   <div id="consBtn" class="rb" role="button" aria-label="Consumables"><svg viewBox="0 0 64 64" aria-hidden="true" style="width:30px;height:30px"><path d="M24 8h16v8l8 10v28a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6V26l8-10z" fill="#b36cff" stroke="#3a1a5a" stroke-width="3" stroke-linejoin="round"/><path d="M22 34h20v18H22z" fill="#e8d0ff" opacity=".55"/><path d="M32 38l3 6h-6z" fill="#ffd23a"/></svg><b>ITEMS</b><small id="consN"></small></div>
-  <div id="powerBtn" class="rb" role="button" aria-label="Power"><img src="assets/ui/i_power.png?v=43a2b8b53f75" alt=""><b>POWER</b><i class="en"><u id="enFill"></u></i></div>
-  <div id="tankBtn" class="rb" role="button" aria-label="Tank upgrade"><img src="assets/ui/i_upgrade.png?v=43a2b8b53f75" alt=""><b>UPGRADE</b><small id="tankCost"></small></div>
-  <div id="postureBtn" class="rb" role="button" aria-label="Attack or defend: tap = selected class, hold = whole army"><img src="assets/ui/i_attack.png?v=43a2b8b53f75" alt=""><b id="postureTxt">ATTACK</b></div>
+  <div id="powerBtn" class="rb" role="button" aria-label="Power"><img src="assets/ui/i_power.png?v=c5c9c69de2b0" alt=""><b>POWER</b><i class="en"><u id="enFill"></u></i></div>
+  <div id="tankBtn" class="rb" role="button" aria-label="Tank upgrade"><img src="assets/ui/i_upgrade.png?v=c5c9c69de2b0" alt=""><b>UPGRADE</b><small id="tankCost"></small></div>
+  <div id="postureBtn" class="rb" role="button" aria-label="Attack or defend: tap = selected class, hold = whole army"><img src="assets/ui/i_attack.png?v=c5c9c69de2b0" alt=""><b id="postureTxt">ATTACK</b></div>
 </div>
 <div id="powers" class="hidden"></div>
 <div id="tankUps" class="hidden"></div>
@@ -502,8 +513,11 @@ label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-sp
   <div class="sv">REACHED</div><div class="tm" id="oTime">WAVE 1</div><div class="pb" id="oPb"></div>
   <div class="stats" id="oStats"></div>
   <div class="row"><button class="btn sec sq" id="homeBtn" aria-label="Home"></button><button class="btn" id="againBtn">TRY AGAIN</button><button class="btn sec sq" id="shopBtn2" aria-label="Shop"></button></div>
+  <div class="row hidden" id="crOverRow"><button class="btn sec" id="crReplay">REPLAY</button><button class="btn sec" id="crMap">CAMPAIGN MAP</button></div>
   <button class="btn sec hidden" id="reviveBtn" style="margin-top:10px;font-size:16px">REVIVE (ONCE)</button>
 </div></div>
+<div id="crReveal" class="hidden" role="dialog" aria-label="Rewards"></div>
+<div id="crSkip" class="hidden">TAP TO SKIP</div>
 
 <div id="pause" class="screen hidden"><div class="panel">
   <h2 class="disp" style="text-align:center;margin:0 0 6px;font-size:34px">PAUSED</h2>
@@ -527,22 +541,22 @@ label.soon{opacity:.55}label.soon small{font-size:10px;font-weight:900;letter-sp
     <button class="btn sec" id="setClose" style="margin-top:12px">BACK</button>
 </div></div>
 
-<script defer src="vendor/three.min.js?v=43a2b8b53f75"></script>
-<script defer src="js/core.js?v=43a2b8b53f75"></script>
-<script defer src="js/chants.js?v=43a2b8b53f75"></script>
-<script defer src="js/chant-packs.js?v=43a2b8b53f75"></script>
-<script defer src="js/sim.js?v=43a2b8b53f75"></script>
-<script defer src="js/daily.js?v=43a2b8b53f75"></script>
-<script defer src="js/goals.js?v=43a2b8b53f75"></script>
-<script defer src="js/crusades.js?v=43a2b8b53f75"></script>
-<script defer src="js/anim.js?v=43a2b8b53f75"></script>
-<script defer src="js/kit.js?v=43a2b8b53f75"></script>
-<script defer src="js/render.js?v=43a2b8b53f75"></script>
-<script defer src="js/powerfx.js?v=43a2b8b53f75"></script>
-<script defer src="js/assets.js?v=43a2b8b53f75"></script>
-<script defer src="js/audio.js?v=43a2b8b53f75"></script>
-<script defer src="js/account.js?v=43a2b8b53f75"></script>
-<script defer src="js/wallet.js?v=43a2b8b53f75"></script>
-<script defer src="js/main.js?v=43a2b8b53f75"></script>
+<script defer src="vendor/three.min.js?v=c5c9c69de2b0"></script>
+<script defer src="js/core.js?v=c5c9c69de2b0"></script>
+<script defer src="js/chants.js?v=c5c9c69de2b0"></script>
+<script defer src="js/chant-packs.js?v=c5c9c69de2b0"></script>
+<script defer src="js/sim.js?v=c5c9c69de2b0"></script>
+<script defer src="js/daily.js?v=c5c9c69de2b0"></script>
+<script defer src="js/goals.js?v=c5c9c69de2b0"></script>
+<script defer src="js/crusades.js?v=c5c9c69de2b0"></script>
+<script defer src="js/anim.js?v=c5c9c69de2b0"></script>
+<script defer src="js/kit.js?v=c5c9c69de2b0"></script>
+<script defer src="js/render.js?v=c5c9c69de2b0"></script>
+<script defer src="js/powerfx.js?v=c5c9c69de2b0"></script>
+<script defer src="js/assets.js?v=c5c9c69de2b0"></script>
+<script defer src="js/audio.js?v=c5c9c69de2b0"></script>
+<script defer src="js/account.js?v=c5c9c69de2b0"></script>
+<script defer src="js/wallet.js?v=c5c9c69de2b0"></script>
+<script defer src="js/main.js?v=c5c9c69de2b0"></script>
 </body>
 </html>

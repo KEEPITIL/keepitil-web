@@ -174,9 +174,9 @@
       case 'bossTell': audio.play('warn'); KM.haptic(15); break;
       case 'stomp': audio.play('boom'); KM.haptic(35); break;
       case 'charge': if (typeof a === 'string') { if (KM.PROD[a]) banner(KM.PROD[a].name + (b ? '\nATTACK' : '\nDEFEND'), 0.9); if (b) audio.play('upgrade'); KM.haptic(12); setPostureUI(); break; } banner('BRACE!', 0.9); break;
-      case 'bossFight': if (a && crusade) crTipOn('boss'); audio.boss(!!a); render.viewGuard && render.viewGuard(); setTimeout(() => render.viewGuard && render.viewGuard(), 400); banner(a ? 'BOSS FIGHT\nTHE WAR HOLDS' : 'BOSS DOWN\nADVANCE!', 1.6); if (!a) audio.play('upgrade'); break;
+      case 'bossFight': if (crusade) { if (a) { crusade.zoom0 = render.zoom; render.zoom = Math.max(render.zoom || 1, 1.35); render.fitT = 0; crTipOn('boss'); } else if (crusade.zoom0 != null) { render.zoom = crusade.zoom0; render.fitT = 0; crusade.zoom0 = null; } $('crTip').classList.toggle('boss', !!a); } audio.boss(!!a); render.viewGuard && render.viewGuard(); setTimeout(() => render.viewGuard && render.viewGuard(), 400); banner(a ? 'BOSS FIGHT\nTHE WAR HOLDS' : 'BOSS DOWN\nADVANCE!', 1.6); if (!a) audio.play('upgrade'); break;
       case 'summon': audio.play('elite', 0, 0); break;
-      case 'warn': banner(a === 'boss' ? 'A BOSS APPROACHES' : a === 'mini' ? 'GIANT INCOMING' : 'MASS WAVE INCOMING', 3.2); audio.play('warn'); KM.haptic(25); $('vig').classList.add('warn'); setTimeout(() => $('vig').classList.remove('warn'), 3200); break;
+      case 'warn': banner(a === 'boss' ? 'A BOSS APPROACHES' : a === 'mini' ? 'GIANT INCOMING' : typeof a === 'string' && a.startsWith('f:') ? (KM.FORMATION_WARN[a.slice(2)] || 'FORMATION AHEAD') : 'MASS WAVE INCOMING', 3.2); audio.play('warn'); KM.haptic(25); $('vig').classList.add('warn'); setTimeout(() => $('vig').classList.remove('warn'), 3200); break;
       case 'elite': audio.play('elite', 0, 0); break;
       case 'death': if (daily) onDailyEnd(); else if (crusade) onCrusadeEnd(); else onDeath(); break;
       case 'missionEnd': onCrusadeEnd(); break;
@@ -243,7 +243,7 @@
   function hud(dt) {
     hudAcc += dt; if (hudAcc < 0.1) return; hudAcc = 0;
     tankMark();
-    $('hTime').textContent = daily ? KM.fmtTime(Math.max(0, daily.rules.cap - sim.t)) : KM.fmtTime(sim.t); $('hArmy').textContent = sim.count[0]; $('hWave').textContent = Math.max(1, sim.wave);   // icons say what they are: no labels, no maximums
+    $('hTime').textContent = daily ? KM.fmtTime(Math.max(0, daily.rules.cap - sim.t)) : KM.fmtTime(sim.t); $('hArmy').textContent = sim.mission ? sim.pts + '/' + sim.stats.cap : sim.count[0];   // CRUSADES: points / capacity $('hWave').textContent = Math.max(1, sim.wave);   // icons say what they are: no labels, no maximums
     const cur = v => v < 1e6 ? KM.fmtNum(Math.floor(v)) : KM.fmtShort(v); $('hCoins').textContent = cur(sim.coins); $('hDia').textContent = cur(save.diamonds);
     $('enFill').style.width = (sim.energy / KM.ENERGY_MAX * 100).toFixed(0) + '%';
     const hp = sim.L.hp / sim.stats.maxHp; $('hpFill').style.width = (hp * 100).toFixed(1) + '%'; $('hpFill').style.background = hp > 0.5 ? 'linear-gradient(90deg,#4cff8a,#2fbf4f)' : hp > 0.25 ? 'linear-gradient(90deg,#ffe14a,#ff9a1f)' : 'linear-gradient(90deg,#ff6a4a,#d6281f)';
@@ -282,8 +282,9 @@
   const runOpts = () => ({ seed: (Date.now() ^ (runId * 2654435761)) >>> 0, equip: save.powers.equip, powerLv: save.powers.lv, skins: save.skins.equip, buffs: save.buffs, cons: save.cons, loadout: { perks: save.perks, equip: save.gear.equip, skin: save.season.equip }, mercTier: save.mercTier, plan: save.plan, chant: save.chants.on ? save.chants.station : null });   // the saved WAR PLAN becomes this run's active plan
   let recordShown = false;
   function startRun(resume, dr, cr) {
-    khHide(); audio.unlock(); runId++; if (!dr && !cr) RunSave.clear(); daily = dr || null; crusade = cr || null; crTipHide();   // DAILY DEFENSE runs leave a saved Endless War run untouched
+    khHide(); audio.unlock(); $('crReveal').classList.add('hidden'); $('crOverRow').classList.add('hidden'); runId++; if (!dr && !cr) RunSave.clear(); daily = dr || null; crusade = cr || null; crTipHide();   // DAILY DEFENSE runs leave a saved Endless War run untouched
     let resumed = false;
+    KM.planCap = cr ? cr.rules.cap : null;   // War Plan targets follow the mission's army capacity (set before the reset validates the plan)
     if (dr) sim.reset(KM.dailyOpts(dr.rules, dr.station, true));
     else if (cr) sim.reset(KM.missionOpts(cr.rules, save.chants.on ? save.chants.station : null));
     else if (resume) { try { sim.reset(runOpts()); sim.restore(resume.snap); resumed = true; } catch (e) { sim.reset(runOpts()); banner('SAVED RUN COULD NOT BE RESTORED', 2); } }
@@ -322,7 +323,7 @@
     Telemetry.end(sim, r, { quality: render.quality });
     setTimeout(() => {
       if (state !== 'run') return;
-      state = 'over'; $('tip').classList.add('hidden'); lastDaily = false; lastCrusade = null; $('againBtn').textContent = 'TRY AGAIN'; $('over').querySelector('.sv').textContent = 'REACHED';
+      state = 'over'; $('tip').classList.add('hidden'); lastDaily = false; lastCrusade = null; $('over').classList.remove('cr-win', 'cr-loss'); $('crOverRow').classList.add('hidden'); $('againBtn').textContent = 'TRY AGAIN'; $('over').querySelector('.sv').textContent = 'REACHED';
       $('oTime').textContent = 'WAVE ' + r.wave; $('oPb').textContent = records.length ? '★ NEW RECORD: ' + records.map(k => ({ wave: 'WAVE', time: 'TIME', bosses: 'BOSSES', kills: 'KILLS', army: 'ARMY' })[k]).join(' · ') + ' ★' : 'BEST WAVE ' + save.records.wave + ' · ' + KM.fmtTime(save.records.time);
       if (records.length) audio.play('pb');
       const reason = { breach: 'Enemies broke through the line', bomber: 'Hit by a bomber', siege: 'Hit by siege fire', ranged: 'Shot down', overrun: 'Overrun', quit: 'Run ended' }[r.reason] || 'Overrun by ' + r.reason + 's';
@@ -335,6 +336,7 @@
   }
   function setPause(p) { if (state !== 'run') return; paused = p; show(p ? 'pause' : null); audio.suspend(p); if (p) { buildToggles($('pToggles')); audio.crowd(0, 0); $('menuBtn').textContent = crusade ? 'LEAVE MISSION' : daily ? 'LEAVE' + (daily.ranked ? ' (ATTEMPT USED)' : '') : 'SAVE & MENU'; } }
   function goTitle() {
+    KM.planCap = null;   // back to Endless rules for the War Plan editor
     Telemetry.flush('quit');
     const rs = RunSave.load(); $('contBtn').classList.toggle('hidden', !rs); if (rs) $('contInfo').textContent = 'WAVE ' + (rs.snap.wave || 1) + ' · ' + KM.fmtTime(rs.snap.t);
     state = 'title'; for (const id of ['hud', 'tankHp', 'drawer', 'rightCol', 'powers', 'tankUps', 'consPop', 'clsPop', 'choice', 'bossBar', 'tip']) $(id).classList.add('hidden');
@@ -570,7 +572,7 @@
   $('playBtn').onclick = () => { Telemetry.landing('play'); openPlan('start'); };   // HOME → PLAY → WAR PLAN → START BATTLE
   $('contBtn').onclick = () => { const rs = RunSave.load(); Telemetry.landing('continue'); startRun(rs || null); };
   $('menuBtn').onclick = () => { if (daily || crusade) { paused = false; show(null); audio.suspend(false); sim.forfeit(); return; } RunSave.write(sim); paused = false; audio.suspend(false); state = 'menu'; hook('leave', false); goTitle(); };
-  $('againBtn').onclick = () => { hook('leave', true); if (lastDaily) return openDaily(); if (lastCrusade) return openCrusades(lastCrusade.next); startRun(); };
+  $('againBtn').onclick = () => { hook('leave', true); $('crReveal').classList.add('hidden'); $('crOverRow').classList.add('hidden'); if (lastDaily) return openDaily(); if (lastCrusade) return openCrusades(lastCrusade.next); startRun(); };
   $('homeBtn').onclick = () => { hook('leave', false); goTitle(); };
   $('shopBtn1').onclick = () => { Telemetry.landing('shop'); openShop(goTitle); };
   $('shopBtn2').onclick = () => openShop(() => show('over'));
@@ -694,7 +696,7 @@
   setInterval(attract, 50);
   // ---------- soldier panel (bottom left): six portrait cards · tap = select · tap the selected class again = its upgrade details ----------
   const drawer = $('drawer'), classes = $('classes'), pop = $('clsPop'), CHARGE = ['collector', 'range', 'melee', 'elite', 'giant'];
-  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=43a2b8b53f75`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=43a2b8b53f75" alt="">';
+  const PORTRAIT = k => `assets/ui/p_${k}.webp?v=c5c9c69de2b0`, GOLD_IMG = '<img src="assets/ui/i_gold.png?v=c5c9c69de2b0" alt="">';
   classes.innerHTML = KM.PROD_ORDER.map(k => `<div class="cl" data-p="${k}" role="button" aria-label="${KM.PROD[k].name}"><img src="${PORTRAIT(k)}" alt=""><div class="tx"><b>${KM.PROD[k].name} <s class="cap">${KM.unitPts(k)} CAP</s></b><span class="pr">${GOLD_IMG}${KM.PROD[k].cost}</span><i></i></div><u class="ub hidden">▲</u></div>`).join('');
   const setDrawer = open => { if (render.layout === 'desktop') open = true;   // desktop: the soldier cards always show
     drawer.classList.toggle('away', !open); $('drawerTab').textContent = open ? '‹' : '›'; if (!open) closePops(); };
@@ -921,7 +923,7 @@
       dFlush((it, r, v) => { if (it.body.ticket !== dr.ticket || !$('dVer')) return; $('dVer').innerHTML = r && r.ok ? '✓ VERIFIED · RANK ' + r.rank + ' OF ' + r.of + ' TODAY' + (r.rewarded ? ' · +1 WAR TOKEN' : '') + (v.badge ? ' · BADGE: ' + esc(v.badge) : '') : 'NOT VERIFIED: ' + esc(r && r.reason || 'unknown') + ' (no reward)'; }); }
     Analytics.track('daily_end', { day: dr.day, type: dr.rules.id, ranked: dr.ranked ? 1 : 0, station: dr.station || 'off', score: res.score, done: res.done ? 1 : 0, t: Math.round(res.t), inputs: sim.rec ? sim.rec.length : 0, best: newBest ? 1 : 0 });
     Telemetry.end(sim, Object.assign(sim.results(), { daily: { day: dr.day, type: dr.rules.id, ranked: dr.ranked, score: res.score } }), { quality: render.quality });
-    setTimeout(() => { if (state !== 'run' || daily !== dr) return; state = 'over'; lastDaily = true; lastCrusade = null; daily = null; $('tip').classList.add('hidden');
+    setTimeout(() => { if (state !== 'run' || daily !== dr) return; state = 'over'; lastDaily = true; lastCrusade = null; daily = null; $('over').classList.remove('cr-win', 'cr-loss'); $('crOverRow').classList.add('hidden'); $('tip').classList.add('hidden');
       const P = res.parts, left = KM.DAILY.RANKED - D.ranked;
       $('over').querySelector('.sv').textContent = 'DAILY DEFENSE · ' + dr.rules.name + (dr.ranked ? '' : ' · PRACTICE'); $('oTime').textContent = KM.fmtNum(res.score);
       $('oPb').textContent = V ? 'SUBMITTED FOR VERIFICATION · BEST TODAY ' + (D.best ? KM.fmtNum(D.best) : '—') : newBest ? '★ NEW BEST TODAY ★' : dr.ranked ? 'BEST TODAY ' + KM.fmtNum(D.best) : 'PRACTICE (NOT RANKED) · BEST TODAY ' + (D.best ? KM.fmtNum(D.best) : '—');
@@ -935,9 +937,9 @@
   save.crusades = KM.crusadeValid(save.crusades);
   for (const t of KM.crusadeTitles(save.crusades)) if (!save.titles.includes(t)) save.titles.push(t);   // earned titles survive any title-list change
   let crSel = null, crTab = 1, crView = 'map', crMsg = '';
-  const CR_NAME = { collector: 'LOOTER', range: 'ARCHER', melee: 'MELEE', mizard: 'MIZARD', elite: 'ELITE', giant: 'GIANT' };
+  const CR_NAME = { collector: 'LOOTER', range: 'ARCHER', melee: 'SWORD', mizard: 'MIZARD', elite: 'ELITE', giant: 'GIANT' };
   const crStars = n => '★'.repeat(n) + '☆'.repeat(3 - n);
-  const crReward = g => { const [k, v] = g.split(':'); return k === 'unlock' ? 'NEW SOLDIER: ' + (CR_NAME[v] || v) : k === 'power' ? 'NEW TANK POWER: ' + (KM.POWERS[v] || {}).name : k === 'skin' ? 'EARNED LOOK: ' + ((KM.CRUSADE_SKINS.find(x => x.id === v) || {}).name || v)
+  const crReward = g => { const [k, v] = g.split(':'); return k === 'cap' ? 'ARMY CAPACITY +50 → ' + v : k === 'unlock' ? 'NEW SOLDIER: ' + (CR_NAME[v] || v) : k === 'power' ? 'NEW TANK POWER: ' + (KM.POWERS[v] || {}).name : k === 'skin' ? 'EARNED LOOK: ' + ((KM.CRUSADE_SKINS.find(x => x.id === v) || {}).name || v)
     : k === 'title' ? 'TITLE: ' + v : k === 'campaign' ? 'CAMPAIGN ' + ['', 'I', 'II', 'III'][+v] + ' OPENS' : k === 'banner' ? (v.startsWith('master_') ? 'MASTERY BANNER: ' + (KM.CRUSADES.find(c => 'master_' + c.id === v) || {}).name : 'CRUSADE BANNER') : g; };
   const crObjText = M => [['★', M.goal === 'hold' ? 'Survive ' + KM.fmtTime(M.hold) : M.waves[M.waves.length - 1].boss ? 'Defeat the boss (' + M.waves.length + ' waves)' : 'Clear ' + M.waves.length + ' waves'], ['★★', M.s2.text], ['★★★', M.s3.text]];
   function crTipOn(key) { const c = crusade; if (!c || c.tipped[key]) return; const T = (c.M.tips || []).find(x => x.on === key); if (!T) return; c.tipped[key] = 1;
@@ -946,7 +948,7 @@
   setInterval(() => { const c = crusade; if (!c || state !== 'run' || paused) return; for (const T of c.M.tips || []) {   // time and Gold triggers for the in-battle guidance
     const [k, v] = T.on.split(':'); if ((k === 't' && sim.t >= +v) || (k === 'gold' && sim.coins >= +v) || (k === 'kills' && sim.kills >= +v)) crTipOn(T.on); } }, 250);
   function crPick() { const P = save.crusades; return (KM.MISSIONS.find(M => KM.missionOpen(P, M.n) && !P.stars[M.id]) || [...KM.MISSIONS].reverse().find(M => KM.missionOpen(P, M.n))).id; }
-  function openCrusades(sel) { khHide(); audio.unlock(); state = 'crusades'; lastCrusade = null; crMsg = ''; crSel = sel && KM.MISSION_BY[sel] ? sel : crSel || crPick(); crTab = KM.MISSION_BY[crSel].camp; crView = 'map'; crDraw(); show('crScr'); Analytics.track('crusades_open', { stars: KM.crusadeStarsTotal(save.crusades) }); }
+  function openCrusades(sel) { khHide(); audio.unlock(); $('crReveal').classList.add('hidden'); $('crOverRow').classList.add('hidden'); state = 'crusades'; lastCrusade = null; crMsg = ''; crSel = sel && KM.MISSION_BY[sel] ? sel : crSel || crPick(); crTab = KM.MISSION_BY[crSel].camp; crView = 'map'; crDraw(); show('crScr'); Analytics.track('crusades_open', { stars: KM.crusadeStarsTotal(save.crusades) }); }
   function crDraw() { const P = save.crusades, M = KM.MISSION_BY[crSel];
     $('crTabs').innerHTML = KM.CAMPAIGNS.map(C => { const open = KM.campaignOpen(P, C.n), st = KM.MISSIONS.filter(x => x.camp === C.n).reduce((a, x) => a + (P.stars[x.id] || 0), 0);
       return `<button role="tab" data-ct="${C.n}" class="${crTab === C.n ? 'on' : ''}" aria-selected="${crTab === C.n}" aria-disabled="${!open}">${open ? '' : '🔒 '}${['', 'I', 'II', 'III'][C.n]} · ${C.name}<small>${open ? st + ' / 30 ★' : 'Complete Campaign ' + ['', '', 'I', 'II'][C.n]}</small></button>`; }).join('');
@@ -958,7 +960,7 @@
     const nextUnlock = (KM.CRUSADE_UNLOCKS.find(([n]) => n === M.n) || [])[1];
     $('crCard').innerHTML = `<div class="crSub">MISSION ${M.n} · ${KM.CRUSADES.find(c => c.id === M.cr).name}</div><h4>${esc(M.name)}</h4><p>${esc(M.brief)}</p>` +
       `<div class="crObj">${crObjText(R).map(([k, t], i) => `<b>${k}</b><span class="${s > i ? 'ok' : ''}">${esc(t)}${s > i ? ' ✓' : ''}</span>`).join('')}</div>` +
-      `<div class="crSub">YOUR ARMY</div><div class="crRos">${R.allow.map(k => `<span>${CR_NAME[k]}</span>`).join('')}<span>TANK</span>${R.powers.map(k => `<span>${KM.POWERS[k].name}</span>`).join('')}${nextUnlock && !s ? `<span class="new">WIN: ${CR_NAME[nextUnlock]}</span>` : ''}</div>` +
+      `<div class="crSub">YOUR ARMY · CAPACITY ${R.cap}</div><div class="crRos">${R.allow.map(k => `<span>${CR_NAME[k]}</span>`).join('')}<span>TANK</span>${R.powers.map(k => `<span>${KM.POWERS[k].name}</span>`).join('')}${nextUnlock && !s ? `<span class="new">WIN: ${CR_NAME[nextUnlock]}</span>` : ''}</div>` +
       (rw.length ? `<p class="crSub">REWARD: ${rw.map(g => esc(crReward(g))).join(' · ')}${rw.every(g => P.got[g]) ? ' ✓' : ''}</p>` : '') + (b ? `<p class="crSub">BEST: ${crStars(s)} · ${KM.fmtTime(b.t)} · TANK ${b.hp}%</p>` : '') +
       (open ? '' : `<p class="crSub">🔒 Win Mission ${M.n - 1} to unlock.</p>`) + (crMsg ? `<p class="crSub">${esc(crMsg)}</p>` : '');
     $('crPlay').disabled = !open; $('crPlay').textContent = s ? 'REPLAY MISSION' : 'PLAY MISSION'; $('crColl').textContent = '🏅 COLLECTION'; }
@@ -977,21 +979,45 @@
   $('crBtn').onclick = () => { audio.play('tap'); openCrusades(); };
   $('crPlay').onclick = () => { const P = save.crusades, M = KM.MISSION_BY[crSel]; if (!M || !KM.missionOpen(P, M.n)) return; audio.play('tap');
     startRun(false, null, { id: M.id, M, rules: KM.missionRules(M.id, P), tipped: {}, before: P.stars[M.id] || 0 }); };
-  function onCrusadeEnd() { const cr = crusade; if (!cr || cr.ended) return; cr.ended = true; crTipHide();
+  // VICTORY / DEFEAT (Checkpoint F4): progress is saved FIRST; then a short skippable celebration (≈2.5 s; finales a little more),
+  // results with the stars revealed one by one, a separate card for each major reward, and NEXT MISSION / REPLAY / CAMPAIGN MAP.
+  const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
+  let crCeleb = null;
+  function crCelebrate(big) { const L = sim.L; render.cheerT = big ? 3.2 : 2.6;
+    if (!REDUCED.matches) { for (let k = 0; k < (big ? 4 : 2); k++) setTimeout(() => { if (render.burst) render.burst(L.x + (k % 2 ? 2 : -2), 1.5, L.z - 3 - k, 50, k % 2 ? 0x7dff8a : 0xffd23a, 7, 0.7, 0.8, 6); if (render.ring) render.ring(L.x, L.z - 2, 0xffd23a, 7, 0.8); }, 250 + k * 420); }
+    return () => {}; }
+  function onCrusadeEnd() { const cr = crusade; if (!cr || cr.ended) return; cr.ended = true; crTipHide(); if (cr.zoom0 != null) { render.zoom = cr.zoom0; render.fitT = 0; cr.zoom0 = null; }
     const R = KM.missionResult(sim, cr.rules), P = save.crusades; P.plays++;
     const fresh = KM.crusadeApply(P, cr.id, R); for (const g of fresh) if (g.startsWith('title:')) { const t = g.slice(6); if (!save.titles.includes(t)) save.titles.push(t); }
-    persist(); audio.play(R.win ? 'pb' : 'death'); KM.haptic(R.win ? [30, 40, 30] : [40, 60, 80]);
+    persist();   // saved BEFORE any celebration: skipping, leaving or refreshing can never lose or duplicate a reward
     Analytics.track('mission_end', { id: cr.id, win: R.win ? 1 : 0, stars: R.stars, t: R.t, hp: R.hp, lost: R.lost, waves: R.waves, rewards: fresh.length });
     Telemetry.end(sim, Object.assign(sim.results(), { mission: { id: cr.id, win: R.win, stars: R.stars } }), { quality: render.quality });
-    const next = R.win && KM.MISSION_BY['m' + (cr.M.n + 1)] ? 'm' + (cr.M.n + 1) : cr.id;
-    setTimeout(() => { if (state !== 'run' || crusade !== cr) return; state = 'over'; crusade = null; lastDaily = false; lastCrusade = { id: cr.id, next }; $('tip').classList.add('hidden');
-      $('over').querySelector('.sv').textContent = 'MISSION ' + cr.M.n + ' · ' + cr.M.name; $('oTime').textContent = R.win ? 'VICTORY' : 'DEFEAT';
-      $('oPb').textContent = R.win ? crStars(R.stars) + (R.stars > cr.before ? '  NEW BEST' : '') : 'Win to earn ★ and open the next mission';
-      $('oStats').innerHTML = crObjText(cr.rules).map(([k, t], i) => `<div><span style="color:var(--gold);font-weight:900">${k}</span><span>${esc(t)}</span><b>${(i === 0 ? R.win : i === 1 ? R.m2 : R.m3) ? '✓' : '—'}</b></div>`).join('') +
-        [['clock', 'Battle time', KM.fmtTime(R.t)], ['star', 'Tank health', R.hp + '%'], ['skull', 'Enemies defeated', KM.fmtNum(R.kills)], ['army', 'Soldiers lost', R.lost]].map(([i, l, v]) => `<div>${svg(i)}<span>${l}</span><b>${v}</b></div>`).join('') +
-        fresh.map(g => `<div style="justify-content:center;color:var(--gold);font-weight:900">${esc(crReward(g))}</div>`).join('');
-      $('againBtn').textContent = next !== cr.id ? 'NEXT MISSION' : 'RETRY'; $('reviveBtn').classList.add('hidden');
-      for (const id of ['drawer', 'rightCol', 'powers', 'tankUps', 'consPop', 'clsPop', 'choice', 'bossBar', 'tankHp']) $(id).classList.add('hidden'); show('over'); hook('death', R); }, 1300); }
+    const next = R.win && KM.MISSION_BY['m' + (cr.M.n + 1)] ? 'm' + (cr.M.n + 1) : cr.id, big = R.win && cr.M.n % 5 === 0;
+    let restore = () => {}, done = false;
+    if (R.win) { banner(big ? 'CRUSADE WON!' : 'VICTORY!', REDUCED.matches ? 0.8 : 2.2); audio.play('pb'); KM.haptic([30, 40, 30, 40, 60]); restore = crCelebrate(big); }
+    else { banner(sim.alive && sim.done ? 'THE ENEMY HOLDS THE FIELD' : 'DEFEAT', 1.2); audio.play('death'); KM.haptic([40, 60, 80]); }
+    const finish = () => { if (done) return; done = true; restore(); $('crSkip').classList.add('hidden'); removeEventListener('pointerdown', skip, true); clearTimeout(crCeleb);
+      if (state !== 'run' || crusade !== cr) return; crResults(cr, R, fresh, next); };
+    const skip = e => { if (state === 'run' && crusade === cr && !paused) { e.preventDefault(); e.stopPropagation(); finish(); } };
+    const wait = R.win ? (REDUCED.matches ? 700 : big ? 3200 : 2600) : 1300;
+    if (R.win) { $('crSkip').classList.remove('hidden'); addEventListener('pointerdown', skip, true); }
+    crCeleb = setTimeout(finish, wait); }
+  function crResults(cr, R, fresh, next) { state = 'over'; crusade = null; lastDaily = false; lastCrusade = { id: cr.id, next }; $('tip').classList.add('hidden');
+    const ov = $('over'); ov.classList.toggle('cr-win', R.win); ov.classList.toggle('cr-loss', !R.win);
+    ov.querySelector('.sv').textContent = 'MISSION ' + cr.M.n + ' · ' + cr.M.name; $('oTime').textContent = R.win ? 'VICTORY' : 'DEFEAT';
+    $('oPb').innerHTML = R.win ? [1, 2, 3].map(k => `<span class="crStar${k > R.stars ? ' off' : ''}" style="animation-delay:${0.15 + k * 0.32}s">★</span>`).join('') + (R.stars > cr.before ? '  NEW BEST' : '') : 'Win once to open the next mission. Stars are optional.';
+    $('oStats').innerHTML = crObjText(cr.rules).map(([k, t], i) => `<div><span style="color:var(--gold);font-weight:900">${k}</span><span>${esc(t)}</span><b>${(i === 0 ? R.win : i === 1 ? R.m2 : R.m3) ? '✓' : '—'}</b></div>`).join('') +
+      [['clock', 'Battle time', KM.fmtTime(R.t)], ['star', 'Tank health', R.hp + '%'], ['skull', 'Enemies defeated', KM.fmtNum(R.kills)], ['army', 'Soldiers lost', R.lost]].map(([i, l, v]) => `<div>${svg(i)}<span>${l}</span><b>${v}</b></div>`).join('') +
+      fresh.map(g => `<div style="justify-content:center;color:var(--gold);font-weight:900">${esc(crReward(g))}</div>`).join('');
+    $('againBtn').textContent = next !== cr.id ? 'NEXT MISSION' : 'RETRY'; $('reviveBtn').classList.add('hidden'); $('crOverRow').classList.remove('hidden');
+    for (const id of ['drawer', 'rightCol', 'powers', 'tankUps', 'consPop', 'clsPop', 'choice', 'bossBar', 'tankHp']) $(id).classList.add('hidden'); show('over'); hook('death', R);
+    const major = fresh.filter(g => /^(unlock|cap|power|skin|title|campaign):/.test(g)); if (major.length) crReveal(major, 0); }
+  const REVEAL = { unlock: 'NEW SOLDIER', cap: 'ARMY GROWS', power: 'NEW TANK ABILITY', skin: 'EARNED LOOK', title: 'NEW TITLE', campaign: 'NEW CAMPAIGN' };
+  function crReveal(list, k) { const el = $('crReveal'); if (k >= list.length) { el.classList.add('hidden'); return; } const [t] = list[k].split(':');
+    el.innerHTML = `<div class="rv"><small>${REVEAL[t] || 'REWARD'}${list.length > 1 ? ' · ' + (k + 1) + ' / ' + list.length : ''}</small><b>${esc(crReward(list[k]).replace(/^[A-Z ]+: /, ''))}</b><i>${t === 'unlock' ? 'Now in your Crusades army.' : t === 'cap' ? 'Bigger armies from the next Crusade.' : t === 'power' ? 'Ready on the POWER button in Crusades.' : t === 'skin' ? 'Wear it from COLLECTION.' : t === 'campaign' ? 'Open it from the campaign map.' : 'Shown on your commander profile.'}</i><button class="btn" id="crRvOk">${k + 1 < list.length ? 'NEXT' : 'CONTINUE'}</button></div>`;
+    el.classList.remove('hidden'); audio.play('upgrade'); $('crRvOk').onclick = () => { audio.play('tap'); crReveal(list, k + 1); }; }
+  $('crReplay').onclick = () => { if (!lastCrusade) return; audio.play('tap'); const id = lastCrusade.id; $('crOverRow').classList.add('hidden'); openCrusades(id); $('crPlay').click(); };
+  $('crMap').onclick = () => { if (!lastCrusade) return; audio.play('tap'); $('crOverRow').classList.add('hidden'); openCrusades(lastCrusade.next); };
   $('dailyBtn').onclick = () => { audio.play('tap'); openDaily(); };
   $('goalsBtn').onclick = () => { audio.play('tap'); openGoals('title'); };
   $('dGoals').onclick = () => { audio.play('tap'); openGoals('daily'); };
@@ -1008,7 +1034,7 @@
   const planCard = $('planCard');
   const planSumUI = () => { const p = state === 'run' ? sim.plan : save.plan, n = KM.planPts(p); $('planSum').textContent = n ? n + '/' + KM.ARMY_CAP : 'OFF'; };
   planCard.addEventListener('click', e => { e.stopPropagation(); audio.unlock(); if (state !== 'run' || paused) return; audio.play('tap'); openPlan('run'); });
-  function openPlan(mode) {
+  function openPlan(mode) { if (!crusade) KM.planCap = null;
     planMode = mode; planDraft = KM.validPlan(mode === 'run' ? sim.plan : save.plan);
     if (mode === 'run') { planWas = paused; paused = true; audio.suspend(true); audio.crowd(0, 0); closePops(); }
     $('planBack').textContent = mode === 'run' ? 'CANCEL' : 'BACK'; $('planGo').textContent = mode === 'run' ? 'APPLY & RESUME' : 'START BATTLE';

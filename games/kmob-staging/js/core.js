@@ -95,13 +95,29 @@
     { k: 'titan',   at: 8,    hp: 9000, dmg: 60, cd: 1.6, spd: 1.5, rng: 2.2,  rad: 2.0,  sc: 6.5,  arm: 14, coin: 180, cost: 60, wpn: 'axe', s: 2.8, el: 1, boss: 1, mech: 'charge' },
     { k: 'colossus',at: 12,   hp: 12000,dmg: 55, cd: 2.0, spd: 1.1, rng: 2.4,  rad: 2.3,  sc: 7.5,  arm: 22, coin: 220, cost: 60, wpn: 'axe', s: 3.2, el: 1, boss: 1, mech: 'stomp', armR: 0.35 },
     { k: 'hunter',  at: 16,   hp: 6000, dmg: 48, cd: 1.1, spd: 2.7, rng: 1.8,  rad: 1.8,  sc: 5.5,  arm: 10, coin: 160, cost: 60, wpn: 'axe', s: 2.0, el: 1, boss: 1, mech: 'hunt' },
+    // ---- CRUSADES-ONLY enemies (cr: 1, at: 999): never in Endless/Daily pools (KM.unlocked), appended so every existing id is unchanged ----
+    { k: 'raider',  at: 999,  hp: 16,   dmg: 2,  cd: 1.0, spd: 3.1, rng: 0.7,  rad: 0.34, sc: 0.95, arm: 0,  coin: 1.5, cost: 1,  wpn: 'knife', cr: 1 },                               // Looter Raid: enemy looter convoys
+    { k: 'raiderChief', at: 999, hp: 1500, dmg: 16, cd: 1.2, spd: 2.3, rng: 1.4, rad: 1.0, sc: 2.4, arm: 3, coin: 40, cost: 30, wpn: 'knife', s: 1.6, el: 1, boss: 1, cr: 1 },     // M1 boss: the Looter Chief
+    { k: 'longbow', at: 999,  hp: 2100, dmg: 24, cd: 2.2, spd: 1.6, rng: 12,   rad: 1.0,  sc: 2.4,  arm: 4,  coin: 50,  cost: 30, wpn: 'bow', r: 1, el: 1, boss: 1, cr: 1 },        // M3 boss: the Longbow Captain (ranged)
+    { k: 'acolyte', at: 999,  hp: 40,   dmg: 5,  cd: 1.4, spd: 2.1, rng: 6.5,  rad: 0.4,  sc: 1.05, arm: 1,  coin: 4,   cost: 3.5, wpn: 'staffE', r: 1, he: 6, cr: 1 },   // Mizard Warband: enemy healer-caster
+    { k: 'mizardLord', at: 999, hp: 6500, dmg: 34, cd: 1.6, spd: 1.6, rng: 9, rad: 1.4, sc: 3.8, arm: 6, coin: 140, cost: 60, wpn: 'staffE', r: 1, he: 40, el: 1, boss: 1, cr: 1 },   // M10 boss: the Mizard Lord heals his warband
+    { k: 'zombie',  at: 999,  hp: 30,   dmg: 5,  cd: 1.2, spd: 1.9, rng: 0.75, rad: 0.38, sc: 1.05, arm: 1,  coin: 1.5, cost: 1.4, wpn: 'claws', cr: 1 },                 // Nightfall: slow, tough undead
+    { k: 'necro',   at: 999,  hp: 50,   dmg: 7,  cd: 1.6, spd: 1.9, rng: 7,    rad: 0.4,  sc: 1.1,  arm: 1,  coin: 5,   cost: 5,   wpn: 'staffE', r: 1, he: 10, cr: 1 },   // Nightfall: corrupted healer
+    { k: 'wraith',  at: 999,  hp: 22,   dmg: 7,  cd: 0.8, spd: 4.6, rng: 0.8,  rad: 0.36, sc: 1.0,  arm: 0,  coin: 2,   cost: 1.6, wpn: 'dagger', cr: 1 },                // Nightfall: spectral flanker
+    { k: 'eliteCaptain', at: 999, hp: 7000, dmg: 46, cd: 1.2, spd: 1.7, rng: 2.2, rad: 1.6, sc: 4.4, arm: 18, coin: 160, cost: 60, wpn: 'pike', s: 1.8, el: 1, boss: 1, mech: 'charge', cr: 1 },   // M15 boss
+    { k: 'jester',  at: 999,  hp: 20,   dmg: 6,  cd: 0.6, spd: 5.0, rng: 0.7,  rad: 0.34, sc: 0.95, arm: 0,  coin: 2,   cost: 1.4, wpn: 'dagger', cr: 1 },                // Carnival: trickster
+    { k: 'strongman', at: 999, hp: 260, dmg: 24, cd: 1.7, spd: 1.9, rng: 1.2, rad: 0.8, sc: 1.9, arm: 5, coin: 12, cost: 12, wpn: 'hammer', s: 1.4, el: 1, cr: 1 },              // Carnival: hammer bruiser
+    { k: 'giantLord', at: 999, hp: 11000, dmg: 60, cd: 1.9, spd: 1.4, rng: 2.4, rad: 2.0, sc: 6.0, arm: 14, coin: 220, cost: 60, wpn: 'hammer', s: 2.8, el: 1, boss: 1, mech: 'stomp', cr: 1 },   // M25 boss
+    { k: 'automaton', at: 999, hp: 70,  dmg: 8,  cd: 1.2, spd: 2.0, rng: 0.9,  rad: 0.44, sc: 1.15, arm: 12, coin: 3,   cost: 3.4, wpn: 'axe', sh: 1, cr: 1 },               // Iron Uprising: armoured machine soldier
+    { k: 'ironKing', at: 999, hp: 14000, dmg: 64, cd: 1.5, spd: 1.4, rng: 2.4, rad: 2.1, sc: 6.8, arm: 24, coin: 260, cost: 60, wpn: 'axe', s: 3.0, el: 1, boss: 1, mech: 'stomp', cr: 1 },   // M30 boss
+    { k: 'swordCmd', at: 999, hp: 5000, dmg: 38, cd: 1.3, spd: 1.8, rng: 2.0,  rad: 1.5,  sc: 4.2,  arm: 10, coin: 120, cost: 60, wpn: 'sword', s: 2.0, el: 1, boss: 1, mech: 'charge', cr: 1 },   // M5 boss: the Sword Commander
   ];
   KM.ENEMY.forEach((e, i) => { e.id = i; });
   KM.ENEMY_BY = Object.fromEntries(KM.ENEMY.map(e => [e.k, e]));
   // ENEMY TYPE LEVELS (owner rule): a type gains one level on each distinct wave it actually appears in (max displayed Lv10); its growth
   // follows the matched soldier-class profile of the owner table (HP, damage, cumulative armour). Past Lv10 every further appearance
   // compounds +5 % on HP and damage and +1 % on armour (KM.ENEMY_POST10). Bosses: own Lv1..10 track at double the tank's gain (+40 % of base per level), then ×1.2 per encounter.
-  KM.ENEMY_PROFILE = { imp: 'collector', runner: 'collector', grunt: 'melee', shield: 'melee', spearman: 'melee', bomber: 'melee', archer: 'range', shaman: 'mizard', knight: 'elite', brute: 'elite', cannon: 'giant', giant: 'giant' };
+  KM.ENEMY_PROFILE = { raider: 'collector', longbow: 'range', acolyte: 'mizard', mizardLord: 'mizard', necro: 'mizard', wraith: 'collector', jester: 'collector', strongman: 'elite', automaton: 'elite', zombie: 'melee', imp: 'collector', runner: 'collector', grunt: 'melee', shield: 'melee', spearman: 'melee', bomber: 'melee', archer: 'range', shaman: 'mizard', knight: 'elite', brute: 'elite', cannon: 'giant', giant: 'giant' };
   // Owner-approved 2026-10-12 after the armour comparison (tests/armor-sim.js): past Lv10, HP and damage compound +5 % per appearance,
   // armour compounds +1 % (the armour multiplier inside the mitigation formula otherwise multiplied with HP and capped every build near wave 50).
   KM.ENEMY_POST10 = { hp: 0.05, dmg: 0.05, arm: 0.01 };
@@ -185,13 +201,14 @@
   KM.SPEEDS = [1, 1.5, 2, 3, 5]; KM.ZOOMS = [1, 1.5, 2, 3];
   KM.zoomDepth = z => z >= 3 ? 1 : z >= 2 ? 0.65 + 0.35 * (z - 2) : z >= 1.5 ? 0.35 + 0.6 * (z - 1.5) : 0.7 * (Math.max(1, z) - 1);   // 0 = closest view (1×) … 1 = the whole approach up to the enemy entry (3×)
   KM.emptyPlan = () => Object.fromEntries(KM.PROD_ORDER.map(k => [k, 0]));
-  KM.planMax = k => Math.floor(KM.ARMY_CAP / KM.PROD[k].pts);
+  KM.planCapNow = () => KM.planCap || KM.ARMY_CAP;   // CRUSADES sets KM.planCap to the mission's capacity; otherwise the global 300
+  KM.planMax = k => Math.floor(KM.planCapNow() / KM.PROD[k].pts);
   KM.planRow = k => KM.W.ROW_MAX[k] || 0;
   KM.planPts = p => KM.PROD_ORDER.reduce((a, k) => a + ((p && p[k]) || 0) * KM.PROD[k].pts, 0);
   KM.planGold = (p, lv) => KM.PROD_ORDER.reduce((a, k) => a + ((p && p[k]) || 0) * KM.deployCost(k, (lv && lv[k]) || 1), 0);
   KM.planOn = p => KM.planPts(p) > 0;
-  KM.planCanAdd = (p, k, n) => { n = n || 1; return (p[k] || 0) + n <= KM.planMax(k) && KM.planPts(p) + n * KM.PROD[k].pts <= KM.ARMY_CAP; };
-  KM.validPlan = raw => { const o = KM.emptyPlan(); let left = KM.ARMY_CAP; if (!raw || typeof raw !== 'object') return o;   // integers ≥ 0, ≤ class max, total ≤ 300 (filled in display order)
+  KM.planCanAdd = (p, k, n) => { n = n || 1; return (p[k] || 0) + n <= KM.planMax(k) && KM.planPts(p) + n * KM.PROD[k].pts <= KM.planCapNow(); };
+  KM.validPlan = raw => { const o = KM.emptyPlan(); let left = KM.planCapNow(); if (!raw || typeof raw !== 'object') return o;   // integers ≥ 0, ≤ class max, total ≤ 300 (filled in display order)
     for (const k of KM.PROD_ORDER) { const v = raw[k]; if (typeof v !== 'number' || !isFinite(v) || v < 0) continue; const n = Math.min(Math.floor(v), KM.planMax(k), Math.floor(left / KM.PROD[k].pts)); o[k] = n; left -= n * KM.PROD[k].pts; }
     return o; };
 

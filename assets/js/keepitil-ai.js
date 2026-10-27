@@ -444,7 +444,9 @@
          keyboard. Sized from visualViewport instead — the only box that excludes the keyboard
          — via --kilo-vh/--kilo-vtop, which kiloSyncViewport() keeps current. Falls back to
          100dvh where visualViewport is unavailable. */
-      '#kilo-panel{position:fixed;left:0;right:0;width:100vw;max-width:100vw;z-index:99999;',
+      /* width:auto with left and right, not 100vw. 100vw includes the scrollbar and
+         pulls the page sideways on a phone. */
+      '#kilo-panel{position:fixed;left:0;right:0;width:auto;max-width:none;z-index:99999;',
       'top:var(--kilo-vtop,0px);height:var(--kilo-vh,100dvh);max-height:var(--kilo-vh,100dvh);bottom:auto;',
       'background:#0f0f1a;border:0;border-radius:0;',
       'display:flex;flex-direction:column;overflow:hidden;',
@@ -605,11 +607,15 @@
       /* Phone placement — also root-only before consolidation. */
       '@media(max-width:480px){#kilo-btn{bottom:66px;right:18px;}}',
       '@media(max-width:768px){#kilo-btn{bottom:132px;right:18px;}',
-      '#kilo-msgs{scroll-padding-top:env(safe-area-inset-top,0px);}',
-      /* No safe-area padding under the composer: visualViewport already excludes both the
-         keyboard and the home indicator, so adding the inset again lifts the composer off the
-         keyboard by the height of the indicator and leaves a gap. */
-      '#kilo-input-row{padding-bottom:12px;}}',
+      '#kilo-msgs{scroll-padding-top:env(safe-area-inset-top,0px);',
+      'padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));}',
+      '#kilo-row1{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right));}',
+      /* --kilo-safe is the home-indicator inset while the keyboard is closed, and 0px while
+         it is open. visualViewport ends at the keyboard, so the inset must not be added twice. */
+      '#kilo-input-row{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));',
+      'padding-bottom:calc(12px + var(--kilo-safe, env(safe-area-inset-bottom)));}',
+      '#kilo-send{width:44px;height:44px;}',
+      '.kilo-chip{min-height:44px;padding:10px 14px;}}',
     ].join('');
 
     var s = document.createElement('style');
@@ -2083,15 +2089,23 @@
        Everything here is a no-op where visualViewport is missing; the CSS falls back to
        100dvh, which is the behaviour this replaces. */
     var vv = window.visualViewport || null;
+    function kiloCoarse(){
+      try {
+        return !!(window.matchMedia && window.matchMedia('(max-width:768px), (pointer:coarse)').matches);
+      } catch (e) { return false; }
+    }
     function kiloSyncViewport(){
       if(!vv || !isOpen) return;
       var r = document.documentElement.style;
-      r.setProperty('--kilo-vh',  Math.round(vv.height) + 'px');
+      var h = Math.round(vv.height);
+      r.setProperty('--kilo-vh',  h + 'px');
       r.setProperty('--kilo-vtop', Math.round(vv.offsetTop) + 'px');
+      var keyboard = (window.innerHeight || 0) - h > 80;
+      r.setProperty('--kilo-safe', keyboard ? '0px' : 'env(safe-area-inset-bottom)');
     }
     function kiloClearViewport(){
       var r = document.documentElement.style;
-      r.removeProperty('--kilo-vh'); r.removeProperty('--kilo-vtop');
+      r.removeProperty('--kilo-vh'); r.removeProperty('--kilo-vtop'); r.removeProperty('--kilo-safe');
     }
     if(vv){
       vv.addEventListener('resize', kiloSyncViewport);
@@ -2130,8 +2144,12 @@
       kiloSyncViewport();
       /* Focus AFTER the panel is laid out, or iOS opens the keyboard against the old
          geometry and the first resize arrives before the panel has a height to shrink. */
-      setTimeout(function(){ try{ input.focus(); }catch(e){} kiloSyncViewport(); kiloStickBottom(); }, 0);
-      input.addEventListener('focus', function(){ setTimeout(function(){ kiloSyncViewport(); kiloStickBottom(); }, 120); });
+      /* Phones open the keyboard on focus and cover the greeting. Desktop still focuses. */
+      setTimeout(function(){
+        if (!kiloCoarse()) { try{ input.focus(); }catch(e){} }
+        kiloSyncViewport();
+        kiloStickBottom();
+      }, 0);
       /* ── ACCOUNT-ONLY (Founder 2026-09-01) ──────────────────────────────────────────
          Signed out there is no conversation to interact with. This is not UI hiding: the
          thread is never rendered, the composer is removed by body.kilo-noauth, and no query
@@ -2277,6 +2295,7 @@
     }
 
     send.addEventListener('click', sendQuery);
+    input.addEventListener('focus', function(){ setTimeout(function(){ kiloSyncViewport(); kiloStickBottom(); }, 120); });
 
     /* Lets a page (keepitil.com/support) open this assistant and optionally ask a first
        question on the customer's behalf. */

@@ -12,7 +12,8 @@
   app are served this document network-first by that worker; see sw.js.)
   Two jobs other live code depends on are kept, unchanged from the retired page:
     1. A home-screen (PWA) launch that still opens /app/tuitea/ goes straight to the web app.
-    2. An invitation link (/join -> ?invite=<token>) still saves its token for the web app.
+    2. An invitation link (/join -> ?invite=<token>) still saves its token for the web app, and (EK-015)
+       "Open TUITEA" and the PWA redirect forward it to the app as ?token=<token>.
   The manifest id stays /app/tuitea/, so this path must exist; do not delete it.
   Rollback: revert this commit (restores the support redirect).
 -->
@@ -22,13 +23,20 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script>
 (function () {
+  // EK-015: the app reads an invitation from ?token= (lib/services/invite_links.dart), so a valid
+  // ?invite=<token> is forwarded to the app as ?token=<token> -- by the PWA redirect and by "Open TUITEA".
+  var t = '';
+  try { t = (new URLSearchParams(location.search).get('invite') || '').toLowerCase(); } catch (e) {}
+  if (!/^[0-9a-f]{32}$/.test(t)) t = '';
+  var appUrl = '/app/tuitea/app/' + (t ? '?token=' + t : '');
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
                    window.navigator.standalone === true;
-  if (standalone) { window.location.replace('/app/tuitea/app/' + location.search + location.hash); return; }
-  try {
-    var t = (new URLSearchParams(location.search).get('invite') || '').toLowerCase();
-    if (/^[0-9a-f]{32}$/.test(t)) localStorage.setItem('tuitea-pending-invite', t);
-  } catch (e) {}
+  if (standalone) { window.location.replace(t ? appUrl + location.hash : '/app/tuitea/app/' + location.search + location.hash); return; }
+  try { if (t) localStorage.setItem('tuitea-pending-invite', t); } catch (e) {}
+  if (t) document.addEventListener('DOMContentLoaded', function () {
+    var a = document.querySelector('a.open');
+    if (a) a.setAttribute('href', appUrl);
+  });
 })();
 </script>
 <style>

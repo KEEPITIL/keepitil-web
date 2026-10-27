@@ -346,7 +346,36 @@
       : [{ label:'Log in',  href:'/apply'   }, { label:'Create', href:KIL_CREATE_URL }];
   }
 
-  var WELCOME_CHIPS = [];   /* kept for the renderer; the two actions are rendered separately */
+  /* Suggested prompts on the greeting. These ask CHO something — Log in / Profile stay
+     in the header, so the first screen is not a second copy of those links. */
+  var WELCOME_CHIPS = [
+    'What is KEEPITIL?',
+    'Where can I find events?',
+    'How does KEEPITIL Radio work?',
+    'How do I create an account?'
+  ];
+  function kiloWelcomeChips() {
+    if (kilSignedIn()) {
+      return [
+        'What can I enter on CREATE?',
+        'Find upcoming events',
+        'How does Earn work?',
+        'Play KEEPITIL Radio'
+      ];
+    }
+    return WELCOME_CHIPS.slice();
+  }
+  function kiloWelcomeCard() {
+    return {
+      title: 'CHO',
+      text: kilSignedIn()
+        ? 'Hi, I\'m CHO. I can find events, open profiles, play Radio, and help you submit work. Pick a prompt or ask in your own words.'
+        : 'Hi, I\'m CHO. I can help you learn KEEPITIL and find events, artists, Culture, Radio, and Earn. Pick a prompt or ask in your own words.',
+      chips: kiloWelcomeChips()
+    };
+  }
+  window.__kiloWelcomeChips = kiloWelcomeChips;
+  window.__kiloWelcomeCard = kiloWelcomeCard;
 
   // ── Match intent from user text ──────────────────────────────────────────────
   function matchIntent(text) {
@@ -627,7 +656,7 @@
       '</div>',
       '<div id="kilo-msgs"></div>',
       '<div id="kilo-input-row">',
-        '<input id="kilo-input" type="text" placeholder="Ask me anything about the scene…" maxlength="300" autocomplete="off"/>',
+        '<input id="kilo-input" type="text" placeholder="Ask CHO about KEEPITIL…" maxlength="300" autocomplete="off"/>',
         '<button id="kilo-send" aria-label="Send">',
           '<svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>',
         '</button>',
@@ -976,7 +1005,7 @@
     return matchIntent(text) || {
       title: '🔍 I\'m not sure about that',
       text: 'I didn\'t catch that one. Try asking about events, booking artists, organizing events, brand partnerships, DJ tips, or the SoCal underground scene. Or pick a topic below:',
-      chips: WELCOME_CHIPS,
+      chips: kiloWelcomeChips(),
     };
   }
 
@@ -2032,11 +2061,7 @@
         /* §50: the old greeting described KEEPITIL as a SoCal music guide. The product is an
            events + creators + competitions + culture + radio ecosystem and the data no longer
            supports that framing, so the copy stops claiming it. */
-        addMessage('bot', {
-          title: 'CHO',
-          text: 'I can find events, open creator profiles and articles, show you what you can enter on CREATE, play KEEPITIL Radio and help you submit work. What do you need?',
-          chips: WELCOME_CHIPS,
-        });
+        addMessage('bot', kiloWelcomeCard());
         /* §49: renderWelcomeActions() drew LOG IN / CREATE inside the conversation. Row 2
            is now those exact destinations, permanently visible and outside the scroll —
            so the in-message pair was the same two buttons twice, costing the first

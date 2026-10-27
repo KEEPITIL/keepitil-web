@@ -5,30 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TUITEA</title>
 <!--
-  RETIRED 2026-10-12 (owner directive "TUITEA website cleanup"). This was the public marketing
-  and over-the-air install page for Build 76 ("Free. Nothing to buy…", itms-services install).
-  The installers are removed; no product claims remain. Two jobs other live code depends on are
-  kept, then the visitor goes to the one approved TUITEA destination, https://keepitil.com/support/?product=tuitea
-    1. A home-screen (PWA) launch that still opens /app/tuitea/ goes to the web app, as pwa.js did.
+  EK-012 (2026-10-26): entry page restored. Replaces the 2026-10-12 retirement redirect that sent
+  every browser to /support/?product=tuitea. This page now links to the web app at /app/tuitea/app/
+  and keeps the support link. Deliberately static: it does NOT load ../pwa.js, so visiting this
+  page registers no service worker. (Visitors who already have /app/tuitea/sw.js registered by the
+  app are served this document network-first by that worker; see sw.js.)
+  Two jobs other live code depends on are kept, unchanged from the retired page:
+    1. A home-screen (PWA) launch that still opens /app/tuitea/ goes straight to the web app.
     2. An invitation link (/join -> ?invite=<token>) still saves its token for the web app.
-  Static hosting cannot send a 301: canonical tag, meta refresh (no-JS), and replace().
   The manifest id stays /app/tuitea/, so this path must exist; do not delete it.
+  Rollback: revert this commit (restores the support redirect).
 -->
-<link rel="canonical" href="https://keepitil.com/support/?product=tuitea">
 <meta name="robots" content="noindex, follow">
-<noscript><meta http-equiv="refresh" content="0; url=https://keepitil.com/support/?product=tuitea"></noscript>
+<meta name="theme-color" content="#3F7658">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script>
 (function () {
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
                    window.navigator.standalone === true;
-  if (standalone) { window.location.replace('/app/tuitea/app/'); return; }
+  if (standalone) { window.location.replace('/app/tuitea/app/' + location.search + location.hash); return; }
   try {
     var t = (new URLSearchParams(location.search).get('invite') || '').toLowerCase();
     if (/^[0-9a-f]{32}$/.test(t)) localStorage.setItem('tuitea-pending-invite', t);
   } catch (e) {}
-  window.location.replace("https://keepitil.com/support/?product=tuitea");
 })();
 </script>
+<style>
+  :root{--bg:#FBF7EF;--fg:#20261F;--muted:#6E7566;--forest:#3F7658}
+  @media (prefers-color-scheme: dark){:root{--bg:#14170F;--fg:#ECE7DA;--muted:#A9AE9F}}
+  html,body{margin:0;background:var(--bg);color:var(--fg)}
+  body{font:17px/1.5 ui-sans-serif,system-ui,-apple-system,sans-serif;
+       min-height:100vh;display:flex;align-items:center;justify-content:center}
+  main{max-width:28rem;padding:2rem 16px;text-align:center}
+  img{width:72px;height:72px;border-radius:18px}
+  h1{font-size:1.4rem;letter-spacing:.14em;margin:.75rem 0 .25rem}
+  p{margin:.5rem 0;color:var(--muted)}
+  .open{display:inline-block;margin:1.25rem 0 .75rem;background:var(--forest);color:#fff;
+        border-radius:999px;padding:.75rem 1.5rem;font-weight:600;text-decoration:none}
+  .support a{color:inherit}
+</style>
 </head>
-<body><p>TUITEA's page is now <a href="https://keepitil.com/support/?product=tuitea">keepitil.com/support</a>.</p></body>
+<body>
+<main>
+  <img src="icon-192.png" alt="">
+  <h1>TUITEA</h1>
+  <p>A private family app.</p>
+  <a class="open" href="/app/tuitea/app/">Open TUITEA</a>
+  <p class="support">Need help? <a href="https://keepitil.com/support/?product=tuitea">TUITEA support</a></p>
+</main>
+</body>
 </html>

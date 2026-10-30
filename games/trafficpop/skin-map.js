@@ -11,7 +11,7 @@
   function home() {
     var title = document.querySelector('#map .title'); if (!title || title.dataset.tp) return; title.dataset.tp = '1';
     var top = document.createElement('div'); top.className = 'tp-top';
-    top.innerHTML = '<span>TRAFFIC POP</span><span><svg viewBox="-1.1 -1.1 2.2 2.2" aria-hidden="true"><path d="M0-1L.24-.33H.95L.38.1.59.8 0 .38-.59.8-.38.1-.95-.33H-.24Z"/></svg> <b id="tpStars">0</b></span>';
+    top.innerHTML = '<span><svg viewBox="-1.1 -1.1 2.2 2.2" aria-hidden="true"><path d="M0-1L.24-.33H.95L.38.1.59.8 0 .38-.59.8-.38.1-.95-.33H-.24Z"/></svg> <b id="tpStars">0</b></span><span>LEVEL <b id="tpLevel">1</b></span>';
     title.parentNode.insertBefore(top, title);
     var pv = document.createElement('div'); pv.className = 'tp-preview'; pv.setAttribute('aria-hidden', 'true');
     var cars = [['car', 'red', 'up', 0, 1], ['van', 'blue', 'right', 1, 0], ['car', 'yellow', 'down', 3, 1], ['bus', 'green', 'up', 4, 0], ['car', 'purple', 'left', 2, 2]];
@@ -32,6 +32,7 @@
   function snake() {
     var box = document.getElementById('levels'); if (!box) return;
     var el = document.getElementById('tpStars'); if (el) el.textContent = stars();
+    var cur = box.querySelector('.lv.current b'), lv = document.getElementById('tpLevel'); if (cur && lv) lv.textContent = cur.textContent;
     var save = {}; try { save = JSON.parse(localStorage.getItem('trafficpop.save.v1') || '{}'); } catch (e) {}
     box.querySelectorAll('.row').forEach(function (row) {
       var nodes = Array.prototype.slice.call(row.querySelectorAll('.lv')); if (!nodes.length) return;
@@ -44,8 +45,8 @@
       nodes.forEach(function (n, i) {
         var sz = n.classList.contains('current') ? 76 : 60;
         n.style.left = (pts[i][0] - sz / 2) + 'px'; n.style.top = (pts[i][1] - sz / 2) + 'px';
-        var star = n.querySelector('small');
-        if (!n.classList.contains('locked') && !n.classList.contains('current') && star && star.textContent) n.classList.add('done');
+        // Unlocked and not the current level means it has been cleared (a clear always earns a star).
+        if (!n.classList.contains('locked') && !n.classList.contains('current')) n.classList.add('done');
       });
       var d = 'M' + pts.map(function (p) { return p[0] + ' ' + p[1]; }).join('L');
       var svg = row.querySelector('.tp-path') || row.insertBefore(document.createElementNS(NS, 'svg'), row.firstChild);

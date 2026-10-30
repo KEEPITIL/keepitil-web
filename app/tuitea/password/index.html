@@ -18,9 +18,13 @@
   phone. There is nothing to hand over: TUITEA signs in with the password
   afterwards, like any normal application.
 
-  It is not a web version of TUITEA. The owner does not want Safari to be an
-  alternate way into the family's records, so this page shows two fields and a
-  sentence, and nothing else. There is no link from here into the app shell.
+  It is not a web version of TUITEA: it never signs the browser in to the app.
+  BUILD 88 PHASE 2 (owner: "fix the /password page dead end"): every state now
+  offers a way forward. A failed or expired link offers "Email me a new link"
+  right here (rate limits said as a wait); a finished password, and a
+  confirmation link (?flow=confirm, a new account's "Confirm your email"), offer
+  sign-in — TUITEA on the web (/app/tuitea/app/, the app's own front door) or
+  the app on the phone. The page itself still holds no session afterwards.
 
   It signs itself OUT the moment the password is saved, so a recovery link
   opened on a borrowed or shared device does not leave a live session behind in
@@ -59,6 +63,11 @@
   .err{color:var(--warn)}
   .done h2{margin-bottom:10px}
   [hidden]{display:none!important}
+  a.go{display:block;text-align:center;margin-top:16px;padding:14px;min-height:48px;font-weight:600;
+       border-radius:10px;background:var(--ocean);color:#fff;text-decoration:none}
+  .signin{margin-top:14px}
+  .signin a{color:var(--ocean);font-weight:600}
+  .ok{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -79,11 +88,22 @@
       <button id="save" disabled>Save password</button>
     </div>
     <div id="msg" class="msg"></div>
+
+    <!-- The way forward when the link did not work: a new one, sent from here. -->
+    <div id="again" hidden>
+      <label for="again-email">Your email</label>
+      <input id="again-email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com">
+      <button id="again-send">Email me a new link</button>
+      <div id="again-msg" class="msg"></div>
+      <p class="signin">Already set your password? <a href="/app/tuitea/app/">Sign in to TUITEA</a></p>
+    </div>
   </div>
 
   <div id="done-view" class="done" hidden>
-    <h2>Your password has been updated.</h2>
-    <p>Open TUITEA and sign in with your email and this password.</p>
+    <h2 id="done-title">Your password has been updated.</h2>
+    <p id="done-body">Sign in to TUITEA with your email and this password.</p>
+    <a class="go" href="/app/tuitea/app/">Sign in to TUITEA on the web</a>
+    <p>On iPhone, open the TUITEA app and sign in there.</p>
   </div>
 </main>
 
@@ -106,18 +126,88 @@ const $ = (id) => document.getElementById(id);
 const intro = $('intro'), fields = $('fields'), msg = $('msg');
 const pw = $('pw'), pw2 = $('pw2'), save = $('save');
 
-const fail = (text) => { intro.textContent = ''; msg.className = 'msg err'; msg.textContent = text; };
+const PAGE = 'https://keepitil.com/app/tuitea/password/';
+const CONFIRM = PAGE + '?flow=confirm';
+let confirmFlow = false;
+
+// A failure is never the end: say what happened, then offer a new link right here.
+const fail = (text) => {
+  intro.textContent = ''; msg.className = 'msg err'; msg.textContent = text;
+  $('again').hidden = false;
+  $('again-send').textContent = confirmFlow ? 'Email me a new confirmation link' : 'Email me a new link';
+};
+
+const confirmed = () => {
+  $('form-view').hidden = true;
+  $('done-title').textContent = 'Your email is confirmed.';
+  $('done-body').textContent = 'You can sign in to TUITEA now with your email and password.';
+  $('done-view').hidden = false;
+};
+
+// Supabase's own limits, said as a wait — never as "sent".
+const limitWords = (e) => {
+  const code = (e && (e.code || '')) + '', status = e && e.status;
+  if (code === 'over_email_send_rate_limit' || status === 429 && /email/i.test(e.message || ''))
+    return 'Too many emails have been requested just now. Please wait a few minutes, then try again.';
+  if (code === 'over_request_rate_limit' || status === 429)
+    return 'Too many attempts just now. Please wait a minute, then try again.';
+  return null;
+};
+
+$('again-send').addEventListener('click', async () => {
+  const out = $('again-msg'), btn = $('again-send');
+  const email = $('again-email').value.trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    out.className = 'msg err'; out.textContent = "That doesn't look like an email address."; return;
+  }
+  btn.disabled = true; const label = btn.textContent; btn.textContent = 'Sending…';
+  let error = null;
+  try {
+    const r = confirmFlow
+      ? await sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: CONFIRM } })
+      : await sb.auth.resetPasswordForEmail(email, { redirectTo: PAGE });
+    error = r.error;
+  } catch (e) { error = e; }
+  btn.textContent = label;
+  if (error) {
+    btn.disabled = false;
+    out.className = 'msg err';
+    out.textContent = limitWords(error) || "We couldn't send the email just now. Check your connection and try again.";
+    return;
+  }
+  // Only after Supabase accepted it. Worded so it never says whether an account exists.
+  out.className = 'msg ok';
+  out.textContent = 'Sent. If ' + email + ' has a TUITEA account, a new email is on its way — check Spam or Junk too.';
+  setTimeout(() => { btn.disabled = false; }, 60000);
+});
 
 async function begin() {
   const url = new URL(location.href);
   const params = url.searchParams;
   const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
 
+  const flowType = (params.get('type') || hash.get('type') || '').toLowerCase();
+  confirmFlow = params.get('flow') === 'confirm' || ['signup', 'email', 'email_change', 'invite'].includes(flowType);
+
   const problem = params.get('error_description') || hash.get('error_description');
   if (problem) {
-    return fail(/expired/i.test(problem)
-      ? 'That link has expired. Open TUITEA, tap Forgot password, and ask for a new one. Nothing on your account has changed.'
-      : 'That link did not work. Open TUITEA and ask for a new one.');
+    return fail(/expired|invalid|already/i.test(problem)
+      ? 'That link has expired or was already used. Nothing on your account has changed — get a new one below.'
+      : 'That link did not work. Nothing on your account has changed — get a new one below.');
+  }
+
+  // A NEW ACCOUNT'S CONFIRMATION (build 88 phase 2). Supabase confirms the address before it
+  // redirects here; the app's PKCE code cannot be redeemed in this browser and is not needed.
+  // An older-style confirmation with a token_hash is verified, then the session is dropped.
+  if (confirmFlow) {
+    const th = params.get('token_hash');
+    if (th) {
+      const { error } = await sb.auth.verifyOtp({ token_hash: th, type: flowType || 'email' });
+      if (error) return fail('That confirmation link has expired or was already used. If you already confirmed, just sign in — otherwise get a new one below.');
+      try { await sb.auth.signOut(); } catch {}
+    }
+    history.replaceState(null, '', location.pathname);
+    return confirmed();
   }
 
   // Two shapes reach this page: the current token_hash form, and the older
@@ -136,10 +226,10 @@ async function begin() {
       const { error } = await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
       if (error) throw error;
     } else {
-      return fail('This page needs a link from a TUITEA password email. Open TUITEA and tap Forgot password.');
+      return fail('This page needs the link from a TUITEA password email. Get a new one below.');
     }
   } catch (e) {
-    return fail('That link has expired or has already been used. Open TUITEA and ask for a new one — nothing on your account has changed.');
+    return fail('That link has expired or has already been used. Nothing on your account has changed — get a new one below.');
   }
 
   // The token is spent. Take it out of the address bar so it is not left in

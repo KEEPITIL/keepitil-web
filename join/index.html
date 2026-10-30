@@ -48,6 +48,12 @@
   details{margin-top:1rem;font-size:.86rem}
   summary{cursor:pointer;color:var(--ocean)}
   code{font-size:.85rem;background:var(--bg);padding:.15rem .4rem;border-radius:6px;user-select:all;word-break:break-all}
+  form#codeform{margin:1rem 0 .4rem;text-align:left}
+  form#codeform label{display:block;font-size:.88rem;font-weight:600;margin-bottom:.35rem;color:var(--ink)}
+  form#codeform input{width:100%;box-sizing:border-box;padding:.75rem .8rem;font-size:1rem;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  form#codeform button{margin-top:.6rem;width:100%;padding:.8rem;border:0;border-radius:999px;background:var(--ocean);color:#fff;font-weight:600;font-size:1rem;cursor:pointer}
+  #codeerr{color:#B4472F;font-size:.88rem;margin:.5rem 0 0;min-height:1.2em}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #codeerr{color:#E38B72}}
 </style>
 </head>
 <body>
@@ -56,25 +62,32 @@
     <h1>You're invited to TUITEA</h1>
     <p id="msg">Someone in your family has invited you to their household.</p>
 
+    <!-- Build 88 phase 2: no link, or a broken one, is not a dead end. The invite code is the
+         same 32 characters as the link's token, shown in groups of four in the invite message. -->
+    <form id="codeform" hidden novalidate>
+      <label for="code">Invite code</label>
+      <input id="code" name="code" autocomplete="off" autocapitalize="none" spellcheck="false"
+             inputmode="text" placeholder="1a2b-3c4d-5e6f-…">
+      <p id="codeerr" role="alert"></p>
+      <button type="submit">Continue</button>
+    </form>
+
     <div id="flow" hidden>
       <p><a class="btn" id="open" href="#">Open in TUITEA</a></p>
 
       <div id="notyet" hidden>
         <p>TUITEA isn't on this iPhone yet.</p>
-        <p><a class="btn" id="get" href="https://keepitil.com/app/tuitea/">Get TUITEA</a></p>
+        <p><a class="btn" id="get" href="https://keepitil.com/app/tuitea/app/">Use TUITEA on the web</a></p>
       </div>
 
       <ol class="steps">
-        <li>Get TUITEA on this iPhone.</li>
-        <li>Open TUITEA and sign in with your email and a password.</li>
-        <li>Your invitation is waiting inside — you'll be asked who you are in the family.</li>
+        <li>Open TUITEA on your iPhone, or <a id="web" href="https://keepitil.com/app/tuitea/app/">use TUITEA on the web</a>.</li>
+        <li>Sign in, or create an account with your email and a password.</li>
+        <li>Your invitation is waiting inside. If TUITEA asks, choose <em>I was invited</em> and type the code below.</li>
       </ol>
       <p class="small">Invitations sent to your email address are recognised automatically when you sign in.</p>
 
-      <details>
-        <summary>Having trouble? Show invitation code</summary>
-        <p class="small" style="margin-top:.6rem">If TUITEA asks for an invitation code, use this one: <code id="tok"></code></p>
-      </details>
+      <p class="small">Your invite code: <code id="tok"></code></p>
     </div>
 
     <p class="small">You will still need to be approved by the household before you can see anything. Nothing about your family is shown on this page.</p>
@@ -84,18 +97,46 @@
       var q = new URLSearchParams(location.search);
       var t = (q.get('t') || q.get('token') || '').toLowerCase();
       if (!t) { var seg = location.pathname.split('/').filter(Boolean); var i = seg.indexOf('join'); if (i >= 0 && seg[i+1]) t = seg[i+1].toLowerCase(); }
-      if (!/^[0-9a-f]{32}$/.test(t)) {
-        document.getElementById('msg').textContent = 'This invitation link is incomplete. Ask the person who sent it to share it again.';
-        return;
+      var form = document.getElementById('codeform');
+      var open = document.getElementById('open');
+      var notyet = document.getElementById('notyet');
+      var input = document.getElementById('code');
+      var err = document.getElementById('codeerr');
+
+      // The same rules as the app's InviteLinks.resolve: dashes, spaces and case are ignored;
+      // the problem is named (how many characters, which ones cannot be in a code).
+      function check(raw) {
+        var c = String(raw || '').toLowerCase().replace(/[\s\-\u2013\u2014_.]/g, '');
+        if (!c) return { problem: 'Type the invite code you were sent.' };
+        if (/^[0-9a-f]{32}$/.test(c)) return { token: c };
+        var bad = c.replace(/[0-9a-f]/g, '');
+        if (bad) return { problem: 'Invite codes use only the numbers 0\u20139 and the letters a\u2013f. Check \u201c' + bad.charAt(0) + '\u201d.' };
+        return { problem: c.length < 32
+          ? 'That code is ' + (32 - c.length) + ' characters short \u2014 invite codes have 32. Check you typed every group.'
+          : 'That code has ' + (c.length - 32) + ' characters too many \u2014 invite codes have 32.' };
+      }
+      function grouped(tok) { return tok.match(/.{4}/g).join('-'); }
+
+      function show(tok) {
+        var get   = document.getElementById('get');
+        var web   = document.getElementById('web');
+        open.href = 'tupu://join?token=' + tok;
+        // Straight to the web app with the invitation; no page in between.
+        get.href  = 'https://keepitil.com/app/tuitea/app/?invite=' + tok;
+        web.href  = get.href;
+        document.getElementById('tok').textContent = grouped(tok);
+        form.hidden = true;
+        document.getElementById('flow').hidden = false;
       }
 
-      var open  = document.getElementById('open');
-      var get   = document.getElementById('get');
-      var notyet = document.getElementById('notyet');
-      open.href = 'tupu://join?token=' + t;
-      get.href  = 'https://keepitil.com/app/tuitea/?invite=' + t;
-      document.getElementById('tok').textContent = t;
-      document.getElementById('flow').hidden = false;
+      form.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var r = check(input.value);
+        if (r.problem) { err.textContent = r.problem; input.focus(); return; }
+        err.textContent = '';
+        document.getElementById('msg').textContent = 'Someone in your family has invited you to their household.';
+        show(r.token);
+      });
 
       // If the app is installed, iOS leaves this page (it goes hidden) as TUITEA
       // opens. If we are still visible ~1.2s after the tap, the app is not here.
@@ -112,6 +153,16 @@
           if (!left && document.visibilityState === 'visible') notyet.hidden = false;
         }, 1200);
       });
+      if (!/^[0-9a-f]{32}$/.test(t)) {
+        document.getElementById('msg').textContent = t
+          ? 'This invitation link looks incomplete. Type the invite code from the message instead, or ask for the link again.'
+          : 'Have an invite code? Type it here.';
+        form.hidden = false;
+        return;
+      }
+
+      show(t);
+
     })();
   </script>
 </body>

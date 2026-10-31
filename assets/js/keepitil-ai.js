@@ -728,11 +728,12 @@
       var s = c && c.auth && c.auth._currentSession;
       if (s && s.access_token) tok = s.access_token;
     } catch (e) {}
-    return fetch(KIL_SUPA_URL + '/rest/v1/rpc/ask_crew', {
+    kiloNet.attempts += 1;
+    return kilFetch(KIL_SUPA_URL + '/rest/v1/rpc/ask_crew', {
       method: 'POST',
       headers: { 'apikey': KIL_SUPA_ANON, 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' },
       body: JSON.stringify({ p_question: text }),
-    }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
+    }).then(function(r) { return r.ok ? r.json() : kiloNetFail(); }).catch(function() { return kiloNetFail(); });
   }
   function brainCard(d) {
     if (!d || !d.ok) return null;
@@ -770,11 +771,12 @@
       if (role) body.userRole = role;
       if (genres) body.userGenre = genres.split(',')[0] || genres;
     } catch (e) {}
-    return fetch(KIL_SUPA_URL + '/functions/v1/ask-echo', {
+    kiloNet.attempts += 1;
+    return kilFetch(KIL_SUPA_URL + '/functions/v1/ask-echo', {
       method: 'POST',
       headers: { 'apikey': KIL_SUPA_ANON, 'Authorization': 'Bearer ' + KIL_SUPA_ANON, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-    }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
+    }).then(function(r) { return r.ok ? r.json() : kiloNetFail(); }).catch(function() { return kiloNetFail(); });
   }
   function echoCard(d) {
     if (!d || !d.ok || !d.answer) return null;
@@ -1021,7 +1023,8 @@
       // migrated, so sending the legacy slug returns an agent with no persona and no notes.
       var body = { op: 'ask', text: text, surface: 'web', agent: 'cho', privacy_class: 'low' };
       if (kilThreadId) body.thread_id = kilThreadId;
-      return fetch(KIL_RELAY_FN, {
+      kiloNet.attempts += 1;
+      return kilFetch(KIL_RELAY_FN, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1029,8 +1032,8 @@
         },
         body: JSON.stringify(body)
       })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .catch(function () { return null; });
+      .then(function (r) { return r.ok ? r.json() : kiloNetFail(); })
+      .catch(function () { return kiloNetFail(); });
     });
   }
 
@@ -1100,7 +1103,7 @@
 
     return kilSession().then(function (session) {
       if (!session) return null;
-      return fetch(KIL_AGENT_FN, {
+      return kilFetch(KIL_AGENT_FN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
         body: JSON.stringify({ op: 'invoke', tool: tool, args: args, surface: 'web' })
@@ -1181,7 +1184,7 @@
   }
 
   function choRest(path) {
-    return fetch(KIL_SUPA_URL + '/rest/v1/' + path, {
+    return kilFetch(KIL_SUPA_URL + '/rest/v1/' + path, {
       headers: { apikey: KIL_SUPA_ANON, Authorization: 'Bearer ' + KIL_SUPA_ANON }
     }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
   }
@@ -1713,7 +1716,7 @@
   var CHO_BRAIN = null;
   function choBrain() {
     if (CHO_BRAIN) return Promise.resolve(CHO_BRAIN);
-    return fetch(KIL_SUPA_URL + '/rest/v1/rpc/cho_app_brain', {
+    return kilFetch(KIL_SUPA_URL + '/rest/v1/rpc/cho_app_brain', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: KIL_SUPA_ANON,
                  Authorization: 'Bearer ' + KIL_SUPA_ANON },
@@ -1853,9 +1856,53 @@
   }
   window.__choAct = choAct;
 
+  var kiloNet = { attempts: 0, failures: 0 };
+  function kiloNetReset() { kiloNet.attempts = 0; kiloNet.failures = 0; }
+  function kiloNetFail() { kiloNet.failures += 1; return null; }
+  function kiloOffline() { return kiloNet.attempts > 0 && kiloNet.failures === kiloNet.attempts; }
+  /* 8s, then stop. A hung relay used to leave the typing indicator up until the
+     browser gave up, which reads as a frozen chat. */
+  function kilFetch(url, options) {
+    options = options || {};
+    var ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    var timer = null;
+    if (ctrl) {
+      options.signal = ctrl.signal;
+      timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, 8000);
+    }
+    return fetch(url, options).then(function (r) {
+      if (timer) clearTimeout(timer);
+      return r;
+    }, function (err) {
+      if (timer) clearTimeout(timer);
+      throw err;
+    });
+  }
+  function kiloErrorCard(text) {
+    var again = String(text || '').trim();
+    var chips = [];
+    if (again && again.length <= 80) chips.push(again);
+    chips.push('What is KEEPITIL?');
+    return {
+      title: 'Connection problem',
+      text: 'I couldn\'t reach KEEPITIL just now. Check your connection and try again.',
+      chips: chips
+    };
+  }
+  function kiloFinish(text, echoBody) {
+    var card = echoCard(echoBody);
+    if (card) return card;
+    var known = matchIntent(text);
+    if (known) return known;
+    if (kiloOffline()) return kiloErrorCard(text);
+    return fallbackCard(text);
+  }
+  window.__kiloErrorCard = kiloErrorCard;
+
   function handleQuery(text) {
     addMessage('user', text);
     showTyping();
+    kiloNetReset();
 
     /* SUPPORT MODE: curated support answers only (see KIL_SUPPORT_KB). */
     if (window.KIL_SUPPORT_MODE) {
@@ -1911,14 +1958,14 @@
           if (card) { hideTyping(); addMessage('bot', card); return; }
           return askEcho(text).then(function (e) {
             hideTyping();
-            addMessage('bot', echoCard(e) || fallbackCard(text));
+            addMessage('bot', kiloFinish(text, e));
           });
         });
       });
       });          /* close askAgent().then */
     }).catch(function () {
       hideTyping();
-      addMessage('bot', fallbackCard(text));
+      addMessage('bot', kiloFinish(text, null));
     });
   }
 

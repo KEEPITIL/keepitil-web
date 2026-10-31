@@ -1,0 +1,122 @@
+{
+  "store": "https://www.illestratedlifestyle.com",
+  "utm": {
+    "utm_source": "keepitil",
+    "utm_medium": "site",
+    "utm_campaign": "shop"
+  },
+  "refundPolicy": "https://www.illestratedlifestyle.com/policies/refund-policy",
+  "contact": "mailto:info@keepitil.com",
+  "collections": [
+    {
+      "id": "all-merch",
+      "name": "All merch",
+      "path": "/collections/all-merch",
+      "utmContent": "all-merch"
+    },
+    {
+      "id": "tees",
+      "name": "Tees",
+      "path": "/collections/tees",
+      "utmContent": "tees"
+    },
+    {
+      "id": "sweaters",
+      "name": "Sweaters & Crewnecks",
+      "path": "/collections/sweaters-crewnecks",
+      "utmContent": "sweaters"
+    },
+    {
+      "id": "totes",
+      "name": "Totes & Bags",
+      "path": "/collections/totes-bags",
+      "utmContent": "totes"
+    },
+    {
+      "id": "wall-art",
+      "name": "Canvas & Wall Art",
+      "path": "/collections/canvas-wall-art",
+      "utmContent": "wall-art"
+    },
+    {
+      "id": "mugs",
+      "name": "Mugs",
+      "path": "/collections/all-merch",
+      "utmContent": "mugs"
+    },
+    {
+      "id": "digital-assets",
+      "name": "For Artists",
+      "path": "/collections/all-digital-assets",
+      "utmContent": "digital-assets"
+    },
+    {
+      "id": "services",
+      "name": "Services",
+      "path": "/collections/services",
+      "utmContent": "services"
+    },
+    {
+      "id": "downloads",
+      "name": "Downloads",
+      "path": "/collections/downloads",
+      "utmContent": "downloads"
+    }
+  ],
+  "offers": [
+    {
+      "id": "release-strategy-session",
+      "name": "Release Strategy Session",
+      "category": "service",
+      "price": 150,
+      "utmContent": "session",
+      "bullets": [
+        "A short intake form before the call (your music links, release date, and goals)",
+        "A 45-minute 1:1 remote video call",
+        "A release timeline built around your date",
+        "Three promotion actions to focus on, in order",
+        "A written summary within 2 business days"
+      ],
+      "delivery": "After checkout, we email you within 24 hours to schedule the call.",
+      "needs": "",
+      "notes": "Reschedule free with 24 hours' notice. No guarantee of streams or placements.",
+      "url": "https://www.illestratedlifestyle.com/products/release-strategy-session",
+      "status": "live"
+    },
+    {
+      "id": "release-graphics-pack",
+      "name": "Release Graphics Pack",
+      "category": "service",
+      "price": 99,
+      "utmContent": "graphics-pack",
+      "bullets": [
+        "7 custom graphics for your release",
+        "3 sizes: square, story, and wide (1600x900)",
+        "Delivered in 3 business days of receiving your brief",
+        "A short brief after checkout"
+      ],
+      "delivery": "PNG files by email. No shipping.",
+      "needs": "Cover art you own, the release title, and the release date.",
+      "notes": "",
+      "url": "https://www.illestratedlifestyle.com/products/release-graphics-pack",
+      "status": "live"
+    },
+    {
+      "id": "release-rollout-kit",
+      "name": "Release Rollout Kit",
+      "category": "download",
+      "price": 19,
+      "utmContent": "rollout-kit",
+      "bullets": [
+        "7-day launch plan PDF",
+        "Download link in your order email",
+        "Available right after checkout"
+      ],
+      "delivery": "The download link is in your order email. No shipping.",
+      "needs": "",
+      "notes": "No guarantee of streams or placements.",
+      "url": "https://www.illestratedlifestyle.com/products/release-rollout-kit",
+      "status": "live"
+    }
+  ]
+}

@@ -75,3 +75,13 @@ body{background:conic-gradient(rgba(255,255,255,.1) 25%,transparent 0 50%,rgba(2
 .lv.current{--l:#FFE58A;--b:#FFC93A;--v:#9A6A00;width:76px;height:76px;box-shadow:0 5px 0 var(--v)}.lv.current b{font-size:28px;color:#0B1B3A}
 .lv small{position:absolute;top:100%;margin-top:6px;color:#FFD23A;font-size:14px;letter-spacing:1px;-webkit-text-stroke:1px #0B1B3A;paint-order:stroke fill}
 .lv.hard{box-shadow:0 5px 0 var(--v),0 0 0 3px #E02F4F}
+
+/* ---------- build 4: the level map is its own screen (Luna §9.4 level-map-mockup) ---------- */
+html:not(.tp-map-open) #levels,html:not(.tp-map-open) .tp-mapbar{display:none}
+.tp-map-open #map .title,.tp-map-open #map .legal,.tp-map-open .tp-top{display:none}
+.tp-map-open #levels{display:flex;flex-direction:column-reverse;padding-bottom:24px}  /* first area at the bottom, climb up */
+.tp-mapbar{position:sticky;top:6px;z-index:5;width:100%;box-sizing:border-box;display:flex;align-items:center;gap:12px;height:56px;border-radius:28px;background:#0B1B3A;color:#fff;font-weight:800;font-size:22px;padding:0 16px 0 6px;margin:6px 0 10px}
+.tp-mapbar b{color:#FFD23A}
+.tp-back{--l:#5CD6FF;--b:#1E9BFF;--v:#0B5FC2;width:44px;height:44px;border-radius:14px;border:2.5px solid #0B1B3A;background:linear-gradient(var(--l),var(--b) 60%);box-shadow:0 4px 0 var(--v);display:flex;align-items:center;justify-content:center;padding:0;flex:none}
+.tp-back svg{width:24px;height:24px;fill:none;stroke:#0B1B3A;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.tp-back:active{transform:translateY(3px);box-shadow:0 1px 0 var(--v)}

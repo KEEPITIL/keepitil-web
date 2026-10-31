@@ -26,22 +26,47 @@
     var sec = document.createElement('div'); sec.className = 'tp-sec';
     sec.innerHTML = '<button class="tp-btn blue" id="tpLevels">LEVELS</button><button class="tp-btn orange" id="tpSettings">SETTINGS</button>';
     title.appendChild(sec);
-    sec.querySelector('#tpLevels').onclick = function () { var c = document.querySelector('.lv.current') || document.getElementById('levels'); c && c.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+    sec.querySelector('#tpLevels').onclick = openMap;
+    // §9.4 level map is its own screen: navy top bar with the current area, a back button, and the
+    // game's own level buttons (moved, not copied, so their click handlers and the game's redraws keep working).
+    var bar = document.createElement('div'); bar.className = 'tp-mapbar'; bar.id = 'tpMapBar';
+    bar.innerHTML = '<button class="tp-back" id="tpBack" aria-label="Back to home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></button><span id="tpMapTitle">LEVELS</span>';
+    var lvls = document.getElementById('levels'); lvls.parentNode.insertBefore(bar, lvls);
+    bar.querySelector('#tpBack').onclick = closeMap;
     sec.querySelector('#tpSettings').onclick = function () { window.TP && TP.settings && TP.settings(); };
   }
+  function openMap() {
+    document.documentElement.classList.add('tp-map-open');
+    snake();
+    var c = document.querySelector('.lv.current'); if (c) c.scrollIntoView({ block: 'center' });
+  }
+  function closeMap() { document.documentElement.classList.remove('tp-map-open'); window.scrollTo(0, 0); }
+  window.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMap(); });
+
   function snake() {
     var box = document.getElementById('levels'); if (!box) return;
     var el = document.getElementById('tpStars'); if (el) el.textContent = stars();
     var cur = box.querySelector('.lv.current b'), lv = document.getElementById('tpLevel'); if (cur && lv) lv.textContent = cur.textContent;
+    var area = box.querySelector('.lv.current') ? box.querySelector('.lv.current').closest('.row') : null, head = area && (area.nextElementSibling && area.nextElementSibling.tagName === 'H3' ? area.nextElementSibling : area.previousElementSibling), mt = document.getElementById('tpMapTitle');
+    if (mt && head) { var nm = head.querySelector('span') ? head.querySelector('span').textContent : head.textContent, rg = head.querySelector('small'); mt.innerHTML = nm.toUpperCase() + (rg ? ' <b>' + rg.textContent + '</b>' : ''); }
     var save = {}; try { save = JSON.parse(localStorage.getItem('trafficpop.save.v1') || '{}'); } catch (e) {}
+    // The map climbs: areas stack bottom-up (CSS column-reverse), so each area's heading is moved
+    // after its row in the DOM, which puts it visually on top of its own area.
+    box.querySelectorAll('.row').forEach(function (row) {
+      var h = row.previousElementSibling;
+      if (h && h.tagName === 'H3' && !h.dataset.tpMoved) { h.dataset.tpMoved = '1'; row.parentNode.insertBefore(h, row.nextSibling); }
+    });
     box.querySelectorAll('.row').forEach(function (row) {
       var nodes = Array.prototype.slice.call(row.querySelectorAll('.lv')); if (!nodes.length) return;
       var W = row.clientWidth || 360, cols = 4, step = Math.min(150, W / cols * 1.1), colW = W / cols;
       var pts = nodes.map(function (n, i) {
         var r = Math.floor(i / cols), c = i % cols; if (r % 2) c = cols - 1 - c;
-        return [colW * (c + .5), 50 + r * step * .75];
+        return [colW * (c + .5), r];
       });
-      row.style.height = (pts[pts.length - 1][1] + 70) + 'px';
+      var rows = Math.ceil(nodes.length / cols);
+      pts = pts.map(function (p) { return [p[0], 50 + (rows - 1 - p[1]) * step * .75]; }); // bottom-up
+      var bottom = 50 + (rows - 1) * step * .75;
+      row.style.height = (bottom + 70) + 'px';
       nodes.forEach(function (n, i) {
         var sz = n.classList.contains('current') ? 76 : 60;
         n.style.left = (pts[i][0] - sz / 2) + 'px'; n.style.top = (pts[i][1] - sz / 2) + 'px';

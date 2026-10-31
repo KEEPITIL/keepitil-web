@@ -20,6 +20,8 @@ h1{margin:0;font-family:"Bebas Neue",Inter,sans-serif;font-size:clamp(3rem,12vw,
 .btn:focus-visible,.textlink:focus-visible,summary:focus-visible{outline:3px solid #fff;outline-offset:3px}
 .textlink{display:inline-flex;align-items:center;min-height:44px;color:#5CD6FF;font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .trust{margin-top:22px;padding:14px 16px;border-radius:14px;background:#0E2842;color:#E8F7FF;font-size:1rem}
+.trust p{margin:0 0 8px}
+.trust p:last-child{margin:0}
 .faq{margin-top:28px}
 .faq h2{margin:0 0 10px;font-family:"Bebas Neue",Inter,sans-serif;font-size:2rem;font-weight:400;letter-spacing:.06em}
 .faq details{border:1px solid rgba(255,255,255,.14);border-radius:12px;background:#121726;margin:0 0 8px}

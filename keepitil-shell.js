@@ -1759,7 +1759,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
       type:'first_party', disclosure:'OFFICIAL', active:true, priority:5, rotation_weight:1,
       affiliate_id:null, click_event_name:'affiliate_click',
       placement:['discover_event_rail','earn_partner_rail','article_end'],
-      href:'https://www.illestratedlifestyle.com/collections/all-merch?utm_source=keepitil.com&utm_medium=site&utm_campaign=shop-hub&utm_content=merch',
+      href:'https://www.illestratedlifestyle.com/collections/all-merch?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=all-merch',
       image:A+'affiliate-keepitil-store-2x3', alt:'KEEPITIL official store' }
   ];
 

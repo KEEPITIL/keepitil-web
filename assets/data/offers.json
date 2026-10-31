@@ -1,39 +1,64 @@
 {
   "store": "https://www.illestratedlifestyle.com",
   "utm": {
-    "utm_source": "keepitil.com",
+    "utm_source": "keepitil",
     "utm_medium": "site",
-    "utm_campaign": "shop-hub"
+    "utm_campaign": "shop"
   },
-  "trust": "Secure Shopify checkout. Digital items have no shipping. Merch ships at $6.69 flat.",
   "refundPolicy": "https://www.illestratedlifestyle.com/policies/refund-policy",
   "contact": "mailto:info@keepitil.com",
   "collections": [
     {
-      "id": "merch",
-      "name": "Merch",
-      "blurb": "Tees, hoodies, hats, mugs and home.",
+      "id": "all-merch",
+      "name": "All merch",
       "path": "/collections/all-merch",
-      "utmContent": "merch"
+      "utmContent": "all-merch"
+    },
+    {
+      "id": "tees",
+      "name": "Tees",
+      "path": "/collections/tees",
+      "utmContent": "tees"
+    },
+    {
+      "id": "sweaters",
+      "name": "Sweaters & Crewnecks",
+      "path": "/collections/sweaters-crewnecks",
+      "utmContent": "sweaters"
+    },
+    {
+      "id": "totes",
+      "name": "Totes & Bags",
+      "path": "/collections/totes-bags",
+      "utmContent": "totes"
+    },
+    {
+      "id": "wall-art",
+      "name": "Canvas & Wall Art",
+      "path": "/collections/canvas-wall-art",
+      "utmContent": "wall-art"
+    },
+    {
+      "id": "mugs",
+      "name": "Mugs",
+      "path": "/collections/all-merch",
+      "utmContent": "mugs"
     },
     {
       "id": "digital-assets",
-      "name": "Digital Assets",
-      "blurb": "Services and downloads for your release.",
+      "name": "All digital assets",
       "path": "/collections/all-digital-assets",
       "utmContent": "digital-assets"
     },
     {
       "id": "services",
       "name": "Services",
-      "blurb": "A 1:1 session and release graphics.",
       "path": "/collections/services",
       "utmContent": "services"
     },
     {
       "id": "downloads",
       "name": "Downloads",
-      "blurb": "A PDF you can use on your next release.",
       "path": "/collections/downloads",
       "utmContent": "downloads"
     }
@@ -44,11 +69,17 @@
       "name": "Release Strategy Session",
       "category": "service",
       "price": 150,
+      "utmContent": "session",
       "bullets": [
-        "45-minute 1:1 call"
+        "A short intake form before the call (your music links, release date, and goals)",
+        "A 45-minute 1:1 remote video call",
+        "A release timeline built around your date",
+        "Three promotion actions to focus on, in order",
+        "A written summary within 2 business days"
       ],
-      "delivery": "Scheduling email within 24 hours. Written summary within 2 business days.",
-      "needs": "Your music links, release date, and goals.",
+      "delivery": "After checkout, we email you within 24 hours to schedule the call.",
+      "needs": "",
+      "notes": "Reschedule free with 24 hours' notice. No guarantee of streams or placements.",
       "url": "https://www.illestratedlifestyle.com/products/release-strategy-session",
       "status": "live"
     },
@@ -57,11 +88,16 @@
       "name": "Release Graphics Pack",
       "category": "service",
       "price": 99,
+      "utmContent": "graphics-pack",
       "bullets": [
-        "7 graphics custom-made for your release, in 3 sizes"
+        "7 custom graphics for your release",
+        "3 sizes: square, story, and banner",
+        "Delivered in 3 business days of receiving your brief",
+        "A short brief after checkout"
       ],
-      "delivery": "Delivered in 3 business days.",
+      "delivery": "PNG files by email. No shipping.",
       "needs": "Cover art you own, the release title, and the release date.",
+      "notes": "",
       "url": "https://www.illestratedlifestyle.com/products/release-graphics-pack",
       "status": "live"
     },
@@ -70,11 +106,15 @@
       "name": "Release Rollout Kit",
       "category": "download",
       "price": 19,
+      "utmContent": "rollout-kit",
       "bullets": [
-        "PDF launch plan for your release"
+        "7-day launch plan PDF",
+        "Download link in your order email",
+        "Available right after checkout"
       ],
-      "delivery": "Download link emailed with your order.",
+      "delivery": "The download link is in your order email. No shipping.",
       "needs": "",
+      "notes": "No guarantee of streams or placements.",
       "url": "https://www.illestratedlifestyle.com/products/release-rollout-kit",
       "status": "live"
     }

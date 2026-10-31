@@ -1853,28 +1853,76 @@
   }
   window.__choAct = choAct;
 
+  /* Questions the curated copy can answer without a round trip. Live lookups (events near
+     me, open/play/submit) stay on choAct and the agent chain — those need the network.
+     Everything else that already has a local card is shown immediately, so the first reply
+     does not wait on nexus-relay, ask_crew, or ask-echo. */
+  function kiloNeedsTool(text) {
+    return /\b(open|show me|take me|go to|play|skip|pause|mute|enter|submit|next|previous)\b/i.test(text);
+  }
+  function kiloNeedsLookup(text) {
+    return /\b(near me|tonight|this weekend|upcoming|who(?:'s| is)|list|search)\b/i.test(text);
+  }
+  /* True only when a curated public keyword hit. kiloPublicMatch also treats any
+     mention of "keepitil" as the about card; that fallback is too broad to skip the network. */
+  function kiloPublicKeyword(text) {
+    var q = String(text || '').toLowerCase();
+    for (var i = 0; i < KILO_PUBLIC.length; i++) {
+      var kws = KILO_PUBLIC[i].kw;
+      for (var j = 0; j < kws.length; j++) {
+        if (q.indexOf(kws[j]) !== -1) return true;
+      }
+    }
+    return false;
+  }
+  /* Short KB tokens ('la', 'oc', 'dj') match inside unrelated words. Instant answers
+     only trust a keyword of 8+ characters, so "playing" cannot become the SoCal card. */
+  function kiloStrongIntent(text) {
+    var q = String(text || '').toLowerCase();
+    var best = null, bestScore = 0;
+    for (var i = 0; i < KB.length; i++) {
+      var item = KB[i], score = 0;
+      for (var j = 0; j < item.kw.length; j++) {
+        if (item.kw[j].length >= 8 && q.indexOf(item.kw[j]) !== -1) score += item.kw[j].length;
+      }
+      if (score > bestScore) { bestScore = score; best = item; }
+    }
+    return bestScore > 0 ? best : null;
+  }
+  function kiloInstantCard(text) {
+    if (window.KIL_SUPPORT_MODE || CHO_FLOW) return null;
+    var q = String(text || '');
+    if (!q.trim() || kiloNeedsTool(q) || kiloNeedsLookup(q)) return null;
+    if (kiloPublicKeyword(q)) return kiloPublicMatch(q);
+    if (!/^\s*(what|how|why|who|tell me|explain)\b/i.test(q)) return null;
+    return kiloStrongIntent(q);
+  }
+  window.__kiloInstantCard = kiloInstantCard;
+
   function handleQuery(text) {
     addMessage('user', text);
-    showTyping();
 
-    /* SUPPORT MODE: curated support answers only (see KIL_SUPPORT_KB). */
+    /* SUPPORT MODE: curated support answers only (see KIL_SUPPORT_KB).
+       The reply is local, so it is shown on this turn — no artificial delay. */
     if (window.KIL_SUPPORT_MODE) {
       var chip = String(text).toLowerCase();
       var pick = { 'wifi remote':'wifi-remote','wifi remote help':'wifi-remote','tuitea':'tuitea','tuitea help':'tuitea',
                    'pokasnap':'pokasnap','pokasnap help':'pokasnap','keepitil.com account':'general' }[chip.trim()];
-      setTimeout(function(){
-        hideTyping();
-        if (pick) {
-          window.KIL_SUPPORT_PRODUCT = pick;
-          addMessage('bot', { title: KIL_SUPPORT_PRODUCTS[pick].name + ' support',
-            text: 'Got it. What do you need help with?\n\n' + KIL_SUPPORT_HUMAN, chips: kilSupportChips(pick) });
-          return;
-        }
-        if (/^contact a person$/i.test(text.trim())) { addMessage('bot', kilSupportMatch('contact email')); return; }
-        addMessage('bot', kilSupportMatch(text));
-      }, 250);
+      if (pick) {
+        window.KIL_SUPPORT_PRODUCT = pick;
+        addMessage('bot', { title: KIL_SUPPORT_PRODUCTS[pick].name + ' support',
+          text: 'Got it. What do you need help with?\n\n' + KIL_SUPPORT_HUMAN, chips: kilSupportChips(pick) });
+        return;
+      }
+      if (/^contact a person$/i.test(text.trim())) { addMessage('bot', kilSupportMatch('contact email')); return; }
+      addMessage('bot', kilSupportMatch(text));
       return;
     }
+
+    var instant = kiloInstantCard(text);
+    if (instant) { addMessage('bot', instant); return; }
+
+    showTyping();
 
     /* SIGNED OUT: concierge only. choAct() still runs first so deterministic navigation and
        Radio keep working, then the curated public set, then the boundary reply. The general

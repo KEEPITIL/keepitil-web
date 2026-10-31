@@ -1,7 +1,7 @@
 /* Prices and store links for /shop/ and /services/ come from /assets/data/offers.json.
    Default UTM tags are already in each href, so the links work with JavaScript off.
-   If this page was opened with utm_* params, those incoming values are copied onto
-   outbound store links and are not replaced by the defaults. */
+   If this page was opened with any utm_* param, outbound store links use that incoming
+   set alone. None of the keepitil/site/shop defaults are added. */
 (function(){
   var STORE = 'https://www.illestratedlifestyle.com';
   var DEFAULTS = {utm_source:'keepitil', utm_medium:'site', utm_campaign:'shop'};
@@ -17,22 +17,30 @@
     return out;
   }
 
-  function withUtm(href, content){
-    var u = new URL(href, STORE);
-    if(u.hostname === 'illestratedlifestyle.com') u.hostname = 'www.illestratedlifestyle.com';
+  function stripUtm(u){
     var drop = [];
     u.searchParams.forEach(function(_v, key){ if(key.indexOf('utm_') === 0) drop.push(key); });
     drop.forEach(function(key){ u.searchParams.delete(key); });
-    u.searchParams.set('utm_source', DEFAULTS.utm_source);
-    u.searchParams.set('utm_medium', DEFAULTS.utm_medium);
-    u.searchParams.set('utm_campaign', DEFAULTS.utm_campaign);
-    if(content) u.searchParams.set('utm_content', content);
+  }
+
+  function withUtm(href, content){
+    var u = new URL(href, STORE);
+    if(u.hostname === 'illestratedlifestyle.com') u.hostname = 'www.illestratedlifestyle.com';
+    stripUtm(u);
     var inc = incomingUtms();
-    Object.keys(inc).forEach(function(key){ u.searchParams.set(key, inc[key]); });
+    var keys = Object.keys(inc);
+    if(keys.length){
+      keys.forEach(function(key){ u.searchParams.set(key, inc[key]); });
+    }else{
+      u.searchParams.set('utm_source', DEFAULTS.utm_source);
+      u.searchParams.set('utm_medium', DEFAULTS.utm_medium);
+      u.searchParams.set('utm_campaign', DEFAULTS.utm_campaign);
+      if(content) u.searchParams.set('utm_content', content);
+    }
     return u.toString();
   }
 
-  /* Overlay incoming tags onto links that already carry defaults. Untagged visits stay as written. */
+  /* Any incoming utm_* replaces the whole tag set. Untagged visits stay as written. */
   function passThrough(root){
     var inc = incomingUtms();
     var keys = Object.keys(inc);
@@ -40,6 +48,7 @@
     (root || document).querySelectorAll('a[href*="illestratedlifestyle.com"]').forEach(function(a){
       try{
         var u = new URL(a.href);
+        stripUtm(u);
         keys.forEach(function(key){ u.searchParams.set(key, inc[key]); });
         a.href = u.toString();
       }catch(e){}

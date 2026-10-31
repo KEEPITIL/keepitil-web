@@ -1,0 +1,82 @@
+{
+  "store": "https://www.illestratedlifestyle.com",
+  "utm": {
+    "utm_source": "keepitil.com",
+    "utm_medium": "site",
+    "utm_campaign": "shop-hub"
+  },
+  "trust": "Secure Shopify checkout. Digital items have no shipping. Merch ships at $6.69 flat.",
+  "refundPolicy": "https://www.illestratedlifestyle.com/policies/refund-policy",
+  "contact": "mailto:info@keepitil.com",
+  "collections": [
+    {
+      "id": "merch",
+      "name": "Merch",
+      "blurb": "Tees, hoodies, hats, mugs and home.",
+      "path": "/collections/all-merch",
+      "utmContent": "merch"
+    },
+    {
+      "id": "digital-assets",
+      "name": "Digital Assets",
+      "blurb": "Services and downloads for your release.",
+      "path": "/collections/all-digital-assets",
+      "utmContent": "digital-assets"
+    },
+    {
+      "id": "services",
+      "name": "Services",
+      "blurb": "A 1:1 session and release graphics.",
+      "path": "/collections/services",
+      "utmContent": "services"
+    },
+    {
+      "id": "downloads",
+      "name": "Downloads",
+      "blurb": "A PDF you can use on your next release.",
+      "path": "/collections/downloads",
+      "utmContent": "downloads"
+    }
+  ],
+  "offers": [
+    {
+      "id": "release-strategy-session",
+      "name": "Release Strategy Session",
+      "category": "service",
+      "price": 150,
+      "bullets": [
+        "45-minute 1:1 call"
+      ],
+      "delivery": "Scheduling email within 24 hours. Written summary within 2 business days.",
+      "needs": "Your music links, release date, and goals.",
+      "url": "https://www.illestratedlifestyle.com/products/release-strategy-session",
+      "status": "live"
+    },
+    {
+      "id": "release-graphics-pack",
+      "name": "Release Graphics Pack",
+      "category": "service",
+      "price": 99,
+      "bullets": [
+        "7 graphics custom-made for your release, in 3 sizes"
+      ],
+      "delivery": "Delivered in 3 business days.",
+      "needs": "Cover art you own, the release title, and the release date.",
+      "url": "https://www.illestratedlifestyle.com/products/release-graphics-pack",
+      "status": "live"
+    },
+    {
+      "id": "release-rollout-kit",
+      "name": "Release Rollout Kit",
+      "category": "download",
+      "price": 19,
+      "bullets": [
+        "PDF launch plan for your release"
+      ],
+      "delivery": "Download link emailed with your order.",
+      "needs": "",
+      "url": "https://www.illestratedlifestyle.com/products/release-rollout-kit",
+      "status": "live"
+    }
+  ]
+}

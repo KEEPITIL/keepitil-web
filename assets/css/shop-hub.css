@@ -1,0 +1,51 @@
+/* Shop hub and services. Tokens and the shell own the chrome. */
+*,*::before,*::after{box-sizing:border-box}
+html{background:#0a0a0f}
+body{margin:0;background:#0a0a0f;color:#f0f0f0;font-family:Inter,system-ui,sans-serif;font-size:16px;line-height:1.5;overflow-x:clip}
+img{max-width:100%;height:auto;display:block}
+a{color:inherit}
+.hub{width:100%;max-width:1120px;margin:0 auto;padding:28px 16px 48px}
+.kicker{margin:0 0 8px;font-size:.75rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#5CD6FF}
+h1{margin:0;font-family:"Bebas Neue",Inter,sans-serif;font-size:clamp(3rem,12vw,5.4rem);font-weight:400;letter-spacing:.04em;line-height:.9}
+.lede{margin:12px 0 0;max-width:38rem;color:#d5d2e2;font-size:1.05rem}
+.sections{display:grid;gap:16px;margin-top:28px}
+.card{display:flex;flex-direction:column;gap:14px;min-width:0;padding:16px;border-radius:18px;background:#10182a;border:1px solid rgba(92,214,255,.28)}
+.card h2{margin:0;font-family:"Bebas Neue",Inter,sans-serif;font-size:2.1rem;font-weight:400;letter-spacing:.06em;line-height:1}
+.card p{margin:0;color:#d5d2e2}
+.card .art{width:100%;height:112px;object-fit:cover;border-radius:12px;background:#0E2842}
+.card .mark{width:48px;height:48px;object-fit:contain;background:transparent}
+.actions{display:grid;gap:10px}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;padding:12px 18px;border-radius:12px;background:#5CD6FF;color:#0B1B3A;font:800 1rem/1.2 Inter,system-ui,sans-serif;text-align:center;text-decoration:none}
+.btn:hover{filter:brightness(1.05)}
+.btn:focus-visible,.textlink:focus-visible,summary:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.textlink{display:inline-flex;align-items:center;min-height:44px;color:#5CD6FF;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.trust{margin-top:22px;padding:14px 16px;border-radius:14px;background:#0E2842;color:#E8F7FF;font-size:1rem}
+.faq{margin-top:28px}
+.faq h2{margin:0 0 10px;font-family:"Bebas Neue",Inter,sans-serif;font-size:2rem;font-weight:400;letter-spacing:.06em}
+.faq details{border:1px solid rgba(255,255,255,.14);border-radius:12px;background:#121726;margin:0 0 8px}
+.faq summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center;padding:10px 16px}
+.faq details p{margin:0;padding:0 16px 14px;color:#d5d2e2}
+.faq a{color:#5CD6FF}
+.offers{display:grid;gap:16px;margin-top:28px}
+.offer{display:flex;flex-direction:column;gap:10px;min-width:0;padding:16px;border-radius:18px;background:#10182a;border:1px solid rgba(92,214,255,.28)}
+.offer h2{margin:0;font-family:"Bebas Neue",Inter,sans-serif;font-size:2rem;font-weight:400;letter-spacing:.04em;line-height:1}
+.offer .price{margin:0;font-family:"Bebas Neue",Inter,sans-serif;font-size:2.4rem;letter-spacing:.04em;color:#5CD6FF;line-height:1}
+.offer h3{margin:4px 0 0;font-size:.8rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#b7c4d6}
+.offer ul{margin:0;padding-left:1.15rem;color:#f0f0f0}
+.offer li{margin:0 0 4px}
+.offer .meta{margin:0;color:#d5d2e2}
+.offer .meta b{color:#f0f0f0}
+.offer .btn{margin-top:auto}
+@media(min-width:800px){
+  .sections{grid-template-columns:1fr 1fr;align-items:stretch}
+  .offers{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .card .art{height:210px}
+}
+@media(max-width:860px){
+  body{padding-bottom:calc(var(--kil-bnav-h,72px) + 24px)}
+}
+@media(min-width:861px){
+  body{padding-top:66px;padding-bottom:88px}
+  .card .art{height:210px}
+  .card .mark{width:72px;height:72px}
+}

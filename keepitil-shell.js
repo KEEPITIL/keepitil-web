@@ -514,8 +514,9 @@ var ICON_GEOMETRY = {
      the rename but they are NOT dead config - each is referenced by a live NAV row below, and
      KIL_ICONS.set(name, geometry) is a public extension point whose documented example is
      set('radio', ...). Renaming the keys would break that contract for zero user-visible gain,
-     so the mapping is documented here instead. The 'profile', 'settings' and 'shop' glyphs WERE
-     removed in this pass: nothing referenced them, and 'shop' belonged to a retired surface. */
+     so the mapping is documented here instead. The 'profile' and 'settings' glyphs were
+     removed in 2026-09-09 because nothing referenced them. 'shop' is the Shop tab. */
+  shop: '<path d="M6.2 8h11.6l-1 12.2H7.2L6.2 8z"/><path d="M9 8V6.2a3 3 0 0 1 6 0V8"/>',
   culture: '<path d="M6.5 4.8h11"/><path d="M4.6 7.6h14.8"/>'
          + '<rect x="3" y="10.4" width="18" height="9.8" rx="2.2"/>'
          + '<path d="M6.6 16.6l2.3-2.9 2.2 2.6 2.1-3.6 2.4 3.9"/>',
@@ -601,6 +602,10 @@ var DESTINATIONS=[
    tint:'#22e07a', glow:'rgba(34,224,122,.75)'},
   {href:'/create/',  label:'Create',  pill:'CREATE',   icon:'vs',      match:/(^|\/)(create|vs)(\.html)?\/?$/,
    tint:'#ff5c8a', glow:'rgba(255,92,138,.75)'},
+  /* Shop sits between Create and Culture. Selected state is logo-blue (#5CD6FF label,
+     #1E9BFF glow), the same active treatment the other tabs use for their own tint. */
+  {href:'/shop/',    label:'Shop',    pill:'SHOP',     icon:'shop',    match:/(^|\/)shop(\.html)?(\/|$)/,
+   tint:'#5CD6FF', glow:'rgba(30,155,255,.75)'},
   {href:'/culture/', label:'Culture', pill:'CULTURE',  icon:'culture', match:/(^|\/)culture(\.html)?\/?$/,
    tint:'#a06bff', glow:'rgba(160,107,255,.75)'},
   {href:'/earn/',    label:'Earn',    pill:'EARN',     icon:'radio',   match:/(^|\/)(earn|radio)(\.html)?\/?$/,
@@ -670,7 +675,7 @@ window.KIL_NOT_FOUND = function(opts){
     + (opts.heading || ('That ' + what + ' isn’t here')) + '</h1>'
     + '<p style="color:rgba(255,255,255,.7);line-height:1.6;margin:0 0 22px">'
     + (opts.body || ('It may have been removed, or the link may be wrong.')) + '</p>'
-    + (opts.links || [['/', 'Discover'], ['/culture/','Culture'], ['/connect/','Connect']])
+    + (opts.links || [['/', 'Discover'], ['/shop/','Shop'], ['/culture/','Culture'], ['/connect/','Connect']])
         .map(function(l){ return '<a href="'+l[0]+'" style="display:inline-block;margin:0 7px 10px;padding:12px 20px;'
           + 'border-radius:999px;border:1px solid rgba(255,255,255,.25);color:#fff;min-height:44px;line-height:20px">'+l[1]+'</a>'; })
         .join('')
@@ -724,7 +729,10 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
       document.querySelectorAll('#main-nav, nav#main-nav, nav.main-nav, #v3shell-nav, footer, #kil-mnav, .kil-mnav').forEach(function(el){ el.remove(); });
       /* Desktop header shows the SAME words as the bottom nav (owner 2026-08-15) — one naming
          scheme, not one per breakpoint. Home is the wordmark here, so DISCOVER isn't repeated. */
-      var links = namedDestinations().map(function(d){ return '<a href="'+d.href+'" title="'+d.label+'">'+(d.pill||d.label)+'</a>'; }).join('');
+      var links = namedDestinations().map(function(d){
+        var on = !!(d.match && d.match.test(location.pathname));
+        return '<a href="'+d.href+'" title="'+d.label+'"'+(on?' class="on" aria-current="page"':'')+'>'+(d.pill||d.label)+'</a>';
+      }).join('');
       var cur=document.documentElement.getAttribute('data-theme')||'default';
       var swatches = THEMES.map(function(t){return '<button class="v3t-sw'+(t[0]===cur?' on':'')+'" data-t="'+t[0]+'" title="'+t[1]+'" style="background:'+t[2]+'"></button>';}).join('');
       /* NOTE: `.v3s-icons` is `display:none` at every width today — the desktop header shows
@@ -909,7 +917,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
 
           if(document.getElementById('kil-bnav')) return;
           var bn=document.createElement('nav'); bn.id='kil-bnav';
-          /* K1: five slots, five destinations. Create WAS the centre slot — it is an action,
+          /* One slot per destination in DESTINATIONS, including Shop. Create WAS the centre slot — it is an action,
              not a place, and mixing it in is what left no room for Radio and VS. It moves to
              a floating button above the bar, calling the same __kilCreateMenu as before.
              Profile leaves the bar for the contextual slot: it is account state, not a
@@ -1290,6 +1298,8 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     +'#v3shell-nav .v3s-links{flex:1;display:flex;justify-content:space-evenly;align-items:center}'
     +'#v3shell-nav .v3s-links a{font-family:"Bebas Neue",sans-serif;color:rgba(255,255,255,.75);font-weight:400;font-size:1.05rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;white-space:nowrap;transition:color .2s}'
     +'#v3shell-nav .v3s-links a:hover{color:#fff}'
+    +'#v3shell-nav .v3s-links a.on,#v3shell-nav .v3s-menu a.on{color:#5CD6FF}'
+    +'#v3shell-nav .v3s-links a.on:hover,#v3shell-nav .v3s-menu a.on:hover{color:#5CD6FF}'
     +'#v3shell-nav .v3s-cta{font-family:"Bebas Neue",sans-serif;border:2px solid var(--brand,#00b4ff);color:var(--brand,#00b4ff);padding:7px 22px;border-radius:4px;font-weight:400;font-size:1rem;letter-spacing:.14em;text-decoration:none;white-space:nowrap;transition:background .2s,color .2s}'
     +'#v3shell-nav .v3s-cta:hover{background:var(--brand,#00b4ff);color:#04121b}'
     +'#v3shell-nav .v3s-burger{display:none;flex-direction:column;gap:4px;background:none;border:0;cursor:pointer;padding:6px}'
@@ -1749,7 +1759,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
       type:'first_party', disclosure:'OFFICIAL', active:true, priority:5, rotation_weight:1,
       affiliate_id:null, click_event_name:'affiliate_click',
       placement:['discover_event_rail','earn_partner_rail','article_end'],
-      href:'https://illestratedlifestyle.com/collections/keepitil-apparel',
+      href:'https://www.illestratedlifestyle.com/collections/all-merch?utm_source=keepitil.com&utm_medium=site&utm_campaign=shop-hub&utm_content=merch',
       image:A+'affiliate-keepitil-store-2x3', alt:'KEEPITIL official store' }
   ];
 
@@ -1863,7 +1873,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     distrokid:{host:'distrokid.com', must:'11538316'},
     posh:{host:'posh.vip', must:'ref=S-referral-mp9itc5j-wb9dbt'},
     amazon:{host:'amazon.com', must:'tag=tuitea09-20'},
-    'keepitil-store':{host:'illestratedlifestyle.com', must:'/collections/keepitil-apparel'}
+    'keepitil-store':{host:'illestratedlifestyle.com', must:'/collections/all-merch'}
   };
   function validate(){
     return SPONSORS.map(function(s){

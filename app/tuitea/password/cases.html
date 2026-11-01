@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>TUITEA password page — three link cases</title>
+<style>
+  body{font:16px/1.5 ui-sans-serif,system-ui,sans-serif;margin:24px;background:#FBF7EF;color:#20261F}
+  table{border-collapse:collapse;width:100%;max-width:52rem}
+  th,td{border:1px solid #E2D9C6;padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#FFFDF8}
+  code{font-size:.9em}
+</style>
+</head>
+<body>
+<h1>Password page link cases</h1>
+<p>The live page says “Your email is confirmed” only after the check in the last column succeeds. This table does not perform that check.</p>
+<table>
+  <thead><tr><th>Case</th><th>Example</th><th>What the page does</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+<script type="module">
+import { passwordConfirmCase } from './landing.mjs';
+const cases = [
+  ['?flow=confirm&token_hash=abc', 'Call verifyOtp. Show confirmed only on success.'],
+  ['?code=the-code', 'Redeem with exchangeCodeForSession. Show confirmed only on success.'],
+  ['', 'Open the link from your email. Do not say confirmed.'],
+];
+const body = document.getElementById('rows');
+for (const [query, text] of cases) {
+  const kind = passwordConfirmCase(query, '');
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td><code>' + kind + '</code></td><td><code>' + (query || '(no token)') + '</code></td><td></td>';
+  tr.lastElementChild.textContent = text;
+  body.appendChild(tr);
+}
+</script>
+</body>
+</html>

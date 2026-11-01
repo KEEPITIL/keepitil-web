@@ -25,10 +25,11 @@
   right here (rate limits said as a wait); a finished password, and a
   confirmation link (?flow=confirm, a new account's "Confirm your email"), offer
   sign-in — TUITEA on the web (/app/tuitea/app/, the app's own front door) or
-  the app on the phone. A sign-up ?code= (no type=recovery) is not a reset: the
-  page says the email is confirmed and continues to /join/auth?flow=confirm,
-  with no password-reset offer. type=recovery is unchanged. The page itself
-  still holds no session afterwards.
+  the app on the phone. "Your email is confirmed" is shown only after
+  verifyOtp (flow=confirm with a token_hash) or exchangeCodeForSession (a bare
+  ?code=) succeeds. With no token, the page says to open the link from the
+  email. type=recovery is unchanged. The page itself still holds no session
+  afterwards.
 
   It signs itself OUT the moment the password is saved, so a recovery link
   opened on a borrowed or shared device does not leave a live session behind in
@@ -110,17 +111,15 @@
     <p>On iPhone, open the TUITEA app and sign in there.</p>
   </div>
 
-  <!-- Sign-up ?code= only. No reset form, no "email me a new link". -->
-  <div id="code-view" class="done" hidden>
-    <h2 id="code-title">Your email is confirmed.</h2>
-    <p id="code-body">You can continue from here.</p>
-    <a class="go" id="code-go" href="https://keepitil.com/join/auth?flow=confirm">Continue</a>
+  <div id="open-view" class="done" hidden>
+    <h2 id="open-title">Open the link from your email</h2>
+    <p id="open-body">This page can confirm your email only from that link.</p>
   </div>
 </main>
 
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
-import { passwordLinkKind } from './landing.mjs';
+import { passwordConfirmCase } from './landing.mjs';
 
 const SUPABASE_URL = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
 // The publishable (anon) key. Public by design: it grants nothing on its own,
@@ -193,30 +192,18 @@ $('again-send').addEventListener('click', async () => {
   setTimeout(() => { btn.disabled = false; }, 60000);
 });
 
+function showOpenLink() {
+  $('form-view').hidden = true;
+  $('open-view').hidden = false;
+}
+
 async function begin() {
   const url = new URL(location.href);
   const params = url.searchParams;
   const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
-
-  // Sign-up confirmation ?code= used to fall through to the reset form.
-  // type=recovery, including a recovery link that also carries a code, does not.
-  if (passwordLinkKind(url.search, url.hash) === 'signup-code') {
-    const problem = params.get('error_description') || hash.get('error_description');
-    history.replaceState(null, '', location.pathname);
-    $('form-view').hidden = true;
-    if (problem) {
-      $('code-title').textContent = 'That link could not be used';
-      $('code-body').textContent = /expired|invalid|already/i.test(problem)
-        ? 'That link has expired or was already used. Nothing on your account has changed.'
-        : 'That link did not work. Nothing on your account has changed.';
-      $('code-go').hidden = true;
-    }
-    $('code-view').hidden = false;
-    return;
-  }
-
+  const kind = passwordConfirmCase(url.search, url.hash);
   const flowType = (params.get('type') || hash.get('type') || '').toLowerCase();
-  confirmFlow = params.get('flow') === 'confirm' || ['signup', 'email', 'email_change', 'invite'].includes(flowType);
+  confirmFlow = params.get('flow') === 'confirm' || ['signup', 'email', 'email_change', 'invite'].includes(flowType) || kind === 'verify-otp' || kind === 'exchange-code';
 
   const problem = params.get('error_description') || hash.get('error_description');
   if (problem) {
@@ -225,19 +212,28 @@ async function begin() {
       : 'That link did not work. Nothing on your account has changed — get a new one below.');
   }
 
-  // A NEW ACCOUNT'S CONFIRMATION (build 88 phase 2). Supabase confirms the address before it
-  // redirects here; the app's PKCE code cannot be redeemed in this browser and is not needed.
-  // An older-style confirmation with a token_hash is verified, then the session is dropped.
-  if (confirmFlow) {
-    const th = params.get('token_hash');
-    if (th) {
-      const { error } = await sb.auth.verifyOtp({ token_hash: th, type: flowType || 'email' });
-      if (error) return fail('That confirmation link has expired or was already used. If you already confirmed, just sign in — otherwise get a new one below.');
-      try { await sb.auth.signOut(); } catch {}
-    }
+  // ?flow=confirm with a token_hash. Confirmed only after verifyOtp succeeds.
+  if (kind === 'verify-otp') {
+    const th = params.get('token_hash') || hash.get('token_hash');
+    const otpType = ['signup', 'email', 'email_change', 'invite'].includes(flowType) ? flowType : 'signup';
+    const { error } = await sb.auth.verifyOtp({ token_hash: th, type: otpType });
     history.replaceState(null, '', location.pathname);
+    if (error) return fail('That confirmation link has expired or was already used. If you already confirmed, just sign in — otherwise get a new one below.');
+    try { await sb.auth.signOut(); } catch {}
     return confirmed();
   }
+
+  // A bare ?code= from sign-up. Confirmed only after the code is redeemed.
+  if (kind === 'exchange-code') {
+    const { error } = await sb.auth.exchangeCodeForSession(params.get('code'));
+    history.replaceState(null, '', location.pathname);
+    if (error) return fail('That confirmation link has expired or was already used. If you already confirmed, just sign in — otherwise get a new one below.');
+    try { await sb.auth.signOut(); } catch {}
+    return confirmed();
+  }
+
+  // Nothing to check. Do not claim the email is confirmed.
+  if (kind === 'no-token') return showOpenLink();
 
   // Two shapes reach this page: the current token_hash form, and the older
   // fragment form still sitting in inboxes. Both are accepted; neither is

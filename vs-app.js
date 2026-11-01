@@ -728,7 +728,7 @@
       ]).then(function(rs){
         var lk = ((rs[2] && rs[2].data) || [])[0];
         var listen = lk && SC_RE.test(lk.url)
-          ? '<a class="vs-cta" style="display:block;text-align:center;margin-top:10px" target="_blank" rel="noopener" href="'+h(lk.url)+'">Listen on SoundCloud ↗</a>'
+          ? '<a class="vs-cta" style="display:block;text-align:center;margin-top:10px" target="_blank" rel="noopener noreferrer" href="'+h(lk.url)+'">Listen on SoundCloud ↗</a>'
           : '';
         var c    = (rs[0] && rs[0].data) || {};
         var rows = ((rs[1] && rs[1].data) || []);
@@ -1491,7 +1491,7 @@
                + '<li><b>Basic entry — Free.</b> '+h(sc.basic_note||'')+'</li>'
                + (sc.one_per_person ? '<li>One entry per person.</li>' : '')
                + '</ul>'
-               + (sc.finale_pass_note ? '<p style="margin-top:10px"><b>Finale Voting Pass — $5.</b> '+h(sc.finale_pass_note)+'</p>' : '')
+               + (sc.finale_pass_note ? '<p style="margin-top:10px"><b>Finale Voting Pass.</b> '+h(sc.finale_pass_note)+'</p>' : '')
                + '</div>';
       }
       /* 4 voters — profile images, one scrollable row */
@@ -1620,7 +1620,7 @@
            shown. Withdrawn and rejected entries do not count, so a person can try again. */
         return Promise.resolve(SB.rpc('vs_my_entries')).then(function(mr){
           var had = ((mr && mr.data) || []).some(function(x){
-            return x.competition_id === compId && x.status !== 'withdrawn' && x.status !== 'rejected';
+            return x.competition_id === compId && x.status !== 'draft' && x.status !== 'withdrawn' && x.status !== 'rejected';
           });
           if(had){
             APP.innerHTML = navBar('enter')
@@ -1701,6 +1701,7 @@
         + '<label style="display:flex;gap:9px;align-items:flex-start;text-transform:none;letter-spacing:0;color:#cfd3df;font-weight:500">'
         + '<input type="checkbox" id="eTerms" style="width:auto;margin-top:3px">'
         + '<span>'+(link && sc.rights_line ? h(sc.rights_line)
+              + ' <a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a> · <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>'
             : 'I own this work or have permission to submit it, I accept the competition rules and terms'
               + (paid ? ', and I understand the entry fee is governed by the published refund policy' : '')
               + '.')+'</span></label>'
@@ -1798,9 +1799,9 @@
             if(link){
               /* cover first, then the link with the cover as its thumb, so thumb_url is an image */
               msg.textContent = 'Uploading cover…';
-              return uploadOne(entryId, coverFile, 'cover').then(function(url){
+              return stripMeta(coverFile).then(function(clean){ return uploadOne(entryId, clean, 'cover'); }).then(function(url){
                 return Promise.resolve(SB.rpc('vs_set_entry_cover', { p_entry: entryId, p_url: url }))
-                  .then(function(){ return SB.rpc('vs_add_entry_media', { p_entry: entryId, p_url: scUrl, p_mtype: 'link', p_thumb: url }); })
+                  .then(function(cr){ if(cr && cr.error) throw cr.error; return SB.rpc('vs_add_entry_media', { p_entry: entryId, p_url: scUrl, p_mtype: 'link', p_thumb: url }); })
                   .then(function(mr){ if(mr && mr.error) throw mr.error; coverFile = null; });
               });
             }
@@ -1812,7 +1813,8 @@
                cover that fails to upload must not lose an entry that is otherwise complete. */
             if(!coverFile) return null;
             msg.textContent = 'Uploading cover…';
-            return uploadOne(entryId, coverFile, 'cover')
+            return stripMeta(coverFile)
+              .then(function(clean){ return uploadOne(entryId, clean, 'cover'); })
               .then(function(url){ return SB.rpc('vs_set_entry_cover', { p_entry: entryId, p_url: url }); })
               .catch(function(){ return null; });
           })
@@ -1843,6 +1845,29 @@
       };
       }
     }).catch(err);
+  }
+
+  /* COVERS GO TO A PUBLIC BUCKET, so GPS/EXIF must not ride along (Sentinel M2). Re-encoding
+     through a canvas keeps only pixels. FAILS CLOSED: if the image cannot be decoded or encoded,
+     the promise rejects and nothing is uploaded. */
+  function stripMeta(f){
+    return new Promise(function(res, rej){
+      var u = URL.createObjectURL(f), im = new Image();
+      im.onload = function(){
+        try{
+          var cv = document.createElement('canvas');
+          cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+          cv.getContext('2d').drawImage(im, 0, 0);
+          URL.revokeObjectURL(u);
+          cv.toBlob(function(b){
+            if(!b){ rej(new Error('Could not prepare the cover image. Try a different file.')); return; }
+            res(new File([b], (f.name || 'cover').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
+          }, 'image/jpeg', 0.92);
+        }catch(e){ rej(new Error('Could not prepare the cover image. Try a different file.')); }
+      };
+      im.onerror = function(){ URL.revokeObjectURL(u); rej(new Error('Could not read the cover image. Try a different file.')); };
+      im.src = u;
+    });
   }
 
   /* sequential upload so a slow connection cannot fire a burst of parallel requests (§29) */

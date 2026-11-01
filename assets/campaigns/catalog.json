@@ -22,7 +22,7 @@
       "enabled": true,
       "order": 1,
       "websiteApproved": true,
-      "appApproved": true,
+      "appApproved": false,
       "appPlacements": [
         "home",
         "search"

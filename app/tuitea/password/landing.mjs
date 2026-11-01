@@ -32,12 +32,20 @@ export function passwordLinkKind(search, hash) {
   return passwordConfirmCase(search, hash) === 'recovery' ? 'existing' : passwordConfirmCase(search, hash);
 }
 
-// Recovery fragment (#access_token, #refresh_token, type, expires_*) is removed
-// after setSession. The in-memory session is left alone so updateUser can run.
-export function urlWithoutHash(href) {
+// Every password-page exit is the bare path, or ?flow=confirm when that marker
+// is already present. Tokens, codes, and type never stay.
+export function passwordExitUrl(href) {
   const url = new URL(href, 'https://keepitil.com');
-  url.hash = '';
-  return url.pathname + url.search;
+  if ((url.searchParams.get('flow') || '').toLowerCase() === 'confirm') {
+    return url.pathname + '?flow=confirm';
+  }
+  return url.pathname;
+}
+
+// Hash recovery (setSession) ends on the bare path: no query and no hash.
+// The in-memory session is left alone so updateUser can run.
+export function passwordBareUrl(href) {
+  return new URL(href, 'https://keepitil.com').pathname;
 }
 
 export async function settleRecoverySession(href, setSession, replaceState) {
@@ -48,7 +56,7 @@ export async function settleRecoverySession(href, setSession, replaceState) {
   } catch (e) {
     error = e || new Error('setSession failed');
   } finally {
-    replaceState(urlWithoutHash(href));
+    replaceState(passwordBareUrl(href));
   }
   return error;
 }

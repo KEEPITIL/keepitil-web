@@ -32,20 +32,14 @@ export function confirmAction(search, hash) {
   return 'default';
 }
 
-// Address left in the bar after /join/auth handles a link.
-// verify-signup drops the whole query and hash, including token_hash.
-// resend, recovery, and default drop ?code= and #access_token (and token_hash).
-// resend and default also drop #refresh_token. recovery keeps it.
+// Every /join/auth exit is the bare path, or ?flow=confirm.
+// verify-signup always leaves that marker. Recovery drops the whole hash
+// (access_token, refresh_token, type, and the rest). This page never reads them.
 export function joinAuthUrl(href, action) {
   const url = new URL(href, 'https://keepitil.com');
   if (action === 'verify-signup') return url.pathname + '?flow=confirm';
-  if (action !== 'resend' && action !== 'recovery' && action !== 'default') return url.pathname + url.search + url.hash;
-  url.searchParams.delete('code');
-  url.searchParams.delete('token_hash');
-  const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
-  hash.delete('access_token');
-  hash.delete('token_hash');
-  if (action === 'resend' || action === 'default') hash.delete('refresh_token');
-  const rest = hash.toString();
-  return url.pathname + url.search + (rest ? '#' + rest : '');
+  if ((url.searchParams.get('flow') || '').toLowerCase() === 'confirm') {
+    return url.pathname + '?flow=confirm';
+  }
+  return url.pathname;
 }

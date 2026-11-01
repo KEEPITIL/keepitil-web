@@ -134,12 +134,7 @@
       const h = new URLSearchParams(location.hash.replace(/^#/, ''));
       const err = h.get('error_description') || q.get('error_description') || h.get('error') || q.get('error');
 
-      if (action === 'recovery-error') {
-        const expired = /expired|invalid|already/i.test(decodeURIComponent(String(err).replace(/\+/g, ' ')));
-        title.textContent = 'That link could not be used';
-        msg.textContent = (expired ? 'That link has expired or was already used. ' : '') +
-          'Nothing on your account has changed. Open TUITEA and tap Forgot Password to get a new one.';
-      } else if (action === 'verify-signup') {
+      if (action === 'verify-signup') {
         title.textContent = 'Checking your link…';
         msg.textContent = '';
         const token = q.get('token_hash') || h.get('token_hash');
@@ -159,9 +154,14 @@
         } else {
           confirmed();
         }
-      } else if (action === 'resend' || action === 'recovery' || action === 'default') {
+      } else if (action === 'recovery-error' || action === 'resend' || action === 'recovery' || action === 'default') {
         try {
-          if (action === 'resend') {
+          if (action === 'recovery-error') {
+            const expired = /expired|invalid|already/i.test(decodeURIComponent(String(err).replace(/\+/g, ' ')));
+            title.textContent = 'That link could not be used';
+            msg.textContent = (expired ? 'That link has expired or was already used. ' : '') +
+              'Nothing on your account has changed. Open TUITEA and tap Forgot Password to get a new one.';
+          } else if (action === 'resend') {
             const expired = err && /expired|invalid|already/i.test(decodeURIComponent(String(err).replace(/\+/g, ' ')));
             needResend(expired
               ? 'That link has expired or was already used. Nothing was confirmed. Send yourself a new link below.'
@@ -176,6 +176,7 @@
         }
       }
     } catch (e) {
+      history.replaceState(null, '', joinAuthUrl(location.href, 'default'));
       needResend('That confirmation link could not be checked. Check your connection, or send yourself a new link below.');
     }
   </script>

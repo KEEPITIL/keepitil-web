@@ -128,7 +128,7 @@
 
 <script type="module">
 import { createClient } from '/assets/js/vendor/supabase-js-2.45.4.mjs';
-import { passwordConfirmCase, settleRecoverySession } from './landing.mjs';
+import { passwordConfirmCase, passwordExitUrl, settleRecoverySession } from './landing.mjs';
 
 const SUPABASE_URL = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
 // The publishable (anon) key. Public by design: it grants nothing on its own,
@@ -233,7 +233,7 @@ async function begin() {
 
   const problem = params.get('error_description') || hash.get('error_description');
   if (problem) {
-    history.replaceState(null, '', location.pathname);
+    history.replaceState(null, '', passwordExitUrl(location.href));
     const confirmish = kind !== 'recovery' && (
       kind === 'verify-otp' || kind === 'confirm-session' || kind === 'maybe-confirmed' ||
       params.get('flow') === 'confirm' ||
@@ -257,7 +257,7 @@ async function begin() {
     } catch (e) {
       ok = false;
     } finally {
-      history.replaceState(null, '', location.pathname);
+      history.replaceState(null, '', passwordExitUrl(location.href));
     }
     if (ok) confirmed();
     else showMaybe();
@@ -281,12 +281,15 @@ async function begin() {
 
   // A bare ?code= cannot be redeemed here (no PKCE verifier). Do not call it sign-up.
   if (kind === 'maybe-confirmed') {
-    history.replaceState(null, '', location.pathname);
+    history.replaceState(null, '', passwordExitUrl(location.href));
     return showMaybe();
   }
 
   // Nothing to check. Do not claim the email is confirmed.
-  if (kind === 'no-token') return showOpenLink();
+  if (kind === 'no-token') {
+    history.replaceState(null, '', passwordExitUrl(location.href));
+    return showOpenLink();
+  }
 
   // Two shapes reach this page: the current token_hash form, and the older
   // fragment form still sitting in inboxes. Both are accepted; neither is
@@ -297,13 +300,14 @@ async function begin() {
   const refreshToken = hash.get('refresh_token');
 
   if (!tokenHash && !(accessToken && refreshToken)) {
+    history.replaceState(null, '', passwordExitUrl(location.href));
     return fail('This page needs the link from a TUITEA password email. Get a new one below.');
   }
 
   // Older recovery links put the session in the hash. setSession keeps it in
-  // memory (persistSession is false). The finally drops the whole hash —
-  // access_token, refresh_token, type, expires_* — before the form is shown,
-  // on success and on failure. Do not sign out here: updateUser still needs it.
+  // memory (persistSession is false). The finally clears to the bare path —
+  // no query and no hash — before the form is shown, on success and on failure.
+  // Do not sign out here: updateUser still needs the session.
   if (!tokenHash && accessToken && refreshToken) {
     const sessionError = await settleRecoverySession(
       location.href,
@@ -323,13 +327,13 @@ async function begin() {
     const { error } = await sb.auth.verifyOtp({ token_hash: tokenHash, type });
     if (error) throw error;
   } catch (e) {
-    history.replaceState(null, '', location.pathname);
+    history.replaceState(null, '', passwordExitUrl(location.href));
     return fail('That link has expired or has already been used. Nothing on your account has changed — get a new one below.');
   }
 
   // The token is spent. Take it out of the address bar so it is not left in
   // history, or in a screenshot, or in a shared URL.
-  history.replaceState(null, '', location.pathname);
+  history.replaceState(null, '', passwordExitUrl(location.href));
 
   intro.textContent = 'Choose a password for your TUITEA account.';
   fields.hidden = false;

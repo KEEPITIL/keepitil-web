@@ -3,6 +3,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <meta name="robots" content="noindex,nofollow"/>
+<meta name="referrer" content="no-referrer"/>
 <title>Page not found — KEEPITIL</title>
 <!-- ============================================================================
      THIS IS THE KEEPITIL URL ROUTER.  It is NOT an error page.
@@ -70,6 +71,59 @@ a{color:#5cc8ff}</style>
   var q = location.search || '';
   var hash = location.hash || '';
   function go(url){ location.replace(url + hash); }
+  function tuiteaRedirectTarget(search, hash) {
+    var PATH = "/app/tuitea/app/";
+    var ALLOW = { token_hash: 1, type: 1, code: 1, error: 1, error_code: 1, error_description: 1 };
+    if (typeof search !== "string" || search.charAt(0) !== "?") search = "";
+    if (typeof hash !== "string" || hash.charAt(0) !== "#") hash = "";
+    var parts = search.length > 1 ? search.slice(1).split("&") : [];
+    var kept = [];
+    var inviteKept = false;
+    var i, part, eq, key, val, decoded;
+    for (i = 0; i < parts.length; i++) {
+      part = parts[i];
+      if (!part) continue;
+      eq = part.indexOf("=");
+      key = eq === -1 ? part : part.slice(0, eq);
+      val = eq === -1 ? "" : part.slice(eq + 1);
+      if (key === "invite") {
+        if (!inviteKept) {
+          try { decoded = decodeURIComponent(val.replace(/\+/g, " ")); }
+          catch (e) { decoded = ""; }
+          decoded = String(decoded).toLowerCase();
+          if (/^[0-9a-f]{32}$/.test(decoded)) {
+            kept.push("invite=" + decoded);
+            inviteKept = true;
+          }
+        }
+        continue;
+      }
+      if (ALLOW[key]) {
+        kept.push(part);
+        continue;
+      }
+      if (/^utm_[A-Za-z0-9_]+$/.test(key)) {
+        try { decoded = decodeURIComponent(val.replace(/\+/g, " ")); }
+        catch (e) { continue; }
+        if (decoded && decoded.length <= 200 && !/[\/\\:@?#%]/.test(decoded)) kept.push(part);
+      }
+    }
+    var dest = PATH;
+    if (kept.length) dest += "?" + kept.join("&");
+    if (hash) dest += hash;
+    if (dest.slice(0, PATH.length) !== PATH) return PATH;
+    var after = dest.charAt(PATH.length);
+    if (after && after !== "?" && after !== "#") return PATH;
+    return dest;
+  }
+  /* end tuiteaRedirectTarget */
+  /* Unmatched /app/tuitea/... documents go to /app/tuitea/app/ (inside the
+     PWA scope). GitHub Pages only serves this file when nothing is there.
+     The compiled app, tab stubs, password and support are real files.
+     Same invite / auth rules as app/tuitea/index.html. The path is fixed. */
+  if(seg.length>=2 && seg[0]==='app' && seg[1]==='tuitea'){
+    return location.replace(tuiteaRedirectTarget(q, hash));
+  }
   var slug = seg.length ? decodeURIComponent(seg[seg.length-1]).toLowerCase().replace(/[^a-z0-9-]/g,'') : '';
   /* The 2026-08-16 rename kept the database row and its uuid: echo→cho, nexus→xus.
      Legacy slugs live on in public.agent_aliases, but this runs before any script can

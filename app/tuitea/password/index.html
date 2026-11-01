@@ -187,7 +187,13 @@ async function begin() {
   const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
 
   const flowType = (params.get('type') || hash.get('type') || '').toLowerCase();
-  confirmFlow = params.get('flow') === 'confirm' || ['signup', 'email', 'email_change', 'invite'].includes(flowType);
+  // A bare PKCE `code` (no token_hash, no type, no session in the fragment) is what a "Confirm
+  // your email" sent BEFORE ?flow=confirm existed brings back: Supabase confirmed the address,
+  // then redirected here. TUITEA's password emails never arrive this way (they carry token_hash
+  // or the fragment), and this page could not redeem a code anyway. So it is a confirmation:
+  // say so, and never send a new member to "Forgot password".
+  const bareCode = !!params.get('code') && !params.get('token_hash') && !flowType && !hash.get('access_token');
+  confirmFlow = params.get('flow') === 'confirm' || bareCode || ['signup', 'email', 'email_change', 'invite'].includes(flowType);
 
   const problem = params.get('error_description') || hash.get('error_description');
   if (problem) {

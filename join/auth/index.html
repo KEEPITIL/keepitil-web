@@ -4,52 +4,86 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>TUITEA password reset</title>
+<title>TUITEA email link</title>
 <!--
-  WHERE A TUITEA PASSWORD-RESET LINK LANDS WHEN THE APP DID NOT CATCH IT.
-  (TUITEA signs in with email + password; the only emailed link is a password reset.)
+  WHERE A TUITEA EMAIL LINK LANDS WHEN THE APP DID NOT CATCH IT.
 
   On an iPhone with TUITEA installed, iOS opens the APP for https://keepitil.com/join/*
-  (apple-app-site-association) and this page is never seen. It exists for the
-  other cases: the app is not installed, the link was opened on a computer, or
-  a mail client forced it into a browser tab.
+  (apple-app-site-association) and this page is never seen. It exists for the other cases:
+  the app is not installed, the link was opened on a computer, or a mail client forced it
+  into a browser tab.
 
-  It deliberately does NOTHING with the fragment. The session material in the
-  URL belongs to the app that asked for it (PKCE), and a web page using it would
-  sign in a browser tab the person is not looking for while the app stays
-  signed out. Say what happened, offer the two honest ways forward, stop.
+  BUILD 88 PHASE 2. This page used to assume every link was a password reset, and told a NEW
+  member who had just confirmed their address to "choose Forgot password". A confirmation
+  (sign-up, a new email address) is already done by the time Supabase sends the browser here —
+  Supabase confirms first, then redirects — so the page now says so and offers sign-in.
+
+  It still does NOTHING with the session material in the URL. With PKCE the code belongs to the
+  app that asked for it; a web page using it would sign in a browser tab nobody is looking at.
 -->
 <style>
   :root{--bg:#FBF7EF;--ink:#20261F;--muted:#6E7566;--ocean:#33777D;--line:#E2D9C6;--surface:#FFFDF8}
   @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14170F;--ink:#ECE7DA;--muted:#9BA391;--ocean:#6FBFC5;--line:#333A2D;--surface:#1C201A}}
   :root[data-theme="dark"]{--bg:#14170F;--ink:#ECE7DA;--muted:#9BA391;--ocean:#6FBFC5;--line:#333A2D;--surface:#1C201A}
   body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--ink);
-       font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.55;padding:24px}
-  .card{max-width:34rem;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:1.5rem 1.4rem}
+       font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.55;padding:24px 16px}
+  .card{max-width:34rem;width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:1.5rem 1.4rem}
   h1{font-size:1.35rem;margin:0 0 .5rem}
   p{margin:0 0 .8rem;color:var(--muted)}
-  a.btn{display:inline-block;background:var(--ocean);color:#fff;text-decoration:none;font-weight:600;padding:.7rem 1.1rem;border-radius:999px}
+  a.btn{display:inline-block;background:var(--ocean);color:#fff;text-decoration:none;font-weight:600;padding:.7rem 1.1rem;border-radius:999px;margin:.2rem .2rem .2rem 0}
   a{color:var(--ocean)}
+  .small{font-size:.9rem}
 </style>
 </head>
 <body>
   <div class="card">
-    <h1>Almost there</h1>
-    <p id="msg">This link resets your TUITEA password. If TUITEA is installed on this iPhone, open the same link from the Mail app and it will open TUITEA directly.</p>
-    <p>If TUITEA is not installed yet:</p>
-    <p><a class="btn" href="https://keepitil.com/app/tuitea">Get TUITEA</a></p>
-    <p style="margin-top:1rem;font-size:.9rem">Nothing has been changed on your account. The link can be used once, from the app. If it has expired, open TUITEA and choose <em>Forgot password</em> again.</p>
+    <h1 id="title">Almost there</h1>
+    <p id="msg">This link came from TUITEA. If TUITEA is installed on this iPhone, open the same link from the Mail app and it will open TUITEA directly.</p>
+    <p>
+      <a class="btn" id="signin" href="https://keepitil.com/app/tuitea/app/">Sign in to TUITEA on the web</a>
+    </p>
+    <p class="small" id="next">On iPhone, open TUITEA and sign in with your email and password.</p>
   </div>
   <script>
-    // Only wording changes here, never the session. If the fragment carries an
-    // error from Supabase (expired or already-used link), say so plainly.
-    try {
-      var h = new URLSearchParams(location.hash.replace(/^#/, ''));
-      var err = h.get('error_description') || h.get('error');
-      if (err) document.getElementById('msg').textContent =
-        'That password reset link could not be used: ' + decodeURIComponent(err.replace(/\+/g,' ')) +
-        '. Open TUITEA and ask for a new one.';
-    } catch (e) {}
+    // Only wording changes here, never the session.
+    (function () {
+      try {
+        var q = new URLSearchParams(location.search);
+        var h = new URLSearchParams(location.hash.replace(/^#/, ''));
+        var type = (q.get('type') || h.get('type') || '').toLowerCase();
+        var err = h.get('error_description') || q.get('error_description') || h.get('error') || q.get('error');
+        var code = q.get('code');
+        var title = document.getElementById('title'), msg = document.getElementById('msg'),
+            next = document.getElementById('next');
+        var confirmation = type === 'signup' || type === 'email' || type === 'email_change' || type === 'invite';
+        var recovery = type === 'recovery' || type === 'magiclink';
+
+        if (err) {
+          var expired = /expired|invalid|already/i.test(decodeURIComponent(String(err).replace(/\+/g, ' ')));
+          title.textContent = 'That link could not be used';
+          if (recovery) {
+            msg.textContent = (expired ? 'That link has expired or was already used. ' : '') +
+              'Nothing on your account has changed. Open TUITEA and tap Forgot Password to get a new one.';
+          } else {
+            msg.textContent = (expired ? 'That link has expired or was already used. ' : '') +
+              'If you already confirmed your email, just sign in. If not, sign in to TUITEA and tap ' +
+              '“Resend confirmation email” for a new link.';
+          }
+          return;
+        }
+        if (confirmation || (code && !recovery)) {
+          // Supabase confirmed the address before sending the browser here.
+          title.textContent = 'Your email is confirmed';
+          msg.textContent = 'Thank you. You can sign in to TUITEA now with your email and password.';
+          return;
+        }
+        if (recovery) {
+          title.textContent = 'Open this link in TUITEA';
+          msg.textContent = 'This link signs you in or resets your password, and it works in the TUITEA app. ' +
+            'On iPhone, open the same link from the Mail app. Nothing on your account has changed.';
+        }
+      } catch (e) {}
+    })();
   </script>
 </body>
 </html>

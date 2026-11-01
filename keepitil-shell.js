@@ -795,7 +795,8 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
         +'<a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refund">Refunds</a>'
         +'<a href="/ticket-terms"><span class="lg-f">Ticket Terms</span><span class="lg-s">Tickets</span></a>'
         +'<a href="/community-guidelines"><span class="lg-f">Community Guidelines</span><span class="lg-s">Rules</span></a>'
-        +'<span style="margin-left:auto">© '+(new Date().getFullYear())+' KEEPITIL</span></div>';
+        +'<span style="margin-left:auto">© '+(new Date().getFullYear())+' KEEPITIL</span></div>'
+        +'<p class="v3-foot-entity">KEEPITIL LLC · Garden Grove, CA</p>';
       if(RULES.nav!==false) document.body.appendChild(f);
 
       // active state on the mobile top-bar icon nav
@@ -1578,6 +1579,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     +'#v3-footer .v3-foot-inner{align-items:flex-start}#v3-footer .v3-foot-about{max-width:420px;flex:1 1 300px;text-align:left}#v3-footer .v3-foot-brand,#v3-footer .v3-foot-addr{text-align:left;display:block}'
     +'#v3-footer .v3-foot-desc{margin:10px 0 0;font-size:.82rem;line-height:1.55;color:var(--muted,#9a94b4);opacity:.9}'
     +'#v3-footer .v3-foot-addr{margin:8px 0 0;font-size:.74rem;line-height:1.5;color:var(--muted,#888);opacity:.7}#v3-footer .v3-foot-addr a{color:var(--brand-2,#5cc8ff)}'
+    +'#v3-footer .v3-foot-entity{max-width:var(--maxw,1400px);margin:12px auto 0;font-size:.78rem;line-height:1.5;opacity:.75}'
     /* ── MOBILE FOOTER, SIX ROWS (Founder 2026-08-26) ────────────────────────────────────
        1 KEEPITIL · 2 street · 3 city · 4 social, full width · 5 legal, full width · 6 space.
        Desktop is untouched — every rule below is inside the ≤860px block.
@@ -1618,6 +1620,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     /* the copyright drops to its own centred line rather than fighting for width in row 5 */
     +  '#v3-footer .v3-foot-legal>span{flex:1 0 100%;margin-left:0!important;text-align:center;'
     +    'opacity:.6;padding-top:6px}'
+    +  '#v3-footer .v3-foot-entity{text-align:center;width:100%}'
     /* row 6: deliberate empty space so the floating up-arrow (left) and chat (right) buttons
        have somewhere to sit that is not on top of a link. */
     +  '#v3-footer{padding-bottom:calc(84px + var(--kil-bnav-h,62px) + var(--kil-mbar-h,0px))!important}'

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
 <title>Set your TUITEA password</title>
 <!--
   THE PASSWORD PAGE. IT HAS EXACTLY ONE JOB.
@@ -24,7 +25,14 @@
   right here (rate limits said as a wait); a finished password, and a
   confirmation link (?flow=confirm, a new account's "Confirm your email"), offer
   sign-in — TUITEA on the web (/app/tuitea/app/, the app's own front door) or
-  the app on the phone. The page itself still holds no session afterwards.
+  the app on the phone. "Your email is confirmed" is shown only after
+  verifyOtp succeeds for a flow=confirm token_hash, or after a sign-up
+  access_token session is accepted. A failed check, and a bare ?code= (this
+  page has no PKCE verifier), say the email may already be confirmed and
+  offer sign-in plus a reset link. With no token, the page says to open the
+  link from the email.
+  type=recovery is unchanged. The page itself still holds no session
+  afterwards.
 
   It signs itself OUT the moment the password is saved, so a recovery link
   opened on a borrowed or shared device does not leave a live session behind in
@@ -105,10 +113,22 @@
     <a class="go" href="/app/tuitea/app/">Sign in to TUITEA on the web</a>
     <p>On iPhone, open the TUITEA app and sign in there.</p>
   </div>
+
+  <div id="open-view" class="done" hidden>
+    <h2 id="open-title">Open the link from your email</h2>
+    <p id="open-body">This page can confirm your email only from that link.</p>
+  </div>
+
+  <div id="maybe-view" class="done" hidden>
+    <h2>Your email may already be confirmed - try signing in</h2>
+    <a class="go" href="/app/tuitea/app/">Sign in to TUITEA</a>
+    <p class="signin"><a id="maybe-reset" href="#reset">Reset your password</a></p>
+  </div>
 </main>
 
 <script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+import { createClient } from '/assets/js/vendor/supabase-js-2.45.4.mjs';
+import { passwordConfirmCase, passwordExitUrl, settleRecoverySession } from './landing.mjs';
 
 const SUPABASE_URL = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
 // The publishable (anon) key. Public by design: it grants nothing on its own,
@@ -181,33 +201,94 @@ $('again-send').addEventListener('click', async () => {
   setTimeout(() => { btn.disabled = false; }, 60000);
 });
 
+function showOpenLink() {
+  $('form-view').hidden = true;
+  $('open-view').hidden = false;
+}
+
+function showMaybe() {
+  $('form-view').hidden = true;
+  $('maybe-view').hidden = false;
+}
+
+$('maybe-reset').addEventListener('click', (e) => {
+  e.preventDefault();
+  $('maybe-view').hidden = true;
+  $('form-view').hidden = false;
+  fields.hidden = true;
+  intro.textContent = '';
+  document.querySelector('#form-view h2').textContent = 'Reset your password';
+  confirmFlow = false;
+  $('again').hidden = false;
+  $('again-send').textContent = 'Email me a new link';
+});
+
 async function begin() {
   const url = new URL(location.href);
   const params = url.searchParams;
   const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
-
+  const kind = passwordConfirmCase(url.search, url.hash);
   const flowType = (params.get('type') || hash.get('type') || '').toLowerCase();
-  confirmFlow = params.get('flow') === 'confirm' || ['signup', 'email', 'email_change', 'invite'].includes(flowType);
+  confirmFlow = params.get('flow') === 'confirm' || ['signup', 'email', 'email_change', 'invite'].includes(flowType) || kind === 'verify-otp' || kind === 'exchange-code';
 
   const problem = params.get('error_description') || hash.get('error_description');
   if (problem) {
+    history.replaceState(null, '', passwordExitUrl(location.href));
+    const confirmish = kind !== 'recovery' && (
+      kind === 'verify-otp' || kind === 'confirm-session' || kind === 'maybe-confirmed' ||
+      params.get('flow') === 'confirm' ||
+      ['signup', 'email', 'email_change', 'invite'].includes(flowType)
+    );
+    if (confirmish) return showMaybe();
     return fail(/expired|invalid|already/i.test(problem)
       ? 'That link has expired or was already used. Nothing on your account has changed — get a new one below.'
       : 'That link did not work. Nothing on your account has changed — get a new one below.');
   }
 
-  // A NEW ACCOUNT'S CONFIRMATION (build 88 phase 2). Supabase confirms the address before it
-  // redirects here; the app's PKCE code cannot be redeemed in this browser and is not needed.
-  // An older-style confirmation with a token_hash is verified, then the session is dropped.
-  if (confirmFlow) {
-    const th = params.get('token_hash');
-    if (th) {
-      const { error } = await sb.auth.verifyOtp({ token_hash: th, type: flowType || 'email' });
-      if (error) return fail('That confirmation link has expired or was already used. If you already confirmed, just sign in — otherwise get a new one below.');
-      try { await sb.auth.signOut(); } catch {}
+  // Drop the token from the address bar even when the check throws.
+  async function checkThen(run) {
+    let ok = false;
+    try {
+      const { error } = await run();
+      if (!error) {
+        try { await sb.auth.signOut(); } catch {}
+        ok = true;
+      }
+    } catch (e) {
+      ok = false;
+    } finally {
+      history.replaceState(null, '', passwordExitUrl(location.href));
     }
-    history.replaceState(null, '', location.pathname);
-    return confirmed();
+    if (ok) confirmed();
+    else showMaybe();
+  }
+
+  // ?flow=confirm with a token_hash. Confirmed only after verifyOtp succeeds.
+  if (kind === 'verify-otp') {
+    const th = params.get('token_hash') || hash.get('token_hash');
+    const otpType = ['signup', 'email', 'email_change', 'invite'].includes(flowType) ? flowType : 'signup';
+    await checkThen(() => sb.auth.verifyOtp({ token_hash: th, type: otpType }));
+    return;
+  }
+
+  // #access_token with type=signup is a confirmation, not a password reset.
+  if (kind === 'confirm-session') {
+    const accessToken = hash.get('access_token') || params.get('access_token');
+    const refreshToken = hash.get('refresh_token') || params.get('refresh_token');
+    await checkThen(() => sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }));
+    return;
+  }
+
+  // A bare ?code= cannot be redeemed here (no PKCE verifier). Do not call it sign-up.
+  if (kind === 'maybe-confirmed') {
+    history.replaceState(null, '', passwordExitUrl(location.href));
+    return showMaybe();
+  }
+
+  // Nothing to check. Do not claim the email is confirmed.
+  if (kind === 'no-token') {
+    history.replaceState(null, '', passwordExitUrl(location.href));
+    return showOpenLink();
   }
 
   // Two shapes reach this page: the current token_hash form, and the older
@@ -218,23 +299,41 @@ async function begin() {
   const accessToken = hash.get('access_token');
   const refreshToken = hash.get('refresh_token');
 
-  try {
-    if (tokenHash) {
-      const { error } = await sb.auth.verifyOtp({ token_hash: tokenHash, type });
-      if (error) throw error;
-    } else if (accessToken && refreshToken) {
-      const { error } = await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-      if (error) throw error;
-    } else {
-      return fail('This page needs the link from a TUITEA password email. Get a new one below.');
+  if (!tokenHash && !(accessToken && refreshToken)) {
+    history.replaceState(null, '', passwordExitUrl(location.href));
+    return fail('This page needs the link from a TUITEA password email. Get a new one below.');
+  }
+
+  // Older recovery links put the session in the hash. setSession keeps it in
+  // memory (persistSession is false). The finally clears to the bare path —
+  // no query and no hash — before the form is shown, on success and on failure.
+  // Do not sign out here: updateUser still needs the session.
+  if (!tokenHash && accessToken && refreshToken) {
+    const sessionError = await settleRecoverySession(
+      location.href,
+      () => sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }),
+      (next) => history.replaceState(null, '', next),
+    );
+    if (sessionError) {
+      return fail('That link has expired or has already been used. Nothing on your account has changed — get a new one below.');
     }
+    intro.textContent = 'Choose a password for your TUITEA account.';
+    fields.hidden = false;
+    pw.focus();
+    return;
+  }
+
+  try {
+    const { error } = await sb.auth.verifyOtp({ token_hash: tokenHash, type });
+    if (error) throw error;
   } catch (e) {
+    history.replaceState(null, '', passwordExitUrl(location.href));
     return fail('That link has expired or has already been used. Nothing on your account has changed — get a new one below.');
   }
 
   // The token is spent. Take it out of the address bar so it is not left in
   // history, or in a screenshot, or in a shared URL.
-  history.replaceState(null, '', location.pathname);
+  history.replaceState(null, '', passwordExitUrl(location.href));
 
   intro.textContent = 'Choose a password for your TUITEA account.';
   fields.hidden = false;

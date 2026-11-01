@@ -62,7 +62,7 @@ assert.equal(
   '/join/auth?flow=confirm'
 );
 assert.equal(
-  joinAuthUrl(origin + '/join/auth?code=abc&foo=1#access_token=tok&type=signup', 'resend'),
+  joinAuthUrl(origin + '/join/auth?code=abc&foo=1#access_token=tok&refresh_token=ref&type=signup', 'resend'),
   '/join/auth?foo=1#type=signup'
 );
 assert.equal(
@@ -70,7 +70,7 @@ assert.equal(
   '/join/auth#refresh_token=ref&type=recovery'
 );
 assert.equal(
-  joinAuthUrl(origin + '/join/auth?code=abc#access_token=tok', 'default'),
+  joinAuthUrl(origin + '/join/auth?code=abc#access_token=tok&refresh_token=ref', 'default'),
   '/join/auth'
 );
 

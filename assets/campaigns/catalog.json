@@ -70,7 +70,7 @@
       "enabled": true,
       "order": 3,
       "websiteApproved": true,
-      "appApproved": true,
+      "appApproved": false,
       "appPlacements": [
         "home",
         "search"

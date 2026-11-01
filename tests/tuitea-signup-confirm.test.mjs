@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { passwordLinkKind } from '../app/tuitea/password/landing.mjs';
-import { confirmOtpType, isConfirmFlow } from '../join/auth/confirm.mjs';
+import { confirmAction, confirmOtpType } from '../join/auth/confirm.mjs';
 
 assert.equal(passwordLinkKind('?code=abc', ''), 'signup-code');
 assert.equal(passwordLinkKind('?code=abc&type=signup', ''), 'signup-code');
@@ -17,8 +17,12 @@ assert.equal(confirmOtpType('', '#token_hash=abc&type=signup'), 'signup');
 assert.equal(confirmOtpType('?flow=confirm', ''), null);
 assert.equal(confirmOtpType('?token_hash=abc&type=recovery', ''), null);
 assert.equal(confirmOtpType('?flow=confirm&token_hash=abc&type=recovery', ''), null);
-assert.equal(isConfirmFlow('?flow=confirm', ''), true);
-assert.equal(isConfirmFlow('?type=signup', ''), true);
-assert.equal(isConfirmFlow('?type=recovery', ''), false);
+assert.equal(confirmAction('?flow=confirm&token_hash=abc', ''), 'verify-signup');
+assert.equal(confirmAction('?token_hash=abc&type=signup', ''), 'verify-signup');
+assert.equal(confirmAction('?flow=confirm', ''), 'resend');
+assert.equal(confirmAction('?code=abc', ''), 'resend');
+assert.equal(confirmAction('?type=signup', ''), 'resend');
+assert.equal(confirmAction('?type=recovery', ''), 'recovery');
+assert.equal(confirmAction('?type=recovery&error=access_denied', ''), 'recovery-error');
 
 console.log('tuitea signup confirm: ok');

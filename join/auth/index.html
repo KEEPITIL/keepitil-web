@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
 <title>TUITEA email link</title>
 <!--
   WHERE A TUITEA EMAIL LINK LANDS WHEN THE APP DID NOT CATCH IT.
@@ -19,8 +20,9 @@
   Supabase confirms first, then redirects — so the page now says so and offers sign-in.
 
   A PKCE ?code= still belongs to the app that asked for it; this page does not redeem it.
-  A sign-up token_hash (?flow=confirm, or type=signup) is verified here with type=signup,
-  then the session is dropped. type=recovery is left untouched.
+  "Your email is confirmed" is shown only after verifyOtp({ token_hash, type: 'signup' })
+  succeeds. Any other confirmation link gets a clear error and a resend form.
+  type=recovery is left untouched.
 -->
 <style>
   :root{--bg:#FBF7EF;--ink:#20261F;--muted:#6E7566;--ocean:#33777D;--line:#E2D9C6;--surface:#FFFDF8}
@@ -34,6 +36,13 @@
   a.btn{display:inline-block;background:var(--ocean);color:#fff;text-decoration:none;font-weight:600;padding:.7rem 1.1rem;border-radius:999px;margin:.2rem .2rem .2rem 0}
   a{color:var(--ocean)}
   .small{font-size:.9rem}
+  label{display:block;font-size:.88rem;font-weight:600;margin:.4rem 0 .3rem;color:var(--ink)}
+  input{width:100%;box-sizing:border-box;padding:.75rem .8rem;font-size:1rem;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);min-height:48px}
+  button{margin-top:.7rem;width:100%;padding:.8rem;min-height:48px;border:0;border-radius:999px;background:var(--ocean);color:#fff;font-weight:600;font-size:1rem;cursor:pointer}
+  button[disabled]{opacity:.5;cursor:default}
+  #resend-msg{min-height:1.2em}
+  .err{color:#B4472F}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .err{color:#E38B72}}
 </style>
 </head>
 <body>
@@ -44,71 +53,117 @@
       <a class="btn" id="signin" href="https://keepitil.com/app/tuitea/app/">Sign in to TUITEA on the web</a>
     </p>
     <p class="small" id="next">On iPhone, open TUITEA and sign in with your email and password.</p>
+    <div id="resend" hidden>
+      <p id="resend-note">Send a new confirmation link to your email.</p>
+      <form id="resend-form">
+        <label for="resend-email">Your email</label>
+        <input id="resend-email" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com">
+        <button type="submit" id="resend-send">Email me a new confirmation link</button>
+      </form>
+      <p id="resend-msg" role="status"></p>
+    </div>
   </div>
   <script type="module">
-    import { confirmOtpType, isConfirmFlow } from './confirm.mjs';
+    import { confirmAction } from './confirm.mjs';
 
     const SUPABASE_URL = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ';
+    const REDIRECT = 'https://keepitil.com/join/auth?flow=confirm';
 
     const title = document.getElementById('title');
     const msg = document.getElementById('msg');
-    const next = document.getElementById('next');
+    const resend = document.getElementById('resend');
 
     function confirmed() {
       title.textContent = 'Your email is confirmed';
       msg.textContent = 'Thank you. You can sign in to TUITEA now with your email and password.';
+      resend.hidden = true;
+    }
+    function needResend(text) {
+      title.textContent = 'That link could not be used';
+      msg.textContent = text;
+      resend.hidden = false;
     }
 
+    let client = null;
+    async function supabase() {
+      if (client) return client;
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.4');
+      client = createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      });
+      return client;
+    }
+
+    document.getElementById('resend-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const out = document.getElementById('resend-msg');
+      const btn = document.getElementById('resend-send');
+      const email = document.getElementById('resend-email').value.trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        out.className = 'err';
+        out.textContent = "That doesn't look like an email address.";
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      let error = null;
+      try {
+        const sb = await supabase();
+        const r = await sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: REDIRECT } });
+        error = r.error;
+      } catch (e) { error = e; }
+      btn.textContent = 'Email me a new confirmation link';
+      if (error) {
+        btn.disabled = false;
+        out.className = 'err';
+        const code = (error.code || '') + '';
+        out.textContent = (code === 'over_email_send_rate_limit' || error.status === 429)
+          ? 'Too many emails have been requested just now. Please wait a few minutes, then try again.'
+          : "We couldn't send the email just now. Check your connection and try again.";
+        return;
+      }
+      out.className = '';
+      out.textContent = 'Sent. If ' + email + ' has a TUITEA account waiting to be confirmed, a new email is on its way — check Spam or Junk too.';
+      setTimeout(() => { btn.disabled = false; }, 60000);
+    });
+
     try {
+      const action = confirmAction(location.search, location.hash);
       const q = new URLSearchParams(location.search);
       const h = new URLSearchParams(location.hash.replace(/^#/, ''));
-      const type = (q.get('type') || h.get('type') || '').toLowerCase();
       const err = h.get('error_description') || q.get('error_description') || h.get('error') || q.get('error');
-      const code = q.get('code');
-      const recovery = type === 'recovery' || type === 'magiclink';
-      const otpType = confirmOtpType(location.search, location.hash);
 
-      if (err) {
+      if (action === 'recovery-error') {
         const expired = /expired|invalid|already/i.test(decodeURIComponent(String(err).replace(/\+/g, ' ')));
         title.textContent = 'That link could not be used';
-        if (recovery) {
-          msg.textContent = (expired ? 'That link has expired or was already used. ' : '') +
-            'Nothing on your account has changed. Open TUITEA and tap Forgot Password to get a new one.';
-        } else {
-          msg.textContent = (expired ? 'That link has expired or was already used. ' : '') +
-            'If you already confirmed your email, just sign in. If not, sign in to TUITEA and tap ' +
-            '“Resend confirmation email” for a new link.';
-        }
-      } else if (otpType) {
+        msg.textContent = (expired ? 'That link has expired or was already used. ' : '') +
+          'Nothing on your account has changed. Open TUITEA and tap Forgot Password to get a new one.';
+      } else if (action === 'verify-signup') {
         title.textContent = 'Checking your link…';
         msg.textContent = '';
         const token = q.get('token_hash') || h.get('token_hash');
-        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.4');
-        const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
-          auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-        });
-        const { error } = await sb.auth.verifyOtp({ token_hash: token, type: otpType });
+        const sb = await supabase();
+        const { error } = await sb.auth.verifyOtp({ token_hash: token, type: 'signup' });
         try { await sb.auth.signOut(); } catch {}
         history.replaceState(null, '', location.pathname + '?flow=confirm');
         if (error) {
-          title.textContent = 'That link could not be used';
-          msg.textContent = 'That confirmation link has expired or was already used. If you already confirmed your email, just sign in.';
+          needResend('That confirmation link has expired or was already used. Nothing was confirmed. Send yourself a new link below.');
         } else {
           confirmed();
         }
-      } else if (isConfirmFlow(location.search, location.hash) || (code && !recovery)) {
-        confirmed();
-      } else if (recovery) {
+      } else if (action === 'resend') {
+        const expired = err && /expired|invalid|already/i.test(decodeURIComponent(String(err).replace(/\+/g, ' ')));
+        needResend(expired
+          ? 'That link has expired or was already used. Nothing was confirmed. Send yourself a new link below.'
+          : 'This link did not include a confirmation token, so your email was not confirmed here. Send yourself a new link below.');
+      } else if (action === 'recovery') {
         title.textContent = 'Open this link in TUITEA';
         msg.textContent = 'This link signs you in or resets your password, and it works in the TUITEA app. ' +
           'On iPhone, open the same link from the Mail app. Nothing on your account has changed.';
       }
     } catch (e) {
-      if (title && title.textContent === 'Checking your link…') {
-        title.textContent = 'That link could not be used';
-        msg.textContent = 'That confirmation link could not be checked. Check your connection and try the link again.';
-      }
+      needResend('That confirmation link could not be checked. Check your connection, or send yourself a new link below.');
     }
   </script>
 </body>

@@ -17,15 +17,16 @@
   is not the target. Do not treat this exception as accepted until Joe says so.
 
   The manifest id stays /app/tuitea/, so this path must keep existing. A valid
-  ?invite= (32 hex characters) is forwarded to /app/tuitea/app/?invite=<token>.
-  Supabase token_hash, type, and a hash access_token/refresh_token pass through.
-  An invalid invite is not forwarded. The target path is fixed; query values
-  are never used as a URL.
+  ?invite= (32 hex characters) is forwarded. Known auth keys (token_hash, type,
+  code, error, error_code, error_description) pass through. utm_* is forwarded
+  only when its value cannot be a redirect. Every other query key is dropped.
+  The hash passes through as-is. The target path is fixed.
 -->
 <meta http-equiv="refresh" content="0; url=/app/tuitea/app/">
 <script>
 function tuiteaRedirectTarget(search, hash) {
   var PATH = "/app/tuitea/app/";
+  var ALLOW = { token_hash: 1, type: 1, code: 1, error: 1, error_code: 1, error_description: 1 };
   if (typeof search !== "string" || search.charAt(0) !== "?") search = "";
   if (typeof hash !== "string" || hash.charAt(0) !== "#") hash = "";
   var parts = search.length > 1 ? search.slice(1).split("&") : [];
@@ -50,7 +51,15 @@ function tuiteaRedirectTarget(search, hash) {
       }
       continue;
     }
-    kept.push(part);
+    if (ALLOW[key]) {
+      kept.push(part);
+      continue;
+    }
+    if (/^utm_[A-Za-z0-9_]+$/.test(key)) {
+      try { decoded = decodeURIComponent(val.replace(/\+/g, " ")); }
+      catch (e) { continue; }
+      if (decoded && decoded.length <= 200 && !/[\/\\:@?#%]/.test(decoded)) kept.push(part);
+    }
   }
   var dest = PATH;
   if (kept.length) dest += "?" + kept.join("&");
@@ -73,13 +82,5 @@ function tuiteaRedirectTarget(search, hash) {
 </head>
 <body>
 <p><a id="tuitea-continue" href="/app/tuitea/app/">Continue to TUITEA</a></p>
-<script>
-(function () {
-  var dest = tuiteaRedirectTarget(location.search, location.hash);
-  var link = document.getElementById("tuitea-continue");
-  if (link) link.setAttribute("href", dest);
-  location.replace(dest);
-})();
-</script>
 </body>
 </html>

@@ -128,6 +128,22 @@ check(
   "page loads no shell or analytics",
   !/keepitil-shell|googletagmanager|clarity\.ms|pwa\.js|gtag/.test(indexHtml)
 );
+check("one location.replace on the page", (indexHtml.match(/location\.replace/g) || []).length === 1);
+check("404 sends no referrer", notFoundHtml.includes('<meta name="referrer" content="no-referrer"/>'));
+
+check(
+  "known auth keys pass through and unknown keys are dropped",
+  tuiteaRedirectTarget(
+    "?next=//evil.com&code=pkce123&error=access_denied&error_code=otp_expired&error_description=bad+link&redirect=https://evil.com&token_hash=ab%2Bcd&type=signup",
+    "#access_token=aaa&refresh_token=bbb"
+  ) ===
+    "/app/tuitea/app/?code=pkce123&error=access_denied&error_code=otp_expired&error_description=bad+link&token_hash=ab%2Bcd&type=signup#access_token=aaa&refresh_token=bbb"
+);
+check(
+  "safe utm is kept and unsafe utm is dropped",
+  tuiteaRedirectTarget("?utm_source=newsletter&utm_medium=%2F%2Fevil.com&utm_campaign=spring-sale&utm_content=a\\b&utm_term=family+app", "") ===
+    "/app/tuitea/app/?utm_source=newsletter&utm_campaign=spring-sale&utm_term=family+app"
+);
 
 const router = notFoundHtml.match(/<script>([\s\S]*?)<\/script>/)[1];
 function route(protocol, pathname, search, hash) {
@@ -161,6 +177,11 @@ check(
 check(
   "404 backslash path does not leave the app",
   route("https:", "/app/tuitea/%5C%5Cevil.com", "?invite=%5Cevil", "") === "/app/tuitea/app/"
+);
+check(
+  "404 drops unknown keys and unsafe utm",
+  route("https:", "/app/tuitea/missing", "?next=//evil.com&utm_source=//evil.com&code=abc&type=signup", "#access_token=aaa") ===
+    "/app/tuitea/app/?code=abc&type=signup#access_token=aaa"
 );
 
 const same = [

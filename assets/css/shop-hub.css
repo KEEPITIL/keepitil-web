@@ -28,6 +28,9 @@ h1{margin:0;font-family:"Bebas Neue",Inter,sans-serif;font-size:clamp(3rem,12vw,
 .faq summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center;padding:10px 16px}
 .faq details p{margin:0;padding:0 16px 14px;color:#d5d2e2}
 .faq a{color:#5CD6FF}
+.hub-legal{max-width:1120px;margin:0 auto;padding:8px 16px 28px;color:#9a94b4;font-size:.85rem}
+.hub-legal a{color:#5CD6FF;font-weight:700;margin-right:16px;text-decoration:underline;text-underline-offset:3px}
+.hub-legal p{margin:8px 0 0}
 .offers{display:grid;gap:16px;margin-top:28px}
 .offer{display:flex;flex-direction:column;gap:10px;min-width:0;padding:16px;border-radius:18px;background:#10182a;border:1px solid rgba(92,214,255,.28)}
 .offer h2{margin:0;font-family:"Bebas Neue",Inter,sans-serif;font-size:2rem;font-weight:400;letter-spacing:.04em;line-height:1}

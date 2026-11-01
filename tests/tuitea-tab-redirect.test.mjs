@@ -19,6 +19,10 @@ assert.equal(
   '/app/tuitea/app/?invite=' + invite + '&tab=family'
 );
 assert.equal(tuiteaTabTarget('family', '?tab=home&invite=ab', ''), '/app/tuitea/app/?tab=family');
+assert.equal(
+  tuiteaTabTarget('family', '?invite=ab&invite=' + invite, ''),
+  '/app/tuitea/app/?invite=' + invite + '&tab=family'
+);
 assert.equal(tuiteaTabTarget('memory', '?', '#x'), '/app/tuitea/app/?tab=memory#x');
 assert.equal(tuiteaTabTarget('more', 'not-a-query', 'nohash'), '/app/tuitea/app/?tab=more');
 
@@ -43,6 +47,19 @@ assert.equal(
   tuiteaTabTarget('home', '?error=access_denied&error_code=otp_expired&error_description=bad+link', ''),
   '/app/tuitea/app/?error=access_denied&error_code=otp_expired&error_description=bad+link&tab=home'
 );
+assert.equal(
+  tuiteaTabTarget('tupu', '?token_hash=ab%2Bcd&token_hash=second&type=signup&type=recovery&code=pkce123&code=https://evil.example', ''),
+  '/app/tuitea/app/?token_hash=ab%2Bcd&type=signup&code=pkce123&tab=tupu'
+);
+assert.equal(
+  tuiteaTabTarget('home', '?code=https://evil.example&type=javascript:alert(1)&token_hash=ab/cd', ''),
+  '/app/tuitea/app/?tab=home'
+);
+assert.equal(
+  tuiteaTabTarget('memory', '?type=email_change&type=signup', ''),
+  '/app/tuitea/app/?type=email_change&tab=memory'
+);
+assert.equal(tuiteaTabTarget('more', '?utm_source=one&utm_source=two', ''), '/app/tuitea/app/?utm_source=one&tab=more');
 
 const tabs = ['tupu', 'home', 'family', 'memory', 'more'];
 for (const tab of tabs) {

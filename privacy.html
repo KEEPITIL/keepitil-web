@@ -51,7 +51,7 @@ a{color:var(--brand)}
 <ul>
 <li><strong>Account info</strong> you provide: email, username/handle, profile details, and content you post.</li>
 <li><strong>Payment info</strong> for purchases: processed by <strong>Stripe</strong>. We receive confirmation and limited billing details (like the last 4 digits) but never your full card number.</li>
-<li><strong>Usage analytics</strong>: we use <strong>Google Analytics 4</strong> and <strong>Microsoft Clarity</strong> to understand how the site is used (pages viewed, general interactions, approximate location). Clarity may record anonymized session interactions to improve UX.</li>
+<li><strong>Usage analytics</strong>: if you accept cookies, we use <strong>Google Analytics 4</strong> (property G-ZR36NRE4MT) and, on a wide screen, <strong>Microsoft Clarity</strong> to understand how the site is used (pages viewed, general interactions, approximate location). Clarity may record anonymized session interactions to improve the site. Neither script is requested until you accept. Choosing “No thanks”, or withdrawing later, stops them from loading and deletes the Google Analytics and Clarity cookies already stored for this site.</li>
 <li><strong>Technical data</strong>: device/browser type and cookies needed for the site to work.</li>
 </ul>
 
@@ -71,7 +71,8 @@ a{color:var(--brand)}
 <h2>Your choices</h2>
 <ul>
 <li>Access, update, or delete your profile from your account, or by contacting support.</li>
-<li>Opt out of analytics via your browser settings / Global Privacy Control where supported.</li>
+<li>Choose Accept or No thanks on the cookie banner. The two choices are equal. A Cookie settings link in the site footer reopens the banner so you can withdraw or change that choice. Withdrawing deletes the Google Analytics and Clarity cookies and stops those scripts from loading.</li>
+<li>A browser sending Global Privacy Control (<code>navigator.globalPrivacyControl</code>) is treated as No thanks. Analytics stays off.</li>
 <li>Unsubscribe from newsletters via the link in any email.</li>
 </ul>
 

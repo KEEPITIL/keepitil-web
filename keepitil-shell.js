@@ -302,15 +302,46 @@
   function __kilConsentChoice(){
     try{ return localStorage.getItem(KIL_CONSENT_KEY); }catch(e){ return null; }
   }
+  function __kilGpcNo(){
+    try{ return navigator.globalPrivacyControl === true; }catch(e){ return false; }
+  }
+  function __kilDeleteCookie(name){
+    var host=location.hostname, domains=[host, '.'+host], bits=host.split('.');
+    if(bits.length>1) domains.push('.'+bits.slice(-2).join('.'));
+    domains.forEach(function(d){
+      document.cookie=name+'=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain='+d;
+    });
+    document.cookie=name+'=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+  }
+  function __kilForgetAnalytics(){
+    try{ window['ga-disable-'+KIL_GA_ID]=true; }catch(e){}
+    window.__kilGA4='off';
+    window.__kilClarity='off';
+    try{
+      document.querySelectorAll('script[src*="googletagmanager.com/gtag"],script[src*="clarity.ms"]').forEach(function(s){ s.remove(); });
+    }catch(e){}
+    var names=['_ga','_gid','_gat','_ga_ZR36NRE4MT','_clck','_clsk','CLID','_cltk'];
+    try{
+      (document.cookie||'').split(';').forEach(function(c){
+        var n=c.split('=')[0].replace(/^\s+/, '');
+        if(/^_ga/.test(n) || n==='_gid' || n==='_gat' || n==='_clck' || n==='_clsk' || n==='CLID' || n==='_cltk'){
+          if(names.indexOf(n)<0) names.push(n);
+        }
+      });
+    }catch(e){}
+    names.forEach(__kilDeleteCookie);
+  }
   function __kilMountGA4(){
-    try{ if(window.__kilGA4) return;
+    if(__kilGpcNo() || __kilConsentChoice()!=='accepted') return;
+    try{ if(window.__kilGA4 && window.__kilGA4!=='off') return;
       window.__kilGA4=KIL_GA_ID;
       var _g=document.createElement('script'); _g.async=true; _g.src='https://www.googletagmanager.com/gtag/js?id='+KIL_GA_ID; document.head.appendChild(_g);
       window.dataLayer=window.dataLayer||[]; window.gtag=function(){dataLayer.push(arguments);}; gtag('js',new Date()); gtag('config',KIL_GA_ID);
     }catch(e){}
   }
   function __kilMountClarity(){
-    try{ if(window.__kilClarity || !__kilClarityAllowed()) return;
+    if(__kilGpcNo() || __kilConsentChoice()!=='accepted') return;
+    try{ if((window.__kilClarity && window.__kilClarity!=='off') || !__kilClarityAllowed()) return;
       window.__kilClarity='xk5iwishve';
       (function(c,l,a,r,i){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};var t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;var y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","xk5iwishve");
     }catch(e){}
@@ -323,24 +354,30 @@
   function __kilShowConsent(){
     if(document.getElementById('kil-consent')) return;
     if(IN_IFRAME && !IN_STAGE) return;
+    if(!document.getElementById('kil-consent-css')){
     var css=document.createElement('style'); css.id='kil-consent-css';
     css.textContent='#kil-consent{position:fixed;left:12px;right:12px;bottom:calc(var(--kil-bnav-h,62px) + 12px + env(safe-area-inset-bottom,0px));'
       +'z-index:1200;margin:0 auto;max-width:560px;background:#12121c;color:#f4f2fb;border:1px solid #2a2a3a;border-radius:14px;'
       +'padding:14px 14px 12px;box-shadow:0 18px 48px rgba(0,0,0,.55);font-family:Inter,system-ui,sans-serif;font-size:.92rem;line-height:1.45}'
       +'#kil-consent p{margin:0 0 12px}#kil-consent .kil-consent-actions{display:flex;gap:8px;flex-wrap:wrap}'
-      +'#kil-consent button{min-height:44px;padding:10px 16px;border-radius:10px;font:800 .9rem/1 Inter,system-ui,sans-serif;cursor:pointer}'
-      +'#kil-consent-accept{background:#5CD6FF;color:#04121b;border:0}'
-      +'#kil-consent-decline{background:transparent;color:#f4f2fb;border:1px solid rgba(255,255,255,.35)}';
+      +'#kil-consent button{flex:1 1 8rem;min-height:44px;padding:10px 16px;border-radius:10px;font:700 .9rem/1 Inter,system-ui,sans-serif;cursor:pointer;background:transparent;color:#f4f2fb;border:1px solid rgba(255,255,255,.45)}';
     document.head.appendChild(css);
+    }
     var bar=document.createElement('div'); bar.id='kil-consent'; bar.setAttribute('role','dialog'); bar.setAttribute('aria-labelledby','kil-consent-title');
     bar.innerHTML='<p id="kil-consent-title">KEEPITIL uses Google Analytics and Microsoft Clarity cookies to see which pages are visited. They stay off until you accept.</p>'
       +'<div class="kil-consent-actions"><button type="button" id="kil-consent-accept">Accept</button>'
       +'<button type="button" id="kil-consent-decline">No thanks</button></div>';
     document.body.appendChild(bar);
     function choose(value){
+      if(value==='accepted' && __kilGpcNo()) value='declined';
       try{ localStorage.setItem(KIL_CONSENT_KEY, value); }catch(e){}
       var el=document.getElementById('kil-consent'); if(el) el.remove();
       if(value==='accepted') __kilMountAnalytics();
+      else __kilForgetAnalytics();
+    }
+    if(__kilGpcNo()){
+      var note=document.getElementById('kil-consent-title');
+      if(note) note.textContent='Your browser is sending Global Privacy Control, so Google Analytics and Microsoft Clarity stay off.';
     }
     document.getElementById('kil-consent-accept').addEventListener('click', function(){ choose('accepted'); });
     document.getElementById('kil-consent-decline').addEventListener('click', function(){ choose('declined'); });
@@ -348,7 +385,13 @@
   /* gtag() may queue before the tag exists so an accepted visit does not drop the first events.
      The network request itself waits for Accept. */
   try{ window.dataLayer=window.dataLayer||[]; if(!window.gtag){ window.gtag=function(){dataLayer.push(arguments);}; } }catch(e){}
+  window.__kilOpenCookieSettings=function(){ __kilShowConsent(); };
   function __kilConsentReady(){
+    if(__kilGpcNo()){
+      try{ localStorage.setItem(KIL_CONSENT_KEY, 'declined'); }catch(e){}
+      __kilForgetAnalytics();
+      return;
+    }
     var choice=__kilConsentChoice();
     if(choice==='accepted') __kilMountAnalytics();
     else if(choice!=='declined') __kilShowConsent();
@@ -837,11 +880,19 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
         +'</div></div>'
         +'<div class="v3-foot-legal" style="max-width:var(--maxw,1400px);margin:14px auto 0;font-size:.78rem;opacity:.7;display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
         +'<a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refund">Refunds</a>'
+        +'<a href="#cookie-settings" id="kil-cookie-settings">Cookie settings</a>'
         +'<a href="/ticket-terms"><span class="lg-f">Ticket Terms</span><span class="lg-s">Tickets</span></a>'
         +'<a href="/community-guidelines"><span class="lg-f">Community Guidelines</span><span class="lg-s">Rules</span></a>'
         +'<span style="margin-left:auto">© '+(new Date().getFullYear())+' KEEPITIL</span></div>'
         +'<p class="v3-foot-entity">KEEPITIL LLC · Garden Grove, CA</p>';
       if(RULES.nav!==false) document.body.appendChild(f);
+      try{
+        var cookieLink=document.getElementById('kil-cookie-settings');
+        if(cookieLink) cookieLink.addEventListener('click', function(e){
+          e.preventDefault();
+          if(window.__kilOpenCookieSettings) window.__kilOpenCookieSettings();
+        });
+      }catch(e){}
 
       // active state on the mobile top-bar icon nav
       /* Matchers come from DESTINATIONS so the header and the bottom bar can never disagree

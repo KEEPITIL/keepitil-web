@@ -18,8 +18,9 @@
   (sign-up, a new email address) is already done by the time Supabase sends the browser here —
   Supabase confirms first, then redirects — so the page now says so and offers sign-in.
 
-  It still does NOTHING with the session material in the URL. With PKCE the code belongs to the
-  app that asked for it; a web page using it would sign in a browser tab nobody is looking at.
+  A PKCE ?code= still belongs to the app that asked for it; this page does not redeem it.
+  A sign-up token_hash (?flow=confirm, or type=signup) is verified here with type=signup,
+  then the session is dropped. type=recovery is left untouched.
 -->
 <style>
   :root{--bg:#FBF7EF;--ink:#20261F;--muted:#6E7566;--ocean:#33777D;--line:#E2D9C6;--surface:#FFFDF8}
@@ -44,46 +45,71 @@
     </p>
     <p class="small" id="next">On iPhone, open TUITEA and sign in with your email and password.</p>
   </div>
-  <script>
-    // Only wording changes here, never the session.
-    (function () {
-      try {
-        var q = new URLSearchParams(location.search);
-        var h = new URLSearchParams(location.hash.replace(/^#/, ''));
-        var type = (q.get('type') || h.get('type') || '').toLowerCase();
-        var err = h.get('error_description') || q.get('error_description') || h.get('error') || q.get('error');
-        var code = q.get('code');
-        var title = document.getElementById('title'), msg = document.getElementById('msg'),
-            next = document.getElementById('next');
-        var confirmation = type === 'signup' || type === 'email' || type === 'email_change' || type === 'invite';
-        var recovery = type === 'recovery' || type === 'magiclink';
+  <script type="module">
+    import { confirmOtpType, isConfirmFlow } from './confirm.mjs';
 
-        if (err) {
-          var expired = /expired|invalid|already/i.test(decodeURIComponent(String(err).replace(/\+/g, ' ')));
-          title.textContent = 'That link could not be used';
-          if (recovery) {
-            msg.textContent = (expired ? 'That link has expired or was already used. ' : '') +
-              'Nothing on your account has changed. Open TUITEA and tap Forgot Password to get a new one.';
-          } else {
-            msg.textContent = (expired ? 'That link has expired or was already used. ' : '') +
-              'If you already confirmed your email, just sign in. If not, sign in to TUITEA and tap ' +
-              '“Resend confirmation email” for a new link.';
-          }
-          return;
-        }
-        if (confirmation || (code && !recovery)) {
-          // Supabase confirmed the address before sending the browser here.
-          title.textContent = 'Your email is confirmed';
-          msg.textContent = 'Thank you. You can sign in to TUITEA now with your email and password.';
-          return;
-        }
+    const SUPABASE_URL = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ';
+
+    const title = document.getElementById('title');
+    const msg = document.getElementById('msg');
+    const next = document.getElementById('next');
+
+    function confirmed() {
+      title.textContent = 'Your email is confirmed';
+      msg.textContent = 'Thank you. You can sign in to TUITEA now with your email and password.';
+    }
+
+    try {
+      const q = new URLSearchParams(location.search);
+      const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+      const type = (q.get('type') || h.get('type') || '').toLowerCase();
+      const err = h.get('error_description') || q.get('error_description') || h.get('error') || q.get('error');
+      const code = q.get('code');
+      const recovery = type === 'recovery' || type === 'magiclink';
+      const otpType = confirmOtpType(location.search, location.hash);
+
+      if (err) {
+        const expired = /expired|invalid|already/i.test(decodeURIComponent(String(err).replace(/\+/g, ' ')));
+        title.textContent = 'That link could not be used';
         if (recovery) {
-          title.textContent = 'Open this link in TUITEA';
-          msg.textContent = 'This link signs you in or resets your password, and it works in the TUITEA app. ' +
-            'On iPhone, open the same link from the Mail app. Nothing on your account has changed.';
+          msg.textContent = (expired ? 'That link has expired or was already used. ' : '') +
+            'Nothing on your account has changed. Open TUITEA and tap Forgot Password to get a new one.';
+        } else {
+          msg.textContent = (expired ? 'That link has expired or was already used. ' : '') +
+            'If you already confirmed your email, just sign in. If not, sign in to TUITEA and tap ' +
+            '“Resend confirmation email” for a new link.';
         }
-      } catch (e) {}
-    })();
+      } else if (otpType) {
+        title.textContent = 'Checking your link…';
+        msg.textContent = '';
+        const token = q.get('token_hash') || h.get('token_hash');
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.4');
+        const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
+          auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+        });
+        const { error } = await sb.auth.verifyOtp({ token_hash: token, type: otpType });
+        try { await sb.auth.signOut(); } catch {}
+        history.replaceState(null, '', location.pathname + '?flow=confirm');
+        if (error) {
+          title.textContent = 'That link could not be used';
+          msg.textContent = 'That confirmation link has expired or was already used. If you already confirmed your email, just sign in.';
+        } else {
+          confirmed();
+        }
+      } else if (isConfirmFlow(location.search, location.hash) || (code && !recovery)) {
+        confirmed();
+      } else if (recovery) {
+        title.textContent = 'Open this link in TUITEA';
+        msg.textContent = 'This link signs you in or resets your password, and it works in the TUITEA app. ' +
+          'On iPhone, open the same link from the Mail app. Nothing on your account has changed.';
+      }
+    } catch (e) {
+      if (title && title.textContent === 'Checking your link…') {
+        title.textContent = 'That link could not be used';
+        msg.textContent = 'That confirmation link could not be checked. Check your connection and try the link again.';
+      }
+    }
   </script>
 </body>
 </html>

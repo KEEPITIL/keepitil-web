@@ -31,3 +31,24 @@ export function passwordConfirmCase(search, hash) {
 export function passwordLinkKind(search, hash) {
   return passwordConfirmCase(search, hash) === 'recovery' ? 'existing' : passwordConfirmCase(search, hash);
 }
+
+// Recovery fragment (#access_token, #refresh_token, type, expires_*) is removed
+// after setSession. The in-memory session is left alone so updateUser can run.
+export function urlWithoutHash(href) {
+  const url = new URL(href, 'https://keepitil.com');
+  url.hash = '';
+  return url.pathname + url.search;
+}
+
+export async function settleRecoverySession(href, setSession, replaceState) {
+  let error = null;
+  try {
+    const result = await setSession();
+    if (result && result.error) error = result.error;
+  } catch (e) {
+    error = e || new Error('setSession failed');
+  } finally {
+    replaceState(urlWithoutHash(href));
+  }
+  return error;
+}

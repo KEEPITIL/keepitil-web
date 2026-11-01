@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { passwordConfirmCase, passwordLinkKind } from '../app/tuitea/password/landing.mjs';
+import { passwordConfirmCase, passwordLinkKind, settleRecoverySession } from '../app/tuitea/password/landing.mjs';
 import { confirmAction, confirmOtpType, joinAuthUrl } from '../join/auth/confirm.mjs';
 
 assert.equal(passwordLinkKind('?code=abc', ''), 'maybe-confirmed');
@@ -24,6 +24,28 @@ assert.equal(passwordConfirmCase('?flow=confirm', ''), 'no-token');
 assert.equal(passwordConfirmCase('', ''), 'no-token');
 assert.equal(passwordConfirmCase('?code=abc&type=recovery', ''), 'recovery');
 assert.equal(passwordConfirmCase('?token_hash=x&type=recovery', ''), 'recovery');
+
+const recoveryHref = 'https://keepitil.com/app/tuitea/password/?from=mail#access_token=aaa&refresh_token=bbb&type=recovery&expires_in=3600&expires_at=9';
+for (const mode of ['success', 'failure']) {
+  let landed = '';
+  const error = await settleRecoverySession(
+    recoveryHref,
+    async () => {
+      if (mode === 'failure') throw new Error('rejected');
+      return { error: null, session: { access_token: 'aaa' } };
+    },
+    (next) => { landed = next; },
+  );
+  assert.equal(new URL('https://keepitil.com' + landed).hash, '', mode + ' hash');
+  assert.equal(landed.includes('access_token'), false, mode);
+  assert.equal(landed.includes('refresh_token'), false, mode);
+  assert.equal(landed.includes('expires_'), false, mode);
+  assert.equal(landed, '/app/tuitea/password/?from=mail');
+  if (mode === 'success') assert.equal(error, null);
+  else assert.ok(error);
+}
+assert.equal(settleRecoverySession.toString().includes('signOut'), false);
+assert.match(settleRecoverySession.toString(), /finally/);
 
 const passwordHtml = readFileSync(new URL('../app/tuitea/password/index.html', import.meta.url), 'utf8');
 assert.match(passwordHtml, /name="referrer" content="no-referrer"/);

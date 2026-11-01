@@ -70,13 +70,49 @@ a{color:#5cc8ff}</style>
   var q = location.search || '';
   var hash = location.hash || '';
   function go(url){ location.replace(url + hash); }
-  /* /app/tuitea/<no real file> → /apps/tuitea/, keeping search and hash.
-     GitHub Pages only serves this file when the path does not exist.
-     /app/tuitea/ is app/tuitea/index.html (and the slashless form 301s there).
-     The compiled app, tab stubs, password and support pages are real files,
-     so they never reach this rule. */
+  function tuiteaRedirectTarget(search, hash) {
+    var PATH = "/app/tuitea/app/";
+    if (typeof search !== "string" || search.charAt(0) !== "?") search = "";
+    if (typeof hash !== "string" || hash.charAt(0) !== "#") hash = "";
+    var parts = search.length > 1 ? search.slice(1).split("&") : [];
+    var kept = [];
+    var inviteKept = false;
+    var i, part, eq, key, val, decoded;
+    for (i = 0; i < parts.length; i++) {
+      part = parts[i];
+      if (!part) continue;
+      eq = part.indexOf("=");
+      key = eq === -1 ? part : part.slice(0, eq);
+      val = eq === -1 ? "" : part.slice(eq + 1);
+      if (key === "invite") {
+        if (!inviteKept) {
+          try { decoded = decodeURIComponent(val.replace(/\+/g, " ")); }
+          catch (e) { decoded = ""; }
+          decoded = String(decoded).toLowerCase();
+          if (/^[0-9a-f]{32}$/.test(decoded)) {
+            kept.push("invite=" + decoded);
+            inviteKept = true;
+          }
+        }
+        continue;
+      }
+      kept.push(part);
+    }
+    var dest = PATH;
+    if (kept.length) dest += "?" + kept.join("&");
+    if (hash) dest += hash;
+    if (dest.slice(0, PATH.length) !== PATH) return PATH;
+    var after = dest.charAt(PATH.length);
+    if (after && after !== "?" && after !== "#") return PATH;
+    return dest;
+  }
+  /* end tuiteaRedirectTarget */
+  /* Unmatched /app/tuitea/... documents go to /app/tuitea/app/ (inside the
+     PWA scope). GitHub Pages only serves this file when nothing is there.
+     The compiled app, tab stubs, password and support are real files.
+     Same invite / auth rules as app/tuitea/index.html. The path is fixed. */
   if(seg.length>=2 && seg[0]==='app' && seg[1]==='tuitea'){
-    return go('/apps/tuitea/'+q);
+    return location.replace(tuiteaRedirectTarget(q, hash));
   }
   var slug = seg.length ? decodeURIComponent(seg[seg.length-1]).toLowerCase().replace(/[^a-z0-9-]/g,'') : '';
   /* The 2026-08-16 rename kept the database row and its uuid: echo→cho, nexus→xus.

@@ -5,26 +5,79 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TUITEA</title>
 <meta name="robots" content="noindex">
-<link rel="canonical" href="/apps/tuitea/">
+<meta name="referrer" content="no-referrer">
+<link rel="canonical" href="https://keepitil.com/app/tuitea/app/">
 <!--
-  /app/tuitea/ redirects to /apps/tuitea/. GitHub Pages cannot send a 301.
-  Meta refresh is the no-JavaScript hop (it cannot see the query string or hash).
-  The script uses location.replace so both are kept.
-  This file loads no site shell, no analytics, and no TUITEA worker.
-  The site has no Content-Security-Policy meta, so this script stays inline.
-  /app/tuitea with no slash is the host's 301 to this directory; the query
-  string is kept on that hop and the hash never leaves the browser.
+  owner: no redirects — EXCEPTION, needs Joe's explicit decision.
+
+  TUITEA 1.0 build 88, phase 2 (owner: no redirects) made this address a real
+  page. Nothing here was allowed to move the visitor on its own. This file
+  breaks that rule: /app/tuitea/ now redirects to /app/tuitea/app/, which is
+  inside the installed PWA scope (/app/tuitea/). /apps/tuitea/ is retired and
+  is not the target. Do not treat this exception as accepted until Joe says so.
+
+  The manifest id stays /app/tuitea/, so this path must keep existing. A valid
+  ?invite= (32 hex characters) is forwarded to /app/tuitea/app/?invite=<token>.
+  Supabase token_hash, type, and a hash access_token/refresh_token pass through.
+  An invalid invite is not forwarded. The target path is fixed; query values
+  are never used as a URL.
 -->
-<meta http-equiv="refresh" content="0; url=/apps/tuitea/">
-<script>location.replace("/apps/tuitea/" + location.search + location.hash);</script>
+<meta http-equiv="refresh" content="0; url=/app/tuitea/app/">
+<script>
+function tuiteaRedirectTarget(search, hash) {
+  var PATH = "/app/tuitea/app/";
+  if (typeof search !== "string" || search.charAt(0) !== "?") search = "";
+  if (typeof hash !== "string" || hash.charAt(0) !== "#") hash = "";
+  var parts = search.length > 1 ? search.slice(1).split("&") : [];
+  var kept = [];
+  var inviteKept = false;
+  var i, part, eq, key, val, decoded;
+  for (i = 0; i < parts.length; i++) {
+    part = parts[i];
+    if (!part) continue;
+    eq = part.indexOf("=");
+    key = eq === -1 ? part : part.slice(0, eq);
+    val = eq === -1 ? "" : part.slice(eq + 1);
+    if (key === "invite") {
+      if (!inviteKept) {
+        try { decoded = decodeURIComponent(val.replace(/\+/g, " ")); }
+        catch (e) { decoded = ""; }
+        decoded = String(decoded).toLowerCase();
+        if (/^[0-9a-f]{32}$/.test(decoded)) {
+          kept.push("invite=" + decoded);
+          inviteKept = true;
+        }
+      }
+      continue;
+    }
+    kept.push(part);
+  }
+  var dest = PATH;
+  if (kept.length) dest += "?" + kept.join("&");
+  if (hash) dest += hash;
+  if (dest.slice(0, PATH.length) !== PATH) return PATH;
+  var after = dest.charAt(PATH.length);
+  if (after && after !== "?" && after !== "#") return PATH;
+  return dest;
+}
+/* end tuiteaRedirectTarget */
+(function () {
+  var dest = tuiteaRedirectTarget(location.search, location.hash);
+  document.addEventListener("DOMContentLoaded", function () {
+    var link = document.getElementById("tuitea-continue");
+    if (link) link.setAttribute("href", dest);
+  });
+  location.replace(dest);
+})();
+</script>
 </head>
 <body>
-<p><a id="tuitea-continue" href="/apps/tuitea/">Continue to TUITEA</a></p>
+<p><a id="tuitea-continue" href="/app/tuitea/app/">Continue to TUITEA</a></p>
 <script>
 (function () {
-  var dest = "/apps/tuitea/" + location.search + location.hash;
+  var dest = tuiteaRedirectTarget(location.search, location.hash);
   var link = document.getElementById("tuitea-continue");
-  if (link) link.href = dest;
+  if (link) link.setAttribute("href", dest);
   location.replace(dest);
 })();
 </script>

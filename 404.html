@@ -70,6 +70,14 @@ a{color:#5cc8ff}</style>
   var q = location.search || '';
   var hash = location.hash || '';
   function go(url){ location.replace(url + hash); }
+  /* /app/tuitea/<no real file> → /apps/tuitea/, keeping search and hash.
+     GitHub Pages only serves this file when the path does not exist.
+     /app/tuitea/ is app/tuitea/index.html (and the slashless form 301s there).
+     The compiled app, tab stubs, password and support pages are real files,
+     so they never reach this rule. */
+  if(seg.length>=2 && seg[0]==='app' && seg[1]==='tuitea'){
+    return go('/apps/tuitea/'+q);
+  }
   var slug = seg.length ? decodeURIComponent(seg[seg.length-1]).toLowerCase().replace(/[^a-z0-9-]/g,'') : '';
   /* The 2026-08-16 rename kept the database row and its uuid: echo→cho, nexus→xus.
      Legacy slugs live on in public.agent_aliases, but this runs before any script can

@@ -19,13 +19,15 @@ export function passwordConfirmCase(search, hash) {
   if (p.type === 'recovery') return 'recovery';
   if (p.flow === 'confirm' && p.tokenHash) return 'verify-otp';
   if (p.tokenHash && ['signup', 'email', 'email_change', 'invite'].includes(p.type)) return 'verify-otp';
-  if (p.code) return 'exchange-code';
-  if (!p.tokenHash && !p.code && !(p.access && p.refresh)) return 'no-token';
+  // A hash access_token for sign-up is a confirmation, not a password reset.
+  if (p.access && ['signup', 'email', 'email_change', 'invite'].includes(p.type)) return 'confirm-session';
+  // A bare ?code= is not assumed to be sign-up. persistSession:false means this
+  // page has no PKCE verifier, so the code cannot be redeemed here.
+  if (p.code) return 'maybe-confirmed';
+  if (!p.tokenHash && !p.code && !p.access) return 'no-token';
   return 'recovery';
 }
 
 export function passwordLinkKind(search, hash) {
-  const kind = passwordConfirmCase(search, hash);
-  if (kind === 'exchange-code') return 'signup-code';
-  return 'existing';
+  return passwordConfirmCase(search, hash) === 'recovery' ? 'existing' : passwordConfirmCase(search, hash);
 }

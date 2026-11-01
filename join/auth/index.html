@@ -88,7 +88,7 @@
     let client = null;
     async function supabase() {
       if (client) return client;
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.4');
+      const { createClient } = await import('/assets/js/vendor/supabase-js-2.45.4.mjs');
       client = createClient(SUPABASE_URL, SUPABASE_KEY, {
         auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
       });

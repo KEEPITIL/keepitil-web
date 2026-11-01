@@ -33,6 +33,9 @@ EXCLUDED = (
     "app/tuitea/app/assets/assets/audio/README.md",
     "app/tuitea/app/fallback-fonts/README.md",
     "scripts/",
+    "tests/",
+    "join/_probe.txt",
+    "games/13/BUILD.txt",
 )
 
 # Pages and app files that must survive the copy. A miss here means the

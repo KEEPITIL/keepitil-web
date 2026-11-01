@@ -64,7 +64,7 @@
     </div>
   </div>
   <script type="module">
-    import { confirmAction } from './confirm.mjs';
+    import { confirmAction, joinAuthUrl } from './confirm.mjs';
 
     const SUPABASE_URL = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ';
@@ -143,24 +143,37 @@
         title.textContent = 'Checking your link…';
         msg.textContent = '';
         const token = q.get('token_hash') || h.get('token_hash');
-        const sb = await supabase();
-        const { error } = await sb.auth.verifyOtp({ token_hash: token, type: 'signup' });
-        try { await sb.auth.signOut(); } catch {}
-        history.replaceState(null, '', location.pathname + '?flow=confirm');
+        let error = null;
+        try {
+          const sb = await supabase();
+          const result = await sb.auth.verifyOtp({ token_hash: token, type: 'signup' });
+          error = result.error;
+          try { await sb.auth.signOut(); } catch {}
+        } catch (e) {
+          error = e;
+        } finally {
+          history.replaceState(null, '', joinAuthUrl(location.href, 'verify-signup'));
+        }
         if (error) {
           needResend('That confirmation link has expired or was already used. Nothing was confirmed. Send yourself a new link below.');
         } else {
           confirmed();
         }
-      } else if (action === 'resend') {
-        const expired = err && /expired|invalid|already/i.test(decodeURIComponent(String(err).replace(/\+/g, ' ')));
-        needResend(expired
-          ? 'That link has expired or was already used. Nothing was confirmed. Send yourself a new link below.'
-          : 'This link did not include a confirmation token, so your email was not confirmed here. Send yourself a new link below.');
-      } else if (action === 'recovery') {
-        title.textContent = 'Open this link in TUITEA';
-        msg.textContent = 'This link signs you in or resets your password, and it works in the TUITEA app. ' +
-          'On iPhone, open the same link from the Mail app. Nothing on your account has changed.';
+      } else if (action === 'resend' || action === 'recovery' || action === 'default') {
+        try {
+          if (action === 'resend') {
+            const expired = err && /expired|invalid|already/i.test(decodeURIComponent(String(err).replace(/\+/g, ' ')));
+            needResend(expired
+              ? 'That link has expired or was already used. Nothing was confirmed. Send yourself a new link below.'
+              : 'This link did not include a confirmation token, so your email was not confirmed here. Send yourself a new link below.');
+          } else if (action === 'recovery') {
+            title.textContent = 'Open this link in TUITEA';
+            msg.textContent = 'This link signs you in or resets your password, and it works in the TUITEA app. ' +
+              'On iPhone, open the same link from the Mail app. Nothing on your account has changed.';
+          }
+        } finally {
+          history.replaceState(null, '', joinAuthUrl(location.href, action));
+        }
       }
     } catch (e) {
       needResend('That confirmation link could not be checked. Check your connection, or send yourself a new link below.');

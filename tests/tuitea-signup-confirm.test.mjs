@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { passwordConfirmCase, passwordLinkKind } from '../app/tuitea/password/landing.mjs';
-import { confirmAction, confirmOtpType } from '../join/auth/confirm.mjs';
+import { confirmAction, confirmOtpType, joinAuthUrl } from '../join/auth/confirm.mjs';
 
 assert.equal(passwordLinkKind('?code=abc', ''), 'maybe-confirmed');
 assert.equal(passwordLinkKind('?code=abc&type=signup', ''), 'maybe-confirmed');
@@ -54,5 +54,33 @@ assert.equal(confirmAction('?code=abc', ''), 'resend');
 assert.equal(confirmAction('?type=signup', ''), 'resend');
 assert.equal(confirmAction('?type=recovery', ''), 'recovery');
 assert.equal(confirmAction('?type=recovery&error=access_denied', ''), 'recovery-error');
+assert.equal(confirmAction('', ''), 'default');
+
+const origin = 'https://keepitil.com';
+assert.equal(
+  joinAuthUrl(origin + '/join/auth?flow=confirm&token_hash=not-real&type=signup', 'verify-signup'),
+  '/join/auth?flow=confirm'
+);
+assert.equal(
+  joinAuthUrl(origin + '/join/auth?code=abc&foo=1#access_token=tok&type=signup', 'resend'),
+  '/join/auth?foo=1#type=signup'
+);
+assert.equal(
+  joinAuthUrl(origin + '/join/auth?code=abc#access_token=tok&refresh_token=ref&type=recovery', 'recovery'),
+  '/join/auth#refresh_token=ref&type=recovery'
+);
+assert.equal(
+  joinAuthUrl(origin + '/join/auth?code=abc#access_token=tok', 'default'),
+  '/join/auth'
+);
+
+const joinHtml = readFileSync(new URL('../join/auth/index.html', import.meta.url), 'utf8');
+assert.match(joinHtml, /finally \{\s*history\.replaceState\(null, '', joinAuthUrl\(location\.href, 'verify-signup'\)\);/);
+assert.match(joinHtml, /action === 'resend' \|\| action === 'recovery' \|\| action === 'default'/);
+assert.match(joinHtml, /finally \{\s*history\.replaceState\(null, '', joinAuthUrl\(location\.href, action\)\);/);
+const vendor = readFileSync(new URL('../assets/js/vendor/supabase-js-2.45.4.mjs', import.meta.url), 'utf8');
+assert.match(vendor, /Copyright \(c\) 2020 Supabase/);
+assert.match(vendor, /Permission is hereby granted, free of charge/);
+assert.match(vendor, /THE SOFTWARE IS PROVIDED "AS IS"/);
 
 console.log('tuitea signup confirm: ok');

@@ -31,3 +31,19 @@ export function confirmAction(search, hash) {
   if (p.recovery) return 'recovery';
   return 'default';
 }
+
+// Address left in the bar after /join/auth handles a link.
+// verify-signup drops the whole query and hash, including token_hash.
+// resend, recovery, and default drop ?code= and #access_token (and token_hash).
+export function joinAuthUrl(href, action) {
+  const url = new URL(href, 'https://keepitil.com');
+  if (action === 'verify-signup') return url.pathname + '?flow=confirm';
+  if (action !== 'resend' && action !== 'recovery' && action !== 'default') return url.pathname + url.search + url.hash;
+  url.searchParams.delete('code');
+  url.searchParams.delete('token_hash');
+  const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
+  hash.delete('access_token');
+  hash.delete('token_hash');
+  const rest = hash.toString();
+  return url.pathname + url.search + (rest ? '#' + rest : '');
+}

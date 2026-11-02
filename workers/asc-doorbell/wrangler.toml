@@ -1,0 +1,25 @@
+# No secrets in this file. Set them with `wrangler secret put` (see README).
+name = "asc-doorbell"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+[triggers]
+crons = ["0 * * * *"]
+
+# Create with: wrangler kv namespace create DOORBELL_KV  → paste the id here.
+[[kv_namespaces]]
+binding = "DOORBELL_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[vars]
+NEXUS_URL = "https://dojmswwxmdtizrtoirem.supabase.co"
+# Crew room to post into (crew_rooms.id). Joe fills this in.
+CREW_ROOM_ID = "REPLACE_WITH_CREW_ROOM_ID"
+# KAI TARAKO: fill in its bundle id once it has an App Store Connect record; empty entries are skipped.
+APPS = '''[
+  {"name":"TUITEA","bundleId":"com.keepitil.thrive"},
+  {"name":"KMOB","bundleId":"com.keepitil.kmob"},
+  {"name":"KEEPITIL","bundleId":"com.keepitil.app"},
+  {"name":"KAI TARAKO","bundleId":""}
+]'''

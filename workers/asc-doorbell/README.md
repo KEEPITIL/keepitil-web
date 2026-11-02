@@ -34,7 +34,6 @@ Role **Developer** is enough (read-only use). Download the `.p8` (only possible 
 ### 3. Cloudflare (from this folder)
 ```sh
 npx wrangler kv namespace create DOORBELL_KV   # paste the id into wrangler.toml
-# put the crew room id into CREW_ROOM_ID in wrangler.toml
 npx wrangler secret put ASC_ISSUER_ID
 npx wrangler secret put ASC_KEY_ID
 npx wrangler secret put ASC_PRIVATE_KEY        # paste the whole .p8, BEGIN/END lines included
@@ -47,7 +46,7 @@ Secrets go only into Worker secrets: not this repo, chat or logs. Delete the loc
 keep it in a password manager.
 
 ### 4. KAI TARAKO
-Its `bundleId` in `wrangler.toml` is empty (skipped) until it has an App Store Connect record. Fill it in and redeploy.
+`com.keepitil.kaitarako` in `wrangler.toml` is a placeholder pending Joe. Confirm it matches the App Store Connect record; until a record exists the doorbell finds no app and skips it.
 
 ## Check it
 - `npm test` runs the unit tests (ASC and NEXUS mocked, no network).
@@ -55,6 +54,7 @@ Its `bundleId` in `wrangler.toml` is empty (skipped) until it has an App Store C
   The first run is silent; change state in KV (`npx wrangler kv key put --binding DOORBELL_KV state:com.keepitil.app '{"version":"0","state":"X"}'`)
   to force one test post.
 
-## Note on location
-keepitil-web is served by GitHub Pages, so this folder's source is publicly readable at
-keepitil.com/workers/asc-doorbell/. It holds no secrets, but if that's unwanted, move it to a private repo.
+## Before deploy: move to a private repo (recommended)
+keepitil-web publishes every folder to GitHub Pages, so this source is publicly readable at
+keepitil.com/workers/asc-doorbell/. It holds no secrets, but it does show the NEXUS project URL,
+the crew room id and how posting works. Recommendation: move this folder to a private repo before deploy. Joe decides.

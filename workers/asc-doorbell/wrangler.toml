@@ -14,12 +14,13 @@ id = "REPLACE_WITH_KV_NAMESPACE_ID"
 
 [vars]
 NEXUS_URL = "https://dojmswwxmdtizrtoirem.supabase.co"
-# Crew room to post into (crew_rooms.id). Joe fills this in.
-CREW_ROOM_ID = "REPLACE_WITH_CREW_ROOM_ID"
-# KAI TARAKO: fill in its bundle id once it has an App Store Connect record; empty entries are skipped.
+# Crew room to post into (crew_rooms.id).
+CREW_ROOM_ID = "e6e14afa-d901-4721-8535-4ff67f5190d0"
+# KAI TARAKO bundle id is a PLACEHOLDER pending Joe's confirmation (and an App Store Connect record).
+# Until the record exists, ASC returns no app for it and the doorbell skips it.
 APPS = '''[
   {"name":"TUITEA","bundleId":"com.keepitil.thrive"},
   {"name":"KMOB","bundleId":"com.keepitil.kmob"},
   {"name":"KEEPITIL","bundleId":"com.keepitil.app"},
-  {"name":"KAI TARAKO","bundleId":""}
+  {"name":"KAI TARAKO","bundleId":"com.keepitil.kaitarako","placeholder":true}
 ]'''

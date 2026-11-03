@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Email confirmed · TUITEA</title>
+<style>
+:root{--bg:#FBF7EF;--ink:#20261F;--lo:#6E7566;--accent:#3F7658;--stroke:#E6DDC9}
+@media (prefers-color-scheme:dark){:root{--bg:#171A16;--ink:#ECE7DA;--lo:#9AA291;--accent:#7FB894;--stroke:#2C3229}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding-block:48px 64px;padding-left:20px;padding-right:20px}
+h1{font-size:28px;margin:0 0 12px;text-wrap:balance}
+.note{border:1px solid var(--stroke);border-radius:12px;padding:12px 15px;color:var(--lo);font-size:14px;margin:24px 0}
+a{color:var(--accent)}
+nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-size:14px;display:flex;flex-wrap:wrap;gap:14px}
+[hidden]{display:none}
+</style>
+</head>
+<body>
+<main>
+<!-- Shown when the link worked (the default). -->
+<section id="ok">
+<h1>Your email is confirmed</h1>
+<p>Thank you. Your TUITEA account is ready.</p>
+<p>Open the TUITEA app and sign in with your email address and the password you chose.</p>
+</section>
+
+<!-- Shown only when the address bar says the link did not work (expired or already used). -->
+<section id="failed" hidden>
+<h1>This link has expired or was already used</h1>
+<p>If you already confirmed your email, open the TUITEA app and sign in.</p>
+<p>If TUITEA says your email is not confirmed yet, it offers to send a new confirmation email. Use the newest email we send.</p>
+</section>
+
+<p class="note">You can close this page. Need help? Email <a href="mailto:info@keepitil.com">info@keepitil.com</a>.</p>
+
+<nav>
+<a href="/apps/tuitea/">TUITEA</a>
+<a href="/apps/tuitea/support/">Support</a>
+<a href="/apps/tuitea/legal/privacy/">Privacy</a>
+<a href="/apps/tuitea/legal/terms/">Terms</a>
+</nav>
+</main>
+<script>
+// No tracking, no network requests, no storage. This only reads the address bar so the page
+// does not claim success when the confirmation link reported an error, then removes any
+// one-time code or error from the address bar so it is not copied or shared by accident.
+(function () {
+  try {
+    var q = new URLSearchParams(location.search);
+    var h = new URLSearchParams(location.hash.replace(/^#/, ''));
+    if (q.get('error') || q.get('error_code') || h.get('error') || h.get('error_code')) {
+      document.getElementById('ok').hidden = true;
+      document.getElementById('failed').hidden = false;
+    }
+    if (location.search || location.hash) {
+      history.replaceState(null, '', location.pathname);
+    }
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

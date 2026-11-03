@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <meta name="referrer" content="no-referrer">
-<title>Email confirmed · TUITEA</title>
+<title>You are confirmed · TUITEA</title>
 <style>
 :root{--bg:#FBF7EF;--ink:#20261F;--lo:#6E7566;--accent:#3F7658;--stroke:#E6DDC9}
 @media (prefers-color-scheme:dark){:root{--bg:#171A16;--ink:#ECE7DA;--lo:#9AA291;--accent:#7FB894;--stroke:#2C3229}}
@@ -16,21 +16,22 @@ h1{font-size:28px;margin:0 0 12px;text-wrap:balance}
 a{color:var(--accent)}
 nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-size:14px;display:flex;flex-wrap:wrap;gap:14px}
 [hidden]{display:none}
+a.go{display:block;text-align:center;margin-top:20px;padding:14px;min-height:48px;font-weight:600;border-radius:10px;background:var(--accent);color:#fff;text-decoration:none}
 </style>
 </head>
 <body>
 <main>
 <!-- Shown when the link worked (the default). -->
 <section id="ok">
-<h1>Your email is confirmed</h1>
-<p>Thank you. Your TUITEA account is ready.</p>
-<p>Open the TUITEA app and sign in with your email address and the password you chose.</p>
+<h1>You are confirmed.</h1>
+<p><a class="go" id="open-app" href="tupu://auth">Open TUITEA</a></p>
 </section>
 
 <!-- Shown only when the address bar says the link did not work (expired or already used). -->
 <section id="failed" hidden>
 <h1>This link has expired or was already used</h1>
 <p>If you already confirmed your email, open the TUITEA app and sign in.</p>
+<p><a class="go" href="tupu://auth">Open TUITEA</a></p>
 <p>If TUITEA says your email is not confirmed yet, it offers to send a new confirmation email. Use the newest email we send.</p>
 </section>
 
@@ -45,12 +46,19 @@ nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-siz
 </main>
 <script>
 // No tracking, no network requests, no storage. This only reads the address bar so the page
-// does not claim success when the confirmation link reported an error, then removes any
-// one-time code or error from the address bar so it is not copied or shared by accident.
+// does not claim success when the confirmation link reported an error, passes the one-time code
+// to the Open TUITEA button, then removes it from the address bar so it is not copied or shared.
 (function () {
   try {
     var q = new URLSearchParams(location.search);
     var h = new URLSearchParams(location.hash.replace(/^#/, ''));
+    // Joe, 2026-11-03: "Open TUITEA" opens the app signed in. The confirmation's one-time code is
+    // handed to the app (tupu://, the app's own scheme), which redeems it with the key it kept
+    // when this account signed up on this phone. On any other device the app opens to sign in.
+    var code = q.get('code');
+    if (code && /^[A-Za-z0-9-]{8,128}$/.test(code)) {
+      document.getElementById('open-app').href = 'tupu://auth?code=' + encodeURIComponent(code);
+    }
     if (q.get('error') || q.get('error_code') || h.get('error') || h.get('error_code')) {
       document.getElementById('ok').hidden = true;
       document.getElementById('failed').hidden = false;

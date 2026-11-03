@@ -102,8 +102,8 @@
   <div id="done-view" class="done" hidden>
     <h2 id="done-title">Your password has been updated.</h2>
     <p id="done-body">Sign in to TUITEA with your email and this password.</p>
-    <a class="go" href="/app/tuitea/app/">Sign in to TUITEA on the web</a>
-    <p>On iPhone, open the TUITEA app and sign in there.</p>
+    <a class="go" id="done-go" href="/app/tuitea/app/">Sign in to TUITEA on the web</a>
+    <p id="done-note">On iPhone, open the TUITEA app and sign in there.</p>
   </div>
 </main>
 
@@ -137,10 +137,17 @@ const fail = (text) => {
   $('again-send').textContent = confirmFlow ? 'Email me a new confirmation link' : 'Email me a new link';
 };
 
-const confirmed = () => {
+// Joe, 2026-11-03: a confirmation says "You are confirmed." and offers Open TUITEA, which opens
+// the app signed in: the one-time code goes to the app (tupu://), which redeems it with the key it
+// kept when the account signed up on this phone. No password step, no Forgot-password detour.
+const confirmed = (code) => {
   $('form-view').hidden = true;
-  $('done-title').textContent = 'Your email is confirmed.';
-  $('done-body').textContent = 'You can sign in to TUITEA now with your email and password.';
+  $('done-title').textContent = 'You are confirmed.';
+  $('done-body').textContent = '';
+  const go = $('done-go');
+  go.textContent = 'Open TUITEA';
+  go.href = code && /^[A-Za-z0-9-]{8,128}$/.test(code) ? 'tupu://auth?code=' + encodeURIComponent(code) : 'tupu://auth';
+  $('done-note').innerHTML = 'Not on your iPhone? <a href="/app/tuitea/app/">Sign in on the web</a>.';
   $('done-view').hidden = false;
 };
 
@@ -206,8 +213,9 @@ async function begin() {
       if (error) return fail('That confirmation link has expired or was already used. If you already confirmed, just sign in — otherwise get a new one below.');
       try { await sb.auth.signOut(); } catch {}
     }
+    const code = params.get('code');
     history.replaceState(null, '', location.pathname);
-    return confirmed();
+    return confirmed(code);
   }
 
   // Two shapes reach this page: the current token_hash form, and the older

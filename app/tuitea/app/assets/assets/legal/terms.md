@@ -1,11 +1,11 @@
 <!-- source: https://keepitil.com/apps/tuitea/legal/terms/ -->
-<!-- version: 2026-11-03 -->
+<!-- version: 2026-11-04 -->
 
 # TUITEA Terms of Use
 
-_Version 2026-11-03 · Effective 3 November 2026_
+_Version 2026-11-04 · Effective 4 November 2026_
 
-**What changed:** the assistant is now called Echo; plans are Free, Plus ($8 a month or $80 a year) and Pro ($20 a month or $200 a year); Echo has weekly allowances; you must be 18 or older to create an account; storage plans are no longer sold.
+**What changed:** plan prices are shown for where you buy: in the iPhone app, Plus is $8 a month or $80 a year and Pro is $20 a month or $200 a year; on keepitil.com, Plus is $5 a month or $50 a year and Pro is $15 a month or $150 a year. Echo's weekly allowance resets at a fixed moment, Monday 00:00 UTC, which Echo shows in your own time. Earlier: the assistant is now called Echo; Echo has weekly allowances; you must be 18 or older to create an account; storage plans are no longer sold.
 
 ## The agreement
 
@@ -43,15 +43,15 @@ We try to keep TUITEA working and available, and sometimes it will not be. Featu
 
 **Free** costs nothing and has no time limit: one signed-in account, the family tree with unlimited generations, memories and family records kept on your device, export and account deletion. Echo (TUITEA's AI assistant) is not included in Free.
 
-**TUITEA Plus** ($8 a month or $80 a year) adds Echo and lets up to seven signed-in accounts in total (including yours) share the household. Echo's use is subject to a weekly allowance of 350 messages for the household. When it is reached, Echo says so and when it is back (allowances reset every Monday), and everything else keeps working. Voice conversations with Echo are not part of this version of TUITEA.
+**TUITEA Plus** ($8 a month or $80 a year in the iPhone app; $5 a month or $50 a year on keepitil.com) adds Echo and lets up to seven signed-in accounts in total (including yours) share the household. Echo's use is subject to a weekly allowance of 350 messages for the household. When it is reached, Echo says so and when it is back, and everything else keeps working. Allowances reset every week at Monday 00:00 UTC (in the Americas that is Sunday afternoon or evening); Echo shows the reset in your own time zone. A question with a photo counts as about 6 messages, and the weekly message limits apply up to the family's weekly cost cap. Voice conversations with Echo are not part of this version of TUITEA.
 
 The seven accounts are TUITEA household accounts, not Apple Family Sharing. If a Plus plan ends, nobody is removed and nothing is deleted: Echo pauses, and new members cannot join beyond what Free allows, until a plan is restarted.
 
-**TUITEA Pro** ($20 a month or $200 a year) includes everything in Plus, lets up to fifteen signed-in accounts share the household, and gives Echo a larger allowance: up to 140 messages a week for each person and 625 for the household, with a larger AI model used for up to one in four of them. The fifteen accounts are TUITEA household accounts, not Apple Family Sharing, and the same "nothing is removed or deleted when a plan ends" rule applies.
+**TUITEA Pro** ($20 a month or $200 a year in the iPhone app; $15 a month or $150 a year on keepitil.com) includes everything in Plus, lets up to fifteen signed-in accounts share the household, and gives Echo a larger allowance: up to 140 messages a week for each person and 625 for the household, with a larger AI model used for up to one in four of them. A question with a photo counts as about 6 messages, and the weekly message limits apply up to the family's weekly cost cap. The fifteen accounts are TUITEA household accounts, not Apple Family Sharing, and the same "nothing is removed or deleted when a plan ends" rule applies.
 
 ## Paying for a plan
 
-Prices are in US dollars; the App Store shows the price for your country before you confirm. A plan belongs to the household, not to one phone: everyone in the household shares it.
+Prices are in US dollars and depend on where you buy: the iPhone app (through Apple) or keepitil.com (through Stripe). The App Store shows the price for your country before you confirm, and keepitil.com shows its price before you pay. A plan belongs to the household, not to one phone: everyone in the household shares it.
 
 **Automatic renewal.** Plus and Pro renew automatically at the end of each month or year until it is cancelled. You can cancel at any time; you keep your plan until the end of the period you have already paid for, and it is not renewed after that.
 

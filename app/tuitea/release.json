@@ -1,8 +1,8 @@
 {
-  "release": "89.83209e9",
+  "release": "90.49569cf",
   "appVersion": "1.0.0",
-  "buildNumber": "89",
-  "commit": "83209e9",
-  "applicationRevision": "293b7a3",
-  "shellVersion": 1534
+  "buildNumber": "90",
+  "commit": "49569cf",
+  "applicationRevision": "7e0a4ff",
+  "shellVersion": 1563
 }

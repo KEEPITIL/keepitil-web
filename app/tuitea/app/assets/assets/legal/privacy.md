@@ -1,11 +1,11 @@
 <!-- source: https://keepitil.com/apps/tuitea/legal/privacy/ -->
-<!-- version: 2026-11-03 -->
+<!-- version: 2026-11-04 -->
 
 # TUITEA Privacy Policy
 
-_Version 2026-11-03 · Effective 3 November 2026_
+_Version 2026-11-04 · Effective 4 November 2026_
 
-**What changed:** the assistant is now called Echo, and the plans are Free, Plus and Pro (storage plans are no longer sold).
+**What changed:** accounts are for adults 18 or older, only a household owner or admin can add a child, and children's profile information is removed from what we send to AI models.
 
 TUITEA is a family app made by KEEPITIL. This policy describes how the app works today.
 
@@ -62,6 +62,7 @@ Many questions are answered from your own records without any AI model. When a m
 - Questions with no personal information normally go to Cloudflare Workers AI, and may also go to Google (Gemini) or Groq, which KEEPITIL has approved only for questions that contain no personal information.
 - Questions that include your or your family's personal information go only to a provider approved for personal data with zero data retention and no training. Today that is Cloudflare Workers AI.
 - Questions that include health information are not sent to any AI model. Echo answers them from your records or tells you it cannot.
+- Children's profile information (names, birth dates, birthplaces, notes, records and health) is removed from anything we send to an AI model. See "Children" below.
 
 Photos you share with Echo are read by Cloudflare Workers AI only. If that fails, they are not sent anywhere else.
 
@@ -71,7 +72,13 @@ TUITEA can read steps, sleep, water, exercise minutes, active energy, walking an
 
 ## Children
 
-TUITEA is for families. A parent or guardian can add children to the family tree and keep records about them. Those profiles are managed by the household and are not accounts: a child does not sign in. TUITEA is not meant for children to create their own accounts, and we do not knowingly let a child under 13 sign up. Sign-up does not ask for your age, so please do not create an account for a child. If you think a child has made an account, write to [info@keepitil.com](mailto:info@keepitil.com) and we will delete it.
+TUITEA accounts are for adults. You must be 18 or older to create an account, and sign-up asks you to confirm that you are. We do not knowingly let anyone under 18 create an account.
+
+TUITEA is for families, so children can be on the family tree. Only the household's owner or an admin can add a child, and they can keep records about them. A child's profile is managed by the household and is not an account: a child never gets a login, TUITEA does not create an invitation for a child's profile, and a child's profile cannot be linked to any account.
+
+When Echo needs an AI model, children's profile information (names, birth dates, birthplaces, notes, records and health) is removed from what we send to the model. If you type a child's name into your own question, that question is sent as you wrote it.
+
+If you think a child has made an account, write to [info@keepitil.com](mailto:info@keepitil.com) and we will delete it.
 
 ## Deleting your data
 

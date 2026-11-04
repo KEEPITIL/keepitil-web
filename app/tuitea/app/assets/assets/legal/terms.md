@@ -1,9 +1,11 @@
 <!-- source: https://keepitil.com/apps/tuitea/legal/terms/ -->
-<!-- version: 2026-09-17 -->
+<!-- version: 2026-11-03 -->
 
 # TUITEA Terms of Use
 
-_Version 2026-09-17 · Effective 17 September 2026_
+_Version 2026-11-03 · Effective 3 November 2026_
+
+**What changed:** the assistant is now called Echo; plans are Free, Plus ($8 a month or $80 a year) and Pro ($20 a month or $200 a year); Echo has weekly allowances; you must be 18 or older to create an account; storage plans are no longer sold.
 
 ## The agreement
 
@@ -11,7 +13,11 @@ TUITEA is provided by KEEPITIL. By using it you agree to these terms. If you do 
 
 ## Your account
 
+You must be 18 or older to create a TUITEA account. When you create one, you confirm that you are.
+
 You need an account, and you are responsible for keeping your password to yourself. Tell us at [info@keepitil.com](mailto:info@keepitil.com) if you think someone else has it.
+
+A parent or guardian can add a child to the family tree and keep records about them. A child's profile is managed by the household and is not an account: a child does not sign in.
 
 ## Your household's content
 
@@ -19,9 +25,11 @@ What you record in TUITEA is yours. KEEPITIL does not claim ownership of it, doe
 
 You are responsible for having the right to record what you record, including information about other people in your household.
 
+By default, photos, videos and documents are kept on your own device. Households created before 14 October 2026 keep the 1 GB of online storage they already had, at no cost.
+
 ## What TUITEA is not
 
-TUITEA is not a medical device and Tupu is not a clinician, a lawyer or a financial adviser. Tupu declines medical, diagnostic and similar questions and points you to a qualified professional. Do not rely on the app for a decision that needs one.
+TUITEA is not a medical device and Echo is not a clinician, a lawyer or a financial adviser. Echo declines medical, diagnostic and similar questions and points you to a qualified professional. Do not rely on the app for a decision that needs one.
 
 ## Acceptable use
 
@@ -30,6 +38,26 @@ Do not use TUITEA to break the law, to harass anyone, or to store someone else's
 ## Availability
 
 We try to keep TUITEA working and available, and sometimes it will not be. Features may change. If a change materially affects how your information is handled, it is announced in the app before it takes effect.
+
+## Plans
+
+**Free** costs nothing and has no time limit: one signed-in account, the family tree with unlimited generations, memories and family records kept on your device, export and account deletion. Echo (TUITEA's AI assistant) is not included in Free.
+
+**TUITEA Plus** ($8 a month or $80 a year) adds Echo and lets up to seven signed-in accounts in total (including yours) share the household. Echo's use is subject to a weekly allowance of 350 messages for the household. When it is reached, Echo says so and when it is back (allowances reset every Monday), and everything else keeps working. Voice conversations with Echo are not part of this version of TUITEA.
+
+The seven accounts are TUITEA household accounts, not Apple Family Sharing. If a Plus plan ends, nobody is removed and nothing is deleted: Echo pauses, and new members cannot join beyond what Free allows, until a plan is restarted.
+
+**TUITEA Pro** ($20 a month or $200 a year) includes everything in Plus, lets up to fifteen signed-in accounts share the household, and gives Echo a larger allowance: up to 140 messages a week for each person and 625 for the household, with a larger AI model used for up to one in four of them. The fifteen accounts are TUITEA household accounts, not Apple Family Sharing, and the same "nothing is removed or deleted when a plan ends" rule applies.
+
+## Paying for a plan
+
+Prices are in US dollars; the App Store shows the price for your country before you confirm. A plan belongs to the household, not to one phone: everyone in the household shares it.
+
+**Automatic renewal.** Plus and Pro renew automatically at the end of each month or year until it is cancelled. You can cancel at any time; you keep your plan until the end of the period you have already paid for, and it is not renewed after that.
+
+**Bought in the iPhone app (Apple).** Apple charges your Apple Account. Manage or cancel Plus or Pro in iPhone Settings → your name → Subscriptions. Refunds for App Store purchases are decided by Apple: request one at [reportaproblem.apple.com](https://reportaproblem.apple.com). In TUITEA, Restore purchases reconnects a plan you already pay for.
+
+**Bought on our website (Stripe).** Where we offer a plan on keepitil.com, Stripe charges your card. You can manage your card, see invoices and cancel through the billing page we link you to, or by writing to [info@keepitil.com](mailto:info@keepitil.com). Refunds for website purchases are handled by KEEPITIL under our [Refund Policy](/refund). A household already paying for Plus through Apple is not offered a second plan on the website.
 
 ## Ending it
 

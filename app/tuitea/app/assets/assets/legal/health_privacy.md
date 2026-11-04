@@ -1,9 +1,11 @@
 <!-- source: https://keepitil.com/apps/tuitea/legal/health-privacy/ -->
-<!-- version: 2026-09-17 -->
+<!-- version: 2026-11-03 -->
 
 # Health & Apple Health
 
-_Version 2026-09-17 · Effective 17 September 2026_
+_Version 2026-11-03 · Effective 3 November 2026_
+
+**What changed:** the assistant is now called Echo. Nothing else changed.
 
 Health information is treated differently from everything else in TUITEA. This page says exactly how, because a general privacy policy is the wrong place to bury it.
 
@@ -15,9 +17,9 @@ You can also type health entries in yourself without connecting Apple Health at 
 
 ## Where it goes
 
-Health information leaves your device only when a TUITEA or Tupu feature you have explicitly enabled requires it, and then only the minimum needed for that feature. If you turn health integration off, that transmission stops.
+Health information leaves your device only when a TUITEA or Echo feature you have explicitly enabled requires it, and then only the minimum needed for that feature. If you turn health integration off, that transmission stops.
 
-In practice, today, health questions are answered on your device or from your own records: Tupu reads your latest weight, your recent sleep, a measurement you logged, and answers directly. No remote AI provider is approved to receive health information, so none receives it. Any external AI processing of sensitive health information would happen only where the applicable privacy and provider requirements are satisfied.
+In practice, today, health questions are answered on your device or from your own records: Echo reads your latest weight, your recent sleep, a measurement you logged, and answers directly. No remote AI provider is approved to receive health information, so none receives it. Any external AI processing of sensitive health information would happen only where the applicable privacy and provider requirements are satisfied.
 
 ## What never happens
 
@@ -37,4 +39,4 @@ Delete individual entries in the app, turn Apple Health off to stop new readings
 
 [info@keepitil.com](mailto:info@keepitil.com)
 
-This page describes how the app behaves. It is not medical or legal advice. Tupu is not a clinician: it declines medical, diagnostic and similar questions and points you to a qualified professional.
+This page describes how the app behaves. It is not medical or legal advice. Echo is not a clinician: it declines medical, diagnostic and similar questions and points you to a qualified professional.

@@ -45,7 +45,8 @@
     "address": "",
     "hours": "Mon–Fri, 9am–6pm",
     "form": {
-      "endpoint": "https://contact.example.com/functions/v1/contact-submit",
+      "endpoint": "https://contact.example.com/functions/v1/client-contact",
+      "site": "northshore",
       "button": "Send enquiry",
       "success": "Thanks. We reply within one working day."
     }

@@ -42,6 +42,26 @@ The page has one small first-party inline script, which times the visit and show
 - **KEEPITIL design tokens.** Spacing, radius, type scale and dark surfaces match `assets/css/tokens.css`. `--brand` and `--accent` are set per client. A light mode is available with `"theme": {"mode": "light"}`.
 - **Safe content.** All text is HTML-escaped, `javascript:` links are dropped, and colours must be hex values or they fall back to the defaults. Tests cover this.
 
+## Standard package (up to 7 pages, contact form, images)
+`standard/site.json` is the Standard sample (fictional "Cedar & Salt Bakery"; `standard/preview/` is its build). It uses the same `build.mjs`; extra pages appear only when their block exists in `site.json`:
+
+| Block in `site.json` | Page | What it holds |
+|---|---|---|
+| `home.hero_image` | home | one hero image, loaded first |
+| `gallery` | `gallery.html` | `images[]`: `src`, `alt`, `width`, `height`, optional `caption` (lazy-loaded) |
+| `events` | `events.html` | `items[]`: `date`, `title`, `text`, `price`, plus a `note`; also works as a price list |
+| `faq` | `faq.html` | `items[]`: `q`, `a` (native `<details>`, no script) |
+| `contact.form` | `contact.html` | `endpoint` and `site` (the client's `site_id` in `client_sites`, see #66) |
+
+Add the pages to `nav` yourself. Standard limits from `OFFER.md`: 7 pages, 15 images.
+
+```bash
+node build.mjs standard/site.json out/<client>/   # copies standard/images/ to out/<client>/images/
+node --test test/*.test.mjs                        # 16 tests
+```
+- **Images:** put files in `images/` next to the client's `site.json`. The build stops with a list of problems if a file is missing, over **200 KB**, has no alt text or no `width`/`height`, or if there are more than 15. It does **not** resize or compress: do that by hand first (for example, 1600 px wide max, WebP or JPEG at quality 80), then build.
+- **Contact form:** add the client to `client_sites` (see #66) and set `contact.form.site` to its `site_id`. The sample's endpoint is fictional, so it can't send until then.
+
 ## Notes
 
 - `preview/` is the sample client (fictional "Northshore Studio"). Its `site.json` sets `"noindex": true` so the preview isn't indexed. Remove that line for a real client.

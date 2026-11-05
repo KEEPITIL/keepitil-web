@@ -1,0 +1,285 @@
+{
+  "package": "pro",
+  "lang": "en",
+  "url": "https://example.com",
+  "noindex": true,
+  "name": "Juniper & Tide Kitchen",
+  "tagline": "Seasonal harbour-side dining.",
+  "description": "Juniper & Tide Kitchen is a seasonal restaurant by the harbour with a changing menu, supper clubs and private dining.",
+  "theme": {
+    "brand": "#2a9d8f",
+    "accent": "#e9c46a",
+    "mode": "light",
+    "density": "compact"
+  },
+  "business": {
+    "type": "Restaurant",
+    "priceRange": "$$",
+    "openingHours": [
+      "Tu-Su 17:00-22:00"
+    ],
+    "address": {
+      "street": "4 Quay Road (sample)",
+      "city": "Harbourtown",
+      "region": "CA",
+      "postal": "90000",
+      "country": "US"
+    }
+  },
+  "nav": [
+    {
+      "label": "Home",
+      "href": "index.html"
+    },
+    {
+      "label": "About",
+      "href": "about.html"
+    },
+    {
+      "label": "Menu",
+      "href": "services.html"
+    },
+    {
+      "label": "Gallery",
+      "href": "gallery.html"
+    },
+    {
+      "label": "Events",
+      "href": "events.html"
+    },
+    {
+      "label": "News",
+      "href": "news.html"
+    },
+    {
+      "label": "FAQ",
+      "href": "faq.html"
+    },
+    {
+      "label": "Book",
+      "href": "quote.html"
+    },
+    {
+      "label": "Contact",
+      "href": "contact.html"
+    }
+  ],
+  "home": {
+    "headline": "Dinner with the tide.",
+    "intro": "A short menu built around what the boats and farms bring in that week.",
+    "cta": {
+      "label": "Request a table",
+      "href": "quote.html"
+    },
+    "hero_image": {
+      "src": "images/hero.svg",
+      "alt": "Teal and amber gradient standing in for the harbour at dusk",
+      "width": 1200,
+      "height": 600
+    },
+    "sections": [
+      "events",
+      "news",
+      "gallery"
+    ],
+    "highlights": [
+      {
+        "title": "Changing menu",
+        "text": "New dishes every week."
+      },
+      {
+        "title": "Private dining",
+        "text": "Up to 24 guests in the back room."
+      },
+      {
+        "title": "Supper clubs",
+        "text": "Monthly long-table dinners."
+      }
+    ]
+  },
+  "about": {
+    "headline": "About us",
+    "paragraphs": [
+      "We opened in 2022 with ten tables and one rule: cook what is good this week.",
+      "The kitchen buys from three local farms and two boats."
+    ]
+  },
+  "services": {
+    "headline": "Menu and prices",
+    "items": [
+      {
+        "title": "Tasting menu",
+        "text": "Five courses, set menu.",
+        "price": "$78"
+      },
+      {
+        "title": "Dinner a la carte",
+        "text": "Short seasonal menu.",
+        "price": "Mains from $24"
+      },
+      {
+        "title": "Private dining",
+        "text": "Back room for up to 24.",
+        "price": "From $1,200"
+      }
+    ]
+  },
+  "gallery": {
+    "headline": "Gallery",
+    "intro": "Sample images are placeholders.",
+    "images": [
+      {
+        "src": "images/dining-room.svg",
+        "alt": "Teal gradient for the dining room",
+        "width": 800,
+        "height": 600,
+        "caption": "Dining room"
+      },
+      {
+        "src": "images/pasta.svg",
+        "alt": "Amber gradient for a pasta dish",
+        "width": 800,
+        "height": 600,
+        "caption": "House pasta"
+      },
+      {
+        "src": "images/harbour.svg",
+        "alt": "Blue gradient for the harbour view",
+        "width": 800,
+        "height": 600,
+        "caption": "Harbour at dusk"
+      },
+      {
+        "src": "images/bar.svg",
+        "alt": "Red gradient for the bar",
+        "width": 800,
+        "height": 600,
+        "caption": "The bar"
+      },
+      {
+        "src": "images/dessert.svg",
+        "alt": "Green gradient for dessert",
+        "width": 800,
+        "height": 600,
+        "caption": "Dessert"
+      },
+      {
+        "src": "images/chef.svg",
+        "alt": "Purple gradient for the chef",
+        "width": 800,
+        "height": 600,
+        "caption": "The kitchen"
+      },
+      {
+        "src": "images/terrace.svg",
+        "alt": "Pink gradient for the terrace",
+        "width": 800,
+        "height": 600,
+        "caption": "Terrace"
+      }
+    ]
+  },
+  "events": {
+    "headline": "Events",
+    "intro": "Supper clubs and tastings.",
+    "items": [
+      {
+        "date": "Fri 12 Dec, 7pm",
+        "start": "2026-12-12T19:00",
+        "title": "Winter supper club",
+        "text": "Long table, six courses, shared plates.",
+        "price": "$95 per guest"
+      },
+      {
+        "date": "Sat 20 Dec, 6pm",
+        "start": "2026-12-20T18:00",
+        "title": "Wine and oysters evening",
+        "text": "Four pairings with the harbour's oysters.",
+        "price": "$68 per guest"
+      }
+    ],
+    "note": "Sample dates. Replace with the client's own."
+  },
+  "news": {
+    "headline": "News",
+    "intro": "What's new in the kitchen.",
+    "items": [
+      {
+        "title": "New winter menu",
+        "slug": "winter-menu",
+        "date": "2026-11-01",
+        "summary": "Roast squash, harbour fish and a new dessert.",
+        "body": [
+          "The winter menu starts this week.",
+          "It leans on roast squash, slow-cooked greens and the best of the catch."
+        ]
+      },
+      {
+        "title": "We are hiring a line cook",
+        "slug": "hiring",
+        "date": "2026-10-15",
+        "summary": "Full time, evenings, shared tips.",
+        "body": [
+          "We are looking for a line cook who likes a short menu done well.",
+          "Send a message through the contact page."
+        ]
+      },
+      {
+        "title": "Supper club returns",
+        "slug": "supper-club",
+        "date": "2026-10-01",
+        "summary": "Monthly long-table dinners start again in December.",
+        "body": [
+          "After a quiet autumn the supper club is back.",
+          "Book early; the table seats 24."
+        ]
+      }
+    ]
+  },
+  "faq": {
+    "headline": "Questions",
+    "items": [
+      {
+        "q": "Do you take walk-ins?",
+        "a": "Yes for the bar. The dining room is best booked."
+      },
+      {
+        "q": "Can you cater for allergies?",
+        "a": "Yes. Tell us when you book."
+      },
+      {
+        "q": "Is there parking?",
+        "a": "There is a public lot on Quay Road, a two-minute walk away."
+      }
+    ]
+  },
+  "contact": {
+    "headline": "Contact",
+    "intro": "General questions, press and jobs. We reply within one working day.",
+    "email": "hello@example.com",
+    "phone": "",
+    "address": "4 Quay Road, Harbourtown (sample)",
+    "hours": "Tue to Sun, 5pm to 10pm",
+    "form": {
+      "endpoint": "https://contact.example.com/functions/v1/client-contact",
+      "site": "juniper-tide",
+      "button": "Send message",
+      "success": "Thanks. We reply within one working day.",
+      "source": "pro-sample-contact"
+    },
+    "extra_form": {
+      "headline": "Request a table or private dining",
+      "intro": "Tell us the date, the party size and anything we should know. We confirm by email.",
+      "form": {
+        "endpoint": "https://contact.example.com/functions/v1/client-contact",
+        "site": "juniper-tide",
+        "button": "Send request",
+        "success": "Thanks. We will confirm by email within one working day.",
+        "source": "pro-sample-booking",
+        "messageLabel": "Your request",
+        "messagePlaceholder": "Date and time:\nParty size:\nOccasion or allergies:"
+      }
+    }
+  },
+  "footer": "© 2026 Juniper & Tide Kitchen"
+}

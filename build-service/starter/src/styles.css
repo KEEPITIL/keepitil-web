@@ -56,3 +56,8 @@ h2{font-size:1.15rem;margin:0 0 var(--sp-1)}
 .gallery figure{margin:0}.gallery img{display:block;width:100%;border-radius:var(--radius);border:1px solid var(--line);background:var(--surface-2)}.gallery figcaption{color:var(--muted);font-size:.9rem;padding-top:var(--sp-1)}
 .events{list-style:none;padding:0;margin:0 0 var(--sp-3);display:grid;gap:var(--sp-3)}.when{color:var(--brand-text)!important;font-weight:700;font-size:.9rem;margin-bottom:var(--sp-1)!important}
 .faq{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:0 var(--sp-3);margin-bottom:var(--sp-2);max-width:65ch}.faq summary{cursor:pointer;min-height:48px;display:flex;align-items:center;font-weight:600}.faq summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}.faq p{margin:0 0 var(--sp-3);color:var(--muted)}
+
+/* Pro package: news, home blocks, compact density */
+.news{list-style:none;padding:0;margin:0 0 var(--sp-3);display:grid;gap:var(--sp-3)}.news h2,.news h3,.events h3{font-size:1.15rem;margin:0 0 var(--sp-1)}.news a{color:var(--brand-text)}
+.block{padding-top:var(--sp-5)}.sec{font-size:1.5rem;margin:0 0 var(--sp-3)}.post p{max-width:65ch}
+[data-density="compact"] main.wrap{padding-top:var(--sp-4);padding-bottom:var(--sp-5)}[data-density="compact"] .card{padding:var(--sp-3)}[data-density="compact"] .hero{padding-bottom:var(--sp-4)}[data-density="compact"] .block{padding-top:var(--sp-4)}

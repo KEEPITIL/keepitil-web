@@ -1,22 +1,15 @@
-// Kai Tarako offline cache. Same-origin GETs only; no data is ever sent anywhere.
-const CACHE = 'kai-tarako-v5';
-self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon-192.png', './brand/logo.webp', './mascot/wave.webp', './mascot/badge-happy.webp', './mascot/badge-wave.webp', './mascot/badge-cheer.webp', './mascot/badge-nudge.webp', './mascot/lets-trace.webp', './mascot/you-did-it.webp', './mascot/great-job.webp'])).then(() => self.skipWaiting()));
-});
+// Kai Tarako kill switch. The web app is gone (#38); browsers that installed it still run the old worker,
+// which served cached photo-style art. This replacement deletes only Kai Tarako's caches, unregisters itself
+// and reloads its own open pages. It sends nothing anywhere.
+// Rollback: restore the previous sw.js from git (commit 53c678d) and the app files; do not just delete this file,
+// because a 404 leaves the old worker and its cache in place.
+self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => {
-  // Cache storage is shared by every app on keepitil.com: only ever remove OUR old caches.
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k.startsWith('kai-tarako-') && k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
-});
-self.addEventListener('fetch', (e) => {
-  const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
-  // Network first so updates land; fall back to cache when offline.
-  e.respondWith(
-    fetch(req)
-      .then((res) => {
-        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
-        return res;
-      })
-      .catch(() => caches.match(req).then((r) => r || caches.match('./index.html'))),
-  );
+  e.waitUntil((async () => {
+    const ks = await caches.keys();
+    await Promise.all(ks.filter((k) => k.startsWith('kai-tarako-')).map((k) => caches.delete(k)));
+    await self.registration.unregister();
+    const cs = await self.clients.matchAll({ type: 'window' });
+    for (const c of cs) c.navigate(c.url);
+  })());
 });

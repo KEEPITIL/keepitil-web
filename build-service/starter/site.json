@@ -43,7 +43,12 @@
     "email": "hello@example.com",
     "phone": "",
     "address": "",
-    "hours": "Mon–Fri, 9am–6pm"
+    "hours": "Mon–Fri, 9am–6pm",
+    "form": {
+      "endpoint": "https://contact.example.com/functions/v1/contact-submit",
+      "button": "Send enquiry",
+      "success": "Thanks. We reply within one working day."
+    }
   },
   "footer": "© 2026 Northshore Studio"
 }

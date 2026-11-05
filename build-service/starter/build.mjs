@@ -1,14 +1,42 @@
 // Build-service starter template: renders four static pages from site.json.
 //   node build.mjs [site.json] [outDir]     defaults: ./site.json → ./preview
 // No runtime JS, no external requests, no trackers. All content comes from the JSON file.
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+// CSS is inlined (about 4 KB): no render-blocking request.
+const CSS = readFileSync(path.join(here, 'src', 'styles.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s*\n\s*/g, '');
+// Favicon: site.json "icon" (a local path), or an empty data icon so browsers don't request a missing /favicon.ico.
+const icon = (site) => `<link rel="icon" href="${/^[\w./-]+\.(png|svg|ico)$/i.test(site.icon || '') ? esc(site.icon) : 'data:,'}">`;
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const safeHref = (h) => (/^(https?:|mailto:|tel:|[\w./#-]+$)/i.test(String(h || '')) && !/^javascript:/i.test(h) ? esc(h) : '#');
 const color = (c, d) => (/^#[0-9a-f]{3,8}$/i.test(c || '') ? c : d);
+
+/** Optional contact form. Only when contact.form.endpoint is an https URL; otherwise the page keeps the email link.
+ *  Posts multipart/form-data like connect-submit (#61): honeypot "website" + elapsed_ms (time on page).
+ *  One small first-party inline script; with JS off the form still posts natively. */
+export function formHtml(c) {
+  const f = c.form || {};
+  if (!/^https:\/\/[^\s"'<>]+$/.test(f.endpoint || '')) return '';
+  return `<form class="form" method="post" action="${esc(f.endpoint)}" data-ok="${esc(f.success || 'Thanks. We will reply soon.')}">
+<label for="f-name">Name</label><input id="f-name" name="name" autocomplete="name" required maxlength="120">
+<label for="f-email">Email</label><input id="f-email" name="email" type="email" autocomplete="email" required maxlength="254">
+<label for="f-msg">Message</label><textarea id="f-msg" name="message" rows="5" required minlength="10" maxlength="2000"></textarea>
+<div class="hp" aria-hidden="true"><label for="f-website">Website</label><input id="f-website" name="website" tabindex="-1" autocomplete="off"></div>
+<input type="hidden" name="elapsed_ms" value="0"><input type="hidden" name="source" value="${esc(f.source || 'site-contact')}">
+<button class="btn" type="submit">${esc(f.button || 'Send')}</button>
+<p class="status" role="status" aria-live="polite"></p>
+</form>
+${c.email ? `<p class="alt">Or email <a href="mailto:${esc(c.email)}">${esc(c.email)}</a></p>` : ''}
+<script>(function(){var t=Date.now(),f=document.querySelector('.form'),s=f.querySelector('.status');
+f.addEventListener('submit',function(e){f.elapsed_ms.value=Date.now()-t;if(!window.fetch)return;e.preventDefault();
+var b=f.querySelector('button');b.disabled=true;s.textContent='Sending…';
+fetch(f.action,{method:'POST',body:new FormData(f)}).then(function(r){return r.json().catch(function(){return{}}).then(function(d){
+if(!r.ok||d.ok===false)throw new Error(d.error||'');f.reset();s.textContent=f.dataset.ok;})})
+.catch(function(x){s.textContent=x.message||'Could not send. Please email us instead.';}).then(function(){b.disabled=false;});});})();</script>`;
+}
 
 export function layout(site, page, title, body) {
   const nav = site.nav.map((n) => `<a href="${safeHref(n.href)}"${n.href === page ? ' aria-current="page"' : ''}>${esc(n.label)}</a>`).join('');
@@ -25,7 +53,8 @@ ${site.noindex ? '<meta name="robots" content="noindex">\n' : ''}<meta name="des
 <meta property="og:description" content="${esc(site.description)}">
 <meta name="theme-color" content="${light ? '#ffffff' : '#0a0a0f'}">
 <style>:root{--brand:${color(site.theme?.brand, '#00b4ff')};--accent:${color(site.theme?.accent, '#8b5cff')}}</style>
-<link rel="stylesheet" href="styles.css">
+${icon(site)}
+<style>${CSS}</style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -62,7 +91,7 @@ ${c.phone ? `<li><span>Phone</span><a href="tel:${esc(String(c.phone).replace(/[
 ${c.address ? `<li><span>Address</span>${esc(c.address)}</li>` : ''}
 ${c.hours ? `<li><span>Hours</span>${esc(c.hours)}</li>` : ''}
 </ul>
-${c.email ? `<a class="btn" href="mailto:${esc(c.email)}?subject=${encodeURIComponent('Enquiry')}">Email us</a>` : ''}
+${formHtml(c) || (c.email ? `<a class="btn" href="mailto:${esc(c.email)}?subject=${encodeURIComponent('Enquiry')}">Email us</a>` : '')}
 </section>`],
   };
   return Object.fromEntries(Object.entries(pages).map(([f, [t, b]]) => [f, layout(site, f, t, b)]));
@@ -73,6 +102,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const out = path.resolve(process.argv[3] || path.join(here, 'preview'));
   mkdirSync(out, { recursive: true });
   for (const [f, html] of Object.entries(render(site))) writeFileSync(path.join(out, f), html);
-  copyFileSync(path.join(here, 'src', 'styles.css'), path.join(out, 'styles.css'));
   console.log(`built ${out}`);
 }

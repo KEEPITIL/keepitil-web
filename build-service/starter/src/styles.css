@@ -40,3 +40,12 @@ h2{font-size:1.15rem;margin:0 0 var(--sp-1)}
 .contact span{color:var(--muted);min-width:80px}
 .foot{border-top:1px solid var(--line);color:var(--muted);font-size:.9rem;padding:var(--sp-4) 0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.form{display:grid;gap:var(--sp-1);max-width:520px;margin-top:var(--sp-3)}
+.form label{font-weight:600;margin-top:var(--sp-2)}
+.form input,.form textarea{font:inherit;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;min-height:48px}
+.form input:focus-visible,.form textarea:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+.form .btn{border:0;cursor:pointer;justify-self:start;font:inherit;font-weight:700}
+.form .btn:disabled{opacity:.6}
+.hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.status{min-height:1.5em;color:var(--muted)}
+.alt{color:var(--muted)}

@@ -57,10 +57,34 @@ Add the pages to `nav` yourself. Standard limits from `OFFER.md`: 7 pages, 15 im
 
 ```bash
 node build.mjs standard/site.json out/<client>/   # copies standard/images/ to out/<client>/images/
-node --test test/*.test.mjs                        # 16 tests
+node --test test/*.test.mjs                        # all tests
 ```
 - **Images:** put files in `images/` next to the client's `site.json`. The build stops with a list of problems if a file is missing, over **200 KB**, has no alt text or no `width`/`height`, or if there are more than 15. It does **not** resize or compress: do that by hand first (for example, 1600 px wide max, WebP or JPEG at quality 80), then build.
 - **Contact form:** add the client to `client_sites` (see #66) and set `contact.form.site` to its `site_id`. The sample's endpoint is fictional, so it can't send until then.
+
+## Pro package (up to 12 pages, 30 images, extra form, structured data)
+`pro/site.json` is the Pro sample (fictional "Juniper & Tide Kitchen"; `pro/preview/` is its build, 12 pages). It is Standard plus:
+
+| Block in `site.json` | What it adds |
+|---|---|
+| `package: "pro"` | The build refuses more than 12 pages or 30 images (Starter 4/6, Standard 7/15 use the same check) |
+| `news` | `news.html` plus one `post-<slug>.html` per item (`title`, `slug`, `date`, `summary`, `body[]`); each post carries Article data |
+| `contact.extra_form` | `quote.html`: the one extra form (booking or quote request). Same function, its own `source`, a guided message box (`messageLabel`, `messagePlaceholder`) |
+| `home.sections` | Order and choice of extra home blocks: `"events"`, `"news"`, `"gallery"` (custom layout tweak) |
+| `theme.density` | `"compact"` for tighter spacing (custom layout tweak) |
+| `business` | LocalBusiness (or `Restaurant` etc.) data on the home page: `type`, `priceRange`, `openingHours`, `address` |
+| `events.items[].start` | Event data (ISO date) for each event that has one |
+| `faq` | FAQPage data on the FAQ page, automatically |
+
+Structured data is a JSON-LD block (data only, no external request, `<` escaped). The extra form sends only `name`, `email` and `message` plus its `source`, which is what the #66 function accepts; guided fields (date, party size) go inside the message text.
+
+**Stats without analytics:** there is no script on the site. After launch, count visits from the host's access log:
+```bash
+node tools/log-stats.mjs access.log     # page views, views/visitors per day, top referrers
+```
+It reads Common or Combined Log Format, counts successful page GETs, skips bots, assets, errors and POSTs, and never writes IPs out.
+
+**Not in Pro:** a multi-language toggle. `OFFER.md` lists multi-language sites under "Not included", so it stays a separate quote. Say if Joe wants it added to Pro; the template would need one config block and a page per language.
 
 ## Notes
 

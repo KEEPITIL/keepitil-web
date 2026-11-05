@@ -36,7 +36,7 @@ test('events and FAQ pages render from site.json; the FAQ uses native details', 
 test('no third-party requests or scripts outside the contact form', () => {
   for (const [f, html] of Object.entries(pages)) {
     assert.doesNotMatch(html, /<script[^>]*\bsrc=/i, f);
-    if (f !== 'contact.html') assert.doesNotMatch(html, /<script/i, f);
+    if (f !== 'contact.html') assert.doesNotMatch(html.replace(/<script type="application\/ld\+json">[^<]*<\/script>/g, ''), /<script/i, f);
     assert.doesNotMatch(html, /(src|href)="https?:\/\/(?!example\.com)/i, f);
   }
 });

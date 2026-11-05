@@ -1,0 +1,54 @@
+{
+  "lang": "en",
+  "url": "https://example.com",
+  "noindex": true,
+  "name": "Northshore Studio",
+  "tagline": "Sound, light and staging for live events.",
+  "description": "Northshore Studio provides sound, lighting and stage production for concerts, festivals and private events.",
+  "theme": { "brand": "#00b4ff", "accent": "#8b5cff", "mode": "dark" },
+  "nav": [
+    { "label": "Home", "href": "index.html" },
+    { "label": "About", "href": "about.html" },
+    { "label": "Services", "href": "services.html" },
+    { "label": "Contact", "href": "contact.html" }
+  ],
+  "home": {
+    "headline": "Shows that sound as good as they look.",
+    "intro": "From a 50-person rooftop to a 5,000-capacity field, we bring the rig, the crew and the plan.",
+    "cta": { "label": "Get a quote", "href": "contact.html" },
+    "highlights": [
+      { "title": "One crew, start to finish", "text": "Site visit, load-in, show and load-out by the same team." },
+      { "title": "Gear we own", "text": "No rental surprises. We maintain every speaker and light we bring." },
+      { "title": "Clear pricing", "text": "A written quote within two working days." }
+    ]
+  },
+  "about": {
+    "headline": "About us",
+    "paragraphs": [
+      "Northshore Studio started in 2015 as two engineers and a van. Today we run production for venues and promoters across the region.",
+      "We care about the details your audience never notices: clean power, safe rigging and a quiet changeover."
+    ]
+  },
+  "services": {
+    "headline": "Services",
+    "items": [
+      { "title": "Live sound", "text": "PA systems, monitors and engineers for any size of show.", "price": "From $650" },
+      { "title": "Lighting", "text": "Stage wash, moving heads and a programmed show.", "price": "From $500" },
+      { "title": "Staging", "text": "Modular stages, risers and barricades, installed and inspected.", "price": "From $900" }
+    ]
+  },
+  "contact": {
+    "headline": "Contact",
+    "intro": "Tell us the date, the venue and the size of the crowd. We reply within one working day.",
+    "email": "hello@example.com",
+    "phone": "",
+    "address": "",
+    "hours": "Mon–Fri, 9am–6pm",
+    "form": {
+      "endpoint": "https://contact.example.com/functions/v1/contact-submit",
+      "button": "Send enquiry",
+      "success": "Thanks. We reply within one working day."
+    }
+  },
+  "footer": "© 2026 Northshore Studio"
+}

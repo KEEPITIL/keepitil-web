@@ -28,12 +28,12 @@
 
 <li><span>Hours</span>Mon–Fri, 9am–6pm</li>
 </ul>
-<form class="form" method="post" action="https://contact.example.com/functions/v1/contact-submit" data-ok="Thanks. We reply within one working day.">
+<form class="form" method="post" action="https://contact.example.com/functions/v1/client-contact" data-ok="Thanks. We reply within one working day.">
 <label for="f-name">Name</label><input id="f-name" name="name" autocomplete="name" required maxlength="120">
 <label for="f-email">Email</label><input id="f-email" name="email" type="email" autocomplete="email" required maxlength="254">
 <label for="f-msg">Message</label><textarea id="f-msg" name="message" rows="5" required minlength="10" maxlength="2000"></textarea>
 <div class="hp" aria-hidden="true"><label for="f-website">Website</label><input id="f-website" name="website" tabindex="-1" autocomplete="off"></div>
-<input type="hidden" name="elapsed_ms" value="0"><input type="hidden" name="source" value="site-contact">
+<input type="hidden" name="site" value="northshore"><input type="hidden" name="elapsed_ms" value="0"><input type="hidden" name="source" value="site-contact">
 <button class="btn" type="submit">Send enquiry</button>
 <p class="status" role="status" aria-live="polite"></p>
 </form>

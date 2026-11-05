@@ -12,7 +12,7 @@ node --test test/*.test.mjs             # 8 tests
 
 1. **Copy the config:** `cp site.json clients/<client>.json`.
 2. **Fill it in:** set the name, tagline, description, `url`, the home, about and services text, and the contact details. Set `theme.brand` and `theme.accent` to hex colours; `theme.mode` can be `"light"`. Delete `"noindex": true`.
-3. **Pick the contact option:** to keep the email link only, leave `contact.form` out. To add a form, set `contact.form.endpoint` to the client's https contact function (see "Contact form" below).
+3. **Pick the contact option:** to keep the email link only, leave `contact.form` out. To add a form, set `contact.form.endpoint` to `https://<project>.supabase.co/functions/v1/client-contact` and `contact.form.site` to the client's site id. Then add that id to `client_sites` with the client's inbox and site origin (see "Contact form" below).
 4. **Build and check:** run `node build.mjs clients/<client>.json out/<client>/`, then `node --test test/*.test.mjs`. Open `out/<client>/index.html` at phone width.
 5. **Publish:** upload the 4 pages in `out/<client>/` (CSS is inlined; add the client's icon file if `icon` is set) to any static host. Then run Lighthouse (mobile) on the live URL; all four scores should be 95 or higher.
 
@@ -25,7 +25,7 @@ The form is optional. With no https `contact.form.endpoint`, the page shows the 
 - `website`: a hidden honeypot that must stay empty;
 - `elapsed_ms`: the time spent on the page.
 
-The endpoint should follow the KEEPITIL `connect-submit` pattern (#61):
+The ready-made endpoint is the `client-contact` edge function (`supabase/functions/client-contact/`, migration `20261105120000_client_contact.sql`). It follows the KEEPITIL `connect-submit` pattern (#61). One row in `client_sites` per client maps the site id to the destination inbox and the allowed origins. The function:
 
 - If the honeypot is filled or the time is under 3000 ms, answer with a fake success and store nothing.
 - Store the IP only as an HMAC, and rate-limit per IP.

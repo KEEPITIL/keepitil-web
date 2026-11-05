@@ -1,0 +1,203 @@
+{
+  "lang": "en",
+  "url": "https://example.com",
+  "noindex": true,
+  "name": "Cedar & Salt Bakery",
+  "tagline": "Slow-fermented bread and pastries, baked daily.",
+  "description": "Cedar & Salt is a neighbourhood bakery with sourdough, pastries, weekend markets and baking workshops.",
+  "theme": {
+    "brand": "#e76f51",
+    "accent": "#2a9d8f",
+    "mode": "light"
+  },
+  "nav": [
+    {
+      "label": "Home",
+      "href": "index.html"
+    },
+    {
+      "label": "About",
+      "href": "about.html"
+    },
+    {
+      "label": "Menu",
+      "href": "services.html"
+    },
+    {
+      "label": "Gallery",
+      "href": "gallery.html"
+    },
+    {
+      "label": "Events",
+      "href": "events.html"
+    },
+    {
+      "label": "FAQ",
+      "href": "faq.html"
+    },
+    {
+      "label": "Contact",
+      "href": "contact.html"
+    }
+  ],
+  "home": {
+    "headline": "Bread worth getting up for.",
+    "intro": "Small batches, long ferments and a counter that smells like Saturday morning.",
+    "cta": {
+      "label": "See the menu",
+      "href": "services.html"
+    },
+    "hero_image": {
+      "src": "images/hero.svg",
+      "alt": "Warm golden gradient standing in for a loaf of sourdough",
+      "width": 1200,
+      "height": 600
+    },
+    "highlights": [
+      {
+        "title": "Baked at dawn",
+        "text": "Everything on the counter was made that morning."
+      },
+      {
+        "title": "Real ingredients",
+        "text": "Stone-milled flour, butter and salt. Nothing else."
+      },
+      {
+        "title": "Pre-order for pickup",
+        "text": "Message us by 6pm for next-day pickup."
+      }
+    ]
+  },
+  "about": {
+    "headline": "About us",
+    "paragraphs": [
+      "Cedar & Salt began as a weekend market stall and became a corner shop in 2021.",
+      "We bake in small batches and let the dough take its time."
+    ]
+  },
+  "services": {
+    "headline": "Menu and prices",
+    "items": [
+      {
+        "title": "Country sourdough",
+        "text": "Large loaf, 24-hour ferment.",
+        "price": "$9"
+      },
+      {
+        "title": "Butter croissant",
+        "text": "Laminated by hand.",
+        "price": "$4.50"
+      },
+      {
+        "title": "Cardamom bun",
+        "text": "Weekend special.",
+        "price": "$5"
+      },
+      {
+        "title": "Pre-order box",
+        "text": "Two loaves and four pastries.",
+        "price": "$32"
+      }
+    ]
+  },
+  "gallery": {
+    "headline": "Gallery",
+    "intro": "A look inside the bakery. (Sample images are placeholders.)",
+    "images": [
+      {
+        "src": "images/sourdough.svg",
+        "alt": "Golden gradient for sourdough loaves",
+        "width": 800,
+        "height": 600,
+        "caption": "Sourdough, 6am"
+      },
+      {
+        "src": "images/pastries.svg",
+        "alt": "Orange gradient for pastries",
+        "width": 800,
+        "height": 600,
+        "caption": "Pastry case"
+      },
+      {
+        "src": "images/market.svg",
+        "alt": "Green gradient for the market stall",
+        "width": 800,
+        "height": 600,
+        "caption": "Saturday market"
+      },
+      {
+        "src": "images/workshop.svg",
+        "alt": "Blue gradient for a baking workshop",
+        "width": 800,
+        "height": 600,
+        "caption": "Workshop night"
+      },
+      {
+        "src": "images/counter.svg",
+        "alt": "Plum gradient for the shop counter",
+        "width": 800,
+        "height": 600,
+        "caption": "The counter"
+      },
+      {
+        "src": "images/coffee.svg",
+        "alt": "Pink gradient for coffee",
+        "width": 800,
+        "height": 600,
+        "caption": "Coffee and a bun"
+      }
+    ]
+  },
+  "events": {
+    "headline": "Events and markets",
+    "intro": "Where to find us and when to learn with us.",
+    "items": [
+      {
+        "date": "Saturdays, 8am to 1pm",
+        "title": "Riverside market stall",
+        "text": "Fresh bread and weekend specials.",
+        "price": "Free to visit"
+      },
+      {
+        "date": "First Thursday of the month, 6:30pm",
+        "title": "Sourdough basics workshop",
+        "text": "Hands-on, take your loaf home. Eight places.",
+        "price": "$45"
+      }
+    ],
+    "note": "Dates are samples. Replace them with the client's own."
+  },
+  "faq": {
+    "headline": "Questions",
+    "items": [
+      {
+        "q": "Do you take pre-orders?",
+        "a": "Yes. Send us a message by 6pm for pickup the next day."
+      },
+      {
+        "q": "Do you have gluten-free options?",
+        "a": "Not yet. Our kitchen handles wheat every day."
+      },
+      {
+        "q": "Can I book a workshop for a group?",
+        "a": "Yes, use the contact form and tell us the group size."
+      }
+    ]
+  },
+  "contact": {
+    "headline": "Contact",
+    "intro": "Questions, pre-orders or workshop bookings. We reply within one working day.",
+    "email": "hello@example.com",
+    "phone": "",
+    "address": "12 Harbour Street (sample)",
+    "hours": "Tue to Sun, 7am to 3pm",
+    "form": {
+      "endpoint": "https://contact.example.com/functions/v1/client-contact",
+      "site": "cedar-salt",
+      "button": "Send message",
+      "success": "Thanks. We reply within one working day.",
+      "source": "standard-sample"
+    }
+  },
+  "footer": "© 2026 Cedar & Salt Bakery"
+}

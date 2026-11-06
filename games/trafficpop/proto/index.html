@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#2a7de1">
+<title>Traffic Pop (prototype) - KEEPITIL</title>
+<style>
+:root{--bg:#142a4a;--panel:#1d3a66;--ink:#f4f8ff;--mute:#9fb6d8;--road:#2b3647;--line:#3c4b63;--accent:#ffd23f;
+--red:#e5484d;--blue:#3b82f6;--green:#2fb86b;--yellow:#f5c518;--purple:#9b5de5;--orange:#ff8a1f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.3 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overscroll-behavior:none}
+body{display:flex;justify-content:center}
+#app{width:100%;max-width:560px;height:100dvh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom)}
+.hidden{display:none!important}
+button{font:inherit;color:inherit;cursor:pointer}
+.screen{flex:1;display:flex;flex-direction:column;min-height:0}
+h1{margin:18px 0 4px;text-align:center;font-size:2.2rem;letter-spacing:.02em}
+.tag{text-align:center;color:var(--mute);margin:0 0 12px}
+.note{text-align:center;color:var(--mute);font-size:.8rem;margin:8px 0}
+#levels{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;overflow:auto;padding:4px 2px 12px;flex:1;align-content:start}
+.lv{aspect-ratio:1;border-radius:12px;border:2px solid var(--line);background:var(--panel);font-weight:700;display:flex;align-items:center;justify-content:center;position:relative}
+.lv.done{border-color:var(--green)}
+.lv.done::after{content:"\2713";position:absolute;top:1px;right:5px;font-size:.7rem;color:var(--green)}
+.lv:focus-visible,.tools button:focus-visible,.veh:focus-visible,.chip:focus-visible,.card button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.hud{display:flex;align-items:center;gap:10px;padding:8px 0}
+.chip{border:0;background:var(--panel);border-radius:10px;padding:8px 12px;font-weight:700;min-height:40px}
+.hud-mid{flex:1;text-align:center}
+.meter{height:8px;border-radius:4px;background:#0c1b33;overflow:hidden;margin:4px 0}
+.meter i{display:block;height:100%;width:0;background:var(--green);transition:width .3s}
+.hud small{color:var(--mute)}
+.hud-moves{text-align:center;min-width:52px}
+.terminal{display:flex;gap:8px}
+.dock{flex:1;background:var(--panel);border-radius:12px;padding:8px;min-height:74px;display:flex;flex-direction:column;gap:6px}
+.dock .now{display:flex;align-items:center;gap:8px;font-weight:700}
+.dock .sw{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.95rem;text-shadow:0 1px 2px #0006}
+.dock .q{display:flex;gap:4px;flex-wrap:wrap}
+.dock .q span{width:16px;height:16px;border-radius:4px;opacity:.75}
+.dock.empty{opacity:.5}
+.lot{margin:8px 0}
+.lot-title{font-size:.75rem;color:var(--mute);letter-spacing:.08em;margin-bottom:4px}
+.bays{display:flex;gap:6px}
+.bay{flex:1;aspect-ratio:1.3;border:2px dashed var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;min-width:0}
+.bay .pk{width:80%;height:70%;border-radius:8px;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.85rem;text-shadow:0 1px 2px #0006}
+#boardWrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+#board{position:relative;background:var(--road);border-radius:12px;box-shadow:inset 0 0 0 3px var(--line)}
+.veh{position:absolute;border:0;padding:0;background:none}
+.veh .body{position:absolute;inset:3px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 6px;color:#fff;font-weight:800;box-shadow:inset 0 -4px 0 #0003,0 2px 4px #0005;text-shadow:0 1px 2px #0007;transition:transform .22s ease-in,opacity .22s}
+.veh .sym{font-size:1.05rem}.veh .seat{font-size:.72rem;opacity:.9}
+.veh.vert .body{flex-direction:column;padding:6px 0;gap:2px}
+.veh .arrow{position:absolute;font-size:.7rem;opacity:.9;line-height:1}
+.a-up{top:5px;left:50%;transform:translateX(-50%)}.a-down{bottom:5px;left:50%;transform:translateX(-50%)}.a-left{left:6px;top:50%;transform:translateY(-50%)}.a-right{right:6px;top:50%;transform:translateY(-50%)}
+.veh.free .body{outline:2px solid #ffffff55}
+.veh.shake .body{animation:shake .25s}
+.veh.hint .body{animation:pulse .7s infinite alternate;outline:3px solid var(--accent)}
+.veh.leave-up .body{transform:translateY(-140%);opacity:0}.veh.leave-down .body{transform:translateY(140%);opacity:0}
+.veh.leave-left .body{transform:translateX(-140%);opacity:0}.veh.leave-right .body{transform:translateX(140%);opacity:0}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@keyframes pulse{to{filter:brightness(1.4)}}
+.c-red{background:var(--red)}.c-blue{background:var(--blue)}.c-green{background:var(--green)}.c-yellow{background:var(--yellow);color:#222}.c-purple{background:var(--purple)}.c-orange{background:var(--orange)}
+.lifting #board{box-shadow:inset 0 0 0 3px var(--accent)}
+.tools{display:flex;gap:6px;padding:8px 0}
+.tools button{flex:1;border:0;background:var(--panel);border-radius:10px;padding:8px 2px;min-height:48px;font-size:.78rem;font-weight:700;position:relative}
+.tools button:disabled{opacity:.4}
+.tools button.on{background:var(--accent);color:#222}
+.tools b{position:absolute;top:2px;right:5px;font-size:.7rem;color:var(--accent)}
+.overlay{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;padding:20px;z-index:5}
+.card{background:var(--panel);border-radius:16px;padding:22px;max-width:340px;width:100%;text-align:center}
+.card h2{margin:0 0 6px}.card p{color:var(--mute);margin:6px 0 14px}
+.card button{display:block;width:100%;margin:8px 0 0;padding:12px;border:0;border-radius:10px;background:var(--blue);font-weight:700}
+.card button.alt{background:#0c1b33}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#000c;padding:8px 14px;border-radius:20px;font-size:.9rem;opacity:0;transition:opacity .2s;pointer-events:none;z-index:6;max-width:90%;text-align:center}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.veh .body,.meter i{transition:none}.veh.hint .body{animation:none}.veh.shake .body{animation:none}}
+</style>
+</head>
+<body>
+<main id="app">
+  <section id="map" class="screen">
+    <h1>Traffic Pop</h1>
+    <p class="tag">Clear the jam. Park smart. Load the passengers.</p>
+    <div id="levels"></div>
+    <p class="note">Prototype: all 60 levels open. Progress is stored on this device only. No network, no tracking.</p>
+  </section>
+  <section id="game" class="screen hidden">
+    <header class="hud">
+      <button class="chip" id="home" aria-label="Back to levels">Levels</button>
+      <div class="hud-mid"><div>LEVEL <b id="lvl">1</b></div><div class="meter" aria-hidden="true"><i id="bar"></i></div><small id="goal">0 / 0 passengers</small></div>
+      <div class="hud-moves"><small>MOVES</small><br><b id="moves">0</b></div>
+    </header>
+    <div class="terminal"><div class="dock" id="dock0"></div><div class="dock" id="dock1"></div></div>
+    <div class="lot"><div class="lot-title" id="parkCount">PARKING</div><div class="bays" id="bays"></div></div>
+    <div id="boardWrap"><div id="board" role="group" aria-label="Traffic board. Tap a vehicle with a clear road ahead to send it to parking."></div></div>
+    <nav class="tools">
+      <button id="hint">Hint<small> (H)</small></button>
+      <button id="undo">Undo<small> (U)</small></button>
+      <button id="restart">Restart<small> (R)</small></button>
+      <button id="space" aria-label="Add a parking space">+Space<b id="spaceN">1</b></button>
+      <button id="lift" aria-label="Lift any vehicle out">Lift<b id="liftN">1</b></button>
+    </nav>
+  </section>
+  <div id="overlay" class="overlay hidden"><div class="card" id="ovBody"></div></div>
+  <div id="toast" class="toast" role="status"></div>
+</main>
+
+<script id="levelData" type="application/json">[{"w":4,"h":5,"p":6,"v":[["van","red","right",0,4],["car","red","right",3,4],["car","blue","left",0,3],["car","red","up",3,1],["van","blue","right",0,2],["car","blue","right",2,1],["car","blue","up",1,0],["car","red","down",2,4],["car","blue","left",0,1]],"d":[[["red",5],["blue",2]],[["blue",5]]]},{"w":5,"h":5,"p":6,"v":[["car","red","down",4,4],["van","blue","left",1,4],["van","red","left",1,3],["car","red","down",3,4],["car","red","left",1,2],["van","blue","left",2,0],["car","blue","right",3,3],["car","red","down",2,3],["car","blue","left",0,1],["van","blue","up",4,3],["car","blue","up",0,2]],"d":[[["blue",9]],[["red",7],["blue",1]]]},{"w":5,"h":6,"p":6,"v":[["car","blue","left",1,1],["van","green","right",0,5],["bus","green","right",0,4],["bus","red","up",4,3],["car","red","up",1,3],["car","green","down",2,5],["car","blue","up",3,2],["van","red","right",3,4],["van","green","up",0,3],["van","blue","right",0,0],["car","blue","right",3,1]],"d":[[["blue",3],["green",8]],[["red",6],["blue",3]]]},{"w":5,"h":6,"p":6,"v":[["bus","green","right",0,1],["van","green","up",4,5],["car","red","right",3,4],["car","red","up",3,2],["car","red","right",4,2],["van","green","left",1,5],["car","green","left",2,4],["car","red","right",4,1],["van","blue","left",3,5],["car","red","right",3,0],["car","red","up",1,0],["car","red","left",0,4],["car","blue","up",3,1],["car","green","up",2,0],["bus","green","left",3,3]],"d":[[["green",2],["red",1],["green",3],["red",1],["blue",4],["red",1],["green",2]],[["red",4],["green",2],["red",1],["green",2],["red",2],["green",2]]]},{"w":5,"h":6,"p":6,"v":[["van","red","down",0,3],["car","red","up",0,2],["bus","red","up",4,2],["car","red","up",3,1],["bus","blue","right",1,0],["car","blue","right",4,3],["van","blue","up",0,1],["car","blue","down",2,4],["car","green","left",2,1],["car","blue","left",1,3],["car","green","down",2,5],["van","red","down",2,2],["car","green","left",0,5],["van","red","left",4,5]],"d":[[["blue",1],["red",4],["blue",2],["red",6]],[["blue",2],["green",4],["red",2],["blue",4]]]},{"w":5,"h":6,"p":6,"v":[["car","red","right",4,0],["van","blue","down",0,3],["car","green","down",3,3],["car","red","up",1,1],["van","blue","left",1,0],["car","blue","right",2,0],["car","green","right",2,5],["van","green","right",3,5],["van","green","left",2,4],["car","red","up",3,0],["car","red","right",3,2],["car","green","up",4,2],["van","red","down",0,1],["car","green","left",1,2],["car","green","right",4,3],["van","blue","right",3,1]],"d":[[["red",1],["green",1],["red",5],["green",4]],[["green",2],["blue",2],["red",2],["blue",6],["green",4]]]},{"w":5,"h":6,"p":6,"v":[["van","green","left",1,0],["car","blue","right",3,2],["car","blue","down",1,4],["van","red","right",2,5],["bus","red","down",2,2],["car","blue","down",3,4],["bus","green","left",2,1],["car","red","up",3,0],["van","green","right",0,5],["car","red","up",4,0],["van","green","left",1,3],["car","green","left",1,2],["car","red","up",3,1]],"d":[[["red",2],["blue",1],["green",2],["red",3],["green",3],["red",2]],[["green",2],["blue",1],["red",2],["green",2],["blue",2],["green",2]]]},{"w":5,"h":6,"p":6,"v":[["car","blue","right",4,3],["van","blue","down",1,4],["van","red","down",2,3],["bus","red","right",2,2],["car","red","right",4,1],["car","green","left",0,2],["car","blue","left",0,4],["car","green","down",0,3],["van","red","down",4,4],["van","green","right",2,5],["car","green","right",2,1],["car","red","left",0,0],["car","green","up",4,0],["car","blue","up",3,0],["car","blue","right",3,3]],"d":[[["blue",5],["red",2],["green",2],["red",2],["green",3]],[["green",2],["red",2],["green",1],["blue",1],["red",2],["blue",2],["red",2]]]},{"w":5,"h":7,"p":6,"v":[["car","blue","left",1,3],["car","red","right",2,3],["van","red","up",4,2],["bus","green","down",0,1],["car","red","down",0,4],["van","red","left",4,6],["car","green","right",3,3],["car","blue","right",3,0],["car","red","right",3,4],["van","blue","left",4,5],["van","red","left",1,5],["van","blue","right",1,4],["car","green","up",2,1],["car","red","up",4,0],["car","red","right",1,0],["car","red","left",1,2],["car","blue","up",1,1]],"d":[[["red",9],["green",2],["red",2],["blue",1],["red",2]],[["green",2],["blue",8],["green",2],["red",2]]]},{"w":5,"h":7,"p":6,"v":[["car","blue","right",3,5],["van","blue","right",1,3],["van","green","right",0,5],["car","green","up",2,0],["car","green","right",2,6],["car","red","right",4,6],["van","red","left",1,6],["car","red","up",4,0],["van","red","up",2,5],["van","blue","up",4,5],["car","red","down",3,3],["car","blue","up",4,1],["van","blue","left",1,4],["car","blue","right",1,1],["car","blue","down",3,6],["car","blue","right",4,2],["car","blue","left",0,2],["van","blue","left",1,0]],"d":[[["blue",2],["red",4],["blue",1],["red",3],["green",2],["blue",8]],[["blue",4],["red",2],["blue",1],["green",2],["blue",1],["green",1]]]},{"w":6,"h":7,"p":6,"v":[["bus","blue","left",5,5],["van","green","down",0,5],["car","blue","down",1,5],["van","green","right",3,3],["car","yellow","up",5,0],["van","red","up",3,2],["van","blue","left",1,4],["van","green","right",4,1],["bus","green","right",1,6],["bus","yellow","right",3,4],["car","blue","up",0,0],["van","yellow","up",0,3],["car","red","up",2,2],["car","green","up",1,1],["car","blue","right",5,3],["van","green","down",2,4],["van","green","right",4,6]],"d":[[["green",2],["blue",1],["yellow",2],["green",7],["blue",2],["red",2],["green",2]],[["red",2],["green",2],["blue",4],["yellow",3],["green",2],["yellow",2],["blue",2]]]},{"w":6,"h":7,"p":6,"v":[["car","red","up",1,1],["bus","blue","right",2,4],["car","red","up",0,2],["car","red","right",4,5],["bus","blue","right",3,0],["bus","blue","right",1,5],["car","red","right",5,4],["car","red","down",4,6],["car","green","right",5,5],["van","red","left",3,1],["van","green","right",4,1],["van","green","right",4,3],["car","blue","up",2,2],["bus","green","down",1,2],["van","blue","right",2,3],["van","red","right",0,6],["van","red","left",2,0]],"d":[[["blue",3],["red",5],["blue",2],["red",4],["green",5]],[["green",4],["red",4],["blue",3],["red",1],["blue",4]]]},{"w":6,"h":7,"p":6,"v":[["car","red","right",4,1],["car","red","right",5,4],["car","blue","right",4,3],["bus","yellow","down",0,1],["car","green","down",0,6],["car","green","left",0,4],["car","red","up",2,1],["car","red","right",5,1],["car","red","right",5,3],["car","green","down",5,6],["car","yellow","down",3,5],["car","red","right",3,0],["car","red","right",5,5],["car","red","left",1,1],["van","yellow","right",2,6],["car","blue","right",3,4],["car","blue","down",4,6],["car","red","right",1,6],["van","yellow","right",4,0],["car","green","down",1,5],["car","red","left",3,3],["car","yellow","up",2,2],["van","green","right",0,0],["car","green","down",1,4],["car","red","right",2,0]],"d":[[["red",3],["yellow",2],["blue",1],["green",1],["red",1],["green",3],["blue",2],["red",3]],[["red",2],["green",4],["yellow",2],["blue",1],["yellow",2],["red",3],["yellow",2],["red",4],["yellow",2],["green",1]]]},{"w":6,"h":7,"p":6,"v":[["bus","red","down",3,3],["van","blue","down",4,3],["van","yellow","down",5,5],["bus","blue","left",4,1],["car","blue","left",0,3],["van","blue","up",5,1],["van","blue","up",1,2],["car","blue","up",2,3],["van","green","down",0,5],["car","yellow","up",3,2],["van","red","up",5,4],["car","yellow","right",2,2],["car","yellow","right",2,4],["car","blue","right",4,5],["car","blue","up",0,2],["car","red","right",1,5],["van","green","right",0,4],["bus","red","right",2,6]],"d":[[["blue",6],["yellow",4],["blue",5],["red",2],["green",2]],[["green",2],["blue",4],["red",4],["yellow",2],["red",4],["yellow",1]]]},{"w":6,"h":7,"p":6,"v":[["car","red","down",1,5],["van","red","left",1,4],["car","green","right",3,0],["van","red","right",3,4],["car","blue","up",3,2],["van","green","left",5,6],["van","red","up",4,1],["car","red","left",1,6],["car","yellow","down",5,3],["car","red","up",0,2],["car","red","down",2,6],["van","yellow","left",1,3],["car","blue","right",2,4],["van","blue","down",3,5],["car","yellow","right",4,2],["bus","green","down",1,0],["car","green","right",5,4],["van","yellow","down",5,0],["car","red","right",5,5],["car","yellow","left",2,0],["car","green","left",0,1]],"d":[[["green",2],["red",8],["green",2],["yellow",3],["blue",2]],[["green",2],["blue",1],["red",2],["yellow",2],["blue",2],["green",4],["red",4],["yellow",4]]]},{"w":6,"h":7,"p":6,"v":[["car","green","right",5,5],["car","green","left",1,0],["van","yellow","left",2,6],["van","green","right",4,1],["van","green","right",4,6],["car","blue","left",0,0],["car","blue","up",1,1],["car","yellow","left",1,3],["van","blue","right",4,3],["car","red","up",3,0],["car","red","right",5,0],["car","green","right",3,5],["car","blue","down",4,5],["car","red","right",3,4],["car","yellow","down",3,6],["car","red","up",2,0],["car","blue","right",4,0],["car","red","up",2,2],["van","yellow","left",3,1],["car","green","right",5,4],["van","yellow","left",1,5],["car","green","up",3,2],["van","green","up",0,2]],"d":[[["green",6],["red",3],["blue",1],["green",3],["blue",2],["red",1],["blue",1],["green",2],["red",2]],[["red",1],["green",2],["blue",2],["green",1],["yellow",4],["blue",2],["yellow",6]]]},{"w":6,"h":7,"p":6,"v":[["car","yellow","right",3,0],["car","yellow","up",4,0],["van","yellow","right",4,4],["car","yellow","left",2,1],["bus","red","up",4,3],["car","yellow","down",5,6],["van","green","up",3,2],["van","blue","down",4,5],["car","red","down",3,6],["bus","green","down",0,3],["van","green","left",2,5],["van","blue","left",2,3],["van","green","up",5,3],["car","blue","left",1,4],["van","yellow","up",5,1],["bus","blue","right",0,6],["van","yellow","up",3,5]],"d":[[["yellow",3],["green",2],["yellow",2],["red",2],["green",6],["blue",2],["yellow",2],["blue",2]],[["yellow",2],["blue",2],["green",2],["yellow",4],["red",2],["blue",3]]]},{"w":6,"h":7,"p":6,"v":[["car","red","up",4,0],["car","red","down",2,4],["van","blue","left",3,0],["car","blue","down",1,6],["car","yellow","down",3,4],["bus","green","down",5,4],["car","red","up",1,1],["car","green","down",4,5],["bus","blue","up",0,6],["van","blue","right",2,1],["car","green","right",5,3],["car","green","up",1,4],["car","green","right",2,5],["van","green","up",4,3],["car","red","up",2,2],["car","blue","left",1,5],["car","yellow","up",1,0],["van","green","left",2,3],["van","blue","up",3,3],["van","blue","up",0,1]],"d":[[["red",1],["blue",4],["green",3],["red",1],["blue",4],["green",2],["blue",3]],[["red",2],["yellow",2],["green",4],["yellow",1],["red",2],["green",2],["blue",4],["green",2]]]},{"w":6,"h":7,"p":6,"v":[["bus","green","up",1,6],["car","yellow","up",5,0],["van","green","down",0,5],["van","red","right",2,2],["van","green","down",4,4],["car","yellow","down",5,5],["van","green","right",3,1],["bus","red","up",5,4],["bus","yellow","up",2,5],["car","blue","up",3,3],["van","yellow","left",1,3],["van","blue","up",0,2],["car","green","up",4,0],["car","red","right",5,1],["car","yellow","left",0,4],["car","red","right",4,2],["car","green","down",3,5],["bus","yellow","right",2,6]],"d":[[["green",3],["red",2],["blue",4],["yellow",2],["red",2],["yellow",2],["green",2],["yellow",3]],[["yellow",2],["red",2],["green",2],["yellow",2],["green",4],["red",2],["green",2],["yellow",2]]]},{"w":6,"h":7,"p":6,"v":[["van","green","right",0,2],["car","green","up",4,2],["van","green","up",5,2],["van","red","right",4,0],["car","blue","down",0,5],["van","green","up",0,4],["car","red","down",0,6],["bus","yellow","right",1,1],["bus","yellow","left",5,5],["car","blue","right",5,3],["bus","green","up",3,4],["van","green","down",4,3],["bus","green","up",1,5],["car","red","right",5,4],["car","yellow","up",1,0],["van","red","left",3,0],["car","red","right",2,4]],"d":[[["red",3],["yellow",3],["green",12],["red",2]],[["green",2],["blue",1],["red",2],["yellow",2],["blue",2],["red",2],["yellow",2],["green",2]]]},{"w":6,"h":7,"p":6,"v":[["bus","red","left",2,6],["bus","red","up",3,2],["car","purple","down",1,5],["car","purple","up",2,1],["van","purple","up",5,1],["car","green","right",3,4],["van","green","down",5,2],["bus","blue","right",2,5],["car","purple","up",4,3],["bus","purple","down",0,3],["car","blue","up",2,0],["van","purple","left",3,3],["van","blue","up",4,1],["car","purple","down",2,4],["car","yellow","down",3,6],["car","yellow","down",5,6],["car","blue","up",1,2],["bus","blue","down",0,0]],"d":[[["purple",6],["red",6],["blue",3],["green",2],["blue",2],["purple",2]],[["blue",2],["purple",4],["blue",2],["green",2],["blue",2],["yellow",3],["purple",2]]]},{"w":6,"h":7,"p":6,"v":[["van","yellow","up",2,1],["van","blue","left",3,6],["bus","green","up",0,5],["van","green","left",1,6],["car","purple","up",0,2],["bus","blue","up",4,2],["van","red","left",2,2],["van","purple","up",5,6],["car","purple","right",5,0],["van","red","up",5,2],["van","purple","left",2,5],["car","yellow","down",4,3],["van","blue","down",3,0],["van","green","left",1,0],["van","red","down",1,3],["car","yellow","left",3,2],["van","red","up",5,4]],"d":[[["yellow",2],["purple",2],["red",4],["green",2],["yellow",1],["green",4],["red",3],["yellow",2]],[["purple",2],["blue",3],["red",2],["green",2],["blue",2],["purple",4],["blue",3]]]},{"w":6,"h":7,"p":6,"v":[["van","purple","right",3,0],["car","red","up",4,1],["van","red","left",1,4],["van","green","up",5,1],["bus","yellow","right",1,6],["van","blue","down",0,0],["bus","blue","down",2,1],["van","yellow","up",1,1],["car","red","down",3,5],["car","green","up",1,2],["car","green","down",2,4],["car","blue","up",3,1],["car","purple","up",3,3],["bus","blue","right",3,4],["van","purple","down",0,2],["van","blue","right",1,5],["van","green","right",3,2]],"d":[[["green",2],["red",4],["yellow",3],["green",2],["blue",2],["purple",2],["red",1],["purple",2]],[["yellow",2],["blue",5],["green",2],["purple",2],["blue",3],["green",2],["blue",2]]]},{"w":6,"h":8,"p":6,"v":[["car","green","down",2,6],["bus","purple","down",5,5],["van","blue","right",3,5],["bus","blue","down",0,1],["car","yellow","right",4,0],["car","purple","right",4,7],["van","green","right",4,3],["car","blue","up",3,0],["bus","green","right",0,7],["bus","red","left",4,1],["van","yellow","up",1,1],["van","purple","right",3,4],["van","yellow","up",5,2],["car","blue","left",0,0],["car","yellow","left",1,4],["bus","yellow","right",1,2],["van","purple","down",0,5],["van","red","up",2,5],["car","yellow","right",5,0]],"d":[[["yellow",2],["purple",2],["blue",4],["yellow",6],["green",3],["purple",3]],[["yellow",2],["blue",2],["purple",2],["green",2],["blue",2],["red",3],["purple",2],["red",2],["yellow",2],["green",2]]]},{"w":6,"h":8,"p":6,"v":[["car","yellow","left",3,4],["bus","green","left",4,3],["van","purple","up",1,3],["car","purple","up",3,2],["van","green","right",4,6],["car","purple","right",5,5],["bus","green","left",2,1],["car","green","up",3,0],["van","blue","down",0,5],["bus","yellow","left",5,1],["bus","red","down",1,5],["car","blue","left",1,4],["van","green","right",4,4],["car","blue","up",4,0],["car","red","right",2,2],["car","green","up",0,0],["car","blue","up",5,0],["van","yellow","right",4,2],["car","purple","left",2,5],["van","yellow","right",1,0],["car","red","down",5,7],["van","yellow","left",4,5]],"d":[[["blue",3],["green",2],["blue",2],["yellow",4],["red",4],["blue",2],["purple",2],["red",2]],[["purple",2],["yellow",3],["green",2],["purple",1],["yellow",4],["green",8],["purple",2],["green",2]]]},{"w":6,"h":8,"p":6,"v":[["van","blue","left",1,7],["bus","yellow","up",5,6],["van","green","up",4,2],["van","green","left",1,6],["car","red","left",2,3],["car","red","down",4,3],["van","green","left",2,1],["car","green","left",0,5],["bus","blue","right",0,0],["van","blue","right",4,0],["van","red","up",5,2],["car","purple","left",1,2],["car","yellow","left",0,2],["bus","red","right",1,5],["van","yellow","up",3,1],["van","green","left",3,7],["van","purple","left",1,3],["van","blue","down",3,2],["car","red","left",2,6],["van","purple","right",3,6]],"d":[[["purple",2],["yellow",2],["green",4],["purple",2],["green",2],["red",4],["purple",2],["red",2]],[["red",2],["blue",2],["green",2],["yellow",2],["green",3],["blue",5],["yellow",3],["blue",3],["red",2]]]},{"w":6,"h":8,"p":6,"v":[["car","purple","right",4,4],["car","green","left",2,6],["van","green","up",5,7],["bus","purple","right",0,0],["car","green","left",4,1],["van","yellow","right",3,0],["van","yellow","down",0,6],["bus","red","left",3,7],["van","green","up",5,5],["bus","red","right",1,2],["car","purple","left",2,3],["car","green","right",5,2],["car","blue","down",1,4],["car","red","up",3,3],["van","red","left",1,1],["car","green","up",3,1],["van","yellow","down",4,2],["bus","green","left",3,5],["van","purple","left",3,4],["car","green","right",4,6],["car","green","down",1,6]],"d":[[["green",8],["purple",2],["yellow",2],["red",5],["green",2],["red",3],["purple",2],["green",2]],[["yellow",5],["purple",4],["green",3],["red",2],["blue",1],["green",2]]]},{"w":6,"h":8,"p":6,"v":[["car","purple","left",2,2],["car","green","right",3,1],["bus","green","up",5,3],["car","blue","up",4,1],["car","purple","down",3,6],["car","green","up",2,1],["car","blue","left",0,3],["car","blue","right",4,0],["car","yellow","right",4,4],["car","green","down",5,7],["car","red","up",3,0],["van","green","left",4,5],["car","green","up",3,2],["car","red","right",5,0],["car","purple","left",1,7],["car","yellow","up",1,0],["car","blue","down",4,3],["van","yellow","left",1,2],["car","yellow","left",4,2],["bus","green","left",2,4],["van","yellow","up",0,1],["bus","yellow","left",3,3],["car","blue","left",0,6],["van","green","down",4,6],["van","blue","up",5,6]],"d":[[["green",2],["yellow",4],["purple",1],["red",1],["blue",2],["green",2],["blue",2],["yellow",2],["blue",1],["purple",2],["green",2]],[["green",2],["blue",2],["yellow",2],["blue",1],["green",3],["yellow",2],["blue",2],["green",2],["purple",2],["green",2],["red",2],["green",2],["yellow",2]]]},{"w":6,"h":8,"p":6,"v":[["car","green","up",5,0],["car","blue","up",0,0],["car","blue","up",3,0],["bus","green","right",0,1],["bus","yellow","right",2,7],["car","blue","up",4,0],["car","yellow","up",2,0],["van","yellow","right",3,2],["bus","green","up",4,6],["car","red","left",0,7],["bus","purple","right",0,3],["bus","blue","down",1,4],["car","blue","right",2,2],["van","yellow","down",0,5],["car","red","right",5,5],["bus","blue","right",3,3],["van","purple","left",3,6],["car","green","down",2,4],["car","purple","up",1,0],["car","yellow","right",4,1],["car","purple","up",0,2]],"d":[[["yellow",4],["blue",2],["purple",4],["blue",2],["purple",2],["green",2],["blue",2]],[["yellow",5],["blue",2],["green",4],["blue",2],["red",2],["blue",2],["red",1],["purple",2],["green",3],["yellow",2]]]},{"w":6,"h":8,"p":6,"v":[["car","purple","right",4,4],["car","purple","up",1,3],["van","yellow","right",4,1],["bus","blue","down",5,2],["car","green","up",4,2],["bus","red","right",0,7],["car","purple","right",3,1],["van","red","down",4,5],["car","purple","up",4,0],["car","blue","up",3,2],["bus","blue","left",2,1],["van","blue","left",2,6],["van","red","left",2,2],["car","purple","down",4,7],["bus","yellow","up",3,6],["car","purple","right",5,6],["van","blue","down",0,5],["car","red","right",3,7],["car","blue","right",4,3],["car","green","right",5,5],["car","green","up",0,0],["bus","green","left",3,0]],"d":[[["blue",5],["purple",3],["yellow",2],["green",2],["blue",5],["red",2],["blue",2]],[["green",2],["red",4],["purple",3],["red",3],["green",4],["blue",2],["yellow",3],["purple",3]]]},{"w":7,"h":8,"p":6,"v":[["bus","blue","down",4,5],["bus","purple","down",1,5],["van","red","down",3,6],["car","orange","left",0,1],["car","blue","right",5,4],["van","red","up",0,7],["van","blue","up",0,3],["car","yellow","right",4,1],["bus","green","left",5,0],["car","orange","up",3,1],["van","blue","up",0,5],["van","purple","right",5,6],["van","blue","down",6,0],["van","orange","left",2,2],["van","blue","left",6,7],["van","red","right",5,2],["bus","red","left",2,0],["van","green","left",3,3],["van","orange","right",5,5],["car","blue","down",2,4],["van","yellow","right",3,2],["van","blue","right",1,1]],"d":[[["red",2],["purple",2],["green",3],["red",2],["yellow",2],["blue",2],["orange",2],["blue",2],["yellow",2],["blue",5],["red",2],["blue",2]],[["red",4],["orange",2],["blue",5],["orange",2],["green",2],["orange",2],["blue",2],["purple",3]]]},{"w":7,"h":8,"p":6,"v":[["car","green","left",4,1],["car","blue","down",6,4],["van","red","up",0,1],["car","red","down",5,7],["car","green","right",4,0],["car","blue","down",3,6],["car","blue","down",0,5],["car","purple","left",2,0],["car","red","up",5,0],["car","blue","right",6,2],["car","red","down",6,7],["van","orange","up",1,2],["car","purple","right",5,5],["car","orange","left",1,3],["bus","orange","down",2,5],["van","blue","up",3,2],["car","yellow","up",3,0],["van","blue","right",5,1],["car","red","down",4,4],["car","yellow","up",0,4],["car","yellow","left",3,3],["car","blue","up",2,2],["car","red","down",6,5],["car","purple","left",0,3],["car","yellow","right",5,6],["car","green","down",5,4],["car","yellow","up",4,2],["car","orange","down",1,5],["car","green","down",6,6],["van","purple","down",4,5],["van","yellow","down",5,2],["car","purple","up",6,0],["car","orange","left",1,6],["car","orange","up",4,3],["car","red","right",6,3]],"d":[[["purple",4],["orange",2],["red",2],["green",2],["blue",3],["orange",2],["blue",3],["orange",2],["yellow",2],["orange",2],["blue",2],["yellow",2],["blue",2],["yellow",2]],[["red",2],["purple",2],["red",1],["purple",2],["orange",2],["yellow",1],["red",5],["green",1],["yellow",3],["red",2],["purple",1],["green",3],["blue",2],["orange",2]]]},{"w":7,"h":8,"p":6,"v":[["van","red","up",0,2],["bus","purple","up",5,4],["van","purple","up",3,4],["bus","orange","down",1,5],["car","red","up",2,5],["car","blue","left",1,3],["van","purple","up",6,3],["van","orange","right",0,4],["car","green","up",0,0],["van","purple","down",2,6],["van","red","right",5,7],["car","red","left",1,1],["car","orange","down",3,6],["car","green","right",5,0],["van","green","left",3,2],["car","green","down",0,5],["car","purple","up",4,2],["car","red","up",5,1],["bus","yellow","left",6,6],["car","purple","up",2,0],["van","blue","right",3,5],["van","blue","left",4,0],["car","purple","left",0,7],["car","orange","left",1,2],["van","green","up",2,4],["car","green","up",6,1],["van","red","up",6,5]],"d":[[["orange",2],["red",2],["purple",2],["green",2],["red",2],["blue",2],["red",4],["blue",2],["green",2],["red",2],["green",2],["orange",2],["purple",3]],[["green",2],["purple",4],["yellow",3],["purple",4],["orange",2],["green",3],["orange",3],["purple",2],["red",2],["blue",2]]]},{"w":7,"h":8,"p":6,"v":[["car","red","down",4,7],["bus","blue","up",1,3],["car","red","right",6,3],["van","red","left",3,7],["bus","green","up",0,3],["car","blue","left",0,7],["car","orange","up",4,0],["car","orange","up",0,0],["van","red","down",6,6],["van","orange","right",5,0],["bus","red","right",2,1],["car","purple","right",4,6],["bus","purple","up",5,6],["bus","purple","right",0,5],["car","purple","up",3,4],["bus","green","left",5,3],["van","red","down",3,5],["van","red","left",1,6],["car","red","right",3,2],["car","orange","right",4,2],["car","green","up",3,0],["van","green","up",4,5],["car","purple","right",6,5],["van","yellow","right",1,0]],"d":[[["red",2],["purple",2],["orange",2],["red",4],["orange",2],["green",4],["orange",1],["green",2],["blue",3],["purple",5]],[["red",4],["orange",2],["red",2],["green",4],["blue",2],["yellow",2],["red",3],["purple",2],["red",2],["purple",2]]]},{"w":7,"h":8,"p":6,"v":[["car","green","left",2,1],["bus","purple","left",2,6],["car","green","right",4,4],["car","blue","up",6,4],["van","green","left",1,7],["bus","yellow","left",4,7],["bus","red","right",4,2],["car","blue","right",6,3],["car","purple","left",5,1],["bus","purple","up",0,3],["van","green","down",5,3],["van","yellow","right",4,0],["van","purple","up",6,1],["bus","purple","down",3,1],["bus","yellow","right",3,6],["car","red","left",2,2],["van","purple","down",6,6],["car","blue","up",4,3],["bus","orange","left",2,5],["car","yellow","right",2,4],["van","orange","right",0,4],["bus","yellow","right",4,5]],"d":[[["orange",3],["purple",9],["yellow",2],["blue",5],["green",2],["yellow",2]],[["purple",4],["green",2],["purple",3],["red",2],["yellow",2],["green",2],["yellow",4],["red",3],["yellow",3],["green",2],["orange",3]]]},{"w":7,"h":8,"p":6,"v":[["car","green","down",4,5],["van","green","down",0,4],["car","blue","left",1,1],["bus","blue","down",6,5],["car","purple","down",1,6],["car","purple","left",0,2],["car","red","down",2,7],["van","blue","right",0,7],["car","red","left",2,6],["car","blue","up",5,1],["bus","purple","right",3,3],["van","blue","right",3,7],["car","green","up",1,0],["car","green","right",4,6],["van","blue","right",5,2],["bus","red","up",2,4],["van","yellow","right",5,0],["car","green","left",0,6],["car","blue","up",2,1],["van","green","down",5,6],["car","red","up",2,0],["car","yellow","left",2,5],["car","yellow","down",5,4],["van","green","up",3,2],["van","yellow","right",3,0],["car","red","down",6,4],["van","green","right",0,3],["car","yellow","left",1,5]],"d":[[["blue",2],["purple",2],["red",2],["green",2],["yellow",1],["purple",2],["blue",2],["green",4],["red",1],["blue",2],["yellow",2],["red",2],["green",2],["purple",2]],[["green",2],["blue",2],["green",4],["yellow",2],["blue",2],["red",4],["blue",3],["yellow",2],["blue",2],["green",2],["yellow",2]]]},{"w":7,"h":8,"p":6,"v":[["car","yellow","up",5,0],["car","orange","left",1,0],["car","purple","left",2,3],["van","orange","down",6,0],["car","yellow","right",6,3],["bus","purple","down",4,0],["van","blue","right",4,3],["car","blue","left",1,1],["car","red","right",5,4],["van","blue","right",5,2],["car","red","left",2,5],["car","orange","left",2,1],["car","red","up",2,0],["van","orange","left",2,7],["car","purple","down",6,5],["bus","orange","down",0,1],["van","green","left",2,6],["van","blue","down",5,5],["car","red","down",4,5],["car","purple","left",3,3],["van","yellow","down",6,6],["car","red","left",2,4],["car","green","down",3,7],["car","blue","up",0,0],["car","blue","down",1,5],["van","orange","up",3,2],["car","orange","down",3,6],["car","green","right",1,2],["bus","yellow","down",0,5]],"d":[[["yellow",3],["green",2],["yellow",2],["blue",2],["orange",2],["purple",2],["blue",2],["purple",2],["orange",2],["blue",2],["red",2],["yellow",2],["green",2],["purple",2]],[["red",5],["orange",2],["green",2],["orange",2],["blue",4],["orange",3],["yellow",2],["orange",4],["red",1],["blue",2],["purple",2]]]},{"w":7,"h":9,"p":6,"v":[["van","purple","left",2,0],["car","green","up",4,1],["bus","red","up",0,3],["van","yellow","right",5,8],["car","red","right",6,3],["bus","purple","right",2,2],["car","purple","up",2,1],["bus","red","down",1,2],["car","yellow","down",3,8],["bus","green","down",2,3],["car","green","right",4,3],["van","green","right",5,7],["van","yellow","right",0,8],["car","purple","down",3,7],["car","red","right",3,0],["bus","green","right",3,4],["car","blue","left",2,6],["car","orange","down",2,7],["bus","yellow","left",5,6],["van","purple","left",1,7],["car","purple","right",3,3],["car","red","right",5,3],["van","red","up",5,1],["van","purple","up",6,6],["car","red","down",1,6],["car","yellow","left",0,5],["van","purple","down",4,7],["car","blue","right",6,4],["car","green","left",0,0]],"d":[[["red",2],["green",2],["red",3],["green",2],["purple",2],["red",2],["purple",3],["blue",1],["orange",1],["purple",4],["yellow",3],["green",2],["blue",2]],[["yellow",4],["purple",2],["yellow",2],["purple",2],["green",3],["purple",2],["green",2],["red",4],["yellow",2],["purple",2],["green",2],["red",4]]]},{"w":7,"h":9,"p":6,"v":[["van","orange","right",5,5],["car","purple","right",5,3],["car","green","right",6,4],["van","green","right",0,0],["car","purple","down",2,2],["car","blue","left",0,4],["van","green","right",4,2],["bus","red","left",2,7],["van","blue","right",0,8],["van","blue","down",2,3],["van","red","up",6,1],["car","purple","up",1,3],["van","purple","left",1,6],["car","blue","right",6,7],["car","blue","left",1,5],["bus","yellow","right",0,1],["van","yellow","right",4,8],["bus","green","right",2,0],["van","blue","right",3,1],["car","purple","right",5,4],["car","red","up",5,1],["car","blue","up",5,0],["car","orange","right",4,4],["van","yellow","left",4,7],["car","blue","right",4,3],["car","green","right",1,2],["car","red","down",0,2],["van","orange","down",5,6],["car","red","right",3,2],["car","blue","down",3,3],["car","purple","right",6,6]],"d":[[["purple",2],["blue",2],["green",4],["blue",1],["orange",2],["purple",2],["blue",2],["yellow",4],["purple",2],["yellow",2],["green",5],["blue",2],["orange",2],["purple",1]],[["green",2],["red",4],["blue",4],["red",4],["orange",2],["blue",2],["yellow",2],["purple",1],["red",2],["blue",4],["purple",2]]]},{"w":7,"h":9,"p":6,"v":[["car","red","up",6,2],["car","blue","up",4,3],["car","orange","right",4,6],["car","yellow","left",0,7],["car","purple","left",0,2],["bus","orange","right",1,7],["bus","orange","right",4,7],["van","orange","up",3,1],["car","purple","up",4,0],["bus","yellow","down",0,3],["van","blue","right",3,4],["van","blue","up",1,1],["car","yellow","up",5,1],["van","purple","down",1,5],["bus","yellow","up",1,4],["bus","orange","down",5,4],["van","orange","left",2,8],["bus","green","left",5,8],["van","purple","left",3,3],["car","yellow","right",4,1],["van","purple","up",2,6],["van","red","left",4,5],["car","purple","right",4,2],["bus","purple","up",6,6],["car","yellow","up",6,0],["car","blue","right",6,3],["car","purple","left",0,8],["car","red","left",2,4]],"d":[[["yellow",2],["red",2],["purple",2],["yellow",2],["orange",4],["purple",2],["green",3],["red",2],["purple",2],["orange",3],["yellow",2],["orange",2],["blue",2]],[["blue",2],["yellow",2],["purple",2],["blue",2],["orange",3],["yellow",5],["orange",2],["red",2],["orange",2],["purple",2],["blue",2],["purple",7]]]},{"w":7,"h":9,"p":6,"v":[["car","blue","left",2,1],["van","green","right",4,5],["van","red","down",0,7],["car","green","left",0,0],["car","green","left",3,5],["bus","yellow","left",3,8],["car","red","right",4,0],["bus","red","right",1,0],["car","red","left",3,6],["van","purple","left",3,7],["bus","blue","up",1,7],["car","yellow","down",6,6],["car","green","left",0,2],["car","blue","left",2,2],["bus","yellow","up",1,4],["bus","blue","right",3,4],["car","orange","down",4,8],["van","yellow","down",0,4],["car","green","left",2,5],["van","orange","down",6,7],["van","green","left",5,6],["van","red","right",4,3],["bus","yellow","left",5,1],["car","yellow","up",2,4],["car","purple","right",6,1],["car","green","up",5,2],["car","red","right",4,7],["car","purple","down",5,8],["van","purple","left",4,2],["car","green","left",2,3]],"d":[[["green",2],["blue",3],["green",2],["red",3],["purple",2],["green",2],["blue",2],["yellow",3],["orange",2],["blue",3],["yellow",4],["green",1],["red",2],["purple",2]],[["red",2],["orange",2],["green",1],["blue",2],["yellow",6],["red",4],["purple",2],["yellow",2],["purple",2],["green",2],["red",2],["green",4]]]},{"w":7,"h":9,"p":6,"v":[["bus","red","up",0,4],["car","blue","left",1,6],["car","purple","up",4,5],["van","orange","right",5,5],["car","green","right",5,4],["car","blue","right",6,7],["car","orange","down",3,7],["bus","orange","down",5,6],["van","blue","down",2,7],["car","green","left",1,1],["bus","yellow","right",2,1],["car","green","right",6,8],["car","yellow","up",6,0],["van","red","right",3,6],["car","purple","up",3,2],["car","orange","up",5,0],["car","green","right",6,2],["car","yellow","left",1,2],["bus","yellow","up",2,6],["van","blue","up",1,4],["bus","green","up",5,3],["bus","green","down",0,6],["van","orange","right",3,8],["van","orange","up",1,8],["van","green","up",0,1],["car","yellow","right",4,4],["car","purple","right",4,7],["van","green","up",3,4],["car","green","up",1,0],["van","red","right",0,5]],"d":[[["green",11],["red",2],["blue",2],["purple",1],["orange",8],["yellow",3],["purple",2],["red",3],["orange",2]],[["blue",4],["yellow",2],["orange",4],["green",4],["yellow",2],["red",3],["yellow",2],["blue",2],["green",2],["purple",2],["yellow",2],["green",2]]]},{"w":7,"h":9,"p":6,"v":[["car","green","up",3,0],["car","red","up",3,6],["car","blue","right",4,4],["bus","red","down",1,0],["car","blue","down",2,8],["bus","red","down",1,6],["bus","orange","up",0,5],["van","green","right",5,3],["van","orange","down",0,7],["car","blue","up",5,2],["bus","green","right",4,8],["car","red","right",6,5],["bus","purple","up",4,2],["van","red","right",5,0],["car","purple","right",6,6],["van","orange","up",2,2],["car","yellow","down",5,7],["car","green","left",2,4],["van","purple","up",0,1],["car","yellow","left",0,2],["van","orange","right",5,1],["van","purple","left",3,5],["van","red","up",3,8],["van","yellow","down",1,3],["car","green","up",2,0],["car","red","left",0,6],["car","yellow","up",5,4],["car","red","right",5,5],["car","orange","up",3,2],["van","purple","down",4,6]],"d":[[["red",2],["green",2],["orange",2],["purple",2],["red",4],["orange",2],["green",2],["yellow",1],["red",12],["yellow",2]],[["purple",2],["green",2],["yellow",2],["orange",3],["blue",2],["green",2],["purple",6],["yellow",2],["orange",3],["green",2],["orange",2],["blue",1],["purple",2],["blue",2]]]},{"w":7,"h":9,"p":6,"v":[["car","red","up",2,2],["car","blue","up",2,4],["van","red","right",5,2],["car","blue","left",0,1],["van","blue","left",1,2],["van","yellow","right",5,6],["car","yellow","right",6,1],["van","blue","right",0,0],["bus","orange","down",1,4],["van","purple","up",6,8],["bus","purple","left",5,8],["van","red","right",3,3],["car","purple","down",0,7],["car","purple","up",2,3],["van","purple","left",1,8],["van","orange","up",2,1],["car","green","right",2,6],["van","orange","down",0,3],["van","red","down",3,4],["car","purple","right",3,1],["van","red","up",6,4],["car","yellow","up",4,1],["car","green","left",1,3],["car","green","left",0,5],["van","yellow","right",5,0],["car","yellow","right",4,7],["van","purple","left",4,2],["van","red","down",2,7],["car","blue","down",0,6],["car","red","up",3,0],["van","red","down",3,6]],"d":[[["blue",2],["yellow",2],["red",7],["purple",2],["red",2],["purple",4],["yellow",2],["orange",4],["yellow",2],["orange",2],["green",3]],[["yellow",2],["green",2],["yellow",2],["orange",2],["blue",2],["purple",2],["blue",2],["purple",5],["red",4],["purple",2],["red",2],["blue",2],["red",3],["blue",2]]]},{"w":7,"h":9,"p":6,"v":[["bus","orange","left",3,7],["car","green","down",2,6],["car","green","right",3,5],["bus","purple","right",1,0],["car","yellow","down",2,8],["car","orange","up",2,2],["bus","orange","right",4,8],["van","red","up",2,4],["car","red","right",5,2],["car","blue","left",1,6],["van","yellow","left",1,5],["car","orange","up",5,0],["car","yellow","right",3,4],["bus","red","down",5,5],["car","green","left",0,1],["bus","orange","up",4,7],["car","purple","up",1,3],["van","red","left",1,4],["van","purple","up",0,3],["car","purple","right",4,4],["car","yellow","up",6,2],["car","orange","down",3,6],["car","red","up",5,1],["car","red","right",5,4],["car","red","up",3,3],["van","red","right",0,8],["van","red","up",6,1],["car","green","right",6,3],["van","orange","down",6,4],["van","purple","right",4,3],["van","red","up",1,2],["van","blue","down",6,6]],"d":[[["red",2],["orange",2],["yellow",2],["red",2],["green",2],["purple",2],["yellow",1],["red",2],["orange",2],["green",2],["blue",2],["orange",2],["red",2],["purple",2],["orange",2],["purple",2],["yellow",2]],[["purple",3],["yellow",2],["orange",6],["red",7],["green",1],["blue",2],["red",3],["orange",3],["green",1],["red",2],["purple",2],["red",2]]]},{"w":7,"h":9,"p":6,"v":[["bus","green","up",1,7],["van","yellow","up",6,1],["van","red","down",4,7],["bus","yellow","up",5,4],["car","blue","left",1,3],["van","yellow","right",3,0],["van","blue","right",3,6],["van","orange","up",2,4],["van","yellow","left",1,8],["car","green","left",0,3],["bus","yellow","down",4,3],["car","red","right",5,5],["van","green","right",4,1],["bus","purple","right",1,2],["car","red","right",6,3],["van","red","down",6,5],["van","yellow","left",3,5],["car","purple","left",0,0],["car","yellow","up",5,0],["car","yellow","right",4,2],["van","purple","down",5,7],["car","red","down",2,7],["car","purple","down",3,7],["van","green","left",3,1],["car","green","down",6,7],["car","blue","right",6,2],["car","orange","left",0,4],["van","red","right",1,0],["car","blue","down",3,4],["car","green","left",1,4],["van","orange","left",3,8]],"d":[[["purple",2],["green",2],["blue",1],["orange",2],["red",2],["yellow",2],["red",2],["purple",2],["orange",3],["green",2],["yellow",2],["red",2],["green",3],["orange",2],["blue",2]],[["green",2],["yellow",2],["red",2],["blue",2],["green",4],["red",2],["yellow",5],["red",2],["blue",2],["purple",2],["yellow",6],["purple",3],["yellow",3]]]},{"w":7,"h":9,"p":6,"v":[["car","purple","left",1,7],["car","orange","right",6,4],["car","red","left",1,1],["van","orange","left",1,2],["car","purple","right",5,6],["car","blue","right",5,3],["car","purple","right",1,5],["bus","purple","left",6,7],["car","red","right",2,3],["car","red","right",5,4],["van","red","left",1,0],["van","blue","right",3,3],["car","blue","up",0,1],["bus","blue","down",0,4],["van","yellow","right",2,8],["car","orange","left",3,1],["car","yellow","right",2,6],["car","orange","right",6,2],["van","blue","right",5,5],["car","red","down",3,6],["bus","purple","right",3,0],["van","purple","down",0,7],["car","purple","up",4,1],["car","green","right",3,2],["car","green","right",4,4],["bus","orange","right",2,5],["car","blue","up",6,6],["van","green","left",3,4],["car","purple","right",6,3],["car","red","down",1,8],["car","red","right",4,2],["car","orange","down",5,8],["van","purple","left",1,3],["van","orange","right",5,1]],"d":[[["red",2],["purple",2],["green",2],["purple",2],["orange",2],["red",2],["blue",2],["orange",2],["purple",5],["blue",2],["orange",2],["green",2],["orange",2],["red",1],["yellow",2],["purple",2]],[["purple",2],["red",2],["orange",2],["purple",3],["blue",4],["red",3],["orange",3],["blue",3],["purple",2],["yellow",2],["purple",2],["orange",2],["green",2],["red",2],["blue",2]]]},{"w":7,"h":9,"p":6,"v":[["car","red","up",6,1],["bus","yellow","left",2,6],["van","blue","up",4,1],["car","red","left",0,1],["car","yellow","up",3,2],["van","purple","up",0,8],["van","orange","up",2,1],["car","purple","left",1,4],["car","purple","right",2,2],["car","yellow","right",5,6],["car","blue","left",1,7],["van","green","up",3,1],["car","orange","down",5,7],["van","yellow","left",6,0],["bus","blue","right",1,3],["van","red","right",4,8],["car","green","left",0,4],["van","red","down",6,3],["car","green","right",4,7],["bus","orange","up",5,5],["van","yellow","left",1,5],["van","red","down",6,5],["bus","blue","right",1,8],["car","orange","left",3,6],["van","orange","up",1,1],["car","red","right",6,2],["van","red","left",4,4],["van","blue","right",2,7],["van","green","up",0,3],["car","red","up",2,4]],"d":[[["yellow",2],["green",2],["yellow",2],["blue",2],["orange",2],["red",2],["green",4],["orange",2],["green",2],["red",2],["blue",2],["red",2],["purple",4],["red",2]],[["red",2],["orange",2],["red",2],["blue",4],["red",2],["yellow",3],["orange",5],["red",2],["yellow",2],["blue",2],["purple",2],["yellow",2],["blue",3]]]},{"w":7,"h":9,"p":6,"v":[["car","purple","up",6,3],["van","orange","right",0,0],["bus","yellow","right",0,7],["car","yellow","up",3,0],["bus","blue","right",3,7],["bus","green","up",6,6],["car","red","right",4,1],["car","purple","right",4,3],["car","green","down",4,8],["car","green","up",4,0],["van","red","down",5,5],["car","yellow","right",3,8],["van","red","left",1,1],["car","purple","down",1,2],["car","yellow","down",2,8],["car","orange","down",1,8],["car","blue","right",2,2],["bus","orange","left",2,5],["van","orange","left",3,1],["van","green","up",6,1],["car","red","down",4,5],["van","yellow","left",1,3],["van","yellow","right",4,2],["car","orange","left",1,6],["car","green","up",5,0],["van","yellow","right",4,4],["bus","yellow","up",3,6],["car","green","left",0,6],["van","green","down",2,3],["car","yellow","right",4,6],["van","orange","left",1,4]],"d":[[["orange",2],["blue",3],["green",2],["yellow",2],["green",2],["orange",2],["green",4],["yellow",3],["orange",3],["green",2],["purple",2],["yellow",3],["green",2],["yellow",4],["red",2]],[["orange",3],["red",4],["yellow",3],["blue",2],["yellow",4],["orange",2],["green",3],["orange",2],["red",2],["purple",3],["yellow",2]]]},{"w":7,"h":9,"p":6,"v":[["bus","green","right",3,1],["van","orange","right",2,4],["van","purple","down",6,5],["van","red","up",0,4],["car","blue","down",3,5],["van","blue","down",3,7],["car","orange","right",4,3],["car","purple","down",0,5],["bus","green","up",1,2],["car","orange","right",5,2],["car","green","right",6,0],["bus","orange","right",3,0],["van","red","up",0,1],["bus","orange","left",6,8],["bus","red","right",4,4],["van","purple","down",3,2],["van","purple","down",5,6],["car","yellow","up",2,3],["car","yellow","right",5,3],["van","red","up",6,3],["van","red","down",4,5],["car","red","down",5,5],["bus","green","down",1,5],["car","green","up",4,2],["car","yellow","right",1,4],["van","purple","down",0,6],["van","purple","up",2,2],["van","green","down",2,7]],"d":[[["red",3],["purple",3],["orange",5],["green",4],["red",2],["green",2],["orange",2],["blue",2],["green",2],["purple",5],["orange",3],["green",2]],[["yellow",1],["green",2],["blue",2],["red",3],["purple",2],["green",4],["yellow",2],["red",5],["purple",2],["yellow",2],["red",2],["purple",2],["orange",2]]]},{"w":8,"h":9,"p":6,"v":[["van","red","up",5,2],["car","red","left",0,6],["car","red","up",1,1],["car","red","up",3,0],["bus","green","right",4,4],["van","red","up",1,3],["van","blue","left",2,8],["van","yellow","right",1,7],["car","purple","left",3,3],["van","yellow","up",7,1],["bus","blue","up",7,5],["van","yellow","left",1,4],["car","yellow","right",6,7],["car","yellow","down",4,7],["car","blue","down",5,5],["bus","red","right",3,8],["van","orange","right",5,6],["van","orange","up",2,2],["car","yellow","right",2,5],["car","purple","right",6,1],["car","red","right",3,7],["car","orange","down",6,5],["bus","yellow","down",7,6],["van","yellow","right",2,4],["van","blue","up",4,2],["van","purple","up",3,2],["car","purple","right",6,8],["car","yellow","up",0,1],["van","red","left",3,6],["car","blue","right",7,2],["car","orange","right",5,7],["van","green","down",0,7],["van","orange","right",0,5],["van","green","right",3,5],["van","red","left",5,3]],"d":[[["green",2],["yellow",2],["blue",3],["yellow",3],["purple",1],["blue",2],["yellow",4],["red",2],["blue",2],["purple",4],["red",2],["orange",2],["yellow",4],["green",3],["yellow",2]],[["red",6],["orange",3],["yellow",2],["red",5],["orange",2],["red",3],["orange",2],["purple",2],["blue",5],["green",3],["orange",2],["red",2],["yellow",3]]]},{"w":8,"h":9,"p":6,"v":[["car","green","left",2,4],["van","blue","down",3,7],["car","green","down",1,8],["bus","green","down",5,4],["van","purple","right",4,0],["van","red","down",5,2],["van","orange","right",6,4],["car","green","up",3,3],["car","blue","down",6,8],["van","green","left",1,1],["van","orange","left",2,2],["car","blue","left",3,2],["van","orange","down",6,2],["van","orange","up",2,8],["car","blue","left",4,3],["van","orange","up",4,2],["car","blue","down",4,6],["van","red","up",2,1],["van","purple","right",6,1],["bus","blue","down",0,3],["van","purple","left",2,5],["car","orange","down",7,6],["bus","orange","right",4,7],["van","yellow","down",0,7],["van","green","left",1,0],["car","orange","right",7,8],["van","purple","right",6,0],["car","blue","left",0,2],["car","green","up",3,0],["car","yellow","down",3,6],["car","purple","right",5,1],["car","purple","down",5,8],["car","red","down",7,7],["car","orange","right",4,4],["van","purple","left",4,5],["car","yellow","left",1,3],["car","orange","left",2,3]],"d":[[["orange",2],["blue",2],["red",2],["blue",2],["green",2],["red",2],["blue",2],["orange",6],["green",2],["blue",4],["yellow",2],["purple",2],["green",2],["orange",4],["purple",5]],[["green",3],["blue",2],["orange",2],["purple",2],["yellow",2],["blue",2],["green",2],["yellow",2],["orange",6],["purple",2],["green",2],["red",3],["green",2],["purple",2],["orange",2],["purple",3]]]},{"w":8,"h":10,"p":6,"v":[["bus","yellow","down",7,7],["bus","yellow","down",7,0],["van","orange","left",2,5],["car","purple","up",5,0],["van","red","up",1,3],["car","green","up",0,2],["van","yellow","up",6,1],["bus","red","down",7,4],["van","yellow","down",5,1],["car","purple","up",3,0],["car","blue","right",7,3],["car","yellow","right",4,7],["bus","orange","down",0,7],["van","green","right",4,9],["car","green","down",5,4],["car","yellow","left",2,2],["van","blue","down",5,7],["van","purple","left",3,8],["van","green","right",2,7],["van","purple","right",5,6],["car","blue","left",0,1],["car","blue","up",1,0],["bus","green","down",1,6],["van","purple","up",4,3],["car","blue","right",6,4],["bus","green","up",0,5],["car","yellow","up",4,1],["bus","yellow","left",4,4],["car","blue","down",6,7],["car","blue","left",2,0],["car","blue","up",0,0],["van","green","left",3,6],["bus","red","up",3,3],["van","red","left",6,3],["car","green","left",2,3],["car","blue","left",1,1],["van","yellow","up",4,6]],"d":[[["blue",2],["purple",2],["blue",3],["green",2],["blue",1],["green",2],["blue",2],["green",2],["red",2],["purple",2],["orange",4],["purple",3],["yellow",3],["green",2],["red",3],["orange",2],["blue",2]],[["purple",2],["yellow",3],["green",4],["purple",2],["red",4],["yellow",2],["green",2],["yellow",2],["blue",6],["green",2],["yellow",8],["green",3],["yellow",2],["red",3],["yellow",2]]]},{"w":8,"h":10,"p":6,"v":[["van","yellow","down",2,5],["van","yellow","left",3,9],["van","purple","right",5,7],["car","red","left",0,7],["car","green","right",7,7],["car","orange","left",1,6],["car","yellow","down",4,6],["bus","blue","left",3,3],["car","red","up",4,3],["car","green","right",7,8],["van","blue","up",0,4],["van","red","right",0,0],["bus","red","right",5,4],["car","orange","up",2,1],["bus","orange","right",4,1],["van","blue","left",6,9],["van","red","right",2,0],["car","purple","right",6,6],["car","red","right",6,3],["car","yellow","left",1,5],["car","blue","up",7,0],["bus","blue","right",1,2],["car","green","up",4,2],["van","purple","right",6,2],["car","blue","left",0,8],["bus","green","right",4,0],["car","red","up",7,1],["car","blue","right",7,3],["car","yellow","up",1,1],["car","orange","right",3,1],["car","blue","down",4,8],["car","purple","down",4,9],["van","green","left",3,8],["van","red","down",4,4],["car","green","left",0,1],["van","red","down",1,8],["car","green","right",5,6],["van","green","up",0,6],["bus","yellow","left",3,4],["car","red","left",2,7],["car","purple","right",3,5],["car","blue","down",5,5]],"d":[[["green",2],["red",2],["blue",2],["purple",2],["green",2],["yellow",2],["red",2],["green",2],["blue",2],["green",2],["blue",3],["red",2],["yellow",2],["purple",2],["orange",4],["yellow",2],["green",2],["orange",2]],[["red",2],["blue",4],["green",2],["red",3],["purple",2],["red",3],["purple",4],["blue",2],["yellow",2],["red",6],["yellow",3],["green",3],["blue",2],["yellow",2],["red",2],["green",2],["blue",5],["orange",2]]]},{"w":8,"h":10,"p":6,"v":[["van","green","right",5,6],["van","green","up",7,5],["car","purple","up",4,0],["van","orange","left",3,2],["car","green","up",5,1],["van","yellow","right",2,9],["car","yellow","left",1,1],["bus","red","left",6,8],["van","purple","down",2,6],["van","yellow","up",5,3],["van","blue","down",6,4],["car","red","right",6,3],["van","red","down",0,7],["car","purple","right",5,7],["car","yellow","up",3,7],["car","orange","up",4,1],["car","purple","left",1,3],["van","red","left",3,5],["car","red","right",4,7],["van","purple","right",6,9],["car","yellow","right",4,6],["car","purple","right",7,7],["car","green","left",1,8],["car","blue","down",5,9],["car","red","left",2,8],["van","green","up",7,2],["van","blue","right",0,0],["car","orange","left",1,2],["bus","green","right",5,0],["car","orange","down",4,9],["car","red","up",3,0],["car","green","left",3,6],["car","yellow","left",1,6],["car","green","right",6,7],["car","blue","left",3,8],["bus","orange","left",5,4],["car","blue","left",4,3],["van","orange","right",0,9],["van","yellow","left",1,4],["van","blue","up",0,2],["car","blue","right",2,0],["van","red","right",4,5],["van","blue","left",3,3]],"d":[[["orange",2],["red",2],["blue",2],["green",3],["yellow",2],["blue",2],["orange",3],["green",2],["red",2],["orange",2],["red",7],["blue",2],["green",4],["red",2],["purple",2],["green",2]],[["purple",2],["yellow",2],["purple",2],["green",3],["purple",2],["blue",2],["yellow",2],["purple",2],["yellow",2],["blue",2],["orange",2],["blue",2],["orange",2],["yellow",2],["green",4],["purple",2],["red",3],["orange",2],["red",2],["yellow",2],["blue",2],["yellow",2],["blue",3]]]},{"w":8,"h":10,"p":6,"v":[["bus","blue","up",1,3],["van","green","down",0,4],["van","red","left",4,3],["van","orange","left",2,5],["van","red","down",7,6],["van","green","left",3,4],["bus","yellow","down",5,7],["car","red","up",4,1],["van","purple","right",4,2],["bus","yellow","right",5,5],["car","blue","up",7,1],["van","red","right",3,5],["car","blue","right",6,3],["car","red","right",7,2],["car","red","down",4,4],["car","purple","right",6,1],["car","purple","up",2,0],["car","orange","right",6,2],["car","red","down",3,9],["bus","red","up",2,3],["van","purple","down",4,6],["van","green","right",5,4],["van","orange","right",5,0],["car","red","left",2,8],["van","yellow","down",7,8],["van","purple","down",4,8],["van","yellow","up",6,9],["bus","yellow","up",3,2],["van","orange","down",7,3],["van","orange","left",2,9],["car","purple","left",2,6],["van","purple","right",5,6],["van","yellow","left",1,6],["car","orange","left",1,7],["car","red","left",1,4],["van","yellow","left",1,8],["car","yellow","down",0,9],["van","red","left",1,0]],"d":[[["red",2],["yellow",2],["red",3],["yellow",6],["orange",2],["red",2],["purple",4],["red",5],["purple",5],["green",3],["orange",3],["blue",3],["orange",2],["green",2],["red",4]],[["purple",2],["yellow",6],["orange",2],["red",2],["yellow",3],["orange",2],["blue",2],["orange",2],["red",2],["yellow",2],["red",2],["purple",2],["red",2],["green",3],["yellow",3],["purple",2],["blue",2]]]},{"w":8,"h":10,"p":6,"v":[["van","green","right",6,6],["van","yellow","right",6,9],["car","yellow","left",5,5],["car","yellow","up",6,0],["van","green","right",0,0],["van","blue","left",1,6],["car","yellow","down",1,8],["bus","purple","left",5,4],["bus","red","up",7,5],["car","red","right",4,9],["van","yellow","up",3,6],["van","purple","up",2,5],["car","yellow","right",5,1],["van","orange","right",3,7],["van","red","left",2,1],["van","orange","right",6,8],["van","green","up",0,5],["car","purple","left",1,7],["van","green","up",6,5],["car","orange","up",3,8],["van","orange","left",1,9],["car","purple","left",1,2],["van","red","right",4,0],["car","red","up",3,0],["van","red","left",3,9],["van","green","up",7,1],["car","red","right",3,3],["car","yellow","right",7,7],["van","yellow","up",0,3],["car","blue","up",2,8],["bus","yellow","left",5,2],["van","green","up",4,6],["car","green","left",2,6],["van","purple","right",1,3],["car","red","up",2,0],["van","purple","left",7,2]],"d":[[["red",3],["orange",2],["green",2],["yellow",2],["red",7],["yellow",2],["red",2],["purple",2],["yellow",3],["purple",2],["red",2],["yellow",4],["green",3],["purple",2],["orange",2]],[["purple",2],["blue",2],["orange",3],["red",2],["green",3],["yellow",2],["orange",2],["yellow",2],["green",7],["yellow",2],["red",2],["purple",2],["green",2],["purple",4],["blue",2],["yellow",2]]]},{"w":8,"h":10,"p":6,"v":[["car","red","left",1,8],["car","yellow","up",3,2],["van","orange","up",5,2],["bus","blue","right",3,0],["bus","blue","left",6,9],["bus","yellow","left",2,1],["bus","purple","right",3,3],["van","red","down",7,5],["car","red","right",2,8],["car","red","up",7,0],["bus","yellow","down",3,4],["bus","green","up",6,2],["van","blue","right",4,5],["car","purple","left",0,8],["car","purple","down",2,6],["van","green","left",2,3],["bus","green","left",3,9],["car","blue","right",5,8],["car","red","up",1,0],["car","green","down",6,8],["van","purple","left",1,2],["car","purple","right",7,7],["car","orange","right",7,4],["van","yellow","left",1,7],["bus","green","up",7,3],["car","yellow","right",4,6],["van","yellow","left",4,1],["car","orange","right",6,3],["car","orange","left",0,3],["van","purple","up",6,6],["van","red","down",3,7],["car","purple","right",2,5],["car","yellow","left",1,4],["car","yellow","up",2,0],["van","purple","left",6,7],["car","red","right",5,4],["car","purple","right",4,2],["van","orange","down",7,8],["car","yellow","left",1,5],["van","green","down",0,4]],"d":[[["yellow",5],["purple",2],["orange",4],["red",2],["blue",6],["purple",2],["green",3],["yellow",2],["orange",2],["yellow",2],["orange",2],["green",3],["red",4],["purple",4]],[["purple",2],["red",2],["green",2],["red",2],["yellow",4],["green",4],["red",2],["yellow",3],["green",3],["orange",2],["purple",6],["green",2],["purple",3],["yellow",2],["blue",5],["red",2],["yellow",2]]]},{"w":8,"h":10,"p":6,"v":[["car","purple","left",1,4],["car","orange","down",6,1],["bus","blue","left",3,9],["car","purple","down",3,8],["bus","red","down",5,5],["bus","green","up",0,8],["car","blue","down",4,4],["van","purple","down",7,8],["car","red","right",6,6],["van","red","left",6,9],["van","blue","left",1,0],["car","green","right",4,6],["van","red","up",2,1],["bus","orange","left",5,2],["car","purple","left",4,3],["van","yellow","down",6,7],["bus","red","down",7,5],["bus","red","left",2,3],["car","red","down",3,3],["van","yellow","down",6,2],["car","blue","up",1,2],["van","green","right",3,0],["car","red","down",4,9],["car","green","up",7,0],["van","blue","left",5,8],["bus","blue","left",2,5],["car","green","right",7,4],["car","yellow","left",3,5],["car","green","down",0,9],["car","purple","up",2,2],["car","blue","left",2,8],["van","purple","right",5,0],["car","yellow","left",2,4],["car","red","left",5,3],["car","purple","left",0,4],["car","orange","left",4,5],["van","green","left",2,6],["car","blue","down",3,4],["van","yellow","down",6,4],["car","yellow","left",3,7],["car","green","left",3,1],["car","orange","right",5,4]],"d":[[["red",2],["purple",2],["green",2],["purple",2],["green",2],["blue",2],["purple",2],["blue",3],["purple",4],["green",2],["red",2],["yellow",2],["green",2],["yellow",5],["red",2],["orange",2],["red",5],["green",2],["purple",2]],[["green",2],["red",6],["blue",3],["red",2],["yellow",2],["red",3],["green",2],["orange",2],["blue",2],["yellow",2],["purple",2],["yellow",2],["blue",2],["orange",2],["blue",2],["orange",2],["green",3],["blue",5]]]},{"w":8,"h":10,"p":6,"v":[["car","orange","up",0,0],["van","purple","down",0,1],["bus","green","right",1,0],["van","purple","right",5,4],["car","red","right",7,6],["bus","green","up",1,3],["bus","blue","right",3,5],["van","red","left",1,8],["bus","purple","right",5,9],["car","orange","right",7,4],["car","yellow","up",7,3],["bus","blue","right",2,1],["van","orange","right",2,6],["car","blue","up",3,2],["bus","purple","right",4,3],["car","orange","up",4,4],["car","purple","left",1,4],["van","purple","right",3,7],["car","orange","up",6,5],["car","purple","down",6,6],["bus","yellow","right",2,9],["car","blue","up",2,4],["bus","red","right",4,2],["car","red","down",4,6],["car","red","right",5,0],["car","yellow","right",3,3],["car","blue","right",2,3],["bus","purple","down",0,3],["van","purple","right",0,9],["bus","orange","down",1,5],["car","orange","right",6,1],["car","purple","right",3,8],["van","red","right",4,8],["van","blue","right",6,0],["van","red","down",2,7],["car","orange","right",4,0],["van","yellow","right",5,7]],"d":[[["purple",4],["red",2],["yellow",3],["red",3],["blue",2],["orange",2],["blue",3],["orange",2],["yellow",2],["purple",4],["red",3],["yellow",2],["orange",2],["red",2],["purple",2],["blue",2],["green",4]],[["orange",2],["blue",3],["purple",9],["red",2],["orange",2],["red",2],["orange",2],["yellow",2],["red",2],["orange",2],["purple",2],["blue",4],["orange",2],["green",3],["purple",4]]]}]</script>
+<script>
+//LOGIC-BEGIN
+// Pure rules ported from games/trafficpop (same rules, readable names).
+// Level: {w,h,p:bays,v:[[kind,color,dir,x,y]...],d:[dockA,dockB]} where dock = [[color,count]...]
+const TP = (() => {
+  const KINDS = { car: { len: 1, seats: 2 }, van: { len: 2, seats: 3 }, bus: { len: 3, seats: 4 } };
+  const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+
+  function expand(c) {
+    return {
+      w: c.w, h: c.h, parking: c.p,
+      vehicles: c.v.map((a, id) => ({ id, kind: a[0], color: a[1], dir: a[2], x: a[3], y: a[4] })),
+      docks: c.d.map(d => d.map(e => ({ color: e[0], count: e[1] })))
+    };
+  }
+  function cells(v) {
+    const [dx, dy] = DIRS[v.dir], n = KINDS[v.kind].len, out = [];
+    for (let i = 0; i < n; i++) out.push([v.x + dx * i, v.y + dy * i]);
+    return out;
+  }
+  function initState(L) {
+    const s = { onBoard: L.vehicles.map(() => true), parking: Array(L.parking).fill(null), dock: [0, 0], left: [0, 0], moves: 0 };
+    for (const d of [0, 1]) s.left[d] = (L.docks[d][0] && L.docks[d][0].count) || 0;
+    return s;
+  }
+  const clone = s => ({ onBoard: s.onBoard.slice(), parking: s.parking.slice(), dock: [s.dock[0], s.dock[1]], left: [s.left[0], s.left[1]], moves: s.moves });
+  function dockColor(L, s, d) { const e = L.docks[d][s.dock[d]]; return e ? e.color : null; }
+  function grid(L, s) {
+    const g = new Int16Array(L.w * L.h).fill(-1);
+    L.vehicles.forEach((v, i) => { if (s.onBoard[i]) for (const [x, y] of cells(v)) g[y * L.w + x] = i; });
+    return g;
+  }
+  // A vehicle can leave when every cell ahead of its head, to the board edge, is empty.
+  function canExit(L, s, i, g) {
+    if (!s.onBoard[i]) return false;
+    g = g || grid(L, s);
+    const v = L.vehicles[i], [dx, dy] = DIRS[v.dir], cs = cells(v);
+    let [x, y] = cs[cs.length - 1];
+    for (;;) {
+      x += dx; y += dy;
+      if (x < 0 || y < 0 || x >= L.w || y >= L.h) return true;
+      if (g[y * L.w + x] !== -1) return false;
+    }
+  }
+  // Passengers board any parked vehicle whose colour matches a dock's current group; cascades.
+  function settle(L, s) {
+    const boarded = [];
+    for (let again = true; again;) {
+      again = false;
+      for (let b = 0; b < s.parking.length; b++) {
+        const vi = s.parking[b];
+        if (vi == null) continue;
+        const v = L.vehicles[vi];
+        for (const d of [0, 1]) {
+          if (dockColor(L, s, d) !== v.color) continue;
+          const n = Math.min(KINDS[v.kind].seats, s.left[d]);
+          s.left[d] -= n; s.parking[b] = null;
+          boarded.push({ vehicle: vi, dock: d, n });
+          again = true;
+          if (s.left[d] === 0) { s.dock[d]++; s.left[d] = (L.docks[d][s.dock[d]] && L.docks[d][s.dock[d]].count) || 0; }
+          break;
+        }
+      }
+    }
+    return boarded;
+  }
+  function park(L, s, i, lift) {
+    if (!s.onBoard[i]) return { ok: false, reason: 'gone' };
+    if (!lift && !canExit(L, s, i)) return { ok: false, reason: 'blocked' };
+    const bay = s.parking.indexOf(null);
+    if (bay < 0) return { ok: false, reason: 'parking-full' };
+    const n = clone(s);
+    n.onBoard[i] = false; n.parking[bay] = i; n.moves++;
+    return { ok: true, state: n, boarded: settle(L, n) };
+  }
+  const exitVehicle = (L, s, i) => park(L, s, i, false);
+  const liftVehicle = (L, s, i) => park(L, s, i, true);
+  const isWon = (L, s) => s.dock[0] >= L.docks[0].length && s.dock[1] >= L.docks[1].length;
+  function movable(L, s) {
+    if (s.parking.indexOf(null) < 0) return [];
+    const g = grid(L, s), out = [];
+    for (let i = 0; i < L.vehicles.length; i++) if (s.onBoard[i] && canExit(L, s, i, g)) out.push(i);
+    return out;
+  }
+  const isStuck = (L, s) => !isWon(L, s) && movable(L, s).length === 0;
+  function addSpace(s) { const n = clone(s); n.parking.push(null); return n; }
+  function passengersLeft(L, s) {
+    let t = 0;
+    for (const d of [0, 1]) L.docks[d].forEach((e, k) => { if (k === s.dock[d]) t += s.left[d]; else if (k > s.dock[d]) t += e.count; });
+    return t;
+  }
+  const passengersTotal = L => L.docks[0].concat(L.docks[1]).reduce((a, e) => a + e.count, 0);
+
+  // ---- solver (hint) ----
+  function order(L, s) {
+    const dist = col => {
+      let best = 99;
+      for (const d of [0, 1]) for (let k = s.dock[d], p = 0; k < L.docks[d].length; k++, p++) if (L.docks[d][k].color === col) { best = Math.min(best, p); break; }
+      return best;
+    };
+    const mv = movable(L, s);
+    const cur = new Set([0, 1].map(d => dockColor(L, s, d)).filter(Boolean));
+    const g = grid(L, s);
+    const blocks = new Map();
+    L.vehicles.forEach((v, i) => {
+      if (!s.onBoard[i] || !cur.has(v.color)) return;
+      const [dx, dy] = DIRS[v.dir], cs = cells(v);
+      let [x, y] = cs[cs.length - 1];
+      for (let k = 0; ; k++) {
+        x += dx; y += dy;
+        if (x < 0 || y < 0 || x >= L.w || y >= L.h) break;
+        const b = g[y * L.w + x];
+        if (b >= 0 && b !== i) blocks.set(b, Math.min(blocks.has(b) ? blocks.get(b) : 99, k));
+      }
+    });
+    const leftFor = col => { for (const d of [0, 1]) if (dockColor(L, s, d) === col) return s.left[d]; return 0; };
+    const score = i => {
+      const v = L.vehicles[i];
+      if (cur.has(v.color)) return Math.max(0, KINDS[v.kind].seats - leftFor(v.color)) * 0.05;
+      const b = blocks.get(i);
+      return b != null ? 1 + b * 0.01 + dist(v.color) * 0.001 : 2 + dist(v.color);
+    };
+    return mv.map(i => [i, score(i)]).sort((a, b) => a[1] - b[1]).map(a => a[0]);
+  }
+  function dfs(L, s0, cap) {
+    cap = cap || 300000;
+    const seen = new Set(), path = [];
+    const key = a => a.onBoard.map(x => x ? 1 : 0).join('') + a.parking.map(x => x == null ? '.' : x).join(',') + a.dock.join(',') + a.left.join(',');
+    const go = a => {
+      if (isWon(L, a)) return true;
+      const k = key(a);
+      if (seen.has(k) || seen.size > cap) return false;
+      seen.add(k);
+      for (const i of order(L, a)) {
+        const r = exitVehicle(L, a, i);
+        if (r.ok) { path.push(i); if (go(r.state)) return true; path.pop(); }
+      }
+      return false;
+    };
+    return go(s0 || initState(L)) ? path : null;
+  }
+  function heur(L, s) {
+    if (isWon(L, s)) return -1e9;
+    const need = new Map(), have = new Map();
+    for (const d of [0, 1]) L.docks[d].forEach((e, k) => { if (k < s.dock[d]) return; need.set(e.color, (need.get(e.color) || 0) + (k === s.dock[d] ? s.left[d] : e.count)); });
+    L.vehicles.forEach((v, i) => { if (s.onBoard[i] || s.parking.includes(i)) have.set(v.color, (have.get(v.color) || 0) + KINDS[v.kind].seats); });
+    let rem = 0;
+    for (const [col, n] of need) { if ((have.get(col) || 0) < n) return Infinity; rem += n; }
+    const used = s.parking.filter(x => x != null).length;
+    if (used === s.parking.length) return Infinity;
+    const mv = movable(L, s), cur = new Set([0, 1].map(d => dockColor(L, s, d)));
+    let hits = 0;
+    for (const i of mv) if (cur.has(L.vehicles[i].color)) hits++;
+    return used * 5 + used * used + rem - Math.min(hits, 2) * 3;
+  }
+  function beam(L, s0, width) {
+    width = width || 120;
+    let front = [{ s: s0 || initState(L), path: [] }];
+    const key = a => a.onBoard.map(x => x ? 1 : 0).join('') + a.parking.map(x => x == null ? '.' : x).sort().join(',') + a.dock.join(',') + a.left.join(',');
+    for (let depth = 0; depth <= L.vehicles.length && front.length; depth++) {
+      const next = new Map();
+      for (const f of front) {
+        if (isWon(L, f.s)) return f.path;
+        for (const i of movable(L, f.s)) {
+          const r = exitVehicle(L, f.s, i);
+          if (!r.ok) continue;
+          const h = heur(L, r.state);
+          if (h === Infinity) continue;
+          if (h === -1e9) return f.path.concat(i);
+          const k = key(r.state);
+          if (!next.has(k)) next.set(k, { s: r.state, path: f.path.concat(i), h });
+        }
+      }
+      front = [...next.values()].sort((a, b) => a.h - b.h).slice(0, width);
+    }
+    return null;
+  }
+  function solve(L, s) {
+    for (const w of [24, 120, 600]) { const p = beam(L, s, w); if (p) return p; }
+    return dfs(L, s, 200000);
+  }
+  return { KINDS, DIRS, expand, cells, initState, clone, dockColor, grid, canExit, settle, exitVehicle, liftVehicle, isWon, movable, isStuck, addSpace, passengersLeft, passengersTotal, solve };
+})();
+//LOGIC-END
+
+(function () {
+  if (typeof document === 'undefined') return;
+  const $ = id => document.getElementById(id);
+  const RAW = JSON.parse($('levelData').textContent);
+  const SYM = { red: '●', blue: '▲', green: '■', yellow: '★', purple: '◆', orange: '♥' };
+  const ARROW = { up: '▲', down: '▼', left: '◀', right: '▶' };
+  let prog = { cleared: {} };
+  try { const j = JSON.parse(localStorage.getItem('tp-proto-v1') || 'null'); if (j && j.cleared) prog = j; } catch (e) {}
+  const save = () => { try { localStorage.setItem('tp-proto-v1', JSON.stringify(prog)); } catch (e) {} };
+
+  let idx = 0, L = null, st = null, hist = [], spaceLeft = 1, liftLeft = 1, lifting = false, hintVeh = -1, busy = false, over = false, toastT = 0;
+
+  function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 1600); }
+
+  function buildMap() {
+    const box = $('levels'); box.textContent = '';
+    RAW.forEach((_, i) => {
+      const b = document.createElement('button');
+      b.className = 'lv' + (prog.cleared[i] ? ' done' : '');
+      b.textContent = i + 1;
+      b.setAttribute('aria-label', 'Level ' + (i + 1) + (prog.cleared[i] ? ', cleared' : ''));
+      b.onclick = () => start(i);
+      box.appendChild(b);
+    });
+  }
+
+  function start(i) {
+    idx = i; L = TP.expand(RAW[i]); st = TP.initState(L); hist = []; spaceLeft = 1; liftLeft = 1; lifting = false; hintVeh = -1; busy = false; over = false;
+    $('overlay').classList.add('hidden');
+    $('map').classList.add('hidden'); $('game').classList.remove('hidden');
+    $('lvl').textContent = i + 1;
+    render(); layout();
+  }
+
+  function layout() {
+    if (!L) return;
+    const wrap = $('boardWrap'), r = wrap.getBoundingClientRect();
+    const cs = Math.max(20, Math.floor(Math.min((r.width - 6) / L.w, (r.height - 6) / L.h)));
+    const b = $('board'); b.style.width = cs * L.w + 'px'; b.style.height = cs * L.h + 'px'; b.dataset.cs = cs;
+    positionVehicles();
+  }
+
+  function positionVehicles() {
+    const cs = +$('board').dataset.cs || 40;
+    for (const el of $('board').children) {
+      const v = L.vehicles[+el.dataset.i], cc = TP.cells(v);
+      const xs = cc.map(c => c[0]), ys = cc.map(c => c[1]);
+      el.style.left = Math.min(...xs) * cs + 'px'; el.style.top = Math.min(...ys) * cs + 'px';
+      el.style.width = (Math.max(...xs) - Math.min(...xs) + 1) * cs + 'px'; el.style.height = (Math.max(...ys) - Math.min(...ys) + 1) * cs + 'px';
+    }
+  }
+
+  function vehicleEl(i) {
+    const v = L.vehicles[i];
+    const el = document.createElement('button');
+    el.className = 'veh ' + (v.dir === 'up' || v.dir === 'down' ? 'vert' : 'horz');
+    el.dataset.i = i;
+    el.setAttribute('aria-label', v.color + ' ' + v.kind + ' facing ' + v.dir + ', ' + TP.KINDS[v.kind].seats + ' seats');
+    el.innerHTML = '<span class="body c-' + v.color + '"><span class="sym">' + SYM[v.color] + '</span><span class="seat">' + TP.KINDS[v.kind].seats + '</span><span class="arrow a-' + v.dir + '" aria-hidden="true">' + ARROW[v.dir] + '</span></span>';
+    el.onclick = () => tap(i);
+    return el;
+  }
+
+  function render() {
+    const board = $('board');
+    const shown = new Set([...board.children].map(e => +e.dataset.i));
+    L.vehicles.forEach((v, i) => { if (st.onBoard[i] && !shown.has(i)) board.appendChild(vehicleEl(i)); });
+    const g = TP.grid(L, st);
+    for (const el of [...board.children]) {
+      const i = +el.dataset.i;
+      if (!st.onBoard[i]) { el.remove(); continue; }
+      el.classList.toggle('free', TP.canExit(L, st, i, g));
+      el.classList.toggle('hint', i === hintVeh);
+    }
+    positionVehicles();
+    const bays = $('bays'); bays.textContent = '';
+    st.parking.forEach(vi => {
+      const b = document.createElement('div'); b.className = 'bay';
+      if (vi != null) { const v = L.vehicles[vi]; b.innerHTML = '<div class="pk c-' + v.color + '">' + SYM[v.color] + ' ' + TP.KINDS[v.kind].seats + '</div>'; }
+      bays.appendChild(b);
+    });
+    const used = st.parking.filter(x => x != null).length;
+    $('parkCount').textContent = 'PARKING ' + used + ' / ' + st.parking.length;
+    for (const d of [0, 1]) {
+      const el = $('dock' + d), col = TP.dockColor(L, st, d);
+      el.className = 'dock' + (col ? '' : ' empty');
+      if (!col) { el.innerHTML = '<div class="now">Done</div>'; continue; }
+      const q = L.docks[d].slice(st.dock[d] + 1).map(e => '<span class="c-' + e.color + '"></span>').join('');
+      el.innerHTML = '<div class="now"><div class="sw c-' + col + '">' + SYM[col] + '</div><div>' + st.left[d] + ' waiting</div></div><div class="q" aria-label="Next groups">' + q + '</div>';
+    }
+    const tot = TP.passengersTotal(L), left = TP.passengersLeft(L, st);
+    $('bar').style.width = Math.round((tot - left) / tot * 100) + '%';
+    $('goal').textContent = (tot - left) + ' / ' + tot + ' passengers';
+    $('moves').textContent = st.moves;
+    $('undo').disabled = !hist.length;
+    $('space').disabled = !spaceLeft; $('spaceN').textContent = spaceLeft;
+    $('lift').disabled = !liftLeft; $('liftN').textContent = liftLeft;
+    $('lift').classList.toggle('on', lifting);
+    document.body.classList.toggle('lifting', lifting);
+  }
+
+  function snapshot() { hist.push({ st, spaceLeft, liftLeft }); }
+
+  function tap(i) {
+    if (busy || over || !st.onBoard[i]) return;
+    const el = $('board').querySelector('[data-i="' + i + '"]');
+    hintVeh = -1;
+    const r = lifting ? TP.liftVehicle(L, st, i) : TP.exitVehicle(L, st, i);
+    if (!r.ok) {
+      if (el) { el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 300); }
+      toast(r.reason === 'parking-full' ? 'Parking is full' : 'Blocked: clear the road ahead first');
+      return;
+    }
+    snapshot();
+    if (lifting) { liftLeft--; lifting = false; }
+    busy = true;
+    const dir = L.vehicles[i].dir;
+    if (el) el.classList.add('leave-' + dir);
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(() => {
+      st = r.state; busy = false;
+      const n = r.boarded.reduce((a, b) => a + b.n, 0);
+      if (n) toast('+' + n + ' passengers');
+      render(); check();
+    }, reduce ? 0 : 230);
+  }
+
+  function check() {
+    if (TP.isWon(L, st)) {
+      over = true; prog.cleared[idx] = Math.min(prog.cleared[idx] || 1e9, st.moves); save(); buildMap();
+      const nxt = idx + 1 < RAW.length;
+      card('Level cleared', 'Everyone is aboard in ' + st.moves + ' moves.', [nxt ? ['Next level', () => start(idx + 1)] : null, ['Replay', () => start(idx), 1], ['Levels', home, 1]]);
+    } else if (TP.isStuck(L, st)) {
+      over = true;
+      card('Gridlock', st.parking.indexOf(null) < 0 ? 'Parking is full.' : 'Nothing can move.', [hist.length ? ['Undo', () => { closeCard(); undo(); }] : null, spaceLeft ? ['Add a parking space', () => { closeCard(); addSpace(); }] : null, ['Restart', () => start(idx), 1]]);
+    }
+  }
+
+  function card(title, text, btns) {
+    const b = $('ovBody'); b.textContent = '';
+    const h = document.createElement('h2'); h.textContent = title; b.appendChild(h);
+    const p = document.createElement('p'); p.textContent = text; b.appendChild(p);
+    btns.filter(Boolean).forEach(([t, f, alt]) => { const x = document.createElement('button'); x.textContent = t; if (alt) x.className = 'alt'; x.onclick = f; b.appendChild(x); });
+    $('overlay').classList.remove('hidden');
+    const first = b.querySelector('button'); if (first) first.focus();
+  }
+  function closeCard() { $('overlay').classList.add('hidden'); over = false; }
+
+  function undo() { if (busy || !hist.length) return; const h = hist.pop(); st = h.st; spaceLeft = h.spaceLeft; liftLeft = h.liftLeft; lifting = false; hintVeh = -1; over = false; render(); }
+  function addSpace() { if (busy || !spaceLeft || st.parking.length >= 9) return; snapshot(); spaceLeft--; st = TP.addSpace(st); over = false; render(); }
+  function hint() {
+    if (busy || over) return;
+    const p = TP.solve(L, st);
+    if (!p || !p.length) { toast('No winning line from here. Try Undo.'); return; }
+    hintVeh = p[0]; render(); toast('Try the pulsing vehicle');
+  }
+  function home() { closeCard(); $('game').classList.add('hidden'); $('map').classList.remove('hidden'); L = null; }
+
+  $('home').onclick = home;
+  $('undo').onclick = undo;
+  $('restart').onclick = () => start(idx);
+  $('hint').onclick = hint;
+  $('space').onclick = addSpace;
+  $('lift').onclick = () => { if (!liftLeft || busy) return; lifting = !lifting; toast(lifting ? 'Tap any vehicle to lift it out' : 'Lift cancelled'); render(); };
+  addEventListener('resize', layout);
+  addEventListener('keydown', e => {
+    if (!L || e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === 'u' || k === 'z') undo();
+    else if (k === 'r') start(idx);
+    else if (k === 'h') hint();
+    else if (k === 's') addSpace();
+    else if (k === 'l') $('lift').click();
+    else if (k === 'n' && idx + 1 < RAW.length && TP.isWon(L, st)) start(idx + 1);
+    else if (k === 'escape') home();
+  });
+  buildMap();
+  // Test hook for the headless smoke check: lets a harness drive the same code paths as taps.
+  window.__tp = { start, tap, state: () => ({ idx, st, L, over }), buildMap };
+})();
+</script>
+</body>
+</html>

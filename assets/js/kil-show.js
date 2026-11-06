@@ -20,7 +20,15 @@
 (function (root) {
   'use strict';
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function safeUrl(u) { var s = String(u == null ? '' : u).trim(); if (/^https?:\/\/[^\s<>"']+$/i.test(s)) return s; if (/^\/(?!\/)[^\s<>"']*$/.test(s)) return s; return ''; }
+  function safeUrl(u) {   // https only; a site path must not start with // or /\ (browsers read /\host as //host)
+    var s = String(u == null ? '' : u).trim();
+    if (/^https:\/\/[^\s<>"'\\]+$/i.test(s)) return s;
+    if (/^\/(?![/\\])[^\s<>"'\\]*$/.test(s)) return s;
+    return '';
+  }
+  /** A read that failed (an error answer or a thrown network error) is not the same as an empty answer. */
+  async function safe(p) { try { return await p; } catch (e) { return { data: null, error: e }; } }
+  function ok(r) { return !!r && !r.error; }
   function slugOf(s) { return String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9-]/g, ''); }
   function fmtWhen(start, end, tz) {
     var d = start ? new Date(start) : null; if (!d || isNaN(d)) return '';
@@ -66,6 +74,7 @@
     if (d.hasTicket && !d.owner) h += '<a class="m2-mine" href="' + esc('/tickets?e=' + encodeURIComponent(slug)) + '">You have a ticket · Show it</a>';
     if (e.description) h += '<section class="m2-sec"><h2>About</h2><p class="m2-about">' + esc(e.description) + '</p></section>';
     var lineup = d.lineup || [];
+    if (d.lineup === null && e.show_lineup !== false) h += '<section class="m2-sec"><h2>Lineup</h2>' + failedNote('The lineup') + '</section>';
     if (lineup.length && e.show_lineup !== false) h += '<section class="m2-sec"><h2>Lineup</h2><div class="m2-lineup">' + lineup.map(function (a) {
       var img = safeUrl(a.image_url), inner = (img ? '<span class="m2-av" style="background-image:url(\'' + esc(img) + '\')"></span>' : '<span class="m2-av m2-av-0">' + esc(String(a.artist_name || '?').charAt(0).toUpperCase()) + '</span>') + '<span>' + esc(a.artist_name) + '</span>';
       return a.profile_slug ? '<a class="m2-artist" href="' + esc('/member?slug=' + encodeURIComponent(slugOf(a.profile_slug))) + '">' + inner + '</a>' : '<span class="m2-artist">' + inner + '</span>';
@@ -74,6 +83,9 @@
       var ext = e.is_external ? safeUrl(e.source_url) : '';
       if (ext && /^https?:/i.test(ext)) {
         h += '<section class="m2-sec"><h2>Tickets</h2><a class="m2-cta" href="' + esc(ext) + '" target="_blank" rel="noopener noreferrer">Tickets on ' + esc(ext.replace(/^https?:\/\/(www\.)?/i, '').split('/')[0]) + '</a></section>';
+      } else if (d.tiers === null) {
+        h += '<section class="m2-sec"><h2>Tickets</h2>' + failedNote('Ticket details') +
+          '<a class="m2-cta" href="' + esc('/event?e=' + encodeURIComponent(slug)) + '">Open the event page</a></section>';
       } else if ((d.tiers || []).length) {
         h += '<section class="m2-sec"><h2>Tickets</h2><div class="m2-tiers">' + d.tiers.map(function (t) {
           var st = tierState(t, now);
@@ -89,7 +101,10 @@
     return h;
   }
 
+  function failedNote(what) { return '<p class="m2-failed">' + esc(what) + ' couldn\u2019t load. Check your connection and try again.</p>'; }
+
   function render(d) {
+    if (d.failed) return '<div class="m2-empty m2-failed">This event couldn\u2019t load. Check your connection and try again.</div>';
     if (d.privateEvent) return renderPrivateEvent(d.slug);
     if (d.missing) return '<div class="m2-empty">This event does not exist or is not published.</div>';
     return renderEvent(d);
@@ -101,20 +116,30 @@
   async function load(client, slug, opts) {
     opts = opts || {}; var s = slugOf(slug);
     if (!s) return { slug: s, missing: true };
-    if (data(await client.rpc('event_requires_password', { p_slug: s })) === true) return { slug: s, privateEvent: true };
-    var rows = data(await client.rpc('get_event_view', { p_slug: s })) || [];
-    var ev = rows[0] || null;
+    // FAIL CLOSED: unless the server clearly answers "not protected", show nothing and read nothing else.
+    var pw = await safe(client.rpc('event_requires_password', { p_slug: s }));
+    if (!ok(pw) || typeof pw.data !== 'boolean') return { slug: s, failed: true };
+    if (pw.data === true) return { slug: s, privateEvent: true };
+    var vr = await safe(client.rpc('get_event_view', { p_slug: s }));
+    if (!ok(vr)) return { slug: s, failed: true };   // a failed read is not "does not exist"
+    var ev = (vr.data || [])[0] || null;
     var sess = null; try { var g = await client.auth.getSession(); sess = g && g.data ? g.data.session : null; } catch (x) {}
-    var mine = sess ? data(await client.rpc('my_profile_slug')) : null;
+    var mine = null;
+    if (sess) { var mr = await safe(client.rpc('my_profile_slug')); mine = ok(mr) ? mr.data : null; }
     if (!ev && mine) {   // the host's own draft is not in get_event_view; row-level security returns it to the host only
-      var own = data(await client.from('events').select(EVENT_COLS).eq('slug', s).maybeSingle());
+      var or_ = await safe(client.from('events').select(EVENT_COLS).eq('slug', s).maybeSingle());
+      if (!ok(or_)) return { slug: s, failed: true };
+      var own = or_.data;
       if (own && slugOf(own.owner_handle) === slugOf(mine)) ev = own;
     }
     if (!ev) return { slug: s, missing: true };
     var owner = !!mine && slugOf(ev.owner_handle) === slugOf(mine);
-    var lineup = data(await client.rpc('get_event_lineup', { p_slug: s })) || [];
-    var tiers = ev.id != null ? (data(await client.from('ticket_tiers').select('id,name,price_cents,currency,qty_total,qty_sold,sales_start,sales_end,sort,description,show_qty').eq('event_id', ev.id).order('sort')) || []) : [];
-    var hasTicket = sess && !owner ? data(await client.rpc('has_event_ticket', { p_slug: s })) === true : false;
+    var lr = await safe(client.rpc('get_event_lineup', { p_slug: s }));
+    var lineup = ok(lr) ? (lr.data || []) : null;   // null = could not load
+    var tr = ev.id != null ? await safe(client.from('ticket_tiers').select('id,name,price_cents,currency,qty_total,qty_sold,sales_start,sales_end,sort,description,show_qty').eq('event_id', ev.id).order('sort')) : { data: [], error: null };
+    var tiers = ok(tr) ? (tr.data || []) : null;
+    var hasTicket = false;
+    if (sess && !owner) { var hr = await safe(client.rpc('has_event_ticket', { p_slug: s })); hasTicket = ok(hr) && hr.data === true; }
     return { slug: s, event: ev, lineup: lineup, tiers: tiers, owner: owner, hasTicket: hasTicket, now: opts.now };
   }
 

@@ -15,7 +15,15 @@
 (function (root) {
   'use strict';
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function safeUrl(u) { var s = String(u == null ? '' : u).trim(); if (/^https?:\/\/[^\s<>"']+$/i.test(s)) return s; if (/^\/(?!\/)[^\s<>"']*$/.test(s)) return s; return ''; }
+  function safeUrl(u) {   // https only; a site path must not start with // or /\ (browsers read /\host as //host)
+    var s = String(u == null ? '' : u).trim();
+    if (/^https:\/\/[^\s<>"'\\]+$/i.test(s)) return s;
+    if (/^\/(?![/\\])[^\s<>"'\\]*$/.test(s)) return s;
+    return '';
+  }
+  /** A read that failed (an error answer or a thrown network error) is not the same as an empty answer. */
+  async function safe(p) { try { return await p; } catch (e) { return { data: null, error: e }; } }
+  function ok(r) { return !!r && !r.error; }
   function slugOf(s) { return String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9-]/g, ''); }
   function key(s) { return String(s == null ? '' : s).trim().toLowerCase(); }
   function genresOf(e) { return String(e.genres || '').split(/\s*,\s*/).map(function (g) { return g.trim(); }).filter(Boolean); }
@@ -90,10 +98,12 @@
 
   function render(d, f) {
     f = f || {};
+    if (d.failed) return '<p class="m3-empty m3-failed">Events couldn\u2019t load. Check your connection and try again.</p>';
     var list = applyFilters(d.events, f);
     var h = renderFilters(d, f);
     if (!d.events.length) return h + '<p class="m3-empty">No upcoming events yet.</p>';
     if (!list.length) return h + '<p class="m3-empty">No upcoming events match these filters.</p>';
+    if (d.partial) h += '<p class="m3-note">Some event details couldn\u2019t load (lineups, prices or hosts). Try again later.</p>';
     return h + '<div class="m3-count">' + list.length + ' upcoming ' + (list.length === 1 ? 'event' : 'events') + '</div><div class="m3-list">' + list.map(function (e) { return card(e, d); }).join('') + '</div>';
   }
 
@@ -102,24 +112,27 @@
 
   async function load(client, opts) {
     opts = opts || {}; var now = (opts.now || new Date()).toISOString();
-    var events = data(await client.from('events').select(COLS).eq('status', 'published').gte('starts_at', now)
+    var er = await safe(client.from('events').select(COLS).eq('status', 'published').gte('starts_at', now)
       .eq('password_protected', false).or('show_on_explore.is.null,show_on_explore.eq.true')
-      .order('starts_at', { ascending: true }).limit(opts.limit || 60)) || [];
+      .order('starts_at', { ascending: true }).limit(opts.limit || 60));
+    if (!ok(er)) return { failed: true, events: [], lineups: {}, tiers: {}, hosts: {} };   // not "no upcoming events"
+    var events = er.data || [], partial = false;
+    var got = function (r) { if (ok(r)) return r.data || []; partial = true; return []; };
     var ids = events.map(function (e) { return e.id; }).filter(function (x) { return x != null; });
     var hostSlugs = events.map(function (e) { return slugOf(e.owner_handle); }).filter(Boolean)
       .filter(function (v, i, a) { return a.indexOf(v) === i; });
     var lineups = {}, tiers = {}, hosts = {};
     if (ids.length) {
-      (data(await client.from('event_lineup').select('event_id,artist_name,profile_slug,sort').in('event_id', ids).order('sort', { ascending: true })) || [])
+      got(await safe(client.from('event_lineup').select('event_id,artist_name,profile_slug,sort').in('event_id', ids).order('sort', { ascending: true })))
         .forEach(function (l) { (lineups[l.event_id] = lineups[l.event_id] || []).push(l); });
-      (data(await client.from('ticket_tiers').select('event_id,price_cents,currency,qty_total,qty_sold').in('event_id', ids)) || [])
+      got(await safe(client.from('ticket_tiers').select('event_id,price_cents,currency,qty_total,qty_sold').in('event_id', ids)))
         .forEach(function (t) { (tiers[t.event_id] = tiers[t.event_id] || []).push(t); });
     }
     if (hostSlugs.length) {
-      (data(await client.from('profile_meta').select('slug,display_name').in('slug', hostSlugs)) || [])
+      got(await safe(client.from('profile_meta').select('slug,display_name').in('slug', hostSlugs)))
         .forEach(function (p) { if (p.display_name) hosts[slugOf(p.slug)] = p.display_name; });
     }
-    return { events: events, lineups: lineups, tiers: tiers, hosts: hosts };
+    return { events: events, lineups: lineups, tiers: tiers, hosts: hosts, partial: partial };
   }
 
   /** Load once, render, and re-render on filter change; the filters are mirrored into the URL. */

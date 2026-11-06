@@ -21,6 +21,10 @@
         /unclaimed/profile/<handle>, /culture/feed, and the single-segment clean
         URLs in CLEAN_URL_PAGES (/apply -> apply.html and so on)
 
+     SHOPIFY STOREFRONT (owner order 2026-11-05):
+        /products/*, /collections/*, /cart → https://www.illestratedlifestyle.com + same path
+        Query string and hash are preserved (UTMs such as launch-wk-2026-11 survive).
+
      The /radio, /vs and /scene lines that used to sit in this list were removed on
      2026-09-09. Those surfaces are RETIRED: the router stopped translating them, so
      this documentation had been describing behaviour the file no longer had. Retired
@@ -78,6 +82,17 @@ a{color:#5cc8ff}</style>
      tests/agent-rename.test.mjs asserts this copy against the generated one. */
   var AGENT_ALIASES = { echo: 'cho', nexus: 'xus' };
   if(Object.prototype.hasOwnProperty.call(AGENT_ALIASES, slug)) slug = AGENT_ALIASES[slug];
+
+  /* SHOPIFY STOREFRONT HANDOFF (owner 2026-11-05 / Joe "Fix it all").
+     Product, collection and cart URLs are not hosted on this GitHub Pages site. The live
+     storefront is www.illestratedlifestyle.com. GitHub Pages cannot issue a server 301 for
+     unmatched paths, so when this 404.html is served for /products/*, /collections/* or
+     /cart we location.replace() to the same path on the storefront, keeping search + hash
+     so UTM tags survive. Other paths still fall through to the not-found panel below. */
+  if(seg[0]==='products' || seg[0]==='collections' || seg[0]==='cart'){
+    location.replace('https://www.illestratedlifestyle.com' + location.pathname + q + hash);
+    return;
+  }
 
   /* RETIRED ROUTES ARE NO LONGER SOFT-REDIRECTED (KODE 2026-09-08).
      A RETIRED map used to live here, bouncing /radio, /scene, /vs and /culture.html to their
@@ -187,6 +202,9 @@ a{color:#5cc8ff}</style>
 <div class="wrap" id="fourohfour" style="display:none">
   <h1 style="font-size:2rem;margin:0 0 6px">Page not found</h1>
   <p style="color:#9aa;margin:0 0 20px;max-width:460px">That link doesn't exist, or it moved. Here's everything on KEEPITIL:</p>
+  <noscript>
+    <p style="color:#9aa;margin:0 0 16px;max-width:460px">Looking for the shop? Open <a href="https://www.illestratedlifestyle.com/">www.illestratedlifestyle.com</a> and use the same path (for example /products/…).</p>
+  </noscript>
   <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:520px">
     <a href="/" style="padding:9px 15px;border:1px solid #2a3550;border-radius:9px;text-decoration:none">Home</a>
     <a href="/culture/" style="padding:9px 15px;border:1px solid #2a3550;border-radius:9px;text-decoration:none">Culture</a>

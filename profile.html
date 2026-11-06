@@ -1562,8 +1562,11 @@ function loadFollow(){
 /* ── SHARE: social platforms, email or SMS only ── */
 function toggleShare(e){ if(e){e.stopPropagation();} var w=document.getElementById('pfShare'); if(w) w.classList.toggle('open'); }
 document.addEventListener('click',function(e){ var w=document.getElementById('pfShare'); if(w&&w.classList.contains('open')&&!w.contains(e.target)) w.classList.remove('open'); });
+/* Share links must open for whoever receives them. In the app the page origin is capacitor://localhost, which
+   is not a link anyone can open, so anything but keepitil.com itself shares the canonical https://keepitil.com. */
+var KIL_SHARE_ORIGIN=(/^https:\/\/(www\.)?keepitil\.com$/i.test(location.origin)?location.origin:'https://keepitil.com');
 function shareTo(net){
-  var url=location.href;
+  var url=(typeof PROFILE_SLUG!=='undefined'&&PROFILE_SLUG)?KIL_SHARE_ORIGIN+'/profile?slug='+encodeURIComponent(PROFILE_SLUG):KIL_SHARE_ORIGIN+location.pathname;
   var title=(typeof PROFILE!=='undefined'&&PROFILE.name)?PROFILE.name+' on KEEPITIL':document.title;
   var u=encodeURIComponent(url), t=encodeURIComponent(title), body=encodeURIComponent(title+' — '+url);
   var link='';
@@ -2279,7 +2282,7 @@ function postMenu(pid,src,idx,ev){ if(ev){ev.stopPropagation();} closeMenu();
   if(owner){ items.push('<button onclick="editPost(\''+src+'\','+idx+')">✏️ Edit caption</button>');
     items.push('<button onclick="delPost(\''+pid+'\')">🗑 Delete post</button>');
     items.push('<button onclick="toggleHideFeed(\''+src+'\','+idx+');closeMenu()">👁 Hide / show in feed</button>'); }
-  else { items.push('<button onclick="fbShare(location.origin+\'/profile?slug=\'+encodeURIComponent(PROFILE_SLUG));closeMenu()">🔗 Copy link</button>');
+  else { items.push('<button onclick="fbShare(KIL_SHARE_ORIGIN+\'/profile?slug=\'+encodeURIComponent(PROFILE_SLUG));closeMenu()">🔗 Copy link</button>');
     items.push('<button onclick="reportPost()">🚩 Report</button>'); }
   var m=document.createElement('div'); m.className='post-menu'; m.id='postMenu'; m.innerHTML=items.join('');
   document.body.appendChild(m);
@@ -2350,7 +2353,7 @@ function postCard(p){
     +'<div class="fb-actions">'
       +'<button class="fba fba-like" onclick="event.stopPropagation();fbToggleLike(\''+pid+'\')" title="Like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.9-9.3-9C1.2 8 3 4.5 6.4 4.5c2.2 0 3.6 1.2 4.4 2.6.2.4.9.4 1.1 0 .8-1.4 2.2-2.6 4.4-2.6 3.4 0 5.2 3.5 3.7 7-1.8 4.1-8 9-8 9z"/></svg><b></b></button>'
       +'<button class="fba fba-resh" onclick="event.stopPropagation();fbReshare(\''+pid+'\')" title="Reshare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><b></b></button>'
-      +'<button class="fba fba-share" onclick="event.stopPropagation();fbShare(location.origin+\'/profile?slug=\'+encodeURIComponent('+(p.collab&&p.collab.length?'\''+esc(authorSlug)+'\'':'PROFILE_SLUG')+'))" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></button>'
+      +'<button class="fba fba-share" onclick="event.stopPropagation();fbShare(KIL_SHARE_ORIGIN+\'/profile?slug=\'+encodeURIComponent('+(p.collab&&p.collab.length?'\''+esc(authorSlug)+'\'':'PROFILE_SLUG')+'))" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></button>'
       +'<button class="fba fb-save" style="margin-left:auto" onclick="event.stopPropagation();fbSave(\''+pid+'\',this)" title="Save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17 3H7a2 2 0 00-2 2v16l7-4 7 4V5a2 2 0 00-2-2z"/></svg></button>'
     +'</div>'
   +'</div>';

@@ -6,8 +6,8 @@
    display-only "From $X". Every card opens /show. Filters: city and genre, kept in the URL (?city=&genre=).
 
    READ ONLY: four bulk reads, no per-event calls, nothing written.
-     events          published, not started, shown on explore, NOT password-protected
-                     (filtered on the column; the hash is never selected)
+     events          published, not started, shown on explore, NOT password-protected (the readable
+                     password_protected flag; the hash itself is not readable by API roles)
      event_lineup    public read
      profile_meta    public read; host display names only
      ticket_tiers    public read for published events; the lowest price still on sale, display only
@@ -103,7 +103,7 @@
   async function load(client, opts) {
     opts = opts || {}; var now = (opts.now || new Date()).toISOString();
     var events = data(await client.from('events').select(COLS).eq('status', 'published').gte('starts_at', now)
-      .is('event_password_hash', null).or('show_on_explore.is.null,show_on_explore.eq.true')
+      .eq('password_protected', false).or('show_on_explore.is.null,show_on_explore.eq.true')
       .order('starts_at', { ascending: true }).limit(opts.limit || 60)) || [];
     var ids = events.map(function (e) { return e.id; }).filter(function (x) { return x != null; });
     var hostSlugs = events.map(function (e) { return slugOf(e.owner_handle); }).filter(Boolean)

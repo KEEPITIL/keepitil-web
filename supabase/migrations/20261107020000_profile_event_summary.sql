@@ -1,8 +1,10 @@
 -- DRAFT. Do not apply this file from the PR.
 -- NEEDS SENTINEL REVIEW BEFORE PROD.
 --
--- Apply order: PR #91 (20261107014000 then 20261107014100) must be applied
--- and verified in production first. #91 owns private.profile_is_public(text).
+-- Apply order: immediately after PR #91 step 1
+-- (20261107014000_profile_public_read_add.sql), in the same window,
+-- and before 20261107014100_profile_public_read_revoke.sql.
+-- #91 owns private.profile_is_public(text).
 -- This file does not create or replace that helper. The summary below only calls it.
 --
 -- What changes:
@@ -187,5 +189,29 @@ $$;
 
 REVOKE ALL ON FUNCTION public.get_my_ticket_summary() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_my_ticket_summary() TO authenticated;
+
+-- events_public_read lets anon read every published row, and the table SELECT
+-- grant includes event_password_hash. A column revoke does not beat a table
+-- grant, so take the table grant away and grant every other column back.
+-- Owner functions above are SECURITY DEFINER and can still read the hash.
+DO $$
+DECLARE cols text;
+BEGIN
+  SELECT string_agg(quote_ident(a.attname), ', ' ORDER BY a.attnum)
+    INTO cols
+  FROM pg_attribute a
+  JOIN pg_class c ON c.oid = a.attrelid
+  JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname = 'public'
+    AND c.relname = 'events'
+    AND a.attnum > 0
+    AND NOT a.attisdropped
+    AND a.attname <> 'event_password_hash';
+  IF cols IS NULL THEN
+    RAISE EXCEPTION 'public.events is missing';
+  END IF;
+  EXECUTE 'REVOKE SELECT ON TABLE public.events FROM anon, authenticated, PUBLIC';
+  EXECUTE format('GRANT SELECT (%s) ON TABLE public.events TO anon, authenticated', cols);
+END $$;
 
 COMMIT;

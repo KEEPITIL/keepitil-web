@@ -65,15 +65,15 @@ const bare = {
 
 function events() {
   return [
-    { slug: 'soon', title: 'Soon <b>', status: 'published', starts_at: '2026-12-01T04:00:00Z', venue: 'Room', city: 'LA', cover_url: 'https://cdn.example/c.jpg' },
-    { slug: 'past-show', title: 'Last month', status: 'published', starts_at: '2026-10-01T04:00:00Z', venue: 'Yard', city: 'LA' },
-    { slug: 'draft-soon', title: 'Still writing', status: 'draft', starts_at: '2026-12-20T04:00:00Z', city: 'LA' },
-    { slug: 'draft-old', title: 'Old draft', status: 'draft', starts_at: '2026-01-02T04:00:00Z' },
-    { slug: 'locked', title: 'Secret', status: 'published', starts_at: '2026-12-05T04:00:00Z', event_password_hash: 'hash-value', city: 'LA' }
+    { slug: 'soon', title: 'Soon <b>', status: 'published', starts_at: '2026-12-01T04:00:00Z', venue: 'Room', city: 'LA', cover_url: 'https://cdn.example/c.jpg', is_protected: false },
+    { slug: 'past-show', title: 'Last month', status: 'published', starts_at: '2026-10-01T04:00:00Z', venue: 'Yard', city: 'LA', is_protected: false },
+    { slug: 'draft-soon', title: 'Still writing', status: 'draft', starts_at: '2026-12-20T04:00:00Z', city: 'LA', is_protected: false },
+    { slug: 'draft-old', title: 'Old draft', status: 'draft', starts_at: '2026-01-02T04:00:00Z', is_protected: false },
+    { slug: 'locked', title: 'Secret', status: 'published', starts_at: '2026-12-05T04:00:00Z', is_protected: true, event_password_hash: 'hash-value', city: 'LA' }
   ];
 }
 
-test('public view is name, handle, avatar, bio, links, and upcoming published events', () => {
+test('public view is name, handle, avatar, bio, links, and a count of upcoming events', () => {
   const html = m.renderPublic({ slug: 'ada', meta, events: events(), now: NOW, categories: null });
   assert.match(html, /<h1 class="m1-name">Ada<\/h1>/);
   assert.match(html, /@ada/);
@@ -81,13 +81,21 @@ test('public view is name, handle, avatar, bio, links, and upcoming published ev
   assert.match(html, /Plays after midnight\./);
   assert.match(html, /href="https:\/\/ada\.example"/);
   assert.match(html, /Instagram/);
-  assert.match(html, /Soon &lt;b&gt;/);
-  assert.match(html, /href="\/event\?e=soon"/);
   assert.match(html, /data-kil="public-rollup"/);
-  assert.match(html, /1 upcoming · LA/);
+  assert.match(html, /&lt;5 upcoming · LA/);
+  assert.doesNotMatch(html, /Soon|m1-ev|href="\/event\?e=soon"|1 upcoming/);
   assert.doesNotMatch(html, /Last month|Still writing|Old draft|Secret/);
   assert.doesNotMatch(html, /data-kil="owner"|data-kil="event-chart"/);
   assert.doesNotMatch(html, /javascript:|ada@example.com|hash-value|book_email|Sold|Checked in|Revenue|Only you can see this/);
+});
+
+test('a missing is_protected flag is not shown and a false flag is kept', () => {
+  const kept = m.hideLocked([
+    { slug: 'open', is_protected: false },
+    { slug: 'secret', is_protected: true, title: 'Secret' },
+    { slug: 'unknown', title: 'Nope' }
+  ]);
+  assert.deepEqual(kept.map((e) => e.slug), ['open']);
 });
 
 test('a profile with no display name still shows the handle', () => {
@@ -190,26 +198,63 @@ test('a failed numbers read is not shown as zero tickets', () => {
   assert.doesNotMatch(html, />0<\/b><span>Sold/);
 });
 
-test('a logged-out visitor does not list profile_meta or profiles', async () => {
+test('a signed-out caller gets the summary shape and no event rows', async () => {
   const c = client({
     session: { data: { session: null } },
-    from: { events: { data: [{ slug: 'locked' }, { slug: 'quiet' }] } },
+    from: { events: { data: [{ slug: 'locked' }] } },
     rpc: {
       get_public_profile: { data: [meta] },
-      get_profile_events() {
-        return { data: events().concat([{ slug: 'quiet', title: 'Quiet', status: 'published', starts_at: '2026-12-08T04:00:00Z' }]) };
-      }
+      get_profile_event_summary() {
+        return { data: [{ upcoming_count: null, cities: ['LA', 'Long Beach'], title: 'Secret', slug: 'soon' }] };
+      },
+      get_profile_events() { return { data: events() }; },
+      get_my_tickets() { return { data: [{ slug: 't', qr_token: 'door-token' }] }; }
     }
   });
   const d = await m.load(c, 'ada', { now: NOW });
   assert.equal(d.owner, false);
   assert.equal(c.fromCalls.includes('profile_meta'), false);
   assert.equal(c.fromCalls.includes('profiles'), false);
-  assert.equal(c.rpcCalls.includes('get_public_profile'), true);
-  assert.equal(c.rpcCalls.includes('organizer_dashboard'), false);
-  assert.deepEqual(d.events.map((e) => e.slug), ['soon', 'past-show', 'draft-soon', 'draft-old']);
+  assert.equal(c.fromCalls.includes('events'), false);
+  assert.deepEqual(c.rpcCalls, ['get_public_profile', 'get_profile_event_summary']);
+  assert.equal(d.tickets, undefined);
+  assert.equal(d.metrics, undefined);
+  assert.deepEqual(d.events, []);
+  assert.deepEqual(Object.keys(d.summary).sort(), ['cities', 'upcoming_count']);
+  assert.equal(d.summary.upcoming_count, null);
+  assert.deepEqual(d.summary.cities, ['LA', 'Long Beach']);
   const html = m.render(d);
-  assert.doesNotMatch(html, /ada@example.com|hash-value|Secret/);
+  assert.match(html, /data-kil="public-rollup"/);
+  assert.match(html, /&lt;5 upcoming · LA · Long Beach/);
+  assert.doesNotMatch(html, /Secret|m1-ev|href="\/event|ada@example.com|hash-value|door-token/);
+});
+
+test('another signed-in member is not the owner and gets the same summary', async () => {
+  const c = client({
+    session: { data: { session: { user: { id: 'someone-else' } } } },
+    rpc: {
+      get_public_profile: { data: [meta] },
+      my_profile_slug: { data: 'someone-else' },
+      get_profile_event_summary: { data: [{ upcoming_count: 8, cities: ['LA'], sold: 1 }] },
+      get_profile_events: { data: events() },
+      get_my_tickets: { data: [{ slug: 't', qr_token: 'door-token' }] },
+      get_my_ticket_summary: { data: [{ slug: 't', qr_token: 'door-token' }] },
+      organizer_dashboard: { data: [{ slug: 'soon', sold: 4, revenue_cents: 900 }] }
+    }
+  });
+  const d = await m.load(c, 'ada', { now: NOW });
+  assert.equal(d.owner, false);
+  assert.equal(c.rpcCalls.includes('my_profile_slug'), true);
+  assert.equal(c.rpcCalls.includes('get_profile_event_summary'), true);
+  assert.equal(c.rpcCalls.includes('get_profile_events'), false);
+  assert.equal(c.rpcCalls.includes('get_my_tickets'), false);
+  assert.equal(c.rpcCalls.includes('get_my_ticket_summary'), false);
+  assert.equal(c.rpcCalls.includes('organizer_dashboard'), false);
+  assert.deepEqual(d.events, []);
+  assert.deepEqual(d.summary, { upcoming_count: 8, cities: ['LA'] });
+  const html = m.render(d);
+  assert.match(html, /8 upcoming · LA/);
+  assert.doesNotMatch(html, /Only you can see this|Sold|Secret|door-token|m1-ev/);
 });
 
 test('a logged-out load with an empty lookup does not touch the tables', async () => {
@@ -232,7 +277,7 @@ test('the owner load asks for dashboard counts and never selects the password ha
       get_public_profile: { data: [] },
       get_profile_events: { data: events() },
       my_profile_slug: { data: 'ada' },
-      get_my_tickets: { data: [] },
+      get_my_ticket_summary: { data: [{ slug: 'soon', title: 'Soon', qty: 1, tier_name: 'GA', qr_token: 'door-token', buyer_email: 'buyer@example.com' }] },
       organizer_dashboard: { data: [{ slug: 'soon', sold: 2, checked_in: 1, revenue_cents: 500 }] }
     }
   });
@@ -247,6 +292,10 @@ test('the owner load asks for dashboard counts and never selects the password ha
   assert.equal(d.owner, true);
   assert.equal(d.metrics[0].sold, 2);
   assert.deepEqual(d.hosted.map((e) => e.slug), events().map((e) => e.slug));
+  assert.deepEqual(Object.keys(d.tickets[0]).sort(), ['qty', 'slug', 'tier_name', 'title']);
+  assert.equal(c.rpcCalls.includes('get_my_tickets'), false);
+  assert.equal(c.rpcCalls.includes('get_my_ticket_summary'), true);
+  assert.equal(c.rpcCalls.includes('get_profile_event_summary'), false);
   assert.equal(seen.some((s) => s.startsWith('profile_meta') || s.startsWith('profiles:')), false);
   assert.equal(seen.some((s) => /book_email|event_password_hash|buyer_email/.test(s)), false);
   assert.equal(c.rpcCalls.includes('organizer_dashboard'), true);
@@ -276,4 +325,50 @@ test('the page does not select profile_meta or book_email', () => {
   assert.equal(js.includes("from('profile_meta')"), false);
   assert.equal(js.includes("from('profiles')"), false);
   assert.equal(/book_email|buyer_email|qr_token/.test(js), false);
+  assert.equal(js.includes('get_my_tickets'), false);
+  assert.equal(js.includes('event_password_hash'), false);
+  assert.match(js, /get_profile_event_summary/);
+  assert.match(js, /get_my_ticket_summary/);
+  assert.match(js, /is_protected/);
+});
+
+test('the draft summary migration gates on profile_is_public and does not return a door token', () => {
+  const sql = readFileSync(new URL('../../supabase/migrations/20261107020000_profile_event_summary.sql', import.meta.url), 'utf8');
+  const down = readFileSync(new URL('../../supabase/rollbacks/20261107020000_profile_event_summary_down.sql', import.meta.url), 'utf8');
+  assert.match(sql, /NEEDS SENTINEL REVIEW BEFORE PROD/);
+  assert.match(sql, /#91 owns this helper/);
+  assert.match(sql, /FUNCTION private\.profile_is_public\(p_slug text\)/);
+  assert.match(sql, /'member', 'artist', 'creator', 'dj', 'subscriber_profile'/);
+  assert.match(sql, /'brand', 'venue', 'organizer'/);
+  assert.match(sql, /m\.profile_public IS TRUE/);
+  assert.match(sql, /m\.status = 'published'/);
+  assert.match(sql, /m\.admin_approved IS TRUE/);
+  assert.match(sql, /m\.is_minor IS FALSE/);
+  assert.match(sql, /m\.under_18 IS FALSE/);
+  assert.match(sql, /m\.age_verified IS TRUE/);
+  assert.match(sql, /acct\.age_verified IS TRUE/);
+  assert.match(sql, /biz\.owner_id IS NOT NULL/);
+  const summary = sql.slice(sql.indexOf('FUNCTION public.get_profile_event_summary'), sql.indexOf('FUNCTION public.get_my_ticket_summary'));
+  assert.match(summary, /private\.profile_is_public\(m\.slug\)/);
+  assert.match(summary, /upcoming_count integer/);
+  assert.match(summary, /cities text\[\]/);
+  assert.match(summary, /WHEN \(SELECT n FROM counted\) < 5 THEN NULL/);
+  assert.match(summary, /'events' = ANY \(m\.public_fields\)/);
+  assert.equal(/age_verified/.test(summary), false);
+  assert.equal(/is_minor/.test(summary), false);
+  const eventsRpc = sql.slice(sql.indexOf('FUNCTION public.get_profile_events'), sql.indexOf('FUNCTION public.get_profile_event_summary'));
+  assert.match(eventsRpc, /is_protected boolean/);
+  assert.match(eventsRpc, /po\.owner_id = \(SELECT auth\.uid\(\)\)/);
+  const returns = eventsRpc.slice(eventsRpc.indexOf('RETURNS TABLE'), eventsRpc.indexOf('LANGUAGE sql'));
+  assert.match(returns, /is_protected boolean/);
+  assert.equal(returns.includes('event_password_hash'), false);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.get_profile_events\(text\) FROM PUBLIC, anon, authenticated/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.get_profile_events\(text\) TO authenticated/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.get_profile_event_summary\(text\) TO anon, authenticated/);
+  assert.equal(sql.includes('qr_token'), false);
+  assert.match(sql, /FUNCTION public\.get_my_ticket_summary\(\)/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.get_my_ticket_summary\(\) TO authenticated/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.get_my_ticket_summary\(\) FROM PUBLIC, anon/);
+  assert.match(down, /DROP FUNCTION IF EXISTS public\.get_profile_event_summary\(text\)/);
+  assert.match(down, /does not drop it/);
 });

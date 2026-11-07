@@ -5,7 +5,8 @@
    timestamps, and this module does not read event_orders.
 
    A public rollup counts published upcoming events and their cities. It does
-   not include sold, check-in, or revenue.
+   not include sold, check-in, or revenue. A count under 5 is shown as "<5"
+   so the exact small number is not published.
 
    Nothing here writes. Nothing changes a price. No buyer identity, no
    password hash, no ticket token. */
@@ -29,8 +30,20 @@
     if (/^\/(?![/\\])[^\s<>"'\\]*$/.test(s)) return s;
     return '';
   }
+  /** is_protected is the server flag. Missing means protected. The hash is not read. */
   function locked(e) {
-    return !!(e && (e.event_password_hash || e.password_protected === true));
+    if (!e) return true;
+    if (e.is_protected === true || e.password_protected === true) return true;
+    if (e.is_protected === false) return false;
+    return true;
+  }
+  function publicCountLabel(n) {
+    if (n == null || n === '') return '<5';
+    var v = Number(n);
+    if (!isFinite(v)) return '<5';
+    if (v <= 0) return '';
+    if (v < 5) return '<5';
+    return String(Math.round(v));
   }
   function metric(row, key) {
     if (!row || !Object.prototype.hasOwnProperty.call(row, key) || row[key] == null || row[key] === '') return null;
@@ -353,12 +366,33 @@
     return { upcoming: rows.length, cities: cities.slice(0, 6) };
   }
 
-  function renderPublic(events, now) {
-    if (!Array.isArray(events)) return '';
-    var p = publicRollup(events, now);
-    if (!p.upcoming) return '';
-    var label = p.upcoming + ' upcoming';
-    if (p.cities.length) label += ' · ' + p.cities.join(' · ');
+  function summaryCities(list) {
+    var cities = [], seen = {};
+    (Array.isArray(list) ? list : []).forEach(function (c) {
+      var city = String(c == null ? '' : c).replace(/\s+/g, ' ').trim();
+      var key = city.toLowerCase();
+      if (city && !seen[key] && cities.length < 6) { seen[key] = 1; cities.push(city); }
+    });
+    cities.sort(function (a, b) { return a.localeCompare(b); });
+    return cities;
+  }
+
+  /**
+   * Public line only. An event array is reduced to a count and cities.
+   * A summary object is { upcoming_count, cities }. null upcoming_count
+   * means the server already bucketed a count of 1–4 as "<5".
+   * A count of 0 renders nothing. Titles are never written.
+   */
+  function renderPublic(input, now) {
+    if (input == null || input === '') return '';
+    var p;
+    if (Array.isArray(input)) p = publicRollup(input, now);
+    else if (typeof input === 'object') p = { upcoming: input.upcoming_count, cities: summaryCities(input.cities) };
+    else return '';
+    var label = publicCountLabel(p.upcoming);
+    if (!label) return '';
+    label += ' upcoming';
+    if (p.cities && p.cities.length) label += ' · ' + p.cities.join(' · ');
     return '<p class="kil-in-public" data-kil="public-rollup">' + esc(label) + '</p>';
   }
 

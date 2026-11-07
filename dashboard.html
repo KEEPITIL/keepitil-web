@@ -301,9 +301,15 @@ function moneyCell(c){
   return esc(money(c));
 }
 function fmtDate(iso,tz){ try{ if(!iso)return 'Date TBD'; return new Date(iso).toLocaleDateString('en-US',{timeZone:tz||'America/Los_Angeles',weekday:'short',month:'short',day:'numeric',year:'numeric'}); }catch(e){return '';} }
+function statusClass(status){
+  var s=String(status||'').toLowerCase();
+  if(s==='published'||s==='review'||s==='draft') return s;
+  return 'draft';
+}
 
 function card(d, focusSlug){
-  var st=(d.status||'draft').toLowerCase();
+  var raw=String(d.status||'draft');
+  var st=statusClass(raw);
   var sid=window.KilInsights?KilInsights.slugOf(d.slug):String(d.slug||'').toLowerCase().replace(/[^a-z0-9-]/g,'');
   var cov=d.cover?'<img class="ev-cov" src="'+esc(d.cover)+'" alt="" onerror="this.style.display=\'none\'">':'<div class="ev-cov"></div>';
   return '<div class="ev'+(focusSlug&&sid===focusSlug?' ev-focus':'')+'" id="ev-'+esc(sid)+'">'+cov+

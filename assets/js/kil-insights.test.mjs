@@ -98,7 +98,11 @@ test('the member page asks for the chart and the host dashboard asks for the tab
   const dash = readFileSync(new URL('../../dashboard.html', import.meta.url), 'utf8');
   assert.match(member, /renderOwner\(insights\.merge/);
   assert.match(member, /table:\s*false/);
-  assert.match(member, /renderPublic\(ev/);
+  assert.match(member, /renderPublic\(rollup/);
+  assert.match(member, /get_profile_event_summary/);
+  assert.match(dash, /function statusClass/);
+  assert.match(dash, /statusClass\(raw\)/);
+  assert.match(dash, /s==='published'\|\|s==='review'\|\|s==='draft'/);
   assert.match(memberHtml, /kil-insights\.js/);
   assert.match(memberHtml, /kil-insights\.css/);
   assert.match(dash, /kil-insights\.js/);
@@ -112,15 +116,21 @@ test('the member page asks for the chart and the host dashboard asks for the tab
 
 test('public rollup counts published upcoming events and hides ticket figures', () => {
   const html = insights.renderPublic([
-    { slug: 'soon', title: 'Soon', status: 'published', starts_at: '2026-12-01T04:00:00Z', city: 'Los Angeles', sold: 123456, revenue_cents: 987654, buyer_email: 'buyer@example.com' },
-    { slug: 'also', title: 'Also', status: 'published', starts_at: '2026-12-11T04:00:00Z', city: 'Long Beach', sold: 3 },
-    { slug: 'old', title: 'Old', status: 'published', starts_at: '2026-01-01T04:00:00Z', city: 'Hidden', sold: 9 },
-    { slug: 'draft', title: 'Draft', status: 'draft', starts_at: '2026-12-02T04:00:00Z', city: 'Draftville', sold: 8 },
-    { slug: 'lock', title: 'Lock', status: 'published', starts_at: '2026-12-03T04:00:00Z', city: 'Secret City', password_protected: true, sold: 7 }
+    { slug: 'soon', title: 'Soon', status: 'published', starts_at: '2026-12-01T04:00:00Z', city: 'Los Angeles', is_protected: false, sold: 123456, revenue_cents: 987654, buyer_email: 'buyer@example.com' },
+    { slug: 'also', title: 'Also', status: 'published', starts_at: '2026-12-11T04:00:00Z', city: 'Long Beach', is_protected: false, sold: 3 },
+    { slug: 'old', title: 'Old', status: 'published', starts_at: '2026-01-01T04:00:00Z', city: 'Hidden', is_protected: false, sold: 9 },
+    { slug: 'draft', title: 'Draft', status: 'draft', starts_at: '2026-12-02T04:00:00Z', city: 'Draftville', is_protected: false, sold: 8 },
+    { slug: 'lock', title: 'Lock', status: 'published', starts_at: '2026-12-03T04:00:00Z', city: 'Secret City', password_protected: true, sold: 7 },
+    { slug: 'unflagged', title: 'Unflagged', status: 'published', starts_at: '2026-12-04T04:00:00Z', city: 'Mystery' }
   ], NOW);
   assert.match(html, /data-kil="public-rollup"/);
-  assert.match(html, /2 upcoming · Long Beach · Los Angeles/);
-  assert.doesNotMatch(html, /123456|987654|buyer@example.com|Hidden|Draftville|Secret City|Sold|Revenue|\$/);
+  assert.match(html, /&lt;5 upcoming · Long Beach · Los Angeles/);
+  assert.doesNotMatch(html, /2 upcoming|123456|987654|buyer@example.com|Hidden|Draftville|Secret City|Mystery|Sold|Revenue|\$/);
   assert.equal(insights.renderPublic([], NOW), '');
   assert.equal(insights.renderPublic(null, NOW), '');
+  assert.match(insights.renderPublic({ upcoming_count: null, cities: ['LA'] }, NOW), /&lt;5 upcoming · LA/);
+  assert.match(insights.renderPublic({ upcoming_count: 1, cities: ['LA'], title: 'Secret' }, NOW), /&lt;5 upcoming · LA/);
+  assert.match(insights.renderPublic({ upcoming_count: 9, cities: ['LA'] }, NOW), /9 upcoming · LA/);
+  assert.equal(insights.renderPublic({ upcoming_count: 0, cities: ['LA'] }, NOW), '');
+  assert.doesNotMatch(insights.renderPublic({ upcoming_count: 1, cities: ['LA'], title: 'Secret' }, NOW), /Secret|1 upcoming/);
 });

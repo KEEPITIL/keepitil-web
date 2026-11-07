@@ -171,19 +171,64 @@
     return true;
   }
 
+  function canonicalLocale(tag) {
+    var raw = String(tag == null ? "" : tag).replace(/^\s+|\s+$/g, "");
+    if (!raw) return "";
+    try {
+      var list = Intl.getCanonicalLocales(raw);
+      if (!list || list.length !== 1 || !list[0]) return "";
+      return list[0];
+    } catch (e) {
+      return "";
+    }
+  }
+
+  /* DisplayNames returns the code itself, "root", or "Unknown Region" when it
+     does not recognize the language or region. Those are not known. */
+  function knownIntlCode(kind, code) {
+    if (!code) return false;
+    try {
+      var label = new Intl.DisplayNames(["en"], { type: kind }).of(code);
+      if (!label) return false;
+      if (String(label).toUpperCase() === String(code).toUpperCase()) return false;
+      if (/^unknown\b/i.test(label)) return false;
+      if (kind === "language" && String(label).toLowerCase() === "root") return false;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* A locale is readable only when Intl accepts it and it names a known
+     language and a known region. One bad tag makes the whole list unreadable. */
+  function readableLocales(locales) {
+    if (localesUnreadable(locales)) return null;
+    var out = [];
+    for (var i = 0; i < locales.length; i++) {
+      var canonical = canonicalLocale(locales[i]);
+      if (!canonical) return null;
+      var part = localeParts(canonical);
+      if (!knownIntlCode("language", part.lang)) return null;
+      if (!knownIntlCode("region", part.region)) return null;
+      out.push(part);
+    }
+    return out;
+  }
+
   /* True when the visitor should not be stored. An unreadable locale, a blank,
      unknown, or invalid timezone, a UTC alias, Cyprus, a European timezone, an
      EU/UK/CH region, or an EU language with no region all skip. */
   function suggestsEuUkCh(timeZone, locales) {
-    if (localesUnreadable(locales)) return true;
+    var parsed = readableLocales(locales);
+    if (!parsed) return true;
     var key = zoneKey(timeZone);
     if (!key || UTC_ALIAS[key]) return true;
     if (!isKnownZone(timeZone)) return true;
     if (/^europe\//.test(key)) return true;
     if (/^atlantic\/(canary|faroe|madeira|azores|reykjavik)$/.test(key)) return true;
     if (key === "asia/nicosia" || key === "asia/famagusta") return true;
-    for (var i = 0; i < locales.length; i++) {
-      var part = localeParts(locales[i]);
+    for (var i = 0; i < parsed.length; i++) {
+      var part = parsed[i];
       if (part.region && EU_REGION[part.region]) return true;
       if (!part.region && EU_LANG[part.lang]) return true;
     }
@@ -205,6 +250,7 @@
     var locales = null;
     try {
       if (nav.languages && typeof nav.languages.length === "number") {
+        locales = [];
         for (var i = 0; i < nav.languages.length; i++) locales.push(nav.languages[i]);
       } else if (nav.language) {
         locales = [nav.language];

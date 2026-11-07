@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
 
 const require = createRequire(import.meta.url);
 const utm = require('../assets/js/kil-utm.js');
@@ -209,6 +210,89 @@ test('Cyprus zones, UTC aliases, unknown zones, and an unreadable locale skip', 
   assert.equal(utm.trackingOff({ navigator: {}, timeZone: 'America/Los_Angeles', locales: [] }), true);
   assert.equal(utm.trackingOff({ navigator: {}, timeZone: 'America/Los_Angeles', locales: [''] }), true);
   assert.equal(utm.trackingOff({ navigator: {}, timeZone: 'Etc/GMT+1', locales: us }), false);
+  for (const locales of [['???'], ['not-a-locale'], ['zz-ZZ'], ['en'], ['en-US', '???'], ['en-US', 'not-a-locale'], ['en-US', 'zz-ZZ']]) {
+    assert.equal(utm.trackingOff({ navigator: {}, timeZone: 'America/Los_Angeles', locales }), true, JSON.stringify(locales));
+  }
+});
+
+test('a browser-like mount stores for en-US and skips a broken locale list', () => {
+  function mount(languages, search) {
+    const storage = memory();
+    const RealDTF = Intl.DateTimeFormat;
+    function DateTimeFormat(locales, options) {
+      const format = new RealDTF(locales, options);
+      const resolved = format.resolvedOptions.bind(format);
+      format.resolvedOptions = function () {
+        const out = resolved();
+        out.timeZone = 'America/Los_Angeles';
+        return out;
+      };
+      return format;
+    }
+    DateTimeFormat.supportedLocalesOf = RealDTF.supportedLocalesOf.bind(RealDTF);
+    const context = {
+      Intl: {
+        DateTimeFormat,
+        getCanonicalLocales: Intl.getCanonicalLocales.bind(Intl),
+        DisplayNames: Intl.DisplayNames
+      },
+      navigator: {
+        languages,
+        language: languages && languages.length ? languages[0] : '',
+        globalPrivacyControl: false,
+        doNotTrack: null
+      },
+      document: {
+        readyState: 'complete',
+        addEventListener() {},
+        querySelectorAll() { return []; },
+        createElement() {
+          const attrs = {};
+          return {
+            setAttribute(name, value) { attrs[name] = value; },
+            getAttribute(name) { return Object.prototype.hasOwnProperty.call(attrs, name) ? attrs[name] : null; }
+          };
+        }
+      },
+      localStorage: storage,
+      location: { search, href: 'https://keepitil.com/' + search },
+      URL,
+      URLSearchParams,
+      decodeURIComponent,
+      Date,
+      JSON,
+      Object,
+      Array,
+      String,
+      Number,
+      RegExp,
+      Math,
+      Error,
+      RangeError,
+      TypeError
+    };
+    context.window = context;
+    context.globalThis = context;
+    vm.createContext(context);
+    vm.runInContext(
+      readFileSync(new URL('../assets/js/kil-utm.js', import.meta.url), 'utf8'),
+      context,
+      { filename: 'kil-utm.js' }
+    );
+    return { api: context.KIL_UTM, storage };
+  }
+
+  const us = mount(['en-US'], '?utm_source=ig&utm_medium=social&utm_campaign=launch');
+  assert.ok(us.api, 'script mounted on the browser-like global');
+  assert.deepEqual(JSON.parse(JSON.stringify(us.api.fieldsForServer(us.storage))), {
+    utm_source: 'ig',
+    utm_medium: 'social',
+    utm_campaign: 'launch'
+  });
+
+  const broken = mount(['???'], '?utm_source=ig&utm_medium=social');
+  assert.equal(broken.api.fieldsForServer(broken.storage), null);
+  assert.equal(broken.storage.getItem(broken.api.LAST_KEY), null);
 });
 
 test('attachment rechecks expiry and the privacy gate instead of an old snapshot', () => {

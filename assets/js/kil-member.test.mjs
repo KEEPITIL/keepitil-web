@@ -350,8 +350,8 @@ test('the draft summary migration gates on profile_is_public and does not return
   assert.match(helper, /m\.under_18 IS FALSE/);
   assert.match(helper, /private\.account_age/);
   assert.match(helper, /editorial_artist/);
-  assert.match(helper, /v\.age_verified IS TRUE/);
-  assert.match(helper, /v\.revoked_at IS NULL/);
+  assert.match(helper, /a\.verified IS TRUE/);
+  assert.match(helper, /a\.method = 'house'/);
   assert.match(helper, /po\.owner_id IS NOT NULL/);
   assert.equal(/m\.age_verified/.test(helper), false);
   const summary = sql.slice(sql.indexOf('FUNCTION public.get_profile_event_summary'), sql.indexOf('FUNCTION public.get_my_ticket_summary'));

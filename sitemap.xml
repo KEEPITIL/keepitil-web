@@ -5,6 +5,13 @@
      Every URL below was fetched and confirmed to return a real page, not the router. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://keepitil.com/</loc><lastmod>2026-09-02</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <!-- Discover directory (2026-11-07). Lists are fetched in the browser on each visit,
+       so lastmod is the template date, not a snapshot of the weekend. -->
+  <url><loc>https://keepitil.com/discover/</loc><lastmod>2026-11-07</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://keepitil.com/discover/los-angeles/</loc><lastmod>2026-11-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://keepitil.com/discover/los-angeles/this-weekend/</loc><lastmod>2026-11-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://keepitil.com/discover/los-angeles/techno/</loc><lastmod>2026-11-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://keepitil.com/discover/rave-outfits/</loc><lastmod>2026-11-07</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://keepitil.com/culture/</loc><lastmod>2026-09-02</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
   <url><loc>https://keepitil.com/earn/</loc><lastmod>2026-09-02</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://keepitil.com/shop/</loc><lastmod>2026-10-31</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>

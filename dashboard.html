@@ -664,7 +664,7 @@ async function loadPostReview(){
       return '<div class="fc" id="fc-'+p.id+'">'
         +'<div class="fc-head"><img class="fc-av" src="'+esc(p.agent_avatar||'/assets/images/logo-blue-nav.png')+'" onerror="this.src=\'/assets/images/logo-blue-nav.png\'"><div class="fc-who"><b>'+esc(p.agent_name||'')+'</b><span>'+esc((p.agent||'').toUpperCase())+' · '+esc(when)+'</span></div><span class="fc-tag">'+esc(typ)+'</span></div>'
         +media
-        +'<div class="fc-body"><div class="fc-title">'+esc(p.title||'(untitled)')+'</div><div class="fc-text">'+(p.body||'')+'</div>'+buy+'</div>'
+        +'<div class="fc-body"><div class="fc-title">'+esc(p.title||'(untitled)')+'</div><div class="fc-text">'+esc(p.body||'')+'</div>'+buy+'</div>'
         +'<div class="fc-acts"><button class="approve" onclick="approveFeed(\''+p.id+'\',this)">✓ Approve &amp; publish</button><button class="deny" onclick="denyFeed(\''+p.id+'\',this)">✕ Deny</button><a class="fc-view" href="/profile?slug='+encodeURIComponent(p.agent||'')+'" target="_blank">View profile ↗</a></div>'
       +'</div>';
     }).join('')+'</div>';

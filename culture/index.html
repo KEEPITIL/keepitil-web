@@ -1105,6 +1105,8 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
 <script src="/assets/js/keepitil-radio.js?v=20260929a" defer></script>
 <script src="/keepitil-pager.js?v=20260820e" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
+<script src="/assets/js/vendor/purify.min.js?v=20261107a"></script>
+<script src="/assets/js/kil-safe-html.js?v=20261107a"></script>
 <script>
 /* COMMUNITY FEED (Founder doc step 4 + daily auto-post): profile_content posts — agents AND
    users — render at the top of Culture with the same FB card chrome. Zero-token, DB-driven. */
@@ -1131,11 +1133,14 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
     var card = frag.querySelector('.fcard');
     if(!card){ console.error('[culture] template has no .fcard root'); return ''; }
 
+    function safeHref(u){ return (window.KilSafeHtml && KilSafeHtml.safeNavUrl(u)) || ''; }
+    function safeSrc(u){ return (window.KilSafeHtml && KilSafeHtml.safeMediaUrl(u)) || ''; }
     var pid = String(n.pid == null ? '' : n.pid);
     card.setAttribute('data-pid', pid);
     /* .kil-vid is what the one-player-at-a-time IntersectionObserver watches. Only a row with a
        real embed may carry it, or the observer would try to mount a player into an event card. */
-    if(n.embed){ card.classList.add('kil-vid'); card.setAttribute('data-embed', n.embed); }
+    var embed = n.embed ? safeHref(n.embed) : '';
+    if(embed){ card.classList.add('kil-vid'); card.setAttribute('data-embed', embed); }
     else       { card.classList.remove('kil-vid'); }
     if(n.isShort) card.classList.add('kv-short');
     /* YouTube ships its own like/share controls inside the player, so a second KEEPITIL set
@@ -1162,22 +1167,26 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
          not cover with a blurred still of itself, which is the "intentional background
          treatment" instead of exposing page gaps. */
       el.style.setProperty('--kv-ar', (n.aspect || '16/9').replace('/',' / '));
-      if(n.thumb) el.style.setProperty('--kv-poster', 'url("'+String(n.thumb).replace(/"/g,'%22')+'")');
+      var posterUrl = safeSrc(n.thumb);
+      if(posterUrl) el.style.setProperty('--kv-poster', 'url("'+posterUrl.replace(/"/g,'%22')+'")');
       /* An uploaded video plays inline; everything else shows a still. */
       if(n.video){
+        var vidUrl = safeSrc(n.video);
         var img = el.querySelector('[data-kv="thumb"]');
+        if(vidUrl){
         if(img) img.remove();
         var v = document.createElement('video');
-        v.src = n.video; if(n.poster) v.poster = n.poster;
+        v.src = vidUrl; var poster = safeSrc(n.poster); if(poster) v.poster = poster;
         /* Muted ONLY while the browser still requires it; unmuted once a gesture has happened. */
         v.muted = !window.__kilSoundOK; v.volume = 0.5;
         v.loop = true; v.playsInline = true; v.controls = true;
         v.setAttribute('style','width:100%;height:100%;object-fit:'+(n.fit||'cover')+';display:block');
         el.insertBefore(v, el.firstChild);
+        }
       }
     }
     if((el = q('thumb'))){
-      el.setAttribute('src', n.thumb || '/assets/images/blog-default.jpg');
+      el.setAttribute('src', safeSrc(n.thumb) || '/assets/images/blog-default.jpg');
       el.setAttribute('alt', n.title || '');
       el.setAttribute('onerror', "this.src='/assets/images/blog-default.jpg'");
       if(n.fit) el.style.objectFit = n.fit;
@@ -1190,13 +1199,14 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
       } else el.remove();
     }
     if((el = q('title'))){
-      if(n.title){ el.textContent = n.title; el.setAttribute('href', n.href || '#');
+      if(n.title){ el.textContent = n.title; el.setAttribute('href', safeHref(n.href) || '#');
                    if(n.external){ el.setAttribute('target','_blank'); el.setAttribute('rel','noopener'); }
                    else el.removeAttribute('target'); }
       else el.remove();
     }
     if((el = q('caption'))){
-      if(n.caption){ el.innerHTML = n.caption; el.hidden = false; } else el.remove();
+      var cap = (n.caption && window.KilSafeHtml) ? KilSafeHtml.sanitize(n.caption) : '';
+      if(cap){ el.innerHTML = cap; el.hidden = false; } else el.remove();
     }
     /* ── CREATE BAR (§6/§7) ─────────────────────────────────────────────────────────────── */
     if((el = q('createbar'))){
@@ -1219,8 +1229,11 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
     if((el = q('cta'))){
       if(n.cta){
         el.hidden = false;
+        var ctaHref = safeHref(n.cta.href);
+        if(!ctaHref){ el.remove(); }
+        else {
         el.textContent = n.cta.label;
-        el.setAttribute('href', n.cta.href);
+        el.setAttribute('href', ctaHref);
         if(n.cta.external){ el.setAttribute('target','_blank'); el.setAttribute('rel', n.cta.rel || 'noopener'); }
         el.style.background = n.cta.bg; el.style.color = n.cta.fg;
         if(n.cta.note){
@@ -1228,15 +1241,17 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
           note.className = 'kv-cta-note'; note.textContent = n.cta.note;
           el.insertAdjacentElement('afterend', note);
         }
+        }
       } else el.remove();
     }
     if((el = q('creator'))){
-      el.setAttribute('href', n.creatorHref || '#');
+      el.setAttribute('href', safeHref(n.creatorHref) || '#');
       if(n.external && n.provider){ el.setAttribute('target','_blank'); el.setAttribute('rel','noopener'); }
       else el.removeAttribute('target');
     }
     if((el = q('avatar'))){
-      if(n.avatar) el.style.backgroundImage = 'url(' + n.avatar + ')';
+      var av = safeSrc(n.avatar);
+      if(av) el.style.backgroundImage = 'url("' + av.replace(/"/g,'%22') + '")';
       else el.textContent = (n.name || '?').trim().charAt(0).toUpperCase();
     }
     if((el = q('name'))) el.textContent = n.name || '';
@@ -1244,11 +1259,11 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
     if((el = q('source'))){
       /* Platform icon belongs to third-party media only — a KEEPITIL event has no "source". */
       if(n.provider){
-        el.setAttribute('href', n.href);
+        el.setAttribute('href', safeHref(n.href) || '#');
         el.setAttribute('title', 'Watch at the source');
         var slot = el.querySelector('[data-kv-icon]');
         if(slot) slot.innerHTML = KV_ICONS[n.provider] ||
-          ('<b style="font:800 .72rem Inter,sans-serif">'+(n.provider.charAt(0).toUpperCase())+'</b>');
+          ('<b style="font:800 .72rem Inter,sans-serif">'+h(n.provider.charAt(0).toUpperCase())+'</b>');
       } else el.remove();
     }
 
@@ -1257,7 +1272,7 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
     var on = function(sel, fn){ var b = frag.querySelector(sel); if(b) b.setAttribute('onclick', fn); };
     on('.fba-like',  "fbLike('"+pe+"',this)");
     on('.fba-resh',  "fbReshareL('"+pe+"',this)");
-    on('.fba-share', "fbShare('"+String(n.href||'').replace(/'/g,"\\'")+"')");
+    on('.fba-share', "fbShare('"+String(safeHref(n.href)||'').replace(/'/g,"\\'")+"')");
     on('.fb-save',   "fbSaveL('"+pe+"',this)");
 
     var box = document.createElement('div');
@@ -1355,6 +1370,8 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
          touched here. Artist articles are unaffected: they are not kind 'article'. */
       var ad=r.data||{};
       var awhen=''; try{var at=new Date(r.created_at); if(!isNaN(at)) awhen=at.toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'});}catch(x){}
+      var rawBody=ad.body||ad.html||ad.caption||'';
+      var safeBody=(window.KilSafeHtml && KilSafeHtml.sanitize(String(rawBody))) || '';
       /* ── AN ARTICLE OPENS THE ARTICLE (Founder 2026-09-05) ────────────────────────────
          culArticleToRow() puts the canonical route in data.source_url — /article/<slug>/ or
          /article/artist/<slug>/. This branch was reading data.url, which those rows do not
@@ -1373,10 +1390,10 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
             badge:'ARTICLE', badgeBg:'rgba(160,107,255,.95)', badgeFg:'#150a24',
             title:ad.t||r.title||'Untitled',
             name:r.author_name||r.profile_slug, avatar:r.author_avatar, creatorHref:ahref||url,
-            meta:awhen, caption:'', articleBody:(ad.body||ad.html||ad.caption||'') };
+            meta:awhen, caption:'', articleBody:safeBody };
       /* Stashed rather than rendered inline: the collapsed card is image + title, and the body
-         only appears inside the MORE overlay. */
-      try{ (window.__culArticleBodies=window.__culArticleBodies||{})[r.id]=(ad.body||ad.html||ad.caption||''); }catch(e){}
+         only appears inside the MORE overlay. Stored HTML is sanitized before it is kept. */
+      try{ (window.__culArticleBodies=window.__culArticleBodies||{})[r.id]=safeBody; }catch(e){}
 
     } else {
       /* Written post / PIX. */
@@ -1387,7 +1404,7 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
             video:(media.mtype==='video'&&media.src)?media.src:'', poster:d.cover||'',
             title:d.t||'',
             name:r.author_name||r.profile_slug, avatar:r.author_avatar, creatorHref:url,
-            meta:'', caption:d.html||'',
+            meta:'', caption:(window.KilSafeHtml?KilSafeHtml.renderStored({desc:d.desc,text:d.text,body_text:d.body_text,img:media.src||d.img,mtype:media.mtype||d.mtype,tags:d.tags,collab:d.collab,location:d.location,html:d.html}):''),
             cta: d.buy_url ? {label:'\ud83d\uded2 '+(d.buy_label||'Buy on Amazon'), href:d.buy_url,
                               bg:'#ff9900', fg:'#111', external:true, rel:'noopener sponsored nofollow',
                               note:d.disclosure||'#ad \u00b7 affiliate'} : null };
@@ -2169,6 +2186,7 @@ window.culFetchMedia = culFetchMedia;
     if(card === current) return;
     stop(current); current = card;
     var url = card.getAttribute('data-embed'); if(!url) return;
+    if(window.KilSafeHtml){ url = KilSafeHtml.safeNavUrl(url); if(!url) return; }
     var well = card.querySelector('.kil-vid-well'); if(!well || well.querySelector('iframe')) return;
     var f = document.createElement('iframe');
     /* VOLUME 50% (Founder 2026-08-21). The iframe MUST still start muted — every browser blocks
@@ -3470,7 +3488,8 @@ function culResolveFilters(){
   function bodyFor(card){
     var pid=card.getAttribute('data-pid')||'';
     var map=window.__culArticleBodies||{};
-    return map[pid]||'';
+    var raw=map[pid]||'';
+    return (window.KilSafeHtml && KilSafeHtml.sanitize(raw)) || '';
   }
   function isArticle(card){
     var b=card.querySelector('.kv-badge');
@@ -3493,7 +3512,7 @@ function culResolveFilters(){
         if(!art) return '';
         /* Strip anything that would fight the sheet or re-enter the page. */
         art.querySelectorAll('script,style,iframe,nav,header,footer').forEach(function(n){n.remove();});
-        return art.innerHTML;
+        return (window.KilSafeHtml && KilSafeHtml.sanitize(art.innerHTML)) || '';
       })
       .catch(function(){ return ''; });
   }
@@ -3510,8 +3529,9 @@ function culResolveFilters(){
     var layer=document.createElement('div');
     layer.className='kv-readlayer';
     var title=(card.querySelector('.kv-title')||{}).textContent||'';
-    layer.innerHTML='<div class="kv-read-h"></div>'+html;
+    layer.innerHTML='<div class="kv-read-h"></div>';
     layer.querySelector('.kv-read-h').textContent=title;
+    if(html){ var intro=document.createElement('div'); intro.innerHTML=html; layer.appendChild(intro); }
     well.appendChild(layer);
 
     var btn=document.createElement('button');

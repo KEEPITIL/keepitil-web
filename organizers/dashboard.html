@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="/assets/js/vendor/supabase-js.min.js"></script>
+<script src="/assets/js/kil-safe-html.js?v=20261107a"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     :root{
@@ -473,15 +474,16 @@ async function loadOverview() {
 }
 
 // ─── EVENTS ──────────────────────────────────────────────────────────────────
+function escHtml(s){ return (window.KilSafeHtml ? KilSafeHtml.esc(s) : String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; })); }
 function eventCardHTML(ev) {
   const statusClass = {pending:'badge-pending',approved:'badge-approved',live:'badge-live',rejected:'badge-rejected'};
   return `<div class="event-card">
     <div>
-      <div class="event-name">${ev.event_name}</div>
-      <div class="event-meta">${ev.event_date} · ${ev.venue_name || ''} · ${ev.city || ''}</div>
+      <div class="event-name">${escHtml(ev.event_name)}</div>
+      <div class="event-meta">${escHtml(ev.event_date)} · ${escHtml(ev.venue_name || '')} · ${escHtml(ev.city || '')}</div>
     </div>
     <div class="event-actions">
-      <span class="badge ${statusClass[ev.status]||'badge-pending'}">${ev.status}</span>
+      <span class="badge ${statusClass[ev.status]||'badge-pending'}">${escHtml(ev.status)}</span>
     </div>
   </div>`;
 }
@@ -508,13 +510,13 @@ async function loadMarketing() {
     const channels = [
       {icon:'📲', label:'Posh Blast', done: m.posh_blast, date: m.posh_blast_at, reach: m.posh_followers_reached ? `${m.posh_followers_reached} reached` : ''},
       {icon:'📧', label:'EB Email', done: m.email_campaign, date: m.email_campaign_at, reach: m.emails_sent ? `${m.emails_sent} sent` : ''},
-      {icon:'📸', label:'IG Collab', done: m.ig_collab, date: m.ig_collab_at, reach: m.ig_post_url ? '<a href="'+m.ig_post_url+'" target="_blank" style="color:var(--blue);">View post</a>' : ''},
+      {icon:'📸', label:'IG Collab', done: m.ig_collab, date: m.ig_collab_at, reach: (function(){ var u=window.KilSafeHtml&&KilSafeHtml.safeNavUrl(m.ig_post_url); return u ? '<a href="'+escHtml(u)+'" target="_blank" rel="noopener" style="color:var(--blue);">View post</a>' : ''; })()},
       {icon:'🗺', label:'Explore', done: m.explore_featured, date: m.explore_featured_at, reach: ''},
     ];
     return `<div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
-        <div class="card-title" style="margin:0;">${ev.event_name}</div>
-        <span style="font-size:.8rem;color:var(--grey);">${ev.event_date}</span>
+        <div class="card-title" style="margin:0;">${escHtml(ev.event_name)}</div>
+        <span style="font-size:.8rem;color:var(--grey);">${escHtml(ev.event_date)}</span>
       </div>
       <div class="marketing-grid">
         ${channels.map(c=>`<div class="mkt-channel">

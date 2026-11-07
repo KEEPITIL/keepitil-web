@@ -191,8 +191,9 @@
           var html = session
             ? '<div class="kil-cmt-new"><input class="kil-cmt-in" maxlength="2000" placeholder="Add a comment…"/><button class="kil-cmt-post">Post</button></div>'
             : '<div class="kil-cmt-login"><a href="/apply">Log in</a> to comment.</div>';
+          function cmtEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
           html += list.length
-            ? list.map(function (x) { return '<div class="kil-cmt"><b>@' + (x.author_handle || "member") + "</b> " + String(x.body).replace(/</g, "&lt;") + "</div>"; }).join("")
+            ? list.map(function (x) { return '<div class="kil-cmt"><b>@' + cmtEsc(x.author_handle || "member") + "</b> " + cmtEsc(x.body) + "</div>"; }).join("")
             : '<div class="kil-cmt-empty">Be the first to comment.</div>';
           panel.innerHTML = html;
           var pb = panel.querySelector(".kil-cmt-post");

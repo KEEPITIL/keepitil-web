@@ -8,7 +8,7 @@
 <html lang="en" data-theme="dark" data-view="owner">
 <head>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/>
-<meta name="robots" content="index,follow">
+<meta name="robots" content="noindex">
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
   <!-- NO STATIC CANONICAL: this page is identified by ?slug=<slug>, so one hardcoded value
@@ -17,7 +17,18 @@
 <title>Profile | KEEPITIL</title>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
-<meta name="description" content="KEEPITIL is a culture platform built to discover, connect, create, share and earn through people, events, media and community."/>
+<meta name="description" content="A KEEPITIL profile."/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:title" content="Profile | KEEPITIL"/>
+  <meta property="og:description" content="A KEEPITIL profile."/>
+  <meta property="og:image" content="https://keepitil.com/keepitil-og.png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Profile | KEEPITIL"/>
+  <meta name="twitter:description" content="A KEEPITIL profile."/>
+  <meta name="twitter:image" content="https://keepitil.com/keepitil-og.png"/>
+  <script src="/assets/js/kil-share.js?v=20261107a"></script>
   <link rel="icon" type="image/png" href="/assets/images/logo-green-nav.png"/>
   <script>(function(){try{var t=localStorage.getItem('kil-theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -628,7 +639,13 @@ window.KIL_FILTER_BADGES = function(badges){
 <!-- HEADER (social icons now live here) -->
 <!-- P0 fix 2026-07-16: hero ships BLANK (skeleton) — live/demo data is applied by JS only.
      A new/empty profile must render a blank, fillable page — never someone else's identity. -->
-<style>@keyframes pfskel{50%{opacity:.45}}.pf-skel{animation:pfskel 1.2s ease-in-out infinite}</style>
+<style>@keyframes pfskel{50%{opacity:.45}}.pf-skel{animation:pfskel 1.2s ease-in-out infinite}
+body.kil-private>*:not(#kilPrivateStub):not(script):not(style):not(#main-nav):not(#v3shell-nav):not(.mobile-menu){display:none!important}
+#kilPrivateStub{min-height:calc(100vh - 150px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 28px 110px;color:#fff;background:#05070d}
+#kilPrivateStub .m1-av-ring{display:block;width:132px;height:132px;border-radius:50%;border:2px solid #3aa0ff;background:#0c2744;margin:0 0 28px}
+#kilPrivateStub h1{font-family:'Bebas Neue',Inter,sans-serif;font-weight:400;font-size:2rem;letter-spacing:.06em;text-transform:uppercase;margin:0 0 22px;color:#fff}
+#kilPrivateStub a{display:flex;align-items:center;justify-content:center;width:min(100%,340px);min-height:52px;border-radius:999px;background:#2f9bff;color:#071018;font-weight:700;text-decoration:none;font-size:1rem}
+</style>
 <button id="pfBack" onclick="history.back()">‹ Previous</button>
 <div class="pf-cover"><img id="pfCover" src="" alt="" style="display:none" onerror="this.style.display='none'"></div>
 <div class="pf-head">
@@ -828,6 +845,8 @@ window.KIL_FILTER_BADGES = function(badges){
 <!-- custom footer removed: the universal shell footer (#v3-footer, same as the homepage) is injected by keepitil-shell.js -->
 <!-- pfFootSocials removed (Founder 2026-07-31): socials/links live only in the header Links row, not duplicated at the bottom of the page -->
 
+<script src="/assets/js/vendor/qrcode.js"></script>
+<script src="/assets/js/kil-ticket-qr.js"></script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <!-- Nudity / explicit-content moderation for image uploads (in-browser, no keys) -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js" defer></script>
@@ -877,8 +896,6 @@ var SB=null; try{ if(window.supabase) SB=window.supabase.createClient(SUPA_URL,S
 /* ── first-party Insights: log a profile view + owner-only Insights popup (free, no 3rd-party analytics) ── */
 function _kilSid(){ try{ var k=localStorage.getItem('kil_sid'); if(!k){ k=Math.random().toString(36).slice(2)+Date.now().toString(36); localStorage.setItem('kil_sid',k); } return k; }catch(e){ return 'anon'; } }
 try{ if(SB && PROFILE_SLUG){ SB.rpc('log_view',{p_kind:'profile',p_target:PROFILE_SLUG,p_owner:PROFILE_SLUG,p_sess:_kilSid()}); } }catch(e){}
-/* hand the signed-in session down to the embedded chat iframe when it asks */
-window.addEventListener('message',function(e){ if(e&&e.data&&e.data.kilNeedSession&&SB&&e.source){ try{ SB.auth.getSession().then(function(r){ var s=r&&r.data?r.data.session:null; if(s){ e.source.postMessage({kilSession:{access_token:s.access_token,refresh_token:s.refresh_token}},'*'); } }); }catch(_e){} } });
 function openInsights(){
   if(!SB){ return; }
   var ov=document.createElement('div'); ov.id='insOv';
@@ -910,25 +927,21 @@ function openInsights(){
 var SESSION=null, DB_OK=false, OWNS=false;
 /* Edit controls show only in the owner variant AND when the signed-in user actually owns this profile. */
 function CAN_EDIT(){ return IS_OWNER && OWNS; }
-/* S2 — "is this profile claimed by ANYONE", which is a different question from "can I edit it".
-   profile_owners is world-readable, so this resolves for signed-out visitors too. Until it
-   resolves KIL_IS_CLAIMED stays false, because the safe default is the one that cannot
-   overclaim: an editorial profile briefly labelled correctly is fine, a real member's profile
-   briefly labelled "Profile" is not a truthfulness failure. */
+/* S2 — "is this profile claimed by the signed-in user". Owner ids are not readable.
+   Until i_own_profile resolves, KIL_IS_CLAIMED stays false. */
 window.KIL_CLAIMED_READY = Promise.resolve(false);
 function checkClaimed(){
-  if(!SB) return Promise.resolve(false);
-  window.KIL_CLAIMED_READY = SB.from('profile_owners').select('profile_slug')
-    .eq('profile_slug',PROFILE_SLUG).maybeSingle()
-    .then(function(r){ window.KIL_IS_CLAIMED = !!(r&&r.data); return window.KIL_IS_CLAIMED; })
+  if(!SB||!SESSION){ window.KIL_IS_CLAIMED=false; window.KIL_CLAIMED_READY=Promise.resolve(false); return window.KIL_CLAIMED_READY; }
+  window.KIL_CLAIMED_READY = SB.rpc('i_own_profile',{slug:PROFILE_SLUG})
+    .then(function(r){ window.KIL_IS_CLAIMED = !!(r&&r.data===true); return window.KIL_IS_CLAIMED; })
     .catch(function(){ window.KIL_IS_CLAIMED = false; return false; });
   return window.KIL_CLAIMED_READY;
 }
 function checkOwnership(){
   OWNS=false;
   if(!SB||!SESSION) return Promise.resolve(false);
-  return SB.from('profile_owners').select('owner_id').eq('profile_slug',PROFILE_SLUG).maybeSingle().then(function(r){
-    OWNS = !!(r&&r.data&&r.data.owner_id===SESSION.user.id); return OWNS;
+  return SB.rpc('i_own_profile',{slug:PROFILE_SLUG}).then(function(r){
+    OWNS = !!(r&&r.data===true); return OWNS;
   }).catch(function(){ OWNS=false; return false; });
 }
 /* ── FILTER BAR ROUTING (Founder 2026-08-26) ──────────────────────────────────────────────
@@ -1231,7 +1244,9 @@ function mytixScroll(dir){ var row=document.getElementById('mytix-row'); if(!row
 function mytixMark(){ var car=document.getElementById('mytix-car'), row=document.getElementById('mytix-row'); if(!car||!row)return; var prev=car.querySelector('.mytix-arrow.prev'), next=car.querySelector('.mytix-arrow.next'); function upd(){ var sc=row.scrollWidth-row.clientWidth>4; car.classList.toggle('scrollable',sc); if(prev)prev.disabled=row.scrollLeft<=2; if(next)next.disabled=row.scrollLeft>=row.scrollWidth-row.clientWidth-2; } upd(); row.onscroll=upd; }
 function openTicket(i){
   var t=MY_TIX[i]; if(!t) return; closeModal();
-  var qr='https://api.qrserver.com/v1/create-qr-code/?size=180x180&data='+encodeURIComponent(t.qr_token||t.slug||'');
+  var door=KilTicketQr.payload(t.qr_token);
+  var qr='';
+  if(door){ var qrDraw=qrcode(0,'M'); qrDraw.addData(door); qrDraw.make(); qr=qrDraw.createDataURL(4,0); }
   var flyer=t.cover_url?'<img src="'+esc(t.cover_url)+'" alt="" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" onerror="this.style.display=\'none\'">':'';
   var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';
   ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Your Ticket<button class="kil-mx" onclick="closeModal()">&times;</button></div><div class="kil-mb">'
@@ -1472,28 +1487,56 @@ function renderLinksMenu(){
   if(menu)menu.innerHTML='';
   if(row){ row.style.display='flex'; row.innerHTML=capped.map(function(it){ return '<a href="'+String(it.url).replace(/"/g,'')+'" target="_blank" rel="noopener" title="'+it.label.replace(/"/g,'')+'" aria-label="'+it.label.replace(/"/g,'')+'" style="flex:0 0 auto;width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid var(--line,rgba(255,255,255,.12));text-decoration:none;color:#fff">'+pfSvg(it.key)+'</a>'; }).join(''); }
 }
+function applyMetaRow(d, owner){
+  if(!d) return;
+  PROFILE.name=d.display_name||PROFILE.name; PROFILE.handle=d.handle||PROFILE.handle; PROFILE.location=d.location||PROFILE.location;
+  PROFILE.bio=(d.bio!=null?d.bio:PROFILE.bio); PROFILE.tagline=(d.tagline!=null?d.tagline:PROFILE.tagline);
+  if(owner){ PROFILE.pronouns=d.pronouns||PROFILE.pronouns; PROFILE.book_email=d.book_email||PROFILE.book_email; PROFILE.cover=d.cover_url||PROFILE.cover; PROFILE.cover_mobile=d.cover_mobile_url||PROFILE.cover_mobile; }
+  PROFILE.avatar=d.avatar_url||PROFILE.avatar;
+  if(d.socials&&typeof d.socials==='object')PROFILE.socials=Object.assign({},PROFILE.socials,d.socials);
+  if(Array.isArray(d.links))PROFILE.links=d.links;
+  if(owner && Array.isArray(d.highlights)&&d.highlights.length)PROFILE.highlights=d.highlights;
+  if(d.about!=null)PROFILE.about=d.about;
+  if(d.account_type)PROFILE.account_type=d.account_type;
+  if(d.links_label)PROFILE.links_label=d.links_label;
+  if(Array.isArray(d.badges))PROFILE.badges=d.badges;
+  PROFILE.profile_public=d.profile_public===true;
+  PROFILE.public_fields=Array.isArray(d.public_fields)?d.public_fields.slice():[];
+  try{
+    if(window.KilShare){
+      var face=KilShare.publicFace({ slug:PROFILE_SLUG, display_name:d.display_name, handle:d.handle, bio:d.bio, tagline:d.tagline, avatar_url:d.avatar_url, status:d.status, account_type:d.account_type, admin_approved:d.admin_approved, is_minor:d.is_minor, under_18:d.under_18, age_verified:d.age_verified, profile_public:d.profile_public, public_fields:d.public_fields }, { path:'/profile' });
+      KilShare.applyPreview(document, face || null);
+    }
+  }catch(e){}
+}
+function showPrivateStub(){
+  document.body.classList.add('kil-private');
+  if(!document.getElementById('kilPrivateStub')){
+    var d=document.createElement('div');
+    d.id='kilPrivateStub';
+    d.setAttribute('data-m1','private-stub');
+    d.innerHTML='<span class="m1-av m1-av-ring" aria-hidden="true"></span><h1>THIS PROFILE IS PRIVATE</h1><a class="m1-discover" href="/">Discover events</a>';
+    document.body.insertBefore(d, document.body.firstChild);
+  }
+  try{ if(window.KilShare) KilShare.applyPreview(document, null); }catch(e){}
+  document.title='Profile — KEEPITIL';
+  var rob=document.querySelector('meta[name="robots"]');
+  if(rob) rob.setAttribute('content','noindex');
+}
 function loadProfileMeta(){
   if(!SB) return Promise.resolve();
-  return SB.from('profile_meta').select('*').eq('slug',PROFILE_SLUG).maybeSingle().then(function(r){
-    /* SOFT-404: an explicit ?slug= that matches no profile. Guarded on PROFILE_SLUG being
-       present so the owner's own view — which arrives here without a slug and is redirected
-       elsewhere — is never mistaken for a missing profile. */
-    if(PROFILE_SLUG && !(r&&r.data) && window.KIL_NOT_FOUND){
-      window.KIL_NOT_FOUND({ what:'profile', heading:'That profile isn’t here',
-        body:'It may have been removed, renamed, or the link may be wrong.',
-        links:[['/connect/','Browse the Scene'],['/','Explore'],['/apply','Claim your profile']] });
-      return;
-    }
-    if(r&&r.data){var d=r.data;
-      PROFILE.name=d.display_name||PROFILE.name; PROFILE.handle=d.handle||PROFILE.handle; PROFILE.location=d.location||PROFILE.location;
-      PROFILE.bio=(d.bio!=null?d.bio:PROFILE.bio); PROFILE.tagline=(d.tagline!=null?d.tagline:PROFILE.tagline); PROFILE.pronouns=d.pronouns||PROFILE.pronouns;
-      PROFILE.avatar=d.avatar_url||PROFILE.avatar; PROFILE.cover=d.cover_url||PROFILE.cover; PROFILE.cover_mobile=d.cover_mobile_url||PROFILE.cover_mobile; PROFILE.book_email=d.book_email||PROFILE.book_email;
-      if(d.socials&&typeof d.socials==='object')PROFILE.socials=Object.assign({},PROFILE.socials,d.socials);
-      if(Array.isArray(d.links))PROFILE.links=d.links;
-      if(Array.isArray(d.highlights)&&d.highlights.length)PROFILE.highlights=d.highlights;
-    }
+  var owner=(typeof CAN_EDIT==='function')&&CAN_EDIT()&&!!SESSION;
+  /* Logged-out (and non-owners) use the one-slug public lookup. The table read is the owner only. */
+  var req=owner
+    ? SB.from('profile_meta').select('slug,display_name,handle,location,bio,tagline,pronouns,avatar_url,cover_url,cover_mobile_url,book_email,socials,links,highlights,about,account_type,links_label,badges,status,is_minor,under_18,age_verified,profile_public,public_fields,admin_approved').eq('slug',PROFILE_SLUG).maybeSingle()
+    : SB.rpc('get_public_profile',{p_slug:PROFILE_SLUG}).then(function(r){ var row=r&&r.data; if(Array.isArray(row)) row=row[0]||null; return { data: row }; });
+  return req.then(function(r){
+    var row=r&&r.data;
+    var shareable=row&&window.KilShare&&KilShare.profileIsShareable(row);
+    if(!owner && !(row&&shareable)){ showPrivateStub(); return; }
+    if(row) applyMetaRow(row, owner);
     applyProfile(); loadCategories();
-  }).catch(function(){ applyProfile(); });
+  }).catch(function(){ if(!owner) showPrivateStub(); });
 }
 function loadCategories(){
   if(!SB) return;
@@ -1566,7 +1609,9 @@ document.addEventListener('click',function(e){ var w=document.getElementById('pf
    is not a link anyone can open, so anything but keepitil.com itself shares the canonical https://keepitil.com. */
 var KIL_SHARE_ORIGIN=(/^https:\/\/(www\.)?keepitil\.com$/i.test(location.origin)?location.origin:'https://keepitil.com');
 function shareTo(net){
-  var url=(typeof PROFILE_SLUG!=='undefined'&&PROFILE_SLUG)?KIL_SHARE_ORIGIN+'/profile?slug='+encodeURIComponent(PROFILE_SLUG):KIL_SHARE_ORIGIN+location.pathname;
+  /* Profile shares: utm_source and utm_medium only. No utm_campaign, and no id, handle, or email in a UTM. */
+  var url=(window.KilShare&&typeof PROFILE_SLUG!=='undefined'&&PROFILE_SLUG)?KilShare.profileShareUrl(PROFILE_SLUG,'/profile')
+    :((typeof PROFILE_SLUG!=='undefined'&&PROFILE_SLUG)?KIL_SHARE_ORIGIN+'/profile?slug='+encodeURIComponent(PROFILE_SLUG)+'&utm_source=share&utm_medium=profile':KIL_SHARE_ORIGIN+location.pathname);
   var title=(typeof PROFILE!=='undefined'&&PROFILE.name)?PROFILE.name+' on KEEPITIL':document.title;
   var u=encodeURIComponent(url), t=encodeURIComponent(title), body=encodeURIComponent(title+' — '+url);
   var link='';
@@ -1644,7 +1689,9 @@ function openEditProfile(){
     '<label class="kil-mf"><span>Location</span><input type="text" id="epLoc" value="'+esc(PROFILE.location||'')+'"></label></div>'+
     '<label class="kil-mf"><span>About me</span><textarea id="epBio" rows="3">'+esc(PROFILE.bio||'')+'</textarea></label>'+
     '<label class="kil-mf"><span>About section (shown in the header)</span><textarea id="epAbout" rows="2">'+esc(PROFILE.about||'')+'</textarea></label>'+
-    '<label class="kil-mf"><span>Account type</span><select id="epAcct"><option value="">—</option><option value="user">User</option><option value="artist">Artist</option><option value="brand">Brand</option><option value="organizer">Organizer</option></select></label>'+
+    '<label class="kil-mf"><span>Account type</span><input type="text" id="epAcctShown" value="'+esc(PROFILE.account_type||'Not set')+'" disabled></label>'+
+    '<label class="kil-mf"><span>Request a business type</span><select id="epAcctRequest"><option value="">No request</option><option value="artist">Artist</option><option value="brand">Brand</option><option value="organizer">Organizer</option></select></label>'+
+    '<div class="kil-note">An admin sets the account type. This sends a request. It does not change your type.</div>'+
     '<div class="kil-sec">Profile links (up to 5)</div>'+
     '<label class="kil-mf"><span>Links dropdown title (what the button says)</span><input type="text" id="epLinksLabel" value="'+esc(PROFILE.links_label||'')+'" placeholder="Links" maxlength="24"></label>'+
     [1,2,3,4,5].map(function(i){return '<label class="kil-mf"><span>Link '+i+'</span><input type="text" id="epL'+i+'" value="'+esc((PROFILE.links||[])[i-1]||'')+'" placeholder="https://…"></label>';}).join('')+
@@ -1684,6 +1731,20 @@ function openEditProfile(){
       '<label class="kil-mf"><span>Age policy</span><input type="text" id="epVenAge" placeholder="18+ / 21+ / All ages"></label></div>'+
       '<label class="kil-mf"><span>Events / calendar link</span><input type="text" id="epVenCal" placeholder="https://…"></label>'+
     '</div>'+
+    '<div class="kil-sec">Public page</div>'+
+    '<label class="kil-mf" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="epPublic"> Show this page publicly</label>'+
+    '<div class="kil-note">An admin attestation does not publish the page. You choose that here, and you pick at least one field. With the box off, or with no fields picked, the page stays private.</div>'+
+    '<div class="kil-cats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="display_name"> Name</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="handle"> Handle</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="avatar_url"> Photo</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="bio"> Bio</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="tagline"> Tagline</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="location"> Location</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="about"> About</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="links"> Links</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="events"> Upcoming events</label>'+
+    '</div>'+
     '<div class="kil-sec">Account &amp; login</div>'+
     '<label class="kil-mf"><span>Login email</span><input type="text" id="epEmail" value="'+esc((SESSION&&SESSION.user&&SESSION.user.email)||'')+'"></label>'+
     '<div class="kil-row2"><label class="kil-mf"><span>New password</span><input type="password" id="epPass" placeholder="leave blank to keep"></label>'+
@@ -1699,6 +1760,9 @@ function openEditProfile(){
   // prefill categories + per-category details
   var cats=(PROFILE.categories||[]), det=(PROFILE.cat_details||{});
   document.querySelectorAll('.epCat').forEach(function(c){ c.checked=cats.indexOf(c.value)>-1; });
+  var epPublic=document.getElementById('epPublic'); if(epPublic) epPublic.checked=PROFILE.profile_public===true;
+  var epFields=Array.isArray(PROFILE.public_fields)?PROFILE.public_fields:[];
+  document.querySelectorAll('.epField').forEach(function(c){ c.checked=epFields.indexOf(c.value)>-1; });
   var _pb=Array.isArray(PROFILE.badges)?PROFILE.badges:null; document.querySelectorAll('.epBadge').forEach(function(c){ c.checked=_pb?(_pb.indexOf(c.value)>-1):(c.value==='Member'); });
   function sv(id,val){var e=document.getElementById(id); if(e&&val) e.value=val;}
   var a=det.artist||{},b=det.brand||{},o=det.organizer||{},v=det.venue||{};
@@ -1727,6 +1791,15 @@ function saveCategories(){
     SB.from('profile_content').insert({profile_slug:PROFILE_SLUG,kind:'profile_categories',data:cd,created_by:SESSION.user.id});
   }).catch(function(){});
 }
+function requestAccountType(){
+  var el=document.getElementById('epAcctRequest');
+  var want=el?String(el.value||'').trim():'';
+  if(!want||!SB||!SESSION||!PROFILE_SLUG) return;
+  if(want!=='artist'&&want!=='brand'&&want!=='organizer') return;
+  SB.from('profile_content').delete().eq('profile_slug',PROFILE_SLUG).eq('kind','account_type_request').then(function(){
+    SB.from('profile_content').insert({profile_slug:PROFILE_SLUG,kind:'account_type_request',data:{requested:want},created_by:SESSION.user.id});
+  }).catch(function(){});
+}
 function saveEditProfile(){
   var g=function(id){var e=document.getElementById(id);return e?e.value.trim():'';};
   var btn=document.getElementById('epSave'); if(btn){btn.disabled=true;btn.textContent='Saving…';}
@@ -1743,27 +1816,39 @@ function saveEditProfile(){
         var _links=[1,2,3,4,5].map(function(i){return g('epL'+i);}).filter(function(u){return u&&/^https?:\/\//.test(u);}).slice(0,5);
         var _badges=[].slice.call(document.querySelectorAll('.epBadge:checked')).map(function(c){return c.value;});
         /* pronouns/tagline/booking-email fields were removed from Edit Profile (dup) — preserve existing values (Founder 2026-07-29) */
-        var meta={ slug:PROFILE_SLUG, display_name:g('epName'), handle:g('epHandle').replace(/^@/,''), location:g('epLoc'), bio:g('epBio'),
+        var meta={ display_name:g('epName'), handle:g('epHandle').replace(/^@/,''), location:g('epLoc'), bio:g('epBio'),
           tagline:(document.getElementById('epTag')?g('epTag'):(PROFILE.tagline||null)), pronouns:(document.getElementById('epPro')?g('epPro'):(PROFILE.pronouns||null)), book_email:(document.getElementById('epBook')?g('epBook'):(PROFILE.book_email||null)),
-          about:g('epAbout')||null, links:_links.length?_links:null, links_label:g('epLinksLabel')||null, badges:_badges.length?_badges:null, account_type:(document.getElementById('epAcct')||{}).value||null,
+          about:g('epAbout')||null, links:_links.length?_links:null, links_label:g('epLinksLabel')||null, badges:_badges.length?_badges:null,
           avatar_url: avUrl || g('epAvatarUrl') || PROFILE.avatar,
           cover_url: cvUrl || g('epCoverUrl') || PROFILE.cover,
           cover_mobile_url: cvmUrl || g('epCoverMUrl') || PROFILE.cover_mobile || null,
           socials:{ instagram:g('epIG'), soundcloud:g('epSC'), tiktok:g('epTT'), website:g('epWeb') },
-          highlights: hlDone, updated_at:new Date().toISOString() };
+          highlights: hlDone, updated_at:new Date().toISOString(),
+          profile_public: !!(document.getElementById('epPublic')&&document.getElementById('epPublic').checked),
+          public_fields: [].slice.call(document.querySelectorAll('.epField:checked')).map(function(c){return c.value;}) };
         if(!SB||!SESSION){ Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url,cover:meta.cover_url,cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights}); applyProfile(); closeModal(); toast('Saved locally — sign in as owner to publish.'); return; }
-        SB.from('profile_meta').upsert(meta).then(function(r){
-          if(r&&r.error){ toast('Could not save profile: '+(r.error.message||'')); if(btn){btn.disabled=false;btn.textContent='Save changes';} return; }
+        function savedProfile(){
           Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url,cover:meta.cover_url,cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights});
           applyProfile();
           saveCategories();
-          // account email/password
+          requestAccountType();
           var email=g('epEmail'), pass=g('epPass'), pass2=g('epPass2'), upd={};
           if(email && SESSION.user && email!==SESSION.user.email) upd.email=email;
           if(pass){ if(pass!==pass2){ toast('Profile saved. Passwords did not match — password unchanged.'); closeModal(); return; } upd.password=pass; }
           if(Object.keys(upd).length){ SB.auth.updateUser(upd).then(function(a){ closeModal(); toast(a&&a.error?('Profile saved. Account: '+a.error.message):'Profile + account updated.'+(upd.email?' Check your email to confirm the new address.':'')); }).catch(function(){ closeModal(); toast('Profile saved. Account update failed.'); }); }
           else { closeModal(); toast('Profile updated.'); }
-        }).catch(function(){ if(btn){btn.disabled=false;btn.textContent='Save changes';} toast('Could not save profile.'); });
+        }
+        function saveFailed(err){ toast('Could not save profile: '+((err&&err.message)||'')); if(btn){btn.disabled=false;btn.textContent='Save changes';} }
+        SB.from('profile_meta').update(meta).eq('slug',PROFILE_SLUG).select('slug').then(function(r){
+          if(r&&r.error){ saveFailed(r.error); return; }
+          if(r&&Array.isArray(r.data)&&r.data.length){ savedProfile(); return; }
+          var created={slug:PROFILE_SLUG};
+          Object.keys(meta).forEach(function(k){ created[k]=meta[k]; });
+          SB.from('profile_meta').insert(created).then(function(ins){
+            if(ins&&ins.error){ saveFailed(ins.error); return; }
+            savedProfile();
+          }).catch(function(){ saveFailed(); });
+        }).catch(function(){ saveFailed(); });
       }
       if(!pending){ finalize(); return; }
       hlNodes.forEach(function(node){
@@ -2659,20 +2744,13 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
   }
 
   function resolveFor(user){
-      /* Two ways to find the slug. The RPC is the normal one; profile_owners is world-readable,
-         so a direct read is a real second path rather than a retry of the same call. */
       SB.rpc('my_profile_slug').then(function(rr){
-        if(rr && !rr.error && rr.data){ pfGo(rr.data); return; }   /* OWNER view (Founder 2026-08-05) */
-        return SB.from('profile_owners').select('profile_slug').eq('owner_id', user.id).limit(1)
-          .then(function(q){
-            var row=(q && !q.error && q.data && q.data[0]) ? q.data[0].profile_slug : null;
-            if(row){ pfGo(row); return; }
-            pfStuck('No profile on this account',
-              'Signed in as '+(user.email||'this account')+'. There is no profile linked to it yet.',
-              [{label:'Create my profile', primary:true, go:function(){ pfClaim(user); }},
-               {label:'Dashboard', go:function(){ location.href='/dashboard'; }},
-               {label:'Sign out', go:function(){ pfSignOut().then(function(){ location.href='/'; }); }}]);
-          });
+        if(rr && !rr.error && rr.data){ pfGo(rr.data); return; }
+        pfStuck('No profile on this account',
+          'Signed in as '+(user.email||'this account')+'. There is no profile linked to it yet. An admin has to approve a request.',
+          [{label:'Request my profile', primary:true, go:function(){ pfClaim(user); }},
+           {label:'Dashboard', go:function(){ location.href='/dashboard'; }},
+           {label:'Sign out', go:function(){ pfSignOut().then(function(){ location.href='/'; }); }}]);
       }).catch(function(){
         pfStuck('Could not load your profile',
           'The lookup failed rather than coming back empty, so this is not a missing profile. Trying again usually works.',
@@ -2682,20 +2760,24 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
       });
   }
 
-  /* claim_profile() has existed in the database the whole time and was called from nowhere,
-     which is why no account could ever get a profile through the site. */
   function pfClaim(user){
-    var suggested=(user.email||'').split('@')[0].replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-+|-+$/g,'').toLowerCase();
+    var suggested=(user.email||'').split('@')[0].replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').toLowerCase();
     var handle=prompt('Choose your profile handle (letters, numbers and dashes):', suggested||'');
     if(!handle) return;
-    SB.rpc('claim_profile',{p_handle:handle, p_display:''}).then(function(r){
-      if(r && !r.error && r.data){ pfGo(r.data); return; }
+    handle=String(handle).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+    SB.rpc('request_profile_claim',{p_slug:handle}).then(function(r){
+      if(r && !r.error && r.data){
+        pfStuck('Request sent',
+          'An admin has to approve @'+handle+' before it is yours. Nothing was claimed.',
+          [{label:'Dashboard', primary:true, go:function(){ location.href='/dashboard'; }}]);
+        return;
+      }
       pfStuck('That handle did not work',
-        (r && r.error && r.error.message) ? r.error.message : 'The handle may already be taken.',
+        (r && r.error && r.error.message) ? r.error.message : 'Use letters, numbers and dashes.',
         [{label:'Try another', primary:true, go:function(){ pfClaim(user); }},
          {label:'Dashboard', go:function(){ location.href='/dashboard'; }}]);
     }).catch(function(){
-      pfStuck('Could not create the profile','The request did not complete. Nothing was changed.',
+      pfStuck('Could not send the request','The request did not complete. Nothing was claimed.',
         [{label:'Try again', primary:true, go:function(){ pfClaim(user); }},
          {label:'Dashboard', go:function(){ location.href='/dashboard'; }}]);
     });
@@ -2851,7 +2933,10 @@ function toggleArchived(id,val){
         var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=(v==null?0:v);};
         set('stPosts',d.posts); set('stFollowers',d.followers); set('stLikes',d.likes);
       });
-      SB.from('profile_meta').select('about,links,account_type,links_label,badges').eq('slug',PROFILE_SLUG).maybeSingle().then(function(r){
+      var metaRead=((typeof CAN_EDIT==='function')&&CAN_EDIT()&&SESSION)
+        ? SB.from('profile_meta').select('about,links,account_type,links_label,badges').eq('slug',PROFILE_SLUG).maybeSingle()
+        : SB.rpc('get_public_profile',{p_slug:PROFILE_SLUG}).then(function(r){ var row=r&&r.data; if(Array.isArray(row)) row=row[0]||null; return { data: row||{} }; });
+      metaRead.then(function(r){
         var m=(r&&r.data)||{};
         /* S2: never print the raw enum — post-migration that reads "editorial_brand". */
         checkClaimed().then(function(){

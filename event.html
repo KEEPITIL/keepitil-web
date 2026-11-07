@@ -2,7 +2,7 @@
 <html lang="en" data-theme="default">
 <head>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/>
-<meta name="robots" content="index,follow">
+<meta name="robots" content="noindex">
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
 <title>Event — KEEPITIL</title>
@@ -20,8 +20,13 @@
 <meta property="og:title" id="og-title" content="Event — KEEPITIL"/>
 <meta property="og:description" id="og-desc" content="KEEPITIL is a culture platform built to discover, connect, create, share and earn through people, events, media and community."/>
 <meta property="og:image" id="og-img" content="https://keepitil.com/keepitil-og.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
 <meta property="og:url" id="og-url"/>
 <meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Event — KEEPITIL"/>
+<meta name="twitter:description" content="KEEPITIL is a culture platform built to discover, connect, create, share and earn through people, events, media and community."/>
+<meta name="twitter:image" content="https://keepitil.com/keepitil-og.png"/>
 <meta name="geo.region" content="US-CA"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -292,7 +297,9 @@
   <section class="esec" id="sec-feed"><div class="esec-h">Feed <span class="esub">— posts that tagged this event</span></div><div id="ev-feed"></div></section>
 </div>
 <footer>© 2026 KEEPITIL — OC · LA · San Diego events, artists &amp; culture. <a href="/">keepitil.com</a></footer>
+<script src="/assets/js/vendor/qrcode.js"></script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
+<script src="/assets/js/kil-share.js?v=20261107a"></script>
 <script>
 (function(){
   var URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
@@ -353,8 +360,8 @@
     /* ---- SHARE ---- */
     var sh=$('ev-share');
     if(sh){
-      var url = (location.hostname==='keepitil.com') ? location.href
-              : ('https://keepitil.com/event?e='+encodeURIComponent(ev.slug||''));
+      var url = (window.KilShare && ev.slug) ? KilShare.eventShareUrl(ev.slug, '/event')
+              : ('https://keepitil.com/event?e='+encodeURIComponent(ev.slug||'')+'&utm_source=share&utm_medium=event'+(ev.slug?('&utm_campaign='+encodeURIComponent(ev.slug)):''));
       var txt = encodeURIComponent(ev.title + (ev.date?(' — '+fmt(ev.date)):''));
       var u   = encodeURIComponent(url);
       sh.innerHTML =
@@ -422,7 +429,9 @@
     $('m-desc').setAttribute('content', descTxt);
     $('og-title').setAttribute('content', titledate + ' | KEEPITIL');
     $('og-desc').setAttribute('content', descTxt);
-    if(ev.img) $('og-img').setAttribute('content', ev.img);
+    /* Preview image is the 1200×630 brand card. The flyer is on the page; it is not a preview card. */
+    $('og-img').setAttribute('content', 'https://keepitil.com/keepitil-og.png');
+    if(window.KilShare && ev.slug){ KilShare.applyPreview(document, KilShare.eventPreview({ slug:ev.slug, title:titledate, status:'published', description:descTxt, venue:ev.venue, city:ev.city }, { path:'/event' })); }
     /* Canonical is the CLEAN /event?e=<slug> form, never location.href. Pages serves both
        /event and /event.html, so echoing the requested path would let the two aliases compete
        as separate pages; naming one form consolidates them. This is also byte-identical to what
@@ -444,7 +453,7 @@
     /* shareable event QR — scan to open this event page (works on flyers/print) */
     /* QR is only useful for KEEPITIL-hosted events — 3rd-party listings point off-site, so skip it */
     var _extqr=(ev.is_external===true)||(ev.is_external===undefined && /^https?:\/\//.test(ev.ticket||'') && !/\/v31\/event\.html/.test(ev.ticket||''));
-    var _qe=$('ev-qr'); if(_qe){ if(_extqr){ _qe.style.display='none'; } else { var _qu=(location.hostname==='keepitil.com')?location.href:('https://keepitil.com/event?e='+encodeURIComponent(ev.slug||'')); _qe.innerHTML='<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=0&data='+encodeURIComponent(_qu)+'" width="180" height="180" alt="Scan to open this event"/><div class="cap">📱 Scan to open &amp; share</div>'; _qe.style.display=''; } }
+    var _qe=$('ev-qr'); if(_qe){ if(_extqr){ _qe.style.display='none'; } else { var _qu=(window.KilShare&&ev.slug)?KilShare.eventShareUrl(ev.slug,'/event'):canonFor(ev.slug); var _qd=qrcode(0,'M'); _qd.addData(_qu); _qd.make(); _qe.innerHTML='<img src="'+_qd.createDataURL(4,0)+'" width="180" height="180" alt="Scan to open this event"/><div class="cap">📱 Scan to open &amp; share</div>'; _qe.style.display=''; } }
     // CTAs
     var c='';
     if(ev.ticket && ev.ticket!=='#') c+='<a class="cta cta-tix" data-kt="ticket_click" data-event-slug="'+esc(ev.slug)+'" href="'+esc(ev.ticket)+'" target="_blank" rel="noopener">🎟 Buy Tickets</a>';

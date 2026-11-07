@@ -2065,18 +2065,21 @@
    * are left in place as the genuine empty state, not as the normal path.
    */
   async function fetchSpotlight(category, limit) {
-    const cols = 'slug,display_name,tagline,bio,avatar_url,entity_category,status';
+    /* Directory only: public_profile_list is brand, organizer, and artist. Not members. */
     try {
-      const r = await fetch(
-        `${SUPA_URL}/rest/v1/profile_meta?select=${cols}` +
-        `&entity_category=eq.${encodeURIComponent(category)}&status=eq.published` +
-        `&limit=${limit}&order=updated_at.desc`,
-        { headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY } }
-      );
+      const r = await fetch(`${SUPA_URL}/rest/v1/rpc/public_profile_list`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPA_KEY,
+          Authorization: 'Bearer ' + SUPA_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ p_account_type: category, p_limit: limit || 8 })
+      });
       if (!r.ok) return [];
       const rows = await r.json();
       return Array.isArray(rows) ? rows : [];
-    } catch(e) { return []; }
+    } catch (e) { return []; }
   }
 
   /** profile_meta row → the shape buildWidget() renders. */
@@ -3360,11 +3363,11 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
         var uid=(r&&r.data&&r.data.user)?r.data.user.id:null;
         var sess=(r&&r.data)?r.data.session:null;
         if(uid && sb){ sb.from('app_users').upsert({id:uid,handle:handle,display_name:handle},{onConflict:'id',ignoreDuplicates:true}).then(function(){}).catch(function(){}); }
-        /* app_users is NOT where ownership lives — profile_owners is, and nothing wrote to it,
-           so every account created here had a handle and no profile. claim_profile() needs a
-           session, so it only runs when signup returns one; the shell covers the rest at first
-           sign-in (Founder rule 2026-09-23). */
-        if(sess && sb){ sb.rpc('claim_profile',{p_handle:handle,p_display:handle}).then(function(){},function(){}); }
+        /* Ownership is not self-serve. A signed-up account files a claim request. An admin approves it. */
+        if(sess && sb){
+          var ask=String(handle||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+          if(ask.length>=2) sb.rpc('request_profile_claim',{p_slug:ask}).then(function(){},function(){});
+        }
         captureLead(email,handle,'signup');
         window.KIL_HANDLE=handle;
         if(sess){ setMsg('Welcome, @'+handle+'! You are in.'); }

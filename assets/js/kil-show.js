@@ -70,6 +70,7 @@
       (when ? '<div class="m2-when">' + esc(when) + '</div>' : '') + (where ? '<div class="m2-where">' + esc(where) + '</div>' : '') +
       (e.owner_handle ? '<a class="m2-host" href="' + esc('/member?slug=' + encodeURIComponent(slugOf(e.owner_handle))) + '">Hosted by ' + esc(e.owner_name || e.owner_handle) + '</a>' : '') +
       (e.genres ? '<div class="m2-genres">' + String(e.genres).split(/\s*,\s*/).filter(Boolean).slice(0, 8).map(function (g) { return '<span class="m2-chip">' + esc(g) + '</span>'; }).join('') + '</div>' : '') +
+      (e.status === 'published' && root.KilShare ? '<button type="button" class="m2-share" data-share="' + esc(root.KilShare.eventShareUrl(slug, '/show')) + '">Share</button>' : '') +
       '</section>';
     if (d.hasTicket && !d.owner) h += '<a class="m2-mine" href="' + esc('/tickets?e=' + encodeURIComponent(slug)) + '">You have a ticket · Show it</a>';
     if (e.description) h += '<section class="m2-sec"><h2>About</h2><p class="m2-about">' + esc(e.description) + '</p></section>';
@@ -147,6 +148,19 @@
     opts = opts || {};
     var d = await load(client, opts.slug || '', opts);
     rootEl.innerHTML = render(d);
+    Array.prototype.forEach.call(rootEl.querySelectorAll('[data-share]'), function (btn) {
+      btn.addEventListener('click', function () {
+        var url = btn.getAttribute('data-share') || '';
+        try {
+          if (navigator.share) { navigator.share({ url: url }).catch(function () {}); return; }
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url);
+        } catch (e) {}
+      });
+    });
+    if (root.KilShare && typeof document !== 'undefined') {
+      var card = (d && d.event && !d.privateEvent) ? root.KilShare.eventPreview(d.event, { path: '/show' }) : null;
+      root.KilShare.applyPreview(document, card);
+    }
     return d;
   }
 

@@ -1,0 +1,41 @@
+# Offline checks for the /member profile page. The live list is loaded in the
+# browser from Supabase; these tests cover what each view is allowed to show.
+name: Member profile
+
+on:
+  pull_request:
+    paths:
+      - 'assets/js/kil-member.js'
+      - 'assets/js/kil-member.test.mjs'
+      - 'assets/js/kil-share.js'
+      - 'assets/js/kil-share.test.mjs'
+      - 'assets/js/kil-show.js'
+      - 'member.html'
+      - 'show.html'
+      - 'event.html'
+      - 'profile.html'
+      - '.github/workflows/member-profile.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'assets/js/kil-member.js'
+      - 'assets/js/kil-member.test.mjs'
+      - 'assets/js/kil-share.js'
+      - 'assets/js/kil-share.test.mjs'
+      - 'assets/js/kil-show.js'
+      - 'member.html'
+      - 'show.html'
+      - 'event.html'
+      - 'profile.html'
+      - '.github/workflows/member-profile.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Profile views and private-field checks
+        run: node --test assets/js/kil-member.test.mjs assets/js/kil-share.test.mjs

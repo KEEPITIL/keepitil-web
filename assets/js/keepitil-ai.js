@@ -1292,8 +1292,16 @@
       lookups.push(choRest('events?select=slug,title&status=eq.published&title=ilike.*' + enc + '*&limit=1')
         .then(function (r) { return (r && r[0]) ? { kind: 'event', href: '/event?e=' + encodeURIComponent(r[0].slug), label: r[0].title } : null; }));
     }
-    lookups.push(choRest('profile_meta?select=slug,display_name&slug=ilike.*' + enc.replace(/%20/g, '-') + '*&limit=1')
-      .then(function (r) { return (r && r[0]) ? { kind: 'profile', href: '/profile?slug=' + encodeURIComponent(r[0].slug), label: r[0].display_name || r[0].slug } : null; }));
+    /* Directory name search. Members are not in this list. */
+    lookups.push(fetch(KIL_SUPA_URL + '/rest/v1/rpc/public_profile_list', {
+      method: 'POST',
+      headers: { apikey: KIL_SUPA_ANON, Authorization: 'Bearer ' + KIL_SUPA_ANON, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_query: subject, p_limit: 8 })
+    }).then(function (r) { return r.ok ? r.json() : null; }).then(function (rows) {
+      if (!Array.isArray(rows) || !rows[0] || !rows[0].slug) return null;
+      var row = rows[0];
+      return { kind: 'profile', href: '/profile?slug=' + encodeURIComponent(row.slug), label: row.display_name || row.slug };
+    }).catch(function () { return null; }));
 
     return Promise.all(lookups).then(function (res) {
       var order = wantsArticle ? ['article', 'profile', 'event']

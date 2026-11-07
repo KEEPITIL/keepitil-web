@@ -737,15 +737,18 @@ renderSubs();render();
   window.__KIL_ANON = K;
   function _dedupe(){ var h={}; DATA.forEach(function(x){ h[String(x.blog||'').toLowerCase()]=1; h[String(x.name||'').toLowerCase()]=1; }); return h; }
   function _refresh(){ cA.textContent=cnt('artist');cB.textContent=cnt('brand');cO.textContent=cnt('community');cV.textContent=cnt('venue'); renderSubs();render(); }
-  // claimed artist/brand/organizer profiles from profile_meta
-  fetch(U+'/rest/v1/profile_meta?select=slug,display_name,account_type,location,cover_url,avatar_url&account_type=in.(brand,organizer)&status=eq.published',{headers:{apikey:K,Authorization:'Bearer '+K}})
-    .then(function(r){return r.json();}).then(function(rows){
+  /* Brand and organizer cards from the public directory list. Not a profile_meta scan,
+     and not personal member profiles. Artist cards below still come from articles. */
+  fetch(U+'/rest/v1/rpc/public_profile_list',{method:'POST',headers:{apikey:K,Authorization:'Bearer '+K,'Content-Type':'application/json'},body:JSON.stringify({p_limit:60})})
+    .then(function(r){return r.ok?r.json():[];}).then(function(rows){
       if(!Array.isArray(rows)||!rows.length) return;
       var have=_dedupe();
       rows.forEach(function(p){
+        if(p.account_type!=='brand' && p.account_type!=='organizer' && p.entity_category!=='brand' && p.entity_category!=='organizer') return;
         var blog='/profile?slug='+p.slug;
         if(have[blog.toLowerCase()]||have[String(p.display_name||'').toLowerCase()]) return;
-        DATA.push({name:p.display_name||p.slug, city:p.location||'', county:'', genre:'', ig:'', img:p.cover_url||p.avatar_url||'', blog:blog, type:(p.account_type==='artist'?'DJ':''), kinds:[p.account_type], keepitil:true});
+        var kind=(p.account_type==='organizer'||p.entity_category==='organizer')?'organizer':'brand';
+        DATA.push({name:p.display_name||p.slug, city:p.location||'', county:'', genre:'', ig:'', img:p.cover_url||p.avatar_url||'', blog:blog, type:'', kinds:[kind], keepitil:true});
       });
       _refresh();
     }).catch(function(){});

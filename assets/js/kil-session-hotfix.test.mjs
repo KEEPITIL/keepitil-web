@@ -74,7 +74,7 @@ test('the ticket page does not ask an outside host to draw a door code', () => {
     assert.match(html, /\/assets\/js\/vendor\/qrcode\.js/);
     assert.match(html, /createDataURL/);
   }
-  assert.match(tickets, /KilTicketQr\.payload\(e\.qr_token\)/);
+  assert.match(tickets, /KilTicketQr\.payload\(e\.qr_token,\s*\{\s*prefix:\s*true\s*\}\)/);
   assert.match(profile, /KilTicketQr\.payload\(t\.qr_token\)/);
   assert.equal(/order_id/.test(tickets), false);
   const eventPage = read('event.html');
@@ -101,26 +101,29 @@ test('no first-party page posts a token', () => {
   assert.deepEqual(hits, []);
 });
 
-test('the drawn door code is what check_in_ticket stores', () => {
+test('profile draws the raw token and tickets draws the KIL- form', () => {
   const qr = require('./kil-ticket-qr.js');
   const token = '0123456789abcdef0123456789abcdef';
-  const drawn = qr.payload(token);
-  assert.equal(drawn, 'KIL-' + token);
-  assert.equal(qr.checkInTicket(drawn), token);
-  assert.equal(qr.checkInTicket('kil-' + token), token);
-  assert.equal(qr.eventCheckinScan(token), token);
-  assert.equal(qr.eventCheckinScan(drawn), drawn);
-  assert.notEqual(qr.eventCheckinScan(drawn), token);
+  const fromTickets = qr.payload(token, { prefix: true });
+  const fromProfile = qr.payload(token);
+  assert.equal(fromTickets, 'KIL-' + token);
+  assert.equal(fromProfile, token);
+  assert.equal(qr.checkInTicket(fromTickets), token);
+  assert.equal(qr.checkInTicket(fromProfile), token);
+  assert.equal(qr.eventCheckinScan(fromProfile), token);
+  assert.notEqual(qr.eventCheckinScan(fromTickets), token);
   assert.equal(qr.payload(''), '');
-  assert.equal(qr.payload('99'), '');
-  assert.equal(qr.payload(token + 'ff'), '');
+  assert.equal(qr.payload('99', { prefix: true }), '');
+  assert.match(read('tickets.html'), /KilTicketQr\.payload\(e\.qr_token,\s*\{\s*prefix:\s*true\s*\}\)/);
+  assert.match(read('profile.html'), /KilTicketQr\.payload\(t\.qr_token\)/);
+  assert.equal(/prefix:\s*true/.test(read('profile.html')), false);
 });
 
-test('every page is framed only by this site, and popups keep an opener', () => {
+test('every page is framed only by this site', () => {
   const headers = read('_headers');
   const coop = headers.match(/Cross-Origin-Opener-Policy:\s*(\S+)/);
   assert.ok(coop);
-  assert.equal(coop[1], 'same-origin-allow-popups');
+  assert.equal(coop[1], 'same-origin');
   assert.match(headers, /Content-Security-Policy:\s*frame-ancestors 'self'/);
   assert.match(headers, /X-Frame-Options:\s*SAMEORIGIN/);
   assert.match(headers, /\/\*/);

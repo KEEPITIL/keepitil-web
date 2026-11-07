@@ -1124,10 +1124,27 @@ function showTab(name){
 window.addEventListener('load',function(){ try{ var _t=(new URLSearchParams(location.search).get('tab')||'').toLowerCase(); if(['article','gallery','chat','tagged','saved','shows'].indexOf(_t)>-1){ setTimeout(function(){ showTab(_t); },300); } }catch(e){} });
 function renderHighlights(){
   var r=document.getElementById('hl-row');if(!r)return;
-  r.innerHTML=(PROFILE.highlights||[]).map(function(h){return '<div class="hl" onclick="showTab(\'gallery\')"><div class="hl-c"><img src="'+h.img+'" alt="'+esc(h.label)+'" loading="lazy" onerror="this.style.opacity=.12"></div><span>'+esc(h.label)+'</span></div>';}).join('');
+  r.innerHTML=(PROFILE.highlights||[]).map(function(h){return '<div class="hl" onclick="showTab(\'gallery\')"><div class="hl-c"><img src="'+h.img+'" alt="'+esc(h.alt||h.label)+'" loading="lazy" onerror="this.style.opacity=.12"></div><span>'+esc(h.label)+'</span></div>';}).join('');
 }
-function galSrc(v){return (v.indexOf('http')===0||v.indexOf('data:')===0)?v:'https://images.ra.co/'+v+'.jpg';}
-var GAL_IMGS=[['07f9c05ddcb8a49e9f957760d870ec493b30a4d9','Latin House Night','12.4K'],['095b3c97c806dfa2326c4bc5a8239907b4a24815','Avalon Hollywood','48K'],['0c08978993ce4ba443b61b007d1de45445ddced3','Warehouse Set','9.1K'],['0eb69717593e6bb32225fec905e93762454a7894','Groove Cruise','22K'],['1641a2b8fddcee60bb204595abe0a3f20d8a0e51','Day Trip','7.7K'],['1bfc214a7b4917efac1afad318fd4dafa631a480','Rooftop Session','5.2K'],['233912b5340b79213e16e58647ecd297165d0a52','Kingdom @ Catch One','15K'],['234c570dd0c0ce4c93d62945d502ef1952b2cf31','R&V Radio','3.8K'],['288b5245302955ed0864e6f9dad31af0a092984c','Nocturnal Fest','31K']];
+function galSrc(v){
+  if(!v) return '';
+  var hit=gtSwap(v,'gallery')||gtSwap(v,'portrait')||gtSwap(v,'highlight')||gtSwap(v,'cover')||gtSwap(v,'avatar');
+  if(hit) return hit.src;
+  var s=String(v);
+  if(s.indexOf('http')===0||s.indexOf('data:')===0||s.indexOf('/')===0) return s;
+  return '';
+}
+var GAL_IMGS=[
+  ['/assets/artists/groove-trooper/groove-trooper-gallery-01-v1.0.webp','Latin House Night','12.4K',,,,,,'Groove Trooper lettering with original blue record grooves and light grid; abstract editorial study, not a photograph.'],
+  ['/assets/artists/groove-trooper/groove-trooper-gallery-02-v1.0.webp','Avalon Hollywood','48K',,,,,,'Groove Trooper lettering with original blue record grooves and light grid; abstract editorial study, not a photograph.'],
+  ['/assets/artists/groove-trooper/groove-trooper-gallery-03-v1.0.webp','Warehouse Set','9.1K',,,,,,'Groove Trooper lettering with original blue record grooves and light grid; abstract editorial study, not a photograph.'],
+  ['/assets/artists/groove-trooper/groove-trooper-gallery-04-v1.0.webp','Groove Cruise','22K',,,,,,'Groove Trooper lettering with original blue record grooves and light grid; abstract editorial study, not a photograph.'],
+  ['/assets/artists/groove-trooper/groove-trooper-gallery-05-v1.0.webp','Day Trip','7.7K',,,,,,'Groove Trooper lettering with original blue record grooves and light grid; abstract editorial study, not a photograph.'],
+  ['/assets/artists/groove-trooper/groove-trooper-gallery-06-v1.0.webp','Rooftop Session','5.2K',,,,,,'Groove Trooper lettering with original blue record grooves and light grid; abstract editorial study, not a photograph.'],
+  ['/assets/artists/groove-trooper/groove-trooper-gallery-07-v1.0.webp','Kingdom @ Catch One','15K',,,,,,'Groove Trooper lettering with original blue record grooves and light grid; abstract editorial study, not a photograph.'],
+  ['/assets/artists/groove-trooper/groove-trooper-gallery-08-v1.0.webp','R&V Radio','3.8K',,,,,,'Groove Trooper lettering with original blue record grooves and light grid; abstract editorial study, not a photograph.'],
+  ['/assets/artists/groove-trooper/groove-trooper-gallery-09-v1.0.webp','Nocturnal Fest','31K',,,,,,'Groove Trooper lettering with original blue record grooves and light grid; abstract editorial study, not a photograph.']
+];
 function renderGallery(){
   var g=document.getElementById('gal-grid');if(!g)return;
   var chips=[['all','All'],['blog','Blogs'],['article','Articles'],['image','Images'],['video','Videos']];
@@ -1251,17 +1268,18 @@ function toggleAlert(){_alerts=!_alerts;var b=document.getElementById('alertBtn'
 (function(){
   var sh=document.getElementById('shelf');if(!sh)return;
   // [kicker, title, sub, href, bgImage(optional), gradient(optional), amazon(bool)]
+  /* Partner and product cards use KEEPITIL's own sponsor art. They are not Groove Trooper images. */
   var items=[
-    ['Partner','POSH','OC events','https://posh.vip/explore?when=Upcoming&sort=Soonest&city=orange-county','https://images.ra.co/2c2d88660d652f135f06de3887251e7f8565203a.jpg','',false],
-    ['Partner','DISTROKID','Put your music everywhere','https://distrokid.com/vip/seven/11538316','https://images.ra.co/288b5245302955ed0864e6f9dad31af0a092984c.jpg','linear-gradient(160deg,#0e2a24,#08130f)',false],
-    ['Partner','FREECASH','Earn cash for the next fest','https://freecash.com/r/Tuitea','https://images.ra.co/1641a2b8fddcee60bb204595abe0a3f20d8a0e51.jpg','linear-gradient(160deg,#2a220e,#141007)',false],
-    ['$19.99','LED Gloves','Light show in your hands','https://www.amazon.com/s?k=led+gloves+rave&tag=tuitea09-20','https://images.ra.co/1bfc214a7b4917efac1afad318fd4dafa631a480.jpg','linear-gradient(160deg,#1a1a12,#0f0f0f)',true],
-    ['$34.99','Hydration Pack','Stay hydrated all night','https://www.amazon.com/s?k=rave+hydration+pack&tag=tuitea09-20','https://images.ra.co/0eb69717593e6bb32225fec905e93762454a7894.jpg','linear-gradient(160deg,#12161a,#0b0e10)',true],
-    ['$24.99','Hi-Fi Ear Plugs','Protect your ears','https://www.amazon.com/s?k=hi+fi+ear+plugs+concert&tag=tuitea09-20','https://images.ra.co/234c570dd0c0ce4c93d62945d502ef1952b2cf31.jpg','linear-gradient(160deg,#1a1220,#0d0a12)',true],
-    ['$15.99','Kandi Kit','Trade PLUR on the floor','https://www.amazon.com/s?k=kandi+rave+kit&tag=tuitea09-20','https://images.ra.co/233912b5340b79213e16e58647ecd297165d0a52.jpg','linear-gradient(160deg,#201018,#12080d)',true]
+    ['Partner','POSH','OC events','https://posh.vip/explore?when=Upcoming&sort=Soonest&city=orange-county','/assets/sponsors/affiliate-posh-2x3.webp','',false,'Posh, a KEEPITIL partner'],
+    ['Partner','DISTROKID','Put your music everywhere','https://distrokid.com/vip/seven/11538316','/assets/sponsors/affiliate-distrokid-2x3.webp','linear-gradient(160deg,#0e2a24,#08130f)',false,'DistroKid, a KEEPITIL partner'],
+    ['Partner','FREECASH','Earn cash for the next fest','https://freecash.com/r/Tuitea','/assets/sponsors/affiliate-freecash-2x3.webp','linear-gradient(160deg,#2a220e,#141007)',false,'Freecash, a KEEPITIL partner'],
+    ['$19.99','LED Gloves','Light show in your hands','https://www.amazon.com/s?k=led+gloves+rave&tag=tuitea09-20','/assets/sponsors/affiliate-amazon-2x3.webp','linear-gradient(160deg,#1a1a12,#0f0f0f)',true,'LED gloves on Amazon'],
+    ['$34.99','Hydration Pack','Stay hydrated all night','https://www.amazon.com/s?k=rave+hydration+pack&tag=tuitea09-20','/assets/sponsors/affiliate-amazon-2x3.webp','linear-gradient(160deg,#12161a,#0b0e10)',true,'Hydration pack on Amazon'],
+    ['$24.99','Hi-Fi Ear Plugs','Protect your ears','https://www.amazon.com/s?k=hi+fi+ear+plugs+concert&tag=tuitea09-20','/assets/sponsors/affiliate-amazon-2x3.webp','linear-gradient(160deg,#1a1220,#0d0a12)',true,'Hi-fi ear plugs on Amazon'],
+    ['$15.99','Kandi Kit','Trade PLUR on the floor','https://www.amazon.com/s?k=kandi+rave+kit&tag=tuitea09-20','/assets/sponsors/affiliate-amazon-2x3.webp','linear-gradient(160deg,#201018,#12080d)',true,'Kandi kit on Amazon']
   ];
   sh.innerHTML=items.map(function(it){
-    var bg=it[4]?'<img class="bgimg" src="'+it[4]+'" alt="" onerror="this.style.display=\'none\'"><div class="ov"></div>':'';
+    var bg=it[4]?'<img class="bgimg" src="'+it[4]+'" alt="'+esc(it[7]||it[1])+'" onerror="this.style.display=\'none\'"><div class="ov"></div>':'';
     var style=it[5]?' style="background:'+it[5]+'"':'';
     var badge=it[6]?'<span class="badge">Amazon</span>':'';
     var cta=it[6]?'Shop on Amazon →':'Open →';
@@ -1383,21 +1401,81 @@ function resolveImg(vals,fileKey,urlKey,dflt,cb){ uploadImage(vals[fileKey+'_fil
 function toast(msg){ var t=document.createElement('div'); t.textContent=msg; t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--surface);color:var(--text);border:1px solid var(--line);padding:11px 18px;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.45);z-index:10000;font-size:.85rem;max-width:90%;text-align:center;'; document.body.appendChild(t); setTimeout(function(){t.style.opacity='0';t.style.transition='opacity .4s';},2600); setTimeout(function(){t.remove();},3200); }
 
 /* ── PROFILE META (header/bio/links/highlights) — editable by the owner ── */
+/* Original Groove Trooper art, Luna v1.0. File ids below are the old hotlinked
+   images. The page rewrites them to local files when a stored row still has one.
+   Production rows are not written from here; see sql/draft-groove-trooper-art.sql. */
+var GT_BASE='/assets/artists/groove-trooper/';
+function gtSrc(name){ return GT_BASE+String(name).replace(/\.webp$/,'')+'.webp'; }
+var GT_ALT_MARK='Groove Trooper in white lettering with blue concentric record grooves and a KEEPITIL K mark.';
+var GT_ALT_STUDY='Groove Trooper lettering with original blue record grooves and light grid; abstract editorial study, not a photograph.';
+function gtAltHighlight(name){ return 'Groove Trooper in white lettering with blue abstract grooves for the '+name+' editorial highlight; not a photograph.'; }
+var GT_BY_ID={
+  '06c4bb3109109df1dad229582219f4ded15b11d4':{cover:{src:gtSrc('groove-trooper-cover-desktop-v1.0.webp'),alt:GT_ALT_MARK},cover_mobile:{src:gtSrc('groove-trooper-cover-mobile-v1.0.webp'),alt:GT_ALT_MARK}},
+  '680248119_960171736974630':{avatar:{src:gtSrc('groove-trooper-avatar-v1.0.webp'),alt:GT_ALT_MARK}},
+  '0c08978993ce4ba443b61b007d1de45445ddced3':{highlight:{src:gtSrc('groove-trooper-highlight-01-v1.0.webp'),alt:gtAltHighlight('Groove Cruise')},portrait:{src:gtSrc('groove-trooper-portrait-01-v1.0.webp'),alt:gtAltHighlight('Groove Cruise')},gallery:{src:gtSrc('groove-trooper-gallery-03-v1.0.webp'),alt:GT_ALT_STUDY}},
+  '095b3c97c806dfa2326c4bc5a8239907b4a24815':{highlight:{src:gtSrc('groove-trooper-highlight-02-v1.0.webp'),alt:gtAltHighlight('Avalon')},portrait:{src:gtSrc('groove-trooper-portrait-02-v1.0.webp'),alt:gtAltHighlight('Avalon')},gallery:{src:gtSrc('groove-trooper-gallery-02-v1.0.webp'),alt:GT_ALT_STUDY}},
+  '234c570dd0c0ce4c93d62945d502ef1952b2cf31':{highlight:{src:gtSrc('groove-trooper-highlight-03-v1.0.webp'),alt:gtAltHighlight('R&V Radio')},portrait:{src:gtSrc('groove-trooper-portrait-03-v1.0.webp'),alt:gtAltHighlight('R&V Radio')},gallery:{src:gtSrc('groove-trooper-gallery-08-v1.0.webp'),alt:GT_ALT_STUDY}},
+  '233912b5340b79213e16e58647ecd297165d0a52':{highlight:{src:gtSrc('groove-trooper-highlight-04-v1.0.webp'),alt:gtAltHighlight('Kingdom')},portrait:{src:gtSrc('groove-trooper-portrait-04-v1.0.webp'),alt:gtAltHighlight('Kingdom')},gallery:{src:gtSrc('groove-trooper-gallery-07-v1.0.webp'),alt:GT_ALT_STUDY}},
+  '1bfc214a7b4917efac1afad318fd4dafa631a480':{highlight:{src:gtSrc('groove-trooper-highlight-05-v1.0.webp'),alt:gtAltHighlight('Studio')},portrait:{src:gtSrc('groove-trooper-portrait-05-v1.0.webp'),alt:gtAltHighlight('Studio')},gallery:{src:gtSrc('groove-trooper-gallery-06-v1.0.webp'),alt:GT_ALT_STUDY}},
+  '0eb69717593e6bb32225fec905e93762454a7894':{highlight:{src:gtSrc('groove-trooper-highlight-06-v1.0.webp'),alt:gtAltHighlight('Festivals')},portrait:{src:gtSrc('groove-trooper-portrait-06-v1.0.webp'),alt:gtAltHighlight('Festivals')},gallery:{src:gtSrc('groove-trooper-gallery-04-v1.0.webp'),alt:GT_ALT_STUDY}},
+  '07f9c05ddcb8a49e9f957760d870ec493b30a4d9':{gallery:{src:gtSrc('groove-trooper-gallery-01-v1.0.webp'),alt:GT_ALT_STUDY}},
+  '1641a2b8fddcee60bb204595abe0a3f20d8a0e51':{gallery:{src:gtSrc('groove-trooper-gallery-05-v1.0.webp'),alt:GT_ALT_STUDY}},
+  '288b5245302955ed0864e6f9dad31af0a092984c':{gallery:{src:gtSrc('groove-trooper-gallery-09-v1.0.webp'),alt:GT_ALT_STUDY}}
+};
+function gtSwap(url, role){
+  if(!url) return null;
+  var s=String(url), keys=Object.keys(GT_BY_ID), row=null, i;
+  for(i=0;i<keys.length;i++){ if(s.indexOf(keys[i])!==-1){ row=GT_BY_ID[keys[i]]; break; } }
+  if(!row) return null;
+  if(role&&row[role]) return row[role];
+  return row.gallery||row.highlight||row.cover||row.avatar||row.portrait||row.cover_mobile||null;
+}
+function gtNormalizeProfile(){
+  var av=gtSwap(PROFILE.avatar,'avatar');
+  if(av){ PROFILE.avatar=av.src; if(!PROFILE.avatar_alt) PROFILE.avatar_alt=av.alt; }
+  var cv=gtSwap(PROFILE.cover,'cover');
+  if(cv){
+    if(!PROFILE.cover_mobile){ var mob=gtSwap(PROFILE.cover,'cover_mobile'); if(mob) PROFILE.cover_mobile=mob.src; }
+    PROFILE.cover=cv.src;
+  }
+  var cm=gtSwap(PROFILE.cover_mobile,'cover_mobile');
+  if(cm) PROFILE.cover_mobile=cm.src;
+  if(Array.isArray(PROFILE.highlights)){
+    PROFILE.highlights=PROFILE.highlights.map(function(h){
+      if(!h) return h;
+      var hit=gtSwap(h.img,'highlight')||gtSwap(h.img,'gallery');
+      if(!hit) return h;
+      var n={}; for(var k in h) if(Object.prototype.hasOwnProperty.call(h,k)) n[k]=h[k];
+      n.img=hit.src; if(!n.alt) n.alt=hit.alt;
+      return n;
+    });
+  }
+}
 /* Groove Trooper's data lives ONLY here, gated by IS_DEMO — never in markup, never for other slugs. */
 var PROFILE = IS_DEMO ? {
   name:'Groove Trooper', handle:'Groove_Trooper', location:'Garden Grove, CA',
   bio:"Garden Grove's Latin House veteran — from Antigua Guatemala raves to Avalon Hollywood. High energy, all smiles, Latin grooves.",
   tagline:'The stage is the mission.', pronouns:'',
-  avatar:'https://img1.wsimg.com/isteam/ip/403cc31a-6001-42de-a0a3-68f197acd538/680248119_960171736974630_4503929345921155632_.jpg',
-  cover:'https://images.ra.co/06c4bb3109109df1dad229582219f4ded15b11d4.jpg',
+  avatar:gtSrc('groove-trooper-avatar-v1.0.webp'),
+  avatar_alt:GT_ALT_MARK,
+  cover:gtSrc('groove-trooper-cover-desktop-v1.0.webp'),
+  cover_mobile:gtSrc('groove-trooper-cover-mobile-v1.0.webp'),
   book_email:'',
   socials:{instagram:'https://instagram.com/Groove_Trooper',soundcloud:'https://on.soundcloud.com/mSGGX5UHsrqxNEsRIj',website:'',tiktok:''},
-  highlights:[{label:'Groove Cruise',img:'https://images.ra.co/0c08978993ce4ba443b61b007d1de45445ddced3.jpg'},{label:'Avalon',img:'https://images.ra.co/095b3c97c806dfa2326c4bc5a8239907b4a24815.jpg'},{label:'R&V Radio',img:'https://images.ra.co/234c570dd0c0ce4c93d62945d502ef1952b2cf31.jpg'},{label:'Kingdom',img:'https://images.ra.co/233912b5340b79213e16e58647ecd297165d0a52.jpg'},{label:'Studio',img:'https://images.ra.co/1bfc214a7b4917efac1afad318fd4dafa631a480.jpg'},{label:'Festivals',img:'https://images.ra.co/0eb69717593e6bb32225fec905e93762454a7894.jpg'}]
+  highlights:[
+    {label:'Groove Cruise',img:gtSrc('groove-trooper-highlight-01-v1.0.webp'),alt:gtAltHighlight('Groove Cruise')},
+    {label:'Avalon',img:gtSrc('groove-trooper-highlight-02-v1.0.webp'),alt:gtAltHighlight('Avalon')},
+    {label:'R&V Radio',img:gtSrc('groove-trooper-highlight-03-v1.0.webp'),alt:gtAltHighlight('R&V Radio')},
+    {label:'Kingdom',img:gtSrc('groove-trooper-highlight-04-v1.0.webp'),alt:gtAltHighlight('Kingdom')},
+    {label:'Studio',img:gtSrc('groove-trooper-highlight-05-v1.0.webp'),alt:gtAltHighlight('Studio')},
+    {label:'Festivals',img:gtSrc('groove-trooper-highlight-06-v1.0.webp'),alt:gtAltHighlight('Festivals')}
+  ]
 } : {
   name:'', handle:PROFILE_SLUG||'', location:'', bio:'', tagline:'', pronouns:'',
   avatar:'', cover:'', book_email:'', socials:{}, highlights:[]
 };
 function applyProfile(){
+  try{ gtNormalizeProfile(); }catch(e){}
   var g=function(id){return document.getElementById(id);};
   try{document.title=(PROFILE.name?PROFILE.name+' — ':'')+'Artist Profile | KEEPITIL';}catch(e){}
   /* ProfilePage JSON-LD (KODE 2026-09-14). Public profiles carried no structured data at all.
@@ -1428,7 +1506,7 @@ function applyProfile(){
   }catch(e){}
   /* the profile "cover" is now the LOCKED BACKGROUND image (editable in Edit Profile) */
   try{ var _isM=window.matchMedia('(max-width:768px)').matches; var _bg=(_isM&&PROFILE.cover_mobile)?PROFILE.cover_mobile:PROFILE.cover; document.documentElement.style.setProperty('--pf-bg', _bg?("url('"+String(_bg).replace(/'/g,"%27")+"')"):"url('/assets/images/logo-bg.jpg')"); }catch(e){}
-  var _av=g('pfAvatar'); if(_av){ _av.classList.remove('pf-skel'); if(PROFILE.avatar){ _av.style.display=''; _av.src=PROFILE.avatar; } }
+  var _av=g('pfAvatar'); if(_av){ _av.classList.remove('pf-skel'); if(PROFILE.avatar){ _av.style.display=''; _av.src=PROFILE.avatar; if(PROFILE.avatar_alt) _av.alt=PROFILE.avatar_alt; } }
   if(g('pfName'))g('pfName').textContent=PROFILE.name||' ';
   if(g('pfHandle'))g('pfHandle').textContent=PROFILE.handle?('@'+PROFILE.handle+(PROFILE.location?' · '+PROFILE.location:'')+(PROFILE.pronouns?' · '+PROFILE.pronouns:'')):' ';
   if(g('pfBio'))g('pfBio').innerHTML=PROFILE.bio?(esc(PROFILE.bio)+(PROFILE.tagline?' <span class="h">'+esc(PROFILE.tagline)+'</span>':'')):' ';
@@ -1968,7 +2046,7 @@ function addContent(kind){
       {name:'imgurl',label:'Cover image URL (optional)',type:'text',ph:'https://...'},
       {name:'imgfile',label:'…or upload a cover',type:'file'}
     ],function(v){
-      resolveImg(v,'imgfile','imgurl','https://images.ra.co/06c4bb3109109df1dad229582219f4ded15b11d4.jpg',function(img){
+      resolveImg(v,'imgfile','imgurl',gtSrc('groove-trooper-cover-desktop-v1.0.webp'),function(img){
         publish('article',{t:v.title,d:v.meta||'Post',img:img,html:'<div class="kil-tag">★ POST</div><p class="intro-text">'+esc(v.body).replace(/\n/g,'<br>')+'</p>'});
         showTab('article');
       });
@@ -2162,7 +2240,7 @@ function sigPid(a,b){ var s=(a||'')+'|'+(b||''), h=0,i; for(i=0;i<s.length;i++){
 function allPosts(){
   var out=[];
   GT_ARTICLES.forEach(function(a,i){ out.push({type:postType(a),title:a.t,sub:a.d,media:a.img,mtype:a.mtype||'image',collab:a.collab,hideFeed:a.hideFeed,src:'article',idx:i,pid:a._pid||sigPid(a.t,a.img),body:a.html||''}); });
-  GAL_IMGS.forEach(function(t,i){ var mt=t[3]||'image'; out.push({type:(mt==='video')?'video':'image',title:t[1],sub:(t[2]?('▶ '+t[2]):''),media:galSrc(t[0]),mtype:mt,collab:null,hideFeed:t[4],src:'photo',idx:i,pid:t[5]||sigPid(t[1],t[0]),body:''}); });
+  GAL_IMGS.forEach(function(t,i){ var mt=t[3]||'image'; var ghit=gtSwap(t[0],'gallery'); out.push({type:(mt==='video')?'video':'image',title:t[1],alt:t[8]||(ghit&&ghit.alt)||t[1],sub:(t[2]?('▶ '+t[2]):''),media:galSrc(t[0]),mtype:mt,collab:null,hideFeed:t[4],src:'photo',idx:i,pid:t[5]||sigPid(t[1],t[0]),body:''}); });
   COLLAB_POSTS.forEach(function(c,i){ var d=c.payload||{}; out.push({type:(d.mtype==='video')?'video':(d.mtype==='image'?'image':'article'),title:d.t||c.title||'Collab',sub:'✦ Collab · @'+c.source_slug,media:d.img||'',mtype:d.mtype||'image',collab:[c.source_slug],hideFeed:false,src:'collab',idx:i,pid:'collab:'+c.id,body:(c.payload&&c.payload.html)||''}); });
   EVENTS_FEED.forEach(function(e,i){ out.push({type:'event',title:e.title,sub:'',media:e.cover||'',mtype:'image',collab:null,hideFeed:false,src:'event',idx:i,pid:e._pid||('event:'+e.slug),body:'',event:e}); });
   return out;
@@ -2333,7 +2411,7 @@ function postCard(p){
   var authorAv=(p.collab&&p.collab.length)?'/icon-192.png':(PROFILE.avatar||'/icon-192.png');
   var media=(p.mtype==='video'&&p.media)
     ? '<video src="'+p.media+'#t=0.1" muted loop playsinline preload="metadata" onmouseover="try{this.play()}catch(e){}" onmouseout="this.pause()"></video>'
-    : '<img src="'+esc(p.media||authorAv||'/icon-192.png')+'" alt="'+esc(p.title)+'" loading="lazy" onerror="this.src=\'/icon-192.png\'">';  /* every post shows an image — fall back to the author avatar */
+    : '<img src="'+esc(p.media||authorAv||'/icon-192.png')+'" alt="'+esc(p.alt||p.title)+'" loading="lazy" onerror="this.src=\'/icon-192.png\'">';  /* every post shows an image — fall back to the author avatar */
   var col=(p.collab&&p.collab.length)?' <span style="color:var(--accent)">✦ @'+p.collab.map(esc).join(', @')+'</span>':'';
   var hid=(CAN_EDIT()&&isHiddenFromFeed(p))?'<span class="pc-hidden">Gallery only</span>':'';
   var plink='/profile?slug='+encodeURIComponent(authorSlug);
@@ -2366,7 +2444,7 @@ function openPost(src,idx){
     html=a.html; }
   else { var t=GAL_IMGS[idx]; if(!t)return; var mt=t[3]||'image'; var m=(mt==='video')
       ?'<video src="'+galSrc(t[0])+'" controls playsinline autoplay style="width:100%;border-radius:12px;background:#000"></video>'
-      :'<img src="'+galSrc(t[0])+'" alt="'+esc(t[1])+'" style="width:100%;border-radius:12px">';
+      :'<img src="'+galSrc(t[0])+'" alt="'+esc(t[8]||t[1])+'" style="width:100%;border-radius:12px">';
     html='<div class="kil-tag">'+((mt==='video')?'★ VIDEO':'★ IMAGE')+'</div>'+m+'<p class="intro-text">'+esc(t[1])+'</p>'; }
   var foot='';
   if(CAN_EDIT()&&src!=='collab'){
@@ -2469,9 +2547,9 @@ function agSend(){
 }
 /* ── CHAT GROUP LIST (IG-style) ── */
 var GT_CHATS=[
-  ['groove-trooper','Groove Trooper','Who is going to Kingdom?','2m','3','https://images.ra.co/06c4bb3109109df1dad229582219f4ded15b11d4.jpg','primary'],
-  ['groove-cruise','Groove Cruise Fam','Miami 2027 — who is in?','3h','12','https://images.ra.co/0c08978993ce4ba443b61b007d1de45445ddced3.jpg','general'],
-  ['oc-techno','OC Techno Heads','Warehouse location drop soon','1d','','https://images.ra.co/1641a2b8fddcee60bb204595abe0a3f20d8a0e51.jpg','general']
+  ['groove-trooper','Groove Trooper','Who is going to Kingdom?','2m','3',gtSrc('groove-trooper-cover-desktop-v1.0.webp'),'primary',GT_ALT_MARK],
+  ['groove-cruise','Groove Cruise Fam','Miami 2027 — who is in?','3h','12',gtSrc('groove-trooper-highlight-01-v1.0.webp'),'general',gtAltHighlight('Groove Cruise')],
+  ['oc-techno','OC Techno Heads','Warehouse location drop soon','1d','',gtSrc('groove-trooper-gallery-05-v1.0.webp'),'general',GT_ALT_STUDY]
 ];
 /* Instagram's rule, as far as this page's data can express it:
      request — carries an explicit 'request' category, i.e. not yet accepted
@@ -2481,14 +2559,14 @@ var GT_CHATS=[
    predate categories. 'events' is kept as a passthrough so older rows are not silently
    reclassified into a bucket the visitor is not looking at. */
 function chatCat(c){ if(c[6])return c[6]; return /general/i.test(c[1])?'general':(/@|event/i.test(c[1])?'events':'primary'); }
-function chatRow(av,title,desc,onclick,time,dot,delSlug){
+function chatRow(av,title,desc,onclick,time,dot,delSlug,alt){
   var menu='';
   if(delSlug && (typeof CAN_EDIT==='function') && CAN_EDIT()){
     var s=String(delSlug).replace(/'/g,"\\'"), t=String(title).replace(/<[^>]*>/g,'').replace(/'/g,"\\'");
     menu='<button class="cc-menu" title="Options" onclick="event.stopPropagation();chatRowMenu(event,\''+s+'\',\''+t+'\')">&#8942;</button>';
   }
   return '<div class="chat-card" onclick="'+onclick+'">'
-    +'<img class="cc-av" src="'+av+'" alt="" loading="lazy" onerror="this.src=\'/icon-192.png\'">'
+    +'<img class="cc-av" src="'+av+'" alt="'+esc(alt||'')+'" loading="lazy" onerror="this.src=\'/icon-192.png\'">'
     +'<div class="cc-body"><div class="cc-nm">'+title+'</div><div class="cc-pv">'+desc+'</div></div>'
     +(time?'<div class="cc-rt">'+time+dot+'</div>':'')
     +menu
@@ -2510,7 +2588,7 @@ function renderChats(){
   list.innerHTML=items.map(function(c){
     var nm=String(c[1]).replace(/'/g,'');
     var dot=c[4]?'<span class="cc-dot"></span>':'';
-    return chatRow(c[5]||'/icon-192.png', esc(c[1]), esc(c[2]||''), 'openChatGroup(\''+c[0]+'\',\''+nm+'\')', esc(c[3]||''), dot, c[0]);
+    return chatRow(c[5]||'/icon-192.png', esc(c[1]), esc(c[2]||''), 'openChatGroup(\''+c[0]+'\',\''+nm+'\')', esc(c[3]||''), dot, c[0], c[7]||'');
   }).join('');
 }
 /* Events filter = only event chats the viewer bought a ticket to (event_orders via my_ticketed_event_chats). */

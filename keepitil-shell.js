@@ -305,6 +305,28 @@
     try{ if(!window.__kilClarity && __kilClarityAllowed()){ window.__kilClarity='xk5iwishve';
       (function(c,l,a,r,i){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};var t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;var y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","xk5iwishve");
     } }catch(e){}
+    /* Cloudflare Web Analytics. Cookieless beacon, free. The token is read from
+       includes/cf-web-analytics.html — the only copy of the data-cf-beacon
+       placeholder. Paste the Cloudflare dashboard token there. One partial,
+       every shell page. Deferred with GA4 so the beacon cannot hold the load event. */
+    __kilMountCfBeacon();
+  }
+  function __kilMountCfBeacon(){
+    try{
+      if(window.__kilCfBeacon || document.querySelector('script[data-cf-beacon]')) return;
+      window.__kilCfBeacon=1;
+      fetch('/includes/cf-web-analytics.html',{credentials:'same-origin'})
+        .then(function(r){ return r.ok ? r.text() : ''; })
+        .then(function(html){
+          if(!html || document.querySelector('script[data-cf-beacon]')) return;
+          var token=html.match(/data-cf-beacon\s*=\s*(['"])([\s\S]*?)\1/);
+          var src=html.match(/src\s*=\s*(['"])(https:\/\/static\.cloudflareinsights\.com\/beacon\.min\.js)\1/);
+          if(!token || !src) return;
+          var s=document.createElement('script'); s.defer=true; s.src=src[2];
+          s.setAttribute('data-cf-beacon', token[2]);
+          document.head.appendChild(s);
+        }).catch(function(){});
+    }catch(e){}
   }
   /* gtag() must exist BEFORE the tag loads or early calls are lost, so the queue shim is set up
      now and the network request is what gets deferred. */
@@ -313,6 +335,12 @@
     if(document.readyState === 'complete'){ setTimeout(__kilMountAnalytics, 0); }
     else { window.addEventListener('load', function(){ setTimeout(__kilMountAnalytics, 0); }, { once:true }); }
   }catch(e){ __kilMountAnalytics(); }
+  /* Campaign tags: first-touch and last-touch in localStorage, then onto store
+     and Stripe Payment Links. Loaded with the shell so every page that already
+     shares this file gets it. Does not touch ticket Checkout Sessions. */
+  try{ if(!window.__kilUtmLoad){ window.__kilUtmLoad=1;
+    var _utm=document.createElement('script'); _utm.src='/assets/js/kil-utm.js?v=20261107a'; document.head.appendChild(_utm);
+  } }catch(e){}
   /* Customer feedback widget — V3 only (floating "Feedback" pill -> Supabase feedback table). Added 2026-07-10. */
   try{ if(!window.__kilFeedbackLoad){ window.__kilFeedbackLoad=1;
     var _fb=document.createElement('script'); _fb.defer=true; _fb.src='/assets/js/keepitil-feedback.js?v=20260826a'; document.head.appendChild(_fb);

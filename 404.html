@@ -176,7 +176,11 @@ a{color:#5cc8ff}</style>
      commit to the canonical keepitil.com/games, so the alias has no consumer left. Both
      are recorded in the retirement inventory. /culture and /games stay: they are the
      canonical current directories, and GitHub Pages only 301s the bare path to the
-     trailing-slash form - that is host behaviour, not an app-level alias. */
+     trailing-slash form - that is host behaviour, not an app-level alias.
+     /apps and /app are real directory indexes now (apps/index.html, app/index.html).
+     Those stubs redirect only the bare path to /games/#keepitil-apps. Do not route
+     them here, and do not add a wildcard under either directory. A catch-all in
+     this file would also run for /app/tuitea/ and /apps/tuitea/. Atlas reviews that split. */
   var SECTION={culture:'/culture/',games:'/games/'};
   /* about, contact and onboarding were removed: no such page exists, so those entries could
      only ever send a visitor from one 404 to another. */

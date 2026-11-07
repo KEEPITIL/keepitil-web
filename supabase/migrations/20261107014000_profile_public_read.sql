@@ -150,6 +150,81 @@ $$;
 REVOKE ALL ON FUNCTION public.get_public_profile(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_public_profile(text) TO anon, authenticated;
 
+-- Directory list. Brand, organizer, and artist only. Personal member profiles
+-- (subscriber_profile) are not returned, so members cannot be listed in bulk.
+-- book_email is not selected. A null profile_public on an already published
+-- directory row stays listed; profile_public = false removes it.
+CREATE OR REPLACE FUNCTION public.public_profile_list(
+  p_account_type text DEFAULT NULL,
+  p_query text DEFAULT NULL,
+  p_limit integer DEFAULT 24
+)
+RETURNS TABLE (
+  slug text,
+  display_name text,
+  tagline text,
+  bio text,
+  avatar_url text,
+  cover_url text,
+  account_type text,
+  entity_category text,
+  location text,
+  status text
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT
+    m.slug,
+    CASE WHEN m.public_fields IS NULL OR 'display_name' = ANY (m.public_fields) THEN m.display_name END,
+    CASE WHEN m.public_fields IS NULL OR 'tagline' = ANY (m.public_fields) THEN m.tagline END,
+    CASE WHEN m.public_fields IS NULL OR 'bio' = ANY (m.public_fields) THEN left(m.bio, 160) END,
+    CASE WHEN m.public_fields IS NULL OR 'avatar_url' = ANY (m.public_fields) OR 'avatar' = ANY (m.public_fields) THEN m.avatar_url END,
+    CASE WHEN m.public_fields IS NULL OR 'cover_url' = ANY (m.public_fields) OR 'avatar_url' = ANY (m.public_fields) THEN m.cover_url END,
+    m.account_type,
+    m.entity_category,
+    CASE WHEN m.public_fields IS NULL OR 'location' = ANY (m.public_fields) THEN m.location END,
+    m.status
+  FROM public.profile_meta m
+  WHERE m.status = 'published'
+    AND m.profile_public IS NOT FALSE
+    AND m.is_minor IS NOT TRUE
+    AND COALESCE(m.account_type, '') NOT IN ('subscriber_profile', 'subscriber', 'member')
+    AND (
+      m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist')
+      OR m.entity_category IN ('artist', 'brand', 'organizer')
+    )
+    AND (
+      p_account_type IS NULL
+      OR btrim(p_account_type) = ''
+      OR (
+        lower(btrim(p_account_type)) = 'artist'
+        AND (m.account_type IN ('artist', 'editorial_artist') OR m.entity_category = 'artist')
+      )
+      OR (
+        lower(btrim(p_account_type)) = 'brand'
+        AND (m.account_type = 'brand' OR m.entity_category = 'brand')
+      )
+      OR (
+        lower(btrim(p_account_type)) = 'organizer'
+        AND (m.account_type = 'organizer' OR m.entity_category = 'organizer')
+      )
+    )
+    AND (
+      p_query IS NULL
+      OR btrim(p_query) = ''
+      OR m.slug = lower(regexp_replace(btrim(p_query), '[^a-zA-Z0-9]+', '-', 'g'))
+      OR m.display_name ILIKE ('%' || replace(replace(btrim(p_query), '%', ''), '_', '') || '%')
+    )
+  ORDER BY m.updated_at DESC NULLS LAST
+  LIMIT LEAST(GREATEST(COALESCE(p_limit, 24), 1), 60);
+$$;
+
+REVOKE ALL ON FUNCTION public.public_profile_list(text, text, integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.public_profile_list(text, text, integer) TO anon, authenticated;
+
 -- public.profiles: row security is off in prod. Turn it on before any page reads it.
 -- If it is still the old view, rename that view and create the real table first.
 DO $$

@@ -9,7 +9,7 @@
      events          published, not started, shown on explore, NOT password-protected (the readable
                      password_protected flag; the hash itself is not readable by API roles)
      event_lineup    public read
-     get_public_profile  one slug at a time; host display name only when that profile is public
+     public_profile_list directory names only; a member host keeps the handle
      ticket_tiers    public read for published events; the lowest price still on sale, display only
    No checkout, payment or price change. */
 (function (root) {
@@ -129,14 +129,15 @@
         .forEach(function (t) { (tiers[t.event_id] = tiers[t.event_id] || []).push(t); });
     }
     if (hostSlugs.length) {
-      var named = await Promise.all(hostSlugs.map(function (slug) {
-        return safe(client.rpc('get_public_profile', { p_slug: slug }));
-      }));
-      named.forEach(function (r) {
-        if (!ok(r)) { partial = true; return; }
-        var row = r.data;
-        if (Array.isArray(row)) row = row[0];
-        if (row && row.display_name) hosts[slugOf(row.slug)] = row.display_name;
+      var named = await safe(client.rpc('public_profile_list', { p_limit: 60 }));
+      if (!ok(named)) partial = true;
+      var rows = named && named.data;
+      if (!Array.isArray(rows)) rows = rows ? [rows] : [];
+      var want = {};
+      hostSlugs.forEach(function (slug) { want[slug] = 1; });
+      rows.forEach(function (p) {
+        var key = slugOf(p && p.slug);
+        if (want[key] && p.display_name) hosts[key] = p.display_name;
       });
     }
     return { events: events, lineups: lineups, tiers: tiers, hosts: hosts, partial: partial };

@@ -110,6 +110,9 @@ test('anon select of book_email is revoked in the migration', () => {
   assert.match(sql, /LIMIT 1/);
   assert.equal(/GRANT SELECT ON TABLE public\.profiles TO anon/i.test(sql), false);
   assert.equal(/GRANT SELECT ON TABLE public\.profile_meta TO anon/i.test(sql), false);
+  assert.match(sql, /FUNCTION public\.public_profile_list/);
+  assert.match(sql, /subscriber_profile/);
+  assert.match(sql, /editorial_artist/);
 });
 
 test('the pages do not add a Discover/Events/Vote/Echo/Profile tab bar', () => {

@@ -28,10 +28,12 @@ DROP FUNCTION IF EXISTS public.get_public_profile(text) RESTRICT;
 DROP FUNCTION IF EXISTS private.profile_public_one(text) RESTRICT;
 DROP FUNCTION IF EXISTS private.owner_is_verified_adult(text) RESTRICT;    -- if added for the business rule
 DROP FUNCTION IF EXISTS private.profile_is_public(text) RESTRICT;          -- after the policies/functions that call it
-DROP FUNCTION IF EXISTS public.admin_assign_house_page(text, uuid) RESTRICT;
-DROP FUNCTION IF EXISTS public.admin_record_age_verification(uuid, text, text, text) RESTRICT;
-DROP TABLE    IF EXISTS private.account_age;
 DROP TABLE    IF EXISTS public.profile_claim_requests RESTRICT;
+-- Sentinel ruling 1 (Nov 6): server-only age table. Drop the admin RPC first, then the table.
+-- Name the RPC to match the PR (e.g. public.admin_set_account_age); RESTRICT fails loudly if the name is wrong.
+DROP FUNCTION IF EXISTS public.admin_set_account_age(uuid, boolean, text) RESTRICT;  -- rename/re-sign to match the PR
+DROP TABLE    IF EXISTS private.account_age RESTRICT;
+-- Ruling 2: house profile_owners rows (method house) are data. Keep them on rollback; they are harmless with the original policies.
 DROP SCHEMA   IF EXISTS private RESTRICT;   -- did not exist before step 1; fails if anything is left in it
 
 -- 3. Restore the two original profile_meta read-all policies (step 2 drops them)

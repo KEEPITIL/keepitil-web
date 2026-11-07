@@ -73,44 +73,18 @@ UPDATE public.profile_meta
 SET public_fields = ARRAY[]::text[]
 WHERE public_fields IS NULL;
 
--- private.account_age is the single source of verified age. Admin-write only.
--- Anon and authenticated have no privileges. The user-editable auth-metadata
--- checkbox is never read. verified_by, method, and verified_at are the audit.
--- A row is current only while revoked_at is null.
+-- private.account_age is the single source of verified age. No grants.
+-- Columns are exactly user_id, verified, method, verified_at, verified_by.
+-- The auth-metadata checkbox is never read. A person page does not store
+-- age_verified; profile_public_one derives it from this table.
 CREATE TABLE IF NOT EXISTS private.account_age (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  verified_by uuid,
-  actor_role text NOT NULL,
+  user_id uuid PRIMARY KEY,
+  verified boolean NOT NULL,
   method text NOT NULL,
-  evidence_note text,
-  age_verified boolean,
-  is_minor boolean,
   verified_at timestamptz NOT NULL DEFAULT now(),
-  revoked_at timestamptz,
-  CONSTRAINT account_age_actor CHECK (
-    (actor_role = 'service_role' AND verified_by IS NULL)
-    OR (actor_role = 'admin' AND verified_by IS NOT NULL)
-  ),
-  CONSTRAINT account_age_outcome CHECK (
-    (
-      revoked_at IS NULL
-      AND age_verified IS TRUE
-      AND is_minor IS FALSE
-    )
-    OR (
-      revoked_at IS NULL
-      AND age_verified IS FALSE
-      AND is_minor IS TRUE
-    )
-    OR (
-      revoked_at IS NOT NULL
-      AND (
-        (age_verified IS TRUE AND is_minor IS FALSE)
-        OR (age_verified IS FALSE AND is_minor IS TRUE)
-        OR (age_verified IS NULL AND is_minor IS NULL)
-      )
-    )
+  verified_by uuid NOT NULL,
+  CONSTRAINT account_age_method CHECK (
+    method IN ('founder_self', 'admin_attested', 'house')
   )
 );
 
@@ -118,207 +92,106 @@ ALTER TABLE private.account_age OWNER TO postgres;
 ALTER TABLE private.account_age ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE private.account_age FROM PUBLIC, anon, authenticated;
 
-CREATE INDEX IF NOT EXISTS account_age_open_user
-  ON private.account_age (user_id)
-  WHERE revoked_at IS NULL;
-
--- Admin or service_role only. Records who, how, and when, then sets the
--- owner's server flags to match. There is no self-service path.
--- p_action: adult, minor, or revoke. Revoke writes the flags back to NULL.
-CREATE OR REPLACE FUNCTION public.admin_record_age_verification(
+-- Admin-checked. Signature matches the rollback:
+-- public.admin_set_account_age(uuid, boolean, text).
+-- This migration does not call it.
+-- founder_self: the admin attests their own account.
+-- admin_attested: an admin attests someone else, and cannot clear is_minor
+--   or under_18 (the under-18 birth-date flag).
+-- house: the user is in app_admins. Editorial pages are moved onto that
+--   account. There is no ownerless house page.
+CREATE OR REPLACE FUNCTION public.admin_set_account_age(
   p_user_id uuid,
-  p_action text,
-  p_method text,
-  p_evidence_note text
-) RETURNS uuid
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-DECLARE
-  vid uuid;
-  actor uuid;
-  role_name text;
-  action text;
-  how text;
-BEGIN
-  IF p_user_id IS NULL THEN
-    RAISE EXCEPTION 'not allowed';
-  END IF;
-  IF (SELECT auth.role()) = 'service_role' THEN
-    role_name := 'service_role';
-    actor := NULL;
-  ELSIF COALESCE(public.is_admin(), FALSE) IS TRUE AND (SELECT auth.uid()) IS NOT NULL THEN
-    role_name := 'admin';
-    actor := (SELECT auth.uid());
-  ELSE
-    RAISE EXCEPTION 'not allowed';
-  END IF;
-  IF actor IS NOT DISTINCT FROM p_user_id THEN
-    RAISE EXCEPTION 'not allowed';
-  END IF;
-
-  action := lower(btrim(COALESCE(p_action, '')));
-  IF action NOT IN ('adult', 'minor', 'revoke') THEN
-    RAISE EXCEPTION 'not allowed';
-  END IF;
-  how := btrim(COALESCE(p_method, ''));
-  IF how = '' OR length(how) > 80 THEN
-    RAISE EXCEPTION 'not allowed';
-  END IF;
-  IF lower(how) IN ('auth_metadata', 'checkbox', 'self', 'self_service') THEN
-    RAISE EXCEPTION 'not allowed';
-  END IF;
-
-  UPDATE private.account_age
-  SET revoked_at = now()
-  WHERE user_id = p_user_id
-    AND revoked_at IS NULL;
-
-  INSERT INTO private.account_age (
-    user_id, verified_by, actor_role, method, evidence_note,
-    age_verified, is_minor, verified_at, revoked_at
-  ) VALUES (
-    p_user_id,
-    actor,
-    role_name,
-    how,
-    NULLIF(btrim(COALESCE(p_evidence_note, '')), ''),
-    CASE action WHEN 'adult' THEN TRUE WHEN 'minor' THEN FALSE ELSE NULL END,
-    CASE action WHEN 'adult' THEN FALSE WHEN 'minor' THEN TRUE ELSE NULL END,
-    now(),
-    CASE WHEN action = 'revoke' THEN now() ELSE NULL END
-  ) RETURNING id INTO vid;
-
-  IF action = 'revoke' THEN
-    UPDATE public.profile_meta m
-    SET
-      is_minor = NULL,
-      under_18 = NULL,
-      age_verified = CASE
-        WHEN lower(btrim(m.account_type)) IN (
-          'member', 'artist', 'creator', 'dj', 'subscriber_profile'
-        ) THEN NULL
-        ELSE m.age_verified
-      END
-    WHERE EXISTS (
-      SELECT 1 FROM public.profile_owners po
-      WHERE po.profile_slug = m.slug
-        AND po.owner_id = p_user_id
-    );
-  ELSE
-    UPDATE public.profile_meta m
-    SET
-      is_minor = (action = 'minor'),
-      under_18 = (action = 'minor'),
-      age_verified = CASE
-        WHEN lower(btrim(m.account_type)) IN (
-          'member', 'artist', 'creator', 'dj', 'subscriber_profile'
-        ) THEN (action = 'adult')
-        ELSE m.age_verified
-      END
-    WHERE EXISTS (
-      SELECT 1 FROM public.profile_owners po
-      WHERE po.profile_slug = m.slug
-        AND po.owner_id = p_user_id
-    );
-  END IF;
-
-  RETURN vid;
-END;
-$$;
-
-ALTER FUNCTION public.admin_record_age_verification(uuid, text, text, text) OWNER TO postgres;
-REVOKE ALL ON FUNCTION public.admin_record_age_verification(uuid, text, text, text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.admin_record_age_verification(uuid, text, text, text) TO service_role;
-GRANT EXECUTE ON FUNCTION public.admin_record_age_verification(uuid, text, text, text) TO authenticated;
-
--- Not called by this migration. Before step 2, an admin assigns each KEEPITIL
--- house page to the dedicated house owner account. That account must already
--- be an attested adult in private.account_age. There is no ownerless path.
-CREATE OR REPLACE FUNCTION public.admin_assign_house_page(
-  p_slug text,
-  p_house_user_id uuid
+  p_verified boolean,
+  p_method text
 ) RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-  kind text;
-  slug text;
+  how text;
 BEGIN
-  IF p_house_user_id IS NULL THEN
+  IF COALESCE(public.is_admin(), FALSE) IS NOT TRUE THEN
     RAISE EXCEPTION 'not allowed';
   END IF;
-  IF (SELECT auth.role()) = 'service_role' THEN
-    NULL;
-  ELSIF COALESCE(public.is_admin(), FALSE) IS TRUE
-    AND (SELECT auth.uid()) IS NOT NULL
-    AND (SELECT auth.uid()) IS DISTINCT FROM p_house_user_id THEN
-    NULL;
-  ELSE
+  IF (SELECT auth.uid()) IS NULL OR p_user_id IS NULL OR p_verified IS NULL THEN
     RAISE EXCEPTION 'not allowed';
   END IF;
-
-  slug := lower(btrim(COALESCE(p_slug, '')));
-  IF slug !~ '^[a-z0-9-]{1,80}$' THEN
+  how := lower(btrim(COALESCE(p_method, '')));
+  IF how NOT IN ('founder_self', 'admin_attested', 'house') THEN
     RAISE EXCEPTION 'not allowed';
   END IF;
-
-  SELECT lower(btrim(m.account_type)) INTO kind
-  FROM public.profile_meta m
-  WHERE m.slug = slug;
-  IF kind IS NULL OR kind NOT IN (
-    'editorial_artist', 'editorial_venue', 'editorial_organizer', 'editorial_brand'
+  IF how = 'founder_self' AND (SELECT auth.uid()) IS DISTINCT FROM p_user_id THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+  IF how = 'admin_attested' AND (SELECT auth.uid()) IS NOT DISTINCT FROM p_user_id THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+  IF how = 'house' AND NOT EXISTS (
+    SELECT 1 FROM public.app_admins adm WHERE adm.user_id = p_user_id
   ) THEN
     RAISE EXCEPTION 'not allowed';
   END IF;
-
-  IF NOT EXISTS (
+  IF how = 'admin_attested' AND p_verified IS TRUE AND EXISTS (
     SELECT 1
-    FROM private.account_age a
-    WHERE a.user_id = p_house_user_id
-      AND a.revoked_at IS NULL
-      AND a.age_verified IS TRUE
-      AND a.is_minor IS FALSE
+    FROM public.profile_meta m
+    JOIN public.profile_owners po ON po.profile_slug = m.slug
+    WHERE po.owner_id = p_user_id
+      AND (m.is_minor IS TRUE OR m.under_18 IS TRUE)
   ) THEN
     RAISE EXCEPTION 'not allowed';
   END IF;
 
-  INSERT INTO public.profile_owners (profile_slug, owner_id)
-  VALUES (slug, p_house_user_id)
-  ON CONFLICT (profile_slug) DO UPDATE
-    SET owner_id = EXCLUDED.owner_id;
+  INSERT INTO private.account_age (user_id, verified, method, verified_at, verified_by)
+  VALUES (p_user_id, p_verified, how, now(), (SELECT auth.uid()))
+  ON CONFLICT (user_id) DO UPDATE
+    SET verified = EXCLUDED.verified,
+        method = EXCLUDED.method,
+        verified_at = EXCLUDED.verified_at,
+        verified_by = EXCLUDED.verified_by;
 
-  UPDATE public.profile_meta m
-  SET
-    is_minor = a.is_minor,
-    under_18 = a.is_minor
-  FROM private.account_age a
-  WHERE m.slug = slug
-    AND a.user_id = p_house_user_id
-    AND a.revoked_at IS NULL
-    AND a.age_verified IS TRUE
-    AND a.is_minor IS FALSE;
+  IF how = 'house' AND p_verified IS TRUE THEN
+    INSERT INTO public.profile_owners (profile_slug, owner_id)
+    SELECT m.slug, p_user_id
+    FROM public.profile_meta m
+    WHERE lower(btrim(m.account_type)) IN (
+      'editorial_artist', 'editorial_venue', 'editorial_organizer', 'editorial_brand'
+    )
+    ON CONFLICT (profile_slug) DO UPDATE
+      SET owner_id = EXCLUDED.owner_id
+      WHERE public.profile_owners.owner_id IS DISTINCT FROM EXCLUDED.owner_id;
+
+    UPDATE public.profile_meta m
+    SET
+      is_minor = COALESCE(m.is_minor, FALSE),
+      under_18 = COALESCE(m.under_18, FALSE)
+    WHERE lower(btrim(m.account_type)) IN (
+      'editorial_artist', 'editorial_venue', 'editorial_organizer', 'editorial_brand'
+    )
+      AND m.is_minor IS NOT TRUE
+      AND m.under_18 IS NOT TRUE
+      AND EXISTS (
+        SELECT 1 FROM public.profile_owners po
+        WHERE po.profile_slug = m.slug
+          AND po.owner_id = p_user_id
+      );
+  END IF;
 END;
 $$;
 
-ALTER FUNCTION public.admin_assign_house_page(text, uuid) OWNER TO postgres;
-REVOKE ALL ON FUNCTION public.admin_assign_house_page(text, uuid) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.admin_assign_house_page(text, uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.admin_assign_house_page(text, uuid) TO authenticated;
+ALTER FUNCTION public.admin_set_account_age(uuid, boolean, text) OWNER TO postgres;
+REVOKE ALL ON FUNCTION public.admin_set_account_age(uuid, boolean, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_set_account_age(uuid, boolean, text) TO authenticated;
 
 -- One visibility rule for every public RPC. Not for RLS policies.
 -- SECURITY DEFINER, owner postgres, search_path fixed to empty.
 -- Unknown, null, or a missing owner fails closed.
--- The 18+ signal is an open adult row in private.account_age for that owner.
--- profile_meta.age_verified alone does not count, and auth metadata is not read.
--- Person: member, artist, creator, dj, and the live subscriber_profile alias.
--- Business: brand, venue, organizer, promoter, company.
--- House pages: editorial_artist, editorial_venue, editorial_organizer, editorial_brand.
---   They are not ownerless. An admin assigns them to the house account.
--- All of these still need is_minor and under_18 false on the page.
+-- The 18+ signal is private.account_age.verified for that owner.
+-- A person page does not read profile_meta.age_verified.
+-- Person and business methods: founder_self, admin_attested.
+-- House pages require method house and an owner in app_admins.
+-- is_minor or under_18 true fails closed. There is no ownerless page.
 CREATE OR REPLACE FUNCTION private.profile_is_public(p_slug text)
 RETURNS boolean
 LANGUAGE sql
@@ -341,13 +214,30 @@ AS $$
       AND EXISTS (
         SELECT 1
         FROM public.profile_owners po
-        JOIN private.account_age v
-          ON v.user_id = po.owner_id
+        JOIN private.account_age a
+          ON a.user_id = po.owner_id
         WHERE po.profile_slug = m.slug
           AND po.owner_id IS NOT NULL
-          AND v.revoked_at IS NULL
-          AND v.age_verified IS TRUE
-          AND v.is_minor IS FALSE
+          AND a.verified IS TRUE
+          AND (
+            (
+              lower(btrim(m.account_type)) IN (
+                'member', 'artist', 'creator', 'dj', 'subscriber_profile',
+                'brand', 'venue', 'organizer', 'promoter', 'company'
+              )
+              AND a.method IN ('founder_self', 'admin_attested')
+            )
+            OR (
+              lower(btrim(m.account_type)) IN (
+                'editorial_artist', 'editorial_venue', 'editorial_organizer', 'editorial_brand'
+              )
+              AND a.method = 'house'
+              AND EXISTS (
+                SELECT 1 FROM public.app_admins adm
+                WHERE adm.user_id = po.owner_id
+              )
+            )
+          )
       )
     FROM public.profile_meta m
     WHERE p_slug ~ '^[a-z0-9-]{1,80}$'
@@ -406,7 +296,19 @@ AS $$
     CASE WHEN 'badges' = ANY (m.public_fields) THEN to_jsonb(m.badges) END,
     m.profile_public,
     m.public_fields,
-    m.age_verified,
+    (
+      EXISTS (
+        SELECT 1
+        FROM public.profile_owners po
+        JOIN private.account_age a ON a.user_id = po.owner_id
+        WHERE po.profile_slug = m.slug
+          AND a.verified IS TRUE
+          AND a.method IN ('founder_self', 'admin_attested')
+          AND lower(btrim(m.account_type)) IN (
+            'member', 'artist', 'creator', 'dj', 'subscriber_profile'
+          )
+      )
+    ),
     m.is_minor,
     m.under_18,
     m.status,

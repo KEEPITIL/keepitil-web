@@ -1,5 +1,6 @@
-/* KEEPITIL — Click tracking (GA4) · spec: _docs/ANALYTICS-CLICK-TRACKING-SPEC.md
-   One delegated listener. Works on dynamically-rendered cards. Staging excluded. */
+/* KEEPITIL — Click tracking · spec: _docs/ANALYTICS-CLICK-TRACKING-SPEC.md
+   One delegated listener. Works on dynamically-rendered cards. Staging excluded.
+   GA4 is not called. Clicks go to the first-party kil_track RPC only. */
 (function(){
   "use strict";
   if (location.pathname.indexOf('-staging') > -1) return;   // staging pages send nothing
@@ -8,8 +9,8 @@
      Every published event sends the buyer off-site, and until now that click existed ONLY as a
      GA4 event. GA4 is someone else's database: it cannot tell an organizer how many people
      KEEPITIL sent them, it cannot back an affiliate reconciliation, and it disappears behind ad
-     blockers. So every click is now ALSO written to page_views via the kil_track RPC.
-     GA4 is kept — this is additive, not a replacement. */
+     blockers. The click is written to page_views via the kil_track RPC.
+     GA4 and its dataLayer queue are not used. */
   var SB_URL = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
   var SB_ANON = (window.KIL_ANON || (window.SB && window.SB.supabaseKey) || '');
 
@@ -46,11 +47,6 @@
   }
 
   function send(name, params){
-    try {
-      if (window.gtag) { window.gtag('event', name, params || {}); }
-      else if (window.dataLayer) { window.dataLayer.push(['event', name, params || {}]); }
-      else if (window.console) { console.debug('[kt]', name, params || {}); }
-    } catch(e){}
     firstParty(name, params || {});
   }
 

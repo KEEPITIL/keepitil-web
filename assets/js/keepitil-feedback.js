@@ -75,7 +75,6 @@
         body: JSON.stringify(body)
       });
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      try { if (window.gtag) gtag('event', 'feedback_submit', { category: state.cat }); } catch (e) {}
       document.getElementById('kil-fb-card').innerHTML =
         '<div id="kil-fb-done"><div class="big">🙏</div><h3>Thank you!</h3>'
         + '<p class="sub">Your feedback goes straight to the KEEPITIL team.</p>'

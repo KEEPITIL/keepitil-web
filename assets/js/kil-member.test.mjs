@@ -348,7 +348,8 @@ test('the draft summary migration gates on profile_is_public and does not return
   assert.match(helper, /m\.admin_approved IS TRUE/);
   assert.match(helper, /m\.is_minor IS FALSE/);
   assert.match(helper, /m\.under_18 IS FALSE/);
-  assert.match(helper, /private\.age_verifications/);
+  assert.match(helper, /private\.account_age/);
+  assert.match(helper, /editorial_artist/);
   assert.match(helper, /v\.age_verified IS TRUE/);
   assert.match(helper, /v\.revoked_at IS NULL/);
   assert.match(helper, /po\.owner_id IS NOT NULL/);

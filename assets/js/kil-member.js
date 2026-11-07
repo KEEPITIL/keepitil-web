@@ -2,8 +2,8 @@
    Public (anyone): name or handle, avatar, bio, links, and that profile's upcoming published events.
    Private (signed-in owner only): the same page, plus an events dashboard — upcoming and past,
    drafts included — with the counts organizer_dashboard already stores (tickets sold, checked in,
-   revenue). No RSVP count and no view count: events has neither column, and this page does not
-   invent them.
+   revenue). KilInsights draws the trend chart from those same rows. No RSVP count and no view
+   count: events has neither column, and this page does not invent them.
 
    Public reads use get_public_profile() only (one slug, public fields only).
    This page does not read profile_meta or public.profiles.
@@ -178,6 +178,13 @@
     return null;
   }
 
+  function insightsLib() {
+    var g = typeof globalThis !== 'undefined' ? globalThis : null;
+    if (g && g.KilInsights) return g.KilInsights;
+    if (root && root.KilInsights) return root.KilInsights;
+    return null;
+  }
+
   function faceOf(meta) {
     var lib = shareLib();
     if (!lib || !lib.publicFace) return null;
@@ -248,8 +255,14 @@
     if (links.length) h += '<section class="m1-sec"><h2>Links</h2><div class="m1-chips">' +
       links.map(function (l) { return '<a class="m1-chip" href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer">' + esc(l.label) + '</a>'; }).join('') + '</div></section>';
     if (raw.public_fields && raw.public_fields.indexOf('events') !== -1) {
-      h += '<section class="m1-sec"><h2>Upcoming events</h2>' + (d.events === null ? failedNote('Events') :
-        ev.length ? '<div class="m1-evs">' + ev.map(function (e) { return eventCard(e); }).join('') + '</div>' : '<p class="m1-empty">No upcoming events.</p>') + '</section>';
+      h += '<section class="m1-sec"><h2>Upcoming events</h2>';
+      if (d.events === null) h += failedNote('Events');
+      else {
+        var pulse = insightsLib();
+        if (pulse) h += pulse.renderPublic(ev, d.now);
+        h += ev.length ? '<div class="m1-evs">' + ev.map(function (e) { return eventCard(e); }).join('') + '</div>' : '<p class="m1-empty">No upcoming events.</p>';
+      }
+      h += '</section>';
     }
     if (music.length) h += '<section class="m1-sec"><h2>Music</h2><div class="m1-chips">' +
       music.map(function (l) { return '<a class="m1-chip m1-music" href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer">' + esc(l.label) + '</a>'; }).join('') + '</div></section>';
@@ -284,6 +297,12 @@
     else {
       var board = hostBoard(d.hosted, d.metrics || null, d.now);
       if (d.metrics === null) h += failedNote('Event numbers');
+      else {
+        var insights = insightsLib();
+        if (insights && (board.upcoming.length || board.past.length)) {
+          h += insights.renderOwner(insights.merge(d.hosted, d.metrics), { now: d.now, table: false });
+        }
+      }
       if (!board.upcoming.length && !board.past.length) h += '<p class="m1-empty">You have not created an event yet.</p>';
       else {
         h += '<h3 class="m1-dash-h">Upcoming</h3>' + hostList(board.upcoming, 'No upcoming events.');

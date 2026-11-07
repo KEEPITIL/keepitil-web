@@ -4,6 +4,8 @@ import test from 'node:test';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
+const insights = require('./kil-insights.js');
+globalThis.KilInsights = insights;
 const share = require('./kil-share.js');
 globalThis.KilShare = share;
 const m = require('./kil-member.js');
@@ -81,7 +83,10 @@ test('public view is name, handle, avatar, bio, links, and upcoming published ev
   assert.match(html, /Instagram/);
   assert.match(html, /Soon &lt;b&gt;/);
   assert.match(html, /href="\/event\?e=soon"/);
+  assert.match(html, /data-kil="public-rollup"/);
+  assert.match(html, /1 upcoming · LA/);
   assert.doesNotMatch(html, /Last month|Still writing|Old draft|Secret/);
+  assert.doesNotMatch(html, /data-kil="owner"|data-kil="event-chart"/);
   assert.doesNotMatch(html, /javascript:|ada@example.com|hash-value|book_email|Sold|Checked in|Revenue|Only you can see this/);
 });
 
@@ -169,7 +174,10 @@ test('owner dashboard splits upcoming and past, keeps drafts, and shows stored c
   assert.match(html, /href="\/create-event\?e=draft-soon"/);
   assert.match(html, /href="\/event\?e=soon"/);
   assert.match(html, /Secret/);
-  assert.doesNotMatch(html, /buyer@example.com|hash-value|RSVP|views/i);
+  assert.match(html, /data-kil="event-chart"/);
+  assert.match(html, /data-kil="compare"/);
+  assert.doesNotMatch(html, /kil-in-table/);
+  assert.doesNotMatch(html, /buyer@example.com|hash-value|nope|RSVP|views/i);
 });
 
 test('a failed numbers read is not shown as zero tickets', () => {

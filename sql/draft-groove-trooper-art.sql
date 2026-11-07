@@ -1,9 +1,11 @@
 -- DRAFT ONLY. Do not apply to production from this change.
--- Superseded for the live row by sql/draft-groove-trooper-atlas-not-applied.sql,
--- which uses Atlas's exact old-value checks. This file guessed at profile_content;
+-- Superseded for the live row by sql/draft-groove-trooper-atlas-not-applied.sql
+-- and its revert, sql/draft-groove-trooper-atlas-revert-not-applied.sql.
+-- Those files use Atlas's exact old-value checks. This file guessed at profile_content;
 -- Atlas's SELECT found no profile_content rows for groove-trooper.
--- Atlas / Sentinel: review, then run by hand if the stored Groove Trooper
--- profile still points at outside image hosts.
+-- This file has no revert of its own. Do not run it.
+-- The forward file raises unless the update counts are 1, 1, 1, 1, and 5,
+-- then lists any outside image host still stored on those rows.
 --
 -- The public page already rewrites these file ids in the browser. This file
 -- updates the stored rows so the database stops holding them.

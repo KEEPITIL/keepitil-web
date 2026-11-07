@@ -18,6 +18,7 @@
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
 <meta name="description" content="KEEPITIL is a culture platform built to discover, connect, create, share and earn through people, events, media and community."/>
+  <script src="/assets/js/kil-share.js?v=20261107a"></script>
   <link rel="icon" type="image/png" href="/assets/images/logo-green-nav.png"/>
   <script>(function(){try{var t=localStorage.getItem('kil-theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -1488,6 +1489,7 @@ function loadProfileMeta(){
       PROFILE.name=d.display_name||PROFILE.name; PROFILE.handle=d.handle||PROFILE.handle; PROFILE.location=d.location||PROFILE.location;
       PROFILE.bio=(d.bio!=null?d.bio:PROFILE.bio); PROFILE.tagline=(d.tagline!=null?d.tagline:PROFILE.tagline); PROFILE.pronouns=d.pronouns||PROFILE.pronouns;
       PROFILE.avatar=d.avatar_url||PROFILE.avatar; PROFILE.cover=d.cover_url||PROFILE.cover; PROFILE.cover_mobile=d.cover_mobile_url||PROFILE.cover_mobile; PROFILE.book_email=d.book_email||PROFILE.book_email;
+      try{ if(window.KilShare){ KilShare.applyPreview(document, KilShare.publicFace({ slug:PROFILE_SLUG, display_name:PROFILE.name, handle:PROFILE.handle, bio:PROFILE.bio, tagline:PROFILE.tagline, avatar_url:PROFILE.avatar, status:d.status, is_minor:d.is_minor, under_18:d.under_18, age_verified:d.age_verified, profile_public:d.profile_public, public_fields:d.public_fields }, { path:'/profile' })); } }catch(e){}
       if(d.socials&&typeof d.socials==='object')PROFILE.socials=Object.assign({},PROFILE.socials,d.socials);
       if(Array.isArray(d.links))PROFILE.links=d.links;
       if(Array.isArray(d.highlights)&&d.highlights.length)PROFILE.highlights=d.highlights;
@@ -1566,7 +1568,9 @@ document.addEventListener('click',function(e){ var w=document.getElementById('pf
    is not a link anyone can open, so anything but keepitil.com itself shares the canonical https://keepitil.com. */
 var KIL_SHARE_ORIGIN=(/^https:\/\/(www\.)?keepitil\.com$/i.test(location.origin)?location.origin:'https://keepitil.com');
 function shareTo(net){
-  var url=(typeof PROFILE_SLUG!=='undefined'&&PROFILE_SLUG)?KIL_SHARE_ORIGIN+'/profile?slug='+encodeURIComponent(PROFILE_SLUG):KIL_SHARE_ORIGIN+location.pathname;
+  /* Profile shares: utm_source and utm_medium only. No utm_campaign, and no id, handle, or email in a UTM. */
+  var url=(window.KilShare&&typeof PROFILE_SLUG!=='undefined'&&PROFILE_SLUG)?KilShare.profileShareUrl(PROFILE_SLUG,'/profile')
+    :((typeof PROFILE_SLUG!=='undefined'&&PROFILE_SLUG)?KIL_SHARE_ORIGIN+'/profile?slug='+encodeURIComponent(PROFILE_SLUG)+'&utm_source=share&utm_medium=profile':KIL_SHARE_ORIGIN+location.pathname);
   var title=(typeof PROFILE!=='undefined'&&PROFILE.name)?PROFILE.name+' on KEEPITIL':document.title;
   var u=encodeURIComponent(url), t=encodeURIComponent(title), body=encodeURIComponent(title+' — '+url);
   var link='';

@@ -4,6 +4,8 @@ import test from 'node:test';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
+const insights = require('./kil-insights.js');
+globalThis.KilInsights = insights;
 const share = require('./kil-share.js');
 globalThis.KilShare = share;
 const m = require('./kil-member.js');
@@ -27,9 +29,10 @@ function chain(result) {
 
 function client(script) {
   const rpcCalls = [];
+  const rpcArgs = [];
   const fromCalls = [];
   return {
-    rpcCalls, fromCalls,
+    rpcCalls, rpcArgs, fromCalls,
     from(table) {
       fromCalls.push(table);
       const spec = (script.from && script.from[table]) || { data: [] };
@@ -37,6 +40,7 @@ function client(script) {
     },
     rpc(name, args) {
       rpcCalls.push(name);
+      rpcArgs.push(args || null);
       const spec = (script.rpc && script.rpc[name]) || { data: null, error: { message: 'missing ' + name } };
       return Promise.resolve(typeof spec === 'function' ? spec(args) : spec);
     },
@@ -63,15 +67,15 @@ const bare = {
 
 function events() {
   return [
-    { slug: 'soon', title: 'Soon <b>', status: 'published', starts_at: '2026-12-01T04:00:00Z', venue: 'Room', city: 'LA', cover_url: 'https://cdn.example/c.jpg' },
-    { slug: 'past-show', title: 'Last month', status: 'published', starts_at: '2026-10-01T04:00:00Z', venue: 'Yard', city: 'LA' },
-    { slug: 'draft-soon', title: 'Still writing', status: 'draft', starts_at: '2026-12-20T04:00:00Z', city: 'LA' },
-    { slug: 'draft-old', title: 'Old draft', status: 'draft', starts_at: '2026-01-02T04:00:00Z' },
-    { slug: 'locked', title: 'Secret', status: 'published', starts_at: '2026-12-05T04:00:00Z', event_password_hash: 'hash-value', city: 'LA' }
+    { slug: 'soon', title: 'Soon <b>', status: 'published', starts_at: '2026-12-01T04:00:00Z', venue: 'Room', city: 'LA', cover_url: 'https://cdn.example/c.jpg', is_protected: false },
+    { slug: 'past-show', title: 'Last month', status: 'published', starts_at: '2026-10-01T04:00:00Z', venue: 'Yard', city: 'LA', is_protected: false },
+    { slug: 'draft-soon', title: 'Still writing', status: 'draft', starts_at: '2026-12-20T04:00:00Z', city: 'LA', is_protected: false },
+    { slug: 'draft-old', title: 'Old draft', status: 'draft', starts_at: '2026-01-02T04:00:00Z', is_protected: false },
+    { slug: 'locked', title: 'Secret', status: 'published', starts_at: '2026-12-05T04:00:00Z', is_protected: true, event_password_hash: 'hash-value', city: 'LA' }
   ];
 }
 
-test('public view is name, handle, avatar, bio, links, and upcoming published events', () => {
+test('public view is name, handle, avatar, bio, links, and a count of upcoming events', () => {
   const html = m.renderPublic({ slug: 'ada', meta, events: events(), now: NOW, categories: null });
   assert.match(html, /<h1 class="m1-name">Ada<\/h1>/);
   assert.match(html, /@ada/);
@@ -79,10 +83,21 @@ test('public view is name, handle, avatar, bio, links, and upcoming published ev
   assert.match(html, /Plays after midnight\./);
   assert.match(html, /href="https:\/\/ada\.example"/);
   assert.match(html, /Instagram/);
-  assert.match(html, /Soon &lt;b&gt;/);
-  assert.match(html, /href="\/event\?e=soon"/);
+  assert.match(html, /data-kil="public-rollup"/);
+  assert.match(html, /&lt;5 upcoming · LA/);
+  assert.doesNotMatch(html, /Soon|m1-ev|href="\/event\?e=soon"|1 upcoming/);
   assert.doesNotMatch(html, /Last month|Still writing|Old draft|Secret/);
+  assert.doesNotMatch(html, /data-kil="owner"|data-kil="event-chart"/);
   assert.doesNotMatch(html, /javascript:|ada@example.com|hash-value|book_email|Sold|Checked in|Revenue|Only you can see this/);
+});
+
+test('a missing is_protected flag is not shown and a false flag is kept', () => {
+  const kept = m.hideLocked([
+    { slug: 'open', is_protected: false },
+    { slug: 'secret', is_protected: true, title: 'Secret' },
+    { slug: 'unknown', title: 'Nope' }
+  ]);
+  assert.deepEqual(kept.map((e) => e.slug), ['open']);
 });
 
 test('a profile with no display name still shows the handle', () => {
@@ -169,7 +184,10 @@ test('owner dashboard splits upcoming and past, keeps drafts, and shows stored c
   assert.match(html, /href="\/create-event\?e=draft-soon"/);
   assert.match(html, /href="\/event\?e=soon"/);
   assert.match(html, /Secret/);
-  assert.doesNotMatch(html, /buyer@example.com|hash-value|RSVP|views/i);
+  assert.match(html, /data-kil="event-chart"/);
+  assert.match(html, /data-kil="compare"/);
+  assert.doesNotMatch(html, /kil-in-table/);
+  assert.doesNotMatch(html, /buyer@example.com|hash-value|nope|RSVP|views/i);
 });
 
 test('a failed numbers read is not shown as zero tickets', () => {
@@ -182,26 +200,63 @@ test('a failed numbers read is not shown as zero tickets', () => {
   assert.doesNotMatch(html, />0<\/b><span>Sold/);
 });
 
-test('a logged-out visitor does not list profile_meta or profiles', async () => {
+test('a signed-out caller gets the summary shape and no event rows', async () => {
   const c = client({
     session: { data: { session: null } },
-    from: { events: { data: [{ slug: 'locked' }, { slug: 'quiet' }] } },
+    from: { events: { data: [{ slug: 'locked' }] } },
     rpc: {
       get_public_profile: { data: [meta] },
-      get_profile_events() {
-        return { data: events().concat([{ slug: 'quiet', title: 'Quiet', status: 'published', starts_at: '2026-12-08T04:00:00Z' }]) };
-      }
+      get_profile_event_summary() {
+        return { data: [{ upcoming_count: null, cities: ['LA', 'Long Beach'], title: 'Secret', slug: 'soon' }] };
+      },
+      get_profile_events() { return { data: events() }; },
+      get_my_tickets() { return { data: [{ slug: 't', qr_token: 'door-token' }] }; }
     }
   });
   const d = await m.load(c, 'ada', { now: NOW });
   assert.equal(d.owner, false);
   assert.equal(c.fromCalls.includes('profile_meta'), false);
   assert.equal(c.fromCalls.includes('profiles'), false);
-  assert.equal(c.rpcCalls.includes('get_public_profile'), true);
-  assert.equal(c.rpcCalls.includes('organizer_dashboard'), false);
-  assert.deepEqual(d.events.map((e) => e.slug), ['soon', 'past-show', 'draft-soon', 'draft-old']);
+  assert.equal(c.fromCalls.includes('events'), false);
+  assert.deepEqual(c.rpcCalls, ['get_public_profile', 'get_profile_event_summary']);
+  assert.equal(d.tickets, undefined);
+  assert.equal(d.metrics, undefined);
+  assert.deepEqual(d.events, []);
+  assert.deepEqual(Object.keys(d.summary).sort(), ['cities', 'upcoming_count']);
+  assert.equal(d.summary.upcoming_count, null);
+  assert.deepEqual(d.summary.cities, ['LA', 'Long Beach']);
   const html = m.render(d);
-  assert.doesNotMatch(html, /ada@example.com|hash-value|Secret/);
+  assert.match(html, /data-kil="public-rollup"/);
+  assert.match(html, /&lt;5 upcoming · LA · Long Beach/);
+  assert.doesNotMatch(html, /Secret|m1-ev|href="\/event|ada@example.com|hash-value|door-token/);
+});
+
+test('another signed-in member is not the owner and gets the same summary', async () => {
+  const c = client({
+    session: { data: { session: { user: { id: 'someone-else' } } } },
+    rpc: {
+      get_public_profile: { data: [meta] },
+      my_profile_slug: { data: 'someone-else' },
+      get_profile_event_summary: { data: [{ upcoming_count: 8, cities: ['LA'], sold: 1 }] },
+      get_profile_events: { data: events() },
+      get_my_tickets: { data: [{ slug: 't', qr_token: 'door-token' }] },
+      get_my_ticket_summary: { data: [{ slug: 't', qr_token: 'door-token' }] },
+      organizer_dashboard: { data: [{ slug: 'soon', sold: 4, revenue_cents: 900 }] }
+    }
+  });
+  const d = await m.load(c, 'ada', { now: NOW });
+  assert.equal(d.owner, false);
+  assert.equal(c.rpcCalls.includes('my_profile_slug'), true);
+  assert.equal(c.rpcCalls.includes('get_profile_event_summary'), true);
+  assert.equal(c.rpcCalls.includes('get_profile_events'), false);
+  assert.equal(c.rpcCalls.includes('get_my_tickets'), false);
+  assert.equal(c.rpcCalls.includes('get_my_ticket_summary'), false);
+  assert.equal(c.rpcCalls.includes('organizer_dashboard'), false);
+  assert.deepEqual(d.events, []);
+  assert.deepEqual(d.summary, { upcoming_count: 8, cities: ['LA'] });
+  const html = m.render(d);
+  assert.match(html, /8 upcoming · LA/);
+  assert.doesNotMatch(html, /Only you can see this|Sold|Secret|door-token|m1-ev/);
 });
 
 test('a logged-out load with an empty lookup does not touch the tables', async () => {
@@ -224,7 +279,7 @@ test('the owner load asks for dashboard counts and never selects the password ha
       get_public_profile: { data: [] },
       get_profile_events: { data: events() },
       my_profile_slug: { data: 'ada' },
-      get_my_tickets: { data: [] },
+      get_my_ticket_summary: { data: [{ slug: 'soon', title: 'Soon', qty: 1, tier_name: 'GA', qr_token: 'door-token', buyer_email: 'buyer@example.com' }] },
       organizer_dashboard: { data: [{ slug: 'soon', sold: 2, checked_in: 1, revenue_cents: 500 }] }
     }
   });
@@ -239,6 +294,10 @@ test('the owner load asks for dashboard counts and never selects the password ha
   assert.equal(d.owner, true);
   assert.equal(d.metrics[0].sold, 2);
   assert.deepEqual(d.hosted.map((e) => e.slug), events().map((e) => e.slug));
+  assert.deepEqual(Object.keys(d.tickets[0]).sort(), ['qty', 'slug', 'tier_name', 'title']);
+  assert.equal(c.rpcCalls.includes('get_my_tickets'), false);
+  assert.equal(c.rpcCalls.includes('get_my_ticket_summary'), true);
+  assert.equal(c.rpcCalls.includes('get_profile_event_summary'), false);
   assert.equal(seen.some((s) => s.startsWith('profile_meta') || s.startsWith('profiles:')), false);
   assert.equal(seen.some((s) => /book_email|event_password_hash|buyer_email/.test(s)), false);
   assert.equal(c.rpcCalls.includes('organizer_dashboard'), true);
@@ -268,4 +327,93 @@ test('the page does not select profile_meta or book_email', () => {
   assert.equal(js.includes("from('profile_meta')"), false);
   assert.equal(js.includes("from('profiles')"), false);
   assert.equal(/book_email|buyer_email|qr_token/.test(js), false);
+  assert.equal(js.includes('get_my_tickets'), false);
+  assert.equal(js.includes('event_password_hash'), false);
+  assert.match(js, /get_profile_event_summary/);
+  assert.match(js, /get_my_ticket_summary/);
+  assert.match(js, /is_protected/);
+});
+
+test('the public summary is asked with the canonical slug', async () => {
+  const row = Object.assign({}, meta, { slug: 'ada', handle: 'ada-live' });
+  const c = client({
+    rpc: {
+      get_public_profile: { data: [row] },
+      get_profile_event_summary: { data: [{ upcoming_count: 0, cities: [] }] }
+    }
+  });
+  await m.load(c, 'ada', { now: NOW });
+  const summaryCall = c.rpcArgs[c.rpcCalls.indexOf('get_profile_event_summary')];
+  assert.equal(summaryCall.p_handle, 'ada');
+});
+
+test('the draft summary migration gates on profile_is_public and does not return a door token', () => {
+  const sql = readFileSync(new URL('../../supabase/migrations/20261107020000_profile_event_summary.sql', import.meta.url), 'utf8');
+  const down = readFileSync(new URL('../../supabase/rollbacks/20261107020000_profile_event_summary_down.sql', import.meta.url), 'utf8');
+  const rules = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
+  const helper = rules.slice(rules.indexOf('FUNCTION private.profile_is_public'), rules.indexOf('FUNCTION private.profile_public_one'));
+  assert.match(sql, /NEEDS SENTINEL REVIEW BEFORE PROD/);
+  assert.match(sql, /#91 owns private\.profile_is_public/);
+  assert.equal(/CREATE OR REPLACE FUNCTION private\.profile_is_public/.test(sql), false);
+  assert.match(helper, /FUNCTION private\.profile_is_public\(p_slug text\)/);
+  assert.match(helper, /'member', 'artist', 'creator', 'dj', 'subscriber_profile'/);
+  assert.match(helper, /'brand', 'venue', 'organizer', 'promoter', 'company'/);
+  assert.match(helper, /m\.profile_public IS TRUE/);
+  assert.match(helper, /m\.status = 'published'/);
+  assert.match(helper, /m\.admin_approved IS TRUE/);
+  assert.match(helper, /m\.is_minor IS FALSE/);
+  assert.match(helper, /m\.under_18 IS FALSE/);
+  assert.match(helper, /private\.account_age/);
+  assert.match(helper, /editorial_artist/);
+  assert.match(helper, /a\.verified IS TRUE/);
+  assert.match(helper, /a\.method = 'house'/);
+  assert.match(helper, /po\.owner_id IS NOT NULL/);
+  assert.equal(/m\.age_verified/.test(helper), false);
+  const summary = sql.slice(sql.indexOf('FUNCTION public.get_profile_event_summary'), sql.indexOf('FUNCTION public.get_my_ticket_summary'));
+  assert.match(summary, /private\.profile_is_public\(m\.slug\)/);
+  assert.match(summary, /upcoming_count integer/);
+  assert.match(summary, /cities text\[\]/);
+  assert.match(summary, /WHEN \(SELECT n FROM counted\) < 5 THEN NULL/);
+  assert.match(summary, /'events' = ANY \(m\.public_fields\)/);
+  assert.equal(/age_verified/.test(summary), false);
+  assert.equal(/is_minor/.test(summary), false);
+  const eventsRpc = sql.slice(sql.indexOf('FUNCTION public.get_profile_events'), sql.indexOf('FUNCTION public.get_profile_event_summary'));
+  assert.match(eventsRpc, /is_protected boolean/);
+  assert.match(eventsRpc, /po\.owner_id = \(SELECT auth\.uid\(\)\)/);
+  const returns = eventsRpc.slice(eventsRpc.indexOf('RETURNS TABLE'), eventsRpc.indexOf('LANGUAGE sql'));
+  assert.match(returns, /is_protected boolean/);
+  assert.equal(returns.includes('event_password_hash'), false);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.get_profile_events\(text\) FROM PUBLIC, anon, authenticated/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.get_profile_events\(text\) TO authenticated/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.get_profile_event_summary\(text\) TO anon, authenticated/);
+  assert.match(sql, /^BEGIN;/m);
+  assert.match(sql, /^COMMIT;/m);
+  assert.match(sql, /e\.event_password_hash IS NOT NULL/);
+  assert.equal(sql.includes('password_protected'), false);
+  assert.equal(sql.includes('qr_token'), false);
+  assert.match(sql, /FUNCTION public\.get_my_ticket_summary\(\)/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.get_my_ticket_summary\(\) TO authenticated/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.get_my_ticket_summary\(\) FROM PUBLIC, anon/);
+  assert.match(down, /DROP FUNCTION IF EXISTS public\.get_profile_event_summary\(text\)/);
+  assert.match(down, /does not drop it/);
+  assert.match(sql, /REVOKE SELECT ON TABLE public\.events FROM anon, authenticated, PUBLIC/);
+  assert.match(sql, /a\.attname NOT IN \('event_password_hash', 'owner_handle', 'owner_id'\)/);
+  assert.match(summary, /organizer text/);
+  assert.match(summary, /\(SELECT v\.slug FROM visible v\) AS organizer/);
+  assert.match(sql, /immediately after PR #91 step 1/);
+  assert.equal(/20261107014000 then 20261107014100/.test(sql), false);
+  assert.match(down, /pg_get_functiondef\('public\.get_profile_events\(text\)'/);
+  assert.match(down, /RAISE EXCEPTION 'get_profile_events restore is empty/);
+  assert.match(down, /GRANT SELECT ON TABLE public\.events TO anon, authenticated/);
+  const tickets = readFileSync(new URL('../../tickets.html', import.meta.url), 'utf8');
+  assert.match(tickets, /\/assets\/js\/vendor\/qrcode\.js/);
+  assert.match(tickets, /createDataURL/);
+  assert.equal(tickets.includes('qrserver'), false);
+  assert.equal(tickets.includes('kilNeedSession'), false);
+  assert.equal(tickets.includes('access_token'), false);
+  const qrcode = createRequire(import.meta.url)('./vendor/qrcode.js');
+  const drawn = qrcode(0, 'M');
+  drawn.addData('KIL-local-door-token');
+  drawn.make();
+  assert.match(drawn.createDataURL(4, 0), /^data:image\/gif;base64,/);
 });

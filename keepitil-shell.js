@@ -271,12 +271,17 @@
      GA4 and Microsoft Clarity are not loaded. Sentinel 2026-11-06: strip them, do not gate them.
      The only analytics script is Cloudflare's cookieless beacon, and only when the partial
      carries a real site token. Checkout, ticket, account, and profile-edit pages skip it.
-     The iOS app wrapper (capacitor://, file://, or window.Capacitor) skips it. A placeholder
-     token skips it, so the beacon script is not requested. */
+     A placeholder token skips it, so the beacon script is not requested.
+     Native wrapper: a WKWebView on https://keepitil.com looks like Safari unless the
+     app marks itself before page scripts run. The Capacitor app should do one of these
+     at document start: set window.__KI_NATIVE_APP = true, or append " KeepitilApp/1"
+     to the user agent. capacitor://, file://, and window.Capacitor still count.
+     This is the marker contract. It is not proof that a shipped build sets it. */
   /* @kil-cf-page-skip */
   function __kilCfPageSkip(loc){
     loc = loc || {};
-    if(loc.wrapped) return true;
+    if(loc.wrapped || loc.nativeApp) return true;
+    if(/KeepitilApp\/\d/i.test(String(loc.userAgent || ''))) return true;
     var protocol = String(loc.protocol || '').toLowerCase();
     if(protocol !== 'http:' && protocol !== 'https:') return true;
     var pageType = String(loc.pageType || '').toLowerCase();
@@ -311,11 +316,13 @@
   }
   /* @kil-cf-token-skip-end */
   function __kilCfLocation(){
-    var loc = { protocol:'', pathname:'', search:'', view:'', pageType:'', wrapped:false };
+    var loc = { protocol:'', pathname:'', search:'', view:'', pageType:'', userAgent:'', wrapped:false, nativeApp:false };
     try{ loc.protocol = location.protocol; loc.pathname = location.pathname; loc.search = location.search; }catch(e){ loc.wrapped = true; }
     try{ loc.view = document.documentElement.getAttribute('data-view') || ''; }catch(e){}
     try{ loc.pageType = document.documentElement.getAttribute('data-page-type') || ''; }catch(e){}
+    try{ loc.userAgent = navigator.userAgent || ''; }catch(e){}
     try{ if(window.Capacitor) loc.wrapped = true; }catch(e){ loc.wrapped = true; }
+    try{ if(window.__KI_NATIVE_APP) loc.nativeApp = true; }catch(e){ loc.nativeApp = true; }
     return loc;
   }
   function __kilMountCfBeacon(){
@@ -346,7 +353,7 @@
      and Stripe Payment Links. Loaded with the shell so every page that already
      shares this file gets it. Does not touch ticket Checkout Sessions. */
   try{ if(!window.__kilUtmLoad){ window.__kilUtmLoad=1;
-    var _utm=document.createElement('script'); _utm.src='/assets/js/kil-utm.js?v=20261107b'; document.head.appendChild(_utm);
+    var _utm=document.createElement('script'); _utm.src='/assets/js/kil-utm.js?v=20261107c'; document.head.appendChild(_utm);
   } }catch(e){}
   /* Customer feedback widget — V3 only (floating "Feedback" pill -> Supabase feedback table). Added 2026-07-10. */
   try{ if(!window.__kilFeedbackLoad){ window.__kilFeedbackLoad=1;

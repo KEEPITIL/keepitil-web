@@ -52,4 +52,14 @@ test('checkout, ticket, account, profile edit, and the app wrapper skip the beac
   assert.equal(pageSkip({ ...web, protocol: 'capacitor:' }), true);
   assert.equal(pageSkip({ ...web, protocol: 'file:' }), true);
   assert.equal(pageSkip({ ...web, wrapped: true }), true);
+  assert.equal(pageSkip({ ...web, nativeApp: true }), true);
+  assert.equal(pageSkip({ ...web, userAgent: 'Mozilla/5.0 KeepitilApp/1' }), true);
+  assert.equal(pageSkip({ ...web, pathname: '/profile', view: 'public', userAgent: 'Mozilla/5.0 KeepitilApp/1' }), true);
+});
+
+test('gtag is not dispatched by the click or feedback scripts', () => {
+  const clicks = readFileSync(new URL('../assets/js/kt-analytics.js', import.meta.url), 'utf8');
+  const feedback = readFileSync(new URL('../assets/js/keepitil-feedback.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(clicks, /window\.gtag|dataLayer\.push|gtag\(/);
+  assert.doesNotMatch(feedback, /gtag\(/);
 });

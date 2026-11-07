@@ -112,7 +112,7 @@ test('the Cloudflare beacon token lives in one partial', () => {
   const src = partial.match(/src\s*=\s*(['"])(https:\/\/static\.cloudflareinsights\.com\/beacon\.min\.js)\1/);
   assert.ok(token && token[2].includes('TODO_CF_TOKEN'));
   assert.ok(src);
-  assert.match(shell, /\/assets\/js\/kil-utm\.js\?v=20261107b/);
+  assert.match(shell, /\/assets\/js\/kil-utm\.js\?v=20261107c/);
   const utm = require('../assets/js/kil-utm.js');
   assert.equal(typeof utm.capture, 'function');
 });

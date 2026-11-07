@@ -3291,31 +3291,35 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
     if(ev.target.id==='kil-signin'||ev.target.id==='kil-signin-x'){ closeModal(); }
   });
   function setMsg(t){ var m=$('kil-msg'); if(m) m.textContent=t||''; }
-  function utmp(k){
-    try{ var v=new URLSearchParams(location.search).get(k); if(v) return v; }catch(e){}
-    /* Landing tags survive onto this signup after the visitor has moved to a page
-       with a clean URL. Same three columns this insert already sends. */
-    try{
-      var last=window.KIL_UTM&&window.KIL_UTM.read&&window.KIL_UTM.read(window.localStorage).last;
-      if(last&&last[k]) return last[k];
-    }catch(e){}
-    return null;
-  }
-  function captureLead(email,handle,source){
-    if(!sb||!email) return;
-    var us=utmp('utm_source'), um=utmp('utm_medium'), uc=utmp('utm_campaign');
-    try{ sb.from('marketing_contacts').insert({
-      email:email, handle:handle||null, source:source,
-      landing_path:location.pathname, referrer:document.referrer||null,
-      utm_source:us, utm_medium:um, utm_campaign:uc,
-      user_agent:(navigator.userAgent||'').slice(0,400)
-    }).then(function(r){
-      /* The campaign fields now live on the sign-up row. Drop the browser copy. */
-      if(r&&r.error) return;
-      if((us||um||uc)&&window.KIL_UTM&&window.KIL_UTM.clear){
-        try{ window.KIL_UTM.clear(window.localStorage); }catch(e){}
-      }
-    }).catch(function(){}); }catch(e){}
+  /* Campaign fields go to the server alone. This does not read the query string
+     and does not send an email, a handle, or a user id with them. The RPC
+     attach_signup_attribution reads the signed-in user and writes the fields
+     on that account's row. sql/draft-attach-signup-attribution-not-applied.sql
+     is not applied from this change, so a missing function leaves the browser copy
+     in place. */
+  function attachSignupAttribution(){
+    var api=window.KIL_UTM;
+    if(!sb||!api||typeof api.fieldsForServer!=='function') return;
+    var fields;
+    try{ fields=api.fieldsForServer(window.localStorage); }catch(e){ return; }
+    if(!fields) return;
+    sb.auth.getSession().then(function(r){
+      var sess=r&&r.data&&r.data.session;
+      if(!sess) return;
+      var again;
+      try{ again=api.fieldsForServer(window.localStorage); }catch(e){ return; }
+      if(!again) return;
+      sb.rpc('attach_signup_attribution', {
+        p_utm_source: again.utm_source||null,
+        p_utm_medium: again.utm_medium||null,
+        p_utm_campaign: again.utm_campaign||null,
+        p_utm_content: again.utm_content||null,
+        p_utm_term: again.utm_term||null
+      }).then(function(res){
+        if(res&&res.error) return;
+        try{ api.clear(window.localStorage); }catch(e){}
+      }).catch(function(){});
+    }).catch(function(){});
   }
   function showPane(which){
     var li=$('kil-pane-login'), su=$('kil-pane-signup');
@@ -3381,7 +3385,7 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
            session, so it only runs when signup returns one; the shell covers the rest at first
            sign-in (Founder rule 2026-09-23). */
         if(sess && sb){ sb.rpc('claim_profile',{p_handle:handle,p_display:handle}).then(function(){},function(){}); }
-        captureLead(email,handle,'signup');
+        attachSignupAttribution();
         window.KIL_HANDLE=handle;
         if(sess){ setMsg('Welcome, @'+handle+'! You are in.'); }
         else { setMsg('Account created! Check your email (and spam) for a confirmation link to finish, then log in below.'); showPane('login'); }
@@ -3395,7 +3399,6 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
     if(!email){ setMsg('Enter your email above first.'); return; }
     if(!sb){ setMsg('Coming soon.'); return; }
     setMsg('Sending…');
-    captureLead(email,null,'magic_link');
     sb.auth.signInWithOtp({email:email,options:{emailRedirectTo:location.href}}).then(function(r){
       setMsg((r&&r.error)?'Could not send link.':'Check your email for your magic link!');
     }).catch(function(){ setMsg('Could not send link.'); });
@@ -3413,8 +3416,8 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
     }catch(e){}
   }
   if(sb){
-    sb.auth.getSession().then(function(r){ session=(r&&r.data)?r.data.session:null; ensureAppUser(session); loadSaves(); loadHandle(); }).catch(function(){});
-    sb.auth.onAuthStateChange(function(_e,s){ session=s; ensureAppUser(s); closeModal(); loadSaves(); loadHandle(); });
+    sb.auth.getSession().then(function(r){ session=(r&&r.data)?r.data.session:null; ensureAppUser(session); loadSaves(); loadHandle(); if(session) attachSignupAttribution(); }).catch(function(){});
+    sb.auth.onAuthStateChange(function(_e,s){ session=s; ensureAppUser(s); closeModal(); loadSaves(); loadHandle(); if(s) attachSignupAttribution(); });
   }
   var host=$('evx');
   if(host && window.MutationObserver){ new MutationObserver(function(){ markSaved(); }).observe(host,{childList:true,subtree:true}); }
@@ -3451,7 +3454,7 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
   else setTimeout(run,500);
 })();
 </script>
-<script src="/keepitil-shell.js?v=20261107b" defer></script>
+<script src="/keepitil-shell.js?v=20261107c" defer></script>
   <!-- Create FAB removed (Founder 2026-07-17): linked to a retired v3 create page (wrong page). Same fix as V3 home. -->
   <!-- Founder fixes 2026-07-12: (the old "force chat FAB above the Create FAB" rule is REMOVED — the Create FAB
        no longer exists, and its bottom:132px was overriding the chat-FAB placement below) + bulletproof hero typewriter -->

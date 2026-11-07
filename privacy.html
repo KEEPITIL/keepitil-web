@@ -51,8 +51,8 @@ a{color:var(--brand)}
 <ul>
 <li><strong>Account info</strong> you provide: email, username/handle, profile details, and content you post.</li>
 <li><strong>Payment info</strong> for purchases: processed by <strong>Stripe</strong>. We receive confirmation and limited billing details (like the last 4 digits) but never your full card number.</li>
-<li><strong>Site analytics</strong>: <strong>Cloudflare Web Analytics</strong> counts page views in aggregate. It does not use cookies or local storage, and it does not receive an account id or a profile id. Cloudflare is the service provider. The beacon is not loaded on checkout, ticket, account, or profile-edit pages, or inside the iOS app.</li>
-<li><strong>Campaign tags</strong>: when an address includes <code>utm_source</code>, <code>utm_medium</code>, <code>utm_campaign</code>, <code>utm_content</code>, or <code>utm_term</code>, those five fields may be kept in this browser's local storage for 30 days. Ad click ids are not stored. Nothing is stored when Global Privacy Control or Do Not Track is on, or when the browser timezone or language suggests the EU, the UK, or Switzerland. The fields are deleted once they are attached to a sign-up or a purchase. They are not stored next to an email address or a user id on the device. Attribution is recorded on the sign-up or order on our server.</li>
+<li><strong>Site analytics</strong>: <strong>Cloudflare Web Analytics</strong>, when a real site token is configured, counts page views and reports loading performance in aggregate. It does not use cookies or local storage, and the loader does not send an account id or a profile id. Cloudflare is the service provider. The beacon is not loaded while the token is still a placeholder, and it is not loaded on checkout, ticket, account, or profile-edit pages. It is also skipped for a non-web address and when the app sets <code>window.__KI_NATIVE_APP</code> or a <code>KeepitilApp</code> user-agent suffix before scripts run. A phone browser that does not set that marker is treated as a normal visit. That marker is not yet proof that every in-app web view is excluded.</li>
+<li><strong>Campaign tags</strong>: when an address includes <code>utm_source</code>, <code>utm_medium</code>, <code>utm_campaign</code>, <code>utm_content</code>, or <code>utm_term</code>, those five fields may be kept in this browser's local storage for 30 days. Ad click ids are not stored. Nothing is stored when Global Privacy Control or Do Not Track is on, when the locale cannot be read, or when the browser timezone or language suggests the EU, the UK, or Switzerland, including an unknown timezone. The fields are removed from this browser once they are attached to a sign-up or a purchase. This browser does not write them into the same record as an email address or a user id. A signed-in page may send only those five fields to KEEPITIL so a server function can store them on the account. That function is not enabled yet, and until it is, the fields stay in this browser.</li>
 <li><strong>Technical data</strong>: device/browser type and cookies needed for the site to work.</li>
 </ul>
 
@@ -94,6 +94,6 @@ a{color:var(--brand)}
 </footer>
 <script src="/assets/js/keepitil-radio.js?v=20260929a" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261107b" defer></script>
+<script src="/keepitil-shell.js?v=20261107c" defer></script>
 </body>
 </html>

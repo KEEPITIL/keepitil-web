@@ -109,7 +109,7 @@ test('an empty touch does not rewrite a store link', () => {
   assert.equal(utm.decorateUrl(STORE, {}), STORE);
 });
 
-test('signup and contact forms get hidden fields; checkout forms do not', () => {
+test('signup forms get hidden fields; contact, service requests, and checkout do not', () => {
   const stored = {
     first: { utm_source: 'ig', utm_term: 'rave' },
     last: { utm_source: 'newsletter', utm_campaign: 'nov' }
@@ -134,10 +134,12 @@ test('signup and contact forms get hidden fields; checkout forms do not', () => 
       }
     };
   }
-  assert.equal(utm.isAttributionForm(form({ id: 'req' })), true);
+  assert.equal(utm.isAttributionForm(form({ id: 'req' })), false);
+  assert.equal(utm.isSignupForm(form({ id: 'req' })), false);
   assert.equal(utm.isAttributionForm(form({ id: 'signup' })), true);
-  assert.equal(utm.isAttributionForm(form({ className: 'contact-form' })), true);
-  assert.equal(utm.isAttributionForm(form({ action: 'https://example.com/contact' })), true);
+  assert.equal(utm.isAttributionForm(form({ className: 'contact-form' })), false);
+  assert.equal(utm.isAttributionForm(form({ action: 'https://example.com/contact' })), false);
+  assert.equal(utm.isAttributionForm(form({ id: 'service-request' })), false);
   assert.equal(utm.isAttributionForm(form({ id: 'ticket-checkout' })), false);
   assert.equal(utm.isAttributionForm(form({ id: 'wifi-buy' })), false);
   assert.equal(utm.isAttributionForm(form({ id: 'login' })), false);
@@ -188,6 +190,51 @@ test('Global Privacy Control, Do Not Track, and an EU signal skip storage', () =
   assert.equal(utm.trackingOff({ navigator: {}, timeZone: 'America/Los_Angeles', locales: ['en-US'] }), false);
   assert.equal(utm.trackingOff({ navigator: {}, timeZone: 'America/Mexico_City', locales: ['es-MX'] }), false);
   assert.equal(utm.trackingOff({ navigator: {}, timeZone: 'Asia/Tokyo', locales: ['ja-JP'] }), false);
+});
+
+test('Cyprus zones, UTC aliases, unknown zones, and an unreadable locale skip', () => {
+  const us = ['en-US'];
+  for (const zone of ['Asia/Nicosia', 'Asia/Famagusta']) {
+    assert.equal(utm.trackingOff({ navigator: {}, timeZone: zone, locales: us }), true, zone);
+  }
+  for (const zone of ['GMT', 'Etc/UCT', 'Etc/Universal', 'Etc/Zulu', 'UCT', 'Universal', 'Zulu', 'Greenwich', 'GMT0', 'GMT+0', 'GMT-0', 'Etc/GMT', 'Etc/GMT0', 'Etc/GMT+0', 'Etc/GMT-0', 'Etc/Greenwich']) {
+    assert.equal(utm.trackingOff({ navigator: {}, timeZone: zone, locales: us }), true, zone);
+  }
+  assert.equal(utm.isKnownZone('Not/AZone'), false);
+  assert.equal(utm.isKnownZone('Foo'), false);
+  assert.equal(utm.trackingOff({ navigator: {}, timeZone: 'Not/AZone', locales: us }), true);
+  assert.equal(utm.trackingOff({ navigator: {}, timeZone: 'Foo', locales: us }), true);
+  assert.equal(utm.trackingOff({ navigator: {}, timeZone: 'America/Los_Angeles', locales: null }), true);
+  assert.equal(utm.trackingOff({ navigator: {}, timeZone: 'America/Los_Angeles', locales: undefined }), true);
+  assert.equal(utm.trackingOff({ navigator: {}, timeZone: 'America/Los_Angeles', locales: [] }), true);
+  assert.equal(utm.trackingOff({ navigator: {}, timeZone: 'America/Los_Angeles', locales: [''] }), true);
+  assert.equal(utm.trackingOff({ navigator: {}, timeZone: 'Etc/GMT+1', locales: us }), false);
+});
+
+test('attachment rechecks expiry and the privacy gate instead of an old snapshot', () => {
+  const store = memory();
+  const now = Date.UTC(2026, 10, 7);
+  const allow = { navigator: {}, timeZone: 'America/Los_Angeles', locales: ['en-US'] };
+  utm.capture('?utm_source=ig&utm_campaign=launch', store, now);
+  assert.deepEqual(utm.currentTouch(store, allow, now + utm.TTL), { utm_source: 'ig', utm_campaign: 'launch' });
+  assert.equal(utm.currentTouch(store, allow, now + utm.TTL + 1), null);
+  assert.equal(store.getItem(utm.LAST_KEY), null);
+
+  utm.capture('?utm_source=ig', store, now);
+  const blocked = { navigator: { globalPrivacyControl: true }, timeZone: 'America/Los_Angeles', locales: ['en-US'] };
+  assert.equal(utm.fieldsForServer(store, blocked, now), null);
+  assert.equal(store.getItem(utm.LAST_KEY), null);
+  const fields = utm.fieldsForServer(store, allow, now);
+  assert.equal(fields, null);
+});
+
+test('the homepage does not build an email and campaign insert', () => {
+  const home = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.doesNotMatch(home, /function utmp/);
+  assert.doesNotMatch(home, /marketing_contacts/);
+  assert.doesNotMatch(home, /URLSearchParams\(location\.search\)/);
+  assert.match(home, /fieldsForServer/);
+  assert.match(home, /attach_signup_attribution/);
 });
 
 test('a decorated purchase link counts as attached, a ticket checkout does not', () => {

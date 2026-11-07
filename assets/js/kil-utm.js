@@ -138,16 +138,52 @@
     return { lang: lang, region: region };
   }
 
-  /* True when the visitor should not be stored. Missing timezone, UTC, a European
-     timezone, an EU/UK/CH region, or an EU language with no region all skip. */
-  function suggestsEuUkCh(timeZone, locales) {
+  /* IANA names that are UTC, including the aliases Intl accepts. Etc/GMT+1 is a
+     real offset and is not in this list. */
+  var UTC_ALIAS = {
+    "utc": 1, "gmt": 1, "uct": 1, "universal": 1, "zulu": 1, "greenwich": 1,
+    "gmt0": 1, "gmt+0": 1, "gmt-0": 1,
+    "etc/utc": 1, "etc/uct": 1, "etc/universal": 1, "etc/zulu": 1,
+    "etc/gmt": 1, "etc/gmt0": 1, "etc/gmt+0": 1, "etc/gmt-0": 1,
+    "etc/greenwich": 1
+  };
+
+  function zoneKey(timeZone) {
+    return String(timeZone == null ? "" : timeZone).replace(/^\s+|\s+$/g, "").toLowerCase();
+  }
+
+  function isKnownZone(timeZone) {
     var tz = String(timeZone == null ? "" : timeZone).replace(/^\s+|\s+$/g, "");
-    if (!tz || /^utc$/i.test(tz) || /^etc\/(utc|gmt)$/i.test(tz)) return true;
-    if (/^Europe\//i.test(tz)) return true;
-    if (/^Atlantic\/(Canary|Faroe|Madeira|Azores|Reykjavik)$/i.test(tz)) return true;
-    var list = locales || [];
-    for (var i = 0; i < list.length; i++) {
-      var part = localeParts(list[i]);
+    if (!tz) return false;
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone: tz });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function localesUnreadable(locales) {
+    if (locales == null || !Array.isArray(locales) || locales.length === 0) return true;
+    for (var i = 0; i < locales.length; i++) {
+      if (String(locales[i] == null ? "" : locales[i]).replace(/^\s+|\s+$/g, "")) return false;
+    }
+    return true;
+  }
+
+  /* True when the visitor should not be stored. An unreadable locale, a blank,
+     unknown, or invalid timezone, a UTC alias, Cyprus, a European timezone, an
+     EU/UK/CH region, or an EU language with no region all skip. */
+  function suggestsEuUkCh(timeZone, locales) {
+    if (localesUnreadable(locales)) return true;
+    var key = zoneKey(timeZone);
+    if (!key || UTC_ALIAS[key]) return true;
+    if (!isKnownZone(timeZone)) return true;
+    if (/^europe\//.test(key)) return true;
+    if (/^atlantic\/(canary|faroe|madeira|azores|reykjavik)$/.test(key)) return true;
+    if (key === "asia/nicosia" || key === "asia/famagusta") return true;
+    for (var i = 0; i < locales.length; i++) {
+      var part = localeParts(locales[i]);
       if (part.region && EU_REGION[part.region]) return true;
       if (!part.region && EU_LANG[part.lang]) return true;
     }
@@ -166,12 +202,14 @@
 
   function browserEnv() {
     var nav = (root && root.navigator) || {};
-    var locales = [];
+    var locales = null;
     try {
-      if (nav.languages && nav.languages.length) {
+      if (nav.languages && typeof nav.languages.length === "number") {
         for (var i = 0; i < nav.languages.length; i++) locales.push(nav.languages[i]);
-      } else if (nav.language) locales.push(nav.language);
-    } catch (e) { locales = []; }
+      } else if (nav.language) {
+        locales = [nav.language];
+      }
+    } catch (e) { locales = null; }
     var timeZone = "";
     try {
       timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
@@ -239,26 +277,46 @@
     return fields;
   }
 
-  function isAttributionForm(form) {
+  /* Sign-up forms only. Contact and service-request forms, including #req, are not
+     attribution targets. data-kil-utm="off" always wins. */
+  function isSignupForm(form) {
     if (!form || typeof form.getAttribute !== "function") return false;
     var tag = String(form.nodeName || form.tagName || "").toUpperCase();
     if (tag !== "FORM") return false;
-    var flag = form.getAttribute("data-kil-utm");
-    if (flag === "off") return false;
-    if (flag === "on") return true;
-    if (form.id === "req") return true;
-    var blob = ((form.id || "") + " " + (form.className || "") + " " +
+    if (form.getAttribute("data-kil-utm") === "off") return false;
+    var id = String(form.id || "").toLowerCase();
+    if (id === "req") return false;
+    var blob = (id + " " + (form.className || "") + " " +
       (form.getAttribute("action") || "") + " " + (form.getAttribute("name") || "")).toLowerCase();
+    if (/contact|service-request|support/.test(blob)) return false;
     if (/checkout|ticket|wifi/.test(blob)) return false;
-    return /signup|sign-up|contact/.test(blob);
+    if (form.getAttribute("data-kil-utm") === "signup") return true;
+    return /signup|sign-up/.test(blob);
   }
 
-  function isSignupForm(form) {
-    if (!isAttributionForm(form)) return false;
-    if (form.id === "req") return false;
-    var blob = ((form.id || "") + " " + (form.className || "") + " " +
-      (form.getAttribute("action") || "") + " " + (form.getAttribute("name") || "")).toLowerCase();
-    return /signup|sign-up/.test(blob);
+  function isAttributionForm(form) {
+    return isSignupForm(form);
+  }
+
+  /* Re-reads expiry and the privacy gate. Does not reuse an earlier snapshot. */
+  function currentRecord(storage, env, now) {
+    if (!storage) return null;
+    if (trackingOff(env || browserEnv())) {
+      clear(storage);
+      return null;
+    }
+    var stored = read(storage, now || Date.now());
+    if (!stored || (!stored.first && !stored.last)) return null;
+    return stored;
+  }
+
+  function currentTouch(storage, env, now) {
+    var stored = currentRecord(storage, env, now);
+    return stored && stored.last ? stored.last : null;
+  }
+
+  function fieldsForServer(storage, env, now) {
+    return currentTouch(storage, env, now);
   }
 
   function mount(doc, storage, loc, env) {
@@ -267,24 +325,38 @@
     storage = storage || (root && root.localStorage);
     loc = loc || (root && root.location);
     if (!storage || !loc) return;
-    if (trackingOff(env || browserEnv())) {
-      clear(storage);
-      return { first: null, last: null };
-    }
-    var stored = capture(loc.search || "", storage);
+    var fresh = function (now) { return currentRecord(storage, env, now); };
+    if (trackingOff(env || browserEnv())) clear(storage);
+    else capture(loc.search || "", storage);
 
     function applyLink(anchor) {
       if (!anchor || !anchor.getAttribute) return;
       if (anchor.getAttribute("data-kil-utm") === "off") return;
       var href = anchor.getAttribute("href");
       if (!href) return;
-      var next = decorateUrl(href, stored.last, loc.href);
-      if (next !== href && next !== anchor.href) anchor.setAttribute("href", next);
+      if (!anchor.getAttribute("data-kil-utm-orig")) anchor.setAttribute("data-kil-utm-orig", href);
+      var baseHref = anchor.getAttribute("data-kil-utm-orig");
+      var record = fresh();
+      var touch = record && record.last;
+      if (!touch) {
+        if (anchor.getAttribute("href") !== baseHref) anchor.setAttribute("href", baseHref);
+        return;
+      }
+      var next = decorateUrl(baseHref, touch, loc.href);
+      if (next !== anchor.getAttribute("href") && next !== anchor.href) anchor.setAttribute("href", next);
     }
 
     function applyForm(form) {
-      if (!isAttributionForm(form)) return;
-      var fields = hiddenFields(stored);
+      if (!isSignupForm(form)) return;
+      var record = fresh();
+      var existing = form.querySelectorAll("input[data-kil-utm-field]");
+      if (!record || !record.last) {
+        for (var n = 0; n < existing.length; n++) {
+          if (existing[n].parentNode) existing[n].parentNode.removeChild(existing[n]);
+        }
+        return;
+      }
+      var fields = hiddenFields(record);
       for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var input = form.querySelector('input[data-kil-utm-field][name="' + field.name + '"]');
@@ -313,19 +385,21 @@
       var anchor = target.closest("a[href]");
       if (!anchor) return;
       applyLink(anchor);
+      var record = fresh();
+      var touch = record && record.last;
       if ((event.type === "click" || event.type === "auxclick") &&
-          purchaseAttached(anchor.getAttribute("href"), stored.last, loc.href)) {
+          purchaseAttached(anchor.getAttribute("href"), touch, loc.href)) {
         clear(storage);
-        stored = { first: null, last: null };
       }
     }
 
     function onSubmit(event) {
       var form = event.target;
       if (!isSignupForm(form)) return;
-      if (!hiddenFields(stored).length) return;
+      applyForm(form);
+      var record = fresh();
+      if (!record || !record.last) return;
       clear(storage);
-      stored = { first: null, last: null };
     }
 
     function boot() {
@@ -339,7 +413,7 @@
     if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", boot);
     else boot();
 
-    return stored;
+    return read(storage);
   }
 
   var api = {
@@ -360,6 +434,9 @@
     hiddenFields: hiddenFields,
     isAttributionForm: isAttributionForm,
     isSignupForm: isSignupForm,
+    currentTouch: currentTouch,
+    fieldsForServer: fieldsForServer,
+    isKnownZone: isKnownZone,
     mount: mount
   };
 

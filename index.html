@@ -3303,12 +3303,19 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
   }
   function captureLead(email,handle,source){
     if(!sb||!email) return;
+    var us=utmp('utm_source'), um=utmp('utm_medium'), uc=utmp('utm_campaign');
     try{ sb.from('marketing_contacts').insert({
       email:email, handle:handle||null, source:source,
       landing_path:location.pathname, referrer:document.referrer||null,
-      utm_source:utmp('utm_source'), utm_medium:utmp('utm_medium'), utm_campaign:utmp('utm_campaign'),
+      utm_source:us, utm_medium:um, utm_campaign:uc,
       user_agent:(navigator.userAgent||'').slice(0,400)
-    }).then(function(){}).catch(function(){}); }catch(e){}
+    }).then(function(r){
+      /* The campaign fields now live on the sign-up row. Drop the browser copy. */
+      if(r&&r.error) return;
+      if((us||um||uc)&&window.KIL_UTM&&window.KIL_UTM.clear){
+        try{ window.KIL_UTM.clear(window.localStorage); }catch(e){}
+      }
+    }).catch(function(){}); }catch(e){}
   }
   function showPane(which){
     var li=$('kil-pane-login'), su=$('kil-pane-signup');
@@ -3444,7 +3451,7 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
   else setTimeout(run,500);
 })();
 </script>
-<script src="/keepitil-shell.js?v=20261107a" defer></script>
+<script src="/keepitil-shell.js?v=20261107b" defer></script>
   <!-- Create FAB removed (Founder 2026-07-17): linked to a retired v3 create page (wrong page). Same fix as V3 home. -->
   <!-- Founder fixes 2026-07-12: (the old "force chat FAB above the Create FAB" rule is REMOVED — the Create FAB
        no longer exists, and its bottom:132px was overriding the chat-FAB placement below) + bulletproof hero typewriter -->

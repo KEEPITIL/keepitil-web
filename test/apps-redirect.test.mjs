@@ -106,12 +106,13 @@ test('the Cloudflare beacon token lives in one partial', () => {
   assert.match(partial, /data-cf-beacon='\{"token": "TODO_CF_TOKEN"\}'/);
   const shell = text('keepitil-shell.js');
   assert.match(shell, /\/includes\/cf-web-analytics\.html/);
-  assert.equal(shell.includes('TODO_CF_TOKEN'), false);
+  assert.match(shell, /__kilCfTokenSkip/);
+  assert.equal(shell.includes('beacon.min.js"'), false);
   const token = partial.match(/data-cf-beacon\s*=\s*(['"])([\s\S]*?)\1/);
   const src = partial.match(/src\s*=\s*(['"])(https:\/\/static\.cloudflareinsights\.com\/beacon\.min\.js)\1/);
   assert.ok(token && token[2].includes('TODO_CF_TOKEN'));
   assert.ok(src);
-  assert.match(shell, /\/assets\/js\/kil-utm\.js\?v=20261107a/);
+  assert.match(shell, /\/assets\/js\/kil-utm\.js\?v=20261107b/);
   const utm = require('../assets/js/kil-utm.js');
   assert.equal(typeof utm.capture, 'function');
 });

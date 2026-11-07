@@ -41,7 +41,7 @@ a{color:var(--brand)}
 
 <div class="wrap">
 <h1>Privacy Policy</h1>
-<div class="upd">KEEPITIL · Last updated 2026-07-10</div>
+<div class="upd">KEEPITIL · Last updated 2026-11-07</div>
 
 <div class="note">⚖️ Good-faith starting point tailored to KEEPITIL. Have counsel confirm it fits your jurisdictions (e.g., CCPA/GDPR) before or shortly after launch.</div>
 
@@ -51,7 +51,8 @@ a{color:var(--brand)}
 <ul>
 <li><strong>Account info</strong> you provide: email, username/handle, profile details, and content you post.</li>
 <li><strong>Payment info</strong> for purchases: processed by <strong>Stripe</strong>. We receive confirmation and limited billing details (like the last 4 digits) but never your full card number.</li>
-<li><strong>Usage analytics</strong>: we use <strong>Google Analytics 4</strong> and <strong>Microsoft Clarity</strong> to understand how the site is used (pages viewed, general interactions, approximate location). Clarity may record anonymized session interactions to improve UX.</li>
+<li><strong>Site analytics</strong>: <strong>Cloudflare Web Analytics</strong> counts page views in aggregate. It does not use cookies or local storage, and it does not receive an account id or a profile id. Cloudflare is the service provider. The beacon is not loaded on checkout, ticket, account, or profile-edit pages, or inside the iOS app.</li>
+<li><strong>Campaign tags</strong>: when an address includes <code>utm_source</code>, <code>utm_medium</code>, <code>utm_campaign</code>, <code>utm_content</code>, or <code>utm_term</code>, those five fields may be kept in this browser's local storage for 30 days. Ad click ids are not stored. Nothing is stored when Global Privacy Control or Do Not Track is on, or when the browser timezone or language suggests the EU, the UK, or Switzerland. The fields are deleted once they are attached to a sign-up or a purchase. They are not stored next to an email address or a user id on the device. Attribution is recorded on the sign-up or order on our server.</li>
 <li><strong>Technical data</strong>: device/browser type and cookies needed for the site to work.</li>
 </ul>
 
@@ -66,12 +67,12 @@ a{color:var(--brand)}
 </ul>
 
 <h2>Sharing</h2>
-<p>We don't sell your personal information. We share data only with service providers that help us run KEEPITIL (e.g., Stripe for payments, Supabase for our database, Google/Microsoft for analytics) under their own terms, or when required by law.</p>
+<p>We don't sell your personal information. We share data only with service providers that help us run KEEPITIL (e.g., Stripe for payments, Supabase for our database, Cloudflare for aggregate site analytics) under their own terms, or when required by law.</p>
 
 <h2>Your choices</h2>
 <ul>
 <li>Access, update, or delete your profile from your account, or by contacting support.</li>
-<li>Opt out of analytics via your browser settings / Global Privacy Control where supported.</li>
+<li>Turn on Global Privacy Control or Do Not Track and campaign tags are not stored in this browser.</li>
 <li>Unsubscribe from newsletters via the link in any email.</li>
 </ul>
 
@@ -85,7 +86,7 @@ a{color:var(--brand)}
 <p>Questions or requests: use the contact/support link on keepitil.com.</p>
 
 <p style="margin-top:var(--sp-5,56px)"><a href="/terms">Terms of Service</a> · <a href="/refund">Refund Policy</a> · <a href="/">Home</a></p>
-<p style="margin-top:28px;padding-top:16px;border-top:1px solid var(--line,rgba(255,255,255,.1));font-size:.82rem;color:var(--muted,#9a94b4);line-height:1.7"><b>KEEPITIL</b><br>9252 Garden Grove Blvd, Ste 19 PMB 1066, Garden Grove, CA 92844<br>Contact: <a href="mailto:info@keepitil.com">info@keepitil.com</a><br>Last updated: July 21, 2026</p>
+<p style="margin-top:28px;padding-top:16px;border-top:1px solid var(--line,rgba(255,255,255,.1));font-size:.82rem;color:var(--muted,#9a94b4);line-height:1.7"><b>KEEPITIL</b><br>9252 Garden Grove Blvd, Ste 19 PMB 1066, Garden Grove, CA 92844<br>Contact: <a href="mailto:info@keepitil.com">info@keepitil.com</a><br>Last updated: November 7, 2026</p>
 </div>
 <footer class="wrap" style="padding-top:0">
   <p><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
@@ -93,6 +94,6 @@ a{color:var(--brand)}
 </footer>
 <script src="/assets/js/keepitil-radio.js?v=20260929a" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261107a" defer></script>
+<script src="/keepitil-shell.js?v=20261107b" defer></script>
 </body>
 </html>

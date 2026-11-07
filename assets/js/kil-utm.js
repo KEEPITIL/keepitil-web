@@ -1,26 +1,29 @@
-/* KEEPITIL — first-touch / last-touch for campaign tags only.
-   Reads utm_source, utm_medium, utm_campaign, utm_content, utm_term and ref
-   from the landing URL. Stores those keys in localStorage. No cookies, no email,
-   no other query params.
-
-   Last-touch is appended to Shopify store links (illestratedlifestyle.com,
-   *.myshopify.com) and Stripe Payment Links (buy.stripe.com). Keys already on
-   the link that this touch does not carry are left as they are, so a product
-   utm_content set by shop-hub.js survives.
-
-   Ticket checkout and WiFi Remote are not rewritten:
-   - event checkout assigns location.href to a Checkout Session on
-     checkout.stripe.com (create-checkout). This file never assigns location
-     and never decorates that host.
-   - KMOB does the same with stripe_checkout.
-   - WiFi Remote leaves via apps.apple.com, which is not a store or payment link.
-   Signup and contact forms that already exist get hidden fields. */
+/* KEEPITIL — first-touch / last-touch for the five campaign fields only.
+   utm_source, utm_medium, utm_campaign, utm_content, utm_term.
+   No ref, no gclid, no fbclid, no ttclid, no msclkid, no email, no user id.
+   Each record stores a timestamp and is deleted on read after 30 days.
+   Nothing is captured or kept when Global Privacy Control or Do Not Track is on,
+   or when the timezone or locale suggests the EU, the UK, or Switzerland.
+   An unreadable signal skips storage.
+   After the values are attached to a sign-up or a purchase, storage is cleared.
+   The sign-up or order row is where attribution is recorded. */
 (function (root) {
   "use strict";
-  var KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "ref"];
+  var KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"];
   var FIRST_KEY = "kil_utm_first";
   var LAST_KEY = "kil_utm_last";
   var MAX = 120;
+  var TTL = 30 * 24 * 60 * 60 * 1000;
+  var EU_REGION = {
+    AT: 1, BE: 1, BG: 1, HR: 1, CY: 1, CZ: 1, DK: 1, EE: 1, FI: 1, FR: 1, DE: 1,
+    GR: 1, HU: 1, IE: 1, IT: 1, LV: 1, LT: 1, LU: 1, MT: 1, NL: 1, PL: 1, PT: 1,
+    RO: 1, SK: 1, SI: 1, ES: 1, SE: 1, GB: 1, UK: 1, CH: 1
+  };
+  var EU_LANG = {
+    de: 1, fr: 1, it: 1, nl: 1, pl: 1, sv: 1, fi: 1, da: 1, pt: 1, es: 1, el: 1,
+    cs: 1, hu: 1, ro: 1, bg: 1, hr: 1, sk: 1, sl: 1, lt: 1, lv: 1, et: 1, mt: 1,
+    ga: 1, lb: 1, gsw: 1
+  };
 
   function clean(value) {
     if (value == null) return "";
@@ -55,39 +58,130 @@
     return false;
   }
 
-  function readRaw(storage, storageKey) {
+  function remove(storage, storageKey) {
+    try { storage.removeItem(storageKey); } catch (e) {}
+  }
+
+  function clear(storage) {
+    if (!storage) return;
+    remove(storage, FIRST_KEY);
+    remove(storage, LAST_KEY);
+  }
+
+  function readRaw(storage, storageKey, now) {
+    now = now || Date.now();
     try {
       var raw = storage.getItem(storageKey);
       if (!raw) return null;
       var parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== "object") return null;
+      if (!parsed || typeof parsed !== "object") {
+        remove(storage, storageKey);
+        return null;
+      }
+      var t = Number(parsed.t);
+      if (!t || t > now || now - t > TTL) {
+        remove(storage, storageKey);
+        return null;
+      }
       var out = {};
       for (var i = 0; i < KEYS.length; i++) {
         var key = KEYS[i];
         var value = clean(parsed[key]);
         if (value) out[key] = value;
       }
-      return hasKeys(out) ? out : null;
-    } catch (e) { return null; }
+      if (!hasKeys(out)) {
+        remove(storage, storageKey);
+        return null;
+      }
+      return out;
+    } catch (e) {
+      remove(storage, storageKey);
+      return null;
+    }
   }
 
-  function writeRaw(storage, storageKey, obj) {
-    try { storage.setItem(storageKey, JSON.stringify(obj)); } catch (e) {}
+  function writeRaw(storage, storageKey, obj, now) {
+    var stored = { t: now };
+    for (var i = 0; i < KEYS.length; i++) {
+      var key = KEYS[i];
+      if (obj[key]) stored[key] = obj[key];
+    }
+    try { storage.setItem(storageKey, JSON.stringify(stored)); } catch (e) {}
   }
 
-  function read(storage) {
+  function read(storage, now) {
     return {
-      first: readRaw(storage, FIRST_KEY),
-      last: readRaw(storage, LAST_KEY)
+      first: readRaw(storage, FIRST_KEY, now),
+      last: readRaw(storage, LAST_KEY, now)
     };
   }
 
-  function capture(search, storage) {
+  function capture(search, storage, now) {
+    now = now || Date.now();
     var incoming = parseSearch(search);
-    if (!hasKeys(incoming)) return read(storage);
-    if (!readRaw(storage, FIRST_KEY)) writeRaw(storage, FIRST_KEY, incoming);
-    writeRaw(storage, LAST_KEY, incoming);
-    return read(storage);
+    if (!hasKeys(incoming)) return read(storage, now);
+    if (!readRaw(storage, FIRST_KEY, now)) writeRaw(storage, FIRST_KEY, incoming, now);
+    writeRaw(storage, LAST_KEY, incoming, now);
+    return read(storage, now);
+  }
+
+  function localeParts(tag) {
+    var bits = String(tag || "").replace(/_/g, "-").split("-");
+    var lang = (bits[0] || "").toLowerCase();
+    var region = "";
+    for (var i = 1; i < bits.length; i++) {
+      if (/^[A-Za-z]{2}$/.test(bits[i])) {
+        region = bits[i].toUpperCase();
+        break;
+      }
+    }
+    return { lang: lang, region: region };
+  }
+
+  /* True when the visitor should not be stored. Missing timezone, UTC, a European
+     timezone, an EU/UK/CH region, or an EU language with no region all skip. */
+  function suggestsEuUkCh(timeZone, locales) {
+    var tz = String(timeZone == null ? "" : timeZone).replace(/^\s+|\s+$/g, "");
+    if (!tz || /^utc$/i.test(tz) || /^etc\/(utc|gmt)$/i.test(tz)) return true;
+    if (/^Europe\//i.test(tz)) return true;
+    if (/^Atlantic\/(Canary|Faroe|Madeira|Azores|Reykjavik)$/i.test(tz)) return true;
+    var list = locales || [];
+    for (var i = 0; i < list.length; i++) {
+      var part = localeParts(list[i]);
+      if (part.region && EU_REGION[part.region]) return true;
+      if (!part.region && EU_LANG[part.lang]) return true;
+    }
+    return false;
+  }
+
+  function trackingOff(env) {
+    env = env || {};
+    var nav = env.navigator || {};
+    if (nav.globalPrivacyControl === true) return true;
+    var dnt = nav.doNotTrack;
+    if ((dnt == null || dnt === "") && env.doNotTrack != null) dnt = env.doNotTrack;
+    if (dnt === "1" || dnt === "yes" || dnt === 1) return true;
+    return suggestsEuUkCh(env.timeZone, env.locales);
+  }
+
+  function browserEnv() {
+    var nav = (root && root.navigator) || {};
+    var locales = [];
+    try {
+      if (nav.languages && nav.languages.length) {
+        for (var i = 0; i < nav.languages.length; i++) locales.push(nav.languages[i]);
+      } else if (nav.language) locales.push(nav.language);
+    } catch (e) { locales = []; }
+    var timeZone = "";
+    try {
+      timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    } catch (e2) { timeZone = ""; }
+    return {
+      navigator: nav,
+      doNotTrack: root ? root.doNotTrack : undefined,
+      timeZone: timeZone,
+      locales: locales
+    };
   }
 
   function hostOf(url) {
@@ -120,6 +214,19 @@
     return abs.toString();
   }
 
+  function purchaseAttached(href, touch, base) {
+    if (!hasKeys(touch) || !href) return false;
+    var abs;
+    try { abs = new URL(href, base || "https://keepitil.com"); }
+    catch (e) { return false; }
+    if (!isOutboundCheckout(abs)) return false;
+    for (var i = 0; i < KEYS.length; i++) {
+      var key = KEYS[i];
+      if (touch[key] && abs.searchParams.get(key) === touch[key]) return true;
+    }
+    return false;
+  }
+
   function hiddenFields(stored) {
     var fields = [];
     var last = (stored && stored.last) || {};
@@ -146,12 +253,24 @@
     return /signup|sign-up|contact/.test(blob);
   }
 
-  function mount(doc, storage, loc) {
+  function isSignupForm(form) {
+    if (!isAttributionForm(form)) return false;
+    if (form.id === "req") return false;
+    var blob = ((form.id || "") + " " + (form.className || "") + " " +
+      (form.getAttribute("action") || "") + " " + (form.getAttribute("name") || "")).toLowerCase();
+    return /signup|sign-up/.test(blob);
+  }
+
+  function mount(doc, storage, loc, env) {
     doc = doc || (root && root.document);
     if (!doc) return;
     storage = storage || (root && root.localStorage);
     loc = loc || (root && root.location);
     if (!storage || !loc) return;
+    if (trackingOff(env || browserEnv())) {
+      clear(storage);
+      return { first: null, last: null };
+    }
     var stored = capture(loc.search || "", storage);
 
     function applyLink(anchor) {
@@ -192,7 +311,21 @@
       var target = event.target;
       if (!target || !target.closest) return;
       var anchor = target.closest("a[href]");
-      if (anchor) applyLink(anchor);
+      if (!anchor) return;
+      applyLink(anchor);
+      if ((event.type === "click" || event.type === "auxclick") &&
+          purchaseAttached(anchor.getAttribute("href"), stored.last, loc.href)) {
+        clear(storage);
+        stored = { first: null, last: null };
+      }
+    }
+
+    function onSubmit(event) {
+      var form = event.target;
+      if (!isSignupForm(form)) return;
+      if (!hiddenFields(stored).length) return;
+      clear(storage);
+      stored = { first: null, last: null };
     }
 
     function boot() {
@@ -200,6 +333,7 @@
       doc.addEventListener("pointerdown", onIntent, true);
       doc.addEventListener("click", onIntent, true);
       doc.addEventListener("auxclick", onIntent, true);
+      doc.addEventListener("submit", onSubmit, true);
     }
 
     if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", boot);
@@ -212,14 +346,20 @@
     KEYS: KEYS,
     FIRST_KEY: FIRST_KEY,
     LAST_KEY: LAST_KEY,
+    TTL: TTL,
     clean: clean,
     parseSearch: parseSearch,
     read: read,
     capture: capture,
+    clear: clear,
+    trackingOff: trackingOff,
+    suggestsEuUkCh: suggestsEuUkCh,
     isOutboundCheckout: isOutboundCheckout,
     decorateUrl: decorateUrl,
+    purchaseAttached: purchaseAttached,
     hiddenFields: hiddenFields,
     isAttributionForm: isAttributionForm,
+    isSignupForm: isSignupForm,
     mount: mount
   };
 

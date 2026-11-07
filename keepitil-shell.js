@@ -267,79 +267,86 @@
       }catch(e){} });
     }
   }catch(e){}
-  /* ── ANALYTICS, DEFERRED PAST THE LOAD EVENT ────────────────────────────────────────────────
-     GA4 and Microsoft Clarity used to be injected during parse. `async` keeps them from blocking
-     DOMContentLoaded, but it does NOT stop them holding the LOAD event — and Clarity is a
-     session recorder that keeps posting for the life of the page. Measured on /create:
-     domInteractive 39ms, every KEEPITIL-owned resource finished by 89ms, domComplete 35762ms,
-     with only these two alive in the gap. /culture and /connect behaved the same way.
-     Everything that waits on document_idle therefore hung — devtools, automated checks, and any
-     tooling that verifies the page — which is why several "fixed" claims could not be confirmed.
-     Now both mount AFTER the window load event (or immediately, if load already fired), so they
-     can no longer gate it. Tracking behaviour is otherwise unchanged: same property, same
-     project, same gtag/clarity globals and queues. Diagnosis: KODE, 2026-08-19. */
-  /* Clarity is gated to desktop, with a per-tab opt-out.
-     Deferring the injection stopped it holding the load event, but the STREAMING is what made
-     phones untestable: 90-110s to first paint on an iPhone 17 Pro simulator and a wedge roughly
-     every 15 minutes. GA4 stays ungated — it is beacons, not a continuous recorder.
-     The boundary is the shell's existing desktop-header breakpoint (861px), not a new number.
-     Storage is consulted, never depended on: a browser that refuses sessionStorage (private
-     mode) must still get the width gate, so every storage access is individually guarded. */
-  function __kilClarityAllowed(){
-    var optOut=false;
-    try{ optOut = /(?:^|[?&])noclarity=1(?:&|$)/.test(location.search||''); }catch(e){}
-    try{ if(optOut){ sessionStorage.setItem('kil_noclarity','1'); } }catch(e){}
-    if(!optOut){ try{ optOut = sessionStorage.getItem('kil_noclarity')==='1'; }catch(e){} }
-    if(optOut) return false;
-    var w=0;
-    try{ w = window.innerWidth || (document.documentElement && document.documentElement.clientWidth) || 0; }catch(e){}
-    return w >= 861;
+  /* ── CLOUDFLARE WEB ANALYTICS, AFTER LOAD ──────────────────────────────────────────────
+     GA4 and Microsoft Clarity are not loaded. Sentinel 2026-11-06: strip them, do not gate them.
+     The only analytics script is Cloudflare's cookieless beacon, and only when the partial
+     carries a real site token. Checkout, ticket, account, and profile-edit pages skip it.
+     The iOS app wrapper (capacitor://, file://, or window.Capacitor) skips it. A placeholder
+     token skips it, so the beacon script is not requested. */
+  /* @kil-cf-page-skip */
+  function __kilCfPageSkip(loc){
+    loc = loc || {};
+    if(loc.wrapped) return true;
+    var protocol = String(loc.protocol || '').toLowerCase();
+    if(protocol !== 'http:' && protocol !== 'https:') return true;
+    var pageType = String(loc.pageType || '').toLowerCase();
+    if(pageType === 'checkout' || pageType === 'ticket' || pageType === 'account' || pageType === 'profile-edit') return true;
+    var path = String(loc.pathname || '').toLowerCase().replace(/\.html$/, '').replace(/\/+$/, '');
+    var seg = path.split('/').filter(Boolean);
+    var last = seg.length ? seg[seg.length - 1] : '';
+    var first = seg.length ? seg[0] : '';
+    function named(name){ return last === name || first === name; }
+    if(named('checkout') || named('ticket') || named('tickets') || named('scan')) return true;
+    if(named('account') || named('accounts') || named('settings') || named('dashboard')) return true;
+    if(named('profile-edit') || named('edit-profile')) return true;
+    if(named('profile')){
+      var view = String(loc.view || '').toLowerCase();
+      var search = String(loc.search || '');
+      if(view === 'public') return false;
+      if(/(?:^|[?&])view=public(?:&|$)/.test(search)) return false;
+      return true;
+    }
+    return false;
   }
-  function __kilMountAnalytics(){
-    /* GA4 */
-    try{ if(!window.__kilGA4){ window.__kilGA4='G-ZR36NRE4MT';
-      var _g=document.createElement('script'); _g.async=true; _g.src='https://www.googletagmanager.com/gtag/js?id=G-ZR36NRE4MT'; document.head.appendChild(_g);
-      window.dataLayer=window.dataLayer||[]; window.gtag=function(){dataLayer.push(arguments);}; gtag('js',new Date()); gtag('config','G-ZR36NRE4MT');
-    } }catch(e){}
-    /* Microsoft Clarity */
-    try{ if(!window.__kilClarity && __kilClarityAllowed()){ window.__kilClarity='xk5iwishve';
-      (function(c,l,a,r,i){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};var t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;var y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","xk5iwishve");
-    } }catch(e){}
-    /* Cloudflare Web Analytics. Cookieless beacon, free. The token is read from
-       includes/cf-web-analytics.html — the only copy of the data-cf-beacon
-       placeholder. Paste the Cloudflare dashboard token there. One partial,
-       every shell page. Deferred with GA4 so the beacon cannot hold the load event. */
-    __kilMountCfBeacon();
+  /* @kil-cf-page-skip-end */
+  /* @kil-cf-token-skip */
+  function __kilCfTokenSkip(raw){
+    var text = String(raw || '');
+    if(!text || text.indexOf('TODO_CF_TOKEN') !== -1) return true;
+    try{
+      var obj = JSON.parse(text);
+      if(!obj || !obj.token || obj.token === 'TODO_CF_TOKEN') return true;
+    }catch(e){ return true; }
+    return false;
+  }
+  /* @kil-cf-token-skip-end */
+  function __kilCfLocation(){
+    var loc = { protocol:'', pathname:'', search:'', view:'', pageType:'', wrapped:false };
+    try{ loc.protocol = location.protocol; loc.pathname = location.pathname; loc.search = location.search; }catch(e){ loc.wrapped = true; }
+    try{ loc.view = document.documentElement.getAttribute('data-view') || ''; }catch(e){}
+    try{ loc.pageType = document.documentElement.getAttribute('data-page-type') || ''; }catch(e){}
+    try{ if(window.Capacitor) loc.wrapped = true; }catch(e){ loc.wrapped = true; }
+    return loc;
   }
   function __kilMountCfBeacon(){
     try{
       if(window.__kilCfBeacon || document.querySelector('script[data-cf-beacon]')) return;
-      window.__kilCfBeacon=1;
+      var loc = __kilCfLocation();
+      if(__kilCfPageSkip(loc)) return;
       fetch('/includes/cf-web-analytics.html',{credentials:'same-origin'})
         .then(function(r){ return r.ok ? r.text() : ''; })
         .then(function(html){
           if(!html || document.querySelector('script[data-cf-beacon]')) return;
+          if(__kilCfPageSkip(__kilCfLocation())) return;
           var token=html.match(/data-cf-beacon\s*=\s*(['"])([\s\S]*?)\1/);
           var src=html.match(/src\s*=\s*(['"])(https:\/\/static\.cloudflareinsights\.com\/beacon\.min\.js)\1/);
-          if(!token || !src) return;
+          if(!token || !src || __kilCfTokenSkip(token[2])) return;
           var s=document.createElement('script'); s.defer=true; s.src=src[2];
           s.setAttribute('data-cf-beacon', token[2]);
           document.head.appendChild(s);
+          window.__kilCfBeacon=1;
         }).catch(function(){});
     }catch(e){}
   }
-  /* gtag() must exist BEFORE the tag loads or early calls are lost, so the queue shim is set up
-     now and the network request is what gets deferred. */
-  try{ window.dataLayer=window.dataLayer||[]; if(!window.gtag){ window.gtag=function(){dataLayer.push(arguments);}; } }catch(e){}
   try{
-    if(document.readyState === 'complete'){ setTimeout(__kilMountAnalytics, 0); }
-    else { window.addEventListener('load', function(){ setTimeout(__kilMountAnalytics, 0); }, { once:true }); }
-  }catch(e){ __kilMountAnalytics(); }
+    if(document.readyState === 'complete'){ setTimeout(__kilMountCfBeacon, 0); }
+    else { window.addEventListener('load', function(){ setTimeout(__kilMountCfBeacon, 0); }, { once:true }); }
+  }catch(e){ __kilMountCfBeacon(); }
   /* Campaign tags: first-touch and last-touch in localStorage, then onto store
      and Stripe Payment Links. Loaded with the shell so every page that already
      shares this file gets it. Does not touch ticket Checkout Sessions. */
   try{ if(!window.__kilUtmLoad){ window.__kilUtmLoad=1;
-    var _utm=document.createElement('script'); _utm.src='/assets/js/kil-utm.js?v=20261107a'; document.head.appendChild(_utm);
+    var _utm=document.createElement('script'); _utm.src='/assets/js/kil-utm.js?v=20261107b'; document.head.appendChild(_utm);
   } }catch(e){}
   /* Customer feedback widget — V3 only (floating "Feedback" pill -> Supabase feedback table). Added 2026-07-10. */
   try{ if(!window.__kilFeedbackLoad){ window.__kilFeedbackLoad=1;
@@ -1848,23 +1855,9 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
       + '</a>';
   }
 
-  /* ── ANALYTICS ────────────────────────────────────────────────────────────────────────
-     Impressions and clicks are separate events. Nothing user-identifying is sent: brand,
-     placement, campaign, the event day the card sat in, page and destination only. */
-  function report(ev, a){
-    try{
-      if(typeof window.gtag !== 'function') return;
-      window.gtag('event', ev, {
-        brand: a.getAttribute('data-brand') || '',
-        sponsor: a.getAttribute('data-sp') || '',
-        sponsor_type: a.getAttribute('data-sp-type') || '',
-        campaign: a.getAttribute('data-campaign') || '',
-        placement: a.getAttribute('data-placement') || '',
-        event_date: a.getAttribute('data-event-date') || '',
-        destination: a.getAttribute('href') || '',
-        page: location.pathname
-      });
-    }catch(e){}
+  /* Sponsor cards used to report impressions and clicks through GA4. That call is gone. */
+  function report(){
+    /* GA4 was removed. Sponsor clicks stay on the page and are not sent to an analytics host. */
   }
   document.addEventListener('click', function(ev){
     var a = ev.target && ev.target.closest ? ev.target.closest('.kil-spon[data-kt]') : null;

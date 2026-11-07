@@ -1,0 +1,64 @@
+/* Discover directory. Same tokens, type, and dark field as the rest of KEEPITIL.
+   Compact header on purpose: the event list is the page, not a second landing hero. */
+html{background:#0a0a0f}
+body{background:var(--bg,#0a0a0f);color:var(--text,#f0f0f0);font-family:Inter,system-ui,sans-serif;line-height:1.5;padding-top:env(safe-area-inset-top);padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+.disc{max-width:1120px;margin:0 auto;padding:22px 16px 28px;width:100%}
+.disc-crumbs{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:.78rem;color:var(--muted,#9aa7b4);margin:0 0 16px}
+.disc-crumbs a{color:var(--brand-2,#5cc8ff);text-decoration:none}
+.disc-crumbs a:hover{text-decoration:underline}
+.disc-sub{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 0 18px;padding-bottom:2px}
+.disc-sub::-webkit-scrollbar{display:none}
+.disc-sub a{flex:0 0 auto;min-height:44px;display:inline-flex;align-items:center;padding:8px 14px;border-radius:999px;border:1px solid var(--line,rgba(255,255,255,.12));color:var(--text,#f4f2fb);text-decoration:none;font-size:.82rem;font-weight:700}
+.disc-sub a[aria-current="page"],.disc-sub a:hover{border-color:var(--live,#00ff88);color:#fff}
+.disc-eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--live,#00ff88);margin:0 0 6px}
+.disc h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,8vw,4.4rem);letter-spacing:.03em;line-height:.9;font-weight:400;margin:0;color:#fff}
+.disc-lede{max-width:68ch;margin:12px 0 0;color:#d5dbe6;font-size:1.02rem;line-height:1.55}
+.disc-count{margin:12px 0 0;color:#c5d0c8;font-size:.95rem;font-weight:650}
+.disc-sec{margin-top:28px}
+.disc-sec h2{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:.06em;margin:0;color:#fff;font-weight:400}
+.disc-seccount{margin:2px 0 10px;color:var(--muted,#9aa7b4);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.disc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:12px}
+.disc-card{display:flex;gap:0;min-width:0;background:var(--surface,#12121c);border:1px solid var(--line,rgba(255,255,255,.1));border-radius:14px;overflow:hidden}
+.disc-media{position:relative;flex:0 0 112px;width:112px;min-height:132px;background:#0c1a14;display:flex;align-items:center;justify-content:center;text-decoration:none}
+.disc-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.disc-dow{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.06em;color:var(--live,#00ff88);padding:8px;text-align:center;line-height:1}
+.disc-body{padding:12px 14px 14px;min-width:0;display:flex;flex-direction:column;gap:4px}
+.disc-body time{color:var(--live,#00ff88);font-size:.75rem;font-weight:800;letter-spacing:.04em}
+.disc-body h3{font-family:'Bebas Neue',sans-serif;font-size:1.45rem;letter-spacing:.03em;line-height:1;font-weight:400;margin:0}
+.disc-body h3 a{color:#fff;text-decoration:none}
+.disc-body h3 a:hover{color:var(--live,#00ff88)}
+.disc-where{margin:0;color:#c5ced8;font-size:.88rem;line-height:1.35}
+.disc-genres{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0}
+.disc-chip{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.16);color:#e8eef6}
+.disc-actions{margin:8px 0 0}
+.disc-tix{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 14px;border-radius:8px;background:var(--live,#00ff88);color:#06120a;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;text-decoration:none}
+.disc-also{margin:6px 0 0;color:#b7c0cc;font-size:.8rem;line-height:1.4}
+.disc-also a{color:var(--brand-2,#5cc8ff)}
+.disc-note,.disc-loading{color:#c5ced8;font-size:.95rem;line-height:1.5;margin:8px 0 0}
+.disc-empty{margin-top:8px;padding:16px 16px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.03)}
+.disc-empty-t{margin:0 0 6px;color:#fff;font-weight:750}
+.disc-empty p{margin:0;color:#d5dbe6;line-height:1.5}
+.disc-empty a{color:var(--brand-2,#5cc8ff)}
+.disc-failed{border-color:rgba(255,92,138,.45);background:rgba(255,92,138,.08)}
+.disc-retry,.disc-cta{display:inline-flex;align-items:center;justify-content:center;margin-top:12px;min-height:44px;padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font:700 .9rem/1 Inter,sans-serif;text-decoration:none;cursor:pointer}
+.disc-pack{margin-top:32px}
+.disc-pack h2,.disc-links h2,.disc-scene h2{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:.05em;font-weight:400;margin:0 0 8px;color:#fff}
+.disc-pack p,.disc-links p,.disc-scene p{color:#c5ced8;line-height:1.5;max-width:68ch}
+.disc-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;margin-top:12px}
+.disc-tile{display:flex;flex-direction:column;justify-content:center;gap:4px;min-height:44px;padding:12px 14px;border-radius:12px;border:1px solid var(--line,rgba(255,255,255,.12));background:var(--surface,#12121c);text-decoration:none;color:#fff}
+.disc-tile:hover{border-color:var(--live,#00ff88)}
+.disc-tile b{font-size:.95rem}
+.disc-tile span{color:#b7c0cc;font-size:.8rem;line-height:1.35}
+.disc-tag{align-self:flex-start;font-size:.62rem;font-weight:800;letter-spacing:.12em;color:var(--live,#00ff88)}
+.disc-disclosure{margin:14px 0 0;color:#9aa7b4;font-size:.8rem;line-height:1.45;max-width:72ch}
+.disc-links{margin-top:28px}
+.disc-links ul,.disc-scene ul{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.disc-links a,.disc-scene a{color:var(--brand-2,#5cc8ff);text-decoration:none}
+.disc-links a:hover,.disc-scene a:hover{text-decoration:underline}
+.disc-scene{margin-top:22px}
+.disc :focus-visible{outline:2px solid var(--live,#00ff88);outline-offset:3px}
+@media(max-width:560px){
+  .disc{padding:16px 14px 24px}
+  .disc-media{flex-basis:96px;width:96px}
+  .disc-body h3{font-size:1.3rem}
+}

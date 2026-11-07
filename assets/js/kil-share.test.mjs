@@ -150,8 +150,8 @@ test('profile_is_public is the only visibility rule and it is not an RLS policy'
   assert.equal(/GRANT [^;]*ON TABLE private\.account_age/i.test(add), false);
   assert.match(add, /p_founder_quote text/);
   assert.match(add, /p_founder_stated_on text/);
-  assert.match(add, /4f1ff687-%/);
-  assert.match(add, /d1ef5687-%/);
+  assert.match(add, /p_user_id <> '4f1ff687-e287-496e-8eb4-c444f8e556d1'::uuid/);
+  assert.match(add, /p_user_id <> 'd1ef5687-7410-4027-b94d-e4de393c27d9'::uuid/);
   assert.match(add, /FUNCTION public\.admin_move_house_page/);
   assert.match(add, /WHERE m\.slug = slug/);
   assert.equal(/FROM public\.profile_meta m\s+WHERE lower\(btrim\(m\.account_type\)\) IN/.test(add), false);
@@ -188,6 +188,27 @@ test('profile_is_public is the only visibility rule and it is not an RLS policy'
     account_type: 'venue', profile_public: true, status: 'published', admin_approved: true,
     public_fields: ['display_name']
   }), false);
+});
+
+test('founder_self refuses a different uuid that shares a prefix', () => {
+  const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
+  const start = add.indexOf("IF how = 'founder_self'");
+  const end = add.indexOf("IF how = 'admin_attested'");
+  const block = add.slice(start, end);
+  assert.equal(/like/i.test(block), false);
+  const ids = [...block.matchAll(/'([0-9a-f-]{36})'::uuid/g)].map((m) => m[1]);
+  assert.deepEqual(ids, [
+    '4f1ff687-e287-496e-8eb4-c444f8e556d1',
+    'd1ef5687-7410-4027-b94d-e4de393c27d9'
+  ]);
+  function founderSelfAllowed(userId) {
+    return ids.some((id) => id === userId);
+  }
+  assert.equal(founderSelfAllowed('4f1ff687-e287-496e-8eb4-c444f8e556d1'), true);
+  assert.equal(founderSelfAllowed('d1ef5687-7410-4027-b94d-e4de393c27d9'), true);
+  assert.equal(founderSelfAllowed('4f1ff687-e287-496e-8eb4-c444f8e556d2'), false);
+  assert.equal(founderSelfAllowed('4f1ff687-0000-0000-0000-000000000000'), false);
+  assert.equal(founderSelfAllowed('d1ef5687-7410-4027-b94d-e4de393c27d8'), false);
 });
 
 test('a private or under-18 profile gets no preview card', () => {

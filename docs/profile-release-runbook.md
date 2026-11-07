@@ -4,7 +4,7 @@ Not applied by the pull request. Do not run these statements just because the fi
 
 Ship PR #92's event migration in the same window as step 1, immediately after it. Until that file replaces `get_profile_events`, the old anon function stays open. Roll #92 back before #91. #91's down file does not drop `get_profile_events`.
 
-The full user ids for Joe's two accounts are not in this repository. `founder_self` allows only ids whose text starts with `4f1ff687-` (tuitea) or `d1ef5687-` (fobbinhard). It does not invent the remaining digits. Joe has not confirmed a quote or a date, so this runbook does not insert that row.
+`founder_self` allows only these two accounts, by exact uuid equality: `4f1ff687-e287-496e-8eb4-c444f8e556d1` (tuitea) and `d1ef5687-7410-4027-b94d-e4de393c27d9` (fobbinhard). Joe has not confirmed a quote or a date, so this runbook does not insert that row.
 
 ## 1. Backup
 
@@ -39,10 +39,10 @@ Three owner accounts exist. Attest each one that should stay public. `admin_atte
 -- Someone else's account, called by a different admin:
 -- SELECT public.admin_set_account_age('<owner-user-id>'::uuid, true, 'admin_attested');
 
--- Joe, only after he supplies the quote and the date, and only for an id
--- starting 4f1ff687- or d1ef5687-:
+-- Joe, only after he supplies the quote and the date, and only for
+-- 4f1ff687-e287-496e-8eb4-c444f8e556d1 or d1ef5687-7410-4027-b94d-e4de393c27d9:
 -- SELECT public.admin_set_account_age(
---   '<joe-user-id>'::uuid, true, 'founder_self',
+--   '4f1ff687-e287-496e-8eb4-c444f8e556d1'::uuid, true, 'founder_self',
 --   '<joe quote>', '<joe date>'
 -- );
 ```

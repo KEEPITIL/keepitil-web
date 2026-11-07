@@ -122,10 +122,11 @@ REVOKE ALL ON TABLE private.account_age FROM PUBLIC, anon, authenticated;
 -- Admin-checked. Signature matches the rollback:
 -- public.admin_set_account_age(uuid, boolean, text).
 -- This migration does not call it.
--- founder_self: only Joe's two accounts. The full ids are not in this
---   repository, so the allowlist matches the prefixes Sentinel named and
---   does not invent the remaining digits. Quote and date are text he supplies
---   at call time. This migration inserts no attestation row.
+-- founder_self: only these two accounts, compared by exact uuid equality.
+--   4f1ff687-e287-496e-8eb4-c444f8e556d1 is tuitea.
+--   d1ef5687-7410-4027-b94d-e4de393c27d9 is fobbinhard.
+--   Quote and date are text he supplies at call time.
+--   This migration inserts no attestation row.
 -- admin_attested: refused for the caller's own account. Self-attestation is
 --   only founder_self. A true is_minor or under_18 row is never set false.
 -- house: records the house account. It does not move pages. Each page is
@@ -158,8 +159,8 @@ BEGIN
     IF (SELECT auth.uid()) IS DISTINCT FROM p_user_id THEN
       RAISE EXCEPTION 'not allowed';
     END IF;
-    IF lower(p_user_id::text) NOT LIKE '4f1ff687-%'
-       AND lower(p_user_id::text) NOT LIKE 'd1ef5687-%' THEN
+    IF p_user_id <> '4f1ff687-e287-496e-8eb4-c444f8e556d1'::uuid
+       AND p_user_id <> 'd1ef5687-7410-4027-b94d-e4de393c27d9'::uuid THEN
       RAISE EXCEPTION 'not allowed';
     END IF;
     IF p_founder_quote IS NULL OR btrim(p_founder_quote) = ''

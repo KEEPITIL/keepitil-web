@@ -550,6 +550,7 @@ body[data-kind="artist"] .subfilters{display:none!important}
 <section id="commPane" aria-label="Community"></section>
 <footer>KEEPITIL <a href="/">keepitil.com</a></footer>
 <script src="/assets/js/vendor/supabase-js.min.js" defer></script>
+<script src="/assets/js/kil-safe-html.js?v=20261107b"></script>
 <script>
 // roster reset 2026-07-21 — rebuild from Google Sheet + web research. Seeded with the 2 gold standards.
 /* ARTISTS COME FROM ARTICLES (Founder 2026-08-26: "public view profiles will not be on the
@@ -613,21 +614,25 @@ try{
 }catch(e){}
 function initials(n){return (n||'?').split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();}
 function desc(x){return x.genre||x.category||x.type||'';}
+function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function kilSafeUrl(url){return (window.KilSafeHtml&&KilSafeHtml.kilSafeUrl(url))||'';}
 function card(x){
   const d=desc(x);const ig=x.ig?('@'+x.ig):'';
   /* No dead links (Atlas 2026-07-16): internal profile if it exists, else the org's Instagram (new tab), else a non-clickable card. Never href="#". */
   const igurl=x.ig?('https://instagram.com/'+String(x.ig).replace(/^@/,'').trim()):'';
   /* blog already starts with "/"; only add a leading slash if it's missing. A double slash ("//path") is a protocol-relative URL and sends every card to a dead domain. */
-  const href=x.blog?(String(x.blog).charAt(0)==='/'?x.blog:'/'+x.blog):(igurl||'');
-  const ext=!x.blog && !!igurl;
-  const img=x.img?('<img loading="lazy" referrerpolicy="no-referrer" src="'+x.img+'" alt="" onerror="this.style.display=\'none\'"/>'):'';
-  const fb='<div class="fallback" style="background:linear-gradient(135deg,'+(x.color||'#6d28d9')+',#111)">'+initials(x.name)+'</div>';
-  const chips=x.kinds.map(k=>'<span class="kind '+k+'">'+KL[k]+'</span>').join('');
+  const hrefRaw=x.blog?(String(x.blog).charAt(0)==='/'?x.blog:'/'+x.blog):(igurl||'');
+  const href=(window.KilSafeHtml&&KilSafeHtml.safeNavUrl(hrefRaw))||'';
+  const ext=!x.blog && !!igurl && !!href;
+  const imgUrl=kilSafeUrl(x.img);
+  const img=imgUrl?('<img loading="lazy" referrerpolicy="no-referrer" src="'+escHtml(imgUrl)+'" alt="" onerror="this.style.display=\'none\'"/>'):'';
+  const fb='<div class="fallback" style="background:linear-gradient(135deg,'+escHtml(x.color||'#6d28d9')+',#111)">'+escHtml(initials(x.name))+'</div>';
+  const chips=(x.kinds||[]).map(k=>'<span class="kind '+escHtml(k)+'">'+(KL[k]||escHtml(k))+'</span>').join('');
   const inner='<div class="imgw"><div class="kinds">'+chips+'</div>'+img+fb+'</div>'
-    +'<div class="body"><div class="nm">'+(x.name||'')+'</div><div class="desc">'+d+'</div>'
-    +(x.city?'<div class="loc">◍ '+x.city+(x.county?' · '+x.county.replace(' County',' Co.'):'')+'</div>':'')
-    +(ig?'<div class="ig">'+ig+(ext?' ↗':'')+'</div>':'')+'</div>';
-  if(href) return '<a class="card" href="'+href+'"'+(ext?' target="_blank" rel="noopener"':'')+'>'+inner+'</a>';
+    +'<div class="body"><div class="nm">'+escHtml(x.name||'')+'</div><div class="desc">'+escHtml(d)+'</div>'
+    +(x.city?'<div class="loc">◍ '+escHtml(x.city)+(x.county?' · '+escHtml(String(x.county).replace(' County',' Co.')):'')+'</div>':'')
+    +(ig?'<div class="ig">'+escHtml(ig)+(ext?' ↗':'')+'</div>':'')+'</div>';
+  if(href) return '<a class="card" href="'+escHtml(href)+'"'+(ext?' target="_blank" rel="noopener"':'')+'>'+inner+'</a>';
   return '<div class="card nolink" style="cursor:default">'+inner+'</div>';
 }
 function renderSubs(){

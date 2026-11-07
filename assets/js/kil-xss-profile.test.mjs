@@ -134,6 +134,34 @@ test('a safe post still renders its text, https media, and links', () => {
   assertInert(box, 'legacy safe');
 });
 
+test('mutation XSS in noscript, style, svg and math stays inert', () => {
+  const { window, fired, api } = boot();
+  const payloads = [
+    '<svg><style><img src=x onerror=alert(1)></style></svg>',
+    '<math><style><img src=x onerror=alert(1)></style></math>',
+    '<math><mtext><table><mglyph><style><!--</style><img title="--&gt;&lt;/mglyph&gt;&lt;img src=1 onerror=alert(1)&gt;">',
+    '<form><math><mtext></form><form><mglyph><svg><mtext><style><path id="</style><img onerror=alert(1) src>">',
+    '<noscript><style></noscript><img src=x onerror=alert(1)>',
+    '<noscript><p title="</noscript><img src=x onerror=alert(1)>">',
+    '<textarea><script>alert(1)</script></textarea>',
+    '<xmp><img src=x onerror=alert(1)></xmp>',
+    '<svg><desc><![CDATA[</desc><img src=x onerror=alert(1)>]]></svg>'
+  ];
+  for (const payload of payloads) {
+    const clean = api.sanitize(payload);
+    const host = mount(window, clean);
+    const again = mount(window, host.innerHTML);
+    assertInert(host, payload.slice(0, 32));
+    assertInert(again, 'mutated ' + payload.slice(0, 24));
+    assert.equal(host.querySelector('svg, math, noscript, style, textarea, xmp, form'), null, payload.slice(0, 32));
+    host.querySelectorAll('img').forEach(function (img) { img.dispatchEvent(new window.Event('error')); });
+  }
+  assert.equal(fired(), 0);
+  assert.match(read('assets/js/vendor/purify.min.js'), /DOMPurify 3\.4\.17/);
+  assert.equal(api.kilSafeUrl('javascript:alert(1)'), '');
+  assert.equal(api.kilSafeUrl('https://cdn.example.com/a.jpg'), 'https://cdn.example.com/a.jpg');
+});
+
 test('navigation and media URLs are https or same-origin', () => {
   const { api } = boot();
   assert.equal(api.safeNavUrl('javascript:alert(1)'), '');
@@ -165,4 +193,14 @@ test('pages do not assign stored html straight to innerHTML', () => {
   assert.equal(/caption:d\.html/.test(culture), false);
   assert.match(dashboard, /esc\(p\.body\|\|''\)/);
   assert.equal(/fc-text">'\s*\+\s*\(p\.body/.test(dashboard), false);
+  assert.match(profile, /kilSafeUrl\(o\.cover\)/);
+  assert.match(profile, /src="'\+esc\(cover\)\+'"/);
+  assert.match(profile, /data-event-slug/);
+  assert.match(profile, /addEventListener\('click'/);
+  assert.equal(/openEventRoom\(\\'/.test(profile), false);
+  assert.match(profile, /esc\(String\(d\.title\|\|d\.text\|\|c\.kind\|\|''\)\.slice\(0,50\)\)/);
+  const connect = read('connect/index.html');
+  assert.match(connect, /kilSafeUrl\(x\.img\)/);
+  assert.match(connect, /escHtml\(x\.name/);
+  assert.match(connect, /escHtml\(x\.city\)/);
 });

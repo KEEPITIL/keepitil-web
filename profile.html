@@ -831,7 +831,7 @@ window.KIL_FILTER_BADGES = function(badges){
 <script src="/assets/js/vendor/qrcode.js"></script>
 <script src="/assets/js/kil-ticket-qr.js"></script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
-<script src="/assets/js/vendor/purify.min.js?v=20261107a"></script>
+<script src="/assets/js/vendor/purify.min.js?v=20261107b"></script>
 <script src="/assets/js/kil-safe-html.js?v=20261107a"></script>
 <!-- Nudity / explicit-content moderation for image uploads (in-browser, no keys) -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js" defer></script>
@@ -1142,9 +1142,11 @@ function renderGallery(){
 var GT_SHOWS=[['JUL','12','FRI','Kozmoz: Euphaura','Warehouse TBA · Los Angeles, CA · 21+','Latin House · Techno','https://posh.vip/e/kozmoz-euphaura'],['JUL','19','SAT','Pre-4th Boiler Room','Downtown Loft · Long Beach, CA · 21+','House · Tech House','https://posh.vip/e/pre-4th-boiler-room'],['AUG','02','SAT','Soundcheck: Sun-Kissed','Rooftop · Santa Ana, CA · 18+','Latin House','https://posh.vip/e/soundcheck-sun-kissed'],['AUG','16','SAT','KEEPITIL Summer','Secret OC Venue · Orange County, CA · 21+','Open Format','https://posh.vip/e/keeitil-summer'],['AUG','30','SAT','Kingdom','Catch One · Los Angeles, CA · 21+','Afro House · Tech House','https://posh.vip/explore?when=Upcoming&sort=Soonest&city=los-angeles']];
 function evFromArr(s){return {month:s[0],day:s[1],dow:s[2],title:s[3],venue:s[4],tags:s[5],tix:s[6],cover:s[7]||'',desc:s[8]||'',price:s[9]||'',kind:s[10]||'ext'};}
 function evFlyer(o){
-  var cov=o.cover?'<img class="cov" src="'+o.cover+'" alt="" onerror="this.style.display=\'none\'">':'';
+  var cover=kilSafeUrl(o.cover);
+  var cov=cover?'<img class="cov" src="'+esc(cover)+'" alt="" onerror="this.style.display=\'none\'">':'';
   var kind=(o.kind==='kil')?'<span class="ev-kind kil">KEEPITIL</span>':'<span class="ev-kind ext">External</span>';
-  var tix=(o.tix&&o.tix!=='#')?'<a class="ev-tix" href="'+o.tix+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'+((o.kind==='kil')?'TICKETS / RSVP':'TICKETS')+'</a>':'';
+  var tixHref=(o.tix&&o.tix!=='#')?safeNav(o.tix):'';
+  var tix=tixHref?'<a class="ev-tix" href="'+esc(tixHref)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'+((o.kind==='kil')?'TICKETS / RSVP':'TICKETS')+'</a>':'';
   return '<div class="ev-flyer">'+cov
     +'<div class="ev-datechip"><b>'+esc(o.month)+'</b><span>'+esc(o.day)+'</span></div>'+kind
     +'<div class="c"><div class="et">'+esc(o.title)+'</div>'
@@ -1287,6 +1289,7 @@ function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'
 function storedBody(rec){ return (window.KilSafeHtml && KilSafeHtml.renderStored(rec)) || ''; }
 function safeNav(url){ return (window.KilSafeHtml && KilSafeHtml.safeNavUrl(url)) || ''; }
 function safeMedia(url){ return (window.KilSafeHtml && KilSafeHtml.safeMediaUrl(url)) || ''; }
+function kilSafeUrl(url){ return (window.KilSafeHtml && KilSafeHtml.kilSafeUrl(url)) || ''; }
 /* ── Supabase-backed persistence (shared across devices + shown to visitors) ── */
 var SEED=null;
 var EVENTS_FEED=[];
@@ -2495,8 +2498,9 @@ function chatRow(av,title,desc,onclick,time,dot,delSlug){
     var s=String(delSlug).replace(/'/g,"\\'"), t=String(title).replace(/<[^>]*>/g,'').replace(/'/g,"\\'");
     menu='<button class="cc-menu" title="Options" onclick="event.stopPropagation();chatRowMenu(event,\''+s+'\',\''+t+'\')">&#8942;</button>';
   }
-  return '<div class="chat-card" onclick="'+onclick+'">'
-    +'<img class="cc-av" src="'+av+'" alt="" loading="lazy" onerror="this.src=\'/icon-192.png\'">'
+  var src=esc(kilSafeUrl(av)||'/icon-192.png');
+  return '<div class="chat-card"'+(onclick?' onclick="'+onclick+'"':'')+'>'
+    +'<img class="cc-av" src="'+src+'" alt="" loading="lazy" onerror="this.src=\'/icon-192.png\'">'
     +'<div class="cc-body"><div class="cc-nm">'+title+'</div><div class="cc-pv">'+desc+'</div></div>'
     +(time?'<div class="cc-rt">'+time+dot+'</div>':'')
     +menu
@@ -2530,9 +2534,15 @@ function renderEventChats(list){
     if(!rows.length){ list.innerHTML='<div class="pf-empty">No event chats yet. Buy a ticket to any event to unlock its chat room.</div>'; return; }
     list.innerHTML=rows.map(function(e){
       var when=''; try{ if(e.starts_at){ var dt=new Date(e.starts_at); if(!isNaN(dt)) when=dt.toLocaleDateString([], {month:'short',day:'numeric'}); } }catch(x){}
-      var nm=String(e.title||e.slug).replace(/'/g,'');
-      return chatRow(e.cover_url||'/icon-192.png', esc(e.title||e.slug), esc(when?('Event chat · '+when):'Event chat'), 'openEventRoom(\''+e.slug+'\',\''+nm+'\')', '', '');
+      var title=e.title||e.slug||'';
+      return '<div class="chat-card" data-event-slug="'+esc(e.slug||'')+'" data-event-title="'+esc(title)+'">'
+        +'<img class="cc-av" src="'+esc(kilSafeUrl(e.cover_url)||'/icon-192.png')+'" alt="" loading="lazy" onerror="this.src=\'/icon-192.png\'">'
+        +'<div class="cc-body"><div class="cc-nm">'+esc(title)+'</div><div class="cc-pv">'+esc(when?('Event chat · '+when):'Event chat')+'</div></div>'
+        +'</div>';
     }).join('');
+    list.querySelectorAll('.chat-card[data-event-slug]').forEach(function(card){
+      card.addEventListener('click', function(){ openEventRoom(card.getAttribute('data-event-slug')||'', card.getAttribute('data-event-title')||''); });
+    });
   }).catch(function(){ list.innerHTML='<div class="pf-empty">Could not load event chats.</div>'; });
 }
 /* owner-only 3-dot menu on a chat row → Delete this chat */
@@ -2908,9 +2918,10 @@ function loadSaved(){
     emp.style.display='none';
     g.innerHTML=rows.map(function(s){
       var c=s.profile_content||{}; var d=c.data||{};
-      var img=d.img||d.cover||d.image||'';
-      return '<div class="gal-tile" style="aspect-ratio:1/1;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#0a0a0f center/cover no-repeat'+(img?';background-image:url(\''+String(img).replace(/'/g,'')+'\')':'')+'">'
-        +(!img?'<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:.72rem;padding:8px;text-align:center">'+String(d.title||d.text||c.kind||'').slice(0,50)+'</div>':'')+'</div>';
+      var img=kilSafeUrl(d.img||d.cover||d.image||'');
+      var label=esc(String(d.title||d.text||c.kind||'').slice(0,50));
+      return '<div class="gal-tile" style="aspect-ratio:1/1;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#0a0a0f center/cover no-repeat'+(img?';background-image:url(\''+esc(img)+'\')':'')+'">'
+        +(!img?'<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:.72rem;padding:8px;text-align:center">'+label+'</div>':'')+'</div>';
     }).join('');
   });
 }

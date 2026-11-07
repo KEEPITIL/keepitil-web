@@ -42,9 +42,11 @@ const ADULT = { profile_public: true, age_verified: true, is_minor: false, statu
 
 test('an owner self-update of age_verified or status is refused', () => {
   const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
-  assert.match(add, /REVOKE ALL ON TABLE public\.profile_meta FROM authenticated/);
+  const revoke = readFileSync(new URL('../../supabase/migrations/20261107014100_profile_public_read_revoke.sql', import.meta.url), 'utf8');
+  assert.equal(/REVOKE ALL ON TABLE public\.profile_meta FROM authenticated/.test(add), false);
+  assert.match(revoke, /REVOKE ALL ON TABLE public\.profile_meta FROM authenticated/);
   for (const kind of ['INSERT', 'UPDATE']) {
-    const grants = add.match(new RegExp('GRANT ' + kind + ' \\(([^)]+)\\) ON TABLE public\\.profile_meta', 'i'));
+    const grants = revoke.match(new RegExp('GRANT ' + kind + ' \\(([^)]+)\\) ON TABLE public\\.profile_meta', 'i'));
     assert.ok(grants, kind);
     const cols = grants[1].split(',').map((s) => s.trim());
     for (const forbidden of ['age_verified', 'is_minor', 'under_18', 'status', 'account_type', 'admin_approved']) {
@@ -57,7 +59,8 @@ test('an owner self-update of age_verified or status is refused', () => {
 test('anon truncate and anon insert are refused', () => {
   const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
   assert.match(add, /REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public\.profile_meta FROM anon, PUBLIC/);
-  assert.match(add, /REVOKE DELETE, TRUNCATE ON TABLE public\.profile_meta FROM authenticated/);
+  const revoke = readFileSync(new URL('../../supabase/migrations/20261107014100_profile_public_read_revoke.sql', import.meta.url), 'utf8');
+  assert.match(revoke, /REVOKE DELETE, TRUNCATE ON TABLE public\.profile_meta FROM authenticated/);
   assert.equal(/REVOKE SELECT ON TABLE public\.profile_meta FROM anon/.test(add), false);
 });
 
@@ -178,9 +181,17 @@ test('migration step 1 grants no age columns and step 2 revokes anon', () => {
 });
 
 test('a business profile does not need 18+, and a member still does', () => {
-  assert.equal(s.profileIsShareable({
-    account_type: 'editorial_artist', status: 'published', admin_approved: true, is_minor: null
-  }), true);
+  const openBiz = {
+    account_type: 'editorial_artist', status: 'published', admin_approved: true,
+    profile_public: true, public_fields: ['display_name', 'bio'], is_minor: null
+  };
+  assert.equal(s.profileIsShareable(openBiz), true);
+  assert.equal(s.profileIsShareable(Object.assign({}, openBiz, { profile_public: false })), false);
+  assert.equal(s.profileIsShareable(Object.assign({}, openBiz, { public_fields: [] })), false);
+  assert.equal(s.profileIsShareable(Object.assign({}, openBiz, { public_fields: null })), false);
+  const masked = s.publicFace(Object.assign({}, openBiz, { display_name: 'Groove', bio: 'Secret', location: 'LA' }));
+  assert.equal(masked.bio, 'Secret');
+  assert.equal(masked.location || '', '');
   assert.equal(s.profileIsShareable({
     account_type: 'artist', status: 'published', admin_approved: true, is_minor: true
   }), false);
@@ -243,6 +254,37 @@ test('step 1 rollback grants authenticated and not anon', () => {
 test('profile.html raw HTML is noindex', () => {
   const html = readFileSync(new URL('../../profile.html', import.meta.url), 'utf8');
   assert.match(html, /<meta name="robots" content="noindex">/);
+});
+
+test('show and event raw HTML default to noindex', () => {
+  for (const file of ['show.html', 'event.html']) {
+    const html = readFileSync(new URL('../../' + file, import.meta.url), 'utf8');
+    assert.match(html, /<meta name="robots" content="noindex"/, file);
+  }
+});
+
+test('a missing public profile renders the private stub', () => {
+  const html = readFileSync(new URL('../../profile.html', import.meta.url), 'utf8');
+  const load = html.slice(html.indexOf('function loadProfileMeta'), html.indexOf('function loadCategories'));
+  assert.match(html, /function showPrivateStub/);
+  assert.match(html, /data-m1','private-stub'/);
+  assert.match(html, /This profile is private/);
+  assert.equal(/KIL_NOT_FOUND/.test(load), false);
+  assert.match(load, /showPrivateStub\(\)/);
+});
+
+test('the public sql honors profile_public and the field mask', () => {
+  const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
+  const one = add.slice(add.indexOf('FUNCTION private.profile_public_one'), add.indexOf('FUNCTION public.get_public_profile'));
+  const list = add.slice(add.indexOf('FUNCTION public.public_profile_list'), add.indexOf('REVOKE ALL ON FUNCTION public.public_profile_list'));
+  assert.match(one, /m\.profile_public IS TRUE/);
+  assert.match(one, /m\.under_18 IS NOT TRUE/);
+  assert.match(one, /cardinality\(m\.public_fields\) > 0/);
+  assert.equal(/account_type IN \('brand'[\s\S]{0,80}THEN m\.display_name/.test(one), false);
+  assert.match(list, /m\.profile_public IS TRUE/);
+  assert.match(list, /m\.under_18 IS NOT TRUE/);
+  assert.equal(/public_fields IS NULL OR/.test(list), false);
+  assert.match(add, /SET public_fields = ARRAY\[\]::text\[\]/);
 });
 
 test('the pages do not add a Discover/Events/Vote/Echo/Profile tab bar', () => {

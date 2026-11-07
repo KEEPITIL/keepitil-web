@@ -94,6 +94,22 @@ test('a profile with no display name still shows the handle', () => {
   assert.match(html, /No upcoming events\./);
 });
 
+test('a null public_fields value does not throw', async () => {
+  const c = client({
+    rpc: {
+      get_public_profile: { data: [{
+        slug: 'ada', account_type: 'artist', status: 'published', admin_approved: true,
+        profile_public: true, public_fields: null, display_name: 'Ada', bio: 'Secret'
+      }] }
+    },
+    session: { data: { session: { user: { id: 'u' } } } }
+  });
+  const d = await m.load(c, 'ada');
+  const html = m.render(d);
+  assert.match(html, /data-m1="private-stub"/);
+  assert.doesNotMatch(html, /Secret/);
+});
+
 test('a profile with no flags renders the private stub', () => {
   const html = m.render({ slug: 'ada', meta: bare, events: events(), owner: false, now: NOW });
   assert.match(html, /data-m1="private-stub"/);

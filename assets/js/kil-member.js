@@ -332,7 +332,8 @@
     var lib = shareLib();
     var shareable = !!(meta && lib && lib.profileIsShareable(meta));
     var events = null;
-    if (owner || (shareable && meta.public_fields.indexOf('events') !== -1)) {
+    var fields = Array.isArray(meta && meta.public_fields) ? meta.public_fields : [];
+    if (owner || (shareable && fields.indexOf('events') !== -1)) {
       var handle = (shareable && meta.handle) || mine || s;
       var er = await safe(client.rpc('get_profile_events', { p_handle: handle }));
       events = ok(er) ? (er.data || []) : null;

@@ -639,7 +639,13 @@ window.KIL_FILTER_BADGES = function(badges){
 <!-- HEADER (social icons now live here) -->
 <!-- P0 fix 2026-07-16: hero ships BLANK (skeleton) — live/demo data is applied by JS only.
      A new/empty profile must render a blank, fillable page — never someone else's identity. -->
-<style>@keyframes pfskel{50%{opacity:.45}}.pf-skel{animation:pfskel 1.2s ease-in-out infinite}</style>
+<style>@keyframes pfskel{50%{opacity:.45}}.pf-skel{animation:pfskel 1.2s ease-in-out infinite}
+body.kil-private>*:not(#kilPrivateStub):not(script):not(style):not(#main-nav):not(#v3shell-nav):not(.mobile-menu){display:none!important}
+#kilPrivateStub{max-width:420px;margin:18vh auto;padding:0 20px;text-align:center;color:#fff}
+#kilPrivateStub .m1-av-ring{display:inline-block;width:88px;height:88px;border-radius:50%;border:3px solid rgba(255,255,255,.9);box-shadow:0 0 0 8px rgba(255,255,255,.08)}
+#kilPrivateStub p{font-size:1.15rem;margin:16px 0}
+#kilPrivateStub a{display:inline-block;padding:12px 18px;border-radius:999px;background:#fff;color:#111;text-decoration:none;font-weight:700}
+</style>
 <button id="pfBack" onclick="history.back()">‹ Previous</button>
 <div class="pf-cover"><img id="pfCover" src="" alt="" style="display:none" onerror="this.style.display='none'"></div>
 <div class="pf-head">
@@ -1494,10 +1500,22 @@ function applyMetaRow(d, owner){
   if(Array.isArray(d.badges))PROFILE.badges=d.badges;
   try{
     if(window.KilShare){
-      var face=KilShare.publicFace({ slug:PROFILE_SLUG, display_name:d.display_name, handle:d.handle, bio:d.bio, tagline:d.tagline, avatar_url:d.avatar_url, status:d.status, is_minor:d.is_minor, under_18:d.under_18, age_verified:d.age_verified, profile_public:d.profile_public, public_fields:d.public_fields }, { path:'/profile' });
+      var face=KilShare.publicFace({ slug:PROFILE_SLUG, display_name:d.display_name, handle:d.handle, bio:d.bio, tagline:d.tagline, avatar_url:d.avatar_url, status:d.status, account_type:d.account_type, admin_approved:d.admin_approved, is_minor:d.is_minor, under_18:d.under_18, age_verified:d.age_verified, profile_public:d.profile_public, public_fields:d.public_fields }, { path:'/profile' });
       KilShare.applyPreview(document, face || null);
     }
   }catch(e){}
+}
+function showPrivateStub(){
+  document.body.classList.add('kil-private');
+  if(!document.getElementById('kilPrivateStub')){
+    var d=document.createElement('div');
+    d.id='kilPrivateStub';
+    d.setAttribute('data-m1','private-stub');
+    d.innerHTML='<span class="m1-av m1-av-ring" aria-hidden="true"></span><p>This profile is private</p><a class="m1-discover" href="/">Discover events</a>';
+    document.body.insertBefore(d, document.body.firstChild);
+  }
+  var rob=document.querySelector('meta[name="robots"]');
+  if(rob) rob.setAttribute('content','noindex');
 }
 function loadProfileMeta(){
   if(!SB) return Promise.resolve();
@@ -1507,15 +1525,10 @@ function loadProfileMeta(){
     ? SB.from('profile_meta').select('slug,display_name,handle,location,bio,tagline,pronouns,avatar_url,cover_url,cover_mobile_url,book_email,socials,links,highlights,about,account_type,links_label,badges,status,is_minor,under_18,age_verified,profile_public,public_fields,admin_approved').eq('slug',PROFILE_SLUG).maybeSingle()
     : SB.rpc('get_public_profile',{p_slug:PROFILE_SLUG}).then(function(r){ var row=r&&r.data; if(Array.isArray(row)) row=row[0]||null; return { data: row }; });
   return req.then(function(r){
-    if(PROFILE_SLUG && !(r&&r.data) && !owner && window.KIL_NOT_FOUND){
-      window.KIL_NOT_FOUND({ what:'profile', heading:'This profile is private',
-        body:'It may be private, or the link may be wrong.',
-        links:[['/','Discover events'],['/connect/','Browse the Scene']] });
-      return;
-    }
+    if(PROFILE_SLUG && !(r&&r.data) && !owner){ showPrivateStub(); return; }
     if(r&&r.data) applyMetaRow(r.data, owner);
     applyProfile(); loadCategories();
-  }).catch(function(){ applyProfile(); });
+  }).catch(function(){ if(!owner) showPrivateStub(); });
 }
 function loadCategories(){
   if(!SB) return;

@@ -46,6 +46,21 @@ WHERE status = 'published'
   AND account_type IN ('brand', 'organizer', 'artist', 'editorial_artist')
   AND profile_public IS NULL;
 
+-- A null field list must not mean every column. Public business rows get the
+-- directory fields only. Everyone else with a null list gets an empty list.
+UPDATE public.profile_meta
+SET public_fields = ARRAY['display_name','handle','avatar_url','bio','tagline','location']::text[]
+WHERE public_fields IS NULL
+  AND profile_public IS TRUE
+  AND is_minor IS NOT TRUE
+  AND under_18 IS NOT TRUE
+  AND status = 'published'
+  AND account_type IN ('brand', 'organizer', 'artist', 'editorial_artist');
+
+UPDATE public.profile_meta
+SET public_fields = ARRAY[]::text[]
+WHERE public_fields IS NULL;
+
 -- One slug. Public columns only. book_email is not selected.
 DROP FUNCTION IF EXISTS private.profile_public_one(text);
 CREATE OR REPLACE FUNCTION private.profile_public_one(p_slug text)
@@ -67,6 +82,7 @@ RETURNS TABLE (
   public_fields text[],
   age_verified boolean,
   is_minor boolean,
+  under_18 boolean,
   status text,
   admin_approved boolean
 )
@@ -77,14 +93,14 @@ SET search_path = ''
 AS $$
   SELECT
     m.slug,
-    CASE WHEN m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist') OR 'display_name' = ANY (m.public_fields) THEN m.display_name END,
-    CASE WHEN m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist') OR 'handle' = ANY (m.public_fields) THEN m.handle END,
-    CASE WHEN m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist') OR 'avatar_url' = ANY (m.public_fields) OR 'avatar' = ANY (m.public_fields) THEN m.avatar_url END,
-    CASE WHEN m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist') OR 'bio' = ANY (m.public_fields) THEN m.bio END,
-    CASE WHEN m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist') OR 'tagline' = ANY (m.public_fields) THEN m.tagline END,
-    CASE WHEN m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist') OR 'location' = ANY (m.public_fields) THEN m.location END,
-    CASE WHEN m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist') OR 'links' = ANY (m.public_fields) OR 'socials' = ANY (m.public_fields) THEN to_jsonb(m.links) END,
-    CASE WHEN m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist') OR 'links' = ANY (m.public_fields) OR 'socials' = ANY (m.public_fields) THEN to_jsonb(m.socials) END,
+    CASE WHEN 'display_name' = ANY (m.public_fields) THEN m.display_name END,
+    CASE WHEN 'handle' = ANY (m.public_fields) THEN m.handle END,
+    CASE WHEN 'avatar_url' = ANY (m.public_fields) OR 'avatar' = ANY (m.public_fields) THEN m.avatar_url END,
+    CASE WHEN 'bio' = ANY (m.public_fields) THEN m.bio END,
+    CASE WHEN 'tagline' = ANY (m.public_fields) THEN m.tagline END,
+    CASE WHEN 'location' = ANY (m.public_fields) THEN m.location END,
+    CASE WHEN 'links' = ANY (m.public_fields) OR 'socials' = ANY (m.public_fields) THEN to_jsonb(m.links) END,
+    CASE WHEN 'links' = ANY (m.public_fields) OR 'socials' = ANY (m.public_fields) THEN to_jsonb(m.socials) END,
     CASE WHEN 'about' = ANY (m.public_fields) THEN m.about END,
     m.account_type,
     CASE WHEN 'links_label' = ANY (m.public_fields) THEN m.links_label END,
@@ -93,25 +109,25 @@ AS $$
     m.public_fields,
     m.age_verified,
     m.is_minor,
+    m.under_18,
     m.status,
     m.admin_approved
   FROM public.profile_meta m
   WHERE p_slug ~ '^[a-z0-9-]{1,80}$'
     AND m.slug = p_slug
+    AND m.profile_public IS TRUE
     AND m.is_minor IS NOT TRUE
     AND m.under_18 IS NOT TRUE
     AND m.status = 'published'
     AND m.admin_approved IS TRUE
+    AND m.public_fields IS NOT NULL
+    AND cardinality(m.public_fields) > 0
     AND (
       m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist')
       OR (
-        COALESCE(m.account_type, '') NOT IN ('brand', 'organizer', 'artist', 'editorial_artist')
-        AND m.profile_public IS TRUE
-        AND m.age_verified IS TRUE
+        m.age_verified IS TRUE
         AND m.is_minor IS FALSE
         AND m.under_18 IS FALSE
-        AND m.public_fields IS NOT NULL
-        AND cardinality(m.public_fields) > 0
       )
     )
   LIMIT 1;
@@ -139,6 +155,7 @@ RETURNS TABLE (
   public_fields text[],
   age_verified boolean,
   is_minor boolean,
+  under_18 boolean,
   status text,
   admin_approved boolean
 )
@@ -154,8 +171,9 @@ REVOKE ALL ON FUNCTION public.get_public_profile(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_public_profile(text) TO anon, authenticated;
 
 -- Directory list. Brand, organizer, artist, and editorial_artist only.
--- They appear when published and admin_approved. is_minor = true is excluded.
--- Personal member profiles are not returned. book_email is not selected.
+-- profile_public must be true. The field list limits each column.
+-- is_minor or under_18 true is excluded. Personal members are not returned.
+-- book_email is not selected.
 CREATE OR REPLACE FUNCTION public.public_profile_list(
   p_account_type text DEFAULT NULL,
   p_query text DEFAULT NULL,
@@ -180,20 +198,23 @@ SET search_path = ''
 AS $$
   SELECT
     m.slug,
-    CASE WHEN m.public_fields IS NULL OR 'display_name' = ANY (m.public_fields) THEN m.display_name END,
-    CASE WHEN m.public_fields IS NULL OR 'tagline' = ANY (m.public_fields) THEN m.tagline END,
-    CASE WHEN m.public_fields IS NULL OR 'bio' = ANY (m.public_fields) THEN left(m.bio, 160) END,
-    CASE WHEN m.public_fields IS NULL OR 'avatar_url' = ANY (m.public_fields) OR 'avatar' = ANY (m.public_fields) THEN m.avatar_url END,
-    CASE WHEN m.public_fields IS NULL OR 'cover_url' = ANY (m.public_fields) OR 'avatar_url' = ANY (m.public_fields) THEN m.cover_url END,
+    CASE WHEN 'display_name' = ANY (m.public_fields) THEN m.display_name END,
+    CASE WHEN 'tagline' = ANY (m.public_fields) THEN m.tagline END,
+    CASE WHEN 'bio' = ANY (m.public_fields) THEN left(m.bio, 160) END,
+    CASE WHEN 'avatar_url' = ANY (m.public_fields) OR 'avatar' = ANY (m.public_fields) THEN m.avatar_url END,
+    CASE WHEN 'cover_url' = ANY (m.public_fields) THEN m.cover_url END,
     m.account_type,
     m.entity_category,
-    CASE WHEN m.public_fields IS NULL OR 'location' = ANY (m.public_fields) THEN m.location END,
+    CASE WHEN 'location' = ANY (m.public_fields) THEN m.location END,
     m.status
   FROM public.profile_meta m
   WHERE m.status = 'published'
+    AND m.profile_public IS TRUE
     AND m.admin_approved IS TRUE
     AND m.is_minor IS NOT TRUE
     AND m.under_18 IS NOT TRUE
+    AND m.public_fields IS NOT NULL
+    AND cardinality(m.public_fields) > 0
     AND m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist')
     AND (
       p_account_type IS NULL
@@ -218,25 +239,9 @@ REVOKE ALL ON FUNCTION public.public_profile_list(text, text, integer) FROM PUBL
 GRANT EXECUTE ON FUNCTION public.public_profile_list(text, text, integer) TO anon, authenticated;
 
 
--- Signed-in users lose table-wide writes. SELECT stays so the owner read policy can return their row.
--- INSERT and UPDATE are limited to the columns profile.html saves, plus the public opt-in.
--- age_verified, is_minor, under_18, status, account_type, and admin_approved are not granted.
-REVOKE ALL ON TABLE public.profile_meta FROM authenticated;
-GRANT SELECT ON TABLE public.profile_meta TO authenticated;
-GRANT INSERT (
-  slug, display_name, handle, location, bio, tagline, pronouns, book_email,
-  about, links, links_label, badges, avatar_url, cover_url, cover_mobile_url,
-  socials, highlights, updated_at, profile_public, public_fields
-) ON TABLE public.profile_meta TO authenticated;
-GRANT UPDATE (
-  display_name, handle, location, bio, tagline, pronouns, book_email,
-  about, links, links_label, badges, avatar_url, cover_url, cover_mobile_url,
-  socials, highlights, updated_at, profile_public, public_fields
-) ON TABLE public.profile_meta TO authenticated;
-
 -- Anon keeps SELECT until the revoke migration. Writes, delete, and truncate go now.
+-- Authenticated column limits wait until that same file, after the new owner save is deployed.
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.profile_meta FROM anon, PUBLIC;
-REVOKE DELETE, TRUNCATE ON TABLE public.profile_meta FROM authenticated;
 
 -- Owner read uses profile_owners, the same check the existing update policy uses.
 -- The existing update policy is left in place.
@@ -271,8 +276,12 @@ $$;
 REVOKE ALL ON FUNCTION public.set_profile_admin_approved(text, boolean) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.set_profile_admin_approved(text, boolean) TO authenticated;
 
--- public.profiles is a view over approved applications. This file does not rename it,
--- replace it, or change its privileges. kode/app.html and kode/embed.html still read it.
+-- public.profiles is a view. Its CREATE VIEW statement is not in this repo, so this
+-- migration does not replace it and does not add a filter that could drop a column
+-- kode already reads. kode/embed.html reads id, handle, display_name by handle.
+-- kode/app.html reads the signed-in row with select * and inserts id, handle, display_name.
+-- Those pages stay on the view. A filter for profile_public, is_minor, or under_18
+-- cannot be added here without the view body.
 
 -- profile_owners: stop unclaimed-profile takeover. Prod lets any signed-in user
 -- insert themselves as owner of a slug that has no row yet, and anon can read

@@ -67,8 +67,12 @@ test('anon truncate and anon insert are refused', () => {
 test('a non-owner cannot insert into profile_owners and anon cannot read it', () => {
   const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
   assert.match(add, /DROP POLICY IF EXISTS "profile_owners claim"/);
-  assert.match(add, /REVOKE INSERT, DELETE, TRUNCATE ON TABLE public\.profile_owners FROM authenticated/);
-  assert.match(add, /REVOKE ALL ON TABLE public\.profile_owners FROM anon, PUBLIC/);
+  assert.match(add, /REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public\.profile_owners FROM anon, PUBLIC/);
+  assert.equal(/REVOKE ALL ON TABLE public\.profile_owners FROM anon/.test(add), false);
+  assert.equal(/REVOKE INSERT, DELETE, TRUNCATE ON TABLE public\.profile_owners FROM authenticated/.test(add), false);
+  const revokeOwners = readFileSync(new URL('../../supabase/migrations/20261107014100_profile_public_read_revoke.sql', import.meta.url), 'utf8');
+  assert.match(revokeOwners, /REVOKE ALL ON TABLE public\.profile_owners FROM anon/);
+  assert.match(revokeOwners, /REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public\.profile_owners FROM authenticated/);
   assert.match(add, /USING \(owner_id = \(SELECT auth\.uid\(\)\)\)/);
   assert.equal(/GRANT INSERT[^;]*profile_owners/i.test(add), false);
   assert.match(add, /FUNCTION public\.i_own_profile\(slug text\)/);
@@ -211,6 +215,8 @@ test('the owner save does not write account_type', () => {
   assert.equal(/account_type/.test(meta), false);
   assert.equal(/\bslug:/.test(meta), false);
   assert.match(html, /\.update\(meta\)\.eq\('slug',PROFILE_SLUG\)/);
+  assert.match(html, /var created=\{slug:PROFILE_SLUG\}/);
+  assert.match(html, /\.insert\(created\)/);
   assert.equal(/id="epAcct"/.test(html), false);
   assert.match(html, /id="epAcctRequest"/);
   assert.match(html, /kind:'account_type_request'/);

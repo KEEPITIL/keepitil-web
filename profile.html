@@ -1800,19 +1800,28 @@ function saveEditProfile(){
           socials:{ instagram:g('epIG'), soundcloud:g('epSC'), tiktok:g('epTT'), website:g('epWeb') },
           highlights: hlDone, updated_at:new Date().toISOString() };
         if(!SB||!SESSION){ Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url,cover:meta.cover_url,cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights}); applyProfile(); closeModal(); toast('Saved locally — sign in as owner to publish.'); return; }
-        SB.from('profile_meta').update(meta).eq('slug',PROFILE_SLUG).then(function(r){
-          if(r&&r.error){ toast('Could not save profile: '+(r.error.message||'')); if(btn){btn.disabled=false;btn.textContent='Save changes';} return; }
+        function savedProfile(){
           Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url,cover:meta.cover_url,cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights});
           applyProfile();
           saveCategories();
           requestAccountType();
-          // account email/password
           var email=g('epEmail'), pass=g('epPass'), pass2=g('epPass2'), upd={};
           if(email && SESSION.user && email!==SESSION.user.email) upd.email=email;
           if(pass){ if(pass!==pass2){ toast('Profile saved. Passwords did not match — password unchanged.'); closeModal(); return; } upd.password=pass; }
           if(Object.keys(upd).length){ SB.auth.updateUser(upd).then(function(a){ closeModal(); toast(a&&a.error?('Profile saved. Account: '+a.error.message):'Profile + account updated.'+(upd.email?' Check your email to confirm the new address.':'')); }).catch(function(){ closeModal(); toast('Profile saved. Account update failed.'); }); }
           else { closeModal(); toast('Profile updated.'); }
-        }).catch(function(){ if(btn){btn.disabled=false;btn.textContent='Save changes';} toast('Could not save profile.'); });
+        }
+        function saveFailed(err){ toast('Could not save profile: '+((err&&err.message)||'')); if(btn){btn.disabled=false;btn.textContent='Save changes';} }
+        SB.from('profile_meta').update(meta).eq('slug',PROFILE_SLUG).select('slug').then(function(r){
+          if(r&&r.error){ saveFailed(r.error); return; }
+          if(r&&Array.isArray(r.data)&&r.data.length){ savedProfile(); return; }
+          var created={slug:PROFILE_SLUG};
+          Object.keys(meta).forEach(function(k){ created[k]=meta[k]; });
+          SB.from('profile_meta').insert(created).then(function(ins){
+            if(ins&&ins.error){ saveFailed(ins.error); return; }
+            savedProfile();
+          }).catch(function(){ saveFailed(); });
+        }).catch(function(){ saveFailed(); });
       }
       if(!pending){ finalize(); return; }
       hlNodes.forEach(function(node){

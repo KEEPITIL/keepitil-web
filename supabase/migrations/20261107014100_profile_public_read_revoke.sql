@@ -44,7 +44,9 @@ END $$;
 REVOKE ALL ON TABLE public.profile_meta FROM anon;
 REVOKE ALL ON TABLE public.profile_meta FROM PUBLIC;
 REVOKE ALL ON TABLE public.profile_owners FROM anon;
+REVOKE ALL ON TABLE public.profile_owners FROM PUBLIC;
 REVOKE ALL ON TABLE public.profile_claim_requests FROM anon;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.profile_owners FROM authenticated;
 
 -- The new owner save is deployed before this file. It does not send account_type or slug.
 -- Until then, the live save still sends those columns, so step 1 leaves the grants alone.

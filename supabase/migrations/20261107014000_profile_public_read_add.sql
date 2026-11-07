@@ -240,7 +240,7 @@ GRANT EXECUTE ON FUNCTION public.public_profile_list(text, text, integer) TO ano
 
 
 -- Anon keeps SELECT until the revoke migration. Writes, delete, and truncate go now.
--- Authenticated column limits wait until that same file, after the new owner save is deployed.
+-- Authenticated column limits are not in this file. The live owner save still sends them.
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.profile_meta FROM anon, PUBLIC;
 
 -- Owner read uses profile_owners, the same check the existing update policy uses.
@@ -305,8 +305,9 @@ BEGIN
   END LOOP;
 END $$;
 
-REVOKE ALL ON TABLE public.profile_owners FROM anon, PUBLIC;
-REVOKE INSERT, DELETE, TRUNCATE ON TABLE public.profile_owners FROM authenticated;
+-- Anon keeps SELECT until step 2. Live logged-out pages still read owner rows.
+-- Signed-in grants stay as they are until that file, after the new pages are deployed.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.profile_owners FROM anon, PUBLIC;
 
 DROP POLICY IF EXISTS profile_owners_select_own ON public.profile_owners;
 CREATE POLICY profile_owners_select_own ON public.profile_owners

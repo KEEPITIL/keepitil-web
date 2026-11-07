@@ -17,10 +17,10 @@ FROM information_schema.routine_privileges
 WHERE routine_schema = 'public' AND routine_name = 'get_profile_events';
 ```
 
-Also save the rows these later steps change:
+Also save the rows and grants that exist today. Do not select `profile_public`, `public_fields`, `is_minor`, `under_18`, `age_verified`, or `admin_approved` here. Those columns are created by step 1.
 
 ```sql
-SELECT slug, account_type, status, profile_public, public_fields, is_minor, under_18, admin_approved
+SELECT slug, display_name, handle, account_type, status
 FROM public.profile_meta
 WHERE slug IN ('tuitea', 'groove-trooper', 'fobbinhard', 'keepitil-audit');
 
@@ -28,20 +28,32 @@ SELECT profile_slug, owner_id
 FROM public.profile_owners
 WHERE profile_slug IN ('tuitea', 'groove-trooper', 'fobbinhard', 'keepitil-audit');
 
-SELECT grantee, privilege_type
+SELECT table_name, grantee, privilege_type
 FROM information_schema.role_table_grants
-WHERE table_schema = 'public' AND table_name = 'profiles';
+WHERE table_schema = 'public'
+  AND table_name IN ('profile_meta', 'profile_owners', 'profiles', 'events')
+ORDER BY table_name, grantee, privilege_type;
 ```
 
 `groove-trooper` has no owner row today. Keep that result. Do not invent one.
 
 ## 2. Step 1
 
-Apply `supabase/migrations/20261107014000_profile_public_read_add.sql`.
+Apply `supabase/migrations/20261107014000_profile_public_read_add.sql`. It is one transaction.
+
+After it commits, snapshot the new columns:
+
+```sql
+SELECT slug, profile_public, public_fields, is_minor, under_18, age_verified, admin_approved
+FROM public.profile_meta
+WHERE slug IN ('tuitea', 'groove-trooper', 'fobbinhard', 'keepitil-audit');
+```
 
 ## 3. Close the old events RPC
 
 Apply `supabase/migrations/20261107020000_profile_event_summary.sql` from PR #92 in this same window, immediately after step 1. Do not leave the old `get_profile_events` callable, and do not apply step 2 yet.
+
+A published event stays readable as a listing even when the organizer's profile is private. Anon and authenticated do not receive `owner_handle` or `owner_id` from `public.events`. The organizer is returned only by `get_profile_event_summary`, and only when `private.profile_is_public` is true for that profile.
 
 ## 4. Web deploy
 
@@ -112,7 +124,7 @@ SELECT * FROM public.get_public_profile('keepitil-audit');
 
 `groove-trooper` should return a public row after the named move. `tuitea` returns a public row only after Joe's attestation and his own opt-in. `fobbinhard` and `keepitil-audit` return no public row.
 
-`public.profiles.id` is the auth user id. `joseph-tuitea` has no `profile_owners` row. Do not insert one. This query should return no row. The view is not readable by anon; the same adult check is enforced by `get_approved_profile`.
+`public.profiles` has `id` and `slug`, not `handle`. `get_approved_profile` returns the real columns only when `private.profile_is_public` is true for that slug and the field is in `public_fields`. `joseph-tuitea` has no `profile_owners` row. Do not insert one. This query should return no row.
 
 ```sql
 SELECT p.slug

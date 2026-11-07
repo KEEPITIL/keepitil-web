@@ -11,6 +11,9 @@
 --
 -- ROLLBACK. The per-stage undo, including the backup restore, is in
 -- docs/profile-release-runbook.md. Do not run this file against prod from the PR.
+-- One transaction: a failed statement must not leave the earlier grants behind.
+
+BEGIN;
 
 CREATE SCHEMA IF NOT EXISTS private;
 REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
@@ -594,48 +597,68 @@ $$;
 REVOKE ALL ON FUNCTION public.set_profile_admin_approved(text, boolean) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.set_profile_admin_approved(text, boolean) TO authenticated;
 
--- public.profiles is a view over approved applications. RLS does not apply to it,
--- and anon can SELECT every approved row. The view body is not in this repo, so
--- this migration does not replace it. Client SELECT is revoked. Reads go through
--- get_approved_profile, which keeps every column and adds the adult check.
--- kode/app.html still inserts id, handle, display_name. profiles.id is the auth
--- user id. joseph-tuitea has no profile_owners row; this does not invent one.
+-- public.profiles is a view over approved applications. Live columns are
+-- id, created_at, slug, type, name, genre, city, bio, website, instagram,
+-- music, image_url, featured, spotify, youtube, event_name, event_date,
+-- event_venue, event_tickets. There is no handle column. Client SELECT is
+-- revoked. The replacement returns only the real columns, and only when
+-- private.profile_is_public is true for the same slug and the field is in
+-- that page's public_fields. It does not return p.*.
 REVOKE SELECT ON TABLE public.profiles FROM anon, authenticated, PUBLIC;
 
-CREATE OR REPLACE FUNCTION public.get_approved_profile(p_id uuid, p_handle text)
-RETURNS SETOF public.profiles
+DROP FUNCTION IF EXISTS public.get_approved_profile(uuid, text);
+CREATE OR REPLACE FUNCTION public.get_approved_profile(p_id uuid, p_slug text)
+RETURNS TABLE (
+  id uuid,
+  slug text,
+  name text,
+  type text,
+  genre text,
+  city text,
+  bio text,
+  image_url text,
+  website text,
+  instagram text,
+  music text,
+  spotify text,
+  youtube text,
+  event_name text,
+  event_date text,
+  event_venue text,
+  event_tickets text
+)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = ''
 AS $$
-  SELECT p.*
+  SELECT
+    p.id,
+    CASE WHEN 'slug' = ANY (m.public_fields) OR 'handle' = ANY (m.public_fields) THEN p.slug END,
+    CASE WHEN 'name' = ANY (m.public_fields) OR 'display_name' = ANY (m.public_fields) THEN p.name END,
+    CASE WHEN 'type' = ANY (m.public_fields) OR 'account_type' = ANY (m.public_fields) THEN p.type END,
+    CASE WHEN 'genre' = ANY (m.public_fields) THEN p.genre END,
+    CASE WHEN 'city' = ANY (m.public_fields) OR 'location' = ANY (m.public_fields) THEN p.city END,
+    CASE WHEN 'bio' = ANY (m.public_fields) THEN p.bio END,
+    CASE WHEN 'image_url' = ANY (m.public_fields) OR 'avatar_url' = ANY (m.public_fields) OR 'avatar' = ANY (m.public_fields) THEN p.image_url END,
+    CASE WHEN 'website' = ANY (m.public_fields) OR 'links' = ANY (m.public_fields) THEN p.website END,
+    CASE WHEN 'instagram' = ANY (m.public_fields) OR 'socials' = ANY (m.public_fields) OR 'links' = ANY (m.public_fields) THEN p.instagram END,
+    CASE WHEN 'music' = ANY (m.public_fields) THEN p.music END,
+    CASE WHEN 'spotify' = ANY (m.public_fields) OR 'links' = ANY (m.public_fields) THEN p.spotify END,
+    CASE WHEN 'youtube' = ANY (m.public_fields) OR 'links' = ANY (m.public_fields) THEN p.youtube END,
+    CASE WHEN 'events' = ANY (m.public_fields) THEN p.event_name END,
+    CASE WHEN 'events' = ANY (m.public_fields) THEN p.event_date::text END,
+    CASE WHEN 'events' = ANY (m.public_fields) THEN p.event_venue END,
+    CASE WHEN 'events' = ANY (m.public_fields) THEN p.event_tickets END
   FROM public.profiles AS p
-  WHERE p.id IS NOT NULL
+  JOIN public.profile_meta AS m ON m.slug = p.slug
+  WHERE private.profile_is_public(m.slug)
+    AND p.id IS NOT NULL
     AND (
       (p_id IS NOT NULL AND p.id = p_id)
       OR (
-        p_handle IS NOT NULL
-        AND lower(btrim(p.handle)) = lower(btrim(p_handle))
-      )
-    )
-    AND (
-      p.id = (SELECT auth.uid())
-      OR (
-        EXISTS (
-          SELECT 1
-          FROM private.account_age AS a
-          WHERE a.user_id = p.id
-            AND a.verified IS TRUE
-            AND a.method IN ('founder_self', 'admin_attested', 'house')
-        )
-        AND NOT EXISTS (
-          SELECT 1
-          FROM public.profile_owners AS po
-          JOIN public.profile_meta AS m ON m.slug = po.profile_slug
-          WHERE po.owner_id = p.id
-            AND (m.is_minor IS TRUE OR m.under_18 IS TRUE)
-        )
+        p_slug IS NOT NULL
+        AND lower(btrim(p.slug)) = lower(btrim(p_slug))
       )
     );
 $$;
@@ -780,3 +803,5 @@ BEGIN
     EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated', r.sig);
   END LOOP;
 END $$;
+
+COMMIT;

@@ -159,8 +159,12 @@ test('profile_is_public is the only visibility rule and it is not an RLS policy'
   const ageFn = add.slice(add.indexOf('FUNCTION public.admin_set_account_age'), add.indexOf('INSERT INTO private.account_age'));
   assert.match(ageFn, /m\.is_minor IS TRUE OR m\.under_18 IS TRUE/);
   assert.match(add, /REVOKE SELECT ON TABLE public\.profiles FROM anon, authenticated, PUBLIC/);
-  assert.match(add, /FUNCTION public\.get_approved_profile\(p_id uuid, p_handle text\)/);
-  assert.match(add, /a\.user_id = p\.id/);
+  assert.match(add, /^BEGIN;/m);
+  assert.match(add, /^COMMIT;/m);
+  assert.match(add, /FUNCTION public\.get_approved_profile\(p_id uuid, p_slug text\)/);
+  assert.match(add, /private\.profile_is_public\(m\.slug\)/);
+  assert.equal(/p\.handle/.test(add), false);
+  assert.match(add, /JOIN public\.profile_meta AS m ON m\.slug = p\.slug/);
   assert.equal(/FROM public\.profile_meta m\s+WHERE lower\(btrim\(m\.account_type\)\) IN/.test(add), false);
   assert.match(add, /COALESCE\(public\.is_admin\(\), FALSE\)/);
   assert.match(add, /m\.is_minor IS TRUE OR m\.under_18 IS TRUE/);

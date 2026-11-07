@@ -6,6 +6,9 @@
 -- After this file, this is refused for anon:
 --   select book_email from public.profile_meta;
 --
+-- ROLLBACK. Restore anon grants and the dropped read policies from the backup
+-- taken before step 1. Leave the added columns.
+--
 -- public.profiles is a view over approved applications. ENABLE ROW LEVEL
 -- SECURITY does not apply to a view, so this file does not touch it.
 -- kode/app.html and kode/embed.html keep reading and writing that view.
@@ -34,8 +37,10 @@ BEGIN
   END LOOP;
 END $$;
 
-REVOKE SELECT ON TABLE public.profile_meta FROM anon;
-REVOKE SELECT ON TABLE public.profile_meta FROM PUBLIC;
+REVOKE ALL ON TABLE public.profile_meta FROM anon;
+REVOKE ALL ON TABLE public.profile_meta FROM PUBLIC;
+REVOKE ALL ON TABLE public.profile_owners FROM anon;
+REVOKE ALL ON TABLE public.profile_claim_requests FROM anon;
 
 -- The owner read policy is created in step 1 on profile_owners.
 -- Turn row security on so that policy is what a signed-in user can read.

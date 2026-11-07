@@ -5,6 +5,13 @@
 -- backfill. Leaves anon SELECT on profile_meta in place so existing logged-out
 -- pages keep working until the web deploy is verified.
 -- Then apply 20261107014100_profile_public_read_revoke.sql.
+--
+-- ROLLBACK. Take a prod backup before applying this file. To undo, drop
+-- get_public_profile(text), public_profile_list(text, text, integer),
+-- private.profile_public_one(text), set_profile_admin_approved(text, boolean),
+-- i_own_profile(text), request_profile_claim(text) and approve_profile_claim(uuid).
+-- Restore the authenticated grants and the profile_owners policies from that backup.
+-- Leave the added columns. They are harmless. Do not run this file against prod from the PR.
 
 CREATE SCHEMA IF NOT EXISTS private;
 REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
@@ -19,11 +26,12 @@ ALTER TABLE public.profile_meta
 
 -- Approval is server-only. This marks the published rows that already exist,
 -- and it never sets profile_public, age_verified, or is_minor.
--- A known minor (is_minor = true) is left unapproved.
+-- A known minor (is_minor or under_18 is true) is left unapproved.
 UPDATE public.profile_meta
 SET admin_approved = TRUE
 WHERE status = 'published'
   AND is_minor IS NOT TRUE
+  AND under_18 IS NOT TRUE
   AND account_type IN ('subscriber_profile', 'editorial_artist', 'brand', 'organizer', 'artist')
   AND admin_approved IS NULL;
 
@@ -34,6 +42,7 @@ UPDATE public.profile_meta
 SET profile_public = TRUE
 WHERE status = 'published'
   AND is_minor IS NOT TRUE
+  AND under_18 IS NOT TRUE
   AND account_type IN ('brand', 'organizer', 'artist', 'editorial_artist')
   AND profile_public IS NULL;
 
@@ -90,6 +99,7 @@ AS $$
   WHERE p_slug ~ '^[a-z0-9-]{1,80}$'
     AND m.slug = p_slug
     AND m.is_minor IS NOT TRUE
+    AND m.under_18 IS NOT TRUE
     AND m.status = 'published'
     AND m.admin_approved IS TRUE
     AND (
@@ -99,6 +109,7 @@ AS $$
         AND m.profile_public IS TRUE
         AND m.age_verified IS TRUE
         AND m.is_minor IS FALSE
+        AND m.under_18 IS FALSE
         AND m.public_fields IS NOT NULL
         AND cardinality(m.public_fields) > 0
       )
@@ -182,6 +193,7 @@ AS $$
   WHERE m.status = 'published'
     AND m.admin_approved IS TRUE
     AND m.is_minor IS NOT TRUE
+    AND m.under_18 IS NOT TRUE
     AND m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist')
     AND (
       p_account_type IS NULL
@@ -217,7 +229,7 @@ GRANT INSERT (
   socials, highlights, updated_at, profile_public, public_fields
 ) ON TABLE public.profile_meta TO authenticated;
 GRANT UPDATE (
-  slug, display_name, handle, location, bio, tagline, pronouns, book_email,
+  display_name, handle, location, bio, tagline, pronouns, book_email,
   about, links, links_label, badges, avatar_url, cover_url, cover_mobile_url,
   socials, highlights, updated_at, profile_public, public_fields
 ) ON TABLE public.profile_meta TO authenticated;
@@ -261,3 +273,130 @@ GRANT EXECUTE ON FUNCTION public.set_profile_admin_approved(text, boolean) TO au
 
 -- public.profiles is a view over approved applications. This file does not rename it,
 -- replace it, or change its privileges. kode/app.html and kode/embed.html still read it.
+
+-- profile_owners: stop unclaimed-profile takeover. Prod lets any signed-in user
+-- insert themselves as owner of a slug that has no row yet, and anon can read
+-- owner_id. The column is owner_id. Claims are admin-approved from here on.
+DROP POLICY IF EXISTS "profile_owners claim" ON public.profile_owners;
+DROP POLICY IF EXISTS "read all" ON public.profile_owners;
+
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT pol.polname
+    FROM pg_policy pol
+    JOIN pg_class c ON c.oid = pol.polrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relname = 'profile_owners'
+      AND pol.polcmd = 'a'
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.profile_owners', r.polname);
+  END LOOP;
+END $$;
+
+REVOKE ALL ON TABLE public.profile_owners FROM anon, PUBLIC;
+REVOKE INSERT, DELETE, TRUNCATE ON TABLE public.profile_owners FROM authenticated;
+
+DROP POLICY IF EXISTS profile_owners_select_own ON public.profile_owners;
+CREATE POLICY profile_owners_select_own ON public.profile_owners
+  FOR SELECT TO authenticated
+  USING (owner_id = (SELECT auth.uid()));
+
+-- "Do I own this slug?" The row itself is not returned.
+CREATE OR REPLACE FUNCTION public.i_own_profile(slug text)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profile_owners po
+    WHERE po.profile_slug = lower(btrim(slug))
+      AND po.owner_id = (SELECT auth.uid())
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.i_own_profile(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.i_own_profile(text) TO authenticated;
+
+CREATE TABLE IF NOT EXISTS public.profile_claim_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_slug text NOT NULL,
+  requester_id uuid NOT NULL,
+  status text NOT NULL DEFAULT 'pending',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (profile_slug, requester_id)
+);
+
+REVOKE ALL ON TABLE public.profile_claim_requests FROM PUBLIC, anon, authenticated;
+
+-- A signed-in user can ask. This never inserts into profile_owners.
+CREATE OR REPLACE FUNCTION public.request_profile_claim(p_slug text)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE rid uuid;
+BEGIN
+  IF (SELECT auth.uid()) IS NULL THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+  IF lower(btrim(p_slug)) !~ '^[a-z0-9-]{2,80}$' THEN
+    RAISE EXCEPTION 'bad slug';
+  END IF;
+  INSERT INTO public.profile_claim_requests (profile_slug, requester_id, status)
+  VALUES (lower(btrim(p_slug)), (SELECT auth.uid()), 'pending')
+  ON CONFLICT (profile_slug, requester_id) DO UPDATE
+    SET status = public.profile_claim_requests.status
+  RETURNING id INTO rid;
+  RETURN rid;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.request_profile_claim(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.request_profile_claim(text) TO authenticated;
+
+-- Only an admin turns a request into a row in profile_owners.
+CREATE OR REPLACE FUNCTION public.approve_profile_claim(p_request_id uuid)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE req public.profile_claim_requests%ROWTYPE;
+BEGIN
+  IF COALESCE(public.is_admin(), FALSE) IS NOT TRUE THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+  SELECT * INTO req FROM public.profile_claim_requests WHERE id = p_request_id;
+  IF req.id IS NULL THEN
+    RAISE EXCEPTION 'not found';
+  END IF;
+  INSERT INTO public.profile_owners (profile_slug, owner_id)
+  VALUES (req.profile_slug, req.requester_id)
+  ON CONFLICT (profile_slug) DO NOTHING;
+  UPDATE public.profile_claim_requests SET status = 'approved' WHERE id = req.id;
+  RETURN req.profile_slug;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.approve_profile_claim(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.approve_profile_claim(uuid) TO authenticated;
+
+-- The old self-claim RPC must not stay callable by signed-in users.
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT p.oid::regprocedure AS sig
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = 'claim_profile'
+  LOOP
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated', r.sig);
+  END LOOP;
+END $$;

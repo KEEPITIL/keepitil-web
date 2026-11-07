@@ -1195,11 +1195,11 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
      treated it as signed in, every profile route then found nothing, and the user was sent in
      circles. Both signup paths could create it — signup.html never made a profile at all, and
      index.html made an app_users row, which is a different table from the one ownership lives
-     in. So the state is not handled here, it is ENDED here, on every page, for every session:
+     in. A dead token is ended. A session with no profile files a request and stays signed in:
 
        token the server rejects  -> cleared, and the session is over
-       session with no profile   -> a profile is claimed for it
-       claim impossible          -> signed out, because half-signed-in is the bug
+       session with no profile   -> a claim request is filed; the account stays signed in
+       an admin approves it      -> my_profile_slug() starts returning the slug
 
      Runs once per page and again on every auth change, so it also heals accounts that were
      created before this existed. */
@@ -1235,27 +1235,9 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
       }
       return c.rpc('my_profile_slug').then(function(rr){
         if(rr&&!rr.error&&rr.data){ window.KIL_SLUG=rr.data; return; }
-        /* profile_owners is world-readable, so this is a second path, not a retry. */
-        return c.from('profile_owners').select('profile_slug').eq('owner_id',user.id).limit(1)
-          .then(function(q){
-            var row=(q&&!q.error&&q.data&&q.data[0])?q.data[0].profile_slug:null;
-            if(row){ window.KIL_SLUG=row; return; }
-            var base=kilHandleFor(user);
-            if(base.length<2) return kilEndSession(c);
-            /* claim_profile() returns the existing slug if there is one, and raises when the
-               handle is taken — so try a suffix before giving up on the account. */
-            var attempt=function(h, n){
-              return c.rpc('claim_profile',{p_handle:h,p_display:''}).then(function(r){
-                if(r&&!r.error&&r.data){ window.KIL_SLUG=r.data; return; }
-                if(n>=3) return kilEndSession(c);
-                return attempt(base+'-'+(n+1), n+1);
-              }, function(){
-                if(n>=3) return kilEndSession(c);
-                return attempt(base+'-'+(n+1), n+1);
-              });
-            };
-            return attempt(base, 0);
-          });
+        var base=kilHandleFor(user);
+        if(base.length<2) return;
+        return c.rpc('request_profile_claim',{p_slug:base}).then(function(){}, function(){});
       });
     }).catch(function(){ /* offline or blocked: assume nothing, change nothing */ });
   }

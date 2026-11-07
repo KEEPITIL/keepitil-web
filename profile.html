@@ -921,25 +921,21 @@ function openInsights(){
 var SESSION=null, DB_OK=false, OWNS=false;
 /* Edit controls show only in the owner variant AND when the signed-in user actually owns this profile. */
 function CAN_EDIT(){ return IS_OWNER && OWNS; }
-/* S2 — "is this profile claimed by ANYONE", which is a different question from "can I edit it".
-   profile_owners is world-readable, so this resolves for signed-out visitors too. Until it
-   resolves KIL_IS_CLAIMED stays false, because the safe default is the one that cannot
-   overclaim: an editorial profile briefly labelled correctly is fine, a real member's profile
-   briefly labelled "Profile" is not a truthfulness failure. */
+/* S2 — "is this profile claimed by the signed-in user". Owner ids are not readable.
+   Until i_own_profile resolves, KIL_IS_CLAIMED stays false. */
 window.KIL_CLAIMED_READY = Promise.resolve(false);
 function checkClaimed(){
-  if(!SB) return Promise.resolve(false);
-  window.KIL_CLAIMED_READY = SB.from('profile_owners').select('profile_slug')
-    .eq('profile_slug',PROFILE_SLUG).maybeSingle()
-    .then(function(r){ window.KIL_IS_CLAIMED = !!(r&&r.data); return window.KIL_IS_CLAIMED; })
+  if(!SB||!SESSION){ window.KIL_IS_CLAIMED=false; window.KIL_CLAIMED_READY=Promise.resolve(false); return window.KIL_CLAIMED_READY; }
+  window.KIL_CLAIMED_READY = SB.rpc('i_own_profile',{slug:PROFILE_SLUG})
+    .then(function(r){ window.KIL_IS_CLAIMED = !!(r&&r.data===true); return window.KIL_IS_CLAIMED; })
     .catch(function(){ window.KIL_IS_CLAIMED = false; return false; });
   return window.KIL_CLAIMED_READY;
 }
 function checkOwnership(){
   OWNS=false;
   if(!SB||!SESSION) return Promise.resolve(false);
-  return SB.from('profile_owners').select('owner_id').eq('profile_slug',PROFILE_SLUG).maybeSingle().then(function(r){
-    OWNS = !!(r&&r.data&&r.data.owner_id===SESSION.user.id); return OWNS;
+  return SB.rpc('i_own_profile',{slug:PROFILE_SLUG}).then(function(r){
+    OWNS = !!(r&&r.data===true); return OWNS;
   }).catch(function(){ OWNS=false; return false; });
 }
 /* ── FILTER BAR ROUTING (Founder 2026-08-26) ──────────────────────────────────────────────
@@ -1782,7 +1778,7 @@ function saveEditProfile(){
         var _links=[1,2,3,4,5].map(function(i){return g('epL'+i);}).filter(function(u){return u&&/^https?:\/\//.test(u);}).slice(0,5);
         var _badges=[].slice.call(document.querySelectorAll('.epBadge:checked')).map(function(c){return c.value;});
         /* pronouns/tagline/booking-email fields were removed from Edit Profile (dup) — preserve existing values (Founder 2026-07-29) */
-        var meta={ slug:PROFILE_SLUG, display_name:g('epName'), handle:g('epHandle').replace(/^@/,''), location:g('epLoc'), bio:g('epBio'),
+        var meta={ display_name:g('epName'), handle:g('epHandle').replace(/^@/,''), location:g('epLoc'), bio:g('epBio'),
           tagline:(document.getElementById('epTag')?g('epTag'):(PROFILE.tagline||null)), pronouns:(document.getElementById('epPro')?g('epPro'):(PROFILE.pronouns||null)), book_email:(document.getElementById('epBook')?g('epBook'):(PROFILE.book_email||null)),
           about:g('epAbout')||null, links:_links.length?_links:null, links_label:g('epLinksLabel')||null, badges:_badges.length?_badges:null,
           avatar_url: avUrl || g('epAvatarUrl') || PROFILE.avatar,
@@ -1791,7 +1787,7 @@ function saveEditProfile(){
           socials:{ instagram:g('epIG'), soundcloud:g('epSC'), tiktok:g('epTT'), website:g('epWeb') },
           highlights: hlDone, updated_at:new Date().toISOString() };
         if(!SB||!SESSION){ Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url,cover:meta.cover_url,cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights}); applyProfile(); closeModal(); toast('Saved locally — sign in as owner to publish.'); return; }
-        SB.from('profile_meta').upsert(meta).then(function(r){
+        SB.from('profile_meta').update(meta).eq('slug',PROFILE_SLUG).then(function(r){
           if(r&&r.error){ toast('Could not save profile: '+(r.error.message||'')); if(btn){btn.disabled=false;btn.textContent='Save changes';} return; }
           Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url,cover:meta.cover_url,cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights});
           applyProfile();
@@ -2699,20 +2695,13 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
   }
 
   function resolveFor(user){
-      /* Two ways to find the slug. The RPC is the normal one; profile_owners is world-readable,
-         so a direct read is a real second path rather than a retry of the same call. */
       SB.rpc('my_profile_slug').then(function(rr){
-        if(rr && !rr.error && rr.data){ pfGo(rr.data); return; }   /* OWNER view (Founder 2026-08-05) */
-        return SB.from('profile_owners').select('profile_slug').eq('owner_id', user.id).limit(1)
-          .then(function(q){
-            var row=(q && !q.error && q.data && q.data[0]) ? q.data[0].profile_slug : null;
-            if(row){ pfGo(row); return; }
-            pfStuck('No profile on this account',
-              'Signed in as '+(user.email||'this account')+'. There is no profile linked to it yet.',
-              [{label:'Create my profile', primary:true, go:function(){ pfClaim(user); }},
-               {label:'Dashboard', go:function(){ location.href='/dashboard'; }},
-               {label:'Sign out', go:function(){ pfSignOut().then(function(){ location.href='/'; }); }}]);
-          });
+        if(rr && !rr.error && rr.data){ pfGo(rr.data); return; }
+        pfStuck('No profile on this account',
+          'Signed in as '+(user.email||'this account')+'. There is no profile linked to it yet. An admin has to approve a request.',
+          [{label:'Request my profile', primary:true, go:function(){ pfClaim(user); }},
+           {label:'Dashboard', go:function(){ location.href='/dashboard'; }},
+           {label:'Sign out', go:function(){ pfSignOut().then(function(){ location.href='/'; }); }}]);
       }).catch(function(){
         pfStuck('Could not load your profile',
           'The lookup failed rather than coming back empty, so this is not a missing profile. Trying again usually works.',
@@ -2722,20 +2711,24 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
       });
   }
 
-  /* claim_profile() has existed in the database the whole time and was called from nowhere,
-     which is why no account could ever get a profile through the site. */
   function pfClaim(user){
-    var suggested=(user.email||'').split('@')[0].replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-+|-+$/g,'').toLowerCase();
+    var suggested=(user.email||'').split('@')[0].replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').toLowerCase();
     var handle=prompt('Choose your profile handle (letters, numbers and dashes):', suggested||'');
     if(!handle) return;
-    SB.rpc('claim_profile',{p_handle:handle, p_display:''}).then(function(r){
-      if(r && !r.error && r.data){ pfGo(r.data); return; }
+    handle=String(handle).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+    SB.rpc('request_profile_claim',{p_slug:handle}).then(function(r){
+      if(r && !r.error && r.data){
+        pfStuck('Request sent',
+          'An admin has to approve @'+handle+' before it is yours. Nothing was claimed.',
+          [{label:'Dashboard', primary:true, go:function(){ location.href='/dashboard'; }}]);
+        return;
+      }
       pfStuck('That handle did not work',
-        (r && r.error && r.error.message) ? r.error.message : 'The handle may already be taken.',
+        (r && r.error && r.error.message) ? r.error.message : 'Use letters, numbers and dashes.',
         [{label:'Try another', primary:true, go:function(){ pfClaim(user); }},
          {label:'Dashboard', go:function(){ location.href='/dashboard'; }}]);
     }).catch(function(){
-      pfStuck('Could not create the profile','The request did not complete. Nothing was changed.',
+      pfStuck('Could not send the request','The request did not complete. Nothing was claimed.',
         [{label:'Try again', primary:true, go:function(){ pfClaim(user); }},
          {label:'Dashboard', go:function(){ location.href='/dashboard'; }}]);
     });

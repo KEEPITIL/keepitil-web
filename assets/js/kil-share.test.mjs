@@ -46,9 +46,11 @@ test('an owner self-update of age_verified or status is refused', () => {
   for (const kind of ['INSERT', 'UPDATE']) {
     const grants = add.match(new RegExp('GRANT ' + kind + ' \\(([^)]+)\\) ON TABLE public\\.profile_meta', 'i'));
     assert.ok(grants, kind);
+    const cols = grants[1].split(',').map((s) => s.trim());
     for (const forbidden of ['age_verified', 'is_minor', 'under_18', 'status', 'account_type', 'admin_approved']) {
-      assert.equal(grants[1].split(',').map((s) => s.trim()).includes(forbidden), false, kind + ' ' + forbidden);
+      assert.equal(cols.includes(forbidden), false, kind + ' ' + forbidden);
     }
+    if (kind === 'UPDATE') assert.equal(cols.includes('slug'), false);
   }
 });
 
@@ -57,6 +59,34 @@ test('anon truncate and anon insert are refused', () => {
   assert.match(add, /REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public\.profile_meta FROM anon, PUBLIC/);
   assert.match(add, /REVOKE DELETE, TRUNCATE ON TABLE public\.profile_meta FROM authenticated/);
   assert.equal(/REVOKE SELECT ON TABLE public\.profile_meta FROM anon/.test(add), false);
+});
+
+test('a non-owner cannot insert into profile_owners and anon cannot read it', () => {
+  const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
+  assert.match(add, /DROP POLICY IF EXISTS "profile_owners claim"/);
+  assert.match(add, /REVOKE INSERT, DELETE, TRUNCATE ON TABLE public\.profile_owners FROM authenticated/);
+  assert.match(add, /REVOKE ALL ON TABLE public\.profile_owners FROM anon, PUBLIC/);
+  assert.match(add, /USING \(owner_id = \(SELECT auth\.uid\(\)\)\)/);
+  assert.equal(/GRANT INSERT[^;]*profile_owners/i.test(add), false);
+  assert.match(add, /FUNCTION public\.i_own_profile\(slug text\)/);
+  assert.match(add, /FUNCTION public\.approve_profile_claim/);
+  for (const file of ['profile.html', 'index.html', 'signup.html', 'keepitil-shell.js']) {
+    const src = readFileSync(new URL('../../' + file, import.meta.url), 'utf8');
+    assert.equal(src.includes("rpc('claim_profile'"), false, file);
+    assert.equal(src.includes("from('profile_owners')"), false, file);
+  }
+});
+
+test('under_18 stays private and out of the list', () => {
+  const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
+  const one = add.slice(add.indexOf('FUNCTION private.profile_public_one'), add.indexOf('FUNCTION public.get_public_profile'));
+  const list = add.slice(add.indexOf('FUNCTION public.public_profile_list'));
+  assert.match(one, /m\.under_18 IS NOT TRUE/);
+  assert.match(list, /m\.under_18 IS NOT TRUE/);
+  assert.match(add, /under_18 IS NOT TRUE/);
+  assert.equal(s.profileIsShareable({
+    account_type: 'artist', status: 'published', admin_approved: true, is_minor: false, under_18: true
+  }), false);
 });
 
 test('an is_minor artist is excluded from the list view', () => {
@@ -138,7 +168,8 @@ test('migration step 1 grants no age columns and step 2 revokes anon', () => {
   assert.equal(/profiles_legacy_v/.test(add + revoke), false);
   assert.equal(/ALTER TABLE public\.profiles ENABLE ROW LEVEL SECURITY/.test(add + revoke), false);
   assert.equal(/CREATE TABLE IF NOT EXISTS public\.profiles/.test(add + revoke), false);
-  assert.match(revoke, /REVOKE SELECT ON TABLE public\.profile_meta FROM anon/);
+  assert.match(revoke, /REVOKE ALL ON TABLE public\.profile_meta FROM anon/);
+  assert.match(revoke, /REVOKE ALL ON TABLE public\.profile_owners FROM anon/);
   assert.match(revoke, /select book_email from public\.profile_meta/);
   assert.match(revoke, /ALTER TABLE public\.profile_meta ENABLE ROW LEVEL SECURITY/);
   assert.equal(add.includes('m.book_email'), false);
@@ -165,6 +196,8 @@ test('the owner save does not write account_type', () => {
   const start = html.indexOf('var meta={');
   const meta = html.slice(start, html.indexOf('};', start));
   assert.equal(/account_type/.test(meta), false);
+  assert.equal(/\bslug:/.test(meta), false);
+  assert.match(html, /\.update\(meta\)\.eq\('slug',PROFILE_SLUG\)/);
   assert.equal(/id="epAcct"/.test(html), false);
   assert.match(html, /id="epAcctRequest"/);
   assert.match(html, /kind:'account_type_request'/);

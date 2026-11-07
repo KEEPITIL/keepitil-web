@@ -1,4 +1,7 @@
 -- DRAFT ONLY. Do not apply to production from this change.
+-- Superseded for the live row by sql/draft-groove-trooper-atlas-not-applied.sql,
+-- which uses Atlas's exact old-value checks. This file guessed at profile_content;
+-- Atlas's SELECT found no profile_content rows for groove-trooper.
 -- Atlas / Sentinel: review, then run by hand if the stored Groove Trooper
 -- profile still points at outside image hosts.
 --

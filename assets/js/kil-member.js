@@ -5,20 +5,15 @@
    revenue). No RSVP count and no view count: events has neither column, and this page does not
    invent them.
 
-   READ ONLY. Columns are named; book_email and event_password_hash are never selected.
-     profile_meta            public identity columns only
-     profile_content         the profile_categories row (music links)
-     get_profile_events()    published events for everyone; the owner also sees drafts
-     events.slug             only to drop a published event whose password hash is set
-     my_profile_slug()
-     organizer_dashboard()   the owner's own rows; anon receives none
-     get_my_tickets()        the caller's paid tickets (tier name only, no QR)
-     saved_events            row-level security: own rows only
+   Public reads use get_public_profile() only (one slug, public fields only).
+   This page does not read profile_meta or public.profiles.
+   A profile renders as a private stub unless it is explicitly public and verified 18+.
    Nothing here writes, and nothing changes a price. */
 (function (root) {
   'use strict';
 
-  var META_COLS = 'slug,display_name,handle,avatar_url,bio,tagline,location,links,socials,account_type';
+  var OWNER_COLS = 'id,slug,handle,display_name,avatar_url,bio,tagline,location,links,socials,profile_public,public_fields,age_verified,is_minor';
+  var MINOR_COPY = 'Public profile: not available under 18';
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -176,14 +171,67 @@
     return eventCard(e, badge + statTiles(e));
   }
 
+  function shareLib() {
+    var g = typeof globalThis !== 'undefined' ? globalThis : null;
+    if (g && g.KilShare) return g.KilShare;
+    if (root && root.KilShare) return root.KilShare;
+    return null;
+  }
+
+  function faceOf(meta) {
+    var lib = shareLib();
+    if (!lib || !lib.publicFace) return null;
+    return lib.publicFace(meta, { path: '/member' });
+  }
+
+  function isMinor(meta) {
+    return !!(meta && (meta.is_minor === true || meta.under_18 === true || meta.availability === 'minor'));
+  }
+
+  function minorNote() {
+    return '<p class="m1-minor" data-m1="minor">' + esc(MINOR_COPY) + '</p>';
+  }
+
+  /** One stub for private, under-18, and not-verified profiles. No name, bio, links, events, or share. */
+  function privateStub() {
+    return '<div class="m1-stub" data-m1="private-stub">' +
+      '<span class="m1-av m1-av-ring" aria-hidden="true"></span>' +
+      '<p>This profile is private</p>' +
+      '<a class="m1-discover" href="/">Discover events</a>' +
+      '</div>';
+  }
+
+  /** Totals from organizer_dashboard rows only. No views. null when that read failed. */
+  function hostTotals(metrics) {
+    if (!Array.isArray(metrics)) return null;
+    var sold = 0, checked = 0, cents = 0;
+    metrics.forEach(function (row) {
+      if (!row) return;
+      if (row.sold != null && isFinite(Number(row.sold))) sold += Number(row.sold);
+      if (row.checked_in != null && isFinite(Number(row.checked_in))) checked += Number(row.checked_in);
+      if (row.revenue_cents != null && isFinite(Number(row.revenue_cents))) cents += Number(row.revenue_cents);
+    });
+    return { sold: sold, checked_in: checked, revenue_cents: cents };
+  }
+
+  function totalsRow(metrics) {
+    var t = hostTotals(metrics);
+    if (!t) return '';
+    function tile(n, label) {
+      return '<span class="m1-stat"><b>' + esc(n) + '</b><span>' + esc(label) + '</span></span>';
+    }
+    return '<div class="m1-totals" data-m1="totals">' + tile(String(t.sold), 'Sold') + tile(String(t.checked_in), 'Checked in') + tile(money(t.revenue_cents), 'Revenue') + '</div>';
+  }
+
   function renderPublic(d) {
     var raw = d.meta || {};
-    var face = root.KilShare && root.KilShare.publicFace ? root.KilShare.publicFace(raw, { path: '/member' }) : null;
-    var m = face ? {
+    var face = faceOf(raw);
+    if (!face) return privateStub();
+    var m = {
       display_name: face.name, handle: face.handle, avatar_url: face.avatar, bio: face.bio,
       tagline: face.tagline, location: face.location, slug: face.slug || raw.slug,
       links: face.showLinks ? (raw.links || []) : [], socials: face.showLinks ? (raw.socials || {}) : {}
-    } : raw;
+    };
     var name = m.display_name || m.handle || d.slug;
     var avatar = safeUrl(m.avatar_url);
     var ev = upcoming(d.events, d.now);
@@ -199,8 +247,10 @@
     if (m.bio) h += '<section class="m1-sec"><p class="m1-bio">' + esc(m.bio) + '</p></section>';
     if (links.length) h += '<section class="m1-sec"><h2>Links</h2><div class="m1-chips">' +
       links.map(function (l) { return '<a class="m1-chip" href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer">' + esc(l.label) + '</a>'; }).join('') + '</div></section>';
-    h += '<section class="m1-sec"><h2>Upcoming events</h2>' + (d.events === null ? failedNote('Events') :
-      ev.length ? '<div class="m1-evs">' + ev.map(function (e) { return eventCard(e); }).join('') + '</div>' : '<p class="m1-empty">No upcoming events.</p>') + '</section>';
+    if (raw.public_fields && raw.public_fields.indexOf('events') !== -1) {
+      h += '<section class="m1-sec"><h2>Upcoming events</h2>' + (d.events === null ? failedNote('Events') :
+        ev.length ? '<div class="m1-evs">' + ev.map(function (e) { return eventCard(e); }).join('') + '</div>' : '<p class="m1-empty">No upcoming events.</p>') + '</section>';
+    }
     if (music.length) h += '<section class="m1-sec"><h2>Music</h2><div class="m1-chips">' +
       music.map(function (l) { return '<a class="m1-chip m1-music" href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer">' + esc(l.label) + '</a>'; }).join('') + '</div></section>';
     return h;
@@ -217,6 +267,7 @@
       .sort(function (a, b) { return new Date(a.starts_at) - new Date(b.starts_at); });
     var saved = d.saved || [];
     var h = '<div class="m1-private" data-m1="private"><div class="m1-private-label">Only you can see this</div>';
+    if (isMinor(d.meta)) h += minorNote();
     h += '<section class="m1-sec"><h2>Your tickets</h2>' + (d.tickets === null ? failedNote('Your tickets') : tix.length ? '<div class="m1-evs">' + tix.map(function (t) {
       var href = '/tickets?e=' + encodeURIComponent(slugOf(t.slug));
       return '<a class="m1-ev" href="' + esc(href) + '"><span class="m1-ev-t">' + esc(t.title || 'Event') + '</span>' +
@@ -228,6 +279,7 @@
     }).join('') + '</div>' : '<p class="m1-empty">Nothing saved yet.</p>') + '</section>';
     h += '<section class="m1-sec" data-m1="dashboard"><h2>Your events</h2><div class="m1-chips">' +
       '<a class="m1-chip" href="/create-event">Create an event</a><a class="m1-chip" href="/dashboard">Host dashboard</a></div>';
+    h += totalsRow(d.metrics);
     if (d.hosted === null) h += failedNote('Your events');
     else {
       var board = hostBoard(d.hosted, d.metrics || null, d.now);
@@ -257,24 +309,36 @@
     return events.filter(function (e) { return e && !blocked[slugOf(e.slug)] && !locked(e); });
   }
 
-  /** Reads everything the page shows. owner is true only when my_profile_slug() is this profile. */
+  function firstRow(data) {
+    if (Array.isArray(data)) return data[0] || null;
+    return data || null;
+  }
+
+  /** Public identity comes only from get_public_profile (one slug). No profile_meta read, no profiles list. */
   async function load(client, slug, opts) {
     opts = opts || {};
     var s = slugOf(slug);
-    var mr = await safe(client.from('profile_meta').select(META_COLS).eq('slug', s).maybeSingle());
-    if (!ok(mr)) return { slug: s, failed: true };
-    var meta = mr.data;
-    if (!meta) return { slug: s, missing: true };
-    var cr = await safe(client.from('profile_content').select('data').eq('profile_slug', s).eq('kind', 'profile_categories').limit(1));
-    var cats = ok(cr) ? cr.data : null;
-    var er = await safe(client.rpc('get_profile_events', { p_handle: meta.handle || s }));
-    var events = ok(er) ? (er.data || []) : null;
+    var pub = await safe(client.rpc('get_public_profile', { p_slug: s }));
+    if (!ok(pub)) return { slug: s, failed: true, meta: null, events: null };
+    var meta = firstRow(pub.data);
     var sess = null;
     try { var g = await client.auth.getSession(); sess = g && g.data ? g.data.session : null; } catch (e2) {}
-    var owner = false;
-    if (sess) { var mine = await safe(client.rpc('my_profile_slug')); owner = ok(mine) && !!mine.data && slugOf(mine.data) === s; }
-    var publicEvents = events === null ? null : await hideLocked(client, events);
-    var out = { slug: s, meta: meta, categories: cats && cats[0] ? cats[0].data : null, events: publicEvents, owner: owner, now: opts.now };
+    var owner = false, mine = null;
+    if (sess) {
+      var mr = await safe(client.rpc('my_profile_slug'));
+      mine = ok(mr) ? mr.data : null;
+      owner = !!mine && slugOf(mine) === s;
+    }
+    var lib = shareLib();
+    var shareable = !!(meta && lib && lib.profileIsShareable(meta));
+    var events = null;
+    if (owner || (shareable && meta.public_fields.indexOf('events') !== -1)) {
+      var handle = (shareable && meta.handle) || mine || s;
+      var er = await safe(client.rpc('get_profile_events', { p_handle: handle }));
+      events = ok(er) ? (er.data || []) : null;
+      if (events && shareable && !owner) events = await hideLocked(client, events);
+    }
+    var out = { slug: s, meta: meta, categories: null, events: shareable ? events : [], owner: owner, now: opts.now };
     if (owner) {
       var tr = await safe(client.rpc('get_my_tickets'));
       out.tickets = ok(tr) ? (tr.data || []) : null;
@@ -289,9 +353,8 @@
 
   function render(d) {
     if (d.failed) return '<div class="m1-empty m1-failed">This profile couldn\u2019t load. Check your connection and try again.</div>';
-    if (d.missing) return '<div class="m1-empty m1-missing">This profile does not exist.</div>';
-    var shareable = !(root.KilShare && root.KilShare.profileIsShareable) || root.KilShare.profileIsShareable(d.meta);
-    var html = shareable ? renderPublic(d) : (d.owner ? '' : '<div class="m1-empty">This profile is private.</div>');
+    var face = faceOf(d.meta);
+    var html = face ? renderPublic(d) : privateStub();
     return html + (d.owner ? renderPrivate(d) : '');
   }
 
@@ -319,16 +382,17 @@
     var d = await load(client, slug, opts);
     rootEl.innerHTML = render(d);
     bindShare(rootEl);
-    if (root.KilShare && typeof document !== 'undefined') {
-      var card = d && root.KilShare.publicFace(d.meta, { path: '/member' });
-      root.KilShare.applyPreview(document, card);
+    var lib = shareLib();
+    if (lib && typeof document !== 'undefined') {
+      var card = d && lib.publicFace(d.meta, { path: '/member' });
+      lib.applyPreview(document, card || null);
     }
     return d;
   }
 
   var api = {
     esc: esc, safeUrl: safeUrl, slugOf: slugOf, upcoming: upcoming, hostBoard: hostBoard, money: money,
-    musicLinks: musicLinks, profileLinks: profileLinks, META_COLS: META_COLS,
+    musicLinks: musicLinks, profileLinks: profileLinks, hostTotals: hostTotals, privateStub: privateStub,
     renderPublic: renderPublic, renderPrivate: renderPrivate, render: render, load: load, mount: mount
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.KilMember = api;

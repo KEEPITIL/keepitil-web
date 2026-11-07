@@ -38,11 +38,14 @@ test('an event share campaigns the event slug only', () => {
   assert.equal(new URL(bad).searchParams.get('utm_campaign'), null);
 });
 
+const ADULT = { profile_public: true, age_verified: true, is_minor: false, status: 'published' };
+
 test('a private or under-18 profile gets no preview card', () => {
-  assert.equal(s.profileIsShareable({ is_minor: true, status: 'published', display_name: 'Nico' }), false);
-  assert.equal(s.profileIsShareable({ under_18: true, display_name: 'Nico' }), false);
-  assert.equal(s.profileIsShareable({ age_verified: false, display_name: 'Nico', status: 'published' }), false);
-  assert.equal(s.profileIsShareable({ public_fields: [], age_verified: true, display_name: 'Ada' }), false);
+  assert.equal(s.profileIsShareable({ display_name: 'Ada', bio: 'secret' }), false);
+  assert.equal(s.profileIsShareable({ profile_public: null, age_verified: null, is_minor: null, status: 'published', public_fields: ['bio'] }), false);
+  assert.equal(s.profileIsShareable(Object.assign({}, ADULT, { status: 'review', public_fields: ['display_name'] })), false);
+  assert.equal(s.profileIsShareable({ is_minor: true, status: 'published', display_name: 'Nico', age_verified: true, profile_public: true, public_fields: ['display_name'] }), false);
+  assert.equal(s.profileIsShareable({ under_18: true, is_minor: false, age_verified: true, profile_public: true, status: 'published', public_fields: ['display_name'] }), false);
   assert.equal(s.publicFace({ is_minor: true, display_name: 'Nico', avatar_url: 'https://cdn.example/nico.png' }), null);
   const hidden = s.previewTags(null);
   assert.equal(hidden.robots, 'noindex, nofollow');
@@ -50,19 +53,20 @@ test('a private or under-18 profile gets no preview card', () => {
 });
 
 test('the preview image is the public avatar, or the brand card when that photo is not public', () => {
-  const open = s.publicFace({
-    slug: 'ada', display_name: 'Ada', handle: 'ada', status: 'published',
-    bio: 'Plays after midnight.', avatar_url: 'https://cdn.example/ada.png'
-  });
+  const open = s.publicFace(Object.assign({
+    slug: 'ada', display_name: 'Ada', handle: 'ada',
+    bio: 'Plays after midnight.', avatar_url: 'https://cdn.example/ada.png',
+    public_fields: ['display_name', 'handle', 'bio', 'avatar_url']
+  }, ADULT));
   assert.equal(open.avatar, 'https://cdn.example/ada.png');
   assert.equal(open.image, 'https://cdn.example/ada.png');
   assert.equal(open.imageWidth, '');
 
-  const nameOnly = s.publicFace({
+  const nameOnly = s.publicFace(Object.assign({
     slug: 'ada', display_name: 'Ada', handle: 'ada', bio: 'Secret bio',
-    avatar_url: 'https://cdn.example/private.png', age_verified: true,
+    avatar_url: 'https://cdn.example/private.png',
     public_fields: ['display_name']
-  });
+  }, ADULT));
   assert.equal(nameOnly.avatar, '');
   assert.equal(nameOnly.bio, '');
   assert.equal(nameOnly.handle, '');
@@ -82,6 +86,30 @@ test('event previews use the brand card and do not preview a draft', () => {
   assert.equal(card.share.includes('utm_campaign=neon-nights'), true);
   assert.equal(card.share.includes('utm_medium=event'), true);
   assert.equal(s.eventPreview({ slug: 'draft-night', title: 'Secret', status: 'draft' }), null);
+});
+
+test('raw profile and event HTML ships the brand card', () => {
+  for (const file of ['member.html', 'profile.html', 'show.html', 'event.html']) {
+    const html = readFileSync(new URL('../../' + file, import.meta.url), 'utf8');
+    assert.match(html, /property="og:title"/, file);
+    assert.match(html, /property="og:description"/, file);
+    assert.match(html, /property="og:image"[^>]*content="https:\/\/keepitil.com\/keepitil-og.png"/, file);
+    assert.match(html, /og:image:width" content="1200"/, file);
+    assert.match(html, /og:image:height" content="630"/, file);
+    assert.match(html, /name="twitter:image"[^>]*content="https:\/\/keepitil.com\/keepitil-og.png"/, file);
+  }
+});
+
+test('anon select of book_email is revoked in the migration', () => {
+  const sql = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read.sql', import.meta.url), 'utf8');
+  assert.match(sql, /REVOKE SELECT ON TABLE public\.profile_meta FROM anon/);
+  assert.match(sql, /select book_email from public\.profile_meta/);
+  assert.equal(sql.includes('m.book_email'), false);
+  assert.match(sql, /ENABLE ROW LEVEL SECURITY/);
+  assert.match(sql, /FORCE ROW LEVEL SECURITY/);
+  assert.match(sql, /LIMIT 1/);
+  assert.equal(/GRANT SELECT ON TABLE public\.profiles TO anon/i.test(sql), false);
+  assert.equal(/GRANT SELECT ON TABLE public\.profile_meta TO anon/i.test(sql), false);
 });
 
 test('the pages do not add a Discover/Events/Vote/Echo/Profile tab bar', () => {

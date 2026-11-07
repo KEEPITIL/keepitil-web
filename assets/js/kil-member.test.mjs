@@ -4,6 +4,8 @@ import test from 'node:test';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
+const share = require('./kil-share.js');
+globalThis.KilShare = share;
 const m = require('./kil-member.js');
 
 const NOW = new Date('2026-11-07T12:00:00Z');
@@ -42,12 +44,20 @@ function client(script) {
   };
 }
 
-const meta = {
+const OPEN = {
+  profile_public: true, age_verified: true, is_minor: false, status: 'published',
+  public_fields: ['display_name', 'handle', 'avatar_url', 'bio', 'tagline', 'location', 'links', 'socials', 'events']
+};
+const meta = Object.assign({
   slug: 'ada', display_name: 'Ada', handle: 'ada', avatar_url: 'https://cdn.example/a.png',
   bio: 'Plays after midnight.', tagline: 'House', location: 'Los Angeles',
   links: [{ label: 'Site', url: 'https://ada.example' }, { label: 'Bad', url: 'javascript:alert(1)' }],
   socials: { instagram: 'https://instagram.com/ada', soundcloud: 'https://soundcloud.com/ada', website: '' },
   book_email: 'ada@example.com'
+}, OPEN);
+const bare = {
+  slug: 'ada', display_name: 'Ada', handle: 'ada', bio: 'Plays after midnight.',
+  avatar_url: 'https://cdn.example/a.png', book_email: 'ada@example.com'
 };
 
 function events() {
@@ -75,9 +85,39 @@ test('public view is name, handle, avatar, bio, links, and upcoming published ev
 });
 
 test('a profile with no display name still shows the handle', () => {
-  const html = m.renderPublic({ slug: 'ada', meta: { handle: 'ada' }, events: [], now: NOW });
+  const html = m.renderPublic({
+    slug: 'ada',
+    meta: Object.assign({ handle: 'ada', public_fields: ['handle', 'events'] }, OPEN, { public_fields: ['handle', 'events'] }),
+    events: [], now: NOW
+  });
   assert.match(html, /<h1 class="m1-name">ada<\/h1>/);
   assert.match(html, /No upcoming events\./);
+});
+
+test('a profile with no flags renders the private stub', () => {
+  const html = m.render({ slug: 'ada', meta: bare, events: events(), owner: false, now: NOW });
+  assert.match(html, /data-m1="private-stub"/);
+  assert.match(html, /This profile is private/);
+  assert.match(html, /href="\/">Discover events/);
+  assert.doesNotMatch(html, /Plays after midnight|ada@example.com|cdn\.example\/a\.png|Share|Upcoming events/);
+});
+
+test('a profile in review renders the private stub', () => {
+  const review = Object.assign({}, meta, { status: 'review' });
+  assert.equal(share.profileIsShareable(review), false);
+  const html = m.render({ slug: 'ada', meta: review, events: events(), owner: false, now: NOW });
+  assert.match(html, /This profile is private/);
+  assert.doesNotMatch(html, /Plays after midnight/);
+});
+
+test('an under-18 owner sees the notice and no public switches', () => {
+  const minor = Object.assign({}, bare, { is_minor: true, age_verified: false });
+  const html = m.render({
+    slug: 'ada', meta: minor, owner: true, now: NOW, hosted: [], metrics: [], tickets: [], saved: []
+  });
+  assert.match(html, /This profile is private/);
+  assert.match(html, /Public profile: not available under 18/);
+  assert.doesNotMatch(html, /type="checkbox"|>PUBLIC<|>PRIVATE</);
 });
 
 test('owner dashboard splits upcoming and past, keeps drafts, and shows stored counts only', () => {
@@ -125,37 +165,38 @@ test('a failed numbers read is not shown as zero tickets', () => {
   assert.doesNotMatch(html, />0<\/b><span>Sold/);
 });
 
-test('a visitor does not receive the owner dashboard or private columns', async () => {
+test('a logged-out visitor does not list profile_meta or profiles', async () => {
   const c = client({
-    session: { data: { session: { user: { id: 'someone' } } } },
-    from: {
-      profile_meta: { data: meta },
-      profile_content: { data: [] },
-      events: { data: [{ slug: 'locked' }] }
-    },
+    session: { data: { session: null } },
+    from: { events: { data: [{ slug: 'locked' }, { slug: 'quiet' }] } },
     rpc: {
+      get_public_profile: { data: [meta] },
       get_profile_events() {
         return { data: events().concat([{ slug: 'quiet', title: 'Quiet', status: 'published', starts_at: '2026-12-08T04:00:00Z' }]) };
-      },
-      my_profile_slug: { data: 'other-person' }
+      }
     }
   });
-  c.from = ((orig) => (table) => {
-    if (table === 'events') return chain({ data: [{ slug: 'locked' }, { slug: 'quiet' }] });
-    return orig(table);
-  })(c.from);
   const d = await m.load(c, 'ada', { now: NOW });
   assert.equal(d.owner, false);
-  assert.equal(d.metrics, undefined);
+  assert.equal(c.fromCalls.includes('profile_meta'), false);
+  assert.equal(c.fromCalls.includes('profiles'), false);
+  assert.equal(c.rpcCalls.includes('get_public_profile'), true);
   assert.equal(c.rpcCalls.includes('organizer_dashboard'), false);
-  assert.equal(c.rpcCalls.includes('get_my_tickets'), false);
   assert.deepEqual(d.events.map((e) => e.slug), ['soon', 'past-show', 'draft-soon', 'draft-old']);
-  const selects = c.fromCalls;
-  assert.deepEqual(selects.filter((t) => t === 'profile_meta').length, 1);
-  assert.equal(m.META_COLS.includes('book_email'), false);
-  assert.equal(m.META_COLS.includes('email'), false);
   const html = m.render(d);
-  assert.doesNotMatch(html, /data-m1="private"|ada@example.com|hash-value|Secret/);
+  assert.doesNotMatch(html, /ada@example.com|hash-value|Secret/);
+});
+
+test('a logged-out load with an empty lookup does not touch the tables', async () => {
+  const c = client({
+    rpc: { get_public_profile: { data: [] } }
+  });
+  const d = await m.load(c, 'ada', { now: NOW });
+  assert.deepEqual(c.fromCalls, []);
+  assert.deepEqual(c.rpcCalls, ['get_public_profile']);
+  const html = m.render(d);
+  assert.match(html, /This profile is private/);
+  assert.match(html, /Discover events/);
 });
 
 test('the owner load asks for dashboard counts and never selects the password hash', async () => {
@@ -163,10 +204,11 @@ test('the owner load asks for dashboard counts and never selects the password ha
   const c = client({
     session: { data: { session: { user: { id: 'ada' } } } },
     rpc: {
+      get_public_profile: { data: [] },
       get_profile_events: { data: events() },
       my_profile_slug: { data: 'ada' },
       get_my_tickets: { data: [] },
-      organizer_dashboard: { data: [{ slug: 'soon', sold: 2, checked_in: 0, revenue_cents: 0 }] }
+      organizer_dashboard: { data: [{ slug: 'soon', sold: 2, checked_in: 1, revenue_cents: 500 }] }
     }
   });
   const orig = c.from;
@@ -174,18 +216,20 @@ test('the owner load asks for dashboard counts and never selects the password ha
     const q = orig(table);
     const prev = q.select;
     q.select = (cols) => { seen.push(table + ':' + cols); return prev.call(q, cols); };
-    if (table === 'profile_meta') return Object.assign(q, { then: (res, rej) => Promise.resolve({ data: meta }).then(res, rej) });
-    if (table === 'events') return Object.assign(q, { then: (res, rej) => Promise.resolve({ data: [{ slug: 'locked' }] }).then(res, rej) });
     return q;
   };
   const d = await m.load(c, 'Ada', { now: NOW });
   assert.equal(d.owner, true);
   assert.equal(d.metrics[0].sold, 2);
-  assert.deepEqual(d.events.map((e) => e.slug), ['soon', 'past-show', 'draft-soon', 'draft-old']);
-  assert.equal(d.hosted.some((e) => e.slug === 'locked'), true);
-  assert.equal(seen.some((s) => s.includes('book_email') || s.includes('event_password_hash') || s.includes('buyer_email')), false);
-  assert.equal(seen.includes('events:slug'), true);
+  assert.deepEqual(d.hosted.map((e) => e.slug), events().map((e) => e.slug));
+  assert.equal(seen.some((s) => s.startsWith('profile_meta') || s.startsWith('profiles:')), false);
+  assert.equal(seen.some((s) => /book_email|event_password_hash|buyer_email/.test(s)), false);
   assert.equal(c.rpcCalls.includes('organizer_dashboard'), true);
+  const html = m.render(d);
+  assert.match(html, /data-m1="totals"/);
+  assert.match(html, />2<\/b><span>Sold<\/span>/);
+  assert.match(html, />\$5\.00<\/b><span>Revenue<\/span>/);
+  assert.doesNotMatch(html, />Views</);
 });
 
 test('safe links reject javascript, data, and protocol-relative URLs', () => {
@@ -198,14 +242,13 @@ test('safe links reject javascript, data, and protocol-relative URLs', () => {
   assert.equal(m.safeUrl('/event?e=soon'), '/event?e=soon');
 });
 
-test('the page file does not mention private columns in a select list', () => {
+test('the page does not select profile_meta or book_email', () => {
   const html = readFileSync(new URL('../../member.html', import.meta.url), 'utf8');
   const js = readFileSync(new URL('./kil-member.js', import.meta.url), 'utf8');
   assert.match(html, /kil-member\.js/);
-  assert.match(html, /data-theme="default"/);
-  assert.equal(js.includes("select('slug,display_name,handle,avatar_url,bio,tagline,location,links,socials,account_type')") || js.includes(m.META_COLS), true);
-  assert.equal(/select\([^)]*book_email/.test(js), false);
-  assert.equal(/select\([^)]*event_password_hash/.test(js), false);
-  assert.equal(/select\([^)]*buyer_email/.test(js), false);
-  assert.equal(/select\([^)]*qr_token/.test(js), false);
+  assert.match(html, /property="og:image" content="https:\/\/keepitil.com\/keepitil-og.png"/);
+  assert.match(html, /name="twitter:image" content="https:\/\/keepitil.com\/keepitil-og.png"/);
+  assert.equal(js.includes("from('profile_meta')"), false);
+  assert.equal(js.includes("from('profiles')"), false);
+  assert.equal(/book_email|buyer_email|qr_token/.test(js), false);
 });

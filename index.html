@@ -2064,19 +2064,9 @@
    * anything else is a draft and must not appear on the homepage. The placeholder lists below
    * are left in place as the genuine empty state, not as the normal path.
    */
-  async function fetchSpotlight(category, limit) {
-    const cols = 'slug,display_name,tagline,bio,avatar_url,entity_category,status';
-    try {
-      const r = await fetch(
-        `${SUPA_URL}/rest/v1/profile_meta?select=${cols}` +
-        `&entity_category=eq.${encodeURIComponent(category)}&status=eq.published` +
-        `&limit=${limit}&order=updated_at.desc`,
-        { headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY } }
-      );
-      if (!r.ok) return [];
-      const rows = await r.json();
-      return Array.isArray(rows) ? rows : [];
-    } catch(e) { return []; }
+  async function fetchSpotlight() {
+    /* Logged-out visitors cannot list profile_meta. The widgets keep their placeholder lists. */
+    return [];
   }
 
   /** profile_meta row → the shape buildWidget() renders. */

@@ -1,6 +1,6 @@
 # Local QA owners
 
-This seed is for a local or test Supabase only. Do not point it at production. The script refuses the production project hosts.
+This seed is for a local or test Supabase only. The script allows only `http://127.0.0.1` or `http://localhost` on port 54321 or 54322, and a `postgres` URL on those same hosts. It writes `private.account_age`, not `age_verified`.
 
 It creates two sign-in accounts and the profiles they own:
 

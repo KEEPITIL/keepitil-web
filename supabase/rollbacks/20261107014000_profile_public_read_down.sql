@@ -34,6 +34,7 @@ DROP FUNCTION IF EXISTS private.profile_is_public(text) RESTRICT;          -- af
 DROP TABLE    IF EXISTS public.profile_claim_requests RESTRICT;
 -- Sentinel ruling 1 (Nov 6): server-only age table. Drop the admin RPC first, then the table.
 -- Name the RPC to match the PR (e.g. public.admin_set_account_age); RESTRICT fails loudly if the name is wrong.
+DROP FUNCTION IF EXISTS public.get_approved_profile(uuid, text) RESTRICT;
 DROP FUNCTION IF EXISTS public.admin_move_house_page(text, uuid) RESTRICT;
 DROP FUNCTION IF EXISTS public.admin_set_account_age(uuid, boolean, text) RESTRICT;
 DROP FUNCTION IF EXISTS public.admin_set_account_age(uuid, boolean, text, text, text) RESTRICT;
@@ -70,6 +71,7 @@ GRANT ALL ON TABLE public.profile_owners TO authenticated;
 -- Restore anon SELECT only (step 2 revoked ALL). Logged-out pages read these today.
 GRANT SELECT ON TABLE public.profile_meta   TO anon;
 GRANT SELECT ON TABLE public.profile_owners TO anon;
+GRANT SELECT ON TABLE public.profiles TO anon, authenticated;
 
 -- 6. claim_profile EXECUTE for signed-in users, if step 1 revoked it
 DO $$

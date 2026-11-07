@@ -4,13 +4,13 @@
 -- Adds columns, get_public_profile, public_profile_list, column grants, and the
 -- backfill. Leaves anon SELECT on profile_meta in place so existing logged-out
 -- pages keep working until the web deploy is verified.
--- Then apply 20261107014100_profile_public_read_revoke.sql.
+-- In the same window, immediately after this file, apply PR #92
+-- 20261107020000_profile_event_summary.sql. Deploy, attest, and let each owner
+-- opt in before 20261107014100_profile_public_read_revoke.sql. The order is
+-- docs/profile-release-runbook.md. Do not apply the revoke file next.
 --
--- ROLLBACK. Take a prod backup before applying this file. To undo both steps,
--- revert the web deploy, then run
--- supabase/rollbacks/20261107014000_profile_public_read_down.sql
--- (Atlas rollback v2: real prod policy names). Leave the added columns.
--- Do not run this file against prod from the PR.
+-- ROLLBACK. The per-stage undo, including the backup restore, is in
+-- docs/profile-release-runbook.md. Do not run this file against prod from the PR.
 
 CREATE SCHEMA IF NOT EXISTS private;
 REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
@@ -128,7 +128,9 @@ REVOKE ALL ON TABLE private.account_age FROM PUBLIC, anon, authenticated;
 --   Quote and date are text he supplies at call time.
 --   This migration inserts no attestation row.
 -- admin_attested: refused for the caller's own account. Self-attestation is
---   only founder_self. A true is_minor or under_18 row is never set false.
+--   only founder_self. A verified adult write is refused, before the ledger
+--   write, when the target owns any page already marked minor.
+--   A true is_minor or under_18 row is never set false.
 -- house: records the house account. It does not move pages. Each page is
 --   named in admin_move_house_page.
 CREATE OR REPLACE FUNCTION public.admin_set_account_age(
@@ -173,6 +175,15 @@ BEGIN
   END IF;
   IF how = 'house' AND NOT EXISTS (
     SELECT 1 FROM public.app_admins adm WHERE adm.user_id = p_user_id
+  ) THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+  IF p_verified IS TRUE AND EXISTS (
+    SELECT 1
+    FROM public.profile_owners po
+    JOIN public.profile_meta m ON m.slug = po.profile_slug
+    WHERE po.owner_id = p_user_id
+      AND (m.is_minor IS TRUE OR m.under_18 IS TRUE)
   ) THEN
     RAISE EXCEPTION 'not allowed';
   END IF;
@@ -228,7 +239,7 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-  slug text;
+  v_slug text;
   kind text;
 BEGIN
   IF COALESCE(public.is_admin(), FALSE) IS NOT TRUE THEN
@@ -237,17 +248,17 @@ BEGIN
   IF p_house_user_id IS NULL OR (SELECT auth.uid()) IS NULL THEN
     RAISE EXCEPTION 'not allowed';
   END IF;
-  slug := lower(btrim(COALESCE(p_slug, '')));
-  IF slug !~ '^[a-z0-9-]{1,80}$' THEN
+  v_slug := lower(btrim(COALESCE(p_slug, '')));
+  IF v_slug !~ '^[a-z0-9-]{1,80}$' THEN
     RAISE EXCEPTION 'not allowed';
   END IF;
   IF NOT EXISTS (
-    SELECT 1 FROM public.app_admins adm WHERE adm.user_id = p_house_user_id
+    SELECT 1 FROM public.app_admins AS adm WHERE adm.user_id = p_house_user_id
   ) THEN
     RAISE EXCEPTION 'not allowed';
   END IF;
   IF NOT EXISTS (
-    SELECT 1 FROM private.account_age a
+    SELECT 1 FROM private.account_age AS a
     WHERE a.user_id = p_house_user_id
       AND a.verified IS TRUE
       AND a.method = 'house'
@@ -255,25 +266,25 @@ BEGIN
     RAISE EXCEPTION 'not allowed';
   END IF;
   SELECT lower(btrim(m.account_type)) INTO kind
-  FROM public.profile_meta m
-  WHERE m.slug = slug;
+  FROM public.profile_meta AS m
+  WHERE m.slug = v_slug;
   IF kind IS NULL OR kind NOT IN (
     'editorial_artist', 'editorial_venue', 'editorial_organizer', 'editorial_brand'
   ) THEN
     RAISE EXCEPTION 'not allowed';
   END IF;
 
-  INSERT INTO public.profile_owners (profile_slug, owner_id)
-  VALUES (slug, p_house_user_id)
+  INSERT INTO public.profile_owners AS po (profile_slug, owner_id)
+  VALUES (v_slug, p_house_user_id)
   ON CONFLICT (profile_slug) DO UPDATE
     SET owner_id = EXCLUDED.owner_id
-    WHERE public.profile_owners.owner_id IS DISTINCT FROM EXCLUDED.owner_id;
+    WHERE po.owner_id IS DISTINCT FROM EXCLUDED.owner_id;
 
-  UPDATE public.profile_meta m
+  UPDATE public.profile_meta AS m
   SET
     is_minor = FALSE,
     under_18 = FALSE
-  WHERE m.slug = slug
+  WHERE m.slug = v_slug
     AND NOT (m.is_minor IS TRUE OR m.under_18 IS TRUE);
 END;
 $$;
@@ -535,7 +546,7 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.profile_meta FROM anon, 
 -- privileges and grant the columns back. The live save sends account_type,
 -- status, and slug. profile_public and public_fields are the opt-in.
 -- admin_approved, age_verified, is_minor, and under_18 are not granted.
-REVOKE TRUNCATE ON TABLE public.profile_meta FROM authenticated;
+REVOKE DELETE, TRUNCATE ON TABLE public.profile_meta FROM authenticated;
 REVOKE INSERT, UPDATE ON TABLE public.profile_meta FROM authenticated;
 GRANT INSERT (
   slug, display_name, handle, location, bio, tagline, pronouns, book_email,
@@ -583,12 +594,55 @@ $$;
 REVOKE ALL ON FUNCTION public.set_profile_admin_approved(text, boolean) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.set_profile_admin_approved(text, boolean) TO authenticated;
 
--- public.profiles is a view. Its CREATE VIEW statement is not in this repo, so this
--- migration does not replace it and does not add a filter that could drop a column
--- kode already reads. kode/embed.html reads id, handle, display_name by handle.
--- kode/app.html reads the signed-in row with select * and inserts id, handle, display_name.
--- Those pages stay on the view. A filter for profile_public, is_minor, or under_18
--- cannot be added here without the view body.
+-- public.profiles is a view over approved applications. RLS does not apply to it,
+-- and anon can SELECT every approved row. The view body is not in this repo, so
+-- this migration does not replace it. Client SELECT is revoked. Reads go through
+-- get_approved_profile, which keeps every column and adds the adult check.
+-- kode/app.html still inserts id, handle, display_name. profiles.id is the auth
+-- user id. joseph-tuitea has no profile_owners row; this does not invent one.
+REVOKE SELECT ON TABLE public.profiles FROM anon, authenticated, PUBLIC;
+
+CREATE OR REPLACE FUNCTION public.get_approved_profile(p_id uuid, p_handle text)
+RETURNS SETOF public.profiles
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT p.*
+  FROM public.profiles AS p
+  WHERE p.id IS NOT NULL
+    AND (
+      (p_id IS NOT NULL AND p.id = p_id)
+      OR (
+        p_handle IS NOT NULL
+        AND lower(btrim(p.handle)) = lower(btrim(p_handle))
+      )
+    )
+    AND (
+      p.id = (SELECT auth.uid())
+      OR (
+        EXISTS (
+          SELECT 1
+          FROM private.account_age AS a
+          WHERE a.user_id = p.id
+            AND a.verified IS TRUE
+            AND a.method IN ('founder_self', 'admin_attested', 'house')
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM public.profile_owners AS po
+          JOIN public.profile_meta AS m ON m.slug = po.profile_slug
+          WHERE po.owner_id = p.id
+            AND (m.is_minor IS TRUE OR m.under_18 IS TRUE)
+        )
+      )
+    );
+$$;
+
+ALTER FUNCTION public.get_approved_profile(uuid, text) OWNER TO postgres;
+REVOKE ALL ON FUNCTION public.get_approved_profile(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_approved_profile(uuid, text) TO anon, authenticated;
 
 -- profile_owners: stop unclaimed-profile takeover and stop owner_id being public.
 -- Prod policy names (Atlas, read-only): "profile_owners read all" and

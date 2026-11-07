@@ -82,7 +82,7 @@ test('a non-owner cannot insert into profile_owners and anon cannot read it', ()
   assert.equal(/FOR UPDATE[\s\S]{0,80}profile_owners|profile_owners[\s\S]{0,80}FOR UPDATE/.test(add), false);
   assert.match(add, /REVOKE ALL ON TABLE public\.profile_owners FROM anon, PUBLIC/);
   assert.match(add, /REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public\.profile_owners FROM authenticated/);
-  assert.match(add, /REVOKE TRUNCATE ON TABLE public\.profile_meta FROM authenticated/);
+  assert.match(add, /REVOKE DELETE, TRUNCATE ON TABLE public\.profile_meta FROM authenticated/);
   const revokeOwners = readFileSync(new URL('../../supabase/migrations/20261107014100_profile_public_read_revoke.sql', import.meta.url), 'utf8');
   assert.match(revokeOwners, /REVOKE ALL ON TABLE public\.profile_owners FROM anon/);
   assert.match(revokeOwners, /REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public\.profile_owners FROM authenticated/);
@@ -153,7 +153,14 @@ test('profile_is_public is the only visibility rule and it is not an RLS policy'
   assert.match(add, /p_user_id <> '4f1ff687-e287-496e-8eb4-c444f8e556d1'::uuid/);
   assert.match(add, /p_user_id <> 'd1ef5687-7410-4027-b94d-e4de393c27d9'::uuid/);
   assert.match(add, /FUNCTION public\.admin_move_house_page/);
-  assert.match(add, /WHERE m\.slug = slug/);
+  assert.match(add, /v_slug text/);
+  assert.match(add, /WHERE m\.slug = v_slug/);
+  assert.match(add, /WHERE po\.owner_id IS DISTINCT FROM EXCLUDED\.owner_id/);
+  const ageFn = add.slice(add.indexOf('FUNCTION public.admin_set_account_age'), add.indexOf('INSERT INTO private.account_age'));
+  assert.match(ageFn, /m\.is_minor IS TRUE OR m\.under_18 IS TRUE/);
+  assert.match(add, /REVOKE SELECT ON TABLE public\.profiles FROM anon, authenticated, PUBLIC/);
+  assert.match(add, /FUNCTION public\.get_approved_profile\(p_id uuid, p_handle text\)/);
+  assert.match(add, /a\.user_id = p\.id/);
   assert.equal(/FROM public\.profile_meta m\s+WHERE lower\(btrim\(m\.account_type\)\) IN/.test(add), false);
   assert.match(add, /COALESCE\(public\.is_admin\(\), FALSE\)/);
   assert.match(add, /m\.is_minor IS TRUE OR m\.under_18 IS TRUE/);
@@ -323,6 +330,9 @@ test('the owner save does not write account_type', () => {
   const meta = html.slice(start, html.indexOf('};', start));
   assert.equal(/account_type/.test(meta), false);
   assert.equal(/\bslug:/.test(meta), false);
+  assert.match(meta, /profile_public:/);
+  assert.match(meta, /public_fields:/);
+  assert.match(html, /id="epPublic"/);
   assert.match(html, /\.update\(meta\)\.eq\('slug',PROFILE_SLUG\)/);
   assert.match(html, /var created=\{slug:PROFILE_SLUG\}/);
   assert.match(html, /\.insert\(created\)/);
@@ -423,6 +433,8 @@ test('the qa owner seed refuses production', () => {
   const sql = readFileSync(new URL('../../supabase/seed/qa_owner_profiles.sql', import.meta.url), 'utf8');
   assert.match(sql, /qa-brand@example\.test|qa-brand/);
   assert.match(sql, /kil\.qa_seed/);
+  assert.match(sql, /INSERT INTO private\.account_age/);
+  assert.equal(/age_verified/.test(sql), false);
   assert.equal(/password|service_role|eyJ/i.test(sql), false);
   const script = readFileSync(new URL('../../scripts/seed-qa-owners.mjs', import.meta.url), 'utf8');
   const migrations = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8')
@@ -430,6 +442,9 @@ test('the qa owner seed refuses production', () => {
   assert.equal(migrations.includes('qa-brand'), false);
   assert.match(script, /qa-brand@example\.test/);
   assert.match(script, /qa-member@example\.test/);
+  assert.match(script, /INSERT INTO private\.account_age/);
+  assert.match(script, /127\.0\.0\.1/);
+  assert.equal(/age_verified/.test(script), false);
   assert.equal(/eyJ/.test(script), false);
   const run = spawnSync(process.execPath, ['scripts/seed-qa-owners.mjs'], {
     cwd: new URL('../..', import.meta.url),
@@ -442,6 +457,18 @@ test('the qa owner seed refuses production', () => {
   });
   assert.notEqual(run.status, 0);
   assert.match(String(run.stderr), /Refusing to seed/);
+  const other = spawnSync(process.execPath, ['scripts/seed-qa-owners.mjs'], {
+    cwd: new URL('../..', import.meta.url),
+    env: {
+      ...process.env,
+      SUPABASE_URL: 'https://example.supabase.co',
+      DATABASE_URL: 'postgresql://postgres@127.0.0.1:54322/postgres',
+      SUPABASE_SERVICE_ROLE_KEY: 'local-test-key-not-a-real-secret-value',
+      QA_OWNER_PASSWORD: 'local-only-pass'
+    }
+  });
+  assert.notEqual(other.status, 0);
+  assert.match(String(other.stderr), /Refusing to seed/);
 });
 
 test('the pages do not add a Discover/Events/Vote/Echo/Profile tab bar', () => {

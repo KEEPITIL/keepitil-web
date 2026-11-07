@@ -15,9 +15,8 @@
 -- ROLLBACK. Restore anon grants and the dropped read policies from the backup
 -- taken before step 1. Leave the added columns.
 --
--- public.profiles is a view over approved applications. ENABLE ROW LEVEL
--- SECURITY does not apply to a view, so this file does not touch it.
--- kode/app.html and kode/embed.html keep reading and writing that view.
+-- public.profiles lost client SELECT in step 1. Reads go through
+-- get_approved_profile. This file does not grant that SELECT back.
 
 -- These two are open to everyone (PUBLIC, USING true). Drop them by name, then
 -- any other anon or PUBLIC select policy on the same table.

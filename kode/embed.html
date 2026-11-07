@@ -58,7 +58,8 @@ const thumb = p => {
   const list = document.getElementById('list');
   if (!handle) { list.innerHTML = '<div class="empty">No profile specified.</div>'; return; }
 
-  const { data: prof } = await db.from('profiles').select('id,handle,display_name').eq('handle', handle).maybeSingle();
+  const { data: rows } = await db.rpc('get_approved_profile', { p_id: null, p_handle: handle });
+  const prof = Array.isArray(rows) && rows.length ? rows[0] : null;
   if (!prof) {
     document.getElementById('title').textContent = '@' + handle;
     list.innerHTML = '<div class="empty">Profile not found.</div>';

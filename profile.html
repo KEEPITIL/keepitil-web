@@ -1498,6 +1498,8 @@ function applyMetaRow(d, owner){
   if(d.account_type)PROFILE.account_type=d.account_type;
   if(d.links_label)PROFILE.links_label=d.links_label;
   if(Array.isArray(d.badges))PROFILE.badges=d.badges;
+  PROFILE.profile_public=d.profile_public===true;
+  PROFILE.public_fields=Array.isArray(d.public_fields)?d.public_fields.slice():[];
   try{
     if(window.KilShare){
       var face=KilShare.publicFace({ slug:PROFILE_SLUG, display_name:d.display_name, handle:d.handle, bio:d.bio, tagline:d.tagline, avatar_url:d.avatar_url, status:d.status, account_type:d.account_type, admin_approved:d.admin_approved, is_minor:d.is_minor, under_18:d.under_18, age_verified:d.age_verified, profile_public:d.profile_public, public_fields:d.public_fields }, { path:'/profile' });
@@ -1727,6 +1729,20 @@ function openEditProfile(){
       '<label class="kil-mf"><span>Age policy</span><input type="text" id="epVenAge" placeholder="18+ / 21+ / All ages"></label></div>'+
       '<label class="kil-mf"><span>Events / calendar link</span><input type="text" id="epVenCal" placeholder="https://…"></label>'+
     '</div>'+
+    '<div class="kil-sec">Public page</div>'+
+    '<label class="kil-mf" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="epPublic"> Show this page publicly</label>'+
+    '<div class="kil-note">An admin attestation does not publish the page. You choose that here, and you pick at least one field. With the box off, or with no fields picked, the page stays private.</div>'+
+    '<div class="kil-cats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="display_name"> Name</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="handle"> Handle</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="avatar_url"> Photo</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="bio"> Bio</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="tagline"> Tagline</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="location"> Location</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="about"> About</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="links"> Links</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="events"> Upcoming events</label>'+
+    '</div>'+
     '<div class="kil-sec">Account &amp; login</div>'+
     '<label class="kil-mf"><span>Login email</span><input type="text" id="epEmail" value="'+esc((SESSION&&SESSION.user&&SESSION.user.email)||'')+'"></label>'+
     '<div class="kil-row2"><label class="kil-mf"><span>New password</span><input type="password" id="epPass" placeholder="leave blank to keep"></label>'+
@@ -1742,6 +1758,9 @@ function openEditProfile(){
   // prefill categories + per-category details
   var cats=(PROFILE.categories||[]), det=(PROFILE.cat_details||{});
   document.querySelectorAll('.epCat').forEach(function(c){ c.checked=cats.indexOf(c.value)>-1; });
+  var epPublic=document.getElementById('epPublic'); if(epPublic) epPublic.checked=PROFILE.profile_public===true;
+  var epFields=Array.isArray(PROFILE.public_fields)?PROFILE.public_fields:[];
+  document.querySelectorAll('.epField').forEach(function(c){ c.checked=epFields.indexOf(c.value)>-1; });
   var _pb=Array.isArray(PROFILE.badges)?PROFILE.badges:null; document.querySelectorAll('.epBadge').forEach(function(c){ c.checked=_pb?(_pb.indexOf(c.value)>-1):(c.value==='Member'); });
   function sv(id,val){var e=document.getElementById(id); if(e&&val) e.value=val;}
   var a=det.artist||{},b=det.brand||{},o=det.organizer||{},v=det.venue||{};
@@ -1802,7 +1821,9 @@ function saveEditProfile(){
           cover_url: cvUrl || g('epCoverUrl') || PROFILE.cover,
           cover_mobile_url: cvmUrl || g('epCoverMUrl') || PROFILE.cover_mobile || null,
           socials:{ instagram:g('epIG'), soundcloud:g('epSC'), tiktok:g('epTT'), website:g('epWeb') },
-          highlights: hlDone, updated_at:new Date().toISOString() };
+          highlights: hlDone, updated_at:new Date().toISOString(),
+          profile_public: !!(document.getElementById('epPublic')&&document.getElementById('epPublic').checked),
+          public_fields: [].slice.call(document.querySelectorAll('.epField:checked')).map(function(c){return c.value;}) };
         if(!SB||!SESSION){ Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url,cover:meta.cover_url,cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights}); applyProfile(); closeModal(); toast('Saved locally — sign in as owner to publish.'); return; }
         function savedProfile(){
           Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url,cover:meta.cover_url,cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights});

@@ -13,14 +13,14 @@ END $$;
 
 INSERT INTO public.profile_meta (
   slug, display_name, handle, account_type, status,
-  profile_public, admin_approved, is_minor, under_18, age_verified, public_fields, bio, tagline
+  profile_public, admin_approved, is_minor, under_18, public_fields, bio, tagline
 ) VALUES
   ('qa-brand', 'QA Brand', 'qa-brand', 'brand', 'published',
-   true, true, false, false, true,
+   true, true, false, false,
    ARRAY['display_name','handle','bio','tagline']::text[],
    'Local QA brand. Not a real profile.', 'QA only'),
   ('qa-member', 'QA Member', 'qa-member', 'subscriber_profile', 'published',
-   false, true, false, false, true,
+   false, true, false, false,
    ARRAY['display_name']::text[],
    'Local QA member. Not a real profile.', 'QA only')
 ON CONFLICT (slug) DO UPDATE SET
@@ -32,10 +32,19 @@ ON CONFLICT (slug) DO UPDATE SET
   admin_approved = EXCLUDED.admin_approved,
   is_minor = EXCLUDED.is_minor,
   under_18 = EXCLUDED.under_18,
-  age_verified = EXCLUDED.age_verified,
   public_fields = EXCLUDED.public_fields,
   bio = EXCLUDED.bio,
   tagline = EXCLUDED.tagline;
+
+INSERT INTO private.account_age (user_id, verified, method, verified_at, verified_by)
+VALUES
+  ('11111111-1111-4111-8111-111111111111', true, 'admin_attested', now(), '11111111-1111-4111-8111-111111111111'),
+  ('22222222-2222-4222-8222-222222222222', true, 'admin_attested', now(), '22222222-2222-4222-8222-222222222222')
+ON CONFLICT (user_id) DO UPDATE SET
+  verified = EXCLUDED.verified,
+  method = EXCLUDED.method,
+  verified_at = EXCLUDED.verified_at,
+  verified_by = EXCLUDED.verified_by;
 
 INSERT INTO public.profile_owners (profile_slug, owner_id) VALUES
   ('qa-brand', '11111111-1111-4111-8111-111111111111'),

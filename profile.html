@@ -1508,7 +1508,7 @@ function loadProfileMeta(){
   var owner=(typeof CAN_EDIT==='function')&&CAN_EDIT()&&!!SESSION;
   /* Logged-out (and non-owners) use the one-slug public lookup. The table read is the owner only. */
   var req=owner
-    ? SB.from('profile_meta').select('slug,display_name,handle,location,bio,tagline,pronouns,avatar_url,cover_url,cover_mobile_url,book_email,socials,links,highlights,about,account_type,links_label,badges,status,is_minor,age_verified,profile_public,public_fields').eq('slug',PROFILE_SLUG).maybeSingle()
+    ? SB.from('profile_meta').select('slug,display_name,handle,location,bio,tagline,pronouns,avatar_url,cover_url,cover_mobile_url,book_email,socials,links,highlights,about,account_type,links_label,badges,status,is_minor,under_18,age_verified,profile_public,public_fields,admin_approved').eq('slug',PROFILE_SLUG).maybeSingle()
     : SB.rpc('get_public_profile',{p_slug:PROFILE_SLUG}).then(function(r){ var row=r&&r.data; if(Array.isArray(row)) row=row[0]||null; return { data: row }; });
   return req.then(function(r){
     if(PROFILE_SLUG && !(r&&r.data) && !owner && window.KIL_NOT_FOUND){

@@ -45,7 +45,7 @@ function client(script) {
 }
 
 const OPEN = {
-  profile_public: true, age_verified: true, is_minor: false, status: 'published',
+  profile_public: true, age_verified: true, is_minor: false, status: 'published', admin_approved: true,
   public_fields: ['display_name', 'handle', 'avatar_url', 'bio', 'tagline', 'location', 'links', 'socials', 'events']
 };
 const meta = Object.assign({

@@ -38,13 +38,34 @@ test('an event share campaigns the event slug only', () => {
   assert.equal(new URL(bad).searchParams.get('utm_campaign'), null);
 });
 
-const ADULT = { profile_public: true, age_verified: true, is_minor: false, status: 'published' };
+const ADULT = { profile_public: true, age_verified: true, is_minor: false, status: 'published', admin_approved: true };
 
-test('an owner self-update of age_verified is not granted', () => {
+test('an owner self-update of age_verified or status is refused', () => {
   const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
-  const grants = add.match(/GRANT UPDATE \([^)]+\) ON TABLE public\.profile_meta/gi) || [];
-  assert.equal(grants.length, 1);
-  assert.equal(/age_verified/.test(grants[0]), false);
+  assert.match(add, /REVOKE ALL ON TABLE public\.profile_meta FROM authenticated/);
+  for (const kind of ['INSERT', 'UPDATE']) {
+    const grants = add.match(new RegExp('GRANT ' + kind + ' \\(([^)]+)\\) ON TABLE public\\.profile_meta', 'i'));
+    assert.ok(grants, kind);
+    for (const forbidden of ['age_verified', 'is_minor', 'under_18', 'status', 'account_type', 'admin_approved']) {
+      assert.equal(grants[1].split(',').map((s) => s.trim()).includes(forbidden), false, kind + ' ' + forbidden);
+    }
+  }
+});
+
+test('anon truncate and anon insert are refused', () => {
+  const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
+  assert.match(add, /REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public\.profile_meta FROM anon, PUBLIC/);
+  assert.match(add, /REVOKE DELETE, TRUNCATE ON TABLE public\.profile_meta FROM authenticated/);
+  assert.equal(/REVOKE SELECT ON TABLE public\.profile_meta FROM anon/.test(add), false);
+});
+
+test('an is_minor artist is excluded from the list view', () => {
+  const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
+  const list = add.slice(add.indexOf('FUNCTION public.public_profile_list'));
+  assert.match(list, /m\.is_minor IS NOT TRUE/);
+  assert.match(list, /m\.admin_approved IS TRUE/);
+  assert.match(list, /editorial_artist/);
+  assert.equal(/m\.book_email/.test(list), false);
 });
 
 test('a private or under-18 profile gets no preview card', () => {
@@ -110,33 +131,31 @@ test('raw profile and event HTML ships the brand card', () => {
 test('migration step 1 grants no age columns and step 2 revokes anon', () => {
   const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
   const revoke = readFileSync(new URL('../../supabase/migrations/20261107014100_profile_public_read_revoke.sql', import.meta.url), 'utf8');
-  const grant = add.match(/GRANT UPDATE \(([^)]+)\) ON TABLE public\.profile_meta/i);
-  assert.ok(grant, 'owner column grant');
-  const cols = grant[1].split(',').map((s) => s.trim());
-  for (const forbidden of ['age_verified', 'is_minor', 'under_18', 'status', 'account_type']) {
-    assert.equal(cols.includes(forbidden), false, forbidden);
-  }
-  assert.match(add, /REVOKE UPDATE ON TABLE public\.profile_meta FROM authenticated/);
-  assert.equal(/REVOKE SELECT ON TABLE public\.profile_meta FROM anon/.test(add), false);
-  assert.equal(/ENABLE ROW LEVEL SECURITY/.test(add), false);
-  assert.match(add, /account_type IN \('brand', 'organizer', 'artist'\)/);
-  assert.match(add, /SET profile_public = TRUE/);
+  assert.match(add, /REVOKE ALL ON FUNCTION private\.profile_public_one\(text\) FROM PUBLIC/);
+  assert.match(add, /profile_owners/);
+  assert.match(add, /SET admin_approved = TRUE/);
+  assert.match(add, /is_minor IS NOT TRUE/);
+  assert.equal(/profiles_legacy_v/.test(add + revoke), false);
+  assert.equal(/ALTER TABLE public\.profiles ENABLE ROW LEVEL SECURITY/.test(add + revoke), false);
+  assert.equal(/CREATE TABLE IF NOT EXISTS public\.profiles/.test(add + revoke), false);
   assert.match(revoke, /REVOKE SELECT ON TABLE public\.profile_meta FROM anon/);
   assert.match(revoke, /select book_email from public\.profile_meta/);
-  assert.match(revoke, /ENABLE ROW LEVEL SECURITY/);
-  assert.match(revoke, /FORCE ROW LEVEL SECURITY/);
+  assert.match(revoke, /ALTER TABLE public\.profile_meta ENABLE ROW LEVEL SECURITY/);
   assert.equal(add.includes('m.book_email'), false);
 });
 
 test('a business profile does not need 18+, and a member still does', () => {
   assert.equal(s.profileIsShareable({
-    account_type: 'artist', profile_public: true, status: 'published', age_verified: null, is_minor: null
+    account_type: 'editorial_artist', status: 'published', admin_approved: true, is_minor: null
   }), true);
   assert.equal(s.profileIsShareable({
-    account_type: 'subscriber_profile', profile_public: true, status: 'published'
+    account_type: 'artist', status: 'published', admin_approved: true, is_minor: true
   }), false);
   assert.equal(s.profileIsShareable({
-    account_type: 'subscriber_profile', profile_public: true, status: 'published',
+    account_type: 'subscriber_profile', profile_public: true, status: 'published', admin_approved: true
+  }), false);
+  assert.equal(s.profileIsShareable({
+    account_type: 'subscriber_profile', profile_public: true, status: 'published', admin_approved: true,
     age_verified: true, is_minor: false, public_fields: ['display_name']
   }), true);
 });

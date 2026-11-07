@@ -5,6 +5,10 @@
 --
 -- After this file, this is refused for anon:
 --   select book_email from public.profile_meta;
+--
+-- public.profiles is a view over approved applications. ENABLE ROW LEVEL
+-- SECURITY does not apply to a view, so this file does not touch it.
+-- kode/app.html and kode/embed.html keep reading and writing that view.
 
 -- Drop anon (and PUBLIC) SELECT policies that are USING (true).
 DO $$
@@ -33,37 +37,18 @@ END $$;
 REVOKE SELECT ON TABLE public.profile_meta FROM anon;
 REVOKE SELECT ON TABLE public.profile_meta FROM PUBLIC;
 
--- The signed-in owner can still read and update their own row. No anon policy.
--- Column grants from step 1 still block age_verified, is_minor, under_18, status, and account_type.
+-- The owner read policy is created in step 1 on profile_owners.
+-- Turn row security on so that policy is what a signed-in user can read.
+-- The existing update policy is not replaced.
+ALTER TABLE public.profile_meta ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS profile_meta_owner_select ON public.profile_meta;
 CREATE POLICY profile_meta_owner_select ON public.profile_meta
   FOR SELECT TO authenticated
-  USING (slug = public.my_profile_slug());
-
-DROP POLICY IF EXISTS profile_meta_owner_update ON public.profile_meta;
-CREATE POLICY profile_meta_owner_update ON public.profile_meta
-  FOR UPDATE TO authenticated
-  USING (slug = public.my_profile_slug())
-  WITH CHECK (slug = public.my_profile_slug());
-
-DROP POLICY IF EXISTS profile_meta_owner_insert ON public.profile_meta;
-CREATE POLICY profile_meta_owner_insert ON public.profile_meta
-  FOR INSERT TO authenticated
-  WITH CHECK (slug = public.my_profile_slug());
-
--- public.profiles was created in step 1 with row security off.
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.profiles FORCE ROW LEVEL SECURITY;
-
-REVOKE ALL ON TABLE public.profiles FROM anon, PUBLIC;
-
-DROP POLICY IF EXISTS profiles_select_own ON public.profiles;
-CREATE POLICY profiles_select_own ON public.profiles
-  FOR SELECT TO authenticated
-  USING (id = (SELECT auth.uid()));
-
-DROP POLICY IF EXISTS profiles_update_own ON public.profiles;
-CREATE POLICY profiles_update_own ON public.profiles
-  FOR UPDATE TO authenticated
-  USING (id = (SELECT auth.uid()))
-  WITH CHECK (id = (SELECT auth.uid()));
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profile_owners po
+      WHERE po.profile_slug = profile_meta.slug
+        AND po.owner_id = (SELECT auth.uid())
+    )
+  );

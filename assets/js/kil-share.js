@@ -33,16 +33,17 @@
 
   function isBusinessProfile(meta) {
     var t = String(meta && meta.account_type || '').toLowerCase();
-    return t === 'brand' || t === 'organizer' || t === 'artist';
+    return t === 'brand' || t === 'organizer' || t === 'artist' || t === 'editorial_artist';
   }
 
-  /** Personal profiles fail closed. Business profiles need a public opt-in and published, not an age check. */
+  /** A minor is never public. Business pages need admin approval. Members also need an opt-in and verified 18+. */
   function profileIsShareable(meta) {
     if (!meta || typeof meta !== 'object') return false;
     if (meta.under_18 === true || meta.availability === 'minor' || meta.is_minor === true) return false;
-    if (meta.profile_public !== true) return false;
+    if (meta.admin_approved !== true) return false;
     if (String(meta.status || '') !== 'published') return false;
     if (isBusinessProfile(meta)) return true;
+    if (meta.profile_public !== true) return false;
     if (meta.is_minor !== false) return false;
     if (meta.age_verified !== true) return false;
     if (!Array.isArray(meta.public_fields) || !meta.public_fields.length) return false;
@@ -50,7 +51,7 @@
   }
 
   function fieldOn(meta, key) {
-    if (isBusinessProfile(meta) && !Array.isArray(meta.public_fields)) return true;
+    if (isBusinessProfile(meta) && (!Array.isArray(meta.public_fields) || !meta.public_fields.length)) return true;
     if (!Array.isArray(meta.public_fields)) return false;
     return meta.public_fields.indexOf(key) !== -1;
   }

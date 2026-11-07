@@ -1,0 +1,12 @@
+# Served by Cloudflare Pages and Netlify. GitHub Pages, which publishes
+# keepitil.com today, ignores this file. The values are still the site policy.
+#
+# Cross-Origin-Opener-Policy is same-origin-allow-popups, not same-origin.
+# apply.html starts Google and Apple sign-in through Supabase OAuth, the iOS
+# app is a Capacitor WebView (404.html and keepitil-shell.js), and checkout
+# leaves this origin for Shopify and for the Stripe payment link. same-origin
+# would sever window.opener on those cross-origin popups.
+/*
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Content-Security-Policy: frame-ancestors 'self'
+  X-Frame-Options: SAMEORIGIN

@@ -829,6 +829,7 @@ window.KIL_FILTER_BADGES = function(badges){
 <!-- pfFootSocials removed (Founder 2026-07-31): socials/links live only in the header Links row, not duplicated at the bottom of the page -->
 
 <script src="/assets/js/vendor/qrcode.js"></script>
+<script src="/assets/js/kil-ticket-qr.js"></script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <!-- Nudity / explicit-content moderation for image uploads (in-browser, no keys) -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js" defer></script>
@@ -1230,8 +1231,9 @@ function mytixScroll(dir){ var row=document.getElementById('mytix-row'); if(!row
 function mytixMark(){ var car=document.getElementById('mytix-car'), row=document.getElementById('mytix-row'); if(!car||!row)return; var prev=car.querySelector('.mytix-arrow.prev'), next=car.querySelector('.mytix-arrow.next'); function upd(){ var sc=row.scrollWidth-row.clientWidth>4; car.classList.toggle('scrollable',sc); if(prev)prev.disabled=row.scrollLeft<=2; if(next)next.disabled=row.scrollLeft>=row.scrollWidth-row.clientWidth-2; } upd(); row.onscroll=upd; }
 function openTicket(i){
   var t=MY_TIX[i]; if(!t) return; closeModal();
-  var qrDraw=qrcode(0,'M'); qrDraw.addData(String(t.qr_token||t.order_id||'')); qrDraw.make();
-  var qr=qrDraw.createDataURL(4,0);
+  var door=KilTicketQr.payload(t.qr_token);
+  var qr='';
+  if(door){ var qrDraw=qrcode(0,'M'); qrDraw.addData(door); qrDraw.make(); qr=qrDraw.createDataURL(4,0); }
   var flyer=t.cover_url?'<img src="'+esc(t.cover_url)+'" alt="" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" onerror="this.style.display=\'none\'">':'';
   var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';
   ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Your Ticket<button class="kil-mx" onclick="closeModal()">&times;</button></div><div class="kil-mb">'

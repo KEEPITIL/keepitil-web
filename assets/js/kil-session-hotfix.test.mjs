@@ -74,8 +74,13 @@ test('the ticket page does not ask an outside host to draw a door code', () => {
     assert.match(html, /\/assets\/js\/vendor\/qrcode\.js/);
     assert.match(html, /createDataURL/);
   }
-  assert.match(tickets, /e\.qr_token\|\|e\.order_id/);
-  assert.match(profile, /t\.qr_token\|\|t\.order_id/);
+  assert.match(tickets, /KilTicketQr\.payload\(e\.qr_token\)/);
+  assert.match(profile, /KilTicketQr\.payload\(t\.qr_token\)/);
+  assert.equal(/order_id/.test(tickets), false);
+  const eventPage = read('event.html');
+  assert.equal(/qrserver/i.test(eventPage), false);
+  assert.match(eventPage, /canonFor\(ev\.slug\)/);
+  assert.equal(/location\.href/.test(eventPage.slice(eventPage.indexOf('ev-qr'), eventPage.indexOf('ev-qr') + 500)), false);
   const qrcode = require('./vendor/qrcode.js');
   const drawn = qrcode(0, 'M');
   drawn.addData('KIL-door-token');
@@ -94,6 +99,21 @@ test('no first-party page posts a token', () => {
     if (/kilNeedSession/.test(text)) hits.push(path);
   }
   assert.deepEqual(hits, []);
+});
+
+test('the drawn door code is what check_in_ticket stores', () => {
+  const qr = require('./kil-ticket-qr.js');
+  const token = '0123456789abcdef0123456789abcdef';
+  const drawn = qr.payload(token);
+  assert.equal(drawn, 'KIL-' + token);
+  assert.equal(qr.checkInTicket(drawn), token);
+  assert.equal(qr.checkInTicket('kil-' + token), token);
+  assert.equal(qr.eventCheckinScan(token), token);
+  assert.equal(qr.eventCheckinScan(drawn), drawn);
+  assert.notEqual(qr.eventCheckinScan(drawn), token);
+  assert.equal(qr.payload(''), '');
+  assert.equal(qr.payload('99'), '');
+  assert.equal(qr.payload(token + 'ff'), '');
 });
 
 test('every page is framed only by this site, and popups keep an opener', () => {

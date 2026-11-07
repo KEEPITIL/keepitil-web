@@ -177,6 +177,62 @@ test('navigation and media URLs are https or same-origin', () => {
   assert.equal(api.safeMediaUrl('/assets/images/logo-bg.jpg'), '/assets/images/logo-bg.jpg');
 });
 
+function sliceFunction(src, name) {
+  const start = src.indexOf('function ' + name + '(');
+  if (start < 0) throw new Error('missing ' + name);
+  let i = src.indexOf('{', start);
+  let depth = 0;
+  for (; i < src.length; i++) {
+    if (src[i] === '{') depth++;
+    else if (src[i] === '}') {
+      depth--;
+      if (depth === 0) return src.slice(start, i + 1);
+    }
+  }
+  throw new Error('unclosed ' + name);
+}
+
+test('chat name and slug quotes do not become handlers', () => {
+  const profile = read('profile.html');
+  const dom = new JSDOM('<div id="chat-list"></div><button id="dm-new"></button>', {
+    url: 'https://keepitil.com/profile',
+    runScripts: 'dangerously'
+  });
+  const w = dom.window;
+  w.IS_AGENT = false;
+  w.CHAT_FILTER = 'primary';
+  w.CAN_EDIT = function () { return true; };
+  w.KilSafeHtml = { kilSafeUrl: function (url) { return /^https:\/\//.test(String(url || '')) ? url : ''; } };
+  const slug = 'room" onclick="alert(1)" \'x';
+  const name = 'O"Hara\'s set';
+  w.GT_CHATS = [[slug, name, 'preview "quoted"', '1m', '', 'https://cdn.example.com/a.jpg', 'primary']];
+  w.openChatGroup = function (gotSlug, gotName) { w.__opened = { gotSlug, gotName }; };
+  w.chatRowMenu = function (_ev, gotSlug, gotName) { w.__menu = { gotSlug, gotName }; };
+  w.eval([
+    sliceFunction(profile, 'esc'),
+    sliceFunction(profile, 'kilSafeUrl'),
+    sliceFunction(profile, 'chatCat'),
+    sliceFunction(profile, 'chatRow'),
+    sliceFunction(profile, 'bindChatCards'),
+    sliceFunction(profile, 'renderChats')
+  ].join('\n'));
+  w.renderChats();
+  const card = w.document.querySelector('.chat-card');
+  assert.ok(card);
+  assert.equal(card.hasAttribute('onclick'), false);
+  assert.equal(card.querySelector('[onclick]'), null);
+  assert.equal(card.getAttribute('data-chat-slug'), slug);
+  assert.equal(card.getAttribute('data-chat-name'), name);
+  assert.match(card.querySelector('.cc-nm').textContent, /O"Hara's set/);
+  card.click();
+  assert.deepEqual(w.__opened, { gotSlug: slug, gotName: name });
+  const menu = card.querySelector('[data-chat-menu]');
+  assert.ok(menu);
+  menu.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  assert.deepEqual(w.__menu, { gotSlug: slug, gotName: name });
+  assert.equal(w.__opened.gotSlug, slug);
+});
+
 test('pages do not assign stored html straight to innerHTML', () => {
   const profile = read('profile.html');
   const culture = read('culture/index.html');
@@ -198,7 +254,12 @@ test('pages do not assign stored html straight to innerHTML', () => {
   assert.match(profile, /data-event-slug/);
   assert.match(profile, /addEventListener\('click'/);
   assert.equal(/openEventRoom\(\\'/.test(profile), false);
-  assert.match(profile, /esc\(String\(d\.title\|\|d\.text\|\|c\.kind\|\|''\)\.slice\(0,50\)\)/);
+  assert.equal(/openChatGroup\(\\'/.test(profile), false);
+  assert.match(profile, /data-chat-slug/);
+  assert.match(profile, /data-chat-menu/);
+  assert.match(profile, /tile\.style\.backgroundImage='url\('\+JSON\.stringify\(img\)\+'\)'/);
+  assert.match(profile, /kil-safe-html\.js\?v=20261107b/);
+  assert.match(culture, /kil-safe-html\.js\?v=20261107b/);
   const connect = read('connect/index.html');
   assert.match(connect, /kilSafeUrl\(x\.img\)/);
   assert.match(connect, /escHtml\(x\.name/);

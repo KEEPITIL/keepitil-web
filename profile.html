@@ -832,7 +832,7 @@ window.KIL_FILTER_BADGES = function(badges){
 <script src="/assets/js/kil-ticket-qr.js"></script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script src="/assets/js/vendor/purify.min.js?v=20261107b"></script>
-<script src="/assets/js/kil-safe-html.js?v=20261107a"></script>
+<script src="/assets/js/kil-safe-html.js?v=20261107b"></script>
 <!-- Nudity / explicit-content moderation for image uploads (in-browser, no keys) -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/nsfwjs@3.0.0/dist/nsfwjs.min.js" defer></script>
@@ -2492,19 +2492,30 @@ var GT_CHATS=[
    predate categories. 'events' is kept as a passthrough so older rows are not silently
    reclassified into a bucket the visitor is not looking at. */
 function chatCat(c){ if(c[6])return c[6]; return /general/i.test(c[1])?'general':(/@|event/i.test(c[1])?'events':'primary'); }
-function chatRow(av,title,desc,onclick,time,dot,delSlug){
+function chatRow(av,title,desc,time,dot,slug,name){
   var menu='';
-  if(delSlug && (typeof CAN_EDIT==='function') && CAN_EDIT()){
-    var s=String(delSlug).replace(/'/g,"\\'"), t=String(title).replace(/<[^>]*>/g,'').replace(/'/g,"\\'");
-    menu='<button class="cc-menu" title="Options" onclick="event.stopPropagation();chatRowMenu(event,\''+s+'\',\''+t+'\')">&#8942;</button>';
+  if(slug && (typeof CAN_EDIT==='function') && CAN_EDIT()){
+    menu='<button type="button" class="cc-menu" title="Options" data-chat-menu="1">&#8942;</button>';
   }
   var src=esc(kilSafeUrl(av)||'/icon-192.png');
-  return '<div class="chat-card"'+(onclick?' onclick="'+onclick+'"':'')+'>'
+  return '<div class="chat-card" data-chat-slug="'+esc(slug||'')+'" data-chat-name="'+esc(name||'')+'">'
     +'<img class="cc-av" src="'+src+'" alt="" loading="lazy" onerror="this.src=\'/icon-192.png\'">'
     +'<div class="cc-body"><div class="cc-nm">'+title+'</div><div class="cc-pv">'+desc+'</div></div>'
     +(time?'<div class="cc-rt">'+time+dot+'</div>':'')
     +menu
     +'</div>';
+}
+function bindChatCards(list){
+  list.querySelectorAll('.chat-card[data-chat-slug]').forEach(function(card){
+    card.addEventListener('click', function(){
+      openChatGroup(card.getAttribute('data-chat-slug')||'', card.getAttribute('data-chat-name')||'');
+    });
+    var menu=card.querySelector('[data-chat-menu]');
+    if(menu) menu.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      chatRowMenu(ev, card.getAttribute('data-chat-slug')||'', card.getAttribute('data-chat-name')||'');
+    });
+  });
 }
 function renderChats(){
   if(IS_AGENT){ renderAgentChat(); return; }
@@ -2520,10 +2531,10 @@ function renderChats(){
   var items=GT_CHATS.filter(function(c){return chatCat(c)===CHAT_FILTER;});
   if(!items.length){ list.innerHTML='<div class="pf-empty">'+(CAN_EDIT()?'No chats here yet. Start a group to talk with your community. <button class="pf-chip" style="margin-top:8px" onclick="addContent(\'chat group\')">Start a chat</button>':'No chats here yet.')+'</div>'; return; }
   list.innerHTML=items.map(function(c){
-    var nm=String(c[1]).replace(/'/g,'');
     var dot=c[4]?'<span class="cc-dot"></span>':'';
-    return chatRow(c[5]||'/icon-192.png', esc(c[1]), esc(c[2]||''), 'openChatGroup(\''+c[0]+'\',\''+nm+'\')', esc(c[3]||''), dot, c[0]);
+    return chatRow(c[5]||'/icon-192.png', esc(c[1]), esc(c[2]||''), esc(c[3]||''), dot, c[0], c[1]);
   }).join('');
+  bindChatCards(list);
 }
 /* Events filter = only event chats the viewer bought a ticket to (event_orders via my_ticketed_event_chats). */
 function renderEventChats(list){
@@ -2555,7 +2566,7 @@ function chatRowMenu(ev,slug,name){
   var r=ev.target.getBoundingClientRect();
   pop.style.top=(r.bottom+window.scrollY+4)+'px';
   pop.style.left=(Math.min(r.left+window.scrollX, window.innerWidth-160))+'px';
-  pop.querySelector('.cc-pop-del').onclick=function(e){ e.stopPropagation(); pop.remove(); deleteChat(slug,name); };
+  pop.querySelector('.cc-pop-del').addEventListener('click', function(e){ e.stopPropagation(); pop.remove(); deleteChat(slug,name); });
   setTimeout(function(){ document.addEventListener('click',function _c(){ pop.remove(); document.removeEventListener('click',_c); }); },0);
 }
 function deleteChat(slug,name){
@@ -2916,13 +2927,37 @@ function loadSaved(){
     var g=document.getElementById('saved-grid'), emp=document.getElementById('saved-empty');
     if(!rows.length){ g.innerHTML=''; emp.style.display='block'; return; }
     emp.style.display='none';
-    g.innerHTML=rows.map(function(s){
+    g.replaceChildren();
+    rows.forEach(function(s){
       var c=s.profile_content||{}; var d=c.data||{};
       var img=kilSafeUrl(d.img||d.cover||d.image||'');
-      var label=esc(String(d.title||d.text||c.kind||'').slice(0,50));
-      return '<div class="gal-tile" style="aspect-ratio:1/1;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#0a0a0f center/cover no-repeat'+(img?';background-image:url(\''+esc(img)+'\')':'')+'">'
-        +(!img?'<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:.72rem;padding:8px;text-align:center">'+label+'</div>':'')+'</div>';
-    }).join('');
+      var tile=document.createElement('div');
+      tile.className='gal-tile';
+      tile.style.aspectRatio='1/1';
+      tile.style.borderRadius='10px';
+      tile.style.overflow='hidden';
+      tile.style.border='1px solid var(--line)';
+      tile.style.backgroundColor='#0a0a0f';
+      tile.style.backgroundPosition='center';
+      tile.style.backgroundSize='cover';
+      tile.style.backgroundRepeat='no-repeat';
+      if(img){
+        tile.style.backgroundImage='url('+JSON.stringify(img)+')';
+      } else {
+        var cap=document.createElement('div');
+        cap.style.display='flex';
+        cap.style.alignItems='center';
+        cap.style.justifyContent='center';
+        cap.style.height='100%';
+        cap.style.color='var(--muted)';
+        cap.style.fontSize='.72rem';
+        cap.style.padding='8px';
+        cap.style.textAlign='center';
+        cap.textContent=String(d.title||d.text||c.kind||'').slice(0,50);
+        tile.appendChild(cap);
+      }
+      g.appendChild(tile);
+    });
   });
 }
 function newCollection(){

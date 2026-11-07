@@ -40,6 +40,13 @@ test('an event share campaigns the event slug only', () => {
 
 const ADULT = { profile_public: true, age_verified: true, is_minor: false, status: 'published' };
 
+test('an owner self-update of age_verified is not granted', () => {
+  const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
+  const grants = add.match(/GRANT UPDATE \([^)]+\) ON TABLE public\.profile_meta/gi) || [];
+  assert.equal(grants.length, 1);
+  assert.equal(/age_verified/.test(grants[0]), false);
+});
+
 test('a private or under-18 profile gets no preview card', () => {
   assert.equal(s.profileIsShareable({ display_name: 'Ada', bio: 'secret' }), false);
   assert.equal(s.profileIsShareable({ profile_public: null, age_verified: null, is_minor: null, status: 'published', public_fields: ['bio'] }), false);
@@ -100,19 +107,43 @@ test('raw profile and event HTML ships the brand card', () => {
   }
 });
 
-test('anon select of book_email is revoked in the migration', () => {
-  const sql = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read.sql', import.meta.url), 'utf8');
-  assert.match(sql, /REVOKE SELECT ON TABLE public\.profile_meta FROM anon/);
-  assert.match(sql, /select book_email from public\.profile_meta/);
-  assert.equal(sql.includes('m.book_email'), false);
-  assert.match(sql, /ENABLE ROW LEVEL SECURITY/);
-  assert.match(sql, /FORCE ROW LEVEL SECURITY/);
-  assert.match(sql, /LIMIT 1/);
-  assert.equal(/GRANT SELECT ON TABLE public\.profiles TO anon/i.test(sql), false);
-  assert.equal(/GRANT SELECT ON TABLE public\.profile_meta TO anon/i.test(sql), false);
-  assert.match(sql, /FUNCTION public\.public_profile_list/);
-  assert.match(sql, /subscriber_profile/);
-  assert.match(sql, /editorial_artist/);
+test('migration step 1 grants no age columns and step 2 revokes anon', () => {
+  const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
+  const revoke = readFileSync(new URL('../../supabase/migrations/20261107014100_profile_public_read_revoke.sql', import.meta.url), 'utf8');
+  const grant = add.match(/GRANT UPDATE \(([^)]+)\) ON TABLE public\.profile_meta/i);
+  assert.ok(grant, 'owner column grant');
+  const cols = grant[1].split(',').map((s) => s.trim());
+  for (const forbidden of ['age_verified', 'is_minor', 'under_18', 'status', 'account_type']) {
+    assert.equal(cols.includes(forbidden), false, forbidden);
+  }
+  assert.match(add, /REVOKE UPDATE ON TABLE public\.profile_meta FROM authenticated/);
+  assert.equal(/REVOKE SELECT ON TABLE public\.profile_meta FROM anon/.test(add), false);
+  assert.equal(/ENABLE ROW LEVEL SECURITY/.test(add), false);
+  assert.match(add, /account_type IN \('brand', 'organizer', 'artist'\)/);
+  assert.match(add, /SET profile_public = TRUE/);
+  assert.match(revoke, /REVOKE SELECT ON TABLE public\.profile_meta FROM anon/);
+  assert.match(revoke, /select book_email from public\.profile_meta/);
+  assert.match(revoke, /ENABLE ROW LEVEL SECURITY/);
+  assert.match(revoke, /FORCE ROW LEVEL SECURITY/);
+  assert.equal(add.includes('m.book_email'), false);
+});
+
+test('a business profile does not need 18+, and a member still does', () => {
+  assert.equal(s.profileIsShareable({
+    account_type: 'artist', profile_public: true, status: 'published', age_verified: null, is_minor: null
+  }), true);
+  assert.equal(s.profileIsShareable({
+    account_type: 'subscriber_profile', profile_public: true, status: 'published'
+  }), false);
+  assert.equal(s.profileIsShareable({
+    account_type: 'subscriber_profile', profile_public: true, status: 'published',
+    age_verified: true, is_minor: false, public_fields: ['display_name']
+  }), true);
+});
+
+test('profile.html raw HTML is noindex', () => {
+  const html = readFileSync(new URL('../../profile.html', import.meta.url), 'utf8');
+  assert.match(html, /<meta name="robots" content="noindex">/);
 });
 
 test('the pages do not add a Discover/Events/Vote/Echo/Profile tab bar', () => {

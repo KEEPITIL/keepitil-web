@@ -8,7 +8,7 @@
 <html lang="en" data-theme="dark" data-view="owner">
 <head>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/>
-<meta name="robots" content="index,follow">
+<meta name="robots" content="noindex">
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
   <!-- NO STATIC CANONICAL: this page is identified by ?slug=<slug>, so one hardcoded value
@@ -1773,7 +1773,7 @@ function saveEditProfile(){
         /* pronouns/tagline/booking-email fields were removed from Edit Profile (dup) — preserve existing values (Founder 2026-07-29) */
         var meta={ slug:PROFILE_SLUG, display_name:g('epName'), handle:g('epHandle').replace(/^@/,''), location:g('epLoc'), bio:g('epBio'),
           tagline:(document.getElementById('epTag')?g('epTag'):(PROFILE.tagline||null)), pronouns:(document.getElementById('epPro')?g('epPro'):(PROFILE.pronouns||null)), book_email:(document.getElementById('epBook')?g('epBook'):(PROFILE.book_email||null)),
-          about:g('epAbout')||null, links:_links.length?_links:null, links_label:g('epLinksLabel')||null, badges:_badges.length?_badges:null, account_type:(document.getElementById('epAcct')||{}).value||null,
+          about:g('epAbout')||null, links:_links.length?_links:null, links_label:g('epLinksLabel')||null, badges:_badges.length?_badges:null,
           avatar_url: avUrl || g('epAvatarUrl') || PROFILE.avatar,
           cover_url: cvUrl || g('epCoverUrl') || PROFILE.cover,
           cover_mobile_url: cvmUrl || g('epCoverMUrl') || PROFILE.cover_mobile || null,

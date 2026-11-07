@@ -1,64 +1,27 @@
--- NEEDS SENTINEL + JOE BEFORE PROD.
--- Not applied by this PR.
+-- STEP 1 of 2. Apply this first. Do not apply the revoke migration yet.
+-- NEEDS SENTINEL + JOE BEFORE PROD. Not applied by this PR.
 --
--- After this migration the following is refused for the anon role:
---   select book_email from public.profile_meta;
--- Logged-out reads go through public.get_public_profile(p_slug), one slug,
--- and only when the profile is public, published, and verified 18+.
+-- Adds columns, get_public_profile, public_profile_list, column grants, and the
+-- backfill. Leaves anon SELECT on profile_meta in place so existing logged-out
+-- pages keep working until the web deploy is verified.
+-- Then apply 20261107014100_profile_public_read_revoke.sql.
 
 CREATE SCHEMA IF NOT EXISTS private;
 REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
 
--- Privacy flags. Null means "not opted in" / "not verified".
 ALTER TABLE public.profile_meta
   ADD COLUMN IF NOT EXISTS profile_public boolean,
   ADD COLUMN IF NOT EXISTS age_verified boolean,
   ADD COLUMN IF NOT EXISTS is_minor boolean,
+  ADD COLUMN IF NOT EXISTS under_18 boolean,
   ADD COLUMN IF NOT EXISTS public_fields text[];
 
--- Drop anon (and PUBLIC) SELECT policies that are USING (true).
-DO $$
-DECLARE r record;
-BEGIN
-  FOR r IN
-    SELECT pol.polname
-    FROM pg_policy pol
-    JOIN pg_class c ON c.oid = pol.polrelid
-    JOIN pg_namespace n ON n.oid = c.relnamespace
-    WHERE n.nspname = 'public'
-      AND c.relname = 'profile_meta'
-      AND pol.polcmd = 'r'
-      AND (
-        pol.polroles = '{0}'
-        OR EXISTS (
-          SELECT 1 FROM pg_roles role
-          WHERE role.rolname = 'anon' AND pol.polroles @> ARRAY[role.oid]
-        )
-      )
-  LOOP
-    EXECUTE format('DROP POLICY IF EXISTS %I ON public.profile_meta', r.polname);
-  END LOOP;
-END $$;
-
-REVOKE SELECT ON TABLE public.profile_meta FROM anon;
-REVOKE SELECT ON TABLE public.profile_meta FROM PUBLIC;
-
--- The signed-in owner can still read and update their own row. No anon policy.
-DROP POLICY IF EXISTS profile_meta_owner_select ON public.profile_meta;
-CREATE POLICY profile_meta_owner_select ON public.profile_meta
-  FOR SELECT TO authenticated
-  USING (slug = public.my_profile_slug());
-
-DROP POLICY IF EXISTS profile_meta_owner_update ON public.profile_meta;
-CREATE POLICY profile_meta_owner_update ON public.profile_meta
-  FOR UPDATE TO authenticated
-  USING (slug = public.my_profile_slug())
-  WITH CHECK (slug = public.my_profile_slug());
-
-DROP POLICY IF EXISTS profile_meta_owner_insert ON public.profile_meta;
-CREATE POLICY profile_meta_owner_insert ON public.profile_meta
-  FOR INSERT TO authenticated
-  WITH CHECK (slug = public.my_profile_slug());
+-- Published brand, organizer, and artist profiles are public. Personal members stay null.
+UPDATE public.profile_meta
+SET profile_public = TRUE
+WHERE status = 'published'
+  AND account_type IN ('brand', 'organizer', 'artist')
+  AND profile_public IS NULL;
 
 -- One slug. Public columns only. book_email is not selected.
 CREATE OR REPLACE FUNCTION private.profile_public_one(p_slug text)
@@ -110,11 +73,18 @@ AS $$
   WHERE p_slug ~ '^[a-z0-9-]{1,80}$'
     AND m.slug = p_slug
     AND m.profile_public IS TRUE
-    AND m.age_verified IS TRUE
-    AND m.is_minor IS FALSE
+    AND m.is_minor IS NOT TRUE
     AND m.status = 'published'
-    AND m.public_fields IS NOT NULL
-    AND cardinality(m.public_fields) > 0
+    AND (
+      m.account_type IN ('brand', 'organizer', 'artist')
+      OR (
+        COALESCE(m.account_type, '') NOT IN ('brand', 'organizer', 'artist')
+        AND m.age_verified IS TRUE
+        AND m.is_minor IS FALSE
+        AND m.public_fields IS NOT NULL
+        AND cardinality(m.public_fields) > 0
+      )
+    )
   LIMIT 1;
 $$;
 
@@ -150,10 +120,9 @@ $$;
 REVOKE ALL ON FUNCTION public.get_public_profile(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_public_profile(text) TO anon, authenticated;
 
--- Directory list. Brand, organizer, and artist only. Personal member profiles
--- (subscriber_profile) are not returned, so members cannot be listed in bulk.
--- book_email is not selected. A null profile_public on an already published
--- directory row stays listed; profile_public = false removes it.
+-- Directory list. Brand, organizer, and artist only, and only when
+-- profile_public is true and status is published. No 18+ check here.
+-- Personal member profiles are not returned. book_email is not selected.
 CREATE OR REPLACE FUNCTION public.public_profile_list(
   p_account_type text DEFAULT NULL,
   p_query text DEFAULT NULL,
@@ -189,28 +158,13 @@ AS $$
     m.status
   FROM public.profile_meta m
   WHERE m.status = 'published'
-    AND m.profile_public IS NOT FALSE
+    AND m.profile_public IS TRUE
     AND m.is_minor IS NOT TRUE
-    AND COALESCE(m.account_type, '') NOT IN ('subscriber_profile', 'subscriber', 'member')
-    AND (
-      m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist')
-      OR m.entity_category IN ('artist', 'brand', 'organizer')
-    )
+    AND m.account_type IN ('brand', 'organizer', 'artist')
     AND (
       p_account_type IS NULL
       OR btrim(p_account_type) = ''
-      OR (
-        lower(btrim(p_account_type)) = 'artist'
-        AND (m.account_type IN ('artist', 'editorial_artist') OR m.entity_category = 'artist')
-      )
-      OR (
-        lower(btrim(p_account_type)) = 'brand'
-        AND (m.account_type = 'brand' OR m.entity_category = 'brand')
-      )
-      OR (
-        lower(btrim(p_account_type)) = 'organizer'
-        AND (m.account_type = 'organizer' OR m.entity_category = 'organizer')
-      )
+      OR lower(btrim(p_account_type)) = lower(m.account_type)
     )
     AND (
       p_query IS NULL
@@ -224,6 +178,15 @@ $$;
 
 REVOKE ALL ON FUNCTION public.public_profile_list(text, text, integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.public_profile_list(text, text, integer) TO anon, authenticated;
+
+
+-- Owners can edit their profile. They cannot set age, minor, status, or account type.
+REVOKE UPDATE ON TABLE public.profile_meta FROM authenticated, anon, PUBLIC;
+GRANT UPDATE (
+  slug, display_name, handle, location, bio, tagline, pronouns, book_email,
+  about, links, links_label, badges, avatar_url, cover_url, cover_mobile_url,
+  socials, highlights, updated_at, profile_public, public_fields
+) ON TABLE public.profile_meta TO authenticated;
 
 -- public.profiles: row security is off in prod. Turn it on before any page reads it.
 -- If it is still the old view, rename that view and create the real table first.
@@ -264,11 +227,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- RLS before any grant to anon. Anon receives no SELECT.
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.profiles FORCE ROW LEVEL SECURITY;
-
-REVOKE ALL ON TABLE public.profiles FROM PUBLIC, anon, authenticated;
+-- Row security is turned on in the revoke migration, after this file is verified.
+-- Column grants match profile_meta: an owner cannot write age_verified or is_minor.
 GRANT SELECT ON TABLE public.profiles TO authenticated;
 GRANT UPDATE (
   display_name, handle, avatar_url, bio, tagline, location, links, socials,

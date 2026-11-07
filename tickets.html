@@ -156,7 +156,7 @@ function render(){
   var org = e.owner_handle ? ('<a href="/profile?slug='+enc(e.owner_handle)+'">'+esc(e.owner_name||e.owner_handle)+'</a>') : '<span>KEEPITIL Event</span>';
   var used=!!e.checked_in_at;
   var price=e.price_cents!=null?('$'+(e.price_cents/100).toFixed(2).replace(/\.00$/,'')):'';
-  var door=KilTicketQr.payload(e.qr_token);
+  var door=KilTicketQr.payload(e.qr_token,{prefix:true});
   var qr='';
   if(door){ var qrDraw=qrcode(0,'M'); qrDraw.addData(door); qrDraw.make(); qr=qrDraw.createDataURL(6,0); }
   var loc=[e.venue,e.city].filter(Boolean).join(', ');

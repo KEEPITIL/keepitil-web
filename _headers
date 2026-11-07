@@ -1,0 +1,10 @@
+# GitHub Pages, which publishes keepitil.com today, ignores this file.
+# The live headers are applied separately by a Cloudflare Transform Rule.
+#
+# Cross-Origin-Opener-Policy is same-origin. Google and Apple sign-in
+# (apply.html) and paid checkout (event.html) are full-page redirects,
+# not cross-origin popups that need window.opener.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Content-Security-Policy: frame-ancestors 'self'
+  X-Frame-Options: SAMEORIGIN

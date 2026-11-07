@@ -131,6 +131,8 @@ body{background:var(--bg,#0a0a0f);color:var(--text);font-family:var(--font,Inter
      dead route gets revived by accident. Building Event Chat is a new feature and a
      Founder decision, not a closeout fix. -->
 
+<script src="/assets/js/vendor/qrcode.js"></script>
+<script src="/assets/js/kil-ticket-qr.js"></script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script>
 var SUPA_URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
@@ -154,7 +156,9 @@ function render(){
   var org = e.owner_handle ? ('<a href="/profile?slug='+enc(e.owner_handle)+'">'+esc(e.owner_name||e.owner_handle)+'</a>') : '<span>KEEPITIL Event</span>';
   var used=!!e.checked_in_at;
   var price=e.price_cents!=null?('$'+(e.price_cents/100).toFixed(2).replace(/\.00$/,'')):'';
-  var qr='https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=0&data='+enc('KIL-'+(e.qr_token||e.order_id));
+  var door=KilTicketQr.payload(e.qr_token,{prefix:true});
+  var qr='';
+  if(door){ var qrDraw=qrcode(0,'M'); qrDraw.addData(door); qrDraw.make(); qr=qrDraw.createDataURL(6,0); }
   var loc=[e.venue,e.city].filter(Boolean).join(', ');
   var maps=loc?('<a href="https://www.google.com/maps/search/?api=1&query='+enc(loc)+'" target="_blank" rel="noopener">'+esc(loc)+' ↗</a>'):'—';
   var dt=fmtDate(e.starts_at,e.tz)+(fmtTime(e.starts_at,e.tz)?(' · '+fmtTime(e.starts_at,e.tz)):'');
@@ -232,8 +236,6 @@ async function init(){
     render();
   }catch(err){ $('loading').textContent='Could not load your ticket. Please refresh.'; }
 }
-/* hand the signed-in session down to the embedded chat iframe when it asks */
-window.addEventListener('message',function(e){ if(e&&e.data&&e.data.kilNeedSession&&supa&&e.source){ try{ supa.auth.getSession().then(function(r){ var s=r&&r.data?r.data.session:null; if(s){ e.source.postMessage({kilSession:{access_token:s.access_token,refresh_token:s.refresh_token}},'*'); } }); }catch(_e){} } });
 init();
 </script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>

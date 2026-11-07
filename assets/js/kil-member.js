@@ -196,7 +196,7 @@
   function privateStub() {
     return '<div class="m1-stub" data-m1="private-stub">' +
       '<span class="m1-av m1-av-ring" aria-hidden="true"></span>' +
-      '<p>This profile is private</p>' +
+      '<h1>THIS PROFILE IS PRIVATE</h1>' +
       '<a class="m1-discover" href="/">Discover events</a>' +
       '</div>';
   }

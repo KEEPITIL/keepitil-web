@@ -113,7 +113,7 @@ test('a null public_fields value does not throw', async () => {
 test('a profile with no flags renders the private stub', () => {
   const html = m.render({ slug: 'ada', meta: bare, events: events(), owner: false, now: NOW });
   assert.match(html, /data-m1="private-stub"/);
-  assert.match(html, /This profile is private/);
+  assert.match(html, /THIS PROFILE IS PRIVATE/);
   assert.match(html, /href="\/">Discover events/);
   assert.doesNotMatch(html, /Plays after midnight|ada@example.com|cdn\.example\/a\.png|Share|Upcoming events/);
 });
@@ -122,7 +122,7 @@ test('a profile in review renders the private stub', () => {
   const review = Object.assign({}, meta, { status: 'review' });
   assert.equal(share.profileIsShareable(review), false);
   const html = m.render({ slug: 'ada', meta: review, events: events(), owner: false, now: NOW });
-  assert.match(html, /This profile is private/);
+  assert.match(html, /THIS PROFILE IS PRIVATE/);
   assert.doesNotMatch(html, /Plays after midnight/);
 });
 
@@ -131,7 +131,7 @@ test('an under-18 owner sees the notice and no public switches', () => {
   const html = m.render({
     slug: 'ada', meta: minor, owner: true, now: NOW, hosted: [], metrics: [], tickets: [], saved: []
   });
-  assert.match(html, /This profile is private/);
+  assert.match(html, /THIS PROFILE IS PRIVATE/);
   assert.match(html, /Public profile: not available under 18/);
   assert.doesNotMatch(html, /type="checkbox"|>PUBLIC<|>PRIVATE</);
 });
@@ -211,7 +211,7 @@ test('a logged-out load with an empty lookup does not touch the tables', async (
   assert.deepEqual(c.fromCalls, []);
   assert.deepEqual(c.rpcCalls, ['get_public_profile']);
   const html = m.render(d);
-  assert.match(html, /This profile is private/);
+  assert.match(html, /THIS PROFILE IS PRIVATE/);
   assert.match(html, /Discover events/);
 });
 

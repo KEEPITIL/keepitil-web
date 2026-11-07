@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { createRequire } from 'node:module';
@@ -274,7 +275,9 @@ test('a missing public profile renders the private stub', () => {
   const load = html.slice(html.indexOf('function loadProfileMeta'), html.indexOf('function loadCategories'));
   assert.match(html, /function showPrivateStub/);
   assert.match(html, /data-m1','private-stub'/);
-  assert.match(html, /This profile is private/);
+  assert.match(html, /THIS PROFILE IS PRIVATE/);
+  assert.match(html, /background:#0c2744/);
+  assert.match(html, /KilShare.applyPreview\(document, null\)/);
   assert.equal(/KIL_NOT_FOUND/.test(load), false);
   assert.match(load, /showPrivateStub\(\)/);
 });
@@ -291,6 +294,28 @@ test('the public sql honors profile_public and the field mask', () => {
   assert.match(list, /m\.under_18 IS NOT TRUE/);
   assert.equal(/public_fields IS NULL OR/.test(list), false);
   assert.match(add, /SET public_fields = ARRAY\[\]::text\[\]/);
+});
+
+test('the qa owner seed refuses production', () => {
+  const sql = readFileSync(new URL('../../supabase/seed/qa_owner_profiles.sql', import.meta.url), 'utf8');
+  assert.match(sql, /qa-brand@example\.test|qa-brand/);
+  assert.match(sql, /kil\.qa_seed/);
+  assert.equal(/password|service_role|eyJ/i.test(sql), false);
+  const script = readFileSync(new URL('../../scripts/seed-qa-owners.mjs', import.meta.url), 'utf8');
+  assert.match(script, /qa-brand@example\.test/);
+  assert.match(script, /qa-member@example\.test/);
+  assert.equal(/eyJ/.test(script), false);
+  const run = spawnSync(process.execPath, ['scripts/seed-qa-owners.mjs'], {
+    cwd: new URL('../..', import.meta.url),
+    env: {
+      ...process.env,
+      SUPABASE_URL: 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co',
+      SUPABASE_SERVICE_ROLE_KEY: 'local-test-key-not-a-real-secret-value',
+      QA_OWNER_PASSWORD: 'local-only-pass'
+    }
+  });
+  assert.notEqual(run.status, 0);
+  assert.match(String(run.stderr), /Refusing to seed/);
 });
 
 test('the pages do not add a Discover/Events/Vote/Echo/Profile tab bar', () => {

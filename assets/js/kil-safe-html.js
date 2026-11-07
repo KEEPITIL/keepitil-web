@@ -1,6 +1,8 @@
 /* Stored post/article HTML is never inserted as-is.
    New rows are rebuilt from escaped fields. Legacy HTML-only rows go through
-   the vendored DOMPurify allowlist (assets/js/vendor/purify.min.js). No CDN. */
+   vendored DOMPurify 3.4.17 (assets/js/vendor/purify.min.js). No CDN.
+   git hash-object 416c7d0be33481ae845288a8e0fb477e96184469
+   sha256 2ffc14b99b081b271d8df0740b688e0163bc5f0fdfc3e1888acc88f005ab0700 */
 (function (root) {
   'use strict';
 
@@ -152,6 +154,7 @@
     esc: esc,
     safeNavUrl: safeNavUrl,
     safeMediaUrl: safeMediaUrl,
+    kilSafeUrl: safeMediaUrl,
     buildBody: buildBody,
     sanitize: sanitize,
     renderStored: renderStored

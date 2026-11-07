@@ -13,7 +13,11 @@
 -- SECURITY does not apply to a view, so this file does not touch it.
 -- kode/app.html and kode/embed.html keep reading and writing that view.
 
--- Drop anon (and PUBLIC) SELECT policies that are USING (true).
+-- These two are open to everyone (PUBLIC, USING true). Drop them by name, then
+-- any other anon or PUBLIC select policy on the same table.
+DROP POLICY IF EXISTS "profile_meta read all" ON public.profile_meta;
+DROP POLICY IF EXISTS profile_meta_read ON public.profile_meta;
+
 DO $$
 DECLARE r record;
 BEGIN

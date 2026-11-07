@@ -168,6 +168,8 @@ test('migration step 1 grants no age columns and step 2 revokes anon', () => {
   assert.equal(/profiles_legacy_v/.test(add + revoke), false);
   assert.equal(/ALTER TABLE public\.profiles ENABLE ROW LEVEL SECURITY/.test(add + revoke), false);
   assert.equal(/CREATE TABLE IF NOT EXISTS public\.profiles/.test(add + revoke), false);
+  assert.match(revoke, /DROP POLICY IF EXISTS "profile_meta read all"/);
+  assert.match(revoke, /DROP POLICY IF EXISTS profile_meta_read/);
   assert.match(revoke, /REVOKE ALL ON TABLE public\.profile_meta FROM anon/);
   assert.match(revoke, /REVOKE ALL ON TABLE public\.profile_owners FROM anon/);
   assert.match(revoke, /select book_email from public\.profile_meta/);
@@ -202,6 +204,40 @@ test('the owner save does not write account_type', () => {
   assert.match(html, /id="epAcctRequest"/);
   assert.match(html, /kind:'account_type_request'/);
   assert.match(html, /id="epAcctShown"/);
+});
+
+test('signed-in directory reads use the public functions', () => {
+  const pages = [
+    ['index.html', 'public_profile_list'],
+    ['connect/index.html', 'public_profile_list'],
+    ['assets/js/kil-browse.js', 'public_profile_list'],
+    ['assets/js/keepitil-ai.js', 'public_profile_list'],
+    ['assets/js/kil-member.js', 'get_public_profile']
+  ];
+  for (const [file, rpc] of pages) {
+    const src = readFileSync(new URL('../../' + file, import.meta.url), 'utf8');
+    assert.equal(src.includes("from('profile_meta')"), false, file);
+    assert.equal(src.includes('/rest/v1/profile_meta'), false, file);
+    assert.match(src, new RegExp(rpc));
+  }
+  const profile = readFileSync(new URL('../../profile.html', import.meta.url), 'utf8');
+  const load = profile.slice(profile.indexOf('function loadProfileMeta'), profile.indexOf('function loadCategories'));
+  assert.match(load, /CAN_EDIT\(\)&&!!SESSION/);
+  assert.match(load, /rpc\('get_public_profile'/);
+  const about = profile.slice(profile.indexOf('var metaRead'), profile.indexOf('metaRead.then'));
+  assert.match(about, /CAN_EDIT\(\)&&SESSION/);
+  assert.match(about, /rpc\('get_public_profile'/);
+});
+
+test('step 1 rollback grants authenticated and not anon', () => {
+  const down = readFileSync(new URL('../../supabase/rollbacks/20261107014000_profile_public_read_down.sql', import.meta.url), 'utf8');
+  assert.match(down, /GRANT ALL ON TABLE public\.profile_meta TO authenticated/);
+  assert.match(down, /GRANT ALL ON TABLE public\.profile_owners TO authenticated/);
+  assert.match(down, /DROP FUNCTION IF EXISTS public\.i_own_profile\(text\)/);
+  assert.match(down, /DROP FUNCTION IF EXISTS public\.request_profile_claim\(text\)/);
+  assert.match(down, /DROP FUNCTION IF EXISTS public\.approve_profile_claim\(uuid\)/);
+  assert.match(down, /"profile_owners claim"/);
+  assert.equal(/TO anon/i.test(down), false);
 });
 
 test('profile.html raw HTML is noindex', () => {

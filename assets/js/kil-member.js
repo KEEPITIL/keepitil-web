@@ -388,8 +388,8 @@
       var er = await safe(client.rpc('get_profile_events', { p_handle: mine || s }));
       events = ok(er) ? (er.data || []) : null;
     } else if (showEvents) {
-      var handle = (meta && meta.handle) || s;
-      var sr = await safe(client.rpc('get_profile_event_summary', { p_handle: handle }));
+      var summarySlug = slugOf((meta && meta.slug) || s);
+      var sr = await safe(client.rpc('get_profile_event_summary', { p_handle: summarySlug }));
       summary = ok(sr) ? summaryOf(firstRow(sr.data)) : null;
     }
     var out = {

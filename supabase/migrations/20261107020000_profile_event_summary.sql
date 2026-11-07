@@ -24,6 +24,9 @@
 -- every overload of that name.
 
 -- private.profile_is_public(text) is created in PR #91. Do not replace it here.
+-- One transaction: a failure must not leave get_profile_events dropped.
+
+BEGIN;
 
 -- The live get_profile_events(text) is executable by anon and only checks
 -- handle + published. Drop every overload so that body cannot stay callable.
@@ -71,10 +74,7 @@ AS $$
     e.venue,
     e.city,
     e.cover_url,
-    (
-      COALESCE(e.password_protected, FALSE)
-      OR e.event_password_hash IS NOT NULL
-    ) AS is_protected
+    (e.event_password_hash IS NOT NULL) AS is_protected
   FROM public.events e
   WHERE p_handle ~ '^[a-z0-9-]{1,80}$'
     AND lower(btrim(e.owner_handle)) = lower(btrim(p_handle))
@@ -119,7 +119,6 @@ AS $$
     WHERE e.status = 'published'
       AND e.starts_at IS NOT NULL
       AND e.starts_at >= now()
-      AND COALESCE(e.password_protected, FALSE) IS NOT TRUE
       AND e.event_password_hash IS NULL
   ),
   counted AS (
@@ -188,3 +187,5 @@ $$;
 
 REVOKE ALL ON FUNCTION public.get_my_ticket_summary() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_my_ticket_summary() TO authenticated;
+
+COMMIT;

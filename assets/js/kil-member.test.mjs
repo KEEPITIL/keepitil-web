@@ -29,9 +29,10 @@ function chain(result) {
 
 function client(script) {
   const rpcCalls = [];
+  const rpcArgs = [];
   const fromCalls = [];
   return {
-    rpcCalls, fromCalls,
+    rpcCalls, rpcArgs, fromCalls,
     from(table) {
       fromCalls.push(table);
       const spec = (script.from && script.from[table]) || { data: [] };
@@ -39,6 +40,7 @@ function client(script) {
     },
     rpc(name, args) {
       rpcCalls.push(name);
+      rpcArgs.push(args || null);
       const spec = (script.rpc && script.rpc[name]) || { data: null, error: { message: 'missing ' + name } };
       return Promise.resolve(typeof spec === 'function' ? spec(args) : spec);
     },
@@ -332,6 +334,19 @@ test('the page does not select profile_meta or book_email', () => {
   assert.match(js, /is_protected/);
 });
 
+test('the public summary is asked with the canonical slug', async () => {
+  const row = Object.assign({}, meta, { slug: 'ada', handle: 'ada-live' });
+  const c = client({
+    rpc: {
+      get_public_profile: { data: [row] },
+      get_profile_event_summary: { data: [{ upcoming_count: 0, cities: [] }] }
+    }
+  });
+  await m.load(c, 'ada', { now: NOW });
+  const summaryCall = c.rpcArgs[c.rpcCalls.indexOf('get_profile_event_summary')];
+  assert.equal(summaryCall.p_handle, 'ada');
+});
+
 test('the draft summary migration gates on profile_is_public and does not return a door token', () => {
   const sql = readFileSync(new URL('../../supabase/migrations/20261107020000_profile_event_summary.sql', import.meta.url), 'utf8');
   const down = readFileSync(new URL('../../supabase/rollbacks/20261107020000_profile_event_summary_down.sql', import.meta.url), 'utf8');
@@ -371,6 +386,10 @@ test('the draft summary migration gates on profile_is_public and does not return
   assert.match(sql, /REVOKE ALL ON FUNCTION public\.get_profile_events\(text\) FROM PUBLIC, anon, authenticated/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.get_profile_events\(text\) TO authenticated/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.get_profile_event_summary\(text\) TO anon, authenticated/);
+  assert.match(sql, /^BEGIN;/m);
+  assert.match(sql, /^COMMIT;/m);
+  assert.match(sql, /e\.event_password_hash IS NOT NULL/);
+  assert.equal(sql.includes('password_protected'), false);
   assert.equal(sql.includes('qr_token'), false);
   assert.match(sql, /FUNCTION public\.get_my_ticket_summary\(\)/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.get_my_ticket_summary\(\) TO authenticated/);

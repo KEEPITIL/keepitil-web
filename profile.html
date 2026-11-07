@@ -1672,7 +1672,9 @@ function openEditProfile(){
     '<label class="kil-mf"><span>Location</span><input type="text" id="epLoc" value="'+esc(PROFILE.location||'')+'"></label></div>'+
     '<label class="kil-mf"><span>About me</span><textarea id="epBio" rows="3">'+esc(PROFILE.bio||'')+'</textarea></label>'+
     '<label class="kil-mf"><span>About section (shown in the header)</span><textarea id="epAbout" rows="2">'+esc(PROFILE.about||'')+'</textarea></label>'+
-    '<label class="kil-mf"><span>Account type</span><select id="epAcct"><option value="">—</option><option value="user">User</option><option value="artist">Artist</option><option value="brand">Brand</option><option value="organizer">Organizer</option></select></label>'+
+    '<label class="kil-mf"><span>Account type</span><input type="text" id="epAcctShown" value="'+esc(PROFILE.account_type||'Not set')+'" disabled></label>'+
+    '<label class="kil-mf"><span>Request a business type</span><select id="epAcctRequest"><option value="">No request</option><option value="artist">Artist</option><option value="brand">Brand</option><option value="organizer">Organizer</option></select></label>'+
+    '<div class="kil-note">An admin sets the account type. This sends a request. It does not change your type.</div>'+
     '<div class="kil-sec">Profile links (up to 5)</div>'+
     '<label class="kil-mf"><span>Links dropdown title (what the button says)</span><input type="text" id="epLinksLabel" value="'+esc(PROFILE.links_label||'')+'" placeholder="Links" maxlength="24"></label>'+
     [1,2,3,4,5].map(function(i){return '<label class="kil-mf"><span>Link '+i+'</span><input type="text" id="epL'+i+'" value="'+esc((PROFILE.links||[])[i-1]||'')+'" placeholder="https://…"></label>';}).join('')+
@@ -1755,6 +1757,15 @@ function saveCategories(){
     SB.from('profile_content').insert({profile_slug:PROFILE_SLUG,kind:'profile_categories',data:cd,created_by:SESSION.user.id});
   }).catch(function(){});
 }
+function requestAccountType(){
+  var el=document.getElementById('epAcctRequest');
+  var want=el?String(el.value||'').trim():'';
+  if(!want||!SB||!SESSION||!PROFILE_SLUG) return;
+  if(want!=='artist'&&want!=='brand'&&want!=='organizer') return;
+  SB.from('profile_content').delete().eq('profile_slug',PROFILE_SLUG).eq('kind','account_type_request').then(function(){
+    SB.from('profile_content').insert({profile_slug:PROFILE_SLUG,kind:'account_type_request',data:{requested:want},created_by:SESSION.user.id});
+  }).catch(function(){});
+}
 function saveEditProfile(){
   var g=function(id){var e=document.getElementById(id);return e?e.value.trim():'';};
   var btn=document.getElementById('epSave'); if(btn){btn.disabled=true;btn.textContent='Saving…';}
@@ -1785,6 +1796,7 @@ function saveEditProfile(){
           Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url,cover:meta.cover_url,cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights});
           applyProfile();
           saveCategories();
+          requestAccountType();
           // account email/password
           var email=g('epEmail'), pass=g('epPass'), pass2=g('epPass2'), upd={};
           if(email && SESSION.user && email!==SESSION.user.email) upd.email=email;

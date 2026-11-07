@@ -160,6 +160,17 @@ test('a business profile does not need 18+, and a member still does', () => {
   }), true);
 });
 
+test('the owner save does not write account_type', () => {
+  const html = readFileSync(new URL('../../profile.html', import.meta.url), 'utf8');
+  const start = html.indexOf('var meta={');
+  const meta = html.slice(start, html.indexOf('};', start));
+  assert.equal(/account_type/.test(meta), false);
+  assert.equal(/id="epAcct"/.test(html), false);
+  assert.match(html, /id="epAcctRequest"/);
+  assert.match(html, /kind:'account_type_request'/);
+  assert.match(html, /id="epAcctShown"/);
+});
+
 test('profile.html raw HTML is noindex', () => {
   const html = readFileSync(new URL('../../profile.html', import.meta.url), 'utf8');
   assert.match(html, /<meta name="robots" content="noindex">/);

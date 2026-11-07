@@ -18,7 +18,10 @@ DROP POLICY IF EXISTS profile_meta_public_select  ON public.profile_meta;   -- i
 DROP POLICY IF EXISTS profile_owners_select_own   ON public.profile_owners;
 
 -- 2. New functions (RESTRICT: fail loudly if something unexpected depends on them)
-DROP FUNCTION IF EXISTS public.get_profile_events(text) RESTRICT;          -- PR #92, only if it shipped; adjust signature
+-- NOT in a #91-only rollback: get_profile_events already exists in prod and #91 does not create it.
+-- If #92 shipped, run supabase/rollbacks/20261107020000_profile_event_summary_down.sql first.
+-- That file restores the backed-up live body. Never drop get_profile_events here.
+-- DROP FUNCTION IF EXISTS public.get_profile_events(text) RESTRICT;
 DROP FUNCTION IF EXISTS public.approve_profile_claim(uuid) RESTRICT;
 DROP FUNCTION IF EXISTS public.request_profile_claim(text) RESTRICT;
 DROP FUNCTION IF EXISTS public.i_own_profile(text) RESTRICT;
@@ -31,7 +34,9 @@ DROP FUNCTION IF EXISTS private.profile_is_public(text) RESTRICT;          -- af
 DROP TABLE    IF EXISTS public.profile_claim_requests RESTRICT;
 -- Sentinel ruling 1 (Nov 6): server-only age table. Drop the admin RPC first, then the table.
 -- Name the RPC to match the PR (e.g. public.admin_set_account_age); RESTRICT fails loudly if the name is wrong.
-DROP FUNCTION IF EXISTS public.admin_set_account_age(uuid, boolean, text) RESTRICT;  -- rename/re-sign to match the PR
+DROP FUNCTION IF EXISTS public.admin_move_house_page(text, uuid) RESTRICT;
+DROP FUNCTION IF EXISTS public.admin_set_account_age(uuid, boolean, text) RESTRICT;
+DROP FUNCTION IF EXISTS public.admin_set_account_age(uuid, boolean, text, text, text) RESTRICT;
 DROP TABLE    IF EXISTS private.account_age RESTRICT;
 -- Ruling 2: house profile_owners rows (method house) are data. Keep them on rollback; they are harmless with the original policies.
 DROP SCHEMA   IF EXISTS private RESTRICT;   -- did not exist before step 1; fails if anything is left in it

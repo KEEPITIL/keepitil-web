@@ -23,12 +23,23 @@ ALTER TABLE public.profile_meta
   ADD COLUMN IF NOT EXISTS public_fields text[],
   ADD COLUMN IF NOT EXISTS admin_approved boolean;
 
--- No trusted 18+ signal exists in prod. The auth-metadata checkbox is
--- user-editable, so it is not copied. Both flags stay NULL until a
--- server-only path sets them together. Never backfill false: NULL fails closed.
+-- Keep a true minor flag. If the two flags disagree, both become true.
+-- Only a pair that is still unknown stays NULL. Never wipe true evidence.
 UPDATE public.profile_meta
-SET is_minor = NULL,
-    under_18 = NULL;
+SET
+  is_minor = CASE
+    WHEN is_minor IS TRUE OR under_18 IS TRUE THEN TRUE
+    WHEN is_minor IS DISTINCT FROM under_18 THEN TRUE
+    WHEN is_minor IS FALSE AND under_18 IS FALSE THEN FALSE
+    ELSE NULL
+  END,
+  under_18 = CASE
+    WHEN is_minor IS TRUE OR under_18 IS TRUE THEN TRUE
+    WHEN is_minor IS DISTINCT FROM under_18 THEN TRUE
+    WHEN is_minor IS FALSE AND under_18 IS FALSE THEN FALSE
+    ELSE NULL
+  END
+WHERE is_minor IS NOT NULL OR under_18 IS NOT NULL;
 
 ALTER TABLE public.profile_meta
   DROP CONSTRAINT IF EXISTS profile_meta_minor_flags_agree;
@@ -83,8 +94,24 @@ CREATE TABLE IF NOT EXISTS private.account_age (
   method text NOT NULL,
   verified_at timestamptz NOT NULL DEFAULT now(),
   verified_by uuid NOT NULL,
+  founder_quote text,
+  founder_stated_on text,
   CONSTRAINT account_age_method CHECK (
     method IN ('founder_self', 'admin_attested', 'house')
+  ),
+  CONSTRAINT account_age_founder_words CHECK (
+    (
+      method = 'founder_self'
+      AND founder_quote IS NOT NULL
+      AND btrim(founder_quote) <> ''
+      AND founder_stated_on IS NOT NULL
+      AND btrim(founder_stated_on) <> ''
+    )
+    OR (
+      method <> 'founder_self'
+      AND founder_quote IS NULL
+      AND founder_stated_on IS NULL
+    )
   )
 );
 
@@ -95,15 +122,20 @@ REVOKE ALL ON TABLE private.account_age FROM PUBLIC, anon, authenticated;
 -- Admin-checked. Signature matches the rollback:
 -- public.admin_set_account_age(uuid, boolean, text).
 -- This migration does not call it.
--- founder_self: the admin attests their own account.
--- admin_attested: an admin attests someone else, and cannot clear is_minor
---   or under_18 (the under-18 birth-date flag).
--- house: the user is in app_admins. Editorial pages are moved onto that
---   account. There is no ownerless house page.
+-- founder_self: only Joe's two accounts. The full ids are not in this
+--   repository, so the allowlist matches the prefixes Sentinel named and
+--   does not invent the remaining digits. Quote and date are text he supplies
+--   at call time. This migration inserts no attestation row.
+-- admin_attested: refused for the caller's own account. Self-attestation is
+--   only founder_self. A true is_minor or under_18 row is never set false.
+-- house: records the house account. It does not move pages. Each page is
+--   named in admin_move_house_page.
 CREATE OR REPLACE FUNCTION public.admin_set_account_age(
   p_user_id uuid,
   p_verified boolean,
-  p_method text
+  p_method text,
+  p_founder_quote text DEFAULT NULL,
+  p_founder_stated_on text DEFAULT NULL
 ) RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -122,8 +154,18 @@ BEGIN
   IF how NOT IN ('founder_self', 'admin_attested', 'house') THEN
     RAISE EXCEPTION 'not allowed';
   END IF;
-  IF how = 'founder_self' AND (SELECT auth.uid()) IS DISTINCT FROM p_user_id THEN
-    RAISE EXCEPTION 'not allowed';
+  IF how = 'founder_self' THEN
+    IF (SELECT auth.uid()) IS DISTINCT FROM p_user_id THEN
+      RAISE EXCEPTION 'not allowed';
+    END IF;
+    IF lower(p_user_id::text) NOT LIKE '4f1ff687-%'
+       AND lower(p_user_id::text) NOT LIKE 'd1ef5687-%' THEN
+      RAISE EXCEPTION 'not allowed';
+    END IF;
+    IF p_founder_quote IS NULL OR btrim(p_founder_quote) = ''
+       OR p_founder_stated_on IS NULL OR btrim(p_founder_stated_on) = '' THEN
+      RAISE EXCEPTION 'not allowed';
+    END IF;
   END IF;
   IF how = 'admin_attested' AND (SELECT auth.uid()) IS NOT DISTINCT FROM p_user_id THEN
     RAISE EXCEPTION 'not allowed';
@@ -133,56 +175,111 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'not allowed';
   END IF;
-  IF how = 'admin_attested' AND p_verified IS TRUE AND EXISTS (
-    SELECT 1
-    FROM public.profile_meta m
-    JOIN public.profile_owners po ON po.profile_slug = m.slug
-    WHERE po.owner_id = p_user_id
-      AND (m.is_minor IS TRUE OR m.under_18 IS TRUE)
-  ) THEN
-    RAISE EXCEPTION 'not allowed';
-  END IF;
-
-  INSERT INTO private.account_age (user_id, verified, method, verified_at, verified_by)
-  VALUES (p_user_id, p_verified, how, now(), (SELECT auth.uid()))
+  INSERT INTO private.account_age (
+    user_id, verified, method, verified_at, verified_by, founder_quote, founder_stated_on
+  ) VALUES (
+    p_user_id,
+    p_verified,
+    how,
+    now(),
+    (SELECT auth.uid()),
+    CASE WHEN how = 'founder_self' THEN btrim(p_founder_quote) ELSE NULL END,
+    CASE WHEN how = 'founder_self' THEN btrim(p_founder_stated_on) ELSE NULL END
+  )
   ON CONFLICT (user_id) DO UPDATE
     SET verified = EXCLUDED.verified,
         method = EXCLUDED.method,
         verified_at = EXCLUDED.verified_at,
-        verified_by = EXCLUDED.verified_by;
+        verified_by = EXCLUDED.verified_by,
+        founder_quote = EXCLUDED.founder_quote,
+        founder_stated_on = EXCLUDED.founder_stated_on;
 
-  IF how = 'house' AND p_verified IS TRUE THEN
-    INSERT INTO public.profile_owners (profile_slug, owner_id)
-    SELECT m.slug, p_user_id
-    FROM public.profile_meta m
-    WHERE lower(btrim(m.account_type)) IN (
-      'editorial_artist', 'editorial_venue', 'editorial_organizer', 'editorial_brand'
-    )
-    ON CONFLICT (profile_slug) DO UPDATE
-      SET owner_id = EXCLUDED.owner_id
-      WHERE public.profile_owners.owner_id IS DISTINCT FROM EXCLUDED.owner_id;
-
+  IF how IN ('founder_self', 'admin_attested') AND p_verified IS TRUE THEN
     UPDATE public.profile_meta m
     SET
-      is_minor = COALESCE(m.is_minor, FALSE),
-      under_18 = COALESCE(m.under_18, FALSE)
-    WHERE lower(btrim(m.account_type)) IN (
-      'editorial_artist', 'editorial_venue', 'editorial_organizer', 'editorial_brand'
+      is_minor = FALSE,
+      under_18 = FALSE
+    WHERE EXISTS (
+      SELECT 1 FROM public.profile_owners po
+      WHERE po.profile_slug = m.slug
+        AND po.owner_id = p_user_id
     )
-      AND m.is_minor IS NOT TRUE
-      AND m.under_18 IS NOT TRUE
-      AND EXISTS (
-        SELECT 1 FROM public.profile_owners po
-        WHERE po.profile_slug = m.slug
-          AND po.owner_id = p_user_id
-      );
+      AND lower(btrim(m.account_type)) IN (
+        'member', 'artist', 'creator', 'dj', 'subscriber_profile',
+        'brand', 'venue', 'organizer', 'promoter', 'company'
+      )
+      AND NOT (m.is_minor IS TRUE OR m.under_18 IS TRUE);
   END IF;
 END;
 $$;
 
-ALTER FUNCTION public.admin_set_account_age(uuid, boolean, text) OWNER TO postgres;
-REVOKE ALL ON FUNCTION public.admin_set_account_age(uuid, boolean, text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.admin_set_account_age(uuid, boolean, text) TO authenticated;
+ALTER FUNCTION public.admin_set_account_age(uuid, boolean, text, text, text) OWNER TO postgres;
+REVOKE ALL ON FUNCTION public.admin_set_account_age(uuid, boolean, text, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_set_account_age(uuid, boolean, text, text, text) TO authenticated;
+
+-- One named house page per call. Not executed by this migration.
+CREATE OR REPLACE FUNCTION public.admin_move_house_page(
+  p_slug text,
+  p_house_user_id uuid
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  slug text;
+  kind text;
+BEGIN
+  IF COALESCE(public.is_admin(), FALSE) IS NOT TRUE THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+  IF p_house_user_id IS NULL OR (SELECT auth.uid()) IS NULL THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+  slug := lower(btrim(COALESCE(p_slug, '')));
+  IF slug !~ '^[a-z0-9-]{1,80}$' THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.app_admins adm WHERE adm.user_id = p_house_user_id
+  ) THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM private.account_age a
+    WHERE a.user_id = p_house_user_id
+      AND a.verified IS TRUE
+      AND a.method = 'house'
+  ) THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+  SELECT lower(btrim(m.account_type)) INTO kind
+  FROM public.profile_meta m
+  WHERE m.slug = slug;
+  IF kind IS NULL OR kind NOT IN (
+    'editorial_artist', 'editorial_venue', 'editorial_organizer', 'editorial_brand'
+  ) THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+
+  INSERT INTO public.profile_owners (profile_slug, owner_id)
+  VALUES (slug, p_house_user_id)
+  ON CONFLICT (profile_slug) DO UPDATE
+    SET owner_id = EXCLUDED.owner_id
+    WHERE public.profile_owners.owner_id IS DISTINCT FROM EXCLUDED.owner_id;
+
+  UPDATE public.profile_meta m
+  SET
+    is_minor = FALSE,
+    under_18 = FALSE
+  WHERE m.slug = slug
+    AND NOT (m.is_minor IS TRUE OR m.under_18 IS TRUE);
+END;
+$$;
+
+ALTER FUNCTION public.admin_move_house_page(text, uuid) OWNER TO postgres;
+REVOKE ALL ON FUNCTION public.admin_move_house_page(text, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_move_house_page(text, uuid) TO authenticated;
 
 -- One visibility rule for every public RPC. Not for RLS policies.
 -- SECURITY DEFINER, owner postgres, search_path fixed to empty.
@@ -437,6 +534,7 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.profile_meta FROM anon, 
 -- privileges and grant the columns back. The live save sends account_type,
 -- status, and slug. profile_public and public_fields are the opt-in.
 -- admin_approved, age_verified, is_minor, and under_18 are not granted.
+REVOKE TRUNCATE ON TABLE public.profile_meta FROM authenticated;
 REVOKE INSERT, UPDATE ON TABLE public.profile_meta FROM authenticated;
 GRANT INSERT (
   slug, display_name, handle, location, bio, tagline, pronouns, book_email,
@@ -523,8 +621,8 @@ END $$;
 -- Anon keeps the SELECT privilege until step 2, but the public read policies
 -- are gone, so owner_id is not readable. profile_meta's open read policies
 -- stay until step 2. That swap is not done here.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.profile_owners FROM anon, PUBLIC;
-REVOKE UPDATE, DELETE ON TABLE public.profile_owners FROM authenticated;
+REVOKE ALL ON TABLE public.profile_owners FROM anon, PUBLIC;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.profile_owners FROM authenticated;
 
 DROP POLICY IF EXISTS profile_owners_select_own ON public.profile_owners;
 CREATE POLICY profile_owners_select_own ON public.profile_owners

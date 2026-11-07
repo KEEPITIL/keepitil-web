@@ -1,14 +1,13 @@
--- STEP 2 of 2. Apply only after 20261107014000_profile_public_read_add.sql
--- is applied, the web deploy is live, and Spotlight, Connect, browse, and
--- /member have been checked.
+-- STEP 2 of 2. Apply only after step 1, the web deploy, and the admin
+-- attestation in docs/profile-release-runbook.md. Do not apply this file
+-- just because it sits in supabase/migrations.
 -- NEEDS SENTINEL + JOE BEFORE PROD. Not applied by this PR.
 --
 -- This file is the only place profile_meta's public read policies are swapped
 -- for the owner read. Do not call private.profile_is_public from a policy.
--- After this file, every public profile is hidden until an admin verifies an
--- owner through a server-only path. Prod has no trusted 18+ signal. The
--- auth-metadata checkbox is user-editable and is not that path. is_minor and
--- under_18 stay NULL, and profile_is_public fails closed on NULL.
+-- A page that already passes private.profile_is_public stays public.
+-- A page that is still unverified goes private, because NULL fails closed.
+-- The auth-metadata checkbox is not a verification.
 --
 -- After this file, this is refused for anon:
 --   select book_email from public.profile_meta;

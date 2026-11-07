@@ -1,0 +1,11 @@
+{
+  "name": "g-xss1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node run.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.49.1"
+  }
+}

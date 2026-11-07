@@ -28,6 +28,8 @@ DROP FUNCTION IF EXISTS public.get_public_profile(text) RESTRICT;
 DROP FUNCTION IF EXISTS private.profile_public_one(text) RESTRICT;
 DROP FUNCTION IF EXISTS private.owner_is_verified_adult(text) RESTRICT;    -- if added for the business rule
 DROP FUNCTION IF EXISTS private.profile_is_public(text) RESTRICT;          -- after the policies/functions that call it
+DROP FUNCTION IF EXISTS public.admin_record_age_verification(uuid, text, text, text) RESTRICT;
+DROP TABLE    IF EXISTS private.age_verifications;
 DROP TABLE    IF EXISTS public.profile_claim_requests RESTRICT;
 DROP SCHEMA   IF EXISTS private RESTRICT;   -- did not exist before step 1; fails if anything is left in it
 

@@ -36,7 +36,8 @@ CREATE POLICY "read all" ON public.profile_owners
   FOR SELECT TO authenticated
   USING (true);
 
--- Restore signed-in writes exactly as before (step 1 cut them to column grants).
+-- Step 1 replaced table-wide INSERT and UPDATE with column grants.
+-- GRANT ALL puts the table-wide privileges back, which is what production has now.
 GRANT ALL ON TABLE public.profile_meta TO authenticated;
 GRANT ALL ON TABLE public.profile_owners TO authenticated;
 -- Anon privileges stay revoked. Do not grant this role.

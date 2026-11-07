@@ -41,20 +41,24 @@ test('an event share campaigns the event slug only', () => {
 
 const ADULT = { profile_public: true, age_verified: true, is_minor: false, status: 'published', admin_approved: true };
 
-test('an owner self-update of age_verified or status is refused', () => {
+test('authenticated cannot set admin_approved after step 1', () => {
   const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
   const revoke = readFileSync(new URL('../../supabase/migrations/20261107014100_profile_public_read_revoke.sql', import.meta.url), 'utf8');
+  assert.match(add, /REVOKE INSERT, UPDATE ON TABLE public\.profile_meta FROM authenticated/);
   assert.equal(/REVOKE ALL ON TABLE public\.profile_meta FROM authenticated/.test(add), false);
-  assert.match(revoke, /REVOKE ALL ON TABLE public\.profile_meta FROM authenticated/);
   for (const kind of ['INSERT', 'UPDATE']) {
-    const grants = revoke.match(new RegExp('GRANT ' + kind + ' \\(([^)]+)\\) ON TABLE public\\.profile_meta', 'i'));
+    const grants = add.match(new RegExp('GRANT ' + kind + ' \\(([^)]+)\\) ON TABLE public\\.profile_meta', 'i'));
     assert.ok(grants, kind);
     const cols = grants[1].split(',').map((s) => s.trim());
-    for (const forbidden of ['age_verified', 'is_minor', 'under_18', 'status', 'account_type', 'admin_approved']) {
+    for (const kept of ['account_type', 'status', 'slug', 'profile_public', 'public_fields']) {
+      assert.equal(cols.includes(kept), true, kind + ' keeps ' + kept);
+    }
+    for (const forbidden of ['admin_approved', 'age_verified', 'is_minor', 'under_18']) {
       assert.equal(cols.includes(forbidden), false, kind + ' ' + forbidden);
     }
-    if (kind === 'UPDATE') assert.equal(cols.includes('slug'), false);
   }
+  assert.match(revoke, /REVOKE UPDATE \(account_type, status, slug\) ON TABLE public\.profile_meta FROM authenticated/);
+  assert.match(revoke, /REVOKE INSERT \(account_type, status\) ON TABLE public\.profile_meta FROM authenticated/);
 });
 
 test('anon truncate and anon insert are refused', () => {
@@ -302,6 +306,9 @@ test('the qa owner seed refuses production', () => {
   assert.match(sql, /kil\.qa_seed/);
   assert.equal(/password|service_role|eyJ/i.test(sql), false);
   const script = readFileSync(new URL('../../scripts/seed-qa-owners.mjs', import.meta.url), 'utf8');
+  const migrations = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8')
+    + readFileSync(new URL('../../supabase/migrations/20261107014100_profile_public_read_revoke.sql', import.meta.url), 'utf8');
+  assert.equal(migrations.includes('qa-brand'), false);
   assert.match(script, /qa-brand@example\.test/);
   assert.match(script, /qa-member@example\.test/);
   assert.equal(/eyJ/.test(script), false);

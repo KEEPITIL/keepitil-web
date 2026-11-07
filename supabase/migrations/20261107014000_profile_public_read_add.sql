@@ -240,8 +240,25 @@ GRANT EXECUTE ON FUNCTION public.public_profile_list(text, text, integer) TO ano
 
 
 -- Anon keeps SELECT until the revoke migration. Writes, delete, and truncate go now.
--- Authenticated column limits are not in this file. The live owner save still sends them.
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.profile_meta FROM anon, PUBLIC;
+
+-- A table-wide INSERT or UPDATE hides a column grant, so revoke those two
+-- privileges and grant the columns back. The live save sends account_type,
+-- status, and slug. profile_public and public_fields are the opt-in.
+-- admin_approved, age_verified, is_minor, and under_18 are not granted.
+REVOKE INSERT, UPDATE ON TABLE public.profile_meta FROM authenticated;
+GRANT INSERT (
+  slug, display_name, handle, location, bio, tagline, pronouns, book_email,
+  about, links, links_label, badges, account_type, status, avatar_url,
+  cover_url, cover_mobile_url, socials, highlights, updated_at,
+  profile_public, public_fields
+) ON TABLE public.profile_meta TO authenticated;
+GRANT UPDATE (
+  slug, display_name, handle, location, bio, tagline, pronouns, book_email,
+  about, links, links_label, badges, account_type, status, avatar_url,
+  cover_url, cover_mobile_url, socials, highlights, updated_at,
+  profile_public, public_fields
+) ON TABLE public.profile_meta TO authenticated;
 
 -- Owner read uses profile_owners, the same check the existing update policy uses.
 -- The existing update policy is left in place.

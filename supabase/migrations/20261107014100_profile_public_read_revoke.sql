@@ -48,20 +48,11 @@ REVOKE ALL ON TABLE public.profile_owners FROM PUBLIC;
 REVOKE ALL ON TABLE public.profile_claim_requests FROM anon;
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.profile_owners FROM authenticated;
 
--- The new owner save is deployed before this file. It does not send account_type or slug.
--- Until then, the live save still sends those columns, so step 1 leaves the grants alone.
-REVOKE ALL ON TABLE public.profile_meta FROM authenticated;
-GRANT SELECT ON TABLE public.profile_meta TO authenticated;
-GRANT INSERT (
-  slug, display_name, handle, location, bio, tagline, pronouns, book_email,
-  about, links, links_label, badges, avatar_url, cover_url, cover_mobile_url,
-  socials, highlights, updated_at, profile_public, public_fields
-) ON TABLE public.profile_meta TO authenticated;
-GRANT UPDATE (
-  display_name, handle, location, bio, tagline, pronouns, book_email,
-  about, links, links_label, badges, avatar_url, cover_url, cover_mobile_url,
-  socials, highlights, updated_at, profile_public, public_fields
-) ON TABLE public.profile_meta TO authenticated;
+-- Step 1 granted the live save columns. The deployed save no longer sends
+-- account_type, status, or slug on update. Drop those now. Insert still has
+-- slug so a brand-new row can be created.
+REVOKE UPDATE (account_type, status, slug) ON TABLE public.profile_meta FROM authenticated;
+REVOKE INSERT (account_type, status) ON TABLE public.profile_meta FROM authenticated;
 REVOKE DELETE, TRUNCATE ON TABLE public.profile_meta FROM authenticated;
 
 -- The owner read policy is created in step 1 on profile_owners.

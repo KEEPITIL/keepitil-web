@@ -916,6 +916,7 @@ document.addEventListener('click',function(e){ var dd=document.getElementById('v
 <script src="/assets/js/keepitil-radio.js?v=20260929a" defer></script>
 <!-- floating AI chat bubble (#kilo-btn) — same as Culture/home for uniformity -->
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
+<script src="/assets/js/kil-safe-html.js?v=20261107a"></script>
 <script>
 /* One anon key for this page's two public reads (playlists + competitions). Same publishable
    key every other page already ships in its HTML. */
@@ -1235,13 +1236,17 @@ function renderPls(){
       if(!rows.length){ el.innerHTML=''; return; }
       el.innerHTML=rows.map(function(p,i){
         var hue=[280,200,35,140,320,90][i%6];
-        var cover=p.art ? 'background:#15131f url('+p.art+') center/cover no-repeat'
+        var artUrl=window.KilSafeHtml?KilSafeHtml.safeMediaUrl(p.art):'';
+        var href=window.KilSafeHtml?KilSafeHtml.safeNavUrl(p.url):'';
+        var cover=artUrl ? 'background:#15131f url(\''+esc(artUrl)+'\') center/cover no-repeat'
                         : 'background:linear-gradient(135deg,hsl('+hue+',72%,44%),hsl('+((hue+40)%360)+',66%,20%))';
+        var open=href?'<a href="'+esc(href)+'" target="_blank" rel="noopener" style="display:block;color:inherit;text-decoration:none">':'<div style="display:block;color:inherit">';
+        var close=href?'</a>':'</div>';
         return '<div class="station card" style="position:relative">'
-          + '<a href="'+esc(p.url)+'" target="_blank" rel="noopener" style="display:block;color:inherit;text-decoration:none">'
-          +   '<div class="card-img" style="'+cover+'">'+(p.art?'':'\u266a')+'</div>'
+          + open
+          +   '<div class="card-img" style="'+cover+'">'+(artUrl?'':'\u266a')+'</div>'
           +   '<div class="g">'+esc(p.name)+'</div><div class="s">Your playlist</div>'
-          + '</a>'
+          + close
           + '<button class="chip'+(p.is_default?'':' soon')+'" onclick="setDefaultPlaylist('+p.id+')" '
           +   'style="border:0;cursor:pointer;margin-top:8px">'+(p.is_default?'DEFAULT':'SET DEFAULT')+'</button>'
           + '<button onclick="rmPlaylist('+p.id+')" title="Remove" '
@@ -1303,8 +1308,9 @@ function submitAirplay(){
     grid.innerHTML = rows.map(function(c){
       var closes=''; try{ var dt=new Date(c.submissions_close_at); if(!isNaN(dt)) closes='Closes '+dt.toLocaleDateString([],{month:'short',day:'numeric'}); }catch(e){}
       var free = !c.entry_fee_cents;
-      var art = c.cover_url
-        ? '<div class="card-img" style="height:auto;aspect-ratio:2/3;margin:-16px -16px 12px;background:#15131f url('+esc(c.cover_url)+') center/cover no-repeat"></div>'
+      var cover=window.KilSafeHtml?KilSafeHtml.safeMediaUrl(c.cover_url):'';
+      var art = cover
+        ? '<div class="card-img" style="height:auto;aspect-ratio:2/3;margin:-16px -16px 12px;background:#15131f url(\''+esc(cover)+'\') center/cover no-repeat"></div>'
         : '<div class="card-img" style="background:linear-gradient(150deg,#ff2e88,#a06bff)">🏆</div>';
       return '<a class="card station" href="/create/?view=enter&c='+encodeURIComponent(c.id)+'">'
         + art

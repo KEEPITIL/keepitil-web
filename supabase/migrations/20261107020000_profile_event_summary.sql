@@ -9,7 +9,10 @@
 --
 -- What changes:
 --   get_profile_event_summary(text) — anon and signed-in callers. One row:
---     upcoming_count, cities. No titles, venues, covers, or ticket counts.
+--     upcoming_count, cities, organizer. No titles, venues, covers, or ticket counts.
+--     organizer is the profile slug, and only because this function already
+--     requires private.profile_is_public. The events table grant does not
+--     include owner_handle or owner_id.
 --     upcoming_count is NULL when the true count is 1–4 (show "<5"),
 --     0 when there are none, and the exact integer when it is 5 or more.
 --     Gates on private.profile_is_public(slug) plus public_fields containing
@@ -98,7 +101,8 @@ GRANT EXECUTE ON FUNCTION public.get_profile_events(text) TO authenticated;
 CREATE OR REPLACE FUNCTION public.get_profile_event_summary(p_handle text)
 RETURNS TABLE (
   upcoming_count integer,
-  cities text[]
+  cities text[],
+  organizer text
 )
 LANGUAGE sql
 STABLE
@@ -141,7 +145,8 @@ AS $$
         ORDER BY city
         LIMIT 6
       ) picked
-    ) AS cities
+    ) AS cities,
+    (SELECT v.slug FROM visible v) AS organizer
   WHERE EXISTS (SELECT 1 FROM visible);
 $$;
 
@@ -190,10 +195,13 @@ $$;
 REVOKE ALL ON FUNCTION public.get_my_ticket_summary() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_my_ticket_summary() TO authenticated;
 
--- events_public_read lets anon read every published row, and the table SELECT
--- grant includes event_password_hash. A column revoke does not beat a table
+-- A published event stays readable as a listing even when the organizer's
+-- profile is private. The table SELECT grant includes the password hash and
+-- the owner identity columns, and a column revoke does not beat a table
 -- grant, so take the table grant away and grant every other column back.
--- Owner functions above are SECURITY DEFINER and can still read the hash.
+-- owner_handle and owner_id are not in that list. The organizer is returned
+-- only by get_profile_event_summary, which already requires
+-- private.profile_is_public. Owner functions above are SECURITY DEFINER.
 DO $$
 DECLARE cols text;
 BEGIN
@@ -206,7 +214,7 @@ BEGIN
     AND c.relname = 'events'
     AND a.attnum > 0
     AND NOT a.attisdropped
-    AND a.attname <> 'event_password_hash';
+    AND a.attname NOT IN ('event_password_hash', 'owner_handle', 'owner_id');
   IF cols IS NULL THEN
     RAISE EXCEPTION 'public.events is missing';
   END IF;

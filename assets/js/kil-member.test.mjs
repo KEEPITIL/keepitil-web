@@ -397,7 +397,9 @@ test('the draft summary migration gates on profile_is_public and does not return
   assert.match(down, /DROP FUNCTION IF EXISTS public\.get_profile_event_summary\(text\)/);
   assert.match(down, /does not drop it/);
   assert.match(sql, /REVOKE SELECT ON TABLE public\.events FROM anon, authenticated, PUBLIC/);
-  assert.match(sql, /a\.attname <> 'event_password_hash'/);
+  assert.match(sql, /a\.attname NOT IN \('event_password_hash', 'owner_handle', 'owner_id'\)/);
+  assert.match(summary, /organizer text/);
+  assert.match(summary, /\(SELECT v\.slug FROM visible v\) AS organizer/);
   assert.match(sql, /immediately after PR #91 step 1/);
   assert.equal(/20261107014000 then 20261107014100/.test(sql), false);
   assert.match(down, /pg_get_functiondef\('public\.get_profile_events\(text\)'/);

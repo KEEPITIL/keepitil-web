@@ -73,10 +73,11 @@ UPDATE public.profile_meta
 SET public_fields = ARRAY[]::text[]
 WHERE public_fields IS NULL;
 
--- Server-only age log. Anon and authenticated have no privileges.
--- The user-editable auth-metadata checkbox is never read and never written here.
--- A row is the current decision only while revoked_at is null.
-CREATE TABLE IF NOT EXISTS private.age_verifications (
+-- private.account_age is the single source of verified age. Admin-write only.
+-- Anon and authenticated have no privileges. The user-editable auth-metadata
+-- checkbox is never read. verified_by, method, and verified_at are the audit.
+-- A row is current only while revoked_at is null.
+CREATE TABLE IF NOT EXISTS private.account_age (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   verified_by uuid,
@@ -87,11 +88,11 @@ CREATE TABLE IF NOT EXISTS private.age_verifications (
   is_minor boolean,
   verified_at timestamptz NOT NULL DEFAULT now(),
   revoked_at timestamptz,
-  CONSTRAINT age_verifications_actor CHECK (
+  CONSTRAINT account_age_actor CHECK (
     (actor_role = 'service_role' AND verified_by IS NULL)
     OR (actor_role = 'admin' AND verified_by IS NOT NULL)
   ),
-  CONSTRAINT age_verifications_outcome CHECK (
+  CONSTRAINT account_age_outcome CHECK (
     (
       revoked_at IS NULL
       AND age_verified IS TRUE
@@ -113,12 +114,12 @@ CREATE TABLE IF NOT EXISTS private.age_verifications (
   )
 );
 
-ALTER TABLE private.age_verifications OWNER TO postgres;
-ALTER TABLE private.age_verifications ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE private.age_verifications FROM PUBLIC, anon, authenticated;
+ALTER TABLE private.account_age OWNER TO postgres;
+ALTER TABLE private.account_age ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE private.account_age FROM PUBLIC, anon, authenticated;
 
-CREATE INDEX IF NOT EXISTS age_verifications_open_user
-  ON private.age_verifications (user_id)
+CREATE INDEX IF NOT EXISTS account_age_open_user
+  ON private.account_age (user_id)
   WHERE revoked_at IS NULL;
 
 -- Admin or service_role only. Records who, how, and when, then sets the
@@ -169,12 +170,12 @@ BEGIN
     RAISE EXCEPTION 'not allowed';
   END IF;
 
-  UPDATE private.age_verifications
+  UPDATE private.account_age
   SET revoked_at = now()
   WHERE user_id = p_user_id
     AND revoked_at IS NULL;
 
-  INSERT INTO private.age_verifications (
+  INSERT INTO private.account_age (
     user_id, verified_by, actor_role, method, evidence_note,
     age_verified, is_minor, verified_at, revoked_at
   ) VALUES (
@@ -232,15 +233,92 @@ REVOKE ALL ON FUNCTION public.admin_record_age_verification(uuid, text, text, te
 GRANT EXECUTE ON FUNCTION public.admin_record_age_verification(uuid, text, text, text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.admin_record_age_verification(uuid, text, text, text) TO authenticated;
 
+-- Not called by this migration. Before step 2, an admin assigns each KEEPITIL
+-- house page to the dedicated house owner account. That account must already
+-- be an attested adult in private.account_age. There is no ownerless path.
+CREATE OR REPLACE FUNCTION public.admin_assign_house_page(
+  p_slug text,
+  p_house_user_id uuid
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  kind text;
+  slug text;
+BEGIN
+  IF p_house_user_id IS NULL THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+  IF (SELECT auth.role()) = 'service_role' THEN
+    NULL;
+  ELSIF COALESCE(public.is_admin(), FALSE) IS TRUE
+    AND (SELECT auth.uid()) IS NOT NULL
+    AND (SELECT auth.uid()) IS DISTINCT FROM p_house_user_id THEN
+    NULL;
+  ELSE
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+
+  slug := lower(btrim(COALESCE(p_slug, '')));
+  IF slug !~ '^[a-z0-9-]{1,80}$' THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+
+  SELECT lower(btrim(m.account_type)) INTO kind
+  FROM public.profile_meta m
+  WHERE m.slug = slug;
+  IF kind IS NULL OR kind NOT IN (
+    'editorial_artist', 'editorial_venue', 'editorial_organizer', 'editorial_brand'
+  ) THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM private.account_age a
+    WHERE a.user_id = p_house_user_id
+      AND a.revoked_at IS NULL
+      AND a.age_verified IS TRUE
+      AND a.is_minor IS FALSE
+  ) THEN
+    RAISE EXCEPTION 'not allowed';
+  END IF;
+
+  INSERT INTO public.profile_owners (profile_slug, owner_id)
+  VALUES (slug, p_house_user_id)
+  ON CONFLICT (profile_slug) DO UPDATE
+    SET owner_id = EXCLUDED.owner_id;
+
+  UPDATE public.profile_meta m
+  SET
+    is_minor = a.is_minor,
+    under_18 = a.is_minor
+  FROM private.account_age a
+  WHERE m.slug = slug
+    AND a.user_id = p_house_user_id
+    AND a.revoked_at IS NULL
+    AND a.age_verified IS TRUE
+    AND a.is_minor IS FALSE;
+END;
+$$;
+
+ALTER FUNCTION public.admin_assign_house_page(text, uuid) OWNER TO postgres;
+REVOKE ALL ON FUNCTION public.admin_assign_house_page(text, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_assign_house_page(text, uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.admin_assign_house_page(text, uuid) TO authenticated;
+
 -- One visibility rule for every public RPC. Not for RLS policies.
 -- SECURITY DEFINER, owner postgres, search_path fixed to empty.
 -- Unknown, null, or a missing owner fails closed.
--- The 18+ signal is an open row in private.age_verifications for that owner.
+-- The 18+ signal is an open adult row in private.account_age for that owner.
 -- profile_meta.age_verified alone does not count, and auth metadata is not read.
 -- Person: member, artist, creator, dj, and the live subscriber_profile alias.
 -- Business: brand, venue, organizer, promoter, company.
--- Both still need is_minor and under_18 false on the page. Those flags are
--- set only by admin_record_age_verification. editorial_* stays private.
+-- House pages: editorial_artist, editorial_venue, editorial_organizer, editorial_brand.
+--   They are not ownerless. An admin assigns them to the house account.
+-- All of these still need is_minor and under_18 false on the page.
 CREATE OR REPLACE FUNCTION private.profile_is_public(p_slug text)
 RETURNS boolean
 LANGUAGE sql
@@ -257,12 +335,13 @@ AS $$
       AND m.under_18 IS FALSE
       AND lower(btrim(m.account_type)) IN (
         'member', 'artist', 'creator', 'dj', 'subscriber_profile',
-        'brand', 'venue', 'organizer', 'promoter', 'company'
+        'brand', 'venue', 'organizer', 'promoter', 'company',
+        'editorial_artist', 'editorial_venue', 'editorial_organizer', 'editorial_brand'
       )
       AND EXISTS (
         SELECT 1
         FROM public.profile_owners po
-        JOIN private.age_verifications v
+        JOIN private.account_age v
           ON v.user_id = po.owner_id
         WHERE po.profile_slug = m.slug
           AND po.owner_id IS NOT NULL
@@ -380,8 +459,9 @@ $$;
 REVOKE ALL ON FUNCTION public.get_public_profile(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_public_profile(text) TO anon, authenticated;
 
--- Directory list. Person performers and business pages that pass
--- private.profile_is_public. Personal members are not listed.
+-- Directory list. Person performers, business pages, and house pages that
+-- pass private.profile_is_public. A house page with no house owner does not.
+-- Personal members are not listed.
 -- The field list limits each column. book_email is not selected.
 CREATE OR REPLACE FUNCTION public.public_profile_list(
   p_account_type text DEFAULT NULL,
@@ -422,14 +502,15 @@ AS $$
     AND cardinality(m.public_fields) > 0
     AND lower(btrim(m.account_type)) IN (
       'artist', 'creator', 'dj',
-      'brand', 'venue', 'organizer', 'promoter', 'company'
+      'brand', 'venue', 'organizer', 'promoter', 'company',
+      'editorial_artist', 'editorial_venue', 'editorial_organizer', 'editorial_brand'
     )
     AND (
       p_account_type IS NULL
       OR btrim(p_account_type) = ''
       OR (
         lower(btrim(p_account_type)) = 'artist'
-        AND lower(btrim(m.account_type)) IN ('artist', 'creator', 'dj')
+        AND lower(btrim(m.account_type)) IN ('artist', 'creator', 'dj', 'editorial_artist')
       )
       OR lower(btrim(p_account_type)) = lower(btrim(m.account_type))
     )
@@ -512,8 +593,8 @@ GRANT EXECUTE ON FUNCTION public.set_profile_admin_approved(text, boolean) TO au
 -- Prod policy names (Atlas, read-only): "profile_owners read all" and
 -- profile_owners_read. There is no policy named "read all".
 -- "profile_owners manage own" lets an owner set profile_slug to any slug.
--- "profile_owners delete own" is dropped with it. No replacement UPDATE or
--- DELETE policy: owners cannot change the slug.
+-- "profile_owners delete own" is dropped with it. Owners get no UPDATE and
+-- no DELETE on profile_owners. There is no replacement policy for either.
 DROP POLICY IF EXISTS "profile_owners claim" ON public.profile_owners;
 DROP POLICY IF EXISTS "profile_owners read all" ON public.profile_owners;
 DROP POLICY IF EXISTS profile_owners_read ON public.profile_owners;
@@ -541,6 +622,7 @@ END $$;
 -- are gone, so owner_id is not readable. profile_meta's open read policies
 -- stay until step 2. That swap is not done here.
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.profile_owners FROM anon, PUBLIC;
+REVOKE UPDATE, DELETE ON TABLE public.profile_owners FROM authenticated;
 
 DROP POLICY IF EXISTS profile_owners_select_own ON public.profile_owners;
 CREATE POLICY profile_owners_select_own ON public.profile_owners

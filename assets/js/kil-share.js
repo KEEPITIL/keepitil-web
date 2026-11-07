@@ -35,6 +35,7 @@
     var t = String(meta && meta.account_type || '').toLowerCase();
     if (t === 'member' || t === 'artist' || t === 'creator' || t === 'dj' || t === 'subscriber_profile') return 'person';
     if (t === 'brand' || t === 'venue' || t === 'organizer' || t === 'promoter' || t === 'company') return 'business';
+    if (t === 'editorial_artist' || t === 'editorial_venue' || t === 'editorial_organizer' || t === 'editorial_brand') return 'house';
     return '';
   }
 
@@ -53,7 +54,7 @@
     if (!Array.isArray(meta.public_fields) || !meta.public_fields.length) return false;
     if (meta.is_minor !== false || meta.under_18 !== false) return false;
     var kind = accountKind(meta);
-    if (kind === 'business') return true;
+    if (kind === 'business' || kind === 'house') return true;
     if (kind === 'person') return meta.age_verified === true;
     return false;
   }

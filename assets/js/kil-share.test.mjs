@@ -118,7 +118,8 @@ test('an is_minor artist is excluded from the list view', () => {
   const list = add.slice(add.indexOf('FUNCTION public.public_profile_list'), add.indexOf('REVOKE ALL ON FUNCTION public.public_profile_list'));
   assert.match(list, /private\.profile_is_public\(m\.slug\)/);
   assert.match(list, /'artist', 'creator', 'dj'/);
-  assert.equal(/editorial_artist/.test(list), false);
+  assert.match(list, /editorial_artist/);
+  assert.match(list, /private\.profile_is_public\(m\.slug\)/);
   assert.equal(/m\.book_email/.test(list), false);
 });
 
@@ -131,7 +132,7 @@ test('profile_is_public is the only visibility rule and it is not an RLS policy'
   assert.match(add, /ALTER FUNCTION private\.profile_is_public\(text\) OWNER TO postgres/);
   assert.match(helper, /m\.profile_public IS TRUE/);
   assert.match(helper, /m\.admin_approved IS TRUE/);
-  assert.match(helper, /private\.age_verifications/);
+  assert.match(helper, /private\.account_age/);
   assert.match(helper, /v\.revoked_at IS NULL/);
   assert.match(helper, /v\.age_verified IS TRUE/);
   assert.match(helper, /v\.is_minor IS FALSE/);
@@ -139,9 +140,14 @@ test('profile_is_public is the only visibility rule and it is not an RLS policy'
   assert.equal(/m\.age_verified/.test(helper), false);
   assert.equal(/auth\.users|raw_user_meta_data|user_metadata/.test(helper), false);
   assert.match(helper, /'brand', 'venue', 'organizer', 'promoter', 'company'/);
-  assert.match(add, /CREATE TABLE IF NOT EXISTS private\.age_verifications/);
-  assert.match(add, /REVOKE ALL ON TABLE private\.age_verifications FROM PUBLIC, anon, authenticated/);
-  assert.equal(/GRANT [^;]*ON TABLE private\.age_verifications/i.test(add), false);
+  assert.match(helper, /'editorial_artist', 'editorial_venue', 'editorial_organizer', 'editorial_brand'/);
+  assert.match(add, /FUNCTION public\.admin_assign_house_page/);
+  assert.match(add, /GRANT EXECUTE ON FUNCTION public\.admin_assign_house_page\(text, uuid\) TO service_role/);
+  assert.equal(/PERFORM public\.admin_assign_house_page|SELECT public\.admin_assign_house_page/.test(add), false);
+  assert.match(add, /REVOKE UPDATE, DELETE ON TABLE public\.profile_owners FROM authenticated/);
+  assert.match(add, /CREATE TABLE IF NOT EXISTS private\.account_age/);
+  assert.match(add, /REVOKE ALL ON TABLE private\.account_age FROM PUBLIC, anon, authenticated/);
+  assert.equal(/GRANT [^;]*ON TABLE private\.account_age/i.test(add), false);
   assert.match(add, /FUNCTION public\.admin_record_age_verification/);
   assert.match(add, /GRANT EXECUTE ON FUNCTION public\.admin_record_age_verification\(uuid, text, text, text\) TO service_role/);
   assert.match(add, /COALESCE\(public\.is_admin\(\), FALSE\)/);
@@ -263,7 +269,8 @@ test('a business profile does not need 18+ on the page, and a member still does'
     is_minor: false, under_18: false
   };
   assert.equal(s.profileIsShareable(openBiz), true);
-  assert.equal(s.profileIsShareable(Object.assign({}, openBiz, { account_type: 'editorial_artist' })), false);
+  assert.equal(s.profileIsShareable(Object.assign({}, openBiz, { account_type: 'editorial_artist' })), true);
+  assert.equal(s.profileIsShareable(Object.assign({}, openBiz, { account_type: 'editorial_artist', is_minor: null, under_18: null })), false);
   assert.equal(s.profileIsShareable(Object.assign({}, openBiz, { profile_public: false })), false);
   assert.equal(s.profileIsShareable(Object.assign({}, openBiz, { public_fields: [] })), false);
   assert.equal(s.profileIsShareable(Object.assign({}, openBiz, { public_fields: null })), false);
@@ -331,7 +338,8 @@ test('step 1 rollback restores the real prod policy names', () => {
   assert.match(down, /DROP FUNCTION IF EXISTS public\.approve_profile_claim\(uuid\)/);
   assert.match(down, /DROP FUNCTION IF EXISTS private\.profile_is_public\(text\)/);
   assert.match(down, /DROP FUNCTION IF EXISTS public\.admin_record_age_verification\(uuid, text, text, text\)/);
-  assert.match(down, /DROP TABLE\s+IF EXISTS private\.age_verifications/);
+  assert.match(down, /DROP FUNCTION IF EXISTS public\.admin_assign_house_page\(text, uuid\)/);
+  assert.match(down, /DROP TABLE\s+IF EXISTS private\.account_age/);
   assert.match(down, /"profile_owners claim"/);
   assert.match(down, /CREATE POLICY "profile_owners read all"/);
   assert.match(down, /CREATE POLICY profile_owners_read/);

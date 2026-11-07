@@ -31,23 +31,31 @@
     return (cut || s.slice(0, 157)) + '\u2026';
   }
 
-  function isBusinessProfile(meta) {
+  function accountKind(meta) {
     var t = String(meta && meta.account_type || '').toLowerCase();
-    return t === 'brand' || t === 'organizer' || t === 'artist' || t === 'editorial_artist';
+    if (t === 'member' || t === 'artist' || t === 'creator' || t === 'dj' || t === 'subscriber_profile') return 'person';
+    if (t === 'brand' || t === 'venue' || t === 'organizer' || t === 'promoter' || t === 'company') return 'business';
+    return '';
   }
 
-  /** A minor is never public. Every profile needs an opt-in and a field list. Members also need verified 18+. */
+  /**
+   * Same rule as private.profile_is_public. Null fails closed.
+   * A person also needs age_verified. A business does not, but both minor
+   * flags must already be false (the server copies those from a verified
+   * adult owner). The owner row itself is checked only in the SQL helper.
+   */
   function profileIsShareable(meta) {
     if (!meta || typeof meta !== 'object') return false;
-    if (meta.under_18 === true || meta.availability === 'minor' || meta.is_minor === true) return false;
+    if (meta.availability === 'minor') return false;
     if (meta.admin_approved !== true) return false;
     if (String(meta.status || '') !== 'published') return false;
     if (meta.profile_public !== true) return false;
     if (!Array.isArray(meta.public_fields) || !meta.public_fields.length) return false;
-    if (isBusinessProfile(meta)) return true;
-    if (meta.is_minor !== false) return false;
-    if (meta.age_verified !== true) return false;
-    return true;
+    if (meta.is_minor !== false || meta.under_18 !== false) return false;
+    var kind = accountKind(meta);
+    if (kind === 'business') return true;
+    if (kind === 'person') return meta.age_verified === true;
+    return false;
   }
 
   function fieldOn(meta, key) {

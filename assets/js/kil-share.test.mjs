@@ -39,7 +39,10 @@ test('an event share campaigns the event slug only', () => {
   assert.equal(new URL(bad).searchParams.get('utm_campaign'), null);
 });
 
-const ADULT = { profile_public: true, age_verified: true, is_minor: false, status: 'published', admin_approved: true };
+const ADULT = {
+  account_type: 'artist', profile_public: true, age_verified: true,
+  is_minor: false, under_18: false, status: 'published', admin_approved: true
+};
 
 test('authenticated cannot set admin_approved after step 1', () => {
   const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
@@ -72,6 +75,11 @@ test('anon truncate and anon insert are refused', () => {
 test('a non-owner cannot insert into profile_owners and anon cannot read it', () => {
   const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
   assert.match(add, /DROP POLICY IF EXISTS "profile_owners claim"/);
+  assert.match(add, /DROP POLICY IF EXISTS "profile_owners read all"/);
+  assert.match(add, /DROP POLICY IF EXISTS profile_owners_read/);
+  assert.match(add, /DROP POLICY IF EXISTS "profile_owners manage own"/);
+  assert.match(add, /DROP POLICY IF EXISTS "profile_owners delete own"/);
+  assert.equal(/FOR UPDATE[\s\S]{0,80}profile_owners|profile_owners[\s\S]{0,80}FOR UPDATE/.test(add), false);
   assert.match(add, /REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public\.profile_owners FROM anon, PUBLIC/);
   assert.equal(/REVOKE ALL ON TABLE public\.profile_owners FROM anon/.test(add), false);
   assert.equal(/REVOKE INSERT, DELETE, TRUNCATE ON TABLE public\.profile_owners FROM authenticated/.test(add), false);
@@ -91,23 +99,70 @@ test('a non-owner cannot insert into profile_owners and anon cannot read it', ()
 
 test('under_18 stays private and out of the list', () => {
   const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
+  const helper = add.slice(add.indexOf('FUNCTION private.profile_is_public'), add.indexOf('FUNCTION private.profile_public_one'));
   const one = add.slice(add.indexOf('FUNCTION private.profile_public_one'), add.indexOf('FUNCTION public.get_public_profile'));
-  const list = add.slice(add.indexOf('FUNCTION public.public_profile_list'));
-  assert.match(one, /m\.under_18 IS NOT TRUE/);
-  assert.match(list, /m\.under_18 IS NOT TRUE/);
-  assert.match(add, /under_18 IS NOT TRUE/);
+  const list = add.slice(add.indexOf('FUNCTION public.public_profile_list'), add.indexOf('REVOKE ALL ON FUNCTION public.public_profile_list'));
+  assert.match(helper, /m\.under_18 IS FALSE/);
+  assert.match(helper, /m\.is_minor IS FALSE/);
+  assert.match(one, /private\.profile_is_public\(m\.slug\)/);
+  assert.match(list, /private\.profile_is_public\(m\.slug\)/);
+  assert.equal(/IS NOT TRUE/.test(one + list), false);
   assert.equal(s.profileIsShareable({
-    account_type: 'artist', status: 'published', admin_approved: true, is_minor: false, under_18: true
+    account_type: 'artist', status: 'published', admin_approved: true, profile_public: true,
+    public_fields: ['display_name'], is_minor: false, under_18: true, age_verified: true
   }), false);
 });
 
 test('an is_minor artist is excluded from the list view', () => {
   const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
-  const list = add.slice(add.indexOf('FUNCTION public.public_profile_list'));
-  assert.match(list, /m\.is_minor IS NOT TRUE/);
-  assert.match(list, /m\.admin_approved IS TRUE/);
-  assert.match(list, /editorial_artist/);
+  const list = add.slice(add.indexOf('FUNCTION public.public_profile_list'), add.indexOf('REVOKE ALL ON FUNCTION public.public_profile_list'));
+  assert.match(list, /private\.profile_is_public\(m\.slug\)/);
+  assert.match(list, /'artist', 'creator', 'dj'/);
+  assert.equal(/editorial_artist/.test(list), false);
   assert.equal(/m\.book_email/.test(list), false);
+});
+
+test('profile_is_public is the only visibility rule and it is not an RLS policy', () => {
+  const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
+  const revoke = readFileSync(new URL('../../supabase/migrations/20261107014100_profile_public_read_revoke.sql', import.meta.url), 'utf8');
+  const helper = add.slice(add.indexOf('FUNCTION private.profile_is_public'), add.indexOf('FUNCTION private.profile_public_one'));
+  assert.match(helper, /SECURITY DEFINER/);
+  assert.match(helper, /SET search_path = ''/);
+  assert.match(add, /ALTER FUNCTION private\.profile_is_public\(text\) OWNER TO postgres/);
+  assert.match(helper, /m\.profile_public IS TRUE/);
+  assert.match(helper, /m\.admin_approved IS TRUE/);
+  assert.match(helper, /m\.age_verified IS TRUE/);
+  assert.match(helper, /acct\.age_verified IS TRUE/);
+  assert.match(helper, /biz\.owner_id IS NOT NULL/);
+  assert.match(helper, /'brand', 'venue', 'organizer', 'promoter', 'company'/);
+  assert.match(add, /SET is_minor = NULL/);
+  assert.match(add, /under_18 = NULL/);
+  assert.match(add, /is_minor IS NOT DISTINCT FROM under_18/);
+  assert.equal(/SET is_minor = FALSE/i.test(add), false);
+  assert.equal(/SET under_18 = FALSE/i.test(add), false);
+  assert.match(add, /private\.profile_is_public\(one\.slug\)/);
+  for (const sql of [add, revoke]) {
+    sql.split('CREATE POLICY').slice(1).forEach((chunk) => {
+      assert.equal(chunk.split(';')[0].includes('profile_is_public'), false);
+    });
+  }
+  assert.match(revoke, /profile_meta's public read policies are swapped/);
+  assert.equal(s.profileIsShareable({
+    account_type: 'artist', profile_public: true, status: 'published', admin_approved: true,
+    public_fields: ['display_name'], is_minor: false, under_18: false
+  }), false);
+  assert.equal(s.profileIsShareable({
+    account_type: 'brand', profile_public: true, status: 'published', admin_approved: true,
+    public_fields: ['display_name'], is_minor: null, under_18: null
+  }), false);
+  assert.equal(s.profileIsShareable({
+    account_type: 'brand', profile_public: true, status: 'published', admin_approved: true,
+    public_fields: ['display_name'], is_minor: false, under_18: false
+  }), true);
+  assert.equal(s.profileIsShareable({
+    account_type: 'venue', profile_public: true, status: 'published', admin_approved: true,
+    public_fields: ['display_name']
+  }), false);
 });
 
 test('a private or under-18 profile gets no preview card', () => {
@@ -189,12 +244,14 @@ test('migration step 1 grants no age columns and step 2 revokes anon', () => {
   assert.equal(add.includes('m.book_email'), false);
 });
 
-test('a business profile does not need 18+, and a member still does', () => {
+test('a business profile does not need 18+ on the page, and a member still does', () => {
   const openBiz = {
-    account_type: 'editorial_artist', status: 'published', admin_approved: true,
-    profile_public: true, public_fields: ['display_name', 'bio'], is_minor: null
+    account_type: 'brand', status: 'published', admin_approved: true,
+    profile_public: true, public_fields: ['display_name', 'bio'],
+    is_minor: false, under_18: false
   };
   assert.equal(s.profileIsShareable(openBiz), true);
+  assert.equal(s.profileIsShareable(Object.assign({}, openBiz, { account_type: 'editorial_artist' })), false);
   assert.equal(s.profileIsShareable(Object.assign({}, openBiz, { profile_public: false })), false);
   assert.equal(s.profileIsShareable(Object.assign({}, openBiz, { public_fields: [] })), false);
   assert.equal(s.profileIsShareable(Object.assign({}, openBiz, { public_fields: null })), false);
@@ -209,7 +266,7 @@ test('a business profile does not need 18+, and a member still does', () => {
   }), false);
   assert.equal(s.profileIsShareable({
     account_type: 'subscriber_profile', profile_public: true, status: 'published', admin_approved: true,
-    age_verified: true, is_minor: false, public_fields: ['display_name']
+    age_verified: true, is_minor: false, under_18: false, public_fields: ['display_name']
   }), true);
 });
 
@@ -251,15 +308,22 @@ test('signed-in directory reads use the public functions', () => {
   assert.match(about, /rpc\('get_public_profile'/);
 });
 
-test('step 1 rollback grants authenticated and not anon', () => {
+test('step 1 rollback restores the real prod policy names', () => {
   const down = readFileSync(new URL('../../supabase/rollbacks/20261107014000_profile_public_read_down.sql', import.meta.url), 'utf8');
-  assert.match(down, /GRANT ALL ON TABLE public\.profile_meta TO authenticated/);
+  assert.match(down, /GRANT ALL ON TABLE public\.profile_meta\s+TO authenticated/);
   assert.match(down, /GRANT ALL ON TABLE public\.profile_owners TO authenticated/);
+  assert.match(down, /GRANT SELECT ON TABLE public\.profile_meta\s+TO anon/);
+  assert.match(down, /GRANT SELECT ON TABLE public\.profile_owners TO anon/);
   assert.match(down, /DROP FUNCTION IF EXISTS public\.i_own_profile\(text\)/);
   assert.match(down, /DROP FUNCTION IF EXISTS public\.request_profile_claim\(text\)/);
   assert.match(down, /DROP FUNCTION IF EXISTS public\.approve_profile_claim\(uuid\)/);
+  assert.match(down, /DROP FUNCTION IF EXISTS private\.profile_is_public\(text\)/);
   assert.match(down, /"profile_owners claim"/);
-  assert.equal(/TO anon/i.test(down), false);
+  assert.match(down, /CREATE POLICY "profile_owners read all"/);
+  assert.match(down, /CREATE POLICY profile_owners_read/);
+  assert.match(down, /CREATE POLICY "profile_owners manage own"/);
+  assert.match(down, /CREATE POLICY "profile_owners delete own"/);
+  assert.equal(/CREATE POLICY "read all"/.test(down), false);
 });
 
 test('profile.html raw HTML is noindex', () => {
@@ -290,12 +354,13 @@ test('the public sql honors profile_public and the field mask', () => {
   const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
   const one = add.slice(add.indexOf('FUNCTION private.profile_public_one'), add.indexOf('FUNCTION public.get_public_profile'));
   const list = add.slice(add.indexOf('FUNCTION public.public_profile_list'), add.indexOf('REVOKE ALL ON FUNCTION public.public_profile_list'));
-  assert.match(one, /m\.profile_public IS TRUE/);
-  assert.match(one, /m\.under_18 IS NOT TRUE/);
+  assert.match(one, /private\.profile_is_public\(m\.slug\)/);
   assert.match(one, /cardinality\(m\.public_fields\) > 0/);
   assert.equal(/account_type IN \('brand'[\s\S]{0,80}THEN m\.display_name/.test(one), false);
-  assert.match(list, /m\.profile_public IS TRUE/);
-  assert.match(list, /m\.under_18 IS NOT TRUE/);
+  assert.match(list, /private\.profile_is_public\(m\.slug\)/);
+  const helper = add.slice(add.indexOf('FUNCTION private.profile_is_public'), add.indexOf('FUNCTION private.profile_public_one'));
+  assert.match(helper, /m\.profile_public IS TRUE/);
+  assert.match(helper, /m\.under_18 IS FALSE/);
   assert.equal(/public_fields IS NULL OR/.test(list), false);
   assert.match(add, /SET public_fields = ARRAY\[\]::text\[\]/);
 });

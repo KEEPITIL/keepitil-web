@@ -3,6 +3,13 @@
 -- /member have been checked.
 -- NEEDS SENTINEL + JOE BEFORE PROD. Not applied by this PR.
 --
+-- This file is the only place profile_meta's public read policies are swapped
+-- for the owner read. Do not call private.profile_is_public from a policy.
+-- After this file, every public profile is hidden until an admin verifies an
+-- owner through a server-only path. Prod has no trusted 18+ signal. The
+-- auth-metadata checkbox is user-editable and is not that path. is_minor and
+-- under_18 stay NULL, and profile_is_public fails closed on NULL.
+--
 -- After this file, this is refused for anon:
 --   select book_email from public.profile_meta;
 --

@@ -1,68 +1,84 @@
--- PR #91 step 1 (20261107014000_profile_public_read_add.sql) ROLLBACK
--- Prod pre-state read Nov 6 2026 5:45 PM PT (keepitil-prod, read-only):
---   profile_meta: RLS on; 4 rows; none of the 6 new columns exist; no private schema;
---   no get_public_profile / public_profile_list / profile_public_one / set_profile_admin_approved;
---   anon + authenticated have ALL table privileges; policies: "profile_meta read all" (PUBLIC, true),
---   profile_meta_read (PUBLIC, true), "profile_meta owner insert", "profile_meta owner update",
---   profile_meta_owner_update; trigger profile_meta_publish_gate_trg.
---   profile_owners: RLS on; policies "profile_owners claim" (INSERT, owner_id = auth.uid())
---   and "read all" (USING true); anon and authenticated have ALL, including TRUNCATE.
--- ORDER: revert the web deploy FIRST (new JS selects the new columns), then run this.
--- Before step 1: back up the 4 rows and save grants/policies (pg_dump -t public.profile_meta).
--- Not applied by this PR.
+-- PR #91 ROLLBACK v2 (steps 1 + 2 + Sentinel 18+ helper). Drafted Nov 6 2026 ~9:50 PM PT.
+-- Supersedes nothing; original kept at pr91-step1-rollback.sql. NOT APPLIED.
+-- Prod pre-state re-read Nov 6 2026 (keepitil-prod, SELECT only):
+--   profile_meta: RLS on, 4 rows (tuitea subscriber_profile/published, groove-trooper editorial_artist/published,
+--     fobbinhard + keepitil-audit review). Policies: "profile_meta read all" (PUBLIC,true), profile_meta_read (PUBLIC,true),
+--     "profile_meta owner insert", "profile_meta owner update" (authenticated), profile_meta_owner_update (PUBLIC).
+--   profile_owners: 3 rows. Policies: "profile_owners claim" INSERT, "profile_owners delete own" DELETE,
+--     "profile_owners manage own" UPDATE (all authenticated), "profile_owners read all" (PUBLIC,true),
+--     profile_owners_read (PUBLIC,true). anon+authenticated ALL. (NOTE: no policy is named plain "read all".)
+--   no private schema. Functions is_admin(), claim_profile(text,text) pre-exist (SECURITY DEFINER).
+-- ORDER: revert the web deploy FIRST, then run this. Anon writes are deliberately NOT restored.
 
 BEGIN;
-DROP POLICY IF EXISTS profile_meta_owner_select ON public.profile_meta;
-DROP POLICY IF EXISTS profile_owners_select_own ON public.profile_owners;
 
-DROP FUNCTION IF EXISTS public.approve_profile_claim(uuid);
-DROP FUNCTION IF EXISTS public.request_profile_claim(text);
-DROP FUNCTION IF EXISTS public.i_own_profile(text);
-DROP FUNCTION IF EXISTS public.set_profile_admin_approved(text, boolean);
-DROP FUNCTION IF EXISTS public.public_profile_list(text, text, integer);
-DROP FUNCTION IF EXISTS public.get_public_profile(text);
-DROP FUNCTION IF EXISTS private.profile_public_one(text);
-DROP TABLE IF EXISTS public.profile_claim_requests;
-DROP SCHEMA IF EXISTS private RESTRICT;   -- did not exist before step 1
+-- 1. New policies
+DROP POLICY IF EXISTS profile_meta_owner_select   ON public.profile_meta;
+DROP POLICY IF EXISTS profile_meta_public_select  ON public.profile_meta;   -- if a helper-based read policy was added
+DROP POLICY IF EXISTS profile_owners_select_own   ON public.profile_owners;
 
--- The forward migration dropped these. Put them back for authenticated only.
+-- 2. New functions (RESTRICT: fail loudly if something unexpected depends on them)
+DROP FUNCTION IF EXISTS public.get_profile_events(text) RESTRICT;          -- PR #92, only if it shipped; adjust signature
+DROP FUNCTION IF EXISTS public.approve_profile_claim(uuid) RESTRICT;
+DROP FUNCTION IF EXISTS public.request_profile_claim(text) RESTRICT;
+DROP FUNCTION IF EXISTS public.i_own_profile(text) RESTRICT;
+DROP FUNCTION IF EXISTS public.set_profile_admin_approved(text, boolean) RESTRICT;
+DROP FUNCTION IF EXISTS public.public_profile_list(text, text, integer) RESTRICT;
+DROP FUNCTION IF EXISTS public.get_public_profile(text) RESTRICT;
+DROP FUNCTION IF EXISTS private.profile_public_one(text) RESTRICT;
+DROP FUNCTION IF EXISTS private.owner_is_verified_adult(text) RESTRICT;    -- if added for the business rule
+DROP FUNCTION IF EXISTS private.profile_is_public(text) RESTRICT;          -- after the policies/functions that call it
+DROP TABLE    IF EXISTS public.profile_claim_requests RESTRICT;
+DROP SCHEMA   IF EXISTS private RESTRICT;   -- did not exist before step 1; fails if anything is left in it
+
+-- 3. Restore the two original profile_meta read-all policies (step 2 drops them)
+DROP POLICY IF EXISTS "profile_meta read all" ON public.profile_meta;
+CREATE POLICY "profile_meta read all" ON public.profile_meta FOR SELECT TO public USING (true);
+DROP POLICY IF EXISTS profile_meta_read ON public.profile_meta;
+CREATE POLICY profile_meta_read ON public.profile_meta FOR SELECT TO public USING (true);
+
+-- 4. Restore profile_owners policies exactly as prod has them today
 DROP POLICY IF EXISTS "profile_owners claim" ON public.profile_owners;
 CREATE POLICY "profile_owners claim" ON public.profile_owners
-  FOR INSERT TO authenticated
-  WITH CHECK (owner_id = (SELECT auth.uid()));
+  FOR INSERT TO authenticated WITH CHECK (owner_id = auth.uid());
+DROP POLICY IF EXISTS "profile_owners delete own" ON public.profile_owners;
+CREATE POLICY "profile_owners delete own" ON public.profile_owners
+  FOR DELETE TO authenticated USING (owner_id = auth.uid());
+DROP POLICY IF EXISTS "profile_owners manage own" ON public.profile_owners;
+CREATE POLICY "profile_owners manage own" ON public.profile_owners
+  FOR UPDATE TO authenticated USING (owner_id = auth.uid()) WITH CHECK (owner_id = auth.uid());
+DROP POLICY IF EXISTS "profile_owners read all" ON public.profile_owners;
+CREATE POLICY "profile_owners read all" ON public.profile_owners FOR SELECT TO public USING (true);
+DROP POLICY IF EXISTS profile_owners_read ON public.profile_owners;
+CREATE POLICY profile_owners_read ON public.profile_owners FOR SELECT TO public USING (true);
+-- NOTE: restoring the claim + read-all policies reopens the known takeover/owner_id leak. Intended:
+-- rollback = exact pre-state. Re-apply the profile_owners hardening separately if only the web part failed.
 
-DROP POLICY IF EXISTS "read all" ON public.profile_owners;
-CREATE POLICY "read all" ON public.profile_owners
-  FOR SELECT TO authenticated
-  USING (true);
-
--- Step 1 replaced table-wide INSERT and UPDATE with column grants.
--- GRANT ALL puts the table-wide privileges back, which is what production has now.
-GRANT ALL ON TABLE public.profile_meta TO authenticated;
+-- 5. Restore table-wide authenticated privileges (a leftover column grant is harmless under ALL)
+GRANT ALL ON TABLE public.profile_meta   TO authenticated;
 GRANT ALL ON TABLE public.profile_owners TO authenticated;
--- Anon privileges stay revoked. Do not grant this role.
+-- Restore anon SELECT only (step 2 revoked ALL). Logged-out pages read these today.
+GRANT SELECT ON TABLE public.profile_meta   TO anon;
+GRANT SELECT ON TABLE public.profile_owners TO anon;
 
--- claim_profile was revoked from signed-in users in step 1. Give it back to them only.
+-- 6. claim_profile EXECUTE for signed-in users, if step 1 revoked it
 DO $$
 DECLARE r record;
 BEGIN
-  FOR r IN
-    SELECT p.oid::regprocedure AS sig
-    FROM pg_proc p
-    JOIN pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'public' AND p.proname = 'claim_profile'
-  LOOP
-    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', r.sig);
-  END LOOP;
+  FOR r IN SELECT p.oid::regprocedure AS sig FROM pg_proc p
+           JOIN pg_namespace n ON n.oid = p.pronamespace
+           WHERE n.nspname = 'public' AND p.proname = 'claim_profile'
+  LOOP EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', r.sig); END LOOP;
 END $$;
 
--- Soft rollback stops here (keeps the new columns and any opt-ins). Full rollback:
+-- Soft rollback stops here (keeps the 6 columns). Full rollback:
 -- ALTER TABLE public.profile_meta
 --   DROP COLUMN IF EXISTS profile_public, DROP COLUMN IF EXISTS age_verified,
 --   DROP COLUMN IF EXISTS is_minor, DROP COLUMN IF EXISTS under_18,
 --   DROP COLUMN IF EXISTS public_fields, DROP COLUMN IF EXISTS admin_approved;
 COMMIT;
 
--- Verify: anon `select slug from profile_meta` still works; owner save on /profile works;
--- get_public_profile gone; \dp public.profile_meta shows authenticated=arwdDxt.
--- \dp public.profile_owners shows authenticated=arwdDxt and no privileges for anon.
+-- Verify: select policyname from pg_policies where tablename in ('profile_meta','profile_owners')
+--   -> the 5 + 5 names above, nothing else; anon `select slug from profile_meta` returns 4 rows;
+--   owner save on /profile works; \dp shows authenticated=arwdDxt on both tables, anon=r;
+--   select count(*) from pg_namespace where nspname='private' -> 0.

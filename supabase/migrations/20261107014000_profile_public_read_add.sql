@@ -6,12 +6,11 @@
 -- pages keep working until the web deploy is verified.
 -- Then apply 20261107014100_profile_public_read_revoke.sql.
 --
--- ROLLBACK. Take a prod backup before applying this file. To undo, drop
--- get_public_profile(text), public_profile_list(text, text, integer),
--- private.profile_public_one(text), set_profile_admin_approved(text, boolean),
--- i_own_profile(text), request_profile_claim(text) and approve_profile_claim(uuid).
--- Restore the authenticated grants and the profile_owners policies from that backup.
--- Leave the added columns. They are harmless. Do not run this file against prod from the PR.
+-- ROLLBACK. Take a prod backup before applying this file. To undo both steps,
+-- revert the web deploy, then run
+-- supabase/rollbacks/20261107014000_profile_public_read_down.sql
+-- (Atlas rollback v2: real prod policy names). Leave the added columns.
+-- Do not run this file against prod from the PR.
 
 CREATE SCHEMA IF NOT EXISTS private;
 REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
@@ -23,6 +22,19 @@ ALTER TABLE public.profile_meta
   ADD COLUMN IF NOT EXISTS under_18 boolean,
   ADD COLUMN IF NOT EXISTS public_fields text[],
   ADD COLUMN IF NOT EXISTS admin_approved boolean;
+
+-- No trusted 18+ signal exists in prod. The auth-metadata checkbox is
+-- user-editable, so it is not copied. Both flags stay NULL until a
+-- server-only path sets them together. Never backfill false: NULL fails closed.
+UPDATE public.profile_meta
+SET is_minor = NULL,
+    under_18 = NULL;
+
+ALTER TABLE public.profile_meta
+  DROP CONSTRAINT IF EXISTS profile_meta_minor_flags_agree;
+ALTER TABLE public.profile_meta
+  ADD CONSTRAINT profile_meta_minor_flags_agree
+  CHECK (is_minor IS NOT DISTINCT FROM under_18);
 
 -- Approval is server-only. This marks the published rows that already exist,
 -- and it never sets profile_public, age_verified, or is_minor.
@@ -61,7 +73,71 @@ UPDATE public.profile_meta
 SET public_fields = ARRAY[]::text[]
 WHERE public_fields IS NULL;
 
+-- One visibility rule for every public RPC. Not for RLS policies.
+-- SECURITY DEFINER, owner postgres, search_path fixed to empty.
+-- Unknown, null, or a missing owner fails closed.
+-- Person: member, artist, creator, dj, and the live subscriber_profile alias.
+--   age_verified must be true. An artist is a person. A minor artist stays private.
+-- Business: brand, venue, organizer, promoter, company.
+--   The page's own age_verified is not required. It needs an owner row whose
+--   separate person profile is age_verified and not minor. No owner = private.
+-- editorial_* and any other account_type are not public.
+CREATE OR REPLACE FUNCTION private.profile_is_public(p_slug text)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT COALESCE((
+    SELECT
+      m.profile_public IS TRUE
+      AND m.status = 'published'
+      AND m.admin_approved IS TRUE
+      AND m.is_minor IS FALSE
+      AND m.under_18 IS FALSE
+      AND (
+        (
+          lower(btrim(m.account_type)) IN (
+            'member', 'artist', 'creator', 'dj', 'subscriber_profile'
+          )
+          AND m.age_verified IS TRUE
+        )
+        OR (
+          lower(btrim(m.account_type)) IN (
+            'brand', 'venue', 'organizer', 'promoter', 'company'
+          )
+          AND EXISTS (
+            SELECT 1
+            FROM public.profile_owners biz
+            JOIN public.profile_owners owned
+              ON owned.owner_id = biz.owner_id
+            JOIN public.profile_meta acct
+              ON acct.slug = owned.profile_slug
+            WHERE biz.profile_slug = m.slug
+              AND biz.owner_id IS NOT NULL
+              AND acct.slug IS DISTINCT FROM m.slug
+              AND lower(btrim(acct.account_type)) IN (
+                'member', 'artist', 'creator', 'dj', 'subscriber_profile'
+              )
+              AND acct.age_verified IS TRUE
+              AND acct.is_minor IS FALSE
+              AND acct.under_18 IS FALSE
+          )
+        )
+      )
+    FROM public.profile_meta m
+    WHERE p_slug ~ '^[a-z0-9-]{1,80}$'
+      AND m.slug = lower(btrim(p_slug))
+    LIMIT 1
+  ), FALSE);
+$$;
+
+ALTER FUNCTION private.profile_is_public(text) OWNER TO postgres;
+REVOKE ALL ON FUNCTION private.profile_is_public(text) FROM PUBLIC, anon, authenticated;
+
 -- One slug. Public columns only. book_email is not selected.
+-- Visibility is private.profile_is_public. This function does not repeat it.
 DROP FUNCTION IF EXISTS private.profile_public_one(text);
 CREATE OR REPLACE FUNCTION private.profile_public_one(p_slug text)
 RETURNS TABLE (
@@ -115,21 +191,9 @@ AS $$
   FROM public.profile_meta m
   WHERE p_slug ~ '^[a-z0-9-]{1,80}$'
     AND m.slug = p_slug
-    AND m.profile_public IS TRUE
-    AND m.is_minor IS NOT TRUE
-    AND m.under_18 IS NOT TRUE
-    AND m.status = 'published'
-    AND m.admin_approved IS TRUE
+    AND private.profile_is_public(m.slug)
     AND m.public_fields IS NOT NULL
     AND cardinality(m.public_fields) > 0
-    AND (
-      m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist')
-      OR (
-        m.age_verified IS TRUE
-        AND m.is_minor IS FALSE
-        AND m.under_18 IS FALSE
-      )
-    )
   LIMIT 1;
 $$;
 
@@ -164,16 +228,17 @@ STABLE
 SECURITY DEFINER
 SET search_path = ''
 AS $$
-  SELECT * FROM private.profile_public_one(lower(btrim(p_slug)));
+  SELECT *
+  FROM private.profile_public_one(lower(btrim(p_slug))) one
+  WHERE private.profile_is_public(one.slug);
 $$;
 
 REVOKE ALL ON FUNCTION public.get_public_profile(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_public_profile(text) TO anon, authenticated;
 
--- Directory list. Brand, organizer, artist, and editorial_artist only.
--- profile_public must be true. The field list limits each column.
--- is_minor or under_18 true is excluded. Personal members are not returned.
--- book_email is not selected.
+-- Directory list. Person performers and business pages that pass
+-- private.profile_is_public. Personal members are not listed.
+-- The field list limits each column. book_email is not selected.
 CREATE OR REPLACE FUNCTION public.public_profile_list(
   p_account_type text DEFAULT NULL,
   p_query text DEFAULT NULL,
@@ -208,22 +273,21 @@ AS $$
     CASE WHEN 'location' = ANY (m.public_fields) THEN m.location END,
     m.status
   FROM public.profile_meta m
-  WHERE m.status = 'published'
-    AND m.profile_public IS TRUE
-    AND m.admin_approved IS TRUE
-    AND m.is_minor IS NOT TRUE
-    AND m.under_18 IS NOT TRUE
+  WHERE private.profile_is_public(m.slug)
     AND m.public_fields IS NOT NULL
     AND cardinality(m.public_fields) > 0
-    AND m.account_type IN ('brand', 'organizer', 'artist', 'editorial_artist')
+    AND lower(btrim(m.account_type)) IN (
+      'artist', 'creator', 'dj',
+      'brand', 'venue', 'organizer', 'promoter', 'company'
+    )
     AND (
       p_account_type IS NULL
       OR btrim(p_account_type) = ''
       OR (
         lower(btrim(p_account_type)) = 'artist'
-        AND m.account_type IN ('artist', 'editorial_artist')
+        AND lower(btrim(m.account_type)) IN ('artist', 'creator', 'dj')
       )
-      OR lower(btrim(p_account_type)) = lower(m.account_type)
+      OR lower(btrim(p_account_type)) = lower(btrim(m.account_type))
     )
     AND (
       p_query IS NULL
@@ -300,10 +364,17 @@ GRANT EXECUTE ON FUNCTION public.set_profile_admin_approved(text, boolean) TO au
 -- Those pages stay on the view. A filter for profile_public, is_minor, or under_18
 -- cannot be added here without the view body.
 
--- profile_owners: stop unclaimed-profile takeover. Prod lets any signed-in user
--- insert themselves as owner of a slug that has no row yet, and anon can read
--- owner_id. The column is owner_id. Claims are admin-approved from here on.
+-- profile_owners: stop unclaimed-profile takeover and stop owner_id being public.
+-- Prod policy names (Atlas, read-only): "profile_owners read all" and
+-- profile_owners_read. There is no policy named "read all".
+-- "profile_owners manage own" lets an owner set profile_slug to any slug.
+-- "profile_owners delete own" is dropped with it. No replacement UPDATE or
+-- DELETE policy: owners cannot change the slug.
 DROP POLICY IF EXISTS "profile_owners claim" ON public.profile_owners;
+DROP POLICY IF EXISTS "profile_owners read all" ON public.profile_owners;
+DROP POLICY IF EXISTS profile_owners_read ON public.profile_owners;
+DROP POLICY IF EXISTS "profile_owners manage own" ON public.profile_owners;
+DROP POLICY IF EXISTS "profile_owners delete own" ON public.profile_owners;
 DROP POLICY IF EXISTS "read all" ON public.profile_owners;
 
 DO $$
@@ -316,14 +387,15 @@ BEGIN
     JOIN pg_namespace n ON n.oid = c.relnamespace
     WHERE n.nspname = 'public'
       AND c.relname = 'profile_owners'
-      AND pol.polcmd = 'a'
+      AND pol.polcmd IN ('a', 'w', 'd')
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON public.profile_owners', r.polname);
   END LOOP;
 END $$;
 
--- Anon keeps SELECT until step 2. Live logged-out pages still read owner rows.
--- Signed-in grants stay as they are until that file, after the new pages are deployed.
+-- Anon keeps the SELECT privilege until step 2, but the public read policies
+-- are gone, so owner_id is not readable. profile_meta's open read policies
+-- stay until step 2. That swap is not done here.
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.profile_owners FROM anon, PUBLIC;
 
 DROP POLICY IF EXISTS profile_owners_select_own ON public.profile_owners;

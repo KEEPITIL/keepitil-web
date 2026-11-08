@@ -35,3 +35,9 @@ test('negative control: a visible placeholder would be caught', () => {
   const bad = { attrs: ' data-offer="x"', body: 'href="https://buy.stripe.com/PLACEHOLDER_NEW_OFFER_1"' };
   assert.ok(/PLACEHOLDER/.test(bad.body) && !hidden(bad));
 });
+
+test('meta description and og:description no longer name Shopify or pin a price list', () => {
+  const m = [...html.matchAll(/<meta (?:name="description"|property="og:description") content="([^"]*)"/g)].map(x => x[1]);
+  assert.equal(m.length, 2);
+  for (const d of m) { assert.ok(!/shopify/i.test(d), d); assert.ok(!/\$\d/.test(d), d); }
+});

@@ -276,12 +276,14 @@
      Everything that waits on document_idle therefore hung — devtools, automated checks, and any
      tooling that verifies the page — which is why several "fixed" claims could not be confirmed.
      Now both mount AFTER the window load event (or immediately, if load already fired), so they
-     can no longer gate it. Tracking behaviour is otherwise unchanged: same property, same
-     project, same gtag/clarity globals and queues. Diagnosis: KODE, 2026-08-19. */
+     can no longer gate it. The property and the Clarity project are unchanged. Both now
+     wait for the cookie banner before any script is requested. Diagnosis: KODE, 2026-08-19. */
   /* Clarity is gated to desktop, with a per-tab opt-out.
      Deferring the injection stopped it holding the load event, but the STREAMING is what made
      phones untestable: 90-110s to first paint on an iPhone 17 Pro simulator and a wedge roughly
-     every 15 minutes. GA4 stays ungated — it is beacons, not a continuous recorder.
+     every 15 minutes. GA4 and Clarity both wait for the cookie banner. Neither script is
+     requested until the visitor accepts. Clarity, once accepted, still keeps the desktop
+     width gate below — it is a session recorder, not a beacon.
      The boundary is the shell's existing desktop-header breakpoint (861px), not a new number.
      Storage is consulted, never depended on: a browser that refuses sessionStorage (private
      mode) must still get the width gate, so every storage access is individually guarded. */
@@ -295,24 +297,109 @@
     try{ w = window.innerWidth || (document.documentElement && document.documentElement.clientWidth) || 0; }catch(e){}
     return w >= 861;
   }
-  function __kilMountAnalytics(){
-    /* GA4 */
-    try{ if(!window.__kilGA4){ window.__kilGA4='G-ZR36NRE4MT';
-      var _g=document.createElement('script'); _g.async=true; _g.src='https://www.googletagmanager.com/gtag/js?id=G-ZR36NRE4MT'; document.head.appendChild(_g);
-      window.dataLayer=window.dataLayer||[]; window.gtag=function(){dataLayer.push(arguments);}; gtag('js',new Date()); gtag('config','G-ZR36NRE4MT');
-    } }catch(e){}
-    /* Microsoft Clarity */
-    try{ if(!window.__kilClarity && __kilClarityAllowed()){ window.__kilClarity='xk5iwishve';
-      (function(c,l,a,r,i){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};var t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;var y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","xk5iwishve");
-    } }catch(e){}
+  var KIL_GA_ID='G-ZR36NRE4MT';
+  var KIL_CONSENT_KEY='kil_cookie_consent';
+  function __kilConsentChoice(){
+    try{ return localStorage.getItem(KIL_CONSENT_KEY); }catch(e){ return null; }
   }
-  /* gtag() must exist BEFORE the tag loads or early calls are lost, so the queue shim is set up
-     now and the network request is what gets deferred. */
+  function __kilGpcNo(){
+    try{ return navigator.globalPrivacyControl === true; }catch(e){ return false; }
+  }
+  function __kilDeleteCookie(name){
+    var host=location.hostname, domains=[host, '.'+host], bits=host.split('.');
+    if(bits.length>1) domains.push('.'+bits.slice(-2).join('.'));
+    domains.forEach(function(d){
+      document.cookie=name+'=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain='+d;
+    });
+    document.cookie=name+'=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+  }
+  function __kilForgetAnalytics(){
+    try{ window['ga-disable-'+KIL_GA_ID]=true; }catch(e){}
+    window.__kilGA4='off';
+    window.__kilClarity='off';
+    try{
+      document.querySelectorAll('script[src*="googletagmanager.com/gtag"],script[src*="clarity.ms"]').forEach(function(s){ s.remove(); });
+    }catch(e){}
+    var names=['_ga','_gid','_gat','_ga_ZR36NRE4MT','_clck','_clsk','CLID','_cltk'];
+    try{
+      (document.cookie||'').split(';').forEach(function(c){
+        var n=c.split('=')[0].replace(/^\s+/, '');
+        if(/^_ga/.test(n) || n==='_gid' || n==='_gat' || n==='_clck' || n==='_clsk' || n==='CLID' || n==='_cltk'){
+          if(names.indexOf(n)<0) names.push(n);
+        }
+      });
+    }catch(e){}
+    names.forEach(__kilDeleteCookie);
+  }
+  function __kilMountGA4(){
+    if(__kilGpcNo() || __kilConsentChoice()!=='accepted') return;
+    try{ if(window.__kilGA4 && window.__kilGA4!=='off') return;
+      window.__kilGA4=KIL_GA_ID;
+      var _g=document.createElement('script'); _g.async=true; _g.src='https://www.googletagmanager.com/gtag/js?id='+KIL_GA_ID; document.head.appendChild(_g);
+      window.dataLayer=window.dataLayer||[]; window.gtag=function(){dataLayer.push(arguments);}; gtag('js',new Date()); gtag('config',KIL_GA_ID);
+    }catch(e){}
+  }
+  function __kilMountClarity(){
+    if(__kilGpcNo() || __kilConsentChoice()!=='accepted') return;
+    try{ if((window.__kilClarity && window.__kilClarity!=='off') || !__kilClarityAllowed()) return;
+      window.__kilClarity='xk5iwishve';
+      (function(c,l,a,r,i){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};var t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;var y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","xk5iwishve");
+    }catch(e){}
+  }
+  function __kilMountAnalytics(){
+    if(__kilConsentChoice()!=='accepted') return;
+    __kilMountGA4();
+    __kilMountClarity();
+  }
+  function __kilShowConsent(){
+    if(document.getElementById('kil-consent')) return;
+    if(IN_IFRAME && !IN_STAGE) return;
+    if(!document.getElementById('kil-consent-css')){
+    var css=document.createElement('style'); css.id='kil-consent-css';
+    css.textContent='#kil-consent{position:fixed;left:12px;right:12px;bottom:calc(var(--kil-bnav-h,62px) + 12px + env(safe-area-inset-bottom,0px));'
+      +'z-index:1200;margin:0 auto;max-width:560px;background:#12121c;color:#f4f2fb;border:1px solid #2a2a3a;border-radius:14px;'
+      +'padding:14px 14px 12px;box-shadow:0 18px 48px rgba(0,0,0,.55);font-family:Inter,system-ui,sans-serif;font-size:.92rem;line-height:1.45}'
+      +'#kil-consent p{margin:0 0 12px}#kil-consent .kil-consent-actions{display:flex;gap:8px;flex-wrap:wrap}'
+      +'#kil-consent button{flex:1 1 8rem;min-height:44px;padding:10px 16px;border-radius:10px;font:700 .9rem/1 Inter,system-ui,sans-serif;cursor:pointer;background:transparent;color:#f4f2fb;border:1px solid rgba(255,255,255,.45)}';
+    document.head.appendChild(css);
+    }
+    var bar=document.createElement('div'); bar.id='kil-consent'; bar.setAttribute('role','dialog'); bar.setAttribute('aria-labelledby','kil-consent-title');
+    bar.innerHTML='<p id="kil-consent-title">KEEPITIL uses Google Analytics and Microsoft Clarity cookies to see which pages are visited. They stay off until you accept.</p>'
+      +'<div class="kil-consent-actions"><button type="button" id="kil-consent-accept">Accept</button>'
+      +'<button type="button" id="kil-consent-decline">No thanks</button></div>';
+    document.body.appendChild(bar);
+    function choose(value){
+      if(value==='accepted' && __kilGpcNo()) value='declined';
+      try{ localStorage.setItem(KIL_CONSENT_KEY, value); }catch(e){}
+      var el=document.getElementById('kil-consent'); if(el) el.remove();
+      if(value==='accepted') __kilMountAnalytics();
+      else __kilForgetAnalytics();
+    }
+    if(__kilGpcNo()){
+      var note=document.getElementById('kil-consent-title');
+      if(note) note.textContent='Your browser is sending Global Privacy Control, so Google Analytics and Microsoft Clarity stay off.';
+    }
+    document.getElementById('kil-consent-accept').addEventListener('click', function(){ choose('accepted'); });
+    document.getElementById('kil-consent-decline').addEventListener('click', function(){ choose('declined'); });
+  }
+  /* gtag() may queue before the tag exists so an accepted visit does not drop the first events.
+     The network request itself waits for Accept. */
   try{ window.dataLayer=window.dataLayer||[]; if(!window.gtag){ window.gtag=function(){dataLayer.push(arguments);}; } }catch(e){}
+  window.__kilOpenCookieSettings=function(){ __kilShowConsent(); };
+  function __kilConsentReady(){
+    if(__kilGpcNo()){
+      try{ localStorage.setItem(KIL_CONSENT_KEY, 'declined'); }catch(e){}
+      __kilForgetAnalytics();
+      return;
+    }
+    var choice=__kilConsentChoice();
+    if(choice==='accepted') __kilMountAnalytics();
+    else if(choice!=='declined') __kilShowConsent();
+  }
   try{
-    if(document.readyState === 'complete'){ setTimeout(__kilMountAnalytics, 0); }
-    else { window.addEventListener('load', function(){ setTimeout(__kilMountAnalytics, 0); }, { once:true }); }
-  }catch(e){ __kilMountAnalytics(); }
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', __kilConsentReady, {once:true});
+    else __kilConsentReady();
+  }catch(e){ __kilConsentReady(); }
   /* Customer feedback widget — V3 only (floating "Feedback" pill -> Supabase feedback table). Added 2026-07-10. */
   try{ if(!window.__kilFeedbackLoad){ window.__kilFeedbackLoad=1;
     var _fb=document.createElement('script'); _fb.defer=true; _fb.src='/assets/js/keepitil-feedback.js?v=20260826a'; document.head.appendChild(_fb);
@@ -793,11 +880,19 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
         +'</div></div>'
         +'<div class="v3-foot-legal" style="max-width:var(--maxw,1400px);margin:14px auto 0;font-size:.78rem;opacity:.7;display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
         +'<a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refund">Refunds</a>'
+        +'<a href="#cookie-settings" id="kil-cookie-settings">Cookie settings</a>'
         +'<a href="/ticket-terms"><span class="lg-f">Ticket Terms</span><span class="lg-s">Tickets</span></a>'
         +'<a href="/community-guidelines"><span class="lg-f">Community Guidelines</span><span class="lg-s">Rules</span></a>'
         +'<span style="margin-left:auto">© '+(new Date().getFullYear())+' KEEPITIL</span></div>'
         +'<p class="v3-foot-entity">KEEPITIL LLC · Garden Grove, CA</p>';
       if(RULES.nav!==false) document.body.appendChild(f);
+      try{
+        var cookieLink=document.getElementById('kil-cookie-settings');
+        if(cookieLink) cookieLink.addEventListener('click', function(e){
+          e.preventDefault();
+          if(window.__kilOpenCookieSettings) window.__kilOpenCookieSettings();
+        });
+      }catch(e){}
 
       // active state on the mobile top-bar icon nav
       /* Matchers come from DESTINATIONS so the header and the bottom bar can never disagree

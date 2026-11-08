@@ -659,7 +659,7 @@ async function loadPostReview(){
     else html+='<div class="feedwrap">'+feed.map(function(p){
       var typ=(p.kind==='event')?'event':(p.is_ad?'ad':(p.hourly?'hourly':(p.intent||'post')));
       var media=p.cover?'<div class="fc-media"><img src="'+esc(p.cover)+'" alt="" onerror="this.parentNode.style.display=\'none\'"></div>':'';
-      var buy=p.buy_url?'<a class="fc-buy" href="'+esc(p.buy_url)+'" target="_blank" rel="noopener noreferrer sponsored nofollow">🛒 '+esc(p.buy_label||'Buy on Amazon')+'</a>':'';
+      var buy=p.buy_url?'<a class="fc-buy" href="'+esc(p.buy_url)+'" target="_blank" rel="noopener sponsored nofollow">🛒 '+esc(p.buy_label||'Buy on Amazon')+'</a>':'';
       var when=''; try{ when=new Date(p.created_at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }catch(e){}
       return '<div class="fc" id="fc-'+p.id+'">'
         +'<div class="fc-head"><img class="fc-av" src="'+esc(p.agent_avatar||'/assets/images/logo-blue-nav.png')+'" onerror="this.src=\'/assets/images/logo-blue-nav.png\'"><div class="fc-who"><b>'+esc(p.agent_name||'')+'</b><span>'+esc((p.agent||'').toUpperCase())+' · '+esc(when)+'</span></div><span class="fc-tag">'+esc(typ)+'</span></div>'

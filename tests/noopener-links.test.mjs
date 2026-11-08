@@ -1,5 +1,6 @@
-// Every target="_blank" anchor must carry rel="noopener noreferrer" and every
-// window.open(..., '_blank') call must pass 'noopener,noreferrer'.
+// Every target="_blank" anchor must carry rel="noopener noreferrer", except affiliate/sponsor/partner links
+// (SPONSORED_HOSTS / SPONSORED_PARAMS below), which carry rel="noopener sponsored" WITHOUT noreferrer so attribution
+// keeps working. Every window.open(..., '_blank') call must pass 'noopener,noreferrer' (sponsored hosts: 'noopener').
 // Run: node --test tests/noopener-links.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -37,25 +38,54 @@ export const PENDING = {
   'venue.html': 'open PR #83',
 };
 
-/** Returns descriptions of every <a ... target=_blank> whose rel lacks noopener or noreferrer. */
+// ---- link policy -------------------------------------------------------------------------------
+// Affiliate, sponsor and partner links must keep the Referer so attribution works: rel="noopener sponsored" and NO
+// noreferrer (existing tokens such as nofollow are kept). Every other target=_blank link gets "noopener noreferrer".
+export const SPONSORED_HOSTS = [
+  'vividseats.com', 'ticketmaster.com',
+  'illestratedlifestyle.com', 'myshopify.com',          // the Shopify store
+  'freecash.com', 'distrokid.com',                      // referral programmes used in the Support carousel and articles
+];
+export const SPONSORED_PARAMS = /[?&](ref|sca_ref|utm_[a-z_]+|aff|aff_id|affiliate|partner|pid)(=|&|#|$)/i;
+export const AMAZON_TAG = /^(www\.)?amazon\.com$/i;   // amazon.com is sponsored only when it carries a ?tag= associate id
+// hrefs built in JS for the Support/Partners/Products carousels and the dashboard buy link (all affiliate or store links)
+export const SPONSORED_DYNAMIC_HREFS = [/^'\s*\+\s*(p\[2\]|p\[3\]|it\[3\])\s*\+\s*'$/, /^'\s*\+\s*esc\(p\.buy_url\)\s*\+\s*'$/];
+
+const relOf = (tag) => { const m = /\brel\s*=\s*\\?"([^"]*)"|\brel\s*=\s*\\?'([^']*)'/i.exec(tag); return m ? (m[1] ?? m[2]) : ''; };
+const hrefOf = (tag) => { const m = /\bhref\s*=\s*\\?"([^"]*)"|\bhref\s*=\s*\\?'([^']*)'/i.exec(tag); return m ? (m[1] ?? m[2]) : ''; };
+
+/** True when a link belongs to the sponsored class (host list, param patterns, dynamic carousel hrefs, or a rel that already says sponsored/nofollow). */
+export function isSponsoredLink(href, rel = '') {
+  if (/sponsored|nofollow/i.test(rel)) return true;
+  if (SPONSORED_DYNAMIC_HREFS.some((re) => re.test(href))) return true;
+  let u; try { u = new URL(href); } catch { return false; }
+  const host = u.hostname.toLowerCase();
+  if (SPONSORED_HOSTS.some((h) => host === h || host.endsWith('.' + h))) return true;
+  if (AMAZON_TAG.test(host) && u.searchParams.has('tag')) return true;
+  return SPONSORED_PARAMS.test(href);
+}
+
+/** Returns descriptions of every <a ... target=_blank> whose rel breaks the policy above. */
 export function blankAnchorViolations(src) {
   const bad = [];
   for (const m of src.matchAll(/<a\b[^>]*>/gi)) {
     const tag = m[0];
     if (!/target\s*=\s*\\?["']?_blank/i.test(tag)) continue;
-    const rel = /\brel\s*=\s*\\?"([^"]*)"|\brel\s*=\s*\\?'([^']*)'/i.exec(tag);
-    const val = rel ? (rel[1] ?? rel[2]) : '';
-    if (!(/noopener/i.test(val) && /noreferrer/i.test(val))) bad.push(tag.slice(0, 120));
+    const val = relOf(tag);
+    const ok = isSponsoredLink(hrefOf(tag), val)
+      ? /noopener/i.test(val) && /sponsored/i.test(val) && !/noreferrer/i.test(val)
+      : /noopener/i.test(val) && /noreferrer/i.test(val);
+    if (!ok) bad.push((isSponsoredLink(hrefOf(tag), val) ? 'SPONSORED ' : '') + tag.slice(0, 120));
   }
   // anchors made in JS: x.target = '_blank' / setAttribute('target','_blank') need a rel set too
   for (const m of src.matchAll(/(\.target\s*=\s*|setAttribute\(\s*['"]target['"]\s*,\s*)['"]_blank['"]/g)) {
     const near = src.slice(m.index, m.index + 400);
-    if (!/noreferrer/.test(near) || !/noopener/.test(near)) bad.push('js target=_blank: ' + near.slice(0, 80).replace(/\s+/g, ' '));
+    if (!/noreferrer|sponsored/.test(near) || !/noopener/.test(near)) bad.push('js target=_blank: ' + near.slice(0, 80).replace(/\s+/g, ' '));
   }
   return bad;
 }
 
-/** Returns the arguments of every window.open( call that does not pass noopener AND noreferrer. */
+/** Returns the arguments of every window.open( call that breaks the policy (noopener,noreferrer; sponsored hosts noopener only). */
 export function windowOpenViolations(src) {
   const bad = [];
   for (const m of src.matchAll(/\bwindow\.open\(/g)) {
@@ -69,7 +99,10 @@ export function windowOpenViolations(src) {
       else if (c === ')') depth--;
     }
     const args = src.slice(start, i - 1);
-    if (!(/noopener/.test(args) && /noreferrer/.test(args))) bad.push(args.slice(0, 120));
+    const url = /['"](https?:\/\/[^'"]+)['"]/.exec(args);
+    const sponsored = url && isSponsoredLink(url[1]);
+    const ok = sponsored ? /noopener/.test(args) && !/noreferrer/.test(args) : /noopener/.test(args) && /noreferrer/.test(args);
+    if (!ok) bad.push(args.slice(0, 120));
   }
   return bad;
 }
@@ -97,15 +130,39 @@ test('control: scanner flags JS-template anchors and DOM-set targets', () => {
 });
 test('control: scanner passes correct anchors (any attribute order, merged tokens)', () => {
   assert.equal(blankAnchorViolations('<a rel="noopener noreferrer" target="_blank" href="/">x</a>').length, 0);
-  assert.equal(blankAnchorViolations('<a href="/" target="_blank" rel="sponsored noopener noreferrer nofollow">x</a>').length, 0);
+  assert.equal(blankAnchorViolations('<a href="/" target="_blank" rel="noopener noreferrer">x</a>').length, 0);
   assert.equal(blankAnchorViolations('<a href="/" target="_self">x</a>').length, 0);
   assert.equal(blankAnchorViolations("a.target='_blank'; a.rel='noopener noreferrer';").length, 0);
+});
+test('control: sponsored links must be noopener + sponsored and must NOT carry noreferrer', () => {
+  const V = 'https://www.vividseats.com/x-tickets/performer/1';
+  assert.equal(blankAnchorViolations(`<a href="${V}" target="_blank" rel="noopener sponsored">x</a>`).length, 0);
+  assert.equal(blankAnchorViolations(`<a href="${V}" target="_blank" rel="noopener sponsored nofollow">x</a>`).length, 0);
+  assert.equal(blankAnchorViolations(`<a href="${V}" target="_blank" rel="noopener noreferrer">x</a>`).length, 1, 'noreferrer on a sponsored host');
+  assert.equal(blankAnchorViolations(`<a href="${V}" target="_blank" rel="noopener sponsored noreferrer">x</a>`).length, 1, 'noreferrer kept');
+  assert.equal(blankAnchorViolations(`<a href="${V}" target="_blank" rel="noopener">x</a>`).length, 1, 'missing sponsored');
+  assert.equal(blankAnchorViolations(`<a href="${V}" target="_blank">x</a>`).length, 1);
+});
+test('control: every sponsored-class signal is recognised (host, params, amazon tag, existing rel, dynamic carousel href)', () => {
+  const bad = (href) => blankAnchorViolations(`<a href="${href}" target="_blank" rel="noopener noreferrer">x</a>`).length;
+  for (const href of ['https://www.ticketmaster.com/e/1', 'https://www.illestratedlifestyle.com/products/x', 'https://shop.myshopify.com/p', 'https://example.org/p?ref=abc',
+    'https://example.org/p?x=1&utm_source=keepitil', 'https://example.org/?aff=9', 'https://example.org/?affiliate=9', 'https://example.org/?partner=k', 'https://example.org/?pid=3',
+    'https://concept47.store?sca_ref=1.abc', 'https://www.amazon.com/dp/B0?tag=tuitea09-20', 'https://freecash.com/r/Tuitea']) assert.equal(bad(href), 1, href + ' is sponsored class');
+  assert.equal(blankAnchorViolations('<a href="https://example.org/" target="_blank" rel="noopener noreferrer nofollow">x</a>').length, 1, 'existing nofollow marks it sponsored class');
+  assert.equal(blankAnchorViolations("<a href=\"'+p[3]+'\" target=\"_blank\" rel=\"noopener noreferrer'+(p[4]?' sponsored nofollow':'')+'\">").length, 1);
+  assert.equal(blankAnchorViolations("<a href=\"'+p[3]+'\" target=\"_blank\" rel=\"noopener sponsored'+(p[4]?' nofollow':'')+'\">").length, 0);
+  // not sponsored: plain amazon (no tag), an ordinary article link, and a non-affiliate param
+  for (const href of ['https://www.amazon.com/dp/B0', 'https://en.wikipedia.org/wiki/House_music', 'https://example.org/?page=2']) assert.equal(bad(href), 0, href + ' is a normal link');
+  assert.equal(blankAnchorViolations('<a href="https://en.wikipedia.org/wiki/X" target="_blank" rel="noopener">x</a>').length, 1, 'a normal link must have noreferrer too');
 });
 test('control: window.open scanner flags bare and partial calls, passes safe ones', () => {
   assert.equal(windowOpenViolations("window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(t),'_blank');").length, 1);
   assert.equal(windowOpenViolations("window.open(u,'_blank','noopener')").length, 1);
   assert.equal(windowOpenViolations("window.open(f(a,(b)),'_blank')").length, 1);
   assert.equal(windowOpenViolations("window.open(u,'_blank','noopener,noreferrer')").length, 0);
+  assert.equal(windowOpenViolations("window.open('https://twitter.com/intent/tweet?text=x','_blank','noopener,noreferrer')").length, 0, 'X share keeps noreferrer');
+  assert.equal(windowOpenViolations("window.open('https://www.vividseats.com/x','_blank','noopener,noreferrer')").length, 1, 'affiliate host must not get noreferrer');
+  assert.equal(windowOpenViolations("window.open('https://www.vividseats.com/x','_blank','noopener')").length, 0);
   assert.equal(windowOpenViolations("window.openEditProfile()").length, 0);
 });
 
@@ -115,7 +172,7 @@ test('corpus: found published pages to scan', () => {
   assert.ok(files.length > 100, 'expected the published site, found ' + files.length);
   assert.ok(files.includes('article/bleu/index.html'));
 });
-test('no target=_blank anchor lacks rel="noopener noreferrer" (outside PENDING)', () => {
+test('every target=_blank anchor follows the rel policy: sponsored = noopener sponsored (no noreferrer), others = noopener noreferrer (outside PENDING)', () => {
   const offenders = {};
   for (const f of files) {
     if (PENDING[f]) continue;
@@ -124,7 +181,7 @@ test('no target=_blank anchor lacks rel="noopener noreferrer" (outside PENDING)'
   }
   assert.deepEqual(offenders, {});
 });
-test('no window.open lacks noopener,noreferrer (outside PENDING)', () => {
+test('every window.open follows the policy (outside PENDING)', () => {
   const offenders = {};
   for (const f of files) {
     if (PENDING[f]) continue;

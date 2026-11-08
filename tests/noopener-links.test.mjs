@@ -45,7 +45,10 @@ export const SPONSORED_HOSTS = [
   'vividseats.com', 'ticketmaster.com',
   'illestratedlifestyle.com', 'myshopify.com',          // the Shopify store
   'freecash.com', 'distrokid.com',                      // referral programmes used in the Support carousel and articles
+  'eventticketscenter.com', 'pear.us', 'simpletix.com', // ticketing partners (team-confirmed)
+  'rsvpify.com', 'financebuzz.com',                     // partner/referral citations (team-confirmed)
 ];
+export const SPONSORED_PATHS = [['posh.vip', '/f/']];  // Posh event/ticket links (posh.vip/create_group?ref= is caught by the ref param)
 export const SPONSORED_PARAMS = /[?&](ref|sca_ref|utm_[a-z_]+|aff|aff_id|affiliate|partner|pid)(=|&|#|$)/i;
 export const AMAZON_TAG = /^(www\.)?amazon\.com$/i;   // amazon.com is sponsored only when it carries a ?tag= associate id
 // hrefs built in JS for the Support/Partners/Products carousels and the dashboard buy link (all affiliate or store links)
@@ -61,6 +64,7 @@ export function isSponsoredLink(href, rel = '') {
   let u; try { u = new URL(href); } catch { return false; }
   const host = u.hostname.toLowerCase();
   if (SPONSORED_HOSTS.some((h) => host === h || host.endsWith('.' + h))) return true;
+  if (SPONSORED_PATHS.some(([h, p]) => (host === h || host.endsWith('.' + h)) && u.pathname.startsWith(p))) return true;
   if (AMAZON_TAG.test(host) && u.searchParams.has('tag')) return true;
   return SPONSORED_PARAMS.test(href);
 }
@@ -147,12 +151,14 @@ test('control: every sponsored-class signal is recognised (host, params, amazon 
   const bad = (href) => blankAnchorViolations(`<a href="${href}" target="_blank" rel="noopener noreferrer">x</a>`).length;
   for (const href of ['https://www.ticketmaster.com/e/1', 'https://www.illestratedlifestyle.com/products/x', 'https://shop.myshopify.com/p', 'https://example.org/p?ref=abc',
     'https://example.org/p?x=1&utm_source=keepitil', 'https://example.org/?aff=9', 'https://example.org/?affiliate=9', 'https://example.org/?partner=k', 'https://example.org/?pid=3',
-    'https://concept47.store?sca_ref=1.abc', 'https://www.amazon.com/dp/B0?tag=tuitea09-20', 'https://freecash.com/r/Tuitea']) assert.equal(bad(href), 1, href + ' is sponsored class');
+    'https://concept47.store?sca_ref=1.abc', 'https://www.amazon.com/dp/B0?tag=tuitea09-20', 'https://freecash.com/r/Tuitea',
+    'https://www.eventticketscenter.com/countdown-socal-2-day-pass', 'https://posh.vip/f/eea44?t=x', 'https://pear.us/mayhemevents/post/x', 'https://www.simpletix.com/e/x-123',
+    'https://rsvpify.com/best-event-ticketing-platforms-2026/', 'https://financebuzz.com/best-gpt-sites']) assert.equal(bad(href), 1, href + ' is sponsored class');
   assert.equal(blankAnchorViolations('<a href="https://example.org/" target="_blank" rel="noopener noreferrer nofollow">x</a>').length, 1, 'existing nofollow marks it sponsored class');
   assert.equal(blankAnchorViolations("<a href=\"'+p[3]+'\" target=\"_blank\" rel=\"noopener noreferrer'+(p[4]?' sponsored nofollow':'')+'\">").length, 1);
   assert.equal(blankAnchorViolations("<a href=\"'+p[3]+'\" target=\"_blank\" rel=\"noopener sponsored'+(p[4]?' nofollow':'')+'\">").length, 0);
   // not sponsored: plain amazon (no tag), an ordinary article link, and a non-affiliate param
-  for (const href of ['https://www.amazon.com/dp/B0', 'https://en.wikipedia.org/wiki/House_music', 'https://example.org/?page=2']) assert.equal(bad(href), 0, href + ' is a normal link');
+  for (const href of ['https://posh.vip/e/some-public-page', 'https://posh.vip/', 'https://www.amazon.com/dp/B0', 'https://en.wikipedia.org/wiki/House_music', 'https://example.org/?page=2']) assert.equal(bad(href), 0, href + ' is a normal link');
   assert.equal(blankAnchorViolations('<a href="https://en.wikipedia.org/wiki/X" target="_blank" rel="noopener">x</a>').length, 1, 'a normal link must have noreferrer too');
 });
 test('control: window.open scanner flags bare and partial calls, passes safe ones', () => {

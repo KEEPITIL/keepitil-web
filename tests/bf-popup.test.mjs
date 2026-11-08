@@ -86,3 +86,17 @@ test('card is border-box so padding cannot push it past a 375px viewport', () =>
   const src = readFileSync(new URL('../assets/js/kil-bf-popup.js', import.meta.url), 'utf8');
   assert.match(src, /\.kilbf-card\{box-sizing:border-box;/);
 });
+
+test('card is visible at rest: the entrance animation never animates opacity', () => {
+  const src = readFileSync(new URL('../assets/js/kil-bf-popup.js', import.meta.url), 'utf8');
+  const kf = /@keyframes kilbf-in\{[^@]*?\}\}/.exec(src);
+  assert.ok(kf, 'keyframes present');
+  assert.ok(!/opacity/.test(kf[0]), 'a stalled animation timeline must not leave the card at opacity 0');
+  assert.ok(!/\.kilbf-card\{[^}]*opacity:\s*0/.test(src));
+  assert.match(src, /@media \(prefers-reduced-motion:no-preference\)\{\.kilbf-card\{animation:kilbf-in/);
+});
+test('mobile placeholder is short enough for a 375px phone', () => {
+  const src = readFileSync(new URL('../assets/js/kil-bf-popup.js', import.meta.url), 'utf8');
+  assert.match(src, /placeholder="Mobile \(optional\)"/);
+  assert.ok(!/for a text when it opens/.test(src.split('kilbf-fine')[0].split('placeholder="Mobile')[1] || ''));
+});

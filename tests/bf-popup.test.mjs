@@ -75,3 +75,9 @@ test('negative control: the guards fail when broken', () => {
   assert.ok(/Prefer: 'return=minimal'/.test(src));
   assert.ok(!/\.from\(|supabase\.createClient/.test(src), 'no supabase-js dependency');
 });
+test('the six frames load the popup exactly once (Joe go 2026-11-08)', () => {
+  for (const f of ['index.html','connect/index.html','create/index.html','shop/index.html','culture/index.html','earn/index.html']) {
+    const s = readFileSync(new URL('../' + f, import.meta.url), 'utf8');
+    assert.equal((s.match(/kil-bf-popup\.js/g) || []).length, 1, f);
+  }
+});

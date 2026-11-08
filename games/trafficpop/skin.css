@@ -1,0 +1,87 @@
+/* Traffic Pop 1.1 look: Luna's spec §5 (Oct 30 2026). Loaded after style.css; mockup px are @3x. */
+body{background:linear-gradient(#5CD6FF,#1E9BFF) fixed}
+
+/* board: grey rim, light checker surface */
+.ground{background:#EEF2F7;border-radius:17px;box-shadow:inset 0 0 0 6px #C9D2DF,0 6px 16px rgba(11,27,58,.22)} /* rim drawn inside: the game sizes .ground to the board box, so an outside rim overlapped the tool row */
+.cells{background:repeating-conic-gradient(#E2E8F0 0 25%,#EEF2F7 0 50%) 0 0/calc(var(--cell)*2) calc(var(--cell)*2);opacity:1}
+
+/* HUD */
+.hud{background:#0B1B3A;border-radius:16px;box-shadow:none}
+.chip-btn{background:#22345A}
+.hud-lvl{color:#fff}.hud-lvl b,.hud-moves b{color:#FFD23A}
+.hud-moves small,.hud-mid small{color:#9FB3D6;opacity:1}
+.meter{background:#22345A;height:9px;border-radius:5px}
+.meter i{background:#4BE38A}
+
+/* docks: white cards, colour stripe, title in the colour's Bevel */
+.dock{background:#FFFFFF;border-radius:13px;border-top:7px solid var(--c);box-shadow:0 3px 0 rgba(11,27,58,.18)}
+.dock::before{display:none}
+.want{color:var(--cb,var(--c));filter:none}
+.tpm{display:inline-block;width:1em;height:1em;vertical-align:-.12em}
+.fc .tpm{color:var(--c)}
+
+/* parking lot: dark panel, dashed slots */
+.lot{background:#2A3346;box-shadow:none}
+.bays{gap:5px}
+.bay,.bay:last-child{background:#3A4560;border:1.5px dashed rgba(255,255,255,.35);border-radius:7px}
+.lot-title{color:#FFFFFF}
+
+/* tool buttons */
+.tools button{background:#1E9BFF;border-radius:12px;box-shadow:inset 0 0 0 2px rgba(11,27,58,.25);color:#0B1B3A}
+.tools .helper{background:#FF8A2B;box-shadow:inset 0 0 0 2px rgba(11,27,58,.25)}
+
+/* ---------- §9 build 2 ---------- */
+/* §9.3 seats on the rear lip: white when filled, faint until a passenger boards */
+.seat{fill-opacity:.35}.seat.filled{fill-opacity:1}
+/* §9.6 progress fill: vertical mint */
+.meter i{background:linear-gradient(#9CF5C0,#4BE38A)}
+/* §9.4 menu background: sky + 40pt checker at 10% white */
+body{background:conic-gradient(rgba(255,255,255,.1) 25%,transparent 0 50%,rgba(255,255,255,.1) 0 75%,transparent 0) 0 0/40px 40px,linear-gradient(#5CD6FF,#1E9BFF) fixed}
+.legal{color:#0B1B3A}
+/* logo: TRAFFIC white / POP! yellow, navy stroke under the fill, navy copy 5pt down */
+.logo{font-family:Poppins,ui-rounded,"SF Pro Rounded",system-ui,sans-serif;font-weight:800;font-size:64px;letter-spacing:0;text-transform:uppercase;text-shadow:none;paint-order:stroke fill;-webkit-text-stroke:9px #0B1B3A;filter:drop-shadow(0 5px 0 #0B1B3A)}
+.logo span:first-child{color:#FFFFFF}.logo span:last-child{color:#FFD23A}.logo span:last-child::after{content:"!"}
+.tag{color:#0B1B3A}
+/* glossy buttons: gradient face, bevel 6pt, navy 18% shadow, gloss pill, navy outline + label */
+.big,.ghost,.tp-btn,.card button{--l:#FFE58A;--b:#FFC93A;--v:#9A6A00;position:relative;border:2.5px solid #0B1B3A;color:#0B1B3A;font-weight:800;
+  background:linear-gradient(var(--l),var(--b) 60%);box-shadow:0 6px 0 var(--v),2px 8px 0 6px rgba(11,27,58,.18);transition:transform 80ms,box-shadow 80ms}
+.big::before,.ghost::before,.tp-btn::before,.card button::before{content:"";position:absolute;left:12%;right:12%;top:8%;height:28%;border-radius:999px;background:rgba(255,255,255,.35);pointer-events:none}
+.big:active,.ghost:active,.tp-btn:active,.card button:active{transform:translateY(4px);box-shadow:0 2px 0 var(--v)}
+.big:disabled,.ghost:disabled,.tp-btn:disabled{--l:#D3DAE4;--b:#B8C3D3;--v:#8A97AA;color:#3D4A5E;transform:none}
+#play{min-width:300px;height:92px;border-radius:29px;font-size:30px}
+.ghost,.card .ghost,.tp-btn.blue{--l:#5CD6FF;--b:#1E9BFF;--v:#0B5FC2}
+.tp-btn.orange{--l:#FFB877;--b:#FF8A2B;--v:#D25E00}
+.tp-btn{width:140px;height:64px;border-radius:20px;font-size:20px}
+.tp-sec{display:flex;gap:16px;justify-content:center;margin:18px 0 4px}
+/* §9.5 every button label navy, including the in-game tools and HUD chips */
+.tools button,.tools .helper{color:#0B1B3A}
+.chip-btn{background:linear-gradient(#5CD6FF,#1E9BFF 60%);color:#0B1B3A;border:2px solid #0B1B3A}
+/* home top bar */
+.tp-top{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;box-sizing:border-box;height:48px;border-radius:24px;background:#0B1B3A;color:#fff;font-weight:800;padding:0 18px;margin:6px 0 4px}
+.tp-top span{white-space:nowrap;display:flex;align-items:center;gap:6px}.tp-top b{color:#FFD23A}.tp-top svg{width:18px;height:18px;vertical-align:-3px;fill:#FFD23A}
+/* home board preview (static kit cars) replaces the animated logo cars */
+.logo-car{display:none}
+.tp-preview{position:relative;width:250px;height:150px;margin:8px auto 10px;border-radius:12px;background:repeating-conic-gradient(#E2E8F0 0 25%,#EEF2F7 0 50%) 0 0/50px 50px;box-shadow:0 0 0 11px #C9D2DF}
+.tp-preview .veh{position:absolute;width:50px;pointer-events:none}.tp-preview svg{width:100%;height:100%;overflow:visible}
+/* §9.4 level map: snake of nodes, 4 per row, 150pt row step (scaled to the phone width) */
+.levels .row{display:block!important;position:relative}
+.tp-path{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.lv{position:absolute!important;width:60px;height:60px;max-width:none;margin:0;border:2.5px solid #0B1B3A;border-radius:50%;
+  --l:#D3DAE4;--b:#B8C3D3;--v:#8A97AA;background:linear-gradient(var(--l),var(--b) 60%);box-shadow:0 5px 0 var(--v);animation:none}
+.lv b{color:#0B1B3A;font-weight:800;font-size:22px}
+.lv.locked{--l:#D3DAE4;--b:#B8C3D3;--v:#8A97AA;background:linear-gradient(var(--l),var(--b) 60%);box-shadow:0 5px 0 var(--v)}.lv.locked b{color:#3D4A5E}
+.lv.done,.lv.current{background:linear-gradient(var(--l),var(--b) 60%)}
+.lv.done{--l:#9CF5C0;--b:#4BE38A;--v:#0F7A3B}
+.lv.current{--l:#FFE58A;--b:#FFC93A;--v:#9A6A00;width:76px;height:76px;box-shadow:0 5px 0 var(--v)}.lv.current b{font-size:28px;color:#0B1B3A}
+.lv small{position:absolute;top:100%;margin-top:6px;color:#FFD23A;font-size:14px;letter-spacing:1px;-webkit-text-stroke:1px #0B1B3A;paint-order:stroke fill}
+.lv.hard{box-shadow:0 5px 0 var(--v),0 0 0 3px #E02F4F}
+
+/* ---------- build 4: the level map is its own screen (Luna §9.4 level-map-mockup) ---------- */
+html:not(.tp-map-open) #levels,html:not(.tp-map-open) .tp-mapbar{display:none}
+.tp-map-open #map .title,.tp-map-open #map .legal,.tp-map-open .tp-top{display:none}
+.tp-map-open #levels{display:flex;flex-direction:column-reverse;padding-bottom:24px}  /* first area at the bottom, climb up */
+.tp-mapbar{position:sticky;top:6px;z-index:5;width:100%;box-sizing:border-box;display:flex;align-items:center;gap:12px;height:56px;border-radius:28px;background:#0B1B3A;color:#fff;font-weight:800;font-size:22px;padding:0 16px 0 6px;margin:6px 0 10px}
+.tp-mapbar b{color:#FFD23A}
+.tp-back{--l:#5CD6FF;--b:#1E9BFF;--v:#0B5FC2;width:44px;height:44px;border-radius:14px;border:2.5px solid #0B1B3A;background:linear-gradient(var(--l),var(--b) 60%);box-shadow:0 4px 0 var(--v);display:flex;align-items:center;justify-content:center;padding:0;flex:none}
+.tp-back svg{width:24px;height:24px;fill:none;stroke:#0B1B3A;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.tp-back:active{transform:translateY(3px);box-shadow:0 1px 0 var(--v)}

@@ -77,7 +77,7 @@
 
   var CSS = '#kil-bf{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(5,5,12,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}' +
     '#kil-bf[hidden]{display:none}' +
-    '.kilbf-card{position:relative;width:100%;max-width:420px;max-height:calc(100vh - 32px);overflow:auto;background:#0d0b16;color:#f2eefc;border:1px solid rgba(208,160,255,.45);border-radius:18px;padding:28px 22px 22px;box-shadow:0 0 40px rgba(208,160,255,.25);font-family:inherit;text-align:center}' +
+    '.kilbf-card{box-sizing:border-box;position:relative;width:100%;max-width:420px;max-height:calc(100vh - 32px);overflow:auto;background:#0d0b16;color:#f2eefc;border:1px solid rgba(208,160,255,.45);border-radius:18px;padding:28px 22px 22px;box-shadow:0 0 40px rgba(208,160,255,.25);font-family:inherit;text-align:center}' +
     '.kilbf-tag{display:inline-block;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#d0a0ff;border:1px solid rgba(208,160,255,.5);border-radius:99px;padding:4px 12px;margin-bottom:12px}' +
     '.kilbf-card h2{margin:0 0 8px;font-size:1.5rem;line-height:1.2}' +
     '.kilbf-card p{margin:0 0 14px;font-size:.95rem;line-height:1.5;color:#cfc8e6}' +

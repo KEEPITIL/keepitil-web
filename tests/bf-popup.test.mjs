@@ -81,3 +81,8 @@ test('the six frames load the popup exactly once (Joe go 2026-11-08)', () => {
     assert.equal((s.match(/kil-bf-popup\.js/g) || []).length, 1, f);
   }
 });
+
+test('card is border-box so padding cannot push it past a 375px viewport', () => {
+  const src = readFileSync(new URL('../assets/js/kil-bf-popup.js', import.meta.url), 'utf8');
+  assert.match(src, /\.kilbf-card\{box-sizing:border-box;/);
+});

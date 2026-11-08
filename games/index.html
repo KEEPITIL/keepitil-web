@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>KEEPITIL Games — Play what we're building</title>
-<meta name="description" content="KEEPITIL Games. Play KMOB and the KBeats beta in your browser, and open the TUITEA family app. PokaSnap, Kingdom Wars and THIRTEEN are coming soon.">
+<meta name="description" content="KEEPITIL Games. Play KMOB and KWARS in your browser, try the KBeats beta, and open the TUITEA family app. PokaSnap and THIRTEEN are coming soon.">
 <link rel="icon" type="image/png" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta property="og:title" content="KEEPITIL GAMES">
@@ -18,9 +18,10 @@
   A "soon" card must never contain an <a> to gameplay. .github/internal/tests/games-hub.mjs holds
   the roster, routes and statuses and fails if this page drifts from them.
 
-  Routes: Kingdom Wars I plays at /games/kwars. /games/kwars1 is the RETIRED route — a
-  "Kingdom Wars has moved" page kept only as the identity bridge for already-installed apps —
-  so the hub must not send players through it.
+  Routes: KWARS is one 2D game and plays at /games/kwars/. This hub links only there.
+  /games/kwars1, /games/kwars2, /games/kwars3 and /games/kwars-build89 stay on disk and keep
+  serving. This page does not link to them and does not remove them. Archive and redirects
+  are a later pass, after Joe approves.
 -->
 <style>
   :root{
@@ -119,7 +120,7 @@
   .kw.soon-card .art{--glow:rgba(139,92,246,.20)}
   .thirteen .art{--glow:rgba(220,38,38,.22)}
 
-  /* ── scene art (KWARS II / III): full-bleed, same 16:9 panel ── */
+  /* ── scene art: full-bleed 16:9 panel (featured KMOB) ── */
   .art.scene picture,.art.scene img{position:absolute;inset:0;width:100%;height:100%;max-width:none;border-radius:0;
        aspect-ratio:auto;object-fit:cover;box-shadow:none}
   .soon-card .art.scene img{filter:saturate(.8) brightness(.8)}
@@ -194,8 +195,8 @@
     <p class="second">Beta games are playable in your browser and updated weekly as we continue development toward App Store launch.</p>
   </section>
 
-  <!-- ORDER (Founder 2026-10-15): 1 KMOB featured · 2 KBeats (beta, being updated) · 3 TUITEA app (available).
-       Every other title is COMING SOON. -->
+  <!-- ORDER: 1 KMOB featured · 2 KBeats (beta) · 3 KWARS (one 2D game at /games/kwars/) · 4 TUITEA app.
+       PokaSnap and THIRTEEN stay COMING SOON. The hub does not link kwars1, kwars2, kwars3 or kwars-build89. -->
   <article class="feature" data-game="kmob" data-status="play" aria-labelledby="g-kmob">
     <div class="art scene">
       <span class="eyebrow">FEATURED</span>
@@ -232,6 +233,23 @@
     </article>
   </div>
 
+  <h2 class="sect" id="kwars">KWARS <small>One 2D game.</small></h2>
+  <div class="grid3">
+    <article class="card kw soon-card" data-game="kwars" data-status="soon" aria-labelledby="g-kwars">
+      <div class="art"><img src="/games/kwars/app-icon-512.png" alt="KWARS" loading="lazy" width="512" height="512"><span class="chap" aria-hidden="true">2D</span></div>
+      <div class="body">
+        <h3 id="g-kwars">KWARS</h3>
+        <span class="status soon">Coming soon</span>
+        <p class="desc">Build your base. Defend your kingdom. Grow your army and conquer the battlefield.</p>
+        <p class="sum">The 2D Kingdom Wars game. Raise an army, hold the gate, and fight across historical ages.</p>
+        <div class="foot">
+          <p class="note">Coming soon. This will be the one KWARS game, in 2D.</p>
+          <span class="cta soon" aria-disabled="true">Coming soon</span>
+        </div>
+      </div>
+    </article>
+  </div>
+
   <h2 class="sect apps-head" id="tuitea-app">TUITEA <small>The family app from KEEPITIL.</small></h2>
   <div class="gridapps">
     <article class="app-card" data-app="tuitea" data-status="available" aria-labelledby="a-tuitea">
@@ -254,49 +272,6 @@
         <span class="status soon">Coming soon</span>
         <p class="desc">Pose and create with lovable pets in a lighthearted interactive game built around personality and customization.</p>
         <p class="sum">PokaSnap starts with familiar household pets and gives players a playful world built around posing, interacting and personalizing their characters.</p>
-        <div class="foot">
-          <p class="note">Coming soon.</p>
-          <span class="cta soon" aria-disabled="true">Coming soon</span>
-        </div>
-      </div>
-    </article>
-    <article class="card kw soon-card" data-game="kwars1" data-status="soon" aria-labelledby="g-kwars1">
-      <div class="art"><img src="/games/kwars/app-icon-512.png" alt="Kingdom Wars I" loading="lazy" width="512" height="512"><span class="chap" aria-hidden="true">I</span></div>
-      <div class="body">
-        <h3 id="g-kwars1">KINGDOM WARS I</h3>
-        <span class="status soon">Coming soon</span>
-        <p class="desc">Build your base. Defend your kingdom. Grow your army and conquer the battlefield.</p>
-        <p class="sum">The original Kingdom Wars fort-defense experience combines base growth, resource control, army building and strategic combat.</p>
-        <div class="foot">
-          <p class="note">Coming soon.</p>
-          <span class="cta soon" aria-disabled="true">Coming soon</span>
-        </div>
-      </div>
-    </article>
-    <article class="card kw soon-card" data-game="kwars2" data-status="soon" aria-labelledby="g-kwars2">
-      <div class="art scene">
-        <picture><source type="image/webp" srcset="/assets/games-hub/kwars2-card-800.webp 800w, /assets/games-hub/kwars2-card-1600.webp 1600w" sizes="(max-width:720px) 100vw, 380px">
-        <img src="/assets/games-hub/kwars2-card-1600.jpg" alt="Kingdom Wars II — armies clashing across a wide 2.5D battlefield" loading="lazy" width="1600" height="900"></picture><span class="chap" aria-hidden="true">II</span></div>
-      <div class="body">
-        <h3 id="g-kwars2">KINGDOM WARS II</h3>
-        <span class="status soon">Coming soon</span>
-        <p class="desc">The next evolution of Kingdom Wars. Build, defend, expand and fight across a more immersive 2.5D battlefield with deeper strategy and larger conflicts.</p>
-        <p class="sum">Kingdom Wars II expands the original fort-defense formula with a more dimensional battlefield, upgraded armies and a larger strategic war experience.</p>
-        <div class="foot">
-          <p class="note">Coming soon.</p>
-          <span class="cta soon" aria-disabled="true">Coming soon</span>
-        </div>
-      </div>
-    </article>
-    <article class="card kw soon-card" data-game="kwars3" data-status="soon" aria-labelledby="g-kwars3">
-      <div class="art scene">
-        <picture><source type="image/webp" srcset="/assets/games-hub/kwars3-card-800.webp 800w, /assets/games-hub/kwars3-card-1600.webp 1600w" sizes="(max-width:720px) 100vw, 380px">
-        <img src="/assets/games-hub/kwars3-card-1600.jpg" alt="Kingdom Wars III — forts and armies across a true-3D battlefield" loading="lazy" width="1600" height="900"></picture><span class="chap" aria-hidden="true">III</span></div>
-      <div class="body">
-        <h3 id="g-kwars3">KINGDOM WARS III</h3>
-        <span class="status soon">Coming soon</span>
-        <p class="desc">Kingdom Wars enters true 3D. Command your forces, grow your territory and fight across fully dimensional battlefields.</p>
-        <p class="sum">Kingdom Wars III is the next major chapter of the series, moving the Kingdom Wars experience into a true-3D world with larger battles and deeper battlefield control.</p>
         <div class="foot">
           <p class="note">Coming soon.</p>
           <span class="cta soon" aria-disabled="true">Coming soon</span>

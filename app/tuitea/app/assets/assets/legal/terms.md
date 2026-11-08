@@ -1,11 +1,11 @@
 <!-- source: https://keepitil.com/apps/tuitea/legal/terms/ -->
-<!-- version: 2026-11-04 -->
+<!-- version: 2026-11-07 -->
 
 # TUITEA Terms of Use
 
-_Version 2026-11-04 · Effective 4 November 2026_
+_Version 2026-11-07 · Effective 7 November 2026_
 
-**What changed:** plan prices are shown for where you buy: in the iPhone app, Plus is $8 a month or $80 a year and Pro is $20 a month or $200 a year; on keepitil.com, Plus is $5 a month or $50 a year and Pro is $15 a month or $150 a year. Echo's weekly allowance resets at a fixed moment, Monday 00:00 UTC, which Echo shows in your own time. Earlier: the assistant is now called Echo; Echo has weekly allowances; you must be 18 or older to create an account; storage plans are no longer sold.
+**What changed:** website plan prices are no longer listed in these terms. In the iPhone app, Plus is $8 a month or $80 a year and Pro is $20 a month or $200 a year. Echo's weekly allowance resets at a fixed moment, Monday 00:00 UTC, which Echo shows in your own time. Earlier: the assistant is now called Echo; Echo has weekly allowances; you must be 18 or older to create an account; storage plans are no longer sold.
 
 ## The agreement
 
@@ -43,11 +43,13 @@ We try to keep TUITEA working and available, and sometimes it will not be. Featu
 
 **Free** costs nothing and has no time limit: one signed-in account, the family tree with unlimited generations, memories and family records kept on your device, export and account deletion. Echo (TUITEA's AI assistant) is not included in Free.
 
-**TUITEA Plus** ($8 a month or $80 a year in the iPhone app; $5 a month or $50 a year on keepitil.com) adds Echo and lets up to seven signed-in accounts in total (including yours) share the household. Echo's use is subject to a weekly allowance of 350 messages for the household. When it is reached, Echo says so and when it is back, and everything else keeps working. Allowances reset every week at Monday 00:00 UTC (in the Americas that is Sunday afternoon or evening); Echo shows the reset in your own time zone. A question with a photo counts as about 6 messages, and the weekly message limits apply up to the family's weekly cost cap. Voice conversations with Echo are not part of this version of TUITEA.
+**TUITEA Plus** ($8 a month or $80 a year in the iPhone app) adds Echo and lets up to seven signed-in accounts in total (including yours) share the household. Echo's use is subject to a weekly allowance of 350 messages for the household. When it is reached, Echo says so and when it is back, and everything else keeps working. Allowances reset every week at Monday 00:00 UTC (in the Americas that is Sunday afternoon or evening); Echo shows the reset in your own time zone. A question with a photo counts as about 6 messages, and the weekly message limits apply up to the family's weekly cost cap. Voice conversations with Echo are not part of this version of TUITEA.
 
 The seven accounts are TUITEA household accounts, not Apple Family Sharing. If a Plus plan ends, nobody is removed and nothing is deleted: Echo pauses, and new members cannot join beyond what Free allows, until a plan is restarted.
 
-**TUITEA Pro** ($20 a month or $200 a year in the iPhone app; $15 a month or $150 a year on keepitil.com) includes everything in Plus, lets up to fifteen signed-in accounts share the household, and gives Echo a larger allowance: up to 140 messages a week for each person and 625 for the household, with a larger AI model used for up to one in four of them. A question with a photo counts as about 6 messages, and the weekly message limits apply up to the family's weekly cost cap. The fifteen accounts are TUITEA household accounts, not Apple Family Sharing, and the same "nothing is removed or deleted when a plan ends" rule applies.
+**TUITEA Pro** ($20 a month or $200 a year in the iPhone app) includes everything in Plus, lets up to fifteen signed-in accounts share the household, and gives Echo a larger allowance: up to 140 messages a week for each person and 625 for the household, with a larger AI model used for up to one in four of them. A question with a photo counts as about 6 messages, and the weekly message limits apply up to the family's weekly cost cap. The fifteen accounts are TUITEA household accounts, not Apple Family Sharing, and the same "nothing is removed or deleted when a plan ends" rule applies.
+
+Plans bought on keepitil.com are priced and billed on keepitil.com.
 
 ## Paying for a plan
 

@@ -346,7 +346,36 @@
       : [{ label:'Log in',  href:'/apply'   }, { label:'Create', href:KIL_CREATE_URL }];
   }
 
-  var WELCOME_CHIPS = [];   /* kept for the renderer; the two actions are rendered separately */
+  /* Suggested prompts on the greeting. These ask CHO something — Log in / Profile stay
+     in the header, so the first screen is not a second copy of those links. */
+  var WELCOME_CHIPS = [
+    'What is KEEPITIL?',
+    'Where can I find events?',
+    'How does KEEPITIL Radio work?',
+    'How do I create an account?'
+  ];
+  function kiloWelcomeChips() {
+    if (kilSignedIn()) {
+      return [
+        'What can I enter on CREATE?',
+        'Find upcoming events',
+        'How does Earn work?',
+        'Play KEEPITIL Radio'
+      ];
+    }
+    return WELCOME_CHIPS.slice();
+  }
+  function kiloWelcomeCard() {
+    return {
+      title: 'CHO',
+      text: kilSignedIn()
+        ? 'Hi, I\'m CHO. I can find events, open profiles, play Radio, and help you submit work. Pick a prompt or ask in your own words.'
+        : 'Hi, I\'m CHO. I can help you learn KEEPITIL and find events, artists, Culture, Radio, and Earn. Pick a prompt or ask in your own words.',
+      chips: kiloWelcomeChips()
+    };
+  }
+  window.__kiloWelcomeChips = kiloWelcomeChips;
+  window.__kiloWelcomeCard = kiloWelcomeCard;
 
   // ── Match intent from user text ──────────────────────────────────────────────
   function matchIntent(text) {
@@ -415,7 +444,9 @@
          keyboard. Sized from visualViewport instead — the only box that excludes the keyboard
          — via --kilo-vh/--kilo-vtop, which kiloSyncViewport() keeps current. Falls back to
          100dvh where visualViewport is unavailable. */
-      '#kilo-panel{position:fixed;left:0;right:0;width:100vw;max-width:100vw;z-index:99999;',
+      /* width:auto with left and right, not 100vw. 100vw includes the scrollbar and
+         pulls the page sideways on a phone. */
+      '#kilo-panel{position:fixed;left:0;right:0;width:auto;max-width:none;z-index:99999;',
       'top:var(--kilo-vtop,0px);height:var(--kilo-vh,100dvh);max-height:var(--kilo-vh,100dvh);bottom:auto;',
       'background:#0f0f1a;border:0;border-radius:0;',
       'display:flex;flex-direction:column;overflow:hidden;',
@@ -576,11 +607,15 @@
       /* Phone placement — also root-only before consolidation. */
       '@media(max-width:480px){#kilo-btn{bottom:66px;right:18px;}}',
       '@media(max-width:768px){#kilo-btn{bottom:132px;right:18px;}',
-      '#kilo-msgs{scroll-padding-top:env(safe-area-inset-top,0px);}',
-      /* No safe-area padding under the composer: visualViewport already excludes both the
-         keyboard and the home indicator, so adding the inset again lifts the composer off the
-         keyboard by the height of the indicator and leaves a gap. */
-      '#kilo-input-row{padding-bottom:12px;}}',
+      '#kilo-msgs{scroll-padding-top:env(safe-area-inset-top,0px);',
+      'padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));}',
+      '#kilo-row1{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right));}',
+      /* --kilo-safe is the home-indicator inset while the keyboard is closed, and 0px while
+         it is open. visualViewport ends at the keyboard, so the inset must not be added twice. */
+      '#kilo-input-row{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));',
+      'padding-bottom:calc(12px + var(--kilo-safe, env(safe-area-inset-bottom)));}',
+      '#kilo-send{width:44px;height:44px;}',
+      '.kilo-chip{min-height:44px;padding:10px 14px;}}',
     ].join('');
 
     var s = document.createElement('style');
@@ -627,7 +662,7 @@
       '</div>',
       '<div id="kilo-msgs"></div>',
       '<div id="kilo-input-row">',
-        '<input id="kilo-input" type="text" placeholder="Ask me anything about the scene…" maxlength="300" autocomplete="off"/>',
+        '<input id="kilo-input" type="text" placeholder="Ask CHO about KEEPITIL…" maxlength="300" autocomplete="off"/>',
         '<button id="kilo-send" aria-label="Send">',
           '<svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>',
         '</button>',
@@ -728,11 +763,12 @@
       var s = c && c.auth && c.auth._currentSession;
       if (s && s.access_token) tok = s.access_token;
     } catch (e) {}
-    return fetch(KIL_SUPA_URL + '/rest/v1/rpc/ask_crew', {
+    kiloNet.attempts += 1;
+    return kilFetch(KIL_SUPA_URL + '/rest/v1/rpc/ask_crew', {
       method: 'POST',
       headers: { 'apikey': KIL_SUPA_ANON, 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' },
       body: JSON.stringify({ p_question: text }),
-    }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
+    }).then(function(r) { return r.ok ? r.json() : kiloNetFail(); }).catch(function() { return kiloNetFail(); });
   }
   function brainCard(d) {
     if (!d || !d.ok) return null;
@@ -770,11 +806,12 @@
       if (role) body.userRole = role;
       if (genres) body.userGenre = genres.split(',')[0] || genres;
     } catch (e) {}
-    return fetch(KIL_SUPA_URL + '/functions/v1/ask-echo', {
+    kiloNet.attempts += 1;
+    return kilFetch(KIL_SUPA_URL + '/functions/v1/ask-echo', {
       method: 'POST',
       headers: { 'apikey': KIL_SUPA_ANON, 'Authorization': 'Bearer ' + KIL_SUPA_ANON, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-    }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
+    }).then(function(r) { return r.ok ? r.json() : kiloNetFail(); }).catch(function() { return kiloNetFail(); });
   }
   function echoCard(d) {
     if (!d || !d.ok || !d.answer) return null;
@@ -976,7 +1013,7 @@
     return matchIntent(text) || {
       title: '🔍 I\'m not sure about that',
       text: 'I didn\'t catch that one. Try asking about events, booking artists, organizing events, brand partnerships, DJ tips, or the SoCal underground scene. Or pick a topic below:',
-      chips: WELCOME_CHIPS,
+      chips: kiloWelcomeChips(),
     };
   }
 
@@ -1021,7 +1058,8 @@
       // migrated, so sending the legacy slug returns an agent with no persona and no notes.
       var body = { op: 'ask', text: text, surface: 'web', agent: 'cho', privacy_class: 'low' };
       if (kilThreadId) body.thread_id = kilThreadId;
-      return fetch(KIL_RELAY_FN, {
+      kiloNet.attempts += 1;
+      return kilFetch(KIL_RELAY_FN, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1029,8 +1067,8 @@
         },
         body: JSON.stringify(body)
       })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .catch(function () { return null; });
+      .then(function (r) { return r.ok ? r.json() : kiloNetFail(); })
+      .catch(function () { return kiloNetFail(); });
     });
   }
 
@@ -1100,7 +1138,7 @@
 
     return kilSession().then(function (session) {
       if (!session) return null;
-      return fetch(KIL_AGENT_FN, {
+      return kilFetch(KIL_AGENT_FN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
         body: JSON.stringify({ op: 'invoke', tool: tool, args: args, surface: 'web' })
@@ -1181,7 +1219,7 @@
   }
 
   function choRest(path) {
-    return fetch(KIL_SUPA_URL + '/rest/v1/' + path, {
+    return kilFetch(KIL_SUPA_URL + '/rest/v1/' + path, {
       headers: { apikey: KIL_SUPA_ANON, Authorization: 'Bearer ' + KIL_SUPA_ANON }
     }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
   }
@@ -1713,7 +1751,7 @@
   var CHO_BRAIN = null;
   function choBrain() {
     if (CHO_BRAIN) return Promise.resolve(CHO_BRAIN);
-    return fetch(KIL_SUPA_URL + '/rest/v1/rpc/cho_app_brain', {
+    return kilFetch(KIL_SUPA_URL + '/rest/v1/rpc/cho_app_brain', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: KIL_SUPA_ANON,
                  Authorization: 'Bearer ' + KIL_SUPA_ANON },
@@ -1853,28 +1891,120 @@
   }
   window.__choAct = choAct;
 
+  var kiloNet = { attempts: 0, failures: 0 };
+  function kiloNetReset() { kiloNet.attempts = 0; kiloNet.failures = 0; }
+  function kiloNetFail() { kiloNet.failures += 1; return null; }
+  function kiloOffline() { return kiloNet.attempts > 0 && kiloNet.failures === kiloNet.attempts; }
+  /* 8s, then stop. A hung relay used to leave the typing indicator up until the
+     browser gave up, which reads as a frozen chat. */
+  function kilFetch(url, options) {
+    options = options || {};
+    var ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    var timer = null;
+    if (ctrl) {
+      options.signal = ctrl.signal;
+      timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, 8000);
+    }
+    return fetch(url, options).then(function (r) {
+      if (timer) clearTimeout(timer);
+      return r;
+    }, function (err) {
+      if (timer) clearTimeout(timer);
+      throw err;
+    });
+  }
+  function kiloErrorCard(text) {
+    var again = String(text || '').trim();
+    var chips = [];
+    if (again && again.length <= 80) chips.push(again);
+    chips.push('What is KEEPITIL?');
+    return {
+      title: 'Connection problem',
+      text: 'I couldn\'t reach KEEPITIL just now. Check your connection and try again.',
+      chips: chips
+    };
+  }
+  function kiloFinish(text, echoBody) {
+    var card = echoCard(echoBody);
+    if (card) return card;
+    var known = matchIntent(text);
+    if (known) return known;
+    if (kiloOffline()) return kiloErrorCard(text);
+    return fallbackCard(text);
+  }
+  window.__kiloErrorCard = kiloErrorCard;
+
+  /* Questions the curated copy can answer without a round trip. Live lookups (events near
+     me, open/play/submit) stay on choAct and the agent chain — those need the network.
+     Everything else that already has a local card is shown immediately, so the first reply
+     does not wait on nexus-relay, ask_crew, or ask-echo. */
+  function kiloNeedsTool(text) {
+    return /\b(open|show me|take me|go to|play|skip|pause|mute|enter|submit|next|previous)\b/i.test(text);
+  }
+  function kiloNeedsLookup(text) {
+    return /\b(near me|tonight|this weekend|upcoming|who(?:'s| is)|list|search)\b/i.test(text);
+  }
+  /* True only when a curated public keyword hit. kiloPublicMatch also treats any
+     mention of "keepitil" as the about card; that fallback is too broad to skip the network. */
+  function kiloPublicKeyword(text) {
+    var q = String(text || '').toLowerCase();
+    for (var i = 0; i < KILO_PUBLIC.length; i++) {
+      var kws = KILO_PUBLIC[i].kw;
+      for (var j = 0; j < kws.length; j++) {
+        if (q.indexOf(kws[j]) !== -1) return true;
+      }
+    }
+    return false;
+  }
+  /* Short KB tokens ('la', 'oc', 'dj') match inside unrelated words. Instant answers
+     only trust a keyword of 8+ characters, so "playing" cannot become the SoCal card. */
+  function kiloStrongIntent(text) {
+    var q = String(text || '').toLowerCase();
+    var best = null, bestScore = 0;
+    for (var i = 0; i < KB.length; i++) {
+      var item = KB[i], score = 0;
+      for (var j = 0; j < item.kw.length; j++) {
+        if (item.kw[j].length >= 8 && q.indexOf(item.kw[j]) !== -1) score += item.kw[j].length;
+      }
+      if (score > bestScore) { bestScore = score; best = item; }
+    }
+    return bestScore > 0 ? best : null;
+  }
+  function kiloInstantCard(text) {
+    if (window.KIL_SUPPORT_MODE || CHO_FLOW) return null;
+    var q = String(text || '');
+    if (!q.trim() || kiloNeedsTool(q) || kiloNeedsLookup(q)) return null;
+    if (kiloPublicKeyword(q)) return kiloPublicMatch(q);
+    if (!/^\s*(what|how|why|who|tell me|explain)\b/i.test(q)) return null;
+    return kiloStrongIntent(q);
+  }
+  window.__kiloInstantCard = kiloInstantCard;
+
   function handleQuery(text) {
     addMessage('user', text);
-    showTyping();
+    kiloNetReset();
 
-    /* SUPPORT MODE: curated support answers only (see KIL_SUPPORT_KB). */
+    /* SUPPORT MODE: curated support answers only (see KIL_SUPPORT_KB).
+       The reply is local, so it is shown on this turn — no artificial delay. */
     if (window.KIL_SUPPORT_MODE) {
       var chip = String(text).toLowerCase();
       var pick = { 'wifi remote':'wifi-remote','wifi remote help':'wifi-remote','tuitea':'tuitea','tuitea help':'tuitea',
                    'pokasnap':'pokasnap','pokasnap help':'pokasnap','keepitil.com account':'general' }[chip.trim()];
-      setTimeout(function(){
-        hideTyping();
-        if (pick) {
-          window.KIL_SUPPORT_PRODUCT = pick;
-          addMessage('bot', { title: KIL_SUPPORT_PRODUCTS[pick].name + ' support',
-            text: 'Got it. What do you need help with?\n\n' + KIL_SUPPORT_HUMAN, chips: kilSupportChips(pick) });
-          return;
-        }
-        if (/^contact a person$/i.test(text.trim())) { addMessage('bot', kilSupportMatch('contact email')); return; }
-        addMessage('bot', kilSupportMatch(text));
-      }, 250);
+      if (pick) {
+        window.KIL_SUPPORT_PRODUCT = pick;
+        addMessage('bot', { title: KIL_SUPPORT_PRODUCTS[pick].name + ' support',
+          text: 'Got it. What do you need help with?\n\n' + KIL_SUPPORT_HUMAN, chips: kilSupportChips(pick) });
+        return;
+      }
+      if (/^contact a person$/i.test(text.trim())) { addMessage('bot', kilSupportMatch('contact email')); return; }
+      addMessage('bot', kilSupportMatch(text));
       return;
     }
+
+    var instant = kiloInstantCard(text);
+    if (instant) { addMessage('bot', instant); return; }
+
+    showTyping();
 
     /* SIGNED OUT: concierge only. choAct() still runs first so deterministic navigation and
        Radio keep working, then the curated public set, then the boundary reply. The general
@@ -1911,14 +2041,14 @@
           if (card) { hideTyping(); addMessage('bot', card); return; }
           return askEcho(text).then(function (e) {
             hideTyping();
-            addMessage('bot', echoCard(e) || fallbackCard(text));
+            addMessage('bot', kiloFinish(text, e));
           });
         });
       });
       });          /* close askAgent().then */
     }).catch(function () {
       hideTyping();
-      addMessage('bot', fallbackCard(text));
+      addMessage('bot', kiloFinish(text, null));
     });
   }
 
@@ -1959,15 +2089,23 @@
        Everything here is a no-op where visualViewport is missing; the CSS falls back to
        100dvh, which is the behaviour this replaces. */
     var vv = window.visualViewport || null;
+    function kiloCoarse(){
+      try {
+        return !!(window.matchMedia && window.matchMedia('(max-width:768px), (pointer:coarse)').matches);
+      } catch (e) { return false; }
+    }
     function kiloSyncViewport(){
       if(!vv || !isOpen) return;
       var r = document.documentElement.style;
-      r.setProperty('--kilo-vh',  Math.round(vv.height) + 'px');
+      var h = Math.round(vv.height);
+      r.setProperty('--kilo-vh',  h + 'px');
       r.setProperty('--kilo-vtop', Math.round(vv.offsetTop) + 'px');
+      var keyboard = (window.innerHeight || 0) - h > 80;
+      r.setProperty('--kilo-safe', keyboard ? '0px' : 'env(safe-area-inset-bottom)');
     }
     function kiloClearViewport(){
       var r = document.documentElement.style;
-      r.removeProperty('--kilo-vh'); r.removeProperty('--kilo-vtop');
+      r.removeProperty('--kilo-vh'); r.removeProperty('--kilo-vtop'); r.removeProperty('--kilo-safe');
     }
     if(vv){
       vv.addEventListener('resize', kiloSyncViewport);
@@ -2006,8 +2144,12 @@
       kiloSyncViewport();
       /* Focus AFTER the panel is laid out, or iOS opens the keyboard against the old
          geometry and the first resize arrives before the panel has a height to shrink. */
-      setTimeout(function(){ try{ input.focus(); }catch(e){} kiloSyncViewport(); kiloStickBottom(); }, 0);
-      input.addEventListener('focus', function(){ setTimeout(function(){ kiloSyncViewport(); kiloStickBottom(); }, 120); });
+      /* Phones open the keyboard on focus and cover the greeting. Desktop still focuses. */
+      setTimeout(function(){
+        if (!kiloCoarse()) { try{ input.focus(); }catch(e){} }
+        kiloSyncViewport();
+        kiloStickBottom();
+      }, 0);
       /* ── ACCOUNT-ONLY (Founder 2026-09-01) ──────────────────────────────────────────
          Signed out there is no conversation to interact with. This is not UI hiding: the
          thread is never rendered, the composer is removed by body.kilo-noauth, and no query
@@ -2032,11 +2174,7 @@
         /* §50: the old greeting described KEEPITIL as a SoCal music guide. The product is an
            events + creators + competitions + culture + radio ecosystem and the data no longer
            supports that framing, so the copy stops claiming it. */
-        addMessage('bot', {
-          title: 'CHO',
-          text: 'I can find events, open creator profiles and articles, show you what you can enter on CREATE, play KEEPITIL Radio and help you submit work. What do you need?',
-          chips: WELCOME_CHIPS,
-        });
+        addMessage('bot', kiloWelcomeCard());
         /* §49: renderWelcomeActions() drew LOG IN / CREATE inside the conversation. Row 2
            is now those exact destinations, permanently visible and outside the scroll —
            so the in-message pair was the same two buttons twice, costing the first
@@ -2157,6 +2295,7 @@
     }
 
     send.addEventListener('click', sendQuery);
+    input.addEventListener('focus', function(){ setTimeout(function(){ kiloSyncViewport(); kiloStickBottom(); }, 120); });
 
     /* Lets a page (keepitil.com/support) open this assistant and optionally ask a first
        question on the customer's behalf. */

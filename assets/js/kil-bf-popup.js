@@ -92,7 +92,7 @@
     '.kilbf-msg{min-height:1.2em;margin:8px 0 0;font-size:.9rem}' +
     '.kilbf-msg.err{color:#ff7a7a}.kilbf-msg.ok{color:#7fe0a0}' +
     '.kilbf-inline .kilbf-card{margin:0 auto;box-shadow:none}' +
-    '@media (prefers-reduced-motion:no-preference){.kilbf-card{animation:kilbf-in .25s ease-out}@keyframes kilbf-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}}';
+    '@media (prefers-reduced-motion:no-preference){.kilbf-card{animation:kilbf-in .25s ease-out backwards}@keyframes kilbf-in{from{transform:translateY(10px)}to{transform:none}}}';
 
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
@@ -110,7 +110,7 @@
         '<label for="kilbf-email" class="kilbf-sr" style="position:absolute;left:-9999px">Email</label>' +
         '<input id="kilbf-email" type="email" name="email" inputmode="email" autocomplete="email" placeholder="Your email" required>' +
         '<label for="kilbf-phone" class="kilbf-sr" style="position:absolute;left:-9999px">Mobile number (optional)</label>' +
-        '<input id="kilbf-phone" type="tel" name="phone" inputmode="tel" autocomplete="tel" placeholder="Mobile (optional, for a text when it opens)">' +
+        '<input id="kilbf-phone" type="tel" name="phone" inputmode="tel" autocomplete="tel" placeholder="Mobile (optional)">' +
         '<button class="kilbf-go" type="submit">Join the guest list</button>' +
         '<div class="kilbf-msg" role="status" aria-live="polite"></div>' +
       '</form>' +

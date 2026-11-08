@@ -1534,14 +1534,31 @@
      and only then fetches the API. */
   window.__kilRadioAttach = function(el){
     frame = el || document.getElementById('kil-sc');
-    if(!frame) return;
-    if(window.SC){ initWidget(); return; }
-    if(document.getElementById('kil-sc-api')) return;
-    var scApi=document.createElement('script');
-    scApi.id='kil-sc-api';
-    scApi.src='https://w.soundcloud.com/player/api.js';
-    scApi.onload=initWidget;
-    document.head.appendChild(scApi);
+    if(!frame || frame.getAttribute('data-kil-widget')==='1') return;
+    /* SC.Widget() postMessages to https://w.soundcloud.com immediately. On a light page
+       (/shop/, /services/) the API script finishes before the iframe has left this origin,
+       and Chrome logs: Failed to execute 'postMessage' on 'DOMWindow'. Wait until the
+       frame is actually the player. A cross-origin read means that navigation has landed. */
+    function playerReady(){
+      try{
+        var href=frame.contentWindow && frame.contentWindow.location ? frame.contentWindow.location.href : '';
+        return !!href && href!=='about:blank' && href.indexOf('soundcloud.com')!==-1;
+      }catch(e){ return true; }
+    }
+    function go(){
+      if(!frame || frame.getAttribute('data-kil-widget')==='1' || !playerReady()) return;
+      frame.setAttribute('data-kil-widget','1');
+      if(window.SC){ initWidget(); return; }
+      var existing=document.getElementById('kil-sc-api');
+      if(existing){ existing.addEventListener('load', initWidget, {once:true}); return; }
+      var scApi=document.createElement('script');
+      scApi.id='kil-sc-api';
+      scApi.src='https://w.soundcloud.com/player/api.js';
+      scApi.onload=initWidget;
+      document.head.appendChild(scApi);
+    }
+    if(playerReady()){ go(); return; }
+    frame.addEventListener('load', go);
   };
   /* Any gesture mounts it. `once` so the listeners remove themselves; capture+passive so a
      stopPropagation() anywhere in the page cannot swallow the trigger. */

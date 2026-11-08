@@ -25,7 +25,7 @@ export function formHtml(c) {
 <label for="f-email">Email</label><input id="f-email" name="email" type="email" autocomplete="email" required maxlength="254">
 <label for="f-msg">Message</label><textarea id="f-msg" name="message" rows="5" required minlength="10" maxlength="2000"></textarea>
 <div class="hp" aria-hidden="true"><label for="f-website">Website</label><input id="f-website" name="website" tabindex="-1" autocomplete="off"></div>
-<input type="hidden" name="elapsed_ms" value="0"><input type="hidden" name="source" value="${esc(f.source || 'site-contact')}">
+${f.site ? `<input type="hidden" name="site" value="${esc(f.site)}">` : ''}<input type="hidden" name="elapsed_ms" value="0"><input type="hidden" name="source" value="${esc(f.source || 'site-contact')}">
 <button class="btn" type="submit">${esc(f.button || 'Send')}</button>
 <p class="status" role="status" aria-live="polite"></p>
 </form>

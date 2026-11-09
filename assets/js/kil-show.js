@@ -68,7 +68,7 @@
       (past ? '<span class="m2-badge">Past event</span>' : '') +
       '<h1 class="m2-title">' + esc(e.title || 'Event') + '</h1>' + (e.tagline ? '<div class="m2-tag">' + esc(e.tagline) + '</div>' : '') +
       (when ? '<div class="m2-when">' + esc(when) + '</div>' : '') + (where ? '<div class="m2-where">' + esc(where) + '</div>' : '') +
-      (e.owner_handle ? '<a class="m2-host" href="' + esc('/member?slug=' + encodeURIComponent(slugOf(e.owner_handle))) + '">Hosted by ' + esc(e.owner_name || e.owner_handle) + '</a>' : '') +
+      (e.owner_handle ? (d.hostProfile ? '<a class="m2-host" href="' + esc('/member?slug=' + encodeURIComponent(slugOf(e.owner_handle))) + '">Hosted by ' + esc(e.owner_name || e.owner_handle) + '</a>' : '<span class="m2-host">Hosted by ' + esc(e.owner_name || e.owner_handle) + '</span>') : '') +
       (e.genres ? '<div class="m2-genres">' + String(e.genres).split(/\s*,\s*/).filter(Boolean).slice(0, 8).map(function (g) { return '<span class="m2-chip">' + esc(g) + '</span>'; }).join('') + '</div>' : '') +
       '</section>';
     if (d.hasTicket && !d.owner) h += '<a class="m2-mine" href="' + esc('/tickets?e=' + encodeURIComponent(slug)) + '">You have a ticket · Show it</a>';
@@ -134,13 +134,15 @@
     }
     if (!ev) return { slug: s, missing: true };
     var owner = !!mine && slugOf(ev.owner_handle) === slugOf(mine);
+    var hpr = ev.owner_handle ? await safe(client.from('profile_meta').select('slug').eq('slug', slugOf(ev.owner_handle)).maybeSingle()) : null;
+    var hostProfile = !!(hpr && ok(hpr) && hpr.data);   // a failed or empty lookup renders the host as plain text
     var lr = await safe(client.rpc('get_event_lineup', { p_slug: s }));
     var lineup = ok(lr) ? (lr.data || []) : null;   // null = could not load
     var tr = ev.id != null ? await safe(client.from('ticket_tiers').select('id,name,price_cents,currency,qty_total,qty_sold,sales_start,sales_end,sort,description,show_qty').eq('event_id', ev.id).order('sort')) : { data: [], error: null };
     var tiers = ok(tr) ? (tr.data || []) : null;
     var hasTicket = false;
     if (sess && !owner) { var hr = await safe(client.rpc('has_event_ticket', { p_slug: s })); hasTicket = ok(hr) && hr.data === true; }
-    return { slug: s, event: ev, lineup: lineup, tiers: tiers, owner: owner, hasTicket: hasTicket, now: opts.now };
+    return { slug: s, event: ev, lineup: lineup, tiers: tiers, owner: owner, hasTicket: hasTicket, hostProfile: hostProfile, now: opts.now };
   }
 
   async function mount(rootEl, client, opts) {

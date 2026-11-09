@@ -169,7 +169,9 @@ test('the events query selects explicit columns and filters the password hash wi
   assert.deepEqual(calls[0], ['from', 'events']);
   assert.equal(calls[1][1], D.EVENT_COLUMNS);
   assert.deepEqual(calls.find(function (c) { return c[0] === 'eq'; }).slice(1), ['status', 'published']);
-  assert.deepEqual(calls.find(function (c) { return c[0] === 'is'; }).slice(1), ['event_password_hash', null]);
+  assert.deepEqual(calls.filter(function (c) { return c[0] === 'eq'; })[1].slice(1), ['password_protected', false]);
+  assert.equal(calls.some(function (c) { return c[0] === 'is'; }), false, 'no filter on the unreadable hash column');
+  assert.equal(JSON.stringify(calls).indexOf('event_password_hash'), -1);
   assert.equal(calls.find(function (c) { return c[0] === 'or'; })[1], D.EXPLORE_OR);
   var src = readFileSync(join(root, 'assets/js/kil-discover.js'), 'utf8');
   assert.doesNotMatch(src, /select\(\s*['"`]\*/);

@@ -298,7 +298,7 @@
     var tz = safeTz(opts.tz, opts.fallbackTz);
     var nowMs = now.getTime();
     var list = (events || []).filter(function (e) {
-      if (!e || !e.starts_at || e.event_password_hash) return false;
+      if (!e || !e.starts_at || e.event_password_hash || e.password_protected === true) return false;
       if (e.status && e.status !== 'published') return false;
       if (e.show_on_explore === false) return false;
       var t = new Date(e.starts_at).getTime();
@@ -523,7 +523,7 @@
     return client.from('events').select(EVENT_COLUMNS)
       .eq('status', 'published')
       .gte('starts_at', nowIso)
-      .is('event_password_hash', null)
+      .eq('password_protected', false)   // needs the #39 migration: the hash itself is not readable by API roles
       .or(EXPLORE_OR)
       .order('starts_at', { ascending: true })
       .limit(EVENT_LIMIT);

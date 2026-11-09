@@ -242,12 +242,12 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px">
         <span style="color:var(--muted,#9aa0b0);font-size:.85rem">STAGING = an <b>exact duplicate</b> of a live page you edit directly, full screen. <b style="color:#ffb43c">The live site never changes</b> until Publish is enabled (Founder go).</span>
         <span style="flex:1"></span>
-        <a class="btn" style="font-size:.78rem;padding:8px 14px" href="/dashboard" target="_blank" rel="noopener" title="Full-screen duplicate-page editor">⛶ Open STAGING full screen ↗</a>
+        <a class="btn" style="font-size:.78rem;padding:8px 14px" href="/dashboard" target="_blank" rel="noopener noreferrer" title="Full-screen duplicate-page editor">⛶ Open STAGING full screen ↗</a>
       </div>
       <iframe src="/dashboard" title="STAGING — duplicate-page editor" loading="lazy" style="width:100%;height:calc(100vh - 210px);min-height:620px;border:1px solid var(--line,#242433);border-radius:14px;background:#0a0a0f"></iframe>
     </div>
     <div class="panel" id="tab-qa">
-      <div class="head2">QA Runs <span class="ct" id="qaCt"></span><a class="btn" style="margin-left:auto;font-size:.78rem;padding:8px 14px" href="/dashboard" target="_blank" rel="noopener">Open QA audit ↗</a></div>
+      <div class="head2">QA Runs <span class="ct" id="qaCt"></span><a class="btn" style="margin-left:auto;font-size:.78rem;padding:8px 14px" href="/dashboard" target="_blank" rel="noopener noreferrer">Open QA audit ↗</a></div>
       <div id="qaList"></div>
       <div class="head2" style="margin-top:22px">🛠 Self-repairs (7 days) <span class="ct" id="repCt"></span></div>
       <div style="color:var(--muted,#9aa0b0);font-size:.8rem;margin-bottom:8px">The nightly heal job (09:30 UTC): what it auto-fixed vs what needs a human. Auto-fix never touches money, auth, publishing, or the V3.1 nav.</div>
@@ -665,7 +665,7 @@ async function loadPostReview(){
         +'<div class="fc-head"><img class="fc-av" src="'+esc(p.agent_avatar||'/assets/images/logo-blue-nav.png')+'" onerror="this.src=\'/assets/images/logo-blue-nav.png\'"><div class="fc-who"><b>'+esc(p.agent_name||'')+'</b><span>'+esc((p.agent||'').toUpperCase())+' · '+esc(when)+'</span></div><span class="fc-tag">'+esc(typ)+'</span></div>'
         +media
         +'<div class="fc-body"><div class="fc-title">'+esc(p.title||'(untitled)')+'</div><div class="fc-text">'+esc(p.body||'')+'</div>'+buy+'</div>'
-        +'<div class="fc-acts"><button class="approve" onclick="approveFeed(\''+p.id+'\',this)">✓ Approve &amp; publish</button><button class="deny" onclick="denyFeed(\''+p.id+'\',this)">✕ Deny</button><a class="fc-view" href="/profile?slug='+encodeURIComponent(p.agent||'')+'" target="_blank">View profile ↗</a></div>'
+        +'<div class="fc-acts"><button class="approve" onclick="approveFeed(\''+p.id+'\',this)">✓ Approve &amp; publish</button><button class="deny" onclick="denyFeed(\''+p.id+'\',this)">✕ Deny</button><a class="fc-view" href="/profile?slug='+encodeURIComponent(p.agent||'')+'" target="_blank" rel="noopener noreferrer">View profile ↗</a></div>'
       +'</div>';
     }).join('')+'</div>';
     /* existing published agent blog posts */
@@ -673,7 +673,7 @@ async function loadPostReview(){
     if(!rows.length){ html+='<div class="rv-empty">No blog posts yet.</div>'; }
     else html+=rows.map(function(p){
       var pub=p.status==='published';
-      var act=pub?'<a class="view" href="/profile?slug='+encodeURIComponent(p.agent_slug||'')+'" target="_blank">View</a><button class="deny" onclick="pullPost('+p.id+',this)">Deny / Pull</button>'
+      var act=pub?'<a class="view" href="/profile?slug='+encodeURIComponent(p.agent_slug||'')+'" target="_blank" rel="noopener noreferrer">View</a><button class="deny" onclick="pullPost('+p.id+',this)">Deny / Pull</button>'
                  :'<span class="pill2 den">Pulled</span><button class="approve" onclick="restorePost('+p.id+',this)">Restore</button>';
       return '<div class="rv"><div class="info"><div class="t">'+esc(p.title)+'</div><div class="d">'+esc((p.dek||'').slice(0,160))+'</div><div class="tags"><span class="pill2">'+esc((p.agent_slug||'').toUpperCase())+'</span><span class="pill2 '+(pub?'pub':'den')+'">'+esc(p.status)+'</span>'+(p.genre?'<span class="pill2">'+esc(p.genre)+'</span>':'')+'</div></div><div class="acts">'+act+'</div></div>';
     }).join('');

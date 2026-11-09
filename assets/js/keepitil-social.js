@@ -48,7 +48,7 @@
     ];
     var ov = document.createElement("div"); ov.className = "kil-share-ov";
     var links = targets.map(function (t) {
-      return '<a href="' + t[1] + '" target="_blank" rel="noopener">' + t[0] + "</a>";
+      return '<a href="' + t[1] + '" target="_blank" rel="noopener noreferrer">' + t[0] + "</a>";
     }).join("");
     ov.innerHTML =
       '<div class="kil-share-card" style="position:relative">' +

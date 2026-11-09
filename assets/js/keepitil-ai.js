@@ -673,7 +673,7 @@
           // Internal links open in same tab, external in new tab
           if (l.url.indexOf('keepitil.com') === -1 && l.url.charAt(0) !== '/') {
             a.target = '_blank';
-            a.rel = 'noopener';
+            a.rel = 'noopener noreferrer';
           }
           linksDiv.appendChild(a);
         });

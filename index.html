@@ -1920,9 +1920,9 @@
           </a>
           <p>KEEPITIL is a culture platform built to discover, connect, create, share and earn through people, events, media and community.</p>
           <div class="footer-social">
-            <a href="https://www.instagram.com/keepitil/" target="_blank" class="social-link" title="Instagram">IG</a>
-            <a href="https://www.tiktok.com/@keepitil" target="_blank" class="social-link" title="TikTok">TT</a>
-            <a href="https://keepitil.com" target="_blank" class="social-link" title="keepitil.com">🔗</a>
+            <a href="https://www.instagram.com/keepitil/" target="_blank" rel="noopener noreferrer" class="social-link" title="Instagram">IG</a>
+            <a href="https://www.tiktok.com/@keepitil" target="_blank" rel="noopener noreferrer" class="social-link" title="TikTok">TT</a>
+            <a href="https://keepitil.com" target="_blank" rel="noopener noreferrer" class="social-link" title="keepitil.com">🔗</a>
           </div>
         </div>
         <div class="footer-col">
@@ -2439,8 +2439,8 @@ function flyer(e,showPick){
     +'<div class="evx-venue">📍 '+h(e.venue)+(e.city?' · '+h(e.city):'')+'</div>'
     +'<div class="evx-foot"><span class="evx-price">'+pr+'</span><span class="evx-cta">Details</span></div></div>'
     +'<div class="evx-actions">'
-      +((e.ticket&&e.ticket!=='#')?'<a class="evx-act evx-act-tix" data-kt="ticket_click" data-event-slug="'+slug+'" href="'+h(e.ticket)+'" target="_blank" rel="noopener">🎟 Buy Tickets</a>':'<a class="evx-act evx-act-tix" data-kt="ticket_click" data-event-slug="'+slug+'" href="'+epage+'">🎟 Buy Tickets</a>')
-      +((vip&&e.ticket&&e.ticket!=='#')?'<a class="evx-act evx-act-vip" data-kt="vip_click" data-event-slug="'+slug+'" href="'+h(e.ticket)+'" target="_blank" rel="noopener">🍾 Book VIP Table</a>':'')
+      +((e.ticket&&e.ticket!=='#')?'<a class="evx-act evx-act-tix" data-kt="ticket_click" data-event-slug="'+slug+'" href="'+h(e.ticket)+'" target="_blank" rel="noopener noreferrer">🎟 Buy Tickets</a>':'<a class="evx-act evx-act-tix" data-kt="ticket_click" data-event-slug="'+slug+'" href="'+epage+'">🎟 Buy Tickets</a>')
+      +((vip&&e.ticket&&e.ticket!=='#')?'<a class="evx-act evx-act-vip" data-kt="vip_click" data-event-slug="'+slug+'" href="'+h(e.ticket)+'" target="_blank" rel="noopener noreferrer">🍾 Book VIP Table</a>':'')
       /* JOIN EVENT CHAT REMOVED 2026-08-31 (route cleanup). It linked to event-chat.html,
          a page that has never existed in this repo — the same dead route that was taken out
          of tickets.html on 2026-08-28. Every KEEPITIL event card on the homepage carried it,

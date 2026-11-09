@@ -633,7 +633,7 @@ function card(x){
     +'<div class="body"><div class="nm">'+escHtml(x.name||'')+'</div><div class="desc">'+escHtml(d)+'</div>'
     +(x.city?'<div class="loc">◍ '+escHtml(x.city)+(x.county?' · '+escHtml(String(x.county).replace(' County',' Co.')):'')+'</div>':'')
     +(ig?'<div class="ig">'+escHtml(ig)+(ext?' ↗':'')+'</div>':'')+'</div>';
-  if(href) return '<a class="card" href="'+escHtml(href)+'"'+(ext?' target="_blank" rel="noopener"':'')+'>'+inner+'</a>';
+  if(href) return '<a class="card" href="'+escHtml(href)+'"'+(ext?' target="_blank" rel="noopener noreferrer"':'')+'>'+inner+'</a>';
   return '<div class="card nolink" style="cursor:default">'+inner+'</div>';
 }
 function renderSubs(){
@@ -1048,7 +1048,7 @@ renderSubs();render();
       +(p.title?'<h4>'+esc(p.title)+'</h4>':'')
       +(p.body?'<p>'+esc(p.body)+'</p>':'')
       +(p.kind==='image'&&p.media_url?'<img class="cmedia" src="'+esc(p.media_url)+'" alt="" loading="lazy"/>':'')
-      +(p.kind==='link'&&p.link_url?'<div class="cmeta"><a href="'+esc(p.link_url)+'" target="_blank" rel="noopener">'+esc(p.link_url)+'</a></div>':'')
+      +(p.kind==='link'&&p.link_url?'<div class="cmeta"><a href="'+esc(p.link_url)+'" target="_blank" rel="noopener noreferrer">'+esc(p.link_url)+'</a></div>':'')
       +'<div class="cmeta"><time>'+when(p.created_at)+'</time><span>'+(p.reply_count||0)+' repl'+((p.reply_count===1)?'y':'ies')+'</span>'
         +(p.locked?'<span>Locked</span>':'')+(p.removed?'<span>Removed</span>':'')+ctl.join('')+'</div>'
       +top.map(function(r){ return replyHtml(r,reps,1); }).join('')
@@ -1136,7 +1136,7 @@ renderSubs();render();
                 +'<span class="cres-k">'+esc(x.kind)+'</span><div style="flex:1;min-width:0">'
                 +'<b>'+esc(x.title)+'</b>'
                 +(x.description?'<span>'+esc(x.description)+'</span>':'')
-                +(x.url?'<div><a href="'+esc(x.url)+'" target="_blank" rel="noopener">Open &#8599;</a></div>':'')
+                +(x.url?'<div><a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">Open &#8599;</a></div>':'')
                 +(isMod()?'<div class="cmeta"><button class="danger" data-resrm="'+esc(x.id)+'">'+(x.removed?'Restore':'Remove')+'</button></div>':'')
                 +'</div></div>';
             }).join('')

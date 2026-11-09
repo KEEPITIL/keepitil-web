@@ -1,0 +1,9 @@
+<!-- Deliberately bad fixture for tests/noopener-links.test.mjs: exactly 6 violations. Not a site page. -->
+<a href="https://example.org/a" target="_blank">bare blank</a>
+<a href="https://example.org/b" target="_blank" rel="noopener">noopener only</a>
+<a href="https://www.vividseats.com/x" target="_blank" rel="noopener noreferrer">sponsored host with noreferrer</a>
+<script>
+window.open('https://example.org/c', '_blank');
+var a = document.createElement('a'); a.target = '_blank'; a.href = 'https://example.org/d';
+var tgt = ext ? ' target="_blank" rel="noopener"' : '';
+</script>

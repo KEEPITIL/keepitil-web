@@ -155,7 +155,7 @@ const screens = {
             <div class="mid"><span class="pill ${topDiff(t)}">${DIFF[topDiff(t)]}</span>${starsHtml(starsFor(t))}</div>
             <a class="pc" href="#/track/${encodeURIComponent(t.slug)}" aria-label="Play ${esc(t.title)}">${I.play}</a></div>`).join('') || '<p class="empty">No tracks live yet.</p>'
         : tab === 'about' ? `<div class="card"><p>${esc(a.bio || 'No bio yet.')}</p></div>`
-        : `<div class="card">${a.soundcloud && FLAGS.soundcloud_outbound_enabled ? `<a href="${esc(a.soundcloud)}" target="_blank" rel="noopener" data-sc-artist="${esc(a.slug)}">${I.cloud} SoundCloud</a><p class="fine">Opens the artist's SoundCloud page. SoundCloud does not endorse KBeats.</p>` : '<p class="x">No social links yet.</p>'}</div>`}
+        : `<div class="card">${a.soundcloud && FLAGS.soundcloud_outbound_enabled ? `<a href="${esc(a.soundcloud)}" target="_blank" rel="noopener noreferrer" data-sc-artist="${esc(a.slug)}">${I.cloud} SoundCloud</a><p class="fine">Opens the artist's SoundCloud page. SoundCloud does not endorse KBeats.</p>` : '<p class="x">No social links yet.</p>'}</div>`}
       </div>`;
       $('#fol').onclick = () => toggleFollow(a.slug, () => { a.followers += isFol(a.slug) ? 1 : -1; draw(); }, 'artist');
       $('#more').onclick = () => navigator.share ? navigator.share({ title: a.name + ' on KBeats', url: `${location.origin}/games/kbeats/artist/${a.slug}/` }).catch(() => {}) : toast('Link copied');
@@ -291,7 +291,7 @@ async function toggleFollow(slug, after, from) {
 function scLink(t) {
   const url = t.soundcloud || t.artistSoundcloud;
   if (!FLAGS.soundcloud_outbound_enabled || !url) return `<span class="dis"><b>${I.cloud}</b>No SoundCloud link</span>`;
-  return `<a href="${esc(url)}" target="_blank" rel="noopener" data-sc="${esc(t.slug)}"><b>${I.cloud}</b>Listen on SoundCloud</a>`;
+  return `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" data-sc="${esc(t.slug)}"><b>${I.cloud}</b>Listen on SoundCloud</a>`;
 }
 function bindSc() { document.querySelectorAll('[data-sc]').forEach(a => { if (a.tagName === 'A') a.onclick = () => { D.track('soundcloud_outbound', { track: a.dataset.sc }); D.flushEvents(); }; }); }
 

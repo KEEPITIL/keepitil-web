@@ -1,0 +1,7 @@
+<!-- Good fixture for tests/noopener-links.test.mjs: 0 violations. Not a site page. -->
+<a href="https://example.org/a" target="_blank" rel="noopener noreferrer">ordinary</a>
+<a href="https://www.vividseats.com/x" target="_blank" rel="noopener sponsored">sponsored</a>
+<script>
+window.open('https://example.org/c', '_blank', 'noopener,noreferrer');
+var a = document.createElement('a'); a.target = '_blank'; a.rel = 'noopener noreferrer';
+</script>

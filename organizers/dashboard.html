@@ -154,7 +154,7 @@
       <div class="form-group"><label>Email</label><input type="email" id="signup-email" placeholder="you@example.com"/></div>
       <div class="form-group"><label>Password</label><input type="password" id="signup-pass" placeholder="Min 8 characters"/></div>
       <div class="form-group">
-        <label><input type="checkbox" id="terms-check" style="width:auto;margin-right:.5rem;"/>I agree to the <a href="./#pricing" target="_blank" style="color:var(--blue);">20% platform terms</a></label>
+        <label><input type="checkbox" id="terms-check" style="width:auto;margin-right:.5rem;"/>I agree to the <a href="./#pricing" target="_blank" rel="noopener noreferrer" style="color:var(--blue);">20% platform terms</a></label>
       </div>
       <button class="btn btn-primary" style="width:100%;" onclick="doSignup()">Create Account</button>
     </div>
@@ -510,7 +510,7 @@ async function loadMarketing() {
     const channels = [
       {icon:'📲', label:'Posh Blast', done: m.posh_blast, date: m.posh_blast_at, reach: m.posh_followers_reached ? `${m.posh_followers_reached} reached` : ''},
       {icon:'📧', label:'EB Email', done: m.email_campaign, date: m.email_campaign_at, reach: m.emails_sent ? `${m.emails_sent} sent` : ''},
-      {icon:'📸', label:'IG Collab', done: m.ig_collab, date: m.ig_collab_at, reach: (function(){ var u=window.KilSafeHtml&&KilSafeHtml.safeNavUrl(m.ig_post_url); return u ? '<a href="'+escHtml(u)+'" target="_blank" rel="noopener" style="color:var(--blue);">View post</a>' : ''; })()},
+      {icon:'📸', label:'IG Collab', done: m.ig_collab, date: m.ig_collab_at, reach: (function(){ var u=window.KilSafeHtml&&KilSafeHtml.safeNavUrl(m.ig_post_url); return u ? '<a href="'+escHtml(u)+'" target="_blank" rel="noopener noreferrer" style="color:var(--blue);">View post</a>' : ''; })()},
       {icon:'🗺', label:'Explore', done: m.explore_featured, date: m.explore_featured_at, reach: ''},
     ];
     return `<div class="card">

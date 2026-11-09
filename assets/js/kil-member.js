@@ -298,11 +298,11 @@
 
   function data(r) { return r && !r.error ? r.data : null; }
 
-  /** Drop published events that have a password set. Selects slug only, so the hash never arrives. */
+  /** Drop published events that have a password set. Selects slug only and filters on the readable password_protected flag (needs the #39 migration; the hash column is not readable by API roles). */
   async function hideLocked(client, events) {
     var slugs = (events || []).map(function (e) { return e && e.slug; }).filter(Boolean);
     if (!slugs.length) return events || [];
-    var r = await safe(client.from('events').select('slug').in('slug', slugs).not('event_password_hash', 'is', null));
+    var r = await safe(client.from('events').select('slug').in('slug', slugs).eq('password_protected', true));
     if (!ok(r) || !Array.isArray(r.data)) return (events || []).filter(function (e) { return !locked(e); });
     var blocked = {};
     r.data.forEach(function (row) { if (row && row.slug) blocked[slugOf(row.slug)] = 1; });

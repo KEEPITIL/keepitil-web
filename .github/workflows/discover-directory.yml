@@ -1,0 +1,34 @@
+# Offline checks for the Discover directory: weekend window, genre map, and the
+# static pages. The event list itself is loaded in the browser from Supabase.
+name: Discover directory
+
+on:
+  pull_request:
+    paths:
+      - 'assets/js/kil-discover.js'
+      - 'assets/js/kil-discover.test.mjs'
+      - 'assets/css/discover.css'
+      - 'discover/**'
+      - 'sitemap.xml'
+      - 'robots.txt'
+      - '.github/workflows/discover-directory.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'assets/js/kil-discover.js'
+      - 'assets/js/kil-discover.test.mjs'
+      - 'assets/css/discover.css'
+      - 'discover/**'
+      - 'sitemap.xml'
+      - '.github/workflows/discover-directory.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Weekend window, genres, and page checks
+        run: node --test assets/js/kil-discover.test.mjs

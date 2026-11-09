@@ -1358,12 +1358,34 @@
     });
   }
 
+  /*SLUG-RESOLVE-START*/
+  /* A competition link may carry its slug (/create/?c=original-song-season-0) or its id (?view=enter&c=82).
+     Both must land on the same page. Pure: returns the matching row of vs_open_competitions or null. */
+  function resolveCompSlug(rows, c){
+    var key = String(c == null ? '' : c).trim().toLowerCase();
+    if(!key) return null;
+    for(var i = 0; i < (rows || []).length; i++){
+      var r = rows[i];
+      if(r && (String(r.id) === key || String(r.slug || '').toLowerCase() === key)) return r;
+    }
+    return null;
+  }
+  /*SLUG-RESOLVE-END*/
   function renderEnter(compId){
     /* The sign-in gate used to sit HERE, hiding the whole list from anyone logged out.
        vs_open_competitions() is anon-readable — verified, 36 rows — so a public list sat behind
        a login and a visitor saw "sign in" where they should have seen 36 things to enter. The
        gate now lives on renderEntryForm. Browse freely, sign in to submit. */
-    if(compId) return renderComp(Number(compId));   /* landing page, not the form */
+    if(compId){                       /* landing page, not the form */
+      if(/^\d+$/.test(String(compId))) return renderComp(Number(compId));
+      busy('Loading competition…');
+      return SB.rpc('vs_open_competitions').then(function(r){
+        var row = resolveCompSlug((r && r.data) || [], compId);
+        if(!row) return renderComp(NaN);
+        try{ history.replaceState(null, '', '/create/?view=enter&c=' + row.id); }catch(e){}
+        return renderComp(Number(row.id));
+      }, function(){ return renderComp(NaN); });
+    }
 
     if(CE_ROWS){ return ceRender(); }          /* filters re-render without refetching */
     busy('Loading open competitions…');

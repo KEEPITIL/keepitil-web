@@ -1,6 +1,8 @@
 -- CREATE · Original Song · Season 0 (November 2026, re-dated 2026-11-08: finale Fri Nov 27)
 -- KODE / Grok 780bc8e7 · 2026-11-01. Data only. The server guards (DDL) are in 2026-11-09-original-song-season-0-guards.sql and are NOT part of this file.
 --
+-- (Fixed 2026-11-08: the rules text joins its E'' pieces with ||; the first version had adjacent E'' literals,
+-- which Postgres rejects. This is the statement that ran on prod and created id 82.)
 -- One INSERT on the EXISTING vs_competitions schema. No DDL. Idempotent (ON CONFLICT on slug).
 -- Distinct from the December/Q4 'original-song' row (id 73): new slug, its own dates, untouched 73.
 --
@@ -32,11 +34,11 @@ select
   'Original Song — Season 0',
   'The first KEEPITIL Original Song season. Share an original song you wrote and recorded, by SoundCloud link. Entries run November 9–20, 2026; finalists go to a fan-and-judge finale on Friday, November 27.',
   E'1. Original work only: you wrote it, or you have every co-writer''s permission to enter it.\n'
-  E'2. Enter by SoundCloud track link. The link must stay live through the finale.\n'
-  E'3. One entry per person.\n'
-  E'4. Basic entry is free.\n'
-  E'5. Winners: judges'' score 70%, fan vote 30%.\n'
-  E'6. Entrants must be 18 or older. KEEPITIL may remove entries that break these rules or the community guidelines.',
+  || E'2. Enter by SoundCloud track link. The link must stay live through the finale.\n'
+  || E'3. One entry per person.\n'
+  || E'4. Basic entry is free.\n'
+  || E'5. Winners: judges'' score 70%, fan vote 30%.\n'
+  || E'6. Entrants must be 18 or older. KEEPITIL may remove entries that break these rules or the community guidelines.',
   'A SoundCloud link to your original song, plus a 2:3 cover image.',
   (select id from public.vs_categories where slug = 'original-song'),
   0,

@@ -3149,7 +3149,7 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
     try{ if(!_sb) _sb=window.supabase.createClient('https://ovmqtzjfpzrbzrlkxwgw.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ'); }
     catch(e){ evxFail('The events client could not start.'); return; }
     var q;
-    try{ q=_sb.from('events').select('*').eq('status','published').order('starts_at',{ascending:true}); }
+    try{ q=_sb.from('events').select('slug,title,starts_at,tz,venue,city,state,county,genres,cover_url,source_url,featured,owner_handle').eq('status','published').order('starts_at',{ascending:true}); }
     catch(e){ evxFail('The events query could not be built.'); return; }
     Promise.resolve(q).then(function(r){
       /* postgrest-js resolves (it does not reject) on an API error — an unchecked r.error is

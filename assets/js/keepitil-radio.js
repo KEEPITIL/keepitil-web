@@ -1475,7 +1475,12 @@
   }
 
   function initWidget(){
-    if(!window.SC)return;
+    /* No SoundCloud API, no iframe, or an iframe that was removed since it was mounted (the shell
+       kills #kil-sc where the radio is not allowed) has no contentWindow: SC.Widget() would
+       throw "Cannot read properties of null (reading postMessage)" inside SoundCloud's api.js.
+       Fail quietly instead; nothing is bound, so nothing else sees a half-built widget. */
+    if(!window.SC || !frame || !frame.contentWindow)return;
+    try{
     widget=SC.Widget(frame);
     widget.bind(SC.Widget.Events.READY,function(){
       widgetReady=true;widget.setVolume(0);
@@ -1526,6 +1531,7 @@
       });
     });
     widget.bind(SC.Widget.Events.ERROR,function(){setTimeout(function(){widget.next();widget.play();},1000);});
+    }catch(e){ widget=null; widgetReady=false; }
   }
   /* The SoundCloud API script is deferred alongside the iframe — loading it eagerly would
      re-introduce a third-party request on every page load for a player that may never exist.

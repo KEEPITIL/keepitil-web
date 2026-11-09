@@ -723,8 +723,13 @@
         /* The rest of the field, and the leaderboard, come from ONE source: vs_feed already
            returns total_votes per entry and sorts by it, so the ranking below cannot disagree
            with the counts on the cards above. Approved only — the same gate this entry passes. */
-        SB.rpc('vs_feed', { p_competition: e.competition_id, p_sort: 'top', p_limit: 60 })
+        SB.rpc('vs_feed', { p_competition: e.competition_id, p_sort: 'top', p_limit: 60 }),
+        SB.from('vs_entry_media').select('url').eq('entry_id', e.id).eq('mtype', 'link').limit(1)
       ]).then(function(rs){
+        var lk = ((rs[2] && rs[2].data) || [])[0];
+        var listen = lk && SC_RE.test(lk.url)
+          ? '<a class="vs-cta" style="display:block;text-align:center;margin-top:10px" target="_blank" rel="noopener noreferrer" href="'+h(lk.url)+'">Listen on SoundCloud ↗</a>'
+          : '';
         var c    = (rs[0] && rs[0].data) || {};
         var rows = ((rs[1] && rs[1].data) || []);
         var open = c.status !== 'closed' && !c.results_locked_at &&
@@ -747,6 +752,7 @@
           +   eqVoteBtn(e.id, myVote, (blind ? '—' : (totals.unique_voters || 0)), voteDisabled, why)
           + '</div>'
           + (why ? '<div class="vs-note" style="text-align:center;margin-top:8px">'+h(why)+'</div>' : '')
+          + listen
           + '</div>';
 
         var right = ''
@@ -1413,6 +1419,14 @@
     if(u.require_thumb) out.push('Cover image required');
     return out;
   }
+  /* LINK-ENTRY competitions (Season 0 Original Song, KODE/Grok 780bc8e7, 2026-11-01).
+     upload_settings.entry_mode = 'link' means the work is a SoundCloud URL, not an uploaded file.
+     The copy lives on the row (upload_settings.season), so it can change without a deploy, and
+     nothing here needs a schema change: the link is a vs_entry_media row with mtype 'link'. */
+  function isLinkComp(c){ return !!(c && c.upload_settings && c.upload_settings.entry_mode === 'link'); }
+  var SC_RE = /^https:\/\/(www\.|m\.|on\.)?soundcloud\.com\/\S+$/i;
+  function seasonCopy(c){ return (c && c.upload_settings && c.upload_settings.season) || {}; }
+
   function renderComp(compId){
     busy('Loading competition…');
     Promise.all([
@@ -1459,6 +1473,8 @@
              + '<div class="sub">Competition organizer</div></div></div>';
       /* 2 title */
       right += '<h1 class="cd-title">'+h(c.title)+'</h1>';
+      var sc = seasonCopy(c);
+      if(sc.headline) right += '<div class="cd-when" style="font-weight:700">'+h(sc.headline)+'</div>';
       /* 3 start / end */
       var span = [c.submissions_open_at?('Opens '+fmtD(c.submissions_open_at)):'',
                   c.submissions_close_at?('Closes '+fmtD(c.submissions_close_at)):'']
@@ -1468,6 +1484,16 @@
              + '<span class="vs-pill '+(paid?'':'ok')+'">'+(paid?('$'+(c.entry_fee_cents/100).toFixed(2)+' entry'):'Free to enter')+'</span>'
              + (dl!==null?'<span class="vs-pill warn">'+dl+' day'+(dl===1?'':'s')+' left</span>':'')
              + '</div>';
+      /* Season entry options: Basic FIRST and on its own; the Finale Voting Pass is a separate
+         line, not a tier, and no Priority price is shown anywhere. */
+      if(isLinkComp(c)){
+        right += '<div class="cd-sec"><h3>How to enter</h3><ul class="cd-list">'
+               + '<li><b>Basic entry — Free.</b> '+h(sc.basic_note||'')+'</li>'
+               + (sc.one_per_person ? '<li>One entry per person.</li>' : '')
+               + '</ul>'
+               + (sc.finale_pass_note ? '<p style="margin-top:10px"><b>Finale Voting Pass.</b> '+h(sc.finale_pass_note)+'</p>' : '')
+               + '</div>';
+      }
       /* 4 voters — profile images, one scrollable row */
       right += '<div class="cd-people" id="cd-people"></div>';
       /* 5 about */
@@ -1486,7 +1512,8 @@
         + (ul.length?'<ul class="cd-list">'+ul.map(function(x){return '<li>'+h(x)+'</li>';}).join('')+'</ul>':'')+'</div>';
       if(c.rules) right += '<div class="cd-sec"><h3>Rules</h3><p style="white-space:pre-wrap">'+h(c.rules)+'</p></div>';
       var judge='';
-      if(c.winner_method==='public_vote') judge='Winners are decided by public vote.';
+      if(sc.judging_note) judge=sc.judging_note;
+      else if(c.winner_method==='public_vote') judge='Winners are decided by public vote.';
       else if(c.winner_method) judge='Winner method: '+c.winner_method.replace(/_/g,' ')+'.';
       if(c.vote_display_mode==='blind') judge+=' Vote totals stay hidden until winners are announced.';
       else if(c.vote_display_mode==='transparent') judge+=' Vote totals are visible throughout.';
@@ -1587,6 +1614,26 @@
       var comp = (r.data || []).filter(function(c){ return c.id === compId; })[0];
       if(!comp){ empty('Not open for entries', 'This competition is closed or unavailable.'); return; }
       var paid = comp.entry_fee_cents > 0;
+      var link = isLinkComp(comp), sc = seasonCopy(comp);
+      if(link && sc.one_per_person){
+        /* one entry per person — checked against the caller's own entries before the form is
+           shown. Withdrawn and rejected entries do not count, so a person can try again. */
+        return Promise.resolve(SB.rpc('vs_my_entries')).then(function(mr){
+          var had = ((mr && mr.data) || []).some(function(x){
+            return x.competition_id === compId && x.status !== 'draft' && x.status !== 'withdrawn' && x.status !== 'rejected';
+          });
+          if(had){
+            APP.innerHTML = navBar('enter')
+              + '<div class="soon"><div class="i">🎵</div><h2>You have already entered</h2>'
+              + '<p>'+h(comp.title)+' allows one entry per person.</p>'
+              + '<p><button type="button" class="vsp-join" data-nav="mine">See my entry ›</button></p></div>';
+            return;
+          }
+          drawForm();
+        });
+      }
+      drawForm();
+      function drawForm(){
 
       /* TEMPLATE (Founder 2026-08-21): the submit page now uses the same two-column shell as the
          competition page and the entry page. LEFT = two upload slots (the work, then the cover).
@@ -1620,6 +1667,17 @@
       /* Cover FIRST, work second (Founder 2026-08-21, mobile order). Mobile collapses cd2 to one
          column in DOM order, so the DOM order IS the mobile order — no CSS reordering needed and
          nothing to keep in sync between breakpoints. */
+      if(link){
+        /* SoundCloud link instead of a file. The cover becomes required, because the feed and
+           the entry page draw thumb_url as an image and a SoundCloud URL is not one. */
+        slotWork = '<div class="sf-slot">'
+          + '<div class="sf-cap">SoundCloud link <b>*</b></div>'
+          + '<input id="eLink" type="url" inputmode="url" placeholder="https://soundcloud.com/artist/track" '
+          +   'style="width:100%;padding:12px;border-radius:10px">'
+          + '<small class="vs-note">Public or private-share SoundCloud track link.</small>'
+          + '</div>';
+        slotCover = slotCover.replace('Cover image</div>', 'Cover image <b>*</b></div>');
+      }
       var left = '<aside class="cd-left"><div class="cd-stick">'
         + slotCover + slotWork
         + '</div></aside>';
@@ -1642,9 +1700,11 @@
         + '<label>Collaborators</label><input id="eCollab" maxlength="160">'
         + '<label style="display:flex;gap:9px;align-items:flex-start;text-transform:none;letter-spacing:0;color:#cfd3df;font-weight:500">'
         + '<input type="checkbox" id="eTerms" style="width:auto;margin-top:3px">'
-        + '<span>I own this work or have permission to submit it, I accept the competition rules and terms'
-        + (paid ? ', and I understand the entry fee is governed by the published refund policy' : '')
-        + '.</span></label>'
+        + '<span>'+(link && sc.rights_line ? h(sc.rights_line)
+              + ' <a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a> · <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>'
+            : 'I own this work or have permission to submit it, I accept the competition rules and terms'
+              + (paid ? ', and I understand the entry fee is governed by the published refund policy' : '')
+              + '.')+'</span></label>'
         /* The submit button belongs at the END of the information section, not in the upload
            column (Founder 2026-08-21: "there is no submission of entry at the end of the
            description section"). It was the last thing in the left column, so on mobile it
@@ -1701,7 +1761,7 @@
         box.innerHTML = '<img class="sf-media" src="'+URL.createObjectURL(coverFile)+'" alt="">'
           + '<div class="sf-swap">Change</div>';
       }
-      document.getElementById('sfWork').onchange = function(){
+      if(!link) document.getElementById('sfWork').onchange = function(){
         picked = [].slice.call(this.files || []); paintWork();
       };
       document.getElementById('sfCover').onchange = function(){
@@ -1712,7 +1772,10 @@
         var btn = this, msg = document.getElementById('eMsg');
         var title = document.getElementById('eTitle').value.trim();
         if(!title){ msg.textContent = 'A title is required.'; return; }
-        if(!picked.length){ msg.textContent = 'Add your submission before continuing.'; return; }
+        var scUrl = link ? document.getElementById('eLink').value.trim() : '';
+        if(link && !SC_RE.test(scUrl)){ msg.textContent = 'Paste a SoundCloud track link (https://soundcloud.com/…).'; return; }
+        if(link && !coverFile){ msg.textContent = 'Add a cover image before continuing.'; return; }
+        if(!link && !picked.length){ msg.textContent = 'Add your submission before continuing.'; return; }
         if(!document.getElementById('eTerms').checked){ msg.textContent = 'Please accept the terms to continue.'; return; }
         btn.disabled = true; msg.textContent = 'Creating your entry…';
 
@@ -1733,6 +1796,15 @@
             if(res.error) throw res.error;
             var row = Array.isArray(res.data) ? res.data[0] : res.data;
             entryId = row.id;
+            if(link){
+              /* cover first, then the link with the cover as its thumb, so thumb_url is an image */
+              msg.textContent = 'Uploading cover…';
+              return stripMeta(coverFile).then(function(clean){ return uploadOne(entryId, clean, 'cover'); }).then(function(url){
+                return Promise.resolve(SB.rpc('vs_set_entry_cover', { p_entry: entryId, p_url: url }))
+                  .then(function(cr){ if(cr && cr.error) throw cr.error; return SB.rpc('vs_add_entry_media', { p_entry: entryId, p_url: scUrl, p_mtype: 'link', p_thumb: url }); })
+                  .then(function(mr){ if(mr && mr.error) throw mr.error; coverFile = null; });
+              });
+            }
             msg.textContent = 'Uploading media…';
             return uploadAll(entryId, picked, msg);
           })
@@ -1741,7 +1813,8 @@
                cover that fails to upload must not lose an entry that is otherwise complete. */
             if(!coverFile) return null;
             msg.textContent = 'Uploading cover…';
-            return uploadOne(entryId, coverFile, 'cover')
+            return stripMeta(coverFile)
+              .then(function(clean){ return uploadOne(entryId, clean, 'cover'); })
               .then(function(url){ return SB.rpc('vs_set_entry_cover', { p_entry: entryId, p_url: url }); })
               .catch(function(){ return null; });
           })
@@ -1770,7 +1843,31 @@
             btn.disabled = false;
           });
       };
+      }
     }).catch(err);
+  }
+
+  /* COVERS GO TO A PUBLIC BUCKET, so GPS/EXIF must not ride along (Sentinel M2). Re-encoding
+     through a canvas keeps only pixels. FAILS CLOSED: if the image cannot be decoded or encoded,
+     the promise rejects and nothing is uploaded. */
+  function stripMeta(f){
+    return new Promise(function(res, rej){
+      var u = URL.createObjectURL(f), im = new Image();
+      im.onload = function(){
+        try{
+          var cv = document.createElement('canvas');
+          cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+          cv.getContext('2d').drawImage(im, 0, 0);
+          URL.revokeObjectURL(u);
+          cv.toBlob(function(b){
+            if(!b){ rej(new Error('Could not prepare the cover image. Try a different file.')); return; }
+            res(new File([b], (f.name || 'cover').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
+          }, 'image/jpeg', 0.92);
+        }catch(e){ rej(new Error('Could not prepare the cover image. Try a different file.')); }
+      };
+      im.onerror = function(){ URL.revokeObjectURL(u); rej(new Error('Could not read the cover image. Try a different file.')); };
+      im.src = u;
+    });
   }
 
   /* sequential upload so a slow connection cannot fire a burst of parallel requests (§29) */

@@ -6,7 +6,7 @@ which is the same commit the spec pinned. **Drift: none** (0 commits between the
 this slice; every line number the spec cites for sections 1 and 2 matched main before the edits).
 Line numbers below are the BEFORE numbers (main) with the AFTER state in the last column.
 
-Status: this slice is DRAFT. Nothing here has been run (tests, builds, browser): see the PR body.
+Status: this slice is DRAFT. Run 2026-11-10 (KODE JOB 19): full CI suite green, kapp-tabs.test.mjs 19/19, pages closure check clean. NOT verified: any browser/visual rendering (five tabs at 375px, Earn page) and the native app. See the PR body.
 
 ## Navigation (section 1)
 

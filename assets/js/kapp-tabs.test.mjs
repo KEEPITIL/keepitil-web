@@ -1,8 +1,11 @@
-// UNRUN: written under the light-work rule (KODE JOB 16, 2026-11-10). No test, build or browser
-// has been executed for this file. Run it only after KODE clears the Mac:
+// RUN 2026-11-10 (KODE JOB 19, Nexus Mac, node v22.23.2, after `npm ci`): 19 tests, 19 pass, 0 fail, 0 skipped.
 //   node --test assets/js/kapp-tabs.test.mjs
+// Negative controls (all verified to FAIL): against a clean origin/main tree 16 of 19 fail (the 3 that
+// pass there are "derived from DESTINATIONS", "no payout numbers", "no Stripe": true on main too); a copy
+// with the Shop tab re-added to the shell fails tests 1, 2, 4; a SHOP anchor re-added to a static nav fails
+// test 6; the radio opt-in plus pager script re-added to Earn fails test 13.
 // Env: KAPP_ROOT=<dir> points the checks at another tree (negative control: run it against a clean
-//      origin/main checkout and EVERY structural assertion below must FAIL there).
+//      origin/main checkout; the structural assertions fail there, see the counts above).
 //
 // What it proves (static, no browser; jsdom parses markup, the shell array is evaluated alone):
 //   1. keepitil-shell.js DESTINATIONS is exactly Discover, Connect, Create, Culture, Earn, in order.

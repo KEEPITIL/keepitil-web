@@ -725,14 +725,18 @@
               if(count<1) return;
               var sr=await sb.auth.getSession().catch(function(){return null;});
               var sess=sr&&sr.data?sr.data.session:null;
-              if(!sess){ location.href='/apply?next='+encodeURIComponent(location.pathname+location.search); return; }
+              /* create-checkout (verify_jwt=true) needs the SIGNED-IN user's access token, never the anon key */
+              function goAuth(){ location.href='/apply?next='+encodeURIComponent(location.pathname+location.search); }
+              if(!sess||!sess.access_token){ goAuth(); return; }
               buyerEmail=(sess.user&&sess.user.email)||'';
               regCapture('', false, function(){
                 if(!paid.length){ buy.textContent='✓ You’re on the list'; buy.disabled=true; return; }
                 buy.disabled=true; var old=buy.textContent; buy.textContent='Loading…';
-                fetch(URL+'/functions/v1/create-checkout',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY},body:JSON.stringify({items:paid,return_base:'v31'})})
-                  .then(function(r){return r.json();})
-                  .then(function(d){ if(d&&d.url){ location.href=d.url; } else { buy.disabled=false; buy.textContent=old; alert(d&&d.error?('Tickets: '+d.error):'Could not start checkout.'); } })
+                fetch(URL+'/functions/v1/create-checkout',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+sess.access_token},body:JSON.stringify({items:paid,return_base:'v31'})})
+                  .then(function(r){ return r.json().catch(function(){return {};}).then(function(d){ return {status:r.status,d:d||{}}; }); })
+                  .then(function(x){ var d=x.d; if(d.url){ location.href=d.url; return; } buy.disabled=false; buy.textContent=old;
+                    if(x.status===401||d.needs_account){ alert(d.error||'Create a free KEEPITIL account to buy tickets.'); goAuth(); return; }
+                    alert(d.error?('Tickets: '+d.error):'Could not start checkout.'); })
                   .catch(function(){ buy.disabled=false; buy.textContent=old; alert('Could not start checkout — please try again.'); });
               });
             });

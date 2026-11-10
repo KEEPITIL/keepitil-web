@@ -891,12 +891,12 @@ function openInsights(){
   SB.rpc('get_profile_insights',{p_slug:PROFILE_SLUG}).then(function(r){
     var m=(r&&r.data)||{}; var b=document.getElementById('insBody'); if(!b) return;
     if(m.error){ b.innerHTML='Sign in as this profile\'s owner to see your insights.'; return; }
-    function n(v){ v=v==null?0:v; return v>=1000?(v/1000).toFixed(1).replace(/\.0$/,'')+'k':(''+v); }
+    function n(v){ v=v==null?0:v; return v>=1000?(v/1000).toFixed(1).replace(/\.0$/,'')+'k':esc(''+v); }
     function tile(l,v,sub){ return '<div style="background:rgba(255,255,255,.05);border:1px solid var(--line,#242433);border-radius:14px;padding:14px 15px"><div style="font:800 1.7rem/1 Inter,system-ui,sans-serif;color:#fff">'+n(v)+'</div>'+(sub?'<div style="font-size:.68rem;color:#22c55e;font-weight:700;margin-top:3px">'+sub+'</div>':'')+'<div style="font-size:.68rem;letter-spacing:.06em;color:#9aa0b0;text-transform:uppercase;margin-top:4px">'+l+'</div></div>'; }
     /* CSS bar chart — no external library ($0) */
     function chart(series,color){ series=series||[]; var max=1; series.forEach(function(p){ if((p.v||0)>max)max=p.v; });
-      var bars=series.map(function(p){ var h=Math.round((p.v||0)/max*100); return '<div title="'+p.d+': '+(p.v||0)+'" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px"><div style="width:100%;max-width:16px;height:'+Math.max(h,3)+'%;min-height:3px;border-radius:5px 5px 0 0;background:'+color+'"></div></div>'; }).join('');
-      var labels=series.map(function(p,i){ return '<div style="flex:1;text-align:center;font-size:.55rem;color:#6b7280">'+((i%3===0||i===series.length-1)?p.d:'')+'</div>'; }).join('');
+      var bars=series.map(function(p){ var h=Math.round((p.v||0)/max*100); return '<div title="'+esc(p.d)+': '+(esc(p.v||0))+'" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px"><div style="width:100%;max-width:16px;height:'+Math.max(h,3)+'%;min-height:3px;border-radius:5px 5px 0 0;background:'+color+'"></div></div>'; }).join('');
+      var labels=series.map(function(p,i){ return '<div style="flex:1;text-align:center;font-size:.55rem;color:#6b7280">'+((i%3===0||i===series.length-1)?esc(p.d):'')+'</div>'; }).join('');
       return '<div style="height:120px;display:flex;align-items:flex-end;gap:3px;padding:6px 2px 0">'+bars+'</div><div style="display:flex;gap:3px;margin-top:4px">'+labels+'</div>'; }
     var grid='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">'
       +tile('Profile views',m.profile_views_total, (m.profile_views_7d?('+'+n(m.profile_views_7d)+' · 7d'):''))
@@ -905,7 +905,7 @@ function openInsights(){
       +tile('Likes',m.likes)+'</div>';
     var chartsBox='<div style="background:rgba(255,255,255,.03);border:1px solid var(--line,#242433);border-radius:16px;padding:16px 16px 12px;margin-bottom:16px"><div style="color:#fff;font-weight:700;font-size:.92rem;margin-bottom:2px">Profile views</div>'+chart(m.views_series,'linear-gradient(180deg,#8b5cff,#00e0a4)')+'</div>'
       +'<div style="background:rgba(255,255,255,.03);border:1px solid var(--line,#242433);border-radius:16px;padding:16px 16px 12px;margin-bottom:16px"><div style="color:#fff;font-weight:700;font-size:.92rem;margin-bottom:2px">New followers</div>'+chart(m.follows_series,'linear-gradient(180deg,#22d3ee,#22c55e)')+'</div>';
-    var top=(m.top_posts||[]).map(function(t){ return '<div style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line,#242433)"><span style="color:#e8e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(t.title||'Post')+'</span><span style="color:#9aa0b0;flex:0 0 auto">&hearts; '+(t.likes||0)+' &middot; &#128172; '+(t.comments||0)+'</span></div>'; }).join('');
+    var top=(m.top_posts||[]).map(function(t){ return '<div style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line,#242433)"><span style="color:#e8e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.title||'Post')+'</span><span style="color:#9aa0b0;flex:0 0 auto">&hearts; '+(t.likes||0)+' &middot; &#128172; '+(t.comments||0)+'</span></div>'; }).join('');
     b.innerHTML=grid+chartsBox+(top?'<div style="margin:6px 0 2px;color:#fff;font-weight:800">Top posts</div>'+top:'')+'<div style="margin-top:14px;font-size:.7rem;color:#6b7280">Updates as people view and engage with your profile.</div>';
   }).catch(function(){ var b=document.getElementById('insBody'); if(b) b.textContent='Could not load insights.'; });
 }
@@ -2438,8 +2438,10 @@ function renderArticles(){
   var pend=document.getElementById('collab-pending');
   if(pend){
     pend.innerHTML=(CAN_EDIT()&&COLLAB_PENDING.length)?COLLAB_PENDING.map(function(c){
-      return '<div class="collab-invite"><div class="ci-txt"><b>@'+esc(c.source_slug)+'</b> wants to share a post to your profile: <span>"'+esc(c.title||'Untitled')+'"</span></div><div class="ci-btns"><button class="ci-yes" onclick="collabRespond(\''+c.id+'\',\'accepted\')">Accept</button><button class="ci-no" onclick="collabRespond(\''+c.id+'\',\'declined\')">Decline</button></div></div>';
+      return '<div class="collab-invite"><div class="ci-txt"><b>@'+esc(c.source_slug)+'</b> wants to share a post to your profile: <span>"'+esc(c.title||'Untitled')+'"</span></div><div class="ci-btns"><button class="ci-yes" data-collab-id="'+esc(c.id)+'" data-collab-st="accepted">Accept</button><button class="ci-no" data-collab-id="'+esc(c.id)+'" data-collab-st="declined">Decline</button></div></div>';
     }).join(''):'';
+    /* F1b — Accept/Decline carry the id in data-* (never inline JS); one delegated listener, re-assigned (not stacked) on each render. */
+    pend.onclick=function(e){ var b=e.target&&e.target.closest&&e.target.closest('button[data-collab-id]'); if(!b)return; collabRespond(b.getAttribute('data-collab-id'),b.getAttribute('data-collab-st')); };
   }
   var add='';   /* in-feed create tile removed (Founder pass 2) — ＋Create lives on the sub-filter row */
   var posts=allPosts().filter(function(p){return !isHiddenFromFeed(p);}); // Feed = everything (own + accepted collab) not hidden by the owner
@@ -2810,7 +2812,8 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
     var bg=document.getElementById('pfBadges'); var P=window.PROFILE||{};
     if(bg && !bg.children.length){ var _ac=String(P.account_type||'').toLowerCase().trim(); var _sn={}; var arr=window.KIL_FILTER_BADGES(Array.isArray(P.badges)?P.badges.slice():[]).filter(function(x){var k=String(x).toLowerCase().trim(); if(!k||k===_ac||_sn[k])return false; _sn[k]=1; return true;}); bg.innerHTML=arr.slice(0,6).map(function(x){return '<span class="bdg">'+String(x).replace(/[<>]/g,'').slice(0,16)+'</span>';}).join(''); }
     if(pollB>20 || (bg&&bg.children.length)) clearInterval(ivB); },600); }catch(e){}
-  function esc(u){return String(u).replace(/"/g,'');}
+  /* full HTML escape: this esc shadows the global one in this IIFE and used to only strip quotes, so a URL-derived label reached innerHTML raw */
+  function esc(u){return String(u==null?'':u).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
   function build(){
     try{
       var P=window.PROFILE||{}; var links=(P.links||[]).slice(0,5);
@@ -2886,9 +2889,11 @@ function openArchive(){
     box.innerHTML=rows.map(function(x){
       var d=x.data||{}; var label=(d.title||d.text||d.caption||x.kind||'').toString().slice(0,60);
       return '<div style="display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line)">'
-        +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b style="font-size:.7rem;color:var(--accent);text-transform:uppercase">'+x.kind+'</b> '+label+'</span>'
-        +'<button class="evsub-b" onclick="toggleArchived(\''+x.id+'\','+(!x.archived)+')">'+(x.archived?'Unarchive':'Archive')+'</button></div>';
+        +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b style="font-size:.7rem;color:var(--accent);text-transform:uppercase">'+esc(x.kind)+'</b> '+esc(label)+'</span>'
+        +'<button class="evsub-b" data-arch-id="'+esc(x.id)+'" data-arch-val="'+(x.archived?'false':'true')+'">'+(x.archived?'Unarchive':'Archive')+'</button></div>';
     }).join('');
+    /* F1b — id in data-*, not inline JS; the boolean is derived from a fixed 'true'/'false' token. */
+    box.onclick=function(e){ var b=e.target&&e.target.closest&&e.target.closest('button[data-arch-id]'); if(!b)return; toggleArchived(b.getAttribute('data-arch-id'),b.getAttribute('data-arch-val')==='true'); };
   });
 }
 function toggleArchived(id,val){

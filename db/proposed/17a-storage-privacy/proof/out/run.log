@@ -1,0 +1,73 @@
+PASS P0-01 P0 on the post-Grok state is a NO-OP: nothing changes (fingerprint identical), all post-checks ok; a second run is also ok (idempotent)
+PASS P0-02 P0 on the PRE-Grok state (anon/authenticated still hold grants on the 11 _bak_ tables + shirt_hd_anon_insert exists) performs exactly Grok's changes and nothing else; second run no-op
+PASS P0-03 P0 post-check catches a regressed state: one _bak_ table re-granted to anon, or an anon INSERT policy on shirt-hd (POSTCHECKS ok=false); P0 apply then repairs it
+PASS S01-agent-posts anon cannot list/SELECT any object of agent-posts through the table (original: lists everything) | hardened=true original=false (control: detects)
+PASS S01-chat-images anon cannot list/SELECT any object of chat-images through the table (original: lists everything) | hardened=true original=false (control: detects)
+PASS S01-playlist-covers anon cannot list/SELECT any object of playlist-covers through the table (original: lists everything) | hardened=true original=false (control: detects)
+PASS S01-vs-entries anon cannot list/SELECT any object of vs-entries through the table (original: lists everything) | hardened=true original=false (control: detects)
+PASS S02 public URL path still works for ALL objects of the four buckets (public_url_readable: bucket.public, no SELECT policy needed) | hardened=true original=true (control: baseline)
+PASS S03 public flags of the four buckets unchanged (true) | hardened=true original=true (control: baseline)
+PASS S04 playlist-covers: owner sees own cover, a non-owner does NOT see it (original: sees everyone's) | hardened=true original=false (control: detects)
+PASS S05 vs-entries: owner sees own entry media only; a non-owner cannot see another user's PENDING entry media (original: bucket-wide) | hardened=true original=false (control: detects)
+PASS S06 agent-posts: a signed-in non-admin sees nothing (original: everything) | hardened=true original=false (control: detects)
+PASS S07 admin sees every object in all four buckets (moderation / review / signed URLs) | hardened=true original=true (control: baseline)
+PASS S08 chat-images: profile owner A sees profiles/artist-a/* (uploader rows AND legacy NULL-owner rows) + own event flyer, NOT artist-b's (original: all 4) | hardened=true original=false (control: detects)
+PASS S09 chat-images: B sees only profiles/artist-b/p2.jpg (original: all) | hardened=true original=false (control: detects)
+PASS S10 UPSERT (INSERT ... ON CONFLICT DO UPDATE, the Storage API shape of upload upsert:true) of a NEW path by its owner works: playlist-covers (the playlist-submit.js x-upsert flow) and vs-entries | hardened=true original=true (control: baseline)
+PASS S11 UPSERT that OVERWRITES the owner's own existing object works (needs SELECT + UPDATE on the existing row): playlist-covers and vs-entries | hardened=true original=true (control: baseline)
+PASS S12 a non-owner cannot UPSERT over another user's object, nor write into another user's folder (insert policy unchanged) | hardened=true original=true (control: baseline)
+PASS S13 download()/createSignedUrl model: the owner can sign own objects, a non-owner cannot sign another user's, admin can sign any, anon cannot (original: anyone could) | hardened=true original=false (control: detects)
+PASS S14 service_role (edge functions / generators, BYPASSRLS) still reads and writes everything incl. agent-posts | hardened=true original=true (control: baseline)
+PASS S15 the unpublished cover posts/lyric-mryyphmm-card.svg is not listable/signable by anon or a non-admin through the table (P1 alone); the public URL still serves it until it is MOVED (P2 runbook) | hardened=true original=false (control: detects)
+PASS R01 anon sees only non-archived rows (archived=false AND NULL); original: also the archived autopilot/review row | hardened=true original=false (control: detects)
+PASS R02 anon cannot fetch an archived row by id (review-queue item stays private) | hardened=true original=false (control: detects)
+PASS R03 owner A sees own rows INCLUDING archived, not the other profile's archived row | hardened=true original=false (control: detects)
+PASS R04 non-owner B cannot see A's archived row (post_saves embed of it returns null for B) | hardened=true original=false (control: detects)
+PASS R05 admin (is_admin) sees ALL rows incl. archived (review queue / moderation) | hardened=true original=true (control: baseline)
+PASS R06 service_role (autopilot) reads everything | hardened=true original=true (control: baseline)
+PASS R07 owner can ARCHIVE and UN-ARCHIVE own row the way profile.html does (UPDATE ... WHERE id): the unarchive needs the owner SELECT policy | hardened=true original=true (control: baseline)
+PASS R08 owner INSERT/DELETE own rows still work; a non-owner can neither update, delete nor insert into another profile | hardened=true original=true (control: baseline)
+PASS R09 the legacy NULL-archived row stays public (archived IS NOT TRUE, not '= false') | hardened=true original=true (control: baseline)
+PASS R10 order independence with 10A APPLY-1C: after 1C's ACL narrowing the hardened results hold (anon A1 ACL: SELECT only) | hardened=true original=false (control: detects)
+PASS R10b with 1C's ACL, hardened anon sees only non-archived (original under 1C still shows archived: 1C alone does not fix read exposure) | hardened=true original=false (control: detects)
+PASS C01 chat-images INSERT: another user cannot write into profiles/artist-a/ and a user cannot write an arbitrary path (original: any signed-in user, any path) | hardened=true original=false (control: detects)
+PASS C02 chat-images INSERT: the three shapes still allowed: uid-prefixed (chat convention), legacy profiles/<owned slug>/ (profile.html), legacy event-flyers/<file> (create-event.html) | hardened=true original=true (control: baseline)
+PASS C03 chat-images SELECT after P3b: only uploader / profile owner / admin (anon none): chat 'participants' cannot be derived from the path (see OPEN QUESTIONS) | hardened=true original=false (control: detects)
+PASS C04 public-assets: owner inserts profiles/<owned slug>/ and event-flyers/<own uid>/; others cannot; anon cannot; uploads by a non-owner of the slug are refused | hardened=true original=true (control: baseline)
+PASS C05 public-assets has NO listing for anon / non-owners (owner-scoped SELECT only) while its public URLs serve | hardened=true original=false (control: detects)
+PASS C06 public-assets: owner can delete own file (account-deletion sweep) but not another owner's; (chat-images has no DELETE policy today = that sweep silently fails) | hardened=true original=false (control: detects)
+PASS C07 after P3c: chat-images is PRIVATE (public URL no longer serves), public-assets URLs still serve the moved assets; signed URL (SELECT) still possible for uploader/admin only | hardened=true original=false (control: detects)
+PASS V01 anon can SELECT (so sign / list) media of an APPROVED entry only: not pending, rejected, nor a malformed folder (no cast error) | hardened=true original=false (control: detects)
+PASS V02 reviewer (vs_is_admin only) sees every entry's media; a plain user does not see others' pending media | hardened=true original=false (control: detects)
+PASS V03 owner A sees own pending + rejected media; the approval flips visibility: after entry 1 is approved anon sees it, still no listing for others' pending | hardened=true original=true (control: baseline)
+PASS V04 bucket stays PUBLIC and every vs-entries public URL still serves (vs-app.js uses getPublicUrl until its change ships) | hardened=true original=true (control: baseline)
+PASS V05 an owner's UPSERT/overwrite and a non-owner's refusal are unchanged by P6 | hardened=true original=true (control: baseline)
+PASS V06 approval is evaluated live: approve entry 1 as service_role, then anon sees its media | hardened=true original=false (control: detects)
+PASS K-P1 P1: APPLY from the captured state (post-checks ok, DRIFT_QUERY says POST) then ROLLBACK restores the original byte-for-byte (policy text, sorted ACLs, bucket rows, object set); second APPLY refuses cleanly; second ROLLBACK refuses
+PASS K-P4 P4: APPLY from the captured state (post-checks ok, DRIFT_QUERY says POST) then ROLLBACK restores the original byte-for-byte (policy text, sorted ACLs, bucket rows, object set); second APPLY refuses cleanly; second ROLLBACK refuses
+PASS K-P5 P5: APPLY from the captured state (post-checks ok, DRIFT_QUERY says POST) then ROLLBACK restores the original byte-for-byte (policy text, sorted ACLs, bucket rows, object set); second APPLY refuses cleanly; second ROLLBACK refuses
+PASS K-P5B P5B: APPLY from the captured state (post-checks ok, DRIFT_QUERY says POST) then ROLLBACK restores the original byte-for-byte (policy text, sorted ACLs, bucket rows, object set); second APPLY refuses cleanly; second ROLLBACK refuses
+PASS K-P2 P2: APPLY from the captured state (post-checks ok, DRIFT_QUERY says POST) then ROLLBACK restores the original byte-for-byte (policy text, sorted ACLs, bucket rows, object set); second APPLY refuses cleanly; second ROLLBACK refuses
+PASS K-P3a P3a: APPLY from the captured state (post-checks ok, DRIFT_QUERY says POST) then ROLLBACK restores the original byte-for-byte (policy text, sorted ACLs, bucket rows, object set); second APPLY refuses cleanly; second ROLLBACK refuses
+PASS K-P6 P6: APPLY from the captured state (post-checks ok, DRIFT_QUERY says POST) then ROLLBACK restores the original byte-for-byte (policy text, sorted ACLs, bucket rows, object set); second APPLY refuses cleanly; second ROLLBACK refuses
+PASS K-second-apply every pack: a SECOND apply on the applied state refuses at the guard (DRIFT, ABORT) and changes nothing
+PASS K-guard-drift guards ABORT on drift with nothing changed: altered listing policy (P1), extra bucket-wide anon policy (P1), RLS off on profile_content (P4), unexpected ACL (P4), extra SELECT policy (P4), bucket limits already set (P5), SVG-less mime list present in existing objects (P5B), missing is_admin (P1/P4)
+PASS K-orderchain recommended order P0,P4,P1,P5,P2,P3a,P3b,[assets moved],P3c,P6 applies end-to-end with every post-check ok; reverse-order rollbacks bring back the original (except the two inert bucket rows); P3b/P3c/P6 refuse without P1; P3c refuses without P3a
+PASS K-p3c-guards P3c refuses while ANY public table still references chat-images (events.cover_url / jsonb / chat message image_url), while public-assets holds fewer than the minimum assets, and passes once references are rewritten to public-assets and the assets exist; the scan returns counts only
+PASS K-lock pack runs serialise on the repo-wide advisory lock and time out cleanly: while one pack holds the lock a second pack fails with 55P03 after ~5s and changes nothing; once released the second runs
+PASS K-nodelete no pack contains a DELETE/TRUNCATE statement or any DML on storage.objects (grep over the generated files, comments stripped)
+PASS K-readonly PRECHECK-17A.sql, the INVENTORY queries, every POSTCHECKS file and the DRIFT_QUERY run READ ONLY (SET TRANSACTION READ ONLY) on the replica and change nothing; the inventory returns names + counts and classifies the synthetic chat-images objects
+PASS M01 P1 mutant: three of the four listing policies dropped, vs_media_read left: caught by behaviour (anon lists vs-entries), by POSTCHECKS(P1 POST) and by DRIFT_QUERY (P1 = DRIFT)
+PASS M02 P1 mutant: listing fixed but NO owner SELECT (admin-only replacements): the owner's UPSERT-overwrite breaks (the very flow the path report protects): caught
+PASS M03 P1 mutant: a stray bucket-wide anon SELECT policy added back after the fix: caught by DRIFT_QUERY and POSTCHECKS
+PASS M04 P4 mutant: 'profile_content read all' dropped, public policy added, NO owner policy: owner cannot UN-ARCHIVE (profile.html Archive list) -> caught
+PASS M05 P4 mutant: public policy written 'archived = false': the legacy NULL-archived row disappears from public pages -> caught
+PASS M06 P4 mutant: policies fixed but RLS then switched OFF (grants to anon left): anon reads archived rows again -> caught by behaviour, POSTCHECKS(req.rls_on_not_forced) and DRIFT_QUERY
+PASS M07 P4 mutant: a permissive 'USING (true)' SELECT policy re-added next to the fix: caught
+PASS M08 P3c mutant: chat-images flipped private BEFORE the references were rewritten: caught by the P3c reference scan (a hand-flip leaves references -> POSTCHECKS(P3c) refuse) 
+PASS M09 P1 mutant: policies fixed but one bucket flipped private by mistake (playlist-covers): public playlist art stops serving -> caught (public URL model + invariant)
+PASS X01 chat-images paths are NOT uid-prefixed in the shipped clients (profiles/<slug>/..., event-flyers/<file>): a uid-only INSERT policy would break both uploads (documented why P3b keeps the two legacy shapes)
+PASS X02 storage.objects policies of other buckets (manatua_media_member_read) are byte-identical through every pack (invariant inv.other_policies_md5 enforced inside each pack)
+PASS X03 RLS performance shape: owner policies use (SELECT auth.uid()) initPlan form and storage.foldername(name); is_admin() is only evaluated for authenticated (anon policies contain no function calls)
+
+SUMMARY matrix 42/42 (detects 25/25, baseline 17/17); packs 17/17; mutants 9/9; adjacent 3/3; fatal=none; 59s

@@ -1,11 +1,11 @@
-# 12A door hardening: drafts and proofs (DRAFT, PROPOSAL ONLY)
+# 12A door hardening: drafts and proofs (FINAL CANDIDATE for Sentinel review, draft PR, PROPOSAL ONLY)
 
-**Status: DRAFT PR. Nothing here has been applied to any database. No prod connection of any kind was made by this job** (the prod facts in `baseline/PROD-FACTS-12A.md` are KODE's earlier read-only capture, transcribed). Nothing in `db/` is served (pages-excluded) and nothing applies these files automatically.
+**Status: FINAL CANDIDATE for Sentinel review: tests run 2026-11-10; re-derived from code, NOT Atlas's doc, NOT a Sentinel pass. Draft PR. Nothing here has been applied to any database. No prod connection of any kind was made by this job** (the prod facts in `baseline/PROD-FACTS-12A.md` are KODE's earlier read-only capture, transcribed). Nothing in `db/` is served (pages-excluded) and nothing applies these files automatically.
 
 ## Apply gate (binding) and blockers
 
 1. **NO prod SQL without Joe's relayed yes + a Sentinel pass + a backup.** Prior agent or Sentinel approval is not Joe's consent (Atlas I08 note).
-2. **BLOCKER to finalize: Atlas's source doc `atlas/checkin-scan-fix.md` was NOT available** (not in the CLAUDE KODE Drive folder when this job ran). Sentinel's conditions are in that doc and are therefore **unreviewed**. Do not finalize or apply until someone has read it and this PR has been checked against every condition in it. The requirements used instead are the ones quoted in `baseline/PROD-FACTS-12A.md` (from `kapp-thanksgiving-build.md`).
+2. **Atlas's source doc `atlas/checkin-scan-fix.md` is unavailable and will not be provided.** The conditions were therefore **re-derived from the code** (`DERIVED-CONDITIONS.md`, 30 conditions: 20 met-proven, 1 met-by-design, 3 not met (DC-08/27 need 13A, DC-20 audit trail), 6 open decisions) and mapped to tests in `SENTINEL-CHECKLIST-12A.md`. This is **not Atlas's document and not a Sentinel pass**; Sentinel reviews this PR and may hold conditions that are not here.
 3. The baseline fingerprints (function body md5s, ACLs, policy/constraint/column facts) come from a **transcription** of the prod capture. Run `PRECHECK-12A.sql` and `packs/12a_DRIFT_QUERY_PROPOSED.sql` on prod first; the DRIFT_QUERY's first row must read `S0_original`. If it reads `DRIFT`, read the per-fact rows, STOP, and re-baseline through review (do not edit literals in place).
 4. Apply is a Kode-run, one-function-at-a-time procedure (below). Schema `private` must not be exposed in the Supabase API settings.
 
@@ -22,6 +22,10 @@
 | `PRECHECK-12A.sql` | Read-only catalog + aggregate queries for KODE to run on prod first (never row contents) |
 | `CALLER-CONTRACT.md`, `adapter/` | Caller/auth contract; pure JS token-free, no-contact response adapter + unit tests (not wired anywhere) |
 | `proof/` | Real-PG harness (`prove.mjs`, `replica.sql`, `run-proof.sh`, `report.mjs`), results in `proof/out/`, rendered in `MATRIX-RESULTS.md` |
+| `DERIVED-CONDITIONS.md`, `SENTINEL-CHECKLIST-12A.md`, `SUSPECTED-DEFECT-NOT-REPRODUCED.md` | Re-derived conditions with tally; checklist mapping each requirement to a proof id and its result; the M36 write-up |
+| `VERIFY-12A.sql` | Read-only before/after verification for KODE: catalog facts, aggregate counts, definition capture, zero TEST ATLAS rows |
+| `adapter/door-contract-check.mjs`, `adapter/door-contract-crosscheck.test.mjs` | Static SQL-to-adapter contract cross-check with 9 negative controls |
+| `packs/optional/12a_OPT_qr_token_unique_*` | OPTIONAL, non-transactional UNIQUE partial index on `qr_token` (PRECHECK/APPLY/POSTCHECK/ROLLBACK). Not in the required chain; run only after 13A |
 | `FOLLOWUP-13A-14A_orders_PROPOSED_SKETCH.sql` | Sketch for the adjacent findings below. Not part of 12A, not reviewed, not applied |
 
 Every pack: ONE transaction; right after `BEGIN` come `SET LOCAL lock_timeout = '5s';`, `SELECT pg_advisory_xact_lock(2979301232487107403);` (the repo-wide pack key from R1 #136, asserted equal by the generator) and `SET LOCAL lock_timeout = '5s';` again (a second runner fails with SQLSTATE 55P03 after ~5 s instead of waiting; the timeout is also set before the lock because a timeout set after a lock statement cannot bound that statement's wait; this replaces the earlier `'10s'`); then `SET LOCAL statement_timeout`; a DRIFT GUARD (a `DO` block that aborts the whole transaction naming every mismatching fact, and refuses unless `current_user = 'postgres'`); the change; in-transaction POST-CHECK assertions (failure rolls everything back); a RETAINED OUTPUT `SELECT` (one row per fact plus `000_ALL_OK`). ACLs are fingerprinted with the sorted-ACL expression from #136.
@@ -40,14 +44,21 @@ Behaviour changes callers should know (all proven in the matrix): `check_in_tick
 
 ## Apply runbook (for Kode, only after the gate above)
 
-1. Backup. Run `PRECHECK-12A.sql` and `12a_DRIFT_QUERY_PROPOSED.sql` (expect `S0_original`); attach both outputs.
+Exact order: **12A step 1, 12A step 2, then 13A (#138). 13A's drift guard refuses a 13A-first order.** One function at a time; abort on any drift.
+
+1. Backup (see definition below). Run `PRECHECK-12A.sql`, `12a_DRIFT_QUERY_PROPOSED.sql` (expect `S0_original`) and `VERIFY-12A.sql`; attach all outputs.
 2. Step 1: run `12a_01_..._APPLY_PROPOSED.sql` as postgres in one call (or `psql -v ON_ERROR_STOP=1`). Retain the final result set (every row `ok = true`). Run `12a_POSTCHECKS_S1_*`. Sentinel isolated tests (raw / `KIL-` / null-owner / anon / replay) against the scan.
-3. Step 2 only after step 1 is verified: run `12a_02_..._APPLY_PROPOSED.sql`; retain output; run `POSTCHECKS_S2`; Sentinel tests against `check_in_ticket`. Fixture scans stay isolated/boolean-only; verify zero TEST ATLAS rows.
-4. Any `DRIFT` or failed post-check: the transaction has already rolled back; stop and report. To back out after a successful apply: ROLLBACK 02 then ROLLBACK 01, then `POSTCHECKS_S0`.
+3. Step 2 only after step 1 is verified: run `12a_02_..._APPLY_PROPOSED.sql`; retain output; run `POSTCHECKS_S2` and `VERIFY-12A.sql`; Sentinel tests against `check_in_ticket`. Fixture scans stay isolated/boolean-only; **verify zero TEST ATLAS rows** (VERIFY-12A reports the count).
+4. Then 13A per its own README. The optional UNIQUE-index pack is a separate later decision (after 13A, because 13A's drift guard asserts the exact index list; non-transactional; run PRECHECK first, expect zero duplicates).
+5. Any `DRIFT` or failed post-check: the transaction has already rolled back; stop and report (do not edit literals in place).
+
+**Backup definition.** What the connector can produce read-only is the definition capture: function/policy/grant definitions via PRECHECK-12A and the DRIFT_QUERY output, plus VERIFY-12A's definition capture and the verbatim originals inside the ROLLBACK packs. 12A changes no table, column, policy, grant, index or row (proof R01, R02), so a data backup is not needed to undo it; a full data backup is a dashboard action for Joe and is his call (nothing here pretends to be one).
+
+**Rollback criteria.** Roll back (ROLLBACK 02 then ROLLBACK 01, then `POSTCHECKS_S0`) if: a post-check fails after commit, any Sentinel isolated test fails, door staff report valid tickets refused as `invalid`/`forbidden` that should admit, or any reader of `checked_in_at`/`status` misbehaves (e.g. `organizer_dashboard` counts). Rollbacks have their own drift guard and restore the captured originals byte-for-byte (P09).
 
 ## What is proven (real PostgreSQL 17.6, socket only, replica, synthetic data)
 
-Full table: `MATRIX-RESULTS.md`. Summary of the last run: behavioural matrix 59/59 (each test on the original AND the hardened replica; every "detects" test fails on the original, as required), pack/structural 29/29, adjacent findings 4/4. Highlights:
+Full table: `MATRIX-RESULTS.md`. Summary of the last run (2026-11-10): behavioural matrix 81/81 (each test on the original AND the hardened replica; every "detects" test fails on the original, as required), pack/structural 45/45 (including mutation detectors D01-D05, write-set equality R02, VERIFY V01, live adapter cross-check X01 and optional-pack tests U01-U06), adjacent findings 4/4; static cross-check 12/12; adapter unit tests 10/10. The hardened SQL and the packs are unchanged from #137 (no defect was found; see `SUSPECTED-DEFECT-NOT-REPRODUCED.md`). Highlights:
 
 - raw token admits once; `KIL-`, `kil-`, `Kil-` and whitespace-wrapped tokens admit (original `event_checkin_scan` rejected every prefixed form; original `check_in_ticket` did not trim);
 - second scan = `already_used` with the original time; two concurrent scans on two real connections (row-lock handshake verified via `pg_stat_activity`) -> exactly one admission; ten parallel scans -> exactly one; a refund committing while a scan waits is honoured (**the original admitted the refunded order, both functions**);

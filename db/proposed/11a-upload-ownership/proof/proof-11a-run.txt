@@ -1,0 +1,43 @@
+PASS  S1   [pre-1C] owner via profile_owners -> true
+PASS  S2   [pre-1C] submitted_by owner WITHOUT a profile mapping -> true
+PASS  S3   [pre-1C] visible published event, NON-owner -> false
+PASS  S4   [pre-1C] owner of ANOTHER profile -> false
+PASS  S5   [pre-1C] multi-profile owner (band-b + band-c) accepted on band-b's event
+PASS  S6   [pre-1C] draft-parent owner -> true (both branches); non-owner of a draft -> false
+PASS  S7   [pre-1C] missing parent and NULL slug -> false (not an error, not true)
+PASS  S8   [pre-1C] signed-in role with no verified subject (auth.uid() NULL) -> false
+PASS  S9   [pre-1C] anon has NO execute: call is permission denied
+PASS  S10  [pre-1C] grants: anon/public/service_role cannot execute, authenticated can
+PASS  S11  [pre-1C] does not leak submitted_by: returns boolean, one boolean column
+PASS  S12  [pre-1C] SECURITY DEFINER with search_path pinned to '' (proconfig)
+PASS  S13  [pre-1C] search_path HIJACK: attacker schema with fake events/profile_owners naming the stranger as owner does not change the answer
+PASS  S14  [pre-1C] the caller cannot supply an identity: extra args / wrong arity are rejected
+PASS  S1   [post-1C] owner via profile_owners -> true
+PASS  S2   [post-1C] submitted_by owner WITHOUT a profile mapping -> true
+PASS  S3   [post-1C] visible published event, NON-owner -> false
+PASS  S4   [post-1C] owner of ANOTHER profile -> false
+PASS  S5   [post-1C] multi-profile owner (band-b + band-c) accepted on band-b's event
+PASS  S6   [post-1C] draft-parent owner -> true (both branches); non-owner of a draft -> false
+PASS  S7   [post-1C] missing parent and NULL slug -> false (not an error, not true)
+PASS  S8   [post-1C] signed-in role with no verified subject (auth.uid() NULL) -> false
+PASS  S9   [post-1C] anon has NO execute: call is permission denied
+PASS  S10  [post-1C] grants: anon/public/service_role cannot execute, authenticated can
+PASS  S11  [post-1C] does not leak submitted_by: returns boolean, one boolean column
+PASS  S12  [post-1C] SECURITY DEFINER with search_path pinned to '' (proconfig)
+PASS  S13  [post-1C] search_path HIJACK: attacker schema with fake events/profile_owners naming the stranger as owner does not change the answer
+PASS  S14  [post-1C] the caller cannot supply an identity: extra args / wrong arity are rejected
+PASS  C1   [post-1C extra] 1C is in effect: authenticated can NOT select events.submitted_by (a caller-RLS ownership read would fail)
+PASS  C2   [post-1C extra] 1C is in effect: authenticated can NOT read profile_owners
+PASS  C3   [post-1C extra] ...yet the DEFINER function still answers true for the submitted_by owner and the mapped owner
+PASS  C4   [post-1C extra] a non-owner learns nothing: nonexistent slug and a draft owned by someone else look identical (false)
+PASS  R1   [lifecycle] idempotent re-apply, ROLLBACK drops the function (calls then error), re-apply works
+
+POSITIVE: 33/33 pass
+CONTROL OK   M1 visibility-only (any signed-in caller on a published event): fails [S3,S4,S6,S13] (required: S3,S4,S6)
+CONTROL OK   M2 unpinned search_path + unqualified refs: fails [S12,S13] (required: S12,S13)
+CONTROL OK   M3 default grants left in place (anon may execute): fails [S9,S10] (required: S9,S10)
+CONTROL OK   M4 returns the submitter id instead of a boolean: fails [S1,S2,S3,S4,S5,S6,S7,S8,S11,S13] (required: S11)
+CONTROL OK   M5 SECURITY INVOKER (caller-RLS read of submitted_by): fails [S1,S2,S3,S4,S5,S6,S7,S8,S11,S12,S13,C3] (required: S2,S5,C3)
+CONTROL OK   M6 my_profile_slug-style LIMIT 1 (arbitrary single owned profile): fails [S5] (required: S5)
+CONTROL OK   M7 trusts a caller-supplied handle claim via settings (user-controlled GUC): fails [S1,S2,S5,S6] (required: S1,S2)
+NEGATIVE CONTROLS: 7 mutants, 14 required failures, all observed

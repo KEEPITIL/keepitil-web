@@ -1,7 +1,7 @@
 /* build-variants.mjs - R1 fix generator (proposal only; nothing here touches any database).
    Writes the R1 variants of the APPLY/ROLLBACK packs under packs/ from the committed originals, mechanically, so that a reviewer can diff
    original -> variant and see exactly three kinds of change and nothing else:
-     (1) LOCK     every APPLY/ROLLBACK pack gets `SELECT pg_advisory_xact_lock(<KEY>);` as the FIRST statement after its first BEGIN;
+     (1) LOCK     every APPLY/ROLLBACK pack gets, right after its first BEGIN, exactly: `SET LOCAL lock_timeout = '5s';` `SELECT pg_advisory_xact_lock(<KEY>);` `SET LOCAL lock_timeout = '5s';` (the timeout bounds the wait for the advisory lock itself and every later lock wait; 55P03 on expiry);
      (2) ACL-SORT F3 FORWARD / ROLLBACK / DRIFT_QUERY / POSTCHECKS hash (and show) ACLs through an entry-order-independent expression instead of relacl::text etc.;
      (3) MAINTAIN F3 FORWARD revokes MAINTAIN (PostgreSQL 17+) on event_media / venue_media from PUBLIC, anon, authenticated, remembering which grants existed; F3 ROLLBACK restores exactly those.
    Usage:  node build-variants.mjs            write packs/ (idempotent)
@@ -18,9 +18,15 @@ const OUT = join(HERE, "packs");
    Derivation (reproducible): first 8 bytes (big-endian, signed) of sha256("keepitil-web db/proposed pack-run-serializer v1"). Single-bigint-key space, distinct from the two-int4 form. */
 export const KEY_SEED = "keepitil-web db/proposed pack-run-serializer v1";
 export const LOCK_KEY = createHash("sha256").update(KEY_SEED).digest().readBigInt64BE(0).toString();
+export const LOCK_TIMEOUT_SQL = "SET LOCAL lock_timeout = '5s';";
+export const LOCK_STMT = `SELECT pg_advisory_xact_lock(${LOCK_KEY});`;
 export const LOCK_SQL = `-- R1-LOCK: serialise pack runs. pg_advisory_xact_lock(${LOCK_KEY}) = signed int64 of the first 8 bytes of sha256("${KEY_SEED}"); the SAME key is used by every APPLY/ROLLBACK pack,
--- so a second run (any pack) WAITS here until the first transaction commits or rolls back (transaction-scoped: released automatically). Waiting is unbounded unless the session sets lock_timeout.
-SELECT pg_advisory_xact_lock(${LOCK_KEY});`;
+-- so a second run (any pack) WAITS here until the first transaction commits or rolls back (transaction-scoped: released automatically). The wait is BOUNDED: lock_timeout = 5s is set
+-- immediately BEFORE the lock (a lock_timeout set after a lock statement cannot bound that statement's own wait), so a second runner fails cleanly with SQLSTATE 55P03 (lock_not_available)
+-- after ~5 s and changes nothing; it is set again immediately AFTER the lock so the same bound covers every later lock wait of the pack (SET LOCAL: this transaction only).
+${LOCK_TIMEOUT_SQL}
+${LOCK_STMT}
+${LOCK_TIMEOUT_SQL}`;
 
 const rd = (...p) => readFileSync(join(...p), "utf8");
 const once = (s, from, to, what) => { const i = s.indexOf(from); if (i < 0) throw new Error("anchor not found: " + what); if (s.indexOf(from, i + 1) >= 0) throw new Error("anchor not unique: " + what); return s.slice(0, i) + to + s.slice(i + from.length); };
@@ -108,12 +114,12 @@ export function buildAll() {
   { let s = rd(f3d, F3("FORWARD"));
     s = sortAcls(s, 2, "F3 FORWARD"); s = lockPack(s, "F3 FORWARD");
     s = once(s, "REVOKE DELETE ON TABLE public.event_media,public.venue_media FROM authenticated;\n", "REVOKE DELETE ON TABLE public.event_media,public.venue_media FROM authenticated;\n" + MAINTAIN_FWD, "F3 FORWARD maintain anchor");
-    files.set("f3/" + F3("FORWARD"), HEADER("f3-publish-gate/" + F3("FORWARD"), "(1) advisory lock first in the transaction; (2) the drift check and the saved rollback guard hash ACLs order-independently; (3) REVOKE MAINTAIN on event_media/venue_media (PG17+, version-guarded) with a recorded pre-state (atlas_media_guard.maintain_prior_grants). The stale baseline literal is unchanged and MUST be re-captured with the R1 DRIFT_QUERY (its hash differs from the order-sensitive one by construction).") + s); }
+    files.set("f3/" + F3("FORWARD"), HEADER("f3-publish-gate/" + F3("FORWARD"), "(1) lock_timeout 5s + advisory lock first in the transaction; (2) the drift check and the saved rollback guard hash ACLs order-independently; (3) REVOKE MAINTAIN on event_media/venue_media (PG17+, version-guarded) with a recorded pre-state (atlas_media_guard.maintain_prior_grants). The stale baseline literal is unchanged and MUST be re-captured with the R1 DRIFT_QUERY (its hash differs from the order-sensitive one by construction).") + s); }
   { let s = rd(f3d, F3("ROLLBACK"));
     s = sortAcls(s, 2, "F3 ROLLBACK"); s = lockPack(s, "F3 ROLLBACK");
     s = once(s, "GRANT TRUNCATE ON TABLE public.event_media,public.venue_media,public.profile_meta TO anon,authenticated;\n", "GRANT TRUNCATE ON TABLE public.event_media,public.venue_media,public.profile_meta TO anon,authenticated;\n" + MAINTAIN_RB, "F3 ROLLBACK maintain anchor");
     s = once(s, "DROP TABLE atlas_media_guard.rollback_guard;\n", "DROP TABLE IF EXISTS atlas_media_guard.maintain_prior_grants;\nDROP TABLE atlas_media_guard.rollback_guard;\n", "F3 ROLLBACK drop anchor");
-    files.set("f3/" + F3("ROLLBACK"), HEADER("f3-publish-gate/" + F3("ROLLBACK"), "(1) advisory lock first in the transaction; (2) the pre-check and the final exactness guard hash ACLs order-independently; (3) restores exactly the MAINTAIN grants the R1 forward recorded, then drops its record table.") + s); }
+    files.set("f3/" + F3("ROLLBACK"), HEADER("f3-publish-gate/" + F3("ROLLBACK"), "(1) lock_timeout 5s + advisory lock first in the transaction; (2) the pre-check and the final exactness guard hash ACLs order-independently; (3) restores exactly the MAINTAIN grants the R1 forward recorded, then drops its record table.") + s); }
   { let s = rd(f3d, F3("DRIFT_QUERY")); s = sortAcls(s, 1, "F3 DRIFT_QUERY");
     files.set("f3/" + F3("DRIFT_QUERY"), HEADER("f3-publish-gate/" + F3("DRIFT_QUERY"), "(2) ACLs are hashed order-independently (relacl/attacl/proacl/nspacl through a sorted aclitem list). Run it with SET search_path = public, extensions exactly as before.") + s); }
   { let s = rd(f3d, F3("POSTCHECKS"));
@@ -131,7 +137,7 @@ export function buildAll() {
   ];
   for (const [grp, dir, names] of locked) for (const n of names) {
     const src = rd(dir, n); const rel = dir.slice(PROPOSED.length + 1) + "/" + n;
-    files.set(`locked/${grp}/${n}`, HEADER(rel, "(1) advisory lock first in the transaction (byte-identical otherwise: the original text follows this header, with the lock inserted after its first BEGIN;).") + lockPack(src, rel)); }
+    files.set(`locked/${grp}/${n}`, HEADER(rel, "(1) lock_timeout 5s + advisory lock + lock_timeout 5s first in the transaction (byte-identical otherwise: the original text follows this header, with these statements inserted after its first BEGIN;).") + lockPack(src, rel)); }
   return files;
 }
 

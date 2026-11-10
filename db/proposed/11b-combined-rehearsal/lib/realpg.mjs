@@ -6,7 +6,7 @@
    Timing instrument (the ONLY edit to a pack file): to hold a script's locks for a measurable window, its final `COMMIT;` is replaced by `SELECT pg_sleep(n); COMMIT;` (holdBeforeCommit). Numbers are wall-clock on a tiny synthetic database: they show the SHAPE
    (who waits, for how long relative to the lock window, what is left behind), NOT prod timings. */
 import { U, one, su, tx, clone, closeDb, snapshot, diffSnap, brief, collector, mutate, PGM, R1MODE, open, rd, F3 } from "./core.mjs";
-import { LOCK_SQL, LOCK_KEY, aclSorted } from "../../r1-fix-f3-acl-locks/build-variants.mjs";
+import { LOCK_SQL, LOCK_KEY, LOCK_STMT, LOCK_TIMEOUT_SQL, aclSorted } from "../../r1-fix-f3-acl-locks/build-variants.mjs";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const now = () => performance.now();
@@ -124,8 +124,9 @@ export async function realPgSuite(ctx) {
   }
 
   if (R1MODE) {
-    const lockStmt = "SELECT pg_advisory_xact_lock(" + LOCK_KEY + ");";
-    const unlock = (sql) => { const i = sql.indexOf("-- R1-LOCK"); if (i < 0) return sql; const j = sql.indexOf(lockStmt); return sql.slice(0, i) + sql.slice(j + lockStmt.length); };
+    const lockStmt = LOCK_STMT;
+    /* strips the whole R1 lock block (comment, pre-lock timeout, the advisory lock, post-lock timeout) = the original pack text */
+    const unlock = (sql) => { const i = sql.indexOf("-- R1-LOCK"); if (i < 0) return sql; const j = sql.indexOf(lockStmt); let e = j + lockStmt.length; const tail = "\n" + LOCK_TIMEOUT_SQL; if (sql.startsWith(tail, e)) e += tail.length; return sql.slice(0, i) + sql.slice(e); };
     const advWait = async (mon, pid) => (await mon.client.query("select (classid::bigint*4294967296 + objid::bigint)::text k, granted from pg_locks where locktype='advisory' and pid=$1", [pid])).rows;
     const relLocksOf = async (mon, pid) => (await mon.client.query("select count(*)::int n from pg_locks where pid=$1 and locktype='relation' and relation in (select oid from pg_class where relnamespace='public'::regnamespace)", [pid])).rows[0].n;
     // CC.7 (R1-FIX) two APPLY-1 runs at once: the advisory lock serialises them
@@ -216,19 +217,19 @@ export async function realPgSuite(ctx) {
 
     /* the pack lock, with two REAL connections on a probe pack that uses the SAME lock text as every pack */
     { const fs = await import("node:fs"), path = await import("node:path"); const { R1D } = await import("./core.mjs");
-      await chk("LK.static", "every R1 APPLY/ROLLBACK pack variant (16 files: #91 APPLY-1/1B/2 + ROLLBACK-1/1B/2, #92 APPLY-92/ROLLBACK-92, 10A APPLY-1C/APPLY-92-44col/ROLLBACK-1C/ROLLBACK-2-after-1C, F3 FORWARD/ROLLBACK, 11A install/rollback; the F3 DRIFT_QUERY and POSTCHECKS read-only files are excluded) has ONE top-level BEGIN with pg_advisory_xact_lock(KEY) as the FIRST statement after it, the same KEY in all of them, and no statement before BEGIN", async (m) => {
+      await chk("LK.static", "every R1 APPLY/ROLLBACK pack variant (16 files: #91 APPLY-1/1B/2 + ROLLBACK-1/1B/2, #92 APPLY-92/ROLLBACK-92, 10A APPLY-1C/APPLY-92-44col/ROLLBACK-1C/ROLLBACK-2-after-1C, F3 FORWARD/ROLLBACK, 11A install/rollback; the F3 DRIFT_QUERY and POSTCHECKS read-only files are excluded) has ONE top-level BEGIN followed IMMEDIATELY (comments aside) by exactly: SET LOCAL lock_timeout = \'5s\'; then pg_advisory_xact_lock(KEY); then SET LOCAL lock_timeout = \'5s\'; the same KEY in all of them, and no statement before BEGIN (R1 + lock_timeout follow-up: the timeout is set before the lock so it bounds the lock wait itself, and again after it)", async (m) => {
         const files = []; const walk = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else files.push(p); } }; walk(R1D);
         const packs = files.filter((f) => !/(DRIFT_QUERY|POSTCHECKS)/.test(f)); const bad = [];
-        for (const f of packs) { const t = fs.readFileSync(f, "utf8"); const noc = t.split("\n").filter((l) => !/^\s*--/.test(l)).join("\n"); const first = noc.match(/^\s*(begin|start transaction);\s*(select pg_advisory_xact_lock\(([-0-9]+)\);)/i); if (!first || first[3] !== LOCK_KEY) bad.push(path.relative(R1D, f)); }
+        for (const f of packs) { const t = fs.readFileSync(f, "utf8"); const noc = t.split("\n").filter((l) => !/^\s*--/.test(l)).join("\n"); const first = noc.match(/^\s*(begin|start transaction);\s*set local lock_timeout = '5s';\s*select pg_advisory_xact_lock\(([-0-9]+)\);\s*set local lock_timeout = '5s';/i); if (!first || first[2] !== LOCK_KEY) bad.push(path.relative(R1D, f)); }
         m.packs = packs.length; return (packs.length === 16 && bad.length === 0) || JSON.stringify({ n: packs.length, bad }); }); }
-    const probeSql = (who, lock, tail = "") => `begin; ${lock ? LOCK_SQL : ""}\ninsert into probe(who,ev,t) values ('${who}','start',clock_timestamp()); select pg_sleep(1.5); insert into probe(who,ev,t) values ('${who}','end',clock_timestamp()); ${tail || "commit;"}`;
-    const probeRun = async (lock, { failFirst = false } = {}) => { const db = await open(); const conns = [];
+    const probeSql = (who, lock, tail = "", hold = 1.5) => `begin; ${lock ? (typeof lock === "string" ? lock : LOCK_SQL) : ""}\ninsert into probe(who,ev,t) values ('${who}','start',clock_timestamp()); select pg_sleep(${hold}); insert into probe(who,ev,t) values ('${who}','end',clock_timestamp()); ${tail || "commit;"}`;
+    const probeRun = async (lock, { failFirst = false, holdA = 1.5, lockB = lock } = {}) => { const db = await open(); const conns = [];
       try { await db.exec("create table probe(who text, ev text, t timestamptz)"); const a = await conn(db), b = await conn(db), mon = await conn(db); conns.push(a, b, mon); const pa = await pidOf(a), pb = await pidOf(b);
-        const A = run(a, failFirst ? probeSql("A", lock, "select 1/0; commit;") : probeSql("A", lock)); await inSleep(mon, pa); const t0 = now(); const B_ = run(b, probeSql("B", lock));
+        const A = run(a, failFirst ? probeSql("A", lock, "select 1/0; commit;") : probeSql("A", lock, "", holdA)); await inSleep(mon, pa); const t0 = now(); const B_ = run(b, probeSql("B", lockB));
         let waiting = []; if (lock) { await blockedOnLock(mon, pb); waiting = (await mon.client.query("select (classid::bigint*4294967296 + objid::bigint)::text k, granted from pg_locks where locktype='advisory' and pid=$1", [pb])).rows; } else await sleep(300);
         const [ra, rb] = [await A, await B_]; await rollbackQuiet(a); await rollbackQuiet(b);
         const rows = (await db.query("select who, ev, extract(epoch from t)::float8 e from probe order by t")).rows; const g = (w, e) => (rows.find((r) => r.who === w && r.ev === e) || {}).e;
-        return { ra, rb, waiting, aEnd: g("A", "end"), aStart: g("A", "start"), bStart: g("B", "start"), bEnd: g("B", "end"), ms: Math.round(now() - t0) }; } finally { for (const c of conns) await c.disconnect(); await closeDb(db); } };
+        const nb = (await db.query("select count(*)::int n from probe where who='B'")).rows[0].n; return { ra, rb, nb, waiting, aEnd: g("A", "end"), aStart: g("A", "start"), bStart: g("B", "start"), bEnd: g("B", "end"), ms: Math.round(now() - t0) }; } finally { for (const c of conns) await c.disconnect(); await closeDb(db); } };
     await chk("LK.1", "TWO REAL CONNECTIONS, WITH the lock: B (same lock text as every pack) blocks on the advisory lock while A is mid-transaction (pg_locks: ungranted advisory lock, key = the pack key) and B's first statement runs only AFTER A committed (B.start >= A.end; no overlap)", async (m) => {
       const r = await probeRun(true); m.b_wait_ms = r.ms; m.a_end_to_b_start_ms = Math.round((r.bStart - r.aEnd) * 1000);
       return (r.ra.ok && r.rb.ok && r.waiting.length === 1 && r.waiting[0].k === LOCK_KEY && r.waiting[0].granted === false && r.bStart >= r.aEnd) || JSON.stringify(r); });
@@ -238,6 +239,22 @@ export async function realPgSuite(ctx) {
     await chk("LK.3", "the lock is released by ABORT too: A fails (division by zero) while holding the lock; B (blocked meanwhile) then proceeds and commits; nothing of A remains", async (m) => {
       const r = await probeRun(true, { failFirst: true }); m.b_wait_ms = r.ms;
       return (!r.ra.ok && r.ra.code === "22012" && r.rb.ok && r.waiting.length === 1 && r.waiting[0].granted === false && r.aStart === undefined && r.ms >= 1000) || JSON.stringify(r); });
+    /* lock_timeout follow-up (KODE 2026-11-10): the pack lock wait is bounded; the second runner fails cleanly with 55P03 and the first is unaffected */
+    await chk("LK.5", "TIMEOUT (two real connections, the exact lock text of every pack): A holds the pack lock ~7 s; B (blocked on the advisory lock, pg_locks shows it ungranted) fails with SQLSTATE 55P03 lock_not_available after ~5 s (4.5-6.5 s), NOT after A's ~7 s and not never; A is unaffected (commits, both its probe rows present); B left no row; the lock is free afterwards", async (m) => {
+      const r = await probeRun(true, { holdA: 7 }); m.b_fail_ms = r.rb.ms; m.b_code = r.rb.code; m.a_total_ms = r.ra.ms; m.b_probe_rows = r.nb;
+      return (r.ra.ok && r.ra.ms >= 6800 && !r.rb.ok && r.rb.code === "55P03" && /lock timeout/i.test(r.rb.err) && r.rb.ms >= 4500 && r.rb.ms <= 6500 && r.waiting.length === 1 && r.waiting[0].k === LOCK_KEY && r.waiting[0].granted === false && r.nb === 0 && r.aStart !== undefined && r.aEnd !== undefined) || JSON.stringify(r); });
+    await chk("LK.5c", "NEGATIVE CONTROL for LK.5 (what the literal 'timeout only AFTER the lock' placement would do): with the pre-lock SET LOCAL lock_timeout REMOVED (the lock followed by the timeout) B is NOT bounded: it waits out A's whole ~7 s hold (> 5 s) and then succeeds; this is why the timeout is also set BEFORE the lock", async (m) => {
+      const postOnly = LOCK_SQL.replace(LOCK_TIMEOUT_SQL + "\n" + LOCK_STMT, LOCK_STMT); if (postOnly === LOCK_SQL) throw new Error("negative-control construction failed");
+      const r = await probeRun(postOnly, { holdA: 7 }); m.b_wait_ms = r.rb.ms; m.b_ok = r.rb.ok;
+      return (r.ra.ok && r.rb.ok && r.rb.ms >= 6000 && r.bStart >= r.aEnd) || JSON.stringify(r); });
+    await withWorld(B.S0, async (db, mk) => { const a = await mk(), b = await mk(), mon = await mk(); const pa = await pidOf(a), pb = await pidOf(b);
+      const relLocksOf = async (mn, pid) => (await mn.client.query("select count(*)::int n from pg_locks where pid=$1 and locktype='relation' and relation in (select oid from pg_class where relnamespace='public'::regnamespace)", [pid])).rows[0].n;
+      const advWait = async (mn, pid) => (await mn.client.query("select 1 from pg_locks where locktype='advisory' and pid=$1", [pid])).rows;
+      await chk("LK.6", "TIMEOUT on a REAL pack (R1 APPLY-1, first run held ~7 s before COMMIT): the second APPLY-1 fails with 55P03 after ~5 s, took no public-table lock and changed nothing of its own; the first run commits normally and the catalog equals exactly ONE APPLY-1", async (m) => {
+        const one_ = await clone(B.S0); await tx(one_, A1); const snap1 = await snapshot(one_); await closeDb(one_);
+        const x = run(a, holdBeforeCommit(A1, 7)); await inSleep(mon, pa); const y = run(b, A1); await blockedOnLock(mon, pb); const rel = await relLocksOf(mon, pb);
+        const [rx, ry] = [await x, await y]; await rollbackQuiet(b); const d = diffSnap(snap1, await snapshot(db)); const left = (await advWait(mon, pb)).length; m.second_fail_ms = ry.ms; m.second_code = ry.code;
+        return (rx.ok && !ry.ok && ry.code === "55P03" && ry.ms >= 4500 && ry.ms <= 6500 && rel === 0 && d.n === 0 && left === 0) || JSON.stringify({ rx: rx.err, ry: ry.err, code: ry.code, ms: ry.ms, rel, d: brief(d), left }); }); });
     // cross-pack, two real packs: F3 forward (held ~2 s) vs the 11A install on the same pre-F3 replica
     await withWorld(B.S6, async (db, mk) => { const F0 = await lab.fpOf(db); const a = await mk(), b = await mk(), mon = await mk(); const pa = await pidOf(a), pb = await pidOf(b);
       await chk("LK.4", "CROSS-PACK on the replica: the R1 F3 forward (A, held ~2 s) and the R1 11A install (B, a different pack) share the key, so B waits on the advisory lock until F3 commits; both then succeed and the end state has the F3 guard row AND can_upload_event_media", async (m) => {

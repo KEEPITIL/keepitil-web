@@ -3,6 +3,8 @@
 Draft PR `draft/r1-fix-f3-acl-locks`, stacked on #135. Nothing touched production or any hosted database. Engine: the throw-away PostgreSQL 17.6 on the Nexus Mac (Unix socket, synthetic data, started for the runs and stopped after).
 What changed and why: `../r1-fix-f3-acl-locks/README.md`. Raw output: `out/run-combined-output-real-pg-r1fix.txt`, `matrix-results-real-pg-r1fix.json`, `MATRIX-RESULTS-real-pg-r1fix.md`.
 
+> **Follow-up 2026-11-10 (KODE):** finding 2 below (unbounded advisory-lock wait) is superseded: every locked pack now sets a 5 s `lock_timeout` before and after the lock, and finding 1 is recorded as an accepted risk. See `R1-FIX-LOCK-TIMEOUT-REPORT.md` and the README of `r1-fix-f3-acl-locks`. The numbers below are the baseline of the R1 commit.
+
 ## Result
 
 | | 11B real-PG baseline (`--packs=orig`, re-run today) | R1-FIX (`--packs=r1`, default) |

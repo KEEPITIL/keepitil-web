@@ -7,7 +7,37 @@ const HOUSE = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const ADMIN = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const PRIOR = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 
-test('admin_move_house_page moves only the named page', () => {
+// This test runs the migration's function against a real PostgreSQL, because
+// plpgsql name resolution cannot be checked any other way. It finds a server
+// in this order:
+//   1. an explicit one: set PGHOST (plus PGPORT/PGUSER/PGPASSWORD as usual);
+//   2. a local install reachable as `sudo -n -u postgres psql`.
+// With neither it SKIPS with a reason rather than failing, so `npm test` is
+// not red on a machine that has no PostgreSQL. Under CI (CI=true) a missing
+// server is a hard FAILURE, so the skip can never hide the check where it is
+// supposed to run.
+function pgRunner() {
+  const direct = process.env.PGHOST
+    ? (args, input) => spawnSync('psql', args, { encoding: 'utf8', input })
+    : null;
+  const viaSudo = (args, input) => spawnSync('sudo', ['-n', '-u', 'postgres', 'psql', ...args], { encoding: 'utf8', input });
+  for (const run of [direct, viaSudo]) {
+    if (!run) continue;
+    const probe = run(['-d', 'postgres', '-Atc', 'SELECT 1']);
+    if (probe.status === 0) return { run };
+  }
+  const why = process.env.PGHOST
+    ? 'PGHOST is set but psql could not connect'
+    : 'no PostgreSQL available (set PGHOST, or run a local server reachable as `sudo -u postgres psql`)';
+  return { why };
+}
+
+const pg = pgRunner();
+const skipWhy = !pg.run && !process.env.CI ? `SKIPPED, not passed: ${pg.why}` : false;
+
+test('admin_move_house_page moves only the named page', { skip: skipWhy }, () => {
+  assert.ok(pg.run, `CI requires PostgreSQL for this test: ${pg.why}`);
+
   const add = readFileSync(new URL('../../supabase/migrations/20261107014000_profile_public_read_add.sql', import.meta.url), 'utf8');
   const start = add.indexOf('CREATE OR REPLACE FUNCTION public.admin_move_house_page');
   const end = add.indexOf('ALTER FUNCTION public.admin_move_house_page');
@@ -102,13 +132,11 @@ test('admin_move_house_page moves only the named page', () => {
     END $$;
   `;
 
-  spawnSync('sudo', ['-u', 'postgres', 'psql', '-c', 'DROP DATABASE IF EXISTS kil_house_move'], { encoding: 'utf8' });
-  const created = spawnSync('sudo', ['-u', 'postgres', 'psql', '-c', 'CREATE DATABASE kil_house_move'], { encoding: 'utf8' });
+  const admin = (sqlText) => pg.run(['-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', sqlText]);
+  admin('DROP DATABASE IF EXISTS kil_house_move');
+  const created = admin('CREATE DATABASE kil_house_move');
   assert.equal(created.status, 0, created.stderr || created.stdout);
-  const ran = spawnSync('sudo', ['-u', 'postgres', 'psql', '-d', 'kil_house_move', '-v', 'ON_ERROR_STOP=1'], {
-    encoding: 'utf8',
-    input: sql
-  });
-  spawnSync('sudo', ['-u', 'postgres', 'psql', '-c', 'DROP DATABASE IF EXISTS kil_house_move'], { encoding: 'utf8' });
+  const ran = pg.run(['-d', 'kil_house_move', '-v', 'ON_ERROR_STOP=1'], sql);
+  admin('DROP DATABASE IF EXISTS kil_house_move');
   assert.equal(ran.status, 0, ran.stderr || ran.stdout);
 });

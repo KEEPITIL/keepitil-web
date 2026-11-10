@@ -1,0 +1,1165 @@
+{
+ "generated": "2026-11-10T06:25:08.465Z",
+ "engine": "PostgreSQL 17.6",
+ "totals": {
+  "cases": 26,
+  "executed": 25,
+  "pass": 23,
+  "fail": 0,
+  "partial": 2,
+  "blocked": 1,
+  "subchecks": 205,
+  "subchecksPassed": 205
+ },
+ "cases": [
+  {
+   "id": "M1",
+   "title": "Anonymous direct INSERT into each media table (default status / forged published)",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 8,
+   "passed": 8,
+   "failedChecks": []
+  },
+  {
+   "id": "M2",
+   "title": "Non-owner authenticated INSERT against published and draft parents, incl .select() and upsert",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 2,
+   "passed": 2,
+   "failedChecks": []
+  },
+  {
+   "id": "M3",
+   "title": "Mapped parent owner INSERT with omitted status",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 4,
+   "passed": 4,
+   "failedChecks": []
+  },
+  {
+   "id": "M4",
+   "title": "Event submitted_by owner without profile mapping inserts into own draft event",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 4,
+   "passed": 4,
+   "failedChecks": []
+  },
+  {
+   "id": "M5",
+   "title": "Owner INSERT with status published/hidden/NULL/arbitrary; pending_upload",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 4,
+   "passed": 4,
+   "failedChecks": []
+  },
+  {
+   "id": "M6",
+   "title": "Authenticated fan calls original tag RPC signatures",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 4,
+   "passed": 4,
+   "failedChecks": []
+  },
+  {
+   "id": "M7",
+   "title": "Anonymous calls each wrapper and private function",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 2,
+   "passed": 2,
+   "failedChecks": []
+  },
+  {
+   "id": "M8",
+   "title": "Fan RPC against absent parent / other user's draft; owner on own draft",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 2,
+   "passed": 2,
+   "failedChecks": []
+  },
+  {
+   "id": "M9",
+   "title": "upload_event_photo owner flow with signed-upload mock; non-owner cannot obtain signing",
+   "status": "PARTIAL",
+   "reason": "Real Storage signed-upload and the deployed agent-tool-invoke edge function need real Storage + PostgREST + JWT (B3). Executed here: the SQL ownership boundary public.can_upload_event_media on the combined catalog (11A.1-11A.3) and, by reference, 11A's own mocked edge-tool harness (ownership checked before the mock signing call).",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 7,
+   "passed": 7,
+   "failedChecks": []
+  },
+  {
+   "id": "M10",
+   "title": "Owner cannot UPDATE pending -> published; service reviewer can",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 4,
+   "passed": 4,
+   "failedChecks": []
+  },
+  {
+   "id": "M11",
+   "title": "delete_event on an owned synthetic event with no sales",
+   "status": "BLOCKED",
+   "reason": "delete_event body is not captured (no production access) and the replica has no such function: needs the real catalog (B3/Sentinel). Hazard to check there: F3 revokes DELETE on event_media/venue_media from authenticated, so if delete_event is SECURITY INVOKER its media cleanup would now be denied.",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 0,
+   "passed": 0,
+   "failedChecks": []
+  },
+  {
+   "id": "M12",
+   "title": "Anonymous/authenticated TRUNCATE all three target tables",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 2,
+   "passed": 2,
+   "failedChecks": []
+  },
+  {
+   "id": "C1",
+   "title": "Owner UPDATE status/sources/last_reviewed_at, alone and together",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "Layer changed: with 1C the first denial is the column ACL (42501 permission denied), not F3's trigger message; the trigger layer is proven separately (C1.trigger-layer).",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 10,
+   "passed": 10,
+   "failedChecks": []
+  },
+  {
+   "id": "C2",
+   "title": "Owner INSERT/upsert of a new owned profile with fabricated evidence",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "Same layering as C1.",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 14,
+   "passed": 14,
+   "failedChecks": []
+  },
+  {
+   "id": "C3",
+   "title": "Owner edit of each content column on a published row (+NULL/JSON, combined)",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "CHANGED MEANING: #91/1C column denial takes precedence over the legacy C3 type-edit expectation. account_type, tagline, pronouns, book_email, badges, highlights, entity_category (and slug) are now refused (42501) instead of resetting review; the 11 owner-writable content columns still reset review; profile_public/public_fields are writable and do NOT reset review (F3 README row 6).",
+   "changedMeaning": true,
+   "designedDenial": false,
+   "checks": 52,
+   "passed": 52,
+   "failedChecks": []
+  },
+  {
+   "id": "C4",
+   "title": "Real profile.html save payload against an existing published row",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "The recorded final web payload is a diff UPDATE keyed by slug (no 19-key upsert any more); the bundled app's 19-key upsert is refused (designed denial).",
+   "changedMeaning": false,
+   "designedDenial": true,
+   "checks": 10,
+   "passed": 10,
+   "failedChecks": []
+  },
+  {
+   "id": "C5",
+   "title": "Same payload as a no-op except updated_at",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "The web no-op writes nothing; the legacy 'account_type:null' no-op (C5-INFO) is now refused before the trigger.",
+   "changedMeaning": true,
+   "designedDenial": false,
+   "checks": 8,
+   "passed": 8,
+   "failedChecks": []
+  },
+  {
+   "id": "C6",
+   "title": "Owner alters content while trying to keep/forge a gate field in the same UPDATE",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "CHANGED MEANING: re-assigning the old identical gate value is now refused by the column ACL (F3 permitted it).",
+   "changedMeaning": true,
+   "designedDenial": false,
+   "checks": 4,
+   "passed": 4,
+   "failedChecks": []
+  },
+  {
+   "id": "C7",
+   "title": "Owner changes content on an already-review row with stale evidence",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 2,
+   "passed": 2,
+   "failedChecks": []
+  },
+  {
+   "id": "C8",
+   "title": "Service/admin publishes a complete fixture; edits an already-published fixture to violate the gate",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "C8d CHANGED MEANING: admin+owner self-publication is closed by 1C on the client path. C8e/FIND: DEFINER admin paths now run the completeness gate.",
+   "changedMeaning": true,
+   "designedDenial": false,
+   "checks": 10,
+   "passed": 10,
+   "failedChecks": []
+  },
+  {
+   "id": "C9",
+   "title": "Signed-in is_admin user who does not own another profile attempts direct UPDATE",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 2,
+   "passed": 2,
+   "failedChecks": []
+  },
+  {
+   "id": "C10",
+   "title": "Anonymous and unrelated authenticated profile writes; normal claim creation",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "CHANGED MEANING: claim_profile is revoked by APPLY-1; creation goes request_profile_claim -> approve_profile_claim -> owner's first save.",
+   "changedMeaning": true,
+   "designedDenial": false,
+   "checks": 6,
+   "passed": 6,
+   "failedChecks": []
+  },
+  {
+   "id": "P1",
+   "title": "post_collaborators pc_insert / pc_update before/after",
+   "status": "PARTIAL",
+   "reason": "post_collaborators policy predicates were never captured; only a stand-in policy shape ('TO authenticated, sub-selects profile_owners', PRECHECK-RESULTS P-12) was executed. The real pc_insert/pc_update need the real catalog (B3/Sentinel).",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 4,
+   "passed": 4,
+   "failedChecks": []
+  },
+  {
+   "id": "D1",
+   "title": "Modify one policy/ACL/default/trigger/owner/function in a disposable baseline, run forward",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 13,
+   "passed": 13,
+   "failedChecks": []
+  },
+  {
+   "id": "R1",
+   "title": "Apply forward, then rollback; recompute full fingerprint; repeat with pending venue submission",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 7,
+   "passed": 7,
+   "failedChecks": []
+  },
+  {
+   "id": "R2",
+   "title": "Change a patched policy/helper/function, then an unrelated routine, after forward; run rollback",
+   "status": "EXECUTED-PASS",
+   "reason": "",
+   "note": "",
+   "changedMeaning": false,
+   "designedDenial": false,
+   "checks": 6,
+   "passed": 6,
+   "failedChecks": []
+  }
+ ],
+ "supplementary": [
+  {
+   "id": "POST.1",
+   "ok": true,
+   "name": "anon INSERT false on both media tables; anon/authenticated TRUNCATE false on all three; S1: anon UPDATE/DELETE/REFERENCES/TRIGGER false, authenticated DELETE false",
+   "why": ""
+  },
+  {
+   "id": "POST.2",
+   "ok": true,
+   "name": "S2 quarantine: 19 backup rows, 19 orphan rows hidden, 0 orphan published, the one parented row untouched",
+   "why": ""
+  },
+  {
+   "id": "FIND.backfill",
+   "ok": true,
+   "name": "FIND-1 (Atlas/F3 README row 5): with the published->published early return REMOVED, an APPLY-1 style backfill/DEFINER UPDATE of a published page that lacks gate evidence now ABORTS. Mechanism: re-running APPLY-1's backfill on a database that contains one evidence-less published row raises 'cannot be published - missing ...' and rolls APPLY-1 back (the same row passes under the production gate)",
+   "why": ""
+  },
+  {
+   "id": "FIND.definer",
+   "ok": true,
+   "name": "FIND-1b the same row also blocks the DEFINER admin functions: admin_move_house_page / set_profile_admin_approved on an evidence-less published page raise check_violation (23514) after F3",
+   "why": ""
+  },
+  {
+   "id": "FIND.maintain",
+   "ok": true,
+   "name": "R1-FIX (the FIND-2 residue is CLOSED): FIND-2 (MAINTAIN, PostgreSQL 17+): after the whole order the 1C tables (profile_meta, profile_owners, profile_content) no longer give anon/authenticated MAINTAIN, but F3's S1 revokes name only UPDATE/DELETE/REFERENCES/TRIGGER/TRUNCATE, so anon and authenticated KEEP MAINTAIN on event_media and venue_media, and anon can take ACCESS EXCLUSIVE locks on them (LOCK TABLE needs UPDATE/DELETE/TRUNCATE or MAINTAIN). With the R1-FIX F3 forward (REVOKE MAINTAIN) this check passes when anon/authenticated hold MAINTAIN on NONE of the five tables and LOCK TABLE is refused for anon on event_media, venue_media and profile_meta. (A signed-in `authenticated` session can still lock event_media through its UPDATE privilege: not MAINTAIN, outside this fix; see R1-FIX-REPORT.md.)",
+   "why": ""
+  },
+  {
+   "id": "FIND.maintain-wide",
+   "ok": true,
+   "name": "FIND-2b the same residue elsewhere (informational, reproduced): IF production still has the blanket default ALL on tables neither 1C nor F3 mention (REPLICA ASSUMPTION; only the four profile tables and applications were read, P-10), anon keeps TRUNCATE on venues, app_users and app_admins; profile_claim_requests is clean",
+   "why": ""
+  },
+  {
+   "id": "POST.1",
+   "ok": true,
+   "name": "anon INSERT false on both media tables; anon/authenticated TRUNCATE false on all three; S1: anon UPDATE/DELETE/REFERENCES/TRIGGER false, authenticated DELETE false",
+   "why": ""
+  },
+  {
+   "id": "POST.2",
+   "ok": true,
+   "name": "S2 quarantine: 19 backup rows, 19 orphan rows hidden, 0 orphan published, the one parented row untouched",
+   "why": ""
+  },
+  {
+   "id": "FIND.backfill",
+   "ok": true,
+   "name": "FIND-1 (Atlas/F3 README row 5): with the published->published early return REMOVED, an APPLY-1 style backfill/DEFINER UPDATE of a published page that lacks gate evidence now ABORTS. Mechanism: re-running APPLY-1's backfill on a database that contains one evidence-less published row raises 'cannot be published - missing ...' and rolls APPLY-1 back (the same row passes under the production gate)",
+   "why": ""
+  },
+  {
+   "id": "FIND.definer",
+   "ok": true,
+   "name": "FIND-1b the same row also blocks the DEFINER admin functions: admin_move_house_page / set_profile_admin_approved on an evidence-less published page raise check_violation (23514) after F3",
+   "why": ""
+  },
+  {
+   "id": "FIND.maintain",
+   "ok": true,
+   "name": "R1-FIX (the FIND-2 residue is CLOSED): FIND-2 (MAINTAIN, PostgreSQL 17+): after the whole order the 1C tables (profile_meta, profile_owners, profile_content) no longer give anon/authenticated MAINTAIN, but F3's S1 revokes name only UPDATE/DELETE/REFERENCES/TRIGGER/TRUNCATE, so anon and authenticated KEEP MAINTAIN on event_media and venue_media, and anon can take ACCESS EXCLUSIVE locks on them (LOCK TABLE needs UPDATE/DELETE/TRUNCATE or MAINTAIN). With the R1-FIX F3 forward (REVOKE MAINTAIN) this check passes when anon/authenticated hold MAINTAIN on NONE of the five tables and LOCK TABLE is refused for anon on event_media, venue_media and profile_meta. (A signed-in `authenticated` session can still lock event_media through its UPDATE privilege: not MAINTAIN, outside this fix; see R1-FIX-REPORT.md.)",
+   "why": ""
+  },
+  {
+   "id": "FIND.maintain-wide",
+   "ok": true,
+   "name": "FIND-2b the same residue elsewhere (informational, reproduced): IF production still has the blanket default ALL on tables neither 1C nor F3 mention (REPLICA ASSUMPTION; only the four profile tables and applications were read, P-10), anon keeps TRUNCATE on venues, app_users and app_admins; profile_claim_requests is clean",
+   "why": ""
+  },
+  {
+   "id": "FIND.scope",
+   "ok": true,
+   "name": "FIND-3 (reproduced): F3's drift/rollback fingerprint does not cover profile_content (nor profile_claim_requests, private.account_age): a 1C privilege re-granted on profile_content after F3 is NOT detected by F3's rollback guard (the rollback proceeds). 1C's own block-H fingerprint is the only guard for those tables",
+   "why": ""
+  },
+  {
+   "id": "FIND.readiness",
+   "ok": true,
+   "name": "FIND-1c F3 GATE_READINESS (read-only) returns published_rows=4 / published_failing_gate=0 on the replica (fixture rows are COMPLETE: an assumption; prod must run it)",
+   "why": ""
+  }
+ ],
+ "steps": [
+  {
+   "step": "S0",
+   "checks": 2,
+   "pass": 2
+  },
+  {
+   "step": "S1",
+   "checks": 12,
+   "pass": 12
+  },
+  {
+   "step": "S1B",
+   "checks": 4,
+   "pass": 4
+  },
+  {
+   "step": "S92",
+   "checks": 4,
+   "pass": 4
+  },
+  {
+   "step": "S4",
+   "checks": 4,
+   "pass": 4
+  },
+  {
+   "step": "S5",
+   "checks": 12,
+   "pass": 12
+  },
+  {
+   "step": "S6",
+   "checks": 15,
+   "pass": 15
+  },
+  {
+   "step": "S7",
+   "checks": 9,
+   "pass": 9
+  },
+  {
+   "step": "S8",
+   "checks": 10,
+   "pass": 10
+  },
+  {
+   "step": "S9",
+   "checks": 4,
+   "pass": 4
+  },
+  {
+   "step": "S10",
+   "checks": 5,
+   "pass": 5
+  }
+ ],
+ "negativeControls": {
+  "mutants": 19,
+  "behavedAsRequired": 19,
+  "items": [
+   {
+    "id": "N1",
+    "desc": "skip APPLY-1C (grant narrowing never applied)",
+    "ok": true,
+    "failedProbes": [
+     "p.c3type",
+     "p.c1status",
+     "p.grantset",
+     "p.ev44",
+     "p.trunc-pc",
+     "p.app-nodemote"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N2",
+    "desc": "grant account_type (INSERT+UPDATE) back to authenticated after 1C (before APPLY-2, whose own column revokes would hide it)",
+    "ok": true,
+    "failedProbes": [
+     "p.c3type",
+     "p.grantset"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N3a",
+    "desc": "1C with the profile_content TRUNCATE revoke forgotten: caught IN-TRANSACTION by 1C's own post-assert (1C aborts, so the later state also lacks 1C)",
+    "ok": true,
+    "failedProbes": [
+     "p.grantset",
+     "p.ev44",
+     "p.trunc-pc"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N3b",
+    "desc": "1C with BOTH the TRUNCATE revoke and its post-assert removed: only the matrix/probe can catch it",
+    "ok": true,
+    "failedProbes": [
+     "p.trunc-pc"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N3c",
+    "desc": "F3 forward with its REVOKE TRUNCATE (event_media, venue_media, profile_meta) forgotten",
+    "ok": true,
+    "failedProbes": [
+     "p.trunc-media"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N4",
+    "desc": "F3 forward run BEFORE the client/1C fix (1C skipped): the bundled app's no-op-ish save DEMOTES a published page to review (C5-INFO demonstrated)",
+    "ok": true,
+    "failedProbes": [
+     "p.c3type",
+     "p.c1status",
+     "p.grantset",
+     "p.ev44",
+     "p.trunc-pc",
+     "p.app-nodemote"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N5",
+    "desc": "APPLY-1 re-run AFTER 1C (known hazard: re-grants account_type/status to owners)",
+    "ok": true,
+    "failedProbes": [
+     "p.c3type",
+     "p.c1status",
+     "p.grantset",
+     "p.app-nodemote"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N6a",
+    "desc": "omit the 11A function (the patched edge tool fails closed; the SQL boundary is absent)",
+    "ok": true,
+    "failedProbes": [
+     "p.m9fn",
+     "p.m9grants"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N6b",
+    "desc": "11A with a visibility-only body (any signed-in caller on an existing event passes: the non-owner path passes)",
+    "ok": true,
+    "failedProbes": [
+     "p.m9fn"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N6c",
+    "desc": "11A created without REVOKE/GRANT (Supabase default grants leave anon EXECUTE)",
+    "ok": true,
+    "failedProbes": [
+     "p.m9grants"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N8a",
+    "desc": "event_password_hash left granted to anon BEFORE 1C: 1C's guard G6 refuses (neither the 45 nor the 44 columns), so 1C is not applied",
+    "ok": true,
+    "failedProbes": [
+     "p.grantset",
+     "p.ev44",
+     "p.trunc-pc",
+     "p.hash"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N8b",
+    "desc": "event_password_hash granted to anon AFTER the whole order",
+    "ok": true,
+    "failedProbes": [
+     "p.ev44",
+     "p.hash"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N9",
+    "desc": "skip the house/age attestation before the web deploy (groove-trooper, the only public page, goes private)",
+    "ok": true,
+    "failedProbes": [
+     "p.house"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N10",
+    "desc": "skip APPLY-1B (kind CHECK): the owner's 'request a business type' is silently rejected",
+    "ok": true,
+    "failedProbes": [
+     "p.btype"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N11",
+    "desc": "F3 with the published->published early return KEPT (trusted edits skip the completeness gate)",
+    "ok": true,
+    "failedProbes": [
+     "p.c8b"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N12",
+    "desc": "F3 with the owner UPDATE+INSERT evidence guards removed while 1C is applied: owners are STILL refused (privilege layer), only the defence-in-depth probe fails",
+    "ok": true,
+    "failedProbes": [
+     "p.trigger-layer"
+    ],
+    "note": ""
+   },
+   {
+    "id": "N7",
+    "desc": "wrong order: APPLY-2 (revoke) before APPLY-1 (add)",
+    "ok": true,
+    "failedProbes": [
+     "anon-reads"
+    ],
+    "note": "APPLY-2 on the baseline aborts ('relation \"public.profile_claim_requests\" does not exist'); forcing it (stub table) makes anon's direct profile_meta reads fail while get_public_profile does not exist yet: function public.get_public_profile(unknown) does not exist"
+   },
+   {
+    "id": "N13",
+    "desc": "F3 drift check bypassed (IF false): D1 cases must fail",
+    "ok": true,
+    "failedProbes": [
+     "D1.extra_policy_on_event_media",
+     "D1.ACL_change_anon_SELECT_revoked_on_profile_meta",
+     "D1.publish_gate_trigger_disabled",
+     "D1.is_admin_body_changed",
+     "D1.unrelated_public_function_added",
+     "D1.column_default_changed"
+    ],
+    "note": "10 of 13 D1 checks failed"
+   },
+   {
+    "id": "N14",
+    "desc": "F3 rollback forward-state pre-check bypassed: the R2 silent-overwrite cases must fail",
+    "ok": true,
+    "failedProbes": [
+     "R2.a_policy_was_added_after_forward",
+     "R2.a_PATCHED_policy_event_media_ins_was_edited_after_",
+     "R2.an_unrelated_public_routine_was_added_after_forwar",
+     "R2.COMBINED_the_11A_function_was_added_after_forward_",
+     "R2.COMBINED_a_1C_closed_privilege_on_an_in_scope_tabl"
+    ],
+    "note": "5 of 13 R checks failed"
+   }
+  ]
+ },
+ "rollback": {
+  "checks": 13,
+  "passed": 13,
+  "items": [
+   {
+    "id": "RB.0",
+    "ok": true,
+    "name": "SANITY: the data-only steps (attestation, owner opt-in, payload replays on clones) changed NO catalog object: snapshot after step 3 == after step 4 == after step 5",
+    "why": ""
+   },
+   {
+    "id": "RB.10",
+    "ok": true,
+    "name": "ROLLBACK-2-after-1C (APPLY-2 undone, narrowing kept) == snapshot before APPLY-2",
+    "why": ""
+   },
+   {
+    "id": "RB.10b",
+    "ok": true,
+    "name": "FINDING (documented): the STOCK ROLLBACK-2 run after 1C re-grants account_type/status to owners (undoes the narrowing); ROLLBACK-2-after-1C exists for that reason",
+    "why": "stock rollback did not re-open"
+   },
+   {
+    "id": "RB.9",
+    "ok": true,
+    "name": "11A ROLLBACK (drop can_upload_event_media) == snapshot before 11A",
+    "why": ""
+   },
+   {
+    "id": "RB.8pre2",
+    "ok": true,
+    "name": "the catalog IS semantically unchanged at that point (sorted-ACL snapshot == the snapshot right after F3 forward)",
+    "why": ""
+   },
+   {
+    "id": "RB.8a",
+    "ok": true,
+    "name": "F3 ROLLBACK as committed (only the literal re-baselined) REFUSES after 1C and changes nothing: its blanket re-grants (TRUNCATE to anon+authenticated, UPDATE/DELETE/REFERENCES/TRIGGER to anon on profile_meta) would re-open what 1C closed",
+    "why": "Rollback did not restore original catalog (or unrelated drift): stop"
+   },
+   {
+    "id": "RB.8b",
+    "ok": true,
+    "name": "R1-FIX: F3 ROLLBACK REGENERATED for the post-1C catalog (profile_meta removed from its two re-grant lines), run with ALL its guards intact (pre-check AND exact final fingerprint; nothing bypassed) right after the APPLY-2 / ROLLBACK-2-after-1C / 11A-rollback round trip == snapshot before F3 (exact), MAINTAIN restored exactly",
+    "why": ""
+   },
+   {
+    "id": "RB.8c",
+    "ok": true,
+    "name": "R1-FIX: the F3 DRIFT_QUERY fingerprint after the full forward -> APPLY-2 -> rollbacks round trip EQUALS the pre-F3 fingerprint (ACL entry order no longer matters)",
+    "why": "fp pre-F3=47fa2fef6c85883b5d5250d3b5ea1c97 now=47fa2fef6c85883b5d5250d3b5ea1c97"
+   },
+   {
+    "id": "RB.6",
+    "ok": true,
+    "name": "ROLLBACK-1C with {{PRE_1C_FINGERPRINT}} = FP2 == snapshot before 1C (exact; its own privilege fingerprint also equals FP2)",
+    "why": ""
+   },
+   {
+    "id": "RB.6b",
+    "ok": true,
+    "name": "ROLLBACK-1C: block-H privilege fingerprint after the rollback equals the saved FP2",
+    "why": ""
+   },
+   {
+    "id": "RB.3",
+    "ok": true,
+    "name": "ROLLBACK-92 (placeholders filled from PRECHECK-92 Q-2) == snapshot before APPLY-92 (old get_profile_events body + ACL back, new functions gone)",
+    "why": ""
+   },
+   {
+    "id": "RB.2",
+    "ok": true,
+    "name": "ROLLBACK-1B == snapshot before APPLY-1B",
+    "why": ""
+   },
+   {
+    "id": "RB.1",
+    "ok": true,
+    "name": "ROLLBACK-1 (Option A) returns every ACL / policy / trigger / function / md5 to the baseline; the ONLY residue is the 6 added profile_meta columns + the minor-flags CHECK (documented by ROLLBACK-1) and the tightened ACL of schema private (REVOKE ALL ON SCHEMA private is not reversed; NOT documented)",
+    "why": ""
+   }
+  ]
+ },
+ "fingerprints": {
+  "FP0_baseline": "f6b2301510a6c3e814e2af546d488545",
+  "FP1_after_apply1": "d18bcc767d1aa2982251edbc0d6ac860",
+  "FP2_before_1C": "d18bcc767d1aa2982251edbc0d6ac860",
+  "FP3_after_1C": "f6b67a9ee3466f40cece75726785923e",
+  "F3_rebaselined_replica": "47fa2fef6c85883b5d5250d3b5ea1c97",
+  "gate_readiness_replica": {
+   "published_rows": 4,
+   "published_failing_gate": 0
+  }
+ },
+ "h11": {
+  "ran": true,
+  "tests": 38,
+  "pass": 38,
+  "fail": 0
+ },
+ "appPayload": [
+  {
+   "stage": "after step 5 (APPLY-1/1B/92 + attestation; 22-column grants; no F3 yet)",
+   "upsertAccepted": true,
+   "sqlstate": null,
+   "error": null,
+   "publishedPageStatusAfter": "published",
+   "demotedToReview": false,
+   "accountTypeAfter": null
+  },
+  {
+   "stage": "after 1C (step 6)",
+   "upsertAccepted": false,
+   "sqlstate": "42501",
+   "error": "permission denied for table profile_meta",
+   "publishedPageStatusAfter": "published",
+   "demotedToReview": false,
+   "accountTypeAfter": "editorial_artist"
+  },
+  {
+   "stage": "after 1C + F3 (step 8)",
+   "upsertAccepted": false,
+   "sqlstate": "42501",
+   "error": "permission denied for table profile_meta",
+   "publishedPageStatusAfter": "published",
+   "demotedToReview": false,
+   "accountTypeAfter": "editorial_artist"
+  },
+  {
+   "stage": "final (after 11A and APPLY-2)",
+   "upsertAccepted": false,
+   "sqlstate": "42501",
+   "error": "permission denied for table profile_meta",
+   "publishedPageStatusAfter": "published",
+   "demotedToReview": false,
+   "accountTypeAfter": "editorial_artist"
+  }
+ ],
+ "rollback1Residual": {
+  "columns": {
+   "removed": [],
+   "added": [
+    "public.profile_meta.is_minor",
+    "public.profile_meta.under_18",
+    "public.profile_meta.age_verified",
+    "public.profile_meta.public_fields",
+    "public.profile_meta.admin_approved",
+    "public.profile_meta.profile_public"
+   ],
+   "changed": []
+  },
+  "schemas": {
+   "removed": [],
+   "added": [],
+   "changed": [
+    {
+     "key": "private",
+     "from": {
+      "acl": [],
+      "owner": "postgres"
+     },
+     "to": {
+      "acl": [
+       "postgres>postgres:CREATE:false",
+       "postgres>postgres:USAGE:false"
+      ],
+      "owner": "postgres"
+     }
+    }
+   ]
+  },
+  "constraints": {
+   "removed": [],
+   "added": [
+    "public.profile_meta.profile_meta_minor_flags_agree"
+   ],
+   "changed": []
+  }
+ },
+ "rollback1OptionB": {
+  "applied": true,
+  "relationsChanged": [
+   "public.profile_meta [\"postgres>anon:DELETE:false\",\"postgres>anon:INSERT:false\",\"postgres>anon:TRUNCATE:false\",\"postgres>anon:UPDATE:false\"]",
+   "public.profile_owners [\"postgres>anon:DELETE:false\",\"postgres>anon:INSERT:false\",\"postgres>anon:MAINTAIN:false\",\"postgres>anon:REFERENCES:false\",\"postgres>anon:TRIGGER:false\",\"postgres>anon:TRUNCATE:false\",\"postgres>anon:UPDATE:false\"]"
+  ]
+ },
+ "realPgOnly": {
+  "checks": 32,
+  "passed": 32,
+  "items": [
+   {
+    "id": "RP.1",
+    "ok": true,
+    "name": "the connection role (authenticator, NOINHERIT) has NO privileges of its own: a bare query on profile_meta is refused (42501), only SET LOCAL ROLE gives access; it cannot SET ROLE postgres",
+    "why": "",
+    "metrics": {}
+   },
+   {
+    "id": "RP.2",
+    "ok": true,
+    "name": "anon request: get_public_profile('groove-trooper') returns the attested+opted-in page; direct SELECT on profile_meta is refused after APPLY-2; request GUCs do not leak into the next request on the same connection",
+    "why": "",
+    "metrics": {}
+   },
+   {
+    "id": "RP.3",
+    "ok": true,
+    "name": "owner request (sub = tuitea's owner): reads exactly its own profile_meta row; a bio edit is accepted; account_type and status are refused (42501); another signed-in user's UPDATE of that row touches 0 rows",
+    "why": "",
+    "metrics": {}
+   },
+   {
+    "id": "RP.4",
+    "ok": true,
+    "name": "two simultaneous request connections with different identities see only their own rows (no cross-talk; each request is its own transaction)",
+    "why": "",
+    "metrics": {
+     "ms": 3
+    }
+   },
+   {
+    "id": "CC.0",
+    "ok": true,
+    "name": "F3 forward, no contention, on the combined replica: applies; wall time of the whole transaction (= its ACCESS EXCLUSIVE window) is recorded",
+    "why": "",
+    "metrics": {
+     "forward_ms": 51
+    }
+   },
+   {
+    "id": "CC.1",
+    "ok": true,
+    "name": "F3 forward arrives while an owner save transaction is still open (held ~1.5 s): the forward's LOCK TABLE waits for the owner (lock wait ~ hold time, < the 5 s lock_timeout), then applies; the owner's edit is committed and kept",
+    "why": "",
+    "metrics": {
+     "owner_hold_ms": 1567,
+     "forward_total_ms": 1566,
+     "forward_wait_ms": 1564
+    }
+   },
+   {
+    "id": "CC.2",
+    "ok": true,
+    "name": "F3 forward vs an owner transaction held ~7 s (> lock_timeout 5 s): the forward fails with 55P03 lock_not_available after ~5 s and changes NOTHING (catalog snapshot identical, no guard schema)",
+    "why": "",
+    "metrics": {
+     "forward_fail_after_ms": 5000
+    }
+   },
+   {
+    "id": "CC.3",
+    "ok": true,
+    "name": "while the F3 forward holds its 8-table ACCESS EXCLUSIVE locks (held 3 s): an owner save and an anonymous read of event_media BLOCK until the forward commits (then succeed); a DRIFT_QUERY capture started in the same window is ALSO BLOCKED (it touches the locked tables) and returns the POST-forward fingerprint, never the old one",
+    "why": "",
+    "metrics": {
+     "forward_ms": 3055,
+     "owner_blocked_ms": 3011,
+     "anon_read_blocked_ms": 3003,
+     "drift_capture_ms": 2718
+    }
+   },
+   {
+    "id": "CC.4",
+    "ok": true,
+    "name": "two F3 forwards started together (first holds locks ~2 s): the second WAITS on LOCK TABLE, then its drift/precondition guard ABORTS it (the catalog is no longer the baseline); end state == exactly one forward applied, one guard row",
+    "why": "",
+    "metrics": {
+     "second_wait_ms": 2006,
+     "second_total_ms": 2006,
+     "second_error": "Private schema already exists: stop and re-review"
+    }
+   },
+   {
+    "id": "CC.5",
+    "ok": true,
+    "name": "two F3 rollbacks started together (first holds locks ~2 s): the second waits, then ABORTS (forward objects already gone); end state == pre-F3 catalog (sorted-ACL snapshot) and no guard schema",
+    "why": "",
+    "metrics": {
+     "second_wait_ms": 1998,
+     "second_error": "Forward patch is absent or incomplete: stop"
+    }
+   },
+   {
+    "id": "CC.6a",
+    "ok": true,
+    "name": "two concurrent saves of the SAME row by the same owner (different columns): the second waits for the first's row lock, then applies on top of the committed row; no lost update (both columns persisted)",
+    "why": "",
+    "metrics": {
+     "second_wait_ms": 533
+    }
+   },
+   {
+    "id": "CC.6b",
+    "ok": true,
+    "name": "two owners saving DIFFERENT rows at the same time do not block each other (no table-level lock on the owner path)",
+    "why": "",
+    "metrics": {
+     "ms": 6
+    }
+   },
+   {
+    "id": "CC.7",
+    "ok": true,
+    "name": "R1-FIX: two APPLY-1 runs started together on the baseline (the first holds the pack lock ~2 s): the second WAITS on the advisory lock (pg_locks: ungranted advisory lock on the pack key, and it has touched no public table), and only after the first commits runs on the committed state; no `tuple concurrently updated`; the catalog equals exactly ONE APPLY-1",
+    "why": "",
+    "metrics": {
+     "second_waiting_on_key": "2979301232487107403 WAITING",
+     "second_public_relation_locks_while_waiting": 0,
+     "second_total_ms": 2012,
+     "second_outcome": "completed (idempotent re-run on the committed state)"
+    }
+   },
+   {
+    "id": "CC.7c",
+    "ok": true,
+    "name": "NEGATIVE CONTROL for CC.7: the same two APPLY-1 runs with the lock statement REMOVED do not queue on an advisory lock (no pg_locks advisory wait); they overlap and the second dies with `tuple concurrently updated` (or deadlock) as before",
+    "why": "",
+    "metrics": {
+     "second_outcome": "tuple concurrently updated",
+     "advisory_waits": 0
+    }
+   },
+   {
+    "id": "CC.8",
+    "ok": true,
+    "name": "R1-FIX: after the R1 F3 forward an ANONYMOUS session can NOT take LOCK TABLE ... ACCESS EXCLUSIVE on event_media or venue_media (42501); MAINTAIN is false for anon and authenticated on both tables. RESIDUAL (not MAINTAIN, not changed by R1): a signed-in `authenticated` session can still take that lock through its UPDATE privilege (recorded in the metrics)",
+    "why": "",
+    "metrics": {
+     "lock_outcomes": "anon:event_media:42501 anon:venue_media:42501 authenticated:event_media:ALLOWED authenticated:venue_media:ALLOWED",
+     "authenticated_has_UPDATE_on_both": true
+    }
+   },
+   {
+    "id": "CC.8c",
+    "ok": true,
+    "name": "after 1C the same anonymous LOCK TABLE on profile_meta / profile_owners / profile_content is refused (1C removed MAINTAIN there)",
+    "why": "",
+    "metrics": {}
+   },
+   {
+    "id": "CC.8-control",
+    "ok": true,
+    "name": "NEGATIVE CONTROL: with the ORIGINAL F3 forward (PR #121 text, no REVOKE MAINTAIN) an ANONYMOUS session CAN take ACCESS EXCLUSIVE on event_media and a second anonymous read blocks (the defect R1-FIX closes)",
+    "why": "",
+    "metrics": {
+     "reader_blocked_ms": 807
+    }
+   },
+   {
+    "id": "ACLO.real-control",
+    "ok": true,
+    "name": "NEGATIVE CONTROL on the real packs: the ORIGINAL F3 forward followed by the ORIGINAL (post-1C regenerated) F3 rollback is REFUSED by its own final order-sensitive guard ('Rollback did not restore original catalog') although the privileges are semantically restored; the R1 pair (R1.exact / R1.fp-roundtrip) is accepted",
+    "why": "",
+    "metrics": {
+     "outcome": "Rollback did not restore original catalog (or unrelated drift): stop"
+    }
+   },
+   {
+    "id": "PG17.1",
+    "ok": true,
+    "name": "server is PostgreSQL 17.6; a fresh database has NO default ACLs (pg_default_acl empty)",
+    "why": "",
+    "metrics": {
+     "server_version": "17.6"
+    }
+   },
+   {
+    "id": "PG17.2",
+    "ok": true,
+    "name": "MAINTAIN exists and is part of ALL TABLES on 17: GRANT ALL gives the 'm' bit and has_table_privilege(...,'MAINTAIN') is true; GRANT SELECT does not",
+    "why": "",
+    "metrics": {
+     "all_acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres}",
+     "select_acl": "{postgres=arwdDxtm/postgres,anon=r/postgres}"
+    }
+   },
+   {
+    "id": "PG17.3",
+    "ok": true,
+    "name": "a new function has NULL proacl and PUBLIC (hence anon) may EXECUTE it: the implicit default that Supabase leaves anon with",
+    "why": "",
+    "metrics": {}
+   },
+   {
+    "id": "PG17.4",
+    "ok": true,
+    "name": "ACL ENTRY ORDER is not canonical: revoking ALL from a role and granting it back MOVES its aclitem to the END of relacl::text, so two catalogs with the same grants can have different relacl::text (F3's fingerprints hash relacl::text); sorted entries are equal",
+    "why": "",
+    "metrics": {
+     "before": "{postgres=arwdDxtm/postgres,anon=r/postgres,authenticated=r/postgres,service_role=r/postgres}",
+     "after": "{postgres=arwdDxtm/postgres,authenticated=r/postgres,service_role=r/postgres,anon=r/postgres}"
+    }
+   },
+   {
+    "id": "PG17.5",
+    "ok": true,
+    "name": "a plain re-GRANT of a privilege the role already has does NOT reorder (the reorder needs the entry to be removed first)",
+    "why": "",
+    "metrics": {
+     "acl": "{postgres=arwdDxtm/postgres,authenticated=r/postgres,service_role=r/postgres,anon=r/postgres}"
+    }
+   },
+   {
+    "id": "PG17.6",
+    "ok": true,
+    "name": "functions behave the same: after REVOKE ALL FROM the roles + GRANT in a different order than the original (the shape of F3's rollback), proacl::text changes but its sorted entries do not",
+    "why": "",
+    "metrics": {
+     "original": "{=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,postgres=X/postgres}",
+     "after_rollback_shape": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+    }
+   },
+   {
+    "id": "ACLO.1",
+    "ok": true,
+    "name": "NEGATIVE CONTROL (this assertion FAILS under the OLD expression): hashing relacl::text / attacl::text / proacl::text gives a DIFFERENT fingerprint for the same privileges after revoke + re-grant moved the anon entry to the end (relation, column and function ACLs)",
+    "why": "",
+    "metrics": {
+     "rel_before": "{postgres=arwdDxtm/postgres,anon=r/postgres,authenticated=r/postgres,service_role=r/postgres}",
+     "rel_after_text": "{postgres=arwdDxtm/postgres,authenticated=r/postgres,service_role=r/postgres,anon=r/postgres}"
+    }
+   },
+   {
+    "id": "ACLO.2",
+    "ok": true,
+    "name": "the R1 sorted-aclitem expression gives the SAME fingerprint before and after the reorder, for relation, column and function ACLs (the assertion the old expression fails)",
+    "why": "",
+    "metrics": {
+     "sorted_acl": "{anon=r/postgres,authenticated=r/postgres,postgres=arwdDxtm/postgres,service_role=r/postgres}"
+    }
+   },
+   {
+    "id": "ACLO.3",
+    "ok": true,
+    "name": "the sorted expression is still SENSITIVE: a real privilege change (extra INSERT for anon; a dropped function grant; a column grant removed) changes the fingerprint, and NULL (default ACL) stays distinct from an empty '{}' ACL",
+    "why": "",
+    "metrics": {}
+   },
+   {
+    "id": "LK.static",
+    "ok": true,
+    "name": "every R1 APPLY/ROLLBACK pack variant (16 files: #91 APPLY-1/1B/2 + ROLLBACK-1/1B/2, #92 APPLY-92/ROLLBACK-92, 10A APPLY-1C/APPLY-92-44col/ROLLBACK-1C/ROLLBACK-2-after-1C, F3 FORWARD/ROLLBACK, 11A install/rollback; the F3 DRIFT_QUERY and POSTCHECKS read-only files are excluded) has ONE top-level BEGIN with pg_advisory_xact_lock(KEY) as the FIRST statement after it, the same KEY in all of them, and no statement before BEGIN",
+    "why": "",
+    "metrics": {
+     "packs": 16
+    }
+   },
+   {
+    "id": "LK.1",
+    "ok": true,
+    "name": "TWO REAL CONNECTIONS, WITH the lock: B (same lock text as every pack) blocks on the advisory lock while A is mid-transaction (pg_locks: ungranted advisory lock, key = the pack key) and B's first statement runs only AFTER A committed (B.start >= A.end; no overlap)",
+    "why": "",
+    "metrics": {
+     "b_wait_ms": 3005,
+     "a_end_to_b_start_ms": 1
+    }
+   },
+   {
+    "id": "LK.2",
+    "ok": true,
+    "name": "NEGATIVE CONTROL (two real connections, lock statement REMOVED): B does NOT wait; its first statement runs INSIDE A's open transaction (B.start < A.end) = the overlap the lock prevents",
+    "why": "",
+    "metrics": {
+     "b_start_before_a_end_ms": 1499
+    }
+   },
+   {
+    "id": "LK.3",
+    "ok": true,
+    "name": "the lock is released by ABORT too: A fails (division by zero) while holding the lock; B (blocked meanwhile) then proceeds and commits; nothing of A remains",
+    "why": "",
+    "metrics": {
+     "b_wait_ms": 3006
+    }
+   },
+   {
+    "id": "LK.4",
+    "ok": true,
+    "name": "CROSS-PACK on the replica: the R1 F3 forward (A, held ~2 s) and the R1 11A install (B, a different pack) share the key, so B waits on the advisory lock until F3 commits; both then succeed and the end state has the F3 guard row AND can_upload_event_media",
+    "why": "",
+    "metrics": {
+     "b_total_ms": 2002
+    }
+   }
+  ]
+ }
+}

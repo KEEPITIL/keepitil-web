@@ -1,17 +1,17 @@
 /* diag-f3-roundtrip-pg.mjs - diagnostic for the real-PG17 difference in R1: F3 forward then F3 rollback (regenerated) does not restore the DRIFT_QUERY fingerprint.
    Builds the pre-F3 state (replica, APPLY-1, 1B, 92, 1C), records the DRIFT_QUERY state JSON, applies the forward, applies the regenerated rollback with ONLY its final fingerprint guard bypassed,
-   then prints the path-level differences of the state JSON (raw, and with aclitem entry order normalised). Run: node db/proposed/11b-combined-rehearsal/diag-f3-roundtrip-pg.mjs --engine=pg  (needs the local PG on the Unix socket) */
-import { HERE, UP, P10A, F3, rd, open, closeDb, tx, mutate, PGM } from "./lib/core.mjs";
+   then prints the path-level differences of the state JSON (raw, and with aclitem entry order normalised). Run: node db/proposed/11b-combined-rehearsal/diag-f3-roundtrip-pg.mjs --engine=pg [--packs=orig|r1]  (orig = the committed F3 pair: reproduces R1 = DIFFERENT; r1 = the R1-FIX pair: EQUAL)  (needs the local PG on the Unix socket) */
+import { HERE, UP, P10A, F3, rd, rdp, PACKS, open, closeDb, tx, mutate, PGM } from "./lib/core.mjs";
 if (!PGM) { console.log("needs --engine=pg"); process.exit(3); }
 const P = "2026-11-09_f3_media_rls_connect_publish_gate_", ORIG = "c917a7dfbc778913b7e46b332aeeb348";
 const REPLICA = mutate(rd(HERE, "COMBINED-REPLICA.sql"), "create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;", "", "roles");
-const FW = rd(F3, P + "FORWARD_PROPOSED.sql"), RB = rd(F3, P + "ROLLBACK_PROPOSED.sql"), DQ = rd(F3, P + "DRIFT_QUERY_PROPOSED.sql");
+const FW = rdp("f3", F3, P + "FORWARD_PROPOSED.sql"), RB = rdp("f3", F3, P + "ROLLBACK_PROPOSED.sql"), DQ = rdp("f3", F3, P + "DRIFT_QUERY_PROPOSED.sql");
 const regen = (rb) => mutate(mutate(rb, "GRANT UPDATE,DELETE,REFERENCES,TRIGGER ON TABLE public.event_media,public.venue_media,public.profile_meta TO anon;", "GRANT UPDATE,DELETE,REFERENCES,TRIGGER ON TABLE public.event_media,public.venue_media TO anon;", "a"), "GRANT TRUNCATE ON TABLE public.event_media,public.venue_media,public.profile_meta TO anon,authenticated;", "GRANT TRUNCATE ON TABLE public.event_media,public.venue_media TO anon,authenticated;", "b");
-await PGM.ensureRoles();
+console.log("packs =", PACKS); await PGM.ensureRoles();
 let db;
 try {
   db = await open(); await db.exec(REPLICA);
-  for (const f of [rd(UP, "APPLY-1.sql"), rd(UP, "APPLY-1B-kind-check.sql"), rd(UP, "APPLY-92.sql"), rd(P10A, "APPLY-1C-grant-narrowing_PROPOSED.sql")]) { const r = await tx(db, f); if (!r.ok) throw new Error(r.err); }
+  for (const f of [rdp("pr91", UP, "APPLY-1.sql"), rdp("pr91", UP, "APPLY-1B-kind-check.sql"), rdp("pr92", UP, "APPLY-92.sql"), rdp("10a", P10A, "APPLY-1C-grant-narrowing_PROPOSED.sql")]) { const r = await tx(db, f); if (!r.ok) throw new Error(r.err); }
   const state = async () => { await db.exec("reset role; set search_path = public, extensions"); const r = (await db.query(DQ)).rows[0]; await db.exec('set search_path = "$user", public'); return r; };
   const s0 = await state(); console.log("pre-F3 fingerprint", s0.fingerprint);
   let r = await tx(db, FW.split(ORIG).join(s0.fingerprint)); if (!r.ok) throw new Error("fw " + r.err);

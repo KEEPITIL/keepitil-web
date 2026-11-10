@@ -1,0 +1,15 @@
+23:33:25 load=3.20 free_mem_pct=62
+23:33:28 load=5.50 free_mem_pct=62
+23:33:31 load=5.50 free_mem_pct=62
+23:33:34 load=7.15 free_mem_pct=63
+23:33:37 load=7.15 free_mem_pct=62
+23:33:40 load=7.05 free_mem_pct=63
+23:33:43 load=7.53 free_mem_pct=62
+23:33:46 load=7.53 free_mem_pct=62
+23:33:49 load=7.09 free_mem_pct=62
+23:33:53 load=7.09 free_mem_pct=63
+23:33:56 load=6.68 free_mem_pct=62
+23:33:59 load=6.79 free_mem_pct=63
+23:34:02 load=6.79 free_mem_pct=62
+23:34:05 load=6.56 free_mem_pct=63
+23:34:08 load=6.56 free_mem_pct=62

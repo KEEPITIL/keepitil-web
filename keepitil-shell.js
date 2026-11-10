@@ -1440,7 +1440,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     +  '#evx .evx-nav{z-index:940!important}'
     +  '#evx .evx-catdd-menu{z-index:945!important}'
     +'}'
-    +'#kil-bnav .kb-l{font-size:8px;line-height:1;letter-spacing:.06em;font-weight:700;text-transform:uppercase;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+    +'#kil-bnav .kb-l{font-size:10px;line-height:1;letter-spacing:.04em;font-weight:700;text-transform:uppercase;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
     +'#kil-bnav a img{height:23px;width:auto;mix-blend-mode:screen;display:block}'
     +'#kil-bnav a#kb-home img.kb-logo{display:block;height:23px!important;width:auto!important;max-width:none!important;mix-blend-mode:screen}'
     /* No visible scrollbars on any horizontal rail (Founder 2026-08-15). */
@@ -1624,6 +1624,16 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     /* row 6: deliberate empty space so the floating up-arrow (left) and chat (right) buttons
        have somewhere to sit that is not on top of a link. */
     +  '#v3-footer{padding-bottom:calc(84px + var(--kil-bnav-h,62px) + var(--kil-mbar-h,0px))!important}'
+    +'}'
+    /* ── TOUCH TARGETS (7c responsive audit, measured at 375x812 with touch emulation) ──────
+       Everything here is inside (pointer:coarse), so a mouse desktop is byte-for-byte unchanged.
+       Placed AFTER the footer rules above on purpose: the ≤860px legal rule sets min-height:34px
+       at the same specificity, and the later rule wins. The brand link keeps its look; the extra
+       hit area comes from padding with an equal negative margin so the footer does not grow. */
+    +'@media(pointer:coarse){'
+    +  '#v3-footer .v3-foot-legal a{min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center}'
+    +  '#v3-footer .v3-foot-about a.v3-foot-brand{min-height:44px;box-sizing:border-box;padding:10px 0;margin:-5px 0}'
+    +  '#kil-top{width:44px;height:44px}'
     +'}'
     +'#v3-theme{position:fixed;left:16px;bottom:124px;z-index:600;display:flex;flex-direction:column-reverse;align-items:center;gap:8px}'
     +'#v3-theme .v3t-btn{width:44px;height:44px;border-radius:50%;background:var(--surface,#15151f);border:1px solid var(--line,rgba(255,255,255,.14));color:var(--text,#f0f0f0);font-size:1.15rem;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.4);line-height:1}'

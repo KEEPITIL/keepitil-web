@@ -10,7 +10,7 @@
 <title>Door scanner — KEEPITIL</title>
 <!-- DRAFT (15A). Owner-authorized door scanner. Not linked from any page or nav, not in the sitemap, noindex.
      Needs a signed-in session; calls public.event_checkin_scan(p_qr_token) with the signed-in user's access token (12A contract).
-     No third-party scripts. The scanned code is never put in the URL, storage or the page. -->
+     No third-party scripts. Browsers without BarcodeDetector (iPhone Safari) load the same-origin vendored jsQR lazily, only when the camera starts (assets/js/vendor/jsqr/). The scanned code is never put in the URL, storage or the page. -->
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/>
 <link rel="icon" type="image/png" href="https://keepitil.com/logo-blue-nav.png"/>
 <style>
@@ -81,6 +81,7 @@
       <button type="button" class="btn ghost" id="cam-stop" hidden>Stop camera</button>
     </div>
     <p id="cam-msg" role="status"></p>
+    <p class="fine" id="cam-tip" style="margin-top:8px">Hold the ticket QR steady, fill about half the frame, and turn the ticket screen brightness up. Avoid glare.</p>
   </section>
   <section class="card" aria-labelledby="man-h">
     <h2 id="man-h">Type the code</h2>
@@ -94,7 +95,7 @@
 </main>
 <script>window.KIL_DOOR_CONFIG={url:'https://ovmqtzjfpzrbzrlkxwgw.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ'};</script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
-<script src="/assets/js/kil-door-scanner.js?v=20261110a"></script>
+<script src="/assets/js/kil-door-scanner.js?v=20261110b"></script>
 <script type="module">
   /* the 12A adapter is an ES module (byte-identical copy of the proposal); boot() takes it as a dependency */
   import('/assets/js/kil-door-scan-adapter.mjs?v=20261110a').then(function (adapter) {

@@ -1,0 +1,113 @@
+{
+  "375": {
+    "before_start": {
+      "jsQR": "undefined",
+      "scripts": [
+        "/assets/js/vendor/supabase-js.min.js",
+        "/assets/js/kil-door-scanner.js?v=20261110a"
+      ]
+    },
+    "after_start_blank": {
+      "running": true,
+      "jsQR": "function",
+      "video": {
+        "w": 1280,
+        "h": 720,
+        "paused": false
+      },
+      "gum": 1,
+      "constraints": "{\"audio\":false,\"video\":{\"facingMode\":{\"ideal\":\"environment\"},\"width\":{\"ideal\":1280},\"height\":{\"ideal\":720}}}",
+      "rpc": 0,
+      "code": "idle"
+    },
+    "after_qr": {
+      "code": "admitted",
+      "text": "✓ / Admitted / Let them in. / Tier: VIP / Admits 2 people / Event: Doors Open: Friday Night",
+      "rpc": [
+        {
+          "url": "https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/rpc/event_checkin_scan",
+          "auth": "Bearer harness.fake.token",
+          "body": "{\"p_qr_token\":\"0123456789abcdef0123456789abcdef\"}"
+        }
+      ],
+      "scrollW": 375,
+      "innerW": 375,
+      "camMsg": ""
+    },
+    "jsqr_requests": [
+      "/assets/js/vendor/jsqr/jsQR.js"
+    ]
+  },
+  "375-kilprefix": {
+    "before_start": {
+      "jsQR": "undefined",
+      "scripts": [
+        "/assets/js/vendor/supabase-js.min.js",
+        "/assets/js/kil-door-scanner.js?v=20261110a"
+      ]
+    },
+    "after_start_blank": {
+      "running": true,
+      "jsQR": "function",
+      "video": {
+        "w": 1280,
+        "h": 720,
+        "paused": false
+      },
+      "gum": 1,
+      "constraints": "{\"audio\":false,\"video\":{\"facingMode\":{\"ideal\":\"environment\"},\"width\":{\"ideal\":1280},\"height\":{\"ideal\":720}}}",
+      "rpc": 0,
+      "code": "idle"
+    },
+    "after_qr": {
+      "code": "admitted",
+      "text": "✓ / Admitted / Let them in. / Tier: VIP / Admits 2 people / Event: Doors Open: Friday Night",
+      "rpc": [
+        {
+          "url": "https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/rpc/event_checkin_scan",
+          "auth": "Bearer harness.fake.token",
+          "body": "{\"p_qr_token\":\"0123456789abcdef0123456789abcdef\"}"
+        }
+      ],
+      "scrollW": 375,
+      "innerW": 375,
+      "camMsg": ""
+    },
+    "jsqr_requests": [
+      "/assets/js/vendor/jsqr/jsQR.js"
+    ]
+  },
+  "375-url-refused": {
+    "before_start": {
+      "jsQR": "undefined",
+      "scripts": [
+        "/assets/js/vendor/supabase-js.min.js",
+        "/assets/js/kil-door-scanner.js?v=20261110a"
+      ]
+    },
+    "after_start_blank": {
+      "running": true,
+      "jsQR": "function",
+      "video": {
+        "w": 1280,
+        "h": 720,
+        "paused": false
+      },
+      "gum": 1,
+      "constraints": "{\"audio\":false,\"video\":{\"facingMode\":{\"ideal\":\"environment\"},\"width\":{\"ideal\":1280},\"height\":{\"ideal\":720}}}",
+      "rpc": 0,
+      "code": "idle"
+    },
+    "after_qr": {
+      "code": "invalid",
+      "text": "✕ / Not a KEEPITIL ticket / This code is not a valid ticket.",
+      "rpc": [],
+      "scrollW": 375,
+      "innerW": 375,
+      "camMsg": ""
+    },
+    "jsqr_requests": [
+      "/assets/js/vendor/jsqr/jsQR.js"
+    ]
+  }
+}

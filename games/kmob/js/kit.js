@@ -383,6 +383,22 @@
     colossus: { torso: 'tBrute', head: 'hBucket', arm: 'aBrute', leg: 'lBrute', wpn: 'axe', shield: 1 },
     hunter: { torso: 'tBrute', head: 'hGoggles', arm: 'aBrute', leg: 'lBrute', wpn: 'axe' },
     cannon: { body: 'cannon' },
+    // CRUSADES enemies: original variations built from the shared parts (enemy colours from ENEMY_COL)
+    raider: { torso: 'tLooter', head: 'hLooter', arm: 'aLooter', leg: 'lStd', wpn: 'knife' },                     // enemy looter: backpack, spiky hair, knife
+    raiderChief: { torso: 'tBrute', head: 'hLooter', arm: 'aBrute', leg: 'lBrute', wpn: 'knife' },               // the Looter Chief: a looter on a brute frame
+    longbow: { torso: 'tBrute', head: 'hHoodE', arm: 'aBrute', leg: 'lBrute', wpn: 'bow' },                       // the Longbow Captain: hooded giant archer
+    swordCmd: { torso: 'tBrute', head: 'hKnight', arm: 'aBrute', leg: 'lBrute', wpn: 'sword', shield: 1 },        // the Sword Commander: helmed, sword and shield
+    zombie: { torso: 'tRobe', head: 'hHorn', arm: 'aStd', leg: 'lStd', wpn: 'claws' },                             // ragged robe, horned skull, claws
+    necro: { torso: 'tMizard', head: 'hWizard', arm: 'aStd', leg: 'lStd', wpn: 'staffE' },                         // corrupted healer
+    wraith: { torso: 'tRobe', head: 'hHoodE', arm: 'aStd', leg: 'lStd', wpn: 'dagger' },                           // hooded spectre with a dagger
+    eliteCaptain: { torso: 'tBrute', head: 'hElite', arm: 'aBrute', leg: 'lBrute', wpn: 'pike', shield: 1 },   // crested helm, pike, round shield (the aspis has no far/lean version)
+    jester: { torso: 'tArcher', head: 'hBandana', arm: 'aStd', leg: 'lStd', wpn: 'dagger' },                       // carnival trickster
+    strongman: { torso: 'tBrute', head: 'hBrute', arm: 'aBrute', leg: 'lBrute', wpn: 'hammer' },                   // carnival strongman
+    giantLord: { torso: 'tGolem', head: 'hGolem', arm: 'aGolem', leg: 'lGolem', wpn: 'hammer' },                   // stone-giant lord
+    automaton: { torso: 'tHeavy', head: 'hBucket', arm: 'aHeavy', leg: 'lStd', wpn: 'axe', shield: 1 },            // bucket-helmed machine soldier
+    ironKing: { torso: 'tBrute', head: 'hWarlord', arm: 'aBrute', leg: 'lBrute', wpn: 'axe', shield: 1 },          // the Iron King
+    acolyte: { torso: 'tMizard', head: 'hMizard', arm: 'aStd', leg: 'lStd', wpn: 'staffE' },                      // enemy Mizard: bent hat, red crystal staff
+    mizardLord: { torso: 'tBrute', head: 'hWizard', arm: 'aBrute', leg: 'lBrute', wpn: 'staffE' },                // the Mizard Lord: a towering caster
     collector: { torso: 'tLooter', head: 'hLooter', arm: 'aLooter', leg: 'lStd', wpn: 'knife', far: 'F_looter' },    // LOOTER: spiky hair, headband, gold-laden backpack, knife
     medic: { torso: 'tMizard', head: 'hMizard', arm: 'aStd', leg: 'lStd', wpn: 'staff', far: 'F_mizard' },          // MIZARD: bent blue hat, white beard, glowing crystal staff
     giantF: { torso: 'tGolem', head: 'hGolem', arm: 'aGolem', leg: 'lGolem', wpn: 'hammer', far: 'F_giant' },       // GIANT: bearded human giant with a stone hammer ('tGolem' keys keep the giant rig)

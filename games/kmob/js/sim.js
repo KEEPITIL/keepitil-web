@@ -56,6 +56,9 @@
       this.coins = KM.START_BANK; this.coinsTotal = 0; this.kills = 0; this.peakArmy = 0; this.upgrades = 0; this.ups = null; this.upT = 0; this.groups = []; this.pts = 0; this.emergency = 0; this.nBoss = 0; this.bossI = -1; this.charge = { collector: 0, range: 0, melee: 0, elite: 0, giant: 0 }; this.posture = 1; this.breaches = 0; this.rowLoss = [0, 0, 0, 0]; this.fillN = 0; this.fillSum = 0;
       // DAILY DEFENSE (opts.daily = KM.dailyRules(day)): equal starting conditions + a finish line; absent = Endless War exactly as before
       const DR = this.daily = opts.daily || null; this.cleared = 0; this.done = false; this.stepN = 0; this.inStep = false;
+      // CRUSADES (opts.mission = KM.missionRules(id)): a scripted campaign battle on this same engine; absent = Endless/Daily exactly as before
+      const MR = this.mission = opts.mission || null; this.won = false; this.lost = 0; this.lostCol = 0; this.mRisen = []; this.mRise = []; this.mPhaseHit = {};
+      if (MR) { this.coins = MR.bank; if (MR.cap) this.stats.cap = Math.min(this.stats.cap, MR.cap); if (!MR.allow.includes(this.prod)) this.prod = MR.allow.find(k => k !== 'collector') || MR.allow[0]; }
       if (DR) { if (DR.bank != null) this.coins = DR.bank; if (DR.startWave) this.wave = DR.startWave - 1; if (DR.allow && !DR.allow.includes(this.prod)) this.prod = DR.allow.find(k => k !== 'collector') || DR.allow[0]; }
       // INPUT RECORDER (verified runs): every player command between steps, keyed by the step count, so a server can replay the run exactly
       this.rec = opts.record ? [] : null; if (this.rec) for (const m of Sim.INPUTS) this[m] = (...a) => { if (!this.inStep && !this.recD) this.rec.push([this.stepN, m, JSON.parse(JSON.stringify(a))]); this.recD = (this.recD || 0) + 1; try { return Sim.prototype[m].apply(this, a); } finally { this.recD--; } };   // nested commands (orderClass → setPosture) are not recorded twice
@@ -84,7 +87,7 @@
     setPosture(p) { p = p ? 1 : 0; if (p === this.posture) return; this.posture = p; this.postureT = 0; for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && !this.team[i]) { this.think[i] = Math.min(this.think[i], 0.05 + (i % 7) * 0.04); if (p) this.tgt[i] = -1; } this.emit('posture', p); }
     togglePosture() { this.setPosture(this.posture ? 0 : 1); }
     // ---------- production: what the command vehicle deploys ----------
-    setProd(m) { if (!KM.PROD[m] || m === this.prod || (this.daily && this.daily.allow && !this.daily.allow.includes(m))) return; this.prod = m; this.emit('prod', m); }   // one selected type; AUTO never picks another
+    setProd(m) { if (!KM.PROD[m] || m === this.prod || (this.daily && this.daily.allow && !this.daily.allow.includes(m)) || (this.mission && !this.mission.allow.includes(m))) return; this.prod = m; this.emit('prod', m); }   // one selected type; AUTO never picks another
     typeOf(i) { const k = this.kind[i]; return k === 33 ? 'range' : k === 34 ? 'elite' : k === 37 ? 'giant' : k === 35 ? 'collector' : k === 36 ? 'mizard' : 'melee'; }
     setCharge(type, on) { if (!(type in this.charge)) return; on = on ? 1 : 0; if (this.charge[type] === on) return; this.charge[type] = on; this.emit('charge', type, on); }   // DEFEND: this class leaves the formation and attacks; the others keep their orders
     attacking(type) { return this.posture === 0 || !!this.charge[type]; }
@@ -107,7 +110,7 @@
     clsLv(key) { return this.stats.cls[key]; }
     evolved(key) { return this.stats.cls[key] >= KM.EVOLVE_AT; }
     prodPts() { return KM.unitPts(this.prod, this.evolved(this.prod)); }
-    canDeploy(key) { key = key || this.prod; if (this.daily && this.daily.allow && !this.daily.allow.includes(key)) return false; return this.alive && this.pts + KM.unitPts(key) <= this.stats.cap && this.coins >= KM.deployCost(key, this.stats.cls[key]); }
+    canDeploy(key) { key = key || this.prod; if (this.daily && this.daily.allow && !this.daily.allow.includes(key)) return false; if (this.mission && !this.mission.allow.includes(key)) return false; return this.alive && this.pts + KM.unitPts(key) <= this.stats.cap && this.coins >= KM.deployCost(key, this.stats.cls[key]); }
     // WAR PLAN: targets for LIVING ordinary soldiers (Mercenaries, Recruits and Titans are CAP-exempt and never count)
     setPlan(p) { this.plan = KM.validPlan(p); this.emit('plan', this.plan); }
     planActive() { return KM.planOn(this.plan); }
@@ -180,7 +183,7 @@
       else if (id === 'titan') this.summonTitan(); else { this.cfx[id] = this.wave; if (id === 'barrage') this.L.bcd = 0; }
       this.emit('consUse', id); return true;
     }
-    summonTitan() {                                                                                   // TITAN GIANT: 2× size / HP / damage of the current Giant level, no CAP, fights until it falls
+    summonTitan() { if (this.mission) return -1;   // CRUSADES: no summons beyond capacity                                                                                   // TITAN GIANT: 2× size / HP / damage of the current Giant level, no CAP, fights until it falls
       const S = this.stats, def = KM.FRIEND_BY.giantF, M = this.clsM('giant', S.cls.giant), L = this.L;
       const j = this.spawn(0, def, L.x, L.z - 4, { hp: 2 * M.hp / def.hp, dmg: 2 * M.dmg / def.dmg, arm: M.arm, spd: S.speed / 4 }); if (j < 0) return -1;
       this.merc[j] = 1e12; this.evo[j] = 2; this.pt[j] = 0; this.sc[j] *= 2; this.rad[j] *= 2; this.ft[j] = KM.footOf(def, this.rad[j], this.sc[j]); this.titans++; this.emit('titan', j); return j;
@@ -311,7 +314,10 @@
           this.emit('kill', i, d);
         }
         if (d.ex && !silent) this.explode(i, d);
-      } else { if (this.posture === 1 && this.frank[i] >= 1) this.rowLoss[Math.min(3, this.frank[i] - 1)]++;
+        if (this.mission && !silent && this.mission.undead && !d.boss && !d.mini && !this.mRisen[i] && this.rng() < this.mission.undead) this.mRise.push([this.t + 2.5, d.id, this.x[i], this.z[i]]);   // NIGHTFALL: the dead rise once
+        if (this.mission) { this.mRisen[i] = 0; this.mLastKill = this.t; }
+      } else { if (this.mission && !silent) { this.lost++; if (this.typeOf(i) === 'collector') this.lostCol++; }
+        if (this.posture === 1 && this.frank[i] >= 1) this.rowLoss[Math.min(3, this.frank[i] - 1)]++;
         if (this.carry[i] > 0 && !silent) { const c = this.carry[i], keep = c * 0.5; this.colLost += c - keep; this.dropCoin(this.x[i], this.z[i], keep); this.emit('colLost', i, c); } this.carry[i] = 0; this.emit('fdie', i); }
     }
 
@@ -405,6 +411,7 @@
     powerCost(id) { if (id === 'mercenary') return KM.MERC_TIERS[this.mercTier - 1].energy; if (id === 'recruits') { const t = (this.mods.perks.recruits || 0); return t ? KM.RECRUITS(t).energy : Infinity; } return KM.POWERS[id].cost; }
     canPower(id) { const P = KM.POWERS[id]; return !!P && this.alive && (id === 'recruits' ? (this.mods.perks.recruits || 0) > 0 : this.equipped.includes(id)) && this.energy >= this.powerCost(id) && !((this.pcd[id] || 0) > 0); }
     usePower(id) {
+      if (this.mission && (id === 'mercenary' || id === 'recruits')) return false;   // CRUSADES: no units beyond the mission's army capacity
       if (!this.canPower(id)) return false; const P = KM.POWERS[id], S = this.stats, L = this.L, mul = this.powerMul(id); this.energy -= this.powerCost(id); this.pcd[id] = P.cd; this.powersUsed = (this.powersUsed || 0) + 1;
       if (id === 'linebreaker') { const dmg = S.tankDmg * 9 * mul; let n = 0; this.src = 2;   // straight down the tank's lane
         for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && Math.abs(this.x[i] - L.x) < 1.9 + this.rad[i] && this.z[i] < L.z + 0.5 && this.z[i] > L.z - 48) { this.hurt(i, dmg, 0, L.z, false); this.z[i] -= 0.6; n++; }
@@ -497,7 +504,7 @@
     }
     forfeit() { if (!this.alive) return; this.alive = false; this.deathReason = 'quit'; this.emit('death', 'quit'); }   // END RUN: ends the run now, whatever shields or invulnerability are up
     revive() { // optional single revive hook (rewarded ad / earned resource later)
-      if (this.alive || this.revived || this.daily) return false;   // DAILY: no revives (equal conditions)
+      if (this.alive || this.revived || this.daily || this.mission) return false;   // DAILY: no revives (equal conditions)
       this.revived = true; this.alive = true; this.ended = false; this.L.hp = this.stats.maxHp * 0.6; this.L.inv = 4;
       for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && this.z[i] > this.front - 18) this.kill(i, true);
       this.emit('revive'); return true;
@@ -661,12 +668,13 @@
       if (!this.alive) { this.stepDying(dt); this.stepFx(dt); return; }
       this.inStep = true; try { this.stepCore(dt); } finally { this.inStep = false; }
       if (this.daily && this.alive && this.t >= this.daily.cap) { this.done = true; this.emit('dailyEnd'); }
+      if (this.mission && this.alive && !this.done) this.missionTick();
     }
     stepCore(dt) {
       this.halt = this.nBoss > 0 || this.frontEngaged(dt);   // the march holds while a boss lives or while the army's front line is fighting
       this.t += dt; if (!this.halt) this.front -= W.ADV * dt; this.postureT += dt;
       { const c = this.chantNow(); if (!c) this.cB = null; else { if (c.bar !== this.chantBar) { this.chantBar = c.bar; this.chantBarStart(c); this.emit('chantBar', c.loopBar, c.state, c.crescendo); } this.chantRally(); } }
-      const D = this.diff = KM.difficulty(this.budget < -1e8 ? this.t : this.warT()), S = this.stats, L = this.L;
+      const D = this.diff = KM.difficulty(this.budget < -1e8 ? this.t : this.mission ? this.mWarT() : this.warT()), S = this.stats, L = this.L;
       // launcher movement (smoothed for weight); AUTO lines the cannon lane up on its own while the player is not steering
       L.man = Math.max(0, L.man - dt); const aim = this.auto && L.man <= 0; if (aim) this.autoSteer(dt);
       const px = L.x; let mx = (L.tx - L.x) * Math.min(1, dt * 12); if (aim) mx = Math.max(-AUTO_SPD * dt, Math.min(AUTO_SPD * dt, mx));   // AUTO slides at a steady drive speed; the player's drag keeps its direct feel
@@ -708,17 +716,50 @@
       while (this.deployAcc >= 1 && this.deployOne('auto')) this.deployAcc -= 1;
     }
 
+    // ---------- CRUSADES: a mission scripts its waves (formations, enemy pool, level, boss) on the shared director ----------
+    mWave() { return this.mSpec || this.mission.waves[0]; }
+    mWarT() { const lv = this.mWave().lv; return (lv - 1) * KM.WAVE_SECS + (this.wave ? Math.min(KM.WAVE_SECS, this.t - this.waveStart) : 0); }
+    missionWave(n) {
+      const MR = this.mission, spec = this.mSpec = n <= MR.waves.length ? MR.waves[n - 1] : ([...MR.waves].reverse().find(w => !w.boss) || MR.waves[MR.waves.length - 1]), t = this.t, Q = [], B = KM.waveBudget(spec.lv) * (spec.mul ?? 1) * (MR.mul ?? 1);   // past the script (hold missions): repeat the last NON-boss wave, a boss appears once
+      this.wave = n; this.wState = 1; this.waveStart = t; this.waveLeft = 0; this.waveSpawned = 0;
+      if (this.chantNext !== undefined) { if (this.chantNext !== this.chant.pack) { this.chant = { pack: this.chantNext, t0: t }; this.chantBar = -1; this.cB = null; this.cLast = {}; this.emit('station', this.chant.pack); } this.chantNext = undefined; }
+      const pool = spec.chaos ? this.rng.pick(spec.chaos) : spec.pool || MR.pool; this.mPool = (pool || []).map(k => KM.ENEMY_BY[k]).filter(e => e && !e.boss && !e.mini); if (!this.mPool.length) this.mPool = null;   // CHAOS: a random archetype each wave
+      this.mBoss = spec.boss || null; this.sector = spec.sector || MR.sector || 'opening'; this.sectorIntro = false;
+      for (const [type, share, at, near] of spec.f) Q.push({ at: t + (at || 0), type, bud: type === 'boss' || type === 'mini' ? 0 : B * share, near: !!near });
+      if (spec.boss) Q.push({ at: t, warn: 'boss' }); else if (spec.f.some(x => x[0] === 'mini')) Q.push({ at: t, warn: 'mini' });
+      const seen = this.mWarned || (this.mWarned = {}); for (const [type, , at] of spec.f) if (KM.FORMATION_WARN[type] && !seen[type]) { seen[type] = 1; Q.push({ at: t + Math.max(0, (at || 0) - 1.5), warn: 'f:' + type }); }   // first sighting of a formation type: a readable warning
+      this.wQueue = Q; this.emit('waveStart', n, n, this.sector);
+    }
+    mMul(d, lm) { const MR = this.mission, e = MR.emod && (MR.emod[d.k] || MR.emod['*']), b = (d.boss || d.mini) && MR.bossMul;
+      for (const m of [e, b]) if (m) { lm.hp = (lm.hp || 1) * (m.hp || 1); lm.dmg = (lm.dmg || 1) * (m.dmg || 1); lm.spd = (lm.spd || 1) * (m.spd || 1); lm.arm = (lm.arm || 0) + (m.arm || 0); }
+      return lm; }
+    missionTick() {
+      const MR = this.mission;
+      for (let k = this.mRise.length - 1; k >= 0; k--) { const [at, id, x, z] = this.mRise[k]; if (this.t < at) continue; this.mRise.splice(k, 1); const d = KM.ENEMY[id];   // the risen: half health, a little slower
+        const j = this.spawn(1, d, x, z, this.mMul(d, this.lvMul(d, { hp: 0.5, dmg: 1, spd: 0.85, era: 0, arm: 0 }))); if (j >= 0) { this.mRisen[j] = 1; this.emit('risen', j); } }
+      if (MR.phases && this.bossI >= 0 && this.st[this.bossI] === ALIVE) { const i = this.bossI, f = this.hp[i] / this.mhp[i];   // BOSS PHASES: summons / enrage at health thresholds
+        MR.phases.forEach((ph, k) => { if (this.mPhaseHit[k] || f > ph.at) return; this.mPhaseHit[k] = 1;
+          if (ph.enrage) { this.spd[i] *= ph.enrage; this.dmg[i] *= ph.enrage; }
+          if (ph.summon) { this.mNear = !!ph.near; this.spawnTag = this.wave; this.formation(ph.summon, this.diff, KM.waveBudget(this.mWave().lv) * (ph.bud || 0.5)); this.spawnTag = 0; this.mNear = false; }
+          this.emit('bossPhase', k, ph.text || ''); }); }
+      if (this.wState === 1 && this.t - this.waveStart > 45 && this.t - Math.max(this.mLastKill || 0, this.waveStart) > 15 && this.mCharge !== this.wave) {   // NO STALEMATES: a wave that stops fighting closes in
+        this.mCharge = this.wave; for (let i = 0; i < this.hi; i++) if (this.st[i] === ALIVE && this.team[i] === 1 && !this.bossLike(i)) this.rng_[i] = Math.min(this.rng_[i], 1.2); this.emit('bossPhase', -1, 'The enemy charges!'); }
+      if (MR.goal === 'hold' && this.t >= MR.hold) return this.missionEnd(true);
+      if (MR.limit && this.t >= MR.limit) return this.missionEnd(false);
+    }
+    missionEnd(win) { if (this.done) return; this.done = true; this.won = !!win; this.emit('missionEnd', this.won); }
     // ---------- ENDLESS WAR: every wave is a level; a 10-wave cycle repeats forever with rising quality ----------
     warT() { return this.wave ? (this.wave - 1) * KM.WAVE_SECS + Math.min(KM.WAVE_SECS, this.t - this.waveStart) : 0; }   // difficulty clock advances by wave, not by wall time
     director(dt, D) {
       if (this.budget < -1e8) return;                                                                 // tests: director off
       if (this.wState === 0) { this.wGap -= dt; if (this.wGap <= 0) this.startWave(this.wave + 1); return; }
       for (let k = this.wQueue.length - 1; k >= 0; k--) { const q = this.wQueue[k]; if (this.t < q.at) continue; this.wQueue.splice(k, 1); if (q.warn) { this.emit('warn', q.warn); continue; }
-        this.spawnTag = this.wave; this.formation(q.type, this.diff, q.bud); this.spawnTag = 0; }
+        this.mNear = q.near; this.spawnTag = this.wave; this.formation(q.type, this.diff, q.bud); this.spawnTag = 0; }
       const late = this.t - this.waveStart > 75 && this.waveLeft <= Math.ceil(this.waveSpawned * 0.15);   // stragglers never stall the war
       if (!this.wQueue.length && (this.waveLeft <= 0 || late) && !this.nBoss) this.clearWave();
     }
     startWave(n) {
+      if (this.mission) return this.missionWave(n);
       const p = (n - 1) % 10 + 1, tier = Math.floor((n - 1) / 10), m = ((n - 1) * KM.WAVE_SECS) / 60, B = KM.waveBudget(n), Q = [], t = this.t;
       this.wave = n; this.wState = 1; this.waveStart = t; this.waveLeft = 0; this.waveSpawned = 0;
       if (this.chantNext !== undefined) { if (this.chantNext !== this.chant.pack) { this.chant = { pack: this.chantNext, t0: t }; this.chantBar = -1; this.cB = null; this.cLast = {}; this.emit('station', this.chant.pack); } this.chantNext = undefined; }   // a new station starts its loop on this wave's first beat
@@ -751,8 +792,10 @@
     clearWave() {
       const n = this.wave, p = (n - 1) % 10 + 1; let g = KM.waveGold(n);
       if (this.daily && this.daily.waveGoldMul != null) g = Math.round(g * this.daily.waveGoldMul);   // DAILY: Lean Purse
+      if (this.mission) g = Math.round(KM.waveGold(this.mWave().lv) * (this.mission.goldMul ?? 1));   // CRUSADES: the wave's own level pays
       this.wState = 0; this.wGap = p === 10 ? 4 : 2.5; this.coins += g; this.coinsTotal += g; this.gainEnergy(15); this.cleared++;
       this.emit('waveClear', n, g);
+      if (this.mission) { if (this.mission.goal === 'waves' && n >= this.mission.waves.length) return this.missionEnd(true); if (this.mWave().supply) this.offerChoice('supply'); return; }
       if (p === 5) this.offerChoice('supply');
     }
     // enemy type / boss level at this spawn (a type levels once per distinct wave it appears in; a boss once per encounter)
@@ -802,22 +845,23 @@
       this.classStats();
     }
     bossDown(d) {
-      const g = KM.BOSS_GOLD, draw = KM.bossDraw(this.rng()); this.coins += g; this.coinsTotal += g; this.bossesKilled++; this.warTokens += draw.tokens; this.diamondsWon += draw.diamonds; this.gainEnergy(60);
+      const g = this.mission ? this.mission.bossGold : KM.BOSS_GOLD, draw = this.mission ? { tokens: 0, diamonds: 0 } : KM.bossDraw(this.rng()); this.coins += g; this.coinsTotal += g; this.bossesKilled++; this.warTokens += draw.tokens; this.diamondsWon += draw.diamonds; this.gainEnergy(60);   // CRUSADES: replayable, so no premium drops
       this.emit('bossReward', { wave: this.wave, gold: g, tokens: draw.tokens, diamonds: draw.diamonds, kind: d.k, id: this.seed + ':' + this.wave }); this.offerChoice('boss');
     }
 
     // Returns budget spent. Every unit placed is an unlocked type inside the lane.
     formation(type, D, budget) {
-      const r = this.rng, m = D.m, un = KM.unlocked(m), E = KM.ENEMY_BY;
+      const r = this.rng, m = D.m, un = this.mPool || KM.unlocked(m), E = KM.ENEMY_BY;
       // the opening waves enter closer so the first clash happens within seconds, not after a long walk
-      const z0 = this.front - (this.t < 20 ? 30 + this.t : W.SPAWN_DZ) - r() * 6, cx = r.range(-W.LANE + 3, W.LANE - 3);
-      const melee = un.filter(e => !e.r && !e.el && e.k !== 'bomber'), list = [];
+      const z0 = this.front - (this.mNear ? 24 : this.t < 20 ? 30 + this.t : W.SPAWN_DZ) - r() * 6, cx = r.range(-W.LANE + 3, W.LANE - 3);
+      const melee = un.filter(e => !e.r && !e.el && e.k !== 'bomber'), list = []; if (this.mission && !melee.length) melee.push(...un);   // CRUSADES: an all-ranged / all-elite act still fills melee formations
       const SEC = KM.SECTORS[this.sector || 'opening'], pref = melee.filter(e => SEC.prefer.includes(e.k));
       const pickMelee = () => { if (r() < D.eliteChance && m >= 6 && this.sector !== 'rout') return E.brute; if (pref.length && r() < (this.sectorIntro ? 0.85 : 0.6)) return r.pick(pref); const c = melee.filter(e => r() < 0.75 || e.k === 'grunt'); return r.pick(c.length ? c : melee); };
       const add = (def, x, z) => list.push([def, x, z]);
       let spent = 0;
       const spend = def => { spent += def.cost; return spent <= budget + 2; };
       const has = k => un.some(e => e.k === k);
+      const pf = f => this.mission && this.mPool ? this.mPool.find(f) || null : null;   // CRUSADES: formations recruit from the mission's own faction
       switch (type) {
         case 'line': { const d = pickMelee(), w = r.range(4, 9); for (let k = 0; spend(d); k++) { const row = Math.floor(k / 8); add(d, cx + ((k % 8) / 7 - 0.5) * 2 * w, z0 - row * 1.2); } break; }
         case 'wedge': { const d = pickMelee(); for (let k = 0; spend(d); k++) { const row = Math.floor(Math.sqrt(k)), col = k - row * row; add(d, cx + (col - row) * 0.6, z0 - row * 1.1); } break; }
@@ -826,18 +870,22 @@
         case 'swarm': { const d = E.imp; for (let k = 0; spend(d); k++) { const a = r() * 6.283, rr = Math.sqrt(r()) * (2 + Math.sqrt(k) * 0.35); add(d, cx * 0.5 + Math.cos(a) * rr * 1.6, z0 + Math.sin(a) * rr); } break; }
         case 'flank': { const d = pickMelee(); for (let k = 0; spend(d); k++) add(d, (k % 2 ? 1 : -1) * (W.LANE - 2 - r() * 2), z0 - Math.floor(k / 2) * 0.9); break; }
         case 'shieldwall': case 'backline': {
-          const front = E.shield, back = has('archer') ? E.archer : E.grunt; const n = Math.max(3, Math.floor(budget / (front.cost + back.cost)));
+          const front = pf(e => e.sh) || E.shield, back = pf(e => e.r && !e.he) || (has('archer') ? E.archer : E.grunt); const n = Math.max(3, Math.floor(budget / (front.cost + back.cost)));
           for (let k = 0; k < n; k++) { if (!spend(front)) break; add(front, cx + (k / Math.max(1, n - 1) - 0.5) * Math.min(14, n * 1.0), z0); }
           for (let k = 0; k < n && spend(back); k++) add(back, cx + (k / Math.max(1, n - 1) - 0.5) * Math.min(14, n * 1.0), z0 - 2.2 - (k % 2) * 0.8);
           if (has('shaman') && spend(E.shaman)) add(E.shaman, cx, z0 - 4);
           break;
         }
-        case 'elite': { if (spend(E.brute)) add(E.brute, cx, z0); const d = has('knight') ? E.knight : E.shield; for (let k = 0; spend(d); k++) add(d, cx + Math.cos(k * 1.3) * (1.8 + k * 0.1), z0 - 1 + Math.sin(k * 1.3) * 1.6); break; }
-        case 'siege': { if (spend(E.cannon)) add(E.cannon, cx, z0 - 5); for (let k = 0; spend(E.shield); k++) add(E.shield, cx + ((k % 6) - 2.5) * 1.0, z0 - Math.floor(k / 6)); break; }
+        case 'elite': { const lead = pf(e => e.el) || E.brute; if (spend(lead)) add(lead, cx, z0); const d = pf(e => e.sh && e.arm >= 8) || (has('knight') ? E.knight : E.shield); for (let k = 0; spend(d); k++) add(d, cx + Math.cos(k * 1.3) * (1.8 + k * 0.1), z0 - 1 + Math.sin(k * 1.3) * 1.6); break; }
+        case 'siege': { const sf = pf(e => e.sh) || E.shield; if (spend(E.cannon)) add(E.cannon, cx, z0 - 5); for (let k = 0; spend(sf); k++) add(sf, cx + ((k % 6) - 2.5) * 1.0, z0 - Math.floor(k / 6)); break; }
         case 'mixed': for (let k = 0; ; k++) { const d = r() < 0.15 && has('bomber') ? E.bomber : r() < 0.2 ? (has('archer') ? E.archer : E.grunt) : pickMelee(); if (!spend(d)) break; add(d, r.range(-W.LANE + 1, W.LANE - 1), z0 - r() * 8); } break;
         case 'push': for (let k = 0; ; k++) { const d = m > 0.6 && r() < 0.3 ? E.imp : pickMelee(); if (!spend(d)) break; add(d, r.range(-W.LANE + 0.8, W.LANE - 0.8), z0 - r() * 14); } break;
+        case 'support': { const heal = un.filter(e => e.he), fr = melee.length ? melee : un; const nH = Math.max(2, Math.floor(budget * 0.3 / ((heal[0] || E.shaman).cost))), w = Math.min(12, 4 + nH);   // CRUSADES: a melee front shielding healers
+          for (let k = 0; spend(fr[k % fr.length]); k++) { const row = Math.floor(k / 8); add(fr[k % fr.length], cx + ((k % 8) / 7 - 0.5) * w, z0 - row * 1.2); if (k > 40) break; }
+          for (let k = 0; k < nH && spend(heal[k % heal.length] || E.shaman); k++) add(heal[k % heal.length] || E.shaman, cx + (k / Math.max(1, nH - 1) - 0.5) * w * 0.8, z0 - 4.2); break; }
+        case 'convoy': { const d = un.find(e => e.k === 'raider') || pickMelee(); for (let k = 0; spend(d); k++) add(d, cx + (k % 2 ? 0.5 : -0.5), z0 - Math.floor(k / 2) * 1.0); break; }   // CRUSADES: raider convoy, two abreast
         case 'mini': { add(E.giant, cx, z0); spent = 0; for (let k = 0; k < 6; k++) add(has('spearman') ? E.spearman : E.shield, cx + Math.cos(k) * 2.4, z0 + 1.5 + Math.sin(k)); break; }
-        case 'boss': { const avail = KM.BOSS_ORDER.map(k => E[k]).filter(b => b.at <= m); const B = avail[this.bossN++ % avail.length] || E.titan; add(B, 0, z0); spent = 0; const d = has('knight') ? E.knight : E.shield; for (let k = 0; k < 10; k++) add(d, Math.cos(k / 10 * 6.283) * 2.6, z0 + Math.sin(k / 10 * 6.283) * 2); break; }
+        case 'boss': { const avail = KM.BOSS_ORDER.map(k => E[k]).filter(b => b.at <= m); const B = (this.mBoss && E[this.mBoss]) || avail[this.bossN++ % avail.length] || E.titan; add(B, 0, z0); spent = 0; const d = has('knight') ? E.knight : E.shield; for (let k = 0; k < 10; k++) add(d, Math.cos(k / 10 * 6.283) * 2.6, z0 + Math.sin(k / 10 * 6.283) * 2); break; }
       }
       if (!list.length && type !== 'boss') { add(E.grunt, cx, z0); spent = Math.max(spent, E.grunt.cost); }   // an expensive first pick never leaves a formation empty
       if (spent > budget + 2) spent = budget; // last over-budget unit was rejected by spend()
@@ -847,12 +895,13 @@
       let placed = 0;
       // organic mass: depth jitter, a random arc, small lateral clusters and late subgroups — never a ruler line
       const arc = (r() - 0.5) * 0.35, nCl = 2 + Math.floor(r() * 3), cl = Array.from({ length: nCl }, () => [r.range(-1.2, 1.2), r() < 0.3 ? -r.range(3, 7) : 0]);
-      for (let q = 0; q < list.length; q++) { const it = list[q], c = cl[q % nCl]; it[1] = Math.max(-W.LANE, Math.min(W.LANE, it[1] + c[0] + (r() - 0.5) * 0.6)); it[2] += c[1] - Math.abs(it[1] - cx) * arc - r() * 1.6; }
+      const J = this.mission ? 0.25 : 1;   // CRUSADES: disciplined ranks (a quarter of the organic jitter); Endless keeps J = 1 (identical maths)
+      for (let q = 0; q < list.length; q++) { const it = list[q], c = cl[q % nCl]; it[1] = Math.max(-W.LANE, Math.min(W.LANE, it[1] + c[0] * J + (r() - 0.5) * 0.6 * J)); it[2] += c[1] * J - Math.abs(it[1] - cx) * arc * J - r() * 1.6 * J; }
       // the wave marches as one formation (anchor + slot offsets) until it hits the line, then breaks into free combat
       const G = type === 'boss' || type === 'mini' ? null : { cx, z: z0, v: 9, n0: 0, alive: 0, st: 0, t: 0 }, gid = G ? this.groups.push(G) - 1 : -1;
       for (const [d, x, z] of list) {
         if (this.count[1] >= W.MAX_ENEMY && !d.boss) { this.overflow = Math.min(3, this.overflow + 0.002); continue; } // hard population cap: excess becomes strength
-        const j = this.spawn(1, d, Math.max(-W.LANE, Math.min(W.LANE, x)), z, this.lvMul(d, mul)); if (j < 0) continue; placed++; if (this.spawnTag) { this.wv[j] = this.spawnTag; this.waveLeft++; this.waveSpawned++; }
+        const j = this.spawn(1, d, Math.max(-W.LANE, Math.min(W.LANE, x)), z, this.mission ? this.mMul(d, this.lvMul(d, mul)) : this.lvMul(d, mul)); if (j < 0) continue; placed++; if (this.spawnTag) { this.wv[j] = this.spawnTag; this.waveLeft++; this.waveSpawned++; }
         if (G && !d.mech) { this.grp[j] = gid; this.gox[j] = this.x[j] - cx; this.goz[j] = z - z0; G.n0++; G.alive++; G.v = Math.min(G.v, this.spd[j] * 0.8); }
       }
       if (this.opts.trace) this.debugLog.push({ t: this.t, m: D.m, type, kinds: list.map(l => l[0].k), xs: list.map(l => l[1]) });
@@ -1033,7 +1082,7 @@
           if (team === 1) { const ld = this.lDist(this.x[i], this.z[i]) - this.ft[i] + 0.36; if (ld < 6.5 && (tg < 0 || ld < 3)) tg = -2; }   // tank in sight / in contact, from the body edge (grunt-sized numbers): bosses held at the hull still find it
           this.tgt[i] = tg;
         }
-        if (team === 1 && this.mt[i] > 0 || (team === 1 && KM.ENEMY[this.kind[i]].mech)) this.bossMech(i, dt, KM.ENEMY[this.kind[i]]);
+        if (team === 1 && this.mt[i] > 0 || (team === 1 && (KM.ENEMY[this.kind[i]].mech || (this.mission && this.mission.bossMech && KM.ENEMY[this.kind[i]].boss)))) this.bossMech(i, dt, KM.ENEMY[this.kind[i]]);
         let sp = this.spd[i] * sm * (team ? 1 : S.speed / 4.3 * (this.cB ? this.chantK(KM.CLASS_OF[this.kind[i]], 'spd') : 1)) * (1 + 0.3 * adv) * (this.role[i] === 2 ? 1 + 0.15 * (this.mi || 0) : 1);
         if (team === 0 && this.kind[i] !== 32) sp = sp; // all friendlies share stat speed
         if (this.mph[i] === 2 && team === 1) { tg = -1; }                                              // charging: ignore targets, run the line over
@@ -1101,6 +1150,7 @@
 
     // Boss / mini-boss mechanics: every one has a telegraphed move beyond "lots of HP".
     bossMech(i, dt, d) {
+      if (this.mission && this.mission.bossMech && d.boss) d = Object.assign({}, d, { mech: this.mission.bossMech });   // CRUSADES: a mission can give its boss a signature mechanic
       if (!d.mech) return; this.mt[i] -= dt; const x = this.x[i], z = this.z[i];
       if (d.mech === 'hunt') { this.tgt[i] = -2; if (this.lDist(x, z) > 6) this.vz[i] += dt * 2; return; }                   // TANK HUNTER: goes for the command vehicle
       if (d.mech === 'summon') { if (this.mt[i] <= 0 && this.count[1] < W.MAX_ENEMY - 8) { this.mt[i] = 10; for (let k = 0; k < 8; k++) this.spawn(1, KM.ENEMY_BY.grunt, Math.max(-W.LANE, Math.min(W.LANE, x + Math.cos(k) * 3)), z - 2 + Math.sin(k) * 2, { hp: this.diff.hp, dmg: this.diff.dmg, spd: this.diff.speed }); this.emit('summon', i); } return; }

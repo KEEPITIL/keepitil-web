@@ -95,13 +95,29 @@
     { k: 'titan',   at: 8,    hp: 9000, dmg: 60, cd: 1.6, spd: 1.5, rng: 2.2,  rad: 2.0,  sc: 6.5,  arm: 14, coin: 180, cost: 60, wpn: 'axe', s: 2.8, el: 1, boss: 1, mech: 'charge' },
     { k: 'colossus',at: 12,   hp: 12000,dmg: 55, cd: 2.0, spd: 1.1, rng: 2.4,  rad: 2.3,  sc: 7.5,  arm: 22, coin: 220, cost: 60, wpn: 'axe', s: 3.2, el: 1, boss: 1, mech: 'stomp', armR: 0.35 },
     { k: 'hunter',  at: 16,   hp: 6000, dmg: 48, cd: 1.1, spd: 2.7, rng: 1.8,  rad: 1.8,  sc: 5.5,  arm: 10, coin: 160, cost: 60, wpn: 'axe', s: 2.0, el: 1, boss: 1, mech: 'hunt' },
+    // ---- CRUSADES-ONLY enemies (cr: 1, at: 999): never in Endless/Daily pools (KM.unlocked), appended so every existing id is unchanged ----
+    { k: 'raider',  at: 999,  hp: 16,   dmg: 2,  cd: 1.0, spd: 3.1, rng: 0.7,  rad: 0.34, sc: 1.0, arm: 0,  coin: 1.5, cost: 1,  wpn: 'knife', cr: 1 },                               // Looter Raid: enemy looter convoys
+    { k: 'raiderChief', at: 999, hp: 1500, dmg: 16, cd: 1.2, spd: 2.3, rng: 1.4, rad: 1.0, sc: 2.4, arm: 3, coin: 40, cost: 30, wpn: 'knife', s: 1.6, el: 1, boss: 1, cr: 1 },     // M1 boss: the Looter Chief
+    { k: 'longbow', at: 999,  hp: 2100, dmg: 24, cd: 2.2, spd: 1.6, rng: 12,   rad: 1.0,  sc: 2.4,  arm: 4,  coin: 50,  cost: 30, wpn: 'bow', r: 1, el: 1, boss: 1, cr: 1 },        // M3 boss: the Longbow Captain (ranged)
+    { k: 'acolyte', at: 999,  hp: 40,   dmg: 5,  cd: 1.4, spd: 2.1, rng: 6.5,  rad: 0.4,  sc: 1.05, arm: 1,  coin: 4,   cost: 3.5, wpn: 'staffE', r: 1, he: 6, cr: 1 },   // Mizard Warband: enemy healer-caster
+    { k: 'mizardLord', at: 999, hp: 6500, dmg: 34, cd: 1.6, spd: 1.6, rng: 9, rad: 1.4, sc: 3.8, arm: 6, coin: 140, cost: 60, wpn: 'staffE', r: 1, he: 40, el: 1, boss: 1, cr: 1 },   // M10 boss: the Mizard Lord heals his warband
+    { k: 'zombie',  at: 999,  hp: 30,   dmg: 5,  cd: 1.2, spd: 1.9, rng: 0.75, rad: 0.38, sc: 1.05, arm: 1,  coin: 1.5, cost: 1.4, wpn: 'claws', cr: 1 },                 // Nightfall: slow, tough undead
+    { k: 'necro',   at: 999,  hp: 50,   dmg: 7,  cd: 1.6, spd: 1.9, rng: 7,    rad: 0.4,  sc: 1.1,  arm: 1,  coin: 5,   cost: 5,   wpn: 'staffE', r: 1, he: 10, cr: 1 },   // Nightfall: corrupted healer
+    { k: 'wraith',  at: 999,  hp: 22,   dmg: 7,  cd: 0.8, spd: 4.6, rng: 0.8,  rad: 0.36, sc: 1.0,  arm: 0,  coin: 2,   cost: 1.6, wpn: 'dagger', cr: 1 },                // Nightfall: spectral flanker
+    { k: 'eliteCaptain', at: 999, hp: 7000, dmg: 46, cd: 1.2, spd: 1.7, rng: 2.2, rad: 1.6, sc: 4.4, arm: 18, coin: 160, cost: 60, wpn: 'pike', s: 1.8, el: 1, boss: 1, mech: 'charge', cr: 1 },   // M15 boss
+    { k: 'jester',  at: 999,  hp: 20,   dmg: 6,  cd: 0.6, spd: 5.0, rng: 0.7,  rad: 0.34, sc: 1.0, arm: 0,  coin: 2,   cost: 1.4, wpn: 'dagger', cr: 1 },                // Carnival: trickster
+    { k: 'strongman', at: 999, hp: 260, dmg: 24, cd: 1.7, spd: 1.9, rng: 1.2, rad: 0.8, sc: 1.9, arm: 5, coin: 12, cost: 12, wpn: 'hammer', s: 1.4, el: 1, cr: 1 },              // Carnival: hammer bruiser
+    { k: 'giantLord', at: 999, hp: 11000, dmg: 60, cd: 1.9, spd: 1.4, rng: 2.4, rad: 2.0, sc: 6.0, arm: 14, coin: 220, cost: 60, wpn: 'hammer', s: 2.8, el: 1, boss: 1, mech: 'stomp', cr: 1 },   // M25 boss
+    { k: 'automaton', at: 999, hp: 70,  dmg: 8,  cd: 1.2, spd: 2.0, rng: 0.9,  rad: 0.44, sc: 1.15, arm: 12, coin: 3,   cost: 3.4, wpn: 'axe', sh: 1, cr: 1 },               // Iron Uprising: armoured machine soldier
+    { k: 'ironKing', at: 999, hp: 14000, dmg: 64, cd: 1.5, spd: 1.4, rng: 2.4, rad: 2.1, sc: 6.8, arm: 24, coin: 260, cost: 60, wpn: 'axe', s: 3.0, el: 1, boss: 1, mech: 'stomp', cr: 1 },   // M30 boss
+    { k: 'swordCmd', at: 999, hp: 5000, dmg: 38, cd: 1.3, spd: 1.8, rng: 2.0,  rad: 1.5,  sc: 4.2,  arm: 10, coin: 120, cost: 60, wpn: 'sword', s: 2.0, el: 1, boss: 1, mech: 'charge', cr: 1 },   // M5 boss: the Sword Commander
   ];
   KM.ENEMY.forEach((e, i) => { e.id = i; });
   KM.ENEMY_BY = Object.fromEntries(KM.ENEMY.map(e => [e.k, e]));
   // ENEMY TYPE LEVELS (owner rule): a type gains one level on each distinct wave it actually appears in (max displayed Lv10); its growth
   // follows the matched soldier-class profile of the owner table (HP, damage, cumulative armour). Past Lv10 every further appearance
   // compounds +5 % on HP and damage and +1 % on armour (KM.ENEMY_POST10). Bosses: own Lv1..10 track at double the tank's gain (+40 % of base per level), then ×1.2 per encounter.
-  KM.ENEMY_PROFILE = { imp: 'collector', runner: 'collector', grunt: 'melee', shield: 'melee', spearman: 'melee', bomber: 'melee', archer: 'range', shaman: 'mizard', knight: 'elite', brute: 'elite', cannon: 'giant', giant: 'giant' };
+  KM.ENEMY_PROFILE = { raider: 'collector', longbow: 'range', acolyte: 'mizard', mizardLord: 'mizard', necro: 'mizard', wraith: 'collector', jester: 'collector', strongman: 'elite', automaton: 'elite', zombie: 'melee', imp: 'collector', runner: 'collector', grunt: 'melee', shield: 'melee', spearman: 'melee', bomber: 'melee', archer: 'range', shaman: 'mizard', knight: 'elite', brute: 'elite', cannon: 'giant', giant: 'giant' };
   // Owner-approved 2026-10-12 after the armour comparison (tests/armor-sim.js): past Lv10, HP and damage compound +5 % per appearance,
   // armour compounds +1 % (the armour multiplier inside the mitigation formula otherwise multiplied with HP and capped every build near wave 50).
   KM.ENEMY_POST10 = { hp: 0.05, dmg: 0.05, arm: 0.01 };
@@ -185,13 +201,14 @@
   KM.SPEEDS = [1, 1.5, 2, 3, 5]; KM.ZOOMS = [1, 1.5, 2, 3];
   KM.zoomDepth = z => z >= 3 ? 1 : z >= 2 ? 0.65 + 0.35 * (z - 2) : z >= 1.5 ? 0.35 + 0.6 * (z - 1.5) : 0.7 * (Math.max(1, z) - 1);   // 0 = closest view (1×) … 1 = the whole approach up to the enemy entry (3×)
   KM.emptyPlan = () => Object.fromEntries(KM.PROD_ORDER.map(k => [k, 0]));
-  KM.planMax = k => Math.floor(KM.ARMY_CAP / KM.PROD[k].pts);
+  KM.planCapNow = () => KM.planCap || KM.ARMY_CAP;   // CRUSADES sets KM.planCap to the mission's capacity; otherwise the global 300
+  KM.planMax = k => Math.floor(KM.planCapNow() / KM.PROD[k].pts);
   KM.planRow = k => KM.W.ROW_MAX[k] || 0;
   KM.planPts = p => KM.PROD_ORDER.reduce((a, k) => a + ((p && p[k]) || 0) * KM.PROD[k].pts, 0);
   KM.planGold = (p, lv) => KM.PROD_ORDER.reduce((a, k) => a + ((p && p[k]) || 0) * KM.deployCost(k, (lv && lv[k]) || 1), 0);
   KM.planOn = p => KM.planPts(p) > 0;
-  KM.planCanAdd = (p, k, n) => { n = n || 1; return (p[k] || 0) + n <= KM.planMax(k) && KM.planPts(p) + n * KM.PROD[k].pts <= KM.ARMY_CAP; };
-  KM.validPlan = raw => { const o = KM.emptyPlan(); let left = KM.ARMY_CAP; if (!raw || typeof raw !== 'object') return o;   // integers ≥ 0, ≤ class max, total ≤ 300 (filled in display order)
+  KM.planCanAdd = (p, k, n) => { n = n || 1; return (p[k] || 0) + n <= KM.planMax(k) && KM.planPts(p) + n * KM.PROD[k].pts <= KM.planCapNow(); };
+  KM.validPlan = raw => { const o = KM.emptyPlan(); let left = KM.planCapNow(); if (!raw || typeof raw !== 'object') return o;   // integers ≥ 0, ≤ class max, total ≤ 300 (filled in display order)
     for (const k of KM.PROD_ORDER) { const v = raw[k]; if (typeof v !== 'number' || !isFinite(v) || v < 0) continue; const n = Math.min(Math.floor(v), KM.planMax(k), Math.floor(left / KM.PROD[k].pts)); o[k] = n; left -= n * KM.PROD[k].pts; }
     return o; };
 
@@ -361,7 +378,7 @@
   KM.QUALITY_MOBILE = {
     high:   { lodNear: 80, lodMid: 340, shadowMap: 1024, decorShadows: false },
     medium: { lodNear: 64, lodMid: 280, shadowMap: 1024, decorShadows: false },
-    low:    { lodNear: 40, lodMid: 200, shadowMap: 512,  decorShadows: false },
+    low:    { lodNear: 28, lodMid: 140, shadowMap: 512,  decorShadows: false, fx: 0.2 },   // Checkpoint G: the 240-unit Mission 30 finale on an iPhone SE ran 41 fps at the old 40 / 200 budgets
   };
   KM.isMobileEnv = (ua, touch, minSide) => /iPhone|iPad|iPod|Android|Mobile/i.test(ua || '') || (!!touch && minSide < 900);
   // initial tier without any measurement: stored benchmark recommendation > desktop high > phones medium
@@ -504,6 +521,7 @@
     ach: {},
     buffs: { cls: {}, tank: {} }, cons: {}, paid: [],
     chants: { on: 1, station: 'steel', owned: { steel: 1 }, vol: 1 },
+    crusades: null,   // CRUSADES (js/crusades.js): stars, best results, earned rewards (granted once), equipped earned looks
     goals: null,   // GOALS & COMMANDER RANK (js/goals.js): banked daily/weekly goals, XP, rank
     daily: { day: '', ranked: 0, practice: 0, best: 0, bestParts: null, done: 0, station: 'steel', days: [], total: 0 },   // DAILY DEFENSE: today's attempts / best, completed days (badges, weekly participation)   // 2.0 WAR CHANTS: radio on/off, selected station, unlocked stations, stinger volume 0–1
     perks: {}, gear: { owned: {}, equip: {} }, season: { owned: {}, equip: {} }, mercTier: 1,   // Phase C: perk tiers · class equipment (owned tiers, equipped tier per slot) · seasonal skin sets · chosen Mercenary tier   // permanent boss-card buffs (counts of +5 %), consumable inventory, banked boss-payout ids (exactly once)
@@ -517,8 +535,9 @@
     if (b.weekly && typeof b.weekly.w === 'string') d.best.weekly = { w: b.weekly.w, t: num(b.weekly.t, 0) };
     for (const k of Object.keys(d.totals)) d.totals[k] = num((raw.totals || {})[k], 0);
     d.diamonds = Math.floor(num(raw.diamonds, 0)); if (typeof raw.player === 'string' && /^[A-Z0-9]{4,12}$/.test(raw.player)) d.player = raw.player;
-    const TITLES = new Set([...KM.MILESTONES.map(m => m.title), ...KM.DAILY_BADGES, ...(KM.EARLY_TITLES || []).map(m => m.title)]);   // wave milestones + Daily Defense badges + early wave titles (a Daily badge was dropped on reload before 2026-10-23)
+    const TITLES = new Set([...KM.MILESTONES.map(m => m.title), ...KM.DAILY_BADGES, ...(KM.EARLY_TITLES || []).map(m => m.title), ...(KM.CRUSADE_TITLES || [])]);   // wave milestones + Daily Defense badges + early wave titles (a Daily badge was dropped on reload before 2026-10-23)
     if (Array.isArray(raw.titles)) d.titles = [...new Set(raw.titles.filter(t => TITLES.has(t)))];
+    d.crusades = KM.crusadeValid ? KM.crusadeValid(raw.crusades) : (raw.crusades && typeof raw.crusades === 'object' ? raw.crusades : null);   // validated where the catalog is loaded
     for (const k of Object.keys(d.records)) d.records[k] = num((raw.records || {})[k], 0);
     const pw = raw.powers || {}; for (const id of KM.POWER_IDS) { const l = Math.floor(num((pw.lv || {})[id], 0)); if (l) d.powers.lv[id] = Math.min(KM.POWER_MAX, l); }
     if (Array.isArray(pw.equip)) { const e = [...new Set(pw.equip.filter(id => KM.POWERS[id]))].slice(0, 3); if (e.length) d.powers.equip = e; }
@@ -552,13 +571,23 @@
     if (ST.includes(ch.station) && d.chants.owned[ch.station]) d.chants.station = ch.station; if (ch.on === 0) d.chants.on = 0; d.chants.vol = Math.min(1, num(ch.vol, 1));
     return d;
   };
+  // CRUSADES progress also lives under its OWN key (+ backup). Builds that predate Crusades rewrite kmob.save.v1 without the field
+  // (validateSave keeps known fields only), so an old open tab or cached copy would erase it; they never touch this key. Reads merge
+  // every copy (own key, its backup, the copy inside the main save) and writes merge with what is stored: progress only goes up.
+  const KEYC = 'kmob.crusades.v1';
+  const readJSON = (store, k) => { try { const s = store.getItem(k); return s ? JSON.parse(s) : null; } catch (e) { return null; } };
   KM.loadSave = function (store) {
-    for (const k of [KEY, KEY + '.bak']) { try { const s = store.getItem(k); if (s) return KM.validateSave(JSON.parse(s)); } catch (e) { /* try backup */ } }
-    return KM.defaultSave();
+    let d = null; for (const k of [KEY, KEY + '.bak']) { try { const s = store.getItem(k); if (s) { d = KM.validateSave(JSON.parse(s)); break; } } catch (e) { /* try backup */ } }
+    d = d || KM.defaultSave();
+    if (KM.crusadeMerge) { let c = d.crusades; for (const k of [KEYC, KEYC + '.bak']) { const x = readJSON(store, k); if (x) c = KM.crusadeMerge(c, x); } d.crusades = KM.crusadeValid(c); }
+    return d;
   };
   KM.writeSave = function (store, data) {
-    const s = JSON.stringify(KM.validateSave(data));
-    try { store.setItem(KEY + '.bak', store.getItem(KEY) || s); store.setItem(KEY, s); return true; } catch (e) { return false; }
+    const v = KM.validateSave(data), s = JSON.stringify(v);
+    try { store.setItem(KEY + '.bak', store.getItem(KEY) || s); store.setItem(KEY, s); } catch (e) { return false; }
+    if (KM.crusadeMerge && v.crusades) { try { const old = store.getItem(KEYC), c = JSON.stringify(KM.crusadeMerge(v.crusades, readJSON(store, KEYC)));   // in-memory copy first: its equipped looks win
+      if (old) store.setItem(KEYC + '.bak', old); store.setItem(KEYC, c); } catch (e) { return false; } }
+    return true;
   };
   KM.dayKey = d => d.toISOString().slice(0, 10);
   KM.weekKey = d => { const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day); const y = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return t.getUTCFullYear() + '-W' + Math.ceil(((t - y) / 864e5 + 1) / 7); };
@@ -577,8 +606,9 @@
     return { pb, records: nr };
   };
   KM.fmtTime = s => { s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
-  KM.fmtNum = n => Math.floor(n).toLocaleString('en-US');
-  KM.fmtShort = n => { n = Math.floor(n); if (n < 10000) return n.toLocaleString('en-US'); for (const [v, u] of [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']]) if (n >= v) { const x = n / v; return (x < 100 ? x.toFixed(1) : Math.floor(x)) + u; } return String(n); };   // HUD: always fits the pill
+  const commas = n => { const neg = n < 0, s = String(neg ? -n : n); let o = '', k = s.length; while (k > 3) { o = ',' + s.slice(k - 3, k) + o; k -= 3; } return (neg ? '-' : '') + s.slice(0, k) + o; };   // = toLocaleString('en-US') for integers, ~50x cheaper (the HUD formats several numbers every frame)
+  KM.fmtNum = n => commas(Math.floor(n));
+  KM.fmtShort = n => { n = Math.floor(n); if (n < 10000) return commas(n); for (const [v, u] of [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']]) if (n >= v) { const x = n / v; return (x < 100 ? x.toFixed(1) : Math.floor(x)) + u; } return String(n); };   // HUD: always fits the pill
 
   // ---------- Endless battlefield chunk plan ----------
   // decor sight-line rule: a prop whose top is h metres high must keep its inner edge this far from the lane centre

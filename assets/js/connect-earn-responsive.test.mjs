@@ -54,9 +54,9 @@ test('earn: #radSeg buttons get 44px and INFO gets a 44px hit area without chang
   assert.match(c, /\.sh \.hye-info\s*\{[^}]*position:\s*relative/);
   const m = c.match(/\.sh \.hye-info::after\s*\{([^}]*)\}/);
   assert.ok(m, 'INFO hit-area pseudo-element exists');
-  assert.match(m[1], /top:\s*-6px/);
-  assert.match(m[1], /bottom:\s*-6px/);
-  // 32px pill + 6px above + 6px below = 44px
+  assert.match(m[1], /top:\s*-8px/);
+  assert.match(m[1], /bottom:\s*-8px/);
+  // 32px pill (30px padding box + borders): -8px/-8px gives a 46px ::after; measured live 7px up + 6px down = 45px hit area
   assert.match(pages.earn, /\.sh \.hye-info\{[^}]*min-height:32px/);
 });
 

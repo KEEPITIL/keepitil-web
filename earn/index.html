@@ -855,13 +855,13 @@ document.addEventListener('click',function(e){ var dd=document.getElementById('v
   body.rad-m #stations #krBar{width:100%;max-width:none;margin-left:0;margin-right:0}
 }
 /* 7c responsive/a11y (KODE audit 2026-11). Touch-only so desktop is unchanged. The All/Radio/Playlists/
-   Create/Earn switcher gets 44px buttons (were 35px). INFO keeps its look: an invisible 6px extension
-   above and below takes its 32px pill to a 44px hit area. 16px search text stops iOS focus-zoom now
+   Create/Earn switcher gets 44px buttons (were 35px). INFO keeps its look: an invisible 8px extension
+   above and below takes its 32px pill to a ~45px hit area (measured live at 375px: 7px up + 6px down). 16px search text stops iOS focus-zoom now
    that the viewport allows pinch-zoom. */
 @media (pointer:coarse){
   #radSeg button{min-height:44px;padding-top:0;padding-bottom:0}
   .sh .hye-info{position:relative}
-  .sh .hye-info::after{content:"";position:absolute;left:0;right:0;top:-6px;bottom:-6px}
+  .sh .hye-info::after{content:"";position:absolute;left:0;right:0;top:-8px;bottom:-8px}
   .search{min-height:44px}
   .search input{font-size:16px}
 }

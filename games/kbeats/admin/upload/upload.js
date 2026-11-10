@@ -84,7 +84,7 @@ $('#inv').onclick = async () => {
     $('#invout').innerHTML = `<p>${s.files} files · ${s.ready} ready for gameplay QA · ${s.needsWav} need WAV for automatic charts · ${s.rightsReview} rights review required · ${s.duplicates} duplicates · ${s.missingAudio} songs in the export with no master</p>
       <table><tr><th>#</th><th>Title</th><th>Artist</th><th>Featured</th><th>Length</th><th>Format</th><th>Charts</th><th>SoundCloud</th><th>Status</th><th>Notes</th></tr>${inv.items.map(i => `<tr>
         <td>${i.trackNo ?? ''}</td><td>${esc(i.title || i.file)}</td><td>${esc(i.artist || '?')}</td><td>${esc((i.featured || []).join(', '))}</td><td>${len(i.durationMs)}</td>
-        <td>${esc((i.format || '').toUpperCase())}</td><td>${esc(i.chartAnalysis)}</td><td>${i.scUrl ? `<a href="${esc(i.scUrl)}" target="_blank" rel="noopener">link</a>` : '—'}</td>
+        <td>${esc((i.format || '').toUpperCase())}</td><td>${esc(i.chartAnalysis)}</td><td>${i.scUrl ? `<a href="${esc(i.scUrl)}" target="_blank" rel="noopener noreferrer">link</a>` : '—'}</td>
         <td>${esc(i.status)}</td><td class="x">${esc([...(i.flags || []).map(x => 'flag: ' + x), ...i.issues].join(' · '))}</td></tr>`).join('')}</table>
       ${inv.missing.length ? `<h3>Missing original audio (${inv.missing.length})</h3><p class="x">${inv.missing.map(x => esc(x.title)).join(' · ')}</p>` : ''}`;
   } catch (e) { $('#imsg').innerHTML = `<span class="err">Could not build the inventory: ${esc(e?.message || e)}. Try again.</span>`; }

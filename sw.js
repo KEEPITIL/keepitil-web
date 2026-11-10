@@ -53,14 +53,11 @@ self.addEventListener('install', function (e) {
 self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys().then(function (names) {
-      /* Scope is '/', so this worker sees EVERY cache on the origin — including
-         ones owned by the self-contained apps under /games/* and /kode/. A bare
-         KEEP allowlist evicted their offline data on every site deploy and
-         silently broke their PWA/offline mode. Those apps own and clean their
-         own namespaces, so exempt them; keep evicting everything else. */
-      var OWNED_BY_APPS = /^(kwars[123]-|kode-)/;
+      /* CacheStorage is shared by the entire origin. Only evict our own
+         kil-* caches; TUITEA, KWARS, Kai Tarako, KMOB and future apps
+         must be allowed to manage their independent cache namespaces. */
       return Promise.all(names.filter(function (n) {
-          return KEEP.indexOf(n) === -1 && !OWNED_BY_APPS.test(n);
+          return n.indexOf('kil-') === 0 && KEEP.indexOf(n) === -1;
         })
         .map(function (n) { return caches.delete(n); }));
     }).then(function () { return self.clients.claim(); })
@@ -76,15 +73,11 @@ self.addEventListener('fetch', function (e) {
   if (url.hostname.endsWith('.supabase.co')) return;
 
   // SELF-CONTAINED APPS OWN THEIR OWN ASSETS.
-  // /games/<app>/ and /kode/ each register their own scoped service worker with
-  // their own cache and their own version stamp. This worker must not also
-  // cache their files: its CODE cache is network-first but keyed on the full
-  // URL, so once an app asset lands here it shadows the app's scoped worker and
-  // keeps serving an old copy until this cache happens to rotate. That was
-  // observed live — kwars1-v52 held build 51 while kil-code-v84 served build 50
-  // of the same file to the same page. Let the app's own worker answer.
+  // Do not let the root worker cache or shadow child-app resources.
+  // The apps under /games/*, /kode/, /app/tuitea/ and /app/kaitarako/
+  // own their cache namespaces and scoped workers; leave their requests alone.
   if (url.origin === self.location.origin &&
-      /^\/(games\/[^/]+|kode)\//.test(url.pathname)) return;
+      /^\/(games\/[^/]+|kode|app\/(?:tuitea|kaitarako))\//.test(url.pathname)) return;
 
   // Navigations: network-first; cached copy ONLY when the network fails.
   if (req.mode === 'navigate') {

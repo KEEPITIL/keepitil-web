@@ -2,7 +2,7 @@
 <html lang="en" data-theme="default">
 <head>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/><meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="description" content="CREATE on KEEPITIL — enter open calls and competitions, share your work, and get seen by the community."/>
 <title>CREATE — Enter, Compete, Get Seen | KEEPITIL</title>
 <link rel="canonical" href="https://keepitil.com/create/"/>
@@ -125,6 +125,19 @@ footer a{color:var(--brand-2)}
   .cul-vrail .cvr.sp.on{background:linear-gradient(90deg,#7c3aed,#a855f7);border-color:transparent;color:#fff}
   .cul-vrail .cvr.sf.on{background:linear-gradient(90deg,#3aa5ff,#5cc8ff);border-color:transparent;color:#04121b}
 }
+/* 7c responsive/a11y (KODE audit 2026-11): the .ce-* controls are rendered by vs-app.js, whose own
+   rules are #vs-app-scoped and injected after this sheet, so the text-size overrides below carry
+   #vs-app + an element selector to out-rank them without touching that shared script. */
+#vs-app span.ce-badge,#vs-app span.ce-fee{font-size:10px}
+#vs-app div.ce-date{font-size:11px}
+@media (pointer:coarse){
+  /* 44px tap targets for the month chips and the Year/Sort selects (were 30px). min-height wins over
+     vs-app.js's fixed height:30px; vertical padding is 0 so the label stays centred. */
+  .ce-row .ce-chip,.ce-row select.ce-chip{min-height:44px;padding-top:0;padding-bottom:0}
+  /* Pinch-zoom is re-enabled (viewport no longer pins maximum-scale), so keep iOS from auto-zooming
+     into the contest form fields on focus. */
+  #vs-app .vs-form input,#vs-app .vs-form textarea,#vs-app .vs-form select{font-size:16px}
+}
 </style>
   <!-- PWA manifest — STATIC, deliberately (Founder 2026-08-15).
        keepitil-shell.js has injected this link from JS since forever (see its head-tags block),
@@ -197,13 +210,13 @@ footer a{color:var(--brand-2)}
 <!-- universal shell: injects the DISCOVER·CONNECT·CREATE·CULTURE·EARN nav + footer + radio bar (same on every page) -->
 <script src="/keepitil-shell.js?v=20261031a" defer></script>
 <script src="/kil-seasons.js?v=20260910b"></script>
-<script src="/assets/js/keepitil-radio.js?v=20260929a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20261109a" defer></script>
 <!-- floating AI chat bubble (#kilo-btn) — same as Culture/home for uniformity -->
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
 <!-- VS platform (KODE): Supabase client + the app that renders into #vs-app.
      vs-app.js defines the real window.vsFilter, replacing the placeholder hook. -->
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
-<script src="/vs-app.js?v=20260912a"></script>
+<script src="/vs-app.js?v=20261109a"></script>
 <script src="/keepitil-pager.js?v=20260820e" defer></script>
 <script>
 /* VS subpage view switch (Founder 2026-08-05): rail drives vs-app.js via window.vsGo(view).
@@ -327,5 +340,6 @@ function vrGoSub(sp){ var dd=document.getElementById('vrSubDD'); if(dd)dd.classL
 })();
 document.addEventListener('click',function(e){ var dd=document.getElementById('vrSubDD'),b=document.getElementById('vrSubBtn'); if(dd&&dd.classList.contains('open')&&!dd.contains(e.target)&&b&&!b.contains(e.target))dd.classList.remove('open'); });
 </script>
+<script src="/assets/js/kil-bf-popup.js?v=20261109a" defer></script>
 </body>
 </html>

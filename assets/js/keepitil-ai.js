@@ -4,7 +4,7 @@
  * Self-contained, zero dependencies.
  */
 // Auto-load KEEPITIL Radio Bar on every page
-(function(){if(!window.__kilRadioInit){var s=document.createElement('script');s.src='/assets/js/keepitil-radio.js?v=20260929a';document.head.appendChild(s);}})();
+(function(){if(!window.__kilRadioInit){var s=document.createElement('script');s.src='/assets/js/keepitil-radio.js?v=20261109a';document.head.appendChild(s);}})();
 // Swap nav logo PNGs to extracted transparent X marks + resize (keepitil-radio.js handles this on load; this is a fallback)
 (function(){
   function swapNavLogos(){
@@ -581,6 +581,11 @@
          keyboard and the home indicator, so adding the inset again lifts the composer off the
          keyboard by the height of the indicator and leaves a gap. */
       '#kilo-input-row{padding-bottom:12px;}}',
+      /* Touch targets (7c audit): 44px close/send and a 44px, 16px-text input on touch only.
+         The close button's negative margin keeps the header row the same height. */
+      '@media(pointer:coarse){#kilo-close{width:44px;height:44px;margin:-7px -7px -7px 0;}',
+      '#kilo-send{width:44px;height:44px;}',
+      '#kilo-input{min-height:44px;box-sizing:border-box;font-size:16px;}}',
     ].join('');
 
     var s = document.createElement('style');
@@ -673,7 +678,7 @@
           // Internal links open in same tab, external in new tab
           if (l.url.indexOf('keepitil.com') === -1 && l.url.charAt(0) !== '/') {
             a.target = '_blank';
-            a.rel = 'noopener';
+            a.rel = 'noopener noreferrer';
           }
           linksDiv.appendChild(a);
         });

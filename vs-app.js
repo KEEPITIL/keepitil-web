@@ -694,6 +694,26 @@
       + (en.collaborators     ? '<div class="cd-sec"><h3>Collaborators</h3><p>'+h(en.collaborators)+'</p></div>' : '');
   }
 
+  /* VS-SIGNED-MEDIA:BEGIN (17A PR-C, draft) - pending entries: media is shown through a SHORT-LIVED SIGNED URL (viewer must pass the vs-entries SELECT policy: owner / reviewer / admin);
+     approved entries keep their public URL. While the bucket is still public a failed signing silently keeps the stored public URL, so this is safe to ship BEFORE the bucket flip. */
+  var VS_BUCKET = 'vs-entries', VS_SIGN_TTL = 3600;
+  function vsPathFromPublicUrl(u){
+    var m = /\/storage\/v1\/object\/(?:public|sign)\/vs-entries\/([^?#]+)/.exec(String(u || ''));
+    if(!m) return null;
+    try { return decodeURIComponent(m[1]); } catch(e){ return null; }
+  }
+  function vsSignPendingMedia(en, pending){
+    if(!pending || !en || !SB || !SB.storage) return Promise.resolve(en);
+    return Promise.all(['thumb_url', 'cover_url'].map(function(k){
+      var p = vsPathFromPublicUrl(en[k]);
+      if(!p) return null;
+      return SB.storage.from(VS_BUCKET).createSignedUrl(p, VS_SIGN_TTL).then(
+        function(r){ if(r && r.data && r.data.signedUrl) en[k] = r.data.signedUrl; },
+        function(){ /* keep the stored URL */ });
+    })).then(function(){ return en; });
+  }
+  /* VS-SIGNED-MEDIA:END */
+
   function renderEntry(id){
     busy('Loading entry…');
     Promise.all([
@@ -724,7 +744,8 @@
            returns total_votes per entry and sorts by it, so the ranking below cannot disagree
            with the counts on the cards above. Approved only — the same gate this entry passes. */
         SB.rpc('vs_feed', { p_competition: e.competition_id, p_sort: 'top', p_limit: 60 }),
-        SB.from('vs_entry_media').select('url').eq('entry_id', e.id).eq('mtype', 'link').limit(1)
+        SB.from('vs_entry_media').select('url').eq('entry_id', e.id).eq('mtype', 'link').limit(1),
+        vsSignPendingMedia(e, pending)          /* 17A: rewrites e.thumb_url / e.cover_url to signed URLs for a pending entry (owner/reviewer view) */
       ]).then(function(rs){
         var lk = ((rs[2] && rs[2].data) || [])[0];
         var listen = lk && SC_RE.test(lk.url)

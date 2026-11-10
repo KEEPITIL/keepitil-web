@@ -1,0 +1,12 @@
+{
+  "375_boot": "true|idle|scrollW=375|innerW=375",
+  "375_2-admitted": "admitted|✓ / Admitted / Let them in. / Tier: VIP / Admits 2 people / Event: Doors Open: Friday Night|buyer-in-page=false|scrollW=375",
+  "375_3-already-used": "already_used|! / Already admitted / This ticket was already scanned. / Tier: GA / Admits 1 person / First scanned at 11:42 PM / Event: Doors Open: Friday Night|buyer-in-page=false|scrollW=375",
+  "375_4-not-your-event": "forbidden|✕ / Not your event / You are not on the door for this event.|buyer-in-page=false|scrollW=375",
+  "375_5-offline-error": "error|✕ / Could not check this ticket / Check your connection and try again.|buyer-in-page=false|scrollW=375",
+  "desktop_boot": "true|idle|scrollW=1265|innerW=1280",
+  "desktop_2-admitted": "admitted|✓ / Admitted / Let them in. / Tier: VIP / Admits 2 people / Event: Doors Open: Friday Night|buyer-in-page=false|scrollW=1265",
+  "desktop_3-already-used": "already_used|! / Already admitted / This ticket was already scanned. / Tier: GA / Admits 1 person / First scanned at 11:42 PM / Event: Doors Open: Friday Night|buyer-in-page=false|scrollW=1265",
+  "desktop_4-not-your-event": "forbidden|✕ / Not your event / You are not on the door for this event.|buyer-in-page=false|scrollW=1265",
+  "desktop_5-offline-error": "error|✕ / Could not check this ticket / Check your connection and try again.|buyer-in-page=false|scrollW=1265"
+}

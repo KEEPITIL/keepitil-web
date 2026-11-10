@@ -4,7 +4,7 @@
          -> negative controls (mutants of the combined order) -> reverse-order ROLLBACK pass with an exact catalog diff against the snapshot taken before each forward step.
    Outputs: out/matrix-results.json, out/run-combined-output.txt (stdout), and the generated F3 copies under out/generated/. Exit 0 only if every expected result occurred.   */
 import { join } from "node:path";
-import { HERE, UP, P10A, F3, A11, rd, U, A22, INS19, UPD14, E45, E44, sorted, eq, lit, open, closeDb, dump, clone, su, one, as, tx, denied, colset, tp, fnp, collector, snapshot, diffSnap, brief, fp, mutate, ensureDir, writeFileSync } from "./lib/core.mjs";
+import { ENGINE, PGM, HERE, UP, P10A, F3, A11, rd, U, A22, INS19, UPD14, E45, E44, sorted, eq, lit, open, closeDb, dump, clone, su, one, as, tx, denied, colset, tp, fnp, collector, snapshot, diffSnap, brief, fp, mutate, ensureDir, writeFileSync } from "./lib/core.mjs";
 import * as steps from "./lib/steps.mjs";
 import * as steps2 from "./lib/steps2.mjs";
 import { WEB, APP, isReset } from "./lib/payloads.mjs";
@@ -13,12 +13,15 @@ import { makeF3Lab } from "./lib/f3lab.mjs";
 import { probes, PROBE_IDS } from "./lib/probes.mjs";
 import { execSync } from "node:child_process";
 
+const SUF = ENGINE === "pg" ? "-real-pg" : "";    // output names: real-PostgreSQL results never overwrite the PGlite ones
 const T0 = Date.now(); const OUT = ensureDir(join(HERE, "out")), GEN = ensureDir(join(OUT, "generated"));
 const LINES = []; const log = (...a) => { const t = a.join(" "); LINES.push(t); console.log(t); };
-process.on("uncaughtException", (e) => { console.log("FATAL: " + String(e && e.message || e).slice(0, 600)); process.exit(2); });
+const finish = async (code) => { if (PGM) { try { await PGM.cleanupAll(); await PGM.dropRoles(); await PGM.shutdownAdmin(); } catch (e) { console.log("cleanup: " + e.message); } } process.exit(code); };
+process.on("uncaughtException", async (e) => { console.log("FATAL: " + String(e && e.message || e).slice(0, 600) + (e && e.stack ? "\n" + e.stack.split("\n").slice(1, 4).join("\n") : "")); await finish(2); });
 
 /* ------------------------------------------------------------------ inputs (verbatim files; nothing is edited except the documented, mechanical transformations below) */
-const REPLICA = rd(HERE, "COMBINED-REPLICA.sql");
+let REPLICA = rd(HERE, "COMBINED-REPLICA.sql");
+if (PGM) { await PGM.ensureRoles(); REPLICA = mutate(REPLICA, "create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;", "-- (real PG: the three stand-in roles are cluster-wide and created by lib/pgdb.mjs ensureRoles())", "replica roles"); }
 const A1 = rd(UP, "APPLY-1.sql"), A1B = rd(UP, "APPLY-1B-kind-check.sql"), A92 = rd(UP, "APPLY-92.sql"), A2 = rd(UP, "APPLY-2.sql");
 const C1C = rd(P10A, "APPLY-1C-grant-narrowing_PROPOSED.sql"), A92_44 = rd(P10A, "APPLY-92-44col_PROPOSED.sql"), RB1C = rd(P10A, "ROLLBACK-1C_PROPOSED.sql"), RB2X = rd(P10A, "ROLLBACK-2-after-1C_PROPOSED.sql");
 const FP3 = "2026-11-09_f3_media_rls_connect_publish_gate_";
@@ -67,9 +70,9 @@ async function runStep(id, title, db, sql, assertFn, { expectFail = null } = {})
   record(R.steps, a, id); show(a); return r; }
 
 /* =================================================================== BASELINE (S0) */
-const P = await (await import("./lib/core.mjs")).loadPGlite();
+if (!PGM) await (await import("./lib/core.mjs")).loadPGlite();
 R.engine = (await (async () => { const d = await open(); const v = (await one(d, "select version() v")).v; await closeDb(d); return v.split(" on ")[0]; })());
-log(`11B combined RLS rehearsal  engine=${R.engine}  (production is PostgreSQL 17.6; PGlite is a stand-in)`);
+log(`11B combined RLS rehearsal  engine=${R.engine}  mode=${ENGINE}  (production is PostgreSQL 17.6; ${PGM ? "REAL PostgreSQL over a Unix socket on localhost" : "PGlite is a stand-in"})`);
 const db = await open(); await db.exec(REPLICA);
 const cat0 = await snapshot(db); const FP0 = await fp(db); R.fingerprints.FP0_baseline = FP0;
 const B = { S0: await dump(db) };
@@ -157,7 +160,7 @@ await runMatrixOn(B.S10, "after-step-10 (APPLY-2)");
 const lab = makeF3Lab({ F3_FW, F3_RB, F3_DQ, ORIG: F3_ORIG_FP, regen: regenF3Rollback, pre: B.S6, post11A: A11_FN });
 for (const c of await lab.drift()) MX.push({ state: "pre-F3 (after 1C)", ...c });
 for (const c of await lab.rollback()) MX.push({ state: "pre-F3 (after 1C) + F3 forward", ...c });
-{ const { db: wf, rbRegen } = await lab.worldFwd(); try { await wf.exec("grant truncate on public.profile_content to anon"); const r = await tx(wf, rbRegen);
+{ const { db: wf, rbRegen, rbRegenNoEnd } = await lab.worldFwd(); try { await wf.exec("grant truncate on public.profile_content to anon"); const r = await tx(wf, PGM ? rbRegenNoEnd : rbRegen);   /* real PG: the rollback's ORDER-sensitive FINAL guard refuses for an unrelated reason (relacl entry order, see R1.exact); the scope question is about the START guard, so only the final guard is bypassed */
     MX.push({ state: "pre-F3 + F3 forward", id: "FIND.scope", case: "FIND", ok: r.ok === true, name: "FIND-3 (reproduced): F3's drift/rollback fingerprint does not cover profile_content (nor profile_claim_requests, private.account_age): a 1C privilege re-granted on profile_content after F3 is NOT detected by F3's rollback guard (the rollback proceeds). 1C's own block-H fingerprint is the only guard for those tables", why: r.err || "" }); } finally { await closeDb(wf); } }
 // gate readiness (F3 README REVIEW NOTE 1) on the combined replica
 { const w = await clone(B.S6); const r = (await w.query(F3_GR)).rows[0]; await closeDb(w); R.fingerprints.gate_readiness_replica = r;
@@ -203,7 +206,7 @@ const CHANGED_NOTE = { C1: "Layer changed: with 1C the first denial is the colum
   C3: "CHANGED MEANING: #91/1C column denial takes precedence over the legacy C3 type-edit expectation. account_type, tagline, pronouns, book_email, badges, highlights, entity_category (and slug) are now refused (42501) instead of resetting review; the 11 owner-writable content columns still reset review; profile_public/public_fields are writable and do NOT reset review (F3 README row 6).",
   C4: "The recorded final web payload is a diff UPDATE keyed by slug (no 19-key upsert any more); the bundled app's 19-key upsert is refused (designed denial).", C5: "The web no-op writes nothing; the legacy 'account_type:null' no-op (C5-INFO) is now refused before the trigger.",
   C6: "CHANGED MEANING: re-assigning the old identical gate value is now refused by the column ACL (F3 permitted it).", C8: "C8d CHANGED MEANING: admin+owner self-publication is closed by 1C on the client path. C8e/FIND: DEFINER admin paths now run the completeness gate.",
-  C10: "CHANGED MEANING: claim_profile is revoked by APPLY-1; creation goes request_profile_claim -> approve_profile_claim -> owner's first save." };
+  ...(PGM ? { R1: "REAL-PG DIFFERENCE: on PostgreSQL 17.6 the F3 rollback's final fingerprint guard refuses even right after F3 forward (aclitem entry order of two tag_* functions differs after the rollback re-grants); semantic exactness holds (R1.exact-semantic)." } : {}), C10: "CHANGED MEANING: claim_profile is revoked by APPLY-1; creation goes request_profile_claim -> approve_profile_claim -> owner's first save." };
 const cases = CASES.map(([id, title, expected]) => {
   const subs = MX.filter((c) => c.case === id); const f = FORCED[id]; const failed = subs.filter((c) => !c.ok);
   let status, reason = "";
@@ -229,6 +232,16 @@ for (const [k, blob] of [["after step 5 (APPLY-1/1B/92 + attestation; 22-column 
   const w = await clone(blob); const r = await steps2.appRun(w); const m = steps2.metaCalls(r)[0]; await closeDb(w);
   R.appPayload.push({ stage: k, upsertAccepted: !m.err, sqlstate: m.code || null, error: m.err || null, publishedPageStatusAfter: r.row.status, demotedToReview: isReset(r.row), accountTypeAfter: r.row.account_type }); }
 log("\n== BUNDLED APP SAVE (old 19-key upsert incl account_type) at each stage:"); for (const x of R.appPayload) log(`  ${x.stage}: accepted=${x.upsertAccepted}${x.sqlstate ? " sqlstate=" + x.sqlstate : ""}${x.error ? " '" + x.error + "'" : ""} -> published page is now '${x.publishedPageStatusAfter}'${x.demotedToReview ? " (DEMOTED, evidence cleared)" : ""}`);
+
+/* =================================================================== REAL-POSTGRESQL-ONLY CHECKS (PostgREST-style separate connections, concurrency/lock timings, PG17 catalog behaviour)
+   Counted separately: the 26-case matrix keeps its own totals so it stays comparable with the PGlite run. */
+if (PGM) {
+  const { realPgSuite } = await import("./lib/realpg.mjs");
+  log("\n== REAL-POSTGRESQL-ONLY: PostgREST-style requests in separate connections, concurrency (lock waits), PostgreSQL 17 catalog behaviour");
+  R.realpg = await realPgSuite({ B, lab, F3_FW, F3_RB, regen: regenF3Rollback, A1, F3_ORIG: F3_ORIG_FP, F3_DQ });
+  for (const c of R.realpg) { log(`  ${c.ok ? "PASS" : "FAIL"} ${c.id}  ${c.name}${c.ok ? "" : "\n       -> " + c.why}${c.metrics && Object.keys(c.metrics).length ? "\n       metrics " + JSON.stringify(c.metrics) : ""}`); if (!c.ok) failures++; }
+  log(`REAL-PG-ONLY: ${R.realpg.filter((c) => c.ok).length}/${R.realpg.length} pass`);
+}
 
 /* =================================================================== NEGATIVE CONTROLS: mutants of the combined order */
 log("\n== NEGATIVE CONTROLS (mutants of the combined order; each must FAIL its named probes; the unmutated order must pass them all)");
@@ -354,14 +367,14 @@ R.rollback = RB;
 /* =================================================================== OUTPUTS */
 R.totalFailures = failures; R.elapsedSec = Math.round((Date.now() - T0) / 1000);
 R.stepsSummary = Object.values(R.steps.reduce((m, c) => { (m[c.step] = m[c.step] || { step: c.step, checks: 0, pass: 0 }).checks++; if (c.ok) m[c.step].pass++; return m; }, {}));
-writeFileSync(join(OUT, "matrix-results-full.json"), JSON.stringify(R, null, 1) + "\n");
-writeFileSync(join(HERE, "matrix-results.json"), JSON.stringify({ generated: R.generated, engine: R.engine, totals: R.matrix.totals, cases: R.matrix.cases.map((c) => ({ id: c.id, title: c.title, status: c.status, reason: c.reason, note: c.note, changedMeaning: c.changedMeaning, designedDenial: c.designedDenial, checks: c.checks, passed: c.passed, failedChecks: c.subchecks.filter((x) => !x.ok).map((x) => x.id) })), supplementary: R.matrix.supplementary, steps: R.stepsSummary, negativeControls: { mutants: NCR.length, behavedAsRequired: NCR.filter((x) => x.ok).length, items: NCR.map((x) => ({ id: x.id, desc: x.desc, ok: x.ok, failedProbes: x.failedProbes, note: x.note || "" })) }, rollback: { checks: RB.length, passed: RB.filter((x) => x.ok).length, items: RB.map((x) => ({ id: x.id, ok: x.ok, name: x.name, why: x.why })) }, fingerprints: R.fingerprints, h11: R.h11, appPayload: R.appPayload, rollback1Residual: R.rollback1Residual, rollback1OptionB: R.rollback1OptionB }, null, 1) + "\n");
+writeFileSync(join(OUT, `matrix-results-full${SUF}.json`), JSON.stringify(R, null, 1) + "\n");
+writeFileSync(join(HERE, `matrix-results${SUF}.json`), JSON.stringify({ generated: R.generated, engine: R.engine, totals: R.matrix.totals, cases: R.matrix.cases.map((c) => ({ id: c.id, title: c.title, status: c.status, reason: c.reason, note: c.note, changedMeaning: c.changedMeaning, designedDenial: c.designedDenial, checks: c.checks, passed: c.passed, failedChecks: c.subchecks.filter((x) => !x.ok).map((x) => x.id) })), supplementary: R.matrix.supplementary, steps: R.stepsSummary, negativeControls: { mutants: NCR.length, behavedAsRequired: NCR.filter((x) => x.ok).length, items: NCR.map((x) => ({ id: x.id, desc: x.desc, ok: x.ok, failedProbes: x.failedProbes, note: x.note || "" })) }, rollback: { checks: RB.length, passed: RB.filter((x) => x.ok).length, items: RB.map((x) => ({ id: x.id, ok: x.ok, name: x.name, why: x.why })) }, fingerprints: R.fingerprints, h11: R.h11, appPayload: R.appPayload, rollback1Residual: R.rollback1Residual, rollback1OptionB: R.rollback1OptionB, realPgOnly: R.realpg ? { checks: R.realpg.length, passed: R.realpg.filter((x) => x.ok).length, items: R.realpg.map((x) => ({ id: x.id, ok: x.ok, name: x.name, why: x.why, metrics: x.metrics })) } : undefined }, null, 1) + "\n");
 
 /* ---- MATRIX-RESULTS.md (generated from the same data, so the numbers cannot drift from the JSON) */
 { const t = R.matrix.totals; const esc = (x) => String(x).replace(/\|/g, "\\|").replace(/\n/g, " ");
   const md = [];
-  md.push("# MATRIX-RESULTS.md - slice 11B combined RLS rehearsal (PARTIAL, PGlite; proposal only)", "",
-    `Generated by \`node db/proposed/11b-combined-rehearsal/run-combined.mjs\` (${R.generated}); engine ${R.engine}. Machine-readable: \`matrix-results.json\`. NOTHING here was run against production; PGlite is a stand-in (production is PostgreSQL 17.6, real Supabase roles/PostgREST/JWT/Storage are absent). Atlas's cases were run on the COMBINED final state (APPLY-1, 1B, APPLY-92, attestation, 1C, F3 re-baselined, 11A, then again after APPLY-2), not on F3 alone.`, "",
+  md.push(`# MATRIX-RESULTS${SUF}.md - slice 11B combined RLS rehearsal (${PGM ? "REAL PostgreSQL 17.6 on localhost, Unix socket" : "PARTIAL, PGlite"}; proposal only)`, "",
+    `Generated by \`node db/proposed/11b-combined-rehearsal/run-combined.mjs\` (${R.generated}); engine ${R.engine}. Machine-readable: \`matrix-results.json\`. NOTHING here was run against production; ${PGM ? "engine = a real local PostgreSQL 17.6 server (Unix socket only); hand-made anon/authenticated/service_role/postgres stand-in roles, no PostgREST/JWT-over-HTTP/Storage" : "PGlite is a stand-in (production is PostgreSQL 17.6, real Supabase roles/PostgREST/JWT/Storage are absent)"}. Atlas's cases were run on the COMBINED final state (APPLY-1, 1B, APPLY-92, attestation, 1C, F3 re-baselined, 11A, then again after APPLY-2), not on F3 alone.`, "",
     "## Totals (Atlas's 26 cases M1-M12, C1-C10, P1, D1, R1, R2)", "",
     "| | count |", "|---|---:|", `| cases | ${t.cases} |`, `| executed (EXECUTED-PASS + EXECUTED-FAIL + PARTIAL) | ${t.executed} |`, `| **EXECUTED-PASS** | ${t.pass} |`, `| **EXECUTED-FAIL** | ${t.fail} |`, `| **PARTIAL** (SQL part executed and passed; the rest BLOCKED) | ${t.partial} |`, `| **BLOCKED** (nothing executable on PGlite) | ${t.blocked} |`,
     `| sub-checks executed / passed (a case's checks run on 1-2 states) | ${t.subchecks} / ${t.subchecksPassed} |`, "",
@@ -384,8 +397,9 @@ writeFileSync(join(HERE, "matrix-results.json"), JSON.stringify({ generated: R.g
   md.push("", "## Order actually run and the post-check block after each step", "", "| step | what | post-checks | passed |", "|---|---|---:|---:|", ...R.stepsSummary.map((x) => `| ${x.step} | ${STEPN[x.step] || ""} | ${x.checks} | ${x.pass} |`));
   md.push("", "## Negative controls (mutants of the combined order)", "", `${NCR.filter((x) => x.ok).length} of ${NCR.length} behaved as required (the correct order passes all ${PROBE_IDS.length} probes first).`, "", "| id | mutant | probes that failed (as required) |", "|---|---|---|", ...NCR.map((x) => `| ${x.id} | ${esc(x.desc)} | ${x.ok ? "OK" : "BAD"}: ${esc((x.failedProbes || []).slice(0, 7).join(", "))}${x.note ? " - " + esc(x.note) : ""} |`));
   md.push("", "## Rollback pass (reverse order, exact catalog diff against the snapshot taken before each forward step)", "", "| id | result | what |", "|---|---|---|", ...RB.map((x) => `| ${x.id} | ${x.ok ? "PASS" : "FAIL"} | ${esc(x.name)}${x.why ? " - " + esc(x.why) : ""} |`), "", `ROLLBACK-1 (Option A) residue vs baseline: ${JSON.stringify(R.rollback1Residual)}`, "");
+  if (R.realpg) md.push("", "## Real-PostgreSQL-only checks (not among the 26; separate from the matrix totals)", "", `${R.realpg.filter((x) => x.ok).length} of ${R.realpg.length} pass. Timing numbers are wall-clock on a tiny synthetic database: they show who waits and for how long relative to the lock window, not production timings.`, "", "| id | result | what | metrics |", "|---|---|---|---|", ...R.realpg.map((x) => `| ${x.id} | ${x.ok ? "PASS" : "FAIL"} | ${esc(x.name)}${x.ok ? "" : " - " + esc(x.why)} | ${esc(JSON.stringify(x.metrics || {}))} |`));
   md.push("", "## Failing sub-checks", "", R.matrix.cases.flatMap((c) => c.subchecks.filter((x) => !x.ok).map((x) => `* ${c.id} / ${x.id} (${x.state}): ${x.why}`)).join("\n") || "none", "");
-  writeFileSync(join(HERE, "MATRIX-RESULTS.md"), md.join("\n")); }
-writeFileSync(join(OUT, "run-combined-output.txt"), LINES.join("\n") + "\n");
+  writeFileSync(join(HERE, `MATRIX-RESULTS${SUF}.md`), md.join("\n")); }
+writeFileSync(join(OUT, `run-combined-output${SUF}.txt`), LINES.join("\n") + "\n");
 log(`\nSUMMARY steps=${R.steps.length} checks (${R.steps.filter((x) => x.ok).length} pass)  matrix=${JSON.stringify(R.matrix.totals)}  negative controls=${NCR.filter((x) => x.ok).length}/${NCR.length}  rollback=${RB.filter((x) => x.ok).length}/${RB.length}  failures=${failures}  elapsed=${R.elapsedSec}s`);
-process.exit(failures ? 1 : 0);
+await finish(failures ? 1 : 0);

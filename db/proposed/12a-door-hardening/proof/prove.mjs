@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import * as PG from "../../11b-combined-rehearsal/lib/pgdb.mjs";
 import { ORIG, HARD, MD5, REPO_PACK_KEY, buildAll, bodyOf } from "../build.mjs";
 import { aclSorted } from "../../r1-fix-f3-acl-locks/build-variants.mjs";
+import { adaptScanResponse, adaptTicketResponse } from "../adapter/door-scan-adapter.mjs";
 
 const HERE = join(dirname(fileURLToPath(import.meta.url)), "..");
 const rd = (...p) => readFileSync(join(HERE, ...p), "utf8");
@@ -22,7 +23,7 @@ const md5 = (s) => createHash("md5").update(s).digest("hex");
 const tok = (label) => md5("12a-fixture-token-" + label);
 const SENT_EMAIL = "sentinel.buyer.9f3k@example.invalid", SENT_HANDLE = "sentinel_buyer_handle_9f3k";
 const U = { OWN: "a0000000-0000-4000-8000-0000000000a1", OTH: "a0000000-0000-4000-8000-0000000000a2", NOH: "a0000000-0000-4000-8000-0000000000a3", EMP: "a0000000-0000-4000-8000-0000000000a4" };
-const WHO = { owner: ["authenticated", U.OWN], other: ["authenticated", U.OTH], noh: ["authenticated", U.NOH], emp: ["authenticated", U.EMP], anon: ["anon", ""], service: ["service_role", ""] };
+const WHO = { owner: ["authenticated", U.OWN], other: ["authenticated", U.OTH], noh: ["authenticated", U.NOH], nosub: ["authenticated", ""], emp: ["authenticated", U.EMP], anon: ["anon", ""], service: ["service_role", ""] };
 const SIG = { scan: "public.event_checkin_scan(text)", ticket: "public.check_in_ticket(text)", core: "private.door_checkin_core(text)" };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const only = (process.argv.find((a) => a.startsWith("--only=")) || "").slice(7);
@@ -213,6 +214,36 @@ async function main() {
   await matrix("M26", "response codes: ticket keeps its legacy keys (status,event,tier,qty,checked_in,sold,at) minus 'buyer'", "detects", async (x) => { const r = await x.call("owner", T.paid1); const k = Object.keys(r.raw).sort().join(","); return (k === "at,checked_in,event,qty,sold,status,tier") || k; }, ["ticket"]);
   await matrix("M27", "ticket counters: checked_in/sold are aggregate counts for the event's paid orders", "baseline", async (x) => { await x.call("owner", T.paid1); const r = await x.call("owner", T.paid2); return (adm(r) && r.raw.checked_in === 3 && r.raw.sold === 9) || JSON.stringify(r.raw); }, ["ticket"]);
 
+
+  /* ---- FINALIZE additions (derived-conditions job): see DERIVED-CONDITIONS.md ---- */
+  await matrix("M28", "over-long payloads (129, 1000, 100000 chars) are refused cleanly (no error, nothing admitted)", "baseline", async (x) => { const rs = []; for (const n of [129, 1000, 100000]) rs.push(await x.call("owner", "a".repeat(n)));
+    return (rs.every((r) => r.code === "invalid") && (await x.admittedCount()) === 0) || JSON.stringify(rs.map((r) => r.code)); });
+  await matrix("M29", "SQL/LIKE metacharacters, token prefix, token+1 char and uppercased token are exact-match misses (invalid), nothing admitted", "baseline", async (x) => { const rs = [];
+    for (const t of ["%", "_", "' OR '1'='1", "\\", "KIL-%", T.paid1.slice(0, 31), T.paid1 + "0", T.paid1.toUpperCase(), "%" + T.paid1.slice(1)]) rs.push(await x.call("owner", t));
+    return (rs.every((r) => r.code === "invalid") && (await x.admittedCount()) === 0) || JSON.stringify(rs.map((r) => r.code)); });
+  await matrix("M30", "refund AFTER admission: the order re-scans as unpaid and its admission time is not rewritten", "baseline", async (x) => { const a = await x.call("owner", T.paid1); const t1 = (await x.state(1)).checked_in_at; await x.w.q("update public.event_orders set status='refunded' where id=1");
+    const b = await x.call("owner", T.paid1); const t2 = (await x.state(1)).checked_in_at; return (adm(a) && b.code === "unpaid" && +t1 === +t2) || JSON.stringify([a.code, b.code, t1, t2]); });
+  await matrix("M31", "OWNER REVOKED MID-SCAN: event ownership moves to someone else after the scan read the order but before it writes -> refused (forbidden), nothing admitted", { scan: "n/a", ticket: "detects" }, async (x) => ownerRevokedMidScan(x));
+  await matrix("M32", "NULL order status (CHECK allows NULL; prod nullability unverified) is refused as unpaid and never admitted (the ORIGINAL check_in_ticket ADMITS it: NULL <> 'paid' is not true)", { scan: "baseline", ticket: "detects" }, async (x) => {
+    await x.w.q("alter table public.event_orders alter column status drop not null"); await x.w.q("update public.event_orders set status=null where id=2"); const r = await x.call("owner", T.paid2); const s = await x.state(2);
+    return (r.code === "unpaid" && s.checked_in_at === null) || "code=" + r.code + " admitted_in_db=" + (s.checked_in_at !== null); });
+  await matrix("M33", "per-order semantics (documented): a qty=3 order is admitted whole by ONE scan, a second scan is already_used, and qty is reported", "baseline", async (x) => { const a = await x.call("owner", T.notier); const b = await x.call("owner", T.notier); const s = await x.state(10);
+    const q = (r) => (x.fn === "scan" ? r.raw.qty : r.raw.qty); return (adm(a) && q(a) === 3 && b.code === "already_used" && s.checked_in_at !== null && s.qty === 3) || JSON.stringify([a.code, b.code, q(a)]); });
+  await matrix("M34", "only ONE 'KIL-' is stripped and only that exact spelling: 'KIL-KIL-<t>', 'KIL -<t>', 'KIL_<t>', 'KIL:<t>' are refused", "baseline", async (x) => { const rs = [];
+    for (const t of ["KIL-KIL-" + T.paid1, "KIL -" + T.paid1, "KIL_" + T.paid1, "KIL:" + T.paid1]) rs.push(await x.call("owner", t)); return (rs.every((r) => r.code === "invalid") && (await x.admittedCount()) === 0) || JSON.stringify(rs.map((r) => r.code)); });
+  await matrix("M35", "signed-in role with NO JWT subject (authenticated, empty sub) is refused; hardened answers unauth; nothing admitted", "baseline", async (x, v) => { const r = await x.call("nosub", T.paid1);
+    return (r.code !== "admitted" && r.code !== "error" && (await x.admittedCount()) === 0 && (v !== "hardened" || r.code === "unauth")) || JSON.stringify(r.code); });
+  await matrix("M36", "order vanishes between the duplicate check and the read (simulated: FK dropped, event row deleted): refused cleanly, no raised error, nothing admitted", { scan: "baseline", ticket: "baseline" }, async (x) => {
+    await x.w.q("alter table public.event_orders drop constraint event_orders_event_id_fkey"); await x.w.q("delete from public.events where id=2"); const r = await x.call("owner", T.nullowner); const s = await x.state(8);
+    return (r.code !== "error" && r.code !== "admitted" && s.checked_in_at === null) || JSON.stringify({ code: r.code, err: r.err, errcode: r.errcode }); });
+  await matrix("M37", "TOKEN-FREE: no response (any result code) contains the scanned token, its first 8 chars, or an echo of a garbage payload", "baseline", async (x) => {
+    const sc = [await x.call("owner", T.paid1), await x.call("owner", "KIL-" + T.paid1), await x.call("owner", T.refunded), await x.call("other", T.paid2), await x.call("owner", "KIL-echo-me-9f3k7"), await x.call("service", T.paid2), await x.call("noh", T.paid2)];
+    const bad = sc.filter((r) => !r.json || r.json.includes(T.paid1) || r.json.includes(T.paid1.slice(0, 8)) || r.json.includes(T.refunded.slice(0, 8)) || r.json.includes("echo-me-9f3k7"));
+    return (bad.length === 0 && sc.length === 7) || JSON.stringify(bad.map((b) => b.json)); });
+  await matrix("M38", "every value in every response is a scalar (string/number/bool/null): no nested object can smuggle a row or contact", "baseline", async (x) => {
+    const sc = [await x.call("owner", T.paid1), await x.call("owner", T.paid1), await x.call("owner", T.refunded), await x.call("other", T.paid2), await x.call("owner", tok("nope")), await x.call("owner", "")];
+    const bad = sc.flatMap((r) => Object.entries(r.raw || {})).filter(([, v]) => v !== null && typeof v === "object"); return bad.length === 0 || JSON.stringify(bad); });
+
   /* ---- detector self-checks: mutated hardened code MUST make the concurrency / refund / hijack tests fail (proves the tests can fail) ---- */
   const mut = async (id, name, from, to, test) => structural(id, name, async () => {
     const w = await mkWorld(tplHard); try { const s = HARD.core.replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION"); if (!s.includes(from)) throw new Error("anchor missing"); await w.q(s.replace(from, to)); const x = wrap(w, "scan"); const v = await test(x); return v !== true ? true : "the detector did NOT detect the mutation"; } finally { await w.close(); } });
@@ -227,6 +258,10 @@ async function main() {
       const rc = await req(w.auth, "authenticated", U.NOH, "select public.ctl_unqualified($1) j", [tok("evil")], "set local search_path = evil, public");
       const rh = await callRaw(x, "noh", tok("evil"), { pre: "set local search_path = evil, public" });
       return (rc.rows && rc.rows[0].j.code === "admitted" && rh.code === "invalid") || JSON.stringify({ control: rc.rows ? rc.rows[0].j : rc.err, hardened: rh.code }); } finally { await w.close(); } });
+
+  await mut("D04", "detector: core WITHOUT the in-UPDATE ownership re-check admits after ownership moved mid-scan (M31 fails as it should)", "       and exists (select 1 from public.events ev\n                    where ev.id = eo.event_id\n                      and nullif(ev.owner_handle, '') is not null\n                      and pg_catalog.lower(ev.owner_handle) = pg_catalog.lower(v_handle))\n", "", (x) => ownerRevokedMidScan(x));
+  await mut("D05", "detector: core WITHOUT the 'not found' guard after the order read raises an error when the order vanishes (M36 fails as it should)", "  if not found then\n    return pg_catalog.jsonb_build_object('code', 'invalid');   -- order vanished between the duplicate check and this read\n  end if;\n", "", async (x) => {
+    await x.w.q("alter table public.event_orders drop constraint event_orders_event_id_fkey"); await x.w.q("delete from public.events where id=2"); const r = await x.call("owner", T.nullowner); return (r.code !== "error") || "raised an error"; });
 
   /* ============================ B. packs ============================ */
   await structural("P01", "static: every APPLY/ROLLBACK pack = ONE BEGIN, SET LOCAL lock_timeout 5s then advisory lock 2979301232487107403 then SET LOCAL lock_timeout 5s as the exact statements 2-4 after it (tightened from: lock is statement 2), one COMMIT last, drift guard, no data DML, no secrets", async () => {
@@ -317,6 +352,80 @@ async function main() {
       const leaks = [SENT_EMAIL, SENT_HANDLE, ...Object.values(T), "DoorOwner", "door.owner"].filter((s) => out.includes(s));
       return (leaks.length === 0 && stmts.length >= 10 && n > 30) || JSON.stringify({ leaks, stmts: stmts.length, n }); } finally { await w.close(); } });
 
+  /* ============================ B2. finalize additions: readers unchanged, adapter cross-check (live), verify SQL, optional UNIQUE-index pack ============================ */
+  const tableFp = async (w) => (await w.q(`select jsonb_build_object(
+    'cols', (select jsonb_agg(jsonb_build_array(c.table_name, c.column_name, c.data_type, c.is_nullable, c.column_default) order by c.table_name, c.ordinal_position) from information_schema.columns c where c.table_schema = 'public'),
+    'policies', (select jsonb_agg(jsonb_build_array(tablename, policyname, permissive, roles::text, cmd, qual, with_check) order by tablename, policyname) from pg_policies where schemaname = 'public'),
+    'acl', (select jsonb_agg(jsonb_build_array(c.relname, c.relacl::text, c.relrowsecurity, c.relforcerowsecurity) order by c.relname) from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind in ('r','v','S')),
+    'idx', (select jsonb_agg(indexdef order by indexname) from pg_indexes where schemaname = 'public'),
+    'cons', (select jsonb_agg(conname || ':' || pg_get_constraintdef(oid) order by conname) from pg_constraint where connamespace = 'public'::regnamespace),
+    'triggers', (select count(*) from pg_trigger where not tgisinternal),
+    'other_funcs', (select jsonb_object_agg(p.oid::regprocedure::text, md5(p.prosrc)) from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname not in ('event_checkin_scan','check_in_ticket')),
+    'data', jsonb_build_object('orders', (select md5(coalesce(string_agg(t::text, '|' order by id), '')) from public.event_orders t), 'events', (select md5(coalesce(string_agg(t::text, '|' order by id), '')) from public.events t),
+      'users', (select md5(coalesce(string_agg(t::text, '|' order by id), '')) from public.app_users t), 'tiers', (select md5(coalesce(string_agg(t::text, '|' order by id), '')) from public.ticket_tiers t))) j`)).rows[0].j;
+  await structural("R01", "12A changes NO table, column, policy, grant, index, constraint, trigger, RLS flag, other public function or table data (catalog+data fingerprint equal before and after both packs); every other reader of event_orders/status/checked_in_at is therefore untouched", async () => {
+    const a = await mkWorld(tplOrig), b = await mkWorld(tplHard); try { const fa = await tableFp(a), fb = await tableFp(b); return (JSON.stringify(fa) === JSON.stringify(fb) && fa.other_funcs && Object.keys(fa.other_funcs).length >= 2) || "fingerprints differ: " + Object.keys(fa).filter((k) => JSON.stringify(fa[k]) !== JSON.stringify(fb[k])).join(","); } finally { await a.close(); await b.close(); } });
+  await structural("R01c", "NEGATIVE CONTROL for R01: an added index, a changed policy, a changed grant, or a changed other function each make the fingerprint differ (the fingerprint can fail)", async () => {
+    const base = await mkWorld(tplHard); const f0 = JSON.stringify(await tableFp(base)); await base.close(); const muts = [["index", "create index zz_i on public.event_orders(status)"], ["policy", "alter policy orders_anon_insert on public.event_orders with check (false)"],
+      ["grant", "revoke truncate on public.event_orders from anon"], ["func", "create function public.zz_f() returns int language sql as 'select 1'"], ["data", "update public.event_orders set qty = qty + 1 where id = 1"]]; const miss = [];
+    for (const [n, q] of muts) { const w = await mkWorld(tplHard); try { await w.q(q); if (JSON.stringify(await tableFp(w)) === f0) miss.push(n); } finally { await w.close(); } } return miss.length === 0 || "fingerprint did NOT change for: " + miss.join(","); });
+  const admitDump = async (w, fn) => { const x = wrap(w, fn); for (const t of [T.paid1, T.paid2, T.refunded, T.pending, T.statusci, T.replayed, T.paid1, tok("nope")]) await x.call("owner", t); await x.call("other", T.race);
+    return (await w.q("select id,event_id,tier_id,buyer_email,buyer_handle,qty,referral_code,qr_token,status,amount_cents,created_at,stripe_session_id,stripe_payment_intent,application_fee_cents,organizer_acct,(checked_in_at is not null) as admitted from public.event_orders order by id")).rows.map((r) => JSON.stringify(r)).join("\n"); };
+  await structural("R02", "WRITE-SET EQUALITY: after the same raw-token scan sequence the whole event_orders table is identical on the original and the hardened functions except nothing (admission still writes ONLY checked_in_at; status is never rewritten) - for both RPCs", async () => {
+    const out = {}; for (const fn of ["scan", "ticket"]) { const o = await mkWorld(tplOrig), h = await mkWorld(tplHard); try { out[fn] = (await admitDump(o, fn)) === (await admitDump(h, fn)); } finally { await o.close(); await h.close(); } }
+    return (out.scan && out.ticket) || JSON.stringify(out); });
+  await structural("R02c", "NEGATIVE CONTROL for R02: a hardened core that ALSO rewrote status to 'checked_in' makes the table differ from the original (the comparison can fail)", async () => {
+    const o = await mkWorld(tplOrig), h = await mkWorld(tplHard); try { const s = HARD.core.replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION"); const from = "set checked_in_at = pg_catalog.now()"; if (!s.includes(from)) throw new Error("anchor missing");
+      await h.q(s.replace(from, from + ", status = 'checked_in'")); return (await admitDump(o, "scan")) !== (await admitDump(h, "scan")) || "mutation not detected"; } finally { await o.close(); await h.close(); } });
+  await structural("X01", "LIVE CROSS-CHECK vs adapter: every result code the real hardened functions return (admitted, already_used, unpaid, forbidden, invalid, empty, unauth) maps to the SAME canonical code through adaptScanResponse / adaptTicketResponse, never to 'error'; keys outside the adapter whitelist are only message/order_status; an unmapped code maps to 'error' (negative control)", async () => {
+    const w = await mkWorld(tplHard); try { const seen = { scan: {}, ticket: {} }; const bad = [];
+      const SC = [["admitted", "owner", T.paid1], ["already_used", "owner", T.paid1], ["unpaid", "owner", T.refunded], ["forbidden", "other", T.paid2], ["invalid", "owner", tok("nope")], ["empty", "owner", ""], ["unauth", "service", T.paid2]];
+      const WL = { scan: ["ok", "result", "event_title", "tier", "qty", "checked_in_at", "message"], ticket: ["status", "event", "tier", "qty", "checked_in", "sold", "at", "order_status"] };
+      for (const fn of ["scan", "ticket"]) { const x = wrap(w, fn); for (const [exp, who, t] of SC) { const r = await x.call(who, t); const ad = fn === "scan" ? adaptScanResponse({ data: r.raw, error: null }) : adaptTicketResponse({ data: r.raw, error: null });
+          seen[fn][r.code] = true; if (r.code !== exp || ad.code !== exp) bad.push(fn + ":" + exp + " raw=" + r.code + " adapted=" + ad.code); for (const k of Object.keys(r.raw || {})) if (!WL[fn].includes(k)) bad.push(fn + ":" + exp + " key " + k + " not whitelisted"); } }
+      const ctl = adaptScanResponse({ data: { ok: false, result: "refund_pending" }, error: null }).code === "error" && adaptTicketResponse({ data: { status: "zzz" }, error: null }).code === "error";
+      return (bad.length === 0 && Object.keys(seen.scan).length === 7 && Object.keys(seen.ticket).length === 7 && ctl) || JSON.stringify({ bad, scan: Object.keys(seen.scan), ticket: Object.keys(seen.ticket), ctl }); } finally { await w.close(); } });
+  await structural("V01", "VERIFY-12A.sql runs read-only, returns only counts/catalog facts (no fixture contents), reports zero TEST ATLAS rows on the replica, and COUNTS a planted 'TEST ATLAS' event/order/user (negative control)", async () => {
+    const stm = (sql) => sql.replace(/^\s*--.*$/gm, "").split(/;[ \t]*\r?\n/).map((t) => t.trim()).filter(Boolean); const sql = rd("VERIFY-12A.sql"); const stmts = stm(sql);
+    if (stmts.length !== 5 || stmts.some((t) => !/^select\b/i.test(t))) return "expected 5 SELECT statements"; if (/\b(insert|update|delete|truncate|alter|create|drop|grant|revoke)\b/i.test(stmts.join(";").replace(/'[^']*'/g, "''"))) return "DML/DDL keyword";
+    const run = async (w) => { const c = await w.conn("postgres"); await c.client.query("BEGIN READ ONLY"); const out = []; try { for (const t of stmts) out.push((await c.client.query(t)).rows); } finally { await c.client.query("ROLLBACK"); } return out; };
+    const w = await mkWorld(tplHard); try { const o = await run(w); const txt = JSON.stringify(o); const leaks = [SENT_EMAIL, SENT_HANDLE, ...Object.values(T), "DoorOwner", "door.owner"].filter((q) => txt.includes(q));
+      const okFns = o[0].length === 3 && o[0].every((r) => r.security_definer === true && r.config === 'search_path=""' && r.anon_can_execute === false) && Number(o[1][0].orders_total) === 16 && o[2][0].zero_test_atlas_rows === true && Object.keys(o[3][0]).length === 5 && o[4].length === 2 && o[4].every((r) => /SECURITY DEFINER/.test(r.definition));
+      await w.q("insert into public.events(id,slug,title,owner_handle) values (500,'zz','TEST ATLAS fixture','DoorOwner'); insert into public.event_orders(event_id,qty,qr_token,status,buyer_handle) values (500,1,'" + tok("atlas") + "','paid','Test_Atlas_Buyer'); insert into public.app_users(id,handle) values ('a0000000-0000-4000-8000-0000000000f1','test.atlas')");
+      const o2 = await run(w); const ctl = o2[2][0].zero_test_atlas_rows === false && Number(o2[2][0].events_matching) === 1 && Number(o2[2][0].orders_matching) === 1 && Number(o2[2][0].users_matching) === 1;
+      return (leaks.length === 0 && okFns && ctl) || JSON.stringify({ leaks, okFns, ctl, v1: o[0].map((r) => [r.fn, r.config, r.anon_can_execute]) }); } finally { await w.close(); } });
+
+  /* ---- OPTIONAL pack: partial UNIQUE index on qr_token (NOT part of the required apply chain; non-transactional by design) ---- */
+  const OPT = (n) => rd("packs", "optional", n); const OPTN = { pre: "12a_OPT_qr_token_unique_PRECHECK.sql", apply: "12a_OPT_qr_token_unique_APPLY_PROPOSED.sql", post: "12a_OPT_qr_token_unique_POSTCHECK_PROPOSED.sql", rb: "12a_OPT_qr_token_unique_ROLLBACK_PROPOSED.sql" };
+  const stmtsOf = (sql) => sql.replace(/^\s*--.*$/gm, "").split(/;[ \t]*\r?\n/).map((t) => t.trim().replace(/;$/, "")).filter(Boolean);
+  const runStmts = async (c, sql) => { let last = null; for (const t of stmtsOf(sql)) last = await c.query(t); return last; };       // each statement on its own = autocommit (no transaction block)
+  await structural("U01", "optional UNIQUE-index pack, static: APPLY/ROLLBACK have NO BEGIN/COMMIT/advisory-xact-lock, exactly one CREATE UNIQUE INDEX CONCURRENTLY (partial, WHERE qr_token IS NOT NULL, no IF NOT EXISTS) / one DROP INDEX CONCURRENTLY IF EXISTS; PRECHECK and POSTCHECK are SELECT-only; no data DML; no secrets", async () => {
+    const a = stmtsOf(OPT(OPTN.apply)), r = stmtsOf(OPT(OPTN.rb)); const all = [OPT(OPTN.apply), OPT(OPTN.rb), OPT(OPTN.pre), OPT(OPTN.post)].join("\n").replace(/^\s*--.*$/gm, "");
+    if (/\b(BEGIN|COMMIT|START TRANSACTION|pg_advisory)/i.test(all)) return "transaction/lock keyword present"; if (a.length !== 3 || !/^SET lock_timeout/i.test(a[0]) || !/^CREATE UNIQUE INDEX CONCURRENTLY event_orders_qr_token_key ON public\.event_orders \(qr_token\) WHERE qr_token IS NOT NULL$/.test(a[1]) || !/^RESET lock_timeout/i.test(a[2])) return "apply statements: " + JSON.stringify(a);
+    if (/IF NOT EXISTS/i.test(a[1])) return "IF NOT EXISTS present"; if (r.length !== 2 || r[1] !== "DROP INDEX CONCURRENTLY IF EXISTS public.event_orders_qr_token_key") return "rollback statements: " + JSON.stringify(r);
+    for (const n of [OPTN.pre, OPTN.post]) if (stmtsOf(OPT(n)).some((t) => !/^(select|with)\b/i.test(t))) return n + ": non-SELECT"; if (/\b(INSERT\s+INTO|UPDATE\s+public|DELETE\s+FROM|TRUNCATE)\b/i.test(all)) return "data DML"; if (/password|secret|api[_-]?key|eyJ/i.test(all)) return "secret-looking text"; return true; });
+  await structural("U02", "optional pack PRECHECK on the replica: read-only, aggregates only, reports the duplicate (surplus 1, gate proceed=false) and, after the duplicate is removed, proceed=true; no token/contact leaks", async () => {
+    const w = await mkWorld(tplHard); try { const c = await w.conn("postgres"); const run = async () => { await c.client.query("BEGIN READ ONLY"); const out = []; try { for (const t of stmtsOf(OPT(OPTN.pre))) out.push((await c.client.query(t)).rows); } finally { await c.client.query("ROLLBACK"); } return out; };
+      const o1 = await run(); const txt = JSON.stringify(o1); const leaks = [SENT_EMAIL, SENT_HANDLE, ...Object.values(T)].filter((q) => txt.includes(q)); await w.q("delete from public.event_orders where id=12"); const o2 = await run();
+      return (leaks.length === 0 && o1.length === 4 && Number(o1[1][0].duplicate_surplus_rows) === 1 && Number(o1[1][0].duplicated_token_groups) === 1 && o1[3][0].proceed === false && Number(o2[1][0].duplicate_surplus_rows) === 0 && o2[3][0].proceed === true && o2[0].length === 0) || JSON.stringify({ leaks, a: o1[1][0], g1: o1[3][0], g2: o2[3][0] }); } finally { await w.close(); } });
+  await structural("U03", "optional pack, NEGATIVE CONTROL: with a duplicate token present the CONCURRENTLY build FAILS (23505) and leaves an INVALID index; POSTCHECK reports not ok; ROLLBACK removes it", async () => {
+    const w = await mkWorld(tplHard); try { const c = w.db.client; let err = null; try { await runStmts(c, OPT(OPTN.apply)); } catch (e) { err = e; } try { await c.query("RESET lock_timeout"); } catch {}
+      const inv = (await w.q("select x.indisvalid v from pg_index x where x.indexrelid = to_regclass('public.event_orders_qr_token_key')")).rows; const pc = await w.q(OPT(OPTN.post)); const rows = (Array.isArray(pc) ? pc[0] : pc).rows;
+      await runStmts(c, OPT(OPTN.rb)); const gone = (await w.q("select to_regclass('public.event_orders_qr_token_key') is null g")).rows[0].g;
+      return (err && err.code === "23505" && inv.length === 1 && inv[0].v === false && rows.find((r) => r.fact === "000_ALL_OK").ok === false && rows.find((r) => r.fact === "004_valid").ok === false && gone) || JSON.stringify({ err: err && err.code, inv, gone }); } finally { await w.close(); } });
+  await structural("U04", "optional pack on a duplicate-free replica: APPLY succeeds, POSTCHECK every row ok (valid, unique, partial, qr_token), a duplicate token is refused 23505, NULL tokens still insert, and the hardened door still admits / refuses exactly as before", async () => {
+    const w = await mkWorld(tplHard); try { await w.q("delete from public.event_orders where id=12"); const c = w.db.client; await runStmts(c, OPT(OPTN.apply)); const pc = await w.q(OPT(OPTN.post)); const rows = (Array.isArray(pc) ? pc[0] : pc).rows;
+      const dup = await req(w.auth, "service_role", "", "insert into public.event_orders(event_id,qty,qr_token,status) values (1,1,$1,'paid')", [T.paid1]); const n1 = await req(w.auth, "service_role", "", "insert into public.event_orders(event_id,qty,qr_token,status) values (1,1,null,'pending'),(1,1,null,'pending') returning id");
+      const x = wrap(w, "scan"); const a = await x.call("owner", "KIL-" + T.paid1), b = await x.call("owner", T.paid1), d = await x.call("owner", T.dup);   // T.dup row 11 is now unique and admits
+      return (rows.length === 9 && rows.every((r) => r.ok === true) && dup.code === "23505" && n1.rows && n1.rows.length === 2 && adm(a) && b.code === "already_used" && adm(d)) || JSON.stringify({ bad: rows.filter((r) => !r.ok), dup: dup.code, n1: n1.err, a: a.code, b: b.code, d: d.code }); } finally { await w.close(); } });
+  await structural("U05", "optional pack, NEGATIVE CONTROL for 'must be non-transactional': the same CREATE UNIQUE INDEX CONCURRENTLY inside BEGIN..COMMIT is refused (25001) and creates nothing", async () => {
+    const w = await mkWorld(tplHard); try { await w.q("delete from public.event_orders where id=12"); const c = w.db.client; const create = stmtsOf(OPT(OPTN.apply))[1]; await c.query("BEGIN"); let code = null; try { await c.query(create); } catch (e) { code = e.code; } await c.query("ROLLBACK");
+      const none = (await w.q("select to_regclass('public.event_orders_qr_token_key') is null g")).rows[0].g; return (code === "25001" && none) || JSON.stringify({ code, none }); } finally { await w.close(); } });
+  await structural("U06", "optional pack ROLLBACK: drops the index (idempotent, second run is a no-op), data untouched, door unaffected; the index is invisible to 12A's own drift guard (state still S2 after APPLY)", async () => {
+    const w = await mkWorld(tplHard); try { await w.q("delete from public.event_orders where id=12"); const c = w.db.client; const d0 = (await tableFp(w)).data; await runStmts(c, OPT(OPTN.apply)); const st = await drift(w); await runStmts(c, OPT(OPTN.rb)); await runStmts(c, OPT(OPTN.rb));
+      const gone = (await w.q("select to_regclass('public.event_orders_qr_token_key') is null g")).rows[0].g; const d1 = (await tableFp(w)).data; const x = wrap(w, "scan"); const a = await x.call("owner", T.paid1);
+      return (st === "S2_after-step2" && gone && JSON.stringify(d0) === JSON.stringify(d1) && adm(a)) || JSON.stringify({ st, gone, same: JSON.stringify(d0) === JSON.stringify(d1), a: a.code }); } finally { await w.close(); } });
+
   /* ============================ C. adjacent findings (replica only; NOT fixed by 12A) ============================ */
   await structural("A01", "FORGED ORDER: anon INSERTs a 'paid' order with its own qr_token for a real event (orders_anon_insert WITH CHECK true) and the door ADMITS it - on the ORIGINAL and on the HARDENED functions (12A does not and cannot fix this)", async () => {
     const res = {}; for (const [v, tpl] of [["original", tplOrig], ["hardened", tplHard]]) { const w = await mkWorld(tpl); try {
@@ -357,6 +466,14 @@ async function race(x, token, id) {
   const waited = await waitLock(pid); await a.client.query("COMMIT"); const rb = await pb;         // B was blocked on A's row lock; now re-evaluates
   const n = (await x.w.q("select count(*)::int n from public.event_orders where id=$1 and checked_in_at is not null", [id])).rows[0].n;
   return (waited && ra.code === "admitted" && rb.code === "already_used" && n === 1) || JSON.stringify({ waited, a: ra.code, b: rb.code, n });
+}
+async function ownerRevokedMidScan(x) {
+  /* A holds ACCESS EXCLUSIVE on ticket_tiers (the scan reads it AFTER its first read of the order and BEFORE its write), so the scan is parked between its read and its UPDATE;
+     meanwhile the event's ownership moves to someone else and commits. The write must re-check ownership with the committed state. */
+  const a = await x.w.conn("postgres"); await a.client.query("BEGIN"); await a.client.query("lock table public.ticket_tiers in access exclusive mode");
+  const b = await x.w.conn("authenticator"); const pid = (await b.client.query("select pg_backend_pid() p")).rows[0].p; const pb = callRaw(x, "owner", T.race, { conn: b }); const waited = await waitLock(pid);
+  await a.client.query("update public.events set owner_handle='someoneelse' where id=1"); await a.client.query("COMMIT"); const rb = await pb; const s = await x.state(15);
+  return (waited && rb.code === "forbidden" && s.checked_in_at === null) || JSON.stringify({ waited, code: rb.code, admitted: s.checked_in_at !== null });
 }
 async function plantEvil(w) {
   await w.q(`create schema evil; grant usage on schema evil to authenticated;

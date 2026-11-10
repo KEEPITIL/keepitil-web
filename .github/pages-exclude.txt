@@ -23,6 +23,11 @@ node_modules/
 tests/
 docs/
 db/
+# Supabase CLI project dir (SQL migrations, rollbacks, seed SQL, edge function sources). It lands with the
+# profile-release stack; under .nojekyll it would otherwise be served at keepitil.com/supabase/... Nothing
+# deployed references it (the closure check enforces that), and assets/js/pages-sql-exclusion.test.mjs
+# fails the build tests if ANY .sql/migration directory is left out of the artifact.
+supabase/
 package.json
 package-lock.json
 
@@ -35,3 +40,9 @@ app/tuitea/app/canvaskit/**/*.js.symbols
 # Build tooling for this very workflow, and its unit test (they name excluded files in strings).
 scripts/
 assets/js/pages-closure.test.mjs
+assets/js/pages-sql-exclusion.test.mjs
+
+# Node unit tests that live beside the shipped JS. They are not site content, and the profile-release
+# stack (#91/#92) adds ones that name supabase/ and scripts/ paths by string, which the closure check
+# would otherwise (correctly) flag, failing the Pages build.
+assets/js/*.test.mjs

@@ -1,0 +1,10 @@
+packs = r1
+pre-F3 fingerprint 47fa2fef6c85883b5d5250d3b5ea1c97
+after forward    27becdd0a9c97c034980f010b5fa0c74
+after rollback   47fa2fef6c85883b5d5250d3b5ea1c97 (EQUAL)
+  function #22 = {"acl":"{=X/postgres,anon=X/postgres,authenticated=X/postgres,postgres=X/postgres,service_role=X/postgres}","args":"p_slug text, p_kind text, p_media_url text, p_title text, p_source_url text","owner"
+  function #23 = {"acl":"{=X/postgres,anon=X/postgres,authenticated=X/postgres,postgres=X/postgres,service_role=X/postgres}","args":"p_slug text, p_kind text, p_media_url text, p_title text, p_source_url text, p_is_ar
+
+RAW: 0 differing state paths
+
+ACL-ORDER-NORMALISED: 0 differing state paths

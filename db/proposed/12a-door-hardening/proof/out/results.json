@@ -1,15 +1,15 @@
 {
  "summary": {
   "engine": "real PostgreSQL (socket)",
-  "seconds": 46,
+  "seconds": 58,
   "matrix": {
-   "total": 59,
-   "pass": 59,
+   "total": 81,
+   "pass": 81,
    "fail": 0
   },
   "packs": {
-   "total": 31,
-   "pass": 31
+   "total": 45,
+   "pass": 45
   },
   "adjacent": {
    "total": 4,
@@ -57,7 +57,7 @@
    "hardened": true,
    "hardenedWhy": "",
    "original": false,
-   "originalWhy": "{\"ok\":true,\"qty\":2,\"buyer\":\"sentinel_buyer_handle_9f3k\",\"result\":\"admitted\",\"message\":\"Admitted\",\"event_slug\":\"doors-open\",\"event_title\":\"Doors Open Night\",\"checked_in_at\":\"2026-11-09T23:03:40.115372-08:00\"}",
+   "originalWhy": "{\"ok\":true,\"qty\":2,\"buyer\":\"sentinel_buyer_handle_9f3k\",\"result\":\"admitted\",\"message\":\"Admitted\",\"event_slug\":\"doors-open\",\"event_title\":\"Doors Open Night\",\"checked_in_at\":\"2026-11-10T13:20:56.227473-08:00\"}",
    "control": "detects",
    "controlOK": true
   },
@@ -585,7 +585,7 @@
    "hardened": true,
    "hardenedWhy": "",
    "original": false,
-   "originalWhy": "{\"bad\":[\"{\\\"ok\\\":true,\\\"qty\\\":2,\\\"buyer\\\":\\\"sentinel_buyer_handle_9f3k\\\",\\\"result\\\":\\\"admitted\\\",\\\"message\\\":\\\"Admitted\\\",\\\"event_slug\\\":\\\"doors-open\\\",\\\"event_title\\\":\\\"Doors Open Night\\\",\\\"checked_in_at\\\":\\\"2026-11-09T23:03:56.691575-08:00\\\"}\",\"{\\\"ok\\\":false,\\\"qty\\\":2,\\\"buyer\\\":\\\"sentinel_buyer_handle_9f3k\\\",\\\"result\\\":\\\"already_used\\\",\\\"message\\\":\\\"Already admitted.\\\",\\\"event_title\\\":\\\"Doors Open Night\\\",\\\"checked_in_at\\\":\\\"2026-11-09T23:03:56.691575-08:00\\\"}\"],\"extra\":[\"buyer\",\"event_slug\",\"buyer\"]}",
+   "originalWhy": "{\"bad\":[\"{\\\"ok\\\":true,\\\"qty\\\":2,\\\"buyer\\\":\\\"sentinel_buyer_handle_9f3k\\\",\\\"result\\\":\\\"admitted\\\",\\\"message\\\":\\\"Admitted\\\",\\\"event_slug\\\":\\\"doors-open\\\",\\\"event_title\\\":\\\"Doors Open Night\\\",\\\"checked_in_at\\\":\\\"2026-11-10T13:21:12.217643-08:00\\\"}\",\"{\\\"ok\\\":false,\\\"qty\\\":2,\\\"buyer\\\":\\\"sentinel_buyer_handle_9f3k\\\",\\\"result\\\":\\\"already_used\\\",\\\"message\\\":\\\"Already admitted.\\\",\\\"event_title\\\":\\\"Doors Open Night\\\",\\\"checked_in_at\\\":\\\"2026-11-10T13:21:12.217643-08:00\\\"}\"],\"extra\":[\"buyer\",\"event_slug\",\"buyer\"]}",
    "control": "detects",
    "controlOK": true
   },
@@ -596,7 +596,7 @@
    "hardened": true,
    "hardenedWhy": "",
    "original": false,
-   "originalWhy": "{\"bad\":[\"{\\\"qty\\\":2,\\\"sold\\\":9,\\\"tier\\\":\\\"VIP\\\",\\\"buyer\\\":\\\"sentinel.buyer.9f3k@example.invalid\\\",\\\"event\\\":\\\"Doors Open Night\\\",\\\"status\\\":\\\"valid\\\",\\\"checked_in\\\":2}\",\"{\\\"at\\\":\\\"2026-11-09T23:03:57.047519-08:00\\\",\\\"sold\\\":9,\\\"tier\\\":\\\"VIP\\\",\\\"buyer\\\":\\\"sentinel.buyer.9f3k@example.invalid\\\",\\\"event\\\":\\\"Doors Open Night\\\",\\\"status\\\":\\\"already\\\",\\\"checked_in\\\":2}\"],\"extra\":[\"buyer\",\"buyer\"]}",
+   "originalWhy": "{\"bad\":[\"{\\\"qty\\\":2,\\\"sold\\\":9,\\\"tier\\\":\\\"VIP\\\",\\\"buyer\\\":\\\"sentinel.buyer.9f3k@example.invalid\\\",\\\"event\\\":\\\"Doors Open Night\\\",\\\"status\\\":\\\"valid\\\",\\\"checked_in\\\":2}\",\"{\\\"at\\\":\\\"2026-11-10T13:21:12.572532-08:00\\\",\\\"sold\\\":9,\\\"tier\\\":\\\"VIP\\\",\\\"buyer\\\":\\\"sentinel.buyer.9f3k@example.invalid\\\",\\\"event\\\":\\\"Doors Open Night\\\",\\\"status\\\":\\\"already\\\",\\\"checked_in\\\":2}\"],\"extra\":[\"buyer\",\"buyer\"]}",
    "control": "detects",
    "controlOK": true
   },
@@ -676,6 +676,248 @@
    "originalWhy": "",
    "control": "baseline",
    "controlOK": true
+  },
+  {
+   "id": "M28.scan",
+   "name": "over-long payloads (129, 1000, 100000 chars) are refused cleanly (no error, nothing admitted)",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M28.ticket",
+   "name": "over-long payloads (129, 1000, 100000 chars) are refused cleanly (no error, nothing admitted)",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M29.scan",
+   "name": "SQL/LIKE metacharacters, token prefix, token+1 char and uppercased token are exact-match misses (invalid), nothing admitted",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M29.ticket",
+   "name": "SQL/LIKE metacharacters, token prefix, token+1 char and uppercased token are exact-match misses (invalid), nothing admitted",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M30.scan",
+   "name": "refund AFTER admission: the order re-scans as unpaid and its admission time is not rewritten",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M30.ticket",
+   "name": "refund AFTER admission: the order re-scans as unpaid and its admission time is not rewritten",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M31.scan",
+   "name": "OWNER REVOKED MID-SCAN: event ownership moves to someone else after the scan read the order but before it writes -> refused (forbidden), nothing admitted",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": "n/a",
+   "originalWhy": "",
+   "control": "n/a",
+   "controlOK": null
+  },
+  {
+   "id": "M31.ticket",
+   "name": "OWNER REVOKED MID-SCAN: event ownership moves to someone else after the scan read the order but before it writes -> refused (forbidden), nothing admitted",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"waited\":true,\"code\":\"admitted\",\"admitted\":true}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M32.scan",
+   "name": "NULL order status (CHECK allows NULL; prod nullability unverified) is refused as unpaid and never admitted (the ORIGINAL check_in_ticket ADMITS it: NULL <> 'paid' is not true)",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M32.ticket",
+   "name": "NULL order status (CHECK allows NULL; prod nullability unverified) is refused as unpaid and never admitted (the ORIGINAL check_in_ticket ADMITS it: NULL <> 'paid' is not true)",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "code=admitted admitted_in_db=true",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M33.scan",
+   "name": "per-order semantics (documented): a qty=3 order is admitted whole by ONE scan, a second scan is already_used, and qty is reported",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M33.ticket",
+   "name": "per-order semantics (documented): a qty=3 order is admitted whole by ONE scan, a second scan is already_used, and qty is reported",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M34.scan",
+   "name": "only ONE 'KIL-' is stripped and only that exact spelling: 'KIL-KIL-<t>', 'KIL -<t>', 'KIL_<t>', 'KIL:<t>' are refused",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M34.ticket",
+   "name": "only ONE 'KIL-' is stripped and only that exact spelling: 'KIL-KIL-<t>', 'KIL -<t>', 'KIL_<t>', 'KIL:<t>' are refused",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M35.scan",
+   "name": "signed-in role with NO JWT subject (authenticated, empty sub) is refused; hardened answers unauth; nothing admitted",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M35.ticket",
+   "name": "signed-in role with NO JWT subject (authenticated, empty sub) is refused; hardened answers unauth; nothing admitted",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M36.scan",
+   "name": "order vanishes between the duplicate check and the read (simulated: FK dropped, event row deleted): refused cleanly, no raised error, nothing admitted",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M36.ticket",
+   "name": "order vanishes between the duplicate check and the read (simulated: FK dropped, event row deleted): refused cleanly, no raised error, nothing admitted",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M37.scan",
+   "name": "TOKEN-FREE: no response (any result code) contains the scanned token, its first 8 chars, or an echo of a garbage payload",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M37.ticket",
+   "name": "TOKEN-FREE: no response (any result code) contains the scanned token, its first 8 chars, or an echo of a garbage payload",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M38.scan",
+   "name": "every value in every response is a scalar (string/number/bool/null): no nested object can smuggle a row or contact",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M38.ticket",
+   "name": "every value in every response is a scalar (string/number/bool/null): no nested object can smuggle a row or contact",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
   }
  ],
  "packRows": [
@@ -694,6 +936,18 @@
   {
    "id": "D03",
    "name": "detector: an UNQUALIFIED, no-SET-search_path copy of the core IS hijacked by 'evil, public' (the M24 test fails as it should); the hardened functions are not",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "D04",
+   "name": "detector: core WITHOUT the in-UPDATE ownership re-check admits after ownership moved mid-scan (M31 fails as it should)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "D05",
+   "name": "documented semantics (replaces the withdrawn 'not found' guard mutation): when the order vanishes between the duplicate check and the read, the core's SELECT INTO leaves an all-NULL record, so the owner check fails closed to 'forbidden' - never a raised error, never an admission (the suspected 'unassigned record' exception does NOT occur)",
    "pass": true,
    "why": ""
   },
@@ -862,6 +1116,78 @@
   {
    "id": "P13",
    "name": "PRECHECK-12A.sql runs read-only (READ ONLY transaction), errors on nothing, and leaks no row contents (sentinel email/handle/tokens absent from output)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "R01",
+   "name": "12A changes NO table, column, policy, grant, index, constraint, trigger, RLS flag, other public function or table data (catalog+data fingerprint equal before and after both packs); every other reader of event_orders/status/checked_in_at is therefore untouched",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "R01c",
+   "name": "NEGATIVE CONTROL for R01: an added index, a changed policy, a changed grant, or a changed other function each make the fingerprint differ (the fingerprint can fail)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "R02",
+   "name": "WRITE-SET EQUALITY: after the same raw-token scan sequence the whole event_orders table is identical on the original and the hardened functions except nothing (admission still writes ONLY checked_in_at; status is never rewritten) - for both RPCs",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "R02c",
+   "name": "NEGATIVE CONTROL for R02: a hardened core that ALSO rewrote status to 'checked_in' makes the table differ from the original (the comparison can fail)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "X01",
+   "name": "LIVE CROSS-CHECK vs adapter: every result code the real hardened functions return (scan: admitted, already_used, unpaid, forbidden, invalid, empty, unauth; ticket: same minus empty, which check_in_ticket folds into notfound->invalid) maps to the SAME canonical code through adaptScanResponse / adaptTicketResponse, never to 'error'; keys outside the adapter whitelist are only message/order_status; an unmapped code maps to 'error' (negative control)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "V01",
+   "name": "VERIFY-12A.sql runs read-only, returns only counts/catalog facts (no fixture contents), reports zero TEST ATLAS rows on the replica, and COUNTS a planted 'TEST ATLAS' event/order/user (negative control)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "U01",
+   "name": "optional UNIQUE-index pack, static: APPLY/ROLLBACK have NO BEGIN/COMMIT/advisory-xact-lock, exactly one CREATE UNIQUE INDEX CONCURRENTLY (partial, WHERE qr_token IS NOT NULL, no IF NOT EXISTS) / one DROP INDEX CONCURRENTLY IF EXISTS; PRECHECK and POSTCHECK are SELECT-only; no data DML; no secrets",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "U02",
+   "name": "optional pack PRECHECK on the replica: read-only, aggregates only, reports the duplicate (surplus 1, gate proceed=false) and, after the duplicate is removed, proceed=true; no token/contact leaks",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "U03",
+   "name": "optional pack, NEGATIVE CONTROL: with a duplicate token present the CONCURRENTLY build FAILS (23505) and leaves an INVALID index; POSTCHECK reports not ok; ROLLBACK removes it",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "U04",
+   "name": "optional pack on a duplicate-free replica: APPLY succeeds, POSTCHECK every row ok (valid, unique, partial, qr_token), a duplicate token is refused 23505, NULL tokens still insert, and the hardened door still admits / refuses exactly as before",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "U05",
+   "name": "optional pack, NEGATIVE CONTROL for 'must be non-transactional': the same CREATE UNIQUE INDEX CONCURRENTLY inside BEGIN..COMMIT is refused (25001) and creates nothing",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "U06",
+   "name": "optional pack ROLLBACK: drops the index (idempotent, second run is a no-op), data untouched, door unaffected; the index is invisible to 12A's own drift guard (state still S2 after APPLY)",
    "pass": true,
    "why": ""
   }

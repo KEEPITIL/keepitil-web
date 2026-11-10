@@ -1,8 +1,8 @@
 # 12A door hardening: proof results (real PostgreSQL 17.6, replica, synthetic data)
 
-Generated from `proof/out/results.json` by `proof/report.mjs`. Engine: real PostgreSQL (socket). Wall time 46s. Machine: peak load1=4.68 min free mem pct=62.
+Generated from `proof/out/results.json` by `proof/report.mjs`. Engine: real PostgreSQL (socket). Wall time 58s. Machine: peak load1=3.77 min free mem pct=52.
 
-Totals: behavioural matrix 59/59; pack/structural 31/31; adjacent findings (replica only) 4/4; fatal: none.
+Totals: behavioural matrix 81/81; pack/structural 45/45; adjacent findings (replica only) 4/4; fatal: none.
 
 Every behavioural test runs on BOTH the original (prod-captured bodies, replica) and the hardened replica (built by running the real packs). Column 'control' says what the original MUST do for the test to be a valid proof:
 `detects` = the test must FAIL on the original (it proves a defect that the hardening removes); `baseline` = the original also passes (regression guard, not a discriminating test); `n/a` = object does not exist on the original.
@@ -70,6 +70,28 @@ Every behavioural test runs on BOTH the original (prod-captured bodies, replica)
 | M25 | core | private core is not reachable: no EXECUTE/USAGE for anon, authenticated, service_role; direct call refused | pass | n/a | n/a | n/a |  |
 | M26 | ticket | response codes: ticket keeps its legacy keys (status,event,tier,qty,checked_in,sold,at) minus 'buyer' | pass | FAIL | detects | yes | buyer,checked_in,event,qty,sold,status,tier |
 | M27 | ticket | ticket counters: checked_in/sold are aggregate counts for the event's paid orders | pass | pass | baseline | yes |  |
+| M28.scan | scan | over-long payloads (129, 1000, 100000 chars) are refused cleanly (no error, nothing admitted) | pass | pass | baseline | yes |  |
+| M28.ticket | ticket | over-long payloads (129, 1000, 100000 chars) are refused cleanly (no error, nothing admitted) | pass | pass | baseline | yes |  |
+| M29.scan | scan | SQL/LIKE metacharacters, token prefix, token+1 char and uppercased token are exact-match misses (invalid), nothing admitted | pass | pass | baseline | yes |  |
+| M29.ticket | ticket | SQL/LIKE metacharacters, token prefix, token+1 char and uppercased token are exact-match misses (invalid), nothing admitted | pass | pass | baseline | yes |  |
+| M30.scan | scan | refund AFTER admission: the order re-scans as unpaid and its admission time is not rewritten | pass | pass | baseline | yes |  |
+| M30.ticket | ticket | refund AFTER admission: the order re-scans as unpaid and its admission time is not rewritten | pass | pass | baseline | yes |  |
+| M31.scan | scan | OWNER REVOKED MID-SCAN: event ownership moves to someone else after the scan read the order but before it writes -> refused (forbidden), nothing admitted | pass | n/a | n/a | n/a |  |
+| M31.ticket | ticket | OWNER REVOKED MID-SCAN: event ownership moves to someone else after the scan read the order but before it writes -> refused (forbidden), nothing admitted | pass | FAIL | detects | yes | {"waited":true,"code":"admitted","admitted":true} |
+| M32.scan | scan | NULL order status (CHECK allows NULL; prod nullability unverified) is refused as unpaid and never admitted (the ORIGINAL check_in_ticket ADMITS it: NULL <> 'paid' is not true) | pass | pass | baseline | yes |  |
+| M32.ticket | ticket | NULL order status (CHECK allows NULL; prod nullability unverified) is refused as unpaid and never admitted (the ORIGINAL check_in_ticket ADMITS it: NULL <> 'paid' is not true) | pass | FAIL | detects | yes | code=admitted admitted_in_db=true |
+| M33.scan | scan | per-order semantics (documented): a qty=3 order is admitted whole by ONE scan, a second scan is already_used, and qty is reported | pass | pass | baseline | yes |  |
+| M33.ticket | ticket | per-order semantics (documented): a qty=3 order is admitted whole by ONE scan, a second scan is already_used, and qty is reported | pass | pass | baseline | yes |  |
+| M34.scan | scan | only ONE 'KIL-' is stripped and only that exact spelling: 'KIL-KIL-<t>', 'KIL -<t>', 'KIL_<t>', 'KIL:<t>' are refused | pass | pass | baseline | yes |  |
+| M34.ticket | ticket | only ONE 'KIL-' is stripped and only that exact spelling: 'KIL-KIL-<t>', 'KIL -<t>', 'KIL_<t>', 'KIL:<t>' are refused | pass | pass | baseline | yes |  |
+| M35.scan | scan | signed-in role with NO JWT subject (authenticated, empty sub) is refused; hardened answers unauth; nothing admitted | pass | pass | baseline | yes |  |
+| M35.ticket | ticket | signed-in role with NO JWT subject (authenticated, empty sub) is refused; hardened answers unauth; nothing admitted | pass | pass | baseline | yes |  |
+| M36.scan | scan | order vanishes between the duplicate check and the read (simulated: FK dropped, event row deleted): refused cleanly, no raised error, nothing admitted | pass | pass | baseline | yes |  |
+| M36.ticket | ticket | order vanishes between the duplicate check and the read (simulated: FK dropped, event row deleted): refused cleanly, no raised error, nothing admitted | pass | pass | baseline | yes |  |
+| M37.scan | scan | TOKEN-FREE: no response (any result code) contains the scanned token, its first 8 chars, or an echo of a garbage payload | pass | pass | baseline | yes |  |
+| M37.ticket | ticket | TOKEN-FREE: no response (any result code) contains the scanned token, its first 8 chars, or an echo of a garbage payload | pass | pass | baseline | yes |  |
+| M38.scan | scan | every value in every response is a scalar (string/number/bool/null): no nested object can smuggle a row or contact | pass | pass | baseline | yes |  |
+| M38.ticket | ticket | every value in every response is a scalar (string/number/bool/null): no nested object can smuggle a row or contact | pass | pass | baseline | yes |  |
 
 ## B. Detector self-checks, packs, drift guard, rollback, lock, precheck
 
@@ -78,6 +100,8 @@ Every behavioural test runs on BOTH the original (prod-captured bodies, replica)
 | D01 | detector: core WITHOUT 'and eo.checked_in_at is null' lets two concurrent scans both admit (race test fails as it should) | pass |  |
 | D02 | detector: core WITHOUT status='paid' in the UPDATE admits an order refunded mid-scan (M18 fails as it should) | pass |  |
 | D03 | detector: an UNQUALIFIED, no-SET-search_path copy of the core IS hijacked by 'evil, public' (the M24 test fails as it should); the hardened functions are not | pass |  |
+| D04 | detector: core WITHOUT the in-UPDATE ownership re-check admits after ownership moved mid-scan (M31 fails as it should) | pass |  |
+| D05 | documented semantics (replaces the withdrawn 'not found' guard mutation): when the order vanishes between the duplicate check and the read, the core's SELECT INTO leaves an all-NULL record, so the owner check fails closed to 'forbidden' - never a raised error, never an admission (the suspected 'unassigned record' exception does NOT occur) | pass |  |
 | P01 | static: every APPLY/ROLLBACK pack = ONE BEGIN, SET LOCAL lock_timeout 5s then advisory lock 2979301232487107403 then SET LOCAL lock_timeout 5s as the exact statements 2-4 after it (tightened from: lock is statement 2), one COMMIT last, drift guard, no data DML, no secrets | pass |  |
 | P02 | generator is reproducible: build.mjs --check is clean (packs == inputs) | pass |  |
 | P03 | replica sanity: the installed ORIGINAL functions equal the captured prod text (pg_get_functiondef == facts) and DRIFT_QUERY/POSTCHECKS(S0) read S0_original | pass |  |
@@ -106,6 +130,18 @@ Every behavioural test runs on BOTH the original (prod-captured bodies, replica)
 | P14 | TIMEOUT (lock_timeout follow-up): A (real APPLY-01) holds the pack lock ~7 s; B (the same pack) waits on the advisory lock and fails with SQLSTATE 55P03 lock_not_available after ~5 s (4.5-6.5 s), not after A's ~7 s; A is unaffected (commits, state S1); B changed nothing and holds no advisory lock afterwards | pass |  |
 | P14c | NEGATIVE CONTROL for P14: the same APPLY-01 with the PRE-lock lock_timeout removed (timeout only after the lock, the literal 'after the lock' placement) is NOT bounded: B waits out A's whole ~7 s hold and then refuses with DRIFT (not 55P03) | pass |  |
 | P13 | PRECHECK-12A.sql runs read-only (READ ONLY transaction), errors on nothing, and leaks no row contents (sentinel email/handle/tokens absent from output) | pass |  |
+| R01 | 12A changes NO table, column, policy, grant, index, constraint, trigger, RLS flag, other public function or table data (catalog+data fingerprint equal before and after both packs); every other reader of event_orders/status/checked_in_at is therefore untouched | pass |  |
+| R01c | NEGATIVE CONTROL for R01: an added index, a changed policy, a changed grant, or a changed other function each make the fingerprint differ (the fingerprint can fail) | pass |  |
+| R02 | WRITE-SET EQUALITY: after the same raw-token scan sequence the whole event_orders table is identical on the original and the hardened functions except nothing (admission still writes ONLY checked_in_at; status is never rewritten) - for both RPCs | pass |  |
+| R02c | NEGATIVE CONTROL for R02: a hardened core that ALSO rewrote status to 'checked_in' makes the table differ from the original (the comparison can fail) | pass |  |
+| X01 | LIVE CROSS-CHECK vs adapter: every result code the real hardened functions return (scan: admitted, already_used, unpaid, forbidden, invalid, empty, unauth; ticket: same minus empty, which check_in_ticket folds into notfound->invalid) maps to the SAME canonical code through adaptScanResponse / adaptTicketResponse, never to 'error'; keys outside the adapter whitelist are only message/order_status; an unmapped code maps to 'error' (negative control) | pass |  |
+| V01 | VERIFY-12A.sql runs read-only, returns only counts/catalog facts (no fixture contents), reports zero TEST ATLAS rows on the replica, and COUNTS a planted 'TEST ATLAS' event/order/user (negative control) | pass |  |
+| U01 | optional UNIQUE-index pack, static: APPLY/ROLLBACK have NO BEGIN/COMMIT/advisory-xact-lock, exactly one CREATE UNIQUE INDEX CONCURRENTLY (partial, WHERE qr_token IS NOT NULL, no IF NOT EXISTS) / one DROP INDEX CONCURRENTLY IF EXISTS; PRECHECK and POSTCHECK are SELECT-only; no data DML; no secrets | pass |  |
+| U02 | optional pack PRECHECK on the replica: read-only, aggregates only, reports the duplicate (surplus 1, gate proceed=false) and, after the duplicate is removed, proceed=true; no token/contact leaks | pass |  |
+| U03 | optional pack, NEGATIVE CONTROL: with a duplicate token present the CONCURRENTLY build FAILS (23505) and leaves an INVALID index; POSTCHECK reports not ok; ROLLBACK removes it | pass |  |
+| U04 | optional pack on a duplicate-free replica: APPLY succeeds, POSTCHECK every row ok (valid, unique, partial, qr_token), a duplicate token is refused 23505, NULL tokens still insert, and the hardened door still admits / refuses exactly as before | pass |  |
+| U05 | optional pack, NEGATIVE CONTROL for 'must be non-transactional': the same CREATE UNIQUE INDEX CONCURRENTLY inside BEGIN..COMMIT is refused (25001) and creates nothing | pass |  |
+| U06 | optional pack ROLLBACK: drops the index (idempotent, second run is a no-op), data untouched, door unaffected; the index is invisible to 12A's own drift guard (state still S2 after APPLY) | pass |  |
 
 ## C. Adjacent findings proven on the replica only (NOT fixed by 12A)
 

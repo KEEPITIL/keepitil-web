@@ -581,6 +581,11 @@
          keyboard and the home indicator, so adding the inset again lifts the composer off the
          keyboard by the height of the indicator and leaves a gap. */
       '#kilo-input-row{padding-bottom:12px;}}',
+      /* Touch targets (7c audit): 44px close/send and a 44px, 16px-text input on touch only.
+         The close button's negative margin keeps the header row the same height. */
+      '@media(pointer:coarse){#kilo-close{width:44px;height:44px;margin:-7px -7px -7px 0;}',
+      '#kilo-send{width:44px;height:44px;}',
+      '#kilo-input{min-height:44px;box-sizing:border-box;font-size:16px;}}',
     ].join('');
 
     var s = document.createElement('style');

@@ -8,7 +8,7 @@
 <html lang="en" data-theme="dark" data-view="owner">
 <head>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/>
-<meta name="robots" content="index,follow">
+<meta name="robots" content="noindex">
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
   <!-- NO STATIC CANONICAL: this page is identified by ?slug=<slug>, so one hardcoded value
@@ -17,7 +17,18 @@
 <title>Profile | KEEPITIL</title>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
-<meta name="description" content="KEEPITIL is a culture platform built to discover, connect, create, share and earn through people, events, media and community."/>
+<meta name="description" content="A KEEPITIL profile."/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:title" content="Profile | KEEPITIL"/>
+  <meta property="og:description" content="A KEEPITIL profile."/>
+  <meta property="og:image" content="https://keepitil.com/keepitil-og.png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Profile | KEEPITIL"/>
+  <meta name="twitter:description" content="A KEEPITIL profile."/>
+  <meta name="twitter:image" content="https://keepitil.com/keepitil-og.png"/>
+  <script src="/assets/js/kil-share.js?v=20261107a"></script>
   <link rel="icon" type="image/png" href="/assets/images/logo-green-nav.png"/>
   <script>(function(){try{var t=localStorage.getItem('kil-theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -628,7 +639,13 @@ window.KIL_FILTER_BADGES = function(badges){
 <!-- HEADER (social icons now live here) -->
 <!-- P0 fix 2026-07-16: hero ships BLANK (skeleton) — live/demo data is applied by JS only.
      A new/empty profile must render a blank, fillable page — never someone else's identity. -->
-<style>@keyframes pfskel{50%{opacity:.45}}.pf-skel{animation:pfskel 1.2s ease-in-out infinite}</style>
+<style>@keyframes pfskel{50%{opacity:.45}}.pf-skel{animation:pfskel 1.2s ease-in-out infinite}
+body.kil-private>*:not(#kilPrivateStub):not(script):not(style):not(#main-nav):not(#v3shell-nav):not(.mobile-menu){display:none!important}
+#kilPrivateStub{min-height:calc(100vh - 150px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 28px 110px;color:#fff;background:#05070d}
+#kilPrivateStub .m1-av-ring{display:block;width:132px;height:132px;border-radius:50%;border:2px solid #3aa0ff;background:#0c2744;margin:0 0 28px}
+#kilPrivateStub h1{font-family:'Bebas Neue',Inter,sans-serif;font-weight:400;font-size:2rem;letter-spacing:.06em;text-transform:uppercase;margin:0 0 22px;color:#fff}
+#kilPrivateStub a{display:flex;align-items:center;justify-content:center;width:min(100%,340px);min-height:52px;border-radius:999px;background:#2f9bff;color:#071018;font-weight:700;text-decoration:none;font-size:1rem}
+</style>
 <button id="pfBack" onclick="history.back()">‹ Previous</button>
 <div class="pf-cover"><img id="pfCover" src="" alt="" style="display:none" onerror="this.style.display='none'"></div>
 <div class="pf-head">
@@ -656,8 +673,8 @@ window.KIL_FILTER_BADGES = function(badges){
     <button class="pf-btn book" id="pfCreate" style="display:none" onclick="toggleCreateMenu(event)">＋ CREATE</button>
     <span id="pfDashWrap" style="display:none"><button class="pf-btn book" id="pfArchive" onclick="location.href='/dashboard'">DASH</button></span>
     <a class="pf-btn book" id="pfBook" href="#" style="display:none">MESSAGE</a>
-    <a class="pf-btn icon" id="pfIG" href="#" style="display:none" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2zm0 3.2A6.6 6.6 0 1012 18.6 6.6 6.6 0 0012 5.4zm0 10.9a4.3 4.3 0 110-8.6 4.3 4.3 0 010 8.6zm6.85-11.2a1.54 1.54 0 11-3.08 0 1.54 1.54 0 013.08 0z"/></svg></a>
-    <a class="pf-btn icon" id="pfSC" href="#" style="display:none" target="_blank" rel="noopener" aria-label="SoundCloud"><svg viewBox="0 0 24 24"><path d="M1.5 13.6c-.1 0-.2.1-.2.2l-.2 1.7.2 1.6c0 .1.1.2.2.2s.2-.1.2-.2l.2-1.6-.2-1.7c0-.1-.1-.2-.2-.2zm2 .6c-.1 0-.2.1-.2.2l-.2 1.1.2 1.1c0 .1.1.2.2.2s.2-.1.2-.2l.3-1.1-.3-1.1c0-.1-.1-.2-.2-.2zm12.9-4.9c-.5 0-.9.1-1.3.3-.3-2.9-2.7-5.1-5.7-5.1-.7 0-1.4.1-2 .4-.2.1-.3.2-.3.4v9.1c0 .2.2.4.4.4h8.9c1.7 0 3.1-1.4 3.1-3.1 0-1.5-1.2-2.8-3.1-2.8z"/></svg></a>
+    <a class="pf-btn icon" id="pfIG" href="#" style="display:none" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2zm0 3.2A6.6 6.6 0 1012 18.6 6.6 6.6 0 0012 5.4zm0 10.9a4.3 4.3 0 110-8.6 4.3 4.3 0 010 8.6zm6.85-11.2a1.54 1.54 0 11-3.08 0 1.54 1.54 0 013.08 0z"/></svg></a>
+    <a class="pf-btn icon" id="pfSC" href="#" style="display:none" target="_blank" rel="noopener noreferrer" aria-label="SoundCloud"><svg viewBox="0 0 24 24"><path d="M1.5 13.6c-.1 0-.2.1-.2.2l-.2 1.7.2 1.6c0 .1.1.2.2.2s.2-.1.2-.2l.2-1.6-.2-1.7c0-.1-.1-.2-.2-.2zm2 .6c-.1 0-.2.1-.2.2l-.2 1.1.2 1.1c0 .1.1.2.2.2s.2-.1.2-.2l.3-1.1-.3-1.1c0-.1-.1-.2-.2-.2zm12.9-4.9c-.5 0-.9.1-1.3.3-.3-2.9-2.7-5.1-5.7-5.1-.7 0-1.4.1-2 .4-.2.1-.3.2-.3.4v9.1c0 .2.2.4.4.4h8.9c1.7 0 3.1-1.4 3.1-3.1 0-1.5-1.2-2.8-3.1-2.8z"/></svg></a>
     <style>#pfShare>button.pf-btn{background:transparent!important;color:var(--brand,#00b4ff)!important;border:2px solid var(--brand,#00b4ff)!important;box-shadow:0 0 12px color-mix(in srgb,var(--brand,#00b4ff) 50%,transparent),inset 0 0 8px color-mix(in srgb,var(--brand,#00b4ff) 20%,transparent)}</style>
     <div class="pf-share" id="pfShare">
       <button class="pf-btn icon" onclick="toggleShare(event)" aria-label="Share" aria-haspopup="true"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg><span class="pf-share-lbl" style="font-weight:700;letter-spacing:.06em">SHARE</span></button>
@@ -891,12 +908,12 @@ function openInsights(){
   SB.rpc('get_profile_insights',{p_slug:PROFILE_SLUG}).then(function(r){
     var m=(r&&r.data)||{}; var b=document.getElementById('insBody'); if(!b) return;
     if(m.error){ b.innerHTML='Sign in as this profile\'s owner to see your insights.'; return; }
-    function n(v){ v=v==null?0:v; return v>=1000?(v/1000).toFixed(1).replace(/\.0$/,'')+'k':(''+v); }
+    function n(v){ v=v==null?0:v; return v>=1000?(v/1000).toFixed(1).replace(/\.0$/,'')+'k':esc(''+v); }
     function tile(l,v,sub){ return '<div style="background:rgba(255,255,255,.05);border:1px solid var(--line,#242433);border-radius:14px;padding:14px 15px"><div style="font:800 1.7rem/1 Inter,system-ui,sans-serif;color:#fff">'+n(v)+'</div>'+(sub?'<div style="font-size:.68rem;color:#22c55e;font-weight:700;margin-top:3px">'+sub+'</div>':'')+'<div style="font-size:.68rem;letter-spacing:.06em;color:#9aa0b0;text-transform:uppercase;margin-top:4px">'+l+'</div></div>'; }
     /* CSS bar chart — no external library ($0) */
     function chart(series,color){ series=series||[]; var max=1; series.forEach(function(p){ if((p.v||0)>max)max=p.v; });
-      var bars=series.map(function(p){ var h=Math.round((p.v||0)/max*100); return '<div title="'+p.d+': '+(p.v||0)+'" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px"><div style="width:100%;max-width:16px;height:'+Math.max(h,3)+'%;min-height:3px;border-radius:5px 5px 0 0;background:'+color+'"></div></div>'; }).join('');
-      var labels=series.map(function(p,i){ return '<div style="flex:1;text-align:center;font-size:.55rem;color:#6b7280">'+((i%3===0||i===series.length-1)?p.d:'')+'</div>'; }).join('');
+      var bars=series.map(function(p){ var h=Math.round((p.v||0)/max*100); return '<div title="'+esc(p.d)+': '+(esc(p.v||0))+'" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px"><div style="width:100%;max-width:16px;height:'+Math.max(h,3)+'%;min-height:3px;border-radius:5px 5px 0 0;background:'+color+'"></div></div>'; }).join('');
+      var labels=series.map(function(p,i){ return '<div style="flex:1;text-align:center;font-size:.55rem;color:#6b7280">'+((i%3===0||i===series.length-1)?esc(p.d):'')+'</div>'; }).join('');
       return '<div style="height:120px;display:flex;align-items:flex-end;gap:3px;padding:6px 2px 0">'+bars+'</div><div style="display:flex;gap:3px;margin-top:4px">'+labels+'</div>'; }
     var grid='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">'
       +tile('Profile views',m.profile_views_total, (m.profile_views_7d?('+'+n(m.profile_views_7d)+' · 7d'):''))
@@ -905,32 +922,28 @@ function openInsights(){
       +tile('Likes',m.likes)+'</div>';
     var chartsBox='<div style="background:rgba(255,255,255,.03);border:1px solid var(--line,#242433);border-radius:16px;padding:16px 16px 12px;margin-bottom:16px"><div style="color:#fff;font-weight:700;font-size:.92rem;margin-bottom:2px">Profile views</div>'+chart(m.views_series,'linear-gradient(180deg,#8b5cff,#00e0a4)')+'</div>'
       +'<div style="background:rgba(255,255,255,.03);border:1px solid var(--line,#242433);border-radius:16px;padding:16px 16px 12px;margin-bottom:16px"><div style="color:#fff;font-weight:700;font-size:.92rem;margin-bottom:2px">New followers</div>'+chart(m.follows_series,'linear-gradient(180deg,#22d3ee,#22c55e)')+'</div>';
-    var top=(m.top_posts||[]).map(function(t){ return '<div style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line,#242433)"><span style="color:#e8e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(t.title||'Post')+'</span><span style="color:#9aa0b0;flex:0 0 auto">&hearts; '+(t.likes||0)+' &middot; &#128172; '+(t.comments||0)+'</span></div>'; }).join('');
+    var top=(m.top_posts||[]).map(function(t){ return '<div style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line,#242433)"><span style="color:#e8e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.title||'Post')+'</span><span style="color:#9aa0b0;flex:0 0 auto">&hearts; '+(t.likes||0)+' &middot; &#128172; '+(t.comments||0)+'</span></div>'; }).join('');
     b.innerHTML=grid+chartsBox+(top?'<div style="margin:6px 0 2px;color:#fff;font-weight:800">Top posts</div>'+top:'')+'<div style="margin-top:14px;font-size:.7rem;color:#6b7280">Updates as people view and engage with your profile.</div>';
   }).catch(function(){ var b=document.getElementById('insBody'); if(b) b.textContent='Could not load insights.'; });
 }
 var SESSION=null, DB_OK=false, OWNS=false;
 /* Edit controls show only in the owner variant AND when the signed-in user actually owns this profile. */
 function CAN_EDIT(){ return IS_OWNER && OWNS; }
-/* S2 — "is this profile claimed by ANYONE", which is a different question from "can I edit it".
-   profile_owners is world-readable, so this resolves for signed-out visitors too. Until it
-   resolves KIL_IS_CLAIMED stays false, because the safe default is the one that cannot
-   overclaim: an editorial profile briefly labelled correctly is fine, a real member's profile
-   briefly labelled "Profile" is not a truthfulness failure. */
+/* S2 — "is this profile claimed by the signed-in user". Owner ids are not readable.
+   Until i_own_profile resolves, KIL_IS_CLAIMED stays false. */
 window.KIL_CLAIMED_READY = Promise.resolve(false);
 function checkClaimed(){
-  if(!SB) return Promise.resolve(false);
-  window.KIL_CLAIMED_READY = SB.from('profile_owners').select('profile_slug')
-    .eq('profile_slug',PROFILE_SLUG).maybeSingle()
-    .then(function(r){ window.KIL_IS_CLAIMED = !!(r&&r.data); return window.KIL_IS_CLAIMED; })
+  if(!SB||!SESSION){ window.KIL_IS_CLAIMED=false; window.KIL_CLAIMED_READY=Promise.resolve(false); return window.KIL_CLAIMED_READY; }
+  window.KIL_CLAIMED_READY = SB.rpc('i_own_profile',{slug:PROFILE_SLUG})
+    .then(function(r){ window.KIL_IS_CLAIMED = !!(r&&r.data===true); return window.KIL_IS_CLAIMED; })
     .catch(function(){ window.KIL_IS_CLAIMED = false; return false; });
   return window.KIL_CLAIMED_READY;
 }
 function checkOwnership(){
   OWNS=false;
   if(!SB||!SESSION) return Promise.resolve(false);
-  return SB.from('profile_owners').select('owner_id').eq('profile_slug',PROFILE_SLUG).maybeSingle().then(function(r){
-    OWNS = !!(r&&r.data&&r.data.owner_id===SESSION.user.id); return OWNS;
+  return SB.rpc('i_own_profile',{slug:PROFILE_SLUG}).then(function(r){
+    OWNS = !!(r&&r.data===true); return OWNS;
   }).catch(function(){ OWNS=false; return false; });
 }
 /* ── FILTER BAR ROUTING (Founder 2026-08-26) ──────────────────────────────────────────────
@@ -1146,7 +1159,7 @@ function evFlyer(o){
   var cov=cover?'<img class="cov" src="'+esc(cover)+'" alt="" onerror="this.style.display=\'none\'">':'';
   var kind=(o.kind==='kil')?'<span class="ev-kind kil">KEEPITIL</span>':'<span class="ev-kind ext">External</span>';
   var tixHref=(o.tix&&o.tix!=='#')?safeNav(o.tix):'';
-  var tix=tixHref?'<a class="ev-tix" href="'+esc(tixHref)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'+((o.kind==='kil')?'TICKETS / RSVP':'TICKETS')+'</a>':'';
+  var tix=tixHref?'<a class="ev-tix" href="'+esc(tixHref)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">'+((o.kind==='kil')?'TICKETS / RSVP':'TICKETS')+'</a>':'';
   return '<div class="ev-flyer">'+cov
     +'<div class="ev-datechip"><b>'+esc(o.month)+'</b><span>'+esc(o.day)+'</span></div>'+kind
     +'<div class="c"><div class="et">'+esc(o.title)+'</div>'
@@ -1306,7 +1319,10 @@ function applyProfileTabs(){
 function rebuild(rows){
   GT_ARTICLES=SEED.articles.slice();GAL_IMGS=SEED.photos.slice();GT_SHOWS=SEED.shows.slice();GT_CHATS=SEED.chats.slice();EVENTS_FEED=[];
   (rows||[]).forEach(function(r){var d=r.data||{};
-    if(r.kind==='article')GT_ARTICLES.unshift({t:d.t,d:d.d,desc:d.desc,text:d.text,body_text:d.body_text,img:d.img,html:d.html,mtype:d.mtype,tags:d.tags,collab:d.collab,location:d.location,alt:d.alt,hideFeed:d.hideFeed,url:d.url,_pid:r.id});
+    /* F6: kind 'post' rows (written posts, 211 on prod) were not handled here, so they never reached
+       GT_ARTICLES and the feed dropped them for EVERY viewer. They share the article data shape; a post
+       whose picture lives in data.media[0].src or data.cover rather than data.img still gets a frame. */
+    if(r.kind==='article'||r.kind==='post')GT_ARTICLES.unshift({t:d.t,d:d.d,desc:d.desc,text:d.text,body_text:d.body_text,img:d.img||(r.kind==='post'?((d.media&&d.media[0]&&d.media[0].src)||d.cover||undefined):undefined),html:d.html,mtype:d.mtype,tags:d.tags,collab:d.collab,location:d.location,alt:d.alt,hideFeed:d.hideFeed,url:d.url,_pid:r.id});
     else if(r.kind==='photo')GAL_IMGS.unshift([d.src,d.label,d.views,d.mtype,d.hideFeed?1:0,r.id,d.media||null,d.cover||null]);
     else if(r.kind==='show')GT_SHOWS.push([d.month,d.day,d.dow,d.title,d.venue,d.tags,d.tix,d.cover||'',d.desc||'',d.price||'',d.kind||'ext']);
     else if(r.kind==='chat')GT_CHATS.unshift([d.slug,d.name,d.preview,'now','',d.avatar,d.category||'general']);
@@ -1481,30 +1497,58 @@ function renderLinksMenu(){
   var capped=web.concat(rest);
   if(drop)drop.style.display='none';
   if(menu)menu.innerHTML='';
-  if(row){ row.style.display='flex'; row.innerHTML=capped.map(function(it){ var href=safeNav(it.url); if(!href) return ''; return '<a href="'+esc(href)+'" target="_blank" rel="noopener" title="'+esc(it.label)+'" aria-label="'+esc(it.label)+'" style="flex:0 0 auto;width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid var(--line,rgba(255,255,255,.12));text-decoration:none;color:#fff">'+pfSvg(it.key)+'</a>'; }).join(''); }
+  if(row){ row.style.display='flex'; row.innerHTML=capped.map(function(it){ var href=safeNav(it.url); if(!href) return ''; return '<a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer" title="'+esc(it.label)+'" aria-label="'+esc(it.label)+'" style="flex:0 0 auto;width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid var(--line,rgba(255,255,255,.12));text-decoration:none;color:#fff">'+pfSvg(it.key)+'</a>'; }).join(''); }
+}
+function applyMetaRow(d, owner){
+  if(!d) return;
+  PROFILE.name=d.display_name||PROFILE.name; PROFILE.handle=d.handle||PROFILE.handle; PROFILE.location=d.location||PROFILE.location;
+  PROFILE.bio=(d.bio!=null?d.bio:PROFILE.bio); PROFILE.tagline=(d.tagline!=null?d.tagline:PROFILE.tagline);
+  if(owner){ PROFILE.pronouns=d.pronouns||PROFILE.pronouns; PROFILE.book_email=d.book_email||PROFILE.book_email; PROFILE.cover=d.cover_url||PROFILE.cover; PROFILE.cover_mobile=d.cover_mobile_url||PROFILE.cover_mobile; }
+  PROFILE.avatar=d.avatar_url||PROFILE.avatar;
+  if(d.socials&&typeof d.socials==='object')PROFILE.socials=Object.assign({},PROFILE.socials,d.socials);
+  if(Array.isArray(d.links))PROFILE.links=d.links;
+  if(owner && Array.isArray(d.highlights)&&d.highlights.length)PROFILE.highlights=d.highlights;
+  if(d.about!=null)PROFILE.about=d.about;
+  if(d.account_type)PROFILE.account_type=d.account_type;
+  if(d.links_label)PROFILE.links_label=d.links_label;
+  if(Array.isArray(d.badges))PROFILE.badges=d.badges;
+  PROFILE.profile_public=d.profile_public===true;
+  PROFILE.public_fields=Array.isArray(d.public_fields)?d.public_fields.slice():[];
+  try{
+    if(window.KilShare){
+      var face=KilShare.publicFace({ slug:PROFILE_SLUG, display_name:d.display_name, handle:d.handle, bio:d.bio, tagline:d.tagline, avatar_url:d.avatar_url, status:d.status, account_type:d.account_type, admin_approved:d.admin_approved, is_minor:d.is_minor, under_18:d.under_18, age_verified:d.age_verified, profile_public:d.profile_public, public_fields:d.public_fields }, { path:'/profile' });
+      KilShare.applyPreview(document, face || null);
+    }
+  }catch(e){}
+}
+function showPrivateStub(){
+  document.body.classList.add('kil-private');
+  if(!document.getElementById('kilPrivateStub')){
+    var d=document.createElement('div');
+    d.id='kilPrivateStub';
+    d.setAttribute('data-m1','private-stub');
+    d.innerHTML='<span class="m1-av m1-av-ring" aria-hidden="true"></span><h1>THIS PROFILE IS PRIVATE</h1><a class="m1-discover" href="/">Discover events</a>';
+    document.body.insertBefore(d, document.body.firstChild);
+  }
+  try{ if(window.KilShare) KilShare.applyPreview(document, null); }catch(e){}
+  document.title='Profile — KEEPITIL';
+  var rob=document.querySelector('meta[name="robots"]');
+  if(rob) rob.setAttribute('content','noindex');
 }
 function loadProfileMeta(){
   if(!SB) return Promise.resolve();
-  return SB.from('profile_meta').select('*').eq('slug',PROFILE_SLUG).maybeSingle().then(function(r){
-    /* SOFT-404: an explicit ?slug= that matches no profile. Guarded on PROFILE_SLUG being
-       present so the owner's own view — which arrives here without a slug and is redirected
-       elsewhere — is never mistaken for a missing profile. */
-    if(PROFILE_SLUG && !(r&&r.data) && window.KIL_NOT_FOUND){
-      window.KIL_NOT_FOUND({ what:'profile', heading:'That profile isn’t here',
-        body:'It may have been removed, renamed, or the link may be wrong.',
-        links:[['/connect/','Browse the Scene'],['/','Explore'],['/apply','Claim your profile']] });
-      return;
-    }
-    if(r&&r.data){var d=r.data;
-      PROFILE.name=d.display_name||PROFILE.name; PROFILE.handle=d.handle||PROFILE.handle; PROFILE.location=d.location||PROFILE.location;
-      PROFILE.bio=(d.bio!=null?d.bio:PROFILE.bio); PROFILE.tagline=(d.tagline!=null?d.tagline:PROFILE.tagline); PROFILE.pronouns=d.pronouns||PROFILE.pronouns;
-      PROFILE.avatar=d.avatar_url||PROFILE.avatar; PROFILE.cover=d.cover_url||PROFILE.cover; PROFILE.cover_mobile=d.cover_mobile_url||PROFILE.cover_mobile; PROFILE.book_email=d.book_email||PROFILE.book_email;
-      if(d.socials&&typeof d.socials==='object')PROFILE.socials=Object.assign({},PROFILE.socials,d.socials);
-      if(Array.isArray(d.links))PROFILE.links=d.links;
-      if(Array.isArray(d.highlights)&&d.highlights.length)PROFILE.highlights=d.highlights;
-    }
+  var owner=(typeof CAN_EDIT==='function')&&CAN_EDIT()&&!!SESSION;
+  /* Logged-out (and non-owners) use the one-slug public lookup. The table read is the owner only. */
+  var req=owner
+    ? SB.from('profile_meta').select('slug,display_name,handle,location,bio,tagline,pronouns,avatar_url,cover_url,cover_mobile_url,book_email,socials,links,highlights,about,account_type,links_label,badges,status,is_minor,under_18,age_verified,profile_public,public_fields,admin_approved').eq('slug',PROFILE_SLUG).maybeSingle()
+    : SB.rpc('get_public_profile',{p_slug:PROFILE_SLUG}).then(function(r){ var row=r&&r.data; if(Array.isArray(row)) row=row[0]||null; return { data: row }; });
+  return req.then(function(r){
+    var row=r&&r.data;
+    var shareable=row&&window.KilShare&&KilShare.profileIsShareable(row);
+    if(!owner && !(row&&shareable)){ showPrivateStub(); return; }
+    if(row) applyMetaRow(row, owner);
     applyProfile(); loadCategories();
-  }).catch(function(){ applyProfile(); });
+  }).catch(function(){ if(!owner) showPrivateStub(); });
 }
 function loadCategories(){
   if(!SB) return;
@@ -1577,7 +1621,9 @@ document.addEventListener('click',function(e){ var w=document.getElementById('pf
    is not a link anyone can open, so anything but keepitil.com itself shares the canonical https://keepitil.com. */
 var KIL_SHARE_ORIGIN=(/^https:\/\/(www\.)?keepitil\.com$/i.test(location.origin)?location.origin:'https://keepitil.com');
 function shareTo(net){
-  var url=(typeof PROFILE_SLUG!=='undefined'&&PROFILE_SLUG)?KIL_SHARE_ORIGIN+'/profile?slug='+encodeURIComponent(PROFILE_SLUG):KIL_SHARE_ORIGIN+location.pathname;
+  /* Profile shares: utm_source and utm_medium only. No utm_campaign, and no id, handle, or email in a UTM. */
+  var url=(window.KilShare&&typeof PROFILE_SLUG!=='undefined'&&PROFILE_SLUG)?KilShare.profileShareUrl(PROFILE_SLUG,'/profile')
+    :((typeof PROFILE_SLUG!=='undefined'&&PROFILE_SLUG)?KIL_SHARE_ORIGIN+'/profile?slug='+encodeURIComponent(PROFILE_SLUG)+'&utm_source=share&utm_medium=profile':KIL_SHARE_ORIGIN+location.pathname);
   var title=(typeof PROFILE!=='undefined'&&PROFILE.name)?PROFILE.name+' on KEEPITIL':document.title;
   var u=encodeURIComponent(url), t=encodeURIComponent(title), body=encodeURIComponent(title+' — '+url);
   var link='';
@@ -1592,7 +1638,7 @@ function shareTo(net){
     else { try{var ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();toast('Link copied.');}catch(e){toast('Copy failed.');} }
     var w0=document.getElementById('pfShare'); if(w0)w0.classList.remove('open'); return;
   }
-  if(link) window.open(link,'_blank','noopener');
+  if(link) window.open(link,'_blank','noopener,noreferrer');
   var w=document.getElementById('pfShare'); if(w)w.classList.remove('open');
 }
 
@@ -1655,7 +1701,9 @@ function openEditProfile(){
     '<label class="kil-mf"><span>Location</span><input type="text" id="epLoc" value="'+esc(PROFILE.location||'')+'"></label></div>'+
     '<label class="kil-mf"><span>About me</span><textarea id="epBio" rows="3">'+esc(PROFILE.bio||'')+'</textarea></label>'+
     '<label class="kil-mf"><span>About section (shown in the header)</span><textarea id="epAbout" rows="2">'+esc(PROFILE.about||'')+'</textarea></label>'+
-    '<label class="kil-mf"><span>Account type</span><select id="epAcct"><option value="">—</option><option value="user">User</option><option value="artist">Artist</option><option value="brand">Brand</option><option value="organizer">Organizer</option></select></label>'+
+    '<label class="kil-mf"><span>Account type</span><input type="text" id="epAcctShown" value="'+esc(PROFILE.account_type||'Not set')+'" disabled></label>'+
+    '<label class="kil-mf"><span>Request a business type</span><select id="epAcctRequest"><option value="">No request</option><option value="artist">Artist</option><option value="brand">Brand</option><option value="organizer">Organizer</option></select></label>'+
+    '<div class="kil-note">An admin sets the account type. This sends a request. It does not change your type.</div>'+
     '<div class="kil-sec">Profile links (up to 5)</div>'+
     '<label class="kil-mf"><span>Links dropdown title (what the button says)</span><input type="text" id="epLinksLabel" value="'+esc(PROFILE.links_label||'')+'" placeholder="Links" maxlength="24"></label>'+
     [1,2,3,4,5].map(function(i){return '<label class="kil-mf"><span>Link '+i+'</span><input type="text" id="epL'+i+'" value="'+esc((PROFILE.links||[])[i-1]||'')+'" placeholder="https://…"></label>';}).join('')+
@@ -1695,6 +1743,20 @@ function openEditProfile(){
       '<label class="kil-mf"><span>Age policy</span><input type="text" id="epVenAge" placeholder="18+ / 21+ / All ages"></label></div>'+
       '<label class="kil-mf"><span>Events / calendar link</span><input type="text" id="epVenCal" placeholder="https://…"></label>'+
     '</div>'+
+    '<div class="kil-sec">Public page</div>'+
+    '<label class="kil-mf" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="epPublic"> Show this page publicly</label>'+
+    '<div class="kil-note">An admin attestation does not publish the page. You choose that here, and you pick at least one field. With the box off, or with no fields picked, the page stays private.</div>'+
+    '<div class="kil-cats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="display_name"> Name</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="handle"> Handle</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="avatar_url"> Photo</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="bio"> Bio</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="tagline"> Tagline</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="location"> Location</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="about"> About</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="links"> Links</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epField" value="events"> Upcoming events</label>'+
+    '</div>'+
     '<div class="kil-sec">Account &amp; login</div>'+
     '<label class="kil-mf"><span>Login email</span><input type="text" id="epEmail" value="'+esc((SESSION&&SESSION.user&&SESSION.user.email)||'')+'"></label>'+
     '<div class="kil-row2"><label class="kil-mf"><span>New password</span><input type="password" id="epPass" placeholder="leave blank to keep"></label>'+
@@ -1710,6 +1772,9 @@ function openEditProfile(){
   // prefill categories + per-category details
   var cats=(PROFILE.categories||[]), det=(PROFILE.cat_details||{});
   document.querySelectorAll('.epCat').forEach(function(c){ c.checked=cats.indexOf(c.value)>-1; });
+  var epPublic=document.getElementById('epPublic'); if(epPublic) epPublic.checked=PROFILE.profile_public===true;
+  var epFields=Array.isArray(PROFILE.public_fields)?PROFILE.public_fields:[];
+  document.querySelectorAll('.epField').forEach(function(c){ c.checked=epFields.indexOf(c.value)>-1; });
   var _pb=Array.isArray(PROFILE.badges)?PROFILE.badges:null; document.querySelectorAll('.epBadge').forEach(function(c){ c.checked=_pb?(_pb.indexOf(c.value)>-1):(c.value==='Member'); });
   function sv(id,val){var e=document.getElementById(id); if(e&&val) e.value=val;}
   var a=det.artist||{},b=det.brand||{},o=det.organizer||{},v=det.venue||{};
@@ -1738,6 +1803,15 @@ function saveCategories(){
     SB.from('profile_content').insert({profile_slug:PROFILE_SLUG,kind:'profile_categories',data:cd,created_by:SESSION.user.id});
   }).catch(function(){});
 }
+function requestAccountType(){
+  var el=document.getElementById('epAcctRequest');
+  var want=el?String(el.value||'').trim():'';
+  if(!want||!SB||!SESSION||!PROFILE_SLUG) return;
+  if(want!=='artist'&&want!=='brand'&&want!=='organizer') return;
+  SB.from('profile_content').delete().eq('profile_slug',PROFILE_SLUG).eq('kind','account_type_request').then(function(){
+    SB.from('profile_content').insert({profile_slug:PROFILE_SLUG,kind:'account_type_request',data:{requested:want},created_by:SESSION.user.id});
+  }).catch(function(){});
+}
 function saveEditProfile(){
   var g=function(id){var e=document.getElementById(id);return e?e.value.trim():'';};
   var btn=document.getElementById('epSave'); if(btn){btn.disabled=true;btn.textContent='Saving…';}
@@ -1754,27 +1828,39 @@ function saveEditProfile(){
         var _links=[1,2,3,4,5].map(function(i){return g('epL'+i);}).filter(function(u){return u&&/^https?:\/\//.test(u);}).slice(0,5);
         var _badges=[].slice.call(document.querySelectorAll('.epBadge:checked')).map(function(c){return c.value;});
         /* pronouns/tagline/booking-email fields were removed from Edit Profile (dup) — preserve existing values (Founder 2026-07-29) */
-        var meta={ slug:PROFILE_SLUG, display_name:g('epName'), handle:g('epHandle').replace(/^@/,''), location:g('epLoc'), bio:g('epBio'),
+        var meta={ display_name:g('epName'), handle:g('epHandle').replace(/^@/,''), location:g('epLoc'), bio:g('epBio'),
           tagline:(document.getElementById('epTag')?g('epTag'):(PROFILE.tagline||null)), pronouns:(document.getElementById('epPro')?g('epPro'):(PROFILE.pronouns||null)), book_email:(document.getElementById('epBook')?g('epBook'):(PROFILE.book_email||null)),
-          about:g('epAbout')||null, links:_links.length?_links:null, links_label:g('epLinksLabel')||null, badges:_badges.length?_badges:null, account_type:(document.getElementById('epAcct')||{}).value||null,
+          about:g('epAbout')||null, links:_links.length?_links:null, links_label:g('epLinksLabel')||null, badges:_badges.length?_badges:null,
           avatar_url: avUrl || g('epAvatarUrl') || PROFILE.avatar,
           cover_url: cvUrl || g('epCoverUrl') || PROFILE.cover,
           cover_mobile_url: cvmUrl || g('epCoverMUrl') || PROFILE.cover_mobile || null,
           socials:{ instagram:g('epIG'), soundcloud:g('epSC'), tiktok:g('epTT'), website:g('epWeb') },
-          highlights: hlDone, updated_at:new Date().toISOString() };
+          highlights: hlDone, updated_at:new Date().toISOString(),
+          profile_public: !!(document.getElementById('epPublic')&&document.getElementById('epPublic').checked),
+          public_fields: [].slice.call(document.querySelectorAll('.epField:checked')).map(function(c){return c.value;}) };
         if(!SB||!SESSION){ Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url,cover:meta.cover_url,cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights}); applyProfile(); closeModal(); toast('Saved locally — sign in as owner to publish.'); return; }
-        SB.from('profile_meta').upsert(meta).then(function(r){
-          if(r&&r.error){ toast('Could not save profile: '+(r.error.message||'')); if(btn){btn.disabled=false;btn.textContent='Save changes';} return; }
+        function savedProfile(){
           Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url,cover:meta.cover_url,cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights});
           applyProfile();
           saveCategories();
-          // account email/password
+          requestAccountType();
           var email=g('epEmail'), pass=g('epPass'), pass2=g('epPass2'), upd={};
           if(email && SESSION.user && email!==SESSION.user.email) upd.email=email;
           if(pass){ if(pass!==pass2){ toast('Profile saved. Passwords did not match — password unchanged.'); closeModal(); return; } upd.password=pass; }
           if(Object.keys(upd).length){ SB.auth.updateUser(upd).then(function(a){ closeModal(); toast(a&&a.error?('Profile saved. Account: '+a.error.message):'Profile + account updated.'+(upd.email?' Check your email to confirm the new address.':'')); }).catch(function(){ closeModal(); toast('Profile saved. Account update failed.'); }); }
           else { closeModal(); toast('Profile updated.'); }
-        }).catch(function(){ if(btn){btn.disabled=false;btn.textContent='Save changes';} toast('Could not save profile.'); });
+        }
+        function saveFailed(err){ toast('Could not save profile: '+((err&&err.message)||'')); if(btn){btn.disabled=false;btn.textContent='Save changes';} }
+        SB.from('profile_meta').update(meta).eq('slug',PROFILE_SLUG).select('slug').then(function(r){
+          if(r&&r.error){ saveFailed(r.error); return; }
+          if(r&&Array.isArray(r.data)&&r.data.length){ savedProfile(); return; }
+          var created={slug:PROFILE_SLUG};
+          Object.keys(meta).forEach(function(k){ created[k]=meta[k]; });
+          SB.from('profile_meta').insert(created).then(function(ins){
+            if(ins&&ins.error){ saveFailed(ins.error); return; }
+            savedProfile();
+          }).catch(function(){ saveFailed(); });
+        }).catch(function(){ saveFailed(); });
       }
       if(!pending){ finalize(); return; }
       hlNodes.forEach(function(node){
@@ -2054,7 +2140,9 @@ function ncCSS(){ if(document.getElementById('nc-css'))return; var s=document.cr
 function ncInitial(h){ var m=String(h||'').replace(/[^a-z0-9]/gi,''); return (m.charAt(0)||'?').toUpperCase(); }
 function ncClose(){ var o=document.getElementById('nc-ov'); if(o) o.remove(); }
 function ncRenderChips(){ var box=document.getElementById('nc-chips'); if(!box)return;
-  box.innerHTML=Object.keys(NC_SEL).map(function(h){ return '<span class="nc-chip">'+esc(NC_NAMES[h]||('@'+h))+'<b onclick="ncToggle(\''+h+'\')">×</b></span>'; }).join('');
+  /* F1: handle goes in data-h (escaped), read back by one delegated listener, never interpolated into JS. */
+  box.innerHTML=Object.keys(NC_SEL).map(function(h){ return '<span class="nc-chip">'+esc(NC_NAMES[h]||('@'+h))+'<b data-h="'+esc(h)+'">×</b></span>'; }).join('');
+  box.onclick=function(e){ var b=e.target&&e.target.closest&&e.target.closest('b[data-h]'); if(b) ncToggle(b.getAttribute('data-h')); };
   var n=Object.keys(NC_SEL).length, nx=document.getElementById('nc-next'); if(nx){ nx.disabled=(n<1); nx.textContent=(n>1?('Next · group of '+n):'Next'); } }
 function ncToggle(h){ if(NC_SEL[h]) delete NC_SEL[h]; else NC_SEL[h]=1; ncRenderChips();
   document.querySelectorAll('#nc-list .nc-row').forEach(function(r){ if(r.getAttribute('data-h')===h) r.classList.toggle('on', !!NC_SEL[h]); }); }
@@ -2064,8 +2152,9 @@ function ncSearch(q){ var list=document.getElementById('nc-list'); if(!list)retu
   SB.rpc('search_members',{q:q}).then(function(r){ var rows=(r&&r.data)||[];
     if(!rows.length){ list.innerHTML='<div class="nc-empty">No members found'+(q?(' for “'+esc(q)+'”'):' yet')+'.</div>'; return; }
     list.innerHTML=rows.map(function(u){ NC_NAMES[u.handle]=u.display_name||u.handle; var on=NC_SEL[u.handle]?' on':'';
-      return '<div class="nc-row'+on+'" data-h="'+esc(u.handle)+'" onclick="ncToggle(\''+esc(u.handle)+'\')"><div class="nc-av">'+ncInitial(u.handle)+'</div><div><div class="nc-nm">'+esc(u.display_name||u.handle)+'</div><div class="nc-hn">@'+esc(u.handle)+'</div></div><div class="nc-sel"></div></div>';
+      return '<div class="nc-row'+on+'" data-h="'+esc(u.handle)+'"><div class="nc-av">'+ncInitial(u.handle)+'</div><div><div class="nc-nm">'+esc(u.display_name||u.handle)+'</div><div class="nc-hn">@'+esc(u.handle)+'</div></div><div class="nc-sel"></div></div>';
     }).join('');
+    list.onclick=function(e){ var row=e.target&&e.target.closest&&e.target.closest('.nc-row'); if(row) ncToggle(row.getAttribute('data-h')); };
   },function(){ list.innerHTML='<div class="nc-empty">Could not search.</div>'; }); }
 function ncStep2(){ if(Object.keys(NC_SEL).length<1)return; document.getElementById('nc-s1').style.display='none'; document.getElementById('nc-s2').style.display='block'; document.getElementById('nc-back').style.display='block'; document.getElementById('nc-ttl').textContent=(Object.keys(NC_SEL).length>1?'New group':'Chat details'); var nm=document.getElementById('nc-name'); if(nm) nm.focus(); }
 function ncStep1(){ document.getElementById('nc-s2').style.display='none'; document.getElementById('nc-s1').style.display='block'; document.getElementById('nc-back').style.display='none'; document.getElementById('nc-ttl').textContent='New message'; }
@@ -2285,12 +2374,18 @@ function hydratePosts(){ if(!SB)return;
 function closeMenu(){var m=document.getElementById('postMenu');if(m)m.remove();}
 function postMenu(pid,src,idx,ev){ if(ev){ev.stopPropagation();} closeMenu();
   var owner=(typeof CAN_EDIT==='function')&&CAN_EDIT(), items=[];
-  if(owner){ items.push('<button onclick="editPost(\''+src+'\','+idx+')">✏️ Edit caption</button>');
-    items.push('<button onclick="delPost(\''+pid+'\')">🗑 Delete post</button>');
-    items.push('<button onclick="toggleHideFeed(\''+src+'\','+idx+');closeMenu()">👁 Hide / show in feed</button>'); }
-  else { items.push('<button onclick="fbShare(KIL_SHARE_ORIGIN+\'/profile?slug=\'+encodeURIComponent(PROFILE_SLUG));closeMenu()">🔗 Copy link</button>');
-    items.push('<button onclick="reportPost()">🚩 Report</button>'); }
+  /* F1: pid/src/idx stay in this closure; the buttons carry only a fixed data-m verb (no value is ever interpolated into JS). */
+  if(owner){ items.push('<button data-m="edit">✏️ Edit caption</button>');
+    items.push('<button data-m="del">🗑 Delete post</button>');
+    items.push('<button data-m="hide">👁 Hide / show in feed</button>'); }
+  else { items.push('<button data-m="copy">🔗 Copy link</button>');
+    items.push('<button data-m="report">🚩 Report</button>'); }
   var m=document.createElement('div'); m.className='post-menu'; m.id='postMenu'; m.innerHTML=items.join('');
+  m.addEventListener('click',function(e2){ var bt=e2.target&&e2.target.closest&&e2.target.closest('button[data-m]'); if(!bt)return; var k=bt.getAttribute('data-m');
+    if(k==='edit')editPost(src,idx); else if(k==='del')delPost(pid);
+    else if(k==='hide'){ toggleHideFeed(src,idx); closeMenu(); }
+    else if(k==='copy'){ fbShare(KIL_SHARE_ORIGIN+'/profile?slug='+encodeURIComponent(PROFILE_SLUG)); closeMenu(); }
+    else if(k==='report')reportPost(); });
   document.body.appendChild(m);
   var b=ev&&(ev.currentTarget||ev.target); if(b&&b.getBoundingClientRect){ var rc=b.getBoundingClientRect();
     m.style.top=(rc.bottom+window.scrollY+6)+'px'; m.style.left=Math.max(8,(rc.right+window.scrollX-186))+'px'; }
@@ -2320,7 +2415,7 @@ function eventCardHtml(e,pid){
   var ext=!!e.is_external; var url=e.ticket_url||('/event?e='+encodeURIComponent(e.slug||''));
   var img=e.cover||'/assets/images/blog-default.jpg';
   var when=''; try{var dt=new Date(e.date); if(!isNaN(dt)) when=dt.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});}catch(x){}
-  var tgt=ext?' target="_blank" rel="noopener"':'';
+  var tgt=ext?' target="_blank" rel="noopener noreferrer"':'';
   return '<div class="pf-card fbcard evpost" data-pid="'+esc(pid)+'" style="overflow:hidden">'
     +'<a href="'+esc(url)+'"'+tgt+' style="text-decoration:none;display:block">'
       +'<div style="position:relative;aspect-ratio:16/9;background:#0a0a0f"><img src="'+esc(img)+'" alt="'+esc(e.title||'Event')+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.src=\'/assets/images/blog-default.jpg\'">'
@@ -2329,9 +2424,9 @@ function eventCardHtml(e,pid){
         +'<div style="color:var(--muted,#9aa0b0);font-size:.82rem;margin-top:5px">'+(when?esc(when):'')+(e.venue?(when?' · ':'')+esc(e.venue):'')+(e.city?' · '+esc(e.city):'')+'</div></div></a>'
     +'<div style="padding:8px 15px 4px"><a href="'+esc(url)+'"'+tgt+' style="display:block;text-align:center;background:var(--brand,#00b4ff);color:#04121b;font-weight:800;letter-spacing:.05em;padding:11px;border-radius:10px;text-decoration:none">🎟 '+(ext?'Get Tickets ↗':'Get Tickets')+'</a></div>'
     +'<div class="fb-actions" style="display:flex;align-items:center;gap:4px;padding:4px 10px 10px">'
-      +'<button class="fba fba-like" onclick="fbToggleLike(\''+esc(pid)+'\')" title="Like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.9-9.3-9C1.2 8 3 4.5 6.4 4.5c2.2 0 3.6 1.2 4.4 2.6.2.4.9.4 1.1 0 .8-1.4 2.2-2.6 4.4-2.6 3.4 0 5.2 3.5 3.7 7-1.8 4.1-8 9-8 9z"/></svg><b></b></button>'
-      +'<button class="fba fba-resh" onclick="fbReshare(\''+esc(pid)+'\')" title="Reshare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><b></b></button>'
-      +'<button class="fba fb-save" style="margin-left:auto" onclick="fbSave(\''+esc(pid)+'\',this)" title="Save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17 3H7a2 2 0 00-2 2v16l7-4 7 4V5a2 2 0 00-2-2z"/></svg></button>'
+      +'<button class="fba fba-like" data-kil-act="like" data-pid="'+esc(pid)+'" title="Like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.9-9.3-9C1.2 8 3 4.5 6.4 4.5c2.2 0 3.6 1.2 4.4 2.6.2.4.9.4 1.1 0 .8-1.4 2.2-2.6 4.4-2.6 3.4 0 5.2 3.5 3.7 7-1.8 4.1-8 9-8 9z"/></svg><b></b></button>'
+      +'<button class="fba fba-resh" data-kil-act="reshare" data-pid="'+esc(pid)+'" title="Reshare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><b></b></button>'
+      +'<button class="fba fb-save" style="margin-left:auto" data-kil-act="save" data-pid="'+esc(pid)+'" title="Save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17 3H7a2 2 0 00-2 2v16l7-4 7 4V5a2 2 0 00-2-2z"/></svg></button>'
     +'</div></div>';
 }
 function postCard(p){
@@ -2351,20 +2446,36 @@ function postCard(p){
     +'<div class="fb-head">'
       +'<a class="fb-avlink" href="'+plink+'"><img class="fb-av" src="'+esc(authorAv)+'" alt="" onerror="this.src=\'/icon-192.png\'"></a>'
       +'<a class="fb-who" href="'+plink+'"><b>'+esc(authorName)+'</b><span>'+esc(p.type)+col+'</span></a>'
-      +'<button class="fb-more" onclick="postMenu(\''+pid+'\',\''+p.src+'\','+p.idx+',event)" title="Options">⋯</button>'
+      +'<button class="fb-more" data-kil-act="menu" data-pid="'+esc(pid)+'" data-src="'+esc(p.src)+'" data-idx="'+esc(p.idx)+'" title="Options">⋯</button>'
       +hid
     +'</div>'
     +'<div class="fb-media">'+media+'</div>'
     +(p.title||p.sub||p.body?'<div class="fb-cap" onclick="fbCapToggle(this,event)"><div class="fb-cap-lead"><b>'+esc(p.title||'')+'</b>'+(p.sub?' '+esc(p.sub):'')+'</div>'+(p.body?'<div class="fb-cap-full">'+p.body+'</div><span class="fb-more-txt">… more</span>':'')+'</div>':'')
     +(p.buy_url?('<div style="padding:2px 15px 8px"><a href="'+esc(p.buy_url)+'" target="_blank" rel="noopener sponsored nofollow" data-kt="affiliate_click" style="display:block;text-align:center;background:#ff9900;color:#111;font-weight:800;letter-spacing:.03em;padding:11px;border-radius:10px;text-decoration:none">🛒 '+esc(p.buy_label||'Buy on Amazon')+'</a><div style="font-size:.68rem;color:var(--muted,#9aa0b0);text-align:center;margin-top:5px">'+esc(p.disclosure||'#ad · affiliate')+'</div></div>'):'')
     +'<div class="fb-actions">'
-      +'<button class="fba fba-like" onclick="event.stopPropagation();fbToggleLike(\''+pid+'\')" title="Like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.9-9.3-9C1.2 8 3 4.5 6.4 4.5c2.2 0 3.6 1.2 4.4 2.6.2.4.9.4 1.1 0 .8-1.4 2.2-2.6 4.4-2.6 3.4 0 5.2 3.5 3.7 7-1.8 4.1-8 9-8 9z"/></svg><b></b></button>'
-      +'<button class="fba fba-resh" onclick="event.stopPropagation();fbReshare(\''+pid+'\')" title="Reshare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><b></b></button>'
-      +'<button class="fba fba-share" onclick="event.stopPropagation();fbShare(KIL_SHARE_ORIGIN+\'/profile?slug=\'+encodeURIComponent('+(p.collab&&p.collab.length?'\''+esc(authorSlug)+'\'':'PROFILE_SLUG')+'))" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></button>'
-      +'<button class="fba fb-save" style="margin-left:auto" onclick="event.stopPropagation();fbSave(\''+pid+'\',this)" title="Save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17 3H7a2 2 0 00-2 2v16l7-4 7 4V5a2 2 0 00-2-2z"/></svg></button>'
+      +'<button class="fba fba-like" data-kil-act="like" data-pid="'+esc(pid)+'" title="Like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.9-9.3-9C1.2 8 3 4.5 6.4 4.5c2.2 0 3.6 1.2 4.4 2.6.2.4.9.4 1.1 0 .8-1.4 2.2-2.6 4.4-2.6 3.4 0 5.2 3.5 3.7 7-1.8 4.1-8 9-8 9z"/></svg><b></b></button>'
+      +'<button class="fba fba-resh" data-kil-act="reshare" data-pid="'+esc(pid)+'" title="Reshare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><b></b></button>'
+      +'<button class="fba fba-share" data-kil-act="share" data-slug="'+esc(authorSlug)+'" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></button>'
+      +'<button class="fba fb-save" style="margin-left:auto" data-kil-act="save" data-pid="'+esc(pid)+'" title="Save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17 3H7a2 2 0 00-2 2v16l7-4 7 4V5a2 2 0 00-2-2z"/></svg></button>'
     +'</div>'
   +'</div>';
 }
+/* F1 — card buttons carry data-kil-act + data-* values and ONE capture-phase listener dispatches them.
+   They used to be inline onclick="fbX('<pid>')" strings: esc() HTML-escapes the value, but the browser
+   decodes &#39; back to ' BEFORE the JS in the attribute runs, so a pid/slug containing a quote broke out
+   of the string. A data-* attribute is only ever read back as a string, never parsed as code.
+   Capture phase + stopPropagation reproduces the old per-button event.stopPropagation(). */
+document.addEventListener('click',function(e){
+  var t=e.target, b=t&&t.closest&&t.closest('[data-kil-act]'); if(!b)return;
+  if(!b.closest('.fbcard'))return;
+  var act=b.getAttribute('data-kil-act'), pid=b.getAttribute('data-pid')||'';
+  e.stopPropagation();
+  if(act==='like') fbToggleLike(pid);
+  else if(act==='reshare') fbReshare(pid);
+  else if(act==='save') fbSave(pid,b);
+  else if(act==='share') fbShare(KIL_SHARE_ORIGIN+'/profile?slug='+encodeURIComponent(b.getAttribute('data-slug')||''));
+  else if(act==='menu') postMenu(pid,b.getAttribute('data-src')||'',parseInt(b.getAttribute('data-idx'),10)||0,{stopPropagation:function(){},currentTarget:b,target:b});
+},true);
 function openPost(src,idx){
   var html='';
   if(src==='collab'){ var c=COLLAB_POSTS[idx]; if(!c)return;
@@ -2410,8 +2521,10 @@ function renderArticles(){
   var pend=document.getElementById('collab-pending');
   if(pend){
     pend.innerHTML=(CAN_EDIT()&&COLLAB_PENDING.length)?COLLAB_PENDING.map(function(c){
-      return '<div class="collab-invite"><div class="ci-txt"><b>@'+esc(c.source_slug)+'</b> wants to share a post to your profile: <span>"'+esc(c.title||'Untitled')+'"</span></div><div class="ci-btns"><button class="ci-yes" onclick="collabRespond(\''+c.id+'\',\'accepted\')">Accept</button><button class="ci-no" onclick="collabRespond(\''+c.id+'\',\'declined\')">Decline</button></div></div>';
+      return '<div class="collab-invite"><div class="ci-txt"><b>@'+esc(c.source_slug)+'</b> wants to share a post to your profile: <span>"'+esc(c.title||'Untitled')+'"</span></div><div class="ci-btns"><button class="ci-yes" data-collab-id="'+esc(c.id)+'" data-collab-st="accepted">Accept</button><button class="ci-no" data-collab-id="'+esc(c.id)+'" data-collab-st="declined">Decline</button></div></div>';
     }).join(''):'';
+    /* F1b — Accept/Decline carry the id in data-* (never inline JS); one delegated listener, re-assigned (not stacked) on each render. */
+    pend.onclick=function(e){ var b=e.target&&e.target.closest&&e.target.closest('button[data-collab-id]'); if(!b)return; collabRespond(b.getAttribute('data-collab-id'),b.getAttribute('data-collab-st')); };
   }
   var add='';   /* in-feed create tile removed (Founder pass 2) — ＋Create lives on the sub-filter row */
   var posts=allPosts().filter(function(p){return !isHiddenFromFeed(p);}); // Feed = everything (own + accepted collab) not hidden by the owner
@@ -2450,7 +2563,7 @@ function agBubble(kind,who,text,sources){
   var m=document.getElementById('agMsgs'); if(!m) return null;
   var d=document.createElement('div'); d.className='ag-m'+(kind==='me'?' me':'');
   var src='';
-  if(sources&&sources.length){ src='<span class="ag-src">'+sources.slice(0,3).map(function(s){ var u=s&&(s.url||s.source_url), l=s&&(s.label||s.title)||'Read more'; return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(l)+' ↗</a>':''; }).join('')+'</span>'; }
+  if(sources&&sources.length){ src='<span class="ag-src">'+sources.slice(0,3).map(function(s){ var u=s&&(s.url||s.source_url), l=s&&(s.label||s.title)||'Read more'; return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(l)+' ↗</a>':''; }).join('')+'</span>'; }
   d.innerHTML=(who?'<span class="ag-who">'+esc(who)+'</span>':'')+esc(text)+src;
   m.appendChild(d); m.scrollTop=m.scrollHeight; return d;
 }
@@ -2688,20 +2801,13 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
   }
 
   function resolveFor(user){
-      /* Two ways to find the slug. The RPC is the normal one; profile_owners is world-readable,
-         so a direct read is a real second path rather than a retry of the same call. */
       SB.rpc('my_profile_slug').then(function(rr){
-        if(rr && !rr.error && rr.data){ pfGo(rr.data); return; }   /* OWNER view (Founder 2026-08-05) */
-        return SB.from('profile_owners').select('profile_slug').eq('owner_id', user.id).limit(1)
-          .then(function(q){
-            var row=(q && !q.error && q.data && q.data[0]) ? q.data[0].profile_slug : null;
-            if(row){ pfGo(row); return; }
-            pfStuck('No profile on this account',
-              'Signed in as '+(user.email||'this account')+'. There is no profile linked to it yet.',
-              [{label:'Create my profile', primary:true, go:function(){ pfClaim(user); }},
-               {label:'Dashboard', go:function(){ location.href='/dashboard'; }},
-               {label:'Sign out', go:function(){ pfSignOut().then(function(){ location.href='/'; }); }}]);
-          });
+        if(rr && !rr.error && rr.data){ pfGo(rr.data); return; }
+        pfStuck('No profile on this account',
+          'Signed in as '+(user.email||'this account')+'. There is no profile linked to it yet. An admin has to approve a request.',
+          [{label:'Request my profile', primary:true, go:function(){ pfClaim(user); }},
+           {label:'Dashboard', go:function(){ location.href='/dashboard'; }},
+           {label:'Sign out', go:function(){ pfSignOut().then(function(){ location.href='/'; }); }}]);
       }).catch(function(){
         pfStuck('Could not load your profile',
           'The lookup failed rather than coming back empty, so this is not a missing profile. Trying again usually works.',
@@ -2711,20 +2817,24 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
       });
   }
 
-  /* claim_profile() has existed in the database the whole time and was called from nowhere,
-     which is why no account could ever get a profile through the site. */
   function pfClaim(user){
-    var suggested=(user.email||'').split('@')[0].replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-+|-+$/g,'').toLowerCase();
+    var suggested=(user.email||'').split('@')[0].replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').toLowerCase();
     var handle=prompt('Choose your profile handle (letters, numbers and dashes):', suggested||'');
     if(!handle) return;
-    SB.rpc('claim_profile',{p_handle:handle, p_display:''}).then(function(r){
-      if(r && !r.error && r.data){ pfGo(r.data); return; }
+    handle=String(handle).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+    SB.rpc('request_profile_claim',{p_slug:handle}).then(function(r){
+      if(r && !r.error && r.data){
+        pfStuck('Request sent',
+          'An admin has to approve @'+handle+' before it is yours. Nothing was claimed.',
+          [{label:'Dashboard', primary:true, go:function(){ location.href='/dashboard'; }}]);
+        return;
+      }
       pfStuck('That handle did not work',
-        (r && r.error && r.error.message) ? r.error.message : 'The handle may already be taken.',
+        (r && r.error && r.error.message) ? r.error.message : 'Use letters, numbers and dashes.',
         [{label:'Try another', primary:true, go:function(){ pfClaim(user); }},
          {label:'Dashboard', go:function(){ location.href='/dashboard'; }}]);
     }).catch(function(){
-      pfStuck('Could not create the profile','The request did not complete. Nothing was changed.',
+      pfStuck('Could not send the request','The request did not complete. Nothing was claimed.',
         [{label:'Try again', primary:true, go:function(){ pfClaim(user); }},
          {label:'Dashboard', go:function(){ location.href='/dashboard'; }}]);
     });
@@ -2782,7 +2892,8 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
     var bg=document.getElementById('pfBadges'); var P=window.PROFILE||{};
     if(bg && !bg.children.length){ var _ac=String(P.account_type||'').toLowerCase().trim(); var _sn={}; var arr=window.KIL_FILTER_BADGES(Array.isArray(P.badges)?P.badges.slice():[]).filter(function(x){var k=String(x).toLowerCase().trim(); if(!k||k===_ac||_sn[k])return false; _sn[k]=1; return true;}); bg.innerHTML=arr.slice(0,6).map(function(x){return '<span class="bdg">'+String(x).replace(/[<>]/g,'').slice(0,16)+'</span>';}).join(''); }
     if(pollB>20 || (bg&&bg.children.length)) clearInterval(ivB); },600); }catch(e){}
-  function esc(u){return String(u).replace(/"/g,'');}
+  /* full HTML escape: this esc shadows the global one in this IIFE and used to only strip quotes, so a URL-derived label reached innerHTML raw */
+  function esc(u){return String(u==null?'':u).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
   function build(){
     try{
       var P=window.PROFILE||{}; var links=(P.links||[]).slice(0,5);
@@ -2790,15 +2901,15 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
       ['instagram','soundcloud','tiktok','youtube','spotify','website'].forEach(function(k){ if(soc[k]&&socArr.length<5) socArr.push([k,soc[k]]); });
       var menu=document.getElementById('pfLinksMenu'), drop=document.getElementById('pfLinksDrop'); if(!menu||!drop) return;
       if(!links.length && !socArr.length) return;
-      var html=links.map(function(u){var href=safeNav(u); if(!href) return ''; var lbl=String(href).replace(/^https?:\/\//,'').slice(0,34);return '<a href="'+esc(href)+'" target="_blank" rel="noopener" style="display:block;padding:8px 10px;color:var(--brand,#00b4ff);font-size:.84rem;font-weight:700;border-radius:8px">'+esc(lbl)+'</a>';}).join('');
-      html+=socArr.map(function(p){var href=safeNav(p[1]); if(!href) return ''; var lbl=p[0].charAt(0).toUpperCase()+p[0].slice(1);return '<a href="'+esc(href)+'" target="_blank" rel="noopener" style="display:block;padding:8px 10px;color:var(--accent,#8b5cff);font-size:.84rem;font-weight:700;border-radius:8px">'+esc(lbl)+'</a>';}).join('');
+      var html=links.map(function(u){var href=safeNav(u); if(!href) return ''; var lbl=String(href).replace(/^https?:\/\//,'').slice(0,34);return '<a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer" style="display:block;padding:8px 10px;color:var(--brand,#00b4ff);font-size:.84rem;font-weight:700;border-radius:8px">'+esc(lbl)+'</a>';}).join('');
+      html+=socArr.map(function(p){var href=safeNav(p[1]); if(!href) return ''; var lbl=p[0].charAt(0).toUpperCase()+p[0].slice(1);return '<a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer" style="display:block;padding:8px 10px;color:var(--accent,#8b5cff);font-size:.84rem;font-weight:700;border-radius:8px">'+esc(lbl)+'</a>';}).join('');
       menu.innerHTML=html; drop.style.display='block';
     }catch(e){}
   }
   var n=0; var iv=setInterval(function(){ n++; build(); if(n>20) clearInterval(iv); },600);
 })();
 </script>
-<script src="/assets/js/keepitil-radio.js?v=20260929a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20261109a" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
 
 <script>
@@ -2858,9 +2969,11 @@ function openArchive(){
     box.innerHTML=rows.map(function(x){
       var d=x.data||{}; var label=(d.title||d.text||d.caption||x.kind||'').toString().slice(0,60);
       return '<div style="display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line)">'
-        +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b style="font-size:.7rem;color:var(--accent);text-transform:uppercase">'+x.kind+'</b> '+label+'</span>'
-        +'<button class="evsub-b" onclick="toggleArchived(\''+x.id+'\','+(!x.archived)+')">'+(x.archived?'Unarchive':'Archive')+'</button></div>';
+        +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b style="font-size:.7rem;color:var(--accent);text-transform:uppercase">'+esc(x.kind)+'</b> '+esc(label)+'</span>'
+        +'<button class="evsub-b" data-arch-id="'+esc(x.id)+'" data-arch-val="'+(x.archived?'false':'true')+'">'+(x.archived?'Unarchive':'Archive')+'</button></div>';
     }).join('');
+    /* F1b — id in data-*, not inline JS; the boolean is derived from a fixed 'true'/'false' token. */
+    box.onclick=function(e){ var b=e.target&&e.target.closest&&e.target.closest('button[data-arch-id]'); if(!b)return; toggleArchived(b.getAttribute('data-arch-id'),b.getAttribute('data-arch-val')==='true'); };
   });
 }
 function toggleArchived(id,val){
@@ -2880,7 +2993,10 @@ function toggleArchived(id,val){
         var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=(v==null?0:v);};
         set('stPosts',d.posts); set('stFollowers',d.followers); set('stLikes',d.likes);
       });
-      SB.from('profile_meta').select('about,links,account_type,links_label,badges').eq('slug',PROFILE_SLUG).maybeSingle().then(function(r){
+      var metaRead=((typeof CAN_EDIT==='function')&&CAN_EDIT()&&SESSION)
+        ? SB.from('profile_meta').select('about,links,account_type,links_label,badges').eq('slug',PROFILE_SLUG).maybeSingle()
+        : SB.rpc('get_public_profile',{p_slug:PROFILE_SLUG}).then(function(r){ var row=r&&r.data; if(Array.isArray(row)) row=row[0]||null; return { data: row||{} }; });
+      metaRead.then(function(r){
         var m=(r&&r.data)||{};
         /* S2: never print the raw enum — post-migration that reads "editorial_brand". */
         checkClaimed().then(function(){
@@ -2924,8 +3040,16 @@ function loadSaved(){
     var colls=(res[0].data)||[], saves=(res[1].data)||[];
     colls.sort(function(a,b){var A=String(a.name).toLowerCase()==='saved'?0:1,B=String(b.name).toLowerCase()==='saved'?0:1;return A-B;});
     var cbox=document.getElementById('saved-coll');
-    cbox.innerHTML=colls.map(function(c){return '<button class="evsub-b'+(CUR_COLL===c.id?' on':'')+'" onclick="CUR_COLL=(CUR_COLL==='+c.id+'?null:'+c.id+');loadSaved()">'+String(c.name).slice(0,24)+'</button>';}).join('')
-      ;
+    /* F2: collection names are user-typed (newCollection prompt). Built with textContent + a closure listener:
+       no HTML parse of the name, and no collection id interpolated into inline JS. */
+    cbox.replaceChildren();
+    colls.forEach(function(c){
+      var btn=document.createElement('button');
+      btn.className='evsub-b'+(CUR_COLL===c.id?' on':'');
+      btn.textContent=String(c.name).slice(0,24);
+      btn.addEventListener('click',function(){ CUR_COLL=(CUR_COLL===c.id?null:c.id); loadSaved(); });
+      cbox.appendChild(btn);
+    });
     var rows=saves.filter(function(s){return CUR_COLL==null||s.collection_id===CUR_COLL;});
     var g=document.getElementById('saved-grid'), emp=document.getElementById('saved-empty');
     if(!rows.length){ g.innerHTML=''; emp.style.display='block'; return; }

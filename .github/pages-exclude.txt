@@ -1,0 +1,37 @@
+# Paths NOT copied into the GitHub Pages artifact (_site) by scripts/pages-build.mjs.
+# Anchored at the repo root. One entry per line. '#' starts a comment.
+#   dir/        a directory and everything under it
+#   path/file   one exact file
+#   * and **    glob: '*' = within one path segment, '**' = across segments
+#
+# Why this exists: keepitil.com is served by GitHub Pages with .nojekyll, so every tracked
+# file is public. An entry below REMOVES those URLs from the live site. Each entry must be
+# proven unreferenced by anything that is deployed (scripts/pages-closure-check.mjs enforces
+# this on every build: a deployed html/css/manifest/js/json/xml file that points at an
+# excluded file fails the build).
+#
+# Never exclude: CNAME, .nojekyll, 404.html, index.html, .well-known/ (apple-app-site-association),
+# games/, app/, assets/ except the entries below.
+
+# Version control and CI (the upload action drops .git/.github too; listed for clarity).
+.git/
+.github/
+.gitignore
+node_modules/
+
+# Test suites, docs, seed SQL and package manifests: not site content.
+tests/
+docs/
+db/
+package.json
+package-lock.json
+
+# Full-size PNG originals; every page uses the -400/-600/-900/-1024 .webp and .avif siblings.
+assets/sponsors/originals/
+
+# Flutter debug symbol maps (*.js.symbols). The engine never fetches them; nothing mentions them.
+app/tuitea/app/canvaskit/**/*.js.symbols
+
+# Build tooling for this very workflow, and its unit test (they name excluded files in strings).
+scripts/
+assets/js/pages-closure.test.mjs

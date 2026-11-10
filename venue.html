@@ -245,7 +245,7 @@ function render(){
   $('vName').textContent=V.name;
   $('vTag').textContent=V.tagline||'';
   var loc=V.address||V.city;
-  $('vLoc').innerHTML=loc?('📍 <a style="color:inherit;border-bottom:1px solid var(--line)" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(V.maps_query||loc)+'" target="_blank" rel="noopener">'+esc(loc)+' ↗</a>'):'';
+  $('vLoc').innerHTML=loc?('📍 <a style="color:inherit;border-bottom:1px solid var(--line)" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(V.maps_query||loc)+'" target="_blank" rel="noopener noreferrer">'+esc(loc)+' ↗</a>'):'';
   // quick answers (host? / cost? / book?)
   var rooms=V.rooms||[]; var lowest='';
   try{ var ps=[]; rooms.forEach(function(rm){(rm.pricing||[]).forEach(function(p){var n=parseInt(String(p.price).replace(/[^0-9]/g,''),10); if(n)ps.push(n);});}); if(ps.length)lowest='from $'+Math.min.apply(null,ps).toLocaleString(); }catch(e){}
@@ -269,16 +269,16 @@ function render(){
   // socials
   var soc=V.socials||{};
   var sl=[];
-  if(soc.instagram)sl.push('<a href="'+esc(soc.instagram)+'" target="_blank" rel="noopener">Instagram ↗</a>');
-  if(soc.tiktok)sl.push('<a href="'+esc(soc.tiktok)+'" target="_blank" rel="noopener">TikTok ↗</a>');
-  if(soc.yelp)sl.push('<a href="'+esc(soc.yelp)+'" target="_blank" rel="noopener">Yelp ↗</a>');
-  if(soc.website)sl.push('<a href="'+esc(soc.website)+'" target="_blank" rel="noopener">Website ↗</a>');
+  if(soc.instagram)sl.push('<a href="'+esc(soc.instagram)+'" target="_blank" rel="noopener noreferrer">Instagram ↗</a>');
+  if(soc.tiktok)sl.push('<a href="'+esc(soc.tiktok)+'" target="_blank" rel="noopener noreferrer">TikTok ↗</a>');
+  if(soc.yelp)sl.push('<a href="'+esc(soc.yelp)+'" target="_blank" rel="noopener noreferrer">Yelp ↗</a>');
+  if(soc.website)sl.push('<a href="'+esc(soc.website)+'" target="_blank" rel="noopener noreferrer">Website ↗</a>');
   $('vSocial').innerHTML=sl.join('');
   // reviews (only show rating/count if present)
   var rev=V.reviews||{};
   if(rev && rev.source){
     var rc=(rev.rating||rev.count)?(' · '+esc(rev.rating||'')+(rev.count?(' ('+esc(rev.count)+' reviews)'):'')):'';
-    $('vReviews').innerHTML='<b>'+esc(rev.source)+'</b>'+rc+(rev.note?('<div style="margin-top:6px">'+esc(rev.note)+'</div>'):'')+(rev.url?('<div style="margin-top:8px"><a style="color:var(--brand)" href="'+esc(rev.url)+'" target="_blank" rel="noopener nofollow">View on '+esc(rev.source)+' ↗</a></div>'):'');
+    $('vReviews').innerHTML='<b>'+esc(rev.source)+'</b>'+rc+(rev.note?('<div style="margin-top:6px">'+esc(rev.note)+'</div>'):'')+(rev.url?('<div style="margin-top:8px"><a style="color:var(--brand)" href="'+esc(rev.url)+'" target="_blank" rel="noopener noreferrer nofollow">View on '+esc(rev.source)+' ↗</a></div>'):'');
   } else { $('vReviews').innerHTML=esc((rev&&rev.note)||'No reviews yet.'); }
   // on-site reviews + gallery (auto-filled from tagged posts, filterable)
   loadReviews();
@@ -302,7 +302,7 @@ function loadGallery(kind){
     var items=(r&&r.data)||[];
     if(!items.length){ galleryEmpty(); return; }
     box.innerHTML=items.map(function(m){
-      var href=m.source_url||m.media_url||'#'; var ext=(m.source_url||m.media_url)?' target="_blank" rel="noopener"':'';
+      var href=m.source_url||m.media_url||'#'; var ext=(m.source_url||m.media_url)?' target="_blank" rel="noopener noreferrer"':'';
       if(m.kind==='video'&&m.media_url){ return '<a class="gcard" href="'+esc(href)+'"'+ext+'><span class="lab">Video</span><video src="'+esc(m.media_url)+'" muted playsinline></video>'+(m.author_handle?'<div class="by">@'+esc(m.author_handle)+'</div>':'')+'</a>'; }
       if(m.kind==='blog'){ return '<a class="gcard blogc" href="'+esc(href)+'"'+ext+'><span class="lab">Blog</span>'+(m.media_url?'<img src="'+esc(m.media_url)+'" alt="" onerror="this.style.display=\'none\'">':'')+'<div class="bt">'+esc(m.title||'Read')+'</div>'+(m.author_handle?'<div class="by">by '+esc(m.author_handle)+'</div>':'')+'</a>'; }
       var img=m.media_url?'<img src="'+esc(m.media_url)+'" alt="" onerror="var c=this.closest(\'.gcard\');if(c)c.style.display=\'none\'">':'';
@@ -314,7 +314,7 @@ function loadGallery(kind){
 function galleryEmpty(){
   var soc=V.socials||{}; var box=$('vGallery');
   var tag='Tag <b>'+esc(V.name)+'</b> in your posts and they show up here automatically.';
-  if(soc.instagram||soc.tiktok){ box.innerHTML='<div class="ph" style="grid-column:1/-1;aspect-ratio:auto;min-height:0;padding:24px">No tagged posts yet — see photos &amp; videos on '+(soc.instagram?'<a style="color:var(--brand)" href="'+esc(soc.instagram)+'" target="_blank" rel="noopener">Instagram</a>':'')+(soc.instagram&&soc.tiktok?' · ':'')+(soc.tiktok?'<a style="color:var(--brand)" href="'+esc(soc.tiktok)+'" target="_blank" rel="noopener">TikTok</a>':'')+'.<br>'+tag+'</div>'; }
+  if(soc.instagram||soc.tiktok){ box.innerHTML='<div class="ph" style="grid-column:1/-1;aspect-ratio:auto;min-height:0;padding:24px">No tagged posts yet — see photos &amp; videos on '+(soc.instagram?'<a style="color:var(--brand)" href="'+esc(soc.instagram)+'" target="_blank" rel="noopener noreferrer">Instagram</a>':'')+(soc.instagram&&soc.tiktok?' · ':'')+(soc.tiktok?'<a style="color:var(--brand)" href="'+esc(soc.tiktok)+'" target="_blank" rel="noopener noreferrer">TikTok</a>':'')+'.<br>'+tag+'</div>'; }
   else { box.innerHTML='<div class="ph" style="grid-column:1/-1;aspect-ratio:auto;padding:24px">'+tag+'</div>'; }
 }
 /* ── On-site reviews ── */
@@ -377,7 +377,7 @@ async function claim(){
 }
 load();
 </script>
-<script src="/assets/js/keepitil-radio.js?v=20260929a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20261109a" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
 <script src="/keepitil-shell.js?v=20261031a" defer></script>
 </body>

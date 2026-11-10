@@ -4,7 +4,7 @@
  * Self-contained, zero dependencies.
  */
 // Auto-load KEEPITIL Radio Bar on every page
-(function(){if(!window.__kilRadioInit){var s=document.createElement('script');s.src='/assets/js/keepitil-radio.js?v=20260929a';document.head.appendChild(s);}})();
+(function(){if(!window.__kilRadioInit){var s=document.createElement('script');s.src='/assets/js/keepitil-radio.js?v=20261109a';document.head.appendChild(s);}})();
 // Swap nav logo PNGs to extracted transparent X marks + resize (keepitil-radio.js handles this on load; this is a fallback)
 (function(){
   function swapNavLogos(){
@@ -581,6 +581,11 @@
          keyboard and the home indicator, so adding the inset again lifts the composer off the
          keyboard by the height of the indicator and leaves a gap. */
       '#kilo-input-row{padding-bottom:12px;}}',
+      /* Touch targets (7c audit): 44px close/send and a 44px, 16px-text input on touch only.
+         The close button's negative margin keeps the header row the same height. */
+      '@media(pointer:coarse){#kilo-close{width:44px;height:44px;margin:-7px -7px -7px 0;}',
+      '#kilo-send{width:44px;height:44px;}',
+      '#kilo-input{min-height:44px;box-sizing:border-box;font-size:16px;}}',
     ].join('');
 
     var s = document.createElement('style');
@@ -673,7 +678,7 @@
           // Internal links open in same tab, external in new tab
           if (l.url.indexOf('keepitil.com') === -1 && l.url.charAt(0) !== '/') {
             a.target = '_blank';
-            a.rel = 'noopener';
+            a.rel = 'noopener noreferrer';
           }
           linksDiv.appendChild(a);
         });
@@ -1292,8 +1297,16 @@
       lookups.push(choRest('events?select=slug,title&status=eq.published&title=ilike.*' + enc + '*&limit=1')
         .then(function (r) { return (r && r[0]) ? { kind: 'event', href: '/event?e=' + encodeURIComponent(r[0].slug), label: r[0].title } : null; }));
     }
-    lookups.push(choRest('profile_meta?select=slug,display_name&slug=ilike.*' + enc.replace(/%20/g, '-') + '*&limit=1')
-      .then(function (r) { return (r && r[0]) ? { kind: 'profile', href: '/profile?slug=' + encodeURIComponent(r[0].slug), label: r[0].display_name || r[0].slug } : null; }));
+    /* Directory name search. Members are not in this list. */
+    lookups.push(fetch(KIL_SUPA_URL + '/rest/v1/rpc/public_profile_list', {
+      method: 'POST',
+      headers: { apikey: KIL_SUPA_ANON, Authorization: 'Bearer ' + KIL_SUPA_ANON, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_query: subject, p_limit: 8 })
+    }).then(function (r) { return r.ok ? r.json() : null; }).then(function (rows) {
+      if (!Array.isArray(rows) || !rows[0] || !rows[0].slug) return null;
+      var row = rows[0];
+      return { kind: 'profile', href: '/profile?slug=' + encodeURIComponent(row.slug), label: row.display_name || row.slug };
+    }).catch(function () { return null; }));
 
     return Promise.all(lookups).then(function (res) {
       var order = wantsArticle ? ['article', 'profile', 'event']

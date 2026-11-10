@@ -9,7 +9,7 @@
      events          published, not started, shown on explore, NOT password-protected (the readable
                      password_protected flag; the hash itself is not readable by API roles)
      event_lineup    public read
-     profile_meta    public read; host display names only
+     public_profile_list directory names only; a member host keeps the handle
      ticket_tiers    public read for published events; the lowest price still on sale, display only
    No checkout, payment or price change. */
 (function (root) {
@@ -130,8 +130,19 @@
         .forEach(function (t) { (tiers[t.event_id] = tiers[t.event_id] || []).push(t); });
     }
     if (hostSlugs.length) {
-      got(await safe(client.from('profile_meta').select('slug,display_name').in('slug', hostSlugs)))
-        .forEach(function (p) { hostProfiles[slugOf(p.slug)] = true; if (p.display_name) hosts[slugOf(p.slug)] = p.display_name; });
+      var named = await safe(client.rpc('public_profile_list', { p_limit: 60 }));
+      if (!ok(named)) partial = true;
+      var rows = named && named.data;
+      if (!Array.isArray(rows)) rows = rows ? [rows] : [];
+      var want = {};
+      hostSlugs.forEach(function (slug) { want[slug] = 1; });
+      rows.forEach(function (p) {
+        var key = slugOf(p && p.slug);
+        if (want[key]) {
+          hostProfiles[key] = true;
+          if (p.display_name) hosts[key] = p.display_name;
+        }
+      });
     }
     return { events: events, lineups: lineups, tiers: tiers, hosts: hosts, hostProfiles: hostProfiles, partial: partial };
   }

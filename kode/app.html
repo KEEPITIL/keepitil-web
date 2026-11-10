@@ -199,7 +199,7 @@
     <div class="card" id="plan-card">
       <h2>Your plan</h2>
       <div class="sub" id="plan-status"></div>
-      <a class="btn" id="upgrade-btn" target="_blank" rel="noopener" style="display:none;width:auto;text-align:center">⚡ Upgrade to KODE Pro — $19/mo</a>
+      <a class="btn" id="upgrade-btn" target="_blank" rel="noopener noreferrer" style="display:none;width:auto;text-align:center">⚡ Upgrade to KODE Pro — $19/mo</a>
       <div class="note" id="plan-note" style="display:none">After paying, come back here and refresh — Pro unlocks automatically within a few seconds of payment.</div>
     </div>
 
@@ -255,7 +255,8 @@ async function route(){
   const { data: { session } } = await db.auth.getSession();
   if (!session) { me = null; myProfile = null; renderWho(); show('view-auth'); return; }
   me = session.user;
-  const { data: prof } = await db.from('profiles').select('*').eq('id', me.id).maybeSingle();
+  const { data: rows } = await db.rpc('get_approved_profile', { p_id: me.id, p_slug: null });
+  const prof = Array.isArray(rows) && rows.length ? rows[0] : null;
   myProfile = prof;
   renderWho();
   if (!prof) { show('view-handle'); return; }
@@ -449,8 +450,8 @@ $('post-form').onsubmit = async e => {
 function mediaThumb(p){
   if (!p.media_url || !/^https?:\/\/[^\s"'<>]+$/.test(p.media_url)) return '';
   const u = escapeHtml(p.media_url);
-  if (/\.(mp4|mov|webm)(\?|$)/i.test(p.media_url)) return `<a class="pthumb vid" href="${u}" target="_blank" rel="noopener" title="Open video">🎬</a>`;
-  return `<a href="${u}" target="_blank" rel="noopener" title="Open media"><img class="pthumb" src="${u}" alt="" loading="lazy" onerror="this.parentNode.style.display='none'"></a>`;
+  if (/\.(mp4|mov|webm)(\?|$)/i.test(p.media_url)) return `<a class="pthumb vid" href="${u}" target="_blank" rel="noopener noreferrer" title="Open video">🎬</a>`;
+  return `<a href="${u}" target="_blank" rel="noopener noreferrer" title="Open media"><img class="pthumb" src="${u}" alt="" loading="lazy" onerror="this.parentNode.style.display='none'"></a>`;
 }
 
 async function loadQueue(){
@@ -511,9 +512,9 @@ function renderReady(list){
         <div class="pmeta">was due ${new Date(p.scheduled_at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div>
       </div>
       <div class="acts">
-        ${p.media_url ? `<button onclick="window.open('${escapeHtml(p.media_url)}','_blank')">🖼 media</button>` : ''}
+        ${p.media_url ? `<button onclick="window.open('${escapeHtml(p.media_url)}','_blank','noopener,noreferrer')">🖼 media</button>` : ''}
         <button onclick="copyCaption('${p.id}')" id="copy-${p.id}">⧉ copy caption</button>
-        <button onclick="window.open(OPEN_LINK['${p.platform}'],'_blank')">↗ open ${p.platform}</button>
+        <button onclick="window.open(OPEN_LINK['${p.platform}'],'_blank','noopener,noreferrer')">↗ open ${p.platform}</button>
         <button onclick="markPublished('${p.id}')">✓ posted</button>
         <button class="del" onclick="delPost('${p.id}')">delete</button>
       </div>

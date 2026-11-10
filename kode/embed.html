@@ -35,7 +35,7 @@
   <div><b id="title">Loading…</b><br><span id="subtitle">upcoming posts</span></div>
 </div>
 <div id="list"><div class="empty">Loading…</div></div>
-<div class="powered"><a href="index.html" target="_blank" rel="noopener">powered by <b>KODE</b></a></div>
+<div class="powered"><a href="index.html" target="_blank" rel="noopener noreferrer">powered by <b>KODE</b></a></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -58,7 +58,8 @@ const thumb = p => {
   const list = document.getElementById('list');
   if (!handle) { list.innerHTML = '<div class="empty">No profile specified.</div>'; return; }
 
-  const { data: prof } = await db.from('profiles').select('id,handle,display_name').eq('handle', handle).maybeSingle();
+  const { data: rows } = await db.rpc('get_approved_profile', { p_id: null, p_slug: handle });
+  const prof = Array.isArray(rows) && rows.length ? rows[0] : null;
   if (!prof) {
     document.getElementById('title').textContent = '@' + handle;
     list.innerHTML = '<div class="empty">Profile not found.</div>';

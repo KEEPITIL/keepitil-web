@@ -1,0 +1,105 @@
+... negative controls
+
+== S1 stack: APPLY-1 + 1B + 92 + data steps, then 1C
+PASS PRE-state             before 1C the replica is the documented APPLY-1+92 state: authenticated INSERT=UPDATE=the 22 columns (incl account_type/status), events 45 readable, profile_content has ALL
+PASS PRE-legacy            before 1C the legacy save (account_type via upsert) works for the owner (this is why 1C comes after the #129 web)
+PASS OWN-1                 1C owner saves all 14 columns the #129 form can send, on their own page
+PASS OWN-2                 1C owner saves one field (bio only), like #129 diff saves
+PASS OWN-3                 1C insert fallback (slug + 18 columns) for a newly approved owner works; status defaults to review, account_type stays NULL
+PASS OWN-4                 1C a non-owner updating someone else's page changes 0 rows
+PASS DENY-account_type     1C owner CANNOT update profile_meta.account_type (permission denied)
+PASS DENY-status           1C owner CANNOT update profile_meta.status (permission denied)
+PASS DENY-admin_approved   1C owner CANNOT update profile_meta.admin_approved (permission denied)
+PASS DENY-age_verified     1C owner CANNOT update profile_meta.age_verified (permission denied)
+PASS DENY-is_minor         1C owner CANNOT update profile_meta.is_minor (permission denied)
+PASS DENY-under_18         1C owner CANNOT update profile_meta.under_18 (permission denied)
+PASS DENY-entity_category  1C owner CANNOT update profile_meta.entity_category (permission denied)
+PASS DENY-sources          1C owner CANNOT update profile_meta.sources (permission denied)
+PASS DENY-last_reviewed_at 1C owner CANNOT update profile_meta.last_reviewed_at (permission denied)
+PASS DENY-slug             1C owner CANNOT update profile_meta.slug (permission denied)
+PASS DENY-ins-account_type 1C owner CANNOT insert account_type
+PASS DENY-ins-status       1C owner CANNOT insert status
+PASS DENY-ins-flags        1C owner CANNOT insert any of the four server flags
+PASS DENY-tripwire         1C columns the #129 form cannot send (tagline, pronouns, book_email, badges, highlights) are NOT UPDATE-able (tripwire if an editor returns)
+PASS COMPAT-legacy         1C the pre-#129 save (upsert with slug + account_type, as main/iOS bundle send) is refused: documented break
+PASS GRANTSET              1C authenticated column sets on profile_meta are exactly INSERT=19 and UPDATE=14; anon has none; no table-level write
+PASS TRUNC-1               1C TRUNCATE denied for anon and authenticated on profile_meta, profile_owners, profile_content
+PASS TRUNC-2               1C DELETE denied on profile_meta and profile_owners for both roles
+PASS CONTENT-1             1C owner insert/update/delete OWN profile_content row still works (owner flows keep their DML)
+PASS CONTENT-2             1C a stranger cannot insert content onto someone else's profile (RLS) and anon cannot write at all (privilege)
+PASS CONTENT-3             1C profile_content stays world-readable (decision D13 is not changed by 1C)
+PASS PRIV-1                1C REFERENCES / TRIGGER / TRUNCATE / MAINTAIN(PG17+) gone for anon + authenticated on the three tables; remaining DML is exactly what the flows need
+PASS PRIV-2                1C owners can still read their own profile_owners row; strangers see none; i_own_profile works
+PASS EV-1                  1C events: anon + authenticated read exactly the 44 columns (45 minus submitted_by); submitted_by and the hash are denied; no table-level SELECT
+PASS EV-2                  1C an events RLS policy that references submitted_by keeps working (policy quals need no column privilege): the submitter sees their own draft, others do not
+PASS EV-3                  1C a SECURITY DEFINER reader of submitted_by (get_event_view stand-in) still works for anon
+PASS RPC-1                 1C anon still reads the public profile through get_public_profile and the directory through public_profile_list
+PASS RPC-2                 1C get_profile_event_summary still answers anon for a public profile with 'events' on; the organiser's draft is not counted
+PASS PROFILES-1            1C public.profiles view: SELECT denied to anon + authenticated; get_approved_profile EXECUTE denied to anon + authenticated (no caller exists on this project)
+PASS BOOK-1                1C (information) 1C alone does NOT close book_email: anon can still read profile_meta.book_email until APPLY-2
+PASS IDEM-1                1C applied twice: no error, privilege snapshot identical
+
+== S2 trigger-set status survives the narrowing (F3-style trigger stand-in)
+PASS TRIG-1                an owner edit of a published page is sent back to review by a BEFORE trigger even though the owner holds no UPDATE on status/sources/last_reviewed_at (the F3 gate and 1C compose)
+
+== S3 drift guard and ordering guard
+PASS GUARD-extra-col       1C refuses (and changes nothing) when authenticated holds UPDATE on an extra profile_meta column (entity_category)
+PASS GUARD-table-wide      1C refuses (and changes nothing) when authenticated has table-wide UPDATE on profile_meta
+PASS GUARD-flag            1C refuses (and changes nothing) when a server flag is INSERT-able
+PASS GUARD-events-extra    1C refuses (and changes nothing) when anon can read an extra events column (the hash)
+PASS GUARD-events-missing  1C refuses (and changes nothing) when an events column was already removed (not the 45 or 44 set)
+PASS GUARD-anon-policy     1C refuses (and changes nothing) when a profile_content write policy admits anon
+PASS GUARD-public          1C refuses (and changes nothing) when a PUBLIC privilege exists on a target table
+PASS GUARD-owners          1C refuses (and changes nothing) when authenticated holds TRUNCATE on profile_owners
+PASS GUARD-order           1C refuses before APPLY-1 (private.profile_is_public missing)
+
+== S4 ordering: 1C before #92 (44-col variant) vs the stale-baseline abort
+PASS ORD-alt               alternate order (APPLY-1, 1C, then APPLY-92-44col) ends in the SAME privilege state as APPLY-1, APPLY-92, 1C
+PASS ORD-alt-events        alternate order: events readable = the 44 columns for both roles
+PASS ORD-stale             STALE BASELINE: the stock APPLY-92 (45-column guard) refuses after 1C, nothing changes (this is why the 44-col variant exists)
+PASS ORD-44-before-1C      the 44-col variant refuses BEFORE 1C (guard expects 44; live is 45)
+PASS RERUN-A1              HAZARD (documented): re-running APPLY-1 after 1C re-grants account_type/status to owners, because APPLY-1 is not 1C-aware. Never re-run APPLY-1 after 1C; re-run 1C if you must
+PASS RERUN-A1-fix          ...and re-running 1C afterwards narrows them again
+
+== S5 APPLY-2 composition and ROLLBACK-2-after-1C
+PASS COMP-1                APPLY-2 after 1C leaves the narrowed grants untouched (INSERT=19, UPDATE=14) and the owner save still works
+PASS BOOK-2                after 1C + APPLY-2: anon cannot read profile_meta (book_email closed), the owner reads their own book_email, and cannot read another owner's row
+PASS RB2-x                 ROLLBACK-2-after-1C restores anon SELECT + the open read policies but does NOT re-grant account_type/status to owners
+PASS RB2-stock             NEGATIVE-BY-DESIGN: the STOCK ROLLBACK-2 after 1C re-grants account_type/status to owners (undoes the narrowing): that is why ROLLBACK-2-after-1C exists
+
+== S6 ROLLBACK-1C
+PASS RB-unfilled           rollback with the placeholder unfilled aborts and changes nothing
+PASS RB-wrongfp            rollback with a wrong fingerprint aborts and changes nothing
+PASS RB-1                  rollback restores the EXACT pre-1C privileges (table, column and function ACLs identical) and the fingerprint equals the saved one
+PASS RB-2                  after rollback the legacy save works again and TRUNCATE/submitted_by/get_approved_profile are back to their pre-1C state
+PASS RB-idem               rollback is idempotent (second run: same snapshot, no error)
+PASS RB-after-APPLY2       rollback after APPLY-2 refuses (fingerprint differs: anon SELECT gone) and points at ROLLBACK-2-after-1C first
+
+== S7 PRECHECK-10A runs read-only on the replica
+PASS PRE-10A-runs          all 26 PRECHECK-10A statements parse and run inside a READ ONLY transaction
+PASS PRE-10A-fp            block H fingerprint is stable across runs and differs between pre-1C and post-1C
+PASS PRE-10A-writers       block E finds the profile_meta writers (admin_set_account_age, admin_move_house_page, set_profile_admin_approved, claim_profile) and flags none as assigning account_type/status
+
+== S8 grants vs the #129 owner save (static)
+PASS STATIC-1              #129 test ALLOWED set (the update keys the real form can emit) == the 14 UPDATE grants
+PASS STATIC-2              every key the #129 builder can put in an INSERT fallback (slug + put()/full.* keys) is INSERT-granted, except the badges editor (no such control is rendered)
+PASS STATIC-3              the controls behind the conditional keys (epTag, epPro, epBook, epHls, .epBadge) are NOT rendered by #129's form, so the strict UPDATE set loses no live field
+PASS STATIC-4              #129 NEVER list (account_type, status, sources, last_reviewed_at, the 4 flags, slug on update) is disjoint from the UPDATE grants
+PASS STATIC-5              #129 sends nothing to profile_meta that is not in the INSERT 19 / UPDATE 14 sets; account_type/status are never written by profile.html
+
+== negative controls (each mutated 1C / rollback must FAIL its named checks)
+CAUGHT N1  1C leaves account_type UPDATE-able (grant list keeps it)   expected-to-fail: DENY-account_type,GRANTSET   failed: 4 checks incl DENY-account_type,GRANTSET
+CAUGHT N2  1C forgets TRUNCATE on profile_content   expected-to-fail: TRUNC-1,PRIV-1   failed: 3 checks incl TRUNC-1,PRIV-1
+CAUGHT N3  1C leaves events.submitted_by readable   expected-to-fail: EV-1   failed: 1 checks incl EV-1
+CAUGHT N4  table-wide UPDATE shortcut instead of the column list   expected-to-fail: DENY-account_type,DENY-status,DENY-admin_approved,DENY-is_minor,GRANTSET   failed: 15 checks incl DENY-account_type,DENY-status,DENY-admin_approved,DENY-is_minor,GRANTSET
+CAUGHT N5  over-revocation: 1C also removes the owner's INSERT/DELETE on profile_content   expected-to-fail: CONTENT-1,PRIV-1   failed: 2 checks incl CONTENT-1,PRIV-1
+CAUGHT N6  1C leaves get_approved_profile executable   expected-to-fail: PROFILES-1   failed: 1 checks incl PROFILES-1
+CAUGHT N7  1C forgets REFERENCES/TRIGGER on profile_owners   expected-to-fail: PRIV-1   failed: 1 checks incl PRIV-1
+CAUGHT N13 1C forgets the PostgreSQL 17+ MAINTAIN revoke (APPLY-1's REVOKEs leave it behind)   expected-to-fail: PRIV-1   failed: 1 checks incl PRIV-1
+CAUGHT N8  guard removed AND the live state has drifted (authenticated already holds UPDATE on entity_category)   expected-to-fail: GRANTSET   failed: 2 checks incl GRANTSET
+CAUGHT N9  1C leaves slug UPDATE-able (copy of the old upsert grant)   expected-to-fail: DENY-slug,GRANTSET   failed: 2 checks incl DENY-slug,GRANTSET
+CAUGHT N10 rollback forgets the INSERT column re-grant and has no fingerprint check   expected-to-fail: RB-1
+CAUGHT N11 rollback forgets profile_content ALL and has no fingerprint check   expected-to-fail: RB-1
+CAUGHT N12 rollback run on a database where APPLY-2 followed 1C (must be refused by the fingerprint, not silently mix states)   expected-to-fail: RB-after-APPLY2
+
+positive checks: 71/71 pass; negative controls: 13/13 caught; skipped groups: 0

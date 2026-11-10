@@ -1,0 +1,208 @@
+-- APPLY-1C-grant-narrowing_PROPOSED.sql   (slice 10A "Privacy dependency patch", Atlas I10 + I11, KODE decision to fold the grant narrowing in)
+--
+-- *** PROPOSAL ONLY. NOT APPLIED. NOT A MIGRATION: it lives in db/proposed/, which no workflow or script applies. ***
+-- Needs ALL of: Sentinel's isolated tests, Joe's relayed approval for the window, a backup, and the preconditions of ORDER-10A.md step 6.
+-- No production access was used to write this file. Every prod fact in it comes from PRECHECK-RESULTS.md / PRECHECK-92-RESULTS.md (Nov 9) and APPLY-1/APPLY-92.
+--
+-- WHAT IT DOES (one transaction, idempotent, drift-guarded)
+--   1. public.profile_meta, role authenticated: column grants INSERT 22 -> 19 and UPDATE 22 -> 14, exactly what the #129 owner save sends
+--        (account_type and status are no longer client-writable; slug is INSERT-only; badges has no editor, so it is not granted).
+--      The four server flags (admin_approved, age_verified, is_minor, under_18) stay ungrantable. profile_meta stays DELETE/TRUNCATE-free for both roles.
+--   2. REFERENCES, TRIGGER and (PostgreSQL 17+) MAINTAIN (unused object privileges) removed from anon + authenticated on profile_meta, profile_owners, profile_content.
+--   3. public.profile_content: TRUNCATE gone for everyone; anon keeps SELECT only (public read is decision D13, not changed here);
+--      authenticated keeps SELECT, INSERT, UPDATE, DELETE (the owner insert/update/delete-own policies need them).
+--   4. public.events: SELECT (submitted_by) revoked from anon + authenticated (45 -> 44 readable columns). No web reader of it exists (GAP-ANALYSIS-10A.md).
+--   5. public.get_approved_profile(uuid,text): EXECUTE revoked from PUBLIC, anon, authenticated. Its only callers were the two KODE pages, which live on a
+--      different Supabase project (draft/10a-kode-routes restores them). public.profiles view SELECT is already revoked by APPLY-1.
+--
+-- WHAT IT DOES NOT DO (on purpose)
+--   * does not touch profile_meta SELECT. anon/authenticated can still read profile_meta.book_email until APPLY-2 (see GAP-ANALYSIS-10A.md, row I11-book_email).
+--   * does not touch public.applications (anon/authenticated hold ALL there per P-10; RLS state not captured: needs a live read first).
+--   * does not touch events.owner_handle (readers: kil-browse.js, index.html, kil-show.js; see the get_event_view review template).
+--
+-- ORDER / DEPENDENCIES (details: ORDER-10A.md)
+--   after APPLY-1 (needs private.profile_is_public and the 22 column grants) and after APPLY-92 (45-column guard; or use APPLY-92-44col_PROPOSED.sql if 1C goes first),
+--   AFTER the #129 web (profile.html sends no account_type/status/slug-on-update) is live and the old pages have aged out,
+--   AFTER every legitimate writer of account_type/status is confirmed (PRECHECK-10A block E).
+--   Consequence to accept: the pre-#129 owner save (main today, cached pages, the iOS bundle's profile.html) sends account_type and slug-on-upsert, so it
+--   gets "permission denied for table profile_meta" for owners until the web/app is updated. Only 3 accounts own a page.
+--
+-- ROLLBACK: ROLLBACK-1C_PROPOSED.sql (restores the post-APPLY-1/92 privileges exactly; fingerprint-checked).
+
+BEGIN;
+SET LOCAL lock_timeout = '5s';
+SET LOCAL statement_timeout = '60s';
+
+-- ---------------------------------------------------------------- drift guard (read-only; any mismatch raises and nothing commits)
+DO $guard$
+DECLARE
+  r text; p text; t text;
+  have text[]; want_post text[]; missing text[]; extra text[];
+  a22  text[] := ARRAY['slug','display_name','handle','location','bio','tagline','pronouns','book_email','about','links','links_label','badges','account_type','status','avatar_url','cover_url','cover_mobile_url','socials','highlights','updated_at','profile_public','public_fields'];
+  ins19 text[] := ARRAY['slug','display_name','handle','location','bio','about','links','links_label','socials','avatar_url','cover_url','cover_mobile_url','profile_public','public_fields','updated_at','tagline','pronouns','book_email','highlights'];
+  upd14 text[] := ARRAY['display_name','handle','location','bio','about','links','links_label','socials','avatar_url','cover_url','cover_mobile_url','profile_public','public_fields','updated_at'];
+  e45  text[] := ARRAY['accent_color','city','county','cover_url','created_at','dedupe_key','description','end_time_public','ends_at','extra_links','featured','features','gallery','genres','hide_guest_count','id','imported_at','link_checked_at','link_detail','link_last_ok_at','link_status','owner_handle','password_protected','reg_questions','review_reason','series_id','show_feed','show_gallery','show_lineup','show_on_explore','slug','source','source_url','spotify_url','starts_at','state','status','submitted_by','tagline','title','title_font','tz','venue','waitlist_enabled','youtube_url'];
+  e44  text[];
+BEGIN
+  -- G0 ordering: APPLY-1 first.
+  IF to_regprocedure('private.profile_is_public(text)') IS NULL THEN
+    RAISE EXCEPTION '1C guard: APPLY-1 is not applied (private.profile_is_public missing); nothing applied';
+  END IF;
+  IF to_regclass('public.profile_meta') IS NULL OR to_regclass('public.profile_owners') IS NULL
+     OR to_regclass('public.profile_content') IS NULL OR to_regclass('public.events') IS NULL THEN
+    RAISE EXCEPTION '1C guard: a target table is missing; nothing applied';
+  END IF;
+  e44 := array_remove(e45, 'submitted_by');
+
+  -- G1 no PUBLIC (role oid 0) privilege on any target relation or column: the rollback could not restore it.
+  IF EXISTS (SELECT 1 FROM pg_class c, LATERAL aclexplode(c.relacl) a
+              WHERE c.oid IN ('public.profile_meta'::regclass,'public.profile_owners'::regclass,'public.profile_content'::regclass,'public.events'::regclass) AND a.grantee = 0)
+     OR EXISTS (SELECT 1 FROM pg_attribute at, LATERAL aclexplode(at.attacl) a
+              WHERE at.attrelid IN ('public.profile_meta'::regclass,'public.profile_owners'::regclass,'public.profile_content'::regclass,'public.events'::regclass) AND a.grantee = 0) THEN
+    RAISE EXCEPTION '1C guard: a PUBLIC privilege exists on a target relation or column; nothing applied';
+  END IF;
+
+  -- G2 profile_meta: no table-level write privilege for either role; anon holds no column-level write grant.
+  FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP
+    FOREACH p IN ARRAY ARRAY['INSERT','UPDATE','DELETE','TRUNCATE'] LOOP
+      IF has_table_privilege(r, 'public.profile_meta', p) THEN
+        RAISE EXCEPTION '1C guard: % has TABLE-level % on public.profile_meta (APPLY-1 not in effect or drift); nothing applied', r, p;
+      END IF;
+    END LOOP;
+  END LOOP;
+  FOREACH p IN ARRAY ARRAY['INSERT','UPDATE'] LOOP
+    SELECT COALESCE(array_agg(a.attname::text ORDER BY a.attname), ARRAY[]::text[]) INTO have FROM pg_attribute a
+     WHERE a.attrelid = 'public.profile_meta'::regclass AND a.attnum > 0 AND NOT a.attisdropped AND has_column_privilege('anon', 'public.profile_meta', a.attname, p);
+    IF cardinality(have) > 0 THEN RAISE EXCEPTION '1C guard: anon holds column % on public.profile_meta (%); nothing applied', p, have; END IF;
+  END LOOP;
+
+  -- G3 profile_meta authenticated column sets: exactly the APPLY-1 set (22) or already the 1C target. Anything else = drift.
+  -- (set difference, not array equality: name-vs-text collation order differs between C and en_US databases)
+  FOREACH p IN ARRAY ARRAY['INSERT','UPDATE'] LOOP
+    SELECT COALESCE(array_agg(a.attname::text), ARRAY[]::text[]) INTO have FROM pg_attribute a
+     WHERE a.attrelid = 'public.profile_meta'::regclass AND a.attnum > 0 AND NOT a.attisdropped AND has_column_privilege('authenticated', 'public.profile_meta', a.attname, p);
+    want_post := CASE p WHEN 'INSERT' THEN ins19 ELSE upd14 END;
+    SELECT COALESCE(array_agg(x ORDER BY x COLLATE "C"), ARRAY[]::text[]) INTO missing FROM unnest(a22) x WHERE NOT (x = ANY (have));
+    SELECT COALESCE(array_agg(x ORDER BY x COLLATE "C"), ARRAY[]::text[]) INTO extra   FROM unnest(have) x WHERE NOT (x = ANY (a22));
+    IF NOT (cardinality(missing) = 0 AND cardinality(extra) = 0)
+       AND NOT (NOT EXISTS (SELECT 1 FROM unnest(want_post) x WHERE NOT (x = ANY (have))) AND NOT EXISTS (SELECT 1 FROM unnest(have) x WHERE NOT (x = ANY (want_post)))) THEN
+      RAISE EXCEPTION '1C guard: authenticated column-% set on public.profile_meta is neither the APPLY-1 set nor the 1C target. missing=% extra=% (relative to the APPLY-1 set); nothing applied', p, missing, extra;
+    END IF;
+  END LOOP;
+  -- the four server flags can never be granted
+  IF EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = 'public.profile_meta'::regclass AND a.attname IN ('admin_approved','age_verified','is_minor','under_18')
+              AND NOT a.attisdropped AND (has_column_privilege('authenticated','public.profile_meta',a.attname,'INSERT') OR has_column_privilege('authenticated','public.profile_meta',a.attname,'UPDATE'))) THEN
+    RAISE EXCEPTION '1C guard: a server flag is client-writable; nothing applied';
+  END IF;
+
+  -- G4 profile_owners: no client write privilege; anon holds nothing.
+  FOREACH p IN ARRAY ARRAY['INSERT','UPDATE','DELETE','TRUNCATE'] LOOP
+    IF has_table_privilege('authenticated','public.profile_owners',p) OR has_table_privilege('anon','public.profile_owners',p) THEN
+      RAISE EXCEPTION '1C guard: a client role holds % on public.profile_owners (APPLY-1 not in effect or drift); nothing applied', p;
+    END IF;
+  END LOOP;
+  IF has_table_privilege('anon','public.profile_owners','SELECT') THEN
+    RAISE EXCEPTION '1C guard: anon can read public.profile_owners; nothing applied';
+  END IF;
+
+  -- G5 profile_content: RLS on, and no write policy admits anon/PUBLIC (otherwise revoking anon DML would change live behaviour).
+  IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.profile_content'::regclass) THEN
+    RAISE EXCEPTION '1C guard: RLS is off on public.profile_content; nothing applied';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_policy pol WHERE pol.polrelid = 'public.profile_content'::regclass AND pol.polcmd IN ('a','w','d','*')
+              AND (pol.polroles = '{0}' OR EXISTS (SELECT 1 FROM pg_roles ro WHERE ro.rolname = 'anon' AND pol.polroles @> ARRAY[ro.oid]))) THEN
+    RAISE EXCEPTION '1C guard: a write policy on public.profile_content applies to anon/PUBLIC; review before revoking anon DML; nothing applied';
+  END IF;
+  FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP
+    IF NOT has_table_privilege(r,'public.profile_content','SELECT') THEN
+      RAISE EXCEPTION '1C guard: % cannot SELECT public.profile_content (drift); nothing applied', r;
+    END IF;
+  END LOOP;
+
+  -- G6 events: no table-level SELECT; column-SELECT set is the 45 live columns, or already the 44 (submitted_by revoked); hash never readable.
+  FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP
+    IF has_table_privilege(r, 'public.events', 'SELECT') THEN
+      RAISE EXCEPTION '1C guard: % has TABLE-level SELECT on public.events; nothing applied', r;
+    END IF;
+    SELECT COALESCE(array_agg(a.attname::text), ARRAY[]::text[]) INTO have FROM pg_attribute a
+     WHERE a.attrelid = 'public.events'::regclass AND a.attnum > 0 AND NOT a.attisdropped AND has_column_privilege(r, 'public.events', a.attname, 'SELECT');
+    SELECT COALESCE(array_agg(x ORDER BY x COLLATE "C"), ARRAY[]::text[]) INTO missing FROM unnest(e45) x WHERE NOT (x = ANY (have));
+    SELECT COALESCE(array_agg(x ORDER BY x COLLATE "C"), ARRAY[]::text[]) INTO extra   FROM unnest(have) x WHERE NOT (x = ANY (e45));
+    IF NOT (cardinality(missing) = 0 AND cardinality(extra) = 0)
+       AND NOT (NOT EXISTS (SELECT 1 FROM unnest(e44) x WHERE NOT (x = ANY (have))) AND NOT EXISTS (SELECT 1 FROM unnest(have) x WHERE NOT (x = ANY (e44)))) THEN
+      RAISE EXCEPTION '1C guard: % column-SELECT set on public.events is neither the 45 nor the 44 expected. missing=% extra=% (relative to the 45); nothing applied', r, missing, extra;
+    END IF;
+  END LOOP;
+END
+$guard$;
+
+-- ---------------------------------------------------------------- 1. profile_meta: exact column grants for authenticated
+-- A column grant does nothing while a table-wide INSERT/UPDATE stays, and an upsert needs a grant on every payload column. The guard proved there is no
+-- table-wide privilege; this revokes the whole APPLY-1 column set and grants the exact target, so the end state does not depend on the start state.
+REVOKE INSERT (slug, display_name, handle, location, bio, tagline, pronouns, book_email, about, links, links_label, badges, account_type, status, avatar_url, cover_url, cover_mobile_url, socials, highlights, updated_at, profile_public, public_fields)
+  ON TABLE public.profile_meta FROM authenticated;
+REVOKE UPDATE (slug, display_name, handle, location, bio, tagline, pronouns, book_email, about, links, links_label, badges, account_type, status, avatar_url, cover_url, cover_mobile_url, socials, highlights, updated_at, profile_public, public_fields)
+  ON TABLE public.profile_meta FROM authenticated;
+GRANT INSERT (slug, display_name, handle, location, bio, about, links, links_label, socials, avatar_url, cover_url, cover_mobile_url, profile_public, public_fields, updated_at, tagline, pronouns, book_email, highlights)
+  ON TABLE public.profile_meta TO authenticated;
+GRANT UPDATE (display_name, handle, location, bio, about, links, links_label, socials, avatar_url, cover_url, cover_mobile_url, profile_public, public_fields, updated_at)
+  ON TABLE public.profile_meta TO authenticated;
+
+-- ---------------------------------------------------------------- 2/3. unused object privileges, TRUNCATE, anon DML
+REVOKE REFERENCES, TRIGGER, TRUNCATE ON TABLE public.profile_meta    FROM anon, authenticated, PUBLIC;
+REVOKE REFERENCES, TRIGGER, TRUNCATE ON TABLE public.profile_owners  FROM anon, authenticated, PUBLIC;
+REVOKE REFERENCES, TRIGGER, TRUNCATE ON TABLE public.profile_content FROM anon, authenticated, PUBLIC;
+REVOKE INSERT, UPDATE, DELETE        ON TABLE public.profile_content FROM anon, PUBLIC;   -- no policy admits anon writes (guard G5); anon keeps SELECT
+-- PostgreSQL 17+ added the MAINTAIN privilege (VACUUM/ANALYZE/REINDEX/CLUSTER/LOCK TABLE). "GRANT ALL" on prod (P-0: 17.6) therefore handed it to anon/authenticated and the APPLY-1
+-- revokes (INSERT, UPDATE, DELETE, TRUNCATE) left it behind. Not valid syntax before 17, so it is version-guarded.
+DO $m$
+BEGIN
+  IF current_setting('server_version_num')::int >= 170000 THEN
+    EXECUTE 'REVOKE MAINTAIN ON TABLE public.profile_meta, public.profile_owners, public.profile_content FROM anon, authenticated, PUBLIC';
+  END IF;
+END
+$m$;
+
+-- ---------------------------------------------------------------- 4. events.submitted_by
+REVOKE SELECT (submitted_by) ON TABLE public.events FROM anon, authenticated, PUBLIC;
+
+-- ---------------------------------------------------------------- 5. get_approved_profile: no caller on this project
+DO $$
+BEGIN
+  IF to_regprocedure('public.get_approved_profile(uuid,text)') IS NOT NULL THEN
+    REVOKE ALL ON FUNCTION public.get_approved_profile(uuid, text) FROM PUBLIC, anon, authenticated;
+  END IF;
+END $$;
+
+-- ---------------------------------------------------------------- post-assert (still inside the transaction)
+DO $post$
+DECLARE c text;
+BEGIN
+  FOREACH c IN ARRAY ARRAY['account_type','status','admin_approved','age_verified','is_minor','under_18','entity_category','sources','last_reviewed_at'] LOOP
+    IF EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid='public.profile_meta'::regclass AND a.attname=c AND NOT a.attisdropped
+                AND (has_column_privilege('authenticated','public.profile_meta',a.attname,'INSERT') OR has_column_privilege('authenticated','public.profile_meta',a.attname,'UPDATE'))) THEN
+      RAISE EXCEPTION '1C post-assert: authenticated can still write profile_meta.%', c;
+    END IF;
+  END LOOP;
+  IF has_column_privilege('authenticated','public.profile_meta','slug','UPDATE') THEN RAISE EXCEPTION '1C post-assert: slug is still UPDATE-able'; END IF;
+  IF NOT has_column_privilege('authenticated','public.profile_meta','slug','INSERT') THEN RAISE EXCEPTION '1C post-assert: slug lost INSERT'; END IF;
+  IF current_setting('server_version_num')::int >= 170000 THEN
+    FOREACH c IN ARRAY ARRAY['profile_meta','profile_owners','profile_content'] LOOP
+      IF has_table_privilege('anon', 'public.' || c, 'MAINTAIN') OR has_table_privilege('authenticated', 'public.' || c, 'MAINTAIN') THEN
+        RAISE EXCEPTION '1C post-assert: a client role still holds MAINTAIN on %', c;
+      END IF;
+    END LOOP;
+  END IF;
+  IF has_column_privilege('anon','public.events','submitted_by','SELECT') OR has_column_privilege('authenticated','public.events','submitted_by','SELECT') THEN
+    RAISE EXCEPTION '1C post-assert: events.submitted_by still readable';
+  END IF;
+  IF has_table_privilege('anon','public.profile_content','TRUNCATE') OR has_table_privilege('authenticated','public.profile_content','TRUNCATE')
+     OR has_table_privilege('anon','public.profile_owners','TRUNCATE') OR has_table_privilege('authenticated','public.profile_owners','TRUNCATE')
+     OR has_table_privilege('anon','public.profile_meta','TRUNCATE') OR has_table_privilege('authenticated','public.profile_meta','TRUNCATE') THEN
+    RAISE EXCEPTION '1C post-assert: TRUNCATE still held by a client role';
+  END IF;
+END
+$post$;
+
+COMMIT;
+-- VERIFY (PRECHECK-10A blocks A, B, G, H): the fingerprint changes; events readable columns = 44; profile_meta authenticated INSERT = 19, UPDATE = 14.

@@ -1,0 +1,15 @@
+23:28:21 load=3.41 free_mem_pct=63
+23:28:24 load=3.41 free_mem_pct=62
+23:28:28 load=3.38 free_mem_pct=62
+23:28:31 load=3.38 free_mem_pct=63
+23:28:34 load=3.19 free_mem_pct=62
+23:28:37 load=3.09 free_mem_pct=63
+23:28:40 load=3.09 free_mem_pct=63
+23:28:43 load=3.16 free_mem_pct=62
+23:28:46 load=3.16 free_mem_pct=62
+23:28:49 load=4.51 free_mem_pct=62
+23:28:52 load=4.15 free_mem_pct=62
+23:28:55 load=4.15 free_mem_pct=62
+23:28:58 load=3.90 free_mem_pct=63
+23:29:01 load=3.90 free_mem_pct=62
+23:29:04 load=3.82 free_mem_pct=62

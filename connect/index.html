@@ -2,7 +2,7 @@
 <html lang="en" data-theme="default">
 <head>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/><meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
   <meta name="description" content="CONNECT on KEEPITIL — find people, brands, venues and communities, and join the rooms where they talk."/>
 <title>CONNECT — People, Brands, Venues & Community | KEEPITIL</title>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
@@ -108,7 +108,7 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
   .stats{display:flex;flex-wrap:nowrap;justify-content:center;gap:min(6vw,26px);margin-top:18px;}
   .stat{flex:0 1 auto;min-width:0;text-align:center;}
   .stat b{font-size:clamp(1.4rem,6.5vw,2rem);}
-  .stat span{font-size:.56rem;letter-spacing:.09em;margin-top:4px;}
+  .stat span{font-size:.625rem;letter-spacing:.07em;margin-top:4px;}
 }
 /* FULL-BLEED AND OPAQUE (Founder 2026-08-21): "filling the entire top of the sheet ... no
    background image visible above or behind it when scrolling."
@@ -182,7 +182,7 @@ body.comm-on #count{display:none}
 .comm-desc{font:400 .82rem/1.35 Inter,system-ui,sans-serif;color:#a9b3c4;margin:0 0 7px;overflow-wrap:anywhere;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .comm-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-  font:800 .6rem/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#7d8b9c}
+  font:800 .625rem/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#7d8b9c}
 .comm-topic{padding:3px 8px;border-radius:999px;background:rgba(0,224,164,.12);color:#7ff5d0}
 .comm-join{flex:0 0 auto;align-self:center;height:32px;padding:0 14px;border-radius:9px;cursor:pointer;
   border:1px solid rgba(0,224,164,.45);background:rgba(0,224,164,.12);color:#7ff5d0;
@@ -248,7 +248,7 @@ body.comm-on #count{display:none}
 .cres{display:flex;gap:11px;align-items:flex-start;padding:12px 13px;border-radius:12px;margin:0 0 9px;
   background:var(--panel,rgba(18,18,28,.7));border:1px solid var(--line,#242433)}
 .cres-k{flex:0 0 auto;padding:4px 9px;border-radius:999px;background:rgba(0,224,164,.12);color:#7ff5d0;
-  font:800 .58rem/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase}
+  font:800 .625rem/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase}
 .cres b{display:block;font:800 .89rem/1.25 Inter,sans-serif;color:#fff;margin-bottom:3px}
 .cres span{font:400 .8rem/1.4 Inter,sans-serif;color:#a9b3c4}
 .cres a{color:#7ff5d0;text-decoration:none;font:700 .78rem Inter,sans-serif}
@@ -287,7 +287,7 @@ body.comm-on #count{display:none}
   border-radius:11px;text-decoration:none;border:1px solid rgba(0,224,164,.35);
   background:rgba(0,224,164,.09);color:#eafff7}
 .copp b{display:block;font:800 .78rem/1.2 Inter,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.copp span{display:block;font:700 .58rem/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#7ff5d0;margin-bottom:2px}
+.copp span{display:block;font:700 .625rem/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#7ff5d0;margin-bottom:2px}
 
 .seg button[data-k=artist].on{background:var(--artist);color:#fff;}
 .seg button[data-k=brand].on{background:var(--brand);color:#053a2c;}
@@ -474,6 +474,14 @@ body>*{min-width:0}
    tabs and one search, nothing else. Other kinds keep their contextual chips, and
    renderSubs() is untouched — it simply has nothing to draw for artists. */
 body[data-kind="artist"] .subfilters{display:none!important}
+/* 7c responsive/a11y (KODE audit 2026-11). Touch-only so desktop is unchanged: 44px tap targets for the
+   kind switcher and search (were 35px / ~42px). #seg button out-ranks the .seg button rules above.
+   16px search text stops iOS focus-zoom now that the viewport allows pinch-zoom. */
+@media (pointer:coarse){
+  #seg button{min-height:44px;padding-top:0;padding-bottom:0}
+  .search{min-height:44px}
+  .search input{font-size:16px}
+}
 </style>
 <link rel="canonical" href="https://keepitil.com/connect/"/>
   <!-- PWA manifest — STATIC, deliberately (Founder 2026-08-15).

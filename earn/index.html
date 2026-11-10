@@ -2,7 +2,7 @@
 <html lang="en" data-theme="default" data-radio="page">
 <head>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/><meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="description" content="EARN on KEEPITIL — radio, playlists and the ways creators submit, take part and earn."/>
 <title>EARN — Radio, Playlists & Creator Opportunities | KEEPITIL</title>
 <link rel="icon" type="image/png" href="/assets/images/logo-purple-nav.png"/>
@@ -131,7 +131,7 @@ a{color:inherit;text-decoration:none}
 .aff-card .kil-spon-tag{position:absolute;top:9px;left:9px;z-index:2;padding:4px 9px;
   border-radius:999px;background:rgba(6,6,12,.62);backdrop-filter:blur(8px);
   -webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.24);color:#fff;
-  font:800 .52rem/1 var(--fh,Inter),sans-serif;letter-spacing:.15em;text-transform:uppercase;}
+  font:800 .625rem/1 var(--fh,Inter),sans-serif;letter-spacing:.15em;text-transform:uppercase;}
 .aff-card .kil-spon-ext{position:absolute;right:9px;bottom:9px;z-index:2;width:22px;height:22px;
   border-radius:50%;display:flex;align-items:center;justify-content:center;
   background:rgba(6,6,12,.55);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:.7rem;}
@@ -142,7 +142,7 @@ a{color:inherit;text-decoration:none}
 .aff-glyph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font-size:clamp(3.4rem,9vw,5.4rem);opacity:.34;filter:drop-shadow(0 6px 18px rgba(0,0,0,.5))}
 .aff-tag{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.6);color:#fff;
-  font:800 .56rem Inter,sans-serif;letter-spacing:.1em;padding:4px 9px;border-radius:6px}
+  font:800 .625rem Inter,sans-serif;letter-spacing:.1em;padding:4px 9px;border-radius:6px}
 .aff-body{position:absolute;left:0;right:0;bottom:0;padding:16px 14px 14px;
   background:linear-gradient(180deg,transparent,rgba(0,0,0,.55) 38%,rgba(0,0,0,.9))}
 .aff-body b{display:block;font-family:var(--fh);font-size:1.5rem;letter-spacing:.02em;line-height:1.02}
@@ -257,7 +257,7 @@ section{padding:30px 0;border-top:1px solid var(--brd)}
 .station{cursor:pointer;display:flex;flex-direction:column}
 .station .g{font-family:var(--fh);font-size:1.35rem;letter-spacing:.03em;line-height:1}
 .station .s{font-size:.68rem;color:var(--ink2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
-.chip{display:inline-block;font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#06120a;background:var(--brand);padding:3px 8px;border-radius:6px}
+.chip{display:inline-block;font-size:.625rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#06120a;background:var(--brand);padding:3px 8px;border-radius:6px}
 .chip.soon{background:rgba(255,255,255,.14);color:var(--ink2)}
 .card h3{font-family:var(--fh);font-size:1.25rem;letter-spacing:.02em;margin-bottom:6px}
 .card p{color:var(--ink2);font-size:.84rem;line-height:1.5}
@@ -391,7 +391,7 @@ footer{margin-top:auto}
    image is clipped by .card{overflow:hidden} — which is where the old card's caption went. */
 .kr-tile .kr-state{position:absolute;left:8px;right:8px;bottom:8px;z-index:2;
   display:flex;align-items:center;gap:6px;justify-content:space-between;
-  font:800 .6rem Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  font:800 .625rem Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;
   color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.9)}
 .kr-tile .kr-state b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kr-tile.on .kr-state em{font-style:normal;color:#06120a;background:var(--brand);
@@ -853,6 +853,22 @@ document.addEventListener('click',function(e){ var dd=document.getElementById('v
   body.rad-m.earn-radioswap .controls-row > .search{display:none}
   /* In its own section the bar is also full width rather than inset by the rail padding. */
   body.rad-m #stations #krBar{width:100%;max-width:none;margin-left:0;margin-right:0}
+}
+/* 7c responsive/a11y (KODE audit 2026-11). Touch-only so desktop is unchanged. The All/Radio/Playlists/
+   Create/Earn switcher gets 44px buttons (were 35px). INFO keeps its look: an invisible 8px extension
+   above and below takes its 32px pill to a ~45px hit area (measured live at 375px: 7px up + 6px down). 16px search text stops iOS focus-zoom now
+   that the viewport allows pinch-zoom. */
+@media (pointer:coarse){
+  #radSeg button{min-height:44px;padding-top:0;padding-bottom:0}
+  .sh .hye-info{position:relative}
+  .sh .hye-info::after{content:"";position:absolute;left:0;right:0;top:-8px;bottom:-8px}
+  .search{min-height:44px}
+  .search input{font-size:16px}
+}
+/* On phones the shell's floating Kilo button (44px, ~8px from the right edge) sat on the right-most hero
+   stat label (GAMES); reserve 56px on the right of the stats row so the labels clear it. */
+@media (max-width:420px){
+  body.rad-m .hero .stats{padding-right:56px}
 }
 </style>
 <script>

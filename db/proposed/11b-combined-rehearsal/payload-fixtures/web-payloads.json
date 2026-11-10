@@ -1,0 +1,614 @@
+{
+ "source": {
+  "file": "profile.html",
+  "sha256": "543c6487263f4772b64720393d04a436acc76677acbcf9e6317bd0bfba3ec017",
+  "test": "assets/js/profile-noop-save.test.mjs"
+ },
+ "stored": {
+  "name": "Nova Haze",
+  "handle": "novahaze",
+  "location": "Phoenix, AZ",
+  "bio": "Line one\nLine \"two\" & <b>x</b>",
+  "tagline": "Desert techno",
+  "pronouns": "she/her",
+  "book_email": "book@x.test",
+  "about": "About text",
+  "links": [
+   "https://a.test/1",
+   "instagram.com/nova",
+   "https://c.test/3",
+   "https://d.test/4",
+   "https://e.test/5",
+   "https://f.test/6-extra"
+  ],
+  "links_label": "My links",
+  "badges": [
+   "Founder",
+   "Resident",
+   "Custom Tag"
+  ],
+  "socials": {
+   "instagram": "nova",
+   "soundcloud": "",
+   "tiktok": "",
+   "website": "https://n.test",
+   "spotify": "https://open.spotify.com/x",
+   "extra": {
+    "a": 1,
+    "b": [
+     1,
+     2
+    ]
+   }
+  },
+  "highlights": [
+   {
+    "label": "Sets",
+    "img": "https://i.test/1.jpg",
+    "id": 7,
+    "extra": {
+     "z": [
+      1,
+      2
+     ]
+    }
+   }
+  ],
+  "avatar": "https://i.test/av.jpg",
+  "cover": "https://i.test/cv.jpg",
+  "cover_mobile": "https://i.test/cvm.jpg",
+  "account_type": "editorial_artist",
+  "status": "published",
+  "profile_public": true,
+  "public_fields": [
+   "display_name",
+   "bio",
+   "avatar",
+   "socials",
+   "events"
+  ],
+  "categories": [
+   "artist"
+  ],
+  "cat_details": {
+   "artist": {
+    "genre": "techno"
+   }
+  }
+ },
+ "scenarios": {
+  "noop": {
+   "writes": [
+    {
+     "table": "profile_content",
+     "op": "delete",
+     "payload": null,
+     "eq": [
+      [
+       "profile_slug",
+       "novahaze"
+      ],
+      [
+       "kind",
+       "profile_categories"
+      ]
+     ]
+    },
+    {
+     "table": "profile_content",
+     "op": "insert",
+     "payload": {
+      "profile_slug": "novahaze",
+      "kind": "profile_categories",
+      "data": {
+       "categories": [
+        "artist"
+       ],
+       "details": {
+        "artist": {
+         "genre": "techno",
+         "type": "",
+         "spotify": "",
+         "release": ""
+        },
+        "brand": {
+         "type": "",
+         "shop": "",
+         "desc": "",
+         "code": ""
+        },
+        "organizer": {
+         "type": "",
+         "tix": "",
+         "events": ""
+        },
+        "venue": {
+         "type": "",
+         "capacity": "",
+         "address": "",
+         "age": "",
+         "calendar": ""
+        }
+       }
+      },
+      "created_by": "u1"
+     },
+     "eq": []
+    }
+   ],
+   "toasts": [
+    "Profile updated."
+   ]
+  },
+  "bio_edit": {
+   "writes": [
+    {
+     "table": "profile_meta",
+     "op": "update",
+     "payload": {
+      "bio": "A new bio",
+      "updated_at": "2026-11-10T04:57:45.071Z"
+     },
+     "eq": [
+      [
+       "slug",
+       "novahaze"
+      ]
+     ]
+    },
+    {
+     "table": "profile_content",
+     "op": "delete",
+     "payload": null,
+     "eq": [
+      [
+       "profile_slug",
+       "novahaze"
+      ],
+      [
+       "kind",
+       "profile_categories"
+      ]
+     ]
+    },
+    {
+     "table": "profile_content",
+     "op": "insert",
+     "payload": {
+      "profile_slug": "novahaze",
+      "kind": "profile_categories",
+      "data": {
+       "categories": [
+        "artist"
+       ],
+       "details": {
+        "artist": {
+         "genre": "techno",
+         "type": "",
+         "spotify": "",
+         "release": ""
+        },
+        "brand": {
+         "type": "",
+         "shop": "",
+         "desc": "",
+         "code": ""
+        },
+        "organizer": {
+         "type": "",
+         "tix": "",
+         "events": ""
+        },
+        "venue": {
+         "type": "",
+         "capacity": "",
+         "address": "",
+         "age": "",
+         "calendar": ""
+        }
+       }
+      },
+      "created_by": "u1"
+     },
+     "eq": []
+    }
+   ],
+   "toasts": [
+    "Profile updated."
+   ]
+  },
+  "link_edit": {
+   "writes": [
+    {
+     "table": "profile_meta",
+     "op": "update",
+     "payload": {
+      "links": [
+       "https://a.test/1",
+       "instagram.com/nova",
+       "https://c.test/3",
+       "https://new.test/4",
+       "https://e.test/5",
+       "https://f.test/6-extra"
+      ],
+      "updated_at": "2026-11-10T04:57:45.092Z"
+     },
+     "eq": [
+      [
+       "slug",
+       "novahaze"
+      ]
+     ]
+    },
+    {
+     "table": "profile_content",
+     "op": "delete",
+     "payload": null,
+     "eq": [
+      [
+       "profile_slug",
+       "novahaze"
+      ],
+      [
+       "kind",
+       "profile_categories"
+      ]
+     ]
+    },
+    {
+     "table": "profile_content",
+     "op": "insert",
+     "payload": {
+      "profile_slug": "novahaze",
+      "kind": "profile_categories",
+      "data": {
+       "categories": [
+        "artist"
+       ],
+       "details": {
+        "artist": {
+         "genre": "techno",
+         "type": "",
+         "spotify": "",
+         "release": ""
+        },
+        "brand": {
+         "type": "",
+         "shop": "",
+         "desc": "",
+         "code": ""
+        },
+        "organizer": {
+         "type": "",
+         "tix": "",
+         "events": ""
+        },
+        "venue": {
+         "type": "",
+         "capacity": "",
+         "address": "",
+         "age": "",
+         "calendar": ""
+        }
+       }
+      },
+      "created_by": "u1"
+     },
+     "eq": []
+    }
+   ],
+   "toasts": [
+    "Profile updated."
+   ]
+  },
+  "btype_request": {
+   "writes": [
+    {
+     "table": "profile_content",
+     "op": "delete",
+     "payload": null,
+     "eq": [
+      [
+       "profile_slug",
+       "novahaze"
+      ],
+      [
+       "kind",
+       "profile_categories"
+      ]
+     ]
+    },
+    {
+     "table": "profile_content",
+     "op": "delete",
+     "payload": null,
+     "eq": [
+      [
+       "profile_slug",
+       "novahaze"
+      ],
+      [
+       "kind",
+       "account_type_request"
+      ]
+     ]
+    },
+    {
+     "table": "profile_content",
+     "op": "insert",
+     "payload": {
+      "profile_slug": "novahaze",
+      "kind": "profile_categories",
+      "data": {
+       "categories": [
+        "artist"
+       ],
+       "details": {
+        "artist": {
+         "genre": "techno",
+         "type": "",
+         "spotify": "",
+         "release": ""
+        },
+        "brand": {
+         "type": "",
+         "shop": "",
+         "desc": "",
+         "code": ""
+        },
+        "organizer": {
+         "type": "",
+         "tix": "",
+         "events": ""
+        },
+        "venue": {
+         "type": "",
+         "capacity": "",
+         "address": "",
+         "age": "",
+         "calendar": ""
+        }
+       }
+      },
+      "created_by": "u1"
+     },
+     "eq": []
+    },
+    {
+     "table": "profile_content",
+     "op": "insert",
+     "payload": {
+      "profile_slug": "novahaze",
+      "kind": "account_type_request",
+      "data": {
+       "requested": "brand"
+      },
+      "created_by": "u1"
+     },
+     "eq": []
+    }
+   ],
+   "toasts": [
+    "Profile updated."
+   ]
+  },
+  "public_toggle": {
+   "writes": [
+    {
+     "table": "profile_meta",
+     "op": "update",
+     "payload": {
+      "profile_public": false,
+      "updated_at": "2026-11-10T04:57:45.136Z"
+     },
+     "eq": [
+      [
+       "slug",
+       "novahaze"
+      ]
+     ]
+    },
+    {
+     "table": "profile_content",
+     "op": "delete",
+     "payload": null,
+     "eq": [
+      [
+       "profile_slug",
+       "novahaze"
+      ],
+      [
+       "kind",
+       "profile_categories"
+      ]
+     ]
+    },
+    {
+     "table": "profile_content",
+     "op": "insert",
+     "payload": {
+      "profile_slug": "novahaze",
+      "kind": "profile_categories",
+      "data": {
+       "categories": [
+        "artist"
+       ],
+       "details": {
+        "artist": {
+         "genre": "techno",
+         "type": "",
+         "spotify": "",
+         "release": ""
+        },
+        "brand": {
+         "type": "",
+         "shop": "",
+         "desc": "",
+         "code": ""
+        },
+        "organizer": {
+         "type": "",
+         "tix": "",
+         "events": ""
+        },
+        "venue": {
+         "type": "",
+         "capacity": "",
+         "address": "",
+         "age": "",
+         "calendar": ""
+        }
+       }
+      },
+      "created_by": "u1"
+     },
+     "eq": []
+    }
+   ],
+   "toasts": [
+    "Profile updated."
+   ]
+  },
+  "insert_fallback": {
+   "writes": [
+    {
+     "table": "profile_meta",
+     "op": "update",
+     "payload": {
+      "bio": "first bio",
+      "updated_at": "2026-11-10T04:57:45.157Z"
+     },
+     "eq": [
+      [
+       "slug",
+       "novahaze"
+      ]
+     ]
+    },
+    {
+     "table": "profile_meta",
+     "op": "insert",
+     "payload": {
+      "slug": "novahaze",
+      "display_name": "Nova Haze",
+      "handle": "novahaze",
+      "location": "Phoenix, AZ",
+      "bio": "first bio",
+      "about": "About text",
+      "links_label": "My links",
+      "tagline": "Desert techno",
+      "pronouns": "she/her",
+      "book_email": "book@x.test",
+      "links": [
+       "https://a.test/1",
+       "instagram.com/nova",
+       "https://c.test/3",
+       "https://d.test/4",
+       "https://e.test/5",
+       "https://f.test/6-extra"
+      ],
+      "highlights": [
+       {
+        "label": "Sets",
+        "img": "https://i.test/1.jpg",
+        "id": 7,
+        "extra": {
+         "z": [
+          1,
+          2
+         ]
+        }
+       }
+      ],
+      "avatar_url": "https://i.test/av.jpg",
+      "cover_url": "https://i.test/cv.jpg",
+      "cover_mobile_url": "https://i.test/cvm.jpg",
+      "socials": {
+       "instagram": "nova",
+       "soundcloud": "",
+       "tiktok": "",
+       "website": "https://n.test",
+       "spotify": "https://open.spotify.com/x",
+       "extra": {
+        "a": 1,
+        "b": [
+         1,
+         2
+        ]
+       }
+      },
+      "profile_public": true,
+      "public_fields": [
+       "avatar",
+       "socials",
+       "display_name",
+       "bio",
+       "events"
+      ],
+      "updated_at": "2026-11-10T04:57:45.157Z"
+     },
+     "eq": []
+    },
+    {
+     "table": "profile_content",
+     "op": "delete",
+     "payload": null,
+     "eq": [
+      [
+       "profile_slug",
+       "novahaze"
+      ],
+      [
+       "kind",
+       "profile_categories"
+      ]
+     ]
+    },
+    {
+     "table": "profile_content",
+     "op": "insert",
+     "payload": {
+      "profile_slug": "novahaze",
+      "kind": "profile_categories",
+      "data": {
+       "categories": [
+        "artist"
+       ],
+       "details": {
+        "artist": {
+         "genre": "techno",
+         "type": "",
+         "spotify": "",
+         "release": ""
+        },
+        "brand": {
+         "type": "",
+         "shop": "",
+         "desc": "",
+         "code": ""
+        },
+        "organizer": {
+         "type": "",
+         "tix": "",
+         "events": ""
+        },
+        "venue": {
+         "type": "",
+         "capacity": "",
+         "address": "",
+         "age": "",
+         "calendar": ""
+        }
+       }
+      },
+      "created_by": "u1"
+     },
+     "eq": []
+    }
+   ],
+   "toasts": [
+    "Profile updated."
+   ]
+  }
+ }
+}

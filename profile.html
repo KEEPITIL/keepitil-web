@@ -1687,9 +1687,90 @@ function editHighlightsHTML(){
   }).join('');
 }
 var PRESET_BADGES=['Member','Founder','Verified','Artist','DJ','Producer','Promoter','Host','Resident','VIP','Vendor','Photographer','Crew','Team'];
+/* Edit Profile sends CHANGED, ALLOWED fields only (10B / Atlas I12).
+   EP_BASE is the stored profile as the form was opened. Save diffs the form against it, so an
+   untouched save writes nothing, and an edit writes only the columns that changed. account_type
+   and status are admin-owned: the form shows the type (read-only) and never sends either one.
+   The business-type request is a separate profile_content row (requestAccountType). */
+var EP_BASE=null;
+var EP_ACCT_LABELS={ editorial_artist:'Artist', editorial_venue:'Venue', editorial_organizer:'Organizer', editorial_brand:'Brand', subscriber_profile:'Subscriber profile' };
+function epAcctLabel(t){
+  var k=String(t==null?'':t).trim();
+  if(!k) return 'Not set';
+  return Object.prototype.hasOwnProperty.call(EP_ACCT_LABELS,k.toLowerCase()) ? EP_ACCT_LABELS[k.toLowerCase()] : k;
+}
+function epSnapshot(){
+  var P=PROFILE||{};
+  var c=function(v){ return v===undefined?null:JSON.parse(JSON.stringify(v)); };
+  return { name:c(P.name), handle:c(P.handle), location:c(P.location), bio:c(P.bio), about:c(P.about), links_label:c(P.links_label),
+    tagline:c(P.tagline), pronouns:c(P.pronouns), book_email:c(P.book_email),
+    links:c(P.links), badges:c(P.badges), socials:c(P.socials), highlights:c(P.highlights),
+    avatar:c(P.avatar), cover:c(P.cover), cover_mobile:c(P.cover_mobile),
+    profile_public:P.profile_public===true, public_fields:Array.isArray(P.public_fields)?c(P.public_fields):[] };
+}
+function epJ(v){ return JSON.stringify(v===undefined?null:v); }
+function epBuildMeta(g, hlDone, avUrl, cvUrl, cvmUrl){
+  var B=EP_BASE||epSnapshot(), full={}, diff={};
+  var has=function(id){ return !!document.getElementById(id); };
+  var t=function(v){ return String(v==null?'':v).trim(); };
+  function put(col,val,base){ full[col]=val; if(epJ(val)!==epJ(base)) diff[col]=val; }
+  put('display_name', g('epName'), t(B.name));
+  put('handle', g('epHandle').replace(/^@/,''), t(B.handle).replace(/^@/,''));
+  put('location', g('epLoc'), t(B.location));
+  put('bio', g('epBio'), t(B.bio));
+  put('about', g('epAbout')||null, t(B.about)||null);
+  put('links_label', g('epLinksLabel')||null, t(B.links_label)||null);
+  /* Fields whose controls were removed from the form are never sent: not even to preserve them. */
+  ['tagline','pronouns','book_email'].forEach(function(col){
+    var id={tagline:'epTag',pronouns:'epPro',book_email:'epBook'}[col];
+    if(has(id)) put(col, g(id), t(B[col])); else full[col]=B[col]||null;
+  });
+  /* links: five slots. A slot left as shown keeps its stored member exactly; members past slot 5 are kept. */
+  var orig=Array.isArray(B.links)?B.links:[], nl=[], ltouched=false;
+  [1,2,3,4,5].forEach(function(i){
+    var v=g('epL'+i), o=orig[i-1];
+    if(v===t(o)){ if(o!==undefined&&o!==null&&o!=='') nl.push(o); }
+    else { ltouched=true; if(v&&/^https?:\/\//.test(v)) nl.push(v); }
+  });
+  nl=nl.concat(orig.slice(5));
+  full.links=ltouched?(nl.length?nl:null):(B.links===undefined?null:B.links);
+  if(ltouched) diff.links=full.links;
+  /* badges / highlights: only when their editor is actually on the form (neither is today). */
+  if(document.querySelectorAll('.epBadge').length){
+    var nb=[].slice.call(document.querySelectorAll('.epBadge')).filter(function(c){return c.checked;}).map(function(c){return c.value;});
+    put('badges', nb.length?nb:null, Array.isArray(B.badges)&&B.badges.length?B.badges:null);
+  }
+  if(has('epHls')) put('highlights', hlDone, Array.isArray(B.highlights)?B.highlights:[]);
+  else full.highlights=B.highlights||[];
+  /* images: a new upload or URL wins; otherwise the stored value stands and nothing is sent. */
+  put('avatar_url', avUrl||g('epAvatarUrl')||B.avatar||null, B.avatar||null);
+  put('cover_url', cvUrl||g('epCoverUrl')||B.cover||null, B.cover||null);
+  put('cover_mobile_url', cvmUrl||g('epCoverMUrl')||B.cover_mobile||null, B.cover_mobile||null);
+  /* socials: edit the four known keys, keep every other member as stored. */
+  var bs=(B.socials&&typeof B.socials==='object')?B.socials:{}, ns=Object.assign({},bs), stouched=false;
+  [['instagram','epIG'],['soundcloud','epSC'],['tiktok','epTT'],['website','epWeb']].forEach(function(k){
+    var v=g(k[1]); if(v!==t(bs[k[0]])){ ns[k[0]]=v; stouched=true; }
+  });
+  full.socials=ns; if(stouched) diff.socials=ns;
+  /* public page opt-in (#91): sent only when the owner changed it. Field names the form has no box for are kept. */
+  if(has('epPublic')) put('profile_public', !!document.getElementById('epPublic').checked, B.profile_public===true);
+  var boxes=[].slice.call(document.querySelectorAll('.epField'));
+  if(boxes.length){
+    var known=boxes.map(function(c){return c.value;}), on=boxes.filter(function(c){return c.checked;}).map(function(c){return c.value;});
+    var bf=Array.isArray(B.public_fields)?B.public_fields:[];
+    var was=bf.filter(function(f){return known.indexOf(f)>-1;});
+    var same=was.length===on.length && on.every(function(f){return was.indexOf(f)>-1;});
+    full.public_fields=bf.filter(function(f){return known.indexOf(f)===-1;}).concat(on);
+    if(!same) diff.public_fields=full.public_fields;
+  }
+  if(Object.keys(diff).length) diff.updated_at=new Date().toISOString();
+  full.updated_at=new Date().toISOString();
+  return { full:full, diff:diff };
+}
 function openEditProfile(){
   if(!CAN_EDIT()){ toast('Only the profile owner can edit.'); return; }
   closeModal();
+  EP_BASE=epSnapshot();
   var s=PROFILE.socials||{};
   var html=''+
   '<div class="kil-modal kil-wide"><div class="kil-mh">Edit Profile<button class="kil-mx" onclick="closeModal()">&times;</button></div>'+
@@ -1706,7 +1787,7 @@ function openEditProfile(){
     '<label class="kil-mf"><span>Location</span><input type="text" id="epLoc" value="'+esc(PROFILE.location||'')+'"></label></div>'+
     '<label class="kil-mf"><span>About me</span><textarea id="epBio" rows="3">'+esc(PROFILE.bio||'')+'</textarea></label>'+
     '<label class="kil-mf"><span>About section (shown in the header)</span><textarea id="epAbout" rows="2">'+esc(PROFILE.about||'')+'</textarea></label>'+
-    '<label class="kil-mf"><span>Account type</span><input type="text" id="epAcctShown" value="'+esc(PROFILE.account_type||'Not set')+'" disabled></label>'+
+    '<label class="kil-mf"><span>Account type</span><input type="text" id="epAcctShown" value="'+esc(epAcctLabel(PROFILE.account_type))+'" disabled></label>'+
     '<label class="kil-mf"><span>Request a business type</span><select id="epAcctRequest"><option value="">No request</option><option value="artist">Artist</option><option value="brand">Brand</option><option value="organizer">Organizer</option></select></label>'+
     '<div class="kil-note">An admin sets the account type. This sends a request. It does not change your type.</div>'+
     '<div class="kil-sec">Profile links (up to 5)</div>'+
@@ -1830,22 +1911,13 @@ function saveEditProfile(){
     uploadImage(coverFile,function(cvUrl){
       var hlDone=[], pending=hlNodes.length;
       function finalize(){
-        var _links=[1,2,3,4,5].map(function(i){return g('epL'+i);}).filter(function(u){return u&&/^https?:\/\//.test(u);}).slice(0,5);
-        var _badges=[].slice.call(document.querySelectorAll('.epBadge:checked')).map(function(c){return c.value;});
-        /* pronouns/tagline/booking-email fields were removed from Edit Profile (dup) — preserve existing values (Founder 2026-07-29) */
-        var meta={ display_name:g('epName'), handle:g('epHandle').replace(/^@/,''), location:g('epLoc'), bio:g('epBio'),
-          tagline:(document.getElementById('epTag')?g('epTag'):(PROFILE.tagline||null)), pronouns:(document.getElementById('epPro')?g('epPro'):(PROFILE.pronouns||null)), book_email:(document.getElementById('epBook')?g('epBook'):(PROFILE.book_email||null)),
-          about:g('epAbout')||null, links:_links.length?_links:null, links_label:g('epLinksLabel')||null, badges:_badges.length?_badges:null,
-          avatar_url: avUrl || g('epAvatarUrl') || PROFILE.avatar,
-          cover_url: cvUrl || g('epCoverUrl') || PROFILE.cover,
-          cover_mobile_url: cvmUrl || g('epCoverMUrl') || PROFILE.cover_mobile || null,
-          socials:{ instagram:g('epIG'), soundcloud:g('epSC'), tiktok:g('epTT'), website:g('epWeb') },
-          highlights: hlDone, updated_at:new Date().toISOString(),
-          profile_public: !!(document.getElementById('epPublic')&&document.getElementById('epPublic').checked),
-          public_fields: [].slice.call(document.querySelectorAll('.epField:checked')).map(function(c){return c.value;}) };
-        if(!SB||!SESSION){ Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url,cover:meta.cover_url,cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights}); applyProfile(); closeModal(); toast('Saved locally — sign in as owner to publish.'); return; }
+        var built=epBuildMeta(g, hlDone, avUrl, cvUrl, cvmUrl);
+        var meta=built.full, diff=built.diff;
+        if(!SB||!SESSION){ Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url||'',cover:meta.cover_url||'',cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights}); applyProfile(); closeModal(); toast('Saved locally — sign in as owner to publish.'); return; }
         function savedProfile(){
-          Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url,cover:meta.cover_url,cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights});
+          Object.assign(PROFILE,{name:meta.display_name,handle:meta.handle,location:meta.location,bio:meta.bio,tagline:meta.tagline,pronouns:meta.pronouns,book_email:meta.book_email,avatar:meta.avatar_url||'',cover:meta.cover_url||'',cover_mobile:meta.cover_mobile_url,socials:meta.socials,highlights:meta.highlights});
+          ['links','about','links_label','badges','profile_public','public_fields'].forEach(function(k){ if(Object.prototype.hasOwnProperty.call(diff,k)) PROFILE[k]=diff[k]; });
+          EP_BASE=epSnapshot();
           applyProfile();
           saveCategories();
           requestAccountType();
@@ -1856,7 +1928,9 @@ function saveEditProfile(){
           else { closeModal(); toast('Profile updated.'); }
         }
         function saveFailed(err){ toast('Could not save profile: '+((err&&err.message)||'')); if(btn){btn.disabled=false;btn.textContent='Save changes';} }
-        SB.from('profile_meta').update(meta).eq('slug',PROFILE_SLUG).select('slug').then(function(r){
+        /* Nothing changed: no profile_meta write at all (a no-op save must not touch a published page). */
+        if(!Object.keys(diff).length){ savedProfile(); return; }
+        SB.from('profile_meta').update(diff).eq('slug',PROFILE_SLUG).select('slug').then(function(r){
           if(r&&r.error){ saveFailed(r.error); return; }
           if(r&&Array.isArray(r.data)&&r.data.length){ savedProfile(); return; }
           var created={slug:PROFILE_SLUG};
@@ -1870,7 +1944,7 @@ function saveEditProfile(){
       if(!pending){ finalize(); return; }
       hlNodes.forEach(function(node){
         var label=(node.querySelector('.hl-label')||{}).value||''; var existing=(node.querySelector('img')||{}).src||''; var fileEl=node.querySelector('.hl-file'); var file=fileEl&&fileEl.files&&fileEl.files[0];
-        uploadImage(file,function(u){ var img=u|| (existing.indexOf('data:')===0?existing:existing) ; if(label||img)hlDone.push({label:label,img:img}); pending--; if(pending===0)finalize(); });
+        uploadImage(file,function(u){ var img=u|| (existing.indexOf('data:')===0?existing:existing) ; var _hi=(EP_BASE&&Array.isArray(EP_BASE.highlights))?EP_BASE.highlights[Number(node.getAttribute&&node.getAttribute('data-i'))]:null; if(label||img)hlDone.push(Object.assign({},_hi&&typeof _hi==='object'?_hi:{},{label:label,img:img})); pending--; if(pending===0)finalize(); });
       });
     });
    });

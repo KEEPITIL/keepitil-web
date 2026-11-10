@@ -1,0 +1,83 @@
+--- a/media.ts
++++ b/media.ts
+@@ -44,7 +44,7 @@
+ const upload_event_photo: ToolDef<UploadEventPhotoArgs, unknown> = {
+   name: "upload_event_photo",
+   summary:
+-    "Prepare a signed upload for an event photo or video. Returns a URL the client uploads to directly. The file is stored as-is and is NOT analysed.",
++    "Prepare a signed upload for an event photo or video. Only the event's owner (the submitter, or an owner of the event's profile) may use it. Returns a URL the client uploads to directly. The file is stored as-is and is NOT analysed.",
+   parameters: {
+     type: "object",
+     properties: {
+@@ -70,26 +70,50 @@
+     return { ok: true, value: { event_slug, filename, kind, title: str(raw.title) } };
+   },
+   execute: async (a, { db, ctx, resolveTarget, services }: ToolExecContext) => {
+-    const target = await resolveTarget("event_media");
++    // MF2 (11A): UPLOAD OWNERSHIP BOUNDARY. Everything in this block runs BEFORE any
++    // storage signing. A storage signature is not parent ownership (Atlas), so event
++    // visibility alone must never be enough to obtain one.
++    //
++    // 1. There must be a verified authenticated subject. ctx.actor_id is derived by
++    //    deriveServerContext() from userDb.auth.getUser() (the validated JWT). It is
++    //    never read from model args, ctx.handle, user_metadata or the event row.
++    const subject = typeof ctx?.actor_id === "string" ? ctx.actor_id.trim() : "";
++    if (!subject) return { ok: false, reason: "authentication_required" };
+ 
+-    // Ownership is checked against the EVENT, under the caller's RLS. If they cannot
+-    // see the event they cannot attach media to it.
+-    const { data: event, error: eErr } = await db.from("events")
+-      .select("id, slug, owner_handle").eq("slug", a.event_slug).maybeSingle();
+-    if (eErr) throw new Error(eErr.message);
+-    if (!event) return { ok: false, reason: "event_not_visible_to_caller" };
++    // The slug becomes a storage path prefix. A real slug never contains these.
++    if (/[\\/]|\.\./.test(a.event_slug)) return { ok: false, reason: "upload_ownership_denied" };
+ 
+-    // Path is derived from server-known values plus a validated base name. The model
+-    // never supplies a path, so it cannot write outside this event's prefix.
++    // 2. Ownership is decided IN THE DATABASE by a SECURITY DEFINER function that
++    //    derives the subject itself from auth.uid() (the same JWT this userDb carries):
++    //      events.submitted_by = auth.uid()
++    //      OR EXISTS (profile_owners: profile_slug = events.owner_handle AND owner_id = auth.uid())
++    //    It is called with db.rpc under the caller's JWT, so it needs no service role and
++    //    keeps working after events.submitted_by is revoked from anon/authenticated (10A
++    //    APPLY-1C), which a caller-RLS read of that column would not. It returns only a
++    //    boolean, so submitted_by is never exposed. Fail CLOSED: anything but exactly
++    //    `true` (false, null, missing function, RPC error) means no signing.
++    const { data: allowed, error: oErr } = await db.rpc("can_upload_event_media", {
++      p_event_slug: a.event_slug,
++    });
++    if (oErr) throw new Error(`ownership_check_failed: ${oErr.message}`);
++    if (allowed !== true) return { ok: false, reason: "upload_ownership_denied" };
++
++    const target = await resolveTarget("event_media");
++
++    // Path is derived from the ownership-checked slug (the function matched it exactly
++    // against events.slug) plus a validated base name. The model never supplies a path,
++    // so it cannot write outside this event's prefix.
+     const stamp = Date.now().toString(36);
+-    const path = `${event.slug}/${stamp}-${a.filename}`;
++    const path = `${a.event_slug}/${stamp}-${a.filename}`;
+ 
+     const signed = await services.createSignedUpload(path);
+     if (!signed.ok) return { ok: false, reason: signed.reason };
+ 
+-    // The scope row is written under the caller's RLS, not service-role.
++    // The scope row is written under the caller's RLS, not service-role. This stays as
++    // defense in depth: the media-table INSERT policy independently requires ownership.
++    // If it fails we throw, so no signed URL or token is ever returned to the caller.
+     const { data: row, error: mErr } = await db.from(target.write_table).insert({
+-      event_slug: event.slug,
++      event_slug: a.event_slug,
+       kind: a.kind,
+       media_url: `${signed.bucket}/${path}`,
+       title: a.title,
+@@ -110,7 +134,7 @@
+       },
+       processing: "none",
+       note:
+-        "Upload directly to the signed URL, then mark the row published. The file is stored as-is: no moderation, tagging, captioning or analysis runs on upload. Those are separate on-demand tools that cost credits.",
++        "Upload directly to the signed URL. The row stays pending_upload: clients cannot publish it, and nothing here marks it published. A reviewer publishes it after the upload is verified. The file is stored as-is: no moderation, tagging, captioning or analysis runs on upload. Those are separate on-demand tools that cost credits.",
+     };
+   },
+   redact: (a) => ({ event_slug: a.event_slug, kind: a.kind }),

@@ -41,9 +41,12 @@ export const lit = (v) => v === null || v === undefined ? "null" : "'" + String(
 
 /* ---------------- database helpers */
 const dbs = new Set();
-export async function open(blob) { const P = await loadPGlite(); const db = blob ? new P({ loadDataDir: blob }) : new P(); await db.waitReady; dbs.add(db); return db; }
+/* ENGINE: "pglite" (default) or "pg" (real PostgreSQL over a Unix socket; --engine=pg or KIL_ENGINE=pg). In "pg" mode a blob is {pgTemplate: dbname}. */
+export const ENGINE = (process.argv.find((a) => a.startsWith("--engine=")) || "").slice(9) || process.env.KIL_ENGINE || "pglite";
+export const PGM = ENGINE === "pg" ? await import("./pgdb.mjs") : null;
+export async function open(blob) { if (PGM) { const db = await PGM.createDb(blob && blob.pgTemplate); dbs.add(db); return db; } const P = await loadPGlite(); const db = blob ? new P({ loadDataDir: blob }) : new P(); await db.waitReady; dbs.add(db); return db; }
 export async function closeDb(db) { try { await db.close(); } catch {} dbs.delete(db); }
-export async function dump(db) { await db.exec("reset role"); return await db.dumpDataDir("gzip"); }
+export async function dump(db) { await db.exec("reset role"); if (PGM) return await PGM.snapshotDb(db); return await db.dumpDataDir("gzip"); }
 export async function clone(blob) { return open(blob); }
 export const su = async (db, sql) => { await db.exec("reset role"); return (await db.query(sql)).rows; };
 export const one = async (db, sql) => (await su(db, sql))[0];

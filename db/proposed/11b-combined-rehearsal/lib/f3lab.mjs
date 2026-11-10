@@ -1,13 +1,13 @@
 /* lib/f3lab.mjs - D1 (drift), R1 (rollback exactness), R2 (rollback drift guards) for Atlas's F3 forward/rollback on the COMBINED pre-F3 state (after 1C).
    The forward/rollback files run as committed; the ONLY edit is the 32-hex baseline literal, replaced by the fingerprint the DRIFT_QUERY returns on the same catalog (the documented re-baseline).
    The rollback is run twice: as committed (it must REFUSE after 1C: it would re-open what 1C closed) and regenerated (profile_meta removed from its two re-grant lines).        */
-import { U, one, su, as, tx, clone, closeDb, snapshot, diffSnap, brief, collector, lit, mutate } from "./core.mjs";
+import { PGM, U, one, su, as, tx, clone, closeDb, snapshot, diffSnap, brief, collector, lit, mutate } from "./core.mjs";
 
 export function makeF3Lab({ F3_FW, F3_RB, F3_DQ, ORIG, regen, pre /* gz blob of the pre-F3 state */, post11A }) {
   const patch = (sql, f) => sql.split(ORIG).join(f);
   async function fpOf(db) { await db.exec("reset role; set search_path = public, extensions"); const r = await db.query(F3_DQ); await db.exec('set search_path = "$user", public'); return r.rows[0].fingerprint; }
   async function worldPre() { const db = await clone(pre); const F0 = await fpOf(db); return { db, F0 }; }
-  async function worldFwd() { const { db, F0 } = await worldPre(); const fw = patch(F3_FW, F0); const r = await tx(db, fw); if (!r.ok) throw new Error("forward failed on pre-F3 clone: " + r.err); return { db, F0, fw, rbStock: patch(F3_RB, F0), rbRegen: patch(regen(F3_RB), F0) }; }
+  async function worldFwd() { const { db, F0 } = await worldPre(); const fw = patch(F3_FW, F0); const r = await tx(db, fw); if (!r.ok) throw new Error("forward failed on pre-F3 clone: " + r.err); return { db, F0, fw, rbStock: patch(F3_RB, F0), rbRegen: patch(regen(F3_RB), F0), rbRegenNoEnd: mutate(patch(regen(F3_RB), F0), `IF v_fingerprint IS DISTINCT FROM '${F0}' THEN`, "IF false THEN", "end guard (scratch only)") }; }
   const sink = [];
   const mk = () => { const c = collector(sink); return { check: async (id, name, fn, extra) => c.check(id, name, fn, { case: id.split(".")[0], ...extra }) }; };
 
@@ -41,6 +41,13 @@ export function makeF3Lab({ F3_FW, F3_RB, F3_DQ, ORIG, regen, pre /* gz blob of 
       const { db, F0, rbRegen } = await worldFwd(); try { const pre0 = await clone(pre); const snapPre = await snapshot(pre0); await closeDb(pre0); const r = await tx(db, rbRegen); if (!r.ok) return r.err;
         const d = diffSnap(snapPre, await snapshot(db)); const s = await one(db, "select (select count(*)::int from public.event_media where status='published' and event_slug like 'orphan-%') pub, exists(select 1 from pg_namespace where nspname='atlas_media_guard') g");
         return (d.n === 0 && s.pub === 19 && !s.g) || (d.n ? brief(d) : JSON.stringify(s)); } finally { await closeDb(db); } });
+    if (PGM) {   // real PostgreSQL only: judge SEMANTIC exactness separately from the fingerprint-exact check above (aclitem ENTRY ORDER differs after the rollback, see REAL-PG-REPORT.md)
+      await check("R1.exact-semantic", "R1 (real PG, extra) forward then the regenerated rollback with ONLY its ORDER-sensitive final fingerprint guard bypassed (scratch) restores the pre-F3 catalog snapshot EXACTLY with sorted ACLs, the 19 orphan statuses, no guard schema", async () => {
+        const { db, rbRegenNoEnd } = await worldFwd(); try { const pre0 = await clone(pre); const snapPre = await snapshot(pre0); await closeDb(pre0); const r = await tx(db, rbRegenNoEnd); if (!r.ok) return r.err;
+          const d = diffSnap(snapPre, await snapshot(db)); const s = await one(db, "select (select count(*)::int from public.event_media where status='published' and event_slug like 'orphan-%') pub, exists(select 1 from pg_namespace where nspname='atlas_media_guard') g"); return (d.n === 0 && s.pub === 19 && !s.g) || (d.n ? brief(d) : JSON.stringify(s)); } finally { await closeDb(db); } });
+      await check("R1.reapply-semantic", "R1 (real PG, extra) after the rollback a SECOND forward is only possible with a RE-BASELINED literal (the rollback changed relacl entry order, so the pre-F3 fingerprint no longer matches); with the new DRIFT_QUERY value it applies and stores one guard row", async () => {
+        const { db, rbRegenNoEnd, fw, F0 } = await worldFwd(); try { const r = await tx(db, rbRegenNoEnd); if (!r.ok) return r.err; const F1 = await fpOf(db); const stale = await tx(db, fw); if (stale.ok || !/Catalog drift/.test(stale.err)) return "stale literal did not abort: " + (stale.err || "applied"); if (F1 === F0) return "fingerprint unchanged after rollback (no reorder observed)";
+          const again = await tx(db, patch(F3_FW, F1)); return again.ok ? (await one(db, "select count(*)::int n from atlas_media_guard.rollback_guard")).n === 1 : again.err; } finally { await closeDb(db); } }); }
     await check("R1.stock-after-1C", "R1 FINDING: the rollback AS COMMITTED (only the baseline literal swapped) REFUSES after 1C - its own final fingerprint check aborts because its blanket re-grants (TRUNCATE to anon+authenticated, UPDATE/DELETE/REFERENCES/TRIGGER to anon on profile_meta) would re-open what 1C closed; nothing is changed (README row 3: 'rollback must be regenerated')", async () => {
       const { db, rbStock } = await worldFwd(); try { const before = await snapshot(db); const r = await tx(db, rbStock); const d = diffSnap(before, await snapshot(db)); return (!r.ok && /Rollback did not restore original catalog/.test(r.err) && d.n === 0) || (r.err || "stock rollback applied (it re-opened 1C)"); } finally { await closeDb(db); } });
     await check("R1.stock-would-reopen", "R1 PROOF of the reason: forcing the stock rollback past its fingerprint check (check bypassed in a scratch clone) leaves anon/authenticated holding TRUNCATE and anon UPDATE/DELETE/REFERENCES/TRIGGER on profile_meta again", async () => {

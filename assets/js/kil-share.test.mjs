@@ -399,10 +399,11 @@ test('profile.html raw HTML is noindex', () => {
   assert.match(html, /<meta name="robots" content="noindex">/);
 });
 
-test('show and event raw HTML default to noindex', () => {
-  for (const file of ['show.html', 'event.html']) {
+test('show, event and member raw HTML stay indexable (index,follow, as on main); the runtime private path is covered in kil-indexable.test.mjs', () => {
+  for (const file of ['show.html', 'event.html', 'member.html']) {
     const html = readFileSync(new URL('../../' + file, import.meta.url), 'utf8');
-    assert.match(html, /<meta name="robots" content="noindex"/, file);
+    assert.match(html, /<meta name="robots" content="index,follow"/, file);
+    assert.equal(/<meta name="robots" content="noindex/.test(html), false, file);
   }
 });
 

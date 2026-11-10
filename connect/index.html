@@ -2,7 +2,7 @@
 <html lang="en" data-theme="default">
 <head>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/><meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
   <meta name="description" content="CONNECT on KEEPITIL — find people, brands, venues and communities, and join the rooms where they talk."/>
 <title>CONNECT — People, Brands, Venues & Community | KEEPITIL</title>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
@@ -108,7 +108,7 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
   .stats{display:flex;flex-wrap:nowrap;justify-content:center;gap:min(6vw,26px);margin-top:18px;}
   .stat{flex:0 1 auto;min-width:0;text-align:center;}
   .stat b{font-size:clamp(1.4rem,6.5vw,2rem);}
-  .stat span{font-size:.56rem;letter-spacing:.09em;margin-top:4px;}
+  .stat span{font-size:.625rem;letter-spacing:.07em;margin-top:4px;}
 }
 /* FULL-BLEED AND OPAQUE (Founder 2026-08-21): "filling the entire top of the sheet ... no
    background image visible above or behind it when scrolling."
@@ -182,7 +182,7 @@ body.comm-on #count{display:none}
 .comm-desc{font:400 .82rem/1.35 Inter,system-ui,sans-serif;color:#a9b3c4;margin:0 0 7px;overflow-wrap:anywhere;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .comm-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-  font:800 .6rem/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#7d8b9c}
+  font:800 .625rem/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#7d8b9c}
 .comm-topic{padding:3px 8px;border-radius:999px;background:rgba(0,224,164,.12);color:#7ff5d0}
 .comm-join{flex:0 0 auto;align-self:center;height:32px;padding:0 14px;border-radius:9px;cursor:pointer;
   border:1px solid rgba(0,224,164,.45);background:rgba(0,224,164,.12);color:#7ff5d0;
@@ -248,7 +248,7 @@ body.comm-on #count{display:none}
 .cres{display:flex;gap:11px;align-items:flex-start;padding:12px 13px;border-radius:12px;margin:0 0 9px;
   background:var(--panel,rgba(18,18,28,.7));border:1px solid var(--line,#242433)}
 .cres-k{flex:0 0 auto;padding:4px 9px;border-radius:999px;background:rgba(0,224,164,.12);color:#7ff5d0;
-  font:800 .58rem/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase}
+  font:800 .625rem/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase}
 .cres b{display:block;font:800 .89rem/1.25 Inter,sans-serif;color:#fff;margin-bottom:3px}
 .cres span{font:400 .8rem/1.4 Inter,sans-serif;color:#a9b3c4}
 .cres a{color:#7ff5d0;text-decoration:none;font:700 .78rem Inter,sans-serif}
@@ -287,7 +287,7 @@ body.comm-on #count{display:none}
   border-radius:11px;text-decoration:none;border:1px solid rgba(0,224,164,.35);
   background:rgba(0,224,164,.09);color:#eafff7}
 .copp b{display:block;font:800 .78rem/1.2 Inter,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.copp span{display:block;font:700 .58rem/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#7ff5d0;margin-bottom:2px}
+.copp span{display:block;font:700 .625rem/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#7ff5d0;margin-bottom:2px}
 
 .seg button[data-k=artist].on{background:var(--artist);color:#fff;}
 .seg button[data-k=brand].on{background:var(--brand);color:#053a2c;}
@@ -474,6 +474,14 @@ body>*{min-width:0}
    tabs and one search, nothing else. Other kinds keep their contextual chips, and
    renderSubs() is untouched — it simply has nothing to draw for artists. */
 body[data-kind="artist"] .subfilters{display:none!important}
+/* 7c responsive/a11y (KODE audit 2026-11). Touch-only so desktop is unchanged: 44px tap targets for the
+   kind switcher and search (were 35px / ~42px). #seg button out-ranks the .seg button rules above.
+   16px search text stops iOS focus-zoom now that the viewport allows pinch-zoom. */
+@media (pointer:coarse){
+  #seg button{min-height:44px;padding-top:0;padding-bottom:0}
+  .search{min-height:44px}
+  .search input{font-size:16px}
+}
 </style>
 <link rel="canonical" href="https://keepitil.com/connect/"/>
   <!-- PWA manifest — STATIC, deliberately (Founder 2026-08-15).
@@ -548,8 +556,10 @@ body[data-kind="artist"] .subfilters{display:none!important}
 </div>
 <main class="grid" id="grid"></main>
 <section id="commPane" aria-label="Community"></section>
+<section id="kil-intake" aria-label="Work with KEEPITIL"></section>
 <footer>KEEPITIL <a href="/">keepitil.com</a></footer>
 <script src="/assets/js/vendor/supabase-js.min.js" defer></script>
+<script src="/assets/js/kil-safe-html.js?v=20261107b"></script>
 <script>
 // roster reset 2026-07-21 — rebuild from Google Sheet + web research. Seeded with the 2 gold standards.
 /* ARTISTS COME FROM ARTICLES (Founder 2026-08-26: "public view profiles will not be on the
@@ -613,21 +623,25 @@ try{
 }catch(e){}
 function initials(n){return (n||'?').split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();}
 function desc(x){return x.genre||x.category||x.type||'';}
+function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function kilSafeUrl(url){return (window.KilSafeHtml&&KilSafeHtml.kilSafeUrl(url))||'';}
 function card(x){
   const d=desc(x);const ig=x.ig?('@'+x.ig):'';
   /* No dead links (Atlas 2026-07-16): internal profile if it exists, else the org's Instagram (new tab), else a non-clickable card. Never href="#". */
   const igurl=x.ig?('https://instagram.com/'+String(x.ig).replace(/^@/,'').trim()):'';
   /* blog already starts with "/"; only add a leading slash if it's missing. A double slash ("//path") is a protocol-relative URL and sends every card to a dead domain. */
-  const href=x.blog?(String(x.blog).charAt(0)==='/'?x.blog:'/'+x.blog):(igurl||'');
-  const ext=!x.blog && !!igurl;
-  const img=x.img?('<img loading="lazy" referrerpolicy="no-referrer" src="'+x.img+'" alt="" onerror="this.style.display=\'none\'"/>'):'';
-  const fb='<div class="fallback" style="background:linear-gradient(135deg,'+(x.color||'#6d28d9')+',#111)">'+initials(x.name)+'</div>';
-  const chips=x.kinds.map(k=>'<span class="kind '+k+'">'+KL[k]+'</span>').join('');
+  const hrefRaw=x.blog?(String(x.blog).charAt(0)==='/'?x.blog:'/'+x.blog):(igurl||'');
+  const href=(window.KilSafeHtml&&KilSafeHtml.safeNavUrl(hrefRaw))||'';
+  const ext=!x.blog && !!igurl && !!href;
+  const imgUrl=kilSafeUrl(x.img);
+  const img=imgUrl?('<img loading="lazy" referrerpolicy="no-referrer" src="'+escHtml(imgUrl)+'" alt="" onerror="this.style.display=\'none\'"/>'):'';
+  const fb='<div class="fallback" style="background:linear-gradient(135deg,'+escHtml(x.color||'#6d28d9')+',#111)">'+escHtml(initials(x.name))+'</div>';
+  const chips=(x.kinds||[]).map(k=>'<span class="kind '+escHtml(k)+'">'+(KL[k]||escHtml(k))+'</span>').join('');
   const inner='<div class="imgw"><div class="kinds">'+chips+'</div>'+img+fb+'</div>'
-    +'<div class="body"><div class="nm">'+(x.name||'')+'</div><div class="desc">'+d+'</div>'
-    +(x.city?'<div class="loc">◍ '+x.city+(x.county?' · '+x.county.replace(' County',' Co.'):'')+'</div>':'')
-    +(ig?'<div class="ig">'+ig+(ext?' ↗':'')+'</div>':'')+'</div>';
-  if(href) return '<a class="card" href="'+href+'"'+(ext?' target="_blank" rel="noopener"':'')+'>'+inner+'</a>';
+    +'<div class="body"><div class="nm">'+escHtml(x.name||'')+'</div><div class="desc">'+escHtml(d)+'</div>'
+    +(x.city?'<div class="loc">◍ '+escHtml(x.city)+(x.county?' · '+escHtml(String(x.county).replace(' County',' Co.')):'')+'</div>':'')
+    +(ig?'<div class="ig">'+escHtml(ig)+(ext?' ↗':'')+'</div>':'')+'</div>';
+  if(href) return '<a class="card" href="'+escHtml(href)+'"'+(ext?' target="_blank" rel="noopener noreferrer"':'')+'>'+inner+'</a>';
   return '<div class="card nolink" style="cursor:default">'+inner+'</div>';
 }
 function renderSubs(){
@@ -704,12 +718,18 @@ document.getElementById('q').addEventListener('input',e=>{
   render();
 });
 renderSubs();render();
-/* ---- LIVE DIRECTORY: pull from Google Sheet master (1UU2). Founder edits sheet -> site reflects on refresh. Falls back to built-in roster if sheet unreachable. ---- */
+/* ---- LIVE DIRECTORY: pull from Google Sheet master (1UU2). OPT-IN, OFF BY DEFAULT.
+   Why off: the sheet is not publicly shared (anonymous HTTP 401), so every page view made a failing
+   cross-origin request (CORS block + ERR_FAILED in the console) and silently kept the built-in roster anyway.
+   The sheet data also still needs cleaning (duplicate/mistyped rows, dead profile links), so it must not go live by accident.
+   Decision (Joe/KODE): do not re-share the sheet; stop fetching by default, keep the code.
+   To turn it on deliberately: open /connect/?sheet=1 (the sheet must be shared and its data cleaned first).
+   Default = zero requests to docs.google.com. Falls back to built-in roster if sheet unreachable. ---- */
 (function(){
   var SHEET='1UU2rPPwsIRCFnZBgk6Uzb9IRcckcBmvYVORNVMFtIoo';
   var TQ='https://docs.google.com/spreadsheets/d/'+SHEET+'/gviz/tq?sheet=Untitled&headers=1&tqx=out:json';
   function cell(c,i){return (c&&c[i]&&c[i].v!=null)?String(c[i].v):'';}
-  fetch(TQ).then(function(r){return r.text();}).then(function(t){
+  if(/[?&]sheet=1(?:&|$)/.test(location.search)) fetch(TQ).then(function(r){return r.text();}).then(function(t){
     var m=t.match(/setResponse\(([\s\S]*?)\);?\s*$/); if(!m) throw 0;
     var j=JSON.parse(m[1]); var rows=(j.table&&j.table.rows)||[]; var live=[];
     rows.forEach(function(row){
@@ -790,7 +810,7 @@ renderSubs();render();
 })();
 </script>
 <script src="/kil-seasons.js?v=20260910b"></script>
-<script src="/assets/js/keepitil-radio.js?v=20260929a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20261109a" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
 <script src="/keepitil-shell.js?v=20261031a" defer></script>
 <!-- COMMUNITY: its own tag. The module was briefly placed INSIDE the shell's
@@ -1045,7 +1065,7 @@ renderSubs();render();
       +(p.title?'<h4>'+esc(p.title)+'</h4>':'')
       +(p.body?'<p>'+esc(p.body)+'</p>':'')
       +(p.kind==='image'&&p.media_url?'<img class="cmedia" src="'+esc(p.media_url)+'" alt="" loading="lazy"/>':'')
-      +(p.kind==='link'&&p.link_url?'<div class="cmeta"><a href="'+esc(p.link_url)+'" target="_blank" rel="noopener">'+esc(p.link_url)+'</a></div>':'')
+      +(p.kind==='link'&&p.link_url?'<div class="cmeta"><a href="'+esc(p.link_url)+'" target="_blank" rel="noopener noreferrer">'+esc(p.link_url)+'</a></div>':'')
       +'<div class="cmeta"><time>'+when(p.created_at)+'</time><span>'+(p.reply_count||0)+' repl'+((p.reply_count===1)?'y':'ies')+'</span>'
         +(p.locked?'<span>Locked</span>':'')+(p.removed?'<span>Removed</span>':'')+ctl.join('')+'</div>'
       +top.map(function(r){ return replyHtml(r,reps,1); }).join('')
@@ -1133,7 +1153,7 @@ renderSubs();render();
                 +'<span class="cres-k">'+esc(x.kind)+'</span><div style="flex:1;min-width:0">'
                 +'<b>'+esc(x.title)+'</b>'
                 +(x.description?'<span>'+esc(x.description)+'</span>':'')
-                +(x.url?'<div><a href="'+esc(x.url)+'" target="_blank" rel="noopener">Open &#8599;</a></div>':'')
+                +(x.url?'<div><a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">Open &#8599;</a></div>':'')
                 +(isMod()?'<div class="cmeta"><button class="danger" data-resrm="'+esc(x.id)+'">'+(x.removed?'Restore':'Remove')+'</button></div>':'')
                 +'</div></div>';
             }).join('')
@@ -1337,5 +1357,7 @@ renderSubs();render();
   boot(0);
 })();
 </script>
+<script src="/assets/js/kil-bf-popup.js?v=20261109a" defer></script>
+<script src="/assets/js/kil-intake.js?v=20261109a" defer></script>
 </body>
 </html>

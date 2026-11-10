@@ -69,6 +69,7 @@
   function card(e, d) {
     var href = '/show?e=' + encodeURIComponent(slugOf(e.slug)), cover = safeUrl(e.cover_url);
     var host = e.owner_handle ? (d.hosts[slugOf(e.owner_handle)] || e.owner_handle) : '';
+    var hostHasProfile = !!(e.owner_handle && d.hostProfiles && d.hostProfiles[slugOf(e.owner_handle)]);   // no profile_meta row = plain text, never a dead link
     var lineup = (d.lineups[e.id] || []).slice(0, 4), more = (d.lineups[e.id] || []).length - lineup.length;
     var price = fromPrice(d.tiers[e.id]);
     return '<article class="m3-card">' +
@@ -77,7 +78,7 @@
       '<h2 class="m3-title"><a href="' + esc(href) + '">' + esc(e.title || 'Event') + '</a></h2>' +
       '<div class="m3-where">' + esc([e.venue, e.city].filter(Boolean).join(' · ')) + '</div>' +
       ((host || lineup.length) ? '<div class="m3-chips">' +
-        (host ? '<a class="m3-chip m3-host" href="' + esc('/member?slug=' + encodeURIComponent(slugOf(e.owner_handle))) + '">' + esc(host) + '</a>' : '') +
+        (host ? (hostHasProfile ? '<a class="m3-chip m3-host" href="' + esc('/member?slug=' + encodeURIComponent(slugOf(e.owner_handle))) + '">' + esc(host) + '</a>' : '<span class="m3-chip m3-host">' + esc(host) + '</span>') : '') +
         lineup.map(function (a) { return a.profile_slug
           ? '<a class="m3-chip m3-artist" href="' + esc('/member?slug=' + encodeURIComponent(slugOf(a.profile_slug))) + '">' + esc(a.artist_name) + '</a>'
           : '<span class="m3-chip m3-artist">' + esc(a.artist_name) + '</span>'; }).join('') +
@@ -115,13 +116,13 @@
     var er = await safe(client.from('events').select(COLS).eq('status', 'published').gte('starts_at', now)
       .eq('password_protected', false).or('show_on_explore.is.null,show_on_explore.eq.true')
       .order('starts_at', { ascending: true }).limit(opts.limit || 60));
-    if (!ok(er)) return { failed: true, events: [], lineups: {}, tiers: {}, hosts: {} };   // not "no upcoming events"
+    if (!ok(er)) return { failed: true, events: [], lineups: {}, tiers: {}, hosts: {}, hostProfiles: {} };   // not "no upcoming events"
     var events = er.data || [], partial = false;
     var got = function (r) { if (ok(r)) return r.data || []; partial = true; return []; };
     var ids = events.map(function (e) { return e.id; }).filter(function (x) { return x != null; });
     var hostSlugs = events.map(function (e) { return slugOf(e.owner_handle); }).filter(Boolean)
       .filter(function (v, i, a) { return a.indexOf(v) === i; });
-    var lineups = {}, tiers = {}, hosts = {};
+    var lineups = {}, tiers = {}, hosts = {}, hostProfiles = {};
     if (ids.length) {
       got(await safe(client.from('event_lineup').select('event_id,artist_name,profile_slug,sort').in('event_id', ids).order('sort', { ascending: true })))
         .forEach(function (l) { (lineups[l.event_id] = lineups[l.event_id] || []).push(l); });
@@ -137,10 +138,13 @@
       hostSlugs.forEach(function (slug) { want[slug] = 1; });
       rows.forEach(function (p) {
         var key = slugOf(p && p.slug);
-        if (want[key] && p.display_name) hosts[key] = p.display_name;
+        if (want[key]) {
+          hostProfiles[key] = true;
+          if (p.display_name) hosts[key] = p.display_name;
+        }
       });
     }
-    return { events: events, lineups: lineups, tiers: tiers, hosts: hosts, partial: partial };
+    return { events: events, lineups: lineups, tiers: tiers, hosts: hosts, hostProfiles: hostProfiles, partial: partial };
   }
 
   /** Load once, render, and re-render on filter change; the filters are mirrored into the URL. */

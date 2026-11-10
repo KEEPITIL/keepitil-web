@@ -1198,10 +1198,19 @@ function renderShows(){
     (MY_EVENTS||[]).forEach(function(e){all.push(dbToEv(e,'mine'));});
     (typeof MY_TIX!=='undefined'?MY_TIX:[]||[]).forEach(function(e){all.push(dbToEv(e,'tickets'));});
   } else {
-    /* subscribed viewer: ONLY this profile's public (published) created events → click to buy tickets */
-    if(typeof IS_DEMO!=='undefined' && IS_DEMO){ GT_SHOWS.map(evFromArr).forEach(function(o){o._src='mine';all.push(o);}); }
-    (MY_EVENTS||[]).filter(function(e){return String(e.status||'published').toLowerCase()==='published';}).forEach(function(e){all.push(dbToEv(e,'mine'));});
-    if(bar)bar.innerHTML=''; /* no filter chips for the viewer — just their events */
+    /* Visitors get a count and cities, not event flyers. */
+    if(bar)bar.innerHTML='';
+    var sum=PUBLIC_EVENT_SUMMARY;
+    var label='';
+    if(sum){
+      var n=sum.upcoming_count;
+      if(n==null||(Number(n)>0&&Number(n)<5)) label='<5 upcoming';
+      else if(Number(n)>=5) label=String(n)+' upcoming';
+      var cities=Array.isArray(sum.cities)?sum.cities.filter(Boolean):[];
+      if(label&&cities.length) label+=' · '+cities.join(' · ');
+    }
+    el.innerHTML=label?('<div class="pf-empty">'+esc(label)+'</div>'):'<div class="pf-empty">No upcoming events.</div>';
+    return;
   }
   var items=all.filter(function(o){return !owner||EV_FILTER==='all'||o._src===EV_FILTER;});
   items.sort(function(a,b){return ts(b)-ts(a);}); // newest upload / purchase first
@@ -1225,20 +1234,30 @@ function applyEvSub(){
 }
 function evSubReady(k){ var b=document.querySelector('#evsub .evsub-b[data-k="'+k+'"]'); if(b)b.style.display=''; applyEvSub(); }
 function loadMyTickets(){
-  var wrap=document.getElementById('mytix-wrap'); if(wrap)wrap.style.display='none';  /* tickets now live in the unified events feed */
-  if(!SB||!SESSION||!CAN_EDIT()){ return; }
-  SB.rpc('get_my_tickets').then(function(r){
-    MY_TIX=(r&&!r.error&&r.data)?r.data:[];
-    renderShows();
-  }).catch(function(){});
+  var wrap=document.getElementById('mytix-wrap'); if(wrap)wrap.style.display='none';
+  /* Ticket tokens stay on /tickets. This page does not call get_my_tickets. */
+  MY_TIX=[];
 }
 function goMyTix(i){ var t=MY_TIX[i]; if(!t)return; location.href='/tickets?e='+encodeURIComponent(t.slug||''); }
 /* ── MY EVENTS carousel: events this profile created/hosts. Owner sees all statuses; public sees published. ── */
+var PUBLIC_EVENT_SUMMARY=null;
 function loadMyEvents(){
-  var wrap=document.getElementById('myev-wrap'); if(wrap)wrap.style.display='none';  /* my events now live in the unified events feed */
+  var wrap=document.getElementById('myev-wrap'); if(wrap)wrap.style.display='none';
   if(!SB){ return; }
-  SB.rpc('get_profile_events',{p_handle:PROFILE_SLUG}).then(function(r){
-    MY_EVENTS=(r&&!r.error&&r.data)?r.data:[];
+  var owner=(typeof CAN_EDIT==='function')&&CAN_EDIT()&&(typeof SESSION!=='undefined')&&!!SESSION;
+  if(owner){
+    SB.rpc('get_profile_events',{p_handle:PROFILE_SLUG}).then(function(r){
+      MY_EVENTS=(r&&!r.error&&r.data)?r.data:[];
+      PUBLIC_EVENT_SUMMARY=null;
+      renderShows();
+    }).catch(function(){});
+    return;
+  }
+  SB.rpc('get_profile_event_summary',{p_handle:PROFILE_SLUG}).then(function(r){
+    var row=r&&!r.error?r.data:null;
+    if(Array.isArray(row)) row=row[0]||null;
+    PUBLIC_EVENT_SUMMARY=row||{upcoming_count:0,cities:[]};
+    MY_EVENTS=[];
     renderShows();
   }).catch(function(){});
 }
@@ -1247,22 +1266,8 @@ function myevMark(){ var car=document.getElementById('myev-car'), row=document.g
 function mytixScroll(dir){ var row=document.getElementById('mytix-row'); if(!row)return; var c=row.querySelector('.mytix-card'); var w=c?(c.offsetWidth+15)*Math.max(1,Math.floor(row.clientWidth/(c.offsetWidth+15))):320; row.scrollBy({left:dir*w,behavior:'smooth'}); }
 function mytixMark(){ var car=document.getElementById('mytix-car'), row=document.getElementById('mytix-row'); if(!car||!row)return; var prev=car.querySelector('.mytix-arrow.prev'), next=car.querySelector('.mytix-arrow.next'); function upd(){ var sc=row.scrollWidth-row.clientWidth>4; car.classList.toggle('scrollable',sc); if(prev)prev.disabled=row.scrollLeft<=2; if(next)next.disabled=row.scrollLeft>=row.scrollWidth-row.clientWidth-2; } upd(); row.onscroll=upd; }
 function openTicket(i){
-  var t=MY_TIX[i]; if(!t) return; closeModal();
-  var door=KilTicketQr.payload(t.qr_token);
-  var qr='';
-  if(door){ var qrDraw=qrcode(0,'M'); qrDraw.addData(door); qrDraw.make(); qr=qrDraw.createDataURL(4,0); }
-  var flyer=t.cover_url?'<img src="'+esc(t.cover_url)+'" alt="" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" onerror="this.style.display=\'none\'">':'';
-  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';
-  ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Your Ticket<button class="kil-mx" onclick="closeModal()">&times;</button></div><div class="kil-mb">'
-    +flyer
-    +'<h3 style="margin:0 0 4px">'+esc(t.title||'Event')+'</h3>'
-    +'<p class="note" style="margin:0 0 12px">'+esc(fmtTixDate(t.starts_at))+(t.venue?' · '+esc(t.venue):'')+(t.city?' · '+esc(t.city):'')+'</p>'
-    +'<div style="display:flex;gap:14px;align-items:center;margin:0 0 14px"><img src="'+qr+'" alt="Ticket QR" style="width:110px;height:110px;border-radius:10px;background:#fff;padding:6px"><div><div style="font-weight:800;font-size:.9rem">General Admission</div><div class="note">Qty: '+(t.qty||1)+'</div><div class="note" style="word-break:break-all;font-size:.66rem">Ref: '+esc(String(t.qr_token||'').slice(0,12))+'</div><div style="color:var(--accent);font-weight:800;font-size:.8rem;margin-top:4px">✓ PAID</div></div></div>'
-    +'<a class="kil-msave" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px" href="/tickets?t='+encodeURIComponent(t.qr_token||'')+'">View / share full ticket →</a>'
-    +'<a class="kil-mcancel" style="display:block;text-align:center;text-decoration:none" href="/event?e='+encodeURIComponent(t.slug||'')+'">Open event page &amp; chat →</a>'
-    +'</div></div>';
-  document.body.appendChild(ov);
-  ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
+  var t=MY_TIX[i]; if(!t) return;
+  location.href='/tickets?e='+encodeURIComponent(t.slug||'');
 }
 var _alerts=false;
 function toggleAlert(){_alerts=!_alerts;var b=document.getElementById('alertBtn');if(_alerts){b.textContent='✓ ALERTS ON';b.classList.add('on');alert('You will get an alert when Groove Trooper announces a show near you. (Demo — wire to Follow / notifications.)');}else{b.textContent='GET ALERTS';b.classList.remove('on');}}
@@ -3150,7 +3155,7 @@ function loadTagged(){
   var g=document.getElementById('tagged-grid'), emp=document.getElementById('tagged-empty');
   if(!g||!emp) return;
   SB.from('event_orders')
-    .select('id,qty,amount_cents,status,created_at,qr_token,events(title,slug,starts_at,venue,city,cover_url)')
+    .select('id,qty,amount_cents,status,created_at,events(title,slug,starts_at,venue,city,cover_url)')
     .eq('buyer_handle', PROFILE_SLUG)
     .neq('status','refunded')
     .order('created_at',{ascending:false})

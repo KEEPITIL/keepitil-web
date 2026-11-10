@@ -1,12 +1,14 @@
 /* KEEPITIL profile page (/member?slug=<slug>).
-   Public (anyone): name or handle, avatar, bio, links, and that profile's upcoming published events.
+   Public (anyone): name or handle, avatar, bio, links, and a rollup of that profile's
+   upcoming published events (a count and city names). Not event cards.
    Private (signed-in owner only): the same page, plus an events dashboard — upcoming and past,
    drafts included — with the counts organizer_dashboard already stores (tickets sold, checked in,
-   revenue). No RSVP count and no view count: events has neither column, and this page does not
-   invent them.
+   revenue). KilInsights draws the trend chart from those same rows. No RSVP count and no view
+   count: events has neither column, and this page does not invent them.
 
-   Public reads use get_public_profile() only (one slug, public fields only).
-   This page does not read profile_meta or public.profiles.
+   Public reads use get_public_profile() and get_profile_event_summary() only.
+   The summary is the server control. This page does not call get_profile_events for a visitor,
+   and it does not read profile_meta, public.profiles, or a password hash.
    A profile renders as a private stub unless it is explicitly public and verified 18+.
    Nothing here writes, and nothing changes a price. */
 (function (root) {
@@ -42,15 +44,27 @@
     } catch (e) { return d.toISOString().slice(0, 16).replace('T', ' '); }
   }
 
+  /**
+   * Password-protected rows stay off the public rollup. is_protected is the flag
+   * the server returns. A missing flag fails closed. The password hash is not read.
+   */
   function locked(e) {
-    return !!(e && (e.event_password_hash || e.password_protected === true));
+    if (!e) return true;
+    if (e.is_protected === true || e.password_protected === true) return true;
+    if (e.is_protected === false) return false;
+    return true;
+  }
+
+  /** Drop anything the public list cannot prove is unprotected. */
+  function hideLocked(events) {
+    return (events || []).filter(function (e) { return e && !locked(e); });
   }
 
   /** Published events that have not started yet, soonest first. A password-protected row is left out. */
   function upcoming(events, now) {
     var t = (now || new Date()).getTime();
-    return (events || []).filter(function (e) {
-      return e && !locked(e) && e.status === 'published' && e.starts_at && new Date(e.starts_at).getTime() >= t;
+    return hideLocked(events).filter(function (e) {
+      return e.status === 'published' && e.starts_at && new Date(e.starts_at).getTime() >= t;
     }).sort(function (a, b) { return new Date(a.starts_at) - new Date(b.starts_at); });
   }
 
@@ -178,6 +192,13 @@
     return null;
   }
 
+  function insightsLib() {
+    var g = typeof globalThis !== 'undefined' ? globalThis : null;
+    if (g && g.KilInsights) return g.KilInsights;
+    if (root && root.KilInsights) return root.KilInsights;
+    return null;
+  }
+
   function faceOf(meta) {
     var lib = shareLib();
     if (!lib || !lib.publicFace) return null;
@@ -234,7 +255,6 @@
     };
     var name = m.display_name || m.handle || d.slug;
     var avatar = safeUrl(m.avatar_url);
-    var ev = upcoming(d.events, d.now);
     var music = musicLinks(m, d.categories), links = profileLinks(m);
     var h = '<section class="m1-head">' +
       (avatar ? '<img class="m1-av" src="' + esc(avatar) + '" alt="">' : '<span class="m1-av m1-av-0">' + esc(String(name).charAt(0).toUpperCase()) + '</span>') +
@@ -248,8 +268,15 @@
     if (links.length) h += '<section class="m1-sec"><h2>Links</h2><div class="m1-chips">' +
       links.map(function (l) { return '<a class="m1-chip" href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer">' + esc(l.label) + '</a>'; }).join('') + '</div></section>';
     if (raw.public_fields && raw.public_fields.indexOf('events') !== -1) {
-      h += '<section class="m1-sec"><h2>Upcoming events</h2>' + (d.events === null ? failedNote('Events') :
-        ev.length ? '<div class="m1-evs">' + ev.map(function (e) { return eventCard(e); }).join('') + '</div>' : '<p class="m1-empty">No upcoming events.</p>') + '</section>';
+      h += '<section class="m1-sec"><h2>Upcoming events</h2>';
+      if (d.summary === null || (d.summary == null && d.events === null)) h += failedNote('Events');
+      else {
+        var rollup = d.summary != null ? d.summary : upcoming(d.events, d.now);
+        var pulse = insightsLib();
+        var line = pulse ? pulse.renderPublic(rollup, d.now) : '';
+        h += line || '<p class="m1-empty">No upcoming events.</p>';
+      }
+      h += '</section>';
     }
     if (music.length) h += '<section class="m1-sec"><h2>Music</h2><div class="m1-chips">' +
       music.map(function (l) { return '<a class="m1-chip m1-music" href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer">' + esc(l.label) + '</a>'; }).join('') + '</div></section>';
@@ -284,6 +311,12 @@
     else {
       var board = hostBoard(d.hosted, d.metrics || null, d.now);
       if (d.metrics === null) h += failedNote('Event numbers');
+      else {
+        var insights = insightsLib();
+        if (insights && (board.upcoming.length || board.past.length)) {
+          h += insights.renderOwner(insights.merge(d.hosted, d.metrics), { now: d.now, table: false });
+        }
+      }
       if (!board.upcoming.length && !board.past.length) h += '<p class="m1-empty">You have not created an event yet.</p>';
       else {
         h += '<h3 class="m1-dash-h">Upcoming</h3>' + hostList(board.upcoming, 'No upcoming events.');
@@ -298,15 +331,31 @@
 
   function data(r) { return r && !r.error ? r.data : null; }
 
-  /** Drop published events that have a password set. Selects slug only and filters on the readable password_protected flag (needs the #39 migration; the hash column is not readable by API roles). */
-  async function hideLocked(client, events) {
-    var slugs = (events || []).map(function (e) { return e && e.slug; }).filter(Boolean);
-    if (!slugs.length) return events || [];
-    var r = await safe(client.from('events').select('slug').in('slug', slugs).eq('password_protected', true));
-    if (!ok(r) || !Array.isArray(r.data)) return (events || []).filter(function (e) { return !locked(e); });
-    var blocked = {};
-    r.data.forEach(function (row) { if (row && row.slug) blocked[slugOf(row.slug)] = 1; });
-    return events.filter(function (e) { return e && !blocked[slugOf(e.slug)] && !locked(e); });
+  var TICKET_KEYS = { slug: 1, title: 1, starts_at: 1, venue: 1, city: 1, qty: 1, tier_name: 1, checked_in_at: 1 };
+
+  /** Ticket cards for this page. Anything else on the row, including a door token, is dropped before state. */
+  function ticketCard(row) {
+    if (!row || typeof row !== 'object') return null;
+    var out = {};
+    Object.keys(TICKET_KEYS).forEach(function (key) {
+      if (Object.prototype.hasOwnProperty.call(row, key)) out[key] = row[key];
+    });
+    return out;
+  }
+
+  /** Summary row only. Extra fields from the RPC never enter state. */
+  function summaryOf(row) {
+    var cities = [], seen = {};
+    var raw = row && row.cities;
+    if (Array.isArray(raw)) {
+      raw.forEach(function (c) {
+        var city = String(c == null ? '' : c).replace(/\s+/g, ' ').trim();
+        var key = city.toLowerCase();
+        if (city && !seen[key] && cities.length < 6) { seen[key] = 1; cities.push(city); }
+      });
+    }
+    var count = row && Object.prototype.hasOwnProperty.call(row, 'upcoming_count') ? row.upcoming_count : 0;
+    return { upcoming_count: count, cities: cities };
   }
 
   function firstRow(data) {
@@ -332,19 +381,28 @@
     var lib = shareLib();
     var shareable = !!(meta && lib && lib.profileIsShareable(meta));
     var events = null;
+    var summary;
     var fields = Array.isArray(meta && meta.public_fields) ? meta.public_fields : [];
-    if (owner || (shareable && fields.indexOf('events') !== -1)) {
-      var handle = (shareable && meta.handle) || mine || s;
-      var er = await safe(client.rpc('get_profile_events', { p_handle: handle }));
-      events = ok(er) ? (er.data || []) : null;
-      if (events && shareable && !owner) events = await hideLocked(client, events);
-    }
-    var out = { slug: s, meta: meta, categories: null, events: shareable ? events : [], owner: owner, now: opts.now };
+    var showEvents = !!(shareable && fields.indexOf('events') !== -1);
     if (owner) {
-      var tr = await safe(client.rpc('get_my_tickets'));
-      out.tickets = ok(tr) ? (tr.data || []) : null;
-      var sr = await safe(client.from('saved_events').select('event_slug,event_title,created_at').order('created_at', { ascending: false }).limit(50));
-      out.saved = ok(sr) ? (sr.data || []) : null;
+      var er = await safe(client.rpc('get_profile_events', { p_handle: mine || s }));
+      events = ok(er) ? (er.data || []) : null;
+    } else if (showEvents) {
+      var summarySlug = slugOf((meta && meta.slug) || s);
+      var sr = await safe(client.rpc('get_profile_event_summary', { p_handle: summarySlug }));
+      summary = ok(sr) ? summaryOf(firstRow(sr.data)) : null;
+    }
+    var out = {
+      slug: s, meta: meta, categories: null,
+      events: owner ? events : [],
+      owner: owner, now: opts.now
+    };
+    if (!owner && showEvents) out.summary = summary;
+    if (owner) {
+      var tr = await safe(client.rpc('get_my_ticket_summary'));
+      out.tickets = ok(tr) ? (tr.data || []).map(ticketCard).filter(Boolean) : null;
+      var saved = await safe(client.from('saved_events').select('event_slug,event_title,created_at').order('created_at', { ascending: false }).limit(50));
+      out.saved = ok(saved) ? (saved.data || []) : null;
       out.hosted = events;
       var dr = await safe(client.rpc('organizer_dashboard'));
       out.metrics = ok(dr) ? (dr.data || []) : null;
@@ -392,7 +450,7 @@
   }
 
   var api = {
-    esc: esc, safeUrl: safeUrl, slugOf: slugOf, upcoming: upcoming, hostBoard: hostBoard, money: money,
+    esc: esc, safeUrl: safeUrl, slugOf: slugOf, upcoming: upcoming, hideLocked: hideLocked, hostBoard: hostBoard, money: money,
     musicLinks: musicLinks, profileLinks: profileLinks, hostTotals: hostTotals, privateStub: privateStub,
     renderPublic: renderPublic, renderPrivate: renderPrivate, render: render, load: load, mount: mount
   };

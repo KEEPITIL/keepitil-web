@@ -32,6 +32,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0
 .ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
 .stage{position:relative;aspect-ratio:1;border-radius:40px;background:radial-gradient(circle at 50% 40%,#ffe07a,#ff9aa9 60%,#ff6b8b);box-shadow:0 30px 60px rgba(255,107,139,.25);overflow:hidden}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.stage img{position:absolute;inset:18%;width:64%;height:64%;border-radius:22%;box-shadow:0 18px 40px rgba(255,107,139,.35)}
 section{padding:46px 0}
 h2{font-size:38px;margin:0 0 10px;letter-spacing:-.5px;font-weight:900}
 .subh{color:var(--ink2);font-weight:600;font-size:18px;margin:0 0 26px}
@@ -64,7 +65,7 @@ footer{padding:36px 0 50px;color:var(--ink2);font-weight:700;font-size:14.5px;di
       <p class="lede">Bring your pet into your world and complete photo challenges together.</p>
       <div class="ctas"><a class="btn" href="play/">📸 Play free in your browser</a><a class="btn ghost" href="#download">iPhone app</a></div>
     </div>
-    <div class="stage"><canvas id="hero" width="900" height="900" aria-label="A fluffy PokaSnap cat waving"></canvas></div>
+    <div class="stage"><img src="play/img/icon-512.png" width="512" height="512" alt="PokaSnap"></div>
   </div>
 </div>
 <section><div class="wrap">
@@ -77,45 +78,11 @@ footer{padding:36px 0 50px;color:var(--ink2);font-weight:700;font-size:14.5px;di
     <div class="step"><div class="n">5</div><b>Earn rewards</b><span>Score points, level up and unlock gear.</span></div>
   </div>
 </div></section>
-<section><div class="wrap">
-  <h2>Meet the pets</h2><p class="subh">Fluffy, friendly and very photogenic.</p>
-  <div class="pets" id="pets"></div>
-</div></section>
-<section><div class="wrap">
-  <h2>Photo missions</h2><p class="subh">Eighteen to start — no real chair required, just creativity.</p>
-  <div class="missions" id="missions"></div>
-</div></section>
-<section><div class="wrap closet">
-  <div><h2>Customize your pet</h2><p class="subh">Collars, bow ties, caps, crowns and more — earned by playing, or unlocked with coins from missions.</p></div>
-  <div class="cards" id="cards"></div>
-</div></section>
 <section id="download"><div class="wrap"><div class="download">
   <h2>Play now</h2>
   <p class="subh">PokaSnap runs right in your phone's browser — tap Share → Add to Home Screen to install it. The iPhone app is on its way to the App Store.</p>
   <div class="ctas" style="justify-content:center"><a class="btn" href="play/">📸 Play PokaSnap</a><span class="badge">App Store — coming soon</span></div>
 </div></div></section>
 <footer><span>© KEEPITIL</span><a href="privacy.html">Privacy</a><a href="support.html">Support</a><a href="/games/">More games</a></footer>
-<script type="module">
-import { portrait, drawPet } from './play/js/render/pet.js';
-import { SPECIES, LAUNCH_SPECIES } from './play/js/data/pets.js';
-import { MISSIONS } from './play/js/data/missions.js';
-import { drawItemThumb } from './play/js/render/items.js';
-const hero = document.getElementById('hero');
-const scenes = [
-  ['cat_fluffy','cloud',{NECK:'neck_bowtie_blue'},'wave'],['dog_golden','honey',{HEAD:'head_cap'},'happy'],
-  ['bunny','lop',{HEAD:'head_crown'},'jump'],['dog_small','apricot',{NECK:'neck_bandana'},'wink'],['cat_short','tabby',{FACE:'face_sunnies'},'look']];
-let si = 0, t0 = performance.now();
-const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-(function loop(now){ if (now - t0 > 3200) { si = (si+1)%scenes.length; t0 = now; }
-  const [s,a,e,p] = scenes[si]; portrait(hero, {species:s,appearance:a,equipped:e}, p, {t: reduce ? 0.5 : now/1000, zoom:1.05, ground:.1});
-  requestAnimationFrame(loop); })(performance.now());
-const pets = document.getElementById('pets');
-for (const id of LAUNCH_SPECIES) { const sp = SPECIES[id], c = document.createElement('canvas'); c.width = c.height = 320;
-  portrait(c, {species:id, appearance:sp.appearances[0].id}, 'happy', {t:.4});
-  const d = document.createElement('div'); d.className = 'pet'; d.append(c); d.insertAdjacentHTML('beforeend', `<b>${sp.name}</b><span>${sp.blurb}</span>`); pets.append(d); }
-document.getElementById('missions').innerHTML = MISSIONS.map(m => `<span class="m">${m.icon} ${m.title}</span>`).join('');
-const cards = document.getElementById('cards');
-for (const id of ['neck_bowtie_blue','head_cap','head_crown','face_sunnies','neck_bandana','head_party']) { const c = document.createElement('canvas'); c.width = c.height = 240; drawItemThumb(c, id); cards.append(c); }
-</script>
 </body>
 </html>

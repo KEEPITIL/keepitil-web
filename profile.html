@@ -1306,7 +1306,10 @@ function applyProfileTabs(){
 function rebuild(rows){
   GT_ARTICLES=SEED.articles.slice();GAL_IMGS=SEED.photos.slice();GT_SHOWS=SEED.shows.slice();GT_CHATS=SEED.chats.slice();EVENTS_FEED=[];
   (rows||[]).forEach(function(r){var d=r.data||{};
-    if(r.kind==='article')GT_ARTICLES.unshift({t:d.t,d:d.d,desc:d.desc,text:d.text,body_text:d.body_text,img:d.img,html:d.html,mtype:d.mtype,tags:d.tags,collab:d.collab,location:d.location,alt:d.alt,hideFeed:d.hideFeed,url:d.url,_pid:r.id});
+    /* F6: kind 'post' rows (written posts, 211 on prod) were not handled here, so they never reached
+       GT_ARTICLES and the feed dropped them for EVERY viewer. They share the article data shape; a post
+       whose picture lives in data.media[0].src or data.cover rather than data.img still gets a frame. */
+    if(r.kind==='article'||r.kind==='post')GT_ARTICLES.unshift({t:d.t,d:d.d,desc:d.desc,text:d.text,body_text:d.body_text,img:d.img||(r.kind==='post'?((d.media&&d.media[0]&&d.media[0].src)||d.cover||undefined):undefined),html:d.html,mtype:d.mtype,tags:d.tags,collab:d.collab,location:d.location,alt:d.alt,hideFeed:d.hideFeed,url:d.url,_pid:r.id});
     else if(r.kind==='photo')GAL_IMGS.unshift([d.src,d.label,d.views,d.mtype,d.hideFeed?1:0,r.id,d.media||null,d.cover||null]);
     else if(r.kind==='show')GT_SHOWS.push([d.month,d.day,d.dow,d.title,d.venue,d.tags,d.tix,d.cover||'',d.desc||'',d.price||'',d.kind||'ext']);
     else if(r.kind==='chat')GT_CHATS.unshift([d.slug,d.name,d.preview,'now','',d.avatar,d.category||'general']);
@@ -2054,7 +2057,9 @@ function ncCSS(){ if(document.getElementById('nc-css'))return; var s=document.cr
 function ncInitial(h){ var m=String(h||'').replace(/[^a-z0-9]/gi,''); return (m.charAt(0)||'?').toUpperCase(); }
 function ncClose(){ var o=document.getElementById('nc-ov'); if(o) o.remove(); }
 function ncRenderChips(){ var box=document.getElementById('nc-chips'); if(!box)return;
-  box.innerHTML=Object.keys(NC_SEL).map(function(h){ return '<span class="nc-chip">'+esc(NC_NAMES[h]||('@'+h))+'<b onclick="ncToggle(\''+h+'\')">×</b></span>'; }).join('');
+  /* F1: handle goes in data-h (escaped), read back by one delegated listener, never interpolated into JS. */
+  box.innerHTML=Object.keys(NC_SEL).map(function(h){ return '<span class="nc-chip">'+esc(NC_NAMES[h]||('@'+h))+'<b data-h="'+esc(h)+'">×</b></span>'; }).join('');
+  box.onclick=function(e){ var b=e.target&&e.target.closest&&e.target.closest('b[data-h]'); if(b) ncToggle(b.getAttribute('data-h')); };
   var n=Object.keys(NC_SEL).length, nx=document.getElementById('nc-next'); if(nx){ nx.disabled=(n<1); nx.textContent=(n>1?('Next · group of '+n):'Next'); } }
 function ncToggle(h){ if(NC_SEL[h]) delete NC_SEL[h]; else NC_SEL[h]=1; ncRenderChips();
   document.querySelectorAll('#nc-list .nc-row').forEach(function(r){ if(r.getAttribute('data-h')===h) r.classList.toggle('on', !!NC_SEL[h]); }); }
@@ -2064,8 +2069,9 @@ function ncSearch(q){ var list=document.getElementById('nc-list'); if(!list)retu
   SB.rpc('search_members',{q:q}).then(function(r){ var rows=(r&&r.data)||[];
     if(!rows.length){ list.innerHTML='<div class="nc-empty">No members found'+(q?(' for “'+esc(q)+'”'):' yet')+'.</div>'; return; }
     list.innerHTML=rows.map(function(u){ NC_NAMES[u.handle]=u.display_name||u.handle; var on=NC_SEL[u.handle]?' on':'';
-      return '<div class="nc-row'+on+'" data-h="'+esc(u.handle)+'" onclick="ncToggle(\''+esc(u.handle)+'\')"><div class="nc-av">'+ncInitial(u.handle)+'</div><div><div class="nc-nm">'+esc(u.display_name||u.handle)+'</div><div class="nc-hn">@'+esc(u.handle)+'</div></div><div class="nc-sel"></div></div>';
+      return '<div class="nc-row'+on+'" data-h="'+esc(u.handle)+'"><div class="nc-av">'+ncInitial(u.handle)+'</div><div><div class="nc-nm">'+esc(u.display_name||u.handle)+'</div><div class="nc-hn">@'+esc(u.handle)+'</div></div><div class="nc-sel"></div></div>';
     }).join('');
+    list.onclick=function(e){ var row=e.target&&e.target.closest&&e.target.closest('.nc-row'); if(row) ncToggle(row.getAttribute('data-h')); };
   },function(){ list.innerHTML='<div class="nc-empty">Could not search.</div>'; }); }
 function ncStep2(){ if(Object.keys(NC_SEL).length<1)return; document.getElementById('nc-s1').style.display='none'; document.getElementById('nc-s2').style.display='block'; document.getElementById('nc-back').style.display='block'; document.getElementById('nc-ttl').textContent=(Object.keys(NC_SEL).length>1?'New group':'Chat details'); var nm=document.getElementById('nc-name'); if(nm) nm.focus(); }
 function ncStep1(){ document.getElementById('nc-s2').style.display='none'; document.getElementById('nc-s1').style.display='block'; document.getElementById('nc-back').style.display='none'; document.getElementById('nc-ttl').textContent='New message'; }
@@ -2285,12 +2291,18 @@ function hydratePosts(){ if(!SB)return;
 function closeMenu(){var m=document.getElementById('postMenu');if(m)m.remove();}
 function postMenu(pid,src,idx,ev){ if(ev){ev.stopPropagation();} closeMenu();
   var owner=(typeof CAN_EDIT==='function')&&CAN_EDIT(), items=[];
-  if(owner){ items.push('<button onclick="editPost(\''+src+'\','+idx+')">✏️ Edit caption</button>');
-    items.push('<button onclick="delPost(\''+pid+'\')">🗑 Delete post</button>');
-    items.push('<button onclick="toggleHideFeed(\''+src+'\','+idx+');closeMenu()">👁 Hide / show in feed</button>'); }
-  else { items.push('<button onclick="fbShare(KIL_SHARE_ORIGIN+\'/profile?slug=\'+encodeURIComponent(PROFILE_SLUG));closeMenu()">🔗 Copy link</button>');
-    items.push('<button onclick="reportPost()">🚩 Report</button>'); }
+  /* F1: pid/src/idx stay in this closure; the buttons carry only a fixed data-m verb (no value is ever interpolated into JS). */
+  if(owner){ items.push('<button data-m="edit">✏️ Edit caption</button>');
+    items.push('<button data-m="del">🗑 Delete post</button>');
+    items.push('<button data-m="hide">👁 Hide / show in feed</button>'); }
+  else { items.push('<button data-m="copy">🔗 Copy link</button>');
+    items.push('<button data-m="report">🚩 Report</button>'); }
   var m=document.createElement('div'); m.className='post-menu'; m.id='postMenu'; m.innerHTML=items.join('');
+  m.addEventListener('click',function(e2){ var bt=e2.target&&e2.target.closest&&e2.target.closest('button[data-m]'); if(!bt)return; var k=bt.getAttribute('data-m');
+    if(k==='edit')editPost(src,idx); else if(k==='del')delPost(pid);
+    else if(k==='hide'){ toggleHideFeed(src,idx); closeMenu(); }
+    else if(k==='copy'){ fbShare(KIL_SHARE_ORIGIN+'/profile?slug='+encodeURIComponent(PROFILE_SLUG)); closeMenu(); }
+    else if(k==='report')reportPost(); });
   document.body.appendChild(m);
   var b=ev&&(ev.currentTarget||ev.target); if(b&&b.getBoundingClientRect){ var rc=b.getBoundingClientRect();
     m.style.top=(rc.bottom+window.scrollY+6)+'px'; m.style.left=Math.max(8,(rc.right+window.scrollX-186))+'px'; }
@@ -2329,9 +2341,9 @@ function eventCardHtml(e,pid){
         +'<div style="color:var(--muted,#9aa0b0);font-size:.82rem;margin-top:5px">'+(when?esc(when):'')+(e.venue?(when?' · ':'')+esc(e.venue):'')+(e.city?' · '+esc(e.city):'')+'</div></div></a>'
     +'<div style="padding:8px 15px 4px"><a href="'+esc(url)+'"'+tgt+' style="display:block;text-align:center;background:var(--brand,#00b4ff);color:#04121b;font-weight:800;letter-spacing:.05em;padding:11px;border-radius:10px;text-decoration:none">🎟 '+(ext?'Get Tickets ↗':'Get Tickets')+'</a></div>'
     +'<div class="fb-actions" style="display:flex;align-items:center;gap:4px;padding:4px 10px 10px">'
-      +'<button class="fba fba-like" onclick="fbToggleLike(\''+esc(pid)+'\')" title="Like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.9-9.3-9C1.2 8 3 4.5 6.4 4.5c2.2 0 3.6 1.2 4.4 2.6.2.4.9.4 1.1 0 .8-1.4 2.2-2.6 4.4-2.6 3.4 0 5.2 3.5 3.7 7-1.8 4.1-8 9-8 9z"/></svg><b></b></button>'
-      +'<button class="fba fba-resh" onclick="fbReshare(\''+esc(pid)+'\')" title="Reshare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><b></b></button>'
-      +'<button class="fba fb-save" style="margin-left:auto" onclick="fbSave(\''+esc(pid)+'\',this)" title="Save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17 3H7a2 2 0 00-2 2v16l7-4 7 4V5a2 2 0 00-2-2z"/></svg></button>'
+      +'<button class="fba fba-like" data-kil-act="like" data-pid="'+esc(pid)+'" title="Like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.9-9.3-9C1.2 8 3 4.5 6.4 4.5c2.2 0 3.6 1.2 4.4 2.6.2.4.9.4 1.1 0 .8-1.4 2.2-2.6 4.4-2.6 3.4 0 5.2 3.5 3.7 7-1.8 4.1-8 9-8 9z"/></svg><b></b></button>'
+      +'<button class="fba fba-resh" data-kil-act="reshare" data-pid="'+esc(pid)+'" title="Reshare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><b></b></button>'
+      +'<button class="fba fb-save" style="margin-left:auto" data-kil-act="save" data-pid="'+esc(pid)+'" title="Save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17 3H7a2 2 0 00-2 2v16l7-4 7 4V5a2 2 0 00-2-2z"/></svg></button>'
     +'</div></div>';
 }
 function postCard(p){
@@ -2351,20 +2363,36 @@ function postCard(p){
     +'<div class="fb-head">'
       +'<a class="fb-avlink" href="'+plink+'"><img class="fb-av" src="'+esc(authorAv)+'" alt="" onerror="this.src=\'/icon-192.png\'"></a>'
       +'<a class="fb-who" href="'+plink+'"><b>'+esc(authorName)+'</b><span>'+esc(p.type)+col+'</span></a>'
-      +'<button class="fb-more" onclick="postMenu(\''+pid+'\',\''+p.src+'\','+p.idx+',event)" title="Options">⋯</button>'
+      +'<button class="fb-more" data-kil-act="menu" data-pid="'+esc(pid)+'" data-src="'+esc(p.src)+'" data-idx="'+esc(p.idx)+'" title="Options">⋯</button>'
       +hid
     +'</div>'
     +'<div class="fb-media">'+media+'</div>'
     +(p.title||p.sub||p.body?'<div class="fb-cap" onclick="fbCapToggle(this,event)"><div class="fb-cap-lead"><b>'+esc(p.title||'')+'</b>'+(p.sub?' '+esc(p.sub):'')+'</div>'+(p.body?'<div class="fb-cap-full">'+p.body+'</div><span class="fb-more-txt">… more</span>':'')+'</div>':'')
     +(p.buy_url?('<div style="padding:2px 15px 8px"><a href="'+esc(p.buy_url)+'" target="_blank" rel="noopener sponsored nofollow" data-kt="affiliate_click" style="display:block;text-align:center;background:#ff9900;color:#111;font-weight:800;letter-spacing:.03em;padding:11px;border-radius:10px;text-decoration:none">🛒 '+esc(p.buy_label||'Buy on Amazon')+'</a><div style="font-size:.68rem;color:var(--muted,#9aa0b0);text-align:center;margin-top:5px">'+esc(p.disclosure||'#ad · affiliate')+'</div></div>'):'')
     +'<div class="fb-actions">'
-      +'<button class="fba fba-like" onclick="event.stopPropagation();fbToggleLike(\''+pid+'\')" title="Like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.9-9.3-9C1.2 8 3 4.5 6.4 4.5c2.2 0 3.6 1.2 4.4 2.6.2.4.9.4 1.1 0 .8-1.4 2.2-2.6 4.4-2.6 3.4 0 5.2 3.5 3.7 7-1.8 4.1-8 9-8 9z"/></svg><b></b></button>'
-      +'<button class="fba fba-resh" onclick="event.stopPropagation();fbReshare(\''+pid+'\')" title="Reshare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><b></b></button>'
-      +'<button class="fba fba-share" onclick="event.stopPropagation();fbShare(KIL_SHARE_ORIGIN+\'/profile?slug=\'+encodeURIComponent('+(p.collab&&p.collab.length?'\''+esc(authorSlug)+'\'':'PROFILE_SLUG')+'))" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></button>'
-      +'<button class="fba fb-save" style="margin-left:auto" onclick="event.stopPropagation();fbSave(\''+pid+'\',this)" title="Save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17 3H7a2 2 0 00-2 2v16l7-4 7 4V5a2 2 0 00-2-2z"/></svg></button>'
+      +'<button class="fba fba-like" data-kil-act="like" data-pid="'+esc(pid)+'" title="Like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.9-9.3-9C1.2 8 3 4.5 6.4 4.5c2.2 0 3.6 1.2 4.4 2.6.2.4.9.4 1.1 0 .8-1.4 2.2-2.6 4.4-2.6 3.4 0 5.2 3.5 3.7 7-1.8 4.1-8 9-8 9z"/></svg><b></b></button>'
+      +'<button class="fba fba-resh" data-kil-act="reshare" data-pid="'+esc(pid)+'" title="Reshare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><b></b></button>'
+      +'<button class="fba fba-share" data-kil-act="share" data-slug="'+esc(authorSlug)+'" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></button>'
+      +'<button class="fba fb-save" style="margin-left:auto" data-kil-act="save" data-pid="'+esc(pid)+'" title="Save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17 3H7a2 2 0 00-2 2v16l7-4 7 4V5a2 2 0 00-2-2z"/></svg></button>'
     +'</div>'
   +'</div>';
 }
+/* F1 — card buttons carry data-kil-act + data-* values and ONE capture-phase listener dispatches them.
+   They used to be inline onclick="fbX('<pid>')" strings: esc() HTML-escapes the value, but the browser
+   decodes &#39; back to ' BEFORE the JS in the attribute runs, so a pid/slug containing a quote broke out
+   of the string. A data-* attribute is only ever read back as a string, never parsed as code.
+   Capture phase + stopPropagation reproduces the old per-button event.stopPropagation(). */
+document.addEventListener('click',function(e){
+  var t=e.target, b=t&&t.closest&&t.closest('[data-kil-act]'); if(!b)return;
+  if(!b.closest('.fbcard'))return;
+  var act=b.getAttribute('data-kil-act'), pid=b.getAttribute('data-pid')||'';
+  e.stopPropagation();
+  if(act==='like') fbToggleLike(pid);
+  else if(act==='reshare') fbReshare(pid);
+  else if(act==='save') fbSave(pid,b);
+  else if(act==='share') fbShare(KIL_SHARE_ORIGIN+'/profile?slug='+encodeURIComponent(b.getAttribute('data-slug')||''));
+  else if(act==='menu') postMenu(pid,b.getAttribute('data-src')||'',parseInt(b.getAttribute('data-idx'),10)||0,{stopPropagation:function(){},currentTarget:b,target:b});
+},true);
 function openPost(src,idx){
   var html='';
   if(src==='collab'){ var c=COLLAB_POSTS[idx]; if(!c)return;
@@ -2924,8 +2952,16 @@ function loadSaved(){
     var colls=(res[0].data)||[], saves=(res[1].data)||[];
     colls.sort(function(a,b){var A=String(a.name).toLowerCase()==='saved'?0:1,B=String(b.name).toLowerCase()==='saved'?0:1;return A-B;});
     var cbox=document.getElementById('saved-coll');
-    cbox.innerHTML=colls.map(function(c){return '<button class="evsub-b'+(CUR_COLL===c.id?' on':'')+'" onclick="CUR_COLL=(CUR_COLL==='+c.id+'?null:'+c.id+');loadSaved()">'+String(c.name).slice(0,24)+'</button>';}).join('')
-      ;
+    /* F2: collection names are user-typed (newCollection prompt). Built with textContent + a closure listener:
+       no HTML parse of the name, and no collection id interpolated into inline JS. */
+    cbox.replaceChildren();
+    colls.forEach(function(c){
+      var btn=document.createElement('button');
+      btn.className='evsub-b'+(CUR_COLL===c.id?' on':'');
+      btn.textContent=String(c.name).slice(0,24);
+      btn.addEventListener('click',function(){ CUR_COLL=(CUR_COLL===c.id?null:c.id); loadSaved(); });
+      cbox.appendChild(btn);
+    });
     var rows=saves.filter(function(s){return CUR_COLL==null||s.collection_id===CUR_COLL;});
     var g=document.getElementById('saved-grid'), emp=document.getElementById('saved-empty');
     if(!rows.length){ g.innerHTML=''; emp.style.display='block'; return; }

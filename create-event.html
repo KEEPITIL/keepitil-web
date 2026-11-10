@@ -334,7 +334,7 @@ $('accent_color').addEventListener('input',applyBrand);
 /* ── password toggle ── */
 $('pw_enable').addEventListener('change',function(){ $('pw_box').style.display=this.checked?'block':'none'; });
 
-/* ── flyer upload → chat-images bucket (client-resized ≤1600px), sets cover_url ── */
+/* ── flyer upload → public-assets bucket (client-resized ≤1600px), sets cover_url ── */
 $('flyerBox').addEventListener('click',function(){ $('flyerFile').click(); });
 $('flyerFile').addEventListener('change',function(){
   var file=this.files[0]; if(!file)return;
@@ -344,12 +344,17 @@ $('flyerFile').addEventListener('change',function(){
     cv.width=Math.round(img.width*scale); cv.height=Math.round(img.height*scale);
     cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
     cv.toBlob(function(blob){
-      var path='event-flyers/'+Date.now()+'-'+file.name.toLowerCase().replace(/[^a-z0-9._-]+/g,'-');
-      supa.storage.from('chat-images').upload(path,blob,{contentType:'image/jpeg'}).then(function(r){
-        if(r.error){ alert('Upload failed: '+r.error.message); return; }
-        var pub=supa.storage.from('chat-images').getPublicUrl(path);
-        var url=(pub&&pub.data)?pub.data.publicUrl:'';
-        $('cover_url').value=url; paintFlyer(url);
+      /* 17A: public flyers live in the public-assets bucket, path event-flyers/<uid>/<file> (owner-scoped insert policy) */
+      supa.auth.getSession().then(function(sr){
+        var s=sr&&sr.data?sr.data.session:null; if(!s){ alert('Sign in to upload a flyer.'); return; }
+        var uid=s.user.id;
+        var path='event-flyers/'+uid+'/'+Date.now()+'-'+file.name.toLowerCase().replace(/[^a-z0-9._-]+/g,'-');
+        return supa.storage.from('public-assets').upload(path,blob,{contentType:'image/jpeg'}).then(function(r){
+          if(r.error){ alert('Upload failed: '+r.error.message); return; }
+          var pub=supa.storage.from('public-assets').getPublicUrl(path);
+          var url=(pub&&pub.data)?pub.data.publicUrl:'';
+          $('cover_url').value=url; paintFlyer(url);
+        });
       });
     },'image/jpeg',.88);
   }; img.src=rd.result; };

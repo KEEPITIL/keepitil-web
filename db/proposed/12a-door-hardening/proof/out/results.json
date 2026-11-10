@@ -1,0 +1,883 @@
+{
+ "summary": {
+  "engine": "real PostgreSQL (socket)",
+  "seconds": 32,
+  "matrix": {
+   "total": 59,
+   "pass": 59,
+   "fail": 0
+  },
+  "packs": {
+   "total": 29,
+   "pass": 29
+  },
+  "adjacent": {
+   "total": 4,
+   "pass": 4
+  },
+  "fatal": null,
+  "notes": {
+   "rawAclEqual": true
+  },
+  "md5": {
+   "origTicket": "efad86c3acfe2498b19c1fedfa96e1d1",
+   "origScan": "566910baa68086daf08323a562922c7f",
+   "hardTicket": "2a4721a5c4b66c05f112ffd6ae9b7e2e",
+   "hardScan": "3196a34cd3b118ca02c1250c3816eb18",
+   "core": "809f6c9c2a7a26f50ef88dad46d4edc3"
+  }
+ },
+ "results": [
+  {
+   "id": "M01.scan",
+   "name": "raw token admits once (owner, paid order)",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M01.ticket",
+   "name": "raw token admits once (owner, paid order)",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M01b.scan",
+   "name": "admit response carries event title, tier name, qty and checked_in_at",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"ok\":true,\"qty\":2,\"buyer\":\"sentinel_buyer_handle_9f3k\",\"result\":\"admitted\",\"message\":\"Admitted\",\"event_slug\":\"doors-open\",\"event_title\":\"Doors Open Night\",\"checked_in_at\":\"2026-11-09T22:52:05.436099-08:00\"}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M01b.ticket",
+   "name": "admit response carries event title, tier name, qty and checked_in_at",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"qty\":2,\"sold\":9,\"tier\":\"VIP\",\"buyer\":\"sentinel.buyer.9f3k@example.invalid\",\"event\":\"Doors Open Night\",\"status\":\"valid\",\"checked_in\":2}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M02.scan",
+   "name": "'KIL-' prefixed token admits",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "not admitted",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M02.ticket",
+   "name": "'KIL-' prefixed token admits",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M03.scan",
+   "name": "'kil-' / 'Kil-' (case-insensitive prefix) admits",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "[\"invalid\",\"invalid\"]",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M03.ticket",
+   "name": "'kil-' / 'Kil-' (case-insensitive prefix) admits",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M04.scan",
+   "name": "surrounding whitespace/newlines are trimmed (' \\tKIL-<token>\\n ')",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "not admitted",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M04.ticket",
+   "name": "surrounding whitespace/newlines are trimmed (' \\tKIL-<token>\\n ')",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "not admitted",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M05.scan",
+   "name": "second scan of the same ticket = already_used, admission time unchanged",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M05.ticket",
+   "name": "second scan of the same ticket = already_used, admission time unchanged",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M05b.scan",
+   "name": "an order already admitted before (replay) is already_used and keeps its original time",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M05b.ticket",
+   "name": "an order already admitted before (replay) is already_used and keeps its original time",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M06.scan",
+   "name": "two concurrent scans (two real connections, row-lock handshake) -> exactly one admission",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M06.ticket",
+   "name": "two concurrent scans (two real connections, row-lock handshake) -> exactly one admission",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M07.scan",
+   "name": "ten concurrent scans of one ticket -> exactly one admitted",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M07.ticket",
+   "name": "ten concurrent scans of one ticket -> exactly one admitted",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M08.scan",
+   "name": "refunded / cancelled / pending orders are refused (unpaid) and never admitted",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M08.ticket",
+   "name": "refunded / cancelled / pending orders are refused (unpaid) and never admitted",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M08b.scan",
+   "name": "status 'checked_in' is refused as already_used (never re-admitted)",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "\"unpaid\"",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M08b.ticket",
+   "name": "status 'checked_in' is refused as already_used (never re-admitted)",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "\"unpaid\"",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M09.scan",
+   "name": "unknown token refused (invalid), nothing admitted",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M09.ticket",
+   "name": "unknown token refused (invalid), nothing admitted",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M10.scan",
+   "name": "empty / whitespace / null / 'KIL-' only refused, nothing admitted",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M10.ticket",
+   "name": "empty / whitespace / null / 'KIL-' only refused, nothing admitted",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M11.scan",
+   "name": "non-owner refused (forbidden) both ways; nothing admitted",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M11.ticket",
+   "name": "non-owner refused (forbidden) both ways; nothing admitted",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M12.scan",
+   "name": "NULL-OWNER HOLE: signed-in caller with NO app_users handle vs event with NULL owner_handle is refused",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M12.ticket",
+   "name": "NULL-OWNER HOLE: signed-in caller with NO app_users handle vs event with NULL owner_handle is refused",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "code=admitted admitted_in_db=true",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M12b.scan",
+   "name": "no-handle caller vs a normally owned event is refused",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M12b.ticket",
+   "name": "no-handle caller vs a normally owned event is refused",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M13.scan",
+   "name": "EMPTY-STRING handle caller vs event with '' owner_handle is refused (original ADMITS on both functions)",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "code=admitted",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M13.ticket",
+   "name": "EMPTY-STRING handle caller vs event with '' owner_handle is refused (original ADMITS on both functions)",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "code=admitted",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M14.scan",
+   "name": "owner handle match is case-insensitive (event owner DoorOwner vs caller handle DOOROWNER); the ORIGINAL check_in_ticket compares case-sensitively",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M14.ticket",
+   "name": "owner handle match is case-insensitive (event owner DoorOwner vs caller handle DOOROWNER); the ORIGINAL check_in_ticket compares case-sensitively",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "not admitted",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M15.scan",
+   "name": "duplicated qr_token (no UNIQUE constraint) is refused as ambiguous, never guessed",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "code=admitted admitted_rows=1",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M15.ticket",
+   "name": "duplicated qr_token (no UNIQUE constraint) is refused as ambiguous, never guessed",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "code=admitted admitted_rows=1",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M16.scan",
+   "name": "token match is exact (stored UPPERCASE hex admits as stored; lowercased copy is invalid) - documented behaviour, same as original",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M16.ticket",
+   "name": "token match is exact (stored UPPERCASE hex admits as stored; lowercased copy is invalid) - documented behaviour, same as original",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M17.scan",
+   "name": "stale token: after the token is rotated the old one is invalid and the new one admits",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M17.ticket",
+   "name": "stale token: after the token is rotated the old one is invalid and the new one admits",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M18.scan",
+   "name": "REFUND RACE: a refund committing while a scan waits on the row is NOT overridden (stays unpaid, not admitted)",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"waited\":true,\"code\":\"admitted\",\"admitted\":true}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M18.ticket",
+   "name": "REFUND RACE: a refund committing while a scan waits on the row is NOT overridden (stays unpaid, not admitted)",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"waited\":true,\"code\":\"admitted\",\"admitted\":true}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M19.scan",
+   "name": "anon: no EXECUTE and a call is refused (42501)",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M19.ticket",
+   "name": "anon: no EXECUTE and a call is refused (42501)",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"p\":true,\"code\":\"unauth\"}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M20.scan",
+   "name": "no PUBLIC EXECUTE; sorted ACL is exactly {authenticated, postgres, service_role}",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M20.ticket",
+   "name": "no PUBLIC EXECUTE; sorted ACL is exactly {authenticated, postgres, service_role}",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{anon=X/postgres,authenticated=X/postgres,postgres=X/postgres,service_role=X/postgres}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M21.scan",
+   "name": "service_role (no JWT subject) executes but is refused (unauth/forbidden/invalid) and admits nothing",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M21.ticket",
+   "name": "service_role (no JWT subject) executes but is refused (unauth/forbidden/invalid) and admits nothing",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M22.scan",
+   "name": "NO attendee contact: responses never contain the buyer email / buyer handle / any 'buyer' key / '@' (all result codes, owner and non-owner callers)",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"bad\":[\"{\\\"ok\\\":true,\\\"qty\\\":2,\\\"buyer\\\":\\\"sentinel_buyer_handle_9f3k\\\",\\\"result\\\":\\\"admitted\\\",\\\"message\\\":\\\"Admitted\\\",\\\"event_slug\\\":\\\"doors-open\\\",\\\"event_title\\\":\\\"Doors Open Night\\\",\\\"checked_in_at\\\":\\\"2026-11-09T22:52:21.416875-08:00\\\"}\",\"{\\\"ok\\\":false,\\\"qty\\\":2,\\\"buyer\\\":\\\"sentinel_buyer_handle_9f3k\\\",\\\"result\\\":\\\"already_used\\\",\\\"message\\\":\\\"Already admitted.\\\",\\\"event_title\\\":\\\"Doors Open Night\\\",\\\"checked_in_at\\\":\\\"2026-11-09T22:52:21.416875-08:00\\\"}\"],\"extra\":[\"buyer\",\"event_slug\",\"buyer\"]}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M22.ticket",
+   "name": "NO attendee contact: responses never contain the buyer email / buyer handle / any 'buyer' key / '@' (all result codes, owner and non-owner callers)",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"bad\":[\"{\\\"qty\\\":2,\\\"sold\\\":9,\\\"tier\\\":\\\"VIP\\\",\\\"buyer\\\":\\\"sentinel.buyer.9f3k@example.invalid\\\",\\\"event\\\":\\\"Doors Open Night\\\",\\\"status\\\":\\\"valid\\\",\\\"checked_in\\\":2}\",\"{\\\"at\\\":\\\"2026-11-09T22:52:21.724943-08:00\\\",\\\"sold\\\":9,\\\"tier\\\":\\\"VIP\\\",\\\"buyer\\\":\\\"sentinel.buyer.9f3k@example.invalid\\\",\\\"event\\\":\\\"Doors Open Night\\\",\\\"status\\\":\\\"already\\\",\\\"checked_in\\\":2}\"],\"extra\":[\"buyer\",\"buyer\"]}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M23.scan",
+   "name": "functions are SECURITY DEFINER with search_path set to empty (catalog)",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"prosecdef\":true,\"cfg\":\"search_path=public\"}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M23.ticket",
+   "name": "functions are SECURITY DEFINER with search_path set to empty (catalog)",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"prosecdef\":true,\"cfg\":\"search_path=public\"}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M24.scan",
+   "name": "search_path hijack: caller path 'evil, public' with look-alike tables never reaches the function",
+   "fn": "scan",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M24.ticket",
+   "name": "search_path hijack: caller path 'evil, public' with look-alike tables never reaches the function",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "M25",
+   "name": "private core is not reachable: no EXECUTE/USAGE for anon, authenticated, service_role; direct call refused",
+   "fn": "core",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": "n/a",
+   "originalWhy": "",
+   "control": "n/a",
+   "controlOK": null
+  },
+  {
+   "id": "M26",
+   "name": "response codes: ticket keeps its legacy keys (status,event,tier,qty,checked_in,sold,at) minus 'buyer'",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "buyer,checked_in,event,qty,sold,status,tier",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "M27",
+   "name": "ticket counters: checked_in/sold are aggregate counts for the event's paid orders",
+   "fn": "ticket",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  }
+ ],
+ "packRows": [
+  {
+   "id": "D01",
+   "name": "detector: core WITHOUT 'and eo.checked_in_at is null' lets two concurrent scans both admit (race test fails as it should)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "D02",
+   "name": "detector: core WITHOUT status='paid' in the UPDATE admits an order refunded mid-scan (M18 fails as it should)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "D03",
+   "name": "detector: an UNQUALIFIED, no-SET-search_path copy of the core IS hijacked by 'evil, public' (the M24 test fails as it should); the hardened functions are not",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P01",
+   "name": "static: every APPLY/ROLLBACK pack = ONE BEGIN, advisory lock 2979301232487107403 as the FIRST statement after it, one COMMIT last, drift guard, no data DML, no secrets",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P02",
+   "name": "generator is reproducible: build.mjs --check is clean (packs == inputs)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P03",
+   "name": "replica sanity: the installed ORIGINAL functions equal the captured prod text (pg_get_functiondef == facts) and DRIFT_QUERY/POSTCHECKS(S0) read S0_original",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P04",
+   "name": "APPLY-01 on the original: succeeds, retained SELECT all ok, state S1, POSTCHECKS(S1) ok; check_in_ticket still original",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P05",
+   "name": "APPLY-02 after 01: succeeds, state S2, POSTCHECKS(S2) ok",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P06",
+   "name": "apply order is enforced: APPLY-02 on the original (core absent) refuses with DRIFT and changes nothing",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P07",
+   "name": "second run refuses cleanly: APPLY-01 twice and APPLY-02 twice (DRIFT, nothing changed)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08.1",
+   "name": "drift guard aborts APPLY-01 when: scan body altered (comment appended)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08.2",
+   "name": "drift guard aborts APPLY-01 when: scan ACL changed (anon granted)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08.3",
+   "name": "drift guard aborts APPLY-01 when: scan search_path changed",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08.4",
+   "name": "drift guard aborts APPLY-01 when: schema private already exists",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08.5",
+   "name": "drift guard aborts APPLY-01 when: event_orders policy dropped",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08.6",
+   "name": "drift guard aborts APPLY-01 when: event_orders policy added",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08.7",
+   "name": "drift guard aborts APPLY-01 when: event_orders column added",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08.8",
+   "name": "drift guard aborts APPLY-01 when: event_orders table ACL narrowed (TRUNCATE revoked from anon)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08.9",
+   "name": "drift guard aborts APPLY-01 when: event_orders CHECK changed (extra status value)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08.10",
+   "name": "drift guard aborts APPLY-01 when: event_orders trigger added",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08.11",
+   "name": "drift guard aborts APPLY-01 when: event_orders UNIQUE constraint added",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08.12",
+   "name": "drift guard aborts APPLY-01 when run by a role other than postgres",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08.13",
+   "name": "drift guard aborts APPLY-02 when check_in_ticket body drifted (after step 1)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08.14",
+   "name": "drift guard aborts APPLY-02 when the core was tampered with",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P09",
+   "name": "ROLLBACK restores the captured originals EXACTLY: byte-identical pg_get_functiondef and prosrc, equal sorted ACL, config, owner; private schema and core gone; data untouched",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P10",
+   "name": "rollback order is enforced and rollback has its own drift guard",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P11",
+   "name": "advisory lock serialises two runs: B waits on the advisory lock while A holds the transaction open, then B refuses cleanly (DRIFT); end state S1",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P12",
+   "name": "lock is shared across packs: a concurrent ROLLBACK/APPLY of a different pack also queues (same key)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P13",
+   "name": "PRECHECK-12A.sql runs read-only (READ ONLY transaction), errors on nothing, and leaks no row contents (sentinel email/handle/tokens absent from output)",
+   "pass": true,
+   "why": ""
+  }
+ ],
+ "adjRows": [
+  {
+   "id": "A01",
+   "name": "FORGED ORDER: anon INSERTs a 'paid' order with its own qr_token for a real event (orders_anon_insert WITH CHECK true) and the door ADMITS it - on the ORIGINAL and on the HARDENED functions (12A does not and cannot fix this)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "A02",
+   "name": "ORGANIZER UPDATE reaches every column: an organizer can set status='paid', rotate qr_token and even NULL checked_in_at (un-admit -> re-admit) on their orders",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "A03",
+   "name": "TABLE-LEVEL ALL: anon and authenticated hold TRUNCATE (and MAINTAIN) on event_orders; RLS does not apply to TRUNCATE, so ANY anon request can empty the orders table (replica only)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "A04",
+   "name": "PROPOSED follow-up sketch (FOLLOWUP-13A-14A_orders_PROPOSED_SKETCH.sql, NOT part of 12A) closes A01-A03 on the replica and keeps the door, service_role writes and organizer reads working",
+   "pass": true,
+   "why": ""
+  }
+ ]
+}

@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-10T06:25:08.465Z",
+ "generated": "2026-11-10T06:57:57.732Z",
  "engine": "PostgreSQL 17.6",
  "steps": [
   {
@@ -2882,7 +2882,7 @@
    "ok": true,
    "why": "",
    "metrics": {
-    "forward_ms": 51
+    "forward_ms": 44
    }
   },
   {
@@ -2891,9 +2891,9 @@
    "ok": true,
    "why": "",
    "metrics": {
-    "owner_hold_ms": 1567,
-    "forward_total_ms": 1566,
-    "forward_wait_ms": 1564
+    "owner_hold_ms": 1547,
+    "forward_total_ms": 1547,
+    "forward_wait_ms": 1544
    }
   },
   {
@@ -2902,7 +2902,7 @@
    "ok": true,
    "why": "",
    "metrics": {
-    "forward_fail_after_ms": 5000
+    "forward_fail_after_ms": 5001
    }
   },
   {
@@ -2911,10 +2911,10 @@
    "ok": true,
    "why": "",
    "metrics": {
-    "forward_ms": 3055,
-    "owner_blocked_ms": 3011,
-    "anon_read_blocked_ms": 3003,
-    "drift_capture_ms": 2718
+    "forward_ms": 3045,
+    "owner_blocked_ms": 3004,
+    "anon_read_blocked_ms": 2995,
+    "drift_capture_ms": 2710
    }
   },
   {
@@ -2923,8 +2923,8 @@
    "ok": true,
    "why": "",
    "metrics": {
-    "second_wait_ms": 2006,
-    "second_total_ms": 2006,
+    "second_wait_ms": 1998,
+    "second_total_ms": 1999,
     "second_error": "Private schema already exists: stop and re-review"
    }
   },
@@ -2934,7 +2934,7 @@
    "ok": true,
    "why": "",
    "metrics": {
-    "second_wait_ms": 1998,
+    "second_wait_ms": 1989,
     "second_error": "Forward patch is absent or incomplete: stop"
    }
   },
@@ -2944,7 +2944,7 @@
    "ok": true,
    "why": "",
    "metrics": {
-    "second_wait_ms": 533
+    "second_wait_ms": 530
    }
   },
   {
@@ -2953,7 +2953,7 @@
    "ok": true,
    "why": "",
    "metrics": {
-    "ms": 6
+    "ms": 5
    }
   },
   {
@@ -2964,7 +2964,7 @@
    "metrics": {
     "second_waiting_on_key": "2979301232487107403 WAITING",
     "second_public_relation_locks_while_waiting": 0,
-    "second_total_ms": 2012,
+    "second_total_ms": 2003,
     "second_outcome": "completed (idempotent re-run on the committed state)"
    }
   },
@@ -3001,7 +3001,7 @@
    "ok": true,
    "why": "",
    "metrics": {
-    "reader_blocked_ms": 807
+    "reader_blocked_ms": 805
    }
   },
   {
@@ -3096,7 +3096,7 @@
   },
   {
    "id": "LK.static",
-   "name": "every R1 APPLY/ROLLBACK pack variant (16 files: #91 APPLY-1/1B/2 + ROLLBACK-1/1B/2, #92 APPLY-92/ROLLBACK-92, 10A APPLY-1C/APPLY-92-44col/ROLLBACK-1C/ROLLBACK-2-after-1C, F3 FORWARD/ROLLBACK, 11A install/rollback; the F3 DRIFT_QUERY and POSTCHECKS read-only files are excluded) has ONE top-level BEGIN with pg_advisory_xact_lock(KEY) as the FIRST statement after it, the same KEY in all of them, and no statement before BEGIN",
+   "name": "every R1 APPLY/ROLLBACK pack variant (16 files: #91 APPLY-1/1B/2 + ROLLBACK-1/1B/2, #92 APPLY-92/ROLLBACK-92, 10A APPLY-1C/APPLY-92-44col/ROLLBACK-1C/ROLLBACK-2-after-1C, F3 FORWARD/ROLLBACK, 11A install/rollback; the F3 DRIFT_QUERY and POSTCHECKS read-only files are excluded) has ONE top-level BEGIN followed IMMEDIATELY (comments aside) by exactly: SET LOCAL lock_timeout = '5s'; then pg_advisory_xact_lock(KEY); then SET LOCAL lock_timeout = '5s'; the same KEY in all of them, and no statement before BEGIN (R1 + lock_timeout follow-up: the timeout is set before the lock so it bounds the lock wait itself, and again after it)",
    "ok": true,
    "why": "",
    "metrics": {
@@ -3109,7 +3109,7 @@
    "ok": true,
    "why": "",
    "metrics": {
-    "b_wait_ms": 3005,
+    "b_wait_ms": 3011,
     "a_end_to_b_start_ms": 1
    }
   },
@@ -3119,7 +3119,7 @@
    "ok": true,
    "why": "",
    "metrics": {
-    "b_start_before_a_end_ms": 1499
+    "b_start_before_a_end_ms": 1498
    }
   },
   {
@@ -3128,7 +3128,39 @@
    "ok": true,
    "why": "",
    "metrics": {
-    "b_wait_ms": 3006
+    "b_wait_ms": 3008
+   }
+  },
+  {
+   "id": "LK.5",
+   "name": "TIMEOUT (two real connections, the exact lock text of every pack): A holds the pack lock ~7 s; B (blocked on the advisory lock, pg_locks shows it ungranted) fails with SQLSTATE 55P03 lock_not_available after ~5 s (4.5-6.5 s), NOT after A's ~7 s and not never; A is unaffected (commits, both its probe rows present); B left no row; the lock is free afterwards",
+   "ok": true,
+   "why": "",
+   "metrics": {
+    "b_fail_ms": 5002,
+    "b_code": "55P03",
+    "a_total_ms": 7004,
+    "b_probe_rows": 0
+   }
+  },
+  {
+   "id": "LK.5c",
+   "name": "NEGATIVE CONTROL for LK.5 (what the literal 'timeout only AFTER the lock' placement would do): with the pre-lock SET LOCAL lock_timeout REMOVED (the lock followed by the timeout) B is NOT bounded: it waits out A's whole ~7 s hold (> 5 s) and then succeeds; this is why the timeout is also set BEFORE the lock",
+   "ok": true,
+   "why": "",
+   "metrics": {
+    "b_wait_ms": 8504,
+    "b_ok": true
+   }
+  },
+  {
+   "id": "LK.6",
+   "name": "TIMEOUT on a REAL pack (R1 APPLY-1, first run held ~7 s before COMMIT): the second APPLY-1 fails with 55P03 after ~5 s, took no public-table lock and changed nothing of its own; the first run commits normally and the catalog equals exactly ONE APPLY-1",
+   "ok": true,
+   "why": "",
+   "metrics": {
+    "second_fail_ms": 5003,
+    "second_code": "55P03"
    }
   },
   {
@@ -3190,7 +3222,7 @@
   ]
  },
  "totalFailures": 0,
- "elapsedSec": 79,
+ "elapsedSec": 94,
  "stepsSummary": [
   {
    "step": "S0",

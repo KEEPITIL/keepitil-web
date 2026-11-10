@@ -1,8 +1,8 @@
 # 12A door hardening: proof results (real PostgreSQL 17.6, replica, synthetic data)
 
-Generated from `proof/out/results.json` by `proof/report.mjs`. Engine: real PostgreSQL (socket). Wall time 32s. Machine: peak load1=4.47 min free mem pct=63.
+Generated from `proof/out/results.json` by `proof/report.mjs`. Engine: real PostgreSQL (socket). Wall time 46s. Machine: peak load1=4.68 min free mem pct=62.
 
-Totals: behavioural matrix 59/59; pack/structural 29/29; adjacent findings (replica only) 4/4; fatal: none.
+Totals: behavioural matrix 59/59; pack/structural 31/31; adjacent findings (replica only) 4/4; fatal: none.
 
 Every behavioural test runs on BOTH the original (prod-captured bodies, replica) and the hardened replica (built by running the real packs). Column 'control' says what the original MUST do for the test to be a valid proof:
 `detects` = the test must FAIL on the original (it proves a defect that the hardening removes); `baseline` = the original also passes (regression guard, not a discriminating test); `n/a` = object does not exist on the original.
@@ -78,7 +78,7 @@ Every behavioural test runs on BOTH the original (prod-captured bodies, replica)
 | D01 | detector: core WITHOUT 'and eo.checked_in_at is null' lets two concurrent scans both admit (race test fails as it should) | pass |  |
 | D02 | detector: core WITHOUT status='paid' in the UPDATE admits an order refunded mid-scan (M18 fails as it should) | pass |  |
 | D03 | detector: an UNQUALIFIED, no-SET-search_path copy of the core IS hijacked by 'evil, public' (the M24 test fails as it should); the hardened functions are not | pass |  |
-| P01 | static: every APPLY/ROLLBACK pack = ONE BEGIN, advisory lock 2979301232487107403 as the FIRST statement after it, one COMMIT last, drift guard, no data DML, no secrets | pass |  |
+| P01 | static: every APPLY/ROLLBACK pack = ONE BEGIN, SET LOCAL lock_timeout 5s then advisory lock 2979301232487107403 then SET LOCAL lock_timeout 5s as the exact statements 2-4 after it (tightened from: lock is statement 2), one COMMIT last, drift guard, no data DML, no secrets | pass |  |
 | P02 | generator is reproducible: build.mjs --check is clean (packs == inputs) | pass |  |
 | P03 | replica sanity: the installed ORIGINAL functions equal the captured prod text (pg_get_functiondef == facts) and DRIFT_QUERY/POSTCHECKS(S0) read S0_original | pass |  |
 | P04 | APPLY-01 on the original: succeeds, retained SELECT all ok, state S1, POSTCHECKS(S1) ok; check_in_ticket still original | pass |  |
@@ -103,6 +103,8 @@ Every behavioural test runs on BOTH the original (prod-captured bodies, replica)
 | P10 | rollback order is enforced and rollback has its own drift guard | pass |  |
 | P11 | advisory lock serialises two runs: B waits on the advisory lock while A holds the transaction open, then B refuses cleanly (DRIFT); end state S1 | pass |  |
 | P12 | lock is shared across packs: a concurrent ROLLBACK/APPLY of a different pack also queues (same key) | pass |  |
+| P14 | TIMEOUT (lock_timeout follow-up): A (real APPLY-01) holds the pack lock ~7 s; B (the same pack) waits on the advisory lock and fails with SQLSTATE 55P03 lock_not_available after ~5 s (4.5-6.5 s), not after A's ~7 s; A is unaffected (commits, state S1); B changed nothing and holds no advisory lock afterwards | pass |  |
+| P14c | NEGATIVE CONTROL for P14: the same APPLY-01 with the PRE-lock lock_timeout removed (timeout only after the lock, the literal 'after the lock' placement) is NOT bounded: B waits out A's whole ~7 s hold and then refuses with DRIFT (not 55P03) | pass |  |
 | P13 | PRECHECK-12A.sql runs read-only (READ ONLY transaction), errors on nothing, and leaks no row contents (sentinel email/handle/tokens absent from output) | pass |  |
 
 ## C. Adjacent findings proven on the replica only (NOT fixed by 12A)

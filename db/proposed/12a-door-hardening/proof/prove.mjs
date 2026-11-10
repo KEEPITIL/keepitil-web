@@ -126,7 +126,7 @@ async function structural(id, name, fn, rows = packRows) {
 /* pack runner: returns {ok, err, rows(last result set with rows)} */
 async function runPack(c, sql) {
   try { const r = await c.query(sql); const arr = Array.isArray(r) ? r : [r]; const rows = [...arr].reverse().find((x) => x.rows && x.rows.length && x.fields && x.fields.some((f) => f.name === "ok")); return { ok: true, rows: rows ? rows.rows : [] }; }
-  catch (e) { try { await c.query("ROLLBACK"); } catch {} return { ok: false, err: String(e.message) }; }
+  catch (e) { try { await c.query("ROLLBACK"); } catch {} return { ok: false, err: String(e.message), code: e.code }; }
 }
 const allOk = (rows) => rows.length > 0 && rows.every((r) => r.ok === true);
 const hold = (sql, secs) => { const i = sql.lastIndexOf("COMMIT;"); return sql.slice(0, i) + `SELECT pg_sleep(${secs}); ` + sql.slice(i); };
@@ -229,10 +229,10 @@ async function main() {
       return (rc.rows && rc.rows[0].j.code === "admitted" && rh.code === "invalid") || JSON.stringify({ control: rc.rows ? rc.rows[0].j : rc.err, hardened: rh.code }); } finally { await w.close(); } });
 
   /* ============================ B. packs ============================ */
-  await structural("P01", "static: every APPLY/ROLLBACK pack = ONE BEGIN, advisory lock 2979301232487107403 as the FIRST statement after it, one COMMIT last, drift guard, no data DML, no secrets", async () => {
+  await structural("P01", "static: every APPLY/ROLLBACK pack = ONE BEGIN, SET LOCAL lock_timeout 5s then advisory lock 2979301232487107403 then SET LOCAL lock_timeout 5s as the exact statements 2-4 after it (tightened from: lock is statement 2), one COMMIT last, drift guard, no data DML, no secrets", async () => {
     for (const n of [PACK.a1, PACK.a2, PACK.r2, PACK.r1]) { const s = PK(n); const code = s.replace(/^\s*--.*$/gm, "");
       const stmts = code.split(/;[ \t]*\r?\n/).map((t) => t.trim()).filter(Boolean);
-      if (stmts[0] !== "BEGIN") return n + ": first statement is not BEGIN"; if (stmts[1] !== `SELECT pg_advisory_xact_lock(${REPO_PACK_KEY})`) return n + ": lock is not statement 2: " + stmts[1].slice(0, 80);
+      if (stmts[0] !== "BEGIN") return n + ": first statement is not BEGIN"; if (stmts[1] !== "SET LOCAL lock_timeout = '5s'" || stmts[2] !== `SELECT pg_advisory_xact_lock(${REPO_PACK_KEY})` || stmts[3] !== "SET LOCAL lock_timeout = '5s'") return n + ": statements 2-4 are not timeout/lock/timeout: " + stmts.slice(1, 4).map((t) => t.slice(0, 50)).join(" | ");
       if (stmts[stmts.length - 1] !== "COMMIT") return n + ": last statement is not COMMIT";
       if ((code.match(/^BEGIN;/gm) || []).length !== 1 || (code.match(/^COMMIT;/gm) || []).length !== 1) return n + ": BEGIN/COMMIT count";
       if (/\b(TRUNCATE|DELETE\s+FROM|INSERT\s+INTO|UPDATE\s+public\.|DROP\s+TABLE|ALTER\s+TABLE|CREATE\s+POLICY|DROP\s+POLICY)\b/i.test(code.replace(/\$function\$[\s\S]*?\$function\$/g, ""))) return n + ": touches tables/data outside function bodies";
@@ -295,8 +295,21 @@ async function main() {
       return (waiting && ra.ok && allOk(ra.rows) && !rb.ok && /DRIFT, ABORT/.test(rb.err) && dt > 1500 && st === "S1_after-step1") || JSON.stringify({ waiting, a: ra.ok, b: rb.err, dt, st }); } finally { await w.close(); } });
   await structural("P12", "lock is shared across packs: a concurrent ROLLBACK/APPLY of a different pack also queues (same key)", async () => {
     const w = await mkWorld(tplOrig); try { const a = await w.conn("postgres"), b = await w.conn("postgres"); const pidB = (await b.client.query("select pg_backend_pid() p")).rows[0].p;
-      const pa = runPack(a.client, hold(PK(PACK.a1), 2)); await sleep(500); const pb = runPack(b.client, "BEGIN;\nSELECT pg_advisory_xact_lock(2979301232487107403);\nSELECT 1 AS ok;\nCOMMIT;");
+      const pa = runPack(a.client, hold(PK(PACK.a1), 2)); await sleep(500); const pb = runPack(b.client, "BEGIN;\nSET LOCAL lock_timeout = '5s';\nSELECT pg_advisory_xact_lock(2979301232487107403);\nSET LOCAL lock_timeout = '5s';\nSELECT 1 AS ok;\nCOMMIT;");
       let waiting = false; for (let i = 0; i < 20 && !waiting; i++) { const l = await PG.adminQuery("select count(*)::int n from pg_locks where locktype='advisory' and not granted and pid=$1", [pidB]); waiting = l.rows[0].n === 1; if (!waiting) await sleep(100); } await pa; await pb; return waiting; } finally { await w.close(); } });
+  await structural("P14", "TIMEOUT (lock_timeout follow-up): A (real APPLY-01) holds the pack lock ~7 s; B (the same pack) waits on the advisory lock and fails with SQLSTATE 55P03 lock_not_available after ~5 s (4.5-6.5 s), not after A's ~7 s; A is unaffected (commits, state S1); B changed nothing and holds no advisory lock afterwards", async () => {
+    const w = await mkWorld(tplOrig); try { const a = await w.conn("postgres"), b = await w.conn("postgres"); const pidB = (await b.client.query("select pg_backend_pid() p")).rows[0].p;
+      const pa = runPack(a.client, hold(PK(PACK.a1), 7)); await sleep(600); const t0 = performance.now(); const pb = runPack(b.client, PK(PACK.a1));
+      let waiting = false; for (let i = 0; i < 30 && !waiting; i++) { const l = await PG.adminQuery("select count(*)::int n from pg_locks where locktype='advisory' and not granted and pid=$1", [pidB]); waiting = l.rows[0].n === 1; if (!waiting) await sleep(100); }
+      const rb = await pb; const dtB = performance.now() - t0; const ra = await pa; const dtA = performance.now() - t0; try { await b.client.query("ROLLBACK"); } catch {}
+      const left = (await PG.adminQuery("select count(*)::int n from pg_locks where locktype='advisory' and pid=$1", [pidB])).rows[0].n; const st = await drift(w);
+      return (waiting && ra.ok && allOk(ra.rows) && !rb.ok && rb.code === "55P03" && dtB >= 4500 && dtB <= 6500 && dtA >= 6000 && left === 0 && st === "S1_after-step1") || JSON.stringify({ waiting, a: ra.ok, b: rb.err, code: rb.code, dtB: Math.round(dtB), dtA: Math.round(dtA), left, st }); } finally { await w.close(); } });
+  await structural("P14c", "NEGATIVE CONTROL for P14: the same APPLY-01 with the PRE-lock lock_timeout removed (timeout only after the lock, the literal 'after the lock' placement) is NOT bounded: B waits out A's whole ~7 s hold and then refuses with DRIFT (not 55P03)", async () => {
+    const w = await mkWorld(tplOrig); try { const a = await w.conn("postgres"), b = await w.conn("postgres");
+      const postOnly = PK(PACK.a1).replace("SET LOCAL lock_timeout = '5s';\nSELECT pg_advisory_xact_lock", "SELECT pg_advisory_xact_lock"); if (postOnly === PK(PACK.a1)) return "negative control construction failed";
+      const pa = runPack(a.client, hold(PK(PACK.a1), 7)); await sleep(600); const t0 = performance.now(); const pb = runPack(b.client, postOnly);
+      const rb = await pb; const dtB = performance.now() - t0; await pa;
+      return (!rb.ok && rb.code !== "55P03" && /DRIFT, ABORT/.test(rb.err) && dtB >= 6000) || JSON.stringify({ b: rb.err, code: rb.code, dtB: Math.round(dtB) }); } finally { await w.close(); } });
   await structural("P13", "PRECHECK-12A.sql runs read-only (READ ONLY transaction), errors on nothing, and leaks no row contents (sentinel email/handle/tokens absent from output)", async () => {
     const w = await mkWorld(tplOrig); try { const sql = rd("PRECHECK-12A.sql"); const stmts = sql.replace(/^\s*--.*$/gm, "").split(/;\s*\n/).map((s) => s.trim()).filter(Boolean);
       if (stmts.some((s) => !/^(select|with)\b/i.test(s))) return "non-SELECT statement present"; if (/\b(insert|update|delete|truncate|alter|create|drop|grant|revoke)\b/i.test(stmts.join(";").replace(/'[^']*'/g, "''").replace(/"[^"]*"/g, '""'))) return "DDL/DML keyword outside literals";

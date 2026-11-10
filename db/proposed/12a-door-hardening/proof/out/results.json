@@ -1,15 +1,15 @@
 {
  "summary": {
   "engine": "real PostgreSQL (socket)",
-  "seconds": 32,
+  "seconds": 46,
   "matrix": {
    "total": 59,
    "pass": 59,
    "fail": 0
   },
   "packs": {
-   "total": 29,
-   "pass": 29
+   "total": 31,
+   "pass": 31
   },
   "adjacent": {
    "total": 4,
@@ -57,7 +57,7 @@
    "hardened": true,
    "hardenedWhy": "",
    "original": false,
-   "originalWhy": "{\"ok\":true,\"qty\":2,\"buyer\":\"sentinel_buyer_handle_9f3k\",\"result\":\"admitted\",\"message\":\"Admitted\",\"event_slug\":\"doors-open\",\"event_title\":\"Doors Open Night\",\"checked_in_at\":\"2026-11-09T22:52:05.436099-08:00\"}",
+   "originalWhy": "{\"ok\":true,\"qty\":2,\"buyer\":\"sentinel_buyer_handle_9f3k\",\"result\":\"admitted\",\"message\":\"Admitted\",\"event_slug\":\"doors-open\",\"event_title\":\"Doors Open Night\",\"checked_in_at\":\"2026-11-09T23:03:40.115372-08:00\"}",
    "control": "detects",
    "controlOK": true
   },
@@ -585,7 +585,7 @@
    "hardened": true,
    "hardenedWhy": "",
    "original": false,
-   "originalWhy": "{\"bad\":[\"{\\\"ok\\\":true,\\\"qty\\\":2,\\\"buyer\\\":\\\"sentinel_buyer_handle_9f3k\\\",\\\"result\\\":\\\"admitted\\\",\\\"message\\\":\\\"Admitted\\\",\\\"event_slug\\\":\\\"doors-open\\\",\\\"event_title\\\":\\\"Doors Open Night\\\",\\\"checked_in_at\\\":\\\"2026-11-09T22:52:21.416875-08:00\\\"}\",\"{\\\"ok\\\":false,\\\"qty\\\":2,\\\"buyer\\\":\\\"sentinel_buyer_handle_9f3k\\\",\\\"result\\\":\\\"already_used\\\",\\\"message\\\":\\\"Already admitted.\\\",\\\"event_title\\\":\\\"Doors Open Night\\\",\\\"checked_in_at\\\":\\\"2026-11-09T22:52:21.416875-08:00\\\"}\"],\"extra\":[\"buyer\",\"event_slug\",\"buyer\"]}",
+   "originalWhy": "{\"bad\":[\"{\\\"ok\\\":true,\\\"qty\\\":2,\\\"buyer\\\":\\\"sentinel_buyer_handle_9f3k\\\",\\\"result\\\":\\\"admitted\\\",\\\"message\\\":\\\"Admitted\\\",\\\"event_slug\\\":\\\"doors-open\\\",\\\"event_title\\\":\\\"Doors Open Night\\\",\\\"checked_in_at\\\":\\\"2026-11-09T23:03:56.691575-08:00\\\"}\",\"{\\\"ok\\\":false,\\\"qty\\\":2,\\\"buyer\\\":\\\"sentinel_buyer_handle_9f3k\\\",\\\"result\\\":\\\"already_used\\\",\\\"message\\\":\\\"Already admitted.\\\",\\\"event_title\\\":\\\"Doors Open Night\\\",\\\"checked_in_at\\\":\\\"2026-11-09T23:03:56.691575-08:00\\\"}\"],\"extra\":[\"buyer\",\"event_slug\",\"buyer\"]}",
    "control": "detects",
    "controlOK": true
   },
@@ -596,7 +596,7 @@
    "hardened": true,
    "hardenedWhy": "",
    "original": false,
-   "originalWhy": "{\"bad\":[\"{\\\"qty\\\":2,\\\"sold\\\":9,\\\"tier\\\":\\\"VIP\\\",\\\"buyer\\\":\\\"sentinel.buyer.9f3k@example.invalid\\\",\\\"event\\\":\\\"Doors Open Night\\\",\\\"status\\\":\\\"valid\\\",\\\"checked_in\\\":2}\",\"{\\\"at\\\":\\\"2026-11-09T22:52:21.724943-08:00\\\",\\\"sold\\\":9,\\\"tier\\\":\\\"VIP\\\",\\\"buyer\\\":\\\"sentinel.buyer.9f3k@example.invalid\\\",\\\"event\\\":\\\"Doors Open Night\\\",\\\"status\\\":\\\"already\\\",\\\"checked_in\\\":2}\"],\"extra\":[\"buyer\",\"buyer\"]}",
+   "originalWhy": "{\"bad\":[\"{\\\"qty\\\":2,\\\"sold\\\":9,\\\"tier\\\":\\\"VIP\\\",\\\"buyer\\\":\\\"sentinel.buyer.9f3k@example.invalid\\\",\\\"event\\\":\\\"Doors Open Night\\\",\\\"status\\\":\\\"valid\\\",\\\"checked_in\\\":2}\",\"{\\\"at\\\":\\\"2026-11-09T23:03:57.047519-08:00\\\",\\\"sold\\\":9,\\\"tier\\\":\\\"VIP\\\",\\\"buyer\\\":\\\"sentinel.buyer.9f3k@example.invalid\\\",\\\"event\\\":\\\"Doors Open Night\\\",\\\"status\\\":\\\"already\\\",\\\"checked_in\\\":2}\"],\"extra\":[\"buyer\",\"buyer\"]}",
    "control": "detects",
    "controlOK": true
   },
@@ -699,7 +699,7 @@
   },
   {
    "id": "P01",
-   "name": "static: every APPLY/ROLLBACK pack = ONE BEGIN, advisory lock 2979301232487107403 as the FIRST statement after it, one COMMIT last, drift guard, no data DML, no secrets",
+   "name": "static: every APPLY/ROLLBACK pack = ONE BEGIN, SET LOCAL lock_timeout 5s then advisory lock 2979301232487107403 then SET LOCAL lock_timeout 5s as the exact statements 2-4 after it (tightened from: lock is statement 2), one COMMIT last, drift guard, no data DML, no secrets",
    "pass": true,
    "why": ""
   },
@@ -844,6 +844,18 @@
   {
    "id": "P12",
    "name": "lock is shared across packs: a concurrent ROLLBACK/APPLY of a different pack also queues (same key)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P14",
+   "name": "TIMEOUT (lock_timeout follow-up): A (real APPLY-01) holds the pack lock ~7 s; B (the same pack) waits on the advisory lock and fails with SQLSTATE 55P03 lock_not_available after ~5 s (4.5-6.5 s), not after A's ~7 s; A is unaffected (commits, state S1); B changed nothing and holds no advisory lock afterwards",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P14c",
+   "name": "NEGATIVE CONTROL for P14: the same APPLY-01 with the PRE-lock lock_timeout removed (timeout only after the lock, the literal 'after the lock' placement) is NOT bounded: B waits out A's whole ~7 s hold and then refuses with DRIFT (not 55P03)",
    "pass": true,
    "why": ""
   },

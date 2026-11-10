@@ -1,0 +1,631 @@
+{
+ "summary": {
+  "engine": "PostgreSQL 17.6 (embedded-postgres, Unix socket only)",
+  "seconds": 59,
+  "matrix": {
+   "total": 42,
+   "pass": 42
+  },
+  "packs": {
+   "total": 17,
+   "pass": 17
+  },
+  "mutants": {
+   "total": 9,
+   "pass": 9
+  },
+  "adjacent": {
+   "total": 3,
+   "pass": 3
+  },
+  "fatal": null,
+  "negativeControls": {
+   "detects": 25,
+   "detectsMet": 25,
+   "baseline": 17,
+   "baselineMet": 17
+  }
+ },
+ "results": [
+  {
+   "id": "S01-agent-posts",
+   "name": "anon cannot list/SELECT any object of agent-posts through the table (original: lists everything)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "anon sees 4",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "S01-chat-images",
+   "name": "anon cannot list/SELECT any object of chat-images through the table (original: lists everything)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "anon sees 4",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "S01-playlist-covers",
+   "name": "anon cannot list/SELECT any object of playlist-covers through the table (original: lists everything)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "anon sees 2",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "S01-vs-entries",
+   "name": "anon cannot list/SELECT any object of vs-entries through the table (original: lists everything)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "anon sees 4",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "S02",
+   "name": "public URL path still works for ALL objects of the four buckets (public_url_readable: bucket.public, no SELECT policy needed)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "S03",
+   "name": "public flags of the four buckets unchanged (true)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "S04",
+   "name": "playlist-covers: owner sees own cover, a non-owner does NOT see it (original: sees everyone's)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"a\":\"c0000000-0000-4000-8000-0000000000a1/cover-1.jpg|c0000000-0000-4000-8000-0000000000a2/cover-2.jpg\",\"b\":\"c0000000-0000-4000-8000-0000000000a1/cover-1.jpg|c0000000-0000-4000-8000-0000000000a2/cover-2.jpg\"}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "S05",
+   "name": "vs-entries: owner sees own entry media only; a non-owner cannot see another user's PENDING entry media (original: bucket-wide)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"a\":\"c0000000-0000-4000-8000-0000000000a1/1/x.jpg|c0000000-0000-4000-8000-0000000000a1/3/z.jpg|c0000000-0000-4000-8000-0000000000a1/notanumber/m.jpg|c0000000-0000-4000-8000-0000000000a2/2/y.jpg\",\"b\":\"c0000000-0000-4000-8000-0000000000a1/1/x.jpg|c0000000-0000-4000-8000-0000000000a1/3/z.jpg|c0000000-0000-4000-8000-0000000000a1/notanumber/m.jpg|c0000000-0000-4000-8000-0000000000a2/2/y.jpg\"}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "S06",
+   "name": "agent-posts: a signed-in non-admin sees nothing (original: everything)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "sees 4",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "S07",
+   "name": "admin sees every object in all four buckets (moderation / review / signed URLs)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "S08",
+   "name": "chat-images: profile owner A sees profiles/artist-a/* (uploader rows AND legacy NULL-owner rows) + own event flyer, NOT artist-b's (original: all 4)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "event-flyers/f1.jpg|profiles/artist-a/p1.jpg|profiles/artist-a/p3-legacy.jpg|profiles/artist-b/p2.jpg",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "S09",
+   "name": "chat-images: B sees only profiles/artist-b/p2.jpg (original: all)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "event-flyers/f1.jpg|profiles/artist-a/p1.jpg|profiles/artist-a/p3-legacy.jpg|profiles/artist-b/p2.jpg",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "S10",
+   "name": "UPSERT (INSERT ... ON CONFLICT DO UPDATE, the Storage API shape of upload upsert:true) of a NEW path by its owner works: playlist-covers (the playlist-submit.js x-upsert flow) and vs-entries",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "S11",
+   "name": "UPSERT that OVERWRITES the owner's own existing object works (needs SELECT + UPDATE on the existing row): playlist-covers and vs-entries",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "S12",
+   "name": "a non-owner cannot UPSERT over another user's object, nor write into another user's folder (insert policy unchanged)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "S13",
+   "name": "download()/createSignedUrl model: the owner can sign own objects, a non-owner cannot sign another user's, admin can sign any, anon cannot (original: anyone could)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"a\":true,\"b\":true,\"ad\":true,\"an\":true}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "S14",
+   "name": "service_role (edge functions / generators, BYPASSRLS) still reads and writes everything incl. agent-posts",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "S15",
+   "name": "the unpublished cover posts/lyric-mryyphmm-card.svg is not listable/signable by anon or a non-admin through the table (P1 alone); the public URL still serves it until it is MOVED (P2 runbook)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"an\":true,\"b\":true,\"ad\":true,\"url\":true}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "R01",
+   "name": "anon sees only non-archived rows (archived=false AND NULL); original: also the archived autopilot/review row",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "a1,a2,b1,b2,a3",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "R02",
+   "name": "anon cannot fetch an archived row by id (review-queue item stays private)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "visible",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "R03",
+   "name": "owner A sees own rows INCLUDING archived, not the other profile's archived row",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "a1,a2,b1,b2,a3",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "R04",
+   "name": "non-owner B cannot see A's archived row (post_saves embed of it returns null for B)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"ids\":\"a1,a2,b1,b2,a3\",\"e\":[{\"content_id\":\"d0000000-0000-4000-8000-000000000001\",\"cid\":\"d0000000-0000-4000-8000-000000000001\"},{\"content_id\":\"d0000000-0000-4000-8000-000000000002\",\"cid\":\"d0000000-0000-4000-8000-000000000002\"}]}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "R05",
+   "name": "admin (is_admin) sees ALL rows incl. archived (review queue / moderation)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "R06",
+   "name": "service_role (autopilot) reads everything",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "R07",
+   "name": "owner can ARCHIVE and UN-ARCHIVE own row the way profile.html does (UPDATE ... WHERE id): the unarchive needs the owner SELECT policy",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "R08",
+   "name": "owner INSERT/DELETE own rows still work; a non-owner can neither update, delete nor insert into another profile",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "R09",
+   "name": "the legacy NULL-archived row stays public (archived IS NOT TRUE, not '= false')",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "R10",
+   "name": "order independence with 10A APPLY-1C: after 1C's ACL narrowing the hardened results hold (anon A1 ACL: SELECT only)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"a\":\"a1,a2,b1,b2,a3\",\"o\":\"a1,a2,b1,b2,a3\",\"ad\":\"a1,a2,b1,b2,a3\",\"acl\":\"{anon=r/postgres,authenticated=arwd/postgres,postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}\"}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "R10b",
+   "name": "with 1C's ACL, hardened anon sees only non-archived (original under 1C still shows archived: 1C alone does not fix read exposure)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "a1,a2,b1,b2,a3",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "C01",
+   "name": "chat-images INSERT: another user cannot write into profiles/artist-a/ and a user cannot write an arbitrary path (original: any signed-in user, any path)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "[false,false,true]",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "C02",
+   "name": "chat-images INSERT: the three shapes still allowed: uid-prefixed (chat convention), legacy profiles/<owned slug>/ (profile.html), legacy event-flyers/<file> (create-event.html)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "C03",
+   "name": "chat-images SELECT after P3b: only uploader / profile owner / admin (anon none): chat 'participants' cannot be derived from the path (see OPEN QUESTIONS)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "wrong",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "C04",
+   "name": "public-assets: owner inserts profiles/<owned slug>/ and event-flyers/<own uid>/; others cannot; anon cannot; uploads by a non-owner of the slug are refused",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "C05",
+   "name": "public-assets has NO listing for anon / non-owners (owner-scoped SELECT only) while its public URLs serve",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"an\":0,\"b\":0,\"a\":0,\"url\":false}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "C06",
+   "name": "public-assets: owner can delete own file (account-deletion sweep) but not another owner's; (chat-images has no DELETE policy today = that sweep silently fails)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "[0,0]",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "C07",
+   "name": "after P3c: chat-images is PRIVATE (public URL no longer serves), public-assets URLs still serve the moved assets; signed URL (SELECT) still possible for uploader/admin only",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"a\":true,\"b\":false,\"s1\":true,\"s2\":false,\"s3\":true}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "V01",
+   "name": "anon can SELECT (so sign / list) media of an APPROVED entry only: not pending, rejected, nor a malformed folder (no cast error)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "V02",
+   "name": "reviewer (vs_is_admin only) sees every entry's media; a plain user does not see others' pending media",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"r\":0,\"b\":\"c0000000-0000-4000-8000-0000000000a2/2/y.jpg\"}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "V03",
+   "name": "owner A sees own pending + rejected media; the approval flips visibility: after entry 1 is approved anon sees it, still no listing for others' pending",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "V04",
+   "name": "bucket stays PUBLIC and every vs-entries public URL still serves (vs-app.js uses getPublicUrl until its change ships)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "V05",
+   "name": "an owner's UPSERT/overwrite and a non-owner's refusal are unchanged by P6",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "V06",
+   "name": "approval is evaluated live: approve entry 1 as service_role, then anon sees its media",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "",
+   "control": "detects",
+   "controlOK": true
+  }
+ ],
+ "packRows": [
+  {
+   "id": "P0-01",
+   "name": "P0 on the post-Grok state is a NO-OP: nothing changes (fingerprint identical), all post-checks ok; a second run is also ok (idempotent)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P0-02",
+   "name": "P0 on the PRE-Grok state (anon/authenticated still hold grants on the 11 _bak_ tables + shirt_hd_anon_insert exists) performs exactly Grok's changes and nothing else; second run no-op",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P0-03",
+   "name": "P0 post-check catches a regressed state: one _bak_ table re-granted to anon, or an anon INSERT policy on shirt-hd (POSTCHECKS ok=false); P0 apply then repairs it",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "K-P1",
+   "name": "P1: APPLY from the captured state (post-checks ok, DRIFT_QUERY says POST) then ROLLBACK restores the original byte-for-byte (policy text, sorted ACLs, bucket rows, object set); second APPLY refuses cleanly; second ROLLBACK refuses",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "K-P4",
+   "name": "P4: APPLY from the captured state (post-checks ok, DRIFT_QUERY says POST) then ROLLBACK restores the original byte-for-byte (policy text, sorted ACLs, bucket rows, object set); second APPLY refuses cleanly; second ROLLBACK refuses",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "K-P5",
+   "name": "P5: APPLY from the captured state (post-checks ok, DRIFT_QUERY says POST) then ROLLBACK restores the original byte-for-byte (policy text, sorted ACLs, bucket rows, object set); second APPLY refuses cleanly; second ROLLBACK refuses",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "K-P5B",
+   "name": "P5B: APPLY from the captured state (post-checks ok, DRIFT_QUERY says POST) then ROLLBACK restores the original byte-for-byte (policy text, sorted ACLs, bucket rows, object set); second APPLY refuses cleanly; second ROLLBACK refuses",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "K-P2",
+   "name": "P2: APPLY from the captured state (post-checks ok, DRIFT_QUERY says POST) then ROLLBACK restores the original byte-for-byte (policy text, sorted ACLs, bucket rows, object set); second APPLY refuses cleanly; second ROLLBACK refuses",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "K-P3a",
+   "name": "P3a: APPLY from the captured state (post-checks ok, DRIFT_QUERY says POST) then ROLLBACK restores the original byte-for-byte (policy text, sorted ACLs, bucket rows, object set); second APPLY refuses cleanly; second ROLLBACK refuses",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "K-P6",
+   "name": "P6: APPLY from the captured state (post-checks ok, DRIFT_QUERY says POST) then ROLLBACK restores the original byte-for-byte (policy text, sorted ACLs, bucket rows, object set); second APPLY refuses cleanly; second ROLLBACK refuses",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "K-second-apply",
+   "name": "every pack: a SECOND apply on the applied state refuses at the guard (DRIFT, ABORT) and changes nothing",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "K-guard-drift",
+   "name": "guards ABORT on drift with nothing changed: altered listing policy (P1), extra bucket-wide anon policy (P1), RLS off on profile_content (P4), unexpected ACL (P4), extra SELECT policy (P4), bucket limits already set (P5), SVG-less mime list present in existing objects (P5B), missing is_admin (P1/P4)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "K-orderchain",
+   "name": "recommended order P0,P4,P1,P5,P2,P3a,P3b,[assets moved],P3c,P6 applies end-to-end with every post-check ok; reverse-order rollbacks bring back the original (except the two inert bucket rows); P3b/P3c/P6 refuse without P1; P3c refuses without P3a",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "K-p3c-guards",
+   "name": "P3c refuses while ANY public table still references chat-images (events.cover_url / jsonb / chat message image_url), while public-assets holds fewer than the minimum assets, and passes once references are rewritten to public-assets and the assets exist; the scan returns counts only",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "K-lock",
+   "name": "pack runs serialise on the repo-wide advisory lock and time out cleanly: while one pack holds the lock a second pack fails with 55P03 after ~5s and changes nothing; once released the second runs",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "K-nodelete",
+   "name": "no pack contains a DELETE/TRUNCATE statement or any DML on storage.objects (grep over the generated files, comments stripped)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "K-readonly",
+   "name": "PRECHECK-17A.sql, the INVENTORY queries, every POSTCHECKS file and the DRIFT_QUERY run READ ONLY (SET TRANSACTION READ ONLY) on the replica and change nothing; the inventory returns names + counts and classifies the synthetic chat-images objects",
+   "pass": true,
+   "why": ""
+  }
+ ],
+ "mutRows": [
+  {
+   "id": "M01",
+   "name": "P1 mutant: three of the four listing policies dropped, vs_media_read left: caught by behaviour (anon lists vs-entries), by POSTCHECKS(P1 POST) and by DRIFT_QUERY (P1 = DRIFT)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "M02",
+   "name": "P1 mutant: listing fixed but NO owner SELECT (admin-only replacements): the owner's UPSERT-overwrite breaks (the very flow the path report protects): caught",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "M03",
+   "name": "P1 mutant: a stray bucket-wide anon SELECT policy added back after the fix: caught by DRIFT_QUERY and POSTCHECKS",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "M04",
+   "name": "P4 mutant: 'profile_content read all' dropped, public policy added, NO owner policy: owner cannot UN-ARCHIVE (profile.html Archive list) -> caught",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "M05",
+   "name": "P4 mutant: public policy written 'archived = false': the legacy NULL-archived row disappears from public pages -> caught",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "M06",
+   "name": "P4 mutant: policies fixed but RLS then switched OFF (grants to anon left): anon reads archived rows again -> caught by behaviour, POSTCHECKS(req.rls_on_not_forced) and DRIFT_QUERY",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "M07",
+   "name": "P4 mutant: a permissive 'USING (true)' SELECT policy re-added next to the fix: caught",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "M08",
+   "name": "P3c mutant: chat-images flipped private BEFORE the references were rewritten: caught by the P3c reference scan (a hand-flip leaves references -> POSTCHECKS(P3c) refuse) ",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "M09",
+   "name": "P1 mutant: policies fixed but one bucket flipped private by mistake (playlist-covers): public playlist art stops serving -> caught (public URL model + invariant)",
+   "pass": true,
+   "why": ""
+  }
+ ],
+ "adjRows": [
+  {
+   "id": "X01",
+   "name": "chat-images paths are NOT uid-prefixed in the shipped clients (profiles/<slug>/..., event-flyers/<file>): a uid-only INSERT policy would break both uploads (documented why P3b keeps the two legacy shapes)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "X02",
+   "name": "storage.objects policies of other buckets (manatua_media_member_read) are byte-identical through every pack (invariant inv.other_policies_md5 enforced inside each pack)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "X03",
+   "name": "RLS performance shape: owner policies use (SELECT auth.uid()) initPlan form and storage.foldername(name); is_admin() is only evaluated for authenticated (anon policies contain no function calls)",
+   "pass": true,
+   "why": ""
+  }
+ ]
+}

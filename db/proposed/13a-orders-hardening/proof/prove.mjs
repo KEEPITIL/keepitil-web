@@ -147,7 +147,7 @@ let rolesMine = false;
 async function main() {
   await PG.ensureRoles(); rolesMine = true;
   const base = await PG.createDb(null); open.push(base); const c = base.client;
-  await c.query(rd("proof", "replica.sql"));
+  await c.query(rd("proof", "replica.sql").replace("-- @@REFUND_VERBATIM@@", rd("baseline", "refund_ticket_order.VERBATIM.sql") + ";"));
   await c.query(FULFILL_CREATE);
   await c.query("REVOKE ALL ON FUNCTION public.fulfill_ticket_order(text,text,bigint,jsonb,text,integer,text) FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.fulfill_ticket_order(text,text,bigint,jsonb,text,integer,text) TO service_role;");
   await c.query(ORIG12.ticket); await c.query(ORIG12.scan);
@@ -218,9 +218,9 @@ async function main() {
   await matrix("S04", "service_role: refund_ticket_order refunds by session, restores qty_sold, a second refund is a no-op", "baseline", async (w) => {
     await req(w, "service", ...FUL("cs_ref", "pi_ref", [{ t: 1, q: 2, u: 5000 }])); const a = await req(w, "service", "select public.refund_ticket_order('cs_ref', null) as j"); const b = await req(w, "service", "select public.refund_ticket_order('cs_ref', null) as j");
     const o = (await w.q("select status from public.event_orders where stripe_session_id='cs_ref'")).rows; const t = (await w.q("select qty_sold from public.ticket_tiers where id=1")).rows[0].qty_sold;
-    return (!a.err && a.rows[0].j.refunded === 1 && b.rows[0].j.refunded === 0 && o.length === 1 && o[0].status === "refunded" && t === 3) || JSON.stringify({ a: a.err || a.rows[0].j, b: b.err || b.rows[0].j, o, t }); });
+    return (!a.err && a.rows[0].j.refunded_rows === 1 && b.rows[0].j.refunded_rows === 0 && o.length === 1 && o[0].status === "refunded" && t === 3) || JSON.stringify({ a: a.err || a.rows[0].j, b: b.err || b.rows[0].j, o, t }); });
   await matrix("S05", "service_role: refund_ticket_order by payment_intent (fixture order 6) refunds it", "baseline", async (w) => {
-    const a = await req(w, "service", "select public.refund_ticket_order(null, 'pi_fix_1') as j"); const o = (await w.q("select status from public.event_orders where id=6")).rows[0].status; return (!a.err && a.rows[0].j.refunded === 1 && o === "refunded") || JSON.stringify({ a: a.err || a.rows[0].j, o }); });
+    const a = await req(w, "service", "select public.refund_ticket_order(null, 'pi_fix_1') as j"); const o = (await w.q("select status from public.event_orders where id=6")).rows[0].status; return (!a.err && a.rows[0].j.refunded_rows === 1 && o === "refunded") || JSON.stringify({ a: a.err || a.rows[0].j, o }); });
   /* readers */
   const ids = async (w, who) => { const r = await attempt(w, who, "select id from public.event_orders order by id"); return r.err ? "ERR " + r.code : r.rows.map((x) => x.id).join(","); };
   await matrix("R01", "buyer SELECT via event_orders_owner_read: sees exactly their own orders (1,3,4,6), none of buyer2's", "baseline", async (w) => (await ids(w, "buyer")) === "1,3,4,6" || (await ids(w, "buyer")));

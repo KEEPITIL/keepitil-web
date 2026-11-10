@@ -70,4 +70,4 @@ PASS X01 STRICT VARIANT (anon SELECT also revoked) is NOT bundled: on the replic
 PASS X02 organizer_read exposes buyer_email and qr_token to the organizer of the event (door owner): a signed-in organizer can read every token of their event (documented, NOT changed)
 PASS X03 qr_token is not UNIQUE: two rows can share a token (service_role / definer can write one; 12A's door refuses a duplicate as ambiguous); the 13A fix does not add a constraint (see OPEN QUESTIONS)
 
-SUMMARY matrix 37/37 (detects 17/17, baseline 20/20); packs 31/31; adjacent 3/3; fatal=none; 44s
+SUMMARY matrix 37/37 (detects 17/17, baseline 20/20); packs 31/31; adjacent 3/3; fatal=none; 45s

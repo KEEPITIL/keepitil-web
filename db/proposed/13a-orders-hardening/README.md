@@ -64,7 +64,7 @@ Callers: **none in keepitil-web or keepitil-app** (the app's profile links to a 
 
 ## NOT verified
 
-* Nothing was run against prod or any hosted DB. Replica assumptions: `qr_token` DEFAULT (`md5(random()||clock)`), `my_handle()/my_email()` bodies, the readers (`get_my_tickets`, `has_event_ticket`, `organizer_dashboard`) and `get_ticket` are approximations; **`refund_ticket_order` is written from the facts description, not verbatim** (its body is not in the facts file); `fulfill_ticket_order` is verbatim from the facts (whitespace-insensitive fingerprint guards it). `PRECHECK-13A.sql` prints every real body for byte-compare.
+* Nothing was run against prod or any hosted DB. Replica assumptions: `qr_token` DEFAULT (`md5(random()||clock)`), `my_handle()/my_email()` bodies, the readers (`get_my_tickets`, `has_event_ticket`, `organizer_dashboard`) and `get_ticket` are approximations; `refund_ticket_order` is the **verbatim prod body** (captured read-only 2026-11-10, `baseline/refund_ticket_order.VERBATIM.sql`, ACL postgres + service_role) and the replica loads that file, so the refund path (S04, S05, E02) is proven against the real body; `fulfill_ticket_order` is verbatim from the facts (whitespace-insensitive fingerprint guards it). `PRECHECK-13A.sql` prints every real body for byte-compare.
 * Policy predicate text is guarded by tokens (`my_handle`, `owner_handle`, `buyer_email`, `my_email`, `with check true`) plus names/commands/roles, because the exact prod `pg_get_expr` text was not captured; the full texts are printed by PRECHECK for a human compare, and the ROLLBACK recreates them from the facts (byte identical on the replica, equal in meaning on prod).
 * Column ACLs on `event_orders` and the `event_orders_id_seq` ACL were not in the captured facts: the guard aborts if any column ACL exists; PRECHECK prints both.
 * The real Stripe -> `stripe-webhook` -> `fulfill_ticket_order` chain, `create-checkout`, the Edge Function sources (not in the repos), external callers outside these repos, and the live PostgREST/RLS stack (the replica uses stand-in roles) were not exercised.
@@ -80,6 +80,11 @@ Callers: **none in keepitil-web or keepitil-app** (the app's profile links to a 
 5. `get_ticket` (F-D): apply it? And should `ticket.html` (linked from the app, absent from both repos) be located first?
 6. Is the `create-checkout` call from event.html with the anon-key bearer a real defect against v58's signed-in requirement (PATH-REPORT observation 1)?
 7. Existing forged/duplicate rows: PRECHECK shows aggregates only (5 paid today); reviewing real rows is a separate, explicitly approved step.
+
+## Follow-ups
+
+* **Follow-up: drop anon SELECT on `event_orders` later, together with a `profile.html` fix (the signed-out Events tab must not query `event_orders`); keep anon SELECT until then (KODE decision 2026-11-10).** This answers OPEN QUESTION 1: anon SELECT is kept in pack 01.
+* The verbatim `refund_ticket_order` body (`baseline/refund_ticket_order.VERBATIM.sql`) is attached for review; the replica now uses it (see NOT verified).
 
 ## Reproduce
 

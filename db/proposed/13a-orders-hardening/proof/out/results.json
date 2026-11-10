@@ -1,7 +1,7 @@
 {
  "summary": {
   "engine": "PostgreSQL 17.6 (embedded-postgres, Unix socket only)",
-  "seconds": 44,
+  "seconds": 45,
   "matrix": {
    "total": 37,
    "pass": 37

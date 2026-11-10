@@ -84,16 +84,6 @@ begin
 end $$;
 revoke all on function public.get_ticket(text) from public; grant execute on function public.get_ticket(text) to anon, authenticated, service_role;
 
--- refund_ticket_order: NOT verbatim (prod body is not in the facts file, only a description): written from that description
-create function public.refund_ticket_order(p_session_id text default null, p_payment_intent text default null) returns jsonb
-  language plpgsql security definer set search_path to 'public' as $function$
-declare r record; v_n int := 0;
-begin
-  for r in select id, tier_id, qty from public.event_orders where status = 'paid' and (stripe_session_id = p_session_id or stripe_payment_intent = p_payment_intent) for update loop
-    update public.event_orders set status = 'refunded' where id = r.id;
-    if r.tier_id is not null then update public.ticket_tiers set qty_sold = greatest(0, coalesce(qty_sold,0) - r.qty) where id = r.tier_id; end if;
-    v_n := v_n + 1;
-  end loop;
-  return jsonb_build_object('ok', true, 'refunded', v_n);
-end $function$;
+-- refund_ticket_order: VERBATIM prod body (baseline/refund_ticket_order.VERBATIM.sql, captured read-only 2026-11-10), spliced in by prove.mjs at the marker below
+-- @@REFUND_VERBATIM@@
 revoke all on function public.refund_ticket_order(text, text) from public; grant execute on function public.refund_ticket_order(text, text) to service_role;

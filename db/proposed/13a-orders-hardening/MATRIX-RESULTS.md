@@ -1,6 +1,6 @@
 # 13A orders hardening: proof results (real PostgreSQL 17.6, replica, synthetic data)
 
-Generated from `proof/out/results.json` by `proof/report.mjs`. Engine: PostgreSQL 17.6 (embedded-postgres, Unix socket only). Wall time 44s. Machine: peak load1=4.51 min free mem pct=62.
+Generated from `proof/out/results.json` by `proof/report.mjs`. Engine: PostgreSQL 17.6 (embedded-postgres, Unix socket only). Wall time 45s. Machine: peak load1=7.53 min free mem pct=62.
 
 Totals: behavioural matrix 37/37 (negative controls: 17/17 'detects' tests FAIL on the original as required; 20/20 'baseline' regression tests pass on both); pack / structural / mutants / F-D 31/31; informational findings 3/3; fatal: none.
 

@@ -1,0 +1,63 @@
+# HANDOFF PATCH SPEC (illustrative, NOT APPLIED, NOT DEPLOYED, NOT TESTED).
+# create-checkout v58 and stripe-webhook v52 source is not vendored in keepitil-web or keepitil-app. The hunks below are written
+# against an ASSUMED structure (names marked <assumed>). Whoever owns the functions re-bases this on the deployed source
+# (Supabase: get_edge_function, read-only) and gets Joe's relayed yes before any deploy. Secrets are Edge Function secrets only.
+# Purpose: native PaymentSheet / Apple Pay for tickets to KEEPITIL-run in-person events (see ../NATIVE-PAYMENTSHEET-NOTES.md).
+
+--- a/functions/create-checkout/index.ts   <assumed path>
++++ b/functions/create-checkout/index.ts
+@@ request parsing <assumed>
+-  const { items, return_base } = body;
++  const { items, return_base, mode } = body;          // mode: undefined | "payment_sheet"
+@@ after caller() (signed-in user required, unchanged: 401 needs_account) and after tiers/event/fees/capacity/sales-window/kill-switch/payout checks (unchanged)
++  // ---- NEW: PaymentSheet variant. Same server-side pricing and fee logic as the Checkout Session path. ----
++  if (mode === "payment_sheet") {
++    // Eligibility is decided on the server, never by the client.
++    if (!(event.keepitil_run === true && event.in_person === true)) {          // <assumed columns or a platform_config allow-list; Joe decides D7>
++      return json({ error: "Not available for this event in the app" }, 403);
++    }
++    const customer = await getOrCreateCustomer(user);                          // <assumed helper; reuse the one the Session path uses if any>
++    const ek = await stripe.ephemeralKeys.create({ customer: customer.id }, { apiVersion: STRIPE_API_VERSION });
++    const pi = await stripe.paymentIntents.create({
++      amount: subtotalCents,                                                    // computed server-side from tiers, exactly as for the Session
++      currency: "usd",
++      customer: customer.id,
++      automatic_payment_methods: { enabled: true },
++      application_fee_amount: applicationFeeCents,                              // from platform_config keys; never hardcoded
++      transfer_data: { destination: organizerAcct },
++      metadata: { event_id: String(event.id), items: JSON.stringify(items), buyer_user_id: user.id },  // same shape the webhook reads
++    }, { idempotencyKey: `ps-${user.id}-${event.id}-${cartHash}` });
++    return json({
++      client_secret: pi.client_secret, customer: customer.id, ephemeral_key: ek.secret,
++      publishable_key: Deno.env.get("STRIPE_PUBLISHABLE_KEY"),                  // secret/config of the function, test then live
++      amount: subtotalCents, currency: "usd",
++    }, 200);
++  }
+   // ... existing Checkout Session creation (unchanged) ...
+
+--- a/functions/stripe-webhook/index.ts   <assumed path>
++++ b/functions/stripe-webhook/index.ts
+@@ event switch <assumed>, signature verification via constructEventAsync is unchanged and stays first
++  case "payment_intent.succeeded": {
++    const pi = event.data.object;
++    if (!pi.metadata?.event_id) break;                                          // not a ticket PaymentIntent (vs_entry, wifi, kmob keep their own branches)
++    if (pi.metadata.event_checkout_session) break;                              // belt and braces: a Session-created PI is fulfilled by checkout.session.completed
++    const items = JSON.parse(pi.metadata.items || "[]");
++    // The PaymentIntent id is the idempotency key. The unique index (stripe_session_id, tier_id) dedupes retries.
++    // refund_ticket_order already matches by stripe_payment_intent, so charge.refunded works unchanged.
++    await admin.rpc("fulfill_ticket_order", {
++      p_session_id: pi.id, p_payment_intent: pi.id, p_event_id: Number(pi.metadata.event_id), p_items: items,
++      p_buyer_email: buyerEmailFromUser(pi.metadata.buyer_user_id),             // <assumed helper>
++      p_app_fee_cents: pi.application_fee_amount ?? null, p_organizer_acct: pi.transfer_data?.destination ?? null,
++    });
++    break;
++  }
+
+# Tests the owner of the patch should add before any deploy (all offline against a fake Stripe client + the 13A replica):
+#  - non-eligible event (not KEEPITIL-run / not in-person) -> 403, no PaymentIntent created
+#  - fee equals the Session path's fee for the same cart (table in ../TEST-PLAN.md), read from platform_config
+#  - signed-out / anon bearer -> 401 needs_account (same as today)
+#  - webhook: payment_intent.succeeded twice -> one set of order rows (skipped_duplicate), qty_sold +1 once
+#  - checkout.session.completed and payment_intent.succeeded for the SAME purchase never double-fulfil
+#  - charge.refunded -> refund_ticket_order restores qty_sold
+# Then: Stripe TEST MODE run per ../TEST-PLAN.md with Joe's yes (D1-D7).

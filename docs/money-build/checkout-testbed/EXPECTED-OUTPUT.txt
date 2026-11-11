@@ -1,0 +1,46 @@
+===== RESULTS =====
+PASS  a1  create-checkout with NO Authorization header -> 401 (gateway verify_jwt emulation: Invalid JWT; function not reached)
+PASS  a2  ANON key as bearer (valid project JWT, no user) -> function answers 401 needs_account
+PASS  a3  signed-in buyer, $1.00 tier, client sends price_cents=1: session unit_amount comes from DB; fee = formula(config); metadata + cust
+PASS  a4  signed-in buyer, 2 x $25.00 tier: fee = 2 x (round(2500*bps/10000)+flat) per formula
+PASS  b1  hosted page is the SIMULATED local page (labelled) and shows the 4242 test card
+PASS  b2  a non-4242 card is declined by the fake (402) and nothing is fulfilled
+PASS  b3  pay $1 ticket with 4242 -> fake emits SIGNED checkout.session.completed -> deployed webhook -> fulfill_ticket_order: exactly one p
+PASS  b4  pay 2 x $25 ticket -> one paid row, qty 2, qty_sold+2
+PASS  c1  webhook RETRY (same signed event delivered again) -> 200, still one row, qty_sold unchanged
+PASS  c2  INVALID signature (garbage v1) -> 400, no row
+PASS  c3  WRONG secret (signed with another whsec) -> 400, no row
+PASS  c4  MISSING stripe-signature header -> 400, no row
+PASS  c5  STALE timestamp (10 minutes old, correct secret) -> 400, no row
+PASS  c6  control: the SAME forged body signed with the CORRECT secret and fresh timestamp IS accepted (proves rows appear only when the sig
+PASS  d1  get_my_tickets (buyer) returns the paid tickets with their qr_token; another account sees none of them
+PASS  d2  self-hosted wallet QR: the repo's shipped qrcode.js + kil-ticket-qr.js render the ticket code locally (/tickets draws KIL-<token>,
+PASS  e1  hardened event_checkin_scan by the organizer: raw token -> admitted once; second scan -> already_used
+PASS  e2  hardened door accepts the wallet's KIL-prefixed payload (order 2): admitted once, then already_used
+PASS  e3  a non-owner organizer is refused (forbidden) and the anon role cannot execute the scanner (42501)
+PASS  e4  no buyer contact (email) in any door response; buyer field shown for evidence
+PASS  e5  null-owner hole closed: a signed-in user with NO handle cannot admit a ticket for an ownerless event (hardened); the ORIGINAL repl
+PASS  f1  fake Stripe refund -> SIGNED charge.refunded -> deployed webhook -> refund_ticket_order: order refunded, qty_sold decremented by q
+PASS  f2  refund webhook RETRY is idempotent: no second decrement
+PASS  f3  the refunded ticket also disappears from the buyer's wallet (get_my_tickets lists paid only)
+PASS  g1  anon INSERT of a forged paid order is refused (hardened); the S0 replica ACCEPTS it (negative control)
+PASS  g2  organizer UPDATE of status / qr_token on their own event's order is refused (hardened); S0 allows it (negative control)
+PASS  g3  anon TRUNCATE of event_orders is refused (hardened) and rows survive; S0 allows it (negative control, on the control DB only)
+PASS  h1  sold-out tier -> 400 'is sold out'
+PASS  h2  more than remaining -> 400 'Only 2 left'
+PASS  h3  sales window not open -> 400 'not on sale yet'
+PASS  h4  sales window closed -> 400 'have ended'
+PASS  h5  organizer without payouts -> 400 'organizer has not finished payout setup'
+PASS  h6  empty cart -> 400 'no tickets selected'
+PASS  h7  unknown tier -> 404 'tier not found'
+PASS  h8  ticketing_enabled=0 -> 503 'temporarily paused' (config read live), restored after
+PASS  i1  BEARER BUG (#153) reproduced: the page sending the ANON key as bearer cannot buy -> 401 needs_account; with the user's session tok
+PASS  i2  TAMPERED webhook body (amount edited after signing) -> 400, no row, no qty change
+PASS  i3  no request ever left 127.0.0.1: every fake-Stripe / edge call was local, and a direct fetch to stripe.com is blocked by the egress
+PASS  j1  guard: any live key / non-fake whsec / real-looking test key in the environment -> refuses to start
+PASS  j2  guard: any non-127.0.0.1 host configured -> refuses to start (and runtime URL guard refuses stripe.com / supabase.co)
+
+40/40 PASS
+peak load1=3.05 min free mem pct=61
+pg-status after stop:
+pg_ctl: no server running

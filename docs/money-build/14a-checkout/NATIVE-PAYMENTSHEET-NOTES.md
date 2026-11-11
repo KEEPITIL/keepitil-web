@@ -50,7 +50,7 @@ Today `create-checkout` v58 only creates a **Checkout Session** (hosted page) an
 
 ## 4. Order of work for the Nov 21 submit (slices)
 
-13A done (#138 DB hardening + this PR's bearer fix) -> 14A verified webhook issuance, refunds, wallet, door UI (test plan part ii) -> native bundle re-scope (section 2) -> PaymentIntent variant + webhook option A (section 3, needs deploy approval) -> account entry / delete / revoke -> TestFlight evidence -> submit manifest. Every deploy and every SQL apply is a separate Joe-gated step.
+13A done (13A DB hardening, drafted in #138 [CLOSED, superseded by #154, where the inert proposal now lives] + this PR's bearer fix) -> 14A verified webhook issuance, refunds, wallet, door UI (test plan part ii) -> native bundle re-scope (section 2) -> PaymentIntent variant + webhook option A (section 3, needs deploy approval) -> account entry / delete / revoke -> TestFlight evidence -> submit manifest. Every deploy and every SQL apply is a separate Joe-gated step.
 
 ## 5. Risks
 

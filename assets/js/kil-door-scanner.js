@@ -94,42 +94,114 @@
     };
   }
 
-  /* ---- camera (BarcodeDetector only; no decoder library in this slice) ---- */
+  /* ---- QR decoding fallback (D1) ----
+     Native BarcodeDetector is used whenever the browser has it AND lists qr_code. Only when it is missing (iOS Safari today) or cannot do QR,
+     the same-origin, vendored jsQR 1.4.0 (assets/js/vendor/jsqr/, Apache-2.0, checksum-pinned by a test) is loaded lazily, on that path only.
+     No CDN, no runtime fetch of anything off-origin. */
+  var JSQR_SRC = '/assets/js/vendor/jsqr/jsQR.js?v=1.4.0';
+  var JSQR_EVERY_MS = 110;     /* ~9 frames/s: plenty for a held ticket, keeps an older iPhone cool */
+  var JSQR_MAX_WIDTH = 640;    /* frames are downscaled to this width before decoding (decode cost grows with pixels) */
+
+  /* inversionAttempts 'dontInvert': tickets are dark modules on a light background (tickets.html / profile.html render them that way, and phone
+     screens show them the same way). 'attemptBoth' would run a second full decode pass on EVERY frame that has no code, i.e. most frames, roughly
+     doubling CPU and heat for a mode no ticket uses. A light-on-dark code would simply not scan: the owner types the code instead. */
+  var JSQR_OPTIONS = { inversionAttempts: 'dontInvert' };
+
+  /* pure: ImageData-like {data,width,height} + a jsQR function -> the decoded text, or null. Never throws. */
+  function decodeFrame(img, jsQRFn) {
+    try {
+      if (!img || !img.data || !(img.width > 0) || !(img.height > 0) || typeof jsQRFn !== 'function') return null;
+      var r = jsQRFn(img.data, img.width, img.height, JSQR_OPTIONS);
+      return r && typeof r.data === 'string' && r.data !== '' ? r.data : null;
+    } catch (e) { return null; }
+  }
+
+  /* lazy same-origin classic <script> load of the vendored jsQR; one in-flight load, a failed load may be retried */
+  function loadJsQR(win) {
+    if (typeof win.jsQR === 'function') return Promise.resolve(win.jsQR);
+    if (win.__kilJsQRLoad) return win.__kilJsQRLoad;
+    var p = new Promise(function (resolve, reject) {
+      var doc = win.document, s = doc.createElement('script');
+      s.src = JSQR_SRC; s.async = true;
+      s.onload = function () { if (typeof win.jsQR === 'function') resolve(win.jsQR); else reject(new Error('jsqr')); };
+      s.onerror = function () { reject(new Error('jsqr')); };
+      (doc.head || doc.documentElement).appendChild(s);
+    });
+    win.__kilJsQRLoad = p;
+    p.then(null, function () { try { delete win.__kilJsQRLoad; } catch (e) { win.__kilJsQRLoad = null; } });
+    return p;
+  }
+
+  /* ---- camera: native BarcodeDetector when present, otherwise canvas frames + jsQR ---- */
   function createCamera(o) {
     var nav = o.navigator, BD = o.BarcodeDetector, onCode = o.onCode, wait = o.setTimeout || setTimeout, stopWait = o.clearTimeout || clearTimeout;
-    var stream = null, timer = null, video = null, paused = false, running = false, detector = null;
-    function supported() { return !!(BD && nav && nav.mediaDevices && typeof nav.mediaDevices.getUserMedia === 'function'); }
-    function loop() {
+    var loadDecoder = o.loadDecoder, makeCanvas = o.createCanvas, isHidden = o.isHidden || function () { return false; };
+    var stream = null, timer = null, video = null, paused = false, running = false, detector = null, decoder = null, canvas = null, ctx = null, mode = null;
+    function supported() { return !!(nav && nav.mediaDevices && typeof nav.mediaDevices.getUserMedia === 'function'); }
+
+    function nativeLoop() {
       if (!running) return;
       timer = wait(function () {
         if (!running) return;
-        if (paused || !video) return loop();
+        if (paused || !video) return nativeLoop();
         Promise.resolve().then(function () { return detector.detect(video); }).then(function (codes) {
           if (!running || paused) return;
           var c = codes && codes[0] && typeof codes[0].rawValue === 'string' ? codes[0].rawValue : '';
           if (c) onCode(c);
-        }).catch(function () {}).then(loop);
+        }).catch(function () {}).then(nativeLoop);
       }, SCAN_EVERY_MS);
+    }
+    /* one frame: video -> downscaled offscreen canvas -> ImageData -> jsQR. Nothing is kept; the canvas is reused and never attached to the page. */
+    function grab() {
+      var vw = video.videoWidth | 0, vh = video.videoHeight | 0;
+      if (!(vw > 0 && vh > 0) || (video.readyState != null && video.readyState < 2)) return null;
+      var k = vw > JSQR_MAX_WIDTH ? JSQR_MAX_WIDTH / vw : 1, w = Math.max(1, Math.round(vw * k)), h = Math.max(1, Math.round(vh * k));
+      if (!canvas) { canvas = makeCanvas(); ctx = canvas.getContext('2d', { willReadFrequently: true }); }
+      if (canvas.width !== w) canvas.width = w;
+      if (canvas.height !== h) canvas.height = h;
+      ctx.drawImage(video, 0, 0, w, h);
+      return ctx.getImageData(0, 0, w, h);
+    }
+    function frameLoop() {
+      if (!running) return;
+      timer = wait(function () {
+        if (!running) return;
+        /* paused while a result is on screen or the tab is hidden: no frame is read, nothing is decoded */
+        if (paused || !video || isHidden()) return frameLoop();
+        var text = null;
+        try { text = decodeFrame(grab(), decoder); } catch (e) { text = null; }
+        if (text) onCode(text);
+        frameLoop();
+      }, JSQR_EVERY_MS);
     }
     function stop() {
       running = false; paused = false;
       if (timer) { stopWait(timer); timer = null; }
       if (stream) { try { stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} stream = null; }
       if (video) { try { video.srcObject = null; } catch (e) {} }
-      video = null; detector = null;
+      video = null; detector = null; decoder = null; canvas = null; ctx = null; mode = null;
+    }
+    /* native path only when BarcodeDetector exists and (if it can say) lists qr_code */
+    function pickMode() {
+      if (!BD) return Promise.resolve('jsqr');
+      return Promise.resolve().then(function () { return typeof BD.getSupportedFormats === 'function' ? BD.getSupportedFormats() : ['qr_code']; })
+        .then(function (formats) { return formats && formats.indexOf && formats.indexOf('qr_code') < 0 ? 'jsqr' : 'native'; }, function () { return 'jsqr'; });
     }
     function start(videoEl) {
       if (running) return Promise.resolve({ ok: true });
       if (!supported()) return Promise.resolve({ ok: false, reason: 'unsupported' });
-      return Promise.resolve().then(function () {
-        return typeof BD.getSupportedFormats === 'function' ? BD.getSupportedFormats() : ['qr_code'];
-      }).then(function (formats) {
-        if (formats && formats.indexOf && formats.indexOf('qr_code') < 0) return { ok: false, reason: 'unsupported' };
-        return nav.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' } } }).then(function (s) {
-          stream = s; video = videoEl; videoEl.srcObject = s; detector = new BD({ formats: ['qr_code'] });
-          try { videoEl.muted = true; var pl = videoEl.play && videoEl.play(); if (pl && pl.catch) pl.catch(function () {}); } catch (e) {}
-          running = true; paused = false; loop();
-          return { ok: true };
+      return pickMode().then(function (m) {
+        /* iOS Safari: getUserMedia needs a secure context; facingMode is a preference (ideal) so a desktop webcam still opens */
+        return nav.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }).then(function (s) {
+          stream = s; video = videoEl; mode = m;
+          try { videoEl.setAttribute('playsinline', ''); videoEl.setAttribute('muted', ''); videoEl.playsInline = true; videoEl.muted = true; } catch (e) {}
+          videoEl.srcObject = s;
+          try { var pl = videoEl.play && videoEl.play(); if (pl && pl.catch) pl.catch(function () {}); } catch (e) {}
+          if (m === 'native') { detector = new BD({ formats: ['qr_code'] }); running = true; paused = false; nativeLoop(); return { ok: true }; }
+          return Promise.resolve().then(function () { return loadDecoder(); }).then(function (fn) {
+            if (stream !== s) return { ok: false, reason: 'failed' };        /* stopped while the library was loading */
+            decoder = fn; running = true; paused = false; frameLoop(); return { ok: true };
+          }, function () { stop(); return { ok: false, reason: 'decoder' }; });
         }, function (err) {
           var n = err && err.name;
           return { ok: false, reason: n === 'NotAllowedError' || n === 'SecurityError' ? 'denied' : (n === 'NotFoundError' || n === 'OverconstrainedError') ? 'nocamera' : 'failed' };
@@ -137,7 +209,7 @@
       }).catch(function () { stop(); return { ok: false, reason: 'failed' }; });
     }
     return { supported: supported, start: start, stop: stop, pause: function () { paused = true; }, resume: function () { paused = false; },
-      get running() { return running; } };
+      get running() { return running; }, get mode() { return mode; } };
   }
 
   /* ---- rendering: result -> DOM, textContent only, whitelisted fields (eventTitle, tier, qty, checkedInAt) ---- */
@@ -168,7 +240,8 @@
     unsupported: "Camera scanning isn't available in this browser. Type the ticket code below.",
     denied: 'Camera permission was blocked. Allow camera access in your browser settings, or type the ticket code below.',
     nocamera: 'No usable camera was found. Type the ticket code below.',
-    failed: "The camera couldn't start. Type the ticket code below."
+    failed: "The camera couldn't start. Type the ticket code below.",
+    decoder: "The QR reader couldn't load. Check your connection and try again, or type the ticket code below."
   };
   function boot(deps) {
     var win = deps.win, doc = win.document, adapter = deps.adapter, cfg = win.KIL_DOOR_CONFIG || {};
@@ -212,6 +285,9 @@
       var rpc = deps.rpc || makeRpc({ url: cfg.url, anonKey: cfg.key, getSession: getSession, fetch: deps.fetch || win.fetch.bind(win) });
       scanner = createScanner({ adapter: adapter, rpc: rpc, now: deps.now, debounceMs: deps.debounceMs, onChange: show });
       camera = createCamera({ navigator: win.navigator, BarcodeDetector: win.BarcodeDetector, onCode: function (c) { scanner.submit(c); },
+        loadDecoder: deps.loadDecoder || function () { return loadJsQR(win); },
+        createCanvas: deps.createCanvas || function () { return doc.createElement('canvas'); },
+        isHidden: function () { return doc.visibilityState === 'hidden'; },
         setTimeout: deps.setTimeout ? deps.setTimeout : win.setTimeout.bind(win), clearTimeout: deps.clearTimeout ? deps.clearTimeout : win.clearTimeout.bind(win) });
       function setCamUi() { els.camStart.hidden = camera.running; els.camStop.hidden = !camera.running; els.video.hidden = !camera.running; }
       function stopCamera() { camera.stop(); setCamUi(); }
@@ -238,7 +314,7 @@
     });
   }
 
-  var api = { localParse: localParse, signInUrl: signInUrl, makeRpc: makeRpc, createScanner: createScanner, createCamera: createCamera,
+  var api = { localParse: localParse, signInUrl: signInUrl, makeRpc: makeRpc, createScanner: createScanner, createCamera: createCamera, decodeFrame: decodeFrame, loadJsQR: loadJsQR, JSQR_SRC: JSQR_SRC, JSQR_OPTIONS: JSQR_OPTIONS,
     renderResult: renderResult, boot: boot, RPC_PATH: RPC_PATH, DEBOUNCE_MS: DEBOUNCE_MS };
   root.KilDoorScanner = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

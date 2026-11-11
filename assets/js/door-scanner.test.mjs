@@ -264,10 +264,11 @@ test('camera: permission denied / no camera => message, no crash, manual entry s
     await submit(p, TOKEN); assert.equal(panel(p).getAttribute('data-code'), 'admitted');
   }
 });
-test('camera: BarcodeDetector without qr_code support => unsupported', async () => {
+test('camera: BarcodeDetector without qr_code support => falls back to the jsQR path (15B/D1; was "unsupported" in 15A); a failed decoder load is a clear failure, not a hang', async () => {
   class NoQr { static async getSupportedFormats() { return ['ean_13']; } }
-  const p = await boot({ bd: NoQr, media: makeMedia().media });
-  const r = await p.ctl.camera.start(p.doc.getElementById('cam')); assert.equal(r.ok, false); assert.equal(r.reason, 'unsupported'); assert.equal(p.ctl.camera.running, false);
+  const m = makeMedia(); let asked = 0;
+  const p = await boot({ bd: NoQr, media: m.media, deps: { loadDecoder: () => { asked++; return Promise.reject(new Error('x')); } } });
+  const r = await p.ctl.camera.start(p.doc.getElementById('cam')); assert.equal(r.ok, false); assert.equal(r.reason, 'decoder'); assert.equal(asked, 1); assert.equal(p.ctl.camera.running, false); assert.equal(m.track.stopped, 1);
 });
 
 // ============ storage / privacy / scope ============

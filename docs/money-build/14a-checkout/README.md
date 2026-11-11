@@ -1,4 +1,4 @@
-# 14A: ticket checkout path (DRAFT, stacked on #138; nothing applied, nothing deployed)
+# 14A: ticket checkout path (DRAFT, stacked on the 13A branch of #138 [CLOSED, superseded by #154, which carries the R1 + 12A + 13A inert proposals on main]; nothing applied, nothing deployed)
 
 | file | what |
 |---|---|

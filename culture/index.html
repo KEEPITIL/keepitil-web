@@ -1028,11 +1028,10 @@ function loadCulRelations(){
   sb.rpc('my_profile_slug').then(function(rr){ var me=rr&&!rr.error?rr.data:null;
     sb.auth.getUser().then(function(ur){ var uid=ur&&ur.data&&ur.data.user?ur.data.user.id:null;
       if(uid){ sb.from('follows').select('profile_slug').eq('follower_id',uid).then(function(r){ var m={}; ((r&&r.data)||[]).forEach(function(x){m[String(x.profile_slug).toLowerCase()]=1;}); window.__culFollowing=m; }); }
-      /* Sentinel (2026-11-10): app_users stops being readable by everyone, so my followers' handles come
-         from follower_handles() (handles only). Until that function is live, the old path still runs. */
-      if(me){ var setF=function(rows){ var m={}; (rows||[]).forEach(function(u){ if(u&&u.handle)m[String(u.handle).toLowerCase()]=1; }); window.__culFollowers=m; };
-        var oldPath=function(){ sb.from('follows').select('follower_id').eq('profile_slug',me).then(function(r){ var ids=((r&&r.data)||[]).map(function(x){return x.follower_id;}); if(!ids.length){window.__culFollowers={};return;} sb.from('app_users').select('handle').in('id',ids).then(function(r2){ setF(r2&&r2.data); }); }); };
-        sb.rpc('follower_handles',{p_profile_slug:me}).then(function(r){ if(r&&!r.error){ setF(r.data); } else { oldPath(); } },function(){ oldPath(); }); }
+      /* Sentinel (2026-11-10 7:25 PM): app_users is no longer readable beyond your own row (production
+         stopgap), so my followers' handles come ONLY from follower_handles() (handles, nothing else).
+         No fallback to reading app_users: it can no longer return anyone else's handle. */
+      if(me){ sb.rpc('follower_handles',{p_profile_slug:me}).then(function(r){ var m={}; ((r&&!r.error&&r.data)||[]).forEach(function(u){ if(u&&u.handle)m[String(u.handle).toLowerCase()]=1; }); window.__culFollowers=m; },function(){ window.__culFollowers={}; }); }
     });
   }).catch(function(){});
 }

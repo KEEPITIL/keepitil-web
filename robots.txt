@@ -27,6 +27,8 @@ Disallow: /radio-tuner/
 # which the games' own deploy pipelines own; the hub says COMING SOON and offers no play link.
 # Not retired routes - live builds that are not yet public - so they are kept out of search.
 Disallow: /games/13/
+# TUITEA 2.0 preview: a flags-on test build for the KEEPITIL review team, not linked from the site.
+Disallow: /app/tuitea-preview/
 
 Sitemap: https://keepitil.com/sitemap.xml
 Sitemap: https://keepitil.com/sitemap-events.xml

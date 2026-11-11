@@ -1,6 +1,6 @@
 # DRAFT: test-mode checkout + QR door-scan test steps (Thursday go/no-go)
 
-Status: **DRAFT, docs only, 2026-11-10 (rev 2).** Nothing here has been run. No Stripe, no prod connection and no secret was used to write it.
+Status: **DRAFT, docs only, 2026-11-11 (rev 3: Atlas items 8-10 and Sentinel S5 added; see sections 2a, 4a, 6a, 11).** Nothing here has been run. No Stripe, no prod connection and no secret was used to write it.
 
 **Rev 2 replaces the earlier LIVE $1 plan.** Grok's directive (2026-11-10, 8:03 / 8:05 PM PT, relayed by KODE) changed it:
 
@@ -44,9 +44,9 @@ Live read-only facts (2026-11-10): the only two `show_on_explore=false` events a
 
 | Area | Known (cite) | Only simulated / not yet proven |
 |---|---|---|
-| Local testbed | keepitil-web **#157**, head `21560546180a2bf75ec770805576f38609145dc2` (db-inputs refreshed to #154 b09180903b17b792f121e4772f2b709e798c713d): simulated Stripe against the deployed create-checkout v58 / stripe-webhook v52 logic on a 12A+13A-hardened replica; 40/40 checks pass. Proves the app-side flow (session creation, order row, webhook fulfilment, qty_sold, refund flip, scan results) behaves as designed. | **Real Stripe is not involved**: no real Checkout page, no real webhook signature delivery, no real Connect account, no Apple Pay. Replica schema, not the real staging project. |
+| Local testbed | keepitil-web **#157**, head `7668ad63f1e219cbb7ad287b40cc6ed552bfec30` (money-hardening proofs added, see 1a; db-inputs refreshed to #154 b09180903b17b792f121e4772f2b709e798c713d): simulated Stripe against the deployed create-checkout v58 / stripe-webhook v52 logic on a 12A+13A-hardened replica; 40/40 checks pass. Proves the app-side flow (session creation, order row, webhook fulfilment, qty_sold, refund flip, scan results) behaves as designed. | **Real Stripe is not involved**: no real Checkout page, no real webhook signature delivery, no real Connect account, no Apple Pay. Replica schema, not the real staging project. |
 | Bearer fix | #153, head `081aec45170275cb77dbb989693826f42d17f284`: `event.html` sends the session token to create-checkout. **Required for any signed-in purchase**; without it create-checkout (verify_jwt=true) answers 401 / `needs_account`. | Deployed state on the staging web path: UNVERIFIED (P4). |
-| DB hardening | #154, head `ffa7f357d19c7909eaf579d0432f8e44cb7cb90e`: db/proposed R1 + 12A (door) + 13A (orders) extraction, apply-order doc and `RUNBOOK-APPLY-BACKUP-ROLLBACK.md`; db-proofs CI green. **NOT applied to prod:** live prod still has the original `check_in_ticket` / `event_checkin_scan`, `orders_anon_insert WITH CHECK true`, organizer UPDATE on all columns, anon TRUNCATE. | Whether the staging project has 12A/13A applied is up to what Joe/KODE load into it (P2). |
+| DB hardening | #154, head `b09180903b17b792f121e4772f2b709e798c713d`: db/proposed R1 + 12A (door) + 13A (orders) extraction, apply-order doc and `RUNBOOK-APPLY-BACKUP-ROLLBACK.md`; db-proofs CI green. **NOT applied to prod:** live prod still has the original `check_in_ticket` / `event_checkin_scan`, `orders_anon_insert WITH CHECK true`, organizer UPDATE on all columns, anon TRUNCATE. | Whether the staging project has 12A/13A applied is up to what Joe/KODE load into it (P2). |
 | Self-hosted QR | #158 (`0eaf73809ae6d68e7f5a3c9ca4facce588b90821`): web pins the self-hosted wallet QR. Web main already self-hosts; app main still used `api.qrserver.com`, fixed in keepitil-app **#52** (`6ab1c53cceb39f78c4f28b1278bcc73a1bdbbeb2`). The Nov 13 candidate comes from the app draft stack, which is already clean. | Rendering on a real phone: part of this test (step B6). |
 | Door scanner UI | web #141 (`70b7ceaf784d108b152dd7c9623a63dc935bf89a`) and #142 (`e45fa4e3c0a355dd34ca7c7982ca19bf4d197f14`, iPhone camera via vendored jsQR): drafts stacked on #139, NOT on main. App **#46** (`349ecd8c3e53e907f5717235bc154e27ffa00b26`): door page unlinked in the shipping bundle. **KODE decision 2026-11-10: the door entry point is added only after 12A is live.** App **#49** (`87fa7a7f548161251cb48edf36a9b95b835d3ac2`) has the `--door-test-variant` non-shipping build. | Camera scanning on a real device: never run. |
 | Atlas door checklist | #159, head `13e03aea2024e0a329f29254c6e6100a2ec571e9` (I08). | Not yet reviewed against this test. |
@@ -61,6 +61,8 @@ Live read-only facts (2026-11-10): the only two `show_on_explore=false` events a
 - Original flow scenario (deployed create-checkout v58 + stripe-webhook v52, **unpatched**): **40/40 PASS** (checkout, signed webhook, order, wallet QR, door admit once / KIL- prefix / forbidden / no contact, refund flip + idempotent retry, hardening negatives, egress guards). Peak load 3.64.
 - Webhook payment-settled patch scenario: **10/10 PASS** (unpatched v52 fulfils an unpaid completed session; patched does not, fulfils on async success, idempotent, normal paid path regression-clean, bad signature still refused). Peak load 4.37.
 - Full 40-step flow against the **PATCHED** webhook (`KIL_PATCHED_WEBHOOK=1`: a copy of deployed v52 with the #154 handoff diff applied, deployed file untouched, patched md5 `4a8db430b0719776a5feb5adfbf2528e`): **40/40 PASS**, incl. refund flip, idempotent refund retry, wallet removal, door admit once, signature negatives. Peak load 7.55 (under the 8 gate; shared Mac).
+- Money hardening (Atlas 3-7, Sentinel S1-S4; PR #157 `docs/money-build/checkout-testbed/MONEY-HARDENING.md`): `scenario-money.mjs` **22/22 PASS** on the 12A/13A + 14A-01 replica against the PROPOSED webhook v53 (a patched COPY of v52). Covers failed-refund retry (500 then once), partial / pending refunds that never revoke, refund-before-payment, disputes (held / won / lost), 5-way concurrent capacity (baseline control oversells), amount / currency / tier / event reconciliation, event-id replay ledger, `search_path = ''`, local-only harness, no token in any log.
+  **Deployed state is unchanged: v53 and the 14A SQL are proposals, not on staging or prod.** Atlas items 3-7 block deploy until reviewed.
 - Not covered: Real Stripe, real Supabase, Connect and Apple Pay remain unproven; staging pairing waits on Joe's passkey.
 
 ## 2. Decisions / approvals Joe must give (via KODE) before starting
@@ -73,6 +75,24 @@ Live read-only facts (2026-11-10): the only two `show_on_explore=false` events a
 6. Cleanup: staging data is disposable; any prod write is NOT part of this test.
 7. **The live-mode switch is not touched.** Any live action needs a new, separate approval.
 
+## 2a. Staging-only guard and required negative tests (Sentinel S5, Atlas 8)
+
+The run must be unable to reach production, by construction and by test.
+
+**Preflight (hard gate).** `docs/money-build/real-test/preflight-staging-only.mjs` (unit-tested with negative controls in `preflight-staging-only.test.mjs`) must print `PREFLIGHT OK` on the machine that holds the keys BEFORE any checkout, using the real environment (`KIL_STAGING_REF`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `KIL_SITE_URL`, `KIL_WEBHOOK_ENDPOINT_URL`). It refuses: the prod, kode or nexus project ref anywhere (as ref, URL host, or a key's `ref` claim); a Supabase host other than `<staging ref>.supabase.co`; a webhook endpoint that is not that project's `stripe-webhook`; keys whose `ref` claim or `role` is wrong; any non-test Stripe key; a redirect / site URL on keepitil.com (apex, www, any subdomain, keepitil.github.io); `KIL_PRODUCTION_WRITES` set. It prints check names only, never a value.
+
+**Required negative tests (all must be recorded as run; any miss = NO-GO):**
+
+| # | Negative test | Expected |
+|---|---|---|
+| N1 | Run the preflight unit tests (`node --test docs/money-build/real-test/preflight-staging-only.test.mjs`). | all pass |
+| N2 | Preflight with the real environment. | `PREFLIGHT OK` |
+| N3 | Preflight re-run with ONE variable temporarily pointed at prod (e.g. `SUPABASE_URL`) in a throwaway shell (never saved). | `PREFLIGHT FAILED`, names only |
+| N4 | Create a staging checkout session; read its `success_url` / `cancel_url` (Stripe TEST dashboard or API). | host is the staging site; contains no `keepitil.com` |
+| N5 | KODE read-only on PROD before and after the whole run: `event_orders` row count and max id, `ticket_tiers` sum(qty_sold), `payment` / ledger tables absent. | identical before and after |
+| N6 | Staging stripe-webhook receives an event signed with a different secret (Stripe CLI `stripe trigger` to the wrong endpoint, or a hand-signed body). | 400, no row |
+| N7 | Every Stripe dashboard object used shows the TEST-mode banner; the Connect account is a TEST account created fresh for this run. | yes |
+
 ## 3. Preconditions (who verifies)
 
 | # | Precondition | Verifier | Notes |
@@ -81,13 +101,16 @@ Live read-only facts (2026-11-10): the only two `show_on_explore=false` events a
 | P2 | Replica schema + packs + functions deployed on staging; 12A/13A state recorded (applied or not). | KODE read-only look after Joe deploys | Decides door route A vs B. |
 | P3 | Fee config on staging recorded read-only (`application_fee_bps`, `per_ticket_fee_under10_cents`, `per_ticket_fee_over10_cents`); recompute the expected `application_fee_amount` for a $1.00 ticket. | KODE | Placeholder until Joe decides Wednesday. |
 | P4 | A web build that **points at the staging project** (staging Supabase URL + anon key) AND **contains the #153 bearer fix** (`Bearer '+sess.access_token` in the create-checkout fetch). UNVERIFIED how this staging web path is served (local server, preview, or a non-prod host): Joe/KODE decide; it must not be the prod keepitil.com bundle. | KODE reads the served source | Hard blocker: without the bearer fix the purchase fails `needs_account`/401. |
-| P5 | Test keys + `whsec_` installed as secrets on staging; the Stripe TEST dashboard has a webhook endpoint pointing at the staging stripe-webhook URL for `checkout.session.completed`, `charge.refunded` (and `charge.refund.updated`). | Joe | No key is pasted anywhere shared. |
+| P5 | Test keys + `whsec_` installed as secrets on staging; the Stripe TEST dashboard has a webhook endpoint pointing at the staging stripe-webhook URL for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `charge.refunded`, `charge.refund.updated`, `charge.dispute.created`, `charge.dispute.closed`. | Joe | No key is pasted anywhere shared. |
 | P6 | Stripe TEST Connect account for the test organizer, `stripe_account_id` stored on the staging organizer profile, `payouts_enabled` true. | Joe sets; KODE read-only boolean check (no ids in the log) | If false the buyer gets an error and no session: abort, fix onboarding first. |
 | P7 | TEST event on staging: title starts `TEST - do not buy`, ONE paid tier $1.00 (capacity 1-2), **Show on Explore OFF**, status published. | Joe creates in the organizer UI of the staging web build | Show on Explore OFF is a hygiene measure only (sitemap does not honor it, section 0). |
 | P8 | Buyer account on staging (second email, second browser profile / second phone profile); organizer account signed in elsewhere. Passwords are typed by Joe, never by Claude. | Joe | |
 | P9 | Baseline aggregates before the test: paid-order count, checked-in count, refunded count, test tier `qty_sold` (expected 0). | KODE read-only, aggregates only | Never PII (no emails, handles, tokens). |
 | P10 | Door route chosen. Route B additionally needs 12A applied on staging per #154's apply-order doc and a door UI served (#141/#142 merged, or app #49 `--door-test-variant`). | KODE / Joe | Until then route A only. |
 | P11 | Kill switch known: `platform_config.ticketing_enabled='0'` pauses paid sales on that project. | KODE read-only | |
+| P13 | **Staging create-checkout redirects stay on staging (Atlas 8).** The deployed v58 hard-codes `SITE = "https://keepitil.com"`, so a buyer who pays on staging would be sent to PRODUCTION. Staging must run the patched copy (`patches/create-checkout-site-env.PROPOSED.diff` in PR #157) with the secret `KIL_SITE_URL` = the staging site. | KODE reads the deployed source + secret NAME (not value) on staging | Hard blocker; N4 proves it. |
+| P14 | **Staging webhook is the pinned patched v53 (Atlas 9).** Source = PR #157 `patches/stripe-webhook-money-hardening.PROPOSED.diff` applied to deployed v52 (md5 `33840e79eebb15fbb5d8a2a02787e002`); expected md5 of the result `cdd67dbfc85cc7dbd9b7a5ce651b589e`; the matching SQL (14A-01) applied on STAGING only. KODE reads the deployed function source on staging read-only and compares md5 and the diff's sha256. Anything else (stock v52, a hand edit) = NO-GO. | KODE | Without it an `unpaid` completed session is fulfilled and refunds are unsafe. |
+| P15 | Preflight (section 2a) printed `PREFLIGHT OK`; N1 recorded. | KODE | |
 | P12 | Phone ready for the QR scan: camera access, the test site/app build installed. | Joe | |
 
 ## 4. Purchase steps (Joe, buyer profile; evidence = screenshot with keys/tokens redacted + KODE read-only aggregates)
@@ -98,6 +121,22 @@ B3. Pay with the **4242 4242 4242 4242** test card (any future expiry, any CVC, 
 B4. Stripe TEST dashboard (Joe): the payment, the connected (test) account, **`application_fee_amount`** (compare with P3's expectation; record the difference), and the `checkout.session.completed` webhook delivery returning 200.
 B5. **Webhook fulfilment (KODE, read-only SELECT, aggregates only):** exactly one new order row `status='paid'` for the TEST event, `amount_cents`=100, `application_fee_cents` recorded, connected-account id set, `qr_token` LENGTH 32 (report the length, never the token), `qty_sold` 0 -> 1. No email/handle/token in what is posted.
 B6. **My Tickets (buyer, on the phone):** `/tickets` shows the order with a **self-hosted QR** (no network request to `api.qrserver.com`; Joe checks DevTools Network on the desktop build or KODE reads the served source) encoding **`KIL-<token>`**; `/profile` shows the raw `<token>`. Screenshot with the QR redacted if shared.
+
+## 4a. Real async delivery (Atlas 9)
+
+The local testbed only SIMULATES `checkout.session.async_payment_succeeded`. The test must show it from real Stripe:
+
+A1. Joe enables a delayed method (ACH Direct Debit, `us_bank_account`) in the STAGING TEST dashboard payment-method settings (create-checkout sets no `payment_method_types`, so Checkout offers what the dashboard enables). UNVERIFIED that Checkout offers it for this Connect destination charge: record what the page shows.
+A2. Buyer pays with Stripe's documented ACH TEST bank values (Joe types them on Stripe's page; Claude never types payment values there). **Expect:** `checkout.session.completed` with `payment_status` NOT `paid` -> staging webhook answers 200 and creates NO order (KODE read-only: order count unchanged, ledger row `in_progress` absent).
+A3. Wait for Stripe's test settlement; record the delay. **Expect:** `checkout.session.async_payment_succeeded` delivered 200 and exactly ONE paid order, `qty_sold` +1. Record exact event names, `payment_status` values and timing (UNVERIFIED until seen).
+A4. Failure branch: repeat with Stripe's documented failing ACH TEST account. **Expect:** `checkout.session.async_payment_failed` 200, no order.
+A5. If the dashboard cannot offer a delayed method for this account, record that and mark the item NOT PROVEN (it does not become a pass).
+
+## 6a. Partial refund and dispute with real Stripe shapes (Atlas 4, S3)
+
+R4. On a $2.00+ test ticket: refund PART in the TEST dashboard. **Expect:** `charge.refunded` 200; order stays `paid`; `qty_sold` unchanged; the ticket still scans. Then refund the remainder: order `refunded`, `qty_sold` released once.
+R5. Dispute: pay with Stripe's documented dispute TEST card (Joe, on Stripe's page). **Expect:** `charge.dispute.created` -> order held (`cancelled`), door refuses. Close it with Stripe's documented winning TEST evidence -> `charge.dispute.closed` (won) -> order restored and scans. Repeat with losing evidence -> seat released. Record the real event / status strings (the testbed hand-builds them: UNVERIFIED shapes).
+R6. Retry safety: in the Stripe TEST dashboard resend ONE already-delivered `charge.refunded` event to the staging endpoint (KODE present). **Expect:** 200, no second release.
 
 ## 5. Door scan (organizer session)
 
@@ -122,13 +161,16 @@ R3. **Re-scan the ticket (route A or B): expect refused** (not paid / already us
 | 5 | Order row | 1 new paid row, qty_sold 0->1 | |
 | 6 | Application fee | observed vs P3 expectation (52c if staging has the live values) | |
 | 7 | My Tickets / QR | shown, self-hosted, `KIL-<token>` | |
-| 8 | First door scan | admitted | |
+| 8 | First door scan **with the phone CAMERA** (not a console / pasted-token scan) | admitted | |
 | 9 | Second door scan | already used | |
 | 10 | Checked-in aggregate | 0 -> 1, nothing else changes | |
 | 11 | Refund | order refunded, qty_sold back to 0 | |
 | 12 | Re-scan after refund | refused | |
 | 13 | No PII, no key/token in any posted evidence | none | |
-| 14 | Prod untouched | no prod request, no prod row changed | |
+| 14 | Prod untouched | no prod request, no prod row changed (N5 before/after identical) | |
+| 15 | Negative tests N1-N7 recorded | all as expected | |
+| 16 | Real async delivery (A1-A5) | succeeded event -> one order; failed -> none; or NOT PROVEN (blocks GO) | |
+| 17 | Partial refund, dispute won / lost, event resend (R4-R6) | as written | |
 
 ## 8. Abort criteria (stop immediately, report to KODE)
 
@@ -138,6 +180,8 @@ R3. **Re-scan the ticket (route A or B): expect refused** (not paid / already us
 - More than one order row for the single purchase, or any row other than the TEST event's changes (webhook double-fulfil, other tiers/orders).
 - Webhook not delivered 200 within a few minutes (do not resend events without KODE).
 - A scan reveals data to a non-owner, or admits twice.
+
+- Any redirect (`success_url` / `cancel_url`) host that is not the staging site (N4), a failed preflight, or a webhook source whose md5 is not the pinned v53 (P14).
 
 ## 9. Cleanup
 
@@ -162,12 +206,16 @@ R3. **Re-scan the ticket (route A or B): expect refused** (not paid / already us
 
 ## 11. Thursday go/no-go (for the Friday TestFlight build)
 
+**GO requires ALL of:** table rows 1-17 pass with evidence; **row 8 done with a real camera scan of the wallet QR on a real phone** (the non-shipping `--door-test-variant` build from app #49, or web #141/#142 on staging). A console scan or pasted-token scan is informational only and is **NO-GO on its own** (Atlas 10). Any NOT PROVEN item (A5) or a missed negative test (N1-N7) is NO-GO. Staging must run the pinned v53 + 14A-01 (P14); stock v52 is NO-GO.
+
 **GO (all must pass):** pass-fail rows 1-5 and 7-12 are PASS: checkout end to end in test mode (4242 card, order row, webhook 200), the wallet QR is self-hosted and scans on a phone (admitted, then already used), and the test refund flips the order and refuses the re-scan; rows 13-14 PASS (no PII, prod untouched). Row 6 (fee) is recorded, not a gate: the fee is a placeholder until Joe decides Wednesday.
 **Then:** Fri AM TestFlight build; **submit only if it passes.**
 **NO-GO (fallback):** if Thursday's checkout fails (any of rows 1-5, 7 or 11 fails, or an abort criterion triggers) the submit slips to **Mon Nov 16**. Record the failing row, fix, re-run the failed rows (not the whole test) before Monday.
 Also required for the submission but outside this document: 18+, sign-in with account deletion, legal pages (separate jobs). Door scanning for organizers stays unlinked in the shipping app until 12A is live (KODE decision 2026-11-10); a door pass on the day is route A or the non-shipping variant.
 
 ## 12. Not verified
+- Real Stripe event shapes for async, partial-refund `charge.refunded`, `charge.refund.updated` and disputes (hand-built locally); the real run confirms them (4a, 6a).
+- That the staging project (or any host) accepts the v53 + 14A-01 deployment as written: no staging deploy has been done; the kode project is excluded (live product).
 - create-checkout / stripe-webhook source is not vendored in the repos: the fee formula and the owner-purchase rule come from KODE's relayed read of v58.
 - Stripe refund semantics (reverse_transfer / refund_application_fee / processing fee).
 - How the staging web build is served and pointed at the staging project (P4).

@@ -41,3 +41,20 @@ test("Stripe signature shim: valid ok; tampered body, wrong secret, stale timest
   await assert.rejects(s.webhooks.constructEventAsync(body, undefined, sec));
   assert.throws(() => new Stripe("sk_live_real", {}));
 });
+
+/* Sentinel S1, round 2: the production ref is refused BY NAME, in any variable, even one that is never dialled. */
+import { refuseProductionRefs, guardEnv, PROD_REF } from "../lib/guards.mjs";
+test("NC: the production ref is refused in ANY variable name (value never echoed)", () => {
+  for (const k of ["PGHOST", "SUPABASE_URL", "SOMETHING_UNRELATED", "NOTES"]) {
+    assert.throws(() => refuseProductionRefs({ [k]: `https://${PROD_REF}.supabase.co` }), (e) => e instanceof GuardError && e.message.includes(k) && !e.message.includes(PROD_REF));
+  }
+  assert.throws(() => guardEnv({ X: "db." + PROD_REF }), (e) => e instanceof GuardError);
+});
+test("NC: kode / NEXUS / staging refs are refused in database-ish variables only", () => {
+  for (const ref of ["xdoxfoectugsbbujjezq", "dojmswwxmdtizrtoirem", "efuuwcgifgbukplrbyuf"]) {
+    assert.throws(() => refuseProductionRefs({ SUPABASE_URL: `https://${ref}.supabase.co` }), (e) => e instanceof GuardError);
+    assert.throws(() => refuseProductionRefs({ KIL_STAGING_REF: ref }), (e) => e instanceof GuardError);
+    refuseProductionRefs({ MY_NOTES: ref });          // an unrelated variable is not our business for these three
+  }
+});
+test("clean environments pass", () => { refuseProductionRefs({ PATH: "/usr/bin", PGHOST: "/Users/x/work/pg-local/run", SUPABASE_URL: "http://127.0.0.1:54321" }); });

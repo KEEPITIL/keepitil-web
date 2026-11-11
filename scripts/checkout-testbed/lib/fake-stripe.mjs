@@ -10,6 +10,7 @@ import http from "node:http";
 import { createHmac, randomBytes } from "node:crypto";
 import { decodeForm } from "./form.mjs";
 import { assertLocalUrl } from "./guards.mjs";
+import { redact } from "./redact.mjs";
 
 const rid = (p) => p + randomBytes(9).toString("hex");
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -17,7 +18,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 export class FakeStripe {
   constructor({ secretKey, whsec }) { this.secretKey = secretKey; this.whsec = whsec; this.sessions = new Map(); this.pis = new Map(); this.charges = new Map(); this.refunds = []; this.log = []; this.webhookUrl = null; this.deliveries = []; this.events = []; this.idem = new Map(); this.hold = false; this.held = []; this.nextRefundStatus = null; this.suppressRefundWebhook = false; this.server = null; this.base = null; }
   async start() {
-    this.server = http.createServer((req, res) => this._handle(req, res).catch((e) => { res.writeHead(500, { "content-type": "application/json" }); res.end(JSON.stringify({ error: { message: String(e) } })); }));
+    this.server = http.createServer((req, res) => this._handle(req, res).catch((e) => { res.writeHead(500, { "content-type": "application/json" }); res.end(JSON.stringify({ error: { message: redact(String(e)) } })); }));
     await new Promise((r) => this.server.listen(0, "127.0.0.1", r));
     this.base = `http://127.0.0.1:${this.server.address().port}`; return this.base;
   }

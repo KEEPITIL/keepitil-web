@@ -19,3 +19,17 @@ test("redact removes known tokens, qr_tokens fields, KIL- payloads and bare 32-h
   assert.equal(redact('"md5":"33840e79eebb15fbb5d8a2a02787e002"'), '"md5":"33840e79eebb15fbb5d8a2a02787e002"');
   assert.equal(redact("deployed md5 33840e79eebb15fbb5d8a2a02787e002"), "deployed md5 33840e79eebb15fbb5d8a2a02787e002");
 });
+
+/* Atlas 2, round 2: candidate error text carries contact values (emails, PG "Key (...)=(...)" detail, phones). Nothing PII-shaped may survive redact(). */
+import { registerSecret, contactLeaks } from "../lib/redact.mjs";
+test("redact removes emails, contact fields, PG Key details and phones from candidate error text", () => {
+  const before = contactLeaks();
+  assert.ok(!redact("Error: duplicate key value violates unique constraint DETAIL: Key (buyer_email)=(buyer@example.test) already exists").match(/buyer@example/));
+  assert.ok(!redact("webhook handler error: insert failed for organizer@example.test").includes("organizer@example"));
+  assert.ok(!redact('{"buyer_email":"x@example.test","phone":"(555) 123-4567"}').match(/x@example|555/));
+  assert.ok(!redact("call 415-555-0199 now").includes("555-0199"));
+  assert.ok(!redact("Key (stripe_session_id)=(cs_test_abc) exists").includes("cs_test_abc"));
+  registerSecret("Synthetic Name"); assert.ok(!redact("hello Synthetic Name!").includes("Synthetic"));
+  assert.ok(contactLeaks() >= before + 6);
+  assert.equal(redact("tier 12 price 500 usd ok"), "tier 12 price 500 usd ok");
+});

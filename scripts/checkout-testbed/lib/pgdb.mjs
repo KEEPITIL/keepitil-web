@@ -13,9 +13,10 @@ const PGL = process.env.KIL_PG_HOME || join(homedir(), "work/pg-local");
 const require = createRequire(join(process.env.KIL_PG_NODE_MODULES || PGL, "x.js"));
 const pg = require("pg");
 pg.types.setTypeParser(20, (v) => { const n = BigInt(v); return n <= 9007199254740991n && n >= -9007199254740991n ? Number(n) : n; });   // int8 like PGlite
-import { assertLocalPgHost } from "./guards.mjs";   // LOCAL-ONLY (Sentinel S1): this module creates and DROPS databases and roles; see guards.mjs
+import { assertLocalPgHost, refuseProductionRefs } from "./guards.mjs";   // LOCAL-ONLY (Sentinel S1): this module creates and DROPS databases and roles; see guards.mjs
 export { assertLocalPgHost };
 const CONN = { host: process.env.PGHOST || process.env.KIL_PG_SOCKET_DIR || join(PGL, "run"), port: Number(process.env.PGPORT || process.env.KIL_PG_PORT || 54329) };
+refuseProductionRefs(process.env);   // hard refusal by name, before anything connects (Sentinel S1, round 2)
 assertLocalPgHost(CONN.host);
 const ADMIN_USER = process.env.PGUSER || "pgadmin", ADMIN_DB = process.env.PGDATABASE || "postgres";
 export const RUN = Math.random().toString(36).slice(2, 7);

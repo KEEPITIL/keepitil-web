@@ -6,6 +6,8 @@
 --   public.fulfill_ticket_order_v2   server-side reconciliation (amount, currency, tier, event, per-tier price), ATOMIC capacity (tier row lock), ledger, no token in the return
 --   public.refund_ticket_order_v2    full refund revokes; partial / pending refund only records; state kept if the refund arrives before the payment
 --   public.dispute_ticket_order      dispute opened -> orders cancelled (held), won -> restored, lost -> inventory released
+-- ROUND 2 (Atlas 3/4, Sentinel): payment<->session binding is IMMUTABLE (unique session per payment, trigger forbids rebinding); a second event for an already-issued session is a no-op and
+--   NEVER an oversold refund; dispute state is terminal once closed (late 'created' cannot reopen a hold) and a LOST dispute revokes a live, never-held ticket too.
 -- Every new SECURITY DEFINER function: SET search_path = '' (all references schema-qualified), owner postgres, EXECUTE only for service_role.
 -- Frame: single transaction, advisory lock, lock_timeout, drift guards, POSTCHECKS (a result set of ok booleans). Roll back with 14a_01_..._ROLLBACK_PROPOSED.sql.
 BEGIN;
@@ -47,8 +49,21 @@ CREATE TABLE private.payment_ledger (
   refunded_cents  integer NOT NULL DEFAULT 0,
   disputed        boolean NOT NULL DEFAULT false,
   dispute_lost    boolean NOT NULL DEFAULT false,
+  dispute_closed  boolean NOT NULL DEFAULT false,
   updated_at      timestamptz NOT NULL DEFAULT now()
 );
+-- one session belongs to at most one payment; a payment's session, once set, never changes (Sentinel: immutable payment-to-order binding)
+CREATE UNIQUE INDEX payment_ledger_session_uq ON private.payment_ledger (session_id) WHERE session_id IS NOT NULL;
+CREATE FUNCTION private.payment_ledger_binding_guard() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $g$
+BEGIN
+  IF NEW.payment_intent IS DISTINCT FROM OLD.payment_intent THEN RAISE EXCEPTION 'payment_ledger: payment_intent is immutable'; END IF;
+  IF OLD.session_id IS NOT NULL AND NEW.session_id IS DISTINCT FROM OLD.session_id THEN RAISE EXCEPTION 'payment_ledger: session binding is immutable'; END IF;
+  IF OLD.dispute_closed AND NOT NEW.dispute_closed THEN RAISE EXCEPTION 'payment_ledger: a closed dispute cannot be reopened'; END IF;
+  IF OLD.dispute_lost AND NOT NEW.dispute_lost THEN RAISE EXCEPTION 'payment_ledger: a lost dispute is terminal'; END IF;
+  RETURN NEW;
+END $g$;
+CREATE TRIGGER payment_ledger_binding_guard BEFORE UPDATE ON private.payment_ledger FOR EACH ROW EXECUTE FUNCTION private.payment_ledger_binding_guard();
+REVOKE ALL ON FUNCTION private.payment_ledger_binding_guard() FROM PUBLIC, anon, authenticated, service_role;
 CREATE TABLE private.order_hold (
   order_id     bigint PRIMARY KEY,
   prior_status text NOT NULL,
@@ -69,7 +84,7 @@ declare
   v_prior jsonb; v_pl private.payment_ledger%rowtype; v_handle text;
   v_items jsonb := '[]'::jsonb; r record; t record; v_total bigint := 0; v_reject text;
   v_status text; v_oid bigint; v_inserted int := 0; v_skipped int := 0; v_oversold int := 0; v_oversold_cents bigint := 0;
-  v_blocked boolean := false; v_live boolean; v_held boolean; v_detail jsonb;
+  v_blocked boolean := false; v_live boolean; v_held boolean; v_detail jsonb; v_exist bigint; v_other text;
 begin
   if p_stripe_event_id is null or p_session_id is null or p_event_id is null or jsonb_typeof(p_items) <> 'array' then
     raise exception 'fulfill_ticket_order_v2: event id, session, event_id and items[] are required';
@@ -84,10 +99,17 @@ begin
   if p_payment_intent is null then
     v_reject := 'no_payment_intent';
   else
-    -- 2. serialise with refunds / disputes of the same payment, and read their state (out-of-order delivery)
-    insert into private.payment_ledger (payment_intent, session_id) values (p_payment_intent, p_session_id)
-      on conflict (payment_intent) do update set session_id = coalesce(private.payment_ledger.session_id, excluded.session_id);
-    select * into v_pl from private.payment_ledger where payment_intent = p_payment_intent for update;
+    -- 2. IMMUTABLE BINDING: a session belongs to exactly one payment and a payment to exactly one session. Anything else is rejected (recorded, 200), never re-bound.
+    select payment_intent into v_other from private.payment_ledger where session_id = p_session_id and payment_intent <> p_payment_intent;
+    if found or exists (select 1 from public.event_orders where stripe_session_id = p_session_id and stripe_payment_intent is distinct from p_payment_intent) then
+      v_reject := 'session_bound_to_other_payment';
+    else
+      -- serialise with refunds / disputes of the same payment, and read their state (out-of-order delivery)
+      insert into private.payment_ledger (payment_intent, session_id) values (p_payment_intent, p_session_id)
+        on conflict (payment_intent) do update set session_id = coalesce(private.payment_ledger.session_id, excluded.session_id);
+      select * into v_pl from private.payment_ledger where payment_intent = p_payment_intent for update;
+      if v_pl.session_id is distinct from p_session_id then v_reject := 'payment_bound_to_other_session'; end if;
+    end if;
   end if;
   -- 3. reconcile every line against the SERVER-SIDE price: tier exists, belongs to this event, unit price and currency match, quantities sane, total = what Stripe charged
   if v_reject is null then
@@ -118,6 +140,9 @@ begin
   end if;
   for r in select (e->>'t')::bigint as tier_id, (e->>'q')::int as q, (e->>'u')::int as u from jsonb_array_elements(v_items) e order by 1 loop
     select id, qty_total, qty_sold into t from public.ticket_tiers where id = r.tier_id;   -- already locked above
+    -- a line already issued for this session is a replay: it is NEVER re-evaluated against capacity (its own seat is in qty_sold), so it can never become an "oversold" refund
+    select id into v_exist from public.event_orders where stripe_session_id = p_session_id and tier_id = r.tier_id;
+    if v_exist is not null then v_skipped := v_skipped + 1; v_exist := null; continue; end if;
     v_status := case when v_pl.fully_refunded then 'refunded' when v_pl.dispute_lost then 'cancelled' else 'paid' end;
     v_live := not v_blocked; v_held := false;
     if v_live and t.qty_total is not null and coalesce(t.qty_sold, 0) + r.q > t.qty_total then
@@ -170,36 +195,51 @@ end
 $f$;
 
 -- ---------- dispute_ticket_order ----------
+-- State per payment: disputed (open) -> dispute_closed (won) | dispute_lost (lost). Closed/lost are TERMINAL: a late 'created' (out-of-order delivery) is recorded and ignored, never reopens a hold.
+-- 'lost' revokes BOTH a held order and a live, never-held one (the lost event can arrive before 'created'), releasing its seat exactly once.
 CREATE FUNCTION public.dispute_ticket_order(p_stripe_event_id text, p_payment_intent text, p_phase text)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
 AS $f$
-declare r record; v_n int := 0; v_detail jsonb;
+declare r record; v_n int := 0; v_detail jsonb; v_pl private.payment_ledger%rowtype; v_ign text;
 begin
   if p_stripe_event_id is null or p_payment_intent is null or p_phase not in ('created', 'won', 'lost') then raise exception 'dispute_ticket_order: event id, payment intent and phase (created|won|lost) are required'; end if;
   insert into private.stripe_event_ledger (stripe_event_id, event_type, payment_intent, outcome) values (p_stripe_event_id, 'charge.dispute.' || p_phase, p_payment_intent, 'in_progress') on conflict (stripe_event_id) do nothing;
   if not found then return jsonb_build_object('ok', true, 'duplicate', true); end if;
   insert into private.payment_ledger (payment_intent) values (p_payment_intent) on conflict (payment_intent) do nothing;
-  perform 1 from private.payment_ledger where payment_intent = p_payment_intent for update;
+  select * into v_pl from private.payment_ledger where payment_intent = p_payment_intent for update;
   if p_phase = 'created' then
-    update private.payment_ledger set disputed = true, updated_at = now() where payment_intent = p_payment_intent;
-    for r in select id from public.event_orders where stripe_payment_intent = p_payment_intent and status = 'paid' order by id for update loop
-      insert into private.order_hold (order_id, prior_status) values (r.id, 'paid') on conflict do nothing;
-      update public.event_orders set status = 'cancelled' where id = r.id; v_n := v_n + 1;      -- door refuses it; inventory stays held until the dispute is decided
-    end loop;
+    if v_pl.dispute_closed or v_pl.dispute_lost then v_ign := 'created_after_close';
+    else
+      update private.payment_ledger set disputed = true, updated_at = now() where payment_intent = p_payment_intent;
+      for r in select id from public.event_orders where stripe_payment_intent = p_payment_intent and status = 'paid' order by id for update loop
+        insert into private.order_hold (order_id, prior_status) values (r.id, 'paid') on conflict do nothing;
+        update public.event_orders set status = 'cancelled' where id = r.id; v_n := v_n + 1;      -- door refuses it; inventory stays held until the dispute is decided
+      end loop;
+    end if;
   elsif p_phase = 'won' then
-    update private.payment_ledger set disputed = false, updated_at = now() where payment_intent = p_payment_intent;
-    for r in select o.id, h.prior_status from public.event_orders o join private.order_hold h on h.order_id = o.id where o.stripe_payment_intent = p_payment_intent and o.status = 'cancelled' order by o.id for update of o loop
-      update public.event_orders set status = r.prior_status where id = r.id; delete from private.order_hold where order_id = r.id; v_n := v_n + 1;
-    end loop;
+    if v_pl.dispute_lost then v_ign := 'won_after_lost';
+    else
+      update private.payment_ledger set disputed = false, dispute_closed = true, updated_at = now() where payment_intent = p_payment_intent;
+      for r in select o.id, h.prior_status from public.event_orders o join private.order_hold h on h.order_id = o.id where o.stripe_payment_intent = p_payment_intent and o.status = 'cancelled' order by o.id for update of o loop
+        update public.event_orders set status = r.prior_status where id = r.id; delete from private.order_hold where order_id = r.id; v_n := v_n + 1;
+      end loop;
+    end if;
   else
-    update private.payment_ledger set disputed = false, dispute_lost = true, updated_at = now() where payment_intent = p_payment_intent;
-    for r in select o.id, o.tier_id, o.qty, h.prior_status from public.event_orders o join private.order_hold h on h.order_id = o.id where o.stripe_payment_intent = p_payment_intent and o.status = 'cancelled' order by o.id for update of o loop
-      if r.prior_status = 'paid' then update public.ticket_tiers set qty_sold = greatest(0, coalesce(qty_sold, 0) - r.qty) where id = r.tier_id; end if;
-      delete from private.order_hold where order_id = r.id; v_n := v_n + 1;
+    update private.payment_ledger set disputed = false, dispute_lost = true, dispute_closed = true, updated_at = now() where payment_intent = p_payment_intent;
+    for r in select o.id, o.tier_id, o.qty, o.status, h.prior_status from public.event_orders o left join private.order_hold h on h.order_id = o.id
+              where o.stripe_payment_intent = p_payment_intent and (o.status = 'paid' or h.order_id is not null) order by o.id for update of o loop
+      if r.status = 'paid' then                                  -- live ticket that was never held (lost arrived before / without 'created'): revoke it and release its seat
+        update public.event_orders set status = 'cancelled' where id = r.id;
+        update public.ticket_tiers set qty_sold = greatest(0, coalesce(qty_sold, 0) - r.qty) where id = r.tier_id;
+      else                                                       -- held: the seat is released once, the hold is cleared
+        if r.prior_status = 'paid' then update public.ticket_tiers set qty_sold = greatest(0, coalesce(qty_sold, 0) - r.qty) where id = r.tier_id; end if;
+        delete from private.order_hold where order_id = r.id;
+      end if;
+      v_n := v_n + 1;
     end loop;
   end if;
-  v_detail := jsonb_build_object('phase', p_phase, 'orders', v_n);
-  update private.stripe_event_ledger set outcome = 'dispute_' || p_phase, detail = v_detail where stripe_event_id = p_stripe_event_id;
+  v_detail := jsonb_build_object('phase', p_phase, 'orders', v_n) || case when v_ign is not null then jsonb_build_object('ignored', v_ign) else '{}'::jsonb end;
+  update private.stripe_event_ledger set outcome = case when v_ign is not null then 'dispute_ignored' else 'dispute_' || p_phase end, detail = v_detail where stripe_event_id = p_stripe_event_id;
   return jsonb_build_object('ok', true) || v_detail;
 end
 $f$;
@@ -218,6 +258,7 @@ SELECT 'v2_functions_search_path_empty' AS check_name, count(*) = 3 AS ok FROM p
 UNION ALL SELECT 'v2_functions_owned_by_postgres', count(*) = 3 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname IN ('fulfill_ticket_order_v2','refund_ticket_order_v2','dispute_ticket_order') AND pg_get_userbyid(p.proowner) = 'postgres'
 UNION ALL SELECT 'v2_execute_service_role_only', bool_and(has_function_privilege('service_role', p.oid, 'EXECUTE') AND NOT has_function_privilege('anon', p.oid, 'EXECUTE') AND NOT has_function_privilege('authenticated', p.oid, 'EXECUTE')) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname IN ('fulfill_ticket_order_v2','refund_ticket_order_v2','dispute_ticket_order')
 UNION ALL SELECT 'ledgers_not_client_readable', bool_and(NOT has_table_privilege('anon', c.oid, 'SELECT') AND NOT has_table_privilege('authenticated', c.oid, 'SELECT') AND NOT has_table_privilege('service_role', c.oid, 'SELECT')) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'private' AND c.relname IN ('stripe_event_ledger','payment_ledger','order_hold')
+UNION ALL SELECT 'binding_immutable_guard_present', to_regclass('private.payment_ledger_session_uq') IS NOT NULL AND EXISTS (SELECT 1 FROM pg_trigger t WHERE t.tgrelid = 'private.payment_ledger'::regclass AND t.tgname = 'payment_ledger_binding_guard' AND NOT t.tgisinternal)
 UNION ALL SELECT 'baseline_functions_untouched', to_regprocedure('public.fulfill_ticket_order(text,text,bigint,jsonb,text,integer,text)') IS NOT NULL AND to_regprocedure('public.refund_ticket_order(text,text)') IS NOT NULL;
 
 COMMIT;

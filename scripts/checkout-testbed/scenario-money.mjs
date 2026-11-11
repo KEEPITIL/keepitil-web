@@ -2,7 +2,7 @@
    Runs the PROPOSED stripe-webhook v53 (patches/stripe-webhook-money-hardening.PROPOSED.diff applied to a COPY of the pinned deployed v52) and the PROPOSED create-checkout KIL_SITE_URL patch,
    against a replica = S0 + 12A/13A packs + 14A-01 (proposed/14a_01_...APPLY_PROPOSED.sql, applied by running the file itself). The deployed files are never modified.
    Output: PASS/FAIL table + JSON in $KIL_OUT. No QR token is ever printed (lib/redact.mjs), and leaks() must be 0 for the proposed source. */
-import { registerToken, redact, leaks } from "./lib/redact.mjs";
+import { registerToken, registerSecret, redact, leaks, contactLeaks } from "./lib/redact.mjs";
 import "./shims/register.mjs";
 import { randomBytes, randomUUID, createHash } from "node:crypto";
 import { mkdirSync, writeFileSync as wfRaw, readFileSync, copyFileSync, mkdtempSync, readdirSync } from "node:fs";
@@ -34,7 +34,7 @@ async function main() {
   const jwtSecret = "jwtlocalFAKE" + rnd(), whsec = "whsec_localtest" + rnd(), sk = "sk_test_local_FAKE" + rnd();
   const anonKey = signJwt({ role: "anon", iss: "local-testbed" }, jwtSecret), serviceKey = signJwt({ role: "service_role", iss: "local-testbed" }, jwtSecret);
   const userJwt = (id, email) => signJwt({ role: "authenticated", sub: id, email, exp: Math.floor(Date.now() / 1000) + 3600 }, jwtSecret);
-  Object.assign(process.env, { SUPABASE_URL: "http://127.0.0.1:54321", SUPABASE_ANON_KEY: anonKey, SUPABASE_SERVICE_ROLE_KEY: serviceKey, STRIPE_SECRET_KEY: sk, STRIPE_WEBHOOK_SECRET: whsec });
+  Object.assign(process.env, { KIL_SITE_URL: "http://127.0.0.1:18080", SUPABASE_URL: "http://127.0.0.1:54321", SUPABASE_ANON_KEY: anonKey, SUPABASE_SERVICE_ROLE_KEY: serviceKey, STRIPE_SECRET_KEY: sk, STRIPE_WEBHOOK_SECRET: whsec });
   guardEnv(process.env);
 
   const T = await buildTemplates({ money: true });
@@ -48,11 +48,11 @@ async function main() {
   const who = { org: { role: "authenticated", sub: ids.org, email: "organizer@example.test" }, buyer: { role: "authenticated", sub: ids.buyer, email: "buyer@example.test" }, anon: { role: "anon" }, authed: { role: "authenticated", sub: ids.other, email: "other@example.test" } };
   const q = async (sql, p) => (await pc.query(sql, p)).rows;
   await pc.query(`insert into public.ticket_tiers (id,event_id,name,price_cents,qty_total,qty_sold,currency) overriding system value values
-    (10,1,'Cap3 probe',500,3,0,'usd'),(11,1,'Cap3 control',500,3,0,'usd'),(12,1,'Cap1 webhook',500,1,0,'usd'),(13,1,'Dispute GA',500,50,0,'usd'),(14,1,'Refund GA',2500,50,0,'usd'),(15,1,'Pending GA',500,50,0,'usd'),(16,1,'Order GA',500,50,0,'usd'),(17,1,'Replay GA',500,50,0,'usd')`);
+    (10,1,'Cap3 probe',500,3,0,'usd'),(11,1,'Cap3 control',500,3,0,'usd'),(12,1,'Cap1 webhook',500,1,0,'usd'),(13,1,'Dispute GA',500,50,0,'usd'),(14,1,'Refund GA',2500,50,0,'usd'),(15,1,'Pending GA',500,50,0,'usd'),(16,1,'Order GA',500,50,0,'usd'),(17,1,'Replay GA',500,50,0,'usd'),(18,1,'R2 Cap1',500,1,0,'usd'),(19,1,'R2 Binding',500,50,0,'usd'),(20,1,'R2 Dispute',500,50,0,'usd')`);
 
   const fake = new FakeStripe({ secretKey: sk, whsec }); const fakeBase = await fake.start(); process.env.KIL_FAKE_STRIPE_BASE = fakeBase; guardEnv(process.env);
   const webhookCopy = applyPatch(DEPLOYED["stripe-webhook"].file, join(HERE, "patches", "stripe-webhook-money-hardening.PROPOSED.diff"));
-  const checkoutCopy = applyPatch(DEPLOYED["create-checkout"].file, join(HERE, "patches", "create-checkout-site-env.PROPOSED.diff"));
+  const checkoutCopy = applyPatch(DEPLOYED["create-checkout"].file, join(HERE, "patches", "create-checkout-staging-site.PROPOSED.diff"));
   const webhookMd5 = md5File(webhookCopy), checkoutMd5 = md5File(checkoutCopy);
   const edge = await startEdgeHost({ overrides: { "stripe-webhook": webhookCopy, "create-checkout": checkoutCopy } }); fake.setWebhookTarget(edge.url("stripe-webhook"));
   console.log(`listeners (127.0.0.1): fake-stripe ${fakeBase}  edge ${edge.base}; v53 md5 ${webhookMd5}; create-checkout patched md5 ${checkoutMd5}`);
@@ -172,6 +172,42 @@ async function main() {
     return { pass: dd.status === 200 && dl.status === 200 && st.status === "cancelled" && s1 === s0 - 2 && de.status === 200 && dcomp.status === 200 && o.status === "cancelled" && door.ok === false && (await sold(13)) === s1 + 1, note: `lost: order ${st.status}, qty_sold ${s0}->${s1} (2 released); early dispute then payment: order ${o.status}, door ok=${door.ok}, seat counted while held (qty_sold ${await sold(13)})` };
   });
 
+  // =================== ROUND 2 (Atlas 3 / 4, Sentinel: replay on a sold-out event, immutable binding, out-of-order disputes)
+  await step("n1", "R2 Atlas 3: a DIFFERENT event id for an already-issued session at FULL capacity (async_payment_succeeded, a second completed id) refunds nothing, issues nothing, changes no inventory", async () => {
+    const N = await buy(18, 1); const o0 = await orderOf(N.session); regTok(o0); const s0 = await sold(18); const rf0 = fake.refunds.length;
+    const ev = fake.events.find((e) => e.type === "checkout.session.completed" && e.data.object.id === N.session);
+    const d1 = await fake.deliver(fake.event("checkout.session.async_payment_succeeded", ev.data.object), { force: true }), d2 = await fake.deliver(fake.event("checkout.session.completed", ev.data.object), { force: true });
+    const o1 = await orderOf(N.session);
+    return { pass: s0 === 1 && d1.status === 200 && d2.status === 200 && o1.length === 1 && o1[0].status === "paid" && (await sold(18)) === 1 && fake.refunds.length === rf0, note: `tier full (qty_sold ${s0}/1); replays ${d1.status}/${d2.status}; orders ${o1.length} ${o1[0].status}; refunds created ${fake.refunds.length - rf0}` };
+  });
+  await step("n2", "R2 Atlas 3 (SQL level): fulfill_ticket_order_v2 for an already-issued session at full capacity returns inserted 0, skipped_duplicate 1, oversold_lines 0", async () => {
+    const N = (await q("select stripe_session_id s, stripe_payment_intent p from public.event_orders where tier_id=18 limit 1"))[0];
+    const r = (await q(`select public.fulfill_ticket_order_v2('evt_n2_${rnd()}', $1, $2, 1, '[{"t":18,"q":1,"u":500}]'::jsonb, 'buyer@example.test', null, null, 500, 'usd') as j`, [N.s, N.p]))[0].j;
+    return { pass: r.ok === true && r.inserted === 0 && r.skipped_duplicate === 1 && r.oversold_lines === 0 && r.oversold_cents === 0, note: JSON.stringify({ ok: r.ok, inserted: r.inserted, skipped_duplicate: r.skipped_duplicate, oversold_lines: r.oversold_lines }) };
+  });
+  await step("n3", "R2 Atlas 4: a LOST dispute that arrives with NO prior 'created' revokes the live ticket and releases its seat once; replay no-op; a LATE 'created' afterwards does not reopen a hold", async () => {
+    const L = await buy(20, 1); const o0 = (await orderOf(L.session))[0]; registerToken(o0.qr_token); const s0 = await sold(20);
+    const lost = dispute(L.pi, "charge.dispute.closed", "lost"); const d1 = await fake.deliver(lost, { force: true }), d1b = await fake.deliver(lost, { force: true });
+    const o1 = (await orderOf(L.session))[0], s1 = await sold(20), door = await scan(who.org, o0.qr_token);
+    const d2 = await fake.deliver(dispute(L.pi, "charge.dispute.created"), { force: true }); const o2 = (await orderOf(L.session))[0], s2 = await sold(20), holds = (await q("select count(*)::int n from private.order_hold h join public.event_orders o on o.id=h.order_id where o.stripe_session_id=$1", [L.session]))[0].n;
+    return { pass: d1.status === 200 && d1b.status === 200 && o1.status === "cancelled" && s1 === s0 - 1 && door.ok === false && d2.status === 200 && o2.status === "cancelled" && s2 === s1 && holds === 0, note: `lost -> ${o1.status}, qty_sold ${s0}->${s1}, door ok=${door.ok}; late created ${d2.status}: ${o2.status}, qty_sold ${s2}, holds ${holds}` };
+  });
+  await step("n4", "R2 Atlas 4: a WON dispute followed by a LATE 'created' leaves the ticket paid and scannable (no hold reopened)", async () => {
+    const W = await buy(20, 1); const o0 = (await orderOf(W.session))[0]; registerToken(o0.qr_token); const s0 = await sold(20);
+    const dw = await fake.deliver(dispute(W.pi, "charge.dispute.closed", "won"), { force: true }), dc = await fake.deliver(dispute(W.pi, "charge.dispute.created"), { force: true });
+    const o1 = (await orderOf(W.session))[0], door = await scan(who.org, o0.qr_token), holds = (await q("select count(*)::int n from private.order_hold h join public.event_orders o on o.id=h.order_id where o.stripe_session_id=$1", [W.session]))[0].n;
+    return { pass: dw.status === 200 && dc.status === 200 && o1.status === "paid" && door.ok === true && holds === 0 && (await sold(20)) === s0, note: `won ${dw.status}, late created ${dc.status}: order ${o1.status}, door ok=${door.ok}, holds ${holds}, qty_sold ${s0}->${await sold(20)}` };
+  });
+  await step("n5", "R2 Sentinel: the payment-to-order binding is IMMUTABLE: a second session on a paid payment, an issued session re-used with another payment, and a direct ledger rebind are all refused; nothing new is issued", async () => {
+    const P = await buy(19, 1); const o0 = await orderOf(P.session); regTok(o0); const s0 = await sold(19), n0 = (await q("select count(*)::int n from public.event_orders"))[0].n;
+    const a = forgedEv({ payment_intent: P.pi, metadata: { event_id: "1", items: JSON.stringify([{ t: 19, q: 1, u: 500 }]) } }); const da = await fake.deliver(a.ev, { force: true }), La = await ledger(a.ev.id);
+    const b = forgedEv({ id: P.session, payment_intent: "pi_other_" + rnd(), metadata: { event_id: "1", items: JSON.stringify([{ t: 19, q: 1, u: 500 }]) } }); const db = await fake.deliver(b.ev, { force: true }), Lb = await ledger(b.ev.id);
+    let refused = false; try { await pc.query("update private.payment_ledger set session_id='cs_rebound' where payment_intent=$1", [P.pi]); } catch (e) { refused = /immutable/.test(String(e.message)); }
+    let refused2 = false; try { await pc.query("update private.payment_ledger set payment_intent='pi_x' where payment_intent=$1", [P.pi]); } catch (e) { refused2 = /immutable/.test(String(e.message)); }
+    const n1 = (await q("select count(*)::int n from public.event_orders"))[0].n, bound = (await q("select session_id from private.payment_ledger where payment_intent=$1", [P.pi]))[0].session_id;
+    return { pass: da.status === 200 && La?.detail?.rejected === "payment_bound_to_other_session" && db.status === 200 && Lb?.detail?.rejected === "session_bound_to_other_payment" && refused && refused2 && n1 === n0 && (await sold(19)) === s0 && bound === P.session, note: `second session on paid payment: ${La?.detail?.rejected}; issued session with another payment: ${Lb?.detail?.rejected}; rebind refused=${refused}/${refused2}; orders ${n0}->${n1}; binding still ${bound === P.session ? "original" : "CHANGED"}` };
+  });
+
   // =================== atomic capacity (Atlas 6)
   const probe = async (n, sqlOf) => { const cls = await Promise.all(Array.from({ length: n }, () => PG.newClient(hardDb.name, "authenticator")));
     const rs = await Promise.all(cls.map(async (c, i) => { const cl = c.client; try { await cl.query("BEGIN"); await cl.query("SET LOCAL ROLE service_role"); const r = await cl.query(sqlOf(i)); await cl.query("COMMIT"); return r.rows[0]?.j; } catch (e) { try { await cl.query("ROLLBACK"); } catch {} return { err: e.message }; } }));
@@ -205,16 +241,19 @@ async function main() {
   });
 
   // =================== redirects (Atlas 8) + logging (Atlas 2 / S4)
-  await step("g1", "Atlas 8: with KIL_SITE_URL set (staging), success_url and cancel_url stay on the staging site and never contain keepitil.com; unset = the production default is unchanged", async () => {
-    process.env.KIL_SITE_URL = "http://127.0.0.1:18080/"; const r = await call(buyerTok, { items: [{ tier_id: 17, quantity: 1 }] }); const s = fake.sessions.get(sid(r.body.url));
-    const stagingOk = s.success_url.startsWith("http://127.0.0.1:18080/event.html?e=") && s.cancel_url.startsWith("http://127.0.0.1:18080/event.html?e=") && !/keepitil\.com/.test(s.success_url + s.cancel_url);
-    delete process.env.KIL_SITE_URL; const r2 = await call(buyerTok, { items: [{ tier_id: 17, quantity: 1 }] }); const s2 = fake.sessions.get(sid(r2.body.url));
-    return { pass: stagingOk && s2.success_url.startsWith("https://keepitil.com/event.html?e="), note: `staging success_url host = ${new URL(s.success_url).host}; default host = ${new URL(s2.success_url).host}` };
+  await step("g1", "S5 / Atlas 8: the staging create-checkout has NO production default: with KIL_SITE_URL = the staging site the redirects stay on it; UNSET, keepitil.com, www / any subdomain and keepitil.github.io are all REFUSED (500, no Stripe session)", async () => {
+    const mk = async () => { const n0 = fake.sessions.size; const r = await call(buyerTok, { items: [{ tier_id: 17, quantity: 1 }] }); return { r, made: fake.sessions.size - n0 }; };
+    process.env.KIL_SITE_URL = "http://127.0.0.1:18080/"; const ok = await mk(); const s = ok.r.status === 200 ? fake.sessions.get(sid(ok.r.body.url)) : null;
+    const stagingOk = !!s && s.success_url.startsWith("http://127.0.0.1:18080/event.html?e=") && s.cancel_url.startsWith("http://127.0.0.1:18080/event.html?e=") && !/keepitil\.(com|github\.io)/.test(s.success_url + s.cancel_url);
+    const refusedCases = {}; for (const [k, v] of Object.entries({ unset: null, apex: "https://keepitil.com", www: "https://www.keepitil.com", sub: "https://staging.keepitil.com", ghio: "https://keepitil.github.io", empty: "", junk: "not a url" })) { if (v === null) delete process.env.KIL_SITE_URL; else process.env.KIL_SITE_URL = v; const x = await mk(); refusedCases[k] = x.r.status === 500 && x.made === 0; }
+    process.env.KIL_SITE_URL = "http://127.0.0.1:18080";
+    const allRefused = Object.values(refusedCases).every(Boolean);
+    return { pass: stagingOk && allRefused, note: `staging redirect ok=${stagingOk}; refused (500, no session): ${Object.entries(refusedCases).map(([k, v]) => k + "=" + v).join(" ")}` };
   });
   await step("l1", "Atlas 2 / S4: across this whole run the proposed webhook, the scenario and the fake wrote NO QR token (redactor saw zero token-shaped output); the unredacted v52 source is what logs `qr_tokens`", async () => {
     const v52logs = /qr_tokens/.test(readFileSync(DEPLOYED["stripe-webhook"].file, "utf8")) || /JSON\.stringify\(data\)/.test(readFileSync(DEPLOYED["stripe-webhook"].file, "utf8"));
     const v53logs = /qr_token/.test(readFileSync(webhookCopy, "utf8"));
-    return { pass: leaks() === 0 && v52logs && !v53logs, note: `redaction events in this run: ${leaks()}; v52 source logs rpc data (tokens): ${v52logs}; v53 source mentions qr_token: ${v53logs}` };
+    return { pass: leaks() === 0 && contactLeaks() === 0 && v52logs && !v53logs, note: `redaction events in this run: tokens ${leaks()}, contacts ${contactLeaks()}; v52 source logs rpc data (tokens): ${v52logs}; v53 source mentions qr_token: ${v53logs}` };
   });
   await step("i3", "no request ever left 127.0.0.1 (fake-Stripe / edge calls local; direct fetch to stripe.com blocked)", async () => {
     let blocked = false; try { await fetch("https://api.stripe.com/v1/charges"); } catch (e) { blocked = /LOCAL-ONLY/.test(String(e.message)); }

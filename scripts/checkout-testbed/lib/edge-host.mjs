@@ -11,6 +11,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { installDeno } from "../shims/deno.mjs";
 import { verifyJwt } from "./jwt.mjs";
+import { redact } from "./redact.mjs";      // a candidate's error text can carry contact / token values: nothing leaves the host unredacted (Atlas 2, round 2)
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const DEPLOYED = {
@@ -42,7 +43,7 @@ export async function startEdgeHost(opts = {}) {
       const request = new Request(`http://127.0.0.1${req.url}`, { method: req.method, headers, body: ["GET", "HEAD"].includes(req.method) ? undefined : body });
       const r = await handlers[slug](request);
       res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(Buffer.from(await r.arrayBuffer()));
-    } catch (e) { res.writeHead(500, { "content-type": "text/plain" }); res.end("edge host error: " + e); }
+    } catch (e) { res.writeHead(500, { "content-type": "text/plain" }); res.end(redact("edge host error: " + e)); }
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${server.address().port}`;

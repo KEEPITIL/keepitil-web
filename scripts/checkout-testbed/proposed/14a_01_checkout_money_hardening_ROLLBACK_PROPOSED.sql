@@ -1,5 +1,5 @@
 -- 14A-01 ROLLBACK: PROPOSAL ONLY. Order of operations: (1) redeploy the previous stripe-webhook (v52) FIRST, (2) run this. Dropping the v2 functions while the new webhook is live makes it answer 500.
--- Drops ONLY the three v2 functions. The ledger tables are KEPT on purpose (they are evidence: which events were applied, which payments were refunded or disputed); drop them by hand only after Joe/Sentinel agree.
+-- Drops ONLY the three v2 functions. The ledger tables (with their unique session index and binding-guard trigger + private.payment_ledger_binding_guard()) are KEPT on purpose (they are evidence: which events were applied, which payments were refunded or disputed); drop them by hand only after Joe/Sentinel agree.
 -- The baseline fulfill_ticket_order / refund_ticket_order were never modified, so nothing else needs restoring. If 14A-02 was applied, run 14a_02 ROLLBACK first (it re-grants the legacy functions).
 BEGIN;
 SET LOCAL lock_timeout = '5s';

@@ -38,7 +38,20 @@ export function assertLocalUrl(u) {
 /* LOCAL-ONLY PostgreSQL (Sentinel S1): the harness creates and DROPS databases and roles, so it must never reach a remote server. Allowed: a Unix socket directory (starts with "/"), 127.0.0.1, ::1, localhost.
    Anything else (a Supabase / cloud host, a LAN address, undefined) throws before any connection is attempted. */
 export function assertLocalPgHost(h) { if (!(typeof h === "string" && (h.startsWith("/") || ["127.0.0.1", "::1", "localhost"].includes(h)))) throw new GuardError(`LOCAL-ONLY: refusing PostgreSQL host "${String(h).slice(0, 80)}": the harness only talks to a local socket / loopback (it creates and drops databases and roles)`); return h; }
-export function guardEnv(env = process.env) { refuseLiveKeys(env); refuseNonLocalHosts(env); }
+/* HARD REFUSAL of the production / live-product project refs (Sentinel S1, round 2). The local-host check alone would let a prod ref ride in through a variable that is never dialled; this refuses it BY NAME.
+   PROD_REF (keepitil-prod) is refused in ANY environment variable of any name. The other refs (kode scheduler, NEXUS, and the staging project, which the real run uses but this LOCAL harness never may) are refused in
+   the variables a database or Stripe client could read (PG*, SUPABASE*, DATABASE*, POSTGRES*, KIL_*, STRIPE_*, FAKE_*). Values are never printed: only the variable NAME and which project. */
+export const PROD_REF = "ovmqtzjfpzrbzrlkxwgw";
+export const OTHER_REFS = { "xdoxfoectugsbbujjezq": "kode (live scheduler)", "dojmswwxmdtizrtoirem": "NEXUS", "efuuwcgifgbukplrbyuf": "keepitil-staging (real-run only, never this local harness)" };
+const DBISH = /^(PG|SUPABASE|DATABASE|POSTGRES|KIL_|STRIPE_|FAKE_)/i;
+export function refuseProductionRefs(env = process.env) {
+  for (const [k, v] of Object.entries(env)) {
+    if (typeof v !== "string" || !v) continue;
+    if (v.includes(PROD_REF)) throw new GuardError(`NO-PROD: environment variable ${k} contains the PRODUCTION project ref (keepitil-prod). The harness refuses to start.`);
+    if (DBISH.test(k)) for (const [ref, label] of Object.entries(OTHER_REFS)) if (v.includes(ref)) throw new GuardError(`NO-PROD: environment variable ${k} contains the ${label} project ref. This local harness refuses to start.`);
+  }
+}
+export function guardEnv(env = process.env) { refuseProductionRefs(env); refuseLiveKeys(env); refuseNonLocalHosts(env); }
 
 let installed = false;
 export function installEgressGuard() {

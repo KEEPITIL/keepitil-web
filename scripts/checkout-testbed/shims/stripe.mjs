@@ -1,6 +1,6 @@
 /* shims/stripe.mjs - LOCAL STAND-IN for the `stripe` npm package (v14 for create-checkout, v16 for stripe-webhook in prod).
    It is NOT the real Stripe library. It implements only what the two deployed functions call:
-     new Stripe(key, opts), .checkout.sessions.create(params), .paymentIntents.retrieve(id), .webhooks.constructEventAsync(payload, header, secret, tolerance)
+     new Stripe(key, opts), .checkout.sessions.create(params), .paymentIntents.retrieve(id), .charges.retrieve(id), .refunds.list(q), .refunds.create(params, {idempotencyKey}), .webhooks.constructEventAsync(payload, header, secret, tolerance)
    Network: every call goes to the LOCAL FAKE Stripe at process.env.KIL_FAKE_STRIPE_BASE (127.0.0.1 only; anything else throws). The key must be the local fake (sk_test_local_FAKE...).
    constructEventAsync re-implements Stripe's documented v1 signature scheme (header "t=<unix>,v1=<hex>[,v1=...]"; HMAC-SHA256 of "<t>.<raw body>" with the endpoint secret; 300 s tolerance; constant-time compare).
    UNVERIFIED against the real library: error message wording and any behaviour beyond that scheme. */
@@ -18,13 +18,16 @@ export default class Stripe {
     const self = this;
     this.checkout = { sessions: { create: (p) => self._req("POST", "/v1/checkout/sessions", p) } };
     this.paymentIntents = { retrieve: (id) => self._req("GET", "/v1/payment_intents/" + encodeURIComponent(id)) };
+    this.charges = { retrieve: (id) => self._req("GET", "/v1/charges/" + encodeURIComponent(id)) };
+    this.refunds = { list: (q = {}) => self._req("GET", "/v1/refunds?" + new URLSearchParams(Object.entries(q).map(([k, v]) => [k, String(v)])).toString()), create: (p, o = {}) => self._req("POST", "/v1/refunds", p, o.idempotencyKey) };
     this.webhooks = {
       constructEventAsync: async (payload, header, secret, tolerance = 300) => self._construct(payload, header, secret, tolerance),
       constructEvent: (payload, header, secret, tolerance = 300) => self._construct(payload, header, secret, tolerance),
     };
   }
-  async _req(method, path, params) {
+  async _req(method, path, params, idempotencyKey) {
     const init = { method, headers: { Authorization: `Bearer ${this._key}`, "Stripe-Version": this._cfg.apiVersion || "" } };
+    if (idempotencyKey) init.headers["Idempotency-Key"] = idempotencyKey;
     if (method === "POST") { init.headers["Content-Type"] = "application/x-www-form-urlencoded"; init.body = encodeForm(params); }
     const r = await fetch(this._base + path, init);
     const j = await r.json().catch(() => ({}));

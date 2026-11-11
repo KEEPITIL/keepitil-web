@@ -1,0 +1,15 @@
+PROPOSED HANDOFF PATCH (not applied, not deployed): create-checkout redirect base from env KIL_SITE_URL (default https://keepitil.com = unchanged). Unified diff against the EXACT deployed v58 source (md5 aad74a1bf95522b914578d2ebc78c6d6; `patch -p1` with the file as index.ts).
+A staging create-checkout MUST set KIL_SITE_URL to the staging site; without it success_url / cancel_url point at production keepitil.com.
+
+--- a/index.ts
++++ b/index.ts
+@@ -58,7 +58,8 @@
+     const b = await req.json();
+     // Canonical root. There is no /v3 or /v31 any more — both were deleted, and pointing a
+     // POST-PAYMENT redirect at a deleted namespace is a 404 at the worst possible moment.
+-    const SITE = "https://keepitil.com";
++    // PROPOSED (Atlas 8): the post-payment redirect base is configurable so a STAGING deployment never sends a buyer to production. Unset = production, unchanged.
++    const SITE = (Deno.env.get("KIL_SITE_URL") || "https://keepitil.com").replace(/\/+$/, "");
+ 
+     // ═══ VS ENTRY FEE — runs first, returns early; ticket logic below is untouched ═══
+     if (b.kind === "vs_entry") {

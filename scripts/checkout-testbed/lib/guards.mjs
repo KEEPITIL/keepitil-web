@@ -35,6 +35,9 @@ export function assertLocalUrl(u) {
   if (h !== "127.0.0.1") throw new GuardError(`LOCAL-ONLY: refusing to contact host "${h}" (${String(u).slice(0, 60)}). Only 127.0.0.1 is allowed.`);
   return u;
 }
+/* LOCAL-ONLY PostgreSQL (Sentinel S1): the harness creates and DROPS databases and roles, so it must never reach a remote server. Allowed: a Unix socket directory (starts with "/"), 127.0.0.1, ::1, localhost.
+   Anything else (a Supabase / cloud host, a LAN address, undefined) throws before any connection is attempted. */
+export function assertLocalPgHost(h) { if (!(typeof h === "string" && (h.startsWith("/") || ["127.0.0.1", "::1", "localhost"].includes(h)))) throw new GuardError(`LOCAL-ONLY: refusing PostgreSQL host "${String(h).slice(0, 80)}": the harness only talks to a local socket / loopback (it creates and drops databases and roles)`); return h; }
 export function guardEnv(env = process.env) { refuseLiveKeys(env); refuseNonLocalHosts(env); }
 
 let installed = false;

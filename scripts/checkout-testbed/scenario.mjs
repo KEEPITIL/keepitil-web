@@ -2,9 +2,10 @@
    NO live mode, NO real Stripe (egress guard: only 127.0.0.1), NO secrets (fake keys generated at runtime, kept in memory/env only).
    Usage: node --no-warnings scenario.mjs        (run.sh starts/stops Postgres around it and enforces the load gate)
    Output: PASS/FAIL table + JSON in $KIL_OUT (default ./out). */
+import { registerToken, redact } from "./lib/redact.mjs";   // FIRST: no QR token in any log or evidence file (Atlas 2 / S4)
 import "./shims/register.mjs";
 import { randomBytes, randomUUID } from "node:crypto";
-import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
+import { mkdirSync, writeFileSync as writeFileSyncRaw, existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +19,7 @@ import { tmpdir } from "node:os";
 import { loadJsQR, assertDecodes, JSQR_SHA256 } from "./lib/qr-decode.mjs";
 import { buildTemplates, makeReq, insertFixture, PG } from "./lib/testbed-db.mjs";
 
+const writeFileSync2 = (f, d) => writeFileSyncRaw(f, typeof d === "string" ? redact(d) : d);   // evidence files are redacted too
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..", "..");
 const OUT = process.env.KIL_OUT || join(HERE, "out"); mkdirSync(OUT, { recursive: true });
@@ -102,11 +104,11 @@ async function main() {
   await step("b1", "hosted page is the SIMULATED local page (labelled) and shows the 4242 test card", async () => { const h = await (await fetch(P1.url)).text(); return { pass: /SIMULATED/.test(h) && /NOT Stripe's hosted checkout/.test(h) && /4242 4242 4242 4242/.test(h) }; });
   await step("b2", "a non-4242 card is declined by the fake (402) and nothing is fulfilled", async () => { const n0 = (await q("select count(*)::int n from public.event_orders"))[0].n; const r = await pay(P1.url, "4000 0000 0000 0002"); const n1 = (await q("select count(*)::int n from public.event_orders"))[0].n; return { pass: r.status === 402 && n0 === n1 }; });
   await step("b3", "pay $1 ticket with 4242 -> fake emits SIGNED checkout.session.completed -> deployed webhook -> fulfill_ticket_order: exactly one paid row, qr_token, qty_sold+1, buyer_handle from account email, fee + destination recorded from the PaymentIntent", async () => {
-    const s0 = await sold(1); const r = await pay(P1.url); const o = await orders(P1.session); tok1 = o[0]?.qr_token;
+    const s0 = await sold(1); const r = await pay(P1.url); const o = await orders(P1.session); tok1 = o[0]?.qr_token; registerToken(tok1);
     const dd = fake.deliveries.at(-1); const ok = r.status === 200 && dd.status === 200 && o.length === 1 && o[0].status === "paid" && /^[0-9a-f]{32}$/.test(tok1 || "") && o[0].buyer_handle === "buyerhandle" && o[0].qty === 1 && o[0].amount_cents === 100 && o[0].application_fee_cents === feeFor(100, 1) && o[0].organizer_acct === "acct_local_FAKE_org" && (await sold(1)) === s0 + 1;
-    return { pass: ok, note: `webhook ${dd.status}; rows=${o.length}; status=${o[0]?.status}; handle=${o[0]?.buyer_handle}; fee=${o[0]?.application_fee_cents}c; qty_sold ${s0}->${await sold(1)}; token=${(tok1 || "").slice(0, 4)}...(32 chars)` };
+    return { pass: ok, note: `webhook ${dd.status}; rows=${o.length}; status=${o[0]?.status}; handle=${o[0]?.buyer_handle}; fee=${o[0]?.application_fee_cents}c; qty_sold ${s0}->${await sold(1)}; token present (32 chars, not printed)` };
   });
-  await step("b4", "pay 2 x $25 ticket -> one paid row, qty 2, qty_sold+2", async () => { const s0 = await sold(2); await pay(P2.url); const o = await orders(P2.session); tok2 = o[0]?.qr_token; return { pass: o.length === 1 && o[0].status === "paid" && o[0].qty === 2 && o[0].amount_cents === 5000 && (await sold(2)) === s0 + 2, note: `rows=${o.length} qty=${o[0]?.qty} amount=${o[0]?.amount_cents}c application_fee=${o[0]?.application_fee_cents}c qty_sold ${s0}->${await sold(2)}` }; });
+  await step("b4", "pay 2 x $25 ticket -> one paid row, qty 2, qty_sold+2", async () => { const s0 = await sold(2); await pay(P2.url); const o = await orders(P2.session); tok2 = o[0]?.qr_token; registerToken(tok2); return { pass: o.length === 1 && o[0].status === "paid" && o[0].qty === 2 && o[0].amount_cents === 5000 && (await sold(2)) === s0 + 2, note: `rows=${o.length} qty=${o[0]?.qty} amount=${o[0]?.amount_cents}c application_fee=${o[0]?.application_fee_cents}c qty_sold ${s0}->${await sold(2)}` }; });
 
   // ======================= (c) idempotency + signature failures
   const ev1 = fake.events.find((e) => e.type === "checkout.session.completed" && e.data.object.id === P1.session);
@@ -129,7 +131,7 @@ async function main() {
     const qrcode = require(join(REPO, "assets/js/vendor/qrcode.js")), KQ = require(join(REPO, "assets/js/kil-ticket-qr.js"));
     const mk = (p) => { const c = qrcode(0, "M"); c.addData(p); c.make(); return c; };
     const pTickets = KQ.payload(tok1, { prefix: true }), pProfile = KQ.payload(tok1);
-    const svg = mk(pTickets).createSvgTag(4, 8); writeFileSync(join(OUT, "wallet-qr-tickets-page.svg"), svg); writeFileSync(join(OUT, "wallet-qr-profile-page.svg"), mk(pProfile).createSvgTag(4, 8));
+    const svg = mk(pTickets).createSvgTag(4, 8); /* (the QR SVGs encode a real token: not written to disk) */
     const jsQR = loadJsQR(); /* throws (-> FAIL) if the vendored decoder is missing or its sha256 differs: d2 never skips */
     const dT = assertDecodes(jsQR, mk(pTickets), "KIL-" + tok1), dP = assertDecodes(jsQR, mk(pProfile), tok1); /* throws (-> FAIL) unless decoded text equals the payload exactly */
     const okDecode = dT === "KIL-" + tok1 && dP === tok1;
@@ -227,5 +229,5 @@ const pass = results.filter((r) => r.pass).length;
 console.log("\n===== RESULTS =====");
 for (const r of results) console.log(`${r.pass ? "PASS" : "FAIL"}  ${r.id.padEnd(3)} ${r.name.slice(0, 130)}`);
 console.log(`\n${pass}/${results.length} PASS` + (failure ? "  (run aborted: " + failure.message + ")" : ""));
-writeFileSync(join(OUT, "results.json"), JSON.stringify({ results, evidence, pass, total: results.length, aborted: failure ? String(failure.message) : null }, null, 1));
+writeFileSync2(join(OUT, "results.json"), JSON.stringify({ results, evidence, pass, total: results.length, aborted: failure ? String(failure.message) : null }, null, 1));
 process.exit(failure || pass !== results.length ? 1 : 0);

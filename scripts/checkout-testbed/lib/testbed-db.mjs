@@ -8,6 +8,7 @@ import * as PG from "./pgdb.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const IN = (f) => readFileSync(join(HERE, "..", "db-inputs", f), "utf8");
+const INP = (f) => readFileSync(join(HERE, "..", "proposed", f), "utf8");
 export { PG };
 
 export async function runPack(c, sql) {
@@ -15,7 +16,7 @@ export async function runPack(c, sql) {
   catch (e) { try { await c.query("ROLLBACK"); } catch {} return { ok: false, err: String(e.message) }; }
 }
 
-export async function buildTemplates() {
+export async function buildTemplates({ money = false } = {}) {
   await PG.ensureRoles();
   const base = await PG.createDb(null); const c = base.client;
   await c.query(IN("replica-13a.sql").replace("-- @@REFUND_VERBATIM@@", IN("refund_ticket_order.VERBATIM.sql") + ";").replace("-- @@LIVE_READERS_VERBATIM@@", IN("live-readers.VERBATIM.sql")));
@@ -29,6 +30,10 @@ export async function buildTemplates() {
   const packLog = [];
   for (const f of ["12a_01_event_checkin_scan_APPLY_PROPOSED.sql", "12a_02_check_in_ticket_APPLY_PROPOSED.sql", "13a_01_event_orders_APPLY_PROPOSED.sql"]) {
     const r = await runPack(base.client, IN(f)); packLog.push({ pack: f, ok: r.ok && (!r.rows?.length || r.rows.every((x) => x.ok === true)), checks: r.rows?.length, err: r.err });
+    if (!packLog.at(-1).ok) throw new Error("pack " + f + " did not apply on the replica: " + (r.err || JSON.stringify((r.rows || []).filter((x) => x.ok !== true))));
+  }
+  if (money) {   // 14A-01 money hardening on top of the 12A/13A-hardened state, by running the pack file itself
+    const f = "14a_01_checkout_money_hardening_APPLY_PROPOSED.sql"; const r = await runPack(base.client, INP(f)); packLog.push({ pack: f, ok: r.ok && !!r.rows?.length && r.rows.every((x) => x.ok === true), checks: r.rows?.length, err: r.err });
     if (!packLog.at(-1).ok) throw new Error("pack " + f + " did not apply on the replica: " + (r.err || JSON.stringify((r.rows || []).filter((x) => x.ok !== true))));
   }
   const hard = (await PG.snapshotDb(base)).pgTemplate;

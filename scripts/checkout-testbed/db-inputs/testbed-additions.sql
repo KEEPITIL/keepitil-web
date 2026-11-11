@@ -7,3 +7,6 @@ create table public.platform_config (key text primary key, value text not null);
 insert into public.platform_config (key, value) values ('application_fee_bps', '250'), ('per_ticket_fee_under10_cents', '49'), ('per_ticket_fee_over10_cents', '99');
 revoke all on public.platform_config from public, anon, authenticated;
 grant select on public.platform_config to service_role;
+-- STUB (testbed only): prod has the real public.vs_refund_entry_payment (VS competition entry fees); the testbed carries no VS tables, so this no-op keeps the webhook's refund branch callable. It touches nothing.
+create function public.vs_refund_entry_payment(p_session_id text, p_payment_intent text) returns jsonb language sql security definer set search_path = '' as $$ select '{"ok":true,"stub":true}'::jsonb $$;
+revoke all on function public.vs_refund_entry_payment(text,text) from public, anon, authenticated; grant execute on function public.vs_refund_entry_payment(text,text) to service_role;

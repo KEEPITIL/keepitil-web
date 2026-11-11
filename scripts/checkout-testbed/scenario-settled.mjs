@@ -2,9 +2,10 @@
    Two edge hosts serve the webhook: (1) the DEPLOYED v52 source, unmodified (md5-pinned) = NEGATIVE CONTROL; (2) a PATCHED COPY made at run time by applying
    patches/stripe-webhook-payment-settled.PROPOSED.diff (the handoff diff from PR #154) to a copy of the deployed source. The deployed file itself is never modified.
    Usage: node --no-warnings scenario-settled.mjs      (run-settled.sh starts/stops Postgres around it and enforces the load gate) */
+import { registerToken, redact } from "./lib/redact.mjs";   // FIRST: no QR token in any log or evidence file (Atlas 2 / S4)
 import "./shims/register.mjs";
 import { randomBytes, randomUUID, createHash } from "node:crypto";
-import { mkdirSync, writeFileSync, readFileSync, copyFileSync, mkdtempSync } from "node:fs";
+import { mkdirSync, writeFileSync as writeFileSyncRaw, readFileSync, copyFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
@@ -15,6 +16,7 @@ import { FakeStripe } from "./lib/fake-stripe.mjs";
 import { startEdgeHost, verifyDeployedSources, DEPLOYED, md5File } from "./lib/edge-host.mjs";
 import { buildTemplates, insertFixture, PG } from "./lib/testbed-db.mjs";
 
+const writeFileSync2 = (f, d) => writeFileSyncRaw(f, typeof d === "string" ? redact(d) : d);   // evidence files are redacted too
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.KIL_OUT || join(HERE, "out"); mkdirSync(OUT, { recursive: true });
 const results = []; const rnd = () => randomBytes(12).toString("hex");
@@ -97,11 +99,11 @@ async function main() {
   });
 
   await hostU.stop(); await hostP.stop(); await fake.stop(); await shimDb.disconnect(); await hardDb.close(); await PG.dropDb(T.s0); await PG.dropDb(T.hard); await PG.dropRoles(); await PG.shutdownAdmin();
-  writeFileSync(join(OUT, "settled-evidence.json"), JSON.stringify({ deployedMd5, patchedMd5, diffSha256: createHash("sha256").update(diff).digest("hex") }, null, 1));
+  writeFileSync2(join(OUT, "settled-evidence.json"), JSON.stringify({ deployedMd5, patchedMd5, diffSha256: createHash("sha256").update(diff).digest("hex") }, null, 1));
 }
 let failure = null; try { await main(); } catch (e) { failure = e; console.log("FATAL", e?.stack || e); try { await PG.cleanupAll(); await PG.dropRoles(); await PG.shutdownAdmin(); } catch {} }
 const pass = results.filter((r) => r.pass).length; console.log("\n===== RESULTS =====");
 for (const r of results) console.log(`${r.pass ? "PASS" : "FAIL"}  ${r.id.padEnd(3)} ${r.name.slice(0, 140)}`);
 console.log(`\n${pass}/${results.length} PASS` + (failure ? "  (run aborted: " + failure.message + ")" : ""));
-writeFileSync(join(OUT, "results-settled.json"), JSON.stringify({ results, pass, total: results.length, aborted: failure ? String(failure.message) : null }, null, 1));
+writeFileSync2(join(OUT, "results-settled.json"), JSON.stringify({ results, pass, total: results.length, aborted: failure ? String(failure.message) : null }, null, 1));
 process.exit(failure || pass !== results.length ? 1 : 0);

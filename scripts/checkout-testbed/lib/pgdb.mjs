@@ -13,7 +13,10 @@ const PGL = process.env.KIL_PG_HOME || join(homedir(), "work/pg-local");
 const require = createRequire(join(process.env.KIL_PG_NODE_MODULES || PGL, "x.js"));
 const pg = require("pg");
 pg.types.setTypeParser(20, (v) => { const n = BigInt(v); return n <= 9007199254740991n && n >= -9007199254740991n ? Number(n) : n; });   // int8 like PGlite
+import { assertLocalPgHost } from "./guards.mjs";   // LOCAL-ONLY (Sentinel S1): this module creates and DROPS databases and roles; see guards.mjs
+export { assertLocalPgHost };
 const CONN = { host: process.env.PGHOST || process.env.KIL_PG_SOCKET_DIR || join(PGL, "run"), port: Number(process.env.PGPORT || process.env.KIL_PG_PORT || 54329) };
+assertLocalPgHost(CONN.host);
 const ADMIN_USER = process.env.PGUSER || "pgadmin", ADMIN_DB = process.env.PGDATABASE || "postgres";
 export const RUN = Math.random().toString(36).slice(2, 7);
 let seq = 0; const owned = new Set();         // databases created by this run
@@ -24,18 +27,19 @@ const adm = async () => { if (!admin) { const c = new pg.Client({ ...CONN, user:
 const nm = (k) => `kil_rehearsal_${RUN}_${k}${++seq}`;
 const quote = (s) => '"' + s.replace(/"/g, '""') + '"';
 
+const createdRoles = new Set();   // roles this run created: the ONLY ones dropRoles may touch (Atlas 1: a pre-existing role and its tables are never dropped)
 export const STANDIN_ROLES = ["authenticator", "anon", "authenticated", "service_role", "postgres"];
 export async function ensureRoles() {
   const a = await adm();
   for (const [r, attrs] of [["anon", "NOLOGIN"], ["authenticated", "NOLOGIN"], ["service_role", "NOLOGIN BYPASSRLS"], ["postgres", "LOGIN NOSUPERUSER CREATEROLE CREATEDB BYPASSRLS"], ["authenticator", "LOGIN NOINHERIT NOSUPERUSER"]]) {
     const ex = (await a.query("select 1 from pg_roles where rolname=$1", [r])).rowCount;
     if (ex) throw new Error(`role ${r} already exists in the cluster: refusing to reuse (a previous run did not clean up?)`);
-    await a.query(`CREATE ROLE ${r} ${attrs}`); }
+    await a.query(`CREATE ROLE ${r} ${attrs}`); createdRoles.add(r); }
   await a.query("GRANT anon, authenticated, service_role TO postgres");   // like Supabase: the owner role may SET ROLE into the API roles (PG requires membership)
   await a.query("GRANT anon, authenticated, service_role TO authenticator");   // PostgREST-style connection role: no privileges of its own (NOINHERIT), switches with SET LOCAL ROLE
   await a.query("GRANT pg_read_all_stats TO postgres");                          // lets the harness watch pg_stat_activity wait events of the other test sessions
 }
-export async function dropRoles() { const a = await adm(); for (const r of STANDIN_ROLES) { await a.query(`DROP OWNED BY ${r}`).catch(() => {}); await a.query(`DROP ROLE IF EXISTS ${r}`).catch((e) => console.log("dropRole " + r + ": " + e.message)); } }
+export async function dropRoles() { const a = await adm(); for (const r of [...createdRoles]) { await a.query(`DROP OWNED BY ${r}`).catch(() => {}); await a.query(`DROP ROLE IF EXISTS ${r}`).then(() => createdRoles.delete(r)).catch((e) => console.log("dropRole " + r + ": " + e.message)); } }
 
 function normalize(r) { return { rows: r.rows || [], fields: r.fields || [], affectedRows: r.rowCount ?? undefined, command: r.command }; }
 export class PgDb {
@@ -56,9 +60,11 @@ export async function snapshotDb(db) {
   const a = await adm(); const name = nm("s");
   try { await a.query(`CREATE DATABASE ${quote(name)} OWNER postgres TEMPLATE ${quote(db.name)}`); owned.add(name); } finally { await db.connect(); }
   return { pgTemplate: name }; }
-export async function dropDb(name) { const a = await adm(); await a.query(`DROP DATABASE IF EXISTS ${quote(name)} WITH (FORCE)`); owned.delete(name); }
+export async function dropDb(name) { if (!owned.has(name)) throw new Error(`refusing to drop database "${name}": it was not created by this run`); const a = await adm(); await a.query(`DROP DATABASE IF EXISTS ${quote(name)} WITH (FORCE)`); owned.delete(name); }
 export async function cleanupAll() { for (const n of [...owned]) { try { await dropDb(n); } catch (e) { console.log("cleanup " + n + ": " + e.message); } } }
 export async function adminQuery(sql, params) { return (await adm()).query(sql, params); }
 export async function shutdownAdmin() { if (admin) { try { await admin.end(); } catch {} admin = null; } }
 export const newClient = async (dbname, user = "postgres") => new PgDb(dbname, user).connect();
+export const ownedRoles = () => [...createdRoles];
+export const ownedDbs = () => [...owned];
 export const connInfo = () => ({ ...CONN });

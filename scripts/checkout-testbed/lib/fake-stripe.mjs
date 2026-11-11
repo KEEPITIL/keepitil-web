@@ -4,7 +4,8 @@
      POST /v1/refunds {payment_intent}   -> refund; then emits a SIGNED charge.refunded webhook
      GET/POST /pay/:session              -> SIMULATED hosted page ("this is not Stripe's page"); only 4242 4242 4242 4242 succeeds; success emits a SIGNED checkout.session.completed webhook
    Webhooks use Stripe's v1 scheme: header "t=<unix>,v1=<HMAC-SHA256 hex of '<t>.<body>'>" with the fake endpoint secret. Everything is recorded in .log for evidence.
-   NOT modelled (real Stripe only): 3-D Secure, Apple Pay, async payment methods, disputes, transfer / application-fee reversal on refund, webhook retry schedule, event ordering, Connect account state. */
+   GET /v1/charges/:id, GET /v1/refunds?charge=, POST /v1/refunds {payment_intent, amount?} (partial; nextRefundStatus='pending' simulates a pending refund; Idempotency-Key honoured)
+   NOT modelled (real Stripe only): 3-D Secure, Apple Pay, async payment methods, real dispute objects (tests hand-build signed dispute events), transfer / application-fee reversal on refund, webhook retry schedule, event ordering, Connect account state. */
 import http from "node:http";
 import { createHmac, randomBytes } from "node:crypto";
 import { decodeForm } from "./form.mjs";
@@ -14,7 +15,7 @@ const rid = (p) => p + randomBytes(9).toString("hex");
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 export class FakeStripe {
-  constructor({ secretKey, whsec }) { this.secretKey = secretKey; this.whsec = whsec; this.sessions = new Map(); this.pis = new Map(); this.charges = new Map(); this.refunds = []; this.log = []; this.webhookUrl = null; this.deliveries = []; this.events = []; this.server = null; this.base = null; }
+  constructor({ secretKey, whsec }) { this.secretKey = secretKey; this.whsec = whsec; this.sessions = new Map(); this.pis = new Map(); this.charges = new Map(); this.refunds = []; this.log = []; this.webhookUrl = null; this.deliveries = []; this.events = []; this.idem = new Map(); this.hold = false; this.held = []; this.nextRefundStatus = null; this.suppressRefundWebhook = false; this.server = null; this.base = null; }
   async start() {
     this.server = http.createServer((req, res) => this._handle(req, res).catch((e) => { res.writeHead(500, { "content-type": "application/json" }); res.end(JSON.stringify({ error: { message: String(e) } })); }));
     await new Promise((r) => this.server.listen(0, "127.0.0.1", r));
@@ -24,7 +25,10 @@ export class FakeStripe {
   setWebhookTarget(url) { this.webhookUrl = assertLocalUrl(url); }
   sign(body, t = Math.floor(Date.now() / 1000), secret = this.whsec) { return `t=${t},v1=${createHmac("sha256", secret).update(`${t}.${body}`).digest("hex")}`; }
   event(type, obj) { return { id: rid("evt_local_"), object: "event", api_version: "2024-06-20", created: Math.floor(Date.now() / 1000), livemode: false, pending_webhooks: 1, type, data: { object: obj } }; }
-  async deliver(event, { secret, t, rawBody, header } = {}) {
+  /* hold = true: webhooks are QUEUED in .held instead of delivered (tests then release them in any order with deliver(e, {force:true}): out-of-order / retry scenarios). */
+  takeHeld(pred) { const i = this.held.findIndex(pred); return i < 0 ? null : this.held.splice(i, 1)[0]; }
+  async deliver(event, { secret, t, rawBody, header, force } = {}) {
+    if (this.hold && !force) { this.held.push(event); const d = { type: event?.type, id: event?.id, status: "held", text: "" }; this.deliveries.push(d); return d; }
     const body = rawBody ?? JSON.stringify(event);
     const sig = header !== undefined ? header : this.sign(body, t, secret);
     const headers = { "content-type": "application/json", "user-agent": "Stripe/1.0 (LOCAL FAKE)" }; if (sig !== null) headers["stripe-signature"] = sig;
@@ -52,13 +56,19 @@ export class FakeStripe {
       }
       let m;
       if (req.method === "GET" && (m = url.pathname.match(/^\/v1\/payment_intents\/([\w]+)$/))) { const pi = this.pis.get(m[1]); return pi ? json(200, pi) : json(404, { error: { type: "invalid_request_error", message: "No such payment_intent" } }); }
+      if (req.method === "GET" && (m = url.pathname.match(/^\/v1\/charges\/([\w]+)$/))) { const ch = this.charges.get(m[1]); return ch ? json(200, ch) : json(404, { error: { type: "invalid_request_error", message: "No such charge" } }); }
+      if (req.method === "GET" && url.pathname === "/v1/refunds") { const c = url.searchParams.get("charge"); return json(200, { object: "list", data: this.refunds.filter((r) => !c || r.charge === c), has_more: false }); }
       if (req.method === "POST" && url.pathname === "/v1/refunds") {
+        const idem = req.headers["idempotency-key"]; if (idem && this.idem.has(idem)) return json(200, this.idem.get(idem));
         const p = decodeForm(raw); const pi = this.pis.get(p.payment_intent);
         if (!pi) return json(404, { error: { type: "invalid_request_error", message: "No such payment_intent" } });
-        if (pi.status === "refunded") return json(400, { error: { type: "invalid_request_error", message: "Charge already refunded" } });
-        pi.status = "refunded"; const ch = this.charges.get(pi.latest_charge); ch.refunded = true; ch.amount_refunded = ch.amount;
-        const rf = { id: rid("re_local_"), object: "refund", amount: ch.amount, charge: ch.id, payment_intent: pi.id, status: "succeeded" }; this.refunds.push(rf);
-        const d = await this.deliver(this.event("charge.refunded", { ...ch }));
+        const ch = this.charges.get(pi.latest_charge); const left = ch.amount - ch.amount_refunded, amount = p.amount != null ? Number(p.amount) : left;
+        if (!(amount > 0) || amount > left) return json(400, { error: { type: "invalid_request_error", message: "Refund amount invalid or charge already refunded" } });
+        const status = this.nextRefundStatus || "succeeded"; this.nextRefundStatus = null;
+        const rf = { id: rid("re_local_"), object: "refund", amount, charge: ch.id, payment_intent: pi.id, status, metadata: p.metadata || {} }; this.refunds.push(rf);
+        if (status === "succeeded") { ch.amount_refunded += amount; ch.refunded = ch.amount_refunded >= ch.amount; if (ch.refunded) pi.status = "refunded"; }
+        if (idem) this.idem.set(idem, rf);
+        const d = this.suppressRefundWebhook ? { status: "suppressed" } : await this.deliver(this.event("charge.refunded", { ...ch }));
         res.setHeader("x-local-webhook-status", String(d.status)); return json(200, rf);
       }
       return json(404, { error: { type: "invalid_request_error", message: "Unrecognized request URL (local fake)" } });

@@ -15,7 +15,7 @@ trap cleanup EXIT INT TERM
 $PGBIN/pg-start.sh >/dev/null 2>&1 || { echo "pg-start failed"; exit 8; }
 ( while true; do echo "$(date +%T) load=$(load) free_mem_pct=$(free)" >> $SAMPLES; sleep 3; done ) &
 SAMPLER=$!
-node --no-warnings $HERE/scenario.mjs > $OUT/run.log 2>&1 &
+node --no-warnings $HERE/${KIL_SCENARIO:-scenario.mjs} > $OUT/run.log 2>&1 &
 NODEPID=$!
 while kill -0 $NODEPID 2>/dev/null; do
   if [ "$(echo "$(load) > 10" | bc -l)" = "1" ]; then echo "ABORT: load > 10 mid-run: stopping"; kill $NODEPID; break; fi

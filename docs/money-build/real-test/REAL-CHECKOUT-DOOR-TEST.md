@@ -1,6 +1,6 @@
 # DRAFT: test-mode checkout + QR door-scan test steps (Thursday go/no-go)
 
-Status: **DRAFT, docs only, 2026-11-11 (rev 3: Atlas items 8-10 and Sentinel S5 added; see sections 2a, 4a, 6a, 11).** Nothing here has been run. No Stripe, no prod connection and no secret was used to write it.
+Status: **DRAFT, docs only, 2026-11-11 (rev 4: round-2 Sentinel S5 - staging checkout has no production default, the preflight is ENFORCED by a run gate, negative tests completed; rev 3 added Atlas 8-10; see sections 2a, 4a, 6a, 11).** Nothing here has been run. No Stripe, no prod connection and no secret was used to write it.
 
 **Rev 2 replaces the earlier LIVE $1 plan.** Grok's directive (2026-11-10, 8:03 / 8:05 PM PT, relayed by KODE) changed it:
 
@@ -81,17 +81,25 @@ The run must be unable to reach production, by construction and by test.
 
 **Preflight (hard gate).** `docs/money-build/real-test/preflight-staging-only.mjs` (unit-tested with negative controls in `preflight-staging-only.test.mjs`) must print `PREFLIGHT OK` on the machine that holds the keys BEFORE any checkout, using the real environment (`KIL_STAGING_REF`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `KIL_SITE_URL`, `KIL_WEBHOOK_ENDPOINT_URL`). It refuses: the prod, kode or nexus project ref anywhere (as ref, URL host, or a key's `ref` claim); a Supabase host other than `<staging ref>.supabase.co`; a webhook endpoint that is not that project's `stripe-webhook`; keys whose `ref` claim or `role` is wrong; any non-test Stripe key; a redirect / site URL on keepitil.com (apex, www, any subdomain, keepitil.github.io); `KIL_PRODUCTION_WRITES` set. It prints check names only, never a value.
 
+**The gate is the only way to start the run (round 2: "enforce the preflight when the run starts").** Every step of the real run that creates a checkout session, calls Stripe or touches the staging database is launched as
+`node docs/money-build/real-test/real-run-gate.mjs -- <command>`. The gate runs the preflight FIRST; on any failed check it prints the check names (never a value), exits 2 and the command is never spawned
+(`real-run-gate.test.mjs` proves this with a real child process and a marker file, over 15 broken configurations). There is no default anywhere: an unset `KIL_SITE_URL` is a failed check, and the staging
+`create-checkout` itself answers 500 and creates no session when `KIL_SITE_URL` is unset or on keepitil.com (P13). The production ref is also refused in an environment variable of ANY name.
+After the first session is created, `check-session-redirect.mjs cs_test_...` (run through the gate) reads it from Stripe with the TEST key and fails unless `success_url` and `cancel_url` are on the staging host (N4, automated).
+
 **Required negative tests (all must be recorded as run; any miss = NO-GO):**
 
 | # | Negative test | Expected |
 |---|---|---|
-| N1 | Run the preflight unit tests (`node --test docs/money-build/real-test/preflight-staging-only.test.mjs`). | all pass |
+| N1 | Run the gate tests (`node --test docs/money-build/real-test/*.test.mjs`: preflight, run gate, redirect check; also run by CI `real-test-gates.yml`). | all pass (13 or more) |
 | N2 | Preflight with the real environment. | `PREFLIGHT OK` |
 | N3 | Preflight re-run with ONE variable temporarily pointed at prod (e.g. `SUPABASE_URL`) in a throwaway shell (never saved). | `PREFLIGHT FAILED`, names only |
-| N4 | Create a staging checkout session; read its `success_url` / `cancel_url` (Stripe TEST dashboard or API). | host is the staging site; contains no `keepitil.com` |
+| N4 | Create a staging checkout session; run `check-session-redirect.mjs <session id>` through the gate. | `REDIRECT OK`; host is the staging site; no `keepitil.com` |
 | N5 | KODE read-only on PROD before and after the whole run: `event_orders` row count and max id, `ticket_tiers` sum(qty_sold), `payment` / ledger tables absent. | identical before and after |
 | N6 | Staging stripe-webhook receives an event signed with a different secret (Stripe CLI `stripe trigger` to the wrong endpoint, or a hand-signed body). | 400, no row |
 | N7 | Every Stripe dashboard object used shows the TEST-mode banner; the Connect account is a TEST account created fresh for this run. | yes |
+| N8 | In a throwaway shell run `real-run-gate.mjs -- touch /tmp/gate-marker` once with `KIL_SITE_URL` UNSET and once with it set to `https://keepitil.com` (never saved). | both exit 2; the marker file does NOT exist |
+| N9 | KODE read-only on the STAGING create-checkout: with its `KIL_SITE_URL` secret NAME present (value not read), call it with a valid staging user and confirm the session's redirect host (N4). Then KODE confirms from the deployed source that an unset or keepitil.com value answers 500 (source md5 in P13), without unsetting anything. | source md5 matches P13; N4 ok |
 
 ## 3. Preconditions (who verifies)
 
@@ -108,9 +116,9 @@ The run must be unable to reach production, by construction and by test.
 | P9 | Baseline aggregates before the test: paid-order count, checked-in count, refunded count, test tier `qty_sold` (expected 0). | KODE read-only, aggregates only | Never PII (no emails, handles, tokens). |
 | P10 | Door route chosen. Route B additionally needs 12A applied on staging per #154's apply-order doc and a door UI served (#141/#142 merged, or app #49 `--door-test-variant`). | KODE / Joe | Until then route A only. |
 | P11 | Kill switch known: `platform_config.ticketing_enabled='0'` pauses paid sales on that project. | KODE read-only | |
-| P13 | **Staging create-checkout redirects stay on staging (Atlas 8).** The deployed v58 hard-codes `SITE = "https://keepitil.com"`, so a buyer who pays on staging would be sent to PRODUCTION. Staging must run the patched copy (`patches/create-checkout-site-env.PROPOSED.diff` in PR #157) with the secret `KIL_SITE_URL` = the staging site. | KODE reads the deployed source + secret NAME (not value) on staging | Hard blocker; N4 proves it. |
+| P13 | **Staging create-checkout redirects stay on staging (Atlas 8).** The deployed v58 hard-codes `SITE = "https://keepitil.com"`, so a buyer who pays on staging would be sent to PRODUCTION. Staging must run the STAGING-ONLY fail-closed copy (`patches/create-checkout-staging-site.PROPOSED.diff` in PR #157, diff sha256 `b9fcdc3a87f46b3b6a307abb1a56841c5b4023e3e92bc51db6e4b0b5e2ad7aa4`, expected md5 of the result `5b6a6340319b19effdc810a6aa92d2dc`, from deployed v58 md5 `aad74a1bf95522b914578d2ebc78c6d6`): it has NO production default, answers 500 and creates no session when `KIL_SITE_URL` is unset or a keepitil.com / keepitil.github.io host. The secret `KIL_SITE_URL` = the staging site. NEVER deploy this copy to the production project. | KODE reads the deployed source + secret NAME (not value) on staging | Hard blocker; N4 proves it. |
 | P14 | **Staging webhook is the pinned patched v53 (Atlas 9).** Source = PR #157 `patches/stripe-webhook-money-hardening.PROPOSED.diff` applied to deployed v52 (md5 `33840e79eebb15fbb5d8a2a02787e002`); expected md5 of the result `cdd67dbfc85cc7dbd9b7a5ce651b589e`; the matching SQL (14A-01) applied on STAGING only. KODE reads the deployed function source on staging read-only and compares md5 and the diff's sha256. Anything else (stock v52, a hand edit) = NO-GO. | KODE | Without it an `unpaid` completed session is fulfilled and refunds are unsafe. |
-| P15 | Preflight (section 2a) printed `PREFLIGHT OK`; N1 recorded. | KODE | |
+| P15 | Preflight (section 2a) printed `PREFLIGHT OK` and every real-run command was launched through `real-run-gate.mjs`; N1, N8 recorded. | KODE | |
 | P12 | Phone ready for the QR scan: camera access, the test site/app build installed. | Joe | |
 
 ## 4. Purchase steps (Joe, buyer profile; evidence = screenshot with keys/tokens redacted + KODE read-only aggregates)

@@ -33,3 +33,8 @@ test("NC: keys whose ref claim is not the staging ref, or whose role is swapped,
 });
 test("NC: production writes flag and any value mentioning a denied ref are refused", () => { fails({ ...good(), KIL_PRODUCTION_WRITES: "1" }, /PRODUCTION_WRITES/); fails({ ...good(), KIL_NOTE: "see ovmqtzjfpzrbzrlkxwgw" }, /denied project ref/); });
 test("the failure output never contains a key or token value", () => { const e = { ...good(), STRIPE_SECRET_KEY: "sk_live_SUPERSECRETVALUE" }; const out = JSON.stringify(checkStaging(e)); assert.ok(!out.includes("SUPERSECRETVALUE")); });
+
+test("NC (round 2): the production ref is refused in a variable of ANY name; a missing KIL_SITE_URL has NO default and is refused", () => {
+  fails({ ...good(), NOTES_FOR_ME: "db is ovmqtzjfpzrbzrlkxwgw" }, /ANY name/);
+  const e = good(); delete e.KIL_SITE_URL; fails(e, /KIL_SITE_URL/);
+});

@@ -28,6 +28,7 @@ export function checkStaging(env) {
   // no value anywhere in the testbed's own variables may mention a denied project ref, a live key or a production host
   const names = Object.keys(env).filter((k) => /^(KIL_|SUPABASE_|STRIPE_)/.test(k));
   need("no configured value mentions a denied project ref (prod / kode / nexus)", !names.some((k) => Object.keys(DENY_REFS).some((r) => String(env[k]).includes(r)) || Object.keys(DENY_REFS).some((r) => jwtRef(env[k]) === r)));
+  need("no environment variable of ANY name mentions the production project ref", !Object.values(env).some((v) => typeof v === "string" && v.includes("ovmqtzjfpzrbzrlkxwgw")));
   need("no configured value is a live Stripe key", !names.some((k) => /(sk|pk|rk)_live_/.test(String(env[k]))));
   need("no configured URL points at a keepitil production host", !names.some((k) => /^https?:\/\//.test(String(env[k])) && DENY_HOSTS.some((h) => hostOf(String(env[k])) === h)));
   need("KIL_PRODUCTION_WRITES is not enabled", !["1", "true", "yes"].includes(String(env.KIL_PRODUCTION_WRITES || "").toLowerCase()));

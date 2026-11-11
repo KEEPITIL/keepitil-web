@@ -32,6 +32,6 @@ SELECT 'V4_orders_surface_unchanged' AS q,
        md5(coalesce((SELECT string_agg(indexname::text, ',' ORDER BY indexname::text) FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'event_orders'), '')) AS index_names_md5,
        md5(coalesce((SELECT string_agg(conname::text, ',' ORDER BY conname::text) FROM pg_constraint WHERE conrelid = to_regclass('public.event_orders')), '')) AS constraint_names_md5;
 
--- V5 definition capture of the two public functions (the read-only "backup" the SQL connector can produce: full text + ACL + config; run it BEFORE step 1 and keep the output; the verbatim originals are also in the ROLLBACK packs)
+-- V5 definition capture of the two public functions (one input of the backup; the single backup definition is db/proposed/13a-orders-hardening/RUNBOOK-APPLY-BACKUP-ROLLBACK.md section 2: run it BEFORE step 1 and keep the output)
 SELECT 'V5_definition_capture' AS q, p.oid::regprocedure::text AS fn, pg_get_functiondef(p.oid) AS definition, p.proacl::text AS acl_raw, p.proconfig::text AS config
   FROM pg_proc p WHERE p.proname IN ('check_in_ticket', 'event_checkin_scan') AND p.pronamespace = 'public'::regnamespace ORDER BY 2;

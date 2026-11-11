@@ -1,1 +1,1 @@
-peak load1=7.94 min free mem pct=63
+peak load1=2.89 min free mem pct=61

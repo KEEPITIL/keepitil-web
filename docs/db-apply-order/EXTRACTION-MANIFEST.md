@@ -63,3 +63,11 @@ Merging this PR does not apply any SQL. No SQL here is approved to run. See `APP
 * `db/proposed/11b-combined-rehearsal/lib/pgdb.mjs`: env-driven connection (PGHOST/PGPORT/PGUSER/PGDATABASE; unset = the previous local socket defaults).
 * 13A: `baseline/live-readers.VERBATIM.sql` (prod bodies), replica now loads them, F-D drift guard pins the verbatim `get_ticket` body, `DIFF.md`, `RUNBOOK-APPLY-BACKUP-ROLLBACK.md`, `CAPTURE-READONLY.sql`.
 * R1's proof harness (`run-combined.mjs`, 11B matrix) is still not in this tree; it cannot run from here.
+
+## Update 2026-11-10 (JOB 30, fixes for Sentinel's FAIL of this PR; still DRAFT, MERGING THIS DOES NOT FIX PROD)
+
+* Blocker 1 (chain): the 12A packs no longer require schema `private` to be absent; the guard accepts absent or exactly prod's four postgres-only incident tables and aborts on anything else; the packs create only `private.door_checkin_core`, fingerprint-check the four tables, never drop the schema. Proofs `_job30/prove.mjs` J01-J07 (prod-shaped and fresh replicas, pre-fix pack fails, 12 negative controls).
+* Blocker 2 (rollback): default `*_ROLLBACK_PROPOSED.sql` refuse (fail closed); `*_ROLLBACK_REOPEN_HOLES_UNSAFE_PROPOSED.sql` need `SET kil.rollback_reopen_ack` (J10-J16).
+* Blocker 3 (backup, hardening): one backup definition (runbook section 2), capture verify row, `replay-from-capture.mjs`, no-data-change proof, search_path scan, default-privilege hardening (J20-J23, J30-J32, J40-J44).
+* Blocker 4: checkout bearer stays in PR #153 (`CHECKOUT-DEPENDENCIES.md`); webhook payment-settled handoff diff `handoff/stripe-webhook-payment-settled.PROPOSED.diff`, proved in PR #157's testbed.
+* `db/proposed/_shared/` (prod-shaped replica SQL), `db/proposed/_job30/` (proof + pre-fix fixture), pgdb.mjs gains a `supabase_admin` stand-in role; db-proofs.yml gains the Sentinel-fix step.

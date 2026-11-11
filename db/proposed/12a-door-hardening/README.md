@@ -30,7 +30,7 @@
 
 Every pack: ONE transaction; right after `BEGIN` come `SET LOCAL lock_timeout = '5s';`, `SELECT pg_advisory_xact_lock(2979301232487107403);` (the repo-wide pack key from R1 #136, asserted equal by the generator) and `SET LOCAL lock_timeout = '5s';` again (a second runner fails with SQLSTATE 55P03 after ~5 s instead of waiting; the timeout is also set before the lock because a timeout set after a lock statement cannot bound that statement's wait; this replaces the earlier `'10s'`); then `SET LOCAL statement_timeout`; a DRIFT GUARD (a `DO` block that aborts the whole transaction naming every mismatching fact, and refuses unless `current_user = 'postgres'`); the change; in-transaction POST-CHECK assertions (failure rolls everything back); a RETAINED OUTPUT `SELECT` (one row per fact plus `000_ALL_OK`). ACLs are fingerprinted with the sorted-ACL expression from #136.
 
-The drift guard asserts: both functions (single overload, body md5, `proconfig`, SECURITY DEFINER, owner, language/return type, sorted ACL, EXECUTE for anon/authenticated/service_role/PUBLIC); schema `private` absent (step 1) or present with exactly the core and no grants (step 2); `event_orders` relkind/RLS flags, column names+types md5, sorted table ACL, policy names/commands/roles/permissive md5, constraint shapes (PK, 2 FKs with delete actions, one CHECK with exactly the five status literals), zero user triggers; the columns the functions read exist in `events`, `app_users`, `ticket_tiers`; `auth.uid()` exists. (Policy predicates are not hashed because their exact catalog text was not captured; PRECHECK Q09 shows them for review.)
+The drift guard asserts: both functions (single overload, body md5, `proconfig`, SECURITY DEFINER, owner, language/return type, sorted ACL, EXECUTE for anon/authenticated/service_role/PUBLIC); schema `private` either absent (fresh database) or exactly prod's shape (the four postgres-only incident tables with their own indexes / sequences / types, nothing else, no client access, no client default ACL), plus the core in states S1/S2; the four tables are fingerprinted at the start of step 1 and re-checked at its end; `event_orders` relkind/RLS flags, column names+types md5, sorted table ACL, policy names/commands/roles/permissive md5, constraint shapes (PK, 2 FKs with delete actions, one CHECK with exactly the five status literals), zero user triggers; the columns the functions read exist in `events`, `app_users`, `ticket_tiers`; `auth.uid()` exists. (Policy predicates are not hashed because their exact catalog text was not captured; PRECHECK Q09 shows them for review.)
 
 ## Design (what the hardened functions do)
 
@@ -46,15 +46,15 @@ Behaviour changes callers should know (all proven in the matrix): `check_in_tick
 
 Exact order: **12A step 1, 12A step 2, then 13A (#138). 13A's drift guard refuses a 13A-first order.** One function at a time; abort on any drift.
 
-1. Backup (see definition below). Run `PRECHECK-12A.sql`, `12a_DRIFT_QUERY_PROPOSED.sql` (expect `S0_original`) and `VERIFY-12A.sql`; attach all outputs.
+1. Verified backup: `db/proposed/13a-orders-hardening/RUNBOOK-APPLY-BACKUP-ROLLBACK.md` section 2 is the single definition (capture twice + compare, no-data-change proof, dashboard backup optional). Run `PRECHECK-12A.sql`, `12a_DRIFT_QUERY_PROPOSED.sql` (expect `S0_original`) and `VERIFY-12A.sql`; attach all outputs.
 2. Step 1: run `12a_01_..._APPLY_PROPOSED.sql` as postgres in one call (or `psql -v ON_ERROR_STOP=1`). Retain the final result set (every row `ok = true`). Run `12a_POSTCHECKS_S1_*`. Sentinel isolated tests (raw / `KIL-` / null-owner / anon / replay) against the scan.
 3. Step 2 only after step 1 is verified: run `12a_02_..._APPLY_PROPOSED.sql`; retain output; run `POSTCHECKS_S2` and `VERIFY-12A.sql`; Sentinel tests against `check_in_ticket`. Fixture scans stay isolated/boolean-only; **verify zero TEST ATLAS rows** (VERIFY-12A reports the count).
 4. Then 13A per its own README. The optional UNIQUE-index pack is a separate later decision (after 13A, because 13A's drift guard asserts the exact index list; non-transactional; run PRECHECK first, expect zero duplicates).
 5. Any `DRIFT` or failed post-check: the transaction has already rolled back; stop and report (do not edit literals in place).
 
-**Backup definition.** What the connector can produce read-only is the definition capture: function/policy/grant definitions via PRECHECK-12A and the DRIFT_QUERY output, plus VERIFY-12A's definition capture and the verbatim originals inside the ROLLBACK packs. 12A changes no table, column, policy, grant, index or row (proof R01, R02), so a data backup is not needed to undo it; a full data backup is a dashboard action for Joe and is his call (nothing here pretends to be one).
+**Backup definition.** Single source of truth: `db/proposed/13a-orders-hardening/RUNBOOK-APPLY-BACKUP-ROLLBACK.md` section 2. Not restated here.
 
-**Rollback criteria.** Roll back (ROLLBACK 02 then ROLLBACK 01, then `POSTCHECKS_S0`) if: a post-check fails after commit, any Sentinel isolated test fails, door staff report valid tickets refused as `invalid`/`forbidden` that should admit, or any reader of `checked_in_at`/`status` misbehaves (e.g. `organizer_dashboard` counts). Rollbacks have their own drift guard and restore the captured originals byte-for-byte (P09).
+**Rollback criteria.** Roll back (ROLLBACK 02 then ROLLBACK 01, then `POSTCHECKS_S0`) if: a post-check fails after commit, any Sentinel isolated test fails, door staff report valid tickets refused as `invalid`/`forbidden` that should admit, or any reader of `checked_in_at`/`status` misbehaves (e.g. `organizer_dashboard` counts). **Rollback is FAIL CLOSED by default** (`db/proposed/13a-orders-hardening/RUNBOOK-APPLY-BACKUP-ROLLBACK.md` section 5): the default `*_ROLLBACK_PROPOSED.sql` packs refuse because every 12A change closes a hole; the captured originals are restored only by `*_ROLLBACK_REOPEN_HOLES_UNSAFE_PROPOSED.sql` with an explicit acknowledgement (byte-for-byte restore: P09; schema `private` is never dropped).
 
 ## What is proven (real PostgreSQL 17.6, socket only, replica, synthetic data)
 
@@ -87,7 +87,7 @@ Full table: `MATRIX-RESULTS.md`. Summary of the last run (2026-11-10): behaviour
 4. Admission keeps `status='paid'` (readers count paid + `checked_in_at`); status `checked_in` is treated as already used but never written. Confirm.
 5. One QR = one order = whole `qty` admitted at once (no per-seat model); unchanged, `qty` is returned so door staff can see the party size.
 6. Authorisation stays owner-handle only (no staff/delegate model).
-7. Schema name `private` (per directive). If prod already has one the apply refuses; the alternative is a dedicated name.
+7. Schema name `private` (per directive). Prod already has one (four incident tables): the packs now accept exactly that shape and never drop it (chain repair, proofs J01-J05 in `../_job30/prove.mjs`).
 8. No per-user throttling of scan attempts (128-bit tokens make guessing impractical); add one if wanted.
 9. Apply as two separate transactions (as specified) means a window where scan is hardened and ticket is not; that is the "one function at a time" requirement.
 

@@ -2,7 +2,7 @@
 
 Status: **DRAFT PR, base `draft/12a-door-hardening` (PR #137).** No prod connection was made by this job; prod facts are the read-only captures in `baseline/PROD-FACTS-13A.md` and `../12a-door-hardening/baseline/PROD-FACTS-12A.md`. `db/` is excluded from the Pages publish; nothing applies these files. No live page, Edge Function, adapter or locked file is touched.
 
-**Apply gate (binding): NO prod SQL without Joe's relayed yes + a Sentinel pass + a backup.** Run `PRECHECK-13A.sql` first, compare with the baseline, then pack 01.
+**Apply gate (binding): NO prod SQL without Joe's relayed yes + a Sentinel pass at the exact commit + a verified backup (section 2 of `RUNBOOK-APPLY-BACKUP-ROLLBACK.md`, the single backup definition).** Run `PRECHECK-13A.sql` first, compare with the baseline, then pack 01.
 
 ## The finding being fixed
 
@@ -26,7 +26,7 @@ Stripe -> `stripe-webhook` (service_role) -> `fulfill_ticket_order` (SECURITY DE
 | `MATRIX-RESULTS.md`, `PATH-REPORT.md` | results; repo grep + verdict |
 | `baseline/live-readers.VERBATIM.sql` | VERBATIM prod bodies of `get_my_tickets()` and `get_ticket(p_qr)` (read-only capture 2026-11-10; md5 `c3885372...` / `1814becc...`); the replica loads it and the F-D drift guard pins it |
 | `DIFF.md` | exact diff live `get_ticket` -> F-D wrapper (only the `buyer` key is removed); statement that `get_my_tickets` is NOT changed by 13A and how pack 01 interacts with it |
-| `RUNBOOK-APPLY-BACKUP-ROLLBACK.md`, `CAPTURE-READONLY.sql` | backup-first apply order, rollback in reverse (13A before 12A), post-rollback fingerprint check; the read-only definition capture (proof P38) |
+| `RUNBOOK-APPLY-BACKUP-ROLLBACK.md`, `CAPTURE-READONLY.sql`, `replay-from-capture.mjs` | the SINGLE backup definition (section 2), fail-closed rollback (section 5: default refuses, `*_ROLLBACK_REOPEN_HOLES_UNSAFE_PROPOSED.sql` needs an acknowledgement), post-rollback fingerprint check; read-only capture (P38, J20) and replay from the capture alone (J21) |
 
 Pack frame (same as #136 / #137): `BEGIN; SET LOCAL lock_timeout='5s'; SELECT pg_advisory_xact_lock(2979301232487107403); SET LOCAL lock_timeout='5s';` as the first statements, run as `postgres`, one transaction, drift guard that aborts on any difference from the captured state, sorted-ACL fingerprints, post-check inside the transaction, ROLLBACK pack, DRIFT_QUERY, POSTCHECKS.
 
@@ -58,7 +58,7 @@ Pack frame (same as #136 / #137): `BEGIN; SET LOCAL lock_timeout='5s'; SELECT pg
 3. 13A pack 01, retain its evidence SELECT; run POSTCHECKS S1.
 4. Optional: pack 02 (F-D) any time, before or after pack 01 (independent; shares the advisory lock).
 5. Smoke after apply: a Stripe **test-mode** purchase through create-checkout -> webhook -> `fulfill_ticket_order` (service_role) produces an order; a test refund flips it. This is the one thing the replica cannot prove about the real Stripe/Edge Function wiring.
-6. Rollback: 13A pack 01 rollback BEFORE any 12A rollback.
+6. Rollback is FAIL CLOSED (runbook section 5): the default rollback packs refuse; the explicit-override packs go 13A before 12A.
 
 ## F-D: `get_ticket(p_qr)` buyer e-mail (optional pack 02)
 

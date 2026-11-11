@@ -24,10 +24,10 @@ const adm = async () => { if (!admin) { const c = new pg.Client({ ...CONN, user:
 const nm = (k) => `kil_rehearsal_${RUN}_${k}${++seq}`;
 const quote = (s) => '"' + s.replace(/"/g, '""') + '"';
 
-export const STANDIN_ROLES = ["authenticator", "anon", "authenticated", "service_role", "postgres"];
+export const STANDIN_ROLES = ["authenticator", "anon", "authenticated", "service_role", "postgres", "supabase_admin"];
 export async function ensureRoles() {
   const a = await adm();
-  for (const [r, attrs] of [["anon", "NOLOGIN"], ["authenticated", "NOLOGIN"], ["service_role", "NOLOGIN BYPASSRLS"], ["postgres", "LOGIN NOSUPERUSER CREATEROLE CREATEDB BYPASSRLS"], ["authenticator", "LOGIN NOINHERIT NOSUPERUSER"]]) {
+  for (const [r, attrs] of [["anon", "NOLOGIN"], ["authenticated", "NOLOGIN"], ["service_role", "NOLOGIN BYPASSRLS"], ["postgres", "LOGIN NOSUPERUSER CREATEROLE CREATEDB BYPASSRLS"], ["authenticator", "LOGIN NOINHERIT NOSUPERUSER"], ["supabase_admin", "NOLOGIN NOSUPERUSER"]]) {   // supabase_admin: stand-in for the platform role that owns some prod objects and has default ACLs in public (NOT a member relationship with postgres unless a test grants it)
     const ex = (await a.query("select 1 from pg_roles where rolname=$1", [r])).rowCount;
     if (ex) throw new Error(`role ${r} already exists in the cluster: refusing to reuse (a previous run did not clean up?)`);
     await a.query(`CREATE ROLE ${r} ${attrs}`); }

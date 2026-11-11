@@ -1,7 +1,7 @@
 {
  "summary": {
   "engine": "PostgreSQL 17.6 (embedded-postgres, Unix socket only)",
-  "seconds": 125,
+  "seconds": 47,
   "matrix": {
    "total": 37,
    "pass": 37
@@ -491,7 +491,7 @@
   },
   {
    "id": "P21",
-   "name": "ROLLBACK ORDER: after 12A + 13A, rolling back 12A first REFUSES (guard); 13A rollback first then 12A rollbacks works; end state = original (fingerprint equal to the pre-12A original)",
+   "name": "ROLLBACK ORDER (explicit UNSAFE overrides): after 12A + 13A, rolling back 12A first REFUSES (guard); 13A rollback first then 12A rollbacks works; end state = original (fingerprint equal to the pre-12A original); schema private is KEPT with its 4 incident tables, core gone",
    "pass": true,
    "why": ""
   },

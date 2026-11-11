@@ -18,9 +18,14 @@ const HERE = join(dirname(fileURLToPath(import.meta.url)), "..");
 const rd = (...p) => readFileSync(join(HERE, ...p), "utf8");
 const rd12 = (n) => readFileSync(join(HERE, "..", "12a-door-hardening", "packs", n), "utf8");
 const PK = (n) => rd("packs", n);
+const SHARED = (n) => readFileSync(join(HERE, "..", "_shared", n), "utf8");
 const PACK = { a1: "13a_01_event_orders_APPLY_PROPOSED.sql", r1: "13a_01_event_orders_ROLLBACK_PROPOSED.sql", a2: "13a_02_get_ticket_APPLY_PROPOSED.sql", r2: "13a_02_get_ticket_ROLLBACK_PROPOSED.sql",
+  u1: "13a_01_event_orders_ROLLBACK_REOPEN_HOLES_UNSAFE_PROPOSED.sql", u2: "13a_02_get_ticket_ROLLBACK_REOPEN_HOLES_UNSAFE_PROPOSED.sql",
   drift: "13a_DRIFT_QUERY_PROPOSED.sql", pc: { S0: "13a_POSTCHECKS_orders_S0_original_PROPOSED.sql", S1: "13a_POSTCHECKS_orders_S1_after-pack01_PROPOSED.sql", G0: "13a_POSTCHECKS_get_ticket_G0_original_PROPOSED.sql", G1: "13a_POSTCHECKS_get_ticket_G1_after-pack02_PROPOSED.sql" } };
-const P12 = { a1: "12a_01_event_checkin_scan_APPLY_PROPOSED.sql", a2: "12a_02_check_in_ticket_APPLY_PROPOSED.sql", r1: "12a_01_event_checkin_scan_ROLLBACK_PROPOSED.sql", r2: "12a_02_check_in_ticket_ROLLBACK_PROPOSED.sql" };
+const P12 = { a1: "12a_01_event_checkin_scan_APPLY_PROPOSED.sql", a2: "12a_02_check_in_ticket_APPLY_PROPOSED.sql", r1: "12a_01_event_checkin_scan_ROLLBACK_PROPOSED.sql", r2: "12a_02_check_in_ticket_ROLLBACK_PROPOSED.sql", u1: "12a_01_event_checkin_scan_ROLLBACK_REOPEN_HOLES_UNSAFE_PROPOSED.sql", u2: "12a_02_check_in_ticket_ROLLBACK_REOPEN_HOLES_UNSAFE_PROPOSED.sql" };
+const ACKSQL = (id) => `SET kil.rollback_reopen_ack = 'I-ACCEPT-REOPENING-HOLES-${id}';\n`;      // the explicit override the UNSAFE rollback packs demand
+const UNS = (n, id) => ACKSQL(id) + PK(n);
+const UNS12 = (n, id) => ACKSQL(id) + rd12(n);
 const md5 = (s) => createHash("md5").update(s).digest("hex");
 const tok = (l) => md5("13a-fixture-token-" + l);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -154,6 +159,9 @@ async function main() {
   await c.query("REVOKE ALL ON FUNCTION public.check_in_ticket(text) FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.check_in_ticket(text) TO anon, authenticated, service_role;");
   await c.query("REVOKE ALL ON FUNCTION public.event_checkin_scan(text) FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.event_checkin_scan(text) TO authenticated, service_role;");
   await c.query(FIXTURE_SQL);
+  /* PROD-SHAPED: schema private pre-exists with the four postgres-only incident tables (empty); pg_default_acl mirrors prod (postgres + supabase_admin default grants in public) */
+  await c.query(SHARED("prod-shape-private.sql"));
+  { const sa = await PG.newClient(base.name, "pgadmin"); try { await sa.client.query(SHARED("prod-shape-default-acl.sql")); } finally { await sa.disconnect(); } }
   ORIG_POL = Object.fromEntries((await c.query("select policyname, qual, with_check, roles::text r from pg_policies where schemaname='public' and tablename='event_orders'")).rows.map((x) => [x.policyname, x.qual + "|" + x.with_check + "|" + x.r]));
   tplOrig = (await PG.snapshotDb(base)).pgTemplate;
   const mk = async (from, sqls) => { const d = await PG.createDb(from); open.push(d); for (const [n, s] of sqls) { const r = await runPack(d.client, s); if (!r.ok || (r.rows.length && !allOk(r.rows))) throw new Error("template build failed at " + n + ": " + (r.err || "rows not ok")); } const t = (await PG.snapshotDb(d)).pgTemplate; await d.close(); open.splice(open.indexOf(d), 1); return t; };
@@ -161,7 +169,7 @@ async function main() {
   tplHard12 = await mk(tplOrig12, [["13a-1", PK(PACK.a1)]]);
   /* 13A first, then the 12A hardened functions installed WITHOUT the 12A drift guard (the 12A packs refuse on a 13A-hardened table: P20) */
   const d13 = await PG.createDb(tplOrig); open.push(d13); { const r = await runPack(d13.client, PK(PACK.a1)); if (!r.ok) throw new Error("13A first build: " + r.err);
-    await d13.client.query("create schema private; revoke all on schema private from public, anon, authenticated, service_role;"); await d13.client.query(HARD12.core); await d13.client.query("revoke all on function private.door_checkin_core(text) from public, anon, authenticated, service_role;");
+    await d13.client.query("create schema if not exists private; revoke all on schema private from public, anon, authenticated, service_role;"); await d13.client.query(HARD12.core); await d13.client.query("revoke all on function private.door_checkin_core(text) from public, anon, authenticated, service_role;");
     await d13.client.query(HARD12.scan); await d13.client.query("revoke all on function public.event_checkin_scan(text) from public, anon; grant execute on function public.event_checkin_scan(text) to authenticated, service_role;");
     await d13.client.query(HARD12.ticket); await d13.client.query("revoke all on function public.check_in_ticket(text) from public, anon; grant execute on function public.check_in_ticket(text) to authenticated, service_role;");
     tplHard13then12 = (await PG.snapshotDb(d13)).pgTemplate; await d13.close(); open.splice(open.indexOf(d13), 1); }
@@ -256,14 +264,14 @@ async function main() {
 
   /* ============================ B. pack / structural proofs ============================ */
   await structural("P01", "static: every APPLY/ROLLBACK pack = ONE BEGIN, SET LOCAL lock_timeout 5s, advisory lock 2979301232487107403, SET LOCAL lock_timeout 5s as statements 2-4, one COMMIT last, drift guard, no data DML, no secrets", async () => {
-    for (const n of [PACK.a1, PACK.r1, PACK.a2, PACK.r2]) { const s = PK(n); const code = s.replace(/^\s*--.*$/gm, "").replace(/\$(acl|stash|restore|guard|post)\$[\s\S]*?\$\1\$/g, "").replace(/\$function\$[\s\S]*?\$function\$/g, "").replace(/'(?:[^']|'')*'/g, "''");
+    for (const n of [PACK.a1, PACK.r1, PACK.u1, PACK.a2, PACK.r2, PACK.u2]) { const s = PK(n); const code = s.replace(/^\s*--.*$/gm, "").replace(/\$(acl|stash|restore|guard|post|ack|refuse)\$[\s\S]*?\$\1\$/g, "").replace(/\$function\$[\s\S]*?\$function\$/g, "").replace(/'(?:[^']|'')*'/g, "''");
       const stmts = rd("packs", n).replace(/^\s*--.*$/gm, "").split(/;[ \t]*\r?\n/).map((t) => t.trim()).filter(Boolean);
       if (stmts[0] !== "BEGIN") return n + ": first statement is not BEGIN"; if (stmts[1] !== "SET LOCAL lock_timeout = '5s'" || stmts[2] !== `SELECT pg_advisory_xact_lock(${REPO_PACK_KEY})` || stmts[3] !== "SET LOCAL lock_timeout = '5s'") return n + ": statements 2-4 are not timeout/lock/timeout";
       if (stmts[stmts.length - 1] !== "COMMIT") return n + ": last statement is not COMMIT"; if ((s.match(/^BEGIN;/gm) || []).length !== 1 || (s.match(/^COMMIT;/gm) || []).length !== 1) return n + ": BEGIN/COMMIT count";
       if (/\b(TRUNCATE|DELETE\s+FROM|INSERT\s+INTO|UPDATE\s+public\.|DROP\s+TABLE|ALTER\s+TABLE|CASCADE)\b/i.test(code)) return n + ": touches data/tables outside the intended DDL";
       if (!/DRIFT, ABORT/.test(s)) return n + ": no drift guard"; if (/password|secret|api[_-]?key|service_role_key|eyJ/i.test(s.replace(/service_role/g, ""))) return n + ": secret-looking text"; }
     return true; });
-  await structural("P02", "generator is reproducible: build.mjs --check is clean (packs + PRECHECK == inputs)", async () => { const files = buildAll(); for (const [n, s] of files) if (rd("packs", n) !== s) return "drift in " + n; return files.size === 10 || "file count " + files.size; });
+  await structural("P02", "generator is reproducible: build.mjs --check is clean (packs + PRECHECK == inputs)", async () => { const files = buildAll(); for (const [n, s] of files) if (rd("packs", n) !== s) return "drift in " + n; return files.size === 12 || "file count " + files.size; });
   await structural("P03", "replica sanity: replica = captured S0 / G0 (POSTCHECKS S0/G0 all ok, DRIFT_QUERY says S0_original + G0_original); fulfill body whitespace-md5 equals the facts body", async () => {
     const w = await mkWorld(tplOrig); try { const d = await drift(w); const a = await pcOk(w, "S0"), b = await pcOk(w, "G0"); const m = (await w.q("select md5(regexp_replace(prosrc, '\\s+', '', 'g')) m from pg_proc where proname='fulfill_ticket_order'")).rows[0].m;
       return (d.orders === "S0_original" && d.get_ticket === "G0_original" && a && b && m === FULFILL_WS_MD5) || JSON.stringify({ d, a, b }); } finally { await w.close(); } });
@@ -273,10 +281,10 @@ async function main() {
   await structural("P05", "second APPLY-01 refuses at the guard (DRIFT, ABORT) and changes nothing", async () => {
     const w = await mkWorld(tplOrig); try { await runPack(w.db.client, PK(PACK.a1)); const f0 = await fp(w); const r = await runPack(w.db.client, PK(PACK.a1)); const f1 = await fp(w); return (driftAbort(r) && same(f0, f1)) || JSON.stringify({ r: r.err }); } finally { await w.close(); } });
   await structural("P06", "ROLLBACK-01 restores the captured original EXACTLY: raw + sorted ACL, column ACLs, policy names/roles/cmd/permissive/qual/with_check byte-identical, indexes, RLS flags, data; state S0; a second ROLLBACK refuses", async () => {
-    const w = await mkWorld(tplOrig); try { const f0 = await fp(w); await runPack(w.db.client, PK(PACK.a1)); const mid = await fp(w); const r = await runPack(w.db.client, PK(PACK.r1)); const f1 = await fp(w); const d = await drift(w); const r2 = await runPack(w.db.client, PK(PACK.r1)); const f2 = await fp(w);
+    const w = await mkWorld(tplOrig); try { const f0 = await fp(w); await runPack(w.db.client, PK(PACK.a1)); const mid = await fp(w); const r = await runPack(w.db.client, UNS(PACK.u1, "13A-01")); const f1 = await fp(w); const d = await drift(w); const r2 = await runPack(w.db.client, UNS(PACK.u1, "13A-01")); const f2 = await fp(w);
       return (r.ok && allOk(r.rows) && same(f0, f1) && !same(f0, mid) && d.orders === "S0_original" && driftAbort(r2) && same(f1, f2) && JSON.stringify(f0.acl_sorted) === JSON.stringify(f1.acl_sorted)) || JSON.stringify({ r: r.err, eq: same(f0, f1), diff: diffKeys(f0, f1), d, r2: r2.err }); } finally { await w.close(); } });
   await structural("P07", "apply -> rollback -> apply cycle works (rollback leaves a re-appliable S0)", async () => {
-    const w = await mkWorld(tplOrig); try { const a = await runPack(w.db.client, PK(PACK.a1)); const b = await runPack(w.db.client, PK(PACK.r1)); const c = await runPack(w.db.client, PK(PACK.a1)); return (a.ok && b.ok && c.ok && allOk(c.rows) && (await drift(w)).orders === "S1_after-pack01") || JSON.stringify([a.err, b.err, c.err]); } finally { await w.close(); } });
+    const w = await mkWorld(tplOrig); try { const a = await runPack(w.db.client, PK(PACK.a1)); const b = await runPack(w.db.client, UNS(PACK.u1, "13A-01")); const c = await runPack(w.db.client, PK(PACK.a1)); return (a.ok && b.ok && c.ok && allOk(c.rows) && (await drift(w)).orders === "S1_after-pack01") || JSON.stringify([a.err, b.err, c.err]); } finally { await w.close(); } });
   const abortCase = async (label, mut, pack = PACK.a1, expectState = "orders", asRole = null) => {
     const w = await mkWorld(tplOrig); try { await w.q(mut); const f0 = await fp(w); if (asRole) await w.db.client.query("SET ROLE " + asRole); const r = await runPack(w.db.client, PK(pack)); if (asRole) { try { await w.db.client.query("RESET ROLE"); } catch {} } const f1 = await fp(w);
       return (driftAbort(r) && same(f0, f1)) || label + ": " + JSON.stringify({ ok: r.ok, err: String(r.err).slice(0, 160), same: same(f0, f1) }); } finally { await w.close(); } };
@@ -318,10 +326,10 @@ async function main() {
   await structural("P20", "ORDER: 12A first, then 13A works (built as tplHard12). REVERSE: 13A first -> the 12A step-1 pack REFUSES at its drift guard (orders ACL/policies no longer the captured original) and changes nothing", async () => {
     const w = await mkWorld(tplOrig); try { await runPack(w.db.client, PK(PACK.a1)); const f0 = await fp(w); const r = await runPack(w.db.client, rd12(P12.a1)); const f1 = await fp(w); const guardText = /orders\.(acl_sorted|policies_md5)/.test(String(r.err));
       return (driftAbort(r) && guardText && same(f0, f1)) || JSON.stringify({ r: String(r.err).slice(0, 300) }); } finally { await w.close(); } });
-  await structural("P21", "ROLLBACK ORDER: after 12A + 13A, rolling back 12A first REFUSES (guard); 13A rollback first then 12A rollbacks works; end state = original (fingerprint equal to the pre-12A original)", async () => {
+  await structural("P21", "ROLLBACK ORDER (explicit UNSAFE overrides): after 12A + 13A, rolling back 12A first REFUSES (guard); 13A rollback first then 12A rollbacks works; end state = original (fingerprint equal to the pre-12A original); schema private is KEPT with its 4 incident tables, core gone", async () => {
     const w = await mkWorld(tplOrig); try { const f0 = await fp(w); await runPack(w.db.client, rd12(P12.a1)); await runPack(w.db.client, rd12(P12.a2)); await runPack(w.db.client, PK(PACK.a1));
-      const bad = await runPack(w.db.client, rd12(P12.r2)); const a = await runPack(w.db.client, PK(PACK.r1)); const b = await runPack(w.db.client, rd12(P12.r2)); const c = await runPack(w.db.client, rd12(P12.r1)); const f1 = await fp(w); const sc = (await w.q("select count(*)::int n from pg_namespace where nspname='private'")).rows[0].n;
-      return (driftAbort(bad) && a.ok && b.ok && c.ok && same(f0, f1) && sc === 0) || JSON.stringify({ bad: String(bad.err).slice(0, 120), a: a.err, b: b.err, c: c.err, eq: same(f0, f1), diff: diffKeys(f0, f1) }); } finally { await w.close(); } });
+      const bad = await runPack(w.db.client, UNS12(P12.u2, "12A-02")); const a = await runPack(w.db.client, UNS(PACK.u1, "13A-01")); const b = await runPack(w.db.client, UNS12(P12.u2, "12A-02")); const c = await runPack(w.db.client, UNS12(P12.u1, "12A-01")); const f1 = await fp(w); const sc = (await w.q("select (select count(*)::int from pg_namespace where nspname='private') n, (select count(*)::int from pg_class where relnamespace='private'::regnamespace and relkind='r') t, (select count(*)::int from pg_proc where pronamespace='private'::regnamespace) f")).rows[0];
+      return (driftAbort(bad) && a.ok && b.ok && c.ok && same(f0, f1) && sc.n === 1 && sc.t === 4 && sc.f === 0) || JSON.stringify({ bad: String(bad.err).slice(0, 120), a: a.err, b: b.err, c: c.err, eq: same(f0, f1), diff: diffKeys(f0, f1) }); } finally { await w.close(); } });
   await structural("P22", "12A hardened door functions installed on an already 13A-hardened table (12A guard bypassed in setup) admit / refuse correctly (door suite D01-D03 shape)", async () => {
     const w = await mkWorld(tplHard13then12); try { const a = await scan(w, "owner", T.A), b = await scan(w, "owner", "KIL-" + T.B), c = await ticketScan(w, "owner", T.E), d = await scan(w, "buyer", T.C), e = await scan(w, "owner", T.R), f = await ticketScan(w, "anon", T.A), g = await scan(w, "owner", T.A);
       const ok = a.code === "admitted" && b.code === "admitted" && c.code === "admitted" && d.code === "forbidden" && e.code === "unpaid" && f.code === "error" && g.code === "already_used"; const names = (await w.q("select count(*)::int n from pg_policies where tablename='event_orders'")).rows[0].n;
@@ -360,8 +368,8 @@ async function main() {
       const h = [await attempt(w, "anon", "select public.get_ticket__orig_13a($1)", [T.A]), await attempt(w, "buyer", "select public.get_ticket__orig_13a($1)", [T.A])]; const svc = await gt(w, "service", T.A); const au = await gt(w, "buyer", T.A);
       return (acl0 === acl1 && ex.a && ex.b && ex.c && h.every(denied) && svc.j && !("buyer" in svc.j) && au.j && !("buyer" in au.j)) || JSON.stringify({ acl0, acl1, ex, h: h.map((x) => x.code), svc, au }); } finally { await w.close(); } });
   await structural("G04", "ROLLBACK-02 restores the original get_ticket EXACTLY (same oid, byte-identical pg_get_functiondef, raw ACL, config, owner, no comment); helper gone; original result (with buyer) is back; second rollback refuses", async () => {
-    const w = await mkWorld(tplOrig); try { const oid0 = (await w.q("select oid::int o from pg_proc where proname='get_ticket'")).rows[0].o; const f0 = await fp(w); const a = await runPack(w.db.client, PK(PACK.a2)); const mid = await fp(w); const r = await runPack(w.db.client, PK(PACK.r2)); const f1 = await fp(w);
-      const oid1 = (await w.q("select oid::int o from pg_proc where proname='get_ticket'")).rows[0].o; const back = await gt(w, "anon", T.A); const r2 = await runPack(w.db.client, PK(PACK.r2)); const d = await drift(w);
+    const w = await mkWorld(tplOrig); try { const oid0 = (await w.q("select oid::int o from pg_proc where proname='get_ticket'")).rows[0].o; const f0 = await fp(w); const a = await runPack(w.db.client, PK(PACK.a2)); const mid = await fp(w); const r = await runPack(w.db.client, UNS(PACK.u2, "13A-02")); const f1 = await fp(w);
+      const oid1 = (await w.q("select oid::int o from pg_proc where proname='get_ticket'")).rows[0].o; const back = await gt(w, "anon", T.A); const r2 = await runPack(w.db.client, UNS(PACK.u2, "13A-02")); const d = await drift(w);
       return (a.ok && r.ok && allOk(r.rows) && oid0 === oid1 && same(f0, f1) && !same(f0, mid) && back.j.buyer === "buyer1@example.invalid" && driftAbort(r2) && d.get_ticket === "G0_original") || JSON.stringify({ a: a.err, r: r.err, oid0, oid1, eq: same(f0, f1), r2: String(r2.err).slice(0, 100) }); } finally { await w.close(); } });
   await structural("G05", "pack 02 guards: second APPLY-02 refuses; refuses on altered ACL (anon exec revoked), a pre-existing comment, a pre-existing helper name, a dependent view, a SECURITY INVOKER original, a non-jsonb return; nothing changed", async () => {
     const w0 = await mkWorld(tplOrig); try { await runPack(w0.db.client, PK(PACK.a2)); const f0 = await fp(w0); const r = await runPack(w0.db.client, PK(PACK.a2)); if (!(driftAbort(r) && same(f0, await fp(w0)))) return "second apply: " + r.err; } finally { await w0.close(); }
@@ -371,7 +379,7 @@ async function main() {
     for (const [l, m] of cases) { const v = await abortCase(l, m, PACK.a2); if (v !== true) return v; } return true; });
   await structural("G06", "pack 02 independent of pack 01, either order: 02 then 01, and 01 then 02, both end in S1+G1; each rollback in either order restores the original fingerprint", async () => {
     for (const order of [["a2", "a1"], ["a1", "a2"]]) { const w = await mkWorld(tplOrig); try { const f0 = await fp(w); for (const k of order) { const r = await runPack(w.db.client, PK(PACK[k])); if (!r.ok || !allOk(r.rows)) return `apply ${k}: ${r.err}`; } const d = await drift(w); if (d.orders !== "S1_after-pack01" || d.get_ticket !== "G1_after-pack02") return JSON.stringify(d);
-      for (const k of [...order].reverse().map((x) => (x === "a1" ? "r1" : "r2"))) { const r = await runPack(w.db.client, PK(PACK[k])); if (!r.ok) return `rollback ${k}: ${r.err}`; } if (!same(f0, await fp(w))) return "fingerprint differs after rollbacks " + order.join(">"); } finally { await w.close(); } }
+      for (const k of [...order].reverse().map((x) => (x === "a1" ? "u1" : "u2"))) { const r = await runPack(w.db.client, UNS(PACK[k], k === "u1" ? "13A-01" : "13A-02")); if (!r.ok) return `rollback ${k}: ${r.err}`; } if (!same(f0, await fp(w))) return "fingerprint differs after rollbacks " + order.join(">"); } finally { await w.close(); } }
     return true; });
 
   /* ---- verbatim live readers (baseline/live-readers.VERBATIM.sql): the replica's get_ticket / get_my_tickets ARE the prod bodies */
@@ -386,9 +394,9 @@ async function main() {
     for (const [l, m] of cases) { if (!m.includes("CREATE OR REPLACE") && !m.startsWith("alter")) return "case not built: " + l; if (m === live) return "mutation did not change the text: " + l; const v = await abortCase(l, m, PACK.a2); if (v !== true) return v; }
     const w = await mkWorld(tplOrig); try { await w.q(live); const r = await runPack(w.db.client, PK(PACK.a2)); return (r.ok && allOk(r.rows) && (await drift(w)).get_ticket === "G1_after-pack02") || "control (identical re-create) did not apply: " + JSON.stringify(r.err); } finally { await w.close(); } });
   await structural("G09", "ROLLBACK-02 guard also pins the renamed original: if the helper body is altered after APPLY-02, ROLLBACK-02 aborts with nothing changed; the unaltered rollback restores md5(pg_get_functiondef) = 1814becc... exactly", async () => {
-    const w = await mkWorld(tplOrig); try { const a = await runPack(w.db.client, PK(PACK.a2)); if (!a.ok) return a.err; const evil = liveDef("get_ticket").replace("public.get_ticket(", "public.get_ticket__orig_13a(").replace("limit 1;", "limit  1;"); await w.q(evil); const f0 = await fp(w); const r = await runPack(w.db.client, PK(PACK.r2)); const f1 = await fp(w); if (!(driftAbort(r) && same(f0, f1))) return "tampered helper: " + JSON.stringify({ ok: r.ok, err: String(r.err).slice(0, 120) }); }
+    const w = await mkWorld(tplOrig); try { const a = await runPack(w.db.client, PK(PACK.a2)); if (!a.ok) return a.err; const evil = liveDef("get_ticket").replace("public.get_ticket(", "public.get_ticket__orig_13a(").replace("limit 1;", "limit  1;"); await w.q(evil); const f0 = await fp(w); const r = await runPack(w.db.client, UNS(PACK.u2, "13A-02")); const f1 = await fp(w); if (!(driftAbort(r) && same(f0, f1))) return "tampered helper: " + JSON.stringify({ ok: r.ok, err: String(r.err).slice(0, 120) }); }
     finally { await w.close(); }
-    const w2 = await mkWorld(tplOrig); try { await runPack(w2.db.client, PK(PACK.a2)); const r = await runPack(w2.db.client, PK(PACK.r2)); const f = await readerFp(w2); return (r.ok && allOk(r.rows) && f.get_ticket[0] === GT_LIVE_DEF_MD5) || JSON.stringify({ r: r.err, f }); } finally { await w2.close(); } });
+    const w2 = await mkWorld(tplOrig); try { await runPack(w2.db.client, PK(PACK.a2)); const r = await runPack(w2.db.client, UNS(PACK.u2, "13A-02")); const f = await readerFp(w2); return (r.ok && allOk(r.rows) && f.get_ticket[0] === GT_LIVE_DEF_MD5) || JSON.stringify({ r: r.err, f }); } finally { await w2.close(); } });
   await structural("G10", "get_my_tickets is NOT changed by 13A and is unaffected by pack 01's REVOKEs (SECURITY DEFINER owned by postgres): identical definition/ACL/config before and after pack 01 and pack 02; buyer still gets own paid tickets WITH qr_token, buyer2 only theirs, anon and another organizer get none, refunded order excluded; no buyer e-mail column", async () => {
     const w0 = await mkWorld(tplOrig12); const w1 = await mkWorld(tplHard12); let w2 = null; try { const f0 = await readerFp(w0), f1 = await readerFp(w1);
       w2 = await mkWorld(tplHard12); const a2 = await runPack(w2.db.client, PK(PACK.a2)); const fb = await readerFp(w2);
@@ -409,7 +417,7 @@ async function main() {
       if (!(norm(c0) === norm(c0b) && live && live.value === GT_LIVE_DEF_MD5 && gmt.value === GMT_LIVE_DEF_MD5 && !leak && c0.length > 50 && absent.includes("private.door_checkin_core"))) return JSON.stringify({ det: norm(c0) === norm(c0b), live: live && live.value, leak, n: c0.length, absent });
       for (const k of [rd12(P12.a1), rd12(P12.a2), PK(PACK.a1)]) { const r = await runPack(w.db.client, k); if (!r.ok) return "apply: " + r.err; }
       const c1 = await cap(); if (norm(c1) === norm(c0)) return "capture did not see the applied state";
-      for (const k of [PK(PACK.r1), rd12(P12.r2), rd12(P12.r1)]) { const r = await runPack(w.db.client, k); if (!r.ok) return "rollback: " + r.err; }
+      for (const k of [UNS(PACK.u1, "13A-01"), UNS12(P12.u2, "12A-02"), UNS12(P12.u1, "12A-01")]) { const r = await runPack(w.db.client, k); if (!r.ok) return "rollback: " + r.err; }
       const c2 = await cap(); const a = norm(c0), b = norm(c2);
       return (a === b) || "post-rollback capture differs: " + a.split("\n").filter((l, i) => l !== b.split("\n")[i]).slice(0, 3).join(" || ").slice(0, 400);
     } finally { await w.close(); } });

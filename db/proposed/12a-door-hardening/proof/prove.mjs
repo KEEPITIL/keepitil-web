@@ -17,7 +17,9 @@ import { adaptScanResponse, adaptTicketResponse } from "../adapter/door-scan-ada
 const HERE = join(dirname(fileURLToPath(import.meta.url)), "..");
 const rd = (...p) => readFileSync(join(HERE, ...p), "utf8");
 const PK = (n) => rd("packs", n);
+const SHARED = (n) => readFileSync(join(HERE, "..", "_shared", n), "utf8");
 const PACK = { a1: "12a_01_event_checkin_scan_APPLY_PROPOSED.sql", a2: "12a_02_check_in_ticket_APPLY_PROPOSED.sql", r2: "12a_02_check_in_ticket_ROLLBACK_PROPOSED.sql", r1: "12a_01_event_checkin_scan_ROLLBACK_PROPOSED.sql",
+  u2: "12a_02_check_in_ticket_ROLLBACK_REOPEN_HOLES_UNSAFE_PROPOSED.sql", u1: "12a_01_event_checkin_scan_ROLLBACK_REOPEN_HOLES_UNSAFE_PROPOSED.sql",
   drift: "12a_DRIFT_QUERY_PROPOSED.sql", pc0: "12a_POSTCHECKS_S0_original_PROPOSED.sql", pc1: "12a_POSTCHECKS_S1_after-step1_PROPOSED.sql", pc2: "12a_POSTCHECKS_S2_after-step2_PROPOSED.sql" };
 const md5 = (s) => createHash("md5").update(s).digest("hex");
 const tok = (label) => md5("12a-fixture-token-" + label);
@@ -55,7 +57,7 @@ insert into public.event_orders(id,event_id,tier_id,buyer_email,buyer_handle,qty
 select setval(pg_get_serial_sequence('public.events','id'), 100), setval(pg_get_serial_sequence('public.event_orders','id'), 1000);`;
 
 /* ------------------------------------------------------------------ worlds */
-let tplOrig = null, tplHard = null;
+let tplOrig = null, tplFresh = null, tplHard = null;
 const open = [];
 async function mkWorld(tpl) {
   const db = await PG.createDb(tpl); open.push(db);
@@ -129,6 +131,7 @@ async function runPack(c, sql) {
   try { const r = await c.query(sql); const arr = Array.isArray(r) ? r : [r]; const rows = [...arr].reverse().find((x) => x.rows && x.rows.length && x.fields && x.fields.some((f) => f.name === "ok")); return { ok: true, rows: rows ? rows.rows : [] }; }
   catch (e) { try { await c.query("ROLLBACK"); } catch {} return { ok: false, err: String(e.message), code: e.code }; }
 }
+const ACK = (id) => `SET kil.rollback_reopen_ack = 'I-ACCEPT-REOPENING-HOLES-${id}';\n`;       // the explicit override the UNSAFE packs demand
 const allOk = (rows) => rows.length > 0 && rows.every((r) => r.ok === true);
 const hold = (sql, secs) => { const i = sql.lastIndexOf("COMMIT;"); return sql.slice(0, i) + `SELECT pg_sleep(${secs}); ` + sql.slice(i); };
 async function drift(w) { const r = await w.q(rd("packs", PACK.drift) .replace(/^--.*$/gm, "")); const rows = (Array.isArray(r) ? r.find((x) => x.rows.length) : r).rows; return rows[0].actual; }
@@ -139,6 +142,8 @@ const catFp = async (w) => { const r = await w.q(`select jsonb_build_object(
   'acl_sorted', (select jsonb_object_agg(p.oid::regprocedure::text, ${aclSorted("p.proacl")}) from pg_proc p where p.proname in ('event_checkin_scan','check_in_ticket','door_checkin_core')),
   'acl_raw', (select jsonb_object_agg(p.oid::regprocedure::text, p.proacl::text) from pg_proc p where p.proname in ('event_checkin_scan','check_in_ticket','door_checkin_core')),
   'owner', (select jsonb_object_agg(p.oid::regprocedure::text, pg_get_userbyid(p.proowner)) from pg_proc p where p.proname in ('event_checkin_scan','check_in_ticket','door_checkin_core')),
+  'priv', (select coalesce(string_agg(c.relname::text || '|' || c.relkind::text || '|' || c.relowner::regrole::text || '|' || coalesce(c.relacl::text,'-') || '|' || (select string_agg(a.attname || ':' || format_type(a.atttypid,a.atttypmod) || ':' || coalesce(a.attacl::text,'-'), ',' order by a.attnum) from pg_attribute a where a.attrelid=c.oid and a.attnum>0 and not a.attisdropped), E'\\n' order by c.relname),'') from pg_class c where c.relnamespace = to_regnamespace('private') and c.relkind in ('r','S','i')),
+  'priv_nspacl', (select coalesce(nspacl::text,'-') from pg_namespace where nspname='private'),
   'schemas', (select jsonb_agg(nspname order by nspname) from pg_namespace where nspname !~ '^pg_' and nspname <> 'information_schema'),
   'user_funcs', (select count(*) from pg_proc where pronamespace not in (select oid from pg_namespace where nspname in ('pg_catalog','information_schema'))),
   'data', (select md5(coalesce(string_agg(t::text, '|' order by id), '')) from public.event_orders t)) j`); return r.rows[0].j; };
@@ -156,7 +161,12 @@ async function main() {
   await c.query("REVOKE ALL ON FUNCTION public.check_in_ticket(text) FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.check_in_ticket(text) TO anon, authenticated, service_role;");
   await c.query("REVOKE ALL ON FUNCTION public.event_checkin_scan(text) FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.event_checkin_scan(text) TO authenticated, service_role;");
   await c.query(FIXTURE_SQL);
+  /* PROD-SHAPED: schema private pre-exists with the four postgres-only incident tables (empty), and pg_default_acl mirrors prod (postgres + supabase_admin default grants in public) */
+  await c.query(SHARED("prod-shape-private.sql"));
+  { const sa = await PG.newClient(base.name, "pgadmin"); try { await sa.client.query(SHARED("prod-shape-default-acl.sql")); } finally { await sa.disconnect(); } }
   tplOrig = (await PG.snapshotDb(base)).pgTemplate;
+  /* FRESH variant: the same replica WITHOUT schema private (a database that never had it) */
+  { const f = await PG.createDb(tplOrig); open.push(f); const sa = await PG.newClient(f.name, "pgadmin"); try { await sa.client.query("drop schema private cascade"); } finally { await sa.disconnect(); } tplFresh = (await PG.snapshotDb(f)).pgTemplate; await f.close(); open.splice(open.indexOf(f), 1); }
   /* hardened template: the REAL packs applied to a clone of the original */
   const hdb = await PG.createDb(tplOrig); open.push(hdb);
   const r1 = await runPack(hdb.client, PK(PACK.a1)), r2 = await runPack(hdb.client, PK(PACK.a2));
@@ -267,15 +277,15 @@ async function main() {
 
   /* ============================ B. packs ============================ */
   await structural("P01", "static: every APPLY/ROLLBACK pack = ONE BEGIN, SET LOCAL lock_timeout 5s then advisory lock 2979301232487107403 then SET LOCAL lock_timeout 5s as the exact statements 2-4 after it (tightened from: lock is statement 2), one COMMIT last, drift guard, no data DML, no secrets", async () => {
-    for (const n of [PACK.a1, PACK.a2, PACK.r2, PACK.r1]) { const s = PK(n); const code = s.replace(/^\s*--.*$/gm, "");
+    for (const n of [PACK.a1, PACK.a2, PACK.r2, PACK.r1, PACK.u2, PACK.u1]) { const s = PK(n); const code = s.replace(/^\s*--.*$/gm, "");
       const stmts = code.split(/;[ \t]*\r?\n/).map((t) => t.trim()).filter(Boolean);
       if (stmts[0] !== "BEGIN") return n + ": first statement is not BEGIN"; if (stmts[1] !== "SET LOCAL lock_timeout = '5s'" || stmts[2] !== `SELECT pg_advisory_xact_lock(${REPO_PACK_KEY})` || stmts[3] !== "SET LOCAL lock_timeout = '5s'") return n + ": statements 2-4 are not timeout/lock/timeout: " + stmts.slice(1, 4).map((t) => t.slice(0, 50)).join(" | ");
       if (stmts[stmts.length - 1] !== "COMMIT") return n + ": last statement is not COMMIT";
       if ((code.match(/^BEGIN;/gm) || []).length !== 1 || (code.match(/^COMMIT;/gm) || []).length !== 1) return n + ": BEGIN/COMMIT count";
-      if (/\b(TRUNCATE|DELETE\s+FROM|INSERT\s+INTO|UPDATE\s+public\.|DROP\s+TABLE|ALTER\s+TABLE|CREATE\s+POLICY|DROP\s+POLICY)\b/i.test(code.replace(/\$function\$[\s\S]*?\$function\$/g, ""))) return n + ": touches tables/data outside function bodies";
+      { const bare = code.replace(/\$(\w+)\$[\s\S]*?\$\1\$/g, ""); const first = bare.split(/;[ \t]*\r?\n/).map((t) => t.trim()).filter(Boolean); if (first.some((t) => /^(TRUNCATE|DELETE|INSERT|UPDATE|DROP\s+TABLE|ALTER\s+TABLE|CREATE\s+POLICY|DROP\s+POLICY|CREATE\s+TABLE)\b/i.test(t))) return n + ": touches tables/data outside function bodies"; }
       if (!/DRIFT, ABORT/.test(s)) return n + ": no drift guard"; if (/password|secret|api[_-]?key|service_role_key|eyJ/i.test(s.replace(/service_role/g, ""))) return n + ": secret-looking text"; }
     return true; });
-  await structural("P02", "generator is reproducible: build.mjs --check is clean (packs == inputs)", async () => { const files = buildAll(); for (const [n, s] of files) if (PK(n) !== s) return "drift in " + n; return files.size === 8 || "file count " + files.size; });
+  await structural("P02", "generator is reproducible: build.mjs --check is clean (packs == inputs)", async () => { const files = buildAll(); for (const [n, s] of files) if (PK(n) !== s) return "drift in " + n; return files.size === 10 || "file count " + files.size; });
   await structural("P03", "replica sanity: the installed ORIGINAL functions equal the captured prod text (pg_get_functiondef == facts) and DRIFT_QUERY/POSTCHECKS(S0) read S0_original", async () => {
     const w = await mkWorld(tplOrig); try { const d1 = (await w.q(`select pg_get_functiondef('${SIG.ticket}'::regprocedure) d`)).rows[0].d, d2 = (await w.q(`select pg_get_functiondef('${SIG.scan}'::regprocedure) d`)).rows[0].d;
       if (d1.trimEnd() !== ORIG.ticket.trimEnd() || d2.trimEnd() !== ORIG.scan.trimEnd()) return "captured text != pg_get_functiondef";
@@ -295,7 +305,7 @@ async function main() {
     ["scan body altered (comment appended)", async (w) => w.q((await w.q(`select pg_get_functiondef('${SIG.scan}'::regprocedure) d`)).rows[0].d.replace(/end \$function\$/, "end -- tampered\n$function$"))],
     ["scan ACL changed (anon granted)", (w) => w.q(`grant execute on function ${SIG.scan} to anon`)],
     ["scan search_path changed", (w) => w.q(`alter function ${SIG.scan} set search_path = public, pg_temp`)],
-    ["schema private already exists", (w) => w.q("create schema private")],
+    ["schema private holds an UNEXPECTED table", (w) => w.q("create table private.zz_unexpected(x int)")],
     ["event_orders policy dropped", (w) => w.q("drop policy orders_anon_insert on public.event_orders")],
     ["event_orders policy added", (w) => w.q("create policy extra_p on public.event_orders for select to anon using (false)")],
     ["event_orders column added", (w) => w.q("alter table public.event_orders add column note text")],
@@ -312,17 +322,17 @@ async function main() {
     const w = await mkWorld(tplOrig); try { await runPack(w.db.client, PK(PACK.a1)); await w.q((await w.q(`select pg_get_functiondef('${SIG.ticket}'::regprocedure) d`)).rows[0].d.replace(/end;\n\$function\$/, "end;\n-- x\n$function$")); const f0 = await catFp(w); const r = await runPack(w.db.client, PK(PACK.a2)); return (!r.ok && /DRIFT, ABORT/.test(r.err) && same(f0, await catFp(w))) || JSON.stringify(r.err); } finally { await w.close(); } });
   await structural("P08.14", "drift guard aborts APPLY-02 when the core was tampered with", async () => {
     const w = await mkWorld(tplOrig); try { await runPack(w.db.client, PK(PACK.a1)); await w.q(HARD.core.replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION").replace("'invalid')\n  end if;\n\n  select o2.id", "'invalid')\n  end if; -- x\n\n  select o2.id").replace("return pg_catalog.jsonb_build_object('code', 'unauth');", "return pg_catalog.jsonb_build_object('code', 'unauth'); ")); const r = await runPack(w.db.client, PK(PACK.a2)); return (!r.ok && /DRIFT, ABORT/.test(r.err)) || JSON.stringify(r.err); } finally { await w.close(); } });
-  await structural("P09", "ROLLBACK restores the captured originals EXACTLY: byte-identical pg_get_functiondef and prosrc, equal sorted ACL, config, owner; private schema and core gone; data untouched", async () => {
+  await structural("P09", "UNSAFE (explicit-override) ROLLBACK restores the captured originals EXACTLY: byte-identical pg_get_functiondef and prosrc, equal sorted ACL, config, owner; core gone; schema private and its four incident tables KEPT and identical; data untouched", async () => {
     const w = await mkWorld(tplOrig); try { const f0 = await catFp(w); const a = await runPack(w.db.client, PK(PACK.a1)), b = await runPack(w.db.client, PK(PACK.a2)); const mid = await catFp(w); if (same(f0, mid)) return "apply changed nothing?";
       if (mid.data !== f0.data) return "apply touched order data";
-      const rb2 = await runPack(w.db.client, PK(PACK.r2)), rb1 = await runPack(w.db.client, PK(PACK.r1)); const f1 = await catFp(w); const st = await drift(w);
+      const rb2 = await runPack(w.db.client, ACK("12A-02") + PK(PACK.u2)), rb1 = await runPack(w.db.client, ACK("12A-01") + PK(PACK.u1)); const f1 = await catFp(w); const st = await drift(w);
       const rawEq = JSON.stringify(f0.acl_raw) === JSON.stringify(f1.acl_raw);
       packNotes.rawAclEqual = rawEq;
-      return (a.ok && b.ok && rb2.ok && rb1.ok && allOk(rb2.rows) && allOk(rb1.rows) && same(f0, f1, ["acl_raw"]) && st === "S0_original" && f1.defs[SIG.scan] === f0.defs[SIG.scan] && f1.defs[SIG.ticket] === f0.defs[SIG.ticket]) || JSON.stringify({ a: a.err, b: b.err, rb2: rb2.err, rb1: rb1.err, st, eq: same(f0, f1, ["acl_raw"]) }); } finally { await w.close(); } });
-  await structural("P10", "rollback order is enforced and rollback has its own drift guard", async () => {
-    const w = await mkWorld(tplOrig); try { await runPack(w.db.client, PK(PACK.a1)); await runPack(w.db.client, PK(PACK.a2)); const f0 = await catFp(w); const r = await runPack(w.db.client, PK(PACK.r1)); const f1 = await catFp(w);
+      return (a.ok && b.ok && rb2.ok && rb1.ok && allOk(rb2.rows) && allOk(rb1.rows) && same(f0, f1, ["acl_raw"]) && st === "S0_original" && f1.priv === f0.priv && f1.priv.includes("incident_auth_counts_20261106") && f1.defs[SIG.scan] === f0.defs[SIG.scan] && f1.defs[SIG.ticket] === f0.defs[SIG.ticket]) || JSON.stringify({ a: a.err, b: b.err, rb2: rb2.err, rb1: rb1.err, st, eq: same(f0, f1, ["acl_raw"]) }); } finally { await w.close(); } });
+  await structural("P10", "rollback order is enforced and the (override) rollback has its own drift guard", async () => {
+    const w = await mkWorld(tplOrig); try { await runPack(w.db.client, PK(PACK.a1)); await runPack(w.db.client, PK(PACK.a2)); const f0 = await catFp(w); const r = await runPack(w.db.client, ACK("12A-01") + PK(PACK.u1)); const f1 = await catFp(w);
       const ok1 = !r.ok && /DRIFT, ABORT/.test(r.err) && same(f0, f1);
-      await w.q((await w.q(`select pg_get_functiondef('${SIG.ticket}'::regprocedure) d`)).rows[0].d.replace(/end;\n\$function\$/, "end;\n-- x\n$function$")); const r2 = await runPack(w.db.client, PK(PACK.r2));
+      await w.q((await w.q(`select pg_get_functiondef('${SIG.ticket}'::regprocedure) d`)).rows[0].d.replace(/end;\n\$function\$/, "end;\n-- x\n$function$")); const r2 = await runPack(w.db.client, ACK("12A-02") + PK(PACK.u2));
       return (ok1 && !r2.ok && /DRIFT, ABORT/.test(r2.err)) || JSON.stringify({ r: r.err, r2: r2.err }); } finally { await w.close(); } });
   await structural("P11", "advisory lock serialises two runs: B waits on the advisory lock while A holds the transaction open, then B refuses cleanly (DRIFT); end state S1", async () => {
     const w = await mkWorld(tplOrig); try { const a = await w.conn("postgres"), b = await w.conn("postgres"); const pidB = (await b.client.query("select pg_backend_pid() p")).rows[0].p;

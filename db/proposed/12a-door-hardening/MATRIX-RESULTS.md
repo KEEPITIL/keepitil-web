@@ -1,6 +1,6 @@
 # 12A door hardening: proof results (real PostgreSQL 17.6, replica, synthetic data)
 
-Generated from `proof/out/results.json` by `proof/report.mjs`. Engine: real PostgreSQL (socket). Wall time 58s. Machine: peak load1=3.77 min free mem pct=52.
+Generated from `proof/out/results.json` by `proof/report.mjs`. Engine: real PostgreSQL (socket). Wall time 59s. Machine: peak load1=3.22 min free mem pct=61.
 
 Totals: behavioural matrix 81/81; pack/structural 45/45; adjacent findings (replica only) 4/4; fatal: none.
 
@@ -112,7 +112,7 @@ Every behavioural test runs on BOTH the original (prod-captured bodies, replica)
 | P08.1 | drift guard aborts APPLY-01 when: scan body altered (comment appended) | pass |  |
 | P08.2 | drift guard aborts APPLY-01 when: scan ACL changed (anon granted) | pass |  |
 | P08.3 | drift guard aborts APPLY-01 when: scan search_path changed | pass |  |
-| P08.4 | drift guard aborts APPLY-01 when: schema private already exists | pass |  |
+| P08.4 | drift guard aborts APPLY-01 when: schema private holds an UNEXPECTED table | pass |  |
 | P08.5 | drift guard aborts APPLY-01 when: event_orders policy dropped | pass |  |
 | P08.6 | drift guard aborts APPLY-01 when: event_orders policy added | pass |  |
 | P08.7 | drift guard aborts APPLY-01 when: event_orders column added | pass |  |
@@ -123,8 +123,8 @@ Every behavioural test runs on BOTH the original (prod-captured bodies, replica)
 | P08.12 | drift guard aborts APPLY-01 when run by a role other than postgres | pass |  |
 | P08.13 | drift guard aborts APPLY-02 when check_in_ticket body drifted (after step 1) | pass |  |
 | P08.14 | drift guard aborts APPLY-02 when the core was tampered with | pass |  |
-| P09 | ROLLBACK restores the captured originals EXACTLY: byte-identical pg_get_functiondef and prosrc, equal sorted ACL, config, owner; private schema and core gone; data untouched | pass |  |
-| P10 | rollback order is enforced and rollback has its own drift guard | pass |  |
+| P09 | UNSAFE (explicit-override) ROLLBACK restores the captured originals EXACTLY: byte-identical pg_get_functiondef and prosrc, equal sorted ACL, config, owner; core gone; schema private and its four incident tables KEPT and identical; data untouched | pass |  |
+| P10 | rollback order is enforced and the (override) rollback has its own drift guard | pass |  |
 | P11 | advisory lock serialises two runs: B waits on the advisory lock while A holds the transaction open, then B refuses cleanly (DRIFT); end state S1 | pass |  |
 | P12 | lock is shared across packs: a concurrent ROLLBACK/APPLY of a different pack also queues (same key) | pass |  |
 | P14 | TIMEOUT (lock_timeout follow-up): A (real APPLY-01) holds the pack lock ~7 s; B (the same pack) waits on the advisory lock and fails with SQLSTATE 55P03 lock_not_available after ~5 s (4.5-6.5 s), not after A's ~7 s; A is unaffected (commits, state S1); B changed nothing and holds no advisory lock afterwards | pass |  |

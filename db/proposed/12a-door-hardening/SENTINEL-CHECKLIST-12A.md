@@ -70,4 +70,4 @@ All paths under `db/proposed/12a-door-hardening/`. "Row" = a row id in `MATRIX-R
 - [ ] open decisions (DERIVED-CONDITIONS): per-seat vs per-order (DC-15), token-existence oracle (DC-18), scan throttling (DC-19), audit table (DC-20), event status/date window (DC-28), staff/delegates (DC-29)
 - [ ] order: **12A first, then 13A** (13A's guard refuses 13A-first). The forged-order / organizer-UPDATE / TRUNCATE findings (A01-A03; DC-08, DC-27) stay open until 13A is applied
 - [ ] optional UNIQUE index pack (`packs/optional/`, proof U01-U06): decide whether wanted; it is NOT in the required chain and has NOT been reviewed
-- [ ] backup: the connector-producible read-only backup is the definition capture (VERIFY-12A V5 + PRECHECK/DRIFT output + the verbatim originals inside the ROLLBACK packs). A full data backup is Joe's dashboard action (12A changes no data, R01, but the gate asks for a backup): Joe decides
+- [ ] backup: single definition in `db/proposed/13a-orders-hardening/RUNBOOK-APPLY-BACKUP-ROLLBACK.md` section 2 (definition capture run twice and compared, no-data-change proof J22, dashboard backup optional and not a pg_dump); not restated here

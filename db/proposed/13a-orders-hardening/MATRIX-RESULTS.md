@@ -1,6 +1,6 @@
 # 13A orders hardening: proof results (real PostgreSQL 17.6, replica, synthetic data)
 
-Generated from `proof/out/results.json` by `proof/report.mjs`. Engine: PostgreSQL 17.6 (embedded-postgres, Unix socket only). Wall time 125s. Machine: peak load1=7.94 min free mem pct=63.
+Generated from `proof/out/results.json` by `proof/report.mjs`. Engine: PostgreSQL 17.6 (embedded-postgres, Unix socket only). Wall time 47s. Machine: peak load1=2.89 min free mem pct=61.
 
 Totals: behavioural matrix 37/37 (negative controls: 17/17 'detects' tests FAIL on the original as required; 20/20 'baseline' regression tests pass on both); pack / structural / mutants / F-D 36/36; informational findings 3/3; fatal: none.
 
@@ -68,7 +68,7 @@ Every behavioural test runs on BOTH worlds: **original** = replica of the captur
 | P12 | PRECHECK-13A.sql is ONE read-only statement: runs in a READ ONLY transaction on the replica as postgres, returns the qr_token default expression, all four policy texts, column-ACL count, function bodies; leaks NO fixture row content (tokens / e-mails / handles) | pass |  |
 | P13 | PRECHECK-13A read-only enforcement: a WRITE inside the same READ ONLY transaction fails (control), and PRECHECK itself changes no catalog fingerprint | pass |  |
 | P20 | ORDER: 12A first, then 13A works (built as tplHard12). REVERSE: 13A first -> the 12A step-1 pack REFUSES at its drift guard (orders ACL/policies no longer the captured original) and changes nothing | pass |  |
-| P21 | ROLLBACK ORDER: after 12A + 13A, rolling back 12A first REFUSES (guard); 13A rollback first then 12A rollbacks works; end state = original (fingerprint equal to the pre-12A original) | pass |  |
+| P21 | ROLLBACK ORDER (explicit UNSAFE overrides): after 12A + 13A, rolling back 12A first REFUSES (guard); 13A rollback first then 12A rollbacks works; end state = original (fingerprint equal to the pre-12A original); schema private is KEPT with its 4 incident tables, core gone | pass |  |
 | P22 | 12A hardened door functions installed on an already 13A-hardened table (12A guard bypassed in setup) admit / refuse correctly (door suite D01-D03 shape) | pass |  |
 | P30 | SUITE SELF-CHECK: the core suite reports NOTHING failing on the real fix and MANY failures on the original (negative control) | pass |  |
 | P31 | MUTANT M1 (drops the two policies but LEAVES the table GRANT ALL (RLS blocks insert/update, TRUNCATE still open)) is CAUGHT by the suite: it fails at least C01.anon-truncate, C02.auth-truncate, C05.anon-privs=SELECT, C05.authenticated-privs=SELECT | pass |  |

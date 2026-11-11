@@ -81,7 +81,7 @@ jobs:
             const c = new pg.Client({ host: process.env.PGHOST, port: Number(process.env.PGPORT), user: process.env.PGUSER, database: process.env.PGDATABASE });
             await c.connect();
             const v = (await c.query("select current_setting($1) v, (select rolsuper from pg_roles where rolname = current_user) su", ["server_version"])).rows[0];
-            const roles = (await c.query("select rolname from pg_roles where rolname = any($1)", [["postgres", "authenticator", "anon", "authenticated", "service_role"]])).rows.map((r) => r.rolname);
+            const roles = (await c.query("select rolname from pg_roles where rolname = any($1)", [["postgres", "authenticator", "anon", "authenticated", "service_role", "supabase_admin"]])).rows.map((r) => r.rolname);
             await c.end();
             console.log("server_version=" + v.v + " superuser=" + v.su + " preexisting_standin_roles=" + JSON.stringify(roles));
             if (!/^17\./.test(v.v) || v.su !== true || roles.length) { console.error("unexpected cluster"); process.exit(1); }
@@ -122,6 +122,17 @@ jobs:
             if (!ok) { console.error("13A proof counts below the required minimum or failures present"); process.exit(1); }
           '
 
+      - name: Sentinel-fix proofs on real PostgreSQL (prod-shaped schema private, chain repair, fail-closed rollback, backup replay, search_path scan, default privileges)
+        run: |
+          set -euo pipefail
+          node db/proposed/_job30/prove.mjs
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const s = JSON.parse(readFileSync("db/proposed/_job30/out/results.json", "utf8")).summary;
+            console.log("Sentinel-fix summary " + JSON.stringify(s));
+            if (s.fatal != null || s.total < 38 || s.pass !== s.total) { console.error("Sentinel-fix proof counts below the required minimum or failures present"); process.exit(1); }
+          '
+
       - name: Proofs left no databases or stand-in roles behind
         run: |
           set -euo pipefail
@@ -131,7 +142,7 @@ jobs:
             const c = new pg.Client({ host: process.env.PGHOST, port: Number(process.env.PGPORT), user: process.env.PGUSER, database: process.env.PGDATABASE });
             await c.connect();
             const dbs = (await c.query("select datname from pg_database where datname like $1", ["kil_rehearsal_%"])).rows.length;
-            const roles = (await c.query("select rolname from pg_roles where rolname = any($1)", [["postgres", "authenticator", "anon", "authenticated", "service_role"]])).rows.length;
+            const roles = (await c.query("select rolname from pg_roles where rolname = any($1)", [["postgres", "authenticator", "anon", "authenticated", "service_role", "supabase_admin"]])).rows.length;
             await c.end();
             console.log("leftover rehearsal databases=" + dbs + " leftover stand-in roles=" + roles);
             if (dbs || roles) process.exit(1);

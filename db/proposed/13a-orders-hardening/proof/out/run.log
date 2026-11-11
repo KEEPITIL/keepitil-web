@@ -50,7 +50,7 @@ PASS P11c NEGATIVE CONTROL for P11: with the PRE-lock lock_timeout removed, B is
 PASS P12 PRECHECK-13A.sql is ONE read-only statement: runs in a READ ONLY transaction on the replica as postgres, returns the qr_token default expression, all four policy texts, column-ACL count, function bodies; leaks NO fixture row content (tokens / e-mails / handles)
 PASS P13 PRECHECK-13A read-only enforcement: a WRITE inside the same READ ONLY transaction fails (control), and PRECHECK itself changes no catalog fingerprint
 PASS P20 ORDER: 12A first, then 13A works (built as tplHard12). REVERSE: 13A first -> the 12A step-1 pack REFUSES at its drift guard (orders ACL/policies no longer the captured original) and changes nothing
-PASS P21 ROLLBACK ORDER: after 12A + 13A, rolling back 12A first REFUSES (guard); 13A rollback first then 12A rollbacks works; end state = original (fingerprint equal to the pre-12A original)
+PASS P21 ROLLBACK ORDER (explicit UNSAFE overrides): after 12A + 13A, rolling back 12A first REFUSES (guard); 13A rollback first then 12A rollbacks works; end state = original (fingerprint equal to the pre-12A original); schema private is KEPT with its 4 incident tables, core gone
 PASS P22 12A hardened door functions installed on an already 13A-hardened table (12A guard bypassed in setup) admit / refuse correctly (door suite D01-D03 shape)
 PASS P30 SUITE SELF-CHECK: the core suite reports NOTHING failing on the real fix and MANY failures on the original (negative control)
 PASS P31 MUTANT M1 (drops the two policies but LEAVES the table GRANT ALL (RLS blocks insert/update, TRUNCATE still open)) is CAUGHT by the suite: it fails at least C01.anon-truncate, C02.auth-truncate, C05.anon-privs=SELECT, C05.authenticated-privs=SELECT
@@ -75,4 +75,4 @@ PASS X01 STRICT VARIANT (anon SELECT also revoked) is NOT bundled: on the replic
 PASS X02 organizer_read exposes buyer_email and qr_token to the organizer of the event (door owner): a signed-in organizer can read every token of their event (documented, NOT changed)
 PASS X03 qr_token is not UNIQUE: two rows can share a token (service_role / definer can write one; 12A's door refuses a duplicate as ambiguous); the 13A fix does not add a constraint (see OPEN QUESTIONS)
 
-SUMMARY matrix 37/37 (detects 17/17, baseline 20/20); packs 36/36; adjacent 3/3; fatal=none; 125s
+SUMMARY matrix 37/37 (detects 17/17, baseline 20/20); packs 36/36; adjacent 3/3; fatal=none; 47s

@@ -1,7 +1,7 @@
 {
  "summary": {
   "engine": "real PostgreSQL (socket)",
-  "seconds": 58,
+  "seconds": 59,
   "matrix": {
    "total": 81,
    "pass": 81,
@@ -57,7 +57,7 @@
    "hardened": true,
    "hardenedWhy": "",
    "original": false,
-   "originalWhy": "{\"ok\":true,\"qty\":2,\"buyer\":\"sentinel_buyer_handle_9f3k\",\"result\":\"admitted\",\"message\":\"Admitted\",\"event_slug\":\"doors-open\",\"event_title\":\"Doors Open Night\",\"checked_in_at\":\"2026-11-10T13:20:56.227473-08:00\"}",
+   "originalWhy": "{\"ok\":true,\"qty\":2,\"buyer\":\"sentinel_buyer_handle_9f3k\",\"result\":\"admitted\",\"message\":\"Admitted\",\"event_slug\":\"doors-open\",\"event_title\":\"Doors Open Night\",\"checked_in_at\":\"2026-11-10T23:28:36.129173-08:00\"}",
    "control": "detects",
    "controlOK": true
   },
@@ -585,7 +585,7 @@
    "hardened": true,
    "hardenedWhy": "",
    "original": false,
-   "originalWhy": "{\"bad\":[\"{\\\"ok\\\":true,\\\"qty\\\":2,\\\"buyer\\\":\\\"sentinel_buyer_handle_9f3k\\\",\\\"result\\\":\\\"admitted\\\",\\\"message\\\":\\\"Admitted\\\",\\\"event_slug\\\":\\\"doors-open\\\",\\\"event_title\\\":\\\"Doors Open Night\\\",\\\"checked_in_at\\\":\\\"2026-11-10T13:21:12.217643-08:00\\\"}\",\"{\\\"ok\\\":false,\\\"qty\\\":2,\\\"buyer\\\":\\\"sentinel_buyer_handle_9f3k\\\",\\\"result\\\":\\\"already_used\\\",\\\"message\\\":\\\"Already admitted.\\\",\\\"event_title\\\":\\\"Doors Open Night\\\",\\\"checked_in_at\\\":\\\"2026-11-10T13:21:12.217643-08:00\\\"}\"],\"extra\":[\"buyer\",\"event_slug\",\"buyer\"]}",
+   "originalWhy": "{\"bad\":[\"{\\\"ok\\\":true,\\\"qty\\\":2,\\\"buyer\\\":\\\"sentinel_buyer_handle_9f3k\\\",\\\"result\\\":\\\"admitted\\\",\\\"message\\\":\\\"Admitted\\\",\\\"event_slug\\\":\\\"doors-open\\\",\\\"event_title\\\":\\\"Doors Open Night\\\",\\\"checked_in_at\\\":\\\"2026-11-10T23:28:52.73128-08:00\\\"}\",\"{\\\"ok\\\":false,\\\"qty\\\":2,\\\"buyer\\\":\\\"sentinel_buyer_handle_9f3k\\\",\\\"result\\\":\\\"already_used\\\",\\\"message\\\":\\\"Already admitted.\\\",\\\"event_title\\\":\\\"Doors Open Night\\\",\\\"checked_in_at\\\":\\\"2026-11-10T23:28:52.73128-08:00\\\"}\"],\"extra\":[\"buyer\",\"event_slug\",\"buyer\"]}",
    "control": "detects",
    "controlOK": true
   },
@@ -596,7 +596,7 @@
    "hardened": true,
    "hardenedWhy": "",
    "original": false,
-   "originalWhy": "{\"bad\":[\"{\\\"qty\\\":2,\\\"sold\\\":9,\\\"tier\\\":\\\"VIP\\\",\\\"buyer\\\":\\\"sentinel.buyer.9f3k@example.invalid\\\",\\\"event\\\":\\\"Doors Open Night\\\",\\\"status\\\":\\\"valid\\\",\\\"checked_in\\\":2}\",\"{\\\"at\\\":\\\"2026-11-10T13:21:12.572532-08:00\\\",\\\"sold\\\":9,\\\"tier\\\":\\\"VIP\\\",\\\"buyer\\\":\\\"sentinel.buyer.9f3k@example.invalid\\\",\\\"event\\\":\\\"Doors Open Night\\\",\\\"status\\\":\\\"already\\\",\\\"checked_in\\\":2}\"],\"extra\":[\"buyer\",\"buyer\"]}",
+   "originalWhy": "{\"bad\":[\"{\\\"qty\\\":2,\\\"sold\\\":9,\\\"tier\\\":\\\"VIP\\\",\\\"buyer\\\":\\\"sentinel.buyer.9f3k@example.invalid\\\",\\\"event\\\":\\\"Doors Open Night\\\",\\\"status\\\":\\\"valid\\\",\\\"checked_in\\\":2}\",\"{\\\"at\\\":\\\"2026-11-10T23:28:53.120931-08:00\\\",\\\"sold\\\":9,\\\"tier\\\":\\\"VIP\\\",\\\"buyer\\\":\\\"sentinel.buyer.9f3k@example.invalid\\\",\\\"event\\\":\\\"Doors Open Night\\\",\\\"status\\\":\\\"already\\\",\\\"checked_in\\\":2}\"],\"extra\":[\"buyer\",\"buyer\"]}",
    "control": "detects",
    "controlOK": true
   },
@@ -1013,7 +1013,7 @@
   },
   {
    "id": "P08.4",
-   "name": "drift guard aborts APPLY-01 when: schema private already exists",
+   "name": "drift guard aborts APPLY-01 when: schema private holds an UNEXPECTED table",
    "pass": true,
    "why": ""
   },
@@ -1079,13 +1079,13 @@
   },
   {
    "id": "P09",
-   "name": "ROLLBACK restores the captured originals EXACTLY: byte-identical pg_get_functiondef and prosrc, equal sorted ACL, config, owner; private schema and core gone; data untouched",
+   "name": "UNSAFE (explicit-override) ROLLBACK restores the captured originals EXACTLY: byte-identical pg_get_functiondef and prosrc, equal sorted ACL, config, owner; core gone; schema private and its four incident tables KEPT and identical; data untouched",
    "pass": true,
    "why": ""
   },
   {
    "id": "P10",
-   "name": "rollback order is enforced and rollback has its own drift guard",
+   "name": "rollback order is enforced and the (override) rollback has its own drift guard",
    "pass": true,
    "why": ""
   },

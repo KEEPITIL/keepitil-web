@@ -1,5 +1,5 @@
-// UNRUN DRAFT TESTS for the music video service page (job 19a). Written under a light-only rule:
-// they have NOT been executed. Run later with: node --test assets/js/music-video-service.test.mjs
+// Tests for the music video service page (job 19a, corrections job 28).
+// Run with: node --test assets/js/music-video-service.test.mjs
 // Static HTML parsing + the pure helpers of music-video-service.js evaluated in a vm (no jsdom, no network).
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -112,7 +112,42 @@ test('rpc path is off by default and needs explicit config', async () => {
   await assert.rejects(api.submitRpc({}, { tier: 'hook' }, () => { throw new Error('no network'); }), /rpc-not-configured/);
 });
 
-test('sample slot is a placeholder with an empty data-sample-src, and no video is committed under the page', () => {
-  assert.match(html, /data-sample-slot[^>]*data-sample-src=""/);
+test('turnaround is "Quoted per project" with no day promise or timeframe', () => {
+  const t = text(html) + ' ' + text(cfg);
+  assert.ok(t.includes('Turnaround: Quoted per project.'));
+  assert.equal((t.match(/Quoted per project/g) || []).length, 1);
+  assert.doesNotMatch(t, /business day|\bdays?\b|3\s*[-–]\s*5|\brush\b|\bweeks?\b|\bhours?\b|within \d|next[- ]day/i);
+  const readme = rd('docs/services/music-video/README.md');
+  assert.doesNotMatch(readme, /business[- ]day|3\s*[-–]\s*5|\brush\b/i);
+});
+
+test('license/usage terms are a marked placeholder, with no legal-term language', () => {
+  assert.ok(text(html).includes('License and usage terms: pending legal review.'));
+  assert.match(html, /data-legal-placeholder/);
+  const all = text(html) + ' ' + svc;
+  assert.doesNotMatch(all, /indemnif|perpetual|exclusive license|royalt|sublicens|irrevocable|warrant(y|ies)|liabilit|governing law|content id|platform clearance|grants? no rights/i);
+  assert.ok(!/review status|copy reviewer|sentinel|muse/i.test(text(html)), 'review status must not be on the public page');
+});
+
+test('sample is a self-hosted <video data-sample-src> with a poster; no third-party embeds', () => {
+  const m = html.match(/<video[^>]*data-sample-src=""[^>]*>/);
+  assert.ok(m, 'video element with empty data-sample-src');
+  assert.match(m[0], /poster="\/assets\/images\//);
+  assert.match(m[0], /\shidden/);
+  assert.doesNotMatch(html + svc + cfg, /<iframe|<embed|<object|youtube|youtu\.be|vimeo|soundcloud|spotify|tiktok/i);
+  assert.equal(api.sampleSrcOk('/assets/video/music-video/x.mp4'), true);
+  assert.equal(api.sampleSrcOk('https://abc.supabase.co/storage/v1/object/public/public-assets/x.mp4'), true);
+  for (const bad of ['', 'https://www.youtube.com/watch?v=1', 'https://vimeo.com/1', '//evil.example/x.mp4', 'https://evil.example/x.mp4', 'javascript:alert(1)', '/x.html']) assert.equal(api.sampleSrcOk(bad), false, bad);
   assert.ok(!fs.existsSync(path.join(ROOT, 'assets/video/music-video/vhs-hearts-v2-teaser.mp4')));
+});
+
+test('page makes no claim about tracking (the site shell, not this page, owns analytics)', () => {
+  assert.doesNotMatch(text(html), /no tracking|tracking[- ]free|no analytics|no cookies/i);
+});
+
+test('KEEPITIL branding matches the services page shell pattern', () => {
+  assert.match(html, /<title>Music Video Service \| KEEPITIL<\/title>/);
+  assert.match(html, /<a class="nav-logo" href="\/"><span class="nav-brand">KEEPITIL<\/span><\/a>/);
+  assert.match(rd('services/index.html'), /<a class="nav-logo" href="\/"><span class="nav-brand">KEEPITIL<\/span><\/a>/);
+  assert.doesNotMatch(text(html), /ffmpeg|make_story_video|midjourney|dall-?e|stable diffusion|runway|sora|veo\b|suno/i);
 });

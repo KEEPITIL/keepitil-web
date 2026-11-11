@@ -23,7 +23,8 @@
 .mv-draft{margin:16px 0 0;padding:10px 14px;border-radius:12px;border:1px dashed rgba(92,214,255,.55);color:#E8F7FF;background:#0E2842;font-size:.95rem}
 .mv-sample{margin:24px 0 0;max-width:340px}
 .mv-sample [data-sample-slot]{position:relative;aspect-ratio:9/16;width:100%;border-radius:18px;overflow:hidden;background:#10182a;border:1px solid rgba(92,214,255,.28);display:flex;align-items:center;justify-content:center;text-align:center;padding:16px}
-.mv-sample video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+.mv-sample video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.mv-sample video[hidden]{display:none}
 .mv-sample figcaption{margin-top:8px;color:#b7c4d6;font-size:.9rem}
 .mv-cap{margin:0;padding:8px 12px;border-radius:10px;background:#0E2842;color:#E8F7FF;font-weight:700}
 .mv-not h3{color:#ffb3b3}
@@ -31,6 +32,7 @@
 .mv-section h2{margin:0 0 10px;font-family:"Bebas Neue",Inter,sans-serif;font-size:2rem;font-weight:400;letter-spacing:.06em}
 .mv-section ol,.mv-section ul{margin:0;padding-left:1.2rem;color:#d5d2e2}
 .mv-section li{margin:0 0 6px}
+.mv-legal-pending{margin:12px 0 0;padding:10px 12px;border-radius:10px;border:1px dashed rgba(255,255,255,.4);color:#E8F7FF}
 .mv-rights{padding:16px;border-radius:14px;background:#10182a;border:1px solid rgba(255,255,255,.14)}
 .mv-form{display:grid;gap:14px;max-width:640px}
 .mv-form label,.mv-form .lbl{display:block;font-weight:700;margin:0 0 4px}
@@ -62,9 +64,10 @@
   <p class="mv-draft" role="note"><strong>Pilot service.</strong> It is motion over still artwork with synced captions. It is not fully animated characters, lip-sync, a film shoot, or a promise of streams. Your original music is embedded in the file; linking it to a platform's official sound is a separate distribution task.</p>
 
   <figure class="mv-sample">
-    <!-- SAMPLE SLOT. To show a video, set data-sample-src to the hosted file path (see docs/services/music-video/README.md).
-         Currently PLACEHOLDER (v2 prototype). Marketing's v3 sample replaces it before publishing. -->
-    <div data-sample-slot data-sample-version="v2-placeholder" data-sample-src="">
+    <!-- SAMPLE SLOT: self-hosted <video> only (no third-party embeds). data-sample-src stays empty until the file is
+         supplied and hosted on our own storage; see docs/services/music-video/README.md. -->
+    <div data-sample-slot data-sample-version="placeholder">
+      <video data-sample-src="" poster="/assets/images/logo-blue-nav.png" controls preload="none" playsinline hidden aria-label="Sample music video from KEEPITIL"></video>
       <p data-sample-placeholder class="mv-cap">Sample video coming soon.</p>
     </div>
     <figcaption>Vertical 1080x1920 sample. Placeholder until the final sample is added.</figcaption>
@@ -152,7 +155,7 @@
       <li>We build the video. The Character Story option includes one storyboard approval before we render.</li>
       <li>A KEEPITIL person reviews the cut, applies your one correction, and delivers the files.</li>
     </ol>
-    <p class="mv-priv" style="margin-top:10px">Target turnaround is 3–5 business days, only after approval and complete inputs. No rush promises. We take one job at a time, so a request may wait in the queue.</p>
+    <p class="mv-priv" style="margin-top:10px">Turnaround: Quoted per project.</p>
   </section>
 
   <section class="mv-section" aria-labelledby="rights-h">
@@ -160,11 +163,9 @@
     <div class="mv-rights">
       <ul>
         <li>You must own the song and the visuals: the master, the composition, the lyrics, and every face, logo and piece of artwork you supply.</li>
-        <li>AI illustration is used for the Character Story option and is disclosed in the delivery note.</li>
-        <li>We do not grant rights to the underlying song, promise AI copyright protection, or guarantee Content ID or platform clearance.</li>
-        <li>No celebrity imitation or stock-person identity substitutions.</li>
-        <li>We do not reuse your audio, images or lyrics for anyone else.</li>
+        <li>Character Story artwork is AI-assisted illustration.</li>
       </ul>
+      <p class="mv-legal-pending" data-legal-placeholder><strong>License and usage terms: pending legal review.</strong></p>
     </div>
   </section>
 
@@ -186,11 +187,11 @@
       <div><label for="mv-message">Message (optional)</label><textarea id="mv-message" name="message" maxlength="1500"></textarea><p class="mv-err" data-err="message" role="alert"></p></div>
       <div class="mv-hp" aria-hidden="true"><label for="mv-co">Leave this field empty</label><input id="mv-co" name="company_site" type="text" tabindex="-1" autocomplete="off"/></div>
       <div><div class="chk"><input id="mv-consent" name="consent" type="checkbox" required/><label for="mv-consent">I agree that KEEPITIL may use the details in this request only to reply to it. It is not made public.</label></div><p class="mv-err" data-err="consent" role="alert"></p></div>
-      <div><div class="chk"><input id="mv-attest" name="attest" type="checkbox" required/><label for="mv-attest">I own, or have written permission to use, the song (master and composition), the lyrics, and every face, logo and piece of artwork I supply for this video. I understand KEEPITIL grants no rights to the underlying song and cannot guarantee platform clearance.</label></div><p class="mv-err" data-err="attest" role="alert"></p></div>
+      <div><div class="chk"><input id="mv-attest" name="attest" type="checkbox" required/><label for="mv-attest">I own, or have written permission to use, the song (master and composition), the lyrics, and every face, logo and piece of artwork I supply for this video.</label></div><p class="mv-err" data-err="attest" role="alert"></p></div>
       <button class="btn" type="submit">Open email to send request</button>
       <p id="mv-status" role="status" aria-live="polite"></p>
     </form>
-    <p class="mv-priv">Privacy: your request goes to KEEPITIL by email, is used only to reply, and is not shown publicly. This page adds no tracking. See our <a class="textlink" href="https://keepitil.com/privacy">privacy page</a>.</p>
+    <p class="mv-priv">Privacy: your request goes to KEEPITIL by email, is used only to reply, and is not shown publicly. See our <a class="textlink" href="https://keepitil.com/privacy">privacy page</a>.</p>
   </section>
 
   <section class="faq" aria-labelledby="faq-h">
@@ -199,8 +200,8 @@
     <details><summary>What do I need to send?</summary><p>A link to your song, your final owner-approved lyrics, and any images you own or may reuse. We do not transcribe or correct lyrics for you.</p></details>
     <details><summary>How many corrections do I get?</summary><p>One. For Hook it fixes our mistakes, for Full Lyric Cut it is one consolidated text and timing correction, and for Character Story it is one correction after the storyboard approval. A new concept or style is a separate job.</p></details>
     <details><summary>Is this fully animated?</summary><p>No. It is motion, beat cuts and captions over still artwork. There is no lip-sync and no live-action filming.</p></details>
-    <details><summary>Can you guarantee streams or platform clearance?</summary><p>No. We do not guarantee streams, reach, or Content ID clearance, and we do not distribute your song.</p></details>
-    <details><summary>Why might my Character Story wait?</summary><p>That option opens only when the reference and scene artwork can be made within our available image usage and commercial terms. If not, your request is queued or we use artwork you supply, with your agreement.</p></details>
+    <details><summary>Can you guarantee streams?</summary><p>No. We do not guarantee streams or reach, and we do not distribute your song.</p></details>
+    <details><summary>Why might my Character Story wait?</summary><p>That option depends on our available capacity. If we are busy, your request is queued, or we use artwork you supply, with your agreement.</p></details>
     <details><summary>What happens to my request?</summary><p>It arrives as an email to our team, is used only to reply, and is not published.</p></details>
   </section>
 </main>

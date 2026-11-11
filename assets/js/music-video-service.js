@@ -1,6 +1,6 @@
 /* KEEPITIL music video service page: price flag, tier pick, validation, mailto/rpc submit.
  * DRAFT. No analytics, no storage, no network calls in the default 'mailto' mode.
- * Pure helpers are exported (module.exports) so the UNRUN node test can exercise them without a DOM. */
+ * Pure helpers are exported (module.exports) so the node test can exercise them without a DOM. */
 (function (root) {
   'use strict';
 
@@ -9,10 +9,16 @@
   var HIDDEN_PRICE_TEXT = 'Pricing confirmed soon: request a quote';
   var TIER_NAMES = { hook: 'Hook teaser', lyric_cut: 'Full Lyric Cut', character_story: 'Character Story + teaser', not_sure: 'Not sure yet' };
   var CONSENT_TEXT = 'I agree that KEEPITIL may use the details in this request only to reply to it. It is not made public.';
-  var ATTEST_TEXT = 'I own, or have written permission to use, the song (master and composition), the lyrics, and every face, logo and piece of artwork I supply for this video. I understand KEEPITIL grants no rights to the underlying song and cannot guarantee platform clearance.';
+  var ATTEST_TEXT = 'I own, or have written permission to use, the song (master and composition), the lyrics, and every face, logo and piece of artwork I supply for this video.';
   var LIMITS = { name: 120, email: 254, song: 160, link: 500, message: 1500 };
   var EMAIL_RE = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]{2,}$/;
 
+  // Self-hosted samples only: same-origin path, or the KEEPITIL storage 'public-assets' bucket. Never a third-party embed host.
+  function sampleSrcOk(src) {
+    if (typeof src !== 'string' || !src) return false;
+    if (/^\/(?!\/)[^\s"'<>]+\.(mp4|webm)$/i.test(src)) return true;
+    return /^https:\/\/[a-z0-9-]+\.supabase\.co\/storage\/v1\/object\/public\/public-assets\/[^\s"'<>]+\.(mp4|webm)$/i.test(src);
+  }
   function pricesLive(w) { return !!w && w.KIL_MV_PRICES_LIVE === true; }
   function priceLabel(tier, live) { return live && PRICES[tier] ? PRICES[tier] : HIDDEN_PRICE_TEXT; }
   function oneLine(s) { return String(s == null ? '' : s).replace(/[\r\n\t]+/g, ' ').trim(); }
@@ -81,18 +87,15 @@
         opts[i].textContent = TIER_NAMES[t] + ' (' + PRICES[t] + ')';
       }
     }
-    // Sample slot: only creates a <video> when data-sample-src is filled in.
-    var slot = doc.querySelector('[data-sample-slot]');
-    if (slot) {
-      var src = slot.getAttribute('data-sample-src');
-      if (src) {
-        var vid = doc.createElement('video');
-        vid.controls = true; vid.preload = 'none'; vid.setAttribute('playsinline', '');
-        vid.setAttribute('aria-label', 'Sample music video');
+    // Sample slot: the <video data-sample-src> stays hidden until a self-hosted file path is filled in.
+    var vid = doc.querySelector('video[data-sample-src]');
+    if (vid) {
+      var src = vid.getAttribute('data-sample-src');
+      if (sampleSrcOk(src)) {
         vid.src = src;
-        var ph = slot.querySelector('[data-sample-placeholder]');
+        vid.hidden = false;
+        var ph = doc.querySelector('[data-sample-placeholder]');
         if (ph) ph.hidden = true;
-        slot.appendChild(vid);
       }
     }
     var form = doc.getElementById('mv-form');
@@ -143,7 +146,7 @@
   }
 
   var api = { TO: TO, PRICES: PRICES, HIDDEN_PRICE_TEXT: HIDDEN_PRICE_TEXT, TIER_NAMES: TIER_NAMES, CONSENT_TEXT: CONSENT_TEXT,
-    ATTEST_TEXT: ATTEST_TEXT, pricesLive: pricesLive, priceLabel: priceLabel, applyPrices: applyPrices,
+    ATTEST_TEXT: ATTEST_TEXT, pricesLive: pricesLive, sampleSrcOk: sampleSrcOk, priceLabel: priceLabel, applyPrices: applyPrices,
     validate: validate, buildMailto: buildMailto, submitRpc: submitRpc };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof document !== 'undefined') {

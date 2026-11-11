@@ -15,9 +15,9 @@ buyer: tickets.html / get_my_tickets (QR)      door: 12A event_checkin_scan / ch
 
 | what | where | result |
 |---|---|---|
-| event_orders is not forgeable or editable by clients; service path intact; refund by session and by payment intent restores qty_sold, using the **verbatim prod `refund_ticket_order` body** | PR #138, real PostgreSQL 17.6 (socket-only) | matrix 37/37 (17 negative controls fail on the original), packs 31/31, adjacent 3/3 |
-| door SQL hardening (admit once, refuse refunded / unknown / non-owner) | PR #137 | see its MATRIX-RESULTS.md |
-| ACL / lock order of the earlier packs | PR #136 | see its README |
+| event_orders is not forgeable or editable by clients; service path intact; refund by session and by payment intent restores qty_sold, using the **verbatim prod `refund_ticket_order` body** | 13A, drafted in #138 (CLOSED; now in #154, db-proofs CI), real PostgreSQL 17.6 (socket-only) | matrix 37/37 (17 negative controls fail on the original), packs 31/31, adjacent 3/3 |
+| door SQL hardening (admit once, refuse refunded / unknown / non-owner) | 12A, #137 (content also in #154) | see its MATRIX-RESULTS.md |
+| ACL / lock order of the earlier packs | R1, #136 (content also in #154) | see its README |
 | **the page sends the signed-in user's access token, not the anon key, to create-checkout; no session -> no call and a sign-in redirect with a return path; 401 needs_account -> account prompt; free RSVP unchanged; static guard against any anon-key bearer on create-checkout** | this PR, `assets/js/event-checkout-bearer.test.mjs` (jsdom, no network) | 9/9; on the ORIGINAL event.html the bearer test and the static guard fail (negative control, run for real) |
 
 Not proven offline (the reason for part ii): the real Edge Functions (source is not vendored), the real Stripe wiring, real JWT verification at the Supabase gateway, real PostgREST/RLS roles, Apple Pay.

@@ -6,7 +6,7 @@ The web page and network path for the 12A "real caller / auth contract" (Atlas I
 |---|---|
 | `door.html` | standalone scanner page. `noindex`, not in the sitemap, **not linked from any page, nav or script** (a test enforces it). No third-party scripts. |
 | `assets/js/kil-door-scanner.js` | logic: payload parsing, the RPC call, the scan state machine, the camera wrapper, rendering, `boot()`. No `localStorage`, no `innerHTML`, no `console`. |
-| `assets/js/kil-door-scan-adapter.mjs` | **byte-identical copy** of `db/proposed/12a-door-hardening/adapter/door-scan-adapter.mjs` (PR #137). `db/` is excluded from the Pages artifact, so the page cannot import from there; a test fails if the two copies differ. |
+| `assets/js/kil-door-scan-adapter.mjs` | **byte-identical copy** of `db/proposed/12a-door-hardening/adapter/door-scan-adapter.mjs` (12A, PR #137; the same file is in #154 on main). `db/` is excluded from the Pages artifact, so the page cannot import from there; a test fails if the two copies differ. |
 | `assets/js/door-scanner.test.mjs` | 31 tests (jsdom, real `door.html`), including 3 negative controls. (15B changed exactly one: the "BarcodeDetector without qr_code" case now expects the jsQR fallback instead of "unsupported".) |
 | `assets/js/vendor/jsqr/` | **15B**: vendored jsQR 1.4.0 (Apache-2.0), unmodified `jsQR.js` + `LICENSE` + `README.md` (provenance, tarball integrity, SHA-256). Lazy-loaded, same-origin, only when `BarcodeDetector` is missing. See `THIRD-PARTY.md`. |
 | `assets/js/door-scanner-qr.test.mjs` | **15B**: 20 tests: decode of GENERATED QR images, full chain through the page with fake camera frames, negative controls, checksum guard. |

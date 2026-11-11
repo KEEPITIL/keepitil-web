@@ -1,68 +1,23 @@
 <!doctype html>
+<html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex">
-<title>Kingdom Wars has moved</title>
-<link rel="canonical" href="https://keepitil.com/games/kwars/">
-<!-- Identity bridge: the installed app is identified by `id`, which is still
-     /games/kwars1/. Pointing at the same manifest here means a launch that
-     lands on this page updates the existing app instead of creating a second
-     one. -->
-<link rel="manifest" href="./manifest.webmanifest">
-<style>
-  :root{color-scheme:dark}
-  body{margin:0;min-height:100vh;display:grid;place-items:center;text-align:center;
-       background:#1b2732;color:#e8eef2;font:15px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
-  .w{padding:28px;max-width:30rem}
-  h1{font-size:19px;letter-spacing:.06em;color:#f2c94d;margin:0 0 10px}
-  p{color:#9fb0bb;margin:0 0 18px}
-  a{display:inline-block;padding:11px 20px;border-radius:10px;font-weight:700;
-    text-decoration:none;color:#3d2b08;background:linear-gradient(#f2c94d,#c98f1d)}
-</style>
-<div class="w">
-  <h1>KINGDOM WARS HAS MOVED</h1>
-  <p>This address is retired. Taking you to <b>keepitil.com/games/kwars</b>…</p>
-  <a id="go" href="/games/kwars/">CONTINUE TO KINGDOM WARS</a>
-</div>
+<meta name="robots" content="noindex,nofollow">
+<title>Kingdom Wars: coming soon | KEEPITIL</title>
+<link rel="canonical" href="https://keepitil.com/games/">
+<meta http-equiv="refresh" content="0;url=/games/#coming-soon">
+<!-- COMING SOON GATE (Joe, 2026-11-11). The retired-route page and its manifest are kept in this folder as index.play.html / manifest.play.webmanifest and is not deployed
+     (.github/pages-exclude.txt). To bring it back: git mv index.play.html index.html and remove its exclude line. -->
+<style>:root{color-scheme:dark}body{margin:0;min-height:100vh;display:grid;place-items:center;text-align:center;background:#0a0a0f;color:#e8eef2;font:15px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}.w{padding:28px;max-width:30rem}h1{font-size:20px;letter-spacing:.06em;margin:0 0 10px}p{color:#9fb0bb;margin:0 0 18px}a{color:#fff;font-weight:700}</style>
+<div class="w"><h1>KINGDOM WARS IS COMING SOON</h1><p>Taking you to KEEPITIL Games…</p><a href="/games/#coming-soon">Continue to KEEPITIL Games</a></div>
 <script>
-/* LEGACY ROUTE RETIREMENT — /games/kwars1/  (see docs/kwars-journal §1)
-   This document deliberately contains no game shell. Its only jobs are to
-   retire the old service worker and send the player to the canonical route.
-
-   It must NEVER clear localStorage or IndexedDB: the player's saves, their
-   guest progress and their Supabase auth session all live there, and this
-   origin is shared with the new route, so everything carries across untouched
-   the moment they arrive at /games/kwars/. */
-(function(){
-  'use strict';
-  // Map /games/kwars1/<rest> -> /games/kwars/<rest>, keeping query + hash.
-  var rest = location.pathname.replace(/^\/games\/kwars1\/?/, '');
-  if (/^index\.html$/i.test(rest)) rest = '';
-  var target = '/games/kwars/' + rest + location.search + location.hash;
-  document.getElementById('go').setAttribute('href', target);
-
-  function leave(){ location.replace(target); }
-
-  if (!('serviceWorker' in navigator)) { leave(); return; }
-
-  // Retire the old worker first, otherwise a client it still controls can be
-  // handed the cached build-58 shell on the next navigation.
-  Promise.resolve()
-    .then(function(){ return navigator.serviceWorker.getRegistrations(); })
-    .then(function(regs){
-      return Promise.all(regs.filter(function(r){
-        return r.scope.indexOf('/games/kwars1/') !== -1;
-      }).map(function(r){ return r.unregister(); }));
-    })
-    .then(function(){ return caches.keys(); })
-    .then(function(keys){
-      // Only this retired route's own caches. Cache API only -- no saves.
-      return Promise.all(keys.filter(function(k){ return k.indexOf('kwars1-') === 0; })
-                             .map(function(k){ return caches.delete(k); }));
-    })
-    .catch(function(){ /* a blocked cache/SW API must not strand the player */ })
-    .then(leave);
-  // Hard floor: never leave anyone staring at this page.
-  setTimeout(leave, 2500);
+(function(){ var go = function(){ location.replace("/games/#coming-soon"); };
+  if (!('serviceWorker' in navigator)) return go();
+  // Retire this route's own worker and caches only (the Cache API is origin-wide; other games keep theirs). Saves are untouched.
+  navigator.serviceWorker.getRegistrations().then(function(rs){ return Promise.all(rs.filter(function(r){ return r.scope.indexOf("/games/kwars1/") !== -1; }).map(function(r){ return r.unregister(); })); })
+    .then(function(){ return window.caches ? caches.keys() : []; })
+    .then(function(ks){ return Promise.all(ks.filter(function(k){ return ["kwars1-"].some(function(p){ return k.indexOf(p) === 0; }); }).map(function(k){ return caches.delete(k); })); })
+    .then(go, go);
 })();
 </script>
+</html>

@@ -16,8 +16,7 @@ self.addEventListener('activate', function(e){
     const clients = await self.clients.matchAll({type:'window'});
     for (const c of clients){
       try{
-        const rest = new URL(c.url).pathname.replace(/^\/games\/kwars1\/?/, '').replace(/^index\.html$/i,'');
-        await c.navigate('/games/kwars/' + rest);
+        await c.navigate('/games/#coming-soon');
       }catch(err){ /* navigate() is not available everywhere; the page's own script also redirects */ }
     }
   })());
@@ -27,6 +26,6 @@ self.addEventListener('activate', function(e){
    exactly how a player gets handed the old shell after the migration. */
 self.addEventListener('fetch', function(e){
   e.respondWith(fetch(e.request).catch(function(){
-    return new Response('', {status:503, statusText:'Kingdom Wars has moved to /games/kwars/'});
+    return new Response('', {status:503, statusText:'Kingdom Wars is coming soon'});
   }));
 });

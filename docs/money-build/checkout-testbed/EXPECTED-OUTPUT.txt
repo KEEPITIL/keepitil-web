@@ -1,4 +1,5 @@
 ===== RESULTS =====
+(other summary lines are cut at 130 chars; the full text is in run.log. d2 is shown in full because its decode result is the point: it FAILS, never skips, if jsQR is missing or the decoded text differs.)
 PASS  a1  create-checkout with NO Authorization header -> 401 (gateway verify_jwt emulation: Invalid JWT; function not reached)
 PASS  a2  ANON key as bearer (valid project JWT, no user) -> function answers 401 needs_account
 PASS  a3  signed-in buyer, $1.00 tier, client sends price_cents=1: session unit_amount comes from DB; fee = formula(config); metadata + cust
@@ -14,7 +15,8 @@ PASS  c4  MISSING stripe-signature header -> 400, no row
 PASS  c5  STALE timestamp (10 minutes old, correct secret) -> 400, no row
 PASS  c6  control: the SAME forged body signed with the CORRECT secret and fresh timestamp IS accepted (proves rows appear only when the sig
 PASS  d1  get_my_tickets (buyer) returns the paid tickets with their qr_token; another account sees none of them
-PASS  d2  self-hosted wallet QR: the repo's shipped qrcode.js + kil-ticket-qr.js render the ticket code locally (/tickets draws KIL-<token>,
+PASS  d2  self-hosted wallet QR: the repo's shipped qrcode.js + kil-ticket-qr.js render the ticket code locally (/tickets draws KIL-<token>, /profile draws the raw token); no third-party host involved
+        payloads: /tickets "KIL-<32 hex>", /profile "<32 hex>"; SVGs in <KIL_OUT>; decoded by vendored jsQR (sha256 bc40c8a15196): /tickets decoded === "KIL-<token>": true; /profile decoded === raw token: true
 PASS  e1  hardened event_checkin_scan by the organizer: raw token -> admitted once; second scan -> already_used
 PASS  e2  hardened door accepts the wallet's KIL-prefixed payload (order 2): admitted once, then already_used
 PASS  e3  a non-owner organizer is refused (forbidden) and the anon role cannot execute the scanner (42501)

@@ -22,8 +22,8 @@ scripts/checkout-testbed/run.sh            # env KIL_OUT=<dir> for logs (default
 ```
 
 Requirements on the Nexus Mac: node 22, the local Postgres helpers in `~/work/pg-local` (socket only, port 54329; the script starts it and ALWAYS stops it). Load gate: refuses to start at 1-min load >= 8, aborts and stops Postgres at > 10. No Docker, Deno, Xcode, sudo, brew, or downloads.
-Optional: `KIL_JSQR=<path to jsQR.js>` lets step d2 decode the rendered QR (the decoder is vendored by PR 15B at `assets/js/vendor/jsqr/jsQR.js`; if absent, d2 checks the payload and rendering only and says so).
-Guard tests (no DB): `node --test scripts/checkout-testbed/tests/guards.test.mjs`.
+Step d2 always decodes the rendered QRs with the vendored jsQR 1.4.0 (`scripts/checkout-testbed/vendor/jsqr/`, same bytes as PR 142, Apache-2.0, sha256 `bc40c8a1...fee0859` checked at load). It never skips: if the decoder is missing or altered, or the decoded text differs from the expected payload (`KIL-<token>` for /tickets, raw token for /profile), d2 FAILS.
+Unit tests (no DB, incl. the d2 negative controls: missing/altered decoder, wrong token, corrupted QR): `node --test scripts/checkout-testbed/tests/guards.test.mjs scripts/checkout-testbed/tests/qr-decode.test.mjs`.
 
 ## What is real vs simulated
 
@@ -40,7 +40,7 @@ Guard tests (no DB): `node --test scripts/checkout-testbed/tests/guards.test.mjs
 | Stripe API (sessions, PaymentIntent, refunds) | FAKE local server |
 | Hosted checkout page, the 4242 card | SIMULATED local page, labelled "NOT Stripe's hosted checkout" |
 | Webhook signing | Stripe v1 scheme (`t=...,v1=HMAC-SHA256`) with a fake `whsec_localtest...`, verified by the shim |
-| Wallet QR | REAL shipped `assets/js/vendor/qrcode.js` + `kil-ticket-qr.js`, rendered locally (decoded with jsQR when available) |
+| Wallet QR | REAL shipped `assets/js/vendor/qrcode.js` + `kil-ticket-qr.js`, rendered locally (always decoded with the vendored jsQR) |
 | Door scanner | REAL hardened SQL functions called as the authenticated organizer (no scanner UI/network layer) |
 | Keys | fake, generated at runtime, in memory/env only, never written to a file |
 

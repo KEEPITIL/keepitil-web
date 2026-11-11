@@ -12,6 +12,7 @@ import { guardEnv, installEgressGuard, refuseLiveKeys, refuseNonLocalHosts, asse
 import { signJwt } from "./lib/jwt.mjs";
 import { FakeStripe } from "./lib/fake-stripe.mjs";
 import { startEdgeHost, verifyDeployedSources } from "./lib/edge-host.mjs";
+import { loadJsQR, assertDecodes, JSQR_SHA256 } from "./lib/qr-decode.mjs";
 import { buildTemplates, makeReq, insertFixture, PG } from "./lib/testbed-db.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -118,10 +119,10 @@ async function main() {
     const mk = (p) => { const c = qrcode(0, "M"); c.addData(p); c.make(); return c; };
     const pTickets = KQ.payload(tok1, { prefix: true }), pProfile = KQ.payload(tok1);
     const svg = mk(pTickets).createSvgTag(4, 8); writeFileSync(join(OUT, "wallet-qr-tickets-page.svg"), svg); writeFileSync(join(OUT, "wallet-qr-profile-page.svg"), mk(pProfile).createSvgTag(4, 8));
-    let decoded = "decoder not present (assets/js/vendor/jsqr is not on main until 15B merges): payload NOT decode-verified";
-    const jp = process.env.KIL_JSQR || join(REPO, "assets/js/vendor/jsqr/jsQR.js");
-    let okDecode = true;
-    if (existsSync(jp)) { const jsQR = require(jp); const dec = (p) => { const c = mk(p), n = c.getModuleCount(), cell = 6, qz = 4, W = (n + 2 * qz) * cell, px = new Uint8ClampedArray(W * W * 4).fill(255); for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (c.isDark(r, k)) for (let y = 0; y < cell; y++) for (let x = 0; x < cell; x++) { const i = (((r + qz) * cell + y) * W + (k + qz) * cell + x) * 4; px[i] = px[i + 1] = px[i + 2] = 0; } return jsQR(px, W, W)?.data; }; okDecode = dec(pTickets) === "KIL-" + tok1 && dec(pProfile) === tok1; decoded = `decoded by vendored jsQR: tickets-page payload === KIL-<token>, profile payload === raw token: ${okDecode}`; }
+    const jsQR = loadJsQR(); /* throws (-> FAIL) if the vendored decoder is missing or its sha256 differs: d2 never skips */
+    const dT = assertDecodes(jsQR, mk(pTickets), "KIL-" + tok1), dP = assertDecodes(jsQR, mk(pProfile), tok1); /* throws (-> FAIL) unless decoded text equals the payload exactly */
+    const okDecode = dT === "KIL-" + tok1 && dP === tok1;
+    const decoded = `decoded by vendored jsQR (sha256 ${JSQR_SHA256.slice(0, 12)}): /tickets decoded === "KIL-<token>": ${dT === "KIL-" + tok1}; /profile decoded === raw token: ${dP === tok1}`;
     const ok = pTickets === "KIL-" + tok1 && pProfile === tok1 && /^<svg/.test(svg) && !/https?:\/\//.test(svg.replace(/xmlns="[^"]*"/, "")) && okDecode;
     return { pass: ok, note: `payloads: /tickets "KIL-<32 hex>", /profile "<32 hex>"; SVGs in ${OUT}; ${decoded}` };
   });

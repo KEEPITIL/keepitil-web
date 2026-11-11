@@ -1,0 +1,21 @@
+PROPOSED HANDOFF PATCH, STAGING ONLY (not applied, not deployed): create-checkout with NO production redirect default. Unified diff against the EXACT deployed v58 source (md5 aad74a1bf95522b914578d2ebc78c6d6; `patch -p1` with the file as index.ts).
+Fail closed: KIL_SITE_URL must be set to the staging site; unset or any keepitil.com / keepitil.github.io host makes the function answer 500 and create no Stripe session. NEVER deploy this copy to the production project.
+Replaces patches/create-checkout-site-env.PROPOSED.diff (which defaulted to https://keepitil.com: Sentinel S5, round 2).
+
+--- a/index.ts
++++ b/index.ts
+@@ -58,7 +58,13 @@
+     const b = await req.json();
+     // Canonical root. There is no /v3 or /v31 any more — both were deleted, and pointing a
+     // POST-PAYMENT redirect at a deleted namespace is a 404 at the worst possible moment.
+-    const SITE = "https://keepitil.com";
++    // PROPOSED, STAGING-ONLY (Sentinel S5, round 2): there is NO production default. KIL_SITE_URL must be the STAGING site. Unset, or any keepitil.com / keepitil.github.io host, is REFUSED (500) so a staging
++    // checkout can never send a buyer to production. NEVER deploy this copy to the production project: it would refuse every production checkout.
++    const SITE = (Deno.env.get("KIL_SITE_URL") ?? "").replace(/\/+$/, "");
++    let siteHost = ""; try { siteHost = new URL(SITE).hostname.toLowerCase(); } catch (_e) { /* refused below */ }
++    if (!siteHost || siteHost === "keepitil.com" || siteHost.endsWith(".keepitil.com") || siteHost === "keepitil.github.io") {
++      return J({ error: "checkout is not configured for this environment (KIL_SITE_URL must be the staging site)" }, 500);
++    }
+ 
+     // ═══ VS ENTRY FEE — runs first, returns early; ticket logic below is untouched ═══
+     if (b.kind === "vs_entry") {

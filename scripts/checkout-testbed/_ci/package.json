@@ -1,0 +1,9 @@
+{
+  "name": "kil-checkout-testbed-ci",
+  "private": true,
+  "version": "0.0.0",
+  "description": "CI-only dependency pin for checkout-testbed scenarios (.github/workflows/checkout-testbed.yml). The harness (scripts/checkout-testbed/lib/pgdb.mjs) loads node-postgres from here via KIL_PG_NODE_MODULES. Inert: nothing here is served or applied.",
+  "dependencies": {
+    "pg": "8.23.1"
+  }
+}

@@ -846,7 +846,7 @@
     }
     bossDown(d) {
       const g = this.mission ? this.mission.bossGold : KM.BOSS_GOLD, draw = this.mission ? { tokens: 0, diamonds: 0 } : KM.bossDraw(this.rng()); this.coins += g; this.coinsTotal += g; this.bossesKilled++; this.warTokens += draw.tokens; this.diamondsWon += draw.diamonds; this.gainEnergy(60);   // CRUSADES: replayable, so no premium drops
-      this.emit('bossReward', { wave: this.wave, gold: g, tokens: draw.tokens, diamonds: draw.diamonds, kind: d.k, id: this.seed + ':' + this.wave }); this.offerChoice('boss');
+      this.emit('bossReward', { wave: this.wave, gold: g, tokens: draw.tokens, diamonds: draw.diamonds, kind: d.k, id: this.seed + ':' + this.wave }); if (!(this.mission && this.mission.goal === 'waves' && this.wave >= this.mission.waves.length)) this.offerChoice('boss');   /* CRUSADE FIX: no boss-card pick on a mission's final wave (the battle ends; the cards hid the victory) */
     }
 
     // Returns budget spent. Every unit placed is an unlocked type inside the lane.

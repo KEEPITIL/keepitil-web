@@ -208,6 +208,9 @@
   KM.planGold = (p, lv) => KM.PROD_ORDER.reduce((a, k) => a + ((p && p[k]) || 0) * KM.deployCost(k, (lv && lv[k]) || 1), 0);
   KM.planOn = p => KM.planPts(p) > 0;
   KM.planCanAdd = (p, k, n) => { n = n || 1; return (p[k] || 0) + n <= KM.planMax(k) && KM.planPts(p) + n * KM.PROD[k].pts <= KM.planCapNow(); };
+  // CRUSADE FIX (Joe 2026-11-09): +1/-1 and +10/-10 share one rule. A + step adds as many as still fit (≤ d), never past the class max or
+  // the capacity in force (the mission's in Crusades, 300 in Endless); a − step never goes below 0. Returns the new count.
+  KM.planBump = (p, k, d) => { const cur = p[k] || 0; if (d < 0) return Math.max(0, cur + d); let n = d; while (n > 0 && !KM.planCanAdd(p, k, n)) n--; return cur + n; };
   KM.validPlan = raw => { const o = KM.emptyPlan(); let left = KM.planCapNow(); if (!raw || typeof raw !== 'object') return o;   // integers ≥ 0, ≤ class max, total ≤ 300 (filled in display order)
     for (const k of KM.PROD_ORDER) { const v = raw[k]; if (typeof v !== 'number' || !isFinite(v) || v < 0) continue; const n = Math.min(Math.floor(v), KM.planMax(k), Math.floor(left / KM.PROD[k].pts)); o[k] = n; left -= n * KM.PROD[k].pts; }
     return o; };

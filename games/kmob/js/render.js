@@ -4,6 +4,7 @@
   const KM = G.KM, W = KM.W;
   const V3 = THREE.Vector3, M4 = THREE.Matrix4, Q = THREE.Quaternion, E = THREE.Euler, C = THREE.Color;
   const TEAM = [new C(0x2f74ff), new C(0xe2312c)];
+  const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)');
   const ENEMY_COL = { grunt: 0xe2312c, imp: 0xf0463a, shield: 0xd02a2e, runner: 0xe83c2c, archer: 0xd8352f, knight: 0xa51f2c, brute: 0xd0262c, bomber: 0xe8482a, cannon: 0x9a2a2a, shaman: 0xc0242c, warlord: 0x9a1424, spearman: 0xc8302a, giant: 0x8e1c22, titan: 0x7a1020, colossus: 0x5e1a24, hunter: 0x8a2a10, raider: 0xd9782c, raiderChief: 0xb8501c, longbow: 0x7a2a6a, swordCmd: 0x6e0f1a, acolyte: 0x9a2a7a, mizardLord: 0x6a1a6e, zombie: 0x5a8a3a, necro: 0x4a2a6a, wraith: 0x6a7a9a, eliteCaptain: 0x4a1a2a, jester: 0xe0507a, strongman: 0xc84a1a, giantLord: 0x5a2a1a, automaton: 0x6a6a7a, ironKing: 0x3a3a4a };
   const ERA_TINT = [0xffffff, 0xf2d6d6, 0xd9b8c0, 0xc8a8d8, 0xb0b0b8, 0x9ad8ff];
 
@@ -850,7 +851,7 @@
       if (KM.camFocus && KM.camFocus.x != null) this.camD = dist;
       this.camD = (this.camD || dist) + (dist - (this.camD || dist)) * Math.min(1, dt * 1.6);
       this.shake = Math.max(0, this.shake - dt * 1.2); this.shoveT = Math.max(0, (this.shoveT || 0) - dt);
-      const sx = (Math.random() - 0.5) * this.shake, sy = (Math.random() - 0.5) * this.shake;
+      const shk = REDUCED_MOTION.matches ? 0 : this.shake, sx = (Math.random() - 0.5) * shk, sy = (Math.random() - 0.5) * shk;   /* WEEK 0: Reduce Motion = no shake */
       const flip = KM.camFocus && KM.camFocus.flip ? -1 : 1, pch = KM.camFocus && KM.camFocus.pitch || pitch;   // close-up rigs can look at the army's faces
       // straight down the lane: no yaw, no roll — enemy up, tank bottom, battle straight ahead
       const pw = fit ? 0 : this.zoomPan || 0; if (this.panS == null || KM.camFit) this.panS = pw; this.panS += (pw - this.panS) * zk;

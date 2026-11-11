@@ -36,7 +36,7 @@
   const w = (lv, f, x) => Object.assign({ lv, f }, x || {});
   const B = (boss, lv, extra) => w(lv, [['boss', 0, 2.5], ['line', 0.35, 3]], Object.assign({ boss }, extra));
   const star = (k, v) => ({ k, v });
-  KM.starText = s => s.k === 'loot' ? 'Your Looters deliver ' + s.v.toLocaleString('en-US') + ' Gold' : s.k === 'hp' ? 'Tank above ' + s.v + '% health' : s.k === 'time' ? 'Win within ' + Math.floor(s.v / 60) + ':' + String(s.v % 60).padStart(2, '0') : s.k === 'lost' ? 'Lose ' + s.v + ' soldiers or fewer'
+  KM.starText = s => s.k === 'loot' ? 'Looters bring ' + s.v.toLocaleString('en-US') + ' Gold to the tank' : s.k === 'hp' ? 'Tank above ' + s.v + '% health' : s.k === 'time' ? 'Win within ' + Math.floor(s.v / 60) + ':' + String(s.v % 60).padStart(2, '0') : s.k === 'lost' ? 'Lose ' + s.v + ' soldiers or fewer'
     : s.k === 'col' ? (s.v ? 'Lose ' + s.v + ' Looter' + (s.v > 1 ? 's' : '') + ' or fewer' : 'No Looter lost') : s.k === 'gold' ? 'End with ' + s.v.toLocaleString('en-US') + ' Gold or more' : s.k === 'kills' ? 'Defeat ' + s.v + ' enemies' : '';
   KM.MISSIONS = [
     // ===== CAMPAIGN I · FALLEN KINGDOM · Crusade 1: BORDER RECLAMATION (army fundamentals · capacity 50 · Looter + Archer + tank) =====
@@ -183,6 +183,9 @@
   KM.MISSION_TUNE = {   // tuned 2026-10-24 (tests/crusades-tune.js); M17 eased 2.4 → 2.0 after a seed loss
     1: {mul: 0.45}, 2: {mul: 0.8}, 3: {mul: 1}, 4: {mul: 1}, 5: {mul: 2}, 14: {mul: 0.8},   // Checkpoint F (tests/crusades-tune-f.js + crusades-probe.js): bot wins every seed; from M3 passive/single lose
   };
+  // WEEK 0: each mission banner has its own name (shown on the reward card and in the Collection)
+  KM.CRUSADE_BANNERS = { b_first: "RAIDERS' BANE", b_line: 'THE UNBROKEN LINE', b_supply: 'SUPPLY GUARDIAN', b_cannon: 'SIEGE BREAKER', b_siege: 'GATE CRASHER', b_plague: 'PLAGUE WARDEN', b_watch: 'NIGHT WATCH', b_crossfire: 'CROSSFIRE', b_lastgold: 'LAST GOLD' };
+  KM.bannerName = id => id.startsWith('master_') ? ((KM.CRUSADES.find(c => 'master_' + c.id === id) || {}).name || id) + ' MASTERY' : KM.CRUSADE_BANNERS[id] || id;
   KM.MISSION_BY = Object.fromEntries(KM.MISSIONS.map(M => [M.id, M]));
 
   // ---------- progress (save.crusades) ----------

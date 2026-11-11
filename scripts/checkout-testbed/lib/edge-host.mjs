@@ -22,11 +22,12 @@ export function verifyDeployedSources() {
   return Object.entries(DEPLOYED).map(([slug, d]) => { const got = md5File(d.file); if (got !== d.md5) throw new Error(`deployed source ${slug} is not the pinned v${d.version} copy (md5 ${got} != ${d.md5}). Refusing to run.`); return { slug, version: d.version, md5: got }; });
 }
 
-export async function startEdgeHost() {
+/* opts.overrides = { "stripe-webhook": "<absolute path of a PATCHED copy>" }: serve that file instead of the pinned deployed copy for that slug (the pinned deployed sources are STILL md5-verified at every start; the patched copy is a separate file made from them). */
+export async function startEdgeHost(opts = {}) {
   verifyDeployedSources();
   const served = installDeno();
   const handlers = {};
-  for (const [slug, d] of Object.entries(DEPLOYED)) { served.last = null; await import(pathToFileURL(d.file).href + "?fn=" + slug); if (!served.last) throw new Error(slug + " did not call Deno.serve"); handlers[slug] = served.last; }
+  for (const [slug, d] of Object.entries(DEPLOYED)) { served.last = null; await import(pathToFileURL(opts.overrides?.[slug] ?? d.file).href + "?fn=" + slug + "&host=" + (opts.overrides?.[slug] ? "patched" : "deployed") + "&n=" + Math.random().toString(36).slice(2)); if (!served.last) throw new Error(slug + " did not call Deno.serve"); handlers[slug] = served.last; }
   const server = http.createServer(async (req, res) => {
     try {
       const m = new URL(req.url, "http://127.0.0.1").pathname.match(/^\/functions\/v1\/([\w-]+)$/); const slug = m?.[1];

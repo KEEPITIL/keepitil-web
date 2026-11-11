@@ -2,7 +2,10 @@
    Exposes the small PGlite-shaped surface the harness uses: exec(sql) -> Result[], query(sql) -> {rows, fields, affectedRows}.
    dumpDataDir()/loadDataDir() are replaced by CREATE DATABASE ... TEMPLATE: a "blob" is the name of a template database.
    Connection: node-postgres over the Unix-domain socket, user `postgres` (a NOSUPERUSER stand-in for Supabase's postgres owner) or pgadmin for DDL of databases.
-   Nothing here reads or stores a password. Environment: KIL_PG_SOCKET_DIR (default ~/work/pg-local/run), KIL_PG_PORT (54329), KIL_PG_NODE_MODULES (where `pg` lives). */
+   Nothing here reads or stores a password. Environment: KIL_PG_SOCKET_DIR (default ~/work/pg-local/run), KIL_PG_PORT (54329), KIL_PG_NODE_MODULES (where `pg` lives).
+   TCP / CI mode (db-proofs.yml): PGHOST / PGPORT / PGUSER / PGDATABASE (standard libpq names) override the connection of the ADMIN session; unset = the local socket defaults above, unchanged.
+   PGHOST may be a socket directory (starts with "/") or a hostname. No password is ever read (the CI service uses trust auth). The admin user (default pgadmin) must be a SUPERUSER that is NOT named
+   `postgres`: the harness creates its own NOSUPERUSER stand-in role `postgres`, and ensureRoles() refuses if a role of that name already exists (in CI the service is started with POSTGRES_USER=pgadmin). */
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -10,11 +13,14 @@ const PGL = process.env.KIL_PG_HOME || join(homedir(), "work/pg-local");
 const require = createRequire(join(process.env.KIL_PG_NODE_MODULES || PGL, "x.js"));
 const pg = require("pg");
 pg.types.setTypeParser(20, (v) => { const n = BigInt(v); return n <= 9007199254740991n && n >= -9007199254740991n ? Number(n) : n; });   // int8 like PGlite
-const CONN = { host: process.env.KIL_PG_SOCKET_DIR || join(PGL, "run"), port: Number(process.env.KIL_PG_PORT || 54329) };
+const CONN = { host: process.env.PGHOST || process.env.KIL_PG_SOCKET_DIR || join(PGL, "run"), port: Number(process.env.PGPORT || process.env.KIL_PG_PORT || 54329) };
+const ADMIN_USER = process.env.PGUSER || "pgadmin", ADMIN_DB = process.env.PGDATABASE || "postgres";
 export const RUN = Math.random().toString(36).slice(2, 7);
 let seq = 0; const owned = new Set();         // databases created by this run
 let admin = null;
-const adm = async () => { if (!admin) { admin = new pg.Client({ ...CONN, user: "pgadmin", database: "postgres" }); await admin.connect(); } return admin; };
+const adm = async () => { if (!admin) { const c = new pg.Client({ ...CONN, user: ADMIN_USER, database: ADMIN_DB });
+  try { await c.connect(); } catch (e) { throw new Error(`PostgreSQL not reachable at ${CONN.host}:${CONN.port} as ${ADMIN_USER}: ${e.message}. A missing database is a FAILURE, never a skip (CI=${process.env.CI || "unset"}).`); }
+  admin = c; } return admin; };
 const nm = (k) => `kil_rehearsal_${RUN}_${k}${++seq}`;
 const quote = (s) => '"' + s.replace(/"/g, '""') + '"';
 

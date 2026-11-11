@@ -45,6 +45,12 @@ BEGIN
   IF v IS DISTINCT FROM 'plpgsql' THEN f := f || ('gt.lang: expected plpgsql but live is ' || v); END IF;
   v := coalesce((SELECT p.prosecdef::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT');
   IF v IS DISTINCT FROM 'true' THEN f := f || ('gt.helper_secdef: expected true but live is ' || v); END IF;
+  v := coalesce((SELECT md5(replace(pg_get_functiondef(p.oid), 'get_ticket__orig_13a', 'get_ticket')) FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT');
+  IF v IS DISTINCT FROM '1814becc056c30ccac38c3adb51019ae' THEN f := f || ('gt.helper_def_md5: expected 1814becc056c30ccac38c3adb51019ae but live is ' || v); END IF;
+  v := coalesce((SELECT md5(p.prosrc) FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT');
+  IF v IS DISTINCT FROM '7eb30cec4e687909c8df0e37e924487f' THEN f := f || ('gt.helper_src_md5: expected 7eb30cec4e687909c8df0e37e924487f but live is ' || v); END IF;
+  v := coalesce((SELECT coalesce((SELECT string_agg(c,',') FROM unnest(p.proconfig) c),'(none)') FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT');
+  IF v IS DISTINCT FROM 'search_path=public' THEN f := f || ('gt.helper_config: expected search_path=public but live is ' || v); END IF;
   v := coalesce((SELECT pg_get_userbyid(p.proowner)::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT');
   IF v IS DISTINCT FROM 'postgres' THEN f := f || ('gt.helper_owner: expected postgres but live is ' || v); END IF;
   v := coalesce((SELECT (SELECT count(*) FROM aclexplode(coalesce(p.proacl, acldefault('f',p.proowner))) x WHERE x.grantee <> p.proowner)::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT');
@@ -100,6 +106,10 @@ WITH a(name, actual) AS (
   UNION ALL SELECT 'gt.dependents' AS name, coalesce((SELECT (SELECT count(*) FROM pg_depend d WHERE d.refclassid = 'pg_proc'::regclass AND d.refobjid = p.oid AND d.deptype = 'n')::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'gt.secdef' AS name, coalesce((SELECT p.prosecdef::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'gt.comment' AS name, coalesce((SELECT coalesce(obj_description(p.oid, 'pg_proc'), 'none') FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.def_md5' AS name, coalesce((SELECT md5(pg_get_functiondef(p.oid)) FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.src_md5' AS name, coalesce((SELECT md5(p.prosrc) FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.config' AS name, coalesce((SELECT coalesce((SELECT string_agg(c,',') FROM unnest(p.proconfig) c),'(none)') FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.lang' AS name, coalesce((SELECT (SELECT l.lanname FROM pg_language l WHERE l.oid = p.prolang)::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
 ), e(name, expected) AS (VALUES
   ('gt.overloads', '1'),
   ('gt.helper_overloads', '0'),
@@ -111,7 +121,11 @@ WITH a(name, actual) AS (
   ('gt.grant_options', '0'),
   ('gt.dependents', '0'),
   ('gt.secdef', 'true'),
-  ('gt.comment', 'none')
+  ('gt.comment', 'none'),
+  ('gt.def_md5', '1814becc056c30ccac38c3adb51019ae'),
+  ('gt.src_md5', '7eb30cec4e687909c8df0e37e924487f'),
+  ('gt.config', 'search_path=public'),
+  ('gt.lang', 'sql')
 ), r AS (SELECT e.name, e.expected, a.actual, (a.actual IS NOT DISTINCT FROM e.expected) AS ok FROM e LEFT JOIN a USING (name))
 SELECT name, expected, actual, ok FROM r
   ) z WHERE NOT ok;
@@ -131,6 +145,10 @@ WITH a(name, actual) AS (
   UNION ALL SELECT 'gt.dependents' AS name, coalesce((SELECT (SELECT count(*) FROM pg_depend d WHERE d.refclassid = 'pg_proc'::regclass AND d.refobjid = p.oid AND d.deptype = 'n')::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'gt.secdef' AS name, coalesce((SELECT p.prosecdef::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'gt.comment' AS name, coalesce((SELECT coalesce(obj_description(p.oid, 'pg_proc'), 'none') FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.def_md5' AS name, coalesce((SELECT md5(pg_get_functiondef(p.oid)) FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.src_md5' AS name, coalesce((SELECT md5(p.prosrc) FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.config' AS name, coalesce((SELECT coalesce((SELECT string_agg(c,',') FROM unnest(p.proconfig) c),'(none)') FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.lang' AS name, coalesce((SELECT (SELECT l.lanname FROM pg_language l WHERE l.oid = p.prolang)::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
 ), e(name, expected) AS (VALUES
   ('gt.overloads', '1'),
   ('gt.helper_overloads', '0'),
@@ -142,7 +160,11 @@ WITH a(name, actual) AS (
   ('gt.grant_options', '0'),
   ('gt.dependents', '0'),
   ('gt.secdef', 'true'),
-  ('gt.comment', 'none')
+  ('gt.comment', 'none'),
+  ('gt.def_md5', '1814becc056c30ccac38c3adb51019ae'),
+  ('gt.src_md5', '7eb30cec4e687909c8df0e37e924487f'),
+  ('gt.config', 'search_path=public'),
+  ('gt.lang', 'sql')
 ), r AS (SELECT e.name, e.expected, a.actual, (a.actual IS NOT DISTINCT FROM e.expected) AS ok FROM e LEFT JOIN a USING (name))
 SELECT '000_ALL_OK' AS name, 'G0' AS expected, 'G0' AS actual, bool_and(ok) AS ok FROM r
 UNION ALL SELECT name, expected, actual, ok FROM r

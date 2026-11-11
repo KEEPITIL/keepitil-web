@@ -18,6 +18,9 @@ WITH a(name, actual) AS (
   UNION ALL SELECT 'gt.config' AS name, coalesce((SELECT coalesce((SELECT string_agg(c,',') FROM unnest(p.proconfig) c),'(none)') FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'gt.lang' AS name, coalesce((SELECT (SELECT l.lanname FROM pg_language l WHERE l.oid = p.prolang)::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'gt.helper_secdef' AS name, coalesce((SELECT p.prosecdef::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.helper_def_md5' AS name, coalesce((SELECT md5(replace(pg_get_functiondef(p.oid), 'get_ticket__orig_13a', 'get_ticket')) FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.helper_src_md5' AS name, coalesce((SELECT md5(p.prosrc) FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.helper_config' AS name, coalesce((SELECT coalesce((SELECT string_agg(c,',') FROM unnest(p.proconfig) c),'(none)') FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'gt.helper_owner' AS name, coalesce((SELECT pg_get_userbyid(p.proowner)::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'gt.helper_nonowner_grants' AS name, coalesce((SELECT (SELECT count(*) FROM aclexplode(coalesce(p.proacl, acldefault('f',p.proowner))) x WHERE x.grantee <> p.proowner)::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'gt.helper_exec_anon_authenticated_public' AS name, coalesce((SELECT has_function_privilege('anon', p.oid, 'EXECUTE')::text||'/'||has_function_privilege('authenticated', p.oid, 'EXECUTE')::text||'/'||coalesce((SELECT bool_or(x.grantee = 0) FROM aclexplode(p.proacl) x), false)::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT') AS actual
@@ -38,6 +41,9 @@ WITH a(name, actual) AS (
   ('gt.config', 'search_path=""'),
   ('gt.lang', 'plpgsql'),
   ('gt.helper_secdef', 'true'),
+  ('gt.helper_def_md5', '1814becc056c30ccac38c3adb51019ae'),
+  ('gt.helper_src_md5', '7eb30cec4e687909c8df0e37e924487f'),
+  ('gt.helper_config', 'search_path=public'),
   ('gt.helper_owner', 'postgres'),
   ('gt.helper_nonowner_grants', '0'),
   ('gt.helper_exec_anon_authenticated_public', 'false/false/false'),

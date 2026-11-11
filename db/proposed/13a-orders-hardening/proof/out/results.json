@@ -1,14 +1,14 @@
 {
  "summary": {
   "engine": "PostgreSQL 17.6 (embedded-postgres, Unix socket only)",
-  "seconds": 45,
+  "seconds": 125,
   "matrix": {
    "total": 37,
    "pass": 37
   },
   "packs": {
-   "total": 31,
-   "pass": 31
+   "total": 36,
+   "pass": 36
   },
   "adjacent": {
    "total": 3,
@@ -329,7 +329,7 @@
   },
   {
    "id": "R06",
-   "name": "definer / invoker readers unchanged: get_my_tickets (invoker), has_event_ticket (definer, anon + authenticated), organizer_dashboard (definer)",
+   "name": "definer readers unchanged: get_my_tickets (VERBATIM prod body, SECURITY DEFINER), has_event_ticket (definer, anon + authenticated), organizer_dashboard (definer)",
    "hardened": true,
    "hardenedWhy": "",
    "original": true,
@@ -557,7 +557,7 @@
   },
   {
    "id": "G02",
-   "name": "get_ticket other inputs unchanged: unknown token, refunded token, empty and NULL give the same result before and after (null)",
+   "name": "get_ticket other inputs unchanged: unknown token, refunded token, empty and NULL give the same result before and after (the verbatim prod body returns {status: notfound}, never null)",
    "pass": true,
    "why": ""
   },
@@ -582,6 +582,36 @@
   {
    "id": "G06",
    "name": "pack 02 independent of pack 01, either order: 02 then 01, and 01 then 02, both end in S1+G1; each rollback in either order restores the original fingerprint",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "G07",
+   "name": "replica readers are the PROD bodies: md5(pg_get_functiondef) get_ticket = 1814becc..., get_my_tickets = c3885372... (both captured from prod), SECURITY DEFINER, search_path=public, sorted ACL {anon, authenticated, postgres, service_role}; DRIFT_QUERY says G0",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "G08",
+   "name": "F-D drift guard asserts the VERBATIM live get_ticket: APPLY-02 aborts (nothing changed) on a one-character body change, a whitespace-only change, a body that already lost the 'buyer' key, a changed search_path, a volatility change; control: re-creating the identical text still applies",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "G09",
+   "name": "ROLLBACK-02 guard also pins the renamed original: if the helper body is altered after APPLY-02, ROLLBACK-02 aborts with nothing changed; the unaltered rollback restores md5(pg_get_functiondef) = 1814becc... exactly",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "G10",
+   "name": "get_my_tickets is NOT changed by 13A and is unaffected by pack 01's REVOKEs (SECURITY DEFINER owned by postgres): identical definition/ACL/config before and after pack 01 and pack 02; buyer still gets own paid tickets WITH qr_token, buyer2 only theirs, anon and another organizer get none, refunded order excluded; no buyer e-mail column",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P38",
+   "name": "RUNBOOK backup/rollback method: CAPTURE-READONLY.sql runs in a READ ONLY transaction, is deterministic, leaks no fixture content; after apply 12A 01+02 and 13A 01 and the full reverse rollback (13A 01, 12A 02, 12A 01) a second capture equals the first on every row except the raw ACL order rows",
    "pass": true,
    "why": ""
   }

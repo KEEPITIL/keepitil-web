@@ -55,3 +55,11 @@ This PR is inert for the site. The separate PR `DRAFT: event.html: send session 
 ## Not approved
 
 Merging this PR does not apply any SQL. No SQL here is approved to run. See `APPLY-ORDER-2026-11-10.md`.
+
+## Update 2026-11-10 (JOB 22, fixes after Atlas/Sentinel review of this PR)
+
+* New `.github/workflows/db-proofs.yml` (separate from `node-tests.yml`; `permissions: contents read`; postgres:17 service, trust auth on the runner loopback): runs the 12A and 13A real-PostgreSQL proofs, the 12A adapter tests and the generator `--check`s; a missing Postgres fails the job.
+* `db/proposed/_ci/` (package.json + lockfile): pins `pg@8.23.1` (published 2026-09-30) for CI only.
+* `db/proposed/11b-combined-rehearsal/lib/pgdb.mjs`: env-driven connection (PGHOST/PGPORT/PGUSER/PGDATABASE; unset = the previous local socket defaults).
+* 13A: `baseline/live-readers.VERBATIM.sql` (prod bodies), replica now loads them, F-D drift guard pins the verbatim `get_ticket` body, `DIFF.md`, `RUNBOOK-APPLY-BACKUP-ROLLBACK.md`, `CAPTURE-READONLY.sql`.
+* R1's proof harness (`run-combined.mjs`, 11B matrix) is still not in this tree; it cannot run from here.

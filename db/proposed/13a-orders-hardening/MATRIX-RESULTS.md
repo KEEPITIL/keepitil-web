@@ -1,8 +1,8 @@
 # 13A orders hardening: proof results (real PostgreSQL 17.6, replica, synthetic data)
 
-Generated from `proof/out/results.json` by `proof/report.mjs`. Engine: PostgreSQL 17.6 (embedded-postgres, Unix socket only). Wall time 45s. Machine: peak load1=7.53 min free mem pct=62.
+Generated from `proof/out/results.json` by `proof/report.mjs`. Engine: PostgreSQL 17.6 (embedded-postgres, Unix socket only). Wall time 125s. Machine: peak load1=7.94 min free mem pct=63.
 
-Totals: behavioural matrix 37/37 (negative controls: 17/17 'detects' tests FAIL on the original as required; 20/20 'baseline' regression tests pass on both); pack / structural / mutants / F-D 31/31; informational findings 3/3; fatal: none.
+Totals: behavioural matrix 37/37 (negative controls: 17/17 'detects' tests FAIL on the original as required; 20/20 'baseline' regression tests pass on both); pack / structural / mutants / F-D 36/36; informational findings 3/3; fatal: none.
 
 Every behavioural test runs on BOTH worlds: **original** = replica of the captured prod ticketing tables with the 12A packs applied; **hardened** = the same plus the real 13A pack 01 (the committed SQL file, executed). 'control' says what the original MUST do for the test to be a valid proof:
 `detects` = the test must FAIL on the original (it proves a defect that 13A removes); `baseline` = the original also passes (regression guard that the fix did not break the real flows).
@@ -41,7 +41,7 @@ Every behavioural test runs on BOTH worlds: **original** = replica of the captur
 | R03 | anon sees ZERO rows and gets NO error (SELECT privilege kept, no anon policy) | pass | pass | baseline | yes |  |
 | R04 | profile.html Tickets query shape (event_orders + embedded events join, buyer_handle filter, status<>'refunded') works for buyer (orders 1,4,6) and returns [] without error for anon | pass | pass | baseline | yes |  |
 | R05 | SELECT in an anon-evaluated policy of ANOTHER table (hypothetical event_chat_rooms) keeps working: no 42501 (the reason anon keeps SELECT) | pass | pass | baseline | yes |  |
-| R06 | definer / invoker readers unchanged: get_my_tickets (invoker), has_event_ticket (definer, anon + authenticated), organizer_dashboard (definer) | pass | pass | baseline | yes |  |
+| R06 | definer readers unchanged: get_my_tickets (VERBATIM prod body, SECURITY DEFINER), has_event_ticket (definer, anon + authenticated), organizer_dashboard (definer) | pass | pass | baseline | yes |  |
 | D01 | 12A door: owner admits a raw token once (checked_in_at set), repeat = already_used | pass | pass | baseline | yes |  |
 | D02 | 12A door: 'KIL-'-prefixed and padded tokens admit; check_in_ticket wrapper admits too | pass | pass | baseline | yes |  |
 | D03 | 12A door: non-owner organizer, buyer and anon are refused; refunded and unknown tokens refused | pass | pass | baseline | yes |  |
@@ -79,11 +79,16 @@ Every behavioural test runs on BOTH worlds: **original** = replica of the captur
 | P36 | MUTANT M6 (column-grant remnant: the fix plus GRANT UPDATE (status) to authenticated and the organizer_update policy kept) is CAUGHT by the suite: it fails at least B01.status, C10.policy-set | pass |  |
 | P37 | POST-CHECK rolls a partial fix back: the real APPLY-01 with the REVOKE line removed passes the guard, FAILS its own POST-CHECK and leaves state S0 (nothing applied) | pass |  |
 | G01 | FINDING (original): anon holding a token gets the buyer's e-mail from get_ticket; after pack 02 the 'buyer' key is gone and every other key is byte-equal to the original result | pass |  |
-| G02 | get_ticket other inputs unchanged: unknown token, refunded token, empty and NULL give the same result before and after (null) | pass |  |
+| G02 | get_ticket other inputs unchanged: unknown token, refunded token, empty and NULL give the same result before and after (the verbatim prod body returns {status: notfound}, never null) | pass |  |
 | G03 | get_ticket callers' contract kept: anon, authenticated, service_role can EXECUTE the wrapper (grants copied from the original); the renamed original has NO grants (anon / authenticated call = 42501); wrapper sorted ACL == stashed original | pass |  |
 | G04 | ROLLBACK-02 restores the original get_ticket EXACTLY (same oid, byte-identical pg_get_functiondef, raw ACL, config, owner, no comment); helper gone; original result (with buyer) is back; second rollback refuses | pass |  |
 | G05 | pack 02 guards: second APPLY-02 refuses; refuses on altered ACL (anon exec revoked), a pre-existing comment, a pre-existing helper name, a dependent view, a SECURITY INVOKER original, a non-jsonb return; nothing changed | pass |  |
 | G06 | pack 02 independent of pack 01, either order: 02 then 01, and 01 then 02, both end in S1+G1; each rollback in either order restores the original fingerprint | pass |  |
+| G07 | replica readers are the PROD bodies: md5(pg_get_functiondef) get_ticket = 1814becc..., get_my_tickets = c3885372... (both captured from prod), SECURITY DEFINER, search_path=public, sorted ACL {anon, authenticated, postgres, service_role}; DRIFT_QUERY says G0 | pass |  |
+| G08 | F-D drift guard asserts the VERBATIM live get_ticket: APPLY-02 aborts (nothing changed) on a one-character body change, a whitespace-only change, a body that already lost the 'buyer' key, a changed search_path, a volatility change; control: re-creating the identical text still applies | pass |  |
+| G09 | ROLLBACK-02 guard also pins the renamed original: if the helper body is altered after APPLY-02, ROLLBACK-02 aborts with nothing changed; the unaltered rollback restores md5(pg_get_functiondef) = 1814becc... exactly | pass |  |
+| G10 | get_my_tickets is NOT changed by 13A and is unaffected by pack 01's REVOKEs (SECURITY DEFINER owned by postgres): identical definition/ACL/config before and after pack 01 and pack 02; buyer still gets own paid tickets WITH qr_token, buyer2 only theirs, anon and another organizer get none, refunded order excluded; no buyer e-mail column | pass |  |
+| P38 | RUNBOOK backup/rollback method: CAPTURE-READONLY.sql runs in a READ ONLY transaction, is deterministic, leaks no fixture content; after apply 12A 01+02 and 13A 01 and the full reverse rollback (13A 01, 12A 02, 12A 01) a second capture equals the first on every row except the raw ACL order rows | pass |  |
 
 ## C. Informational findings (replica only; NOT changed by 13A)
 

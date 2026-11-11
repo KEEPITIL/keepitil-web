@@ -19,6 +19,8 @@ Status: DRAFT, proposal only. **Nothing here is approved to apply.** No SQL in t
 
 Standing rules in every pack: one transaction, advisory lock key 2979301232487107403 with `lock_timeout 5s`, drift guard aborts with nothing changed, retain the final evidence SELECT. On ANY `DRIFT` stop and report; never edit literals in place.
 
+Backup-first runbook with exact commands, abort rules and rollback verification: `db/proposed/13a-orders-hardening/RUNBOOK-APPLY-BACKUP-ROLLBACK.md` (read-only capture `CAPTURE-READONLY.sql`).
+
 ## Global order (one numbered list)
 
 | # | Step | Depends on | Gates | Independent? |
@@ -26,9 +28,9 @@ Standing rules in every pack: one transaction, advisory lock key 297930123248710
 | 0 | Joe: dashboard data backup. KODE: read-only captures `PRECHECK-12A.sql`, `12a_DRIFT_QUERY_PROPOSED.sql` (first row must read `S0_original`), `VERIFY-12A.sql`, `PRECHECK-13A.sql`; attach outputs | none | Joe (backup) | yes, read-only |
 | 1 | **12A step 1**: `12a_01_event_checkin_scan_APPLY_PROPOSED.sql` (schema `private` + `private.door_checkin_core`, replaces `public.event_checkin_scan`). Then `POSTCHECKS_S1`; Sentinel isolated tests (raw token, `KIL-`, null-owner, anon, replay) | step 0 | Atlas, Sentinel, Joe, Backup | no |
 | 2 | **12A step 2**: `12a_02_check_in_ticket_APPLY_PROPOSED.sql`. Then `POSTCHECKS_S2`, `VERIFY-12A.sql`; zero TEST ATLAS rows | step 1 verified | Atlas, Sentinel, Joe | no |
-| 3 | **13A pack 01**: `13a_01_event_orders_APPLY_PROPOSED.sql` (drops `orders_anon_insert` and `event_orders_organizer_update`, table ACL ALL -> SELECT for anon/authenticated; anon SELECT kept on purpose). `POSTCHECKS_S1` | steps 1-2 (13A's drift guard REFUSES 13A-first) | Atlas, Sentinel, Joe | no |
-| 4 | Real purchase + door test (separate doc `docs/money-build/real-test/REAL-CHECKOUT-DOOR-TEST.md`, #154) | web bearer fix live (#153); step 3 recommended so the test also proves orders hardening; door UI needs its own extraction if the camera UI is wanted | Joe | n/a |
-| 5 | OPTIONAL **13A pack 02** (F-D `get_ticket` stops returning buyer e-mail; renames live function to `get_ticket__orig_13a`). Review PRECHECK output (body not captured in repo) first; callers outside these repos unknown | step 0 for 13A; shares the lock; independent of pack 01 order | Atlas, Sentinel, Joe | yes (before or after step 3) |
+| 3 | **13A pack 01**: `13a_01_event_orders_APPLY_PROPOSED.sql` (drops `orders_anon_insert` and `event_orders_organizer_update`, table ACL ALL -> SELECT for anon/authenticated; anon SELECT kept on purpose). `POSTCHECKS_S1` | steps 1-2 (13A-first is blocked: 12A's drift guard REFUSES once 13A is applied) | Atlas, Sentinel, Joe | no |
+| 4 | Real purchase + door test (separate docs PR titled "real checkout + door test steps", branch `draft/20a-real-checkout-door-test-steps`, doc `docs/money-build/real-test/REAL-CHECKOUT-DOOR-TEST.md`; no PR number quoted until that PR exists) | web bearer fix live (#153); step 3 recommended so the test also proves orders hardening; door UI needs its own extraction if the camera UI is wanted | Joe | n/a |
+| 5 | OPTIONAL **13A pack 02** (F-D `get_ticket` stops returning buyer e-mail; renames live function to `get_ticket__orig_13a`). The live `get_ticket` body is now captured verbatim (`db/proposed/13a-orders-hardening/baseline/live-readers.VERBATIM.sql`, md5 `1814becc056c30ccac38c3adb51019ae`) and the pack's drift guard pins it; see `db/proposed/13a-orders-hardening/DIFF.md`. Re-run the 13A DRIFT_QUERY first (must read `G0_original`); callers outside these repos unknown | step 0 for 13A; shares the lock; independent of pack 01 order | Atlas, Sentinel, Joe | yes (before or after step 3) |
 | 6 | OPTIONAL `12a_OPT_qr_token_unique` UNIQUE partial index (non-transactional; PRECHECK must show zero duplicates) | AFTER 13A (13A drift guard asserts the exact index list) | Atlas, Sentinel, Joe | no |
 | 7 | **17A storage packs** in order `P0 -> P4 -> P1 -> P5 -> P2 (+ move runbook) -> P3a (+ copy + data update) -> deploy web PR-B -> P3b -> P3c -> P6 -> deploy web PR-C -> flip vs-entries`. P0 is an idempotent record of Grok's applied revoke (11 `_bak_` tables, `shirt_hd_anon_insert`). P3b/P3c/P6 refuse without P1; P3c refuses without P3a and moved assets. P4 (profile_content read policies) overlaps with #131 APPLY-1C ACL narrowing: P4 changes policies only and accepts both ACL classes; not a conflict, but re-run P4's PRECHECK after whichever lands second. P5B (no_svg) must NOT be applied yet. | after 12A/13A (same lock; different objects); web PRs B/C are separate | per pack | partly (each pack independently rollbackable) |
 | 8 | **#91 / #92 / 10A (#131) packs**: `APPLY-1`, `APPLY-1B-kind-check`, `APPLY-2`, `APPLY-92` (or `APPLY-92-44col` when 1C precedes #92), `APPLY-1C-grant-narrowing`; order and caveats per `ORDER-10A.md` (not re-read in full here, UNVERIFIED) | #91/#92 web code decisions; NOT approved | Atlas, Sentinel, Joe | no |
@@ -60,7 +62,7 @@ Everything above. In particular: no 12A, 13A, F-D, UNIQUE index, 17A, #91/#92/10
 
 ## NOT verified
 
-- Proofs were not re-run from this extracted tree (heavy job, later). The committed proof outputs are those of #136/#137/#138/#150 as last run on their own stacks.
+- Proofs: 12A and 13A were re-run from this extracted tree on a local real PostgreSQL 17.6 (12A 81/81, 45/45, 4/4; 13A 37/37, 36/36, 3/3) and run in CI by `.github/workflows/db-proofs.yml` on a postgres:17 service. R1's own 11B matrix is NOT in this tree and is not re-run here.
 - The prod baselines are transcriptions of captures; PRECHECK/DRIFT on prod is the real check.
 - The live Stripe -> webhook -> `fulfill_ticket_order` chain is untested by the replica; the real purchase test covers it.
 - Dependencies inside steps 8-10 were read from READMEs only.

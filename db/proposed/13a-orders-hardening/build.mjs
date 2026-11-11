@@ -30,6 +30,14 @@ export const FULFILL_WS_MD5 = wsMd5(FULFILL_BODY);
 export const GT_HARD = rd("src", "get_ticket.hardened.sql");
 for (const [k, v] of Object.entries({ GT_HARD, FULFILL_CREATE })) if (/[^\x00-\x7f]/.test(v)) throw new Error(k + ": non-ASCII (md5 parity with PG requires ASCII)");
 export const GT_HARD_MD5 = md5(bodyOf(GT_HARD));
+/* VERBATIM live readers (baseline/live-readers.VERBATIM.sql, read-only prod capture 2026-11-10). The md5 literals below are the CAPTURED prod md5(pg_get_functiondef(oid)) values; the file must reproduce them or this generator throws. */
+export const GT_LIVE_DEF_MD5 = "1814becc056c30ccac38c3adb51019ae", GMT_LIVE_DEF_MD5 = "c3885372304c4f2c1d73c540a6f6834e";
+const LIVE_READERS = rd("baseline", "live-readers.VERBATIM.sql");
+export const liveDef = (name) => { const a = LIVE_READERS.indexOf(`CREATE OR REPLACE FUNCTION public.${name}(`); if (a < 0) throw new Error("live reader not found: " + name); const b = LIVE_READERS.indexOf("$function$", a); const c = LIVE_READERS.indexOf("$function$", b + 10) + 10; return LIVE_READERS.slice(a, c) + "\n"; };   // = pg_get_functiondef output
+if (/[^\x00-\x7f]/.test(LIVE_READERS)) throw new Error("live-readers.VERBATIM.sql: non-ASCII");
+if (md5(liveDef("get_ticket")) !== GT_LIVE_DEF_MD5) throw new Error("baseline get_ticket does not reproduce the captured prod md5 " + GT_LIVE_DEF_MD5);
+if (md5(liveDef("get_my_tickets")) !== GMT_LIVE_DEF_MD5) throw new Error("baseline get_my_tickets does not reproduce the captured prod md5 " + GMT_LIVE_DEF_MD5);
+export const GT_LIVE_SRC_MD5 = md5(bodyOf(liveDef("get_ticket")));
 
 /* ---------- captured expectations (PROD-FACTS-13A.md + 12a-prod-facts) */
 const ORDERS_COLS = ["id:bigint", "event_id:bigint", "tier_id:bigint", "buyer_email:text", "buyer_handle:text", "qty:integer", "referral_code:text", "qr_token:text", "status:text", "amount_cents:integer",
@@ -96,7 +104,7 @@ export function ordersFacts(state) {     // S0 = captured prod | S1 = after pack
   ];
 }
 const GT = "public.get_ticket(text)", GH = "public.get_ticket__orig_13a(text)";
-export function gtFacts(state) {         // G0 = captured prod (body NOT captured, see PRECHECK) | G1 = wrapper + renamed original
+export function gtFacts(state) {         // G0 = captured prod (VERBATIM body, md5(pg_get_functiondef) = 1814becc...) | G1 = wrapper + renamed original (its definition, name swapped back, must still be the verbatim body)
   const g1 = state === "G1";
   const stash = `(SELECT substr(obj_description(p.oid, 'pg_proc'), 10) FROM pg_proc p WHERE p.oid = ${F(GH)})`;
   const stashSorted = `(SELECT '{'||string_agg(e, ',' ORDER BY e COLLATE "C")||'}' FROM unnest(string_to_array(trim(both '{}' from ${stash}), ',')) e)`;
@@ -114,6 +122,10 @@ export function gtFacts(state) {         // G0 = captured prod (body NOT capture
   if (!g1) return [...base,
     ["gt.secdef", fnx(GT, "p.prosecdef::text"), "true"],
     ["gt.comment", fnx(GT, "coalesce(obj_description(p.oid, 'pg_proc'), 'none')"), "none"],
+    ["gt.def_md5", fnx(GT, "md5(pg_get_functiondef(p.oid))"), GT_LIVE_DEF_MD5],               // the whole live definition, byte for byte (captured prod value)
+    ["gt.src_md5", fnx(GT, "md5(p.prosrc)"), GT_LIVE_SRC_MD5],
+    ["gt.config", fnx(GT, "coalesce((SELECT string_agg(c,',') FROM unnest(p.proconfig) c),'(none)')"), "search_path=public"],
+    ["gt.lang", fnx(GT, "(SELECT l.lanname FROM pg_language l WHERE l.oid = p.prolang)::text"), "sql"],
   ];
   return [...base,
     ["gt.secdef", fnx(GT, "p.prosecdef::text"), "true"],
@@ -121,6 +133,9 @@ export function gtFacts(state) {         // G0 = captured prod (body NOT capture
     ["gt.config", fnx(GT, "coalesce((SELECT string_agg(c,',') FROM unnest(p.proconfig) c),'(none)')"), 'search_path=""'],
     ["gt.lang", fnx(GT, "(SELECT l.lanname FROM pg_language l WHERE l.oid = p.prolang)::text"), "plpgsql"],
     ["gt.helper_secdef", fnx(GH, "p.prosecdef::text"), "true"],
+    ["gt.helper_def_md5", fnx(GH, `md5(replace(pg_get_functiondef(p.oid), 'get_ticket__orig_13a', 'get_ticket'))`), GT_LIVE_DEF_MD5],   // the renamed original is still exactly the captured live body
+    ["gt.helper_src_md5", fnx(GH, "md5(p.prosrc)"), GT_LIVE_SRC_MD5],
+    ["gt.helper_config", fnx(GH, "coalesce((SELECT string_agg(c,',') FROM unnest(p.proconfig) c),'(none)')"), "search_path=public"],
     ["gt.helper_owner", fnx(GH, "pg_get_userbyid(p.proowner)::text"), "postgres"],
     ["gt.helper_nonowner_grants", fnx(GH, "(SELECT count(*) FROM aclexplode(coalesce(p.proacl, acldefault('f',p.proowner))) x WHERE x.grantee <> p.proowner)::text"), "0"],
     ["gt.helper_exec_anon_authenticated_public", fnx(GH, "has_function_privilege('anon', p.oid, 'EXECUTE')::text||'/'||has_function_privilege('authenticated', p.oid, 'EXECUTE')::text||'/'||coalesce((SELECT bool_or(x.grantee = 0) FROM aclexplode(p.proacl) x), false)::text"), "false/false/false"],
@@ -274,7 +289,7 @@ ${assertAllOk("post", "ROLLBACK-01", S0)}
 ${evidenceSql(S0, "S0")}
 COMMIT;
 `);
-  out.set("13a_02_get_ticket_APPLY_PROPOSED.sql", `${BANNER("13A pack 02 (OPTIONAL, independent of pack 01) APPLY: F-D get_ticket no longer returns the buyer e-mail", "-- The prod body of get_ticket was NOT captured. This pack renames the live function to get_ticket__orig_13a (body untouched, all grants revoked, original ACL stashed in its comment) and installs a wrapper that returns the original result minus the 'buyer' key.\n-- Review PRECHECK-13A.sql output for get_ticket first (language, secdef, body, ACL, whether 'buyer' is a top-level key of the jsonb).")}
+  out.set("13a_02_get_ticket_APPLY_PROPOSED.sql", `${BANNER("13A pack 02 (OPTIONAL, independent of pack 01) APPLY: F-D get_ticket no longer returns the buyer e-mail", "-- The live get_ticket body IS captured verbatim (baseline/live-readers.VERBATIM.sql, md5(pg_get_functiondef) 1814becc056c30ccac38c3adb51019ae) and the drift guard asserts it byte for byte. This pack renames the live function to get_ticket__orig_13a (body untouched, all grants revoked, original ACL stashed in its comment) and installs a wrapper that returns the original result minus the 'buyer' key.\n-- Review PRECHECK-13A.sql output for get_ticket first (language, secdef, body, ACL, whether 'buyer' is a top-level key of the jsonb).")}
 BEGIN;
 ${LOCK}
 

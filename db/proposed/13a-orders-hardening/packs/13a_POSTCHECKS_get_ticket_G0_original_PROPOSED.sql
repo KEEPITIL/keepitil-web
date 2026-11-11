@@ -15,6 +15,10 @@ WITH a(name, actual) AS (
   UNION ALL SELECT 'gt.dependents' AS name, coalesce((SELECT (SELECT count(*) FROM pg_depend d WHERE d.refclassid = 'pg_proc'::regclass AND d.refobjid = p.oid AND d.deptype = 'n')::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'gt.secdef' AS name, coalesce((SELECT p.prosecdef::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'gt.comment' AS name, coalesce((SELECT coalesce(obj_description(p.oid, 'pg_proc'), 'none') FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.def_md5' AS name, coalesce((SELECT md5(pg_get_functiondef(p.oid)) FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.src_md5' AS name, coalesce((SELECT md5(p.prosrc) FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.config' AS name, coalesce((SELECT coalesce((SELECT string_agg(c,',') FROM unnest(p.proconfig) c),'(none)') FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'gt.lang' AS name, coalesce((SELECT (SELECT l.lanname FROM pg_language l WHERE l.oid = p.prolang)::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
 ), e(name, expected) AS (VALUES
   ('gt.overloads', '1'),
   ('gt.helper_overloads', '0'),
@@ -26,7 +30,11 @@ WITH a(name, actual) AS (
   ('gt.grant_options', '0'),
   ('gt.dependents', '0'),
   ('gt.secdef', 'true'),
-  ('gt.comment', 'none')
+  ('gt.comment', 'none'),
+  ('gt.def_md5', '1814becc056c30ccac38c3adb51019ae'),
+  ('gt.src_md5', '7eb30cec4e687909c8df0e37e924487f'),
+  ('gt.config', 'search_path=public'),
+  ('gt.lang', 'sql')
 ), r AS (SELECT e.name, e.expected, a.actual, (a.actual IS NOT DISTINCT FROM e.expected) AS ok FROM e LEFT JOIN a USING (name))
 SELECT '000_ALL_OK' AS name, 'G0' AS expected, 'G0' AS actual, bool_and(ok) AS ok FROM r
 UNION ALL SELECT name, expected, actual, ok FROM r

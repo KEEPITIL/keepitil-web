@@ -59,10 +59,14 @@ WITH a(name, actual) AS (
   UNION ALL SELECT 'get_ticket:gt.dependents' AS name, coalesce((SELECT (SELECT count(*) FROM pg_depend d WHERE d.refclassid = 'pg_proc'::regclass AND d.refobjid = p.oid AND d.deptype = 'n')::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'get_ticket:gt.secdef' AS name, coalesce((SELECT p.prosecdef::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'get_ticket:gt.comment' AS name, coalesce((SELECT coalesce(obj_description(p.oid, 'pg_proc'), 'none') FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'get_ticket:gt.def_md5' AS name, coalesce((SELECT md5(pg_get_functiondef(p.oid)) FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'get_ticket:gt.src_md5' AS name, coalesce((SELECT md5(p.prosrc) FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'get_ticket:gt.config' AS name, coalesce((SELECT coalesce((SELECT string_agg(c,',') FROM unnest(p.proconfig) c),'(none)') FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'get_ticket:gt.lang' AS name, coalesce((SELECT (SELECT l.lanname FROM pg_language l WHERE l.oid = p.prolang)::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'get_ticket:gt.helper_secdef' AS name, coalesce((SELECT p.prosecdef::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'get_ticket:gt.helper_def_md5' AS name, coalesce((SELECT md5(replace(pg_get_functiondef(p.oid), 'get_ticket__orig_13a', 'get_ticket')) FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'get_ticket:gt.helper_src_md5' AS name, coalesce((SELECT md5(p.prosrc) FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT') AS actual
+  UNION ALL SELECT 'get_ticket:gt.helper_config' AS name, coalesce((SELECT coalesce((SELECT string_agg(c,',') FROM unnest(p.proconfig) c),'(none)') FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'get_ticket:gt.helper_owner' AS name, coalesce((SELECT pg_get_userbyid(p.proowner)::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'get_ticket:gt.helper_nonowner_grants' AS name, coalesce((SELECT (SELECT count(*) FROM aclexplode(coalesce(p.proacl, acldefault('f',p.proowner))) x WHERE x.grantee <> p.proowner)::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT') AS actual
   UNION ALL SELECT 'get_ticket:gt.helper_exec_anon_authenticated_public' AS name, coalesce((SELECT has_function_privilege('anon', p.oid, 'EXECUTE')::text||'/'||has_function_privilege('authenticated', p.oid, 'EXECUTE')::text||'/'||coalesce((SELECT bool_or(x.grantee = 0) FROM aclexplode(p.proacl) x), false)::text FROM pg_proc p WHERE p.oid = to_regprocedure('public.get_ticket__orig_13a(text)')), 'ABSENT') AS actual
@@ -124,10 +128,14 @@ WITH a(name, actual) AS (
   ('get_ticket:gt.dependents', 'get_ticket', '0', '0', true, true),
   ('get_ticket:gt.secdef', 'get_ticket', 'true', 'true', true, true),
   ('get_ticket:gt.comment', 'get_ticket', 'none', NULL, true, false),
-  ('get_ticket:gt.src_md5', 'get_ticket', NULL, 'a13fcb2fcb58d332bdd16ac1a31b3e17', false, true),
-  ('get_ticket:gt.config', 'get_ticket', NULL, 'search_path=""', false, true),
-  ('get_ticket:gt.lang', 'get_ticket', NULL, 'plpgsql', false, true),
+  ('get_ticket:gt.def_md5', 'get_ticket', '1814becc056c30ccac38c3adb51019ae', NULL, true, false),
+  ('get_ticket:gt.src_md5', 'get_ticket', '7eb30cec4e687909c8df0e37e924487f', 'a13fcb2fcb58d332bdd16ac1a31b3e17', true, true),
+  ('get_ticket:gt.config', 'get_ticket', 'search_path=public', 'search_path=""', true, true),
+  ('get_ticket:gt.lang', 'get_ticket', 'sql', 'plpgsql', true, true),
   ('get_ticket:gt.helper_secdef', 'get_ticket', NULL, 'true', false, true),
+  ('get_ticket:gt.helper_def_md5', 'get_ticket', NULL, '1814becc056c30ccac38c3adb51019ae', false, true),
+  ('get_ticket:gt.helper_src_md5', 'get_ticket', NULL, '7eb30cec4e687909c8df0e37e924487f', false, true),
+  ('get_ticket:gt.helper_config', 'get_ticket', NULL, 'search_path=public', false, true),
   ('get_ticket:gt.helper_owner', 'get_ticket', NULL, 'postgres', false, true),
   ('get_ticket:gt.helper_nonowner_grants', 'get_ticket', NULL, '0', false, true),
   ('get_ticket:gt.helper_exec_anon_authenticated_public', 'get_ticket', NULL, 'false/false/false', false, true),

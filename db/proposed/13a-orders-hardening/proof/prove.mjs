@@ -10,7 +10,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as PG from "../../11b-combined-rehearsal/lib/pgdb.mjs";
-import { buildAll, FIX_SQL, FULFILL_CREATE, REPO_PACK_KEY, GT_HARD_MD5, FULFILL_WS_MD5 } from "../build.mjs";
+import { buildAll, FIX_SQL, FULFILL_CREATE, REPO_PACK_KEY, GT_HARD_MD5, FULFILL_WS_MD5, GT_LIVE_DEF_MD5, GMT_LIVE_DEF_MD5, liveDef } from "../build.mjs";
 import { ORIG as ORIG12, HARD as HARD12 } from "../../12a-door-hardening/build.mjs";
 import { aclSorted } from "../../r1-fix-f3-acl-locks/build-variants.mjs";
 
@@ -147,7 +147,7 @@ let rolesMine = false;
 async function main() {
   await PG.ensureRoles(); rolesMine = true;
   const base = await PG.createDb(null); open.push(base); const c = base.client;
-  await c.query(rd("proof", "replica.sql").replace("-- @@REFUND_VERBATIM@@", rd("baseline", "refund_ticket_order.VERBATIM.sql") + ";"));
+  await c.query(rd("proof", "replica.sql").replace("-- @@REFUND_VERBATIM@@", rd("baseline", "refund_ticket_order.VERBATIM.sql") + ";").replace("-- @@LIVE_READERS_VERBATIM@@", rd("baseline", "live-readers.VERBATIM.sql")));
   await c.query(FULFILL_CREATE);
   await c.query("REVOKE ALL ON FUNCTION public.fulfill_ticket_order(text,text,bigint,jsonb,text,integer,text) FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.fulfill_ticket_order(text,text,bigint,jsonb,text,integer,text) TO service_role;");
   await c.query(ORIG12.ticket); await c.query(ORIG12.scan);
@@ -232,10 +232,10 @@ async function main() {
   await matrix("R05", "SELECT in an anon-evaluated policy of ANOTHER table (hypothetical event_chat_rooms) keeps working: no 42501 (the reason anon keeps SELECT)", "baseline", async (w) => {
     await w.q("insert into public.event_chat_rooms(event_id,name) values (1,'room')"); const a = await attempt(w, "anon", "select count(*)::int n from public.event_chat_rooms"), b = await attempt(w, "buyer", "select count(*)::int n from public.event_chat_rooms");
     return (!a.err && a.rows[0].n === 0 && !b.err && b.rows[0].n === 1) || JSON.stringify([a.err || a.rows, b.err || b.rows]); });
-  await matrix("R06", "definer / invoker readers unchanged: get_my_tickets (invoker), has_event_ticket (definer, anon + authenticated), organizer_dashboard (definer)", "baseline", async (w) => {
-    const t = await attempt(w, "buyer", "select slug, qty from public.get_my_tickets()"), h = [await attempt(w, "buyer", "select public.has_event_ticket('doors-open') v"), await attempt(w, "other", "select public.has_event_ticket('doors-open') v"), await attempt(w, "anon", "select public.has_event_ticket('doors-open') v")];
+  await matrix("R06", "definer readers unchanged: get_my_tickets (VERBATIM prod body, SECURITY DEFINER), has_event_ticket (definer, anon + authenticated), organizer_dashboard (definer)", "baseline", async (w) => {
+    const t = await attempt(w, "buyer", "select order_id, slug, qty from public.get_my_tickets() order by order_id"), h = [await attempt(w, "buyer", "select public.has_event_ticket('doors-open') v"), await attempt(w, "other", "select public.has_event_ticket('doors-open') v"), await attempt(w, "anon", "select public.has_event_ticket('doors-open') v")];
     const d = await attempt(w, "owner", "select slug, sold::int, gross::int, checked_in::int from public.organizer_dashboard()");
-    return (!t.err && JSON.stringify(t.rows) === JSON.stringify([{ slug: "doors-open", qty: 2 }, { slug: "other-show", qty: 1 }, { slug: "doors-open", qty: 1 }]) && h.map((x) => x.rows[0].v).join() === "true,false,false"
+    return (!t.err && JSON.stringify(t.rows) === JSON.stringify([{ order_id: 1, slug: "doors-open", qty: 2 }, { order_id: 4, slug: "other-show", qty: 1 }, { order_id: 6, slug: "doors-open", qty: 1 }]) && h.map((x) => x.rows[0].v).join() === "true,false,false"
       && !d.err && JSON.stringify(d.rows) === JSON.stringify([{ slug: "doors-open", sold: 4, gross: 17000, checked_in: 0 }, { slug: "doors-two", sold: 1, gross: 0, checked_in: 0 }])) || JSON.stringify({ t: t.err || t.rows, h: h.map((x) => x.err || x.rows[0].v), d: d.err || d.rows }); });
   /* 12A door regression (both variants have the 12A packs applied) */
   await matrix("D01", "12A door: owner admits a raw token once (checked_in_at set), repeat = already_used", "baseline", async (w) => { const a = await scan(w, "owner", T.A), b = await scan(w, "owner", T.A); const s = (await w.q("select checked_in_at from public.event_orders where id=1")).rows[0]; return (a.code === "admitted" && b.code === "already_used" && s.checked_in_at !== null) || JSON.stringify([a.code, b.code]); });
@@ -351,9 +351,9 @@ async function main() {
   await structural("G01", "FINDING (original): anon holding a token gets the buyer's e-mail from get_ticket; after pack 02 the 'buyer' key is gone and every other key is byte-equal to the original result", async () => {
     const w = await mkWorld(tplOrig); try { const before = await gt(w, "anon", T.A); const r = await runPack(w.db.client, PK(PACK.a2)); const after = await gt(w, "anon", T.A);
       const { buyer, ...rest } = before.j; return (before.j.buyer === "buyer1@example.invalid" && r.ok && allOk(r.rows) && !("buyer" in after.j) && JSON.stringify(after.j) === JSON.stringify(rest) && !/example\.invalid/.test(JSON.stringify(after.j))) || JSON.stringify({ before, after, r: r.err }); } finally { await w.close(); } });
-  await structural("G02", "get_ticket other inputs unchanged: unknown token, refunded token, empty and NULL give the same result before and after (null)", async () => {
+  await structural("G02", "get_ticket other inputs unchanged: unknown token, refunded token, empty and NULL give the same result before and after (the verbatim prod body returns {status: notfound}, never null)", async () => {
     const w = await mkWorld(tplOrig); try { const ins = [tok("nope"), T.R, "", null]; const b = []; for (const x of ins) b.push(JSON.stringify(await gt(w, "anon", x))); await runPack(w.db.client, PK(PACK.a2)); const a = []; for (const x of ins) a.push(JSON.stringify(await gt(w, "anon", x)));
-      return (JSON.stringify(a) === JSON.stringify(b) && a.every((x) => x === '{"j":null}')) || JSON.stringify({ b, a }); } finally { await w.close(); } });
+      return (JSON.stringify(a) === JSON.stringify(b) && a.every((x) => x === '{"j":{"status":"notfound"}}')) || JSON.stringify({ b, a }); } finally { await w.close(); } });
   await structural("G03", "get_ticket callers' contract kept: anon, authenticated, service_role can EXECUTE the wrapper (grants copied from the original); the renamed original has NO grants (anon / authenticated call = 42501); wrapper sorted ACL == stashed original", async () => {
     const w = await mkWorld(tplOrig); try { const acl0 = (await w.q(`select ${aclSorted("proacl")} a from pg_proc where proname='get_ticket'`)).rows[0].a; await runPack(w.db.client, PK(PACK.a2));
       const acl1 = (await w.q(`select ${aclSorted("proacl")} a from pg_proc where proname='get_ticket'`)).rows[0].a; const ex = (await w.q("select has_function_privilege('anon','public.get_ticket(text)','EXECUTE') a, has_function_privilege('authenticated','public.get_ticket(text)','EXECUTE') b, has_function_privilege('service_role','public.get_ticket(text)','EXECUTE') c")).rows[0];
@@ -373,6 +373,46 @@ async function main() {
     for (const order of [["a2", "a1"], ["a1", "a2"]]) { const w = await mkWorld(tplOrig); try { const f0 = await fp(w); for (const k of order) { const r = await runPack(w.db.client, PK(PACK[k])); if (!r.ok || !allOk(r.rows)) return `apply ${k}: ${r.err}`; } const d = await drift(w); if (d.orders !== "S1_after-pack01" || d.get_ticket !== "G1_after-pack02") return JSON.stringify(d);
       for (const k of [...order].reverse().map((x) => (x === "a1" ? "r1" : "r2"))) { const r = await runPack(w.db.client, PK(PACK[k])); if (!r.ok) return `rollback ${k}: ${r.err}`; } if (!same(f0, await fp(w))) return "fingerprint differs after rollbacks " + order.join(">"); } finally { await w.close(); } }
     return true; });
+
+  /* ---- verbatim live readers (baseline/live-readers.VERBATIM.sql): the replica's get_ticket / get_my_tickets ARE the prod bodies */
+  const readerFp = async (w) => (await w.q(`select jsonb_object_agg(p.proname, jsonb_build_array(md5(pg_get_functiondef(p.oid)), ${aclSorted("p.proacl")}, p.proconfig::text, pg_get_userbyid(p.proowner), p.prosecdef, (select lanname from pg_language where oid=p.prolang))) j from pg_proc p where p.proname in ('get_my_tickets') or (p.proname='get_ticket' and pg_get_function_identity_arguments(p.oid)='p_qr text')`)).rows[0].j;
+  await structural("G07", "replica readers are the PROD bodies: md5(pg_get_functiondef) get_ticket = 1814becc..., get_my_tickets = c3885372... (both captured from prod), SECURITY DEFINER, search_path=public, sorted ACL {anon, authenticated, postgres, service_role}; DRIFT_QUERY says G0", async () => {
+    const w = await mkWorld(tplOrig); try { const f = await readerFp(w); const d = await drift(w); const acl = "{anon=X/postgres,authenticated=X/postgres,postgres=X/postgres,service_role=X/postgres}";
+      return (f.get_ticket[0] === GT_LIVE_DEF_MD5 && f.get_my_tickets[0] === GMT_LIVE_DEF_MD5 && GT_LIVE_DEF_MD5 === "1814becc056c30ccac38c3adb51019ae" && GMT_LIVE_DEF_MD5 === "c3885372304c4f2c1d73c540a6f6834e" && f.get_ticket[1] === acl && f.get_my_tickets[1] === acl
+        && f.get_ticket[2] === "{search_path=public}" && f.get_my_tickets[2] === "{search_path=public}" && f.get_ticket[4] === true && f.get_my_tickets[4] === true && f.get_ticket[5] === "sql" && d.get_ticket === "G0_original") || JSON.stringify({ f, d }); } finally { await w.close(); } });
+  await structural("G08", "F-D drift guard asserts the VERBATIM live get_ticket: APPLY-02 aborts (nothing changed) on a one-character body change, a whitespace-only change, a body that already lost the 'buyer' key, a changed search_path, a volatility change; control: re-creating the identical text still applies", async () => {
+    const live = liveDef("get_ticket"); const cases = [["one char in body", live.replace("'General Admission'", "'General Admissio'")], ["whitespace only", live.replace("limit 1;", "limit  1;")], ["buyer key already removed", live.replace("'buyer', o.buyer_email,", "")],
+      ["search_path", "alter function public.get_ticket(text) set search_path = public, pg_temp"], ["volatility", "alter function public.get_ticket(text) stable"]];
+    for (const [l, m] of cases) { if (!m.includes("CREATE OR REPLACE") && !m.startsWith("alter")) return "case not built: " + l; if (m === live) return "mutation did not change the text: " + l; const v = await abortCase(l, m, PACK.a2); if (v !== true) return v; }
+    const w = await mkWorld(tplOrig); try { await w.q(live); const r = await runPack(w.db.client, PK(PACK.a2)); return (r.ok && allOk(r.rows) && (await drift(w)).get_ticket === "G1_after-pack02") || "control (identical re-create) did not apply: " + JSON.stringify(r.err); } finally { await w.close(); } });
+  await structural("G09", "ROLLBACK-02 guard also pins the renamed original: if the helper body is altered after APPLY-02, ROLLBACK-02 aborts with nothing changed; the unaltered rollback restores md5(pg_get_functiondef) = 1814becc... exactly", async () => {
+    const w = await mkWorld(tplOrig); try { const a = await runPack(w.db.client, PK(PACK.a2)); if (!a.ok) return a.err; const evil = liveDef("get_ticket").replace("public.get_ticket(", "public.get_ticket__orig_13a(").replace("limit 1;", "limit  1;"); await w.q(evil); const f0 = await fp(w); const r = await runPack(w.db.client, PK(PACK.r2)); const f1 = await fp(w); if (!(driftAbort(r) && same(f0, f1))) return "tampered helper: " + JSON.stringify({ ok: r.ok, err: String(r.err).slice(0, 120) }); }
+    finally { await w.close(); }
+    const w2 = await mkWorld(tplOrig); try { await runPack(w2.db.client, PK(PACK.a2)); const r = await runPack(w2.db.client, PK(PACK.r2)); const f = await readerFp(w2); return (r.ok && allOk(r.rows) && f.get_ticket[0] === GT_LIVE_DEF_MD5) || JSON.stringify({ r: r.err, f }); } finally { await w2.close(); } });
+  await structural("G10", "get_my_tickets is NOT changed by 13A and is unaffected by pack 01's REVOKEs (SECURITY DEFINER owned by postgres): identical definition/ACL/config before and after pack 01 and pack 02; buyer still gets own paid tickets WITH qr_token, buyer2 only theirs, anon and another organizer get none, refunded order excluded; no buyer e-mail column", async () => {
+    const w0 = await mkWorld(tplOrig12); const w1 = await mkWorld(tplHard12); let w2 = null; try { const f0 = await readerFp(w0), f1 = await readerFp(w1);
+      w2 = await mkWorld(tplHard12); const a2 = await runPack(w2.db.client, PK(PACK.a2)); const fb = await readerFp(w2);
+      const q = (w, who) => attempt(w, who, "select order_id, qr_token from public.get_my_tickets() order by order_id");
+      const b0 = await q(w0, "buyer"), b1 = await q(w1, "buyer"), c1 = await q(w1, "buyer2"), an = await q(w1, "anon"), ot = await q(w1, "other"), b2 = await q(w2, "buyer");
+      const cols = (await w1.q("select pg_get_function_result('public.get_my_tickets()'::regprocedure) r")).rows[0].r;
+      return (JSON.stringify(f0.get_my_tickets) === JSON.stringify(f1.get_my_tickets) && JSON.stringify(f0.get_my_tickets) === JSON.stringify(fb.get_my_tickets) && f1.get_my_tickets[0] === GMT_LIVE_DEF_MD5 && a2.ok
+        && JSON.stringify(b1.rows) === JSON.stringify(b0.rows) && JSON.stringify(b1.rows) === JSON.stringify(b2.rows) && b1.rows.map((x) => x.order_id).join() === "1,4,6" && b1.rows.every((x) => x.qr_token && x.qr_token.length === 32)
+        && c1.rows.map((x) => x.order_id).join() === "2,5" && an.rows.length === 0 && ot.rows.length === 0 && !/buyer_email|buyer\b/.test(cols)) || JSON.stringify({ same: [f0.get_my_tickets, f1.get_my_tickets, fb.get_my_tickets], b0: b0.rows || b0.err, b1: b1.rows || b1.err, c1: c1.rows || c1.err, an: an.rows || an.err, ot: ot.rows || ot.err, cols });
+    } finally { await w0.close(); await w1.close(); if (w2) await w2.close(); } });
+  await structural("P38", "RUNBOOK backup/rollback method: CAPTURE-READONLY.sql runs in a READ ONLY transaction, is deterministic, leaks no fixture content; after apply 12A 01+02 and 13A 01 and the full reverse rollback (13A 01, 12A 02, 12A 01) a second capture equals the first on every row except the raw ACL order rows", async () => {
+    const CAP = rd("CAPTURE-READONLY.sql"); const w = await mkWorld(tplOrig); try {
+      const cap = async () => { const c = await w.conn("postgres"); await c.client.query("BEGIN READ ONLY"); try { return (await c.client.query(CAP)).rows; } finally { await c.client.query("ROLLBACK"); } };
+      const norm = (rows) => rows.filter((x) => !/acl_raw/.test(x.name)).map((x) => x.name + "=" + x.value).join("\n");
+      const c0 = await cap(), c0b = await cap(); const txt = JSON.stringify(c0);
+      const leak = /example\.invalid|buyerone|buyertwo|DoorOwner|someoneelse/.test(txt) || Object.values(T).some((t) => txt.includes(t));
+      const live = c0.find((x) => x.name === "fn.def_md5:public.get_ticket(text)"), gmt = c0.find((x) => x.name === "fn.def_md5:public.get_my_tickets()"), absent = c0.filter((x) => x.name.startsWith("fn.absent:")).map((x) => x.name).sort().join();
+      if (!(norm(c0) === norm(c0b) && live && live.value === GT_LIVE_DEF_MD5 && gmt.value === GMT_LIVE_DEF_MD5 && !leak && c0.length > 50 && absent.includes("private.door_checkin_core"))) return JSON.stringify({ det: norm(c0) === norm(c0b), live: live && live.value, leak, n: c0.length, absent });
+      for (const k of [rd12(P12.a1), rd12(P12.a2), PK(PACK.a1)]) { const r = await runPack(w.db.client, k); if (!r.ok) return "apply: " + r.err; }
+      const c1 = await cap(); if (norm(c1) === norm(c0)) return "capture did not see the applied state";
+      for (const k of [PK(PACK.r1), rd12(P12.r2), rd12(P12.r1)]) { const r = await runPack(w.db.client, k); if (!r.ok) return "rollback: " + r.err; }
+      const c2 = await cap(); const a = norm(c0), b = norm(c2);
+      return (a === b) || "post-rollback capture differs: " + a.split("\n").filter((l, i) => l !== b.split("\n")[i]).slice(0, 3).join(" || ").slice(0, 400);
+    } finally { await w.close(); } });
 
   /* ============================ D. adjacent / informational (replica only) ============================ */
   await structural("X01", "STRICT VARIANT (anon SELECT also revoked) is NOT bundled: on the replica it makes a signed-out visitor's profile Tickets query fail with 42501 (profile.html would show 'Could not load your tickets') and breaks the anon-evaluated policy sub-select on another table", async () => {

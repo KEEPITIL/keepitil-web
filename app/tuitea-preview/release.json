@@ -1,7 +1,7 @@
 {
-  "release": "preview.6ef6fb4",
+  "release": "preview.92803315",
   "channel": "preview",
   "branch": "preview/2.0",
-  "commit": "6ef6fb4",
+  "commit": "92803315",
   "note": "TUITEA 2.0 flags-on preview for review. Not the live app."
 }

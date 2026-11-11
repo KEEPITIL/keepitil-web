@@ -57,3 +57,5 @@ games/pokasnap/test/index.play.html
 games/kwars/sw.play.js
 games/pokasnap/play/sw.play.js
 article/kform-lead-capture/index.play.html
+games/kwars1/index.play.html
+games/kwars1/manifest.play.webmanifest

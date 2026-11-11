@@ -11,7 +11,10 @@ import { fileURLToPath } from "node:url";
 import { guardEnv, installEgressGuard, refuseLiveKeys, refuseNonLocalHosts, assertLocalUrl, GuardError } from "./lib/guards.mjs";
 import { signJwt } from "./lib/jwt.mjs";
 import { FakeStripe } from "./lib/fake-stripe.mjs";
-import { startEdgeHost, verifyDeployedSources } from "./lib/edge-host.mjs";
+import { startEdgeHost, verifyDeployedSources, DEPLOYED, md5File } from "./lib/edge-host.mjs";
+import { mkdtempSync, copyFileSync, readFileSync as readFileSync2 } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { loadJsQR, assertDecodes, JSQR_SHA256 } from "./lib/qr-decode.mjs";
 import { buildTemplates, makeReq, insertFixture, PG } from "./lib/testbed-db.mjs";
 
@@ -54,7 +57,15 @@ async function main() {
   // ---- fake Stripe + edge host
   const fake = new FakeStripe({ secretKey: sk, whsec }); const fakeBase = await fake.start();
   process.env.KIL_FAKE_STRIPE_BASE = fakeBase; guardEnv(process.env);
-  const edge = await startEdgeHost(); fake.setWebhookTarget(edge.url("stripe-webhook"));
+  // KIL_PATCHED_WEBHOOK=1: serve the webhook from a COPY of the deployed v52 source with the PR #154 handoff diff applied (deployed file untouched)
+  const PATCHED = process.env.KIL_PATCHED_WEBHOOK === "1"; let patchedCopy = null, patchedMd5 = null;
+  if (PATCHED) {
+    const tmp = mkdtempSync(join(tmpdir(), "kil-full-patched-")); patchedCopy = join(tmp, "index.ts"); copyFileSync(DEPLOYED["stripe-webhook"].file, patchedCopy);
+    execFileSync("patch", ["-p1", "--quiet"], { cwd: tmp, input: readFileSync2(join(HERE, "patches", "stripe-webhook-payment-settled.PROPOSED.diff"), "utf8") });
+    patchedMd5 = md5File(patchedCopy); if (!/payment_status !== "paid"/.test(readFileSync2(patchedCopy, "utf8")) || patchedMd5 === md5File(DEPLOYED["stripe-webhook"].file)) throw new Error("patched copy not different from deployed source");
+    console.log("PATCHED WEBHOOK MODE: patched copy md5", patchedMd5);
+  }
+  const edge = await startEdgeHost(PATCHED ? { overrides: { "stripe-webhook": patchedCopy } } : undefined); fake.setWebhookTarget(edge.url("stripe-webhook"));
   console.log(`listeners (all 127.0.0.1): fake-stripe ${fakeBase}  edge-host ${edge.base}`);
 
   const cfg = Object.fromEntries((await q("select key, value from public.platform_config")).map((r) => [r.key, parseInt(r.value, 10)]));

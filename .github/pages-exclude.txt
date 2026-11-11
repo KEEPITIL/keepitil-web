@@ -46,3 +46,14 @@ assets/js/pages-sql-exclusion.test.mjs
 # stack (#91/#92) adds ones that name supabase/ and scripts/ paths by string, which the closure check
 # would otherwise (correctly) flag, failing the Pages build.
 assets/js/*.test.mjs
+
+# COMING SOON (Joe, 2026-11-11): THIRTEEN, Kingdom Wars, PokaSnap and the KFORM article. Each entry page is now a noindex gate that
+# sends visitors to /games/; the real pages are kept here, undeployed, so each comes back by moving it back and deleting its line.
+games/13/index.play.html
+games/kwars/index.play.html
+games/pokasnap/index.play.html
+games/pokasnap/play/index.play.html
+games/pokasnap/test/index.play.html
+games/kwars/sw.play.js
+games/pokasnap/play/sw.play.js
+article/kform-lead-capture/index.play.html

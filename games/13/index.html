@@ -1,100 +1,23 @@
 <!doctype html>
 <html lang="en">
-<head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#050505">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<meta name="description" content="The Thirteen Anchors — Season One. A supernatural horror game presented by KEEPITIL, developed by TUITEA.">
-<title>THIRTEEN</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="css/game.css?v=4">
-</head>
-<body>
-<canvas id="view"></canvas>
-
-<!-- boot -->
-<div id="boot" class="layer">
-  <div class="bt" id="bt1"><small>PRESENTED BY</small><b>KEEPITIL</b></div>
-  <div class="bt" id="bt2"><small>DEVELOPED BY</small><b>TUITEA</b></div>
-  <div class="bt title" id="bt3"><b data-t="THIRTEEN">THIRTEEN</b><small>SEASON ONE</small></div>
-  <button id="tapstart" class="ghost">Tap to begin — sound on 🎧</button>
-</div>
-
-<!-- Lantern HQ: a 3D room (js/hq.js); this layer only carries the object tags and the back control -->
-<div id="hq" class="layer hidden"><button id="hqBack" class="hq-back hidden">‹ BACK</button>
-  <div class="hq-nav" id="hqNav"><button id="hqContinue" class="hq-continue"><b>CONTINUE</b><small id="hqContinueSub"></small></button>
-    <nav><button data-hq="cases">ATLAS</button><button data-hq="characters">INVESTIGATORS</button><button data-hq="loadout">LOADOUT</button><button data-hq="theater">THEATER</button><button data-hq="dossiers">ARCHIVE</button></nav></div>
-  <button class="hq-gear" data-hq="settings" aria-label="Settings">⚙</button>
-  <div class="hq-build" id="hqbuild"></div></div>
-
-<!-- generic panel -->
-<div id="panel" class="layer hidden"><div class="pbox"><button class="pclose" aria-label="Close">✕</button><div id="pbody"></div></div></div>
-<div id="theater" class="hidden"><div id="theaterBody"></div></div>
-
-<!-- in-engine intro cinematic -->
-<div id="cinema" class="layer hidden"><div id="cinFade"></div><div id="cinCap"></div><div id="cinSub"></div><button id="cinSkip" class="ghost hidden">SKIP ▸▸</button></div>
-
-<!-- cinematic -->
-<div id="cine" class="layer hidden"><div class="cine-frame"><div id="cineText"></div></div><div class="cine-bar"><span id="cineWho"></span><button id="cineSkip" class="ghost hidden">SKIP ▸▸</button></div></div>
-
-<!-- in-game HUD -->
-<div id="hud" class="hidden">
-  <div class="hud-top">
-    <div id="team"></div>
-    <div id="obj"></div>
-    <button id="pauseBtn" class="round" aria-label="Pause">❚❚</button>
-  </div>
-  <div id="sub"></div>
-  <div id="prompt"></div>
-  <div id="fearbar"><i></i></div>
-  <div id="ability-cd"></div>
-  <div id="stick"><i></i></div>
-  <div id="touchBtns">
-    <button data-k="switch" class="tb sw">⇄</button>
-    <button data-k="ability" class="tb ab">✦<small id="abLabel"></small></button>
-    <button data-k="interact" class="tb in">✋</button>
-    <button data-k="run" class="tb rn">RUN</button>
-    <button data-k="crouch" class="tb cr">⤓</button>
-    <button data-k="light" class="tb lt">🔦</button>
-  </div>
-  <div id="senseCue"><span></span></div>
-  <div id="choice" class="hidden"><div class="ch-t"></div><div class="ch-o"></div></div>
-  <div id="vignette"></div>
-  <div id="flash"></div>
-  <div id="keyhelp">WASD move · Mouse look · E interact · Shift run · C crouch · F flashlight · Q power · Tab / 1-2-3 switch · Esc pause</div>
-</div>
-
-<!-- keypad -->
-<div id="keypad" class="layer hidden"><div class="pbox kp"><div id="kpShow">_ _ _</div><div class="kpgrid"></div><div id="kpMsg"></div><button class="pclose" aria-label="Close">✕</button></div></div>
-
-<!-- death / end -->
-<div id="over" class="layer hidden"><div class="obox"><h1 id="overT"></h1><p id="overP"></p><button id="overBtn" class="big">Try again</button><button id="overHQ" class="ghost">Back to Lantern HQ</button></div></div>
-
-<script type="importmap">{"imports":{"three":"./vendor/jsm/three-shim.js"}}</script>
-<script src="vendor/three.min.js"></script>
-<script src="vendor/loaders/GLTFLoader.js"></script>
-<script src="vendor/loaders/DRACOLoader.js"></script>
-<script src="vendor/loaders/meshopt_decoder.js"></script>
-<script src="vendor/loaders/SkeletonUtils.js"></script>
-<script src="js/data.js?v=4"></script>
-<script src="js/gfx.js?v=4"></script>
-<script src="js/assets.js?v=4"></script>
-<script src="js/people.js?v=4"></script>
-<script src="js/people-glb.js?v=4"></script>
-<script src="js/hollow.js?v=4"></script>
-<script src="js/audio.js?v=4"></script>
-<script src="js/director.js?v=4"></script>
-<script src="js/story.js?v=4"></script>
-<script src="js/dialogue.js?v=4"></script>
-<script src="js/camera.js?v=4"></script>
-<script src="js/hazards.js?v=4"></script>
-<script src="js/echoes.js?v=4"></script>
-<script src="js/siblings.js?v=4"></script>
-<script src="js/level.js?v=4"></script>
-<script src="js/game.js?v=4"></script>
-<script src="js/cinema.js?v=4"></script>
-<script src="js/hq.js?v=4"></script>
-<script src="js/ui.js?v=4"></script>
-</body>
+<title>THIRTEEN: coming soon | KEEPITIL</title>
+<link rel="canonical" href="https://keepitil.com/games/">
+<meta http-equiv="refresh" content="0;url=/games/#coming-soon">
+<!-- COMING SOON GATE (Joe, 2026-11-11). The game is kept in this folder as index.play.html and is not deployed
+     (.github/pages-exclude.txt). To bring it back: git mv index.play.html index.html and remove its exclude line. -->
+<style>:root{color-scheme:dark}body{margin:0;min-height:100vh;display:grid;place-items:center;text-align:center;background:#0a0a0f;color:#e8eef2;font:15px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}.w{padding:28px;max-width:30rem}h1{font-size:20px;letter-spacing:.06em;margin:0 0 10px}p{color:#9fb0bb;margin:0 0 18px}a{color:#fff;font-weight:700}</style>
+<div class="w"><h1>THIRTEEN IS COMING SOON</h1><p>Taking you to KEEPITIL Games…</p><a href="/games/#coming-soon">Continue to KEEPITIL Games</a></div>
+<script>
+(function(){ var go = function(){ location.replace("/games/#coming-soon"); };
+  if (!('serviceWorker' in navigator)) return go();
+  // Retire this route's own worker and caches only (the Cache API is origin-wide; other games keep theirs). Saves are untouched.
+  navigator.serviceWorker.getRegistrations().then(function(rs){ return Promise.all(rs.filter(function(r){ return r.scope.indexOf("/games/13/") !== -1; }).map(function(r){ return r.unregister(); })); })
+    .then(function(){ return window.caches ? caches.keys() : []; })
+    .then(function(ks){ return Promise.all(ks.filter(function(k){ return ["thirteen-","13-"].some(function(p){ return k.indexOf(p) === 0; }); }).map(function(k){ return caches.delete(k); })); })
+    .then(go, go);
+})();
+</script>
 </html>

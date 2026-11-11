@@ -1,0 +1,28 @@
+name: real-test gates (preflight, run gate, redirect check)
+
+# Unit tests with negative controls for the real test-mode run's guards. No database, no secrets, no network, no Stripe. contents: read.
+on:
+  pull_request:
+    paths:
+      - "docs/money-build/real-test/**"
+      - ".github/workflows/real-test-gates.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Preflight, run gate and redirect check tests (all must pass; a minimum count is asserted)
+        run: |
+          set -euo pipefail
+          node --test docs/money-build/real-test/*.test.mjs | tee /tmp/gates.out
+          pass=$(grep -E '^ℹ pass ' /tmp/gates.out | awk '{print $3}'); fail=$(grep -E '^ℹ fail ' /tmp/gates.out | awk '{print $3}')
+          echo "pass=$pass fail=$fail"; [ "$fail" = "0" ] && [ "${pass:-0}" -ge 13 ]

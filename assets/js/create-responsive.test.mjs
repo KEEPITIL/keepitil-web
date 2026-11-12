@@ -15,12 +15,13 @@ const git = (...a) => execFileSync(process.env.GIT || 'git', a, { cwd: new URL('
 
 const LOCKED = ['index.html', 'connect/index.html', 'culture/index.html', 'earn/index.html', 'keepitil-shell.js', 'assets/js/keepitil-ai.js'];
 
-test('viewport meta no longer disables pinch-zoom, keeps viewport-fit=cover', () => {
+// Joe's ruling (2026-11-11, keepitil-web #165): every site page carries ONE identical fixed-scale viewport
+// tag. Assert that exact string, and that no malformed "no.0" / "1.0" variant survives.
+test('viewport meta is the exact fixed-scale tag (Joe\'s ruling), no "no.0" variant', () => {
   const m = html.match(/<meta name="viewport" content="([^"]*)"/);
   assert.ok(m, 'viewport meta present');
-  assert.ok(!/user-scalable\s*=\s*no/i.test(m[1]), 'user-scalable=no removed');
-  assert.ok(!/maximum-scale/i.test(m[1]), 'maximum-scale removed');
-  assert.ok(/viewport-fit=cover/.test(m[1]) && /width=device-width/.test(m[1]) && /initial-scale=1/.test(m[1]));
+  assert.equal(m[1], 'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover');
+  assert.ok(!/no\.0/.test(html), 'no "user-scalable=no.0" left anywhere on the page');
 });
 
 test('coarse-pointer block gives chips and selects a 44px minimum height', () => {

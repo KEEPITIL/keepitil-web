@@ -17,12 +17,12 @@ const LOCKED = ['index.html', 'connect/index.html', 'culture/index.html', 'earn/
 const coarse = (html) => (html.match(/@media\s*\(pointer:\s*coarse\)\s*\{([\s\S]*?)\n\}/) || [])[1] || '';
 
 for (const [name, html] of Object.entries(pages)) {
-  test(name + ': viewport meta no longer disables pinch-zoom, keeps viewport-fit=cover', () => {
+  // Joe's ruling (2026-11-11, keepitil-web #165): one identical fixed-scale viewport tag on every page.
+  test(name + ': viewport meta is the exact fixed-scale tag (Joe\'s ruling), no "no.0" variant', () => {
     const m = html.match(/<meta name="viewport" content="([^"]*)"/);
     assert.ok(m, 'viewport meta present');
-    assert.ok(!/user-scalable\s*=\s*no/i.test(m[1]));
-    assert.ok(!/maximum-scale/i.test(m[1]));
-    assert.ok(/viewport-fit=cover/.test(m[1]) && /width=device-width/.test(m[1]) && /initial-scale=1/.test(m[1]));
+    assert.equal(m[1], 'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover');
+    assert.ok(!/no\.0/.test(html));
   });
 
   test(name + ': search is 44px tall and 16px on touch', () => {

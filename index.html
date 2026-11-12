@@ -619,7 +619,7 @@
   #evx .evx-catdd{position:relative;}
   #evx .evx-catdd-menu{z-index:970;min-width:160px;}
   /* rows below: horizontal only — no vertical drift, no page pan */
-  #evx .evx-row{touch-action:pan-x;overflow-y:hidden;overscroll-behavior-x:contain;}
+  #evx .evx-row{touch-action:pan-x pan-y;overflow-y:hidden;overscroll-behavior-x:contain;}
 }
 /* ── ROW 1: location dropdown + months, one row (Founder 2026-08-18) ───────────────────────
    #evx-months moved INSIDE #evx-locrow, so it is no longer the row itself — it is the scroller
@@ -1813,6 +1813,13 @@
   html body .kil-save{width:44px!important;height:44px!important}
   .hero-stats .stat span,.ev-mini-date,.ev-fc-date,.ev-fc-genre,.ev-fc-venue,.ev-fc-ticket,.ev-feat-pick,.flyer-slot-label,
   #evx .evx-ribbon .kp,#evx .evx-cta,#evx .evx-nav-tag,#evx .evx-gn{font-size:.6875rem!important}
+  /* Atlas #165-4 (2026-11-11 20:23): the selectors above named classes this page does not render
+     (.ev-fc-*, .ev-mini-date), so the event cards never got 11px. These are the classes the #evx
+     cards actually carry, measured by Atlas at 8px (genre), 8.32px (SPONSORED), 9.6px (date, day
+     count), 9.92px (Buy Tickets) and 10.08px (venue). Checked live by scripts/mobile-audit/measure-165.mjs. */
+  html body #evx .evx-genre,html body #evx .kil-spon .kil-spon-tag,html body #evx .evx-date,
+  html body #evx .evx-daycount,html body #evx .evx-act,html body #evx .evx-venue,
+  html body #evx .evx-cta,html body #evx .evx-ribbon .kp{font-size:.6875rem!important}
   footer a,.v3-foot a,.v3-foot-legal a{display:inline-flex;align-items:center;min-height:44px}
 }
 </style>

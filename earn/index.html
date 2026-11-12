@@ -858,6 +858,15 @@ document.addEventListener('click',function(e){ var dd=document.getElementById('v
    Create/Earn switcher gets 44px buttons (were 35px). INFO keeps its look: an invisible 8px extension
    above and below takes its 32px pill to a ~45px hit area (measured live at 375px: 7px up + 6px down). 16px search text stops iOS focus-zoom now
    that the viewport allows pinch-zoom. */
+/* Atlas #165-2 (2026-11-11 20:23): on phones the five-tab switcher was one nowrap scroller, 388px of
+   tabs in a 330-360px box, so Earn showed 9.5px ("EAR") at 360 and 39.5px at 390. It is now a
+   three-column grid (two rows), every tab fully visible and at least 44px tall at any phone width.
+   Measured in CI by scripts/mobile-audit/measure-165.mjs at 360 and 390. */
+@media (max-width:860px){
+  body.rad-m #radSeg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;overflow:visible;flex-wrap:initial}
+  body.rad-m #radSeg button{min-width:0;min-height:44px;padding:0 6px;font-size:.9rem;letter-spacing:.06em;
+    white-space:nowrap;overflow:hidden;text-overflow:clip;display:flex;align-items:center;justify-content:center}
+}
 @media (pointer:coarse){
   #radSeg button{min-height:44px;padding-top:0;padding-bottom:0}
   .sh .hye-info{position:relative}

@@ -1,7 +1,7 @@
 /* KMOB audio — synthesized WebAudio effects plus one music file (assets/audio/moove-it.m4a). Every category is voice-limited so 500 soldiers
    never produce 500 overlapping sounds; music is a low, slowly-intensifying loop tied to battle pressure. */
 (function (G) {
-  const KM = G.KM, PRIORITY = { lhit: 1, boom: 1, cannon: 1, elite: 1, warn: 1, death: 1, pb: 1, tap: 1, upgrade: 1, build: 1, pw_lb: 1, pw_as: 1, pw_rain: 1, pw_el: 1, pw_mc: 1, pw_fo: 1, c_warcry: 1, c_titan: 1, c_barrage: 1, c_fortress: 1, c_rapid: 1, c_contract: 1 };   // + tank powers: never dropped by the voice budget   // tank damage, explosions, the cannon, boss / UI cues
+  const KM = G.KM, PRIORITY = { victory: 1, lhit: 1, boom: 1, cannon: 1, elite: 1, warn: 1, death: 1, pb: 1, tap: 1, upgrade: 1, build: 1, pw_lb: 1, pw_as: 1, pw_rain: 1, pw_el: 1, pw_mc: 1, pw_fo: 1, c_warcry: 1, c_titan: 1, c_barrage: 1, c_fortress: 1, c_rapid: 1, c_contract: 1 };   // + tank powers: never dropped by the voice budget   // tank damage, explosions, the cannon, boss / UI cues
   const MUSIC = { src: 'assets/audio/moove-it.m4a', start: 1.0611 + 17 * 1.875, bar: 1.875, bars: 59, gain: 0.6 };   // (owner audio review) skip the slow intro: start at the drop (bar 17, 32.9 s) and loop bars 17–76 of the 145.4 s master
   // BOSS MUSIC (owner audio review 2026-10-19): KEEPITIL's own KBeats tracks, one per boss in rotation, each looping its most energetic
   // bar-aligned section; crossfaded in when a boss fight starts and back to the battle music (which keeps its place) when it ends.
@@ -110,6 +110,8 @@
         case 'elite': if (this.gate(k, 1500)) { [98, 98.6, 147].forEach((f, i) => this.tone(f * 0.94, t + i * 0.03, 0.12, 'sawtooth', 0.1, f, D)); [98, 98.6, 147].forEach((f, i) => this.tone(f, t + 0.12 + i * 0.03, 0.85, 'sawtooth', 0.09, f * 0.97, D)); this.tone(62, t, 0.35, 'sine', 0.3, 40, D); this.hiss(t, 0.3, 700, 0.6, 0.08, 'lowpass', D); } break;   // (owner: IMPROVE) detuned brass horn with a scoop + war-drum hit
         case 'warn': for (let q = 0; q < 2; q++) { const u = t + q * 0.55; this.tone(196, u, 0.22, 'sawtooth', 0.07, 294); this.tone(294, u + 0.22, 0.26, 'sawtooth', 0.07, 196); this.tone(55, u, 0.3, 'sine', 0.2, 38); } break;   // (owner: IMPROVE) rising-falling alarm, two pulses, each on a low drum
         case 'death': [392, 330, 262, 196].forEach((f, i) => this.tone(f, t + i * 0.16, 0.4, 'triangle', 0.14)); this.hiss(t, 1.2, 300, 0.5, 0.3, 'lowpass'); break;
+        case 'victory': { this.tone(70, t, 0.7, 'sine', 0.42, 32); this.hiss(t, 0.5, 320, 0.6, 0.24, 'lowpass'); const ch = [392, 494, 587, 784].concat(v ? [988, 1175] : []);   // CRUSADE FIX: impact + rising major arpeggio (+ a top octave for a Crusade finale)
+          ch.forEach((f, i) => { this.tone(f, t + 0.12 + i * 0.1, 1.1, 'triangle', 0.09); this.tone(f / 2, t + 0.12 + i * 0.1, 0.9, 'sawtooth', 0.025); }); break; }
         case 'pb': [523, 659, 784, 1046, 1318].forEach((f, i) => this.tone(f, t + i * 0.09, 0.4, 'triangle', 0.12)); break;
         case 'tap': this.tone(700, t, 0.05, 'sine', 0.06); break;
         // TANK POWERS — one signature each, played at the moment the effect lands (sim emits once per activation / per volley)

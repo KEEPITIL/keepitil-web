@@ -105,6 +105,16 @@ try {
       check(!cut.length, `S1 ${w}px ${page} bottom nav: ${labels.map(l => l.t + (l.sw > l.cw ? ` TRUNCATED(${l.sw}>${l.cw})` : "")).join(" / ")}`);
     }
 
+    // S1 NEGATIVE CONTROL: put back the round-2 tracking and link padding; at 360 CONNECT must truncate again,
+    // or the label check above cannot see the defect it exists for.
+    if (w === 360) {
+      await open("/", w);
+      await waitFor("!!document.querySelector('#kil-bnav .kb-l')", 8000);
+      const back = await ev(`(() => { const st = document.createElement('style'); st.textContent = '#kil-bnav .kb-l{letter-spacing:.04em!important}#kil-bnav a{padding-left:2px!important;padding-right:2px!important}'; document.head.appendChild(st);
+        return [...document.querySelectorAll('#kil-bnav .kb-l')].filter(e => e.scrollWidth > e.clientWidth).map(e => e.textContent.trim()); })()`);
+      check(Array.isArray(back) && back.includes("CONNECT"), `S1 NEGATIVE CONTROL 360px: with the old .04em / 2px the check sees truncated: ${JSON.stringify(back)} (must include CONNECT)`);
+    }
+
     // 2. Earn tabs
     await open("/earn/", w);
     const tabs = await ev(`(() => { const seg = document.getElementById('radSeg'); if (!seg) return null; const s = seg.getBoundingClientRect();

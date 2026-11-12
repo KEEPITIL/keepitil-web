@@ -78,10 +78,13 @@ async function swipeOn(hostSel, railClass, itemClass, forcePanX) {
   const p = await ev(`(() => { const b = document.getElementById('m165-rail').getBoundingClientRect(); return { x: Math.round(Math.min(innerWidth - 20, b.left + 120)), y: Math.round(b.top + b.height / 2), ta: getComputedStyle(document.getElementById('m165-rail')).touchAction }; })()`);
   const top = await ev(`(() => { const e = document.elementFromPoint(${p.x}, ${p.y}); return !!e && !!e.closest('#m165-rail'); })()`);
   if (!top) return { error: `the swipe point is not on the probe rail (covered)` };
-  const before = await ev("scrollY");
+  // How far the PROBE moved up the screen, not window.scrollY: some pages scroll an inner element (body or a
+  // wrapper), where scrollY stays 0 while the page visibly moves.
+  const topNow = "document.getElementById('m165-rail').getBoundingClientRect().top";
+  const before = await ev(topNow);
   await send("Input.synthesizeScrollGesture", { x: p.x, y: p.y, yDistance: -300, gestureSourceType: "touch", speed: 1200 });
-  await sleep(600);
-  return { moved: Math.round((await ev("scrollY")) - before), touchAction: p.ta };
+  await sleep(700);
+  return { moved: Math.round(before - (await ev(topNow))), touchAction: p.ta };
 }
 
 try {
@@ -103,6 +106,8 @@ try {
       const px = await ev(`(() => { const host = document.getElementById('vs-app'); if (!host) return null; const d = document.createElement('div'); d.className = 'ce-stat'; d.innerHTML = '<b>1</b><span>CREATORS</span>'; host.prepend(d); return parseFloat(getComputedStyle(d.querySelector('span')).fontSize); })()`);
       check(px !== null && px >= 11, `#3 ${w}px /create/ stat label: ${px}px (>= 11)`);
     }
+    { const b = await swipeOn("#vs-app", "m165-plain", "m165-plain-item", false);
+      check(!b.error && b.moved >= 200, `#5 ${w}px /create/ BASELINE: a swipe on a plain block moved the page ${b.error || b.moved + "px"} (if this fails, the gesture, not the rail, is broken)`); }
     for (const [name, forced] of [["fixed rail", false], ["NEGATIVE CONTROL pan-x", true]]) {
       const r = await swipeOn("#vs-app", "ce-grid", "ce-fly", forced);
       if (r.error) check(false, `#5 ${w}px /create/ ${name}: ${r.error}`);
@@ -120,6 +125,8 @@ try {
       d.remove(); return out; })()`);
     if (!sizes) check(false, `#4 ${w}px /: #evx not found`);
     else for (const [k, px] of Object.entries(sizes)) check(px !== null && px >= 11, `#4 ${w}px / event ${k}: ${px}px (>= 11)`);
+    { const b = await swipeOn("#evx", "m165-plain", "m165-plain-item", false);
+      check(!b.error && b.moved >= 200, `#5 ${w}px / BASELINE: a swipe on a plain block moved the page ${b.error || b.moved + "px"}`); }
     for (const [name, forced] of [["event row", false], ["NEGATIVE CONTROL pan-x", true]]) {
       const r = await swipeOn("#evx", "evx-row", "evx-flyer", forced);
       if (r.error) check(false, `#5 ${w}px / ${name}: ${r.error}`);

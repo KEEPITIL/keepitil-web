@@ -1,0 +1,12 @@
+{
+  "repo": "KEEPITIL/KMOB",
+  "branch": "main",
+  "workflowPath": ".github/workflows/deploy-web.yml",
+  "requiredJobs": ["gate", "browser", "crusades-balance", "pr-tests", "build"],
+  "requiredSteps": { "pr-tests": ["crmap-ids"] },
+  "artifactPrefix": "kmob-web-",
+  "sitePath": "games/kmob",
+  "preconditions": [
+    { "pr": 26, "why": "the CAMPAIGN MAP fix (duplicate id crMap) must be live with or before the first publish" }
+  ]
+}

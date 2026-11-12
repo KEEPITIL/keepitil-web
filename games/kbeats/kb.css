@@ -3,6 +3,11 @@
   --bg:#07060f; --panel:#100c22; --panel2:#171233; --line:rgba(255,255,255,.09); --ink:#f3f1ff; --dim:#a39fc2; --mute:#6f6a92;
   --blue:#1e7bff; --blue2:#3aa0ff; --cyan:#22d3ee; --pink:#e540ff; --yellow:#facc15; --green:#22e07a; --kil:#00ff88;
   --hard:#f43f5e; --normal:#8b5cf6; --easy:#22c55e; --r:14px;
+  /* launch identity: one palette for solo, battle and TV */
+  --accent:#7c5cff; --accent2:#ff4fd8; --ok:#22e07a; --warn:#fbbf24; --err:#f43f5e;
+  --p1:#4f8cff; --p1-glow:rgba(79,140,255,.45); --p2:#ff7a3d; --p2-glow:rgba(255,122,61,.45);
+  --glass:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.02)); --edge:rgba(255,255,255,.10);
+  --shadow:0 10px 30px rgba(0,0,0,.35); --r-lg:20px; --tap:48px;
   --font:'Space Grotesk','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -23,3 +28,18 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 .stars{color:var(--yellow);letter-spacing:1px;font-size:13px}
 .stars .off{color:#3b3660}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ── launch polish: shared surfaces, buttons, motion ─────────────────────────────── */
+body::before{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;
+  background:radial-gradient(40% 35% at 20% 15%,rgba(124,92,255,.22),transparent 70%),radial-gradient(35% 30% at 85% 30%,rgba(255,79,216,.14),transparent 70%),radial-gradient(45% 40% at 50% 100%,rgba(30,123,255,.16),transparent 70%);
+  animation:kb-drift 28s ease-in-out infinite alternate}
+@keyframes kb-drift{from{transform:translate3d(-2%,-1%,0) scale(1)}to{transform:translate3d(2%,2%,0) scale(1.06)}}
+.btn{min-height:var(--tap);border-radius:14px}
+.btn.primary{background:linear-gradient(135deg,#3b82f6,var(--accent) 60%,#a855f7);box-shadow:0 0 0 1px rgba(255,255,255,.16) inset,0 8px 28px rgba(124,92,255,.45)}
+.btn.primary:hover{filter:brightness(1.1)}
+.btn.ghost:hover{background:rgba(255,255,255,.08)}
+.btn.sm{min-height:36px}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:saturate(.4)}
+.pill{border-radius:999px;padding:3px 9px}
+.p1c{color:var(--p1)}.p2c{color:var(--p2)}
+@media (prefers-reduced-motion:reduce){ body::before{animation:none} *{scroll-behavior:auto!important} }

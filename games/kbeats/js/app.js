@@ -400,7 +400,8 @@ function frame() {
   hw.draw(now, st); game.cursor = st.cursor;
   if (game.opts.battle) BT.frame(j, now, evs);
   if (QA_AUTOPLAY) autoplay(pn);
-  $('#count').textContent = now < 0 ? (now < -2 ? '3' : now < -1 ? '2' : '1') : now < 0.5 ? 'GO' : '';
+  { const c = now < 0 ? (now < -2 ? '3' : now < -1 ? '2' : '1') : now < 0.5 ? 'GO' : '', el = $('#count');
+    if (el.textContent !== c) { el.textContent = c; el.classList.remove('tick'); if (c) { void el.offsetWidth; el.classList.add('tick'); } } }
   const sc = j.score.toLocaleString(); if ($('#hScore').textContent !== sc) $('#hScore').textContent = sc;
   const m = multiplierFor(j.combo) * (st.hypeOn ? CONFIG.hype.multiplier : 1);
   const cb = j.combo > 1 ? `COMBO x${m}` : ''; if ($('#hCombo').textContent !== cb) $('#hCombo').textContent = cb;

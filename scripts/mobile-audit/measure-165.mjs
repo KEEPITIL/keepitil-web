@@ -118,6 +118,7 @@ try {
       check(/pan-y/.test(ta) || ta === 'auto', `#5 ${w}px /create/ Create card rail computed touch-action: ${ta} (must allow vertical panning)`); }
     for (const [name, forced] of [["fixed rail", false], ["NEGATIVE CONTROL pan-x", true]]) {
       if (!gestureOk) { unmeasured.push(`#5 ${w}px /create/ ${name}`); console.log(`UNMEASURED  #5 ${w}px /create/ ${name}: the gesture could not move a plain block here`); continue; }
+      if (forced) await open("/create/", w);   // fresh page: the earlier swipes left sticky bars over the probe
       const r = await swipeOn("#vs-app", "ce-grid", "ce-fly", forced);
       if (r.error) check(false, `#5 ${w}px /create/ ${name}: ${r.error}`);
       else if (!forced) check(r.moved >= 200 && /pan-y/.test(r.touchAction), `#5 ${w}px /create/ swipe on a Create card rail moved the page ${r.moved}px (touch-action: ${r.touchAction})`);
@@ -141,6 +142,7 @@ try {
       check(/pan-y/.test(ta) || ta === 'auto', `#5 ${w}px / Home event row computed touch-action: ${ta} (must allow vertical panning)`); }
     for (const [name, forced] of [["event row", false], ["NEGATIVE CONTROL pan-x", true]]) {
       if (!gestureOkH) { unmeasured.push(`#5 ${w}px / ${name}`); console.log(`UNMEASURED  #5 ${w}px / ${name}: the gesture could not move a plain block here`); continue; }
+      if (forced) await open("/", w);
       const r = await swipeOn("#evx", "evx-row", "evx-flyer", forced);
       if (r.error) check(false, `#5 ${w}px / ${name}: ${r.error}`);
       else if (!forced) check(r.moved >= 200 && /pan-y/.test(r.touchAction), `#5 ${w}px / swipe on a Home event row moved the page ${r.moved}px (touch-action: ${r.touchAction})`);

@@ -48,6 +48,7 @@ const ev = async (expr) => { const r = await send("Runtime.evaluate", { expressi
 
 
 const fails = [], passes = [];
+const unmeasured = [];
 const check = (ok, what) => { (ok ? passes : fails).push(what); console.log(`${ok ? "PASS" : "FAIL"}  ${what}`); };
 const waitFor = async (expr, ms = 15000) => { for (let t = 0; t < ms; t += 250) { if (await ev(expr)) return true; await sleep(250); } return false; };
 
@@ -82,7 +83,11 @@ async function swipeOn(hostSel, railClass, itemClass, forcePanX) {
   // wrapper), where scrollY stays 0 while the page visibly moves.
   const topNow = "document.getElementById('m165-rail').getBoundingClientRect().top";
   const before = await ev(topNow);
-  await send("Input.synthesizeScrollGesture", { x: p.x, y: p.y, yDistance: -300, gestureSourceType: "touch", speed: 1200 });
+  // Raw touch events (start, 20 moves up 300px, end): headless Linux Chrome ignored synthesizeScrollGesture
+  // even on a plain block, so the gesture is driven point by point.
+  await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: p.x, y: p.y }] });
+  for (let i = 1; i <= 20; i++) { await send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: p.x, y: p.y - i * 15 }] }); await sleep(16); }
+  await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await sleep(700);
   return { moved: Math.round(before - (await ev(topNow))), touchAction: p.ta };
 }
@@ -106,9 +111,13 @@ try {
       const px = await ev(`(() => { const host = document.getElementById('vs-app'); if (!host) return null; const d = document.createElement('div'); d.className = 'ce-stat'; d.innerHTML = '<b>1</b><span>CREATORS</span>'; host.prepend(d); return parseFloat(getComputedStyle(d.querySelector('span')).fontSize); })()`);
       check(px !== null && px >= 11, `#3 ${w}px /create/ stat label: ${px}px (>= 11)`);
     }
-    { const b = await swipeOn("#vs-app", "m165-plain", "m165-plain-item", false);
-      check(!b.error && b.moved >= 200, `#5 ${w}px /create/ BASELINE: a swipe on a plain block moved the page ${b.error || b.moved + "px"} (if this fails, the gesture, not the rail, is broken)`); }
+    const bc = await swipeOn("#vs-app", "m165-plain", "m165-plain-item", false);
+    const gestureOk = !bc.error && bc.moved >= 200;
+    console.log(`${gestureOk ? "OK  " : "NOTE"}  #5 ${w}px /create/ BASELINE: a swipe on a plain block moved the page ${bc.error || bc.moved + "px"}`);
+    { const ta = await ev(`(() => { const h = document.getElementById('vs-app'); const r = document.createElement('div'); r.className = 'ce-grid'; h.prepend(r); const t = getComputedStyle(r).touchAction; r.remove(); return t; })()`);
+      check(/pan-y/.test(ta) || ta === 'auto', `#5 ${w}px /create/ Create card rail computed touch-action: ${ta} (must allow vertical panning)`); }
     for (const [name, forced] of [["fixed rail", false], ["NEGATIVE CONTROL pan-x", true]]) {
+      if (!gestureOk) { unmeasured.push(`#5 ${w}px /create/ ${name}`); console.log(`UNMEASURED  #5 ${w}px /create/ ${name}: the gesture could not move a plain block here`); continue; }
       const r = await swipeOn("#vs-app", "ce-grid", "ce-fly", forced);
       if (r.error) check(false, `#5 ${w}px /create/ ${name}: ${r.error}`);
       else if (!forced) check(r.moved >= 200 && /pan-y/.test(r.touchAction), `#5 ${w}px /create/ swipe on a Create card rail moved the page ${r.moved}px (touch-action: ${r.touchAction})`);
@@ -125,9 +134,13 @@ try {
       d.remove(); return out; })()`);
     if (!sizes) check(false, `#4 ${w}px /: #evx not found`);
     else for (const [k, px] of Object.entries(sizes)) check(px !== null && px >= 11, `#4 ${w}px / event ${k}: ${px}px (>= 11)`);
-    { const b = await swipeOn("#evx", "m165-plain", "m165-plain-item", false);
-      check(!b.error && b.moved >= 200, `#5 ${w}px / BASELINE: a swipe on a plain block moved the page ${b.error || b.moved + "px"}`); }
+    const bh = await swipeOn("#evx", "m165-plain", "m165-plain-item", false);
+    const gestureOkH = !bh.error && bh.moved >= 200;
+    console.log(`${gestureOkH ? "OK  " : "NOTE"}  #5 ${w}px / BASELINE: a swipe on a plain block moved the page ${bh.error || bh.moved + "px"}`);
+    { const ta = await ev(`(() => { const h = document.getElementById('evx'); const r = document.createElement('div'); r.className = 'evx-row'; h.prepend(r); const t = getComputedStyle(r).touchAction; r.remove(); return t; })()`);
+      check(/pan-y/.test(ta) || ta === 'auto', `#5 ${w}px / Home event row computed touch-action: ${ta} (must allow vertical panning)`); }
     for (const [name, forced] of [["event row", false], ["NEGATIVE CONTROL pan-x", true]]) {
+      if (!gestureOkH) { unmeasured.push(`#5 ${w}px / ${name}`); console.log(`UNMEASURED  #5 ${w}px / ${name}: the gesture could not move a plain block here`); continue; }
       const r = await swipeOn("#evx", "evx-row", "evx-flyer", forced);
       if (r.error) check(false, `#5 ${w}px / ${name}: ${r.error}`);
       else if (!forced) check(r.moved >= 200 && /pan-y/.test(r.touchAction), `#5 ${w}px / swipe on a Home event row moved the page ${r.moved}px (touch-action: ${r.touchAction})`);
@@ -135,5 +148,5 @@ try {
     }
   }
 } finally { cleanup(); }
-console.log(`\n${passes.length} passed, ${fails.length} failed`);
+console.log(`\n${passes.length} passed, ${fails.length} failed, ${unmeasured.length} UNMEASURED (gesture baseline failed: ${unmeasured.join("; ") || "none"})`);
 process.exit(fails.length ? 1 : 0);

@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0 (same pin as node-tests.yml)
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
-      - name: Measure at 360 and 390
+      - name: Measure at 360, 390 and 430
         run: |
           set -euo pipefail
           export KIL_CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
           echo "chrome: $KIL_CHROME"
-          node scripts/mobile-audit/measure-165.mjs --widths 360,390
+          node scripts/mobile-audit/measure-165.mjs --widths 360,390,430

@@ -19,7 +19,7 @@ import { tmpdir } from "node:os";
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const ROOT = resolve(arg("--root", process.cwd()));
-const WIDTHS = arg("--widths", "360,390").split(",").map(Number);
+const WIDTHS = arg("--widths", "360,390,430").split(",").map(Number);
 const CHROME = process.env.KIL_CHROME || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml", ".webp": "image/webp", ".woff2": "font/woff2", ".ico": "image/x-icon", ".webmanifest": "application/manifest+json" };
@@ -95,6 +95,16 @@ async function swipeOn(hostSel, railClass, itemClass, forcePanX) {
 try {
   await connect(); await send("Page.enable"); await send("Runtime.enable");
   for (const w of WIDTHS) {
+    // S1. Bottom-nav labels read in full (real #kil-bnav, not a probe), on shell pages
+    for (const page of ["/", "/connect/", "/create/", "/culture/", "/earn/"]) {
+      await open(page, w);
+      await waitFor("!!document.querySelector('#kil-bnav .kb-l')", 8000);
+      const labels = await ev(`[...document.querySelectorAll('#kil-bnav .kb-l')].filter(e => e.getBoundingClientRect().width > 0).map(e => ({ t: e.textContent.trim(), sw: e.scrollWidth, cw: e.clientWidth }))`);
+      if (!labels || !labels.length) { check(false, `S1 ${w}px ${page}: no visible bottom-nav labels found`); continue; }
+      const cut = labels.filter(l => l.sw > l.cw);
+      check(!cut.length, `S1 ${w}px ${page} bottom nav: ${labels.map(l => l.t + (l.sw > l.cw ? ` TRUNCATED(${l.sw}>${l.cw})` : "")).join(" / ")}`);
+    }
+
     // 2. Earn tabs
     await open("/earn/", w);
     const tabs = await ev(`(() => { const seg = document.getElementById('radSeg'); if (!seg) return null; const s = seg.getBoundingClientRect();
@@ -129,9 +139,9 @@ try {
     await open("/", w);
     const sizes = await ev(`(() => { const host = document.getElementById('evx'); if (!host) return null;
       const d = document.createElement('div'); d.id = 'm165-cards';
-      d.innerHTML = '<div class="evx-row"><div class="evx-flyer"><span class="evx-genre">TECHNO</span><div class="evx-body"><div class="evx-date">FRI NOV 13</div><div class="evx-venue">Venue</div><div class="evx-foot"><span class="evx-cta">Details</span></div></div><div class="evx-actions"><a class="evx-act evx-act-tix" href="#">Buy Tickets</a></div></div><div class="kil-spon"><span class="kil-spon-tag">SPONSORED</span></div><div class="evx-daycount">3 DAYS</div></div>';
+      d.innerHTML = '<div class="evx-row"><div class="evx-flyer"><span class="evx-genre">TECHNO</span><div class="evx-body"><div class="evx-date">FRI NOV 13</div><div class="evx-venue">Venue</div><div class="evx-foot"><span class="evx-cta">Details</span></div></div><div class="evx-actions"><a class="evx-act evx-act-tix" href="#">Buy Tickets</a></div></div><div class="kil-spon"><span class="kil-spon-tag">SPONSORED</span></div><div class="evx-daycount">3 DAYS</div><div class="evx-mhead"><span class="evx-mhead-c">6 DAYS</span></div></div>';
       host.prepend(d);
-      const out = {}; for (const [k, sel] of [['genre', '.evx-genre'], ['SPONSORED', '.kil-spon-tag'], ['date', '.evx-date'], ['day count', '.evx-daycount'], ['Buy Tickets', '.evx-act'], ['venue', '.evx-venue']]) { const e = d.querySelector(sel); out[k] = e ? parseFloat(getComputedStyle(e).fontSize) : null; }
+      const out = {}; for (const [k, sel] of [['genre', '.evx-genre'], ['SPONSORED', '.kil-spon-tag'], ['date', '.evx-date'], ['day count', '.evx-daycount'], ['Buy Tickets', '.evx-act'], ['venue', '.evx-venue'], ['month-header count', '.evx-mhead-c']]) { const e = d.querySelector(sel); out[k] = e ? parseFloat(getComputedStyle(e).fontSize) : null; }
       d.remove(); return out; })()`);
     if (!sizes) check(false, `#4 ${w}px /: #evx not found`);
     else for (const [k, px] of Object.entries(sizes)) check(px !== null && px >= 11, `#4 ${w}px / event ${k}: ${px}px (>= 11)`);
@@ -151,4 +161,5 @@ try {
   }
 } finally { cleanup(); }
 console.log(`\n${passes.length} passed, ${fails.length} failed, ${unmeasured.length} UNMEASURED (gesture baseline failed: ${unmeasured.join("; ") || "none"})`);
-process.exit(fails.length ? 1 : 0);
+// An UNMEASURED swipe is not a pass (Atlas/Sentinel A2): a dead gesture baseline fails the job.
+process.exit(fails.length || unmeasured.length ? 1 : 0);

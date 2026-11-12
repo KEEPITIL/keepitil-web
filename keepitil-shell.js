@@ -1443,6 +1443,10 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     +  '#evx .evx-catdd-menu{z-index:945!important}'
     +'}'
     +'#kil-bnav .kb-l{font-size:11px;line-height:1;letter-spacing:.04em;font-weight:700;text-transform:uppercase;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+    /* Atlas + Sentinel S1 (2026-11-11): at 11px with .04em spacing CONNECT needs 64.09px in a 64.00px slot
+       and rendered "CONNE…" at 360. Narrow phones get tighter tracking and no link side padding, so all
+       five labels read in full; measured by scripts/mobile-audit/measure-165.mjs at 360, 390 and 430. */
+    +'@media(max-width:380px){#kil-bnav .kb-l{letter-spacing:.02em}#kil-bnav a{padding-left:0;padding-right:0}}'
     +'#kil-bnav a img{height:23px;width:auto;mix-blend-mode:screen;display:block}'
     +'#kil-bnav a#kb-home img.kb-logo{display:block;height:23px!important;width:auto!important;max-width:none!important;mix-blend-mode:screen}'
     /* No visible scrollbars on any horizontal rail (Founder 2026-08-15). */

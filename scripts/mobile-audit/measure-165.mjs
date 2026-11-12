@@ -47,6 +47,11 @@ const send = (method, params = {}) => new Promise((r) => { const i = ++id; pendi
 const ev = async (expr) => { const r = await send("Runtime.evaluate", { expression: expr, returnByValue: true, awaitPromise: true }); if (r.result?.exceptionDetails) throw new Error(JSON.stringify(r.result.exceptionDetails).slice(0, 300)); return r.result?.result?.value; };
 
 
+const LABELS = `[...document.querySelectorAll('#kil-bnav .kb-l')].filter(e => e.getBoundingClientRect().width > 0).map(e => {
+  const cs = getComputedStyle(e), box = e.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const c = e.cloneNode(true); c.style.cssText = 'position:absolute;visibility:hidden;max-width:none;width:auto;overflow:visible;text-overflow:clip;white-space:nowrap';
+  e.parentNode.appendChild(c); const need = c.getBoundingClientRect().width; c.remove();
+  return { t: e.textContent.trim(), need: +need.toFixed(2), box: +box.toFixed(2), cut: need > box + 0.01 }; })`;
 const fails = [], passes = [];
 const unmeasured = [];
 const check = (ok, what) => { (ok ? passes : fails).push(what); console.log(`${ok ? "PASS" : "FAIL"}  ${what}`); };
@@ -99,10 +104,10 @@ try {
     for (const page of ["/", "/connect/", "/create/", "/culture/", "/earn/"]) {
       await open(page, w);
       await waitFor("!!document.querySelector('#kil-bnav .kb-l')", 8000);
-      const labels = await ev(`[...document.querySelectorAll('#kil-bnav .kb-l')].filter(e => e.getBoundingClientRect().width > 0).map(e => ({ t: e.textContent.trim(), sw: e.scrollWidth, cw: e.clientWidth }))`);
+      // Sub-pixel (Range-free) measure: scrollWidth is an integer and called 64.09px of text in a 64.00px box "fits".
+      const labels = await ev(LABELS);
       if (!labels || !labels.length) { check(false, `S1 ${w}px ${page}: no visible bottom-nav labels found`); continue; }
-      const cut = labels.filter(l => l.sw > l.cw);
-      check(!cut.length, `S1 ${w}px ${page} bottom nav: ${labels.map(l => l.t + (l.sw > l.cw ? ` TRUNCATED(${l.sw}>${l.cw})` : "")).join(" / ")}`);
+      check(!labels.some(l => l.cut), `S1 ${w}px ${page} bottom nav: ${labels.map(l => `${l.t} ${l.need}/${l.box}${l.cut ? " TRUNCATED" : ""}`).join(" · ")}`);
     }
 
     // S1 NEGATIVE CONTROL: put back the round-2 tracking and link padding; at 360 CONNECT must truncate again,
@@ -110,9 +115,15 @@ try {
     if (w === 360) {
       await open("/", w);
       await waitFor("!!document.querySelector('#kil-bnav .kb-l')", 8000);
-      const back = await ev(`(() => { const st = document.createElement('style'); st.textContent = '#kil-bnav .kb-l{letter-spacing:.04em!important}#kil-bnav a{padding-left:2px!important;padding-right:2px!important}'; document.head.appendChild(st);
-        return [...document.querySelectorAll('#kil-bnav .kb-l')].filter(e => e.scrollWidth > e.clientWidth).map(e => e.textContent.trim()); })()`);
-      check(Array.isArray(back) && back.includes("CONNECT"), `S1 NEGATIVE CONTROL 360px: with the old .04em / 2px the check sees truncated: ${JSON.stringify(back)} (must include CONNECT)`);
+      // (a) the round-2 values: reported. Whether they truncate depends on the runner's default font
+      // (reviewers saw CONNE… with macOS fonts), so this one is information, not a verdict.
+      await ev("(() => { const st = document.createElement('style'); st.id = 'm165-old'; st.textContent = '#kil-bnav .kb-l{letter-spacing:.04em!important}#kil-bnav a{padding-left:2px!important;padding-right:2px!important}'; document.head.appendChild(st); return true; })()");
+      const old = await ev(LABELS);
+      console.log(`INFO  S1 360px with the round-2 .04em / 2px: ${old.map(l => `${l.t} ${l.need}/${l.box}${l.cut ? " TRUNCATED" : ""}`).join(" · ")}`);
+      // (b) the detector itself: much wider tracking MUST be seen as truncation, or the S1 check is blind.
+      await ev("(() => { document.getElementById('m165-old').textContent = '#kil-bnav .kb-l{letter-spacing:.3em!important}'; return true; })()");
+      const wide = await ev(LABELS);
+      check(wide.some(l => l.t === "CONNECT" && l.cut), `S1 NEGATIVE CONTROL 360px: with .3em tracking the check sees CONNECT truncated (${(wide.find(l => l.t === "CONNECT") || {}).need}/${(wide.find(l => l.t === "CONNECT") || {}).box})`);
     }
 
     // 2. Earn tabs

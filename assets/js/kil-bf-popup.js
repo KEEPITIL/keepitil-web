@@ -146,9 +146,13 @@
     var st = doc.createElement('style'); st.textContent = CSS; doc.head.appendChild(st);
     var box = doc.createElement('div'); box.id = 'kil-bf'; box.innerHTML = cardHTML(ph, false);
     doc.body.appendChild(box);
+    /* ONE overlay at a time: if the PWA install banner is already up, hold it hidden while this modal is open and bring it back on close. */
+    var pwa = doc.getElementById('kil-pwa-banner'), pwaDisp = pwa ? pwa.style.display : '';
+    if (pwa) pwa.style.display = 'none';
     function close(remember) {
       if (remember !== false) store('set', K_SKIP, String(Date.now()));
       box.remove(); st.remove(); doc.removeEventListener('keydown', onKey, true);
+      if (pwa && pwa.isConnected) pwa.style.display = pwaDisp;
       if (prev && prev.focus) { try { prev.focus(); } catch (e) {} }
     }
     function onKey(e) {

@@ -2,7 +2,7 @@
 <html lang="en" data-theme="default" data-radio="page">
 <head>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/><meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <meta name="description" content="EARN on KEEPITIL — radio, playlists and the ways creators submit, take part and earn."/>
 <title>EARN — Radio, Playlists & Creator Opportunities | KEEPITIL</title>
 <link rel="icon" type="image/png" href="/assets/images/logo-purple-nav.png"/>
@@ -84,7 +84,7 @@ a{color:inherit;text-decoration:none}
 .hero .stat b{font-family:var(--fh);font-size:clamp(2.4rem,6vw,3.6rem);letter-spacing:.02em;display:block;line-height:1;text-shadow:0 2px 18px rgba(0,0,0,.7)}
 .hero .stat span{display:block;font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:#cfd6c9;margin-top:5px;font-weight:800;text-shadow:0 1px 8px rgba(0,0,0,.7)}
 .hero .stat.s b{color:#8BFF3D}.hero .stat.p b{color:#FF8A1F}.hero .stat.g b{color:#8BFF3D}
-@media(max-width:600px){.hero .stats{gap:26px}.hero .stat b{font-size:2rem}.hero .stat span{font-size:.68rem}}
+@media(max-width:600px){.hero .stats{gap:26px}.hero .stat b{font-size:2rem}.hero .stat span{font-size:.6875rem}}
 .hero .live{display:inline-flex;align-items:center;gap:8px;margin-top:18px;background:var(--panel);border:1px solid var(--brd);backdrop-filter:blur(8px);border-radius:999px;padding:8px 16px;font-size:.8rem;font-weight:700;letter-spacing:.05em}
 .hero .live .dot{width:9px;height:9px;border-radius:50%;background:var(--brand);box-shadow:0 0 12px var(--brand);animation:pulse 1.6s infinite}
 @keyframes pulse{50%{opacity:.35}}
@@ -858,6 +858,15 @@ document.addEventListener('click',function(e){ var dd=document.getElementById('v
    Create/Earn switcher gets 44px buttons (were 35px). INFO keeps its look: an invisible 8px extension
    above and below takes its 32px pill to a ~45px hit area (measured live at 375px: 7px up + 6px down). 16px search text stops iOS focus-zoom now
    that the viewport allows pinch-zoom. */
+/* Atlas #165-2 (2026-11-11 20:23): on phones the five-tab switcher was one nowrap scroller, 388px of
+   tabs in a 330-360px box, so Earn showed 9.5px ("EAR") at 360 and 39.5px at 390. It is now a
+   three-column grid (two rows), every tab fully visible and at least 44px tall at any phone width.
+   Measured in CI by scripts/mobile-audit/measure-165.mjs at 360 and 390. */
+@media (max-width:860px){
+  body.rad-m #radSeg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;overflow:visible;flex-wrap:initial}
+  body.rad-m #radSeg button{min-width:0;min-height:44px;padding:0 6px;font-size:.9rem;letter-spacing:.06em;
+    white-space:nowrap;overflow:hidden;text-overflow:clip;display:flex;align-items:center;justify-content:center}
+}
 @media (pointer:coarse){
   #radSeg button{min-height:44px;padding-top:0;padding-bottom:0}
   .sh .hye-info{position:relative}
@@ -940,7 +949,7 @@ document.addEventListener('click',function(e){ var dd=document.getElementById('v
   }, {passive:true});
 })();
 </script>
-<script src="/keepitil-shell.js?v=20261031a" defer></script>
+<script src="/keepitil-shell.js?v=20261111c" defer></script>
 <!-- seasonal background rotation (auto by date; ?season=<slug> to preview) -->
 <script src="/kil-seasons.js?v=20260910b"></script>
 <!-- persistent synchronized radio bar -->
@@ -1818,6 +1827,6 @@ if(/[?&]tune=1\b/.test(location.search)){ var _t=document.createElement('script'
   });
 })();
 </script>
-<script src="/assets/js/kil-bf-popup.js?v=20261109a" defer></script>
+<script src="/assets/js/kil-bf-popup.js?v=20261111c" defer></script>
 </body>
 </html>

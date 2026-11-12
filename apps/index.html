@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <title>KEEPITIL Apps - The apps from KEEPITIL</title>
 <meta name="description" content="Apps from KEEPITIL. Open TUITEA, the private family app, or read how it works.">
 <meta name="robots" content="index,follow">
 <link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="stylesheet" href="/assets/css/tokens.css">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="canonical" href="https://keepitil.com/apps/"/>
 <meta property="og:title" content="KEEPITIL Apps">
@@ -52,16 +53,23 @@
   .app-card .desc{font-size:13.5px;line-height:1.45}
   .app-card .sum{font-size:12.5px;line-height:1.5;color:var(--dim)}
   .app-foot{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
-  .cta{display:flex;align-items:center;justify-content:center;min-height:38px;padding:0 14px;border-radius:12px;
+  .cta{display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;border-radius:12px;
        font-size:11.5px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;text-align:center;
        color:var(--cyan);border:1px solid rgba(34,211,238,.45)}
   .cta:hover{background:rgba(34,211,238,.10)}
   .cta:focus-visible{outline:2px solid #fff;outline-offset:3px}
+  @media (max-width:860px){body{padding-bottom:calc(var(--kil-bnav-h,72px) + 24px)}}
   footer{margin-top:40px;text-align:center;color:var(--mute);font-size:12px}
   @media (max-width:560px){.app-card{flex-direction:column;gap:12px}}
 </style>
 </head>
 <body>
+<!-- Site shell (Atlas 390px check): /apps/ had no site header or bottom nav. #main-nav is the no-JS / crawler fallback; keepitil-shell.js replaces it with the real header and the phone bottom bar. -->
+<nav id="main-nav" aria-label="KEEPITIL platform"><div class="nav-inner">
+  <a class="nav-logo" href="/"><span class="nav-brand">KEEPITIL</span></a>
+  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
+  <a href="/apply.html" class="nav-cta">LOGIN</a>
+</div></nav>
 <div class="wrap">
   <header class="top">
     <div class="brand"><a href="/">KEEP<span>ITIL</span> &middot; APPS</a></div>
@@ -87,5 +95,6 @@
 
   <footer>&copy; KEEPITIL &middot; <a href="/">keepitil.com</a> &middot; <a href="/games/">Games</a></footer>
 </div>
+<script src="/keepitil-shell.js?v=20261111c" defer></script>
 </body>
 </html>

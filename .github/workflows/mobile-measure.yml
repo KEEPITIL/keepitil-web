@@ -1,0 +1,26 @@
+name: mobile measure
+
+# keepitil-web #165 must-fixes 2-5 (Atlas, 2026-11-11), measured in a real layout engine on a GitHub-hosted
+# runner: headless Chrome over CDP against a local static server. Never run on the owner's laptop.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0 (same pin as node-tests.yml)
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Measure at 360, 390 and 430
+        run: |
+          set -euo pipefail
+          export KIL_CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
+          echo "chrome: $KIL_CHROME"
+          node scripts/mobile-audit/measure-165.mjs --widths 360,390,430

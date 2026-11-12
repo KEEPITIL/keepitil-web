@@ -304,7 +304,7 @@
    +   'text-transform:uppercase;color:#d6c9e0;margin-top:5px;text-shadow:0 1px 8px rgba(0,0,0,.7)}'
    + '#vs-app .ce-stat.a b{color:#FF2E88}#vs-app .ce-stat.v b{color:#A06BFF}#vs-app .ce-stat.e b{color:#FF7AC8}'
    + '@media(max-width:600px){#vs-app .ce-stats{gap:26px}#vs-app .ce-stat b{font-size:2rem}'
-   +   '#vs-app .ce-stat span{font-size:.68rem}}'
+   +   '#vs-app .ce-stat span{font-size:.6875rem}}'
    /* Entry page: the submitted work sits in the locked flyer slot, and the vote actions take
       the place the buy button occupies on an event page. Two-copy image trick again so a
       submission that is not 2:3 is shown whole instead of centre-cropped. */
@@ -467,7 +467,7 @@
    +   '#vs-app .ce-grid{display:flex;grid-template-columns:none;gap:10px;overflow-x:auto;'
    +     'overflow-y:hidden;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;'
    +     'scrollbar-width:none;-ms-overflow-style:none;padding:2px 0 8px;'
-   +     'touch-action:pan-x;overscroll-behavior-x:contain}'
+   +     'touch-action:pan-x pan-y;overscroll-behavior-x:contain}'
    +   '#vs-app .ce-grid::-webkit-scrollbar{display:none}'
    +   '#vs-app .ce-grid > .ce-fly{flex:0 0 220px;scroll-snap-align:start}'
    /* ⚠ SCROLL SNAP IGNORES THE LEADING PADDING UNLESS scroll-padding SAYS OTHERWISE.
@@ -533,7 +533,7 @@
    +   'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}'
    + '#vs-app .ce-foot{display:flex;align-items:center;justify-content:space-between;gap:6px}'
    + '#vs-app .ce-price{font:800 .7rem Inter,sans-serif;color:#fff;white-space:nowrap}'
-   + '#vs-app .ce-cta{font:800 .54rem Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#06120a;'
+   + '#vs-app .ce-cta{font:800 .6875rem Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#06120a;'
    +   'background:#00ff88;padding:6px 11px;border-radius:5px;white-space:nowrap;flex-shrink:0}'
    + '#vs-app .ce-actions{position:absolute;left:0;right:0;bottom:0;z-index:4;display:flex;flex-direction:column;'
    +   'gap:6px;padding:12px;background:linear-gradient(0deg,rgba(0,0,0,.95),rgba(0,0,0,.78) 72%,transparent);'

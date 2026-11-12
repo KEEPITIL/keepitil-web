@@ -2,7 +2,7 @@
 <html lang="en" data-theme="default">
 <head>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/><meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <meta name="description" content="CREATE on KEEPITIL — enter open calls and competitions, share your work, and get seen by the community."/>
 <title>CREATE — Enter, Compete, Get Seen | KEEPITIL</title>
 <link rel="canonical" href="https://keepitil.com/create/"/>
@@ -321,7 +321,7 @@ footer a{color:var(--brand-2)}
 
 <!-- universal shell: injects the DISCOVER·CONNECT·CREATE·CULTURE·EARN nav + footer + radio bar (same on every page) -->
 <script src="/assets/js/shop-hub.js" defer></script>
-<script src="/keepitil-shell.js?v=20261031a" defer></script>
+<script src="/keepitil-shell.js?v=20261111c" defer></script>
 <script src="/kil-seasons.js?v=20260910b"></script>
 <script src="/assets/js/keepitil-radio.js?v=20261109a" defer></script>
 <!-- floating AI chat bubble (#kilo-btn) — same as Culture/home for uniformity -->
@@ -329,7 +329,7 @@ footer a{color:var(--brand-2)}
 <!-- VS platform (KODE): Supabase client + the app that renders into #vs-app.
      vs-app.js defines the real window.vsFilter, replacing the placeholder hook. -->
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
-<script src="/vs-app.js?v=20261109a"></script>
+<script src="/vs-app.js?v=20261111b"></script>
 <script src="/keepitil-pager.js?v=20260820e" defer></script>
 <script>
 /* VS subpage view switch (Founder 2026-08-05): rail drives vs-app.js via window.vsGo(view).
@@ -453,6 +453,6 @@ function vrGoSub(sp){ var dd=document.getElementById('vrSubDD'); if(dd)dd.classL
 })();
 document.addEventListener('click',function(e){ var dd=document.getElementById('vrSubDD'),b=document.getElementById('vrSubBtn'); if(dd&&dd.classList.contains('open')&&!dd.contains(e.target)&&b&&!b.contains(e.target))dd.classList.remove('open'); });
 </script>
-<script src="/assets/js/kil-bf-popup.js?v=20261109a" defer></script>
+<script src="/assets/js/kil-bf-popup.js?v=20261111c" defer></script>
 </body>
 </html>

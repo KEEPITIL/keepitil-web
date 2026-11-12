@@ -1,0 +1,7 @@
+23:30:20 load=2.83 free_mem_pct=61
+23:30:23 load=2.77 free_mem_pct=61
+23:30:26 load=2.79 free_mem_pct=61
+23:30:29 load=2.79 free_mem_pct=61
+23:30:32 load=2.64 free_mem_pct=61
+23:30:35 load=2.64 free_mem_pct=61
+23:30:39 load=2.67 free_mem_pct=61

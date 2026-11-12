@@ -1,0 +1,639 @@
+{
+ "summary": {
+  "engine": "PostgreSQL 17.6 (embedded-postgres, Unix socket only)",
+  "seconds": 47,
+  "matrix": {
+   "total": 37,
+   "pass": 37
+  },
+  "packs": {
+   "total": 36,
+   "pass": 36
+  },
+  "adjacent": {
+   "total": 3,
+   "pass": 3
+  },
+  "fatal": null,
+  "md5": {
+   "get_ticket_wrapper": "a13fcb2fcb58d332bdd16ac1a31b3e17",
+   "fulfill_ws": "d2dc436ae0195ab1ae5573bb17c2e3e8"
+  },
+  "negativeControls": {
+   "detects": 17,
+   "detectsMet": 17,
+   "baseline": 20,
+   "baselineMet": 20
+  }
+ },
+ "results": [
+  {
+   "id": "A01",
+   "name": "F-A anon cannot INSERT a forged paid order (42501); original inserts it",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "insert not denied: {\"rows\":[],\"rowCount\":1}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "A02",
+   "name": "F-A authenticated (a buyer) cannot INSERT a forged paid order",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "insert not denied: {\"rows\":[],\"rowCount\":1}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "A03",
+   "name": "F-A authenticated organizer cannot INSERT a fabricated sale on their own event",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "insert not denied: {\"rows\":[],\"rowCount\":1}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "A04",
+   "name": "F-A service_role can still INSERT (direct, BYPASSRLS) - the real writer keeps its right",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "B01",
+   "name": "F-B organizer cannot UPDATE status of their own event's order; original can",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "update applied: {\"rows\":[],\"rowCount\":1}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "B02",
+   "name": "F-B organizer cannot UPDATE qr_token of their own event's order; original can",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "update applied: {\"rows\":[],\"rowCount\":1}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "B03",
+   "name": "F-B organizer cannot UPDATE checked_in_at of their own event's order; original can",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "update applied: {\"rows\":[],\"rowCount\":1}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "B04",
+   "name": "F-B organizer cannot UPDATE amount_cents of their own event's order; original can",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "update applied: {\"rows\":[],\"rowCount\":1}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "B05",
+   "name": "F-B organizer cannot UPDATE event_id / tier_id / buyer_email / buyer_handle / stripe_payment_intent / qty / application_fee_cents either (no column left writable)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "applied: event_id=5 | tier_id=2 | buyer_email='x@example.invalid' | buyer_handle='x' | stripe_payment_intent='pi_x' | qty=9 | application_fee_cents=1 | organizer_acct='acct_x' | referral_code='x'",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "B06",
+   "name": "organizer cannot swap qr_token to admit a forged token: swap, then scan the forged token at the door -> not admitted",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"upd\":\"applied\",\"scan\":\"admitted\"}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "B07",
+   "name": "non-organizer authenticated users (another organizer, the buyer) cannot UPDATE someone else's / their own order",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "C01",
+   "name": "F-C anon cannot TRUNCATE event_orders (42501); original truncates it",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "truncate not denied: {\"rows\":[],\"rowCount\":null}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "C02",
+   "name": "F-C authenticated (buyer and organizer) cannot TRUNCATE event_orders",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "[\"ok\",\"ok\"]",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "C03",
+   "name": "F-C anon DELETE / UPDATE leave every row intact",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "C03b",
+   "name": "F-C anon DELETE / UPDATE are refused by PRIVILEGE (42501), not only filtered by RLS",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "[\"ok\",\"ok\"]",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "C04",
+   "name": "F-C authenticated DELETE leaves every row intact (and is refused by privilege)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "[0,6,6]",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "C05",
+   "name": "F-C table privileges: anon and authenticated hold exactly SELECT (no INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER/MAINTAIN); PUBLIC holds nothing",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"anon\":\"DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE\",\"authenticated\":\"DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE\",\"pub\":0}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "C06",
+   "name": "F-C service_role and postgres keep ALL eight privileges (unchanged)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "C07",
+   "name": "F-C sorted table ACL = {anon=r, authenticated=r, postgres=arwdDxtm, service_role=arwdDxtm}; no column ACLs; RLS enabled and not forced",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "[\"{anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}\",null,\"true/false\"]",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "C08",
+   "name": "policy set is exactly {event_orders_organizer_read, event_orders_owner_read}; surviving policy texts byte-identical to the original",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"names\":\"event_orders_organizer_read,event_orders_organizer_update,event_orders_owner_read,orders_anon_insert\",\"t\":{\"event_orders_organizer_read\":\"(event_id IN ( SELECT events.id\\n   FROM events\\n  WHERE (events.owner_handle = my_handle())))|null|{authenticated}\",\"event_orders_organizer_update\":\"(event_id IN ( SELECT events.id\\n   FROM events\\n  WHERE (events.owner_handle = my_handle())))|(event_id IN ( SELECT events.id\\n   FROM events\\n  WHERE (events.owner_handle = my_handle())))|{authenticated}\",\"event_orders_owner_read\":\"(buyer_email = my_email())|null|{authenticated}\",\"orders_anon_insert\":\"null|true|{anon,authenticated}\"}}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "S01",
+   "name": "service_role: fulfill_ticket_order inserts paid orders (2 items), 32-char qr tokens returned, buyer_handle resolved, qty_sold incremented",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "S02",
+   "name": "service_role: fulfill_ticket_order is idempotent on a duplicate (session,tier): second call inserts 0, skips 2, no extra rows, qty_sold unchanged",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "S03",
+   "name": "anon and authenticated cannot EXECUTE fulfill_ticket_order / refund_ticket_order (42501): the ONLY writer path stays service_role",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "S04",
+   "name": "service_role: refund_ticket_order refunds by session, restores qty_sold, a second refund is a no-op",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "S05",
+   "name": "service_role: refund_ticket_order by payment_intent (fixture order 6) refunds it",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "R01",
+   "name": "buyer SELECT via event_orders_owner_read: sees exactly their own orders (1,3,4,6), none of buyer2's",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "R02",
+   "name": "organizer SELECT via event_orders_organizer_read: sees exactly their events' orders (1,2,3,5,6), not the other organizer's (4); the other organizer sees only 4",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "R03",
+   "name": "anon sees ZERO rows and gets NO error (SELECT privilege kept, no anon policy)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "R04",
+   "name": "profile.html Tickets query shape (event_orders + embedded events join, buyer_handle filter, status<>'refunded') works for buyer (orders 1,4,6) and returns [] without error for anon",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "R05",
+   "name": "SELECT in an anon-evaluated policy of ANOTHER table (hypothetical event_chat_rooms) keeps working: no 42501 (the reason anon keeps SELECT)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "R06",
+   "name": "definer readers unchanged: get_my_tickets (VERBATIM prod body, SECURITY DEFINER), has_event_ticket (definer, anon + authenticated), organizer_dashboard (definer)",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "D01",
+   "name": "12A door: owner admits a raw token once (checked_in_at set), repeat = already_used",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "D02",
+   "name": "12A door: 'KIL-'-prefixed and padded tokens admit; check_in_ticket wrapper admits too",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "D03",
+   "name": "12A door: non-owner organizer, buyer and anon are refused; refunded and unknown tokens refused",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "D04",
+   "name": "12A door response never carries the buyer e-mail",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  },
+  {
+   "id": "E01",
+   "name": "FORGED-ORDER END TO END: anon inserts a 'paid' order with its own token, then the door owner scans it -> original ADMITS the forged ticket; hardened: the order cannot exist, scan = invalid",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": false,
+   "originalWhy": "{\"insert\":\"inserted\",\"scan\":\"admitted\",\"rows\":1}",
+   "control": "detects",
+   "controlOK": true
+  },
+  {
+   "id": "E02",
+   "name": "LEGIT END TO END: webhook fulfil (service_role) -> buyer sees the order -> door owner admits the returned token -> a later refund of ANOTHER order is refused at the door",
+   "hardened": true,
+   "hardenedWhy": "",
+   "original": true,
+   "originalWhy": "",
+   "control": "baseline",
+   "controlOK": true
+  }
+ ],
+ "packRows": [
+  {
+   "id": "P01",
+   "name": "static: every APPLY/ROLLBACK pack = ONE BEGIN, SET LOCAL lock_timeout 5s, advisory lock 2979301232487107403, SET LOCAL lock_timeout 5s as statements 2-4, one COMMIT last, drift guard, no data DML, no secrets",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P02",
+   "name": "generator is reproducible: build.mjs --check is clean (packs + PRECHECK == inputs)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P03",
+   "name": "replica sanity: replica = captured S0 / G0 (POSTCHECKS S0/G0 all ok, DRIFT_QUERY says S0_original + G0_original); fulfill body whitespace-md5 equals the facts body",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P04",
+   "name": "APPLY-01 on the original: succeeds, retained SELECT all ok, state S1, POSTCHECKS S1 ok, data and fulfill/refund/get_ticket objects untouched",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P05",
+   "name": "second APPLY-01 refuses at the guard (DRIFT, ABORT) and changes nothing",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P06",
+   "name": "ROLLBACK-01 restores the captured original EXACTLY: raw + sorted ACL, column ACLs, policy names/roles/cmd/permissive/qual/with_check byte-identical, indexes, RLS flags, data; state S0; a second ROLLBACK refuses",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P07",
+   "name": "apply -> rollback -> apply cycle works (rollback leaves a re-appliable S0)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P08",
+   "name": "DRIFT GUARD aborts (nothing changed) on: an extra policy; organizer_update predicate altered; orders_anon_insert check altered; TRUNCATE revoked from anon (ACL differs); a column-level ACL; PUBLIC grant; fulfill ACL widened; fulfill body altered; run as a non-postgres role; index missing; trigger added",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P09",
+   "name": "lock serialises two runs: B waits on the pack advisory lock while A holds its transaction open, then B refuses cleanly (DRIFT); end state S1",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P10",
+   "name": "lock is shared across packs: pack 02 (get_ticket) queued behind pack 01, then BOTH are applied (independent packs); end state S1 + G1",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P11",
+   "name": "TIMEOUT: A (real APPLY-01) holds the lock ~7 s; B waits and fails with SQLSTATE 55P03 after ~5 s (4.5-6.5 s), not after A's ~7 s; A unaffected; B changed nothing and holds no advisory lock afterwards",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P11c",
+   "name": "NEGATIVE CONTROL for P11: with the PRE-lock lock_timeout removed, B is NOT bounded: it waits out A's whole hold and then refuses with DRIFT (not 55P03)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P12",
+   "name": "PRECHECK-13A.sql is ONE read-only statement: runs in a READ ONLY transaction on the replica as postgres, returns the qr_token default expression, all four policy texts, column-ACL count, function bodies; leaks NO fixture row content (tokens / e-mails / handles)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P13",
+   "name": "PRECHECK-13A read-only enforcement: a WRITE inside the same READ ONLY transaction fails (control), and PRECHECK itself changes no catalog fingerprint",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P20",
+   "name": "ORDER: 12A first, then 13A works (built as tplHard12). REVERSE: 13A first -> the 12A step-1 pack REFUSES at its drift guard (orders ACL/policies no longer the captured original) and changes nothing",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P21",
+   "name": "ROLLBACK ORDER (explicit UNSAFE overrides): after 12A + 13A, rolling back 12A first REFUSES (guard); 13A rollback first then 12A rollbacks works; end state = original (fingerprint equal to the pre-12A original); schema private is KEPT with its 4 incident tables, core gone",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P22",
+   "name": "12A hardened door functions installed on an already 13A-hardened table (12A guard bypassed in setup) admit / refuse correctly (door suite D01-D03 shape)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P30",
+   "name": "SUITE SELF-CHECK: the core suite reports NOTHING failing on the real fix and MANY failures on the original (negative control)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P31",
+   "name": "MUTANT M1 (drops the two policies but LEAVES the table GRANT ALL (RLS blocks insert/update, TRUNCATE still open)) is CAUGHT by the suite: it fails at least C01.anon-truncate, C02.auth-truncate, C05.anon-privs=SELECT, C05.authenticated-privs=SELECT",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P32",
+   "name": "MUTANT M2 (revokes ALL only from anon, forgetting authenticated (policies kept)) is CAUGHT by the suite: it fails at least A02.auth-insert, B01.status, C02.auth-truncate, C10.policy-set",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P33",
+   "name": "MUTANT M3 (drops both policies, revokes INSERT/UPDATE/DELETE/TRUNCATE but leaves REFERENCES/TRIGGER/MAINTAIN) is CAUGHT by the suite: it fails at least C05.anon-privs=SELECT, C05.authenticated-privs=SELECT",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P34",
+   "name": "MUTANT M4 (revokes INSERT/DELETE/TRUNCATE but leaves UPDATE + the organizer_update policy) is CAUGHT by the suite: it fails at least B01.status, B02.qr_token, B03.checked_in_at, B04.amount_cents, C10.policy-set",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P35",
+   "name": "MUTANT M5 (OVER-fix: revokes ALL incl. SELECT from authenticated (breaks buyers and organizers)) is CAUGHT by the suite: it fails at least R01.buyer-reads-own, R02.organizer-reads-theirs, C05.authenticated-privs=SELECT",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P36",
+   "name": "MUTANT M6 (column-grant remnant: the fix plus GRANT UPDATE (status) to authenticated and the organizer_update policy kept) is CAUGHT by the suite: it fails at least B01.status, C10.policy-set",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P37",
+   "name": "POST-CHECK rolls a partial fix back: the real APPLY-01 with the REVOKE line removed passes the guard, FAILS its own POST-CHECK and leaves state S0 (nothing applied)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "G01",
+   "name": "FINDING (original): anon holding a token gets the buyer's e-mail from get_ticket; after pack 02 the 'buyer' key is gone and every other key is byte-equal to the original result",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "G02",
+   "name": "get_ticket other inputs unchanged: unknown token, refunded token, empty and NULL give the same result before and after (the verbatim prod body returns {status: notfound}, never null)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "G03",
+   "name": "get_ticket callers' contract kept: anon, authenticated, service_role can EXECUTE the wrapper (grants copied from the original); the renamed original has NO grants (anon / authenticated call = 42501); wrapper sorted ACL == stashed original",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "G04",
+   "name": "ROLLBACK-02 restores the original get_ticket EXACTLY (same oid, byte-identical pg_get_functiondef, raw ACL, config, owner, no comment); helper gone; original result (with buyer) is back; second rollback refuses",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "G05",
+   "name": "pack 02 guards: second APPLY-02 refuses; refuses on altered ACL (anon exec revoked), a pre-existing comment, a pre-existing helper name, a dependent view, a SECURITY INVOKER original, a non-jsonb return; nothing changed",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "G06",
+   "name": "pack 02 independent of pack 01, either order: 02 then 01, and 01 then 02, both end in S1+G1; each rollback in either order restores the original fingerprint",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "G07",
+   "name": "replica readers are the PROD bodies: md5(pg_get_functiondef) get_ticket = 1814becc..., get_my_tickets = c3885372... (both captured from prod), SECURITY DEFINER, search_path=public, sorted ACL {anon, authenticated, postgres, service_role}; DRIFT_QUERY says G0",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "G08",
+   "name": "F-D drift guard asserts the VERBATIM live get_ticket: APPLY-02 aborts (nothing changed) on a one-character body change, a whitespace-only change, a body that already lost the 'buyer' key, a changed search_path, a volatility change; control: re-creating the identical text still applies",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "G09",
+   "name": "ROLLBACK-02 guard also pins the renamed original: if the helper body is altered after APPLY-02, ROLLBACK-02 aborts with nothing changed; the unaltered rollback restores md5(pg_get_functiondef) = 1814becc... exactly",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "G10",
+   "name": "get_my_tickets is NOT changed by 13A and is unaffected by pack 01's REVOKEs (SECURITY DEFINER owned by postgres): identical definition/ACL/config before and after pack 01 and pack 02; buyer still gets own paid tickets WITH qr_token, buyer2 only theirs, anon and another organizer get none, refunded order excluded; no buyer e-mail column",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "P38",
+   "name": "RUNBOOK backup/rollback method: CAPTURE-READONLY.sql runs in a READ ONLY transaction, is deterministic, leaks no fixture content; after apply 12A 01+02 and 13A 01 and the full reverse rollback (13A 01, 12A 02, 12A 01) a second capture equals the first on every row except the raw ACL order rows",
+   "pass": true,
+   "why": ""
+  }
+ ],
+ "adjRows": [
+  {
+   "id": "X01",
+   "name": "STRICT VARIANT (anon SELECT also revoked) is NOT bundled: on the replica it makes a signed-out visitor's profile Tickets query fail with 42501 (profile.html would show 'Could not load your tickets') and breaks the anon-evaluated policy sub-select on another table",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "X02",
+   "name": "organizer_read exposes buyer_email and qr_token to the organizer of the event (door owner): a signed-in organizer can read every token of their event (documented, NOT changed)",
+   "pass": true,
+   "why": ""
+  },
+  {
+   "id": "X03",
+   "name": "qr_token is not UNIQUE: two rows can share a token (service_role / definer can write one; 12A's door refuses a duplicate as ambiguous); the 13A fix does not add a constraint (see OPEN QUESTIONS)",
+   "pass": true,
+   "why": ""
+  }
+ ]
+}

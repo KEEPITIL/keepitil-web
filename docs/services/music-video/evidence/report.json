@@ -1,0 +1,379 @@
+{
+ "chrome": "Chrome/157.0.8103.40",
+ "date": "2026-11-11T06:35:02.796Z",
+ "network": "every request not to 127.0.0.1 is failed with BlockedByClient (CDP Fetch); WebSocket/EventSource/sendBeacon stubbed",
+ "runs": [
+  {
+   "run": "prices-hidden",
+   "viewport": "mobile-375x812",
+   "probe": {
+    "title": "Music Video Service | KEEPITIL",
+    "innerWidth": 375,
+    "scrollWidth": 375,
+    "noHScroll": true,
+    "docHeight": 6557,
+    "tiers": [
+     "hook",
+     "lyric_cut",
+     "character_story"
+    ],
+    "priceTexts": [
+     "Pricing confirmed soon: request a quote",
+     "Pricing confirmed soon: request a quote",
+     "Pricing confirmed soon: request a quote"
+    ],
+    "selectOptions": [
+     "Hook teaser",
+     "Full Lyric Cut",
+     "Character Story + teaser",
+     "Not sure yet"
+    ],
+    "dollarInBody": false,
+    "checkboxes": [
+     {
+      "id": "mv-consent",
+      "required": true,
+      "box": {
+       "x": 16,
+       "w": 24,
+       "h": 24,
+       "vis": true
+      },
+      "row": {
+       "x": 16,
+       "w": 343,
+       "h": 84,
+       "vis": true
+      },
+      "label": "I agree that KEEPITIL may use the details in this request on"
+     },
+     {
+      "id": "mv-attest",
+      "required": true,
+      "box": {
+       "x": 16,
+       "w": 24,
+       "h": 24,
+       "vis": true
+      },
+      "row": {
+       "x": 16,
+       "w": 343,
+       "h": 108,
+       "vis": true
+      },
+      "label": "I own, or have written permission to use, the song (master a"
+     }
+    ],
+    "honeypotPresent": true,
+    "honeypotVisible": false,
+    "sample": {
+     "videoPresent": true,
+     "videoHidden": true,
+     "videoVisible": false,
+     "poster": "/assets/images/logo-blue-nav.png",
+     "placeholderVisible": true,
+     "placeholderText": "Sample video coming soon."
+    },
+    "turnaround": "Turnaround: Quoted per project.",
+    "legal": "License and usage terms: pending legal review.",
+    "robots": "noindex,nofollow",
+    "iframes": 0,
+    "targetsTotal": 43,
+    "smallTargets": [
+     "BUTTON \"Install\" 70x32",
+     "BUTTON \"Dismiss\" 18x29"
+    ],
+    "overflowers": []
+   },
+   "form": {
+    "emptySubmitErrors": {
+     "name": "Enter your name.",
+     "email": "Enter a valid email address.",
+     "song": "Enter the song title.",
+     "link": "Enter a link that starts with http:// or https://.",
+     "consent": "Please agree so we can reply to you.",
+     "attest": "The rights confirmation is required."
+    },
+    "status": "Please fix the highlighted fields.",
+    "attestInvalid": "true",
+    "consentInvalid": "true",
+    "tierAfterPick": "lyric_cut",
+    "locationUnchanged": true
+   },
+   "console": [
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/platform_config?select=value&key=eq.radio_playlists"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://www.googletagmanager.com/gtag/js?id=G-ZR36NRE4MT"
+    }
+   ],
+   "blockedHosts": {
+    "fonts.googleapis.com": 1,
+    "ovmqtzjfpzrbzrlkxwgw.supabase.co": 1,
+    "www.googletagmanager.com": 1,
+    "w.soundcloud.com": 1
+   }
+  },
+  {
+   "run": "prices-hidden",
+   "viewport": "desktop-1280x800",
+   "probe": {
+    "title": "Music Video Service | KEEPITIL",
+    "innerWidth": 1280,
+    "scrollWidth": 1280,
+    "noHScroll": true,
+    "docHeight": 4377,
+    "tiers": [
+     "hook",
+     "lyric_cut",
+     "character_story"
+    ],
+    "priceTexts": [
+     "Pricing confirmed soon: request a quote",
+     "Pricing confirmed soon: request a quote",
+     "Pricing confirmed soon: request a quote"
+    ],
+    "selectOptions": [
+     "Hook teaser",
+     "Full Lyric Cut",
+     "Character Story + teaser",
+     "Not sure yet"
+    ],
+    "dollarInBody": false,
+    "checkboxes": [
+     {
+      "id": "mv-consent",
+      "required": true,
+      "box": {
+       "x": 96,
+       "w": 24,
+       "h": 24,
+       "vis": true
+      },
+      "row": {
+       "x": 96,
+       "w": 640,
+       "h": 60,
+       "vis": true
+      },
+      "label": "I agree that KEEPITIL may use the details in this request on"
+     },
+     {
+      "id": "mv-attest",
+      "required": true,
+      "box": {
+       "x": 96,
+       "w": 24,
+       "h": 24,
+       "vis": true
+      },
+      "row": {
+       "x": 96,
+       "w": 640,
+       "h": 60,
+       "vis": true
+      },
+      "label": "I own, or have written permission to use, the song (master a"
+     }
+    ],
+    "honeypotPresent": true,
+    "honeypotVisible": false,
+    "sample": {
+     "videoPresent": true,
+     "videoHidden": true,
+     "videoVisible": false,
+     "poster": "/assets/images/logo-blue-nav.png",
+     "placeholderVisible": true,
+     "placeholderText": "Sample video coming soon."
+    },
+    "turnaround": "Turnaround: Quoted per project.",
+    "legal": "License and usage terms: pending legal review.",
+    "robots": "noindex,nofollow",
+    "iframes": 1,
+    "targetsTotal": 59,
+    "smallTargets": [
+     "A \"DISCOVER\" 95x36",
+     "A \"CONNECT\" 63x25",
+     "A \"CREATE\" 52x25",
+     "A \"SHOP\" 36x25",
+     "A \"CULTURE\" 60x25",
+     "A \"EARN\" 36x25",
+     "A \"LOGIN\" 87x42",
+     "BUTTON \"Close chat\" 30x30",
+     "INPUT \"kilo-input\" 1212x40",
+     "BUTTON \"Send\" 36x36",
+     "A \"KEEPITIL\" 420x25",
+     "A \"info@keepitil.com\" 100x14 (inline text link)",
+     "A \"Discover\" 58x20",
+     "A \"Connect\" 56x20",
+     "A \"Create\" 44x20",
+     "A \"Shop\" 34x20",
+     "A \"Culture\" 48x20",
+     "A \"Earn\" 30x20",
+     "A \"Login\" 36x20",
+     "A \"Instagram\" 20x20",
+     "A \"TikTok\" 20x20",
+     "A \"YouTube\" 20x20",
+     "A \"X\" 18x18",
+     "A \"Facebook\" 20x20",
+     "A \"Email KEEPITIL\" 20x20",
+     "A \"Terms\" 37x19",
+     "A \"Privacy\" 44x19",
+     "A \"Refunds\" 49x19",
+     "A \"Ticket TermsTickets\" 76x19",
+     "A \"Community GuidelinesRules\" 133x19",
+     "BUTTON \"Back to top\" 35x35",
+     "BUTTON \"Open KEEPITIL Radio\" 125x26",
+     "BUTTON \"Previous track\" 40x40",
+     "BUTTON \"Next track\" 40x40",
+     "BUTTON \"Install\" 68x32",
+     "BUTTON \"Dismiss\" 18x29"
+    ],
+    "overflowers": []
+   },
+   "form": {
+    "emptySubmitErrors": {
+     "name": "Enter your name.",
+     "email": "Enter a valid email address.",
+     "song": "Enter the song title.",
+     "link": "Enter a link that starts with http:// or https://.",
+     "consent": "Please agree so we can reply to you.",
+     "attest": "The rights confirmation is required."
+    },
+    "status": "Please fix the highlighted fields.",
+    "attestInvalid": "true",
+    "consentInvalid": "true",
+    "tierAfterPick": "lyric_cut",
+    "locationUnchanged": true
+   },
+   "console": [
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/platform_config?select=value&key=eq.radio_playlists"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://www.googletagmanager.com/gtag/js?id=G-ZR36NRE4MT"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://www.clarity.ms/tag/xk5iwishve"
+    }
+   ],
+   "blockedHosts": {
+    "ovmqtzjfpzrbzrlkxwgw.supabase.co": 1,
+    "www.googletagmanager.com": 1,
+    "www.clarity.ms": 1,
+    "w.soundcloud.com": 1
+   }
+  },
+  {
+   "run": "prices-flag-true-LOCAL-ONLY",
+   "viewport": "mobile-375x812",
+   "probe": {
+    "title": "Music Video Service | KEEPITIL",
+    "innerWidth": 375,
+    "scrollWidth": 375,
+    "noHScroll": true,
+    "docHeight": 6422,
+    "tiers": [
+     "hook",
+     "lyric_cut",
+     "character_story"
+    ],
+    "priceTexts": [
+     "$4",
+     "$14",
+     "$24"
+    ],
+    "selectOptions": [
+     "Hook teaser ($4)",
+     "Full Lyric Cut ($14)",
+     "Character Story + teaser ($24)",
+     "Not sure yet"
+    ],
+    "dollarInBody": true,
+    "checkboxes": [
+     {
+      "id": "mv-consent",
+      "required": true,
+      "box": {
+       "x": 16,
+       "w": 24,
+       "h": 24,
+       "vis": true
+      },
+      "row": {
+       "x": 16,
+       "w": 343,
+       "h": 84,
+       "vis": true
+      },
+      "label": "I agree that KEEPITIL may use the details in this request on"
+     },
+     {
+      "id": "mv-attest",
+      "required": true,
+      "box": {
+       "x": 16,
+       "w": 24,
+       "h": 24,
+       "vis": true
+      },
+      "row": {
+       "x": 16,
+       "w": 343,
+       "h": 132,
+       "vis": true
+      },
+      "label": "I own, or have written permission to use, the song (master a"
+     }
+    ],
+    "honeypotPresent": true,
+    "honeypotVisible": false,
+    "sample": {
+     "videoPresent": true,
+     "videoHidden": true,
+     "videoVisible": false,
+     "poster": "/assets/images/logo-blue-nav.png",
+     "placeholderVisible": true,
+     "placeholderText": "Sample video coming soon."
+    },
+    "turnaround": "Turnaround: Quoted per project.",
+    "legal": "License and usage terms: pending legal review.",
+    "robots": "noindex,nofollow",
+    "iframes": 0,
+    "targetsTotal": 43,
+    "smallTargets": [
+     "BUTTON \"Install\" 68x32",
+     "BUTTON \"Dismiss\" 18x29"
+    ],
+    "overflowers": []
+   },
+   "form": null,
+   "console": [
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/platform_config?select=value&key=eq.radio_playlists"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://www.googletagmanager.com/gtag/js?id=G-ZR36NRE4MT"
+    }
+   ],
+   "blockedHosts": {
+    "ovmqtzjfpzrbzrlkxwgw.supabase.co": 1,
+    "www.googletagmanager.com": 1,
+    "w.soundcloud.com": 1
+   }
+  }
+ ]
+}

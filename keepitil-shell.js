@@ -245,7 +245,11 @@
        version. it should only be on the earn page in the radio section."). Supersedes the
        2026-09-24 site-wide phone radio. The engine runs on a phone only where the page opts in
        with data-radio="page" (Earn), and plays through Earn's own radio section. */
-    var RADIO_ALLOWED = RULES.radio && !IN_IFRAME && !IN_STAGE && (!IS_MOBILE || RADIO_PAGE);
+    /* A page may OPT OUT on both breakpoints with <html data-radio="off"> (KAPP: Earn no longer
+       carries Radio). Without this, desktop would still inject the engine on Earn. */
+    var RADIO_OFF = false;
+    try{ RADIO_OFF = document.documentElement.getAttribute('data-radio') === 'off'; }catch(e){}
+    var RADIO_ALLOWED = RULES.radio && !RADIO_OFF && !IN_IFRAME && !IN_STAGE && (!IS_MOBILE || RADIO_PAGE);
     if(!RADIO_ALLOWED){
       var _rk=document.createElement('style'); _rk.textContent='#kil-radio,#kil-sc{display:none!important}'; document.head.appendChild(_rk);
       /* kill the BAR and the AUDIO ENGINE (#kil-sc soundcloud iframe survives bar removal —
@@ -515,7 +519,7 @@ var ICON_GEOMETRY = {
      KIL_ICONS.set(name, geometry) is a public extension point whose documented example is
      set('radio', ...). Renaming the keys would break that contract for zero user-visible gain,
      so the mapping is documented here instead. The 'profile' and 'settings' glyphs were
-     removed in 2026-09-09 because nothing referenced them. 'shop' is the Shop tab. */
+     removed in 2026-09-09 because nothing referenced them. 'shop' is the Merch glyph (no longer a tab). */
   shop: '<path d="M6.2 8h11.6l-1 12.2H7.2L6.2 8z"/><path d="M9 8V6.2a3 3 0 0 1 6 0V8"/>',
   culture: '<path d="M6.5 4.8h11"/><path d="M4.6 7.6h14.8"/>'
          + '<rect x="3" y="10.4" width="18" height="9.8" rx="2.2"/>'
@@ -602,13 +606,12 @@ var DESTINATIONS=[
    tint:'#22e07a', glow:'rgba(34,224,122,.75)'},
   {href:'/create/',  label:'Create',  pill:'CREATE',   icon:'vs',      match:/(^|\/)(create|vs)(\.html)?\/?$/,
    tint:'#ff5c8a', glow:'rgba(255,92,138,.75)'},
-  /* Shop sits between Create and Culture. Selected state is logo-blue (#5CD6FF label,
-     #1E9BFF glow), the same active treatment the other tabs use for their own tint. */
-  {href:'/shop/',    label:'Shop',    pill:'SHOP',     icon:'shop',    match:/(^|\/)shop(\.html)?(\/|$)/,
-   tint:'#5CD6FF', glow:'rgba(30,155,255,.75)'},
   {href:'/culture/', label:'Culture', pill:'CULTURE',  icon:'culture', match:/(^|\/)culture(\.html)?\/?$/,
    tint:'#a06bff', glow:'rgba(160,107,255,.75)'},
-  {href:'/earn/',    label:'Earn',    pill:'EARN',     icon:'radio',   match:/(^|\/)(earn|radio)(\.html)?\/?$/,
+  /* KAPP five tabs (Joe via Grok, 2026-11-10): Shop is NOT a tab. It lives under Earn > Merch, so
+     /shop/ and its children light the EARN slot. One regex, two alternatives: the earn/radio
+     path (anchored, as before) and the shop path (any depth). */
+  {href:'/earn/',    label:'Earn',    pill:'EARN',     icon:'radio',   match:/(^|\/)(?:(?:earn|radio)(?:\.html)?\/?$|shop(?:\.html)?(?:\/|$))/,
    tint:'#ff9f43', glow:'rgba(255,159,67,.75)'}
 ];
 /* ── K4: the destination rail, for pages that want to surface the map in their own body ────
@@ -675,7 +678,7 @@ window.KIL_NOT_FOUND = function(opts){
     + (opts.heading || ('That ' + what + ' isn’t here')) + '</h1>'
     + '<p style="color:rgba(255,255,255,.7);line-height:1.6;margin:0 0 22px">'
     + (opts.body || ('It may have been removed, or the link may be wrong.')) + '</p>'
-    + (opts.links || [['/', 'Discover'], ['/shop/','Shop'], ['/culture/','Culture'], ['/connect/','Connect']])
+    + (opts.links || [['/', 'Discover'], ['/earn/','Earn'], ['/culture/','Culture'], ['/connect/','Connect']])
         .map(function(l){ return '<a href="'+l[0]+'" style="display:inline-block;margin:0 7px 10px;padding:12px 20px;'
           + 'border-radius:999px;border:1px solid rgba(255,255,255,.25);color:#fff;min-height:44px;line-height:20px">'+l[1]+'</a>'; })
         .join('')
@@ -782,6 +785,8 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           +'<span class="fa-mail"> · <a href="mailto:info@keepitil.com">info@keepitil.com</a></span></p></div>'
         +'<nav class="v3-foot-links">'
         +DESTINATIONS.map(function(d){ return '<a href="'+d.href+'">'+d.label+'</a>'; }).join('')
+        /* Shop is a secondary Earn > Merch link, not a sixth pillar (KAPP 2026-11-10). */
+        +'<a href="/shop/" class="v3-foot-sub">Merch shop</a>'
         +'<a href="/apply">Login</a></nav>'
         +'<div class="v3-foot-social">'
           +'<a href="https://instagram.com/keepitil" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2.2c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2zm0 3.2A6.6 6.6 0 1012 18.6 6.6 6.6 0 0012 5.4zm0 10.9a4.3 4.3 0 110-8.6 4.3 4.3 0 010 8.6zm6.85-11.2a1.54 1.54 0 11-3.08 0 1.54 1.54 0 013.08 0z"/></svg></a>'
@@ -918,7 +923,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
 
           if(document.getElementById('kil-bnav')) return;
           var bn=document.createElement('nav'); bn.id='kil-bnav';
-          /* One slot per destination in DESTINATIONS, including Shop. Create WAS the centre slot — it is an action,
+          /* One slot per destination in DESTINATIONS (five: Shop is under Earn). Create WAS the centre slot — it is an action,
              not a place, and mixing it in is what left no room for Radio and VS. It moves to
              a floating button above the bar, calling the same __kilCreateMenu as before.
              Profile leaves the bar for the contextual slot: it is account state, not a

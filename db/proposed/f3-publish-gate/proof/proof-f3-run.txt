@@ -1,0 +1,131 @@
+PGlite stand-in proof for Atlas proposal v2 (replica, not production). PostgreSQL 17.5 on aarch64-unknown-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit
+PGlite stand-in proof for Atlas proposal v2 (replica, not production)
+POSITIVE CHECKS: 102 run, 102 pass, 0 fail
+
+== CONNECT (forward applied to replica)
+PASS C1 owner UPDATE forging status -> 42501 and nothing persisted
+PASS C1 owner UPDATE forging sources -> 42501 and nothing persisted
+PASS C1 owner UPDATE forging last_reviewed_at -> 42501 and nothing persisted
+PASS C1 owner UPDATE forging all three together -> 42501 and nothing persisted
+PASS C2 owner INSERT (status=published + evidence) denied with 42501, zero rows
+PASS C2 owner INSERT (sources only) denied with 42501, zero rows
+PASS C2 owner INSERT (last_reviewed_at only) denied with 42501, zero rows
+PASS C2 owner INSERT (status=published only) denied with 42501, zero rows
+PASS C2 owner INSERT (upsert with forged evidence) denied with 42501, zero rows
+PASS C2 owner INSERT with default review/empty evidence still allowed (normal first save)
+PASS C2 owner INSERT omitting status/sources/last_reviewed_at (live payload shape) is allowed and lands as review
+PASS C3 owner edit of display_name on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of handle on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of location on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of bio on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of tagline on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of pronouns on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of avatar_url on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of cover_url on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of book_email on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of socials on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of highlights on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of about on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of links on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of account_type on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of links_label on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of badges on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of cover_mobile_url on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 owner edit of entity_category on published row -> review, sources=[], last_reviewed_at=null, updated_at server-stamped
+PASS C3 NULL/JSON transition (about -> NULL) resets review
+PASS C3 NULL/JSON transition (links -> NULL) resets review
+PASS C3 NULL/JSON transition (badges -> []) resets review
+PASS C3 NULL/JSON transition (socials -> {}) resets review
+PASS C3 NULL/JSON transition (highlights -> null json element) resets review
+PASS C3 combined multi-field edit resets review
+PASS C4 19-key owner upsert with changed content on published row succeeds (no grant/trigger error) and resets review
+PASS C4 same 19-key upsert never contains status/sources/last_reviewed_at
+PASS C5 19-key upsert identical to stored content except updated_at keeps published + evidence
+PASS C5 plain updated_at-only UPDATE keeps published + evidence
+PASS C5-INFO (Atlas MF1 blocker) legacy form payload with account_type:null on a published row IS a content change -> review reset (client must be fixed first)
+PASS C6 owner changes content AND forges sources in one UPDATE -> 42501, statement rolled back (content unchanged)
+PASS C6 explicitly assigning the OLD identical gate values while editing content is permitted but still resets review
+PASS C7 owner content change on a review row with stale evidence clears evidence and stays non-published
+PASS C8a service_role publishes a complete reviewed row (review -> published) OK
+PASS C8b service_role edit of an ALREADY-published row that violates the gate (no short description) -> check_violation 23514
+PASS C8c postgres (trusted) edit of a published row that drops last_reviewed_at -> check_violation
+PASS C8d signed-in is_admin who OWNS a profile may set evidence (exempt from owner guard) but the completeness gate still runs
+PASS C9 signed-in is_admin who does not own the profile: direct UPDATE touches 0 rows (owner RLS unchanged)
+PASS C10 anonymous INSERT/UPDATE on profile_meta denied (no uid is not a bypass)
+PASS C10 unrelated authenticated user cannot INSERT (RLS) or UPDATE (0 rows) another owner's profile
+PASS C10 claim_profile normal creation succeeds and lands with fixed review defaults
+PASS X1-INFO side effect: a trusted UPDATE of an evidence-less published row (e.g. a backfill touching updated_at) now raises check_violation
+
+== MEDIA (forward applied to replica)
+PASS POST anon INSERT privilege is false on event_media and venue_media
+PASS POST anon/authenticated TRUNCATE privilege is false on all three tables
+PASS POST anon UPDATE/DELETE/REFERENCES/TRIGGER false and authenticated DELETE false on media tables (S1)
+PASS POST both media status defaults are 'pending' and venue CHECK allows pending
+PASS POST S2 quarantine: 19 hidden, 0 orphan published, 19 backup rows, the one parented row untouched
+PASS POST function shapes: wrappers INVOKER + search_path '', private helpers DEFINER + search_path '', wrappers have no anon/PUBLIC execute, publish gate INVOKER + search_path ''
+PASS POST rollback_guard holds exactly one fingerprint row; backup/guard tables are unreadable by anon/authenticated/service_role
+PASS POST Atlas section-4 post-check statements all execute (8 statements) and report 19/19/0
+PASS M1 anonymous direct INSERT into event_media (default status) denied, zero rows
+PASS M1 anonymous direct INSERT into event_media (forged published) denied, zero rows
+PASS M1 anonymous direct INSERT into venue_media (default status) denied, zero rows
+PASS M1 anonymous direct INSERT into venue_media (forged published) denied, zero rows
+PASS M2 non-owner authenticated direct INSERT denied by RLS on published + draft parents, with RETURNING and as upsert; zero rows
+PASS M3 mapped owner INSERT with omitted status lands 'pending' (event and venue) and RETURNING works
+PASS M3 other signed-in user and anon cannot read the pending rows; owner can
+PASS M4 submitted_by owner (no profile mapping) can INSERT pending on own draft event; unrelated user cannot
+PASS M4 owner of ANOTHER profile cannot insert for this profile's event
+PASS M5 owner INSERT with status published/hidden/NULL/arbitrary denied (event and venue)
+PASS M5 event pending_upload accepted for owner; venue pending_upload denied; invalid kind fails existing CHECK
+PASS M6 fan calls original tag RPC signatures on published parents: id returned, count +1 each, author from session, status pending, not publicly readable
+PASS M6 the RPC signatures expose no status/evidence argument (5 and 6 args, unchanged names/return type)
+PASS M7 anonymous cannot call the wrappers or any private function, nor see the private schema; no row added
+PASS M8 fan RPC on absent parent and on someone else's draft denied; owner on own draft accepted pending; invalid kind rejected; quarantine unchanged
+PASS M10 owner cannot UPDATE pending -> published (0 rows); service_role can after review; public read then exposes only the reviewed row
+PASS M10 anon still reads only published curated rows (hidden orphans and pending rows invisible)
+PASS M12 anon and authenticated TRUNCATE denied on all three tables; service_role maintenance TRUNCATE still works
+
+== COEXISTENCE X2 (forward + Step-1-style column grants)
+PASS X2 with 19-column grants: the live 19-key upsert with edited content still succeeds and the trigger still resets review
+PASS X2 with 19-column grants: the no-op upsert keeps the row published
+PASS X2 with 19-column grants: first-save upsert of a new owned slug (INSERT leg) works and lands as review
+PASS X2 with 19-column grants: writing status/sources/last_reviewed_at is refused at the privilege layer (column ACL) before the trigger
+PASS X2 with 19-column grants: authenticated has no TRUNCATE (also after the REVOKE TRUNCATE in the proposal)
+
+== DRIFT D1
+PASS D1 forward aborts before any change on drift: extra policy on event_media
+PASS D1 forward aborts before any change on drift: ACL change: anon SELECT revoked on profile_meta
+PASS D1 forward aborts before any change on drift: publish-gate trigger disabled
+PASS D1 forward aborts before any change on drift: is_admin() body changed
+PASS D1 forward aborts before any change on drift: unrelated public function added
+PASS D1 forward aborts before any change on drift: column default changed
+PASS D1 forward aborts before any change on drift: global postgres function default privileges present
+PASS D1 forward aborts before any change on drift: private schema already exists
+PASS D1 STALE-BASELINE demonstration: the committed forward with Atlas's literal baseline c917a7df... aborts on a catalog it does not match
+
+== ROLLBACK R / FP
+PASS R1 forward then rollback restores the ORIGINAL catalog fingerprint exactly, restores the 19 orphan statuses, drops the guard schema, and re-opens the old behaviour
+PASS R1 after rollback the pre-proposal behaviour is back (owner can forge publication; anon can insert media) - rollback restores the old vulnerabilities, as Atlas states
+PASS R1b rollback ABORTS (and changes nothing) while a pending venue submission exists
+PASS R2 rollback ABORTS before restoring anything when a patched policy was edited after forward
+PASS R2 rollback ABORTS (nothing restored) when a PATCHED policy (event_media_ins) was edited after forward - the silent-overwrite case
+PASS R2 rollback ABORTS when an unrelated public routine changed after forward
+PASS R2 rollback ABORTS if a quarantined row's content changed (no clobber of later media edits)
+PASS R3 forward, rollback, forward again succeeds (re-runnable on the same catalog) and ends with a stored guard fingerprint
+PASS FP the fingerprint is search_path-sensitive: Appendix C under an empty search_path differs from the value under 'public, extensions' that the forward computes with
+PASS GR the added read-only gate-readiness query returns 2/0 on the clean replica and 3/1 once an evidence-less published row exists
+
+NEGATIVE CONTROLS (mutated proposal must fail the specific checks named):
+OK   N1 owner-guard intact but the old published-row early return is KEPT  [4 of 52 checks failed; expected-failures-missed=0; other failures=0]
+OK   N2 owner INSERT guard omitted  [6 of 52 checks failed; expected-failures-missed=0; other failures=2 (C2 owner INSERT (status=published only) denied with 42501, z | C2 owner INSERT with default review/empty evidence still all)]
+OK   N3 owner UPDATE evidence guard omitted  [5 of 52 checks failed; expected-failures-missed=0; other failures=1 (C1 owner UPDATE forging all three together -> 42501 and noth)]
+OK   N4 content-edit review reset omitted  [28 of 52 checks failed; expected-failures-missed=0; other failures=24 (C3 owner edit of handle on published row -> review, sources= | C3 owner edit of location on published row -> review, source | C3 owner edit of bio on published row -> review, sources=[],)]
+OK   N5 TRUNCATE revoke omitted  [2 of 26 checks failed; expected-failures-missed=0; other failures=0]
+OK   N6 event insert policy also admits status 'published'  [1 of 26 checks failed; expected-failures-missed=0; other failures=0]
+OK   N7 owner-read policy omitted (INSERT ... RETURNING for the upload tool breaks)  [5 of 26 checks failed; expected-failures-missed=0; other failures=3 (M3 other signed-in user and anon cannot read the pending row | M4 submitted_by owner (no profile mapping) can INSERT pendin | M10 owner cannot UPDATE pending -> published (0 rows); servi)]
+OK   N8 anon INSERT revoke omitted (RLS alone, no ACL layer)  [1 of 26 checks failed; expected-failures-missed=0; other failures=0]
+OK   N9 S1 revoke of anon UPDATE/DELETE/REFERENCES/TRIGGER omitted  [1 of 26 checks failed; expected-failures-missed=0; other failures=0]
+OK   N10 fan RPC wrapper keeps publishing (private submit_event_media inserts 'published')  [2 of 26 checks failed; expected-failures-missed=0; other failures=1 (M8 fan RPC on absent parent and on someone else's draft deni)]
+OK   N11 drift check bypassed (IF false)  [7 of 9 D1 checks failed]
+OK   N12 rollback forward-state pre-check bypassed  [rollback silently overwrote the later policy edit (so R2 'patched policy edited' check would FAIL)]
+
+SUMMARY pass=102 fail=0 negatives=12 negatives_all_caught=true

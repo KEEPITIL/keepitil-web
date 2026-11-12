@@ -399,6 +399,9 @@
       var _dismiss=function(){ try{localStorage.setItem(_IK,'1');}catch(e){} var b=document.getElementById('kil-pwa-banner'); if(b)b.remove(); };
       var _show=function(msg,btnLabel,onBtn){
         if(document.getElementById('kil-pwa-banner'))return;
+        /* ONE overlay at a time (Atlas 390px check): the Black Friday guest-list modal (#kil-bf) and this banner must not
+           both be on the first screen. If the modal is open, wait until it is gone, then show the banner. */
+        if(document.getElementById('kil-bf')){ var _w=new MutationObserver(function(){ if(!document.getElementById('kil-bf')){ _w.disconnect(); _show(msg,btnLabel,onBtn); } }); _w.observe(document.body,{childList:true}); return; }
         var b=document.createElement('div'); b.id='kil-pwa-banner';
         /* Bottom-docked, ABOVE the chat button (Founder 2026-08-21 — it was covering the middle
            of every page on a phone).
@@ -416,8 +419,8 @@
           +'font-family:Inter,system-ui,sans-serif;font-size:.85rem;color:#f0f0f0';
         b.innerHTML='<img src="/icon-192.png" alt="" style="width:34px;height:34px;border-radius:8px;flex:0 0 34px">'+
           '<span style="flex:1;line-height:1.35">'+msg+'</span>'+
-          (btnLabel?'<button id="kil-pwa-go" style="background:linear-gradient(90deg,#00b4ff,#22e39b);color:#04121b;border:0;border-radius:9px;padding:8px 14px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap">'+btnLabel+'</button>':'')+
-          '<button id="kil-pwa-x" aria-label="Dismiss" style="background:none;border:0;color:#9aa0b0;font-size:1.1rem;cursor:pointer;padding:4px">&times;</button>';
+          (btnLabel?'<button id="kil-pwa-go" style="background:linear-gradient(90deg,#00b4ff,#22e39b);color:#04121b;border:0;border-radius:9px;padding:8px 14px;min-height:44px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap">'+btnLabel+'</button>':'')+
+          '<button id="kil-pwa-x" aria-label="Dismiss" style="background:none;border:0;color:#9aa0b0;font-size:1.5rem;line-height:1;cursor:pointer;min-width:44px;min-height:44px;padding:0;margin:-8px -8px -8px 0">&times;</button>';
         document.body.appendChild(b);
         var x=document.getElementById('kil-pwa-x'); if(x)x.addEventListener('click',_dismiss);
         var g=document.getElementById('kil-pwa-go'); if(g&&onBtn)g.addEventListener('click',onBtn);
@@ -1371,7 +1374,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     +'#kilo-btn .kilo-mark{width:22px!important;height:24px!important;display:block}'
     /* The badge is positioned OUTSIDE the circle on purpose; nothing in the shell may
        clip it, and it must not be forced to the glyph size by the rule above. */
-    +'#kilo-btn #kilo-badge{overflow:visible!important;width:auto!important;height:18px!important}'
+    +'#kilo-btn #kilo-badge{overflow:visible!important;width:auto!important;height:18px!important;font-size:11px!important}#kilo-btn #kilo-badge *{font-size:11px!important}'
     /* Chat visibility is now driven by KIL_FLOATING, not a single hardcoded page rule.
        The class is applied to <html> at mount. NOTE: the owner turned chat ON for profile
        (reversing §C) and OFF for Culture and VS on 2026-08-15. */
@@ -1439,7 +1442,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     +  '#evx .evx-nav{z-index:940!important}'
     +  '#evx .evx-catdd-menu{z-index:945!important}'
     +'}'
-    +'#kil-bnav .kb-l{font-size:10px;line-height:1;letter-spacing:.04em;font-weight:700;text-transform:uppercase;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+    +'#kil-bnav .kb-l{font-size:11px;line-height:1;letter-spacing:.04em;font-weight:700;text-transform:uppercase;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
     +'#kil-bnav a img{height:23px;width:auto;mix-blend-mode:screen;display:block}'
     +'#kil-bnav a#kb-home img.kb-logo{display:block;height:23px!important;width:auto!important;max-width:none!important;mix-blend-mode:screen}'
     /* No visible scrollbars on any horizontal rail (Founder 2026-08-15). */

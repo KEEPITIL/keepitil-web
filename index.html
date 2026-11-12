@@ -7,7 +7,7 @@
     if(h.indexOf('type=recovery')>-1||(h.indexOf('access_token=')>-1&&h.indexOf('recovery')>-1)){location.replace('/reset-password'+h);}
     else if(h.indexOf('otp_expired')>-1||h.indexOf('error_code=access_denied')>-1||(h.indexOf('error')>-1&&h.indexOf('expired')>-1)){location.replace('/apply'+h);}
   }catch(e){}})();</script>
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
   <title>KEEPITIL — Create Loud. Live Louder.</title>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
@@ -1799,7 +1799,23 @@
   }
   .hero-anim{display:none;}
   @media(min-width:769px){ body { padding-top: 66px !important; } }
-  </style>
+  /* Mobile polish (Atlas 390px check, Joe 2026-11-11, round 2): tap targets >= 44px and no visible text under 11px on phones.
+   The event chips (month / category / sub-genre) carry height:30px!important further down, so these overrides repeat !important with a more specific selector.
+   Overrides only: desktop is untouched. */
+@media (max-width:860px){
+  html body #evx #evx-months .evx-mo,
+  html body #evx .evx-catdd-btn,
+  html body #evx .evx-subinline .evx-gn,
+  html body #evx .evx-subrow .evx-gn,
+  html body #evx .evx-catdd-opt{height:44px!important;min-height:44px!important;font-size:.6875rem!important}
+  html body #evx .evx-act{min-height:44px!important;display:flex!important;align-items:center;justify-content:center}
+  html body #evx .evx-save{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
+  html body .kil-save{width:44px!important;height:44px!important}
+  .hero-stats .stat span,.ev-mini-date,.ev-fc-date,.ev-fc-genre,.ev-fc-venue,.ev-fc-ticket,.ev-feat-pick,.flyer-slot-label,
+  #evx .evx-ribbon .kp,#evx .evx-cta,#evx .evx-nav-tag,#evx .evx-gn{font-size:.6875rem!important}
+  footer a,.v3-foot a,.v3-foot-legal a{display:inline-flex;align-items:center;min-height:44px}
+}
+</style>
 </head>
 <body>
 

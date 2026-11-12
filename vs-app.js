@@ -533,7 +533,7 @@
    +   'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}'
    + '#vs-app .ce-foot{display:flex;align-items:center;justify-content:space-between;gap:6px}'
    + '#vs-app .ce-price{font:800 .7rem Inter,sans-serif;color:#fff;white-space:nowrap}'
-   + '#vs-app .ce-cta{font:800 .54rem Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#06120a;'
+   + '#vs-app .ce-cta{font:800 .6875rem Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#06120a;'
    +   'background:#00ff88;padding:6px 11px;border-radius:5px;white-space:nowrap;flex-shrink:0}'
    + '#vs-app .ce-actions{position:absolute;left:0;right:0;bottom:0;z-index:4;display:flex;flex-direction:column;'
    +   'gap:6px;padding:12px;background:linear-gradient(0deg,rgba(0,0,0,.95),rgba(0,0,0,.78) 72%,transparent);'

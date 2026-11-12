@@ -2,7 +2,7 @@
 <html lang="en" data-theme="default">
 <head>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/><meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
   <meta name="description" content="CONNECT on KEEPITIL — find people, brands, venues and communities, and join the rooms where they talk."/>
 <title>CONNECT — People, Brands, Venues & Community | KEEPITIL</title>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
@@ -108,7 +108,7 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
   .stats{display:flex;flex-wrap:nowrap;justify-content:center;gap:min(6vw,26px);margin-top:18px;}
   .stat{flex:0 1 auto;min-width:0;text-align:center;}
   .stat b{font-size:clamp(1.4rem,6.5vw,2rem);}
-  .stat span{font-size:.625rem;letter-spacing:.07em;margin-top:4px;}
+  .stat span{font-size:.6875rem;letter-spacing:.05em;margin-top:4px;}
 }
 /* FULL-BLEED AND OPAQUE (Founder 2026-08-21): "filling the entire top of the sheet ... no
    background image visible above or behind it when scrolling."
@@ -481,6 +481,12 @@ body[data-kind="artist"] .subfilters{display:none!important}
   #seg button{min-height:44px;padding-top:0;padding-bottom:0}
   .search{min-height:44px}
   .search input{font-size:16px}
+}
+/* Mobile polish (Atlas 390px check, round 2): the shell's floating Kilo button (44px, 5px above the bottom nav, 8px from the right edge) sat on the
+   right-most hero stat (VENUES). The landing panel is a flex column that ends on the stats row, so a horizontal gutter either overflowed (360px) or
+   still left the label under the button. Lift the whole stats row clear of the button instead: 49px of button zone + 15px air. */
+@media (max-width:860px){
+  .hero{padding-bottom:64px}
 }
 </style>
 <link rel="canonical" href="https://keepitil.com/connect/"/>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Explore — Layout Demo | FindMyWeed by KEEPITIL</title>
+<meta name="description" content="Layout demo: what customers see on FindMyWeed — the featured county Top 5 first, then every store and delivery ranked by traffic, reviews and engagement, with real distances for stores and delivery coverage + time frames for delivery.">
+<style>
+:root{--bg:#0b0f0c;--card:#131a15;--line:#243528;--green:#3ddc74;--gold:#ffd166;--text:#eef5ef;--muted:#a9bcae}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+.wrap{max-width:980px;margin:0 auto;padding:24px 16px 60px}
+.demobar{background:var(--gold);color:#171106;font-weight:800;text-align:center;padding:9px 12px;border-radius:10px;font-size:13px}
+.loc{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:20px 0 4px}
+.loc h1{font-size:24px}
+.loc h1 span{color:var(--green)}
+.toggle{margin-left:auto;display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.toggle button{background:var(--card);color:var(--text);border:none;padding:10px 18px;font-size:15px;cursor:pointer}
+.toggle button.on{background:var(--green);color:#06130a;font-weight:800}
+h2{font-size:19px;margin:22px 0 4px}
+h2 span{color:var(--gold)}
+.sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.carousel{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 14px;scroll-snap-type:x mandatory}
+.fcard{flex:0 0 210px;scroll-snap-align:start;background:var(--card);border:1px solid var(--gold);border-radius:14px;padding:16px;min-height:150px}
+.fcard.open{border-style:dashed}
+.rank{color:var(--gold);font-weight:800;font-size:13px;letter-spacing:.05em}
+.fcard h3{font-size:18px;margin:6px 0 2px}
+.fcard p{color:var(--muted);font-size:13px}
+.tag{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--text)}
+.tag.dist{color:var(--green);border-color:var(--green)}
+.row{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:10px 0}
+.row h3{font-size:17px}
+.row p{color:var(--muted);font-size:13px}
+.row .tag{margin:0 0 0 auto;flex:none}
+#mapPanel{display:none;border:1px solid var(--line);border-radius:14px;height:340px;position:relative;background:radial-gradient(circle at 30% 40%, #16241a 0, #0e150f 55%);overflow:hidden}
+.pin{position:absolute;transform:translate(-50%,-100%);text-align:center;font-size:12px;color:var(--text)}
+.pin i{display:block;width:16px;height:16px;margin:0 auto;border-radius:50% 50% 50% 0;background:var(--green);transform:rotate(-45deg);border:2px solid #06130a}
+.pin.gold i{background:var(--gold)}
+.mapnote{position:absolute;bottom:10px;left:12px;color:var(--muted);font-size:12px}
+.note{color:var(--muted);font-size:12px;margin-top:20px;text-align:center}
+footer{text-align:center;color:var(--muted);font-size:13px;margin-top:30px}
+footer a{color:var(--green);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="demobar">LAYOUT DEMO — this is what customers see. Distances and times are illustrative samples.</div>
+
+  <div class="loc">
+    <h1>Near <span>Santa Ana · Orange County</span></h1>
+    <div class="toggle">
+      <button id="btnList" class="on" onclick="showView('list')">List</button>
+      <button id="btnMap" onclick="showView('map')">Map</button>
+    </div>
+  </div>
+  <p class="sub">Stores show real distance from you. Delivery isn't ranked by distance — if they deliver to your location, they show, with their typical delivery time.</p>
+
+  <div id="listPanel">
+    <h2>Featured — <span>Orange County Top 5</span></h2>
+    <p class="sub">The first five things every customer in this county sees. Paid by rank: 1st $500 · 2nd $400 · 3rd $300 · 4th $200 · 5th $100 per month.</p>
+    <div class="carousel">
+      <div class="fcard"><div class="rank">★ FEATURED #1</div><h3>People's OC</h3><p>Retail storefront · Santa Ana</p><span class="tag dist">📍 1.2 mi away</span></div>
+      <div class="fcard"><div class="rank">★ FEATURED #2</div><h3>Amuse</h3><p>Delivery · licensed</p><span class="tag dist">🚗 Delivers to you · ~45 min</span></div>
+      <div class="fcard open"><div class="rank">★ FEATURED #3 — OPEN</div><h3>Your store here</h3><p>Third thing this county sees</p><span class="tag">$300/mo — claim it</span></div>
+      <div class="fcard open"><div class="rank">★ FEATURED #4 — OPEN</div><h3>Your store here</h3><p>Fourth thing this county sees</p><span class="tag">$200/mo — claim it</span></div>
+      <div class="fcard open"><div class="rank">★ FEATURED #5 — OPEN</div><h3>Your store here</h3><p>Fifth thing this county sees</p><span class="tag">$100/mo — claim it</span></div>
+    </div>
+
+    <h2>More near you — <span>ranked by traffic, reviews &amp; engagement</span></h2>
+    <p class="sub">6th and below is free with your listing. The best-run page in the county tops this list.</p>
+    <div class="row"><div><h3>Cookies</h3><p>Retail storefront · Los Angeles border</p></div><span class="tag dist">📍 24 mi away</span></div>
+    <div class="row"><div><h3>Eaze</h3><p>Delivery · licensed</p></div><span class="tag dist">🚗 Delivers to you · ~60 min</span></div>
+    <div class="row"><div><h3>STIIIZY</h3><p>Brand · carried at stores near you</p></div><span class="tag">Brand page</span></div>
+    <div class="row"><div><h3>Jeeter</h3><p>Manufacturer · pre-rolls</p></div><span class="tag">Brand page</span></div>
+  </div>
+
+  <div id="mapPanel">
+    <div class="pin gold" style="left:46%;top:52%"><i></i>People's OC · 1.2 mi</div>
+    <div class="pin" style="left:30%;top:30%"><i></i>Anaheim</div>
+    <div class="pin" style="left:62%;top:66%"><i></i>Irvine</div>
+    <div class="pin" style="left:52%;top:22%"><i></i>Fullerton</div>
+    <div class="pin" style="left:74%;top:40%"><i></i>Tustin</div>
+    <div class="mapnote">Map preview — pins drop for every store in the county; delivery shows as coverage, not distance.</div>
+  </div>
+
+  <p class="note">Same layout on mobile and desktop: featured carousel first, organic list below, one tap between list and map. FindMyWeed is a marketing network by KEEPITIL — we never sell cannabis. 21+ only.</p>
+  <footer>FindMyWeed by <a href="https://keepitil.com">KEEPITIL</a> · <a href="https://keepitil.com/findmyweed">Pricing &amp; the grid</a> · <a href="https://keepitil.com/findmyweed-directory">Directory</a> · <a href="https://keepitil.com/findmyweed-join">Join</a></footer>
+</div>
+<script>
+function showView(v){
+  document.getElementById('listPanel').style.display = v==='list' ? 'block' : 'none';
+  document.getElementById('mapPanel').style.display = v==='map' ? 'block' : 'none';
+  document.getElementById('btnList').classList.toggle('on', v==='list');
+  document.getElementById('btnMap').classList.toggle('on', v==='map');
+}
+</script>
+</body>
+</html>

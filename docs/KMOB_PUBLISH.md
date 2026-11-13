@@ -53,7 +53,8 @@ Cost: none. Public-repo Actions minutes and environments are free, and no paid p
 
 - The live build is `4b32a21cd556` (Oct 24). The first publish replaces it with whatever KMOB `main` is then. Today that would be `f943d80d1fac` (12 paths, **including `js/crusades.js`**), plus the #26 fix.
 - #26 must be merged first, or `precondition` refuses.
-- The crusades balance gate is red on KMOB `main` (M10/M16; KMOB #27/#46). Until it's fixed, `deploy-web` fails on `main`, no artifact is uploaded, and this refuses.
+- The crusades balance gate is green on KMOB `main` since #27 (the seeded M10/M16 check). `deploy-web` on `main` still has to be green on **every** job before this will publish: on ec297cf (#49) the `browser` job failed on a test-timing race, fixed by KMOB #51, so that commit has no artifact and this refuses it.
+- Build ids are content hashes and change with every merge, so this doc names none. `dry-run` prints the live build and the one that would replace it.
 - Run `dry-run` first. Atlas + Joe give the go by approving the `publish` run.
 
 ## Rollback

@@ -32,7 +32,8 @@ The required job list, the precondition PR and the KMOB repo are in `scripts/kmo
 ## Joe: one-time setup (free on a public repo; nothing here was created by Claude)
 
 1. **Environment** `kmob-publish`: Settings, Environments, New environment.
-   - **Required reviewers:** Joe (add Atlas's account too if Atlas should be able to give the go). Tick "Prevent self-review" if the person starting runs shouldn't approve their own.
+   - **Required reviewers:** the GitHub user **`fobbinhard`** (Joe). The publisher refuses to run unless this exact user is a required reviewer (`cli.mjs env-check`).
+   - **Prevent self-review: OFF**, on purpose, while `fobbinhard` is the only reviewer. With it ON, the only reviewer could never approve a run they started, so the first publish would deadlock. `checkEnvironment` does not check `prevent_self_review`. Turn it on once a second reviewer is added.
    - **Deployment branches and tags:** "Selected branches and tags", add the rule `main`.
    - Leave "Allow administrators to bypass" **off**.
 2. **Token**: a fine-grained personal access token, created by an account that can read KEEPITIL/KMOB.
@@ -51,7 +52,7 @@ Cost: none. Public-repo Actions minutes and environments are free, and no paid p
 
 ## Before the first publish
 
-- The live build is `4b32a21cd556` (Oct 24). The first publish replaces it with whatever KMOB `main` is then. Today that would be `f943d80d1fac` (12 paths, **including `js/crusades.js`**), plus the #26 fix.
+- The first publish replaces the live `games/kmob/` build (recorded in its `build.json`) with whatever KMOB `main`'s tip is then. `dry-run` prints both build ids and every path that changes. Expect `js/crusades.js` among them, and check that list before approving.
 - #26 must be merged first, or `precondition` refuses.
 - The crusades balance gate is green on KMOB `main` since #27 (the seeded M10/M16 check). `deploy-web` on `main` still has to be green on **every** job before this will publish: on ec297cf (#49) the `browser` job failed on a test-timing race, fixed by KMOB #51, so that commit has no artifact and this refuses it.
 - Build ids are content hashes and change with every merge, so this doc names none. `dry-run` prints the live build and the one that would replace it.

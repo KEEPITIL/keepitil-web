@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Directory | FindMyWeed by KEEPITIL</title>
+<meta name="description" content="The FindMyWeed directory: licensed cannabis brands, retailers, manufacturers, distributors, cultivators, delivery and services — searchable by category and county.">
+<style>
+:root{--bg:#0b0f0c;--card:#131a15;--line:#243528;--green:#3ddc74;--gold:#ffd166;--text:#eef5ef;--muted:#a9bcae}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.55}
+.wrap{max-width:980px;margin:0 auto;padding:32px 20px 64px}
+header{text-align:center;padding:28px 0 4px}
+.brand{letter-spacing:.35em;font-size:13px;color:var(--green);text-transform:uppercase}
+h1{font-size:38px;line-height:1.1;margin:10px 0 6px}
+h1 span{color:var(--green)}
+.sub{color:var(--muted);max-width:640px;margin:8px auto 0}
+.premium{border:1px solid var(--gold);border-radius:16px;padding:20px;margin:30px 0 8px;background:#171510}
+.premium h3{color:var(--gold);font-size:18px;margin-bottom:4px}
+.premium p{color:var(--muted);font-size:14px;margin-bottom:12px}
+.slots{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+@media(max-width:700px){.slots{grid-template-columns:repeat(2,1fr)}}
+.slot{border:1px dashed var(--gold);border-radius:10px;padding:14px 10px;text-align:center;color:var(--gold);font-weight:700;font-size:14px;text-decoration:none;display:block}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:26px 0 6px;align-items:center}
+.chip{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:9px 16px;cursor:pointer;font-size:15px}
+.chip.on{background:var(--green);color:#06130a;font-weight:800;border-color:var(--green)}
+select{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px;font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card h3{font-size:19px}
+.meta{color:var(--muted);font-size:14px;margin:2px 0 10px}
+.badge{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.05em;padding:3px 9px;border-radius:999px;margin-bottom:8px}
+.b-free{background:#22301f;color:#9fd08a;border:1px solid #35502c}
+.b-sample{background:var(--green);color:#06130a}
+.b-open{border:1px dashed var(--gold);color:var(--gold)}
+.card a{color:var(--green);text-decoration:none;font-weight:700;font-size:14px}
+.note{color:var(--muted);font-size:13px;margin-top:26px;text-align:center}
+footer{text-align:center;color:var(--muted);font-size:13px;margin-top:40px}
+footer a{color:var(--green);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">FindMyWeed · Directory</div>
+    <h1>Every lane. <span>Every county.</span></h1>
+    <p class="sub">Licensed cannabis businesses across California — brands, retail, delivery, manufacturers, distributors, cultivators, and the services behind them. Filter by category or county.</p>
+  </header>
+
+  <div class="premium">
+    <h3>Premium Top 5 — per county</h3>
+    <p>Only five top spots exist in each county. Paying members rise to the top; premium members hold these. Free listings start full and sink as members claim their spots.</p>
+    <div class="slots">
+      <a class="slot" href="https://buy.stripe.com/7sY3cv74p2ro40l3xH1440k">Top Spot 1<br>OPEN — $50/mo</a>
+      <a class="slot" href="https://buy.stripe.com/7sY3cv74p2ro40l3xH1440k">Top Spot 2<br>OPEN — $50/mo</a>
+      <a class="slot" href="https://buy.stripe.com/7sY3cv74p2ro40l3xH1440k">Top Spot 3<br>OPEN — $50/mo</a>
+      <a class="slot" href="https://buy.stripe.com/7sY3cv74p2ro40l3xH1440k">Top Spot 4<br>OPEN — $50/mo</a>
+      <a class="slot" href="https://buy.stripe.com/7sY3cv74p2ro40l3xH1440k">Top Spot 5<br>OPEN — $50/mo</a>
+    </div>
+  </div>
+
+  <div class="filters" id="chips">
+    <button class="chip on" data-cat="all">All</button>
+    <button class="chip" data-cat="Brands">Brands</button>
+    <button class="chip" data-cat="Retail">Retail</button>
+    <button class="chip" data-cat="Delivery">Delivery</button>
+    <button class="chip" data-cat="Manufacturers">Manufacturers</button>
+    <button class="chip" data-cat="Distributors">Distributors</button>
+    <button class="chip" data-cat="Cultivators">Cultivators</button>
+    <button class="chip" data-cat="Services">Services</button>
+    <select id="county">
+      <option value="all">All counties</option>
+      <option>Los Angeles</option><option>Orange</option><option>Riverside</option>
+      <option>Santa Barbara</option><option>Alameda</option><option>Sacramento</option>
+      <option>San Francisco</option><option>Nationwide</option>
+    </select>
+  </div>
+
+  <div class="grid" id="grid">
+    <div class="card" data-cat="Manufacturers" data-county="all">
+      <span class="badge b-sample">SAMPLE PROFILE</span>
+      <h3>Sample Brand — Premium Pre-Rolls</h3>
+      <p class="meta">Manufacturers · Any county · This is the exact profile every member gets</p>
+      <a href="https://keepitil.com/findmyweed-sample">See what buyers see →</a>
+    </div>
+
+    <div class="card" data-cat="Brands" data-county="Los Angeles"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>STIIIZY</h3><p class="meta">Brands · Los Angeles, Los Angeles County</p><a href="https://keepitil.com/findmyweed-join?biz=STIIIZY&role=Brand">Claim this profile →</a></div>
+    <div class="card" data-cat="Retail" data-county="Los Angeles"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>Cookies</h3><p class="meta">Retail · Los Angeles, Los Angeles County</p><a href="https://keepitil.com/findmyweed-join?biz=Cookies&role=Retail">Claim this profile →</a></div>
+    <div class="card" data-cat="Cultivators" data-county="Los Angeles"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>Jungle Boys</h3><p class="meta">Cultivators · Los Angeles, Los Angeles County</p><a href="https://keepitil.com/findmyweed-join?biz=Jungle%20Boys&role=Cultivator">Claim this profile →</a></div>
+    <div class="card" data-cat="Delivery" data-county="Los Angeles"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>Amuse</h3><p class="meta">Delivery · Los Angeles, Los Angeles County</p><a href="https://keepitil.com/findmyweed-join?biz=Amuse&role=Delivery">Claim this profile →</a></div>
+    <div class="card" data-cat="Manufacturers" data-county="Riverside"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>Jeeter</h3><p class="meta">Manufacturers · Desert Hot Springs, Riverside County</p><a href="https://keepitil.com/findmyweed-join?biz=Jeeter&role=Manufacturer">Claim this profile →</a></div>
+    <div class="card" data-cat="Manufacturers" data-county="Santa Barbara"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>Raw Garden</h3><p class="meta">Manufacturers · Santa Barbara, Santa Barbara County</p><a href="https://keepitil.com/findmyweed-join?biz=Raw%20Garden&role=Manufacturer">Claim this profile →</a></div>
+    <div class="card" data-cat="Cultivators" data-county="Santa Barbara"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>Glass House Farms</h3><p class="meta">Cultivators · Carpinteria, Santa Barbara County</p><a href="https://keepitil.com/findmyweed-join?biz=Glass%20House%20Farms&role=Cultivator">Claim this profile →</a></div>
+    <div class="card" data-cat="Retail" data-county="Orange"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>People's OC</h3><p class="meta">Retail · Santa Ana, Orange County</p><a href="https://keepitil.com/findmyweed-join?biz=People's%20OC&role=Retail">Claim this profile →</a></div>
+    <div class="card" data-cat="Retail" data-county="Alameda"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>Harborside</h3><p class="meta">Retail · Oakland, Alameda County</p><a href="https://keepitil.com/findmyweed-join?biz=Harborside&role=Retail">Claim this profile →</a></div>
+    <div class="card" data-cat="Brands" data-county="Sacramento"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>Connected Cannabis</h3><p class="meta">Brands · Sacramento, Sacramento County</p><a href="https://keepitil.com/findmyweed-join?biz=Connected%20Cannabis&role=Brand">Claim this profile →</a></div>
+    <div class="card" data-cat="Brands" data-county="Sacramento"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>Alien Labs</h3><p class="meta">Brands · Sacramento, Sacramento County</p><a href="https://keepitil.com/findmyweed-join?biz=Alien%20Labs&role=Brand">Claim this profile →</a></div>
+    <div class="card" data-cat="Delivery" data-county="San Francisco"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>Eaze</h3><p class="meta">Delivery · San Francisco, San Francisco County</p><a href="https://keepitil.com/findmyweed-join?biz=Eaze&role=Delivery">Claim this profile →</a></div>
+    <div class="card" data-cat="Services" data-county="Nationwide"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>Dutchie</h3><p class="meta">Services · Tech &amp; e-commerce · Nationwide</p><a href="https://keepitil.com/findmyweed-join?biz=Dutchie&role=Licensing">Claim this profile →</a></div>
+    <div class="card" data-cat="Services" data-county="San Francisco"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>Meadow</h3><p class="meta">Services · POS &amp; compliance · San Francisco</p><a href="https://keepitil.com/findmyweed-join?biz=Meadow&role=Licensing">Claim this profile →</a></div>
+    <div class="card" data-cat="Services" data-county="Nationwide"><span class="badge b-free">FREE LISTING — UNCLAIMED</span><h3>Headset</h3><p class="meta">Services · Data &amp; analytics · Nationwide</p><a href="https://keepitil.com/findmyweed-join?biz=Headset&role=Licensing">Claim this profile →</a></div>
+    <div class="card" data-cat="Distributors" data-county="all"><span class="badge b-open">OPEN CATEGORY</span><h3>Your distribution company here</h3><p class="meta">Distributors · First distributor in any county claims the top free spot</p><a href="https://keepitil.com/findmyweed-join?role=Distributor">Claim it →</a></div>
+  </div>
+
+  <p class="note">Launch seeding: listings start free from public license records so the directory is useful from day one. Claimed + verified members rise; paying members take the top; unclaimed listings sink over time. FindMyWeed is a marketing network — we never sell cannabis. 21+ only.</p>
+  <footer>FindMyWeed by <a href="https://keepitil.com">KEEPITIL</a> · <a href="https://keepitil.com/findmyweed">About the network</a> · <a href="https://keepitil.com/findmyweed-join">Join</a></footer>
+</div>
+<script>
+var cat='all';
+function apply(){
+  var county=document.getElementById('county').value;
+  document.querySelectorAll('#grid .card').forEach(function(c){
+    var okCat=(cat==='all'||c.dataset.cat===cat);
+    var okCo=(county==='all'||c.dataset.county===county||c.dataset.county==='all');
+    c.style.display=(okCat&&okCo)?'block':'none';
+  });
+}
+document.querySelectorAll('#chips .chip').forEach(function(ch){
+  ch.addEventListener('click',function(){
+    document.querySelectorAll('#chips .chip').forEach(function(x){x.classList.remove('on');});
+    ch.classList.add('on'); cat=ch.dataset.cat; apply();
+  });
+});
+document.getElementById('county').addEventListener('change',apply);
+</script>
+</body>
+</html>

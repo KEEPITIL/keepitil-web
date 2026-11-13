@@ -1,0 +1,103 @@
+# Publish a KMOB build to keepitil.com/games/kmob/. Docs: docs/KMOB_PUBLISH.md.
+#
+# KMOB (private) only builds: its deploy-web.yml uploads the artifact kmob-web-<sha> on every push to its main and holds no
+# credential for this repo. This workflow is the only writer of games/kmob/, and it runs only when someone starts it:
+#   - from main only (the job refuses any other ref; the kmob-publish environment is restricted to main as well)
+#   - after the kmob-publish environment's required reviewer approves: that approval IS the go for the release
+#   - mode defaults to dry-run (verifies, downloads, stages and prints the diff, pushes nothing)
+# Before anything is written it verifies, through the GitHub API with a READ-ONLY KMOB token, that the commit is KMOB main's tip,
+# the merge commit of a merged PR, green on every required job (on the commit and on the PR head), not older than what is live,
+# and contains #26; then that every artifact file matches build.json. Any doubt is a refusal (scripts/kmob-publish/lib.mjs).
+# It makes one commit touching games/kmob/ only, re-checks the KMOB tip immediately before each push attempt, and then starts
+# "Deploy Pages" (a push made with GITHUB_TOKEN does not trigger it by itself).
+name: kmob-publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      kmob_sha:
+        description: 'KMOB commit to publish: the full 40-character merge commit on KMOB main (shown in its deploy-web run summary)'
+        required: true
+        type: string
+      mode:
+        description: 'dry-run checks everything and pushes nothing; publish pushes'
+        required: true
+        type: choice
+        options: [dry-run, publish]
+        default: dry-run
+
+permissions: {}
+
+concurrency:
+  group: kmob-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main' && github.repository == 'KEEPITIL/keepitil-web'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: kmob-publish
+    permissions:
+      contents: write   # the one games/kmob commit
+      actions: write    # start Deploy Pages afterwards
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: main
+          fetch-depth: 20
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: the kmob-publish environment is not weakened (reviewer fobbinhard, no admin bypass, main only)
+        env:
+          ENV_READ_TOKEN: ${{ github.token }}
+        run: node scripts/kmob-publish/cli.mjs env-check
+
+      - name: verify the KMOB commit (read-only API)
+        env:
+          KMOB_READ_TOKEN: ${{ secrets.KMOB_READ_TOKEN }}
+          KMOB_SHA: ${{ inputs.kmob_sha }}
+        run: node scripts/kmob-publish/cli.mjs verify --sha "$KMOB_SHA" --site . --out "$RUNNER_TEMP/facts.json"
+
+      - name: download and check the artifact
+        env:
+          KMOB_READ_TOKEN: ${{ secrets.KMOB_READ_TOKEN }}
+        run: node scripts/kmob-publish/cli.mjs download --facts "$RUNNER_TEMP/facts.json" --dest "$RUNNER_TEMP/kmob-web"
+
+      - name: stage games/kmob (one commit, games/kmob/ only)
+        id: stage
+        env:
+          KMOB_SHA: ${{ inputs.kmob_sha }}
+        run: node scripts/kmob-publish/cli.mjs stage --sha "$KMOB_SHA" --site . --artifact "$RUNNER_TEMP/kmob-web" --facts "$RUNNER_TEMP/facts.json"
+
+      - name: push (publish mode only; KMOB tip re-checked before every attempt)
+        id: push
+        if: inputs.mode == 'publish' && steps.stage.outputs.changed != '0'
+        env:
+          KMOB_READ_TOKEN: ${{ secrets.KMOB_READ_TOKEN }}
+          KMOB_SHA: ${{ inputs.kmob_sha }}
+        run: node scripts/kmob-publish/cli.mjs push --sha "$KMOB_SHA" --site .
+
+      - name: start Deploy Pages
+        if: steps.push.outputs.pushed != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main
+
+      - name: summary
+        if: always()
+        env:
+          MODE: ${{ inputs.mode }}
+          KMOB_SHA: ${{ inputs.kmob_sha }}
+          PREV: ${{ steps.stage.outputs.prev }}
+          NEXT: ${{ steps.stage.outputs.next }}
+          CHANGED: ${{ steps.stage.outputs.changed }}
+          PUSHED: ${{ steps.push.outputs.pushed }}
+        run: |
+          {
+            echo "### kmob-publish ($MODE): KMOB \`${KMOB_SHA:0:12}\`"
+            echo "games/kmob: live \`${PREV:-?}\` -> \`${NEXT:-?}\`, ${CHANGED:-?} paths"
+            if [ -n "$PUSHED" ]; then echo "Pushed \`${PUSHED:0:12}\` to main and started Deploy Pages."; else echo "Nothing pushed."; fi
+          } >> "$GITHUB_STEP_SUMMARY"

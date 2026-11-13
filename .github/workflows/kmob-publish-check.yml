@@ -40,7 +40,7 @@ jobs:
       - name: negative controls (each check off -> the suite must fail)
         run: |
           rc=0
-          for rule in tip provenance checks pr-checks precondition rollback artifact artifact-integrity path-guard; do
+          for rule in tip provenance checks pr-checks precondition rollback artifact artifact-integrity path-guard environment; do
             if KMOB_VERIFY_DISABLE=$rule node --test scripts/kmob-publish/kmob-publish.test.mjs > "$RUNNER_TEMP/nc-$rule.log" 2>&1; then
               echo "::error::negative control: with '$rule' switched off the suite still passes"; rc=1
             else
@@ -59,6 +59,11 @@ jobs:
           grep -q "if: github.ref == 'refs/heads/main' && github.repository == 'KEEPITIL/keepitil-web'" $f
           grep -qE '^    environment: kmob-publish$' $f
           grep -qE '^        default: dry-run$' $f
-          grep -qE '^permissions: \{\}$' $f
+          grep -qE '^permissions: \{\}
+          if grep -qE '^\s+(push|pull_request|pull_request_target|schedule|workflow_run|repository_dispatch):' $f; then echo "::error::$f must only be started by hand"; exit 1; fi
+          echo "ok   workflow_dispatch only, main only, environment kmob-publish, dry-run default, no top-level permissions"
+ $f
+          e=$(grep -n 'cli.mjs env-check' $f | head -1 | cut -d: -f1); v=$(grep -n 'cli.mjs verify' $f | head -1 | cut -d: -f1)
+          if [ -z "$e" ] || [ -z "$v" ] || [ "$e" -gt "$v" ]; then echo "::error::the environment check must run before verify"; exit 1; fi
           if grep -qE '^\s+(push|pull_request|pull_request_target|schedule|workflow_run|repository_dispatch):' $f; then echo "::error::$f must only be started by hand"; exit 1; fi
           echo "ok   workflow_dispatch only, main only, environment kmob-publish, dry-run default, no top-level permissions"

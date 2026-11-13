@@ -1,7 +1,7 @@
 // kmob-publish: fixtures for every refusal, plus an end-to-end dry run (verify -> download -> stage -> push into a local bare repo).
 // No network, no token. Run: node --test scripts/kmob-publish/kmob-publish.test.mjs
 // Negative controls (CI): KMOB_VERIFY_DISABLE=<rule> switches one check off; the suite must then FAIL, which proves these tests
-// can see that check. Rules: tip provenance checks pr-checks precondition rollback artifact artifact-integrity path-guard.
+// can see that check. Rules: tip provenance checks pr-checks precondition rollback artifact artifact-integrity path-guard environment.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -9,7 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { Refusal, loadConfig, githubApi, verify, validateArtifact, stage, push, guardCommit } from './lib.mjs';
+import { Refusal, loadConfig, githubApi, verify, validateArtifact, stage, push, guardCommit, checkEnvironment } from './lib.mjs';
 import { main } from './cli.mjs';
 
 const D = (process.env.KMOB_VERIFY_DISABLE || '').split(',').filter(Boolean);
@@ -268,11 +268,58 @@ test('CLI: a tampered zip (digest mismatch) is refused before anything is staged
   const w = world((x) => { x.artifacts[10][0].digest = 'sha256:' + 'f'.repeat(64); });
   const facts = path.join(root, 'facts.json');
   fs.writeFileSync(facts, JSON.stringify({ artifact: w.artifacts[10][0] }));
-  const code = await main(['download', '--facts', facts, '--dest', path.join(root, 'dl')], { api: apiFor(w), env: {}, fetchImpl: async () => new Response(fs.readFileSync(zip)) });
-  assert.equal(code, D.includes('artifact-integrity') ? 0 : 1);
-  if (D.includes('artifact-integrity')) assert.fail('negative control: digest check disabled');
+  const code = await main(['download', '--facts', facts, '--dest', path.join(root, 'dl')], { api: apiFor(w), env: {}, disable: D, fetchImpl: async () => new Response(fs.readFileSync(zip)) });
+  assert.equal(code, 1, 'a zip whose sha256 differs from the recorded digest must be refused');
+  assert.ok(!fs.existsSync(path.join(root, 'dl')), 'nothing written or unzipped before the digest check');
 });
 test('CLI: a refused verify exits 1 and names the reason', async () => {
   const code = await main(['verify', '--sha', S, '--site', tmp()], { api: apiFor(world((w) => { w.pulls = []; })), env: {} });
   assert.equal(code, 1);
+});
+
+// ---------- the zip digest is mandatory (cli.mjs download) ----------
+for (const [name, digest] of [['no digest at all', ''], ['a non-sha256 digest', 'md5:' + 'a'.repeat(32)], ['a malformed sha256', 'sha256:xyz']]) {
+  test(`CLI: an artifact with ${name} is refused before download is written`, async () => {
+    const root = tmp(), facts = path.join(root, 'facts.json');
+    fs.writeFileSync(facts, JSON.stringify({ artifact: { url: 'https://api.github.test/zip/99', name: 'kmob-web-x', size: 3, digest } }));
+    const code = await main(['download', '--facts', facts, '--dest', path.join(root, 'dl')], { api: apiFor(world()), env: {}, disable: D, fetchImpl: async () => new Response(Buffer.from('zip')) });
+    assert.equal(code, 1);
+    assert.ok(!fs.existsSync(path.join(root, 'dl')));
+  });
+}
+
+// ---------- the kmob-publish environment (lib.mjs checkEnvironment) ----------
+const ENV = config.environment, ER = `/repos/${config.siteRepo}/environments/${ENV.name}`;
+function envWorld(mutate = () => {}) {
+  const w = {
+    env: { name: ENV.name, can_admins_bypass: false,
+      protection_rules: [{ type: 'wait_timer', wait_timer: 0 }, { type: 'required_reviewers', prevent_self_review: false, reviewers: [{ type: 'User', reviewer: { login: 'fobbinhard', id: 1 } }] }],
+      deployment_branch_policy: { protected_branches: false, custom_branch_policies: true } },
+    branches: { branch_policies: [{ name: 'main', type: 'branch' }] },
+  };
+  mutate(w);
+  return async (p) => { if (p === ER) return w.env; if (p === ER + '/deployment-branch-policies') return w.branches; throw Object.assign(new Error('HTTP 404'), { status: 404 }); };
+}
+const envCheck = (m) => checkEnvironment({ api: envWorld(m), config, _disable: D });
+test('environment: reviewer fobbinhard, no admin bypass, main only: passes', async () => { const r = await envCheck(); assert.deepEqual(r.reviewers, ['fobbinhard']); });
+for (const [name, m] of [
+  ['no required-reviewers rule', (w) => { w.env.protection_rules = []; }],
+  ['reviewers without fobbinhard', (w) => { w.env.protection_rules[1].reviewers = [{ type: 'User', reviewer: { login: 'someone' } }]; }],
+  ['fobbinhard only via a team of that name', (w) => { w.env.protection_rules[1].reviewers = [{ type: 'Team', reviewer: { login: 'fobbinhard', slug: 'fobbinhard' } }]; }],
+  ['admin bypass on', (w) => { w.env.can_admins_bypass = true; }],
+  ['admin bypass not reported', (w) => { delete w.env.can_admins_bypass; }],
+  ['no branch restriction', (w) => { w.env.deployment_branch_policy = null; }],
+  ['protected-branches mode instead of selected branches', (w) => { w.env.deployment_branch_policy = { protected_branches: true, custom_branch_policies: false }; }],
+  ['an extra deployment branch', (w) => { w.branches.branch_policies.push({ name: 'release', type: 'branch' }); }],
+  ['a wildcard instead of main', (w) => { w.branches.branch_policies = [{ name: 'ma*', type: 'branch' }]; }],
+  ['a tag policy named main', (w) => { w.branches.branch_policies = [{ name: 'main', type: 'tag' }]; }],
+  ['the environment cannot be read', (w) => { w.env = undefined; }],
+]) test(`environment: ${name}: refused`, async () => { await refuses(envCheck(m), 'environment'); });
+test('environment: an API error is a refusal', async () => {
+  await assert.rejects(checkEnvironment({ api: async () => { throw Object.assign(new Error('HTTP 403'), { status: 403 }); }, config, _disable: D }), (e) => e instanceof Refusal);
+});
+test('CLI env-check: exits 1 and names the reason when weakened', async () => {
+  const out = []; const orig = process.stdout.write.bind(process.stdout); process.stdout.write = (s) => (out.push(String(s)), true);
+  let code; try { code = await main(['env-check'], { api: envWorld((w) => { w.env.can_admins_bypass = true; }), env: {}, disable: D }); } finally { process.stdout.write = orig; }
+  assert.equal(code, 1); assert.match(out.join(''), /REFUSED \[environment\]/);
 });

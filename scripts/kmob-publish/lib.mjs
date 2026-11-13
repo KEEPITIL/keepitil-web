@@ -156,6 +156,27 @@ export async function verify({ api, sha, config, liveSource = '', _disable = [] 
 
 const FILE_RE = /^[A-Za-z0-9_][A-Za-z0-9_.-]*(\/[A-Za-z0-9_][A-Za-z0-9_.-]*)*$/;
 
+// The kmob-publish environment is the release gate, so the publisher re-checks its configuration on every run and refuses if it
+// was weakened: a required-reviewers rule that names the configured reviewer (a user, by login), no admin bypass, and deployments
+// allowed from exactly one custom branch policy, the configured branch. Missing or unexpected shapes refuse (fail closed).
+export async function checkEnvironment({ api, config, _disable = [] }) {
+  if (_disable.includes('environment')) return { skipped: true };
+  const e = config.environment, repo = config.siteRepo;
+  if (!e || !e.name || !e.requiredReviewer || !e.branch || !repo) refuse('environment', 'config.environment / config.siteRepo missing');
+  const env = await get(api, `/repos/${repo}/environments/${encodeURIComponent(e.name)}`);
+  const rules = Array.isArray(env?.protection_rules) ? env.protection_rules : [];
+  const rr = rules.find((r) => r && r.type === 'required_reviewers');
+  const logins = (rr && Array.isArray(rr.reviewers) ? rr.reviewers : []).filter((x) => x && x.type === 'User' && x.reviewer && typeof x.reviewer.login === 'string').map((x) => x.reviewer.login.toLowerCase());
+  if (!logins.includes(e.requiredReviewer.toLowerCase())) refuse('environment', `environment ${e.name}: required reviewers must include the user ${e.requiredReviewer} (found: ${logins.join(', ') || 'none'})`);
+  if (env.can_admins_bypass !== false) refuse('environment', `environment ${e.name}: admin bypass must be off (can_admins_bypass=${env.can_admins_bypass})`);
+  const pol = env.deployment_branch_policy;
+  if (!pol || pol.protected_branches !== false || pol.custom_branch_policies !== true) refuse('environment', `environment ${e.name}: deployments must be limited to selected branches (got ${JSON.stringify(pol)})`);
+  const bp = await get(api, `/repos/${repo}/environments/${encodeURIComponent(e.name)}/deployment-branch-policies`);
+  const list = Array.isArray(bp?.branch_policies) ? bp.branch_policies : null;
+  if (!list || list.length !== 1 || list[0].name !== e.branch || (list[0].type && list[0].type !== 'branch')) refuse('environment', `environment ${e.name}: the only deployment branch must be ${e.branch} (got ${JSON.stringify((list || []).map((x) => (x.type || 'branch') + ':' + x.name))})`);
+  return { reviewers: logins, branch: e.branch };
+}
+
 export function listFiles(root) {
   const out = [];
   (function rec(dir, rel) {

@@ -50,6 +50,11 @@ jobs:
         with:
           node-version: 22
 
+      - name: the kmob-publish environment is not weakened (reviewer fobbinhard, no admin bypass, main only)
+        env:
+          ENV_READ_TOKEN: ${{ github.token }}
+        run: node scripts/kmob-publish/cli.mjs env-check
+
       - name: verify the KMOB commit (read-only API)
         env:
           KMOB_READ_TOKEN: ${{ secrets.KMOB_READ_TOKEN }}

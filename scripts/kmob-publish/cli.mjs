@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // kmob-publish CLI, run by .github/workflows/kmob-publish.yml (docs/KMOB_PUBLISH.md).
+//   env-check                                                                   the kmob-publish environment is not weakened (ENV_READ_TOKEN)
 //   verify   --sha <kmob commit> --site <keepitil-web dir> --out <facts.json>   all preconditions (lib.mjs verify)
 //   download --facts <facts.json> --dest <dir>                                  the run's artifact, digest-checked, unzipped
 //   stage    --sha <kmob commit> --site <dir> --artifact <dir> [--facts f]      integrity check, replace games/kmob, one commit
@@ -10,7 +11,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { Refusal, loadConfig, githubApi, verify, validateArtifact, liveVersion, stage, push } from './lib.mjs';
+import { Refusal, loadConfig, githubApi, verify, validateArtifact, liveVersion, stage, push, checkEnvironment } from './lib.mjs';
 
 function args(argv) {
   const o = { _: [] };
@@ -23,16 +24,18 @@ function output(env, pairs) {
   fs.appendFileSync(env.GITHUB_OUTPUT, Object.entries(pairs).map(([k, v]) => `${k}=${v}`).join('\n') + '\n');
 }
 
-async function download({ facts, dest, token, fetchImpl = globalThis.fetch }) {
+async function download({ facts, dest, token, fetchImpl = globalThis.fetch, _disable = [] }) {
   const a = facts.artifact;
   if (!a?.url) throw new Refusal('artifact', 'no artifact in the verified facts');
   if (!token) throw new Refusal('no-token', 'KMOB_READ_TOKEN is empty');
   const r = await fetchImpl(a.url, { headers: { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json', 'user-agent': 'keepitil-web-kmob-publish' }, redirect: 'follow' });
   if (!r.ok) throw new Refusal('artifact', `artifact download -> HTTP ${r.status}`);
   const buf = Buffer.from(await r.arrayBuffer());
-  if (a.digest) {
-    const [alg, want] = a.digest.split(':');
-    if (alg !== 'sha256') throw new Refusal('artifact-integrity', `unknown artifact digest ${a.digest}`);
+  // the zip's sha256 is checked against the digest GitHub recorded at upload BEFORE anything is written or unzipped. It is
+  // mandatory: an artifact without a sha256 digest is refused, never published unchecked.
+  if (!_disable.includes('artifact-integrity')) {
+    const [alg, want] = String(a.digest || '').split(':');
+    if (alg !== 'sha256' || !/^[0-9a-f]{64}$/.test(want || '')) throw new Refusal('artifact-integrity', `artifact has no sha256 digest (${a.digest || 'none'}): refusing to publish an unchecked zip`);
     const got = crypto.createHash('sha256').update(buf).digest('hex');
     if (got !== want) throw new Refusal('artifact-integrity', `artifact zip sha256 ${got.slice(0, 12)} != ${want.slice(0, 12)}`);
   }
@@ -49,11 +52,17 @@ async function download({ facts, dest, token, fetchImpl = globalThis.fetch }) {
 // deps: { api, fetchImpl, env, config } are injected by the tests; the real entry point passes none of them.
 export async function main(argv, deps = {}) {
   const o = args(argv), cmd = o._[0], env = deps.env || process.env;
+  const _disable = deps.disable || (env.KMOB_VERIFY_DISABLE || '').split(',').filter(Boolean);
   const config = deps.config || loadConfig();
   const token = env.KMOB_READ_TOKEN || '';
   const api = () => deps.api || githubApi(token, { fetchImpl: deps.fetchImpl });
   const site = o.site ? path.resolve(o.site) : process.cwd();
   try {
+    if (cmd === 'env-check') {
+      const r = await checkEnvironment({ api: deps.api || githubApi(env.ENV_READ_TOKEN || '', { fetchImpl: deps.fetchImpl }), config, _disable });
+      if (r.skipped) say('environment check SKIPPED (negative control)'); else say(`environment ${config.environment.name}: reviewers ${r.reviewers.join(', ')}, no admin bypass, deployments from ${r.branch} only`);
+      return 0;
+    }
     if (cmd === 'verify') {
       const live = liveVersion(site, config.sitePath);
       const facts = await verify({ api: api(), sha: o.sha, config, liveSource: live.source });
@@ -66,7 +75,7 @@ export async function main(argv, deps = {}) {
     }
     if (cmd === 'download') {
       const facts = JSON.parse(fs.readFileSync(o.facts, 'utf8'));
-      const r = await download({ facts, dest: path.resolve(o.dest), token: deps.api ? 'fixture' : token, fetchImpl: deps.fetchImpl });
+      const r = await download({ facts, dest: path.resolve(o.dest), token: deps.api ? 'fixture' : token, fetchImpl: deps.fetchImpl, _disable });
       say(`downloaded ${facts.artifact.name}: ${r.bytes} bytes, ${r.entries} entries`);
       return 0;
     }
@@ -86,7 +95,7 @@ export async function main(argv, deps = {}) {
       output(env, { pushed: r.head });
       return 0;
     }
-    say('usage: cli.mjs verify|download|stage|push ... (see the header)');
+    say('usage: cli.mjs env-check|verify|download|stage|push ... (see the header)');
     return 2;
   } catch (e) {
     if (e instanceof Refusal) { say(`REFUSED [${e.code}]: ${e.message}`); if (env.GITHUB_ACTIONS) say(`::error title=kmob-publish refused (${e.code})::${e.message}`); return 1; }

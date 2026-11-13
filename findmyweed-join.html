@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Join FindMyWeed | KEEPITIL</title>
+<meta name="description" content="Join the FindMyWeed network by KEEPITIL. Consumers 21+ see the retail side. Licensed cannabis businesses — brands, manufacturers, distributors, cultivators, delivery, retail — verify once and unlock the trade side.">
+<style>
+:root{--bg:#0b0f0c;--card:#131a15;--line:#243528;--green:#3ddc74;--green-dim:#27ae55;--text:#eef5ef;--muted:#a9bcae}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.55}
+.wrap{max-width:760px;margin:0 auto;padding:32px 20px 64px}
+header{text-align:center;padding:32px 0 8px}
+.brand{letter-spacing:.35em;font-size:13px;color:var(--green);text-transform:uppercase}
+h1{font-size:42px;line-height:1.08;margin:10px 0 6px}
+h1 span{color:var(--green)}
+.sub{color:var(--muted);max-width:580px;margin:10px auto 0}
+.lanes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:32px 0 4px}
+@media(max-width:640px){.lanes{grid-template-columns:1fr}h1{font-size:34px}}
+.lane{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
+.lane h3{font-size:19px;margin-bottom:6px}
+.lane h3 span{color:var(--green)}
+.lane p{color:var(--muted);font-size:15px}
+form{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 24px;margin-top:28px}
+label.fl{display:block;font-weight:700;margin:18px 0 6px}
+label.fl:first-child{margin-top:0}
+input[type=text],input[type=email],input[type=tel],select,textarea{width:100%;background:#0b0f0c;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:12px 14px;font-size:16px}
+textarea{min-height:90px;resize:vertical}
+fieldset{border:none;margin-top:22px}
+legend{font-weight:800;font-size:18px;margin-bottom:4px}
+legend span{color:var(--green)}
+.check{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #182219;cursor:pointer}
+.check:last-child{border-bottom:none}
+.check input{width:20px;height:20px;margin-top:2px;accent-color:var(--green);flex:none}
+.check small{color:var(--muted);display:block}
+#licBlock{display:none}
+.btn{display:block;width:100%;background:var(--green);color:#06130a;font-weight:800;border:none;padding:15px 18px;border-radius:10px;font-size:18px;cursor:pointer;margin-top:26px;text-align:center;text-decoration:none}
+.btn:hover{background:var(--green-dim)}
+.btn.ghost{background:transparent;color:var(--green);border:1px solid var(--green)}
+.note{color:var(--muted);font-size:13px;text-align:center;margin-top:12px}
+#done{display:none;background:var(--card);border:1px solid var(--green);border-radius:16px;padding:30px 24px;margin-top:28px;text-align:center}
+#done h2{font-size:26px;margin-bottom:8px}
+#done p{color:var(--muted);margin-bottom:14px}
+#done .btn{max-width:360px;margin:10px auto}
+footer{text-align:center;color:var(--muted);font-size:13px;margin-top:48px}
+footer a{color:var(--green);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">FindMyWeed · by KEEPITIL</div>
+    <h1>One network. <span>Every lane.</span></h1>
+    <p class="sub">FindMyWeed is one ecosystem for the whole cannabis industry — consumers, retailers, brands, manufacturers, distributors, cultivators, delivery, and the pros who license it all. Your account type decides what you see.</p>
+  </header>
+
+  <div class="lanes">
+    <div class="lane">
+      <h3>🌿 Consumer <span>lane</span></h3>
+      <p>Prove you're 21+ and browse the public side: brands, products, and where to buy them. No license needed — and no wholesale menus or pricing.</p>
+    </div>
+    <div class="lane">
+      <h3>🔒 Verified trade <span>lane</span></h3>
+      <p>Licensed businesses submit their legal documentation once. We verify it against the state database, then your trade access unlocks: wholesale menus filtered to your license type, your state, and each seller's distribution zone. One account per license, unless your license covers multiple locations or brands.</p>
+    </div>
+  </div>
+
+  <form id="joinForm">
+    <label class="fl" for="role">I am joining as a… *</label>
+    <select id="role" required>
+      <option value="Consumer (21+)">Consumer — I'm 21+ and shop retail</option>
+      <option value="Retail buyer (dispensary / delivery)">Retail buyer — dispensary or delivery service</option>
+      <option value="Brand / Seller">Brand / Seller</option>
+      <option value="Manufacturer">Manufacturer</option>
+      <option value="Distributor">Distributor</option>
+      <option value="Cultivator / Farmer">Cultivator / Farmer</option>
+      <option value="Delivery / Driver">Delivery / Driver</option>
+      <option value="Licensing / Professional services">Licensing / Professional services</option>
+      <option value="Other industry role">Other industry role</option>
+    </select>
+
+    <label class="fl" for="name">Your name *</label>
+    <input type="text" id="name" required autocomplete="name">
+    <label class="fl" for="email">Your email *</label>
+    <input type="email" id="email" required autocomplete="email">
+    <label class="fl" for="phone">Phone (optional)</label>
+    <input type="tel" id="phone" autocomplete="tel">
+
+    <div id="ageBlock">
+      <fieldset>
+        <label class="check"><input type="checkbox" id="age21"><span>I confirm I am 21 years of age or older<small>Required for the consumer lane</small></span></label>
+      </fieldset>
+    </div>
+
+    <div id="licBlock">
+      <label class="fl" for="biz">Business / brand name *</label>
+      <input type="text" id="biz">
+      <label class="fl" for="lictype">License type</label>
+      <select id="lictype">
+        <option>Retailer / Dispensary</option>
+        <option>Delivery</option>
+        <option>Distributor</option>
+        <option>Manufacturer</option>
+        <option>Cultivator</option>
+        <option>Microbusiness</option>
+        <option>Testing lab</option>
+        <option>Other license</option>
+        <option>No license — services / ancillary</option>
+      </select>
+      <label class="fl" for="licnum">License number</label>
+      <input type="text" id="licnum" placeholder="e.g. C12-0000000-LIC">
+      <label class="fl" for="licstate">License state</label>
+      <input type="text" id="licstate" placeholder="CA">
+      <label class="fl" for="city">Business city</label>
+      <input type="text" id="city">
+      <label class="fl" for="site">Website / Instagram (optional)</label>
+      <input type="text" id="site">
+      <p class="note" style="text-align:left">We verify every trade license against the state's public database before trade access unlocks. If your license covers multiple locations or brands, tell us in the notes — one account can carry them all.</p>
+    </div>
+
+    <fieldset>
+      <legend>What do you <span>want?</span></legend>
+      <label class="check"><input type="checkbox" class="want" value="Get listed in the directory"><span>Get listed in the directory<small>Your public page + menu in the network</small></span></label>
+      <label class="check"><input type="checkbox" class="want" value="Wholesale menu access (verified buyers)"><span>Wholesale menu access<small>For verified licensed buyers — menus matched to your license + zone</small></span></label>
+      <label class="check"><input type="checkbox" class="want" value="Sell into the network"><span>Sell into the network<small>Your products in front of verified buyers in your distribution zone</small></span></label>
+      <label class="check"><input type="checkbox" class="want" value="Marketing services"><span>Marketing services<small>Social, content, email — done for you by KEEPITIL</small></span></label>
+      <label class="check"><input type="checkbox" class="want" value="Leads + data / monthly recap"><span>Leads + data<small>Menu views, clicks, and inquiries in a monthly recap</small></span></label>
+    </fieldset>
+
+    <label class="fl" for="plan">Membership</label>
+    <select id="plan">
+      <option>Annual — $100/yr (best value)</option>
+      <option>Monthly — $10/mo</option>
+      <option>Consumer — free (21+)</option>
+      <option>Not sure yet — talk to me first</option>
+    </select>
+
+    <label class="fl" for="notes">Anything we should know?</label>
+    <textarea id="notes" placeholder="Your products, your zone, your goals…"></textarea>
+
+    <button class="btn" type="submit" id="sendBtn">Join FindMyWeed</button>
+    <p class="note">Goes to the KEEPITIL team at info@keepitil.com · Marketing network only — FindMyWeed does not sell cannabis · 21+ only</p>
+  </form>
+
+  <div id="done">
+    <h2>You're in the queue ✅</h2>
+    <p id="doneText">We got your application. If you picked a paid plan, grab it below — once your payment lands and your license verifies, your page goes live.</p>
+    <a class="btn" href="https://buy.stripe.com/00wfZhfAVgieaoJ8S11440j">Annual — $100/yr</a>
+    <a class="btn ghost" href="https://buy.stripe.com/bJe9AT74pd62bsN4BL1440i">Monthly — $10/mo</a>
+  </div>
+
+  <footer>FindMyWeed by <a href="https://keepitil.com">KEEPITIL</a> · Cannabis marketing network · 21+ only · <a href="https://keepitil.com/findmyweed">About the network</a></footer>
+</div>
+
+<script>
+var roleSel = document.getElementById('role');
+function lane(){
+  var consumer = roleSel.value.indexOf('Consumer') === 0;
+  document.getElementById('licBlock').style.display = consumer ? 'none' : 'block';
+  document.getElementById('ageBlock').style.display = consumer ? 'block' : 'none';
+}
+roleSel.addEventListener('change', lane); lane();
+
+document.getElementById('joinForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  var consumer = roleSel.value.indexOf('Consumer') === 0;
+  if (consumer && !document.getElementById('age21').checked) { alert('Please confirm you are 21 or older.'); return; }
+  if (!consumer && !document.getElementById('biz').value.trim()) { alert('Please add your business / brand name.'); return; }
+  var btn = document.getElementById('sendBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  var wants = [];
+  document.querySelectorAll('.want:checked').forEach(function(c){ wants.push(c.value); });
+  var payload = {
+    _subject: 'FMW signup — ' + roleSel.value + ' — ' + (document.getElementById('biz').value.trim() || document.getElementById('name').value.trim()),
+    _template: 'table', _captcha: 'false',
+    'Account type': roleSel.value,
+    Name: document.getElementById('name').value.trim(),
+    Email: document.getElementById('email').value.trim(),
+    Phone: document.getElementById('phone').value.trim() || '—',
+    'Age 21+ confirmed': consumer ? (document.getElementById('age21').checked ? 'Yes' : 'No') : 'n/a (trade)',
+    'Business / Brand': document.getElementById('biz').value.trim() || '—',
+    'License type': consumer ? '—' : document.getElementById('lictype').value,
+    'License number': consumer ? '—' : (document.getElementById('licnum').value.trim() || '—'),
+    'License state': consumer ? '—' : (document.getElementById('licstate').value.trim() || '—'),
+    City: consumer ? '—' : (document.getElementById('city').value.trim() || '—'),
+    'Website / IG': document.getElementById('site').value.trim() || '—',
+    'Wants': wants.length ? wants.join(' | ') : '—',
+    Plan: document.getElementById('plan').value,
+    Notes: document.getElementById('notes').value.trim() || '—',
+    _replyto: document.getElementById('email').value.trim()
+  };
+  try {
+    var res = await fetch('https://formsubmit.co/ajax/info@keepitil.com', {
+      method: 'POST', headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('bad status');
+    document.getElementById('joinForm').style.display = 'none';
+    document.getElementById('done').style.display = 'block';
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  } catch (err) {
+    var lines = Object.keys(payload).filter(function(k){return k[0] !== '_';}).map(function(k){return k + ': ' + payload[k];}).join('\n');
+    window.location.href = 'mailto:info@keepitil.com?subject=' + encodeURIComponent(payload._subject) + '&body=' + encodeURIComponent(lines);
+    btn.disabled = false; btn.textContent = 'Join FindMyWeed';
+  }
+});
+</script>
+</body>
+</html>

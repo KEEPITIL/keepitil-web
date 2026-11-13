@@ -59,11 +59,8 @@ jobs:
           grep -q "if: github.ref == 'refs/heads/main' && github.repository == 'KEEPITIL/keepitil-web'" $f
           grep -qE '^    environment: kmob-publish$' $f
           grep -qE '^        default: dry-run$' $f
-          grep -qE '^permissions: \{\}
-          if grep -qE '^\s+(push|pull_request|pull_request_target|schedule|workflow_run|repository_dispatch):' $f; then echo "::error::$f must only be started by hand"; exit 1; fi
-          echo "ok   workflow_dispatch only, main only, environment kmob-publish, dry-run default, no top-level permissions"
- $f
+          grep -qE '^permissions: \{\}$' $f
           e=$(grep -n 'cli.mjs env-check' $f | head -1 | cut -d: -f1); v=$(grep -n 'cli.mjs verify' $f | head -1 | cut -d: -f1)
           if [ -z "$e" ] || [ -z "$v" ] || [ "$e" -gt "$v" ]; then echo "::error::the environment check must run before verify"; exit 1; fi
           if grep -qE '^\s+(push|pull_request|pull_request_target|schedule|workflow_run|repository_dispatch):' $f; then echo "::error::$f must only be started by hand"; exit 1; fi
-          echo "ok   workflow_dispatch only, main only, environment kmob-publish, dry-run default, no top-level permissions"
+          echo "ok   workflow_dispatch only, main only, environment kmob-publish, env-check before verify, dry-run default, no top-level permissions"

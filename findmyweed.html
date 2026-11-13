@@ -16,7 +16,7 @@
   h1 span{color:var(--green)}
   .tag{font-size:20px;color:var(--text)}
   .sub{color:var(--muted);max-width:560px;margin:10px auto 0}
-  .pricing{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:36px 0 8px}
+  .pricing{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0 8px}
   @media(max-width:640px){.pricing{grid-template-columns:1fr}h1{font-size:40px}}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 24px;text-align:center;position:relative}
   .card.best{border-color:var(--green)}
@@ -53,25 +53,24 @@
   </header>
 
   <!-- SUBSCRIPTIONS FIRST -->
+  <p style="text-align:center;color:var(--muted);max-width:660px;margin:30px auto 0">One listing, one service — your price is set by your <b>category</b>, not by features. Every listing gets the same network rotation, monthly recap, and leads, and one price covers every location your licenses cover.</p>
   <div class="pricing">
-    <div class="card">
-      <div class="plan">Standard Listing</div>
-      <div class="price">$10<small>/mo</small></div>
-      <div class="per">Brands, manufacturers, distributors, cultivators, services — everyone except retail. Covers every location your licenses cover.</div>
-      <a class="btn ghost" href="https://buy.stripe.com/bJe9AT74pd62bsN4BL1440i">Start Monthly</a>
-    </div>
     <div class="card best">
-      <div class="badge">BEST VALUE — 2 MONTHS FREE</div>
-      <div class="plan">Standard Listing</div>
-      <div class="price">$100<small>/yr</small></div>
-      <div class="per">Same standard listing, one payment for the full year.</div>
-      <a class="btn" href="https://buy.stripe.com/00wfZhfAVgieaoJ8S11440j">Start Annual</a>
+      <div class="badge">2 MONTHS FREE ON ANNUAL</div>
+      <div class="plan">Listing — Brands &amp; everyone else</div>
+      <div class="price">$10<small>/mo</small></div>
+      <div class="per">or <b>$100/yr</b> — 2 months free</div>
+      <div class="per">Brands, manufacturers, distributors, cultivators, testing labs, microbusinesses, and services — every category except retail and delivery.</div>
+      <a class="btn" href="https://buy.stripe.com/00wfZhfAVgieaoJ8S11440j">Start Annual — $100/yr</a>
+      <a class="btn ghost" style="margin-top:8px" href="https://buy.stripe.com/bJe9AT74pd62bsN4BL1440i">Start Monthly — $10/mo</a>
     </div>
     <div class="card">
-      <div class="plan">Retail Listing</div>
+      <div class="plan">Listing — Retail &amp; Delivery</div>
       <div class="price">$50<small>/mo</small></div>
-      <div class="per">Storefronts + delivery — customer-facing, ranked in your county. Covers every location your licenses cover.</div>
-      <a class="btn ghost" href="https://buy.stripe.com/bJe3cv2O9gie9kF6JT1440l">Start Retail Listing</a>
+      <div class="per">or <b>$500/yr</b> — 2 months free</div>
+      <div class="per">Storefronts and delivery only — the customer-facing categories, ranked in your county.</div>
+      <a class="btn" href="https://buy.stripe.com/bJe3cv2O9gie9kF6JT1440l">Start Monthly — $50/mo</a>
+      <a class="btn ghost" style="margin-top:8px" href="https://keepitil.com/findmyweed-join">Start Annual — join &amp; pick Retail</a>
     </div>
   </div>
 
@@ -104,28 +103,42 @@
     </table>
     <h3 style="margin:18px 0 4px">County placement — priced by rank</h3>
     <p style="color:var(--muted);font-size:14px">Placement is per county, per category, on top of your listing. Only five paid spots exist in each county.</p>
-    <table class="cmp">
-      <tbody>
-        <tr><th>1st in your county</th><td class="fm">$500/mo</td><td><a href="https://buy.stripe.com/28E4gz9cx0jg40lc4d1440m">Claim 1st</a></td></tr>
-        <tr><th>2nd in your county</th><td class="fm">$400/mo</td><td><a href="https://buy.stripe.com/3cI14n88t4zw68t7NX1440n">Claim 2nd</a></td></tr>
-        <tr><th>3rd in your county</th><td class="fm">$300/mo</td><td><a href="https://buy.stripe.com/14A9ATdsN3vsfJ38S11440o">Claim 3rd</a></td></tr>
-        <tr><th>4th in your county</th><td class="fm">$200/mo</td><td><a href="https://buy.stripe.com/fZueVdewR6HEdAVgkt1440p">Claim 4th</a></td></tr>
-        <tr><th>5th in your county</th><td class="fm">$100/mo</td><td><a href="https://buy.stripe.com/5kQdR94Wh7LI0O9gkt1440q">Claim 5th</a></td></tr>
-        <tr><th>6th and below</th><td colspan="2">Included with your paid listing — no extra placement fee. Ranked by traffic, reviews, and engagement in your county: the best-run page tops this list.</td></tr>
-      </tbody>
-    </table>
+    <ul>
+      <li><b>1st in your county — $500/mo</b> · <a href="https://buy.stripe.com/28E4gz9cx0jg40lc4d1440m">Claim 1st</a></li>
+      <li><b>2nd in your county — $400/mo</b> · <a href="https://buy.stripe.com/3cI14n88t4zw68t7NX1440n">Claim 2nd</a></li>
+      <li><b>3rd in your county — $300/mo</b> · <a href="https://buy.stripe.com/14A9ATdsN3vsfJ38S11440o">Claim 3rd</a></li>
+      <li><b>4th in your county — $200/mo</b> · <a href="https://buy.stripe.com/fZueVdewR6HEdAVgkt1440p">Claim 4th</a></li>
+      <li><b>5th in your county — $100/mo</b> · <a href="https://buy.stripe.com/5kQdR94Wh7LI0O9gkt1440q">Claim 5th</a></li>
+      <li><b>6th and below — included with your paid listing.</b> No extra placement fee: you're ranked by traffic, reviews, and engagement in your county, so the best-run page tops this list.</li>
+    </ul>
     <p style="color:var(--muted);font-size:12px">Competitor ranges from industry reports, Nov 2026. Ours are published flat, for everyone.</p>
     <h3 style="margin:22px 0 4px">What you get</h3>
-    <table class="cmp">
-      <tbody>
-        <tr><th>Who can join</th><td class="fm">Every licensed role — retail, delivery, brands, farmers, manufacturers, distributors, drivers, services</td><td>Dispensaries &amp; brands</td><td>Dispensaries &amp; brands</td></tr>
-        <tr><th>Promotion</th><td class="fm">Across our email, social &amp; web network</td><td>Inside Weedmaps only</td><td>Inside Leafly only</td></tr>
-        <tr><th>Done-for-you marketing</th><td class="fm">Yes — add-on services</td><td>No</td><td>No</td></tr>
-        <tr><th>Wholesale menus (licensed buyers)</th><td class="fm">Included — gated by license</td><td>Separate paid software</td><td>No</td></tr>
-        <tr><th>Data &amp; leads</th><td class="fm">Monthly recap included · deeper analytics as an add-on</td><td>Paid add-on</td><td>Limited reporting</td></tr>
-        <tr><th>Services directory</th><td class="fm">Yes — licensing help, consultants &amp; more under Services</td><td>No</td><td>No</td></tr>
-      </tbody>
-    </table>
+    <p style="color:var(--muted);font-size:14px">Same industry, three very different offers. Here's the plain version:</p>
+    <p style="margin:16px 0 4px"><b>FindMyWeed</b></p>
+    <ul>
+      <li>Every licensed role can join — retail, delivery, brands, farmers, manufacturers, distributors, labs, and services</li>
+      <li>Your promotion runs across our email, social, and web network — not just inside one app</li>
+      <li>Done-for-you marketing available as add-ons</li>
+      <li>Wholesale menus included, shown only to verified licensed buyers</li>
+      <li>Monthly recap with your views and leads included</li>
+      <li>A Services directory — licensing help, consultants, and more</li>
+    </ul>
+    <p style="margin:16px 0 4px"><b>Weedmaps</b></p>
+    <ul>
+      <li>Dispensaries and brands</li>
+      <li>Promotion stays inside Weedmaps only</li>
+      <li>No done-for-you marketing</li>
+      <li>Wholesale is separate paid software</li>
+      <li>Data and leads cost extra</li>
+    </ul>
+    <p style="margin:16px 0 4px"><b>Leafly</b></p>
+    <ul>
+      <li>Dispensaries and brands</li>
+      <li>Promotion stays inside Leafly only</li>
+      <li>No done-for-you marketing</li>
+      <li>No wholesale menus</li>
+      <li>Reporting is limited</li>
+    </ul>
   </section>
 
   <section id="articles">

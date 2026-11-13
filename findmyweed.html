@@ -16,7 +16,7 @@
   h1 span{color:var(--green)}
   .tag{font-size:20px;color:var(--text)}
   .sub{color:var(--muted);max-width:560px;margin:10px auto 0}
-  .pricing{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:36px 0 8px}
+  .pricing{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:36px 0 8px}
   @media(max-width:640px){.pricing{grid-template-columns:1fr}h1{font-size:40px}}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 24px;text-align:center;position:relative}
   .card.best{border-color:var(--green)}
@@ -55,17 +55,23 @@
   <!-- SUBSCRIPTIONS FIRST -->
   <div class="pricing">
     <div class="card">
-      <div class="plan">Network Base</div>
+      <div class="plan">Standard Listing</div>
       <div class="price">$10<small>/mo</small></div>
-      <div class="per">Monthly plan — cancel anytime</div>
+      <div class="per">Brands, manufacturers, distributors, cultivators, services — everyone except retail. Covers every location your licenses cover.</div>
       <a class="btn ghost" href="https://buy.stripe.com/bJe9AT74pd62bsN4BL1440i">Start Monthly</a>
     </div>
     <div class="card best">
       <div class="badge">BEST VALUE — 2 MONTHS FREE</div>
-      <div class="plan">Network Base</div>
+      <div class="plan">Standard Listing</div>
       <div class="price">$100<small>/yr</small></div>
-      <div class="per">Annual plan — one payment, full year</div>
+      <div class="per">Same standard listing, one payment for the full year.</div>
       <a class="btn" href="https://buy.stripe.com/00wfZhfAVgieaoJ8S11440j">Start Annual</a>
+    </div>
+    <div class="card">
+      <div class="plan">Retail Listing</div>
+      <div class="price">$50<small>/mo</small></div>
+      <div class="per">Storefronts + delivery — customer-facing, ranked in your county. Covers every location your licenses cover.</div>
+      <a class="btn ghost" href="https://buy.stripe.com/bJe3cv2O9gie9kF6JT1440l">Start Retail Listing</a>
     </div>
   </div>
 
@@ -83,6 +89,35 @@
       <li>Your brand in front of our network of delivery, retail, and manufacturing partners</li>
       <li>10% commission only on orders that come through us — wholesale and retail. No orders, no commission</li>
     </ul>
+  </section>
+
+
+  <section id="grid">
+    <h2>The honest grid — <span>us vs. them</span></h2>
+    <style>.cmp{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}.cmp th,.cmp td{border:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top}.cmp thead th{background:var(--card)}.cmp tbody th{background:#10160f;color:var(--muted);font-weight:600}.cmp td.fm{font-weight:700;color:var(--green)}</style>
+    <table class="cmp">
+      <thead><tr><th></th><th>Weedmaps</th><th>Leafly</th><th>FindMyWeed</th></tr></thead>
+      <tbody>
+        <tr><th>Listing</th><td>$300–$420/mo</td><td>$500–$600+/mo</td><td class="fm">$10/mo standard · $50/mo retail &amp; delivery</td></tr>
+        <tr><th>Top placement</th><td>$500–$30,000/mo, priced by CITY</td><td>Up to ~$10,000/mo in big markets</td><td class="fm">$100–$500/mo, priced by COUNTY — a bigger area for a smaller price</td></tr>
+        <tr><th>What clients actually pay</th><td>$2,807/mo average (their own public filing)</td><td>Typically $600–$4,000/mo</td><td class="fm">$10–$50 flat, published right here</td></tr>
+        <tr><th>Promotion</th><td>Inside Weedmaps only</td><td>Inside Leafly only</td><td class="fm">Across our email, social, and web network</td></tr>
+        <tr><th>Data &amp; leads</th><td>Sold as add-ons</td><td>Limited reporting</td><td class="fm">Monthly recap included — views, clicks, leads</td></tr>
+      </tbody>
+    </table>
+    <h3 style="margin:18px 0 4px">County placement — priced by rank</h3>
+    <p style="color:var(--muted);font-size:14px">Placement is per county, per category, on top of your listing. Only five paid spots exist in each county.</p>
+    <table class="cmp">
+      <tbody>
+        <tr><th>1st in your county</th><td class="fm">$500/mo</td><td><a href="https://buy.stripe.com/28E4gz9cx0jg40lc4d1440m">Claim 1st</a></td></tr>
+        <tr><th>2nd in your county</th><td class="fm">$400/mo</td><td><a href="https://buy.stripe.com/3cI14n88t4zw68t7NX1440n">Claim 2nd</a></td></tr>
+        <tr><th>3rd in your county</th><td class="fm">$300/mo</td><td><a href="https://buy.stripe.com/14A9ATdsN3vsfJ38S11440o">Claim 3rd</a></td></tr>
+        <tr><th>4th in your county</th><td class="fm">$200/mo</td><td><a href="https://buy.stripe.com/fZueVdewR6HEdAVgkt1440p">Claim 4th</a></td></tr>
+        <tr><th>5th in your county</th><td class="fm">$100/mo</td><td><a href="https://buy.stripe.com/5kQdR94Wh7LI0O9gkt1440q">Claim 5th</a></td></tr>
+        <tr><th>6th and below</th><td colspan="2">Free with your listing — ranked by traffic, reviews, and engagement in your county. Run the best page and you top the organic list without paying for placement.</td></tr>
+      </tbody>
+    </table>
+    <p style="color:var(--muted);font-size:12px">Competitor figures are reported ranges from industry sources (Nov 2026) — neither Weedmaps nor Leafly publishes a rate card; their prices are quoted per city by sales reps. Ours are published here, flat, for everyone.</p>
   </section>
 
   <section>
@@ -104,7 +139,7 @@
       <li>Deep-dive analytics &amp; leads reporting</li>
       <li>In-store digital menu boards — content + design (runs on your screens)</li>
       <li>Delivery setup support</li>
-      <li><b>Premium Top Placement — $50/mo</b> — one of only 5 top spots in your county in the FindMyWeed directory. Paying members rise; premium members lead. <a href="https://buy.stripe.com/7sY3cv74p2ro40l3xH1440k">Claim a top spot</a></li>
+      <li><b>County top placement — $100–$500/mo</b> — 1st through 5th in your county, priced by rank (see the grid above). On top of your listing.</li>
         <li>More — need a service not listed here? We can offer more. Tell us what you need</li>
     </ul>
   </section>

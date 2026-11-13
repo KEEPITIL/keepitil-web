@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tell Us What You Need | KEEPITIL</title>
+<meta name="description" content="Tell KEEPITIL what your business needs — check the services you're interested in and this goes straight to our team by email.">
+<style>
+:root{--bg:#0b0f0c;--card:#131a15;--line:#243528;--green:#3ddc74;--green-dim:#27ae55;--text:#eef5ef;--muted:#a9bcae}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.55}
+.wrap{max-width:760px;margin:0 auto;padding:32px 20px 64px}
+header{text-align:center;padding:32px 0 8px}
+.brand{letter-spacing:.35em;font-size:13px;color:var(--green);text-transform:uppercase}
+h1{font-size:42px;line-height:1.08;margin:10px 0 6px}
+h1 span{color:var(--green)}
+.sub{color:var(--muted);max-width:560px;margin:10px auto 0}
+form{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 24px;margin-top:32px}
+label.fl{display:block;font-weight:700;margin:18px 0 6px}
+label.fl:first-child{margin-top:0}
+input[type=text],input[type=email],select,textarea{width:100%;background:#0b0f0c;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:12px 14px;font-size:16px}
+textarea{min-height:110px;resize:vertical}
+fieldset{border:none;margin-top:22px}
+legend{font-weight:800;font-size:18px;margin-bottom:4px}
+legend span{color:var(--green)}
+.check{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #182219;cursor:pointer}
+.check:last-child{border-bottom:none}
+.check input{width:20px;height:20px;margin-top:2px;accent-color:var(--green);flex:none}
+.check small{color:var(--muted);display:block}
+.btn{display:block;width:100%;background:var(--green);color:#06130a;font-weight:800;border:none;padding:15px 18px;border-radius:10px;font-size:18px;cursor:pointer;margin-top:26px}
+.btn:hover{background:var(--green-dim)}
+.note{color:var(--muted);font-size:13px;text-align:center;margin-top:12px}
+#done{display:none;background:var(--card);border:1px solid var(--green);border-radius:16px;padding:30px 24px;margin-top:32px;text-align:center}
+#done h2{font-size:26px;margin-bottom:8px}
+#done p{color:var(--muted)}
+.err{display:none;color:#ff9c9c;text-align:center;margin-top:12px;font-size:14px}
+footer{text-align:center;color:var(--muted);font-size:13px;margin-top:48px}
+footer a{color:var(--green);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">KEEPITIL</div>
+    <h1>Tell us what you <span>need</span></h1>
+    <p class="sub">Check everything you're interested in. This goes straight to our team by email — we reply from info@keepitil.com with pricing and next steps.</p>
+  </header>
+
+  <form id="needsForm">
+    <label class="fl" for="name">Your name *</label>
+    <input type="text" id="name" required autocomplete="name">
+    <label class="fl" for="email">Your email *</label>
+    <input type="email" id="email" required autocomplete="email">
+    <label class="fl" for="biz">Business / brand name</label>
+    <input type="text" id="biz" autocomplete="organization">
+    <label class="fl" for="industry">Your industry</label>
+    <select id="industry">
+      <option>Artist / Music</option>
+      <option>Venue / Events</option>
+      <option>Cannabis</option>
+      <option>Local business / Brand</option>
+      <option>Other</option>
+    </select>
+
+    <fieldset>
+      <legend>Most <span>popular</span></legend>
+      <label class="check"><input type="checkbox" value="Social Media Management — $499/mo"><span>Social Media Management<small>$499/mo — content, posting, and engagement handled for you</small></span></label>
+      <label class="check"><input type="checkbox" value="Artist Launch Package — $249"><span>Artist Launch Package<small>$249 — feature article, social launch deck, promo assets, audit</small></span></label>
+      <label class="check"><input type="checkbox" value="Event Promo Package — $199/event"><span>Event Promo Package<small>$199 per event — listing + social promo push</small></span></label>
+      <label class="check"><input type="checkbox" value="Brand Presence Pass — $199"><span>Brand Presence Pass<small>$199 — Google, Yelp, and social profiles set up right</small></span></label>
+      <label class="check"><input type="checkbox" value="FindMyWeed Network — $10/mo or $100/yr"><span>FindMyWeed Network (cannabis)<small>$10/mo or $100/yr — your menu across our email + social network</small></span></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Build &amp; <span>manage</span></legend>
+      <label class="check"><input type="checkbox" value="Merch Store Build — $299 setup + $99/mo management"><span>Merch Store Build<small>$299 setup, + $99/mo management if you want it run for you</small></span></label>
+      <label class="check"><input type="checkbox" value="Brand Presence Management — $99/mo"><span>Brand Presence Management<small>$99/mo — profiles kept current and consistent</small></span></label>
+      <label class="check"><input type="checkbox" value="SMM Premium — $999/mo"><span>SMM Premium<small>$999/mo — expanded social coverage and creative</small></span></label>
+      <label class="check"><input type="checkbox" value="Website build / management"><span>Website<small>Build a new site, or have us manage yours</small></span></label>
+      <label class="check"><input type="checkbox" value="Full brand build-out"><span>Full Brand Build-Out<small>Logo-to-launch brand creation</small></span></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Release <span>tools</span></legend>
+      <label class="check"><input type="checkbox" value="Release Strategy Session — $150"><span>Release Strategy Session<small>$150 — written strategy for your next drop, delivered async</small></span></label>
+      <label class="check"><input type="checkbox" value="Release Graphics Pack — $99"><span>Release Graphics Pack<small>$99</small></span></label>
+      <label class="check"><input type="checkbox" value="Lyric Visual Pack — $35"><span>Lyric Visual Pack<small>$35</small></span></label>
+      <label class="check"><input type="checkbox" value="SoundCloud Audit — $29"><span>SoundCloud Audit<small>$29</small></span></label>
+      <label class="check"><input type="checkbox" value="Release Rollout Kit — $19"><span>Release Rollout Kit<small>$19</small></span></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Anything <span>else?</span></legend>
+      <label class="check"><input type="checkbox" value="Something not listed / not sure yet"><span>Something not listed — or not sure yet<small>Tell us the goal below and we'll quote it</small></span></label>
+    </fieldset>
+
+    <label class="fl" for="notes">Anything we should know? (links, dates, goals)</label>
+    <textarea id="notes" placeholder="e.g. Album drops Dec 12, I need the full launch…"></textarea>
+
+    <button class="btn" type="submit" id="sendBtn">Send to KEEPITIL</button>
+    <p class="note">Goes to info@keepitil.com · No spam, ever · We reply within 1 business day</p>
+    <p class="err" id="errMsg">That didn't send — tap again and we'll open your email app with everything filled in instead.</p>
+  </form>
+
+  <div id="done">
+    <h2>Got it ✅</h2>
+    <p>Your request is in our inbox. We reply from info@keepitil.com within 1 business day with pricing and next steps.</p>
+  </div>
+
+  <footer>KEEPITIL — a marketing company · <a href="https://keepitil.com">keepitil.com</a> · <a href="https://keepitil.com/about">About</a></footer>
+</div>
+
+<script>
+document.getElementById('needsForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  var btn = document.getElementById('sendBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  var name = document.getElementById('name').value.trim();
+  var email = document.getElementById('email').value.trim();
+  var biz = document.getElementById('biz').value.trim();
+  var industry = document.getElementById('industry').value;
+  var notes = document.getElementById('notes').value.trim();
+  var picked = [];
+  document.querySelectorAll('input[type=checkbox]:checked').forEach(function(c){ picked.push(c.value); });
+  var payload = {
+    _subject: 'New service request — ' + (biz || name) + ' (' + industry + ')',
+    _template: 'table',
+    _captcha: 'false',
+    Name: name,
+    Email: email,
+    'Business / Brand': biz || '—',
+    Industry: industry,
+    'Services wanted': picked.length ? picked.join(' | ') : 'None checked — see notes',
+    Notes: notes || '—',
+    _replyto: email
+  };
+  try {
+    var res = await fetch('https://formsubmit.co/ajax/info@keepitil.com', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('bad status');
+    document.getElementById('needsForm').style.display = 'none';
+    document.getElementById('done').style.display = 'block';
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  } catch (err) {
+    var body = 'Name: ' + name + '\nEmail: ' + email + '\nBusiness/Brand: ' + biz + '\nIndustry: ' + industry + '\n\nServices wanted:\n- ' + (picked.join('\n- ') || 'None checked') + '\n\nNotes:\n' + notes;
+    window.location.href = 'mailto:info@keepitil.com?subject=' + encodeURIComponent(payload._subject) + '&body=' + encodeURIComponent(body);
+    document.getElementById('errMsg').style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Send to KEEPITIL';
+  }
+});
+</script>
+</body>
+</html>

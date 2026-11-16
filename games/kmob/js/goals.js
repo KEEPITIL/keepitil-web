@@ -56,7 +56,7 @@
     const r0 = g.rank; g.xp += d.xp; g.rank = KM.rankOf(g.xp); return { xp: d.xp, rankUp: g.rank > r0 ? g.rank : 0, tokens: g.rank > r0 ? (g.rank - r0) * KM.GOALS_TOKENS : 0 }; };
   // what one battle reports (Endless War or Daily Defense)
   KM.goalStats = (sim, opts) => ({ kills: sim.kills || 0, cleared: sim.cleared || 0, bosses: sim.bossesKilled || 0, loot: Math.round(sim.colCoins || 0), healed: Math.round(sim.healed || 0),
-    powers: typeof sim.powersUsed === 'number' ? sim.powersUsed : 0, chant: sim.chant && sim.chant.pack ? 1 : 0, battles: 1, daily: opts && opts.daily ? 1 : 0, wave: opts && opts.daily ? 0 : sim.wave || 0 });
+    powers: typeof sim.powersUsed === 'number' ? sim.powersUsed : 0, chant: sim.chant && sim.chant.pack ? 1 : 0, battles: 1, daily: opts && opts.daily ? 1 : 0, wave: opts && (opts.daily || opts.crusade) ? 0 : sim.wave || 0 });   /* WEEK 0: Crusades feed kills/bosses/battles; wave goals stay Endless */
   KM.validGoals = raw => { const g = KM.goalsEmpty(); if (!raw || typeof raw !== 'object') return g; const num = (v, max) => (typeof v === 'number' && isFinite(v) && v >= 0) ? Math.min(Math.floor(v), max) : 0;
     g.xp = num(raw.xp, 1e7); g.rank = KM.rankOf(g.xp); g.done = num(raw.done, 1e6);
     if (/^\d{4}-\d{2}-\d{2}$/.test(raw.lastDay)) g.lastDay = raw.lastDay; if (/^\d{4}-W\d{2}$/.test(raw.lastWeek)) g.lastWeek = raw.lastWeek;

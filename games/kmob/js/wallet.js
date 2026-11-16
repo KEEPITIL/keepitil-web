@@ -2,7 +2,7 @@
    currency first; if that is short it calls KM.Purchased.spend, which debits the cached balance at once and queues a server
    spend with a unique key. The queue is persisted (kmob.spendq) and retried until the server answers, so a spend happens exactly
    once even with lost responses, offline play or two devices. Nothing is spendable until the wallet MODE is known:
-   iPhone → the App Store environment (production = live, Sandbox/TestFlight = test); website → the server's Stripe mode. */
+   iPhone → the App Store environment (production = live, Sandbox/TestFlight = test); website → the server's payment mode. */
 (function (G) {
   const KM = G.KM, A2 = KM.Account; if (!A2) return;
   const QK = 'kmob.spendq', ls = () => { try { return G.localStorage; } catch (e) { return null; } };
@@ -12,15 +12,16 @@
   const P = KM.Purchased = { diamonds: 0, tokens: 0, flushing: false,
     apply(w) { const pend = q(), sum = c => pend.filter(x => x.cur === c).reduce((s, x) => s + x.n, 0);
       P.diamonds = Math.max(0, (w && w.diamonds || 0) - sum('diamonds')); P.tokens = Math.max(0, (w && w.tokens || 0) - sum('tokens')); },
-    spend(cur, n) { if (!envReady || !A2.session || !(n > 0) || P[cur] < n) return false;
+    spend(cur, n) { if (G.KMOB_STAGING || !envReady || !A2.session || !(n > 0) || P[cur] < n) return false;
       const b = new Uint8Array(12); G.crypto.getRandomValues(b); const key = 'shop-' + Array.prototype.map.call(b, x => ('0' + x.toString(16)).slice(-2)).join('');
       P[cur] -= n; const a = q(); a.push({ key, cur, n, mode: A2.mode, user: A2.session.user.id }); setq(a); P.flush(); return true; },
-    flush() { if (P.flushing || !A2.session) return; const a = q(), it = a[0]; if (!it) return;
+    flush() { if (G.KMOB_STAGING || P.flushing || !A2.session) return; const a = q(), it = a[0]; if (!it) return;   // STAGING never sends a queued deduction
       if (it.user !== A2.session.user.id || it.mode !== A2.mode) { setq(a.slice(1)); return P.flush(); }   // belongs to another account / wallet: drop, never charge it elsewhere
       P.flushing = true; A2.spend(it.cur, it.n, it.key, 'shop').then(w => { setq(q().filter(x => x.key !== it.key)); if (!w.ok) log({ spendRefused: it });
         P.flushing = false; P.apply(A2.wallet); P.flush(); }, () => { P.flushing = false; G.setTimeout(P.flush, 15000); }); } };   // offline: keep it, retry
   const rw = A2.refreshWallet.bind(A2); A2.refreshWallet = () => rw().then(w => { P.apply(w); P.flush(); return w; });
   const so = A2.signOut.bind(A2); A2.signOut = () => { P.diamonds = 0; P.tokens = 0; return so(); };
+  // @web-store-begin (website only; scripts/build-www strips this from the iOS app)
   if (!G.KMOB_NATIVE && G.fetch) KM.walletStart = () => {   // website (started by main.js once the public key is set): the wallet follows the server's Stripe mode
     // returning from Stripe Checkout: ?checkout=success|cancel (the webhook credits the wallet; the page only shows and refreshes)
     const back = (() => { try { const u = new URL(G.location.href), c = u.searchParams.get('checkout'); if (!c) return null; u.searchParams.delete('checkout'); u.searchParams.delete('session');
@@ -37,4 +38,5 @@
         G.setTimeout(poll, 1500); }
       if (KM.shopRedraw) KM.shopRedraw(); }, () => { /* offline: purchased currency stays unspendable; free play is unaffected */ });
   };
+  // @web-store-end
 })(typeof window !== 'undefined' ? window : globalThis);

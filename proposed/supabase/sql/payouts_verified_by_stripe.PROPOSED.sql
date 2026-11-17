@@ -1,14 +1,29 @@
 -- =====================================================================================================
 -- PROPOSED / NOT APPLIED. Stripe Connect payouts: payouts_enabled is set ONLY from a Stripe account the
 -- SERVER read (connect-status refresh or the verified account.updated webhook). Needs Joe's DDL OK + review.
--- Tested only in PGlite (proposed/supabase/tests/payouts-sql.pglite.test.mjs) against a STAND-IN of the live
--- objects (app_users and mark_payouts_enabled), reconstructed from how create-event.html uses them and KODE's
--- description ("client-callable, no Stripe check"). Read the live definitions before any review for apply.
+-- Tested in PGlite (proposed/supabase/tests/payouts-sql.pglite.test.mjs) against a stand-in built from the
+-- byte-exact LIVE baseline in proposed/supabase/baseline/ (Kode's read-only keepitil-prod reads, 2026-11-17):
+-- mark_payouts_enabled() verbatim, app_users' 8 columns, its 5 RLS policies and its table/column grants.
 --
--- The bug this fixes: create-event.html calls supa.rpc('mark_payouts_enabled') when the browser returns with
--- ?payouts=done, so any signed-in user can mark themselves payout-ready without Stripe; create-checkout then
--- trusts app_users.payouts_enabled.
+-- The bug this fixes: any signed-in user can make themselves "payout ready" with no Stripe check, in two ways:
+--   a) rpc('mark_payouts_enabled')   (create-event.html does this on ?payouts=done), and
+--   b) a direct  update app_users set payouts_enabled = true, stripe_account_id = 'acct_...'  on their own row
+--      (table UPDATE grant + column UPDATE grants + the self-update policies allow it).
+-- create-checkout then trusts app_users.payouts_enabled. The REVOKE below closes (a); the trigger closes (b).
+--
+-- Runs as ONE transaction: PRECHECK (the live function is the baseline) -> changes -> VERIFY; any failure rolls
+-- everything back.
 -- =====================================================================================================
+
+begin;
+
+-- PRECHECK: the live function is exactly the one this was written against (baseline md5).
+do $$
+begin
+  if md5(pg_get_functiondef('public.mark_payouts_enabled()'::regprocedure)) <> '975786ee803b22f894ef01af63f20d5c' then
+    raise exception 'PRECHECK: public.mark_payouts_enabled() differs from the 2026-11-17 baseline; re-review before applying';
+  end if;
+end $$;
 
 -- 1) Status columns the server keeps from Stripe (all default to "not ready").
 alter table public.app_users
@@ -81,10 +96,33 @@ revoke all on function public.set_payouts_from_stripe(text, boolean, boolean, te
 grant execute on function public.set_stripe_account_id(uuid, text) to service_role;
 grant execute on function public.set_payouts_from_stripe(text, boolean, boolean, text[], text) to service_role;
 
+-- VERIFY: the client paths are closed. Any failure aborts and rolls back the whole transaction.
+do $$
+declare f oid := 'public.mark_payouts_enabled()'::regprocedure;
+begin
+  if has_function_privilege('anon', f, 'EXECUTE') or has_function_privilege('authenticated', f, 'EXECUTE') then
+    raise exception 'VERIFY: anon or authenticated can still execute mark_payouts_enabled()';
+  end if;
+  if exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+              where p.oid = f and a.grantee = 0 and a.privilege_type = 'EXECUTE') then
+    raise exception 'VERIFY: PUBLIC can still execute mark_payouts_enabled()';
+  end if;
+  if not exists (select 1 from pg_trigger where tgname = 'guard_stripe_columns'
+                  and tgrelid = 'public.app_users'::regclass and not tgisinternal and tgenabled <> 'D') then
+    raise exception 'VERIFY: trigger guard_stripe_columns is missing or disabled on public.app_users';
+  end if;
+  if has_function_privilege('authenticated', 'public.set_payouts_from_stripe(text, boolean, boolean, text[], text)'::regprocedure, 'EXECUTE')
+     or has_function_privilege('authenticated', 'public.set_stripe_account_id(uuid, text)'::regprocedure, 'EXECUTE') then
+    raise exception 'VERIFY: a client role can execute the server-only writers';
+  end if;
+end $$;
+
+commit;
+
 -- Review checklist before any apply:
---  [ ] read the LIVE app_users definition, its grants/policies and mark_payouts_enabled(); adjust the stand-in test
+--  [x] live baseline read (proposed/supabase/baseline/, 2026-11-17); PRECHECK pins mark_payouts_enabled() by md5
 --  [ ] signed-in user: rpc('mark_payouts_enabled') -> permission denied; payouts_enabled unchanged
---  [ ] signed-in user: update/insert of any Stripe column -> refused; other own-profile fields still update
+--  [ ] signed-in user: direct update/insert of any Stripe column -> refused; other own-profile fields still update
 --  [ ] only service_role can run set_stripe_account_id / set_payouts_from_stripe
---  [ ] existing rows: decide whether to re-verify every payouts_enabled = true user via connect-status before
---      relying on the flag (the old flag may have been set by the client)
+--  [ ] the ONE user with payouts_enabled = true today (baseline): re-verify that account with Stripe through
+--      connect-status (or reset the flag) before applying; the old flag may have been set by the client

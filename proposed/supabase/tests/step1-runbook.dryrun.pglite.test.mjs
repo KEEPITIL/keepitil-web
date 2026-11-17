@@ -95,6 +95,26 @@ test('vendored #67 files are byte-exact (MANIFEST sha256)', () => {
   for (const f of m.files) assert.equal(createHash('sha256').update(readFileSync(join(VEN, f.vendored))).digest('hex'), f.sha256, f.vendored);
 });
 
+test('runbook pin table = the md5 of every SQL file it runs (raw bytes); a 1-byte edit is caught', () => {
+  const rb = rd(P, 'RUNBOOK-step1.md');
+  const pins = [...rb.matchAll(/^\s*\| `([\w.-]+\.sql)` \| `([0-9a-f]{32})` \|$/gm)].map((m) => [m[1], m[2]]);
+  const where = {
+    'backup-functions.sql': [P, 'runbook'], 'postapply-checks.sql': [P, 'runbook'],
+    'event_orders_guard.PROPOSED.sql': [VEN], 'event_orders_guard.ROLLBACK.sql': [VEN],
+    'payouts_flag_lock.PROPOSED.sql': [P, 'supabase', 'sql'], 'payouts_flag_lock.ROLLBACK.sql': [P, 'supabase', 'sql'],
+  };
+  assert.deepEqual(pins.map(([f]) => f).sort(), Object.keys(where).sort(), 'the pin table lists exactly the six SQL files');
+  const md5 = (b) => createHash('md5').update(b).digest('hex');
+  for (const [f, want] of pins) {
+    const raw = readFileSync(join(...where[f], f));
+    assert.equal(md5(raw), want, f);
+    const edited = Buffer.concat([raw, Buffer.from(' ')]);          // negative control
+    assert.notEqual(md5(edited), want, `${f}: an edited copy must fail the pin`);
+  }
+  assert.ok(!rb.includes('-f .github/internal'), 'no step runs a SQL file from another repo path');
+  assert.ok(!/psql[^\n]*-f proposed\//.test(rb), 'every psql -f runs the pinned staging copy ($S)');
+});
+
 test('DRY RUN: backup → #67 → #182 → post-apply checks all ok → rollback #182 → rollback #67 → identical to live', async () => {
   const pg = await live();
   const before = await snapshot(pg);

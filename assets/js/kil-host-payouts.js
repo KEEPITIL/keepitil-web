@@ -12,7 +12,7 @@
     if (Array.isArray(s.currently_due) && s.currently_due.length) out.push('Stripe still needs: ' + s.currently_due.map(function (f) { return String(f).replace(/[._]+/g, ' '); }).join(', '));
     out.push('Held for you: ' + money(s.held_cents) + (s.pending_cents ? ' (+ ' + money(s.pending_cents) + ' still clearing)' : ''));
     if (s.next_release_at === 'next daily run') out.push('Next payout to your bank: at the next daily payout run.');
-    else if (s.next_release_at) out.push('Next payout to your bank: from ' + day(s.next_release_at) + ' (' + (s.hold_days | 0) + ' days after your event ends).');
+    else if (s.next_release_at) out.push('Next payout to your bank: after your event ends (' + day(s.next_release_at) + '), then on Stripe\'s payout schedule' + (Number.isInteger(s.stripe_delay_days) ? ' (about ' + s.stripe_delay_days + ' days for this account)' : '') + '.');
     (Array.isArray(s.payouts) ? s.payouts : []).slice(0, 3).forEach(function (p) {
       out.push('Paid out ' + money(p.amount) + ' · ' + String(p.status) + (p.arrival_date ? ' · arrives ' + day(p.arrival_date) : ''));
     });

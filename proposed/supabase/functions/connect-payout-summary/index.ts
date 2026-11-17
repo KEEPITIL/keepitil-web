@@ -3,7 +3,7 @@
 // the bank, and when the next release is due (connect-release-payouts' rule). Read-only apart from storing the status.
 import { requireTestObject } from "../_shared/stripe-test-guard.ts";
 import { statusFromAccount, statusRpcArgs } from "../_shared/payouts-status.ts";
-import { releaseDecision, HOLD_DAYS } from "../_shared/release-rule.ts";
+import { releaseDecision, stripeDelayDays } from "../_shared/release-rule.ts";
 import { J, cors, admin, stripeTest, caller, fail } from "../_shared/common.ts";
 
 const usd = (arr: any[] | undefined) => (arr || []).filter((b) => b.currency === "usd").reduce((n, b) => n + (b.amount | 0), 0);
@@ -17,7 +17,8 @@ Deno.serve(async (req) => {
     const { data: row } = await db.from("app_users").select("id,handle,stripe_account_id").eq("id", me.id).maybeSingle();
     if (!row?.stripe_account_id) return J({ connected: false, verified: false, test_mode: true });
     const stripe = stripeTest();
-    const status = statusFromAccount(requireTestObject(await stripe.accounts.retrieve(row.stripe_account_id), "account"));
+    const account = requireTestObject(await stripe.accounts.retrieve(row.stripe_account_id), "account");
+    const status = statusFromAccount(account);
     await db.rpc("set_payouts_from_stripe", statusRpcArgs(status));
     const bal = requireTestObject(await stripe.balance.retrieve({ stripeAccount: row.stripe_account_id }), "balance");
     const list = await stripe.payouts.list({ limit: 5 }, { stripeAccount: row.stripe_account_id });
@@ -29,13 +30,13 @@ Deno.serve(async (req) => {
       const { data: paid } = await db.from("event_orders").select("id").eq("event_id", e.id).eq("status", "paid");
       events.push({ ...e, paid_orders: (paid || []).length });
     }
-    const d = releaseDecision(events, Date.now(), HOLD_DAYS);
+    const d = releaseDecision(events, Date.now());
     return J({
       test_mode: true, connected: true, verified: status.verified,
       charges_enabled: status.charges_enabled, payouts_enabled: status.payouts_enabled, currently_due: status.currently_due.slice(0, 20),
       held_cents: usd(bal.available), pending_cents: usd(bal.pending),
       next_release_at: d.release ? "next daily run" : d.nextReleaseAt ? new Date(d.nextReleaseAt).toISOString() : null,
-      hold_days: HOLD_DAYS, payouts,
+      stripe_delay_days: stripeDelayDays(account), payouts,
     });
   } catch (e) {
     return fail(e);

@@ -36,5 +36,5 @@ The four `stripe_*` status columns in the PROPOSED SQL don't exist yet. The prop
 2. anon's write grants are blocked only by RLS: `auth.uid()` is null, so no policy matches. The trigger also covers anon, because `current_user` is `anon`.
 3. Rows today: 1 user has `payouts_enabled = true`, and 1 has a `stripe_account_id`. Re-verify that account with Stripe before trusting the flag (open item 3).
 
-## Not inspected
-Other SECURITY DEFINER functions owned by `postgres` that update `app_users` bypass the trigger, because `current_user = postgres` inside them. Before apply, list every definer function that writes `app_users.stripe_account_id` or `payouts_enabled`.
+## Definer functions that write the payout columns (checked)
+Only `mark_payouts_enabled` is a SECURITY DEFINER function in `public` that writes `stripe_account_id` or `payouts_enabled` on `app_users`. Once the proposed REVOKE runs, it is the only `current_user = postgres` path, and nothing else would bypass the trigger. The search matched `update … app_users` in function source that mentions either column.

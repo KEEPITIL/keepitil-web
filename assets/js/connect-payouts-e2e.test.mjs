@@ -28,11 +28,11 @@ const H = { onboard: await load('connect-onboard'), webhook: await load('connect
 const rule = await import(pathToFileURL(join(FN, '_shared', 'release-rule.ts')).href);
 const { statusRpcArgs, statusFromAccount } = await import(pathToFileURL(join(FN, '_shared', 'payouts-status.ts')).href);
 
-const TEST_KEY = 'sk_test_FAKE0000', WHSEC = 'whsec_FAKE0000', SVC = 'service-role-FAKE';
+const TEST_KEY = 'sk_test_FAKE0000', WHSEC = 'whsec_FAKE0000', SVC = 'service-role-FAKE', CRON = 'cron-secret-FAKE-0123456789abcdef0123';
 const U = '00000000-0000-0000-0000-0000000000a1', DAY = 86_400_000;
 function world(over = {}) {
   globalThis.__sc = {
-    env: { STRIPE_TEST_SECRET_KEY: TEST_KEY, STRIPE_TEST_CONNECT_WEBHOOK_SECRET: WHSEC, SUPABASE_URL: 'https://db.test', SUPABASE_SERVICE_ROLE_KEY: SVC, SUPABASE_ANON_KEY: 'anon-FAKE' },
+    env: { STRIPE_TEST_SECRET_KEY: TEST_KEY, STRIPE_TEST_CONNECT_WEBHOOK_SECRET: WHSEC, SUPABASE_URL: 'https://db.test', SUPABASE_SERVICE_ROLE_KEY: SVC, SUPABASE_ANON_KEY: 'anon-FAKE', PAYOUT_RELEASE_CRON_SECRET: CRON },
     user: { id: U, email: 'host@example.invalid' },
     db: { app_users: [{ id: U, handle: 'host', stripe_account_id: null, payouts_enabled: false }], events: [], event_orders: [] },
     accounts: {}, balances: {}, payouts: {}, seq: 0, stripeCalls: [], rpcCalls: [], rpcErrors: [], stripeKeysUsed: [], liveObjects: false, ...over,
@@ -41,7 +41,7 @@ function world(over = {}) {
 }
 const post = (h, body, headers = { Authorization: 'Bearer user-token' }) => h(new Request('https://fn.test', { method: 'POST', headers, body: body === undefined ? undefined : JSON.stringify(body) }));
 const json = async (r) => ({ status: r.status, body: await r.json() });
-const svcHeaders = { Authorization: `Bearer ${SVC}` };
+const svcHeaders = { Authorization: `Bearer ${CRON}` };   // the scheduler's dedicated secret
 const verify = async (w) => {   // Stripe finishes onboarding: account.updated, signed
   const id = w.db.app_users[0].stripe_account_id;
   Object.assign(w.accounts[id], { charges_enabled: true, payouts_enabled: true, details_submitted: true, requirements: { currently_due: [], disabled_reason: null } });
@@ -151,4 +151,46 @@ test('dashboard: the PAYOUTS card ships hidden behind KIL_FLAGS.hostPayouts; the
   assert.match(el.textContent, /not ready yet/);
   HP.render(dom.window.document, el, null);
   assert.match(el.textContent, /could not be checked/);
+});
+
+test('H1: TEST-mode payouts refuse keepitil-prod before touching the database or Stripe (Tower 1 review)', async () => {
+  for (const url of ['https://ovmqtzjfpzrbzrlkxwgw.supabase.co', 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co/']) {
+    const w = world(); w.env.SUPABASE_URL = url;
+    for (const [name, h, headers] of [['onboard', H.onboard], ['summary', H.summary], ['sale', H.sale], ['release', H.release, svcHeaders]]) {
+      const r = await post(h, {}, headers);
+      assert.equal(r.status, 503, `${name} refuses prod`);
+      assert.match((await r.json()).error, /never run against keepitil-prod/);
+    }
+    assert.equal(w.stripeCalls.length, 0, 'no Stripe call');
+    assert.equal(w.db.app_users[0].stripe_account_id, null, 'nothing written');
+  }
+  const w = world(); w.env.SUPABASE_URL = 'https://abcdefghijklmnopqrst.supabase.co';
+  assert.equal((await post(H.onboard, {})).status, 200, 'a non-prod project works');
+});
+
+test('release job: only the dedicated scheduler secret; the service role key, a host token or a short secret are refused', async () => {
+  const w = world(); await post(H.onboard, {}); await verify(w); hostEvent(w, 10);
+  assert.equal((await post(H.release, undefined, { Authorization: `Bearer ${SVC}` })).status, 403, 'the service key no longer works');
+  w.env.PAYOUT_RELEASE_CRON_SECRET = 'short';
+  assert.equal((await post(H.release, undefined, { Authorization: 'Bearer short' })).status, 403, 'a weak secret is refused even when it matches');
+  assert.equal(w.stripeCalls.filter((c) => c.what === 'payouts.create').length, 0);
+});
+
+test('release job: one host failing (a live account the test key cannot use) never stops the others', async () => {
+  const w = world();
+  w.db.app_users.push({ id: 'u2', handle: 'live', stripe_account_id: 'acct_live1', payouts_enabled: true });
+  w.accounts.acct_live1 = { id: 'acct_live1', charges_enabled: true, payouts_enabled: true, requirements: {} };
+  w.db.events.push({ id: 90, owner_handle: 'live', ends_at: new Date(Date.now() - 10 * DAY).toISOString(), starts_at: null });
+  w.db.event_orders.push({ id: 9000, event_id: 90, status: 'paid' });
+  const realRetrieve = null;
+  await post(H.onboard, {}); await verify(w); await post(H.sale, { amount_cents: 1200 }); hostEvent(w, 10);
+  // make the first host's balance lookup fail like a live account would
+  const fakes = await import(FAKES); void fakes; void realRetrieve;
+  w.balances.acct_live1 = { available: 500, pending: 0 };
+  w.liveFor = 'acct_live1';
+  const r = await json(await post(H.release, undefined, svcHeaders));
+  const byHandle = Object.fromEntries(r.body.hosts.map((x) => [x.handle, x]));
+  assert.equal(byHandle.host.released, 1200, 'the healthy host is still paid');
+  assert.equal(byHandle.live.released, 0);
+  assert.equal(byHandle.live.error, 'not a test-mode account');
 });

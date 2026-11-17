@@ -37,7 +37,7 @@ export default class Stripe {
       retrieve: async (opts) => {
         rec('balance.retrieve', null, opts);
         const b = bal(opts.stripeAccount);
-        return { object: 'balance', livemode: live(), available: [{ amount: b.available, currency: 'usd' }], pending: [{ amount: b.pending, currency: 'usd' }] };
+        return { object: 'balance', livemode: live() || S().liveFor === opts.stripeAccount, available: [{ amount: b.available, currency: 'usd' }], pending: [{ amount: b.pending, currency: 'usd' }] };
       }
     };
     this.payouts = {

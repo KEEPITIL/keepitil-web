@@ -80,8 +80,8 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
 <div class="wrap">
   <div class="gate" id="gate" style="display:none">
     <h1 style="font-size:1.6rem">ADD AN EVENT</h1>
-    <p>Log in to submit third-party events to the KEEPITIL calendar. Hosting your own with tickets? Use <a href="/create-event" style="color:var(--brand)">Create Event</a>.</p>
-    <a class="btn" href="/apply">Log in / Join</a>
+    <p>Log in to submit third-party events to the KEEPITIL calendar. Every listing is reviewed before it goes live, and you come straight back here after you log in. Hosting your own with tickets? Use <a href="/create-event" style="color:var(--brand)">Create Event</a>.</p>
+    <a class="btn" id="gateLogin" href="/apply?next=%2Fsubmit-event">Log in / Join</a>
   </div>
 
   <div id="app" style="display:none">
@@ -288,7 +288,11 @@ $('form').addEventListener('submit',function(e){
   if(!supa){ $('gate').style.display='block'; return; }
   supa.auth.getSession().then(function(r){
     var s=r&&r.data&&r.data.session;
-    if(!s){ $('gate').style.display='block'; return; }
+    if(!s){
+      /* Return here after login, keeping any ?vs= / ?edit= prefill (apply.html only accepts same-origin paths via kilNext). */
+      $('gateLogin').href='/apply?next='+encodeURIComponent(location.pathname+location.search);
+      $('gate').style.display='block'; return;
+    }
     $('app').style.display='block';
     loadRecent();
   });

@@ -1,0 +1,181 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "type": "bigint",
+      "null": "NO",
+      "default": null
+    },
+    {
+      "name": "event_id",
+      "type": "bigint",
+      "null": "YES",
+      "default": null
+    },
+    {
+      "name": "tier_id",
+      "type": "bigint",
+      "null": "YES",
+      "default": null
+    },
+    {
+      "name": "buyer_email",
+      "type": "text",
+      "null": "YES",
+      "default": null
+    },
+    {
+      "name": "buyer_handle",
+      "type": "text",
+      "null": "YES",
+      "default": null
+    },
+    {
+      "name": "qty",
+      "type": "integer",
+      "null": "NO",
+      "default": "1"
+    },
+    {
+      "name": "referral_code",
+      "type": "text",
+      "null": "YES",
+      "default": null
+    },
+    {
+      "name": "qr_token",
+      "type": "text",
+      "null": "YES",
+      "default": "replace((gen_random_uuid())::text, '-'::text, ''::text)"
+    },
+    {
+      "name": "status",
+      "type": "text",
+      "null": "NO",
+      "default": "'pending'::text"
+    },
+    {
+      "name": "amount_cents",
+      "type": "integer",
+      "null": "YES",
+      "default": null
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "null": "NO",
+      "default": "now()"
+    },
+    {
+      "name": "stripe_session_id",
+      "type": "text",
+      "null": "YES",
+      "default": null
+    },
+    {
+      "name": "stripe_payment_intent",
+      "type": "text",
+      "null": "YES",
+      "default": null
+    },
+    {
+      "name": "application_fee_cents",
+      "type": "integer",
+      "null": "YES",
+      "default": null
+    },
+    {
+      "name": "organizer_acct",
+      "type": "text",
+      "null": "YES",
+      "default": null
+    },
+    {
+      "name": "checked_in_at",
+      "type": "timestamp with time zone",
+      "null": "YES",
+      "default": null
+    }
+  ],
+  "constraints": [
+    {
+      "name": "event_orders_event_id_fkey",
+      "type": "f",
+      "def": "FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "event_orders_pkey",
+      "type": "p",
+      "def": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "event_orders_status_check",
+      "type": "c",
+      "def": "CHECK ((status = ANY (ARRAY['pending'::text, 'paid'::text, 'checked_in'::text, 'refunded'::text, 'cancelled'::text])))"
+    },
+    {
+      "name": "event_orders_tier_id_fkey",
+      "type": "f",
+      "def": "FOREIGN KEY (tier_id) REFERENCES ticket_tiers(id) ON DELETE SET NULL"
+    }
+  ],
+  "indexes": [
+    "CREATE UNIQUE INDEX event_orders_pkey ON public.event_orders USING btree (id)",
+    "CREATE INDEX event_orders_qr_token_idx ON public.event_orders USING btree (qr_token)",
+    "CREATE UNIQUE INDEX event_orders_session_tier_uidx ON public.event_orders USING btree (stripe_session_id, tier_id) WHERE (stripe_session_id IS NOT NULL)",
+    "CREATE INDEX orders_event_idx ON public.event_orders USING btree (event_id, status)"
+  ],
+  "rls": {
+    "enabled": true,
+    "forced": false
+  },
+  "policies": [
+    {
+      "name": "event_orders_organizer_read",
+      "cmd": "SELECT",
+      "roles": [
+        "authenticated"
+      ],
+      "using": "(event_id IN ( SELECT events.id\n   FROM events\n  WHERE (events.owner_handle = my_handle())))",
+      "check": null
+    },
+    {
+      "name": "event_orders_organizer_update",
+      "cmd": "UPDATE",
+      "roles": [
+        "authenticated"
+      ],
+      "using": "(event_id IN ( SELECT events.id\n   FROM events\n  WHERE (events.owner_handle = my_handle())))",
+      "check": "(event_id IN ( SELECT events.id\n   FROM events\n  WHERE (events.owner_handle = my_handle())))"
+    },
+    {
+      "name": "event_orders_owner_read",
+      "cmd": "SELECT",
+      "roles": [
+        "authenticated"
+      ],
+      "using": "(buyer_email = my_email())",
+      "check": null
+    }
+  ],
+  "table_grants": null,
+  "fn_acl": {
+    "refund_ticket_order": "postgres=X/postgres,service_role=X/postgres",
+    "fulfill_ticket_order": "postgres=X/postgres,service_role=X/postgres"
+  },
+  "checkin_tables": null,
+  "checkin_fns": [
+    "organizer_dashboard",
+    "check_in_ticket",
+    "get_ticket",
+    "get_my_tickets",
+    "event_checkin_scan"
+  ],
+  "triggers": null,
+  "status_values": [
+    {
+      "status": "paid",
+      "n": 5
+    }
+  ]
+}

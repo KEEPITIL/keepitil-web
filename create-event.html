@@ -479,12 +479,16 @@ async function init(){
   var r=await supa.auth.getSession().catch(function(){return null;});
   var s=r&&r.data?r.data.session:null;
   if(!s){ $('gate').style.display='block'; return; }
-  /* PERMISSION (Founder 2026-07-31): only KEEPITIL / the company can create KEEPITIL events (Stripe-tied)
-     and VS events. Everyone else can only SUBMIT 3rd-party events → route them to submit-event.html. */
-  try{ var adm=await supa.rpc('is_admin'); if(!(adm&&adm.data)){ location.replace('/submit-event?why=keepitil-events-are-company-only'); return; } }catch(e){ location.replace('/submit-event'); return; }
+  /* PERMISSION (Joe 2026-11-16, host events step 1): any signed-in user with a KEEPITIL handle can host.
+     Was company-only (Founder 2026-07-31). The server (create_event_with_tiers) pins the event to the caller's
+     own handle and sends non-admin events to review, so this page only checks that a handle exists. */
   var uid=s.user&&s.user.id, payok=false;
   try{ if(uid){ var q=await supa.from('app_users').select('handle,payouts_enabled').eq('id',uid).maybeSingle(); if(q&&q.data){ if(q.data.handle) MY_HANDLE=q.data.handle; payok=!!q.data.payouts_enabled; } } }catch(e){}
   try{ if(uid && new URLSearchParams(location.search).get('payouts')==='done' && !payok){ await supa.rpc('mark_payouts_enabled'); payok=true; } }catch(e){}
+  if(!MY_HANDLE){
+    $('gate').innerHTML='<h1 style="font-size:1.6rem">HOST AN EVENT</h1><p>Pick your KEEPITIL handle on your profile first. Events are listed under it.</p><a class="btn" href="/profile">Go to my profile</a>';
+    $('gate').style.display='block'; return;
+  }
   var os=$('orgSel'); os.innerHTML='<option value="'+(MY_HANDLE||'')+'">@'+(MY_HANDLE||'me')+'</option>';
   $('form').style.display='block'; addTier();
   payoutsPanel(payok);

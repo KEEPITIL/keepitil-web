@@ -178,7 +178,7 @@ psql "$KIL_PROD_DB_URL" -X -v ON_ERROR_STOP=1 -f "$S/event_orders_guard.ROLLBACK
 - **Report to Kode / Grok:** the step, the exact error text, and the section-4 output.
 
 ## Dry-run result (PGlite, live baselines; nothing applied)
-`node --test proposed/supabase/tests/step1-runbook.dryrun.pglite.test.mjs` → tests 1–4 **pass** (4/0 at 309f6c0); test 5 added 2026-11-17, its run is pending on a tower:
+`node --test proposed/supabase/tests/step1-runbook.dryrun.pglite.test.mjs` → **5 pass, 0 fail** (Nexus Mac, PGlite, at 8140416, 2026-11-17):
 1. #67's vendored files are byte-exact (`proposed/runbook/vendor/MANIFEST.json`, sha256).
 2. **Full run:**
    - the backup query prints the 3 baseline md5s;

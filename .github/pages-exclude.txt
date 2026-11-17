@@ -28,6 +28,11 @@ db/
 # deployed references it (the closure check enforces that), and assets/js/pages-sql-exclusion.test.mjs
 # fails the build tests if ANY .sql/migration directory is left out of the artifact.
 supabase/
+# Drafts that are NOT deployed: proposed Edge Function sources, proposed SQL and their tests
+# (see proposed/README.md). Under .nojekyll they would otherwise be served at keepitil.com/proposed/...
+proposed/
+# Test fakes used by assets/js/*.test.mjs (not site content).
+assets/js/fixtures/
 package.json
 package-lock.json
 

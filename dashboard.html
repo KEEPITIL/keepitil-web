@@ -310,6 +310,8 @@ function card(d){
         (st==='published'?'<a href="/event?e='+encodeURIComponent(d.slug)+'">View</a>':'')+
         '<a href="/dashboard?e='+encodeURIComponent(d.slug)+'">Promote</a>'+
         '<button onclick="dup('+d.event_id+',this)">Duplicate</button>'+
+        // DRAFT partial refunds (flag OFF by default): opens this event's order rows with a Refund tickets control each
+        (window.KIL_FLAGS&&window.KIL_FLAGS.organizerRefunds===true?'<button type="button" class="ev-refunds" data-refunds="'+(d.event_id|0)+'">Refunds</button>':'')+
       '</div>'+
     '</div>'+
   '</div>';
@@ -1268,5 +1270,37 @@ init();
 <script src="/assets/js/keepitil-radio.js?v=20261109a" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
 <script src="/keepitil-shell.js?v=20261031a" defer></script>
+<!-- DRAFT: organizer partial refunds (refund-tickets Edge Function, keepitil.github.io #66). OFF unless
+     window.KIL_FLAGS.organizerRefunds === true. Reads this organizer's own order rows with their session (RLS
+     event_orders_organizer_read); never writes event_orders; the function moves the money. -->
+<script type="module">
+import { refundsEnabled, renderRefundControl, money, unitCents } from '/assets/js/organizer-refunds.mjs';
+if (refundsEnabled(window)) {
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest && e.target.closest('[data-refunds]'); if (!b || !window.supa) return;
+    const evId = Number(b.getAttribute('data-refunds')); if (!Number.isInteger(evId)) return;
+    const card = b.closest('.ev'); let panel = card && card.querySelector('.kr-panel');
+    if (panel) { panel.remove(); return; }
+    panel = document.createElement('div'); panel.className = 'kr-panel'; panel.textContent = 'Loading orders…';
+    (card || document.body).appendChild(panel);
+    const q = await window.supa.from('event_orders').select('*').eq('event_id', evId).order('created_at', { ascending: false });
+    panel.textContent = '';
+    if (q.error) { panel.textContent = 'Could not load orders.'; return; }
+    const rows = q.data || [];
+    if (!rows.length) { panel.textContent = 'No ticket orders yet.'; return; }
+    for (const row of rows) {
+      const line = document.createElement('div'); line.className = 'kr-row';
+      const unit = unitCents(row);
+      const head = document.createElement('p');
+      head.textContent = 'Order ' + row.id + ' · ' + row.qty + (row.qty === 1 ? ' ticket' : ' tickets') +
+        (unit != null ? ' · ' + money(unit) + ' each' : '') + ' · ' + String(row.status || '');
+      line.appendChild(head);
+      const ctl = renderRefundControl(window, row, { doc: document, sb: window.supa, rows });
+      if (ctl) line.appendChild(ctl);
+      panel.appendChild(line);
+    }
+  });
+}
+</script>
 </body>
 </html>

@@ -178,7 +178,8 @@ if(supa){
   supa.auth.getSession().then(function(r){
     if(r&&r.data&&r.data.session){
       if(new URLSearchParams(location.search).get('stay')==='1'){ var p=$('portal-note'); if(p) p.style.display='inline-block'; }
-      else { location.replace('/profile'); }
+      /* Back from Google/Apple sign-in (or already signed in): honour a safe ?next= (e.g. /submit-event), else profile. */
+      else { location.replace(kilNext() || '/profile'); }
     }
   }).catch(function(){});
 }
@@ -219,7 +220,7 @@ function signIn(){
           if(rb) rb.addEventListener('click', function(){
             rb.disabled=true; rb.textContent='Sending…';
             supa.auth.resend({type:'signup', email:email,
-              options:{emailRedirectTo:'https://keepitil.com/apply'}})
+              options:{emailRedirectTo:'https://keepitil.com/apply' + (kilNext() ? '?next=' + encodeURIComponent(kilNext()) : '')}})
               .then(function(rr){
                 $('err').textContent = (rr && rr.error)
                   ? 'Could not send it just now — try again in a minute.'
@@ -262,7 +263,7 @@ $('login-btn').addEventListener('click',signIn);
 function oauth(provider){
   if(!supa){ var e=$('err'); if(e){e.textContent='Sign-in is unavailable right now.';} return; }
   try{
-    supa.auth.signInWithOAuth({ provider:provider, options:{ redirectTo: location.origin+'/profile' } })
+    supa.auth.signInWithOAuth({ provider:provider, options:{ redirectTo: location.origin + (kilNext() ? '/apply?next=' + encodeURIComponent(kilNext()) : '/profile') } })
       .then(function(r){ if(r&&r.error){ var e=$('err'); if(e){ e.textContent=(provider.charAt(0).toUpperCase()+provider.slice(1))+' sign-in failed: '+r.error.message; } } })
       .catch(function(){ var e=$('err'); if(e){e.textContent='Could not start sign-in. Try email + password.';} });
   }catch(e2){ var e=$('err'); if(e){e.textContent='Could not start sign-in.';} }

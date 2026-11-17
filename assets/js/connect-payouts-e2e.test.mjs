@@ -1,6 +1,6 @@
 // Stripe Connect payouts END TO END in TEST MODE (proposed functions under proposed/supabase/functions; NOT deployed).
 // onboard (Express test account, manual payouts) -> Stripe verifies (account.updated webhook) -> a test ticket sale
-// lands on the host's connected balance -> the money is HELD until the event ends + HOLD_DAYS -> the daily release
+// lands on the host's connected balance -> the money is HELD until the event ends (Stripe then times the payout) -> the daily release
 // pays it out (idempotent) -> the host dashboard row shows held / next release / paid out. In-memory fakes, no
 // network, no keys. Every rule has a negative control.
 import test from 'node:test';
@@ -69,13 +69,13 @@ test('END TO END: onboard → verified → sale lands → held during the event 
   const sale = await json(await post(H.sale, { amount_cents: 2500 }));
   assert.equal(sale.status, 200); assert.equal(sale.body.connected_balance.available[0].amount, 2500);
 
-  hostEvent(w, 1);                                         // event ended 1 day ago: still inside the 3-day hold
+  hostEvent(w, -1);                                        // the event is TOMORROW: money is held
   let rel = await json(await post(H.release, undefined, svcHeaders));
   assert.equal(rel.body.hosts[0].released, 0); assert.match(rel.body.hosts[0].hold_until, /^\d{4}-/);
   let sum = await json(await post(H.summary, undefined));
   assert.equal(sum.body.held_cents, 2500); assert.match(sum.body.next_release_at, /^\d{4}-/);
 
-  w.db.events[0].ends_at = new Date(Date.now() - 4 * DAY).toISOString();   // now past ends_at + 3 days
+  w.db.events[0].ends_at = new Date(Date.now() - 1 * 3600_000).toISOString();   // the event ended an hour ago
   rel = await json(await post(H.release, undefined, svcHeaders));
   assert.equal(rel.body.hosts[0].released, 2500); assert.match(rel.body.hosts[0].payout, /^po_test/);
   const again = await json(await post(H.release, undefined, svcHeaders));
@@ -93,16 +93,18 @@ test('END TO END: onboard → verified → sale lands → held during the event 
   assert.deepEqual(w.rpcErrors, [], 'every status write matched STEP 1\'s set_payouts_from_stripe signature');
 });
 
-test('release rule: holds until every PAID event ended + HOLD_DAYS; free events and undated paid events behave safely', () => {
+test('release rule (Joe 15:10): hold until every PAID event has ENDED; no days of our own (Stripe times the payout)', () => {
   const now = Date.parse('2026-11-20T12:00:00Z');
-  const ev = (endDaysAgo, paid = 1, ends = true) => ({ id: 1, ends_at: ends ? new Date(now - endDaysAgo * DAY).toISOString() : null, starts_at: ends ? null : null, paid_orders: paid });
-  assert.equal(rule.HOLD_DAYS, 3);
-  assert.equal(rule.releaseDecision([ev(4)], now).release, true);
-  assert.equal(rule.releaseDecision([ev(2)], now).release, false);
-  assert.equal(rule.releaseDecision([ev(10), ev(1)], now).release, false, 'one event still in its window holds the host');
-  assert.equal(rule.releaseDecision([ev(1, 0)], now).reason, 'no paid events');
+  const ev = (endInHours, paid = 1, dated = true) => ({ id: 1, ends_at: dated ? new Date(now + endInHours * 3600_000).toISOString() : null, starts_at: null, paid_orders: paid });
+  assert.equal('HOLD_DAYS' in rule, false, 'no hard-coded hold days');
+  assert.equal(rule.releaseDecision([ev(-1)], now).release, true, 'ended an hour ago: release (Stripe decides when funds are available)');
+  assert.equal(rule.releaseDecision([ev(+1)], now).release, false, 'ends in an hour: hold');
+  assert.equal(rule.releaseDecision([ev(-100), ev(+2)], now).release, false, 'one event still ahead holds the host');
+  assert.equal(rule.releaseDecision([ev(+5, 0)], now).reason, 'no paid events');
   assert.deepEqual(rule.releaseDecision([ev(0, 1, false)], now), { release: false, nextReleaseAt: null, reason: 'a paid event has no date' });
-  assert.equal(rule.releaseAt({ id: 1, ends_at: null, starts_at: '2026-11-10T20:00:00Z', paid_orders: 1 }, 3), Date.parse('2026-11-14T20:00:00Z'), 'no end time: start + 1 day');
+  assert.equal(rule.eventEndsAt({ id: 1, ends_at: null, starts_at: '2026-11-10T20:00:00Z', paid_orders: 1 }), Date.parse('2026-11-11T20:00:00Z'), 'no end time: start + 1 day');
+  assert.equal(rule.stripeDelayDays({ settings: { payouts: { schedule: { delay_days: 2 } } } }), 2);
+  assert.equal(rule.stripeDelayDays({}), null);
 });
 
 test('NEGATIVE CONTROLS: live key, live objects, host token on the release job, unverified host, bad webhook signature', async () => {

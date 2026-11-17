@@ -1,9 +1,9 @@
 // PROPOSED connect-release-payouts (TEST MODE ONLY). NOT DEPLOYED. A daily job (pg_cron + net.http_post with the
 // service role key), never a page: "transfer after the event". For every payout-verified host, if every paid event
-// has ended + HOLD_DAYS, pays the connected account's AVAILABLE USD balance out to the host's bank (payouts.create on
+// has ENDED, pays the connected account's AVAILABLE USD balance (Stripe decides when funds become available) out to the host's bank (payouts.create on
 // the connected account, idempotent per account per day). Otherwise holds, and says until when.
 import { requireTestObject } from "../_shared/stripe-test-guard.ts";
-import { releaseDecision, releaseKey, HOLD_DAYS } from "../_shared/release-rule.ts";
+import { releaseDecision, releaseKey } from "../_shared/release-rule.ts";
 import { J, admin, stripeTest, fail, sameSecret } from "../_shared/common.ts";
 
 Deno.serve(async (req) => {
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
         const { data: paid } = await db.from("event_orders").select("id").eq("event_id", e.id).eq("status", "paid");
         events.push({ ...e, paid_orders: (paid || []).length });
       }
-      const d = releaseDecision(events, now, HOLD_DAYS);
+      const d = releaseDecision(events, now);
       if (!d.release) { out.push({ handle: h.handle, released: 0, hold_until: d.nextReleaseAt ? new Date(d.nextReleaseAt).toISOString() : null, reason: d.reason }); continue; }
       const bal = requireTestObject(await stripe.balance.retrieve({ stripeAccount: h.stripe_account_id }), "balance");
       const usd = (bal.available || []).filter((b: any) => b.currency === "usd").reduce((n: number, b: any) => n + (b.amount | 0), 0);
@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
         out.push({ handle: h.handle, released: 0, error: (e as Error)?.name === "StripeModeError" ? "not a test-mode account" : "skipped after an error" });
       }
     }
-    return J({ test_mode: true, hold_days: HOLD_DAYS, hosts: out });
+    return J({ test_mode: true, payout_timing: "stripe", hosts: out });
   } catch (e) {
     return fail(e);
   }

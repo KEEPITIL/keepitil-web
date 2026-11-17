@@ -469,7 +469,7 @@ async function startPayouts(btn){
 }
 function payoutsPanel(connected){
   var wrap=document.createElement('div'); wrap.className='card'; wrap.style.marginTop='0';
-  if(connected){ wrap.innerHTML='<div class="tier-badge">Payouts</div><h3>Payouts connected &#10003;</h3><p class="note">You can sell tickets — KEEPITIL keeps 5% + $0.99 and Stripe pays the rest to your bank.</p>'; }
+  if(connected){ wrap.innerHTML='<div class="tier-badge">Payouts</div><h3>Payouts connected &#10003;</h3><p class="note">You can sell tickets — KEEPITIL keeps 5% + $0.50 and Stripe pays the rest to your bank.</p>'; }
   else { wrap.innerHTML='<div class="tier-badge">Payouts</div><h3>Set up payouts to sell tickets</h3><p class="note">Connect a Stripe account (about 2 minutes) so paid ticket money lands in your bank. Free events don\'t need this.</p><button type="button" class="addtier" id="payoutsBtn">Set up payouts</button>'; }
   var rail=document.querySelector('.rail'); rail.insertBefore(wrap, rail.firstChild);
   var pb=document.getElementById('payoutsBtn'); if(pb) pb.addEventListener('click',function(){ startPayouts(pb); });

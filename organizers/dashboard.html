@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script src="/assets/js/kil-safe-html.js?v=20261107a"></script>
+<script src="/assets/js/kil-host-payouts.js?v=20261117a"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     :root{
@@ -209,6 +210,11 @@
           <p style="font-size:.85rem;color:var(--grey);margin-bottom:.75rem;">Your organizer account status determines whether you can submit events.</p>
           <div id="account-status-display"></div>
         </div>
+        <div class="card" id="payouts-card" hidden>
+          <div class="card-title">PAYOUTS</div>
+          <p style="font-size:.85rem;color:var(--grey);margin-bottom:.75rem;">Ticket money is held by Stripe and paid to your bank after your event ends.</p>
+          <div id="payouts-status-display"></div>
+        </div>
         <div class="card">
           <div class="card-title">RECENT EVENTS</div>
           <div id="recent-events-list"><p style="color:var(--grey);font-size:.85rem;">No events yet. <a href="#" onclick="showTab('submit')" style="color:var(--blue);">Submit your first event →</a></p></div>
@@ -358,6 +364,11 @@ let organizerProfile = null;
 // ─── INIT ────────────────────────────────────────────────────────────────────
 (async () => {
   const { data: { session } } = await sb.auth.getSession();
+  // PAYOUTS row (Stripe Connect TEST-MODE draft, flag OFF): shown only when KIL_FLAGS.hostPayouts is true.
+  if (session && window.KIL_FLAGS && window.KIL_FLAGS.hostPayouts && window.KIL_HOST_PAYOUTS) {
+    const card = document.getElementById('payouts-card');
+    if (card) { card.hidden = false; KIL_HOST_PAYOUTS.load(fetch, SUPABASE_URL, session.access_token).then(function (s) { KIL_HOST_PAYOUTS.render(document, document.getElementById('payouts-status-display'), s); }); }
+  }
   if (session) {
     currentUser = session.user;
     showDashboard();

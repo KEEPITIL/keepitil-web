@@ -95,24 +95,42 @@ test('vendored #67 files are byte-exact (MANIFEST sha256)', () => {
   for (const f of m.files) assert.equal(createHash('sha256').update(readFileSync(join(VEN, f.vendored))).digest('hex'), f.sha256, f.vendored);
 });
 
-test('runbook pin table = the md5 of every SQL file it runs (raw bytes); a 1-byte edit is caught', () => {
-  const rb = rd(P, 'RUNBOOK-step1.md');
-  const pins = [...rb.matchAll(/^\s*\| `([\w.-]+\.sql)` \| `([0-9a-f]{32})` \|$/gm)].map((m) => [m[1], m[2]]);
-  const where = {
-    'backup-functions.sql': [P, 'runbook'], 'postapply-checks.sql': [P, 'runbook'],
-    'event_orders_guard.PROPOSED.sql': [VEN], 'event_orders_guard.ROLLBACK.sql': [VEN],
-    'payouts_flag_lock.PROPOSED.sql': [P, 'supabase', 'sql'], 'payouts_flag_lock.ROLLBACK.sql': [P, 'supabase', 'sql'],
-  };
-  assert.deepEqual(pins.map(([f]) => f).sort(), Object.keys(where).sort(), 'the pin table lists exactly the six SQL files');
+// The runbook's own procedure: what it stages, what it pins (table + heredoc), what it runs. Returns problems.
+const pinProblems = (rb, where) => {
   const md5 = (b) => createHash('md5').update(b).digest('hex');
-  for (const [f, want] of pins) {
-    const raw = readFileSync(join(...where[f], f));
-    assert.equal(md5(raw), want, f);
-    const edited = Buffer.concat([raw, Buffer.from(' ')]);          // negative control
-    assert.notEqual(md5(edited), want, `${f}: an edited copy must fail the pin`);
+  const table = new Map([...rb.matchAll(/^\s*\| `([\w.-]+\.sql)` \| `([0-9a-f]{32})` \|$/gm)].map((m) => [m[1], m[2]]));
+  const loop = (rb.match(/for f in ([\s\S]*?); do\s*\n\s*git show/) || [, ''])[1];
+  const staged = [...loop.matchAll(/(proposed\/[\w./-]+\.sql)/g)].map((m) => m[1]);
+  const here = new Map([...rb.matchAll(/^\s*([0-9a-f]{32}) ([\w.-]+\.sql)$/gm)].map((m) => [m[2], m[1]]));
+  const runs = [...rb.matchAll(/-f "\$S\/([\w.-]+\.sql)"/g)].map((m) => m[1]);
+  const out = [];
+  const names = staged.map((p) => p.split('/').pop());
+  if (names.length !== 6) out.push(`staging loop stages ${names.length} files, want 6`);
+  for (const n of names) {
+    if (!table.has(n)) out.push(`staged but not pinned: ${n}`);
+    if (here.get(n) !== table.get(n)) out.push(`heredoc pin differs from table: ${n}`);
   }
-  assert.ok(!rb.includes('-f .github/internal'), 'no step runs a SQL file from another repo path');
-  assert.ok(!/psql[^\n]*-f proposed\//.test(rb), 'every psql -f runs the pinned staging copy ($S)');
+  for (const n of table.keys()) if (!names.includes(n)) out.push(`pinned but not staged: ${n}`);
+  for (const r of runs) if (!names.includes(r)) out.push(`runs an unpinned file: ${r}`);
+  for (const p of staged) {
+    const f = p.split('/').pop();
+    if (md5(readFileSync(join(where, p))) !== table.get(f)) out.push(`md5 mismatch: ${f}`);
+  }
+  if (/psql[^\n]*-f (?!"\$S\/)/.test(rb)) out.push('a psql -f runs something other than the pinned staging copy');
+  return out;
+};
+
+test('runbook pins: staged = pinned = run, heredoc = table = raw-byte md5; negative controls caught', () => {
+  const ROOT = join(P, '..');
+  const rb = rd(P, 'RUNBOOK-step1.md');
+  assert.deepEqual(pinProblems(rb, ROOT), []);
+  // negative controls: each mutation of the runbook's procedure must be flagged
+  assert.ok(pinProblems(rb + '\npsql "$U" -X -f "$S/unpinned.sql"\n', ROOT).some((p) => p.startsWith('runs an unpinned file')));
+  assert.ok(pinProblems(rb + '\npsql "$U" -X -f proposed/x.sql\n', ROOT).some((p) => p.startsWith('a psql -f runs')));
+  assert.ok(pinProblems(rb.replace('2fb3e5ac230b0609938043a7447569cb payouts', '00000000000000000000000000000000 payouts'), ROOT)
+    .some((p) => p.startsWith('heredoc pin differs')));
+  assert.ok(pinProblems(rb.replaceAll('2fb3e5ac230b0609938043a7447569cb', '00000000000000000000000000000000'), ROOT)
+    .some((p) => p.startsWith('md5 mismatch')));
 });
 
 test('DRY RUN: backup → #67 → #182 → post-apply checks all ok → rollback #182 → rollback #67 → identical to live', async () => {

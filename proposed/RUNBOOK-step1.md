@@ -27,8 +27,18 @@ No data is changed. No Stripe setting changes: `connect-status` uses the existin
            proposed/supabase/sql/payouts_flag_lock.PROPOSED.sql proposed/supabase/sql/payouts_flag_lock.ROLLBACK.sql; do
     git show "$SHA:$f" > "$S/$(basename "$f")"
   done
-  ( cd "$S" && openssl dgst -md5 -r *.sql | sort -k2 )   # compare with the table below, line by line
+  while read -r m f; do                                  # the same six pins as the table below
+    [ "$(openssl dgst -md5 -r "$S/$f" | cut -c1-32)" = "$m" ] && echo "ok $f" || echo "MISMATCH $f  -> STOP"
+  done <<'PINS'
+  b093e8b4790c106ce82b78311ac71724 backup-functions.sql
+  529fa00607abaede6fcfbd94e0181eec event_orders_guard.PROPOSED.sql
+  7f55591112e517c6dde1631d7b188800 event_orders_guard.ROLLBACK.sql
+  2fb3e5ac230b0609938043a7447569cb payouts_flag_lock.PROPOSED.sql
+  bcd4e56e230a366c44e6fbdb735aab85 payouts_flag_lock.ROLLBACK.sql
+  86341886280f976659dc1c5836e1360b postapply-checks.sql
+  PINS
   ```
+  Expect six `ok` lines.
 
   | file (in `$S`) | md5 |
   |---|---|
@@ -39,7 +49,7 @@ No data is changed. No Stripe setting changes: `connect-status` uses the existin
   | `payouts_flag_lock.ROLLBACK.sql` | `bcd4e56e230a366c44e6fbdb735aab85` |
   | `postapply-checks.sql` | `86341886280f976659dc1c5836e1360b` |
 
-  - Any mismatch → **STOP**: the files differ from the reviewed ones. `rm -rf "$S"` only after the whole session ends (apply or rollback).
+  - Any mismatch → **STOP**: the files differ from the reviewed ones. `rm -rf "$S"` only after the whole session ends (apply or rollback). `$S` holds only SQL, no secrets, so leaving it after a failure is harmless.
 - **Connection:** an env var `KIL_PROD_DB_URL` that holds the **session pooler** URI (port 5432, user `postgres.<project-ref>`), from the Supabase dashboard → Database → Connection string.
   - **Never paste it into a doc, PR, chat or shell history.** Load it from your password manager into the shell for this session only.
   - Use the session pooler, not the transaction pooler (6543), for the DDL.
@@ -181,4 +191,5 @@ psql "$KIL_PROD_DB_URL" -X -v ON_ERROR_STOP=1 -f "$S/event_orders_guard.ROLLBACK
 5. **File pins:** the pin table in section 0 equals the raw-byte md5 of all six SQL files; a 1-byte edit fails the pin (negative control); no step runs SQL from another repo's path or unstaged from the working tree.
 
 ## Review log
+- 2026-11-17, Tower 1 second read of a17db05: the pin check is now a loop (no by-eye compare); test 5 checks the runbook's own staging loop, heredoc pins and every `-f "$S/…"` against the pin table, with a real negative control; `*.sql -text` keeps Windows checkouts byte-exact.
 - 2026-11-17, Tower 1 (read-only review of the step 2 runbook; the same gaps applied here): every SQL file is now run from an md5-pinned staging copy (`$S`), #67 runs from the vendored byte-exact copy (no cross-repo path), and the backup md5 check is a grep, not by eye. No SQL changed.

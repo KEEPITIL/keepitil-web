@@ -254,6 +254,7 @@
             <span class="tf-count" id="tf-count">0 tickets</span>
             <span class="tf-sub" id="tf-sub">$0.00</span>
             <span class="tf-tax" id="tf-tax">Tax $0.00</span>
+            <span class="tf-tax tf-fee" id="tf-fee"></span>
             <button class="tf-buy" id="tf-buy" type="button" disabled>Buy</button>
           </div>
           <div class="tix-terms" id="tix-terms" style="display:none">By purchasing you agree to the <a href="/ticket-terms">Ticket Terms</a> &amp; <a href="/refund">Refund Policy</a>.</div>
@@ -294,6 +295,7 @@
 <footer>© 2026 KEEPITIL — OC · LA · San Diego events, artists &amp; culture. <a href="/">keepitil.com</a></footer>
 <script src="/assets/js/vendor/qrcode.js"></script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
+<script src="/assets/js/kil-fee.js?v=20261117a"></script>
 <script>
 (function(){
   var URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
@@ -692,7 +694,11 @@
               });
               $('tf-count').textContent=count+' ticket'+(count===1?'':'s');
               $('tf-sub').textContent=money(sub);
-              $('tf-tax').textContent='Tax $0.00 · fees included';
+              $('tf-tax').textContent='Tax $0.00';
+              // Buyer service fee (Joe 2026-11-17), shown BEFORE payment with the checkout's own numbers (assets/js/kil-fee.js).
+              // Free-only orders show no fee. paid = the paid-ticket subtotal; free rows have data-unit 0.
+              var KF=window.KIL_FEE, fee=(KF&&sub>0)?KF.serviceFeeCents(sub):0, feeEl=$('tf-fee');
+              if(feeEl) feeEl.textContent = fee>0 ? (KF.label()+' '+money(fee)+' · Total '+money(sub+fee)) : '';
               $('tf-buy').disabled=(count<=0);
             }
             /* − 0 + steppers update each line total + the order summary */

@@ -380,6 +380,9 @@
 #evx .evx-flyer{position:relative;flex-shrink:0;width:240px;aspect-ratio:2/3;border-radius:14px;overflow:hidden;
   background:var(--surface-2) center/cover no-repeat;text-decoration:none;
   border:1px solid rgba(255,255,255,.08);transition:transform .25s,border-color .25s,box-shadow .25s;display:block;}
+/* Outside-event imports have no flyer of our own. The mark sits on the card; the ticket link stays. */
+#evx .evx-flyer.is-ph{background:linear-gradient(155deg,#0c1020,#12121c 58%,#0c0c14);}
+#evx .evx-ph{position:absolute;left:50%;top:32%;z-index:1;width:64px;height:auto;transform:translateX(-50%);pointer-events:none;}
 @media(max-width:520px){#evx .evx-flyer{width:200px;}}
 /* ── SPONSORED CARD (Founder 2026-09-07) ──────────────────────────────────────────────
    It IS an .evx-flyer - width, 2:3 ratio, flex-shrink, radius and rail behaviour all come
@@ -2423,15 +2426,15 @@ function flyer(e,showPick){
      flyer once, not twice. */
   var im=e.img?('<img class="evx-flyer-bg" src="'+h(e.img)+'" alt="" aria-hidden="true" loading="lazy" decoding="async"/>'
                +'<img class="evx-flyer-img" src="'+h(e.img)+'" alt="'+alt+'" loading="lazy" decoding="async"/>'):'';
-  var fb=e.img?'':' style="background:linear-gradient(155deg,#12121c,#241033,#0c0c14)"';
+  var ph=e.img?'':'<img class="evx-ph" src="/keepitil-x-blue.png" alt=""/>';
   var ribbon=pk?'<div class="evx-ribbon"><span class="kp">⚡ KEEPITIL PICK</span></div>':'';
   var pr=(e.price&&e.price!=='Tickets')?h(e.price):'';
   var slug=e.slug||slugify(e);
   var vip=/club|lounge|nightclub|rooftop|exchange|avalon|catch one|time nightclub|\bsound\b/i.test(e.venue||'');
   var saved=(window.KIL_SAVED&&window.KIL_SAVED.has(slug))?' on':'';
   var epage='/event?e='+encodeURIComponent(slug)+'&t='+encodeURIComponent(e.title)+'&v='+encodeURIComponent(e.venue||'')+'&c='+encodeURIComponent(e.city||'')+'&d='+encodeURIComponent(e.date||'')+'&g='+encodeURIComponent(e.genre||'')+'&img='+encodeURIComponent(e.img||'')+'&tix='+encodeURIComponent(e.ticket||'')+(vip?'&vip=1':'');
-  return '<div class="evx-flyer'+(pk?' pick':'')+'" data-slug="'+slug+'" data-title="'+h(e.title)+'">'
-    +im+'<div class="evx-shade"></div>'+ribbon
+  return '<div class="evx-flyer'+(pk?' pick':'')+(e.img?'':' is-ph')+'" data-slug="'+slug+'" data-title="'+h(e.title)+'">'
+    +im+ph+'<div class="evx-shade"></div>'+ribbon
     +'<span class="evx-genre">'+h(e.genre)+'</span>'
     +'<button class="evx-save'+saved+'" data-kt="save_event" data-event-slug="'+slug+'" data-slug="'+slug+'" data-title="'+h(e.title)+'" data-ev="'+h(JSON.stringify({title:e.title,date:e.date,venue:e.venue,city:e.city,genre:e.genre,img:e.img,ticket:e.ticket,price:e.price}))+'" aria-label="Save event"><img loading="lazy" decoding="async" src="https://keepitil.com/keepitil-x-green.png" alt=""/></button>'
     +'<div class="evx-body"><div class="evx-date">'+h(fmtLong(e.date))+'</div>'
@@ -3114,15 +3117,27 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
     return out;
   }
 
+  function ownImage(url){
+    if(!url) return true;
+    if(!/^https?:\/\//i.test(url)) return true;
+    try{
+      var host=new URL(url).hostname.toLowerCase().replace(/^www\./,'');
+      return host==='keepitil.com'||host.slice(-13)==='.keepitil.com'||host==='ovmqtzjfpzrbzrlkxwgw.supabase.co';
+    }catch(err){ return false; }
+  }
   function mapRows(rows){
     return rows.filter(function(e){return e.starts_at;}).map(function(e){
       var g=e.genres||e.genre||'';
       var _cl=classify(g,e.title);
       /* 3rd-party = has a full external ticket URL → send people straight there (Founder 2026-07-28). Only truly internal KEEPITIL events (no external source_url) get the on-site event page/chat. */
       var internal=!e.source_url||!/^https?:\/\//i.test(e.source_url);
+      /* Imported covers from SeatGeek, Resident Advisor, and the other outside hosts
+         are not stored as the card image. The ticket link below is unchanged. */
+      var cover=e.cover_url||e.img||'';
+      if(!ownImage(cover)) cover='';
       return {title:e.title,date:_kld(e.starts_at,e.tz),venue:e.venue||'',city:e.city||'',
         state:e.state||'',county:e.county||'',   /* 2026-08-18: drives the location filter */
-        genre:g||'KEEPITIL',gcat:_cl.gcat,ecat:_cl.ecat,img:e.cover_url||e.img||'',
+        genre:g||'KEEPITIL',gcat:_cl.gcat,ecat:_cl.ecat,img:cover,
         ticket:(e.source_url&&!internal)?e.source_url:('/event?e='+encodeURIComponent(e.slug||'')),
         price:'Tickets',pick:!!e.featured,keepitil:internal,slug:e.slug,owner:e.owner_handle||''};
     });

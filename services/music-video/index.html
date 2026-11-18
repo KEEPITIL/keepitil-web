@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<!-- DRAFT PAGE. Not linked from anywhere, noindex. Prices hidden until assets/js/music-video-config.js sets KIL_MV_PRICES_LIVE = true.
+     Publish checklist: docs/services/music-video/README.md -->
+<html lang="en" data-theme="default" data-kil-social="off">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="color-scheme" content="dark"/>
+<title>Music Video Service | KEEPITIL</title>
+<meta name="description" content="Your song and approved lyrics turned into a beat-cut lyric video or illustrated story. Three scoped tiers, one correction round, request a quote."/>
+<meta name="robots" content="noindex,nofollow"/>
+<meta property="og:title" content="Music Video Service | KEEPITIL"/>
+<meta property="og:description" content="Beat-cut lyric videos and illustrated stories from your song. Three scoped tiers. Request a quote."/>
+<meta property="og:url" content="https://keepitil.com/services/music-video/"/>
+<meta property="og:type" content="website"/>
+<meta property="og:image" content="https://keepitil.com/assets/images/logo-blue-nav.png"/>
+<link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
+<link rel="stylesheet" href="/assets/css/tokens.css"/>
+<link rel="stylesheet" href="/assets/css/shop-hub.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+.mv-draft{margin:16px 0 0;padding:10px 14px;border-radius:12px;border:1px dashed rgba(92,214,255,.55);color:#E8F7FF;background:#0E2842;font-size:.95rem}
+.mv-sample{margin:24px 0 0;max-width:340px}
+.mv-sample [data-sample-slot]{position:relative;aspect-ratio:9/16;width:100%;border-radius:18px;overflow:hidden;background:#10182a;border:1px solid rgba(92,214,255,.28);display:flex;align-items:center;justify-content:center;text-align:center;padding:16px}
+.mv-sample video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.mv-sample video[hidden]{display:none}
+.mv-sample figcaption{margin-top:8px;color:#b7c4d6;font-size:.9rem}
+.mv-cap{margin:0;padding:8px 12px;border-radius:10px;background:#0E2842;color:#E8F7FF;font-weight:700}
+.mv-not h3{color:#ffb3b3}
+.mv-section{margin-top:32px}
+.mv-section h2{margin:0 0 10px;font-family:"Bebas Neue",Inter,sans-serif;font-size:2rem;font-weight:400;letter-spacing:.06em}
+.mv-section ol,.mv-section ul{margin:0;padding-left:1.2rem;color:#d5d2e2}
+.mv-section li{margin:0 0 6px}
+.mv-legal-pending{margin:12px 0 0;padding:10px 12px;border-radius:10px;border:1px dashed rgba(255,255,255,.4);color:#E8F7FF}
+.mv-rights{padding:16px;border-radius:14px;background:#10182a;border:1px solid rgba(255,255,255,.14)}
+.mv-form{display:grid;gap:14px;max-width:640px}
+.mv-form label,.mv-form .lbl{display:block;font-weight:700;margin:0 0 4px}
+.mv-form input[type=text],.mv-form input[type=email],.mv-form input[type=url],.mv-form select,.mv-form textarea{width:100%;min-height:48px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.28);background:#121726;color:#f0f0f0;font:16px/1.4 Inter,system-ui,sans-serif}
+.mv-form textarea{min-height:120px;resize:vertical}
+.mv-form [aria-invalid=true]{border-color:#ff8080;outline:2px solid #ff8080}
+.mv-form .chk{display:flex;gap:12px;align-items:flex-start;min-height:44px;padding:6px 0}
+.mv-form .chk input{width:24px;height:24px;margin:2px 0 0;flex:none;accent-color:#5CD6FF}
+.mv-form .chk label{margin:0;font-weight:500}
+.mv-form input:focus-visible,.mv-form select:focus-visible,.mv-form textarea:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.mv-err{margin:4px 0 0;color:#ffb3b3;font-size:.9rem;min-height:0}
+.mv-hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.mv-form button.btn{border:0;cursor:pointer}
+#mv-status{min-height:1.5em;color:#E8F7FF;font-weight:600}
+.mv-priv{color:#b7c4d6;font-size:.95rem}
+</style>
+</head>
+<body>
+<nav id="main-nav" aria-label="KEEPITIL platform"><div class="nav-inner">
+  <a class="nav-logo" href="/"><span class="nav-brand">KEEPITIL</span></a>
+  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/shop/">SHOP</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
+  <a href="/apply" class="nav-cta">LOGIN</a>
+</div></nav>
+
+<main class="hub">
+  <p class="kicker">Service</p>
+  <h1>Music Video Service</h1>
+  <p class="lede">Your lyrics. Your characters. A story worth replaying. We turn your song and approved lyrics into a beat-cut illustrated story or a clean lyric edit.</p>
+  <p class="mv-draft" role="note"><strong>Pilot service.</strong> It is motion over still artwork with synced captions. It is not fully animated characters, lip-sync, a film shoot, or a promise of streams. Your original music is embedded in the file; linking it to a platform's official sound is a separate distribution task.</p>
+
+  <figure class="mv-sample">
+    <!-- SAMPLE SLOT: self-hosted <video> only (no third-party embeds). data-sample-src stays empty until the file is
+         supplied and hosted on our own storage; see docs/services/music-video/README.md. -->
+    <div data-sample-slot data-sample-version="placeholder">
+      <video data-sample-src="" poster="/assets/images/logo-blue-nav.png" controls preload="none" playsinline hidden aria-label="Sample music video from KEEPITIL"></video>
+      <p data-sample-placeholder class="mv-cap">Sample video coming soon.</p>
+    </div>
+    <figcaption>Vertical 1080x1920 sample. Placeholder until the final sample is added.</figcaption>
+  </figure>
+
+  <section class="mv-section" aria-labelledby="tiers-h">
+    <h2 id="tiers-h">Three options</h2>
+    <p class="meta" style="margin:0;color:#d5d2e2">Each option has a fixed scope and a cap on our hands-on time. Anything outside the scope is not included.</p>
+    <div class="offers">
+      <article class="offer" data-tier="hook">
+        <p class="kicker">Tier 1</p>
+        <h3 style="font-size:1.3rem;text-transform:none;letter-spacing:.02em;color:#f0f0f0">Hook teaser</h3>
+        <p class="price" data-tier-price="hook">Pricing confirmed soon: request a quote</p>
+        <h3>Included</h3>
+        <ul data-field="included">
+          <li>One 30–45s vertical 1080×1920 teaser</li>
+          <li>1–3 supplied or reused scenes</li>
+          <li>Your supplied, approved lyrics</li>
+          <li>Beat cuts, captions and 1 cover still</li>
+          <li>One correction of our mistakes</li>
+        </ul>
+        <div class="mv-not"><h3>Not included</h3>
+        <ul data-field="not-included">
+          <li>No new custom character design</li>
+          <li>No concept revision</li>
+        </ul></div>
+        <p class="mv-cap" data-field="time-cap">Time cap: 8 min active work</p>
+        <a class="btn" href="#request" data-tier-pick="hook">Request a quote</a>
+      </article>
+
+      <article class="offer" data-tier="lyric_cut">
+        <p class="kicker">Tier 2</p>
+        <h3 style="font-size:1.3rem;text-transform:none;letter-spacing:.02em;color:#f0f0f0">Full Lyric Cut</h3>
+        <p class="price" data-tier-price="lyric_cut">Pricing confirmed soon: request a quote</p>
+        <h3>Included</h3>
+        <ul data-field="included">
+          <li>One song up to 4 min</li>
+          <li>One vertical full video</li>
+          <li>Up to 6 client-owned or reusable images</li>
+          <li>Lyrics captions, subtle motion and VHS style</li>
+          <li>2 stills</li>
+          <li>One consolidated text and timing correction</li>
+        </ul>
+        <div class="mv-not"><h3>Not included</h3>
+        <ul data-field="not-included">
+          <li>No bespoke story</li>
+          <li>No new character set</li>
+        </ul></div>
+        <p class="mv-cap" data-field="time-cap">Time cap: 25 min active work</p>
+        <a class="btn" href="#request" data-tier-pick="lyric_cut">Request a quote</a>
+      </article>
+
+      <article class="offer" data-tier="character_story">
+        <p class="kicker">Tier 3</p>
+        <h3 style="font-size:1.3rem;text-transform:none;letter-spacing:.02em;color:#f0f0f0">Character Story + teaser</h3>
+        <p class="price" data-tier-price="character_story">Pricing confirmed soon: request a quote</p>
+        <h3>Included</h3>
+        <ul data-field="included">
+          <li>One song up to 4 min</li>
+          <li>One vertical full video plus one 30–45s cutdown</li>
+          <li>1–2 original adult characters</li>
+          <li>Up to 9 scene artworks (14–18 shots) and a reference sheet</li>
+          <li>Approved lyric mapping and captions</li>
+          <li>4 stills</li>
+          <li>One storyboard approval before render</li>
+          <li>One correction</li>
+        </ul>
+        <div class="mv-not"><h3>Not included</h3>
+        <ul data-field="not-included">
+          <li>No new style or concept after storyboard approval</li>
+        </ul></div>
+        <p class="mv-cap" data-field="time-cap">Time cap: 40 min active work</p>
+        <a class="btn" href="#request" data-tier-pick="character_story">Request a quote</a>
+      </article>
+    </div>
+    <p class="mv-priv" id="prices-note">Pricing is confirmed before any work starts. This page is a request form, not a checkout: nothing is charged here.</p>
+  </section>
+
+  <section class="mv-section" aria-labelledby="how-h">
+    <h2 id="how-h">How it works</h2>
+    <ol>
+      <li>Send a request below with your song link and the option you want.</li>
+      <li>We reply by email to confirm scope, price and what we need from you.</li>
+      <li>You send final, owner-approved lyrics and rights-ready images.</li>
+      <li>We build the video. The Character Story option includes one storyboard approval before we render.</li>
+      <li>A KEEPITIL person reviews the cut, applies your one correction, and delivers the files.</li>
+    </ol>
+    <p class="mv-priv" style="margin-top:10px">Turnaround: Quoted per project.</p>
+  </section>
+
+  <section class="mv-section" aria-labelledby="rights-h">
+    <h2 id="rights-h">Rights</h2>
+    <div class="mv-rights">
+      <ul>
+        <li>You must own the song and the visuals: the master, the composition, the lyrics, and every face, logo and piece of artwork you supply.</li>
+        <li>Character Story artwork is AI-assisted illustration.</li>
+      </ul>
+      <p class="mv-legal-pending" data-legal-placeholder><strong>License and usage terms: pending legal review.</strong></p>
+    </div>
+  </section>
+
+  <section class="mv-section" id="request" aria-labelledby="req-h">
+    <h2 id="req-h">Request a quote</h2>
+    <p class="mv-priv">No payment, no file uploads. Share a link to your song and lyrics. Submitting opens your email app with the request addressed to info@keepitil.com; press send there.</p>
+    <form id="mv-form" class="mv-form" action="mailto:info@keepitil.com" method="post" enctype="text/plain" novalidate>
+      <div><label for="mv-name">Name</label><input id="mv-name" name="name" type="text" maxlength="120" autocomplete="name" required/><p class="mv-err" data-err="name" role="alert"></p></div>
+      <div><label for="mv-email">Email</label><input id="mv-email" name="email" type="email" maxlength="254" autocomplete="email" required/><p class="mv-err" data-err="email" role="alert"></p></div>
+      <div><label for="mv-tier">Option</label>
+        <select id="mv-tier" name="tier" required>
+          <option value="hook" data-tier="hook">Hook teaser</option>
+          <option value="lyric_cut" data-tier="lyric_cut">Full Lyric Cut</option>
+          <option value="character_story" data-tier="character_story">Character Story + teaser</option>
+          <option value="not_sure">Not sure yet</option>
+        </select><p class="mv-err" data-err="tier" role="alert"></p></div>
+      <div><label for="mv-song">Song title</label><input id="mv-song" name="song" type="text" maxlength="160" required/><p class="mv-err" data-err="song" role="alert"></p></div>
+      <div><label for="mv-link">Link to your song or lyrics</label><input id="mv-link" name="link" type="url" maxlength="500" placeholder="https://" required/><p class="mv-err" data-err="link" role="alert"></p></div>
+      <div><label for="mv-message">Message (optional)</label><textarea id="mv-message" name="message" maxlength="1500"></textarea><p class="mv-err" data-err="message" role="alert"></p></div>
+      <div class="mv-hp" aria-hidden="true"><label for="mv-co">Leave this field empty</label><input id="mv-co" name="company_site" type="text" tabindex="-1" autocomplete="off"/></div>
+      <div><div class="chk"><input id="mv-consent" name="consent" type="checkbox" required/><label for="mv-consent">I agree that KEEPITIL may use the details in this request only to reply to it. It is not made public.</label></div><p class="mv-err" data-err="consent" role="alert"></p></div>
+      <div><div class="chk"><input id="mv-attest" name="attest" type="checkbox" required/><label for="mv-attest">I own, or have written permission to use, the song (master and composition), the lyrics, and every face, logo and piece of artwork I supply for this video.</label></div><p class="mv-err" data-err="attest" role="alert"></p></div>
+      <button class="btn" type="submit">Open email to send request</button>
+      <p id="mv-status" role="status" aria-live="polite"></p>
+    </form>
+    <p class="mv-priv">Privacy: your request goes to KEEPITIL by email, is used only to reply, and is not shown publicly. See our <a class="textlink" href="https://keepitil.com/privacy">privacy page</a>.</p>
+  </section>
+
+  <section class="faq" aria-labelledby="faq-h">
+    <h2 id="faq-h">FAQ</h2>
+    <details><summary>Is this a checkout?</summary><p>No. You send a request and we reply by email with scope and pricing before any work begins. Nothing is charged on this page.</p></details>
+    <details><summary>What do I need to send?</summary><p>A link to your song, your final owner-approved lyrics, and any images you own or may reuse. We do not transcribe or correct lyrics for you.</p></details>
+    <details><summary>How many corrections do I get?</summary><p>One. For Hook it fixes our mistakes, for Full Lyric Cut it is one consolidated text and timing correction, and for Character Story it is one correction after the storyboard approval. A new concept or style is a separate job.</p></details>
+    <details><summary>Is this fully animated?</summary><p>No. It is motion, beat cuts and captions over still artwork. There is no lip-sync and no live-action filming.</p></details>
+    <details><summary>Can you guarantee streams?</summary><p>No. We do not guarantee streams or reach, and we do not distribute your song.</p></details>
+    <details><summary>Why might my Character Story wait?</summary><p>That option depends on our available capacity. If we are busy, your request is queued, or we use artwork you supply, with your agreement.</p></details>
+    <details><summary>What happens to my request?</summary><p>It arrives as an email to our team, is used only to reply, and is not published.</p></details>
+  </section>
+</main>
+
+<script src="/assets/js/music-video-config.js"></script>
+<script src="/assets/js/music-video-service.js" defer></script>
+<script src="/assets/js/keepitil-ai.js?v=20260930s" defer></script>
+<script src="/keepitil-shell.js?v=20261031a" defer></script>
+</body>
+</html>

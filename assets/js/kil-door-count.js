@@ -1,9 +1,9 @@
 /* KEEPITIL host dashboard: LIVE checked-in count per event (draft, flag KIL_FLAGS.doorCount). Reads only
- * event_id, qty, status and checked_in_at of the host's own orders (the organizer read policy already limits rows to
+ * event_id, qty, refunded_qty, status and checked_in_at of the host's own orders (the organizer read policy already limits rows to
  * the host's events); never buyer_email or any other contact field. Polls every 30 s while the page is visible.
  */
 (function (root) {
-  var COLUMNS = 'event_id,qty,status,checked_in_at';
+  var COLUMNS = 'event_id,qty,refunded_qty,status,checked_in_at';
   var COUNTS = { paid: true, partially_refunded: true, checked_in: true };   // statuses whose tickets are valid at the door
   /* rows -> { [event_id]: { checked, total } } counting TICKETS (qty), not orders */
   function summarize(rows) {

@@ -28,11 +28,11 @@ function queueWith(replies) {
 
 test('offline: a code is queued (never admitted), duplicates and bad codes are not queued', () => {
   const { q, calls, log } = queueWith([]);
-  assert.deepEqual(q.add('KIL-' + TOKEN), { queued: true });
+  assert.deepEqual(q.add('KIL-' + TOKEN), { queued: true, n: 1 });
   assert.deepEqual(q.add(' kil-' + TOKEN + ' '), { queued: false, reason: 'already-queued' });
   assert.equal(q.add('https://evil.example/' + TOKEN).queued, false, 'a URL is refused locally, as when online');
   assert.equal(calls.length, 0, 'nothing is sent while offline');
-  assert.deepEqual(log.at(-1), [{ state: 'queued', code: null, title: null }], 'the page sees "queued", never admitted');
+  assert.deepEqual(log.at(-1).map((x) => [x.n, x.state, x.code]), [[1, 'queued', null]], 'the page sees "queued" #1, never admitted');
   assert.equal(q.pending(), 1);
 });
 
@@ -83,7 +83,7 @@ test('page wiring: queue script before the scanner; form AND camera go through t
   assert.match(js, /onCode: function \(c\) \{ submitOrQueue\(c\); \}/);
   assert.match(js, /els\.input\.value = ''; submitOrQueue\(v\);/);
   assert.match(js, /win\.addEventListener\('online', function \(\) \{ queue\.flush\(\); \}\)/);
-  assert.match(js, /code saved, NOT checked\. Do not admit yet\./);
+  assert.match(js, /NOT checked\. Do not admit yet; keep guest #/);
 });
 
 test('live count: tickets (qty) per event, only valid statuses; partial refunds count the remaining tickets', () => {
@@ -99,7 +99,7 @@ test('live count: tickets (qty) per event, only valid statuses; partial refunds 
 });
 
 test('live count reads no contact fields, renders text only, and ships behind KIL_FLAGS.doorCount', async () => {
-  assert.equal(DC.COLUMNS, 'event_id,qty,status,checked_in_at');
+  assert.equal(DC.COLUMNS, 'event_id,qty,refunded_qty,status,checked_in_at');
   assert.doesNotMatch(DC.COLUMNS, /email|handle|name|phone/);
   let asked = null;
   const sb = { from: () => ({ select: (c) => ({ in: (k, ids) => { asked = { c, k, ids }; return Promise.resolve({ data: [{ event_id: 1, qty: 2, status: 'paid', checked_in_at: 'x' }], error: null }); } }) }) };
@@ -111,4 +111,18 @@ test('live count reads no contact fields, renders text only, and ships behind KI
   const html = read('organizers/dashboard.html');
   assert.match(html, /<div class="card" id="door-count-card" hidden>/);
   assert.match(html, /window\.KIL_FLAGS && window\.KIL_FLAGS\.doorCount/);
+});
+
+test('review fixes: door gated off by default; unauth during a flush keeps the code; numbered results', async () => {
+  const html = read('door.html');
+  assert.match(html, /if \(!\(window\.KIL_FLAGS && window\.KIL_FLAGS\.doorScanner\)\)/, 'M1: the scanner does not boot without the flag');
+  assert.doesNotMatch(read('robots.txt'), /door/, 'robots.txt stays untouched (door.html is noindex and unlinked; the scope test forbids references)');
+  const { q, log } = queueWith([{ __unauth: true }]);
+  q.add(TOKEN);
+  const calls = []; const q2 = Q.createOfflineQueue({ rpc: async () => ({ data: null, error: { code: '42501', message: 'permission denied' } }), adapter, localParse: Scanner.localParse, onChange: (l) => calls.push(l) });
+  q2.add(TOKEN); const r = await q2.flush();
+  assert.equal(r.stopped, 'signin'); assert.equal(calls.at(-1)[0].state, 'queued', 'L1: a lost session keeps the code queued');
+  void q; void log;
+  const rows = [{ event_id: 1, qty: 3, refunded_qty: 1, status: 'partially_refunded', checked_in_at: null }];
+  assert.deepEqual(DC.summarize(rows), { 1: { checked: 0, total: 2 } }, 'M3: the remaining tickets only');
 });

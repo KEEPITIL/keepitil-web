@@ -374,7 +374,8 @@ let organizerProfile = null;
     const dc = document.getElementById('door-count-card');
     const refresh = async () => {
       if (document.hidden) return;
-      const { data: mine } = await sb.from('events').select('id,title').eq('owner_handle', (await sb.rpc('my_handle')).data || '');
+      window.__kilHandle = window.__kilHandle || (await sb.rpc('my_handle')).data || '';
+      const { data: mine } = await sb.from('events').select('id,title').eq('owner_handle', window.__kilHandle);
       const counts = await KIL_DOOR_COUNT.load(sb, mine || []);
       KIL_DOOR_COUNT.render(document, document.getElementById('door-count-display'), mine || [], counts);
     };

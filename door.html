@@ -101,6 +101,12 @@
 <script type="module">
   /* the 12A adapter is an ES module (byte-identical copy of the proposal); boot() takes it as a dependency */
   import('/assets/js/kil-door-scan-adapter.mjs?v=20261110a').then(function (adapter) {
+    // Draft gate (Tower 1 review M1): the scanner stays off until the door SQL (12A + step 5, merged) is live and
+    // KIL_FLAGS.doorScanner is set on purpose. Off: a plain notice, no sign-in, no RPC.
+    if (!(window.KIL_FLAGS && window.KIL_FLAGS.doorScanner)) {
+      var st = document.getElementById('boot-status'); if (st) st.textContent = 'The door scanner is not switched on yet.';
+      return null;
+    }
     return window.KilDoorScanner.boot({ win: window, adapter: adapter });
   }).catch(function () {
     var s = document.getElementById('boot-status'); s.hidden = false; s.textContent = 'The scanner could not load. Reload the page, or check your connection.';

@@ -8,9 +8,9 @@
   var MAX = 200;
   function createOfflineQueue(o) {
     var rpc = o.rpc, adapter = o.adapter, localParse = o.localParse, onChange = o.onChange || function () {};
-    var items = [];   /* { token, request, state: 'queued' | 'checking' | 'done', result } */
+    var items = [], seq = 0, now = o.now || Date.now;   /* { n, at, token, request, state: 'queued' | 'checking' | 'done', result } */
     var flushing = false;
-    function changed() { onChange(items.map(function (x) { return { state: x.state, code: x.result ? x.result.code : null, title: x.result ? x.result.ui.title : null }; })); }
+    function changed() { onChange(items.map(function (x) { return { n: x.n, at: x.at, state: x.state, code: x.result ? x.result.code : null, title: x.result ? x.result.ui.title : null }; })); }
     return {
       /* -> { queued: true } | { queued: false, reason } */
       add: function (raw) {
@@ -18,9 +18,9 @@
         if (p.kind !== 'ok') return { queued: false, reason: p.kind };
         if (items.some(function (x) { return x.token === p.token && x.state !== 'done'; })) return { queued: false, reason: 'already-queued' };
         if (items.filter(function (x) { return x.state !== 'done'; }).length >= MAX) return { queued: false, reason: 'full' };
-        items.push({ token: p.token, request: p.request, state: 'queued', result: null });
+        items.push({ n: ++seq, at: now(), token: p.token, request: p.request, state: 'queued', result: null });   /* #n + time: staff match the result to the waiting guest */
         changed();
-        return { queued: true };
+        return { queued: true, n: seq };
       },
       pending: function () { return items.filter(function (x) { return x.state !== 'done'; }).length; },
       /* check every queued code, in order. A transport failure puts it back to 'queued' and stops (still offline). */
@@ -35,7 +35,7 @@
             .catch(function () { return { data: null, error: { message: 'network' } }; })
             .then(function (resp) {
               var r = adapter.adaptScanResponse(resp);
-              if (r.code === 'error') { it.state = 'queued'; flushing = false; changed(); return { done: false, stopped: 'network' }; }
+              if (r.code === 'error' || r.code === 'unauth') { it.state = 'queued'; flushing = false; changed(); return { done: false, stopped: r.code === 'unauth' ? 'signin' : 'network' }; }   /* L1: a lost session keeps the code */
               it.state = 'done'; it.result = r; it.token = null;   /* forget the code once it has its answer */
               changed();
               return next();

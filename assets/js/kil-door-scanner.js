@@ -307,18 +307,20 @@
         els.queue.hidden = !list.length;
         els.queue.textContent = '';
         var head = doc.createElement('p'); head.textContent = waiting ? waiting + ' code' + (waiting === 1 ? '' : 's') + ' waiting to be checked. Do not admit until checked.' : 'All saved codes were checked.'; els.queue.appendChild(head);
-        done.slice(-5).forEach(function (x) { var p = doc.createElement('p'); p.setAttribute('data-code', x.code); p.textContent = 'Saved code: ' + x.title; els.queue.appendChild(p); });
+        var hhmm = function (t) { var d = new Date(t); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); };
+        done.slice(-5).forEach(function (x) { var p = doc.createElement('p'); p.setAttribute('data-code', x.code); p.textContent = 'Saved code #' + x.n + ' (scanned ' + hhmm(x.at) + '): ' + x.title; els.queue.appendChild(p); });
+        if (waiting) { var b = doc.createElement('button'); b.type = 'button'; b.className = 'btn ghost'; b.textContent = 'Check saved codes now'; b.addEventListener('click', function () { queue.flush(); }); els.queue.appendChild(b); }
       }
       function submitOrQueue(v) {
         if (queue && win.navigator.onLine === false) {
           var q = queue.add(v);
           els.panel.setAttribute('data-tone', 'warning'); els.panel.setAttribute('data-code', q.queued ? 'queued' : 'not-queued');
-          els.panel.textContent = q.queued ? 'Offline: code saved, NOT checked. Do not admit yet.' : (q.reason === 'already-queued' ? 'This code is already waiting to be checked.' : 'Offline: this code could not be saved.');
+          els.panel.textContent = q.queued ? 'Offline: code saved as #' + q.n + ', NOT checked. Do not admit yet; keep guest #' + q.n + ' waiting.' : (q.reason === 'already-queued' ? 'This code is already waiting to be checked.' : 'Offline: this code could not be saved.');
           return Promise.resolve(q);
         }
         return scanner.submit(v);
       }
-      if (queue) win.addEventListener('online', function () { queue.flush(); });
+      if (queue) { win.addEventListener('online', function () { queue.flush(); }); win.setInterval(function () { if (queue.pending() && win.navigator.onLine !== false) queue.flush(); }, 30000); }   /* L2: retry even if the online event is missed */
       els.form.addEventListener('submit', function (ev) { ev.preventDefault(); var v = els.input.value; els.input.value = ''; submitOrQueue(v); });
       els.next.addEventListener('click', function () { scanner.reset(); });
       els.retry.addEventListener('click', function () { scanner.retry(); });

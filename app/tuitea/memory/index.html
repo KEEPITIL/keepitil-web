@@ -1,1 +1,21 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TUITEA</title><meta name="robots" content="noindex"><link rel="canonical" href="https://keepitil.com/app/tuitea/memory"><script>location.replace('/app/tuitea/app/?tab=memory'+location.hash);</script></head><body><a href="/app/tuitea/app/?tab=memory">Open TUITEA</a></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TUITEA</title>
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<link rel="canonical" href="https://keepitil.com/app/tuitea/memory/">
+</head>
+<body>
+<p><a id="open" href="/app/tuitea/app/?tab=memory">Open TUITEA</a></p>
+<script type="module">
+import { tuiteaTabTarget } from '/app/tuitea/tab-target.mjs';
+const dest = tuiteaTabTarget('memory', location.search, location.hash);
+const link = document.getElementById('open');
+if (link) link.setAttribute('href', dest);
+location.replace(dest);
+</script>
+</body>
+</html>

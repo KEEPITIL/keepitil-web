@@ -1,0 +1,17 @@
+[
+  {
+    "date": "2026-11-10",
+    "title": "KMOB 1.0 on the App Store",
+    "items": [
+      "KMOB is live on the App Store with Sign in with Apple."
+    ]
+  },
+  {
+    "date": "2026-10-29",
+    "title": "App Store build fixes",
+    "items": [
+      "The buy button in the shop now always responds. It asks you to sign in with Apple if needed, then opens Apple's payment screen. If prices can't load, you'll see a clear message and a Retry button. Restore Purchases works before you sign in.",
+      "Everything fits on smaller iPhones: the title screen shows every option in landscape, Back stays on screen in Settings, menus no longer hide under the status bar, the Crusades heading isn't cut off, and the settings gear no longer covers Play. The shop now labels your purchased balance."
+    ]
+  }
+]

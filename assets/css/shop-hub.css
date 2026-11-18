@@ -54,3 +54,6 @@ h1{margin:0;font-family:"Bebas Neue",Inter,sans-serif;font-size:clamp(3rem,12vw,
   .card .art{height:210px}
   .card .mark{width:72px;height:72px}
 }
+
+/* KAPP 2026-11-10: breadcrumb links get a 44px hit area without moving the layout (visual check: they measured 15px tall). */
+.crumbs a{display:inline-block;padding:15px 5px;margin:-15px -5px}

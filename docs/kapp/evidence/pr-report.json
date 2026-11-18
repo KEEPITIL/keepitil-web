@@ -1,0 +1,2519 @@
+{
+ "label": "pr",
+ "chrome": "Chrome/157.0.8103.40",
+ "date": "2026-11-10T21:31:41.887Z",
+ "networkBlocked": "every request not to 127.0.0.1 is failed with BlockedByClient (CDP Fetch); WebSocket/EventSource/sendBeacon stubbed",
+ "results": [
+  {
+   "page": "earn",
+   "viewport": "mobile",
+   "size": "375x812",
+   "probe": {
+    "title": "EARN — Partner, Merch, Apps & Games, Content Creators | KEEPITIL",
+    "url": "/earn/",
+    "innerWidth": 375,
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "noHScroll": true,
+    "docHeight": 2953,
+    "bottomBar": {
+     "present": true,
+     "visible": true,
+     "rect": {
+      "x": 0,
+      "y": 751,
+      "w": 375,
+      "h": 61,
+      "vis": true
+     },
+     "tabs": [
+      {
+       "text": "DISCOVER — Discover",
+       "href": "/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      },
+      {
+       "text": "CONNECT — Connect",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      },
+      {
+       "text": "CREATE — Create",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      },
+      {
+       "text": "CULTURE — Culture",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      },
+      {
+       "text": "EARN — Earn",
+       "href": "/earn/",
+       "active": true,
+       "ariaCurrent": "page",
+       "cls": "on",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      }
+     ]
+    },
+    "desktopHeader": {
+     "present": true,
+     "links": [
+      {
+       "text": "CONNECT",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CREATE",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CULTURE",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "EARN",
+       "href": "/earn/",
+       "active": true,
+       "ariaCurrent": "page",
+       "cls": "on",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      }
+     ],
+     "allVisible": []
+    },
+    "footer": {
+     "present": true,
+     "links": [
+      "Discover -> /",
+      "Connect -> /connect/",
+      "Create -> /create/",
+      "Culture -> /culture/",
+      "Earn -> /earn/",
+      "Merch shop -> /shop/ [v3-foot-sub]",
+      "Login -> /apply"
+     ],
+     "footLinkRaw": [
+      {
+       "text": "Discover",
+       "href": "/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Connect",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Create",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Culture",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Earn",
+       "href": "/earn/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Merch shop",
+       "href": "/shop/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "v3-foot-sub",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Login",
+       "href": "/apply",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      }
+     ]
+    },
+    "sections": [
+     {
+      "id": "partner",
+      "heading": "PARTNER",
+      "rect": {
+       "x": 16,
+       "y": 883,
+       "w": 343,
+       "h": 846,
+       "vis": true
+      }
+     },
+     {
+      "id": "merch",
+      "heading": "MERCH",
+      "rect": {
+       "x": 16,
+       "y": 1729,
+       "w": 343,
+       "h": 329,
+       "vis": true
+      }
+     },
+     {
+      "id": "apps-games",
+      "heading": "APPS & GAMES",
+      "rect": {
+       "x": 16,
+       "y": 2057,
+       "w": 343,
+       "h": 233,
+       "vis": true
+      }
+     },
+     {
+      "id": "creators",
+      "heading": "CONTENT CREATORS",
+      "rect": {
+       "x": 16,
+       "y": 2290,
+       "w": 343,
+       "h": 205,
+       "vis": true
+      }
+     }
+    ],
+    "deadishAnchors": [],
+    "interactiveInMain": [
+     {
+      "tag": "A",
+      "text": "Freecash x KEEPITIL - earn extra cash — SPONSORED,",
+      "href": "https://freecash.com/en?ref=Tuitea",
+      "vis": true,
+      "w": 220,
+      "h": 330
+     },
+     {
+      "tag": "A",
+      "text": "DistroKid x KEEPITIL - release your music — AFFILI",
+      "href": "https://distrokid.com/vip/seven/11538316",
+      "vis": true,
+      "w": 220,
+      "h": 330
+     },
+     {
+      "tag": "A",
+      "text": "Posh x KEEPITIL - promote your events — REFERRAL, ",
+      "href": "https://posh.vip/create_group?ref=S-referral-mp9itc5j-wb9dbt",
+      "vis": true,
+      "w": 220,
+      "h": 330
+     },
+     {
+      "tag": "A",
+      "text": "Amazon x KEEPITIL - shop and discover — AFFILIATE,",
+      "href": "https://www.amazon.com/?tag=tuitea09-20",
+      "vis": true,
+      "w": 220,
+      "h": 330
+     },
+     {
+      "tag": "A",
+      "text": "KEEPITIL official store — OFFICIAL, opens in a new",
+      "href": "https://www.illestratedlifestyle.com/collections/all-merch?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=all-merch",
+      "vis": true,
+      "w": 220,
+      "h": 330
+     },
+     {
+      "tag": "A",
+      "text": "✉ Affiliate link Kit: email for creators Grow an e",
+      "href": "https://partners.kit.com/9goaxz09kexk",
+      "vis": true,
+      "w": 220,
+      "h": 330
+     },
+     {
+      "tag": "A",
+      "text": "Shop Shop artist merch Tees, sweaters, totes, wall",
+      "href": "/shop/",
+      "vis": true,
+      "w": 343,
+      "h": 149
+     },
+     {
+      "tag": "A",
+      "text": "info@keepitil.com",
+      "href": "mailto:info@keepitil.com",
+      "vis": true,
+      "w": 115,
+      "h": 15
+     },
+     {
+      "tag": "A",
+      "text": "info@keepitil.com",
+      "href": "mailto:info@keepitil.com",
+      "vis": true,
+      "w": 115,
+      "h": 15
+     },
+     {
+      "tag": "A",
+      "text": "Play the KEEPITIL games →",
+      "href": "/games/",
+      "vis": true,
+      "w": 179,
+      "h": 15
+     },
+     {
+      "tag": "A",
+      "text": "info@keepitil.com",
+      "href": "mailto:info@keepitil.com",
+      "vis": true,
+      "w": 115,
+      "h": 15
+     }
+    ],
+    "smallTargetsInMain": [
+     {
+      "tag": "A",
+      "text": "info@keepitil.com",
+      "href": "mailto:info@keepitil.com",
+      "vis": true,
+      "w": 115,
+      "h": 15
+     },
+     {
+      "tag": "A",
+      "text": "info@keepitil.com",
+      "href": "mailto:info@keepitil.com",
+      "vis": true,
+      "w": 115,
+      "h": 15
+     },
+     {
+      "tag": "A",
+      "text": "Play the KEEPITIL games →",
+      "href": "/games/",
+      "vis": true,
+      "w": 179,
+      "h": 15
+     },
+     {
+      "tag": "A",
+      "text": "info@keepitil.com",
+      "href": "mailto:info@keepitil.com",
+      "vis": true,
+      "w": 115,
+      "h": 15
+     }
+    ],
+    "railEls": [
+     {
+      "sel": "#kil-radio",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "#kil-sc",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": ".rad-carou",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=playlist]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=arcade]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=competition]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=playlist]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=arcade]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=competition]",
+      "n": 0,
+      "visible": 0
+     }
+    ],
+    "crumbs": [],
+    "kit": {
+     "text": "✉ Affiliate link Kit: email for creators Grow an email list you own. Refer a creator to Kit and earn 50% commission for ",
+     "href": "https://partners.kit.com/9goaxz09kexk",
+     "rect": {
+      "x": 16,
+      "y": 1381,
+      "w": 220,
+      "h": 330,
+      "vis": true
+     }
+    },
+    "mailto": [
+     {
+      "href": "mailto:info@keepitil.com",
+      "text": "info@keepitil.com",
+      "vis": true
+     },
+     {
+      "href": "mailto:info@keepitil.com",
+      "text": "info@keepitil.com",
+      "vis": true
+     },
+     {
+      "href": "mailto:info@keepitil.com",
+      "text": "info@keepitil.com",
+      "vis": true
+     }
+    ],
+    "overflowers": [
+     "BUTTON#. right=415",
+     "BUTTON#. right=593"
+    ],
+    "mainTextHead": "PARTNER | Offers from companies we work with. Some links are affiliate links: the provider sets and pays any commission under its own terms. | SPONSORED | ↗ | AFFILIATE | ↗ | REFERRAL | ↗ | AFFILIATE | ↗ | OFFICIAL | ↗ | ✉ | AFFILIATE LINK | Kit: email for creators | Grow an email list you own. Refer a creator to Kit and earn 50% commission for the first 12 months. | Become a Kit partner → | MERCH | SHOP | Shop artist merch | Tees, sweaters, totes, wall art and mugs. Checkout is on Shopify. | Open the shop → | Submit your artwork | Artwork intake is by application and is not open yet. To be told when it is, write to info@keepitil.com. | APPS & GAMES | Build with KEEPITIL | For people who make apps and games for the KEEPITIL community. Applications are by review and are not open yet. To register interest, write to info@keepitil.com. | Play the KEEPITIL games → | CONTENT CREATORS | Make content with KEEPITIL | For creators who want to work with the KEEPITIL community. Applications are by review and are not open yet. To register interest, write to info@keepitil.com.",
+    "forbiddenText": [],
+    "shopAsTab": [],
+    "memoryHeapMB": 2
+   },
+   "console": [
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/platform_config?select=value&key=eq.radio_playlists"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://www.googletagmanager.com/gtag/js?id=G-ZR36NRE4MT"
+    }
+   ],
+   "blockedHosts": {
+    "fonts.googleapis.com": 1,
+    "ovmqtzjfpzrbzrlkxwgw.supabase.co": 1,
+    "www.googletagmanager.com": 1,
+    "w.soundcloud.com": 1
+   }
+  },
+  {
+   "page": "home",
+   "viewport": "mobile",
+   "size": "375x812",
+   "probe": {
+    "title": "KEEPITIL — Create Loud. Live Louder.",
+    "url": "/",
+    "innerWidth": 375,
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "noHScroll": true,
+    "docHeight": 1369,
+    "bottomBar": {
+     "present": true,
+     "visible": true,
+     "rect": {
+      "x": 0,
+      "y": 750,
+      "w": 375,
+      "h": 62,
+      "vis": true
+     },
+     "tabs": [
+      {
+       "text": "DISCOVER — Discover",
+       "href": "/",
+       "active": true,
+       "ariaCurrent": "page",
+       "cls": "on",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      },
+      {
+       "text": "CONNECT — Connect",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      },
+      {
+       "text": "CREATE — Create",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      },
+      {
+       "text": "CULTURE — Culture",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      },
+      {
+       "text": "EARN — Earn",
+       "href": "/earn/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      }
+     ]
+    },
+    "desktopHeader": {
+     "present": true,
+     "links": [
+      {
+       "text": "CONNECT",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CREATE",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CULTURE",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "EARN",
+       "href": "/earn/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      }
+     ],
+     "allVisible": []
+    },
+    "footer": {
+     "present": true,
+     "links": [
+      "Discover -> /",
+      "Connect -> /connect/",
+      "Create -> /create/",
+      "Culture -> /culture/",
+      "Earn -> /earn/",
+      "Merch shop -> /shop/ [v3-foot-sub]",
+      "Login -> /apply"
+     ],
+     "footLinkRaw": [
+      {
+       "text": "Discover",
+       "href": "/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Connect",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Create",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Culture",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Earn",
+       "href": "/earn/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Merch shop",
+       "href": "/shop/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "v3-foot-sub",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Login",
+       "href": "/apply",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      }
+     ]
+    },
+    "sections": [],
+    "deadishAnchors": [],
+    "interactiveInMain": [],
+    "smallTargetsInMain": [],
+    "railEls": [
+     {
+      "sel": "#kil-radio",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "#kil-sc",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": ".rad-carou",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=playlist]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=arcade]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=competition]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=playlist]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=arcade]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=competition]",
+      "n": 0,
+      "visible": 0
+     }
+    ],
+    "crumbs": [],
+    "kit": null,
+    "mailto": [
+     {
+      "href": "mailto:info@keepitil.com",
+      "text": "info@keepitil.com",
+      "vis": false
+     },
+     {
+      "href": "mailto:info@keepitil.com",
+      "text": "Email KEEPITIL",
+      "vis": true
+     }
+    ],
+    "overflowers": [],
+    "mainTextHead": "KEEPITIL — discover events, connect with creators, and share culture | CONNECT | — | EVENTS | — | VENUES | — | CITIES | ▾ | ALL | 1 | CHO | KEEPITIL | 9252 GARDEN GROVE BLVD, STE 19 | GARDEN GROVE, CA 92844 | TERMS | PRIVACY | REFUNDS | TICKETS | RULES | © 2026 KEEPITIL | KEEPITIL LLC · Garden Grove, CA | DISCOVER | CONNECT | CREATE | CULTURE | EARN | ↑ | Add KEEPITIL to your home screen — events, scene & radio, one tap away. | Install | ×",
+    "forbiddenText": [
+     "radio"
+    ],
+    "shopAsTab": [],
+    "memoryHeapMB": 5
+   },
+   "console": [
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/events?select=slug%2Ctitle%2Cstarts_at%2Ctz%2Cvenue%2Ccity%2Cstate%2Ccounty%2Cgenres%2Ccover_url%2Csource_url%2Cfeatured%2Cowner_handle&sta"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/rpc/discovery_page_stats"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/platform_config?select=value&key=eq.radio_playlists"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/profile_meta?select=slug,display_name,tagline,bio,avatar_url,entity_category,status&entity_category=eq.artist&status=eq.published&limit=8&o"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/profile_meta?select=slug,display_name,tagline,bio,avatar_url,entity_category,status&entity_category=eq.brand&status=eq.published&limit=8&or"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/profile_meta?select=slug,display_name,tagline,bio,avatar_url,entity_category,status&entity_category=eq.organizer&status=eq.published&limit="
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://www.googletagmanager.com/gtag/js?id=G-ZR36NRE4MT"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://keepitil.com/logo-blue-nav.png"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/events?select=slug%2Ctitle%2Cstarts_at%2Ctz%2Cvenue%2Ccity%2Cstate%2Ccounty%2Cgenres%2Ccover_url%2Csource_url%2Cfeatured%2Cowner_handle&sta"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/events?select=slug%2Ctitle%2Cstarts_at%2Ctz%2Cvenue%2Ccity%2Cstate%2Ccounty%2Cgenres%2Ccover_url%2Csource_url%2Cfeatured%2Cowner_handle&sta"
+    }
+   ],
+   "blockedHosts": {
+    "ovmqtzjfpzrbzrlkxwgw.supabase.co": 8,
+    "www.googletagmanager.com": 1,
+    "keepitil.com": 1,
+    "w.soundcloud.com": 1
+   }
+  },
+  {
+   "page": "shop",
+   "viewport": "mobile",
+   "size": "375x812",
+   "probe": {
+    "title": "Shop | KEEPITIL",
+    "url": "/shop/",
+    "innerWidth": 375,
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "noHScroll": true,
+    "docHeight": 2455,
+    "bottomBar": {
+     "present": true,
+     "visible": true,
+     "rect": {
+      "x": 0,
+      "y": 751,
+      "w": 375,
+      "h": 61,
+      "vis": true
+     },
+     "tabs": [
+      {
+       "text": "DISCOVER — Discover",
+       "href": "/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      },
+      {
+       "text": "CONNECT — Connect",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      },
+      {
+       "text": "CREATE — Create",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      },
+      {
+       "text": "CULTURE — Culture",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      },
+      {
+       "text": "EARN — Earn",
+       "href": "/earn/",
+       "active": true,
+       "ariaCurrent": "page",
+       "cls": "on",
+       "w": 71,
+       "h": 48,
+       "vis": true
+      }
+     ]
+    },
+    "desktopHeader": {
+     "present": true,
+     "links": [
+      {
+       "text": "CONNECT",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CREATE",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CULTURE",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "EARN",
+       "href": "/earn/",
+       "active": true,
+       "ariaCurrent": "page",
+       "cls": "on",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      }
+     ],
+     "allVisible": []
+    },
+    "footer": {
+     "present": true,
+     "links": [
+      "Discover -> /",
+      "Connect -> /connect/",
+      "Create -> /create/",
+      "Culture -> /culture/",
+      "Earn -> /earn/",
+      "Merch shop -> /shop/ [v3-foot-sub]",
+      "Login -> /apply"
+     ],
+     "footLinkRaw": [
+      {
+       "text": "Discover",
+       "href": "/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Connect",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Create",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Culture",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Earn",
+       "href": "/earn/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Merch shop",
+       "href": "/shop/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "v3-foot-sub",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "Login",
+       "href": "/apply",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      }
+     ]
+    },
+    "sections": [
+     {
+      "id": "faq",
+      "heading": "FAQ",
+      "rect": {
+       "x": 16,
+       "y": 1431,
+       "w": 343,
+       "h": 506,
+       "vis": true
+      }
+     }
+    ],
+    "deadishAnchors": [],
+    "interactiveInMain": [
+     {
+      "tag": "A",
+      "text": "Earn",
+      "href": "/earn/",
+      "vis": true,
+      "w": 41,
+      "h": 15
+     },
+     {
+      "tag": "A",
+      "text": "Merch",
+      "href": "/earn/#merch",
+      "vis": true,
+      "w": 54,
+      "h": 15
+     },
+     {
+      "tag": "A",
+      "text": "All merch",
+      "href": "https://www.illestratedlifestyle.com/collections/all-merch?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=all-merch",
+      "vis": true,
+      "w": 309,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "Tees",
+      "href": "https://www.illestratedlifestyle.com/collections/tees?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=tees",
+      "vis": true,
+      "w": 309,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "Sweaters & Crewnecks",
+      "href": "https://www.illestratedlifestyle.com/collections/sweaters-crewnecks?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=sweaters",
+      "vis": true,
+      "w": 309,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "Totes & Bags",
+      "href": "https://www.illestratedlifestyle.com/collections/totes-bags?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=totes",
+      "vis": true,
+      "w": 309,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "Canvas & Wall Art",
+      "href": "https://www.illestratedlifestyle.com/collections/canvas-wall-art?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=wall-art",
+      "vis": true,
+      "w": 309,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "Mugs",
+      "href": "https://www.illestratedlifestyle.com/collections/all-merch?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=mugs",
+      "vis": true,
+      "w": 309,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "Services",
+      "href": "https://www.illestratedlifestyle.com/collections/services?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=services",
+      "vis": true,
+      "w": 309,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "Downloads",
+      "href": "https://www.illestratedlifestyle.com/collections/downloads?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=downloads",
+      "vis": true,
+      "w": 309,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "See what’s included",
+      "href": "/services/",
+      "vis": true,
+      "w": 309,
+      "h": 44
+     },
+     {
+      "tag": "A",
+      "text": "store refund policy",
+      "href": "https://www.illestratedlifestyle.com/policies/refund-policy",
+      "vis": true,
+      "w": 147,
+      "h": 44
+     },
+     {
+      "tag": "A",
+      "text": "store refund policy",
+      "href": "https://www.illestratedlifestyle.com/policies/refund-policy",
+      "vis": true,
+      "w": 147,
+      "h": 44
+     },
+     {
+      "tag": "A",
+      "text": "info@keepitil.com",
+      "href": "mailto:info@keepitil.com",
+      "vis": true,
+      "w": 143,
+      "h": 44
+     }
+    ],
+    "smallTargetsInMain": [
+     {
+      "tag": "A",
+      "text": "Earn",
+      "href": "/earn/",
+      "vis": true,
+      "w": 41,
+      "h": 15
+     },
+     {
+      "tag": "A",
+      "text": "Merch",
+      "href": "/earn/#merch",
+      "vis": true,
+      "w": 54,
+      "h": 15
+     }
+    ],
+    "railEls": [
+     {
+      "sel": "#kil-radio",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "#kil-sc",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": ".rad-carou",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=playlist]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=arcade]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=competition]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=playlist]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=arcade]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=competition]",
+      "n": 0,
+      "visible": 0
+     }
+    ],
+    "crumbs": [
+     "Breadcrumb"
+    ],
+    "kit": null,
+    "mailto": [
+     {
+      "href": "mailto:info@keepitil.com",
+      "text": "info@keepitil.com",
+      "vis": true
+     }
+    ],
+    "overflowers": [],
+    "mainTextHead": "EARN / MERCH / SHOP | Shop KEEPITIL | Merch and For Artists, in one place. Checkout is on Shopify. | Merch | Tees, sweaters, totes, wall art, and mugs. | All merch | Tees | Sweaters & Crewnecks | Totes & Bags | Canvas & Wall Art | Mugs | For Artists | Services and downloads for your release. | Services | Downloads | See what’s included | Secure Shopify checkout. Pay by card, PayPal, Venmo, Google Pay or Apple Pay, depending on your device. Digital items have no shipping. Merch ships at $6.69 flat. | Refunds per our store refund policy. | FAQ | How do I book my session? | When do I get my download? | What do you need for graphics? | What is the refund policy? | What does shipping cost, and how long does it take? | What sizes are available? | Who is KEEPITIL? | How do I contact KEEPITIL?",
+    "forbiddenText": [],
+    "shopAsTab": [],
+    "memoryHeapMB": 5
+   },
+   "console": [
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/platform_config?select=value&key=eq.radio_playlists"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://www.googletagmanager.com/gtag/js?id=G-ZR36NRE4MT"
+    }
+   ],
+   "blockedHosts": {
+    "ovmqtzjfpzrbzrlkxwgw.supabase.co": 1,
+    "www.googletagmanager.com": 1,
+    "w.soundcloud.com": 1
+   }
+  },
+  {
+   "page": "earn",
+   "viewport": "desktop",
+   "size": "1280x800",
+   "probe": {
+    "title": "EARN — Partner, Merch, Apps & Games, Content Creators | KEEPITIL",
+    "url": "/earn/",
+    "innerWidth": 1280,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "noHScroll": true,
+    "docHeight": 2711,
+    "bottomBar": {
+     "present": true,
+     "visible": false,
+     "rect": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "vis": false
+     },
+     "tabs": [
+      {
+       "text": "DISCOVER — Discover",
+       "href": "/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CONNECT — Connect",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CREATE — Create",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CULTURE — Culture",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "EARN — Earn",
+       "href": "/earn/",
+       "active": true,
+       "ariaCurrent": "page",
+       "cls": "on",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      }
+     ]
+    },
+    "desktopHeader": {
+     "present": true,
+     "links": [
+      {
+       "text": "CONNECT",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 63,
+       "h": 20,
+       "vis": true
+      },
+      {
+       "text": "CREATE",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 52,
+       "h": 20,
+       "vis": true
+      },
+      {
+       "text": "CULTURE",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 60,
+       "h": 20,
+       "vis": true
+      },
+      {
+       "text": "EARN",
+       "href": "/earn/",
+       "active": true,
+       "ariaCurrent": "page",
+       "cls": "on",
+       "w": 36,
+       "h": 20,
+       "vis": true
+      }
+     ],
+     "allVisible": [
+      "Home / change site style",
+      "DISCOVER",
+      "CONNECT",
+      "CREATE",
+      "CULTURE",
+      "EARN",
+      "LOGIN"
+     ]
+    },
+    "footer": {
+     "present": true,
+     "links": [
+      "Discover -> /",
+      "Connect -> /connect/",
+      "Create -> /create/",
+      "Culture -> /culture/",
+      "Earn -> /earn/",
+      "Merch shop -> /shop/ [v3-foot-sub]",
+      "Login -> /apply"
+     ],
+     "footLinkRaw": [
+      {
+       "text": "Discover",
+       "href": "/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 58,
+       "h": 16,
+       "vis": true
+      },
+      {
+       "text": "Connect",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 56,
+       "h": 16,
+       "vis": true
+      },
+      {
+       "text": "Create",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 44,
+       "h": 16,
+       "vis": true
+      },
+      {
+       "text": "Culture",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 48,
+       "h": 16,
+       "vis": true
+      },
+      {
+       "text": "Earn",
+       "href": "/earn/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 30,
+       "h": 16,
+       "vis": true
+      },
+      {
+       "text": "Merch shop",
+       "href": "/shop/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "v3-foot-sub",
+       "w": 78,
+       "h": 16,
+       "vis": true
+      },
+      {
+       "text": "Login",
+       "href": "/apply",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 36,
+       "h": 16,
+       "vis": true
+      }
+     ]
+    },
+    "sections": [
+     {
+      "id": "partner",
+      "heading": "PARTNER",
+      "rect": {
+       "x": 40,
+       "y": 806,
+       "w": 1200,
+       "h": 920,
+       "vis": true
+      }
+     },
+     {
+      "id": "merch",
+      "heading": "MERCH",
+      "rect": {
+       "x": 40,
+       "y": 1726,
+       "w": 1200,
+       "h": 237,
+       "vis": true
+      }
+     },
+     {
+      "id": "apps-games",
+      "heading": "APPS & GAMES",
+      "rect": {
+       "x": 40,
+       "y": 1964,
+       "w": 1200,
+       "h": 238,
+       "vis": true
+      }
+     },
+     {
+      "id": "creators",
+      "heading": "CONTENT CREATORS",
+      "rect": {
+       "x": 40,
+       "y": 2201,
+       "w": 1200,
+       "h": 209,
+       "vis": true
+      }
+     }
+    ],
+    "deadishAnchors": [],
+    "interactiveInMain": [
+     {
+      "tag": "A",
+      "text": "Freecash x KEEPITIL - earn extra cash — SPONSORED,",
+      "href": "https://freecash.com/en?ref=Tuitea",
+      "vis": true,
+      "w": 240,
+      "h": 360
+     },
+     {
+      "tag": "A",
+      "text": "DistroKid x KEEPITIL - release your music — AFFILI",
+      "href": "https://distrokid.com/vip/seven/11538316",
+      "vis": true,
+      "w": 240,
+      "h": 360
+     },
+     {
+      "tag": "A",
+      "text": "Posh x KEEPITIL - promote your events — REFERRAL, ",
+      "href": "https://posh.vip/create_group?ref=S-referral-mp9itc5j-wb9dbt",
+      "vis": true,
+      "w": 240,
+      "h": 360
+     },
+     {
+      "tag": "A",
+      "text": "Amazon x KEEPITIL - shop and discover — AFFILIATE,",
+      "href": "https://www.amazon.com/?tag=tuitea09-20",
+      "vis": true,
+      "w": 240,
+      "h": 360
+     },
+     {
+      "tag": "A",
+      "text": "KEEPITIL official store — OFFICIAL, opens in a new",
+      "href": "https://www.illestratedlifestyle.com/collections/all-merch?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=all-merch",
+      "vis": true,
+      "w": 240,
+      "h": 360
+     },
+     {
+      "tag": "A",
+      "text": "✉ Affiliate link Kit: email for creators Grow an e",
+      "href": "https://partners.kit.com/9goaxz09kexk",
+      "vis": true,
+      "w": 240,
+      "h": 360
+     },
+     {
+      "tag": "A",
+      "text": "Shop Shop artist merch Tees, sweaters, totes, wall",
+      "href": "/shop/",
+      "vis": true,
+      "w": 420,
+      "h": 152
+     },
+     {
+      "tag": "A",
+      "text": "info@keepitil.com",
+      "href": "mailto:info@keepitil.com",
+      "vis": true,
+      "w": 120,
+      "h": 16
+     },
+     {
+      "tag": "A",
+      "text": "info@keepitil.com",
+      "href": "mailto:info@keepitil.com",
+      "vis": true,
+      "w": 120,
+      "h": 16
+     },
+     {
+      "tag": "A",
+      "text": "Play the KEEPITIL games →",
+      "href": "/games/",
+      "vis": true,
+      "w": 178,
+      "h": 16
+     },
+     {
+      "tag": "A",
+      "text": "info@keepitil.com",
+      "href": "mailto:info@keepitil.com",
+      "vis": true,
+      "w": 120,
+      "h": 16
+     }
+    ],
+    "smallTargetsInMain": [
+     {
+      "tag": "A",
+      "text": "info@keepitil.com",
+      "href": "mailto:info@keepitil.com",
+      "vis": true,
+      "w": 120,
+      "h": 16
+     },
+     {
+      "tag": "A",
+      "text": "info@keepitil.com",
+      "href": "mailto:info@keepitil.com",
+      "vis": true,
+      "w": 120,
+      "h": 16
+     },
+     {
+      "tag": "A",
+      "text": "Play the KEEPITIL games →",
+      "href": "/games/",
+      "vis": true,
+      "w": 178,
+      "h": 16
+     },
+     {
+      "tag": "A",
+      "text": "info@keepitil.com",
+      "href": "mailto:info@keepitil.com",
+      "vis": true,
+      "w": 120,
+      "h": 16
+     }
+    ],
+    "railEls": [
+     {
+      "sel": "#kil-radio",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "#kil-sc",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": ".rad-carou",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=playlist]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=arcade]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=competition]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=playlist]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=arcade]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=competition]",
+      "n": 0,
+      "visible": 0
+     }
+    ],
+    "crumbs": [],
+    "kit": {
+     "text": "✉ Affiliate link Kit: email for creators Grow an email list you own. Refer a creator to Kit and earn 50% commission for ",
+     "href": "https://partners.kit.com/9goaxz09kexk",
+     "rect": {
+      "x": 40,
+      "y": 1334,
+      "w": 240,
+      "h": 360,
+      "vis": true
+     }
+    },
+    "mailto": [
+     {
+      "href": "mailto:info@keepitil.com",
+      "text": "info@keepitil.com",
+      "vis": true
+     },
+     {
+      "href": "mailto:info@keepitil.com",
+      "text": "info@keepitil.com",
+      "vis": true
+     },
+     {
+      "href": "mailto:info@keepitil.com",
+      "text": "info@keepitil.com",
+      "vis": true
+     }
+    ],
+    "overflowers": [],
+    "mainTextHead": "PARTNER | Offers from companies we work with. Some links are affiliate links: the provider sets and pays any commission under its own terms. | SPONSORED | ↗ | AFFILIATE | ↗ | REFERRAL | ↗ | AFFILIATE | ↗ | OFFICIAL | ↗ | ✉ | AFFILIATE LINK | Kit: email for creators | Grow an email list you own. Refer a creator to Kit and earn 50% commission for the first 12 months. | Become a Kit partner → | MERCH | SHOP | Shop artist merch | Tees, sweaters, totes, wall art and mugs. Checkout is on Shopify. | Open the shop → | Submit your artwork | Artwork intake is by application and is not open yet. To be told when it is, write to info@keepitil.com. | APPS & GAMES | Build with KEEPITIL | For people who make apps and games for the KEEPITIL community. Applications are by review and are not open yet. To register interest, write to info@keepitil.com. | Play the KEEPITIL games → | CONTENT CREATORS | Make content with KEEPITIL | For creators who want to work with the KEEPITIL community. Applications are by review and are not open yet. To register interest, write to info@keepitil.com.",
+    "forbiddenText": [],
+    "shopAsTab": [],
+    "memoryHeapMB": 6
+   },
+   "console": [
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/platform_config?select=value&key=eq.radio_playlists"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://www.googletagmanager.com/gtag/js?id=G-ZR36NRE4MT"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://www.clarity.ms/tag/xk5iwishve"
+    }
+   ],
+   "blockedHosts": {
+    "ovmqtzjfpzrbzrlkxwgw.supabase.co": 1,
+    "www.googletagmanager.com": 1,
+    "www.clarity.ms": 1,
+    "w.soundcloud.com": 1
+   }
+  },
+  {
+   "page": "home",
+   "viewport": "desktop",
+   "size": "1280x800",
+   "probe": {
+    "title": "KEEPITIL — Create Loud. Live Louder.",
+    "url": "/",
+    "innerWidth": 1280,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "noHScroll": true,
+    "docHeight": 1342,
+    "bottomBar": {
+     "present": true,
+     "visible": false,
+     "rect": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "vis": false
+     },
+     "tabs": [
+      {
+       "text": "DISCOVER — Discover",
+       "href": "/",
+       "active": true,
+       "ariaCurrent": "page",
+       "cls": "on",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CONNECT — Connect",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CREATE — Create",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CULTURE — Culture",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "EARN — Earn",
+       "href": "/earn/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      }
+     ]
+    },
+    "desktopHeader": {
+     "present": true,
+     "links": [
+      {
+       "text": "CONNECT",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 63,
+       "h": 27,
+       "vis": true
+      },
+      {
+       "text": "CREATE",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 52,
+       "h": 27,
+       "vis": true
+      },
+      {
+       "text": "CULTURE",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 60,
+       "h": 27,
+       "vis": true
+      },
+      {
+       "text": "EARN",
+       "href": "/earn/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 36,
+       "h": 27,
+       "vis": true
+      }
+     ],
+     "allVisible": [
+      "Home / change site style",
+      "DISCOVER",
+      "CONNECT",
+      "CREATE",
+      "CULTURE",
+      "EARN",
+      "LOGIN"
+     ]
+    },
+    "footer": {
+     "present": true,
+     "links": [
+      "Discover -> /",
+      "Connect -> /connect/",
+      "Create -> /create/",
+      "Culture -> /culture/",
+      "Earn -> /earn/",
+      "Merch shop -> /shop/ [v3-foot-sub]",
+      "Login -> /apply"
+     ],
+     "footLinkRaw": [
+      {
+       "text": "Discover",
+       "href": "/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 58,
+       "h": 22,
+       "vis": true
+      },
+      {
+       "text": "Connect",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 56,
+       "h": 22,
+       "vis": true
+      },
+      {
+       "text": "Create",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 44,
+       "h": 22,
+       "vis": true
+      },
+      {
+       "text": "Culture",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 48,
+       "h": 22,
+       "vis": true
+      },
+      {
+       "text": "Earn",
+       "href": "/earn/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 30,
+       "h": 22,
+       "vis": true
+      },
+      {
+       "text": "Merch shop",
+       "href": "/shop/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "v3-foot-sub",
+       "w": 78,
+       "h": 22,
+       "vis": true
+      },
+      {
+       "text": "Login",
+       "href": "/apply",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 36,
+       "h": 22,
+       "vis": true
+      }
+     ]
+    },
+    "sections": [],
+    "deadishAnchors": [],
+    "interactiveInMain": [],
+    "smallTargetsInMain": [],
+    "railEls": [
+     {
+      "sel": "#kil-radio",
+      "n": 1,
+      "visible": 1
+     },
+     {
+      "sel": "#kil-sc",
+      "n": 1,
+      "visible": 1
+     },
+     {
+      "sel": ".rad-carou",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=playlist]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=arcade]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=competition]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=playlist]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=arcade]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=competition]",
+      "n": 0,
+      "visible": 0
+     }
+    ],
+    "crumbs": [],
+    "kit": null,
+    "mailto": [
+     {
+      "href": "mailto:info@keepitil.com",
+      "text": "info@keepitil.com",
+      "vis": true
+     },
+     {
+      "href": "mailto:info@keepitil.com",
+      "text": "Email KEEPITIL",
+      "vis": true
+     }
+    ],
+    "overflowers": [],
+    "mainTextHead": "DISCOVER | CONNECT | CREATE | CULTURE | EARN | LOGIN | KEEPITIL — discover events, connect with creators, and share culture | CONNECT | CREATE LOUD. LIVE LOUDER. KEEPITIL. | ▾ | ALL | LIVE RADIO | ‹ | Loading… | › | CHO | KEEPITIL | 9252 Garden Grove Blvd, Ste 19 PMB 1066, Garden Grove, CA 92844 · info@keepitil.com | Discover | Connect | Create | Culture | Earn | Merch shop | Login | Terms | Privacy | Refunds | Ticket Terms | Community Guidelines | © 2026 KEEPITIL | KEEPITIL LLC · Garden Grove, CA | ↑ | Add KEEPITIL to your home screen — events, scene & radio, one tap away. | Install | ×",
+    "forbiddenText": [
+     "radio"
+    ],
+    "shopAsTab": [],
+    "memoryHeapMB": 5
+   },
+   "console": [
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/events?select=slug%2Ctitle%2Cstarts_at%2Ctz%2Cvenue%2Ccity%2Cstate%2Ccounty%2Cgenres%2Ccover_url%2Csource_url%2Cfeatured%2Cowner_handle&sta"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/rpc/discovery_page_stats"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/platform_config?select=value&key=eq.radio_playlists"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/profile_meta?select=slug,display_name,tagline,bio,avatar_url,entity_category,status&entity_category=eq.artist&status=eq.published&limit=8&o"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://www.googletagmanager.com/gtag/js?id=G-ZR36NRE4MT"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://www.clarity.ms/tag/xk5iwishve"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://keepitil.com/logo-blue-nav.png"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/profile_meta?select=slug,display_name,tagline,bio,avatar_url,entity_category,status&entity_category=eq.brand&status=eq.published&limit=8&or"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/profile_meta?select=slug,display_name,tagline,bio,avatar_url,entity_category,status&entity_category=eq.organizer&status=eq.published&limit="
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/events?select=slug%2Ctitle%2Cstarts_at%2Ctz%2Cvenue%2Ccity%2Cstate%2Ccounty%2Cgenres%2Ccover_url%2Csource_url%2Cfeatured%2Cowner_handle&sta"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/events?select=slug%2Ctitle%2Cstarts_at%2Ctz%2Cvenue%2Ccity%2Cstate%2Ccounty%2Cgenres%2Ccover_url%2Csource_url%2Cfeatured%2Cowner_handle&sta"
+    }
+   ],
+   "blockedHosts": {
+    "ovmqtzjfpzrbzrlkxwgw.supabase.co": 8,
+    "www.googletagmanager.com": 1,
+    "www.clarity.ms": 1,
+    "keepitil.com": 1,
+    "w.soundcloud.com": 1
+   }
+  },
+  {
+   "page": "shop",
+   "viewport": "desktop",
+   "size": "1280x800",
+   "probe": {
+    "title": "Shop | KEEPITIL",
+    "url": "/shop/",
+    "innerWidth": 1280,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "noHScroll": true,
+    "docHeight": 1970,
+    "bottomBar": {
+     "present": true,
+     "visible": false,
+     "rect": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "vis": false
+     },
+     "tabs": [
+      {
+       "text": "DISCOVER — Discover",
+       "href": "/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CONNECT — Connect",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CREATE — Create",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "CULTURE — Culture",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      },
+      {
+       "text": "EARN — Earn",
+       "href": "/earn/",
+       "active": true,
+       "ariaCurrent": "page",
+       "cls": "on",
+       "w": 0,
+       "h": 0,
+       "vis": false
+      }
+     ]
+    },
+    "desktopHeader": {
+     "present": true,
+     "links": [
+      {
+       "text": "CONNECT",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 63,
+       "h": 25,
+       "vis": true
+      },
+      {
+       "text": "CREATE",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 52,
+       "h": 25,
+       "vis": true
+      },
+      {
+       "text": "CULTURE",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 60,
+       "h": 25,
+       "vis": true
+      },
+      {
+       "text": "EARN",
+       "href": "/earn/",
+       "active": true,
+       "ariaCurrent": "page",
+       "cls": "on",
+       "w": 36,
+       "h": 25,
+       "vis": true
+      }
+     ],
+     "allVisible": [
+      "Home / change site style",
+      "DISCOVER",
+      "CONNECT",
+      "CREATE",
+      "CULTURE",
+      "EARN",
+      "LOGIN"
+     ]
+    },
+    "footer": {
+     "present": true,
+     "links": [
+      "Discover -> /",
+      "Connect -> /connect/",
+      "Create -> /create/",
+      "Culture -> /culture/",
+      "Earn -> /earn/",
+      "Merch shop -> /shop/ [v3-foot-sub]",
+      "Login -> /apply"
+     ],
+     "footLinkRaw": [
+      {
+       "text": "Discover",
+       "href": "/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 58,
+       "h": 20,
+       "vis": true
+      },
+      {
+       "text": "Connect",
+       "href": "/connect/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 56,
+       "h": 20,
+       "vis": true
+      },
+      {
+       "text": "Create",
+       "href": "/create/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 44,
+       "h": 20,
+       "vis": true
+      },
+      {
+       "text": "Culture",
+       "href": "/culture/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 48,
+       "h": 20,
+       "vis": true
+      },
+      {
+       "text": "Earn",
+       "href": "/earn/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 30,
+       "h": 20,
+       "vis": true
+      },
+      {
+       "text": "Merch shop",
+       "href": "/shop/",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "v3-foot-sub",
+       "w": 78,
+       "h": 20,
+       "vis": true
+      },
+      {
+       "text": "Login",
+       "href": "/apply",
+       "active": false,
+       "ariaCurrent": null,
+       "cls": "",
+       "w": 36,
+       "h": 20,
+       "vis": true
+      }
+     ]
+    },
+    "sections": [
+     {
+      "id": "faq",
+      "heading": "FAQ",
+      "rect": {
+       "x": 96,
+       "y": 1123,
+       "w": 1088,
+       "h": 482,
+       "vis": true
+      }
+     }
+    ],
+    "deadishAnchors": [],
+    "interactiveInMain": [
+     {
+      "tag": "A",
+      "text": "Earn",
+      "href": "/earn/",
+      "vis": true,
+      "w": 41,
+      "h": 15
+     },
+     {
+      "tag": "A",
+      "text": "Merch",
+      "href": "/earn/#merch",
+      "vis": true,
+      "w": 54,
+      "h": 15
+     },
+     {
+      "tag": "A",
+      "text": "All merch",
+      "href": "https://www.illestratedlifestyle.com/collections/all-merch?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=all-merch",
+      "vis": true,
+      "w": 502,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "Tees",
+      "href": "https://www.illestratedlifestyle.com/collections/tees?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=tees",
+      "vis": true,
+      "w": 502,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "Sweaters & Crewnecks",
+      "href": "https://www.illestratedlifestyle.com/collections/sweaters-crewnecks?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=sweaters",
+      "vis": true,
+      "w": 502,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "Totes & Bags",
+      "href": "https://www.illestratedlifestyle.com/collections/totes-bags?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=totes",
+      "vis": true,
+      "w": 502,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "Canvas & Wall Art",
+      "href": "https://www.illestratedlifestyle.com/collections/canvas-wall-art?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=wall-art",
+      "vis": true,
+      "w": 502,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "Mugs",
+      "href": "https://www.illestratedlifestyle.com/collections/all-merch?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=mugs",
+      "vis": true,
+      "w": 502,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "Services",
+      "href": "https://www.illestratedlifestyle.com/collections/services?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=services",
+      "vis": true,
+      "w": 502,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "Downloads",
+      "href": "https://www.illestratedlifestyle.com/collections/downloads?utm_source=keepitil&utm_medium=site&utm_campaign=shop&utm_content=downloads",
+      "vis": true,
+      "w": 502,
+      "h": 48
+     },
+     {
+      "tag": "A",
+      "text": "See what’s included",
+      "href": "/services/",
+      "vis": true,
+      "w": 502,
+      "h": 44
+     },
+     {
+      "tag": "A",
+      "text": "store refund policy",
+      "href": "https://www.illestratedlifestyle.com/policies/refund-policy",
+      "vis": true,
+      "w": 147,
+      "h": 44
+     },
+     {
+      "tag": "A",
+      "text": "store refund policy",
+      "href": "https://www.illestratedlifestyle.com/policies/refund-policy",
+      "vis": true,
+      "w": 147,
+      "h": 44
+     },
+     {
+      "tag": "A",
+      "text": "info@keepitil.com",
+      "href": "mailto:info@keepitil.com",
+      "vis": true,
+      "w": 143,
+      "h": 44
+     }
+    ],
+    "smallTargetsInMain": [
+     {
+      "tag": "A",
+      "text": "Earn",
+      "href": "/earn/",
+      "vis": true,
+      "w": 41,
+      "h": 15
+     },
+     {
+      "tag": "A",
+      "text": "Merch",
+      "href": "/earn/#merch",
+      "vis": true,
+      "w": 54,
+      "h": 15
+     }
+    ],
+    "railEls": [
+     {
+      "sel": "#kil-radio",
+      "n": 1,
+      "visible": 1
+     },
+     {
+      "sel": "#kil-sc",
+      "n": 1,
+      "visible": 1
+     },
+     {
+      "sel": ".rad-carou",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=playlist]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=arcade]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[id*=competition]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=playlist]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=arcade]",
+      "n": 0,
+      "visible": 0
+     },
+     {
+      "sel": "[class*=competition]",
+      "n": 0,
+      "visible": 0
+     }
+    ],
+    "crumbs": [
+     "Breadcrumb"
+    ],
+    "kit": null,
+    "mailto": [
+     {
+      "href": "mailto:info@keepitil.com",
+      "text": "info@keepitil.com",
+      "vis": true
+     }
+    ],
+    "overflowers": [],
+    "mainTextHead": "EARN / MERCH / SHOP | Shop KEEPITIL | Merch and For Artists, in one place. Checkout is on Shopify. | Merch | Tees, sweaters, totes, wall art, and mugs. | All merch | Tees | Sweaters & Crewnecks | Totes & Bags | Canvas & Wall Art | Mugs | For Artists | Services and downloads for your release. | Services | Downloads | See what’s included | Secure Shopify checkout. Pay by card, PayPal, Venmo, Google Pay or Apple Pay, depending on your device. Digital items have no shipping. Merch ships at $6.69 flat. | Refunds per our store refund policy. | FAQ | How do I book my session? | When do I get my download? | What do you need for graphics? | What is the refund policy? | What does shipping cost, and how long does it take? | What sizes are available? | Who is KEEPITIL? | How do I contact KEEPITIL?",
+    "forbiddenText": [],
+    "shopAsTab": [],
+    "memoryHeapMB": 6
+   },
+   "console": [
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT https://ovmqtzjfpzrbzrlkxwgw.supabase.co/rest/v1/platform_config?select=value&key=eq.radio_playlists"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://www.googletagmanager.com/gtag/js?id=G-ZR36NRE4MT"
+    },
+    {
+     "kind": "log",
+     "text": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector https://www.clarity.ms/tag/xk5iwishve"
+    }
+   ],
+   "blockedHosts": {
+    "ovmqtzjfpzrbzrlkxwgw.supabase.co": 1,
+    "www.googletagmanager.com": 1,
+    "www.clarity.ms": 1,
+    "w.soundcloud.com": 1
+   }
+  }
+ ]
+}

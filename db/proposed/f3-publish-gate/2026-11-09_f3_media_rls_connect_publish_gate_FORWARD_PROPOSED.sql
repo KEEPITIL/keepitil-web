@@ -1,0 +1,326 @@
+-- SOURCE: Atlas, "Media RLS + Connect publish-gate proposal v2" (2026-11-07 01:58 PST). The SQL below is copied
+-- verbatim from that document (Section 3 "Exact forward SQL"); only this comment header was added. Markdown backslash escapes were removed.
+-- STATUS: PROPOSAL ONLY. NOT APPLIED. NOT AUTO-APPLIED. Nothing in this repository applies files under db/proposed/.
+-- HOLD: no application without (1) Sentinel's isolated test matrix against the real catalog, (2) Joe's explicit
+--       live-change authorization, (3) a re-baselined fingerprint (see README.md: the c917a7df... baseline is STALE).
+-- FORWARD migration (aborting drift pre-check, quarantine of 19 orphan event_media rows, media RLS, Connect trigger gate,
+-- TRUNCATE revokes). One transaction. Because the baseline below is stale it WILL abort today: that is intended.
+-- Do not "fix" the abort by editing the fingerprint literal by hand; re-baseline from the read-only drift query file.
+
+BEGIN;
+SET LOCAL lock_timeout = '5s';
+SET LOCAL statement_timeout = '60s';
+SET LOCAL search_path = public, extensions;
+LOCK TABLE public.event_media, public.venue_media, public.profile_meta,
+ public.events, public.venues, public.profile_owners,
+ public.app_users, public.app_admins IN ACCESS EXCLUSIVE MODE;
+DO $drift$
+DECLARE v_fingerprint text;
+BEGIN
+ IF current_user <> 'postgres' THEN RAISE EXCEPTION 'Run reviewed script as postgres'; END IF;
+ IF EXISTS (SELECT 1 FROM pg_default_acl WHERE defaclrole='postgres'::regrole
+ AND defaclnamespace=0 AND defaclobjtype IN ('f','n','r')) THEN
+ RAISE EXCEPTION 'Global function/schema/table defaults changed: stop and re-review';
+ END IF;
+ IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname='atlas_media_guard') THEN
+ RAISE EXCEPTION 'Private schema already exists: stop and re-review';
+ END IF;
+WITH snapshot AS (
+ SELECT jsonb_build_object(
+ 'relations',(SELECT jsonb_agg(to_jsonb(x) ORDER BY schema_name,relname) FROM (
+ SELECT n.nspname schema_name,c.relname,c.relkind,c.relrowsecurity,c.relforcerowsecurity,pg_get_userbyid(c.relowner) owner,c.relacl::text acl
+ FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+ WHERE n.nspname='public' AND c.relname IN ('event_media','venue_media','profile_meta','events','venues','profile_owners','app_admins','app_users','event_media_id_seq','venue_media_id_seq')) x),
+ 'columns',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,attnum) FROM (
+ SELECT c.relname table_name,a.attnum,a.attname,format_type(a.atttypid,a.atttypmod) type,a.attnotnull,a.attidentity,a.attacl::text acl,pg_get_expr(d.adbin,d.adrelid) default_expr
+ FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
+ WHERE c.oid IN ('public.event_media'::regclass,'public.venue_media'::regclass,'public.profile_meta'::regclass,'public.events'::regclass,'public.venues'::regclass,'public.profile_owners'::regclass,'public.app_admins'::regclass,'public.app_users'::regclass) AND a.attnum>0 AND NOT a.attisdropped) x),
+ 'policies',(SELECT jsonb_agg(to_jsonb(p) ORDER BY schemaname,tablename,policyname) FROM pg_policies p WHERE schemaname='public' AND tablename IN ('event_media','venue_media','profile_meta','events','venues','profile_owners','app_admins','app_users')),
+ 'constraints',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,conname) FROM (SELECT conrelid::regclass::text table_name,conname,pg_get_constraintdef(oid,true) definition FROM pg_constraint WHERE conrelid IN ('public.event_media'::regclass,'public.venue_media'::regclass,'public.profile_meta'::regclass,'public.events'::regclass,'public.venues'::regclass,'public.profile_owners'::regclass,'public.app_admins'::regclass,'public.app_users'::regclass)) x),
+ 'triggers',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,tgname) FROM (SELECT tgrelid::regclass::text table_name,tgname,tgenabled,pg_get_triggerdef(oid,true) definition FROM pg_trigger WHERE NOT tgisinternal AND tgrelid IN ('public.event_media'::regclass,'public.venue_media'::regclass,'public.profile_meta'::regclass,'public.events'::regclass,'public.venues'::regclass,'public.profile_owners'::regclass,'public.app_admins'::regclass,'public.app_users'::regclass)) x),
+ 'functions',(SELECT jsonb_agg(to_jsonb(x) ORDER BY schema_name,proname,args) FROM (SELECT n.nspname schema_name,p.proname,pg_get_function_identity_arguments(p.oid) args,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,md5(pg_get_functiondef(p.oid)) definition_md5 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE p.prokind='f' AND (n.nspname='public' OR (n.nspname='auth' AND p.proname IN ('uid','role')))) x),
+ 'private_schema',(SELECT jsonb_build_object('owner',pg_get_userbyid(nspowner),'acl',nspacl::text) FROM pg_namespace WHERE nspname='atlas_media_guard'),
+ 'private_relations',(SELECT jsonb_agg(to_jsonb(x) ORDER BY relname) FROM (SELECT c.relname,c.relkind,c.relrowsecurity,c.relforcerowsecurity,pg_get_userbyid(c.relowner) owner,c.relacl::text acl FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='atlas_media_guard') x),
+ 'private_columns',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,attnum) FROM (SELECT c.relname table_name,a.attnum,a.attname,format_type(a.atttypid,a.atttypmod) type,a.attnotnull,a.attidentity,a.attacl::text acl,pg_get_expr(d.adbin,d.adrelid) default_expr FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum WHERE n.nspname='atlas_media_guard' AND a.attnum>0 AND NOT a.attisdropped) x),
+ 'private_constraints',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,conname) FROM (SELECT c.relname table_name,k.conname,pg_get_constraintdef(k.oid,true) definition FROM pg_constraint k JOIN pg_class c ON c.oid=k.conrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='atlas_media_guard') x),
+ 'private_functions',(SELECT jsonb_agg(to_jsonb(x) ORDER BY proname,args) FROM (SELECT p.proname,pg_get_function_identity_arguments(p.oid) args,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,md5(pg_get_functiondef(p.oid)) definition_md5 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE p.prokind='f' AND n.nspname='atlas_media_guard') x),
+ 'memberships',(SELECT jsonb_agg(to_jsonb(x) ORDER BY member,role_name) FROM (SELECT pg_get_userbyid(member) member,pg_get_userbyid(roleid) role_name,admin_option FROM pg_auth_members WHERE pg_get_userbyid(member) IN ('anon','authenticated','service_role')) x)
+ ) AS state
+) SELECT md5(state::text) INTO v_fingerprint FROM snapshot;
+ IF v_fingerprint IS DISTINCT FROM 'c917a7dfbc778913b7e46b332aeeb348' THEN
+ RAISE EXCEPTION 'Catalog drift: stop and re-review (no changes applied)';
+ END IF;
+END;
+$drift$;
+
+-- Item 1: preserve authenticated fan submissions, never automatic publication.
+CREATE SCHEMA atlas_media_guard AUTHORIZATION postgres;
+REVOKE ALL ON SCHEMA atlas_media_guard FROM PUBLIC;
+GRANT USAGE ON SCHEMA atlas_media_guard TO authenticated, service_role;
+-- S2: quarantine exactly the observed orphan set; no source content is copied.
+CREATE TABLE atlas_media_guard.orphan_event_media_backup (
+ media_id bigint PRIMARY KEY,
+ original_status text NOT NULL,
+ content_md5 text NOT NULL
+);
+REVOKE ALL ON TABLE atlas_media_guard.orphan_event_media_backup FROM PUBLIC,anon,authenticated,service_role;
+DO $orphan_pre$
+BEGIN
+ IF (SELECT count(*) FROM public.event_media m WHERE NOT EXISTS
+ (SELECT 1 FROM public.events e WHERE e.slug=m.event_slug)) <> 19
+ OR EXISTS (SELECT 1 FROM public.event_media m WHERE m.status IS DISTINCT FROM 'published'
+ AND NOT EXISTS(SELECT 1 FROM public.events e WHERE e.slug=m.event_slug)) THEN
+ RAISE EXCEPTION 'Orphan set changed: stop and re-review counts';
+ END IF;
+END;
+$orphan_pre$;
+INSERT INTO atlas_media_guard.orphan_event_media_backup(media_id,original_status,content_md5)
+ SELECT m.id,m.status,md5((to_jsonb(m)-'status')::text) FROM public.event_media m
+ WHERE NOT EXISTS(SELECT 1 FROM public.events e WHERE e.slug=m.event_slug);
+UPDATE public.event_media m SET status='hidden'
+ FROM atlas_media_guard.orphan_event_media_backup b WHERE m.id=b.media_id;
+
+
+CREATE FUNCTION atlas_media_guard.owns_parent(p_scope text, p_slug text)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $fn$
+ SELECT auth.uid() IS NOT NULL AND (
+ (p_scope = 'event' AND EXISTS (
+ SELECT 1 FROM public.events e WHERE e.slug = p_slug
+ AND (e.submitted_by = auth.uid() OR EXISTS (
+ SELECT 1 FROM public.profile_owners o
+ WHERE o.profile_slug=e.owner_handle AND o.owner_id=auth.uid()))))
+ OR
+ (p_scope = 'venue' AND EXISTS (
+ SELECT 1 FROM public.venues v JOIN public.profile_owners o
+ ON o.profile_slug = v.owner_handle
+ WHERE v.slug = p_slug AND o.owner_id = auth.uid()))
+ );
+$fn$;
+
+ALTER TABLE public.event_media ALTER COLUMN status SET DEFAULT 'pending';
+ALTER TABLE public.venue_media ALTER COLUMN status SET DEFAULT 'pending';
+ALTER TABLE public.venue_media DROP CONSTRAINT venue_media_status_check;
+ALTER TABLE public.venue_media ADD CONSTRAINT venue_media_status_check
+ CHECK (status = ANY (ARRAY['published'::text,'hidden'::text,'pending'::text]));
+
+DROP POLICY event_media_ins ON public.event_media;
+CREATE POLICY event_media_ins ON public.event_media AS PERMISSIVE
+ FOR INSERT TO authenticated
+ WITH CHECK (status IN ('pending','pending_upload')
+ AND atlas_media_guard.owns_parent('event',event_slug));
+DROP POLICY venue_media_insert ON public.venue_media;
+CREATE POLICY venue_media_insert ON public.venue_media AS PERMISSIVE
+ FOR INSERT TO authenticated
+ WITH CHECK (status = 'pending'
+ AND atlas_media_guard.owns_parent('venue',venue_slug));
+-- Needed by upload_event_photo's INSERT ... RETURNING and by owner review UI.
+CREATE POLICY atlas_event_media_owner_read ON public.event_media AS PERMISSIVE
+ FOR SELECT TO authenticated
+ USING (atlas_media_guard.owns_parent('event',event_slug));
+CREATE POLICY atlas_venue_media_owner_read ON public.venue_media AS PERMISSIVE
+ FOR SELECT TO authenticated
+ USING (atlas_media_guard.owns_parent('venue',venue_slug));
+REVOKE INSERT ON TABLE public.event_media,public.venue_media FROM anon;
+-- TRUNCATE is not subject to row-level policies or row triggers.
+REVOKE TRUNCATE ON TABLE public.event_media,public.venue_media,public.profile_meta
+ FROM anon,authenticated;
+-- S1: unused object privileges; RLS is not the only layer.
+REVOKE UPDATE,DELETE,REFERENCES,TRIGGER ON TABLE public.event_media,public.venue_media,public.profile_meta FROM anon;
+REVOKE DELETE ON TABLE public.event_media,public.venue_media FROM authenticated;
+
+CREATE FUNCTION atlas_media_guard.submit_event_media(
+ p_slug text,p_kind text,p_media_url text,p_title text,p_source_url text DEFAULT NULL)
+RETURNS bigint LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $fn$
+DECLARE v_id bigint; v_handle text;
+BEGIN
+ IF auth.uid() IS NULL THEN RAISE EXCEPTION 'authentication required' USING ERRCODE='42501'; END IF;
+ SELECT handle INTO v_handle FROM public.app_users WHERE id=auth.uid();
+ IF v_handle IS NULL THEN RAISE EXCEPTION 'profile required' USING ERRCODE='42501'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM public.events e WHERE e.slug=p_slug
+ AND (e.status='published' OR atlas_media_guard.owns_parent('event',e.slug))) THEN
+ RAISE EXCEPTION 'event not available' USING ERRCODE='42501';
+ END IF;
+ INSERT INTO public.event_media(event_slug,kind,media_url,title,author_handle,source_url,status)
+ VALUES (p_slug,coalesce(p_kind,'image'),p_media_url,p_title,v_handle,p_source_url,'pending')
+ RETURNING id INTO v_id;
+ RETURN v_id;
+END;
+$fn$;
+
+CREATE FUNCTION atlas_media_guard.submit_venue_media(
+ p_slug text,p_kind text,p_media_url text,p_title text,p_source_url text DEFAULT NULL,
+ p_is_artist boolean DEFAULT false)
+RETURNS bigint LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $fn$
+DECLARE v_id bigint; v_handle text;
+BEGIN
+ IF auth.uid() IS NULL THEN RAISE EXCEPTION 'authentication required' USING ERRCODE='42501'; END IF;
+ SELECT handle INTO v_handle FROM public.app_users WHERE id=auth.uid();
+ IF v_handle IS NULL THEN RAISE EXCEPTION 'profile required' USING ERRCODE='42501'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM public.venues v WHERE v.slug=p_slug
+ AND (v.status='published' OR atlas_media_guard.owns_parent('venue',v.slug))) THEN
+ RAISE EXCEPTION 'venue not available' USING ERRCODE='42501';
+ END IF;
+ INSERT INTO public.venue_media(venue_slug,kind,media_url,title,author_handle,is_artist,source_url,status)
+ VALUES (p_slug,coalesce(p_kind,'image'),p_media_url,p_title,v_handle,
+ coalesce(p_is_artist,false),p_source_url,'pending') RETURNING id INTO v_id;
+ RETURN v_id;
+END;
+$fn$;
+
+-- The API-facing functions are invoker wrappers; privileged bodies stay unexposed.
+CREATE OR REPLACE FUNCTION public.tag_event_media(
+ p_slug text,p_kind text,p_media_url text,p_title text,p_source_url text DEFAULT NULL::text)
+RETURNS bigint LANGUAGE sql SECURITY INVOKER SET search_path = ''
+AS $fn$
+ SELECT atlas_media_guard.submit_event_media(p_slug,p_kind,p_media_url,p_title,p_source_url);
+$fn$;
+CREATE OR REPLACE FUNCTION public.tag_venue_media(
+ p_slug text,p_kind text,p_media_url text,p_title text,p_source_url text DEFAULT NULL::text,
+ p_is_artist boolean DEFAULT false)
+RETURNS bigint LANGUAGE sql SECURITY INVOKER SET search_path = ''
+AS $fn$
+ SELECT atlas_media_guard.submit_venue_media(p_slug,p_kind,p_media_url,p_title,p_source_url,p_is_artist);
+$fn$;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA atlas_media_guard FROM PUBLIC,anon;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA atlas_media_guard TO authenticated,service_role;
+REVOKE ALL ON FUNCTION public.tag_event_media(text,text,text,text,text),
+ public.tag_venue_media(text,text,text,text,text,boolean) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.tag_event_media(text,text,text,text,text),
+ public.tag_venue_media(text,text,text,text,text,boolean) TO authenticated,service_role;
+
+-- Item 2: trigger-only, covering UPDATE and INSERT/upsert without breaking conflict-key payloads.
+CREATE OR REPLACE FUNCTION public.profile_meta_publish_gate()
+ RETURNS trigger
+ LANGUAGE plpgsql
+SET search_path TO ''
+AS $function$
+declare
+ extras int;
+ missing text[] := '{}';
+begin
+ -- Invoker trigger: do NOT make this function SECURITY DEFINER.
+ -- current_user is the actual database execution role, not a caller-supplied field.
+ if not (current_user in ('postgres','service_role') or public.is_admin()) then
+ if tg_op = 'INSERT' then
+ if new.status is distinct from 'review'
+ or new.sources is distinct from '[]'::jsonb
+ or new.last_reviewed_at is not null then
+ raise exception 'publication evidence is server-managed' using errcode='42501';
+ end if;
+ else
+ if new.status is distinct from old.status
+ or new.sources is distinct from old.sources
+ or new.last_reviewed_at is distinct from old.last_reviewed_at then
+ raise exception 'publication evidence is server-managed' using errcode='42501';
+ end if;
+ if new.slug is distinct from old.slug
+ or new.display_name is distinct from old.display_name
+ or new.handle is distinct from old.handle
+ or new.location is distinct from old.location
+ or new.bio is distinct from old.bio
+ or new.tagline is distinct from old.tagline
+ or new.pronouns is distinct from old.pronouns
+ or new.avatar_url is distinct from old.avatar_url
+ or new.cover_url is distinct from old.cover_url
+ or new.book_email is distinct from old.book_email
+ or new.socials is distinct from old.socials
+ or new.highlights is distinct from old.highlights
+ or new.about is distinct from old.about
+ or new.links is distinct from old.links
+ or new.account_type is distinct from old.account_type
+ or new.links_label is distinct from old.links_label
+ or new.badges is distinct from old.badges
+ or new.cover_mobile_url is distinct from old.cover_mobile_url
+ or new.entity_category is distinct from old.entity_category then
+ if old.status = 'published' then new.status := 'review'; end if;
+ new.sources := '[]'::jsonb;
+ new.last_reviewed_at := null;
+ new.updated_at := statement_timestamp();
+ end if;
+ end if;
+ end if;
+
+ if new.status is distinct from 'published' then
+ return new;
+ end if;
+
+ if nullif(btrim(coalesce(new.display_name,'')),'') is null then
+ missing := missing || 'public name'::text; end if;
+ if new.account_type is null then
+ missing := missing || 'account_type (never NULL)'::text; end if;
+ if nullif(btrim(coalesce(new.entity_category,'')),'') is null then
+ missing := missing || 'entity category'::text; end if;
+ if jsonb_typeof(new.sources) is distinct from 'array'
+ or not exists (
+ select 1 from jsonb_array_elements(new.sources) s
+ where coalesce(s->>'url','') <> '' and (s->>'http_status') = '200'
+ ) then
+ missing := missing || 'at least one verified source URL returning 200'::text; end if;
+ if nullif(btrim(coalesce(new.about, new.bio, '')),'') is null then
+ missing := missing || 'short description'::text; end if;
+ if new.last_reviewed_at is null then
+ missing := missing || 'last_reviewed_at'::text; end if;
+
+ if array_length(missing, 1) is not null then
+ raise exception 'profile cannot be published — missing: %', array_to_string(missing, ', ')
+ using errcode = 'check_violation';
+ end if;
+
+ extras := (case when nullif(btrim(coalesce(new.avatar_url,'')),'') is not null then 1 else 0 end)
+ + (case when nullif(btrim(coalesce(new.location,'')),'') is not null then 1 else 0 end)
+ + (case when nullif(btrim(coalesce(new.entity_category,'')),'') is not null then 1 else 0 end)
+ + (case when coalesce(jsonb_typeof(new.socials),'') = 'object'
+ and (select count(*) from jsonb_object_keys(new.socials)) > 0 then 1 else 0 end)
+ + (case when coalesce(jsonb_typeof(new.links),'') = 'array'
+ and jsonb_array_length(new.links) > 0 then 1 else 0 end);
+
+ if extras < 2 then
+ raise exception 'profile cannot be published — needs at least 2 optional fields (has %)', extras
+ using errcode = 'check_violation';
+ end if;
+
+ return new;
+end;
+$function$;
+
+-- The existing BEFORE INSERT OR UPDATE trigger remains bound to this function.
+-- Store a postgres-only metadata fingerprint so rollback detects forward-state drift
+-- before it overwrites any later policy/function edits. No user data is stored here.
+CREATE TABLE atlas_media_guard.rollback_guard (
+ singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+ catalog_fingerprint text NOT NULL
+);
+REVOKE ALL ON TABLE atlas_media_guard.rollback_guard FROM PUBLIC,anon,authenticated,service_role;
+DO $save_guard$
+DECLARE v_fingerprint text;
+BEGIN
+WITH snapshot AS (
+ SELECT jsonb_build_object(
+ 'relations',(SELECT jsonb_agg(to_jsonb(x) ORDER BY schema_name,relname) FROM (
+ SELECT n.nspname schema_name,c.relname,c.relkind,c.relrowsecurity,c.relforcerowsecurity,pg_get_userbyid(c.relowner) owner,c.relacl::text acl
+ FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+ WHERE n.nspname='public' AND c.relname IN ('event_media','venue_media','profile_meta','events','venues','profile_owners','app_admins','app_users','event_media_id_seq','venue_media_id_seq')) x),
+ 'columns',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,attnum) FROM (
+ SELECT c.relname table_name,a.attnum,a.attname,format_type(a.atttypid,a.atttypmod) type,a.attnotnull,a.attidentity,a.attacl::text acl,pg_get_expr(d.adbin,d.adrelid) default_expr
+ FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
+ WHERE c.oid IN ('public.event_media'::regclass,'public.venue_media'::regclass,'public.profile_meta'::regclass,'public.events'::regclass,'public.venues'::regclass,'public.profile_owners'::regclass,'public.app_admins'::regclass,'public.app_users'::regclass) AND a.attnum>0 AND NOT a.attisdropped) x),
+ 'policies',(SELECT jsonb_agg(to_jsonb(p) ORDER BY schemaname,tablename,policyname) FROM pg_policies p WHERE schemaname='public' AND tablename IN ('event_media','venue_media','profile_meta','events','venues','profile_owners','app_admins','app_users')),
+ 'constraints',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,conname) FROM (SELECT conrelid::regclass::text table_name,conname,pg_get_constraintdef(oid,true) definition FROM pg_constraint WHERE conrelid IN ('public.event_media'::regclass,'public.venue_media'::regclass,'public.profile_meta'::regclass,'public.events'::regclass,'public.venues'::regclass,'public.profile_owners'::regclass,'public.app_admins'::regclass,'public.app_users'::regclass)) x),
+ 'triggers',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,tgname) FROM (SELECT tgrelid::regclass::text table_name,tgname,tgenabled,pg_get_triggerdef(oid,true) definition FROM pg_trigger WHERE NOT tgisinternal AND tgrelid IN ('public.event_media'::regclass,'public.venue_media'::regclass,'public.profile_meta'::regclass,'public.events'::regclass,'public.venues'::regclass,'public.profile_owners'::regclass,'public.app_admins'::regclass,'public.app_users'::regclass)) x),
+ 'functions',(SELECT jsonb_agg(to_jsonb(x) ORDER BY schema_name,proname,args) FROM (SELECT n.nspname schema_name,p.proname,pg_get_function_identity_arguments(p.oid) args,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,md5(pg_get_functiondef(p.oid)) definition_md5 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE p.prokind='f' AND (n.nspname='public' OR (n.nspname='auth' AND p.proname IN ('uid','role')))) x),
+ 'private_schema',(SELECT jsonb_build_object('owner',pg_get_userbyid(nspowner),'acl',nspacl::text) FROM pg_namespace WHERE nspname='atlas_media_guard'),
+ 'private_relations',(SELECT jsonb_agg(to_jsonb(x) ORDER BY relname) FROM (SELECT c.relname,c.relkind,c.relrowsecurity,c.relforcerowsecurity,pg_get_userbyid(c.relowner) owner,c.relacl::text acl FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='atlas_media_guard') x),
+ 'private_columns',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,attnum) FROM (SELECT c.relname table_name,a.attnum,a.attname,format_type(a.atttypid,a.atttypmod) type,a.attnotnull,a.attidentity,a.attacl::text acl,pg_get_expr(d.adbin,d.adrelid) default_expr FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum WHERE n.nspname='atlas_media_guard' AND a.attnum>0 AND NOT a.attisdropped) x),
+ 'private_constraints',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,conname) FROM (SELECT c.relname table_name,k.conname,pg_get_constraintdef(k.oid,true) definition FROM pg_constraint k JOIN pg_class c ON c.oid=k.conrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='atlas_media_guard') x),
+ 'private_functions',(SELECT jsonb_agg(to_jsonb(x) ORDER BY proname,args) FROM (SELECT p.proname,pg_get_function_identity_arguments(p.oid) args,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,md5(pg_get_functiondef(p.oid)) definition_md5 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE p.prokind='f' AND n.nspname='atlas_media_guard') x),
+ 'memberships',(SELECT jsonb_agg(to_jsonb(x) ORDER BY member,role_name) FROM (SELECT pg_get_userbyid(member) member,pg_get_userbyid(roleid) role_name,admin_option FROM pg_auth_members WHERE pg_get_userbyid(member) IN ('anon','authenticated','service_role')) x)
+ ) AS state
+) SELECT md5(state::text) INTO v_fingerprint FROM snapshot;
+ INSERT INTO atlas_media_guard.rollback_guard(singleton,catalog_fingerprint)
+ VALUES (true,v_fingerprint);
+END;
+$save_guard$;
+COMMIT;

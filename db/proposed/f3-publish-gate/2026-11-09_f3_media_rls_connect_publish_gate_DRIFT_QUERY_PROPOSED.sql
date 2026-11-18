@@ -1,0 +1,34 @@
+-- SOURCE: Atlas, "Media RLS + Connect publish-gate proposal v2" (2026-11-07 01:58 PST). The SQL below is copied
+-- verbatim from that document (Appendix C); only this comment header was added. Markdown backslash escapes were removed.
+-- STATUS: PROPOSAL ONLY. NOT APPLIED. NOT AUTO-APPLIED. Nothing in this repository applies files under db/proposed/.
+-- HOLD: no application without (1) Sentinel's isolated test matrix against the real catalog, (2) Joe's explicit
+--       live-change authorization, (3) a re-baselined fingerprint (see README.md: the c917a7df... baseline is STALE).
+-- READ-ONLY drift/fingerprint query (Atlas Appendix C). Re-run this against production, read-only, to produce the NEW
+-- baseline fingerprint before any apply. Run it in a session with:  SET search_path = public, extensions;
+-- (the FORWARD sets that path with SET LOCAL before computing its own copy of this query; the md5 is search_path-sensitive,
+-- see proof/proof-f3.mjs check "FP"). It reads catalogs and md5s of function definitions only, no user rows.
+-- Compare the md5 it returns with the literal inside FORWARD and ROLLBACK ONLY after Atlas/Sentinel have re-reviewed every
+-- difference; a changed fingerprint means prod changed and the proposal's rollback text must be regenerated too.
+
+WITH snapshot AS (
+ SELECT jsonb_build_object(
+ 'relations',(SELECT jsonb_agg(to_jsonb(x) ORDER BY schema_name,relname) FROM (
+ SELECT n.nspname schema_name,c.relname,c.relkind,c.relrowsecurity,c.relforcerowsecurity,pg_get_userbyid(c.relowner) owner,c.relacl::text acl
+ FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+ WHERE n.nspname='public' AND c.relname IN ('event_media','venue_media','profile_meta','events','venues','profile_owners','app_admins','app_users','event_media_id_seq','venue_media_id_seq')) x),
+ 'columns',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,attnum) FROM (
+ SELECT c.relname table_name,a.attnum,a.attname,format_type(a.atttypid,a.atttypmod) type,a.attnotnull,a.attidentity,a.attacl::text acl,pg_get_expr(d.adbin,d.adrelid) default_expr
+ FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
+ WHERE c.oid IN ('public.event_media'::regclass,'public.venue_media'::regclass,'public.profile_meta'::regclass,'public.events'::regclass,'public.venues'::regclass,'public.profile_owners'::regclass,'public.app_admins'::regclass,'public.app_users'::regclass) AND a.attnum>0 AND NOT a.attisdropped) x),
+ 'policies',(SELECT jsonb_agg(to_jsonb(p) ORDER BY schemaname,tablename,policyname) FROM pg_policies p WHERE schemaname='public' AND tablename IN ('event_media','venue_media','profile_meta','events','venues','profile_owners','app_admins','app_users')),
+ 'constraints',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,conname) FROM (SELECT conrelid::regclass::text table_name,conname,pg_get_constraintdef(oid,true) definition FROM pg_constraint WHERE conrelid IN ('public.event_media'::regclass,'public.venue_media'::regclass,'public.profile_meta'::regclass,'public.events'::regclass,'public.venues'::regclass,'public.profile_owners'::regclass,'public.app_admins'::regclass,'public.app_users'::regclass)) x),
+ 'triggers',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,tgname) FROM (SELECT tgrelid::regclass::text table_name,tgname,tgenabled,pg_get_triggerdef(oid,true) definition FROM pg_trigger WHERE NOT tgisinternal AND tgrelid IN ('public.event_media'::regclass,'public.venue_media'::regclass,'public.profile_meta'::regclass,'public.events'::regclass,'public.venues'::regclass,'public.profile_owners'::regclass,'public.app_admins'::regclass,'public.app_users'::regclass)) x),
+ 'functions',(SELECT jsonb_agg(to_jsonb(x) ORDER BY schema_name,proname,args) FROM (SELECT n.nspname schema_name,p.proname,pg_get_function_identity_arguments(p.oid) args,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,md5(pg_get_functiondef(p.oid)) definition_md5 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE p.prokind='f' AND (n.nspname='public' OR (n.nspname='auth' AND p.proname IN ('uid','role')))) x),
+ 'private_schema',(SELECT jsonb_build_object('owner',pg_get_userbyid(nspowner),'acl',nspacl::text) FROM pg_namespace WHERE nspname='atlas_media_guard'),
+ 'private_relations',(SELECT jsonb_agg(to_jsonb(x) ORDER BY relname) FROM (SELECT c.relname,c.relkind,c.relrowsecurity,c.relforcerowsecurity,pg_get_userbyid(c.relowner) owner,c.relacl::text acl FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='atlas_media_guard') x),
+ 'private_columns',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,attnum) FROM (SELECT c.relname table_name,a.attnum,a.attname,format_type(a.atttypid,a.atttypmod) type,a.attnotnull,a.attidentity,a.attacl::text acl,pg_get_expr(d.adbin,d.adrelid) default_expr FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum WHERE n.nspname='atlas_media_guard' AND a.attnum>0 AND NOT a.attisdropped) x),
+ 'private_constraints',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,conname) FROM (SELECT c.relname table_name,k.conname,pg_get_constraintdef(k.oid,true) definition FROM pg_constraint k JOIN pg_class c ON c.oid=k.conrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='atlas_media_guard') x),
+ 'private_functions',(SELECT jsonb_agg(to_jsonb(x) ORDER BY proname,args) FROM (SELECT p.proname,pg_get_function_identity_arguments(p.oid) args,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,md5(pg_get_functiondef(p.oid)) definition_md5 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE p.prokind='f' AND n.nspname='atlas_media_guard') x),
+ 'memberships',(SELECT jsonb_agg(to_jsonb(x) ORDER BY member,role_name) FROM (SELECT pg_get_userbyid(member) member,pg_get_userbyid(roleid) role_name,admin_option FROM pg_auth_members WHERE pg_get_userbyid(member) IN ('anon','authenticated','service_role')) x)
+ ) AS state
+) SELECT md5(state::text) AS fingerprint,state FROM snapshot;

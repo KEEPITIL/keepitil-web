@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="default">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
+<title>Get Listed on KEEPITIL Connect</title>
+<meta name="description" content="Artists, brands, community groups and venues: ask to be listed on KEEPITIL Connect."/>
+<meta name="robots" content="index,follow"/>
+<link rel="canonical" href="https://keepitil.com/connect/get-listed/"/>
+<meta property="og:title" content="Get Listed on KEEPITIL Connect"/>
+<meta property="og:description" content="Artists, brands, community groups and venues: ask to be listed on KEEPITIL Connect."/>
+<meta property="og:url" content="https://keepitil.com/connect/get-listed/"/>
+<meta property="og:type" content="website"/>
+<link rel="stylesheet" href="/assets/css/tokens.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg,#0a0a0f);color:var(--text,#e8e8f0);font-family:var(--font,Inter,system-ui,sans-serif);line-height:1.6;padding-bottom:96px;overflow-x:clip}
+.wrap{max-width:640px;margin:0 auto;padding:48px 16px 24px}
+.eyebrow{font-size:.75rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--brand,#00b4ff)}
+h1{font-size:clamp(2rem,6vw,2.6rem);font-weight:900;line-height:1.1;margin:8px 0 10px}
+.lede{color:var(--muted,#a8a3bd);margin-bottom:24px}
+form{display:grid;gap:16px;background:linear-gradient(160deg,#10162a,#0c0f1c);border:1px solid rgba(0,180,255,.18);border-radius:20px;padding:24px 20px}
+label{display:grid;gap:6px;font-weight:700;font-size:.95rem}
+label small{font-weight:500;color:var(--muted,#a8a3bd)}
+input,select,textarea{width:100%;font:inherit;color:inherit;background:#0a0d18;border:1.5px solid rgba(255,255,255,.18);border-radius:12px;padding:12px 14px;min-height:48px}
+textarea{min-height:120px;resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visible,a:focus-visible{outline:3px solid #ffd54a;outline-offset:2px}
+.hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.btn{min-height:48px;padding:12px 22px;border-radius:999px;font-weight:800;font-size:1rem;border:0;cursor:pointer;font-family:inherit;background:#00e1b0;color:#06111a}
+.btn[disabled]{opacity:.6;cursor:wait}
+.msg{border-radius:12px;padding:12px 14px}
+.msg.ok{background:rgba(0,225,176,.12);border:1px solid rgba(0,225,176,.4)}
+.msg.err{background:rgba(255,92,138,.12);border:1px solid rgba(255,92,138,.4)}
+.ref{font-family:ui-monospace,monospace;font-weight:800}
+.fine{color:var(--muted,#a8a3bd);font-size:.85rem}
+.fine a{color:var(--brand,#00b4ff)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">KEEPITIL Connect</p>
+  <h1>Get Listed</h1>
+  <p class="lede">Artists, brands, community groups and venues: tell us about yourself and we'll review your listing. We reply by email, usually within a few days.</p>
+  <form id="gl" novalidate>
+    <label>What should we list?
+      <select name="kind" required>
+        <option value="">Choose one</option>
+        <option value="artist">Artist</option>
+        <option value="brand">Brand</option>
+        <option value="community">Community group</option>
+        <option value="venue">Venue</option>
+      </select></label>
+    <label>Name to list <input name="name" maxlength="120" required autocomplete="organization"/></label>
+    <label>Your name <small>(optional)</small> <input name="contact_name" maxlength="120" autocomplete="name"/></label>
+    <label>Email we can reply to <input name="email" type="email" maxlength="254" required autocomplete="email"/></label>
+    <label>City <small>(optional)</small> <input name="city" maxlength="120" autocomplete="address-level2"/></label>
+    <label>Links <small>(optional: website, Instagram, music; up to 5, one per line, starting https://)</small>
+      <textarea name="links" rows="3" maxlength="1600"></textarea></label>
+    <label>About <small>(10 to 2,000 characters)</small>
+      <textarea name="about" maxlength="2000" required></textarea></label>
+    <label>Photo, logo or press kit <small>(optional: JPEG, PNG, WebP or PDF, up to 5 MB)</small>
+      <input name="upload" type="file" accept="image/jpeg,image/png,image/webp,application/pdf"/></label>
+    <div class="hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"/></label></div>
+    <div id="gl-result" role="status" aria-live="polite"></div>
+    <button class="btn" id="gl-send" type="submit">Send</button>
+    <p class="fine">By sending, you agree we may store these details to review your listing, as described in our <a href="/privacy">Privacy Policy</a>. A copy goes to <a href="mailto:info@keepitil.com">info@keepitil.com</a>.</p>
+  </form>
+</div>
+<script>
+(function(){
+  var ENDPOINT = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co/functions/v1/connect-submit';
+  var form = document.getElementById('gl'), out = document.getElementById('gl-result'), send = document.getElementById('gl-send');
+  var shownAt = Date.now(), src = new URLSearchParams(location.search).get('src') || '';
+  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function say(kind, html){ out.className = 'msg ' + kind; out.innerHTML = html; }
+  function fail(why, el){ say('err', esc(why) + ' You can also email <a href="mailto:info@keepitil.com">info@keepitil.com</a>.'); if (el) el.focus(); }
+  var k = new URLSearchParams(location.search).get('kind'); if (k) form.kind.value = k;
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    if (!form.kind.value) return fail('Choose what you want listed.', form.kind);
+    if (form.name.value.trim().length < 2) return fail('Add the name to list.', form.name);
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.value.trim())) return fail('Enter an email address we can reply to.', form.email);
+    if (form.about.value.trim().length < 10) return fail('Tell us a little more about it.', form.about);
+    var file = form.upload.files[0];
+    if (file && file.size > 5 * 1024 * 1024) return fail('Keep the upload under 5 MB.', form.upload);
+    var fd = new FormData(form); fd.set('elapsed_ms', String(Date.now() - shownAt)); fd.set('source', src.slice(0, 60));
+    if (!file) fd.delete('upload');
+    send.disabled = true; send.textContent = 'Sending…'; out.className = ''; out.textContent = '';
+    fetch(ENDPOINT, { method: 'POST', body: fd })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if (j && j.ok && j.reference) { say('ok', '<b>Thanks, we got it.</b> Your reference is <span class="ref">' + esc(j.reference) + '</span>. We will reply to ' + esc(form.email.value.trim()) + '.'); form.reset(); }
+        else fail((j && j.error) || 'We could not send this just now.');
+      })
+      .catch(function(){ fail('We could not send this just now.'); })
+      .then(function(){ send.disabled = false; send.textContent = 'Send'; });
+  });
+})();
+</script>
+<script src="/assets/js/keepitil-ai.js?v=20260930s" defer></script>
+<script src="/keepitil-shell.js?v=20261031a" defer></script>
+</body>
+</html>

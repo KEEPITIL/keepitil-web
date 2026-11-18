@@ -159,7 +159,45 @@ footer a{color:var(--brand-2)}
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="CREATE — Enter, Compete, Get Seen | KEEPITIL"/>
 <meta name="twitter:description" content="CREATE on KEEPITIL — enter open calls and competitions, share your work, and get seen by the community."/>
-<meta name="twitter:image" content="https://keepitil.com/keepitil-og.png"/></head>
+<meta name="twitter:image" content="https://keepitil.com/keepitil-og.png"/><style>
+/* Creator services (scoped to #services; from assets/css/shop-hub.css minus its global element rules) */
+#services /* Shop hub and services. Tokens and the shell own the chrome. */
+*,#services *::before,#services *::after{box-sizing:border-box}
+#services .kicker{margin:0 0 8px;font-size:.75rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#5CD6FF}
+#services .sections{display:grid;gap:16px;margin-top:28px}
+#services .card{display:flex;flex-direction:column;gap:14px;min-width:0;padding:16px;border-radius:18px;background:#10182a;border:1px solid rgba(92,214,255,.28)}
+#services .card h2{margin:0;font-family:"Bebas Neue",Inter,sans-serif;font-size:2.1rem;font-weight:400;letter-spacing:.06em;line-height:1}
+#services .card p{margin:0;color:#d5d2e2}
+#services .card .art{width:100%;height:112px;object-fit:cover;border-radius:12px;background:#0E2842}
+#services .card .mark{width:48px;height:48px;object-fit:contain;background:transparent}
+#services .actions{display:grid;gap:10px}
+#services .btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;padding:12px 18px;border-radius:12px;background:#5CD6FF;color:#0B1B3A;font:800 1rem/1.2 Inter,system-ui,sans-serif;text-align:center;text-decoration:none}
+#services .btn:hover{filter:brightness(1.05)}
+#services .btn:focus-visible,#services .textlink:focus-visible,#services summary:focus-visible{outline:3px solid #fff;outline-offset:3px}
+#services .textlink{display:inline-flex;align-items:center;min-height:44px;color:#5CD6FF;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+#services .trust{margin-top:22px;padding:14px 16px;border-radius:14px;background:#0E2842;color:#E8F7FF;font-size:1rem}
+#services .trust p{margin:0 0 8px}
+#services .trust p:last-child{margin:0}
+#services .faq{margin-top:28px}
+#services .faq h2{margin:0 0 10px;font-family:"Bebas Neue",Inter,sans-serif;font-size:2rem;font-weight:400;letter-spacing:.06em}
+#services .faq details{border:1px solid rgba(255,255,255,.14);border-radius:12px;background:#121726;margin:0 0 8px}
+#services .faq summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center;padding:10px 16px}
+#services .faq details p{margin:0;padding:0 16px 14px;color:#d5d2e2}
+#services .faq a{color:#5CD6FF}
+#services .offers{display:grid;gap:16px;margin-top:28px}
+#services .offer{display:flex;flex-direction:column;gap:10px;min-width:0;padding:16px;border-radius:18px;background:#10182a;border:1px solid rgba(92,214,255,.28)}
+#services .offer h2{margin:0;font-family:"Bebas Neue",Inter,sans-serif;font-size:2rem;font-weight:400;letter-spacing:.04em;line-height:1}
+#services .offer .price{margin:0;font-family:"Bebas Neue",Inter,sans-serif;font-size:2.4rem;letter-spacing:.04em;color:#5CD6FF;line-height:1}
+#services .offer h3{margin:4px 0 0;font-size:.8rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#b7c4d6}
+#services .offer ul{margin:0;padding-left:1.15rem;color:#f0f0f0}
+#services .offer li{margin:0 0 4px}
+#services .offer .meta{margin:0;color:#d5d2e2}
+#services .offer .meta b{color:#f0f0f0}
+#services .offer .btn{margin-top:auto}
+#services{margin:40px auto 24px;max-width:1120px;padding:0 4px}#services h2.sv-h{margin:0;font-family:'Bebas Neue',Inter,sans-serif;font-size:clamp(2.2rem,8vw,3.4rem);letter-spacing:.04em;font-weight:400;line-height:.95}
+@media(min-width:800px){#services .sections{grid-template-columns:1fr 1fr;align-items:stretch}#services .offers{grid-template-columns:repeat(3,minmax(0,1fr))}}
+</style>
+</head>
 <body>
 <!-- ── STATIC PLATFORM NAV — CRAWLER SOURCE OF TRUTH (KODE 2026-09-08) ──────────
      This page previously shipped NO crawlable navigation at all: the global nav
@@ -172,7 +210,7 @@ footer a{color:var(--brand-2)}
      One architecture only: DISCOVER · CONNECT · CREATE · CULTURE · EARN (+ Login). -->
 <nav id="main-nav" aria-label="KEEPITIL platform"><div class="nav-inner">
   <a class="nav-logo" href="/"><span class="nav-brand">KEEPITIL</span></a>
-  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/shop/">SHOP</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
+  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
   <a href="/apply" class="nav-cta">LOGIN</a>
 </div></nav>
 
@@ -189,6 +227,80 @@ footer a{color:var(--brand-2)}
   <div id="vs-app">
     <div class="soon"><div class="i">⚔️</div><h2>Loading competitions…</h2><p>CREATE — seven creator competitions. Q4 2026 season opens soon.</p></div>
   </div>
+
+  <!-- CREATOR SERVICES (Joe 2026-11-11): services moved here from /services/ (now a redirect stub). Prices and links hydrate from /assets/data/offers.json via shop-hub.js; the hrefs already work with JavaScript off. -->
+  <section id="services" aria-labelledby="sv-title">
+    <p class="kicker">Create</p>
+    <h2 class="sv-h" id="sv-title">Creator services</h2>
+    <p class="lede" style="margin:10px 0 0;max-width:38rem;color:#d5d2e2">Live release offers. Prices are in one list, and each Buy button opens that product on Shopify.</p>
+    <div class="sections">
+    <section class="card" aria-labelledby="digital-title">
+      <img class="mark" src="/assets/images/logo-blue-nav.png" width="72" height="72" alt="">
+      <h2 id="digital-title">For Artists</h2>
+      <p>Services and downloads for your release.</p>
+      <div class="actions">
+        <a class="btn" data-collection="services" href="https://www.illestratedlifestyle.com/collections/services?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=services" rel="noopener">Services</a>
+        <a class="btn" data-collection="downloads" href="https://www.illestratedlifestyle.com/collections/downloads?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=downloads" rel="noopener">Downloads</a>
+      </div>
+      
+    </section>
+    </div>
+  <div class="offers">
+    <article class="offer" data-offer="release-strategy-session">
+      <p class="kicker">Service</p>
+      <h2 data-field="name">Release Strategy Session</h2>
+      <p class="price" data-field="price">$150</p>
+      <h3>What you get</h3>
+      <ul data-field="bullets">
+        <li>A short intake form before the call (your music links, release date, and goals)</li>
+        <li>A 45-minute 1:1 remote video call</li>
+        <li>A release timeline built around your date</li>
+        <li>Three promotion actions to focus on, in order</li>
+        <li>A written summary within 2 business days</li>
+      </ul>
+      <p class="meta"><b>Delivery. </b><span data-field="delivery">After checkout, we email you within 24 hours to schedule the call.</span></p>
+      <p class="meta"><b>Good to know. </b><span data-field="notes">Reschedule free with 24 hours' notice. No guarantee of streams or placements.</span></p>
+      <a class="btn" data-field="buy" href="https://www.illestratedlifestyle.com/products/release-strategy-session?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=session" target="_blank" rel="noopener sponsored" aria-label="Buy Release Strategy Session, $150">Buy</a>
+    </article>
+
+    <article class="offer" data-offer="release-graphics-pack">
+      <p class="kicker">Done for you</p>
+      <h2 data-field="name">Release Graphics Pack</h2>
+      <p class="price" data-field="price">$99</p>
+      <h3>What you get</h3>
+      <ul data-field="bullets">
+        <li>7 custom graphics for your release</li>
+        <li>3 sizes: square, story, and wide (1600x900)</li>
+        <li>Delivered in 3 business days of receiving your brief</li>
+        <li>A short brief after checkout</li>
+      </ul>
+      <p class="meta"><b>Delivery. </b><span data-field="delivery">PNG files by email. No shipping.</span></p>
+      <p class="meta"><b>From you. </b><span data-field="needs">Cover art you own, the release title, and the release date.</span></p>
+      <a class="btn" data-field="buy" href="https://www.illestratedlifestyle.com/products/release-graphics-pack?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=graphics-pack" target="_blank" rel="noopener sponsored" aria-label="Buy Release Graphics Pack, $99">Buy</a>
+    </article>
+
+    <article class="offer" data-offer="release-rollout-kit">
+      <p class="kicker">Download</p>
+      <h2 data-field="name">Release Rollout Kit</h2>
+      <p class="price" data-field="price">$19</p>
+      <h3>What you get</h3>
+      <ul data-field="bullets">
+        <li>7-day launch plan PDF</li>
+        <li>Download link in your order email</li>
+        <li>Available right after checkout</li>
+      </ul>
+      <p class="meta"><b>Delivery. </b><span data-field="delivery">The download link is in your order email. No shipping.</span></p>
+      <p class="meta"><b>Good to know. </b><span data-field="notes">No guarantee of streams or placements.</span></p>
+      <a class="btn" data-field="buy" href="https://www.illestratedlifestyle.com/products/release-rollout-kit?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=rollout-kit" target="_blank" rel="noopener sponsored" aria-label="Buy Release Rollout Kit, $19">Buy</a>
+    </article>
+  </div>
+
+  <div class="trust">
+    <p>Secure Shopify checkout. Pay by card, PayPal, Venmo, Google Pay or Apple Pay, depending on your device. Digital items have no shipping. Merch ships at $6.69 flat.</p>
+    <p>Refunds per our <a class="textlink" href="https://www.illestratedlifestyle.com/policies/refund-policy" target="_blank" rel="noopener sponsored">store refund policy</a>.</p>
+  </div>
+    <p><a class="textlink" href="/culture/shop/#faq">Delivery, refunds, and contact</a></p>
+  </section>
 </main>
 
 <!-- DESKTOP FILTER RAIL REMOVED 2026-08-18 (Founder) — the six-view side rail is gone, matching
@@ -208,6 +320,7 @@ footer a{color:var(--brand-2)}
      Both breakpoints now reach a competition the same way — by tapping the competition. -->
 
 <!-- universal shell: injects the DISCOVER·CONNECT·CREATE·CULTURE·EARN nav + footer + radio bar (same on every page) -->
+<script src="/assets/js/shop-hub.js" defer></script>
 <script src="/keepitil-shell.js?v=20261031a" defer></script>
 <script src="/kil-seasons.js?v=20260910b"></script>
 <script src="/assets/js/keepitil-radio.js?v=20261109a" defer></script>

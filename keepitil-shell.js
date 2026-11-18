@@ -602,11 +602,10 @@ var DESTINATIONS=[
    tint:'#22e07a', glow:'rgba(34,224,122,.75)'},
   {href:'/create/',  label:'Create',  pill:'CREATE',   icon:'vs',      match:/(^|\/)(create|vs)(\.html)?\/?$/,
    tint:'#ff5c8a', glow:'rgba(255,92,138,.75)'},
-  /* Shop sits between Create and Culture. Selected state is logo-blue (#5CD6FF label,
-     #1E9BFF glow), the same active treatment the other tabs use for their own tint. */
-  {href:'/shop/',    label:'Shop',    pill:'SHOP',     icon:'shop',    match:/(^|\/)shop(\.html)?(\/|$)/,
-   tint:'#5CD6FF', glow:'rgba(30,155,255,.75)'},
-  {href:'/culture/', label:'Culture', pill:'CULTURE',  icon:'culture', match:/(^|\/)culture(\.html)?\/?$/,
+  /* Joe 2026-11-11 (12:20 PT): the main menu is EXACTLY these five, in this order, on every page. Shop is NOT a top-level section:
+     merch lives in Culture ("Shop the culture", /culture/#shop) and services in Create ("Creator services", /create/#services).
+     /shop and /services stay as redirect stubs. Do not add a sixth destination here. */
+  {href:'/culture/', label:'Culture', pill:'CULTURE',  icon:'culture', match:/(^|\/)culture(\.html)?(\/shop)?\/?$/,
    tint:'#a06bff', glow:'rgba(160,107,255,.75)'},
   {href:'/earn/',    label:'Earn',    pill:'EARN',     icon:'radio',   match:/(^|\/)(earn|radio)(\.html)?\/?$/,
    tint:'#ff9f43', glow:'rgba(255,159,67,.75)'}
@@ -675,7 +674,7 @@ window.KIL_NOT_FOUND = function(opts){
     + (opts.heading || ('That ' + what + ' isn’t here')) + '</h1>'
     + '<p style="color:rgba(255,255,255,.7);line-height:1.6;margin:0 0 22px">'
     + (opts.body || ('It may have been removed, or the link may be wrong.')) + '</p>'
-    + (opts.links || [['/', 'Discover'], ['/shop/','Shop'], ['/culture/','Culture'], ['/connect/','Connect']])
+    + (opts.links || [['/', 'Discover'], ['/create/','Create'], ['/culture/','Culture'], ['/connect/','Connect']])
         .map(function(l){ return '<a href="'+l[0]+'" style="display:inline-block;margin:0 7px 10px;padding:12px 20px;'
           + 'border-radius:999px;border:1px solid rgba(255,255,255,.25);color:#fff;min-height:44px;line-height:20px">'+l[1]+'</a>'; })
         .join('')
@@ -918,7 +917,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
 
           if(document.getElementById('kil-bnav')) return;
           var bn=document.createElement('nav'); bn.id='kil-bnav';
-          /* One slot per destination in DESTINATIONS, including Shop. Create WAS the centre slot — it is an action,
+          /* One slot per destination in DESTINATIONS, (Shop was removed 2026-11-11). Create WAS the centre slot — it is an action,
              not a place, and mixing it in is what left no room for Radio and VS. It moves to
              a floating button above the bar, calling the same __kilCreateMenu as before.
              Profile leaves the bar for the contextual slot: it is account state, not a

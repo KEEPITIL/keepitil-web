@@ -151,6 +151,12 @@
 <link rel="canonical" href="https://keepitil.com/kode/"/>
 </head>
 <body>
+<!-- Site header (Joe 2026-11-11: exactly Discover, Connect, Create, Culture, Earn on every page). #main-nav is the no-JS / crawler fallback; keepitil-shell.js replaces it with the real header and the phone bottom bar. -->
+<nav id="main-nav" aria-label="KEEPITIL platform"><div class="nav-inner">
+  <a class="nav-logo" href="/"><span class="nav-brand">KEEPITIL</span></a>
+  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
+  <a href="/apply" class="nav-cta">LOGIN</a>
+</div></nav>
 
 <header>
   <div class="wrap nav">
@@ -361,5 +367,6 @@
   </div>
 </footer>
 
+<script src="/keepitil-shell.js?v=20261031a" defer></script>
 </body>
 </html>

@@ -4,61 +4,83 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TUITEA</title>
-<meta name="robots" content="noindex, follow">
-<meta name="theme-color" content="#3F7658">
-<link rel="icon" href="/app/tuitea/icon-192.png">
-<link rel="apple-touch-icon" href="/app/tuitea/apple-touch-icon.png">
-<link rel="manifest" href="/app/tuitea/manifest.webmanifest">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<link rel="canonical" href="https://keepitil.com/app/tuitea/app/">
 <!--
-  A REAL PAGE, NOT A REDIRECT (TUITEA 1.0 build 88, phase 2; owner: no redirects).
+  owner: no redirects — EXCEPTION, needs Joe's explicit decision.
 
-  This address used to bounce every visitor to keepitil.com/support. It now says what TUITEA
-  is and gives direct links: the web app itself (/app/tuitea/app/) and support. Nothing
-  moves the visitor on its own.
+  TUITEA 1.0 build 88, phase 2 (owner: no redirects) made this address a real
+  page. Nothing here was allowed to move the visitor on its own. This file
+  breaks that rule: /app/tuitea/ now redirects to /app/tuitea/app/, which is
+  inside the installed PWA scope (/app/tuitea/). /apps/tuitea/ is retired and
+  is not the target. Do not treat this exception as accepted until Joe says so.
 
-  Two jobs other live code depends on are kept, without redirecting:
-    1. The manifest id is /app/tuitea/, so this path must exist; do not delete it. Installs
-       made before start_url became /app/tuitea/app/ still open here; they get the same
-       "Open TUITEA" button.
-    2. An invitation (?invite=<token>) is carried on the Open TUITEA link, so the web app
-       receives it (InviteLinks.tokenFrom reads ?invite=).
+  The manifest id stays /app/tuitea/, so this path must keep existing. A valid
+  ?invite= (32 hex characters) is forwarded. Known auth keys (token_hash, type,
+  code, error, error_code, error_description) pass through. utm_* is forwarded
+  only when its value cannot be a redirect. Every other query key is dropped.
+  The hash passes through as-is. The target path is fixed.
 -->
-<style>
-  :root{--bg:#FBF7EF;--ink:#20261F;--muted:#6E7566;--accent:#3F7658;--line:#E2D9C6;--surface:#FFFDF8}
-  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14170F;--ink:#ECE7DA;--muted:#9BA391;--accent:#6FBF8F;--line:#333A2D;--surface:#1C201A}}
-  :root[data-theme="dark"]{--bg:#14170F;--ink:#ECE7DA;--muted:#9BA391;--accent:#6FBF8F;--line:#333A2D;--surface:#1C201A}
-  *{box-sizing:border-box}
-  body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--ink);
-       font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:24px 16px}
-  main{width:100%;max-width:30rem;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:1.6rem 1.4rem;text-align:center}
-  img{width:72px;height:72px;border-radius:18px}
-  h1{font-size:1.5rem;margin:.6rem 0 .3rem}
-  p{color:var(--muted);margin:0 0 1rem}
-  a.btn{display:block;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;padding:.85rem 1.2rem;border-radius:999px;margin:.5rem 0}
-  a.link{color:var(--accent);font-weight:600}
-  .small{font-size:.88rem}
-</style>
+<meta http-equiv="refresh" content="0; url=/app/tuitea/app/">
+<script>
+function tuiteaRedirectTarget(search, hash) {
+  var PATH = "/app/tuitea/app/";
+  var ALLOW = { token_hash: 1, type: 1, code: 1, error: 1, error_code: 1, error_description: 1 };
+  if (typeof search !== "string" || search.charAt(0) !== "?") search = "";
+  if (typeof hash !== "string" || hash.charAt(0) !== "#") hash = "";
+  var parts = search.length > 1 ? search.slice(1).split("&") : [];
+  var kept = [];
+  var inviteKept = false;
+  var i, part, eq, key, val, decoded;
+  for (i = 0; i < parts.length; i++) {
+    part = parts[i];
+    if (!part) continue;
+    eq = part.indexOf("=");
+    key = eq === -1 ? part : part.slice(0, eq);
+    val = eq === -1 ? "" : part.slice(eq + 1);
+    if (key === "invite") {
+      if (!inviteKept) {
+        try { decoded = decodeURIComponent(val.replace(/\+/g, " ")); }
+        catch (e) { decoded = ""; }
+        decoded = String(decoded).toLowerCase();
+        if (/^[0-9a-f]{32}$/.test(decoded)) {
+          kept.push("invite=" + decoded);
+          inviteKept = true;
+        }
+      }
+      continue;
+    }
+    if (ALLOW[key]) {
+      kept.push(part);
+      continue;
+    }
+    if (/^utm_[A-Za-z0-9_]+$/.test(key)) {
+      try { decoded = decodeURIComponent(val.replace(/\+/g, " ")); }
+      catch (e) { continue; }
+      if (decoded && decoded.length <= 200 && !/[\/\\:@?#%]/.test(decoded)) kept.push(part);
+    }
+  }
+  var dest = PATH;
+  if (kept.length) dest += "?" + kept.join("&");
+  if (hash) dest += hash;
+  if (dest.slice(0, PATH.length) !== PATH) return PATH;
+  var after = dest.charAt(PATH.length);
+  if (after && after !== "?" && after !== "#") return PATH;
+  return dest;
+}
+/* end tuiteaRedirectTarget */
+(function () {
+  var dest = tuiteaRedirectTarget(location.search, location.hash);
+  document.addEventListener("DOMContentLoaded", function () {
+    var link = document.getElementById("tuitea-continue");
+    if (link) link.setAttribute("href", dest);
+  });
+  location.replace(dest);
+})();
+</script>
 </head>
 <body>
-<main>
-  <img src="/app/tuitea/icon-192.png" alt="">
-  <h1>TUITEA</h1>
-  <p>A private home for your family — people, stories, health and the everyday running of a household.</p>
-  <a class="btn" id="open" href="/app/tuitea/app/">Open TUITEA</a>
-  <p class="small" id="invited" hidden>Your invitation goes with you — sign in or create an account, and TUITEA will ask to join the family that invited you.</p>
-  <p class="small">Questions? <a class="link" href="https://keepitil.com/support/?product=tuitea">TUITEA support</a></p>
-</main>
-<script>
-  // The invitation travels on the link (never stored, never sent anywhere else).
-  (function () {
-    try {
-      var t = (new URLSearchParams(location.search).get('invite') || '').toLowerCase();
-      if (/^[0-9a-f]{32}$/.test(t)) {
-        document.getElementById('open').href = '/app/tuitea/app/?invite=' + t;
-        document.getElementById('invited').hidden = false;
-      }
-    } catch (e) {}
-  })();
-</script>
+<p><a id="tuitea-continue" href="/app/tuitea/app/">Continue to TUITEA</a></p>
 </body>
 </html>

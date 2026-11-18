@@ -1,0 +1,149 @@
+name: db proofs (real PostgreSQL)
+
+# Runs the db/proposed/** SQL proofs against a REAL PostgreSQL 17 service container.
+# Read-only and inert: contents: read, no secrets, no deploy, no connection to any hosted database. The service uses trust auth on the runner's own
+# loopback, so no password string exists anywhere. Nothing here applies SQL to prod; merging db/proposed changes does not either.
+# Separate from node-tests.yml on purpose (that workflow only runs assets/js tests).
+# A missing or unreachable Postgres FAILS the job (never a silent skip); every proof step also asserts its own minimum test counts.
+
+on:
+  pull_request:
+    paths:
+      - "db/proposed/**"
+      - ".github/workflows/db-proofs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-proofs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  proofs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # the cluster superuser is `pgadmin` (like the local harness), so the harness's NOSUPERUSER stand-in role named `postgres` does not collide with a real `postgres` superuser
+          POSTGRES_USER: pgadmin
+          POSTGRES_DB: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pgadmin -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: pgadmin
+      PGDATABASE: postgres
+      KIL_PG_NODE_MODULES: ${{ github.workspace }}/db/proposed/_ci
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Wait for PostgreSQL (pg_isready, 60 s, fails if not ready)
+        run: |
+          set -euo pipefail
+          if ! command -v pg_isready >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          fi
+          ready=0
+          for i in $(seq 1 30); do
+            if pg_isready -h localhost -p 5432 -U pgadmin -d postgres; then ready=1; break; fi
+            sleep 2
+          done
+          if [ "$ready" != "1" ]; then
+            echo "::error::PostgreSQL service not ready after 60 s: refusing to skip the real-PostgreSQL proofs"
+            exit 1
+          fi
+
+      - name: Install the pinned node-postgres (lockfile, no scripts)
+        working-directory: db/proposed/_ci
+        run: npm ci --ignore-scripts
+
+      - name: Check the cluster is what the harness expects (PostgreSQL 17, superuser pgadmin, no pre-existing stand-in roles)
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            import { createRequire } from "node:module";
+            const pg = createRequire(process.env.KIL_PG_NODE_MODULES + "/x.js")("pg");
+            const c = new pg.Client({ host: process.env.PGHOST, port: Number(process.env.PGPORT), user: process.env.PGUSER, database: process.env.PGDATABASE });
+            await c.connect();
+            const v = (await c.query("select current_setting($1) v, (select rolsuper from pg_roles where rolname = current_user) su", ["server_version"])).rows[0];
+            const roles = (await c.query("select rolname from pg_roles where rolname = any($1)", [["postgres", "authenticator", "anon", "authenticated", "service_role", "supabase_admin"]])).rows.map((r) => r.rolname);
+            await c.end();
+            console.log("server_version=" + v.v + " superuser=" + v.su + " preexisting_standin_roles=" + JSON.stringify(roles));
+            if (!/^17\./.test(v.v) || v.su !== true || roles.length) { console.error("unexpected cluster"); process.exit(1); }
+          '
+
+      - name: Generators agree with the committed packs (12A, 13A)
+        run: |
+          set -euo pipefail
+          node db/proposed/12a-door-hardening/build.mjs --check
+          node db/proposed/13a-orders-hardening/build.mjs --check
+
+      - name: 12A adapter and door-contract cross-check tests (node:test, no database)
+        run: |
+          set -euo pipefail
+          node --test db/proposed/12a-door-hardening/adapter/*.test.mjs
+
+      - name: 12A proofs on real PostgreSQL (behavioural matrix, packs incl. finalize M/D/R/X/V/U, optional qr_token UNIQUE pack)
+        run: |
+          set -euo pipefail
+          node db/proposed/12a-door-hardening/proof/prove.mjs
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const s = JSON.parse(readFileSync("db/proposed/12a-door-hardening/proof/out/results.json", "utf8")).summary;
+            console.log("12A summary " + JSON.stringify({ matrix: s.matrix, packs: s.packs, adjacent: s.adjacent, fatal: s.fatal }));
+            const ok = s.fatal == null && s.matrix.total >= 81 && s.matrix.pass === s.matrix.total && s.packs.total >= 45 && s.packs.pass === s.packs.total && s.adjacent.total >= 4 && s.adjacent.pass === s.adjacent.total;
+            if (!ok) { console.error("12A proof counts below the required minimum or failures present"); process.exit(1); }
+          '
+
+      - name: 13A proofs on real PostgreSQL (behavioural matrix, packs, F-D verbatim drift guard, get_my_tickets unaffected)
+        run: |
+          set -euo pipefail
+          node db/proposed/13a-orders-hardening/proof/prove.mjs
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const s = JSON.parse(readFileSync("db/proposed/13a-orders-hardening/proof/out/results.json", "utf8")).summary;
+            console.log("13A summary " + JSON.stringify({ matrix: s.matrix, packs: s.packs, adjacent: s.adjacent, fatal: s.fatal }));
+            const ok = s.fatal == null && s.matrix.total >= 37 && s.matrix.pass === s.matrix.total && s.packs.total >= 35 && s.packs.pass === s.packs.total && s.adjacent.total >= 3 && s.adjacent.pass === s.adjacent.total;
+            if (!ok) { console.error("13A proof counts below the required minimum or failures present"); process.exit(1); }
+          '
+
+      - name: Sentinel-fix proofs on real PostgreSQL (prod-shaped schema private, chain repair, fail-closed rollback, backup replay, search_path scan, default privileges)
+        run: |
+          set -euo pipefail
+          node db/proposed/_job30/prove.mjs
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const s = JSON.parse(readFileSync("db/proposed/_job30/out/results.json", "utf8")).summary;
+            console.log("Sentinel-fix summary " + JSON.stringify(s));
+            if (s.fatal != null || s.total < 38 || s.pass !== s.total) { console.error("Sentinel-fix proof counts below the required minimum or failures present"); process.exit(1); }
+          '
+
+      - name: Proofs left no databases or stand-in roles behind
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            import { createRequire } from "node:module";
+            const pg = createRequire(process.env.KIL_PG_NODE_MODULES + "/x.js")("pg");
+            const c = new pg.Client({ host: process.env.PGHOST, port: Number(process.env.PGPORT), user: process.env.PGUSER, database: process.env.PGDATABASE });
+            await c.connect();
+            const dbs = (await c.query("select datname from pg_database where datname like $1", ["kil_rehearsal_%"])).rows.length;
+            const roles = (await c.query("select rolname from pg_roles where rolname = any($1)", [["postgres", "authenticator", "anon", "authenticated", "service_role", "supabase_admin"]])).rows.length;
+            await c.end();
+            console.log("leftover rehearsal databases=" + dbs + " leftover stand-in roles=" + roles);
+            if (dbs || roles) process.exit(1);
+          '

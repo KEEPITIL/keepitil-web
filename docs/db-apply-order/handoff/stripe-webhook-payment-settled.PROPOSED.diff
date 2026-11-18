@@ -1,0 +1,60 @@
+PROPOSED HANDOFF PATCH (not applied, not deployed): stripe-webhook payment-settled gate. Unified diff against the EXACT deployed v52 source
+(~/work/notes-pack/edge-stripe-webhook.index.ts, md5 33840e79eebb15fbb5d8a2a02787e002; apply with: patch -p1 < this file, inside a directory holding that file as index.ts).
+Ticket branch fulfils ONLY when session.payment_status === 'paid'; otherwise 200 without fulfilling. Also handles checkout.session.async_payment_succeeded (fulfil) and
+async_payment_failed (no fulfilment). wifi-remote and VS branches react to checkout.session.completed only, exactly as before. Idempotency stays in fulfill_ticket_order.
+Proof: scripts/checkout-testbed (PR #157 branch draft/21a-checkout-testbed) scenario-settled.mjs. This is a handoff for the Edge Function owner; deploying it is a separate gate.
+
+--- a/index.ts
++++ b/index.ts
+@@ -42,11 +42,12 @@
+   }
+ 
+   try {
+-    if (event.type === "checkout.session.completed") {
++    // PAYMENT-SETTLED PATCH: tickets are also fulfilled on async_payment_succeeded (delayed payment methods); wifi-remote (A) and VS (B) keep reacting to `completed` only, exactly as before.
++    if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
+       const session = event.data.object as Stripe.Checkout.Session;
+ 
+       // ── (A) wifi-remote licence — UNCHANGED ─────────────────────────────────
+-      if (session.metadata?.product === "remove_ads") {
++      if (event.type === "checkout.session.completed" && session.metadata?.product === "remove_ads") {
+         const supabase = admin();
+ 
+         let code = generateCode();
+@@ -76,7 +77,7 @@
+ 
+       // ── (B) VS COMPETITION ENTRY FEE ──────────────────────────────────────
+       // Grants an ENTITLEMENT only — the creator still submits and an admin still approves.
+-      if (session.metadata?.vs_entry_id) {
++      if (event.type === "checkout.session.completed" && session.metadata?.vs_entry_id) {
+         const supabase = admin();
+         const paymentIntentId =
+           typeof session.payment_intent === "string" ? session.payment_intent : null;
+@@ -110,6 +111,13 @@
+       // ── (C) EVENT TICKETS — unchanged from v15 ───────────────────────────────
+       const eventId = session.metadata?.event_id;
+       if (eventId) {
++        // PAYMENT-SETTLED GATE: `checkout.session.completed` can arrive with payment_status "unpaid" (delayed / async payment methods). A ticket is fulfilled ONLY when the money
++        // has settled: payment_status === "paid" ("no_payment_required" is NOT accepted for tickets). Otherwise answer 200 without fulfilling; for a delayed method Stripe sends
++        // checkout.session.async_payment_succeeded later (handled by this same branch). Idempotency stays in fulfill_ticket_order (unique session+tier).
++        if (session.payment_status !== "paid") {
++          console.log("ticket fulfilment skipped: payment not settled", session.id, String(session.payment_status), event.type);
++          return new Response("ok", { status: 200 });
++        }
+         let items: Array<{ t: number; q: number; u: number }> = [];
+         try {
+           items = JSON.parse(session.metadata?.items ?? "[]");
+@@ -155,6 +163,13 @@
+       }
+     }
+ 
++    // ── (C2) a delayed payment failed: nothing was fulfilled, nothing to undo; acknowledge so Stripe stops retrying ─────
++    if (event.type === "checkout.session.async_payment_failed") {
++      const failed = event.data.object as Stripe.Checkout.Session;
++      console.log("async payment failed, no fulfilment", failed.id);
++      return new Response("ok", { status: 200 });
++    }
++
+     // ── (D) REFUNDS — tickets release inventory; VS entries lose their entitlement ────
+     if (event.type === "charge.refunded" || event.type === "charge.refund.updated") {
+       const charge = event.data.object as Stripe.Charge;

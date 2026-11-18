@@ -128,9 +128,18 @@
        Desktop is untouched: every rule below is inside the 860px query, and .hero-stats is
        display:none at base so the row exists in the DOM but never renders on desktop. */
     .hero-stats{display:none;}
+    .hero-fold{display:none;}
     @media(max-width:860px){
       .hero{align-items:flex-end;padding-top:0;
         min-height:calc(var(--kil-vh,100dvh) + var(--kil-safe-top,0px));}
+      /* The first screen was the logo backdrop plus the install banner. The big
+         typewriter sits at the bottom of a full-height panel, under that banner.
+         This short line stays at the top of the same panel, in the open space. */
+      .hero-fold{display:block;position:absolute;z-index:3;
+        top:calc(var(--kil-safe-top, 0px) + 18px);left:16px;right:16px;margin:0;
+        max-width:16rem;font-family:var(--font-head);font-size:clamp(2rem,10vw,2.75rem);
+        letter-spacing:.04em;line-height:.95;color:#fff;
+        text-shadow:0 2px 18px rgba(0,0,0,.85);}
       .hero-content{padding-bottom:14px;}
       .hero-stats{display:flex;flex-wrap:nowrap;justify-content:flex-start;gap:min(7vw,30px);margin-top:18px;}
       .hero-stats .stat{flex:0 1 auto;min-width:0;}
@@ -1833,6 +1842,7 @@
   <section class="hero" id="home">
     <canvas id="hero-canvas"></canvas>
     <div class="hero-overlay"></div>
+    <p class="hero-fold">Discover events, creators, and culture.</p>
 <div class="container">
       <div class="hero-content">
         <h1>

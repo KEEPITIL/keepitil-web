@@ -61,8 +61,8 @@
   }
   function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
 
-  // About / Privacy / 404: plain-text sections from copy.js (C.info[page]); textContent only.
-  if (page === 'about' || page === 'privacy' || page === 'notfound') {
+  // About / Privacy / 404 / the under-21 exit page: plain-text sections from copy.js (C.info[page]); textContent only.
+  if (page === 'about' || page === 'privacy' || page === 'notfound' || page === 'under21') {
     var info = C.info[page], box = doc.getElementById('info');
     box.appendChild(el('h1', 'name', info.title));
     info.sections.forEach(function (sec) {

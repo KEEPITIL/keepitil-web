@@ -99,10 +99,11 @@
       about: { title: 'About · Find My Weed', description: 'How Find My Weed lists only state-licensed cannabis businesses, where the license data comes from, and its limits. For adults 21+.' },
       privacy: { title: 'Privacy · Find My Weed', description: 'What Find My Weed stores: business data from the state license record only, no visitor accounts, no tracking. For adults 21+.' },
       notfound: { title: 'Page not found · Find My Weed', description: 'This page does not exist. Search state-licensed cannabis businesses on Find My Weed. For adults 21+ in legal markets.' },
+      under21: { title: 'For adults 21+ · Find My Weed', description: 'Find My Weed is a directory of state-licensed cannabis businesses for adults 21 and older.' },
       imageAlt: 'Find My Weed: search state-licensed cannabis storefronts and delivery services',   // the real share image (launched)
       imageAltPlaceholder: 'Find My Weed placeholder share image'   // the draft's placeholder image
     },
-    footer21: 'For adults 21+ in legal markets.',
+    footer21: 'For adults 21+. Licensed retailers only.',
     footerNote: 'Find My Weed is a directory of state-licensed businesses. Check your local laws.',
     footerAbout: 'About',
     footerPrivacy: 'Privacy',
@@ -131,7 +132,7 @@
         sections: [
           { h: 'No accounts, no tracking', p: [
             'You do not need an account to use Find My Weed. We do not use advertising trackers.',
-            'Your searches are not stored with anything that identifies you.'] },
+            'We don\'t keep your searches. Like any website, our host keeps short-lived server logs (IP address and page requested) for security.'] },
           { h: 'What stays on your device', p: [
             'When you confirm you are 21 or older, that answer is saved in your own browser for 30 days so you are not asked on every page. It is never sent to us.',
             'Searching near you uses the city or ZIP you type. Your exact location is never sent to a server.'] },
@@ -146,16 +147,23 @@
         title: 'Page not found',
         sections: [{ h: '', p: ['This page does not exist, or it has moved.'] }],
         back: 'Search licensed businesses'
+      },
+      // The neutral exit page for "No" on the 21+ prompt (under21.html, the one page without the prompt). PLACEHOLDER, for
+      // Muse: no link out, no link back into the directory, nothing remembered.
+      under21: {
+        title: 'Find My Weed is for adults 21+',
+        sections: [{ p: ['This site lists licensed cannabis businesses for adults 21 and older, so we can’t show it to you.', 'Thanks for being honest.'] }]
       }
     },
     gateTitle: 'Find My Weed',
     // Plain text only, everywhere in this file: the pages never treat copy as HTML. gateAskStrong is the part of
     // gateAsk shown in bold (it must appear in gateAsk word for word).
-    gateAsk: 'You must be 21 or older to enter this site.',
+    // The 21+ prompt (PLACEHOLDER, for Muse; Grok's design decision 2026-11-18: a lighter prompt over the visible page).
+    gateAsk: 'Are you 21 or older?',
     gateAskStrong: '21 or older',
-    gateNote: 'For adults 21+ in legal markets.',
-    gateYes: 'I am 21 or older',
-    gateNo: 'I am under 21'
+    gateNote: 'Find My Weed lists state-licensed cannabis businesses for adults 21+.',
+    gateYes: 'Yes, I’m 21 or older',
+    gateNo: 'No'
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = COPY; else root.FMW_COPY = COPY;
 })(typeof window !== 'undefined' ? window : globalThis);

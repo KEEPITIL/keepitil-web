@@ -217,6 +217,7 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
     <div class="panel" id="tab-social"><div class="head2">Social Command <span class="ct" id="socialCt"></span></div><div id="socialFilters"></div><div id="socialReview"></div></div>
     <div class="panel" id="tab-campaigns"><div class="head2">Campaigns <span class="ct" id="campCt"></span></div><div id="campControls"></div><div id="campBody"></div></div>
     <div class="panel" id="tab-venues"><div class="head2">Venue Bookings <span class="ct" id="bookCt"></span></div><div id="bookReview"></div></div>
+    <div class="panel" id="tab-eventreview"><div class="head2">Events to review <span class="ct" id="evReviewCt"></span></div><div id="evReview"></div></div>
     <div class="panel" id="tab-chat">
       <div class="chatwrap">
         <div class="chatbox"><h3>Chat with an agent</h3><div class="cbar" style="margin-bottom:10px"><select id="agentPick" onchange="clearAgentLog()"></select></div><div class="chatlog" id="agentLog"></div><div class="cbar"><input id="agentQ" placeholder="Ask this agent…" onkeydown="if(event.key==='Enter')askAgentDash()"><button onclick="askAgentDash()">Ask</button></div></div>
@@ -341,7 +342,7 @@ async function load(){
 /* ===== Admin console: sub-nav tabs ===== */
 var ZAP_HOOK='', IS_ADMIN=false, TAB_LOADED={};
 var AGENTS=[['cho','CHO'],['atlas','ATLAS'],['fable','FABLE'],['pulse','PULSE'],['xus','XUS'],['sentinel','SENTINEL'],['oracle','ORACLE'],['nova','NOVA'],['luna','LUNA'],['lyric','LYRIC'],['vibe','VIBE'],['scout','SCOUT'],['merch','MERCH'],['beacon','BEACON']];
-var ADMIN_TABS=[['posts','FEED'],['social','Social Command'],['campaigns','Campaigns'],['analytics','Analytics'],['agents','Crew & Brain'],['venues','Venue Bookings'],['chat','Chat'],['access','Access']];
+var ADMIN_TABS=[['posts','FEED'],['social','Social Command'],['campaigns','Campaigns'],['analytics','Analytics'],['agents','Crew & Brain'],['venues','Venue Bookings'],['eventreview','Events to review'],['chat','Chat'],['access','Access']];
 async function buildAdminTabs(){
   try{ var a=await supa.rpc('is_admin'); IS_ADMIN=!!(a&&a.data); }catch(e){}
   /* The dashboard is where profile management lives now (Founder 2026-08-26). DASH used to
@@ -529,6 +530,7 @@ function showTab(name){
     else if(g==='social') loadSocialReview();
     else if(g==='campaigns') loadCampaigns();
     else if(g==='venues') loadBookingReview();
+    else if(g==='eventreview') loadEventReview();
     else if(g==='chat'){ clearAgentLog(); loadGroup(); }
     else if(g==='knowledge') loadKnowledge();
     else if(g==='access') loadAdmins();
@@ -630,6 +632,44 @@ function loadKnowledge(){
   }).catch(function(){ $('kList').innerHTML='<div class="rv-empty">Could not load.</div>'; });
 }
 function toggleKnow(id,active,btn){ if(btn)btn.disabled=true; supa.rpc('set_agent_knowledge_active',{p_id:id,p_active:active}).then(function(r){ TAB_LOADED.knowledge=false; loadKnowledge(); }).catch(function(){ if(btn)btn.disabled=false; }); }
+/* EVENT REVIEW LANE (start). Host events submitted by non-admins are created in status 'review' (host events step 1) and
+   checkout refuses them until staff publish. Staff publish or reject here through public.review_event, PROPOSED in
+   keepitil.github.io #72 and NOT APPLIED: until it is, the buttons report the server's error and change nothing.
+   Admin-only panel (ADMIN_TABS, ?admin=1); the server checks is_admin() again. Text goes in through esc() / textContent. */
+async function loadEventReview(){
+  var box=$('evReview');
+  try{
+    var r=await supa.from('events').select('id,slug,title,owner_handle,city,venue,starts_at,created_at').eq('status','review').order('created_at',{ascending:true}).limit(100);
+    if(r.error) throw r.error;
+    var rows=r.data||[];
+    $('evReviewCt').textContent=rows.length+' waiting';
+    if(!rows.length){ box.innerHTML='<div class="rv-empty">No events waiting for review. A host\'s new event lands here until you publish it.</div>'; return; }
+    var paid={};
+    try{ var t=await supa.from('ticket_tiers').select('event_id,price_cents').in('event_id',rows.map(function(e){return e.id;})); (t.data||[]).forEach(function(x){ if((x.price_cents||0)>0) paid[x.event_id]=true; }); }catch(e){}
+    box.innerHTML=rows.map(function(e){
+      var id=Number(e.id), when=e.starts_at?new Date(e.starts_at).toLocaleString():'date not set';
+      var d=[e.owner_handle?'@'+e.owner_handle:'',e.venue,e.city,when].filter(Boolean).join(' · ');
+      return '<div class="rv" id="evr-'+id+'"><div class="info"><div class="t">'+esc(e.title)+'</div><div class="d">'+esc(d)+'</div>'+
+        '<div class="tags"><span class="pill2">'+(paid[e.id]?'PAID tickets: needs a payout-ready host':'free')+'</span>'+(e.slug?' <a href="/event?e='+encodeURIComponent(e.slug)+'">preview</a>':'')+'</div></div>'+
+        '<div class="acts"><button class="approve" onclick="reviewEvent('+id+',\'publish\')">Publish</button>'+
+        '<input id="evr-note-'+id+'" maxlength="1000" placeholder="Why not (the host sees this)" aria-label="Reason the event is not published">'+
+        '<button class="deny" onclick="reviewEvent('+id+',\'reject\')">Send back</button>'+
+        '<div class="evr-msg" id="evr-msg-'+id+'" role="status"></div></div></div>';
+    }).join('');
+  }catch(e){ box.innerHTML='<div class="rv-empty">Could not load events to review.</div>'; }
+}
+async function reviewEvent(id, action){
+  id=Number(id); if(!(id>0) || (action!=='publish' && action!=='reject')) return;
+  var msg=$('evr-msg-'+id), noteEl=$('evr-note-'+id), note=noteEl?String(noteEl.value||'').trim():'';
+  if(action==='reject' && !note){ if(msg) msg.textContent='Write why it is not published: the host sees this.'; return; }
+  try{
+    var r=await supa.rpc('review_event',{p_event_id:id,p_action:action,p_note:action==='reject'?note:null});
+    if(r.error) throw r.error;
+    var row=$('evr-'+id); if(row) row.remove();
+    var left=document.querySelectorAll('#evReview .rv').length; $('evReviewCt').textContent=left+' waiting';
+  }catch(e){ if(msg) msg.textContent='Not changed: '+(e.message||e); }
+}
+/* EVENT REVIEW LANE (end) */
 var BK_STAGES=['new','contacted','tour','quoted','deposit_pending','booked','declined'];
 async function loadBookingReview(){
   var box=$('bookReview');

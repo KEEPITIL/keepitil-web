@@ -40,6 +40,13 @@ test('G-2: the drafted rule covers exactly keepitil.com/findmyweed/* (pages, lis
   assert.equal(rule.action, 'rewrite');
   assert.deepEqual(rule.action_parameters, { headers: { 'X-Robots-Tag': { operation: 'set', value: 'noindex, nofollow' } } });
   assert.match(DOC, /DRAFT, NOT APPLIED/); assert.match(DOC, /never `PUT`|never replace/i, 'the doc warns against replacing the existing ruleset');
+  // Sentinel round 8: a stable `ref` for the rule, and the case-sensitive path match stated (and true of the expression)
+  assert.equal(rule.ref, 'fmw_g2_noindex'); assert.match(rule.ref, /^[a-z0-9_]{1,64}$/, 'ref is a short stable identifier');
+  assert.deepEqual(Object.keys(rule), ['ref', 'description', 'expression', 'action', 'action_parameters', 'enabled'], 'no other field crept in');
+  assert.match(DOC, /\*\*The path match is case-sensitive\.\*\*/);
+  const f = compile(expr);
+  assert.equal(f('keepitil.com', '/findmyweed/index.html'), true);
+  assert.equal(f('keepitil.com', '/FindMyWeed/index.html'), false, 'case-sensitive, exactly as the doc says');
 });
 
 test('G-2 NEGATIVE CONTROLS: a broader, narrower or other-host rule is caught', () => {

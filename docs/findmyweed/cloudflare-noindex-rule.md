@@ -28,10 +28,15 @@ Expression (Cloudflare Rules language):
 
 Action: **Set static** header `X-Robots-Tag` = `noindex, nofollow`.
 
-The same rule as one Rulesets API rule object (for review; **not sent**):
+**The path match is case-sensitive.** `starts_with(http.request.uri.path, "/findmyweed/")` matches `/findmyweed/…` exactly as written. It does **not** match `/FindMyWeed/` or `/FINDMYWEED/`.
+- Today that's fine: GitHub Pages serves paths case-sensitively, so a differently-cased path is a 404 with nothing to index, and every link to the directory uses the lower-case folder.
+- If the host ever starts serving paths case-insensitively, change the expression to `starts_with(lower(http.request.uri.path), "/findmyweed/")` before relying on it. That's a reviewed change, not done here.
+
+The same rule as one Rulesets API rule object (for review; **not sent**). `ref` is a stable, human-readable id for this rule within the ruleset. It keeps the rule recognisable across edits and exports, so it can be found, updated or removed by `ref` rather than by its generated `id`:
 
 ```json
 {
+  "ref": "fmw_g2_noindex",
   "description": "Find My Weed (G-2): noindex, nofollow for everything under /findmyweed/ until launch",
   "expression": "(http.host in {\"keepitil.com\" \"www.keepitil.com\"} and starts_with(http.request.uri.path, \"/findmyweed/\"))",
   "action": "rewrite",

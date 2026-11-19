@@ -20,9 +20,11 @@ nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-siz
 <main>
 <h1>TUITEA Privacy Policy</h1>
 
-<p class="up">Version 2026-11-04 · Last updated: 4 November 2026</p>
+<p class="up">Version 2026-11-18 · Last updated: 18 November 2026</p>
 
-<p><strong>What changed:</strong> accounts are for adults 18 or older, only a household owner or admin can add a child, and children's profile information is removed from what we send to AI models.</p>
+<p><strong>What changed (18 November 2026):</strong> Echo may use your household's meal records, including a child's meals, to answer you, the account holder. They are sent only to Cloudflare Workers AI, which says it does not keep prompts after it answers or use them to train AI models. Health questions are answered from your records and are not sent to an AI company. Before your first Echo message we ask you to allow this, and you can turn Echo off in More → Echo.</p>
+
+<p><strong>Earlier (4 November 2026):</strong> accounts are for adults 18 or older, only a household owner or admin can add a child, and children's profile information other than household meal records is removed from what we send to AI models.</p>
 
 <p>TUITEA is a family app made by KEEPITIL. This policy describes how the app works today.</p>
 
@@ -82,7 +84,7 @@ nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-siz
 <li>Questions with no personal information normally go to Cloudflare Workers AI, and may also go to Google (Gemini) or Groq, which KEEPITIL has approved only for questions that contain no personal information.</li>
 <li>Questions that include your or your family's personal information go only to a provider approved for personal data with zero data retention and no training. Today that is Cloudflare Workers AI.</li>
 <li>Questions that include health information are not sent to any AI model. Echo answers them from your records or tells you it cannot.</li>
-<li>Children's profile information (names, birth dates, birthplaces, notes, records and health) is removed from anything we send to an AI model. See &ldquo;Children&rdquo; below.</li>
+<li>Children's profile information (names, birth dates, birthplaces, notes and health) is removed from anything we send to an AI model. The exception is household meal records: Echo may use them, including a child's meals, to answer the account holder, and they are sent only to Cloudflare Workers AI, which says it does not keep them after answering or use them for training. See "Children" below.</li>
 </ul>
 
 <p>Photos you share with Echo are read by Cloudflare Workers AI only. If that fails, they are not sent anywhere else.</p>
@@ -94,8 +96,11 @@ nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-siz
 <h2>Children</h2>
 
 <p>TUITEA accounts are for adults. You must be 18 or older to create an account, and sign-up asks you to confirm that you are. We do not knowingly let anyone under 18 create an account.</p>
+
 <p>TUITEA is for families, so children can be on the family tree. Only the household's owner or an admin can add a child, and they can keep records about them. A child's profile is managed by the household and is not an account: a child never gets a login, TUITEA does not create an invitation for a child's profile, and a child's profile cannot be linked to any account.</p>
-<p>When Echo needs an AI model, children's profile information (names, birth dates, birthplaces, notes, records and health) is removed from what we send to the model. If you type a child's name into your own question, that question is sent as you wrote it.</p>
+
+<p>When Echo needs an AI model, children's profile information (names, birth dates, birthplaces, notes and health) is removed from what we send to the model, except household meal records, which Echo may use (including a child's meals) to answer the account holder; those go only to Cloudflare Workers AI, which says it does not keep them after answering or use them for training. Health questions are answered from your records and are not sent to an AI company. If you type a child's name into your own question, that question is sent as you wrote it.</p>
+
 <p>If you think a child has made an account, write to <a href="mailto:info@keepitil.com">info@keepitil.com</a> and we will delete it.</p>
 
 <h2>Deleting your data</h2>

@@ -70,6 +70,7 @@ nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-siz
 <li><strong>Supabase</strong> — database, sign-in and server functions.</li>
 <li><strong>Cloudflare R2</strong> — storage for your photos, videos, audio and documents.</li>
 <li><strong>Cloudflare Workers AI</strong> — the AI model that answers Echo and reads photos you ask about. It is used under terms of zero data retention and no training on your data.</li>
+<li><strong>Google (Gemini) and Groq</strong> — AI models that may answer a question Echo treats as having no personal information, or a photo question, if Cloudflare is unavailable. See "Echo and AI".</li>
 <li><strong>NEXUS</strong> — KEEPITIL's own AI service that routes Echo's questions, keeps Echo's conversation history and remembered preferences, and keeps the daily counts above.</li>
 <li><strong>Apple</strong> — App Store purchases, Apple Health (on your phone) and on-device speech recognition.</li>
 <li><strong>Stripe</strong> — payments for storage plans bought on our website (card processing, receipts and subscription management).</li>
@@ -89,6 +90,8 @@ nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-siz
 <li>Echo uses an AI provider to write its replies. When you ask Echo something, the information it needs to answer is sent to the provider with your question. This can include health records, family medical history, Apple Health figures (if you turned that on), and earlier messages and preferences from your Echo conversation.</li>
 <li>Echo tries to keep children's information away from the AI provider, but it cannot remove all of it. When Echo adds your family's records to a question, it leaves out a child's profile and the records linked to it, and replaces a child's name and birth date with "a child" or "[date withheld]" where it recognises them. Health entries are stored by name, not linked to a profile, so a child's health entries can still be sent, as can family records about a child (including medical history) that are not linked to the child's profile. A name can be missed if it is spelled differently or shared with an adult. Photos you share, what you type, and earlier messages in your Echo conversation are sent as they are. Echo may also use household meal records, including a child's meals, to answer the account holder.</li>
 </ul>
+
+<p>If Cloudflare cannot read the photo, the photo itself is not sent anywhere else.</p>
 
 <h2>Health and Apple Health</h2>
 

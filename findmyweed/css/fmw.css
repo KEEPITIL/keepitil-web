@@ -1,0 +1,126 @@
+/* Find My Weed web basics. Palette carried over from the earlier Find My Weed slices (dark green). */
+/* Contrast (checked in tests/a11y.test.js): text >= 4.5:1, control borders (--ctl) and the focus ring >= 3:1. */
+:root{--bg:#0b0f0c;--card:#131a15;--line:#243528;--ctl:#5f8066;--off-bg:#2a332c;--off-text:#a9b6ab;--green:#3ddc74;--green-dim:#27ae55;--text:#eef5ef;--muted:#a9bcae;--closed:#ff8a80;--warn-bg:#2a2410;--warn-line:#6b5a1a;--warn:#ffe08a;color-scheme:dark}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
+.wrap{width:100%;max-width:760px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left));flex:1}
+a{color:var(--green)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.muted{color:var(--muted)}
+
+/* Draft marker: visible until copy.js PLACEHOLDER is false */
+.draft{background:var(--warn-bg);border-bottom:1px solid var(--warn-line);color:var(--warn);font-size:13px;text-align:center;padding:8px 16px}
+
+.logo{font-weight:900;letter-spacing:-.02em;color:var(--text);text-decoration:none}
+.logo span{color:var(--green)}
+.hero{text-align:center;padding:48px 0 24px}
+.hero .logo{font-size:56px;line-height:1.05}
+.tagline{font-size:19px;color:var(--muted);margin-top:12px;text-wrap:balance}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0 18px}
+.logo.small{font-size:22px}
+.backlink{font-size:15px;text-decoration:none;padding:12px 4px;min-height:44px;display:inline-flex;align-items:center}
+
+/* Search */
+.search{display:grid;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+.search.compact{gap:10px;padding:14px}
+.field{display:grid;gap:6px;font-size:14px;color:var(--muted)}
+input[type=text]{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--ctl);border-radius:10px;padding:13px 14px;font-size:17px;font-family:inherit}
+input::placeholder{color:var(--muted);opacity:1}
+
+/* Keyboard focus: one clear ring everywhere (links, buttons, fields, result cards, filter chips) */
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,main:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+main:focus{outline:none}
+.chip input:focus-visible{outline:none}
+.chip:has(input:focus-visible){outline:3px solid var(--green);outline-offset:2px}
+.filters{border:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters legend{font-size:14px;color:var(--muted);margin-bottom:6px;width:100%}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--ctl);border-radius:999px;padding:8px 14px;font-size:15px;cursor:pointer;min-height:44px}
+.chip input{accent-color:var(--green);width:18px;height:18px}
+.chip:has(input:checked){border-color:var(--green);background:#16301f}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--green);color:#06130a;font-weight:800;text-decoration:none;padding:13px 18px;border-radius:10px;font-size:17px;border:0;cursor:pointer;font-family:inherit;min-height:48px}
+.btn:hover{background:var(--green-dim)}
+.btn.ghost{background:transparent;color:var(--green);border:1px solid var(--green)}
+.btn[aria-disabled=true],.btn[aria-disabled=true]:hover{background:var(--off-bg);color:var(--off-text);cursor:not-allowed}
+.note{font-size:14px;text-align:center;margin-top:14px}
+
+/* Results */
+h2,.rtitle{font-size:20px;margin:22px 0 10px;text-wrap:balance}
+.listings{display:grid;gap:10px;list-style:none}
+/* Map (Phase 1): self-hosted SVG, dots link to the detail page; the outline slot is empty until a boundary file exists */
+.map{margin:0 0 14px}
+.map h2{font-size:15px;color:var(--muted);font-weight:700;margin-bottom:8px}
+.map-svg{display:block;width:100%;height:auto;aspect-ratio:4/3;max-height:420px;background:var(--bg);border:1px solid var(--line);border-radius:12px}
+.map-outline path{fill:none;stroke:var(--ctl);stroke-width:1;vector-effect:non-scaling-stroke}
+.map-svg .dot circle{fill:var(--green);stroke:var(--bg);stroke-width:2;vector-effect:non-scaling-stroke}
+.map-svg .dot.delivery circle{fill:var(--bg);stroke:var(--green);stroke-width:3}
+.map-svg .dot:focus-visible{outline:none}
+.map-svg .dot:focus-visible circle,.map-svg .dot:hover circle{stroke:var(--text);stroke-width:5}
+.map-note{font-size:13px;margin-top:8px}
+.listing{display:block;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;color:var(--text);text-decoration:none}
+.listing:hover{border-color:var(--green)}
+.row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.listing h3{font-size:18px;min-width:0}
+.dist{color:var(--muted);font-size:15px;white-space:nowrap}
+.meta{justify-content:flex-start;margin-top:6px;font-size:14px}
+.badge{font-size:13px;font-weight:700;border-radius:999px;padding:2px 10px}
+.badge.open{background:#16301f;color:var(--green)}
+.badge.closed{background:#331a19;color:var(--closed)}
+.badge.unknown{background:#2a2a2a;color:var(--muted)}
+select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:17px;font-family:inherit;min-height:48px}
+.license{font-size:13px;color:var(--muted);margin-top:8px;font-family:ui-monospace,Consolas,monospace}
+
+/* Empty and error states (results and listing pages) */
+.state{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:6px 0 12px;display:grid;gap:12px;justify-items:start}
+.state p{color:var(--muted);max-width:60ch}
+.state.error{border-color:var(--warn-line);background:var(--warn-bg)}
+.state.error p{color:var(--warn)}
+
+/* Listing page */
+.detail .name{font-size:32px;line-height:1.15;text-wrap:balance}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px}
+.card h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:17px}
+.hours{border-collapse:collapse;width:100%;max-width:340px}
+.hours th,.hours td{text-align:left;padding:4px 0;font-weight:400}
+.hours th{width:64px;color:var(--muted)}
+.hours tr.today th,.hours tr.today td{color:var(--green);font-weight:700}
+.claim .btn{width:100%}
+.claim p{margin-top:8px;font-size:14px}
+
+/* Footer: compliance line on every page */
+.foot{text-align:center;color:var(--muted);font-size:13px;padding:20px 16px 28px;border-top:1px solid var(--line)}
+.foot .age{color:var(--text);font-weight:700;font-size:14px}
+
+/* Age gate: page content stays hidden until confirmed */
+.fmw-gated body > *:not(.agegate){visibility:hidden}
+.agegate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px;z-index:1000}
+.agegate-box{max-width:440px;width:100%;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:32px 22px}
+.agegate-box h1{font-size:40px}
+.agegate-box p{margin-top:12px}
+.agegate-actions{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+
+@media(min-width:720px){
+  .search{grid-template-columns:1fr minmax(150px,220px) auto;align-items:end}
+  .search .field-city{grid-column:2;grid-row:1}
+  .search .filters{grid-column:1/-1;grid-row:2}
+  .search .btn{grid-column:3;grid-row:1}
+}
+@media(max-width:480px){.hero .logo{font-size:44px}.hero{padding-top:32px}}
+
+/* License check line + official record link (listing page) */
+.card .checked{font-size:14px;color:var(--muted);margin-top:8px}
+.card .checked.stale{color:var(--warn);background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:10px;padding:8px 10px}
+.card .checked.stale strong{display:block;margin-top:2px}
+.card a.record{display:inline-flex;align-items:center;min-height:44px;font-size:15px}
+
+/* Footer links (About, Privacy) and plain-text info pages */
+.foot-links{display:flex;gap:18px;justify-content:center;margin-top:8px}
+.foot-links a{color:var(--green);text-decoration:none;padding:10px 4px;min-height:44px;display:inline-flex;align-items:center}
+.foot-links a:hover{text-decoration:underline}
+.card.prose h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+.card.prose p{max-width:65ch}
+.card.prose p + p{margin-top:10px}
+.detail > .btn{margin-top:16px}
+
+.report fieldset{border:0;margin:8px 0 0;padding:0}.report legend{font-weight:600;margin-bottom:4px}.report label.check{display:block;padding:6px 0}.report-details{display:block;font-weight:600;margin-top:10px}.report textarea{display:block;width:100%;box-sizing:border-box;font:inherit;margin-top:4px}.report .btn{margin-top:10px}.report-msg{margin-top:8px;min-height:1.2em}.report-msg.error{font-weight:600}

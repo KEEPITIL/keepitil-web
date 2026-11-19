@@ -76,8 +76,12 @@ self.addEventListener('fetch', function (e) {
   // Do not let the root worker cache or shadow child-app resources.
   // The apps under /games/*, /kode/, /app/tuitea/ and /app/kaitarako/
   // own their cache namespaces and scoped workers; leave their requests alone.
+  // /findmyweed/ (the Find My Weed directory, a static app with its own data file) is never
+  // cached or answered by this worker either: its pages, scripts and listings always come from
+  // the network. Only the folder WITH the slash: the /findmyweed marketing page
+  // (findmyweed.html) is a main-site page and stays handled below.
   if (url.origin === self.location.origin &&
-      /^\/(games\/[^/]+|kode|app\/(?:tuitea|kaitarako))\//.test(url.pathname)) return;
+      /^\/(games\/[^/]+|kode|findmyweed|app\/(?:tuitea|kaitarako))\//.test(url.pathname)) return;
 
   // Navigations: network-first; cached copy ONLY when the network fails.
   if (req.mode === 'navigate') {

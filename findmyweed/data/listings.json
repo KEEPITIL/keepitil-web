@@ -1,0 +1,79 @@
+{
+  "_note": "SAMPLE FIXTURE ONLY. Invented placeholder businesses, places and license numbers (SAMPLE-..., never a real state number) for the draft web pages. Not real businesses; no real data is loaded until the public export is approved. Every row carries published / licenseStatus / licenseExpires so the shown rule (published + Active or About to Expire + expiry not passed) is exercised: sample-1 to sample-5 are shown (sample-3 is About to Expire); sample-6 (no license), sample-7 (expired), sample-8 (no expiry), sample-9 (unpublished) and sample-10 (Suspended) must stay hidden. licenseCheckedOn is a SAMPLE date: sample-4 is deliberately old so the out-of-date state shows, sample-5 has none. Dates assume the fixed test clocks (Nov 2026).",
+  "places": [
+    { "name": "Sampletown", "state": "CA", "zips": ["00001", "00002"], "lat": 34.000, "lng": -118.000 },
+    { "name": "Demo City", "state": "CA", "zips": ["00003"], "lat": 34.150, "lng": -118.200 }
+  ],
+  "listings": [
+    {
+      "id": "sample-1", "name": "Sample Green Storefront A", "storefront": true, "delivery": false,
+      "address": { "line1": "100 Example Ave", "city": "Sampletown", "state": "CA", "zip": "00001" },
+      "lat": 34.012, "lng": -118.010, "tz": "America/Los_Angeles",
+      "hours": { "mon": [["09:00", "21:00"]], "tue": [["09:00", "21:00"]], "wed": [["09:00", "21:00"]], "thu": [["09:00", "21:00"]], "fri": [["09:00", "22:00"]], "sat": [["10:00", "22:00"]], "sun": [["10:00", "20:00"]] },
+      "license": "SAMPLE-C10-0000001", "licenseStatus": "Active", "licenseExpires": "2027-06-30", "published": true, "licenseType": "Retailer (storefront)", "licenseCheckedOn": "2026-11-16", "menuUrl": "https://example.com/sample-a-menu"
+    },
+    {
+      "id": "sample-2", "name": "Sample Delivery B", "storefront": false, "delivery": true,
+      "address": { "city": "Sampletown", "state": "CA", "zip": "00002" },
+      "tz": "America/Los_Angeles",
+      "hours": { "mon": [["10:00", "22:00"]], "tue": [["10:00", "22:00"]], "wed": [["10:00", "22:00"]], "thu": [["10:00", "22:00"]], "fri": [["10:00", "23:00"]], "sat": [["10:00", "23:00"]], "sun": [["10:00", "22:00"]] },
+      "license": "SAMPLE-C9-0000002", "licenseStatus": "Active", "licenseExpires": "2027-03-31", "published": true, "licenseType": "Retailer (non-storefront, delivery)", "licenseCheckedOn": "2026-11-16", "menuUrl": "https://example.com/sample-b-menu"
+    },
+    {
+      "id": "sample-3", "name": "Sample Night Owl C", "storefront": true, "delivery": true,
+      "address": { "line1": "250 Placeholder Blvd", "city": "Sampletown", "state": "CA", "zip": "00002" },
+      "lat": 34.040, "lng": -117.960, "tz": "America/Los_Angeles",
+      "hours": { "mon": [["16:00", "02:00"]], "tue": [["16:00", "02:00"]], "wed": [["16:00", "02:00"]], "thu": [["16:00", "02:00"]], "fri": [["14:00", "03:00"]], "sat": [["14:00", "03:00"]], "sun": [] },
+      "license": "SAMPLE-C10-0000003", "licenseStatus": "About to Expire", "licenseExpires": "2027-01-15", "published": true, "licenseType": "Retailer (storefront)", "licenseCheckedOn": "2026-11-15", "menuUrl": "https://example.com/sample-c-menu"
+    },
+    {
+      "id": "sample-4", "name": "Sample Storefront D", "storefront": true, "delivery": false,
+      "address": { "line1": "12 Demo Street", "city": "Demo City", "state": "CA", "zip": "00003" },
+      "lat": 34.152, "lng": -118.195, "tz": "America/Los_Angeles",
+      "hours": { "mon": [["08:00", "20:00"]], "tue": [["08:00", "20:00"]], "wed": [["08:00", "20:00"]], "thu": [["08:00", "20:00"]], "fri": [["08:00", "20:00"]], "sat": [["09:00", "18:00"]], "sun": [] },
+      "license": "SAMPLE-C10-0000004", "licenseStatus": "Active", "licenseExpires": "2027-09-30", "published": true, "licenseType": "Retailer (storefront)", "licenseCheckedOn": "2026-10-01", "menuUrl": ""
+    },
+    {
+      "id": "sample-5", "name": "Sample Delivery E", "storefront": false, "delivery": true,
+      "address": { "city": "Demo City", "state": "CA", "zip": "00003" },
+      "tz": "America/Los_Angeles",
+      "hours": { "mon": [["11:00", "21:00"]], "tue": [["11:00", "21:00"]], "wed": [["11:00", "21:00"]], "thu": [["11:00", "21:00"]], "fri": [["11:00", "21:00"]], "sat": [["11:00", "21:00"]], "sun": [["11:00", "21:00"]] },
+      "license": "SAMPLE-C9-0000005", "licenseStatus": "Active", "licenseExpires": "2027-05-31", "published": true, "licenseType": "Retailer (non-storefront, delivery)", "menuUrl": "https://example.com/sample-e-menu"
+    },
+    {
+      "id": "sample-6", "name": "Unlicensed Sample F (must stay hidden)", "storefront": true, "delivery": false,
+      "address": { "line1": "1 Nowhere Rd", "city": "Sampletown", "state": "CA", "zip": "00001" },
+      "lat": 34.001, "lng": -118.001, "tz": "America/Los_Angeles",
+      "hours": { "mon": [["09:00", "21:00"]] },
+      "license": "", "licenseStatus": "Active", "licenseExpires": "2027-06-30", "published": true, "licenseType": "", "menuUrl": ""
+    },
+    {
+      "id": "sample-7", "name": "Expired Sample G (must stay hidden)", "storefront": true, "delivery": false,
+      "address": { "line1": "7 Example Ave", "city": "Sampletown", "state": "CA", "zip": "00001" },
+      "lat": 34.017, "lng": -118.017, "tz": "America/Los_Angeles",
+      "hours": { "mon": [["09:00", "21:00"]], "tue": [["09:00", "21:00"]], "wed": [["09:00", "21:00"]], "thu": [["09:00", "21:00"]], "fri": [["09:00", "22:00"]], "sat": [["10:00", "22:00"]], "sun": [["10:00", "20:00"]] },
+      "license": "SAMPLE-C10-0000007", "licenseStatus": "Active", "licenseExpires": "2026-11-01", "published": true, "licenseType": "Retailer (storefront)"
+    },
+    {
+      "id": "sample-8", "name": "Undated Sample H (must stay hidden)", "storefront": true, "delivery": false,
+      "address": { "line1": "8 Example Ave", "city": "Sampletown", "state": "CA", "zip": "00001" },
+      "lat": 34.018, "lng": -118.018, "tz": "America/Los_Angeles",
+      "hours": { "mon": [["09:00", "21:00"]], "tue": [["09:00", "21:00"]], "wed": [["09:00", "21:00"]], "thu": [["09:00", "21:00"]], "fri": [["09:00", "22:00"]], "sat": [["10:00", "22:00"]], "sun": [["10:00", "20:00"]] },
+      "license": "SAMPLE-C10-0000008", "licenseStatus": "Active", "licenseExpires": null, "published": true, "licenseType": "Retailer (storefront)"
+    },
+    {
+      "id": "sample-9", "name": "Unpublished Sample J (must stay hidden)", "storefront": true, "delivery": false,
+      "address": { "line1": "9 Example Ave", "city": "Sampletown", "state": "CA", "zip": "00001" },
+      "lat": 34.019, "lng": -118.019, "tz": "America/Los_Angeles",
+      "hours": { "mon": [["09:00", "21:00"]], "tue": [["09:00", "21:00"]], "wed": [["09:00", "21:00"]], "thu": [["09:00", "21:00"]], "fri": [["09:00", "22:00"]], "sat": [["10:00", "22:00"]], "sun": [["10:00", "20:00"]] },
+      "license": "SAMPLE-C10-0000009", "licenseStatus": "Active", "licenseExpires": "2027-06-30", "published": false, "licenseType": "Retailer (storefront)"
+    },
+    {
+      "id": "sample-10", "name": "Suspended Sample K (must stay hidden)", "storefront": true, "delivery": false,
+      "address": { "line1": "10 Example Ave", "city": "Sampletown", "state": "CA", "zip": "00002" },
+      "lat": 34.020, "lng": -118.020, "tz": "America/Los_Angeles",
+      "hours": { "mon": [["09:00", "21:00"]], "tue": [["09:00", "21:00"]], "wed": [["09:00", "21:00"]], "thu": [["09:00", "21:00"]], "fri": [["09:00", "22:00"]], "sat": [["10:00", "22:00"]], "sun": [["10:00", "20:00"]] },
+      "license": "SAMPLE-C10-0000010", "licenseStatus": "Suspended", "licenseExpires": "2027-06-30", "published": true, "licenseType": "Retailer (storefront)"
+    }
+  ]
+}

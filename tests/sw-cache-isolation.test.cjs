@@ -64,6 +64,31 @@ test('root worker does not intercept isolated app requests', () => {
   }
 });
 
+test('root worker never caches or answers /findmyweed/ (pages, navigations, scripts, listings)', () => {
+  const worker = createWorker();
+  const fetchHandler = worker.handlers.get('fetch');
+  const intercepted = (route, mode) => {
+    let hit = false;
+    fetchHandler({ request: { method: 'GET', url: 'https://keepitil.com' + route, mode }, respondWith() { hit = true; } });
+    return hit;
+  };
+  for (const route of [
+    '/findmyweed/', '/findmyweed/index.html', '/findmyweed/results.html?q=90001',
+    '/findmyweed/listing.html?id=SAMPLE-C10-0000001', '/findmyweed/404.html',
+    '/findmyweed/js/fmw.js', '/findmyweed/css/fmw.css', '/findmyweed/data/listings.json',
+    '/findmyweed/img/og-placeholder.png', '/findmyweed/icons/icon.svg',
+  ]) {
+    assert.equal(intercepted(route, 'navigate'), false, 'root intercepted navigation ' + route);
+    assert.equal(intercepted(route, 'no-cors'), false, 'root intercepted ' + route);
+  }
+  // NEGATIVE CONTROLS: the marketing page (/findmyweed, served as findmyweed.html) and its sibling
+  // main-site pages are still the root's; a look-alike folder is not exempt.
+  for (const route of ['/findmyweed', '/findmyweed.html', '/findmyweed-directory.html', '/findmyweedx/', '/findmyweed-sample.html']) {
+    assert.equal(intercepted(route, 'navigate'), true, 'root no longer handles ' + route);
+  }
+  assert.equal(intercepted('/findmyweedx/app.js', 'no-cors'), true, 'a look-alike folder script is still the root\'s');
+});
+
 test('root still handles its own JavaScript requests', async () => {
   const worker = createWorker();
   let responded;

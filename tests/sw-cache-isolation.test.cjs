@@ -64,6 +64,40 @@ test('root worker does not intercept isolated app requests', () => {
   }
 });
 
+test('root worker never caches or answers /games/kai/ (Kai Tarako web build: pages, navigations, assets, its own sw.js)', () => {
+  const worker = createWorker();
+  const fetchHandler = worker.handlers.get('fetch');
+  const intercepted = (route, mode) => {
+    let hit = false;
+    fetchHandler({ request: { method: 'GET', url: 'https://keepitil.com' + route, mode }, respondWith() { hit = true; } });
+    return hit;
+  };
+  for (const route of [
+    '/games/kai/', '/games/kai/index.html', '/games/kai/privacy.html', '/games/kai/licenses.html',
+    '/games/kai/sw.js', '/games/kai/manifest.webmanifest', '/games/kai/frame-guard.js',
+    '/games/kai/assets/index-abc123.js', '/games/kai/assets/index-abc123.css', '/games/kai/brand/logo.png',
+    '/games/kai/mascot/kai-hero.svg', '/games/kai/icon-192.png',
+  ]) {
+    assert.equal(intercepted(route, 'navigate'), false, 'root intercepted navigation ' + route);
+    assert.equal(intercepted(route, 'no-cors'), false, 'root intercepted ' + route);
+  }
+  // NEGATIVE CONTROLS: the /games hub and any main-site page next to the folder are still the root's
+  // (no /games/kai marketing page exists today; a bare /games/kai without the slash is the root's too).
+  for (const route of ['/games/', '/games/index.html', '/games/kai', '/games/kai.html', '/games-kai.html']) {
+    assert.equal(intercepted(route, 'navigate'), true, 'root no longer handles ' + route);
+  }
+  assert.equal(intercepted('/games-kai/app.js', 'no-cors'), true, 'a look-alike path outside /games/ is still the root\'s');
+});
+
+test('activation never deletes a Kai Tarako cache (kai-tarako-<build>), at /app/kaitarako/ or /games/kai/', async () => {
+  const kai = ['kai-tarako-426837e6f54f', 'kai-tarako-0123456789ab'];
+  const worker = createWorker(['kil-pwa-v104', ...kai]);
+  let activation;
+  worker.handlers.get('activate')({ waitUntil(p) { activation = p; } });
+  await activation;
+  assert.deepEqual(worker.deleted, ['kil-pwa-v104']);
+});
+
 test('root still handles its own JavaScript requests', async () => {
   const worker = createWorker();
   let responded;

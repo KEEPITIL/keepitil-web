@@ -18,3 +18,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node --test assets/js/*.test.mjs
+      # Kai Tarako drop-in (games/kai/): the root worker never caches or answers an app folder, and a cache-name bump
+      # evicts only old kil-* caches. Same step as keepitil-web#191 (W-3); guarded by assets/js/ci-sw-test.test.mjs.
+      - run: node --test tests/sw-cache-isolation.test.cjs

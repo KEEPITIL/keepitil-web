@@ -8,6 +8,16 @@
 <title>Event — KEEPITIL</title>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <meta name="description" content="A KEEPITIL event: when and where, who is playing, and tickets."/>
+<meta property="og:type" content="event"/>
+<meta property="og:title" content="Event — KEEPITIL"/>
+<meta property="og:description" content="A KEEPITIL event: when and where, who is playing, and tickets."/>
+<meta property="og:image" content="https://keepitil.com/keepitil-og.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Event — KEEPITIL"/>
+<meta name="twitter:description" content="A KEEPITIL event: when and where, who is playing, and tickets."/>
+<meta name="twitter:image" content="https://keepitil.com/keepitil-og.png"/>
 <link rel="stylesheet" href="/assets/css/tokens.css"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>
 <style>
@@ -45,6 +55,7 @@ body{background:var(--bg,#0a0a0f);color:var(--text,#fff);font-family:var(--font,
 .m2-off{opacity:.6}
 .m2-cta{display:flex;align-items:center;justify-content:center;width:100%;min-height:46px;border-radius:999px;background:var(--brand,#00b4ff);color:#001018;font-weight:900;text-decoration:none;letter-spacing:.02em}
 .m2-status{color:var(--muted,#9aa);margin-bottom:10px}
+.m2-share{margin-top:12px;background:transparent;border:1.5px solid var(--brand,#00b4ff);color:var(--brand,#00b4ff);border-radius:999px;padding:8px 16px;font-weight:800;cursor:pointer}
 .m2-private{text-align:center;padding:60px 0}.m2-private p{color:var(--muted,#9aa);margin:8px 0 18px}
 </style>
 </head>
@@ -58,7 +69,8 @@ body{background:var(--bg,#0a0a0f);color:var(--text,#fff);font-family:var(--font,
 <main class="m2"><div id="m2root" class="m2-loading">Loading event…</div></main>
 
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
-<script src="/assets/js/kil-show.js?v=20261106a"></script>
+<script src="/assets/js/kil-share.js?v=20261107a"></script>
+<script src="/assets/js/kil-show.js?v=20261107a"></script>
 <script>
 var SUPA_URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ';
@@ -67,9 +79,8 @@ var supa=window.supabase?supabase.createClient(SUPA_URL,SUPA_KEY):null;
   var root=document.getElementById('m2root');
   if(!supa||!window.KilShow){ root.textContent='This event could not load. Check your connection and try again.'; return; }
   var slug=new URLSearchParams(location.search).get('e')||'';
-  KilShow.mount(root,supa,{slug:slug}).then(function(d){
+  KilShow.mount(root,supa,{slug:slug}).then(function(){
     root.classList.remove('m2-loading');
-    if(d&&d.event&&d.event.title) document.title=d.event.title+' — KEEPITIL';
   }).catch(function(){ root.textContent='This event could not load. Check your connection and try again.'; });
 })();
 </script>

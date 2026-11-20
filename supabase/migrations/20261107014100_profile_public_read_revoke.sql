@@ -1,0 +1,77 @@
+-- STEP 2 of 2. Apply only after step 1, the web deploy, and the admin
+-- attestation in docs/profile-release-runbook.md. Do not apply this file
+-- just because it sits in supabase/migrations.
+-- NEEDS SENTINEL + JOE BEFORE PROD. Not applied by this PR.
+--
+-- This file is the only place profile_meta's public read policies are swapped
+-- for the owner read. Do not call private.profile_is_public from a policy.
+-- A page that already passes private.profile_is_public stays public.
+-- A page that is still unverified goes private, because NULL fails closed.
+-- The auth-metadata checkbox is not a verification.
+--
+-- After this file, this is refused for anon:
+--   select book_email from public.profile_meta;
+--
+-- ROLLBACK. Restore anon grants and the dropped read policies from the backup
+-- taken before step 1. Leave the added columns.
+--
+-- public.profiles lost client SELECT in step 1. Reads go through
+-- get_approved_profile. This file does not grant that SELECT back.
+
+-- These two are open to everyone (PUBLIC, USING true). Drop them by name, then
+-- any other anon or PUBLIC select policy on the same table.
+DROP POLICY IF EXISTS "profile_meta read all" ON public.profile_meta;
+DROP POLICY IF EXISTS profile_meta_read ON public.profile_meta;
+
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT pol.polname
+    FROM pg_policy pol
+    JOIN pg_class c ON c.oid = pol.polrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relname = 'profile_meta'
+      AND pol.polcmd = 'r'
+      AND (
+        pol.polroles = '{0}'
+        OR EXISTS (
+          SELECT 1 FROM pg_roles role
+          WHERE role.rolname = 'anon' AND pol.polroles @> ARRAY[role.oid]
+        )
+      )
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.profile_meta', r.polname);
+  END LOOP;
+END $$;
+
+REVOKE ALL ON TABLE public.profile_meta FROM anon;
+REVOKE ALL ON TABLE public.profile_meta FROM PUBLIC;
+REVOKE ALL ON TABLE public.profile_owners FROM anon;
+REVOKE ALL ON TABLE public.profile_owners FROM PUBLIC;
+REVOKE ALL ON TABLE public.profile_claim_requests FROM anon;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.profile_owners FROM authenticated;
+
+-- Step 1 granted the live save columns. The deployed save no longer sends
+-- account_type, status, or slug on update. Drop those now. Insert still has
+-- slug so a brand-new row can be created.
+REVOKE UPDATE (account_type, status, slug) ON TABLE public.profile_meta FROM authenticated;
+REVOKE INSERT (account_type, status) ON TABLE public.profile_meta FROM authenticated;
+REVOKE DELETE, TRUNCATE ON TABLE public.profile_meta FROM authenticated;
+
+-- The owner read policy is created in step 1 on profile_owners.
+-- Turn row security on so that policy is what a signed-in user can read.
+-- The existing update policy is not replaced.
+ALTER TABLE public.profile_meta ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS profile_meta_owner_select ON public.profile_meta;
+CREATE POLICY profile_meta_owner_select ON public.profile_meta
+  FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profile_owners po
+      WHERE po.profile_slug = profile_meta.slug
+        AND po.owner_id = (SELECT auth.uid())
+    )
+  );

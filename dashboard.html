@@ -11,8 +11,10 @@
 <title>Dashboard — KEEPITIL</title>
 <meta name="description" content="Manage your KEEPITIL events — sales, check-ins, revenue, promotion."/>
 <link rel="stylesheet" href="/assets/css/tokens.css"/>
+<link rel="stylesheet" href="/assets/css/kil-insights.css?v=20261107b"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
+<script src="/assets/js/kil-insights.js?v=20261107b"></script>
 <style>
 :root{--bg:#0c0d1a;--panel:#191c30;--panel2:#20243d;--text:#f3f5ff;--muted:#aab2e0;--line:#2f3556;--brand:#3aa5ff;--brand-2:#26e6a6;--accent:#a56bff;--warn:#ffb43c}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -207,8 +209,8 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
   </div>
   <div id="app" style="display:none">
     <div class="subnav" id="subnav"></div>
-    <div class="panel on" id="tab-events"><div class="summary" id="summary"></div><div id="list"></div></div>
-    <div class="panel" id="tab-insights"><div id="insightsBody" style="color:var(--muted,#9aa0b0)">Loading…</div></div>
+    <div class="panel" id="tab-events"><div id="eventReport"></div><div id="list"></div></div>
+    <div class="panel on" id="tab-insights"><div id="eventInsights"><p class="kil-in-note">Loading event numbers…</p></div><div id="insightsBody" style="color:var(--muted,#9aa0b0)">Loading…</div></div>
     <div class="panel" id="tab-plugins"><div id="pluginsBody"></div></div>
     <div class="panel" id="tab-postiz"><div id="postizBody"></div></div>
     <div class="panel" id="tab-settings"><div id="settingsBody"></div></div>
@@ -290,19 +292,34 @@ var supa=window.supabase?supabase.createClient(SUPA_URL,SUPA_KEY):null;
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function money(c){return '$'+((c||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+function numCell(v){
+  if(window.KilInsights) return esc(KilInsights.count(v==null||v===''?null:Number(v)));
+  return esc(String(v||0));
+}
+function moneyCell(c){
+  if(window.KilInsights) return esc(KilInsights.money(c==null||c===''?null:Number(c)));
+  return esc(money(c));
+}
 function fmtDate(iso,tz){ try{ if(!iso)return 'Date TBD'; return new Date(iso).toLocaleDateString('en-US',{timeZone:tz||'America/Los_Angeles',weekday:'short',month:'short',day:'numeric',year:'numeric'}); }catch(e){return '';} }
+function statusClass(status){
+  var s=String(status||'').toLowerCase();
+  if(s==='published'||s==='review'||s==='draft') return s;
+  return 'draft';
+}
 
-function card(d){
-  var st=(d.status||'draft').toLowerCase();
+function card(d, focusSlug){
+  var raw=String(d.status||'draft');
+  var st=statusClass(raw);
+  var sid=window.KilInsights?KilInsights.slugOf(d.slug):String(d.slug||'').toLowerCase().replace(/[^a-z0-9-]/g,'');
   var cov=d.cover?'<img class="ev-cov" src="'+esc(d.cover)+'" alt="" onerror="this.style.display=\'none\'">':'<div class="ev-cov"></div>';
-  return '<div class="ev">'+cov+
+  return '<div class="ev'+(focusSlug&&sid===focusSlug?' ev-focus':'')+'" id="ev-'+esc(sid)+'">'+cov+
     '<div class="ev-main">'+
       '<div class="ev-top"><span class="ev-title">'+esc(d.title||'Untitled')+'</span><span class="ev-badge '+st+'">'+esc(st)+'</span></div>'+
       '<div class="ev-meta">'+fmtDate(d.starts_at,d.tz)+(d.venue?' · '+esc(d.venue):(d.city?' · '+esc(d.city):''))+'</div>'+
       '<div class="ev-stats">'+
-        '<div class="s"><div class="n">'+(d.sold||0)+'</div><div class="l">Sold</div></div>'+
-        '<div class="s"><div class="n">'+(d.checked_in||0)+'</div><div class="l">Checked in</div></div>'+
-        '<div class="s"><div class="n">'+money(d.revenue_cents)+'</div><div class="l">Revenue</div></div>'+
+        '<div class="s"><div class="n">'+numCell(d.sold)+'</div><div class="l">Sold</div></div>'+
+        '<div class="s"><div class="n">'+numCell(d.checked_in)+'</div><div class="l">Checked in</div></div>'+
+        '<div class="s"><div class="n">'+moneyCell(d.revenue_cents)+'</div><div class="l">Revenue</div></div>'+
       '</div>'+
       '<div class="ev-acts">'+
         '<a href="/create-event?e='+encodeURIComponent(d.slug)+'">Edit</a>'+
@@ -322,20 +339,68 @@ async function dup(id,btn){
   }catch(e){ if(btn){btn.disabled=false;btn.textContent='Duplicate';} }
 }
 
+/* organizer_dashboard rows for the Events tab and the Insight tab. A failed read
+   stays null so the page does not draw an empty list as if the host had no events. */
+var ORG_ROWS=null, ORG_ERR=false, ORG_READY=false;
+function focusSlug(){
+  try{
+    var raw=new URLSearchParams(location.search).get('e')||'';
+    return window.KilInsights?KilInsights.slugOf(raw):String(raw).toLowerCase().replace(/[^a-z0-9-]/g,'');
+  }catch(e){ return ''; }
+}
+function paintEventInsights(){
+  var host=$('eventInsights'); if(!host) return;
+  if(!ORG_READY){ host.innerHTML='<p class="kil-in-note">Loading event numbers…</p>'; return; }
+  if(ORG_ERR||!window.KilInsights){
+    host.innerHTML=window.KilInsights?KilInsights.failedNote():'<p class="kil-in-note">Event numbers couldn’t load. Check your connection and try again.</p>';
+    return;
+  }
+  host.innerHTML='<div class="head2">Event numbers</div>'+KilInsights.renderOwner(ORG_ROWS||[],{focus:focusSlug()});
+}
+function paintEvents(evs){
+  var focus=focusSlug();
+  var now=Date.now();
+  var up=[], past=[];
+  (evs||[]).forEach(function(e){
+    if(e&&e.starts_at&&new Date(e.starts_at).getTime()<now) past.push(e);
+    else up.push(e);
+  });
+  up.sort(function(a,b){ return new Date(a.starts_at||0)-new Date(b.starts_at||0); });
+  past.sort(function(a,b){ return new Date(b.starts_at||0)-new Date(a.starts_at||0); });
+  var report=$('eventReport');
+  if(report){
+    report.innerHTML=window.KilInsights?('<div class="head2">Event numbers</div>'+KilInsights.renderOwner(evs||[],{focus:focus})):'';
+  }
+  function block(title, rows, empty){
+    if(!rows.length) return '<h3 class="head2">'+title+'</h3><div class="rv-empty">'+empty+'</div>';
+    return '<h3 class="head2">'+title+' <span class="ct">'+rows.length+'</span></h3>'+rows.map(function(e){ return card(e, focus); }).join('');
+  }
+  if(!evs||!evs.length){
+    $('list').innerHTML='<div class="empty"><h2>No events yet</h2><p>Create your first event and start selling tickets.</p><a class="btn prim" href="/create-event">+ Create Event</a></div>';
+    return;
+  }
+  $('list').innerHTML=block('Upcoming', up, 'No upcoming events.')+block('Past', past, 'No past events.');
+  if(focus){
+    var el=document.getElementById('ev-'+focus);
+    if(el){ try{ el.scrollIntoView({block:'nearest'}); }catch(e){} }
+  }
+}
 async function load(){
   try{
     var r=await supa.rpc('organizer_dashboard');
-    var evs=(r&&r.data)||[];
-    var sold=0,rev=0,chk=0;
-    evs.forEach(function(e){ sold+=e.sold||0; rev+=e.revenue_cents||0; chk+=e.checked_in||0; });
-    $('summary').innerHTML=
-      '<div class="sum"><div class="n">'+evs.length+'</div><div class="l">Events</div></div>'+
-      '<div class="sum"><div class="n">'+sold+'</div><div class="l">Tickets sold</div></div>'+
-      '<div class="sum"><div class="n">'+chk+'</div><div class="l">Checked in</div></div>'+
-      '<div class="sum"><div class="n">'+money(rev)+'</div><div class="l">Revenue</div></div>';
-    $('list').innerHTML = evs.length ? evs.map(card).join('')
-      : '<div class="empty"><h2>No events yet</h2><p>Create your first event and start selling tickets.</p><a class="btn prim" href="/create-event">+ Create Event</a></div>';
-  }catch(e){ $('list').innerHTML='<div class="empty"><h2>Couldn’t load</h2><p>Please refresh.</p></div>'; }
+    if(!r||r.error) throw (r&&r.error)||new Error('organizer_dashboard');
+    var evs=r.data;
+    if(evs&&!Array.isArray(evs)) evs=[evs];
+    ORG_ROWS=evs||[];
+    ORG_ERR=false;
+    ORG_READY=true;
+    paintEvents(ORG_ROWS);
+  }catch(e){
+    ORG_ROWS=null; ORG_ERR=true; ORG_READY=true;
+    if($('eventReport')) $('eventReport').innerHTML=window.KilInsights?KilInsights.failedNote():'<div class="empty"><h2>Couldn’t load</h2><p>Please refresh.</p></div>';
+    if($('list')) $('list').innerHTML='';
+  }
+  paintEventInsights();
 }
 
 /* ===== Admin console: sub-nav tabs ===== */
@@ -556,7 +621,7 @@ async function loadInsights(){
       +tile('Likes',m.likes)+tile('Comments',m.comments)+'</div>';
     var charts='<div style="background:var(--panel,#191c30);border:1px solid var(--line,#2f3556);border-radius:16px;padding:16px;margin-bottom:14px"><div style="color:#fff;font-weight:700;margin-bottom:2px">Profile views · 14 days</div>'+chart(m.views_series,'linear-gradient(180deg,#a56bff,#26e6a6)')+'</div>'
       +'<div style="background:var(--panel,#191c30);border:1px solid var(--line,#2f3556);border-radius:16px;padding:16px"><div style="color:#fff;font-weight:700;margin-bottom:2px">New followers · 14 days</div>'+chart(m.follows_series,'linear-gradient(180deg,#3aa5ff,#26e6a6)')+'</div>';
-    b.innerHTML=grid+charts;
+    b.innerHTML='<div class="head2">Profile</div><p class="kil-in-note">Profile views and follows, last 14 days.</p>'+grid+charts;
   }catch(e){ b.innerHTML='Could not load insights.'; }
 }
 async function loadAnalytics(){
@@ -1254,14 +1319,24 @@ async function dismissSuggestion(id,btn){
   try{ var r=await supa.rpc('dismiss_knowledge_suggestion',{p_id:id}); if(r.error)throw r.error; var el=$('sug'+id); if(el)el.outerHTML=''; }catch(e){ if(btn)btn.disabled=false; }
 }
 
+function knownTab(name){
+  if(name==='insights'||name==='plugins'||name==='events'||name==='postiz'||name==='settings') return true;
+  if(IS_ADMIN){ for(var i=0;i<ADMIN_TABS.length;i++){ if(ADMIN_TABS[i][0]===name) return true; } }
+  return false;
+}
 async function init(){
   if(!supa){ $('gate').style.display='block'; return; }
   var b=$('loginBtn'); if(b) b.href='/apply?stay=1&next='+encodeURIComponent(location.pathname);
   var r=await supa.auth.getSession().catch(function(){return null;});
   if(!(r&&r.data&&r.data.session)){ $('gate').style.display='block'; return; }
   $('app').style.display='block';
-  load();
-  buildAdminTabs();
+  var pending=load();
+  await buildAdminTabs();
+  var q=new URLSearchParams(location.search);
+  var tab=q.get('tab');
+  if(q.get('e') && !tab) tab='events';
+  showTab(knownTab(tab)?tab:'insights');
+  await pending;
 }
 init();
 </script>

@@ -25,9 +25,11 @@ test('browse: a missing hostProfiles map (older data, failed lookup) fails safe 
   assert.ok(!/href="\/member\?slug=xus"/.test(B.render(d, {})));
 });
 test('browse load(): only slugs returned by profile_meta become linkable, even without a display_name', async () => {
-  const tbl = { events: { data: [ev] }, profile_meta: { data: [{ slug: 'real', display_name: null }] }, event_lineup: { data: [] }, ticket_tiers: { data: [] } };
+  const tbl = { events: { data: [Object.assign({}, ev, { owner_handle: 'real' }), ev] }, profile_meta: { data: [{ slug: 'real', display_name: null }, { slug: 'other', display_name: 'Other' }] }, event_lineup: { data: [] }, ticket_tiers: { data: [] } };
   const builder = (name) => { const b = { select() { return b; }, eq() { return b; }, gte() { return b; }, is() { return b; }, or() { return b; }, order() { return b; }, limit() { return b; }, in() { return b; }, then(f, r) { return Promise.resolve({ data: tbl[name].data, error: null }).then(f, r); } }; return b; };
-  const r = await B.load({ from: builder }, { now: new Date('2026-11-09T00:00:00Z') });
+  // The profile-release browse path reads hosts from rpc('public_profile_list', ...), not the profile_meta table.
+  const rpc = (fn, args) => { assert.equal(fn, 'public_profile_list'); return Promise.resolve({ data: tbl.profile_meta.data, error: null }); };
+  const r = await B.load({ from: builder, rpc }, { now: new Date('2026-11-09T00:00:00Z') });
   assert.deepEqual(r.hostProfiles, { real: true });
 });
 test('show: host without a profile is plain text; with a profile is a link', () => {

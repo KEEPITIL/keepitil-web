@@ -1,0 +1,95 @@
+{
+ "source": {
+  "file": "www/profile.html (iOS app bundle copy)",
+  "sha256": "c4727d39d861303b33f1084d83dac178a719c823d2994da23dfa38a7577ec04e",
+  "bundleSource": "keepitil-web c111ac1d2fe90afcd5def3456c3eb54bab5b691b"
+ },
+ "formIds": [
+  "epAbout",
+  "epAcct",
+  "epArtGenre",
+  "epArtRel",
+  "epArtSpot",
+  "epArtType",
+  "epAvatarFile",
+  "epAvatarPrev",
+  "epAvatarUrl",
+  "epBio",
+  "epBrCode",
+  "epBrDesc",
+  "epBrShop",
+  "epBrType",
+  "epCoverFile",
+  "epCoverMFile",
+  "epCoverMPrev",
+  "epCoverMUrl",
+  "epCoverPrev",
+  "epCoverUrl",
+  "epEmail",
+  "epHandle",
+  "epIG",
+  "epL1",
+  "epL2",
+  "epL3",
+  "epL4",
+  "epL5",
+  "epLinksLabel",
+  "epLoc",
+  "epName",
+  "epOrgEvents",
+  "epOrgTix",
+  "epOrgType",
+  "epPass",
+  "epPass2",
+  "epSC",
+  "epSave",
+  "epTT",
+  "epVenAddr",
+  "epVenAge",
+  "epVenCal",
+  "epVenCap",
+  "epVenType",
+  "epWeb"
+ ],
+ "writes": [
+  {
+   "table": "profile_meta",
+   "op": "upsert",
+   "payload": {
+    "slug": "novahaze",
+    "display_name": "Nova Haze",
+    "handle": "novahaze",
+    "location": "Phoenix, AZ",
+    "bio": "Line one\nLine \"two\" & <b>x</b>",
+    "tagline": "Desert techno",
+    "pronouns": "she/her",
+    "book_email": "book@x.test",
+    "about": "About text",
+    "links": [
+     "https://a.test/1",
+     "https://c.test/3",
+     "https://d.test/4",
+     "https://e.test/5"
+    ],
+    "links_label": "My links",
+    "badges": [
+     "Founder",
+     "Resident"
+    ],
+    "account_type": null,
+    "avatar_url": "https://i.test/av.jpg",
+    "cover_url": "https://i.test/cv.jpg",
+    "cover_mobile_url": "https://i.test/cvm.jpg",
+    "socials": {
+     "instagram": "nova",
+     "soundcloud": "",
+     "tiktok": "",
+     "website": "https://n.test"
+    },
+    "highlights": [],
+    "updated_at": "2026-11-10T04:58:09.543Z"
+   },
+   "eq": []
+  }
+ ]
+}

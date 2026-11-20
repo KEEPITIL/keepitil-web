@@ -1,0 +1,257 @@
+TAP version 13
+# IDENTITY_BOUNDARY_VIOLATION { tool: 'upload_event_photo', path: 'args.user_id' }
+# IDENTITY_BOUNDARY_VIOLATION { tool: 'upload_event_photo', path: 'args.owner_id' }
+# IDENTITY_BOUNDARY_VIOLATION { tool: 'upload_event_photo', path: 'args.sub' }
+# IDENTITY_BOUNDARY_VIOLATION { tool: 'upload_event_photo', path: 'args.nested.actor_id' }
+# \# CONTROL RT6: unpatched v44, non-owner: storage signing count = 1, action=error, ok=(threw: new row violates row-level security policy for table "event_media")
+# Subtest: RT1 anonymous: deriveServerContext returns null (no Authorization / invalid JWT), tool never reached, signing 0
+ok 1 - RT1 anonymous: deriveServerContext returns null (no Authorization / invalid JWT), tool never reached, signing 0
+  ---
+  duration_ms: 23.342867
+  type: 'test'
+  ...
+# Subtest: RT2 PATCHED: mapped owner end to end: proceed, storage signing 1, pending_upload row
+ok 2 - RT2 PATCHED: mapped owner end to end: proceed, storage signing 1, pending_upload row
+  ---
+  duration_ms: 4.122015
+  type: 'test'
+  ...
+# Subtest: RT3 PATCHED: visible-event non-owner end to end: denied, storage signing 0, insert 0, no credentials
+ok 3 - RT3 PATCHED: visible-event non-owner end to end: denied, storage signing 0, insert 0, no credentials
+  ---
+  duration_ms: 0.769407
+  type: 'test'
+  ...
+# Subtest: RT4 PATCHED: identity keys in model args are rejected by the real identity boundary before anything runs
+ok 4 - RT4 PATCHED: identity keys in model args are rejected by the real identity boundary before anything runs
+  ---
+  duration_ms: 3.215136
+  type: 'test'
+  ...
+# Subtest: RT5 PATCHED: ownership function missing/erroring: the invoke returns an error, signing 0
+ok 5 - RT5 PATCHED: ownership function missing/erroring: the invoke returns an error, signing 0
+  ---
+  duration_ms: 0.974101
+  type: 'test'
+  ...
+# Subtest: NEGATIVE CONTROL RT6 DEPLOYED v44: the same non-owner request reaches storage signing (count 1)
+ok 6 - NEGATIVE CONTROL RT6 DEPLOYED v44: the same non-owner request reaches storage signing (count 1)
+  ---
+  duration_ms: 2.191068
+  type: 'test'
+  ...
+# Subtest: NEGATIVE CONTROL RT7 DEPLOYED v44 with an open media INSERT policy: non-owner gets credentials AND a row
+ok 7 - NEGATIVE CONTROL RT7 DEPLOYED v44 with an open media INSERT policy: non-owner gets credentials AND a row
+  ---
+  duration_ms: 0.723461
+  type: 'test'
+  ...
+# \# PATCHED cases: 27 pass, 0 fail (deny 12, allow 5, other 10)
+# \# CONTROL (unpatched v44): deny-cases failing 9/12, allow-cases failing 0/5
+# \#   control D1 FAIL  sign=1 insertAttempts=1 rows=0 result="new row violates row-level security policy for table \\"event_media\\""
+# \#   control D1b FAIL  sign=1 insertAttempts=1 rows=0 result="new row violates row-level security policy for table \\"event_media\\""
+# \#   control D2 FAIL  sign=1 insertAttempts=1 rows=0 result="new row violates row-level security policy for table \\"event_media\\""
+# \#   control D2b FAIL  sign=1 insertAttempts=1 rows=0 result="new row violates row-level security policy for table \\"event_media\\""
+# \#   control D2c FAIL  sign=1 insertAttempts=1 rows=1 result={"ok":true,"media":{"id":1,"event_slug":"pub-mapped","kind":"image","media_url":"event-media/pub-mapped/mwa7fr5d-crowd-0
+# \#   control D3 pass  sign=0 insertAttempts=0 rows=0 result={"ok":false,"reason":"event_not_visible_to_caller"}
+# \#   control D4 pass  sign=0 insertAttempts=0 rows=0 result={"ok":false,"reason":"event_not_visible_to_caller"}
+# \#   control D5 FAIL  sign=1 insertAttempts=1 rows=0 result="new row violates row-level security policy for table \\"event_media\\""
+# \#   control D6 FAIL  sign=1 insertAttempts=1 rows=0 result="new row violates row-level security policy for table \\"event_media\\""
+# \#   control D7 FAIL  sign=1 insertAttempts=1 rows=0 result="new row violates row-level security policy for table \\"event_media\\""
+# \#   control D7b FAIL  sign=1 insertAttempts=1 rows=0 result="new row violates row-level security policy for table \\"event_media\\""
+# \#   control D8 pass  sign=0 insertAttempts=0 rows=0 result={"ok":false,"reason":"event_not_visible_to_caller"}
+# Subtest: deployed v44 media.ts is the verbatim source (sha256 pinned)
+ok 8 - deployed v44 media.ts is the verbatim source (sha256 pinned)
+  ---
+  duration_ms: 1.990306
+  type: 'test'
+  ...
+# Subtest: media.ts.PATCH applies to deployed v44 media.ts and reproduces media.PROPOSED.ts byte for byte
+ok 9 - media.ts.PATCH applies to deployed v44 media.ts and reproduces media.PROPOSED.ts byte for byte
+  ---
+  duration_ms: 11.621878
+  type: 'test'
+  ...
+# Subtest: PATCHED D1 [deny] anonymous (no verified subject, anon JWT) denied
+ok 10 - PATCHED D1 [deny] anonymous (no verified subject, anon JWT) denied
+  ---
+  duration_ms: 0.352355
+  type: 'test'
+  ...
+# Subtest: PATCHED D1b [deny] claimed subject but the DB sees an anonymous JWT: fails closed
+ok 11 - PATCHED D1b [deny] claimed subject but the DB sees an anonymous JWT: fails closed
+  ---
+  duration_ms: 0.118064
+  type: 'test'
+  ...
+# Subtest: PATCHED D2 [deny] visible published event, signed-in NON-owner: denied
+ok 12 - PATCHED D2 [deny] visible published event, signed-in NON-owner: denied
+  ---
+  duration_ms: 0.109415
+  type: 'test'
+  ...
+# Subtest: PATCHED D2b [deny] published event submitted by someone else, non-owner: denied
+ok 13 - PATCHED D2b [deny] published event submitted by someone else, non-owner: denied
+  ---
+  duration_ms: 0.084238
+  type: 'test'
+  ...
+# Subtest: PATCHED D2c [deny] non-owner against a published event, media INSERT policy OPEN (worst case): still no signing
+ok 14 - PATCHED D2c [deny] non-owner against a published event, media INSERT policy OPEN (worst case): still no signing
+  ---
+  duration_ms: 0.352274
+  type: 'test'
+  ...
+# Subtest: PATCHED D3 [deny] someone else's DRAFT parent: denied
+ok 15 - PATCHED D3 [deny] someone else's DRAFT parent: denied
+  ---
+  duration_ms: 0.097716
+  type: 'test'
+  ...
+# Subtest: PATCHED D4 [deny] missing parent: denied
+ok 16 - PATCHED D4 [deny] missing parent: denied
+  ---
+  duration_ms: 1.004645
+  type: 'test'
+  ...
+# Subtest: PATCHED D5 [deny] spoofed model args (handle/author_handle/submitted_by/owner_handle) ignored
+ok 17 - PATCHED D5 [deny] spoofed model args (handle/author_handle/submitted_by/owner_handle) ignored
+  ---
+  duration_ms: 0.407648
+  type: 'test'
+  ...
+# Subtest: PATCHED D6 [deny] spoofed ctx.handle = the owning profile's handle, but the subject is a stranger
+ok 18 - PATCHED D6 [deny] spoofed ctx.handle = the owning profile's handle, but the subject is a stranger
+  ---
+  duration_ms: 0.146448
+  type: 'test'
+  ...
+# Subtest: PATCHED D7 [deny] owner of ANOTHER profile (band-d) against band-b's event
+ok 19 - PATCHED D7 [deny] owner of ANOTHER profile (band-d) against band-b's event
+  ---
+  duration_ms: 0.086921
+  type: 'test'
+  ...
+# Subtest: PATCHED D7b [deny] owner of another profile against band-a's event
+ok 20 - PATCHED D7b [deny] owner of another profile against band-a's event
+  ---
+  duration_ms: 0.053726
+  type: 'test'
+  ...
+# Subtest: PATCHED D8 [deny] path traversal slug is refused before any DB or signing call
+ok 21 - PATCHED D8 [deny] path traversal slug is refused before any DB or signing call
+  ---
+  duration_ms: 0.048928
+  type: 'test'
+  ...
+# Subtest: PATCHED A1 [allow] mapped owner (profile_owners) allowed
+ok 22 - PATCHED A1 [allow] mapped owner (profile_owners) allowed
+  ---
+  duration_ms: 0.045709
+  type: 'test'
+  ...
+# Subtest: PATCHED A2 [allow] submitted_by owner WITHOUT a profile mapping allowed
+ok 23 - PATCHED A2 [allow] submitted_by owner WITHOUT a profile mapping allowed
+  ---
+  duration_ms: 0.049242
+  type: 'test'
+  ...
+# Subtest: PATCHED A3 [allow] draft-parent owner (profile_owners) allowed
+ok 24 - PATCHED A3 [allow] draft-parent owner (profile_owners) allowed
+  ---
+  duration_ms: 0.047048
+  type: 'test'
+  ...
+# Subtest: PATCHED A3b [allow] draft-parent owner (submitted_by) allowed
+ok 25 - PATCHED A3b [allow] draft-parent owner (submitted_by) allowed
+  ---
+  duration_ms: 0.049532
+  type: 'test'
+  ...
+# Subtest: PATCHED A4 [allow] multi-profile owner accepted (owns band-c and band-b, event is band-b)
+ok 26 - PATCHED A4 [allow] multi-profile owner accepted (owns band-c and band-b, event is band-b)
+  ---
+  duration_ms: 0.045123
+  type: 'test'
+  ...
+# Subtest: PATCHED X1 [other] signing failure: ok=false, insert-count 0, no credentials
+ok 27 - PATCHED X1 [other] signing failure: ok=false, insert-count 0, no credentials
+  ---
+  duration_ms: 0.053515
+  type: 'test'
+  ...
+# Subtest: PATCHED X2 [other] insert failure: tool throws, NO upload credentials returned, no row
+ok 28 - PATCHED X2 [other] insert failure: tool throws, NO upload credentials returned, no row
+  ---
+  duration_ms: 0.046475
+  type: 'test'
+  ...
+# Subtest: PATCHED X3-error [other] ownership function returns 'error': fails CLOSED (signing 0, insert 0, no credentials)
+ok 29 - PATCHED X3-error [other] ownership function returns 'error': fails CLOSED (signing 0, insert 0, no credentials)
+  ---
+  duration_ms: 0.050125
+  type: 'test'
+  ...
+# Subtest: PATCHED X3-missing [other] ownership function returns 'missing': fails CLOSED (signing 0, insert 0, no credentials)
+ok 30 - PATCHED X3-missing [other] ownership function returns 'missing': fails CLOSED (signing 0, insert 0, no credentials)
+  ---
+  duration_ms: 0.056388
+  type: 'test'
+  ...
+# Subtest: PATCHED X3-null [other] ownership function returns 'null': fails CLOSED (signing 0, insert 0, no credentials)
+ok 31 - PATCHED X3-null [other] ownership function returns 'null': fails CLOSED (signing 0, insert 0, no credentials)
+  ---
+  duration_ms: 0.054923
+  type: 'test'
+  ...
+# Subtest: PATCHED X3-string-true [other] ownership function returns 'string-true': fails CLOSED (signing 0, insert 0, no credentials)
+ok 32 - PATCHED X3-string-true [other] ownership function returns 'string-true': fails CLOSED (signing 0, insert 0, no credentials)
+  ---
+  duration_ms: 0.044631
+  type: 'test'
+  ...
+# Subtest: PATCHED X3-one [other] ownership function returns 'one': fails CLOSED (signing 0, insert 0, no credentials)
+ok 33 - PATCHED X3-one [other] ownership function returns 'one': fails CLOSED (signing 0, insert 0, no credentials)
+  ---
+  duration_ms: 0.044677
+  type: 'test'
+  ...
+# Subtest: PATCHED N1 [other] note no longer tells clients to mark the row published
+ok 34 - PATCHED N1 [other] note no longer tells clients to mark the row published
+  ---
+  duration_ms: 0.045129
+  type: 'test'
+  ...
+# Subtest: PATCHED P1 [other] signed path stays under the ownership-checked slug prefix
+ok 35 - PATCHED P1 [other] signed path stays under the ownership-checked slug prefix
+  ---
+  duration_ms: 0.044876
+  type: 'test'
+  ...
+# Subtest: PATCHED P2 [other] ownership RPC called exactly once, with only p_event_slug (no subject/handle argument)
+ok 36 - PATCHED P2 [other] ownership RPC called exactly once, with only p_event_slug (no subject/handle argument)
+  ---
+  duration_ms: 0.052254
+  type: 'test'
+  ...
+# Subtest: PATCHED: every case passes (summary)
+ok 37 - PATCHED: every case passes (summary)
+  ---
+  duration_ms: 0.88184
+  type: 'test'
+  ...
+# Subtest: NEGATIVE CONTROL: unpatched v44 lets non-owners obtain signing (signing-count 1)
+ok 38 - NEGATIVE CONTROL: unpatched v44 lets non-owners obtain signing (signing-count 1)
+  ---
+  duration_ms: 0.885012
+  type: 'test'
+  ...
+1..38
+# tests 38
+# suites 0
+# pass 38
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 228.650616

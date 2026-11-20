@@ -1,0 +1,214 @@
+11B combined RLS rehearsal  engine=PostgreSQL 18.6 (PGlite 0.5.16)  (production is PostgreSQL 17.6; PGlite is a stand-in)
+baseline S0 loaded: 20 relations, 13 functions, 26 policies; privilege fingerprint FP0=f6b2301510a6c3e814e2af546d488545
+  PASS S0.1  baseline matches the captured prod state: profile_meta 4 own rows ALL for anon/authenticated incl TRUNCATE; profile_content ALL; events 45 readable + hash unreadable; no #91 columns; no private.account_age; no atlas_media_guard; no can_upload_event_media
+  PASS S0.2  the existing prod publish gate is installed verbatim with its early return for published->published updates
+
+== STEP S1: APPLY-1 (own transaction)
+  PASS S1.apply  applied in one transaction without error
+  PASS S1.1  the six #91 columns exist on profile_meta (absent in the baseline)
+  PASS S1.2  authenticated column INSERT = UPDATE = the 22 APPLY-1 columns; no table-level write for anon/authenticated; anon holds no column write
+  PASS S1.3  anon keeps SELECT on profile_meta (old pages) but has nothing on profile_owners; authenticated reads profile_owners, cannot write it
+  PASS S1.4  profile_owners policies = {profile_owners_select_own} only (claim/read-all/manage/delete dropped); profile_meta gained profile_meta_owner_select and kept its 5
+  PASS S1.5  claim_profile(text,text) EXECUTE revoked from PUBLIC, anon, authenticated (P-3 had PUBLIC)
+  PASS S1.6  new RPCs exist with the intended EXECUTE: get_public_profile/public_profile_list anon+authenticated; admin_* authenticated only (explicit anon revoke); private.* nobody
+  PASS S1.6b  FINDING (informational): i_own_profile / request_profile_claim / approve_profile_claim / set_profile_admin_approved are revoked from PUBLIC only; with Supabase default privileges anon keeps EXECUTE. The bodies refuse an anonymous caller (not allowed / false), so nothing leaks; an explicit REVOKE ... FROM anon would make it a privilege-layer denial
+  PASS S1.7  public.profiles view: SELECT revoked from anon/authenticated; get_approved_profile exists and is executable by both (revoked later by 1C)
+  PASS S1.8  backfill: groove-trooper became public+approved, tuitea (subscriber) approved but NOT public; unapproved review rows stay private; null public_fields -> empty list
+  PASS S1.9  the production publish gate is UNTOUCHED by APPLY-1 (same function md5, trigger enabled) and the backfill UPDATEs of the published rows passed it (early return still present)
+  PASS S1.10  the pre-existing `private` schema and its 4 incident tables survive (P-6/A); anon/authenticated have no USAGE on private
+  PASS S1B.0  BEFORE 1B the 'request a business type' insert is rejected by the 9-kind CHECK (this is why 1B exists)
+
+== STEP S1B: APPLY-1B (kind check)
+  PASS S1B.apply  applied in one transaction without error
+  PASS S1B.1  profile_content_kind_check allows exactly the 9 kinds + account_type_request (10)
+  PASS S1B.2  an owner can now insert a kind='account_type_request' row on their own profile (and a stranger still cannot)
+
+== STEP S92: APPLY-92 (corrected pack version, REVOKE SELECT (event_password_hash) only; 45-column guard)
+  PASS S92.apply  applied in one transaction without error
+  PASS S92.1  PRECHECK-92 Q-1 after: anon and authenticated read exactly the 45 columns, no table-level SELECT; event_password_hash NOT readable (select denied)
+  PASS S92.2  get_profile_events(text): one overload, now owner-gated (authenticated only), returns is_protected instead of the hash; a non-owner gets nothing, the owner gets own rows (published AND draft)
+  PASS S92.3  get_profile_event_summary is anon-executable, get_my_ticket_summary authenticated-only; the old get_profile_events body is gone (md5 changed)
+
+== STEP S4: attestation batch A/B/C through the admin functions (identity = set_config('request.jwt.claim.sub') + SET ROLE authenticated)
+  PASS S4.0  the four admin calls succeeded
+  PASS S4.1  ORDER step 3A: house account attested (admin ADM2) and groove-trooper moved to it; anon get_public_profile('groove-trooper') now returns 1 row (the only public page stays public)
+  PASS S4.2  step 3B/C: founder_self (Joe, own quote+date) and admin_attested rows exist in private.account_age; a non-admin calling admin_set_account_age is refused
+  PASS S4.3  fail-closed: tuitea (attested but not opted in), fobbinhard (review), keepitil-audit (no attestation), an unknown slug all return 0 rows to anon
+
+== STEP S5a: client payload checks in the compatibility window (22-column grants, real #129 web payloads + real bundled-app payload)
+  PASS S5.web-keys  STATIC: every profile_meta key the real web save can send is inside 1C's UPDATE-14 set (and the insert fallback is exactly its INSERT-19), none of account_type/status/sources/last_reviewed_at/admin flags/slug-on-update
+  PASS S5.web-noop  web NO-OP save (open + Save, nothing edited): ZERO profile_meta writes; its profile_content category rewrite succeeds; the published page is byte-identical afterwards
+  PASS S5.web-bio  web BIO edit (update {bio,updated_at}): succeeds; the page stays published (no F3 trigger yet: the reset appears only after F3)
+  PASS S5.web-link  web LINK edit: succeeds; other members preserved; stays published
+  PASS S5.web-btype  web BUSINESS-TYPE request: writes only profile_content (kind account_type_request, needs 1B); profile_meta untouched, page stays published
+  PASS S5.web-public  web 'Show this page publicly' toggle (profile_public only): allowed; NOT one of F3's 19 content columns so it does not reset review (F3 README collision row 6)
+  PASS S5.web-insert  web INSERT fallback (newly approved owner, no row yet): update touches 0 rows, then the 19-column insert succeeds and lands as review with default evidence
+  PASS S5.app  BUNDLED APP save (old 19-key upsert incl account_type:null): still WORKS in this window (grants are the 22 APPLY-1 columns); page stays published (no gate yet)
+
+== STEP S5: owner opt-in + visibility proof (anon RPCs return exactly attested + opted-in pages; minors fail closed)
+  PASS S5.apply  applied in one transaction without error
+  PASS S5.1  ORDER step 5: owner opt-in (tuitea ticks 'Show this page publicly' + fields) through the live 22-column grants works; anon get_public_profile('tuitea') returns the opted-in fields only
+  PASS S5.2  anon directory (public_profile_list) lists the attested business page (groove-trooper) and, by design, NOT personal subscriber pages (tuitea is reachable only by get_public_profile)
+  PASS S5.3  a known minor is never public even if opted in (fail closed)
+
+== STEP S6: APPLY-1C grant narrowing (guard + post-asserts are inside the file)
+  PASS S6.apply  applied in one transaction without error
+  PASS C1C.1  profile_meta authenticated column INSERT = the 19, UPDATE = the 14 (exactly #129's payload); anon none; no table-level INSERT/UPDATE
+  PASS C1C.2  owners can NOT write account_type, status, sources, last_reviewed_at, entity_category, the four server flags; slug is INSERT-only
+  PASS C1C.3  REFERENCES / TRIGGER / TRUNCATE / MAINTAIN gone for anon+authenticated on profile_meta, profile_owners, profile_content
+  PASS C1C.4  profile_content: anon SELECT only; authenticated SELECT/INSERT/UPDATE/DELETE; profile_meta anon SELECT still open (until APPLY-2)
+  PASS C1C.5  events: anon+authenticated read exactly the 44 columns (45 minus submitted_by); submitted_by, hash, select * denied
+  PASS C1C.6  events RLS policy that references submitted_by keeps working (submitter sees own draft, stranger does not) and a DEFINER reader of submitted_by (get_event_view) still answers anon
+  PASS C1C.7  get_approved_profile EXECUTE revoked (anon, authenticated); public.profiles still closed; the public RPC path is unchanged
+  PASS C1C.8  TRUNCATE as a real role (not postgres) is denied on all three tables for anon and authenticated
+  PASS C1C.9  the privilege fingerprint (PRECHECK-10A block H) changed: FP2 (before) != FP3 (after)
+
+== STEP S6b: 1C idempotence, alternate order, stale baseline, APPLY-1 re-run hazard
+  PASS S6.idem  1C is idempotent: a second run is accepted and the catalog snapshot is identical
+  PASS S6.ord-alt  ORDER-10A alternate order (APPLY-1, 1B, 1C, then APPLY-92-44col) ends in a catalog snapshot IDENTICAL to APPLY-92 (45) then 1C (functions, ACLs, policies, md5s)
+  PASS S6.stale-92  STALE BASELINE: the stock APPLY-92 (45-column guard) REFUSES after 1C and changes nothing (the 44-column variant exists for that order)
+  PASS S6.rerun-A1  HAZARD (documented, 10A proof RERUN-A1): re-running APPLY-1 AFTER 1C re-grants account_type/status to owners; re-running 1C afterwards narrows them again
+  PASS S6.rb92-after-1C  FINDING (ORDER-10A text vs file): ORDER-10A says ROLLBACK-92's guard 'must be given the 44-column list or it will refuse' after 1C, but the ROLLBACK-92 in the pack has NO executable events guard (the guard is a comment pointing at VERIFY-92 V-3): run after 1C it SUCCEEDS, restores the old get_profile_events and leaves the events column grants at 44 (it re-grants no columns)
+
+== STEP S7: visibility proof / real owner saves AFTER 1C (before F3): web payloads work, the bundled app save is refused
+  PASS S7.web-keys  STATIC: every profile_meta key the real web save can send is inside 1C's UPDATE-14 set (and the insert fallback is exactly its INSERT-19), none of account_type/status/sources/last_reviewed_at/admin flags/slug-on-update
+  PASS S7.web-noop  web NO-OP save (open + Save, nothing edited): ZERO profile_meta writes; its profile_content category rewrite succeeds; the published page is byte-identical afterwards
+  PASS S7.web-bio  web BIO edit (update {bio,updated_at}): succeeds; the page stays published (no F3 trigger yet: the reset appears only after F3)
+  PASS S7.web-link  web LINK edit: succeeds; other members preserved; stays published
+  PASS S7.web-btype  web BUSINESS-TYPE request: writes only profile_content (kind account_type_request, needs 1B); profile_meta untouched, page stays published
+  PASS S7.web-public  web 'Show this page publicly' toggle (profile_public only): allowed; NOT one of F3's 19 content columns so it does not reset review (F3 README collision row 6)
+  PASS S7.web-insert  web INSERT fallback (newly approved owner, no row yet): update touches 0 rows, then the 19-column insert succeeds and lands as review with default evidence
+  PASS S7.app  BUNDLED APP save (old 19-key upsert incl account_type): REFUSED with 42501 permission denied for table profile_meta (account_type/badges are not INSERT-able any more); nothing written; published page unchanged
+  PASS S7.app-update-leg  BUNDLED APP save, UPDATE leg alone (ON CONFLICT DO UPDATE would set slug/account_type/badges): also refused, so the app cannot use the fallback path either
+
+== STEP S8: F3 FORWARD (Atlas, #121)
+  PASS S8.stale  EXPECTED stale-baseline abort: the committed forward (literal c917a7df...) raises 'Catalog drift' on the combined replica and changes nothing
+  PASS S8.fp  DRIFT_QUERY re-run on the replica (search_path = public, extensions) returns a 32-hex fingerprint different from Atlas's c917a7df... (prod must be re-baselined the same way, from a READ-ONLY capture, never auto-refreshed)
+  PASS S8.apply  the re-baselined COPY applies in one transaction
+  PASS S8.pc  F3 section-4 post-check statements: 8 statements run; quarantine counts 19 backup / 19 hidden / 0 orphan-published
+  PASS F3.2  media INSERT policies are authenticated-only and parent-owner-gated (pending|pending_upload; venue pending only); two owner-read policies exist; anon INSERT/TRUNCATE and authenticated TRUNCATE are gone on all three tables
+  PASS F3.3  event_media/venue_media status defaults are 'pending'; venue CHECK admits pending; both original fan RPCs are INVOKER wrappers (search_path '') over private DEFINER bodies; wrappers have no anon/PUBLIC execute
+  PASS F3.4  the publish gate is replaced (body has the 'server-managed' owner guard), is still an INVOKER trigger function bound to profile_meta_publish_gate_trg, and no longer has the published->published early return
+  PASS F3.5  F3's profile_meta ACL lines are NO-OPS after 1C: relation + column ACLs of profile_meta are identical before and after F3
+  PASS F3.6  S2 quarantine and rollback guard: backup table holds 19 rows, rollback_guard 1 row, both unreadable by anon/authenticated/service_role
+
+== STEP S9: 11A can_upload_event_media (own transaction)
+  PASS S9.apply  applied in one transaction without error
+  PASS 11A.1  can_upload_event_media(text): boolean, SECURITY DEFINER, search_path '', EXECUTE authenticated only (anon/service_role/PUBLIC none)
+  PASS 11A.2  AFTER 1C and F3: submitted_by owner (no profile mapping), mapped profile owner and a draft-parent owner pass; a stranger, another profile's owner, a missing slug and a NULL slug do not
+  PASS 11A.3  composition with 1C: the caller still cannot read events.submitted_by or profile_owners of others, yet the DEFINER function answers; anon is refused at the privilege layer
+
+== STEP S10: APPLY-2 (closes anon reads of profile_meta; its column revokes are no-ops after 1C)
+  PASS S10.apply  applied in one transaction without error
+  PASS A2.1  anon can no longer read profile_meta (book_email closed): select denied; both open read policies dropped; RLS enabled
+  PASS A2.2  owner still reads ONLY their own row (profile_meta_owner_select) incl book_email; another owner's row is invisible
+  PASS A2.3  the public RPC path is unchanged: anon get_public_profile / public_profile_list answer exactly as before; claim-request table closed to anon
+  PASS A2.4  1C narrowing untouched by APPLY-2 (INSERT=19, UPDATE=14) and the owner save still works
+
+== MATRIX (Atlas section 6) on the final combined state, run twice: after step 9 (F3+11A, anon reads still open) and after step 10 (APPLY-2)
+  EXECUTED-PASS  M1   8/8 sub-checks  Anonymous direct INSERT into each media table (default status / forged published)
+  EXECUTED-PASS  M2   2/2 sub-checks  Non-owner authenticated INSERT against published and draft parents, incl .select() and upsert
+  EXECUTED-PASS  M3   4/4 sub-checks  Mapped parent owner INSERT with omitted status
+  EXECUTED-PASS  M4   4/4 sub-checks  Event submitted_by owner without profile mapping inserts into own draft event
+  EXECUTED-PASS  M5   4/4 sub-checks  Owner INSERT with status published/hidden/NULL/arbitrary; pending_upload
+  EXECUTED-PASS  M6   4/4 sub-checks  Authenticated fan calls original tag RPC signatures
+  EXECUTED-PASS  M7   2/2 sub-checks  Anonymous calls each wrapper and private function
+  EXECUTED-PASS  M8   2/2 sub-checks  Fan RPC against absent parent / other user's draft; owner on own draft
+  PARTIAL        M9   7/7 sub-checks  upload_event_photo owner flow with signed-upload mock; non-owner cannot obtain signing
+  EXECUTED-PASS  M10  4/4 sub-checks  Owner cannot UPDATE pending -> published; service reviewer can
+  BLOCKED        M11  0/0 sub-checks  delete_event on an owned synthetic event with no sales
+  EXECUTED-PASS  M12  2/2 sub-checks  Anonymous/authenticated TRUNCATE all three target tables
+  EXECUTED-PASS  C1   10/10 sub-checks  Owner UPDATE status/sources/last_reviewed_at, alone and together
+  EXECUTED-PASS  C2   14/14 sub-checks  Owner INSERT/upsert of a new owned profile with fabricated evidence
+  EXECUTED-PASS  C3   52/52 sub-checks  Owner edit of each content column on a published row (+NULL/JSON, combined)
+  EXECUTED-PASS  C4   10/10 sub-checks  Real profile.html save payload against an existing published row
+  EXECUTED-PASS  C5   8/8 sub-checks  Same payload as a no-op except updated_at
+  EXECUTED-PASS  C6   4/4 sub-checks  Owner alters content while trying to keep/forge a gate field in the same UPDATE
+  EXECUTED-PASS  C7   2/2 sub-checks  Owner changes content on an already-review row with stale evidence
+  EXECUTED-PASS  C8   10/10 sub-checks  Service/admin publishes a complete fixture; edits an already-published fixture to violate the gate
+  EXECUTED-PASS  C9   2/2 sub-checks  Signed-in is_admin user who does not own another profile attempts direct UPDATE
+  EXECUTED-PASS  C10  6/6 sub-checks  Anonymous and unrelated authenticated profile writes; normal claim creation
+  PARTIAL        P1   4/4 sub-checks  post_collaborators pc_insert / pc_update before/after
+  EXECUTED-PASS  D1   13/13 sub-checks  Modify one policy/ACL/default/trigger/owner/function in a disposable baseline, run forward
+  EXECUTED-PASS  R1   5/5 sub-checks  Apply forward, then rollback; recompute full fingerprint; repeat with pending venue submission
+  EXECUTED-PASS  R2   6/6 sub-checks  Change a patched policy/helper/function, then an unrelated routine, after forward; run rollback
+  PASS POST.1  anon INSERT false on both media tables; anon/authenticated TRUNCATE false on all three; S1: anon UPDATE/DELETE/REFERENCES/TRIGGER false, authenticated
+  PASS POST.2  S2 quarantine: 19 backup rows, 19 orphan rows hidden, 0 orphan published, the one parented row untouched
+  PASS FIND.backfill  FIND-1 (Atlas/F3 README row 5): with the published->published early return REMOVED, an APPLY-1 style backfill/DEFINER UPDATE of a published page that 
+  PASS FIND.definer  FIND-1b the same row also blocks the DEFINER admin functions: admin_move_house_page / set_profile_admin_approved on an evidence-less published page ra
+  PASS FIND.maintain  FIND-2 (MAINTAIN, PostgreSQL 17+): after the whole order the 1C tables (profile_meta, profile_owners, profile_content) no longer give anon/authenticat
+  PASS FIND.maintain-wide  FIND-2b the same residue elsewhere (informational, reproduced): IF production still has the blanket default ALL on tables neither 1C nor F3 mention (R
+  PASS POST.1  anon INSERT false on both media tables; anon/authenticated TRUNCATE false on all three; S1: anon UPDATE/DELETE/REFERENCES/TRIGGER false, authenticated
+  PASS POST.2  S2 quarantine: 19 backup rows, 19 orphan rows hidden, 0 orphan published, the one parented row untouched
+  PASS FIND.backfill  FIND-1 (Atlas/F3 README row 5): with the published->published early return REMOVED, an APPLY-1 style backfill/DEFINER UPDATE of a published page that 
+  PASS FIND.definer  FIND-1b the same row also blocks the DEFINER admin functions: admin_move_house_page / set_profile_admin_approved on an evidence-less published page ra
+  PASS FIND.maintain  FIND-2 (MAINTAIN, PostgreSQL 17+): after the whole order the 1C tables (profile_meta, profile_owners, profile_content) no longer give anon/authenticat
+  PASS FIND.maintain-wide  FIND-2b the same residue elsewhere (informational, reproduced): IF production still has the blanket default ALL on tables neither 1C nor F3 mention (R
+  PASS FIND.scope  FIND-3 (reproduced): F3's drift/rollback fingerprint does not cover profile_content (nor profile_claim_requests, private.account_age): a 1C privilege 
+  PASS FIND.readiness  FIND-1c F3 GATE_READINESS (read-only) returns published_rows=4 / published_failing_gate=0 on the replica (fixture rows are COMPLETE: an assumption; pr
+MATRIX TOTALS: {"cases":26,"executed":25,"pass":23,"fail":0,"partial":2,"blocked":1,"subchecks":203,"subchecksPassed":203}
+
+== BUNDLED APP SAVE (old 19-key upsert incl account_type) at each stage:
+  after step 5 (APPLY-1/1B/92 + attestation; 22-column grants; no F3 yet): accepted=true -> published page is now 'published'
+  after 1C (step 6): accepted=false sqlstate=42501 'permission denied for table profile_meta' -> published page is now 'published'
+  after 1C + F3 (step 8): accepted=false sqlstate=42501 'permission denied for table profile_meta' -> published page is now 'published'
+  final (after 11A and APPLY-2): accepted=false sqlstate=42501 'permission denied for table profile_meta' -> published page is now 'published'
+
+== NEGATIVE CONTROLS (mutants of the combined order; each must FAIL its named probes; the unmutated order must pass them all)
+  PASS NC.0  POSITIVE CONTROL: the correct combined order passes all 15 probes
+  OK   N1  skip APPLY-1C (grant narrowing never applied)
+        fails=[p.c3type,p.c1status,p.grantset,p.ev44,p.trunc-pc,p.app-nodemote] required=[p.c3type,p.c1status,p.grantset,p.ev44,p.trunc-pc,p.app-nodemote]
+  OK   N2  grant account_type (INSERT+UPDATE) back to authenticated after 1C (before APPLY-2, whose own column revokes would hide it)
+        fails=[p.c3type,p.grantset] required=[p.c3type,p.grantset]
+  OK   N3a  1C with the profile_content TRUNCATE revoke forgotten: caught IN-TRANSACTION by 1C's own post-assert (1C aborts, so the later state also lacks 1C)
+        fails=[p.grantset,p.ev44,p.trunc-pc] required=[p.trunc-pc,p.grantset]
+  OK   N3b  1C with BOTH the TRUNCATE revoke and its post-assert removed: only the matrix/probe can catch it
+        fails=[p.trunc-pc] required=[p.trunc-pc]
+  OK   N3c  F3 forward with its REVOKE TRUNCATE (event_media, venue_media, profile_meta) forgotten
+        fails=[p.trunc-media] required=[p.trunc-media]
+  OK   N4  F3 forward run BEFORE the client/1C fix (1C skipped): the bundled app's no-op-ish save DEMOTES a published page to review (C5-INFO demonstrated)
+        fails=[p.c3type,p.c1status,p.grantset,p.ev44,p.trunc-pc,p.app-nodemote] required=[p.app-nodemote,p.c3type,p.grantset] {"demoted":true,"status":"review","upsertOk":true}
+  OK   N5  APPLY-1 re-run AFTER 1C (known hazard: re-grants account_type/status to owners)
+        fails=[p.c3type,p.c1status,p.grantset,p.app-nodemote] required=[p.c3type,p.c1status,p.grantset]
+  OK   N6a  omit the 11A function (the patched edge tool fails closed; the SQL boundary is absent)
+        fails=[p.m9fn,p.m9grants] required=[p.m9fn,p.m9grants]
+  OK   N6b  11A with a visibility-only body (any signed-in caller on an existing event passes: the non-owner path passes)
+        fails=[p.m9fn] required=[p.m9fn]
+  OK   N6c  11A created without REVOKE/GRANT (Supabase default grants leave anon EXECUTE)
+        fails=[p.m9grants] required=[p.m9grants]
+  OK   N8a  event_password_hash left granted to anon BEFORE 1C: 1C's guard G6 refuses (neither the 45 nor the 44 columns), so 1C is not applied
+        fails=[p.grantset,p.ev44,p.trunc-pc,p.hash] required=[p.hash,p.grantset,p.ev44]
+  OK   N8b  event_password_hash granted to anon AFTER the whole order
+        fails=[p.ev44,p.hash] required=[p.hash,p.ev44]
+  OK   N9  skip the house/age attestation before the web deploy (groove-trooper, the only public page, goes private)
+        fails=[p.house] required=[p.house]
+  OK   N10  skip APPLY-1B (kind CHECK): the owner's 'request a business type' is silently rejected
+        fails=[p.btype] required=[p.btype]
+  OK   N11  F3 with the published->published early return KEPT (trusted edits skip the completeness gate)
+        fails=[p.c8b] required=[p.c8b]
+  OK   N12  F3 with the owner UPDATE+INSERT evidence guards removed while 1C is applied: owners are STILL refused (privilege layer), only the defence-in-depth probe fails
+        fails=[p.trigger-layer] required=[p.trigger-layer]
+  OK   N7  wrong order: APPLY-2 (revoke) before APPLY-1 (add): aborts as-is; forced, anon reads break (direct=true, rpc='function public.get_public_profile(unknown) does not exist')
+  OK   N13  F3 drift check bypassed -> 10/13 D1 checks fail (incl. stale demonstration)
+  OK   N14  F3 rollback pre-check bypassed -> 5/11 R checks fail (R2.a_policy_was_added_after_forward,R2.a_PATCHED_policy_event_media_ins_was_edited_after_,R2.an_unrelated_public_routine_was_added_after_forwar,R2.COMBINED_the_11A_function_was_added_after_forward_)
+NEGATIVE CONTROLS: 19 mutants, 19 behaved as required
+
+== ROLLBACK PASS (reverse order) - each rollback must return the catalog to the snapshot taken BEFORE its forward step, compared exactly (grants, columns, policies, triggers, constraints, indexes, functions + md5)
+  PASS RB.0  SANITY: the data-only steps (attestation, owner opt-in, payload replays on clones) changed NO catalog object: snapshot after step 3 == after step 4 == after step 5
+  PASS RB.10  ROLLBACK-2-after-1C (APPLY-2 undone, narrowing kept) == snapshot before APPLY-2
+  PASS RB.10b  FINDING (documented): the STOCK ROLLBACK-2 run after 1C re-grants account_type/status to owners (undoes the narrowing); ROLLBACK-2-after-1C exists for that reason
+  PASS RB.9  11A ROLLBACK (drop can_upload_event_media) == snapshot before 11A
+  PASS RB.8pre  FINDING: F3's rollback guard REFUSES right after the legitimate APPLY-2 / ROLLBACK-2-after-1C round trip ('Forward catalog changed') although the catalog is semantically identical to the F3-forward state (snapshot with sorted ACLs: 0 differences): its fingerprint hashes relacl::text, whose entry ORDER changed (anon re-appended). Nothing is changed
+  PASS RB.8pre2  the catalog IS semantically unchanged at that point (sorted-ACL snapshot == the snapshot right after F3 forward)
+  PASS RB.8guard  REPLICA-ONLY step: the stored guard fingerprint is refreshed to the current DRIFT_QUERY value AFTER the exact-equality proof above (on prod this must be a reviewed, deliberate act, never automatic)
+  PASS RB.8a  F3 ROLLBACK as committed (only the literal re-baselined) REFUSES after 1C and changes nothing: its blanket re-grants (TRUNCATE to anon+authenticated, UPDATE/DELETE/REFERENCES/TRIGGER to anon on profile_meta) would re-open what 1C closed
+  PASS RB.8b  F3 ROLLBACK REGENERATED for the post-1C catalog (profile_meta removed from its two re-grant lines; final ORDER-sensitive guard bypassed in this scratch step only) == snapshot before F3 (exact, sorted ACLs)
+  PASS RB.8c  ROOT CAUSE shown: after the APPLY-2/rollback round trip F3's DRIFT_QUERY fingerprint differs from the pre-F3 one, but the two 'state' JSONs are IDENTICAL once the ACL entry order is normalised (only the order of aclitem entries differs)
+  PASS RB.6  ROLLBACK-1C with {{PRE_1C_FINGERPRINT}} = FP2 == snapshot before 1C (exact; its own privilege fingerprint also equals FP2)
+  PASS RB.6b  ROLLBACK-1C: block-H privilege fingerprint after the rollback equals the saved FP2
+  PASS RB.3  ROLLBACK-92 (placeholders filled from PRECHECK-92 Q-2) == snapshot before APPLY-92 (old get_profile_events body + ACL back, new functions gone)
+  PASS RB.2  ROLLBACK-1B == snapshot before APPLY-1B
+  ROLLBACK-1 (Option A = exact pre-state) applied=true
+  residual catalog differences vs the baseline S0: columns: 0 removed, 6 added, 0 changed +public.profile_meta.is_minor; +public.profile_meta.under_18; +public.profile_meta.age_verified; +public.profile_meta.public_fields; +public.profile_meta.admin_approved; +public.profile_meta.profile_public | schemas: 0 removed, 0 added, 1 changed ~private | constraints: 0 removed, 1 added, 0 changed +public.profile_meta.profile_meta_minor_flags_agree
+  PASS RB.1  ROLLBACK-1 exactness: known residue = 6 columns + 1 constraint; unexpected = none
+  INFO ROLLBACK-1 Option B (the pack's default): anon keeps SELECT only on profile_meta/profile_owners; differences vs baseline in relations ACL: public.profile_meta ["postgres>anon:DELETE:false","postgres>anon:INSERT:false","postgres>anon:TRUNCATE:false","postgres>anon:UPDATE:false"]; public.profile_owners ["postgres>anon:DELETE:false","postgres>anon:INSERT:false","postgres>anon:MAINTAIN:false","postgres>anon:REFERENCES:false","postgres>anon:TRIGGER:false","postgres>anon:TRUNCATE:false","postgres>anon:UPDATE:false"]

@@ -255,7 +255,8 @@ async function route(){
   const { data: { session } } = await db.auth.getSession();
   if (!session) { me = null; myProfile = null; renderWho(); show('view-auth'); return; }
   me = session.user;
-  const { data: prof } = await db.from('profiles').select('*').eq('id', me.id).maybeSingle();
+  const { data: rows } = await db.rpc('get_approved_profile', { p_id: me.id, p_slug: null });
+  const prof = Array.isArray(rows) && rows.length ? rows[0] : null;
   myProfile = prof;
   renderWho();
   if (!prof) { show('view-handle'); return; }

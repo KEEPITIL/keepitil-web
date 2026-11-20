@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "11A proposal workspace: lets node run the .ts edge sources and the .mjs harness as ES modules. Not part of the site."
+}

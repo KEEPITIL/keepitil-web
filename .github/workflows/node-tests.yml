@@ -17,4 +17,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # kil-house-transfer.test.mjs runs the migration SQL on a real PostgreSQL.
+      # The runner image ships it but does not start it.
+      - name: Start PostgreSQL
+        run: sudo systemctl start postgresql
       - run: node --test assets/js/*.test.mjs

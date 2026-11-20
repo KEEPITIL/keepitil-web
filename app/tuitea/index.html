@@ -12,7 +12,11 @@
 <!--
   A REAL PAGE, NOT A REDIRECT (TUITEA 1.0 build 88, phase 2; owner: no redirects).
 
-  This address used to bounce every visitor to keepitil.com/support. It now says what TUITEA
+  DRAFT (C193-2 option 3, keepitil-web#194): the "Open TUITEA" button and the invite script are
+  removed while the web app is offline for its update. Rollback: git checkout 50ffb88 -- app/tuitea/index.html
+  (keep the manifest link; the manifest id /app/tuitea/ must keep resolving).
+
+  Earlier text: This address used to bounce every visitor to keepitil.com/support. It now says what TUITEA
   is and gives direct links: the web app itself (/app/tuitea/app/) and support. Nothing
   moves the visitor on its own.
 
@@ -42,23 +46,9 @@
 <body>
 <main>
   <img src="/app/tuitea/icon-192.png" alt="">
-  <h1>TUITEA</h1>
-  <p>A private home for your family — people, stories, health and the everyday running of a household.</p>
-  <a class="btn" id="open" href="/app/tuitea/app/">Open TUITEA</a>
-  <p class="small" id="invited" hidden>Your invitation goes with you — sign in or create an account, and TUITEA will ask to join the family that invited you.</p>
-  <p class="small">Questions? <a class="link" href="https://keepitil.com/support/?product=tuitea">TUITEA support</a></p>
+  <h1>TUITEA is updating</h1>
+  <p>The web app is offline for a short update. Your family's records are safe. The TUITEA iPhone app is not affected.</p>
+  <p class="small"><a class="link" href="/apps/tuitea/legal/privacy/">Privacy</a> &middot; <a class="link" href="https://keepitil.com/support/?product=tuitea">TUITEA support</a></p>
 </main>
-<script>
-  // The invitation travels on the link (never stored, never sent anywhere else).
-  (function () {
-    try {
-      var t = (new URLSearchParams(location.search).get('invite') || '').toLowerCase();
-      if (/^[0-9a-f]{32}$/.test(t)) {
-        document.getElementById('open').href = '/app/tuitea/app/?invite=' + t;
-        document.getElementById('invited').hidden = false;
-      }
-    } catch (e) {}
-  })();
-</script>
 </body>
 </html>

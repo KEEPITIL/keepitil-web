@@ -102,13 +102,27 @@ test('connect-status: refusals write nothing (signed out, no Stripe key, Stripe 
   assert.equal(me().payouts_enabled, false);
 });
 
-test('NEGATIVE CONTROL: main\'s page claims payouts in the browser; this branch\'s page asks the server', () => {
+// main's create-event.html, or null when this checkout has no origin/main (CI checks out shallow, one commit).
+function mainsCreateEvent() {
+  try {
+    const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const base = git(['merge-base', 'HEAD', 'origin/main']).trim();
+    return git(['show', base + ':create-event.html']);
+  } catch {
+    return null;
+  }
+}
+
+test('NEGATIVE CONTROL: main\'s page claims payouts in the browser; this branch\'s page asks the server', (t) => {
   const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '');
-  const base = execFileSync('git', ['merge-base', 'HEAD', 'origin/main'], { cwd: ROOT, encoding: 'utf8' }).trim();
-  const before = execFileSync('git', ['show', base + ':create-event.html'], { cwd: ROOT, encoding: 'utf8' });
+  const before = mainsCreateEvent();
   const after = readFileSync(join(ROOT, 'create-event.html'), 'utf8');
   const claim = /rpc\(\s*'mark_payouts_enabled'\s*\)/;
-  assert.match(strip(before), claim, 'before: the page calls rpc(mark_payouts_enabled) on ?payouts=done');
+  if (before === null) {
+    t.diagnostic('before-half skipped: origin/main is not in this checkout (shallow clone); the after-half below still runs');
+  } else {
+    assert.match(strip(before), claim, 'before: the page calls rpc(mark_payouts_enabled) on ?payouts=done');
+  }
   assert.doesNotMatch(strip(after), claim, 'after: never');
   assert.match(after, /fetch\(SUPA_URL\+'\/functions\/v1\/connect-status'/);
   assert.match(after, /if\(pd&&pd\.verified===true\)\{ payok=true; \}/, 'payok only from the server\'s verified answer');

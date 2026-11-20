@@ -7,10 +7,15 @@ on:
     paths:
       - 'assets/js/kil-member.js'
       - 'assets/js/kil-member.test.mjs'
+      - 'assets/js/kil-insights.js'
+      - 'assets/js/kil-insights.test.mjs'
+      - 'assets/css/kil-insights.css'
       - 'assets/js/kil-share.js'
       - 'assets/js/kil-share.test.mjs'
+      - 'assets/js/kil-indexable.test.mjs'
       - 'assets/js/kil-show.js'
       - 'member.html'
+      - 'dashboard.html'
       - 'show.html'
       - 'event.html'
       - 'profile.html'
@@ -20,10 +25,15 @@ on:
     paths:
       - 'assets/js/kil-member.js'
       - 'assets/js/kil-member.test.mjs'
+      - 'assets/js/kil-insights.js'
+      - 'assets/js/kil-insights.test.mjs'
+      - 'assets/css/kil-insights.css'
       - 'assets/js/kil-share.js'
       - 'assets/js/kil-share.test.mjs'
+      - 'assets/js/kil-indexable.test.mjs'
       - 'assets/js/kil-show.js'
       - 'member.html'
+      - 'dashboard.html'
       - 'show.html'
       - 'event.html'
       - 'profile.html'
@@ -38,4 +48,4 @@ jobs:
         with:
           node-version: '20'
       - name: Profile views and private-field checks
-        run: node --test assets/js/kil-member.test.mjs assets/js/kil-share.test.mjs
+        run: node --test assets/js/kil-insights.test.mjs assets/js/kil-member.test.mjs assets/js/kil-share.test.mjs assets/js/kil-indexable.test.mjs

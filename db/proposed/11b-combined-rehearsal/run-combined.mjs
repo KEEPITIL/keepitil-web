@@ -4,7 +4,7 @@
          -> negative controls (mutants of the combined order) -> reverse-order ROLLBACK pass with an exact catalog diff against the snapshot taken before each forward step.
    Outputs: out/matrix-results.json, out/run-combined-output.txt (stdout), and the generated F3 copies under out/generated/. Exit 0 only if every expected result occurred.   */
 import { join } from "node:path";
-import { ENGINE, PGM, HERE, UP, P10A, F3, A11, rd, U, A22, INS19, UPD14, E45, E44, sorted, eq, lit, open, closeDb, dump, clone, su, one, as, tx, denied, colset, tp, fnp, collector, snapshot, diffSnap, brief, fp, mutate, ensureDir, writeFileSync } from "./lib/core.mjs";
+import { ENGINE, PGM, PACKS, R1MODE, rdp, HERE, UP, P10A, F3, A11, rd, U, A22, INS19, UPD14, E45, E44, sorted, eq, lit, open, closeDb, dump, clone, su, one, as, tx, denied, colset, tp, fnp, collector, snapshot, diffSnap, brief, fp, mutate, ensureDir, writeFileSync } from "./lib/core.mjs";
 import * as steps from "./lib/steps.mjs";
 import * as steps2 from "./lib/steps2.mjs";
 import { WEB, APP, isReset } from "./lib/payloads.mjs";
@@ -13,7 +13,7 @@ import { makeF3Lab } from "./lib/f3lab.mjs";
 import { probes, PROBE_IDS } from "./lib/probes.mjs";
 import { execSync } from "node:child_process";
 
-const SUF = ENGINE === "pg" ? "-real-pg" : "";    // output names: real-PostgreSQL results never overwrite the PGlite ones
+const SUF = (ENGINE === "pg" ? "-real-pg" : "") + (R1MODE ? "-r1fix" : "");    // output names: real-PostgreSQL results never overwrite the PGlite ones
 const T0 = Date.now(); const OUT = ensureDir(join(HERE, "out")), GEN = ensureDir(join(OUT, "generated"));
 const LINES = []; const log = (...a) => { const t = a.join(" "); LINES.push(t); console.log(t); };
 const finish = async (code) => { if (PGM) { try { await PGM.cleanupAll(); await PGM.dropRoles(); await PGM.shutdownAdmin(); } catch (e) { console.log("cleanup: " + e.message); } } process.exit(code); };
@@ -22,13 +22,13 @@ process.on("uncaughtException", async (e) => { console.log("FATAL: " + String(e 
 /* ------------------------------------------------------------------ inputs (verbatim files; nothing is edited except the documented, mechanical transformations below) */
 let REPLICA = rd(HERE, "COMBINED-REPLICA.sql");
 if (PGM) { await PGM.ensureRoles(); REPLICA = mutate(REPLICA, "create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;", "-- (real PG: the three stand-in roles are cluster-wide and created by lib/pgdb.mjs ensureRoles())", "replica roles"); }
-const A1 = rd(UP, "APPLY-1.sql"), A1B = rd(UP, "APPLY-1B-kind-check.sql"), A92 = rd(UP, "APPLY-92.sql"), A2 = rd(UP, "APPLY-2.sql");
-const C1C = rd(P10A, "APPLY-1C-grant-narrowing_PROPOSED.sql"), A92_44 = rd(P10A, "APPLY-92-44col_PROPOSED.sql"), RB1C = rd(P10A, "ROLLBACK-1C_PROPOSED.sql"), RB2X = rd(P10A, "ROLLBACK-2-after-1C_PROPOSED.sql");
+const A1 = rdp("pr91", UP, "APPLY-1.sql"), A1B = rdp("pr91", UP, "APPLY-1B-kind-check.sql"), A92 = rdp("pr92", UP, "APPLY-92.sql"), A2 = rdp("pr91", UP, "APPLY-2.sql");
+const C1C = rdp("10a", P10A, "APPLY-1C-grant-narrowing_PROPOSED.sql"), A92_44 = rdp("10a", P10A, "APPLY-92-44col_PROPOSED.sql"), RB1C = rdp("10a", P10A, "ROLLBACK-1C_PROPOSED.sql"), RB2X = rdp("10a", P10A, "ROLLBACK-2-after-1C_PROPOSED.sql");
 const FP3 = "2026-11-09_f3_media_rls_connect_publish_gate_";
-const F3_FW = rd(F3, FP3 + "FORWARD_PROPOSED.sql"), F3_RB = rd(F3, FP3 + "ROLLBACK_PROPOSED.sql"), F3_DQ = rd(F3, FP3 + "DRIFT_QUERY_PROPOSED.sql"), F3_PC = rd(F3, FP3 + "POSTCHECKS_PROPOSED.sql"), F3_GR = rd(F3, FP3 + "GATE_READINESS_READONLY_PROPOSED.sql");
+const F3_FW = rdp("f3", F3, FP3 + "FORWARD_PROPOSED.sql"), F3_RB = rdp("f3", F3, FP3 + "ROLLBACK_PROPOSED.sql"), F3_DQ = rdp("f3", F3, FP3 + "DRIFT_QUERY_PROPOSED.sql"), F3_PC = rdp("f3", F3, FP3 + "POSTCHECKS_PROPOSED.sql"), F3_GR = rd(F3, FP3 + "GATE_READINESS_READONLY_PROPOSED.sql");
 const F3_ORIG_FP = "c917a7dfbc778913b7e46b332aeeb348";
-const A11_FN = rd(A11, "can_upload_event_media_PROPOSED.sql"), A11_RB = rd(A11, "ROLLBACK_PROPOSED.sql");
-const R1_RAW = rd(HERE, "rollbacks/ROLLBACK-1.sql"), R1B = rd(HERE, "rollbacks/ROLLBACK-1B-kind-check.sql"), R92_RAW = rd(HERE, "rollbacks/ROLLBACK-92.sql");
+const A11_FN = rdp("11a", A11, "can_upload_event_media_PROPOSED.sql"), A11_RB = rdp("11a", A11, "ROLLBACK_PROPOSED.sql");
+const R1_RAW = rdp("pr91", join(HERE, "rollbacks"), "ROLLBACK-1.sql"), R1B = rdp("pr91", join(HERE, "rollbacks"), "ROLLBACK-1B-kind-check.sql"), R92_RAW = rdp("pr92", join(HERE, "rollbacks"), "ROLLBACK-92.sql");
 
 /* ------------------------------------------------------------------ the documented, mechanical fills/regenerations (every one is listed in REHEARSAL-REPORT.md)
    (a) ROLLBACK-1: {{GET_APPROVED_PROFILE_OLD_DEF}} removed (P-3: the function did not exist on prod); {{CLAIM_PROFILE_GRANTS}} filled with what P-3/P-5 captured (PUBLIC + anon + authenticated);
@@ -160,7 +160,7 @@ await runMatrixOn(B.S10, "after-step-10 (APPLY-2)");
 const lab = makeF3Lab({ F3_FW, F3_RB, F3_DQ, ORIG: F3_ORIG_FP, regen: regenF3Rollback, pre: B.S6, post11A: A11_FN });
 for (const c of await lab.drift()) MX.push({ state: "pre-F3 (after 1C)", ...c });
 for (const c of await lab.rollback()) MX.push({ state: "pre-F3 (after 1C) + F3 forward", ...c });
-{ const { db: wf, rbRegen, rbRegenNoEnd } = await lab.worldFwd(); try { await wf.exec("grant truncate on public.profile_content to anon"); const r = await tx(wf, PGM ? rbRegenNoEnd : rbRegen);   /* real PG: the rollback's ORDER-sensitive FINAL guard refuses for an unrelated reason (relacl entry order, see R1.exact); the scope question is about the START guard, so only the final guard is bypassed */
+{ const { db: wf, rbRegen, rbRegenNoEnd } = await lab.worldFwd(); try { await wf.exec("grant truncate on public.profile_content to anon"); const r = await tx(wf, PGM && !R1MODE ? rbRegenNoEnd : rbRegen);   /* real PG: the rollback's ORDER-sensitive FINAL guard refuses for an unrelated reason (relacl entry order, see R1.exact); the scope question is about the START guard, so only the final guard is bypassed */
     MX.push({ state: "pre-F3 + F3 forward", id: "FIND.scope", case: "FIND", ok: r.ok === true, name: "FIND-3 (reproduced): F3's drift/rollback fingerprint does not cover profile_content (nor profile_claim_requests, private.account_age): a 1C privilege re-granted on profile_content after F3 is NOT detected by F3's rollback guard (the rollback proceeds). 1C's own block-H fingerprint is the only guard for those tables", why: r.err || "" }); } finally { await closeDb(wf); } }
 // gate readiness (F3 README REVIEW NOTE 1) on the combined replica
 { const w = await clone(B.S6); const r = (await w.query(F3_GR)).rows[0]; await closeDb(w); R.fingerprints.gate_readiness_replica = r;
@@ -206,7 +206,7 @@ const CHANGED_NOTE = { C1: "Layer changed: with 1C the first denial is the colum
   C3: "CHANGED MEANING: #91/1C column denial takes precedence over the legacy C3 type-edit expectation. account_type, tagline, pronouns, book_email, badges, highlights, entity_category (and slug) are now refused (42501) instead of resetting review; the 11 owner-writable content columns still reset review; profile_public/public_fields are writable and do NOT reset review (F3 README row 6).",
   C4: "The recorded final web payload is a diff UPDATE keyed by slug (no 19-key upsert any more); the bundled app's 19-key upsert is refused (designed denial).", C5: "The web no-op writes nothing; the legacy 'account_type:null' no-op (C5-INFO) is now refused before the trigger.",
   C6: "CHANGED MEANING: re-assigning the old identical gate value is now refused by the column ACL (F3 permitted it).", C8: "C8d CHANGED MEANING: admin+owner self-publication is closed by 1C on the client path. C8e/FIND: DEFINER admin paths now run the completeness gate.",
-  ...(PGM ? { R1: "REAL-PG DIFFERENCE: on PostgreSQL 17.6 the F3 rollback's final fingerprint guard refuses even right after F3 forward (aclitem entry order of two tag_* functions differs after the rollback re-grants); semantic exactness holds (R1.exact-semantic)." } : {}), C10: "CHANGED MEANING: claim_profile is revoked by APPLY-1; creation goes request_profile_claim -> approve_profile_claim -> owner's first save." };
+  ...(PGM && !R1MODE ? { R1: "REAL-PG DIFFERENCE: on PostgreSQL 17.6 the F3 rollback's final fingerprint guard refuses even right after F3 forward (aclitem entry order of two tag_* functions differs after the rollback re-grants); semantic exactness holds (R1.exact-semantic)." } : {}), C10: "CHANGED MEANING: claim_profile is revoked by APPLY-1; creation goes request_profile_claim -> approve_profile_claim -> owner's first save." };
 const cases = CASES.map(([id, title, expected]) => {
   const subs = MX.filter((c) => c.case === id); const f = FORCED[id]; const failed = subs.filter((c) => !c.ok);
   let status, reason = "";
@@ -238,7 +238,7 @@ log("\n== BUNDLED APP SAVE (old 19-key upsert incl account_type) at each stage:"
 if (PGM) {
   const { realPgSuite } = await import("./lib/realpg.mjs");
   log("\n== REAL-POSTGRESQL-ONLY: PostgREST-style requests in separate connections, concurrency (lock waits), PostgreSQL 17 catalog behaviour");
-  R.realpg = await realPgSuite({ B, lab, F3_FW, F3_RB, regen: regenF3Rollback, A1, F3_ORIG: F3_ORIG_FP, F3_DQ });
+  R.realpg = await realPgSuite({ B, lab, F3_FW, F3_RB, regen: regenF3Rollback, A1, F3_ORIG: F3_ORIG_FP, F3_DQ, A11_FN, F3_ORIG_TEXT: { fw: rd(F3, FP3 + "FORWARD_PROPOSED.sql"), rb: rd(F3, FP3 + "ROLLBACK_PROPOSED.sql"), dq: rd(F3, FP3 + "DRIFT_QUERY_PROPOSED.sql") } });
   for (const c of R.realpg) { log(`  ${c.ok ? "PASS" : "FAIL"} ${c.id}  ${c.name}${c.ok ? "" : "\n       -> " + c.why}${c.metrics && Object.keys(c.metrics).length ? "\n       metrics " + JSON.stringify(c.metrics) : ""}`); if (!c.ok) failures++; }
   log(`REAL-PG-ONLY: ${R.realpg.filter((c) => c.ok).length}/${R.realpg.length} pass`);
 }
@@ -324,24 +324,25 @@ const rbCheck = async (id, name, sql, target, { expectAbort = null } = {}) => {
   record(RB, a, "RB"); show(a); }
 await rbCheck("RB.10", "ROLLBACK-2-after-1C (APPLY-2 undone, narrowing kept) == snapshot before APPLY-2", RB2X, CAT.S9);
 { // optional: the STOCK ROLLBACK-2 would undo 1C (documented) - shown on a scratch clone
-  const w = await clone(B.S10); await tx(w, rd(UP, "ROLLBACK-2.sql")); const reopened = !(await as(w, "authenticated", U.TUI, "update public.profile_meta set account_type='editorial_brand' where slug='tuitea'")).err; await closeDb(w);
+  const w = await clone(B.S10); await tx(w, rdp("pr91", UP, "ROLLBACK-2.sql")); const reopened = !(await as(w, "authenticated", U.TUI, "update public.profile_meta set account_type='editorial_brand' where slug='tuitea'")).err; await closeDb(w);
   const a = [{ id: "RB.10b", name: "FINDING (documented): the STOCK ROLLBACK-2 run after 1C re-grants account_type/status to owners (undoes the narrowing); ROLLBACK-2-after-1C exists for that reason", ok: reopened, why: "stock rollback did not re-open" }]; record(RB, a, "RB"); show(a); }
 await rbCheck("RB.9", "11A ROLLBACK (drop can_upload_event_media) == snapshot before 11A", A11_RB, CAT.S8);
 { // F3 rollback. The reverse order forces ROLLBACK-2-after-1C and the 11A rollback BEFORE it. Both leave the catalog semantically identical (RB.9/RB.10 prove it with sorted ACLs) but F3's guard fingerprints relacl::text, which is ORDER-sensitive.
   const f3rb = F3_RB.split(F3_ORIG_FP).join(R.fingerprints.F3_rebaselined_replica), f3rg = regenF3Rollback(F3_RB).split(F3_ORIG_FP).join(R.fingerprints.F3_rebaselined_replica);
-  await rbCheck("RB.8pre", "FINDING: F3's rollback guard REFUSES right after the legitimate APPLY-2 / ROLLBACK-2-after-1C round trip ('Forward catalog changed') although the catalog is semantically identical to the F3-forward state (snapshot with sorted ACLs: 0 differences): its fingerprint hashes relacl::text, whose entry ORDER changed (anon re-appended). Nothing is changed", f3rg, null, { expectAbort: /Forward catalog changed/ });
+  if (!R1MODE) await rbCheck("RB.8pre", "FINDING: F3's rollback guard REFUSES right after the legitimate APPLY-2 / ROLLBACK-2-after-1C round trip ('Forward catalog changed') although the catalog is semantically identical to the F3-forward state (snapshot with sorted ACLs: 0 differences): its fingerprint hashes relacl::text, whose entry ORDER changed (anon re-appended). Nothing is changed", f3rg, null, { expectAbort: /Forward catalog changed/ });
   { const same = diffSnap(CAT.S8, await snapshot(rb)); const a = [{ id: "RB.8pre2", name: "the catalog IS semantically unchanged at that point (sorted-ACL snapshot == the snapshot right after F3 forward)", ok: same.n === 0, why: brief(same) }]; record(RB, a, "RB"); show(a); }
   await rb.exec("reset role; set search_path = public, extensions"); const nowFp = (await rb.query(F3_DQ)).rows[0].fingerprint; await rb.exec('set search_path = "$user", public');
-  const gr = await tx(rb, `update atlas_media_guard.rollback_guard set catalog_fingerprint = '${nowFp}'`);
-  { const a = [{ id: "RB.8guard", name: "REPLICA-ONLY step: the stored guard fingerprint is refreshed to the current DRIFT_QUERY value AFTER the exact-equality proof above (on prod this must be a reviewed, deliberate act, never automatic)", ok: gr.ok, why: gr.err || "" }]; record(RB, a, "RB"); show(a); }
+  const gr = R1MODE ? { ok: true } : await tx(rb, `update atlas_media_guard.rollback_guard set catalog_fingerprint = '${nowFp}'`);
+  if (!R1MODE) { const a = [{ id: "RB.8guard", name: "REPLICA-ONLY step: the stored guard fingerprint is refreshed to the current DRIFT_QUERY value AFTER the exact-equality proof above (on prod this must be a reviewed, deliberate act, never automatic)", ok: gr.ok, why: gr.err || "" }]; record(RB, a, "RB"); show(a); }
   await rbCheck("RB.8a", "F3 ROLLBACK as committed (only the literal re-baselined) REFUSES after 1C and changes nothing: its blanket re-grants (TRUNCATE to anon+authenticated, UPDATE/DELETE/REFERENCES/TRIGGER to anon on profile_meta) would re-open what 1C closed", f3rb, null, { expectAbort: /Rollback did not restore original catalog/ });
   // RB.8b: the regenerated rollback is correct but its FINAL guard compares an ORDER-sensitive fingerprint against the pre-F3 capture, whose ACL entry order the APPLY-2 round trip changed. Exactness is therefore judged by the sorted-ACL snapshot; the final guard is bypassed in this scratch step ONLY.
-  const f3rgBypass = mutate(f3rg, `IF v_fingerprint IS DISTINCT FROM '${R.fingerprints.F3_rebaselined_replica}' THEN`, "IF false THEN", "final guard");
-  await rbCheck("RB.8b", "F3 ROLLBACK REGENERATED for the post-1C catalog (profile_meta removed from its two re-grant lines; final ORDER-sensitive guard bypassed in this scratch step only) == snapshot before F3 (exact, sorted ACLs)", f3rgBypass, CAT.S6);
+  const f3rgBypass = R1MODE ? f3rg : mutate(f3rg, `IF v_fingerprint IS DISTINCT FROM '${R.fingerprints.F3_rebaselined_replica}' THEN`, "IF false THEN", "final guard");
+  if (R1MODE) await rbCheck("RB.8b", "R1-FIX: F3 ROLLBACK REGENERATED for the post-1C catalog (profile_meta removed from its two re-grant lines), run with ALL its guards intact (pre-check AND exact final fingerprint; nothing bypassed) right after the APPLY-2 / ROLLBACK-2-after-1C / 11A-rollback round trip == snapshot before F3 (exact), MAINTAIN restored exactly", f3rgBypass, CAT.S6);
+  else await rbCheck("RB.8b", "F3 ROLLBACK REGENERATED for the post-1C catalog (profile_meta removed from its two re-grant lines; final ORDER-sensitive guard bypassed in this scratch step only) == snapshot before F3 (exact, sorted ACLs)", f3rgBypass, CAT.S6);
   { const norm = (v) => Array.isArray(v) ? v.map(norm) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, (k === "acl") && typeof x === "string" && x.startsWith("{") ? x.slice(1, -1).split(",").sort().join(",") : norm(x)])) : v;
     const w6 = await clone(B.S6); await w6.exec("reset role; set search_path = public, extensions"); const st6 = (await w6.query(F3_DQ)).rows[0]; await closeDb(w6);
     await rb.exec("reset role; set search_path = public, extensions"); const stNow = (await rb.query(F3_DQ)).rows[0]; await rb.exec('set search_path = "$user", public');
-    const a = [{ id: "RB.8c", name: "ROOT CAUSE shown: after the APPLY-2/rollback round trip F3's DRIFT_QUERY fingerprint differs from the pre-F3 one, but the two 'state' JSONs are IDENTICAL once the ACL entry order is normalised (only the order of aclitem entries differs)", ok: st6.fingerprint !== stNow.fingerprint && JSON.stringify(norm(JSON.parse(JSON.stringify(st6.state)))) === JSON.stringify(norm(JSON.parse(JSON.stringify(stNow.state)))), why: `fp pre-F3=${st6.fingerprint} now=${stNow.fingerprint}` }]; record(RB, a, "RB"); show(a); } }
+    if (R1MODE) { const a = [{ id: "RB.8c", name: "R1-FIX: the F3 DRIFT_QUERY fingerprint after the full forward -> APPLY-2 -> rollbacks round trip EQUALS the pre-F3 fingerprint (ACL entry order no longer matters)", ok: st6.fingerprint === stNow.fingerprint, why: `fp pre-F3=${st6.fingerprint} now=${stNow.fingerprint}` }]; record(RB, a, "RB"); show(a); } else { const a = [{ id: "RB.8c", name: "ROOT CAUSE shown: after the APPLY-2/rollback round trip F3's DRIFT_QUERY fingerprint differs from the pre-F3 one, but the two 'state' JSONs are IDENTICAL once the ACL entry order is normalised (only the order of aclitem entries differs)", ok: st6.fingerprint !== stNow.fingerprint && JSON.stringify(norm(JSON.parse(JSON.stringify(st6.state)))) === JSON.stringify(norm(JSON.parse(JSON.stringify(stNow.state)))), why: `fp pre-F3=${st6.fingerprint} now=${stNow.fingerprint}` }]; record(RB, a, "RB"); show(a); } } }
 await rbCheck("RB.6", "ROLLBACK-1C with {{PRE_1C_FINGERPRINT}} = FP2 == snapshot before 1C (exact; its own privilege fingerprint also equals FP2)", RB1C.replaceAll("{{PRE_1C_FINGERPRINT}}", FP2), CAT.S5);
 RB.push({ id: "RB.6b", name: "ROLLBACK-1C: block-H privilege fingerprint after the rollback equals the saved FP2", ok: (await fp(rb)) === FP2, why: "" }); if ((await fp(rb)) !== FP2) failures++; log(`  ${RB[RB.length - 1].ok ? "PASS" : "FAIL"} RB.6b  ${RB[RB.length - 1].name}`);
 await rbCheck("RB.3", "ROLLBACK-92 (placeholders filled from PRECHECK-92 Q-2) == snapshot before APPLY-92 (old get_profile_events body + ACL back, new functions gone)", fillR92(R92_RAW), CAT.S2);

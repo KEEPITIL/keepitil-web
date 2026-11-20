@@ -5,7 +5,8 @@
    (3) PostgreSQL 17 catalog behaviour: default ACLs, MAINTAIN inside ALL, aclitem ENTRY ORDER (relacl::text) after revoke/regrant.
    Timing instrument (the ONLY edit to a pack file): to hold a script's locks for a measurable window, its final `COMMIT;` is replaced by `SELECT pg_sleep(n); COMMIT;` (holdBeforeCommit). Numbers are wall-clock on a tiny synthetic database: they show the SHAPE
    (who waits, for how long relative to the lock window, what is left behind), NOT prod timings. */
-import { U, one, tx, clone, closeDb, snapshot, diffSnap, brief, collector, mutate, PGM, open } from "./core.mjs";
+import { U, one, su, tx, clone, closeDb, snapshot, diffSnap, brief, collector, mutate, PGM, R1MODE, open, rd, F3 } from "./core.mjs";
+import { LOCK_SQL, LOCK_KEY, LOCK_STMT, LOCK_TIMEOUT_SQL, aclSorted } from "../../r1-fix-f3-acl-locks/build-variants.mjs";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const now = () => performance.now();
@@ -28,7 +29,7 @@ export async function req(c, role, sub, sql) {
 const sortedAcl = (t) => t == null ? null : t.slice(1, -1).split(",").sort().join(",");
 
 export async function realPgSuite(ctx) {
-  const { B, lab, F3_FW, F3_RB, regen, A1, F3_ORIG, F3_DQ } = ctx; const sink = [];
+  const { B, lab, F3_FW, F3_RB, regen, A1, F3_ORIG, F3_DQ, A11_FN, F3_ORIG_TEXT } = ctx; const sink = [];
   const { check } = collector(sink);
   const chk = async (id, name, fn, extra = {}) => { const metrics = {}; const r = await check(id, name, () => fn(metrics), extra); r.metrics = metrics; return r; };
   const withWorld = async (blob, fn) => { const db = await clone(blob); const conns = []; const mk = async (u) => { const c = await conn(db, u); conns.push(c); return c; }; try { return await fn(db, mk); } finally { for (const c of conns) await c.disconnect(); await closeDb(db); } };
@@ -95,7 +96,7 @@ export async function realPgSuite(ctx) {
 
   // CC.5 two rollbacks at once (regenerated rollback; its ORDER-sensitive final fingerprint guard bypassed, see RB.8 / R1)
   await withWorld(B.S6, async (db, mk) => { const F0 = await lab.fpOf(db); const f = await mk(); await timed(f.client.query(fwOf(F0))); await rollbackQuiet(f); const r1 = await mk(), r2 = await mk(), mon = await mk(); const p1 = await pidOf(r1), p2 = await pidOf(r2);
-    const rb = mutate(lab.patch(regen(F3_RB), F0), `IF v_fingerprint IS DISTINCT FROM '${F0}' THEN`, "IF false THEN", "end guard");
+    const rb = R1MODE ? lab.patch(regen(F3_RB), F0) : mutate(lab.patch(regen(F3_RB), F0), `IF v_fingerprint IS DISTINCT FROM '${F0}' THEN`, "IF false THEN", "end guard");
     await chk("CC.5", "two F3 rollbacks started together (first holds locks ~2 s): the second waits, then ABORTS (forward objects already gone); end state == pre-F3 catalog (sorted-ACL snapshot) and no guard schema", async (m) => {
       const pre = await clone(B.S6); const snapPre = await snapshot(pre); await closeDb(pre);
       const a = run(r1, holdBeforeCommit(rb, 2)); await inSleep(mon, p1); const b = run(r2, rb); await blockedOnLock(mon, p2); const [x, y] = [await a, await b]; await rollbackQuiet(r2); m.second_wait_ms = y.ms; m.second_error = (y.err || "").slice(0, 120);
@@ -113,13 +114,57 @@ export async function realPgSuite(ctx) {
       const t0 = now(); const r = await timed(o2.client.query(`begin; set local role authenticated; select set_config('request.jwt.claim.sub',(select owner_id::text from public.profile_owners where profile_slug='${other.slug}' limit 1),true); update public.profile_meta set bio='cc6b b' where slug='${other.slug}'; commit`)); m.ms = Math.round(now() - t0); await t1.client.query("rollback");
       return (r.ok && m.ms < 1000) || JSON.stringify(r); }); });
 
+  if (!R1MODE) {
   // CC.7 two APPLY-1 runs at once on the baseline (APPLY scripts take no advisory locks; only table locks serialise them)
   await withWorld(B.S0, async (db, mk) => { const a = await mk(), b = await mk(), mon = await mk(); const pa = await pidOf(a), pb = await pidOf(b);
     await chk("CC.7", "FINDING: two APPLY-1 runs started together on the baseline (no advisory locks in the packs; the first holds its table locks ~2 s): the second waits on the table locks and then FAILS with `tuple concurrently updated` (transaction rolled back); the catalog equals exactly ONE APPLY-1. APPLY scripts must be serialised by the operator", async (m) => {
       const one_ = await clone(B.S0); await tx(one_, A1); const snap1 = await snapshot(one_); await closeDb(one_);
       const x = run(a, holdBeforeCommit(A1, 2)); await inSleep(mon, pa); const y = run(b, A1); await blockedOnLock(mon, pb); const [rx, ry] = [await x, await y]; m.second_total_ms = ry.ms; await rollbackQuiet(b);
       const d = diffSnap(snap1, await snapshot(db)); m.second_outcome = ry.ok ? "completed" : ry.err; return (rx.ok && d.n === 0 && (ry.ok || /concurrently updated|deadlock detected/.test(ry.err))) || JSON.stringify({ rx: rx.err, ry: ry.err, d: brief(d) }); }); });
+  }
 
+  if (R1MODE) {
+    const lockStmt = LOCK_STMT;
+    /* strips the whole R1 lock block (comment, pre-lock timeout, the advisory lock, post-lock timeout) = the original pack text */
+    const unlock = (sql) => { const i = sql.indexOf("-- R1-LOCK"); if (i < 0) return sql; const j = sql.indexOf(lockStmt); let e = j + lockStmt.length; const tail = "\n" + LOCK_TIMEOUT_SQL; if (sql.startsWith(tail, e)) e += tail.length; return sql.slice(0, i) + sql.slice(e); };
+    const advWait = async (mon, pid) => (await mon.client.query("select (classid::bigint*4294967296 + objid::bigint)::text k, granted from pg_locks where locktype='advisory' and pid=$1", [pid])).rows;
+    const relLocksOf = async (mon, pid) => (await mon.client.query("select count(*)::int n from pg_locks where pid=$1 and locktype='relation' and relation in (select oid from pg_class where relnamespace='public'::regnamespace)", [pid])).rows[0].n;
+    // CC.7 (R1-FIX) two APPLY-1 runs at once: the advisory lock serialises them
+    await withWorld(B.S0, async (db, mk) => { const a = await mk(), b = await mk(), mon = await mk(); const pa = await pidOf(a), pb = await pidOf(b);
+      await chk("CC.7", "R1-FIX: two APPLY-1 runs started together on the baseline (the first holds the pack lock ~2 s): the second WAITS on the advisory lock (pg_locks: ungranted advisory lock on the pack key, and it has touched no public table), and only after the first commits runs on the committed state; no `tuple concurrently updated`; the catalog equals exactly ONE APPLY-1", async (m) => {
+        const one_ = await clone(B.S0); await tx(one_, A1); const snap1 = await snapshot(one_); await closeDb(one_);
+        const x = run(a, holdBeforeCommit(A1, 2)); await inSleep(mon, pa); const y = run(b, A1); await blockedOnLock(mon, pb);
+        const w = await advWait(mon, pb); const rel = await relLocksOf(mon, pb); m.second_waiting_on_key = w.map((r) => r.k + (r.granted ? " granted" : " WAITING")).join(","); m.second_public_relation_locks_while_waiting = rel;
+        const [rx, ry] = [await x, await y]; m.second_total_ms = ry.ms; await rollbackQuiet(b); const d = diffSnap(snap1, await snapshot(db)); m.second_outcome = ry.ok ? "completed (idempotent re-run on the committed state)" : ry.err;
+        return (rx.ok && w.length === 1 && w[0].k === LOCK_KEY && w[0].granted === false && rel === 0 && ry.ms >= 1200 && d.n === 0 && (ry.ok || !/concurrently updated|deadlock detected/.test(ry.err))) || JSON.stringify({ rx: rx.err, w, rel, ry: ry.err, ms: ry.ms, d: brief(d) }); }); });
+    // CC.7c NEGATIVE CONTROL: the same two APPLY-1 runs WITHOUT the lock overlap (the original behaviour)
+    await withWorld(B.S0, async (db, mk) => { const a = await mk(), b = await mk(), mon = await mk(); const pa = await pidOf(a), pb = await pidOf(b);
+      await chk("CC.7c", "NEGATIVE CONTROL for CC.7: the same two APPLY-1 runs with the lock statement REMOVED do not queue on an advisory lock (no pg_locks advisory wait); they overlap and the second dies with `tuple concurrently updated` (or deadlock) as before", async (m) => {
+        const A = unlock(A1); if (A === A1) return "control could not strip the lock";
+        const x = run(a, holdBeforeCommit(A, 2)); await inSleep(mon, pa); const y = run(b, A); await blockedOnLock(mon, pb); const w = await advWait(mon, pb); const [rx, ry] = [await x, await y]; await rollbackQuiet(b); m.second_outcome = ry.ok ? "completed" : ry.err; m.advisory_waits = w.length;
+        return (rx.ok && w.length === 0 && !ry.ok && /concurrently updated|deadlock detected/.test(ry.err)) || JSON.stringify({ rx: rx.err, ry: ry.err, w }); }); });
+    // CC.8 (R1-FIX): MAINTAIN is revoked by the R1 forward, so the anonymous LOCK TABLE is refused
+    await withWorld(B.S9, async (db, mk) => { const x = await mk("authenticator");
+      await chk("CC.8", "R1-FIX: after the R1 F3 forward an ANONYMOUS session can NOT take LOCK TABLE ... ACCESS EXCLUSIVE on event_media or venue_media (42501); MAINTAIN is false for anon and authenticated on both tables. RESIDUAL (not MAINTAIN, not changed by R1): a signed-in `authenticated` session can still take that lock through its UPDATE privilege (recorded in the metrics)", async (m) => {
+        const out = []; for (const [role, t] of [["anon", "event_media"], ["anon", "venue_media"], ["authenticated", "event_media"], ["authenticated", "venue_media"]]) { await x.client.query("begin; set local role " + role); const l = await timed(x.client.query(`lock table public.${t} in access exclusive mode`)); await rollbackQuiet(x); out.push(role + ":" + t + ":" + (l.ok ? "ALLOWED" : l.code)); }
+        const p = await one(db, "select bool_or(has_table_privilege('anon',c.oid,'MAINTAIN') or has_table_privilege('authenticated',c.oid,'MAINTAIN')) any, bool_and(has_table_privilege('authenticated',c.oid,'UPDATE')) auth_update from pg_class c where c.oid in ('public.event_media'::regclass,'public.venue_media'::regclass)");
+        m.lock_outcomes = out.join(" "); m.authenticated_has_UPDATE_on_both = p.auth_update;
+        return (out.filter((q) => q.startsWith("anon:")).every((q) => /:42501$/.test(q)) && p.any === false) || out.join(" ") + " " + JSON.stringify(p); });
+      await chk("CC.8c", "after 1C the same anonymous LOCK TABLE on profile_meta / profile_owners / profile_content is refused (1C removed MAINTAIN there)", async () => { const out = []; for (const t of ["profile_meta", "profile_owners", "profile_content"]) { await x.client.query("begin; set local role anon"); const l = await timed(x.client.query(`lock table public.${t} in access exclusive mode`)); await rollbackQuiet(x); out.push(t + ":" + (l.ok ? "ALLOWED" : l.code)); } return out.every((s) => /42501/.test(s)) || out.join(" "); }); });
+    // CC.8-control: NEGATIVE CONTROL with the ORIGINAL F3 pair (committed in PR #121): MAINTAIN is left, anon can lock; its regenerated rollback refuses (order-sensitive final guard) on real PG
+    await withWorld(B.S6, async (db, mk) => { const x = await mk("authenticator"), y = await mk("authenticator"), mon = await mk(); const px = await pidOf(y);
+      const O = F3_ORIG_TEXT; await db.exec("reset role; set search_path = public, extensions"); const Fo = (await db.query(O.dq)).rows[0].fingerprint; await db.exec('set search_path = "$user", public');
+      const fwr = await tx(db, O.fw.split(F3_ORIG).join(Fo));
+      await chk("CC.8-control", "NEGATIVE CONTROL: with the ORIGINAL F3 forward (PR #121 text, no REVOKE MAINTAIN) an ANONYMOUS session CAN take ACCESS EXCLUSIVE on event_media and a second anonymous read blocks (the defect R1-FIX closes)", async (m) => {
+        if (!fwr.ok) return "original forward failed on the replica: " + fwr.err;
+        await x.client.query("begin; set local role anon"); const l = await timed(x.client.query("lock table public.event_media in access exclusive mode")); if (!l.ok) { await rollbackQuiet(x); return "anon LOCK refused with the original F3: " + l.err; }
+        const rdp_ = run(y, "begin; set local role anon; select count(*)::int c from public.event_media; commit;"); await blockedOnLock(mon, px); await sleep(800); await x.client.query("commit"); const r = await rdp_; m.reader_blocked_ms = r.ms; return (r.ok && r.ms >= 700) || JSON.stringify(r); });
+      await chk("ACLO.real-control", "NEGATIVE CONTROL on the real packs: the ORIGINAL F3 forward followed by the ORIGINAL (post-1C regenerated) F3 rollback is REFUSED by its own final order-sensitive guard ('Rollback did not restore original catalog') although the privileges are semantically restored; the R1 pair (R1.exact / R1.fp-roundtrip) is accepted", async (m) => {
+        if (!fwr.ok) return "original forward failed: " + fwr.err; const before = await snapshot(db); const rbO = regen(O.rb).split(F3_ORIG).join(Fo); const r = await tx(db, rbO); const d = diffSnap(before, await snapshot(db)); m.outcome = (r.err || "applied").slice(0, 120);
+        return (!r.ok && /Rollback did not restore original catalog/.test(r.err) && d.n === 0) || JSON.stringify({ err: r.err, d: brief(d) }); }); });
+  }
+
+  if (!R1MODE) {
   // CC.8 MAINTAIN (PostgreSQL 17+): an anonymous caller can take ACCESS EXCLUSIVE on a media table and block every reader (F3 leaves MAINTAIN); the proposed mitigation closes it
   await withWorld(B.S9, async (db, mk) => { const x = await mk("authenticator"), y = await mk("authenticator"), mon = await mk(); const px = await pidOf(y);
     await chk("CC.8", "FINDING (reproduced with real concurrency): after F3 an ANONYMOUS session can run LOCK TABLE event_media IN ACCESS EXCLUSIVE MODE (MAINTAIN is still granted) and a second anonymous read blocks for as long as it holds the lock", async (m) => {
@@ -128,6 +173,7 @@ export async function realPgSuite(ctx) {
     await chk("CC.8b", "proposed mitigation (version-guarded REVOKE MAINTAIN on event_media/venue_media from anon, authenticated): the same anonymous LOCK TABLE is then refused 42501; PROPOSAL ONLY, applied to the scratch replica", async () => {
       await db.exec("revoke maintain on table public.event_media, public.venue_media from anon, authenticated"); await x.client.query("begin; set local role anon"); const l = await timed(x.client.query("lock table public.event_media in access exclusive mode")); await rollbackQuiet(x); return (!l.ok && l.code === "42501") || JSON.stringify(l); });
     await chk("CC.8c", "after 1C the same anonymous LOCK TABLE on profile_meta / profile_owners / profile_content is refused (1C removed MAINTAIN there)", async () => { const out = []; for (const t of ["profile_meta", "profile_owners", "profile_content"]) { await x.client.query("begin; set local role anon"); const l = await timed(x.client.query(`lock table public.${t} in access exclusive mode`)); await rollbackQuiet(x); out.push(t + ":" + (l.ok ? "ALLOWED" : l.code)); } return out.every((s) => /42501/.test(s)) || out.join(" "); }); });
+  }
 
   /* ---------------------------------------------------------------- (3) PostgreSQL 17 catalog behaviour on a scratch database */
   { const db = await open(); try {
@@ -148,5 +194,75 @@ export async function realPgSuite(ctx) {
       await db.exec("revoke all on function t17.f() from public, postgres, anon, authenticated, service_role; grant execute on function t17.f() to public; grant execute on function t17.f() to postgres; grant execute on function t17.f() to anon; grant execute on function t17.f() to authenticated; grant execute on function t17.f() to service_role");
       const n = (await one(db, "select proacl::text r from pg_proc where oid='t17.f()'::regprocedure")).r; m.original = o; m.after_rollback_shape = n; return (o !== n && sortedAcl(o) === sortedAcl(n)) || JSON.stringify({ o, n }); });
   } finally { await closeDb(db); } }
+  /* ---------------------------------------------------------------- (4) R1-FIX: ACL-order immunity (negative control + fix) and the pack lock (two real connections, negative control) */
+  if (R1MODE) {
+    { const db = await open(); try {
+      await db.exec("create schema acl; create table acl.t(id int, v int); create function acl.f() returns int language sql as 'select 1'");
+      const fpRel = async (sorted) => (await one(db, sorted ? `select md5(coalesce(${aclSorted("c.relacl")},'<null>')) h, ${aclSorted("c.relacl")} s from pg_class c where c.oid='acl.t'::regclass` : "select md5(coalesce(c.relacl::text,'<null>')) h, c.relacl::text s from pg_class c where c.oid='acl.t'::regclass"));
+      const fpCol = async (sorted) => (await one(db, `select md5(coalesce(${sorted ? aclSorted("a.attacl") : "a.attacl::text"},'<null>')) h from pg_attribute a where a.attrelid='acl.t'::regclass and a.attname='id'`)).h;
+      const fpFn = async (sorted) => (await one(db, `select md5(coalesce(${sorted ? aclSorted("p.proacl") : "p.proacl::text"},'<null>')) h from pg_proc p where p.oid='acl.f()'::regprocedure`)).h;
+      await db.exec("grant select on acl.t to anon; grant select on acl.t to authenticated; grant select on acl.t to service_role; grant select (id) on acl.t to anon; grant select (id) on acl.t to authenticated; grant select (id) on acl.t to service_role; revoke all on function acl.f() from public; grant execute on function acl.f() to anon, authenticated, service_role");
+      const o1 = await fpRel(false), n1 = await fpRel(true), oc1 = await fpCol(false), nc1 = await fpCol(true), of1 = await fpFn(false), nf1 = await fpFn(true);
+      await db.exec("revoke select on acl.t from anon; grant select on acl.t to anon; revoke select (id) on acl.t from anon; grant select (id) on acl.t to anon; revoke execute on function acl.f() from anon; grant execute on function acl.f() to anon");
+      const o2 = await fpRel(false), n2 = await fpRel(true), oc2 = await fpCol(false), nc2 = await fpCol(true), of2 = await fpFn(false), nf2 = await fpFn(true);
+      await chk("ACLO.1", "NEGATIVE CONTROL (this assertion FAILS under the OLD expression): hashing relacl::text / attacl::text / proacl::text gives a DIFFERENT fingerprint for the same privileges after revoke + re-grant moved the anon entry to the end (relation, column and function ACLs)", async (m) => {
+        m.rel_before = o1.s; m.rel_after_text = (await fpRel(false)).s; const oldEqual = o1.h === o2.h && oc1 === oc2 && of1 === of2; return (!oldEqual && o1.h !== o2.h && oc1 !== oc2 && of1 !== of2) || JSON.stringify({ rel: o1.h === o2.h, col: oc1 === oc2, fn: of1 === of2 }); });
+      await chk("ACLO.2", "the R1 sorted-aclitem expression gives the SAME fingerprint before and after the reorder, for relation, column and function ACLs (the assertion the old expression fails)", async (m) => { m.sorted_acl = n2.s; return (n1.h === n2.h && nc1 === nc2 && nf1 === nf2) || JSON.stringify({ rel: [n1.h, n2.h], col: [nc1, nc2], fn: [nf1, nf2] }); });
+      await chk("ACLO.3", "the sorted expression is still SENSITIVE: a real privilege change (extra INSERT for anon; a dropped function grant; a column grant removed) changes the fingerprint, and NULL (default ACL) stays distinct from an empty '{}' ACL", async () => {
+        await db.exec("grant insert on acl.t to anon"); const r = (await fpRel(true)).h !== n2.h; await db.exec("revoke execute on function acl.f() from authenticated"); const f = (await fpFn(true)) !== nf2; await db.exec("revoke select (id) on acl.t from service_role"); const c = (await fpCol(true)) !== nc2;
+        await db.exec("create table acl.n(id int); create table acl.e(id int); revoke all on acl.e from postgres");
+        const q = await one(db, `select (select ${aclSorted("c.relacl")} from pg_class c where c.oid='acl.n'::regclass) n, (select ${aclSorted("c.relacl")} from pg_class c where c.oid='acl.e'::regclass) e`);
+        return (r && f && c && q.n === null && q.e === "{}") || JSON.stringify({ r, f, c, q }); });
+    } finally { await closeDb(db); } }
+
+    /* the pack lock, with two REAL connections on a probe pack that uses the SAME lock text as every pack */
+    { const fs = await import("node:fs"), path = await import("node:path"); const { R1D } = await import("./core.mjs");
+      await chk("LK.static", "every R1 APPLY/ROLLBACK pack variant (16 files: #91 APPLY-1/1B/2 + ROLLBACK-1/1B/2, #92 APPLY-92/ROLLBACK-92, 10A APPLY-1C/APPLY-92-44col/ROLLBACK-1C/ROLLBACK-2-after-1C, F3 FORWARD/ROLLBACK, 11A install/rollback; the F3 DRIFT_QUERY and POSTCHECKS read-only files are excluded) has ONE top-level BEGIN followed IMMEDIATELY (comments aside) by exactly: SET LOCAL lock_timeout = \'5s\'; then pg_advisory_xact_lock(KEY); then SET LOCAL lock_timeout = \'5s\'; the same KEY in all of them, and no statement before BEGIN (R1 + lock_timeout follow-up: the timeout is set before the lock so it bounds the lock wait itself, and again after it)", async (m) => {
+        const files = []; const walk = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else files.push(p); } }; walk(R1D);
+        const packs = files.filter((f) => !/(DRIFT_QUERY|POSTCHECKS)/.test(f)); const bad = [];
+        for (const f of packs) { const t = fs.readFileSync(f, "utf8"); const noc = t.split("\n").filter((l) => !/^\s*--/.test(l)).join("\n"); const first = noc.match(/^\s*(begin|start transaction);\s*set local lock_timeout = '5s';\s*select pg_advisory_xact_lock\(([-0-9]+)\);\s*set local lock_timeout = '5s';/i); if (!first || first[2] !== LOCK_KEY) bad.push(path.relative(R1D, f)); }
+        m.packs = packs.length; return (packs.length === 16 && bad.length === 0) || JSON.stringify({ n: packs.length, bad }); }); }
+    const probeSql = (who, lock, tail = "", hold = 1.5) => `begin; ${lock ? (typeof lock === "string" ? lock : LOCK_SQL) : ""}\ninsert into probe(who,ev,t) values ('${who}','start',clock_timestamp()); select pg_sleep(${hold}); insert into probe(who,ev,t) values ('${who}','end',clock_timestamp()); ${tail || "commit;"}`;
+    const probeRun = async (lock, { failFirst = false, holdA = 1.5, lockB = lock } = {}) => { const db = await open(); const conns = [];
+      try { await db.exec("create table probe(who text, ev text, t timestamptz)"); const a = await conn(db), b = await conn(db), mon = await conn(db); conns.push(a, b, mon); const pa = await pidOf(a), pb = await pidOf(b);
+        const A = run(a, failFirst ? probeSql("A", lock, "select 1/0; commit;") : probeSql("A", lock, "", holdA)); await inSleep(mon, pa); const t0 = now(); const B_ = run(b, probeSql("B", lockB));
+        let waiting = []; if (lock) { await blockedOnLock(mon, pb); waiting = (await mon.client.query("select (classid::bigint*4294967296 + objid::bigint)::text k, granted from pg_locks where locktype='advisory' and pid=$1", [pb])).rows; } else await sleep(300);
+        const [ra, rb] = [await A, await B_]; await rollbackQuiet(a); await rollbackQuiet(b);
+        const rows = (await db.query("select who, ev, extract(epoch from t)::float8 e from probe order by t")).rows; const g = (w, e) => (rows.find((r) => r.who === w && r.ev === e) || {}).e;
+        const nb = (await db.query("select count(*)::int n from probe where who='B'")).rows[0].n; return { ra, rb, nb, waiting, aEnd: g("A", "end"), aStart: g("A", "start"), bStart: g("B", "start"), bEnd: g("B", "end"), ms: Math.round(now() - t0) }; } finally { for (const c of conns) await c.disconnect(); await closeDb(db); } };
+    await chk("LK.1", "TWO REAL CONNECTIONS, WITH the lock: B (same lock text as every pack) blocks on the advisory lock while A is mid-transaction (pg_locks: ungranted advisory lock, key = the pack key) and B's first statement runs only AFTER A committed (B.start >= A.end; no overlap)", async (m) => {
+      const r = await probeRun(true); m.b_wait_ms = r.ms; m.a_end_to_b_start_ms = Math.round((r.bStart - r.aEnd) * 1000);
+      return (r.ra.ok && r.rb.ok && r.waiting.length === 1 && r.waiting[0].k === LOCK_KEY && r.waiting[0].granted === false && r.bStart >= r.aEnd) || JSON.stringify(r); });
+    await chk("LK.2", "NEGATIVE CONTROL (two real connections, lock statement REMOVED): B does NOT wait; its first statement runs INSIDE A's open transaction (B.start < A.end) = the overlap the lock prevents", async (m) => {
+      const r = await probeRun(false); m.b_start_before_a_end_ms = Math.round((r.aEnd - r.bStart) * 1000);
+      return (r.ra.ok && r.rb.ok && r.bStart < r.aEnd) || JSON.stringify(r); });
+    await chk("LK.3", "the lock is released by ABORT too: A fails (division by zero) while holding the lock; B (blocked meanwhile) then proceeds and commits; nothing of A remains", async (m) => {
+      const r = await probeRun(true, { failFirst: true }); m.b_wait_ms = r.ms;
+      return (!r.ra.ok && r.ra.code === "22012" && r.rb.ok && r.waiting.length === 1 && r.waiting[0].granted === false && r.aStart === undefined && r.ms >= 1000) || JSON.stringify(r); });
+    /* lock_timeout follow-up (KODE 2026-11-10): the pack lock wait is bounded; the second runner fails cleanly with 55P03 and the first is unaffected */
+    await chk("LK.5", "TIMEOUT (two real connections, the exact lock text of every pack): A holds the pack lock ~7 s; B (blocked on the advisory lock, pg_locks shows it ungranted) fails with SQLSTATE 55P03 lock_not_available after ~5 s (4.5-6.5 s), NOT after A's ~7 s and not never; A is unaffected (commits, both its probe rows present); B left no row; the lock is free afterwards", async (m) => {
+      const r = await probeRun(true, { holdA: 7 }); m.b_fail_ms = r.rb.ms; m.b_code = r.rb.code; m.a_total_ms = r.ra.ms; m.b_probe_rows = r.nb;
+      return (r.ra.ok && r.ra.ms >= 6800 && !r.rb.ok && r.rb.code === "55P03" && /lock timeout/i.test(r.rb.err) && r.rb.ms >= 4500 && r.rb.ms <= 6500 && r.waiting.length === 1 && r.waiting[0].k === LOCK_KEY && r.waiting[0].granted === false && r.nb === 0 && r.aStart !== undefined && r.aEnd !== undefined) || JSON.stringify(r); });
+    await chk("LK.5c", "NEGATIVE CONTROL for LK.5 (what the literal 'timeout only AFTER the lock' placement would do): with the pre-lock SET LOCAL lock_timeout REMOVED (the lock followed by the timeout) B is NOT bounded: it waits out A's whole ~7 s hold (> 5 s) and then succeeds; this is why the timeout is also set BEFORE the lock", async (m) => {
+      const postOnly = LOCK_SQL.replace(LOCK_TIMEOUT_SQL + "\n" + LOCK_STMT, LOCK_STMT); if (postOnly === LOCK_SQL) throw new Error("negative-control construction failed");
+      const r = await probeRun(postOnly, { holdA: 7 }); m.b_wait_ms = r.rb.ms; m.b_ok = r.rb.ok;
+      return (r.ra.ok && r.rb.ok && r.rb.ms >= 6000 && r.bStart >= r.aEnd) || JSON.stringify(r); });
+    await withWorld(B.S0, async (db, mk) => { const a = await mk(), b = await mk(), mon = await mk(); const pa = await pidOf(a), pb = await pidOf(b);
+      const relLocksOf = async (mn, pid) => (await mn.client.query("select count(*)::int n from pg_locks where pid=$1 and locktype='relation' and relation in (select oid from pg_class where relnamespace='public'::regnamespace)", [pid])).rows[0].n;
+      const advWait = async (mn, pid) => (await mn.client.query("select 1 from pg_locks where locktype='advisory' and pid=$1", [pid])).rows;
+      await chk("LK.6", "TIMEOUT on a REAL pack (R1 APPLY-1, first run held ~7 s before COMMIT): the second APPLY-1 fails with 55P03 after ~5 s, took no public-table lock and changed nothing of its own; the first run commits normally and the catalog equals exactly ONE APPLY-1", async (m) => {
+        const one_ = await clone(B.S0); await tx(one_, A1); const snap1 = await snapshot(one_); await closeDb(one_);
+        const x = run(a, holdBeforeCommit(A1, 7)); await inSleep(mon, pa); const y = run(b, A1); await blockedOnLock(mon, pb); const rel = await relLocksOf(mon, pb);
+        const [rx, ry] = [await x, await y]; await rollbackQuiet(b); const d = diffSnap(snap1, await snapshot(db)); const left = (await advWait(mon, pb)).length; m.second_fail_ms = ry.ms; m.second_code = ry.code;
+        return (rx.ok && !ry.ok && ry.code === "55P03" && ry.ms >= 4500 && ry.ms <= 6500 && rel === 0 && d.n === 0 && left === 0) || JSON.stringify({ rx: rx.err, ry: ry.err, code: ry.code, ms: ry.ms, rel, d: brief(d), left }); }); });
+    // cross-pack, two real packs: F3 forward (held ~2 s) vs the 11A install on the same pre-F3 replica
+    await withWorld(B.S6, async (db, mk) => { const F0 = await lab.fpOf(db); const a = await mk(), b = await mk(), mon = await mk(); const pa = await pidOf(a), pb = await pidOf(b);
+      await chk("LK.4", "CROSS-PACK on the replica: the R1 F3 forward (A, held ~2 s) and the R1 11A install (B, a different pack) share the key, so B waits on the advisory lock until F3 commits; both then succeed and the end state has the F3 guard row AND can_upload_event_media", async (m) => {
+        const A = run(a, fwOf(F0, 2)); await inSleep(mon, pa); const Bp = run(b, A11_FN); await blockedOnLock(mon, pb);
+        const w = (await mon.client.query("select (classid::bigint*4294967296 + objid::bigint)::text k, granted from pg_locks where locktype='advisory' and pid=$1", [pb])).rows; const rel = (await mon.client.query("select count(*)::int n from pg_locks where pid=$1 and locktype='relation' and relation in (select oid from pg_class where relnamespace='public'::regnamespace)", [pb])).rows[0].n;
+        const ra = await A; const tA = now(); const rb = await Bp; const tB = now(); m.b_total_ms = rb.ms;
+        const st = await one(db, "select to_regclass('atlas_media_guard.rollback_guard') is not null g, to_regprocedure('public.can_upload_event_media(text)') is not null f");
+        return (ra.ok && rb.ok && w.length === 1 && w[0].k === LOCK_KEY && !w[0].granted && rel === 0 && tB >= tA && rb.ms >= 1200 && st.g && st.f) || JSON.stringify({ ra: ra.err, rb: rb.err, w, rel, st }); }); });
+  }
   return sink;
 }

@@ -1,0 +1,16 @@
+packs = orig
+pre-F3 fingerprint b1faae71667bd24370f192bacc9dec05
+after forward    53fcbb9613c38031e59880f48084b178
+after rollback   eddad633725a46e88339531c1b2f6c0e (DIFFERENT)
+  function #22 = {"acl":"{=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,postgres=X/postgres}","args":"p_slug text, p_kind text, p_media_url text, p_title text, p_source_url text","owner"
+  function #23 = {"acl":"{=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,postgres=X/postgres}","args":"p_slug text, p_kind text, p_media_url text, p_title text, p_source_url text, p_is_ar
+
+RAW: 2 differing state paths
+  /functions/22/acl
+     before: "{=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,postgres=X/postgres}"
+     after:  "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+  /functions/23/acl
+     before: "{=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,postgres=X/postgres}"
+     after:  "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+
+ACL-ORDER-NORMALISED: 0 differing state paths

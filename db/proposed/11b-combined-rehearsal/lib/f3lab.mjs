@@ -1,7 +1,7 @@
 /* lib/f3lab.mjs - D1 (drift), R1 (rollback exactness), R2 (rollback drift guards) for Atlas's F3 forward/rollback on the COMBINED pre-F3 state (after 1C).
    The forward/rollback files run as committed; the ONLY edit is the 32-hex baseline literal, replaced by the fingerprint the DRIFT_QUERY returns on the same catalog (the documented re-baseline).
    The rollback is run twice: as committed (it must REFUSE after 1C: it would re-open what 1C closed) and regenerated (profile_meta removed from its two re-grant lines).        */
-import { PGM, U, one, su, as, tx, clone, closeDb, snapshot, diffSnap, brief, collector, lit, mutate } from "./core.mjs";
+import { PGM, R1MODE, U, one, su, as, tx, clone, closeDb, snapshot, diffSnap, brief, collector, lit, mutate } from "./core.mjs";
 
 export function makeF3Lab({ F3_FW, F3_RB, F3_DQ, ORIG, regen, pre /* gz blob of the pre-F3 state */, post11A }) {
   const patch = (sql, f) => sql.split(ORIG).join(f);
@@ -41,7 +41,20 @@ export function makeF3Lab({ F3_FW, F3_RB, F3_DQ, ORIG, regen, pre /* gz blob of 
       const { db, F0, rbRegen } = await worldFwd(); try { const pre0 = await clone(pre); const snapPre = await snapshot(pre0); await closeDb(pre0); const r = await tx(db, rbRegen); if (!r.ok) return r.err;
         const d = diffSnap(snapPre, await snapshot(db)); const s = await one(db, "select (select count(*)::int from public.event_media where status='published' and event_slug like 'orphan-%') pub, exists(select 1 from pg_namespace where nspname='atlas_media_guard') g");
         return (d.n === 0 && s.pub === 19 && !s.g) || (d.n ? brief(d) : JSON.stringify(s)); } finally { await closeDb(db); } });
-    if (PGM) {   // real PostgreSQL only: judge SEMANTIC exactness separately from the fingerprint-exact check above (aclitem ENTRY ORDER differs after the rollback, see REAL-PG-REPORT.md)
+    if (PGM && R1MODE) {   // R1-FIX: the fingerprint itself is now exact across the round trip, MAINTAIN is restored exactly, and a second forward needs NO re-baseline
+      await check("R1.fp-roundtrip", "R1-FIX (real PG): DRIFT_QUERY fingerprint is order-independent: forward changes it, the regenerated rollback (all guards intact) restores EXACTLY the pre-F3 value, and the pre-F3 MAINTAIN grants on event_media/venue_media are back", async () => {
+        const { db, F0, rbRegen } = await worldFwd(); try { const F1 = await fpOf(db); const r = await tx(db, rbRegen); if (!r.ok) return r.err; const F2 = await fpOf(db);
+          const mt = async (d) => (await su(d, "select c.relname, has_table_privilege('anon',c.oid,'MAINTAIN') a, has_table_privilege('authenticated',c.oid,'MAINTAIN') u from pg_class c where c.oid in ('public.event_media'::regclass,'public.venue_media'::regclass) order by 1"));
+          const pre0 = await clone(pre); const m0 = await mt(pre0); await closeDb(pre0); const m2 = await mt(db);
+          return (F1 !== F0 && F2 === F0 && JSON.stringify(m0) === JSON.stringify(m2)) || JSON.stringify({ F0, F1, F2, m0, m2 }); } finally { await closeDb(db); } });
+      await check("R1.acl-order-immune", "R1-FIX (real PG): reordering the ACL entries of every F3-hashed relation (revoke + re-grant moves the entry to the end) does NOT change the DRIFT_QUERY fingerprint, while a real grant change still does", async () => {
+        const { db, F0 } = await worldPre(); try {
+          const before = (await su(db, "select c.relname n, c.relacl::text a from pg_class c where c.oid in ('public.event_media'::regclass,'public.venue_media'::regclass,'public.venues'::regclass,'public.app_admins'::regclass) order by 1"));
+          await db.exec(`DO $$ DECLARE r record; BEGIN FOR r IN SELECT c.oid::regclass t, a.grantee::regrole g, string_agg(a.privilege_type, ',') p FROM pg_class c, aclexplode(c.relacl) a WHERE c.oid IN ('public.event_media'::regclass,'public.venue_media'::regclass,'public.venues'::regclass,'public.app_admins'::regclass) AND a.grantee IN ('anon'::regrole,'authenticated'::regrole) AND a.grantor = c.relowner GROUP BY 1,2 LOOP EXECUTE format('revoke all on table %s from %s', r.t, r.g); EXECUTE format('grant %s on table %s to %s', r.p, r.t, r.g); END LOOP; END $$`);
+          const after = (await su(db, "select c.relname n, c.relacl::text a from pg_class c where c.oid in ('public.event_media'::regclass,'public.venue_media'::regclass,'public.venues'::regclass,'public.app_admins'::regclass) order by 1"));
+          const reordered = before.some((x, i) => x.a !== after[i].a); const F1 = await fpOf(db); await db.exec("grant truncate on public.app_users to anon; revoke truncate on public.venues from anon"); const F2 = await fpOf(db);
+          return (reordered && F1 === F0 && F2 !== F0) || JSON.stringify({ reordered, F0, F1, F2, before, after }); } finally { await closeDb(db); } }); }
+    if (PGM && !R1MODE) {   // real PostgreSQL only: judge SEMANTIC exactness separately from the fingerprint-exact check above (aclitem ENTRY ORDER differs after the rollback, see REAL-PG-REPORT.md)
       await check("R1.exact-semantic", "R1 (real PG, extra) forward then the regenerated rollback with ONLY its ORDER-sensitive final fingerprint guard bypassed (scratch) restores the pre-F3 catalog snapshot EXACTLY with sorted ACLs, the 19 orphan statuses, no guard schema", async () => {
         const { db, rbRegenNoEnd } = await worldFwd(); try { const pre0 = await clone(pre); const snapPre = await snapshot(pre0); await closeDb(pre0); const r = await tx(db, rbRegenNoEnd); if (!r.ok) return r.err;
           const d = diffSnap(snapPre, await snapshot(db)); const s = await one(db, "select (select count(*)::int from public.event_media where status='published' and event_slug like 'orphan-%') pub, exists(select 1 from pg_namespace where nspname='atlas_media_guard') g"); return (d.n === 0 && s.pub === 19 && !s.g) || (d.n ? brief(d) : JSON.stringify(s)); } finally { await closeDb(db); } });

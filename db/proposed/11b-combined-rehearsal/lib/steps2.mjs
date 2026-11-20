@@ -1,5 +1,5 @@
 /* lib/steps2.mjs - post-check blocks for 1C, F3, 11A, APPLY-2 and the client-payload replays that run at several stages of the order. */
-import { U, A22, INS19, UPD14, E45, E44, sorted, eq, su, one, as, tx, denied, colset, tp, fnp, collector, lit, diffSnap } from "./core.mjs";
+import { U, A22, INS19, UPD14, E45, E44, sorted, eq, su, one, as, tx, denied, colset, tp, fnp, collector, lit, diffSnap, PGM, R1MODE } from "./core.mjs";
 import { WEB, APP, SLUG, replay, metaWrites, seedNova, getMeta, isReset } from "./payloads.mjs";
 
 const anon = (db, sql) => as(db, "anon", "", sql), auth = (db, sub, sql) => as(db, "authenticated", sub, sql);
@@ -109,6 +109,14 @@ export async function afterF3(db, { catBefore, catAfter }) {
   await check("F3.6", "S2 quarantine and rollback guard: backup table holds 19 rows, rollback_guard 1 row, both unreadable by anon/authenticated/service_role", async () => {
     const g = await one(db, "select (select count(*)::int from atlas_media_guard.rollback_guard) g, (select count(*)::int from atlas_media_guard.orphan_event_media_backup) b");
     return g.g === 1 && g.b === 19 && denied(await auth(db, U.STR, "select * from atlas_media_guard.orphan_event_media_backup")) && denied(await anon(db, "select * from atlas_media_guard.rollback_guard")) && denied(await as(db, "service_role", "", "select * from atlas_media_guard.orphan_event_media_backup")); });
+  if (R1MODE && PGM) await check("F3.7", "R1-FIX (PG17): F3 forward revoked MAINTAIN on event_media/venue_media from PUBLIC, anon and authenticated (anon LOCK TABLE refused 42501), kept service_role/postgres untouched, and recorded EXACTLY the direct MAINTAIN grants that existed before (maintain_prior_grants == the 'm' entries of the pre-F3 snapshot)", async () => {
+    const want = []; for (const t of ["event_media", "venue_media"]) for (const e of catBefore.relations["public." + t].acl) { const m = /^[^>]+>(PUBLIC|anon|authenticated):MAINTAIN:/.exec(e); if (m) want.push(t + ":" + m[1]); }
+    const got = (await su(db, "select table_name||':'||grantee g from atlas_media_guard.maintain_prior_grants order by 1")).map((r) => r.g).sort();
+    for (const t of ["event_media", "venue_media"]) for (const r of ["anon", "authenticated"]) if (await tp(db, r, t, "MAINTAIN")) return r + " still has MAINTAIN on " + t;
+    const pub = await one(db, "select coalesce(bool_or(x.grantee=0 and x.privilege_type='MAINTAIN'),false) p from pg_class c, aclexplode(c.relacl) x where c.oid in ('public.event_media'::regclass,'public.venue_media'::regclass)"); if (pub.p) return "PUBLIC still has MAINTAIN";
+    for (const t of ["event_media", "venue_media"]) if (!(await tp(db, "service_role", t, "MAINTAIN"))) return "service_role lost MAINTAIN on " + t;
+    let lk = "ALLOWED"; for (const t of ["event_media", "venue_media"]) { try { await db.exec(`reset role; set role anon; begin; lock table public.${t} in access exclusive mode; rollback; reset role;`); lk = "ALLOWED " + t; break; } catch (e) { lk = e.code; try { await db.exec("rollback; reset role"); } catch {} } }
+    return (JSON.stringify(want.sort()) === JSON.stringify(got) && want.length > 0 && lk === "42501") || JSON.stringify({ want, got, lock: lk }); });
   return out;
 }
 

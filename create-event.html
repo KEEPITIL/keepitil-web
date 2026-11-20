@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/assets/css/tokens.css"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&family=Anton&family=Fraunces:opsz,wght@9..144,600;9..144,900&display=swap" rel="stylesheet"/>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
+<script src="/assets/js/kil-payouts.js?v=20261117a"></script>
 <style>
 /* ── Posh-parity single-page live editor (Founder 2026-07-17): the page IS the event —
    inline title, stacked add-on sections, sticky right rail. KEEPITIL tokens/copy only. ── */
@@ -300,7 +301,7 @@ var SUPA_URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ';
 var supa=window.supabase?supabase.createClient(SUPA_URL,SUPA_KEY):null;
 function $(id){return document.getElementById(id);}
-var MY_HANDLE=null, RSVP_MODE=false, HAS_PW=false;
+var MY_HANDLE=null, RSVP_MODE=false, HAS_PW=false, PAYOUT_STATUS=null;
 
 /* ── inline title/summary sync into the canonical hidden fields ── */
 function syncInline(){ $('title').value=($('title-inline').textContent||'').trim(); $('tagline').value=($('summary-inline').textContent||'').trim(); }
@@ -484,7 +485,10 @@ async function init(){
      own handle and sends non-admin events to review, so this page only checks that a handle exists. */
   var uid=s.user&&s.user.id, payok=false;
   try{ if(uid){ var q=await supa.from('app_users').select('handle,payouts_enabled').eq('id',uid).maybeSingle(); if(q&&q.data){ if(q.data.handle) MY_HANDLE=q.data.handle; payok=!!q.data.payouts_enabled; } } }catch(e){}
-  try{ if(uid && new URLSearchParams(location.search).get('payouts')==='done' && !payok){ await supa.rpc('mark_payouts_enabled'); payok=true; } }catch(e){}
+  /* Payout status comes ONLY from the server reading the account from Stripe (connect-status, proposed). Returning
+     with ?payouts=done proves nothing, so the page no longer calls mark_payouts_enabled(). If the check cannot run,
+     the stored flag (written only by the server) stands. */
+  try{ if(uid && window.KIL_PAYOUTS){ var pst=await window.KIL_PAYOUTS.refresh(window.fetch.bind(window), SUPA_URL, s.access_token); if(pst){ PAYOUT_STATUS=pst; payok=pst.verified; } } }catch(e){}
   if(!MY_HANDLE){
     $('gate').innerHTML='<h1 style="font-size:1.6rem">HOST AN EVENT</h1><p>Pick your KEEPITIL handle on your profile first. Events are listed under it.</p><a class="btn" href="/profile">Go to my profile</a>';
     $('gate').style.display='block'; return;
@@ -492,6 +496,7 @@ async function init(){
   var os=$('orgSel'); os.innerHTML='<option value="'+(MY_HANDLE||'')+'">@'+(MY_HANDLE||'me')+'</option>';
   $('form').style.display='block'; addTier();
   payoutsPanel(payok);
+  try{ if(window.KIL_PAYOUTS){ window.KIL_PAYOUTS.render(document, document.querySelector('.rail .card'), PAYOUT_STATUS); } }catch(e){}
   if(EDIT_SLUG){ await prefillEdit(); }
 }
 

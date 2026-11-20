@@ -9,6 +9,7 @@ import { registerHooks, createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 import { JSDOM } from 'jsdom';
+import { OLD_CREATE_EVENT_32FE95C } from './fixtures/create-event-32fe95c.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..', '..');
@@ -122,7 +123,7 @@ test('every function REFUSES livemode=true Stripe objects and writes nothing', a
 // ============================================================================================= the client-claim hole
 test('NEGATIVE CONTROL: the current page lets the browser mark payouts enabled; the new page does not', () => {
   const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  const oldPage = execFileSync('git', ['show', '32fe95c:create-event.html'], { cwd: ROOT, encoding: 'utf8' });
+  const oldPage = OLD_CREATE_EVENT_32FE95C; // 32fe95c:create-event.html, inlined (CI checkouts are shallow)
   const newPage = readFileSync(join(ROOT, 'create-event.html'), 'utf8');
   const claim = /rpc\(\s*'mark_payouts_enabled'\s*\)/;
   assert.match(strip(oldPage), claim, 'before: ?payouts=done makes the browser call mark_payouts_enabled()');

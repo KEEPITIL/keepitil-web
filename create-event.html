@@ -300,7 +300,7 @@ var SUPA_URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ';
 var supa=window.supabase?supabase.createClient(SUPA_URL,SUPA_KEY):null;
 function $(id){return document.getElementById(id);}
-var MY_HANDLE=null, RSVP_MODE=false, HAS_PW=false;
+var MY_HANDLE=null, RSVP_MODE=false, HAS_PW=false, PAYOUT_PENDING=false;
 
 /* ── inline title/summary sync into the canonical hidden fields ── */
 function syncInline(){ $('title').value=($('title-inline').textContent||'').trim(); $('tagline').value=($('summary-inline').textContent||'').trim(); }
@@ -484,10 +484,21 @@ async function init(){
   try{ var adm=await supa.rpc('is_admin'); if(!(adm&&adm.data)){ location.replace('/submit-event?why=keepitil-events-are-company-only'); return; } }catch(e){ location.replace('/submit-event'); return; }
   var uid=s.user&&s.user.id, payok=false;
   try{ if(uid){ var q=await supa.from('app_users').select('handle,payouts_enabled').eq('id',uid).maybeSingle(); if(q&&q.data){ if(q.data.handle) MY_HANDLE=q.data.handle; payok=!!q.data.payouts_enabled; } } }catch(e){}
-  try{ if(uid && new URLSearchParams(location.search).get('payouts')==='done' && !payok){ await supa.rpc('mark_payouts_enabled'); payok=true; } }catch(e){}
+  /* Payout status comes ONLY from the server reading the account from Stripe (connect-status). The page never
+     claims it: the old client call is revoked by the payout-flag lock (proposed/supabase/sql). Back from Stripe
+     (?payouts=done), or on any later visit while not yet payout-ready, the server re-checks the account; if Stripe
+     has not enabled payouts yet the host sees "still checking", never a false "connected". */
+  try{ if(uid && !payok){
+    var pr=await fetch(SUPA_URL+'/functions/v1/connect-status',{method:'POST',headers:{'Authorization':'Bearer '+s.access_token}});
+    var pd=pr&&pr.ok?await pr.json():null;
+    var back=new URLSearchParams(location.search).get('payouts')==='done';
+    if(pd&&pd.verified===true){ payok=true; } else if((pd&&pd.connected===true)||(!pd&&back)){ PAYOUT_PENDING=true; }
+  } }catch(e){ if(new URLSearchParams(location.search).get('payouts')==='done') PAYOUT_PENDING=true; }
   var os=$('orgSel'); os.innerHTML='<option value="'+(MY_HANDLE||'')+'">@'+(MY_HANDLE||'me')+'</option>';
   $('form').style.display='block'; addTier();
   payoutsPanel(payok);
+  if(PAYOUT_PENDING && !payok){ try{ var pc=document.querySelector('.rail .card'); if(pc){ var pn=document.createElement('p'); pn.className='note'; pn.id='payoutPending';
+    pn.textContent='Thanks, your Stripe details are in. Stripe is still checking your account; paid tickets unlock as soon as Stripe enables payouts. Come back to this page to check again.'; pc.appendChild(pn); } }catch(e){} }
   if(EDIT_SLUG){ await prefillEdit(); }
 }
 

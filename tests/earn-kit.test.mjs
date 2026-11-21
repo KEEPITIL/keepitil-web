@@ -15,8 +15,11 @@ test('the tile states the 50% / 12 months terms and carries a visible disclosure
   assert.match(s, /earn 50% commission for the first 12 months/);
   assert.match(s, /<span class="chip">Affiliate link<\/span>/);
 });
-test('tile sits outside #affGrid, which paintPartners() overwrites', () => {
+test('tile is a slide INSIDE the #affGrid carousel and paintPartners() re-appends it (Joe 2026-11-20)', () => {
   const grid = s.indexOf('id="affGrid"'), kit = s.indexOf('id="kitAffiliate"');
   assert.ok(grid > 0 && kit > grid);
-  assert.match(s.slice(grid, kit), /<\/div>\s*<!--[\s\S]*?-->\s*<div class="grid g-cards" id="affKit"/);
+  assert.ok(!/<div[^>]*id="affGrid"[^>]*><\/div>/.test(s), '#affGrid is not an empty sibling of the tile');
+  assert.ok(!/id="affKit"/.test(s), 'no standalone Kit grid');
+  assert.match(s, /KEEP_SLIDES=\['kitAffiliate'/);
+  assert.match(s, /KEEP_SLIDES\.forEach\(function\(n\)\{ grid\.appendChild\(n\); \}\);/);
 });

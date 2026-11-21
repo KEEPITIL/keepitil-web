@@ -22,7 +22,8 @@ const ORIGIN = 'https://keepitil.com';
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const PAGES = ['index.html', 'results.html', 'listing.html', 'about.html', 'privacy.html', '404.html'];
 const BUSINESS = APP + '/for-business/index.html';
-const BUSINESS_SHA256 = '337b4a6cbebab54852ea5e6c61e108865afdeea04ccbb1934b156b645c7d0db9';   // A205 (post-launch): link colour + '21+ (18+ medical where legal)' on top of the launch pin below
+const BUSINESS_SHA256 = '606b4b942866d5cd7f8c264abb6ed87a565ff1be376c390874a5f65617c5545b';   // R-J1: the two /findmyweed-join buttons point at /app/findmyweed/for-business/ (findmyweed-join.html deleted), and the /needs "Tell Us What You Need" button is removed (+ one .cta spacing rule), on top of the A205 pin below
+const BUSINESS_SHA256_A205 = '337b4a6cbebab54852ea5e6c61e108865afdeea04ccbb1934b156b645c7d0db9';   // A205 (post-launch): link colour + '21+ (18+ medical where legal)' on top of the launch pin below
 const BUSINESS_SHA256_LAUNCH = '595e06ff59e450fbb09bf5b3ae50d8cdafc503e9fefcf4dc236b3faf32009342';   // as launched: #201 minus the M201-1 robots meta and the 10% commission bullet
 const BUSINESS_SHA256_PRELAUNCH = 'e042b44d4a008e1117dc4401843906dcfd32342909a99465901496bb2f1dd343';   // #201 with M201-1 noindex
 
@@ -157,7 +158,15 @@ test('for-business/: the #201 bytes minus the M201-1 robots meta and the commiss
   // the ONLY differences from #201's pre-launch bytes: the removed robots meta and the removed "10% commission" bullet
   const COMMISSION_BULLET = '      <li>10% commission only on orders that come through us \u2014 wholesale and retail. No orders, no commission</li>\n';
   // A205: the only differences from the launched page are the link colour rule and the two age qualifiers
-  const launched = biz.toString('utf8')
+  // R-J1: the only differences from the A205 page are the two buttons that pointed at the deleted /findmyweed-join,
+  // and the removed /needs CTA button with the .cta spacing rule that keeps the button-less box even
+  const a205 = biz.toString('utf8')
+    .replace('href="https://keepitil.com/app/findmyweed/for-business/">Start Annual', 'href="https://keepitil.com/findmyweed-join">Start Annual')
+    .replace('href="https://keepitil.com/app/findmyweed/for-business/">Join the Network', 'href="https://keepitil.com/findmyweed-join">Join the Network')
+    .replace('  .cta p:last-child{margin-bottom:0}\n', '')
+    .replace(' add-ons for your brand.</p>\n', '$&    <a class="btn" href="https://keepitil.com/needs">Tell Us What You Need</a>\n');
+  assert.equal(sha(a205), BUSINESS_SHA256_A205);
+  const launched = a205
     .replace('  a{color:var(--green)}\n', '')
     .replace('>Consumers 21+ (18+ medical where legal) join free.', '>Consumers 21+ join free.')
     .replace('· Cannabis marketing services · 21+ (18+ medical where legal)', '· Cannabis marketing services · 21+ only');

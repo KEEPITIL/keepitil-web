@@ -4,7 +4,7 @@
 //   - the old marketing page lives at app/findmyweed/for-business/index.html with its title and a new canonical;
 //   - nothing deployed links to /findmyweed any more (the /findmyweed-join, -directory, -explore, -sample pages are
 //     separate files and stay);
-//   - sitemap.xml does not list /findmyweed.
+//   - sitemap.xml does not list the old /findmyweed folder (the new /app/findmyweed/ pages are listed at launch).
 // The Cloudflare 301 + X-Robots-Tag rules are a proposal only: docs/cloudflare/fmw-g2-rules.md.
 // Run: node --test assets/js/fmw-g2-paths.test.mjs
 import test from 'node:test';
@@ -54,9 +54,10 @@ export function businessProblems(html) {
   const canon = tags(html, /<link\b[^>]*rel\s*=\s*"canonical"[^>]*>/gi);
   if (canon.length !== 1 || attr(canon[0], 'href') !== 'https://keepitil.com/app/findmyweed/for-business/') p.push('canonical must be the for-business URL');
   if (/<meta\b[^>]*http-equiv\s*=\s*"refresh"/i.test(html)) p.push('business page must not redirect');
-  // Sentinel M201-1: the moved page stays out of search while Find My Weed is pre-launch.
+  // Sentinel M201-1 kept it out of search while Find My Weed was pre-launch. At launch (2026-11-21) it is indexable:
+  // no robots meta that says noindex or nofollow.
   const robots = tags(html, /<meta\b[^>]*name\s*=\s*"robots"[^>]*>/gi);
-  if (robots.length !== 1 || !/\bnoindex\b/i.test(attr(robots[0], 'content') || '') || !/\bnofollow\b/i.test(attr(robots[0], 'content') || '')) p.push('business page must be robots noindex,nofollow');
+  if (robots.some((r) => /\bnoindex\b|\bnofollow\b/i.test(attr(r, 'content') || ''))) p.push('business page must be indexable at launch (no noindex/nofollow robots meta)');
   // The page moved two folders down: a relative href/src would now point somewhere else.
   for (const m of html.matchAll(/\b(?:href|src|action)\s*=\s*"([^"]*)"/gi)) {
     const r = m[1];
@@ -99,14 +100,14 @@ test('for-business exists with the old page title and its own canonical', () => 
   assert.deepEqual(businessProblems(read(BUSINESS)), []);
 });
 
-test('M201-1: for-business is noindex,nofollow (and the checker rejects it without)', () => {
+test('launch: for-business is indexable (M201-1 noindex removed), and the checker rejects a noindex page', () => {
   const html = read(BUSINESS);
-  assert.match(html, /<meta name="robots" content="noindex,nofollow">/);
-  // NEGATIVE CONTROLS: removed, indexable, and noindex without nofollow are each refused
-  const has = (h) => businessProblems(h).some((x) => /noindex,nofollow/.test(x));
-  assert.ok(has(html.replace(/<meta name="robots"[^>]*>\n?/, '')), 'missing robots meta is caught');
-  assert.ok(has(html.replace('content="noindex,nofollow"', 'content="index,follow"')), 'index,follow is caught');
-  assert.ok(has(html.replace('content="noindex,nofollow"', 'content="noindex"')), 'noindex alone is caught');
+  assert.doesNotMatch(html, /<meta\b[^>]*name="robots"/, 'no robots meta: indexable by default');
+  // NEGATIVE CONTROLS: the old pre-launch noindex,nofollow, noindex alone and nofollow alone are each refused
+  const has = (h) => businessProblems(h).some((x) => /indexable at launch/.test(x));
+  const canon = '<link rel="canonical" href="https://keepitil.com/app/findmyweed/for-business/">';
+  for (const c of ['noindex,nofollow', 'noindex', 'nofollow']) assert.ok(has(html.replace(canon, canon + '\n<meta name="robots" content="' + c + '">')), c + ' is caught');
+  assert.equal(has(html.replace(canon, canon + '\n<meta name="robots" content="index,follow">')), false, 'CONTROL: an explicit index,follow passes');
   assert.equal(has(html), false, 'CONTROL: the real page passes');
 });
 
@@ -118,10 +119,14 @@ test('no deployed file links to /findmyweed', () => {
   assert.deepEqual(hits, []);
 });
 
-test('sitemap.xml does not list /findmyweed', () => {
+test('sitemap.xml does not list the old /findmyweed folder', () => {
   const locs = [...read('sitemap.xml').matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1]);
   assert.ok(locs.length > 0, 'sitemap has no <loc>: parse broken');
-  assert.deepEqual(locs.filter((l) => /\/findmyweed(?:\.html)?\/?$/.test(l) || /\/findmyweed\//.test(l)), []);
+  const old = (l) => /^https?:\/\/(?:www\.)?keepitil\.com\/findmyweed(?:\.html|\/.*)?$/.test(l);
+  assert.deepEqual(locs.filter(old), []);
+  // NEGATIVE CONTROLS: the old forms are caught; the launched /app/findmyweed/ pages are not
+  for (const b of ['https://keepitil.com/findmyweed', 'https://keepitil.com/findmyweed/', 'https://keepitil.com/findmyweed.html', 'https://keepitil.com/findmyweed/about.html']) assert.ok(old(b), b);
+  for (const g of ['https://keepitil.com/app/findmyweed/', 'https://keepitil.com/findmyweed-join.html']) assert.equal(old(g), false, g);
 });
 
 // ---- negative controls: each checker must FAIL on a known-bad input ----

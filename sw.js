@@ -30,10 +30,13 @@
    radio + playlist sections removed): renaming PAGES and CODE makes `activate` evict cached page
    HTML and shell JS so an installed phone cannot keep showing the SHOP tab or the popup.
    Previous: kil-pwa-v105-20260912b / kil-pages-v42 / kil-code-v85 */
-var VERSION = 'kil-pwa-v106-20261120a';
-var PAGES = 'kil-pages-v43';
+/* BUMPED AGAIN 2026-11-20 for #200 (install UI opens only on the footer link, no auto banner):
+   the shell changed after #198 shipped, so PAGES and CODE are renamed again to evict the #198
+   shell from installed phones. Previous: kil-pwa-v106-20261120a / kil-pages-v43 / kil-code-v86 */
+var VERSION = 'kil-pwa-v107-20261120b';
+var PAGES = 'kil-pages-v44';
 var ASSETS = 'kil-assets-v41';
-var CODE = 'kil-code-v86';
+var CODE = 'kil-code-v87';
 var KEEP = [VERSION, PAGES, ASSETS, CODE];
 var PAGE_LIMIT = 40;
 var PRECACHE = [

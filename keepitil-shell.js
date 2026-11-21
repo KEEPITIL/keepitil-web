@@ -793,7 +793,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
         /* The ONLY way the install prompt/steps open (see the Install block above). Absent when
            the app is already installed, because window.KIL.install is only set when it is not. */
         +(window.KIL&&window.KIL.install?'<a href="#" class="kil-install-link" data-kil-install><span class="lg-f">Install app</span><span class="lg-s">Install</span></a>':'')
-        +'<span style="margin-left:auto">©'+(new Date().getFullYear())+' KEEPITIL</span></div>'
+        +'<span style="margin-left:auto">© '+(new Date().getFullYear())+' KEEPITIL</span></div>'
         +'<p class="v3-foot-entity">KEEPITIL LLC · Garden Grove, CA</p>';
       if(RULES.nav!==false) document.body.appendChild(f);
 

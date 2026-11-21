@@ -382,9 +382,18 @@
       }).catch(function(){});
     }
   }catch(e){}
-  /* Install banner: Android/desktop via beforeinstallprompt; iOS gets a one-time Share hint. */
+  /* Install: OPENS ONLY WHEN THE USER ASKS (owner rule 2026-11-20: the KEEPITIL site has no
+     pop-ups that open by themselves). This block used to append a #kil-pwa-banner on its own:
+     from the beforeinstallprompt handler on Android/desktop Chrome, and from a 2.6s timer on
+     iOS. Now nothing is shown on load, on a timer, on scroll or on the browser event.
+     - beforeinstallprompt is still captured: preventDefault (no mini-infobar) and the event is
+       stashed in _dp so a later click can use it.
+     - The footer's "Install app" link (data-kil-install, built in build() below) is the only
+       trigger. It calls the stashed prompt() if there is one, otherwise it shows the existing
+       Add-to-Home steps (iOS Safari always, since iOS never fires the event).
+     - window.KIL.install is published only when install is possible; build() reads it, so the
+       link is absent when the app is already installed (standalone display mode). */
   try{
-    var _IK='kil-pwa-hint-2026';
     /* The capacitor:// arm is why the banner was appearing INSIDE the native app: the WKWebView
        wrapper reports neither display-mode:standalone nor navigator.standalone, so both original
        tests passed and it offered to install an app the user was already standing in. */
@@ -392,36 +401,9 @@
       ||window.navigator.standalone===true
       ||/capacitor|ionic/i.test(location.protocol);
     /* FOUNDER DIRECTIVE 2026-08-07: install UI is ON — ship the free installable PWA now,
-       native Expo app later. (Supersedes the 2026-07-16 "off until App Store launch" hold.)
-       Banner is dismissible and remembers the dismissal via localStorage key _IK. */
+       native Expo app later. (Supersedes the 2026-07-16 "off until App Store launch" hold.) */
     var _INSTALL_UI=true;
-    if(_INSTALL_UI && !_standalone && !localStorage.getItem(_IK)){
-      var _dismiss=function(){ try{localStorage.setItem(_IK,'1');}catch(e){} var b=document.getElementById('kil-pwa-banner'); if(b)b.remove(); };
-      var _show=function(msg,btnLabel,onBtn){
-        if(document.getElementById('kil-pwa-banner'))return;
-        var b=document.createElement('div'); b.id='kil-pwa-banner';
-        /* Bottom-docked, ABOVE the chat button (Founder 2026-08-21 — it was covering the middle
-           of every page on a phone).
-           History: it was bottom:104px/z-index:900 and sat UNDER the chat button, so on 2026-08-15
-           it was centred to escape by geometry. That traded a small overlap for a worse one — a
-           fixed, undismissed banner parked over the centre of the viewport on every page, following
-           the scroll, hiding whatever the visitor came to read.
-           This keeps the geometric fix and drops the collision: the banner is a full-width bar
-           stacked above the chat FAB and the bottom nav, so nothing overlaps at any z-index and
-           the content it interrupts is empty page margin instead of the middle of the feed. */
-        var _lift = 'calc(var(--kil-bnav-h,62px) + var(--kil-mbar-h,0px) + 86px + env(safe-area-inset-bottom,0px))';
-        b.style.cssText='position:fixed;left:12px;right:12px;bottom:'+_lift+';margin:0 auto;'
-          +'max-width:520px;z-index:1150;background:#12121c;border:1px solid #2a2a3a;border-radius:14px;'
-          +'padding:14px;display:flex;align-items:center;gap:10px;box-shadow:0 18px 48px rgba(0,0,0,.6);'
-          +'font-family:Inter,system-ui,sans-serif;font-size:.85rem;color:#f0f0f0';
-        b.innerHTML='<img src="/icon-192.png" alt="" style="width:34px;height:34px;border-radius:8px;flex:0 0 34px">'+
-          '<span style="flex:1;line-height:1.35">'+msg+'</span>'+
-          (btnLabel?'<button id="kil-pwa-go" style="background:linear-gradient(90deg,#00b4ff,#22e39b);color:#04121b;border:0;border-radius:9px;padding:8px 14px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap">'+btnLabel+'</button>':'')+
-          '<button id="kil-pwa-x" aria-label="Dismiss" style="background:none;border:0;color:#9aa0b0;font-size:1.1rem;cursor:pointer;padding:4px">&times;</button>';
-        document.body.appendChild(b);
-        var x=document.getElementById('kil-pwa-x'); if(x)x.addEventListener('click',_dismiss);
-        var g=document.getElementById('kil-pwa-go'); if(g&&onBtn)g.addEventListener('click',onBtn);
-      };
+    if(_INSTALL_UI && !_standalone){
       var _ios=/iphone|ipad|ipod/i.test(navigator.userAgent||'');
       var _dp=null;
       /* Full-screen step-by-step overlay for when no native prompt is available (iOS always; Android if the prompt was consumed). */
@@ -440,16 +422,27 @@
         o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='kil-pwa-instr-x'){ o.remove(); } });
         document.body.appendChild(o);
       };
-      /* The banner button ALWAYS does something: native prompt if we have it, else instructions. */
-      var _onInstall=function(){
-        if(_dp){ try{ _dp.prompt(); _dp.userChoice.then(_dismiss); _dp=null; return; }catch(e){} }
+      /* Called only from the click below. prompt() is single-use, so _dp is cleared first; a
+         second click falls back to the steps. */
+      var _openInstall=function(){
+        if(_dp){ var p=_dp; _dp=null; try{ p.prompt(); return; }catch(e){} }
         _instr();
       };
-      var _showBanner=function(){ _show('Add <b>KEEPITIL</b> to your home screen — events, scene &amp; radio, one tap away.','Install',_onInstall); };
-      window.addEventListener('beforeinstallprompt',function(ev){ ev.preventDefault(); _dp=ev; _showBanner(); });
-      window.addEventListener('appinstalled',_dismiss);
-      /* iOS never fires beforeinstallprompt, so show the banner ourselves; its button opens the instructions. */
-      if(_ios){ setTimeout(_showBanner,2600); }
+      /* Stash only. Showing anything from here is exactly what the owner rule forbids. */
+      window.addEventListener('beforeinstallprompt',function(ev){ ev.preventDefault(); _dp=ev; });
+      window.addEventListener('appinstalled',function(){
+        _dp=null;
+        try{ if(window.KIL) delete window.KIL.install; }catch(e){}
+        document.querySelectorAll('[data-kil-install]').forEach(function(a){ a.remove(); });
+      });
+      document.addEventListener('click',function(e){
+        var a=e.target&&e.target.closest&&e.target.closest('[data-kil-install]');
+        if(!a)return;
+        e.preventDefault();
+        _openInstall();
+      });
+      window.KIL=window.KIL||{};
+      window.KIL.install={open:_openInstall};
     }
   }catch(e){}
   /* ── KIL.eventDate / KIL.localDate — THE sitewide event date formatter. Added 2026-07-16.
@@ -795,7 +788,10 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
         +'<a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refund">Refunds</a>'
         +'<a href="/ticket-terms"><span class="lg-f">Ticket Terms</span><span class="lg-s">Tickets</span></a>'
         +'<a href="/community-guidelines"><span class="lg-f">Community Guidelines</span><span class="lg-s">Rules</span></a>'
-        +'<span style="margin-left:auto">© '+(new Date().getFullYear())+' KEEPITIL</span></div>'
+        /* The ONLY way the install prompt/steps open (see the Install block above). Absent when
+           the app is already installed, because window.KIL.install is only set when it is not. */
+        +(window.KIL&&window.KIL.install?'<a href="#" class="kil-install-link" data-kil-install><span class="lg-f">Install app</span><span class="lg-s">Install</span></a>':'')
+        +'<span style="margin-left:auto">©'+(new Date().getFullYear())+' KEEPITIL</span></div>'
         +'<p class="v3-foot-entity">KEEPITIL LLC · Garden Grove, CA</p>';
       if(RULES.nav!==false) document.body.appendChild(f);
 

@@ -9,6 +9,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { JSDOM, VirtualConsole } from 'jsdom';
 
 const EARN = readFileSync(new URL('../../earn/index.html', import.meta.url), 'utf8');
 const SHELL = readFileSync(new URL('../../keepitil-shell.js', import.meta.url), 'utf8');
@@ -166,4 +167,81 @@ test('NEGATIVE CONTROL: the checks fail on the pre-hotfix Earn markup', () => {
   // Inside the carousel but with the disclosure dropped: still caught.
   const noChip = '<div class="grid g-cards" id="affGrid"><a class="card aff-card" id="kitAffiliate" href="https://partners.kit.com/9goaxz09kexk" rel="noopener sponsored">Kit</a></div>';
   assert.ok(kitProblems(noChip).includes('Kit disclosure missing'));
+});
+
+/* ── Sentinel W198-1 (2026-11-20): the leftover MOBILE RADIO enhancer ──────────────────────
+   At phone width it injected empty sticky #radMTabs / #radMSecs above <main> and its touchend
+   handler threw "ReferenceError: x0 is not defined". The block is now only the body.rad-m flag.
+   Every inline <script> of /earn that mentions rad-m / touch handling is run in jsdom at phone
+   width against the real /earn markup, then a touch is dispatched and page errors are collected. */
+const inlineScripts = (html) => [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+
+export function phonePageRun(html, scripts) {
+  const errors = [];
+  const vc = new VirtualConsole();
+  vc.on('jsdomError', (e) => errors.push(String(e && (e.detail || e.message || e))));
+  const body = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
+  const dom = new JSDOM(body, { runScripts: 'outside-only', virtualConsole: vc, url: 'https://keepitil.com/earn/' });
+  const w = dom.window;
+  w.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} });
+  w.addEventListener('error', (e) => errors.push(String(e.error || e.message)));
+  for (const src of scripts) {
+    try { w.eval(src); } catch (e) { errors.push('eval: ' + e); }
+  }
+  for (const type of ['touchstart', 'touchmove', 'touchend']) {
+    const ev = new w.Event(type, { bubbles: true });
+    Object.defineProperty(ev, 'touches', { value: [{ clientX: 300, clientY: 400 }] });
+    Object.defineProperty(ev, 'changedTouches', { value: [{ clientX: 100, clientY: 400 }] });
+    w.document.body.dispatchEvent(ev);
+  }
+  return { w, errors };
+}
+const touchScripts = (html) => inlineScripts(html).filter((s) => /rad-m|touchend|radMTabs|radMSecs/.test(s));
+
+test('W198-1: /earn at phone width injects no #radMTabs/#radMSecs and a touch raises no page error', () => {
+  const scripts = touchScripts(EARN);
+  assert.ok(scripts.length >= 1, 'found the mobile layout-flag script');
+  const { w, errors } = phonePageRun(EARN, scripts);
+  assert.equal(w.document.getElementById('radMTabs'), null);
+  assert.equal(w.document.getElementById('radMSecs'), null);
+  assert.equal(w.document.getElementById('radSwToast'), null);
+  assert.ok(w.document.body.classList.contains('rad-m'), 'body.rad-m still set, so the docked radio bar stays hidden');
+  assert.deepEqual(errors, []);
+});
+
+test('W198-1: no Earn script creates the bars or reads the undeclared swipe vars', () => {
+  for (const src of inlineScripts(EARN)) {
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.ok(!/\.id\s*=\s*'(radMTabs|radMSecs|radSwToast)'/.test(code), 'bar injection');
+    assert.ok(!/\b[xy]0\b|\bt0\b/.test(code) || /\bvar\s+x0\b/.test(code), 'x0/y0/t0 used without a declaration');
+  }
+});
+
+test('NEGATIVE CONTROL W198-1: the old enhancer is caught by the phone-width run', () => {
+  // The shape that shipped on 513e5e0 (and main): bars keyed on section#earn, touchend reading x0.
+  const old = `(function(){
+  function isMob(){ try{ return window.matchMedia('(max-width:860px)').matches; }catch(e){ return false; } }
+  function sync(){ document.body.classList.toggle('rad-m', isMob()); }
+  sync(); window.addEventListener('resize', sync);
+  if(!isMob()) return;
+  var SECS = [['stations','Channel'], ['playlists','Playlist'], ['earn','VS']]
+    .filter(function(s){ return document.getElementById(s[0]); });
+  if(!SECS.length) return;
+  var idx = 0;
+  var main = document.querySelector('main.wrap'); if(!main) return;
+  var tabs = document.createElement('div'); tabs.id = 'radMTabs';
+  var secbar = document.createElement('div'); secbar.id = 'radMSecs';
+  main.parentNode.insertBefore(tabs, main);
+  main.parentNode.insertBefore(secbar, main);
+  function show(i){ idx = (i + SECS.length) % SECS.length; }
+  document.addEventListener('touchend', function(e){
+    if(x0==null) return;
+    var tt=e.changedTouches[0], dx=tt.clientX-x0, dy=tt.clientY-y0, dt=Date.now()-t0; x0=null;
+    show(idx + (dx<0 ? 1 : -1));
+  }, {passive:true});
+})();`;
+  const { w, errors } = phonePageRun(EARN, [old]);
+  assert.ok(w.document.getElementById('radMTabs'), 'old code injects #radMTabs on /earn');
+  assert.ok(w.document.getElementById('radMSecs'), 'old code injects #radMSecs on /earn');
+  assert.ok(errors.some((e) => /x0 is not defined/.test(e)), 'old touchend throws: ' + errors.join(' | '));
 });

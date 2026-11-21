@@ -797,72 +797,17 @@ document.addEventListener('click',function(e){ var dd=document.getElementById('v
 }
 </style>
 <script>
-/* MOBILE RADIO enhancer — additive, ≤860px only; returns early above that. */
+/* MOBILE LAYOUT FLAG — body.rad-m on ≤860px (it also keeps the docked radio bar hidden on Earn
+   phones, owner 2026-11-20). That is ALL this block does now.
+   REMOVED (Sentinel W198-1, 2026-11-20): the rest of the old "MOBILE RADIO enhancer". With the
+   radio and playlist sections gone it still ran because section#earn exists, injected two empty
+   sticky bars (#radMTabs 38px, #radMSecs 36px) above <main>, and its leftover touchend handler
+   read x0/y0/t0, which were never declared - "ReferenceError: x0 is not defined" on every touch.
+   Guarded by assets/js/earn-cleanup.test.mjs. */
 (function(){
   function isMob(){ try{ return window.matchMedia('(max-width:860px)').matches; }catch(e){ return false; } }
   function sync(){ document.body.classList.toggle('rad-m', isMob()); }
   sync(); window.addEventListener('resize', sync);
-  if(!isMob()) return;
-
-  /* section id -> label, using the Founder's renames */
-  var SECS = [
-    /* Founder 2026-08-18: Schedule / Apps / Games sections removed from this page. */
-    ['stations','Channel'], ['playlists','Playlist'], ['earn','VS']
-  ].filter(function(s){ return document.getElementById(s[0]); });
-  if(!SECS.length) return;
-  var idx = 0;
-
-  var main = document.querySelector('main.wrap'); if(!main) return;
-  /* Founder 2026-08-15: the mobile Feed/Radio/VS switcher is gone — all three are shell nav
-     destinations now. #radMTabs stays in the DOM because M1's safe-area fix and the section
-     bar's offset both key off it; it just renders nothing. */
-  var tabs = document.createElement('div'); tabs.id = 'radMTabs';
-  tabs.innerHTML = '';
-  /* SECTION FILTER BAR REMOVED — Founder 2026-08-20: "the mobile earn page still has filters
-     swipe left and right. that needs to be removed."
-     The element stays in the DOM and renders nothing, exactly like #radMTabs above it: M1's
-     safe-area fix and the sticky offsets below both key off these two ids, so deleting the
-     nodes would move every section up under the status bar. Empty bar, no buttons, no swipe. */
-  var secbar = document.createElement('div'); secbar.id = 'radMSecs';
-  secbar.innerHTML = '';
-  main.parentNode.insertBefore(tabs, main);
-  main.parentNode.insertBefore(secbar, main);
-
-  tabs.addEventListener('click', function(e){
-    var b = e.target.closest('button'); if(b && b.dataset.go) location.href = b.dataset.go;
-  });
-  secbar.addEventListener('click', function(e){
-    var b = e.target.closest('button'); if(b) show(Number(b.dataset.i));
-  });
-
-  function toast(t){
-    var el = document.getElementById('radSwToast');
-    if(!el){ el = document.createElement('div'); el.id='radSwToast'; document.body.appendChild(el); }
-    el.textContent = t; el.classList.add('on');
-    clearTimeout(el._t); el._t = setTimeout(function(){ el.classList.remove('on'); }, 850);
-  }
-  function show(i, quiet){
-    idx = (i + SECS.length) % SECS.length;
-    SECS.forEach(function(s, n){
-      var el = document.getElementById(s[0]);
-      if(el) el.classList.toggle('rad-on', n === idx);
-    });
-    [].forEach.call(secbar.children, function(b, n){ b.classList.toggle('on', n === idx); });
-    var active = secbar.children[idx];
-    if(active && active.scrollIntoView) active.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'});
-    if(!quiet) toast(SECS[idx][1]);
-  }
-  show(0, true);
-
-  /* Swipe-to-cycle removed with the filter bar (Founder 2026-08-20). */
-
-  document.addEventListener('touchend', function(e){
-    if(x0==null) return;
-    var tt=e.changedTouches[0], dx=tt.clientX-x0, dy=tt.clientY-y0, dt=Date.now()-t0; x0=null;
-    if(dt>700) return;
-    if(Math.abs(dx)<55 || Math.abs(dx)<Math.abs(dy)*1.7) return;
-    show(idx + (dx<0 ? 1 : -1));
-  }, {passive:true});
 })();
 </script>
 <script src="/keepitil-shell.js?v=20261120a" defer></script>

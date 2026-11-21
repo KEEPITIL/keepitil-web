@@ -15,6 +15,9 @@ export function commissionHits(text) {
   const pats = [
     /\bcommissions?\b/i, /\brevenue[- ]share\b/i, /\btake[- ]rate\b/i, /\bper[- ]order\b/i, /\bcut of\b/i, /\b\d+(?:\.\d+)?\s?% of\b/i,
     /\b\d+(?:\.\d+)?\s?%[^.<\n]{0,80}\b(?:orders?|sales?)\b/i, /\b(?:orders?|sales?)\b[^.<\n]{0,80}\b\d+(?:\.\d+)?\s?%/i,
+    // A209-2: affiliate programs and referral fees are a commission by another name. "affiliated" (as in "not
+    // affiliated with") is a different word and is not matched.
+    /\baffiliates?\b/i, /\breferral[- ]fees?\b/i,
   ];
   return pats.map((re) => (copy.match(re) || [])[0]).filter(Boolean);
 }
@@ -52,5 +55,18 @@ test('NEGATIVE CONTROLS: the removed wording and its variants are caught; CSS pe
     '<style>.x{width:100%;border:1px solid}</style><p style="width:100%">Listing $10–$50/mo</p>',
     '<p>1st in your county — $500/mo</p>', '<p>FindMyWeed never takes a cut, and your monthly recap shows every lead.</p>',
     '<p>Order of results: by distance.</p>',
+  ]) assert.deepEqual(commissionHits(ok), [], ok);
+});
+
+test('A209-2 NEGATIVE CONTROLS: affiliate and referral-fee wording fails the guard', () => {
+  for (const bad of [
+    '<p>Shops pay a referral fee when a customer finds them here.</p>',
+    'A $5 referral-fee per customer.', 'Referral fees apply.',
+    '<p>Join our affiliate program.</p>', 'Dispensary affiliates earn on every visit.',
+  ]) assert.notEqual(commissionHits(bad).length, 0, bad);
+  // the fixture with "referral fee" must make the page scan fail, not just the helper
+  assert.throws(() => assert.deepEqual(commissionHits('<p>No referral fee, ever.</p>'), []), /referral fee/);
+  for (const ok of [
+    '<p>FindMyWeed is not affiliated with any dispensary.</p>', '<p>Referrals from friends are welcome.</p>',
   ]) assert.deepEqual(commissionHits(ok), [], ok);
 });

@@ -378,3 +378,65 @@ test('layout: the 21+ shelf is separate from and never next to the kids shelf', 
   assert.deepEqual(ids(L.shelfItems({ adults: true, items: ['kaitarako', 'findmyweed'] }, byId)), ['findmyweed']);
   assert.deepEqual(ids(L.shelfItems({ items: ['kaitarako', 'findmyweed'] }, byId)), ['kaitarako']);
 });
+
+// ---------- Sentinel round 3 ----------
+
+const shelfTitles = (list) => Array.from(list, (x) => x.shelf.title);
+
+test('M199-R3-1: a shelf with no visible items is not drawn, in every tab (no empty Adults 21+ shelf while FMW is hidden)', () => {
+  const L = storeLogic();
+  const cat = JSON.parse(read(CATALOG));
+  const visById = (c) => Object.fromEntries(Array.from(L.visibleItems(c), (i) => [i.id, i]));
+  const byId = visById(cat);
+  for (const tab of Object.keys(cat.shelves)) {
+    const drawn = Array.from(L.visibleShelves(cat.shelves[tab], byId));
+    for (const x of drawn) assert.ok(x.items.length > 0, `${tab}/${x.shelf.title} drawn empty`);
+    for (const s of cat.shelves[tab]) {
+      const n = L.shelfItems(s, byId).length;
+      assert.equal(shelfTitles(drawn).includes(s.title), n > 0, `${tab}/${s.title}: drawn iff it has visible items`);
+    }
+  }
+  assert.deepEqual(shelfTitles(L.visibleShelves(cat.shelves.apps, byId)), ['For kids', 'KEEPITIL Apps'], 'no Adults 21+ shelf while FMW is hidden');
+  // store.js draws shelves only through visibleShelves.
+  const js = read(SCRIPT);
+  assert.match(js, /visibleShelves\(\(cat\.shelves && cat\.shelves\[k\]\)/);
+  assert.doesNotMatch(js, /\.forEach\(function \(s\) \{ box\.appendChild\(shelf\(s/);
+
+  // NEGATIVE CONTROL: once FMW is unhidden the same code does draw the Adults 21+ shelf.
+  const launched = clone(cat);
+  launched.items.find((i) => i.id === 'findmyweed').hidden = false;
+  assert.deepEqual(shelfTitles(L.visibleShelves(launched.shelves.apps, visById(launched))), ['For kids', 'KEEPITIL Apps', 'Adults 21+']);
+  // NEGATIVE CONTROL: a plain shelf whose items are all hidden is skipped too.
+  const allHidden = clone(cat);
+  allHidden.items.find((i) => i.id === 'kaitarako').hidden = true;
+  assert.ok(!shelfTitles(L.visibleShelves(allHidden.shelves.apps, visById(allHidden))).includes('For kids'));
+});
+
+test('search with FMW unhidden: kids rows first, then a divider, then the Adults 21+ group', () => {
+  const L = storeLogic();
+  const cat = JSON.parse(read(CATALOG));
+  const launched = clone(cat);
+  launched.items.find((i) => i.id === 'findmyweed').hidden = false;
+  // A query that matches Kai Tarako, other apps and FMW at once.
+  for (const it of launched.items) if (['kaitarako', 'tuitea', 'findmyweed'].includes(it.id)) it.keywords = [...it.keywords, 'zzshared'];
+  const seq = Array.from(L.searchLayout(L.visibleItems(launched), 'zzshared'), (e) => e.type === 'row' ? 'row:' + e.item.id : e.type);
+  assert.deepEqual(seq.slice(0, 1), ['row:kaitarako'], 'kids content first');
+  const div = seq.indexOf('divider');
+  assert.ok(div > 0, 'a divider separates the groups');
+  assert.equal(seq[div + 1], 'heading', 'the Adults 21+ heading follows the divider');
+  assert.ok(seq.indexOf('row:findmyweed') > div + 1, 'adult rows only after the divider and heading');
+  assert.ok(seq.indexOf('row:kaitarako') < div && seq.indexOf('row:tuitea') < div);
+  assert.equal(Array.from(L.searchLayout(L.visibleItems(launched), 'zzshared')).find((e) => e.type === 'heading').text, 'Adults 21+');
+  // store.js draws the divider.
+  assert.match(read(SCRIPT), /el\('hr', 'search-divider'\)/);
+  assert.match(read(STORE), /\.search-divider\{/);
+
+  // CONTROLS: no adult results -> no divider or heading, and the usual order (kids not forced first).
+  const noAdults = Array.from(L.searchLayout(L.visibleItems(launched), ''), (e) => e.type);
+  assert.ok(!noAdults.includes('divider') && !noAdults.includes('heading'));
+  const hiddenSeq = Array.from(L.searchLayout(L.visibleItems(cat), 'zzshared'), (e) => e.type);
+  assert.ok(!hiddenSeq.includes('divider'), 'while FMW is hidden there is no 21+ group at all');
+  // CONTROL: a layout that put an adult row before the divider would be caught by the checks above.
+  const planted = ['row:findmyweed', 'divider', 'heading', 'row:kaitarako'];
+  assert.ok(!(planted.indexOf('row:findmyweed') > planted.indexOf('divider') + 1));
+});

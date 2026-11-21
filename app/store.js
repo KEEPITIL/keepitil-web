@@ -58,7 +58,32 @@
       if (!terms.every(function (t) { return h.indexOf(t) >= 0; })) return;
       if (it.adults) { if (terms.length) out.adults.push(it); } else out.main.push(it);
     });
+    // When a 21+ group is shown, kids items lead the main results (furthest from the 21+ group).
+    if (out.adults.length) {
+      out.main = out.main.filter(function (it) { return !!it.kids; })
+        .concat(out.main.filter(function (it) { return !it.kids; }));
+    }
     return out;
+  }
+
+  // What the search panel draws, in order: rows of main results, then (only when there are adult
+  // results) a divider, the "Adults 21+" heading and the adult rows.
+  function searchLayout(items, q) {
+    var g = searchGroups(items, q);
+    var seq = g.main.map(function (it) { return { type: 'row', item: it }; });
+    if (g.adults.length) {
+      seq.push({ type: 'divider' });
+      seq.push({ type: 'heading', text: 'Adults 21+' });
+      g.adults.forEach(function (it) { seq.push({ type: 'row', item: it }); });
+    }
+    return seq;
+  }
+
+  // Shelves to draw for one tab: each with the items it may show. A shelf with nothing visible
+  // (for example the Adults 21+ shelf while its only item is hidden) is skipped entirely.
+  function visibleShelves(list, byId) {
+    return (list || []).map(function (s) { return { shelf: s, items: shelfItems(s, byId) }; })
+      .filter(function (x) { return x.items.length > 0; });
   }
 
   // Layout rules checked against the WHOLE catalog, hidden items included, so the launch state is
@@ -97,7 +122,8 @@
   }
 
   var LOGIC = { safePath: safePath, visibleItems: visibleItems, shelfItems: shelfItems, placeable: placeable,
-    searchGroups: searchGroups, layoutProblems: layoutProblems };
+    searchGroups: searchGroups, searchLayout: searchLayout, visibleShelves: visibleShelves,
+    layoutProblems: layoutProblems };
   if (typeof document === 'undefined') { globalThis.KILStoreLogic = LOGIC; return; }
 
   function el(tag, cls, text) {
@@ -200,14 +226,14 @@
     return wrap;
   }
 
-  function shelf(s, byId) {
+  function shelf(s, items) {
     var sec = el('section', 'shelf');
     var h = el('h3', null, s.title + ' ');
     h.appendChild(el('span', 'chev', '›'));
     sec.appendChild(h);
     if (s.subtitle) sec.appendChild(el('p', 'sub', s.subtitle));
     var track = el('div', 'track');
-    shelfItems(s, byId).forEach(function (it) { track.appendChild(row(it)); });
+    items.forEach(function (it) { track.appendChild(row(it)); });
     sec.appendChild(track);
     return sec;
   }
@@ -255,15 +281,15 @@
     var label = document.getElementById('search-label');
     function render() {
       var q = input.value.trim();
-      var g = searchGroups(items, q);
+      var seq = searchLayout(items, q);
       label.textContent = q ? 'Results' : 'Suggested';
       out.textContent = '';
-      if (!g.main.length && !g.adults.length) { out.appendChild(el('p', 'empty', 'Nothing matches \u201C' + q + '\u201D yet.')); return; }
-      g.main.forEach(function (it) { out.appendChild(row(it)); });
-      if (g.adults.length) {
-        out.appendChild(el('h3', 'search-sub', 'Adults 21+'));
-        g.adults.forEach(function (it) { out.appendChild(row(it)); });
-      }
+      if (!seq.length) { out.appendChild(el('p', 'empty', 'Nothing matches \u201C' + q + '\u201D yet.')); return; }
+      seq.forEach(function (e) {
+        if (e.type === 'row') out.appendChild(row(e.item));
+        else if (e.type === 'divider') { var hr = el('hr', 'search-divider'); hr.setAttribute('aria-hidden', 'true'); out.appendChild(hr); }
+        else if (e.type === 'heading') out.appendChild(el('h3', 'search-sub', e.text));
+      });
     }
     input.addEventListener('input', render);
     document.querySelectorAll('[data-goto]').forEach(function (b) {
@@ -298,7 +324,7 @@
       var f = cat.features && cat.features[k];
       if (f && placeable(byId[f.item])) slot('feature-' + k).appendChild(feature(f, byId[f.item]));
       var box = slot('shelves-' + k);
-      ((cat.shelves && cat.shelves[k]) || []).forEach(function (s) { box.appendChild(shelf(s, byId)); });
+      visibleShelves((cat.shelves && cat.shelves[k]) || [], byId).forEach(function (x) { box.appendChild(shelf(x.shelf, x.items)); });
     });
 
     wireSearch(items);

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "KEEPITIL storefront catalog. Only real KEEPITIL apps and games that already have a page on keepitil.com. Every href, icon and image is a root-relative path to a file in this repo (assets/js/app-store.test.mjs checks it). No prices, ratings or reviews. Kids items link only to their own page.",
+  "note": "KEEPITIL Apps catalog. Only real KEEPITIL apps and games that already have a page on keepitil.com. Every href, icon and image is a root-relative path to a file in this repo (the /app/ test in assets/js checks it). No prices, ratings or reviews. Kids items link only to their own page.",
   "items": [
     {
       "id": "kmob",
@@ -85,12 +85,12 @@
       "kind": "app",
       "name": "WiFi Remote",
       "subtitle": "A remote for your smart TV",
-      "description": "Turn your iPhone into a fast, reliable remote for your smart TV. Finds the TVs on your Wi-Fi automatically.",
+      "description": "Turn your phone into a fast, reliable remote for your smart TV. Finds the TVs on your Wi-Fi automatically.",
       "icon": "/assets/games-hub/wifi-remote-icon.jpg",
       "href": "/wifi-remote.html",
       "cta": "Get",
       "status": "store",
-      "caption": "iPhone",
+      "caption": "Phone",
       "keywords": ["tv", "remote", "roku", "lg", "samsung"]
     },
     {

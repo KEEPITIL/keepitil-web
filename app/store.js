@@ -1,4 +1,4 @@
-// KEEPITIL storefront (/app/). Renders /app/catalog.json into the Today, Apps, Games and Search
+// KEEPITIL Apps (/app/). Renders /app/catalog.json into the Today, Apps, Games and Search
 // panels of /app/index.html. Same-origin only: the catalog is the one network request, every link
 // is a root-relative path on keepitil.com, and text is set with textContent (no HTML parsing).
 // No analytics, no storage, no third-party calls.

@@ -4,16 +4,15 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>KEEPITIL App Store - Apps and games from KEEPITIL</title>
+<title>KEEPITIL Apps - Apps and games from KEEPITIL</title>
 <meta name="description" content="Apps and games from KEEPITIL in one place. Play KMOB and KBeats in your browser, open TUITEA, and see what is coming next.">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="/icon-192.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="canonical" href="https://keepitil.com/app/"/>
-<meta property="og:title" content="KEEPITIL App Store">
+<meta property="og:title" content="KEEPITIL Apps">
 <meta property="og:description" content="Apps and games from KEEPITIL.">
 <!--
-  KEEPITIL STOREFRONT (/app/). Layout follows a phone app-store pattern: segmented top tabs
+  KEEPITIL APPS (/app/). Layout: segmented top tabs
   (Today | Apps | Games | Search), big editorial cards on Today, shelves of rows on Apps/Games,
   and a client-side search over the catalog. No bottom tab bar on this page.
   Content comes only from /app/catalog.json (rendered by /app/store.js). No third-party scripts,
@@ -27,7 +26,7 @@
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{background:var(--bg)}
-  body{color:var(--ink);font-family:'Space Grotesk','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  body{color:var(--ink);font-family:'Space Grotesk','Inter',system-ui,'Segoe UI',Roboto,sans-serif;
        min-height:100vh;overflow-x:hidden;
        background:
          radial-gradient(900px 480px at 12% -6%,rgba(139,92,246,.16),transparent 70%),
@@ -146,12 +145,12 @@
 <body>
 <div class="wrap">
   <header class="top">
-    <div class="brand"><a href="/">KEEP<span>ITIL</span> &middot; APP STORE</a></div>
+    <div class="brand"><a href="/">KEEP<span>ITIL</span> &middot; APPS</a></div>
     <a class="home" href="/">&larr; keepitil.com</a>
   </header>
 
   <div class="seg-wrap">
-    <div class="seg" role="tablist" aria-label="Store sections">
+    <div class="seg" role="tablist" aria-label="KEEPITIL Apps sections">
       <button type="button" role="tab" id="tab-today" data-tab="today" aria-controls="panel-today" aria-selected="true">Today</button>
       <button type="button" role="tab" id="tab-apps" data-tab="apps" aria-controls="panel-apps" aria-selected="false" tabindex="-1">Apps</button>
       <button type="button" role="tab" id="tab-games" data-tab="games" aria-controls="panel-games" aria-selected="false" tabindex="-1">Games</button>
@@ -195,11 +194,11 @@
     </section>
 
     <noscript>
-      <p class="empty">The store needs JavaScript to show the catalog. You can still browse <a href="/games/">KEEPITIL Games</a> and <a href="/apps/">KEEPITIL Apps</a>.</p>
+      <p class="empty">This page needs JavaScript to show the catalog. You can still browse <a href="/games/">KEEPITIL Games</a> and <a href="/apps/">KEEPITIL Apps</a>.</p>
     </noscript>
   </main>
 
-  <aside class="dev-note">Building something? <a href="/app/submit/">Find out how to get your app listed</a> on the KEEPITIL store.</aside>
+  <aside class="dev-note">Building something? <a href="/app/submit/">Find out how to get your app listed</a> on KEEPITIL Apps.</aside>
 
   <footer>&copy; KEEPITIL &middot; <a href="/">keepitil.com</a> &middot; <a href="/games/">Games</a> &middot; <a href="/apps/">Apps</a></footer>
 </div>

@@ -54,6 +54,9 @@ export function businessProblems(html) {
   const canon = tags(html, /<link\b[^>]*rel\s*=\s*"canonical"[^>]*>/gi);
   if (canon.length !== 1 || attr(canon[0], 'href') !== 'https://keepitil.com/app/findmyweed/for-business/') p.push('canonical must be the for-business URL');
   if (/<meta\b[^>]*http-equiv\s*=\s*"refresh"/i.test(html)) p.push('business page must not redirect');
+  // Sentinel M201-1: the moved page stays out of search while Find My Weed is pre-launch.
+  const robots = tags(html, /<meta\b[^>]*name\s*=\s*"robots"[^>]*>/gi);
+  if (robots.length !== 1 || !/\bnoindex\b/i.test(attr(robots[0], 'content') || '') || !/\bnofollow\b/i.test(attr(robots[0], 'content') || '')) p.push('business page must be robots noindex,nofollow');
   // The page moved two folders down: a relative href/src would now point somewhere else.
   for (const m of html.matchAll(/\b(?:href|src|action)\s*=\s*"([^"]*)"/gi)) {
     const r = m[1];
@@ -94,6 +97,17 @@ for (const f of STUBS) {
 test('for-business exists with the old page title and its own canonical', () => {
   assert.ok(fs.existsSync(path.join(ROOT, BUSINESS)), BUSINESS + ' is missing');
   assert.deepEqual(businessProblems(read(BUSINESS)), []);
+});
+
+test('M201-1: for-business is noindex,nofollow (and the checker rejects it without)', () => {
+  const html = read(BUSINESS);
+  assert.match(html, /<meta name="robots" content="noindex,nofollow">/);
+  // NEGATIVE CONTROLS: removed, indexable, and noindex without nofollow are each refused
+  const has = (h) => businessProblems(h).some((x) => /noindex,nofollow/.test(x));
+  assert.ok(has(html.replace(/<meta name="robots"[^>]*>\n?/, '')), 'missing robots meta is caught');
+  assert.ok(has(html.replace('content="noindex,nofollow"', 'content="index,follow"')), 'index,follow is caught');
+  assert.ok(has(html.replace('content="noindex,nofollow"', 'content="noindex"')), 'noindex alone is caught');
+  assert.equal(has(html), false, 'CONTROL: the real page passes');
 });
 
 test('no deployed file links to /findmyweed', () => {

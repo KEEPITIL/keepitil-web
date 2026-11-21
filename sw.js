@@ -40,10 +40,15 @@
 /* BUMPED 2026-11-21 for the Find My Weed web 1.0 launch drop-in (app/findmyweed/ replaced; the
    root worker already skips /app/findmyweed/, so this only evicts any page HTML or shell code a
    phone cached around the old pre-launch build). Previous: kil-pwa-v108-20261120c / kil-pages-v45 / kil-code-v88 */
-var VERSION = 'kil-pwa-v109-20261121a';
-var PAGES = 'kil-pages-v46';
+/* BUMPED AGAIN 2026-11-21 for the Kai Tarako web rebuild (app/kaitarako/ from kai-tarako main ddcdab47:
+   US spelling, solid colors, corrected privacy text), on top of #205's FMW bump. All three names are new and
+   never shipped, so installed phones drop cached page HTML and shell code once more. Kai Tarako keeps its own
+   worker and kai-tarako-* caches (scope app/kaitarako/).
+   Previous on main: kil-pwa-v109-20261121a / kil-pages-v46 / kil-code-v89 */
+var VERSION = 'kil-pwa-v110-20261121a';
+var PAGES = 'kil-pages-v47';
 var ASSETS = 'kil-assets-v41';
-var CODE = 'kil-code-v89';
+var CODE = 'kil-code-v90';
 var KEEP = [VERSION, PAGES, ASSETS, CODE];
 var PAGE_LIMIT = 40;
 var PRECACHE = [

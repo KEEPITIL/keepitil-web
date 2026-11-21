@@ -10,16 +10,23 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
+export const PATTERNS = {
+  commission: /\bcommissions?\b/i,
+  revenueShare: /\brevenue[- ]share\b/i,
+  takeRate: /\btake[- ]rate\b/i,
+  perOrder: /\bper[- ]order\b/i,
+  cutOf: /\bcut of\b/i,
+  percentOf: /\b\d+(?:\.\d+)?\s?% of\b/i,
+  percentThenOrder: /\b\d+(?:\.\d+)?\s?%[^.<\n]{0,80}\b(?:orders?|sales?)\b/i,
+  orderThenPercent: /\b(?:orders?|sales?)\b[^.<\n]{0,80}\b\d+(?:\.\d+)?\s?%/i,
+  // A209-2 / M211-1: affiliate programs and referral fees are a commission by another name. "affiliated" (as in "not
+  // affiliated with") and "Referrals" are different words and are not matched.
+  affiliate: /\baffiliates?\b/i,
+  referralFee: /\breferral[- ]fees?\b/i,
+};
 export function commissionHits(text) {
   const copy = String(text).replace(/<style\b[\s\S]*?<\/style>/gi, ' ').replace(/\sstyle="[^"]*"/gi, ' ');
-  const pats = [
-    /\bcommissions?\b/i, /\brevenue[- ]share\b/i, /\btake[- ]rate\b/i, /\bper[- ]order\b/i, /\bcut of\b/i, /\b\d+(?:\.\d+)?\s?% of\b/i,
-    /\b\d+(?:\.\d+)?\s?%[^.<\n]{0,80}\b(?:orders?|sales?)\b/i, /\b(?:orders?|sales?)\b[^.<\n]{0,80}\b\d+(?:\.\d+)?\s?%/i,
-    // A209-2: affiliate programs and referral fees are a commission by another name. "affiliated" (as in "not
-    // affiliated with") is a different word and is not matched.
-    /\baffiliates?\b/i, /\breferral[- ]fees?\b/i,
-  ];
-  return pats.map((re) => (copy.match(re) || [])[0]).filter(Boolean);
+  return Object.values(PATTERNS).map((re) => (copy.match(re) || [])[0]).filter(Boolean);
 }
 
 function fmwFiles() {
@@ -58,15 +65,38 @@ test('NEGATIVE CONTROLS: the removed wording and its variants are caught; CSS pe
   ]) assert.deepEqual(commissionHits(ok), [], ok);
 });
 
-test('A209-2 NEGATIVE CONTROLS: affiliate and referral-fee wording fails the guard', () => {
-  for (const bad of [
-    '<p>Shops pay a referral fee when a customer finds them here.</p>',
-    'A $5 referral-fee per customer.', 'Referral fees apply.',
-    '<p>Join our affiliate program.</p>', 'Dispensary affiliates earn on every visit.',
-  ]) assert.notEqual(commissionHits(bad).length, 0, bad);
-  // the fixture with "referral fee" must make the page scan fail, not just the helper
-  assert.throws(() => assert.deepEqual(commissionHits('<p>No referral fee, ever.</p>'), []), /referral fee/);
+// A205-8 (Sentinel): a negative control for EACH pattern on its own. Each sample must be caught by the pattern it is named
+// for, so removing or weakening any single pattern fails here, even if another pattern would still catch the sample.
+const PER_PATTERN = {
+  commission: ['10% commission only on orders that come through us', 'No orders, no commission'],
+  revenueShare: ['A small revenue share on every booking.', 'We take a revenue-share.'],
+  takeRate: ['Our take rate is low.', 'A take-rate applies.'],
+  perOrder: ['A $2 per-order fee.', 'Pay per order.'],
+  cutOf: ['We never take a cut of your orders.', 'A cut of the deal goes to us.'],
+  percentOf: ['We keep 5% of the total.', 'Pay 2.5 % of each invoice.'],
+  percentThenOrder: ['the 10% applies to orders through the network', '3% on every sale'],
+  orderThenPercent: ['Orders placed here pay 7.5%.', 'Sales through us cost 4 %.'],
+  affiliate: ['Join our affiliate program.', 'Dispensary affiliates earn on every visit.', 'An Affiliate link pays us.'],
+  referralFee: ['Shops pay a referral fee when a customer finds them here.', 'A $5 referral-fee per customer.', 'Referral fees apply.'],
+};
+test('A205-8: every pattern has its own negative controls, and each control is caught by THAT pattern', () => {
+  assert.deepEqual(Object.keys(PER_PATTERN).sort(), Object.keys(PATTERNS).sort(), 'one control set per pattern');
+  for (const [name, samples] of Object.entries(PER_PATTERN)) {
+    for (const s of samples) {
+      assert.ok(PATTERNS[name].test(s), name + ' catches: ' + s);
+      assert.notEqual(commissionHits('<p>' + s + '</p>').length, 0, 'the full scan catches: ' + s);
+    }
+  }
+  // and each pattern stays quiet on clean copy (a pattern that matched everything would pass the loop above)
+  const clean = '<p>Listing $10–$50/mo. 1st in your county — $500/mo. Order of results: by distance. 100% licensed. ' +
+    'FindMyWeed is not affiliated with any dispensary. Referrals from friends are welcome.</p>';
+  for (const [name, re] of Object.entries(PATTERNS)) assert.equal(re.test(clean.replace(/<[^>]+>/g, ' ')), false, name + ' on clean copy');
+});
+
+// M211-1: the clean controls for the two A209-2 patterns stay clean through the full scan, not only per pattern.
+test('A209-2 CLEAN CONTROLS: "affiliated" and "Referrals" are not affiliate / referral-fee wording', () => {
   for (const ok of [
     '<p>FindMyWeed is not affiliated with any dispensary.</p>', '<p>Referrals from friends are welcome.</p>',
+    '<p>Unaffiliated, independent listings.</p>', '<p>Referral program coming soon.</p>',
   ]) assert.deepEqual(commissionHits(ok), [], ok);
 });

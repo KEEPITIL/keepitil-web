@@ -1,8 +1,9 @@
 // Find My Weed web app drop-in at /app/findmyweed/ (merges together with #201, which put the old marketing page at
 // app/findmyweed/for-business/ and turned /findmyweed into redirect stubs to /app/findmyweed/).
-//   - app/findmyweed/index.html exists and is the pre-launch build: noindex,nofollow, launched false;
+//   - app/findmyweed/index.html exists and is the LAUNCHED build (find-my-weed launch/web-1.0): index,follow, launched true,
+//     the real share image, open browsing (no age prompt script, no under-21 exit page), a sitemap of its static pages;
 //   - every src/href in the app's pages resolves under /app/findmyweed/ and to a file that is in the drop-in;
-//   - for-business/ is untouched (same bytes as #201 @faf2495, after M201-1) and shares no file name with the drop-in;
+//   - for-business/ is #201's page minus its M201-1 noindex (indexable at launch), and shares no file name with the drop-in;
 //   - the root service worker (sw.js, scope /) leaves /app/findmyweed/* alone, like /app/tuitea/ and /app/kaitarako/.
 // Each rule has a NEGATIVE CONTROL that runs the same checker on a planted bad input.
 // Run: node --test assets/js/fmw-app-dropin.test.mjs
@@ -19,9 +20,10 @@ const APP = 'app/findmyweed';
 const PREFIX = '/' + APP + '/';
 const ORIGIN = 'https://keepitil.com';
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
-const PAGES = ['index.html', 'results.html', 'listing.html', 'about.html', 'privacy.html', 'under21.html', '404.html'];
+const PAGES = ['index.html', 'results.html', 'listing.html', 'about.html', 'privacy.html', '404.html'];
 const BUSINESS = APP + '/for-business/index.html';
-const BUSINESS_SHA256 = 'e042b44d4a008e1117dc4401843906dcfd32342909a99465901496bb2f1dd343';   // #201 @faf2495 (M201-1 noindex)
+const BUSINESS_SHA256 = '595e06ff59e450fbb09bf5b3ae50d8cdafc503e9fefcf4dc236b3faf32009342';   // #201 @faf2495 minus the M201-1 robots meta (FMW launch) and minus the 10% commission bullet (Joe via Muse 03:56, 4 CCR 15415.1)
+const BUSINESS_SHA256_PRELAUNCH = 'e042b44d4a008e1117dc4401843906dcfd32342909a99465901496bb2f1dd343';   // #201 with M201-1 noindex
 
 // ---- checkers (pure, so the negative controls exercise the exact same code) ----
 
@@ -40,10 +42,11 @@ export function linkProblems(html, file) {
   }
   return p;
 }
-/** Problems with the pre-launch state of a page. */
-export function noindexProblems(html, file) {
-  const m = html.match(/<meta\s+name="robots"\s+content="([^"]*)"\s*\/?>/i);
-  return m && /\bnoindex\b/.test(m[1]) && /\bnofollow\b/.test(m[1]) ? [] : [file + ': no robots noindex,nofollow meta'];
+/** Problems with the launched state of a page: exactly one robots meta, and it is index,follow. */
+export function indexableProblems(html, file) {
+  const all = [...html.matchAll(/<meta\s+name="robots"\s+content="([^"]*)"\s*\/?>/gi)];
+  if (all.length !== 1) return [file + ': expected one robots meta, found ' + all.length];
+  return /\bnoindex\b|\bnofollow\b/.test(all[0][1]) || !/\bindex\b/.test(all[0][1]) ? [file + ': robots is "' + all[0][1] + '", not index,follow'] : [];
 }
 
 function swWorker() {
@@ -74,20 +77,47 @@ function intercepted(handlers, route, mode) {
 // ---- the drop-in ----
 
 test('app/findmyweed/index.html exists, with the rest of the built app beside it', () => {
-  for (const f of [...PAGES, 'robots.txt', 'sitemap.xml', 'data/listings.json', 'js/site-config.js', 'css/fmw.css']) {
+  for (const f of [...PAGES, 'robots.txt', 'sitemap.xml', 'data/listings.json', 'js/site-config.js', 'css/fmw.css', 'img/og.png']) {
     assert.ok(fs.statSync(path.join(ROOT, APP, f)).isFile(), APP + '/' + f);
   }
   assert.equal(fs.existsSync(path.join(ROOT, APP, '.fmw-build')), false, 'the build marker is not committed');
 });
 
-test('pre-launch: every page is noindex,nofollow, the switch says draft, robots.txt disallows all', () => {
-  for (const f of PAGES) assert.deepEqual(noindexProblems(read(APP + '/' + f), f), []);
-  assert.match(read(APP + '/js/site-config.js'), /var CONFIG = \{ launched: false, reportForm: false, basePath: "\/app\/findmyweed" \};/);
-  assert.match(read(APP + '/robots.txt'), /^Disallow: \/$/m);
-  assert.doesNotMatch(read(APP + '/sitemap.xml'), /<loc>/, 'empty sitemap while pre-launch');
-  // NEGATIVE CONTROLS
-  assert.equal(noindexProblems(read(APP + '/index.html').replace(/<meta name="robots"[^>]*>/, ''), 'index.html').length, 1);
-  assert.equal(noindexProblems('<meta name="robots" content="index,follow">', 'x.html').length, 1);
+test('launched: every page is index,follow, the switch says launched, robots.txt allows all and names the sitemap', () => {
+  for (const f of PAGES) assert.deepEqual(indexableProblems(read(APP + '/' + f), f), []);
+  assert.match(read(APP + '/js/site-config.js'), /var CONFIG = \{ launched: true, reportForm: false, basePath: "\/app\/findmyweed" \};/);
+  const robots = read(APP + '/robots.txt');
+  assert.match(robots, /^Allow: \/$/m);
+  assert.doesNotMatch(robots, /Disallow/);
+  assert.match(robots, /^Sitemap: https:\/\/keepitil\.com\/app\/findmyweed\/sitemap\.xml$/m);
+  const locs = [...read(APP + '/sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  assert.deepEqual(locs, [ORIGIN + PREFIX, ORIGIN + PREFIX + 'about.html', ORIGIN + PREFIX + 'privacy.html']);
+  // the real share image, never the placeholder; open browsing (no age prompt, no exit page)
+  for (const f of PAGES) {
+    const h = read(APP + '/' + f);
+    assert.match(h, /<meta property="og:image" content="https:\/\/keepitil\.com\/app\/findmyweed\/img\/og\.png">/, f);
+    assert.doesNotMatch(h, /og-placeholder|agegate/, f);
+  }
+  for (const gone of ['img/og-placeholder.png', 'js/agegate.js', 'under21.html']) assert.equal(fs.existsSync(path.join(ROOT, APP, gone)), false, gone + ' is gone');
+  // NEGATIVE CONTROLS: a noindex page, a missing robots meta and a doubled one are each caught
+  const idx = read(APP + '/index.html');
+  assert.equal(indexableProblems(idx.replace('content="index,follow"', 'content="noindex,nofollow"'), 'index.html').length, 1, 'noindex');
+  assert.equal(indexableProblems(idx.replace(/<meta name="robots"[^>]*>/, ''), 'index.html').length, 1, 'missing');
+  assert.equal(indexableProblems(idx.replace(/(<meta name="robots"[^>]*>)/, '$1$1'), 'index.html').length, 1, 'doubled');
+  assert.deepEqual(indexableProblems(idx, 'index.html'), [], 'CONTROL: the real page passes');
+});
+
+test('the root sitemap lists the launched app pages and for-business, and nothing else under /app/findmyweed/', () => {
+  const locs = [...read('sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  const fmw = locs.filter((l) => l.startsWith(ORIGIN + PREFIX));
+  const appMap = [...read(APP + '/sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  assert.deepEqual(fmw, [...appMap, ORIGIN + PREFIX + 'for-business/'], 'the app sitemap\'s pages, then for-business');
+  for (const l of fmw) {
+    let rel = l.slice(ORIGIN.length + 1); if (rel.endsWith('/')) rel += 'index.html';
+    assert.ok(fs.existsSync(path.join(ROOT, rel)), l + ' is a real file');
+  }
+  // NEGATIVE CONTROL: a listed page that does not exist is caught by the same file check
+  assert.equal(fs.existsSync(path.join(ROOT, APP, 'under21.html')), false);
 });
 
 test('every asset and link URL in the app resolves under /app/findmyweed/ and to a file in the drop-in', () => {
@@ -115,10 +145,17 @@ test('every asset and link URL in the app resolves under /app/findmyweed/ and to
   assert.deepEqual(linkProblems('<link href="/app/findmyweed/css/fmw.css">', '404.html'), [], 'CONTROL: the right prefix passes');
 });
 
-test('for-business/ is untouched: same bytes as #201, only its index.html, no shared file names', () => {
+test('for-business/: the #201 bytes minus the M201-1 robots meta and the commission bullet, only its index.html, no shared file names', () => {
   assert.deepEqual(fs.readdirSync(path.join(ROOT, APP, 'for-business')), ['index.html']);
   const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
-  assert.equal(sha(fs.readFileSync(path.join(ROOT, BUSINESS))), BUSINESS_SHA256, BUSINESS + ' changed (if #201 changed it on purpose, update the pin)');
+  const biz = fs.readFileSync(path.join(ROOT, BUSINESS));
+  assert.equal(sha(biz), BUSINESS_SHA256, BUSINESS + ' changed (if it changed on purpose, update the pin)');
+  // the ONLY differences from #201's pre-launch bytes: the removed robots meta and the removed "10% commission" bullet
+  const COMMISSION_BULLET = '      <li>10% commission only on orders that come through us \u2014 wholesale and retail. No orders, no commission</li>\n';
+  const back = biz.toString('utf8')
+    .replace('<link rel="canonical" href="https://keepitil.com/app/findmyweed/for-business/">\n', '$&<meta name="robots" content="noindex,nofollow">\n')
+    .replace('      <li>Your brand in front of our network of delivery, retail, and manufacturing partners</li>\n', '$&' + COMMISSION_BULLET);
+  assert.equal(sha(back), BUSINESS_SHA256_PRELAUNCH);
   assert.equal(fs.existsSync(path.join(ROOT, APP, 'for-business.html')), false);
   // NEGATIVE CONTROL: one changed byte changes the hash
   assert.notEqual(sha(read(BUSINESS) + ' '), BUSINESS_SHA256);
@@ -127,7 +164,7 @@ test('for-business/ is untouched: same bytes as #201, only its index.html, no sh
 test('the root service worker skips /app/findmyweed/*', () => {
   const h = swWorker();
   for (const r of ['/app/findmyweed/', '/app/findmyweed/index.html', '/app/findmyweed/js/fmw.js', '/app/findmyweed/css/fmw.css',
-    '/app/findmyweed/data/listings.json', '/app/findmyweed/img/og-placeholder.png', '/app/findmyweed/for-business/']) {
+    '/app/findmyweed/data/listings.json', '/app/findmyweed/img/og.png', '/app/findmyweed/for-business/']) {
     assert.equal(intercepted(h, r, r.endsWith('/') || r.endsWith('.html') ? 'navigate' : 'no-cors'), false, 'root intercepted ' + r);
   }
   assert.match(read('sw.js'), /app\\\/\(\?:tuitea\|kaitarako\|findmyweed\)\)\\\//, 'the skip pattern names findmyweed');

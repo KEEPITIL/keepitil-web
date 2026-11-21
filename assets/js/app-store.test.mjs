@@ -318,7 +318,7 @@ test('Kai Tarako is listed and visible; Soon tiles kept for Kingdom Wars, PokaSn
   }
 });
 
-test('Find My Weed: catalog entry is hidden until launch, age-labelled (18+, rules vary by state), and links only under /app/findmyweed/', () => {
+test('Find My Weed: catalog entry is hidden until launch, age-labelled 21+ (18+ medical where legal), and links only under /app/findmyweed/', () => {
   const L = storeLogic();
   const cat = JSON.parse(read(CATALOG));
   const fmw = cat.items.find((i) => i.id === 'findmyweed');
@@ -326,12 +326,19 @@ test('Find My Weed: catalog entry is hidden until launch, age-labelled (18+, rul
   assert.equal(fmw.hidden, true, 'hidden until the web launch is live');
   assert.equal(fmw.adults, true);
   assert.ok(!fmw.kids);
-  assert.equal(fmw.caption, '18+');
+  const AGE = '21+ (18+ medical where legal)';
+  assert.equal(fmw.ageLabel, AGE, 'badge text');
+  assert.equal(fmw.caption, AGE);
   assert.equal(fmw.subtitle, 'Cannabis directory \u00b7 age rules vary by state');
-  // Joe 11-21: the directory is public; age rules vary by state (some 18+ medical). Never claim 21+ only.
+  // Joe 11-21 00:13: 21+, with 18+ medical where legal. Never a bare 18+ and never a 21+-only claim.
   // The catalog and page carry every visible string; store.js adds only these labels.
-  for (const f of [CATALOG, STORE]) assert.doesNotMatch(read(f), /21\s*\+|21 and over|Adults 21/i, `${f} claims 21+`);
-  assert.match(read(SCRIPT), /el\('span', 'adult', '18\+'\)/, 'badge is 18+');
+  const ONLY_21 = /21\s*\+\s*only|only\s+(?:adults\s+)?21|21\s+and\s+over\s+only|adults\s+21\s*\+?\s*only/i;
+  // The catalog and the page carry every visible age string (store.js renders the catalog ageLabel).
+  for (const f of [CATALOG, STORE]) assert.doesNotMatch(read(f), ONLY_21, `${f} claims 21+ only`);
+  assert.ok(!ONLY_21.test(AGE) && ONLY_21.test('Adults 21+ only'), 'CONTROL: the rule passes the real label and catches a 21+-only claim');
+  assert.doesNotMatch(read(SCRIPT), /el\('span', 'adult', '18\+'\)/, 'no hard-coded bare 18+ badge');
+  assert.match(read(SCRIPT), /el\('span', 'adult', item\.ageLabel/, 'badge comes from the catalog ageLabel');
+  assert.ok(!cat.items.some((i) => i.kids && i.ageLabel), 'no age label on kids content');
   assert.match(read(SCRIPT), /text: 'For adults'/, 'search heading is For adults');
   assert.equal(fmw.href, '/app/findmyweed/');
   for (const u of catalogUrls(fmw)) assert.ok(u.startsWith('/app/findmyweed/'), `FMW references ${u}`);
@@ -378,6 +385,12 @@ test('layout: the For adults shelf is separate from and never next to the kids s
   assert.ok(bad((c) => c.shelves.apps[1].items.push('findmyweed')).some((p) => /outside an adults shelf/.test(p)));
   assert.ok(bad((c) => { c.shelves.apps.find((s) => s.adults).title = 'Grown-ups'; }).some((p) => /must say adults/.test(p)));
   assert.ok(bad((c) => { c.shelves.apps.find((s) => s.adults).subtitle = 'Adults 21+ only'; }).some((p) => /must not claim 21\+ only/.test(p)));
+  assert.ok(bad((c) => { c.items.find((i) => i.id === 'findmyweed').ageLabel = '18+'; }).some((p) => /bare 18\+/.test(p)));
+  assert.ok(bad((c) => { c.items.find((i) => i.id === 'findmyweed').ageLabel = '21+ only'; }).some((p) => /findmyweed: must not claim 21\+ only/.test(p)));
+  assert.ok(bad((c) => { delete c.items.find((i) => i.id === 'findmyweed').ageLabel; }).some((p) => /needs an ageLabel/.test(p)));
+  assert.ok(bad((c) => { c.items.find((i) => i.id === 'kaitarako').ageLabel = '21+'; }).some((p) => /kids item carries an age label/.test(p)));
+  // The corrected label itself passes.
+  assert.deepEqual(Array.from(L.layoutProblems(cat)), []);
   assert.ok(bad((c) => { c.items.find((i) => i.id === 'kaitarako').adults = true; }).some((p) => /both kids and adults/.test(p)));
   // shelfItems refuses a kids item in an adults shelf even if the catalog put it there.
   const byId = Object.fromEntries(cat.items.map((i) => [i.id, i]));
@@ -445,4 +458,19 @@ test('search with FMW unhidden: kids rows first, then a divider, then the For ad
   // CONTROL: a layout that put an adult row before the divider would be caught by the checks above.
   const planted = ['row:findmyweed', 'divider', 'heading', 'row:kaitarako'];
   assert.ok(!(planted.indexOf('row:findmyweed') > planted.indexOf('divider') + 1));
+});
+
+test('search: when only the For adults group matches (e.g. "weed"), there is no leading divider', () => {
+  const L = storeLogic();
+  const launched = JSON.parse(read(CATALOG));
+  launched.items.find((i) => i.id === 'findmyweed').hidden = false;
+  const seq = Array.from(L.searchLayout(L.visibleItems(launched), 'weed'), (e) => e.type === 'row' ? 'row:' + e.item.id : e.type);
+  assert.deepEqual(seq, ['heading', 'row:findmyweed']);
+  // CONTROL: when the main group is not empty, the divider is still there.
+  const both = Array.from(L.searchLayout(L.visibleItems(launched), 'apps'), (e) => e.type);
+  assert.equal(both[0], 'row');
+  assert.ok(both.indexOf('divider') > 0, 'divider between the main rows and the For adults group');
+  for (const it of launched.items) if (['kaitarako', 'findmyweed'].includes(it.id)) it.keywords = [...it.keywords, 'zzpair'];
+  const pair = Array.from(L.searchLayout(L.visibleItems(launched), 'zzpair'), (e) => e.type === 'row' ? 'row:' + e.item.id : e.type);
+  assert.deepEqual(pair, ['row:kaitarako', 'divider', 'heading', 'row:findmyweed']);
 });

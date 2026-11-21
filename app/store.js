@@ -15,7 +15,7 @@
   // ---- Pure catalog logic: no DOM. the /app/ test in assets/js loads this file in node:vm and
   // tests these functions directly. Catalog flags:
   //   hidden: true  in the catalog but never rendered anywhere (pre-launch).
-  //   adults: true  age-restricted item (badge "18+"; age rules vary by state). Only inside a shelf marked adults: true; never on Today or a feature
+  //   adults: true  age-restricted item; its badge is the catalog ageLabel, e.g. "21+ (18+ medical where legal)". Only inside a shelf marked adults: true; never on Today or a feature
   //                 card; never in the empty-search Suggested list; in search results it is grouped
   //                 under its own "For adults" heading after everything else.
   //   kids: true    never in an adults shelf, and an adults shelf is never directly next to a shelf
@@ -72,7 +72,7 @@
     var g = searchGroups(items, q);
     var seq = g.main.map(function (it) { return { type: 'row', item: it }; });
     if (g.adults.length) {
-      seq.push({ type: 'divider' });
+      if (seq.length) seq.push({ type: 'divider' }); // no leading divider when only adult items match
       seq.push({ type: 'heading', text: 'For adults' });
       g.adults.forEach(function (it) { seq.push({ type: 'row', item: it }); });
     }
@@ -88,12 +88,24 @@
 
   // Layout rules checked against the WHOLE catalog, hidden items included, so the launch state is
   // already valid before an item is unhidden. Returns a list of problems ([] when good).
+  // "21+ only"-style claims. A plain "21+" is fine when paired with the 18+ medical note.
+  var ONLY_21 = /21\s*\+\s*only|only\s+(?:adults\s+)?21|21\s+and\s+over\s+only|adults\s+21\s*\+?\s*only/i;
+
   function layoutProblems(cat) {
     var p = [];
     var byId = indexById((cat && cat.items) || []);
     var isAdult = function (id) { return !!(byId[id] && byId[id].adults); };
     var isKid = function (id) { return !!(byId[id] && byId[id].kids); };
-    Object.keys(byId).forEach(function (id) { if (isAdult(id) && isKid(id)) p.push(id + ' is both kids and adults'); });
+    Object.keys(byId).forEach(function (id) {
+      var it = byId[id];
+      if (isAdult(id) && isKid(id)) p.push(id + ' is both kids and adults');
+      if (isKid(id) && it.ageLabel) p.push(id + ': kids item carries an age label');
+      if (isAdult(id)) {
+        if (!it.ageLabel) p.push(id + ': adult item needs an ageLabel');
+        else if (/^\s*18\s*\+\s*$/.test(it.ageLabel)) p.push(id + ': bare 18+ age label');
+        if (ONLY_21.test([it.ageLabel, it.caption, it.subtitle, it.description].join(' '))) p.push(id + ': must not claim 21+ only');
+      }
+    });
     ((cat && cat.today) || []).forEach(function (s) { if (isAdult(s.item)) p.push('adult item ' + s.item + ' on Today'); });
     var features = (cat && cat.features) || {};
     Object.keys(features).forEach(function (k) {
@@ -110,7 +122,7 @@
             if (isKid(id)) p.push(tab + '/' + s.title + ': kids item ' + id + ' in an adults shelf');
           });
           if (!/\badults\b/i.test(s.title || '')) p.push(tab + '/' + s.title + ': adults shelf title must say adults');
-          if (/21\s*\+|21 and over/i.test([s.title, s.subtitle].join(' '))) p.push(tab + '/' + s.title + ': adults shelf must not claim 21+ only');
+          if (ONLY_21.test([s.title, s.subtitle].join(' '))) p.push(tab + '/' + s.title + ': adults shelf must not claim 21+ only');
           [list[i - 1], list[i + 1]].forEach(function (n) {
             if (n && (n.items || []).some(isKid)) p.push(tab + '/' + s.title + ': adults shelf next to kids shelf ' + n.title);
           });
@@ -160,7 +172,7 @@
     meta.appendChild(el('div', 'name', item.name));
     meta.appendChild(el('div', 'subt', item.subtitle));
     if (item.kids) meta.appendChild(el('span', 'kids', 'For kids'));
-    if (item.adults) meta.appendChild(el('span', 'adult', '18+'));
+    if (item.adults) meta.appendChild(el('span', 'adult', item.ageLabel || 'For adults'));
     r.appendChild(meta);
     var act = el('div', 'act');
     act.appendChild(actionButton(item));

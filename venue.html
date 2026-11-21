@@ -370,6 +370,9 @@ function askV(){
   }).catch(function(){ pend.textContent='Something went wrong — try again.'; });
 }
 async function claim(){
+  // Claims need a signed-in account (claim_venue records the claimant): send signed-out visitors to sign in first.
+  var s=null; try{ s=(await SB.auth.getSession()).data.session; }catch(e){}
+  if(!s){ if(confirm('Please sign in to claim '+V.name+'. Go to sign in now?')) location.href='/apply?next='+encodeURIComponent(location.pathname+location.search); return; }
   var c=prompt('Enter your email or phone so the KEEPITIL team can verify you manage '+V.name+':');
   if(!c)return;
   try{ var r=await SB.rpc('claim_venue',{p_slug:V.slug,p_contact:c,p_note:null}); if(r.error)throw r.error; alert('Thanks — your claim was submitted. The KEEPITIL team will reach out to verify.'); }

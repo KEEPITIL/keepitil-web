@@ -22,40 +22,65 @@
 <!-- meta:end -->
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/fmw.css">
+<script src="js/theme.js"></script>
 <script src="js/copy.js"></script>
 </head>
 <body data-page="results">
 <div class="draft" data-copy="draftBanner"></div>
-<main class="wrap">
-  <header class="bar"><a class="logo small" href="index.html">Find <span>My</span> Weed</a></header>
-
-  <form id="search" class="search compact" action="results.html" method="get" role="search">
-    <label class="field">
-      <span class="sr" data-copy="searchLabel"></span>
-      <input name="q" type="text" inputmode="search" maxlength="80" data-copy-ph="searchHint">
-    </label>
-    <label class="field field-city">
-      <span class="sr" data-copy="fCity"></span>
-      <select name="city"><option value="" data-copy="fCityAll"></option></select>
-    </label>
-    <fieldset class="filters">
-      <legend class="sr" data-copy="filtersLabel"></legend>
-      <label class="chip"><input type="checkbox" name="delivery" value="1"><span data-copy="fDelivery"></span></label>
-      <label class="chip"><input type="checkbox" name="storefront" value="1"><span data-copy="fStorefront"></span></label>
-      <label class="chip" data-filter="open" hidden><input type="checkbox" name="open" value="1" disabled><span data-copy="fOpenNow"></span></label>
-    </fieldset>
-    <button class="btn" type="submit" data-copy="searchButton"></button>
-  </form>
-
+<header class="top">
+  <svg class="band-art" aria-hidden="true" focusable="false"><defs><pattern id="fmw-leaves" width="44" height="44" patternUnits="userSpaceOnUse"><circle class="leaf" cx="6" cy="6" r="2.5"/><path class="leaf" d="M24 30c4-7 12-8 16-6-3 6-10 9-16 6z"/></pattern></defs><rect width="100%" height="100%" fill="url(#fmw-leaves)"/></svg>
+  <div class="top-in">
+    <a class="logo small" href="index.html">Find My <span>Weed</span></a>
+    <!-- Sign in: a placeholder only until accounts exist (no auth code). aria-disabled keeps it reachable and announced. -->
+    <div class="top-actions">
+      <button class="btn ghost signin" type="button" aria-disabled="true" aria-describedby="signin-note" data-copy="signIn"></button>
+      <span id="signin-note" class="sr" data-copy="signInSoon"></span>
+      <!-- Theme: the bright default, dark only as an option (js/theme.js stores the visitor's choice; never auto-switches) -->
+      <button id="theme-toggle" class="btn ghost theme-toggle" type="button" aria-pressed="false" data-copy="themeDark"></button>
+    </div>
+    <form id="search" class="search compact" action="results.html" method="get" role="search">
+      <label class="field field-county">
+        <span class="sr" data-copy="fCounty"></span>
+        <select name="county"><option value="" data-copy="fCountyAll"></option></select>
+      </label>
+      <label class="field field-q">
+        <span class="sr" data-copy="searchLabel"></span>
+        <input name="q" type="text" inputmode="search" maxlength="80" autocomplete="postal-code" data-copy-ph="searchHint">
+      </label>
+      <button class="btn" type="submit" data-copy="searchButton"></button>
+      <label class="field field-city">
+        <span class="sr" data-copy="fCity"></span>
+        <select name="city"><option value="" data-copy="fCityAll"></option></select>
+      </label>
+      <fieldset class="filters">
+        <legend class="sr" data-copy="filtersLabel"></legend>
+        <label class="chip" data-filter="delivery" hidden><input type="checkbox" name="delivery" value="1" disabled><span data-copy="fDelivery"></span></label>
+        <label class="chip"><input type="checkbox" name="storefront" value="1"><span data-copy="fStorefront"></span></label>
+        <label class="chip" data-filter="open" hidden><input type="checkbox" name="open" value="1" disabled><span data-copy="fOpenNow"></span></label>
+      </fieldset>
+    </form>
+  </div>
+</header>
+<main class="wrap wide">
   <h1 id="resultsTitle" class="rtitle" aria-live="polite"></h1>
   <div id="state"></div>
-  <section id="map" class="card map" hidden></section>
-  <ul id="results" class="listings"></ul>
+  <div class="discover">
+    <section id="map" class="card map" hidden></section>
+    <div class="rails">
+      <section id="rail-nearby" class="rail" data-rail="nearby" aria-labelledby="rail-nearby-h" hidden>
+        <h2 id="rail-nearby-h" data-copy="railNearby"></h2>
+        <ul id="results" class="listings"></ul>
+      </section>
+      <div id="rails-more"></div>
+    </div>
+  </div>
+  <p class="muted note" data-copy="licensedOnly"></p>
 </main>
 <footer class="foot">
   <p class="age" data-copy="footer21"></p>
   <p data-copy="footerNote"></p>
   <nav class="foot-links" aria-label="Site"><a href="about.html" data-copy="footerAbout"></a><a href="privacy.html" data-copy="footerPrivacy"></a></nav>
+  <p class="biz"><a data-biz data-copy="forBusiness"></a></p>
 </footer>
 <script src="js/fmw.js"></script>
 <script src="js/map-outline.js"></script>

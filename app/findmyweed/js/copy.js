@@ -1,6 +1,6 @@
-// Every word a visitor reads lives here, so Muse's final copy replaces it in one place.
-// PLACEHOLDER COPY: Muse posts the first-screen copy and the 3 basics in the master doc by 9 AM PT.
-// Rules (Joe / KODE 2026-11-17): the name is just "Find My Weed"; no sales or ordering language; no payments.
+// Every word a visitor reads lives here, so final copy replaces it in one place.
+// PLACEHOLDER COPY: final first-screen copy and the 3 basics are pending.
+// Rules (owner decision 2026-11-17): the name is just "Find My Weed"; no sales or ordering language; no payments.
 (function (root) {
   // The launch switch (site.json "launched", via the generated js/site-config.js). Missing config = draft (safe default).
   var CFG = (typeof module !== 'undefined' && module.exports) ? (function () { try { return require('./site-config.js'); } catch (e) { return null; } })() : root.FMW_CONFIG;
@@ -10,7 +10,7 @@
     name: 'Find My Weed',
     tagline: 'Licensed cannabis storefronts and delivery services near you.',
     searchLabel: 'City or ZIP',
-    searchHint: 'Try Los Angeles, Oakland or 90012',   // Grok 2026-11-21 01:36 / 02:10 PT: real examples that return results (Muse's final copy pending)
+    searchHint: 'Try Los Angeles, Oakland or 90012',   // real examples that return results (final copy pending)
     searchButton: 'Search',
     filtersLabel: 'Show',
     fDelivery: 'Delivery',
@@ -45,6 +45,19 @@
     hoursNotListed: 'Hours not listed',
     fCity: 'City',
     fCityAll: 'All cities',
+    // Discovery home (2026-11-21; PENDING design review: written from a summary of the design spec).
+    // County = the location selector (#69 copy). Rails: ONLY rails with real data are drawn; the others have no copy here.
+    fCounty: 'County',
+    fCountyAll: 'All counties',
+    countyName: function (c) { return c + ' County'; },
+    unknownCountyTitle: function (c) { return 'No licensed shops in ' + c + ' County'; },
+    signIn: 'Sign in',
+    signInSoon: 'Coming soon: accounts are not open yet.',
+    themeDark: 'Dark mode',   // a toggle (aria-pressed); later chosen at sign-up and in Settings
+    forBusiness: 'List Your Business',
+    railNearby: 'Nearby dispensaries',
+    railDelivery: 'Delivery',
+    railOpenNow: 'Open now',
     openUntil: function (t) { return 'Open until ' + t; },
     closedToday: 'Closed today',
     deliveryOnly: 'Delivery only (no storefront)',
@@ -72,7 +85,7 @@
     addressDeliveryNote: 'Delivery only: we show the city, not the street address.',
     menu: 'Menu',
     // This link leaves Find My Weed for the business's own site, which may take orders there (Find My Weed never does).
-    // Sentinel B/D (2026-11-21): the hand-off says the business checks ID and shows the age rule; Find My Weed claims no check.
+    // Review B/D (2026-11-21): the hand-off says the business checks ID and shows the age rule; Find My Weed claims no check.
     menuLink: 'View menu on their website',
     menuNote: 'Opens the business’s own site. The business checks ID there: 21+ (18+ medical where legal). Find My Weed does not check ID.',
     noMenu: 'No menu link yet.',
@@ -103,13 +116,13 @@
       imageAlt: 'Find My Weed: search state-licensed cannabis storefronts and delivery services',   // the real share image (launched)
       imageAltPlaceholder: 'Find My Weed placeholder share image'   // the draft's placeholder image
     },
-    // Age notice (Joe 2026-11-21 00:25 PT, Grok 00:14 PT: follow Weedmaps / Leafly): the directory is open to everyone, with
+    // Age notice (owner decision 2026-11-21: follow Weedmaps / Leafly): the directory is open to everyone, with
     // no entry wall; age is checked by the business at the point of sale. FMW has no ordering, so nothing here asks for an age.
     footer21: 'Cannabis is for adults 21+, or 18+ medical patients where state law allows. Licensed businesses only. The business checks ID.',
     footerNote: 'Find My Weed is a directory of state-licensed businesses. Check your local laws.',
     footerAbout: 'About',
     footerPrivacy: 'Privacy',
-    // About / Privacy / 404 pages (PLACEHOLDER, for Muse; the Privacy text also needs Echo's review before launch).
+    // About / Privacy / 404 pages (PLACEHOLDER; the Privacy text also needs a privacy review before launch).
     // Each page: a title and sections of plain-text paragraphs. Everything stated here is true of the code and
     // docs/DATA_PLAN.md today; keep it that way when editing.
     info: {
@@ -132,12 +145,13 @@
       privacy: {
         title: 'Privacy',
         sections: [
-          { h: 'No accounts, no ad tracking', p: [   // A61-8 (Sentinel 03:30 PT): accurate next to the Cloudflare Web Analytics line
+          { h: 'No accounts, no ad tracking', p: [   // A61-8 (review 03:30 PT): accurate next to the Cloudflare Web Analytics line
             'You do not need an account to use Find My Weed. We do not use advertising trackers.',
             'We use Cloudflare Web Analytics to count page views. It uses no cookies and gives us totals only: no ads and no profile that follows you to other sites.',
             'We don\'t keep your searches. Like any website, our host keeps short-lived server logs (IP address and page requested) for security.'] },
           { h: 'What stays on your device', p: [
-            'Searching near you uses the city or ZIP you type. Your exact location is never sent to a server.'] },
+            'Searching near you uses the city or ZIP you type. Your exact location is never sent to a server.',
+            'If you use the dark-mode switch, this site saves one setting, fmw-theme (light or dark), in your browser. It stays on this device and isn\'t sent to us or anyone else. Clear this site\'s data in your browser settings to remove it.'] },
           { h: 'Business information', p: [
             'Listings show business information only: the business name, its license details, its public address (for storefronts) and the hours and links the business gives us.',
             'The state license record also includes owner names and contact details. We never show those publicly. For delivery-only businesses we show the city, not the street address.'] },

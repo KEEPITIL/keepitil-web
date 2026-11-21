@@ -10,7 +10,7 @@
     name: 'Find My Weed',
     tagline: 'Licensed cannabis storefronts and delivery services near you.',
     searchLabel: 'City or ZIP',
-    searchHint: 'Try Los Angeles, Oakland or 92844',   // Grok 2026-11-21 01:36 PT (Muse's final copy pending)
+    searchHint: 'Try Los Angeles, Oakland or 90012',   // Grok 2026-11-21 01:36 / 02:10 PT: real examples that return results (Muse's final copy pending)
     searchButton: 'Search',
     filtersLabel: 'Show',
     fDelivery: 'Delivery',
@@ -134,6 +134,7 @@
         sections: [
           { h: 'No accounts, no tracking', p: [
             'You do not need an account to use Find My Weed. We do not use advertising trackers.',
+            'We use Cloudflare Web Analytics to count page views. It uses no cookies and gives us totals only: no ads and no profile that follows you to other sites.',
             'We don\'t keep your searches. Like any website, our host keeps short-lived server logs (IP address and page requested) for security.'] },
           { h: 'What stays on your device', p: [
             'Searching near you uses the city or ZIP you type. Your exact location is never sent to a server.'] },

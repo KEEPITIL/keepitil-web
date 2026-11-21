@@ -2,8 +2,8 @@
  *
  * NO AUTO-OPEN MODAL (Joe 2026-11-20 6:40 PM: "Remove this popup as well. It's annoying").
  * The timed modal and its auto-open gate were deleted. The signup only renders where a page
- * asks for it with <div id="kil-bf-inline"></div> (today: /early-access.html, a page the
- * visitor chose to open). No timed, scroll or exit-intent opening exists anywhere.
+ * asks for it with <div id="kil-bf-inline"></div> (today: /early-access.html and
+ * /earn/black-friday/, pages the visitor chose to open). No timed, scroll or exit-intent opening exists anywhere.
  * Endpoint, tables and payload are unchanged.
  *
  * Early access Nov 23-26 2026, public sale Nov 27-30 2026 (Pacific Time).

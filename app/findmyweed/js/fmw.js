@@ -7,7 +7,7 @@
   // The SAME rule as the proposed public read in docs/proposed/fmw_real_listings.PROPOSED.sql, for every row (fixture or
   // real): shown only when published === true, it has a license number, its state status is Active or About to Expire,
   // and it has a valid expiry date that has not passed. Anything missing counts as NOT shown.
-  // "About to Expire" counts as ACTIVE (decided by Joe, 2026-11-17 03:38 PT; DCC: it "remains Active").
+  // "About to Expire" counts as ACTIVE (owner decision 2026-11-17 03:38 PT; DCC: it "remains Active").
   var SHOWN_STATUS = ['Active', 'About to Expire'];
   // Every listing is in California: dates and times are LA's, whatever the viewer's own time zone (#15).
   var DEFAULT_TZ = 'America/Los_Angeles';
@@ -125,6 +125,21 @@
     return licensed((data && data.listings) || [], now).some(hoursKnown);
   }
 
+  // Is the "Delivery" filter offered at all? Same rule as openNowOffered (and #68): only when at least one SHOWN listing
+  // has delivery === true. Today every row is delivery:false, so the pages hide the chip and search() IGNORES ?delivery=1
+  // (the same results as without it, never an empty state). Nothing here invents a delivery flag.
+  function deliveryOffered(data, now) {
+    return licensed((data && data.listings) || [], now).some(function (l) { return l.delivery === true; });
+  }
+
+  // A listing name that is ONLY a bracketed placeholder (e.g. "[Equity Retailer]": no trade name in the state data). It is
+  // shown as is (never replaced by an invented name) but sorted after every named listing. "Name [Equity Retailer]" has a
+  // real trade name and is NOT a placeholder.
+  function placeholderName(name) {
+    var s = String(name == null ? '' : name).trim();
+    return !s || /^\[[^\]]*\]$/.test(s);
+  }
+
   // Open now? Ranges that close at or before they open run past midnight (e.g. 16:00-02:00).
   // Returns { open, until }, plus known: false ONLY when the hours are not usable (open is then always false; the
   // shape for usable hours is unchanged). `now` is injectable (tests); the listing's tz, else LA.
@@ -187,16 +202,61 @@
   }
 
   // The cities a visitor can choose from: those of the listings actually shown (licensed + published), sorted.
-  function cities(data, now) {
-    var seen = {}, out = [];
+  // county (optional, discovery home): only the cities of that county's shown listings.
+  function cities(data, now, county) {
+    var seen = {}, out = [], ck = countyKey(county);
     licensed((data && data.listings) || [], now).forEach(function (l) {
+      if (ck && countyKey(l.address && l.address.county) !== ck) return;
       var c = String((l.address && l.address.city) || '').trim();
       if (c && !seen[norm(c)]) { seen[norm(c)] = 1; out.push(c); }
     });
     return out.sort(function (a, b) { return a.localeCompare(b); });
   }
 
-  // opts: { q, city, delivery, storefront, openNow }. Delivery + Storefront both ticked (or neither) means either kind.
+  // Counties (same rule as #69 feat/fmw-county-filter, re-done here off main): the counties of the listings actually shown
+  // (licensed() + published), from listings[].address.county. countyKey() ignores case, spacing and a trailing " County".
+  function countyKey(s) { return norm(s).replace(/ county$/, ''); }
+  function counties(data, now) {
+    var seen = {}, out = [];
+    licensed((data && data.listings) || [], now).forEach(function (l) {
+      var c = String((l.address && l.address.county) || '').trim();
+      if (c && !seen[countyKey(c)]) { seen[countyKey(c)] = 1; out.push(c); }
+    });
+    return out.sort(function (a, b) { return a.localeCompare(b); });
+  }
+  // Discovery home default area: the county with the most SHOWN (licensed) listings, computed from the data (Los Angeles
+  // today, 361 rows), never hard-coded. Ties go alphabetically. No county data at all = '' (the home then shows every row).
+  function topCounty(data, now) {
+    var n = {}, name = {};
+    licensed((data && data.listings) || [], now).forEach(function (l) {
+      var c = String((l.address && l.address.county) || '').trim(), k = countyKey(c);
+      if (k) { n[k] = (n[k] || 0) + 1; if (!name[k]) name[k] = c; }
+    });
+    return Object.keys(n).sort(function (a, b) { return (n[b] - n[a]) || a.localeCompare(b); }).map(function (k) { return name[k]; })[0] || '';
+  }
+  // Which filters have real data behind them (#68 rule, plus Open now): a filter that could only ever return nothing is
+  // hidden. Today every row is delivery:false and no row has hours, so both are false. Nothing here invents a flag.
+  function filtersOffered(data, now) {
+    return { delivery: deliveryOffered(data, now), openNow: openNowOffered(data, now) };
+  }
+  // The discovery rails for a set of search results ({ listing, open, known, ... } from search()). A rail exists ONLY when
+  // its own real field has data in these rows; there is no rail for deals, ratings, reviews, categories or "new" (no data).
+  //   nearby    every result (licensed storefronts in the area, nearest first, else by name)
+  //   delivery  rows with delivery === true            (0 rows today: not returned)
+  //   open      rows with known hours that are open now (0 rows today: not returned)
+  var RAILS = ['nearby', 'delivery', 'open'];
+  function rails(results) {
+    var rows = results || [], out = [];
+    var pick = {
+      nearby: function () { return true; },
+      delivery: function (r) { return !!r.listing && r.listing.delivery === true; },
+      open: function (r) { return r.known !== false && !!r.listing && hoursKnown(r.listing) && r.open === true; }
+    };
+    RAILS.forEach(function (k) { var got = rows.filter(pick[k]); if (got.length) out.push({ key: k, rows: got }); });
+    return out;
+  }
+
+  // opts: { q, city, county, delivery, storefront, openNow }. Delivery + Storefront both ticked (or neither) means either kind.
   // city: one of cities() (from the ?city= URL param, so a search is shareable); a city that is not listed is notFound.
   // Returns { place, notFound, reason, results: [{ listing, miles, open, until }] } sorted by distance, then name.
   // When nothing matches the place: notFound = true and reason = 'badzip' | 'zip' (valid ZIP we don't cover) | 'city'.
@@ -213,13 +273,21 @@
     if (city && !cities(data, now).some(function (x) { return norm(x) === norm(city); })) {
       return { place: null, notFound: true, reason: 'city', results: [] };
     }
-    var kindFilter = !!opts.delivery !== !!opts.storefront;
+    // county: one of counties() (?county=); a county no shown listing has is notFound with reason 'county' (#69)
+    var county = cleanQuery(opts.county);
+    if (county && !counties(data, now).some(function (x) { return countyKey(x) === countyKey(county); })) {
+      return { place: null, notFound: true, reason: 'county', results: [] };
+    }
+    // delivery counts only while deliveryOffered() (same rule as open now): an old ?delivery=1 link is then IGNORED, never empty
+    var wantDelivery = !!opts.delivery && deliveryOffered(data, now);
+    var kindFilter = wantDelivery !== !!opts.storefront;
     // open now counts only while openNowOffered(): an old ?open=1 link then shows the same results as without it.
     var wantOpen = !!opts.openNow && openNowOffered(data, now);
     var rows = licensed(data.listings, now).filter(function (l) {
       if (place && !inPlace(l, place)) return false;
+      if (county && countyKey(l.address && l.address.county) !== countyKey(county)) return false;
       if (city && norm(l.address && l.address.city) !== norm(city)) return false;
-      if (kindFilter && opts.delivery && !l.delivery) return false;
+      if (kindFilter && wantDelivery && !l.delivery) return false;
       if (kindFilter && opts.storefront && !l.storefront) return false;
       return true;
     }).map(function (l) {
@@ -227,9 +295,10 @@
       // a delivery-only service has NO coordinates in the public data (its premises are private): no distance, never NaN
       return { listing: l, miles: place && hasPoint(place) && hasPoint(l) ? miles(place, l) : null, open: s.open, until: s.until, known: s.known };
     }).filter(function (r) { return !wantOpen || r.open; });
-    // nearest first; rows with no distance (delivery-only services) after them; then by name
-    rows.sort(function (a, b) { return ((a.miles == null) - (b.miles == null)) || ((a.miles || 0) - (b.miles || 0)) || a.listing.name.localeCompare(b.listing.name); });
-    var filtered = !!(wantOpen || kindFilter || city);
+    // placeholder-only names (e.g. "[Equity Retailer]") after every named listing; then nearest first; rows with no
+    // distance (delivery-only services) after them; then by name
+    rows.sort(function (a, b) { return (placeholderName(a.listing.name) - placeholderName(b.listing.name)) || ((a.miles == null) - (b.miles == null)) || ((a.miles || 0) - (b.miles || 0)) || a.listing.name.localeCompare(b.listing.name); });
+    var filtered = !!(wantOpen || kindFilter || city);   // a county is the area, not a filter
     return { place: place, notFound: false, reason: null, filtered: filtered, results: rows };
   }
 
@@ -373,7 +442,7 @@
     return { x: +x.toFixed(1), y: +y.toFixed(1), w: +w.toFixed(1), h: +h.toFixed(1) };
   }
 
-  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, cities: cities, today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
     dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;

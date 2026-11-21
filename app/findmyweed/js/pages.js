@@ -4,7 +4,11 @@
   function el(tag, cls, text) { var e = doc.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function params() {
     var p = new URLSearchParams(location.search);
-    return { q: F.cleanQuery(p.get('q')), delivery: p.get('delivery') === '1', storefront: p.get('storefront') === '1', openNow: p.get('open') === '1', city: F.cleanQuery(p.get('city')), id: p.get('id') || '' };
+    // county: the area (location selector). A typed place (q) wins over it, so "Oakland" from the Los Angeles home finds
+    // Oakland. hasCounty: the URL names a county (even "All counties" = ''), so the home's default county does not apply.
+    var r = { q: F.cleanQuery(p.get('q')), delivery: p.get('delivery') === '1', storefront: p.get('storefront') === '1', openNow: p.get('open') === '1', city: F.cleanQuery(p.get('city')), county: F.cleanQuery(p.get('county')), hasCounty: p.has('county'), id: p.get('id') || '' };
+    if (r.q) r.county = '';
+    return r;
   }
   function kind(l) { return l.storefront && l.delivery ? C.storefrontAndDelivery : l.delivery ? C.deliveryOnly : C.storefrontOnly; }
   // known === false: the hours are missing or malformed -> "Hours not listed", never "open" (#15)
@@ -23,27 +27,46 @@
   function fillCities(form, data, p) {
     var sel = form && form.city; if (!sel) return;
     while (sel.options.length > 1) sel.remove(1);
-    var list = F.cities(data, new Date());
+    var list = F.cities(data, new Date(), p.county);   // inside a chosen county: that county's cities only
     list.forEach(function (c) { var o = doc.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
     // ?city=demo%20city selects "Demo City" (the results already are Demo City's)
     sel.value = matchCity(list, p.city);
   }
 
-  // The "Open now" chip ships hidden + disabled (index.html, results.html) and is shown only when the data has at least
-  // one licensed listing with known hours (F.openNowOffered). Hidden, it is also unticked and disabled, so a ?open=1
-  // link never resubmits a filter the visitor cannot see.
-  function showOpenNow(form, data) {
-    var cb = form && form.open; if (!cb) return;
-    var on = F.openNowOffered(data, new Date()), chip = cb.parentNode;
-    if (!on) cb.checked = false;
-    cb.disabled = !on;
-    if (chip) chip.hidden = !on;
-  }
-
   // Shared chrome: every [data-copy] element gets its text from copy.js; the draft banner goes once the copy is final.
   doc.querySelectorAll('[data-copy]').forEach(function (n) { var v = C[n.getAttribute('data-copy')]; if (typeof v === 'string') n.textContent = v; });
   doc.querySelectorAll('[data-copy-ph]').forEach(function (n) { var v = C[n.getAttribute('data-copy-ph')]; if (typeof v === 'string') n.setAttribute('placeholder', v); });
+  // "List Your Business": the business pitch at <basePath>/for-business/ (a separate build, not in this export, so it is
+  // set here from site.json basePath rather than written into the pages: a page link must resolve inside this folder).
+  doc.querySelectorAll('a[data-biz]').forEach(function (n) { n.href = ((window.FMW_CONFIG && window.FMW_CONFIG.basePath) || '') + '/for-business/'; });
   if (!C.PLACEHOLDER) doc.querySelectorAll('.draft').forEach(function (n) { n.remove(); });
+
+  // The location selector (#69 logic): "All counties" + the counties with shown listings. ?county=alameda selects "Alameda".
+  function matchCounty(list, c) {
+    var t = F.countyKey(c);
+    if (!t) return '';
+    for (var i = 0; i < list.length; i++) if (F.countyKey(list[i]) === t) return list[i];
+    return '';
+  }
+  function fillCounties(form, data, p) {
+    var sel = form && form.county; if (!sel) return;
+    while (sel.options.length > 1) sel.remove(1);
+    var list = F.counties(data, new Date());
+    list.forEach(function (c) { var o = doc.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+    sel.value = matchCounty(list, p.county);
+  }
+  // A filter chip with no data behind it is hidden AND disabled (F.deliveryOffered / F.openNowOffered, via F.filtersOffered),
+  // so it is never offered and a ?delivery=1 / ?open=1 link never resubmits a filter the visitor cannot see (search() ignores
+  // both params while hidden). It comes back on its own with real data.
+  function showFilters(form, data) {
+    var on = F.filtersOffered(data, new Date());
+    [['delivery', on.delivery], ['open', on.openNow]].forEach(function (x) {
+      var cb = form && form[x[0]]; if (!cb) return;
+      if (!x[1]) cb.checked = false;
+      cb.disabled = !x[1];
+      if (cb.parentNode) cb.parentNode.hidden = !x[1];
+    });
+  }
 
   function load() { return F.loadData(window.fetch.bind(window), 'data/listings.json'); }
   function fill(form, p) { form.q.value = p.q; form.delivery.checked = p.delivery; form.storefront.checked = p.storefront; form.open.checked = p.openNow; }
@@ -86,12 +109,6 @@
     return;
   }
 
-  if (page === 'search') {
-    var sp = params(), sf = doc.getElementById('search');
-    fill(sf, sp);
-    load().then(function (data) { fillCities(sf, data, sp); showOpenNow(sf, data); }, function () { /* the city list is optional; text search still works */ });
-    return;
-  }
 
   // The map (Phase 1): one SVG drawn here from the same results as the list, self-hosted, no tiles, no other request.
   // Each dot is an SVG link to the same detail page as its card, focusable and labelled (C.mapDot). The state / county
@@ -124,18 +141,58 @@
     box.hidden = false;
   }
 
-  if (page === 'results') {
+  // One result card (a link to the detail page). Used by every rail.
+  function card(r) {
+    var l = r.listing, li = el('li'), a = el('a', 'listing'), top = el('div', 'row');
+    li.appendChild(a);
+    a.href = detailHref(l.id);
+    top.appendChild(el('h3', null, l.name));
+    if (r.miles != null) top.appendChild(el('span', 'dist', C.miles(r.miles)));
+    a.appendChild(top);
+    var meta = el('div', 'row meta');
+    meta.appendChild(badge(r));
+    meta.appendChild(el('span', 'muted', kind(l) + (F.cityOf(l) ? ' \u00b7 ' + F.cityOf(l) : '')));   // a missing address never breaks a card
+    a.appendChild(meta);
+    var lc = el('div', 'license', C.license + ' ' + l.license + ' · ');
+    lc.appendChild(el('span', 'status', C.cardStatus(l.licenseStatus)));   // the state status on every card
+    a.appendChild(lc);
+    return li;
+  }
+  var RAIL_TITLE = { delivery: 'railDelivery', open: 'railOpenNow' };
+
+  // The discovery home (2026-11-21): index.html opens straight on listings + map for an area; search, the
+  // location selector and the filters only refine it. results.html is the SAME view, so old results links keep working.
+  // Area: ?county= / a typed place / a city; with none of them on the home, the county with the most licensed listings.
+  if (page === 'results' || page === 'search') {
     var p = params(), out = doc.getElementById('results'), head = doc.getElementById('resultsTitle'), stateBox = doc.getElementById('state'), mapEl = doc.getElementById('map');
-    fill(doc.getElementById('search'), p);
+    var nearby = doc.getElementById('rail-nearby'), extra = doc.getElementById('rails-more'), form = doc.getElementById('search');
+    fill(form, p);
+    // the location selector redraws the rails and the map in place: ?county= goes in the URL (shareable), the typed place and
+    // city are dropped (a new area), the ticked filters stay. No other request than the one data file.
+    if (form && form.county && form.county.addEventListener && window.history && history.pushState) {
+      form.county.addEventListener('change', function () {
+        var u = new URLSearchParams();
+        u.set('county', form.county.value);
+        ['delivery', 'storefront', 'open'].forEach(function (k) { if (form[k] && form[k].checked && !form[k].disabled) u.set(k, '1'); });
+        history.pushState(null, '', '?' + u.toString());
+        p = params(); if (form.q) form.q.value = ''; run();
+      });
+      window.addEventListener('popstate', function () { p = params(); fill(form, p); run(); });
+    }
     var run = function () {
       clear(out); clear(stateBox); head.textContent = ''; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
+      if (nearby) nearby.hidden = true;
+      if (extra) clear(extra);
       load().then(function (data) {
-        fillCities(doc.getElementById('search'), data, p);
-        showOpenNow(doc.getElementById('search'), data);
+        if (page === 'search' && !p.q && !p.city && !p.hasCounty) p.county = F.topCounty(data, new Date());   // the home's default area
+        fillCounties(form, data, p);
+        fillCities(form, data, p);
+        showFilters(form, data);
         var res = F.search(data, p, new Date());
         if (res.notFound) {
           var c = F.classify(p.q);
-          if (res.reason === 'badzip') { head.textContent = C.badZipTitle; showState(stateBox, { name: 'bad-zip', body: C.badZipBody(c.value), actions: [{ text: C.clearSearch, href: 'index.html' }] }); }
+          if (res.reason === 'county') { head.textContent = C.unknownCountyTitle(p.county.replace(/\s+county$/i, '')); showState(stateBox, { name: 'unknown-place', body: C.unknownBody, actions: [{ text: C.clearSearch, href: 'index.html' }] }); }
+          else if (res.reason === 'badzip') { head.textContent = C.badZipTitle; showState(stateBox, { name: 'bad-zip', body: C.badZipBody(c.value), actions: [{ text: C.clearSearch, href: 'index.html' }] }); }
           else {
             // when only ?city= was given, the city is what was not found: name it (it read "No licensed shops match “”")
             head.textContent = res.reason === 'zip' ? C.unknownZipTitle(c.value) : C.unknownCityTitle(c.value || p.city);
@@ -144,6 +201,9 @@
           return;
         }
         var placeName = res.place && res.place.name, cityName = matchCity(F.cities(data, new Date()), p.city);
+        // only a county chosen (no city): the heading says "in Los Angeles County", the way it names a chosen city (#69)
+        var countyName = matchCounty(F.counties(data, new Date()), p.county);
+        if (!cityName && countyName) cityName = C.countyName(countyName);
         if (!res.results.length) {
           head.textContent = C.emptyTitle(placeName || cityName);
           showState(stateBox, { name: 'no-results', body: C.emptyBody,
@@ -152,21 +212,14 @@
         }
         head.textContent = C.resultsTitle(res.results.length, placeName, cityName);
         if (mapEl) renderMap(mapEl, data, res.results);
-        res.results.forEach(function (r) {
-          var l = r.listing, li = el('li'), a = el('a', 'listing'), top = el('div', 'row');
-          li.appendChild(a);
-          a.href = detailHref(l.id);
-          top.appendChild(el('h3', null, l.name));
-          if (r.miles != null) top.appendChild(el('span', 'dist', C.miles(r.miles)));
-          a.appendChild(top);
-          var meta = el('div', 'row meta');
-          meta.appendChild(badge(r));
-          meta.appendChild(el('span', 'muted', kind(l) + (F.cityOf(l) ? ' \u00b7 ' + F.cityOf(l) : '')));   // a missing address never breaks a card
-          a.appendChild(meta);
-          var lc = el('div', 'license', C.license + ' ' + l.license + ' · ');
-          lc.appendChild(el('span', 'status', C.cardStatus(l.licenseStatus)));   // the state status on every card
-          a.appendChild(lc);
-          out.appendChild(li);
+        // Rails: ONLY the ones whose real data is in these results (F.rails). The nearby rail is the static #results list;
+        // any other rail is created here only when it has rows, and is otherwise not in the page at all.
+        F.rails(res.results).forEach(function (rail) {
+          if (rail.key === 'nearby') { rail.rows.forEach(function (r) { out.appendChild(card(r)); }); if (nearby) nearby.hidden = false; return; }
+          if (!extra) return;
+          var sec = el('section', 'rail'), hid = 'rail-' + rail.key + '-h', ul = el('ul', 'listings'), h = el('h2', null, C[RAIL_TITLE[rail.key]]);
+          sec.setAttribute('data-rail', rail.key); sec.setAttribute('aria-labelledby', hid); h.id = hid;
+          sec.appendChild(h); rail.rows.forEach(function (r) { ul.appendChild(card(r)); }); sec.appendChild(ul); extra.appendChild(sec);
         });
       }, function (e) { loadFailed(e, head, stateBox, run); });
     };
@@ -239,7 +292,7 @@
       var mn = el('section', 'card'), url = F.safeUrl(l.menuUrl); mn.appendChild(el('h2', null, C.menu));
       if (url) {
         var m = el('a', 'btn ghost', C.menuLink); m.href = url; m.target = '_blank'; m.rel = 'noopener noreferrer nofollow';
-        // the hand-off to a business that may take orders: say who checks ID, and the age rule (Sentinel B/D)
+        // the hand-off to a business that may take orders: say who checks ID, and the age rule (review B/D)
         var mnote = el('p', 'muted', C.menuNote); mnote.id = 'menu-note'; m.setAttribute('aria-describedby', 'menu-note');
         mn.appendChild(m); mn.appendChild(mnote);
       }

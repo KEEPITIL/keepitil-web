@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>List your app - KEEPITIL Apps</title>
+<meta name="description" content="How developers can ask for an app or game to be listed on KEEPITIL Apps.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="canonical" href="https://keepitil.com/app/submit/"/>
+<!--
+  /app/submit/ is a static page. It posts nothing: no form, no input fields, no script and no backend.
+  Developers email info@keepitil.com through the one mailto button. The CSP above sets form-action 'none' and script-src 'none'.
+-->
+<style>
+  :root{
+    --bg:#07080c; --panel:#0e1117; --panel2:#151a23; --line:rgba(255,255,255,.09);
+    --ink:#eef2f7; --dim:#97a3b3; --mute:#6c7686;
+    --neon:#00ff88; --cyan:#22d3ee; --violet:#8b5cf6;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:var(--bg)}
+  body{color:var(--ink);font-family:'Space Grotesk','Inter',system-ui,'Segoe UI',Roboto,sans-serif;
+       min-height:100vh;overflow-x:hidden;line-height:1.5;
+       background:
+         radial-gradient(900px 480px at 12% -6%,rgba(139,92,246,.16),transparent 70%),
+         radial-gradient(760px 420px at 92% 4%,rgba(0,255,136,.10),transparent 70%),
+         var(--bg)}
+  a{color:var(--cyan)}
+  .wrap{max-width:760px;margin:0 auto;padding:18px 16px 72px}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .brand{font-weight:800;letter-spacing:.18em;font-size:14px}
+  .brand a{text-decoration:none;color:var(--ink)}
+  .brand span{color:var(--neon)}
+  .home{color:var(--dim);text-decoration:none;font-size:13px;border:1px solid var(--line);padding:8px 14px;border-radius:999px;white-space:nowrap}
+  .home:hover{color:var(--ink);border-color:rgba(0,255,136,.38)}
+  .hero{padding:30px 0 18px}
+  .eyebrow{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan)}
+  h1{font-size:clamp(32px,6.4vw,50px);font-weight:900;line-height:1.05;margin-top:6px}
+  .lead{color:var(--dim);font-size:clamp(16px,2.2vw,19px);margin-top:12px}
+  .card{margin-top:18px;padding:20px;border-radius:18px;background:var(--panel);border:1px solid var(--line)}
+  .card h2{font-size:20px;font-weight:900;margin-bottom:10px}
+  ul{padding-left:20px;display:grid;gap:8px}
+  li{color:var(--ink)}
+  .cta{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 22px;margin-top:16px;border-radius:999px;
+       font-weight:800;font-size:16px;text-decoration:none;color:#07080c;background:var(--neon)}
+  .cta:focus-visible{outline:2px solid #fff;outline-offset:3px}
+  .muted{color:var(--dim);font-size:14px}
+  footer{margin-top:40px;text-align:center;color:var(--mute);font-size:12px}
+  footer a{color:inherit}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><a href="/app/">KEEP<span>ITIL</span> &middot; APPS</a></div>
+    <a class="home" href="/app/">&larr; KEEPITIL Apps</a>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">For developers</div>
+    <h1>Email us to submit your app</h1>
+    <p class="lead">KEEPITIL Apps lists apps and games that have their own page on keepitil.com. To submit yours, send us one email per app or game. The KEEPITIL team reviews every submission and replies by email.</p>
+    <a class="cta" href="mailto:info@keepitil.com?subject=App%20submission">Email info@keepitil.com</a>
+    <p class="muted" style="margin-top:10px">The button opens your own email app. This page does not send anything itself.</p>
+  </section>
+
+  <section class="card" aria-labelledby="what">
+    <h2 id="what">What to include in your email</h2>
+    <ul>
+      <li>App or game name, and a one-line subtitle</li>
+      <li>What it does, in a few sentences</li>
+      <li>Where it runs today: a web link, a phone app, or both</li>
+      <li>A square icon (512&times;512 PNG) and one or two screenshots attached</li>
+      <li>Your privacy policy link and a support contact</li>
+      <li>Who it is for, and whether it is made for children</li>
+    </ul>
+  </section>
+
+  <footer>&copy; KEEPITIL &middot; <a href="/">keepitil.com</a> &middot; <a href="/app/">KEEPITIL Apps</a> &middot; <a href="/privacy.html">Privacy</a></footer>
+</div>
+</body>
+</html>

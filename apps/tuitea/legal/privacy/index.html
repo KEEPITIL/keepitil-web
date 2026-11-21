@@ -20,11 +20,13 @@ nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-siz
 <main>
 <h1>TUITEA Privacy Policy</h1>
 
-<p class="up">Version 2026-11-18 · Last updated: 18 November 2026</p>
+<p class="up">Version 2026-11-19 · Last updated: 19 November 2026</p>
 
-<p><strong>What changed (18 November 2026):</strong> Echo may use your household's meal records, including a child's meals, to answer you, the account holder. They are sent only to Cloudflare Workers AI, which says it does not keep prompts after it answers or use them to train AI models. Health questions are answered from your records and are not sent to an AI company. Before your first Echo message we ask you to allow this, and you can turn Echo off in More → Echo.</p>
+<p><strong>What changed (19 November 2026):</strong> we corrected what this policy said about health and children. Echo uses an AI provider to write its replies, and the information it sends with your question can include health records, family medical history and Apple Health figures. Children's information is not always removed. See "Echo and AI" and "Children".</p>
 
-<p><strong>Earlier (4 November 2026):</strong> accounts are for adults 18 or older, only a household owner or admin can add a child, and children's profile information other than household meal records is removed from what we send to AI models.</p>
+<p><strong>Earlier (18 November 2026):</strong> Echo may use your household's meal records, including a child's meals, to answer you, the account holder. They are sent only to Cloudflare Workers AI, which says it does not keep prompts after it answers or use them to train AI models. Before your first Echo message we ask you to allow this, and you can turn Echo off in More → Echo.</p>
+
+<p><strong>Earlier (4 November 2026):</strong> accounts are for adults 18 or older, only a household owner or admin can add a child, and children's profile information other than household meal records is removed from what we send to AI models. This was not fully accurate; see the 19 November change.</p>
 
 <p>TUITEA is a family app made by KEEPITIL. This policy describes how the app works today.</p>
 
@@ -68,6 +70,7 @@ nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-siz
 <li><strong>Supabase</strong> — database, sign-in and server functions.</li>
 <li><strong>Cloudflare R2</strong> — storage for your photos, videos, audio and documents.</li>
 <li><strong>Cloudflare Workers AI</strong> — the AI model that answers Echo and reads photos you ask about. It is used under terms of zero data retention and no training on your data.</li>
+<li><strong>Google (Gemini) and Groq</strong> — AI models that may answer a question Echo treats as having no personal information, or a photo question, if Cloudflare is unavailable. See "Echo and AI".</li>
 <li><strong>NEXUS</strong> — KEEPITIL's own AI service that routes Echo's questions, keeps Echo's conversation history and remembered preferences, and keeps the daily counts above.</li>
 <li><strong>Apple</strong> — App Store purchases, Apple Health (on your phone) and on-device speech recognition.</li>
 <li><strong>Stripe</strong> — payments for storage plans bought on our website (card processing, receipts and subscription management).</li>
@@ -78,20 +81,21 @@ nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-siz
 
 <h2>Echo and AI</h2>
 
-<p>Many questions are answered from your own records without any AI model. When a model is needed, each question is classed by the most sensitive information in it:</p>
+<p>Many questions are answered from your own records without any AI model. When a model is needed, Echo sorts the question by the words in it and the records it adds. This sorting can get it wrong: a question about health or family that is worded in an unexpected way can be treated as having no personal information.</p>
 
 <ul>
-<li>Questions with no personal information normally go to Cloudflare Workers AI, and may also go to Google (Gemini) or Groq, which KEEPITIL has approved only for questions that contain no personal information.</li>
-<li>Questions that include your or your family's personal information go only to a provider approved for personal data with zero data retention and no training. Today that is Cloudflare Workers AI.</li>
-<li>Questions that include health information are not sent to any AI model. Echo answers them from your records or tells you it cannot.</li>
-<li>Children's profile information (names, birth dates, birthplaces, notes and health) is removed from anything we send to an AI model. The exception is household meal records: Echo may use them, including a child's meals, to answer the account holder, and they are sent only to Cloudflare Workers AI, which says it does not keep them after answering or use them for training. See "Children" below.</li>
+<li>Questions Echo treats as having no personal information normally go to Cloudflare Workers AI, and may also go to Google (Gemini) or Groq.</li>
+<li>Photo questions are currently treated as having no personal information. Cloudflare Workers AI reads the photo, but your question, the description of the photo and any family records Echo adds may go to Google (Gemini) or Groq if Cloudflare is unavailable.</li>
+<li>Other questions that include your or your family's personal information go only to Cloudflare Workers AI, which is used under terms of zero data retention and no training.</li>
+<li>Echo uses an AI provider to write its replies. When you ask Echo something, the information it needs to answer is sent to the provider with your question. This can include health records, family medical history, Apple Health figures (if you turned that on), and earlier messages and preferences from your Echo conversation.</li>
+<li>Echo tries to keep children's information away from the AI provider, but it cannot remove all of it. When Echo adds your family's records to a question, it leaves out a child's profile and the records linked to it, and replaces a child's name and birth date with "a child" or "[date withheld]" where it recognises them. Health entries are stored by name, not linked to a profile, so a child's health entries can still be sent, as can family records about a child (including medical history) that are not linked to the child's profile. A name can be missed if it is spelled differently or shared with an adult. Photos you share, what you type, and earlier messages in your Echo conversation are sent as they are. Echo may also use household meal records, including a child's meals, to answer the account holder.</li>
 </ul>
 
-<p>Photos you share with Echo are read by Cloudflare Workers AI only. If that fails, they are not sent anywhere else.</p>
+<p>If Cloudflare cannot read the photo, the photo itself is not sent anywhere else.</p>
 
 <h2>Health and Apple Health</h2>
 
-<p>TUITEA can read steps, sleep, water, exercise minutes, active energy, walking and running distance, resting heart rate and weight, only after you allow each one. Apple Health readings are shown on your phone. They are not saved on our servers. If you ask Echo a health-related question while Apple Health is on, a short summary (for example, today's steps and last night's sleep) is sent to our server with the question so Echo can answer. It is not given to any AI model or other company and is not stored. Apple Health data is never used for advertising or marketing, and never sold or shared with data brokers. Health entries and sleep records you type in are stored like your other records, private to you unless you share them.</p>
+<p>TUITEA can read steps, sleep, water, exercise minutes, active energy, walking and running distance, resting heart rate and weight, only after you allow each one. Apple Health readings are shown on your phone. They are not saved on our servers. If you turned on "Use Apple Health in Echo's answers" and ask Echo a question it treats as being about health, a short summary (for example, today's steps and last night's sleep) is sent with the question to our server and can be sent on to Echo's AI provider to write the reply. Echo's reply may mention these figures, and it is kept in your Echo history. Apple Health data is never used for advertising or marketing, and never sold or shared with data brokers. Health entries and sleep records you type in are stored like your other records, private to you unless you share them.</p>
 
 <h2>Children</h2>
 
@@ -99,7 +103,7 @@ nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-siz
 
 <p>TUITEA is for families, so children can be on the family tree. Only the household's owner or an admin can add a child, and they can keep records about them. A child's profile is managed by the household and is not an account: a child never gets a login, TUITEA does not create an invitation for a child's profile, and a child's profile cannot be linked to any account.</p>
 
-<p>When Echo needs an AI model, children's profile information (names, birth dates, birthplaces, notes and health) is removed from what we send to the model, except household meal records, which Echo may use (including a child's meals) to answer the account holder; those go only to Cloudflare Workers AI, which says it does not keep them after answering or use them for training. Health questions are answered from your records and are not sent to an AI company. If you type a child's name into your own question, that question is sent as you wrote it.</p>
+<p>Echo tries to keep children's information away from the AI provider, but it cannot remove all of it. When Echo adds your family's records to a question, it leaves out a child's profile and the records linked to it, and replaces a child's name and birth date with "a child" or "[date withheld]" where it recognises them. Health entries are stored by name, not linked to a profile, so a child's health entries can still be sent, as can family records about a child (including medical history) that are not linked to the child's profile. A name can be missed if it is spelled differently or shared with an adult. Photos you share, what you type, and earlier messages in your Echo conversation are sent as they are. Echo may also use household meal records, including a child's meals, to answer the account holder.</p>
 
 <p>If you think a child has made an account, write to <a href="mailto:info@keepitil.com">info@keepitil.com</a> and we will delete it.</p>
 

@@ -16,9 +16,11 @@ nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-siz
 <main>
 <h1>Health &amp; Apple Health</h1>
 
-<p class="up">Version 2026-11-03 · Last updated: 3 November 2026</p>
+<p class="up">Version 2026-11-19 · Last updated: 19 November 2026</p>
 
-<p><strong>What changed:</strong> the assistant is now called Echo. Nothing else changed.</p>
+<p><strong>What changed (19 November 2026):</strong> we corrected what this page said about health and children. Echo uses an AI provider to write its replies, and the information it sends with your question can include health records, family medical history and Apple Health figures. Children's information is not always removed. See "Echo and AI" and "Children".</p>
+
+<p><strong>Earlier (3 November 2026):</strong> the assistant is now called Echo.</p>
 
 <p>Health information is treated differently from everything else in TUITEA. This page says exactly how, because a general privacy policy is the wrong place to bury it.</p>
 
@@ -30,16 +32,13 @@ nav{border-top:1px solid var(--stroke);margin-top:40px;padding-top:16px;font-siz
 
 <h2>Where it goes</h2>
 
-<p>Health information leaves your device only when a TUITEA or Echo feature you have explicitly enabled requires it, and then only the minimum needed for that feature. If you turn health integration off, that transmission stops.</p>
-
-<p>In practice, today, health questions are answered on your device or from your own records: Echo reads your latest weight, your recent sleep, a measurement you logged, and answers directly. No remote AI provider is approved to receive health information, so none receives it. Any external AI processing of sensitive health information would happen only where the applicable privacy and provider requirements are satisfied.</p>
+<p>Apple Health figures leave your phone only if you turn on "Use Apple Health in Echo's answers", and then only with a question Echo treats as being about health. Health entries and family medical history you save in TUITEA are stored on our servers, and Echo can send them to its AI provider when it uses them to answer you. Today that provider is Cloudflare Workers AI; for photo questions it may also be Google (Gemini) or Groq.</p>
 
 <h2>What never happens</h2>
 
 <ul>
 <li>TUITEA does not sell health data. Not to anyone, for any price.</li>
 <li>TUITEA does not use health data for advertising, and does not share it with advertisers.</li>
-<li>TUITEA does not send health data to a model because it might be useful. Transmission has to be required by a feature you switched on.</li>
 </ul>
 
 <h2>Who else can see it</h2>

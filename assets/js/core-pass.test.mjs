@@ -39,7 +39,8 @@ function walk(dir, exts, out = []) {
   return out;
 }
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
-const PAGES = walk(ROOT, ['.html']).filter((r) => !/^google[0-9a-f]+\.html$/.test(r));
+// *.play.html are the undeployed coming-soon originals (.github/pages-exclude.txt), not served pages.
+const PAGES = walk(ROOT, ['.html']).filter((r) => !/^google[0-9a-f]+\.html$/.test(r) && !r.endsWith('.play.html'));
 const SCRIPTS = walk(ROOT, ['.js']).filter((r) => r !== 'sw.js');
 
 /* ── helpers ─────────────────────────────────────────────────────────────────────────────── */
@@ -214,6 +215,57 @@ test('no served page builds its own bottom/tab bar with anything but the five', 
   assert.deepEqual(bad, []);
 });
 
+/* ── 1b. every served page carries the five tabs ─────────────────────────────────────────── */
+/* Pages that show no tabs (Grok 2026-11-21): the 404, internal noindex tools, redirect gates,
+   TUITEA's own sign-in pages (another product), and the KEEPITIL sign-up / reset-password flows. */
+const NO_TABS = new Set([
+  '404.html', 'offline.html', 'radio-tuner/index.html',
+  'article/kform-lead-capture/index.html',   // meta-refresh gate to /games/
+  'join/index.html', 'join/auth/index.html',  // "Join TUITEA" / TUITEA email link: TUITEA pages
+  'signup.html', 'reset-password.html',       // auth flows, chromeless today; not in the 11-21 GO list (asked)
+]);
+const isRedirectStub = (html) => /<meta[^>]+http-equiv\s*=\s*["']refresh["'][^>]+content\s*=\s*["']0;/i.test(html);
+export function tabsSource(html) {
+  if (/<script\b[^>]*src\s*=\s*["'][^"']*keepitil-shell\.js/i.test(html)) return 'shell';
+  if (/<script\b[^>]*src\s*=\s*["'][^"']*\/assets\/js\/kil-tabs\.js/i.test(html)) return 'kil-tabs';
+  return null;
+}
+test('every served page gets the five bottom tabs (shell or kil-tabs.js), except the reviewed no-tab list', () => {
+  const missing = PAGES.filter((rel) => !NO_TABS.has(rel) && !tabsSource(read(rel)) && !isRedirectStub(read(rel)));
+  assert.deepEqual(missing, []);
+  for (const rel of NO_TABS) assert.ok(PAGES.includes(rel), 'stale NO_TABS entry: ' + rel);
+});
+
+/* kil-tabs.js must render exactly what the shell renders: same five, same hrefs, tints and icons. */
+function geometry(src, name) {
+  const m = src.match(new RegExp('\\b' + name + "\\s*:\\s*('(?:[^'\\\\]|\\\\.)*'(?:\\s*\\+\\s*'(?:[^'\\\\]|\\\\.)*')*)"));
+  return m ? [...m[1].matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((x) => x[1]).join('') : null;
+}
+export function tabEntries(src, startToken) {
+  const start = src.indexOf(startToken);
+  if (start < 0) return null;
+  const body = stripJsComments(src.slice(start, src.indexOf('];', start)));
+  return [...body.matchAll(/\{[^{}]*?href\s*:\s*'([^']+)'[^{}]*?\}/g)].map((m) => {
+    const e = m[0];
+    const get = (k) => (e.match(new RegExp('\\b' + k + "\\s*:\\s*'([^']*)'")) || [])[1] || null;
+    return { href: m[1], pill: (get('pill') || '').toUpperCase(), icon: get('icon'), tint: get('tint'), glow: get('glow') };
+  });
+}
+export function tabsDrift(shellSrc, tabsSrc) {
+  const a = tabEntries(shellSrc, 'var DESTINATIONS=['), b = tabEntries(tabsSrc, 'var TABS=[');
+  const out = [];
+  if (!b) return ['kil-tabs.js: TABS list not found'];
+  if (JSON.stringify(a) !== JSON.stringify(b)) out.push('tab list differs from shell DESTINATIONS: ' + JSON.stringify(b));
+  if (b.map((t) => t.pill).join() !== FIVE.join()) out.push('kil-tabs.js is not exactly the five: ' + b.map((t) => t.pill).join(', '));
+  const shellIcons = shellSrc.slice(shellSrc.indexOf('var ICON_GEOMETRY'));
+  const tabIcons = tabsSrc.slice(tabsSrc.indexOf('var ICONS'));
+  for (const t of b) if (geometry(shellIcons, t.icon) !== geometry(tabIcons, t.icon)) out.push('icon differs: ' + t.icon);
+  return out;
+}
+test('kil-tabs.js mirrors the shell exactly (five tabs, hrefs, tints, icons; no Shop)', () => {
+  assert.deepEqual(tabsDrift(read('keepitil-shell.js'), read('assets/js/kil-tabs.js')), []);
+});
+
 /* ── 2. nothing opens by itself ───────────────────────────────────────────────────────────── */
 test('no served page or shared script shows a modal/banner/sheet/prompt from a timer or load handler', () => {
   const bad = [];
@@ -244,13 +296,33 @@ export function visibleCopy(html) {
   return [title, ...attrs, text].join(' \n ').replace(/&[a-z#0-9]+;/gi, ' ');
 }
 const RADIO_COPY = /\bradio\b|\bplaylists?\b/i;
+/* Earn backdrops with painted "ON AIR" / "LIVE 24/7 MUSIC" signs (Grok 2026-11-21: Earn uses a text-free crop). */
+const TEXT_ART = ['earn-hero.jpg', 'earn-hero-m.jpg'];
+/* true when `re` matches a rule at the top level of some <style> block (not nested in @media/@supports) */
+export function topLevelRule(html, re) {
+  const clean = html.replace(/<!--[\s\S]*?-->/g, ' ');
+  for (const m of clean.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)) {
+    const css = m[1].replace(/\/\*[\s\S]*?\*\//g, (c) => ' '.repeat(c.length));
+    const g = new RegExp(re.source, 'g');
+    let x;
+    while ((x = g.exec(css))) {
+      let depth = 0;
+      for (let i = 0; i < x.index; i++) { if (css[i] === '{') depth++; else if (css[i] === '}') depth--; }
+      if (depth === 0) return true;
+    }
+  }
+  return false;
+}
 export function earnProblems(html) {
   const p = [];
   const copy = visibleCopy(html);
   const m = copy.match(new RegExp('.{0,40}(?:' + RADIO_COPY.source + ').{0,40}', 'i'));
   if (m) p.push('radio/playlist copy: ' + m[0].replace(/\s+/g, ' ').trim());
+  if (!topLevelRule(html, /#kil-radio\s*\{\s*display\s*:\s*none\s*!important\s*\}/))
+    p.push('docked radio bar (#kil-radio) is not hidden on Earn at every width (needs a top-level rule, not one inside @media)');
   if (!/body\.rad-m\s+#kil-radio\s*\{\s*display\s*:\s*none\s*!important/.test(html.replace(/<!--[\s\S]*?-->/g, '')))
     p.push('phones: docked radio bar (#kil-radio) is not hidden on Earn');
+  for (const art of TEXT_ART) if (html.includes('/assets/images/' + art)) p.push('hero art with radio signs: ' + art);
   if (!/matchMedia\(\s*['"]\(max-width:\s*860px\)['"]\s*\)[\s\S]{0,200}classList\.toggle\(\s*['"]rad-m['"]/.test(html))
     p.push('phones: body.rad-m is not set on ≤860px, so the hide rule never applies');
   const gridId = html.indexOf('id="affGrid"');
@@ -262,7 +334,7 @@ export function earnProblems(html) {
   return p;
 }
 
-test('Earn: no radio/playlist copy, no docked radio bar on phones, Kit inside the carousel', () => {
+test('Earn: no radio/playlist copy, no docked radio bar at any width, text-free hero art, Kit inside the carousel', () => {
   assert.deepEqual(earnProblems(read('earn/index.html')), []);
 });
 
@@ -317,10 +389,32 @@ test('NEGATIVE CONTROL: Earn checks fail on radio copy, a visible docked bar and
   const barShown = earn.replace(/body\.rad-m\s+#kil-radio\s*\{\s*display\s*:\s*none\s*!important\s*\}/, 'body.rad-m #kil-radio{display:flex}');
   assert.notEqual(barShown, earn, 'control did not apply');
   assert.ok(earnProblems(barShown).some((p) => p.includes('docked radio bar')));
+  // desktop: the same hide rule moved inside a phone-only @media must fail
+  const phoneOnly = earn.replace(/\n#kil-radio\{display:none!important\}\n/, '\n@media(max-width:860px){#kil-radio{display:none!important}}\n');
+  assert.notEqual(phoneOnly, earn, 'desktop control did not apply');
+  assert.ok(earnProblems(phoneOnly).some((p) => p.includes('every width')));
+  const oldArt = earn.replace('earn-hero-notext-m.jpg', 'earn-hero-m.jpg');
+  assert.ok(earnProblems(oldArt).some((p) => p.startsWith('hero art')));
   const kitStart = earn.indexOf('<a class="card aff-card" id="kitAffiliate"');
   const kitEnd = earn.indexOf('</a>', kitStart) + 4;
   const kit = earn.slice(kitStart, kitEnd);
   const moved = earn.slice(0, kitStart) + earn.slice(kitEnd);
   const outside = moved.replace('<footer', kit + '\n<footer');
   assert.ok(earnProblems(outside).some((p) => p.startsWith('Kit')));
+});
+
+test('NEGATIVE CONTROL: tab coverage and kil-tabs drift checks fail on known-bad input', () => {
+  const page = read('about.html');
+  const stripped = page.replace(/<script\b[^>]*kil-tabs\.js[^>]*><\/script>/, '');
+  assert.notEqual(stripped, page, 'control did not apply');
+  assert.equal(tabsSource(stripped), null);
+  assert.equal(tabsSource(page), 'kil-tabs');
+  const shell = read('keepitil-shell.js'), tabs = read('assets/js/kil-tabs.js');
+  const withShop = tabs.replace("{href:'/culture/',", "{href:'/shop/', pill:'SHOP', label:'Shop', icon:'radio', match:/shop/},\n    {href:'/culture/',");
+  assert.notEqual(withShop, tabs, 'shop control did not apply');
+  assert.ok(tabsDrift(shell, withShop).length > 0);
+  const retint = tabs.replace("tint:'#ff9f43'", "tint:'#ff0000'");
+  assert.ok(tabsDrift(shell, retint).some((p) => p.includes('differs')));
+  const reicon = tabs.replace('<circle cx="12" cy="12" r="1.6"/>', '<circle cx="12" cy="12" r="3"/>');
+  assert.ok(tabsDrift(shell, reicon).some((p) => p.startsWith('icon differs')));
 });

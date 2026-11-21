@@ -72,6 +72,44 @@ function catalogUrls(node, out = []) {
   return out;
 }
 
+// Content of <meta name="robots">, lower-cased with spaces removed, or null when absent.
+function robotsMeta(html) {
+  const m = html.match(/<meta\s+name\s*=\s*["']robots["']\s+content\s*=\s*["']([^"']*)["']/i)
+    || html.match(/<meta\s+content\s*=\s*["']([^"']*)["']\s+name\s*=\s*["']robots["']/i);
+  return m ? m[1].toLowerCase().replace(/\s+/g, '') : null;
+}
+const isNoindexNofollow = (html) => { const r = robotsMeta(html); return !!r && r.split(',').includes('noindex') && r.split(',').includes('nofollow'); };
+
+// Apple marks or wording (A199-3). Case-insensitive; also catches app-store / appstore.
+const APPLE_WORDING = /app[\s_-]*store|apple|iphone|ipad/gi;
+const appleWording = (text) => [...text.matchAll(APPLE_WORDING)].map((m) => m[0]);
+
+// Form controls a visitor could type into or pick from.
+const formControls = (html) => [...html.matchAll(/<(input|textarea|select)\b/gi)].map((m) => m[1].toLowerCase());
+
+// href values that are mailto: links.
+const mailtoLinks = (html) => [...html.matchAll(/\bhref\s*=\s*["']?(mailto:[^"'\s>]*)/gi)].map((m) => m[1]);
+
+// Sitemap <loc> entries for the storefront pages /app/ and /app/submit/.
+const sitemapStoreLocs = (xml) => [...xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)].map((m) => m[1])
+  .filter((u) => /^https?:\/\/(www\.)?keepitil\.com\/app(\/(submit\/?)?)?(index\.html)?([?#].*)?$/i.test(u));
+
+// Storefront files this page owns: everything directly in app/ plus app/submit/. The per-product
+// bundles under app/<product>/ (tuitea, kaitarako) predate the storefront and ship third-party
+// build output, so they are not part of this scan.
+function storefrontFiles(root = ROOT) {
+  const out = [];
+  for (const e of fs.readdirSync(path.join(root, 'app'), { withFileTypes: true })) if (e.isFile()) out.push(path.posix.join('app', e.name));
+  const walk = (rel) => {
+    for (const e of fs.readdirSync(path.join(root, rel), { withFileTypes: true })) {
+      const r = path.posix.join(rel, e.name);
+      if (e.isDirectory()) walk(r); else out.push(r);
+    }
+  };
+  walk('app/submit');
+  return out.sort();
+}
+
 test('negative controls: each guard fails on a bad input', () => {
   assert.equal(pathExists('/app/no-such-app-xyz/'), false);
   assert.equal(pathExists('https://keepitil.com/app/'), false, 'absolute URLs are not accepted as local paths');
@@ -85,6 +123,20 @@ test('negative controls: each guard fails on a bad input', () => {
   assert.deepEqual(offsiteFormActions('<button formaction="https://evil.example/">'), ['https://evil.example/']);
   assert.deepEqual(offsiteFormActions('<form action="/local">'), []);
   assert.deepEqual(catalogUrls({ a: ['/x', 'https://e.example', 'text'] }), ['/x', 'https://e.example']);
+
+  assert.equal(isNoindexNofollow('<meta name="robots" content="index,follow">'), false);
+  assert.equal(isNoindexNofollow('<meta name="robots" content="noindex">'), false, 'noindex alone is not enough');
+  assert.equal(isNoindexNofollow('<title>no robots meta</title>'), false);
+  assert.equal(isNoindexNofollow('<meta name="robots" content="noindex, nofollow">'), true);
+  assert.equal(isNoindexNofollow('<meta content="NOINDEX,NOFOLLOW" name="robots">'), true);
+  assert.deepEqual(appleWording('<title>KEEPITIL App Store</title>'), ['App Store']);
+  assert.deepEqual(appleWording('font:-apple-system; APPLE; app-store; AppStore; iPhone'), ['apple', 'APPLE', 'app-store', 'AppStore', 'iPhone']);
+  assert.deepEqual(appleWording('KEEPITIL Apps /app/store.js'), []);
+  assert.deepEqual(formControls('<input type="text"><TEXTAREA></TEXTAREA><select></select>'), ['input', 'textarea', 'select']);
+  assert.deepEqual(formControls('<p>no input fields here</p>'), []);
+  assert.deepEqual(mailtoLinks('<a href="mailto:a@x">a</a><a href=mailto:b@x>b</a><a href="/x">x</a>'), ['mailto:a@x', 'mailto:b@x']);
+  assert.deepEqual(sitemapStoreLocs('<loc>https://keepitil.com/app/</loc><loc>https://keepitil.com/app/submit/</loc><loc>https://keepitil.com/app/tuitea/</loc>'),
+    ['https://keepitil.com/app/', 'https://keepitil.com/app/submit/']);
 });
 
 // ---------- the pages ----------
@@ -196,4 +248,42 @@ test('both pages carry a CSP meta; any <base> comes before it', () => {
     const base = h.search(/<base\b/i);
     if (base >= 0) assert.ok(base < csp, `${f}: <base> must come before the CSP meta`);
   }
+});
+
+// ---------- Sentinel / Grok A199 findings ----------
+
+test('A199-1/2: /app/ and /app/submit/ are noindex, nofollow and not in any sitemap', () => {
+  for (const f of [STORE, SUBMIT]) {
+    const h = read(f);
+    assert.equal(robotsMeta(h), 'noindex,nofollow', `${f} robots meta`);
+    assert.equal((h.match(/<meta\s+name\s*=\s*["']robots["']/gi) || []).length, 1, `${f} has exactly one robots meta`);
+  }
+  const maps = fs.readdirSync(ROOT).filter((n) => /^sitemap.*\.xml$/i.test(n));
+  assert.ok(maps.includes('sitemap.xml'), 'sitemap.xml present');
+  for (const m of maps) assert.deepEqual(sitemapStoreLocs(read(m)), [], `${m} lists the storefront`);
+});
+
+test('A199-3: no App Store or Apple wording anywhere in the storefront files (catalog included)', () => {
+  const files = storefrontFiles();
+  for (const f of [STORE, SUBMIT, SCRIPT, CATALOG]) assert.ok(files.includes(f), `${f} is scanned`);
+  for (const f of files) {
+    assert.deepEqual(appleWording(f), [], `file name ${f}`);
+    if (/\.(html|js|mjs|json|css|txt|md|svg|xml|webmanifest)$/i.test(f)) assert.deepEqual(appleWording(read(f)), [], `${f}`);
+  }
+  // The catalog values themselves, after JSON decoding.
+  assert.deepEqual(appleWording(JSON.stringify(JSON.parse(read(CATALOG)))), []);
+  for (const f of [STORE, SUBMIT]) {
+    const title = read(f).match(/<title>([^<]*)<\/title>/i)[1];
+    assert.match(title, /KEEPITIL Apps/, `${f} title says KEEPITIL Apps`);
+  }
+});
+
+test('A199-4: /app/submit/ has no form fields and exactly one mailto link', () => {
+  const h = read(SUBMIT);
+  assert.deepEqual(formControls(h), [], 'no input, textarea or select');
+  assert.doesNotMatch(h, /class="[^"]*\b(placeholder|field)\b/i, 'no placeholder field boxes');
+  const mails = mailtoLinks(h);
+  assert.equal(mails.length, 1, `expected one mailto link, got ${mails.length}`);
+  assert.match(mails[0], /^mailto:info@keepitil\.com(\?|$)/);
+  assert.match(h, /<h1>Email us to submit your app<\/h1>/);
 });

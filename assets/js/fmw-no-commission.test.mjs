@@ -10,13 +10,19 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
+export const PATTERNS = {
+  commission: /\bcommissions?\b/i,
+  revenueShare: /\brevenue[- ]share\b/i,
+  takeRate: /\btake[- ]rate\b/i,
+  perOrder: /\bper[- ]order\b/i,
+  cutOf: /\bcut of\b/i,
+  percentOf: /\b\d+(?:\.\d+)?\s?% of\b/i,
+  percentThenOrder: /\b\d+(?:\.\d+)?\s?%[^.<\n]{0,80}\b(?:orders?|sales?)\b/i,
+  orderThenPercent: /\b(?:orders?|sales?)\b[^.<\n]{0,80}\b\d+(?:\.\d+)?\s?%/i,
+};
 export function commissionHits(text) {
   const copy = String(text).replace(/<style\b[\s\S]*?<\/style>/gi, ' ').replace(/\sstyle="[^"]*"/gi, ' ');
-  const pats = [
-    /\bcommissions?\b/i, /\brevenue[- ]share\b/i, /\btake[- ]rate\b/i, /\bper[- ]order\b/i, /\bcut of\b/i, /\b\d+(?:\.\d+)?\s?% of\b/i,
-    /\b\d+(?:\.\d+)?\s?%[^.<\n]{0,80}\b(?:orders?|sales?)\b/i, /\b(?:orders?|sales?)\b[^.<\n]{0,80}\b\d+(?:\.\d+)?\s?%/i,
-  ];
-  return pats.map((re) => (copy.match(re) || [])[0]).filter(Boolean);
+  return Object.values(PATTERNS).map((re) => (copy.match(re) || [])[0]).filter(Boolean);
 }
 
 function fmwFiles() {
@@ -53,4 +59,29 @@ test('NEGATIVE CONTROLS: the removed wording and its variants are caught; CSS pe
     '<p>1st in your county — $500/mo</p>', '<p>FindMyWeed never takes a cut, and your monthly recap shows every lead.</p>',
     '<p>Order of results: by distance.</p>',
   ]) assert.deepEqual(commissionHits(ok), [], ok);
+});
+
+// A205-8 (Sentinel): a negative control for EACH pattern on its own. Each sample must be caught by the pattern it is named
+// for, so removing or weakening any single pattern fails here, even if another pattern would still catch the sample.
+const PER_PATTERN = {
+  commission: ['10% commission only on orders that come through us', 'No orders, no commission'],
+  revenueShare: ['A small revenue share on every booking.', 'We take a revenue-share.'],
+  takeRate: ['Our take rate is low.', 'A take-rate applies.'],
+  perOrder: ['A $2 per-order fee.', 'Pay per order.'],
+  cutOf: ['We never take a cut of your orders.', 'A cut of the deal goes to us.'],
+  percentOf: ['We keep 5% of the total.', 'Pay 2.5 % of each invoice.'],
+  percentThenOrder: ['the 10% applies to orders through the network', '3% on every sale'],
+  orderThenPercent: ['Orders placed here pay 7.5%.', 'Sales through us cost 4 %.'],
+};
+test('A205-8: every pattern has its own negative controls, and each control is caught by THAT pattern', () => {
+  assert.deepEqual(Object.keys(PER_PATTERN).sort(), Object.keys(PATTERNS).sort(), 'one control set per pattern');
+  for (const [name, samples] of Object.entries(PER_PATTERN)) {
+    for (const s of samples) {
+      assert.ok(PATTERNS[name].test(s), name + ' catches: ' + s);
+      assert.notEqual(commissionHits('<p>' + s + '</p>').length, 0, 'the full scan catches: ' + s);
+    }
+  }
+  // and each pattern stays quiet on clean copy (a pattern that matched everything would pass the loop above)
+  const clean = '<p>Listing $10–$50/mo. 1st in your county — $500/mo. Order of results: by distance. 100% licensed.</p>';
+  for (const [name, re] of Object.entries(PATTERNS)) assert.equal(re.test(clean.replace(/<[^>]+>/g, ' ')), false, name + ' on clean copy');
 });

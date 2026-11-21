@@ -115,4 +115,4 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .card.prose p + p{margin-top:10px}
 .detail > .btn{margin-top:16px}
 
-.report fieldset{border:0;margin:8px 0 0;padding:0}.report legend{font-weight:600;margin-bottom:4px}.report label.check{display:block;padding:6px 0}.report-details{display:block;font-weight:600;margin-top:10px}.report textarea{display:block;width:100%;box-sizing:border-box;font:inherit;margin-top:4px}.report .btn{margin-top:10px}.report-msg{margin-top:8px;min-height:1.2em}.report-msg.error{font-weight:600}
+.report fieldset{border:0;margin:8px 0 0;padding:0}.report legend{font-weight:600;margin-bottom:4px}.report label.check{display:block;padding:6px 0}.report label.check input{margin:0 .5em 0 0}.report-details{display:block;font-weight:600;margin-top:10px}.report textarea{display:block;width:100%;box-sizing:border-box;font:inherit;margin-top:4px}.report .btn{margin-top:10px}.report-msg{margin-top:8px;min-height:1.2em}.report-msg.error{font-weight:600}

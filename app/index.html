@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>KEEPITIL App Store - Apps and games from KEEPITIL</title>
+<meta name="description" content="Apps and games from KEEPITIL in one place. Play KMOB and KBeats in your browser, open TUITEA, and see what is coming next.">
+<meta name="robots" content="index,follow">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="canonical" href="https://keepitil.com/app/"/>
+<meta property="og:title" content="KEEPITIL App Store">
+<meta property="og:description" content="Apps and games from KEEPITIL.">
+<!--
+  KEEPITIL STOREFRONT (/app/). Layout follows a phone app-store pattern: segmented top tabs
+  (Today | Apps | Games | Search), big editorial cards on Today, shelves of rows on Apps/Games,
+  and a client-side search over the catalog. No bottom tab bar on this page.
+  Content comes only from /app/catalog.json (rendered by /app/store.js). No third-party scripts,
+  no analytics, no network calls beyond that same-origin catalog.
+-->
+<style>
+  :root{
+    --bg:#07080c; --panel:#0e1117; --panel2:#151a23; --line:rgba(255,255,255,.09);
+    --ink:#eef2f7; --dim:#97a3b3; --mute:#6c7686;
+    --neon:#00ff88; --cyan:#22d3ee; --violet:#8b5cf6;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:var(--bg)}
+  body{color:var(--ink);font-family:'Space Grotesk','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+       min-height:100vh;overflow-x:hidden;
+       background:
+         radial-gradient(900px 480px at 12% -6%,rgba(139,92,246,.16),transparent 70%),
+         radial-gradient(760px 420px at 92% 4%,rgba(0,255,136,.10),transparent 70%),
+         var(--bg)}
+  a{color:inherit}
+  img{display:block}
+  .wrap{max-width:880px;margin:0 auto;padding:18px 16px 72px}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .brand{font-weight:800;letter-spacing:.18em;font-size:14px}
+  .brand a{text-decoration:none}
+  .brand span{color:var(--neon)}
+  .home{color:var(--dim);text-decoration:none;font-size:13px;border:1px solid var(--line);padding:8px 14px;border-radius:999px;white-space:nowrap}
+  .home:hover{color:var(--ink);border-color:rgba(0,255,136,.38)}
+
+  /* Segmented top tabs */
+  .seg-wrap{position:sticky;top:0;z-index:5;margin:14px -16px 0;padding:10px 16px;
+            background:rgba(7,8,12,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px;border-radius:14px;
+       background:var(--panel);border:1px solid var(--line)}
+  .seg button{appearance:none;border:0;background:transparent;color:var(--dim);font:inherit;font-size:14px;font-weight:700;
+              min-height:40px;border-radius:10px;cursor:pointer;letter-spacing:.02em}
+  .seg button[aria-selected="true"]{background:var(--panel2);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(0,255,136,.35)}
+  .seg button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+
+  .page-title{font-size:clamp(34px,7vw,52px);font-weight:900;letter-spacing:.01em;line-height:1.05;margin:22px 0 18px}
+  [role="tabpanel"][hidden]{display:none}
+
+  .eyebrow{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan)}
+
+  /* Today: big editorial cards */
+  .today-list{display:grid;gap:22px}
+  .story{position:relative;display:block;border-radius:22px;overflow:hidden;text-decoration:none;
+         background:var(--panel);border:1px solid var(--line);box-shadow:0 18px 40px rgba(0,0,0,.45)}
+  .story .art{position:relative;aspect-ratio:4/3;background:linear-gradient(160deg,#1a1f2b,#0b0d12)}
+  .story .art img.photo{width:100%;height:100%;object-fit:cover}
+  .story .art .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 35%,rgba(7,8,12,.92) 100%)}
+  .story .art .center-icon{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);width:34%;max-width:170px;
+         aspect-ratio:1;border-radius:24%;object-fit:cover;box-shadow:0 14px 36px rgba(0,0,0,.55)}
+  .story .art.icon-art{background:
+         radial-gradient(70% 60% at 50% 30%,rgba(139,92,246,.30),transparent 70%),
+         radial-gradient(60% 50% at 80% 90%,rgba(0,255,136,.16),transparent 70%),
+         linear-gradient(160deg,#171b26,#0b0d12)}
+  .story .tag{position:absolute;left:0;top:0;padding:9px 16px;border-bottom-right-radius:16px;
+         background:rgba(7,8,12,.78);font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+  .story .copy{position:absolute;left:0;right:0;bottom:0;padding:18px 20px}
+  .story h2{font-size:clamp(24px,5vw,34px);font-weight:900;line-height:1.08;margin-top:6px}
+  .story .blurb{color:var(--dim);font-size:15px;margin-top:8px;line-height:1.4}
+  .story .foot{border-top:1px solid var(--line)}
+  .story .foot .row{border:0}
+
+  /* Feature card on Apps / Games */
+  .feature{margin-bottom:28px}
+  .feature h2{font-size:clamp(22px,4.4vw,30px);font-weight:700;line-height:1.15;margin:4px 0 2px}
+  .feature .blurb{color:var(--dim);font-size:clamp(16px,3.4vw,20px);margin-bottom:12px}
+  .feature .card{position:relative;display:block;border-radius:20px;overflow:hidden;aspect-ratio:16/10;text-decoration:none;
+                 background:var(--panel);border:1px solid var(--line)}
+  .feature .card img.photo{width:100%;height:100%;object-fit:cover}
+  .feature .card .bar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:12px;padding:14px 16px;
+                 background:linear-gradient(180deg,transparent,rgba(7,8,12,.9))}
+  .feature .card .bar img{width:46px;height:46px;border-radius:11px;object-fit:cover}
+  .feature .card .bar b{display:block;font-size:16px}
+  .feature .card .bar small{color:var(--dim);font-size:13px}
+
+  /* Shelves of horizontal rows */
+  .shelf{margin:8px 0 30px}
+  .shelf h3{font-size:clamp(22px,4.6vw,28px);font-weight:900}
+  .shelf h3 .chev{color:var(--mute);font-weight:700}
+  .shelf .sub{color:var(--dim);font-size:15px;margin:2px 0 10px}
+  .track{display:grid;grid-auto-flow:column;grid-template-rows:repeat(3,auto);grid-auto-columns:92%;column-gap:16px;
+         overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+  .track::-webkit-scrollbar{display:none}
+  .track.short{grid-template-rows:none;grid-auto-flow:row;grid-auto-columns:auto;overflow:visible}
+  @media (min-width:720px){.track{grid-auto-columns:calc(50% - 8px)}}
+  .row{display:flex;align-items:center;gap:14px;padding:12px 0;min-width:0;scroll-snap-align:start;
+       border-bottom:1px solid var(--line)}
+  .row .icon{flex:0 0 64px;width:64px;height:64px;border-radius:15px;object-fit:cover;background:var(--panel2);
+             box-shadow:0 6px 18px rgba(0,0,0,.45)}
+  .row .meta{flex:1 1 auto;min-width:0}
+  .row .name{font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .subt{color:var(--dim);font-size:14px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .row .kids{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.06em;
+             color:#07080c;background:var(--neon)}
+  .row .act{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .get{display:inline-flex;align-items:center;justify-content:center;min-width:78px;min-height:34px;padding:0 16px;border-radius:999px;
+       background:var(--panel2);color:var(--cyan);font-weight:800;font-size:15px;text-decoration:none;border:1px solid rgba(34,211,238,.30)}
+  .get:hover{background:rgba(34,211,238,.12)}
+  .get:focus-visible,.story:focus-visible,.feature .card:focus-visible{outline:2px solid #fff;outline-offset:3px}
+  .get.soon{color:var(--dim);border-color:var(--line)}
+  .row .cap{color:var(--mute);font-size:11px;letter-spacing:.04em}
+
+  /* Search */
+  .searchbox{display:flex;align-items:center;gap:10px;padding:0 16px;min-height:50px;border-radius:16px;
+             background:var(--panel);border:1px solid var(--line)}
+  .searchbox:focus-within{border-color:rgba(0,255,136,.45)}
+  .searchbox svg{flex:0 0 auto;color:var(--dim)}
+  .searchbox input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--ink);font:inherit;font-size:17px}
+  .searchbox input::placeholder{color:var(--mute)}
+  .search-head{font-size:24px;font-weight:900;margin:26px 0 6px}
+  .empty{color:var(--dim);padding:18px 0}
+  .browse{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+  .tile{appearance:none;border:0;cursor:pointer;text-align:left;font:inherit;color:#fff;font-size:20px;font-weight:800;line-height:1.1;
+        min-height:110px;padding:16px;border-radius:18px;display:flex;align-items:flex-end}
+  .tile:focus-visible{outline:2px solid #fff;outline-offset:3px}
+  .tile.t-apps{background:linear-gradient(140deg,#22d3ee,#1b5f9e)}
+  .tile.t-games{background:linear-gradient(140deg,#8b5cf6,#3b1f7a)}
+  .tile.t-soon{background:linear-gradient(140deg,#00c46a,#0b5a3a)}
+  .tile.t-dev{background:linear-gradient(140deg,#f59e0b,#8a3d0a);text-decoration:none}
+
+  .dev-note{margin-top:34px;padding:18px;border-radius:16px;background:var(--panel);border:1px solid var(--line);color:var(--dim);font-size:14px;line-height:1.5}
+  .dev-note a{color:var(--cyan)}
+  footer{margin-top:40px;text-align:center;color:var(--mute);font-size:12px}
+  @media (prefers-reduced-motion:no-preference){.story,.get{transition:transform .15s ease,background .15s ease}.story:active{transform:scale(.985)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><a href="/">KEEP<span>ITIL</span> &middot; APP STORE</a></div>
+    <a class="home" href="/">&larr; keepitil.com</a>
+  </header>
+
+  <div class="seg-wrap">
+    <div class="seg" role="tablist" aria-label="Store sections">
+      <button type="button" role="tab" id="tab-today" data-tab="today" aria-controls="panel-today" aria-selected="true">Today</button>
+      <button type="button" role="tab" id="tab-apps" data-tab="apps" aria-controls="panel-apps" aria-selected="false" tabindex="-1">Apps</button>
+      <button type="button" role="tab" id="tab-games" data-tab="games" aria-controls="panel-games" aria-selected="false" tabindex="-1">Games</button>
+      <button type="button" role="tab" id="tab-search" data-tab="search" aria-controls="panel-search" aria-selected="false" tabindex="-1">Search</button>
+    </div>
+  </div>
+
+  <main>
+    <section role="tabpanel" id="panel-today" aria-labelledby="tab-today">
+      <h1 class="page-title">Today</h1>
+      <div class="today-list" data-slot="today"></div>
+    </section>
+
+    <section role="tabpanel" id="panel-apps" aria-labelledby="tab-apps" hidden>
+      <h1 class="page-title">Apps</h1>
+      <div data-slot="feature-apps"></div>
+      <div data-slot="shelves-apps"></div>
+    </section>
+
+    <section role="tabpanel" id="panel-games" aria-labelledby="tab-games" hidden>
+      <h1 class="page-title">Games</h1>
+      <div data-slot="feature-games"></div>
+      <div data-slot="shelves-games"></div>
+    </section>
+
+    <section role="tabpanel" id="panel-search" aria-labelledby="tab-search" hidden>
+      <h1 class="page-title">Search</h1>
+      <label class="searchbox">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Games, apps and more" autocomplete="off" spellcheck="false" aria-label="Search apps and games" aria-controls="search-results">
+      </label>
+      <h2 class="search-head" id="search-label">Suggested</h2>
+      <div id="search-results" aria-live="polite" data-slot="search"></div>
+      <h2 class="search-head">Browse</h2>
+      <div class="browse">
+        <button type="button" class="tile t-apps" data-goto="apps">Apps</button>
+        <button type="button" class="tile t-games" data-goto="games">Games</button>
+        <button type="button" class="tile t-soon" data-query="coming soon">Coming soon</button>
+        <a class="tile t-dev" href="/app/submit/">List your app</a>
+      </div>
+    </section>
+
+    <noscript>
+      <p class="empty">The store needs JavaScript to show the catalog. You can still browse <a href="/games/">KEEPITIL Games</a> and <a href="/apps/">KEEPITIL Apps</a>.</p>
+    </noscript>
+  </main>
+
+  <aside class="dev-note">Building something? <a href="/app/submit/">Find out how to get your app listed</a> on the KEEPITIL store.</aside>
+
+  <footer>&copy; KEEPITIL &middot; <a href="/">keepitil.com</a> &middot; <a href="/games/">Games</a> &middot; <a href="/apps/">Apps</a></footer>
+</div>
+<script src="/app/store.js" defer></script>
+</body>
+</html>

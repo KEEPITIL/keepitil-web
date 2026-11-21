@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "note": "KEEPITIL storefront catalog. Only real KEEPITIL apps and games that already have a page on keepitil.com. Every href, icon and image is a root-relative path to a file in this repo (assets/js/app-store.test.mjs checks it). No prices, ratings or reviews. Kids items link only to their own page.",
+  "items": [
+    {
+      "id": "kmob",
+      "kind": "game",
+      "name": "KMOB Endless War",
+      "subtitle": "Build your army. Survive the waves.",
+      "description": "Plan your army, command the tank and defend against endless waves of enemies.",
+      "icon": "/games/kmob/icon-512.png",
+      "href": "/games/kmob/",
+      "cta": "Open",
+      "status": "play",
+      "caption": "Free in your browser",
+      "keywords": ["strategy", "army", "tank", "waves", "war"]
+    },
+    {
+      "id": "kbeats",
+      "kind": "game",
+      "name": "KBeats",
+      "subtitle": "Play the music",
+      "description": "Four lanes. Tap, hold and swipe to the beat. Discover independent artists by playing their music.",
+      "icon": "/games/kbeats/icon.svg",
+      "href": "/games/kbeats/",
+      "cta": "Open",
+      "status": "beta",
+      "caption": "Beta",
+      "keywords": ["music", "rhythm", "artists", "beat"]
+    },
+    {
+      "id": "kwars",
+      "kind": "game",
+      "name": "Kingdom Wars",
+      "subtitle": "Build your base. Defend your kingdom.",
+      "description": "Grow your army and conquer the battlefield in the Kingdom Wars fort-defense series.",
+      "icon": "/games/kwars/app-icon-512.png",
+      "href": "/games/kwars/",
+      "cta": "Soon",
+      "status": "soon",
+      "caption": "Coming soon",
+      "keywords": ["kwars", "strategy", "fort", "defense", "kingdom"]
+    },
+    {
+      "id": "pokasnap",
+      "kind": "game",
+      "name": "PokaSnap",
+      "subtitle": "Pose and create with lovable pets",
+      "description": "A lighthearted interactive game built around posing, interacting and personalizing household pets.",
+      "icon": "/games/pokasnap/play/img/icon-512.png",
+      "href": "/games/pokasnap/",
+      "cta": "Soon",
+      "status": "soon",
+      "caption": "Coming soon",
+      "keywords": ["pets", "camera", "casual"]
+    },
+    {
+      "id": "thirteen",
+      "kind": "game",
+      "name": "The Thirteen Anchors",
+      "subtitle": "A supernatural horror series",
+      "description": "Lead a team of investigators out of Lantern HQ and into the dark, with a flashlight to see what waits there.",
+      "icon": "/games/13/icon.svg",
+      "href": "/games/13/",
+      "cta": "Soon",
+      "status": "soon",
+      "caption": "Coming soon",
+      "keywords": ["thirteen", "13", "horror", "mystery"]
+    },
+    {
+      "id": "tuitea",
+      "kind": "app",
+      "name": "TUITEA",
+      "subtitle": "Everything your family wants to keep",
+      "description": "A private app for one family: who everyone is and how they are related, the photographs and the stories behind them, and the everyday running of a household.",
+      "icon": "/app/tuitea/icon-512.png",
+      "href": "/app/tuitea/",
+      "cta": "Open",
+      "status": "available",
+      "caption": "Family",
+      "keywords": ["family", "tree", "photos", "household"]
+    },
+    {
+      "id": "wifi-remote",
+      "kind": "app",
+      "name": "WiFi Remote",
+      "subtitle": "A remote for your smart TV",
+      "description": "Turn your iPhone into a fast, reliable remote for your smart TV. Finds the TVs on your Wi-Fi automatically.",
+      "icon": "/assets/games-hub/wifi-remote-icon.jpg",
+      "href": "/wifi-remote.html",
+      "cta": "Get",
+      "status": "store",
+      "caption": "iPhone",
+      "keywords": ["tv", "remote", "roku", "lg", "samsung"]
+    },
+    {
+      "id": "kaitarako",
+      "kind": "app",
+      "name": "Kai Tarako",
+      "subtitle": "Learn, trace, grow",
+      "description": "Free, gentle alphabet tracing for young children.",
+      "icon": "/app/kaitarako/icon-512.png",
+      "href": "/app/kaitarako/",
+      "cta": "Open",
+      "status": "available",
+      "caption": "For kids",
+      "kids": true,
+      "keywords": ["kids", "alphabet", "tracing", "learn", "letters"]
+    }
+  ],
+  "today": [
+    {
+      "item": "kmob",
+      "eyebrow": "Play free in your browser",
+      "title": "Build your army. Survive the waves.",
+      "blurb": "Six soldier classes, a 300-cap army and four elemental powers, from desktop to phone.",
+      "image": "/games/kmob/assets/kmob-home/soldier-classes.webp",
+      "imageAlt": "KMOB Endless War six-class army"
+    },
+    {
+      "item": "kbeats",
+      "eyebrow": "In beta",
+      "title": "Play the music",
+      "blurb": "A rhythm game where independent artists upload their own tracks."
+    },
+    {
+      "item": "tuitea",
+      "eyebrow": "The family app",
+      "title": "Everything your family wants to keep",
+      "blurb": "Who everyone is, how they are related, and the stories behind the photographs."
+    },
+    {
+      "item": "thirteen",
+      "eyebrow": "Coming soon",
+      "title": "Into the dark",
+      "blurb": "Season One of The Thirteen Anchors, a supernatural horror series."
+    }
+  ],
+  "features": {
+    "apps": { "item": "tuitea", "eyebrow": "From KEEPITIL", "title": "Everything your family wants to keep", "blurb": "A private app for one family." },
+    "games": { "item": "kmob", "eyebrow": "Featured", "title": "KMOB Endless War", "blurb": "Command the tank and defend against endless waves.", "image": "/games/kmob/assets/kmob-home/battle-action.webp", "imageAlt": "KMOB Endless War battle" }
+  },
+  "shelves": {
+    "apps": [
+      { "title": "KEEPITIL Apps", "subtitle": "Made by KEEPITIL", "items": ["tuitea", "wifi-remote"] },
+      { "title": "For kids", "subtitle": "Gentle learning for young children", "items": ["kaitarako"] }
+    ],
+    "games": [
+      { "title": "Play now", "subtitle": "Free in your browser", "items": ["kmob", "kbeats"] },
+      { "title": "Coming soon", "subtitle": "What we're building next", "items": ["kwars", "pokasnap", "thirteen"] }
+    ]
+  }
+}

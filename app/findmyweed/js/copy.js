@@ -132,7 +132,7 @@
       privacy: {
         title: 'Privacy',
         sections: [
-          { h: 'No accounts, no tracking', p: [
+          { h: 'No accounts, no ad tracking', p: [   // A61-8 (Sentinel 03:30 PT): accurate next to the Cloudflare Web Analytics line
             'You do not need an account to use Find My Weed. We do not use advertising trackers.',
             'We use Cloudflare Web Analytics to count page views. It uses no cookies and gives us totals only: no ads and no profile that follows you to other sites.',
             'We don\'t keep your searches. Like any website, our host keeps short-lived server logs (IP address and page requested) for security.'] },

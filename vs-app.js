@@ -1506,14 +1506,12 @@
              + '<span class="vs-pill '+(paid?'':'ok')+'">'+(paid?('$'+(c.entry_fee_cents/100).toFixed(2)+' entry'):'Free to enter')+'</span>'
              + (dl!==null?'<span class="vs-pill warn">'+dl+' day'+(dl===1?'':'s')+' left</span>':'')
              + '</div>';
-      /* Season entry options: Basic FIRST and on its own; the Finale Voting Pass is a separate
-         line, not a tier, and no Priority price is shown anywhere. */
+      /* Season entry options: Basic entry only; no Priority price is shown anywhere. */
       if(isLinkComp(c)){
         right += '<div class="cd-sec"><h3>How to enter</h3><ul class="cd-list">'
                + '<li><b>Basic entry — Free.</b> '+h(sc.basic_note||'')+'</li>'
                + (sc.one_per_person ? '<li>One entry per person.</li>' : '')
                + '</ul>'
-               + (sc.finale_pass_note ? '<p style="margin-top:10px"><b>Finale Voting Pass.</b> '+h(sc.finale_pass_note)+'</p>' : '')
                + '</div>';
       }
       /* 4 voters — profile images, one scrollable row */

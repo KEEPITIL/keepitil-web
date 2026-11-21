@@ -595,10 +595,10 @@ var DESTINATIONS=[
    tint:'#22e07a', glow:'rgba(34,224,122,.75)'},
   {href:'/create/',  label:'Create',  pill:'CREATE',   icon:'vs',      match:/(^|\/)(create|vs)(\.html)?\/?$/,
    tint:'#ff5c8a', glow:'rgba(255,92,138,.75)'},
-  /* Shop sits between Create and Culture. Selected state is logo-blue (#5CD6FF label,
-     #1E9BFF glow), the same active treatment the other tabs use for their own tint. */
-  {href:'/shop/',    label:'Shop',    pill:'SHOP',     icon:'shop',    match:/(^|\/)shop(\.html)?(\/|$)/,
-   tint:'#5CD6FF', glow:'rgba(30,155,255,.75)'},
+  /* NO SHOP TAB (Joe 2026-11-20 6:38 PM: "No shop button allowed as the core mobile tabs on the
+     bottom navigations for the Keepitil website or apps."). The nav is EXACTLY five:
+     Discover, Connect, Create, Culture, Earn. /shop/ stays live, reached from the Earn carousel
+     and the footer. Guarded by assets/js/nav-five-tabs.test.mjs. */
   {href:'/culture/', label:'Culture', pill:'CULTURE',  icon:'culture', match:/(^|\/)culture(\.html)?\/?$/,
    tint:'#a06bff', glow:'rgba(160,107,255,.75)'},
   {href:'/earn/',    label:'Earn',    pill:'EARN',     icon:'radio',   match:/(^|\/)(earn|radio)(\.html)?\/?$/,
@@ -775,6 +775,8 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           +'<span class="fa-mail"> · <a href="mailto:info@keepitil.com">info@keepitil.com</a></span></p></div>'
         +'<nav class="v3-foot-links">'
         +DESTINATIONS.map(function(d){ return '<a href="'+d.href+'">'+d.label+'</a>'; }).join('')
+        /* Shop is a footer link, never a nav tab (Joe 2026-11-20). */
+        +'<a href="/shop/">Shop</a>'
         +'<a href="/apply">Login</a></nav>'
         +'<div class="v3-foot-social">'
           +'<a href="https://instagram.com/keepitil" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2.2c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2zm0 3.2A6.6 6.6 0 1012 18.6 6.6 6.6 0 0012 5.4zm0 10.9a4.3 4.3 0 110-8.6 4.3 4.3 0 010 8.6zm6.85-11.2a1.54 1.54 0 11-3.08 0 1.54 1.54 0 013.08 0z"/></svg></a>'
@@ -914,7 +916,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
 
           if(document.getElementById('kil-bnav')) return;
           var bn=document.createElement('nav'); bn.id='kil-bnav';
-          /* One slot per destination in DESTINATIONS, including Shop. Create WAS the centre slot — it is an action,
+          /* One slot per destination in DESTINATIONS (five; no Shop). Create WAS the centre slot — it is an action,
              not a place, and mixing it in is what left no room for Radio and VS. It moves to
              a floating button above the bar, calling the same __kilCreateMenu as before.
              Profile leaves the bar for the contextual slot: it is account state, not a

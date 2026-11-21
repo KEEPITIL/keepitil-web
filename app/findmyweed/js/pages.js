@@ -225,7 +225,12 @@
       }
 
       var mn = el('section', 'card'), url = F.safeUrl(l.menuUrl); mn.appendChild(el('h2', null, C.menu));
-      if (url) { var m = el('a', 'btn ghost', C.menuLink); m.href = url; m.target = '_blank'; m.rel = 'noopener noreferrer nofollow'; mn.appendChild(m); }
+      if (url) {
+        var m = el('a', 'btn ghost', C.menuLink); m.href = url; m.target = '_blank'; m.rel = 'noopener noreferrer nofollow';
+        // the hand-off to a business that may take orders: say who checks ID, and the age rule (Sentinel B/D)
+        var mnote = el('p', 'muted', C.menuNote); mnote.id = 'menu-note'; m.setAttribute('aria-describedby', 'menu-note');
+        mn.appendChild(m); mn.appendChild(mnote);
+      }
       else mn.appendChild(el('p', 'muted', C.noMenu));
       box.appendChild(mn);
 

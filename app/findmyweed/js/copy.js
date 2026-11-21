@@ -71,9 +71,10 @@
     addressNoStreet: 'Street address not listed',
     addressDeliveryNote: 'Delivery only: we show the city, not the street address.',
     menu: 'Menu',
-    // NOTE for Muse / Joe (review, tower 1): this link leaves Find My Weed for the business's own site, which may
-    // take orders there (Find My Weed never does). Consider saying so, e.g. "(opens their site)". Wording is yours.
+    // This link leaves Find My Weed for the business's own site, which may take orders there (Find My Weed never does).
+    // Sentinel B/D (2026-11-21): the hand-off says the business checks ID and shows the age rule; Find My Weed claims no check.
     menuLink: 'View menu on their website',
+    menuNote: 'Opens the business’s own site. The business checks ID there: 21+ (18+ medical where legal). Find My Weed does not check ID.',
     noMenu: 'No menu link yet.',
     claim: 'Claim this listing',
     claimSoon: 'Coming soon: business owners will be able to claim and update their listing.',

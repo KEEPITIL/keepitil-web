@@ -11,6 +11,9 @@ a{color:var(--green)}
 
 /* Draft marker: visible until copy.js PLACEHOLDER is false */
 .draft{background:var(--warn-bg);border-bottom:1px solid var(--warn-line);color:var(--warn);font-size:13px;text-align:center;padding:8px 16px}
+/* Perf 2026-11-21: the banner is empty until pages.js fills it, and launched pages remove it. Without this its 17px of
+   padding paints first and then disappears, shifting the whole page up (CLS 0.12-0.19 on mobile). */
+.draft:empty{display:none}
 
 .logo{font-weight:900;letter-spacing:-.02em;color:var(--text);text-decoration:none}
 .logo span{color:var(--green)}
@@ -47,6 +50,8 @@ main:focus{outline:none}
 /* Results */
 h2,.rtitle{font-size:20px;margin:22px 0 10px;text-wrap:balance}
 .listings{display:grid;gap:10px;list-style:none}
+/* Perf 2026-11-21: results can hold 1,000+ cards; skip layout/paint for the ones off screen (still in the a11y tree). */
+.listings>li{content-visibility:auto;contain-intrinsic-size:auto 120px}
 /* Map (Phase 1): self-hosted SVG, dots link to the detail page; the outline slot is empty until a boundary file exists */
 .map{margin:0 0 14px}
 .map h2{font-size:15px;color:var(--muted);font-weight:700;margin-bottom:8px}

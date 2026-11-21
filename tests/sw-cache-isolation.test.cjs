@@ -54,6 +54,8 @@ test('root worker does not intercept isolated app requests', () => {
     '/kode/index.html',
     '/app/tuitea/index.html',
     '/app/kaitarako/assets/index-123.js',
+    '/app/findmyweed/',
+    '/app/findmyweed/js/fmw.js',
   ]) {
     let intercepted = false;
     worker.handlers.get('fetch')({

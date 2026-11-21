@@ -14,7 +14,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { JSDOM } from 'jsdom';
+import { JSDOM, ResourceLoader } from 'jsdom';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SHELL = readFileSync(path.join(root, 'keepitil-shell.js'), 'utf8');
@@ -107,9 +107,10 @@ const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 
 function load(src, { ua, standalone = false } = {}) {
   const dom = new JSDOM('<!doctype html><html><head></head><body><main><p>page</p></main></body></html>', {
     url: 'https://keepitil.com/', pretendToBeVisual: true, runScripts: 'outside-only',
-    userAgent: ua || UA_ANDROID,
+    resources: new ResourceLoader({ userAgent: ua || UA_ANDROID }),
   });
   const w = dom.window;
+  assert.equal(w.navigator.userAgent, ua || UA_ANDROID, 'jsdom must report the scenario user agent');
   let now = 0, seq = 0;
   const q = new Map();
   w.setTimeout = (fn, ms = 0) => { const id = ++seq; q.set(id, { fn, at: now + (+ms || 0) }); return id; };

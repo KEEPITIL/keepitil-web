@@ -29,6 +29,17 @@
     sel.value = matchCity(list, p.city);
   }
 
+  // The "Open now" chip ships hidden + disabled (index.html, results.html) and is shown only when the data has at least
+  // one licensed listing with known hours (F.openNowOffered). Hidden, it is also unticked and disabled, so a ?open=1
+  // link never resubmits a filter the visitor cannot see.
+  function showOpenNow(form, data) {
+    var cb = form && form.open; if (!cb) return;
+    var on = F.openNowOffered(data, new Date()), chip = cb.parentNode;
+    if (!on) cb.checked = false;
+    cb.disabled = !on;
+    if (chip) chip.hidden = !on;
+  }
+
   // Shared chrome: every [data-copy] element gets its text from copy.js; the draft banner goes once the copy is final.
   doc.querySelectorAll('[data-copy]').forEach(function (n) { var v = C[n.getAttribute('data-copy')]; if (typeof v === 'string') n.textContent = v; });
   doc.querySelectorAll('[data-copy-ph]').forEach(function (n) { var v = C[n.getAttribute('data-copy-ph')]; if (typeof v === 'string') n.setAttribute('placeholder', v); });
@@ -78,7 +89,7 @@
   if (page === 'search') {
     var sp = params(), sf = doc.getElementById('search');
     fill(sf, sp);
-    load().then(function (data) { fillCities(sf, data, sp); }, function () { /* the city list is optional; text search still works */ });
+    load().then(function (data) { fillCities(sf, data, sp); showOpenNow(sf, data); }, function () { /* the city list is optional; text search still works */ });
     return;
   }
 
@@ -120,6 +131,7 @@
       clear(out); clear(stateBox); head.textContent = ''; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
       load().then(function (data) {
         fillCities(doc.getElementById('search'), data, p);
+        showOpenNow(doc.getElementById('search'), data);
         var res = F.search(data, p, new Date());
         if (res.notFound) {
           var c = F.classify(p.q);

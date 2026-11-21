@@ -13,12 +13,12 @@
   var DEFAULT_TZ = 'America/Los_Angeles';
   // Today's date IN LA (YYYY-MM-DD): a license that expires today is judged on LA's day, not the viewer's.
   function today(now) { return new Intl.DateTimeFormat('en-CA', { timeZone: DEFAULT_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now || new Date()); }
-  // HELD LICENSES: FAIL CLOSED. Joe's ruling, 2026-11-19 (tab 07): C10-0001471-LIC (Off the Charts - Sylmar) is held OUT of
-  // the public directory until he picks its label. A held license is NEVER shown, whatever the data says: licensed() (and so
+  // Held licenses: never shown publicly, even if published:true. C10-0001471-LIC
+  // Fails closed. A held license is NEVER shown, whatever the data says: licensed() (and so
   // search, byId, cities and the map, which all go through it) drops it even if a row slips through with published: true.
   // Two more layers: the converter (tools/export-to-listings.js) writes held rows with published: false, and the release
   // check (tools/check-listings.js, run by npm run lint and CI) refuses a listings file that publishes one.
-  // This list is the ONE source for all three. Remove a license only on Joe's word.
+  // This list is the ONE source for all three.
   var HELD_LICENSES = ['C10-0001471-LIC'];
   // Matched on the license number OR the id (the id is the number in lower case), trimmed, any case.
   function isHeld(l) {
@@ -117,6 +117,14 @@
     return any;
   }
 
+  // Is the "Open now" filter offered at all? Only when at least one SHOWN (licensed(), so held, expired and unpublished
+  // rows never count) listing has usable hours (hoursKnown). Today no row in data/listings.json has hours, so every
+  // shop reads "Hours not listed", is never open, and the filter could only ever empty the results: the pages hide it
+  // and search() ignores ?open=1 until real hours exist. Nothing here invents hours.
+  function openNowOffered(data, now) {
+    return licensed((data && data.listings) || [], now).some(hoursKnown);
+  }
+
   // Open now? Ranges that close at or before they open run past midnight (e.g. 16:00-02:00).
   // Returns { open, until }, plus known: false ONLY when the hours are not usable (open is then always false; the
   // shape for usable hours is unchanged). `now` is injectable (tests); the listing's tz, else LA.
@@ -206,6 +214,8 @@
       return { place: null, notFound: true, reason: 'city', results: [] };
     }
     var kindFilter = !!opts.delivery !== !!opts.storefront;
+    // open now counts only while openNowOffered(): an old ?open=1 link then shows the same results as without it.
+    var wantOpen = !!opts.openNow && openNowOffered(data, now);
     var rows = licensed(data.listings, now).filter(function (l) {
       if (place && !inPlace(l, place)) return false;
       if (city && norm(l.address && l.address.city) !== norm(city)) return false;
@@ -216,10 +226,10 @@
       var s = openState(l, now);
       // a delivery-only service has NO coordinates in the public data (its premises are private): no distance, never NaN
       return { listing: l, miles: place && hasPoint(place) && hasPoint(l) ? miles(place, l) : null, open: s.open, until: s.until, known: s.known };
-    }).filter(function (r) { return !opts.openNow || r.open; });
+    }).filter(function (r) { return !wantOpen || r.open; });
     // nearest first; rows with no distance (delivery-only services) after them; then by name
     rows.sort(function (a, b) { return ((a.miles == null) - (b.miles == null)) || ((a.miles || 0) - (b.miles || 0)) || a.listing.name.localeCompare(b.listing.name); });
-    var filtered = !!(opts.openNow || kindFilter || city);
+    var filtered = !!(wantOpen || kindFilter || city);
     return { place: place, notFound: false, reason: null, filtered: filtered, results: rows };
   }
 
@@ -363,7 +373,7 @@
     return { x: +x.toFixed(1), y: +y.toFixed(1), w: +w.toFixed(1), h: +h.toFixed(1) };
   }
 
-  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, mapView: mapView, hoursKnown: hoursKnown, cities: cities, today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, cities: cities, today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
     dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;

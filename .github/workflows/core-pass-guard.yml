@@ -1,0 +1,60 @@
+name: core-pass guard
+
+# W208-1: a PR must not be able to delete or soften assets/js/core-pass.test.mjs and still be green.
+# The PR's tree is checked out, then the guard from the PR's BASE branch (github.base_ref; main for
+# normal PRs) is copied over the PR's copy and run against the PR's pages. The test resolves its root
+# from its own location (../../), so it must sit inside the PR tree, not in the base checkout.
+# If the base branch has no copy yet (before #208 merges), the PR's own copy runs and a notice says so.
+# pull_request only (never pull_request_target), read-only token, no secrets.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core-pass:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the PR tree
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Fetch the guard from the base branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.base_ref }}
+          path: .core-pass-base
+          sparse-checkout: assets/js/core-pass.test.mjs
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Run the base branch's guard against the PR tree
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          T=assets/js/core-pass.test.mjs
+          B=.core-pass-base/$T
+          if [ -f "$B" ]; then
+            if [ -f "$T" ] && cmp -s "$B" "$T"; then
+              echo "The PR's $T is identical to the base branch ($BASE_REF) copy."
+            else
+              echo "::warning title=core-pass guard::This PR changes or deletes $T. CI runs the base branch ($BASE_REF) copy, not the PR's."
+            fi
+            cp "$B" "$T"
+            echo "Running $T from base branch $BASE_REF (sha256 $(sha256sum "$T" | cut -c1-16))."
+          elif [ -f "$T" ]; then
+            echo "::notice title=core-pass guard::Base branch $BASE_REF has no $T yet, so the PR's own copy runs. The guard is fully effective once the test is on the base branch (keepitil-web #208 merged)."
+          else
+            echo "::error title=core-pass guard::$T is missing from both the base branch ($BASE_REF) and the PR."
+            exit 1
+          fi
+          rm -rf .core-pass-base
+          node --test "$T"

@@ -9,6 +9,8 @@
 //      holds client templates whose action is filled in per client.
 //   3. /needs (needs.html) is static text: no <form>, no network call, no pop-up, and it says
 //      exactly the agreed sentence.
+//   4. No page links to /needs (or needs.html): the "Tell Us What You Need" / "Start Here" / "Work with us"
+//      buttons were removed (Grok, R-J1) so a visitor never lands on the static notice as a dead end.
 // Every checker has a NEGATIVE CONTROL that must fail on a known-bad input.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -87,6 +89,23 @@ export function needsProblems(html) {
   return p;
 }
 
+const NEEDS_TARGET = /^(?:(?:https?:)?\/\/(?:www\.)?keepitil\.com)?(?:\.{0,2}\/)*needs(?:\.html)?\/?(?:[?#].*)?$/i;
+const LINK_ATTR = /\b(?:href|action|formaction)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
+const ABS_NEEDS = /(?:https?:)?\/\/(?:www\.)?keepitil\.com\/needs(?:\.html)?(?![\w.-])/gi;
+const JS_NEEDS = /(["'`])\/needs(?:\.html)?\/?(?:[?#][^"'`]*)?\1/g;
+
+/** Links to /needs in a page or script: link attributes, absolute keepitil.com/needs URLs, and '/needs' string literals. */
+export function needsLinks(text) {
+  const hits = [];
+  for (const m of text.matchAll(LINK_ATTR)) {
+    const v = (m[1] ?? m[2] ?? m[3] ?? '').trim();
+    if (NEEDS_TARGET.test(v)) hits.push(v);
+  }
+  for (const m of text.matchAll(ABS_NEEDS)) if (!hits.some((h) => h.includes(m[0]))) hits.push(m[0]);
+  for (const m of text.matchAll(JS_NEEDS)) hits.push(m[0]);
+  return hits;
+}
+
 // ---- the real tree ----
 
 const FILES = walk(ROOT);
@@ -121,6 +140,15 @@ test('findmyweed-join.html is gone (the /findmyweed-join 301 is a Cloudflare zon
 
 test('/needs has no <form> and shows only the static notice', () => {
   assert.deepEqual(needsProblems(readFileSync(join(ROOT, 'needs.html'), 'utf8')), []);
+});
+
+test('no page links to /needs (the CTA buttons were removed, so no dead ends)', () => {
+  const hits = [];
+  for (const rel of FILES.filter((f) => f !== 'needs.html')) {
+    const found = needsLinks(readFileSync(join(ROOT, rel), 'utf8'));
+    if (found.length) hits.push(rel + ': ' + found.join(', '));
+  }
+  assert.deepEqual(hits, []);
 });
 
 // ---- negative controls: each checker must FAIL on a known-bad input ----
@@ -171,4 +199,21 @@ test('NEGATIVE CONTROL: /needs checker rejects the old form page and near misses
   assert.notDeepEqual(needsProblems(good.replace(notice, '')), []);
   // the apostrophe may be written as an entity and still pass
   assert.deepEqual(needsProblems(good.replace("We're", 'We&#39;re')), []);
+});
+
+test('NEGATIVE CONTROL: /needs link scan catches the removed buttons and their variants', () => {
+  const bad = ['<a class="btn" href="https://keepitil.com/needs">Tell Us What You Need</a>',
+    '<a class="btn" href="https://keepitil.com/needs">Start Here</a>',
+    '· <a href="https://keepitil.com/needs">Work with us</a></footer>',
+    '<a class="ind" href="https://keepitil.com/needs"><b>More</b></a>',
+    '<a href="/needs">x</a>', '<a href="/needs/">x</a>', '<a href="needs.html">x</a>', '<a href="../needs.html#top">x</a>',
+    "<a href='https://www.keepitil.com/needs?src=about'>x</a>", '<a href=//keepitil.com/needs>x</a>',
+    '<form action="/needs">', "location.href = '/needs';", 'window.open("https://keepitil.com/needs")',
+    'const u = `/needs.html`;'];
+  for (const b of bad) assert.ok(needsLinks(b).length > 0, 'missed: ' + b);
+  const good = ['<a href="https://keepitil.com/about">About</a>', '<a href="/needsomething">x</a>',
+    '<a href="/app/needs-list/">x</a>', '<span data-field="needs">x</span>', '<p>Tell us what you need</p>',
+    "setText(card, 'needs', o.needs);", '<a href="https://keepitil.com/needs-assessment">x</a>',
+    '<a href="https://evil.test/needs">x</a>'];
+  for (const g of good) assert.deepEqual(needsLinks(g), [], 'false positive: ' + g);
 });

@@ -252,7 +252,7 @@
       fs.appendChild(el('legend', null, C.reportReasonLegend));
       F.REPORT_REASONS.forEach(function (r) {
         var lb = el('label', 'check'), ip = el('input'); ip.type = 'radio'; ip.name = 'reason'; ip.value = r;
-        lb.appendChild(ip); lb.appendChild(doc.createTextNode(' ' + C.reportReasons[r])); fs.appendChild(lb);
+        lb.appendChild(ip); lb.appendChild(doc.createTextNode(C.reportReasons[r])); fs.appendChild(lb);   // spacing is CSS (.report label.check input), not a leading ' ' in the name
       });
       fm.appendChild(fs);
       var dl = el('label', 'report-details', C.reportDetails), ta = el('textarea'), hint = el('p', 'muted', C.reportDetailsHint);

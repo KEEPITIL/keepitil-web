@@ -94,11 +94,11 @@
     // Page titles, descriptions and share-card (Open Graph) text. tools/meta.js writes these into each page's <head>.
     meta: {
       siteName: 'Find My Weed',
-      search: { title: 'Find My Weed', description: 'Find state-licensed cannabis storefronts and delivery services near you. Open to all; cannabis is for adults 21+.' },
-      results: { title: 'Licensed businesses near you · Find My Weed', description: 'State-licensed cannabis storefronts and delivery services, with license numbers and opening hours. Cannabis is for adults 21+.' },
-      listing: { title: 'Licensed business · Find My Weed', description: 'License number, address and hours for a state-licensed cannabis business. Cannabis is for adults 21+.' },
+      search: { title: 'Find My Weed', description: 'Find state-licensed cannabis storefronts and delivery services near you. Open to all; cannabis is for adults 21+ (18+ medical where legal).' },
+      results: { title: 'Licensed businesses near you · Find My Weed', description: 'State-licensed cannabis storefronts and delivery services, with license numbers and opening hours. Cannabis is for adults 21+ (18+ medical where legal).' },
+      listing: { title: 'Licensed business · Find My Weed', description: 'License number, address and hours for a state-licensed cannabis business. Cannabis is for adults 21+ (18+ medical where legal).' },
       about: { title: 'About · Find My Weed', description: 'How Find My Weed lists only state-licensed cannabis businesses, where the license data comes from, and its limits.' },
-      privacy: { title: 'Privacy · Find My Weed', description: 'What Find My Weed stores: business data from the state license record only, no visitor accounts, no tracking.' },
+      privacy: { title: 'Privacy · Find My Weed', description: 'What Find My Weed stores: business data from the state license record only, no visitor accounts, no ad tracking.' },
       notfound: { title: 'Page not found · Find My Weed', description: 'This page does not exist. Search state-licensed cannabis businesses on Find My Weed.' },
       imageAlt: 'Find My Weed: search state-licensed cannabis storefronts and delivery services',   // the real share image (launched)
       imageAltPlaceholder: 'Find My Weed placeholder share image'   // the draft's placeholder image

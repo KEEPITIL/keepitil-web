@@ -13,11 +13,29 @@
   var DEFAULT_TZ = 'America/Los_Angeles';
   // Today's date IN LA (YYYY-MM-DD): a license that expires today is judged on LA's day, not the viewer's.
   function today(now) { return new Intl.DateTimeFormat('en-CA', { timeZone: DEFAULT_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now || new Date()); }
+  // HELD LICENSES: FAIL CLOSED. Joe's ruling, 2026-11-19 (tab 07): C10-0001471-LIC (Off the Charts - Sylmar) is held OUT of
+  // the public directory until he picks its label. A held license is NEVER shown, whatever the data says: licensed() (and so
+  // search, byId, cities and the map, which all go through it) drops it even if a row slips through with published: true.
+  // Two more layers: the converter (tools/export-to-listings.js) writes held rows with published: false, and the release
+  // check (tools/check-listings.js, run by npm run lint and CI) refuses a listings file that publishes one.
+  // This list is the ONE source for all three. Remove a license only on Joe's word.
+  var HELD_LICENSES = ['C10-0001471-LIC'];
+  // Matched on the license number OR the id (the id is the number in lower case), trimmed, any case.
+  function isHeld(l) {
+    if (!l) return false;
+    var k = function (v) { return typeof v === 'string' ? v.trim().toUpperCase() : ''; };
+    return HELD_LICENSES.indexOf(k(l.license)) >= 0 || HELD_LICENSES.indexOf(k(l.id)) >= 0;
+  }
+  // The state-license half of the rule (number, status, expiry), without published / held: the converter uses it to decide
+  // which rows to keep; the pages always use licensed().
+  function licenseLive(l, now) {
+    if (!l || typeof l.license !== 'string' || l.license.trim() === '') return false;
+    return SHOWN_STATUS.indexOf(l.licenseStatus) >= 0 && /^\d{4}-\d{2}-\d{2}$/.test(l.licenseExpires || '') && l.licenseExpires >= today(now);
+  }
   function licensed(list, now) {
-    var t = today(now);
     return (list || []).filter(function (l) {
-      if (!l || l.published !== true || typeof l.license !== 'string' || l.license.trim() === '') return false;
-      return SHOWN_STATUS.indexOf(l.licenseStatus) >= 0 && /^\d{4}-\d{2}-\d{2}$/.test(l.licenseExpires || '') && l.licenseExpires >= t;
+      if (!l || l.published !== true || isHeld(l)) return false;
+      return licenseLive(l, now);
     });
   }
 
@@ -345,7 +363,7 @@
     return { x: +x.toFixed(1), y: +y.toFixed(1), w: +w.toFixed(1), h: +h.toFixed(1) };
   }
 
-  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, mapView: mapView, hoursKnown: hoursKnown, cities: cities, today: today, classify: classify, loadData: loadData, licensed: licensed, findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, mapView: mapView, hoursKnown: hoursKnown, cities: cities, today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
     dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;

@@ -2,7 +2,7 @@
 // app/findmyweed/for-business/ and turned /findmyweed into redirect stubs to /app/findmyweed/).
 //   - app/findmyweed/index.html exists and is the pre-launch build: noindex,nofollow, launched false;
 //   - every src/href in the app's pages resolves under /app/findmyweed/ and to a file that is in the drop-in;
-//   - for-business/ is untouched (same bytes as #201 @85156b6) and shares no file name with the drop-in;
+//   - for-business/ is untouched (same bytes as #201 @faf2495, after M201-1) and shares no file name with the drop-in;
 //   - the root service worker (sw.js, scope /) leaves /app/findmyweed/* alone, like /app/tuitea/ and /app/kaitarako/.
 // Each rule has a NEGATIVE CONTROL that runs the same checker on a planted bad input.
 // Run: node --test assets/js/fmw-app-dropin.test.mjs
@@ -21,7 +21,7 @@ const ORIGIN = 'https://keepitil.com';
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const PAGES = ['index.html', 'results.html', 'listing.html', 'about.html', 'privacy.html', 'under21.html', '404.html'];
 const BUSINESS = APP + '/for-business/index.html';
-const BUSINESS_SHA256 = '2b55c121f6ceb8ad97f2ff904043f67b8837e7c70eb6f56f400820282969c237';   // #201 @85156b6
+const BUSINESS_SHA256 = 'e042b44d4a008e1117dc4401843906dcfd32342909a99465901496bb2f1dd343';   // #201 @faf2495 (M201-1 noindex)
 
 // ---- checkers (pure, so the negative controls exercise the exact same code) ----
 

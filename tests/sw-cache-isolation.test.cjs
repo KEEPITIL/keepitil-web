@@ -32,18 +32,18 @@ function createWorker(initialCaches = []) {
 
 test('activation only removes obsolete main-site kil-* caches', async () => {
   const current = [
-    'kil-pwa-v107-20261120b', 'kil-pages-v44', 'kil-assets-v41', 'kil-code-v87',
+    'kil-pwa-v108-20261120c', 'kil-pages-v45', 'kil-assets-v41', 'kil-code-v88',
   ];
   const otherApps = [
     'kwars-v88', 'kwars1-v88', 'tuitea-release-20261023',
     'kai-tarako-v5', 'kmob-cache-v1', 'kode-cache-v1',
     'future-game-cache', 'unrelated-decoy-cache',
   ];
-  const worker = createWorker([...current, ...otherApps, 'kil-code-v86', 'kil-pages-v43', 'kil-pwa-v106-20261120a']);
+  const worker = createWorker([...current, ...otherApps, 'kil-code-v87', 'kil-pages-v44', 'kil-pwa-v107-20261120b']);
   let activation;
   worker.handlers.get('activate')({ waitUntil(p) { activation = p; } });
   await activation;
-  assert.deepEqual(worker.deleted.sort(), ['kil-code-v86', 'kil-pages-v43', 'kil-pwa-v106-20261120a']);
+  assert.deepEqual(worker.deleted.sort(), ['kil-code-v87', 'kil-pages-v44', 'kil-pwa-v107-20261120b']);
 });
 
 test('root worker does not intercept isolated app requests', () => {

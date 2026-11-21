@@ -33,10 +33,14 @@
 /* BUMPED AGAIN 2026-11-20 for #200 (install UI opens only on the footer link, no auto banner):
    the shell changed after #198 shipped, so PAGES and CODE are renamed again to evict the #198
    shell from installed phones. Previous: kil-pwa-v106-20261120a / kil-pages-v43 / kil-code-v86 */
-var VERSION = 'kil-pwa-v107-20261120b';
-var PAGES = 'kil-pages-v44';
+/* BUMPED AGAIN 2026-11-20 for the radio fix (seekTo null-guard + SoundCloud frame only when the
+   radio is visible; keepitil-radio.js?v=20261120a): every page that loads the radio changed its
+   tag, so PAGES and CODE are renamed to evict the old page HTML and radio build from installed
+   phones. Previous: kil-pwa-v107-20261120b / kil-pages-v44 / kil-code-v87 */
+var VERSION = 'kil-pwa-v108-20261120c';
+var PAGES = 'kil-pages-v45';
 var ASSETS = 'kil-assets-v41';
-var CODE = 'kil-code-v87';
+var CODE = 'kil-code-v88';
 var KEEP = [VERSION, PAGES, ASSETS, CODE];
 var PAGE_LIMIT = 40;
 var PRECACHE = [

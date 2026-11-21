@@ -26,10 +26,14 @@
    clients.claim() take over immediately, which clears anything a phone or an installed PWA was
    still holding from before. Bump these four names whenever a release must reach returning
    users regardless of what they have cached. */
-var VERSION = 'kil-pwa-v105-20260912b';
-var PAGES = 'kil-pages-v42';
+/* BUMPED 2026-11-20 for the Joe hotfix (5 nav tabs / no Shop, Black Friday popup removed, Earn
+   radio + playlist sections removed): renaming PAGES and CODE makes `activate` evict cached page
+   HTML and shell JS so an installed phone cannot keep showing the SHOP tab or the popup.
+   Previous: kil-pwa-v105-20260912b / kil-pages-v42 / kil-code-v85 */
+var VERSION = 'kil-pwa-v106-20261120a';
+var PAGES = 'kil-pages-v43';
 var ASSETS = 'kil-assets-v41';
-var CODE = 'kil-code-v85';
+var CODE = 'kil-code-v86';
 var KEEP = [VERSION, PAGES, ASSETS, CODE];
 var PAGE_LIMIT = 40;
 var PRECACHE = [

@@ -60,26 +60,18 @@ test('attribution failure never fails the signup', async () => {
   const f = fakeFetch((u) => /marketing_contacts/.test(u) ? 500 : 201);
   assert.deepEqual(await K.submit(f, 'a@b.co', '', LOC, ''), { ok: true, dup: false });
 });
-test('auto-open gating by path, phase and ?nopopup', () => {
-  const inEarly = T('2026-11-24T12:00:00-08:00'), after = T('2026-11-28T12:00:00-08:00');
-  // no localStorage in node: store() swallows the error, so the gate is path/phase/query only
-  assert.equal(K.shouldAutoOpen({ pathname: '/culture/', search: '' }, inEarly), true);
-  assert.equal(K.shouldAutoOpen({ pathname: '/culture/', search: '?nopopup' }, inEarly), false);
-  assert.equal(K.shouldAutoOpen({ pathname: '/checkout', search: '' }, inEarly), false);
-  assert.equal(K.shouldAutoOpen({ pathname: '/early-access.html', search: '' }, inEarly), false);
-  assert.equal(K.shouldAutoOpen({ pathname: '/culture/', search: '' }, after), false);
-});
 test('negative control: the guards fail when broken', () => {
   const src = readFileSync(new URL('../assets/js/kil-bf-popup.js', import.meta.url), 'utf8');
   assert.ok(!/return=representation/.test(src), 'anon cannot SELECT, RETURNING would 401');
   assert.ok(/Prefer: 'return=minimal'/.test(src));
   assert.ok(!/\.from\(|supabase\.createClient/.test(src), 'no supabase-js dependency');
 });
-test('the six frames load the popup exactly once (Joe go 2026-11-08)', () => {
+test('no auto-open: the six frames no longer load the popup (Joe 2026-11-20 6:40 PM)', () => {
   for (const f of ['index.html','connect/index.html','create/index.html','shop/index.html','culture/index.html','earn/index.html']) {
     const s = readFileSync(new URL('../' + f, import.meta.url), 'utf8');
-    assert.equal((s.match(/kil-bf-popup\.js/g) || []).length, 1, f);
+    assert.equal((s.match(/kil-bf-popup\.js/g) || []).length, 0, f);
   }
+  assert.equal(K.shouldAutoOpen, undefined, 'the auto-open gate is gone, not just unused');
 });
 
 test('card is border-box so padding cannot push it past a 375px viewport', () => {

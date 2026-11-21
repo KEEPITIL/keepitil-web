@@ -74,10 +74,10 @@ self.addEventListener('fetch', function (e) {
 
   // SELF-CONTAINED APPS OWN THEIR OWN ASSETS.
   // Do not let the root worker cache or shadow child-app resources.
-  // The apps under /games/*, /kode/, /app/tuitea/ and /app/kaitarako/
+  // The apps under /games/*, /kode/, /app/tuitea/, /app/kaitarako/ and /app/findmyweed/
   // own their cache namespaces and scoped workers; leave their requests alone.
   if (url.origin === self.location.origin &&
-      /^\/(games\/[^/]+|kode|app\/(?:tuitea|kaitarako))\//.test(url.pathname)) return;
+      /^\/(games\/[^/]+|kode|app\/(?:tuitea|kaitarako|findmyweed))\//.test(url.pathname)) return;
 
   // Navigations: network-first; cached copy ONLY when the network fails.
   if (req.mode === 'navigate') {

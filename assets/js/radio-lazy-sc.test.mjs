@@ -85,15 +85,13 @@ test('(b) /earn on a phone, radio hidden: no w.soundcloud.com iframe after idle,
   assert.equal(page.w.__kilRadioUiVisible(), false, 'the bar must read as hidden on an Earn phone');
 });
 
-test('(b2) /earn phone CSS alone hides it: body.rad-m rule from the real page, no inline display', () => {
-  const page = load(EARN, { url: 'https://keepitil.com/earn/', phone: true });
-  settle(page);
-  const bar = page.d.getElementById('kil-radio');
-  bar.style.removeProperty('display');        /* take applyBarVisibility out: only earn's CSS left */
-  assert.equal(page.w.getComputedStyle(bar).display, 'none', "earn's body.rad-m rule must hide the bar");
-  tap(page);
-  page.advance(10000);
-  assert.deepEqual(scFrames(page.d), []);
+/* jsdom's cascade does not resolve earn's media-scoped `body.rad-m #kil-radio{display:none!important}`
+   against the radio's own later `#kil-radio{display:flex}` the way a browser does (measured: jsdom
+   reports flex), so (b) is driven by applyBarVisibility's inline display:none, which a phone gets on
+   every page. This pins that the Earn rule itself is still there for real browsers. */
+test('(b2) earn/index.html still carries the phone rule that hides the docked bar', () => {
+  assert.ok(/body\.rad-m #kil-radio\{display:none!important\}/.test(EARN));
+  assert.ok(/<html[^>]*data-radio="page"/.test(EARN));
 });
 
 test('(b3) a page where the shell forbids the radio (#kil-radio display:none): no iframe', () => {

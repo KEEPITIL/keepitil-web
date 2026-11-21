@@ -94,7 +94,28 @@ test('Earn JS no longer wires radio/playlist sections (filter map, pager, bar sw
   assert.match(EARN, /var SEC=\{create:'create',earn:'earn'\};/);
   assert.ok(!/EARN MOBILE RADIO\/SEARCH SWAP/.test(EARN));
   assert.ok(!/\{ ids:\['stations'\]/.test(EARN));
-  assert.ok(!/body\.rad-m #kil-radio\{display:none/.test(EARN), 'the shell player is not hidden on Earn phones any more');
+  assert.match(EARN, /body\.rad-m #kil-radio\{display:none!important\}/, 'owner 2026-11-20: Earn phones keep NO docked radio bar');
+});
+
+/* Owner via Grok 2026-11-20 19:47: no "radio" / "playlists" in Earn's title, meta or HOW YOU EARN intro. */
+export function copyProblems(html) {
+  const out = [];
+  const bits = [
+    ['title', (/<title>([\s\S]*?)<\/title>/.exec(html) || [])[1]],
+    ...[...html.matchAll(/<meta\s+(?:name|property)="((?:og:|twitter:)?(?:title|description))"\s+content="([^"]*)"/g)].map((m) => [m[1], m[2]]),
+    ['intro', (/<p class="hye-lead">([\s\S]*?)<\/p>/.exec(html) || [])[1]],
+  ];
+  for (const [k, v] of bits) {
+    if (v == null) { out.push(k + ' missing'); continue; }
+    if (/radio|playlist/i.test(v)) out.push(k + ': ' + v.replace(/\s+/g, ' ').trim());
+  }
+  return out;
+}
+
+test('Earn title, meta and HOW YOU EARN intro no longer mention radio or playlists', () => {
+  assert.deepEqual(copyProblems(EARN), []);
+  const metas = [...EARN.matchAll(/<meta\s+(?:name|property)="((?:og:|twitter:)?(?:title|description))"/g)].length;
+  assert.ok(metas >= 5, 'checked the description, og and twitter tags (' + metas + ')');
 });
 
 test('Kit affiliate is one slide inside the Earn carousel, same link, same disclosure', () => {
@@ -135,6 +156,12 @@ test('NEGATIVE CONTROL: the checks fail on the pre-hotfix Earn markup', () => {
   assert.ok(k.includes('Kit tile is not inside #affGrid'), k);
   assert.ok(k.includes('standalone #affKit grid'), k);
   assert.ok(k.some((x) => /outside the carousel/.test(x)), k);
+
+  const oldCopy = '<title>EARN — Radio, Playlists & Creator Opportunities | KEEPITIL</title>'
+    + '<meta name="description" content="EARN on KEEPITIL — radio, playlists and the ways creators submit, take part and earn."/>'
+    + '<p class="hye-lead">Submit your work. KEEPITIL puts it in front of people through radio,\n     playlists, articles and features.</p>';
+  const c = copyProblems(oldCopy);
+  assert.ok(c.some((x) => x.startsWith('title:')) && c.some((x) => x.startsWith('description:')) && c.some((x) => x.startsWith('intro:')), c);
 
   // Inside the carousel but with the disclosure dropped: still caught.
   const noChip = '<div class="grid g-cards" id="affGrid"><a class="card aff-card" id="kitAffiliate" href="https://partners.kit.com/9goaxz09kexk" rel="noopener sponsored">Kit</a></div>';

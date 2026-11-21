@@ -3,8 +3,8 @@
 <head>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<meta name="description" content="EARN on KEEPITIL — radio, playlists and the ways creators submit, take part and earn."/>
-<title>EARN — Radio, Playlists & Creator Opportunities | KEEPITIL</title>
+<meta name="description" content="EARN on KEEPITIL — the ways creators submit, take part and earn."/>
+<title>EARN — Creator Opportunities | KEEPITIL</title>
 <link rel="icon" type="image/png" href="/assets/images/logo-purple-nav.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
@@ -419,15 +419,15 @@ footer{margin-top:auto}
   <meta name="apple-mobile-web-app-title" content="KEEPITIL"/>
 
 <meta property="og:site_name" content="KEEPITIL"/>
-<meta property="og:title" content="EARN — Radio, Playlists & Creator Opportunities | KEEPITIL"/>
-<meta property="og:description" content="EARN on KEEPITIL — radio, playlists and the ways creators submit, take part and earn."/>
+<meta property="og:title" content="EARN — Creator Opportunities | KEEPITIL"/>
+<meta property="og:description" content="EARN on KEEPITIL — the ways creators submit, take part and earn."/>
 <meta property="og:type" content="website"/>
 <meta property="og:url" content="https://keepitil.com/earn/"/>
 <meta property="og:image" content="https://keepitil.com/keepitil-og.png"/>
 <meta property="og:locale" content="en_US"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="EARN — Radio, Playlists & Creator Opportunities | KEEPITIL"/>
-<meta name="twitter:description" content="EARN on KEEPITIL — radio, playlists and the ways creators submit, take part and earn."/>
+<meta name="twitter:title" content="EARN — Creator Opportunities | KEEPITIL"/>
+<meta name="twitter:description" content="EARN on KEEPITIL — the ways creators submit, take part and earn."/>
 <meta name="twitter:image" content="https://keepitil.com/keepitil-og.png"/></head>
 <!-- No social engagement controls on the EARN landing page (Founder 2026-08-31). EARN is a
      landing surface, not a post: like/repost/save/comment/share belong on things a person can
@@ -492,8 +492,8 @@ footer{margin-top:auto}
      placeholder in customer-facing copy is how a placeholder becomes a promise. -->
 <section id="howyouearn">
   <div class="sh"><h2>HOW YOU EARN</h2></div>
-  <p class="hye-lead">Submit your work. KEEPITIL puts it in front of people through radio,
-     playlists, articles and features. What the platform earns from partners and royalties
+  <p class="hye-lead">Submit your work. KEEPITIL puts it in front of people through articles
+     and features. What the platform earns from partners and royalties
      funds creator rewards — and more creators bring more audience.</p>
 
   <div class="hye-grid">
@@ -730,8 +730,9 @@ document.addEventListener('click',function(e){ var dd=document.getElementById('v
      ⚠ THIS HIDES THE BAR, NOT THE RADIO. The audio engine is #kil-sc, a separate element kept
      alive by <html data-radio="page">; display:none on the bar does not touch it, so playback
      continues and the section's own row keeps working. */
-  /* The hide rule that lived here is gone with Earn's radio section (Joe 2026-11-20): that section
-     was the phone radio, so with it removed Earn shows the same docked shell player as every page. */
+  body.rad-m #kil-radio{display:none!important}   /* restored 2026-09-29: Earn's radio section is the phone radio */
+  /* KEPT after the radio section's removal (owner via Grok 2026-11-20 19:47): Earn phones show no
+     docked radio bar. ⚠ Hides the bar only; the audio engine #kil-sc keeps playing. */
   /* (was removed 2026-09-24 when the compact bar docked on
      the bottom nav on EVERY page, Earn included (Founder: "continuous across KEEPITIL"). */
   /* ── FOOTER MATCHES /connect AND /create (Founder 2026-08-24) ────────────────────────────

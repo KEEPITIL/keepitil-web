@@ -222,7 +222,8 @@ const NO_TABS = new Set([
   '404.html', 'offline.html', 'radio-tuner/index.html',
   'article/kform-lead-capture/index.html',   // meta-refresh gate to /games/
   'join/index.html', 'join/auth/index.html',  // "Join TUITEA" / TUITEA email link: TUITEA pages
-  'signup.html', 'reset-password.html',       // auth flows, chromeless today; not in the 11-21 GO list (asked)
+  'signup.html',          // auth page stays focused, no tabs (Grok 07:05 11-21, same as join/*)
+  'reset-password.html',  // auth page stays focused, no tabs (Grok 07:05 11-21, same as join/*)
 ]);
 const isRedirectStub = (html) => /<meta[^>]+http-equiv\s*=\s*["']refresh["'][^>]+content\s*=\s*["']0;/i.test(html);
 export function tabsSource(html) {

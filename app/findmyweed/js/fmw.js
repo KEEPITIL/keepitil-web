@@ -13,12 +13,12 @@
   var DEFAULT_TZ = 'America/Los_Angeles';
   // Today's date IN LA (YYYY-MM-DD): a license that expires today is judged on LA's day, not the viewer's.
   function today(now) { return new Intl.DateTimeFormat('en-CA', { timeZone: DEFAULT_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now || new Date()); }
-  // HELD LICENSES: FAIL CLOSED. Joe's ruling, 2026-11-19 (tab 07): C10-0001471-LIC (Off the Charts - Sylmar) is held OUT of
-  // the public directory until he picks its label. A held license is NEVER shown, whatever the data says: licensed() (and so
+  // Held licenses: never shown publicly, even if published:true. C10-0001471-LIC
+  // Fails closed. A held license is NEVER shown, whatever the data says: licensed() (and so
   // search, byId, cities and the map, which all go through it) drops it even if a row slips through with published: true.
   // Two more layers: the converter (tools/export-to-listings.js) writes held rows with published: false, and the release
   // check (tools/check-listings.js, run by npm run lint and CI) refuses a listings file that publishes one.
-  // This list is the ONE source for all three. Remove a license only on Joe's word.
+  // This list is the ONE source for all three.
   var HELD_LICENSES = ['C10-0001471-LIC'];
   // Matched on the license number OR the id (the id is the number in lower case), trimmed, any case.
   function isHeld(l) {

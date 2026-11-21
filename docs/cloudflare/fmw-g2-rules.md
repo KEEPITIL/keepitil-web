@@ -39,7 +39,7 @@ After Rule 1 is applied, the edge answers first and the stubs are never reached;
 
 Notes:
 - `starts_with(..., "/findmyweed/")` includes the trailing slash on purpose. It must NOT match the separate live pages
-  `/findmyweed-join`, `/findmyweed-directory`, `/findmyweed-explore` and `/findmyweed-sample`, which stay where they are.
+  `/findmyweed-join` (now its own Cloudflare 301 to `/app/findmyweed/for-business/`; the repo file was deleted in R-J1), `/findmyweed-directory`, `/findmyweed-explore` and `/findmyweed-sample`, which stay where they are.
 - `/findmyweed.html` is included so the old `.html` URL also gets the real 301. That is one path more than the decision
   names. Drop that clause if it is not wanted; the stub still covers it in the browser.
 - Every `/findmyweed/<anything>` goes to the app's front page, as decided. If deep links should keep their path instead
@@ -55,7 +55,7 @@ Notes:
 curl -sI 'https://keepitil.com/findmyweed?utm_source=x'   # 301, location: https://keepitil.com/app/findmyweed/?utm_source=x
 curl -sI 'https://keepitil.com/findmyweed/'               # 301, location: https://keepitil.com/app/findmyweed/
 curl -sI 'https://keepitil.com/findmyweed/listing.html'   # 301, location: https://keepitil.com/app/findmyweed/
-curl -sI 'https://keepitil.com/findmyweed-join'           # 200, NOT redirected
+curl -sI 'https://keepitil.com/findmyweed-directory'      # 200, NOT redirected by this rule
 ```
 
 **Undo:** disable or delete the rule. The repo stubs take over again (browser redirect).

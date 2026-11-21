@@ -1,3 +1,4 @@
-# Pre-launch (site.json "prelaunch": true): nothing may be crawled or indexed.
+# Launched (site.json "prelaunch": false).
 User-agent: *
-Disallow: /
+Allow: /
+Sitemap: https://keepitil.com/app/findmyweed/sitemap.xml

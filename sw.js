@@ -37,10 +37,13 @@
    radio is visible; keepitil-radio.js?v=20261120a): every page that loads the radio changed its
    tag, so PAGES and CODE are renamed to evict the old page HTML and radio build from installed
    phones. Previous: kil-pwa-v107-20261120b / kil-pages-v44 / kil-code-v87 */
-var VERSION = 'kil-pwa-v108-20261120c';
-var PAGES = 'kil-pages-v45';
+/* BUMPED 2026-11-21 for the Find My Weed web 1.0 launch drop-in (app/findmyweed/ replaced; the
+   root worker already skips /app/findmyweed/, so this only evicts any page HTML or shell code a
+   phone cached around the old pre-launch build). Previous: kil-pwa-v108-20261120c / kil-pages-v45 / kil-code-v88 */
+var VERSION = 'kil-pwa-v109-20261121a';
+var PAGES = 'kil-pages-v46';
 var ASSETS = 'kil-assets-v41';
-var CODE = 'kil-code-v88';
+var CODE = 'kil-code-v89';
 var KEEP = [VERSION, PAGES, ASSETS, CODE];
 var PAGE_LIMIT = 40;
 var PRECACHE = [

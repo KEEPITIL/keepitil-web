@@ -19,6 +19,10 @@ export const PATTERNS = {
   percentOf: /\b\d+(?:\.\d+)?\s?% of\b/i,
   percentThenOrder: /\b\d+(?:\.\d+)?\s?%[^.<\n]{0,80}\b(?:orders?|sales?)\b/i,
   orderThenPercent: /\b(?:orders?|sales?)\b[^.<\n]{0,80}\b\d+(?:\.\d+)?\s?%/i,
+  // A209-2 / M211-1: affiliate programs and referral fees are a commission by another name. "affiliated" (as in "not
+  // affiliated with") and "Referrals" are different words and are not matched.
+  affiliate: /\baffiliates?\b/i,
+  referralFee: /\breferral[- ]fees?\b/i,
 };
 export function commissionHits(text) {
   const copy = String(text).replace(/<style\b[\s\S]*?<\/style>/gi, ' ').replace(/\sstyle="[^"]*"/gi, ' ');
@@ -72,6 +76,8 @@ const PER_PATTERN = {
   percentOf: ['We keep 5% of the total.', 'Pay 2.5 % of each invoice.'],
   percentThenOrder: ['the 10% applies to orders through the network', '3% on every sale'],
   orderThenPercent: ['Orders placed here pay 7.5%.', 'Sales through us cost 4 %.'],
+  affiliate: ['Join our affiliate program.', 'Dispensary affiliates earn on every visit.', 'An Affiliate link pays us.'],
+  referralFee: ['Shops pay a referral fee when a customer finds them here.', 'A $5 referral-fee per customer.', 'Referral fees apply.'],
 };
 test('A205-8: every pattern has its own negative controls, and each control is caught by THAT pattern', () => {
   assert.deepEqual(Object.keys(PER_PATTERN).sort(), Object.keys(PATTERNS).sort(), 'one control set per pattern');
@@ -82,6 +88,15 @@ test('A205-8: every pattern has its own negative controls, and each control is c
     }
   }
   // and each pattern stays quiet on clean copy (a pattern that matched everything would pass the loop above)
-  const clean = '<p>Listing $10–$50/mo. 1st in your county — $500/mo. Order of results: by distance. 100% licensed.</p>';
+  const clean = '<p>Listing $10–$50/mo. 1st in your county — $500/mo. Order of results: by distance. 100% licensed. ' +
+    'FindMyWeed is not affiliated with any dispensary. Referrals from friends are welcome.</p>';
   for (const [name, re] of Object.entries(PATTERNS)) assert.equal(re.test(clean.replace(/<[^>]+>/g, ' ')), false, name + ' on clean copy');
+});
+
+// M211-1: the clean controls for the two A209-2 patterns stay clean through the full scan, not only per pattern.
+test('A209-2 CLEAN CONTROLS: "affiliated" and "Referrals" are not affiliate / referral-fee wording', () => {
+  for (const ok of [
+    '<p>FindMyWeed is not affiliated with any dispensary.</p>', '<p>Referrals from friends are welcome.</p>',
+    '<p>Unaffiliated, independent listings.</p>', '<p>Referral program coming soon.</p>',
+  ]) assert.deepEqual(commissionHits(ok), [], ok);
 });

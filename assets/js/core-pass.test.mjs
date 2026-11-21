@@ -11,6 +11,11 @@
 // The narrower guards (nav-five-tabs, no-bf-popup, install-user-opened, earn-cleanup, earn-kit)
 // stay; this one sweeps every page and every shared script so a new page cannot slip past them.
 // Every detector has a NEGATIVE CONTROL that must fail on a known-bad input.
+//
+// W213-1: the page-dependent assertions split out of #208 (W208-R2-1) are added back here, with the
+// pages they need (#213): five tabs on every standalone page via kil-tabs.js (no-tab list includes
+// signup / reset-password), kil-tabs.js mirroring the shell, Earn's docked bar hidden at every width,
+// and the text-free Earn hero. Each has its negative controls below.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -226,13 +231,17 @@ const NO_TABS = new Set([
   'reset-password.html',  // auth page stays focused, no tabs (Grok 07:05 11-21, same as join/*)
 ]);
 const isRedirectStub = (html) => /<meta[^>]+http-equiv\s*=\s*["']refresh["'][^>]+content\s*=\s*["']0;/i.test(html);
+/** true when a served page should show the five tabs but loads neither the shell nor kil-tabs.js */
+export function lacksTabs(rel, html) {
+  return !NO_TABS.has(rel) && !tabsSource(html) && !isRedirectStub(html);
+}
 export function tabsSource(html) {
   if (/<script\b[^>]*src\s*=\s*["'][^"']*keepitil-shell\.js/i.test(html)) return 'shell';
   if (/<script\b[^>]*src\s*=\s*["'][^"']*\/assets\/js\/kil-tabs\.js/i.test(html)) return 'kil-tabs';
   return null;
 }
 test('every served page gets the five bottom tabs (shell or kil-tabs.js), except the reviewed no-tab list', () => {
-  const missing = PAGES.filter((rel) => !NO_TABS.has(rel) && !tabsSource(read(rel)) && !isRedirectStub(read(rel)));
+  const missing = PAGES.filter((rel) => lacksTabs(rel, read(rel)));
   assert.deepEqual(missing, []);
   for (const rel of NO_TABS) assert.ok(PAGES.includes(rel), 'stale NO_TABS entry: ' + rel);
 });
@@ -410,6 +419,13 @@ test('NEGATIVE CONTROL: tab coverage and kil-tabs drift checks fail on known-bad
   assert.notEqual(stripped, page, 'control did not apply');
   assert.equal(tabsSource(stripped), null);
   assert.equal(tabsSource(page), 'kil-tabs');
+  assert.equal(lacksTabs('about.html', stripped), true, 'a standalone page without tabs is reported');
+  assert.equal(lacksTabs('about.html', page), false, 'CONTROL: the real page passes');
+  for (const rel of ['signup.html', 'reset-password.html']) {
+    assert.equal(lacksTabs(rel, stripped), false, rel + ' is on the reviewed no-tab list');
+    assert.equal(NO_TABS.has(rel), true, rel + ' stays tab-free');
+  }
+  assert.equal(lacksTabs('about.html', '<meta http-equiv="refresh" content="0; url=/games/">'), false, 'redirect stubs are exempt');
   const shell = read('keepitil-shell.js'), tabs = read('assets/js/kil-tabs.js');
   const withShop = tabs.replace("{href:'/culture/',", "{href:'/shop/', pill:'SHOP', label:'Shop', icon:'radio', match:/shop/},\n    {href:'/culture/',");
   assert.notEqual(withShop, tabs, 'shop control did not apply');

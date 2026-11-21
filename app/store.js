@@ -15,9 +15,9 @@
   // ---- Pure catalog logic: no DOM. the /app/ test in assets/js loads this file in node:vm and
   // tests these functions directly. Catalog flags:
   //   hidden: true  in the catalog but never rendered anywhere (pre-launch).
-  //   adults: true  21+ item. Only inside a shelf marked adults: true; never on Today or a feature
+  //   adults: true  age-restricted item (badge "18+"; age rules vary by state). Only inside a shelf marked adults: true; never on Today or a feature
   //                 card; never in the empty-search Suggested list; in search results it is grouped
-  //                 under its own "Adults 21+" heading after everything else.
+  //                 under its own "For adults" heading after everything else.
   //   kids: true    never in an adults shelf, and an adults shelf is never directly next to a shelf
   //                 that holds a kids item.
   function visibleItems(cat) {
@@ -58,7 +58,7 @@
       if (!terms.every(function (t) { return h.indexOf(t) >= 0; })) return;
       if (it.adults) { if (terms.length) out.adults.push(it); } else out.main.push(it);
     });
-    // When a 21+ group is shown, kids items lead the main results (furthest from the 21+ group).
+    // When a "For adults" group is shown, kids items lead the main results (furthest from that group).
     if (out.adults.length) {
       out.main = out.main.filter(function (it) { return !!it.kids; })
         .concat(out.main.filter(function (it) { return !it.kids; }));
@@ -67,20 +67,20 @@
   }
 
   // What the search panel draws, in order: rows of main results, then (only when there are adult
-  // results) a divider, the "Adults 21+" heading and the adult rows.
+  // results) a divider, the "For adults" heading and the adult rows.
   function searchLayout(items, q) {
     var g = searchGroups(items, q);
     var seq = g.main.map(function (it) { return { type: 'row', item: it }; });
     if (g.adults.length) {
       seq.push({ type: 'divider' });
-      seq.push({ type: 'heading', text: 'Adults 21+' });
+      seq.push({ type: 'heading', text: 'For adults' });
       g.adults.forEach(function (it) { seq.push({ type: 'row', item: it }); });
     }
     return seq;
   }
 
   // Shelves to draw for one tab: each with the items it may show. A shelf with nothing visible
-  // (for example the Adults 21+ shelf while its only item is hidden) is skipped entirely.
+  // (for example the For adults shelf while its only item is hidden) is skipped entirely.
   function visibleShelves(list, byId) {
     return (list || []).map(function (s) { return { shelf: s, items: shelfItems(s, byId) }; })
       .filter(function (x) { return x.items.length > 0; });
@@ -109,7 +109,8 @@
             if (!isAdult(id)) p.push(tab + '/' + s.title + ': non-adult item ' + id + ' in an adults shelf');
             if (isKid(id)) p.push(tab + '/' + s.title + ': kids item ' + id + ' in an adults shelf');
           });
-          if (!/21\+/.test(s.title || '')) p.push(tab + '/' + s.title + ': adults shelf title must say 21+');
+          if (!/\badults\b/i.test(s.title || '')) p.push(tab + '/' + s.title + ': adults shelf title must say adults');
+          if (/21\s*\+|21 and over/i.test([s.title, s.subtitle].join(' '))) p.push(tab + '/' + s.title + ': adults shelf must not claim 21+ only');
           [list[i - 1], list[i + 1]].forEach(function (n) {
             if (n && (n.items || []).some(isKid)) p.push(tab + '/' + s.title + ': adults shelf next to kids shelf ' + n.title);
           });
@@ -159,7 +160,7 @@
     meta.appendChild(el('div', 'name', item.name));
     meta.appendChild(el('div', 'subt', item.subtitle));
     if (item.kids) meta.appendChild(el('span', 'kids', 'For kids'));
-    if (item.adults) meta.appendChild(el('span', 'adult', '21+'));
+    if (item.adults) meta.appendChild(el('span', 'adult', '18+'));
     r.appendChild(meta);
     var act = el('div', 'act');
     act.appendChild(actionButton(item));

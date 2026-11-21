@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "KEEPITIL Apps catalog. Only real KEEPITIL apps and games that already have a page on keepitil.com. Every href, icon and image is a root-relative path to a file in this repo (the /app/ test in assets/js checks it). No prices, ratings or reviews. Kids items link only to their own page. hidden: true keeps an entry out of the rendered store (pre-launch). adults: true (21+) items render only in a shelf marked adults: true, never on Today, in a feature or next to a kids shelf.",
+  "note": "KEEPITIL Apps catalog. Only real KEEPITIL apps and games that already have a page on keepitil.com. Every href, icon and image is a root-relative path to a file in this repo (the /app/ test in assets/js checks it). No prices, ratings or reviews. Kids items link only to their own page. hidden: true keeps an entry out of the rendered store (pre-launch). adults: true items (age-restricted; age rules vary by state) render only in a shelf marked adults: true, never on Today, in a feature or next to a kids shelf.",
   "items": [
     {
       "id": "kmob",
@@ -154,13 +154,13 @@
       "id": "findmyweed",
       "kind": "app",
       "name": "Find My Weed",
-      "subtitle": "Licensed cannabis near you. Adults 21+",
-      "description": "Find state-licensed cannabis storefronts and delivery services near you. For adults 21+ in legal markets.",
+      "subtitle": "Cannabis directory · age rules vary by state",
+      "description": "Find state-licensed cannabis storefronts and delivery services near you. Age rules vary by state; age is verified where ordering happens.",
       "icon": "/app/findmyweed/icons/icon.svg",
       "href": "/app/findmyweed/",
       "cta": "Open",
       "status": "prelaunch",
-      "caption": "21+",
+      "caption": "18+",
       "adults": true,
       "hidden": true,
       "hiddenNote": "Pre-launch. Listed once the Find My Weed web launch is live (decision 2026-11-20). At launch set hidden to false; nothing else changes.",
@@ -168,7 +168,6 @@
         "cannabis",
         "dispensary",
         "delivery",
-        "21+",
         "adults"
       ]
     }
@@ -235,8 +234,8 @@
         ]
       },
       {
-        "title": "Adults 21+",
-        "subtitle": "For adults 21 and over in legal markets",
+        "title": "For adults",
+        "subtitle": "Cannabis directory · age rules vary by state",
         "adults": true,
         "items": [
           "findmyweed"

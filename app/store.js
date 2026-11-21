@@ -12,6 +12,94 @@
     return typeof p === 'string' && /^\/(?!\/)[^\s"'<>\\]*$/.test(p) ? p : null;
   }
 
+  // ---- Pure catalog logic: no DOM. the /app/ test in assets/js loads this file in node:vm and
+  // tests these functions directly. Catalog flags:
+  //   hidden: true  in the catalog but never rendered anywhere (pre-launch).
+  //   adults: true  21+ item. Only inside a shelf marked adults: true; never on Today or a feature
+  //                 card; never in the empty-search Suggested list; in search results it is grouped
+  //                 under its own "Adults 21+" heading after everything else.
+  //   kids: true    never in an adults shelf, and an adults shelf is never directly next to a shelf
+  //                 that holds a kids item.
+  function visibleItems(cat) {
+    return ((cat && cat.items) || []).filter(function (it) {
+      return !!it && it.hidden !== true && !!safePath(it.href) && !!safePath(it.icon);
+    });
+  }
+
+  function indexById(items) {
+    var byId = {};
+    items.forEach(function (it) { byId[it.id] = it; });
+    return byId;
+  }
+
+  // Items a shelf may render: adults shelves take only adult, non-kids items; others take no adult items.
+  function shelfItems(s, byId) {
+    return ((s && s.items) || []).map(function (id) { return byId[id]; }).filter(function (it) {
+      if (!it) return false;
+      return s.adults === true ? (it.adults === true && !it.kids) : !it.adults;
+    });
+  }
+
+  // Today stories and feature cards never show adult items.
+  function placeable(it) { return !!it && !it.adults; }
+
+  function haystack(item) {
+    return [item.name, item.subtitle, item.description, item.kind, item.kind === 'game' ? 'games' : 'apps',
+      item.caption, (item.keywords || []).join(' ')].join(' ').toLowerCase();
+  }
+
+  // Search: an empty query suggests every non-adult item. A query returns non-adult matches in
+  // `main` and adult matches separately in `adults`, so the page can group them apart.
+  function searchGroups(items, q) {
+    var terms = String(q || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+    var out = { main: [], adults: [] };
+    items.forEach(function (it) {
+      var h = haystack(it);
+      if (!terms.every(function (t) { return h.indexOf(t) >= 0; })) return;
+      if (it.adults) { if (terms.length) out.adults.push(it); } else out.main.push(it);
+    });
+    return out;
+  }
+
+  // Layout rules checked against the WHOLE catalog, hidden items included, so the launch state is
+  // already valid before an item is unhidden. Returns a list of problems ([] when good).
+  function layoutProblems(cat) {
+    var p = [];
+    var byId = indexById((cat && cat.items) || []);
+    var isAdult = function (id) { return !!(byId[id] && byId[id].adults); };
+    var isKid = function (id) { return !!(byId[id] && byId[id].kids); };
+    Object.keys(byId).forEach(function (id) { if (isAdult(id) && isKid(id)) p.push(id + ' is both kids and adults'); });
+    ((cat && cat.today) || []).forEach(function (s) { if (isAdult(s.item)) p.push('adult item ' + s.item + ' on Today'); });
+    var features = (cat && cat.features) || {};
+    Object.keys(features).forEach(function (k) {
+      if (isAdult(features[k].item)) p.push('adult item ' + features[k].item + ' in the ' + k + ' feature');
+    });
+    var shelves = (cat && cat.shelves) || {};
+    Object.keys(shelves).forEach(function (tab) {
+      var list = shelves[tab] || [];
+      list.forEach(function (s, i) {
+        var ids = s.items || [];
+        if (s.adults === true) {
+          ids.forEach(function (id) {
+            if (!isAdult(id)) p.push(tab + '/' + s.title + ': non-adult item ' + id + ' in an adults shelf');
+            if (isKid(id)) p.push(tab + '/' + s.title + ': kids item ' + id + ' in an adults shelf');
+          });
+          if (!/21\+/.test(s.title || '')) p.push(tab + '/' + s.title + ': adults shelf title must say 21+');
+          [list[i - 1], list[i + 1]].forEach(function (n) {
+            if (n && (n.items || []).some(isKid)) p.push(tab + '/' + s.title + ': adults shelf next to kids shelf ' + n.title);
+          });
+        } else {
+          ids.forEach(function (id) { if (isAdult(id)) p.push(tab + '/' + s.title + ': adult item ' + id + ' outside an adults shelf'); });
+        }
+      });
+    });
+    return p;
+  }
+
+  var LOGIC = { safePath: safePath, visibleItems: visibleItems, shelfItems: shelfItems, placeable: placeable,
+    searchGroups: searchGroups, layoutProblems: layoutProblems };
+  if (typeof document === 'undefined') { globalThis.KILStoreLogic = LOGIC; return; }
+
   function el(tag, cls, text) {
     var n = document.createElement(tag);
     if (cls) n.className = cls;
@@ -45,10 +133,11 @@
     meta.appendChild(el('div', 'name', item.name));
     meta.appendChild(el('div', 'subt', item.subtitle));
     if (item.kids) meta.appendChild(el('span', 'kids', 'For kids'));
+    if (item.adults) meta.appendChild(el('span', 'adult', '21+'));
     r.appendChild(meta);
     var act = el('div', 'act');
     act.appendChild(actionButton(item));
-    if (item.caption && !item.kids) act.appendChild(el('span', 'cap', item.caption));
+    if (item.caption && !item.kids && !item.adults) act.appendChild(el('span', 'cap', item.caption));
     r.appendChild(act);
     return r;
   }
@@ -118,7 +207,7 @@
     sec.appendChild(h);
     if (s.subtitle) sec.appendChild(el('p', 'sub', s.subtitle));
     var track = el('div', 'track');
-    (s.items || []).forEach(function (id) { if (byId[id]) track.appendChild(row(byId[id])); });
+    shelfItems(s, byId).forEach(function (it) { track.appendChild(row(it)); });
     sec.appendChild(track);
     return sec;
   }
@@ -159,26 +248,22 @@
     selectTab(location.hash.slice(1));
   }
 
-  function haystack(item) {
-    return [item.name, item.subtitle, item.description, item.kind, item.kind === 'game' ? 'games' : 'apps',
-      item.caption, (item.keywords || []).join(' ')].join(' ').toLowerCase();
-  }
 
   function wireSearch(items) {
     var input = document.getElementById('q');
     var out = slot('search');
     var label = document.getElementById('search-label');
     function render() {
-      var q = input.value.trim().toLowerCase();
-      var terms = q.split(/\s+/).filter(Boolean);
-      var hits = items.filter(function (it) {
-        var h = haystack(it);
-        return terms.every(function (t) { return h.indexOf(t) >= 0; });
-      });
+      var q = input.value.trim();
+      var g = searchGroups(items, q);
       label.textContent = q ? 'Results' : 'Suggested';
       out.textContent = '';
-      if (!hits.length) { out.appendChild(el('p', 'empty', 'Nothing matches “' + input.value.trim() + '” yet.')); return; }
-      hits.forEach(function (it) { out.appendChild(row(it)); });
+      if (!g.main.length && !g.adults.length) { out.appendChild(el('p', 'empty', 'Nothing matches \u201C' + q + '\u201D yet.')); return; }
+      g.main.forEach(function (it) { out.appendChild(row(it)); });
+      if (g.adults.length) {
+        out.appendChild(el('h3', 'search-sub', 'Adults 21+'));
+        g.adults.forEach(function (it) { out.appendChild(row(it)); });
+      }
     }
     input.addEventListener('input', render);
     document.querySelectorAll('[data-goto]').forEach(function (b) {
@@ -191,12 +276,11 @@
   }
 
   function render(cat) {
-    var items = (cat.items || []).filter(function (it) { return safePath(it.href) && safePath(it.icon); });
-    var byId = {};
-    items.forEach(function (it) { byId[it.id] = it; });
+    var items = visibleItems(cat);
+    var byId = indexById(items);
 
     var today = slot('today');
-    (cat.today || []).forEach(function (s) { if (byId[s.item]) today.appendChild(storyCard(s, byId[s.item])); });
+    (cat.today || []).forEach(function (s) { if (placeable(byId[s.item])) today.appendChild(storyCard(s, byId[s.item])); });
     var dev = el('a', 'story');
     dev.href = '/app/submit/';
     var art = el('div', 'art icon-art');
@@ -212,7 +296,7 @@
 
     ['apps', 'games'].forEach(function (k) {
       var f = cat.features && cat.features[k];
-      if (f && byId[f.item]) slot('feature-' + k).appendChild(feature(f, byId[f.item]));
+      if (f && placeable(byId[f.item])) slot('feature-' + k).appendChild(feature(f, byId[f.item]));
       var box = slot('shelves-' + k);
       ((cat.shelves && cat.shelves[k]) || []).forEach(function (s) { box.appendChild(shelf(s, byId)); });
     });

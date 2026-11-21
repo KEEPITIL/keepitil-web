@@ -7,6 +7,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = process.env.APP_STORE_TEST_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -286,4 +287,94 @@ test('A199-4: /app/submit/ has no form fields and exactly one mailto link', () =
   assert.equal(mails.length, 1, `expected one mailto link, got ${mails.length}`);
   assert.match(mails[0], /^mailto:info@keepitil\.com(\?|$)/);
   assert.match(h, /<h1>Email us to submit your app<\/h1>/);
+});
+
+// ---------- Decisions 2026-11-20: Kai Tarako listed, Soon tiles kept, Find My Weed pre-launch ----------
+// These run the real app/store.js logic (loaded in node:vm with no document), not a copy of it.
+
+function storeLogic() {
+  const ctx = {};
+  vm.runInNewContext(read(SCRIPT), ctx, { filename: SCRIPT });
+  assert.ok(ctx.KILStoreLogic, 'store.js exposes its pure logic when there is no document');
+  return ctx.KILStoreLogic;
+}
+const clone = (o) => JSON.parse(JSON.stringify(o));
+// Array.from keeps results in this realm (arrays made inside node:vm fail deepStrictEqual on prototype).
+const ids = (list) => Array.from(list, (i) => i.id);
+
+test('Kai Tarako is listed and visible; Soon tiles kept for Kingdom Wars, PokaSnap and The Thirteen Anchors', () => {
+  const L = storeLogic();
+  const cat = JSON.parse(read(CATALOG));
+  const vis = ids(L.visibleItems(cat));
+  assert.ok(vis.includes('kaitarako'), 'Kai Tarako is rendered');
+  const kai = cat.items.find((i) => i.id === 'kaitarako');
+  assert.equal(kai.hidden, undefined);
+  assert.equal(kai.href, '/app/kaitarako/');
+  for (const id of ['kwars', 'pokasnap', 'thirteen']) {
+    const it = cat.items.find((i) => i.id === id);
+    assert.ok(it && vis.includes(id), `${id} is rendered`);
+    assert.equal(it.cta, 'Soon', `${id} keeps its Soon button`);
+    assert.equal(it.status, 'soon');
+  }
+});
+
+test('Find My Weed: catalog entry is hidden until launch, 21+, and links only under /app/findmyweed/', () => {
+  const L = storeLogic();
+  const cat = JSON.parse(read(CATALOG));
+  const fmw = cat.items.find((i) => i.id === 'findmyweed');
+  assert.ok(fmw, 'Find My Weed has a catalog entry');
+  assert.equal(fmw.hidden, true, 'hidden until the web launch is live');
+  assert.equal(fmw.adults, true);
+  assert.ok(!fmw.kids);
+  assert.equal(fmw.caption, '21+');
+  assert.match(fmw.subtitle, /21\+/, 'the 21+ label is in the visible subtitle too');
+  assert.equal(fmw.href, '/app/findmyweed/');
+  for (const u of catalogUrls(fmw)) assert.ok(u.startsWith('/app/findmyweed/'), `FMW references ${u}`);
+
+  // Hidden: never rendered, not even by search.
+  assert.ok(!ids(L.visibleItems(cat)).includes('findmyweed'));
+  const items = L.visibleItems(cat);
+  for (const q of ['', 'cannabis', 'find my weed', '21+', 'apps']) {
+    const g = L.searchGroups(items, q);
+    assert.ok(!ids(g.main).includes('findmyweed') && !ids(g.adults).includes('findmyweed'), `search "${q}" shows FMW`);
+  }
+
+  // CONTROL: the same code with hidden:false renders it, but only grouped as adults, only when searched.
+  const launched = clone(cat);
+  launched.items.find((i) => i.id === 'findmyweed').hidden = false;
+  const li = L.visibleItems(launched);
+  assert.ok(ids(li).includes('findmyweed'), 'CONTROL: unhiding makes it visible');
+  assert.ok(!ids(L.searchGroups(li, '').main).includes('findmyweed'), 'not in Suggested');
+  assert.deepEqual(ids(L.searchGroups(li, '').adults), [], 'Suggested never shows adult items');
+  assert.deepEqual(ids(L.searchGroups(li, 'cannabis').adults), ['findmyweed']);
+  assert.ok(!ids(L.searchGroups(li, 'apps').main).includes('findmyweed'), 'adult items never mix into the main results');
+  const byId = Object.fromEntries(li.map((i) => [i.id, i]));
+  const adultShelf = launched.shelves.apps.find((s) => s.adults);
+  assert.deepEqual(ids(L.shelfItems(adultShelf, byId)), ['findmyweed']);
+  for (const s of launched.shelves.apps.filter((x) => !x.adults)) assert.ok(!ids(L.shelfItems(s, byId)).includes('findmyweed'));
+  assert.equal(L.placeable(byId.findmyweed), false, 'never on Today or a feature card');
+});
+
+test('layout: the 21+ shelf is separate from and never next to the kids shelf', () => {
+  const L = storeLogic();
+  const cat = JSON.parse(read(CATALOG));
+  assert.deepEqual(Array.from(L.layoutProblems(cat)), []);
+  const apps = cat.shelves.apps;
+  const kidsAt = apps.findIndex((s) => s.items.includes('kaitarako'));
+  const adultsAt = apps.findIndex((s) => s.adults);
+  assert.ok(kidsAt >= 0 && adultsAt >= 0 && Math.abs(kidsAt - adultsAt) > 1, 'at least one shelf between kids and 21+');
+
+  // NEGATIVE CONTROLS: each rule fails on a planted bad layout.
+  const bad = (mut) => { const c = clone(cat); mut(c); return L.layoutProblems(c); };
+  assert.ok(bad((c) => c.today.push({ item: 'findmyweed', title: 'x' })).some((p) => /on Today/.test(p)));
+  assert.ok(bad((c) => { c.features.apps.item = 'findmyweed'; }).some((p) => /feature/.test(p)));
+  assert.ok(bad((c) => { c.shelves.apps = [c.shelves.apps[0], c.shelves.apps[2], c.shelves.apps[1]]; }).some((p) => /next to kids shelf/.test(p)));
+  assert.ok(bad((c) => c.shelves.apps.find((s) => s.adults).items.push('kaitarako')).some((p) => /kids item kaitarako in an adults shelf/.test(p)));
+  assert.ok(bad((c) => c.shelves.apps[1].items.push('findmyweed')).some((p) => /outside an adults shelf/.test(p)));
+  assert.ok(bad((c) => { c.shelves.apps.find((s) => s.adults).title = 'Grown-ups'; }).some((p) => /must say 21\+/.test(p)));
+  assert.ok(bad((c) => { c.items.find((i) => i.id === 'kaitarako').adults = true; }).some((p) => /both kids and adults/.test(p)));
+  // shelfItems refuses a kids item in an adults shelf even if the catalog put it there.
+  const byId = Object.fromEntries(cat.items.map((i) => [i.id, i]));
+  assert.deepEqual(ids(L.shelfItems({ adults: true, items: ['kaitarako', 'findmyweed'] }, byId)), ['findmyweed']);
+  assert.deepEqual(ids(L.shelfItems({ items: ['kaitarako', 'findmyweed'] }, byId)), ['kaitarako']);
 });

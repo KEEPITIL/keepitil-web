@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "KEEPITIL Apps catalog. Only real KEEPITIL apps and games that already have a page on keepitil.com. Every href, icon and image is a root-relative path to a file in this repo (the /app/ test in assets/js checks it). No prices, ratings or reviews. Kids items link only to their own page.",
+  "note": "KEEPITIL Apps catalog. Only real KEEPITIL apps and games that already have a page on keepitil.com. Every href, icon and image is a root-relative path to a file in this repo (the /app/ test in assets/js checks it). No prices, ratings or reviews. Kids items link only to their own page. hidden: true keeps an entry out of the rendered store (pre-launch). adults: true (21+) items render only in a shelf marked adults: true, never on Today, in a feature or next to a kids shelf.",
   "items": [
     {
       "id": "kmob",
@@ -13,7 +13,13 @@
       "cta": "Open",
       "status": "play",
       "caption": "Free in your browser",
-      "keywords": ["strategy", "army", "tank", "waves", "war"]
+      "keywords": [
+        "strategy",
+        "army",
+        "tank",
+        "waves",
+        "war"
+      ]
     },
     {
       "id": "kbeats",
@@ -26,7 +32,12 @@
       "cta": "Open",
       "status": "beta",
       "caption": "Beta",
-      "keywords": ["music", "rhythm", "artists", "beat"]
+      "keywords": [
+        "music",
+        "rhythm",
+        "artists",
+        "beat"
+      ]
     },
     {
       "id": "kwars",
@@ -39,7 +50,13 @@
       "cta": "Soon",
       "status": "soon",
       "caption": "Coming soon",
-      "keywords": ["kwars", "strategy", "fort", "defense", "kingdom"]
+      "keywords": [
+        "kwars",
+        "strategy",
+        "fort",
+        "defense",
+        "kingdom"
+      ]
     },
     {
       "id": "pokasnap",
@@ -52,7 +69,11 @@
       "cta": "Soon",
       "status": "soon",
       "caption": "Coming soon",
-      "keywords": ["pets", "camera", "casual"]
+      "keywords": [
+        "pets",
+        "camera",
+        "casual"
+      ]
     },
     {
       "id": "thirteen",
@@ -65,7 +86,12 @@
       "cta": "Soon",
       "status": "soon",
       "caption": "Coming soon",
-      "keywords": ["thirteen", "13", "horror", "mystery"]
+      "keywords": [
+        "thirteen",
+        "13",
+        "horror",
+        "mystery"
+      ]
     },
     {
       "id": "tuitea",
@@ -78,7 +104,12 @@
       "cta": "Open",
       "status": "available",
       "caption": "Family",
-      "keywords": ["family", "tree", "photos", "household"]
+      "keywords": [
+        "family",
+        "tree",
+        "photos",
+        "household"
+      ]
     },
     {
       "id": "wifi-remote",
@@ -91,7 +122,13 @@
       "cta": "Get",
       "status": "store",
       "caption": "Phone",
-      "keywords": ["tv", "remote", "roku", "lg", "samsung"]
+      "keywords": [
+        "tv",
+        "remote",
+        "roku",
+        "lg",
+        "samsung"
+      ]
     },
     {
       "id": "kaitarako",
@@ -105,7 +142,35 @@
       "status": "available",
       "caption": "For kids",
       "kids": true,
-      "keywords": ["kids", "alphabet", "tracing", "learn", "letters"]
+      "keywords": [
+        "kids",
+        "alphabet",
+        "tracing",
+        "learn",
+        "letters"
+      ]
+    },
+    {
+      "id": "findmyweed",
+      "kind": "app",
+      "name": "Find My Weed",
+      "subtitle": "Licensed cannabis near you. Adults 21+",
+      "description": "Find state-licensed cannabis storefronts and delivery services near you. For adults 21+ in legal markets.",
+      "icon": "/app/findmyweed/icons/icon.svg",
+      "href": "/app/findmyweed/",
+      "cta": "Open",
+      "status": "prelaunch",
+      "caption": "21+",
+      "adults": true,
+      "hidden": true,
+      "hiddenNote": "Pre-launch. Listed once the Find My Weed web launch is live (decision 2026-11-20). At launch set hidden to false; nothing else changes.",
+      "keywords": [
+        "cannabis",
+        "dispensary",
+        "delivery",
+        "21+",
+        "adults"
+      ]
     }
   ],
   "today": [
@@ -137,17 +202,65 @@
     }
   ],
   "features": {
-    "apps": { "item": "tuitea", "eyebrow": "From KEEPITIL", "title": "Everything your family wants to keep", "blurb": "A private app for one family." },
-    "games": { "item": "kmob", "eyebrow": "Featured", "title": "KMOB Endless War", "blurb": "Command the tank and defend against endless waves.", "image": "/games/kmob/assets/kmob-home/battle-action.webp", "imageAlt": "KMOB Endless War battle" }
+    "apps": {
+      "item": "tuitea",
+      "eyebrow": "From KEEPITIL",
+      "title": "Everything your family wants to keep",
+      "blurb": "A private app for one family."
+    },
+    "games": {
+      "item": "kmob",
+      "eyebrow": "Featured",
+      "title": "KMOB Endless War",
+      "blurb": "Command the tank and defend against endless waves.",
+      "image": "/games/kmob/assets/kmob-home/battle-action.webp",
+      "imageAlt": "KMOB Endless War battle"
+    }
   },
   "shelves": {
     "apps": [
-      { "title": "KEEPITIL Apps", "subtitle": "Made by KEEPITIL", "items": ["tuitea", "wifi-remote"] },
-      { "title": "For kids", "subtitle": "Gentle learning for young children", "items": ["kaitarako"] }
+      {
+        "title": "For kids",
+        "subtitle": "Gentle learning for young children",
+        "items": [
+          "kaitarako"
+        ]
+      },
+      {
+        "title": "KEEPITIL Apps",
+        "subtitle": "Made by KEEPITIL",
+        "items": [
+          "tuitea",
+          "wifi-remote"
+        ]
+      },
+      {
+        "title": "Adults 21+",
+        "subtitle": "For adults 21 and over in legal markets",
+        "adults": true,
+        "items": [
+          "findmyweed"
+        ]
+      }
     ],
     "games": [
-      { "title": "Play now", "subtitle": "Free in your browser", "items": ["kmob", "kbeats"] },
-      { "title": "Coming soon", "subtitle": "What we're building next", "items": ["kwars", "pokasnap", "thirteen"] }
+      {
+        "title": "Play now",
+        "subtitle": "Free in your browser",
+        "items": [
+          "kmob",
+          "kbeats"
+        ]
+      },
+      {
+        "title": "Coming soon",
+        "subtitle": "What we're building next",
+        "items": [
+          "kwars",
+          "pokasnap",
+          "thirteen"
+        ]
+      }
     ]
   }
 }

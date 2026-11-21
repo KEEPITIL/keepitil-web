@@ -10,8 +10,8 @@
 <link rel="icon" type="image/png" href="/icon-192.png">
 <link rel="canonical" href="https://keepitil.com/app/submit/"/>
 <!--
-  /app/submit/ is a static explainer. It posts nothing: there is no form element, no script and no backend.
-  Developers write to info@keepitil.com. The CSP above sets form-action 'none' and script-src 'none'.
+  /app/submit/ is a static page. It posts nothing: no form, no input fields, no script and no backend.
+  Developers email info@keepitil.com through the one mailto button. The CSP above sets form-action 'none' and script-src 'none'.
 -->
 <style>
   :root{
@@ -41,16 +41,12 @@
   .lead{color:var(--dim);font-size:clamp(16px,2.2vw,19px);margin-top:12px}
   .card{margin-top:18px;padding:20px;border-radius:18px;background:var(--panel);border:1px solid var(--line)}
   .card h2{font-size:20px;font-weight:900;margin-bottom:10px}
-  ol,ul{padding-left:20px;display:grid;gap:8px}
+  ul{padding-left:20px;display:grid;gap:8px}
   li{color:var(--ink)}
-  li small{display:block;color:var(--dim);font-size:13.5px}
   .cta{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 22px;margin-top:16px;border-radius:999px;
        font-weight:800;font-size:16px;text-decoration:none;color:#07080c;background:var(--neon)}
   .cta:focus-visible{outline:2px solid #fff;outline-offset:3px}
-  .placeholder{display:grid;gap:10px;margin-top:6px}
-  .placeholder .field{padding:12px 14px;border-radius:12px;border:1px dashed var(--line);color:var(--mute);font-size:14px}
   .muted{color:var(--dim);font-size:14px}
-  .kids{border-color:rgba(0,255,136,.35)}
   footer{margin-top:40px;text-align:center;color:var(--mute);font-size:12px}
   footer a{color:inherit}
 </style>
@@ -64,46 +60,22 @@
 
   <section class="hero">
     <div class="eyebrow">For developers</div>
-    <h1>List your app on KEEPITIL</h1>
-    <p class="lead">KEEPITIL Apps shows apps and games that have their own page on keepitil.com. If you are building something you would like listed, tell us about it by email and the KEEPITIL team will review it.</p>
-  </section>
-
-  <section class="card" aria-labelledby="how">
-    <h2 id="how">How it works</h2>
-    <ol>
-      <li>Email us the details below.<small>One email per app or game is easiest for us to review.</small></li>
-      <li>The KEEPITIL team reviews it.<small>We look at what the app does, where it runs, and how it treats people's data.</small></li>
-      <li>We reply by email.<small>If it is a fit, we will work with you on its page and listing.</small></li>
-    </ol>
-    <a class="cta" href="mailto:info@keepitil.com?subject=App%20listing%20request">Email info@keepitil.com</a>
-    <p class="muted" style="margin-top:10px">This page does not send anything itself. The button opens your own email app.</p>
+    <h1>Email us to submit your app</h1>
+    <p class="lead">KEEPITIL Apps lists apps and games that have their own page on keepitil.com. To submit yours, send us one email per app or game. The KEEPITIL team reviews every submission and replies by email.</p>
+    <a class="cta" href="mailto:info@keepitil.com?subject=App%20submission">Email info@keepitil.com</a>
+    <p class="muted" style="margin-top:10px">The button opens your own email app. This page does not send anything itself.</p>
   </section>
 
   <section class="card" aria-labelledby="what">
-    <h2 id="what">What to include</h2>
+    <h2 id="what">What to include in your email</h2>
     <ul>
       <li>App or game name, and a one-line subtitle</li>
-      <li>Whether it is an app or a game, and what it does in a few sentences</li>
-      <li>Where it runs today (a web link, a phone app, or both)</li>
-      <li>A square icon (512&times;512 PNG) and one or two screenshots</li>
+      <li>What it does, in a few sentences</li>
+      <li>Where it runs today: a web link, a phone app, or both</li>
+      <li>A square icon (512&times;512 PNG) and one or two screenshots attached</li>
       <li>Your privacy policy link and a support contact</li>
-      <li>Who it is for, including whether it is made for children</li>
+      <li>Who it is for, and whether it is made for children</li>
     </ul>
-  </section>
-
-  <section class="card kids" aria-labelledby="kids">
-    <h2 id="kids">Apps made for children</h2>
-    <p class="muted">Kids' apps are listed with no tracking and no links out of the app's own page. Please tell us up front if your app is made for children.</p>
-  </section>
-
-  <section class="card" aria-labelledby="form">
-    <h2 id="form">Submission form</h2>
-    <p class="muted">An online form is coming later. Until then, email is the way to submit.</p>
-    <div class="placeholder" aria-hidden="true">
-      <div class="field">App name</div>
-      <div class="field">Link to where it runs</div>
-      <div class="field">Privacy policy link</div>
-    </div>
   </section>
 
   <footer>&copy; KEEPITIL &middot; <a href="/">keepitil.com</a> &middot; <a href="/app/">KEEPITIL Apps</a> &middot; <a href="/privacy.html">Privacy</a></footer>

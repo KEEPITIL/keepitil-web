@@ -22,7 +22,7 @@ const ORIGIN = 'https://keepitil.com';
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const PAGES = ['index.html', 'results.html', 'listing.html', 'about.html', 'privacy.html', '404.html'];
 const BUSINESS = APP + '/for-business/index.html';
-const BUSINESS_SHA256 = '2b55c121f6ceb8ad97f2ff904043f67b8837e7c70eb6f56f400820282969c237';   // #201 @faf2495 minus the M201-1 robots meta (FMW launch 2026-11-21)
+const BUSINESS_SHA256 = '595e06ff59e450fbb09bf5b3ae50d8cdafc503e9fefcf4dc236b3faf32009342';   // #201 @faf2495 minus the M201-1 robots meta (FMW launch) and minus the 10% commission bullet (Joe via Muse 03:56, 4 CCR 15415.1)
 const BUSINESS_SHA256_PRELAUNCH = 'e042b44d4a008e1117dc4401843906dcfd32342909a99465901496bb2f1dd343';   // #201 with M201-1 noindex
 
 // ---- checkers (pure, so the negative controls exercise the exact same code) ----
@@ -145,13 +145,17 @@ test('every asset and link URL in the app resolves under /app/findmyweed/ and to
   assert.deepEqual(linkProblems('<link href="/app/findmyweed/css/fmw.css">', '404.html'), [], 'CONTROL: the right prefix passes');
 });
 
-test('for-business/: the #201 bytes minus the M201-1 robots meta, only its index.html, no shared file names', () => {
+test('for-business/: the #201 bytes minus the M201-1 robots meta and the commission bullet, only its index.html, no shared file names', () => {
   assert.deepEqual(fs.readdirSync(path.join(ROOT, APP, 'for-business')), ['index.html']);
   const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
   const biz = fs.readFileSync(path.join(ROOT, BUSINESS));
   assert.equal(sha(biz), BUSINESS_SHA256, BUSINESS + ' changed (if it changed on purpose, update the pin)');
-  // the ONLY difference from #201's pre-launch bytes is the removed robots meta
-  assert.equal(sha(biz.toString('utf8').replace('<link rel="canonical" href="https://keepitil.com/app/findmyweed/for-business/">\n', '$&<meta name="robots" content="noindex,nofollow">\n')), BUSINESS_SHA256_PRELAUNCH);
+  // the ONLY differences from #201's pre-launch bytes: the removed robots meta and the removed "10% commission" bullet
+  const COMMISSION_BULLET = '      <li>10% commission only on orders that come through us \u2014 wholesale and retail. No orders, no commission</li>\n';
+  const back = biz.toString('utf8')
+    .replace('<link rel="canonical" href="https://keepitil.com/app/findmyweed/for-business/">\n', '$&<meta name="robots" content="noindex,nofollow">\n')
+    .replace('      <li>Your brand in front of our network of delivery, retail, and manufacturing partners</li>\n', '$&' + COMMISSION_BULLET);
+  assert.equal(sha(back), BUSINESS_SHA256_PRELAUNCH);
   assert.equal(fs.existsSync(path.join(ROOT, APP, 'for-business.html')), false);
   // NEGATIVE CONTROL: one changed byte changes the hash
   assert.notEqual(sha(read(BUSINESS) + ' '), BUSINESS_SHA256);

@@ -22,7 +22,8 @@ const ORIGIN = 'https://keepitil.com';
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const PAGES = ['index.html', 'results.html', 'listing.html', 'about.html', 'privacy.html', '404.html'];
 const BUSINESS = APP + '/for-business/index.html';
-const BUSINESS_SHA256 = '595e06ff59e450fbb09bf5b3ae50d8cdafc503e9fefcf4dc236b3faf32009342';   // #201 @faf2495 minus the M201-1 robots meta (FMW launch) and minus the 10% commission bullet (Joe via Muse 03:56, 4 CCR 15415.1)
+const BUSINESS_SHA256 = '337b4a6cbebab54852ea5e6c61e108865afdeea04ccbb1934b156b645c7d0db9';   // A205 (post-launch): link colour + '21+ (18+ medical where legal)' on top of the launch pin below
+const BUSINESS_SHA256_LAUNCH = '595e06ff59e450fbb09bf5b3ae50d8cdafc503e9fefcf4dc236b3faf32009342';   // as launched: #201 minus the M201-1 robots meta and the 10% commission bullet
 const BUSINESS_SHA256_PRELAUNCH = 'e042b44d4a008e1117dc4401843906dcfd32342909a99465901496bb2f1dd343';   // #201 with M201-1 noindex
 
 // ---- checkers (pure, so the negative controls exercise the exact same code) ----
@@ -84,7 +85,10 @@ test('app/findmyweed/index.html exists, with the rest of the built app beside it
 });
 
 test('launched: every page is index,follow, the switch says launched, robots.txt allows all and names the sitemap', () => {
-  for (const f of PAGES) assert.deepEqual(indexableProblems(read(APP + '/' + f), f), []);
+  // A205: the 404 page is noindex,follow (it answers any missing path); every other page is index,follow
+  for (const f of PAGES.filter((p) => p !== '404.html')) assert.deepEqual(indexableProblems(read(APP + '/' + f), f), []);
+  assert.match(read(APP + '/404.html'), /<meta name="robots" content="noindex,follow">/);
+  assert.equal(indexableProblems(read(APP + '/404.html'), '404.html').length, 1, 'CONTROL: the indexable check rejects the 404, as intended');
   assert.match(read(APP + '/js/site-config.js'), /var CONFIG = \{ launched: true, reportForm: false, basePath: "\/app\/findmyweed" \};/);
   const robots = read(APP + '/robots.txt');
   assert.match(robots, /^Allow: \/$/m);
@@ -152,7 +156,13 @@ test('for-business/: the #201 bytes minus the M201-1 robots meta and the commiss
   assert.equal(sha(biz), BUSINESS_SHA256, BUSINESS + ' changed (if it changed on purpose, update the pin)');
   // the ONLY differences from #201's pre-launch bytes: the removed robots meta and the removed "10% commission" bullet
   const COMMISSION_BULLET = '      <li>10% commission only on orders that come through us \u2014 wholesale and retail. No orders, no commission</li>\n';
-  const back = biz.toString('utf8')
+  // A205: the only differences from the launched page are the link colour rule and the two age qualifiers
+  const launched = biz.toString('utf8')
+    .replace('  a{color:var(--green)}\n', '')
+    .replace('>Consumers 21+ (18+ medical where legal) join free.', '>Consumers 21+ join free.')
+    .replace('· Cannabis marketing services · 21+ (18+ medical where legal)', '· Cannabis marketing services · 21+ only');
+  assert.equal(sha(launched), BUSINESS_SHA256_LAUNCH);
+  const back = launched
     .replace('<link rel="canonical" href="https://keepitil.com/app/findmyweed/for-business/">\n', '$&<meta name="robots" content="noindex,nofollow">\n')
     .replace('      <li>Your brand in front of our network of delivery, retail, and manufacturing partners</li>\n', '$&' + COMMISSION_BULLET);
   assert.equal(sha(back), BUSINESS_SHA256_PRELAUNCH);

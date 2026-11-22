@@ -21,7 +21,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <!-- meta:end -->
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/fmw.css?v=de3af8778a">
+<link rel="stylesheet" href="css/fmw.css?v=665261f0a9">
 <script src="js/theme.js?v=6996e36feb"></script>
 <script src="js/copy.js?v=81ac2063c5"></script>
 </head>
@@ -42,6 +42,8 @@
 <!-- The menu page: slides in and REPLACES the listing while open (Weedmaps-style) -->
 <nav id="menu-panel" class="menu-panel menu-page" hidden></nav>
 <main id="home" class="wrap wide">
+  <!-- Phone (< 768px): rows 2-4 (search, filter carousel, List / Map) are LOCKED under the locked header (joe-0045) -->
+  <div id="lockrows" class="lockrows">
   <!-- Search bar: ONE row (owner spec 2026-11-21; map icon removed 19:16 PT): location dropdown (State / County / City, shows the active area) | search box | search icon. Enter searches too; filtering happens in place -->
   <form id="search" class="search searchbar" action="results.html" method="get" role="search">
     <label class="field field-area">
@@ -54,7 +56,7 @@
     </label>
     <button class="icon-btn search-go" type="submit"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><span class="sr" data-copy="searchButton"></span></button>
   </form>
-  <!-- Filter bar: ONE row that scrolls sideways (sticky at the top on phones), the FULL approved set; "Home" is the default.
+  <!-- Filter bar: ONE row that scrolls sideways (locked on phones), the CUSTOMER set (business-only chips are off it); "Home" is the default.
        Each chip filters the listing + map in place (FMW.filterRows); a chip with no real data behind it shows none. -->
   <div id="filterbar" class="filterbar" role="group" data-copy-label="filterBarLabel">
     <button class="fchip" type="button" data-filter="home" aria-pressed="true" data-copy="fHome"></button>
@@ -64,17 +66,13 @@
     <button class="fchip" type="button" data-filter="deals" aria-pressed="false" data-copy="fDeals"></button>
     <button class="fchip" type="button" data-filter="retail" aria-pressed="false" data-copy="fRetail"></button>
     <button class="fchip" type="button" data-filter="brands" aria-pressed="false" data-copy="fBrands"></button>
-    <button class="fchip" type="button" data-filter="cultivation" aria-pressed="false" data-copy="fCultivation"></button>
-    <button class="fchip" type="button" data-filter="manufacturing" aria-pressed="false" data-copy="fManufacturing"></button>
-    <button class="fchip" type="button" data-filter="distribution" aria-pressed="false" data-copy="fDistribution"></button>
-    <button class="fchip" type="button" data-filter="testing" aria-pressed="false" data-copy="fTesting"></button>
-    <button class="fchip" type="button" data-filter="microbusiness" aria-pressed="false" data-copy="fMicrobusiness"></button>
     <button class="fchip" type="button" data-filter="services" aria-pressed="false" data-copy="fServices"></button>
   </div>
   <!-- Phone (< 768px) row 3: List / Map, switching the card list and the map (owner 19:16 PT). Desktop: both, side by side -->
   <div id="viewtoggle" class="viewtoggle" role="group" data-copy-label="viewToggleLabel">
     <button class="vbtn" type="button" data-view="list" aria-pressed="true" aria-controls="rail-nearby" data-copy="viewList"></button>
     <button class="vbtn" type="button" data-view="map" aria-pressed="false" aria-controls="map" data-copy="viewMap"></button>
+  </div>
   </div>
   <!-- Rows drawn ONLY from real content (FMW.promoRows). All hidden until it exists: nothing fake is ever shown. -->
   <section id="row-ads" class="hrow ads" data-row="ads" hidden><h2 class="sr" data-copy="rowAds"></h2><ul class="hscroll"></ul></section>
@@ -87,8 +85,8 @@
     <!-- Map: desktop (768px and up) = on the right; phone = shown in place of the cards by the Map button -->
     <section id="map" class="card map" hidden></section>
     <div class="rails">
-      <section id="rail-nearby" class="rail" data-rail="nearby" aria-labelledby="rail-nearby-h" hidden>
-        <h2 id="rail-nearby-h" data-copy="railNearby"></h2>
+      <!-- joe-0045: no "Nearby dispensaries" heading and no "<N> licensed businesses in <area>" line on the home -->
+      <section id="rail-nearby" class="rail" data-rail="nearby" hidden>
         <ul id="results" class="listings"></ul>
       </section>
     </div>
@@ -101,8 +99,8 @@
   <nav class="foot-links" aria-label="Site"><a href="about.html" data-copy="footerAbout"></a><a href="privacy.html" data-copy="footerPrivacy"></a></nav>
   <p class="biz"><a data-biz data-copy="forBusiness"></a></p>
 </footer>
-<script src="js/fmw.js?v=b4bbbf6a3e"></script>
+<script src="js/fmw.js?v=74d0d11889"></script>
 <script src="js/map-outline.js?v=68986a28f5"></script>
-<script src="js/pages.js?v=f8e6bf2f6f"></script>
+<script src="js/pages.js?v=88d0bb405f"></script>
 </body>
 </html>

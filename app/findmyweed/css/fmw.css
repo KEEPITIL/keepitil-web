@@ -212,13 +212,20 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .foot .biz{margin-top:4px}
 .foot .biz a{color:var(--band-accent);display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
 @media(max-width:767px){
-  /* phone: the filter carousel locks to the top of the screen while the list scrolls (row 2) */
-  .filterbar{position:sticky;top:0;z-index:30;background:var(--bg);margin:0 -16px;padding:8px 16px}
+  /* phone (joe-0045): FOUR locked rows, pinned while the cards scroll beneath them: 1 the header (a fixed 64px row + its
+     4px edge = --lock-top), then ONE sticky block right under it holding 2 the search row (location dropdown inside it),
+     3 the filter carousel and 4 List / Map. Desktop (768px and up) is unchanged: nothing here applies there. */
+  body[data-page=search],body[data-page=results]{--lock-top:68px}
+  body[data-page=search] .top,body[data-page=results] .top{position:sticky;top:0;z-index:40}
+  body[data-page=search] .top-in,body[data-page=results] .top-in{height:64px;padding-top:0;padding-bottom:0}
+  .lockrows{position:sticky;top:var(--lock-top);z-index:30;background:var(--bg);margin:-14px -16px 0;padding:8px 16px;border-bottom:1px solid var(--line)}
+  .lockrows .filterbar{padding:8px 0 0}
+  .lockrows .viewtoggle{margin-top:8px}
   /* row 3: List (default) shows the cards, Map shows the map in their place; never both */
   .discover .map{display:none}
   body.view-map .discover .map:not([hidden]){display:block}
   body.view-map .discover .rails{display:none}
-  body.view-map .discover .map-svg{aspect-ratio:auto;height:calc(100vh - 200px);max-height:none}
+  body.view-map .discover .map-svg{aspect-ratio:auto;height:calc(100vh - 300px);min-height:260px;max-height:none}
   /* the card's map icon is a desktop control (the List / Map buttons replace it on phones): the name gets the full width */
   .pin-btn{display:none}
   .listing h3.ln-name{padding-right:0}

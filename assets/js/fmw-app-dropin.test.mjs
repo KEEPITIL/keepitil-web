@@ -143,7 +143,7 @@ test('every asset and link URL in the app resolves under /app/findmyweed/ and to
   assert.ok(n > 30, 'checked ' + n + ' references');
   // NEGATIVE CONTROLS: a root-absolute asset, a relative escape and an old-folder link are each caught
   const idx = read(APP + '/index.html');
-  assert.equal(linkProblems(idx.replace('src="js/fmw.js"', 'src="/js/fmw.js"'), 'index.html').length, 1, 'root-absolute');
+  assert.equal(linkProblems(idx.replace(/src="js\/fmw\.js(\?v=[0-9a-f]+)?"/, 'src="/js/fmw.js$1"'), 'index.html').length, 1, 'root-absolute');
   assert.equal(linkProblems(idx.replace('href="about.html"', 'href="../about.html"'), 'index.html').length, 1, 'relative escape');
   assert.equal(linkProblems('<a href="/findmyweed/about.html">', '404.html').length, 1, 'old /findmyweed/ folder');
   assert.equal(linkProblems('<script src="https://cdn.example/x.js"></script>', 'index.html').length, 1, 'off-site');

@@ -21,7 +21,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <!-- meta:end -->
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/fmw.css?v=899c43d40a">
+<link rel="stylesheet" href="css/fmw.css?v=325d44eee2">
 <script src="js/theme.js?v=6996e36feb"></script>
 <script src="js/copy.js?v=6788edfa4f"></script>
 </head>
@@ -42,7 +42,7 @@
 <!-- The menu page: slides in and REPLACES the listing while open (Weedmaps-style) -->
 <nav id="menu-panel" class="menu-panel menu-page" hidden></nav>
 <main id="home" class="wrap wide">
-  <!-- Search bar row: the location dropdown (State / County / City) and a map icon INSIDE the bar; filtering happens in place -->
+  <!-- Search bar: ONE row (owner spec 2026-11-21): location dropdown (State / County / City, shows the active area) | search box | search icon | map icon. Enter searches too; filtering happens in place -->
   <form id="search" class="search searchbar" action="results.html" method="get" role="search">
     <label class="field field-area">
       <span class="sr" data-copy="fArea"></span>
@@ -52,7 +52,7 @@
       <span class="sr" data-copy="searchLabel"></span>
       <input name="q" type="text" inputmode="search" maxlength="80" autocomplete="postal-code" data-copy-ph="searchHint">
     </label>
-    <button class="btn search-go" type="submit" data-copy="searchButton"></button>
+    <button class="icon-btn search-go" type="submit"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><span class="sr" data-copy="searchButton"></span></button>
     <button id="map-btn" class="icon-btn map-btn" type="button" aria-controls="map" aria-expanded="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg><span class="sr" data-copy="mapOpen"></span></button>
   </form>
   <!-- Filter bar: ONE row that scrolls sideways. "Home" is the default; only filters real data can back are added. -->

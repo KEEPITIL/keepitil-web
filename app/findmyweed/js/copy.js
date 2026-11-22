@@ -18,7 +18,6 @@
     fOpenNow: 'Open now',
     licensedOnly: 'Only state-licensed businesses are listed. Every listing shows its license number.',
     // near a searched place; IN a chosen city when only the city was given (#15)
-    resultsTitle: function (n, place, city) { return n + (n === 1 ? ' licensed business' : ' licensed businesses') + (place ? ' near ' + place : city ? ' in ' + city : ''); },
     noPlace: function (q) { return 'We could not find "' + q + '" yet. Try a city name or a 5-digit ZIP.'; },
     noResults: 'No licensed businesses match these filters. Try removing a filter.',
     newSearch: 'New search',
@@ -131,7 +130,6 @@
       { key: 'help', label: 'Help', group: 3, icon: 'help', host: '/support/' },          // the host site's standing support page
       { key: 'listbiz', label: 'List Your Business', group: 3, icon: 'plus', biz: true }
     ],
-    railNearby: 'Nearby dispensaries',
     railDelivery: 'Delivery',
     railOpenNow: 'Open now',
     openUntil: function (t) { return 'Open until ' + t; },

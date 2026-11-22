@@ -7,10 +7,10 @@
      --green links/accent/focus | --green-dim hover | --tint accent wash (Open badge, ticked chip)
      --band --on-band --on-band-muted --band-accent --band-pattern  header + footer band (black), its text, highlight and pattern
      --logo-bg --logo-text --logo-accent  Style A logo: "Find My" white, "Weed" neon green, on black
-     --section --on-section --section-edge  color-blocked section headers
+     --section --on-section --section-edge  color-blocked section headers: OUR GREEN (= --green), never purple / magenta
      --btn-bg --btn-text --btn-edge  primary buttons | --off-bg --off-text disabled | --closed --closed-bg | --warn*  draft banner */
-:root{--bg:#eef6ee;--card:#ffffff;--line:#8fae98;--ctl:#2f5a3d;--off-bg:#e3e9e4;--off-text:#46524a;--green:#0a7a33;--green-dim:#085f28;--tint:#dcf1e2;--text:#0d1f14;--muted:#3f5446;--closed:#b3261e;--closed-bg:#fdecea;--warn-bg:#fff8e1;--warn-line:#8a6d00;--warn:#4d3b00;--band:#000000;--on-band:#ffffff;--on-band-muted:#d0d0d0;--band-accent:#39ff14;--band-pattern:#1c1c1c;--logo-bg:#000000;--logo-text:#ffffff;--logo-accent:#39ff14;--section:#5b2a86;--on-section:#ffffff;--section-edge:#3d1a5e;--btn-bg:#0a7a33;--btn-text:#ffffff;--btn-edge:#064d20;color-scheme:light}
-:root[data-theme="dark"]{--bg:#0b0f0c;--card:#131a15;--line:#3a5a42;--ctl:#7fa487;--off-bg:#2a332c;--off-text:#b4c1b6;--green:#3ddc74;--green-dim:#27ae55;--tint:#16301f;--text:#eef5ef;--muted:#a9bcae;--closed:#ff8a80;--closed-bg:#331a19;--warn-bg:#2a2410;--warn-line:#6b5a1a;--warn:#ffe08a;--band:#000000;--on-band:#ffffff;--on-band-muted:#c8c8c8;--band-accent:#39ff14;--band-pattern:#161616;--logo-bg:#000000;--logo-text:#ffffff;--logo-accent:#39ff14;--section:#4a2470;--on-section:#f5ecff;--section-edge:#7a4fb0;--btn-bg:#3ddc74;--btn-text:#06130a;--btn-edge:#1f8a46;color-scheme:dark}
+:root{--bg:#eef6ee;--card:#ffffff;--line:#8fae98;--ctl:#2f5a3d;--off-bg:#e3e9e4;--off-text:#46524a;--green:#0a7a33;--green-dim:#085f28;--tint:#dcf1e2;--text:#0d1f14;--muted:#3f5446;--closed:#b3261e;--closed-bg:#fdecea;--warn-bg:#fff8e1;--warn-line:#8a6d00;--warn:#4d3b00;--band:#000000;--on-band:#ffffff;--on-band-muted:#d0d0d0;--band-accent:#39ff14;--band-pattern:#1c1c1c;--logo-bg:#000000;--logo-text:#ffffff;--logo-accent:#39ff14;--section:#0a7a33;--on-section:#ffffff;--section-edge:#064d20;--btn-bg:#0a7a33;--btn-text:#ffffff;--btn-edge:#064d20;color-scheme:light}
+:root[data-theme="dark"]{--bg:#0b0f0c;--card:#131a15;--line:#3a5a42;--ctl:#7fa487;--off-bg:#2a332c;--off-text:#b4c1b6;--green:#3ddc74;--green-dim:#27ae55;--tint:#16301f;--text:#eef5ef;--muted:#a9bcae;--closed:#ff8a80;--closed-bg:#331a19;--warn-bg:#2a2410;--warn-line:#6b5a1a;--warn:#ffe08a;--band:#000000;--on-band:#ffffff;--on-band-muted:#c8c8c8;--band-accent:#39ff14;--band-pattern:#161616;--logo-bg:#000000;--logo-text:#ffffff;--logo-accent:#39ff14;--section:#3ddc74;--on-section:#06130a;--section-edge:#1f8a46;--btn-bg:#3ddc74;--btn-text:#06130a;--btn-edge:#1f8a46;color-scheme:dark}
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{background:var(--bg)}
 body{color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
@@ -153,13 +153,14 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .top .icon-btn:hover{color:var(--band-accent);border-color:var(--band-accent)}
 .wrap.wide{max-width:1280px;padding-top:14px}
 /* search bar row */
-.searchbar{display:flex;align-items:center;gap:6px;padding:6px;border-radius:14px;border:1px solid var(--ctl);background:var(--card)}
+.searchbar{display:flex;align-items:center;flex-wrap:nowrap;gap:6px;padding:6px;border-radius:14px;border:1px solid var(--ctl);background:var(--card)}
 .searchbar .field{display:block}
 .searchbar .field-area{flex:0 1 38%;min-width:0}
 .searchbar .field-q{flex:1 1 auto;min-width:0}
 .searchbar select,.searchbar input[type=text]{min-height:44px;padding:8px 10px;font-size:16px;border-radius:10px}
 .searchbar select{font-weight:700;text-overflow:ellipsis}
-.searchbar .search-go{min-height:44px;padding:8px 12px;font-size:15px;border-bottom-width:3px;flex:none}
+.searchbar .search-go{background:var(--btn-bg);color:var(--btn-text);border-color:var(--btn-edge)}
+.searchbar .search-go:hover{background:var(--green-dim);color:var(--btn-text);border-color:var(--btn-edge)}
 .searchbar .map-btn{border-color:var(--ctl)}
 /* filter carousel: one row, scrolls sideways inside itself (never the page) */
 .filterbar{display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
@@ -221,12 +222,9 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
   .searchbar .field-area{flex-basis:260px;flex-grow:0}
 }
 @media(max-width:600px){
-  /* phone: the bar wraps INSIDE itself: the location + the map icon, then the text box + Search */
-  .searchbar{flex-wrap:wrap}
-  .searchbar .field-area{flex:1 1 calc(100% - 56px);order:0}
-  .searchbar .map-btn{order:1}
-  .searchbar .field-q{order:2;flex:1 1 180px}
-  .searchbar .search-go{order:3}
+  /* phone: still ONE row (owner spec): location | search box | search icon | map icon, tighter; every target stays 44px */
+  .searchbar{gap:4px;padding:4px}
+  .searchbar select,.searchbar input[type=text]{padding:8px 6px}
 }
 @media(max-width:480px){.top .logo.small{font-size:20px}.top-in{gap:8px}}
 

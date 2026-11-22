@@ -10,6 +10,7 @@
   <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script src="/assets/js/kil-safe-html.js?v=20261107a"></script>
 <script src="/assets/js/kil-host-payouts.js?v=20261117a"></script>
+<script src="/assets/js/kil-door-count.js?v=20261117a"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     :root{
@@ -210,6 +211,10 @@
           <p style="font-size:.85rem;color:var(--grey);margin-bottom:.75rem;">Your organizer account status determines whether you can submit events.</p>
           <div id="account-status-display"></div>
         </div>
+        <div class="card" id="door-count-card" hidden>
+          <div class="card-title">CHECKED IN (LIVE)</div>
+          <div id="door-count-display"></div>
+        </div>
         <div class="card" id="payouts-card" hidden>
           <div class="card-title">PAYOUTS</div>
           <p style="font-size:.85rem;color:var(--grey);margin-bottom:.75rem;">Ticket money is held by Stripe and paid to your bank after your event ends.</p>
@@ -364,6 +369,18 @@ let organizerProfile = null;
 // ─── INIT ────────────────────────────────────────────────────────────────────
 (async () => {
   const { data: { session } } = await sb.auth.getSession();
+  // LIVE checked-in count (door scanner draft, flag OFF): shown only when KIL_FLAGS.doorCount is true. Own events only.
+  if (session && window.KIL_FLAGS && window.KIL_FLAGS.doorCount && window.KIL_DOOR_COUNT) {
+    const dc = document.getElementById('door-count-card');
+    const refresh = async () => {
+      if (document.hidden) return;
+      window.__kilHandle = window.__kilHandle || (await sb.rpc('my_handle')).data || '';
+      const { data: mine } = await sb.from('events').select('id,title').eq('owner_handle', window.__kilHandle);
+      const counts = await KIL_DOOR_COUNT.load(sb, mine || []);
+      KIL_DOOR_COUNT.render(document, document.getElementById('door-count-display'), mine || [], counts);
+    };
+    if (dc) { dc.hidden = false; refresh(); setInterval(refresh, KIL_DOOR_COUNT.POLL_MS); }
+  }
   // PAYOUTS row (Stripe Connect TEST-MODE draft, flag OFF): shown only when KIL_FLAGS.hostPayouts is true.
   if (session && window.KIL_FLAGS && window.KIL_FLAGS.hostPayouts && window.KIL_HOST_PAYOUTS) {
     const card = document.getElementById('payouts-card');

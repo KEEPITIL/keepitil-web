@@ -53,8 +53,67 @@
     unknownCountyTitle: function (c) { return 'No licensed shops in ' + c + ' County'; },
     signIn: 'Sign in',
     signInSoon: 'Coming soon: accounts are not open yet.',
-    themeDark: 'Dark mode',   // a toggle (aria-pressed); later chosen at sign-up and in Settings
     forBusiness: 'List Your Business',
+    comingSoon: 'Coming soon',
+    // The approved home (owner 2026-11-21 17:53 PT). Search bar: ONE location dropdown (State / County / City) inside it.
+    fArea: 'Location',
+    fAreaState: 'California',          // "" = the whole state (the only state FMW lists today)
+    areaGroupState: 'State',
+    areaGroupCounty: 'County',
+    areaGroupCity: 'City',
+    mapOpen: 'Show map',
+    mapClose: 'Close map',
+    mapShow: function (name) { return 'Show ' + name + ' on the map'; },
+    // The filter carousel: "Home" (default) + only filters real data can back (FMW.filterChips)
+    filterBarLabel: 'Filters',
+    fHome: 'Home',
+    // Home rows drawn ONLY from real entries (FMW.promoRows); hidden while there are none. No ranking-by-rating row and no paid-placement slot exist.
+    rowAds: 'Ads',
+    rowDeals: 'Deals nearby',
+    rowCategories: 'Categories',
+    rowFeatured: 'Featured',
+    // Listing card lines (FMW.cardLines): 6 lines, unnumbered, unlabelled
+    rating: function (n) { return n.toFixed(1) + ' ★'; },
+    kindStorefront: 'Storefront',
+    kindDelivery: 'Delivery',
+    kindBoth: 'Storefront + Delivery',
+    cardLicense: function (n) { return 'License ' + n; },   // the check mark's accessible text: the plain license number
+    // The menu page (approved spec item 9; supersedes the five-section menu of #79). ONE list in display order;
+    // js/fmw.js menuItems() decides link vs "coming soon", js/pages.js draws it. It opens only on a click (never on load).
+    //   group 0: the two account pills (Sign in outlined, Sign up filled); groups 1-3: icon + label rows; the theme pill
+    //   (System / Bright / Dark) is drawn at the bottom by pages.js.
+    // Fields: label; icon (a key of the page script's icon set); ONE destination:
+    //   page: a page of this site (relative; under basePath on 404.html) | biz: <basePath>/for-business/
+    //   host: a page of the HOST site this folder is served inside (root-relative, e.g. /support/); a link only while
+    //         site.json basePath is set
+    //   account: true = needs accounts (site.json "accounts", false today): disabled + "coming soon".
+    //   needsData: '<flag>' = a link only once that data exists (pages.js passes offered.<flag>); until then disabled +
+    //         "coming soon". An item with no destination is also "coming soon": nothing links to a page that does not exist.
+    //   storefront / delivery: automatic from the licensed listings. deals / brands / services / events: add the real
+    //   data and its page first, give the item a page:, and pass offered.<flag> = true from js/pages.js.
+    navMenu: 'Menu',            // the menu button's accessible name
+    navMenuLabel: 'Main menu',  // the menu's navigation landmark name
+    signUp: 'Sign up',
+    themeLabel: 'Theme',
+    themeSystem: 'System',
+    themeBright: 'Bright',
+    themeDark: 'Dark',
+    NAV_MENU: [
+      { key: 'signin', label: 'Sign in', account: true, pill: 'outline' },
+      { key: 'signup', label: 'Sign up', account: true, pill: 'fill' },
+      { key: 'home', label: 'Home', group: 1, icon: 'home', page: 'index.html' },
+      { key: 'storefronts', label: 'Storefronts', group: 1, icon: 'store', page: 'index.html?storefront=1', needsData: 'storefront' },
+      { key: 'deliveries', label: 'Deliveries', group: 1, icon: 'truck', page: 'index.html?delivery=1', needsData: 'delivery' },
+      { key: 'deals', label: 'Deals', group: 1, icon: 'tag', needsData: 'deals' },
+      { key: 'brands', label: 'Brands', group: 2, icon: 'star', needsData: 'brands' },
+      { key: 'business', label: 'Business', group: 2, icon: 'building', page: 'results.html' },   // the whole licensed-business directory
+      { key: 'services', label: 'Services', group: 2, icon: 'wrench', needsData: 'services' },
+      { key: 'events', label: 'Events', group: 2, icon: 'calendar', needsData: 'events' },
+      { key: 'learning', label: 'Learning', group: 2, icon: 'book', host: '/culture/' },   // the host site's culture stories feed
+      { key: 'favorites', label: 'Favorites', group: 3, icon: 'heart', account: true },
+      { key: 'help', label: 'Help', group: 3, icon: 'help', host: '/support/' },          // the host site's standing support page
+      { key: 'listbiz', label: 'List Your Business', group: 3, icon: 'plus', biz: true }
+    ],
     railNearby: 'Nearby dispensaries',
     railDelivery: 'Delivery',
     railOpenNow: 'Open now',
@@ -151,7 +210,7 @@
             'We don\'t keep your searches. Like any website, our host keeps short-lived server logs (IP address and page requested) for security.'] },
           { h: 'What stays on your device', p: [
             'Searching near you uses the city or ZIP you type. Your exact location is never sent to a server.',
-            'If you use the dark-mode switch, this site saves one setting, fmw-theme (light or dark), in your browser. It stays on this device and isn\'t sent to us or anyone else. Clear this site\'s data in your browser settings to remove it.'] },
+            'This site saves up to two settings in your browser: fmw-theme (System, Bright or Dark), if you pick a theme in the menu, and fmw-area, the last location you chose in the search bar, so the home opens there next time. They stay on this device and aren\'t sent to us or anyone else. Clear this site\'s data in your browser settings to remove them.'] },
           { h: 'Business information', p: [
             'Listings show business information only: the business name, its license details, its public address (for storefronts) and the hours and links the business gives us.',
             'The state license record also includes owner names and contact details. We never show those publicly. For delivery-only businesses we show the city, not the street address.'] },

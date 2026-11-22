@@ -90,7 +90,7 @@ test('launched: every page is index,follow, the switch says launched, robots.txt
   for (const f of PAGES.filter((p) => p !== '404.html')) assert.deepEqual(indexableProblems(read(APP + '/' + f), f), []);
   assert.match(read(APP + '/404.html'), /<meta name="robots" content="noindex,follow">/);
   assert.equal(indexableProblems(read(APP + '/404.html'), '404.html').length, 1, 'CONTROL: the indexable check rejects the 404, as intended');
-  assert.match(read(APP + '/js/site-config.js'), /var CONFIG = \{ launched: true, reportForm: false, basePath: "\/app\/findmyweed" \};/);
+  assert.match(read(APP + '/js/site-config.js'), /var CONFIG = \{ launched: true, reportForm: false, basePath: "\/app\/findmyweed", accounts: false \};/);
   const robots = read(APP + '/robots.txt');
   assert.match(robots, /^Allow: \/$/m);
   assert.doesNotMatch(robots, /Disallow/);

@@ -7,6 +7,9 @@
     // county: the area (location selector). A typed place (q) wins over it, so "Oakland" from the Los Angeles home finds
     // Oakland. hasCounty: the URL names a county (even "All counties" = ''), so the home's default county does not apply.
     var r = { q: F.cleanQuery(p.get('q')), delivery: p.get('delivery') === '1', storefront: p.get('storefront') === '1', openNow: p.get('open') === '1', city: F.cleanQuery(p.get('city')), county: F.cleanQuery(p.get('county')), hasCounty: p.has('county'), id: p.get('id') || '' };
+    // area (the search bar's location dropdown): "county:<name>" | "city:<name>" | "" (the whole state). It names the area, so
+    // the home's remembered / default area does not apply; ?county= and ?city= links keep working as before.
+    if (p.has('area')) { var a = F.parseArea(p.get('area')); r.hasCounty = true; r.county = a.kind === 'county' ? a.name : ''; if (a.kind === 'city') r.city = a.name; }
     if (r.q) r.county = '';
     return r;
   }
@@ -24,52 +27,147 @@
     for (var i = 0; i < list.length; i++) if (key(list[i]) === t) return list[i];
     return '';
   }
-  function fillCities(form, data, p) {
-    var sel = form && form.city; if (!sel) return;
-    while (sel.options.length > 1) sel.remove(1);
-    var list = F.cities(data, new Date(), p.county);   // inside a chosen county: that county's cities only
-    list.forEach(function (c) { var o = doc.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
-    // ?city=demo%20city selects "Demo City" (the results already are Demo City's)
-    sel.value = matchCity(list, p.city);
-  }
 
   // Shared chrome: every [data-copy] element gets its text from copy.js; the draft banner goes once the copy is final.
   doc.querySelectorAll('[data-copy]').forEach(function (n) { var v = C[n.getAttribute('data-copy')]; if (typeof v === 'string') n.textContent = v; });
+  doc.querySelectorAll('[data-copy-label]').forEach(function (n) { var v = C[n.getAttribute('data-copy-label')]; if (typeof v === 'string') n.setAttribute('aria-label', v); });
   doc.querySelectorAll('[data-copy-ph]').forEach(function (n) { var v = C[n.getAttribute('data-copy-ph')]; if (typeof v === 'string') n.setAttribute('placeholder', v); });
   // "List Your Business": the business pitch at <basePath>/for-business/ (a separate build, not in this export, so it is
   // set here from site.json basePath rather than written into the pages: a page link must resolve inside this folder).
   doc.querySelectorAll('a[data-biz]').forEach(function (n) { n.href = ((window.FMW_CONFIG && window.FMW_CONFIG.basePath) || '') + '/for-business/'; });
   if (!C.PLACEHOLDER) doc.querySelectorAll('.draft').forEach(function (n) { n.remove(); });
 
-  // The location selector (#69 logic): "All counties" + the counties with shown listings. ?county=alameda selects "Alameda".
+  // Icons: inline SVG paths (no image request; CSP img-src stays 'self'), drawn with currentColor.
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function svg(tag, attrs) { var e = doc.createElementNS(SVGNS, tag); Object.keys(attrs || {}).forEach(function (k) { e.setAttribute(k, String(attrs[k])); }); return e; }
+  var ICON = {
+    home: 'M3 11 12 4l9 7v9h-6v-6H9v6H3z', store: 'M4 9h16l-1.5-5h-13zM5 9v11h14V9M9 20v-6h6v6',
+    truck: 'M2 6h12v10H2zM14 10h4l3 3v3h-7M6 19.5a1.5 1.5 0 1 0 0-.01M17 19.5a1.5 1.5 0 1 0 0-.01', tag: 'M3 3h8l10 10-8 8L3 11zM7.5 7.5h.01',
+    star: 'M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.4l-5.5 2.9 1-6.2L3 9.7l6.2-.9z', building: 'M4 21V5l8-2v18M12 8h8v13M7 8h2M7 12h2M7 16h2M15 12h2M15 16h2M2 21h20',
+    wrench: 'M14.5 5.5a4 4 0 0 0 4 5.5l-9 9-3-3 9-9a4 4 0 0 1-1-2.5z', calendar: 'M4 6h16v15H4zM4 10h16M8 3v5M16 3v5', book: 'M12 6c-2-2-5-2-8-1v14c3-1 6-1 8 1 2-2 5-2 8-1V5c-3-1-6-1-8 1zM12 6v14',
+    heart: 'M12 20s-8-5-8-11a4 4 0 0 1 8-1.5A4 4 0 0 1 20 9c0 6-8 11-8 11z', help: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01', plus: 'M12 5v14M5 12h14',
+    check: 'M4.5 12.5l5 5 10-11', pin: 'M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z', close: 'M6 6l12 12M18 6 6 18'
+  };
+  function icon(k, cls) { var s = svg('svg', { 'class': 'ico' + (cls ? ' ' + cls : ''), viewBox: '0 0 24 24', 'aria-hidden': 'true', focusable: 'false' }); s.appendChild(svg('path', { d: ICON[k] || '' })); return s; }
+
+  // The header's Sign in: aria-disabled ("coming soon" via aria-describedby) while accounts are off. It does nothing.
+  var signinBtn = doc.getElementById('signin-btn');
+  if (signinBtn && signinBtn.addEventListener) signinBtn.addEventListener('click', function (e) { e.preventDefault(); });
+
+  // The menu page (approved spec item 9, 2026-11-21): a button with aria-expanded / aria-controls; the panel is hidden until a
+  // CLICK (never on load). On the home it REPLACES the listing while open (body.menu-open). Open: focus goes to the first
+  // item and Tab / Shift+Tab stay inside (button + items); Esc or a click outside closes it and focus returns to the button.
+  // Items: F.menuItems(C.NAV_MENU): a link only with real data + a real page, otherwise "coming soon" (never a dead link).
+  // Bottom: the 3-way theme pill (System / Bright / Dark; js/theme.js stores it). Text: textContent only.
+  var menuData = function () {};   // set by the menu; called with the data a page loads
+  var closeMap = function () {};   // set by the home (opening the menu closes the phone map)
+  function bodyClass(c, on) { var b = doc.body; if (b && b.classList) b.classList[on ? 'add' : 'remove'](c); }
+  (function menu() {
+    var btn = doc.getElementById('menu-btn'), panel = doc.getElementById('menu-panel');
+    if (!btn || !panel || !btn.addEventListener || !F.menuItems || !C.NAV_MENU) return;
+    var cfg = window.FMW_CONFIG || {}, base = cfg.basePath || '', abs = page === 'notfound', isOpen = false, offered = {};
+    panel.setAttribute('aria-label', C.navMenuLabel);
+    function soonButton(cls, label, describedBy) {
+      // aria-disabled (not disabled): stays reachable and is announced as unavailable, with the "coming soon" words
+      var n = el('button', cls); n.type = 'button'; n.setAttribute('aria-disabled', 'true');
+      if (describedBy) n.setAttribute('aria-describedby', describedBy);
+      n.addEventListener('click', function (e) { e.preventDefault(); });
+      if (label != null) n.textContent = label;
+      return n;
+    }
+    function themePill() {
+      var T = window.FMW_THEME, now = T ? T.get() : 'light', wrap = el('div', 'theme-pill');
+      wrap.setAttribute('role', 'group'); wrap.setAttribute('aria-label', C.themeLabel); wrap.setAttribute('data-menu', 'theme');
+      [['system', C.themeSystem], ['light', C.themeBright], ['dark', C.themeDark]].forEach(function (x) {
+        var b = el('button', 'theme-opt', x[1]); b.type = 'button'; b.setAttribute('data-theme-choice', x[0]); b.setAttribute('aria-pressed', now === x[0] ? 'true' : 'false');
+        b.addEventListener('click', function () {
+          if (T) T.set(x[0]);
+          Array.prototype.forEach.call(wrap.children, function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
+        });
+        wrap.appendChild(b);
+      });
+      return wrap;
+    }
+    function draw() {
+      // a redraw while open (data arriving) keeps focus on the same item
+      var a = doc.activeElement, keep = isOpen && a && panel.contains(a) ? (a.getAttribute('data-menu') || (a.parentNode && a.parentNode.getAttribute && a.parentNode.getAttribute('data-menu'))) : null;
+      clear(panel);
+      var noteId = 'menu-acct-note', acct = el('div', 'menu-acct'), groups = {}, order = [], anySoonAcct = false;
+      F.menuItems(C.NAV_MENU, { accounts: cfg.accounts === true, basePath: base, absolute: abs, offered: offered }).forEach(function (it) {
+        var n;
+        if (!it.group) {   // the two account pills, side by side at the top
+          if (it.disabled) { n = soonButton('pill ' + (it.pill || 'outline'), it.label, noteId); anySoonAcct = true; }
+          else { n = el('a', 'pill ' + (it.pill || 'outline'), it.label); n.href = it.href; }
+          n.setAttribute('data-menu', it.key); acct.appendChild(n); return;
+        }
+        if (!groups[it.group]) { groups[it.group] = el('ul', 'menu-group'); groups[it.group].setAttribute('data-group', String(it.group)); order.push(it.group); }
+        var li = el('li', 'menu-item'); li.setAttribute('data-menu', it.key);
+        if (it.disabled) n = soonButton('menu-link soon', null, it.account ? noteId : null);
+        else { n = el('a', 'menu-link'); n.href = it.href; }
+        if (it.icon) n.appendChild(icon(it.icon));
+        n.appendChild(el('span', 'menu-label', it.label));
+        if (it.disabled) n.appendChild(el('span', 'soon-tag', C.comingSoon));
+        li.appendChild(n); groups[it.group].appendChild(li);
+      });
+      panel.appendChild(acct);
+      if (anySoonAcct) { var note = el('p', 'menu-note muted', C.signInSoon); note.id = noteId; panel.appendChild(note); }
+      order.forEach(function (g) { panel.appendChild(groups[g]); });
+      panel.appendChild(themePill());
+      if (keep) { var k = panel.querySelector('[data-menu="' + keep + '"]'); if (k && k.tagName !== 'LI' && k.focus) k.focus(); else if (k) { var kk = k.querySelector('a, button'); if (kk) kk.focus(); } }
+    }
+    function items() { return Array.prototype.slice.call(panel.querySelectorAll('a[href], button')); }
+    function setOpen(on, refocus) {
+      isOpen = on; panel.hidden = !on; btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+      bodyClass('menu-open', on);
+      if (on) { closeMap(); var f = items()[0]; if (f) f.focus(); } else if (refocus) btn.focus();
+    }
+    btn.addEventListener('click', function () { setOpen(!isOpen, false); if (!isOpen) btn.focus(); });
+    doc.addEventListener('keydown', function (e) {
+      if (!isOpen) return;
+      if (e.key === 'Escape' || e.key === 'Esc') { e.preventDefault(); setOpen(false, true); return; }
+      if (e.key !== 'Tab') return;
+      var ring = [btn].concat(items()), i = ring.indexOf(doc.activeElement);
+      e.preventDefault();
+      ring[i < 0 ? 0 : (i + (e.shiftKey ? ring.length - 1 : 1)) % ring.length].focus();
+    });
+    doc.addEventListener('click', function (e) { if (isOpen && !btn.contains(e.target) && !panel.contains(e.target)) setOpen(false, false); });
+    draw();
+    // Storefronts / Deliveries need the data. NO extra request: the search / results / listing pages hand the menu the data
+    // they already loaded (menuData below); About / Privacy load it once for the menu; the 404 page (any depth) does not.
+    menuData = function (data) {
+      if (!data) return;
+      var now = new Date();
+      offered = { storefront: F.storefrontOffered(data, now), delivery: F.deliveryOffered(data, now) };
+      draw();
+    };
+    if (page === 'about' || page === 'privacy') load().then(menuData, function () {});
+  })();
+
+  // The location dropdown INSIDE the search bar (approved spec item 2): State / County / City in ONE select, built from the
+  // shown listings only (F.counties / F.cities, so a held or expired row never adds a place). Values: F.areaValue.
   function matchCounty(list, c) {
     var t = F.countyKey(c);
     if (!t) return '';
     for (var i = 0; i < list.length; i++) if (F.countyKey(list[i]) === t) return list[i];
     return '';
   }
-  function fillCounties(form, data, p) {
-    var sel = form && form.county; if (!sel) return;
-    while (sel.options.length > 1) sel.remove(1);
-    var list = F.counties(data, new Date());
-    list.forEach(function (c) { var o = doc.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
-    sel.value = matchCounty(list, p.county);
-  }
-  // A filter chip with no data behind it is hidden AND disabled (F.deliveryOffered / F.openNowOffered, via F.filtersOffered),
-  // so it is never offered and a ?delivery=1 / ?open=1 link never resubmits a filter the visitor cannot see (search() ignores
-  // both params while hidden). It comes back on its own with real data.
-  function showFilters(form, data) {
-    var on = F.filtersOffered(data, new Date());
-    [['delivery', on.delivery], ['open', on.openNow]].forEach(function (x) {
-      var cb = form && form[x[0]]; if (!cb) return;
-      if (!x[1]) cb.checked = false;
-      cb.disabled = !x[1];
-      if (cb.parentNode) cb.parentNode.hidden = !x[1];
+  function fillArea(form, data, p) {
+    var sel = form && form.area; if (!sel) return;
+    while (sel.children.length > 1) sel.removeChild(sel.children[sel.children.length - 1]);
+    var now = new Date(), cl = F.counties(data, now), ci = F.cities(data, now);
+    if (sel.children[0]) sel.children[0].textContent = C.fAreaState;
+    [[C.areaGroupCounty, cl, 'county', C.countyName], [C.areaGroupCity, ci, 'city', function (x) { return x; }]].forEach(function (g) {
+      var og = doc.createElement('optgroup'); og.setAttribute('label', g[0]);
+      g[1].forEach(function (name) { var o = doc.createElement('option'); o.value = F.areaValue(g[2], name); o.textContent = g[3](name); og.appendChild(o); });
+      sel.appendChild(og);
     });
+    // the bar shows the active area: a chosen city, else a chosen county, else the whole state
+    var city = matchCity(ci, p.city), county = matchCounty(cl, p.county);
+    sel.value = city ? F.areaValue('city', city) : county ? F.areaValue('county', county) : '';
   }
 
   function load() { return F.loadData(window.fetch.bind(window), 'data/listings.json'); }
-  function fill(form, p) { form.q.value = p.q; form.delivery.checked = p.delivery; form.storefront.checked = p.storefront; form.open.checked = p.openNow; }
+  function fill(form, p) { if (form && form.q) form.q.value = p.q; }
 
   // An empty or error state under the page heading: a short explanation and, where it helps, one action.
   // Errors use role="alert" so screen readers hear them; the heading itself is aria-live on the results page.
@@ -114,15 +212,17 @@
   // Each dot is an SVG link to the same detail page as its card, focusable and labelled (C.mapDot). The state / county
   // outline is a SLOT: js/map-outline.js sets window.FMW_OUTLINE (null until a boundary file exists), and the map works
   // the same without it. Text goes in with textContent only.
-  var SVGNS = 'http://www.w3.org/2000/svg';
-  function svg(tag, attrs) { var e = doc.createElementNS(SVGNS, tag); Object.keys(attrs || {}).forEach(function (k) { e.setAttribute(k, String(attrs[k])); }); return e; }
   function detailHref(id) { return 'listing.html?id=' + encodeURIComponent(id) + (location.search ? '&from=' + encodeURIComponent(location.search) : ''); }
   function renderMap(box, data, results) {
     clear(box); box.hidden = true;
     var m = F.mapDots(data, results.map(function (r) { return r.listing; }), new Date());
     if (!m.dots.length) return;
-    var v = F.mapView(m), r = +(v.w / 45).toFixed(2);
-    box.appendChild(el('h2', null, C.mapTitle));
+    var v = F.mapView(m), r = +(v.w / 45).toFixed(2), mh = el('div', 'map-head');
+    mh.appendChild(el('h2', null, C.mapTitle));
+    // phone only (CSS): the map opens over the page, so it carries its own Close button
+    var mc = el('button', 'icon-btn map-close'); mc.type = 'button'; mc.setAttribute('aria-label', C.mapClose); mc.appendChild(icon('close'));
+    mc.addEventListener('click', function () { closeMap(true); });
+    mh.appendChild(mc); box.appendChild(mh);
     var s = svg('svg', { viewBox: [v.x, v.y, v.w, v.h].join(' '), 'class': 'map-svg', role: 'group', 'aria-label': C.mapLabel(m.dots.length) });
     var outline = svg('g', { 'class': 'map-outline', 'data-slot': 'outline', 'aria-hidden': 'true' }), O = window.FMW_OUTLINE;
     if (O && Array.isArray(O.paths)) O.paths.forEach(function (d) { if (typeof d === 'string') outline.appendChild(svg('path', { d: d })); });
@@ -141,68 +241,161 @@
     box.hidden = false;
   }
 
-  // One result card (a link to the detail page). Used by every rail.
+  // One listing card (approved spec item 8): horizontal, the same fixed size on phone and desktop. A 1:1 branded fallback
+  // tile on the left (no shop photos exist, none are faked) and EXACTLY six single-line, truncating lines on the right,
+  // unnumbered and unlabelled, in F.cardLines order (name; rating + distance; hours; address; Storefront / Delivery +
+  // county; a green check mark + the license number). An empty line 2 keeps its place so every card is the same size.
+  // A small map icon (its own button, outside the link) shows the business on the map.
+  var showOnMap = function () {};   // set by the home
   function card(r) {
-    var l = r.listing, li = el('li'), a = el('a', 'listing'), top = el('div', 'row');
-    li.appendChild(a);
+    var l = r.listing, L = F.cardLines(r, C), li = el('li', 'shop'), a = el('a', 'listing');
+    li.setAttribute('data-id', l.id);
     a.href = detailHref(l.id);
-    top.appendChild(el('h3', null, l.name));
-    if (r.miles != null) top.appendChild(el('span', 'dist', C.miles(r.miles)));
-    a.appendChild(top);
-    var meta = el('div', 'row meta');
-    meta.appendChild(badge(r));
-    meta.appendChild(el('span', 'muted', kind(l) + (F.cityOf(l) ? ' \u00b7 ' + F.cityOf(l) : '')));   // a missing address never breaks a card
-    a.appendChild(meta);
-    var lc = el('div', 'license', C.license + ' ' + l.license + ' · ');
-    lc.appendChild(el('span', 'status', C.cardStatus(l.licenseStatus)));   // the state status on every card
-    a.appendChild(lc);
+    var th = el('span', 'thumb'); th.setAttribute('aria-hidden', 'true');
+    th.appendChild(el('span', 'thumb-a', 'Find My')); th.appendChild(el('span', 'thumb-b', 'Weed'));
+    var lines = el('span', 'lines');
+    lines.appendChild(el('h3', 'ln ln-name', L[0]));
+    for (var i = 1; i <= 4; i++) lines.appendChild(el('span', 'ln ln-' + i, L[i] || ' '));
+    var lic = el('span', 'ln ln-lic'); lic.appendChild(icon('check', 'ck')); lic.appendChild(el('span', null, L[5]));
+    lines.appendChild(lic);
+    a.appendChild(th); a.appendChild(lines); li.appendChild(a);
+    var pin = el('button', 'icon-btn pin-btn'); pin.type = 'button';
+    pin.setAttribute('aria-label', C.mapShow(l.name)); pin.setAttribute('data-id', l.id); pin.appendChild(icon('pin'));
+    pin.addEventListener('click', function () { showOnMap(l.id); });
+    li.appendChild(pin);
     return li;
   }
-  var RAIL_TITLE = { delivery: 'railDelivery', open: 'railOpenNow' };
+  // A home row from real entries only (F.promoRows): ads 16:9, categories 1:1 tiles, deals / featured cards. The section
+  // stays hidden (as shipped in the page) unless there is at least one real entry. Images are same-site (img/...).
+  function renderRow(key, entries) {
+    var sec = doc.getElementById('row-' + key); if (!sec) return;
+    var ul = sec.querySelector ? sec.querySelector('ul') : null;
+    sec.hidden = true; if (!ul) return;
+    clear(ul);
+    (entries || []).forEach(function (e) {
+      var li = el('li', 'tile'), wrap = e.href ? el('a', 'tile-in') : el('div', 'tile-in');
+      if (e.href) wrap.href = e.href;
+      var im = el('img'); im.src = e.image; im.alt = ''; im.loading = 'lazy'; wrap.appendChild(im);
+      wrap.appendChild(el('span', 'tile-label', e.label));
+      li.appendChild(wrap); ul.appendChild(li);
+    });
+    sec.hidden = !(entries && entries.length);
+  }
+  var FILTER_COPY = { home: 'fHome', storefront: 'fStorefront', delivery: 'fDelivery', open: 'fOpenNow' };
 
-  // The discovery home (2026-11-21): index.html opens straight on listings + map for an area; search, the
-  // location selector and the filters only refine it. results.html is the SAME view, so old results links keep working.
-  // Area: ?county= / a typed place / a city; with none of them on the home, the county with the most licensed listings.
+  // The approved home (owner 2026-11-21 17:53 PT): index.html opens straight on the listing (+ the map on desktop) for an
+  // area. The location dropdown, a typed city / ZIP and the filter carousel all refine it IN PLACE (history.pushState; the
+  // URL stays shareable). results.html is the SAME view, so old results links keep working.
+  // Area: ?area= / ?county= / ?city= / a typed place; with none of them on the home, the visitor's last-known area (saved on
+  // this device by js/theme.js, checked against the data), else the county with the most licensed listings.
   if (page === 'results' || page === 'search') {
     var p = params(), out = doc.getElementById('results'), head = doc.getElementById('resultsTitle'), stateBox = doc.getElementById('state'), mapEl = doc.getElementById('map');
-    var nearby = doc.getElementById('rail-nearby'), extra = doc.getElementById('rails-more'), form = doc.getElementById('search');
+    var nearby = doc.getElementById('rail-nearby'), form = doc.getElementById('search'), fbar = doc.getElementById('filterbar'), mapBtn = doc.getElementById('map-btn');
+    var AREA = window.FMW_AREA || null, canPush = !!(window.history && history.pushState);
     fill(form, p);
-    // the location selector redraws the rails and the map in place: ?county= goes in the URL (shareable), the typed place and
-    // city are dropped (a new area), the ticked filters stay. No other request than the one data file.
-    if (form && form.county && form.county.addEventListener && window.history && history.pushState) {
-      form.county.addEventListener('change', function () {
-        var u = new URLSearchParams();
-        u.set('county', form.county.value);
-        ['delivery', 'storefront', 'open'].forEach(function (k) { if (form[k] && form[k].checked && !form[k].disabled) u.set(k, '1'); });
-        history.pushState(null, '', '?' + u.toString());
-        p = params(); if (form.q) form.q.value = ''; run();
+    var go = function (u) {
+      var qs = u.toString();
+      if (!canPush) { location.search = qs ? '?' + qs : ''; return; }
+      history.pushState(null, '', qs ? '?' + qs : '?');
+      p = params(); fill(form, p); run();
+    };
+    // the current area + q as URL params (a new filter keeps them)
+    var areaParams = function () {
+      var u = new URLSearchParams();
+      if (p.q) u.set('q', p.q);
+      else if (form && form.area && typeof form.area.value === 'string') u.set('area', form.area.value);
+      return u;
+    };
+    if (form && form.addEventListener) {
+      // typed city / ZIP: filtered in place, never a trip to results.html (the plain GET stays the no-script fallback)
+      form.addEventListener('submit', function (e) {
+        if (!canPush) return;
+        e.preventDefault();
+        var q = F.cleanQuery(form.q && form.q.value), u = new URLSearchParams();
+        if (q) u.set('q', q); else u.set('area', form.area ? form.area.value : '');
+        go(u);
       });
-      window.addEventListener('popstate', function () { p = params(); fill(form, p); run(); });
+      if (form.area && form.area.addEventListener) form.area.addEventListener('change', function () {
+        if (AREA) AREA.set(form.area.value);   // the last-known location (this device only)
+        if (form.q) form.q.value = '';
+        var u = new URLSearchParams(); u.set('area', form.area.value); go(u);
+      });
     }
+    if (canPush && window.addEventListener) window.addEventListener('popstate', function () { p = params(); fill(form, p); run(); });
+    if (fbar && fbar.addEventListener) fbar.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest ? e.target.closest('[data-filter]') : null; if (!b) return;
+      var k = b.getAttribute('data-filter'), u = areaParams();
+      if (k === 'storefront' || k === 'delivery') u.set(k, '1'); else if (k === 'open') u.set('open', '1');
+      go(u);
+    });
+
+    // The map. Desktop: always beside the cards (CSS). Phone: closed until the search bar's map icon, a card's map icon or a
+    // right swipe opens it over the page (body.map-open); its Close button, Esc or a left swipe closes it.
+    var mapOpen = false;
+    var setMap = function (on, refocus) {
+      mapOpen = !!on; bodyClass('map-open', mapOpen);
+      if (mapBtn) mapBtn.setAttribute('aria-expanded', mapOpen ? 'true' : 'false');
+      if (!mapOpen && refocus && mapBtn && mapBtn.focus) mapBtn.focus();
+    };
+    closeMap = function (refocus) { if (mapOpen) setMap(false, refocus); };
+    showOnMap = function (id) {
+      if (mapEl && mapEl.querySelectorAll) Array.prototype.forEach.call(mapEl.querySelectorAll('a.dot'), function (d) {
+        var on = d.getAttribute('data-id') === id, c = (d.getAttribute('class') || '').replace(/\s*\bsel\b/g, '');
+        d.setAttribute('class', on ? c + ' sel' : c);
+        if (on && d.parentNode) d.parentNode.appendChild(d);   // drawn last = on top
+      });
+      setMap(true);
+      if (mapEl && mapEl.scrollIntoView && window.innerWidth >= 960) mapEl.scrollIntoView({ block: 'nearest' });
+    };
+    if (mapBtn && mapBtn.addEventListener) mapBtn.addEventListener('click', function () { setMap(!mapOpen); });
+    if (doc.addEventListener) doc.addEventListener('keydown', function (e) { if (mapOpen && (e.key === 'Escape' || e.key === 'Esc')) closeMap(true); });
+    (function swipe() {
+      var main = doc.getElementById('home'), x0 = null, y0 = 0;
+      if (!main || !main.addEventListener) return;
+      var start = function (e) { var t = e.touches && e.touches[0]; x0 = t ? t.clientX : null; y0 = t ? t.clientY : 0; };
+      var end = function (e) {
+        var t = e.changedTouches && e.changedTouches[0]; if (x0 == null || !t) return;
+        var dx = t.clientX - x0, dy = t.clientY - y0; x0 = null;
+        if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6 || window.innerWidth >= 960) return;
+        if (dx > 0 && !mapOpen) setMap(true); else if (dx < 0 && mapOpen) closeMap(false);
+      };
+      main.addEventListener('touchstart', start, { passive: true }); main.addEventListener('touchend', end, { passive: true });
+    })();
+
     var run = function () {
       clear(out); clear(stateBox); head.textContent = ''; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
       if (nearby) nearby.hidden = true;
-      if (extra) clear(extra);
       load().then(function (data) {
-        if (page === 'search' && !p.q && !p.city && !p.hasCounty) p.county = F.topCounty(data, new Date());   // the home's default area
-        fillCounties(form, data, p);
-        fillCities(form, data, p);
-        showFilters(form, data);
-        var res = F.search(data, p, new Date());
+        menuData(data);
+        var now = new Date();
+        if (page === 'search' && !p.q && !p.city && !p.hasCounty) {
+          // the home's area: the last-known one (if the data still has it), else the busiest county
+          var saved = AREA ? AREA.get() : null;
+          if (saved != null && F.areaKnown(data, saved, now)) { var sa = F.parseArea(saved); p.county = sa.kind === 'county' ? sa.name : ''; if (sa.kind === 'city') p.city = sa.name; }
+          else p.county = F.topCounty(data, now);
+        }
+        fillArea(form, data, p);
+        PROMO(data);
+        var res = F.search(data, p, now);
         if (res.notFound) {
+          drawFilters(['home'], 'home');
           var c = F.classify(p.q);
           if (res.reason === 'county') { head.textContent = C.unknownCountyTitle(p.county.replace(/\s+county$/i, '')); showState(stateBox, { name: 'unknown-place', body: C.unknownBody, actions: [{ text: C.clearSearch, href: 'index.html' }] }); }
           else if (res.reason === 'badzip') { head.textContent = C.badZipTitle; showState(stateBox, { name: 'bad-zip', body: C.badZipBody(c.value), actions: [{ text: C.clearSearch, href: 'index.html' }] }); }
           else {
-            // when only ?city= was given, the city is what was not found: name it (it read "No licensed shops match “”")
+            // when only ?city= was given, the city is what was not found: name it
             head.textContent = res.reason === 'zip' ? C.unknownZipTitle(c.value) : C.unknownCityTitle(c.value || p.city);
             showState(stateBox, { name: 'unknown-place', body: C.unknownBody, actions: [{ text: C.clearSearch, href: 'index.html' }] });
           }
           return;
         }
-        var placeName = res.place && res.place.name, cityName = matchCity(F.cities(data, new Date()), p.city);
+        // the filter carousel: Home + only filters that change THIS area's results (F.filterChips on the unfiltered rows)
+        var chips = F.filterChips(data, F.search(data, { q: p.q, city: p.city, county: p.county }, now).results, now);
+        var active = p.delivery ? 'delivery' : p.openNow ? 'open' : p.storefront ? 'storefront' : 'home';
+        drawFilters(chips, chips.indexOf(active) >= 0 ? active : 'home');
+        var placeName = res.place && res.place.name, cityName = matchCity(F.cities(data, now), p.city);
         // only a county chosen (no city): the heading says "in Los Angeles County", the way it names a chosen city (#69)
-        var countyName = matchCounty(F.counties(data, new Date()), p.county);
+        var countyName = matchCounty(F.counties(data, now), p.county);
         if (!cityName && countyName) cityName = C.countyName(countyName);
         if (!res.results.length) {
           head.textContent = C.emptyTitle(placeName || cityName);
@@ -212,17 +405,22 @@
         }
         head.textContent = C.resultsTitle(res.results.length, placeName, cityName);
         if (mapEl) renderMap(mapEl, data, res.results);
-        // Rails: ONLY the ones whose real data is in these results (F.rails). The nearby rail is the static #results list;
-        // any other rail is created here only when it has rows, and is otherwise not in the page at all.
-        F.rails(res.results).forEach(function (rail) {
-          if (rail.key === 'nearby') { rail.rows.forEach(function (r) { out.appendChild(card(r)); }); if (nearby) nearby.hidden = false; return; }
-          if (!extra) return;
-          var sec = el('section', 'rail'), hid = 'rail-' + rail.key + '-h', ul = el('ul', 'listings'), h = el('h2', null, C[RAIL_TITLE[rail.key]]);
-          sec.setAttribute('data-rail', rail.key); sec.setAttribute('aria-labelledby', hid); h.id = hid;
-          sec.appendChild(h); rail.rows.forEach(function (r) { ul.appendChild(card(r)); }); sec.appendChild(ul); extra.appendChild(sec);
-        });
+        // ONE listing (the old Storefronts rail folded in): every result, nearest first (F.search), named rows before
+        // "[Equity Retailer]"-only rows. No ranking-by-rating rail and no paid-placement slot exist on this page.
+        res.results.forEach(function (r) { out.appendChild(card(r)); });
+        if (nearby) nearby.hidden = false;
       }, function (e) { loadFailed(e, head, stateBox, run); });
     };
+    var drawFilters = function (keys, active) {
+      if (!fbar) return;
+      clear(fbar);
+      keys.forEach(function (k) {
+        var b = el('button', 'fchip', C[FILTER_COPY[k]]); b.type = 'button';
+        b.setAttribute('data-filter', k); b.setAttribute('aria-pressed', k === active ? 'true' : 'false');
+        fbar.appendChild(b);
+      });
+    };
+    var PROMO = function (data) { var rows = F.promoRows(data); F.PROMO_ROWS.forEach(function (k) { renderRow(k, rows[k]); }); };
     run();
     return;
   }
@@ -234,6 +432,7 @@
     var runListing = function () {
     clear(box);
     load().then(function (data) {
+      menuData(data);
       var l = lp.id ? F.byId(data, lp.id) : null;
       if (!l) {
         doc.title = C.listingMissingDocTitle;   // a deep link to an unknown id is a styled not-found page, never blank

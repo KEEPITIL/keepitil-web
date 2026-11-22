@@ -134,9 +134,10 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .report fieldset{border:0;margin:8px 0 0;padding:0}.report legend{font-weight:600;margin-bottom:4px}.report label.check{display:block;padding:6px 0}.report label.check input{margin:0 .5em 0 0}.report-details{display:block;font-weight:600;margin-top:10px}.report textarea{display:block;width:100%;box-sizing:border-box;font:inherit;margin-top:4px}.report .btn{margin-top:10px}.report-msg{margin-top:8px;min-height:1.2em}.report-msg.error{font-weight:600}
 
 /* The approved home (owner 2026-11-21 17:53 PT; index.html, results.html is the same view).
-   Header: ONE row: menu icon, the Style A logo, Sign in. Then the search bar (location dropdown + text + map icon INSIDE it),
-   the filter carousel (one row, scrolls sideways), the real-content-only rows (hidden while empty), and the card listing.
-   Phone: no map until it is opened (over the page). Desktop: cards on the left, the map sticky on the right
+   Header: ONE row: menu icon, the Style A logo, Sign in. Then the search bar (location dropdown + text INSIDE it; no map
+   icon since 19:16 PT), the filter carousel (one row, scrolls sideways), the real-content-only rows (hidden while empty),
+   and the card listing. Phone (< 768px): the filter carousel sticks to the top while the list scrolls, and the List / Map
+   buttons under it switch the cards and the map. Desktop (768px and up): cards on the left, the map sticky on the right
    (sticky needs body with no overflow-y). */
 .top{position:relative;overflow-x:clip;overflow-y:visible;background:var(--band);color:var(--on-band);border-bottom:4px solid var(--band-accent)}
 /* the band's pattern: an inline SVG <pattern> (no image request, no gradient), colored by --band-pattern */
@@ -161,12 +162,15 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .searchbar select{font-weight:700;text-overflow:ellipsis}
 .searchbar .search-go{background:var(--btn-bg);color:var(--btn-text);border-color:var(--btn-edge)}
 .searchbar .search-go:hover{background:var(--green-dim);color:var(--btn-text);border-color:var(--btn-edge)}
-.searchbar .map-btn{border-color:var(--ctl)}
 /* filter carousel: one row, scrolls sideways inside itself (never the page) */
 .filterbar{display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .filterbar::-webkit-scrollbar{display:none}
 .fchip{flex:none;min-height:44px;padding:8px 18px;border-radius:999px;border:1px solid var(--ctl);background:var(--card);color:var(--text);font:inherit;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap}
 .fchip[aria-pressed=true]{background:var(--btn-bg);color:var(--btn-text);border-color:var(--btn-edge)}
+/* phone row 3: List / Map (two equal buttons); not shown on desktop, where both are on screen */
+.viewtoggle{display:flex;gap:8px;margin-top:10px}
+.vbtn{flex:1 1 0;min-height:44px;padding:8px 12px;border-radius:12px;border:1px solid var(--ctl);background:var(--card);color:var(--text);font:inherit;font-size:15px;font-weight:800;cursor:pointer}
+.vbtn[aria-pressed=true]{background:var(--btn-bg);color:var(--btn-text);border-color:var(--btn-edge)}
 /* rows of real content only (ads 16:9, deals, categories 1:1, featured): hidden until real entries exist */
 .hrow{margin-top:14px}
 .hrow[hidden]{display:none}
@@ -207,22 +211,30 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .pin-btn .ico{width:20px;height:20px}
 .foot .biz{margin-top:4px}
 .foot .biz a{color:var(--band-accent);display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
-@media(max-width:959px){
-  /* phone: no map until it is opened; then it covers the page under its own Close button */
+@media(max-width:767px){
+  /* phone: the filter carousel locks to the top of the screen while the list scrolls (row 2) */
+  .filterbar{position:sticky;top:0;z-index:30;background:var(--bg);margin:0 -16px;padding:8px 16px}
+  /* row 3: List (default) shows the cards, Map shows the map in their place; never both */
   .discover .map{display:none}
-  body.map-open .discover .map:not([hidden]){display:block;position:fixed;inset:0;z-index:40;margin:0;border-radius:0;border:0;overflow:auto;background:var(--card);padding:12px max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left))}
-  body.map-open .discover .map-svg{aspect-ratio:auto;height:calc(100vh - 120px);max-height:none}
+  body.view-map .discover .map:not([hidden]){display:block}
+  body.view-map .discover .rails{display:none}
+  body.view-map .discover .map-svg{aspect-ratio:auto;height:calc(100vh - 200px);max-height:none}
+  /* the card's map icon is a desktop control (the List / Map buttons replace it on phones): the name gets the full width */
+  .pin-btn{display:none}
+  .listing h3.ln-name{padding-right:0}
+  /* line 5 (license type + county) fits a 390px phone: "Storefront · Los Angeles County" in full */
+  .ln-4{font-size:13px;letter-spacing:-.01em}
 }
-@media(min-width:960px){
+@media(min-width:768px){
+  .viewtoggle{display:none}
   .discover{grid-template-columns:minmax(0,1fr) minmax(0,42%);align-items:start}
   .discover .map{grid-column:2;grid-row:1;position:sticky;top:16px}
   .discover .rails{grid-column:1;grid-row:1}
   .discover .map-svg{max-height:calc(100vh - 140px)}
-  .map-close{display:none}
   .searchbar .field-area{flex-basis:260px;flex-grow:0}
 }
 @media(max-width:600px){
-  /* phone: still ONE row (owner spec): location | search box | search icon | map icon, tighter; every target stays 44px */
+  /* phone: still ONE row (owner spec): location | search box | search icon, tighter; every target stays 44px */
   .searchbar{gap:4px;padding:4px}
   .searchbar select,.searchbar input[type=text]{padding:8px 6px}
 }

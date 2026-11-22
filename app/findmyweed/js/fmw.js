@@ -289,8 +289,9 @@
     // open now counts only while openNowOffered(): an old ?open=1 link then shows the same results as without it.
     var wantOpen = !!opts.openNow && openNowOffered(data, now);
     // distance origin (approved home 2026-11-21: "sorted by nearest to the chosen location"): the searched place; else a
-    // chosen city's own place centre (data.places). A county alone has no point, so no distance is shown or invented.
-    var origin = place && hasPoint(place) ? place : (city ? cityPlace(data, city) : null);
+    // chosen city's own place centre (data.places); else a chosen county's centre, the MEDIAN of its own shown listings'
+    // real coordinates (owner walk 19:22 PT: line 2 shows the distance on the default view too). The whole state: none.
+    var origin = place && hasPoint(place) ? place : city ? cityPlace(data, city) : county ? countyCentre(data, county, now) : null;
     var rows = licensed(data.listings, now).filter(function (l) {
       if (place && !inPlace(l, place)) return false;
       if (county && countyKey(l.address && l.address.county) !== countyKey(county)) return false;
@@ -499,19 +500,47 @@
     return ((data && data.places) || []).find(function (p) { return placeKey(p.name) === k && hasPoint(p); }) || null;
   }
 
-  // The filter carousel: "Home" (no filter, the default) and ONLY the filters real data can back. A filter is offered only
-  // when it CHANGES the area's results and still leaves some: Storefront when the area mixes storefronts with delivery-only
-  // services, Delivery while deliveryOffered() and the area has some, Open now while openNowOffered() and some are open.
-  // With today's data (every row a storefront, none with hours or delivery) that is "Home" alone. results = search() rows.
-  function filterChips(data, results, now) {
-    var rows = results || [], n = rows.length, out = ['home'];
-    var count = function (f) { return rows.filter(f).length; };
-    var offer = function (k) { var c = count(k === 'storefront' ? function (r) { return !!r.listing.storefront; } : k === 'delivery' ? function (r) { return r.listing.delivery === true; } : function (r) { return r.open === true; }); return c > 0 && c < n; };
-    if (offer('storefront')) out.push('storefront');
-    if (deliveryOffered(data, now) && offer('delivery')) out.push('delivery');
-    if (openNowOffered(data, now) && offer('open')) out.push('open');
-    return out;
+  // A county's centre: the median latitude and the median longitude of that county's SHOWN listings that have real
+  // coordinates (licensed(), so a held or expired row never moves it). No such row: null (no distance is invented).
+  function countyCentre(data, county, now) {
+    var ck = countyKey(county); if (!ck) return null;
+    var pts = licensed((data && data.listings) || [], now).filter(function (l) { return countyKey(l.address && l.address.county) === ck && hasPoint(l); });
+    if (!pts.length) return null;
+    var med = function (xs) { xs.sort(function (a, b) { return a - b; }); var m = xs.length >> 1; return xs.length % 2 ? xs[m] : (xs[m - 1] + xs[m]) / 2; };
+    return { lat: med(pts.map(function (l) { return l.lat; })), lng: med(pts.map(function (l) { return l.lng; })) };
   }
+
+  // The filter carousel (owner 19:10 PT + Muse walk 19:22 PT: "ship the full selection set"). ONE fixed list, always drawn,
+  // "Home" (no filter) first and selected by default. The set is the approved filter bar (homepage spec 15:27 PT, 12:01 PT):
+  // delivery / storefront, open now, deals, and the nine categories (Retail, Delivery, Brands, Cultivation, Manufacturing,
+  // Distribution, Testing Labs, Microbusiness, Services; Delivery is one chip). County / city is the location dropdown in
+  // the search bar. Each chip filters the area's rows IN PLACE (filterRows) by a REAL field only; a chip with nothing behind
+  // it yet (no hours, no deals, no brands) honestly shows none, it never shows invented rows.
+  var FILTERS = ['home', 'storefront', 'delivery', 'open', 'deals', 'retail', 'brands', 'cultivation', 'manufacturing', 'distribution', 'testing', 'microbusiness', 'services'];
+  // license-type words (the state's own licenseType text) for the license categories
+  var LICENSE_CAT = { retail: /retail/i, cultivation: /cultivat|nursery|processor/i, manufacturing: /manufactur/i, distribution: /distribut/i, testing: /testing/i, microbusiness: /microbusiness/i };
+  function filterMatch(key, r, dealIds) {
+    var l = r && r.listing; if (!l) return false;
+    var cats = Array.isArray(l.categories) ? l.categories : [];
+    if (cats.indexOf(key) >= 0) return true;   // a real category tag on the row (none today)
+    switch (key) {
+      case 'storefront': return !!l.storefront;
+      case 'delivery': return l.delivery === true;
+      case 'open': return r.known !== false && hoursKnown(l) && r.open === true;
+      case 'deals': return !!dealIds[l.id];
+      default: return !!LICENSE_CAT[key] && typeof l.licenseType === 'string' && LICENSE_CAT[key].test(l.licenseType);
+    }
+  }
+  // The rows a chip keeps (results = search() rows). "home" or an unknown key = every row. Deals: only listings a REAL
+  // deal entry (data.deals[].listingId) points at.
+  function filterRows(data, results, key) {
+    var rows = results || [];
+    if (key === 'home' || FILTERS.indexOf(key) < 0) return rows.slice();
+    var dealIds = {};
+    ((data && Array.isArray(data.deals)) ? data.deals : []).forEach(function (d) { if (d && typeof d.listingId === 'string') dealIds[d.listingId] = 1; });
+    return rows.filter(function (r) { return filterMatch(key, r, dealIds); });
+  }
+  function filterKey(k) { return FILTERS.indexOf(k) >= 0 ? k : 'home'; }
 
   // The home rows that need content FMW does not have yet: ads (16:9), deals, categories (1:1 tiles) and featured
   // (brands / businesses / events). Each row is drawn ONLY from real entries in the data file (data.ads, data.deals,
@@ -550,7 +579,7 @@
     return [String(l.name == null ? '' : l.name), two.join(' · '), hours, addr, kind + (county ? ' · ' + county : ''), String(l.license || '')];
   }
 
-  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, filterChips: filterChips, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), filterRows: filterRows, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
     dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;

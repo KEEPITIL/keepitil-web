@@ -6,7 +6,7 @@
     var p = new URLSearchParams(location.search);
     // county: the area (location selector). A typed place (q) wins over it, so "Oakland" from the Los Angeles home finds
     // Oakland. hasCounty: the URL names a county (even "All counties" = ''), so the home's default county does not apply.
-    var r = { q: F.cleanQuery(p.get('q')), delivery: p.get('delivery') === '1', storefront: p.get('storefront') === '1', openNow: p.get('open') === '1', city: F.cleanQuery(p.get('city')), county: F.cleanQuery(p.get('county')), hasCounty: p.has('county'), id: p.get('id') || '' };
+    var r = { f: F.filterKey(p.get('f')), q: F.cleanQuery(p.get('q')), delivery: p.get('delivery') === '1', storefront: p.get('storefront') === '1', openNow: p.get('open') === '1', city: F.cleanQuery(p.get('city')), county: F.cleanQuery(p.get('county')), hasCounty: p.has('county'), id: p.get('id') || '' };
     // area (the search bar's location dropdown): "county:<name>" | "city:<name>" | "" (the whole state). It names the area, so
     // the home's remembered / default area does not apply; ?county= and ?city= links keep working as before.
     if (p.has('area')) { var a = F.parseArea(p.get('area')); r.hasCounty = true; r.county = a.kind === 'county' ? a.name : ''; if (a.kind === 'city') r.city = a.name; }
@@ -60,7 +60,6 @@
   // Items: F.menuItems(C.NAV_MENU): a link only with real data + a real page, otherwise "coming soon" (never a dead link).
   // Bottom: the 3-way theme pill (System / Bright / Dark; js/theme.js stores it). Text: textContent only.
   var menuData = function () {};   // set by the menu; called with the data a page loads
-  var closeMap = function () {};   // set by the home (opening the menu closes the phone map)
   function bodyClass(c, on) { var b = doc.body; if (b && b.classList) b.classList[on ? 'add' : 'remove'](c); }
   (function menu() {
     var btn = doc.getElementById('menu-btn'), panel = doc.getElementById('menu-panel');
@@ -119,7 +118,7 @@
     function setOpen(on, refocus) {
       isOpen = on; panel.hidden = !on; btn.setAttribute('aria-expanded', on ? 'true' : 'false');
       bodyClass('menu-open', on);
-      if (on) { closeMap(); var f = items()[0]; if (f) f.focus(); } else if (refocus) btn.focus();
+      if (on) { var f = items()[0]; if (f) f.focus(); } else if (refocus) btn.focus();
     }
     btn.addEventListener('click', function () { setOpen(!isOpen, false); if (!isOpen) btn.focus(); });
     doc.addEventListener('keydown', function (e) {
@@ -218,11 +217,7 @@
     var m = F.mapDots(data, results.map(function (r) { return r.listing; }), new Date());
     if (!m.dots.length) return;
     var v = F.mapView(m), r = +(v.w / 45).toFixed(2), mh = el('div', 'map-head');
-    mh.appendChild(el('h2', null, C.mapTitle));
-    // phone only (CSS): the map opens over the page, so it carries its own Close button
-    var mc = el('button', 'icon-btn map-close'); mc.type = 'button'; mc.setAttribute('aria-label', C.mapClose); mc.appendChild(icon('close'));
-    mc.addEventListener('click', function () { closeMap(true); });
-    mh.appendChild(mc); box.appendChild(mh);
+    mh.appendChild(el('h2', null, C.mapTitle)); box.appendChild(mh);
     var s = svg('svg', { viewBox: [v.x, v.y, v.w, v.h].join(' '), 'class': 'map-svg', role: 'group', 'aria-label': C.mapLabel(m.dots.length) });
     var outline = svg('g', { 'class': 'map-outline', 'data-slot': 'outline', 'aria-hidden': 'true' }), O = window.FMW_OUTLINE;
     if (O && Array.isArray(O.paths)) O.paths.forEach(function (d) { if (typeof d === 'string') outline.appendChild(svg('path', { d: d })); });
@@ -281,7 +276,8 @@
     });
     sec.hidden = !(entries && entries.length);
   }
-  var FILTER_COPY = { home: 'fHome', storefront: 'fStorefront', delivery: 'fDelivery', open: 'fOpenNow' };
+  var FILTER_COPY = { home: 'fHome', storefront: 'fStorefront', delivery: 'fDelivery', open: 'fOpenNow', deals: 'fDeals', retail: 'fRetail', brands: 'fBrands',
+    cultivation: 'fCultivation', manufacturing: 'fManufacturing', distribution: 'fDistribution', testing: 'fTesting', microbusiness: 'fMicrobusiness', services: 'fServices' };
 
   // The approved home (owner 2026-11-21 17:53 PT): index.html opens straight on the listing (+ the map on desktop) for an
   // area. The location dropdown, a typed city / ZIP and the filter carousel all refine it IN PLACE (history.pushState; the
@@ -290,7 +286,7 @@
   // this device by js/theme.js, checked against the data), else the county with the most licensed listings.
   if (page === 'results' || page === 'search') {
     var p = params(), out = doc.getElementById('results'), head = doc.getElementById('resultsTitle'), stateBox = doc.getElementById('state'), mapEl = doc.getElementById('map');
-    var nearby = doc.getElementById('rail-nearby'), form = doc.getElementById('search'), fbar = doc.getElementById('filterbar'), mapBtn = doc.getElementById('map-btn');
+    var nearby = doc.getElementById('rail-nearby'), form = doc.getElementById('search'), fbar = doc.getElementById('filterbar'), vtog = doc.getElementById('viewtoggle');
     var AREA = window.FMW_AREA || null, canPush = !!(window.history && history.pushState);
     fill(form, p);
     var go = function (u) {
@@ -322,45 +318,34 @@
       });
     }
     if (canPush && window.addEventListener) window.addEventListener('popstate', function () { p = params(); fill(form, p); run(); });
+    // a chip: ?f=<key> on top of the area (Home = no f). The rows are filtered in place (F.filterRows), the URL stays shareable.
     if (fbar && fbar.addEventListener) fbar.addEventListener('click', function (e) {
       var b = e.target && e.target.closest ? e.target.closest('[data-filter]') : null; if (!b) return;
-      var k = b.getAttribute('data-filter'), u = areaParams();
-      if (k === 'storefront' || k === 'delivery') u.set(k, '1'); else if (k === 'open') u.set('open', '1');
+      var k = F.filterKey(b.getAttribute('data-filter')), u = areaParams();
+      if (k !== 'home') u.set('f', k);
       go(u);
     });
 
-    // The map. Desktop: always beside the cards (CSS). Phone: closed until the search bar's map icon, a card's map icon or a
-    // right swipe opens it over the page (body.map-open); its Close button, Esc or a left swipe closes it.
-    var mapOpen = false;
-    var setMap = function (on, refocus) {
-      mapOpen = !!on; bodyClass('map-open', mapOpen);
-      if (mapBtn) mapBtn.setAttribute('aria-expanded', mapOpen ? 'true' : 'false');
-      if (!mapOpen && refocus && mapBtn && mapBtn.focus) mapBtn.focus();
+    // List / Map (owner 19:16 PT). Phone (< 768px): the two buttons under the filter bar switch the card list and the map
+    // (body.view-map; CSS shows one of the two). They are THE phone map control: no map icon in the search bar, no swipe.
+    // Desktop (768px and up): the buttons are not shown and the map is always beside the cards.
+    var view = 'list';
+    var setView = function (v) {
+      view = v === 'map' ? 'map' : 'list'; bodyClass('view-map', view === 'map');
+      if (vtog && vtog.children) Array.prototype.forEach.call(vtog.children, function (b) { if (b.getAttribute) b.setAttribute('aria-pressed', b.getAttribute('data-view') === view ? 'true' : 'false'); });
     };
-    closeMap = function (refocus) { if (mapOpen) setMap(false, refocus); };
+    if (vtog && vtog.addEventListener) vtog.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest ? e.target.closest('[data-view]') : null; if (b) setView(b.getAttribute('data-view'));
+    });
+    // Desktop: a card's map icon marks its dot on the map beside the list (the icon is not shown on phones).
     showOnMap = function (id) {
       if (mapEl && mapEl.querySelectorAll) Array.prototype.forEach.call(mapEl.querySelectorAll('a.dot'), function (d) {
         var on = d.getAttribute('data-id') === id, c = (d.getAttribute('class') || '').replace(/\s*\bsel\b/g, '');
         d.setAttribute('class', on ? c + ' sel' : c);
         if (on && d.parentNode) d.parentNode.appendChild(d);   // drawn last = on top
       });
-      setMap(true);
-      if (mapEl && mapEl.scrollIntoView && window.innerWidth >= 960) mapEl.scrollIntoView({ block: 'nearest' });
+      if (mapEl && mapEl.scrollIntoView && window.innerWidth >= 768) mapEl.scrollIntoView({ block: 'nearest' });
     };
-    if (mapBtn && mapBtn.addEventListener) mapBtn.addEventListener('click', function () { setMap(!mapOpen); });
-    if (doc.addEventListener) doc.addEventListener('keydown', function (e) { if (mapOpen && (e.key === 'Escape' || e.key === 'Esc')) closeMap(true); });
-    (function swipe() {
-      var main = doc.getElementById('home'), x0 = null, y0 = 0;
-      if (!main || !main.addEventListener) return;
-      var start = function (e) { var t = e.touches && e.touches[0]; x0 = t ? t.clientX : null; y0 = t ? t.clientY : 0; };
-      var end = function (e) {
-        var t = e.changedTouches && e.changedTouches[0]; if (x0 == null || !t) return;
-        var dx = t.clientX - x0, dy = t.clientY - y0; x0 = null;
-        if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6 || window.innerWidth >= 960) return;
-        if (dx > 0 && !mapOpen) setMap(true); else if (dx < 0 && mapOpen) closeMap(false);
-      };
-      main.addEventListener('touchstart', start, { passive: true }); main.addEventListener('touchend', end, { passive: true });
-    })();
 
     var run = function () {
       clear(out); clear(stateBox); head.textContent = ''; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
@@ -378,7 +363,7 @@
         PROMO(data);
         var res = F.search(data, p, now);
         if (res.notFound) {
-          drawFilters(['home'], 'home');
+          drawFilters(F.FILTERS, 'home');
           var c = F.classify(p.q);
           if (res.reason === 'county') { head.textContent = C.unknownCountyTitle(p.county.replace(/\s+county$/i, '')); showState(stateBox, { name: 'unknown-place', body: C.unknownBody, actions: [{ text: C.clearSearch, href: 'index.html' }] }); }
           else if (res.reason === 'badzip') { head.textContent = C.badZipTitle; showState(stateBox, { name: 'bad-zip', body: C.badZipBody(c.value), actions: [{ text: C.clearSearch, href: 'index.html' }] }); }
@@ -389,10 +374,10 @@
           }
           return;
         }
-        // the filter carousel: Home + only filters that change THIS area's results (F.filterChips on the unfiltered rows)
-        var chips = F.filterChips(data, F.search(data, { q: p.q, city: p.city, county: p.county }, now).results, now);
-        var active = p.delivery ? 'delivery' : p.openNow ? 'open' : p.storefront ? 'storefront' : 'home';
-        drawFilters(chips, chips.indexOf(active) >= 0 ? active : 'home');
+        // the filter carousel: the full set (F.FILTERS). The active chip: ?f=, else an old ?delivery= / ?open= / ?storefront=
+        // link the data honours (search() ignores delivery / open while no row backs them), else Home.
+        var active = p.f !== 'home' ? p.f : p.delivery && F.deliveryOffered(data, now) ? 'delivery' : p.openNow && F.openNowOffered(data, now) ? 'open' : p.storefront ? 'storefront' : 'home';
+        drawFilters(F.FILTERS, active);
         var placeName = res.place && res.place.name, cityName = matchCity(F.cities(data, now), p.city);
         // only a county chosen (no city): the heading says "in Los Angeles County", the way it names a chosen city (#69)
         var countyName = matchCounty(F.counties(data, now), p.county);
@@ -403,6 +388,15 @@
             actions: res.filtered ? [{ text: C.clearFilters, href: 'results.html?q=' + encodeURIComponent(p.q) }] : [] });
           return;
         }
+        // a chip: only the area's rows with a REAL value for it. None: say so plainly (never invented rows), one way back.
+        var rows = p.f !== 'home' ? F.filterRows(data, res.results, p.f) : res.results;
+        if (!rows.length) {
+          head.textContent = C.filterEmptyTitle(C[FILTER_COPY[p.f]], placeName || cityName);
+          showState(stateBox, { name: 'filter-empty', body: p.f === 'open' ? C.filterEmptyOpen : C.filterEmptyOther,
+            actions: [{ text: C.showAll, onClick: function () { go(areaParams()); } }] });
+          return;
+        }
+        res = { place: res.place, results: rows };
         head.textContent = C.resultsTitle(res.results.length, placeName, cityName);
         if (mapEl) renderMap(mapEl, data, res.results);
         // ONE listing (the old Storefronts rail folded in): every result, nearest first (F.search), named rows before

@@ -61,12 +61,28 @@
     areaGroupState: 'State',
     areaGroupCounty: 'County',
     areaGroupCity: 'City',
-    mapOpen: 'Show map',
-    mapClose: 'Close map',
     mapShow: function (name) { return 'Show ' + name + ' on the map'; },
-    // The filter carousel: "Home" (default) + only filters real data can back (FMW.filterChips)
+    // Phone (< 768px): two buttons switch between the card list and the map (owner 19:16 PT)
+    viewToggleLabel: 'Show as',
+    viewList: 'List',
+    viewMap: 'Map',
+    // The filter carousel: the full approved set, "Home" (default) first (FMW.FILTERS). Each filters in place.
     filterBarLabel: 'Filters',
     fHome: 'Home',
+    fDeals: 'Deals',
+    fRetail: 'Retail',
+    fBrands: 'Brands',
+    fCultivation: 'Cultivation',
+    fManufacturing: 'Manufacturing',
+    fDistribution: 'Distribution',
+    fTesting: 'Testing Labs',
+    fMicrobusiness: 'Microbusiness',
+    fServices: 'Services',
+    // A chip with nothing real behind it yet in this area: said plainly, never filled with invented rows
+    filterEmptyTitle: function (label, place) { return label + ': no licensed businesses listed' + (place ? ' in ' + place : '') + ' yet'; },
+    filterEmptyOpen: 'Opening hours are not on file yet, so no business can be shown as open now.',
+    filterEmptyOther: 'Nothing listed here has this on file yet. Only real license and business data is shown.',
+    showAll: 'Show all',
     // Home rows drawn ONLY from real entries (FMW.promoRows); hidden while there are none. No ranking-by-rating row and no paid-placement slot exist.
     rowAds: 'Ads',
     rowDeals: 'Deals nearby',

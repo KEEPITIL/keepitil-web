@@ -78,6 +78,7 @@
     fTesting: 'Testing Labs',
     fMicrobusiness: 'Microbusiness',
     fServices: 'Services',
+    fEvents: 'Events',
     // A chip with nothing real behind it yet in this area: said plainly, never filled with invented rows
     filterEmptyTitle: function (label, place) { return label + ': no licensed businesses listed' + (place ? ' in ' + place : '') + ' yet'; },
     filterEmptyOpen: 'Opening hours are not on file yet, so no business can be shown as open now.',

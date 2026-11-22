@@ -397,10 +397,10 @@
           return;
         }
         res = { place: res.place, results: rows };
-        // joe-0045: the HOME shows no "<N> licensed businesses in <area>" line (removed, no replacement copy); the heading
-        // is used on the home only for the empty / not-found states above. results.html keeps its count heading.
-        if (page === 'search') head.hidden = true;
-        else head.textContent = C.resultsTitle(res.results.length, placeName, cityName);
+        // joe-0045 + owner ruling 2026-11-22 ("Yes, remove there too"): NO page shows the "<N> licensed businesses in
+        // <area>" line (no replacement copy), neither the home nor results.html; the heading is used only for the empty /
+        // not-found states above.
+        head.hidden = true;
         if (mapEl) renderMap(mapEl, data, res.results);
         // ONE listing (the old Storefronts rail folded in): every result, nearest first (F.search), named rows before
         // "[Equity Retailer]"-only rows. No ranking-by-rating rail and no paid-placement slot exist on this page.

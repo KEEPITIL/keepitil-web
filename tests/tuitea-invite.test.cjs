@@ -94,15 +94,28 @@ test('the card is a 1200x630 PNG stored next to the page', () => {
   assert.equal(png.readUInt32BE(20), 630);
 });
 
-test('three fallback buttons (owner 2026-11-21 22:27): App Store, web app, Google Play coming soon', () => {
-  assert.match(html, /<a class="btn primary" href="https:\/\/apps\.apple\.com\/app\/id6806472413">Download on the App Store<\/a>/);
-  assert.match(html, /<a class="btn secondary" href="\/app\/tuitea\/app\/">Open the web app<\/a>/);
-  const play = html.match(/<(\w+)[^>]*>Google Play: coming soon<\/\1>/);
-  assert.ok(play, 'Google Play button present');
-  assert.notEqual(play[1].toLowerCase(), 'a', 'Google Play is not a link');
-  assert.match(play[0], /aria-disabled="true"/);
-  assert.match(play[0], /class="btn disabled"/);
+test('three fallback buttons, in order (owner 2026-11-21 ~23:15): Apple, Android coming soon, Web', () => {
+  const buttons = [...html.matchAll(/<(a|span) class="btn ([a-z]+)"([^>]*)>([\s\S]*?)<\/\1>/g)].map((m) => ({
+    tag: m[1], kind: m[2], attrs: m[3], text: m[4].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+  }));
+  assert.deepEqual(buttons.map((b) => b.text), ['Download Apple App', 'Download Android App Coming soon', 'Download Web App']);
+  const [apple, android, web] = buttons;
+  assert.equal(apple.tag, 'a');
+  assert.equal(apple.kind, 'primary');
+  assert.equal(apple.attrs, ' href="https://apps.apple.com/app/id6806472413"');
+  assert.notEqual(android.tag, 'a', 'Android is not a link');
+  assert.equal(android.kind, 'disabled');
+  assert.match(android.attrs, /aria-disabled="true"/);
+  assert.doesNotMatch(android.attrs, /href=/);
+  assert.equal(web.tag, 'a');
+  assert.equal(web.attrs, ' href="/app/tuitea/app/"');
   assert.doesNotMatch(html, /play\.google\.com/);
+});
+
+test('CONTROL: the button check catches the earlier labels and order', () => {
+  const old = '<a class="btn primary" href="x">Download on the App Store</a><a class="btn secondary" href="y">Open the web app</a>';
+  const texts = [...old.matchAll(/<(a|span) class="btn ([a-z]+)"([^>]*)>([\s\S]*?)<\/\1>/g)].map((m) => m[4]);
+  assert.notDeepEqual(texts, ['Download Apple App', 'Download Android App Coming soon', 'Download Web App']);
 });
 
 test('no Apple or Google badge artwork: text buttons only, no svg logos or badge images', () => {

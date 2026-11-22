@@ -132,6 +132,11 @@
     return licensed((data && data.listings) || [], now).some(function (l) { return l.delivery === true; });
   }
 
+  // Storefronts in the menu: a link once any SHOWN listing is a storefront (1,270 of 1,270 today).
+  function storefrontOffered(data, now) {
+    return licensed((data && data.listings) || [], now).some(function (l) { return !!l.storefront; });
+  }
+
   // A listing name that is ONLY a bracketed placeholder (e.g. "[Equity Retailer]": no trade name in the state data). It is
   // shown as is (never replaced by an invented name) but sorted after every named listing. "Name [Equity Retailer]" has a
   // real trade name and is NOT a placeholder.
@@ -283,6 +288,9 @@
     var kindFilter = wantDelivery !== !!opts.storefront;
     // open now counts only while openNowOffered(): an old ?open=1 link then shows the same results as without it.
     var wantOpen = !!opts.openNow && openNowOffered(data, now);
+    // distance origin (approved home 2026-11-21: "sorted by nearest to the chosen location"): the searched place; else a
+    // chosen city's own place centre (data.places). A county alone has no point, so no distance is shown or invented.
+    var origin = place && hasPoint(place) ? place : (city ? cityPlace(data, city) : null);
     var rows = licensed(data.listings, now).filter(function (l) {
       if (place && !inPlace(l, place)) return false;
       if (county && countyKey(l.address && l.address.county) !== countyKey(county)) return false;
@@ -293,7 +301,7 @@
     }).map(function (l) {
       var s = openState(l, now);
       // a delivery-only service has NO coordinates in the public data (its premises are private): no distance, never NaN
-      return { listing: l, miles: place && hasPoint(place) && hasPoint(l) ? miles(place, l) : null, open: s.open, until: s.until, known: s.known };
+      return { listing: l, miles: origin && hasPoint(l) ? miles(origin, l) : null, open: s.open, until: s.until, known: s.known };
     }).filter(function (r) { return !wantOpen || r.open; });
     // placeholder-only names (e.g. "[Equity Retailer]") after every named listing; then nearest first; rows with no
     // distance (delivery-only services) after them; then by name
@@ -442,7 +450,107 @@
     return { x: +x.toFixed(1), y: +y.toFixed(1), w: +w.toFixed(1), h: +h.toFixed(1) };
   }
 
-  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+  // The menu page (approved home, owner 2026-11-21 17:53 PT): which items of the ONE config list (js/copy.js NAV_MENU) are
+  // drawn and how. EVERY item with a label is drawn, in list order (the spec lists them all); an item is a LINK only when it
+  // has real data behind it and a real destination, otherwise it is drawn DISABLED with "coming soon" (soon: true), never a
+  // dead link and never a page that does not exist:
+  //   - needsData: a link only while opts.offered[needsData] === true;
+  //   - account items (Sign in / Sign up / Favorites): disabled unless opts.accounts is true AND they have a page;
+  //   - destinations: page (a relative page of this site: name.html + an optional simple query; under basePath when
+  //     opts.absolute, for 404.html at any depth) | biz (<basePath>/for-business/) | host (a root-relative page of the host
+  //     site, a link only while basePath is set: a build on its own domain has no host site). Anything else (javascript:,
+  //     //host, an absolute URL) is never a destination.
+  var PAGE_RE = /^[a-z0-9][a-z0-9_-]*\.html(\?[a-z0-9_=&%.-]*)?$/i, HOST_RE = /^\/[a-z0-9][a-z0-9\/-]*$/;
+  function menuItems(list, opts) {
+    opts = opts || {};
+    var base = opts.basePath || '', offered = opts.offered || {}, out = [];
+    (list || []).forEach(function (it) {
+      if (!it || !it.key || typeof it.label !== 'string' || !it.label) return;
+      var href = it.biz ? base + '/for-business/'
+        : (typeof it.page === 'string' && PAGE_RE.test(it.page)) ? (opts.absolute ? base + '/' + it.page : it.page)
+        : (base && typeof it.host === 'string' && HOST_RE.test(it.host)) ? it.host : null;
+      var r = { key: it.key, label: it.label, group: it.group || 0, icon: it.icon || '', pill: it.pill || '', account: !!it.account };
+      var live = it.account ? (opts.accounts === true && !!href) : (!!href && (!it.needsData || offered[it.needsData] === true));
+      if (live) r.href = href; else { r.disabled = true; r.soon = true; }
+      out.push(r);
+    });
+    return out;
+  }
+
+  // ---- The approved home (owner 2026-11-21 17:53 PT) ----
+  // The location dropdown inside the search bar: State / County / City in ONE select. Values are "" (the whole state),
+  // "county:<name>" or "city:<name>", built only from the shown listings (counties() / cities()). parseArea never trusts
+  // the value: an unknown kind is the whole state.
+  function areaValue(kind, name) { return kind === 'county' || kind === 'city' ? kind + ':' + String(name == null ? '' : name) : ''; }
+  function parseArea(v) {
+    var m = /^(county|city):(.+)$/.exec(cleanQuery(v));
+    return m ? { kind: m[1], name: m[2].trim() } : { kind: 'state', name: '' };
+  }
+  // Is a saved / linked area one the data still has? (a remembered county that lost its last licensed listing is dropped)
+  function areaKnown(data, v, now) {
+    var a = parseArea(v);
+    if (a.kind === 'state') return v === '' || v === 'state:CA';
+    var list = a.kind === 'county' ? counties(data, now) : cities(data, now), key = a.kind === 'county' ? countyKey : norm;
+    return list.some(function (x) { return key(x) === key(a.name); });
+  }
+  // A chosen city's centre point, from the place list (the same place key as search), or null.
+  function cityPlace(data, city) {
+    var k = placeKey(city);
+    return ((data && data.places) || []).find(function (p) { return placeKey(p.name) === k && hasPoint(p); }) || null;
+  }
+
+  // The filter carousel: "Home" (no filter, the default) and ONLY the filters real data can back. A filter is offered only
+  // when it CHANGES the area's results and still leaves some: Storefront when the area mixes storefronts with delivery-only
+  // services, Delivery while deliveryOffered() and the area has some, Open now while openNowOffered() and some are open.
+  // With today's data (every row a storefront, none with hours or delivery) that is "Home" alone. results = search() rows.
+  function filterChips(data, results, now) {
+    var rows = results || [], n = rows.length, out = ['home'];
+    var count = function (f) { return rows.filter(f).length; };
+    var offer = function (k) { var c = count(k === 'storefront' ? function (r) { return !!r.listing.storefront; } : k === 'delivery' ? function (r) { return r.listing.delivery === true; } : function (r) { return r.open === true; }); return c > 0 && c < n; };
+    if (offer('storefront')) out.push('storefront');
+    if (deliveryOffered(data, now) && offer('delivery')) out.push('delivery');
+    if (openNowOffered(data, now) && offer('open')) out.push('open');
+    return out;
+  }
+
+  // The home rows that need content FMW does not have yet: ads (16:9), deals, categories (1:1 tiles) and featured
+  // (brands / businesses / events). Each row is drawn ONLY from real entries in the data file (data.ads, data.deals,
+  // data.categories, data.featured); today none exist, so every one of these rows stays hidden. An entry counts only with a
+  // label and a same-site image (img/..., the CSP's img-src 'self'); a link must be a page of this site or https.
+  // Nothing here invents a deal, a brand, a price or a photo. No ranking-by-rating row and no paid-placement slot exist.
+  var PROMO_ROWS = ['ads', 'deals', 'categories', 'featured'];
+  var IMG_RE = /^img\/[a-z0-9][a-z0-9_\/-]*\.(png|jpe?g|webp|svg)$/i;
+  function promoRows(data) {
+    var out = {};
+    PROMO_ROWS.forEach(function (k) {
+      var raw = data && Array.isArray(data[k]) ? data[k] : [];
+      out[k] = raw.filter(function (e) {
+        return !!e && typeof e.label === 'string' && e.label.trim() !== '' && typeof e.image === 'string' && IMG_RE.test(e.image) &&
+          (e.href == null || (typeof e.href === 'string' && (PAGE_RE.test(e.href) || /^https:\/\/[a-z0-9.-]+(\/[^\s]*)?$/i.test(e.href))));
+      }).map(function (e) { return { label: e.label.trim(), image: e.image, href: e.href || null }; });
+    });
+    return out;
+  }
+
+  // The six lines of a listing card, in order, unnumbered and unlabelled (approved spec item 8). Plain strings (shown with
+  // textContent). r = one search() row; C = js/copy.js.
+  //   1 name | 2 rating + distance (rating only when the row has a real 0-5 number; distance only when a location is
+  //   known; '' when neither) | 3 hours | 4 address (delivery-only: the city only, the Privacy page's rule) |
+  //   5 "Storefront" / "Delivery" + county | 6 the license number (the page draws a green check mark before it).
+  // No trust-badge word is ever produced here: line 6 is the plain license number.
+  function cardLines(r, C) {
+    var l = r.listing, a = (l.address && typeof l.address === 'object') ? l.address : {};
+    var two = [];
+    if (typeof l.rating === 'number' && isFinite(l.rating) && l.rating >= 0 && l.rating <= 5) two.push(C.rating(l.rating));
+    if (typeof r.miles === 'number' && isFinite(r.miles)) two.push(C.miles(r.miles));
+    var hours = r.known === false || !hoursKnown(l) ? C.hoursNotListed : r.open ? C.openUntil(fmtTime(r.until)) : C.closed;
+    var al = addressLines(l), addr = al.lines.length ? (l.storefront && al.lines.length === 2 ? al.lines[0] + ', ' + cityOf(l) : al.lines[0]) : C.addressNone;
+    var kind = l.storefront && l.delivery === true ? C.kindBoth : l.storefront ? C.kindStorefront : C.kindDelivery;
+    var county = typeof a.county === 'string' && a.county.trim() ? C.countyName(a.county.trim().replace(/\s+county$/i, '')) : '';
+    return [String(l.name == null ? '' : l.name), two.join(' · '), hours, addr, kind + (county ? ' · ' + county : ''), String(l.license || '')];
+  }
+
+  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, filterChips: filterChips, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
     dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;

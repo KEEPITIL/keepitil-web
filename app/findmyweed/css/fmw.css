@@ -68,7 +68,7 @@ main:focus{outline:none}
 h2,.rtitle{font-size:20px;margin:22px 0 10px;text-wrap:balance}
 .listings{display:grid;gap:10px;list-style:none}
 /* Perf 2026-11-21: results can hold 1,000+ cards; skip layout/paint for the ones off screen (still in the a11y tree). */
-.listings>li{content-visibility:auto;contain-intrinsic-size:auto 120px}
+.listings>li{content-visibility:auto;contain-intrinsic-size:auto 132px}
 /* Map (Phase 1): self-hosted SVG, dots link to the detail page; the outline slot is empty until a boundary file exists */
 .map{margin:0 0 14px}
 .map h2{font-size:15px;color:var(--muted);font-weight:700;margin-bottom:8px}
@@ -79,7 +79,7 @@ h2,.rtitle{font-size:20px;margin:22px 0 10px;text-wrap:balance}
 .map-svg .dot:focus-visible{outline:none}
 .map-svg .dot:focus-visible circle,.map-svg .dot:hover circle{stroke:var(--text);stroke-width:5}
 .map-note{font-size:13px;margin-top:8px}
-.listing{display:block;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--green);border-radius:14px;padding:16px;color:var(--text);text-decoration:none}
+.listing{display:grid;grid-template-columns:114px minmax(0,1fr);gap:12px;align-items:start;height:132px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px;color:var(--text);text-decoration:none;overflow:hidden}
 .listing:hover{border-color:var(--green)}
 .row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .listing h3{font-size:18px;min-width:0}
@@ -133,49 +133,131 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 
 .report fieldset{border:0;margin:8px 0 0;padding:0}.report legend{font-weight:600;margin-bottom:4px}.report label.check{display:block;padding:6px 0}.report label.check input{margin:0 .5em 0 0}.report-details{display:block;font-weight:600;margin-top:10px}.report textarea{display:block;width:100%;box-sizing:border-box;font:inherit;margin-top:4px}.report .btn{margin-top:10px}.report-msg{margin-top:8px;min-height:1.2em}.report-msg.error{font-weight:600}
 
-/* Discovery home (index.html; results.html is the same view). Header: logo + Sign in, then ONE search bar with the
-   location (county) selector; the city choice and the filter chips refine. Phone: stacked, map strip over the rails.
-   Desktop: one header row, rails on the left, the map sticky on the right (sticky needs body with no overflow-y). */
-.top{position:relative;overflow:hidden;background:var(--band);color:var(--on-band);border-bottom:4px solid var(--band-accent)}
+/* The approved home (owner 2026-11-21 17:53 PT; index.html, results.html is the same view).
+   Header: ONE row: menu icon, the Style A logo, Sign in. Then the search bar (location dropdown + text + map icon INSIDE it),
+   the filter carousel (one row, scrolls sideways), the real-content-only rows (hidden while empty), and the card listing.
+   Phone: no map until it is opened (over the page). Desktop: cards on the left, the map sticky on the right
+   (sticky needs body with no overflow-y). */
+.top{position:relative;overflow-x:clip;overflow-y:visible;background:var(--band);color:var(--on-band);border-bottom:4px solid var(--band-accent)}
 /* the band's pattern: an inline SVG <pattern> (no image request, no gradient), colored by --band-pattern */
 .band-art{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .band-art .leaf{fill:var(--band-pattern)}
-.top-in{position:relative}
-.top .logo.small{padding:4px 0}
-.top-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end}
-.top a:focus-visible,.top .top-actions button:focus-visible,.foot a:focus-visible{outline-color:var(--band-accent)}
-.top-in{max-width:1280px;margin:0 auto;padding:12px max(16px,env(safe-area-inset-right)) 12px max(16px,env(safe-area-inset-left));display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;align-items:center}
-.top .logo.small{font-size:22px;white-space:nowrap}
-.signin{min-height:44px;padding:8px 14px;font-size:15px}
-.top .search{grid-column:1/-1;border:1px solid var(--ctl);border-radius:14px;padding:10px;background:var(--card);color:var(--text);grid-template-columns:minmax(0,1fr) auto;gap:8px}
-.top .field-county{grid-column:1/-1}
-.top .field-q{grid-column:1;grid-row:2}
-.top .search>.btn{grid-column:2;grid-row:2}
-.top .field-city{grid-column:1/-1}
-.top .filters{grid-column:1/-1}
-.top select,.top input[type=text]{min-height:48px}
-.wrap.wide{max-width:1280px}
-.rtitle{margin-top:4px}
+.top-in{position:relative;max-width:1280px;margin:0 auto;padding:10px max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left));display:flex;align-items:center;gap:12px}
+.top .logo.small{padding:4px 0;font-size:22px;white-space:nowrap;margin-right:auto}
+.top a:focus-visible,.top button:focus-visible,.foot a:focus-visible{outline-color:var(--band-accent)}
+.signin{min-height:44px;padding:8px 14px;font-size:15px;white-space:nowrap}
+.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;min-height:44px;flex:none;border-radius:12px;border:1px solid var(--ctl);background:var(--card);color:var(--text);cursor:pointer;font-family:inherit;padding:0}
+.icon-btn:hover{border-color:var(--green);color:var(--green)}
+.top .icon-btn{background:var(--band);color:var(--on-band);border-color:var(--on-band-muted)}
+.top .icon-btn:hover{color:var(--band-accent);border-color:var(--band-accent)}
+.wrap.wide{max-width:1280px;padding-top:14px}
+/* search bar row */
+.searchbar{display:flex;align-items:center;gap:6px;padding:6px;border-radius:14px;border:1px solid var(--ctl);background:var(--card)}
+.searchbar .field{display:block}
+.searchbar .field-area{flex:0 1 38%;min-width:0}
+.searchbar .field-q{flex:1 1 auto;min-width:0}
+.searchbar select,.searchbar input[type=text]{min-height:44px;padding:8px 10px;font-size:16px;border-radius:10px}
+.searchbar select{font-weight:700;text-overflow:ellipsis}
+.searchbar .search-go{min-height:44px;padding:8px 12px;font-size:15px;border-bottom-width:3px;flex:none}
+.searchbar .map-btn{border-color:var(--ctl)}
+/* filter carousel: one row, scrolls sideways inside itself (never the page) */
+.filterbar{display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.filterbar::-webkit-scrollbar{display:none}
+.fchip{flex:none;min-height:44px;padding:8px 18px;border-radius:999px;border:1px solid var(--ctl);background:var(--card);color:var(--text);font:inherit;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap}
+.fchip[aria-pressed=true]{background:var(--btn-bg);color:var(--btn-text);border-color:var(--btn-edge)}
+/* rows of real content only (ads 16:9, deals, categories 1:1, featured): hidden until real entries exist */
+.hrow{margin-top:14px}
+.hrow[hidden]{display:none}
+.hrow h2{font-size:17px;margin:4px 0 8px}
+.hscroll{display:flex;gap:10px;overflow-x:auto;list-style:none;scrollbar-width:none;padding-bottom:4px}
+.hscroll::-webkit-scrollbar{display:none}
+.tile{flex:none}
+.tile-in{display:block;color:var(--text);text-decoration:none;font-weight:700;font-size:14px}
+.tile img{display:block;width:100%;height:100%;object-fit:cover;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.tile-label{display:block;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ads .tile{width:min(320px,80vw)}
+.ads .tile img{aspect-ratio:16/9;height:auto}
+.categories .tile{width:96px}
+.categories .tile img{aspect-ratio:1/1;height:auto}
+.deals .tile,.featured .tile{width:200px}
+.deals .tile img,.featured .tile img{aspect-ratio:16/9;height:auto}
+.rtitle{margin-top:14px}
 .discover{display:grid;gap:14px}
 .discover .map{margin:0}
-.discover .map-svg{max-height:240px;aspect-ratio:auto;height:240px}
+.discover .map-svg{height:auto;aspect-ratio:4/3;max-height:420px}
+.map-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.map-head h2{margin:0}
+.map-svg .dot.sel circle{fill:var(--band-accent);stroke:var(--text);stroke-width:4}
 .rail h2{font-size:17px;margin:4px 0 10px;background:var(--section);color:var(--on-section);border:1px solid var(--section-edge);border-radius:10px;padding:7px 12px;letter-spacing:.01em}
-.rail+.rail,#rails-more .rail{margin-top:22px}
+.rail+.rail{margin-top:22px}
+/* the listing card: the same fixed size everywhere. 1:1 tile (114px) + six 19px lines (114px): text never taller than the tile */
+.listings{grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr))}
+.shop{position:relative}
+.thumb{width:114px;height:114px;aspect-ratio:1/1;border-radius:10px;background:var(--logo-bg);border:1px solid var(--logo-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;letter-spacing:-.035em;line-height:1.05;font-size:21px}
+.thumb-a{color:var(--logo-text)}
+.thumb-b{color:var(--logo-accent)}
+.lines{display:block;min-width:0;height:114px;overflow:hidden}
+.ln{display:block;height:19px;line-height:19px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.listing h3.ln-name{font-size:16px;font-weight:800;color:var(--text);padding-right:40px}
+.ln-lic{font-family:ui-monospace,Consolas,monospace;font-size:13px;color:var(--text)}
+.ln-lic .ck{width:16px;height:16px;stroke:var(--green);stroke-width:3;vertical-align:-3px;margin-right:4px}
+.pin-btn{position:absolute;top:4px;right:4px;width:40px;height:40px;min-height:40px;border-color:var(--line)}
+.pin-btn .ico{width:20px;height:20px}
 .foot .biz{margin-top:4px}
 .foot .biz a{color:var(--band-accent);display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
+@media(max-width:959px){
+  /* phone: no map until it is opened; then it covers the page under its own Close button */
+  .discover .map{display:none}
+  body.map-open .discover .map:not([hidden]){display:block;position:fixed;inset:0;z-index:40;margin:0;border-radius:0;border:0;overflow:auto;background:var(--card);padding:12px max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left))}
+  body.map-open .discover .map-svg{aspect-ratio:auto;height:calc(100vh - 120px);max-height:none}
+}
 @media(min-width:960px){
-  .top-in{grid-template-columns:auto minmax(0,1fr) auto}
-  .top .logo.small{grid-column:1;grid-row:1}
-  .top .search{grid-column:2;grid-row:1;grid-template-columns:minmax(160px,220px) minmax(0,1fr) auto minmax(150px,200px)}
-  .top .field-county{grid-column:1;grid-row:1}
-  .top .field-q{grid-column:2;grid-row:1}
-  .top .search>.btn{grid-column:3;grid-row:1}
-  .top .field-city{grid-column:4;grid-row:1}
-  .top .filters{grid-column:1/-1;grid-row:2}
-  .top-actions{grid-column:3;grid-row:1}
-  .discover{grid-template-columns:minmax(0,1fr) minmax(0,44%);align-items:start}
+  .discover{grid-template-columns:minmax(0,1fr) minmax(0,42%);align-items:start}
   .discover .map{grid-column:2;grid-row:1;position:sticky;top:16px}
   .discover .rails{grid-column:1;grid-row:1}
-  .discover .map-svg{height:auto;aspect-ratio:4/3;max-height:calc(100vh - 120px)}
+  .discover .map-svg{max-height:calc(100vh - 140px)}
+  .map-close{display:none}
+  .searchbar .field-area{flex-basis:260px;flex-grow:0}
 }
-@media(max-width:480px){.top .logo.small{font-size:20px}.top-actions{gap:6px}.top-actions .btn{padding:8px 10px;font-size:14px;min-height:44px}}
+@media(max-width:600px){
+  /* phone: the bar wraps INSIDE itself: the location + the map icon, then the text box + Search */
+  .searchbar{flex-wrap:wrap}
+  .searchbar .field-area{flex:1 1 calc(100% - 56px);order:0}
+  .searchbar .map-btn{order:1}
+  .searchbar .field-q{order:2;flex:1 1 180px}
+  .searchbar .search-go{order:3}
+}
+@media(max-width:480px){.top .logo.small{font-size:20px}.top-in{gap:8px}}
+
+/* The menu. On the home (.menu-page) it slides in and REPLACES the listing while open; on the other pages it is a panel
+   under its button. Borders only (no shadows). Hidden until a click. */
+.menu{position:relative}
+.menu-btn{gap:8px}
+.bar .menu-btn{min-height:44px;padding:8px 14px;font-size:15px}
+.burger{display:inline-block;position:relative;width:18px;height:14px;border-top:2px solid currentColor;border-bottom:2px solid currentColor}
+.burger::after{content:"";position:absolute;left:0;right:0;top:4px;border-top:2px solid currentColor}
+.menu-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:50;width:min(320px,calc(100vw - 32px));max-height:calc(100vh - 96px);overflow-y:auto;background:var(--card);color:var(--text);border:1px solid var(--ctl);border-radius:14px;padding:10px}
+.menu-panel[hidden]{display:none}
+.menu-page{position:static;width:auto;max-width:560px;max-height:none;margin:14px 16px 24px max(16px,calc((100% - 1280px) / 2 + 16px));padding:14px;animation:fmw-slide .2s ease-out}
+body.menu-open #home{display:none}
+@keyframes fmw-slide{from{transform:translateX(-28px);opacity:0}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.menu-page{animation:none}}
+.menu-acct{display:flex;gap:10px}
+.pill{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:8px 14px;border-radius:999px;font:inherit;font-size:16px;font-weight:800;text-decoration:none;cursor:pointer}
+.pill.outline{background:var(--card);color:var(--green);border:2px solid var(--green)}
+.pill.fill{background:var(--btn-bg);color:var(--btn-text);border:2px solid var(--btn-edge)}
+.pill[aria-disabled=true]{cursor:not-allowed}
+.menu-note{font-size:13px;padding:6px 4px 2px}
+.menu-group{list-style:none;margin:10px 0 0;padding:8px 0 0;border-top:1px solid var(--line);display:grid;gap:2px}
+.menu-link{display:flex;align-items:center;gap:12px;width:100%;min-height:46px;padding:8px 10px;border-radius:10px;color:var(--text);text-decoration:none;font-size:16px;font-weight:700;background:none;border:0;font-family:inherit;text-align:left;cursor:pointer}
+a.menu-link:hover{background:var(--tint);color:var(--text)}
+.menu-link .ico{color:var(--green)}
+.menu-link[aria-disabled=true]{color:var(--off-text);cursor:not-allowed}
+.menu-link[aria-disabled=true] .ico{color:var(--off-text)}
+.soon-tag{margin-left:auto;font-size:12px;font-weight:700;color:var(--off-text);background:var(--off-bg);border:1px solid var(--line);border-radius:999px;padding:1px 8px;white-space:nowrap}
+.theme-pill{display:flex;gap:4px;margin-top:14px;padding:4px;border:1px solid var(--ctl);border-radius:999px;background:var(--bg)}
+.theme-opt{flex:1;min-height:44px;border:0;border-radius:999px;background:none;color:var(--text);font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+.theme-opt[aria-pressed=true]{background:var(--btn-bg);color:var(--btn-text)}
+.menu-panel a:focus-visible,.menu-panel button:focus-visible{outline:3px solid var(--green);outline-offset:-3px}
+.bar .menu{margin-left:auto}

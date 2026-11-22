@@ -118,10 +118,36 @@ test('CONTROL: the button check catches the earlier labels and order', () => {
   assert.notDeepEqual(texts, ['Download Apple App', 'Download Android App Coming soon', 'Download Web App']);
 });
 
-test('no Apple or Google badge artwork: text buttons only, no svg logos or badge images', () => {
-  assert.doesNotMatch(html, /<svg|badge|app-store\.(svg|png)|google-play\.(svg|png)/i);
+test('owner ~23:25: Apple logo and Android robot glyphs are inline SVG, monochrome, no external fetch', () => {
+  const svgs = [...html.matchAll(/<svg\b([^>]*)>([\s\S]*?)<\/svg>/g)];
+  const byClass = (c) => svgs.filter((m) => new RegExp(`class="[^"]*\\b${c}\\b`).test(m[1]));
+  assert.equal(byClass('glyph-apple').length, 1, 'one Apple glyph');
+  assert.equal(byClass('glyph-android').length, 1, 'one Android glyph');
+  assert.match(html, /<a class="btn primary"[^>]*><svg class="glyph glyph-apple"[^>]*>[\s\S]*?<\/svg>Download Apple App<\/a>/);
+  assert.match(html, /<span class="btn disabled"[^>]*><svg class="glyph glyph-android"[^>]*>[\s\S]*?<\/svg>Download Android App<small>/);
+  for (const [whole, attrs, body] of svgs) {
+    assert.match(attrs, /aria-hidden="true"/, 'decorative');
+    assert.doesNotMatch(whole, /\b(xlink:)?href=|\bsrc=|url\(|<image|<use|<foreignObject|https?:/i, 'no external reference');
+    assert.doesNotMatch(body, /fill="#|stroke="#|style=/i, 'takes the button colour (currentColor)');
+  }
+  assert.match(html, /\.glyph\{[^}]*fill:currentColor/);
+  assert.match(html, /\.glyph\{[^}]*width:1\.2em;height:1\.2em/);
+});
+
+test('trademark note and the Android robot CC BY attribution are on the page', () => {
+  assert.match(html, /Apple and the Apple logo are trademarks of Apple Inc\. Android is a trademark of Google LLC\./);
+  assert.match(html, /The Android robot is reproduced or modified from work created and shared by Google and used according to terms described in the Creative Commons 3\.0 Attribution License\./);
+});
+
+test('no official store badge images: the only <img> is the gold tree', () => {
+  assert.doesNotMatch(html, /app-store-badge|google-play-badge|app-store\.(svg|png)|google-play\.(svg|png)/i);
   const imgs = [...html.matchAll(/<img[^>]*src="([^"]+)"/g)].map((m) => m[1]);
   assert.deepEqual(imgs, ['/app/tuitea/invite/tuitea_icon_256.png']);
+});
+
+test('CONTROL: the glyph check catches an externally fetched logo', () => {
+  const bad = '<svg class="glyph glyph-apple" aria-hidden="true"><image href="https://example.com/apple.svg"/></svg>';
+  assert.match(bad, /\b(xlink:)?href=|\bsrc=|url\(|<image|<use|<foreignObject|https?:/i);
 });
 
 test('TUITEA brand only: gold-tree icon and the TUITEA backgrounds, not the old green-T icon', () => {

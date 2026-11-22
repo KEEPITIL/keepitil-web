@@ -348,7 +348,7 @@
     };
 
     var run = function () {
-      clear(out); clear(stateBox); head.textContent = ''; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
+      clear(out); clear(stateBox); head.textContent = ''; head.hidden = false; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
       if (nearby) nearby.hidden = true;
       load().then(function (data) {
         menuData(data);
@@ -374,7 +374,7 @@
           }
           return;
         }
-        // the filter carousel: the full set (F.FILTERS). The active chip: ?f=, else an old ?delivery= / ?open= / ?storefront=
+        // the filter carousel: the CUSTOMER set (F.FILTERS; business-only chips are not on it, joe-0045). The active chip: ?f=, else an old ?delivery= / ?open= / ?storefront=
         // link the data honours (search() ignores delivery / open while no row backs them), else Home.
         var active = p.f !== 'home' ? p.f : p.delivery && F.deliveryOffered(data, now) ? 'delivery' : p.openNow && F.openNowOffered(data, now) ? 'open' : p.storefront ? 'storefront' : 'home';
         drawFilters(F.FILTERS, active);
@@ -397,7 +397,10 @@
           return;
         }
         res = { place: res.place, results: rows };
-        head.textContent = C.resultsTitle(res.results.length, placeName, cityName);
+        // joe-0045: the HOME shows no "<N> licensed businesses in <area>" line (removed, no replacement copy); the heading
+        // is used on the home only for the empty / not-found states above. results.html keeps its count heading.
+        if (page === 'search') head.hidden = true;
+        else head.textContent = C.resultsTitle(res.results.length, placeName, cityName);
         if (mapEl) renderMap(mapEl, data, res.results);
         // ONE listing (the old Storefronts rail folded in): every result, nearest first (F.search), named rows before
         // "[Equity Retailer]"-only rows. No ranking-by-rating rail and no paid-placement slot exist on this page.

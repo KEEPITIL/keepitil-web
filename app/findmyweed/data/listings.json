@@ -192,22 +192,13 @@
    "lng": -115.44622
   },
   {
-   "name": "Calif City",
-   "state": "CA",
-   "zips": [
-    "93505"
-   ],
-   "lat": 35.12521,
-   "lng": -118.012
-  },
-  {
    "name": "California City",
    "state": "CA",
    "zips": [
     "93505"
    ],
-   "lat": 35.10908,
-   "lng": -117.9865
+   "lat": 35.11715,
+   "lng": -117.99925
   },
   {
    "name": "Cameron Park",
@@ -278,17 +269,8 @@
    "zips": [
     "92234"
    ],
-   "lat": 33.81538,
-   "lng": -116.4535
-  },
-  {
-   "name": "Cathedral CTY",
-   "state": "CA",
-   "zips": [
-    "92234"
-   ],
-   "lat": 33.80634,
-   "lng": -116.4668
+   "lat": 33.80716,
+   "lng": -116.46559
   },
   {
    "name": "Ceres",
@@ -509,8 +491,8 @@
    "zips": [
     "92240"
    ],
-   "lat": 33.92432,
-   "lng": -116.50233
+   "lat": 33.94175,
+   "lng": -116.50886
   },
   {
    "name": "Diamond Springs",
@@ -527,8 +509,8 @@
    "zips": [
     "95620"
    ],
-   "lat": 38.46194,
-   "lng": -121.82233
+   "lat": 38.46421,
+   "lng": -121.82261
   },
   {
    "name": "Douglas Flat",
@@ -538,15 +520,6 @@
    ],
    "lat": 38.11564,
    "lng": -120.45293
-  },
-  {
-   "name": "DSRT Hot SPGS",
-   "state": "CA",
-   "zips": [
-    "92240"
-   ],
-   "lat": 33.94611,
-   "lng": -116.51049
   },
   {
    "name": "Dunsmuir",
@@ -914,7 +887,7 @@
    "lng": -115.5694
   },
   {
-   "name": "Imperial BCH",
+   "name": "Imperial Beach",
    "state": "CA",
    "zips": [
     "91932"
@@ -1130,8 +1103,8 @@
     "90814",
     "90815"
    ],
-   "lat": 33.80592,
-   "lng": -118.15722
+   "lat": 33.80721,
+   "lng": -118.15716
   },
   {
    "name": "Los Angeles",
@@ -1189,8 +1162,8 @@
     "91367",
     "91401"
    ],
-   "lat": 34.0505,
-   "lng": -118.31484
+   "lat": 34.05022,
+   "lng": -118.31668
   },
   {
    "name": "Lower Lake",
@@ -1265,7 +1238,7 @@
    "lng": -121.79931
   },
   {
-   "name": "Marina DL Rey",
+   "name": "Marina Del Rey",
    "state": "CA",
    "zips": [
     "90292"
@@ -1374,8 +1347,8 @@
     "95356",
     "95357"
    ],
-   "lat": 37.65415,
-   "lng": -120.98153
+   "lat": 37.6569,
+   "lng": -120.98413
   },
   {
    "name": "Monterey",
@@ -1439,8 +1412,8 @@
     "94558",
     "94559"
    ],
-   "lat": 38.2979,
-   "lng": -122.29052
+   "lat": 38.30183,
+   "lng": -122.29334
   },
   {
    "name": "National City",
@@ -1839,8 +1812,8 @@
     "95833",
     "95838"
    ],
-   "lat": 38.55923,
-   "lng": -121.44795
+   "lat": 38.55949,
+   "lng": -121.45151
   },
   {
    "name": "Salinas",
@@ -1866,10 +1839,12 @@
    "name": "San Bernardino",
    "state": "CA",
    "zips": [
-    "92408"
+    "92401",
+    "92408",
+    "92410"
    ],
-   "lat": 34.06552,
-   "lng": -117.28533
+   "lat": 34.08101,
+   "lng": -117.29041
   },
   {
    "name": "San Bruno",
@@ -1925,8 +1900,8 @@
     "94133",
     "94134"
    ],
-   "lat": 37.76884,
-   "lng": -122.42809
+   "lat": 37.76879,
+   "lng": -122.42807
   },
   {
    "name": "San Jacinto",
@@ -1972,8 +1947,8 @@
    "zips": [
     "93401"
    ],
-   "lat": 35.27234,
-   "lng": -120.66997
+   "lat": 35.26248,
+   "lng": -120.66973
   },
   {
    "name": "San Pablo",
@@ -2058,8 +2033,8 @@
     "95407",
     "95409"
    ],
-   "lat": 38.44373,
-   "lng": -122.72136
+   "lat": 38.44427,
+   "lng": -122.72179
   },
   {
    "name": "Santa Ynez",
@@ -2094,8 +2069,8 @@
    "zips": [
     "95472"
    ],
-   "lat": 38.40004,
-   "lng": -122.81966
+   "lat": 38.39882,
+   "lng": -122.81935
   },
   {
    "name": "Shasta Lake",
@@ -2118,33 +2093,13 @@
    "lng": -118.45058
   },
   {
-   "name": "Shingle SPGS",
+   "name": "Shingle Springs",
    "state": "CA",
    "zips": [
     "95682"
    ],
    "lat": 38.65679,
    "lng": -120.94249
-  },
-  {
-   "name": "SN Bernrdno",
-   "state": "CA",
-   "zips": [
-    "92401",
-    "92408",
-    "92410"
-   ],
-   "lat": 34.08875,
-   "lng": -117.29295
-  },
-  {
-   "name": "SN Luis Obisp",
-   "state": "CA",
-   "zips": [
-    "93401"
-   ],
-   "lat": 35.25262,
-   "lng": -120.66948
   },
   {
    "name": "Sonoma",
@@ -2170,8 +2125,8 @@
    "zips": [
     "95073"
    ],
-   "lat": 36.9874,
-   "lng": -121.95985
+   "lat": 36.98814,
+   "lng": -121.95787
   },
   {
    "name": "South Lake Tahoe",
@@ -2364,7 +2319,7 @@
    "lng": -122.24064
   },
   {
-   "name": "Valley VLG",
+   "name": "Valley Village",
    "state": "CA",
    "zips": [
     "91607"
@@ -2508,15 +2463,6 @@
    "lng": -117.25655
   },
   {
-   "name": "Willits",
-   "state": "CA",
-   "zips": [
-    "95490"
-   ],
-   "lat": 39.38821,
-   "lng": -123.34603
-  },
-  {
    "name": "Willows",
    "state": "CA",
    "zips": [
@@ -2581,7 +2527,7 @@
    "lng": -121.76389
   },
   {
-   "name": "Woodland HLS",
+   "name": "Woodland Hills",
    "state": "CA",
    "zips": [
     "91303",
@@ -2727,7 +2673,7 @@
   },
   {
    "id": "c10-0000019-lic",
-   "name": "A Therapeutic Alternative [Equity Retailer]",
+   "name": "A Therapeutic Alternative",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -2837,7 +2783,7 @@
   },
   {
    "id": "c10-0000028-lic",
-   "name": "SESPE CREEK COLLECTIVE, INC. [Equity Retailer]",
+   "name": "SESPE CREEK COLLECTIVE, INC.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -2859,7 +2805,7 @@
   },
   {
    "id": "c10-0000030-lic",
-   "name": "From The Earth [Equity Retailer]",
+   "name": "From The Earth",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -2886,7 +2832,7 @@
    "delivery": false,
    "address": {
     "line1": "20010 Ventura Blvd",
-    "city": "Woodland HLS",
+    "city": "Woodland Hills",
     "county": "Los Angeles",
     "state": "CA",
     "zip": "91364"
@@ -3326,7 +3272,7 @@
    "delivery": false,
    "address": {
     "line1": "36633 Cathedral Canyon Dr",
-    "city": "Cathedral CTY",
+    "city": "Cathedral City",
     "county": "Riverside",
     "state": "CA",
     "zip": "92234"
@@ -3370,7 +3316,7 @@
    "delivery": false,
    "address": {
     "line1": "68945 Vista Chino, Suite C",
-    "city": "Cathedral CTY",
+    "city": "Cathedral City",
     "county": "Riverside",
     "state": "CA",
     "zip": "92234"
@@ -3475,7 +3421,7 @@
   },
   {
    "id": "c10-0000081-lic",
-   "name": "Delta 9 THC [Equity Retailer]",
+   "name": "Delta 9 THC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -3700,7 +3646,7 @@
    "delivery": false,
    "address": {
     "line1": "4151 Shingle Rd S, Suite 2",
-    "city": "Shingle SPGS",
+    "city": "Shingle Springs",
     "county": "El Dorado",
     "state": "CA",
     "zip": "95682"
@@ -4008,7 +3954,7 @@
    "delivery": false,
    "address": {
     "line1": "4200 Lincoln Blvd",
-    "city": "Marina DL Rey",
+    "city": "Marina Del Rey",
     "county": "Los Angeles",
     "state": "CA",
     "zip": "90292"
@@ -4030,7 +3976,7 @@
    "delivery": false,
    "address": {
     "line1": "6322 Fallbrook Ave",
-    "city": "Woodland HLS",
+    "city": "Woodland Hills",
     "county": "Los Angeles",
     "state": "CA",
     "zip": "91367"
@@ -4355,7 +4301,7 @@
   },
   {
    "id": "c10-0000146-lic",
-   "name": "Stash Studio City [Equity Retailer]",
+   "name": "Stash Studio City",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -5328,7 +5274,7 @@
    "delivery": false,
    "address": {
     "line1": "5441 N Topanga Canyon Blvd",
-    "city": "Woodland HLS",
+    "city": "Woodland Hills",
     "county": "Los Angeles",
     "state": "CA",
     "zip": "91367"
@@ -5482,7 +5428,7 @@
    "delivery": false,
    "address": {
     "line1": "11522 Palm Dr",
-    "city": "DSRT Hot SPGS",
+    "city": "Desert Hot Springs",
     "county": "Riverside",
     "state": "CA",
     "zip": "92240"
@@ -5631,7 +5577,7 @@
   },
   {
    "id": "c10-0000249-lic",
-   "name": "Dixon Wellness Collective [Equity Retailer]",
+   "name": "Dixon Wellness Collective",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -5675,7 +5621,7 @@
   },
   {
    "id": "c10-0000252-lic",
-   "name": "Herbal Remedies Caregivers, Inc. [Equity Retailer]",
+   "name": "Herbal Remedies Caregivers, Inc.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -5807,7 +5753,7 @@
   },
   {
    "id": "c10-0000258-lic",
-   "name": "Satori Wellness [Equity Retailer]",
+   "name": "Satori Wellness",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -6005,7 +5951,7 @@
   },
   {
    "id": "c10-0000281-lic",
-   "name": "KETAMA COOPERATIVE, INC. [Equity Retailer]",
+   "name": "KETAMA COOPERATIVE, INC.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -6137,7 +6083,7 @@
   },
   {
    "id": "c10-0000291-lic",
-   "name": "ALTERNATIVE MEDICAL CENTER, INC [Equity Retailer]",
+   "name": "ALTERNATIVE MEDICAL CENTER, INC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -6274,7 +6220,7 @@
    "delivery": false,
    "address": {
     "line1": "12458 Magnolia Blvd W",
-    "city": "Valley VLG",
+    "city": "Valley Village",
     "county": "Los Angeles",
     "state": "CA",
     "zip": "91607"
@@ -6313,7 +6259,7 @@
   },
   {
    "id": "c10-0000305-lic",
-   "name": "Urban Soyal [Equity Retailer]",
+   "name": "Urban Soyal",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -6775,7 +6721,7 @@
   },
   {
    "id": "c10-0000342-lic",
-   "name": "Natural Aid Pharmacy, A Cooperative Corporation [Equity Retailer]",
+   "name": "Natural Aid Pharmacy, A Cooperative Corporation",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -6841,7 +6787,7 @@
   },
   {
    "id": "c10-0000348-lic",
-   "name": "KOLAS #105 [Equity Retailer]",
+   "name": "KOLAS #105",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -6863,7 +6809,7 @@
   },
   {
    "id": "c10-0000350-lic",
-   "name": "Kolas #102 [Equity Retailer]",
+   "name": "Kolas #102",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -7171,7 +7117,7 @@
   },
   {
    "id": "c10-0000369-lic",
-   "name": "NUG [Equity Retailer]",
+   "name": "NUG",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -7418,7 +7364,7 @@
    "delivery": false,
    "address": {
     "line1": "66205 Paul Rd",
-    "city": "DSRT Hot SPGS",
+    "city": "Desert Hot Springs",
     "county": "Riverside",
     "state": "CA",
     "zip": "92240"
@@ -7655,7 +7601,7 @@
   },
   {
    "id": "c10-0000413-lic",
-   "name": "KOLAS #103 [Equity Retailer]",
+   "name": "KOLAS #103",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -8183,7 +8129,7 @@
   },
   {
    "id": "c10-0000453-lic",
-   "name": "SPARC [Equity Retailer]",
+   "name": "SPARC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -8227,7 +8173,7 @@
   },
   {
    "id": "c10-0000455-lic",
-   "name": "SPARC [Equity Retailer]",
+   "name": "SPARC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -8298,7 +8244,7 @@
    "delivery": false,
    "address": {
     "line1": "22815 W Ventura Blvd",
-    "city": "Woodland HLS",
+    "city": "Woodland Hills",
     "county": "Los Angeles",
     "state": "CA",
     "zip": "91364"
@@ -8342,7 +8288,7 @@
    "delivery": false,
    "address": {
     "line1": "13453 Beach Ave",
-    "city": "Marina DL Rey",
+    "city": "Marina Del Rey",
     "county": "Los Angeles",
     "state": "CA",
     "zip": "90292"
@@ -8364,7 +8310,7 @@
    "delivery": false,
    "address": {
     "line1": "64949 Mission Lakes Blvd, Suite 114",
-    "city": "DSRT Hot SPGS",
+    "city": "Desert Hot Springs",
     "county": "Riverside",
     "state": "CA",
     "zip": "92240"
@@ -8491,7 +8437,7 @@
   },
   {
    "id": "c10-0000474-lic",
-   "name": "SHANGRI LA CARE CENTERS, INC. [Equity Retailer]",
+   "name": "SHANGRI LA CARE CENTERS, INC.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -8689,7 +8635,7 @@
   },
   {
    "id": "c10-0000487-lic",
-   "name": "GREEN EARTH VITALITY CORPORATION [Equity Retailer]",
+   "name": "GREEN EARTH VITALITY CORPORATION",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -9217,7 +9163,7 @@
   },
   {
    "id": "c10-0000532-lic",
-   "name": "Lakeside Herbal Solutions [Equity Retailer]",
+   "name": "Lakeside Herbal Solutions",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -9244,7 +9190,7 @@
    "delivery": false,
    "address": {
     "line1": "68333 Perez Rd",
-    "city": "Cathedral CTY",
+    "city": "Cathedral City",
     "county": "Riverside",
     "state": "CA",
     "zip": "92234"
@@ -9376,7 +9322,7 @@
    "delivery": false,
    "address": {
     "line1": "350 W 5th St, Unit 101",
-    "city": "SN Bernrdno",
+    "city": "San Bernardino",
     "county": "San Bernardino",
     "state": "CA",
     "zip": "92401"
@@ -9662,7 +9608,7 @@
    "delivery": false,
    "address": {
     "line1": "6508 California City Blvd",
-    "city": "Calif City",
+    "city": "California City",
     "county": "Kern",
     "state": "CA",
     "zip": "93505"
@@ -9767,7 +9713,7 @@
   },
   {
    "id": "c10-0000578-lic",
-   "name": "A1, A CA Commercial Cannabis Association [Equity Retailer]",
+   "name": "A1, A CA Commercial Cannabis Association",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -10014,7 +9960,7 @@
    "delivery": false,
    "address": {
     "line1": "5334 Alhama Dr",
-    "city": "Woodland HLS",
+    "city": "Woodland Hills",
     "county": "Los Angeles",
     "state": "CA",
     "zip": "91364"
@@ -10207,7 +10153,7 @@
   },
   {
    "id": "c10-0000619-lic",
-   "name": "Tioga Green [Equity Retailer]",
+   "name": "Tioga Green",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -10251,7 +10197,7 @@
   },
   {
    "id": "c10-0000621-lic",
-   "name": "Livity [Equity Retailer]",
+   "name": "Livity",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -10405,7 +10351,7 @@
   },
   {
    "id": "c10-0000632-lic",
-   "name": "Posh Green [Equity Retailer]",
+   "name": "Posh Green",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -10515,7 +10461,7 @@
   },
   {
    "id": "c10-0000639-lic",
-   "name": "365 Recreational Cannabis [Equity Retailer]",
+   "name": "365 Recreational Cannabis",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -10537,7 +10483,7 @@
   },
   {
    "id": "c10-0000640-lic",
-   "name": "BLOOMERANG [Equity Retailer]",
+   "name": "BLOOMERANG",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -10581,7 +10527,7 @@
   },
   {
    "id": "c10-0000644-lic",
-   "name": "Humanity Wellness [Equity Retailer]",
+   "name": "Humanity Wellness",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -10619,28 +10565,6 @@
    "license": "C10-0000645-LIC",
    "licenseStatus": "Active",
    "licenseExpires": "2027-10-29",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0000647-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "1788 Main St S",
-    "city": "Willits",
-    "county": "Mendocino",
-    "state": "CA",
-    "zip": "95490"
-   },
-   "lat": 39.388206,
-   "lng": -123.346031,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0000647-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-11-04",
    "published": true,
    "licenseType": "Commercial - Retailer",
    "licenseCheckedOn": "2026-11-19"
@@ -10718,7 +10642,7 @@
    "delivery": false,
    "address": {
     "line1": "36063 Cathedral Canyon Dr",
-    "city": "Cathedral CTY",
+    "city": "Cathedral City",
     "county": "Riverside",
     "state": "CA",
     "zip": "92234"
@@ -10757,7 +10681,7 @@
   },
   {
    "id": "c10-0000656-lic",
-   "name": "Doobie Nights [Equity Retailer]",
+   "name": "Doobie Nights",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -11065,7 +10989,7 @@
   },
   {
    "id": "c10-0000676-lic",
-   "name": "LCB Retail, Inc [Equity Retailer]",
+   "name": "LCB Retail, Inc",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -11114,7 +11038,7 @@
    "delivery": false,
    "address": {
     "line1": "3830 Dividend Dr, Suite A",
-    "city": "Shingle SPGS",
+    "city": "Shingle Springs",
     "county": "El Dorado",
     "state": "CA",
     "zip": "95682"
@@ -11263,12 +11187,12 @@
   },
   {
    "id": "c10-0000689-lic",
-   "name": "The Kana Company [Equity Retailer]",
+   "name": "The Kana Company",
    "storefront": true,
    "delivery": false,
    "address": {
     "line1": "4020 Durock Rd, Suite 1",
-    "city": "Shingle SPGS",
+    "city": "Shingle Springs",
     "county": "El Dorado",
     "state": "CA",
     "zip": "95682"
@@ -11285,7 +11209,7 @@
   },
   {
    "id": "c10-0000692-lic",
-   "name": "AMG DYNAMIC ENTERPRISES INC. [Equity Retailer]",
+   "name": "AMG DYNAMIC ENTERPRISES INC.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -11329,7 +11253,7 @@
   },
   {
    "id": "c10-0000696-lic",
-   "name": "Humboldt Herb & Market [Equity Retailer]",
+   "name": "Humboldt Herb & Market",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -11439,7 +11363,7 @@
   },
   {
    "id": "c10-0000704-lic",
-   "name": "Magic Flower [Equity Retailer]",
+   "name": "Magic Flower",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -11461,7 +11385,7 @@
   },
   {
    "id": "c10-0000705-lic",
-   "name": "Napa Cannabis Collective [Equity Retailer]",
+   "name": "Napa Cannabis Collective",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -11549,7 +11473,7 @@
   },
   {
    "id": "c10-0000710-lic",
-   "name": "CJs [Equity Retailer]",
+   "name": "CJs",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -11725,7 +11649,7 @@
   },
   {
    "id": "c10-0000721-lic",
-   "name": "Global Greenz [Equity Retailer]",
+   "name": "Global Greenz",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -12060,7 +11984,7 @@
    "delivery": false,
    "address": {
     "line1": "494 Orange Show Road Rd W, Suite D",
-    "city": "SN Bernrdno",
+    "city": "San Bernardino",
     "county": "San Bernardino",
     "state": "CA",
     "zip": "92408"
@@ -12429,7 +12353,7 @@
   },
   {
    "id": "c10-0000767-lic",
-   "name": "holland pharms [Equity Retailer]",
+   "name": "holland pharms",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -12759,7 +12683,7 @@
   },
   {
    "id": "c10-0000785-lic",
-   "name": "The set Northridge [Equity Retailer]",
+   "name": "The set Northridge",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -12847,7 +12771,7 @@
   },
   {
    "id": "c10-0000791-lic",
-   "name": "Green Earth Collective Granada Hills and Green Earth Co. [Equity Retailer]",
+   "name": "Green Earth Collective Granada Hills and Green Earth Co.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -12891,7 +12815,7 @@
   },
   {
    "id": "c10-0000794-lic",
-   "name": "Trees of Echo Park [Equity Retailer]",
+   "name": "Trees of Echo Park",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -12913,7 +12837,7 @@
   },
   {
    "id": "c10-0000795-lic",
-   "name": "MERCY WELLNESS SANTA ROSA [Equity Retailer]",
+   "name": "MERCY WELLNESS SANTA ROSA",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -12935,7 +12859,7 @@
   },
   {
    "id": "c10-0000796-lic",
-   "name": "The Artist Tree [Equity Retailer]",
+   "name": "The Artist Tree",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -13089,7 +13013,7 @@
   },
   {
    "id": "c10-0000806-lic",
-   "name": "Hierba [Equity Retailer]",
+   "name": "Hierba",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -13133,7 +13057,7 @@
   },
   {
    "id": "c10-0000808-lic",
-   "name": "KANNALUV [Equity Retailer]",
+   "name": "KANNALUV",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -13177,7 +13101,7 @@
   },
   {
    "id": "c10-0000811-lic",
-   "name": "Puff LA [Equity Retailer]",
+   "name": "Puff LA",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -13199,7 +13123,7 @@
   },
   {
    "id": "c10-0000812-lic",
-   "name": "Treehouse Botanicals Corporation [Equity Retailer]",
+   "name": "Treehouse Botanicals Corporation",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -13397,7 +13321,7 @@
   },
   {
    "id": "c10-0000828-lic",
-   "name": "Wonderbrett [Equity Retailer]",
+   "name": "Wonderbrett",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -13441,7 +13365,7 @@
   },
   {
    "id": "c10-0000832-lic",
-   "name": "ILLA Store [Equity Retailer]",
+   "name": "ILLA Store",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -13507,7 +13431,7 @@
   },
   {
    "id": "c10-0000838-lic",
-   "name": "Traditional [Equity Retailer]",
+   "name": "Traditional",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -13529,7 +13453,7 @@
   },
   {
    "id": "c10-0000839-lic",
-   "name": "Valley Verde [Equity Retailer]",
+   "name": "Valley Verde",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -13639,7 +13563,7 @@
   },
   {
    "id": "c10-0000845-lic",
-   "name": "Nature’s Spot [Equity Retailer]",
+   "name": "Nature’s Spot",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -13969,7 +13893,7 @@
   },
   {
    "id": "c10-0000866-lic",
-   "name": "Josephine & Billie's [Equity Retailer]",
+   "name": "Josephine & Billie's",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -14145,7 +14069,7 @@
   },
   {
    "id": "c10-0000878-lic",
-   "name": "FOREIGN [Equity Retailer]",
+   "name": "FOREIGN",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -14233,7 +14157,7 @@
   },
   {
    "id": "c10-0000886-lic",
-   "name": "SEXPOT [Equity Retailer]",
+   "name": "SEXPOT",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -14321,7 +14245,7 @@
   },
   {
    "id": "c10-0000892-lic",
-   "name": "PHENOTOPIA [Equity Retailer]",
+   "name": "PHENOTOPIA",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -14365,7 +14289,7 @@
   },
   {
    "id": "c10-0000897-lic",
-   "name": "The Chronic [Equity Retailer]",
+   "name": "The Chronic",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -14387,7 +14311,7 @@
   },
   {
    "id": "c10-0000898-lic",
-   "name": "Eternabis, Inc. [Equity Retailer]",
+   "name": "Eternabis, Inc.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -14409,7 +14333,7 @@
   },
   {
    "id": "c10-0000900-lic",
-   "name": "Velvet [Equity Retailer]",
+   "name": "Velvet",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -14563,7 +14487,7 @@
   },
   {
    "id": "c10-0000907-lic",
-   "name": "Euphoros, LLC [Equity Retailer]",
+   "name": "Euphoros, LLC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -14607,7 +14531,7 @@
   },
   {
    "id": "c10-0000909-lic",
-   "name": "iLyfted Panorama City [Equity Retailer]",
+   "name": "iLyfted Panorama City",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -14695,7 +14619,7 @@
   },
   {
    "id": "c10-0000916-lic",
-   "name": "THE FLORE STORE [Equity Retailer]",
+   "name": "THE FLORE STORE",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -14788,7 +14712,7 @@
    "delivery": false,
    "address": {
     "line1": "28201 Date Palm Dr, Suite B & C",
-    "city": "Cathedral CTY",
+    "city": "Cathedral City",
     "county": "Riverside",
     "state": "CA",
     "zip": "92234"
@@ -14805,7 +14729,7 @@
   },
   {
    "id": "c10-0000922-lic",
-   "name": "Dope Sugar [Equity Retailer]",
+   "name": "Dope Sugar",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -14871,7 +14795,7 @@
   },
   {
    "id": "c10-0000926-lic",
-   "name": "North Beach Pipeline [Equity Retailer]",
+   "name": "North Beach Pipeline",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -14915,7 +14839,7 @@
   },
   {
    "id": "c10-0000928-lic",
-   "name": "GOAT GLOBAL WEST LA [Equity Retailer]",
+   "name": "GOAT GLOBAL WEST LA",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -14942,7 +14866,7 @@
    "delivery": false,
    "address": {
     "line1": "66171 Pierson Blvd",
-    "city": "DSRT Hot SPGS",
+    "city": "Desert Hot Springs",
     "county": "Riverside",
     "state": "CA",
     "zip": "92240"
@@ -15003,7 +14927,7 @@
   },
   {
    "id": "c10-0000936-lic",
-   "name": "THE COACHELLA RELEAF [Equity Retailer]",
+   "name": "THE COACHELLA RELEAF",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -15091,7 +15015,7 @@
   },
   {
    "id": "c10-0000940-lic",
-   "name": "Weedhub [Equity Retailer]",
+   "name": "Weedhub",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -15135,7 +15059,7 @@
   },
   {
    "id": "c10-0000942-lic",
-   "name": "Ohana Cannabis [Equity Retailer]",
+   "name": "Ohana Cannabis",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -15250,7 +15174,7 @@
    "delivery": false,
    "address": {
     "line1": "3535 Higuera St S",
-    "city": "SN Luis Obisp",
+    "city": "San Luis Obispo",
     "county": "San Luis Obispo",
     "state": "CA",
     "zip": "93401"
@@ -15311,7 +15235,7 @@
   },
   {
    "id": "c10-0000955-lic",
-   "name": "LaLaLand [Equity Retailer]",
+   "name": "LaLaLand",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -15333,7 +15257,7 @@
   },
   {
    "id": "c10-0000956-lic",
-   "name": "coachella greenery [Equity Retailer]",
+   "name": "coachella greenery",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -15355,7 +15279,7 @@
   },
   {
    "id": "c10-0000957-lic",
-   "name": "Sage and Fire [Equity Retailer]",
+   "name": "Sage and Fire",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -15465,7 +15389,7 @@
   },
   {
    "id": "c10-0000964-lic",
-   "name": "Pirate Town Cannabis Company [Equity Retailer]",
+   "name": "Pirate Town Cannabis Company",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -15487,7 +15411,7 @@
   },
   {
    "id": "c10-0000965-lic",
-   "name": "Oakanna [Equity Retailer]",
+   "name": "Oakanna",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -15575,7 +15499,7 @@
   },
   {
    "id": "c10-0000976-lic",
-   "name": "Swish Cannabis [Equity Retailer]",
+   "name": "Swish Cannabis",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -15663,7 +15587,7 @@
   },
   {
    "id": "c10-0000980-lic",
-   "name": "Off the Charts Reseda [Equity Retailer]",
+   "name": "Off the Charts Reseda",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -15734,7 +15658,7 @@
    "delivery": false,
    "address": {
     "line1": "740 Palm Ave",
-    "city": "Imperial BCH",
+    "city": "Imperial Beach",
     "county": "San Diego",
     "state": "CA",
     "zip": "91932"
@@ -16059,7 +15983,7 @@
   },
   {
    "id": "c10-0001010-lic",
-   "name": "The Syndicate Northridge [Equity Retailer]",
+   "name": "The Syndicate Northridge",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -16103,7 +16027,7 @@
   },
   {
    "id": "c10-0001013-lic",
-   "name": "RELEAF [Equity Retailer]",
+   "name": "RELEAF",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -16125,7 +16049,7 @@
   },
   {
    "id": "c10-0001014-lic",
-   "name": "Old G Kush [Equity Retailer]",
+   "name": "Old G Kush",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -16147,7 +16071,7 @@
   },
   {
    "id": "c10-0001015-lic",
-   "name": "STIIIZY Western [Equity Retailer]",
+   "name": "STIIIZY Western",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -16169,7 +16093,7 @@
   },
   {
    "id": "c10-0001016-lic",
-   "name": "Banyan Tree [Equity Retailer]",
+   "name": "Banyan Tree",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -16213,7 +16137,7 @@
   },
   {
    "id": "c10-0001018-lic",
-   "name": "NELA RD. [Equity Retailer]",
+   "name": "NELA RD.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -16235,7 +16159,7 @@
   },
   {
    "id": "c10-0001019-lic",
-   "name": "Green Qween LLC. [Equity Retailer]",
+   "name": "Green Qween LLC.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -16284,7 +16208,7 @@
    "delivery": false,
    "address": {
     "line1": "240 E Redlands Blvd",
-    "city": "SN Bernrdno",
+    "city": "San Bernardino",
     "county": "San Bernardino",
     "state": "CA",
     "zip": "92408"
@@ -16301,7 +16225,7 @@
   },
   {
    "id": "c10-0001022-lic",
-   "name": "REBUD San Pedro [Equity Retailer]",
+   "name": "REBUD San Pedro",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -16328,7 +16252,7 @@
    "delivery": false,
    "address": {
     "line1": "6455 Topanga Canyon Blvd N",
-    "city": "Woodland HLS",
+    "city": "Woodland Hills",
     "county": "Los Angeles",
     "state": "CA",
     "zip": "91303"
@@ -16367,7 +16291,7 @@
   },
   {
    "id": "c10-0001026-lic",
-   "name": "Cookies Brentwood [Equity Retailer]",
+   "name": "Cookies Brentwood",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -16411,7 +16335,7 @@
   },
   {
    "id": "c10-0001030-lic",
-   "name": "STIIIZY PCH Wilmington [Equity Retailer]",
+   "name": "STIIIZY PCH Wilmington",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -16433,7 +16357,7 @@
   },
   {
    "id": "c10-0001033-lic",
-   "name": "REBUD Westwood [Equity Retailer]",
+   "name": "REBUD Westwood",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -16653,7 +16577,7 @@
   },
   {
    "id": "c10-0001046-lic",
-   "name": "Zen Garden [Equity Retailer]",
+   "name": "Zen Garden",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -16675,7 +16599,7 @@
   },
   {
    "id": "c10-0001048-lic",
-   "name": "BUZZ CANNABIS [Equity Retailer]",
+   "name": "BUZZ CANNABIS",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -16719,7 +16643,7 @@
   },
   {
    "id": "c10-0001050-lic",
-   "name": "KOLAS #104 [Equity Retailer]",
+   "name": "KOLAS #104",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -16741,7 +16665,7 @@
   },
   {
    "id": "c10-0001052-lic",
-   "name": "Diverse [Equity Retailer]",
+   "name": "Diverse",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -17048,30 +16972,8 @@
    "licenseCheckedOn": "2026-11-19"
   },
   {
-   "id": "c10-0001073-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "2649 41st Ave",
-    "city": "Soquel",
-    "county": "Santa Cruz",
-    "state": "CA",
-    "zip": "95073"
-   },
-   "lat": 36.985194,
-   "lng": -121.965793,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001073-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-06-14",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
    "id": "c10-0001075-lic",
-   "name": "Sixty Four & Hope [Equity Retailer]",
+   "name": "Sixty Four & Hope",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -17093,7 +16995,7 @@
   },
   {
    "id": "c10-0001076-lic",
-   "name": "South Bay Canna Clinic [Equity Retailer]",
+   "name": "South Bay Canna Clinic",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -17692,7 +17594,7 @@
    "delivery": false,
    "address": {
     "line1": "444 N H St",
-    "city": "SN Bernrdno",
+    "city": "San Bernardino",
     "county": "San Bernardino",
     "state": "CA",
     "zip": "92410"
@@ -17775,7 +17677,7 @@
   },
   {
    "id": "c10-0001123-lic",
-   "name": "SENSI RETAIL [Equity Retailer]",
+   "name": "SENSI RETAIL",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -18017,7 +17919,7 @@
   },
   {
    "id": "c10-0001140-lic",
-   "name": "Budder Store [Equity Retailer]",
+   "name": "Budder Store",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -18171,7 +18073,7 @@
   },
   {
    "id": "c10-0001156-lic",
-   "name": "The Pocket Dispensary [Equity Retailer]",
+   "name": "The Pocket Dispensary",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -18325,7 +18227,7 @@
   },
   {
    "id": "c10-0001165-lic",
-   "name": "CATALYST - NORMANDIE [Equity Retailer]",
+   "name": "CATALYST - NORMANDIE",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -18347,7 +18249,7 @@
   },
   {
    "id": "c10-0001167-lic",
-   "name": "Cannabis Cultures [Equity Retailer]",
+   "name": "Cannabis Cultures",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -18369,7 +18271,7 @@
   },
   {
    "id": "c10-0001168-lic",
-   "name": "Embarc Sacramento [Equity Retailer]",
+   "name": "Embarc Sacramento",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -18501,7 +18403,7 @@
   },
   {
    "id": "c10-0001181-lic",
-   "name": "The Kana Company [Equity Retailer]",
+   "name": "The Kana Company",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -18897,7 +18799,7 @@
   },
   {
    "id": "c10-0001205-lic",
-   "name": "Catalyst - Venice Blvd [Equity Retailer]",
+   "name": "Catalyst - Venice Blvd",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -18919,7 +18821,7 @@
   },
   {
    "id": "c10-0001207-lic",
-   "name": "THE SET HOLLYWOOD [Equity Retailer]",
+   "name": "THE SET HOLLYWOOD",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -18963,7 +18865,7 @@
   },
   {
    "id": "c10-0001210-lic",
-   "name": "Catalyst - Watsonville [Equity Retailer]",
+   "name": "Catalyst - Watsonville",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19095,7 +18997,7 @@
   },
   {
    "id": "c10-0001216-lic",
-   "name": "Kindly [Equity Retailer]",
+   "name": "Kindly",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19139,7 +19041,7 @@
   },
   {
    "id": "c10-0001218-lic",
-   "name": "THE OUNCE [Equity Retailer]",
+   "name": "THE OUNCE",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19205,7 +19107,7 @@
   },
   {
    "id": "c10-0001222-lic",
-   "name": "Traditional [Equity Retailer]",
+   "name": "Traditional",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19227,7 +19129,7 @@
   },
   {
    "id": "c10-0001223-lic",
-   "name": "Redbud apothecary [Equity Retailer]",
+   "name": "Redbud apothecary",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19249,7 +19151,7 @@
   },
   {
    "id": "c10-0001224-lic",
-   "name": "Catalyst - Silver Lake [Equity Retailer]",
+   "name": "Catalyst - Silver Lake",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19271,7 +19173,7 @@
   },
   {
    "id": "c10-0001227-lic",
-   "name": "MotaCity [Equity Retailer]",
+   "name": "MotaCity",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19337,7 +19239,7 @@
   },
   {
    "id": "c10-0001230-lic",
-   "name": "CALI LOVE LLC [Equity Retailer]",
+   "name": "CALI LOVE LLC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19469,7 +19371,7 @@
   },
   {
    "id": "c10-0001238-lic",
-   "name": "STIIIZY Oakland [Equity Retailer]",
+   "name": "STIIIZY Oakland",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19667,7 +19569,7 @@
   },
   {
    "id": "c10-0001251-lic",
-   "name": "CANA BEVERLY [Equity Retailer]",
+   "name": "CANA BEVERLY",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19711,7 +19613,7 @@
   },
   {
    "id": "c10-0001253-lic",
-   "name": "Benzeen Co. [Equity Retailer]",
+   "name": "Benzeen Co.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19733,7 +19635,7 @@
   },
   {
    "id": "c10-0001254-lic",
-   "name": "Velvet Cannabis [Equity Retailer]",
+   "name": "Velvet Cannabis",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19755,7 +19657,7 @@
   },
   {
    "id": "c10-0001255-lic",
-   "name": "KOLAS #106 [Equity Retailer]",
+   "name": "KOLAS #106",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19777,7 +19679,7 @@
   },
   {
    "id": "c10-0001256-lic",
-   "name": "Traditional [Equity Retailer]",
+   "name": "Traditional",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19909,7 +19811,7 @@
   },
   {
    "id": "c10-0001263-lic",
-   "name": "OFF THE CHARTS PCH [Equity Retailer]",
+   "name": "OFF THE CHARTS PCH",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -19953,7 +19855,7 @@
   },
   {
    "id": "c10-0001265-lic",
-   "name": "Grass Valley Provision [Equity Retailer]",
+   "name": "Grass Valley Provision",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20063,7 +19965,7 @@
   },
   {
    "id": "c10-0001272-lic",
-   "name": "Heights [Equity Retailer]",
+   "name": "Heights",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20085,7 +19987,7 @@
   },
   {
    "id": "c10-0001273-lic",
-   "name": "Obsidian Dispensary [Equity Retailer]",
+   "name": "Obsidian Dispensary",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20107,7 +20009,7 @@
   },
   {
    "id": "c10-0001275-lic",
-   "name": "Poetree [Equity Retailer]",
+   "name": "Poetree",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20129,7 +20031,7 @@
   },
   {
    "id": "c10-0001276-lic",
-   "name": "HOMAGE [Equity Retailer]",
+   "name": "HOMAGE",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20217,7 +20119,7 @@
   },
   {
    "id": "c10-0001282-lic",
-   "name": "Level 28 [Equity Retailer]",
+   "name": "Level 28",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20239,7 +20141,7 @@
   },
   {
    "id": "c10-0001283-lic",
-   "name": "1130nafide [Equity Retailer]",
+   "name": "1130nafide",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20261,7 +20163,7 @@
   },
   {
    "id": "c10-0001284-lic",
-   "name": "SQUINTZ FOREIGN [Equity Retailer]",
+   "name": "SQUINTZ FOREIGN",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20283,12 +20185,12 @@
   },
   {
    "id": "c10-0001285-lic",
-   "name": "19841 Ventura and Hope, LLC [Equity Retailer]",
+   "name": "19841 Ventura and Hope, LLC",
    "storefront": true,
    "delivery": false,
    "address": {
     "line1": "19841 Ventura Blvd",
-    "city": "Woodland HLS",
+    "city": "Woodland Hills",
     "county": "Los Angeles",
     "state": "CA",
     "zip": "91364"
@@ -20305,7 +20207,7 @@
   },
   {
    "id": "c10-0001286-lic",
-   "name": "Peace and love LLC [Equity Retailer]",
+   "name": "Peace and love LLC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20327,7 +20229,7 @@
   },
   {
    "id": "c10-0001287-lic",
-   "name": "Project Earth [Equity Retailer]",
+   "name": "Project Earth",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20349,7 +20251,7 @@
   },
   {
    "id": "c10-0001288-lic",
-   "name": "ZZFLUX MID-CITY [Equity Retailer]",
+   "name": "ZZFLUX MID-CITY",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20371,7 +20273,7 @@
   },
   {
    "id": "c10-0001290-lic",
-   "name": "Urban Smoke Dispensary [Equity Retailer]",
+   "name": "Urban Smoke Dispensary",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20393,7 +20295,7 @@
   },
   {
    "id": "c10-0001291-lic",
-   "name": "High-Land Cannabis, LLC [Equity Retailer]",
+   "name": "High-Land Cannabis, LLC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20591,7 +20493,7 @@
   },
   {
    "id": "c10-0001308-lic",
-   "name": "STREET KINGS [Equity Retailer]",
+   "name": "STREET KINGS",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20613,7 +20515,7 @@
   },
   {
    "id": "c10-0001309-lic",
-   "name": "Eastern Sereno Group Inc. [Equity Retailer]",
+   "name": "Eastern Sereno Group Inc.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20635,7 +20537,7 @@
   },
   {
    "id": "c10-0001311-lic",
-   "name": "Hollywood Walk of Weed [Equity Retailer]",
+   "name": "Hollywood Walk of Weed",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20657,7 +20559,7 @@
   },
   {
    "id": "c10-0001313-lic",
-   "name": "Trees Hollywood [Equity Retailer]",
+   "name": "Trees Hollywood",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20745,7 +20647,7 @@
   },
   {
    "id": "c10-0001320-lic",
-   "name": "Zzz Enterprises, Inc. [Equity Retailer]",
+   "name": "Zzz Enterprises, Inc.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20767,7 +20669,7 @@
   },
   {
    "id": "c10-0001321-lic",
-   "name": "Traditional [Equity Retailer]",
+   "name": "Traditional",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20921,7 +20823,7 @@
   },
   {
    "id": "c10-0001330-lic",
-   "name": "STIIIZY NoHo [Equity Retailer]",
+   "name": "STIIIZY NoHo",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20943,7 +20845,7 @@
   },
   {
    "id": "c10-0001331-lic",
-   "name": "HYRBA [Equity Retailer]",
+   "name": "HYRBA",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20965,7 +20867,7 @@
   },
   {
    "id": "c10-0001332-lic",
-   "name": "Cannabis House [Equity Retailer]",
+   "name": "Cannabis House",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -20987,7 +20889,7 @@
   },
   {
    "id": "c10-0001333-lic",
-   "name": "THREE DONKEYS, INC. [Equity Retailer]",
+   "name": "THREE DONKEYS, INC.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -21009,7 +20911,7 @@
   },
   {
    "id": "c10-0001334-lic",
-   "name": "HOOVER HOUSE [Equity Retailer]",
+   "name": "HOOVER HOUSE",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -21031,7 +20933,7 @@
   },
   {
    "id": "c10-0001335-lic",
-   "name": "STIIIZY INGLEWOOD [Equity Retailer]",
+   "name": "STIIIZY INGLEWOOD",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -21118,30 +21020,8 @@
    "licenseCheckedOn": "2026-11-19"
   },
   {
-   "id": "c10-0001341-lic",
-   "name": "TBD [Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "4785 Valley Blvd",
-    "city": "Los Angeles",
-    "county": "Los Angeles",
-    "state": "CA",
-    "zip": "90032"
-   },
-   "lat": 34.06526948,
-   "lng": -118.18057335,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001341-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-06-22",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
    "id": "c10-0001344-lic",
-   "name": "iLyfted Sylmar [Equity Retailer]",
+   "name": "iLyfted Sylmar",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -21163,7 +21043,7 @@
   },
   {
    "id": "c10-0001345-lic",
-   "name": "Rebud Highland Park [Equity Retailer]",
+   "name": "Rebud Highland Park",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -21185,7 +21065,7 @@
   },
   {
    "id": "c10-0001353-lic",
-   "name": "PAC WELLNESS, LLC [Equity Retailer]",
+   "name": "PAC WELLNESS, LLC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -21251,7 +21131,7 @@
   },
   {
    "id": "c10-0001357-lic",
-   "name": "FAT BUNNY [Equity Retailer]",
+   "name": "FAT BUNNY",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -21300,7 +21180,7 @@
    "delivery": false,
    "address": {
     "line1": "506 Inland Center Dr",
-    "city": "SN Bernrdno",
+    "city": "San Bernardino",
     "county": "San Bernardino",
     "state": "CA",
     "zip": "92408"
@@ -21317,7 +21197,7 @@
   },
   {
    "id": "c10-0001360-lic",
-   "name": "Hills and Valleys LLC [Equity Retailer]",
+   "name": "Hills and Valleys LLC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -21383,7 +21263,7 @@
   },
   {
    "id": "c10-0001365-lic",
-   "name": "WE ROLL UP LAX DISPENSARY & DELIVERY [Equity Retailer]",
+   "name": "WE ROLL UP LAX DISPENSARY & DELIVERY",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -21405,7 +21285,7 @@
   },
   {
    "id": "c10-0001366-lic",
-   "name": "STIIIZY Sacramento [Equity Retailer]",
+   "name": "STIIIZY Sacramento",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -21735,7 +21615,7 @@
   },
   {
    "id": "c10-0001388-lic",
-   "name": "Loe Dispensary [Equity Retailer]",
+   "name": "Loe Dispensary",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -21977,7 +21857,7 @@
   },
   {
    "id": "c10-0001403-lic",
-   "name": "Crystal Nugs Shop [Equity Retailer]",
+   "name": "Crystal Nugs Shop",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -22378,7 +22258,7 @@
    "delivery": false,
    "address": {
     "line1": "68031 Ramon Rd, Unit 103",
-    "city": "Cathedral CTY",
+    "city": "Cathedral City",
     "county": "Riverside",
     "state": "CA",
     "zip": "92234"
@@ -22395,7 +22275,7 @@
   },
   {
    "id": "c10-0001426-lic",
-   "name": "Prime Exotics [Equity Retailer]",
+   "name": "Prime Exotics",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -22752,7 +22632,7 @@
    "delivery": false,
    "address": {
     "line1": "67455 E Palm Canyon Dr",
-    "city": "Cathedral CTY",
+    "city": "Cathedral City",
     "county": "Riverside",
     "state": "CA",
     "zip": "92234"
@@ -22769,7 +22649,7 @@
   },
   {
    "id": "c10-0001446-lic",
-   "name": "SPARC [Equity Retailer]",
+   "name": "SPARC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -23038,7 +22918,7 @@
    "delivery": false,
    "address": {
     "line1": "1090 S Arrowhead Ave",
-    "city": "SN Bernrdno",
+    "city": "San Bernardino",
     "county": "San Bernardino",
     "state": "CA",
     "zip": "92408"
@@ -23055,7 +22935,7 @@
   },
   {
    "id": "c10-0001461-lic",
-   "name": "Off the Charts [Equity Retailer]",
+   "name": "Off the Charts",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -23077,7 +22957,7 @@
   },
   {
    "id": "c10-0001462-lic",
-   "name": "Nela Rd [Equity Retailer]",
+   "name": "Nela Rd",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -23099,7 +22979,7 @@
   },
   {
    "id": "c10-0001463-lic",
-   "name": "My420 [Equity Retailer]",
+   "name": "My420",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -23121,7 +23001,7 @@
   },
   {
    "id": "c10-0001464-lic",
-   "name": "Gradus Hollywood [Equity Retailer]",
+   "name": "Gradus Hollywood",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -23143,7 +23023,7 @@
   },
   {
    "id": "c10-0001465-lic",
-   "name": "Green Label RX [Equity Retailer]",
+   "name": "Green Label RX",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -23253,7 +23133,7 @@
   },
   {
    "id": "c10-0001470-lic",
-   "name": "Bishop Boyz LLC [Equity Retailer]",
+   "name": "Bishop Boyz LLC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -23473,7 +23353,7 @@
   },
   {
    "id": "c10-0001481-lic",
-   "name": "3185 MISSION LLC [Equity Retailer]",
+   "name": "3185 MISSION LLC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -23495,7 +23375,7 @@
   },
   {
    "id": "c10-0001482-lic",
-   "name": "GEEZZ DISPENSARY [Equity Retailer]",
+   "name": "GEEZZ DISPENSARY",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -23671,7 +23551,7 @@
   },
   {
    "id": "c10-0001490-lic",
-   "name": "Beyond Rooted 559 LLC [Equity Retailer]",
+   "name": "Beyond Rooted 559 LLC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -23803,7 +23683,7 @@
   },
   {
    "id": "c10-0001496-lic",
-   "name": "The Window [Equity Retailer]",
+   "name": "The Window",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -24221,7 +24101,7 @@
   },
   {
    "id": "c10-0001519-lic",
-   "name": "Tree House [Equity Retailer]",
+   "name": "Tree House",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -24243,7 +24123,7 @@
   },
   {
    "id": "c10-0001520-lic",
-   "name": "Al'S DEPOT & EMPROIUM [Equity Retailer]",
+   "name": "Al'S DEPOT & EMPROIUM",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -24265,7 +24145,7 @@
   },
   {
    "id": "c10-0001521-lic",
-   "name": "Toasty [Equity Retailer]",
+   "name": "Toasty",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -24331,7 +24211,7 @@
   },
   {
    "id": "c10-0001524-lic",
-   "name": "Pauwels Cannabis [Equity Retailer]",
+   "name": "Pauwels Cannabis",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -24490,7 +24370,7 @@
    "delivery": false,
    "address": {
     "line1": "35871 Date Palm Dr",
-    "city": "Cathedral CTY",
+    "city": "Cathedral City",
     "county": "Riverside",
     "state": "CA",
     "zip": "92234"
@@ -24661,7 +24541,7 @@
   },
   {
    "id": "c10-0001542-lic",
-   "name": "PLNTBSD [Equity Retailer]",
+   "name": "PLNTBSD",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -24793,7 +24673,7 @@
   },
   {
    "id": "c10-0001554-lic",
-   "name": "Pico Legacy LLC. [Equity Retailer]",
+   "name": "Pico Legacy LLC.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -24881,7 +24761,7 @@
   },
   {
    "id": "c10-0001561-lic",
-   "name": "Mammoth Roots [Equity Retailer]",
+   "name": "Mammoth Roots",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -24991,7 +24871,7 @@
   },
   {
    "id": "c10-0001567-lic",
-   "name": "L.A. DULCE [Equity Retailer]",
+   "name": "L.A. DULCE",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -25057,7 +24937,7 @@
   },
   {
    "id": "c10-0001570-lic",
-   "name": "PCF of Ceres [Equity Retailer]",
+   "name": "PCF of Ceres",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -25150,7 +25030,7 @@
    "delivery": false,
    "address": {
     "line1": "68444 Perez Rd, Unit A & B",
-    "city": "Cathedral CTY",
+    "city": "Cathedral City",
     "county": "Riverside",
     "state": "CA",
     "zip": "92234"
@@ -25211,7 +25091,7 @@
   },
   {
    "id": "c10-0001578-lic",
-   "name": "Purplez [Equity Retailer]",
+   "name": "Purplez",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -25255,7 +25135,7 @@
   },
   {
    "id": "c10-0001581-lic",
-   "name": "8278 [Equity Retailer]",
+   "name": "8278",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -25299,7 +25179,7 @@
   },
   {
    "id": "c10-0001583-lic",
-   "name": "Tree House [Equity Retailer]",
+   "name": "Tree House",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -25321,7 +25201,7 @@
   },
   {
    "id": "c10-0001584-lic",
-   "name": "Virgil FG [Equity Retailer]",
+   "name": "Virgil FG",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -25453,7 +25333,7 @@
   },
   {
    "id": "c10-0001592-lic",
-   "name": "Emerald Sasquatch [Equity Retailer]",
+   "name": "Emerald Sasquatch",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -25475,7 +25355,7 @@
   },
   {
    "id": "c10-0001595-lic",
-   "name": "FROM THE EARTH [Equity Retailer]",
+   "name": "FROM THE EARTH",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -25607,7 +25487,7 @@
   },
   {
    "id": "c10-0001601-lic",
-   "name": "GREEN LABEL RX. ECHO PARK LLC. [Equity Retailer]",
+   "name": "GREEN LABEL RX. ECHO PARK LLC.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -25695,7 +25575,7 @@
   },
   {
    "id": "c10-0001607-lic",
-   "name": "Kushology [Equity Retailer]",
+   "name": "Kushology",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -25761,7 +25641,7 @@
   },
   {
    "id": "c10-0001612-lic",
-   "name": "EJ2 Ventures LLC [Equity Retailer]",
+   "name": "EJ2 Ventures LLC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -25783,7 +25663,7 @@
   },
   {
    "id": "c10-0001613-lic",
-   "name": "TrapCon LLC [Equity Retailer]",
+   "name": "TrapCon LLC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -25893,7 +25773,7 @@
   },
   {
    "id": "c10-0001619-lic",
-   "name": "Off The Charts [Equity Retailer]",
+   "name": "Off The Charts",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -26025,7 +25905,7 @@
   },
   {
    "id": "c10-0001625-lic",
-   "name": "GreenSTOP [Equity Retailer]",
+   "name": "GreenSTOP",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -26091,7 +25971,7 @@
   },
   {
    "id": "c10-0001629-lic",
-   "name": "Off Green [Equity Retailer]",
+   "name": "Off Green",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -26135,7 +26015,7 @@
   },
   {
    "id": "c10-0001632-lic",
-   "name": "OG NATION X OFF THE CHARTS - LYNWOOD [Equity Retailer]",
+   "name": "OG NATION X OFF THE CHARTS - LYNWOOD",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -26223,7 +26103,7 @@
   },
   {
    "id": "c10-0001636-lic",
-   "name": "FLOWER & LEAF LA [Equity Retailer]",
+   "name": "FLOWER & LEAF LA",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -26377,7 +26257,7 @@
   },
   {
    "id": "c10-0001644-lic",
-   "name": "CALI LOVE WILLOWS [Equity Retailer]",
+   "name": "CALI LOVE WILLOWS",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -26487,7 +26367,7 @@
   },
   {
    "id": "c10-0001649-lic",
-   "name": "Foreign Sherman Oaks [Equity Retailer]",
+   "name": "Foreign Sherman Oaks",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -26553,7 +26433,7 @@
   },
   {
    "id": "c10-0001652-lic",
-   "name": "CHYLL [Equity Retailer]",
+   "name": "CHYLL",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -26641,7 +26521,7 @@
   },
   {
    "id": "c10-0001656-lic",
-   "name": "Central Remedies [Equity Retailer]",
+   "name": "Central Remedies",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -27455,7 +27335,7 @@
   },
   {
    "id": "c10-0001695-lic",
-   "name": "CANA LOS ANGELES [Equity Retailer]",
+   "name": "CANA LOS ANGELES",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -27763,7 +27643,7 @@
   },
   {
    "id": "c10-0001709-lic",
-   "name": "the real ish cannabis club [Equity Retailer]",
+   "name": "the real ish cannabis club",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -27801,72 +27681,6 @@
    "license": "C10-0001710-LIC",
    "licenseStatus": "Active",
    "licenseExpires": "2027-06-25",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0001711-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "1195 Florin Rd",
-    "city": "Sacramento",
-    "county": "Sacramento",
-    "state": "CA",
-    "zip": "95831"
-   },
-   "lat": 38.496129,
-   "lng": -121.51263,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001711-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-06-30",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0001712-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "860 Kaiser Rd, C & D",
-    "city": "Napa",
-    "county": "Napa",
-    "state": "CA",
-    "zip": "94558"
-   },
-   "lat": 38.258054,
-   "lng": -122.272726,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001712-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-04-20",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0001713-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "1150 1st St N, Suite B",
-    "city": "Dixon",
-    "county": "Solano",
-    "state": "CA",
-    "zip": "95620"
-   },
-   "lat": 38.457386,
-   "lng": -121.821763,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001713-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-06-18",
    "published": true,
    "licenseType": "Commercial - Retailer",
    "licenseCheckedOn": "2026-11-19"
@@ -27955,116 +27769,6 @@
    "license": "C10-0001717-LIC",
    "licenseStatus": "Active",
    "licenseExpires": "2027-01-24",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0001718-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "3015 H St",
-    "city": "Sacramento",
-    "county": "Sacramento",
-    "state": "CA",
-    "zip": "95816"
-   },
-   "lat": 38.575381,
-   "lng": -121.464922,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001718-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-04-11",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0001719-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "1220 Blumenfeld Dr",
-    "city": "Sacramento",
-    "county": "Sacramento",
-    "state": "CA",
-    "zip": "95815"
-   },
-   "lat": 38.604015,
-   "lng": -121.43863,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001719-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-06-25",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0001720-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "8848 Fruitridge Rd",
-    "city": "Sacramento",
-    "county": "Sacramento",
-    "state": "CA",
-    "zip": "95826"
-   },
-   "lat": 38.524819,
-   "lng": -121.374051,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001720-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-07-02",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0001721-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "6435 Florin Perkins Rd",
-    "city": "Sacramento",
-    "county": "Sacramento",
-    "state": "CA",
-    "zip": "95828"
-   },
-   "lat": 38.509333,
-   "lng": -121.389629,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001721-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-07-10",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0001722-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "900 Santa Rosa Ave",
-    "city": "Santa Rosa",
-    "county": "Sonoma",
-    "state": "CA",
-    "zip": "95404"
-   },
-   "lat": 38.430173,
-   "lng": -122.710673,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001722-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-03-23",
    "published": true,
    "licenseType": "Commercial - Retailer",
    "licenseCheckedOn": "2026-11-19"
@@ -28181,7 +27885,7 @@
   },
   {
    "id": "c10-0001729-lic",
-   "name": "Hollywood Walk of Weed [Equity Retailer]",
+   "name": "Hollywood Walk of Weed",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -28312,28 +28016,6 @@
    "licenseCheckedOn": "2026-11-19"
   },
   {
-   "id": "c10-0001736-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "1442 Angie Ave",
-    "city": "Modesto",
-    "county": "Stanislaus",
-    "state": "CA",
-    "zip": "95351"
-   },
-   "lat": 37.610186,
-   "lng": -120.939862,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001736-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-04-23",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
    "id": "c10-0001737-lic",
    "name": "Blue Fire",
    "storefront": true,
@@ -28373,28 +28055,6 @@
    "license": "C10-0001738-LIC",
    "licenseStatus": "Active",
    "licenseExpires": "2027-01-17",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0001739-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "1760 Challenge Way",
-    "city": "Sacramento",
-    "county": "Sacramento",
-    "state": "CA",
-    "zip": "95815"
-   },
-   "lat": 38.596995,
-   "lng": -121.425797,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001739-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-06-01",
    "published": true,
    "licenseType": "Commercial - Retailer",
    "licenseCheckedOn": "2026-11-19"
@@ -28488,28 +28148,6 @@
    "licenseCheckedOn": "2026-11-19"
   },
   {
-   "id": "c10-0001744-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "1704 Main Ave",
-    "city": "Sacramento",
-    "county": "Sacramento",
-    "state": "CA",
-    "zip": "95838"
-   },
-   "lat": 38.654359,
-   "lng": -121.426559,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001744-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-07-02",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
    "id": "c10-0001745-lic",
    "name": "Levels",
    "storefront": true,
@@ -28576,30 +28214,8 @@
    "licenseCheckedOn": "2026-11-19"
   },
   {
-   "id": "c10-0001749-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "5485 Alhambra Ave E",
-    "city": "Los Angeles",
-    "county": "Los Angeles",
-    "state": "CA",
-    "zip": "90032"
-   },
-   "lat": 34.078866,
-   "lng": -118.165689,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001749-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-10-06",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
    "id": "c10-0001750-lic",
-   "name": "L.A. Medical Cannabis Inc. [Equity Retailer]",
+   "name": "L.A. Medical Cannabis Inc.",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -28928,28 +28544,6 @@
    "licenseCheckedOn": "2026-11-19"
   },
   {
-   "id": "c10-0001768-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "1236 C St",
-    "city": "Sacramento",
-    "county": "Sacramento",
-    "state": "CA",
-    "zip": "95814"
-   },
-   "lat": 38.586621,
-   "lng": -121.486443,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001768-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-05-16",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
    "id": "c10-0001770-lic",
    "name": "Phenos of Hayward",
    "storefront": true,
@@ -29011,28 +28605,6 @@
    "license": "C10-0001772-LIC",
    "licenseStatus": "Active",
    "licenseExpires": "2027-06-25",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0001773-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "1726 Tanen St",
-    "city": "Napa",
-    "county": "Napa",
-    "state": "CA",
-    "zip": "94559"
-   },
-   "lat": 38.306327,
-   "lng": -122.285754,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001773-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-04-18",
    "published": true,
    "licenseType": "Commercial - Retailer",
    "licenseCheckedOn": "2026-11-19"
@@ -29104,28 +28676,6 @@
    "licenseCheckedOn": "2026-11-19"
   },
   {
-   "id": "c10-0001777-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "6771 Sebastopol Ave, Suite 100",
-    "city": "Sebastopol",
-    "county": "Sonoma",
-    "state": "CA",
-    "zip": "95472"
-   },
-   "lat": 38.402475,
-   "lng": -122.820302,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001777-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-07-17",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
    "id": "c10-0001778-lic",
    "name": "All About Wellness",
    "storefront": true,
@@ -29143,28 +28693,6 @@
    "license": "C10-0001778-LIC",
    "licenseStatus": "Active",
    "licenseExpires": "2027-05-11",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0001779-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "473 Haight St",
-    "city": "San Francisco",
-    "county": "San Francisco",
-    "state": "CA",
-    "zip": "94117"
-   },
-   "lat": 37.771932,
-   "lng": -122.429881,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001779-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-07-17",
    "published": true,
    "licenseType": "Commercial - Retailer",
    "licenseCheckedOn": "2026-11-19"
@@ -29236,28 +28764,6 @@
    "licenseCheckedOn": "2026-11-19"
   },
   {
-   "id": "c10-0001783-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "6720 Fruitridge Rd",
-    "city": "Sacramento",
-    "county": "Sacramento",
-    "state": "CA",
-    "zip": "95820"
-   },
-   "lat": 38.524773,
-   "lng": -121.424466,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001783-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-04-09",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
    "id": "c10-0001784-lic",
    "name": "INFINITY ASSETS FRESNO",
    "storefront": true,
@@ -29303,7 +28809,7 @@
   },
   {
    "id": "c10-0001786-lic",
-   "name": "WW Medical LLC [Equity Retailer]",
+   "name": "WW Medical LLC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -29435,7 +28941,7 @@
   },
   {
    "id": "c10-0001793-lic",
-   "name": "SEASHORE ENTERPRISE SONOMA LLC [Equity Retailer]",
+   "name": "SEASHORE ENTERPRISE SONOMA LLC",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -29611,7 +29117,7 @@
   },
   {
    "id": "c10-0001803-lic",
-   "name": "HARVEST OF BEVERLY WOOD [Equity Retailer]",
+   "name": "HARVEST OF BEVERLY WOOD",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -29764,28 +29270,6 @@
    "licenseCheckedOn": "2026-11-19"
   },
   {
-   "id": "c10-0001812-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "2767 E Broadway Ave",
-    "city": "Long Beach",
-    "county": "Los Angeles",
-    "state": "CA",
-    "zip": "90803"
-   },
-   "lat": 33.76577,
-   "lng": -118.159224,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001812-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-05-19",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
    "id": "c10-0001813-lic",
    "name": "Jackpot",
    "storefront": true,
@@ -29814,7 +29298,7 @@
    "delivery": false,
    "address": {
     "line1": "28201 Date Palm Dr, Suite B & C",
-    "city": "Cathedral CTY",
+    "city": "Cathedral City",
     "county": "Riverside",
     "state": "CA",
     "zip": "92234"
@@ -29825,28 +29309,6 @@
    "license": "C10-0001814-LIC",
    "licenseStatus": "Active",
    "licenseExpires": "2026-12-22",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0001815-lic",
-   "name": "[Equity Retailer]",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "6492 Florin Perkins Rd",
-    "city": "Sacramento",
-    "county": "Sacramento",
-    "state": "CA",
-    "zip": "95828"
-   },
-   "lat": 38.509282,
-   "lng": -121.394117,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001815-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-10-30",
    "published": true,
    "licenseType": "Commercial - Retailer",
    "licenseCheckedOn": "2026-11-19"
@@ -30095,7 +29557,7 @@
   },
   {
    "id": "c10-0001827-lic",
-   "name": "AZARA [Equity Retailer]",
+   "name": "AZARA",
    "storefront": true,
    "delivery": false,
    "address": {
@@ -30337,7 +29799,7 @@
   },
   {
    "id": "c10-0001839-lic",
-   "name": "Plu2o Dispensary [Equity Retailer]",
+   "name": "Plu2o Dispensary",
    "storefront": true,
    "delivery": false,
    "address": {

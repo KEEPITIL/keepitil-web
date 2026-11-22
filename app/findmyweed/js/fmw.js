@@ -533,7 +533,10 @@
     { key: 'home' }, { key: 'storefront' }, { key: 'delivery' }, { key: 'open' }, { key: 'deals' }, { key: 'retail' }, { key: 'brands' },
     { key: 'cultivation', businessOnly: true }, { key: 'manufacturing', businessOnly: true }, { key: 'distribution', businessOnly: true },
     { key: 'testing', businessOnly: true }, { key: 'microbusiness', businessOnly: true },
-    { key: 'services' }
+    { key: 'services' },
+    // Owner 2026-11-22 (A3): "Events shows events". A row counts only when a REAL event entry (data.events[].listingId)
+    // points at it, or the row carries a real 'events' category tag. No event data exists yet, so the chip says so.
+    { key: 'events' }
   ];
   function filtersFor(mode) { return FILTER_DEFS.filter(function (d) { return mode === 'business' || !d.businessOnly; }).map(function (d) { return d.key; }); }
   var FILTERS = filtersFor('customer');        // the customer filter bar
@@ -541,7 +544,7 @@
   var BUSINESS_FILTERS = FILTER_DEFS.filter(function (d) { return d.businessOnly; }).map(function (d) { return d.key; });
   // license-type words (the state's own licenseType text) for the license categories
   var LICENSE_CAT = { retail: /retail/i, cultivation: /cultivat|nursery|processor/i, manufacturing: /manufactur/i, distribution: /distribut/i, testing: /testing/i, microbusiness: /microbusiness/i };
-  function filterMatch(key, r, dealIds) {
+  function filterMatch(key, r, dealIds, eventIds) {
     var l = r && r.listing; if (!l) return false;
     var cats = Array.isArray(l.categories) ? l.categories : [];
     if (cats.indexOf(key) >= 0) return true;   // a real category tag on the row (none today)
@@ -550,17 +553,22 @@
       case 'delivery': return l.delivery === true;
       case 'open': return r.known !== false && hoursKnown(l) && r.open === true;
       case 'deals': return !!dealIds[l.id];
+      case 'events': return !!eventIds[l.id];
       default: return !!LICENSE_CAT[key] && typeof l.licenseType === 'string' && LICENSE_CAT[key].test(l.licenseType);
     }
   }
-  // The rows a chip keeps (results = search() rows). "home" or an unknown key = every row. Deals: only listings a REAL
-  // deal entry (data.deals[].listingId) points at.
+  // The rows a chip keeps (results = search() rows). "home" or an unknown key = every row. Deals / Events: only listings a
+  // REAL deal / event entry (data.deals[].listingId, data.events[].listingId) points at.
   function filterRows(data, results, key) {
     var rows = results || [];
     if (key === 'home' || ALL_FILTERS.indexOf(key) < 0) return rows.slice();
-    var dealIds = {};
-    ((data && Array.isArray(data.deals)) ? data.deals : []).forEach(function (d) { if (d && typeof d.listingId === 'string') dealIds[d.listingId] = 1; });
-    return rows.filter(function (r) { return filterMatch(key, r, dealIds); });
+    var ids = function (k) {
+      var o = {};
+      ((data && Array.isArray(data[k])) ? data[k] : []).forEach(function (d) { if (d && typeof d.listingId === 'string') o[d.listingId] = 1; });
+      return o;
+    };
+    var dealIds = ids('deals'), eventIds = ids('events');
+    return rows.filter(function (r) { return filterMatch(key, r, dealIds, eventIds); });
   }
   // the chip a ?f= value selects on the CUSTOMER bar; a business-only key (or anything unknown) is Home
   function filterKey(k) { return FILTERS.indexOf(k) >= 0 ? k : 'home'; }

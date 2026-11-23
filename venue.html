@@ -222,12 +222,21 @@ function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 var V=null, SLUG='';
 
+/* Same not-found state as /event and /profile: a heading, a way out, and noindex. A bare line of
+   text in the loading box gave a dead end with no navigation and left the page indexable. */
+function venueNF(){
+  var el=$('loading');
+  if(window.KIL_NOT_FOUND) window.KIL_NOT_FOUND({ what:'venue', heading:'That venue isn’t here',
+    body:'It may have been removed, or the link may be wrong.', into:'#loading',
+    links:[['/','Explore events'],['/connect/','Connect'],['/submit-event','Submit an event']] });
+  else if(el) el.textContent='This venue is not available.';
+}
 async function load(){
   SLUG=new URLSearchParams(location.search).get('v')||new URLSearchParams(location.search).get('slug')||'';
-  if(!SB||!SLUG){ $('loading').textContent='Venue not found.'; return; }
+  if(!SB||!SLUG){ venueNF(); return; }
   var r=null; try{ r=await SB.rpc('get_venue',{p_slug:SLUG}); }catch(e){ r=null; }
   V=r&&r.data&&r.data[0];
-  if(!V){ $('loading').textContent='This venue is not available.'; return; }
+  if(!V){ venueNF(); return; }
   render();
 }
 function render(){

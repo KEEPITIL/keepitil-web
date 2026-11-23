@@ -90,7 +90,11 @@ test('launched: every page is index,follow, the switch says launched, robots.txt
   for (const f of PAGES.filter((p) => p !== '404.html')) assert.deepEqual(indexableProblems(read(APP + '/' + f), f), []);
   assert.match(read(APP + '/404.html'), /<meta name="robots" content="noindex,follow">/);
   assert.equal(indexableProblems(read(APP + '/404.html'), '404.html').length, 1, 'CONTROL: the indexable check rejects the 404, as intended');
-  assert.match(read(APP + '/js/site-config.js'), /var CONFIG = \{ launched: true, reportForm: false, basePath: "\/app\/findmyweed", accounts: false \};/);
+  // sign-up LIVE (find-my-weed #77, owner GO 2026-11-22): accounts + claims on, the public project URL + anon key only
+  assert.match(read(APP + '/js/site-config.js'), /var CONFIG = \{ launched: true, reportForm: false, basePath: "\/app\/findmyweed", accounts: true, claims: true, authProject: \{ url: "https:\/\/ovmqtzjfpzrbzrlkxwgw\.supabase\.co", anonKey: "[A-Za-z0-9_.-]+" \} \};/);
+  assert.doesNotMatch(read(APP + '/js/site-config.js'), /service_role/);
+  // signup.html is noindex,follow (an account page, like the 404)
+  assert.match(read(APP + '/signup.html'), /<meta name="robots" content="noindex,follow">/);
   const robots = read(APP + '/robots.txt');
   assert.match(robots, /^Allow: \/$/m);
   assert.doesNotMatch(robots, /Disallow/);

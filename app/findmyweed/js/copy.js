@@ -118,8 +118,8 @@
     themeBright: 'Bright',
     themeDark: 'Dark',
     NAV_MENU: [
-      { key: 'signin', label: 'Sign in', account: true, pill: 'outline' },
-      { key: 'signup', label: 'Sign up', account: true, pill: 'fill' },
+      { key: 'signin', label: 'Sign in', account: true, pill: 'outline', page: 'signup.html?mode=signin' },
+      { key: 'signup', label: 'Sign up', account: true, pill: 'fill', page: 'signup.html' },
       { key: 'home', label: 'Home', group: 1, icon: 'home', page: 'index.html' },
       { key: 'storefronts', label: 'Storefronts', group: 1, icon: 'store', page: 'index.html?storefront=1', needsData: 'storefront' },
       { key: 'deliveries', label: 'Deliveries', group: 1, icon: 'truck', page: 'index.html?delivery=1', needsData: 'delivery' },
@@ -193,6 +193,8 @@
       about: { title: 'About · Find My Weed', description: 'How Find My Weed lists only state-licensed cannabis businesses, where the license data comes from, and its limits.' },
       privacy: { title: 'Privacy · Find My Weed', description: 'What Find My Weed stores: business data from the state license record only, no visitor accounts, no ad tracking.' },
       notfound: { title: 'Page not found · Find My Weed', description: 'This page does not exist. Search state-licensed cannabis businesses on Find My Weed.' },
+      // the sign-up page (signup.html, behind site.json "accounts"). Its own words are in js/signup-copy.js.
+      signup: { title: 'Account · Find My Weed', description: 'Find My Weed accounts are coming soon. Browsing licensed businesses needs no account.' },
       imageAlt: 'Find My Weed: search state-licensed cannabis storefronts and delivery services',   // the real share image (launched)
       imageAltPlaceholder: 'Find My Weed placeholder share image'   // the draft's placeholder image
     },

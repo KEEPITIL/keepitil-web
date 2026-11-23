@@ -17,7 +17,7 @@ export const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => 
 const vars = Object.fromEntries([...HTML.match(/:root\{([^}]*)\}/)[1].matchAll(/--([a-z-]+):(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]]));
 
 test('A205: plain links get the green link colour, readable (>= 4.5:1) on the page and card backgrounds', () => {
-  assert.match(HTML, /\n  a\{color:var\(--green\)\}\n/, 'base link colour rule');
+  assert.match(HTML, /\n  a\{color:var\(--green\)(;text-decoration:underline)?\}\n/, 'base link colour rule');
   const plain = [...HTML.matchAll(/<a (?![^>]*class="btn)[^>]*>/g)].length;
   assert.ok(plain >= 5, 'plain links exist (' + plain + ')');
   for (const bg of ['bg', 'card']) assert.ok(ratio(vars.green, vars[bg]) >= 4.5, 'green on ' + bg + ': ' + ratio(vars.green, vars[bg]).toFixed(2));

@@ -88,6 +88,9 @@
     rowDeals: 'Deals nearby',
     rowCategories: 'Categories',
     rowFeatured: 'Featured',
+    // Categories row tiles (FMW.categoryTiles): a tile only for a category with real rows in the area
+    catTile: { storefront: 'Storefronts', delivery: 'Deliveries', brands: 'Brands' },   // Services / Events: the chip words (fServices / fEvents)
+    catTileLabel: function (name) { return 'Show ' + name; },
     // Listing card lines (FMW.cardLines): 6 lines, unnumbered, unlabelled
     rating: function (n) { return n.toFixed(1) + ' ★'; },
     kindStorefront: 'Storefront',
@@ -146,6 +149,9 @@
     mapTitle: 'Map',
     mapLabel: function (n) { return 'Map of ' + n + (n === 1 ? ' licensed business' : ' licensed businesses') + '. Each dot opens the business.'; },
     mapDot: function (name, kind, city) { return name + ', ' + (kind === 'delivery' ? 'delivery service, shown at the centre of ' + (city || 'its city') : 'storefront' + (city ? ' in ' + city : '')); },
+    // Map pin shapes (owner 19:11 PT): one per customer category; the legend names the shapes on the map
+    pinCat: { retail: 'Retail', business: 'Business' },   // Events / Services: the chip words (fEvents / fServices)
+    mapLegendLabel: 'Pin shapes',
     mapDeliveryNote: 'Delivery services are shown at the centre of their city, never at their own address.',
     mapNotShown: function (n) { return n === 1 ? '1 business has no map location and is in the list only.' : n + ' businesses have no map location and are in the list only.'; },
     licenseStatus: function (s) { return 'State status: ' + (s === 'About to Expire' ? 'Active (about to expire)' : s); },

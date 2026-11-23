@@ -426,14 +426,39 @@
     var s = String(name == null ? '' : name).replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim();
     return !s || NO_NAME.test(s) || !/[A-Za-z0-9\u00C0-\uFFFF]/.test(s) ? '' : s;
   }
+  // The map ruling (owner 2026-11-21 19:11 PT, routed by Muse 19:13 PT). Each dot is a PIN whose SHAPE says its
+  // customer-facing category: one shape for RETAIL (storefront + delivery), one for EVENTS, one for SERVICES. The
+  // CUSTOMER map is consumer-facing only: a row whose state license type is a business-to-business one (cultivation,
+  // manufacturing, distribution, testing labs, microbusiness) gets NO pin there; those appear only on a business map
+  // (opts.mode === 'business'), which exists only behind business accounts (none yet).
+  // pinCategory: 'events' (a real data.events entry points at it, or a real 'events' tag), 'services' (a real
+  // 'services' tag), 'retail' (a retail license type, or a storefront / delivery row with no other type), else '' (B2B).
+  var B2B_TYPE = /cultivat|nursery|processor|manufactur|distribut|testing|microbusiness/i;
+  function pinCategory(l, eventIds) {
+    var cats = Array.isArray(l.categories) ? l.categories : [];
+    if ((eventIds && eventIds[l.id]) || cats.indexOf('events') >= 0) return 'events';
+    if (cats.indexOf('services') >= 0) return 'services';
+    var t = typeof l.licenseType === 'string' ? l.licenseType : '';
+    if (LICENSE_CAT.retail.test(t)) return 'retail';
+    if (t && B2B_TYPE.test(t)) return '';
+    return 'retail';
+  }
+  // A BRANDED pin carries the business's own icon inside it, ONLY when a real icon file is on record for that row
+  // (l.brandIcon, a same-site image under img/brands/; the CSP's img-src 'self'). No icon on file: the generic pin.
+  // Never a drawn or guessed logo for a real business.
+  var BRAND_RE = /^img\/brands\/[a-z0-9][a-z0-9_-]*\.(png|jpe?g|webp|svg)$/i;
+  function brandIcon(l) { return l && typeof l.brandIcon === 'string' && BRAND_RE.test(l.brandIcon) ? l.brandIcon : ''; }
   // The dots for a set of listings (normally a search's results). Only listings the site shows (licensed) get a dot.
-  // Returns { w, h, dots: [{ id, name, city, kind, x, y }], dropped: [{ id, why: 'outside' | 'no-location' }] }.
-  function mapDots(data, listings, now) {
-    var shown = licensed((data && data.listings) || [], now), ids = {};
+  // Returns { w, h, dots: [{ id, name, city, kind, cat, brand, x, y }], dropped: [{ id, why: 'outside' | 'no-location' }] }.
+  function mapDots(data, listings, now, opts) {
+    var shown = licensed((data && data.listings) || [], now), ids = {}, business = !!(opts && opts.mode === 'business'), eventIds = {};
     shown.forEach(function (l) { ids[l.id] = 1; });
+    ((data && Array.isArray(data.events)) ? data.events : []).forEach(function (e) { if (e && typeof e.listingId === 'string') eventIds[e.listingId] = 1; });
     var dots = [], dropped = [];
     (listings || []).forEach(function (l) {
       if (!l || !ids[l.id]) return;
+      var cat = pinCategory(l, eventIds);
+      if (!cat && !business) return;   // customer map: consumer-facing pins only
       // joe-0045: the map never shows a bracketed program tag ("[Equity Retailer]") and never a nameless dot: the name is
       // drawn without its tags, and a row with no real name left gets no dot at all.
       var name = mapName(l.name); if (!name) return;
@@ -442,7 +467,7 @@
       if (!pt) { dropped.push({ id: l.id, why: 'no-location' }); return; }
       var xy = project(pt.lat, pt.lng);
       if (!xy) { dropped.push({ id: l.id, why: 'outside' }); return; }
-      dots.push({ id: l.id, name: name, city: cityOf(l), kind: kind, x: xy.x, y: xy.y });
+      dots.push({ id: l.id, name: name, city: cityOf(l), kind: kind, cat: cat || 'business', brand: brandIcon(l), x: xy.x, y: xy.y });
     });
     return { w: MAP_W, h: MAP_H, dots: dots, dropped: dropped };
   }
@@ -592,6 +617,18 @@
     return out;
   }
 
+  // The Categories row (owner 17:25 PT: a 1:1 single-row carousel; 17:44 PT row 6) drawn from REAL listing data: one
+  // tile per CUSTOMER category that has at least one shown row in the current area (filterRows, the same rule as the
+  // chip it opens). No row behind a category = no tile; no tile at all = the row stays hidden. No counts, no images
+  // that do not exist: each tile is the category's own colour + pattern + icon, drawn in the page.
+  var CATEGORY_TILES = [
+    { key: 'storefront', icon: 'store' }, { key: 'delivery', icon: 'truck' }, { key: 'brands', icon: 'star' },
+    { key: 'services', icon: 'wrench' }, { key: 'events', icon: 'calendar' }
+  ];
+  function categoryTiles(data, results) {
+    return CATEGORY_TILES.filter(function (t) { return filterRows(data, results, t.key).length > 0; }).map(function (t) { return { key: t.key, icon: t.icon }; });
+  }
+
   // The six lines of a listing card, in order, unnumbered and unlabelled (approved spec item 8). Plain strings (shown with
   // textContent). r = one search() row; C = js/copy.js.
   //   1 name | 2 rating + distance (rating only when the row has a real 0-5 number; distance only when a location is
@@ -610,7 +647,7 @@
     return [String(l.name == null ? '' : l.name), two.join(' · '), hours, addr, kind + (county ? ' · ' + county : ''), String(l.license || '')];
   }
 
-  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, filterRows: filterRows, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, filterRows: filterRows, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
     dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;

@@ -51,3 +51,9 @@ test('does not mention kaitarako (unlisted app)', () => {
   assert.ok(exists(), 'apps/index.html is missing');
   assert.doesNotMatch(html(), /kai[\s_-]*tarako/i);
 });
+
+test("hub links on to the full /app/ catalog (apps and games) as a visible button", () => {
+  assert.ok(exists(), "apps/index.html is missing");
+  assert.match(html(), /<a class="cta" href="\/app\/">Browse all apps and games<\/a>/);
+  assert.ok(fs.existsSync(path.join(ROOT, "app", "index.html")), "/app/ must exist");
+});

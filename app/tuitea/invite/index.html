@@ -18,10 +18,11 @@
   CC0; the Android robot is CC BY 3.0, attributed in the footer). The globe is drawn here.
   2026-11-23 (Joe): simple text "You're invited to join for free", buttons Apple / Google / Web, and the
   invitation (?invite=<token>) is carried on to the web app by the redirect and the Web button.
+  The SMS is the link alone; the card image carries the words, so og:title is just "TUITEA" (Joe, 2026-11-23).
   Add ?stay=1 to the URL to see the page without being forwarded (QA and screenshots).
   Owned by the site, not by the TUITEA pipeline. Self-contained: no external scripts, fonts or trackers.
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'sha256-Jdz8kZ+OnoVFfWU6FwUydsyunKb607XGYzMtM/kpdCE='; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'sha256-u15rLI5utxBKE6NaHIqMriENi0lTDiqf4AtRnqWEPAI='; base-uri 'none'; form-action 'none'">
 <title>You're invited to join TUITEA for free</title>
 <meta name="description" content="You're invited to join for free.">
 <meta name="robots" content="noindex, follow">
@@ -34,7 +35,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TUITEA">
 <meta property="og:url" content="https://keepitil.com/app/tuitea/invite/">
-<meta property="og:title" content="You're invited to join TUITEA for free">
+<meta property="og:title" content="TUITEA">
 <meta property="og:description" content="You're invited to join for free.">
 <meta property="og:image" content="https://keepitil.com/app/tuitea/invite/invite_card_1200x630.png">
 <meta property="og:image:secure_url" content="https://keepitil.com/app/tuitea/invite/invite_card_1200x630.png">
@@ -43,7 +44,7 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="The TUITEA gold tree icon above the words: You're invited to join TUITEA for free">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="You're invited to join TUITEA for free">
+<meta name="twitter:title" content="TUITEA">
 <meta name="twitter:description" content="You're invited to join for free.">
 <meta name="twitter:image" content="https://keepitil.com/app/tuitea/invite/invite_card_1200x630.png">
 <meta name="twitter:image:alt" content="The TUITEA gold tree icon above the words: You're invited to join TUITEA for free">
@@ -69,7 +70,9 @@
     (/\bMacintosh\b/.test(ua) && touch > 1) || // iPadOS 13+ asking for the desktop site
     /\bMacintosh\b/.test(ua)                   // Mac
   );
-  loc.replace(apple && APP_STORE_LIVE ? APP_STORE : web);
+  // The Share button's link (open=web, Joe 2026-11-23) sends every device to the web app.
+  var toWeb = /[?&]open=web(?:&|$)/.test(loc.search || '');
+  loc.replace(apple && APP_STORE_LIVE && !toWeb ? APP_STORE : web);
 })(navigator, location, typeof document === 'undefined' ? null : document);
 </script>
 

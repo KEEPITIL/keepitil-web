@@ -113,6 +113,7 @@ footer a{margin:0 5px;}
 </style>
 
 <link rel="canonical" href="https://keepitil.com/apply"/>
+<style>.kil-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style>
 </head>
 <body>
 <nav id="main-nav"><div class="nav-inner">
@@ -134,12 +135,13 @@ footer a{margin:0 5px;}
 <div class="mobile-menu" id="mm"><a href="/">DISCOVER</a><a href="/connect/">CONNECT</a><a href="/create/">CREATE</a><a href="/culture/">CULTURE</a><a href="/earn/">EARN</a><a href="/apply" class="nav-cta">LOGIN</a></div>
 
 <main>
+<h1 class="kil-sr">Log in to KEEPITIL</h1>
   <div class="login-card">
     <div id="signin-box">
       <div class="login-logo">KEEPITIL</div>
       <div class="login-sub">Log in to your account</div>
-      <input type="text" id="login-id" placeholder="Username or email" autocapitalize="none" autocorrect="off" spellcheck="false"/>
-      <input type="password" id="password" placeholder="Password"/>
+      <input type="text" id="login-id" placeholder="Username or email" aria-label="Username or email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"/>
+      <input type="password" id="password" placeholder="Password" aria-label="Password" autocomplete="current-password"/>
       <button class="btn-login" id="login-btn">LOG IN</button>
       <div class="login-err" id="err"></div>
       <a href="#" class="forgot" id="forgot-link">Forgot password?</a>
@@ -153,7 +155,7 @@ footer a{margin:0 5px;}
     <div id="reset-box">
       <div class="login-logo">KEEPITIL</div>
       <div class="login-sub">Reset your password</div>
-      <input type="email" id="reset-email" placeholder="Your email" autocapitalize="none" autocorrect="off" spellcheck="false"/>
+      <input type="email" id="reset-email" placeholder="Your email" aria-label="Your email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false"/>
       <button class="btn-login" id="reset-btn">SEND RESET LINK</button>
       <div class="login-err" id="reset-msg" style="color:var(--blue)"></div>
       <a href="#" class="forgot" id="back-link">&larr; Back to log in</a>

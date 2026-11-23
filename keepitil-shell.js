@@ -1231,6 +1231,11 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           window.__kilProfileChecked=0; kilEnforceProfile(c, session);
         }, function(){ return kilEndSession(c); });
       }
+      /* Find My Weed accounts share this Supabase project but are NOT KEEPITIL members (owner ruling
+         2026-11-22, option A: FMW sign-ups are tagged user_metadata.app = 'findmyweed', and the
+         database gives them no app_users row). Never claim a KEEPITIL profile for one: end the
+         KEEPITIL-side session on this device instead (local only; the FMW app keeps its own). */
+      if(user.user_metadata&&user.user_metadata.app==='findmyweed') return kilEndSession(c);
       return c.rpc('my_profile_slug').then(function(rr){
         if(rr&&!rr.error&&rr.data){ window.KIL_SLUG=rr.data; return; }
         /* profile_owners is world-readable, so this is a second path, not a retry. */

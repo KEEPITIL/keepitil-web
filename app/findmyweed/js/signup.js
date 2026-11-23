@@ -69,6 +69,24 @@
   function phoneOk(s) { s = String(s == null ? '' : s).replace(/[\s().+-]/g, ''); return s === '' || /^1?\d{10}$/.test(s); }
   // The license check is NOT wired: this stub is the only verifier the page uses, and it always answers "pending".
   function verifyStub() { return { status: 'pending' }; }
+  // The emailed link's return, from the URL hash: { ok: true, kind } when it carries a session (#access_token=...), { ok: false }
+  // when the project answered with an error (#error=... / #error_code=..., e.g. an expired or used link), else null. The kind
+  // ('customer' | 'business') is read from the token's own claims for the wording only; nothing is trusted or kept from it.
+  function linkReturn(hash) {
+    var h = String(hash == null ? '' : hash).replace(/^#/, '');
+    if (!h) return null;
+    var q = {};
+    h.split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) { try { q[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, ' ')); } catch (e) { /* skip a bad pair */ } } });
+    if (q.error || q.error_code) return { ok: false, code: q.error_code || q.error };
+    if (!q.access_token) return null;
+    var kind = 'customer';
+    try {
+      var part = q.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      var claims = JSON.parse(typeof atob === 'function' ? atob(part + '==='.slice((part.length + 3) % 4)) : Buffer.from(part, 'base64').toString());
+      if (claims && claims.user_metadata && claims.user_metadata.kind === 'business') kind = 'business';
+    } catch (e) { /* not a readable token: the neutral wording */ }
+    return { ok: true, kind: kind };
+  }
   function emailOk(s) { s = String(s == null ? '' : s).trim(); return s.length <= 254 && /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(s); }
 
   // ------------------------------------------------------------------------------------------------ the page
@@ -85,6 +103,11 @@
     var accounts = CFG.accounts === true, business = accounts && CFG.claims === true;
     var st = { audience: business ? null : 'customer', mode: null, step: null, cls: null, unlocked: false, category: null };
     var wanted = /(?:^|[?&])as=business(?:&|$)/.test((win.location && win.location.search) || '');
+    // the menu's "Sign in" (signup.html?mode=signin) opens the sign-in path, not the sign-up one
+    var wantSignin = /(?:^|[?&])mode=signin(?:&|$)/.test((win.location && win.location.search) || '');
+    // back from the emailed link: the project's Auth puts the session (#access_token=...) or the error (#error_code=...) in the
+    // URL hash. Read once here, then drop it from the address bar and history (a token must never stay in a URL).
+    var ret = linkReturn((win.location && win.location.hash) || '');
 
     function el(tag, cls, text) { var e = doc.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
     function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
@@ -149,6 +172,21 @@
       s.appendChild(backLink()); box.appendChild(s); focusTitle();
     }
 
+    // ONE sender for both email steps. No back end: straight on (nothing is sent). With one: the submit button is disabled
+    // while the request is out; only an accepted request moves on; a refused one (rate limit, bad address) or a network
+    // failure shows S.sendFailed and lets the visitor try again.
+    function send(f, err, email, meta, next) {
+      if (!(AUTH && AUTH.requestSignIn)) return next();
+      var btn = f.querySelector ? f.querySelector('[data-act="continue"]') : null;
+      if (btn) btn.disabled = true;
+      err.textContent = '';
+      var fail = function () { if (btn) btn.disabled = false; err.textContent = S.sendFailed; err.setAttribute('data-reason', 'send-failed'); };
+      var res;
+      try { res = AUTH.requestSignIn(email, meta, cleanUrl()); } catch (e) { return fail(); }
+      return Promise.resolve(res).then(function (r) { if (r && r.ok) next(); else fail(); }, fail);
+    }
+    function cleanUrl() { var l = win.location || {}; return String(l.href || '').split('#')[0]; }
+
     var VIEWS = {
       choose: function () {
         head(S.chooseTitle, idx('choose'));
@@ -157,7 +195,7 @@
         [['customer', S.chooseCustomer, S.chooseCustomerHint], ['business', S.chooseBusiness, S.chooseBusinessHint]].forEach(function (x) {
           var b = button(null, x[0], 'choice');
           b.appendChild(el('strong', null, x[1])); b.appendChild(el('span', null, x[2]));
-          b.addEventListener('click', function () { st.audience = x[0]; go('start'); });
+          b.addEventListener('click', function () { st.audience = x[0]; go(st.mode === 'signin' ? 'signin' : 'start'); });
           c.appendChild(b);
         });
         box.appendChild(c);
@@ -219,9 +257,9 @@
         function submit() {
           if (!emailOk(em.value)) { err.textContent = S.emailBad; return; }
           // with a back end: the email-first sign-in link, ALWAYS tagged app = 'findmyweed' (js/fmw-auth.js) so the
-          // account never becomes a member of the host site. Without one (today): nothing is sent.
-          if (AUTH && AUTH.requestSignIn) AUTH.requestSignIn(em.value.trim(), { kind: st.audience === 'business' ? 'business' : 'customer', medical_only: st.cls === 'medical_18_20' }, (win.location && win.location.href || '').split('#')[0]);
-          go('theme');
+          // account never becomes a member of the host site. Without one: nothing is sent. The next step shows only after
+          // the project ACCEPTED the request: a refused or failed send stays here and says so (never a false "check your email").
+          send(f, err, em.value.trim(), { kind: st.audience === 'business' ? 'business' : 'customer', medical_only: st.cls === 'medical_18_20' }, function () { go('theme'); });
         }
       },
       theme: function () {   // ALWAYS the last step; js/theme.js applies and keeps the choice
@@ -322,8 +360,7 @@
         box.appendChild(f);
         function submit() {
           if (!emailOk(em.value)) { err.textContent = S.emailBad; return; }
-          if (AUTH && AUTH.requestSignIn) AUTH.requestSignIn(em.value.trim(), { kind: st.audience === 'business' ? 'business' : 'customer' }, (win.location && win.location.href || '').split('#')[0]);
-          done();
+          send(f, err, em.value.trim(), { kind: st.audience === 'business' ? 'business' : 'customer' }, done);
         }
       }
     };
@@ -341,14 +378,31 @@
       box.setAttribute('data-step', 'off'); box.appendChild(off);
       return st;
     }
+    if (ret) {   // back from the emailed link: drop the token / error from the URL, then say where the visitor stands
+      try { if (win.history && win.history.replaceState) win.history.replaceState(null, '', cleanUrl()); } catch (e) { /* the hash stays; nothing else */ }
+      if (ret.ok) {
+        st.step = 'signed-in'; clear(box); head(S.inTitle, 0); box.setAttribute('data-step', 'signed-in');
+        var si = el('div', 'state info'); si.setAttribute('role', 'status'); si.setAttribute('data-state', 'signed-in');
+        si.appendChild(el('p', null, ret.kind === 'business' ? S.inBodyBusiness : S.inBody));
+        si.appendChild(backLink()); box.appendChild(si); focusTitle();
+        return st;
+      }
+      st.step = 'link-error'; clear(box); head(S.linkBadTitle, 0); box.setAttribute('data-step', 'link-error');
+      var le = el('div', 'state error'); le.setAttribute('role', 'alert'); le.setAttribute('data-state', 'link-error');
+      le.appendChild(el('p', null, S.linkBadBody));
+      var again = button(S.linkAgain, 'again'); again.addEventListener('click', function () { st.mode = 'signin'; go(st.audience ? 'signin' : 'choose'); });
+      le.appendChild(actions(again, backLink())); box.appendChild(le); focusTitle();
+      return st;
+    }
     if (business && wanted) st.audience = 'business';   // "List Your Business" opens the business path directly
-    st.step = st.audience ? 'start' : 'choose';
+    if (wantSignin) st.mode = 'signin';
+    st.step = st.audience ? (st.mode === 'signin' ? 'signin' : 'start') : 'choose';
     render();
     return st;
   }
   function fmt(t) { var p = function (n) { return (n < 10 ? '0' : '') + n; }; return t.y + '-' + p(t.m) + '-' + p(t.d); }
 
-  var api = { eligibility: eligibility, asksMedical: asksMedical, steps: steps, emailOk: emailOk, licenseOk: licenseOk, phoneOk: phoneOk, parseDate: parseDate, ageOn: ageOn, todayParts: todayParts };
+  var api = { linkReturn: linkReturn, eligibility: eligibility, asksMedical: asksMedical, steps: steps, emailOk: emailOk, licenseOk: licenseOk, phoneOk: phoneOk, parseDate: parseDate, ageOn: ageOn, todayParts: todayParts };
   if (typeof module !== 'undefined' && module.exports) module.exports = Object.assign({ app: app, verifyStub: verifyStub }, api);
   else {
     root.FMW_SIGNUP = api;   // the pure rules only: the page itself is never handed a verifier

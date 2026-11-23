@@ -35,6 +35,15 @@
   // "List Your Business": the business pitch at <basePath>/for-business/ (a separate build, not in this export, so it is
   // set here from site.json basePath rather than written into the pages: a page link must resolve inside this folder).
   doc.querySelectorAll('a[data-biz]').forEach(function (n) { n.href = ((window.FMW_CONFIG && window.FMW_CONFIG.basePath) || '') + '/for-business/'; });
+  // The sign-up front end (signup.html) is behind site.json "accounts" / "claims", both OFF by default. Off: Sign in stays the
+  // placeholder above and List Your Business keeps the for-business link. "accounts" on: Sign in opens signup.html.
+  // "claims" on as well: List Your Business opens the business path there. Nothing here signs anyone in.
+  var ACCT = window.FMW_CONFIG && window.FMW_CONFIG.accounts === true, CLAIMS = ACCT && window.FMW_CONFIG.claims === true;
+  if (ACCT) doc.querySelectorAll('button.signin').forEach(function (b) {
+    var a = el('a', b.className, b.textContent); a.href = 'signup.html'; b.parentNode.replaceChild(a, b);
+    var note = doc.getElementById('signin-note'); if (note && note.parentNode) note.parentNode.removeChild(note);
+  });
+  if (CLAIMS) doc.querySelectorAll('a[data-biz]').forEach(function (n) { n.href = 'signup.html?as=business'; });
   if (!C.PLACEHOLDER) doc.querySelectorAll('.draft').forEach(function (n) { n.remove(); });
 
   // Icons: inline SVG paths (no image request; CSP img-src stays 'self'), drawn with currentColor.

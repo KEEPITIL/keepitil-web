@@ -26,6 +26,8 @@
   window.FMW_THEME = {
     choices: THEMES.slice(),
     get: function () { return choice; },
+    // the sign-up page's last step (js/signup.js) reads the shown theme and sets it with set('light' | 'dark')
+    current: function () { return root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; },
     set: function (t) {
       if (THEMES.indexOf(t) < 0) return;
       choice = t; put(KEY, t); apply(); watch();

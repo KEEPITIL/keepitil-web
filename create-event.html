@@ -540,12 +540,24 @@ async function seriesAction(act, slug, btn){
   }catch(e){ alert('Could not complete: '+(e.message||e)); btn.disabled=false; btn.textContent=old; }
 }
 
+/* LINK FIELDS: cover, Spotify and YouTube are stored and later rendered as image sources and
+   links on the public event page. Only http(s) is a valid link; anything else ("javascript:...",
+   a bare word, "www.x.com" without a scheme) either breaks the page or is a script-URL sink. */
+function badLink(v){ v=(v||'').trim(); return !!v && !/^https?:\/\/[^\s]+$/i.test(v); }
+function firstBadLink(){
+  var f=[['cover_url','Cover image link'],['spotify_url','Spotify link'],['youtube_url','YouTube link']];
+  for(var i=0;i<f.length;i++){ var el=document.getElementById(f[i][0]); if(el && badLink(el.value)) return f[i]; }
+  return null;
+}
+
 $('form').addEventListener('submit',async function(e){
   e.preventDefault();
   syncInline();
   var msg=$('msg'); msg.className='msg'; msg.textContent='';
   var title=$('title').value.trim();
   if(!title){ msg.className='msg err'; msg.textContent='Name your event (click the big title at the top).'; return; }
+  var _bl=firstBadLink();
+  if(_bl){ msg.className='msg err'; msg.textContent=_bl[1]+' must start with http:// or https://'; var _el=document.getElementById(_bl[0]); if(_el && _el.focus) _el.focus(); return; }
   var b=$('submitBtn'); b.disabled=true; b.textContent='Submitting…';
   try{
     var evStartISO=$('starts_at').value?new Date($('starts_at').value).toISOString():null;

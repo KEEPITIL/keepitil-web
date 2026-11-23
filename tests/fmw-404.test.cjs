@@ -40,7 +40,7 @@ test('missing FMW page shows the Find My Weed panel and does not redirect', () =
 });
 
 test('the FMW panel links back to the Find My Weed home', () => {
-  const panel = html.match(/<div class="wrap" id="fmwfourohfour"[\s\S]*?<\/div>/)[0];
+  const panel = html.match(/<main class="wrap" id="fmwfourohfour"[\s\S]*?<\/main>/)[0];
   assert.match(panel, /href="\/app\/findmyweed\/"[^>]*>Back to Find My Weed</);
 });
 
@@ -54,4 +54,14 @@ test('other missing paths keep the KEEPITIL panel', () => {
 
 test('clean URLs still route', () => {
   assert.deepEqual(run('/profile/someone').replaced, ['/profile?slug=someone']);
+});
+
+// live-shots finding (axe landmark-one-main): each 404 panel is a <main>, so the page has a main landmark. NEGATIVE CONTROL below.
+test('both 404 panels are <main> landmarks', () => {
+  const h = fs.readFileSync(require('path').join(__dirname, '..', '404.html'), 'utf8');
+  assert.equal((h.match(/<main class="wrap" id="(fmwfourohfour|fourohfour)"/g) || []).length, 2);
+  assert.equal((h.match(/<\/main>/g) || []).length, 2);
+  assert.doesNotMatch(h.replace(/<main class="wrap"/g, ''), /<div class="wrap" id="(fmw)?fourohfour"/);
+  const old = h.replace(/<main class="wrap"/g, '<div class="wrap"');
+  assert.notEqual((old.match(/<main class="wrap" id=/g) || []).length, 2, 'the pre-fix markup has no main');
 });

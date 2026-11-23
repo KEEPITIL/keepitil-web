@@ -74,10 +74,19 @@ h2,.rtitle{font-size:20px;margin:22px 0 10px;text-wrap:balance}
 .map h2{font-size:15px;color:var(--muted);font-weight:700;margin-bottom:8px}
 .map-svg{display:block;width:100%;height:auto;aspect-ratio:4/3;max-height:420px;background:var(--bg);border:1px solid var(--line);border-radius:12px}
 .map-outline path{fill:none;stroke:var(--ctl);stroke-width:1;vector-effect:non-scaling-stroke}
-.map-svg .dot circle{fill:var(--green);stroke:var(--bg);stroke-width:2;vector-effect:non-scaling-stroke}
-.map-svg .dot.delivery circle{fill:var(--bg);stroke:var(--green);stroke-width:3}
+/* Pins (owner 19:11 PT): the shape is the category (retail round, events square, services diamond); the white centre is
+   the generic pin, a business's own icon (img/brands/) sits in the head when one is on file */
+.map-svg .dot .pin{fill:var(--green);stroke:var(--bg);stroke-width:1.5;vector-effect:non-scaling-stroke}
+.map-svg .dot.delivery .pin{fill:var(--bg);stroke:var(--green);stroke-width:3}
+.map-svg .dot .pin-hole{fill:var(--bg)}
+.map-svg .dot.delivery .pin-hole{fill:var(--green)}
+.map-svg .dot .pin-face{fill:var(--card)}
 .map-svg .dot:focus-visible{outline:none}
-.map-svg .dot:focus-visible circle,.map-svg .dot:hover circle{stroke:var(--text);stroke-width:5}
+.map-svg .dot:focus-visible .pin,.map-svg .dot:hover .pin{stroke:var(--text);stroke-width:4}
+.map-legend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;margin-top:8px;font-size:13px;color:var(--muted)}
+.map-legend li{display:inline-flex;align-items:center;gap:4px}
+.lg-pin{width:14px;height:17px}
+.lg-pin .pin{fill:var(--green);stroke:var(--bg);stroke-width:1}
 .map-note{font-size:13px;margin-top:8px}
 .listing{display:grid;grid-template-columns:114px minmax(0,1fr);gap:12px;align-items:start;height:132px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px;color:var(--text);text-decoration:none;overflow:hidden}
 .listing:hover{border-color:var(--green)}
@@ -185,6 +194,10 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .ads .tile img{aspect-ratio:16/9;height:auto}
 .categories .tile{width:96px}
 .categories .tile img{aspect-ratio:1/1;height:auto}
+/* Categories from real listing data: a 1:1 tile drawn in the page (accent wash + icon), no image file needed */
+.cat-art{display:flex;align-items:center;justify-content:center;width:96px;aspect-ratio:1/1;background:var(--tint);border:1px solid var(--line);border-radius:12px;color:var(--green)}
+.cat-art .cat-ico{width:40px;height:40px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cat-tile .tile-in:hover .cat-art,.cat-tile .tile-in:focus-visible .cat-art{border-color:var(--green)}
 .deals .tile,.featured .tile{width:200px}
 .deals .tile img,.featured .tile img{aspect-ratio:16/9;height:auto}
 .rtitle{margin-top:14px}
@@ -193,7 +206,7 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .discover .map-svg{height:auto;aspect-ratio:4/3;max-height:420px}
 .map-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .map-head h2{margin:0}
-.map-svg .dot.sel circle{fill:var(--band-accent);stroke:var(--text);stroke-width:4}
+.map-svg .dot.sel .pin{fill:var(--band-accent);stroke:var(--text);stroke-width:3}
 .rail h2{font-size:17px;margin:4px 0 10px;background:var(--section);color:var(--on-section);border:1px solid var(--section-edge);border-radius:10px;padding:7px 12px;letter-spacing:.01em}
 .rail+.rail{margin-top:22px}
 /* the listing card: the same fixed size everywhere. 1:1 tile (114px) + six 19px lines (114px): text never taller than the tile */

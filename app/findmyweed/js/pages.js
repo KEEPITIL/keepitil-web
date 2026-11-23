@@ -212,6 +212,27 @@
   // outline is a SLOT: js/map-outline.js sets window.FMW_OUTLINE (null until a boundary file exists), and the map works
   // the same without it. Text goes in with textContent only.
   function detailHref(id) { return 'listing.html?id=' + encodeURIComponent(id) + (location.search ? '&from=' + encodeURIComponent(location.search) : ''); }
+  // Map pins (owner 19:11 PT): the SHAPE says the category (retail = round pin, events = square pin, services = diamond
+  // pin); the tip sits on the business's point. Inside the head: the business's own icon when one is on file
+  // (F.brandIcon, same-site img/brands/...), else the generic pin's white centre. Delivery-only = an outlined retail pin.
+  var PIN_ORDER = ['retail', 'events', 'services', 'business'];
+  var PIN_PATH = {
+    retail: 'M0 0C-2.4-3.6-6-7.2-6-11a6 6 0 1 1 12 0c0 3.8-3.6 7.4-6 11z',
+    events: 'M0 0l-2.6-4.4H-5.5a1.5 1.5 0 0 1-1.5-1.5V-16.5a1.5 1.5 0 0 1 1.5-1.5h11a1.5 1.5 0 0 1 1.5 1.5V-5.9a1.5 1.5 0 0 1-1.5 1.5H2.6z',
+    services: 'M0 0L-2.6-4.6-7.4-11 0-18.4 7.4-11 2.6-4.6z',
+    business: 'M0 0l-2.4-4.2H-6.6V-17.6H6.6V-4.2H2.4z'
+  };
+  function pinWord(c) { return c === 'events' ? C.fEvents : c === 'services' ? C.fServices : C.pinCat[c]; }
+  function pinShape(d, r) {
+    var k = +(r * (d.kind === 'delivery' ? 0.3 : 0.25)).toFixed(3);
+    var gp = svg('g', { 'class': 'pin-g pin-' + d.cat, transform: 'translate(' + d.x + ' ' + d.y + ') scale(' + k + ')' });
+    gp.appendChild(svg('path', { 'class': 'pin', d: PIN_PATH[d.cat] || PIN_PATH.retail }));
+    if (d.brand) {
+      gp.appendChild(svg('circle', { 'class': 'pin-face', cx: 0, cy: -11, r: 4.6 }));
+      gp.appendChild(svg('image', { 'class': 'pin-brand', href: d.brand, x: -4, y: -15, width: 8, height: 8, preserveAspectRatio: 'xMidYMid slice' }));
+    } else gp.appendChild(svg('circle', { 'class': 'pin-hole', cx: 0, cy: -11, r: 2.2 }));
+    return gp;
+  }
   function renderMap(box, data, results) {
     clear(box); box.hidden = true;
     var m = F.mapDots(data, results.map(function (r) { return r.listing; }), new Date());
@@ -227,10 +248,22 @@
     m.dots.slice().sort(function (x, y) { return (x.kind === 'delivery' ? 0 : 1) - (y.kind === 'delivery' ? 0 : 1); }).forEach(function (d) {
       var label = C.mapDot(d.name, d.kind, d.city), a = svg('a', { href: detailHref(d.id), 'class': 'dot ' + d.kind, 'data-id': d.id, 'aria-label': label, tabindex: 0 });
       var t = svg('title'); t.textContent = label; a.appendChild(t);
-      a.appendChild(svg('circle', { cx: d.x, cy: d.y, r: d.kind === 'delivery' ? +(r * 1.6).toFixed(2) : r }));
+      a.setAttribute('data-cat', d.cat);
+      a.appendChild(pinShape(d, r));
       g.appendChild(a);
     });
     s.appendChild(g); box.appendChild(s);
+    // the legend: the pin shapes on this map, by category (shape + label, so a category reads without tapping)
+    var cats = PIN_ORDER.filter(function (c) { return m.dots.some(function (d) { return d.cat === c; }); });
+    if (cats.length) {
+      var lg = el('ul', 'map-legend'); lg.setAttribute('aria-label', C.mapLegendLabel);
+      cats.forEach(function (c) {
+        var li = el('li', 'lg-' + c), sv = svg('svg', { 'class': 'lg-pin pin-' + c, viewBox: '-9 -21 18 22', 'aria-hidden': 'true', focusable: 'false' });
+        sv.appendChild(svg('path', { 'class': 'pin', d: PIN_PATH[c] || PIN_PATH.retail }));
+        li.appendChild(sv); li.appendChild(el('span', null, pinWord(c))); lg.appendChild(li);
+      });
+      box.appendChild(lg);
+    }
     if (m.dots.some(function (d) { return d.kind === 'delivery'; })) box.appendChild(el('p', 'muted map-note', C.mapDeliveryNote));
     if (m.dropped.length) box.appendChild(el('p', 'muted map-note', C.mapNotShown(m.dropped.length)));
     box.hidden = false;
@@ -389,6 +422,7 @@
           return;
         }
         // a chip: only the area's rows with a REAL value for it. None: say so plainly (never invented rows), one way back.
+        CATS(data, res.results);
         var rows = p.f !== 'home' ? F.filterRows(data, res.results, p.f) : res.results;
         if (!rows.length) {
           head.textContent = C.filterEmptyTitle(C[FILTER_COPY[p.f]], placeName || cityName);
@@ -418,6 +452,26 @@
       });
     };
     var PROMO = function (data) { var rows = F.promoRows(data); F.PROMO_ROWS.forEach(function (k) { renderRow(k, rows[k]); }); };
+    // Categories (row 6, a 1:1 single-row carousel) from REAL listing data: one tile per customer category with shown rows
+    // in this area (F.categoryTiles). A tile opens the same in-place filter as its chip. Entries in the data file
+    // (data.categories, with real images) win when they exist. No tile = the row stays hidden.
+    var CATS = function (data, results) {
+      if (F.promoRows(data).categories.length) return;
+      var sec = doc.getElementById('row-categories'), ul = sec && sec.querySelector ? sec.querySelector('ul') : null;
+      if (!sec || !ul) return;
+      clear(ul); sec.hidden = true;
+      var tiles = F.categoryTiles(data, results);
+      tiles.forEach(function (t) {
+        var u = areaParams(); u.set('f', t.key);
+        var name = C.catTile[t.key] || C[FILTER_COPY[t.key]], li = el('li', 'tile cat-tile cat-' + t.key), a = el('a', 'tile-in');
+        a.href = '?' + u.toString(); a.setAttribute('data-cat', t.key); a.setAttribute('aria-label', C.catTileLabel(name));
+        var art = el('span', 'cat-art'); art.setAttribute('aria-hidden', 'true'); art.appendChild(icon(t.icon, 'cat-ico'));
+        a.appendChild(art); a.appendChild(el('span', 'tile-label', name));
+        a.addEventListener('click', function (e) { if (!canPush) return; e.preventDefault(); var v = areaParams(); v.set('f', t.key); go(v); });
+        li.appendChild(a); ul.appendChild(li);
+      });
+      sec.hidden = !tiles.length;
+    };
     run();
     return;
   }

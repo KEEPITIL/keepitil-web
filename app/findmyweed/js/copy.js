@@ -194,7 +194,7 @@
       privacy: { title: 'Privacy · Find My Weed', description: 'What Find My Weed stores: business data from the state license record only, no visitor accounts, no ad tracking.' },
       notfound: { title: 'Page not found · Find My Weed', description: 'This page does not exist. Search state-licensed cannabis businesses on Find My Weed.' },
       // the sign-up page (signup.html, behind site.json "accounts"). Its own words are in js/signup-copy.js.
-      signup: { title: 'Account · Find My Weed', description: 'Find My Weed accounts are coming soon. Browsing licensed businesses needs no account.' },
+      signup: { title: 'Account · Find My Weed', description: 'Create a Find My Weed account or sign in with an emailed link. Browsing licensed businesses needs no account.' },
       imageAlt: 'Find My Weed: search state-licensed cannabis storefronts and delivery services',   // the real share image (launched)
       imageAltPlaceholder: 'Find My Weed placeholder share image'   // the draft's placeholder image
     },

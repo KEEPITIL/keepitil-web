@@ -43,7 +43,16 @@
       // with the back end (site.json authProject): the sign-in link was sent
       sentTitle: 'Check your email',
       sentBody: 'We sent you a sign-in link. Open it on this device to finish. Your date of birth was not saved.',
-      soonTheme: 'Your light or dark choice is kept in this browser only.'
+      soonTheme: 'Your light or dark choice is kept in this browser only.',
+      // a refused or failed sign-in link request (rate limit, network): stay on the email step and say so
+      sendFailed: 'We could not send the sign-in link just now. Wait a minute and try again.',
+      // back from the emailed link
+      inTitle: 'You’re signed in',
+      inBody: 'Your email is confirmed and your Find My Weed account is open. Browsing licensed businesses needs no sign-in.',
+      inBodyBusiness: 'Your email is confirmed and your business account is open. We email you next to book the short screening call.',
+      linkBadTitle: 'That sign-in link has expired',
+      linkBadBody: 'Sign-in links work once and only for a short time. Ask for a new one and open it on this device.',
+      linkAgain: 'Email me a new link'
     },
     customer: {
       startTitle: 'Your account',

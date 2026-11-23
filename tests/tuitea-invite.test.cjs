@@ -77,7 +77,7 @@ for (const [label, ua, touch, , wantLive] of UA) {
 }
 
 test('negative control: the checklist would catch a script that sends everyone to the App Store', () => {
-  const broken = scriptMatch[1].replace('loc.replace(apple && APP_STORE_LIVE ? APP_STORE : web)', 'loc.replace(APP_STORE)');
+  const broken = scriptMatch[1].replace('loc.replace(apple && APP_STORE_LIVE && !toWeb ? APP_STORE : web)', 'loc.replace(APP_STORE)');
   assert.notEqual(broken, scriptMatch[1], 'the replacement must apply');
   const calls = [];
   vm.runInNewContext(broken, { navigator: { userAgent: UA[9][1], maxTouchPoints: 5 }, location: { search: '', replace: (u) => calls.push(u) } });
@@ -93,6 +93,15 @@ test('Joe 2026-11-23: the invitation (?invite=<token>) is carried on to the web 
   assert.equal(run(UA[9][1], 5, `?invite=${tok.slice(0, 20)}`), WEB_APP);
 });
 
+test('Joe 2026-11-23: the Share link (open=web) sends every device to the web app with the invitation', () => {
+  const tok = '0123456789abcdef0123456789abcdef';
+  assert.equal(run(UA[0][1], 5, `?invite=${tok}&open=web`), `${WEB_APP}?invite=${tok}`, 'iPhone');
+  assert.equal(run(UA[9][1], 5, `?invite=${tok}&open=web`), `${WEB_APP}?invite=${tok}`, 'Android');
+  // CONTROL: without open=web an iPhone still goes to the App Store.
+  assert.equal(run(UA[0][1], 5, `?invite=${tok}`), LIVE_NOW ? APP_STORE : `${WEB_APP}?invite=${tok}`);
+  assert.equal(run(UA[0][1], 5, `?invite=${tok}&open=webby`), LIVE_NOW ? APP_STORE : `${WEB_APP}?invite=${tok}`);
+});
+
 test('Joe 2026-11-23: simple text "You\'re invited to join for free"', () => {
   assert.match(html, /<p class="lead">You're invited to join for free\.<\/p>/);
 });
@@ -103,7 +112,8 @@ test('?stay=1 keeps the page (QA and screenshots)', () => {
 });
 
 test('link preview: og and twitter tags point at the invite card', () => {
-  assert.equal(meta('property', 'og:title'), "You're invited to join TUITEA for free");
+  assert.equal(meta('property', 'og:title'), 'TUITEA', 'the card image carries the words (Joe 2026-11-23)');
+  assert.equal(meta('name', 'twitter:title'), 'TUITEA');
   assert.ok((meta('property', 'og:description') || '').length > 20);
   assert.equal(meta('property', 'og:url'), 'https://keepitil.com/app/tuitea/invite/');
   assert.equal(meta('property', 'og:image'), CARD);

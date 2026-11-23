@@ -204,6 +204,12 @@
     footerNote: 'Find My Weed is a directory of state-licensed businesses. Check your local laws.',
     footerAbout: 'About',
     footerPrivacy: 'Privacy',
+    // SB 378 (Bus. & Prof. Code 22943, cannabis marketplaces): a PUBLIC way to report an unlicensed seller, in the footer of
+    // every page, no account needed. A plain mailto to info@keepitil.com (Joe's support address): no form, no network call,
+    // no database. The same href is written into each page so it works before (and without) JavaScript.
+    footerReport: 'Report an unlicensed seller',
+    footerReportNote: 'Opens an email to info@keepitil.com. No account needed.',
+    reportSellerHref: 'mailto:info@keepitil.com?subject=Report%20an%20unlicensed%20seller%20(Find%20My%20Weed)&body=Business%20or%20seller%20name%3A%0A%0AWhere%20you%20saw%20it%20(address%2C%20website%2C%20app%20or%20social%20account)%3A%0A%0AWhat%20happened%2C%20and%20when%3A%0A%0A',
     // About / Privacy / 404 pages (PLACEHOLDER; the Privacy text also needs a privacy review before launch).
     // Each page: a title and sections of plain-text paragraphs. Everything stated here is true of the code and
     // docs/DATA_PLAN.md today; keep it that way when editing.

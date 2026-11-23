@@ -22,7 +22,8 @@ const ORIGIN = 'https://keepitil.com';
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const PAGES = ['index.html', 'results.html', 'listing.html', 'about.html', 'privacy.html', '404.html'];
 const BUSINESS = APP + '/for-business/index.html';
-const BUSINESS_SHA256 = 'd334009b97c7885ad8d612876ba11f6e27d80996a1e1cd5cc99d5d4505866398';   // QA 2026-11-22: the two join buttons open the live business sign-up (signup.html?as=business) instead of reloading this page, on top of the R-J1 pin below
+const BUSINESS_SHA256 = '6603448efc2f2f5b4f021c12bd62e736f567501bb3d71a4cc2e3b3ff21b12cd6';   // QA 2026-11-22 (2): the comparison table fits a 390px phone (13px text, 7px/6px cells under 480px), on top of the join-button pin below
+const BUSINESS_SHA256_JOIN = 'd334009b97c7885ad8d612876ba11f6e27d80996a1e1cd5cc99d5d4505866398';   // QA 2026-11-22: the two join buttons open the live business sign-up (signup.html?as=business) instead of reloading this page, on top of the R-J1 pin below
 const BUSINESS_SHA256_RJ1 = '606b4b942866d5cd7f8c264abb6ed87a565ff1be376c390874a5f65617c5545b';   // R-J1: the two /findmyweed-join buttons point at /app/findmyweed/for-business/ (findmyweed-join.html deleted), and the /needs "Tell Us What You Need" button is removed (+ one .cta spacing rule), on top of the A205 pin below
 const BUSINESS_SHA256_A205 = '337b4a6cbebab54852ea5e6c61e108865afdeea04ccbb1934b156b645c7d0db9';   // A205 (post-launch): link colour + '21+ (18+ medical where legal)' on top of the launch pin below
 const BUSINESS_SHA256_LAUNCH = '595e06ff59e450fbb09bf5b3ae50d8cdafc503e9fefcf4dc236b3faf32009342';   // as launched: #201 minus the M201-1 robots meta and the 10% commission bullet
@@ -166,7 +167,9 @@ test('for-business/: the #201 bytes minus the M201-1 robots meta and the commiss
   // R-J1: the only differences from the A205 page are the two buttons that pointed at the deleted /findmyweed-join,
   // and the removed /needs CTA button with the .cta spacing rule that keeps the button-less box even
   // QA 2026-11-22: the only difference from the R-J1 page is the two join buttons now opening the business sign-up
-  const rj1 = biz.toString('utf8')
+  const join = biz.toString('utf8').replace('@media(max-width:480px){.cmp{font-size:13px}.cmp th,.cmp td{padding:7px 6px}}</style>', '</style>');
+  assert.equal(sha(join), BUSINESS_SHA256_JOIN);
+  const rj1 = join
     .replace('href="https://keepitil.com/app/findmyweed/signup.html?as=business">Start Annual', 'href="https://keepitil.com/app/findmyweed/for-business/">Start Annual')
     .replace('href="https://keepitil.com/app/findmyweed/signup.html?as=business">Join the Network', 'href="https://keepitil.com/app/findmyweed/for-business/">Join the Network');
   assert.equal(sha(rj1), BUSINESS_SHA256_RJ1);

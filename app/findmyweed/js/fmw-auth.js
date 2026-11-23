@@ -4,15 +4,21 @@
 // host-site member row (migration 20261123010000_fmw_signup) and the host site never claims a profile for it.
 (function (root) {
   var APP = 'findmyweed';
+  // a payment link from the server is shown only if it is a Stripe Payment Link (the pattern below), nothing else
+  function payLinkOk(u) { return /^https:\/\/buy\.stripe\.com\/[A-Za-z0-9]+$/.test(String(u == null ? '' : u)); }
   function make(cfg, fetchFn) {
     var url = cfg && cfg.url, key = cfg && cfg.anonKey;
     if (!url || !key) return null;
     var base = { 'Content-Type': 'application/json', apikey: key };
     return {
       APP: APP,
-      // email-first sign-in link; meta = { kind: 'customer' | 'business', medical_only: boolean }
+      payLinkOk: payLinkOk,
+      // email-first sign-in link; meta = { kind: 'customer' | 'business', medical_only: boolean, license?, legal_name? }. A
+      // business's license number + legal name ride along (account metadata) so that, once the emailed link signs them in,
+      // the license is checked AGAIN with their own token and the verified result is recorded against THEIR user id.
       requestSignIn: function (email, meta, redirectTo) {
         var data = { app: APP, kind: meta && meta.kind === 'business' ? 'business' : 'customer', medical_only: !!(meta && meta.medical_only) };
+        if (data.kind === 'business' && meta.license) { data.license = String(meta.license).slice(0, 40); data.legal_name = String(meta.legal_name || '').slice(0, 200); }
         return fetchFn(url + '/auth/v1/otp' + (redirectTo ? '?redirect_to=' + encodeURIComponent(redirectTo) : ''), {
           method: 'POST', headers: base, body: JSON.stringify({ email: String(email), create_user: true, data: data })
         }).then(function (r) { return { ok: !!(r && r.ok) }; });
@@ -29,10 +35,20 @@
           .then(function (r) { return r.ok ? r.json() : { result: 'flagged' }; })
           .then(function (j) { return { status: j && j.result === 'verified' ? 'verified' : j && j.result === 'not_found' ? 'not_found' : 'flagged' }; },
                 function () { return { status: 'flagged' }; });
+      },
+      // business pricing: ONLY from the server (rpc fmw.business_pricing, migration 20261123030000), which answers with prices
+      // only for a signed-in FMW user with a confirmed email AND a verified license recorded for them. No token: no call.
+      pricing: function (token) {
+        if (!token) return Promise.resolve({ allowed: false, reason: 'signin' });
+        var h = Object.assign({}, base, { Authorization: 'Bearer ' + token, 'Content-Profile': 'fmw' });
+        return fetchFn(url + '/rest/v1/rpc/business_pricing', { method: 'POST', headers: h, body: '{}' })
+          .then(function (r) { return r.ok ? r.json() : { allowed: false, reason: 'error' }; })
+          .then(function (j) { return j && j.allowed === true && j.pricing ? { allowed: true, pricing: j.pricing } : { allowed: false, reason: (j && j.reason) || 'error' }; },
+                function () { return { allowed: false, reason: 'error' }; });
       }
     };
   }
-  var api = { make: make, APP: APP };
+  var api = { make: make, APP: APP, payLinkOk: payLinkOk };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.FMW_AUTH = make(root.FMW_CONFIG && root.FMW_CONFIG.authProject, root.fetch && root.fetch.bind(root));
 })(this);

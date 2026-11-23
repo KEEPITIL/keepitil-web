@@ -36,34 +36,46 @@ function run(userAgent, maxTouchPoints = 0, search = '') {
 }
 
 // [label, user agent, maxTouchPoints, expected destination]
+// While APP_STORE_LIVE is false (TUITEA not yet public), every device goes to the web app.
 const UA = [
-  ['iPhone Safari', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1', 5, APP_STORE],
-  ['iPhone Chrome (CriOS)', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/131.0.6778.73 Mobile/15E148 Safari/604.1', 5, APP_STORE],
-  ['iPhone Facebook in-app browser', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 [FBAN/FBIOS;FBAV/470.0.0.40.94;FBBV/600000000;FBDV/iPhone15,2]', 5, APP_STORE],
-  ['iPad, legacy UA', 'Mozilla/5.0 (iPad; CPU OS 12_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1 Mobile/15E148 Safari/604.1', 5, APP_STORE],
-  ['iPadOS 13+ desktop-class (Macintosh + touch)', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15', 5, APP_STORE],
-  ['iPod touch', 'Mozilla/5.0 (iPod touch; CPU iPhone OS 15_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6 Mobile/15E148 Safari/604.1', 5, APP_STORE],
-  ['Mac Safari', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15', 0, APP_STORE],
-  ['Mac Chrome', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', 0, APP_STORE],
-  ['Mac Firefox', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14.7; rv:133.0) Gecko/20100101 Firefox/133.0', 0, APP_STORE],
-  ['Android Chrome', 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.81 Mobile Safari/537.36', 5, WEB_APP],
-  ['Android Samsung Internet', 'Mozilla/5.0 (Linux; Android 14; SM-S921U) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/26.0 Chrome/122.0.0.0 Mobile Safari/537.36', 5, WEB_APP],
-  ['Windows Chrome', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', 0, WEB_APP],
-  ['Windows touch laptop Edge', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0', 10, WEB_APP],
-  ['Linux Firefox', 'Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0', 0, WEB_APP],
-  ['ChromeOS', 'Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', 0, WEB_APP],
-  ['Windows Phone claiming "like iPhone"', 'Mozilla/5.0 (Mobile; Windows Phone 8.1; Android 4.0; ARM; Trident/7.0; Touch; rv:11.0; IEMobile/11.0; NOKIA; Lumia 635) like iPhone OS 7_0_3 Mac OS X AppleWebKit/537 (KHTML, like Gecko) Mobile Safari/537', 5, WEB_APP],
-  ['empty user agent', '', 0, WEB_APP],
+  ['iPhone Safari', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1', 5, WEB_APP, APP_STORE],
+  ['iPhone Chrome (CriOS)', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/131.0.6778.73 Mobile/15E148 Safari/604.1', 5, WEB_APP, APP_STORE],
+  ['iPhone Facebook in-app browser', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 [FBAN/FBIOS;FBAV/470.0.0.40.94;FBBV/600000000;FBDV/iPhone15,2]', 5, WEB_APP, APP_STORE],
+  ['iPad, legacy UA', 'Mozilla/5.0 (iPad; CPU OS 12_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1 Mobile/15E148 Safari/604.1', 5, WEB_APP, APP_STORE],
+  ['iPadOS 13+ desktop-class (Macintosh + touch)', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15', 5, WEB_APP, APP_STORE],
+  ['iPod touch', 'Mozilla/5.0 (iPod touch; CPU iPhone OS 15_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6 Mobile/15E148 Safari/604.1', 5, WEB_APP, APP_STORE],
+  ['Mac Safari', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15', 0, WEB_APP, APP_STORE],
+  ['Mac Chrome', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', 0, WEB_APP, APP_STORE],
+  ['Mac Firefox', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14.7; rv:133.0) Gecko/20100101 Firefox/133.0', 0, WEB_APP, APP_STORE],
+  ['Android Chrome', 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.81 Mobile Safari/537.36', 5, WEB_APP, WEB_APP],
+  ['Android Samsung Internet', 'Mozilla/5.0 (Linux; Android 14; SM-S921U) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/26.0 Chrome/122.0.0.0 Mobile Safari/537.36', 5, WEB_APP, WEB_APP],
+  ['Windows Chrome', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', 0, WEB_APP, WEB_APP],
+  ['Windows touch laptop Edge', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0', 10, WEB_APP, WEB_APP],
+  ['Linux Firefox', 'Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0', 0, WEB_APP, WEB_APP],
+  ['ChromeOS', 'Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', 0, WEB_APP, WEB_APP],
+  ['Windows Phone claiming "like iPhone"', 'Mozilla/5.0 (Mobile; Windows Phone 8.1; Android 4.0; ARM; Trident/7.0; Touch; rv:11.0; IEMobile/11.0; NOKIA; Lumia 635) like iPhone OS 7_0_3 Mac OS X AppleWebKit/537 (KHTML, like Gecko) Mobile Safari/537', 5, WEB_APP, WEB_APP],
+  ['empty user agent', '', 0, WEB_APP, WEB_APP],
 ];
 
 test('the inline redirect script is present', () => assert.ok(scriptMatch, 'script#invite-redirect'));
 
 for (const [label, ua, touch, want] of UA) {
-  test(`redirect: ${label} -> ${want}`, () => assert.equal(run(ua, touch), want));
+  test(`redirect (store not live): ${label} -> ${want}`, () => assert.equal(run(ua, touch), want));
+}
+
+const LIVE = () => scriptMatch[1].replace('var APP_STORE_LIVE = false;', 'var APP_STORE_LIVE = true;');
+for (const [label, ua, touch, , wantLive] of UA) {
+  test(`redirect (store live): ${label} -> ${wantLive}`, () => {
+    const src = LIVE();
+    assert.notEqual(src, scriptMatch[1], 'the flag must exist');
+    const calls = [];
+    vm.runInNewContext(src, { navigator: { userAgent: ua, maxTouchPoints: touch }, location: { search: '', replace: (u) => calls.push(u) } });
+    assert.equal(calls[0], wantLive);
+  });
 }
 
 test('negative control: the checklist would catch a script that sends everyone to the App Store', () => {
-  const broken = scriptMatch[1].replace('loc.replace(apple ? APP_STORE : WEB_APP)', 'loc.replace(APP_STORE)');
+  const broken = scriptMatch[1].replace('loc.replace(apple && APP_STORE_LIVE ? APP_STORE : WEB_APP)', 'loc.replace(APP_STORE)');
   assert.notEqual(broken, scriptMatch[1], 'the replacement must apply');
   const calls = [];
   vm.runInNewContext(broken, { navigator: { userAgent: UA[9][1], maxTouchPoints: 5 }, location: { search: '', replace: (u) => calls.push(u) } });
@@ -98,11 +110,13 @@ test('three fallback buttons, in order (owner 2026-11-21 ~23:15): Apple, Android
   const buttons = [...html.matchAll(/<(a|span) class="btn ([a-z]+)"([^>]*)>([\s\S]*?)<\/\1>/g)].map((m) => ({
     tag: m[1], kind: m[2], attrs: m[3], text: m[4].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
   }));
-  assert.deepEqual(buttons.map((b) => b.text), ['Download Apple App', 'Download Android App Coming soon', 'Download Web App']);
+  assert.deepEqual(buttons.map((b) => b.text), ['Download Apple App Coming soon', 'Download Android App Coming soon', 'Download Web App']);
   const [apple, android, web] = buttons;
-  assert.equal(apple.tag, 'a');
-  assert.equal(apple.kind, 'primary');
-  assert.equal(apple.attrs, ' href="https://apps.apple.com/app/id6806472413"');
+  // Until TUITEA is public the Apple button is 'Coming soon' (the store page says "App Not Available").
+  assert.notEqual(apple.tag, 'a', 'Apple is not a link while the store listing is not live');
+  assert.equal(apple.kind, 'disabled');
+  assert.match(apple.attrs, /aria-disabled="true"/);
+  assert.doesNotMatch(apple.attrs, /href=/);
   assert.notEqual(android.tag, 'a', 'Android is not a link');
   assert.equal(android.kind, 'disabled');
   assert.match(android.attrs, /aria-disabled="true"/);
@@ -123,7 +137,7 @@ test('owner ~23:25: Apple logo and Android robot glyphs are inline SVG, monochro
   const byClass = (c) => svgs.filter((m) => new RegExp(`class="[^"]*\\b${c}\\b`).test(m[1]));
   assert.equal(byClass('glyph-apple').length, 1, 'one Apple glyph');
   assert.equal(byClass('glyph-android').length, 1, 'one Android glyph');
-  assert.match(html, /<a class="btn primary"[^>]*><svg class="glyph glyph-apple"[^>]*>[\s\S]*?<\/svg>Download Apple App<\/a>/);
+  assert.match(html, /<span class="btn disabled"[^>]*><svg class="glyph glyph-apple"[^>]*>[\s\S]*?<\/svg>Download Apple App<small>Coming soon<\/small><\/span>/);
   assert.match(html, /<span class="btn disabled"[^>]*><svg class="glyph glyph-android"[^>]*>[\s\S]*?<\/svg>Download Android App<small>/);
   for (const [whole, attrs, body] of svgs) {
     assert.match(attrs, /aria-hidden="true"/, 'decorative');

@@ -31,3 +31,15 @@ test('NEGATIVE CONTROLS: each pre-fix gap is caught for its own reason', () => {
   ];
   for (const [name, h] of bad) assert.ok(h !== html && problems(h).length > 0, name);
 });
+
+// Gap 10: this page has its own footer, so it carries the Find My Weed About / Privacy links and the SB 378 report link
+// (the same mailto as the other pages, find-my-weed #90).
+test('for-business footer: About, Privacy and "Report an unlicensed seller" (mailto info@keepitil.com)', () => {
+  const foot = html.slice(html.indexOf('<footer'));
+  assert.match(foot, /href="https:\/\/keepitil\.com\/app\/findmyweed\/about\.html">About</);
+  assert.match(foot, /href="https:\/\/keepitil\.com\/app\/findmyweed\/privacy\.html">Privacy</);
+  assert.match(foot, /href="mailto:info@keepitil\.com\?subject=Report%20an%20unlicensed%20seller[^"]*">Report an unlicensed seller</);
+  // NEGATIVE CONTROL: the old footer has none of them
+  const old = foot.replace(/<nav[\s\S]*?<\/nav>/, '');
+  assert.doesNotMatch(old, /Report an unlicensed seller|privacy\.html/);
+});

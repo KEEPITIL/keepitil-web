@@ -314,6 +314,7 @@
       if (e.href) wrap.href = e.href;
       var im = el('img'); im.src = e.image; im.alt = ''; im.loading = 'lazy'; wrap.appendChild(im);
       wrap.appendChild(el('span', 'tile-label', e.label));
+      if (e.license) wrap.appendChild(el('span', 'tile-license mono', e.license));   // placements always show the license number
       li.appendChild(wrap); ul.appendChild(li);
     });
     sec.hidden = !(entries && entries.length);

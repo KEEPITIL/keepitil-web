@@ -189,6 +189,7 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .tile{flex:none}
 .tile-in{display:block;color:var(--text);text-decoration:none;font-weight:700;font-size:14px}
 .tile img{display:block;width:100%;height:100%;object-fit:cover;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.tile-license{display:block;font-size:.8em;opacity:.8}
 .tile-label{display:block;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ads .tile{width:min(320px,80vw)}
 .ads .tile img{aspect-ratio:16/9;height:auto}

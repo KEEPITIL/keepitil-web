@@ -604,15 +604,19 @@
   // label and a same-site image (img/..., the CSP's img-src 'self'); a link must be a page of this site or https.
   // Nothing here invents a deal, a brand, a price or a photo. No ranking-by-rating row and no paid-placement slot exist.
   var PROMO_ROWS = ['ads', 'deals', 'categories', 'featured'];
+  // SB 378 (B&P 22943): a placement (an Ads or Featured entry) must carry the seller's state license number. Without a
+  // well-formed number the entry is dropped, so a row can never turn on with an unlicensed or number-less placement.
+  var PLACEMENT_ROWS = ['ads', 'featured'];
+  var PLACEMENT_LIC_RE = /^C\d{1,2}-\d{7}-LIC$/;
   var IMG_RE = /^img\/[a-z0-9][a-z0-9_\/-]*\.(png|jpe?g|webp|svg)$/i;
   function promoRows(data) {
     var out = {};
     PROMO_ROWS.forEach(function (k) {
-      var raw = data && Array.isArray(data[k]) ? data[k] : [];
+      var raw = data && Array.isArray(data[k]) ? data[k] : [], placement = PLACEMENT_ROWS.indexOf(k) >= 0;
       out[k] = raw.filter(function (e) {
-        return !!e && typeof e.label === 'string' && e.label.trim() !== '' && typeof e.image === 'string' && IMG_RE.test(e.image) &&
+        return !!e && (!placement || (typeof e.license === 'string' && PLACEMENT_LIC_RE.test(e.license.trim()))) && typeof e.label === 'string' && e.label.trim() !== '' && typeof e.image === 'string' && IMG_RE.test(e.image) &&
           (e.href == null || (typeof e.href === 'string' && (PAGE_RE.test(e.href) || /^https:\/\/[a-z0-9.-]+(\/[^\s]*)?$/i.test(e.href))));
-      }).map(function (e) { return { label: e.label.trim(), image: e.image, href: e.href || null }; });
+      }).map(function (e) { var o = { label: e.label.trim(), image: e.image, href: e.href || null }; if (placement) o.license = e.license.trim(); return o; });
     });
     return out;
   }
@@ -647,7 +651,7 @@
     return [String(l.name == null ? '' : l.name), two.join(' · '), hours, addr, kind + (county ? ' · ' + county : ''), String(l.license || '')];
   }
 
-  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, filterRows: filterRows, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, filterRows: filterRows, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
     dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;

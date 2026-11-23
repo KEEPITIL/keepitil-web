@@ -17,7 +17,7 @@ export function problems(C, html) {
   if (/\bno (visitor )?accounts\b/i.test(all + ' ' + html)) p.push('says there are no accounts');
   const sec = C.info.privacy.sections.find((s) => s.h === 'If you create an account');
   if (!sec) p.push('no account section');
-  else for (const re of [/link we email to you/, /email address/, /license number/, /legal business name/, /date of birth is not stored/]) if (!re.test(sec.p.join(' '))) p.push('missing ' + re);
+  else for (const re of [/link we email to you/, /email address/, /license number/, /legal business name/, /the answer is not stored/]) if (!re.test(sec.p.join(' '))) p.push('missing ' + re);
   return p;
 }
 

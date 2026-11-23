@@ -236,9 +236,9 @@
           { h: 'If you create an account', p: [
             'Signing in uses a link we email to you. There is no password.',
             'Your account holds your email address and whether it is a customer or a business account. For 18 to 20 year olds with a medical recommendation, it also notes that the account is medical-only.',
-            'Sign-up asks for your date of birth to check eligibility. The check runs in your browser, and your date of birth is not stored.',
+            'Sign-up asks when you were born, to check eligibility. That check runs in your browser, and the answer is not stored.',
             'Business accounts: to verify a license, we check the license number, the legal business name and the category you enter against the state license record. When you are signed in, the result of that check is kept with your account.',
-            'Accounts are stored in a Supabase database that we run. They are kept separate from member profiles on our other sites.'] },
+            'Accounts are stored in a hosted database that we run. They are kept separate from member profiles on our other sites.'] },
           { h: 'What stays on your device', p: [
             'Searching near you uses the city or ZIP you type. Your exact location is never sent to a server.',
             'This site saves up to two settings in your browser: fmw-theme (System, Bright or Dark), if you pick a theme in the menu, and fmw-area, the last location you chose in the search bar, so the home opens there next time. They stay on this device and aren\'t sent to us or anyone else. Clear this site\'s data in your browser settings to remove them.'] },

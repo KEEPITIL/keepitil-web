@@ -37,3 +37,8 @@ test('A205: the age line is "21+ (18+ medical where legal)", never a bare 21+ or
   assert.equal(bare('Cannabis marketing services · 21+ only'), true);
   assert.equal(bare('Consumers 21+ join free.'), true);
 });
+
+// Joe 2026-11-22: no sample member profile exists, so the for-business page must not offer one.
+test('no "sample member profile" link on for-business', () => {
+  assert.doesNotMatch(HTML, /findmyweed-sample|sample member profile/i);
+});

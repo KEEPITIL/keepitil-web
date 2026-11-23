@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "test": "node --test assets/js/*.test.mjs build-service/starter/test/*.test.mjs"
+    "test": "node --test assets/js/*.test.mjs"
   },
   "devDependencies": {
     "jsdom": "^26.1.0"

@@ -4,9 +4,9 @@
 //   1. No HTML (or first-party JS) mentions formsubmit.co or another hosted form relay
 //      (formspree, getform, basin, web3forms, formcarry, staticforms, formkeep, pageclip).
 //   2. No <form action> / formaction in any HTML points at a host other than keepitil.com.
-//      Relative actions (results.html, /search) are first-party. The only allowance is the
-//      reserved placeholder host example.com (RFC 2606) inside build-service/starter/, which
-//      holds client templates whose action is filled in per client.
+//      Relative actions (results.html, /search) are first-party. There is no allowance: the
+//      build-service client templates that used an example.com placeholder action were removed
+//      as dead pages (Joe, 2026-11-22).
 //   3. /needs (needs.html) is gone: it was reduced to a static "not taking requests" notice in R-J1
 //      and then removed as a dead page (owner directive "remove all keepitil dead pages", 2026-11-22).
 //   4. No page links to /needs (or needs.html): the "Tell Us What You Need" / "Start Here" / "Work with us"
@@ -45,7 +45,6 @@ function attrValue(tag, name) {
 }
 
 function firstParty(host) { return host === 'keepitil.com' || host.endsWith('.keepitil.com'); }
-function placeholder(host) { return /^(?:.+\.)?example\.(?:com|org|net)$/.test(host); }
 
 /** Form actions in the HTML that leave keepitil.com. `rel` is the file's repo path. */
 export function thirdPartyActions(html, rel = '') {
@@ -63,7 +62,6 @@ export function thirdPartyActions(html, rel = '') {
       }
       const host = abs[1].toLowerCase();
       if (firstParty(host)) continue;
-      if (placeholder(host) && rel.startsWith('build-service/starter/')) continue;
       bad.push(url);
     }
   }
@@ -155,11 +153,10 @@ test('NEGATIVE CONTROL: action scan catches third-party actions in every quoting
     '<form action="https://keepitil.com/x">', '<form action="https://www.keepitil.com/x">', '<form action="?q=1">',
     '<a href="https://evil.test/x">'];
   for (const g of good) assert.deepEqual(thirdPartyActions(g, 'about.html'), [], 'false positive: ' + g);
-  // the example.com placeholder is allowed only inside the client starter templates
+  // an example.com placeholder action is third-party too (no template allowance is left)
   const tmpl = '<form class="form" method="post" action="https://contact.example.com/functions/v1/client-contact">';
-  assert.deepEqual(thirdPartyActions(tmpl, 'build-service/starter/preview/contact.html'), []);
   assert.equal(thirdPartyActions(tmpl, 'contact.html').length, 1);
-  assert.equal(thirdPartyActions('<form action="https://keepitil.com.evil.test/x">', 'build-service/starter/x.html').length, 1);
+  assert.equal(thirdPartyActions('<form action="https://keepitil.com.evil.test/x">', 'contact.html').length, 1);
 });
 
 test('NEGATIVE CONTROL: /needs link scan catches the removed buttons and their variants', () => {

@@ -26,9 +26,9 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const FIVE = ['DISCOVER', 'CONNECT', 'CREATE', 'CULTURE', 'EARN'];
 
 /* Served KEEPITIL pages. Out of scope: separate apps with their own UI (app/ = TUITEA, Kai Tarako,
-   Find My Weed; games/; kode/; the TUITEA site and FMW pages), client starter templates, fixtures. */
+   Find My Weed; games/; kode/; the TUITEA site and FMW pages), fixtures. */
 const SKIP_TOP = new Set(['app', 'games', 'kode', 'tuiteaapp', 'tests', 'findmyweed', 'node_modules', 'scripts', 'db', 'docs']);
-const SKIP_REL = ['apps/tuitea/', 'build-service/starter/', 'assets/js/vendor/'];
+const SKIP_REL = ['apps/tuitea/', 'assets/js/vendor/'];
 function walk(dir, exts, out = []) {
   for (const name of readdirSync(dir)) {
     if (name.startsWith('.')) continue;

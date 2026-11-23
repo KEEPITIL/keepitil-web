@@ -42,3 +42,13 @@ test('A205: the age line is "21+ (18+ medical where legal)", never a bare 21+ or
 test('no "sample member profile" link on for-business', () => {
   assert.doesNotMatch(HTML, /findmyweed-sample|sample member profile/i);
 });
+
+// Joe 2026-11-22: "keep it public to verified business owners only". The public page shows no FindMyWeed
+// price and no Stripe payment link; pricing is reached through license verification (signup ?as=business).
+// Competitor ranges in the comparison grid stay.
+test('no FindMyWeed prices or Stripe links on the public for-business page', () => {
+  assert.doesNotMatch(HTML, /buy\.stripe\.com/);
+  const ours = HTML.replace(/<td>\$[^<]*<\/td>|<td>Up to \$[^<]*<\/td>/g, '');
+  assert.doesNotMatch(ours, /\$\d/);
+  assert.match(HTML, /href="https:\/\/keepitil\.com\/app\/findmyweed\/signup\.html\?as=business">Verify your license to see pricing</);
+});

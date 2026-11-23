@@ -80,14 +80,17 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
 <div class="wrap">
   <div class="gate" id="gate" style="display:none">
     <h1 style="font-size:1.6rem">ADD AN EVENT</h1>
-    <p>Log in to submit third-party events to the KEEPITIL calendar. Every listing is reviewed before it goes live, and you come straight back here after you log in. Hosting your own with tickets? Use <a href="/create-event" style="color:var(--brand)">Create Event</a>.</p>
+    <p>Log in to add an event to the KEEPITIL calendar. It is free, every listing is reviewed before it goes live, and you come straight back here after you log in.</p>
     <a class="btn" id="gateLogin" href="/apply?next=%2Fsubmit-event">Log in / Join</a>
   </div>
 
   <div id="app" style="display:none">
     <header class="hero">
       <h1 id="formTitle">NEW EVENT</h1>
-      <div class="sub">Add a third-party event to the calendar — a show you found, not one you're hosting. No ticketing here, just the listing + a ticket link out. Hosting your own? <a href="/create-event" style="color:var(--brand)">Use the event form →</a>. Submissions are reviewed before they go live.</div>
+      <div class="sub">Add an event to the KEEPITIL calendar: your own show or one you found. It is free. No ticketing here, just the listing and a link out to tickets or RSVP. Submissions are reviewed before they go live. Track them under <a href="/dashboard" style="color:var(--brand)">Manage your events</a>.<span id="hostLink" hidden> Selling tickets as the KEEPITIL team? <a href="/create-event" style="color:var(--brand)">Use Create Event →</a></span></div>
+      <!-- /create-event is team-only today: it runs rpc('is_admin') and sends everyone else here with
+           ?why=keepitil-events-are-company-only. Say so, instead of offering a link that loops back. -->
+      <div class="sub" id="whyNote" hidden style="margin-top:10px;padding:10px 12px;border:1px solid var(--line,#2a2a3a);border-radius:10px">Ticketed event pages are run by the KEEPITIL team for now. Add your event here instead: the listing links out to your tickets or RSVP, and the team reviews it before it goes live.</div>
     </header>
 
     <div class="grid">
@@ -159,6 +162,23 @@ var supa=window.supabase?supabase.createClient(SUPA_URL,SUPA_KEY):null;
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 var GENRE='electronic', ARTISTS=[], EDIT_ID=null;
+/* Pacific wall-clock date+time -> UTC ISO, whatever time zone the browser is in. The edit path
+   used new Date(date+'T'+time), which reads the BROWSER's zone, so an edit made outside
+   California moved the event by the zone difference. The submit path already sends
+   local_date/local_time for the server to place in Pacific time. */
+function laWallToISO(date, time){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date||'')) return null;
+  var t=/^\d{2}:\d{2}$/.test(time||'')?time:'21:00';
+  var guess=new Date(date+'T'+t+':00Z');
+  for(var i=0;i<2;i++){
+    var p={}; new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
+      .formatToParts(guess).forEach(function(x){ p[x.type]=x.value; });
+    var shown=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour%24,+p.minute);
+    guess=new Date(guess.getTime()+(Date.parse(date+'T'+t+':00Z')-shown));
+  }
+  return guess.toISOString();
+}
+function laToday(){ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }
 
 /* ── debounced autocomplete against community_suggest ── */
 function debounce(fn,ms){ var t; return function(){ var a=arguments; clearTimeout(t); t=setTimeout(function(){fn.apply(null,a);},ms); }; }
@@ -200,8 +220,8 @@ $('gseg').addEventListener('click',function(e){ var b=e.target.closest('button')
 
 /* ── recent (mine) + edit ── */
 function loadRecent(){
-  supa.rpc('get_my_community_events').then(function(r){
-    var rows=(r&&r.data)||[]; if(!rows.length) return;
+  return supa.rpc('get_my_community_events').then(function(r){
+    var rows=(r&&r.data)||[]; RECENT=rows; if(!rows.length) return rows;
     $('recent').innerHTML=rows.map(function(e,i){
       var d=e.starts_at?new Date(e.starts_at):null;
       var ds=d?new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',month:'numeric',day:'numeric',year:'2-digit'}).format(d):'';
@@ -210,8 +230,10 @@ function loadRecent(){
         +'<button type="button" class="ed" data-i="'+i+'">Edit</button></div>';
     }).join('');
     $('recent').querySelectorAll('.ed').forEach(function(b){ b.addEventListener('click',function(){ startEdit(rows[+b.dataset.i]); }); });
-  });
+    return rows;
+  }).catch(function(e){ try{ console.error('[submit-event] listings', e); }catch(x){} return []; });
 }
+var RECENT=[];
 function startEdit(e){
   EDIT_ID=e.id; $('formTitle').textContent='EDIT EVENT'; $('submitBtn').textContent='Save changes';
   $('venue').value=e.venue||''; $('city').value=e.city||'Los Angeles'; $('title').value=e.title||'';
@@ -252,11 +274,20 @@ $('form').addEventListener('submit',function(e){
   var msg=$('msg'); msg.className='msg'; msg.textContent='';
   var b=$('submitBtn'); b.disabled=true; var old=b.textContent; b.textContent='Submitting…';
   function fail(t){ msg.className='msg err'; msg.textContent=t; b.disabled=false; b.textContent=old; }
+  function offline(e){ fail('Could not reach KEEPITIL. Check your connection and try again.'); try{ console.error('[submit-event]', e); }catch(x){} }
+  if(!$('venue').value.trim()){ fail('Add the venue.'); return; }
+  if(!$('date').value){ fail('Pick the date.'); return; }
+  /* A new listing can't start in the past (Pacific date). Edits are allowed so a host can fix
+     an old listing's details. */
+  if(!EDIT_ID && $('date').value < laToday()){ fail('That date has passed. Pick today or a later date.'); return; }
+  var tl=$('ticket_link').value.trim();
+  if(tl && !/^https?:\/\//i.test(tl)){ tl='https://'+tl; $('ticket_link').value=tl; }   /* "posh.vip/e/x" -> https://posh.vip/e/x */
+  if(tl && !/^https?:\/\/[^\s\/.]+\.[^\s]+$/i.test(tl)){ fail('The ticket link does not look like a web address. Paste the full link, e.g. https://posh.vip/e/your-event'); return; }
   var xl=[]; document.querySelectorAll('#xlinks .xl').forEach(function(i){ var u=i.value.trim(); if(u) xl.push(u); });
   var genres=(GENRE==='other'?'Other':'')+($('subgenres').value.trim()?((GENRE==='other'?' · ':'')+$('subgenres').value.trim()):(GENRE==='other'?'':'Electronic'));
   if(EDIT_ID){
     var startsISO=null;
-    if($('date').value){ startsISO=new Date($('date').value+'T'+($('time').value||'21:00')).toISOString(); }
+    if($('date').value){ startsISO=laWallToISO($('date').value, $('time').value||'21:00'); }
     supa.rpc('update_community_event',{p_id:EDIT_ID,p:{
       title:$('title').value.trim()||null, venue:$('venue').value.trim(), city:$('city').value,
       starts_at:startsISO, ticket_link:$('ticket_link').value.trim(), note:$('note').value.trim(),
@@ -266,7 +297,7 @@ $('form').addEventListener('submit',function(e){
       if(r.error||!d.ok){ fail((r.error&&r.error.message)||d.error||'Could not save.'); return; }
       msg.className='msg ok'; msg.textContent='Saved — back in review. ✓';
       b.disabled=false; b.textContent=old; clearForm(); loadRecent();
-    });
+    }).catch(offline);
     return;
   }
   supa.rpc('submit_community_event',{p:{
@@ -278,9 +309,9 @@ $('form').addEventListener('submit',function(e){
   }}).then(function(r){
     var d=(r&&r.data)||{};
     if(r.error||!d.ok){ fail((r.error&&r.error.message)||d.error||'Could not submit.'); return; }
-    msg.className='msg ok'; msg.textContent='Submitted for review ✓ — it appears on the calendar once approved.';
+    msg.className='msg ok'; msg.textContent='Submitted for review ✓ — it appears on the calendar once approved. Track it under Manage your events.';
     b.disabled=false; b.textContent=old; clearForm(); loadRecent();
-  });
+  }).catch(offline);
 });
 
 /* ── boot: auth gate ── */
@@ -294,7 +325,16 @@ $('form').addEventListener('submit',function(e){
       $('gate').style.display='block'; return;
     }
     $('app').style.display='block';
-    loadRecent();
+    var qs=new URLSearchParams(location.search);
+    if(qs.get('why')==='keepitil-events-are-company-only') $('whyNote').hidden=false;
+    supa.rpc('is_admin').then(function(a){ if(a&&a.data) $('hostLink').hidden=false; }).catch(function(){});
+    /* ?edit=<id> opens one of YOUR listings for editing (the dashboard links here). */
+    var want=qs.get('edit');
+    loadRecent().then(function(rows){
+      if(!want) return;
+      var hit=(rows||[]).filter(function(e){ return String(e.id)===String(want); })[0];
+      if(hit) startEdit(hit);
+    });
   });
 })();
 </script>

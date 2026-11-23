@@ -20,6 +20,7 @@ const WEB_APP = '/app/tuitea/app/';
 const CARD = 'https://keepitil.com/app/tuitea/invite/invite_card_1200x630.png';
 
 const scriptMatch = html.match(/<script id="invite-redirect">([\s\S]*?)<\/script>/);
+const LIVE_NOW = /var APP_STORE_LIVE = true;/.test(scriptMatch[1]);
 
 function meta(attr, name) {
   const re = new RegExp(`<meta ${attr}="${name.replace(/[.:]/g, '\\$&')}" content="([^"]*)">`);
@@ -59,15 +60,16 @@ const UA = [
 
 test('the inline redirect script is present', () => assert.ok(scriptMatch, 'script#invite-redirect'));
 
-for (const [label, ua, touch, want] of UA) {
-  test(`redirect (store not live): ${label} -> ${want}`, () => assert.equal(run(ua, touch), want));
+for (const [label, ua, touch, want, wantLive] of UA) {
+  const exp = LIVE_NOW ? wantLive : want;
+  test(`redirect (as shipped, store ${LIVE_NOW ? 'live' : 'not live'}): ${label} -> ${exp}`, () => assert.equal(run(ua, touch), exp));
 }
 
-const LIVE = () => scriptMatch[1].replace('var APP_STORE_LIVE = false;', 'var APP_STORE_LIVE = true;');
+const LIVE = () => scriptMatch[1].replace('var APP_STORE_LIVE = false;', 'var APP_STORE_LIVE = true;').replace('var APP_STORE_LIVE = true;', 'var APP_STORE_LIVE = true; /*forced*/');
 for (const [label, ua, touch, , wantLive] of UA) {
   test(`redirect (store live): ${label} -> ${wantLive}`, () => {
     const src = LIVE();
-    assert.notEqual(src, scriptMatch[1], 'the flag must exist');
+    assert.match(src, /APP_STORE_LIVE = true/, 'the flag must exist');
     const calls = [];
     vm.runInNewContext(src, { navigator: { userAgent: ua, maxTouchPoints: touch }, location: { search: '', replace: (u) => calls.push(u) } });
     assert.equal(calls[0], wantLive);
@@ -110,13 +112,20 @@ test('three fallback buttons, in order (owner 2026-11-21 ~23:15): Apple, Android
   const buttons = [...html.matchAll(/<(a|span) class="btn ([a-z]+)"([^>]*)>([\s\S]*?)<\/\1>/g)].map((m) => ({
     tag: m[1], kind: m[2], attrs: m[3], text: m[4].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
   }));
-  assert.deepEqual(buttons.map((b) => b.text), ['Download Apple App Coming soon', 'Download Android App Coming soon', 'Download Web App']);
+  assert.deepEqual(buttons.map((b) => b.text), [LIVE_NOW ? 'Download Apple App' : 'Download Apple App Coming soon', 'Download Android App Coming soon', 'Download Web App']);
   const [apple, android, web] = buttons;
-  // Until TUITEA is public the Apple button is 'Coming soon' (the store page says "App Not Available").
-  assert.notEqual(apple.tag, 'a', 'Apple is not a link while the store listing is not live');
-  assert.equal(apple.kind, 'disabled');
-  assert.match(apple.attrs, /aria-disabled="true"/);
-  assert.doesNotMatch(apple.attrs, /href=/);
+  if (LIVE_NOW) {
+    // TUITEA is live on the App Store (2026-11-22): the Apple button links to the listing.
+    assert.equal(apple.tag, 'a');
+    assert.equal(apple.kind, 'primary');
+    assert.equal(apple.attrs, ' href="https://apps.apple.com/app/id6806472413"');
+  } else {
+    // Until TUITEA is public the Apple button is 'Coming soon' (the store page says "App Not Available").
+    assert.notEqual(apple.tag, 'a', 'Apple is not a link while the store listing is not live');
+    assert.equal(apple.kind, 'disabled');
+    assert.match(apple.attrs, /aria-disabled="true"/);
+    assert.doesNotMatch(apple.attrs, /href=/);
+  }
   assert.notEqual(android.tag, 'a', 'Android is not a link');
   assert.equal(android.kind, 'disabled');
   assert.match(android.attrs, /aria-disabled="true"/);
@@ -137,7 +146,7 @@ test('owner ~23:25: Apple logo and Android robot glyphs are inline SVG, monochro
   const byClass = (c) => svgs.filter((m) => new RegExp(`class="[^"]*\\b${c}\\b`).test(m[1]));
   assert.equal(byClass('glyph-apple').length, 1, 'one Apple glyph');
   assert.equal(byClass('glyph-android').length, 1, 'one Android glyph');
-  assert.match(html, /<span class="btn disabled"[^>]*><svg class="glyph glyph-apple"[^>]*>[\s\S]*?<\/svg>Download Apple App<small>Coming soon<\/small><\/span>/);
+  assert.match(html, LIVE_NOW ? /<a class="btn primary"[^>]*><svg class="glyph glyph-apple"[^>]*>[\s\S]*?<\/svg>Download Apple App<\/a>/ : /<span class="btn disabled"[^>]*><svg class="glyph glyph-apple"[^>]*>[\s\S]*?<\/svg>Download Apple App<small>Coming soon<\/small><\/span>/);
   assert.match(html, /<span class="btn disabled"[^>]*><svg class="glyph glyph-android"[^>]*>[\s\S]*?<\/svg>Download Android App<small>/);
   for (const [whole, attrs, body] of svgs) {
     assert.match(attrs, /aria-hidden="true"/, 'decorative');

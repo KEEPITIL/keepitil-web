@@ -24,6 +24,15 @@
       token: function () {
         try { var m = /[#&]access_token=([^&]+)/.exec((root.location && root.location.hash) || ''); return m ? decodeURIComponent(m[1]) : null; } catch (e) { return null; }
       },
+      // the whole session from the emailed link's return (#access_token=...&refresh_token=...&expires_in=...), or null
+      session: function () {
+        try {
+          var h = (root.location && root.location.hash) || '', get = function (k) { var m = new RegExp('[#&]' + k + '=([^&]+)').exec(h); return m ? decodeURIComponent(m[1]) : null; };
+          var a = get('access_token'); if (!a) return null;
+          var n = Number(get('expires_in'));
+          return { access: a, refresh: get('refresh_token'), expiresIn: isFinite(n) && n > 0 ? n : null };
+        } catch (e) { return null; }
+      },
       // the server-side license check: with the user's token when signed in (the result is recorded), else the public key
       verifyLicense: function (token, d) {
         var h = Object.assign({}, base, { Authorization: 'Bearer ' + (token || key) });

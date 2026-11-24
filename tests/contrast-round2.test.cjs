@@ -25,5 +25,5 @@ test("vs-app.js is loaded with the current stamp", () => {
   const stamps = new Set();
   (function walk(d) { for (const e of fs.readdirSync(d, { withFileTypes: true })) { if ([".git", "node_modules"].includes(e.name)) continue; const p = path.join(d, e.name);
     if (e.isDirectory()) walk(p); else if (/\.html$/.test(e.name)) for (const x of fs.readFileSync(p, "utf8").matchAll(/vs-app\.js\?v=(\d+[a-z]*)/g)) stamps.add(x[1]); } })(ROOT);
-  assert.deepEqual([...stamps], ["20261124a"]);
+  assert.deepEqual([...stamps], ["20261124b"]);
 });

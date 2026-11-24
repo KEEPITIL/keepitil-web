@@ -1286,13 +1286,13 @@
                  : ceMonthLabel(mk)+' '+mk.slice(0,4);
         return '<div class="ce-mgroup">'
              +   '<h2 class="ce-mhead">'+h(head)+'</h2>'
-             +   '<div class="ce-grid">'+bucket[mk].map(ceCard).join('')+'</div>'
+             +   '<div class="ce-grid" tabindex="0" role="group" aria-label="Events, scroll sideways">'+bucket[mk].map(ceCard).join('')+'</div>'
              + '</div>';
       }).join('');
     }
     html += shown.length
       ? ((CE_SORT==='az'||CE_SORT==='za')
-          ? '<div class="ce-grid">'+shown.map(ceCard).join('')+'</div>'
+          ? '<div class="ce-grid" tabindex="0" role="group" aria-label="Events, scroll sideways">'+shown.map(ceCard).join('')+'</div>'
           : ceGrouped(shown))
       : '<div class="soon"><div class="i">🔎</div><h2>Nothing matches those filters</h2>'
         + '<p>Try a different month or type — there are '+rows.length+' competitions open.</p></div>';

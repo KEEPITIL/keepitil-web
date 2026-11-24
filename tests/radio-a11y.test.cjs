@@ -30,5 +30,5 @@ test("every page that loads keepitil-radio.js uses the current stamp (stale CDN/
       else if (/\.(html|js)$/.test(e.name)) for (const m of fs.readFileSync(p, "utf8").matchAll(/keepitil-radio\.js\?v=(\d+[a-z]*)/g)) stamps.add(m[1]);
     }
   })(ROOT);
-  assert.deepEqual([...stamps], ["20261124b"]);
+  assert.deepEqual([...stamps], ["20261124c"]);
 });

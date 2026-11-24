@@ -9,7 +9,7 @@ Draft for Muse/Echo review. **Nothing here was pasted anywhere.** The project's 
 
 ## What a Find My Weed customer would see
 - Subject: **Your Find My Weed sign-in link**
-- Sender: the project's one sender (see below). Body: "Find My Weed, BY KEEPITIL" header, one green button "Sign in to Find My Weed", the plain link as a fallback, "Did not ask for this? You can ignore this email", footer "Adults 21+ (or 18+ medical patients where state law allows). Licensed businesses only. Questions: info@keepitil.com". No promotion, no health claims, no tracking pixels, no token or OTP shown.
+- Sender: the project's one sender (see below). Body: "Find My Weed" header (just the name, per the Nov 16 name rule; the sender stays KEEPITIL), one green button "Sign in to Find My Weed", the plain link as a fallback, "Did not ask for this? You can ignore this email", footer "Adults 21+ (or 18+ medical patients where state law allows). Licensed businesses only. Questions: info@keepitil.com". No promotion, no health claims, no tracking pixels, no token or OTP shown.
 
 ## How ONE template serves all three
 Facts, checked in the public Supabase Auth source (`supabase/auth`, `internal/mailer/templatemailer`):
@@ -23,7 +23,7 @@ So the branch key is a **prefix of `.RedirectTo`**, built from the only prefix t
 ## Things that must hold (the "without breaking the others" list)
 1. **Paste the same branching into the Confirm signup template too.** FMW sign-in calls `/auth/v1/otp` with `create_user: true`: an existing user gets the Magic Link email, a NEW user gets Confirm signup (if email confirmation is on). Same guards, "confirm" wording. Recovery (`/reset-password`), Invite and Email change are separate templates and stay KEEPITIL unless changed.
 2. **The redirect must be on the project's allowed redirect list** for the branch to ever trigger; otherwise Supabase replaces `redirect_to` with the SiteURL and everything renders KEEPITIL (safe, but FMW users see the KEEPITIL wording). Check `https://keepitil.com/app/findmyweed/**` is allowed.
-3. **Sender name and address are global** (one SMTP config per project). Keep the sender "KEEPITIL"; the FMW identity lives in the subject and body ("Find My Weed, by KEEPITIL"). Do not put FMW in the sender: it would brand KEEPITIL mail as Find My Weed.
+3. **Sender name and address are global** (one SMTP config per project). Keep the sender "KEEPITIL"; the FMW identity lives in the subject and body ("Find My Weed", with no "by KEEPITIL" line). Do not put FMW in the sender: it would brand KEEPITIL mail as Find My Weed.
 4. **No new redirect hosts without updating the guards.** A new app needs a new prefix and a new branch; unknown prefixes silently get KEEPITIL wording.
 5. Keep `{{ .ConfirmationURL }}` as the only link and as the fallback text; do not add `{{ .Token }}` unless OTP codes are wanted.
 

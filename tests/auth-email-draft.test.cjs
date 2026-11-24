@@ -20,3 +20,7 @@ test("each branch has the link twice (button + fallback), never prints the redir
 });
 test("the draft is marked not applied and says what could not be read", () => { assert.match(readme, /NOT APPLIED/); assert.match(readme, /could not be read from this session/); });
 test("control: an unguarded slice would be caught by the check", () => { const bad = "{{ if eq (slice $r 0 36) \"x\" }}"; assert.ok(!/ge \(len \$r\) 36/.test(bad)); });
+test("the Find My Weed branch carries only the product name in its header (no 'BY KEEPITIL' line, Joe's Nov 16 name rule)", () => {
+  const fmw = body.slice(body.indexOf('{{- if eq $app "findmyweed" -}}'), body.indexOf('{{- else if eq $app "tuitea" -}}'));
+  assert.match(fmw, /Find My <span style="color:#3ddc74">Weed<\/span>/); assert.doesNotMatch(fmw, /BY KEEPITIL/i);
+});

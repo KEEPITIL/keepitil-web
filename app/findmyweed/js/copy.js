@@ -200,6 +200,7 @@
       account: { title: 'Your account · Find My Weed', description: 'Your Find My Weed account: who is signed in, and sign out.' },
       strain: { title: 'Strain · Find My Weed', description: 'Facts about a cannabis strain: type, aroma and flavor words, and lineage when known. No effect or medical claims.' },
       learn: { title: 'Learn · Find My Weed', description: 'Plain-language guides to licenses, lab results, age and ID rules, delivery and reporting, plus links to videos. No health claims.' },
+      events: { title: 'Events · Find My Weed', description: 'A short, reviewed list of upcoming events, with the age rule for each. Cannabis is for adults 21+ (18+ medical where legal).' },
       imageAlt: 'Find My Weed: search state-licensed cannabis storefronts and delivery services',   // the real share image (launched)
       imageAltPlaceholder: 'Find My Weed placeholder share image'   // the draft's placeholder image
     },

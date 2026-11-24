@@ -3,10 +3,13 @@
 //   "claims" true (needs accounts) adds the business path. Both default to false.
 // - The FIRST choice is Customer or Business; each path shows only its own words (js/signup-copy.js: customer / business /
 //   shared), so customers never see business pricing or pitch, and businesses never see the customer material.
-// - Business is LICENSE FIRST: age (21+), then the license details. NO plans, prices, county ladder or comparison show before a
-//   VERIFIED license pass. Verification is NOT wired yet: the stub below always answers "pending", so a visitor ends on
-//   "License verification is coming soon". A flagged license shows no prices either. After a verified pass (tests only, for
-//   now): category + price, data collection, then email, theme, and "email first, screening call, payment link by email".
+// - Business is LICENSE FIRST: age (21+), then the license details, checked by the server. NO price or payment link is in any
+//   file this page loads (owner 2026-11-22: "keep it public to verified business owners only"; "they need business license
+//   and verified email"). A verified license says "License verified. Confirm your email to see pricing" and goes on to the
+//   email step (the license number + legal name ride along in the sign-up metadata). Back from the emailed link, the license
+//   is checked AGAIN with the user's own token (so the verified result is recorded for THAT account), then the server's
+//   fmw.business_pricing() answers: prices + payment links only for a confirmed email AND a verified license; anything
+//   else shows no prices. Flagged / not found / pending show no prices either. Without the back end the stub says pending.
 // - Eligibility at signup: 21+; 18 to 20 only with a valid medical cannabis recommendation or medical ID card, and then a
 //   MEDICAL-ONLY account; under 18 never gets an account. Business accounts: 21+.
 // - The theme picker (light / dark, through js/theme.js) is the LAST step.
@@ -57,11 +60,11 @@
   // Ask the medical question only of customers aged 18 to 20.
   function asksMedical(dobStr, audience, now) { var a = ageOf(dobStr, now); return audience !== 'business' && a !== null && a >= 18 && a < 21; }
   // The steps of a path, in order. The theme picker is always LAST on sign up. "choose" only when there are two audiences.
-  function steps(mode, twoAudiences, audience, unlocked) {
+  function steps(mode, twoAudiences, audience) {
     var s = twoAudiences ? ['choose', 'start'] : ['start'];
     if (mode === 'signin') return s.concat(['signin']);
     if (mode !== 'signup') return s;
-    var mid = audience === 'business' ? ['license'].concat(unlocked ? ['category', 'details'] : []) : [];
+    var mid = audience === 'business' ? ['license'] : [];
     return s.concat(['eligibility'], mid, ['email', 'theme']);
   }
   // A state license number as the state record writes it, e.g. C10-0000123-LIC (format only; the record check is the back end's).
@@ -69,9 +72,10 @@
   function phoneOk(s) { s = String(s == null ? '' : s).replace(/[\s().+-]/g, ''); return s === '' || /^1?\d{10}$/.test(s); }
   // The license check is NOT wired: this stub is the only verifier the page uses, and it always answers "pending".
   function verifyStub() { return { status: 'pending' }; }
-  // The emailed link's return, from the URL hash: { ok: true, kind } when it carries a session (#access_token=...), { ok: false }
-  // when the project answered with an error (#error=... / #error_code=..., e.g. an expired or used link), else null. The kind
-  // ('customer' | 'business') is read from the token's own claims for the wording only; nothing is trusted or kept from it.
+  // The emailed link's return, from the URL hash: { ok: true, kind, token[, license, legalName] } when it carries a session
+  // (#access_token=...), { ok: false } when the project answered with an error (#error=... / #error_code=..., e.g. an expired
+  // or used link), else null. kind / license / legalName are read from the token's own claims (user_metadata) for the wording
+  // and as the INPUT of the server's re-check only; the server decides. The token is kept in memory only, never stored.
   function linkReturn(hash) {
     var h = String(hash == null ? '' : hash).replace(/^#/, '');
     if (!h) return null;
@@ -79,13 +83,17 @@
     h.split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) { try { q[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, ' ')); } catch (e) { /* skip a bad pair */ } } });
     if (q.error || q.error_code) return { ok: false, code: q.error_code || q.error };
     if (!q.access_token) return null;
-    var kind = 'customer';
+    var out = { ok: true, kind: 'customer', token: q.access_token };
     try {
       var part = q.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
       var claims = JSON.parse(typeof atob === 'function' ? atob(part + '==='.slice((part.length + 3) % 4)) : Buffer.from(part, 'base64').toString());
-      if (claims && claims.user_metadata && claims.user_metadata.kind === 'business') kind = 'business';
+      var md = (claims && claims.user_metadata) || {};
+      if (md.kind === 'business') {
+        out.kind = 'business';
+        if (licenseOk(md.license)) { out.license = String(md.license).trim().toUpperCase(); out.legalName = String(md.legal_name || ''); }
+      }
     } catch (e) { /* not a readable token: the neutral wording */ }
-    return { ok: true, kind: kind };
+    return out;
   }
   function emailOk(s) { s = String(s == null ? '' : s).trim(); return s.length <= 254 && /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(s); }
 
@@ -101,7 +109,7 @@
     var box = doc.getElementById('signup'), title = doc.getElementById('signup-title'), prog = doc.getElementById('signup-step');
     if (!box || !title) return null;
     var accounts = CFG.accounts === true, business = accounts && CFG.claims === true;
-    var st = { audience: business ? null : 'customer', mode: null, step: null, cls: null, unlocked: false, category: null };
+    var st = { audience: business ? null : 'customer', mode: null, step: null, cls: null, unlocked: false, lic: null };
     var wanted = /(?:^|[?&])as=business(?:&|$)/.test((win.location && win.location.search) || '');
     // the menu's "Sign in" (signup.html?mode=signin) opens the sign-in path, not the sign-up one
     var wantSignin = /(?:^|[?&])mode=signin(?:&|$)/.test((win.location && win.location.search) || '');
@@ -119,7 +127,7 @@
       if (prog) { prog.textContent = stepIdx ? S.step(stepIdx, path().length) : ''; prog.hidden = !stepIdx; }
     }
     function focusTitle() { if (title.focus) title.focus(); }
-    function path() { return steps(st.mode || 'signup', business, st.audience, st.unlocked); }   // before Sign up / Sign in is picked, count the sign-up path
+    function path() { return steps(st.mode || 'signup', business, st.audience); }   // before Sign up / Sign in is picked, count the sign-up path
     function idx(step) { return path().indexOf(step) + 1; }
     function go(step) { st.step = step; render(); focusTitle(); }
     function back() {
@@ -162,12 +170,12 @@
     function done() {   // the end: with a back end the sign-in link went out (email / sign-in step); without one nothing is sent or kept
       st.step = 'done'; clear(box); head(AUTH ? S.sentTitle : S.soonTitle, 0); box.setAttribute('data-step', 'done');
       var s = el('div', 'state info'); s.setAttribute('role', 'status'); s.setAttribute('data-state', AUTH ? 'link-sent' : 'coming-soon');
-      if (st.audience === 'business' && st.unlocked) {   // after a verified pass: email first, screening call, payment link by email
+      if (st.audience === 'business' && st.unlocked) {   // after a verified license: open the link, then the pricing shows
         s.appendChild(el('h2', null, W().nextTitle));
         var ol = el('ol', 'claim-steps'); W().nextSteps.forEach(function (x) { ol.appendChild(el('li', null, x)); }); s.appendChild(ol);
-        s.appendChild(el('p', null, W().nextNote));
       }
       s.appendChild(el('p', null, AUTH ? S.sentBody : S.soonBody));
+      if (AUTH && st.audience === 'business' && st.unlocked) s.appendChild(el('p', null, W().sentBusiness));
       if (st.mode === 'signup') s.appendChild(el('p', null, S.soonTheme));
       s.appendChild(backLink()); box.appendChild(s); focusTitle();
     }
@@ -186,6 +194,44 @@
       return Promise.resolve(res).then(function (r) { if (r && r.ok) next(); else fail(); }, fail);
     }
     function cleanUrl() { var l = win.location || {}; return String(l.href || '').split('#')[0]; }
+
+    // Back from the emailed link as a business: re-check the license with the user's OWN token (records it for this account),
+    // then ask the server for pricing. Only { allowed: true } from fmw.business_pricing() shows prices and payment links.
+    function loadPricing(si) {
+      var B = SC.business, tok = ret.token;
+      var wait = el('p', 'muted', B.pricingLoading); wait.setAttribute('data-state', 'pricing-loading'); si.appendChild(wait);
+      var recheck = ret.license ? Promise.resolve(AUTH.verifyLicense(tok, { licenseNumber: ret.license, legalName: ret.legalName, category: '' })).catch(function () { return null; }) : Promise.resolve(null);
+      return recheck.then(function () { return AUTH.pricing(tok); }).then(function (r) { return r || {}; }, function () { return { allowed: false, reason: 'error' }; }).then(function (r) {
+        if (wait.parentNode) wait.parentNode.removeChild(wait);
+        if (r.allowed === true && r.pricing && Array.isArray(r.pricing.sections)) return showPricing(si, r.pricing);
+        var errd = r.reason === 'error';
+        var s = el('section', 'card'); s.setAttribute('data-state', errd ? 'pricing-error' : 'pricing-locked');
+        s.appendChild(el('h2', null, errd ? B.pricingErrorTitle : B.pricingLockedTitle)); s.appendChild(el('p', null, errd ? B.pricingErrorBody : B.pricingLockedBody));
+        si.appendChild(s); si.appendChild(backLink());
+      });
+    }
+    function showPricing(si, P) {
+      var B = SC.business, s = el('section', 'card pitch pricing'); s.setAttribute('data-state', 'pricing');
+      box.setAttribute('data-step', 'pricing');
+      s.appendChild(el('h2', null, B.pricingTitle)); s.appendChild(el('p', null, B.pricingIntro));
+      P.sections.forEach(function (sec) {
+        if (!sec || !Array.isArray(sec.items)) return;
+        s.appendChild(el('h3', null, String(sec.title || '')));
+        if (sec.intro) s.appendChild(el('p', 'muted', String(sec.intro)));
+        var ul = el('ul', 'ranks plans');
+        sec.items.forEach(function (it) {
+          var li = el('li', 'plan'); li.appendChild(el('strong', null, String(it.name || ''))); li.appendChild(el('span', 'plan-price', ' ' + String(it.price || '')));
+          // NO payment links are drawn, whatever the server sends: billing is by invoice (the contact link below)
+          if (it.note) li.appendChild(el('p', 'muted', String(it.note)));
+          ul.appendChild(li);
+        });
+        s.appendChild(ul);
+      });
+      if (/^mailto:[^\s"<>]+$/.test(String(P.contact || ''))) {   // the contact address comes with the pricing (server), mailto only
+        var c = el('p', 'muted', B.pricingPay + ' '); var m = el('a', null, B.contact); m.href = P.contact; c.appendChild(m); s.appendChild(c);
+      }
+      si.appendChild(s); si.appendChild(backLink());
+    }
 
     var VIEWS = {
       choose: function () {
@@ -249,6 +295,7 @@
         head(w.emailTitle, idx('email'));
         var f = form(submit), err = errorLine(), em = input('email', 'email', 'email');
         if (st.cls === 'medical_18_20') { var n = el('p', 'note-line', w.medicalOnly); n.setAttribute('data-state', 'medical-only'); f.appendChild(n); }
+        if (st.audience === 'business' && st.unlocked) { var v = el('p', 'note-line', w.verifiedNote); v.setAttribute('data-state', 'license-verified'); f.appendChild(v); }
         f.appendChild(field(S.emailLabel, S.emailHint, em));
         f.appendChild(err);
         var bk = button(S.back, 'back', 'btn ghost'); bk.addEventListener('click', back);
@@ -259,7 +306,9 @@
           // with a back end: the email-first sign-in link, ALWAYS tagged app = 'findmyweed' (js/fmw-auth.js) so the
           // account never becomes a member of the host site. Without one: nothing is sent. The next step shows only after
           // the project ACCEPTED the request: a refused or failed send stays here and says so (never a false "check your email").
-          send(f, err, em.value.trim(), { kind: st.audience === 'business' ? 'business' : 'customer', medical_only: st.cls === 'medical_18_20' }, function () { go('theme'); });
+          var meta = { kind: st.audience === 'business' ? 'business' : 'customer', medical_only: st.cls === 'medical_18_20' };
+          if (st.audience === 'business' && st.unlocked && st.lic) { meta.license = st.lic.licenseNumber; meta.legal_name = st.lic.legalName; }
+          send(f, err, em.value.trim(), meta, function () { go('theme'); });
         }
       },
       theme: function () {   // ALWAYS the last step; js/theme.js applies and keeps the choice
@@ -297,57 +346,19 @@
           var bad = !name.value.trim() ? w.errLegalName : !licenseOk(num.value) ? w.errLicense : !type.value ? w.errType : !state.value ? w.errState :
             !(who.value.trim() && role.value.trim()) ? w.errContact : !phoneOk(tel.value) ? w.errPhone : '';
           if (bad) { err.textContent = bad; return; }
-          var res = verify({ legalName: name.value.trim(), licenseNumber: num.value.trim().toUpperCase(), licenseType: type.value, state: state.value, category: '' });
-          // ONLY a verified answer unlocks prices; flagged / not found = checked by hand (no prices); anything else = pending
+          var d = { legalName: name.value.trim(), licenseNumber: num.value.trim().toUpperCase(), licenseType: type.value, state: state.value, category: '' };
+          var res = verify(d);
+          // a verified answer goes on to the email step (still NO prices: they need the confirmed email too, and come from the
+          // server); flagged / not found = checked by hand; anything else = pending
           var handle = function (r) {
             r = r || {};
-            if (r.status === 'verified') { st.unlocked = true; return go('category'); }
+            if (r.status === 'verified') { st.unlocked = true; st.lic = { licenseNumber: d.licenseNumber, legalName: d.legalName }; return go('email'); }
             if (r.status === 'flagged' || r.status === 'not_found') return ended('flagged', 'license-flagged', w.flaggedTitle, w.flaggedBody);
             ended('pending', 'verification-pending', w.pendingTitle, w.pendingBody);   // the stub: always
           };
           if (res && typeof res.then === 'function') { err.textContent = ''; res.then(handle, function () { handle({ status: 'flagged' }); }); }
           else handle(res);
         }
-      },
-      category: function () {   // UNLOCKED ONLY: category + price, Sponsored county placement
-        if (!st.unlocked) return ended('pending', 'verification-pending', W().pendingTitle, W().pendingBody);
-        var w = W();
-        head(w.categoryTitle, idx('category'));
-        var f = form(submit), err = errorLine(), fs = el('fieldset', 'theme-pick categories'), radios = [];
-        f.appendChild(el('p', null, w.categoryIntro));
-        fs.appendChild(el('legend', null, w.categoryTitle));
-        w.categories.forEach(function (c) {
-          var r = input('radio', 'category'); r.value = c.id; radios.push(r);
-          var l = el('label', 'chip'); l.appendChild(r); l.appendChild(el('span', null, c.name + ' · ' + c.price)); fs.appendChild(l);
-        });
-        f.appendChild(fs); f.appendChild(el('p', 'muted', w.annual));
-        var sp = el('section', 'pitch'); sp.appendChild(el('h2', null, w.sponsoredTitle)); sp.appendChild(el('p', null, w.sponsoredIntro));
-        var ranks = el('ul', 'ranks'); w.ranks.forEach(function (x) { ranks.appendChild(el('li', null, x)); }); sp.appendChild(ranks);
-        sp.appendChild(el('p', 'muted', w.refund)); f.appendChild(sp);
-        f.appendChild(err);
-        var bk = button(S.back, 'back', 'btn ghost'); bk.addEventListener('click', back);
-        f.appendChild(actions(button(S.next, 'continue', 'btn', 'submit'), bk));
-        box.appendChild(f);
-        function submit() {
-          var pick = radios.filter(function (r) { return r.checked; })[0];
-          if (!pick) { err.textContent = w.errCategory; return; }
-          st.category = pick.value; go('details');
-        }
-      },
-      details: function () {   // UNLOCKED ONLY: contacts and services interest
-        if (!st.unlocked) return ended('pending', 'verification-pending', W().pendingTitle, W().pendingBody);
-        var w = W();
-        head(w.detailsTitle, idx('details'));
-        var f = form(submit), err = errorLine(), em2 = input('email', 'contactEmail', 'off'), fs = el('fieldset', 'theme-pick');
-        f.appendChild(el('p', null, w.detailsIntro));
-        f.appendChild(field(w.contactEmailLabel, null, em2));
-        fs.appendChild(el('legend', null, w.servicesLegend));
-        w.services.forEach(function (x, i) { var c = input('checkbox', 'service' + i); var l = el('label', 'chip'); l.appendChild(c); l.appendChild(el('span', null, x)); fs.appendChild(l); });
-        f.appendChild(fs); f.appendChild(err);
-        var bk = button(S.back, 'back', 'btn ghost'); bk.addEventListener('click', back);
-        f.appendChild(actions(button(S.next, 'continue', 'btn', 'submit'), bk));
-        box.appendChild(f);
-        function submit() { if (em2.value.trim() && !emailOk(em2.value)) { err.textContent = S.emailBad; return; } go('email'); }
       },
       signin: function () {
         var w = W();
@@ -387,7 +398,11 @@
         st.step = 'signed-in'; clear(box); head(S.inTitle, 0); box.setAttribute('data-step', 'signed-in');
         var si = el('div', 'state info'); si.setAttribute('role', 'status'); si.setAttribute('data-state', 'signed-in');
         si.appendChild(el('p', null, ret.kind === 'business' ? S.inBodyBusiness : S.inBody));
-        var acct = el('a', 'btn', S.accountLink); acct.href = 'account.html'; si.appendChild(acct); si.appendChild(backLink()); box.appendChild(si); focusTitle();
+        var acct = el('a', 'btn', S.accountLink); acct.href = 'account.html'; si.appendChild(acct);
+        box.appendChild(si);
+        if (ret.kind === 'business' && business && AUTH && typeof AUTH.pricing === 'function') { st.audience = 'business'; loadPricing(si); }
+        else si.appendChild(backLink());
+        focusTitle();
         return st;
       }
       st.step = 'link-error'; clear(box); head(S.linkBadTitle, 0); box.setAttribute('data-step', 'link-error');

@@ -10,9 +10,12 @@
     var base = { 'Content-Type': 'application/json', apikey: key };
     return {
       APP: APP,
-      // email-first sign-in link; meta = { kind: 'customer' | 'business', medical_only: boolean }
+      // email-first sign-in link; meta = { kind: 'customer' | 'business', medical_only: boolean, license?, legal_name? }. A
+      // business's license number + legal name ride along (account metadata) so that, once the emailed link signs them in,
+      // the license is checked AGAIN with their own token and the verified result is recorded against THEIR user id.
       requestSignIn: function (email, meta, redirectTo) {
         var data = { app: APP, kind: meta && meta.kind === 'business' ? 'business' : 'customer', medical_only: !!(meta && meta.medical_only) };
+        if (data.kind === 'business' && meta.license) { data.license = String(meta.license).slice(0, 40); data.legal_name = String(meta.legal_name || '').slice(0, 200); }
         return fetchFn(url + '/auth/v1/otp' + (redirectTo ? '?redirect_to=' + encodeURIComponent(redirectTo) : ''), {
           method: 'POST', headers: base, body: JSON.stringify({ email: String(email), create_user: true, data: data })
         }).then(function (r) { return { ok: !!(r && r.ok) }; });
@@ -29,6 +32,16 @@
           .then(function (r) { return r.ok ? r.json() : { result: 'flagged' }; })
           .then(function (j) { return { status: j && j.result === 'verified' ? 'verified' : j && j.result === 'not_found' ? 'not_found' : 'flagged' }; },
                 function () { return { status: 'flagged' }; });
+      },
+      // business pricing: ONLY from the server (rpc fmw.business_pricing, migration 20261123030000), which answers with prices
+      // only for a signed-in FMW user with a confirmed email AND a verified license recorded for them. No token: no call.
+      pricing: function (token) {
+        if (!token) return Promise.resolve({ allowed: false, reason: 'signin' });
+        var h = Object.assign({}, base, { Authorization: 'Bearer ' + token, 'Content-Profile': 'fmw' });
+        return fetchFn(url + '/rest/v1/rpc/business_pricing', { method: 'POST', headers: h, body: '{}' })
+          .then(function (r) { return r.ok ? r.json() : { allowed: false, reason: 'error' }; })
+          .then(function (j) { return j && j.allowed === true && j.pricing ? { allowed: true, pricing: j.pricing } : { allowed: false, reason: (j && j.reason) || 'error' }; },
+                function () { return { allowed: false, reason: 'error' }; });
       }
     };
   }

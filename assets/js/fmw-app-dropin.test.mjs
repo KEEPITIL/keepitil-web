@@ -184,7 +184,7 @@ test('for-business/: the #201 bytes minus the M201-1 robots meta and the commiss
   // the brand fix is the newest edit: undoing it gives the previous pin
   let noBrand = biz.toString('utf8'); for (const [prev, now] of [...BRAND_PAIRS].reverse()) noBrand = noBrand.replace(now, () => prev);
   assert.equal(sha(noBrand), BUSINESS_SHA256_NOBRAND);
-  assert.doesNotMatch(biz.toString('utf8'), /FindMyWeed|KEEPITIL presents/i, 'no run-together name, no "KEEPITIL presents" band');
+  assert.doesNotMatch(biz.toString('utf8'), /FindMyWeed|KEEPITIL presents/, 'no run-together name (case-sensitive: URLs keep findmyweed), no "KEEPITIL presents" band');
   const noTerms = noBrand.replace(TERMS_PAIR[1], () => TERMS_PAIR[0]);
   assert.equal(sha(noTerms), BUSINESS_SHA256_NOTERMS);
   // the only differences from the page that still had the competitor comparison: the three NOCOMP_PAIRS edits

@@ -30,3 +30,10 @@ test("the prerender branch carries the regenerated events sitemap too", () => {
   assert.match(code, /git status --porcelain event sitemap-events\.xml/);
   assert.match(code, /git add event sitemap-events\.xml/);
 });
+test("scheduled every 30 minutes (offset from the hour), plus manual and dispatch triggers", () => {
+  assert.match(code, /cron: '7,37 \* \* \* \*'/); assert.match(code, /workflow_dispatch:/); assert.match(code, /types: \[event-changed\]/);
+});
+test("a run whose pages are already waiting on a prerender branch pushes nothing; the push step is gated on that", () => {
+  assert.match(code, /sh scripts\/prerender-dedupe\.sh/); assert.match(code, /if: \$\{\{ steps\.dedupe\.outputs\.skip == 'no' \}\}/);
+  assert.doesNotMatch(code, /git push[^\n]*--delete|git push origin :|branch -D|push -d/, "never deletes a branch (that could close someone's open PR)");
+});

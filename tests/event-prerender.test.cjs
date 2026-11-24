@@ -6,6 +6,10 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { JSDOM } = require("jsdom");
+const { after } = require("node:test");
+const __made = [];
+after(() => { for (const d of __made) fs.rmSync(d, { recursive: true, force: true }); });   // temp dirs are removed when the file's tests finish
+const mk = (prefix) => { const d = fs.mkdtempSync(path.join(os.tmpdir(), prefix)); __made.push(d); return d; };
 const ROOT = process.env.EP_ROOT || path.resolve(__dirname, "..");
 const TEMPLATE = fs.readFileSync(path.join(ROOT, "event.html"), "utf8");
 const lib = () => import(path.join(ROOT, "scripts/build-event-pages.mjs"));
@@ -65,13 +69,13 @@ test("bad slugs are refused (path traversal, quotes, spaces, uppercase, empty)",
 test("rendering twice gives byte-identical output (no timestamps, so no churn commits)", async () => {
   const { renderEventPage, writeIfChanged } = await lib();
   assert.equal(renderEventPage(TEMPLATE, row()), renderEventPage(TEMPLATE, row()));
-  const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "pr-")), "event", "x", "index.html");
+  const f = path.join(mk("pr-"), "event", "x", "index.html");
   assert.equal(writeIfChanged(f, "a"), true); assert.equal(writeIfChanged(f, "a"), false); assert.equal(writeIfChanged(f, "b"), true);
 });
 
 test("removeStale deletes only generated pages of events that are no longer published", async () => {
   const { removeStale, MARKER } = await lib();
-  const d = fs.mkdtempSync(path.join(os.tmpdir(), "pr-"));
+  const d = mk("pr-");
   for (const [n, c] of [["keep-me", MARKER], ["gone", MARKER], ["hand-made", "<html>mine</html>"]]) { fs.mkdirSync(path.join(d, "event", n), { recursive: true }); fs.writeFileSync(path.join(d, "event", n, "index.html"), c); }
   assert.deepEqual(removeStale(d, new Set(["keep-me"])), ["gone"]);
   assert.ok(fs.existsSync(path.join(d, "event", "keep-me")) && fs.existsSync(path.join(d, "event", "hand-made")) && !fs.existsSync(path.join(d, "event", "gone")));
@@ -79,7 +83,7 @@ test("removeStale deletes only generated pages of events that are no longer publ
 
 test("main(): writes published events, skips bad slugs and unpublished rows, and a failed fetch never deletes an existing page", async () => {
   const { main, MARKER } = await lib();
-  const d = fs.mkdtempSync(path.join(os.tmpdir(), "pr-"));
+  const d = mk("pr-");
   fs.writeFileSync(path.join(d, "event.html"), TEMPLATE);
   fs.mkdirSync(path.join(d, "event", "flaky-event"), { recursive: true }); fs.writeFileSync(path.join(d, "event", "flaky-event", "index.html"), MARKER + "old");
   fs.mkdirSync(path.join(d, "event", "was-published"), { recursive: true }); fs.writeFileSync(path.join(d, "event", "was-published", "index.html"), MARKER + "old");
@@ -122,7 +126,7 @@ test("main(): writes the sitemap when every fetch worked, and leaves it alone wh
   const { main } = await lib();
   const future = new Date(Date.now() + 864e5 * 30).toISOString();
   for (const flaky of [false, true]) {
-    const d = fs.mkdtempSync(path.join(os.tmpdir(), "pr-"));
+    const d = mk("pr-");
     fs.writeFileSync(path.join(d, "event.html"), TEMPLATE);
     fs.writeFileSync(path.join(d, "sitemap-events.xml"), "OLD");
     const fakeFetch = async (url, opt = {}) => {

@@ -1,6 +1,6 @@
 // Tests for scripts/pages-build.mjs and scripts/pages-closure-check.mjs (GitHub Pages artifact staging).
 // Includes NEGATIVE CONTROLS: excluding a file that a deployed file references must fail the check.
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -8,8 +8,10 @@ import path from 'node:path';
 import { parseExcludes, isExcluded, buildSite } from '../../scripts/pages-build.mjs';
 import { checkClosure } from '../../scripts/pages-closure-check.mjs';
 
+const __made = [];
+after(() => { for (const d of __made) fs.rmSync(d, { recursive: true, force: true }); });   // fixtures are removed when the file's tests finish
 function fixture(files) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pages-fx-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pages-fx-')); __made.push(root);
   for (const [rel, body] of Object.entries(files)) {
     fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
     fs.writeFileSync(path.join(root, rel), body);

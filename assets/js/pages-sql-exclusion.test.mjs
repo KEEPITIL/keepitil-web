@@ -9,7 +9,7 @@
 //     real exclude file ...
 //  3. NEGATIVE CONTROL: ... and the SAME check FAILS when run with a copy of the exclude file that
 //     lacks the `supabase/` line (proves the test would have caught the leak).
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -23,7 +23,10 @@ const EXCLUDE_TEXT = fs.readFileSync(EXCLUDE_FILE, 'utf8');
 
 const isSql = (rel) => /\.sql$/i.test(rel);
 const isMigration = (rel) => /(^|\/)migrations?\//i.test(rel);
-const tmp = (p) => fs.mkdtempSync(path.join(os.tmpdir(), p));
+/* temp dirs this file creates are removed when the file's tests finish (they used to pile up in $TMPDIR: pages-sql-real-* is a 146 MB copy of the repo) */
+const __made = [];
+after(() => { for (const d of __made) fs.rmSync(d, { recursive: true, force: true }); });
+const tmp = (p) => { const d = fs.mkdtempSync(path.join(os.tmpdir(), p)); __made.push(d); return d; };
 
 // Files that would be public: kept by the rules and either SQL or inside a migrations dir.
 function leaks(files, rules) {

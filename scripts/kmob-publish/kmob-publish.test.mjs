@@ -2,7 +2,7 @@
 // No network, no token. Run: node --test scripts/kmob-publish/kmob-publish.test.mjs
 // Negative controls (CI): KMOB_VERIFY_DISABLE=<rule> switches one check off; the suite must then FAIL, which proves these tests
 // can see that check. Rules: tip provenance checks pr-checks precondition rollback artifact artifact-integrity path-guard environment.
-import { test } from 'node:test';
+import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -162,7 +162,9 @@ function makeArtifact(dir, sha, files = { 'index.html': '<head><title>KMOB</titl
   fs.writeFileSync(path.join(dir, 'version.json'), JSON.stringify({ build, source: sha }));
   return build;
 }
-const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'kmob-publish-'));
+const __made = [];
+after(() => { for (const d of __made) fs.rmSync(d, { recursive: true, force: true }); });   // temp dirs are removed when the file's tests finish
+const tmp = () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'kmob-publish-')); __made.push(d); return d; };
 const g = (cwd, ...a) => execFileSync('git', a, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const valid = (dir) => validateArtifact(dir, { sha: S, _disable: D });
 

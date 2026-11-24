@@ -1,9 +1,13 @@
 // scripts/prerender-dedupe.sh: a scheduled run must not push a second branch for work that is already waiting on one.
 const test = require("node:test"), assert = require("node:assert/strict"), fs = require("node:fs"), os = require("node:os"), path = require("node:path"), cp = require("node:child_process");
+const { after } = require("node:test");
+const __made = [];
+after(() => { for (const d of __made) fs.rmSync(d, { recursive: true, force: true }); });   // temp dirs are removed when the file's tests finish
+const mk = (prefix) => { const d = fs.mkdtempSync(path.join(os.tmpdir(), prefix)); __made.push(d); return d; };
 const SCRIPT = path.join(__dirname, "..", "scripts", "prerender-dedupe.sh");
 const sh = (cwd, c) => cp.execSync(c, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" } });
 function fixture() {
-  const d = fs.mkdtempSync(path.join(os.tmpdir(), "pd-")), origin = path.join(d, "origin.git"), work = path.join(d, "work");
+  const d = mk("pd-"), origin = path.join(d, "origin.git"), work = path.join(d, "work");
   sh(d, `git init -q --bare -b main origin.git && git clone -q origin.git work`);
   fs.mkdirSync(path.join(work, "event", "a"), { recursive: true }); fs.writeFileSync(path.join(work, "event", "a", "index.html"), "A1"); fs.writeFileSync(path.join(work, "sitemap-events.xml"), "S1");
   sh(work, `git add -A && git commit -q -m base && git push -q origin HEAD:main`);

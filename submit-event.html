@@ -65,6 +65,8 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
 .rc .st.live{color:#22e39b;border-color:rgba(34,227,155,.5)}
 .rc .ed{background:none;border:1px solid var(--line);border-radius:8px;color:var(--text);font-weight:700;font-size:.74rem;padding:5px 11px;cursor:pointer}
 .rc .ed:hover{border-color:var(--brand);color:var(--brand)}
+.rc .ed.danger{border-color:#ff6b6b;color:#ff6b6b}
+.rc .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .tabs{display:flex;gap:6px;margin-bottom:10px}
 .tabs button{flex:1;background:var(--bg,#0d0d13);border:1px solid var(--line);border-radius:9px;color:var(--muted);font:700 .8rem Inter,sans-serif;padding:8px;cursor:pointer}
 .tabs button.on{color:#04121b;background:linear-gradient(90deg,var(--brand),var(--brand-2));border-color:transparent}
@@ -227,13 +229,33 @@ function loadRecent(){
       var ds=d?new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',month:'numeric',day:'numeric',year:'2-digit'}).format(d):'';
       return '<div class="rc"><div class="t"><b>'+esc(e.title)+'</b><span>'+esc([e.venue,e.city].filter(Boolean).join(' · '))+(ds?' · '+ds:'')+'</span></div>'
         +'<span class="st'+(e.status==='published'?' live':'')+'">'+esc(e.status)+'</span>'
-        +'<button type="button" class="ed" data-i="'+i+'">Edit</button></div>';
+        +'<span class="acts"><button type="button" class="ed" data-i="'+i+'">Edit</button>'
+        +(MEMBER_LIVE.indexOf(e.status)>-1?'<button type="button" class="ed" data-act="unpublish" data-i="'+i+'">Unpublish</button>':'')
+        +'<button type="button" class="ed danger" data-act="delete" data-i="'+i+'">Delete</button></span></div>';
     }).join('');
-    $('recent').querySelectorAll('.ed').forEach(function(b){ b.addEventListener('click',function(){ startEdit(rows[+b.dataset.i]); }); });
+    $('recent').querySelectorAll('.ed').forEach(function(b){ b.addEventListener('click',function(){
+      var row=rows[+b.dataset.i], act=b.dataset.act; if(!act){ startEdit(row); return; } memberAct(act,row,b); }); });
     return rows;
   }).catch(function(e){ try{ console.error('[submit-event] listings', e); }catch(x){} return []; });
 }
 var RECENT=[];
+/* MEMBER CONTROL: unpublish / delete my own submitted event. Server functions are owner-only
+   (events.submitted_by = auth.uid()); until they are deployed the call fails and we say so. */
+var MEMBER_LIVE=['published','review','sold_out'];
+function memberFnMissing(err){ return !!err && (err.code==='PGRST202' || /could not find the function|does not exist/i.test(String(err.message||''))); }
+function memberAct(act,row,btn){
+  var del=act==='delete';
+  var q=del?('Delete "'+(row.title||'this event')+'" permanently? This cannot be undone.'):('Take "'+(row.title||'this event')+'" off the public site? You can edit it and submit it again later.');
+  if(!window.confirm(q)) return;
+  var m=$('msg'); if(btn) btn.disabled=true;
+  supa.rpc(del?'delete_my_community_event':'unpublish_my_community_event',{p_id:row.id}).then(function(r){
+    var d=r&&r.data, err=r&&r.error;
+    if(btn) btn.disabled=false;
+    if(err){ m.className='msg err'; m.textContent=memberFnMissing(err)?'This is not available yet. Email info@keepitil.com and we will do it for you.':'Could not complete that. Nothing was changed.'; return; }
+    if(d&&d.ok===false){ m.className='msg err'; m.textContent=d.message||d.error||'Could not complete that.'; return; }
+    m.className='msg ok'; m.textContent=del?'Event deleted.':'Event unpublished.'; loadRecent();
+  }).catch(function(){ if(btn) btn.disabled=false; m.className='msg err'; m.textContent='Could not complete that. Nothing was changed.'; });
+}
 function startEdit(e){
   EDIT_ID=e.id; $('formTitle').textContent='EDIT EVENT'; $('submitBtn').textContent='Save changes';
   $('venue').value=e.venue||''; $('city').value=e.city||'Los Angeles'; $('title').value=e.title||'';

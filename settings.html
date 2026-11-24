@@ -124,7 +124,8 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
           <select data-k="language"><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="pt">Português</option><option value="de">Deutsch</option></select></div>
         <div class="row"><div class="lbl">Two-factor authentication<small>Extra security at sign-in</small></div><a class="btn" href="mailto:info@keepitil.com">Set up →</a></div>
         <div class="row"><div class="lbl">Sign out<small>End your session on this device</small></div><button class="btn danger" onclick="doLogout()">Log out</button></div>
-        <div class="row"><div class="lbl">Download my data<small>A copy of your profile, events, saves, follows and orders as a JSON file</small></div><button class="btn" id="exp-go" type="button" onclick="exportMyData()">Download</button></div>
+        <div class="row" id="exp-row"><div class="lbl">Download my data<small>A copy of your profile, events, saves, follows and orders as a JSON file</small></div><button class="btn" id="exp-go" type="button" onclick="exportMyData()">Download</button></div>
+        <div class="row" id="exp-mail-row" hidden><div class="lbl">Download my data<small>Email us and we will send you a copy of your profile, events, saves, follows and orders</small></div><a class="btn" href="mailto:info@keepitil.com?subject=My%20data%20request">Email us</a></div>
         <div class="row" id="del-row"><div class="lbl">Delete account<small>Permanently removes your KEEPITIL account and the things only you own. This cannot be undone.</small></div><button class="btn danger" id="del-open" type="button" onclick="delOpen()">Delete account…</button></div>
         <div id="del-panel" hidden style="border:1px solid #ff6b6b;border-radius:14px;padding:16px;margin:8px 0 4px">
           <div style="font-weight:800;margin-bottom:6px">Delete your account?</div>
@@ -328,6 +329,9 @@ function savePass(){ var sz=document.getElementById('sz-account'); var el=docume
   if(!SB||!SIGNED){ if(sz)sz.textContent='Log in to change your password'; return; }
   if(sz)sz.textContent='Updating…';
   SB.auth.updateUser({password:p}).then(function(r){ el.value=''; if(sz){ sz.textContent=(r&&r.error)?('Could not update: '+r.error.message):'Password changed ✓'; setTimeout(function(){sz.textContent='';},3000);} }); }
+/* MEMBER_DATA_CONTROLS: the Download button needs export_my_data() from keepitil.github.io #95 (not on prod yet). Keep false until it is applied and verified, then set true here AND in submit-event.html (a test keeps both equal). Off = an email request row is shown instead. */
+var MEMBER_DATA_CONTROLS=false;
+(function(){ var d=document.getElementById('exp-row'), m=document.getElementById('exp-mail-row'); if(!MEMBER_DATA_CONTROLS){ if(d) d.hidden=true; if(m) m.hidden=false; } })();
 /* DATA EXPORT: export_my_data() returns only the signed-in person's own rows. */
 function exportFileName(d){ d=d||new Date(); return 'keepitil-my-data-'+d.toISOString().slice(0,10)+'.json'; }
 function exportMyData(){ var sz=document.getElementById('sz-account'), b=document.getElementById('exp-go');

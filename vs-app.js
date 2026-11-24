@@ -398,7 +398,7 @@
    + '#vs-app .ce-chip.ce-year{font-weight:700;letter-spacing:.1em;color:#c8d0da;'
    +   'border-color:rgba(255,255,255,.26)}'
    /* A month with nothing open still holds its place in the rolling window, just quieter. */
-   + '#vs-app .ce-chip.ce-empty{opacity:.42}'
+   + '#vs-app .ce-chip.ce-empty{opacity:.88;border-style:dashed}'
    /* The two dropdown-style controls. A real <select> so the options are native and
       accessible; styled to sit in the chip rail rather than look like a form field. */
    + '#vs-app .ce-dd{flex:0 0 auto;display:inline-flex}'

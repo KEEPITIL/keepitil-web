@@ -50,3 +50,7 @@ test("flow: blockers fetched first, delete only after delReady, sign out after s
   assert.match(go, /Nothing was changed/);
   assert.equal((html.match(/rpc\('delete_my_account'\)/g) || []).length, 1, "exactly one call site");
 });
+test("the explanation uses the approved wording, word for word", () => {
+  const want = "Your profile, profile page, saved events, follows and settings are deleted. Community posts and replies that other people answered stay, with your name and words removed. Events you submitted are not removed automatically: email info@keepitil.com before you delete your account if you want them taken down. Ticket orders you placed are kept for our records. This cannot be undone.";
+  assert.ok(html.includes(want), "approved delete-account text missing");
+});

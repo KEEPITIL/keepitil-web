@@ -65,3 +65,13 @@ test('both 404 panels are <main> landmarks', () => {
   const old = h.replace(/<main class="wrap"/g, '<div class="wrap"');
   assert.notEqual((old.match(/<main class="wrap" id=/g) || []).length, 2, 'the pre-fix markup has no main');
 });
+
+test('the FMW 404 uses the Find My Weed LIGHT palette and wordmark, scoped so every other 404 stays KEEPITIL dark', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', '404.html'), 'utf8');
+  assert.match(html, /html\[data-fmw\],html\[data-fmw\] body\{background:#eef6ee;color:#0d1f14\}/);
+  assert.match(html, /<div class="fmw-logo">Find <span>My<\/span> Weed<\/div>/);
+  assert.match(html, /class="fmw-back" href="\/app\/findmyweed\/">Back to Find My Weed/);
+  assert.match(html, /html,body\{margin:0;height:100%;background:#0a0a0f;color:#eef;/, 'the default page is still the KEEPITIL dark one');
+  const rules = html.slice(html.indexOf('/* Find My Weed 404'), html.indexOf('</style>', html.indexOf('/* Find My Weed 404')));
+  for (const sel of rules.split('\n').filter((l) => /^[^\/\s]/.test(l)).map((l) => l.split('{')[0])) assert.match(sel, /data-fmw|fmwfourohfour/, 'every palette rule is scoped to the FMW 404: ' + sel);
+});

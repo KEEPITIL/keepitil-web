@@ -25,7 +25,7 @@ function make(replies) {
     supa: { rpc: (n, a) => { calls.push(n + (a ? JSON.stringify(a) : "")); return Promise.resolve(replies[n]); } },
   };
   vm.createContext(box);
-  vm.runInContext("var MEMBER_LIVE=['published','review','sold_out']; var RECENT=[];\n" + extract("memberFnMissing") + "\nvar RECENT_OFFSET=0, RECENT_PAGE=2;\n" + extract("loadRecent"), box);
+  vm.runInContext("var MEMBER_DATA_CONTROLS=true; var MEMBER_LIVE=['published','review','sold_out']; var RECENT=[];\n" + extract("memberFnMissing") + "\nvar RECENT_OFFSET=0, RECENT_PAGE=2;\n" + extract("loadRecent"), box);
   return { box, calls, el };
 }
 const ev = (o) => Object.assign({ id: 1, slug: "s", title: "T", venue: "V", city: "C", starts_at: null, status: "published", source: "community", has_orders: false }, o);

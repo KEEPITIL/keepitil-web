@@ -241,13 +241,14 @@ function loadRecent(more){
       var mine=e.source==null||e.source==='community';
       var acts=mine
         ?'<button type="button" class="ed" data-i="'+i+'">Edit</button>'
-          +(MEMBER_LIVE.indexOf(e.status)>-1?'<button type="button" class="ed" data-act="unpublish" data-i="'+i+'">Unpublish</button>':'')
-          +(e.has_orders?'':'<button type="button" class="ed danger" data-act="delete" data-i="'+i+'">Delete</button>')
+          +(MEMBER_DATA_CONTROLS&&MEMBER_LIVE.indexOf(e.status)>-1?'<button type="button" class="ed" data-act="unpublish" data-i="'+i+'">Unpublish</button>':'')
+          +(MEMBER_DATA_CONTROLS&&!e.has_orders?'<button type="button" class="ed danger" data-act="delete" data-i="'+i+'">Delete</button>':'')
         :'<a class="ed" href="/create-event?e='+encodeURIComponent(e.slug)+'">Edit</a>';
       return '<div class="rc"><div class="t"><b>'+esc(e.title)+'</b><span>'+esc([e.venue,e.city].filter(Boolean).join(' · '))+(ds?' · '+ds:'')+'</span></div>'
         +'<span class="st'+(e.status==='published'?' live':'')+'">'+esc(e.status)+'</span>'
         +'<span class="acts">'+acts+'</span></div>';
-    }).join('')+(res.paged&&rows.length===RECENT_PAGE?'<div class="rc"><button type="button" class="ed" id="recentMore">Show more</button></div>':'');
+    }).join('')+(res.paged&&rows.length===RECENT_PAGE?'<div class="rc"><button type="button" class="ed" id="recentMore">Show more</button></div>':'')
+      +(MEMBER_DATA_CONTROLS?'':'<div class="rc" id="recentHelp">To unpublish or delete an event, email <a href="mailto:info@keepitil.com">info@keepitil.com</a> and we will do it for you.</div>');
     $('recent').querySelectorAll('button.ed[data-i], .ed[data-i]').forEach(function(b){ b.addEventListener('click',function(){
       var row=RECENT[+b.dataset.i], act=b.dataset.act; if(!act){ startEdit(row); return; } memberAct(act,row,b); }); });
     var mb=$('recentMore'); if(mb) mb.addEventListener('click',function(){ loadRecent(true); });
@@ -257,6 +258,8 @@ function loadRecent(more){
 var RECENT=[];
 /* MEMBER CONTROL: unpublish / delete my own submitted event. Server functions are owner-only
    (events.submitted_by = auth.uid()); until they are deployed the call fails and we say so. */
+/* MEMBER_DATA_CONTROLS: Unpublish / Delete need the server functions of keepitil.github.io #95 (not on prod yet). Keep false until they are applied and verified, then set true here AND in settings.html (a test keeps both equal). */
+var MEMBER_DATA_CONTROLS=false;
 var MEMBER_LIVE=['published','review','sold_out'];
 function memberFnMissing(err){ return !!err && (err.code==='PGRST202' || /could not find the function|does not exist/i.test(String(err.message||''))); }
 function memberAct(act,row,btn){

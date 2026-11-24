@@ -1564,13 +1564,13 @@ function renderFollowBtn(){
   b.textContent=(FOLLOWING?'✓ FOLLOWING':'+ FOLLOW')+(FOLLOWERS>0?' · '+FOLLOWERS:'');
   b.classList.toggle('following',FOLLOWING);
 }
+/* Follower count and "am I following" come from get_profile_stats (SECURITY DEFINER): the page never lists who follows anyone,
+   so the follows table can be private (only your own rows readable; gh.io follows-privacy DRAFT). */
 function loadFollow(){
   if(!SB)return;
-  SB.from('follows').select('follower_id',{count:'exact'}).eq('profile_slug',PROFILE_SLUG).then(function(r){
-    if(r&&!r.error){ FOLLOWERS=(typeof r.count==='number')?r.count:(r.data?r.data.length:0);
-      FOLLOWING = !!(SESSION && r.data && r.data.some(function(x){return x.follower_id===SESSION.user.id;}));
-      renderFollowBtn();
-    }
+  SB.rpc('get_profile_stats',{p_slug:PROFILE_SLUG}).then(function(r){
+    var d=r&&!r.error&&r.data;
+    if(d&&typeof d==='object'){ FOLLOWERS=Number(d.followers)||0; FOLLOWING=!!(SESSION&&d.is_following); renderFollowBtn(); }
   }).catch(function(){});
 }
 /* ── SHARE: social platforms, email or SMS only ── */

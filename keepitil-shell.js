@@ -245,7 +245,12 @@
        version. it should only be on the earn page in the radio section."). Supersedes the
        2026-09-24 site-wide phone radio. The engine runs on a phone only where the page opts in
        with data-radio="page" (Earn), and plays through Earn's own radio section. */
-    var RADIO_ALLOWED = RULES.radio && !IN_IFRAME && !IN_STAGE && (!IS_MOBILE || RADIO_PAGE);
+    /* PAGE OPT-OUT (2026-11-21): <html data-radio="off"> means no radio at any width, bar and
+       engine both, while the page keeps its nav, bottom tabs and footer (data-page-type="system"
+       would also drop the nav). Used by /earn/black-friday/. */
+    var RADIO_OFF = false;
+    try{ RADIO_OFF = document.documentElement.getAttribute('data-radio') === 'off'; }catch(e){}
+    var RADIO_ALLOWED = RULES.radio && !RADIO_OFF && !IN_IFRAME && !IN_STAGE && (!IS_MOBILE || RADIO_PAGE);
     if(!RADIO_ALLOWED){
       var _rk=document.createElement('style'); _rk.textContent='#kil-radio,#kil-sc{display:none!important}'; document.head.appendChild(_rk);
       /* kill the BAR and the AUDIO ENGINE (#kil-sc soundcloud iframe survives bar removal —

@@ -17,6 +17,8 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const POPUP_PATH = join(ROOT, 'assets/js/kil-bf-popup.js');
 const POPUP = readFileSync(POPUP_PATH, 'utf8');
 const SKIP_DIRS = new Set(['.git', 'node_modules']);
+/* Opt-in pages a visitor opens on purpose. Only these may mount the inline signup. */
+const OPT_IN = new Set(['early-access.html', 'earn/black-friday/index.html']);
 
 function walk(dir, ext, out = []) {
   for (const name of readdirSync(dir)) {
@@ -65,16 +67,18 @@ function runInFakePage(src, { inlineHost }) {
   return { log, host, window };
 }
 
-test('no page loads the guest-list script except the opt-in /early-access.html', () => {
+test('no page loads the guest-list script except the opt-in pages (/early-access.html, /earn/black-friday/)', () => {
   const bad = [];
   for (const f of walk(ROOT, '.html')) {
     const rel = relative(ROOT, f);
     const s = readFileSync(f, 'utf8');
-    if (/kil-bf-popup\.js/.test(s) && rel !== 'early-access.html') bad.push(rel);
+    if (/kil-bf-popup\.js/.test(s) && !OPT_IN.has(rel)) bad.push(rel);
   }
   assert.deepEqual(bad, []);
   const ea = readFileSync(join(ROOT, 'early-access.html'), 'utf8');
   assert.match(ea, /<div id="kil-bf-inline"><\/div>/, 'early-access keeps the inline form');
+  const bf = readFileSync(join(ROOT, 'earn/black-friday/index.html'), 'utf8');
+  assert.match(bf, /<div id="kil-bf-inline"><\/div>/, '/earn/black-friday/ mounts the inline form');
 });
 
 test('no HTML page carries modal markup for the guest list', () => {
@@ -84,7 +88,7 @@ test('no HTML page carries modal markup for the guest list', () => {
     const s = readFileSync(f, 'utf8');
     if (/id="kil-bf"|class="kilbf-card"|aria-modal="true"[^>]*kilbf/.test(s)) bad.push(rel);
     // The signup copy may appear only on the opt-in landing page.
-    if (rel !== 'early-access.html' && /Join the guest list|Get on the guest list/.test(s)) bad.push(rel);
+    if (!OPT_IN.has(rel) && /Join the guest list|Get on the guest list/.test(s)) bad.push(rel);
   }
   assert.deepEqual(bad, []);
 });

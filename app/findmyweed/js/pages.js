@@ -93,7 +93,7 @@
   function bodyClass(c, on) { var b = doc.body; if (b && b.classList) b.classList[on ? 'add' : 'remove'](c); }
   (function menu() {
     var btn = doc.getElementById('menu-btn'), panel = doc.getElementById('menu-panel');
-    if (!btn || !panel || !btn.addEventListener || !F.menuItems || !C.NAV_MENU) return;
+    if (!btn || !panel || !btn.addEventListener || !F || !F.menuItems || !C.NAV_MENU) return;   // a missing module must never abort the rest of the page script
     var cfg = window.FMW_CONFIG || {}, base = cfg.basePath || '', abs = page === 'notfound', isOpen = false, offered = {};
     panel.setAttribute('aria-label', C.navMenuLabel);
     function soonButton(cls, label, describedBy) {
@@ -641,20 +641,18 @@
       if (AL.note) ad.appendChild(el('p', 'muted addr-note', AL.note === 'delivery' ? C.addressDeliveryNote : AL.note === 'street' ? C.addressNoStreet : C.addressNone));
       box.appendChild(ad);
 
-      var hr = el('section', 'card'), t = el('table', 'hours'), today = F.localTime(new Date(), l.tz).day;
-      hr.appendChild(el('h2', null, C.hours));
-      t.appendChild(el('caption', 'sr', C.hours));
-      if (!F.hoursKnown(l)) {
-        // missing or malformed hours: say so, never a week of "Closed" (#15)
-        hr.appendChild(el('p', 'muted hours-unknown', C.hoursNotListed)); box.appendChild(hr);
-      } else {
-      F.weekHours(l).forEach(function (h) {
-        var tr = el('tr', h.key === today ? 'today' : null), th = el('th', null, h.day);
-        th.scope = 'row';
-        if (h.key === today) tr.setAttribute('aria-current', 'date');
-        tr.appendChild(th); tr.appendChild(el('td', null, h.text)); t.appendChild(tr);
-      });
-      hr.appendChild(t); box.appendChild(hr);
+      // No hours data (all of today's listings): no Hours card at all. A card that only says "Hours not listed" is noise; it returns the day a listing has real hours.
+      if (F.hoursKnown(l)) {
+        var hr = el('section', 'card'), t = el('table', 'hours'), today = F.localTime(new Date(), l.tz).day;
+        hr.appendChild(el('h2', null, C.hours));
+        t.appendChild(el('caption', 'sr', C.hours));
+        F.weekHours(l).forEach(function (h) {
+          var tr = el('tr', h.key === today ? 'today' : null), th = el('th', null, h.day);
+          th.scope = 'row';
+          if (h.key === today) tr.setAttribute('aria-current', 'date');
+          tr.appendChild(th); tr.appendChild(el('td', null, h.text)); t.appendChild(tr);
+        });
+        hr.appendChild(t); box.appendChild(hr);
       }
 
       var mn = el('section', 'card'), url = F.safeUrl(l.menuUrl); mn.appendChild(el('h2', null, C.menu));

@@ -613,6 +613,15 @@
       }).catch(function(){});
     }
   }catch(e){}
+  /* /event and /event?e= carry no slug at all. The bad-slug path below renders the not-found
+     state from the RPC result, but with no slug the RPC never runs, so the page used to stay as
+     an empty "KEEPITIL Event" shell with a QR code and a Share button. */
+  if(!ev.slug){
+    var _noSlugNF=function(){ if(window.KIL_NOT_FOUND) window.KIL_NOT_FOUND({ what:'event', heading:'That event isn\u2019t here',
+      body:'This link has no event in it. Pick one from the calendar.',
+      links:[['/','Explore events'],['/culture/','Culture'],['/submit-event','Submit an event']] }); };
+    if(document.readyState==='complete') _noSlugNF(); else window.addEventListener('load',_noSlugNF);
+  }
   // Enhance from DB if the event exists there (richer/authoritative)
   try{
     if(window.supabase && ev.slug){

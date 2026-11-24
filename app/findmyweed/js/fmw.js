@@ -551,6 +551,7 @@
     var base = opts.basePath || '', offered = opts.offered || {}, out = [];
     (list || []).forEach(function (it) {
       if (!it || !it.key || typeof it.label !== 'string' || !it.label) return;
+      if (it.visitorOnly === true && opts.signedIn === true) return;   // Sign in / Sign up for a visitor; Account / Sign out once signed in
       var href = it.biz ? base + '/for-business/'
         : (typeof it.page === 'string' && PAGE_RE.test(it.page)) ? (opts.absolute ? base + '/' + it.page : it.page)
         : (base && typeof it.host === 'string' && HOST_RE.test(it.host)) ? it.host : null;

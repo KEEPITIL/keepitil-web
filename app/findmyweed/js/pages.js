@@ -59,8 +59,9 @@
   // placeholder above and List Your Business keeps the for-business link. "accounts" on: Sign in opens signup.html.
   // "claims" on as well: List Your Business opens the business path there. Nothing here signs anyone in.
   var ACCT = window.FMW_CONFIG && window.FMW_CONFIG.accounts === true, CLAIMS = ACCT && window.FMW_CONFIG.claims === true;
+  var SESS = window.FMW_SESSION || {}, SIGNED_IN = ACCT && SESS.signedIn === true;   // js/session.js: a hint about what to draw (the server checks every call)
   if (ACCT) doc.querySelectorAll('button.signin').forEach(function (b) {
-    var a = el('a', b.className, b.textContent); a.href = 'signup.html'; b.parentNode.replaceChild(a, b);
+    var a = el('a', b.className, SIGNED_IN ? C.account : b.textContent); a.href = SIGNED_IN ? 'account.html' : 'signup.html'; b.parentNode.replaceChild(a, b);
     var note = doc.getElementById('signin-note'); if (note && note.parentNode) note.parentNode.removeChild(note);
   });
   if (CLAIMS) doc.querySelectorAll('a[data-biz]').forEach(function (n) { n.href = 'signup.html?as=business'; });
@@ -121,7 +122,7 @@
       var a = doc.activeElement, keep = isOpen && a && panel.contains(a) ? (a.getAttribute('data-menu') || (a.parentNode && a.parentNode.getAttribute && a.parentNode.getAttribute('data-menu'))) : null;
       clear(panel);
       var noteId = 'menu-acct-note', acct = el('div', 'menu-acct'), groups = {}, order = [], anySoonAcct = false;
-      F.menuItems(C.NAV_MENU, { accounts: cfg.accounts === true, basePath: base, absolute: abs, offered: offered }).forEach(function (it) {
+      F.menuItems(C.NAV_MENU, { accounts: cfg.accounts === true, signedIn: SIGNED_IN, basePath: base, absolute: abs, offered: offered }).forEach(function (it) {
         var n;
         if (!it.group) {   // the two account pills, side by side at the top
           if (it.disabled) { n = soonButton('pill ' + (it.pill || 'outline'), it.label, noteId); anySoonAcct = true; }
@@ -137,6 +138,10 @@
         if (it.disabled) n.appendChild(el('span', 'soon-tag', C.comingSoon));
         li.appendChild(n); groups[it.group].appendChild(li);
       });
+      if (SIGNED_IN) {   // signed in: Account, and Sign out (the account page runs the full server revoke when it is opened with ?signout=1)
+        var ac = el('a', 'pill outline', C.account); ac.href = 'account.html'; ac.setAttribute('data-menu', 'account'); acct.appendChild(ac);
+        var so = el('a', 'pill fill', C.signOut); so.href = 'account.html?signout=1'; so.setAttribute('data-menu', 'signout'); acct.appendChild(so);
+      }
       panel.appendChild(acct);
       if (anySoonAcct) { var note = el('p', 'menu-note muted', C.signInSoon); note.id = noteId; panel.appendChild(note); }
       order.forEach(function (g) { panel.appendChild(groups[g]); });

@@ -60,8 +60,10 @@
   // Ask the medical question only of customers aged 18 to 20.
   function asksMedical(dobStr, audience, now) { var a = ageOf(dobStr, now); return audience !== 'business' && a !== null && a >= 18 && a < 21; }
   // The steps of a path, in order. The theme picker is always LAST on sign up. "choose" only when there are two audiences.
-  function steps(mode, twoAudiences, audience) {
-    var s = twoAudiences ? ['choose', 'start'] : ['start'];
+  // preset: the audience was picked before the page opened (List Your Business -> ?as=business), so the choose screen is never shown and
+  // is not counted: the first screen the visitor sees is step 1.
+  function steps(mode, twoAudiences, audience, preset) {
+    var s = twoAudiences && !preset ? ['choose', 'start'] : ['start'];
     if (mode === 'signin') return s.concat(['signin']);
     if (mode !== 'signup') return s;
     var mid = audience === 'business' ? ['license'] : [];
@@ -76,6 +78,22 @@
   // (#access_token=...), { ok: false } when the project answered with an error (#error=... / #error_code=..., e.g. an expired
   // or used link), else null. kind / license / legalName are read from the token's own claims (user_metadata) for the wording
   // and as the INPUT of the server's re-check only; the server decides. The token is kept in memory only, never stored.
+  // Where the "signed in" step sends the visitor (2026-11-24, option b): always the fixed page account.html. Behind FMW_CONFIG.favorites, a valid
+  // listing slug in this page's own query (?save=<id>, kept by the emailed link's return address) rides along as account.html?save=<id>, where the
+  // visible confirm does the save. The slug rule is js/save-id.js (shared with the account and listing pages); anything else is plain account.html.
+  function sid() { return root.FMW_SAVEID || (typeof require === 'function' ? require('./save-id.js') : null); }
+  function returnHref(search, cfg) {
+    var S = sid(), v = S ? S.fromSearch(search, cfg) : '';
+    return v ? 'account.html?save=' + encodeURIComponent(v) : 'account.html';
+  }
+  // The address the emailed link returns to (redirect_to): this page WITHOUT its query string or hash, plus only what the return needs: mode=signin,
+  // as=business when the visitor came that way, and a valid save slug. No other query (tracking, decoys, anything unvalidated) rides in the email.
+  function signInReturn(loc, cfg, business) {
+    var base = String((loc && loc.href) || '').split('#')[0].split('?')[0], q = ['mode=signin'], S = sid(), v = S ? S.fromSearch((loc && loc.search) || '', cfg) : '';
+    if (business) q.unshift('as=business');
+    if (v) q.push('save=' + encodeURIComponent(v));
+    return base + '?' + q.join('&');
+  }
   function linkReturn(hash) {
     var h = String(hash == null ? '' : hash).replace(/^#/, '');
     if (!h) return null;
@@ -109,7 +127,7 @@
     var box = doc.getElementById('signup'), title = doc.getElementById('signup-title'), prog = doc.getElementById('signup-step');
     if (!box || !title) return null;
     var accounts = CFG.accounts === true, business = accounts && CFG.claims === true;
-    var st = { audience: business ? null : 'customer', mode: null, step: null, cls: null, unlocked: false, lic: null };
+    var st = { audience: business ? null : 'customer', mode: null, step: null, cls: null, unlocked: false, lic: null, preset: false };
     var wanted = /(?:^|[?&])as=business(?:&|$)/.test((win.location && win.location.search) || '');
     // the menu's "Sign in" (signup.html?mode=signin) opens the sign-in path, not the sign-up one
     var wantSignin = /(?:^|[?&])mode=signin(?:&|$)/.test((win.location && win.location.search) || '');
@@ -127,7 +145,7 @@
       if (prog) { prog.textContent = stepIdx ? S.step(stepIdx, path().length) : ''; prog.hidden = !stepIdx; }
     }
     function focusTitle() { if (title.focus) title.focus(); }
-    function path() { return steps(st.mode || 'signup', business, st.audience); }   // before Sign up / Sign in is picked, count the sign-up path
+    function path() { return steps(st.mode || 'signup', business, st.audience, st.preset); }   // before Sign up / Sign in is picked, count the sign-up path
     function idx(step) { return path().indexOf(step) + 1; }
     function go(step) { st.step = step; render(); focusTitle(); }
     function back() {
@@ -190,7 +208,7 @@
       err.textContent = '';
       var fail = function () { if (btn) btn.disabled = false; err.textContent = S.sendFailed; err.setAttribute('data-reason', 'send-failed'); };
       var res;
-      try { res = AUTH.requestSignIn(email, meta, cleanUrl()); } catch (e) { return fail(); }
+      try { res = AUTH.requestSignIn(email, meta, signInReturn(win.location, win.FMW_CONFIG, wanted)); } catch (e) { return fail(); }
       return Promise.resolve(res).then(function (r) { if (r && r.ok) next(); else fail(); }, fail);
     }
     function cleanUrl() { var l = win.location || {}; return String(l.href || '').split('#')[0]; }
@@ -398,7 +416,7 @@
         st.step = 'signed-in'; clear(box); head(S.inTitle, 0); box.setAttribute('data-step', 'signed-in');
         var si = el('div', 'state info'); si.setAttribute('role', 'status'); si.setAttribute('data-state', 'signed-in');
         si.appendChild(el('p', null, ret.kind === 'business' ? S.inBodyBusiness : S.inBody));
-        var acct = el('a', 'btn', S.accountLink); acct.href = 'account.html'; si.appendChild(acct);
+        var acct = el('a', 'btn', S.accountLink); acct.href = returnHref((win.location && win.location.search) || '', win.FMW_CONFIG); si.appendChild(acct);
         box.appendChild(si);
         if (ret.kind === 'business' && business && AUTH && typeof AUTH.pricing === 'function') { st.audience = 'business'; loadPricing(si); }
         else si.appendChild(backLink());
@@ -412,7 +430,7 @@
       le.appendChild(actions(again, backLink())); box.appendChild(le); focusTitle();
       return st;
     }
-    if (business && wanted) st.audience = 'business';   // "List Your Business" opens the business path directly
+    if (business && wanted) { st.audience = 'business'; st.preset = true; }   // "List Your Business" opens the business path directly; no choose screen, so it starts at step 1
     if (wantSignin) st.mode = 'signin';
     st.step = st.audience ? (st.mode === 'signin' ? 'signin' : 'start') : 'choose';
     render();
@@ -420,7 +438,7 @@
   }
   function fmt(t) { var p = function (n) { return (n < 10 ? '0' : '') + n; }; return t.y + '-' + p(t.m) + '-' + p(t.d); }
 
-  var api = { linkReturn: linkReturn, eligibility: eligibility, asksMedical: asksMedical, steps: steps, emailOk: emailOk, licenseOk: licenseOk, phoneOk: phoneOk, parseDate: parseDate, ageOn: ageOn, todayParts: todayParts };
+  var api = { signInReturn: signInReturn, returnHref: returnHref, linkReturn: linkReturn, eligibility: eligibility, asksMedical: asksMedical, steps: steps, emailOk: emailOk, licenseOk: licenseOk, phoneOk: phoneOk, parseDate: parseDate, ageOn: ageOn, todayParts: todayParts };
   if (typeof module !== 'undefined' && module.exports) module.exports = Object.assign({ app: app, verifyStub: verifyStub }, api);
   else {
     root.FMW_SIGNUP = api;   // the pure rules only: the page itself is never handed a verifier

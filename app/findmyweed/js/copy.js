@@ -51,6 +51,8 @@
     countyName: function (c) { return c + ' County'; },
     unknownCountyTitle: function (c) { return 'No licensed shops in ' + c + ' County'; },
     signIn: 'Sign in',
+    account: 'Account',
+    signOut: 'Sign out',
     signInSoon: 'Coming soon: accounts are not open yet.',
     forBusiness: 'List Your Business',
     comingSoon: 'Coming soon',
@@ -118,8 +120,8 @@
     themeBright: 'Bright',
     themeDark: 'Dark',
     NAV_MENU: [
-      { key: 'signin', label: 'Sign in', account: true, pill: 'outline', page: 'signup.html?mode=signin' },
-      { key: 'signup', label: 'Sign up', account: true, pill: 'fill', page: 'signup.html' },
+      { key: 'signin', label: 'Sign in', account: true, visitorOnly: true, pill: 'outline', page: 'signup.html?mode=signin' },
+      { key: 'signup', label: 'Sign up', account: true, visitorOnly: true, pill: 'fill', page: 'signup.html' },
       { key: 'home', label: 'Home', group: 1, icon: 'home', page: 'index.html' },
       { key: 'storefronts', label: 'Storefronts', group: 1, icon: 'store', page: 'index.html?storefront=1', needsData: 'storefront' },
       { key: 'deliveries', label: 'Deliveries', group: 1, icon: 'truck', page: 'index.html?delivery=1', needsData: 'delivery' },
@@ -128,7 +130,7 @@
       { key: 'business', label: 'Business', group: 2, icon: 'building', page: 'results.html' },   // the whole licensed-business directory
       { key: 'services', label: 'Services', group: 2, icon: 'wrench', needsData: 'services' },
       { key: 'events', label: 'Events', group: 2, icon: 'calendar', needsData: 'events' },
-      { key: 'learning', label: 'Learning', group: 2, icon: 'book', host: '/culture/' },   // the host site's culture stories feed
+      { key: 'learning', label: 'Learning', group: 2, icon: 'book', page: 'learn.html' },   // Find My Weed's own Learn page (not the host site's culture feed)
       { key: 'favorites', label: 'Favorites', group: 3, icon: 'heart', account: true },
       { key: 'help', label: 'Help', group: 3, icon: 'help', host: '/support/' },          // the host site's standing support page
       { key: 'listbiz', label: 'List Your Business', group: 3, icon: 'plus', biz: true }

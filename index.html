@@ -7,7 +7,7 @@
     if(h.indexOf('type=recovery')>-1||(h.indexOf('access_token=')>-1&&h.indexOf('recovery')>-1)){location.replace('/reset-password'+h);}
     else if(h.indexOf('otp_expired')>-1||h.indexOf('error_code=access_denied')>-1||(h.indexOf('error')>-1&&h.indexOf('expired')>-1)){location.replace('/apply'+h);}
   }catch(e){}})();</script>
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
   <title>KEEPITIL — Create Loud. Live Louder.</title>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
@@ -301,7 +301,7 @@
     .subscribe h2{font-family:var(--font-head);font-size:clamp(40px,6vw,70px);letter-spacing:.04em;color:var(--white);margin-bottom:16px;}
     .subscribe p{font-size:16px;color:var(--grey);margin-bottom:40px;}
     .subscribe-form{display:flex;flex-direction:column;gap:10px;max-width:480px;margin:0 auto;}
-    .subscribe-form input{padding:14px 20px;background:var(--dark3);border:1px solid rgba(0,180,255,.2);color:var(--white);font-family:var(--font-body);font-size:14px;outline:none;transition:border-color .2s;border-radius:4px;width:100%;}
+    .subscribe-form input{padding:14px 20px;background:var(--dark3);border:1px solid rgba(0,180,255,.2);color:var(--white);font-family:var(--font-body);font-size:16px;outline:none;transition:border-color .2s;border-radius:4px;width:100%;}
     .subscribe-form input:focus{border-color:rgba(0,180,255,.6);}
     .subscribe-form input::placeholder{color:#555;}
     .subscribe-form button{padding:14px 28px;background:var(--blue);color:#fff;border:none;font-family:var(--font-body);font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-radius:4px;transition:all .2s;width:100%;}
@@ -522,7 +522,7 @@
 .kil-modal-logo{font-family:var(--font-head);letter-spacing:.18em;color:var(--green);font-size:1.1rem;margin-bottom:14px;}
 .kil-modal-card h3{font-family:var(--font-head);font-size:1.5rem;letter-spacing:.03em;color:#fff;margin:0 0 8px;}
 .kil-modal-card p{color:#9aa7b4;font-size:.85rem;line-height:1.6;margin:0 0 18px;}
-.kil-modal-card input{width:100%;padding:12px 14px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:.9rem;margin-bottom:10px;}
+.kil-modal-card input{width:100%;padding:12px 14px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:1rem;margin-bottom:10px;}
 .kil-modal-btn{width:100%;padding:12px;border-radius:9px;background:var(--green);color:#06120a;font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:.8rem;border:none;cursor:pointer;transition:filter .2s;}
 .kil-modal-btn:hover{filter:brightness(1.1);}
 .kil-modal-msg{min-height:18px;font-size:.75rem;color:var(--green);margin-top:10px;}

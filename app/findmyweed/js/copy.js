@@ -195,6 +195,7 @@
       notfound: { title: 'Page not found · Find My Weed', description: 'This page does not exist. Search state-licensed cannabis businesses on Find My Weed.' },
       // the sign-up page (signup.html, behind site.json "accounts"). Its own words are in js/signup-copy.js.
       signup: { title: 'Account · Find My Weed', description: 'Create a Find My Weed account or sign in with an emailed link. Browsing licensed businesses needs no account.' },
+      account: { title: 'Your account · Find My Weed', description: 'Your Find My Weed account: who is signed in, and sign out.' },
       imageAlt: 'Find My Weed: search state-licensed cannabis storefronts and delivery services',   // the real share image (launched)
       imageAltPlaceholder: 'Find My Weed placeholder share image'   // the draft's placeholder image
     },

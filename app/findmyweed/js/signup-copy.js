@@ -13,6 +13,7 @@
       offTitle: 'Accounts are coming soon',
       offBody: 'Find My Weed accounts are not open yet. You can keep browsing licensed businesses without an account.',
       backToSearch: 'Back to search',
+      accountLink: 'Your account',
       chooseTitle: 'Sign in or create an account',
       chooseIntro: 'First, which kind of account is it?',
       chooseCustomer: 'Customer',

@@ -404,11 +404,21 @@
     return data;
   }
   // which county files an area needs, from the index's own rows: a city may sit in more than one county. [] for the whole state
-  function areaCountyKeys(data, p) {
+  function areaCountyKeys(data, p, zipMap, now) {
     var have = {}, keys = {};
     data.listings.forEach(function (l) { have[countyFileKey(l.address && l.address.county)] = true; });
-    if (p.city) data.listings.forEach(function (l) { if (norm(l.address && l.address.city) === norm(p.city)) keys[countyFileKey(l.address && l.address.county)] = true; });
-    else if (p.county) { var k = countyFileKey(p.county); if (have[k]) keys[k] = true; }
+    if (p.q) {
+      // a typed place (results.html): the rows search() shows are the place's own (inPlace = same city OR a listing ZIP in place.zips), so its
+      // files are the counties of the rows with that city plus the counties of its ZIPs (zipMap = data/zip-county.json). No place -> none.
+      var c = classify(p.q), count = {};
+      if (c.kind === 'badzip' || !c.value) return [];
+      licensed(data.listings, now || new Date()).forEach(function (l) { var k = placeKey(l.address && l.address.city); if (k) count[k] = (count[k] || 0) + 1; });
+      var place = findPlace(c.value, data.places, function (x) { return count[placeKey(x.name)] || 0; });
+      if (!place) return [];
+      data.listings.forEach(function (l) { if (placeKey(l.address && l.address.city) === placeKey(place.name)) keys[countyFileKey(l.address && l.address.county)] = true; });
+      (place.zips || []).forEach(function (z) { ((zipMap && zipMap.zips && zipMap.zips[z]) || []).forEach(function (k) { keys[k] = true; }); });
+    } else if (p.city) data.listings.forEach(function (l) { if (norm(l.address && l.address.city) === norm(p.city)) keys[countyFileKey(l.address && l.address.county)] = true; });
+    else if (p.county) { var k2 = countyFileKey(p.county); if (have[k2]) keys[k2] = true; }
     return Object.keys(keys).sort();
   }
   function fetchOf(w) { return w.fetch.bind(w); }   // the page's own fetch, bound; the pages never name it twice

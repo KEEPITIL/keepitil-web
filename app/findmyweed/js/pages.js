@@ -433,25 +433,30 @@
       if (mapEl && mapEl.scrollIntoView && window.innerWidth >= 768) mapEl.scrollIntoView({ block: 'nearest' });
     };
 
-    // The HOME (page 'search', no typed query) loads the small state index and only the chosen area's county file(s) (weight 1.0, Phase 2);
-    // anything else (a typed query, the whole state, results.html) or any failure here falls back to the full data/listings.json as before.
+    // The HOME and results.html load the small state index and only the chosen area's county file(s) (weight 1.0, Phases 2 and 3); the whole
+    // state, or any failure or odd response here, falls back to the full data/listings.json as before.
     var homeIndex = null, homeFiles = {};
     var loadHomeIndex = function () {
       var get = homeIndex ? Promise.resolve(homeIndex) : F.loadPart(F.fetchOf(window), 'data/listings-index.json', function (d) { return d && Array.isArray(d.places) && Array.isArray(d.listings) && d.listings.length > 0 && d.listings.every(function (r) { return r && typeof r.county === 'string' && !r.address; }); }).then(function (d) { homeIndex = d; return d; });
       return get.then(function (idx) { return F.assembleHome(idx, {}); }, function () { return load(); });
     };
+    var zipMap = null;
     var withAreaFiles = function (data, p) {
       if (!data.light || !homeIndex) return data;
-      var keys = F.areaCountyKeys(data, p);
-      if (!keys.length) return p.county || p.city ? F.assembleHome(homeIndex, {}) : load();   // an unknown area stays light; the whole state needs every row
-      return Promise.all(keys.map(function (k) {
-        return homeFiles[k] ? homeFiles[k] : F.loadPart(F.fetchOf(window), 'data/counties/' + k + '.json', function (d) { return d && d.county === k && Array.isArray(d.listings); }).then(function (d) { homeFiles[k] = d; return d; });
-      })).then(function (list) { var f = {}; keys.forEach(function (k, i) { f[k] = list[i]; }); return F.assembleHome(homeIndex, f); }, function () { return load(); });
+      // a typed place also needs data/zip-county.json (a place is its city name OR its ZIPs); nothing else reads it
+      var zm = !p.q ? Promise.resolve(null) : zipMap ? Promise.resolve(zipMap) : F.loadPart(F.fetchOf(window), 'data/zip-county.json', function (d) { return d && d.zips && typeof d.zips === 'object'; }).then(function (d) { zipMap = d; return d; });
+      return zm.then(function (z) {
+        var keys = F.areaCountyKeys(data, p, z);
+        if (!keys.length) return p.q || p.county || p.city ? F.assembleHome(homeIndex, {}) : load();   // an unknown area / place stays light (same "not found"); the whole state needs every row
+        return Promise.all(keys.map(function (k) {
+          return homeFiles[k] ? homeFiles[k] : F.loadPart(F.fetchOf(window), 'data/counties/' + k + '.json', function (d) { return d && d.county === k && Array.isArray(d.listings); }).then(function (d) { homeFiles[k] = d; return d; });
+        })).then(function (list) { var f = {}; keys.forEach(function (k, i) { f[k] = list[i]; }); return F.assembleHome(homeIndex, f); });
+      }).then(null, function () { return load(); });   // any failure: the full file, as before
     };
     var run = function () {
       drawToken++; mapToken++; clear(out); clear(stateBox); head.textContent = ''; head.hidden = false; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
       if (nearby) nearby.hidden = true;
-      var light = page === 'search' && !p.q;
+      var light = page === 'search' || page === 'results';
       (light ? loadHomeIndex() : load()).then(function (data) {
         menuData(data);
         var now = new Date();

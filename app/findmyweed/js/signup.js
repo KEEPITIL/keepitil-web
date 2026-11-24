@@ -379,12 +379,15 @@
       return st;
     }
     if (ret) {   // back from the emailed link: drop the token / error from the URL, then say where the visitor stands
+      // the session is kept per tab only (ends with the tab), for account.html
+      var tok = ret.ok && AUTH && AUTH.token ? AUTH.token() : null;
+      try { if (tok && win.sessionStorage) win.sessionStorage.setItem('fmw_token', tok); } catch (e) { /* no storage: the account page says signed out */ }
       try { if (win.history && win.history.replaceState) win.history.replaceState(null, '', cleanUrl()); } catch (e) { /* the hash stays; nothing else */ }
       if (ret.ok) {
         st.step = 'signed-in'; clear(box); head(S.inTitle, 0); box.setAttribute('data-step', 'signed-in');
         var si = el('div', 'state info'); si.setAttribute('role', 'status'); si.setAttribute('data-state', 'signed-in');
         si.appendChild(el('p', null, ret.kind === 'business' ? S.inBodyBusiness : S.inBody));
-        si.appendChild(backLink()); box.appendChild(si); focusTitle();
+        var acct = el('a', 'btn', S.accountLink); acct.href = 'account.html'; si.appendChild(acct); si.appendChild(backLink()); box.appendChild(si); focusTitle();
         return st;
       }
       st.step = 'link-error'; clear(box); head(S.linkBadTitle, 0); box.setAttribute('data-step', 'link-error');

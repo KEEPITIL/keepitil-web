@@ -21,6 +21,10 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg,#0a0a0f);color:var(--text,#e8e8f0);font-family:var(--font,Inter,system-ui,sans-serif);line-height:1.6;padding-bottom:96px;overflow-x:clip}
 .wrap{max-width:880px;margin:0 auto;padding:48px 20px 24px}
+/* LAYOUT SHIFT (baseline 2026-11-23: CLS 0.496 on desktop): keepitil-shell.js later forces .wrap to the shared 1360px page box with a 40px gutter and
+   offsets the body by the 66px fixed header, and removes this crawler-only #main-nav. Those same values are stated here so the first paint already matches the final layout. */
+#main-nav{position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden}
+@media(min-width:861px){body{padding-top:66px}.wrap{max-width:1360px;padding-left:40px;padding-right:40px}}
 .eyebrow{font-size:.75rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--brand,#00b4ff)}
 h1{font-size:clamp(2rem,6vw,2.8rem);font-weight:900;line-height:1.1;margin:8px 0 10px}
 .lede{color:var(--muted,#a8a3bd);font-size:1.05rem;max-width:560px}
@@ -32,7 +36,7 @@ h1{font-size:clamp(2rem,6vw,2.8rem);font-weight:900;line-height:1.1;margin:8px 0
 .btn-secondary{background:transparent;color:var(--text,#e8e8f0);border:1.5px solid rgba(255,255,255,.28)}
 .btn:focus-visible,.chip:focus-visible,.prod:focus-visible,a:focus-visible{outline:3px solid #ffd54a;outline-offset:3px}
 .contact{margin-top:18px;color:var(--muted,#a8a3bd);font-size:.95rem}
-.contact a{color:#7fdcff;font-weight:700}
+.contact a{color:#7fdcff;font-weight:700;text-decoration:underline}
 h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
 .prods{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
 .prod{background:#121726;border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 16px;text-align:left;color:inherit;font-family:inherit;cursor:pointer}
@@ -42,7 +46,7 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{background:#141a2b;border:1px solid rgba(255,255,255,.14);color:var(--text,#e8e8f0);border-radius:999px;padding:10px 16px;font-size:.92rem;font-family:inherit;cursor:pointer;min-height:44px}
 .legal{margin-top:44px;padding-top:18px;border-top:1px solid rgba(255,255,255,.1);font-size:.88rem;color:var(--muted,#a8a3bd)}
-.legal a{color:#7fdcff}
+.legal a{color:#7fdcff;display:inline-block;padding:9px 6px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .req{background:#10162a;border:1px solid rgba(0,180,255,.18);border-radius:18px;padding:22px 20px;margin-top:8px}
 .req label{display:block;font-weight:700;font-size:.92rem;margin:14px 0 6px}
@@ -57,7 +61,7 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
 .msg.err{background:#2a1414;border:1px solid #ff6b6b}
 .ref{font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:1.15rem;letter-spacing:.06em}
 .faq details{background:#121726;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 16px;margin-bottom:8px}
-.faq summary{cursor:pointer;font-weight:700;min-height:28px}
+.faq summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}
 .faq p{margin-top:8px;color:var(--muted,#c3bed6)}
 .faq a,.plinks a{color:#7fdcff}
 .plinks{background:#121726;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:14px 16px;margin-top:12px;font-size:.95rem}
@@ -68,7 +72,7 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
 <body>
 <nav id="main-nav" aria-label="KEEPITIL platform"><div class="nav-inner">
   <a class="nav-logo" href="/"><span class="nav-brand">KEEPITIL</span></a>
-  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/shop/">SHOP</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
+  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
   <a href="/apply" class="nav-cta">LOGIN</a>
 </div></nav>
 
@@ -86,7 +90,7 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
 
   <section aria-labelledby="products-title">
     <h2 id="products-title">Choose a product</h2>
-    <div class="prods" id="prods" role="group" aria-label="Products"></div>
+    <div class="prods" id="prods" role="group" aria-label="Products"><button type="button" class="prod" data-id="wifi-remote" aria-pressed="false"><b>WiFi Remote</b><span>TV remote for iPhone · App Store</span></button><button type="button" class="prod" data-id="tuitea" aria-pressed="false"><b>TUITEA</b><span>Private family app · App Store</span></button><button type="button" class="prod" data-id="kmob" aria-pressed="false"><b>KMOB</b><span>Endless War game · App Store</span></button><button type="button" class="prod" data-id="kaitarako" aria-pressed="false"><b>Kai Tarako</b><span>Kids learning · web</span></button><button type="button" class="prod" data-id="fmw" aria-pressed="false"><b>Find My Weed</b><span>Local weed finder · web</span></button><button type="button" class="prod" data-id="pokasnap" aria-pressed="false"><b>PokaSnap</b><span>Photo game · beta</span></button><button type="button" class="prod" data-id="kbeats" aria-pressed="false"><b>KBeats</b><span>Music game · beta</span></button><button type="button" class="prod" data-id="kwars" aria-pressed="false"><b>K WARS</b><span>Strategy game · beta</span></button><button type="button" class="prod" data-id="games" aria-pressed="false"><b>Other games</b><span>KEEPITIL games</span></button><button type="button" class="prod" data-id="general" aria-pressed="false"><b>KEEPITIL</b><span>Website &amp; account</span></button></div>
   </section>
 
   <div class="plinks" id="plinks" hidden aria-live="polite"></div>
@@ -131,7 +135,7 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
 
   <section aria-labelledby="topics-title">
     <h2 id="topics-title">Quick help</h2>
-    <div class="chips" id="topics"></div>
+    <div class="chips" id="topics"><button type="button" class="chip" data-q="How do I get started?">Getting Started</button><button type="button" class="chip" data-q="I cannot find or connect my device">Connection &amp; Device Help</button><button type="button" class="chip" data-q="I need help with my account">Accounts &amp; Family</button><button type="button" class="chip" data-q="I have a question about a purchase">Purchases &amp; Billing</button><button type="button" class="chip" data-q="I have a privacy question">Privacy &amp; Safety</button><button type="button" class="chip" data-q="I want to report a problem">Report a Problem</button><button type="button" class="chip" data-q="I have feedback or a feature request">Feedback &amp; Feature Requests</button></div>
   </section>
 
   <div class="legal">
@@ -146,7 +150,10 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
 (function(){
   var PRODUCTS = [
     { id:'wifi-remote', name:'WiFi Remote', note:'TV remote for iPhone · App Store' },
-    { id:'tuitea',      name:'TUITEA',      note:'Private family app · coming soon' },
+    { id:'tuitea',      name:'TUITEA',      note:'Private family app · App Store' },
+    { id:'kmob',        name:'KMOB',        note:'Endless War game · App Store' },
+    { id:'kaitarako',   name:'Kai Tarako',  note:'Kids learning · web' },
+    { id:'fmw',         name:'Find My Weed', note:'Local weed finder · web' },
     { id:'pokasnap',    name:'PokaSnap',    note:'Photo game · beta' },
     { id:'kbeats',      name:'KBeats',      note:'Music game · beta' },
     { id:'kwars',       name:'K WARS',      note:'Strategy game · beta' },
@@ -155,8 +162,11 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
   ];
   /* Each product keeps its OWN legal documents; this page only links to them. */
   var LINKS = {
-    'tuitea': [['TUITEA Privacy Policy','/apps/tuitea/legal/privacy/'],['TUITEA Terms','/apps/tuitea/legal/terms/'],['Health information & Apple Health','/apps/tuitea/legal/health-privacy/'],['TUITEA help: sign-in, account deletion','/apps/tuitea/support/']],
-    'wifi-remote': [['WiFi Remote Privacy','/wifi-remote-privacy.html'],['Terms','/terms'],['Refund Policy','/refund']],
+    'tuitea': [['Get TUITEA on the App Store','https://apps.apple.com/app/id6806472413'],['TUITEA Privacy Policy','/apps/tuitea/legal/privacy/'],['TUITEA Terms','/apps/tuitea/legal/terms/'],['Health information & Apple Health','/apps/tuitea/legal/health-privacy/'],['TUITEA help: sign-in, account deletion','/apps/tuitea/support/']],
+    'wifi-remote': [['Get WiFi Remote on the App Store','https://apps.apple.com/app/id6790006312'],['WiFi Remote Privacy','/wifi-remote-privacy.html'],['Terms','/terms'],['Refund Policy','/refund']],
+    'kmob': [['Get KMOB on the App Store','https://apps.apple.com/app/id6822852714'],['Privacy Policy','/privacy'],['Terms','/terms']],
+    'kaitarako': [['Open Kai Tarako','/app/kaitarako/'],['Privacy Policy','/privacy'],['Terms','/terms']],
+    'fmw': [['Open Find My Weed','/app/findmyweed/'],['Find My Weed Privacy','/app/findmyweed/privacy.html'],['Terms','/terms']],
     'pokasnap': [['PokaSnap Privacy','/games/pokasnap/privacy.html'],['PokaSnap help','/games/pokasnap/support.html']],
     'kbeats': [['KBeats Privacy','/games/kbeats/privacy/'],['KBeats Terms','/games/kbeats/terms/']],
     'kwars': [['Privacy Policy','/privacy'],['Terms','/terms']],
@@ -164,7 +174,7 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
     'general': [['Privacy Policy','/privacy'],['Terms','/terms'],['Refund Policy','/refund']]
   };
   /* ?product= accepts the short names other pages link with. */
-  var ALIAS = { 'keepitil':'general', 'wifiremote':'wifi-remote', 'k-wars':'kwars', 'kwars1':'kwars' };
+  var ALIAS = { 'keepitil':'general', 'wifiremote':'wifi-remote', 'k-wars':'kwars', 'kwars1':'kwars', 'kai':'kaitarako', 'kai-tarako':'kaitarako', 'findmyweed':'fmw', 'find-my-weed':'fmw' };
   var TOPICS = [
     ['Getting Started','How do I get started?'],
     ['Connection & Device Help','I cannot find or connect my device'],
@@ -256,6 +266,6 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
 })();
 </script>
 <script src="/assets/js/keepitil-ai.js?v=20260930s" defer></script>
-<script src="/keepitil-shell.js?v=20261031a" defer></script>
+<script src="/keepitil-shell.js?v=20261124a" defer></script>
 </body>
 </html>

@@ -5,7 +5,7 @@
 <html lang="en" data-theme="default" data-page-type="standard">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="robots" content="noindex,nofollow"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
 <title>Dashboard — KEEPITIL</title>
@@ -191,7 +191,7 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
      One architecture only: DISCOVER · CONNECT · CREATE · CULTURE · EARN (+ Login). -->
 <nav id="main-nav" aria-label="KEEPITIL platform"><div class="nav-inner">
   <a class="nav-logo" href="/"><span class="nav-brand">KEEPITIL</span></a>
-  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/shop/">SHOP</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
+  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
   <a href="/apply" class="nav-cta">LOGIN</a>
 </div></nav>
 
@@ -284,6 +284,48 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
 </div>
 
 <script>
+/* ── YOUR CALENDAR LISTINGS (free event flow, 2026-11-22) ───────────────────────────────────
+   Members add events through /submit-event (create-event is team-only: rpc('is_admin') sends
+   everyone else to /submit-event). Those listings never showed up here, so a member's
+   Dashboard said "No events yet" right after they submitted one. This lists them, read-only,
+   from the same get_my_community_events() the submit page already calls, with each one's review
+   status and an Edit link back to the form. It also points the header button at /submit-event
+   for members, where /create-event would bounce them. No writes, no new RPC. */
+window.addEventListener('DOMContentLoaded', function(){
+  if(typeof supa==='undefined' || !supa) return;
+  function e2(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function when(iso){ try{ return iso ? new Date(iso).toLocaleDateString('en-US',{timeZone:'America/Los_Angeles',weekday:'short',month:'short',day:'numeric',year:'numeric'}) : 'Date TBD'; }catch(x){ return ''; } }
+  var LABEL={ review:'In review', published:'Live', rejected:'Not approved', draft:'Draft', archived:'Archived' };
+  supa.auth.getSession().then(function(r){
+    if(!(r&&r.data&&r.data.session)) return;
+    supa.rpc('is_admin').then(function(a){
+      if(a&&a.data) return;
+      var hb=document.querySelector('.head a.btn.prim[href="/create-event"]');
+      if(hb){ hb.href='/submit-event'; hb.textContent='+ Add an event'; }
+    }).catch(function(){});
+    var panel=document.getElementById('tab-events'); if(!panel) return;
+    var box=document.getElementById('listings');
+    if(!box){ box=document.createElement('div'); box.id='listings'; panel.appendChild(box); }
+    supa.rpc('get_my_community_events').then(function(res){
+      var rows=(res&&res.data)||[];
+      if(res&&res.error){ box.innerHTML='<div class="head2">Your calendar listings</div><p style="color:var(--muted)">Could not load your listings. Please refresh.</p>'; return; }
+      if(!rows.length){ box.innerHTML=''; return; }
+      box.innerHTML='<div class="head2">Your calendar listings <span class="ct">'+rows.length+'</span></div>'
+        + rows.map(function(e){
+            var st=String(e.status||'review').toLowerCase();
+            return '<div class="ev" data-listing="'+e2(e.id)+'"><div class="ev-main">'
+              + '<div class="ev-top"><span class="ev-title">'+e2(e.title||e.venue||'Untitled')+'</span>'
+              + '<span class="ev-badge '+e2(st)+'">'+e2(LABEL[st]||st)+'</span></div>'
+              + '<div class="ev-meta">'+when(e.starts_at)+(e.venue?' · '+e2(e.venue):'')+(e.city?' · '+e2(e.city):'')+'</div>'
+              + '<div class="ev-acts"><a href="/submit-event?edit='+encodeURIComponent(e.id)+'">Edit</a></div>'
+              + '</div></div>';
+          }).join('')
+        + '<p style="color:var(--muted);font-size:.85rem;margin-top:6px">Listings are reviewed before they go live. Editing one sends it back to review. <a href="/submit-event" style="color:var(--brand)">Add another →</a></p>';
+    }).catch(function(){ box.innerHTML=''; });
+  }).catch(function(){});
+});
+</script>
+<script>
 var SUPA_URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ';
 var supa=window.supabase?supabase.createClient(SUPA_URL,SUPA_KEY):null;
@@ -334,7 +376,7 @@ async function load(){
       '<div class="sum"><div class="n">'+chk+'</div><div class="l">Checked in</div></div>'+
       '<div class="sum"><div class="n">'+money(rev)+'</div><div class="l">Revenue</div></div>';
     $('list').innerHTML = evs.length ? evs.map(card).join('')
-      : '<div class="empty"><h2>No events yet</h2><p>Create your first event and start selling tickets.</p><a class="btn prim" href="/create-event">+ Create Event</a></div>';
+      : '<div class="empty"><h2>No hosted events yet</h2><p>Add your event to the KEEPITIL calendar. It is free and reviewed before it goes live.</p><a class="btn prim" href="/submit-event">+ Add an event</a></div>';
   }catch(e){ $('list').innerHTML='<div class="empty"><h2>Couldn’t load</h2><p>Please refresh.</p></div>'; }
 }
 
@@ -1265,8 +1307,8 @@ async function init(){
 }
 init();
 </script>
-<script src="/assets/js/keepitil-radio.js?v=20261109a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20261124b" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261031a" defer></script>
+<script src="/keepitil-shell.js?v=20261124a" defer></script>
 </body>
 </html>

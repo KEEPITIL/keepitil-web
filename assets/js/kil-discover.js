@@ -11,9 +11,9 @@
    treated as los-angeles.
    Ticket links come from events.source_url. public.ticketing_links is readable
    and empty, and the anon role has no URL column on it, so it is not queried.
-   Cards open the live event page /event?e=<slug> (the page /show in #84 also
-   sends people to). /show and /browse (#84, #86) are not linked: they are not
-   on the site yet. This file does not sell anything and does not change a price.
+   Cards open the live event page /event?e=<slug>. (The unlaunched /show, /browse
+   and /member pages were removed as dead pages, Joe 2026-11-22.) This file does
+   not sell anything and does not change a price.
 
    WEEKEND WINDOW
    "This weekend" is Friday 00:00:00.000 through Sunday 23:59:59.999 in the city

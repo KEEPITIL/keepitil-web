@@ -138,7 +138,7 @@
 <!-- AUTH SCREEN -->
 <div id="auth-screen">
   <div class="auth-box">
-    <a href="./" class="auth-logo">KEEP IT <span>IL</span></a>
+    <a href="/" class="auth-logo">KEEP IT <span>IL</span></a>
     <p style="color:var(--grey);font-size:.85rem;margin-top:.25rem;">Organizer Portal</p>
     <div class="auth-tabs">
       <div class="auth-tab active" onclick="switchAuthTab('login')">Log In</div>
@@ -160,7 +160,7 @@
       <div class="form-group"><label>Email</label><input type="email" id="signup-email" placeholder="you@example.com"/></div>
       <div class="form-group"><label>Password</label><input type="password" id="signup-pass" placeholder="Min 8 characters"/></div>
       <div class="form-group">
-        <label><input type="checkbox" id="terms-check" style="width:auto;margin-right:.5rem;"/>I agree to the <a href="./#pricing" target="_blank" rel="noopener noreferrer" style="color:var(--blue);">20% platform terms</a></label>
+        <label><input type="checkbox" id="terms-check" style="width:auto;margin-right:.5rem;"/>I confirm I am an event organizer applying to partner with KEEPITIL.</label>
       </div>
       <button class="btn btn-primary" style="width:100%;" onclick="doSignup()">Create Account</button>
     </div>
@@ -408,7 +408,7 @@ async function doLogin() {
 async function doSignup() {
   const email = document.getElementById('signup-email').value;
   const pass = document.getElementById('signup-pass').value;
-  if (!document.getElementById('terms-check').checked) return showMsg('Please agree to the platform terms.');
+  if (!document.getElementById('terms-check').checked) return showMsg('Please confirm you are applying as an event organizer.');
   if (!email || !pass) return showMsg('Please fill in all fields.');
   if (pass.length < 8) return showMsg('Password must be at least 8 characters.');
   const { error } = await sb.auth.signUp({ email, password: pass });

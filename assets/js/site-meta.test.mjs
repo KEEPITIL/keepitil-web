@@ -52,3 +52,15 @@ test('every keepitil.com share image points at a file that exists', () => {
   }
   assert.deepEqual(broken, []);
 });
+
+// og:description: the pages the share previews matter most for carry it, equal to their meta description.
+test('about, artists, business and venues carry og:description equal to the meta description', () => {
+  const bad = [];
+  for (const f of ['about.html', 'artists.html', 'business.html', 'venues/index.html']) {
+    const html = readFileSync(f, 'utf8');
+    const d = (html.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)/i) || [])[1];
+    const o = (html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)/i) || [])[1];
+    if (!d || d !== o) bad.push(`${f}: meta="${d}" og="${o}"`);
+  }
+  assert.deepEqual(bad, []);
+});

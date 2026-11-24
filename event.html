@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/>
 <meta name="robots" content="index,follow">
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Event — KEEPITIL</title>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
@@ -26,6 +26,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="preconnect" href="https://images.ra.co"/>
+<link rel="preconnect" href="https://seatgeekimages.com"/>
+<script>/* flyer-preload: when the link already carries ?img=, start fetching the flyer now (before the page script runs); http(s) only */(function(){try{var m=/[?&]img=([^&]+)/.exec(location.search);if(!m)return;var u=decodeURIComponent(m[1]);if(!/^https?:\/\//i.test(u))return;var l=document.createElement('link');l.rel='preload';l.as='image';l.href=u;l.setAttribute('fetchpriority','high');document.head.appendChild(l);}catch(e){}})();</script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
 <!-- NO STATIC JSON-LD. This carried {"@type":"MusicEvent","name":"KEEPITIL Event"} on every
      event URL: a MusicEvent with no startDate and no location is invalid, and the name was
@@ -434,12 +436,24 @@
              document.head.appendChild(cl); }
     cl.setAttribute('href', canon);
     $('og-url').setAttribute('content', canon);
+    /* Legacy /event?e=<slug> URL: once a prerendered /event/<slug>/ exists, name it as the canonical so the two forms consolidate.
+       Checked with a HEAD request, so an event that has no prerendered page yet keeps the legacy canonical (never a 404). */
+    if(!window.__kilPrerenderSlug && ev.slug && window.fetch){
+      var _pp='/event/'+encodeURIComponent(ev.slug)+'/';
+      fetch(_pp,{method:'HEAD',cache:'no-store'}).then(function(r){
+        if(r&&r.ok){ var _pc='https://keepitil.com'+_pp; cl.setAttribute('href',_pc); $('og-url').setAttribute('content',_pc); }
+      }).catch(function(){});
+    }
     var _cr=$('cr-title'); if(_cr) _cr.textContent = ev.title;
     $('ev-title').textContent = ev.title;
     $('ev-date').textContent = fmt(ev.date);
     $('ev-venue').textContent = loc ? ('📍 '+loc) : '';
     if(ev.genre){ var gp=$('ev-genre'); gp.textContent=ev.genre; gp.style.display='inline-block'; }
-    if(ev.img) $('ev-flyer').style.backgroundImage='url('+ev.img.replace(/"/g,'')+')';
+    /* The flyer is the LCP element: a real <img> with fetchpriority=high (a CSS background is discovered late and cannot be prioritised) */
+    if(ev.img){ var _fl=$('ev-flyer'), _im=_fl.querySelector('img');
+      if(!_im){ _im=document.createElement('img'); _im.setAttribute('fetchpriority','high'); _im.decoding='async'; _fl.appendChild(_im); }
+      _im.alt=ev.title?('Flyer for '+ev.title):'';   /* re-set on every render: the real title arrives after the first paint */
+      var _u=ev.img.replace(/"/g,''); if(_im.getAttribute('src')!==_u) _im.src=_u; }
     /* show a REAL organizer description only; the generic filler is dropped from the page */
     var _rd=ev.description||''; var _de=$('ev-desc'); if(_de){ if(_rd){ _de.textContent=_rd; _de.style.display=''; } else { _de.style.display='none'; } }
     /* shareable event QR — scan to open this event page (works on flyers/print) */
@@ -613,6 +627,15 @@
       }).catch(function(){});
     }
   }catch(e){}
+  /* /event and /event?e= carry no slug at all. The bad-slug path below renders the not-found
+     state from the RPC result, but with no slug the RPC never runs, so the page used to stay as
+     an empty "KEEPITIL Event" shell with a QR code and a Share button. */
+  if(!ev.slug){
+    var _noSlugNF=function(){ if(window.KIL_NOT_FOUND) window.KIL_NOT_FOUND({ what:'event', heading:'That event isn\u2019t here',
+      body:'This link has no event in it. Pick one from the calendar.',
+      links:[['/','Explore events'],['/culture/','Culture'],['/submit-event','Submit an event']] }); };
+    if(document.readyState==='complete') _noSlugNF(); else window.addEventListener('load',_noSlugNF);
+  }
   // Enhance from DB if the event exists there (richer/authoritative)
   try{
     if(window.supabase && ev.slug){
@@ -786,8 +809,8 @@
 })();
 </script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261031a" defer></script>
-<script src="/assets/js/keepitil-radio.js?v=20261109a" defer></script>
+<script src="/keepitil-shell.js?v=20261124a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20261124b" defer></script>
 
 <script>
 /* password-protected events (V3.1): overlay until check_event_password passes. */

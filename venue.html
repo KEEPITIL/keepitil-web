@@ -2,7 +2,7 @@
 <html lang="en" data-theme="default">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
 <title>Venue — KEEPITIL</title>
 <meta property="og:description" content="Book this venue on KEEPITIL — capacity, pricing, amenities, and a booking request in one place.">
@@ -130,7 +130,7 @@ textarea{min-height:90px;resize:vertical}
      One architecture only: DISCOVER · CONNECT · CREATE · CULTURE · EARN (+ Login). -->
 <nav id="main-nav" aria-label="KEEPITIL platform"><div class="nav-inner">
   <a class="nav-logo" href="/"><span class="nav-brand">KEEPITIL</span></a>
-  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/shop/">SHOP</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
+  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
   <a href="/apply" class="nav-cta">LOGIN</a>
 </div></nav>
 
@@ -224,12 +224,21 @@ function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 var V=null, SLUG='';
 
+/* Same not-found state as /event and /profile: a heading, a way out, and noindex. A bare line of
+   text in the loading box gave a dead end with no navigation and left the page indexable. */
+function venueNF(){
+  var el=$('loading');
+  if(window.KIL_NOT_FOUND) window.KIL_NOT_FOUND({ what:'venue', heading:'That venue isn’t here',
+    body:'It may have been removed, or the link may be wrong.', into:'#loading',
+    links:[['/','Explore events'],['/connect/','Connect'],['/submit-event','Submit an event']] });
+  else if(el) el.textContent='This venue is not available.';
+}
 async function load(){
   SLUG=new URLSearchParams(location.search).get('v')||new URLSearchParams(location.search).get('slug')||'';
-  if(!SB||!SLUG){ $('loading').textContent='Venue not found.'; return; }
+  if(!SB||!SLUG){ venueNF(); return; }
   var r=null; try{ r=await SB.rpc('get_venue',{p_slug:SLUG}); }catch(e){ r=null; }
   V=r&&r.data&&r.data[0];
-  if(!V){ $('loading').textContent='This venue is not available.'; return; }
+  if(!V){ venueNF(); return; }
   render();
 }
 function render(){
@@ -379,8 +388,8 @@ async function claim(){
 }
 load();
 </script>
-<script src="/assets/js/keepitil-radio.js?v=20261109a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20261124b" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261031a" defer></script>
+<script src="/keepitil-shell.js?v=20261124a" defer></script>
 </body>
 </html>

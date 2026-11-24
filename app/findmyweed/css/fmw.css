@@ -1,0 +1,340 @@
+/* Find My Weed web basics. THEME TOKENS: every color is a custom property in the two blocks below, so a new palette drops
+   in by editing variables only (no rule below names a color). Default = the bright designed theme (light); dark is an
+   OPTION (html[data-theme="dark"], set only from the visitor's saved choice by js/theme.js; never from the OS setting).
+   Standard: no plain white page, everything bordered, no pop-ups, no shadows, no gradients.
+   Contrast (tests/theme.test.js, both themes): text >= 4.5:1 on its surface; control borders (--ctl) and focus rings >= 3:1.
+   Token map:  --bg page | --card card/panel surface | --text --muted body text | --line card borders | --ctl control borders
+     --green links/accent/focus | --green-dim hover | --tint accent wash (Open badge, ticked chip)
+     --band --on-band --on-band-muted --band-accent --band-pattern  header + footer band (black), its text, highlight and pattern
+     --logo-bg --logo-text --logo-accent  Style A logo: "Find My" white, "Weed" neon green, on black
+     --section --on-section --section-edge  color-blocked section headers: OUR GREEN (= --green), never purple / magenta
+     --btn-bg --btn-text --btn-edge  primary buttons | --off-bg --off-text disabled | --closed --closed-bg | --warn*  draft banner */
+:root{--bg:#eef6ee;--card:#ffffff;--line:#8fae98;--ctl:#2f5a3d;--off-bg:#e3e9e4;--off-text:#46524a;--green:#0a7a33;--green-dim:#085f28;--tint:#dcf1e2;--text:#0d1f14;--muted:#3f5446;--closed:#b3261e;--closed-bg:#fdecea;--warn-bg:#fff8e1;--warn-line:#8a6d00;--warn:#4d3b00;--band:#000000;--on-band:#ffffff;--on-band-muted:#d0d0d0;--band-accent:#39ff14;--band-pattern:#1c1c1c;--logo-bg:#000000;--logo-text:#ffffff;--logo-accent:#39ff14;--section:#0a7a33;--on-section:#ffffff;--section-edge:#064d20;--btn-bg:#0a7a33;--btn-text:#ffffff;--btn-edge:#064d20;color-scheme:light}
+:root[data-theme="dark"]{--bg:#0b0f0c;--card:#131a15;--line:#3a5a42;--ctl:#7fa487;--off-bg:#2a332c;--off-text:#b4c1b6;--green:#3ddc74;--green-dim:#27ae55;--tint:#16301f;--text:#eef5ef;--muted:#a9bcae;--closed:#ff8a80;--closed-bg:#331a19;--warn-bg:#2a2410;--warn-line:#6b5a1a;--warn:#ffe08a;--band:#000000;--on-band:#ffffff;--on-band-muted:#c8c8c8;--band-accent:#39ff14;--band-pattern:#161616;--logo-bg:#000000;--logo-text:#ffffff;--logo-accent:#39ff14;--section:#3ddc74;--on-section:#06130a;--section-edge:#1f8a46;--btn-bg:#3ddc74;--btn-text:#06130a;--btn-edge:#1f8a46;color-scheme:dark}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
+.wrap{width:100%;max-width:760px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left));flex:1}
+a{color:var(--green)}
+/* Screen-reader-only (same fix as #71): the box rules are !important, so a more specific rule (e.g. .filters legend{width:100%})
+   can never resize this box. A full-width .sr legend made results.html scroll sideways (421px wide on a 390 phone). */
+.sr{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;border:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important}
+.muted{color:var(--muted)}
+
+/* Draft marker: visible until copy.js PLACEHOLDER is false */
+.draft{background:var(--warn-bg);border-bottom:1px solid var(--warn-line);color:var(--warn);font-size:13px;text-align:center;padding:8px 16px}
+/* Perf 2026-11-21: the banner is empty until pages.js fills it, and launched pages remove it. Without this its 17px of
+   padding paints first and then disappears, shifting the whole page up (CLS 0.12-0.19 on mobile). */
+.draft:empty{display:none}
+
+/* Style A logo: extra-bold, tight; "Find My" white and "Weed" neon green, always on black (a black block off the band) */
+.logo{font-weight:900;letter-spacing:-.035em;color:var(--logo-text);background:var(--logo-bg);text-decoration:none}
+.logo span{color:var(--logo-accent)}
+.logo.small{display:inline-block;padding:4px 10px;border:1px solid var(--logo-bg);border-radius:8px}
+.hero{text-align:center;padding:48px 0 24px}
+.hero .logo{font-size:56px;line-height:1.05}
+.tagline{font-size:19px;color:var(--muted);margin-top:12px;text-wrap:balance}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0 18px}
+.logo.small{font-size:22px}
+.backlink{font-size:15px;text-decoration:none;padding:12px 4px;min-height:44px;display:inline-flex;align-items:center}
+
+/* Search */
+.search{display:grid;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+.search.compact{gap:10px;padding:14px}
+.field{display:grid;gap:6px;font-size:14px;color:var(--muted)}
+input[type=text]{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--ctl);border-radius:10px;padding:13px 14px;font-size:17px;font-family:inherit}
+input::placeholder{color:var(--muted);opacity:1}
+
+/* Keyboard focus: one clear ring everywhere (links, buttons, fields, result cards, filter chips) */
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,main:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+main:focus{outline:none}
+/* CLS (1.0 baseline 2026-11-23): pages draw their content with JavaScript, so the footer used to jump when the list/text arrived (CLS 0.17-0.43).
+   Reserve most of a screen for <main> so the footer starts below the fold and never moves. */
+main.wrap{min-height:85vh}
+.chip input:focus-visible{outline:none}
+.chip:has(input:focus-visible){outline:3px solid var(--green);outline-offset:2px}
+.filters{border:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters legend{font-size:14px;color:var(--muted);margin-bottom:6px;width:100%}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--ctl);border-radius:999px;padding:8px 14px;font-size:15px;cursor:pointer;min-height:44px}
+.chip[hidden]{display:none}
+.chip input{accent-color:var(--green);width:18px;height:18px}
+.chip:has(input:checked){border-color:var(--green);background:var(--tint);font-weight:700}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--btn-bg);color:var(--btn-text);font-weight:800;text-decoration:none;padding:12px 18px;border-radius:12px;font-size:17px;border:1px solid var(--btn-edge);border-bottom-width:4px;cursor:pointer;font-family:inherit;min-height:48px;letter-spacing:.01em}
+.btn:hover{background:var(--green-dim)}
+.btn:active{border-bottom-width:1px;margin-top:3px}
+.btn.ghost{background:var(--card);color:var(--text);border:1px solid var(--ctl);border-bottom-width:3px}
+.btn.ghost:hover{border-color:var(--green);color:var(--green)}
+.btn[aria-disabled=true],.btn[aria-disabled=true]:hover{background:var(--off-bg);color:var(--off-text);border-color:var(--line);cursor:not-allowed}
+.note{font-size:14px;text-align:center;margin-top:14px}
+
+/* Results */
+h2,.rtitle{font-size:20px;margin:22px 0 10px;text-wrap:balance}
+.listings{display:grid;gap:10px;list-style:none}
+/* Perf 2026-11-21: results can hold 1,000+ cards; skip layout/paint for the ones off screen (still in the a11y tree). */
+.listings>li{content-visibility:auto;contain-intrinsic-size:auto 132px}
+/* Map (Phase 1): self-hosted SVG, dots link to the detail page; the outline slot is empty until a boundary file exists */
+.map{margin:0 0 14px}
+.map h2{font-size:15px;color:var(--muted);font-weight:700;margin-bottom:8px}
+.map-svg{display:block;width:100%;height:auto;aspect-ratio:4/3;max-height:420px;background:var(--bg);border:1px solid var(--line);border-radius:12px}
+.map-outline path{fill:none;stroke:var(--ctl);stroke-width:1;vector-effect:non-scaling-stroke}
+/* Pins (owner 19:11 PT): the shape is the category (retail round, events square, services diamond); the white centre is
+   the generic pin, a business's own icon (img/brands/) sits in the head when one is on file */
+.map-svg .dot .pin{fill:var(--green);stroke:var(--bg);stroke-width:1.5;vector-effect:non-scaling-stroke}
+.map-svg .dot.delivery .pin{fill:var(--bg);stroke:var(--green);stroke-width:3}
+.map-svg .dot .pin-hole{fill:var(--bg)}
+.map-svg .dot.delivery .pin-hole{fill:var(--green)}
+.map-svg .dot .pin-face{fill:var(--card)}
+.map-svg .dot:focus-visible{outline:none}
+.map-svg .dot:focus-visible .pin,.map-svg .dot:hover .pin{stroke:var(--text);stroke-width:4}
+.map-legend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;margin-top:8px;font-size:13px;color:var(--muted)}
+.map-legend li{display:inline-flex;align-items:center;gap:4px}
+.lg-pin{width:14px;height:17px}
+.lg-pin .pin{fill:var(--green);stroke:var(--bg);stroke-width:1}
+.map-note{font-size:13px;margin-top:8px}
+.listing{display:grid;grid-template-columns:114px minmax(0,1fr);gap:12px;align-items:start;height:132px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px;color:var(--text);text-decoration:none;overflow:hidden}
+.listing:hover{border-color:var(--green)}
+.row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.listing h3{font-size:18px;min-width:0}
+.dist{color:var(--muted);font-size:15px;white-space:nowrap}
+.meta{justify-content:flex-start;margin-top:6px;font-size:14px}
+.badge{font-size:13px;font-weight:700;border-radius:999px;padding:2px 10px}
+.badge.open{background:var(--tint);color:var(--green);border:1px solid var(--green)}
+.badge.closed{background:var(--closed-bg);color:var(--closed);border:1px solid var(--closed)}
+.badge.unknown{background:var(--off-bg);color:var(--off-text);border:1px solid var(--line)}
+select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--ctl);border-radius:10px;padding:12px 14px;font-size:17px;font-family:inherit;min-height:48px}
+.license{font-size:13px;color:var(--muted);margin-top:8px;font-family:ui-monospace,Consolas,monospace}
+
+/* Empty and error states (results and listing pages) */
+.state{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:6px 0 12px;display:grid;gap:12px;justify-items:start}
+.state p{color:var(--muted);max-width:60ch}
+.state.error{border-color:var(--warn-line);background:var(--warn-bg)}
+.state.error p{color:var(--warn)}
+
+/* Listing page */
+.detail .name{font-size:32px;line-height:1.15;text-wrap:balance}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px}
+.card h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:17px}
+.hours{border-collapse:collapse;width:100%;max-width:340px}
+.hours th,.hours td{text-align:left;padding:4px 0;font-weight:400}
+.hours th{width:64px;color:var(--muted)}
+.hours tr.today th,.hours tr.today td{color:var(--green);font-weight:700}
+.claim .btn{width:100%}
+.claim p{margin-top:8px;font-size:14px}
+
+/* Footer: compliance line on every page */
+.foot{text-align:center;color:var(--on-band-muted);background:var(--band);font-size:13px;padding:20px 16px 28px;border-top:4px solid var(--band-accent)}
+.foot .age{color:var(--on-band);font-weight:700;font-size:14px}
+
+@media(max-width:480px){.hero .logo{font-size:44px}.hero{padding-top:32px}}
+
+/* License check line + official record link (listing page) */
+.card .checked{font-size:14px;color:var(--muted);margin-top:8px}
+.card .checked.stale{color:var(--warn);background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:10px;padding:8px 10px}
+.card .checked.stale strong{display:block;margin-top:2px}
+.card a.record{display:inline-flex;align-items:center;min-height:44px;font-size:15px}
+
+/* Footer links (About, Privacy) and plain-text info pages */
+.foot-links{display:flex;gap:18px;justify-content:center;margin-top:8px}
+.foot-links a{color:var(--band-accent);text-decoration:none;padding:10px 4px;min-height:44px;display:inline-flex;align-items:center}
+.foot-links a:hover{text-decoration:underline}
+.card.prose h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+.card.prose p{max-width:65ch}
+.card.prose p + p{margin-top:10px}
+.detail > .btn{margin-top:16px}
+
+.report fieldset{border:0;margin:8px 0 0;padding:0}.report legend{font-weight:600;margin-bottom:4px}.report label.check{display:block;padding:6px 0}.report label.check input{margin:0 .5em 0 0}.report-details{display:block;font-weight:600;margin-top:10px}.report textarea{display:block;width:100%;box-sizing:border-box;font:inherit;margin-top:4px}.report .btn{margin-top:10px}.report-msg{margin-top:8px;min-height:1.2em}.report-msg.error{font-weight:600}
+
+/* The approved home (owner 2026-11-21 17:53 PT; index.html, results.html is the same view).
+   Header: ONE row: menu icon, the Style A logo, Sign in. Then the search bar (location dropdown + text INSIDE it; no map
+   icon since 19:16 PT), the filter carousel (one row, scrolls sideways), the real-content-only rows (hidden while empty),
+   and the card listing. Phone (< 768px): the filter carousel sticks to the top while the list scrolls, and the List / Map
+   buttons under it switch the cards and the map. Desktop (768px and up): cards on the left, the map sticky on the right
+   (sticky needs body with no overflow-y). */
+.top{position:relative;overflow-x:clip;overflow-y:visible;background:var(--band);color:var(--on-band);border-bottom:4px solid var(--band-accent)}
+/* the band's pattern: an inline SVG <pattern> (no image request, no gradient), colored by --band-pattern */
+.band-art{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.band-art .leaf{fill:var(--band-pattern)}
+.top-in{position:relative;max-width:1280px;margin:0 auto;padding:10px max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left));display:flex;align-items:center;gap:12px}
+.top .logo.small{padding:4px 0;font-size:22px;white-space:nowrap;margin-right:auto}
+.top a:focus-visible,.top button:focus-visible,.foot a:focus-visible{outline-color:var(--band-accent)}
+.signin{min-height:44px;padding:8px 14px;font-size:15px;white-space:nowrap}
+.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;min-height:44px;flex:none;border-radius:12px;border:1px solid var(--ctl);background:var(--card);color:var(--text);cursor:pointer;font-family:inherit;padding:0}
+.icon-btn:hover{border-color:var(--green);color:var(--green)}
+.top .icon-btn{background:var(--band);color:var(--on-band);border-color:var(--on-band-muted)}
+.top .icon-btn:hover{color:var(--band-accent);border-color:var(--band-accent)}
+.wrap.wide{max-width:1280px;padding-top:14px}
+/* search bar row */
+.searchbar{display:flex;align-items:center;flex-wrap:nowrap;gap:6px;padding:6px;border-radius:14px;border:1px solid var(--ctl);background:var(--card)}
+.searchbar .field{display:block}
+.searchbar .field-area{flex:0 1 38%;min-width:0}
+.searchbar .field-q{flex:1 1 auto;min-width:0}
+.searchbar select,.searchbar input[type=text]{min-height:44px;padding:8px 10px;font-size:16px;border-radius:10px}
+.searchbar select{font-weight:700;text-overflow:ellipsis}
+.searchbar .search-go{background:var(--btn-bg);color:var(--btn-text);border-color:var(--btn-edge)}
+.searchbar .search-go:hover{background:var(--green-dim);color:var(--btn-text);border-color:var(--btn-edge)}
+/* filter carousel: one row, scrolls sideways inside itself (never the page) */
+.filterbar{display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.filterbar::-webkit-scrollbar{display:none}
+.fchip{flex:none;min-height:44px;padding:8px 18px;border-radius:999px;border:1px solid var(--ctl);background:var(--card);color:var(--text);font:inherit;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap}
+.fchip[aria-pressed=true]{background:var(--btn-bg);color:var(--btn-text);border-color:var(--btn-edge)}
+/* phone row 3: List / Map (two equal buttons); not shown on desktop, where both are on screen */
+.viewtoggle{display:flex;gap:8px;margin-top:10px}
+.vbtn{flex:1 1 0;min-height:44px;padding:8px 12px;border-radius:12px;border:1px solid var(--ctl);background:var(--card);color:var(--text);font:inherit;font-size:15px;font-weight:800;cursor:pointer}
+.vbtn[aria-pressed=true]{background:var(--btn-bg);color:var(--btn-text);border-color:var(--btn-edge)}
+/* rows of real content only (ads 16:9, deals, categories 1:1, featured): hidden until real entries exist */
+.hrow{margin-top:14px}
+.hrow[hidden]{display:none}
+.hrow h2{font-size:17px;margin:4px 0 8px}
+.hscroll{display:flex;gap:10px;overflow-x:auto;list-style:none;scrollbar-width:none;padding-bottom:4px}
+.hscroll::-webkit-scrollbar{display:none}
+.tile{flex:none}
+.tile-in{display:block;color:var(--text);text-decoration:none;font-weight:700;font-size:14px}
+.tile img{display:block;width:100%;height:100%;object-fit:cover;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.tile-license{display:block;font-size:.8em;opacity:.8}
+.tile-label{display:block;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ads .tile{width:min(320px,80vw)}
+.ads .tile img{aspect-ratio:16/9;height:auto}
+.categories .tile{width:96px}
+.categories .tile img{aspect-ratio:1/1;height:auto}
+/* Categories from real listing data: a 1:1 tile drawn in the page (accent wash + icon), no image file needed */
+.cat-art{display:flex;align-items:center;justify-content:center;width:96px;aspect-ratio:1/1;background:var(--tint);border:1px solid var(--line);border-radius:12px;color:var(--green)}
+.cat-art .cat-ico{width:40px;height:40px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cat-tile .tile-in:hover .cat-art,.cat-tile .tile-in:focus-visible .cat-art{border-color:var(--green)}
+.deals .tile,.featured .tile{width:200px}
+.deals .tile img,.featured .tile img{aspect-ratio:16/9;height:auto}
+.rtitle{margin-top:14px}
+.discover{display:grid;gap:14px}
+.discover .map{margin:0}
+.discover .map-svg{height:auto;aspect-ratio:4/3;max-height:420px}
+.map-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.map-head h2{margin:0}
+.map-svg .dot.sel .pin{fill:var(--band-accent);stroke:var(--text);stroke-width:3}
+.rail h2{font-size:17px;margin:4px 0 10px;background:var(--section);color:var(--on-section);border:1px solid var(--section-edge);border-radius:10px;padding:7px 12px;letter-spacing:.01em}
+.rail+.rail{margin-top:22px}
+/* the listing card: the same fixed size everywhere. 1:1 tile (114px) + six 19px lines (114px): text never taller than the tile */
+.listings{grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr))}
+.shop{position:relative}
+.thumb{width:114px;height:114px;aspect-ratio:1/1;border-radius:10px;background:var(--logo-bg);border:1px solid var(--logo-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;letter-spacing:-.035em;line-height:1.05;font-size:21px}
+.thumb-a{color:var(--logo-text)}
+.thumb-b{color:var(--logo-accent)}
+.lines{display:block;min-width:0;height:114px;overflow:hidden}
+.ln{display:block;height:19px;line-height:19px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.listing h3.ln-name{font-size:16px;font-weight:800;color:var(--text);padding-right:40px}
+.ln-lic{font-family:ui-monospace,Consolas,monospace;font-size:13px;color:var(--text)}
+.ln-lic .ck{width:16px;height:16px;stroke:var(--green);stroke-width:3;vertical-align:-3px;margin-right:4px}
+.pin-btn{position:absolute;top:4px;right:4px;width:40px;height:40px;min-height:40px;border-color:var(--line)}
+.pin-btn .ico{width:20px;height:20px}
+.foot .biz{margin-top:4px}
+.foot .report-seller{margin-top:4px}
+.foot .report-seller a{color:var(--band-accent);font-weight:700;display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
+.foot .report-seller span{display:block}
+.foot .biz a{color:var(--band-accent);display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
+@media(max-width:767px){
+  /* phone (joe-0045): FOUR locked rows, pinned while the cards scroll beneath them: 1 the header (a fixed 64px row + its
+     4px edge = --lock-top), then ONE sticky block right under it holding 2 the search row (location dropdown inside it),
+     3 the filter carousel and 4 List / Map. Desktop (768px and up) is unchanged: nothing here applies there. */
+  body[data-page=search],body[data-page=results]{--lock-top:68px}
+  body[data-page=search] .top,body[data-page=results] .top{position:sticky;top:0;z-index:40}
+  body[data-page=search] .top-in,body[data-page=results] .top-in{height:64px;padding-top:0;padding-bottom:0}
+  .lockrows{position:sticky;top:var(--lock-top);z-index:30;background:var(--bg);margin:-14px -16px 0;padding:8px 16px;border-bottom:1px solid var(--line)}
+  .lockrows .filterbar{padding:8px 0 0}
+  .lockrows .viewtoggle{margin-top:8px}
+  /* row 3: List (default) shows the cards, Map shows the map in their place; never both */
+  .discover .map{display:none}
+  body.view-map .discover .map:not([hidden]){display:block}
+  body.view-map .discover .rails{display:none}
+  body.view-map .discover .map-svg{aspect-ratio:auto;height:calc(100vh - 300px);min-height:260px;max-height:none}
+  /* the card's map icon is a desktop control (the List / Map buttons replace it on phones): the name gets the full width */
+  .pin-btn{display:none}
+  .listing h3.ln-name{padding-right:0}
+  /* line 5 (license type + county) fits a 390px phone: "Storefront · Los Angeles County" in full */
+  .ln-4{font-size:13px;letter-spacing:-.01em}
+}
+@media(min-width:768px){
+  .viewtoggle{display:none}
+  .discover{grid-template-columns:minmax(0,1fr) minmax(0,42%);align-items:start}
+  .discover .map{grid-column:2;grid-row:1;position:sticky;top:16px}
+  .discover .rails{grid-column:1;grid-row:1}
+  .discover .map-svg{max-height:calc(100vh - 140px)}
+  .searchbar .field-area{flex-basis:260px;flex-grow:0}
+}
+@media(max-width:600px){
+  /* phone: still ONE row (owner spec): location | search box | search icon, tighter; every target stays 44px */
+  .searchbar{gap:4px;padding:4px}
+  .searchbar select,.searchbar input[type=text]{padding:8px 6px}
+}
+@media(max-width:480px){.top .logo.small{font-size:20px}.top-in{gap:8px}}
+
+/* The menu. On the home (.menu-page) it slides in and REPLACES the listing while open; on the other pages it is a panel
+   under its button. Borders only (no shadows). Hidden until a click. */
+.menu{position:relative}
+.menu-btn{gap:8px}
+.bar .menu-btn{min-height:44px;padding:8px 14px;font-size:15px}
+.burger{display:inline-block;position:relative;width:18px;height:14px;border-top:2px solid currentColor;border-bottom:2px solid currentColor}
+.burger::after{content:"";position:absolute;left:0;right:0;top:4px;border-top:2px solid currentColor}
+.menu-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:50;width:min(320px,calc(100vw - 32px));max-height:calc(100vh - 96px);overflow-y:auto;background:var(--card);color:var(--text);border:1px solid var(--ctl);border-radius:14px;padding:10px}
+.menu-panel[hidden]{display:none}
+.menu-page{position:static;width:auto;max-width:560px;max-height:none;margin:14px 16px 24px max(16px,calc((100% - 1280px) / 2 + 16px));padding:14px;animation:fmw-slide .2s ease-out}
+body.menu-open #home{display:none}
+@keyframes fmw-slide{from{transform:translateX(-28px);opacity:0}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.menu-page{animation:none}}
+.menu-acct{display:flex;gap:10px}
+.pill{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:8px 14px;border-radius:999px;font:inherit;font-size:16px;font-weight:800;text-decoration:none;cursor:pointer}
+.pill.outline{background:var(--card);color:var(--green);border:2px solid var(--green)}
+.pill.fill{background:var(--btn-bg);color:var(--btn-text);border:2px solid var(--btn-edge)}
+.pill[aria-disabled=true]{cursor:not-allowed}
+.menu-note{font-size:13px;padding:6px 4px 2px}
+.menu-group{list-style:none;margin:10px 0 0;padding:8px 0 0;border-top:1px solid var(--line);display:grid;gap:2px}
+.menu-link{display:flex;align-items:center;gap:12px;width:100%;min-height:46px;padding:8px 10px;border-radius:10px;color:var(--text);text-decoration:none;font-size:16px;font-weight:700;background:none;border:0;font-family:inherit;text-align:left;cursor:pointer}
+a.menu-link:hover{background:var(--tint);color:var(--text)}
+.menu-link .ico{color:var(--green)}
+.menu-link[aria-disabled=true]{color:var(--off-text);cursor:not-allowed}
+.menu-link[aria-disabled=true] .ico{color:var(--off-text)}
+.soon-tag{margin-left:auto;font-size:12px;font-weight:700;color:var(--off-text);background:var(--off-bg);border:1px solid var(--line);border-radius:999px;padding:1px 8px;white-space:nowrap}
+.theme-pill{display:flex;gap:4px;margin-top:14px;padding:4px;border:1px solid var(--ctl);border-radius:999px;background:var(--bg)}
+.theme-opt{flex:1;min-height:44px;border:0;border-radius:999px;background:none;color:var(--text);font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+.theme-opt[aria-pressed=true]{background:var(--btn-bg);color:var(--btn-text)}
+.menu-panel a:focus-visible,.menu-panel button:focus-visible{outline:3px solid var(--green);outline-offset:-3px}
+.bar .menu{margin-left:auto}
+
+
+/* the text-only "License verified" line on the listing page's license card (SEO 1.0 cut) */
+.verified-badge{display:inline-block;margin:6px 0;padding:4px 10px;border:1px solid var(--green);border-radius:999px;color:var(--green);font-weight:700;font-size:14px;text-decoration:none}
+.verified-badge:before{content:"\2713 "}
+/* Sign up / sign in (signup.html; front end only, inert unless site.json "accounts" is true). Tokens only, everything bordered,
+   no pop-ups. Text pairs used here (checked in both themes by tests/signup.test.js): text / muted on card and bg, on-section on
+   section, closed on closed-bg, text on tint, btn-text on btn-bg. */
+#signup-title{font-size:30px;line-height:1.15;margin:6px 0 4px;text-wrap:balance}
+#signup-title:focus{outline:none}
+.signup-step{font-size:14px;margin-bottom:12px}
+.signup{display:grid;gap:14px;margin-top:8px}
+.signup [hidden]{display:none}
+.signup-form{display:grid;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.signup .field{color:var(--text);font-size:16px;font-weight:700}
+.signup .hint{font-size:14px;color:var(--muted);font-weight:400}
+.signup input[type=email],.signup input[type=date],.signup input[type=tel]{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--ctl);border-radius:10px;padding:12px 14px;font-size:17px;font-family:inherit;min-height:48px}
+.choices{display:grid;gap:12px}
+.choice{display:grid;gap:4px;text-align:left;width:100%;background:var(--card);color:var(--text);border:1px solid var(--ctl);border-left:6px solid var(--green);border-radius:14px;padding:16px;font:inherit;cursor:pointer;min-height:48px}
+.choice strong{font-size:19px}
+.choice span{color:var(--muted);font-size:15px}
+.choice:hover{border-color:var(--green)}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:15px;min-height:44px;cursor:pointer;border:1px solid var(--ctl);border-radius:10px;padding:10px 12px}
+.check input{accent-color:var(--green);width:20px;height:20px;margin-top:2px;flex:none}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.form-error{color:var(--closed);background:var(--closed-bg);border:1px solid var(--closed);border-radius:10px;padding:8px 12px;font-size:15px}
+.form-error:empty{display:none}
+.note-line{color:var(--text);background:var(--tint);border:1px solid var(--green);border-radius:10px;padding:8px 12px;font-size:15px}
+.pitch{display:grid;gap:12px}
+.pitch h2{margin:6px 0 0;font-size:17px;background:var(--section);color:var(--on-section);border:1px solid var(--section-edge);border-radius:10px;padding:7px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pitch .card{margin:0;display:grid;gap:10px}
+.ranks{list-style:none;display:grid;gap:6px}
+.ranks li{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--bg)}
+.claim-steps{padding-left:22px;display:grid;gap:6px}
+.theme-pick{border:0;display:flex;flex-wrap:wrap;gap:10px}
+.theme-pick legend{font-weight:700;margin-bottom:8px;width:100%}
+.signup .state{margin:0}
+.signup .state h2{margin:0;font-size:17px}
+@media(min-width:720px){.choices{grid-template-columns:1fr 1fr}}
+

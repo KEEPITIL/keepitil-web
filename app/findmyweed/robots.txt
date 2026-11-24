@@ -1,0 +1,4 @@
+# Launched (site.json "prelaunch": false).
+User-agent: *
+Allow: /
+Sitemap: https://keepitil.com/app/findmyweed/sitemap.xml

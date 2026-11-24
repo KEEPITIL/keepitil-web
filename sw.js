@@ -26,10 +26,29 @@
    clients.claim() take over immediately, which clears anything a phone or an installed PWA was
    still holding from before. Bump these four names whenever a release must reach returning
    users regardless of what they have cached. */
-var VERSION = 'kil-pwa-v105-20260912b';
-var PAGES = 'kil-pages-v42';
+/* BUMPED 2026-11-20 for the Joe hotfix (5 nav tabs / no Shop, Black Friday popup removed, Earn
+   radio + playlist sections removed): renaming PAGES and CODE makes `activate` evict cached page
+   HTML and shell JS so an installed phone cannot keep showing the SHOP tab or the popup.
+   Previous: kil-pwa-v105-20260912b / kil-pages-v42 / kil-code-v85 */
+/* BUMPED AGAIN 2026-11-20 for #200 (install UI opens only on the footer link, no auto banner):
+   the shell changed after #198 shipped, so PAGES and CODE are renamed again to evict the #198
+   shell from installed phones. Previous: kil-pwa-v106-20261120a / kil-pages-v43 / kil-code-v86 */
+/* BUMPED AGAIN 2026-11-20 for the radio fix (seekTo null-guard + SoundCloud frame only when the
+   radio is visible; keepitil-radio.js?v=20261124b): every page that loads the radio changed its
+   tag, so PAGES and CODE are renamed to evict the old page HTML and radio build from installed
+   phones. Previous: kil-pwa-v107-20261120b / kil-pages-v44 / kil-code-v87 */
+/* BUMPED 2026-11-21 for the Find My Weed web 1.0 launch drop-in (app/findmyweed/ replaced; the
+   root worker already skips /app/findmyweed/, so this only evicts any page HTML or shell code a
+   phone cached around the old pre-launch build). Previous: kil-pwa-v108-20261120c / kil-pages-v45 / kil-code-v88 */
+/* BUMPED AGAIN 2026-11-21 for the Kai Tarako web rebuild (app/kaitarako/ from kai-tarako main ddcdab47:
+   US spelling, solid colors, corrected privacy text), on top of #205's FMW bump. All three names are new and
+   never shipped, so installed phones drop cached page HTML and shell code once more. Kai Tarako keeps its own
+   worker and kai-tarako-* caches (scope app/kaitarako/).
+   Previous on main: kil-pwa-v109-20261121a / kil-pages-v46 / kil-code-v89 */
+var VERSION = 'kil-pwa-v110-20261121a';
+var PAGES = 'kil-pages-v47';
 var ASSETS = 'kil-assets-v41';
-var CODE = 'kil-code-v85';
+var CODE = 'kil-code-v90';
 var KEEP = [VERSION, PAGES, ASSETS, CODE];
 var PAGE_LIMIT = 40;
 var PRECACHE = [
@@ -74,10 +93,10 @@ self.addEventListener('fetch', function (e) {
 
   // SELF-CONTAINED APPS OWN THEIR OWN ASSETS.
   // Do not let the root worker cache or shadow child-app resources.
-  // The apps under /games/*, /kode/, /app/tuitea/ and /app/kaitarako/
+  // The apps under /games/*, /kode/, /app/tuitea/, /app/kaitarako/ and /app/findmyweed/
   // own their cache namespaces and scoped workers; leave their requests alone.
   if (url.origin === self.location.origin &&
-      /^\/(games\/[^/]+|kode|app\/(?:tuitea|kaitarako))\//.test(url.pathname)) return;
+      /^\/(games\/[^/]+|kode|app\/(?:tuitea|kaitarako|findmyweed))\//.test(url.pathname)) return;
 
   // Navigations: network-first; cached copy ONLY when the network fails.
   if (req.mode === 'navigate') {

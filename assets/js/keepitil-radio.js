@@ -641,7 +641,7 @@
          The ▴ indicator that used to sit inside it is GONE (brief 15): the entire bar
          is clickable, so a dedicated expand affordance was a control that duplicated the
          surface it sat on. */
-      '<button type="button" class="krb krb-brand" id="kr-live" aria-expanded="false" aria-label="Open KEEPITIL Radio">'+
+      '<button type="button" class="krb krb-brand" id="kr-live" aria-expanded="false" aria-label="LIVE RADIO: open KEEPITIL Radio">'+
         /* §4: the status dot and the logo are BOTH gone, and the label is one row.
            The dot asserted "live" from a play-state flag beside a permanently-live
            broadcast, so it carried no information the words did not. The logo repeated an
@@ -732,6 +732,7 @@
       var sc=document.createElement('iframe');
       sc.id='kil-sc';
       sc.setAttribute('allow','autoplay');
+      sc.setAttribute('title','KEEPITIL Radio audio player');
       sc.setAttribute('scrolling','no');
       sc.setAttribute('frameborder','no');
       sc.src=window.__kilPlayerSrc();
@@ -947,7 +948,7 @@
      none of which emit another PLAY. */
   var KIL_NOW = null;   /* {list, idx, playlist} — written ONLY by kilRefreshNow */
   function kilRefreshNow(cb){
-    if(!widget || !widgetReady){ if(cb) cb(null); return; }
+    if(!widget || !widgetReady || !widgetAlive(widget)){ if(cb) cb(null); return; }
     widget.getSounds(function(list){
       if(!list || !list.length){ KIL_NOW=null; if(cb) cb(null); return; }
       widget.getCurrentSoundIndex(function(i){
@@ -1203,8 +1204,9 @@
     var old = document.getElementById('kil-sc');
     if(old) old.remove();
     widget=null; widgetReady=false;
+    kilClearTimers();   /* teardown: no delayed seekTo/play may reach the frame just removed */
     var sc=document.createElement('iframe');
-    sc.id='kil-sc'; sc.setAttribute('allow','autoplay');
+    sc.id='kil-sc'; sc.setAttribute('allow','autoplay'); sc.setAttribute('title','KEEPITIL Radio audio player');
     sc.setAttribute('scrolling','no'); sc.setAttribute('frameborder','no');
     sc.src=window.__kilPlayerSrc();
     document.body.appendChild(sc);
@@ -1325,16 +1327,50 @@
     requestWakeLock();
   });
   window.addEventListener('pagehide', kilRadioSuspend);
+
+  /* @kil-widget-guard ── DELAYED WIDGET CALLS NEVER OUTLIVE THEIR FRAME (Grok draft 2026-11-20) ──
+     Live on Android Chrome, 2 of 4 loads of keepitil.com/:
+       TypeError: Cannot read properties of null (reading 'postMessage')
+         at r.seekTo (w.soundcloud.com/player/api.js) at keepitil-radio.js?v=20261124b:1406
+     epochSync() (and the hand-off / DJ-sync paths) schedule seekTo → play 200-400ms later. In that
+     gap the #kil-sc iframe can be removed (the shell's _kill on pages where the radio is not
+     allowed) or replaced (kilLoadPlaylist). SoundCloud's widget object outlives its iframe, and
+     every method posts to element.contentWindow — null once the iframe is detached — so the timer
+     threw inside api.js.
+     kilLater() captures the widget AND the frame it was scheduled against, and on firing runs only
+     if that is still THE widget, on THE frame, and the frame is still in the document with a
+     window. Otherwise it is a silent no-op. When it does run, it runs exactly the same calls as
+     before. kilClearTimers() drops every pending one on teardown (kilLoadPlaylist). */
+  var _kilTimers=[];
+  function widgetAlive(w){
+    if(!w || w!==widget || !frame) return false;
+    try{ if(frame.isConnected===false || !frame.contentWindow) return false; }catch(e){ return false; }
+    return true;
+  }
+  function kilLater(fn, ms){
+    var w=widget, f=frame;
+    var id=setTimeout(function(){
+      var k=_kilTimers.indexOf(id); if(k>-1) _kilTimers.splice(k,1);
+      if(f!==frame || !widgetAlive(w)) return;
+      fn();
+    }, ms);
+    _kilTimers.push(id);
+    return id;
+  }
+  function kilClearTimers(){ _kilTimers.splice(0).forEach(function(id){ clearTimeout(id); }); }
+  /* @end-kil-widget-guard */
+
   /* Watchdog for a widget that drops out WHILE the visitor is watching. Never in the
      background — that is what made the radio unstoppable. */
   setInterval(function(){
     if(document.hidden) return;
     if(!widget||!widgetReady||!interacted||muted)return;
     if(!playing) return;   /* only nurse a session the visitor actually started */
+    if(!widgetAlive(widget)) return;   /* frame removed since: nothing to nurse */
     widget.isPaused(function(p){if(p){widget.setVolume(getVol());widget.play();}});
   },30000);
   // ── 10-second Supabase radio state poll ──────────────────────────────────
-  setInterval(function(){if(widgetReady)fetchRadioState(applyRadioState);},10000);
+  setInterval(function(){if(widgetReady&&widgetAlive(widget))fetchRadioState(applyRadioState);},10000);
 
   // ── Supabase radio sync functions ────────────────────────────────────────
   function fetchRadioState(cb){
@@ -1347,6 +1383,7 @@
 
   function applyRadioState(state){
     if(!state||!widgetReady)return;
+    if(!widgetAlive(widget))return;   /* the fetch resolved after the frame went away */
     var now=Date.now();
     // Commercial check
     if(state.commercial_url&&state.commercial_ends_at){
@@ -1361,7 +1398,7 @@
     widget.getCurrentSoundIndex(function(i){
       if(i!==state.track_index){
         widget.skip(state.track_index);
-        setTimeout(function(){widget.seekTo(position);setTimeout(function(){if(interacted){widget.setVolume(muted?0:getVol());widget.play();}},150);},400);
+        kilLater(function(){widget.seekTo(position);kilLater(function(){if(interacted){widget.setVolume(muted?0:getVol());widget.play();}},150);},400);
       } else {
         widget.getPosition(function(pos){
           if(Math.abs(pos-position)>5000){widget.seekTo(position);}
@@ -1375,7 +1412,7 @@
   function startCommercial(url,durationMs){
     if(inCommercial&&commercialAudio&&commercialAudio.src===url)return;
     inCommercial=true;
-    widget.setVolume(0);
+    if(widgetAlive(widget)) widget.setVolume(0);
     if(commercialAudio){commercialAudio.pause();commercialAudio=null;}
     commercialAudio=new Audio(url);
     commercialAudio.volume=muted?0:Math.min(1,savedVol/100);
@@ -1388,10 +1425,11 @@
   function stopCommercial(){
     inCommercial=false;
     if(commercialAudio){commercialAudio.pause();commercialAudio=null;}
-    if(!muted&&widgetReady&&widget)widget.setVolume(getVol());
+    if(!muted&&widgetReady&&widgetAlive(widget))widget.setVolume(getVol());
   }
 
   function epochSync(){
+    if(!widgetAlive(widget))return;   /* reached from a fetch that resolved after teardown */
     widget.getSounds(function(sounds){
       if(!sounds||!sounds.length){widget.play();return;}
       var durations=[],totalMs=0;
@@ -1403,7 +1441,7 @@
         cumulative+=durations[j];
       }
       widget.skip(trackIndex);widget.setVolume(0);
-      setTimeout(function(){widget.seekTo(trackOffset);setTimeout(function(){widget.play();if(interacted)widget.setVolume(getVol());},200);},400);
+      kilLater(function(){widget.seekTo(trackOffset);kilLater(function(){widget.play();if(interacted)widget.setVolume(getVol());},200);},400);
     });
   }
 
@@ -1428,7 +1466,7 @@
         if(h.muted){muted=true;paintMuteIcon();if(volEl)volEl.hidden=false;}
         interacted=true;
         widget.skip(h.idx);widget.setVolume(0);
-        setTimeout(function(){widget.seekTo(resumePos);setTimeout(function(){widget.play();if(!muted)widget.setVolume(getVol());},150);},200);
+        kilLater(function(){widget.seekTo(resumePos);kilLater(function(){widget.play();if(!muted)widget.setVolume(getVol());},150);},200);
         return;
       }
     }catch(e){}
@@ -1448,9 +1486,9 @@
         var pos=Math.round((st.currentTime||0)+away);
         interacted=true;
         widget.skip(st.trackIdx); widget.setVolume(0);
-        setTimeout(function(){
+        kilLater(function(){
           widget.seekTo(pos);
-          setTimeout(function(){ widget.play(); if(!muted) widget.setVolume(getVol()); },150);
+          kilLater(function(){ widget.play(); if(!muted) widget.setVolume(getVol()); },150);
         },200);
         return;
       }
@@ -1530,7 +1568,7 @@
         });
       });
     });
-    widget.bind(SC.Widget.Events.ERROR,function(){setTimeout(function(){widget.next();widget.play();},1000);});
+    widget.bind(SC.Widget.Events.ERROR,function(){kilLater(function(){widget.next();widget.play();},1000);});
     }catch(e){ widget=null; widgetReady=false; }
   }
   /* The SoundCloud API script is deferred alongside the iframe — loading it eagerly would
@@ -1557,10 +1595,62 @@
        injection block is skipped, so __kilMountRadio is undefined and we attach directly to
        the iframe that is already sitting in the DOM. Without this branch the API script would
        never load on those pages and the radio would be silent. */
-    function boot(){
-      if(window.__kilMountRadio) window.__kilMountRadio();
-      else if(window.__kilRadioAttach) window.__kilRadioAttach(null);
+    /* @kil-lazy-mount ── NO SOUNDCLOUD FRAME WHILE THE RADIO CANNOT BE SEEN (Grok draft 2026-11-20) ──
+       On /earn the docked bar is hidden on phones (body.rad-m #kil-radio{display:none}, and
+       applyBarVisibility hides it on every phone), yet the idle boot and the first tap still
+       mounted the w.soundcloud.com iframe: a player nobody can see or control, loading a third-
+       party frame and spamming "encrypted-media" permission errors into the console.
+       Now boot() is a REQUEST: it marks the radio as wanted (idle or a gesture, exactly as before)
+       and mounts only once the bar is actually rendered. While the bar is hidden the request stays
+       pending and is re-checked on resize and whenever an IntersectionObserver on the bar sees it
+       appear, so a phone rotated or widened to desktop gets its radio then.
+       Where the bar IS visible (desktop, every page, the stage host) nothing changes: the bar is
+       visible at idle, so the mount happens at the same moment it always did, and the hand-off /
+       session restore in syncAndPlay() runs unchanged. Choosing a station from another surface
+       (__kilRadioSelect -> kilLoadPlaylist) is an explicit radio action and still mounts directly.
+       Pages that inline their own #kil-sc keep attaching to it (nothing to lazy-load there). */
+    function kilRadioUiVisible(){
+      var bar=document.getElementById('kil-radio');
+      if(!bar || bar.isConnected===false) return false;
+      try{
+        if(typeof bar.checkVisibility==='function') return bar.checkVisibility({ visibilityProperty:true });
+      }catch(e){}
+      try{
+        if(getComputedStyle(bar).visibility==='hidden') return false;
+        for(var el=bar; el && el.nodeType===1; el=el.parentElement){
+          if(getComputedStyle(el).display==='none') return false;
+        }
+      }catch(e){ return true; }
+      return true;
     }
+    window.__kilRadioUiVisible = kilRadioUiVisible;
+    var wanted=false, mounted=false, io=null;
+    var GESTURES=['pointerdown','touchstart','keydown'];
+    function done(){
+      mounted=true;
+      GESTURES.forEach(function(ev){ document.removeEventListener(ev, boot, true); });
+      window.removeEventListener('resize', tryMount);
+      if(io){ try{ io.disconnect(); }catch(e){} io=null; }
+    }
+    function tryMount(){
+      if(mounted || !wanted) return;
+      if(!window.__kilMountRadio){ done(); if(window.__kilRadioAttach) window.__kilRadioAttach(null); return; }
+      if(document.getElementById('kil-sc')){ done(); return; }
+      if(!kilRadioUiVisible()) return;   /* stay pending: hidden radio, no player */
+      done();
+      window.__kilMountRadio();
+    }
+    function boot(){ wanted=true; tryMount(); }
+    window.__kilRadioLazyCheck = tryMount;
+    window.addEventListener('resize', tryMount);
+    try{
+      var _bar=document.getElementById('kil-radio');
+      if(_bar && typeof IntersectionObserver==='function'){
+        io=new IntersectionObserver(function(){ tryMount(); });
+        io.observe(_bar);
+      }
+    }catch(e){}
+    /* @end-kil-lazy-mount */
     /* ⚠ AUTOPLAY (Founder 2026-08-27: "RADIO IS NOT AUTO PLAYING").
        This used to mount ONLY on a gesture, so a visitor who never clicked got silence and
        an empty bar for the whole visit — measured: window.SC undefined, no #kil-sc iframe,
@@ -1575,14 +1665,21 @@
        The gesture listeners STAY as a fallback: if requestIdleCallback never fires (a tab
        opened in the background stays throttled), the first gesture still boots it. `boot`
        is idempotent — __kilMountRadio returns early when #kil-sc already exists. */
+    /* DEFERRED MOUNT (Grok decision 2026-11-24, perf baseline: the 1.23 MB widget loaded on every desktop page
+       inside the load window). The founder's muted autoplay stays: the player still mounts by itself, but at the
+       FIRST GESTURE (listeners below) or KIL_RADIO_AUTOPLAY_MS after load, whichever comes first, instead of as
+       soon as the main thread is idle. A visitor who stays still hears (muted) autoplay start; a visit that bounces
+       or is measured in a load audit never pays for the third-party frame. */
+    var KIL_RADIO_AUTOPLAY_MS = 10000;
     function bootWhenIdle(){
-      if(window.requestIdleCallback) window.requestIdleCallback(boot, { timeout: 3000 });
-      else setTimeout(boot, 1200);
+      setTimeout(boot, KIL_RADIO_AUTOPLAY_MS);
     }
     if(document.readyState === 'complete') bootWhenIdle();
     else window.addEventListener('load', bootWhenIdle, { once:true });
-    ['pointerdown','touchstart','keydown'].forEach(function(ev){
-      document.addEventListener(ev, boot, { once:true, capture:true, passive:true });
+    /* Not `once` any more: a tap on a page whose radio is hidden must not use up the trigger.
+       done() removes them the moment the player mounts. */
+    GESTURES.forEach(function(ev){
+      document.addEventListener(ev, boot, { capture:true, passive:true });
     });
   })();
 
@@ -1633,7 +1730,8 @@
   var drawerEl=null;
 
   function _gwLabel(st){
-    return st==='compact' ? 'Open KEEPITIL Radio' : 'Close KEEPITIL Radio';
+    /* label-in-name (WCAG 2.5.3): the visible text is LIVE RADIO, so the accessible name must contain it */
+    return st==='compact' ? 'LIVE RADIO: open KEEPITIL Radio' : 'LIVE RADIO: close KEEPITIL Radio';
   }
   /* The drawer and the full view share ONE header component so the gateway cannot drift
      between them. Built lazily: a visitor who never opens the radio pays nothing. */
@@ -2362,7 +2460,7 @@
           window.scrollTo(0,0);
           // Resume playback if PJAX accidentally caused a pause
           if(widget&&widgetReady&&interacted&&!muted){
-            setTimeout(function(){widget.isPaused(function(p){if(p){widget.setVolume(getVol());widget.play();}});},400);
+            kilLater(function(){widget.isPaused(function(p){if(p){widget.setVolume(getVol());widget.play();}});},400);
           }
         })
         .catch(function(){
@@ -2476,7 +2574,7 @@
     /* CULTURE OWNS ITS AUDIO, in the stage too. The radio pauses while Culture is on screen and
        comes back LIVE — the position advanced by the time spent away — when the visitor leaves. */
     function cultureRule(path){
-      if(!widget) return;
+      if(!widget || !widgetAlive(widget)) return;
       var isCul = CULTURE.test(path);
       if(isCul && !pausedForCulture){
         widget.getPosition(function(pos){ pausedForCulture = { pos: pos||0, at: Date.now(), wasPlaying: playing }; });

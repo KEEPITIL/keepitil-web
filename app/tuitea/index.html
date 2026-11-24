@@ -4,13 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TUITEA</title>
-<meta name="robots" content="noindex, follow">
-<meta name="theme-color" content="#3F7658">
+<meta name="description" content="TUITEA is a private home for your family: people, stories, health and the everyday running of a household. On the App Store and on the web.">
+<link rel="canonical" href="https://keepitil.com/app/tuitea/">
+<meta name="theme-color" content="#14170F">
 <link rel="icon" href="/app/tuitea/icon-192.png">
 <link rel="apple-touch-icon" href="/app/tuitea/apple-touch-icon.png">
 <link rel="manifest" href="/app/tuitea/manifest.webmanifest">
 <!--
   A REAL PAGE, NOT A REDIRECT (TUITEA 1.0 build 88, phase 2; owner: no redirects).
+
+  TUITEA 2.0 is on the App Store (2026-11-23, owner: "make it public"): this page is indexed and
+  leads with the App Store listing; the web app link stays.
 
   This address used to bounce every visitor to keepitil.com/support. It now says what TUITEA
   is and gives direct links: the web app itself (/app/tuitea/app/) and support. Nothing
@@ -24,29 +28,38 @@
        receives it (InviteLinks.tokenFrom reads ?invite=).
 -->
 <style>
-  :root{--bg:#FBF7EF;--ink:#20261F;--muted:#6E7566;--accent:#3F7658;--line:#E2D9C6;--surface:#FFFDF8}
-  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14170F;--ink:#ECE7DA;--muted:#9BA391;--accent:#6FBF8F;--line:#333A2D;--surface:#1C201A}}
-  :root[data-theme="dark"]{--bg:#14170F;--ink:#ECE7DA;--muted:#9BA391;--accent:#6FBF8F;--line:#333A2D;--surface:#1C201A}
+  /* PROPOSED 2026-11-23: same gold-tree crest, garden background and gold buttons as the web app's sign-in screen and the invite page. */
+  :root{--ink:#F4EBD6;--muted:#D9CDB1;--gold:#E3C27A;--night:#14170F;--glass:rgba(16,19,12,.62);--line:rgba(227,194,122,.45)}
   *{box-sizing:border-box}
-  body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--ink);
-       font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:24px 16px}
-  main{width:100%;max-width:30rem;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:1.6rem 1.4rem;text-align:center}
-  img{width:72px;height:72px;border-radius:18px}
-  h1{font-size:1.5rem;margin:.6rem 0 .3rem}
-  p{color:var(--muted);margin:0 0 1rem}
-  a.btn{display:block;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;padding:.85rem 1.2rem;border-radius:999px;margin:.5rem 0}
-  a.link{color:var(--accent);font-weight:600}
+  html,body{margin:0}
+  body{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:32px 16px;color:var(--ink);background:var(--night);
+       font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  body::before{content:"";position:fixed;inset:0;z-index:-1;background-color:var(--night);
+       background-image:linear-gradient(180deg,rgba(12,14,9,.35),rgba(12,14,9,.7)),url("/app/tuitea/app/assets/assets/brand/backgrounds/home_mobile.webp");
+       background-size:cover;background-position:center;background-repeat:no-repeat}
+  @media (min-width:768px){body::before{background-image:linear-gradient(180deg,rgba(12,14,9,.3),rgba(12,14,9,.65)),url("/app/tuitea/app/assets/assets/brand/backgrounds/home_desktop.webp")}}
+  main{width:100%;max-width:28rem;text-align:center;padding:2rem 1.5rem;border-radius:24px;background:var(--glass);border:1px solid var(--line);
+       -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 20px 60px rgba(0,0,0,.45)}
+  img.icon{width:128px;height:128px;border-radius:28px;display:block;margin:0 auto 1.25rem;box-shadow:0 0 0 2px var(--line),0 12px 32px rgba(0,0,0,.5)}
+  h1{margin:.35rem 0 .9rem;font:600 2.6rem/1.1 "Cinzel","Trajan Pro",Georgia,"Times New Roman",serif;letter-spacing:.08em;color:var(--gold)}
+  p{color:var(--muted);margin:0 0 1.4rem}
+  a.btn{display:flex;align-items:center;justify-content:center;min-height:52px;width:100%;padding:.8rem 1.2rem;border-radius:14px;text-decoration:none;font-weight:650;font-size:1.05rem;margin:.6rem 0;
+        background:linear-gradient(180deg,#EBCD8A,#C9A24E);color:#1A1D13;border:1px solid #F1DBA4;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+  a.btn.alt{background:rgba(20,23,15,.55);color:var(--gold);border:1px solid var(--line);box-shadow:none}
+  a.link{color:var(--gold);font-weight:600}
+  a:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
   .small{font-size:.88rem}
 </style>
 </head>
 <body>
 <main>
-  <img src="/app/tuitea/icon-192.png" alt="">
+  <img class="icon" src="/app/tuitea/invite/tuitea_icon_256.png" width="128" height="128" alt="TUITEA">
   <h1>TUITEA</h1>
   <p>A private home for your family — people, stories, health and the everyday running of a household.</p>
-  <a class="btn" id="open" href="/app/tuitea/app/">Open TUITEA</a>
+  <a class="btn" id="store" href="https://apps.apple.com/app/id6806472413">Download on the App Store</a>
+  <a class="btn alt" id="open" href="/app/tuitea/app/">Open TUITEA on the web</a>
   <p class="small" id="invited" hidden>Your invitation goes with you — sign in or create an account, and TUITEA will ask to join the family that invited you.</p>
-  <p class="small">Questions? <a class="link" href="https://keepitil.com/support/?product=tuitea">TUITEA support</a></p>
+  <p class="small">Questions? <a class="link" href="/apps/tuitea/support/">TUITEA support</a> · <a class="link" href="/apps/tuitea/legal/">Privacy and terms</a></p>
 </main>
 <script>
   // The invitation travels on the link (never stored, never sent anywhere else).

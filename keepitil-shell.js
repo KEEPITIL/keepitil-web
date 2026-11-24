@@ -262,7 +262,7 @@
              tag ran the current one. Two different radio bars on one site, and the stale half
              was invisible to a cache bump because the URL never changed. Bump this WITH the
              page tags whenever keepitil-radio.js changes. */
-          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20261109a'; document.body.appendChild(_rs);
+          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20261124b'; document.body.appendChild(_rs);
         }
       }catch(e){} });
     }
@@ -382,9 +382,18 @@
       }).catch(function(){});
     }
   }catch(e){}
-  /* Install banner: Android/desktop via beforeinstallprompt; iOS gets a one-time Share hint. */
+  /* Install: OPENS ONLY WHEN THE USER ASKS (owner rule 2026-11-20: the KEEPITIL site has no
+     pop-ups that open by themselves). This block used to append a #kil-pwa-banner on its own:
+     from the beforeinstallprompt handler on Android/desktop Chrome, and from a 2.6s timer on
+     iOS. Now nothing is shown on load, on a timer, on scroll or on the browser event.
+     - beforeinstallprompt is still captured: preventDefault (no mini-infobar) and the event is
+       stashed in _dp so a later click can use it.
+     - The footer's "Install app" link (data-kil-install, built in build() below) is the only
+       trigger. It calls the stashed prompt() if there is one, otherwise it shows the existing
+       Add-to-Home steps (iOS Safari always, since iOS never fires the event).
+     - window.KIL.install is published only when install is possible; build() reads it, so the
+       link is absent when the app is already installed (standalone display mode). */
   try{
-    var _IK='kil-pwa-hint-2026';
     /* The capacitor:// arm is why the banner was appearing INSIDE the native app: the WKWebView
        wrapper reports neither display-mode:standalone nor navigator.standalone, so both original
        tests passed and it offered to install an app the user was already standing in. */
@@ -392,36 +401,9 @@
       ||window.navigator.standalone===true
       ||/capacitor|ionic/i.test(location.protocol);
     /* FOUNDER DIRECTIVE 2026-08-07: install UI is ON — ship the free installable PWA now,
-       native Expo app later. (Supersedes the 2026-07-16 "off until App Store launch" hold.)
-       Banner is dismissible and remembers the dismissal via localStorage key _IK. */
+       native Expo app later. (Supersedes the 2026-07-16 "off until App Store launch" hold.) */
     var _INSTALL_UI=true;
-    if(_INSTALL_UI && !_standalone && !localStorage.getItem(_IK)){
-      var _dismiss=function(){ try{localStorage.setItem(_IK,'1');}catch(e){} var b=document.getElementById('kil-pwa-banner'); if(b)b.remove(); };
-      var _show=function(msg,btnLabel,onBtn){
-        if(document.getElementById('kil-pwa-banner'))return;
-        var b=document.createElement('div'); b.id='kil-pwa-banner';
-        /* Bottom-docked, ABOVE the chat button (Founder 2026-08-21 — it was covering the middle
-           of every page on a phone).
-           History: it was bottom:104px/z-index:900 and sat UNDER the chat button, so on 2026-08-15
-           it was centred to escape by geometry. That traded a small overlap for a worse one — a
-           fixed, undismissed banner parked over the centre of the viewport on every page, following
-           the scroll, hiding whatever the visitor came to read.
-           This keeps the geometric fix and drops the collision: the banner is a full-width bar
-           stacked above the chat FAB and the bottom nav, so nothing overlaps at any z-index and
-           the content it interrupts is empty page margin instead of the middle of the feed. */
-        var _lift = 'calc(var(--kil-bnav-h,62px) + var(--kil-mbar-h,0px) + 86px + env(safe-area-inset-bottom,0px))';
-        b.style.cssText='position:fixed;left:12px;right:12px;bottom:'+_lift+';margin:0 auto;'
-          +'max-width:520px;z-index:1150;background:#12121c;border:1px solid #2a2a3a;border-radius:14px;'
-          +'padding:14px;display:flex;align-items:center;gap:10px;box-shadow:0 18px 48px rgba(0,0,0,.6);'
-          +'font-family:Inter,system-ui,sans-serif;font-size:.85rem;color:#f0f0f0';
-        b.innerHTML='<img src="/icon-192.png" alt="" style="width:34px;height:34px;border-radius:8px;flex:0 0 34px">'+
-          '<span style="flex:1;line-height:1.35">'+msg+'</span>'+
-          (btnLabel?'<button id="kil-pwa-go" style="background:linear-gradient(90deg,#00b4ff,#22e39b);color:#04121b;border:0;border-radius:9px;padding:8px 14px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap">'+btnLabel+'</button>':'')+
-          '<button id="kil-pwa-x" aria-label="Dismiss" style="background:none;border:0;color:#9aa0b0;font-size:1.1rem;cursor:pointer;padding:4px">&times;</button>';
-        document.body.appendChild(b);
-        var x=document.getElementById('kil-pwa-x'); if(x)x.addEventListener('click',_dismiss);
-        var g=document.getElementById('kil-pwa-go'); if(g&&onBtn)g.addEventListener('click',onBtn);
-      };
+    if(_INSTALL_UI && !_standalone){
       var _ios=/iphone|ipad|ipod/i.test(navigator.userAgent||'');
       var _dp=null;
       /* Full-screen step-by-step overlay for when no native prompt is available (iOS always; Android if the prompt was consumed). */
@@ -440,16 +422,27 @@
         o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='kil-pwa-instr-x'){ o.remove(); } });
         document.body.appendChild(o);
       };
-      /* The banner button ALWAYS does something: native prompt if we have it, else instructions. */
-      var _onInstall=function(){
-        if(_dp){ try{ _dp.prompt(); _dp.userChoice.then(_dismiss); _dp=null; return; }catch(e){} }
+      /* Called only from the click below. prompt() is single-use, so _dp is cleared first; a
+         second click falls back to the steps. */
+      var _openInstall=function(){
+        if(_dp){ var p=_dp; _dp=null; try{ p.prompt(); return; }catch(e){} }
         _instr();
       };
-      var _showBanner=function(){ _show('Add <b>KEEPITIL</b> to your home screen — events, scene &amp; radio, one tap away.','Install',_onInstall); };
-      window.addEventListener('beforeinstallprompt',function(ev){ ev.preventDefault(); _dp=ev; _showBanner(); });
-      window.addEventListener('appinstalled',_dismiss);
-      /* iOS never fires beforeinstallprompt, so show the banner ourselves; its button opens the instructions. */
-      if(_ios){ setTimeout(_showBanner,2600); }
+      /* Stash only. Showing anything from here is exactly what the owner rule forbids. */
+      window.addEventListener('beforeinstallprompt',function(ev){ ev.preventDefault(); _dp=ev; });
+      window.addEventListener('appinstalled',function(){
+        _dp=null;
+        try{ if(window.KIL) delete window.KIL.install; }catch(e){}
+        document.querySelectorAll('[data-kil-install]').forEach(function(a){ a.remove(); });
+      });
+      document.addEventListener('click',function(e){
+        var a=e.target&&e.target.closest&&e.target.closest('[data-kil-install]');
+        if(!a)return;
+        e.preventDefault();
+        _openInstall();
+      });
+      window.KIL=window.KIL||{};
+      window.KIL.install={open:_openInstall};
     }
   }catch(e){}
   /* ── KIL.eventDate / KIL.localDate — THE sitewide event date formatter. Added 2026-07-16.
@@ -602,10 +595,10 @@ var DESTINATIONS=[
    tint:'#22e07a', glow:'rgba(34,224,122,.75)'},
   {href:'/create/',  label:'Create',  pill:'CREATE',   icon:'vs',      match:/(^|\/)(create|vs)(\.html)?\/?$/,
    tint:'#ff5c8a', glow:'rgba(255,92,138,.75)'},
-  /* Shop sits between Create and Culture. Selected state is logo-blue (#5CD6FF label,
-     #1E9BFF glow), the same active treatment the other tabs use for their own tint. */
-  {href:'/shop/',    label:'Shop',    pill:'SHOP',     icon:'shop',    match:/(^|\/)shop(\.html)?(\/|$)/,
-   tint:'#5CD6FF', glow:'rgba(30,155,255,.75)'},
+  /* NO SHOP TAB (Joe 2026-11-20 6:38 PM: "No shop button allowed as the core mobile tabs on the
+     bottom navigations for the Keepitil website or apps."). The nav is EXACTLY five:
+     Discover, Connect, Create, Culture, Earn. /shop/ stays live, reached from the Earn carousel
+     and the footer. Guarded by assets/js/nav-five-tabs.test.mjs. */
   {href:'/culture/', label:'Culture', pill:'CULTURE',  icon:'culture', match:/(^|\/)culture(\.html)?\/?$/,
    tint:'#a06bff', glow:'rgba(160,107,255,.75)'},
   {href:'/earn/',    label:'Earn',    pill:'EARN',     icon:'radio',   match:/(^|\/)(earn|radio)(\.html)?\/?$/,
@@ -782,6 +775,8 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           +'<span class="fa-mail"> · <a href="mailto:info@keepitil.com">info@keepitil.com</a></span></p></div>'
         +'<nav class="v3-foot-links">'
         +DESTINATIONS.map(function(d){ return '<a href="'+d.href+'">'+d.label+'</a>'; }).join('')
+        /* Shop is a footer link, never a nav tab (Joe 2026-11-20). */
+        +'<a href="/shop/">Shop</a>'
         +'<a href="/apply">Login</a></nav>'
         +'<div class="v3-foot-social">'
           +'<a href="https://instagram.com/keepitil" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2.2c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2zm0 3.2A6.6 6.6 0 1012 18.6 6.6 6.6 0 0012 5.4zm0 10.9a4.3 4.3 0 110-8.6 4.3 4.3 0 010 8.6zm6.85-11.2a1.54 1.54 0 11-3.08 0 1.54 1.54 0 013.08 0z"/></svg></a>'
@@ -791,10 +786,13 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           +'<a href="https://facebook.com/keepitil" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M22 12a10 10 0 10-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0022 12z"/></svg></a>'
           +'<a href="mailto:info@keepitil.com" aria-label="Email KEEPITIL"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg></a>'
         +'</div></div>'
-        +'<div class="v3-foot-legal" style="max-width:var(--maxw,1400px);margin:14px auto 0;font-size:.78rem;opacity:.7;display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
+        +'<div class="v3-foot-legal" style="max-width:var(--maxw,1400px);margin:14px auto 0;font-size:.78rem;display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
         +'<a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refund">Refunds</a>'
         +'<a href="/ticket-terms"><span class="lg-f">Ticket Terms</span><span class="lg-s">Tickets</span></a>'
         +'<a href="/community-guidelines"><span class="lg-f">Community Guidelines</span><span class="lg-s">Rules</span></a>'
+        /* The ONLY way the install prompt/steps open (see the Install block above). Absent when
+           the app is already installed, because window.KIL.install is only set when it is not. */
+        +(window.KIL&&window.KIL.install?'<a href="#" class="kil-install-link" data-kil-install><span class="lg-f">Install app</span><span class="lg-s">Install</span></a>':'')
         +'<span style="margin-left:auto">© '+(new Date().getFullYear())+' KEEPITIL</span></div>'
         +'<p class="v3-foot-entity">KEEPITIL LLC · Garden Grove, CA</p>';
       if(RULES.nav!==false) document.body.appendChild(f);
@@ -918,7 +916,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
 
           if(document.getElementById('kil-bnav')) return;
           var bn=document.createElement('nav'); bn.id='kil-bnav';
-          /* One slot per destination in DESTINATIONS, including Shop. Create WAS the centre slot — it is an action,
+          /* One slot per destination in DESTINATIONS (five; no Shop). Create WAS the centre slot — it is an action,
              not a place, and mixing it in is what left no room for Radio and VS. It moves to
              a floating button above the bar, calling the same __kilCreateMenu as before.
              Profile leaves the bar for the contextual slot: it is account state, not a
@@ -1233,6 +1231,11 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           window.__kilProfileChecked=0; kilEnforceProfile(c, session);
         }, function(){ return kilEndSession(c); });
       }
+      /* Find My Weed accounts share this Supabase project but are NOT KEEPITIL members (owner ruling
+         2026-11-22, option A: FMW sign-ups are tagged user_metadata.app = 'findmyweed', and the
+         database gives them no app_users row). Never claim a KEEPITIL profile for one: end the
+         KEEPITIL-side session on this device instead (local only; the FMW app keeps its own). */
+      if(user.user_metadata&&user.user_metadata.app==='findmyweed') return kilEndSession(c);
       return c.rpc('my_profile_slug').then(function(rr){
         if(rr&&!rr.error&&rr.data){ window.KIL_SLUG=rr.data; return; }
         /* profile_owners is world-readable, so this is a second path, not a retry. */
@@ -1578,8 +1581,8 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     +'#v3-footer .v3-foot-social{display:flex;gap:14px;align-items:center;flex-wrap:wrap}#v3-footer .v3-foot-social a{color:var(--muted,#888);display:inline-flex;transition:color .2s,transform .2s}#v3-footer .v3-foot-social a:hover{color:var(--brand,#00b4ff);transform:translateY(-2px)}'
     +'#v3-footer .v3-foot-inner{align-items:flex-start}#v3-footer .v3-foot-about{max-width:420px;flex:1 1 300px;text-align:left}#v3-footer .v3-foot-brand,#v3-footer .v3-foot-addr{text-align:left;display:block}'
     +'#v3-footer .v3-foot-desc{margin:10px 0 0;font-size:.82rem;line-height:1.55;color:var(--muted,#9a94b4);opacity:.9}'
-    +'#v3-footer .v3-foot-addr{margin:8px 0 0;font-size:.74rem;line-height:1.5;color:var(--muted,#888);opacity:.7}#v3-footer .v3-foot-addr a{color:var(--brand-2,#5cc8ff)}'
-    +'#v3-footer .v3-foot-entity{max-width:var(--maxw,1400px);margin:12px auto 0;font-size:.78rem;line-height:1.5;opacity:.75}'
+    +'#v3-footer .v3-foot-addr{margin:8px 0 0;font-size:.74rem;line-height:1.5;color:var(--muted,#888)}#v3-footer .v3-foot-addr a{color:var(--brand-2,#5cc8ff);text-decoration:underline}'
+    +'#v3-footer .v3-foot-entity{max-width:var(--maxw,1400px);margin:12px auto 0;font-size:.78rem;line-height:1.5}'
     /* ── MOBILE FOOTER, SIX ROWS (Founder 2026-08-26) ────────────────────────────────────
        1 KEEPITIL · 2 street · 3 city · 4 social, full width · 5 legal, full width · 6 space.
        Desktop is untouched — every rule below is inside the ≤860px block.
@@ -1598,7 +1601,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     /* rows 2 and 3: two clean address lines. PMB and the email address are for the desktop
        one-liner; on a phone they push the street onto three ragged lines. */
     +  '#v3-footer .v3-foot-addr{text-align:center;text-transform:uppercase;letter-spacing:.06em;'
-    +    'font-size:.7rem;line-height:1.7;opacity:.75}'
+    +    'font-size:.7rem;line-height:1.7}'
     +  '#v3-footer .fa-l1,#v3-footer .fa-l2{display:block}'
     +  '#v3-footer .fa-pmb,#v3-footer .fa-mail{display:none}'
     /* the destination links are the bottom nav on a phone — repeating them here is furniture */
@@ -1619,7 +1622,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     +  '#v3-footer .lg-f{display:none}#v3-footer .lg-s{display:inline}'
     /* the copyright drops to its own centred line rather than fighting for width in row 5 */
     +  '#v3-footer .v3-foot-legal>span{flex:1 0 100%;margin-left:0!important;text-align:center;'
-    +    'opacity:.6;padding-top:6px}'
+    +    'padding-top:6px}'
     +  '#v3-footer .v3-foot-entity{text-align:center;width:100%}'
     /* row 6: deliberate empty space so the floating up-arrow (left) and chat (right) buttons
        have somewhere to sit that is not on top of a link. */

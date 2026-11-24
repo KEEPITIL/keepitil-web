@@ -786,7 +786,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           +'<a href="https://facebook.com/keepitil" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M22 12a10 10 0 10-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0022 12z"/></svg></a>'
           +'<a href="mailto:info@keepitil.com" aria-label="Email KEEPITIL"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg></a>'
         +'</div></div>'
-        +'<div class="v3-foot-legal" style="max-width:var(--maxw,1400px);margin:14px auto 0;font-size:.78rem;opacity:.7;display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
+        +'<div class="v3-foot-legal" style="max-width:var(--maxw,1400px);margin:14px auto 0;font-size:.78rem;display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
         +'<a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refund">Refunds</a>'
         +'<a href="/ticket-terms"><span class="lg-f">Ticket Terms</span><span class="lg-s">Tickets</span></a>'
         +'<a href="/community-guidelines"><span class="lg-f">Community Guidelines</span><span class="lg-s">Rules</span></a>'
@@ -1581,8 +1581,8 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     +'#v3-footer .v3-foot-social{display:flex;gap:14px;align-items:center;flex-wrap:wrap}#v3-footer .v3-foot-social a{color:var(--muted,#888);display:inline-flex;transition:color .2s,transform .2s}#v3-footer .v3-foot-social a:hover{color:var(--brand,#00b4ff);transform:translateY(-2px)}'
     +'#v3-footer .v3-foot-inner{align-items:flex-start}#v3-footer .v3-foot-about{max-width:420px;flex:1 1 300px;text-align:left}#v3-footer .v3-foot-brand,#v3-footer .v3-foot-addr{text-align:left;display:block}'
     +'#v3-footer .v3-foot-desc{margin:10px 0 0;font-size:.82rem;line-height:1.55;color:var(--muted,#9a94b4);opacity:.9}'
-    +'#v3-footer .v3-foot-addr{margin:8px 0 0;font-size:.74rem;line-height:1.5;color:var(--muted,#888);opacity:.7}#v3-footer .v3-foot-addr a{color:var(--brand-2,#5cc8ff)}'
-    +'#v3-footer .v3-foot-entity{max-width:var(--maxw,1400px);margin:12px auto 0;font-size:.78rem;line-height:1.5;opacity:.75}'
+    +'#v3-footer .v3-foot-addr{margin:8px 0 0;font-size:.74rem;line-height:1.5;color:var(--muted,#888)}#v3-footer .v3-foot-addr a{color:var(--brand-2,#5cc8ff);text-decoration:underline}'
+    +'#v3-footer .v3-foot-entity{max-width:var(--maxw,1400px);margin:12px auto 0;font-size:.78rem;line-height:1.5}'
     /* ── MOBILE FOOTER, SIX ROWS (Founder 2026-08-26) ────────────────────────────────────
        1 KEEPITIL · 2 street · 3 city · 4 social, full width · 5 legal, full width · 6 space.
        Desktop is untouched — every rule below is inside the ≤860px block.
@@ -1601,7 +1601,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     /* rows 2 and 3: two clean address lines. PMB and the email address are for the desktop
        one-liner; on a phone they push the street onto three ragged lines. */
     +  '#v3-footer .v3-foot-addr{text-align:center;text-transform:uppercase;letter-spacing:.06em;'
-    +    'font-size:.7rem;line-height:1.7;opacity:.75}'
+    +    'font-size:.7rem;line-height:1.7}'
     +  '#v3-footer .fa-l1,#v3-footer .fa-l2{display:block}'
     +  '#v3-footer .fa-pmb,#v3-footer .fa-mail{display:none}'
     /* the destination links are the bottom nav on a phone — repeating them here is furniture */
@@ -1622,7 +1622,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     +  '#v3-footer .lg-f{display:none}#v3-footer .lg-s{display:inline}'
     /* the copyright drops to its own centred line rather than fighting for width in row 5 */
     +  '#v3-footer .v3-foot-legal>span{flex:1 0 100%;margin-left:0!important;text-align:center;'
-    +    'opacity:.6;padding-top:6px}'
+    +    'padding-top:6px}'
     +  '#v3-footer .v3-foot-entity{text-align:center;width:100%}'
     /* row 6: deliberate empty space so the floating up-arrow (left) and chat (right) buttons
        have somewhere to sit that is not on top of a link. */

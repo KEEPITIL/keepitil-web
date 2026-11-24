@@ -18,6 +18,10 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg,#0a0a0f);color:var(--text,#e8e8f0);font-family:var(--font,Inter,system-ui,sans-serif);line-height:1.6;padding-bottom:96px;overflow-x:clip}
 .wrap{max-width:880px;margin:0 auto;padding:48px 20px 24px}
+/* LAYOUT SHIFT (baseline 2026-11-23: CLS 0.496 on desktop): keepitil-shell.js later forces .wrap to the shared 1360px page box with a 40px gutter and
+   offsets the body by the 66px fixed header, and removes this crawler-only #main-nav. Those same values are stated here so the first paint already matches the final layout. */
+#main-nav{position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden}
+@media(min-width:861px){body{padding-top:66px}.wrap{max-width:1360px;padding-left:40px;padding-right:40px}}
 .eyebrow{font-size:.75rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--brand,#00b4ff)}
 h1{font-size:clamp(2rem,6vw,2.8rem);font-weight:900;line-height:1.1;margin:8px 0 10px}
 .lede{color:var(--muted,#a8a3bd);font-size:1.05rem;max-width:560px}
@@ -29,7 +33,7 @@ h1{font-size:clamp(2rem,6vw,2.8rem);font-weight:900;line-height:1.1;margin:8px 0
 .btn-secondary{background:transparent;color:var(--text,#e8e8f0);border:1.5px solid rgba(255,255,255,.28)}
 .btn:focus-visible,.chip:focus-visible,.prod:focus-visible,a:focus-visible{outline:3px solid #ffd54a;outline-offset:3px}
 .contact{margin-top:18px;color:var(--muted,#a8a3bd);font-size:.95rem}
-.contact a{color:#7fdcff;font-weight:700}
+.contact a{color:#7fdcff;font-weight:700;text-decoration:underline}
 h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
 .prods{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
 .prod{background:#121726;border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 16px;text-align:left;color:inherit;font-family:inherit;cursor:pointer}
@@ -259,6 +263,6 @@ h2{font-size:1.2rem;font-weight:800;margin:36px 0 12px}
 })();
 </script>
 <script src="/assets/js/keepitil-ai.js?v=20260930s" defer></script>
-<script src="/keepitil-shell.js?v=20261120b" defer></script>
+<script src="/keepitil-shell.js?v=20261124a" defer></script>
 </body>
 </html>

@@ -434,7 +434,7 @@
 #evx .evx-mo:hover{border-color:rgba(0,255,136,.4);color:#fff;}
 #evx .evx-mo.active{background:var(--green);border-color:var(--green);color:#06120a;}
 #evx .evx-mo .c{opacity:.55;font-size:.6rem;margin-left:5px;}
-#evx .evx-gn{flex-shrink:0;padding:6px 14px;border-radius:20px;background:transparent;border:1px solid rgba(255,255,255,.12);color:#66727e;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;}
+#evx .evx-gn{flex-shrink:0;padding:6px 14px;border-radius:20px;background:transparent;border:1px solid rgba(255,255,255,.12);color:#909ca8;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;}
 #evx .evx-gn:hover{border-color:var(--green);color:#fff;}
 #evx .evx-gn.active{background:var(--green);border-color:var(--green);color:#06120a;}
 #evx .evx-dtab{flex-shrink:0;padding:9px 14px;background:transparent;border:none;border-bottom:2px solid transparent;color:#5a6570;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:color .2s;}
@@ -455,7 +455,7 @@
   #evx .evx-datecol{display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap;overflow:hidden;}
   #evx .evx-daynum{font-size:2rem;}
   #evx .evx-daydow,#evx .evx-daymo{font-size:.95rem;margin-top:0;}
-  #evx .evx-daycount-inline{margin-left:auto;margin-bottom:0;white-space:nowrap;color:#5a6570;}
+  #evx .evx-daycount-inline{margin-left:auto;margin-bottom:0;white-space:nowrap;color:#8d99a5;}
   #evx .evx-daycol > .evx-daycount{display:none;}
 }
 /* Desktop keeps the count under the date column, so the inline copy is the one hidden. */
@@ -469,7 +469,7 @@
 @media(max-width:860px){#evx .evx-nav{top:var(--kil-safe-top,0px);z-index:120;padding-top:9px}}
 #evx .evx-daycol{border-left:1px solid rgba(0,255,136,.12);padding-left:22px;min-width:0;}
 @media(max-width:680px){#evx .evx-daycol{border-left:none;padding-left:0;border-top:1px solid rgba(0,255,136,.12);padding-top:14px;}}
-#evx .evx-daycount{font-size:.6rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#3a4550;margin-bottom:12px;}
+#evx .evx-daycount{font-size:.6rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#8d99a5;margin-bottom:12px;}
 #evx .evx-carousel{position:relative;}
 #evx .evx-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:6;width:34px;height:34px;border-radius:50%;background:rgba(12,12,22,.94);border:1px solid rgba(255,255,255,.16);color:#fff;font-size:1.35rem;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 3px 14px rgba(0,0,0,.5);}
 #evx .evx-arrow:hover{border-color:var(--green);color:var(--green);}
@@ -493,7 +493,7 @@
   #evx .evx-daycol{padding-top:9px;}
   #evx .evx-daycount{margin-bottom:7px;}
 }
-#evx .evx-empty{padding:26px 6px;color:#44505a;font-size:.8rem;letter-spacing:.05em;}
+#evx .evx-empty{padding:26px 6px;color:#8d99a5;font-size:.8rem;letter-spacing:.05em;}
 /* Founder 2026-08-15: a landscape flyer must fit ENTIRELY inside the card.
    Was object-fit:cover, which centre-crops — on a 9:16 card a wide flyer lost most of its width,
    usually the lineup text. Now `contain` shows the whole image, and .evx-flyer-bg is the same
@@ -685,7 +685,7 @@
 #evx .evx-mhead:first-of-type{margin-top:14px;}
 #evx .evx-mhead-t{font-family:var(--font-head);font-size:clamp(2.6rem,5vw,3.8rem);line-height:.95;
   letter-spacing:.06em;color:var(--green);text-transform:uppercase;}
-#evx .evx-mhead-c{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#4a5560;}
+#evx .evx-mhead-c{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8d99a5;}
 #evx .evx-mhead-div{flex:1;height:1px;background:linear-gradient(90deg,rgba(0,255,136,.28),transparent);}
 #evx .evx-day{margin-top:34px;}
 #evx .evx-more{display:block;max-width:1180px;width:calc(100% - 48px);margin:26px auto 0;padding:13px 24px;background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.28);border-radius:10px;color:var(--green);font-family:var(--font-body);font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .2s;text-align:center;}
@@ -3435,7 +3435,7 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
   else setTimeout(run,500);
 })();
 </script>
-<script src="/keepitil-shell.js?v=20261120b" defer></script>
+<script src="/keepitil-shell.js?v=20261124a" defer></script>
   <!-- Create FAB removed (Founder 2026-07-17): linked to a retired v3 create page (wrong page). Same fix as V3 home. -->
   <!-- Founder fixes 2026-07-12: (the old "force chat FAB above the Create FAB" rule is REMOVED — the Create FAB
        no longer exists, and its bottom:132px was overriding the chat-FAB placement below) + bulletproof hero typewriter -->

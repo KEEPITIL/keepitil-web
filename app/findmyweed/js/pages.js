@@ -433,10 +433,26 @@
       if (mapEl && mapEl.scrollIntoView && window.innerWidth >= 768) mapEl.scrollIntoView({ block: 'nearest' });
     };
 
+    // The HOME (page 'search', no typed query) loads the small state index and only the chosen area's county file(s) (weight 1.0, Phase 2);
+    // anything else (a typed query, the whole state, results.html) or any failure here falls back to the full data/listings.json as before.
+    var homeIndex = null, homeFiles = {};
+    var loadHomeIndex = function () {
+      var get = homeIndex ? Promise.resolve(homeIndex) : F.loadPart(F.fetchOf(window), 'data/listings-index.json', function (d) { return d && Array.isArray(d.places) && Array.isArray(d.listings) && d.listings.length > 0 && d.listings.every(function (r) { return r && typeof r.county === 'string' && !r.address; }); }).then(function (d) { homeIndex = d; return d; });
+      return get.then(function (idx) { return F.assembleHome(idx, {}); }, function () { return load(); });
+    };
+    var withAreaFiles = function (data, p) {
+      if (!data.light || !homeIndex) return data;
+      var keys = F.areaCountyKeys(data, p);
+      if (!keys.length) return p.county || p.city ? F.assembleHome(homeIndex, {}) : load();   // an unknown area stays light; the whole state needs every row
+      return Promise.all(keys.map(function (k) {
+        return homeFiles[k] ? homeFiles[k] : F.loadPart(F.fetchOf(window), 'data/counties/' + k + '.json', function (d) { return d && d.county === k && Array.isArray(d.listings); }).then(function (d) { homeFiles[k] = d; return d; });
+      })).then(function (list) { var f = {}; keys.forEach(function (k, i) { f[k] = list[i]; }); return F.assembleHome(homeIndex, f); }, function () { return load(); });
+    };
     var run = function () {
       drawToken++; mapToken++; clear(out); clear(stateBox); head.textContent = ''; head.hidden = false; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
       if (nearby) nearby.hidden = true;
-      load().then(function (data) {
+      var light = page === 'search' && !p.q;
+      (light ? loadHomeIndex() : load()).then(function (data) {
         menuData(data);
         var now = new Date();
         if (page === 'search' && !p.q && !p.city && !p.hasCounty) {
@@ -445,6 +461,9 @@
           if (saved != null && F.areaKnown(data, saved, now)) { var sa = F.parseArea(saved); p.county = sa.kind === 'county' ? sa.name : ''; if (sa.kind === 'city') p.city = sa.name; }
           else p.county = F.topCounty(data, now);
         }
+        return light ? withAreaFiles(data, p) : data;
+      }).then(function (data) {
+        var now = new Date();
         fillArea(form, data, p);
         PROMO(data);
         var res = F.search(data, p, now);

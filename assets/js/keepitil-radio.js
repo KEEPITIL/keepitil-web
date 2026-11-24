@@ -1331,7 +1331,7 @@
   /* @kil-widget-guard ── DELAYED WIDGET CALLS NEVER OUTLIVE THEIR FRAME (Grok draft 2026-11-20) ──
      Live on Android Chrome, 2 of 4 loads of keepitil.com/:
        TypeError: Cannot read properties of null (reading 'postMessage')
-         at r.seekTo (w.soundcloud.com/player/api.js) at keepitil-radio.js?v=20261124a:1406
+         at r.seekTo (w.soundcloud.com/player/api.js) at keepitil-radio.js?v=20261124b:1406
      epochSync() (and the hand-off / DJ-sync paths) schedule seekTo → play 200-400ms later. In that
      gap the #kil-sc iframe can be removed (the shell's _kill on pages where the radio is not
      allowed) or replaced (kilLoadPlaylist). SoundCloud's widget object outlives its iframe, and
@@ -1665,9 +1665,14 @@
        The gesture listeners STAY as a fallback: if requestIdleCallback never fires (a tab
        opened in the background stays throttled), the first gesture still boots it. `boot`
        is idempotent — __kilMountRadio returns early when #kil-sc already exists. */
+    /* DEFERRED MOUNT (Grok decision 2026-11-24, perf baseline: the 1.23 MB widget loaded on every desktop page
+       inside the load window). The founder's muted autoplay stays: the player still mounts by itself, but at the
+       FIRST GESTURE (listeners below) or KIL_RADIO_AUTOPLAY_MS after load, whichever comes first, instead of as
+       soon as the main thread is idle. A visitor who stays still hears (muted) autoplay start; a visit that bounces
+       or is measured in a load audit never pays for the third-party frame. */
+    var KIL_RADIO_AUTOPLAY_MS = 10000;
     function bootWhenIdle(){
-      if(window.requestIdleCallback) window.requestIdleCallback(boot, { timeout: 3000 });
-      else setTimeout(boot, 1200);
+      setTimeout(boot, KIL_RADIO_AUTOPLAY_MS);
     }
     if(document.readyState === 'complete') bootWhenIdle();
     else window.addEventListener('load', bootWhenIdle, { once:true });

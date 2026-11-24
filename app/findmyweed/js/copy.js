@@ -42,6 +42,10 @@
     open: 'Open',
     closed: 'Closed',
     hoursNotListed: 'Hours not listed',
+    // NEW LINES for Muse's review (draft wording, marked): the paged card list and the paid-placement label
+    showMore: function (n) { return 'Show ' + n + ' more'; },
+    showMoreCount: function (shown, total) { return 'Showing ' + shown + ' of ' + total; },
+    sponsored: 'Sponsored',
     fCity: 'City',
     fCityAll: 'All cities',
     // Discovery home (2026-11-21; PENDING design review: written from a summary of the design spec).
@@ -160,7 +164,7 @@
     licenseChecked: function (date) { return 'License checked on ' + date; },
     licenseStale: 'This check may be out of date. Confirm on the state record.',
     licenseRecord: 'View the official state record',
-    licenseVerified: 'License verified: checked against the state record',
+    licenseVerified: 'License checked against the state record',   // key name kept for stability; the text carries the green-check-plus-number rule (Joe/Muse home rules 2026-11-24)
     hours: 'Hours',
     address: 'Address',
     addressNone: 'Address not listed',

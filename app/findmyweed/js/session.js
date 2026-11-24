@@ -1,6 +1,7 @@
 // FMW session for the whole site (READ-ONLY). Sets window.FMW_SESSION before pages.js draws the header and the menu, so they can show Account / Sign out
 // instead of Sign in / Sign up (a HINT about what to draw: every real call is still checked by the server). Inert unless FMW_CONFIG.accounts is true.
-// It only READS: no network, no writes (js/session-store.js, loaded on account.html and signup.html only, saves, refreshes and clears).
+// It only READS: no network, no new data written (js/session-store.js, loaded on account.html and signup.html only, saves, refreshes and clears). The one exception: a session whose
+// 30 days are up is REMOVED when it is read, so a dead token never sits in the browser.
 //
 // STAY SIGNED IN (Joe, 2026-11-24): the session is kept in persistent browser storage under "fmw_session" as { a: access token, r: refresh token,
 // e: access expiry (seconds) }, so closing the tab does not sign anyone out. A session from before this (per-tab "fmw_token", access token only)
@@ -28,8 +29,9 @@
       if (!on) return null;
       var p = store('localStorage');
       try {
+        // 30 days up: the stored token is CLEARED, not just hidden (Grok 2026-11-24); the only write this reader makes
         var raw = p && p.getItem(PKEY);
-        if (raw) { var o = JSON.parse(raw); if (o && typeof o === 'object' && typeof o.a === 'string') { if (typeof o.t === 'number' && Math.floor(Date.now() / 1000) - o.t > MAX_AGE) return null; return { a: o.a, r: typeof o.r === 'string' && o.r ? o.r : null, e: typeof o.e === 'number' ? o.e : null, t: typeof o.t === 'number' ? o.t : null }; } }
+        if (raw) { var o = JSON.parse(raw); if (o && typeof o === 'object' && typeof o.a === 'string') { if (typeof o.t === 'number' && Math.floor(Date.now() / 1000) - o.t > MAX_AGE) { try { p.removeItem(PKEY); } catch (e1) { /* the stale token stays hidden */ } return null; } return { a: o.a, r: typeof o.r === 'string' && o.r ? o.r : null, e: typeof o.e === 'number' ? o.e : null, t: typeof o.t === 'number' ? o.t : null }; } }
       } catch (e) { /* unreadable: fall through to the old token */ }
       var s = store('sessionStorage'), t = null;
       try { t = s && s.getItem(KEY); } catch (e) { t = null; }

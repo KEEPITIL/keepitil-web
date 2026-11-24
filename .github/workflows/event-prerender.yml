@@ -1,8 +1,10 @@
-# Per-event prerender (design GO'd by Grok 2026-11-24). Regenerates event/<slug>/index.html for every PUBLISHED event and opens ONE pull request when anything changed.
-# Off by default: it only runs when the repository variable EVENT_PRERENDER is "on". ROLLBACK: set EVENT_PRERENDER to "off" (or delete the variable), then revert the generated
-# event/ directory in one PR; /event?e=<slug> and the page script never depended on these files.
+# Per-event prerender (design GO'd by Grok 2026-11-24). Regenerates event/<slug>/index.html for every PUBLISHED event and pushes the result to a branch
+# prerender/run-<run id> when anything changed. It does NOT create or approve pull requests (the repo setting that allows that also lets Actions approve PRs, a review
+# bypass, so it stays off): a person opens the PR from that branch and it gets a normal review and merge.
+# Off by default: it only runs when the repository variable EVENT_PRERENDER is "on". ROLLBACK: set EVENT_PRERENDER to "off" (or delete the variable), then revert the
+# generated event/ directory in one PR; /event?e=<slug> and the page script never depended on these files.
 # Triggers: nightly, manual, and repository_dispatch "event-changed" (fire it from the publish / edit / unpublish / delete hook when that is wired).
-# It never pushes to main: a human or Grok merges the PR, like every other change. Reads only: the public anon key already in event.html, published events and get_event_view.
+# Least privilege: the workflow default is read-only; contents:write is granted to this one job only. Reads only from Supabase: the public anon key already in event.html.
 name: Event prerender
 on:
   schedule: [{ cron: '17 11 * * *' }]
@@ -10,8 +12,7 @@ on:
   repository_dispatch:
     types: [event-changed]
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 concurrency:
   group: event-prerender
   cancel-in-progress: false
@@ -19,6 +20,8 @@ jobs:
   prerender:
     if: ${{ vars.EVENT_PRERENDER == 'on' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with: { ref: main }
@@ -26,16 +29,13 @@ jobs:
         with: { node-version: 22 }
       - name: Generate event pages
         run: node scripts/build-event-pages.mjs --out .
-      - name: Open a pull request if anything changed
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Push the generated pages to a branch if anything changed
         run: |
-          if [ -z "$(git status --porcelain event)" ]; then echo "no change"; exit 0; fi
+          if [ -z "$(git status --porcelain event)" ]; then echo "no change"; echo "No event page changed." >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
           git config user.name "keepitil-bot"; git config user.email "keepitil-bot@users.noreply.github.com"
-          branch="bot/event-prerender-$(date -u +%Y%m%d-%H%M)"
+          branch="prerender/run-${{ github.run_id }}"
           git checkout -b "$branch"
           git add event
-          git commit -m "Event pages: regenerate prerendered event pages"
+          git commit -m "Event pages: regenerate prerendered event pages (run ${{ github.run_id }})"
           git push origin "$branch"
-          for n in $(gh pr list --state open --search "head:bot/event-prerender-" --json number --jq '.[].number'); do gh pr close "$n" --comment "Superseded by $branch" || true; done
-          gh pr create --draft --base main --head "$branch" --title "Event pages: regenerate prerendered event pages" --body "Automated by .github/workflows/event-prerender.yml (EVENT_PRERENDER=on). Written, changed or removed: see the diff under event/. Needs a normal merge."
+          echo "Pushed branch \`$branch\`. Open a PR: https://github.com/${{ github.repository }}/compare/main...$branch?expand=1" >> "$GITHUB_STEP_SUMMARY"

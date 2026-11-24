@@ -8,7 +8,7 @@
     title: 'Your account', signedOutTitle: 'You are signed out', signedOutBody: 'Sign in with an emailed link to see your account.',
     signIn: 'Sign in', search: 'Back to search', signOut: 'Sign out', signingOut: 'Signing out…', done: 'You are signed out on this device.',
     email: 'Email', kind: 'Account type', customer: 'Customer', business: 'Business', expires: 'This session ends when you close the tab.',
-    soon: 'Favorites, order history and your business listing are coming here.'
+    soon: 'Favorites and your business listing are coming here.'
   };
   // the claims of a JWT, or null (never throws). Not a verification: the server verifies every call; this only decides what to draw.
   function claims(token) {

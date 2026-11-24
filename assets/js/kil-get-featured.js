@@ -26,7 +26,7 @@
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   var CSS = '#get-featured{max-width:640px;margin:48px auto 0;padding:0 16px 120px;scroll-margin-top:212px;color:var(--ink,#f4f2fb)}' +
-    '#get-featured .gf-card{box-sizing:border-box;background:var(--panel,rgba(255,255,255,.035));border:1px solid var(--panel-brd,rgba(255,255,255,.09));border-radius:16px;padding:22px 18px}' +
+    '#get-featured .gf-card{box-sizing:border-box;background:#14121f;border:1px solid var(--panel-brd,rgba(255,255,255,.09));border-radius:16px;padding:22px 18px}' +
     '#get-featured h2{margin:0 0 6px;font-size:1.35rem}#get-featured p.gf-sub{margin:0 0 16px;color:var(--ink2,#9a94b4);font-size:.95rem;line-height:1.5}' +
     '#get-featured label{display:block;margin:0 0 4px;font-size:.82rem;color:var(--ink2,#9a94b4)}' +
     '#get-featured input[type=text],#get-featured input[type=email],#get-featured input[type=tel],#get-featured input[type=url],#get-featured select,#get-featured textarea{box-sizing:border-box;width:100%;margin:0 0 12px;padding:12px 13px;font:inherit;font-size:16px;color:#fff;background:#07060d;border:1px solid rgba(255,255,255,.2);border-radius:10px}' +

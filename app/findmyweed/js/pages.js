@@ -2,6 +2,26 @@
 (function () {
   var C = window.FMW_COPY, F = window.FMW, doc = document, page = doc.body.getAttribute('data-page');
   function el(tag, cls, text) { var e = doc.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  // SEO (1.0 cut): the head of a listing / city view says what the page is. Googlebot renders this script, so title, description,
+  // canonical and JSON-LD are read from the rendered page. Set with attributes / textContent only; JSON-LD has "<" escaped.
+  var SEO_BASE = (typeof location !== 'undefined' && location.origin ? location.origin : '') + ((window.FMW_CONFIG && window.FMW_CONFIG.basePath) || '');
+  function seoApply(seo) {
+    if (!seo || typeof doc.querySelector !== 'function') return;   // no head to write (a page-less test DOM)
+    if (seo.title) doc.title = seo.title;
+    var head = doc.head || doc.querySelector('head'); if (!head) return;
+    var setMeta = function (sel, attr, key, val) { var n = doc.querySelector(sel); if (!n) { n = doc.createElement('meta'); n.setAttribute(attr, key); head.appendChild(n); } n.setAttribute('content', val); };
+    if (seo.description) { setMeta('meta[name="description"]', 'name', 'description', seo.description); setMeta('meta[property="og:description"]', 'property', 'og:description', seo.description); }
+    if (seo.title) setMeta('meta[property="og:title"]', 'property', 'og:title', seo.title);
+    if (seo.canonical) {
+      var lk = doc.querySelector('link[rel="canonical"]'); if (!lk) { lk = doc.createElement('link'); lk.setAttribute('rel', 'canonical'); head.appendChild(lk); }
+      lk.setAttribute('href', seo.canonical); setMeta('meta[property="og:url"]', 'property', 'og:url', seo.canonical);
+    }
+    if (seo.jsonLd) {
+      var sc = doc.querySelector('script[type="application/ld+json"]'); if (!sc) { sc = doc.createElement('script'); sc.setAttribute('type', 'application/ld+json'); head.appendChild(sc); }
+      sc.textContent = JSON.stringify(seo.jsonLd).replace(/</g, '\\u003c');
+    }
+    if (seo.heading) { var h = doc.querySelector('h1.sr'); if (h) h.textContent = seo.heading; }
+  }
   function params() {
     var p = new URLSearchParams(location.search);
     // county: the area (location selector). A typed place (q) wins over it, so "Oakland" from the Los Angeles home finds
@@ -448,6 +468,8 @@
         }
         // a chip: only the area's rows with a REAL value for it. None: say so plainly (never invented rows), one way back.
         CATS(data, res.results);
+        // a city view (?area=city:<name>) is a landing page: its own title, description, canonical and sr-only heading (no visible count: owner ruling 2026-11-22)
+        if (p.city && !p.q) { var seoCityName = matchCity(F.cities(data, now), p.city); if (seoCityName) seoApply(F.seoCity(seoCityName, res.results.length, SEO_BASE)); }
         var rows = p.f !== 'home' ? F.filterRows(data, res.results, p.f) : res.results;
         if (!rows.length) {
           head.textContent = C.filterEmptyTitle(C[FILTER_COPY[p.f]], placeName || cityName);
@@ -516,7 +538,7 @@
         showState(box, { name: 'listing-missing', body: C.listingMissingBody, actions: [{ text: C.backToSearch, href: 'index.html' }] });
         return;
       }
-      doc.title = l.name + ' · ' + C.name;
+      seoApply(F.seoListing(l, SEO_BASE));
       var s = F.openState(l, new Date());
       box.appendChild(el('h1', 'name', l.name));
       var meta = el('div', 'row meta'); meta.appendChild(badge(s)); meta.appendChild(el('span', 'muted', kind(l))); box.appendChild(meta);
@@ -535,6 +557,10 @@
       }
       // Official record: built ONLY from the license number on the allow-listed DCC base (never a listing field).
       var rec = F.dccRecordUrl(l.license);
+      // "License verified": only for an active license whose state-record check is recent (not stale), linking the official record
+      if (rec && chk.show && !chk.stale && (l.licenseStatus === 'Active' || l.licenseStatus === 'About to Expire')) {
+        lic.appendChild(el('p', 'verified-badge', C.licenseVerified));   // text only: the official-record link is the one just below
+      }
       if (rec) {
         var ra = el('a', 'record', C.licenseRecord);
         ra.href = rec; ra.target = '_blank'; ra.rel = 'noopener noreferrer';

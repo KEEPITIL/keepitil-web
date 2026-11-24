@@ -158,6 +158,7 @@
     licenseChecked: function (date) { return 'License checked on ' + date; },
     licenseStale: 'This check may be out of date. Confirm on the state record.',
     licenseRecord: 'View the official state record',
+    licenseVerified: 'License verified: checked against the state record',
     hours: 'Hours',
     address: 'Address',
     addressNone: 'Address not listed',

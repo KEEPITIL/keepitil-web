@@ -64,7 +64,7 @@ function load(html, { url, phone }) {
 function settle({ w, d, advance }) {
   d.dispatchEvent(new w.Event('DOMContentLoaded'));
   w.dispatchEvent(new w.Event('load'));
-  advance(5000);
+  advance(11000);   /* past KIL_RADIO_AUTOPLAY_MS (10 s): the deferred muted autoplay has fired */
 }
 function tap({ w, d, advance }) {
   for (const ev of ['pointerdown', 'touchstart', 'keydown']) d.body.dispatchEvent(new w.Event(ev, { bubbles: true }));
@@ -131,4 +131,27 @@ test('(c3) hidden first, then the bar appears (phone widened to desktop): the if
   page.w.dispatchEvent(new page.w.Event('resize'));
   page.advance(100);
   assert.equal(scFrames(page.d).length, 1);
+});
+
+test('(d) deferred mount: nothing loads in the first 9 s, the frame appears by itself at 10 s, no tap needed', () => {
+  const page = load(PLAIN, { url: 'https://keepitil.com/', phone: false });
+  page.d.dispatchEvent(new page.w.Event('DOMContentLoaded'));
+  page.w.dispatchEvent(new page.w.Event('load'));
+  page.advance(9000);
+  assert.deepEqual(scFrames(page.d), [], 'no SoundCloud frame inside the load/idle window');
+  assert.equal(page.d.getElementById('kil-sc-api'), null, 'and no SoundCloud API script either');
+  page.advance(1500);
+  assert.equal(scFrames(page.d).length, 1, 'muted autoplay still starts for a visitor who stays');
+});
+
+test('(e) deferred mount: the first gesture mounts it immediately (before the 10 s)', () => {
+  const page = load(PLAIN, { url: 'https://keepitil.com/', phone: false });
+  page.d.dispatchEvent(new page.w.Event('DOMContentLoaded'));
+  page.w.dispatchEvent(new page.w.Event('load'));
+  page.advance(2000);
+  assert.deepEqual(scFrames(page.d), []);
+  tap(page);
+  assert.equal(scFrames(page.d).length, 1, 'a tap mounts it at once');
+  page.advance(20000);
+  assert.equal(scFrames(page.d).length, 1, 'and the 10 s timer does not mount a second one');
 });

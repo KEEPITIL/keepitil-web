@@ -34,7 +34,7 @@
    the shell changed after #198 shipped, so PAGES and CODE are renamed again to evict the #198
    shell from installed phones. Previous: kil-pwa-v106-20261120a / kil-pages-v43 / kil-code-v86 */
 /* BUMPED AGAIN 2026-11-20 for the radio fix (seekTo null-guard + SoundCloud frame only when the
-   radio is visible; keepitil-radio.js?v=20261124a): every page that loads the radio changed its
+   radio is visible; keepitil-radio.js?v=20261124b): every page that loads the radio changed its
    tag, so PAGES and CODE are renamed to evict the old page HTML and radio build from installed
    phones. Previous: kil-pwa-v107-20261120b / kil-pages-v44 / kil-code-v87 */
 /* BUMPED 2026-11-21 for the Find My Weed web 1.0 launch drop-in (app/findmyweed/ replaced; the

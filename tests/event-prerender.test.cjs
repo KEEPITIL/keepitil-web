@@ -1,0 +1,108 @@
+// Per-event prerender: output correctness, XSS safety on every event field, idempotence, stale cleanup, failure handling, template drift.
+// Run: node --test tests/event-prerender.test.cjs
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { JSDOM } = require("jsdom");
+const ROOT = process.env.EP_ROOT || path.resolve(__dirname, "..");
+const TEMPLATE = fs.readFileSync(path.join(ROOT, "event.html"), "utf8");
+const lib = () => import(path.join(ROOT, "scripts/build-event-pages.mjs"));
+const row = (o) => Object.assign({ slug: "sample-show-20270101", title: "Sample Show", venue: "The Venue", city: "Long Beach", starts_at: "2027-01-02T04:00:00+00:00", tz: "America/Los_Angeles", genres: "house techno", cover_url: "https://seatgeekimages.com/a/b.jpg", description: "A real description.", status: "published" }, o || {});
+const dom = (html) => new JSDOM(html).window.document;
+
+test("a normal event gets its real head and above-the-fold content in the HTML", async () => {
+  const { renderEventPage } = await lib();
+  const d = dom(renderEventPage(TEMPLATE, row()));
+  assert.equal(d.querySelector("h1#ev-title").textContent, "Sample Show");
+  assert.equal(d.title, "Sample Show — Fri, Jan 1, 2027 | KEEPITIL");
+  assert.equal(d.querySelector("link[rel=canonical]").href, "https://keepitil.com/event/sample-show-20270101/");
+  assert.equal(d.querySelector("#og-url").content, "https://keepitil.com/event/sample-show-20270101/");
+  assert.equal(d.querySelector("#og-img").content, "https://seatgeekimages.com/a/b.jpg");
+  const img = d.querySelector("#ev-flyer img");
+  assert.equal(img.getAttribute("fetchpriority"), "high"); assert.equal(img.alt, "Flyer for Sample Show");
+  assert.equal(d.querySelector("#ev-venue").textContent, "📍 The Venue, Long Beach");
+  assert.equal(d.querySelector("#ev-genre").textContent, "house techno");
+  assert.equal(d.querySelector("#ev-desc").textContent, "A real description.");
+  const ld = JSON.parse(d.querySelector("#ld-event").textContent);
+  assert.equal(ld["@type"], "MusicEvent"); assert.equal(ld.url, "https://keepitil.com/event/sample-show-20270101/"); assert.equal(ld.location.name, "The Venue");
+  assert.match(d.documentElement.outerHTML, /window\.__kilPrerenderSlug="sample-show-20270101"/);
+  assert.match(TEMPLATE.length ? renderEventPage(TEMPLATE, row()) : "", /slug:g\('e'\)\|\|window\.__kilPrerenderSlug\|\|''/);
+  assert.match(renderEventPage(TEMPLATE, row()), /function canonFor\(slug\)\{ return 'https:\/\/keepitil\.com\/event\/'\+encodeURIComponent\(slug\|\|''\)\+'\/'; \}/);
+});
+
+test("XSS: hostile text in every field stays text; no script, no event handler, no javascript: URL is created", async () => {
+  const { renderEventPage } = await lib();
+  const benign = renderEventPage(TEMPLATE, row());
+  const P = '</script><img src=x onerror=alert(1)>"\'`<svg onload=alert(2)>';
+  const hostile = renderEventPage(TEMPLATE, row({ title: P, venue: P, city: P, genres: P, description: P, cover_url: "javascript:alert(3)" }));
+  const d = dom(hostile), b = dom(benign);
+  assert.equal(d.querySelectorAll("script").length, b.querySelectorAll("script").length, "no extra <script> element");
+  assert.equal(d.querySelectorAll("[onerror],[onload],[onclick],[onmouseover]").length, b.querySelectorAll("[onerror],[onload],[onclick],[onmouseover]").length, "no new event-handler attributes");
+  assert.equal(d.querySelector("h1#ev-title").textContent, P);
+  assert.equal(d.querySelector("#ev-desc").textContent, P);
+  assert.equal(d.querySelector("#ev-genre").textContent, P);
+  assert.ok(d.querySelector("#og-title").content.startsWith(P) && d.querySelector("#og-title").content.endsWith(" | KEEPITIL"), "og:title carries the text, escaped");
+  assert.ok(d.querySelector("#m-desc").content.includes(P));
+  assert.ok(d.title.includes(P));
+  const ld = JSON.parse(d.querySelector("#ld-event").textContent);
+  assert.equal(ld.name, P);
+  assert.equal(d.querySelector("#ev-flyer img"), null, "javascript: cover_url is dropped, no <img>");
+  assert.equal(d.querySelector("link[rel=preload][as=image]"), null, "and no preload");
+  assert.equal(d.querySelector("#og-img").content, "https://keepitil.com/keepitil-og.png", "og:image keeps the default");
+  assert.ok(!/<img src=x onerror/.test(hostile) && !/<svg onload/.test(hostile), "payload never appears as markup");
+  const ldRaw = hostile.match(/<script type="application\/ld\+json" id="ld-event">([\s\S]*?)<\/script>/)[1];
+  assert.ok(!ldRaw.includes("</script>") && !ldRaw.includes("<"), "JSON-LD cannot close its own script");
+  for (const bad of ["data:text/html,hi", "file:///etc/passwd", "//evil.example/x.png", "vbscript:x"]) assert.equal(dom(renderEventPage(TEMPLATE, row({ cover_url: bad }))).querySelector("#ev-flyer img"), null, bad);
+});
+
+test("bad slugs are refused (path traversal, quotes, spaces, uppercase, empty)", async () => {
+  const { renderEventPage, SLUG_RE } = await lib();
+  for (const s of ["../x", "a/b", 'a"b', "a b", "<x>", "ABC", "", "-lead", "x".repeat(200)]) { assert.equal(SLUG_RE.test(s), false, s); assert.throws(() => renderEventPage(TEMPLATE, row({ slug: s })), /bad slug/); }
+});
+
+test("rendering twice gives byte-identical output (no timestamps, so no churn commits)", async () => {
+  const { renderEventPage, writeIfChanged } = await lib();
+  assert.equal(renderEventPage(TEMPLATE, row()), renderEventPage(TEMPLATE, row()));
+  const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "pr-")), "event", "x", "index.html");
+  assert.equal(writeIfChanged(f, "a"), true); assert.equal(writeIfChanged(f, "a"), false); assert.equal(writeIfChanged(f, "b"), true);
+});
+
+test("removeStale deletes only generated pages of events that are no longer published", async () => {
+  const { removeStale, MARKER } = await lib();
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "pr-"));
+  for (const [n, c] of [["keep-me", MARKER], ["gone", MARKER], ["hand-made", "<html>mine</html>"]]) { fs.mkdirSync(path.join(d, "event", n), { recursive: true }); fs.writeFileSync(path.join(d, "event", n, "index.html"), c); }
+  assert.deepEqual(removeStale(d, new Set(["keep-me"])), ["gone"]);
+  assert.ok(fs.existsSync(path.join(d, "event", "keep-me")) && fs.existsSync(path.join(d, "event", "hand-made")) && !fs.existsSync(path.join(d, "event", "gone")));
+});
+
+test("main(): writes published events, skips bad slugs and unpublished rows, and a failed fetch never deletes an existing page", async () => {
+  const { main, MARKER } = await lib();
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "pr-"));
+  fs.writeFileSync(path.join(d, "event.html"), TEMPLATE);
+  fs.mkdirSync(path.join(d, "event", "flaky-event"), { recursive: true }); fs.writeFileSync(path.join(d, "event", "flaky-event", "index.html"), MARKER + "old");
+  fs.mkdirSync(path.join(d, "event", "was-published"), { recursive: true }); fs.writeFileSync(path.join(d, "event", "was-published", "index.html"), MARKER + "old");
+  const calls = [];
+  const fakeFetch = async (url, opt = {}) => {
+    calls.push((opt.method || "GET") + " " + url.replace(/https:\/\/[a-z0-9]+\.supabase\.co/, ""));
+    if (url.includes("/rest/v1/events?")) return { ok: true, json: async () => [{ slug: "good-one" }, { slug: "../evil" }, { slug: "flaky-event" }, { slug: "draft-now" }] };
+    const slug = JSON.parse(opt.body).p_slug;
+    if (slug === "flaky-event") return { ok: false, status: 503 };
+    if (slug === "draft-now") return { ok: true, json: async () => [row({ slug, status: "draft" })] };
+    return { ok: true, json: async () => [row({ slug })] };
+  };
+  const res = await main(["--out", d], fakeFetch);
+  assert.deepEqual(res.changed, ["good-one"]);
+  assert.deepEqual(res.skipped, ["../evil"]);
+  assert.ok(fs.existsSync(path.join(d, "event", "good-one", "index.html")));
+  assert.ok(!fs.existsSync(path.join(d, "event", "draft-now")), "an unpublished row is not written");
+  assert.ok(fs.existsSync(path.join(d, "event", "flaky-event", "index.html")), "a failed fetch keeps the existing page");
+  assert.ok(!fs.existsSync(path.join(d, "event", "was-published")), "an event that is no longer published is removed");
+  assert.ok(calls.every((c) => /^(GET|POST) \/rest\/v1\/(events\?status=eq\.published|rpc\/get_event_view)/.test(c)), "only the two read calls: " + calls.join(" | "));
+});
+
+test("template drift guard: the current event.html still has every anchor the generator needs", async () => {
+  const { renderEventPage } = await lib();
+  assert.doesNotThrow(() => renderEventPage(TEMPLATE, row()));
+});

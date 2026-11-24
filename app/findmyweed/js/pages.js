@@ -148,7 +148,11 @@
       offered = { storefront: F.storefrontOffered(data, now), delivery: F.deliveryOffered(data, now) };
       draw();
     };
-    if (page === 'about' || page === 'privacy' || page === 'terms') load().then(menuData, function () {});
+    // About / Privacy / Terms need only two flags, not all 1,249 listings (1.0 baseline: -75 KB gz): data/offered.json, kept in step with
+    // listings.json by tests/offered-json.test.js. If it cannot be read the menu simply keeps its disabled items.
+    if (page === 'about' || page === 'privacy' || page === 'terms') window.fetch('data/offered.json', { cache: 'no-store' }).then(function (r) { return r && r.ok ? r.json() : null; }).then(function (o) {
+      if (o && typeof o.storefront === 'boolean' && typeof o.delivery === 'boolean') { offered = { storefront: o.storefront, delivery: o.delivery }; draw(); }
+    }, function () {});
   })();
 
   // The location dropdown INSIDE the search bar (approved spec item 2): State / County / City in ONE select, built from the
@@ -284,6 +288,17 @@
   // county; a green check mark + the license number). An empty line 2 keeps its place so every card is the same size.
   // A small map icon (its own button, outside the link) shows the business on the map.
   var showOnMap = function () {};   // set by the home
+  // Perf (1.0 baseline: phone TBT 3-4 s from drawing 1,249 cards in ONE task): draw the first CHUNK_FIRST cards at once, the rest a few at a time,
+  // one animation frame each. A newer draw (filter, area change) bumps drawToken so an older draw stops. Where requestAnimationFrame
+  // does not exist (the node tests) or the list is short, everything is drawn at once, exactly as before.
+  var CHUNK_FIRST = 30, CHUNK_SIZE = 60, drawToken = 0;
+  function appendCards(out, list) {
+    var my = ++drawToken, i = 0, raf = window.requestAnimationFrame;
+    function step(n) { var end = Math.min(i + n, list.length); for (; i < end; i++) out.appendChild(card(list[i])); }
+    if (typeof raf !== 'function' || list.length <= CHUNK_FIRST) { step(list.length); return; }
+    step(CHUNK_FIRST);
+    (function more() { if (i >= list.length || my !== drawToken) return; raf.call(window, function () { if (my !== drawToken) return; step(CHUNK_SIZE); more(); }); })();
+  }
   function card(r) {
     var l = r.listing, L = F.cardLines(r, C), li = el('li', 'shop'), a = el('a', 'listing');
     li.setAttribute('data-id', l.id);
@@ -391,7 +406,7 @@
     };
 
     var run = function () {
-      clear(out); clear(stateBox); head.textContent = ''; head.hidden = false; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
+      drawToken++; clear(out); clear(stateBox); head.textContent = ''; head.hidden = false; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
       if (nearby) nearby.hidden = true;
       load().then(function (data) {
         menuData(data);
@@ -448,7 +463,7 @@
         if (mapEl) renderMap(mapEl, data, res.results);
         // ONE listing (the old Storefronts rail folded in): every result, nearest first (F.search), named rows before
         // "[Equity Retailer]"-only rows. No ranking-by-rating rail and no paid-placement slot exist on this page.
-        res.results.forEach(function (r) { out.appendChild(card(r)); });
+        appendCards(out, res.results);
         if (nearby) nearby.hidden = false;
       }, function (e) { loadFailed(e, head, stateBox, run); });
     };

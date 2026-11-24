@@ -48,6 +48,9 @@ input::placeholder{color:var(--muted);opacity:1}
 /* Keyboard focus: one clear ring everywhere (links, buttons, fields, result cards, filter chips) */
 a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,main:focus-visible{outline:3px solid var(--green);outline-offset:2px}
 main:focus{outline:none}
+/* CLS (1.0 baseline 2026-11-23): pages draw their content with JavaScript, so the footer used to jump when the list/text arrived (CLS 0.17-0.43).
+   Reserve most of a screen for <main> so the footer starts below the fold and never moves. */
+main.wrap{min-height:85vh}
 .chip input:focus-visible{outline:none}
 .chip:has(input:focus-visible){outline:3px solid var(--green);outline-offset:2px}
 .filters{border:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}

@@ -651,7 +651,57 @@
     return [String(l.name == null ? '' : l.name), two.join(' · '), hours, addr, kind + (county ? ' · ' + county : ''), String(l.license || '')];
   }
 
-  var api = { DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, filterRows: filterRows, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+  // ---- SEO (1.0 cut, KODE/Grok 2026-11-24): what the search engines read. Pure functions; pages.js writes the result into the head. ----
+  // Listing: title, description, canonical URL and JSON-LD LocalBusiness (name, address as the page shows it: delivery-only = city only,
+  // the license number as an identifier, the official state record as sameAs, geo for storefronts only, hours only when usable). Nothing
+  // that the page does not already show publicly. base = the page's origin + basePath.
+  var SCHEMA_CONTEXT = 'https:' + '//schema.org';   // a JSON-LD vocabulary identifier, never fetched (the host-scan guard allows only this one)
+  function seoListing(l, base) {
+    var al = addressLines(l), a = (l && l.address) || {}, rec = dccRecordUrl(l && l.license);
+    var where = cityOf(l), name = String((l && l.name) || '').trim();
+    var kindWord = l.storefront && l.delivery ? 'storefront and delivery' : l.delivery ? 'delivery' : 'storefront';
+    var d = {
+      '@context': SCHEMA_CONTEXT, '@type': 'LocalBusiness', name: name, url: base + '/listing.html?id=' + encodeURIComponent(l.id),
+      identifier: { '@type': 'PropertyValue', name: 'California cannabis license number', value: String(l.license || '') }
+    };
+    if (al.lines.length) {
+      d.address = { '@type': 'PostalAddress', addressLocality: where, addressRegion: String(a.state || 'CA') };
+      if (l.storefront && al.note === null) { d.address.streetAddress = al.lines[0]; if (a.zip) d.address.postalCode = String(a.zip); }
+    }
+    if (l.storefront && typeof l.lat === 'number' && typeof l.lng === 'number' && isFinite(l.lat) && isFinite(l.lng)) d.geo = { '@type': 'GeoCoordinates', latitude: l.lat, longitude: l.lng };
+    if (rec) d.sameAs = [rec];
+    if (hoursKnown(l)) {
+      var spec = [];
+      WEEK.forEach(function (k) { (l.hours[k] || []).forEach(function (r) { spec.push({ '@type': 'OpeningHoursSpecification', dayOfWeek: DAY_FULL[k], opens: r[0], closes: r[1] }); }); });
+      if (spec.length) d.openingHoursSpecification = spec;
+    }
+    return {
+      title: name + (where ? ' · ' + where : '') + ' · Find My Weed',
+      description: name + ' is a state-licensed cannabis ' + kindWord + (where ? ' in ' + where + ', California' : ' in California') + '. License ' + (l.license || '') + ', with a link to the official state record. Cannabis is for adults 21+.',
+      canonical: base + '/listing.html?id=' + encodeURIComponent(l.id), jsonLd: d
+    };
+  }
+  var DAY_FULL = { mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday' };
+  // City landing view (index.html?area=city:<name>): unique title, heading and intro from the data; count = shown listings in that city.
+  function seoCity(name, count, base) {
+    var n = String(name || '').trim();
+    return {
+      title: 'Licensed cannabis businesses in ' + n + ', CA · Find My Weed',
+      description: count + ' state-licensed cannabis ' + (count === 1 ? 'business' : 'businesses') + ' in ' + n + ', California, each with its license number and a link to the official state record. Cannabis is for adults 21+.',
+      heading: 'Licensed cannabis businesses in ' + n,
+      intro: count + ' state-licensed ' + (count === 1 ? 'business is' : 'businesses are') + ' listed in ' + n + ', California. Every listing shows its license number and links to the official state record.',
+      canonical: base + '/index.html?area=' + encodeURIComponent('city:' + n)
+    };
+  }
+  // The URLs for sitemap.xml beyond the static pages: every shown listing and every city view (tools/build-site.js writes them).
+  function sitemapPaths(data, now) {
+    var out = [];
+    licensed((data && data.listings) || [], now).forEach(function (l) { out.push('listing.html?id=' + encodeURIComponent(l.id)); });
+    cities(data, now).forEach(function (c) { out.push('index.html?area=' + encodeURIComponent('city:' + c)); });
+    return out;
+  }
+
+  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, filterRows: filterRows, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
     dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;

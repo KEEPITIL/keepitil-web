@@ -111,7 +111,9 @@ test('launched: every page is index,follow, the switch says launched, robots.txt
   assert.doesNotMatch(robots, /Disallow/);
   assert.match(robots, /^Sitemap: https:\/\/keepitil\.com\/app\/findmyweed\/sitemap\.xml$/m);
   const locs = [...read(APP + '/sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
-  assert.deepEqual(locs, [ORIGIN + PREFIX, ORIGIN + PREFIX + 'about.html', ORIGIN + PREFIX + 'privacy.html']);
+  // the app's own sitemap: the three static pages, then every shown listing and city view (checked against the data by assets/js/fmw-sitemap.test.mjs)
+  assert.deepEqual(locs.slice(0, 3), [ORIGIN + PREFIX, ORIGIN + PREFIX + 'about.html', ORIGIN + PREFIX + 'privacy.html']);
+  assert.ok(locs.every((u) => u.startsWith(ORIGIN + PREFIX)), 'one origin and folder');
   // the real share image, never the placeholder; open browsing (no age prompt, no exit page)
   for (const f of PAGES) {
     const h = read(APP + '/' + f);
@@ -131,7 +133,8 @@ test('the root sitemap lists the launched app pages and for-business, and nothin
   const locs = [...read('sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
   const fmw = locs.filter((l) => l.startsWith(ORIGIN + PREFIX));
   const appMap = [...read(APP + '/sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
-  assert.deepEqual(fmw, [...appMap, ORIGIN + PREFIX + 'for-business/'], 'the app sitemap\'s pages, then for-business');
+  // the shared ROOT sitemap lists the app's three static pages + for-business; the per-listing / per-city URLs live in the app's own sitemap (robots.txt names it)
+  assert.deepEqual(fmw, [...appMap.slice(0, 3), ORIGIN + PREFIX + 'for-business/'], 'the static pages, then for-business');
   for (const l of fmw) {
     let rel = l.slice(ORIGIN.length + 1); if (rel.endsWith('/')) rel += 'index.html';
     assert.ok(fs.existsSync(path.join(ROOT, rel)), l + ' is a real file');

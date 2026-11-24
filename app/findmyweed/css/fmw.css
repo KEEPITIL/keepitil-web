@@ -300,6 +300,9 @@ a.menu-link:hover{background:var(--tint);color:var(--text)}
 .bar .menu{margin-left:auto}
 
 
+/* the text-only "License verified" line on the listing page's license card (SEO 1.0 cut) */
+.verified-badge{display:inline-block;margin:6px 0;padding:4px 10px;border:1px solid var(--green);border-radius:999px;color:var(--green);font-weight:700;font-size:14px;text-decoration:none}
+.verified-badge:before{content:"\2713 "}
 /* Sign up / sign in (signup.html; front end only, inert unless site.json "accounts" is true). Tokens only, everything bordered,
    no pop-ups. Text pairs used here (checked in both themes by tests/signup.test.js): text / muted on card and bg, on-section on
    section, closed on closed-bg, text on tint, btn-text on btn-bg. */
@@ -334,3 +337,4 @@ a.menu-link:hover{background:var(--tint);color:var(--text)}
 .signup .state{margin:0}
 .signup .state h2{margin:0;font-size:17px}
 @media(min-width:720px){.choices{grid-template-columns:1fr 1fr}}
+

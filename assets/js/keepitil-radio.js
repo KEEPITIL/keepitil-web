@@ -627,7 +627,7 @@
   // ── Inject HTML (skip if already in DOM — e.g. inline on index.html) ─────
   if(!document.getElementById('kil-radio')){
     var bar=document.createElement('div');
-    bar.id='kil-radio';
+    bar.id='kil-radio'; bar.setAttribute('role','region'); bar.setAttribute('aria-label','KEEPITIL Radio');
     /* ── BAR LAYOUT (Founder 2026-08-22) ────────────────────────────────────────────────
        << Prev Playlist · < Prev song · CURRENT · Next song > · Next Playlist >> · (mute)
        Every referral and affiliate link is gone: the rotating DistroKid / Posh / FreeCash /
@@ -1331,7 +1331,7 @@
   /* @kil-widget-guard ── DELAYED WIDGET CALLS NEVER OUTLIVE THEIR FRAME (Grok draft 2026-11-20) ──
      Live on Android Chrome, 2 of 4 loads of keepitil.com/:
        TypeError: Cannot read properties of null (reading 'postMessage')
-         at r.seekTo (w.soundcloud.com/player/api.js) at keepitil-radio.js?v=20261124b:1406
+         at r.seekTo (w.soundcloud.com/player/api.js) at keepitil-radio.js?v=20261124c:1406
      epochSync() (and the hand-off / DJ-sync paths) schedule seekTo → play 200-400ms later. In that
      gap the #kil-sc iframe can be removed (the shell's _kill on pages where the radio is not
      allowed) or replaced (kilLoadPlaylist). SoundCloud's widget object outlives its iframe, and

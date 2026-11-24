@@ -262,7 +262,7 @@
              tag ran the current one. Two different radio bars on one site, and the stale half
              was invisible to a cache bump because the URL never changed. Bump this WITH the
              page tags whenever keepitil-radio.js changes. */
-          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20261124b'; document.body.appendChild(_rs);
+          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20261124c'; document.body.appendChild(_rs);
         }
       }catch(e){} });
     }
@@ -737,7 +737,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
         }).join('')
         +'<a href="/apply" id="v3s-iconprof" class="v3s-contextual" aria-label="Profile">'+icon('profile')+'</a>'
         +'</div>';
-      var hdr = document.createElement('nav'); hdr.id='v3shell-nav';
+      var hdr = document.createElement('nav'); hdr.id='v3shell-nav'; hdr.setAttribute('aria-label','Main');
       if(RULES.gear==='hamburger') hdr.classList.add('on-profile');
       hdr.innerHTML =
         '<div class="v3s-inner">'
@@ -773,7 +773,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           +'<span class="fa-pmb"> PMB 1066,</span> '
           +'<span class="fa-l2">Garden Grove, CA 92844</span>'
           +'<span class="fa-mail"> · <a href="mailto:info@keepitil.com">info@keepitil.com</a></span></p></div>'
-        +'<nav class="v3-foot-links">'
+        +'<nav class="v3-foot-links" aria-label="Footer">'
         +DESTINATIONS.map(function(d){ return '<a href="'+d.href+'">'+d.label+'</a>'; }).join('')
         /* Shop is a footer link, never a nav tab (Joe 2026-11-20). */
         +'<a href="/shop/">Shop</a>'
@@ -915,7 +915,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           }
 
           if(document.getElementById('kil-bnav')) return;
-          var bn=document.createElement('nav'); bn.id='kil-bnav';
+          var bn=document.createElement('nav'); bn.id='kil-bnav'; bn.setAttribute('aria-label','Tabs');
           /* One slot per destination in DESTINATIONS (five; no Shop). Create WAS the centre slot — it is an action,
              not a place, and mixing it in is what left no room for Radio and VS. It moves to
              a floating button above the bar, calling the same __kilCreateMenu as before.
@@ -1696,6 +1696,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
         var host = document.querySelector('article') || document.querySelector('main') || document.body;
         if(!host) return;
         var box = document.createElement('aside');
+        box.setAttribute('aria-label','Community');
         box.className = 'kil-culture-comm';
         box.setAttribute('style',
           'display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin:26px auto 8px;max-width:760px;'
@@ -1713,7 +1714,9 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           +   'border-radius:10px;text-decoration:none;background:linear-gradient(90deg,#0f6e56,#00e0a4);'
           +   'color:#04120a;font:800 .68rem/1 Inter,system-ui,sans-serif;letter-spacing:.1em;'
           +   'text-transform:uppercase">Discuss in Community</a>';
-        host.appendChild(box);
+        /* a complementary landmark must be top level (not inside <main>/<article>): place it after the page's outermost content block, which also puts it on the dark page, the colours it was designed for */
+        var top = host; while(top.parentNode && top.parentNode !== document.body) top = top.parentNode;
+        if(top === document.body) document.body.appendChild(box); else top.parentNode.insertBefore(box, top.nextSibling);
       })
       .catch(function(){});   /* a missing CTA must never break an article */
   }catch(e){}

@@ -385,18 +385,48 @@
 
   // Loads the listings file. Rejects with an Error whose .kind is 'offline' (no connection), 'http' (bad status) or
   // 'data' (not valid listings JSON), so the page can say the right thing and offer a retry.
-  function loadData(fetchFn, url) {
+  // ---- Weight 1.0, Phase 2: the HOME loads a small state index plus only the chosen county's file, not all of listings.json. ----
+  // data/listings-index.json: one slim row per listing (license, status, expiry, published, storefront, delivery, county, city) + places;
+  // data/counties/<countyFileKey>.json: the full listings of one county. assembleHome() rebuilds a data object of the full shape: the loaded
+  // counties' rows are the FULL rows, every other row is a light row (enough for counties(), cities(), topCounty(), the menu flags and licensed()).
+  // tests/home-split.test.js proves F.search / counties / cities / mapDots on it equal the full file's, for every county and every city.
+  function countyFileKey(county) { return countyKey(county).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+  function lightListing(r) {
+    var lic = String((r && r.license) || '');
+    return { id: lic.toLowerCase(), name: '', license: lic, licenseStatus: r.licenseStatus, licenseExpires: r.licenseExpires, published: r.published,
+      storefront: r.storefront, delivery: r.delivery, address: { county: r.county, city: r.city } };
+  }
+  function assembleHome(index, files) {
+    var full = {}, loaded = {};
+    Object.keys(files || {}).forEach(function (k) { loaded[k] = true; ((files[k] && files[k].listings) || []).forEach(function (l) { full[l.license] = l; }); });
+    var data = { places: index.places, listings: index.listings.map(function (r) { return (loaded[countyFileKey(r.county)] && full[r.license]) || lightListing(r); }) };
+    Object.defineProperty(data, 'light', { value: true, enumerable: false });   // not part of the data shape; pages ask it before using rows beyond the area
+    return data;
+  }
+  // which county files an area needs, from the index's own rows: a city may sit in more than one county. [] for the whole state
+  function areaCountyKeys(data, p) {
+    var have = {}, keys = {};
+    data.listings.forEach(function (l) { have[countyFileKey(l.address && l.address.county)] = true; });
+    if (p.city) data.listings.forEach(function (l) { if (norm(l.address && l.address.city) === norm(p.city)) keys[countyFileKey(l.address && l.address.county)] = true; });
+    else if (p.county) { var k = countyFileKey(p.county); if (have[k]) keys[k] = true; }
+    return Object.keys(keys).sort();
+  }
+  function fetchOf(w) { return w.fetch.bind(w); }   // the page's own fetch, bound; the pages never name it twice
+  function loadPart(fetchFn, url, ok) { return fetchJson(fetchFn, url).then(function (d) { if (!ok(d)) throw new Error('bad data'); return d; }); }
+  function fetchJson(fetchFn, url) {
     var fail = function (kind, msg) { var e = new Error(msg); e.kind = kind; return e; };
     return Promise.resolve().then(function () { return fetchFn(url, { cache: 'no-store' }); })
       .catch(function (e) { throw fail('offline', String(e && e.message || e)); })
       .then(function (r) {
         if (!r || !r.ok) throw fail('http', 'status ' + (r && r.status));
         return r.json().catch(function () { throw fail('data', 'not JSON'); });
-      })
-      .then(function (d) {
-        if (!d || !Array.isArray(d.listings) || !Array.isArray(d.places)) throw fail('data', 'missing listings or places');
-        return d;
       });
+  }
+  function loadData(fetchFn, url) {
+    return fetchJson(fetchFn, url).then(function (d) {
+      if (!d || !Array.isArray(d.listings) || !Array.isArray(d.places)) { var e = new Error('missing listings or places'); e.kind = 'data'; throw e; }
+      return d;
+    });
   }
 
   // ---- Map (Phase 1): a self-hosted SVG, no tiles, no other host. Plain equirectangular projection into a fixed
@@ -710,7 +740,7 @@
     return out;
   }
 
-  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, filterRows: filterRows, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, filterRows: filterRows, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
     dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;

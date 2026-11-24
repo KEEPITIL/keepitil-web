@@ -603,8 +603,8 @@
       if (window.FMW_ORDERING && window.FMW_ORDERING.mount) window.FMW_ORDERING.mount(doc, l.license, box);
       // deals (behind FMW_CONFIG.deals, off today; a one-tap 21+ confirmation first)
       if (window.FMW_DEALS && window.FMW_DEALS.mount) window.FMW_DEALS.mount(doc, l.license, box);
-      // favorites heart (behind FMW_CONFIG.favorites, off today; customers only)
-      if (window.FMW_FAVORITES && window.FMW_FAVORITES.mountHeart) window.FMW_FAVORITES.mountHeart(doc, l.id, box);
+      // favorites: a plain "Save" link to the account page (behind FMW_CONFIG.favorites, off today)
+      if (window.FMW_FAVORITES && window.FMW_FAVORITES.mountSaveLink) window.FMW_FAVORITES.mountSaveLink(doc, l.id, box);
 
       // Address per the Privacy page: storefronts in full; delivery-only = city only; missing = said so (F.addressLines)
       var ad = el('section', 'card address'), AL = F.addressLines(l); ad.appendChild(el('h2', null, C.address));

@@ -33,3 +33,10 @@ test('NEGATIVE CONTROL: a sitemap without the listings fails the first check', (
   const static3 = [BASE, BASE + 'about.html', BASE + 'privacy.html'], want = F.sitemapPaths(data, new Date()).map((p) => BASE + p);
   assert.ok(want.length > 100 && want.filter((u) => !new Set(static3).has(u)).length > 0);
 });
+
+test('the ROOT robots.txt names the app sitemap (a crawler starting at keepitil.com/robots.txt must find it), exactly once', () => {
+  const robots = fs.readFileSync(path.join(ROOT, 'robots.txt'), 'utf8');
+  assert.equal((robots.match(/^Sitemap: https:\/\/keepitil\.com\/app\/findmyweed\/sitemap\.xml$/gm) || []).length, 1);
+  assert.doesNotMatch('Sitemap: https://keepitil.com/sitemap.xml\n', /findmyweed/, 'NEGATIVE CONTROL: the old two-line file does not name it');
+  assert.match(robots, /^Sitemap: https:\/\/keepitil\.com\/sitemap\.xml$/m, 'the existing sitemaps stay');
+});

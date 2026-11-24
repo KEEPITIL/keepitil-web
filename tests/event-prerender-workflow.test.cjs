@@ -26,3 +26,7 @@ test("it pushes only to prerender/run-<id>, never to main, and never forces", ()
 test("it only runs when the repository variable EVENT_PRERENDER is on", () => {
   assert.match(code, /if: \$\{\{ vars\.EVENT_PRERENDER == 'on' \}\}/);
 });
+test("the prerender branch carries the regenerated events sitemap too", () => {
+  assert.match(code, /git status --porcelain event sitemap-events\.xml/);
+  assert.match(code, /git add event sitemap-events\.xml/);
+});

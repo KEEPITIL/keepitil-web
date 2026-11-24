@@ -198,6 +198,7 @@
       terms: { title: 'Terms · Find My Weed', description: 'The terms for using Find My Weed: licensed businesses only, how to report an unlicensed seller, and how reservations work. Draft for counsel review.' },
       account: { title: 'Your account · Find My Weed', description: 'Your Find My Weed account: who is signed in, and sign out.' },
       strain: { title: 'Strain · Find My Weed', description: 'Facts about a cannabis strain: type, aroma and flavor words, and lineage when known. No effect or medical claims.' },
+      learn: { title: 'Learn · Find My Weed', description: 'Plain-language guides to licenses, lab results, age and ID rules, delivery and reporting, plus links to videos. No health claims.' },
       imageAlt: 'Find My Weed: search state-licensed cannabis storefronts and delivery services',   // the real share image (launched)
       imageAltPlaceholder: 'Find My Weed placeholder share image'   // the draft's placeholder image
     },

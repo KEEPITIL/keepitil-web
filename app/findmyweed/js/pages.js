@@ -278,13 +278,20 @@
     s.appendChild(outline);
     var g = svg('g', { 'class': 'map-dots' });
     // delivery rings first and 1.6× larger: a ring at its city's centre stays visible around a storefront dot on the same spot
-    m.dots.slice().sort(function (x, y) { return (x.kind === 'delivery' ? 0 : 1) - (y.kind === 'delivery' ? 0 : 1); }).forEach(function (d) {
+    var ordered = m.dots.slice().sort(function (x, y) { return (x.kind === 'delivery' ? 0 : 1) - (y.kind === 'delivery' ? 0 : 1); });
+    function drawDot(d) {
       var label = C.mapDot(d.name, d.kind, d.city), a = svg('a', { href: detailHref(d.id), 'class': 'dot ' + d.kind, 'data-id': d.id, 'aria-label': label, tabindex: 0 });
       var t = svg('title'); t.textContent = label; a.appendChild(t);
       a.setAttribute('data-cat', d.cat);
       a.appendChild(pinShape(d, r));
       g.appendChild(a);
-    });
+    }
+    // Perf (NEXUS2 profile 2026-11-24: the long task on home/results was building ~1,250 map dots = ~8,750 SVG nodes in one go): the
+    // first MAP_FIRST dots at once, the rest MAP_SIZE per animation frame; a newer draw cancels (mapToken). No rAF (node tests) or few dots: all at once.
+    var my = ++mapToken, i = 0, raf = window.requestAnimationFrame;
+    function stepDots(n) { var end = Math.min(i + n, ordered.length); for (; i < end; i++) drawDot(ordered[i]); }
+    if (typeof raf !== 'function' || ordered.length <= MAP_FIRST) stepDots(ordered.length);
+    else { stepDots(MAP_FIRST); (function more() { if (i >= ordered.length || my !== mapToken) return; raf.call(window, function () { if (my !== mapToken) return; stepDots(MAP_SIZE); more(); }); })(); }
     s.appendChild(g); box.appendChild(s);
     // the legend: the pin shapes on this map, by category (shape + label, so a category reads without tapping)
     var cats = PIN_ORDER.filter(function (c) { return m.dots.some(function (d) { return d.cat === c; }); });
@@ -311,6 +318,7 @@
   // Perf (1.0 baseline: phone TBT 3-4 s from drawing 1,249 cards in ONE task): draw the first CHUNK_FIRST cards at once, the rest a few at a time,
   // one animation frame each. A newer draw (filter, area change) bumps drawToken so an older draw stops. Where requestAnimationFrame
   // does not exist (the node tests) or the list is short, everything is drawn at once, exactly as before.
+  var MAP_FIRST = 150, MAP_SIZE = 300, mapToken = 0;   // the map's dots, same idea (see renderMap)
   var CHUNK_FIRST = 30, CHUNK_SIZE = 60, drawToken = 0;
   function appendCards(out, list) {
     var my = ++drawToken, i = 0, raf = window.requestAnimationFrame;
@@ -426,7 +434,7 @@
     };
 
     var run = function () {
-      drawToken++; clear(out); clear(stateBox); head.textContent = ''; head.hidden = false; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
+      drawToken++; mapToken++; clear(out); clear(stateBox); head.textContent = ''; head.hidden = false; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
       if (nearby) nearby.hidden = true;
       load().then(function (data) {
         menuData(data);

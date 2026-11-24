@@ -12,7 +12,11 @@
   // Every listing is in California: dates and times are LA's, whatever the viewer's own time zone (#15).
   var DEFAULT_TZ = 'America/Los_Angeles';
   // Today's date IN LA (YYYY-MM-DD): a license that expires today is judged on LA's day, not the viewer's.
-  function today(now) { return new Intl.DateTimeFormat('en-CA', { timeZone: DEFAULT_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now || new Date()); }
+  // PERF (root cause of the phone TBT and the heavy-test memory, found 2026-11-24): this used to build a NEW Intl.DateTimeFormat on every call, and
+  // licensed() calls it once per listing and runs ~17 times per page view (~21,000 formatter constructions per render: ICU objects that pile up
+  // until a collection). One formatter is built once and reused; the output is identical.
+  var TODAY_FMT = null;
+  function today(now) { if (!TODAY_FMT) TODAY_FMT = new Intl.DateTimeFormat('en-CA', { timeZone: DEFAULT_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }); return TODAY_FMT.format(now || new Date()); }
   // Held licenses: never shown publicly, even if published:true. C10-0001471-LIC
   // Fails closed. A held license is NEVER shown, whatever the data says: licensed() (and so
   // search, byId, cities and the map, which all go through it) drops it even if a row slips through with published: true.
@@ -28,14 +32,16 @@
   }
   // The state-license half of the rule (number, status, expiry), without published / held: the converter uses it to decide
   // which rows to keep; the pages always use licensed().
-  function licenseLive(l, now) {
+  function licenseLive(l, now, todayStr) {
     if (!l || typeof l.license !== 'string' || l.license.trim() === '') return false;
-    return SHOWN_STATUS.indexOf(l.licenseStatus) >= 0 && /^\d{4}-\d{2}-\d{2}$/.test(l.licenseExpires || '') && l.licenseExpires >= today(now);
+    return SHOWN_STATUS.indexOf(l.licenseStatus) >= 0 && /^\d{4}-\d{2}-\d{2}$/.test(l.licenseExpires || '') && l.licenseExpires >= (todayStr || today(now));
   }
   function licensed(list, now) {
+    var day = null;   // LA's date, computed once per call (and only if a row needs it), not once per listing
     return (list || []).filter(function (l) {
       if (!l || l.published !== true || isHeld(l)) return false;
-      return licenseLive(l, now);
+      if (day === null) day = today(now);
+      return licenseLive(l, now, day);
     });
   }
 
@@ -88,8 +94,11 @@
   }
 
   // The listing's local weekday and minute of day at `now`, in the listing's own time zone.
+  var LOCAL_FMT = {};
   function localTime(now, tz) {
-    var parts = new Intl.DateTimeFormat('en-US', { timeZone: tz || DEFAULT_TZ, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+    var zone = tz || DEFAULT_TZ, fmt = LOCAL_FMT[zone];   // one formatter per time zone, reused (see today())
+    if (!fmt) { fmt = new Intl.DateTimeFormat('en-US', { timeZone: zone, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }); LOCAL_FMT[zone] = fmt; }
+    var parts = fmt.formatToParts(now);
     var get = function (k) { var p = parts.find(function (x) { return x.type === k; }); return p ? p.value : ''; };
     var day = get('weekday').slice(0, 3).toLowerCase();
     return { day: day, min: (Number(get('hour')) % 24) * 60 + Number(get('minute')) };

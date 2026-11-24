@@ -98,7 +98,10 @@ test('app/findmyweed/index.html exists, with the rest of the built app beside it
 
 test('launched: every page is index,follow, the switch says launched, robots.txt allows all and names the sitemap', () => {
   // A205: the 404 page is noindex,follow (it answers any missing path); every other page is index,follow
-  for (const f of PAGES.filter((p) => p !== '404.html')) assert.deepEqual(indexableProblems(read(APP + '/' + f), f), []);
+  // find-my-weed #126: results.html is a search-results view, kept out of search indexes (noindex,follow, like the 404); every other page is index,follow
+  for (const f of PAGES.filter((p) => p !== '404.html' && p !== 'results.html')) assert.deepEqual(indexableProblems(read(APP + '/' + f), f), []);
+  assert.match(read(APP + '/results.html'), /<meta name="robots" content="noindex,follow">/);
+  assert.equal(indexableProblems(read(APP + '/results.html'), 'results.html').length, 1, 'CONTROL: the indexable check rejects results.html, as intended');
   assert.match(read(APP + '/404.html'), /<meta name="robots" content="noindex,follow">/);
   assert.equal(indexableProblems(read(APP + '/404.html'), '404.html').length, 1, 'CONTROL: the indexable check rejects the 404, as intended');
   // sign-up LIVE (find-my-weed #77, owner GO 2026-11-22): accounts + claims on, the public project URL + anon key only

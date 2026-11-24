@@ -21,7 +21,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <!-- meta:end -->
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/fmw.css?v=c2e99f02fc">
+<link rel="stylesheet" href="css/fmw.css?v=db3ffa1aea">
 <script src="js/theme.js?v=2c32ba1dbc"></script>
 <script src="js/copy.js?v=947347ddf4"></script>
 </head>
@@ -39,6 +39,8 @@
     <span id="signin-note" class="sr" data-copy="signInSoon"></span>
   </div>
 </header>
+<!-- the robots meta is in the head above; this switches it to noindex,follow when a search / filter is in the address (js/robots-query.js) -->
+<script src="js/robots-query.js?v=a32564ccd0"></script>
 <!-- The menu page: slides in and REPLACES the listing while open (Weedmaps-style) -->
 <nav id="menu-panel" class="menu-panel menu-page" hidden></nav>
 <main id="home" class="wrap wide">
@@ -96,14 +98,14 @@
   <p class="muted note" data-copy="licensedOnly"></p>
 </main>
 <footer class="foot">
-  <p class="age" data-copy="footer21"></p>
-  <p data-copy="footerNote"></p>
-  <nav class="foot-links" aria-label="Site"><a href="about.html" data-copy="footerAbout"></a><a href="privacy.html" data-copy="footerPrivacy"></a><a href="terms.html" data-copy="footerTerms"></a></nav>
+  <p class="age" data-copy="footer21">Cannabis is for adults 21+, or 18+ medical patients where state law allows. Licensed businesses only. The business checks ID.</p>
+  <p data-copy="footerNote">Find My Weed is a directory of state-licensed businesses. Check your local laws.</p>
+  <nav class="foot-links" aria-label="Site"><a href="about.html" data-copy="footerAbout">About</a><a href="privacy.html" data-copy="footerPrivacy">Privacy</a><a href="terms.html" data-copy="footerTerms">Terms</a></nav>
   <p class="report-seller"><a href="mailto:info@keepitil.com?subject=Report%20an%20unlicensed%20seller%20(Find%20My%20Weed)&amp;body=Business%20or%20seller%20name%3A%0A%0AWhere%20you%20saw%20it%20(address%2C%20website%2C%20app%20or%20social%20account)%3A%0A%0AWhat%20happened%2C%20and%20when%3A%0A%0A" data-copy="footerReport">Report an unlicensed seller</a><span data-copy="footerReportNote">Opens an email to info@keepitil.com. No account needed.</span></p>
   <p class="biz"><a data-biz data-copy="forBusiness"></a></p>
 </footer>
-<script src="js/fmw.js?v=a4b0e141f8"></script>
+<script src="js/fmw.js?v=cc83256fa7"></script>
 <script src="js/map-outline.js?v=68986a28f5"></script>
-<script src="js/pages.js?v=518b4cda8a"></script>
+<script src="js/pages.js?v=8b4b9dc67d"></script>
 </body>
 </html>

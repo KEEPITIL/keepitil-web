@@ -106,3 +106,35 @@ test("template drift guard: the current event.html still has every anchor the ge
   const { renderEventPage } = await lib();
   assert.doesNotThrow(() => renderEventPage(TEMPLATE, row()));
 });
+// appended to tests/event-prerender.test.cjs
+test("sitemap: one /event/<slug>/ URL per prerendered, unfinished event, sorted, no run date, XML-safe", async () => {
+  const { buildEventsSitemap } = await lib();
+  const now = new Date("2026-11-24T12:00:00Z");
+  const x = buildEventsSitemap([
+    { slug: "zeta", ends_at: "2026-12-01T00:00:00Z" }, { slug: "alpha", starts_at: "2026-11-30T00:00:00Z" },
+    { slug: "done", ends_at: "2026-11-01T00:00:00Z" }, { slug: "nodate" }, { slug: "../evil", ends_at: "2027-01-01T00:00:00Z" }, { slug: "a&b", ends_at: "2027-01-01T00:00:00Z" },
+  ], now);
+  assert.deepEqual([...x.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]), ["https://keepitil.com/event/alpha/", "https://keepitil.com/event/zeta/"]);
+  assert.ok(!/event\?e=/.test(x) && !/lastmod/.test(x));
+  assert.equal(x, buildEventsSitemap([{ slug: "alpha", starts_at: "2026-11-30T00:00:00Z" }, { slug: "zeta", ends_at: "2026-12-01T00:00:00Z" }], now).replace(/^/, "") );
+});
+test("main(): writes the sitemap when every fetch worked, and leaves it alone when any fetch failed", async () => {
+  const { main } = await lib();
+  const future = new Date(Date.now() + 864e5 * 30).toISOString();
+  for (const flaky of [false, true]) {
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), "pr-"));
+    fs.writeFileSync(path.join(d, "event.html"), TEMPLATE);
+    fs.writeFileSync(path.join(d, "sitemap-events.xml"), "OLD");
+    const fakeFetch = async (url, opt = {}) => {
+      if (url.includes("/rest/v1/events?")) return { ok: true, json: async () => [{ slug: "good-one" }, { slug: "flaky-event" }] };
+      const slug = JSON.parse(opt.body).p_slug;
+      if (flaky && slug === "flaky-event") return { ok: false, status: 503 };
+      return { ok: true, json: async () => [row({ slug, ends_at: future, starts_at: future })] };
+    };
+    await main(["--out", d], fakeFetch);
+    const sm = fs.readFileSync(path.join(d, "sitemap-events.xml"), "utf8");
+    if (flaky) assert.equal(sm, "OLD", "a failed fetch must not rewrite (shrink) the sitemap");
+    else assert.match(sm, /event\/flaky-event\/<\/loc>[\s\S]*event\/good-one\/<\/loc>|event\/good-one\/<\/loc>/);
+    if (!flaky) assert.equal((sm.match(/<loc>/g) || []).length, 2);
+  }
+});

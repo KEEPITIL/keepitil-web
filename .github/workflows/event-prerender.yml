@@ -31,11 +31,11 @@ jobs:
         run: node scripts/build-event-pages.mjs --out .
       - name: Push the generated pages to a branch if anything changed
         run: |
-          if [ -z "$(git status --porcelain event)" ]; then echo "no change"; echo "No event page changed." >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          if [ -z "$(git status --porcelain event sitemap-events.xml)" ]; then echo "no change"; echo "No event page changed." >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
           git config user.name "keepitil-bot"; git config user.email "keepitil-bot@users.noreply.github.com"
           branch="prerender/run-${{ github.run_id }}"
           git checkout -b "$branch"
-          git add event
+          git add event sitemap-events.xml
           git commit -m "Event pages: regenerate prerendered event pages (run ${{ github.run_id }})"
           git push origin "$branch"
           echo "Pushed branch \`$branch\`. Open a PR: https://github.com/${{ github.repository }}/compare/main...$branch?expand=1" >> "$GITHUB_STEP_SUMMARY"

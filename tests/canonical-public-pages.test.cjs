@@ -13,3 +13,11 @@ for (const n of ["about", "artists", "business"]) {
     assert.equal(m[0][1], "https://keepitil.com/" + n);
   });
 }
+
+// /venues 301s to /venues/ (a folder page); it names the slash form as its one canonical.
+test("venues/index.html has exactly one canonical, the trailing-slash form", () => {
+  const html = fs.readFileSync(path.join(ROOT, "venues/index.html"), "utf8");
+  const m = [...html.matchAll(/<link rel="canonical" href="([^"]+)"/g)];
+  assert.equal(m.length, 1);
+  assert.equal(m[0][1], "https://keepitil.com/venues/");
+});

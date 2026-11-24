@@ -528,6 +528,8 @@
       box.appendChild(lic);
       // order-ahead (behind FMW_CONFIG.ordering, off today: the module draws nothing unless the flag is true)
       if (window.FMW_ORDERING && window.FMW_ORDERING.mount) window.FMW_ORDERING.mount(doc, l.license, box);
+      // deals (behind FMW_CONFIG.deals, off today; a one-tap 21+ confirmation first)
+      if (window.FMW_DEALS && window.FMW_DEALS.mount) window.FMW_DEALS.mount(doc, l.license, box);
 
       // Address per the Privacy page: storefronts in full; delivery-only = city only; missing = said so (F.addressLines)
       var ad = el('section', 'card address'), AL = F.addressLines(l); ad.appendChild(el('h2', null, C.address));

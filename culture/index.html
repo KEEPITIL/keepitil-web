@@ -646,9 +646,9 @@ footer a{color:var(--purple)}
   </div>
 </header>
 
-<div class="wrap"><div class="merge">
+<main class="wrap"><div class="merge">
   <!-- LEFT: live feed -->
-  <section class="feedcol">
+  <section class="feedcol" tabindex="0" aria-label="Culture feed">
     <div class="feedhd">
       <a class="cul-add" id="cul-add" href="/profile?create=feed" aria-label="Create a feed post" title="Create a feed post" style="display:none">+</a>
       <button class="cul-gear" id="cul-gear" style="display:none" aria-label="Feed settings" onclick="toggleCulGear(event)">&#9881;</button>
@@ -773,7 +773,7 @@ footer a{color:var(--purple)}
        filter chips. With those gone the whole rail is empty chrome, so it goes with them. -->
   <!-- (no filter rail) -->
   <div class="typebar" id="typebar" style="display:none"></div><div id="discover" style="display:none"></div>
-</div></div>
+</div></main>
 <footer>KEEPITIL <a href="/">keepitil.com</a> — Culture &amp; Community</footer>
 
 <script>
@@ -2192,6 +2192,7 @@ window.culFetchMedia = culFetchMedia;
     if(window.KilSafeHtml){ url = KilSafeHtml.safeNavUrl(url); if(!url) return; }
     var well = card.querySelector('.kil-vid-well'); if(!well || well.querySelector('iframe')) return;
     var f = document.createElement('iframe');
+    f.title = 'KEEPITIL culture video player';   /* a11y: every iframe needs an accessible name */
     /* VOLUME 50% (Founder 2026-08-21). The iframe MUST still start muted — every browser blocks
        autoplay with sound, and an unmuted attempt does not fall back, it just never plays.
        enablejsapi=1 lets us postMessage unMute + setVolume(50) the moment sound is actually

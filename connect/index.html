@@ -553,11 +553,10 @@ body[data-kind="artist"] .subfilters{display:none!important}
     <div class="count" id="count"></div>
   </div>
   <div class="subfilters" id="subs"></div>
-  <div style="text-align:center;margin:16px 0 2px"><a href="#get-featured" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#d0a0ff;color:#0d0b16;font-weight:700;text-decoration:none">Get Featured — free artist article</a></div>
 </div>
 <main class="grid" id="grid"></main>
 <section id="commPane" aria-label="Community"></section>
-<section id="get-featured" aria-label="Get Featured on KEEPITIL Connect"></section>
+
 <section id="kil-intake" aria-label="Work with KEEPITIL"></section>
 <footer>KEEPITIL <a href="/">keepitil.com</a></footer>
 <script src="/assets/js/vendor/supabase-js.min.js" defer></script>
@@ -667,6 +666,16 @@ function matchSub(x){
   if(sub.facet==='genre'){return splitv(x.genre).some(g=>bucketOf(g)===sub.val);}
   return ((x.type||'')+' '+(x.category||'')).toLowerCase().includes(sub.val.toLowerCase());
 }
+function pinnedCard(){
+  /* LOCKED FIRST CARD (Founder 2026-11-23): the first slot of the default Artists grid is
+     always the Get Featured card — a 2:3 image linking to the standalone form page. */
+  return '<a class="card" href="/connect/get-featured" aria-label="Get Featured — free artist article">'
+    +'<div class="imgw"><div class="kinds"><span class="kind artist">Artist</span></div>'
+    +'<img loading="lazy" referrerpolicy="no-referrer" src="/assets/images/get-featured-card.jpg" alt="Get Featured — your free artist article" onerror="this.style.display=\'none\'"/>'
+    +'<div class="fallback" style="background:linear-gradient(135deg,#6d28d9,#111)">GF</div></div>'
+    +'<div class="body"><div class="nm">Get Featured</div><div class="desc">Free artist article</div>'
+    +'<div class="loc">\u25CD KEEPITIL Connect</div></div></a>';
+}
 function render(){
   /* COMMUNITY takes over the main area; the directory grid is not a fit for it and the two
      must not both be on screen. body.comm-on is the single switch. */
@@ -699,7 +708,8 @@ function render(){
       + '<div>Learn, ask and share with other creators — communities for DJing, production, '
       + 'writing, art, events and more.</div></div>'
     : '<div class="empty"><div class="big">No matches</div><div>Try another search or filter.</div></div>';
-  g.innerHTML=list.length?list.map(card).join(''):emptyHtml;
+  var pinned=(kind==='artist'&&!ql&&!sub)?pinnedCard():'';
+  g.innerHTML=list.length?(pinned+list.map(card).join('')):(pinned||emptyHtml);
   document.getElementById('count').textContent=list.length+' of '+DATA.length;
 }
 /* Mark the deep-linked segment active on load, or the URL and the UI disagree. */
@@ -1357,6 +1367,5 @@ renderSubs();render();
 })();
 </script>
 <script src="/assets/js/kil-intake.js?v=20261109a" defer></script>
-<script src="/assets/js/kil-get-featured.js?v=20261123a"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 <html lang="en" data-theme="default">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="robots" content="noindex,nofollow"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
 <title>Add an Event — KEEPITIL</title>
@@ -65,6 +65,9 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
 .rc .st.live{color:#22e39b;border-color:rgba(34,227,155,.5)}
 .rc .ed{background:none;border:1px solid var(--line);border-radius:8px;color:var(--text);font-weight:700;font-size:.74rem;padding:5px 11px;cursor:pointer}
 .rc .ed:hover{border-color:var(--brand);color:var(--brand)}
+.rc a.ed{text-decoration:none}
+.rc .ed.danger{border-color:#ff6b6b;color:#ff6b6b}
+.rc .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .tabs{display:flex;gap:6px;margin-bottom:10px}
 .tabs button{flex:1;background:var(--bg,#0d0d13);border:1px solid var(--line);border-radius:9px;color:var(--muted);font:700 .8rem Inter,sans-serif;padding:8px;cursor:pointer}
 .tabs button.on{color:#04121b;background:linear-gradient(90deg,var(--brand),var(--brand-2));border-color:transparent}
@@ -219,21 +222,59 @@ $('gseg').addEventListener('click',function(e){ var b=e.target.closest('button')
   this.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);}); });
 
 /* ── recent (mine) + edit ── */
-function loadRecent(){
-  return supa.rpc('get_my_community_events').then(function(r){
-    var rows=(r&&r.data)||[]; RECENT=rows; if(!rows.length) return rows;
-    $('recent').innerHTML=rows.map(function(e,i){
+var RECENT_OFFSET=0, RECENT_PAGE=25;
+/* My events: prefer get_my_events (community AND organizer events, paged, has_orders). Until that server
+   function is deployed, fall back to get_my_community_events (community only, 25 rows) exactly as before. */
+function loadRecent(more){
+  var off=more?RECENT_OFFSET:0;
+  return supa.rpc('get_my_events',{p_limit:RECENT_PAGE,p_offset:off}).then(function(r){
+    if(r&&r.error&&memberFnMissing(r.error)) return supa.rpc('get_my_community_events').then(function(r2){ return {rows:(r2&&r2.data)||[],paged:false}; });
+    if(r&&r.error) return {error:true,rows:[],paged:false};
+    return {rows:(r&&r.data)||[],paged:true};
+  }).then(function(res){
+    if(res.error){ $('recent').innerHTML='<div class="rc" role="alert">Could not load your events. Try again.</div>'; return RECENT; }
+    var rows=res.rows; RECENT=more?RECENT.concat(rows):rows; RECENT_OFFSET=RECENT.length;
+    if(!RECENT.length) return RECENT;
+    $('recent').innerHTML=RECENT.map(function(e,i){
       var d=e.starts_at?new Date(e.starts_at):null;
       var ds=d?new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',month:'numeric',day:'numeric',year:'2-digit'}).format(d):'';
+      var mine=e.source==null||e.source==='community';
+      var acts=mine
+        ?'<button type="button" class="ed" data-i="'+i+'">Edit</button>'
+          +(MEMBER_LIVE.indexOf(e.status)>-1?'<button type="button" class="ed" data-act="unpublish" data-i="'+i+'">Unpublish</button>':'')
+          +(e.has_orders?'':'<button type="button" class="ed danger" data-act="delete" data-i="'+i+'">Delete</button>')
+        :'<a class="ed" href="/create-event?e='+encodeURIComponent(e.slug)+'">Edit</a>';
       return '<div class="rc"><div class="t"><b>'+esc(e.title)+'</b><span>'+esc([e.venue,e.city].filter(Boolean).join(' · '))+(ds?' · '+ds:'')+'</span></div>'
         +'<span class="st'+(e.status==='published'?' live':'')+'">'+esc(e.status)+'</span>'
-        +'<button type="button" class="ed" data-i="'+i+'">Edit</button></div>';
-    }).join('');
-    $('recent').querySelectorAll('.ed').forEach(function(b){ b.addEventListener('click',function(){ startEdit(rows[+b.dataset.i]); }); });
-    return rows;
+        +'<span class="acts">'+acts+'</span></div>';
+    }).join('')+(res.paged&&rows.length===RECENT_PAGE?'<div class="rc"><button type="button" class="ed" id="recentMore">Show more</button></div>':'');
+    $('recent').querySelectorAll('button.ed[data-i], .ed[data-i]').forEach(function(b){ b.addEventListener('click',function(){
+      var row=RECENT[+b.dataset.i], act=b.dataset.act; if(!act){ startEdit(row); return; } memberAct(act,row,b); }); });
+    var mb=$('recentMore'); if(mb) mb.addEventListener('click',function(){ loadRecent(true); });
+    return RECENT;
   }).catch(function(e){ try{ console.error('[submit-event] listings', e); }catch(x){} return []; });
 }
 var RECENT=[];
+/* MEMBER CONTROL: unpublish / delete my own submitted event. Server functions are owner-only
+   (events.submitted_by = auth.uid()); until they are deployed the call fails and we say so. */
+var MEMBER_LIVE=['published','review','sold_out'];
+function memberFnMissing(err){ return !!err && (err.code==='PGRST202' || /could not find the function|does not exist/i.test(String(err.message||''))); }
+function memberAct(act,row,btn){
+  var del=act==='delete';
+  var q=del?('Delete "'+(row.title||'this event')+'" permanently? This cannot be undone.'):('Take "'+(row.title||'this event')+'" off the public site? You can edit it and submit it again later.');
+  if(!window.confirm(q)) return;
+  var m=$('msg'); if(btn) btn.disabled=true;
+  supa.rpc(del?'delete_my_community_event':'unpublish_my_community_event',{p_id:row.id}).then(function(r){
+    var d=r&&r.data, err=r&&r.error;
+    if(btn) btn.disabled=false;
+    if(err){ m.className='msg err'; m.textContent=memberFnMissing(err)?'This is not available yet. Email info@keepitil.com and we will do it for you.':'Could not complete that. Nothing was changed.'; return; }
+    if(d&&d.ok===false){ m.className='msg err'; m.textContent=d.message||d.error||'Could not complete that.'; return; }
+    m.className='msg ok'; m.textContent=del?'Event deleted.':'Event unpublished.'; loadRecent();
+  }).catch(function(){ if(btn) btn.disabled=false; m.className='msg err'; m.textContent='Could not complete that. Nothing was changed.'; });
+}
+/* After an edit: the server (update_community_event, edit-review policy) says whether the event went back to
+   review. Only an explicit needs_review === false means it stayed live; the older server (no flag) always re-reviews. */
+function editSavedMessage(d){ return (d&&d.needs_review===false)?'Saved — your event stays live. ✓':'Saved — back in review. ✓'; }
 function startEdit(e){
   EDIT_ID=e.id; $('formTitle').textContent='EDIT EVENT'; $('submitBtn').textContent='Save changes';
   $('venue').value=e.venue||''; $('city').value=e.city||'Los Angeles'; $('title').value=e.title||'';
@@ -295,7 +336,7 @@ $('form').addEventListener('submit',function(e){
     }}).then(function(r){
       var d=(r&&r.data)||{};
       if(r.error||!d.ok){ fail((r.error&&r.error.message)||d.error||'Could not save.'); return; }
-      msg.className='msg ok'; msg.textContent='Saved — back in review. ✓';
+      msg.className='msg ok'; msg.textContent=editSavedMessage(d);
       b.disabled=false; b.textContent=old; clearForm(); loadRecent();
     }).catch(offline);
     return;

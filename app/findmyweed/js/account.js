@@ -59,6 +59,8 @@
     });
     var row = el('div', 'actions'); row.appendChild(out); row.appendChild(link(T.search, 'index.html', 'btn ghost'));
     card.appendChild(row); box.appendChild(card);
+    // a business account also gets the order inbox (behind FMW_CONFIG.ordering, off today)
+    if (kind === T.business && win.FMW_INBOX && win.FMW_INBOX.mount) win.FMW_INBOX.mount(doc, box, { win: win });
     return { state: 'signed-in' };
   }
   var api = { KEY: KEY, claims: claims, live: live, signOutRequest: signOutRequest, app: app };

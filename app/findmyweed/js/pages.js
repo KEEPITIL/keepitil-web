@@ -148,7 +148,7 @@
       offered = { storefront: F.storefrontOffered(data, now), delivery: F.deliveryOffered(data, now) };
       draw();
     };
-    if (page === 'about' || page === 'privacy') load().then(menuData, function () {});
+    if (page === 'about' || page === 'privacy' || page === 'terms') load().then(menuData, function () {});
   })();
 
   // The location dropdown INSIDE the search bar (approved spec item 2): State / County / City in ONE select, built from the
@@ -526,6 +526,10 @@
         lic.appendChild(ra);
       }
       box.appendChild(lic);
+      // order-ahead (behind FMW_CONFIG.ordering, off today: the module draws nothing unless the flag is true)
+      if (window.FMW_ORDERING && window.FMW_ORDERING.mount) window.FMW_ORDERING.mount(doc, l.license, box);
+      // deals (behind FMW_CONFIG.deals, off today; a one-tap 21+ confirmation first)
+      if (window.FMW_DEALS && window.FMW_DEALS.mount) window.FMW_DEALS.mount(doc, l.license, box);
 
       // Address per the Privacy page: storefronts in full; delivery-only = city only; missing = said so (F.addressLines)
       var ad = el('section', 'card address'), AL = F.addressLines(l); ad.appendChild(el('h2', null, C.address));

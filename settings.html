@@ -8,7 +8,7 @@
 <head>
 <link rel="stylesheet" href="/assets/css/tokens.css"/>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>Settings | KEEPITIL</title>
 <link rel="icon" type="image/png" href="/assets/images/logo-green-nav.png"/>
@@ -44,7 +44,7 @@ h1.pt{font-family:var(--fh);font-size:2.4rem;letter-spacing:.03em;margin-bottom:
 .tog{position:relative;width:46px;height:26px;flex:0 0 auto;border-radius:999px;background:var(--surface2);border:1px solid var(--line);cursor:pointer;transition:.2s}
 .tog::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
 .tog.on{background:var(--brand);border-color:var(--brand)}.tog.on::after{left:22px}
-select,input[type=text],input[type=email],input[type=password]{background:var(--surface2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-family:var(--fb);font-size:.9rem;outline:none}
+select,input[type=text],input[type=email],input[type=password]{background:var(--surface2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-family:var(--fb);font-size:1rem;outline:none}
 select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]:focus{border-color:var(--brand)}
 /* back-to-profile bar */
 .sback{display:inline-flex;align-items:center;gap:6px;background:none;border:0;color:var(--text-soft);font-family:var(--fb);font-weight:600;font-size:.92rem;cursor:pointer;padding:6px 0;margin-bottom:6px}
@@ -124,6 +124,20 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
           <select data-k="language"><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="pt">Português</option><option value="de">Deutsch</option></select></div>
         <div class="row"><div class="lbl">Two-factor authentication<small>Extra security at sign-in</small></div><a class="btn" href="mailto:info@keepitil.com">Set up →</a></div>
         <div class="row"><div class="lbl">Sign out<small>End your session on this device</small></div><button class="btn danger" onclick="doLogout()">Log out</button></div>
+        <div class="row"><div class="lbl">Download my data<small>A copy of your profile, events, saves, follows and orders as a JSON file</small></div><button class="btn" id="exp-go" type="button" onclick="exportMyData()">Download</button></div>
+        <div class="row" id="del-row"><div class="lbl">Delete account<small>Permanently removes your KEEPITIL account and the things only you own. This cannot be undone.</small></div><button class="btn danger" id="del-open" type="button" onclick="delOpen()">Delete account…</button></div>
+        <div id="del-panel" hidden style="border:1px solid #ff6b6b;border-radius:14px;padding:16px;margin:8px 0 4px">
+          <div style="font-weight:800;margin-bottom:6px">Delete your account?</div>
+          <p style="margin:0 0 10px;font-size:.9rem">Your profile, profile page, saved events, follows and settings are deleted. Community posts and replies that other people answered stay, with your name and words removed. Events you submitted are not removed automatically: email info@keepitil.com before you delete your account if you want them taken down. Ticket orders you placed are kept for our records. This cannot be undone.</p>
+          <ul id="del-blockers" style="margin:0 0 10px;padding-left:18px;font-size:.9rem;color:#ff6b6b"></ul>
+          <label for="del-confirm" style="display:block;font-size:.85rem;margin-bottom:6px">Type <b>DELETE</b> to confirm</label>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input type="text" id="del-confirm" autocomplete="off" autocapitalize="characters" spellcheck="false" style="min-width:160px" oninput="delSync()">
+            <button class="btn danger" id="del-go" type="button" onclick="delGo()" disabled>Delete my account</button>
+            <button class="btn" type="button" onclick="delClose()">Cancel</button>
+          </div>
+          <div class="savez" id="sz-delete" role="status" aria-live="polite"></div>
+        </div>
         <div class="savez" id="sz-account"></div>
       </div>
 
@@ -314,6 +328,48 @@ function savePass(){ var sz=document.getElementById('sz-account'); var el=docume
   if(!SB||!SIGNED){ if(sz)sz.textContent='Log in to change your password'; return; }
   if(sz)sz.textContent='Updating…';
   SB.auth.updateUser({password:p}).then(function(r){ el.value=''; if(sz){ sz.textContent=(r&&r.error)?('Could not update: '+r.error.message):'Password changed ✓'; setTimeout(function(){sz.textContent='';},3000);} }); }
+/* DATA EXPORT: export_my_data() returns only the signed-in person's own rows. */
+function exportFileName(d){ d=d||new Date(); return 'keepitil-my-data-'+d.toISOString().slice(0,10)+'.json'; }
+function exportMyData(){ var sz=document.getElementById('sz-account'), b=document.getElementById('exp-go');
+  if(!SB||!SIGNED){ if(sz)sz.textContent='Log in to download your data'; return; }
+  if(b)b.disabled=true; if(sz)sz.textContent='Preparing your data…';
+  SB.rpc('export_my_data').then(function(r){
+    if(b)b.disabled=false;
+    if(!r||r.error||!r.data){ var miss=r&&r.error&&(r.error.code==='PGRST202'||/could not find the function/i.test(String(r.error.message||'')));
+      if(sz)sz.textContent=miss?'Not available yet. Email info@keepitil.com and we will send you a copy.':'Could not prepare your data. Try again.'; return; }
+    var blob=new Blob([JSON.stringify(r.data,null,2)],{type:'application/json'}), a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=exportFileName(); document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); },2000); if(sz)sz.textContent='Downloaded ✓';
+  }).catch(function(){ if(b)b.disabled=false; if(sz)sz.textContent='Could not prepare your data. Try again.'; }); }
+/* ACCOUNT DELETION (owner-only). Server does the work in delete_my_account(); it refuses with a list of
+   blocker codes (e.g. a TUITEA household that still has members). The page asks for typed confirmation first. */
+var DEL_BLOCKERS=[];
+function delBlockerText(code){
+  if(code==='household_with_members') return 'You own a TUITEA family household that still has other members. Move or remove them in TUITEA first.';
+  return 'Something on your account needs attention first ('+String(code)+'). Email info@keepitil.com and we will sort it out.';
+}
+function delReady(typed,blockers){ return String(typed||'').trim()==='DELETE' && !(blockers&&blockers.length); }
+function delSync(){ var b=document.getElementById('del-go'); if(b) b.disabled=!delReady((document.getElementById('del-confirm')||{}).value,DEL_BLOCKERS); }
+function delShowBlockers(list){ DEL_BLOCKERS=Array.isArray(list)?list:[]; var ul=document.getElementById('del-blockers'); if(!ul)return;
+  ul.innerHTML=''; DEL_BLOCKERS.forEach(function(c){ var li=document.createElement('li'); li.textContent=delBlockerText(c); ul.appendChild(li); }); delSync(); }
+function delOpen(){ var p=document.getElementById('del-panel'),sz=document.getElementById('sz-delete'); if(!p)return;
+  if(!SB||!SIGNED){ var z=document.getElementById('sz-account'); if(z)z.textContent='Log in to delete your account'; return; }
+  p.hidden=false; if(sz)sz.textContent='Checking your account…';
+  SB.rpc('my_account_deletion_blockers').then(function(r){ if(sz)sz.textContent=''; delShowBlockers(r&&!r.error?r.data:[]); })
+    .catch(function(){ if(sz)sz.textContent=''; delShowBlockers([]); });
+  var c=document.getElementById('del-confirm'); if(c)c.focus(); }
+function delClose(){ var p=document.getElementById('del-panel'),c=document.getElementById('del-confirm'); if(p)p.hidden=true; if(c)c.value=''; delSync(); }
+function delGo(){ var sz=document.getElementById('sz-delete'),b=document.getElementById('del-go');
+  if(!SB||!SIGNED||!delReady((document.getElementById('del-confirm')||{}).value,DEL_BLOCKERS)) return;
+  b.disabled=true; if(sz)sz.textContent='Deleting…';
+  SB.rpc('delete_my_account').then(function(r){
+    if(r&&r.error){
+      var msg=String(r.error.message||''), det=String(r.error.details||'');
+      if(/account_deletion_blocked/.test(msg)){ var codes=[]; try{ codes=JSON.parse(det); }catch(e){} delShowBlockers(codes.length?codes:['unknown']); if(sz)sz.textContent='Your account cannot be deleted yet.'; }
+      else if(sz){ sz.textContent='Could not delete your account. Nothing was changed. Try again, or email info@keepitil.com.'; b.disabled=false; }
+      return; }
+    SB.auth.signOut().then(function(){ location.href='/?account=deleted'; },function(){ location.href='/?account=deleted'; });
+  }).catch(function(){ if(sz)sz.textContent='Could not delete your account. Nothing was changed. Try again, or email info@keepitil.com.'; b.disabled=false; }); }
 function doLogout(){ if(SB){ SB.auth.signOut().then(function(){ location.href='/'; }); } else { location.href='/'; } }
 function showAnyway(){ document.getElementById('gate').style.display='none'; document.getElementById('cols').style.display='grid'; renderThemes(); }
 

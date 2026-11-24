@@ -25,7 +25,7 @@
   function uuid() { return (root.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); }); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
-  var CSS = '#get-featured{max-width:640px;margin:48px auto 32px;padding:0 16px;color:var(--ink,#f4f2fb)}' +
+  var CSS = '#get-featured{max-width:640px;margin:48px auto 0;padding:0 16px 120px;scroll-margin-top:212px;color:var(--ink,#f4f2fb)}' +
     '#get-featured .gf-card{box-sizing:border-box;background:var(--panel,rgba(255,255,255,.035));border:1px solid var(--panel-brd,rgba(255,255,255,.09));border-radius:16px;padding:22px 18px}' +
     '#get-featured h2{margin:0 0 6px;font-size:1.35rem}#get-featured p.gf-sub{margin:0 0 16px;color:var(--ink2,#9a94b4);font-size:.95rem;line-height:1.5}' +
     '#get-featured label{display:block;margin:0 0 4px;font-size:.82rem;color:var(--ink2,#9a94b4)}' +

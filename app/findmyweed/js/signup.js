@@ -408,9 +408,11 @@
       return st;
     }
     if (ret) {   // back from the emailed link: drop the token / error from the URL, then say where the visitor stands
-      // the session is kept per tab only (ends with the tab), for account.html
-      var tok = ret.ok && AUTH && AUTH.token ? AUTH.token() : null;
-      try { if (tok && win.sessionStorage) win.sessionStorage.setItem('fmw_token', tok); } catch (e) { /* no storage: the account page says signed out */ }
+      // the session is KEPT across tab closes (js/session-store.js: persistent "fmw_session" with the refresh token), for account.html and the header.
+      // Without the store or usable storage it falls back to the old per-tab token.
+      var tok = ret.ok && AUTH && AUTH.token ? AUTH.token() : null, sess = ret.ok && AUTH && AUTH.session ? AUTH.session() : null, kept = false;
+      try { if (sess && win.FMW_SESSION_STORE && win.FMW_SESSION_STORE.save) kept = win.FMW_SESSION_STORE.save(sess.access, sess.refresh, sess.expiresIn); } catch (e) { kept = false; }
+      try { if (!kept && tok && win.sessionStorage) win.sessionStorage.setItem('fmw_token', tok); } catch (e) { /* no storage: the account page says signed out */ }
       try { if (win.history && win.history.replaceState) win.history.replaceState(null, '', cleanUrl()); } catch (e) { /* the hash stays; nothing else */ }
       if (ret.ok) {
         st.step = 'signed-in'; clear(box); head(S.inTitle, 0); box.setAttribute('data-step', 'signed-in');

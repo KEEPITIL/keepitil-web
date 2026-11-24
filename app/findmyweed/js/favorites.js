@@ -6,6 +6,7 @@
 // This file has no network, no storage and no account code of its own; the server (RLS, cap of 200) is the authority. No payments.
 (function (root) {
   var T = { save: 'Save', saved: 'Saved', saveLinkLabel: 'Save this listing to your favorites (opens your account)', failed: 'Could not update your favorites. Try again.',
+    limit: 'You have reached the limit of 200 saved listings. Remove one to save another.',   // NEW (draft, for Muse)
     title: 'Saved listings', none: 'No saved listings yet.', loading: 'Loading…', view: 'View', confirm: 'Save this listing to your favorites?', confirmBtn: 'Save', confirmDone: 'Saved.', viewListing: 'View the listing' };
   // a listing id from a ?save= link: only the slug shape is accepted (the server checks that the listing exists); anything else is ignored
   var SID = root.FMW_SAVEID || (typeof require === 'function' ? require('./save-id.js') : null);   // js/save-id.js: the one rule, shared with the sign-up page
@@ -54,7 +55,7 @@
         var note = el(doc, 'p', 'muted'); note.setAttribute('role', 'status');
         ok.addEventListener('click', function () {
           ok.disabled = true; note.textContent = '';
-          Promise.resolve().then(function () { return src.add(saveId); }).then(function () { addRow(saveId); msg.textContent = ''; box.setAttribute('data-state', 'done'); while (box.firstChild) box.removeChild(box.firstChild); box.appendChild(el(doc, 'p', null, T.confirmDone)); }, function () { ok.disabled = false; note.textContent = T.failed; });
+          Promise.resolve().then(function () { return src.add(saveId); }).then(function () { addRow(saveId); msg.textContent = ''; box.setAttribute('data-state', 'done'); while (box.firstChild) box.removeChild(box.firstChild); box.appendChild(el(doc, 'p', null, T.confirmDone)); }, function (err) { ok.disabled = false; note.textContent = err && err.code === 'P0005' ? T.limit : T.failed; });
         });
         box.appendChild(ok); box.appendChild(note); sec.insertBefore ? sec.insertBefore(box, list) : sec.appendChild(box);
       }

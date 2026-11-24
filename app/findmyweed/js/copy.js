@@ -253,7 +253,9 @@
           // supabase/migrations/20261123010000_fmw_signup.sql; tests/privacy-accounts.test.js checks each against the code.
           { h: 'If you create an account', p: [
             'Signing in uses a link we email to you. There is no password.',
-            'Your account holds your email address and whether it is a customer or a business account. For 18 to 20 year olds with a medical recommendation, it also notes that the account is medical-only. It also keeps your light or dark choice if you make one.',
+            // PLACEHOLDER WORDING (Grok 2026-11-24): Muse words this line, Echo checks it. The facts are true of js/session-store.js.
+            'When you sign in, a sign-in token is kept on this device so you stay signed in. It is removed when you sign out, and it ends 30 days after you sign in.',
+            'Your account holds your email address and whether it is a customer or a business account. For 18 to 20 year olds with a medical recommendation, it also notes that the account is medical-only. It also keeps your light or dark choice if you make one. If you save listings, they are stored with your account and are visible only to you.',
             'Sign-up asks when you were born, to check eligibility. That check runs in your browser, and the answer is not stored.',
             'Business accounts: to verify a license, we check the license number, the legal business name and the category you enter against the state license record. When you are signed in, the result of that check is kept with your account, together with the license number.',
             'Accounts are stored in a hosted database that we run. They are kept separate from member profiles on our other sites.'] },

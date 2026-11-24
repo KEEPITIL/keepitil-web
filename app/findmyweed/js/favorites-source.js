@@ -26,7 +26,11 @@
       if (!s || !cfg || !cfg.url || !cfg.anonKey || typeof win.fetch !== 'function') return Promise.reject(new Error('not signed in'));
       var headers = { 'Content-Type': 'application/json', apikey: cfg.anonKey, Authorization: 'Bearer ' + s.token, 'Content-Profile': 'fmw' };
       return win.fetch(cfg.url + '/rest/v1/rpc/' + name, { method: 'POST', headers: headers, body: JSON.stringify(body || {}) }).then(function (r) {
-        if (!r || !r.ok) throw new Error('status ' + (r && r.status));
+        if (!r || !r.ok) {   // keep the database's error code (P0005 = the 200-favorites limit) so the page can say what happened
+          return (r && typeof r.json === 'function' ? r.json() : Promise.resolve(null)).catch(function () { return null; }).then(function (j) {
+            var e = new Error('status ' + (r && r.status)); e.code = j && typeof j.code === 'string' ? j.code : ''; throw e;
+          });
+        }
         return r.status === 204 ? null : r.json().catch(function () { return null; });
       });
     }

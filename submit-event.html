@@ -229,8 +229,10 @@ function loadRecent(more){
   var off=more?RECENT_OFFSET:0;
   return supa.rpc('get_my_events',{p_limit:RECENT_PAGE,p_offset:off}).then(function(r){
     if(r&&r.error&&memberFnMissing(r.error)) return supa.rpc('get_my_community_events').then(function(r2){ return {rows:(r2&&r2.data)||[],paged:false}; });
+    if(r&&r.error) return {error:true,rows:[],paged:false};
     return {rows:(r&&r.data)||[],paged:true};
   }).then(function(res){
+    if(res.error){ $('recent').innerHTML='<div class="rc" role="alert">Could not load your events. Try again.</div>'; return RECENT; }
     var rows=res.rows; RECENT=more?RECENT.concat(rows):rows; RECENT_OFFSET=RECENT.length;
     if(!RECENT.length) return RECENT;
     $('recent').innerHTML=RECENT.map(function(e,i){

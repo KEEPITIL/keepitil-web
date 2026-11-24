@@ -54,3 +54,9 @@ test("a full page offers Show more and asks for the next offset", async () => {
   await t.box.loadRecent(true);
   assert.ok(t.calls.some((c) => c === 'get_my_events{"p_limit":2,"p_offset":2}'), t.calls.join("|"));
 });
+test("a real error (not a missing function) says so instead of showing nothing", async () => {
+  const t = make({ get_my_events: { error: { code: "500", message: "boom" } } });
+  await t.box.loadRecent();
+  assert.match(t.el.innerHTML, /Could not load your events\. Try again\./);
+  assert.deepEqual(t.calls.map((c) => c.split("{")[0]), ["get_my_events"]);
+});

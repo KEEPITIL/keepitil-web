@@ -320,17 +320,35 @@
   // county; a green check mark + the license number). An empty line 2 keeps its place so every card is the same size.
   // A small map icon (its own button, outside the link) shows the business on the map.
   var showOnMap = function () {};   // set by the home
-  // Perf (1.0 baseline: phone TBT 3-4 s from drawing 1,249 cards in ONE task): draw the first CHUNK_FIRST cards at once, the rest a few at a time,
-  // one animation frame each. A newer draw (filter, area change) bumps drawToken so an older draw stops. Where requestAnimationFrame
-  // does not exist (the node tests) or the list is short, everything is drawn at once, exactly as before.
+  // Perf: the map's dots are drawn in chunks (see renderMap); the card list is PAGED (showCards below), so no chunker is needed for the cards.
   var MAP_FIRST = 150, MAP_SIZE = 300, mapToken = 0;   // the map's dots, same idea (see renderMap)
-  var CHUNK_FIRST = 30, CHUNK_SIZE = 60, drawToken = 0;
-  function appendCards(out, list) {
-    var my = ++drawToken, i = 0, raf = window.requestAnimationFrame;
-    function step(n) { var end = Math.min(i + n, list.length); for (; i < end; i++) out.appendChild(card(list[i])); }
-    if (typeof raf !== 'function' || list.length <= CHUNK_FIRST) { step(list.length); return; }
-    step(CHUNK_FIRST);
-    (function more() { if (i >= list.length || my !== drawToken) return; raf.call(window, function () { if (my !== drawToken) return; step(CHUNK_SIZE); more(); }); })();
+  // The home / results list is PAGED, not endless: the first PAGE cards, then a "Show N more" button (all real results stay reachable; the map keeps every dot).
+  var PAGE_FIRST = 24, PAGE_MORE = 60;
+  function showCards(out, list) {
+    var shown = 0, row = null, live = out.__live || null;
+    // the polite status lives in a sibling element OUTSIDE the list (a list item would be read as one more result and the new cards land after it)
+    function say(text) {
+      if (!live && out.parentNode && out.parentNode.insertBefore) { live = out.__live = el('div', 'sr'); live.setAttribute('role', 'status'); live.setAttribute('aria-live', 'polite'); out.parentNode.insertBefore(live, out.nextSibling); }
+      if (live) live.textContent = text;
+    }
+    // like the map chunker: without requestAnimationFrame (the node tests) or for a short list everything is drawn at once, exactly as before
+    if (typeof window.requestAnimationFrame !== 'function' || list.length <= PAGE_FIRST) { for (; shown < list.length; shown++) out.appendChild(card(list[shown])); say(''); return; }
+    function next() {
+      var first = shown > 0, end = Math.min(shown + (shown ? PAGE_MORE : PAGE_FIRST), list.length), firstNew = null;
+      if (row && row.parentNode) row.parentNode.removeChild(row);
+      for (; shown < end; shown++) { var c = card(list[shown]); if (!firstNew) firstNew = c; out.appendChild(c); }
+      say(C.showMoreCount(shown, list.length));
+      if (first && firstNew) { var a = firstNew.querySelector ? firstNew.querySelector('a') : null; if (a && a.focus) a.focus(); }   // after "Show more", focus lands on the first new card
+      if (shown < list.length) {
+        row = el('li', 'more');
+        var b = el('button', 'btn ghost', C.showMore(Math.min(PAGE_MORE, list.length - shown))); b.type = 'button'; b.setAttribute('data-act', 'show-more');
+        b.addEventListener('click', next);
+        var vis = el('span', 'muted', C.showMoreCount(shown, list.length)); vis.setAttribute('aria-hidden', 'true');   // the live region says it; the visible copy is not read twice
+        row.appendChild(b); row.appendChild(vis);
+        out.appendChild(row);
+      }
+    }
+    next();
   }
   function card(r) {
     var l = r.listing, L = F.cardLines(r, C), li = el('li', 'shop'), a = el('a', 'listing');
@@ -339,7 +357,9 @@
     var th = el('span', 'thumb'); th.setAttribute('aria-hidden', 'true');
     th.appendChild(el('span', 'thumb-a', 'Find My')); th.appendChild(el('span', 'thumb-b', 'Weed'));
     var lines = el('span', 'lines' + (L[2] ? '' : ' lines-5'));   // no hours: five lines share the tile's height (no blank strip)
-    lines.appendChild(el('h3', 'ln ln-name', L[0]));
+    var nm = el('h3', 'ln ln-name', L[0]);
+    if (F.isPaid(r)) nm.appendChild(el('span', 'sponsored-tag', ' \u00b7 ' + C.sponsored));   // only a real, labelled paid placement; inside the link, so it is part of its accessible name
+    lines.appendChild(nm);
     for (var i = 1; i <= 4; i++) lines.appendChild(el('span', 'ln ln-' + i + (i === 2 && !L[i] ? ' ln-none' : ''), L[i] || ' '));   // no hours data: the slot stays (six lines) but is not shown
     var lic = el('span', 'ln ln-lic'); lic.appendChild(icon('check', 'ck')); lic.appendChild(el('span', null, L[5]));
     lines.appendChild(lic);
@@ -357,6 +377,8 @@
     var ul = sec.querySelector ? sec.querySelector('ul') : null;
     sec.hidden = true; if (!ul) return;
     clear(ul);
+    // a sideways-scrolling list is a scrollable region: keyboard-focusable and named (axe: scrollable-region-focusable)
+    ul.setAttribute('tabindex', '0'); ul.setAttribute('aria-label', { ads: C.rowAds, deals: C.rowDeals, categories: C.rowCategories, featured: C.rowFeatured }[key] || '');
     (entries || []).forEach(function (e) {
       var li = el('li', 'tile'), wrap = e.href ? el('a', 'tile-in') : el('div', 'tile-in');
       if (e.href) wrap.href = e.href;
@@ -365,7 +387,7 @@
       if (e.license) wrap.appendChild(el('span', 'tile-license mono', e.license));   // placements always show the license number
       li.appendChild(wrap); ul.appendChild(li);
     });
-    sec.hidden = !(entries && entries.length);
+    sec.hidden = !(entries && entries.length >= (key === 'categories' ? 2 : 1));   // a one-tile Categories row is filler, from data or from the listings alike
   }
   var FILTER_COPY = { home: 'fHome', storefront: 'fStorefront', delivery: 'fDelivery', open: 'fOpenNow', deals: 'fDeals', retail: 'fRetail', brands: 'fBrands',
     cultivation: 'fCultivation', manufacturing: 'fManufacturing', distribution: 'fDistribution', testing: 'fTesting', microbusiness: 'fMicrobusiness', services: 'fServices', events: 'fEvents' };
@@ -459,7 +481,7 @@
       }).then(null, function () { return load(); });   // any failure: the full file, as before
     };
     var run = function () {
-      drawToken++; mapToken++; clear(out); clear(stateBox); head.textContent = ''; head.hidden = false; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
+      mapToken++; clear(out); clear(stateBox); head.textContent = ''; head.hidden = false; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
       if (nearby) nearby.hidden = true;
       var light = page === 'search' || page === 'results';
       (light ? loadHomeIndex() : load()).then(function (data) {
@@ -514,7 +536,7 @@
             actions: [{ text: C.showAll, onClick: function () { go(areaParams()); } }] });
           return;
         }
-        res = { place: res.place, results: rows };
+        res = { place: res.place, results: F.orderCards(rows) };
         // joe-0045 + owner ruling 2026-11-22 ("Yes, remove there too"): NO page shows the "<N> licensed businesses in
         // <area>" line (no replacement copy), neither the home nor results.html; the heading is used only for the empty /
         // not-found states above.
@@ -522,7 +544,7 @@
         if (mapEl) renderMap(mapEl, data, res.results);
         // ONE listing (the old Storefronts rail folded in): every result, nearest first (F.search), named rows before
         // "[Equity Retailer]"-only rows. No ranking-by-rating rail and no paid-placement slot exist on this page.
-        appendCards(out, res.results);
+        showCards(out, res.results);
         if (nearby) nearby.hidden = false;
       }, function (e) { loadFailed(e, head, stateBox, run); });
     };
@@ -538,7 +560,7 @@
     var PROMO = function (data) { var rows = F.promoRows(data); F.PROMO_ROWS.forEach(function (k) { renderRow(k, rows[k]); }); };
     // Categories (row 6, a 1:1 single-row carousel) from REAL listing data: one tile per customer category with shown rows
     // in this area (F.categoryTiles). A tile opens the same in-place filter as its chip. Entries in the data file
-    // (data.categories, with real images) win when they exist. No tile = the row stays hidden.
+    // (data.categories, with real images) win when they exist. Fewer than two tiles = the row stays hidden.
     var CATS = function (data, results) {
       if (F.promoRows(data).categories.length) return;
       var sec = doc.getElementById('row-categories'), ul = sec && sec.querySelector ? sec.querySelector('ul') : null;
@@ -554,7 +576,7 @@
         a.addEventListener('click', function (e) { if (!canPush) return; e.preventDefault(); var v = areaParams(); v.set('f', t.key); go(v); });
         li.appendChild(a); ul.appendChild(li);
       });
-      sec.hidden = !tiles.length;
+      sec.hidden = tiles.length < 2;   // a row of one tile is filler: it shows only with two or more real categories
     };
     run();
     return;

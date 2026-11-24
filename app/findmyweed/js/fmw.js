@@ -253,6 +253,21 @@
   function filtersOffered(data, now) {
     return { delivery: deliveryOffered(data, now), openNow: openNowOffered(data, now) };
   }
+  // Card order on the home and results (Muse/Joe 2026-11-24): the FIRST FIVE slots are paid placements, the rest go by rating, and with no rating the
+  // search's own order (nearest first) stands. Both are data-driven and EMPTY today: a paid placement is a listing with placement { paid: true, rank: n }
+  // (set only by a real, labelled placement), a rating is a real number 0-5. Nothing is invented: with neither in the data this returns the same order.
+  function isPaid(r) { var p = r && r.listing && r.listing.placement; return !!p && p.paid === true && typeof p.rank === 'number' && isFinite(p.rank); }
+  function ratingOf(r) { var v = r && r.listing && r.listing.rating; return typeof v === 'number' && isFinite(v) && v >= 0 && v <= 5 ? v : null; }
+  function orderCards(rows) {
+    var all = (rows || []).map(function (r, i) { return { r: r, i: i }; });
+    var paid = all.filter(function (x) { return isPaid(x.r); }).sort(function (a, b) { return (a.r.listing.placement.rank - b.r.listing.placement.rank) || (a.i - b.i); }).slice(0, 5);
+    var rest = all.filter(function (x) { return paid.indexOf(x) < 0; });
+    if (rest.some(function (x) { return ratingOf(x.r) !== null; })) rest.sort(function (a, b) {
+      var ra = ratingOf(a.r), rb = ratingOf(b.r);
+      return ((rb !== null) - (ra !== null)) || ((rb || 0) - (ra || 0)) || (a.i - b.i);
+    });
+    return paid.concat(rest).map(function (x) { return x.r; });
+  }
   // The discovery rails for a set of search results ({ listing, open, known, ... } from search()). A rail exists ONLY when
   // its own real field has data in these rows; there is no rail for deals, ratings, reviews, categories or "new" (no data).
   //   nearby    every result (licensed storefronts in the area, nearest first, else by name)
@@ -751,7 +766,7 @@
     return out;
   }
 
-  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, filterRows: filterRows, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, filterRows: filterRows, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, orderCards: orderCards, isPaid: isPaid, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
     dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;

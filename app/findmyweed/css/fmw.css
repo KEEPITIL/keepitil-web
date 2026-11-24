@@ -340,3 +340,7 @@ a.menu-link:hover{background:var(--tint);color:var(--text)}
 .signup .state h2{margin:0;font-size:17px}
 @media(min-width:720px){.choices{grid-template-columns:1fr 1fr}}
 
+
+/* paged list: the "Show N more" row, and the label on a real paid placement */
+.listings li.more{grid-column:1/-1;display:flex;align-items:center;gap:12px;justify-content:center;padding:8px 0;list-style:none}
+.sponsored-tag{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}

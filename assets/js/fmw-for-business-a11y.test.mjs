@@ -24,8 +24,8 @@ test('NEGATIVE CONTROLS: each pre-fix gap is caught for its own reason', () => {
   const bad = [
     ['no og:image', html.replace(/<meta property="og:image" [^>]*>\n/, '')],
     ['no main', html.replace('<main>', '<div>').replace('</main>', '</div>')],
-    ['table not wrapped', html.replace('<div class="tablewrap" role="region" aria-label="Price comparison" tabindex="0">', '<div>')],
-    ['empty th', html.replace('<th scope="col"><span class="sr">Offer</span></th>', '<th></th>')],
+    ['table not wrapped', html.replace('<section id="grid">', '<section id="grid"><table><tr><td>x</td></tr></table>')],
+    ['empty th', html.replace('<section id="grid">', '<section id="grid"><div class="tablewrap"><table><tr><th></th></tr></table></div>')],
     ['links not underlined', html.replace('a{color:var(--green);text-decoration:underline}', 'a{color:var(--green)}')],
     ['footer inside main', html.replace('  </main>\n', '').replace('</footer>', '</footer>\n</main>')],
   ];

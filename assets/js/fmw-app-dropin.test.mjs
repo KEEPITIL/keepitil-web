@@ -22,6 +22,8 @@ const ORIGIN = 'https://keepitil.com';
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const PAGES = ['index.html', 'results.html', 'listing.html', 'about.html', 'privacy.html', '404.html'];
 const BUSINESS = APP + '/for-business/index.html';
+const BUSINESS_SHA256_NOCOMP = 'd50d5521595cd43595334a4b5157ebc505505452d02ed98bd8250c3a45b0affa';   // Joe/Grok 2026-11-23: the unsourced Weedmaps/Leafly competitor price table, footnote and bullet lists removed; undoing NOCOMP_PAIRS gives back the pin below byte for byte
+const NOCOMP_PAIRS = [["<h2>The honest grid — <span>us vs. them</span></h2>\n    <style>.cmp{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}.cmp th,.cmp td{border:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top}.cmp thead th{background:var(--card)}.cmp tbody th{background:#10160f;color:var(--muted);font-weight:600}.cmp td.fm{font-weight:700;color:var(--green)}@media(max-width:480px){.cmp{font-size:13px}.cmp th,.cmp td{padding:7px 6px}}</style>\n    <div class=\"tablewrap\" role=\"region\" aria-label=\"Price comparison\" tabindex=\"0\">\n    <table class=\"cmp\">\n      <thead><tr><th scope=\"col\"><span class=\"sr\">Offer</span></th><th>FindMyWeed</th><th>Weedmaps</th><th>Leafly</th></tr></thead>\n      <tbody>\n        <tr><th>Listing</th><td class=\"fm\">Shown to verified businesses</td><td>$300–$420/mo</td><td>$500–$600/mo</td></tr>\n        <tr><th>Top placement</th><td class=\"fm\">Shown to verified businesses</td><td>$500–$30,000/mo</td><td>Up to $10,000/mo</td></tr>\n      </tbody>\n    </table>\n    </div>\n    <h3 style=\"margin:18px 0 4px\">County placement", "<h2>What you get — <span>on Find My Weed</span></h2>\n    <h3 style=\"margin:18px 0 4px\">County placement"], ["    </ul>\n    <p style=\"color:var(--muted);font-size:12px\">Competitor ranges from industry reports, Nov 2026. Ours are flat, and shown to every verified business.</p>\n    <h3 style=\"margin:22px 0 4px\">What you get</h3>\n    <p style=\"color:var(--muted);font-size:14px\">Same industry, three very different offers. Here's the plain version:</p>\n    <p style=\"margin:16px 0 4px\"><b>FindMyWeed</b></p>\n    <ul>\n      <li>Every licensed role", "    </ul>\n    <h3 style=\"margin:22px 0 4px\">What every verified listing includes</h3>\n    <ul>\n      <li>Every licensed role"], ["      <li>A Services directory — licensing help, consultants, and more</li>\n    </ul>\n    <p style=\"margin:16px 0 4px\"><b>Weedmaps</b></p>\n    <ul>\n      <li>Dispensaries and brands</li>\n      <li>Promotion stays inside Weedmaps only</li>\n      <li>No done-for-you marketing</li>\n      <li>Wholesale is separate paid software</li>\n      <li>Data and leads cost extra</li>\n    </ul>\n    <p style=\"margin:16px 0 4px\"><b>Leafly</b></p>\n    <ul>\n      <li>Dispensaries and brands</li>\n      <li>Promotion stays inside Leafly only</li>\n      <li>No done-for-you marketing</li>\n      <li>No wholesale menus</li>\n      <li>Reporting is limited</li>\n    </ul>\n  </section>", "      <li>A Services directory — licensing help, consultants, and more</li>\n    </ul>\n  </section>"]];   // [previous, now] pairs: the 'us vs. them' section became 'What you get'
 const BUSINESS_SHA256 = 'c95b2fa653f6d2fb2c420a2b12586406c3b80fa9a8ecb1318d72e7665c8b9b55';   // live-shots a11y/layout/og edits (find-my-weed #94), on top of the hidden-prices pin below
 const BUSINESS_SHA256_HIDDEN = 'c94de27bfaf1799844f83faf694ed67fdcb745bd57756efaa0d71854167f73ba';   // Joe 2026-11-22 "keep it public to verified business owners only": prices + Stripe links hidden, on top of the no-sample pin below
 // [old, new] pairs of the a11y pass: undoing them (last first) gives back the hidden-prices page byte for byte
@@ -167,7 +169,12 @@ test('for-business/: the #201 bytes minus the M201-1 robots meta and the commiss
   assert.deepEqual(fs.readdirSync(path.join(ROOT, APP, 'for-business')), ['index.html']);
   const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
   const biz = fs.readFileSync(path.join(ROOT, BUSINESS));
-  assert.equal(sha(biz), BUSINESS_SHA256, BUSINESS + ' changed (if it changed on purpose, update the pin)');
+  assert.equal(sha(biz), BUSINESS_SHA256_NOCOMP, BUSINESS + ' changed (if it changed on purpose, update the pin)');
+  // the only differences from the page that still had the competitor comparison: the three NOCOMP_PAIRS edits
+  let withComparison = biz.toString('utf8');
+  for (const [prev, now] of [...NOCOMP_PAIRS].reverse()) withComparison = withComparison.replace(now, () => prev);
+  assert.equal(sha(withComparison), BUSINESS_SHA256);
+  assert.doesNotMatch(biz.toString('utf8'), /weedmaps|leafly|\$\d/i, 'no competitor name or dollar figure on the page');
   // the ONLY differences from #201's pre-launch bytes: the removed robots meta and the removed "10% commission" bullet
   const COMMISSION_BULLET = '      <li>10% commission only on orders that come through us \u2014 wholesale and retail. No orders, no commission</li>\n';
   // A205: the only differences from the launched page are the link colour rule and the two age qualifiers
@@ -176,7 +183,7 @@ test('for-business/: the #201 bytes minus the M201-1 robots meta and the commiss
   // QA 2026-11-22: the only difference from the R-J1 page is the two join buttons now opening the business sign-up
   // Joe 2026-11-22: the only difference from the table page is the removed sample-profile link
   // Joe 2026-11-22: the only difference from the no-sample page is that prices and Stripe links are hidden
-  let hiddenPrices = biz.toString('utf8');
+  let hiddenPrices = withComparison;
   for (const [prev, now] of [...A11Y_PAIRS].reverse()) hiddenPrices = hiddenPrices.replace(now, () => prev);
   assert.equal(sha(hiddenPrices), BUSINESS_SHA256_HIDDEN);
   let nosample = hiddenPrices;

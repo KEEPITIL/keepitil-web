@@ -148,7 +148,7 @@
       offered = { storefront: F.storefrontOffered(data, now), delivery: F.deliveryOffered(data, now) };
       draw();
     };
-    if (page === 'about' || page === 'privacy') load().then(menuData, function () {});
+    if (page === 'about' || page === 'privacy' || page === 'terms') load().then(menuData, function () {});
   })();
 
   // The location dropdown INSIDE the search bar (approved spec item 2): State / County / City in ONE select, built from the

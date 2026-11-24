@@ -26,6 +26,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="preconnect" href="https://images.ra.co"/>
+<link rel="preconnect" href="https://seatgeekimages.com"/>
+<script>/* flyer-preload: when the link already carries ?img=, start fetching the flyer now (before the page script runs); http(s) only */(function(){try{var m=/[?&]img=([^&]+)/.exec(location.search);if(!m)return;var u=decodeURIComponent(m[1]);if(!/^https?:\/\//i.test(u))return;var l=document.createElement('link');l.rel='preload';l.as='image';l.href=u;l.setAttribute('fetchpriority','high');document.head.appendChild(l);}catch(e){}})();</script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
 <!-- NO STATIC JSON-LD. This carried {"@type":"MusicEvent","name":"KEEPITIL Event"} on every
      event URL: a MusicEvent with no startDate and no location is invalid, and the name was
@@ -439,7 +441,11 @@
     $('ev-date').textContent = fmt(ev.date);
     $('ev-venue').textContent = loc ? ('📍 '+loc) : '';
     if(ev.genre){ var gp=$('ev-genre'); gp.textContent=ev.genre; gp.style.display='inline-block'; }
-    if(ev.img) $('ev-flyer').style.backgroundImage='url('+ev.img.replace(/"/g,'')+')';
+    /* The flyer is the LCP element: a real <img> with fetchpriority=high (a CSS background is discovered late and cannot be prioritised) */
+    if(ev.img){ var _fl=$('ev-flyer'), _im=_fl.querySelector('img');
+      if(!_im){ _im=document.createElement('img'); _im.setAttribute('fetchpriority','high'); _im.decoding='async'; _fl.appendChild(_im); }
+      _im.alt=ev.title?('Flyer for '+ev.title):'';   /* re-set on every render: the real title arrives after the first paint */
+      var _u=ev.img.replace(/"/g,''); if(_im.getAttribute('src')!==_u) _im.src=_u; }
     /* show a REAL organizer description only; the generic filler is dropped from the page */
     var _rd=ev.description||''; var _de=$('ev-desc'); if(_de){ if(_rd){ _de.textContent=_rd; _de.style.display=''; } else { _de.style.display='none'; } }
     /* shareable event QR — scan to open this event page (works on flyers/print) */

@@ -19,3 +19,8 @@ test("create calendar rows are focusable groups with a name, and the vs-app stam
 });
 test("control: a bare ce-grid or a div.wrap would fail these checks", () => { assert.doesNotMatch('<div class="ce-grid">', /tabindex/); assert.match('<div class="wrap">', /<div class="wrap">/); });
 test("culture: the scrolling feed column is keyboard-focusable and named", () => assert.match(R("culture/index.html"), /<section class="feedcol" tabindex="0" aria-label="Culture feed">/));
+test("culture has a real h1 even though its hero block is display:none; connect filters are a labelled search landmark", () => {
+  const c = R("culture/index.html"); assert.match(c, /<main class="wrap">\n\s+<h1 class="kil-sr-only">CULTURE: stories, media and community<\/h1>/); assert.match(c, /<h1 aria-hidden="true">CULTURE<\/h1>/);
+  assert.match(c, /\.kil-sr-only\{position:absolute;width:1px;height:1px/);
+  assert.match(R("connect/index.html"), /<div class="controls kil-filter-shell" role="search" aria-label="Filter and search profiles">/);
+});

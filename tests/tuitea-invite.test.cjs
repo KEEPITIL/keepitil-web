@@ -62,7 +62,7 @@ test('the inline redirect script is present', () => assert.ok(scriptMatch, 'scri
 
 for (const [label, ua, touch, want, wantLive] of UA) {
   const exp = LIVE_NOW ? wantLive : want;
-  test(`redirect (as shipped, store ${LIVE_NOW ? 'live' : 'not live'}): ${label} -> ${exp}`, () => assert.equal(run(ua, touch), exp));
+  test(`redirect (as shipped, store ${LIVE_NOW ? 'live' : 'not live'}): ${label} -> ${exp}`, () => assert.equal(run(ua, touch, '?go=1'), exp));
 }
 
 const LIVE = () => scriptMatch[1].replace('var APP_STORE_LIVE = false;', 'var APP_STORE_LIVE = true;').replace('var APP_STORE_LIVE = true;', 'var APP_STORE_LIVE = true; /*forced*/');
@@ -71,7 +71,7 @@ for (const [label, ua, touch, , wantLive] of UA) {
     const src = LIVE();
     assert.match(src, /APP_STORE_LIVE = true/, 'the flag must exist');
     const calls = [];
-    vm.runInNewContext(src, { navigator: { userAgent: ua, maxTouchPoints: touch }, location: { search: '', replace: (u) => calls.push(u) } });
+    vm.runInNewContext(src, { navigator: { userAgent: ua, maxTouchPoints: touch }, location: { search: '?go=1', replace: (u) => calls.push(u) } });
     assert.equal(calls[0], wantLive);
   });
 }
@@ -80,35 +80,53 @@ test('negative control: the checklist would catch a script that sends everyone t
   const broken = scriptMatch[1].replace('loc.replace(apple && APP_STORE_LIVE && !toWeb ? APP_STORE : web)', 'loc.replace(APP_STORE)');
   assert.notEqual(broken, scriptMatch[1], 'the replacement must apply');
   const calls = [];
-  vm.runInNewContext(broken, { navigator: { userAgent: UA[9][1], maxTouchPoints: 5 }, location: { search: '', replace: (u) => calls.push(u) } });
+  vm.runInNewContext(broken, { navigator: { userAgent: UA[9][1], maxTouchPoints: 5 }, location: { search: '?go=1', replace: (u) => calls.push(u) } });
   assert.notEqual(calls[0], WEB_APP, 'Android would no longer reach the web app, so the Android row fails');
 });
 
 test('Joe 2026-11-23: the invitation (?invite=<token>) is carried on to the web app; the App Store is unchanged', () => {
   const tok = '0123456789abcdef0123456789abcdef';
-  assert.equal(run(UA[9][1], 5, `?invite=${tok}`), `${WEB_APP}?invite=${tok}`);
-  assert.equal(run(UA[0][1], 5, `?invite=${tok}`), LIVE_NOW ? APP_STORE : `${WEB_APP}?invite=${tok}`);
+  assert.equal(run(UA[9][1], 5, `?invite=${tok}&go=1`), `${WEB_APP}?invite=${tok}`);
+  assert.equal(run(UA[0][1], 5, `?invite=${tok}&go=1`), LIVE_NOW ? APP_STORE : `${WEB_APP}?invite=${tok}`);
   // CONTROL: anything that is not 32 lowercase hex is not passed on.
-  assert.equal(run(UA[9][1], 5, '?invite=../../evil'), WEB_APP);
-  assert.equal(run(UA[9][1], 5, `?invite=${tok.slice(0, 20)}`), WEB_APP);
+  assert.equal(run(UA[9][1], 5, '?invite=../../evil&go=1'), WEB_APP);
+  assert.equal(run(UA[9][1], 5, `?invite=${tok.slice(0, 20)}&go=1`), WEB_APP);
 });
 
 test('Joe 2026-11-23: the Share link (open=web) sends every device to the web app with the invitation', () => {
   const tok = '0123456789abcdef0123456789abcdef';
-  assert.equal(run(UA[0][1], 5, `?invite=${tok}&open=web`), `${WEB_APP}?invite=${tok}`, 'iPhone');
-  assert.equal(run(UA[9][1], 5, `?invite=${tok}&open=web`), `${WEB_APP}?invite=${tok}`, 'Android');
+  assert.equal(run(UA[0][1], 5, `?invite=${tok}&open=web&go=1`), `${WEB_APP}?invite=${tok}`, 'iPhone');
+  assert.equal(run(UA[9][1], 5, `?invite=${tok}&open=web&go=1`), `${WEB_APP}?invite=${tok}`, 'Android');
   // CONTROL: without open=web an iPhone still goes to the App Store.
-  assert.equal(run(UA[0][1], 5, `?invite=${tok}`), LIVE_NOW ? APP_STORE : `${WEB_APP}?invite=${tok}`);
-  assert.equal(run(UA[0][1], 5, `?invite=${tok}&open=webby`), LIVE_NOW ? APP_STORE : `${WEB_APP}?invite=${tok}`);
+  assert.equal(run(UA[0][1], 5, `?invite=${tok}&go=1`), LIVE_NOW ? APP_STORE : `${WEB_APP}?invite=${tok}`);
+  assert.equal(run(UA[0][1], 5, `?invite=${tok}&open=webby&go=1`), LIVE_NOW ? APP_STORE : `${WEB_APP}?invite=${tok}`);
 });
 
 test('Joe 2026-11-23: simple text "You\'re invited to join for free"', () => {
   assert.match(html, /<p class="lead">You're invited to join for free\.<\/p>/);
 });
 
-test('?stay=1 keeps the page (QA and screenshots)', () => {
-  assert.equal(run(UA[0][1], 5, '?stay=1'), null);
-  assert.equal(run(UA[9][1], 5, '?x=1&stay=1'), null);
+test('PROPOSED 2026-11-23: by default the page stays (no instant redirect); ?go=1 keeps the old forwarding', () => {
+  assert.equal(run(UA[0][1], 5, ''), null, 'iPhone stays');
+  assert.equal(run(UA[9][1], 5, ''), null, 'Android stays');
+  assert.equal(run(UA[0][1], 5, '?invite=0123456789abcdef0123456789abcdef'), null, 'an invitation does not forward by itself');
+  assert.equal(run(UA[0][1], 5, '?go=1'), LIVE_NOW ? APP_STORE : WEB_APP, '?go=1 forwards as before');
+  assert.equal(run(UA[0][1], 5, '?go=10'), null, 'only go=1 forwards');
+});
+
+test('PROPOSED: Open in app opens the app (tupu://join?token=...) and falls back to tupu:// without an invitation', () => {
+  const tok = '0123456789abcdef0123456789abcdef';
+  const run2 = (search) => {
+    const el = { href: null, setAttribute(k, v) { this.href = v; } };
+    const listeners = [];
+    const doc = { addEventListener: (_e, fn) => listeners.push(fn), getElementById: (id) => (id === 'open-app' ? el : { setAttribute() {} }) };
+    vm.runInNewContext(scriptMatch[1], { navigator: { userAgent: UA[0][1], maxTouchPoints: 5 }, location: { search, replace() {} }, document: doc });
+    listeners.forEach((f) => f());
+    return el.href;
+  };
+  assert.equal(run2(`?invite=${tok}`), `tupu://join?token=${tok}`);
+  assert.equal(run2(''), 'tupu://');
+  assert.equal(run2('?invite=../../evil'), 'tupu://');
 });
 
 test('link preview: og and twitter tags point at the invite card', () => {
@@ -135,12 +153,14 @@ test('three buttons, in order (Joe 2026-11-23): Apple, Google coming soon, Web',
   const buttons = [...html.matchAll(/<(a|span) class="btn ([a-z]+)"([^>]*)>([\s\S]*?)<\/\1>/g)].map((m) => ({
     tag: m[1], kind: m[2], attrs: m[3], text: m[4].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
   }));
-  assert.deepEqual(buttons.map((b) => b.text), [LIVE_NOW ? 'Apple' : 'Apple Coming soon', 'Google Coming soon', 'Web']);
-  const [apple, android, web] = buttons;
+  assert.deepEqual(buttons.map((b) => b.text), ['Open in app', LIVE_NOW ? 'Apple' : 'Apple Coming soon', 'Google Coming soon', 'Web']);
+  assert.equal(buttons[0].kind, 'primary');
+  assert.equal(buttons[0].attrs, ' id="open-app" href="tupu://"');
+  const [, apple, android, web] = buttons;
   if (LIVE_NOW) {
     // TUITEA is live on the App Store (2026-11-22): the Apple button links to the listing.
     assert.equal(apple.tag, 'a');
-    assert.equal(apple.kind, 'primary');
+    assert.equal(apple.kind, 'secondary');
     assert.equal(apple.attrs, ' href="https://apps.apple.com/app/id6806472413"');
   } else {
     // Until TUITEA is public the Apple button is 'Coming soon' (the store page says "App Not Available").
@@ -169,7 +189,7 @@ test('owner ~23:25: Apple logo and Android robot glyphs are inline SVG, monochro
   const byClass = (c) => svgs.filter((m) => new RegExp(`class="[^"]*\\b${c}\\b`).test(m[1]));
   assert.equal(byClass('glyph-apple').length, 1, 'one Apple glyph');
   assert.equal(byClass('glyph-android').length, 1, 'one Android glyph');
-  assert.match(html, LIVE_NOW ? /<a class="btn primary"[^>]*><svg class="glyph glyph-apple"[^>]*>[\s\S]*?<\/svg>Apple<\/a>/ : /<span class="btn disabled"[^>]*><svg class="glyph glyph-apple"[^>]*>[\s\S]*?<\/svg>Apple<small>Coming soon<\/small><\/span>/);
+  assert.match(html, LIVE_NOW ? /<a class="btn secondary"[^>]*><svg class="glyph glyph-apple"[^>]*>[\s\S]*?<\/svg>Apple<\/a>/ : /<span class="btn disabled"[^>]*><svg class="glyph glyph-apple"[^>]*>[\s\S]*?<\/svg>Apple<small>Coming soon<\/small><\/span>/);
   assert.match(html, /<span class="btn disabled"[^>]*><svg class="glyph glyph-android"[^>]*>[\s\S]*?<\/svg>Google<small>/);
   for (const [whole, attrs, body] of svgs) {
     assert.match(attrs, /aria-hidden="true"/, 'decorative');
@@ -209,7 +229,7 @@ test('self-contained: no external scripts, styles, fonts or frames', () => {
   assert.doesNotMatch(html, /<iframe|@import|fonts\.googleapis|googletagmanager|gtag\(|fbq\(/i);
   for (const [, src] of html.matchAll(/\b(?:src|href)="([^"]+)"/g)) {
     if (src.startsWith('/')) continue;
-    assert.ok(/^https:\/\/(keepitil\.com|apps\.apple\.com)\//.test(src), `unexpected origin: ${src}`);
+    assert.ok(/^https:\/\/(keepitil\.com|apps\.apple\.com)\//.test(src) || /^tupu:\/\//.test(src), `unexpected origin: ${src}`);
   }
 });
 

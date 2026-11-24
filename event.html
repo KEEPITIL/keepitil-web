@@ -436,6 +436,14 @@
              document.head.appendChild(cl); }
     cl.setAttribute('href', canon);
     $('og-url').setAttribute('content', canon);
+    /* Legacy /event?e=<slug> URL: once a prerendered /event/<slug>/ exists, name it as the canonical so the two forms consolidate.
+       Checked with a HEAD request, so an event that has no prerendered page yet keeps the legacy canonical (never a 404). */
+    if(!window.__kilPrerenderSlug && ev.slug && window.fetch){
+      var _pp='/event/'+encodeURIComponent(ev.slug)+'/';
+      fetch(_pp,{method:'HEAD',cache:'no-store'}).then(function(r){
+        if(r&&r.ok){ var _pc='https://keepitil.com'+_pp; cl.setAttribute('href',_pc); $('og-url').setAttribute('content',_pc); }
+      }).catch(function(){});
+    }
     var _cr=$('cr-title'); if(_cr) _cr.textContent = ev.title;
     $('ev-title').textContent = ev.title;
     $('ev-date').textContent = fmt(ev.date);

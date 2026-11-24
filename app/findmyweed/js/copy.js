@@ -195,6 +195,7 @@
       notfound: { title: 'Page not found · Find My Weed', description: 'This page does not exist. Search state-licensed cannabis businesses on Find My Weed.' },
       // the sign-up page (signup.html, behind site.json "accounts"). Its own words are in js/signup-copy.js.
       signup: { title: 'Account · Find My Weed', description: 'Create a Find My Weed account or sign in with an emailed link. Browsing licensed businesses needs no account.' },
+      terms: { title: 'Terms · Find My Weed', description: 'The terms for using Find My Weed: licensed businesses only, how to report an unlicensed seller, and how reservations work. Draft for counsel review.' },
       account: { title: 'Your account · Find My Weed', description: 'Your Find My Weed account: who is signed in, and sign out.' },
       imageAlt: 'Find My Weed: search state-licensed cannabis storefronts and delivery services',   // the real share image (launched)
       imageAltPlaceholder: 'Find My Weed placeholder share image'   // the draft's placeholder image
@@ -205,6 +206,7 @@
     footerNote: 'Find My Weed is a directory of state-licensed businesses. Check your local laws.',
     footerAbout: 'About',
     footerPrivacy: 'Privacy',
+    footerTerms: 'Terms',
     // SB 378 (Bus. & Prof. Code 22943, cannabis marketplaces): a PUBLIC way to report an unlicensed seller, in the footer of
     // every page, no account needed. A plain mailto to info@keepitil.com (the support address): no form, no network call,
     // no database. The same href is written into each page so it works before (and without) JavaScript.

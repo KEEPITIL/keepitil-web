@@ -21,7 +21,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <!-- meta:end -->
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/fmw.css?v=ff71705c30">
+<link rel="stylesheet" href="css/fmw.css?v=1809ee80b1">
 <script src="js/theme.js?v=2c32ba1dbc"></script>
 <script src="js/copy.js?v=a14073fe08"></script>
 </head>
@@ -29,7 +29,7 @@
 <div class="draft" data-copy="draftBanner"></div>
 <!-- Header (approved home 2026-11-21): ONE row, left to right: menu icon, the Style A logo, Sign in. No location here. -->
 <header class="top">
-  <svg class="band-art" aria-hidden="true" focusable="false"><defs><pattern id="fmw-leaves" width="44" height="44" patternUnits="userSpaceOnUse"><circle class="leaf" cx="6" cy="6" r="2.5"/><path class="leaf" d="M24 30c4-7 12-8 16-6-3 6-10 9-16 6z"/></pattern></defs><rect width="100%" height="100%" fill="url(#fmw-leaves)"/></svg>
+  <svg class="band-art" aria-hidden="true" focusable="false"><defs><pattern id="fmw-leaves" width="44" height="44" patternUnits="userSpaceOnUse"><circle class="leaf" cx="6" cy="6" r="2.5"/><path class="leaf" d="M24 30c4-7 12-8 16-6-3 6-10 9-16 6z"/></pattern></defs><rect class="band-fill" width="4000" height="400" fill="url(#fmw-leaves)"/></svg>
   <div class="top-in">
     <!-- The menu (NAV_MENU in the copy file, drawn by the page script). Closed on load; it opens only on a click. -->
     <button id="menu-btn" class="icon-btn menu-btn" type="button" aria-expanded="false" aria-controls="menu-panel"><span class="burger" aria-hidden="true"></span><span class="sr" data-copy="navMenu"></span></button>
@@ -40,7 +40,7 @@
   </div>
 </header>
 <!-- The menu page: slides in and REPLACES the listing while open (Weedmaps-style) -->
-<nav id="menu-panel" class="menu-panel menu-page" hidden></nav>
+<nav id="menu-panel" class="menu-panel menu-page" hidden data-copy-label="navMenuLabel"></nav>
 <main id="home" class="wrap wide">
 <h1 class="sr">Find My Weed: state-licensed cannabis storefronts and delivery services</h1>
   <!-- Phone (< 768px): rows 2-4 (search, filter carousel, List / Map) are LOCKED under the locked header (joe-0045) -->
@@ -105,6 +105,6 @@
 <script src="js/session.js?v=03d5ed8187"></script>
 <script src="js/fmw.js?v=47b77c13b1"></script>
 <script src="js/map-outline.js?v=68986a28f5"></script>
-<script src="js/pages.js?v=d710f8c860"></script>
+<script src="js/pages.js?v=9d73952adf"></script>
 </body>
 </html>

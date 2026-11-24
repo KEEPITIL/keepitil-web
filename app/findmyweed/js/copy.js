@@ -132,7 +132,7 @@
       { key: 'events', label: 'Events', group: 2, icon: 'calendar', needsData: 'events' },
       { key: 'learning', label: 'Learning', group: 2, icon: 'book', page: 'learn.html' },   // Find My Weed's own Learn page (not the host site's culture feed)
       { key: 'favorites', label: 'Favorites', group: 3, icon: 'heart', account: true },
-      { key: 'help', label: 'Help', group: 3, icon: 'help', host: '/support/' },          // the host site's standing support page
+      { key: 'help', label: 'Help', group: 3, icon: 'help', page: 'about.html' },       // Find My Weed's own About page: how it works, the data source, contact and the report link
       { key: 'listbiz', label: 'List Your Business', group: 3, icon: 'plus', biz: true }
     ],
     railDelivery: 'Delivery',
@@ -236,7 +236,10 @@
             'License details come from the California Department of Cannabis Control public license search (search.cannabis.ca.gov), which the State publishes as public information.',
             'The State does not guarantee the accuracy of that data, and neither can we. If something looks wrong, check the official record linked on the listing.'] },
           { h: 'Hours and menus', p: [
-            'Hours, menu links and delivery details come from the business, not from the State. They can change; confirm with the business before you go.'] }
+            'Hours, menu links and delivery details come from the business, not from the State. They can change; confirm with the business before you go.'] },
+          { h: 'Help and contact', p: [
+            'Questions, a correction, or a problem with a listing? Email info@keepitil.com.',
+            'To report an unlicensed seller, use the "Report an unlicensed seller" link at the bottom of any page. It opens an email to the same address.'] }
         ]
       },
       privacy: {

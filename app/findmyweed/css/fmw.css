@@ -222,6 +222,8 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .lines{display:block;min-width:0;height:114px;overflow:hidden}
 .ln{display:block;height:19px;line-height:19px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
 .listing h3.ln-name{font-size:16px;font-weight:800;color:var(--text);padding-right:40px}
+.lines-5{display:flex;flex-direction:column;justify-content:space-between}
+.ln-none{display:none}   /* the hours slot when there is no hours data: kept in the DOM, not shown */
 .ln-lic{font-family:ui-monospace,Consolas,monospace;font-size:13px;color:var(--text)}
 .ln-lic .ck{width:16px;height:16px;stroke:var(--green);stroke-width:3;vertical-align:-3px;margin-right:4px}
 .pin-btn{position:absolute;top:4px;right:4px;width:40px;height:40px;min-height:40px;border-color:var(--line)}

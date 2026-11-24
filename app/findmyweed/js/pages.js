@@ -338,9 +338,9 @@
     a.href = detailHref(l.id);
     var th = el('span', 'thumb'); th.setAttribute('aria-hidden', 'true');
     th.appendChild(el('span', 'thumb-a', 'Find My')); th.appendChild(el('span', 'thumb-b', 'Weed'));
-    var lines = el('span', 'lines');
+    var lines = el('span', 'lines' + (L[2] ? '' : ' lines-5'));   // no hours: five lines share the tile's height (no blank strip)
     lines.appendChild(el('h3', 'ln ln-name', L[0]));
-    for (var i = 1; i <= 4; i++) lines.appendChild(el('span', 'ln ln-' + i, L[i] || ' '));
+    for (var i = 1; i <= 4; i++) lines.appendChild(el('span', 'ln ln-' + i + (i === 2 && !L[i] ? ' ln-none' : ''), L[i] || ' '));   // no hours data: the slot stays (six lines) but is not shown
     var lic = el('span', 'ln ln-lic'); lic.appendChild(icon('check', 'ck')); lic.appendChild(el('span', null, L[5]));
     lines.appendChild(lic);
     a.appendChild(th); a.appendChild(lines); li.appendChild(a);
@@ -578,7 +578,9 @@
       seoApply(F.seoListing(l, SEO_BASE));
       var s = F.openState(l, new Date());
       box.appendChild(el('h1', 'name', l.name));
-      var meta = el('div', 'row meta'); meta.appendChild(badge(s)); meta.appendChild(el('span', 'muted', kind(l))); box.appendChild(meta);
+      var meta = el('div', 'row meta');
+      if (s.known !== false) meta.appendChild(badge(s));   // no hours data: no badge
+      meta.appendChild(el('span', 'muted', kind(l))); box.appendChild(meta);
 
       var lic = el('section', 'card'); lic.appendChild(el('h2', null, C.license));
       lic.appendChild(el('p', 'mono', l.license));

@@ -234,6 +234,9 @@ function loadRecent(){
   }).catch(function(e){ try{ console.error('[submit-event] listings', e); }catch(x){} return []; });
 }
 var RECENT=[];
+/* After an edit: the server (update_community_event, edit-review policy) says whether the event went back to
+   review. Only an explicit needs_review === false means it stayed live; the older server (no flag) always re-reviews. */
+function editSavedMessage(d){ return (d&&d.needs_review===false)?'Saved — your event stays live. ✓':'Saved — back in review. ✓'; }
 function startEdit(e){
   EDIT_ID=e.id; $('formTitle').textContent='EDIT EVENT'; $('submitBtn').textContent='Save changes';
   $('venue').value=e.venue||''; $('city').value=e.city||'Los Angeles'; $('title').value=e.title||'';
@@ -295,7 +298,7 @@ $('form').addEventListener('submit',function(e){
     }}).then(function(r){
       var d=(r&&r.data)||{};
       if(r.error||!d.ok){ fail((r.error&&r.error.message)||d.error||'Could not save.'); return; }
-      msg.className='msg ok'; msg.textContent='Saved — back in review. ✓';
+      msg.className='msg ok'; msg.textContent=editSavedMessage(d);
       b.disabled=false; b.textContent=old; clearForm(); loadRecent();
     }).catch(offline);
     return;

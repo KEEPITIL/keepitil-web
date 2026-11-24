@@ -61,6 +61,8 @@
     card.appendChild(row); box.appendChild(card);
     // a business account also gets the order inbox (behind FMW_CONFIG.ordering, off today)
     if (kind === T.business && win.FMW_INBOX && win.FMW_INBOX.mount) win.FMW_INBOX.mount(doc, box, { win: win });
+    // a customer account also gets its saved listings (behind FMW_CONFIG.favorites, off today)
+    if (kind === T.customer && win.FMW_FAVORITES && win.FMW_FAVORITES.mountList) win.FMW_FAVORITES.mountList(doc, box, { win: win });
     return { state: 'signed-in' };
   }
   var api = { KEY: KEY, claims: claims, live: live, signOutRequest: signOutRequest, app: app };

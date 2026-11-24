@@ -57,11 +57,11 @@ curl -s -o /dev/null -w 'notfound=%{http_code}\n' "$B/nothere-xyz"
 curl -s -o /dev/null -w 'sitemap=%{http_code}\n' "$B/sitemap.xml"; curl -s "$B/sitemap-events.xml" | grep -c '/event/.*/</loc>'; curl -s "$B/sitemap-events.xml" | grep -c 'event?e='
 curl -s "$B/robots.txt" | grep -i sitemap
 # 4. no source maps, no service key
-curl -s "$B/" | grep -ci 'sourceMappingURL'; curl -s "$B/" | grep -ci service_role
+curl -s "$B/" | grep -ci 'sourceMappingURL'; curl -s "$B/" | grep -ci "service_[r]ole"
 # 5. money features stay off (no Stripe script, no refund UI)
 for p in submit-event settings dashboard; do echo "/$p $(curl -s "$B/$p" | grep -ci 'js.stripe.com\|checkout.stripe.com\|refund')"; done
 ```
-Expected: 200 and one canonical on every listed page (`/venues` shows `301`/0 until its fix: use `/venues/`); `noindex` >= 1 on the four private pages; notfound=404; sitemap=200, event URLs = number of published events (10 on 11-24), legacy `event?e=` entries = 0, robots lists the sitemaps; 0 source map and 0 service_role strings; 0 Stripe/refund hits on the three pages.
+Expected: 200 and one canonical on every listed page (`/venues` shows `301`/0 until its fix: use `/venues/`); `noindex` >= 1 on the four private pages; notfound=404; sitemap=200, event URLs = number of published events (10 on 11-24), legacy `event?e=` entries = 0, robots lists the sitemaps; 0 source map and 0 service-role key strings; 0 Stripe/refund hits on the three pages.
 
 Database spot checks (read-only SQL, any role that can read `pg_proc`): the F7 functions have `anon` = false; `get_ticket` source contains `buyer_masked`; section gate 11 query returns 0 rows until #95 is applied.
 

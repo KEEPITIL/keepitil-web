@@ -191,7 +191,7 @@
       results: { title: 'Licensed businesses near you · Find My Weed', description: 'State-licensed cannabis storefronts and delivery services, with license numbers and opening hours. Cannabis is for adults 21+ (18+ medical where legal).' },
       listing: { title: 'Licensed business · Find My Weed', description: 'License number, address and hours for a state-licensed cannabis business. Cannabis is for adults 21+ (18+ medical where legal).' },
       about: { title: 'About · Find My Weed', description: 'How Find My Weed lists only state-licensed cannabis businesses, where the license data comes from, and its limits.' },
-      privacy: { title: 'Privacy · Find My Weed', description: 'What Find My Weed stores: business data from the state license record only, no visitor accounts, no ad tracking.' },
+      privacy: { title: 'Privacy · Find My Weed', description: 'What Find My Weed stores: business data from the state license record, optional accounts with email sign-in, no ad tracking, nothing sold.' },
       notfound: { title: 'Page not found · Find My Weed', description: 'This page does not exist. Search state-licensed cannabis businesses on Find My Weed.' },
       // the sign-up page (signup.html, behind site.json "accounts"). Its own words are in js/signup-copy.js.
       signup: { title: 'Account · Find My Weed', description: 'Create a Find My Weed account or sign in with an emailed link. Browsing licensed businesses needs no account.' },
@@ -236,10 +236,24 @@
       privacy: {
         title: 'Privacy',
         sections: [
-          { h: 'No accounts, no ad tracking', p: [   // A61-8 (review 03:30 PT): accurate next to the Cloudflare Web Analytics line
-            'You do not need an account to use Find My Weed. We do not use advertising trackers.',
+          { h: 'Accounts are optional; no ad tracking', p: [
+            'You do not need an account to browse Find My Weed. We do not use advertising trackers.',
             'We use Cloudflare Web Analytics to count page views. It uses no cookies and gives us totals only: no ads and no profile that follows you to other sites.',
             'We don\'t keep your searches. Like any website, our host keeps short-lived server logs (IP address and page requested) for security.'] },
+          // Accounts (sign-up live since 2026-11-22). Every line is true of js/signup.js, js/fmw-auth.js and
+          // supabase/migrations/20261123010000_fmw_signup.sql; tests/privacy-accounts.test.js checks each against the code.
+          { h: 'If you create an account', p: [
+            'Signing in uses a link we email to you. There is no password.',
+            'Your account holds your email address and whether it is a customer or a business account. For 18 to 20 year olds with a medical recommendation, it also notes that the account is medical-only. It also keeps your light or dark choice if you make one.',
+            'Sign-up asks when you were born, to check eligibility. That check runs in your browser, and the answer is not stored.',
+            'Business accounts: to verify a license, we check the license number, the legal business name and the category you enter against the state license record. When you are signed in, the result of that check is kept with your account, together with the license number.',
+            'Accounts are stored in a hosted database that we run. They are kept separate from member profiles on our other sites.'] },
+          { h: 'Ordering ahead (where a business offers it)', p: [
+            'When a business accepts orders, we send it the items you chose, whether you want pickup or delivery, the city for a delivery, any note you add and the time you ask for. We ask for your date of birth again when you place an order, check that you are old enough, and then discard it: it is not saved.',
+            'Find My Weed takes no payment. You pay the business when you pick up or when it is delivered, and the business checks your ID.'] },
+          { h: 'Who sees your information, and deleting it', p: [
+            'We do not sell your information and we do not share it with advertisers. Services that host and email the site process it only to run Find My Weed.',
+            'To delete your account and what is kept with it, email info@keepitil.com from the address on the account. Until a delete button exists, we will do it for you.'] },
           { h: 'What stays on your device', p: [
             'Searching near you uses the city or ZIP you type. Your exact location is never sent to a server.',
             'This site saves up to two settings in your browser: fmw-theme (System, Bright or Dark), if you pick a theme in the menu, and fmw-area, the last location you chose in the search bar, so the home opens there next time. They stay on this device and aren\'t sent to us or anyone else. Clear this site\'s data in your browser settings to remove them.'] },

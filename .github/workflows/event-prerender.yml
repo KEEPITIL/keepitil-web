@@ -7,7 +7,7 @@
 # Least privilege: the workflow default is read-only; contents:write is granted to this one job only. Reads only from Supabase: the public anon key already in event.html.
 name: Event prerender
 on:
-  schedule: [{ cron: '7,37 * * * *' }]
+  schedule: [{ cron: '11,41 * * * *' }]
   workflow_dispatch:
   repository_dispatch:
     types: [event-changed]

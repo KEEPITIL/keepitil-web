@@ -551,6 +551,7 @@
     var base = opts.basePath || '', offered = opts.offered || {}, out = [];
     (list || []).forEach(function (it) {
       if (!it || !it.key || typeof it.label !== 'string' || !it.label) return;
+      if (it.visitorOnly === true && opts.signedIn === true) return;   // Sign in / Sign up for a visitor; Account / Sign out once signed in
       var href = it.biz ? base + '/for-business/'
         : (typeof it.page === 'string' && PAGE_RE.test(it.page)) ? (opts.absolute ? base + '/' + it.page : it.page)
         : (base && typeof it.host === 'string' && HOST_RE.test(it.host)) ? it.host : null;
@@ -693,7 +694,7 @@
     var two = [];
     if (typeof l.rating === 'number' && isFinite(l.rating) && l.rating >= 0 && l.rating <= 5) two.push(C.rating(l.rating));
     if (typeof r.miles === 'number' && isFinite(r.miles)) two.push(C.miles(r.miles));
-    var hours = r.known === false || !hoursKnown(l) ? C.hoursNotListed : r.open ? C.openUntil(fmtTime(r.until)) : C.closed;
+    var hours = r.known === false || !hoursKnown(l) ? '' : r.open ? C.openUntil(fmtTime(r.until)) : C.closed;   // no hours data: nothing is shown (an empty "Hours not listed" on every card was noise)
     var al = addressLines(l), addr = al.lines.length ? (l.storefront && al.lines.length === 2 ? al.lines[0] + ', ' + cityOf(l) : al.lines[0]) : C.addressNone;
     var kind = l.storefront && l.delivery === true ? C.kindBoth : l.storefront ? C.kindStorefront : C.kindDelivery;
     var county = typeof a.county === 'string' && a.county.trim() ? C.countyName(a.county.trim().replace(/\s+county$/i, '')) : '';

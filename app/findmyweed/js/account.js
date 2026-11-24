@@ -40,7 +40,7 @@
       forget(); clear(); title.textContent = T.signedOutTitle; box.setAttribute('data-state', 'signed-out');
       var s = el('div', 'state info'); s.setAttribute('role', 'status');
       s.appendChild(el('p', null, msg || T.signedOutBody));
-      var row = el('div', 'actions'); row.appendChild(link(T.signIn, 'signup.html?mode=signin')); row.appendChild(link(T.search, 'index.html', 'btn ghost'));
+      var row = el('div', 'actions'); var sv = win.FMW_FAVORITES && win.FMW_FAVORITES.saveParam ? win.FMW_FAVORITES.saveParam(win) : ''; row.appendChild(link(T.signIn, 'signup.html?mode=signin' + (sv ? '&save=' + encodeURIComponent(sv) : ''))); row.appendChild(link(T.search, 'index.html', 'btn ghost'));
       s.appendChild(row); box.appendChild(s);
     }
     if (!token || !live(c, nowSec)) { signedOut(); return { state: 'signed-out' }; }
@@ -59,6 +59,8 @@
     });
     var row = el('div', 'actions'); row.appendChild(out); row.appendChild(link(T.search, 'index.html', 'btn ghost'));
     card.appendChild(row); box.appendChild(card);
+    // opened by the menu's Sign out (?signout=1): run the same sign-out as the button, server revoke included (the question lives in js/session.js)
+    if (win.FMW_SESSION && win.FMW_SESSION.signOutRequested && win.FMW_SESSION.signOutRequested()) out.click();
     // a business account also gets the order inbox (behind FMW_CONFIG.ordering, off today)
     if (kind === T.business && win.FMW_INBOX && win.FMW_INBOX.mount) win.FMW_INBOX.mount(doc, box, { win: win });
     // a customer account also gets its saved listings (behind FMW_CONFIG.favorites, off today)

@@ -59,8 +59,9 @@
   // placeholder above and List Your Business keeps the for-business link. "accounts" on: Sign in opens signup.html.
   // "claims" on as well: List Your Business opens the business path there. Nothing here signs anyone in.
   var ACCT = window.FMW_CONFIG && window.FMW_CONFIG.accounts === true, CLAIMS = ACCT && window.FMW_CONFIG.claims === true;
+  var SESS = window.FMW_SESSION || {}, SIGNED_IN = ACCT && SESS.signedIn === true;   // js/session.js: a hint about what to draw (the server checks every call)
   if (ACCT) doc.querySelectorAll('button.signin').forEach(function (b) {
-    var a = el('a', b.className, b.textContent); a.href = 'signup.html'; b.parentNode.replaceChild(a, b);
+    var a = el('a', b.className, SIGNED_IN ? C.account : b.textContent); a.href = SIGNED_IN ? 'account.html' : 'signup.html'; b.parentNode.replaceChild(a, b);
     var note = doc.getElementById('signin-note'); if (note && note.parentNode) note.parentNode.removeChild(note);
   });
   if (CLAIMS) doc.querySelectorAll('a[data-biz]').forEach(function (n) { n.href = 'signup.html?as=business'; });
@@ -121,7 +122,7 @@
       var a = doc.activeElement, keep = isOpen && a && panel.contains(a) ? (a.getAttribute('data-menu') || (a.parentNode && a.parentNode.getAttribute && a.parentNode.getAttribute('data-menu'))) : null;
       clear(panel);
       var noteId = 'menu-acct-note', acct = el('div', 'menu-acct'), groups = {}, order = [], anySoonAcct = false;
-      F.menuItems(C.NAV_MENU, { accounts: cfg.accounts === true, basePath: base, absolute: abs, offered: offered }).forEach(function (it) {
+      F.menuItems(C.NAV_MENU, { accounts: cfg.accounts === true, signedIn: SIGNED_IN, basePath: base, absolute: abs, offered: offered }).forEach(function (it) {
         var n;
         if (!it.group) {   // the two account pills, side by side at the top
           if (it.disabled) { n = soonButton('pill ' + (it.pill || 'outline'), it.label, noteId); anySoonAcct = true; }
@@ -137,6 +138,10 @@
         if (it.disabled) n.appendChild(el('span', 'soon-tag', C.comingSoon));
         li.appendChild(n); groups[it.group].appendChild(li);
       });
+      if (SIGNED_IN) {   // signed in: Account, and Sign out (the account page runs the full server revoke when it is opened with ?signout=1)
+        var ac = el('a', 'pill outline', C.account); ac.href = 'account.html'; ac.setAttribute('data-menu', 'account'); acct.appendChild(ac);
+        var so = el('a', 'pill fill', C.signOut); so.href = 'account.html?signout=1'; so.setAttribute('data-menu', 'signout'); acct.appendChild(so);
+      }
       panel.appendChild(acct);
       if (anySoonAcct) { var note = el('p', 'menu-note muted', C.signInSoon); note.id = noteId; panel.appendChild(note); }
       order.forEach(function (g) { panel.appendChild(groups[g]); });
@@ -333,9 +338,9 @@
     a.href = detailHref(l.id);
     var th = el('span', 'thumb'); th.setAttribute('aria-hidden', 'true');
     th.appendChild(el('span', 'thumb-a', 'Find My')); th.appendChild(el('span', 'thumb-b', 'Weed'));
-    var lines = el('span', 'lines');
+    var lines = el('span', 'lines' + (L[2] ? '' : ' lines-5'));   // no hours: five lines share the tile's height (no blank strip)
     lines.appendChild(el('h3', 'ln ln-name', L[0]));
-    for (var i = 1; i <= 4; i++) lines.appendChild(el('span', 'ln ln-' + i, L[i] || ' '));
+    for (var i = 1; i <= 4; i++) lines.appendChild(el('span', 'ln ln-' + i + (i === 2 && !L[i] ? ' ln-none' : ''), L[i] || ' '));   // no hours data: the slot stays (six lines) but is not shown
     var lic = el('span', 'ln ln-lic'); lic.appendChild(icon('check', 'ck')); lic.appendChild(el('span', null, L[5]));
     lines.appendChild(lic);
     a.appendChild(th); a.appendChild(lines); li.appendChild(a);
@@ -573,7 +578,9 @@
       seoApply(F.seoListing(l, SEO_BASE));
       var s = F.openState(l, new Date());
       box.appendChild(el('h1', 'name', l.name));
-      var meta = el('div', 'row meta'); meta.appendChild(badge(s)); meta.appendChild(el('span', 'muted', kind(l))); box.appendChild(meta);
+      var meta = el('div', 'row meta');
+      if (s.known !== false) meta.appendChild(badge(s));   // no hours data: no badge
+      meta.appendChild(el('span', 'muted', kind(l))); box.appendChild(meta);
 
       var lic = el('section', 'card'); lic.appendChild(el('h2', null, C.license));
       lic.appendChild(el('p', 'mono', l.license));

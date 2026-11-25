@@ -302,13 +302,13 @@
             'Signing in uses a link we email to you. There is no password.',
             // PLACEHOLDER WORDING (Grok 2026-11-24): Muse words this line, Echo checks it. The facts are true of js/session-store.js.
             'When you sign in, a sign-in token is kept on this device so you stay signed in. It is removed when you sign out, and it ends 30 days after you sign in.',
-            'Your account holds your email address and whether it is a customer or a business account. For 18 to 20 year olds with a medical recommendation, it also notes that the account is medical-only. It also keeps your light or dark choice if you make one. If you save listings, they are stored with your account and are visible only to you.',
+            'Your account holds your email address and whether it is a customer or a business account. For 18 to 20 year olds with a medical recommendation, it also notes that the account is medical-only. It also keeps your light or dark choice if you make one. Saving listings is coming; when it is on, saved listings will be stored with your account and be visible only to you.',
             'Sign-up asks when you were born, to check eligibility. That check runs in your browser, and the answer is not stored.',
             'Business accounts: To check a license, we look it up in the state\'s public license records. We use the license number, the legal business name and the category you enter. When you are signed in, the result of that check is kept with your account, together with the license number.',
-            'Accounts are stored in a hosted database that we run. They are kept separate from member profiles on our other sites.'] },
-          { h: 'Ordering ahead (where a business offers it)', p: [
-            'When a business accepts orders, we send it the items you chose, whether you want pickup or delivery, the city for a delivery, any note you add and the time you ask for. We ask for your date of birth again when you place an order, check that you are old enough, and then discard it: it is not saved.',
-            'Find My Weed takes no payment. You pay the business when you pick up or when it is delivered, and the business checks your ID.'] },
+            'Accounts are stored in a hosted database that we run. Find My Weed keeps its own account records, separate from member profiles on our other sites. A login you made on one of our other sites can also sign in here.'] },
+          { h: 'What we do not do', p: [
+            'Find My Weed does not take reservations or requests for cannabis, and it takes no payment: no card details are collected here. Nothing is sold, reserved or delivered here.',
+            'Each listing points you to the business itself. Anything you arrange, you arrange with the business, and the business checks your ID.'] },
           { h: 'Who sees your information, and deleting it', p: [
             'We do not sell your information and we do not share it with advertisers. Services that host and email the site process it only to run Find My Weed.',
             'If you report an unlicensed seller, we keep your email and what you wrote only to handle the report and to tell you the result.',   // DRAFT for Muse / Grok GO

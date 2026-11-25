@@ -97,6 +97,7 @@
     rowDeals: 'Deals nearby',
     rowCategories: 'Categories',
     rowFeatured: 'Featured',
+    resultsHeading: 'Licensed businesses',   // NEW (draft, for Muse): a visually hidden heading above the card list (heading order h1 > h2 > h3); never shown, no count
     // Categories row tiles (FMW.categoryTiles): a tile only for a category with real rows in the area
     catTile: { storefront: 'Storefronts', delivery: 'Deliveries', brands: 'Brands' },   // Services / Events: the chip words (fServices / fEvents)
     catTileLabel: function (name) { return 'Show ' + name; },

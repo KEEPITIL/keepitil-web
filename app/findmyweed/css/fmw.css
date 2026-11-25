@@ -214,6 +214,7 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .map-svg .dot.sel .pin{fill:var(--band-accent);stroke:var(--text);stroke-width:3}
 .rail h2{font-size:17px;margin:4px 0 10px;background:var(--section);color:var(--on-section);border:1px solid var(--section-edge);border-radius:10px;padding:7px 12px;letter-spacing:.01em}
 .rail+.rail{margin-top:22px}
+.rail h2.sr{margin:-1px;padding:0;border:0;background:none}   /* the hidden heading above the cards stays hidden (the .rail h2 block style must not apply) */
 /* the listing card: the same fixed size everywhere. 1:1 tile (114px) + six 19px lines (114px): text never taller than the tile */
 .listings{grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr))}
 .shop{position:relative}

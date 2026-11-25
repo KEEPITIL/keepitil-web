@@ -468,10 +468,10 @@
     $('ev-venue').textContent = loc ? ('📍 '+loc) : '';
     if(ev.genre){ var gp=$('ev-genre'); gp.textContent=ev.genre; gp.style.display='inline-block'; }
     /* The flyer is the LCP element: a real <img> with fetchpriority=high (a CSS background is discovered late and cannot be prioritised) */
-    if(ev.img){ var _fl=$('ev-flyer'), _im=_fl.querySelector('img');
+    { /* no cover (cover_url null): show our own placeholder, never a blank or hidden flyer */ var _fl=$('ev-flyer'), _im=_fl.querySelector('img');
       if(!_im){ _im=document.createElement('img'); _im.setAttribute('fetchpriority','high'); _im.decoding='async'; _fl.appendChild(_im); }
       _im.alt=ev.title?('Flyer for '+ev.title):'';   /* re-set on every render: the real title arrives after the first paint */
-      var _u=ev.img.replace(/"/g,''); if(_im.getAttribute('src')!==_u) _im.src=_u; }
+      var _u=(ev.img||'/assets/images/event-placeholder.svg').replace(/"/g,''); if(_im.getAttribute('src')!==_u) _im.src=_u; }
     /* show a REAL organizer description only; the generic filler is dropped from the page */
     var _rd=ev.description||''; var _de=$('ev-desc'); if(_de){ if(_rd){ _de.textContent=_rd; _de.style.display=''; } else { _de.style.display='none'; } }
     /* shareable event QR — scan to open this event page (works on flyers/print) */

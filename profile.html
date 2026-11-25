@@ -373,7 +373,7 @@ footer a{color:var(--accent2);}
 @media (scripting:enabled){
   .pf-meta{min-height:14rem}
   body.pf-hold #pfStatsRow,body.pf-hold #pfAcctType,body.pf-hold #pfBadges,body.pf-late #pfAboutTop,body.pf-late #pfLinksDrop,body.pf-late #pfAbout,body.pf-late #pfLinks,body.pf-late .pf-cta{visibility:hidden}
-  /* the feed arrives last and can be 1,000+ px tall; until it is drawn the active panel holds one screen, so the partner block under it starts below the fold and its move is not a layout shift. Given back when the feed is drawn (loadFromDB), so a profile with no posts shows no blank. */
+  /* the feed arrives last and can be 1,000+ px tall and lands above the partner block and the footer. Both stay invisible (not collapsed: no blank band) until the feed is drawn (loadFromDB), or at once when the record says 0 posts (get_profile_stats). */
   body.pf-feed .mono,body.pf-feed #v3-footer{visibility:hidden}   /* hidden elements never count toward CLS: the feed arriving cannot push them; no reserved height to collapse on a short feed */
 }
 @media (scripting:enabled) and (max-width:768px){.pf-meta{min-height:19rem}}

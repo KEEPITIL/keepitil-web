@@ -366,6 +366,15 @@ footer a{color:var(--accent2);}
   .pf-subs{padding:8px}
   .pf-subs button{padding:6px 12px;font-size:.63rem}
 }
+
+/* ONE-PASS HEADER (KODE parked ticket; Grok 11:36): the header arrives in steps (name/bio/avatar, then about/links/badges/account type, then the stats), so the page re-flowed several times
+   (phone CLS 0.4-0.9 on long-bio profiles). While `body.pf-hold` ONLY the late block is painted invisible: stats, about, links, account type, badges, the buttons row and everything under the header
+   (name, avatar and bio paint at once). js releases the hold when all pieces are in, after 1.5 s at the latest, or on a not-found / no-database page. Only with scripting on. */
+@media (scripting:enabled){
+  .pf-meta{min-height:14rem}
+  body.pf-hold #pfStatsRow,body.pf-hold #pfAboutTop,body.pf-hold #pfLinksDrop,body.pf-hold #pfAcctType,body.pf-hold #pfBadges,body.pf-hold #pfAbout,body.pf-hold #pfLinks,body.pf-hold .pf-cta{visibility:hidden}
+}
+@media (scripting:enabled) and (max-width:768px){.pf-meta{min-height:19rem}}
 </style>
 <style id="kil-feedv2">
 /* ===== FEED v2 — 9:16 universal cards, video, IG-style create, legend, events hub ===== */
@@ -608,7 +617,18 @@ window.KIL_FILTER_BADGES = function(badges){
 };
 </script>
 </head>
-<body>
+<body class="pf-hold">
+<script>
+/*PF-GATE-START*/
+window.__pfGate=(function(){
+  var need={meta:1,about:1,claim:1,stats:1}, released=false, timer=null;
+  function reveal(){ if(released) return; released=true; if(timer) clearTimeout(timer); try{ document.body.classList.remove('pf-hold'); }catch(e){} }
+  function mark(k){ if(!need[k]) return; delete need[k]; for(var x in need){ if(Object.prototype.hasOwnProperty.call(need,x)) return; } reveal(); }
+  timer=setTimeout(reveal,1500);
+  return { mark:mark, reveal:reveal, pending:function(){ return Object.keys(need); }, released:function(){ return released; } };
+})();
+/*PF-GATE-END*/
+</script>
 
 <nav id="main-nav">
   <div class="nav-inner">
@@ -1497,12 +1517,13 @@ function renderLinksMenu(){
   if(row){ row.style.display='flex'; row.innerHTML=capped.map(function(it){ var href=safeNav(it.url); if(!href) return ''; return '<a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer" title="'+esc(it.label)+'" aria-label="'+esc(it.label)+'" style="flex:0 0 auto;width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid var(--line,rgba(255,255,255,.12));text-decoration:none;color:#fff">'+pfSvg(it.key)+'</a>'; }).join(''); }
 }
 function loadProfileMeta(){
-  if(!SB) return Promise.resolve();
+  if(!SB){ window.__pfGate&&window.__pfGate.reveal(); return Promise.resolve(); }
   return SB.from('profile_meta').select('*').eq('slug',PROFILE_SLUG).maybeSingle().then(function(r){
     /* SOFT-404: an explicit ?slug= that matches no profile. Guarded on PROFILE_SLUG being
        present so the owner's own view — which arrives here without a slug and is redirected
        elsewhere — is never mistaken for a missing profile. */
     if(PROFILE_SLUG && !(r&&r.data) && window.KIL_NOT_FOUND){
+      window.__pfGate&&window.__pfGate.reveal();
       window.KIL_NOT_FOUND({ what:'profile', heading:'That profile isn’t here',
         body:'It may have been removed, renamed, or the link may be wrong.',
         links:[['/connect/','Browse the Scene'],['/','Explore'],['/apply','Claim your profile']] });
@@ -1516,8 +1537,8 @@ function loadProfileMeta(){
       if(Array.isArray(d.links))PROFILE.links=d.links;
       if(Array.isArray(d.highlights)&&d.highlights.length)PROFILE.highlights=d.highlights;
     }
-    applyProfile(); loadCategories();
-  }).catch(function(){ applyProfile(); });
+    applyProfile(); loadCategories(); window.__pfGate&&window.__pfGate.mark('meta');
+  }).catch(function(){ applyProfile(); window.__pfGate&&window.__pfGate.mark('meta'); });
 }
 function loadCategories(){
   if(!SB) return;
@@ -2922,7 +2943,8 @@ function toggleArchived(id,val){
         var d=(r&&r.data)||{};
         var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=(v==null?0:v);};
         set('stPosts',d.posts); set('stFollowers',d.followers); set('stLikes',d.likes);
-      });
+        window.__pfGate&&window.__pfGate.mark('stats');
+      },function(){ window.__pfGate&&window.__pfGate.mark('stats'); });
       SB.from('profile_meta').select('about,links,account_type,links_label,badges').eq('slug',PROFILE_SLUG).maybeSingle().then(function(r){
         var m=(r&&r.data)||{};
         /* S2: never print the raw enum — post-migration that reads "editorial_brand". */
@@ -2937,7 +2959,7 @@ function toggleArchived(id,val){
               var _l=window.KIL_FILTER_BADGES(Array.isArray(m.badges)?m.badges:[]).filter(function(x){
                 var k=String(x).toLowerCase().trim(); if(!k||k===_ac2||_seen2[k])return false; _seen2[k]=1; return true; });
               _b.innerHTML=_l.slice(0,6).map(function(x){return '<span class="bdg">'+String(x).replace(/[<>]/g,'').slice(0,16)+'</span>';}).join(''); } }catch(e){}
-        });
+        }).then(function(){ window.__pfGate&&window.__pfGate.mark('claim'); },function(){ window.__pfGate&&window.__pfGate.mark('claim'); });
         PROFILE.about=m.about||''; PROFILE.links=Array.isArray(m.links)?m.links:[];
         PROFILE.links_label=m.links_label||''; PROFILE.badges=Array.isArray(m.badges)?m.badges:null;
         /* editable Links dropdown title */
@@ -2951,7 +2973,8 @@ function toggleArchived(id,val){
         if(m.socials&&typeof m.socials==='object')PROFILE.socials=Object.assign({},PROFILE.socials,m.socials);
         renderLinksMenu();
         document.addEventListener('click',function(){ var mm=document.getElementById('pfLinksMenu'); if(mm)mm.style.display='none'; });
-      });
+        window.__pfGate&&window.__pfGate.mark('about');
+      },function(){ window.__pfGate&&window.__pfGate.mark('about'); });
     }catch(e){}
   }
   boot();

@@ -372,7 +372,9 @@ footer a{color:var(--accent2);}
    (name, avatar and bio paint at once). js releases the hold when all pieces are in, after 1.5 s at the latest, or on a not-found / no-database page. Only with scripting on. */
 @media (scripting:enabled){
   .pf-meta{min-height:14rem}
-  body.pf-hold #pfStatsRow,body.pf-hold #pfAboutTop,body.pf-hold #pfLinksDrop,body.pf-hold #pfAcctType,body.pf-hold #pfBadges,body.pf-hold #pfAbout,body.pf-hold #pfLinks,body.pf-hold .pf-cta{visibility:hidden}
+  body.pf-hold #pfStatsRow,body.pf-hold #pfAcctType,body.pf-hold #pfBadges,body.pf-late #pfAboutTop,body.pf-late #pfLinksDrop,body.pf-late #pfAbout,body.pf-late #pfLinks,body.pf-late .pf-cta{visibility:hidden}
+  /* the feed arrives last and can be 1,000+ px tall and lands above the partner block and the footer. Both stay invisible (not collapsed: no blank band) until the feed is drawn (loadFromDB), or at once when the record says 0 posts (get_profile_stats). */
+  body.pf-feed .mono,body.pf-feed #v3-footer{visibility:hidden}   /* hidden elements never count toward CLS: the feed arriving cannot push them; no reserved height to collapse on a short feed */
 }
 @media (scripting:enabled) and (max-width:768px){.pf-meta{min-height:19rem}}
 </style>
@@ -617,15 +619,21 @@ window.KIL_FILTER_BADGES = function(badges){
 };
 </script>
 </head>
-<body class="pf-hold">
+<body class="pf-hold pf-late pf-feed">
 <script>
 /*PF-GATE-START*/
 window.__pfGate=(function(){
-  var need={meta:1,about:1,claim:1,stats:1}, released=false, timer=null;
-  function reveal(){ if(released) return; released=true; if(timer) clearTimeout(timer); try{ document.body.classList.remove('pf-hold'); }catch(e){} }
-  function mark(k){ if(!need[k]) return; delete need[k]; for(var x in need){ if(Object.prototype.hasOwnProperty.call(need,x)) return; } reveal(); }
-  timer=setTimeout(reveal,1500);
-  return { mark:mark, reveal:reveal, pending:function(){ return Object.keys(need); }, released:function(){ return released; } };
+  // two holds on <body>: pf-hold (stats, account type, badges: small text) is released when all four pieces are in or after 1.5 s;
+  // pf-late (about, links, the buttons row: the blocks that MOVE things) is released as soon as the profile row is drawn (meta), or at a hard cap of 6 s, so it never appears after the page has been shown.
+  var need={meta:1,about:1,claim:1,stats:1}, holdOff=false, lateOff=false, t1=null, t2=null;
+  function cl(c){ try{ document.body.classList.remove(c); }catch(e){} }
+  function releaseHold(){ if(holdOff) return; holdOff=true; if(t1) clearTimeout(t1); cl('pf-hold'); }
+  function releaseLate(){ if(lateOff) return; lateOff=true; if(t2) clearTimeout(t2); cl('pf-late'); }
+  function releaseFeed(){ cl('pf-feed'); }
+  function reveal(){ releaseHold(); releaseLate(); releaseFeed(); }
+  function mark(k){ if(k==='feed'){ releaseFeed(); return; } if(!need[k]) return; delete need[k]; if(k==='meta') releaseLate(); for(var x in need){ if(Object.prototype.hasOwnProperty.call(need,x)) return; } releaseHold(); }
+  t1=setTimeout(releaseHold,1500); t2=setTimeout(function(){ releaseLate(); releaseFeed(); },6000);
+  return { mark:mark, reveal:reveal, pending:function(){ return Object.keys(need); }, released:function(){ return holdOff&&lateOff; }, hold:function(){ return !holdOff; }, late:function(){ return !lateOff; } };
 })();
 /*PF-GATE-END*/
 </script>
@@ -1348,11 +1356,12 @@ function rebuild(rows){
   renderAll();
 }
 function loadFromDB(){
-  if(!SB){ fallbackLocal(); return; }
+  if(!SB){ fallbackLocal(); window.__pfGate&&window.__pfGate.mark('feed'); return; }
   SB.from('profile_content').select('*').eq('profile_slug',PROFILE_SLUG).order('created_at',{ascending:true}).then(function(r){
     if(r&&!r.error){ DB_OK=true; rebuild(r.data); }
     else { fallbackLocal(); }
-  }).catch(function(){ fallbackLocal(); });
+    window.__pfGate&&window.__pfGate.mark('feed');
+  }).catch(function(){ fallbackLocal(); window.__pfGate&&window.__pfGate.mark('feed'); });
 }
 function fallbackLocal(){ GT_ARTICLES=SEED.articles.slice();GAL_IMGS=SEED.photos.slice();GT_SHOWS=SEED.shows.slice();GT_CHATS=SEED.chats.slice();
   try{var s=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null');if(s){ADDED={photos:s.photos||[],shows:s.shows||[],articles:s.articles||[],chats:s.chats||[]};}}catch(e){}
@@ -1538,7 +1547,13 @@ function loadProfileMeta(){
       if(Array.isArray(d.links))PROFILE.links=d.links;
       if(Array.isArray(d.highlights)&&d.highlights.length)PROFILE.highlights=d.highlights;
     }
-    applyProfile(); loadCategories(); window.__pfGate&&window.__pfGate.mark('meta');
+    applyProfile(); loadCategories();
+    /* ONE PASS: the row already carries about and links (select *), so draw them in the SAME task as the name and bio instead of waiting for the second read (profile_meta again), which landed 0.5-2 s later and moved the buttons and everything below. The second read re-draws the same text (no change). */
+    try{
+      if(d && d.about){ var _at1=document.getElementById('pfAboutTop'); if(_at1)_at1.style.display='none'; var _ab1=document.getElementById('pfAbout'); if(_ab1){ _ab1.textContent=d.about; _ab1.style.display='block'; } }
+      if(d && Array.isArray(d.links)){ PROFILE.links=d.links; if(typeof renderLinksMenu==='function') renderLinksMenu(); }
+    }catch(e){}
+    window.__pfGate&&window.__pfGate.mark('meta');
   }).catch(function(){ applyProfile(); window.__pfGate&&window.__pfGate.mark('meta'); });
 }
 function loadCategories(){
@@ -2944,6 +2959,7 @@ function toggleArchived(id,val){
         var d=(r&&r.data)||{};
         var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=(v==null?0:v);};
         set('stPosts',d.posts); set('stFollowers',d.followers); set('stLikes',d.likes);
+        if(d.posts===0&&window.__pfGate) window.__pfGate.mark('feed');   // no posts on the record: nothing will land above the partner block, so it needs no hold
         window.__pfGate&&window.__pfGate.mark('stats');
       },function(){ window.__pfGate&&window.__pfGate.mark('stats'); });
       SB.from('profile_meta').select('about,links,account_type,links_label,badges').eq('slug',PROFILE_SLUG).maybeSingle().then(function(r){

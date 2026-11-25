@@ -232,3 +232,68 @@ test('sitemap lists the directory and robots still allows /discover/', function 
   walk(join(root, 'discover'), found);
   assert.deepEqual(found.sort(), Object.keys(PAGES).sort());
 });
+
+/* ---- /discover/ index: every city with a published upcoming event is listed (root cause of "17 published, 0 on /discover": only Los Angeles had a page) ---- */
+const PUB = (city, state, extra) => Object.assign({ city: city, state: state, status: 'published' }, extra || {});
+
+test('cityList: every city that has a published upcoming event is listed with its count, Long Beach and Oakland included, LA alias folded into Los Angeles', function () {
+  var rows = [PUB('Long Beach', 'CA'), PUB('Long Beach', 'CA'), PUB('Oakland', 'CA'), PUB('Las Vegas', 'NV'), PUB('LA', 'CA'), PUB('Los Angeles', 'CA'), PUB('San Diego', 'CA')];
+  var list = D.cityList(rows);
+  assert.deepEqual(list.map(function (c) { return c.name + '|' + c.state + '|' + c.n; }),
+    ['Long Beach|CA|2', 'Los Angeles|CA|2', 'Las Vegas|NV|1', 'Oakland|CA|1', 'San Diego|CA|1']);
+  assert.equal(list.find(function (c) { return c.name === 'Los Angeles'; }).href, '/discover/los-angeles/');
+  assert.equal(list.find(function (c) { return c.name === 'Long Beach'; }).href, '#city=Long%20Beach&state=CA');
+  assert.equal(list.find(function (c) { return c.name === 'Las Vegas'; }).href, '#city=Las%20Vegas&state=NV');
+});
+
+test('cityList negative controls: drafts, hidden-from-explore, password-protected and city-less rows add nothing; a city whose only row is hidden does not appear', function () {
+  var rows = [PUB('Reno', 'NV', { status: 'draft' }), PUB('Fresno', 'CA', { show_on_explore: false }), PUB('Boise', 'ID', { password_protected: true }),
+    { city: '', state: 'CA', status: 'published' }, { city: null, state: 'CA' }, null, PUB('Tempe', 'AZ')];
+  assert.deepEqual(D.cityList(rows).map(function (c) { return c.name; }), ['Tempe']);
+  assert.deepEqual(D.cityList([]), []);
+});
+
+test('renderCities: escapes names, links LA to its page and others to #city=..., empty is empty, failed is an alert with a retry', function () {
+  var html = D.renderCities(D.cityList([PUB('<img src=x onerror=alert(1)>', 'CA'), PUB('Long Beach', 'CA')]));
+  assert.doesNotMatch(html, /<img/);
+  assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;/);
+  assert.match(html, /<a href="#city=Long%20Beach&amp;state=CA">Long Beach, CA · 1 event<\/a>/);
+  assert.equal(D.renderCities([]), '');
+  assert.match(D.renderCities(null, { failed: true }), /role="alert"[\s\S]*disc-retry/);
+  assert.match(D.renderCities([{ name: 'X', state: '', n: 3, href: '#city=X' }], { truncated: true }), /first 1000 published upcoming events/);
+});
+
+test('parseCityHash accepts plain city names only', function () {
+  assert.deepEqual(D.parseCityHash('#city=Long%20Beach&state=CA'), { city: 'Long Beach', state: 'CA' });
+  assert.deepEqual(D.parseCityHash('#city=St.%20Petersburg&state=fl'), { city: 'St. Petersburg', state: 'FL' });
+  assert.deepEqual(D.parseCityHash('#city=Oakland'), { city: 'Oakland', state: '' });
+  ['', '#', '#city=', '#city=%3Cscript%3E', '#city=a', '#city=Oakland&state=CAL', '#city=Oakland&x=1', '#state=CA', '#city=%E0%A4%A', '#city=Oak"land', '#city=' + 'a'.repeat(61)].forEach(function (h) {
+    assert.equal(D.parseCityHash(h), null, h);
+  });
+});
+
+test('queries: the cities query reads only city + state with the same filters; the events query adds an exact-city filter only when asked', function () {
+  var calls = [];
+  function chain() { var c = {}; ['select', 'eq', 'gte', 'or', 'order', 'limit'].forEach(function (m) { c[m] = function () { calls.push([m].concat([].slice.call(arguments))); return c; }; }); return c; }
+  var client = { from: function (t) { calls.push(['from', t]); return chain(); } };
+  D.buildCitiesQuery(client, '2026-11-25T00:00:00.000Z');
+  assert.deepEqual(calls[0], ['from', 'events']);
+  assert.equal(calls[1][1], 'city,state');
+  assert.deepEqual(calls.filter(function (c) { return c[0] === 'eq'; }).map(function (c) { return c.slice(1); }), [['status', 'published'], ['password_protected', false]]);
+  assert.equal(calls.find(function (c) { return c[0] === 'or'; })[1], D.EXPLORE_OR);
+  assert.equal(calls.find(function (c) { return c[0] === 'limit'; })[1], D.CITY_ROWS_LIMIT);
+  assert.equal(JSON.stringify(calls).indexOf('event_password_hash'), -1);
+  calls.length = 0; D.buildEventsQuery(client, '2026-11-25T00:00:00.000Z');
+  assert.equal(calls.some(function (c) { return c[0] === 'eq' && c[1] === 'city'; }), false, 'no city filter unless asked (the existing city pages are unchanged)');
+  calls.length = 0; D.buildEventsQuery(client, '2026-11-25T00:00:00.000Z', 'Long Beach');
+  assert.deepEqual(calls.find(function (c) { return c[0] === 'eq' && c[1] === 'city'; }).slice(1), ['city', 'Long Beach']);
+});
+
+test('/discover/ index page wires the cities list and still links Los Angeles; the pages that exist are unchanged', function () {
+  var h = readFileSync(join(root, 'discover/index.html'), 'utf8');
+  assert.match(h, /id="disc-cities"/); assert.match(h, /id="disc-lists"/); assert.match(h, /id="disc-count"/);
+  assert.match(h, /kind: 'cities'/);
+  assert.match(h, /\/assets\/js\/vendor\/supabase-js\.min\.js/); assert.match(h, /\/assets\/js\/kil-discover\.js/);
+  assert.match(h, /href="\/discover\/los-angeles\/"/);
+  assert.equal((h.match(/<h1/g) || []).length, 1);
+});

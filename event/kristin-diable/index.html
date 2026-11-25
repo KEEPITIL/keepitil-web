@@ -208,6 +208,9 @@
     .tp-head{grid-template-columns:1fr;}
     .tp-body{grid-template-columns:1fr;}
     .evcard .flyer{max-width:340px;margin:0 auto;}
+    /* No cover (every listing with the branded placeholder): a short banner on phones so the title, date and the I'm going tap are above the fold. Real flyers keep 2:3. */
+    .evcard .flyer:has(img[src$="event-placeholder.svg"]){aspect-ratio:auto;height:150px;max-width:none}
+    .evcard .flyer img[src$="event-placeholder.svg"]{object-fit:contain;padding:14px;box-sizing:border-box}
   }
 
 #kil-pwgate{position:fixed;inset:0;z-index:99990;background:#07070c;display:none;align-items:center;justify-content:center;padding:20px}
@@ -312,6 +315,7 @@
 </main>
 <footer>© 2026 KEEPITIL — OC · LA · San Diego events, artists &amp; culture. <a href="/">keepitil.com</a></footer>
 <script src="/assets/js/kil-rsvp.js"></script>
+<script src="/assets/js/kil-calendar.js"></script>
 <script src="/assets/js/vendor/qrcode.js"></script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script>
@@ -394,11 +398,30 @@
         + '<a href="https://x.com/intent/tweet?text='+txt+'&url='+u+'" target="_blank" rel="noopener">Post on X</a>'
         + '<a href="https://www.facebook.com/sharer/sharer.php?u='+u+'" target="_blank" rel="noopener">Facebook</a>'
         + '<a href="https://wa.me/?text='+txt+'%20'+u+'" target="_blank" rel="noopener">WhatsApp</a>';
+      /* ADD TO CALENDAR: .ics built here + a Google Calendar link, from the event's own time and venue (assets/js/kil-calendar.js). Ended events get neither. */
+      try{ if(window.KilCalendar && window.KilCalendar.upcoming(row)){
+        var gUrl=window.KilCalendar.googleUrl(row,url);
+        sh.insertAdjacentHTML('afterbegin','<button type="button" id="ev-ics">📅 Add to calendar</button><a id="ev-gcal" href="'+esc(gUrl)+'" target="_blank" rel="noopener">Google Calendar</a>');
+        $('ev-ics').onclick=function(){
+          var blob=new Blob([window.KilCalendar.ics(row,url)],{type:'text/calendar;charset=utf-8'});
+          var a=document.createElement('a'); a.href=window.URL.createObjectURL(blob); a.download=(String(row.slug||'event').replace(/[^a-z0-9._-]/gi,'')||'event')+'.ics';
+          document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ window.URL.revokeObjectURL(a.href); },4000);
+        };
+      } }catch(_c){}
       var cb=$('ev-copy');
       if(cb) cb.onclick=function(){
         var done=function(){ cb.textContent='✓ Copied'; setTimeout(function(){ cb.textContent='🔗 Copy link'; },1800); };
         try{ navigator.clipboard.writeText(url).then(done, done); }catch(e){ done(); }
       };
+      /* NATIVE SHARE: where the browser has a share sheet (most phones) a first button opens it; everywhere else the row is unchanged. A cancelled sheet is not an error. */
+      try{ if(typeof navigator.share==='function'){
+        sh.insertAdjacentHTML('afterbegin','<button type="button" id="ev-share-native">↗ Share</button>');
+        $('ev-share-native').onclick=function(){
+          navigator.share({title:ev.title, text:ev.title+(ev.date?(' — '+fmt(ev.date)):''), url:url}).catch(function(err){
+            if(!err || err.name!=='AbortError'){ var c=$('ev-copy'); if(c) c.click(); }
+          });
+        };
+      } }catch(_n){}
     }
 
     /* ---- VENUE + OTHER EVENTS THERE ----

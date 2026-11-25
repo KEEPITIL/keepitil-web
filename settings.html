@@ -35,6 +35,7 @@ h1.pt{font-family:var(--fh);font-size:2.4rem;letter-spacing:.03em;margin-bottom:
 .panel .psub{color:var(--muted);font-size:.9rem;margin-bottom:20px}
 .grp{display:none}.grp.on{display:block}
 .row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 0;border-bottom:1px solid var(--line)}
+.row[hidden]{display:none}   /* .row sets display:flex, which beats the UA [hidden] rule: the email-request row showed next to the Download button while MEMBER_DATA_CONTROLS is on */
 .row:last-child{border-bottom:0}
 .row .lbl{font-weight:600}.row .lbl small{display:block;color:var(--muted);font-weight:400;font-size:.82rem;margin-top:2px}
 .row .val{color:var(--text-soft);font-size:.92rem}

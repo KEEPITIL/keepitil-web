@@ -50,7 +50,8 @@
       var card = el('div', 'card');
       var dl = el('dl', 'account-facts');
       var kind = c.user_metadata && c.user_metadata.kind === 'business' ? T.business : T.customer;
-      [[T.email, typeof c.email === 'string' ? c.email : ''], [T.kind, kind]].forEach(function (x) { dl.appendChild(el('dt', null, x[0])); dl.appendChild(el('dd', null, x[1])); });
+      var kindDd = null;
+      [[T.email, typeof c.email === 'string' ? c.email : ''], [T.kind, kind]].forEach(function (x) { dl.appendChild(el('dt', null, x[0])); var d = el('dd', null, x[1]); dl.appendChild(d); if (x[0] === T.kind) kindDd = d; });
       card.appendChild(dl); card.appendChild(el('p', 'muted', SS ? T.staySignedIn : T.expires)); card.appendChild(el('p', 'muted', T.soon));
       var out = el('button', 'btn', T.signOut); out.type = 'button'; out.setAttribute('data-act', 'signout');
       out.addEventListener('click', function () {
@@ -69,10 +70,13 @@
         var arow = el('div', 'actions'); arow.appendChild(yes); arow.appendChild(link(T.cancel, 'account.html', 'btn ghost')); ask.appendChild(arow);
         box.insertBefore ? box.insertBefore(ask, card) : box.appendChild(ask);
       }
-      // a business account also gets the order inbox (behind FMW_CONFIG.ordering, off today)
-      if (kind === T.business && win.FMW_INBOX && win.FMW_INBOX.mount) win.FMW_INBOX.mount(doc, box, { win: win });
+      // the cards below the email (js/account-cards.js): business details + license status, or saved listings; Download / Delete for both
+      var cardsDone = win.FMW_ACCOUNT_CARDS && win.FMW_ACCOUNT_CARDS.mount ? win.FMW_ACCOUNT_CARDS.mount(doc, box, { win: win, token: token, claims: c, onKind: function (label) { if (kindDd) kindDd.textContent = label; }, onDeleted: function (m) { signedOut(m); } }) : null;
+      // the order inbox (behind FMW_CONFIG.ordering, off today) is business-only content: only when the SERVER says this account is a business
+      if (cardsDone && cardsDone.then) cardsDone.then(function (r) { if (r && r.kind === 'business' && win.FMW_INBOX && win.FMW_INBOX.mount) win.FMW_INBOX.mount(doc, box, { win: win }); });
+      else if (kind === T.business && win.FMW_INBOX && win.FMW_INBOX.mount) win.FMW_INBOX.mount(doc, box, { win: win });   // no cards module: the old behaviour
       // a customer account also gets its saved listings (behind FMW_CONFIG.favorites, off today)
-      if (kind === T.customer && win.FMW_FAVORITES && win.FMW_FAVORITES.mountList) win.FMW_FAVORITES.mountList(doc, box, { win: win });
+      if (kind === T.customer && !win.FMW_ACCOUNT_CARDS && win.FMW_FAVORITES && win.FMW_FAVORITES.mountList) win.FMW_FAVORITES.mountList(doc, box, { win: win });
 
     }
     if (token && live(c, nowSec)) { showIn(token, c); return { state: 'signed-in' }; }

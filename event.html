@@ -508,7 +508,7 @@
      or empty URL. Deriving it from ev.slug on demand has no order to get wrong. */
   function canonFor(slug){ return 'https://keepitil.com/event?e='+encodeURIComponent(slug||''); }
 
-  function isSvgUrl(u){ try{ return new URL(String(u),location.href).pathname.toLowerCase().slice(-4)==='.svg'; }catch(e){ return false; } }
+  function isSvgUrl(u){ try{ return new window.URL(String(u),location.href).pathname.toLowerCase().slice(-4)==='.svg'; }catch(e){ return false; } }
   function writeEventLd(tiers){
     var ld={"@context":"https://schema.org","@type":"MusicEvent","name":ev.title,"url":canonFor(ev.slug),"eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode"};
     /* startDate must not be invented. This used to append "T20:00:00-07:00" to every event:

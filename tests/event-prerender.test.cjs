@@ -178,7 +178,12 @@ test("JSON-LD image: an SVG cover gets the site's raster default, raster covers 
 test("runtime (event.html): og:image and the JSON-LD image use the raster default for an SVG cover; isSvgUrl is path-based (NEGATIVE CONTROL: a name or query containing 'svg' is not an SVG)", () => {
   const vm = require("node:vm");
   const m = TEMPLATE.match(/function isSvgUrl\(u\)\{[^\n]*\}/); assert.ok(m, "isSvgUrl exists");
-  const f = vm.runInNewContext("(" + m[0].replace("function isSvgUrl", "function") + ")", { URL, location: { href: "https://keepitil.com/event?e=x" }, String });
+  // event.html declares `var URL = '<supabase url>'` in the same IIFE (line ~301), so a bare `new URL(...)` inside the helper hits that string and throws. Run the helper in the SAME shadowing scope, with window.URL being the real one.
+  assert.match(TEMPLATE, /\n\s*var URL='https:\/\/[a-z0-9]+\.supabase\.co';/, "the page really shadows URL (this test is only meaningful while that holds)");
+  const inPage = (src) => vm.runInNewContext("(function(){ var URL='https://x.supabase.co'; " + src + "; return isSvgUrl; })()", { window: { URL }, location: { href: "https://keepitil.com/event?e=x" }, String });
+  assert.equal(inPage(m[0].replace(/new window\.URL/g, "new URL"))("/assets/images/event-placeholder.svg"), false, "NEGATIVE CONTROL: a bare `new URL` under the page's shadow cannot detect an SVG (this is the bug NEXUSMAC caught)");
+  assert.ok(!/new URL\(/.test(m[0]), "the helper must use window.URL, never the shadowed bare URL");
+  const f = inPage(m[0]);
   for (const u of ["/assets/images/event-placeholder.svg", "https://x.test/A.SVG", "https://x.test/a.svg?v=1#z"]) assert.equal(f(u), true, u);
   for (const u of ["https://x.test/a.jpg", "https://x.test/svg-banner.png", "https://x.test/a.webp?fmt=svg", "https://x.test/a.svg.jpg", "https://x.test/svg/a.png"]) assert.equal(f(u), false, u);
   assert.match(TEMPLATE, /if\(ev\.img && !isSvgUrl\(ev\.img\)\) \$\('og-img'\)\.setAttribute/);

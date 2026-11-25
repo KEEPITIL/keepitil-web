@@ -30,3 +30,14 @@ test('NEGATIVE CONTROL: the old stylesheet (header 58px + .wrap 1000px with no d
   const wrongOrder = cur.replace(/(\n  @media\(min-width:861px\)\{\.wrap\{max-width:1360px[^\n]*)/, '').replace('  .wrap{max-width:1000px;margin:0 auto;padding:26px 20px 80px;}', '  @media(min-width:861px){.wrap{max-width:1360px;padding-left:40px;padding-right:40px;box-sizing:border-box}}\n  .wrap{max-width:1000px;margin:0 auto;padding:26px 20px 80px;}');
   assert.equal(ok(wrongOrder), false, 'the override BEFORE the page .wrap loses on source order');
 });
+
+test('the generator keeps it: renderEventPage(event.html, row) emits both rules in order (the template is event.html; scripts/build-event-pages.mjs only replaces head parts), so the next prerender/run-* PR does not revert it', async () => {
+  const { renderEventPage } = await import(path.join(root, 'scripts/build-event-pages.mjs'));
+  const tpl = fs.readFileSync(path.join(root, 'event.html'), 'utf8');
+  const out = renderEventPage(tpl, { slug: 'sample-show-20270101', title: 'Sample Show', venue: 'The Venue', city: 'Long Beach', starts_at: '2027-01-02T04:00:00+00:00', tz: 'America/Los_Angeles', cover_url: 'https://seatgeekimages.com/a/b.jpg' });
+  assert.ok(ok(out), 'generated page carries the desktop header height and the .wrap box in source order');
+  // NEGATIVE CONTROL: a template without them yields a page without them
+  const stripped = tpl.replace(/\n  @media\(min-width:861px\)\{\.hd\{height:65px\}\}/, '');
+  assert.notEqual(stripped, tpl);
+  assert.equal(ok(renderEventPage(stripped, { slug: 'sample-show-20270101', title: 'Sample Show', venue: 'The Venue', city: 'Long Beach', starts_at: '2027-01-02T04:00:00+00:00', tz: 'America/Los_Angeles' })), false);
+});

@@ -30,6 +30,9 @@
     ccTitle: 'Contact details', ccIntro: 'Optional. Your listing shows a Call button and a Website link for the fields you fill in, and nothing for the ones you leave empty.',
     ccPhone: 'Phone', ccWebsite: 'Website', ccWebsiteHint: 'Starts with https://', ccSave: 'Save', ccSaved: 'Saved.', ccLoading: 'Loading…',
     ccBadPhone: 'Enter a US phone number such as (510) 555-0199, or a number that starts with +.', ccBadWeb: 'Enter a website that starts with https://', ccFail: 'Could not save. Try again.',
+    hrTitle: 'Opening hours', hrIntro: 'Optional. Tick the days you are open and set the times. "Open now" shows on your listing only for hours you add here. A closing time earlier than the opening time means after midnight.',
+    hrDays: { mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday' }, hrOpen: 'Open', hrFrom: 'Opens', hrTo: 'Closes', hrNote: 'Note (optional, up to 140 characters)',
+    hrSave: 'Save hours', hrSaved: 'Saved.', hrBad: 'Set an opening and a closing time for each open day. They must be different.', hrBadNote: 'The note is at most 140 characters.', hrFail: 'Could not save. Try again.', hrLoading: 'Loading…',
     savedTitle: 'Saved listings', savedSoon: 'Saving listings is coming soon.',
     dataTitle: 'Your data', dataSoon: 'Download and delete are coming soon. Until then, email info@keepitil.com from your account address and we will do it.',   // the same promise Privacy and About already make (js/copy.js), so the disabled card is not a dead end
     download: 'Download my data', downloading: 'Preparing your file…', downloaded: 'Your file was downloaded.', downloadFail: 'We could not prepare your file. Nothing was changed. Try again later.',
@@ -148,6 +151,47 @@
     return 'contact';
   }
 
+  // ---- OPENING HOURS (Joe/Grok 2026-11-25): an APPROVED business adds its own weekly hours (and an optional note). Drawn only while the hours switch is on (window.FMW_HOURS exists only when site.json
+  // "hours" is true). The server (fmw.set_my_hours) validates again and is the authority; nothing is sent that fails the same checks here. A day left unticked is closed.
+  function hoursCard(doc, box, ctx) {
+    var win = ctx.win, S = win.FMW_HOURS, U = win.FMW_HOURS_UTIL;
+    if (!S || !U) return null;
+    var s = card(doc, T.hrTitle, 'hours'); s.appendChild(el(doc, 'p', 'muted', T.hrIntro));
+    var rows = {};
+    U.DAYS.forEach(function (d) {
+      var row = el(doc, 'div', 'hours-row'), on = el(doc, 'input'), ol = el(doc, 'label', null, T.hrDays[d] + ': ' + T.hrOpen), a = el(doc, 'input'), al = el(doc, 'label', 'sr', T.hrDays[d] + ' ' + T.hrFrom), z = el(doc, 'input'), zl = el(doc, 'label', 'sr', T.hrDays[d] + ' ' + T.hrTo);
+      on.type = 'checkbox'; on.id = 'hr-on-' + d; ol.htmlFor = on.id; on.setAttribute('data-act', 'hours-on-' + d);
+      a.type = 'time'; a.id = 'hr-from-' + d; al.htmlFor = a.id; a.setAttribute('data-act', 'hours-from-' + d); a.setAttribute('step', '900');
+      z.type = 'time'; z.id = 'hr-to-' + d; zl.htmlFor = z.id; z.setAttribute('data-act', 'hours-to-' + d); z.setAttribute('step', '900');
+      [on, ol, al, a, el(doc, 'span', 'hours-to', 'to'), zl, z].forEach(function (n) { row.appendChild(n); }); s.appendChild(row); rows[d] = { on: on, a: a, z: z };
+    });
+    var nl = el(doc, 'label', null, T.hrNote), ni = el(doc, 'input'), save = el(doc, 'button', 'btn', T.hrSave), msg = el(doc, 'p', 'muted', T.hrLoading);
+    ni.id = 'hr-note'; nl.htmlFor = 'hr-note'; ni.type = 'text'; ni.setAttribute('maxlength', '140'); ni.setAttribute('data-act', 'hours-note');
+    save.type = 'button'; save.setAttribute('data-act', 'hours-save'); save.disabled = true; msg.setAttribute('role', 'status'); msg.setAttribute('data-act', 'hours-msg');
+    [nl, ni, save, msg].forEach(function (n) { s.appendChild(n); }); box.appendChild(s);
+    function fill(data) {
+      var wk = data && U.cleanWeek(data.hours);
+      U.DAYS.forEach(function (d) { var r = wk && wk[d] && wk[d][0]; rows[d].on.checked = !!r; rows[d].a.value = r ? r[0] : ''; rows[d].z.value = r ? r[1] : ''; });
+      ni.value = (data && U.cleanNote(data.note)) || '';
+    }
+    Promise.resolve(S.mine(ctx.token)).then(function (r) { if (r && r.ok && r.data) fill(r.data); msg.textContent = ''; save.disabled = false; }, function () { msg.textContent = ''; save.disabled = false; });
+    save.addEventListener('click', function () {
+      var week = {};
+      for (var i = 0; i < U.DAYS.length; i++) {
+        var d = U.DAYS[i], r = rows[d];
+        week[d] = r.on.checked ? [[r.a.value, r.z.value]] : [];
+      }
+      if (U.cleanWeek(week) === false) { msg.textContent = T.hrBad; return; }
+      if (U.cleanNote(ni.value) === null) { msg.textContent = T.hrBadNote; return; }
+      save.disabled = true; msg.textContent = '';
+      Promise.resolve(S.save(ctx.token, week, ni.value)).then(function (r) {
+        if (r && r.ok && r.data) { fill(r.data); msg.textContent = T.hrSaved; } else msg.textContent = T.hrFail;
+        save.disabled = false;
+      }, function () { msg.textContent = T.hrFail; save.disabled = false; });
+    });
+    return 'hours';
+  }
+
   // ---- customer
   function savedCard(doc, box, ctx) {
     var win = ctx.win, on = win.FMW_CONFIG && win.FMW_CONFIG.favorites === true;
@@ -216,7 +260,7 @@
     });
     return ask.then(function (acct) {
       var out = { known: !!acct.known, kind: 'customer', license: null, saved: null, data: null };
-      if (acct.known && acct.state && acct.state !== 'none') { out.kind = acct.state === 'approved' ? 'business' : 'customer'; out.license = businessCard(doc, holder, ctx, acct); checklistCard(doc, holder, ctx, acct); if (acct.state === 'approved') out.contact = contactCard(doc, holder, ctx); }   // a business in ANY state (pending, not verified, approved) sees no Saved listings card (Grok 2026-11-25: pending matches approved)
+      if (acct.known && acct.state && acct.state !== 'none') { out.kind = acct.state === 'approved' ? 'business' : 'customer'; out.license = businessCard(doc, holder, ctx, acct); checklistCard(doc, holder, ctx, acct); if (acct.state === 'approved') { out.contact = contactCard(doc, holder, ctx); out.hours = hoursCard(doc, holder, ctx); } }   // a business in ANY state (pending, not verified, approved) sees no Saved listings card (Grok 2026-11-25: pending matches approved)
       else if (acct.known) {
         out.saved = savedCard(doc, holder, ctx);
         if (claimBiz) { var n = card(doc, T.bizTitle, 'business-unchecked'); n.appendChild(el(doc, 'p', 'muted', T.bizNone)); holder.appendChild(n); }   // said business at sign-up, nothing recorded: no business-only content

@@ -374,3 +374,6 @@ main:has(.effective:not([hidden])) .state.info{display:none}
 .invite-title{font-size:15px;font-weight:800}
 .invite-body{font-size:.85rem;font-weight:400;opacity:.9;line-height:1.4}
 .directions{margin-top:10px}
+.hours-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:8px 0}
+.hours-row label:first-of-type{min-width:9.5em}
+.hours-note{margin-top:8px}

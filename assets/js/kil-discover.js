@@ -563,7 +563,7 @@
   }
 
   /* Counts are AFTER the city view's own de-duplication (same title stem + venue + local day collapse to one card), so a chip never says more than the city shows. */
-  function cityList(rows, tz) {
+  function cityList(rows, fallbackTz, geos) {
     var groups = Object.create(null), order = [];
     (rows || []).forEach(function (e) {
       if (!e || !String(e.city || '').trim()) return;
@@ -582,7 +582,8 @@
     });
     return order.map(function (k) {
       var g = groups[k];
-      g.n = dedupe(g.rows, tz || 'America/Los_Angeles').length;
+      /* each city is de-duplicated in ITS OWN timezone, the same tzFromGeo() the city view uses, so a chip never differs from the city view for a non-Pacific city (the old code used one LA timezone for all) */
+      g.n = dedupe(g.rows, tzFromGeo(geos, g.name, g.state, fallbackTz || 'America/Los_Angeles')).length;
       delete g.rows;
       g.href = (g.slug === 'los-angeles' && (!g.state || g.state === 'CA'))
         ? '/discover/los-angeles/'
@@ -768,7 +769,8 @@
       if (!c) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
       var r = await loadCityRows(c, new Date().toISOString());
       if (r.failed) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
-      cities = cityList(r.rows, cfg.fallbackTz);
+      var geo = await safe(c.from('city_geo').select('city,state,county,tz'));
+      cities = cityList(r.rows, cfg.fallbackTz, ok(geo) ? (geo.data || []) : []);
       citiesEl.innerHTML = renderCities(cities, { truncated: r.truncated });
       await openCity();
     }

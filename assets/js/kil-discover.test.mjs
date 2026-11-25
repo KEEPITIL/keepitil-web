@@ -349,3 +349,17 @@ test('every Los Angeles page asks for Los Angeles rows only, so its list never d
   calls.length = 0; D.buildEventsQuery(client, '2026-11-25T00:00:00.000Z', []);   /* NEGATIVE CONTROL: an empty list means no filter, not "no rows" */
   assert.equal(calls.some(function (c) { return c[0] === 'in' || (c[0] === 'eq' && c[1] === 'city'); }), false);
 });
+
+test('cityList de-duplicates each city in ITS OWN timezone (tzFromGeo, like the city view): same venue + title either side of LOCAL midnight in Austin is TWO, and the chip equals the city view (NEGATIVE CONTROL: the LA-timezone version counts 1)', function () {
+  var mk = function (city, state, startsAt) { return { city: city, state: state, status: 'published', title: 'Night Owl', venue: 'The Club', starts_at: startsAt }; };   /* no row tz, so the city timezone decides */
+  var rows = [mk('Austin', 'TX', '2026-12-06T05:30:00Z'), mk('Austin', 'TX', '2026-12-06T07:30:00Z')];   /* 23:30 Dec 5 and 01:30 Dec 6 in Chicago time; both Dec 5 in Los Angeles */
+  var geos = [{ city: 'Austin', state: 'TX', tz: 'America/Chicago' }];
+  var chip = D.cityList(rows, 'America/Los_Angeles', geos)[0].n;
+  var view = D.prepare(rows, { now: new Date('2026-11-25T00:00:00Z'), tz: D.tzFromGeo(geos, 'Austin', 'TX', 'America/Los_Angeles'), city: 'austin', state: 'TX' });
+  assert.equal(view.weekend.length + view.upcoming.length + view.later.length, 2, 'the city view lists two nights');
+  assert.equal(chip, 2, 'the chip equals the city view');
+  assert.equal(D.cityList(rows, 'America/Los_Angeles', [])[0].n, 1, 'NEGATIVE CONTROL: without the city timezone (the old LA-for-everyone behaviour) the two nights collapse to one');
+  assert.equal(D.cityList(rows)[0].n, 1, 'NEGATIVE CONTROL: the old two-argument call is the LA version too');
+  /* a Pacific city is unchanged, and an unknown city falls back to the LA timezone */
+  assert.equal(D.cityList([mk('Oakland', 'CA', '2026-12-06T05:30:00Z'), mk('Oakland', 'CA', '2026-12-06T07:30:00Z')], 'America/Los_Angeles', geos)[0].n, 1);
+});

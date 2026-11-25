@@ -11,10 +11,10 @@ const O = require('./kil-organizer.js');
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const mk = () => { const dom = new JSDOM('<!doctype html><div id="tab-events"><div id="org-view"></div><div id="listings">OLD</div></div>'); return { dom, doc: dom.window.document, host: dom.window.document.getElementById('org-view') }; };
 const EV = (o) => Object.assign({ id: 7, slug: 'big-night', title: 'Big Night', starts_at: '2026-12-10T05:00:00Z', status: 'published', review_reason: null, city: 'Long Beach', venue: 'The Room', source: 'organizer', rsvp_count: 3, paid_tickets: 0 }, o || {});
-const fake = (resp, session = true) => ({ calls: [], auth: { getSession: () => Promise.resolve({ data: { session: session ? { user: {} } : null } }) }, rpc(n) { this.calls.push(n); return Promise.resolve(typeof resp === 'function' ? resp() : resp); } });
+const fake = (resp, session = true, admin = true) => ({ calls: [], auth: { getSession: () => Promise.resolve({ data: { session: session ? { user: {} } : null } }) }, rpc(n) { this.calls.push(n); if (n === 'is_admin') return typeof admin === 'function' ? admin() : Promise.resolve({ data: admin, error: null }); return Promise.resolve(typeof resp === 'function' ? resp() : resp); } });
 
 test('render: an event shows title, date, venue/city, status, people going, and an edit link; a published title links to the public page', () => {
-  const { doc } = mk(); const n = O.render(doc, { connect: 'connected', events: [EV()] });
+  const { doc } = mk(); const n = O.render(doc, { connect: 'connected', events: [EV()] }, { admin: true });
   const row = n.querySelector('.org-ev'); assert.equal(row.querySelector('.ev-title').textContent, 'Big Night'); assert.equal(row.querySelector('a.ev-title').getAttribute('href'), '/event?e=big-night');
   assert.match(row.querySelector('.ev-meta').textContent, /Wed, Dec 9, 2026 · The Room · Long Beach/); assert.equal(row.querySelector('.ev-badge').textContent, 'Live');
   assert.equal(row.querySelector('.org-rsvp').textContent, '3 people going'); assert.equal(row.querySelector('.org-paid'), null, 'no paid tickets: no tickets line');
@@ -33,7 +33,7 @@ test('render: a held event shows its review reason; a published or draft event n
   assert.equal(rs[1].querySelector('.org-reason'), null); assert.equal(rs[2].querySelector('.org-reason'), null);
 });
 test('render: Connect status in the three states; a link to the EXISTING flow only when action is needed; connected has no link; an unknown value is treated as not connected', () => {
-  const { doc } = mk(); const q = (c) => O.render(doc, { connect: c, events: [] }).querySelector('.org-connect');
+  const { doc } = mk(); const q = (c) => O.render(doc, { connect: c, events: [] }, { admin: true }).querySelector('.org-connect');
   assert.equal(q('connected').querySelector('.org-connect-state').textContent, 'Connected'); assert.equal(q('connected').querySelector('a'), null);
   assert.equal(q('needs_action').querySelector('.org-connect-state').textContent, 'Needs action'); assert.equal(q('needs_action').querySelector('a').getAttribute('href'), '/create-event');
   assert.equal(q('not_connected').querySelector('.org-connect-state').textContent, 'Not connected'); assert.equal(q('not_connected').querySelector('a').getAttribute('href'), '/create-event');
@@ -41,9 +41,9 @@ test('render: Connect status in the three states; a link to the EXISTING flow on
   const all = ['connected', 'needs_action', 'not_connected'].map((c) => q(c).outerHTML).join(''); assert.doesNotMatch(all, /stripe\.com|checkout|payout\?|transfer|button|<form/i, 'only a link to our own flow, no money control');
 });
 test('render: edit links follow the source (community -> /submit-event?edit=<id>, else /create-event?e=<slug>), and an unusable slug gets no link', () => {
-  assert.equal(O.editHref(EV({ source: 'community', id: 42 })), '/submit-event?edit=42'); assert.equal(O.editHref(EV({ source: 'organizer' })), '/create-event?e=big-night');
-  assert.equal(O.editHref(EV({ slug: '../../x"onload=1' })), null); assert.equal(O.editHref(EV({ slug: null })), null);
-  const { doc } = mk(); assert.equal(O.render(doc, { connect: 'connected', events: [EV({ slug: 'bad slug!' })] }).querySelector('.org-edit'), null);
+  assert.equal(O.editHref(EV({ source: 'community', id: 42 })), '/submit-event?edit=42'); assert.equal(O.editHref(EV({ source: 'organizer' }), true), '/create-event?e=big-night');
+  assert.equal(O.editHref(EV({ slug: '../../x"onload=1' }), true), null); assert.equal(O.editHref(EV({ slug: null }), true), null);
+  const { doc } = mk(); assert.equal(O.render(doc, { connect: 'connected', events: [EV({ slug: 'bad slug!' })] }, { admin: true }).querySelector('.org-edit'), null);
 });
 test('render: every database string is text, never HTML (title, venue, city, review reason, slug)', () => {
   const { doc } = mk(); const evil = '<img src=x onerror=alert(1)>';
@@ -52,13 +52,13 @@ test('render: every database string is text, never HTML (title, venue, city, rev
   const src = readFileSync(join(root, 'assets/js/kil-organizer.js'), 'utf8'); assert.doesNotMatch(src, /innerHTML|outerHTML|insertAdjacentHTML|document\.write/);
 });
 test('render: no events -> a plain empty state with one way to add one, Connect status still shown', () => {
-  const { doc } = mk(); const n = O.render(doc, { connect: 'not_connected', events: [] });
+  const { doc } = mk(); const n = O.render(doc, { connect: 'not_connected', events: [] }, { admin: true });
   assert.match(n.querySelector('.org-empty').textContent, /No events yet/); assert.equal(n.querySelector('.org-empty a').getAttribute('href'), '/submit-event'); assert.ok(n.querySelector('.org-connect'));
 });
 
 test('mount: signed in + RPC answers -> the view renders and the old listings box is hidden by class; the RPC is the only call', async () => {
   const { host } = mk(); const s = fake({ data: { connect: 'connected', events: [EV()] }, error: null });
-  assert.equal(await O.mount(host, s), true); assert.deepEqual(s.calls, ['get_my_organizer_events']); assert.ok(host.querySelector('.org-ev')); assert.ok(host.parentNode.classList.contains('org-on'));
+  assert.equal(await O.mount(host, s), true); assert.deepEqual([...s.calls].sort(), ['get_my_organizer_events', 'is_admin']); assert.ok(host.querySelector('.org-ev')); assert.ok(host.parentNode.classList.contains('org-on'));
 });
 test('mount NEGATIVE CONTROLS: signed out, RPC missing/erroring, not_authenticated, or a malformed answer render NOTHING and leave the old listings alone', async () => {
   const cases = [['signed out', fake({ data: { connect: 'connected', events: [] } }, false)], ['rpc error (not applied yet)', fake({ data: null, error: { message: 'function does not exist' } })],
@@ -83,7 +83,28 @@ test('Create & Earn line: feature state (not submitted links to /connect), event
 });
 test('Create & Earn NEGATIVE CONTROLS: an older RPC without create_earn, an unknown feature value, or null renders no Create & Earn block (nothing guessed), the rest of the view is unchanged', () => {
   const { doc } = mk();
-  for (const ce of [undefined, null, {}, { feature: 'banana', event_live: true }, { event_live: true }, 'live']) { const n = O.render(doc, { connect: 'connected', create_earn: ce, events: [EV()] }); assert.equal(n.querySelector('.org-ce'), null, JSON.stringify(ce)); assert.ok(n.querySelector('.org-ev') && n.querySelector('.org-connect')); }
-  assert.equal(O.render(doc, { connect: 'connected', create_earn: { feature: 'live', event_live: 'yes' }, events: [EV()] }).querySelector('.org-ce-event').textContent, 'Event: not live yet', 'only a real true counts as live');
+  for (const ce of [undefined, null, {}, { feature: 'banana', event_live: true }, { event_live: true }, 'live']) { const n = O.render(doc, { connect: 'connected', create_earn: ce, events: [EV()] }, { admin: true }); assert.equal(n.querySelector('.org-ce'), null, JSON.stringify(ce)); assert.ok(n.querySelector('.org-ev') && n.querySelector('.org-connect')); }
+  assert.equal(O.render(doc, { connect: 'connected', create_earn: { feature: 'live', event_live: 'yes' }, events: [EV()] }, { admin: true }).querySelector('.org-ce-event').textContent, 'Event: not live yet', 'only a real true counts as live');
   const src = readFileSync(join(root, 'assets/js/kil-organizer.js'), 'utf8'); assert.match(src, /TODO\(Muse\)/);
+});
+
+const ALL = { connect: 'needs_action', create_earn: { feature: 'not_submitted', event_live: true }, events: [EV({ id: 1, source: 'community', slug: 'comm' }), EV({ id: 2, source: 'organizer', slug: 'org-ev' }), EV({ id: 3, source: 'seatgeek', slug: 'sg' })] };
+test('NON-ADMIN (NEXUS2 blocker): no payout line, no /create-event link anywhere, no "Connect Stripe" wording; community events keep /submit-event Edit; other events have NO Edit link', () => {
+  const { doc } = mk(); for (const connect of ['connected', 'needs_action', 'not_connected']) {
+    const n = O.render(doc, { ...ALL, connect }); const html = n.outerHTML;
+    assert.doesNotMatch(html, /create-event/, connect); assert.doesNotMatch(html, /Connect Stripe|Set up payouts|Finish payout|Payouts \(Stripe\)|payout|sell tickets/i, connect); assert.equal(n.querySelector('.org-connect'), null);
+    const edits = [...n.querySelectorAll('.org-edit')].map((a) => a.getAttribute('href')); assert.deepEqual(edits, ['/submit-event?edit=1'], 'only the community event can be edited by a non-admin');
+  }
+  const n2 = O.render(doc, ALL, { admin: false }); assert.equal(n2.querySelectorAll('.org-ev').length, 3, 'all events are still listed'); assert.ok(n2.querySelector('.org-ce'), 'the Create & Earn line stays (it links to /connect, not /create-event)');
+  for (const a of n2.querySelectorAll('a')) assert.doesNotMatch(a.getAttribute('href'), /create-event/);
+});
+test('ADMIN keeps the existing payout path and /create-event edit links (negative control for the non-admin rule)', () => {
+  const { doc } = mk(); const n = O.render(doc, ALL, { admin: true });
+  assert.equal(n.querySelector('.org-connect a').getAttribute('href'), '/create-event'); assert.deepEqual([...n.querySelectorAll('.org-edit')].map((a) => a.getAttribute('href')), ['/submit-event?edit=1', '/create-event?e=org-ev', '/create-event?e=sg']);
+  assert.equal(O.render(doc, ALL, { admin: 'true' }).querySelector('.org-connect'), null, 'only a real true is an admin');
+});
+test('mount: is_admin false, erroring, throwing or non-true all give the non-admin view (safe side); only a real true shows payout + /create-event', async () => {
+  const run = async (admin) => { const { host } = mk(); const s = fake({ data: ALL, error: null }, true, admin); assert.equal(await O.mount(host, s), true); return host.innerHTML; };
+  assert.match(await run(true), /create-event/);
+  for (const [name, a] of [['false', false], ['null', null], ['string true', 'true'], ['error', () => Promise.resolve({ data: null, error: { message: 'denied' } })], ['throws', () => { throw new Error('x'); }], ['rejects', () => Promise.reject(new Error('x'))]]) assert.doesNotMatch(await run(a), /create-event|payout/i, name);
 });

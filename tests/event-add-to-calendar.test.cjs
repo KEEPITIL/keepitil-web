@@ -13,7 +13,7 @@ test("ics has the event's own start, a 2h default end, escaped title, venue and 
   const s = cal.ics(row, "https://keepitil.com/event/winter-wonderland/", NOW);
   assert.match(s, /^BEGIN:VCALENDAR\r\n/); assert.match(s, /END:VCALENDAR\r\n$/);
   assert.match(s, /DTSTART:20261127T030000Z/); assert.match(s, /DTEND:20261127T050000Z/);
-  assert.match(s, /SUMMARY:Winter\\, Wonderland\; live/);
+  assert.match(s, /SUMMARY:Winter\\, Wonderland\\; live/);
   assert.match(s, /LOCATION:Watermark Bar\\, New York\\, NY/);
   assert.match(s, /URL:https:\/\/keepitil\.com\/event\/winter-wonderland\//);
 });
@@ -35,4 +35,14 @@ test("event.html loads the module and wires the buttons into the Share row, usin
   assert.match(html, /<script src="\/assets\/js\/kil-calendar\.js"><\/script>/);
   assert.match(html, /id="ev-ics">📅 Add to calendar/); assert.match(html, /id="ev-gcal"/);
   assert.match(html, /window\.URL\.createObjectURL/); assert.doesNotMatch(html, /[^.\w]URL\.createObjectURL/);
+});
+
+test("every semicolon in text fields is backslash-escaped (RFC 5545); the old no-op escape fails this", () => {
+  const unescapedSemi = (line) => /(^|[^\\]);/.test(line.replace(/^[A-Z]+:/, ""));
+  const lines = cal.ics({ ...row, title: "Rave; Part 2", venue: "Hall; East" }, "", NOW).split("\r\n").filter((l) => /^(SUMMARY|LOCATION):/.test(l));
+  assert.equal(lines.length, 2);
+  for (const l of lines) assert.equal(unescapedSemi(l), false, l);
+  assert.match(lines[0], /^SUMMARY:Rave\\; Part 2$/);
+  const oldEsc = (s) => String(s).replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,");   // the buggy version: '\;' is just ';'
+  assert.equal(unescapedSemi("SUMMARY:" + oldEsc("Rave; Part 2")), true, "negative control: the old escape leaves the semicolon bare");
 });

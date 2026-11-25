@@ -4,7 +4,7 @@
   'use strict';
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function utc(d) { return d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()) + 'T' + pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + pad(d.getUTCSeconds()) + 'Z'; }
-  function esc(s) { return String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n'); }
+  function esc(s) { return String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n'); }
   /* Pure: { start, end } Dates or null when the event has no usable start. */
   function span(row) {
     var s = new Date(row && row.starts_at); if (!row || !row.starts_at || isNaN(s)) return null;

@@ -33,7 +33,6 @@
     if (r.q) r.county = '';
     return r;
   }
-  function kind(l) { return l.storefront && l.delivery ? C.storefrontAndDelivery : l.delivery ? C.deliveryOnly : C.storefrontOnly; }
   // known === false: the hours are missing or malformed -> "Hours not listed", never "open" (#15)
   function badge(s) {
     if (s.known === false) return el('span', 'badge unknown', C.hoursNotListed);
@@ -638,12 +637,15 @@
       box.appendChild(el('h1', 'name', l.name));
       var meta = el('div', 'row meta');
       if (s.known !== false) meta.appendChild(badge(s));   // no hours data: no badge
-      meta.appendChild(el('span', 'muted', kind(l))); box.appendChild(meta);
+      var pf = F.profileFacts(l, C);   // the card's own facts, read from the same record through the same helpers (kind, county, rating)
+      meta.appendChild(el('span', 'muted pf-kind', pf.kind + (pf.county ? ' \u00b7 ' + pf.county : '')));
+      if (pf.rating) meta.appendChild(el('span', 'muted pf-rating', pf.rating));
+      box.appendChild(meta);
 
       var lic = el('section', 'card'); lic.appendChild(el('h2', null, C.license));
       lic.appendChild(el('p', 'mono', l.license || C.stripNoNumber));
       if (l.licenseType) lic.appendChild(el('p', 'muted', l.licenseType));
-      var strip = F.licenseStrip(l), sp = el('p', 'license-strip', F.licenseStripText(strip, C));   // status + expiry, from the listing's own fields
+      var strip = F.licenseStrip(l), sp = el('p', 'license-strip', pf.strip);   // status + expiry, from the listing's own fields
       sp.setAttribute('data-strip', strip.status && strip.expires ? 'full' : 'partial'); lic.appendChild(sp);
       // "License checked on {date}": only with a valid check date; older than F.STALE_DAYS reads as possibly out of date.
       var chk = F.licenseCheck(l, new Date());

@@ -3,22 +3,23 @@
    is nullable and the anon INSERT policy already allows it). It never blocks the UI: the confirmation does not wait for the insert, a failed insert is retried once on the next
    visit, and a device that already tapped sees "going" with no second insert. NOTE: get_event_social ("N going") counts distinct EMAILS only, so a bare tap is not in that number
    until its SQL is changed (a separate DRAFT, not part of this file); an RSVP with the optional email is counted today.
-   COPY: every user-facing string is in COPY below so Muse's copy replaces it without touching logic (the strings now in it are the plain defaults Grok approved on 2026-11-25 until Muse's arrive). */
+   COPY: every user-facing string is in COPY below so Muse's copy replaces it without touching logic (the strings now in it are Muse's approved copy, 2026-11-25). */
 (function (root) {
   'use strict';
-  var COPY = {   /* TODO(Muse): final copy */
-    tap: 'I’m going',
-    done: 'You’re on the list ✓',
-    doneSub: 'Nothing else to do.',
-    emailLabel: 'Want a reminder? Add your email',
+  var COPY = {   /* Muse's approved strings (Grok 2026-11-25 5:08); change copy ONLY here */
+    tap: "I'm going",
+    done: "You're in - see you there.",
+    doneSub: '',                      /* no upsell and no extra line under the confirmation */
+    emailLabel: 'Email me a reminder',
     emailPlaceholder: 'you@email.com',
     emailBtn: 'Remind me',
-    emailOk: 'Done. We’ll remind you before it starts.',
+    emailOk: 'Reminder set.',
     emailBad: 'Please enter a valid email.',
-    emailFail: 'Couldn’t save that just now. Try again.',
-    save: 'Save this event to your account',
+    emailFail: "Couldn't save that just now. Try again.",
+    save: '',                         /* the account link is OFF: Muse's list has none (set a label here to bring it back) */
     saveHref: '/join'
   };
+
   var KEY = 'kil_rsvp_v1:';
   var DEVKEY = 'kil_rsvp_device_v1';
   var memDevice = null;
@@ -87,7 +88,7 @@
         return;
       }
       var done = el(doc, 'div', 'rsvp-done'); done.setAttribute('role', 'status');
-      done.appendChild(el(doc, 'strong', '', copy.done)); done.appendChild(el(doc, 'span', 'rsvp-sub', copy.doneSub));
+      done.appendChild(el(doc, 'strong', '', copy.done)); if (copy.doneSub) done.appendChild(el(doc, 'span', 'rsvp-sub', copy.doneSub));
       host.appendChild(done);
       if (state.email) { host.appendChild(el(doc, 'p', 'rsvp-ok', copy.emailOk)); }
       else {
@@ -109,7 +110,7 @@
         });
         host.appendChild(f);
       }
-      var a = el(doc, 'a', 'rsvp-save', copy.save); a.href = copy.saveHref; host.appendChild(a);
+      if (copy.save) { var a = el(doc, 'a', 'rsvp-save', copy.save); a.href = copy.saveHref; host.appendChild(a); }
     }
 
     function tap() {

@@ -36,7 +36,7 @@ test('mount: a button for an upcoming event; nothing for a past event, a missing
 test('ONE tap confirms at once (before the insert settles) and sends exactly one row with no name and no email', async () => {
   const s = setup(); s.setMode('pending'); s.mount();
   click(s.host, '.rsvp-tap');
-  assert.match(s.host.querySelector('.rsvp-done').textContent, /on the list/i, 'confirmation is immediate, it does not wait for the network');
+  assert.match(s.host.querySelector('.rsvp-done').textContent, /you're in/i, 'confirmation is immediate, it does not wait for the network');
   assert.equal(s.host.querySelector('.rsvp-tap'), null);
   assert.equal(s.calls.length, 1);
   const [table, rec] = s.calls[0];
@@ -53,10 +53,10 @@ test('idempotent: a second tap, even a programmatic one, never sends a second ro
 
 test('a device that already tapped sees "going" with no insert; a failed insert is retried ONCE on the next visit, then never again', async () => {
   const s = setup(); s.setMode('reject'); s.mount(); click(s.host, '.rsvp-tap'); await tick();
-  assert.equal(s.calls.length, 1); assert.match(s.host.querySelector('.rsvp-done').textContent, /on the list/i, 'a failed insert never un-confirms');
+  assert.equal(s.calls.length, 1); assert.match(s.host.querySelector('.rsvp-done').textContent, /you're in/i, 'a failed insert never un-confirms');
   assert.deepEqual(JSON.parse(s.mem[R.KEY + EV.slug]), { going: 1, sent: 0, email: 0 });
   s.setMode('ok'); const s2 = Object.assign(setup(), {}); s2.mem[R.KEY + EV.slug] = s.mem[R.KEY + EV.slug];
-  s2.mount(); await tick(); assert.equal(s2.calls.length, 1, 'one quiet retry'); assert.match(s2.host.querySelector('.rsvp-done').textContent, /on the list/i);
+  s2.mount(); await tick(); assert.equal(s2.calls.length, 1, 'one quiet retry'); assert.match(s2.host.querySelector('.rsvp-done').textContent, /you're in/i);
   assert.deepEqual(JSON.parse(s2.mem[R.KEY + EV.slug]), { going: 1, sent: 1, email: 0 });
   const s3 = setup(); s3.mem[R.KEY + EV.slug] = s2.mem[R.KEY + EV.slug]; s3.mount(); await tick(); assert.equal(s3.calls.length, 0, 'sent: no insert on later visits');
   assert.ok(s3.host.querySelector('.rsvp-done'));
@@ -66,7 +66,7 @@ test('a device that already tapped sees "going" with no insert; a failed insert 
 
 test('a database refusal (rate limit) is also treated as unsent but never un-confirms', async () => {
   const s = setup(); s.setMode('error'); s.mount(); click(s.host, '.rsvp-tap'); await tick();
-  assert.match(s.host.querySelector('.rsvp-done').textContent, /on the list/i); assert.equal(JSON.parse(s.mem[R.KEY + EV.slug]).sent, 0);
+  assert.match(s.host.querySelector('.rsvp-done').textContent, /you're in/i); assert.equal(JSON.parse(s.mem[R.KEY + EV.slug]).sent, 0);
 });
 
 test('optional email: invalid is refused with no insert; valid sends one more row with the email; a failure keeps the form usable', async () => {
@@ -80,23 +80,23 @@ test('optional email: invalid is refused with no insert; valid sends one more ro
   assert.equal(s.calls.length, 2);
   assert.equal(s.calls[1][1].answers.device, s.calls[0][1].answers.device, 'tap and follow-up carry the SAME device id (so the count is one person)'); assert.deepEqual(s.calls[1][1], { event_slug: '80s-night-1', event_id: 4242, buyer_email: 'fan@example.com', answers: { rsvp: true, source: 'one_tap_followup', device: s.calls[1][1].answers.device } });
   assert.equal(s.host.querySelector('.rsvp-ok').textContent, R.COPY.emailOk); assert.equal(s.host.querySelector('form'), null);
-  assert.ok(s.host.querySelector('.rsvp-save'), 'account link stays available'); assert.equal(s.host.querySelector('.rsvp-save').getAttribute('href'), R.COPY.saveHref);
+  assert.equal(s.host.querySelector('.rsvp-save'), null, 'no account link in the approved copy'); assert.equal(s.host.querySelector('.rsvp-sub'), null, 'no extra line under the confirmation');
 });
 
 test('privacy and safety: the email is never written to storage; copy is rendered as text, not HTML; the account link is optional (no gate before "going")', async () => {
-  const s = setup({ copy: { tap: '<img src=x onerror=alert(1)>', save: '<b>x</b>' } }); s.mount();
+  const s = setup({ copy: { tap: '<img src=x onerror=alert(1)>', save: '<b>x</b>', doneSub: '<i>y</i>' } }); s.mount();
   assert.equal(s.host.querySelector('img'), null); assert.equal(s.host.querySelector('.rsvp-tap').textContent, '<img src=x onerror=alert(1)>');
   click(s.host, '.rsvp-tap'); await tick();
   const inp = s.host.querySelector('#rsvp-email'); inp.value = 'secret@example.com'; s.host.querySelector('form').dispatchEvent(new s.dom.window.Event('submit', { cancelable: true })); await tick();
   assert.ok(!JSON.stringify(s.mem).includes('secret@example.com'), 'only flags and a random device id are stored on the device');
-  assert.equal(s.host.querySelector('.rsvp-save').textContent, '<b>x</b>'); assert.equal(s.host.querySelector('b'), null);
+  assert.equal(s.host.querySelector('.rsvp-save').textContent, '<b>x</b>'); assert.equal(s.host.querySelector('b'), null); assert.equal(s.host.querySelector('.rsvp-sub').textContent, '<i>y</i>'); assert.equal(s.host.querySelector('i'), null);
   const src = readFileSync(join(root, 'assets/js/kil-rsvp.js'), 'utf8'); assert.doesNotMatch(src, /innerHTML|outerHTML|insertAdjacentHTML|document\.write/);
 });
 
 test('no usable storage (private mode): the tap still confirms and still sends', async () => {
   const s = setup({ store: { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); } } });
   const g = globalThis; const had = g.localStorage; s.mount(); click(s.host, '.rsvp-tap'); await tick();
-  assert.match(s.host.querySelector('.rsvp-done').textContent, /on the list/i); assert.equal(s.calls.length, 1); void had;
+  assert.match(s.host.querySelector('.rsvp-done').textContent, /you're in/i); assert.equal(s.calls.length, 1); void had;
 });
 
 test('the tap reports to analytics only when a tracker is given, and a throwing tracker never blocks it', async () => {
@@ -127,4 +127,12 @@ test('device id: random, kept on the device, reused for the retry and across eve
 test('event.html passes a tracker that calls kil_track with the rsvp type (a no-op until the SQL lands: kil_track ignores unknown types)', () => {
   const h = readFileSync(join(root, 'event.html'), 'utf8');
   assert.match(h, /sb\.rpc\('kil_track',\{p_kind:'event',p_target_slug:slug,p_event_type:'rsvp'\}\)/);
+});
+
+test("Muse's approved copy is exactly what ships (2026-11-25 5:08), with no upsell and no account link", () => {
+  assert.deepEqual({ tap: R.COPY.tap, done: R.COPY.done, emailLabel: R.COPY.emailLabel, emailPlaceholder: R.COPY.emailPlaceholder, emailBtn: R.COPY.emailBtn, emailOk: R.COPY.emailOk },
+    { tap: "I'm going", done: "You're in - see you there.", emailLabel: 'Email me a reminder', emailPlaceholder: 'you@email.com', emailBtn: 'Remind me', emailOk: 'Reminder set.' });
+  assert.equal(R.COPY.doneSub, ''); assert.equal(R.COPY.save, '');
+  const h = readFileSync(join(root, 'event.html'), 'utf8');
+  assert.match(h, /g\.textContent=n\+' going'/, 'the count reads "{N} going"'); assert.doesNotMatch(h, /textContent='.{0,3}'\+n\+' going'/);
 });

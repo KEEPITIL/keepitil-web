@@ -685,7 +685,7 @@
           /* HOST button — only shown once a real organizer resolves (no dead "Host" chip) */
           var _hb=$('ev-host'); if(_hb){ if(x.owner_handle){ _hb.innerHTML='<span style="opacity:.6;font-size:.72rem;letter-spacing:.06em;margin-right:2px">HOST</span> <a href="/profile?slug='+encodeURIComponent(x.owner_handle)+'">'+esc(x.owner_name||x.owner_handle)+'</a>'; _hb.style.display='flex'; } else { _hb.style.display='none'; } }
           /* social proof — "N going" */
-          sb.rpc('get_event_social',{p_slug:ev.slug}).then(function(gr){ var n=(gr&&typeof gr.data==='number')?gr.data:0; var g=$('ev-going'); if(g && n>0){ g.textContent='🔥 '+n+' going'; g.style.display='inline-flex'; } }).catch(function(){});
+          sb.rpc('get_event_social',{p_slug:ev.slug}).then(function(gr){ var n=(gr&&typeof gr.data==='number')?gr.data:0; var g=$('ev-going'); if(g && n>0){ g.textContent=n+' going'; g.style.display='inline-flex'; } }).catch(function(){});
           paint(); loadExtras(sb);
           try{ if(window.KilRsvp) window.KilRsvp.mount(document.getElementById('ev-rsvp'),{ev:ev,sb:sb,track:function(k,slug){ try{ Promise.resolve(sb.rpc('kil_track',{p_kind:'event',p_target_slug:slug,p_event_type:'rsvp'})).catch(function(){}); }catch(_t){} }}); }catch(_rs){}   /* one-tap RSVP: never blocks the page */
           try{ evLanding(sb, x); }catch(_el){}   /* about + share + venue + more-like-this */

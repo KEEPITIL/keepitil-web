@@ -139,6 +139,7 @@
       { key: 'services', label: 'Services', group: 2, icon: 'wrench', needsData: 'services' },
       { key: 'events', label: 'Events', group: 2, icon: 'calendar', needsData: 'events' },
       { key: 'learning', label: 'Learning', group: 2, icon: 'book', page: 'learn.html' },   // Find My Weed's own Learn page (not the host site's culture feed)
+      { key: 'mybusiness', label: 'My business', group: 3, icon: 'briefcase', account: true, signedInOnly: true, businessOnly: true, page: 'account.html#business' },   // a signed-in business account only
       { key: 'favorites', label: 'Favorites', group: 3, icon: 'heart', account: true },
       { key: 'help', label: 'Help', group: 3, icon: 'help', page: 'about.html' },       // Find My Weed's own About page: how it works, the data source, contact and the report link
       { key: 'listbiz', label: 'List Your Business', group: 3, icon: 'plus', biz: true }

@@ -73,7 +73,7 @@
   var ICON = {
     home: 'M3 11 12 4l9 7v9h-6v-6H9v6H3z', store: 'M4 9h16l-1.5-5h-13zM5 9v11h14V9M9 20v-6h6v6',
     truck: 'M2 6h12v10H2zM14 10h4l3 3v3h-7M6 19.5a1.5 1.5 0 1 0 0-.01M17 19.5a1.5 1.5 0 1 0 0-.01', tag: 'M3 3h8l10 10-8 8L3 11zM7.5 7.5h.01',
-    star: 'M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.4l-5.5 2.9 1-6.2L3 9.7l6.2-.9z', building: 'M4 21V5l8-2v18M12 8h8v13M7 8h2M7 12h2M7 16h2M15 12h2M15 16h2M2 21h20',
+    star: 'M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.4l-5.5 2.9 1-6.2L3 9.7l6.2-.9z', briefcase: 'M3 8h18v12H3zM8 8V5h8v3M3 13h18', building: 'M4 21V5l8-2v18M12 8h8v13M7 8h2M7 12h2M7 16h2M15 12h2M15 16h2M2 21h20',
     wrench: 'M14.5 5.5a4 4 0 0 0 4 5.5l-9 9-3-3 9-9a4 4 0 0 1-1-2.5z', calendar: 'M4 6h16v15H4zM4 10h16M8 3v5M16 3v5', book: 'M12 6c-2-2-5-2-8-1v14c3-1 6-1 8 1 2-2 5-2 8-1V5c-3-1-6-1-8 1zM12 6v14',
     heart: 'M12 20s-8-5-8-11a4 4 0 0 1 8-1.5A4 4 0 0 1 20 9c0 6-8 11-8 11z', help: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01', plus: 'M12 5v14M5 12h14',
     check: 'M4.5 12.5l5 5 10-11', pin: 'M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z', close: 'M6 6l12 12M18 6 6 18'
@@ -122,7 +122,7 @@
       var a = doc.activeElement, keep = isOpen && a && panel.contains(a) ? (a.getAttribute('data-menu') || (a.parentNode && a.parentNode.getAttribute && a.parentNode.getAttribute('data-menu'))) : null;
       clear(panel);
       var noteId = 'menu-acct-note', acct = el('div', 'menu-acct'), groups = {}, order = [], anySoonAcct = false;
-      F.menuItems(C.NAV_MENU, { accounts: cfg.accounts === true, signedIn: SIGNED_IN, basePath: base, absolute: abs, offered: offered }).forEach(function (it) {
+      F.menuItems(C.NAV_MENU, { accounts: cfg.accounts === true, signedIn: SIGNED_IN, business: SIGNED_IN && SESS.isBusiness && SESS.isBusiness() === true, basePath: base, absolute: abs, offered: offered }).forEach(function (it) {
         var n;
         if (!it.group) {   // the two account pills, side by side at the top
           if (it.disabled) { n = soonButton('pill ' + (it.pill || 'outline'), it.label, noteId); anySoonAcct = true; }

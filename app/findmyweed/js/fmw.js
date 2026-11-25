@@ -560,12 +560,14 @@
   //     opts.absolute, for 404.html at any depth) | biz (<basePath>/for-business/) | host (a root-relative page of the host
   //     site, a link only while basePath is set: a build on its own domain has no host site). Anything else (javascript:,
   //     //host, an absolute URL) is never a destination.
-  var PAGE_RE = /^[a-z0-9][a-z0-9_-]*\.html(\?[a-z0-9_=&%.-]*)?$/i, HOST_RE = /^\/[a-z0-9][a-z0-9\/-]*$/;
+  var PAGE_RE = /^[a-z0-9][a-z0-9_-]*\.html(\?[a-z0-9_=&%.-]*)?(#[a-z][a-z0-9_-]*)?$/i, HOST_RE = /^\/[a-z0-9][a-z0-9\/-]*$/;
   function menuItems(list, opts) {
     opts = opts || {};
     var base = opts.basePath || '', offered = opts.offered || {}, out = [];
     (list || []).forEach(function (it) {
       if (!it || !it.key || typeof it.label !== 'string' || !it.label) return;
+      if (it.signedInOnly === true && opts.signedIn !== true) return;   // My business: only once signed in ...
+      if (it.businessOnly === true && opts.business !== true) return;   // ... and only when the session hint says business (a menu link only: the account page asks the SERVER before it shows anything)
       if (it.visitorOnly === true && opts.signedIn === true) return;   // Sign in / Sign up for a visitor; Account / Sign out once signed in
       var href = it.biz ? base + '/for-business/'
         : (typeof it.page === 'string' && PAGE_RE.test(it.page)) ? (opts.absolute ? base + '/' + it.page : it.page)

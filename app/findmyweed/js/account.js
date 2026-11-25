@@ -73,6 +73,8 @@
       // the cards below the email (js/account-cards.js): business details + license status, or saved listings; Download / Delete for both
       var cardsDone = win.FMW_ACCOUNT_CARDS && win.FMW_ACCOUNT_CARDS.mount ? win.FMW_ACCOUNT_CARDS.mount(doc, box, { win: win, token: token, claims: c, onKind: function (label) { if (kindDd) kindDd.textContent = label; }, onDeleted: function (m) { signedOut(m); } }) : null;
       // the order inbox (behind FMW_CONFIG.ordering, off today) is business-only content: only when the SERVER says this account is a business
+      // what the server said, kept as the menu's "My business" hint (approved only; anything else, including no answer, removes it)
+      if (cardsDone && cardsDone.then) cardsDone.then(function (r) { if (ST && ST.businessHint) ST.businessHint(c && c.sub, !!(r && r.kind === 'business')); });
       if (cardsDone && cardsDone.then) cardsDone.then(function (r) { if (r && r.kind === 'business' && win.FMW_INBOX && win.FMW_INBOX.mount) win.FMW_INBOX.mount(doc, box, { win: win }); });
       else if (kind === T.business && win.FMW_INBOX && win.FMW_INBOX.mount) win.FMW_INBOX.mount(doc, box, { win: win });   // no cards module: the old behaviour
       // a customer account also gets its saved listings (behind FMW_CONFIG.favorites, off today)

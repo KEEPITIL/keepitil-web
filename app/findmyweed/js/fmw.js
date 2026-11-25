@@ -723,6 +723,32 @@
   //   known; '' when neither) | 3 hours | 4 address (delivery-only: the city only, the Privacy page's rule) |
   //   5 "Storefront" / "Delivery" + county | 6 the license number (the page draws a green check mark before it).
   // No trust-badge word is ever produced here: line 6 is the plain license number.
+  // LICENSE STRIP (Muse 03:04 card + 04:04 strip, via Grok 2026-11-25): the license number, its state status and its expiry date, from the fields a
+  // listing already has (license, licenseStatus, licenseExpires): no new query, no new data. Only the two statuses a page ever shows are named
+  // ("Active license"; "About to Expire" is still an active license); anything else, or a missing / impossible date, is said plainly as "not on file",
+  // never guessed. Discovery wording only, and no ordering language.
+  function licenseStrip(l) {
+    var st = l && l.licenseStatus, status = st === 'Active' || st === 'About to Expire' ? st : '';
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String((l && l.licenseExpires) || '')), expires = '', shortDate = '';
+    if (m) {
+      var y = +m[1], mo = +m[2], da = +m[3], d = new Date(Date.UTC(y, mo - 1, da));
+      if (d.getUTCFullYear() === y && d.getUTCMonth() === mo - 1 && d.getUTCDate() === da) {   // e.g. 2026-02-30 is no date
+        expires = MONTHS[mo - 1] + ' ' + da + ', ' + y; shortDate = mo + '/' + da + '/' + String(y).slice(2);
+      }
+    }
+    return { number: (l && typeof l.license === 'string') ? l.license.trim() : '', status: status, expires: expires, short: shortDate };
+  }
+  // the one line: "<status> \u00b7 <expiry>", each part replaced by its own plain "not on file" words when missing
+  function licenseStripText(s, C) {
+    return (s.status === 'Active' ? C.stripActive : s.status === 'About to Expire' ? C.stripSoon : C.stripNoStatus) + ' \u00b7 ' + (s.expires ? C.stripUntil(s.expires) : C.stripNoExpiry);
+  }
+  // The CARD version of the strip (NEXUS2 2026-11-25: a card line is nowrap + ellipsis and only ~144 px wide on a 320 px phone, so the long wording clipped its own date).
+  // Short words, a numeric date, at most ~22 characters; the full wording stays on the listing page.
+  function licenseStripCardText(s, C) {
+    if (s.status !== 'Active' && s.status !== 'About to Expire') return C.stripCardNoStatus;
+    var soon = s.status === 'About to Expire';
+    return s.short ? (soon ? C.stripCardSoon(s.short) : C.stripCardActive(s.short)) : (soon ? C.stripCardSoonNoDate : C.stripCardActiveNoDate);
+  }
   function cardLines(r, C) {
     var l = r.listing, a = (l.address && typeof l.address === 'object') ? l.address : {};
     var two = [];
@@ -785,7 +811,7 @@
     return out;
   }
 
-  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, filterRows: filterRows, licenseCategories: licenseCategories, categoriesOf: categoriesOf, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, orderCards: orderCards, isPaid: isPaid, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, licenseStrip: licenseStrip, licenseStripText: licenseStripText, licenseStripCardText: licenseStripCardText, filterRows: filterRows, licenseCategories: licenseCategories, categoriesOf: categoriesOf, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, orderCards: orderCards, isPaid: isPaid, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
     dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;

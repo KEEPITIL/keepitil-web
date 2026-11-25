@@ -115,6 +115,9 @@
       contact: 'Contact us',
       pricingLockedTitle: 'We need to check your license by hand',
       pricingLockedBody: 'We could not confirm a checked license for this account yet. Our team reviews it and emails you. Pricing shows once your license is checked.',
+      // verified license + confirmed email, but the team has not confirmed the claim yet (fmw.business_pricing reason 'approval'): not "check your license by hand" (it IS checked); the same words as the account page
+      pricingApprovalTitle: 'We\'ll confirm you own this business',
+      pricingApprovalBody: 'Your license checked out. Pricing shows once our team has confirmed the claim. We email you.',
       pricingErrorTitle: 'We could not load your pricing',
       pricingErrorBody: 'Something went wrong on our side. Try the sign-in link again in a minute, or contact us.',
       nextTitle: 'What happens next',

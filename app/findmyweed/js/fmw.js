@@ -636,17 +636,34 @@
   var BUSINESS_FILTERS = FILTER_DEFS.filter(function (d) { return d.businessOnly; }).map(function (d) { return d.key; });
   // license-type words (the state's own licenseType text) for the license categories
   var LICENSE_CAT = { retail: /retail/i, cultivation: /cultivat|nursery|processor/i, manufacturing: /manufactur/i, distribution: /distribut/i, testing: /testing/i, microbusiness: /microbusiness/i };
+  // FILTER HONESTY (Muse via Grok 2026-11-25): the category tags of a listing for the LICENSE categories (retail, cultivation,
+  // manufacturing, distribution, testing, microbusiness) come from its state license type and from nothing else: a data tag can
+  // never add one the license type does not have, so a chip returns only true matches. The other keys (brands, services, events,
+  // ...) have no license type behind them: only a real tag or a real entry counts, and with none the chip honestly shows none.
+  function licenseCategories(type) {
+    var out = [];
+    if (typeof type !== 'string') return out;
+    Object.keys(LICENSE_CAT).forEach(function (k) { if (LICENSE_CAT[k].test(type)) out.push(k); });
+    return out;
+  }
+  // every category tag a listing really has: the license ones derived from its license type + the other real tags on the row
+  function categoriesOf(l) {
+    var out = licenseCategories(l && l.licenseType);
+    ((l && Array.isArray(l.categories)) ? l.categories : []).forEach(function (c) { if (typeof c === 'string' && !LICENSE_CAT[c] && out.indexOf(c) < 0) out.push(c); });
+    return out;
+  }
   function filterMatch(key, r, dealIds, eventIds) {
     var l = r && r.listing; if (!l) return false;
+    if (LICENSE_CAT[key]) return licenseCategories(l.licenseType).indexOf(key) >= 0;   // the license type is the only source (see above)
     var cats = Array.isArray(l.categories) ? l.categories : [];
-    if (cats.indexOf(key) >= 0) return true;   // a real category tag on the row (none today)
+    if (cats.indexOf(key) >= 0) return true;   // a real non-license category tag on the row (none today)
     switch (key) {
       case 'storefront': return !!l.storefront;
       case 'delivery': return l.delivery === true;
       case 'open': return r.known !== false && hoursKnown(l) && r.open === true;
       case 'deals': return !!dealIds[l.id];
       case 'events': return !!eventIds[l.id];
-      default: return !!LICENSE_CAT[key] && typeof l.licenseType === 'string' && LICENSE_CAT[key].test(l.licenseType);
+      default: return false;
     }
   }
   // The rows a chip keeps (results = search() rows). "home" or an unknown key = every row. Deals / Events: only listings a
@@ -768,7 +785,7 @@
     return out;
   }
 
-  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, filterRows: filterRows, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, orderCards: orderCards, isPaid: isPaid, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, filterRows: filterRows, licenseCategories: licenseCategories, categoriesOf: categoriesOf, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, orderCards: orderCards, isPaid: isPaid, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
     dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;

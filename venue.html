@@ -135,8 +135,9 @@ textarea{min-height:90px;resize:vertical}
   <a href="/apply" class="nav-cta">LOGIN</a>
 </div></nav>
 
-<div class="loading" id="loading"><h1 class="vh">Venue</h1>Loading venue…</div>
-<main id="v" style="display:none">
+<main id="v">
+  <div class="loading" id="loading"><h1 class="vh">Venue</h1>Loading venue…</div>
+  <div id="vBody" style="display:none">
   <div class="v-cover" id="vCover"></div>
   <div class="wrap" id="main">
     <div class="v-head">
@@ -213,6 +214,7 @@ textarea{min-height:90px;resize:vertical}
     </div>
 
     <div class="claim" id="vClaim"></div>
+  </div>
   </div>
 </main>
 <div class="sticky" id="sticky" role="region" aria-label="Request a booking"><button onclick="scrollToBook()">Request booking</button></div>
@@ -303,7 +305,7 @@ function render(){
   $('askSugg').innerHTML=['How many guests fit?','Can I bring outside food?','Can I have alcohol?','Can I tour first?'].map(function(q){return '<button onclick="askVQ(this.textContent)">'+esc(q)+'</button>';}).join('');
   // claim
   $('vClaim').innerHTML=V.owner_handle?('Managed by <a href="/profile?slug='+esc(V.owner_handle)+'">@'+esc(V.owner_handle)+'</a>'):'Is this your venue? <a onclick="claim()">Claim this page →</a>';
-  $('loading').style.display='none'; $('v').style.display='block';
+  $('loading').style.display='none'; $('vBody').style.display='block';
 }
 /* ── Gallery (auto-filled from posts/blogs that tag or mention the venue) ── */
 function loadGallery(kind){

@@ -24,7 +24,20 @@ test('behaviour: the src expression picks cover or placeholder; OG/JSON-LD still
   const s = rd('event.html'), m = s.match(/var _u=(\(ev\.img\|\|'[^']+'\))\.replace/); assert.ok(m, 'src expression found');
   const run = (img) => new Function('ev', 'return ' + m[1])({ img });
   assert.equal(run(null), PH); assert.equal(run(''), PH); assert.equal(run('https://x/y.jpg'), 'https://x/y.jpg');
-  assert.ok(s.includes("if(ev.img) $('og-img')") && s.includes('if(ev.img) ld.image=ev.img'), 'no placeholder in OG / JSON-LD');
+  assert.ok(ogJsonLdSafe(s), 'no placeholder in OG / JSON-LD: a real cover or the raster default only');
+});
+// OG / JSON-LD may use a real cover (never the SVG placeholder) or the site's raster default. The page passes the SVG test: og:image is only set for a non-SVG cover, and the JSON-LD image swaps an SVG for the raster default.
+function ogJsonLdSafe(s) {
+  return /if\(ev\.img && !isSvgUrl\(ev\.img\)\) \$\('og-img'\)\.setAttribute\('content', ev\.img\)/.test(s)
+    && /if\(ev\.img\) ld\.image=isSvgUrl\(ev\.img\)\?'https:\/\/keepitil\.com\/keepitil-og\.png':ev\.img;/.test(s)
+    && !/\$\('og-img'\)\.setAttribute\('content', *(ev\.img\|\||[^)]*placeholder)/.test(s) && !/ld\.image *= *\(?ev\.img *\|\|/.test(s) && !s.includes("if(ev.img) $('og-img')") && !s.includes('if(ev.img) ld.image=ev.img');
+}
+test('negative control: a version that puts the SVG into OG / JSON-LD fails the check (the pre-#377 unguarded lines, and a placeholder fallback)', () => {
+  const good = rd('event.html');
+  assert.ok(ogJsonLdSafe(good));
+  assert.ok(!ogJsonLdSafe(good.replace("if(ev.img && !isSvgUrl(ev.img)) $('og-img')", "if(ev.img) $('og-img')")), 'unguarded og:image fails');
+  assert.ok(!ogJsonLdSafe(good.replace("ld.image=isSvgUrl(ev.img)?'https://keepitil.com/keepitil-og.png':ev.img;", 'ld.image=ev.img;')), 'unguarded JSON-LD fails');
+  assert.ok(!ogJsonLdSafe(good.replace('ld.image=isSvgUrl(ev.img)', "ld.image=(ev.img||'" + PH + "');var _x=isSvgUrl(ev.img)")), 'placeholder fallback in JSON-LD fails');
 });
 test('negative control: the pre-change guard would fail the page check', () => {
   assert.ok("if(ev.img){ var _fl=$('ev-flyer')".includes("if(ev.img){ var _fl"));

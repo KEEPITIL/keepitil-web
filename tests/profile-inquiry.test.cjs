@@ -25,11 +25,9 @@ test("rejects bad name, email and message (negative controls)", () => {
   assert.equal(mod.validate({ ...good, message: "x".repeat(2001) }).ok, false);
   assert.equal(mod.validate({}).ok, false);
 });
-test("off for visitors until switched on; on only for a local preview", () => {
-  assert.equal(mod.enabled({ hostname: "keepitil.com", search: "?inquiry-preview=1" }), false);
-  assert.equal(mod.enabled({ hostname: "keepitil.com", search: "" }), false);
-  assert.equal(mod.enabled({ hostname: "localhost", search: "" }), false);
-  assert.equal(mod.enabled({ hostname: "localhost", search: "?inquiry-preview=1" }), true);
+test("LIVE: visible to visitors on keepitil.com (flipped after the function was deployed)", () => {
+  assert.equal(mod.enabled({ hostname: "keepitil.com", search: "" }), true);
+  assert.match(js, /var LIVE = true;/);
 });
 test("the profile page loads the module and has the CONTACT button, hidden by default", () => {
   assert.match(page, /src="\/assets\/js\/profile-inquiry\.js/);

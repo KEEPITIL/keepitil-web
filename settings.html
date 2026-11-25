@@ -88,7 +88,7 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
   <a href="/apply" class="nav-cta">LOGIN</a>
 </div></nav>
 
-<div class="wrap">
+<main class="wrap" id="main">
   <button class="sback" onclick="goProfile()">‹ Back to profile</button>
   <h1 class="pt">Settings</h1>
 
@@ -116,11 +116,11 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
         <h2>Account</h2><div class="psub">Manage how you sign in.</div>
         <div class="row"><div class="lbl">Handle</div><div class="val" id="acc-handle">—</div></div>
         <div class="row"><div class="lbl">Email<small>Used to sign in and for account notices</small></div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="email" id="acc-email-in" placeholder="you@email.com" style="min-width:180px"><button class="btn primary" onclick="saveEmail()">Update</button></div></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="email" id="acc-email-in" aria-label="Email address" placeholder="you@email.com" style="min-width:180px"><button class="btn primary" onclick="saveEmail()">Update</button></div></div>
         <div class="row"><div class="lbl">Change password<small>At least 8 characters</small></div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="password" id="acc-pass" placeholder="New password" style="min-width:150px"><button class="btn" onclick="savePass()">Change</button></div></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="password" id="acc-pass" aria-label="New password" placeholder="New password" style="min-width:150px"><button class="btn" onclick="savePass()">Change</button></div></div>
         <div class="row"><div class="lbl">Language</div>
-          <select data-k="language"><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="pt">Português</option><option value="de">Deutsch</option></select></div>
+          <select data-k="language" aria-label="Language"><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="pt">Português</option><option value="de">Deutsch</option></select></div>
         <div class="row"><div class="lbl">Two-factor authentication<small>Extra security at sign-in</small></div><a class="btn" href="mailto:info@keepitil.com">Set up →</a></div>
         <div class="row"><div class="lbl">Sign out<small>End your session on this device</small></div><button class="btn danger" onclick="doLogout()">Log out</button></div>
         <div class="row" id="exp-row"><div class="lbl">Download my data<small>A JSON file with everything tied to your account: account details and settings, your profiles and what you posted, events you submitted or own, saved events, who you follow, ticket orders and registrations, your comments, chat messages, playlists and other activity, billing and payout records, and messages you sent</small></div><button class="btn" id="exp-go" type="button" onclick="exportMyData()">Download</button></div>
@@ -179,10 +179,10 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
       <div class="grp" data-g="privacy">
         <h2>Privacy</h2><div class="psub">Control who sees you.</div>
         <div class="row"><div class="lbl">Profile visibility</div>
-          <select data-k="privacy_visibility"><option value="public">Public</option><option value="members">Members only</option></select></div>
+          <select data-k="privacy_visibility" aria-label="Profile visibility"><option value="public">Public</option><option value="members">Members only</option></select></div>
         <div class="row"><div class="lbl">Show me in the Scene directory<small>Appear in search &amp; discovery</small></div><div class="tog" data-k="privacy_directory"></div></div>
         <div class="row"><div class="lbl">Allow messages from<small>Who can start a chat with you</small></div>
-          <select data-k="privacy_messages"><option value="everyone">Everyone</option><option value="members">Members</option><option value="none">No one</option></select></div>
+          <select data-k="privacy_messages" aria-label="Allow messages from"><option value="everyone">Everyone</option><option value="members">Members</option><option value="none">No one</option></select></div>
         <div class="savez" id="sz-privacy"></div>
       </div>
 
@@ -190,7 +190,7 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
       <div class="grp" data-g="chat">
         <h2>Chat defaults</h2><div class="psub">Defaults for rooms you create.</div>
         <div class="row"><div class="lbl">Who can post</div>
-          <select data-k="chat_whocanpost"><option value="everyone">Everyone</option><option value="admins">Admins only</option></select></div>
+          <select data-k="chat_whocanpost" aria-label="Who can post"><option value="everyone">Everyone</option><option value="admins">Admins only</option></select></div>
         <div class="row"><div class="lbl">Approve new members<small>Review joins before they can see the room</small></div><div class="tog" data-k="chat_approve"></div></div>
         <div class="row"><div class="lbl">Read receipts<small>Let others see when you've read</small></div><div class="tog" data-k="chat_receipts"></div></div>
         <div class="savez" id="sz-chat"></div>
@@ -215,7 +215,7 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
       </div>
     </section>
   </div>
-</div>
+</main>
 
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script>

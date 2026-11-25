@@ -627,6 +627,13 @@
   }
 
   async function safe(p) { try { return await p; } catch (e) { return { data: null, error: e }; } }
+  /* city_geo only refines the timezone (the fallback is LA), so it must never hold the page: if supabase-js is still retrying after GEO_TIMEOUT_MS, give up on it (data null, error 'timeout') and paint. */
+  var GEO_TIMEOUT_MS = 1500;
+  function geoFetch(client, ms) {
+    var t, limit = ms > 0 ? ms : GEO_TIMEOUT_MS;
+    var timeout = new Promise(function (res) { t = setTimeout(function () { res({ data: null, error: new Error('timeout') }); }, limit); });
+    return Promise.race([safe(client.from('city_geo').select('city,state,county,tz')), timeout]).then(function (r) { clearTimeout(t); return r; });
+  }
   function ok(r) { return !!r && !r.error; }
 
   /* knownGeos: city_geo rows already fetched by the caller (the /discover/ index loads them once, in parallel with the city rows); omit it and load() fetches city_geo itself. */
@@ -635,7 +642,7 @@
     var ev = await safe(buildEventsQuery(client, now.toISOString(), cfg.cityExact));
     if (!ok(ev)) return { failed: true, now: now };
     var geos = knownGeos;
-    if (!Array.isArray(geos)) { var geo = await safe(client.from('city_geo').select('city,state,county,tz')); geos = ok(geo) ? (geo.data || []) : []; }
+    if (!Array.isArray(geos)) { var geo = await geoFetch(client, cfg.geoTimeoutMs); geos = ok(geo) ? (geo.data || []) : []; }
     var tz = tzFromGeo(geos, cfg.cityName, cfg.state, cfg.fallbackTz || 'America/Los_Angeles');
     var part = prepare(ev.data || [], {
       now: now, tz: tz, city: cfg.city, state: cfg.state, genre: cfg.genre || ''
@@ -768,7 +775,7 @@
       citiesEl.innerHTML = '<p class="disc-loading">Loading cities\u2026</p>';
       var c = mk();
       if (!c) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
-      var both = await Promise.all([loadCityRows(c, new Date().toISOString()), safe(c.from('city_geo').select('city,state,county,tz'))]);   /* one round trip, not two in a row */
+      var both = await Promise.all([loadCityRows(c, new Date().toISOString()), geoFetch(c, cfg.geoTimeoutMs)]);   /* one round trip, not two in a row; city_geo gives up after GEO_TIMEOUT_MS */
       var r = both[0], geo = both[1];
       if (r.failed) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
       geos = ok(geo) ? (geo.data || []) : [];   /* city_geo failing is not fatal: tzFromGeo falls back to the LA timezone */
@@ -840,7 +847,8 @@
     tzFromGeo: tzFromGeo,
     load: load,
     mount: mount,
-    mountCities: mountCities
+    mountCities: mountCities,
+    GEO_TIMEOUT_MS: GEO_TIMEOUT_MS
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.KilDiscover = api;

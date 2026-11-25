@@ -372,6 +372,7 @@ function fakeSupabase(opts) {
     ['select', 'eq', 'gte', 'or', 'order', 'range', 'in', 'neq', 'limit'].forEach(function (m) { q[m] = function () { q._calls.push(m); return q; }; });
     q.then = function (res, rej) {
       log.push(table);
+      if (table === 'city_geo' && opts.geoNever) return new Promise(function () {});   /* supabase-js is stuck retrying: never settles */
       var out = table === 'city_geo' ? (opts.geoFails ? { data: null, error: new Error('geo down') } : { data: opts.geos || [], error: null }) : { data: opts.rows || [], error: null };
       return Promise.resolve(opts.delay ? new Promise(function (r) { setTimeout(r, opts.delay); }) : null).then(function () { log.push(table + ':done'); return out; }).then(res, rej);
     };
@@ -387,7 +388,7 @@ async function mountWith(opts, hash) {
   globalThis.document = { getElementById: function () { return el(); }, querySelector: function () { return null; }, createElement: function () { return { setAttribute: function () {} }; }, readyState: 'complete' };
   globalThis.supabase = { createClient: function () { return f.client; } };
   globalThis.location = { hash: hash || '' };
-  try { await D.mountCities(cities, lists, { kind: 'cities', fallbackTz: 'America/Los_Angeles' }); }
+  try { await D.mountCities(cities, lists, { kind: 'cities', fallbackTz: 'America/Los_Angeles', geoTimeoutMs: opts.geoTimeoutMs }); }
   finally { globalThis.document = saved.document; globalThis.supabase = saved.supabase; globalThis.location = saved.location; }
   return { f: f, cities: cities, lists: lists };
 }
@@ -424,4 +425,37 @@ test('city_geo failing: the index still paints and the fallback stays the LA tim
   assert.match(r.cities.innerHTML, /Austin/);
   assert.equal(r.f.log.filter(function (x) { return x === 'city_geo'; }).length, 1);
   assert.equal(D.cityList(rows, 'America/Los_Angeles', [])[0].n, 1, 'LA fallback (both nights are one LA day)');
+});
+
+test('city_geo that never answers does not hold the paint: the index paints after the city_geo timeout with the LA fallback (NEGATIVE CONTROL: waiting on it, as before, never settles)', async function () {
+  assert.equal(D.GEO_TIMEOUT_MS, 1500, 'the default is 1.5 s');
+  var rows = [AUS('2027-12-06T05:30:00Z'), AUS('2027-12-06T07:30:00Z')];
+  var t0 = Date.now();
+  var r = await mountWith({ rows: rows, geoNever: true, geoTimeoutMs: 60 }, '');
+  var took = Date.now() - t0;
+  assert.ok(took >= 50 && took < 600, 'painted after about the timeout, took ' + took + ' ms');
+  assert.match(r.cities.innerHTML, /Austin/, 'the chips rendered');
+  assert.equal(r.f.log.filter(function (x) { return x === 'city_geo'; }).length, 1);
+  assert.equal(D.cityList(rows, 'America/Los_Angeles', [])[0].n, 1, 'with no geos the LA fallback decides (both nights are one LA day)');
+  /* NEGATIVE CONTROL: the pre-change behaviour (await the raw city_geo promise inside Promise.all) never settles against the same client */
+  var f = fakeSupabase({ rows: rows, geoNever: true });
+  var old = Promise.all([Promise.resolve(1), f.client.from('city_geo').select('x')]).then(function () { return 'settled'; });
+  var verdict = await Promise.race([old, new Promise(function (r) { setTimeout(function () { r('still waiting'); }, 250); })]);
+  assert.equal(verdict, 'still waiting');
+});
+
+test('a city view opened directly (no index geos) also gives up on a stuck city_geo and keeps the LA timezone', async function () {
+  var rows = [AUS('2027-12-06T05:30:00Z')];
+  var f = fakeSupabase({ rows: rows, geoNever: true });
+  var t0 = Date.now();
+  var res = await D.load(f.client, { city: 'austin', cityName: 'Austin', state: 'TX', cityExact: 'Austin', fallbackTz: 'America/Los_Angeles', geoTimeoutMs: 60 }, new Date('2026-11-25T00:00:00Z'));
+  assert.ok(Date.now() - t0 < 600);
+  assert.equal(res.failed, false); assert.equal(res.tz, 'America/Los_Angeles');
+});
+
+test('a city_geo that answers in time is still used (the timeout only cuts off a stuck one)', async function () {
+  var rows = [AUS('2027-12-06T05:30:00Z'), AUS('2027-12-06T07:30:00Z')];
+  var r = await mountWith({ rows: rows, geos: [{ city: 'Austin', state: 'TX', tz: 'America/Chicago' }], delay: 10, geoTimeoutMs: 400 }, '');
+  assert.match(r.cities.innerHTML, /Austin/);
+  assert.match(r.cities.innerHTML, /Austin, TX · 2 events/, 'the chip count uses the Chicago timezone (2 nights)');
 });

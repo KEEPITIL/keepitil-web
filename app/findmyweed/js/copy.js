@@ -88,7 +88,7 @@
     fServices: 'Services',
     fEvents: 'Events',
     // A chip with nothing real behind it yet in this area: said plainly, never filled with invented rows
-    filterEmptyTitle: function (label, place) { return label + ': no licensed businesses listed' + (place ? ' in ' + place : '') + ' yet'; },
+    filterEmptyTitle: function (label, place) { return label + ': none on file' + (place ? ' in ' + place : '') + ' yet'; },   // Grok 8:05: "none on file" (the old "no licensed businesses listed" read as if the county had none)
     filterEmptyOpen: 'Opening hours are not on file yet, so no business can be shown as open now.',
     filterEmptyOther: 'Nothing listed here has this on file yet. Only real license and business data is shown.',
     showAll: 'Show all',

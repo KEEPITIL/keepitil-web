@@ -507,14 +507,14 @@
     var shown = licensed((data && data.listings) || [], now), ids = {}, business = !!(opts && opts.mode === 'business'), eventIds = {};
     shown.forEach(function (l) { ids[l.id] = 1; });
     ((data && Array.isArray(data.events)) ? data.events : []).forEach(function (e) { if (e && typeof e.listingId === 'string') eventIds[e.listingId] = 1; });
-    var dots = [], dropped = [];
+    var dots = [], dropped = [], skipped = 0;   // skipped: shown rows that get no dot by rule (no consumer pin, or no real name left); dropped: no usable location. The page counts both in "in the list only" so the map's number and the list's number add up (honest counts)
     (listings || []).forEach(function (l) {
       if (!l || !ids[l.id]) return;
       var cat = pinCategory(l, eventIds);
-      if (!cat && !business) return;   // customer map: consumer-facing pins only
+      if (!cat && !business) { skipped++; return; }   // customer map: consumer-facing pins only
       // joe-0045: the map never shows a bracketed program tag ("[Equity Retailer]") and never a nameless dot: the name is
       // drawn without its tags, and a row with no real name left gets no dot at all.
-      var name = mapName(l.name); if (!name) return;
+      var name = mapName(l.name); if (!name) { skipped++; return; }
       var kind = l.storefront ? 'storefront' : 'delivery';
       var pt = l.storefront ? (hasPoint(l) ? { lat: l.lat, lng: l.lng } : null) : deliveryPoint(l, shown, data && data.places);
       if (!pt) { dropped.push({ id: l.id, why: 'no-location' }); return; }
@@ -522,7 +522,7 @@
       if (!xy) { dropped.push({ id: l.id, why: 'outside' }); return; }
       dots.push({ id: l.id, name: name, city: cityOf(l), kind: kind, cat: cat || 'business', brand: brandIcon(l), x: xy.x, y: xy.y });
     });
-    return { w: MAP_W, h: MAP_H, dots: dots, dropped: dropped };
+    return { w: MAP_W, h: MAP_H, dots: dots, dropped: dropped, skipped: skipped };
   }
 
   // The part of the fixed map to show: the dots' extent plus a margin, at least MIN_SPAN wide, 4:3, inside the map. Only

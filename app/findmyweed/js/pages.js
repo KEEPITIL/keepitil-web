@@ -328,7 +328,7 @@
       box.appendChild(lg);
     }
     if (m.dots.some(function (d) { return d.kind === 'delivery'; })) box.appendChild(el('p', 'muted map-note', C.mapDeliveryNote));
-    if (m.dropped.length) box.appendChild(el('p', 'muted map-note', C.mapNotShown(m.dropped.length)));
+    if (m.dropped.length + m.skipped) box.appendChild(el('p', 'muted map-note', C.mapNotShown(m.dropped.length + m.skipped)));   // dots + this number = the list's number
     box.hidden = false;
   }
 

@@ -503,7 +503,8 @@
 
     // The HOME and results.html load the small state index and only the chosen area's county file(s) (weight 1.0, Phases 2 and 3); the whole
     // state, or any failure or odd response here, falls back to the full data/listings.json as before.
-    var homeIndex = null, homeFiles = {}, fullFor = null;   // fullFor: the typed text whose name search needs the full data/listings.json (the light files carry no names)
+    var homeIndex = null, homeFiles = {}, fullFor = null, namesFile = null, namesFor = null;   // namesFor: the typed text whose name search uses the names-only index (data/listings-names.json) + the county files of the matches; fullFor: the fallback when that file cannot be read (the full data/listings.json)
+    var loadNames = function () { return namesFile ? Promise.resolve(namesFile) : F.loadPart(F.fetchOf(window), 'data/listings-names.json', function (d) { return d && Array.isArray(d.names) && d.names.length > 0; }).then(function (d) { namesFile = d; return d; }); };
     var loadHomeIndex = function () {
       var get = homeIndex ? Promise.resolve(homeIndex) : F.loadPart(F.fetchOf(window), 'data/listings-index.json', function (d) { return d && Array.isArray(d.places) && Array.isArray(d.listings) && d.listings.length > 0 && d.listings.every(function (r) { return r && typeof r.county === 'string' && !r.address; }); }).then(function (d) { homeIndex = d; return d; });
       return get.then(function (idx) { return F.assembleHome(idx, {}); }, function () { return load(); });
@@ -515,6 +516,7 @@
       var zm = !p.q ? Promise.resolve(null) : zipMap ? Promise.resolve(zipMap) : F.loadPart(F.fetchOf(window), 'data/zip-county.json', function (d) { return d && d.zips && typeof d.zips === 'object'; }).then(function (d) { zipMap = d; return d; });
       return zm.then(function (z) {
         var keys = F.areaCountyKeys(data, p, z);
+        if (namesFor === p.q && namesFile) F.nameCountyKeys(homeIndex, F.nameIds(namesFile, p.q)).forEach(function (k) { if (keys.indexOf(k) < 0) keys.push(k); });   // + the counties of the listings whose NAME matches the typed text
         if (!keys.length) return p.q || p.county || p.city ? F.assembleHome(homeIndex, {}) : load();   // an unknown area / place stays light (same "not found"); the whole state needs every row
         return Promise.all(keys.map(function (k) {
           return homeFiles[k] ? homeFiles[k] : F.loadPart(F.fetchOf(window), 'data/counties/' + k + '.json', function (d) { return d && d.county === k && Array.isArray(d.listings); }).then(function (d) { homeFiles[k] = d; return d; });
@@ -540,14 +542,18 @@
         fillArea(form, data, p);
         PROMO(data);
         var res = F.search(data, p, now);
-        // NAME SEARCH (Joe 2026-11-25): the light files have no business names. A typed text that is not a place may still be a business name: load the full listings.json once and
-        // search again (same file, no new query). A place that is found draws at once; the full file is then fetched in the background and the page is redrawn only when some
-        // business NAME also matches (the place's businesses first, then the name matches).
-        var nameTry = data.light && fullFor !== p.q && F.classify(p.q).kind === 'city' && F.classify(p.q).value.length >= 3;
-        if (nameTry && res.notFound && res.reason === 'city') { fullFor = p.q; return run(); }
+        // NAME SEARCH (Joe 2026-11-25): the light files have no business names. A typed text that is not a place may still be a business name: read the NAMES-ONLY index
+        // (data/listings-names.json: id + name, ~14 KB gz, built from the same listings), load the county files of the listings whose name matches, and search again: the same rows in the
+        // same order as the full file gives. A place that is found draws at once; the names index is then read in the background and the page is redrawn only when a business NAME
+        // outside the place also matches. If the names file cannot be read, the full listings.json is used instead, as before.
+        var nameTry = data.light && namesFor !== p.q && fullFor !== p.q && F.classify(p.q).kind === 'city' && F.classify(p.q).value.length >= 3;
+        if (nameTry && res.notFound && res.reason === 'city') {
+          return loadNames().then(function () { namesFor = p.q; return run(); }, function () { fullFor = p.q; return run(); });
+        }
         if (nameTry && !res.notFound && res.place) {
-          var typed = p.q;
-          load().then(function (full) { if (p.q === typed && fullFor !== typed && F.search(full, p, new Date()).results.length > res.results.length) { fullFor = typed; run(); } }, function () {});
+          var typed = p.q, have = {};
+          res.results.forEach(function (r) { have[String(r.listing.id)] = true; });
+          loadNames().then(function (n) { if (p.q === typed && namesFor !== typed && F.nameIds(n, typed).some(function (id) { return !have[id]; })) { namesFor = typed; run(); } }, function () {});
         }
         if (res.notFound) {
           drawFilters(F.FILTERS, 'home');

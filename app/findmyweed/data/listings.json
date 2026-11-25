@@ -2211,8 +2211,8 @@
    "zips": [
     "91342"
    ],
-   "lat": 34.30508,
-   "lng": -118.4375
+   "lat": 34.30382,
+   "lng": -118.43877
   },
   {
    "name": "Tarzana",
@@ -23150,28 +23150,6 @@
    "licenseStatus": "Active",
    "licenseExpires": "2027-07-16",
    "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0001471-lic",
-   "name": "Off the Charts - Sylmar",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "13741 Foothill Blvd, Suite 160",
-    "city": "Sylmar",
-    "county": "Los Angeles",
-    "state": "CA",
-    "zip": "91342"
-   },
-   "lat": 34.3101,
-   "lng": -118.4324,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001471-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2027-07-18",
-   "published": false,
    "licenseType": "Commercial - Retailer",
    "licenseCheckedOn": "2026-11-19"
   },

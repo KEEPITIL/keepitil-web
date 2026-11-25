@@ -7,7 +7,7 @@
   'use strict';
   var EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
   var ENDPOINT = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co/functions/v1/profile-inquiry';
-  var LIVE = false; /* flip to true in the PR that follows the function being applied */
+  var LIVE = true; /* flipped after profile-inquiry was applied and deployed */
 
   /* Pure: the cleaned message or the first problem in plain words. */
   function validate(f) {

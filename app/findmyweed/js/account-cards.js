@@ -31,7 +31,7 @@
     ccPhone: 'Phone', ccWebsite: 'Website', ccWebsiteHint: 'Starts with https://', ccSave: 'Save', ccSaved: 'Saved.', ccLoading: 'Loading…',
     ccBadPhone: 'Enter a US phone number such as (510) 555-0199, or a number that starts with +.', ccBadWeb: 'Enter a website that starts with https://', ccFail: 'Could not save. Try again.',
     savedTitle: 'Saved listings', savedSoon: 'Saving listings is coming soon.',
-    dataTitle: 'Your data', dataSoon: 'Download and delete are coming soon.',
+    dataTitle: 'Your data', dataSoon: 'Download and delete are coming soon. Until then, email info@keepitil.com from your account address and we will do it.',   // the same promise Privacy and About already make (js/copy.js), so the disabled card is not a dead end
     download: 'Download my data', downloading: 'Preparing your file…', downloaded: 'Your file was downloaded.', downloadFail: 'We could not prepare your file. Nothing was changed. Try again later.',
     del: 'Delete account', delSure: 'Yes, delete my account', delCancel: 'Keep my account', delWarn: 'This deletes your account and its data. It cannot be undone.',
     deleting: 'Deleting…', deleted: 'Your Find My Weed account and its data were deleted.', deletedData: 'Your Find My Weed data was deleted. Your other account was not changed; to delete that too, use the account page there.', deleteFail: 'We could not delete your account. Nothing was changed. Try again later.'

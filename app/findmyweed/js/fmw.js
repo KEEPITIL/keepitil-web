@@ -335,7 +335,7 @@
     var city = s(a.city), st = s(a.state), zip = s(a.zip), line1 = s(a.line1);
     if (!city) return { lines: [], note: 'none' };
     var cityState = city + (st ? ', ' + st : '');
-    if (!(l && l.storefront)) return { lines: [cityState], note: 'delivery' };
+    if (!(l && l.storefront)) return { lines: [cityState], note: l && l.delivery === true ? 'delivery' : 'city' };
     var cityLine = cityState + (zip ? ' ' + zip : '');
     return line1 ? { lines: [line1, cityLine], note: null } : { lines: [cityLine], note: 'street' };
   }
@@ -741,7 +741,7 @@
   // The three card facts that the listing page (the profile) shows too. ONE implementation each, read by cardLines AND profileFacts, so the card and the profile can
   // never word or compute the same fact differently (Grok 2026-11-25: the profile is a pure read of the same record as the card; Muse checks card vs profile field by field).
   function ratingText(l, C) { return (typeof l.rating === 'number' && isFinite(l.rating) && l.rating >= 0 && l.rating <= 5) ? C.rating(l.rating) : ''; }
-  function kindText(l, C) { return l.storefront && l.delivery === true ? C.kindBoth : l.storefront ? C.kindStorefront : C.kindDelivery; }
+  function kindText(l, C) { return l.storefront && l.delivery === true ? C.kindBoth : l.storefront ? C.kindStorefront : l.delivery === true ? C.kindDelivery : C.kindNone; }
   function countyText(l, C) {
     var a = (l.address && typeof l.address === 'object') ? l.address : {};
     return typeof a.county === 'string' && a.county.trim() ? C.countyName(a.county.trim().replace(/\s+county$/i, '')) : '';
@@ -772,7 +772,7 @@
   function seoListing(l, base) {
     var al = addressLines(l), a = (l && l.address) || {}, rec = dccRecordUrl(l && l.license);
     var where = cityOf(l), name = String((l && l.name) || '').trim();
-    var kindWord = l.storefront && l.delivery ? 'storefront and delivery' : l.delivery ? 'delivery' : 'storefront';
+    var kindWord = l.storefront && l.delivery ? 'storefront and delivery' : l.delivery === true ? 'delivery' : l.storefront ? 'storefront' : 'business';
     var d = {
       '@context': SCHEMA_CONTEXT, '@type': 'LocalBusiness', name: name, url: base + '/listing.html?id=' + encodeURIComponent(l.id),
       identifier: { '@type': 'PropertyValue', name: 'California cannabis license number', value: String(l.license || '') }

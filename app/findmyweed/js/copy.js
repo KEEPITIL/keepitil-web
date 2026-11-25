@@ -218,8 +218,8 @@
     },
     // Age notice (owner decision 2026-11-21: follow Weedmaps / Leafly): the directory is open to everyone, with
     // no entry wall; age is checked by the business at the point of sale. FMW has no ordering, so nothing here asks for an age.
-    footer21: 'Cannabis is for adults 21+, or 18+ medical patients where state law allows. Licensed businesses only. The business checks ID.',
-    footerNote: 'Find My Weed is a directory of state-licensed businesses. Check your local laws.',
+    footer21: 'Cannabis is for adults 21+ (18+ medical where legal). Licensed businesses only. The business checks your ID.',
+    footerNote: 'Find My Weed is a directory only: nothing is sold, reserved or delivered here. Check your local laws.',
     footerAbout: 'About',
     footerPrivacy: 'Privacy',
     footerTerms: 'Terms',

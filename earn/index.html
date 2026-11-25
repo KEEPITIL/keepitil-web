@@ -460,9 +460,9 @@ footer{margin-top:auto}
 <header class="hero wrap">
   <h1>EARN</h1>
   <!-- Create & Earn restructure (Joe 2026-11-22: "create and earn page fully restructured to make
-       sense of what the brand is"). EARN is only about earning: partner programmes, early access
+       sense of what the brand is"). EARN is only about earning: partner programmes
        and creator rewards. Making things (events, entries, posts) lives on CREATE. -->
-  <p class="earn-lead">Ways to earn with KEEPITIL: partner programmes, early access and creator rewards.</p>
+  <p class="earn-lead">Ways to earn with KEEPITIL: partner programmes and creator rewards.</p>
   <div class="stats">
     <div class="stat p"><b id="eP">0</b><span>Partners</span></div>
     <div class="stat s"><b id="eC">0</b><span>Rewards open</span></div>
@@ -1313,19 +1313,12 @@ function radStats(){
 radStats();
 /* re-count after a playlist is added or removed */
 
-/* EARLY ACCESS ends with the sale (public sale Nov 27-30, per /early-access.html). After
-   Dec 1 00:00 PT the section and its chip are removed so Earn never shows a dead offer. */
-(function(){
-  if(Date.now() < Date.parse('2026-12-01T08:00:00Z')) return;
-  var sec=document.getElementById('early'); if(sec) sec.remove();
-  var chip=document.querySelector('#radSeg button[data-k="early"]'); if(chip) chip.remove();
-})();
 /* ── filter bar behaviour, cloned from /connect (Founder 2026-08-21) ────────────────────
    Segments show/hide whole sections. The station search and the Radio / Playlists chips went
    with those sections (Joe 2026-11-20). */
 (function(){
   /* Chip key -> section id (2026-11-22). Section ids stay 'earn' and 'create' so old #hash links still land. */
-  var SEC={partners:'earn',early:'early',rewards:'create'};
+  var SEC={partners:'earn',rewards:'create'};
   var seg=document.getElementById('radSeg');
   if(!seg) return;
   var key='all';

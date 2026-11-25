@@ -366,3 +366,11 @@ a.menu-link:hover{background:var(--tint);color:var(--text)}
 .effective{color:var(--muted);font-size:14px;margin:6px 0 12px}
 main:has(.effective:not([hidden])) .state.info{display:none}
 .checklist{list-style:none;padding:0;margin:0}.checklist>li{margin:10px 0}.prime-criteria{margin:6px 0 6px 18px;padding:0}
+
+/* the invite card in an empty Ads / Deals home row: a plain box for businesses, clearly not an ad or a deal */
+.tile.invite{width:min(320px,80vw)}
+.tile.invite .tile-in.invite-in{display:flex;flex-direction:column;gap:4px;padding:14px;border:1px dashed var(--line);border-radius:12px;background:var(--card);min-height:96px;white-space:normal}
+.invite-tag{font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.invite-title{font-size:15px;font-weight:800}
+.invite-body{font-size:.85rem;font-weight:400;opacity:.9;line-height:1.4}
+.directions{margin-top:10px}

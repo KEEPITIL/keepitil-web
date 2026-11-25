@@ -1580,7 +1580,7 @@ function updateOwnerUI(){
 /* toggleDashMenu removed 2026-08-26 — DASH opens the dashboard directly, there is no menu. */
 /* ── DIRECT MESSAGE (viewer → this profile) via send_dm RPC ── */
 function openDM(){
-  if(!SB||!SESSION){ toast('Sign in to message.'); setTimeout(function(){location.href='/apply';},700); return; }
+  if(!SB||!SESSION){ toast('Sign in to message.'); setTimeout(function(){location.href='/apply?next='+encodeURIComponent(location.pathname+location.search);},700); return; }
   if(document.getElementById('kilDM'))return;
   var nm=(typeof PROFILE!=='undefined'&&PROFILE.name)?PROFILE.name:'this profile';
   var ov=document.createElement('div'); ov.id='kilDM';
@@ -2760,7 +2760,7 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
       pfStuck('Could not check your sign-in',
         'The sign-in check did not complete, so nothing has been assumed about your account.',
         [{label:'Try again', primary:true, go:function(){ location.reload(); }},
-         {label:'Sign in', go:function(){ location.href='/apply'; }}]);
+         {label:'Sign in', go:function(){ location.href='/apply?next='+encodeURIComponent(location.pathname+location.search); }}]);
     });
   }
 

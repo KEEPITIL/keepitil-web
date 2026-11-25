@@ -9,6 +9,14 @@
     needs_action: { label: 'Needs action', note: 'Stripe needs a little more information before payouts can start.', link: { text: 'Finish payout setup', href: '/create-event' } },
     not_connected: { label: 'Not connected', note: 'Connect Stripe to sell tickets and get paid. Free events do not need it.', link: { text: 'Set up payouts', href: '/create-event' } }
   };
+  /* CREATE & EARN status (Muse 04:49 via Kode 5:25): three plain facts from existing records, no fee or upsell words. "Pool-eligible" has no rule or record anywhere yet,
+     so it is NOT computed: the line below is a fixed placeholder (TODO(Muse): rule + wording). */
+  var CE = {
+    feature: { not_submitted: 'Feature: not submitted', in_review: 'Feature: submitted, in review', live: 'Feature: live' },
+    featureLink: { text: 'Submit your feature', href: '/connect' },
+    eventLive: 'Event: live', eventNotLive: 'Event: not live yet', eventNone: 'Event: no events yet',
+    pool: 'Community pool: details soon'   /* TODO(Muse) */
+  };
   var STATUS = { published: 'Live', review: 'In review', draft: 'Draft', rejected: 'Not approved', archived: 'Archived', cancelled: 'Cancelled', past: 'Past' };
 
   function el(doc, tag, cls, text) { var n = doc.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
@@ -36,6 +44,17 @@
     if (c.link) { var a = el(doc, 'a', 'org-connect-link', c.link.text); a.href = c.link.href; cn.appendChild(doc.createTextNode(' ')); cn.appendChild(a); }
     wrap.appendChild(cn);
 
+    var ce = data && data.create_earn;
+    if (ce && CE.feature[ce.feature]) {
+      var box = el(doc, 'ul', 'org-ce'); box.setAttribute('aria-label', 'Create and Earn status');
+      var li1 = el(doc, 'li', 'org-ce-feature', CE.feature[ce.feature]); li1.setAttribute('data-feature', ce.feature);
+      if (ce.feature === 'not_submitted') { var fa = el(doc, 'a', 'org-ce-link', CE.featureLink.text); fa.href = CE.featureLink.href; li1.appendChild(doc.createTextNode(' ')); li1.appendChild(fa); }
+      box.appendChild(li1);
+      var evText = ce.event_live === true ? CE.eventLive : events.length ? CE.eventNotLive : CE.eventNone;
+      box.appendChild(el(doc, 'li', 'org-ce-event', evText));
+      box.appendChild(el(doc, 'li', 'org-ce-pool', CE.pool));
+      wrap.appendChild(box);
+    }
     if (!events.length) {
       var em = el(doc, 'p', 'org-empty', 'No events yet. '); var add = el(doc, 'a', '', 'Add an event'); add.href = '/submit-event'; em.appendChild(add); wrap.appendChild(em);
       return wrap;
@@ -79,6 +98,6 @@
     }).catch(function () { return false; });
   }
 
-  var api = { render: render, mount: mount, editHref: editHref, CONNECT: CONNECT };
+  var api = { render: render, mount: mount, editHref: editHref, CONNECT: CONNECT, CE: CE };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.KilOrganizer = api;
 })(typeof window !== 'undefined' ? window : globalThis);

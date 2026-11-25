@@ -72,3 +72,18 @@ test('dashboard.html wires it: the mount point inside the Events tab, the script
   assert.match(h, /<div class="panel on" id="tab-events">[\s\S]*?<div id="org-view"><\/div>/); assert.match(h, /<script src="\/assets\/js\/kil-organizer\.js"><\/script>/);
   assert.match(h, /KilOrganizer\.mount\(document\.getElementById\('org-view'\), supa\)/); assert.match(h, /\.org-ev a\.ev-title\{color:inherit/, 'the public-page title link is not the browser default blue on the dark page (contrast 2.06)'); assert.match(h, /#tab-events\.org-on #listings\s*\{\s*display:\s*none/);
 });
+
+test('Create & Earn line: feature state (not submitted links to /connect), event state from the RPC, and a fixed pool placeholder; no fee/upsell words', () => {
+  const { doc } = mk(); const q = (ce, events) => O.render(doc, { connect: 'connected', create_earn: ce, events: events === undefined ? [EV()] : events }).querySelector('.org-ce');
+  const a = q({ feature: 'not_submitted', event_live: true }); assert.equal(a.querySelector('.org-ce-feature').textContent, 'Feature: not submitted Submit your feature'); assert.equal(a.querySelector('a').getAttribute('href'), '/connect');
+  assert.equal(a.querySelector('.org-ce-event').textContent, 'Event: live'); assert.equal(a.querySelector('.org-ce-pool').textContent, 'Community pool: details soon');
+  const b = q({ feature: 'in_review', event_live: false }); assert.equal(b.querySelector('.org-ce-feature').textContent, 'Feature: submitted, in review'); assert.equal(b.querySelector('a'), null, 'no link once submitted'); assert.equal(b.querySelector('.org-ce-event').textContent, 'Event: not live yet');
+  const c = q({ feature: 'live', event_live: false }, []); assert.equal(c.querySelector('.org-ce-feature').textContent, 'Feature: live'); assert.equal(c.querySelector('.org-ce-event').textContent, 'Event: no events yet');
+  for (const ce of [{ feature: 'not_submitted', event_live: true }, { feature: 'in_review', event_live: false }, { feature: 'live', event_live: true }]) assert.doesNotMatch(q(ce).textContent, /fee|price|pay|buy|upgrade|premium|\$|rank|paid|boost|promot/i, 'discovery wording only');
+});
+test('Create & Earn NEGATIVE CONTROLS: an older RPC without create_earn, an unknown feature value, or null renders no Create & Earn block (nothing guessed), the rest of the view is unchanged', () => {
+  const { doc } = mk();
+  for (const ce of [undefined, null, {}, { feature: 'banana', event_live: true }, { event_live: true }, 'live']) { const n = O.render(doc, { connect: 'connected', create_earn: ce, events: [EV()] }); assert.equal(n.querySelector('.org-ce'), null, JSON.stringify(ce)); assert.ok(n.querySelector('.org-ev') && n.querySelector('.org-connect')); }
+  assert.equal(O.render(doc, { connect: 'connected', create_earn: { feature: 'live', event_live: 'yes' }, events: [EV()] }).querySelector('.org-ce-event').textContent, 'Event: not live yet', 'only a real true counts as live');
+  const src = readFileSync(join(root, 'assets/js/kil-organizer.js'), 'utf8'); assert.match(src, /TODO\(Muse\)/);
+});

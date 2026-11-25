@@ -170,6 +170,7 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
           <div id="seriesList"></div>
         </div>
 
+
         <div class="card">
           <h3>📅 Date &amp; time <span class="tzlab" style="margin-left:auto">Pacific Time · America/Los_Angeles</span></h3>
           <div class="row">
@@ -290,6 +291,12 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
           <button type="submit" class="submit" id="submitBtn">Create Event</button>
           <div class="msg" id="msg"></div>
           <div class="hint">By submitting you agree to the <a href="/terms">Terms</a>. Nothing publishes until the KEEPITIL team approves it.</div>
+        </div>
+        <div class="card" id="delCard" style="display:none">
+          <h3>Delete this event</h3>
+          <div class="note">Removes this event page permanently. An event that has sold tickets cannot be deleted; email info@keepitil.com and we will help.</div>
+          <button type="button" class="sact del" id="delEventBtn" style="margin-top:12px;background:transparent;border:1px solid #ff6b6b;color:#ff6b6b;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer">Delete event</button>
+          <div class="msg" id="delMsg" role="status" aria-live="polite"></div>
         </div>
       </div>
     </div>
@@ -469,6 +476,7 @@ async function prefillEdit(){
     if(tiers.length && tiers.every(function(t){ return !t.price_cents; })) setMode(true);
     if(Array.isArray(ev.reg_questions)){ ev.reg_questions.forEach(function(q){ addQ(); var qs=document.querySelectorAll('#qs .tier'); var qr=qs[qs.length-1]; if(qr){ if(q.label)qr.querySelector('.q-label').value=q.label; qr.querySelector('.q-type').value=q.type||'text'; qr.querySelector('.q-req').value=q.required?'yes':'no'; } }); }
     SERIES_ID=ev.series_id||null; SERIES=Array.isArray(d.series)?d.series:[]; renderSeries();
+    { var _dc=$('delCard'); if(_dc) _dc.style.display=(EDIT_SLUG && !SERIES.length)?'block':'none'; }   /* single events have no series manager, so they get their own Delete */
     var b=$('submitBtn'); if(b) b.textContent='Save changes';
   }catch(e){}
 }
@@ -541,6 +549,19 @@ function renderSeries(){
     b.addEventListener('click',function(){ seriesAction(b.getAttribute('data-act'), b.getAttribute('data-slug'), b); });
   });
 }
+/* Delete a single (non-series) event. delete_event is owner-only and refuses once any order exists; its message is shown as is. */
+async function deleteThisEvent(){
+  var btn=$('delEventBtn'), m=$('delMsg'); if(!EDIT_SLUG||!btn) return;
+  if(!confirm('Delete this event permanently? This cannot be undone.')) return;
+  btn.disabled=true; m.className='msg'; m.textContent='Deleting…';
+  try{
+    var r=await supa.rpc('delete_event',{p_slug:EDIT_SLUG}); if(r.error) throw r.error;
+    var d=(r&&r.data)||{};
+    if(d.error){ m.className='msg err'; m.textContent=d.message||'This event cannot be deleted. Email info@keepitil.com.'; btn.disabled=false; return; }
+    location.href='/dashboard';
+  }catch(e){ m.className='msg err'; m.textContent='Could not delete: '+(e.message||e); btn.disabled=false; }
+}
+(function(){ var b=document.getElementById('delEventBtn'); if(b) b.addEventListener('click',deleteThisEvent); })();
 function esc2(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 async function seriesAction(act, slug, btn){
   var human=(act==='delete')?'delete this date permanently':'hide this date from the public (kept for your records)';

@@ -223,6 +223,7 @@
     footerAbout: 'About',
     footerPrivacy: 'Privacy',
     footerTerms: 'Terms',
+    footerHelp: 'Help',   // DRAFT for Muse
     // SB 378 (Bus. & Prof. Code 22943, cannabis marketplaces): a PUBLIC way to report an unlicensed seller, in the footer of
     // every page, no account needed. A plain mailto to info@keepitil.com (the support address): no form, no network call,
     // no database. The same href is written into each page so it works before (and without) JavaScript.

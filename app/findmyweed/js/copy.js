@@ -256,7 +256,7 @@
         sections: [
           { h: 'Accounts are optional; no ad tracking', p: [
             'You do not need an account to browse Find My Weed. We do not use advertising trackers.',
-            'We use Cloudflare Web Analytics to count page views. It uses no cookies and gives us totals only: no ads and no profile that follows you to other sites.',
+            'Find My Weed pages don\'t use analytics or tracking scripts.',   // Grok 2026-11-24 5:08 PM: exact wording; the page-view beacon is off
             'We don\'t keep your searches. Like any website, our host keeps short-lived server logs (IP address and page requested) for security.'] },
           // Accounts (sign-up live since 2026-11-22). Every line is true of js/signup.js, js/fmw-auth.js and
           // supabase/migrations/20261123010000_fmw_signup.sql; tests/privacy-accounts.test.js checks each against the code.

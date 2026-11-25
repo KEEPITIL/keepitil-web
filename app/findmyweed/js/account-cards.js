@@ -13,6 +13,7 @@
   var T = {
     bizTitle: 'Your business', bizName: 'Legal name', bizLicense: 'License number', bizStatus: 'License status',
     bizOk: 'License found and confirmed for this account', bizNotDone: 'License check not finished', bizUnknown: 'Checking your license…',
+    bizGoLive: 'Your listing goes live after review.',   // DRAFT for Muse (Grok 2026-11-24): an approved business whose license is not in the published listings yet
     bizHelp: 'Questions about your license? See the About page.',
     bizNone: 'Your business license check is not on record yet.',
     // PLACEHOLDER WORDING (Grok 2026-11-24): Muse words these two lines, Echo checks them.
@@ -25,6 +26,21 @@
   };
   function el(doc, tag, cls, text) { var e = doc.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function card(doc, title, state) { var c = el(doc, 'section', 'card'); c.setAttribute('data-state', state); c.appendChild(el(doc, 'h2', null, title)); return c; }
+
+  // An APPROVED business whose license is not yet in the published listings gets a second line: "Your listing goes live after review." Client-only (no SQL): the one
+  // public index (data/listings-index.json) is read ONLY for an approved card; the license is matched trimmed + case-insensitively; a failed read or an odd answer adds nothing.
+  function goLiveLine(doc, card, ctx, number) {
+    var f = ctx.win && ctx.win.fetch, want = String(number || '').trim().toUpperCase();
+    if (typeof f !== 'function' || !want) return;
+    Promise.resolve().then(function () { return f.call(ctx.win, 'data/listings-index.json', { cache: 'no-store' }); })
+      .then(function (r) { return r && r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (!j || !Array.isArray(j.listings)) return;
+        var listed = j.listings.some(function (l) { return l && l.published !== false && String(l.license || '').trim().toUpperCase() === want; });
+        if (!listed) { var p = el(doc, 'p', 'muted', T.bizGoLive); p.setAttribute('data-state', 'listing-review'); card.appendChild(p); }
+      })
+      .catch(function () { /* quiet: no extra line */ });
+  }
 
   // ---- business (only from the server's record). acct.state: approved | pending | not_verified
   function businessCard(doc, box, ctx, acct) {
@@ -40,6 +56,7 @@
     } else if (st === 'pending') { status.textContent = T.bizPending; status.setAttribute('data-state', 'license-confirming'); }
     else { status.textContent = T.bizNotDone; status.setAttribute('data-state', 'license-pending'); }
     s.appendChild(dl); s.appendChild(el(doc, 'p', 'muted', st === 'pending' ? T.bizPendingHelp : T.bizHelp)); box.appendChild(s);
+    if (st === 'approved') goLiveLine(doc, s, ctx, L.number);
     // the card appears after the page loaded, so a #business link does not land on it by itself: bring it into view
     try { if (ctx.win.location && ctx.win.location.hash === '#business' && s.scrollIntoView) s.scrollIntoView(); } catch (e) { /* the card is there anyway */ }
     return st;

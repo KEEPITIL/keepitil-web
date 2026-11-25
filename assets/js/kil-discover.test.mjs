@@ -260,7 +260,7 @@ test('renderCities: escapes names, links LA to its page and others to #city=...,
   assert.match(html, /<a href="#city=Long%20Beach&amp;state=CA">Long Beach, CA · 1 event<\/a>/);
   assert.equal(D.renderCities([]), '');
   assert.match(D.renderCities(null, { failed: true }), /role="alert"[\s\S]*disc-retry/);
-  assert.match(D.renderCities([{ name: 'X', state: '', n: 3, href: '#city=X' }], { truncated: true }), /first 1000 published upcoming events/);
+  assert.match(D.renderCities([{ name: 'X', state: '', n: 3, href: '#city=X' }], { truncated: true }), /first 6000 published upcoming events/);
 });
 
 test('parseCityHash accepts plain city names only', function () {
@@ -272,21 +272,58 @@ test('parseCityHash accepts plain city names only', function () {
   });
 });
 
-test('queries: the cities query reads only city + state with the same filters; the events query adds an exact-city filter only when asked', function () {
+test('queries: the cities query reads the de-dup columns with the same filters, a stable order and a range; the events query adds an exact-city filter only when asked', function () {
   var calls = [];
-  function chain() { var c = {}; ['select', 'eq', 'gte', 'or', 'order', 'limit'].forEach(function (m) { c[m] = function () { calls.push([m].concat([].slice.call(arguments))); return c; }; }); return c; }
+  function chain() { var c = {}; ['select', 'eq', 'gte', 'or', 'order', 'limit', 'range', 'in'].forEach(function (m) { c[m] = function () { calls.push([m].concat([].slice.call(arguments))); return c; }; }); return c; }
   var client = { from: function (t) { calls.push(['from', t]); return chain(); } };
   D.buildCitiesQuery(client, '2026-11-25T00:00:00.000Z');
   assert.deepEqual(calls[0], ['from', 'events']);
-  assert.equal(calls[1][1], 'city,state');
+  assert.equal(calls[1][1], D.CITY_COLUMNS); assert.doesNotMatch(D.CITY_COLUMNS, /event_password_hash|\*/);
   assert.deepEqual(calls.filter(function (c) { return c[0] === 'eq'; }).map(function (c) { return c.slice(1); }), [['status', 'published'], ['password_protected', false]]);
   assert.equal(calls.find(function (c) { return c[0] === 'or'; })[1], D.EXPLORE_OR);
-  assert.equal(calls.find(function (c) { return c[0] === 'limit'; })[1], D.CITY_ROWS_LIMIT);
+  assert.deepEqual(calls.find(function (c) { return c[0] === 'order'; }).slice(1), ['id', { ascending: true }]);
+  assert.deepEqual(calls.find(function (c) { return c[0] === 'range'; }).slice(1), [0, 999]);
   assert.equal(JSON.stringify(calls).indexOf('event_password_hash'), -1);
   calls.length = 0; D.buildEventsQuery(client, '2026-11-25T00:00:00.000Z');
   assert.equal(calls.some(function (c) { return c[0] === 'eq' && c[1] === 'city'; }), false, 'no city filter unless asked (the existing city pages are unchanged)');
   calls.length = 0; D.buildEventsQuery(client, '2026-11-25T00:00:00.000Z', 'Long Beach');
   assert.deepEqual(calls.find(function (c) { return c[0] === 'eq' && c[1] === 'city'; }).slice(1), ['city', 'Long Beach']);
+});
+
+/* ---- counts match what the city shows (after de-duplication) and the list is complete past one API page ---- */
+const SG = (city, title, venue, startsAt, extra) => Object.assign({ city: city, state: 'CA', status: 'published', title: title, venue: venue, starts_at: startsAt, tz: 'America/Los_Angeles' }, extra || {});
+
+test('cityList counts AFTER the city view de-duplication: the same show at one venue on one local day is ONE event (Long Beach 13 rows -> what the city page lists)', function () {
+  var rows = [SG('Long Beach', 'Zombie Apocalypse 18 - 2 Day Pass', 'Convention Center', '2026-12-05T20:00:00Z'), SG('Long Beach', 'Zombie Apocalypse 18 - VIP', 'Convention Center', '2026-12-05T21:00:00Z'),
+    SG('Long Beach', 'Other Night', 'Convention Center', '2026-12-05T20:00:00Z')];
+  assert.equal(D.cityList(rows)[0].n, 2);
+  /* the same rows through the city view's own prepare() list the same number */
+  var shown = D.prepare(rows, { now: new Date('2026-11-25T00:00:00Z'), tz: 'America/Los_Angeles', city: 'long-beach', state: 'CA' });
+  assert.equal(shown.weekend.length + shown.upcoming.length + shown.later.length, D.cityList(rows)[0].n);
+});
+
+test('cityList de-dup negative controls: another venue, another day or another title is NOT collapsed; cities are counted separately', function () {
+  var rows = [SG('Oakland', 'Show A', 'Venue 1', '2026-12-05T20:00:00Z'), SG('Oakland', 'Show A', 'Venue 2', '2026-12-05T20:00:00Z'), SG('Oakland', 'Show A', 'Venue 1', '2026-12-06T20:00:00Z'),
+    SG('Oakland', 'Show B', 'Venue 1', '2026-12-05T20:00:00Z'), SG('San Jose', 'Show A', 'Venue 1', '2026-12-05T20:00:00Z')];
+  var l = D.cityList(rows);
+  assert.equal(l.find(function (c) { return c.name === 'Oakland'; }).n, 4);
+  assert.equal(l.find(function (c) { return c.name === 'San Jose'; }).n, 1);
+});
+
+test('loadCityRows reads page after page until a short page, in a stable range order, and flags truncation only at the cap', async function () {
+  function mkClient(total) {
+    var calls = [];
+    return { calls: calls, from: function () { var c = { _r: null }; ['select', 'eq', 'gte', 'or', 'order'].forEach(function (m) { c[m] = function () { return c; }; });
+      c.range = function (a, b) { calls.push([a, b]); var n = Math.max(0, Math.min(b + 1, total) - a); return Promise.resolve({ data: Array.from({ length: n }, function (_, i) { return { id: a + i, city: 'X' }; }), error: null }); };
+      return c; } };
+  }
+  var a = mkClient(2300); var r = await D.loadCityRows(a, 'now'); assert.equal(r.rows.length, 2300); assert.equal(r.truncated, false); assert.equal(r.failed, false);
+  assert.deepEqual(a.calls, [[0, 999], [1000, 1999], [2000, 2999]]);
+  assert.equal(new Set(r.rows.map(function (x) { return x.id; })).size, 2300, 'no row repeated or skipped');
+  var b = mkClient(2000); var rb = await D.loadCityRows(b, 'now'); assert.equal(rb.rows.length, 2000); assert.equal(b.calls.length, 3, 'a full last page means one more (empty) page is read');
+  var cap = mkClient(99999); var rc = await D.loadCityRows(cap, 'now'); assert.equal(rc.rows.length, D.CITY_ROWS_LIMIT); assert.equal(rc.truncated, true); assert.equal(cap.calls.length, 6);
+  var bad = { from: function () { var c = {}; ['select', 'eq', 'gte', 'or', 'order'].forEach(function (m) { c[m] = function () { return c; }; }); c.range = function () { return Promise.resolve({ data: null, error: { message: 'boom' } }); }; return c; } };
+  var rf = await D.loadCityRows(bad, 'now'); assert.equal(rf.failed, true); assert.deepEqual(rf.rows, []);
 });
 
 test('/discover/ index page wires the cities list and still links Los Angeles; the pages that exist are unchanged', function () {
@@ -296,4 +333,19 @@ test('/discover/ index page wires the cities list and still links Los Angeles; t
   assert.match(h, /\/assets\/js\/vendor\/supabase-js\.min\.js/); assert.match(h, /\/assets\/js\/kil-discover\.js/);
   assert.match(h, /href="\/discover\/los-angeles\/"/);
   assert.equal((h.match(/<h1/g) || []).length, 1);
+});
+
+test('every Los Angeles page asks for Los Angeles rows only, so its list never depends on how many events other cities have (it showed 50 of 51 once other cities were added)', function () {
+  ['discover/los-angeles/index.html', 'discover/los-angeles/this-weekend/index.html', 'discover/los-angeles/techno/index.html'].forEach(function (rel) {
+    var h = readFileSync(join(root, rel), 'utf8');
+    assert.match(h, /cityExact: \['Los Angeles', 'LA'\]/, rel);
+  });
+  var calls = [];
+  function chain() { var c = {}; ['select', 'eq', 'gte', 'or', 'order', 'limit', 'in'].forEach(function (m) { c[m] = function () { calls.push([m].concat([].slice.call(arguments))); return c; }; }); return c; }
+  var client = { from: function () { return chain(); } };
+  D.buildEventsQuery(client, '2026-11-25T00:00:00.000Z', ['Los Angeles', 'LA']);
+  assert.deepEqual(calls.find(function (c) { return c[0] === 'in'; }).slice(1), ['city', ['Los Angeles', 'LA']]);
+  assert.equal(calls.some(function (c) { return c[0] === 'eq' && c[1] === 'city'; }), false);
+  calls.length = 0; D.buildEventsQuery(client, '2026-11-25T00:00:00.000Z', []);   /* NEGATIVE CONTROL: an empty list means no filter, not "no rows" */
+  assert.equal(calls.some(function (c) { return c[0] === 'in' || (c[0] === 'eq' && c[1] === 'city'); }), false);
 });

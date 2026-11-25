@@ -525,24 +525,45 @@
       .gte('starts_at', nowIso)
       .eq('password_protected', false)   // needs the #39 migration: the hash itself is not readable by API roles
       .or(EXPLORE_OR);
-    if (cityExact) q = q.eq('city', cityExact);   // the directory index opens one city at a time (#city=...)
+    /* Only that city's rows are requested. Without this the query returns the first 200 published events of ALL cities by date and the page then filters to its city, so a city page lost events as other cities were added (Los Angeles showed 50 of its 51). A string = one exact city, an array = spellings of one city. */
+    if (Array.isArray(cityExact)) { if (cityExact.length) q = q.in('city', cityExact); }
+    else if (cityExact) q = q.eq('city', cityExact);
     return q.order('starts_at', { ascending: true })
       .limit(EVENT_LIMIT);
   }
 
   /* DIRECTORY INDEX (/discover/): every city that has at least one published upcoming event, with its count, so an event in a city that has no
      hand-made page (Long Beach, San Diego, Oakland...) still appears on /discover. Same filters as the city pages; only city + state are read. */
-  var CITY_ROWS_LIMIT = 1000;   /* the API's default row cap */
-  function buildCitiesQuery(client, nowIso) {
-    return client.from('events').select('city,state')
+  var CITY_PAGE = 1000;          /* the API's row cap per request */
+  var CITY_MAX_PAGES = 6;        /* read at most 6000 rows; past that the index says so */
+  var CITY_ROWS_LIMIT = CITY_PAGE * CITY_MAX_PAGES;
+  var CITY_COLUMNS = 'id,city,state,title,venue,starts_at,tz';   /* what the city view's de-duplication needs, so a chip count equals what that city shows */
+  function buildCitiesQuery(client, nowIso, from, to) {
+    from = from || 0; to = to == null ? CITY_PAGE - 1 : to;
+    return client.from('events').select(CITY_COLUMNS)
       .eq('status', 'published')
       .gte('starts_at', nowIso)
       .eq('password_protected', false)
       .or(EXPLORE_OR)
-      .limit(CITY_ROWS_LIMIT);
+      .order('id', { ascending: true })   /* stable order, so pages never skip or repeat a row */
+      .range(from, to);
   }
 
-  function cityList(rows) {
+  /* One request returns at most CITY_PAGE rows, and with ~40 cities x 50 events the list is longer than that: read page after page until a short page. */
+  async function loadCityRows(client, nowIso) {
+    var all = [];
+    for (var p = 0; p < CITY_MAX_PAGES; p++) {
+      var r = await safe(buildCitiesQuery(client, nowIso, p * CITY_PAGE, (p + 1) * CITY_PAGE - 1));
+      if (!ok(r)) return { failed: true, rows: [], truncated: false };
+      var d = r.data || [];
+      all = all.concat(d);
+      if (d.length < CITY_PAGE) return { failed: false, rows: all, truncated: false };
+    }
+    return { failed: false, rows: all, truncated: true };
+  }
+
+  /* Counts are AFTER the city view's own de-duplication (same title stem + venue + local day collapse to one card), so a chip never says more than the city shows. */
+  function cityList(rows, tz) {
     var groups = Object.create(null), order = [];
     (rows || []).forEach(function (e) {
       if (!e || !String(e.city || '').trim()) return;
@@ -554,13 +575,15 @@
       var key = slug + '|' + st;
       var g = groups[key];
       if (!g) {
-        g = groups[key] = { slug: slug, state: st, name: slug === 'los-angeles' ? 'Los Angeles' : String(e.city).trim(), n: 0 };
+        g = groups[key] = { slug: slug, state: st, name: slug === 'los-angeles' ? 'Los Angeles' : String(e.city).trim(), n: 0, rows: [] };
         order.push(key);
       }
-      g.n++;
+      g.rows.push(e);
     });
     return order.map(function (k) {
       var g = groups[k];
+      g.n = dedupe(g.rows, tz || 'America/Los_Angeles').length;
+      delete g.rows;
       g.href = (g.slug === 'los-angeles' && (!g.state || g.state === 'CA'))
         ? '/discover/los-angeles/'
         : '#city=' + encodeURIComponent(g.name) + (g.state ? '&state=' + encodeURIComponent(g.state) : '');
@@ -743,10 +766,10 @@
       citiesEl.innerHTML = '<p class="disc-loading">Loading cities\u2026</p>';
       var c = mk();
       if (!c) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
-      var r = await safe(buildCitiesQuery(c, new Date().toISOString()));
-      if (!ok(r)) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
-      cities = cityList(r.data || []);
-      citiesEl.innerHTML = renderCities(cities, { truncated: (r.data || []).length >= CITY_ROWS_LIMIT });
+      var r = await loadCityRows(c, new Date().toISOString());
+      if (r.failed) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
+      cities = cityList(r.rows, cfg.fallbackTz);
+      citiesEl.innerHTML = renderCities(cities, { truncated: r.truncated });
       await openCity();
     }
     if (!citiesEl.__discBound) {
@@ -803,6 +826,9 @@
     merchHref: merchHref,
     buildEventsQuery: buildEventsQuery,
     buildCitiesQuery: buildCitiesQuery,
+    loadCityRows: loadCityRows,
+    CITY_PAGE: CITY_PAGE,
+    CITY_COLUMNS: CITY_COLUMNS,
     CITY_ROWS_LIMIT: CITY_ROWS_LIMIT,
     cityList: cityList,
     renderCities: renderCities,

@@ -137,7 +137,7 @@ textarea{min-height:90px;resize:vertical}
 <div class="loading" id="loading">Loading venue…</div>
 <div id="v" style="display:none">
   <div class="v-cover" id="vCover"></div>
-  <div class="wrap">
+  <main class="wrap" id="main">
     <div class="v-head">
       <h1 class="v-name" id="vName"></h1>
       <div class="v-tag" id="vTag"></div>
@@ -160,8 +160,8 @@ textarea{min-height:90px;resize:vertical}
     <div class="sec" id="bookSec"><h2>Request a booking</h2>
       <div class="card">
         <div class="frow">
-          <div><label>Room</label><select id="bRoom"></select></div>
-          <div><label>Preferred date</label><input type="date" id="bDate"/></div>
+          <div><label for="bRoom">Room</label><select id="bRoom"></select></div>
+          <div><label for="bDate">Preferred date</label><input type="date" id="bDate"/></div>
         </div>
         <div class="frow">
           <div><label>Event type</label><input id="bType" placeholder="Birthday, wedding, DJ night…"/></div>
@@ -212,7 +212,7 @@ textarea{min-height:90px;resize:vertical}
     </div>
 
     <div class="claim" id="vClaim"></div>
-  </div>
+  </main>
 </div>
 <div class="sticky" id="sticky" role="region" aria-label="Request a booking"><button onclick="scrollToBook()">Request booking</button></div>
 

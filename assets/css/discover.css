@@ -35,6 +35,7 @@ body{background:var(--bg,#0a0a0f);color:var(--text,#f0f0f0);font-family:Inter,sy
 .disc-also{margin:6px 0 0;color:#b7c0cc;font-size:.8rem;line-height:1.4}
 .disc-also a{color:var(--brand-2,#5cc8ff)}
 .disc-note,.disc-loading{color:#c5ced8;font-size:.95rem;line-height:1.5;margin:8px 0 0}
+.disc-note a{color:#7fdcff;text-decoration:underline;text-underline-offset:2px}   /* unstyled links were the browser's #0000ee on the dark page (contrast 2.1) */
 .disc-empty{margin-top:8px;padding:16px 16px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.03)}
 .disc-empty-t{margin:0 0 6px;color:#fff;font-weight:750}
 .disc-empty p{margin:0;color:#d5dbe6;line-height:1.5}

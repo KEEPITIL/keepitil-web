@@ -39,7 +39,7 @@ test("every page loads the shell and radio scripts with ONE current stamp each",
   const files = cp.execSync('git ls-files "*.html"', { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean);
   const stamps = { shell: new Set(), radio: new Set() };
   for (const f of files) { const h = R(f); for (const m of h.matchAll(/keepitil-shell\.js\?v=([0-9a-z]+)/g)) stamps.shell.add(m[1]); for (const m of h.matchAll(/keepitil-radio\.js\?v=([0-9a-z]+)/g)) stamps.radio.add(m[1]); }
-  assert.deepEqual([...stamps.shell], ["20261124c"]); assert.deepEqual([...stamps.radio], ["20261124c"]);
+  assert.deepEqual([...stamps.shell], ["20261124d"]); assert.deepEqual([...stamps.radio], ["20261124c"]);
 });
 test("control: the old shell source would fail these checks", () => {
   assert.doesNotMatch("var hdr = document.createElement('nav'); hdr.id='v3shell-nav';", /aria-label','Main'/);

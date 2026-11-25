@@ -323,6 +323,26 @@
     if(document.readyState === 'complete'){ setTimeout(__kilMountAnalytics, 0); }
     else { window.addEventListener('load', function(){ setTimeout(__kilMountAnalytics, 0); }, { once:true }); }
   }catch(e){ __kilMountAnalytics(); }
+  /* BROKEN OUTSIDE PICTURES (Grok 2026-11-24). Imported events and profiles hotlink pictures from other sites; images.ra.co now answers 403, so thumbnails showed as
+     broken-image icons (10 on one profile page, 1 on the home page). Any <img> whose address is on ANOTHER host and fails to load is swapped, once, for our own placeholder
+     (assets/images/event-placeholder.svg), every time it fails (including when a page script sets the outside address again). Same-site and data: images are never touched. A capture-phase listener sees every image, including ones added later; a sweep after
+     load catches the ones that failed before this script ran. tests/img-placeholder.test.cjs covers both. */
+  (function(){
+    var PH = '/assets/images/event-placeholder.svg';
+    function outside(src){ try{ var u = new URL(src, location.href); return (u.protocol === 'https:' || u.protocol === 'http:') && u.host !== location.host; }catch(e){ return false; } }
+    function swap(img){
+      try{
+        if(!img || img.tagName !== 'IMG') return;
+        var s = img.currentSrc || img.getAttribute('src') || ''; if(!s || !outside(s)) return;
+        /* No "already swapped" flag on purpose: a page script may put the outside address back (the event page does: _im.src=_u), and that must be swapped AGAIN.
+           It cannot loop: the placeholder is on our own host, so `outside(s)` is false when it is the one failing. */
+        img.removeAttribute('srcset'); img.src = PH; img.classList.add('kil-img-ph');
+      }catch(e){}
+    }
+    try{ document.addEventListener('error', function(ev){ swap(ev && ev.target); }, true); }catch(e){}
+    function sweep(){ try{ [].forEach.call(document.images, function(i){ if(i.complete && i.naturalWidth === 0 && i.getAttribute('src') && !/\.svg(\?|#|$)/i.test(i.getAttribute('src'))) swap(i);   /* an SVG with no intrinsic size also reports 0 */ }); }catch(e){} }
+    try{ if(document.readyState === 'complete') setTimeout(sweep, 0); else window.addEventListener('load', function(){ setTimeout(sweep, 0); }, { once:true }); }catch(e){}
+  })();
   /* Customer feedback widget — V3 only (floating "Feedback" pill -> Supabase feedback table). Added 2026-07-10. */
   try{ if(!window.__kilFeedbackLoad){ window.__kilFeedbackLoad=1;
     var _fb=document.createElement('script'); _fb.defer=true; _fb.src='/assets/js/keepitil-feedback.js?v=20260826a'; document.head.appendChild(_fb);

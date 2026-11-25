@@ -39,5 +39,5 @@ test("every page loads the same keepitil-shell.js stamp (a stale CDN copy would 
   const stamps = new Set();
   (function walk(d) { for (const e of fs.readdirSync(d, { withFileTypes: true })) { if ([".git", "node_modules"].includes(e.name)) continue; const p = path.join(d, e.name);
     if (e.isDirectory()) walk(p); else if (/\.(html|js)$/.test(e.name)) for (const m of fs.readFileSync(p, "utf8").matchAll(/keepitil-shell\.js\?v=(\d+[a-z]*)/g)) stamps.add(m[1]); } })(ROOT);
-  assert.deepEqual([...stamps], ["20261124c"]);
+  assert.deepEqual([...stamps], ["20261124d"]);
 });

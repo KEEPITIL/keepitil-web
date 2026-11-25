@@ -8,7 +8,7 @@ const ROOT = process.env.LD_ROOT || path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
 
 test("create-event and settings signed-out gates carry ?next= to their own page", () => {
-  assert.match(read("create-event.html"), /<a class="btn primary" href="\/apply\?next=%2Fcreate-event">Log in \/ Join<\/a>/);
+  assert.match(read("create-event.html"), /<a class="btn primary" href="\/apply\?next=%2Fcreate-event">Log in to create your event<\/a>/);   // the link (?next=) is the rule; the label says what it is for
   assert.match(read("settings.html"), /<a class="btn primary" href="\/apply\?next=%2Fsettings">Log in \/ Join<\/a>/);
   assert.doesNotMatch(read("create-event.html"), /class="btn primary" href="\/apply">/, "negative control: the old bare link is gone");
 });

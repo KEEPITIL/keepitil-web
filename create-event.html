@@ -20,6 +20,7 @@ body::before{display:none!important}
 .gate{max-width:460px;margin:60px auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:34px 28px;text-align:center}
 .gate h1,.gate h2{font-size:1.3rem;font-weight:800;margin-bottom:8px;line-height:1.2}.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .gate p{color:var(--muted);margin-bottom:18px}
+.gate-peek{text-align:left;border-top:1px solid var(--line);margin:0 0 20px;padding-top:16px}.gate-peek h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}.gate-peek ul{margin:0 0 12px 18px;padding:0;color:var(--text);font-size:.92rem;line-height:1.5}.gate-peek li{margin-bottom:6px}.gate-peek p{font-size:.85rem;margin:0}
 /* editor top bar */
 .edbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:18px 0 6px}
 .edbar .org{display:flex;align-items:center;gap:8px}
@@ -121,6 +122,15 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
   <div class="gate" id="gate" style="display:none">
     <h1>Log in to create an event</h1>
     <p>You'll need a KEEPITIL account. Free members can list events; selling tickets is a Community perk.</p>
+    <div class="gate-peek" id="gate-peek">
+      <h2>What you'll fill in</h2>
+      <ul>
+        <li><b>The basics:</b> event name, start date and time, and where it is.</li>
+        <li><b>Your page:</b> a description and a cover image.</li>
+        <li><b>Optional:</b> lineup, a Spotify song link, a password for a private event, and ticket tiers.</li>
+      </ul>
+      <p>You can come back and edit your event after it is published.</p>
+    </div>
     <a class="btn primary" href="/apply?next=%2Fcreate-event">Log in / Join</a>
   </div>
 

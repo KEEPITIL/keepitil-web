@@ -363,3 +363,65 @@ test('cityList de-duplicates each city in ITS OWN timezone (tzFromGeo, like the 
   /* a Pacific city is unchanged, and an unknown city falls back to the LA timezone */
   assert.equal(D.cityList([mk('Oakland', 'CA', '2026-12-06T05:30:00Z'), mk('Oakland', 'CA', '2026-12-06T07:30:00Z')], 'America/Los_Angeles', geos)[0].n, 1);
 });
+
+/* ---- /discover/ index: city_geo is fetched ONCE, in parallel with the city rows, and city views reuse it ---- */
+function fakeSupabase(opts) {
+  var log = [];
+  var client = { from: function (table) {
+    var q = { _t: table, _calls: [] };
+    ['select', 'eq', 'gte', 'or', 'order', 'range', 'in', 'neq', 'limit'].forEach(function (m) { q[m] = function () { q._calls.push(m); return q; }; });
+    q.then = function (res, rej) {
+      log.push(table);
+      var out = table === 'city_geo' ? (opts.geoFails ? { data: null, error: new Error('geo down') } : { data: opts.geos || [], error: null }) : { data: opts.rows || [], error: null };
+      return Promise.resolve(opts.delay ? new Promise(function (r) { setTimeout(r, opts.delay); }) : null).then(function () { log.push(table + ':done'); return out; }).then(res, rej);
+    };
+    return q;
+  } };
+  return { client: client, log: log };
+}
+async function mountWith(opts, hash) {
+  var f = fakeSupabase(opts);
+  var el = function () { return { innerHTML: '', textContent: '', addEventListener: function () {}, __discBound: false }; };
+  var cities = el(), lists = el();
+  var saved = { document: globalThis.document, supabase: globalThis.supabase, location: globalThis.location };
+  globalThis.document = { getElementById: function () { return el(); }, querySelector: function () { return null; }, createElement: function () { return { setAttribute: function () {} }; }, readyState: 'complete' };
+  globalThis.supabase = { createClient: function () { return f.client; } };
+  globalThis.location = { hash: hash || '' };
+  try { await D.mountCities(cities, lists, { kind: 'cities', fallbackTz: 'America/Los_Angeles' }); }
+  finally { globalThis.document = saved.document; globalThis.supabase = saved.supabase; globalThis.location = saved.location; }
+  return { f: f, cities: cities, lists: lists };
+}
+var AUS = function (t, extra) { return Object.assign({ id: 'a' + t, city: 'Austin', state: 'TX', title: 'Night Owl', venue: 'The Club', starts_at: t, tz: null }, extra || {}); };
+
+test('index: 1 events request + 1 city_geo request, and city_geo is requested in parallel (before the events request settles)', async function () {
+  var rows = [AUS('2027-12-06T05:30:00Z'), AUS('2027-12-06T07:30:00Z')];
+  var r = await mountWith({ rows: rows, geos: [{ city: 'Austin', state: 'TX', tz: 'America/Chicago' }], delay: 5 }, '');
+  var started = r.f.log.filter(function (x) { return !/:done$/.test(x); });
+  assert.deepEqual(started.slice().sort(), ['city_geo', 'events']);
+  assert.ok(r.f.log.indexOf('city_geo') < r.f.log.indexOf('events:done'), 'city_geo was requested before the events request finished (parallel)');
+  assert.match(r.cities.innerHTML, /Austin/);
+  /* NEGATIVE CONTROL: the old sequential order would have started city_geo only after events:done */
+  assert.ok(!(r.f.log.indexOf('events:done') >= 0 && r.f.log.indexOf('events:done') < r.f.log.indexOf('city_geo')));
+});
+
+test('opening a city adds NO city_geo request: the index copy is reused (NEGATIVE CONTROL: load() without known geos does fetch city_geo)', async function () {
+  var rows = [AUS('2027-12-06T05:30:00Z'), AUS('2027-12-06T07:30:00Z')];
+  var r = await mountWith({ rows: rows, geos: [{ city: 'Austin', state: 'TX', tz: 'America/Chicago' }] }, '#city=Austin&state=TX');
+  var geoReqs = r.f.log.filter(function (x) { return x === 'city_geo'; }).length, evReqs = r.f.log.filter(function (x) { return x === 'events'; }).length;
+  assert.equal(geoReqs, 1, 'exactly one city_geo request for index + city view');
+  assert.equal(evReqs, 2, 'index rows + the city view rows');
+  var f2 = fakeSupabase({ rows: rows, geos: [] });
+  await D.load(f2.client, { city: 'austin', cityName: 'Austin', state: 'TX', cityExact: 'Austin', fallbackTz: 'America/Los_Angeles' }, new Date('2026-11-25T00:00:00Z'));
+  assert.equal(f2.log.filter(function (x) { return x === 'city_geo'; }).length, 1, 'control: with no known geos load() fetches city_geo itself');
+  var f3 = fakeSupabase({ rows: rows, geos: [] });
+  await D.load(f3.client, { city: 'austin', cityName: 'Austin', state: 'TX', cityExact: 'Austin', fallbackTz: 'America/Los_Angeles' }, new Date('2026-11-25T00:00:00Z'), []);
+  assert.equal(f3.log.filter(function (x) { return x === 'city_geo'; }).length, 0, 'with known geos it does not');
+});
+
+test('city_geo failing: the index still paints and the fallback stays the LA timezone; the city view does not retry city_geo', async function () {
+  var rows = [AUS('2027-12-06T05:30:00Z'), AUS('2027-12-06T07:30:00Z')];
+  var r = await mountWith({ rows: rows, geoFails: true }, '#city=Austin&state=TX');
+  assert.match(r.cities.innerHTML, /Austin/);
+  assert.equal(r.f.log.filter(function (x) { return x === 'city_geo'; }).length, 1);
+  assert.equal(D.cityList(rows, 'America/Los_Angeles', [])[0].n, 1, 'LA fallback (both nights are one LA day)');
+});

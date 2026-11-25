@@ -641,7 +641,7 @@ window.KIL_FILTER_BADGES = function(badges){
   <div class="pf-top" style="align-items:stretch;gap:26px">
     <img id="pfAvatar" class="pf-avatar pf-skel" src="/icon-192.png" alt="Profile" style="align-self:center">
     <div class="pf-idblock" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px">
-      <h1 class="pf-name" id="pfName" style="margin:0">&nbsp;</h1>
+      <h1 class="pf-name" id="pfName" style="margin:0" aria-hidden="true">&nbsp;</h1>
       <div class="pf-handle" id="pfHandle">&nbsp;</div>
       <div id="pfStatsRow" style="display:flex;gap:24px;font-size:.96rem"><span><b id="stPosts">0</b> feed</span><span style="color:inherit"><b id="stFollowers">0</b> followers</span><span style="color:inherit"><b id="stLikes">0</b> likes</span></div>
       <div id="pfAboutTop" style="display:none;color:var(--text-soft,#c9cede);font-size:.88rem;line-height:1.5"></div>
@@ -1450,7 +1450,7 @@ function applyProfile(){
   /* the profile "cover" is now the LOCKED BACKGROUND image (editable in Edit Profile) */
   try{ var _isM=window.matchMedia('(max-width:768px)').matches; var _bg=(_isM&&PROFILE.cover_mobile)?PROFILE.cover_mobile:PROFILE.cover; document.documentElement.style.setProperty('--pf-bg', _bg?("url('"+String(_bg).replace(/'/g,"%27")+"')"):"url('/assets/images/logo-bg.jpg')"); }catch(e){}
   var _av=g('pfAvatar'); if(_av){ _av.classList.remove('pf-skel'); if(PROFILE.avatar){ _av.style.display=''; _av.src=PROFILE.avatar; } }
-  if(g('pfName'))g('pfName').textContent=PROFILE.name||' ';
+  if(g('pfName')){ var _pn=g('pfName'); _pn.textContent=PROFILE.name||' '; if(PROFILE.name) _pn.removeAttribute('aria-hidden'); else _pn.setAttribute('aria-hidden','true'); }   /* a heading is never exposed empty: the placeholder (no name yet, or a not-found page) stays aria-hidden, the name shows it */
   if(g('pfHandle'))g('pfHandle').textContent=PROFILE.handle?('@'+PROFILE.handle+(PROFILE.location?' · '+PROFILE.location:'')+(PROFILE.pronouns?' · '+PROFILE.pronouns:'')):' ';
   if(g('pfBio'))g('pfBio').innerHTML=PROFILE.bio?(esc(PROFILE.bio)+(PROFILE.tagline?' <span class="h">'+esc(PROFILE.tagline)+'</span>':'')):' ';
   if(g('pfBook')){ g('pfBook').href='#'; g('pfBook').onclick=function(ev){ev.preventDefault();openDM();}; g('pfBook').style.display=(typeof CAN_EDIT==='function'&&CAN_EDIT())?'none':''; }

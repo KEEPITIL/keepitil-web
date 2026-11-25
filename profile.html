@@ -56,6 +56,7 @@ nav#main-nav{position:sticky;top:0;z-index:100;background:var(--nav);backdrop-fi
 /* header banner removed — the locked background image is the profile's visual now */
 .pf-cover{display:none!important;}
 /* Locked full-page backdrop (like culture + homepage) — content scrolls over it. Image is editable via --pf-bg. Dark scrim keeps feed text readable over any image. */
+html{background:#0a0a0f;}   /* the same dark as the backdrop below: gives the page a real background colour under body::before (a pseudo-element no checker can see) and avoids a white flash */
 body{background:transparent!important;}
 body::before{content:""!important;position:fixed!important;inset:0!important;z-index:-1!important;background:linear-gradient(rgba(6,7,14,.62),rgba(6,7,14,.62)),var(--pf-bg,url('/assets/images/scene-hero.jpg')) center center/cover no-repeat #0a0a0f!important;opacity:1!important;}
 .pf-cover img{width:100%;height:100%;object-fit:cover;object-position:center 35%;filter:brightness(.62);}

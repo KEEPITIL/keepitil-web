@@ -59,3 +59,7 @@ games/pokasnap/play/sw.play.js
 article/kform-lead-capture/index.play.html
 games/kwars1/index.play.html
 games/kwars1/manifest.play.webmanifest
+
+# INTERNAL tool (web 100% checklist gap 11): the radio tuner panel (92 unlabeled fields, no login). Kept in the repo for Joe's tuning, no longer published.
+# The only deployed mentions are a code comment and a path regex in assets/js/keepitil-radio.js (no link, no fetch), and robots.txt keeps its Disallow line.
+radio-tuner/

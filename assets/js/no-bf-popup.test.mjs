@@ -2,13 +2,13 @@
 //
 // Joe 2026-11-20 6:40 PM: "Remove this popup as well. It's annoying" - the BLACK FRIDAY GUEST LIST
 // auto-open modal. No page may auto-open it (timed, scroll or exit-intent) on any device. The
-// signup survives only as the inline form on /early-access.html, a page the visitor chose to open,
+// signup survived only as the inline form on /early-access.html, a page the visitor chose to open (that page is deleted, owner order 2026-11-25),
 // with the same endpoint, tables and payload.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { createRequire } from 'node:module';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -65,16 +65,15 @@ function runInFakePage(src, { inlineHost }) {
   return { log, host, window };
 }
 
-test('no page loads the guest-list script except the opt-in /early-access.html', () => {
-  const bad = [];
-  for (const f of walk(ROOT, '.html')) {
-    const rel = relative(ROOT, f);
-    const s = readFileSync(f, 'utf8');
-    if (/kil-bf-popup\.js/.test(s) && rel !== 'early-access.html') bad.push(rel);
-  }
-  assert.deepEqual(bad, []);
-  const ea = readFileSync(join(ROOT, 'early-access.html'), 'utf8');
-  assert.match(ea, /<div id="kil-bf-inline"><\/div>/, 'early-access keeps the inline form');
+// Black Friday is cancelled everywhere (owner order 2026-11-25): /early-access.html is deleted, so NO page loads the guest-list script.
+const loadsScript = (pages) => pages.filter(([, s]) => /kil-bf-popup\.js/.test(s)).map(([rel]) => rel);
+test('no page loads the guest-list script (the opt-in /early-access.html page is gone)', () => {
+  const pages = walk(ROOT, '.html').map((f) => [relative(ROOT, f), readFileSync(f, 'utf8')]);
+  assert.ok(pages.length > 60);
+  assert.deepEqual(loadsScript(pages), []);
+  assert.equal(existsSync(join(ROOT, 'early-access.html')), false, 'early-access.html must not come back');
+  // NEGATIVE CONTROL: the check names a page that loads the script
+  assert.deepEqual(loadsScript(pages.concat([['x.html', '<script src="/assets/js/kil-bf-popup.js"></script>']])), ['x.html']);
 });
 
 test('no HTML page carries modal markup for the guest list', () => {
@@ -83,8 +82,8 @@ test('no HTML page carries modal markup for the guest list', () => {
     const rel = relative(ROOT, f);
     const s = readFileSync(f, 'utf8');
     if (/id="kil-bf"|class="kilbf-card"|aria-modal="true"[^>]*kilbf/.test(s)) bad.push(rel);
-    // The signup copy may appear only on the opt-in landing page.
-    if (rel !== 'early-access.html' && /Join the guest list|Get on the guest list/.test(s)) bad.push(rel);
+    // The signup copy has no page to live on any more.
+    if (/Join the guest list|Get on the guest list/.test(s)) bad.push(rel);
   }
   assert.deepEqual(bad, []);
 });

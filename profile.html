@@ -147,11 +147,11 @@ body::before{content:""!important;position:fixed!important;inset:0!important;z-i
 /* The optional social icons are not equal-width controls; they keep their own size inside
    whatever column they land in rather than stretching into a 100px slab. */
 .pf-cta .pf-btn.icon{width:44px;justify-self:center}
-.pf-cta #pfFollow,.pf-cta #pfBook,
+.pf-cta #pfFollow,.pf-cta #pfBook,.pf-cta #pfEditPage,.pf-cta #pfContact,
 .pf-cta #pfShare>button,.pf-cta #pfDashWrap>button{
   width:100%;height:40px;display:flex;align-items:center;justify-content:center;
   padding:0 10px;white-space:nowrap}
-.pf-cta #pfFollow,.pf-cta #pfBook{flex:1;text-align:center}
+.pf-cta #pfFollow,.pf-cta #pfBook,.pf-cta #pfEditPage,.pf-cta #pfContact{flex:1;text-align:center}
 .alert-btn{font-family:var(--font-head);font-size:.95rem;letter-spacing:.1em;background:var(--accent);color:var(--onacc);border:none;border-radius:6px;padding:9px 20px;cursor:pointer;white-space:nowrap;transition:filter .15s,transform .15s;}
 .alert-btn:hover{filter:brightness(1.08);transform:translateY(-1px);}
 .alert-btn.on{background:transparent;border:2px solid var(--accent);color:var(--accent);}
@@ -366,6 +366,15 @@ footer a{color:var(--accent2);}
   .pf-subs{padding:8px}
   .pf-subs button{padding:6px 12px;font-size:.63rem}
 }
+
+/* ONE-PASS HEADER (KODE parked ticket; Grok 11:36): the header arrives in steps (name/bio/avatar, then about/links/badges/account type, then the stats), so the page re-flowed several times
+   (phone CLS 0.4-0.9 on long-bio profiles). While `body.pf-hold` ONLY the late block is painted invisible: stats, about, links, account type, badges, the buttons row and everything under the header
+   (name, avatar and bio paint at once). js releases the hold when all pieces are in, after 1.5 s at the latest, or on a not-found / no-database page. Only with scripting on. */
+@media (scripting:enabled){
+  .pf-meta{min-height:14rem}
+  body.pf-hold #pfStatsRow,body.pf-hold #pfAboutTop,body.pf-hold #pfLinksDrop,body.pf-hold #pfAcctType,body.pf-hold #pfBadges,body.pf-hold #pfAbout,body.pf-hold #pfLinks,body.pf-hold .pf-cta{visibility:hidden}
+}
+@media (scripting:enabled) and (max-width:768px){.pf-meta{min-height:19rem}}
 </style>
 <style id="kil-feedv2">
 /* ===== FEED v2 — 9:16 universal cards, video, IG-style create, legend, events hub ===== */
@@ -608,7 +617,18 @@ window.KIL_FILTER_BADGES = function(badges){
 };
 </script>
 </head>
-<body>
+<body class="pf-hold">
+<script>
+/*PF-GATE-START*/
+window.__pfGate=(function(){
+  var need={meta:1,about:1,claim:1,stats:1}, released=false, timer=null;
+  function reveal(){ if(released) return; released=true; if(timer) clearTimeout(timer); try{ document.body.classList.remove('pf-hold'); }catch(e){} }
+  function mark(k){ if(!need[k]) return; delete need[k]; for(var x in need){ if(Object.prototype.hasOwnProperty.call(need,x)) return; } reveal(); }
+  timer=setTimeout(reveal,1500);
+  return { mark:mark, reveal:reveal, pending:function(){ return Object.keys(need); }, released:function(){ return released; } };
+})();
+/*PF-GATE-END*/
+</script>
 
 <nav id="main-nav">
   <div class="nav-inner">
@@ -660,8 +680,10 @@ window.KIL_FILTER_BADGES = function(badges){
   <div class="pf-cta">
     <button class="pf-btn follow" id="pfFollow" onclick="toggleFollow()">+ FOLLOW</button>
     <button class="pf-btn book" id="pfCreate" style="display:none" onclick="toggleCreateMenu(event)">＋ CREATE</button>
+    <button type="button" class="pf-btn book" id="pfEditPage" style="display:none" onclick="openEditProfile()">EDIT PAGE</button>
     <span id="pfDashWrap" style="display:none"><button class="pf-btn book" id="pfArchive" onclick="location.href='/dashboard'">DASH</button></span>
     <a class="pf-btn book" id="pfBook" href="#" style="display:none">MESSAGE</a>
+    <button type="button" class="pf-btn book" id="pfContact" style="display:none">CONTACT</button>
     <a class="pf-btn icon" id="pfIG" href="#" style="display:none" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2zm0 3.2A6.6 6.6 0 1012 18.6 6.6 6.6 0 0012 5.4zm0 10.9a4.3 4.3 0 110-8.6 4.3 4.3 0 010 8.6zm6.85-11.2a1.54 1.54 0 11-3.08 0 1.54 1.54 0 013.08 0z"/></svg></a>
     <a class="pf-btn icon" id="pfSC" href="#" style="display:none" target="_blank" rel="noopener noreferrer" aria-label="SoundCloud"><svg viewBox="0 0 24 24"><path d="M1.5 13.6c-.1 0-.2.1-.2.2l-.2 1.7.2 1.6c0 .1.1.2.2.2s.2-.1.2-.2l.2-1.6-.2-1.7c0-.1-.1-.2-.2-.2zm2 .6c-.1 0-.2.1-.2.2l-.2 1.1.2 1.1c0 .1.1.2.2.2s.2-.1.2-.2l.3-1.1-.3-1.1c0-.1-.1-.2-.2-.2zm12.9-4.9c-.5 0-.9.1-1.3.3-.3-2.9-2.7-5.1-5.7-5.1-.7 0-1.4.1-2 .4-.2.1-.3.2-.3.4v9.1c0 .2.2.4.4.4h8.9c1.7 0 3.1-1.4 3.1-3.1 0-1.5-1.2-2.8-3.1-2.8z"/></svg></a>
     <style>#pfShare>button.pf-btn{background:transparent!important;color:var(--brand,#00b4ff)!important;border:2px solid var(--brand,#00b4ff)!important;box-shadow:0 0 12px color-mix(in srgb,var(--brand,#00b4ff) 50%,transparent),inset 0 0 8px color-mix(in srgb,var(--brand,#00b4ff) 20%,transparent)}</style>
@@ -1496,12 +1518,13 @@ function renderLinksMenu(){
   if(row){ row.style.display='flex'; row.innerHTML=capped.map(function(it){ var href=safeNav(it.url); if(!href) return ''; return '<a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer" title="'+esc(it.label)+'" aria-label="'+esc(it.label)+'" style="flex:0 0 auto;width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid var(--line,rgba(255,255,255,.12));text-decoration:none;color:#fff">'+pfSvg(it.key)+'</a>'; }).join(''); }
 }
 function loadProfileMeta(){
-  if(!SB) return Promise.resolve();
+  if(!SB){ window.__pfGate&&window.__pfGate.reveal(); return Promise.resolve(); }
   return SB.from('profile_meta').select('*').eq('slug',PROFILE_SLUG).maybeSingle().then(function(r){
     /* SOFT-404: an explicit ?slug= that matches no profile. Guarded on PROFILE_SLUG being
        present so the owner's own view — which arrives here without a slug and is redirected
        elsewhere — is never mistaken for a missing profile. */
     if(PROFILE_SLUG && !(r&&r.data) && window.KIL_NOT_FOUND){
+      window.__pfGate&&window.__pfGate.reveal();
       window.KIL_NOT_FOUND({ what:'profile', heading:'That profile isn’t here',
         body:'It may have been removed, renamed, or the link may be wrong.',
         links:[['/connect/','Browse the Scene'],['/','Explore'],['/apply','Claim your profile']] });
@@ -1515,8 +1538,8 @@ function loadProfileMeta(){
       if(Array.isArray(d.links))PROFILE.links=d.links;
       if(Array.isArray(d.highlights)&&d.highlights.length)PROFILE.highlights=d.highlights;
     }
-    applyProfile(); loadCategories();
-  }).catch(function(){ applyProfile(); });
+    applyProfile(); loadCategories(); window.__pfGate&&window.__pfGate.mark('meta');
+  }).catch(function(){ applyProfile(); window.__pfGate&&window.__pfGate.mark('meta'); });
 }
 function loadCategories(){
   if(!SB) return;
@@ -1529,7 +1552,7 @@ function renderCategories(){ var box=document.getElementById('pfCats'); if(!box)
   box.innerHTML=(PROFILE.categories||[]).map(function(k){return '<span class="pf-catbadge '+k+'">'+L[k]+'</span>';}).join('');
 }
 function updateOwnerUI(){
-  ['pfDashWrap'].forEach(function(id){ var e=document.getElementById(id); if(e)e.style.display=CAN_EDIT()?'':'none'; });
+  ['pfDashWrap','pfEditPage'].forEach(function(id){ var e=document.getElementById(id); if(e)e.style.display=CAN_EDIT()?'':'none'; });
   var _pc=document.getElementById('pfCreate'); if(_pc)_pc.style.display='none';
   /* __feedCatPaint call removed with #feed-cat, 2026-08-27. */
   try{ syncNavCta(); }catch(e){}  /* own profile = hamburger menu; someone else's = PROFILE button back to mine */
@@ -2921,7 +2944,8 @@ function toggleArchived(id,val){
         var d=(r&&r.data)||{};
         var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=(v==null?0:v);};
         set('stPosts',d.posts); set('stFollowers',d.followers); set('stLikes',d.likes);
-      });
+        window.__pfGate&&window.__pfGate.mark('stats');
+      },function(){ window.__pfGate&&window.__pfGate.mark('stats'); });
       SB.from('profile_meta').select('about,links,account_type,links_label,badges').eq('slug',PROFILE_SLUG).maybeSingle().then(function(r){
         var m=(r&&r.data)||{};
         /* S2: never print the raw enum — post-migration that reads "editorial_brand". */
@@ -2936,7 +2960,7 @@ function toggleArchived(id,val){
               var _l=window.KIL_FILTER_BADGES(Array.isArray(m.badges)?m.badges:[]).filter(function(x){
                 var k=String(x).toLowerCase().trim(); if(!k||k===_ac2||_seen2[k])return false; _seen2[k]=1; return true; });
               _b.innerHTML=_l.slice(0,6).map(function(x){return '<span class="bdg">'+String(x).replace(/[<>]/g,'').slice(0,16)+'</span>';}).join(''); } }catch(e){}
-        });
+        }).then(function(){ window.__pfGate&&window.__pfGate.mark('claim'); },function(){ window.__pfGate&&window.__pfGate.mark('claim'); });
         PROFILE.about=m.about||''; PROFILE.links=Array.isArray(m.links)?m.links:[];
         PROFILE.links_label=m.links_label||''; PROFILE.badges=Array.isArray(m.badges)?m.badges:null;
         /* editable Links dropdown title */
@@ -2950,7 +2974,8 @@ function toggleArchived(id,val){
         if(m.socials&&typeof m.socials==='object')PROFILE.socials=Object.assign({},PROFILE.socials,m.socials);
         renderLinksMenu();
         document.addEventListener('click',function(){ var mm=document.getElementById('pfLinksMenu'); if(mm)mm.style.display='none'; });
-      });
+        window.__pfGate&&window.__pfGate.mark('about');
+      },function(){ window.__pfGate&&window.__pfGate.mark('about'); });
     }catch(e){}
   }
   boot();
@@ -3185,6 +3210,7 @@ function loadTagged(){
 (function(){ var iv=setInterval(function(){ var n=0; document.querySelectorAll('#feed-grid [data-status]').forEach(function(c){ if(!/published|live/i.test(c.getAttribute('data-status')||'published')) { c.style.display='none'; n++; } }); },1200); setTimeout(function(){clearInterval(iv);},12000); })();
 </script>
 
-<script src="/keepitil-shell.js?v=20261124e" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
+<script src="/assets/js/profile-inquiry.js?v=20261125a"></script>
 </body>
 </html>

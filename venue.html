@@ -135,9 +135,9 @@ textarea{min-height:90px;resize:vertical}
 </div></nav>
 
 <div class="loading" id="loading">Loading venue…</div>
-<div id="v" style="display:none">
+<main id="v" style="display:none">
   <div class="v-cover" id="vCover"></div>
-  <main class="wrap" id="main">
+  <div class="wrap">
     <div class="v-head">
       <h1 class="v-name" id="vName"></h1>
       <div class="v-tag" id="vTag"></div>
@@ -212,8 +212,8 @@ textarea{min-height:90px;resize:vertical}
     </div>
 
     <div class="claim" id="vClaim"></div>
-  </main>
-</div>
+  </div>
+</main>
 <div class="sticky" id="sticky" role="region" aria-label="Request a booking"><button onclick="scrollToBook()">Request booking</button></div>
 
 <script>

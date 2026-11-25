@@ -370,9 +370,14 @@ footer a{color:var(--accent2);}
 /* CLS (phones only; desktop has its own block above): reserve the space late content fills so the blocks below it do not jump. Measured in real Chrome at 390.
    Nothing is hidden. The about/links block that appears ABOVE the buttons on long profiles still pushes them down (see the PR), and the shell's late
    body/main offset on a not-found page is keepitil-shell.js, not this file. */
+.pf-more{display:none}
 @media(max-width:768px){
-  .pf-meta{min-height:172px}
   .pf-panel.active{min-height:260px}
+  /* The bio and the about text are clamped to 3 lines on phones (Grok 7:20), so late text cannot grow the block above the feed; a real "More" button (pf-more) expands it. The full text stays in the DOM. */
+  #pfBio{line-height:1.5}
+  #pfBio:not(.pf-open),#pfAbout:not(.pf-open){max-height:4.5em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 62%,transparent);mask-image:linear-gradient(#000 62%,transparent)}
+  #pfAbout:not(.pf-open){max-height:4.8em}
+  .pf-more{display:block;order:3;align-self:flex-start;background:none;border:0;color:var(--accent,#8b5cff);font:inherit;font-weight:700;font-size:.82rem;padding:6px 0;min-height:32px;cursor:pointer}
   .mono{min-height:282px}
   main#main{min-height:100vh}
 }
@@ -3195,5 +3200,37 @@ function loadTagged(){
 </script>
 
 <script src="/keepitil-shell.js?v=20261124e" defer></script>
+
+<script>
+/*PF-CLAMP-START*/
+/* Phone bio clamp: #pfBio and #pfAbout are clamped to 3 lines by CSS (max-height + overflow). When one really overflows, a real <button class="pf-more">
+   (aria-expanded + aria-controls) follows it; the full text is always in the DOM. Desktop: never clamped, no button. */
+(function(){
+  var MQ = window.matchMedia ? window.matchMedia('(max-width:768px)') : { matches: false };
+  var IDS = ['pfBio', 'pfAbout'];
+  function sync(id){
+    var el = document.getElementById(id); if(!el) return;
+    var btn = document.getElementById(id + 'More');
+    var empty = !(el.textContent || '').replace(/[\s\u00a0]/g, '');
+    var shown = !empty && getComputedStyle(el).display !== 'none';
+    var open = el.classList.contains('pf-open');
+    var over = MQ.matches && shown && (open || el.scrollHeight > el.clientHeight + 1);
+    if(over){
+      if(!btn){
+        btn = document.createElement('button'); btn.type = 'button'; btn.className = 'pf-more'; btn.id = id + 'More';
+        btn.setAttribute('aria-controls', id); btn.setAttribute('aria-expanded', open ? 'true' : 'false'); btn.textContent = open ? 'Less' : 'More';
+        btn.addEventListener('click', function(){ var o = el.classList.toggle('pf-open'); btn.setAttribute('aria-expanded', o ? 'true' : 'false'); btn.textContent = o ? 'Less' : 'More'; });
+        el.insertAdjacentElement('afterend', btn);
+      }
+    } else if(btn){ btn.remove(); el.classList.remove('pf-open'); }
+  }
+  function all(){ IDS.forEach(sync); }
+  IDS.forEach(function(id){ var el = document.getElementById(id); if(el && window.MutationObserver) new MutationObserver(all).observe(el, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['style'] }); });
+  if(MQ.addEventListener) MQ.addEventListener('change', all);
+  window.addEventListener('load', all); all();
+  window.__pfClamp = all;
+})();
+/*PF-CLAMP-END*/
+</script>
 </body>
 </html>

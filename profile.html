@@ -367,12 +367,14 @@ footer a{color:var(--accent2);}
   .pf-subs button{padding:6px 12px;font-size:.63rem}
 }
 
-/* ONE-PASS HEADER (KODE parked ticket): the header arrives in three steps (name/bio/avatar, then about/links/badges/account type, then the stats), so the page re-flowed 3 times
-   (phone CLS 0.4-0.6 on long-bio profiles). While `body.pf-hold` the header and everything under it is painted invisible (its space is already reserved), and js releases the hold
-   when the three pieces are in (or after 3.5 s, or on a not-found / no-database page). Only with scripting on: without JS the page is plain HTML as before. */
+/* ONE-PASS HEADER (KODE parked ticket; Grok 11:36): the header arrives in steps (name/bio/avatar, then about/links/badges/account type, then the stats), so the page re-flowed several times
+   (phone CLS 0.4-0.9 on long-bio profiles). While `body.pf-hold` ONLY the late block is painted invisible: stats, about, links, account type, badges, the buttons row and everything under the header
+   (name, avatar and bio paint at once). js releases the hold when all pieces are in, after 1.5 s at the latest, or on a not-found / no-database page. Only with scripting on. */
 @media (scripting:enabled){
-  body.pf-hold .pf-head,body.pf-hold .pf-meta,body.pf-hold .pf-filterbar,body.pf-hold .pf-panel,body.pf-hold .mono{visibility:hidden}
+  .pf-meta{min-height:14rem}
+  body.pf-hold #pfStatsRow,body.pf-hold #pfAboutTop,body.pf-hold #pfLinksDrop,body.pf-hold #pfAcctType,body.pf-hold #pfBadges,body.pf-hold #pfAbout,body.pf-hold #pfLinks,body.pf-hold .pf-cta{visibility:hidden}
 }
+@media (scripting:enabled) and (max-width:768px){.pf-meta{min-height:19rem}}
 </style>
 <style id="kil-feedv2">
 /* ===== FEED v2 — 9:16 universal cards, video, IG-style create, legend, events hub ===== */
@@ -622,7 +624,7 @@ window.__pfGate=(function(){
   var need={meta:1,about:1,claim:1,stats:1}, released=false, timer=null;
   function reveal(){ if(released) return; released=true; if(timer) clearTimeout(timer); try{ document.body.classList.remove('pf-hold'); }catch(e){} }
   function mark(k){ if(!need[k]) return; delete need[k]; for(var x in need){ if(Object.prototype.hasOwnProperty.call(need,x)) return; } reveal(); }
-  timer=setTimeout(reveal,3500);
+  timer=setTimeout(reveal,1500);
   return { mark:mark, reveal:reveal, pending:function(){ return Object.keys(need); }, released:function(){ return released; } };
 })();
 /*PF-GATE-END*/

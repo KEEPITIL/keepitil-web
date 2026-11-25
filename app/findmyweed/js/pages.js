@@ -381,6 +381,8 @@
     for (var i = 1; i <= 4; i++) lines.appendChild(el('span', 'ln ln-' + i + (i === 2 && !L[i] ? ' ln-none' : ''), L[i] || ' '));   // no hours data: the slot stays (six lines) but is not shown
     var lic = el('span', 'ln ln-lic'); lic.appendChild(icon('check', 'ck')); lic.appendChild(el('span', null, L[5]));
     lines.appendChild(lic);
+    // the license strip (status + expiry) is the sixth line when there are no hours; with hours the six lines are full, and the listing page carries it
+    if (!L[2]) lines.appendChild(el('span', 'ln ln-strip', F.licenseStripCardText(F.licenseStrip(l), C)));
     a.appendChild(th); a.appendChild(lines); li.appendChild(a);
     var pin = el('button', 'icon-btn pin-btn'); pin.type = 'button';
     pin.setAttribute('aria-label', C.mapShow(l.name)); pin.setAttribute('data-id', l.id); pin.appendChild(icon('pin'));
@@ -639,9 +641,10 @@
       meta.appendChild(el('span', 'muted', kind(l))); box.appendChild(meta);
 
       var lic = el('section', 'card'); lic.appendChild(el('h2', null, C.license));
-      lic.appendChild(el('p', 'mono', l.license));
+      lic.appendChild(el('p', 'mono', l.license || C.stripNoNumber));
       if (l.licenseType) lic.appendChild(el('p', 'muted', l.licenseType));
-      lic.appendChild(el('p', 'status', C.licenseStatus(l.licenseStatus)));
+      var strip = F.licenseStrip(l), sp = el('p', 'license-strip', F.licenseStripText(strip, C));   // status + expiry, from the listing's own fields
+      sp.setAttribute('data-strip', strip.status && strip.expires ? 'full' : 'partial'); lic.appendChild(sp);
       // "License checked on {date}": only with a valid check date; older than F.STALE_DAYS reads as possibly out of date.
       var chk = F.licenseCheck(l, new Date());
       if (chk.show) {

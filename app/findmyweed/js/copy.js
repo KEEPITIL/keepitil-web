@@ -169,6 +169,19 @@
     licenseChecked: function (date) { return 'License checked on ' + date; },
     licenseStale: 'This check may be out of date. Confirm on the state record.',
     licenseRecord: 'View the official state record',
+    // license strip (cards + listing page): status and expiry from the listing's own fields; plain "not on file" when missing
+    stripActive: 'Active license',
+    stripSoon: 'Active license, ends soon',
+    stripNoStatus: 'License status not on file',
+    stripUntil: function (d) { return 'Expires ' + d; },
+    stripNoExpiry: 'Expiry date not on file',
+    stripNoNumber: 'License number not on file',
+    // the short words for the directory CARD (one nowrap line, about 144 px on a 320 px phone); the full words above stay on the listing page
+    stripCardActive: function (d) { return 'Active · exp ' + d; },
+    stripCardSoon: function (d) { return 'Ends soon · ' + d; },
+    stripCardActiveNoDate: 'Active · exp not on file',
+    stripCardSoonNoDate: 'Ends soon · no date',
+    stripCardNoStatus: 'Status not on file',
     licenseVerified: 'License checked against the state record',   // key name kept for stability; the text carries the green-check-plus-number rule (Joe/Muse home rules 2026-11-24)
     hours: 'Hours',
     address: 'Address',

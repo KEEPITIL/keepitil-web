@@ -12,8 +12,15 @@ const gate = html.slice(html.indexOf('<div class="gate" id="gate"'), html.indexO
 test("the gate lists what you will fill in and still has the login button with ?next=", () => {
   assert.match(gate, /id="gate-peek"/);
   for (const w of ["event name", "start date and time", "description", "cover image", "lineup", "ticket tiers"]) assert.ok(gate.includes(w), w);
+  // only the name and start are required in the real form; everything else must sit under "Optional:" (negative control below)
+  const req = gate.match(/<b>Required:<\/b>([^<]*)</)[1], opt = gate.slice(gate.indexOf("<b>Optional:</b>"));
+  assert.doesNotMatch(req, /where|description|cover|lineup|ticket/i);
+  for (const w of ["where it is", "a description", "a cover image"]) assert.ok(opt.includes(w), w + " is listed as optional");
+  assert.match("<b>Required:</b> name, where it is, a cover image<", /<b>Required:<\/b>[^<]*where/i, "control: the old wording put them under the basics");
   assert.match(gate, /<a class="btn primary" href="\/apply\?next=%2Fcreate-event">Log in to create your event<\/a>/);
   assert.match(gate, /Nothing publishes until the KEEPITIL team approves it\./);
+  assert.match(gate, /Members submit an event for review/);
+  assert.doesNotMatch(gate, /Free members can list events/, "the old claim: non-admins are sent to /submit-event for review");
 });
 test("gate copy has no price, money or verification wording (negative control on a bad sample)", () => {
   assert.doesNotMatch(gate, /verif|\$\d|price|fee|payout/i);

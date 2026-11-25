@@ -1,7 +1,7 @@
 // Kai Tarako offline cache. Same-origin GETs only; no data is ever sent anywhere.
 // The build (vite.config.ts, swPrecache) replaces CACHE with a fingerprint of the build and PRECACHE with every
 // file in it, so each deploy installs a new worker that downloads the complete new app before it takes over.
-const CACHE = 'kai-tarako-58c8c502aebf';
+const CACHE = 'kai-tarako-a3af3626207b';
 // ONE CACHE PER SCOPE (Grok 08:23): the same build can be served from two folders of one origin (/app/kaitarako/ and
 // /games/kai/), and both share cache storage. So the cache name carries a tag of THIS worker's own scope, worked out at
 // run time (the build is the same file in both folders): kai-tarako-<scope tag>-<build>. Activation removes only older

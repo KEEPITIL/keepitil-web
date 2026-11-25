@@ -29,12 +29,12 @@ test('it fails OPEN: after 3.5 s the page shows even if a piece never arrives, a
   const nf = makeGate(); nf.gate.reveal(); assert.equal(nf.held(), false); assert.equal(nf.timers[0].cleared, true, 'timer cleared on an early release');
 });
 test('the page wires the four marks and the early releases where the data actually lands', () => {
-  assert.match(html, /applyProfile\(\); loadCategories\(\); window\.__pfGate\.mark\('meta'\);\n  \}\)\.catch\(function\(\)\{ applyProfile\(\); window\.__pfGate\.mark\('meta'\); \}\);/);
-  assert.match(html, /window\.KIL_NOT_FOUND\)\{\n      window\.__pfGate\.reveal\(\);/);
-  assert.match(html, /function loadProfileMeta\(\)\{\n  if\(!SB\)\{ window\.__pfGate\.reveal\(\); return Promise\.resolve\(\); \}/);
-  assert.match(html, /window\.__pfGate\.mark\('stats'\);\n      \},function\(\)\{ window\.__pfGate\.mark\('stats'\); \}\);/);
-  assert.match(html, /window\.__pfGate\.mark\('about'\);\n      \},function\(\)\{ window\.__pfGate\.mark\('about'\); \}\);/);
-  assert.match(html, /\}\)\.then\(function\(\)\{ window\.__pfGate\.mark\('claim'\); \},function\(\)\{ window\.__pfGate\.mark\('claim'\); \}\);/);
+  assert.match(html, /applyProfile\(\); loadCategories\(\); window\.__pfGate&&window\.__pfGate\.mark\('meta'\);\n  \}\)\.catch\(function\(\)\{ applyProfile\(\); window\.__pfGate&&window\.__pfGate\.mark\('meta'\); \}\);/);
+  assert.match(html, /window\.KIL_NOT_FOUND\)\{\n      window\.__pfGate&&window\.__pfGate\.reveal\(\);/);
+  assert.match(html, /function loadProfileMeta\(\)\{\n  if\(!SB\)\{ window\.__pfGate&&window\.__pfGate\.reveal\(\); return Promise\.resolve\(\); \}/);
+  assert.match(html, /window\.__pfGate&&window\.__pfGate\.mark\('stats'\);\n      \},function\(\)\{ window\.__pfGate&&window\.__pfGate\.mark\('stats'\); \}\);/);
+  assert.match(html, /window\.__pfGate&&window\.__pfGate\.mark\('about'\);\n      \},function\(\)\{ window\.__pfGate&&window\.__pfGate\.mark\('about'\); \}\);/);
+  assert.match(html, /\}\)\.then\(function\(\)\{ window\.__pfGate&&window\.__pfGate\.mark\('claim'\); \},function\(\)\{ window\.__pfGate&&window\.__pfGate\.mark\('claim'\); \}\);/);
   assert.ok(html.indexOf('/*PF-GATE-START*/') < html.indexOf('function loadProfileMeta'), 'the gate exists before any caller');
 });
 test('NEGATIVE CONTROL: a gate that releases on the FIRST piece (the old behaviour: show each step as it lands) is caught by the same checks', () => {

@@ -259,7 +259,7 @@ var RECENT=[];
 /* MEMBER CONTROL: unpublish / delete my own submitted event. Server functions are owner-only
    (events.submitted_by = auth.uid()); until they are deployed the call fails and we say so. */
 /* MEMBER_DATA_CONTROLS: Unpublish / Delete need the server functions of keepitil.github.io #95 (not on prod yet). Keep false until they are applied and verified, then set true here AND in settings.html (a test keeps both equal). */
-var MEMBER_DATA_CONTROLS=false;
+var MEMBER_DATA_CONTROLS=true;
 var MEMBER_LIVE=['published','review','sold_out'];
 function memberFnMissing(err){ return !!err && (err.code==='PGRST202' || /could not find the function|does not exist/i.test(String(err.message||''))); }
 function memberAct(act,row,btn){

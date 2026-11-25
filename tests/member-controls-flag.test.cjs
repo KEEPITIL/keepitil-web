@@ -3,8 +3,8 @@ const test = require("node:test"), assert = require("node:assert/strict"), fs = 
 const R = (f) => fs.readFileSync(path.join(__dirname, "..", f), "utf8");
 const se = R("submit-event.html"), st = R("settings.html");
 const flag = (s) => (s.match(/var MEMBER_DATA_CONTROLS=(true|false);/) || [])[1];
-test("the flag exists in both pages, is equal in both, and is OFF until #95 is applied", () => {
-  assert.ok(flag(se) && flag(st)); assert.equal(flag(se), flag(st)); assert.equal(flag(se), "false");
+test("the flag exists in both pages, is equal in both, and is ON (gh.io #95 applied + verified on prod 2026-11-25 15:30 window)", () => {
+  assert.ok(flag(se) && flag(st)); assert.equal(flag(se), flag(st)); assert.equal(flag(se), "true");
 });
 function rowsHtml(on) {   // run the real row-building expression from submit-event.html
   const m = se.match(/var acts=mine\s*\?'([\s\S]*?)\s*:'<a class="ed"/)[0];

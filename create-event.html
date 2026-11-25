@@ -109,6 +109,15 @@ body.rsvp .price-only{display:none!important}
 .srow .curtag{font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}
 nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,180,255,.15);padding:0 24px;}
 .nav-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;padding:0 32px;height:66px;}
+/* signed-out preview: plain text, greyed (dashed card, muted ink), nothing to click except the log-in links */
+.preview{max-width:760px;margin:0 auto 60px;background:transparent;border:1px dashed var(--line);border-radius:18px;padding:26px 28px}
+.preview h2{font-size:1.1rem;font-weight:800;margin-bottom:6px}
+.preview .pv-note{color:var(--muted);font-size:.9rem;margin:4px 0 16px}
+.preview .pv-note a{color:var(--brand);font-weight:700}
+.pv-steps{list-style:decimal;padding-left:22px;display:grid;gap:16px;color:var(--muted)}
+.pv-steps h3{font-size:.95rem;font-weight:800;color:var(--text);margin-bottom:4px}
+.pv-steps ul{list-style:disc;padding-left:20px;display:grid;gap:3px;font-size:.9rem}
+.pv-req{font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line);border-radius:20px;padding:1px 8px;margin-left:6px}
 </style>
 
 <link rel="canonical" href="https://keepitil.com/create-event"/>
@@ -121,8 +130,26 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
   <div class="gate" id="gate" style="display:none">
     <h1>Log in to create an event</h1>
     <p>You'll need a KEEPITIL account. Free members can list events; selling tickets is a Community perk.</p>
-    <a class="btn primary" href="/apply?next=%2Fcreate-event">Log in / Join</a>
+    <a class="btn primary" href="/apply?next=%2Fcreate-event">Log in to create your event</a>
   </div>
+
+  <!-- SIGNED-OUT PREVIEW (read-only): what the form asks, as plain text. No input, no button, no form element, so a signed-out visitor can never submit; the only action is the log-in link above.
+       Shown only together with the gate (showGate); the real <form id="form"> below is untouched. -->
+  <section class="preview" id="preview" aria-labelledby="pv-h" style="display:none">
+    <h2 id="pv-h">What the form asks</h2>
+    <p class="pv-note">A read-only preview. <a href="/apply?next=%2Fcreate-event">Log in to create your event</a> to fill it in.</p>
+    <ol class="pv-steps">
+      <li><h3>The basics</h3><ul><li>Hosting as</li><li>Sell tickets, or RSVP only</li><li>Event name <span class="pv-req">required</span></li><li>A short summary</li></ul></li>
+      <li><h3>Date and time</h3><ul><li>Starts <span class="pv-req">required</span></li><li>Ends, and whether to show it on the page</li><li>A recurring series: add every extra date</li></ul></li>
+      <li><h3>Event details</h3><ul><li>Description</li><li>Location</li><li>Venue name</li><li>Genres</li></ul></li>
+      <li><h3>Tickets</h3><ul><li>Ticket name, and what it includes</li><li>Price, and a quantity limit</li><li>When sales start and end</li><li>Show the remaining count, and a waitlist</li><li>A launch discount code</li></ul></li>
+      <li><h3>Guestlist and features</h3><ul><li>Hide the number of guests going</li><li>Performers, sponsors, hosts and special guests: name, role, image</li></ul></li>
+      <li><h3>Media</h3><ul><li>A YouTube video</li><li>An image gallery</li><li>Your flyer, and a Spotify song link</li></ul></li>
+      <li><h3>Page settings</h3><ul><li>Show on Explore</li><li>Password protect the event</li><li>Lineup, gallery and feed sections</li><li>Title font and accent colour</li></ul></li>
+      <li><h3>Questions for guests</h3><ul><li>Any extra question each attendee should answer (optional)</li></ul></li>
+    </ol>
+    <p class="pv-note">Nothing publishes until the KEEPITIL team approves it.</p>
+  </section>
 
   <form id="form" style="display:none">
     <h1 class="vh">Create an event</h1>
@@ -480,11 +507,12 @@ function payoutsPanel(connected){
   var rail=document.querySelector('.rail'); rail.insertBefore(wrap, rail.firstChild);
   var pb=document.getElementById('payoutsBtn'); if(pb) pb.addEventListener('click',function(){ startPayouts(pb); });
 }
+function showGate(){ $('gate').style.display='block'; $('preview').style.display='block'; }   /* the log-in gate and its read-only preview of the form, together */
 async function init(){
-  if(!supa){ $('gate').style.display='block'; return; }
+  if(!supa){ showGate(); return; }
   var r=await supa.auth.getSession().catch(function(){return null;});
   var s=r&&r.data?r.data.session:null;
-  if(!s){ $('gate').style.display='block'; return; }
+  if(!s){ showGate(); return; }
   /* PERMISSION (Founder 2026-07-31): only KEEPITIL / the company can create KEEPITIL events (Stripe-tied)
      and VS events. Everyone else can only SUBMIT 3rd-party events → route them to submit-event.html. */
   try{ var adm=await supa.rpc('is_admin'); if(!(adm&&adm.data)){ location.replace('/submit-event?why=keepitil-events-are-company-only'); return; } }catch(e){ location.replace('/submit-event'); return; }

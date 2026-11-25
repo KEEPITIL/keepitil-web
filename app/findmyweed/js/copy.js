@@ -141,7 +141,7 @@
       { key: 'learning', label: 'Learning', group: 2, icon: 'book', page: 'learn.html' },   // Find My Weed's own Learn page (not the host site's culture feed)
       { key: 'mybusiness', label: 'My business', group: 3, icon: 'briefcase', account: true, signedInOnly: true, businessOnly: true, page: 'account.html#business' },   // a signed-in business account only
       { key: 'favorites', label: 'Favorites', group: 3, icon: 'heart', account: true },
-      { key: 'help', label: 'Help', group: 3, icon: 'help', page: 'about.html' },       // Find My Weed's own About page: how it works, the data source, contact and the report link
+      { key: 'help', label: 'Help', group: 3, icon: 'help', page: 'help.html' },       // Find My Weed's own Help page (FAQ); About keeps "Help and contact" until Muse approves: how it works, the data source, contact and the report link
       { key: 'listbiz', label: 'List Your Business', group: 3, icon: 'plus', biz: true }
     ],
     railDelivery: 'Delivery',
@@ -210,6 +210,7 @@
       terms: { title: 'Terms · Find My Weed', description: 'The terms for using Find My Weed: licensed businesses only, how to report an unlicensed seller, and what Find My Weed is and is not. Draft for counsel review.' },
       account: { title: 'Your account · Find My Weed', description: 'Your Find My Weed account: who is signed in, and sign out.' },
       strain: { title: 'Strain · Find My Weed', description: 'Facts about a cannabis strain: type, aroma and flavor words, and lineage when known. No effect or medical claims.' },
+      help: { title: 'Help · Find My Weed', description: 'Short answers on how Find My Weed works, what a license means, how to report an unlicensed seller, accounts and contact.' },   // DRAFT for Muse; kept out of search results until Muse OKs it
       learn: { title: 'Learn · Find My Weed', description: 'Plain-language guides to licenses, lab results, age and ID rules, delivery and reporting, plus links to videos. No health claims.' },
       events: { title: 'Events · Find My Weed', description: 'A short, reviewed list of upcoming events, with the age rule for each. Cannabis is for adults 21+ (18+ medical where legal).' },
       imageAlt: 'Find My Weed: search state-licensed cannabis storefronts and delivery services',   // the real share image (launched)
@@ -249,6 +250,29 @@
           { h: 'Help and contact', p: [
             'Questions, a correction, or a problem with a listing? Email info@keepitil.com.',
             'To report an unlicensed seller, use the "Report an unlicensed seller" link at the bottom of any page. It opens an email to the same address.'] }
+        ]
+      },
+      // DRAFT FOR MUSE (2026-11-24): the Help FAQ. Every line is true of the live code today (search, license data, the report link, email-link sign-in, 30-day token, claims approved by the team).
+      help: {
+        title: 'Help',
+        sections: [
+          { h: 'How search works', p: [
+            'Type a city, county or ZIP code in the search bar, or pick an area from the location list. The list and the map show the licensed businesses there.',
+            'The filter chips under the search bar narrow the list, for example to storefronts or delivery. Hours come from the business, so check with it before you go.'] },
+          { h: 'What "licensed" means', p: [
+            'Every business here holds a state cannabis license, and its license number is on its listing. A business is listed only while its license is Active (or About to Expire) and has not expired.',
+            'License details come from the California Department of Cannabis Control public license search. Each listing links to the official record so you can check it yourself.'] },
+          { h: 'Report an unlicensed seller', p: [
+            'Use the "Report an unlicensed seller" link at the bottom of any page. It opens an email to info@keepitil.com. Tell us the name of the seller and where you saw it.'] },
+          { h: 'Accounts', p: [
+            'You do not need an account to browse. A customer account is for saving your choices; a business account is for a licensed business that manages its listing.',
+            'Signing in uses a link we email to you. There is no password. You stay signed in on this device for up to 30 days, or until you sign out.',
+            'To sign out of this device, open the menu and choose Sign out.',
+            'Saving listings, and downloading or deleting your account data from the account page, are coming. Until then, email info@keepitil.com and we will help.'] },
+          { h: 'Claim your business', p: [
+            'A licensed business can ask to manage its listing from the menu. Our team approves each request before anything changes on the listing.'] },
+          { h: 'Contact', p: [
+            'Questions, a correction or a problem with a listing? Email info@keepitil.com.'] }
         ]
       },
       privacy: {

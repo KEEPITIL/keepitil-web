@@ -143,6 +143,16 @@
   .tcard.free .tpr{color:var(--brand-2);}
   .tix-terms{font-size:.72rem;color:var(--grey);margin-top:12px;}
   .tix-terms a{color:var(--brand-2);}
+  /* one-tap RSVP (assets/js/kil-rsvp.js) */
+  .rsvp{margin-top:12px}
+  .rsvp-tap{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 26px;border-radius:999px;border:0;background:var(--green,#22e39b);color:#06120a;font:inherit;font-weight:800;font-size:.9rem;letter-spacing:.04em;cursor:pointer}
+  .rsvp-tap:hover{filter:brightness(1.1)} .rsvp-tap:focus-visible,.rsvp-go:focus-visible,.rsvp-save:focus-visible{outline:2px solid #fff;outline-offset:2px}
+  .rsvp-done{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:14px;background:rgba(34,227,155,.12);border:1px solid rgba(34,227,155,.4);color:#22e39b} .rsvp-done strong{font-size:1rem} .rsvp-sub{font-size:.8rem;color:#b8c4cf}
+  .rsvp-mail{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px} .rsvp-mail label{flex:1 0 100%;font-size:.78rem;color:#b8c4cf}
+  .rsvp-mail input{flex:1 1 180px;min-height:44px;padding:10px 12px;border-radius:10px;border:1px solid #2a2a3a;background:#0d0d13;color:#fff;font:inherit}
+  .rsvp-go{min-height:44px;padding:10px 16px;border-radius:10px;border:1px solid rgba(0,180,255,.5);background:rgba(0,180,255,.16);color:var(--brand-2,#00b4ff);font:inherit;font-weight:800;cursor:pointer} .rsvp-go:disabled{opacity:.5;cursor:default}
+  .rsvp-err{flex:1 0 100%;min-height:0;font-size:.78rem;color:#ff8a8a} .rsvp-ok{margin:10px 0 0;font-size:.82rem;color:#b8c4cf}
+  .rsvp-save{display:inline-block;margin-top:10px;font-size:.8rem;color:var(--brand-2,#00b4ff)}
   .going{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding:6px 13px;border-radius:20px;background:rgba(34,227,155,.12);border:1px solid rgba(34,227,155,.4);color:#22e39b;font-weight:800;font-size:.8rem;letter-spacing:.02em;}
   /* ── event card mirrors the ticket page ── */
   .evcard{background:#000;border-radius:20px;padding:12px;}
@@ -247,6 +257,7 @@
           <div class="meta" id="ev-venue"></div>
           <span class="genre" id="ev-genre" style="display:none;"></span>
           <div class="going" id="ev-going" style="display:none"></div>
+          <div class="rsvp" id="ev-rsvp" style="display:none"></div>
           <p class="desc" id="ev-desc" style="display:none"></p>
         </div>
         <div class="tixcard" id="sec-tickets" style="display:none">
@@ -294,6 +305,7 @@
   <section class="esec" id="sec-feed"><div class="esec-h">Feed <span class="esub">— posts that tagged this event</span></div><div id="ev-feed"></div></section>
 </main>
 <footer>© 2026 KEEPITIL — OC · LA · San Diego events, artists &amp; culture. <a href="/">keepitil.com</a></footer>
+<script src="/assets/js/kil-rsvp.js"></script>
 <script src="/assets/js/vendor/qrcode.js"></script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script>
@@ -674,6 +686,7 @@
           /* social proof — "N going" */
           sb.rpc('get_event_social',{p_slug:ev.slug}).then(function(gr){ var n=(gr&&typeof gr.data==='number')?gr.data:0; var g=$('ev-going'); if(g && n>0){ g.textContent='🔥 '+n+' going'; g.style.display='inline-flex'; } }).catch(function(){});
           paint(); loadExtras(sb);
+          try{ if(window.KilRsvp) window.KilRsvp.mount(document.getElementById('ev-rsvp'),{ev:ev,sb:sb}); }catch(_rs){}   /* one-tap RSVP: never blocks the page */
           try{ evLanding(sb, x); }catch(_el){}   /* about + share + venue + more-like-this */
           /* organizer on-site announcements (public read) */
           sb.from('event_announcements').select('title,body,active,created_at').eq('event_slug',ev.slug).eq('active',true).order('created_at',{ascending:false}).then(function(ar){

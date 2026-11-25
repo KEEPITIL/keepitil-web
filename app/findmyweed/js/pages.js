@@ -749,12 +749,11 @@
       else mn.appendChild(el('p', 'muted', C.noMenu));
       box.appendChild(mn);
 
-      // Not a real `disabled` button: that would drop it from the Tab order, so keyboard and screen-reader users would never
-      // hear "coming soon". aria-disabled keeps it reachable, announced as unavailable, and it does nothing.
-      var cl = el('section', 'card claim'), b = el('button', 'btn', C.claim), note = el('p', 'muted', C.claimSoon);
+      // "Claim this listing" is a live link to the business sign-up (signup.html?as=business). The sign-up page itself says
+      // what is open and what is not; the claim is confirmed by the team after sign-up, so nothing here promises a price or a result.
+      var cl = el('section', 'card claim'), b = el('a', 'btn', C.claim), note = el('p', 'muted', C.claimNote);
       note.id = 'claim-note';
-      b.type = 'button'; b.setAttribute('aria-disabled', 'true'); b.setAttribute('aria-describedby', 'claim-note');
-      b.addEventListener('click', function (e) { e.preventDefault(); });
+      b.href = HERE('signup.html?as=business'); b.setAttribute('aria-describedby', 'claim-note');
       cl.appendChild(b); cl.appendChild(note); box.appendChild(cl);
 
       // Report a problem (W3r). The rules are FMW.reportCheck, the twin of the DRAFT fmw.submit_report. There is NO send

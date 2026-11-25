@@ -298,6 +298,7 @@
             'Find My Weed takes no payment. You pay the business when you pick up or when it is delivered, and the business checks your ID.'] },
           { h: 'Who sees your information, and deleting it', p: [
             'We do not sell your information and we do not share it with advertisers. Services that host and email the site process it only to run Find My Weed.',
+            'If you report an unlicensed seller, we keep your email and what you wrote only to handle the report and to tell you the result.',   // DRAFT for Muse / Grok GO
             'To delete your account and what is kept with it, email info@keepitil.com from the address on the account. Until a delete button exists, we will do it for you.'] },
           { h: 'What stays on your device', p: [
             'Searching near you uses the city or ZIP you type. Your exact location is never sent to a server.',

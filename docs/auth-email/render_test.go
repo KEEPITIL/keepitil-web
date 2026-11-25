@@ -25,7 +25,7 @@ const (
 	FMW = "Find My Weed"
 	TUI = "TUITEA"
 	KEP = "KEEPITIL, Garden"
-	ICON = "https://keepitil.com/app/tuitea/icon-192.png"
+	ICON = "https://keepitil.com/app/tuitea/invite/tuitea_icon_256.png"
 )
 
 // name, redirect_to, brand that MUST appear, brands that must NOT appear
@@ -67,7 +67,7 @@ func TestBody(t *testing.T) {
 	}
 }
 
-// The TUITEA branch: the green T icon (absolute https URL to a public TUITEA icon), the TUITEA teal palette from the join page, NOT purple, and the KEEPITIL / Find My Weed look absent.
+// The TUITEA branch: the TUITEA gold-tree icon (absolute https URL to a public file, never the green T placeholder app/tuitea/icon-192.png), the TUITEA teal palette from the join page, NOT purple, and the KEEPITIL / Find My Weed look absent.
 func TestTuiteaLook(t *testing.T) {
 	for _, file := range []string{"magic-link.shared.html", "recovery.shared.html"} {
 		for _, c := range cases {
@@ -75,6 +75,7 @@ func TestTuiteaLook(t *testing.T) {
 			has := strings.Contains(out, ICON)
 			if isTuitea(c.redirect) {
 				if !has { t.Errorf("%s %s: TUITEA branch must carry the icon %s", file, c.name, ICON) }
+				if strings.Contains(out, "/app/tuitea/icon-192.png") { t.Errorf("%s %s: the green T placeholder icon must not be used", file, c.name) }
 				if !strings.Contains(out, "#33777D") || !strings.Contains(out, "#FBF7EF") { t.Errorf("%s %s: TUITEA teal button / cream background missing", file, c.name) }
 				for _, bad := range []string{"#5b3df5", "#f6f4fb", "#00b4ff", "#3ddc74", "#0a0a0f", "#0b0f0c"} { if strings.Contains(out, bad) { t.Errorf("%s %s: TUITEA branch has another app's colour %s", file, c.name, bad) } }
 			} else if has {

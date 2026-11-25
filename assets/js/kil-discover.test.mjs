@@ -349,3 +349,23 @@ test('every Los Angeles page asks for Los Angeles rows only, so its list never d
   calls.length = 0; D.buildEventsQuery(client, '2026-11-25T00:00:00.000Z', []);   /* NEGATIVE CONTROL: an empty list means no filter, not "no rows" */
   assert.equal(calls.some(function (c) { return c[0] === 'in' || (c[0] === 'eq' && c[1] === 'city'); }), false);
 });
+
+test('cityList de-duplicates each city in ITS OWN time zone (city_geo) when a row carries no tz; a row\'s own tz still wins; a city with no geo falls back to the page zone', function () {
+  /* the same show at one venue 2 h apart across the Los Angeles midnight: two LA days, one New York day */
+  var ny = [{ city: 'New York', state: 'NY', status: 'published', title: 'Late Show', venue: 'The Hall', starts_at: '2026-12-06T07:30:00Z' },
+            { city: 'New York', state: 'NY', status: 'published', title: 'Late Show - VIP', venue: 'The Hall', starts_at: '2026-12-06T09:30:00Z' }];
+  var geos = [{ city: 'New York', state: 'NY', tz: 'America/New_York' }];
+  assert.equal(D.cityList(ny, 'America/Los_Angeles', geos)[0].n, 1, 'New York day: both on Dec 6 -> one event');
+  assert.equal(D.cityList(ny, 'America/Los_Angeles', [])[0].n, 2, 'NEGATIVE CONTROL: with no geo the Los Angeles fallback splits them (the old behavior)');
+  assert.equal(D.cityList(ny, 'America/Los_Angeles')[0].n, 2, 'geos omitted = old behavior');
+  assert.equal(D.cityList(ny, 'America/Los_Angeles', [{ city: 'Boston', state: 'MA', tz: 'America/New_York' }])[0].n, 2, 'another city in the geo list does not apply');
+  var own = ny.map(function (r) { return Object.assign({}, r, { tz: 'America/Los_Angeles' }); });
+  assert.equal(D.cityList(own, 'America/New_York', geos)[0].n, 2, 'a row\'s own tz wins over the city / fallback zone, as in the city view');
+  /* the chip equals what that city\'s own view lists (prepare with the same zone) */
+  var shown = D.prepare(ny, { now: new Date('2026-11-25T00:00:00Z'), tz: 'America/New_York', city: 'new-york', state: 'NY' });
+  assert.equal(shown.weekend.length + shown.upcoming.length + shown.later.length, D.cityList(ny, 'America/Los_Angeles', geos)[0].n);
+});
+test('the cities index reads city_geo once and passes it to cityList (same table the city view uses)', function () {
+  var src = readFileSync(join(root, 'assets/js/kil-discover.js'), 'utf8');
+  assert.match(src, /cityList\(r\.rows, cfg\.fallbackTz, ok\(geo\) \? \(geo\.data \|\| \[\]\) : \[\]\)/); assert.match(src, /c\.from\('city_geo'\)\.select\('city,state,county,tz'\)/);
+});

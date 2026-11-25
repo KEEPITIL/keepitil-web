@@ -96,7 +96,7 @@ test('INFO panels stay index-aligned: MAP rows match the HOW YOU EARN cards in o
 });
 
 test('Earn JS no longer wires radio/playlist sections (filter map, pager, bar swap)', () => {
-  assert.match(EARN, /var SEC=\{partners:'earn',early:'early',rewards:'create'\};/);
+  assert.match(EARN, /var SEC=\{partners:'earn',rewards:'create'\};/);
   assert.ok(!/EARN MOBILE RADIO\/SEARCH SWAP/.test(EARN));
   assert.ok(!/\{ ids:\['stations'\]/.test(EARN));
   assert.match(EARN, /body\.rad-m #kil-radio\{display:none!important\}/, 'owner 2026-11-20: Earn phones keep NO docked radio bar');

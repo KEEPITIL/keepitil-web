@@ -25,3 +25,9 @@ test('all families the pages ask for are declared', () => {
   assert.ok(used.size >= 4);
 });
 test('negative control: a Google link would be caught', () => { assert.match('<link href="https://fonts.googleapis.com/css2?family=Inter">', /fonts\.(googleapis|gstatic)\.com/); });
+
+test('sw.js: no googleapis/gstatic rule remains (fonts are same-origin and ride the MEDIA_EXT rule); index.html has no dead `var fb` gradient', () => {
+  const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8').replace(/\/\*[^]*?\*\//g, '');
+  assert.doesNotMatch(sw, /fonts\.(googleapis|gstatic)\.com/); assert.match(sw, /MEDIA_EXT = \/[^\n]*woff2/);
+  assert.doesNotMatch(fs.readFileSync(path.join(root, 'index.html'), 'utf8'), /var fb=e\.img\?/);
+});

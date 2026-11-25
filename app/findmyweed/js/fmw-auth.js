@@ -42,6 +42,30 @@
           .then(function (j) { return { status: j && j.result === 'verified' ? 'verified' : j && j.result === 'not_found' ? 'not_found' : 'flagged' }; },
                 function () { return { status: 'flagged' }; });
       },
+      // what the SERVER knows about this account (rpc fmw.my_account, migration 20261124020000): whether it is a business is decided there (a verified + live license check AND
+      // a staff approval of the claim; state none | not_verified | pending | approved), never from the client's sign-up "kind". { known: false } when there is no token, the call fails, or the function
+      // is not applied yet (the account page then shows nothing business-only).
+      myAccount: function (token) {
+        if (!token) return Promise.resolve({ known: false });
+        var h = Object.assign({}, base, { Authorization: 'Bearer ' + token, 'Content-Profile': 'fmw' });
+        return fetchFn(url + '/rest/v1/rpc/my_account', { method: 'POST', headers: h, body: '{}' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) {
+            if (!j || j.signed_in !== true) return { known: false };
+            var l = j.license && typeof j.license === 'object' ? j.license : null, st = ['none', 'not_verified', 'pending', 'approved'].indexOf(j.business_state) >= 0 ? j.business_state : 'none';
+            return { known: true, business: j.business === true && st === 'approved', state: j.business === true && st === 'approved' ? 'approved' : st === 'approved' ? 'pending' : st, emailConfirmed: j.email_confirmed === true,
+              license: l ? { number: String(l.number || ''), legalName: String(l.legal_name || ''), checked: String(l.checked || ''), live: l.live === true } : null };
+          }, function () { return { known: false }; });
+      },
+      // first Find My Weed sign-in of a login that was NOT created here (one made in another of our apps): the server-owned join (rpc fmw.join_my_account, migration 20261124050000) makes
+      // them a customer member. Nothing is sent: the server reads the caller from the token. { joined: true } only when it created the row; any failure is { joined: false }.
+      joinAccount: function (token) {
+        if (!token) return Promise.resolve({ joined: false });
+        var h = Object.assign({}, base, { Authorization: 'Bearer ' + token, 'Content-Profile': 'fmw' });
+        return fetchFn(url + '/rest/v1/rpc/join_my_account', { method: 'POST', headers: h, body: '{}' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) { return { joined: !!j && j.joined === true }; }, function () { return { joined: false }; });
+      },
       // business pricing: ONLY from the server (rpc fmw.business_pricing, migration 20261123030000), which answers with prices
       // only for a signed-in FMW user with a confirmed email AND a verified license recorded for them. No token: no call.
       pricing: function (token) {

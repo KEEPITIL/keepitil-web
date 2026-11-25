@@ -113,6 +113,7 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 /* Listing page */
 .detail .name{font-size:32px;line-height:1.15;text-wrap:balance}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px}
+.license-check{color:var(--green);font-weight:700}
 .card h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
 .mono{font-family:ui-monospace,Consolas,monospace;font-size:17px}
 .hours{border-collapse:collapse;width:100%;max-width:340px}

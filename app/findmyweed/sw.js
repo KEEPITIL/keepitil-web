@@ -43,6 +43,14 @@ function selfDestruct() {
     .then(function () { return self.registration.unregister(); });
 }
 
+// The page script (js/sw-register.js) sends { type: 'fmw-kill' } when the kill switch is off: stop handling at once, delete every fmw-* cache, unregister, then answer on the port.
+// With this ONE page load clears everything (before, the worker kept re-caching what that same page was still loading, so it took two loads). Same-origin pages only: a worker only ever receives messages from its own origin.
+self.addEventListener('message', function (e) {
+  if (!e.data || e.data.type !== 'fmw-kill') return;
+  var port = e.ports && e.ports[0];
+  e.waitUntil(selfDestruct().then(function () { if (port) port.postMessage('done'); }, function () { if (port) port.postMessage('failed'); }));
+});
+
 self.addEventListener('install', function (e) {
   e.waitUntil(
     caches.open(STATIC).then(function (c) { return Promise.allSettled(PRECACHE.map(function (u) { return c.add(BASE + u); })); })

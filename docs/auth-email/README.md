@@ -5,6 +5,7 @@ Draft for Muse/Echo review. **Nothing here was pasted anywhere.** The project's 
 ## Files
 - `magic-link.shared.html`: the body, three branches (Find My Weed, TUITEA, default KEEPITIL).
 - `subject.tmpl`: the subject, same branching.
+- `recovery.shared.html` + `recovery-subject.tmpl`: the **Reset Password** email, same three branches and the same prefix rules (TUITEA password recovery lands on `https://keepitil.com/app/tuitea/password/`). Paste into Supabase Auth > Email Templates > Reset Password.
 - `render_test.go` + `go.mod`: renders both with Go's `html/template` against 10 cases (FMW account/root pages, TUITEA, KEEPITIL pages, empty, short, near-prefix, other-host, unicode, absent key). `cd docs/auth-email && go test ./... -v`. Run here with Go 1.14; all pass.
 
 ## What a Find My Weed customer would see
@@ -19,6 +20,19 @@ Facts, checked in the public Supabase Auth source (`supabase/auth`, `internal/ma
 - `.RedirectTo` is the `redirect_to` of THIS request: FMW sends `cleanUrl()`, always under `https://keepitil.com/app/findmyweed/`; KEEPITIL sends `https://keepitil.com/apply`, `location.href` of its own pages, `/reset-password`; TUITEA lives under `https://keepitil.com/app/tuitea`.
 
 So the branch key is a **prefix of `.RedirectTo`**, built from the only prefix tool the engine has: `slice`, guarded by `len` (a slice past the end panics and the email would fail to send). `$r := print .RedirectTo` makes an absent key harmless. Anything that does not match falls through to the KEEPITIL wording, so existing KEEPITIL sign-ins behave as before. `.RedirectTo` is request-controlled and is never printed.
+
+## Which redirect_to is which app (2026-11-24 update)
+- **Find My Weed:** `https://keepitil.com/app/findmyweed/...`
+- **TUITEA:** `https://keepitil.com/app/tuitea/...` (web app, password and confirm pages) **or** `https://keepitil.com/join/...`. The native iOS app asks for `https://keepitil.com/join/auth` (`AuthLinks.nativeRedirect` in thrive-app); before this update that fell through to the KEEPITIL branch, so an iPhone sign-in email said "KEEPITIL". `/join/` is TUITEA-only today (invite links and the join page); a future app must not use it.
+- **KEEPITIL:** everything else (the default).
+- The trailing slash is part of each prefix: `/app/tuiteax/`, `/app/tuitea` (no slash), `/join` and `/joinery/` stay KEEPITIL, as do other hosts and plain `http://`. (The old TUITEA prefix had no trailing slash; Supabase redirects always carry a path, so nothing real changes.) Each case has a render test with a negative control (`go test ./...`).
+- **TUITEA look:** the TUITEA gold-tree icon (`https://keepitil.com/app/tuitea/invite/tuitea_icon_256.png`, public, absolute URL; NOT `app/tuitea/icon-192.png`, which is the green T placeholder) and the TUITEA palette from the join page (teal `#33777D` button, cream `#FBF7EF` page, `#FFFDF8` card), replacing the old purple. `TestTuiteaLook` fails if another app's colour or the icon leaks across branches.
+
+## Open notes for Grok / Joe (NOT changed here)
+- **Help address:** the TUITEA footer says `info@keepitil.com`. It is a KEEPITIL address inside a TUITEA email; a TUITEA address would need to exist first.
+- **Sender:** name and address are global for the whole Supabase project (one SMTP config), so every email is sent as KEEPITIL. A TUITEA sender needs a TUITEA sender domain (SPF/DKIM) and a separate project or a mail relay.
+- **Confirm signup:** paste the magic-link body there too (point 1 below), but its wording says "sign-in link"; Muse may want a "confirm your email" variant. Not written yet.
+- Nothing here is applied to Supabase. Rollback = paste the saved originals back.
 
 ## Things that must hold (the "without breaking the others" list)
 1. **Paste the same branching into the Confirm signup template too.** FMW sign-in calls `/auth/v1/otp` with `create_user: true`: an existing user gets the Magic Link email, a NEW user gets Confirm signup (if email confirmation is on). Same guards, "confirm" wording. Recovery (`/reset-password`), Invite and Email change are separate templates and stay KEEPITIL unless changed.

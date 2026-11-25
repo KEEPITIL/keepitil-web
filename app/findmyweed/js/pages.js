@@ -407,6 +407,18 @@
       var all = el('a', 'seeall', C.seeAll); all.href = sa.href; all.setAttribute('aria-label', C.seeAllRow(key === 'deals' ? C.rowDeals : C.rowFeatured));
       all.addEventListener('click', sa.onClick); sec.insertBefore(all, ul); sec.className += ' has-seeall';
     }
+    // No real entry in the Ads or Deals row: ONE invite card for businesses instead of hiding the row (never a fake ad or deal; gone as soon as real entries exist).
+    var invite = (key === 'ads' || key === 'deals') && !(entries && entries.length);
+    if (invite) {
+      var base = (window.FMW_CONFIG && window.FMW_CONFIG.basePath) || '';
+      var href = (key === 'deals' && CLAIMS) ? HERE('signup.html?as=business') : base + '/for-business/';
+      var ili = el('li', 'tile invite'), ia = el('a', 'tile-in invite-in'); ia.href = href;
+      ia.appendChild(el('span', 'invite-tag', C.inviteTag));
+      ia.appendChild(el('span', 'invite-title', key === 'ads' ? C.inviteAdsTitle : C.inviteDealsTitle));
+      ia.appendChild(el('span', 'invite-body', key === 'ads' ? C.inviteAdsBody : C.inviteDealsBody));
+      ul.setAttribute('aria-label', key === 'ads' ? C.inviteAdsTitle : C.inviteDealsTitle);   // the region is an invitation, not "Ads"
+      ili.appendChild(ia); ul.appendChild(ili); sec.hidden = false; return;
+    }
     (entries || []).forEach(function (e) {
       var li = el('li', 'tile'), wrap = e.href ? el('a', 'tile-in') : el('div', 'tile-in');
       if (e.href) wrap.href = e.href;
@@ -491,7 +503,7 @@
 
     // The HOME and results.html load the small state index and only the chosen area's county file(s) (weight 1.0, Phases 2 and 3); the whole
     // state, or any failure or odd response here, falls back to the full data/listings.json as before.
-    var homeIndex = null, homeFiles = {};
+    var homeIndex = null, homeFiles = {}, fullFor = null;   // fullFor: the typed text whose name search needs the full data/listings.json (the light files carry no names)
     var loadHomeIndex = function () {
       var get = homeIndex ? Promise.resolve(homeIndex) : F.loadPart(F.fetchOf(window), 'data/listings-index.json', function (d) { return d && Array.isArray(d.places) && Array.isArray(d.listings) && d.listings.length > 0 && d.listings.every(function (r) { return r && typeof r.county === 'string' && !r.address; }); }).then(function (d) { homeIndex = d; return d; });
       return get.then(function (idx) { return F.assembleHome(idx, {}); }, function () { return load(); });
@@ -513,7 +525,7 @@
       mapToken++; clear(out); clear(stateBox); head.textContent = ''; head.hidden = false; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
       if (nearby) nearby.hidden = true;
       var light = page === 'search' || page === 'results';
-      (light ? loadHomeIndex() : load()).then(function (data) {
+      (light && fullFor !== p.q ? loadHomeIndex() : load()).then(function (data) {
         menuData(data);
         var now = new Date();
         if (page === 'search' && !p.q && !p.city && !p.hasCounty) {
@@ -528,6 +540,15 @@
         fillArea(form, data, p);
         PROMO(data);
         var res = F.search(data, p, now);
+        // NAME SEARCH (Joe 2026-11-25): the light files have no business names. A typed text that is not a place may still be a business name: load the full listings.json once and
+        // search again (same file, no new query). A place that is found draws at once; the full file is then fetched in the background and the page is redrawn only when some
+        // business NAME also matches (the place's businesses first, then the name matches).
+        var nameTry = data.light && fullFor !== p.q && F.classify(p.q).kind === 'city' && F.classify(p.q).value.length >= 3;
+        if (nameTry && res.notFound && res.reason === 'city') { fullFor = p.q; return run(); }
+        if (nameTry && !res.notFound && res.place) {
+          var typed = p.q;
+          load().then(function (full) { if (p.q === typed && fullFor !== typed && F.search(full, p, new Date()).results.length > res.results.length) { fullFor = typed; run(); } }, function () {});
+        }
         if (res.notFound) {
           drawFilters(F.FILTERS, 'home');
           var c = F.classify(p.q);
@@ -678,6 +699,13 @@
       var ad = el('section', 'card address'), AL = F.addressLines(l); ad.appendChild(el('h2', null, C.address));
       AL.lines.forEach(function (t) { ad.appendChild(el('p', null, t)); });
       if (AL.note) ad.appendChild(el('p', 'muted addr-note', AL.note === 'delivery' ? C.addressDeliveryNote : AL.note === 'city' ? C.addressCityNote : AL.note === 'street' ? C.addressNoStreet : C.addressNone));
+      // Directions: a storefront with a real street only (F.directionsUrl is '' for any other record): Apple Maps on iPhone / iPad, Google Maps elsewhere
+      var apple = /iPhone|iPad|iPod/.test(String(window.navigator && navigator.userAgent || '')) || (/Macintosh/.test(String(window.navigator && navigator.userAgent || '')) && (navigator.maxTouchPoints || 0) > 1),
+        dir = F.directionsUrl(l, apple);
+      if (dir) {
+        var da = el('a', 'btn ghost directions', C.directions); da.href = dir; da.target = '_blank'; da.rel = 'noopener noreferrer';
+        da.setAttribute('aria-label', C.directionsLabel(l.name)); da.setAttribute('data-maps', apple ? 'apple' : 'google'); ad.appendChild(da);
+      }
       box.appendChild(ad);
 
       // No hours data (all of today's listings): no Hours card at all. A card that only says "Hours not listed" is noise; it returns the day a listing has real hours.

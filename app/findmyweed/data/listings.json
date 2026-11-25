@@ -527,8 +527,8 @@
    "zips": [
     "96025"
    ],
-   "lat": 41.20895,
-   "lng": -122.27255
+   "lat": 41.207,
+   "lng": -122.2734
   },
   {
    "name": "El Centro",
@@ -1252,7 +1252,7 @@
    "zips": [
     "94553"
    ],
-   "lat": 38.0,
+   "lat": 38,
    "lng": -122.10675
   },
   {
@@ -1910,8 +1910,8 @@
     "92582",
     "92583"
    ],
-   "lat": 33.78263,
-   "lng": -116.9828
+   "lat": 33.7827,
+   "lng": -116.9882
   },
   {
    "name": "San Jose",
@@ -12237,28 +12237,6 @@
    "license": "C10-0000758-LIC",
    "licenseStatus": "Active",
    "licenseExpires": "2027-11-04",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0000760-lic",
-   "name": "Blazed Utopia",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "620 S State St",
-    "city": "San Jacinto",
-    "county": "Riverside",
-    "state": "CA",
-    "zip": "92583"
-   },
-   "lat": 33.7825,
-   "lng": -116.972,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0000760-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2026-11-24",
    "published": true,
    "licenseType": "Commercial - Retailer",
    "licenseCheckedOn": "2026-11-19"
@@ -24095,28 +24073,6 @@
    "license": "C10-0001519-LIC",
    "licenseStatus": "Active",
    "licenseExpires": "2027-11-22",
-   "published": true,
-   "licenseType": "Commercial - Retailer",
-   "licenseCheckedOn": "2026-11-19"
-  },
-  {
-   "id": "c10-0001520-lic",
-   "name": "Al'S DEPOT & EMPROIUM",
-   "storefront": true,
-   "delivery": false,
-   "address": {
-    "line1": "4116 Pine St",
-    "city": "Dunsmuir",
-    "county": "Siskiyou",
-    "state": "CA",
-    "zip": "96025"
-   },
-   "lat": 41.2109,
-   "lng": -122.2717,
-   "tz": "America/Los_Angeles",
-   "license": "C10-0001520-LIC",
-   "licenseStatus": "Active",
-   "licenseExpires": "2026-11-23",
    "published": true,
    "licenseType": "Commercial - Retailer",
    "licenseCheckedOn": "2026-11-19"

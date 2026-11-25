@@ -105,6 +105,7 @@
     rating: function (n) { return n.toFixed(1) + ' ★'; },
     kindStorefront: 'Storefront',
     kindDelivery: 'Delivery',
+    kindNone: 'Licensed business',   // a record with neither a storefront nor delivery on file never says "Delivery" (Grok 2026-11-25 11:36)
     kindBoth: 'Storefront + Delivery',
     cardLicense: function (n) { return 'License ' + n; },   // the check mark's accessible text: the plain license number
     // The menu page (approved spec item 9; supersedes the five-section menu of #79). ONE list in display order;
@@ -188,6 +189,7 @@
     addressNone: 'Address not listed',
     addressNoStreet: 'Street address not listed',
     addressDeliveryNote: 'Delivery only: we show the city, not the street address.',
+    addressCityNote: 'We show the city, not the street address.',   // no storefront on file and no delivery on file: the city only, with no claim about delivery
     menu: 'Menu',
     // This link leaves Find My Weed for the business's own site, which may take orders there (Find My Weed never does).
     // Review B/D (2026-11-21): the hand-off says the business checks ID and shows the age rule; Find My Weed claims no check.

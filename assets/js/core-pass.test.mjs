@@ -162,8 +162,9 @@ const allowed = (file, snippet) => ALLOW.some((a) => a.file === file && snippet.
 
 test('inventory: the sweep covers the served pages and shared scripts', () => {
   assert.ok(PAGES.length > 60, 'only ' + PAGES.length + ' pages found');
-  for (const must of ['index.html', 'earn/index.html', 'connect/index.html', 'create/index.html', 'culture/index.html', 'shop/index.html', 'early-access.html'])
+  for (const must of ['index.html', 'earn/index.html', 'connect/index.html', 'create/index.html', 'culture/index.html', 'shop/index.html'])
     assert.ok(PAGES.includes(must), must + ' not swept');
+  assert.ok(!PAGES.includes('early-access.html'), 'early-access.html is gone (owner order 2026-11-25) and must not come back; see assets/js/no-early-access.test.mjs');
   for (const must of ['keepitil-shell.js', 'assets/js/keepitil-radio.js', 'assets/js/kil-bf-popup.js'])
     assert.ok(SCRIPTS.includes(must), must + ' not swept');
   assert.ok(!PAGES.some((p) => /^(app|games|kode)\//.test(p)), 'sub-apps leaked into the sweep');

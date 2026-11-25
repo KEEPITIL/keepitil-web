@@ -335,7 +335,7 @@
     var city = s(a.city), st = s(a.state), zip = s(a.zip), line1 = s(a.line1);
     if (!city) return { lines: [], note: 'none' };
     var cityState = city + (st ? ', ' + st : '');
-    if (!(l && l.storefront)) return { lines: [cityState], note: 'delivery' };
+    if (!(l && l.storefront)) return { lines: [cityState], note: l && l.delivery === true ? 'delivery' : 'city' };
     var cityLine = cityState + (zip ? ' ' + zip : '');
     return line1 ? { lines: [line1, cityLine], note: null } : { lines: [cityLine], note: 'street' };
   }
@@ -738,16 +738,30 @@
     var soon = s.status === 'About to Expire';
     return s.short ? (soon ? C.stripCardSoon(s.short) : C.stripCardActive(s.short)) : (soon ? C.stripCardSoonNoDate : C.stripCardActiveNoDate);
   }
+  // The three card facts that the listing page (the profile) shows too. ONE implementation each, read by cardLines AND profileFacts, so the card and the profile can
+  // never word or compute the same fact differently (Grok 2026-11-25: the profile is a pure read of the same record as the card; Muse checks card vs profile field by field).
+  function ratingText(l, C) { return (typeof l.rating === 'number' && isFinite(l.rating) && l.rating >= 0 && l.rating <= 5) ? C.rating(l.rating) : ''; }
+  function kindText(l, C) { return l.storefront && l.delivery === true ? C.kindBoth : l.storefront ? C.kindStorefront : l.delivery === true ? C.kindDelivery : C.kindNone; }
+  function countyText(l, C) {
+    var a = (l.address && typeof l.address === 'object') ? l.address : {};
+    return typeof a.county === 'string' && a.county.trim() ? C.countyName(a.county.trim().replace(/\s+county$/i, '')) : '';
+  }
   function cardLines(r, C) {
     var l = r.listing, a = (l.address && typeof l.address === 'object') ? l.address : {};
     var two = [];
-    if (typeof l.rating === 'number' && isFinite(l.rating) && l.rating >= 0 && l.rating <= 5) two.push(C.rating(l.rating));
+    var rt = ratingText(l, C); if (rt) two.push(rt);
     if (typeof r.miles === 'number' && isFinite(r.miles)) two.push(C.miles(r.miles));
     var hours = r.known === false || !hoursKnown(l) ? '' : r.open ? C.openUntil(fmtTime(r.until)) : C.closed;   // no hours data: nothing is shown (an empty "Hours not listed" on every card was noise)
     var al = addressLines(l), addr = al.lines.length ? (l.storefront && al.lines.length === 2 ? al.lines[0] + ', ' + cityOf(l) : al.lines[0]) : C.addressNone;
-    var kind = l.storefront && l.delivery === true ? C.kindBoth : l.storefront ? C.kindStorefront : C.kindDelivery;
-    var county = typeof a.county === 'string' && a.county.trim() ? C.countyName(a.county.trim().replace(/\s+county$/i, '')) : '';
-    return [String(l.name == null ? '' : l.name), two.join(' · '), hours, addr, kind + (county ? ' · ' + county : ''), String(l.license || '')];
+    var county = countyText(l, C);
+    return [String(l.name == null ? '' : l.name), two.join(' \u00b7 '), hours, addr, kindText(l, C) + (county ? ' \u00b7 ' + county : ''), String(l.license || '')];
+  }
+  // The profile (listing page) facts: a pure read of the SAME listing record the card is drawn from, through the same helpers. Every field the card shows
+  // that is not distance or open-now (those depend on where and when you look) is here with the same words.
+  function profileFacts(l, C) {
+    var strip = licenseStrip(l);
+    return { name: String(l.name == null ? '' : l.name), rating: ratingText(l, C), kind: kindText(l, C), county: countyText(l, C), license: String(l.license || ''),
+      address: addressLines(l), strip: licenseStripText(strip, C), cardStrip: licenseStripCardText(strip, C) };
   }
 
   // ---- SEO (1.0 cut, KODE/Grok 2026-11-24): what the search engines read. Pure functions; pages.js writes the result into the head. ----
@@ -758,7 +772,7 @@
   function seoListing(l, base) {
     var al = addressLines(l), a = (l && l.address) || {}, rec = dccRecordUrl(l && l.license);
     var where = cityOf(l), name = String((l && l.name) || '').trim();
-    var kindWord = l.storefront && l.delivery ? 'storefront and delivery' : l.delivery ? 'delivery' : 'storefront';
+    var kindWord = l.storefront && l.delivery ? 'storefront and delivery' : l.delivery === true ? 'delivery' : l.storefront ? 'storefront' : 'business';
     var d = {
       '@context': SCHEMA_CONTEXT, '@type': 'LocalBusiness', name: name, url: base + '/listing.html?id=' + encodeURIComponent(l.id),
       identifier: { '@type': 'PropertyValue', name: 'California cannabis license number', value: String(l.license || '') }
@@ -800,7 +814,7 @@
     return out;
   }
 
-  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, licenseStrip: licenseStrip, licenseStripText: licenseStripText, licenseStripCardText: licenseStripCardText, filterRows: filterRows, licenseCategories: licenseCategories, categoriesOf: categoriesOf, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, orderCards: orderCards, isPaid: isPaid, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, licenseStrip: licenseStrip, licenseStripText: licenseStripText, licenseStripCardText: licenseStripCardText, filterRows: filterRows, licenseCategories: licenseCategories, categoriesOf: categoriesOf, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, profileFacts: profileFacts, ratingText: ratingText, kindText: kindText, countyText: countyText, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, orderCards: orderCards, isPaid: isPaid, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
     dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;

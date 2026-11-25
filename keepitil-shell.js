@@ -692,7 +692,7 @@ window.KIL_NOT_FOUND = function(opts){
   var host = opts.into && document.querySelector(opts.into);
   if(!host) host = document.querySelector('main') || document.body;
   host.innerHTML =
-    '<div class="kil-404" role="status" style="max-width:560px;margin:12vh auto;padding:0 20px;text-align:center">'
+    '<div class="kil-404" role="status" style="max-width:560px;margin:0 auto;padding:12vh 20px;text-align:center">'
     + '<div style="font-size:2.6rem;margin-bottom:10px" aria-hidden="true">🔍</div>'
     + '<h1 style="font-family:\'Bebas Neue\',Inter,sans-serif;font-size:2rem;letter-spacing:.04em;margin:0 0 10px;color:#fff">'
     + (opts.heading || ('That ' + what + ' isn’t here')) + '</h1>'

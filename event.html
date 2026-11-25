@@ -310,6 +310,7 @@
 </main>
 <footer>© 2026 KEEPITIL — OC · LA · San Diego events, artists &amp; culture. <a href="/">keepitil.com</a></footer>
 <script src="/assets/js/kil-rsvp.js"></script>
+<script src="/assets/js/kil-calendar.js"></script>
 <script src="/assets/js/vendor/qrcode.js"></script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script>
@@ -392,6 +393,16 @@
         + '<a href="https://x.com/intent/tweet?text='+txt+'&url='+u+'" target="_blank" rel="noopener">Post on X</a>'
         + '<a href="https://www.facebook.com/sharer/sharer.php?u='+u+'" target="_blank" rel="noopener">Facebook</a>'
         + '<a href="https://wa.me/?text='+txt+'%20'+u+'" target="_blank" rel="noopener">WhatsApp</a>';
+      /* ADD TO CALENDAR: .ics built here + a Google Calendar link, from the event's own time and venue (assets/js/kil-calendar.js). Ended events get neither. */
+      try{ if(window.KilCalendar && window.KilCalendar.upcoming(row)){
+        var gUrl=window.KilCalendar.googleUrl(row,url);
+        sh.insertAdjacentHTML('afterbegin','<button type="button" id="ev-ics">📅 Add to calendar</button><a id="ev-gcal" href="'+esc(gUrl)+'" target="_blank" rel="noopener">Google Calendar</a>');
+        $('ev-ics').onclick=function(){
+          var blob=new Blob([window.KilCalendar.ics(row,url)],{type:'text/calendar;charset=utf-8'});
+          var a=document.createElement('a'); a.href=window.URL.createObjectURL(blob); a.download=(String(row.slug||'event').replace(/[^a-z0-9._-]/gi,'')||'event')+'.ics';
+          document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ window.URL.revokeObjectURL(a.href); },4000);
+        };
+      } }catch(_c){}
       var cb=$('ev-copy');
       if(cb) cb.onclick=function(){
         var done=function(){ cb.textContent='✓ Copied'; setTimeout(function(){ cb.textContent='🔗 Copy link'; },1800); };

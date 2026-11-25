@@ -51,3 +51,34 @@ test('NEGATIVE CONTROL: the old two-date terms page (2026-07-10 header, July 21,
   assert.equal(lastUpdated(old).length, 2, 'the checker sees both dates');
   assert.notDeepEqual(lastUpdated(old), [EXPECT['terms.html']], 'and would fail the one-date assertion');
 });
+
+test('privacy page: sign-in wording covers password, one-time link, Google and Apple, and says what they share; Sharing names Google and Apple', () => {
+  const t = rendered('privacy.html').replace(/\s+/g, ' ');
+  assert.match(t, /you sign in with it, with a password or a one-time link, or through Google or Apple; if you use Google or Apple they share your name and email address with us/);
+  assert.match(t, /Google and Apple if you choose to sign in with them/);
+  assert.doesNotMatch(t, /email-only|only (with )?(your )?email/i, 'sign-in is not email-only');
+});
+
+// Ported from the keepitil.github.io mirror tests (stronger forms of the "PRO" scan and the section-6 label).
+const attrs = (html) => [...html.replace(/<!--[\s\S]*?-->/g, ' ').matchAll(/(?:content|aria-label|alt|title|placeholder)="([^"]*)"/g)].map((m) => m[1]).join(' ');
+const proScan = (html) => ((rendered_(html) + ' ' + attrs(html)).match(/\bPRO\b/g));
+function rendered_(h) { return h.replace(/<!--[\s\S]*?-->/g, ' ').replace(/<(script|style)[\s\S]*?<\/\1>/g, ' ').replace(/<[^>]+>/g, ' '); }
+const SECTION6 = /<h2>6\. Selling (&amp;|&) Partnerships<\/h2>/;
+
+test('terms: "PRO" appears nowhere, ATTRIBUTES included (meta description, alt, title, aria-label, placeholder); section 6 is "Selling & Partnerships"', () => {
+  const terms = raw('terms.html');
+  assert.equal(proScan(terms), null, "'PRO' advertised a membership tier KEEPITIL does not sell");
+  assert.match(terms, SECTION6);
+});
+
+test('NEGATIVE CONTROLS: the PRO scan sees a PRO hidden in an attribute, and the section-6 check rejects the old label', () => {
+  assert.notEqual(proScan('<meta name="description" content="Terms, memberships and PRO billing"><p>clean text</p>'), null, 'visible-text-only scans miss this; the attribute scan must catch it');
+  assert.notEqual(proScan('<img alt="KEEPITIL PRO badge" src="x.png"><p>clean</p>'), null);
+  assert.equal(proScan('<p>KEEPITIL provides the listing. PRODUCTS are fine.</p>'), null, 'word-bounded: no false positive on KEEPITIL provides / PRODUCTS');
+  assert.doesNotMatch('<h2>6. Selling & partnerships (PRO)</h2>', SECTION6);
+  assert.doesNotMatch('<h2>6. Selling and Partnerships</h2>', SECTION6);
+});
+
+test('NEGATIVE CONTROL: the old "you sign in with it" wording alone would fail the sign-in guard', () => {
+  assert.doesNotMatch('your email address (you sign in with it), a username/handle', /you sign in with it, with a password or a one-time link, or through Google or Apple/);
+});

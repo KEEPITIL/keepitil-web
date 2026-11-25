@@ -21,3 +21,21 @@ test('NEGATIVE CONTROL: the old card style (margin:12vh auto) is flagged as a ve
   assert.equal(verticalMargin(old), true);
   assert.equal(verticalMargin('max-width:560px;margin:0 auto;padding:12vh 20px;text-align:center'), false);
 });
+
+test('the shell keeps <main> at least a screen tall so its late-built footer lands below the fold (a shift outside the viewport is not CLS); the rule is in the shell stylesheet', () => {
+  assert.match(shell, /main\{min-height:calc\(100vh - 66px\)\}@media\(max-width:860px\)\{main\{min-height:100vh\}\}/);
+  const css = shell.match(/main\{min-height:calc\(100vh - 66px\)\}@media\(max-width:860px\)\{main\{min-height:100vh\}\}/)[0];
+  assert.ok(!/display:\s*none|visibility:\s*hidden|height:\s*0\b/.test(css));
+});
+test('cache-bust: every page that loads keepitil-shell.js uses the SAME ?v= stamp, and it is the new one (returning visitors must not keep the cached old shell)', () => {
+  const { execSync } = require('child_process');
+  const files = execSync('git grep -l "keepitil-shell.js?v=" -- "*.html"', { cwd: path.join(__dirname, '..') }).toString().trim().split('\n');
+  const stamps = new Set(); let n = 0;
+  for (const f of files) { const s = fs.readFileSync(path.join(__dirname, '..', f), 'utf8'); for (const m of s.matchAll(/keepitil-shell\.js\?v=([0-9a-z]+)/g)) { stamps.add(m[1]); n++; } }
+  assert.ok(n > 700, 'stamp seen on ' + n + ' pages');
+  assert.deepEqual([...stamps], ['20261125a']);
+  assert.ok(!stamps.has('20261124e'), 'the old stamp is gone');
+});
+test('NEGATIVE CONTROL: a tree where the shell changed but one page kept the old stamp is flagged (two distinct stamps)', () => {
+  const stamps = new Set(['20261125a', '20261124e']); assert.notDeepEqual([...stamps], ['20261125a']);
+});

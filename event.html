@@ -203,6 +203,9 @@
     .tp-head{grid-template-columns:1fr;}
     .tp-body{grid-template-columns:1fr;}
     .evcard .flyer{max-width:340px;margin:0 auto;}
+    /* No cover (every listing with the branded placeholder): a short banner on phones so the title, date and the I'm going tap are above the fold. Real flyers keep 2:3. */
+    .evcard .flyer:has(img[src$="event-placeholder.svg"]){aspect-ratio:auto;height:150px;max-width:none}
+    .evcard .flyer img[src$="event-placeholder.svg"]{object-fit:contain;padding:14px;box-sizing:border-box}
   }
 
 #kil-pwgate{position:fixed;inset:0;z-index:99990;background:#07070c;display:none;align-items:center;justify-content:center;padding:20px}

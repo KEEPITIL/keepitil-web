@@ -632,7 +632,7 @@
       '</div>',
       '<div id="kilo-msgs"></div>',
       '<div id="kilo-input-row">',
-        '<input id="kilo-input" type="text" placeholder="Ask me anything about the scene…" maxlength="300" autocomplete="off"/>',
+        '<input id="kilo-input" type="text" aria-label="Ask KEEPITIL" placeholder="Ask me anything about the scene…" maxlength="300" autocomplete="off"/>',
         '<button id="kilo-send" aria-label="Send">',
           '<svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>',
         '</button>',

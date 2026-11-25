@@ -372,6 +372,8 @@ footer a{color:var(--accent2);}
    body/main offset on a not-found page is keepitil-shell.js, not this file. */
 .pf-more{display:none}
 @media(max-width:768px){
+  /* the clamped bio+about (3 lines each, 4.5em / 4.8em) plus one row of link chips, in rem so it follows the font size; a sparse profile shows about 3 lines of extra space */
+  .pf-meta{min-height:15.5rem}
   .pf-panel.active{min-height:260px}
   /* The bio and the about text are clamped to 3 lines on phones (Grok 7:20), so late text cannot grow the block above the feed; a real "More" button (pf-more) expands it. The full text stays in the DOM. */
   #pfBio{line-height:1.5}

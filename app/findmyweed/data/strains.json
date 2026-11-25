@@ -1,8 +1,4 @@
 {
   "_note": "Strain pages (docs/FMW_DEALS_STRAIN_SPEC_DRAFT.md). FACTS ONLY: a type label, aroma and flavor words, and lineage when it is documented. No effects, no medical use, no ratings, no lab numbers (lab numbers come from a product's own certificate). Text is written by FMW in its own words, never copied from Leafly, Weedmaps or any strain database. An entry is shown publicly only when status is \"published\" AND reviewed_by is set; these three are DRAFT placeholders for Echo's review and are not shown.",
-  "strains": [
-    { "slug": "blue-dream", "name": "Blue Dream", "type": "hybrid", "aroma_words": ["berry", "sweet"], "flavor_words": ["blueberry"], "lineage_text": null, "description_text": "A widely sold hybrid known for a sweet berry aroma.", "source_note": "FMW wording", "reviewed_by": null, "status": "draft" },
-    { "slug": "og-kush", "name": "OG Kush", "type": "hybrid", "aroma_words": ["pine", "earthy"], "flavor_words": ["pine", "lemon"], "lineage_text": null, "description_text": "A long-running hybrid with a pine and earth aroma. Its exact lineage is disputed, so none is stated.", "source_note": "FMW wording", "reviewed_by": null, "status": "draft" },
-    { "slug": "sour-diesel", "name": "Sour Diesel", "type": "sativa", "aroma_words": ["fuel", "citrus"], "flavor_words": ["citrus"], "lineage_text": null, "description_text": "A sativa-labelled strain known for a sharp fuel and citrus aroma.", "source_note": "FMW wording", "reviewed_by": null, "status": "draft" }
-  ]
+  "strains": []
 }

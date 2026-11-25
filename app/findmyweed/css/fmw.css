@@ -365,3 +365,4 @@ a.menu-link:hover{background:var(--tint);color:var(--text)}
 /* legal pages: the effective-date slot is hidden until the swap; once shown, the DRAFT banner goes (one-line swap in terms.html / privacy.html) */
 .effective{color:var(--muted);font-size:14px;margin:6px 0 12px}
 main:has(.effective:not([hidden])) .state.info{display:none}
+.checklist{list-style:none;padding:0;margin:0}.checklist>li{margin:10px 0}.prime-criteria{margin:6px 0 6px 18px;padding:0}

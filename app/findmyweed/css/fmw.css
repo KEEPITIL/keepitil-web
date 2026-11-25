@@ -362,3 +362,6 @@ a.menu-link:hover{background:var(--tint);color:var(--text)}
 .ads .tile-in{position:relative}
 .ad-tag{position:absolute;top:6px;right:6px;font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--card);color:var(--text);border:1px solid var(--line)}
 .hrow.has-seeall h2{padding-right:104px}
+/* legal pages: the effective-date slot is hidden until the swap; once shown, the DRAFT banner goes (one-line swap in terms.html / privacy.html) */
+.effective{color:var(--muted);font-size:14px;margin:6px 0 12px}
+main:has(.effective:not([hidden])) .state.info{display:none}

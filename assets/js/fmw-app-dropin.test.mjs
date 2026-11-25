@@ -22,6 +22,8 @@ const ORIGIN = 'https://keepitil.com';
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const PAGES = ['index.html', 'results.html', 'listing.html', 'about.html', 'privacy.html', '404.html'];
 const BUSINESS = APP + '/for-business/index.html';
+const BUSINESS_SHA256_DESC = '51c079a82a1122b2d412b9130da00d69a4a58fbd9eeb6957406b692e0cdd58d9';   // Grok/KODE 2026-11-24: og:description + meta description are Find-My-Weed-only ("List your licensed cannabis business on Find My Weed so nearby customers can find you."); undoing DESC_PAIRS gives the TITLE pin below
+const DESC_PAIRS = [["og:description\" content=\"Put your cannabis brand across the KEEPITIL network. Pricing is shown to licensed businesses after a license check.\"", "og:description\" content=\"List your licensed cannabis business on Find My Weed so nearby customers can find you.\""], ["<meta name=\"description\" content=\"Find My Weed by KEEPITIL puts your cannabis brand across our network: menu rotation on our email and social channels, monthly recaps, and add-on marketing services. Pricing is shown to licensed businesses after a license check.\">", "<meta name=\"description\" content=\"List your licensed cannabis business on Find My Weed so nearby customers can find you.\">"]];
 const BUSINESS_SHA256_TITLE = 'aee2783ffee98e7c71100927a4826d93e1cbba8b60151df9189945b701706173';   // Grok 2026-11-24 6:02 PM: title + og:title = "List Your Business \u00b7 Find My Weed"; undoing TITLE_PAIRS gives the NOCOMP pin below
 const TITLE_PAIRS = [["<title>Find My Weed \u2014 Cannabis Marketing by KEEPITIL</title>", "<title>List Your Business \u00b7 Find My Weed</title>"], ["og:title\" content=\"Find My Weed \u2014 Cannabis Marketing by KEEPITIL\"", "og:title\" content=\"List Your Business \u00b7 Find My Weed\""]];
 const BUSINESS_SHA256_NOCOMP = '802b69ed146b2c75d9064f1ea3922e312e759defd188ebf8b73fed0402c9714e';   // Joe/Grok 2026-11-23: the unsourced Weedmaps/Leafly competitor price table, footnote and bullet lists removed; undoing NOCOMP_PAIRS gives back the pin below byte for byte
@@ -183,9 +185,13 @@ test('for-business/: the #201 bytes minus the M201-1 robots meta and the commiss
   assert.deepEqual(fs.readdirSync(path.join(ROOT, APP, 'for-business')), ['index.html']);
   const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
   const biz = fs.readFileSync(path.join(ROOT, BUSINESS));
-  assert.equal(sha(biz), BUSINESS_SHA256_TITLE, BUSINESS + ' changed (if it changed on purpose, update the pin)');
-  // the title change is the newest edit: undoing it gives the previous pin
-  let preTitle = biz.toString('utf8'); for (const [prev, now] of [...TITLE_PAIRS].reverse()) preTitle = preTitle.replace(now, () => prev);
+  assert.equal(sha(biz), BUSINESS_SHA256_DESC, BUSINESS + ' changed (if it changed on purpose, update the pin)');
+  // the description change is the newest edit: undoing it gives the TITLE pin
+  let preDesc = biz.toString('utf8'); for (const [prev, now] of [...DESC_PAIRS].reverse()) preDesc = preDesc.replace(now, () => prev);
+  assert.equal(sha(preDesc), BUSINESS_SHA256_TITLE);
+  assert.doesNotMatch(biz.toString('utf8'), /across the KEEPITIL network|Find My Weed by KEEPITIL puts/, 'the descriptions are Find-My-Weed-only');
+  // the title change is the next one back: undoing it gives the previous pin
+  let preTitle = preDesc; for (const [prev, now] of [...TITLE_PAIRS].reverse()) preTitle = preTitle.replace(now, () => prev);
   assert.equal(sha(preTitle), BUSINESS_SHA256_NOCOMP);
   assert.match(biz.toString('utf8'), /<title>List Your Business \u00b7 Find My Weed<\/title>/); assert.doesNotMatch(biz.toString('utf8'), /Cannabis Marketing by KEEPITIL/, 'the old title is gone');
   // the footer Terms link is the newest edit: undoing it gives the previous pin

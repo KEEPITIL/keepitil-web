@@ -684,6 +684,41 @@
   /* the list is drawn: give back the screen reserved for it (.disc-reserve), so a short list or a failure shows no blank */
   function settle(el) { if (el && el.style) el.style.minHeight = '0'; }
 
+  /* SEARCH: a visitor types part of an event's name, venue, city or genre; every word must appear. Filters the cards already on the page, nothing is fetched. */
+  function searchMatch(text, q) {
+    var words = norm(q).split(' ').filter(Boolean);
+    if (!words.length) return true;
+    var hay = norm(text);
+    return words.every(function (w) { return hay.indexOf(w) !== -1; });
+  }
+  function applySearch(rootEl, q) {
+    var cards = rootEl.querySelectorAll('.disc-card'), shown = 0;
+    for (var i = 0; i < cards.length; i++) {
+      var hit = searchMatch(cards[i].textContent, q);
+      cards[i].hidden = !hit;
+      if (hit) shown++;
+    }
+    var secs = rootEl.querySelectorAll('.disc-sec');
+    for (var j = 0; j < secs.length; j++) {
+      secs[j].hidden = !!norm(q) && !secs[j].querySelector('.disc-card:not([hidden])');
+    }
+    var st = root.document.getElementById('disc-q-status');
+    if (st) st.textContent = !norm(q) ? '' : (shown ? shown + (shown === 1 ? ' event matches' : ' events match') + ' \u201c' + String(q).trim() + '\u201d.' : 'No events match \u201c' + String(q).trim() + '\u201d. Clear the search to see them all.');
+    return shown;
+  }
+  function addSearch(rootEl) {
+    if (!rootEl.querySelector('.disc-card')) return;
+    var box = root.document.getElementById('disc-search');
+    if (!box) {
+      box = root.document.createElement('div');
+      box.id = 'disc-search'; box.className = 'disc-search';
+      box.innerHTML = '<label for="disc-q">Search events</label><input id="disc-q" type="search" placeholder="Event name, venue or genre" autocomplete="off" maxlength="80"><p id="disc-q-status" role="status" aria-live="polite"></p>';
+      rootEl.parentNode.insertBefore(box, rootEl);
+      box.querySelector('input').addEventListener('input', function () { applySearch(rootEl, this.value); });
+    }
+    applySearch(rootEl, box.querySelector('input').value);   /* a redraw keeps what was typed */
+  }
+
   function draw(rootEl, cfg, result, pageUrl) {
     var state = { failed: result.failed, view: cfg.view, cityName: cfg.cityName, genre: cfg.genre, genreLabel: cfg.genreLabel, cityHref: cfg.cityHref, tz: result.tz, truncated: result.truncated };
     if (!result.failed && result.part) {
@@ -694,6 +729,7 @@
     }
     rootEl.innerHTML = renderLists(state);
     settle(rootEl);
+    if (!result.failed) { try { addSearch(rootEl); } catch (e) { /* the list is already drawn; search is an extra */ } }
     var count = root.document.getElementById('disc-count');
     var meta = root.document.querySelector('meta[name="description"]');
     if (result.failed) {
@@ -846,6 +882,8 @@
     load: load,
     mount: mount,
     mountCities: mountCities,
+    searchMatch: searchMatch,
+    applySearch: applySearch,
     settle: settle
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

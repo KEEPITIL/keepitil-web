@@ -65,3 +65,9 @@ body{background:var(--bg,#0a0a0f);color:var(--text,#f0f0f0);font-family:Inter,sy
   .disc-media{flex-basis:96px;width:96px}
   .disc-body h3{font-size:1.3rem}
 }
+
+.disc-card[hidden],.disc-sec[hidden]{display:none!important}
+.disc-search{margin:18px 0 0}.disc-search label{display:block;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted,#9aa7b4);margin-bottom:6px}
+.disc-search input{width:100%;box-sizing:border-box;min-height:44px;padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:#0d0d13;color:#fff;font:inherit;font-size:1rem}
+.disc-search input:focus-visible{outline:2px solid #7fdcff;outline-offset:2px}
+.disc-search p{min-height:1.2em;margin:6px 0 0;color:#c5ced8;font-size:.88rem}

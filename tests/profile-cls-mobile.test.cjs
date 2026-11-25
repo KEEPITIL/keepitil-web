@@ -20,3 +20,15 @@ test('NEGATIVE CONTROL: the old stylesheet (no reserve) and a version with the r
   assert.ok(leaked !== html); assert.deepEqual(missing(leaked).sort(), RESERVE.map((x) => x[0]).sort(), 'moved out of the query: the phone block no longer has them');
   assert.ok(/(^|[}\s])\.mono\s*\{[^}]*min-height:\s*282px/m.test(baseCss(leaked)), 'and they now apply on desktop (the leak check would flag it)');
 });
+
+// Company call (b) (Grok 7:00): on phones the follow/message buttons sit ABOVE the bio, so about/links text that fills in later cannot push them down.
+const orderOf = (src, sel) => { const css = src.slice(src.lastIndexOf('@media(max-width:768px){')); const m = css.match(new RegExp(sel.replace(/[.#]/g, '\\$&') + '\\{order:(\\d+)')); return m ? Number(m[1]) : null; };
+test('phone stack order: category chips (1) < follow/message buttons (2) < bio/about (3) < links (4)', () => {
+  const o = { bc: orderOf(html, '.pf-bcrow'), cta: orderOf(html, '.pf-cta'), bio: orderOf(html, '.pf-bio'), links: orderOf(html, '#pfLinks') };
+  assert.deepEqual(o, { bc: 1, cta: 2, bio: 3, links: 4 });
+  assert.ok(o.cta < o.bio && o.cta < o.links);
+});
+test('NEGATIVE CONTROL: the previous layout (.pf-cta{order:4}, under the links) fails the order check', () => {
+  const old = html.replace(/\.pf-cta\{order:2\}/, '.pf-cta{order:4}');
+  assert.ok(old !== html); assert.equal(orderOf(old, '.pf-cta'), 4); assert.ok(!(orderOf(old, '.pf-cta') < orderOf(old, '.pf-bio')));
+});

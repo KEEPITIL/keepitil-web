@@ -206,6 +206,22 @@
   }
 
   function load() { return F.loadData(window.fetch.bind(window), 'data/listings.json'); }
+  // The listing page needs ONE listing: the small index (data/listings-index.json) + that listing's county file (data/counties/<key>.json), assembled into the full data shape
+  // (the other rows are light rows, enough for the menu flags). An unknown id keeps the not-found page; any failure, or a county file that lacks the license, falls back to the
+  // whole data/listings.json as before. tests/listing-split.test.js proves the listing and the menu flags are identical.
+  function loadListing(id) {
+    var want = String(id || '').toLowerCase();
+    return F.loadPart(F.fetchOf(window), 'data/listings-index.json', function (d) { return d && Array.isArray(d.places) && Array.isArray(d.listings) && d.listings.length > 0 && d.listings.every(function (r) { return r && typeof r.county === 'string' && !r.address; }); })
+      .then(function (idx) {
+        var row = null; idx.listings.forEach(function (r) { if (!row && String(r.license || '').toLowerCase() === want) row = r; });
+        if (!row) return F.assembleHome(idx, {});
+        var k = F.countyFileKey(row.county);
+        return F.loadPart(F.fetchOf(window), 'data/counties/' + k + '.json', function (d) { return d && d.county === k && Array.isArray(d.listings); }).then(function (cf) {
+          if (!cf.listings.some(function (l) { return String(l.license || '').toLowerCase() === want; })) return load();
+          var files = {}; files[k] = cf; return F.assembleHome(idx, files);
+        });
+      }).catch(function () { return load(); });
+  }
   function fill(form, p) { if (form && form.q) form.q.value = p.q; }
 
   // An empty or error state under the page heading: a short explanation and, where it helps, one action.
@@ -606,7 +622,7 @@
     back.href = 'results.html' + (from && from.charAt(0) === '?' ? from : '');
     var runListing = function () {
     clear(box);
-    load().then(function (data) {
+    loadListing(lp.id).then(function (data) {
       menuData(data);
       var l = lp.id ? F.byId(data, lp.id) : null;
       if (!l) {

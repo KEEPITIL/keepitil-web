@@ -9,7 +9,7 @@
 // TIME BOX (Grok 2026-11-24): a session ends 30 days after the sign-in link was used, however often it was refreshed ("t" = that moment, kept through refreshes).
 // The menu's Sign out opens account.html?signout=1; signOutRequested() is how the account page knows. No secret in this file.
 (function (root) {
-  var KEY = 'fmw_token', PKEY = 'fmw_session', MAX_AGE = 30 * 86400;   // seconds
+  var KEY = 'fmw_token', PKEY = 'fmw_session', BKEY = 'fmw_biz', MAX_AGE = 30 * 86400, HINT_AGE = 7 * 86400;   // seconds
   function claims(token) {
     try {
       var part = String(token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -43,6 +43,14 @@
       signedIn: !!s0 && (live(s0.a, now()) || !!s0.r),
       // the live access token, or null (expired / none)
       token: function () { var s = read(); return s && live(s.a, now()) ? s.a : null; },
+      // a HINT for the menu only ("My business"): did the SERVER say this very account is an approved business, the last time the account page asked (js/session-store.js
+      // keeps that answer as "fmw_biz" = { u: the account's id, t: when })? It lasts 7 days, only for the same signed-in account, and is removed at sign-out and at a new sign-in.
+      // Never the token's own sign-up "kind" (anyone can claim that), never used to show content: the account page asks the server again.
+      isBusiness: function () {
+        var s = read(), c = s ? claims(s.a) : null, p = store('localStorage');
+        if (!c || typeof c.sub !== 'string' || !p) return false;
+        try { var h = JSON.parse(p.getItem(BKEY)); return !!h && h.u === c.sub && typeof h.t === 'number' && now() - h.t >= 0 && now() - h.t <= HINT_AGE; } catch (e) { return false; }
+      },
       canRefresh: function () { var s = read(); return !!(s && s.r); },
       // the stored refresh token, for js/session-store.js only
       refreshToken: function () { var s = read(); return s && s.r ? s.r : null; },
@@ -50,6 +58,6 @@
       signOutRequested: function () { try { return /(?:^|[?&])signout=1(?:&|$)/.test((win.location && win.location.search) || ''); } catch (e) { return false; } }
     };
   }
-  var out = { KEY: KEY, PKEY: PKEY, MAX_AGE: MAX_AGE, live: live, claims: claims, create: create };
+  var out = { KEY: KEY, PKEY: PKEY, BKEY: BKEY, MAX_AGE: MAX_AGE, live: live, claims: claims, create: create };
   if (typeof module !== 'undefined' && module.exports) module.exports = out; else if (root.document) root.FMW_SESSION = create(root);
 })(this);

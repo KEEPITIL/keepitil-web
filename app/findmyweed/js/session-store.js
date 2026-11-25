@@ -2,14 +2,15 @@
 // whose CSP may reach the auth project (every other page never calls the network). Sets window.FMW_SESSION_STORE.
 //   save(access, refresh, expiresIn, keepStart): keep the session ("fmw_session": { a, r, e, t }) and drop the old per-tab token. t = when the sign-in link was
 //     used: set to now for a new sign-in, kept (keepStart) through refreshes, so a session ends 30 days after sign-in. false if storage is unavailable.
-//   clear(): forget the session on this device (the server-side revoke is the account page's job).
+//   businessHint(sub, approved): remember (or forget) that the SERVER called this account an approved business: the menu's "My business" hint (js/session.js isBusiness).
+//   clear(): forget the session (and that hint) on this device (the server-side revoke is the account page's job).
 //   refresh(cfg, fetchFn): the standard Supabase refresh grant, POST <auth project>/auth/v1/token?grant_type=refresh_token. The refresh token ROTATES: the
 //     new pair is saved every time. Resolves to the new access token, or null: no refresh token; older than 30 days (cleared); the server REFUSED it (4xx: revoked,
 //     used twice, expired), which clears the stored session ONLY IF the stored refresh token is still the one that was sent (another tab may have rotated it
 //     meanwhile: then that tab's newer access token is used and nothing is cleared); or a network error (the session is kept, try again later).
 // No secret in this file; the anon key is the public one (FMW_CONFIG). The tradeoff (a refresh token at rest in the browser) is Grok's call: see the PR.
 (function (root) {
-  var KEY = 'fmw_token', PKEY = 'fmw_session', MAX_AGE = 30 * 86400;
+  var KEY = 'fmw_token', PKEY = 'fmw_session', BKEY = 'fmw_biz', MAX_AGE = 30 * 86400;
   function claims(token) {
     try {
       var part = String(token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -29,6 +30,7 @@
         var c = claims(access), e = c && typeof c.exp === 'number' ? c.exp : (typeof expiresIn === 'number' ? now() + expiresIn : null);
         var p = store('localStorage'), s = store('sessionStorage'), t = now();
         if (keepStart) { try { var prev = JSON.parse(p && p.getItem(PKEY)); if (prev && typeof prev.t === 'number') t = prev.t; } catch (e0) { /* a new start */ } }
+        if (!keepStart) { try { p && p.removeItem(BKEY); } catch (e4) { /* a new sign-in starts without the old account's menu hint */ } }
         try { if (p) p.setItem(PKEY, JSON.stringify({ a: String(access), r: refresh ? String(refresh) : null, e: e, t: t })); else return false; } catch (e2) { return false; }
         try { s && s.removeItem(KEY); } catch (e3) { /* the old token is gone or blocked */ }
         return true;
@@ -36,7 +38,13 @@
       clear: function () {
         var p = store('localStorage'), s = store('sessionStorage');
         try { p && p.removeItem(PKEY); } catch (e) { /* nothing to clear */ }
+        try { p && p.removeItem(BKEY); } catch (e) { /* nothing to clear */ }
         try { s && s.removeItem(KEY); } catch (e) { /* nothing to clear */ }
+      },
+      // the account page records what the SERVER said about this account, so the menu can show "My business" on every page: approved = true keeps { u, t }, anything else removes it
+      businessHint: function (sub, approved) {
+        var p = store('localStorage'); if (!p) return false;
+        try { if (approved === true && typeof sub === 'string' && sub) p.setItem(BKEY, JSON.stringify({ u: sub, t: now() })); else p.removeItem(BKEY); return true; } catch (e) { return false; }
       },
       refresh: function (cfg, fetchFn) {
         var r = currentRefresh();
@@ -57,6 +65,6 @@
     };
     return api;
   }
-  var out = { KEY: KEY, PKEY: PKEY, make: make };
+  var out = { KEY: KEY, PKEY: PKEY, BKEY: BKEY, make: make };
   if (typeof module !== 'undefined' && module.exports) module.exports = out; else if (root.document) root.FMW_SESSION_STORE = make(root);
 })(this);

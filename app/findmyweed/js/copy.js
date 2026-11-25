@@ -93,6 +93,12 @@
     filterEmptyOther: 'Nothing listed here has this on file yet. Only real license and business data is shown.',
     showAll: 'Show all',
     // Home rows drawn ONLY from real entries (FMW.promoRows); hidden while there are none. No ranking-by-rating row and no paid-placement slot exist.
+    // An EMPTY Ads or Deals row shows ONE invite card for businesses (Joe 2026-11-25 12:40, "Yes, add invites"): never a fake ad or deal, no prices, no promises. It disappears as soon as the row has real entries.
+    inviteTag: 'For businesses',
+    inviteAdsTitle: 'Advertise here',
+    inviteAdsBody: 'Reach shoppers looking for licensed shops near them.',
+    inviteDealsTitle: 'Post a deal',
+    inviteDealsBody: 'Licensed businesses can list a deal here.',
     rowAds: 'Ads',
     rowDeals: 'Deals nearby',
     rowCategories: 'Categories',
@@ -189,6 +195,8 @@
     addressNone: 'Address not listed',
     addressNoStreet: 'Street address not listed',
     addressDeliveryNote: 'Delivery only: we show the city, not the street address.',
+    directions: 'Directions',
+    directionsLabel: function (name) { return 'Directions to ' + name + ' (opens a maps app)'; },
     addressCityNote: 'We show the city, not the street address.',   // no storefront on file and no delivery on file: the city only, with no claim about delivery
     menu: 'Menu',
     // This link leaves Find My Weed for the business's own site, which may take orders there (Find My Weed never does).

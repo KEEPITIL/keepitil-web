@@ -279,6 +279,15 @@
   // Returns { place, notFound, reason, results: [{ listing, miles, open, until }] } sorted by distance, then name.
   // When nothing matches the place: notFound = true and reason = 'badzip' | 'zip' (valid ZIP we don't cover) | 'city'.
   // When the place is found but the filters leave nothing: results = [] and filtered = true (clearing filters helps).
+  // NAME SEARCH (Joe 2026-11-25): a typed text that is a business name finds the business, from the shipped listings only (no new query, data or ranking).
+  // Accents, punctuation and case are ignored; every word the visitor typed must appear in the name. Placeholder-only names ("[Equity Retailer]") never match.
+  function nameKey(s) { return String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+  function nameMatch(l, q) {
+    var words = nameKey(q).split(' ').filter(Boolean);
+    if (!words.length || !l || placeholderName(l.name)) return false;
+    var n = nameKey(l.name);
+    return words.every(function (w) { return n.indexOf(w) >= 0; });
+  }
   function search(data, opts, now) {
     opts = opts || {}; now = now || new Date();
     var c = classify(opts.q), q = c.value;
@@ -286,7 +295,8 @@
     // ambiguous names go to the place with the most listed businesses (counted on the licensed rows, by place key)
     var count = {}; licensed(data.listings, now).forEach(function (l) { var k = placeKey(l.address && l.address.city); if (k) count[k] = (count[k] || 0) + 1; });
     var place = q ? findPlace(q, data.places, function (p) { return count[placeKey(p.name)] || 0; }) : null;
-    if (q && !place) return { place: null, notFound: true, reason: c.kind, results: [] };
+    var byName = c.kind === 'city' && q.length >= 3 ? function (l) { return nameMatch(l, q); } : function () { return false; };
+    if (q && !place && !licensed(data.listings, now).some(byName)) return { place: null, notFound: true, reason: c.kind, results: [] };   // not a place, not a business name: the honest empty state
     var city = cleanQuery(opts.city);
     if (city && !cities(data, now).some(function (x) { return norm(x) === norm(city); })) {
       return { place: null, notFound: true, reason: 'city', results: [] };
@@ -306,7 +316,7 @@
     // real coordinates (owner walk 19:22 PT: line 2 shows the distance on the default view too). The whole state: none.
     var origin = place && hasPoint(place) ? place : city ? cityPlace(data, city) : county ? countyCentre(data, county, now) : null;
     var rows = licensed(data.listings, now).filter(function (l) {
-      if (place && !inPlace(l, place)) return false;
+      if (q && !(place && inPlace(l, place)) && !byName(l)) return false;   // a typed text: the place's businesses, plus any business whose name matches
       if (county && countyKey(l.address && l.address.county) !== countyKey(county)) return false;
       if (city && norm(l.address && l.address.city) !== norm(city)) return false;
       if (kindFilter && wantDelivery && !l.delivery) return false;
@@ -319,7 +329,8 @@
     }).filter(function (r) { return !wantOpen || r.open; });
     // placeholder-only names (e.g. "[Equity Retailer]") after every named listing; then nearest first; rows with no
     // distance (delivery-only services) after them; then by name
-    rows.sort(function (a, b) { return (placeholderName(a.listing.name) - placeholderName(b.listing.name)) || ((a.miles == null) - (b.miles == null)) || ((a.miles || 0) - (b.miles || 0)) || a.listing.name.localeCompare(b.listing.name); });
+    var inP = function (r) { return place && inPlace(r.listing, place) ? 0 : 1; };   // a place's own rows first, then the name matches
+    rows.sort(function (a, b) { return (inP(a) - inP(b)) || (placeholderName(a.listing.name) - placeholderName(b.listing.name)) || ((a.miles == null) - (b.miles == null)) || ((a.miles || 0) - (b.miles || 0)) || a.listing.name.localeCompare(b.listing.name); });
     var filtered = !!(wantOpen || kindFilter || city);   // a county is the area, not a filter
     return { place: place, notFound: false, reason: null, filtered: filtered, results: rows };
   }
@@ -352,6 +363,17 @@
   // search.cannabis.ca.gov, 2026-11-17; not called by this site). Only real state-format numbers get a link:
   // C9- (delivery), C10- (storefront), C12- (microbusiness), 7 digits, -LIC. The SAMPLE fixture numbers get none.
   var DCC_SEARCH = 'https://search.cannabis.ca.gov/results?searchQuery=';
+  // DIRECTIONS (Joe 2026-11-25): a storefront's real street address, as a maps link: Apple Maps on iPhone / iPad, Google Maps elsewhere. A record with no street (delivery-only,
+  // city-only, a storefront with no line1) gets NO link and no made-up address. The text is the address the listing page already shows (line1, city, state, ZIP), URL-encoded.
+  var APPLE_MAPS = 'https://maps.apple.com/?daddr=', GOOGLE_MAPS = 'https://www.google.com/maps/dir/?api=1&destination=';
+  function directionsUrl(l, apple) {
+    if (!l || l.storefront !== true) return '';
+    var a = (l.address && typeof l.address === 'object') ? l.address : {}, s = function (v) { return typeof v === 'string' ? v.trim() : ''; };
+    var line1 = s(a.line1), city = s(a.city), st = s(a.state), zip = s(a.zip);
+    if (!line1 || !city) return '';
+    var dest = line1 + ', ' + city + (st ? ', ' + st : '') + (zip ? ' ' + zip : '');
+    return (apple ? APPLE_MAPS : GOOGLE_MAPS) + encodeURIComponent(dest);
+  }
   var DCC_LICENSE = /^C(9|10|12)-\d{7}-LIC$/;
   var STALE_DAYS = 7;   // DATA_PLAN §3: staff are alerted when the last good sync is older than 7 days
   function dccRecordUrl(license) {
@@ -814,8 +836,8 @@
     return out;
   }
 
-  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, licenseStrip: licenseStrip, licenseStripText: licenseStripText, licenseStripCardText: licenseStripCardText, filterRows: filterRows, licenseCategories: licenseCategories, categoriesOf: categoriesOf, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, profileFacts: profileFacts, ratingText: ratingText, kindText: kindText, countyText: countyText, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, orderCards: orderCards, isPaid: isPaid, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
-    dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
+  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, licenseStrip: licenseStrip, licenseStripText: licenseStripText, licenseStripCardText: licenseStripCardText, filterRows: filterRows, licenseCategories: licenseCategories, categoriesOf: categoriesOf, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, nameMatch: nameMatch, nameKey: nameKey, profileFacts: profileFacts, ratingText: ratingText, kindText: kindText, countyText: countyText, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, orderCards: orderCards, isPaid: isPaid, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+    dccRecordUrl: dccRecordUrl, directionsUrl: directionsUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -681,6 +681,9 @@
     return line;
   }
 
+  /* the list is drawn: give back the screen reserved for it (.disc-reserve), so a short list or a failure shows no blank */
+  function settle(el) { if (el && el.style) el.style.minHeight = '0'; }
+
   function draw(rootEl, cfg, result, pageUrl) {
     var state = { failed: result.failed, view: cfg.view, cityName: cfg.cityName, genre: cfg.genre, genreLabel: cfg.genreLabel, cityHref: cfg.cityHref, tz: result.tz, truncated: result.truncated };
     if (!result.failed && result.part) {
@@ -690,6 +693,7 @@
       state.tz = result.part.tz;
     }
     rootEl.innerHTML = renderLists(state);
+    settle(rootEl);
     var count = root.document.getElementById('disc-count');
     var meta = root.document.querySelector('meta[name="description"]');
     if (result.failed) {
@@ -767,13 +771,14 @@
     async function run() {
       citiesEl.innerHTML = '<p class="disc-loading">Loading cities\u2026</p>';
       var c = mk();
-      if (!c) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
+      if (!c) { citiesEl.innerHTML = renderCities(null, { failed: true }); settle(citiesEl); return; }
       var both = await Promise.all([loadCityRows(c, new Date().toISOString()), safe(c.from('city_geo').select('city,state,county,tz'))]);   /* one round trip, not two in a row */
       var r = both[0], geo = both[1];
-      if (r.failed) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
+      if (r.failed) { citiesEl.innerHTML = renderCities(null, { failed: true }); settle(citiesEl); return; }
       geos = ok(geo) ? (geo.data || []) : [];   /* city_geo failing is not fatal: tzFromGeo falls back to the LA timezone */
       cities = cityList(r.rows, cfg.fallbackTz, geos);
       citiesEl.innerHTML = renderCities(cities, { truncated: r.truncated });
+      settle(citiesEl);
       await openCity();
     }
     if (!citiesEl.__discBound) {
@@ -840,7 +845,8 @@
     tzFromGeo: tzFromGeo,
     load: load,
     mount: mount,
-    mountCities: mountCities
+    mountCities: mountCities,
+    settle: settle
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.KilDiscover = api;

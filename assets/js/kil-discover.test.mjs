@@ -372,7 +372,7 @@ function fakeSupabase(opts) {
     ['select', 'eq', 'gte', 'or', 'order', 'range', 'in', 'neq', 'limit'].forEach(function (m) { q[m] = function () { q._calls.push(m); return q; }; });
     q.then = function (res, rej) {
       log.push(table);
-      var out = table === 'city_geo' ? (opts.geoFails ? { data: null, error: new Error('geo down') } : { data: opts.geos || [], error: null }) : { data: opts.rows || [], error: null };
+      var out = table === 'city_geo' ? (opts.geoFails ? { data: null, error: new Error('geo down') } : { data: opts.geos || [], error: null }) : (opts.rowsFail ? { data: null, error: new Error('events down') } : { data: opts.rows || [], error: null });
       return Promise.resolve(opts.delay ? new Promise(function (r) { setTimeout(r, opts.delay); }) : null).then(function () { log.push(table + ':done'); return out; }).then(res, rej);
     };
     return q;
@@ -381,7 +381,7 @@ function fakeSupabase(opts) {
 }
 async function mountWith(opts, hash) {
   var f = fakeSupabase(opts);
-  var el = function () { return { innerHTML: '', textContent: '', addEventListener: function () {}, __discBound: false }; };
+  var el = function () { return { innerHTML: '', textContent: '', style: { minHeight: '100vh' }, addEventListener: function () {}, __discBound: false }; };
   var cities = el(), lists = el();
   var saved = { document: globalThis.document, supabase: globalThis.supabase, location: globalThis.location };
   globalThis.document = { getElementById: function () { return el(); }, querySelector: function () { return null; }, createElement: function () { return { setAttribute: function () {} }; }, readyState: 'complete' };
@@ -424,4 +424,14 @@ test('city_geo failing: the index still paints and the fallback stays the LA tim
   assert.match(r.cities.innerHTML, /Austin/);
   assert.equal(r.f.log.filter(function (x) { return x === 'city_geo'; }).length, 1);
   assert.equal(D.cityList(rows, 'America/Los_Angeles', [])[0].n, 1, 'LA fallback (both nights are one LA day)');
+});
+
+test('CLS reserve: the screen reserved for the list (.disc-reserve) is given back as soon as the list is drawn (min-height 0), on success, on a failed load and for the city view; settle() is null-safe (NEGATIVE CONTROL: before the draw the element still holds its reserve)', async function () {
+  var rows = [AUS('2027-12-06T05:30:00Z')];
+  var r = await mountWith({ rows: rows, geos: [] }, '#city=Austin&state=TX');
+  assert.equal(r.cities.style.minHeight, '0', 'cities list settled'); assert.equal(r.lists.style.minHeight, '0', 'city view settled');
+  var f = { style: { minHeight: '100vh' } }; assert.equal(f.style.minHeight, '100vh', 'control: untouched until settle()'); D.settle(f); assert.equal(f.style.minHeight, '0');
+  D.settle(null); D.settle({});   /* no throw */
+  var failed = await mountWith({ rows: [], geos: [], geoFails: true, rowsFail: true }, '');
+  assert.equal(failed.cities.style.minHeight, '0', 'a failed or empty load collapses too (no blank screen)');
 });

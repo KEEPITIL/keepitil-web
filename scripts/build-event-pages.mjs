@@ -44,6 +44,9 @@ export function renderEventPage(template, row) {
   const date = localDate(row.starts_at, row.tz);
   const loc = [row.venue, row.city].filter(Boolean).join(', ');
   const img = safeUrl(row.cover_url);
+  // og:image must be a raster: Facebook, X and iMessage ignore SVG, so an SVG cover (the branded event-placeholder.svg every artwork-less event gets) keeps the template default og:image (keepitil-og.png). The page itself still shows the cover.
+  const isSvg = (u) => { try { return new URL(u).pathname.toLowerCase().endsWith(".svg"); } catch (e) { return false; } };
+  const ogImg = img && !isSvg(img) ? img : null;
   const genre = String(row.genres || '');
   const desc = String(row.description || '');
   const canon = SITE + '/event/' + slug + '/';
@@ -62,7 +65,7 @@ export function renderEventPage(template, row) {
   h = h.replace(/<meta name="description" id="m-desc" content="[^"]*"\/>/, '<meta name="description" id="m-desc" content="' + esc(descTxt) + '"/>');
   h = h.replace(/<meta property="og:title" id="og-title" content="[^"]*"\/>/, '<meta property="og:title" id="og-title" content="' + esc(titledate + ' | KEEPITIL') + '"/>');
   h = h.replace(/<meta property="og:description" id="og-desc" content="[^"]*"\/>/, '<meta property="og:description" id="og-desc" content="' + esc(descTxt) + '"/>');
-  if (img) h = h.replace(/<meta property="og:image" id="og-img" content="[^"]*"\/>/, '<meta property="og:image" id="og-img" content="' + esc(img) + '"/>');
+  if (ogImg) h = h.replace(/<meta property="og:image" id="og-img" content="[^"]*"\/>/, '<meta property="og:image" id="og-img" content="' + esc(ogImg) + '"/>');
   h = h.replace('<meta property="og:url" id="og-url"/>', '<meta property="og:url" id="og-url" content="' + esc(canon) + '"/>');
   h = replaceOnce(h, '<meta name="twitter:card" content="summary_large_image"/>',
     '<meta name="twitter:card" content="summary_large_image"/>\n<link rel="canonical" id="m-canon" href="' + esc(canon) + '"/>\n' +

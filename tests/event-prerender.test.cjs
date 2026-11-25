@@ -142,3 +142,27 @@ test("main(): writes the sitemap when every fetch worked, and leaves it alone wh
     if (!flaky) assert.equal((sm.match(/<loc>/g) || []).length, 2);
   }
 });
+
+test("og:image is never an SVG: the branded placeholder (and any .svg cover) keeps the default raster share image, while the page still shows the cover", async () => {
+  const { renderEventPage } = await lib();
+  const DEFAULT_OG = "https://keepitil.com/keepitil-og.png";
+  for (const cover of ["https://keepitil.com/assets/images/event-placeholder.svg", "https://cdn.example.com/a/Flyer.SVG", "https://cdn.example.com/a/flyer.svg?v=2#x"]) {
+    const d = dom(renderEventPage(TEMPLATE, row({ cover_url: cover })));
+    assert.equal(d.querySelector("#og-img").content, DEFAULT_OG, "svg cover -> default raster og:image: " + cover);
+    assert.equal(d.querySelector("#ev-flyer img").getAttribute("src"), cover, "the page still shows the cover: " + cover);
+    assert.equal(d.querySelector("link[rel=preload][as=image]").getAttribute("href"), cover);
+    assert.equal(d.querySelectorAll('meta[property="og:image"]').length, 1, "exactly one og:image, no twitter:image invented");
+    assert.equal(d.querySelector('meta[name="twitter:image"]'), null);
+  }
+});
+
+test("negative controls: a raster cover still becomes og:image, including names or queries that merely contain 'svg'", async () => {
+  const { renderEventPage } = await lib();
+  for (const cover of ["https://seatgeekimages.com/a/b.jpg", "https://cdn.example.com/svg-banner.jpg", "https://cdn.example.com/a/flyer.png?fmt=svg", "https://cdn.example.com/a/flyer.svg.png", "https://cdn.example.com/svg/flyer.webp"]) {
+    const d = dom(renderEventPage(TEMPLATE, row({ cover_url: cover })));
+    assert.equal(d.querySelector("#og-img").content, cover, "raster kept: " + cover);
+  }
+  // and an unparseable / unsafe cover falls back to the default exactly as before (no og:image override, no flyer img)
+  const d = dom(renderEventPage(TEMPLATE, row({ cover_url: "javascript:alert(1)" })));
+  assert.equal(d.querySelector("#og-img").content, "https://keepitil.com/keepitil-og.png");
+});

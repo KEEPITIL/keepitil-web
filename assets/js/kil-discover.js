@@ -519,14 +519,87 @@
     return (part.weekend || []).concat(part.upcoming || [], part.later || []);
   }
 
-  function buildEventsQuery(client, nowIso) {
-    return client.from('events').select(EVENT_COLUMNS)
+  function buildEventsQuery(client, nowIso, cityExact) {
+    var q = client.from('events').select(EVENT_COLUMNS)
       .eq('status', 'published')
       .gte('starts_at', nowIso)
       .eq('password_protected', false)   // needs the #39 migration: the hash itself is not readable by API roles
-      .or(EXPLORE_OR)
-      .order('starts_at', { ascending: true })
+      .or(EXPLORE_OR);
+    if (cityExact) q = q.eq('city', cityExact);   // the directory index opens one city at a time (#city=...)
+    return q.order('starts_at', { ascending: true })
       .limit(EVENT_LIMIT);
+  }
+
+  /* DIRECTORY INDEX (/discover/): every city that has at least one published upcoming event, with its count, so an event in a city that has no
+     hand-made page (Long Beach, San Diego, Oakland...) still appears on /discover. Same filters as the city pages; only city + state are read. */
+  var CITY_ROWS_LIMIT = 1000;   /* the API's default row cap */
+  function buildCitiesQuery(client, nowIso) {
+    return client.from('events').select('city,state')
+      .eq('status', 'published')
+      .gte('starts_at', nowIso)
+      .eq('password_protected', false)
+      .or(EXPLORE_OR)
+      .limit(CITY_ROWS_LIMIT);
+  }
+
+  function cityList(rows) {
+    var groups = Object.create(null), order = [];
+    (rows || []).forEach(function (e) {
+      if (!e || !String(e.city || '').trim()) return;
+      if (e.status && e.status !== 'published') return;
+      if (e.show_on_explore === false || e.password_protected === true) return;
+      var slug = eventCitySlug(e);
+      if (!slug) return;
+      var st = String(e.state || '').toUpperCase();
+      var key = slug + '|' + st;
+      var g = groups[key];
+      if (!g) {
+        g = groups[key] = { slug: slug, state: st, name: slug === 'los-angeles' ? 'Los Angeles' : String(e.city).trim(), n: 0 };
+        order.push(key);
+      }
+      g.n++;
+    });
+    return order.map(function (k) {
+      var g = groups[k];
+      g.href = (g.slug === 'los-angeles' && (!g.state || g.state === 'CA'))
+        ? '/discover/los-angeles/'
+        : '#city=' + encodeURIComponent(g.name) + (g.state ? '&state=' + encodeURIComponent(g.state) : '');
+      return g;
+    }).sort(function (a, b) { return b.n - a.n || a.name.localeCompare(b.name); });
+  }
+
+  function renderCities(list, opts) {
+    opts = opts || {};
+    if (opts.failed) {
+      return '<div class="disc-empty disc-failed" role="alert"><p class="disc-empty-t">Cities couldn&#39;t load.</p>' +
+        '<p>Check your connection and try again.</p><button type="button" class="disc-retry">Try again</button></div>';
+    }
+    if (!list || !list.length) return '';
+    var items = list.map(function (c) {
+      var label = c.name + (c.state ? ', ' + c.state : '') + ' · ' + c.n + (c.n === 1 ? ' event' : ' events');
+      return '<li><a href="' + esc(c.href) + '">' + esc(label) + '</a></li>';
+    }).join('');
+    return '<section class="disc-links"><h2>Upcoming events by city</h2><ul>' + items + '</ul>' +
+      (opts.truncated ? '<p class="disc-note">Counts cover the first ' + CITY_ROWS_LIMIT + ' published upcoming events.</p>' : '') + '</section>';
+  }
+
+  /* #city=Long%20Beach&state=CA -> { city, state } or null. Only plain city names are accepted. */
+  function parseCityHash(hash) {
+    var m = String(hash || '').replace(/^#/, '');
+    if (!m) return null;
+    var city = '', state = '';
+    var ok = m.split('&').every(function (kv) {
+      var i = kv.indexOf('=');
+      if (i < 1) return false;
+      var k = kv.slice(0, i), v;
+      try { v = decodeURIComponent(kv.slice(i + 1)); } catch (e) { return false; }
+      if (k === 'city') { city = v; return true; }
+      if (k === 'state') { state = v; return true; }
+      return false;
+    });
+    if (!ok || !/^[A-Za-z0-9][A-Za-z0-9 .'\u2019-]{1,59}$/.test(city)) return null;
+    if (state && !/^[A-Za-z]{2}$/.test(state)) return null;
+    return { city: city, state: state.toUpperCase() };
   }
 
   async function safe(p) { try { return await p; } catch (e) { return { data: null, error: e }; } }
@@ -534,7 +607,7 @@
 
   async function load(client, cfg, now) {
     now = now || new Date();
-    var ev = await safe(buildEventsQuery(client, now.toISOString()));
+    var ev = await safe(buildEventsQuery(client, now.toISOString(), cfg.cityExact));
     if (!ok(ev)) return { failed: true, now: now };
     var geo = await safe(client.from('city_geo').select('city,state,county,tz'));
     var geos = ok(geo) ? (geo.data || []) : [];
@@ -603,6 +676,7 @@
     var n = cfg.view === 'weekend' ? result.part.weekend.length : all.length;
     var text = description(n, { now: result.now, tz: result.tz, cityName: cfg.cityName, view: cfg.view, genreLabel: cfg.genreLabel });
     if (count) count.textContent = countLine(result.part, cfg);
+    if (cfg.noMeta) return;   /* the directory index keeps its own description and has no ItemList */
     if (meta) meta.setAttribute('content', text);
     var prev = root.document.getElementById('disc-jsonld');
     if (prev) prev.remove();
@@ -643,9 +717,60 @@
     return run();
   }
 
+  /* /discover/ index: list every city that has published upcoming events; #city=... opens that city's events below the list. */
+  function mountCities(citiesEl, listsEl, cfg) {
+    if (!citiesEl || !listsEl) return;
+    var client = null, cities = [];
+    function mk() {
+      if (client) return client;
+      if (!root.supabase || !root.supabase.createClient) return null;
+      try { client = root.supabase.createClient(SUPA_URL, SUPA_KEY); } catch (e) { client = null; }
+      return client;
+    }
+    var countEl = root.document.getElementById('disc-count');
+    async function openCity() {
+      var sel = parseCityHash(root.location && root.location.hash);
+      if (!sel) { listsEl.innerHTML = ''; if (countEl) countEl.textContent = cities.length ? 'Pick a city to see its events.' : ''; return; }
+      var c = mk();
+      if (!c) { listsEl.innerHTML = renderLists({ failed: true }); return; }
+      listsEl.innerHTML = '<p class="disc-loading">Loading published events\u2026</p>';
+      var cfg2 = { city: citySlug(sel.city), cityName: sel.city, state: sel.state, cityExact: sel.city, view: 'hub', genre: '', noMeta: true,
+        cityHref: '/discover/#city=' + encodeURIComponent(sel.city) + (sel.state ? '&state=' + encodeURIComponent(sel.state) : ''), fallbackTz: cfg.fallbackTz || 'America/Los_Angeles' };
+      var result = await load(c, cfg2, new Date());
+      draw(listsEl, cfg2, result, '');
+    }
+    async function run() {
+      citiesEl.innerHTML = '<p class="disc-loading">Loading cities\u2026</p>';
+      var c = mk();
+      if (!c) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
+      var r = await safe(buildCitiesQuery(c, new Date().toISOString()));
+      if (!ok(r)) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
+      cities = cityList(r.data || []);
+      citiesEl.innerHTML = renderCities(cities, { truncated: (r.data || []).length >= CITY_ROWS_LIMIT });
+      await openCity();
+    }
+    if (!citiesEl.__discBound) {
+      citiesEl.__discBound = true;
+      citiesEl.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('.disc-retry') : null;
+        if (b) run();
+      });
+      listsEl.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('.disc-retry') : null;
+        if (b) openCity();
+      });
+      if (root.addEventListener) root.addEventListener('hashchange', openCity);
+    }
+    return run();
+  }
+
   function boot() {
     var cfg = root.KIL_DISCOVER;
     if (!cfg || cfg.kind === 'static') return;
+    if (cfg.kind === 'cities') {
+      mountCities(root.document.getElementById('disc-cities'), root.document.getElementById('disc-lists'), cfg);
+      return;
+    }
     var el = root.document && root.document.getElementById('disc-lists');
     if (!el) return;
     mount(el, cfg);
@@ -677,6 +802,11 @@
     amazonHref: amazonHref,
     merchHref: merchHref,
     buildEventsQuery: buildEventsQuery,
+    buildCitiesQuery: buildCitiesQuery,
+    CITY_ROWS_LIMIT: CITY_ROWS_LIMIT,
+    cityList: cityList,
+    renderCities: renderCities,
+    parseCityHash: parseCityHash,
     tzFromGeo: tzFromGeo,
     load: load,
     mount: mount

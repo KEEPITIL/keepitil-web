@@ -13,6 +13,7 @@
 <meta property="og:image" content="https://keepitil.com/keepitil-og.png"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-purple-nav.png"/>
+<link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link href="/assets/css/fonts.css" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/>
 <link rel="stylesheet" href="/assets/css/discover.css"/>
@@ -32,6 +33,9 @@
   <p class="disc-eyebrow">KEEPITIL</p>
   <h1>Discover electronic events</h1>
   <p class="disc-lede">These are the crawlable calendars. Each city page reads published upcoming events from KEEPITIL Discover when you open it. A city is not listed until it has that inventory. The homepage is still the interactive explorer.</p>
+  <p class="disc-count" id="disc-count"></p>
+  <div id="disc-cities" aria-live="polite"><noscript><p class="disc-note">The list of cities with events loads from KEEPITIL Discover and needs JavaScript. Los Angeles is below.</p></noscript></div>
+  <div id="disc-lists" aria-live="polite"></div>
   <section class="disc-links">
     <h2>Los Angeles</h2>
     <ul>
@@ -63,6 +67,9 @@
     </ul>
   </section>
 </main>
+<script>window.KIL_DISCOVER = { kind: 'cities', fallbackTz: 'America/Los_Angeles' };</script>
+<script src="/assets/js/vendor/supabase-js.min.js" defer></script>
+<script src="/assets/js/kil-discover.js" defer></script>
 <script src="/kil-seasons.js?v=20260910b"></script>
 <script src="/keepitil-shell.js?v=20261124e" defer></script>
 </body>

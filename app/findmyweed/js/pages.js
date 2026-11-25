@@ -707,6 +707,17 @@
         da.setAttribute('aria-label', C.directionsLabel(l.name)); da.setAttribute('data-maps', apple ? 'apple' : 'google'); ad.appendChild(da);
       }
       box.appendChild(ad);
+      // OWNER-SUPPLIED CONTACT (Grok 2026-11-25, option c): a phone and a website the approved business added itself, read from the server only while site.json "contact" is on (window.FMW_CONTACT
+      // exists only then). A Contact card with a Call button (tel:) and a Website link is drawn ONLY for a field that is set and passes the same checks again; nothing otherwise, no placeholder.
+      if (window.FMW_CONTACT && window.FMW_CONTACT_UTIL) window.FMW_CONTACT.forLicense(l.license).then(function (r) {
+        var k = r && r.ok ? window.FMW_CONTACT_UTIL.links(r.data) : { tel: '', website: '' };
+        if (!k.tel && !k.website) return;
+        var cc = el('section', 'card contact'); cc.appendChild(el('h2', null, C.contactTitle)); cc.setAttribute('data-card', 'contact');
+        var cr = el('div', 'actions');
+        if (k.tel) { var ca = el('a', 'btn ghost call', C.call); ca.href = k.tel; ca.setAttribute('aria-label', C.callLabel(l.name)); cr.appendChild(ca); }
+        if (k.website) { var wa = el('a', 'btn ghost website', C.website); wa.href = k.website; wa.target = '_blank'; wa.rel = 'noopener noreferrer nofollow'; wa.setAttribute('aria-label', C.websiteLabel(l.name)); cr.appendChild(wa); }
+        cc.appendChild(cr); ad.parentNode.insertBefore(cc, ad.nextSibling);
+      }, function () {});
 
       // No hours data (all of today's listings): no Hours card at all. A card that only says "Hours not listed" is noise; it returns the day a listing has real hours.
       if (F.hoursKnown(l)) {

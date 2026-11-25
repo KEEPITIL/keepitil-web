@@ -27,6 +27,9 @@
     clPrimeNote: '',   // COPY SLOT: Echo writes the one-line explainer of the Prime badge (due 11 AM); an empty string draws nothing
     clCritLicense: 'License current', clCritRating: 'Rating of 3.5 or higher', clCritReply: 'Replies within 48 hours', clCritBilling: 'Monthly billing current',
     clYes: 'Yes', clNotOnFile: 'Not on file', clSpot: 'Prime spot: none',
+    ccTitle: 'Contact details', ccIntro: 'Optional. Your listing shows a Call button and a Website link for the fields you fill in, and nothing for the ones you leave empty.',
+    ccPhone: 'Phone', ccWebsite: 'Website', ccWebsiteHint: 'Starts with https://', ccSave: 'Save', ccSaved: 'Saved.', ccLoading: 'Loading…',
+    ccBadPhone: 'Enter a US phone number such as (510) 555-0199, or a number that starts with +.', ccBadWeb: 'Enter a website that starts with https://', ccFail: 'Could not save. Try again.',
     savedTitle: 'Saved listings', savedSoon: 'Saving listings is coming soon.',
     dataTitle: 'Your data', dataSoon: 'Download and delete are coming soon.',
     download: 'Download my data', downloading: 'Preparing your file…', downloaded: 'Your file was downloaded.', downloadFail: 'We could not prepare your file. Nothing was changed. Try again later.',
@@ -117,6 +120,34 @@
     return st;
   }
 
+  // ---- CONTACT DETAILS (Grok 2026-11-25, option c): an APPROVED business adds an optional phone and website to its own listing. Drawn only while the contact switch is on
+  // (window.FMW_CONTACT exists only when site.json "contact" is true); the server (fmw.set_my_contact) validates again and is the authority. Nothing is sent that fails the same checks here.
+  function contactCard(doc, box, ctx) {
+    var win = ctx.win, S = win.FMW_CONTACT, U = win.FMW_CONTACT_UTIL;
+    if (!S || !U) return null;
+    var s = card(doc, T.ccTitle, 'contact'); s.appendChild(el(doc, 'p', 'muted', T.ccIntro));
+    var pl = el(doc, 'label', null, T.ccPhone), pi = el(doc, 'input'), wl = el(doc, 'label', null, T.ccWebsite), wi = el(doc, 'input'), hint = el(doc, 'p', 'muted', T.ccWebsiteHint);
+    pi.id = 'cc-phone'; pl.htmlFor = 'cc-phone'; pi.type = 'tel'; pi.setAttribute('autocomplete', 'tel'); pi.setAttribute('data-act', 'contact-phone');
+    wi.id = 'cc-website'; wl.htmlFor = 'cc-website'; wi.type = 'text'; wi.setAttribute('inputmode', 'url'); wi.setAttribute('autocomplete', 'url'); wi.setAttribute('data-act', 'contact-website'); wi.setAttribute('aria-describedby', 'cc-hint'); hint.id = 'cc-hint';
+    var save = el(doc, 'button', 'btn', T.ccSave), msg = el(doc, 'p', 'muted', T.ccLoading); save.type = 'button'; save.setAttribute('data-act', 'contact-save'); save.disabled = true; msg.setAttribute('role', 'status'); msg.setAttribute('data-act', 'contact-msg');
+    [pl, pi, wl, wi, hint, save, msg].forEach(function (n) { s.appendChild(n); }); box.appendChild(s);
+    Promise.resolve(S.mine(ctx.token)).then(function (r) {   // fill the form with what is saved (nothing is shown for an empty field)
+      if (r && r.ok && r.data) { pi.value = r.data.phone || ''; wi.value = r.data.website || ''; }
+      msg.textContent = ''; save.disabled = false;
+    }, function () { msg.textContent = ''; save.disabled = false; });
+    save.addEventListener('click', function () {
+      var p = U.cleanPhone(pi.value), w = U.cleanWebsite(wi.value);
+      if (p === null) { msg.textContent = T.ccBadPhone; return; }
+      if (w === null) { msg.textContent = T.ccBadWeb; return; }
+      save.disabled = true; msg.textContent = '';
+      Promise.resolve(S.save(ctx.token, pi.value, wi.value)).then(function (r) {
+        if (r && r.ok && r.data) { pi.value = r.data.phone || ''; wi.value = r.data.website || ''; msg.textContent = T.ccSaved; } else msg.textContent = T.ccFail;
+        save.disabled = false;
+      }, function () { msg.textContent = T.ccFail; save.disabled = false; });
+    });
+    return 'contact';
+  }
+
   // ---- customer
   function savedCard(doc, box, ctx) {
     var win = ctx.win, on = win.FMW_CONFIG && win.FMW_CONFIG.favorites === true;
@@ -185,7 +216,7 @@
     });
     return ask.then(function (acct) {
       var out = { known: !!acct.known, kind: 'customer', license: null, saved: null, data: null };
-      if (acct.known && acct.state && acct.state !== 'none') { out.kind = acct.state === 'approved' ? 'business' : 'customer'; out.license = businessCard(doc, holder, ctx, acct); checklistCard(doc, holder, ctx, acct); }   // a business in ANY state (pending, not verified, approved) sees no Saved listings card (Grok 2026-11-25: pending matches approved)
+      if (acct.known && acct.state && acct.state !== 'none') { out.kind = acct.state === 'approved' ? 'business' : 'customer'; out.license = businessCard(doc, holder, ctx, acct); checklistCard(doc, holder, ctx, acct); if (acct.state === 'approved') out.contact = contactCard(doc, holder, ctx); }   // a business in ANY state (pending, not verified, approved) sees no Saved listings card (Grok 2026-11-25: pending matches approved)
       else if (acct.known) {
         out.saved = savedCard(doc, holder, ctx);
         if (claimBiz) { var n = card(doc, T.bizTitle, 'business-unchecked'); n.appendChild(el(doc, 'p', 'muted', T.bizNone)); holder.appendChild(n); }   // said business at sign-up, nothing recorded: no business-only content

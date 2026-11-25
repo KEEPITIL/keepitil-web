@@ -374,7 +374,7 @@ footer a{color:var(--accent2);}
   .pf-meta{min-height:14rem}
   body.pf-hold #pfStatsRow,body.pf-hold #pfAcctType,body.pf-hold #pfBadges,body.pf-late #pfAboutTop,body.pf-late #pfLinksDrop,body.pf-late #pfAbout,body.pf-late #pfLinks,body.pf-late .pf-cta{visibility:hidden}
   /* the feed arrives last and can be 1,000+ px tall and lands above the partner block and the footer. Both stay invisible (not collapsed: no blank band) until the feed is drawn (loadFromDB), or at once when the record says 0 posts (get_profile_stats). */
-  body.pf-feed .mono,body.pf-feed #v3-footer{visibility:hidden}   /* hidden elements never count toward CLS: the feed arriving cannot push them; no reserved height to collapse on a short feed */
+  body.pf-feed .mono,body.pf-foot #v3-footer{visibility:hidden}   /* the partner block paints at once (early LCP); if the feed is not drawn by 450 ms it is hidden (hidden elements never count toward CLS) until the feed is drawn, so a 1,000+ px feed cannot push it. The footer waits for the feed from the start. No reserved height, so no blank band. */
 }
 @media (scripting:enabled) and (max-width:768px){.pf-meta{min-height:19rem}}
 </style>
@@ -619,21 +619,23 @@ window.KIL_FILTER_BADGES = function(badges){
 };
 </script>
 </head>
-<body class="pf-hold pf-late pf-feed">
+<body class="pf-hold pf-late pf-foot">
 <script>
 /*PF-GATE-START*/
 window.__pfGate=(function(){
   // two holds on <body>: pf-hold (stats, account type, badges: small text) is released when all four pieces are in or after 1.5 s;
   // pf-late (about, links, the buttons row: the blocks that MOVE things) is released as soon as the profile row is drawn (meta), or at a hard cap of 6 s, so it never appears after the page has been shown.
-  var need={meta:1,about:1,claim:1,stats:1}, holdOff=false, lateOff=false, t1=null, t2=null;
+  var need={meta:1,about:1,claim:1,stats:1}, holdOff=false, lateOff=false, t1=null, t2=null, t3=null;
   function cl(c){ try{ document.body.classList.remove(c); }catch(e){} }
   function releaseHold(){ if(holdOff) return; holdOff=true; if(t1) clearTimeout(t1); cl('pf-hold'); }
   function releaseLate(){ if(lateOff) return; lateOff=true; if(t2) clearTimeout(t2); cl('pf-late'); }
-  function releaseFeed(){ cl('pf-feed'); }
+  var feedOff=false;
+  function releaseFeed(){ feedOff=true; if(t3) clearTimeout(t3); cl('pf-feed'); cl('pf-foot'); }
+  function holdFeed(){ if(feedOff) return; try{ document.body.classList.add('pf-feed'); }catch(e){} }
   function reveal(){ releaseHold(); releaseLate(); releaseFeed(); }
   function mark(k){ if(k==='feed'){ releaseFeed(); return; } if(!need[k]) return; delete need[k]; if(k==='meta') releaseLate(); for(var x in need){ if(Object.prototype.hasOwnProperty.call(need,x)) return; } releaseHold(); }
-  t1=setTimeout(releaseHold,1500); t2=setTimeout(function(){ releaseLate(); releaseFeed(); },6000);
-  return { mark:mark, reveal:reveal, pending:function(){ return Object.keys(need); }, released:function(){ return holdOff&&lateOff; }, hold:function(){ return !holdOff; }, late:function(){ return !lateOff; } };
+  t3=setTimeout(holdFeed,450); t1=setTimeout(releaseHold,1500); t2=setTimeout(function(){ releaseLate(); releaseFeed(); },6000);
+  return { mark:mark, holdFeed:holdFeed, reveal:reveal, pending:function(){ return Object.keys(need); }, released:function(){ return holdOff&&lateOff; }, hold:function(){ return !holdOff; }, late:function(){ return !lateOff; } };
 })();
 /*PF-GATE-END*/
 </script>
@@ -1358,10 +1360,9 @@ function rebuild(rows){
 function loadFromDB(){
   if(!SB){ fallbackLocal(); window.__pfGate&&window.__pfGate.mark('feed'); return; }
   SB.from('profile_content').select('*').eq('profile_slug',PROFILE_SLUG).order('created_at',{ascending:true}).then(function(r){
-    if(r&&!r.error){ DB_OK=true; rebuild(r.data); }
-    else { fallbackLocal(); }
-    window.__pfGate&&window.__pfGate.mark('feed');
-  }).catch(function(){ fallbackLocal(); window.__pfGate&&window.__pfGate.mark('feed'); });
+    if(r&&!r.error){ DB_OK=true; rebuild(r.data); window.__pfGate&&window.__pfGate.mark('feed'); }
+    else { fallbackLocal(); }   // a failed read draws the small local seed: the real feed may still land, so the hold stays (6 s cap)
+  }).catch(function(){ fallbackLocal(); });
 }
 function fallbackLocal(){ GT_ARTICLES=SEED.articles.slice();GAL_IMGS=SEED.photos.slice();GT_SHOWS=SEED.shows.slice();GT_CHATS=SEED.chats.slice();
   try{var s=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null');if(s){ADDED={photos:s.photos||[],shows:s.shows||[],articles:s.articles||[],chats:s.chats||[]};}}catch(e){}

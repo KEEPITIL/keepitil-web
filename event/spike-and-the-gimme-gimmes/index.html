@@ -24,7 +24,7 @@
 <meta property="og:url" id="og-url" content="https://keepitil.com/event/spike-and-the-gimme-gimmes/"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <link rel="canonical" id="m-canon" href="https://keepitil.com/event/spike-and-the-gimme-gimmes/"/>
-<script type="application/ld+json" id="ld-event">{"@context":"https://schema.org","@type":"MusicEvent","name":"Spike and the Gimme Gimmes","url":"https://keepitil.com/event/spike-and-the-gimme-gimmes/","eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","startDate":"2026-12-13T03:00:00+00:00","image":"https://keepitil.com/assets/images/event-placeholder.svg","location":{"@type":"Place","name":"Ace of Spades","address":{"@type":"PostalAddress","addressLocality":"Sacramento","addressRegion":"CA","addressCountry":"US"}},"organizer":{"@type":"Organization","name":"KEEPITIL","url":"https://keepitil.com/"}}</script>
+<script type="application/ld+json" id="ld-event">{"@context":"https://schema.org","@type":"MusicEvent","name":"Spike and the Gimme Gimmes","url":"https://keepitil.com/event/spike-and-the-gimme-gimmes/","eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","startDate":"2026-12-13T03:00:00+00:00","image":"https://keepitil.com/keepitil-og.png","location":{"@type":"Place","name":"Ace of Spades","address":{"@type":"PostalAddress","addressLocality":"Sacramento","addressRegion":"CA","addressCountry":"US"}},"organizer":{"@type":"Organization","name":"KEEPITIL","url":"https://keepitil.com/"}}</script>
 <script>window.__kilPrerenderSlug="spike-and-the-gimme-gimmes";</script>
 <link rel="preload" as="image" href="https://keepitil.com/assets/images/event-placeholder.svg" fetchpriority="high"/>
 <meta name="geo.region" content="US-CA"/>
@@ -441,7 +441,7 @@
     $('m-desc').setAttribute('content', descTxt);
     $('og-title').setAttribute('content', titledate + ' | KEEPITIL');
     $('og-desc').setAttribute('content', descTxt);
-    if(ev.img) $('og-img').setAttribute('content', ev.img);
+    if(ev.img && !isSvgUrl(ev.img)) $('og-img').setAttribute('content', ev.img);   /* an SVG cover (the placeholder) keeps the template's raster og:image */
     /* Canonical is the CLEAN /event?e=<slug> form, never location.href. Pages serves both
        /event and /event.html, so echoing the requested path would let the two aliases compete
        as separate pages; naming one form consolidates them. This is also byte-identical to what
@@ -513,6 +513,7 @@
      or empty URL. Deriving it from ev.slug on demand has no order to get wrong. */
   function canonFor(slug){ return 'https://keepitil.com/event/'+encodeURIComponent(slug||'')+'/'; }
 
+  function isSvgUrl(u){ try{ return new window.URL(String(u),location.href).pathname.toLowerCase().slice(-4)==='.svg'; }catch(e){ return false; } }
   function writeEventLd(tiers){
     var ld={"@context":"https://schema.org","@type":"MusicEvent","name":ev.title,"url":canonFor(ev.slug),"eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode"};
     /* startDate must not be invented. This used to append "T20:00:00-07:00" to every event:
@@ -523,7 +524,7 @@
     if(ev.startsAt) ld.startDate=ev.startsAt;
     else if(ev.date) ld.startDate=ev.date;
     if(ev.endsAt) ld.endDate=ev.endsAt;
-    if(ev.img) ld.image=ev.img;
+    if(ev.img) ld.image=isSvgUrl(ev.img)?'https://keepitil.com/keepitil-og.png':ev.img;
     if(ev.venue) ld.location={"@type":"Place","name":ev.venue,"address":{"@type":"PostalAddress","addressLocality":ev.city||"Los Angeles","addressRegion":"CA","addressCountry":"US"}};
 
     var offers=tierOffers(tiers);

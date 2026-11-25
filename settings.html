@@ -327,7 +327,7 @@ function savePass(){ var sz=document.getElementById('sz-account'); var el=docume
   if(!SB||!SIGNED){ if(sz)sz.textContent='Log in to change your password'; return; }
   if(sz)sz.textContent='Updating…';
   SB.auth.updateUser({password:p}).then(function(r){ el.value=''; if(sz){ sz.textContent=(r&&r.error)?('Could not update: '+r.error.message):'Password changed ✓'; setTimeout(function(){sz.textContent='';},3000);} }); }
-/* MEMBER_DATA_CONTROLS: the Download button needs export_my_data() from keepitil.github.io #95 (not on prod yet). Keep false until it is applied and verified, then set true here AND in submit-event.html (a test keeps both equal). Off = an email request row is shown instead. */
+/* MEMBER_DATA_CONTROLS: ON since keepitil.github.io #95 (export_my_data) was applied and verified on prod (2026-11-25 15:30 window). Keep it equal here AND in submit-event.html (a test keeps both equal). Off = an email request row is shown instead. */
 var MEMBER_DATA_CONTROLS=true;
 (function(){ var d=document.getElementById('exp-row'), m=document.getElementById('exp-mail-row'); if(!MEMBER_DATA_CONTROLS){ if(d) d.hidden=true; if(m) m.hidden=false; } })();
 /* DATA EXPORT: export_my_data() returns only the signed-in person's own rows. */

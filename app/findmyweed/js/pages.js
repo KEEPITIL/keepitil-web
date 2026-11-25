@@ -372,19 +372,29 @@
   }
   // A home row from real entries only (F.promoRows): ads 16:9, categories 1:1 tiles, deals / featured cards. The section
   // stays hidden (as shipped in the page) unless there is at least one real entry. Images are same-site (img/...).
-  function renderRow(key, entries) {
+  function renderRow(key, entries, seeAll) {
     var sec = doc.getElementById('row-' + key); if (!sec) return;
     var ul = sec.querySelector ? sec.querySelector('ul') : null;
     sec.hidden = true; if (!ul) return;
     clear(ul);
     // a sideways-scrolling list is a scrollable region: keyboard-focusable and named (axe: scrollable-region-focusable)
     ul.setAttribute('tabindex', '0'); ul.setAttribute('aria-label', { ads: C.rowAds, deals: C.rowDeals, categories: C.rowCategories, featured: C.rowFeatured }[key] || '');
+    // Weedmaps-style row header (layout pattern only): a "See all" link next to the title for the rows that have a full list behind them. Built like the
+    // category tiles: it keeps the current area (?city= / ?county=) and opens the filter IN PLACE (no full reload); `seeAll(key)` comes from the home.
+    var old = sec.querySelector ? sec.querySelector('a.seeall') : null; if (old && old.parentNode) old.parentNode.removeChild(old);
+    sec.className = String(sec.className || '').replace(/\s*\bhas-seeall\b/g, '');
+    var sa = seeAll && entries && entries.length ? seeAll(key) : null;
+    if (sa) {
+      var all = el('a', 'seeall', C.seeAll); all.href = sa.href; all.setAttribute('aria-label', C.seeAllRow(key === 'deals' ? C.rowDeals : C.rowFeatured));
+      all.addEventListener('click', sa.onClick); sec.insertBefore(all, ul); sec.className += ' has-seeall';
+    }
     (entries || []).forEach(function (e) {
       var li = el('li', 'tile'), wrap = e.href ? el('a', 'tile-in') : el('div', 'tile-in');
       if (e.href) wrap.href = e.href;
       var im = el('img'); im.src = e.image; im.alt = ''; im.loading = 'lazy'; wrap.appendChild(im);
       wrap.appendChild(el('span', 'tile-label', e.label));
       if (e.license) wrap.appendChild(el('span', 'tile-license mono', e.license));   // placements always show the license number
+      if (key === 'ads') wrap.appendChild(el('span', 'ad-tag', C.adTag));   // an ad is always labelled
       li.appendChild(wrap); ul.appendChild(li);
     });
     sec.hidden = !(entries && entries.length >= (key === 'categories' ? 2 : 1));   // a one-tile Categories row is filler, from data or from the listings alike
@@ -557,7 +567,13 @@
         fbar.appendChild(b);
       });
     };
-    var PROMO = function (data) { var rows = F.promoRows(data); F.PROMO_ROWS.forEach(function (k) { renderRow(k, rows[k]); }); };
+    var SEE_ALL = { deals: 'deals', featured: 'brands' };
+    var seeAllFor = function (k) {
+      if (!SEE_ALL[k]) return null;
+      var u = areaParams(); u.set('f', SEE_ALL[k]);
+      return { href: '?' + u.toString(), onClick: function (e) { if (!canPush) return; e.preventDefault(); go(u); } };
+    };
+    var PROMO = function (data) { var rows = F.promoRows(data); F.PROMO_ROWS.forEach(function (k) { renderRow(k, rows[k], seeAllFor); }); };
     // Categories (row 6, a 1:1 single-row carousel) from REAL listing data: one tile per customer category with shown rows
     // in this area (F.categoryTiles). A tile opens the same in-place filter as its chip. Entries in the data file
     // (data.categories, with real images) win when they exist. Fewer than two tiles = the row stays hidden.

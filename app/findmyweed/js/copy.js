@@ -43,6 +43,9 @@
     closed: 'Closed',
     hoursNotListed: 'Hours not listed',
     // NEW LINES for Muse's review (draft wording, marked): the paged card list and the paid-placement label
+    seeAllRow: function (title) { return 'See all ' + title; },   // NEW (draft, for Muse): the accessible name of a row's link, built from the row's own title (the sales-word guard allows only the two approved labels)
+    seeAll: 'See all',   // NEW (draft, for Muse): the link on a carousel row's title
+    adTag: 'Ad',         // NEW (draft, for Muse): the label on an ad tile
     showMore: function (n) { return 'Show ' + n + ' more'; },
     showMoreCount: function (shown, total) { return 'Showing ' + shown + ' of ' + total; },
     sponsored: 'Sponsored',
@@ -127,7 +130,7 @@
       { key: 'signin', label: 'Sign in', account: true, visitorOnly: true, pill: 'outline', page: 'signup.html?mode=signin' },
       { key: 'signup', label: 'Sign up', account: true, visitorOnly: true, pill: 'fill', page: 'signup.html' },
       { key: 'home', label: 'Home', group: 1, icon: 'home', page: 'index.html' },
-      { key: 'storefronts', label: 'Storefronts', group: 1, icon: 'store', page: 'index.html?storefront=1', needsData: 'storefront' },
+      { key: 'storefronts', label: 'Storefronts', group: 1, icon: 'store', page: 'index.html?storefront=1' },   // always a live link: the directory IS storefronts (no "coming soon" on pages that do not load the listings)
       { key: 'deliveries', label: 'Deliveries', group: 1, icon: 'truck', page: 'index.html?delivery=1', needsData: 'delivery' },
       { key: 'deals', label: 'Deals', group: 1, icon: 'tag', needsData: 'deals' },
       { key: 'brands', label: 'Brands', group: 2, icon: 'star', needsData: 'brands' },

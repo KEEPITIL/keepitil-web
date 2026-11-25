@@ -241,6 +241,8 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
   body[data-page=search] .top,body[data-page=results] .top{position:sticky;top:0;z-index:40}
   body[data-page=search] .top-in,body[data-page=results] .top-in{height:64px;padding-top:0;padding-bottom:0}
   .lockrows{position:sticky;top:var(--lock-top);z-index:30;background:var(--bg);margin:-14px -16px 0;padding:8px 16px;border-bottom:1px solid var(--line)}
+  /* WCAG 2.4.11 (focus not obscured): keyboard focus / scroll-into-view must land BELOW the sticky stack (header 68px + the locked rows ~175px), e.g. "Show more" and a new first card */
+  html:has(body[data-page=search]),html:has(body[data-page=results]){scroll-padding-top:252px}
   .lockrows .filterbar{padding:8px 0 0}
   .lockrows .viewtoggle{margin-top:8px}
   /* row 3: List (default) shows the cards, Map shows the map in their place; never both */
@@ -346,3 +348,13 @@ a.menu-link:hover{background:var(--tint);color:var(--text)}
 .listings li.more{grid-column:1/-1;display:flex;align-items:center;gap:12px;justify-content:center;padding:8px 0;list-style:none}
 .sponsored-tag{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 .band-fill{width:100%;height:100%}   /* the header band's pattern fill (a CSS size, so no percent literal sits in the page source) */
+
+/* HOME v2 look (layout patterns only): swipe carousels with snap, a "See all" link on the row title, an "Ad" label on ad tiles */
+.hscroll{scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.hscroll .tile{scroll-snap-align:start}
+.hrow{position:relative}
+.hrow .seeall{position:absolute;top:2px;right:0;font-size:14px;font-weight:700;text-decoration:none;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card)}
+.hrow .seeall::after{content:" \203A"}
+.ads .tile-in{position:relative}
+.ad-tag{position:absolute;top:6px;right:6px;font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--card);color:var(--text);border:1px solid var(--line)}
+.hrow.has-seeall h2{padding-right:104px}

@@ -6,10 +6,10 @@
 <meta name="robots" content="index,follow">
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Jon Pardi — Thu, Dec 3, 2026 | KEEPITIL</title>
+<title>The Rat Utopia Experiment — Thu, Dec 3, 2026 | KEEPITIL</title>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
-<meta name="description" id="m-desc" content="Jon Pardi at The Eastern - Atlanta, Atlanta on Thu, Dec 3, 2026 · country folk. Save it on KEEPITIL, join the event conversation, and grab tickets."/>
+<meta name="description" id="m-desc" content="The Rat Utopia Experiment at Baby&#39;s All Right, Brooklyn on Thu, Dec 3, 2026. Save it on KEEPITIL, join the event conversation, and grab tickets."/>
 <!-- NO STATIC CANONICAL. This page is identified by ?e=<slug>, so any single hardcoded
      value is wrong for every event: the previous "https://keepitil.com/event" told every
      crawler that does not execute JS that all 322 event URLs were one page, which is an
@@ -18,14 +18,14 @@
      real per-event canonical is injected in paint(). -->
 <link rel="icon" type="image/png" href="https://keepitil.com/logo-blue-nav.png"/>
 <meta property="og:type" content="event"/>
-<meta property="og:title" id="og-title" content="Jon Pardi — Thu, Dec 3, 2026 | KEEPITIL"/>
-<meta property="og:description" id="og-desc" content="Jon Pardi at The Eastern - Atlanta, Atlanta on Thu, Dec 3, 2026 · country folk. Save it on KEEPITIL, join the event conversation, and grab tickets."/>
+<meta property="og:title" id="og-title" content="The Rat Utopia Experiment — Thu, Dec 3, 2026 | KEEPITIL"/>
+<meta property="og:description" id="og-desc" content="The Rat Utopia Experiment at Baby&#39;s All Right, Brooklyn on Thu, Dec 3, 2026. Save it on KEEPITIL, join the event conversation, and grab tickets."/>
 <meta property="og:image" id="og-img" content="https://keepitil.com/keepitil-og.png"/>
-<meta property="og:url" id="og-url" content="https://keepitil.com/event/jon-pardi/"/>
+<meta property="og:url" id="og-url" content="https://keepitil.com/event/the-rat-utopia-experiment/"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<link rel="canonical" id="m-canon" href="https://keepitil.com/event/jon-pardi/"/>
-<script type="application/ld+json" id="ld-event">{"@context":"https://schema.org","@type":"MusicEvent","name":"Jon Pardi","url":"https://keepitil.com/event/jon-pardi/","eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","startDate":"2026-12-04T00:00:00+00:00","image":"https://keepitil.com/keepitil-og.png","location":{"@type":"Place","name":"The Eastern - Atlanta","address":{"@type":"PostalAddress","addressLocality":"Atlanta","addressRegion":"CA","addressCountry":"US"}},"organizer":{"@type":"Organization","name":"KEEPITIL","url":"https://keepitil.com/"}}</script>
-<script>window.__kilPrerenderSlug="jon-pardi";</script>
+<link rel="canonical" id="m-canon" href="https://keepitil.com/event/the-rat-utopia-experiment/"/>
+<script type="application/ld+json" id="ld-event">{"@context":"https://schema.org","@type":"MusicEvent","name":"The Rat Utopia Experiment","url":"https://keepitil.com/event/the-rat-utopia-experiment/","eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","startDate":"2026-12-04T00:00:00+00:00","image":"https://keepitil.com/keepitil-og.png","location":{"@type":"Place","name":"Baby's All Right","address":{"@type":"PostalAddress","addressLocality":"Brooklyn","addressRegion":"CA","addressCountry":"US"}},"organizer":{"@type":"Organization","name":"KEEPITIL","url":"https://keepitil.com/"}}</script>
+<script>window.__kilPrerenderSlug="the-rat-utopia-experiment";</script>
 <link rel="preload" as="image" href="https://keepitil.com/assets/images/event-placeholder.svg" fetchpriority="high"/>
 <meta name="geo.region" content="US-CA"/>
 <link rel="preconnect" href="https://images.ra.co"/>
@@ -208,6 +208,9 @@
     .tp-head{grid-template-columns:1fr;}
     .tp-body{grid-template-columns:1fr;}
     .evcard .flyer{max-width:340px;margin:0 auto;}
+    /* No cover (every listing with the branded placeholder): a short banner on phones so the title, date and the I'm going tap are above the fold. Real flyers keep 2:3. */
+    .evcard .flyer:has(img[src$="event-placeholder.svg"]){aspect-ratio:auto;height:150px;max-width:none}
+    .evcard .flyer img[src$="event-placeholder.svg"]{object-fit:contain;padding:14px;box-sizing:border-box}
   }
 
 #kil-pwgate{position:fixed;inset:0;z-index:99990;background:#07070c;display:none;align-items:center;justify-content:center;padding:20px}
@@ -253,15 +256,15 @@
     </div>
     <div class="tp-body">
       <div class="tp-col">
-        <div class="flyer" id="ev-flyer"><img fetchpriority="high" decoding="async" alt="Flyer for Jon Pardi" src="https://keepitil.com/assets/images/event-placeholder.svg"></div>
+        <div class="flyer" id="ev-flyer"><img fetchpriority="high" decoding="async" alt="Flyer for The Rat Utopia Experiment" src="https://keepitil.com/assets/images/event-placeholder.svg"></div>
         <div class="ev-qr" id="ev-qr" style="display:none"></div>
       </div>
       <div class="tp-col">
         <div class="infocard">
-          <h1 id="ev-title">Jon Pardi</h1>
+          <h1 id="ev-title">The Rat Utopia Experiment</h1>
           <div class="meta" id="ev-date">Thu, Dec 3, 2026</div>
-          <div class="meta" id="ev-venue">📍 The Eastern - Atlanta, Atlanta</div>
-          <span class="genre" id="ev-genre" style="display:inline-block;">country folk</span>
+          <div class="meta" id="ev-venue">📍 Baby&#39;s All Right, Brooklyn</div>
+          <span class="genre" id="ev-genre" style="display:none;"></span>
           <div class="going" id="ev-going" style="display:none"></div>
           <div class="rsvp" id="ev-rsvp" style="display:none"></div>
           <p class="desc" id="ev-desc" style="display:none"></p>
@@ -312,6 +315,7 @@
 </main>
 <footer>© 2026 KEEPITIL — OC · LA · San Diego events, artists &amp; culture. <a href="/">keepitil.com</a></footer>
 <script src="/assets/js/kil-rsvp.js"></script>
+<script src="/assets/js/kil-calendar.js"></script>
 <script src="/assets/js/vendor/qrcode.js"></script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script>
@@ -394,11 +398,30 @@
         + '<a href="https://x.com/intent/tweet?text='+txt+'&url='+u+'" target="_blank" rel="noopener">Post on X</a>'
         + '<a href="https://www.facebook.com/sharer/sharer.php?u='+u+'" target="_blank" rel="noopener">Facebook</a>'
         + '<a href="https://wa.me/?text='+txt+'%20'+u+'" target="_blank" rel="noopener">WhatsApp</a>';
+      /* ADD TO CALENDAR: .ics built here + a Google Calendar link, from the event's own time and venue (assets/js/kil-calendar.js). Ended events get neither. */
+      try{ if(window.KilCalendar && window.KilCalendar.upcoming(row)){
+        var gUrl=window.KilCalendar.googleUrl(row,url);
+        sh.insertAdjacentHTML('afterbegin','<button type="button" id="ev-ics">📅 Add to calendar</button><a id="ev-gcal" href="'+esc(gUrl)+'" target="_blank" rel="noopener">Google Calendar</a>');
+        $('ev-ics').onclick=function(){
+          var blob=new Blob([window.KilCalendar.ics(row,url)],{type:'text/calendar;charset=utf-8'});
+          var a=document.createElement('a'); a.href=window.URL.createObjectURL(blob); a.download=(String(row.slug||'event').replace(/[^a-z0-9._-]/gi,'')||'event')+'.ics';
+          document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ window.URL.revokeObjectURL(a.href); },4000);
+        };
+      } }catch(_c){}
       var cb=$('ev-copy');
       if(cb) cb.onclick=function(){
         var done=function(){ cb.textContent='✓ Copied'; setTimeout(function(){ cb.textContent='🔗 Copy link'; },1800); };
         try{ navigator.clipboard.writeText(url).then(done, done); }catch(e){ done(); }
       };
+      /* NATIVE SHARE: where the browser has a share sheet (most phones) a first button opens it; everywhere else the row is unchanged. A cancelled sheet is not an error. */
+      try{ if(typeof navigator.share==='function'){
+        sh.insertAdjacentHTML('afterbegin','<button type="button" id="ev-share-native">↗ Share</button>');
+        $('ev-share-native').onclick=function(){
+          navigator.share({title:ev.title, text:ev.title+(ev.date?(' — '+fmt(ev.date)):''), url:url}).catch(function(err){
+            if(!err || err.name!=='AbortError'){ var c=$('ev-copy'); if(c) c.click(); }
+          });
+        };
+      } }catch(_n){}
     }
 
     /* ---- VENUE + OTHER EVENTS THERE ----

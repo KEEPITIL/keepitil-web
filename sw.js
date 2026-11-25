@@ -45,10 +45,14 @@
    never shipped, so installed phones drop cached page HTML and shell code once more. Kai Tarako keeps its own
    worker and kai-tarako-* caches (scope app/kaitarako/).
    Previous on main: kil-pwa-v110-20261121a / kil-pages-v47 / kil-assets-v41 / kil-code-v90 (bumped 2026-11-25 with the removal of the Google font rules: evicts the cached gstatic fonts and the old HTML that linked them) */
+/* BUMPED 2026-11-25 for the shell offset (#392: keepitil-shell.js?v=20261125a on every page + the main min-height rule): PAGES and CODE are renamed so `activate` evicts cached page
+   HTML that still names the old ?v=, and the old shell. The worker's install only precaches the icons, offline page and manifest (cache.add of fixed URLs, no shell or page HTML), so there
+   is no install-time fetch of the shell that the HTTP cache could serve stale; pages and code are fetched at request time, network-first (code) and stale-while-revalidate (pages).
+   Previous: kil-pages-v48 / kil-code-v91 */
 var VERSION = 'kil-pwa-v111-20261125a';
-var PAGES = 'kil-pages-v48';
+var PAGES = 'kil-pages-v49';
 var ASSETS = 'kil-assets-v42';
-var CODE = 'kil-code-v91';
+var CODE = 'kil-code-v92';
 var KEEP = [VERSION, PAGES, ASSETS, CODE];
 var PAGE_LIMIT = 40;
 var PRECACHE = [

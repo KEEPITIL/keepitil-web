@@ -295,7 +295,17 @@
     try{ w = window.innerWidth || (document.documentElement && document.documentElement.clientWidth) || 0; }catch(e){}
     return w >= 861;
   }
+  /* GLOBAL PRIVACY CONTROL + DO NOT TRACK (Grok 2026-11-24; the privacy page promises both). A browser that sends either signal gets NO Google Analytics and NO Microsoft
+     Clarity: neither script is added, so no request is made to Google, Microsoft or Bing. Everyone else is unchanged. culture/index.html carries the same two-line check for
+     the video player (click-to-load); tests/gpc-honoured.test.cjs keeps the two identical. */
+  function __kilOptedOut(){
+    try{ if(navigator.globalPrivacyControl === true) return true; }catch(e){}
+    try{ if(navigator.doNotTrack === '1' || navigator.doNotTrack === 'yes' || window.doNotTrack === '1' || navigator.msDoNotTrack === '1') return true; }catch(e){}
+    return false;
+  }
+  try{ window.KIL_OPTED_OUT = __kilOptedOut(); }catch(e){}
   function __kilMountAnalytics(){
+    if(__kilOptedOut()){ try{ window['ga-disable-G-ZR36NRE4MT'] = true; }catch(e){} return; }
     /* GA4 */
     try{ if(!window.__kilGA4){ window.__kilGA4='G-ZR36NRE4MT';
       var _g=document.createElement('script'); _g.async=true; _g.src='https://www.googletagmanager.com/gtag/js?id=G-ZR36NRE4MT'; document.head.appendChild(_g);

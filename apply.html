@@ -145,7 +145,7 @@ footer a{margin:0 5px;}
     <div id="signin-box">
       <div class="login-logo">KEEPITIL</div>
       <div class="login-sub">Log in to your account</div>
-      <input type="text" id="login-id" placeholder="Username or email" aria-label="Username or email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"/>
+      <input type="email" id="login-id" placeholder="Email" aria-label="Email" autocomplete="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false"/>
       <input type="password" id="password" placeholder="Password" aria-label="Password" autocomplete="current-password"/>
       <button class="btn-login" id="login-btn">LOG IN</button>
       <div class="login-err" id="err"></div>
@@ -191,27 +191,18 @@ if(supa){
   }).catch(function(){});
 }
 
-/* Accept a username OR an email. Emails (contain "@") are used directly; a username is resolved to its email. */
-function resolveEmail(id){
-  if(id.indexOf('@')>-1) return Promise.resolve(id);
-  var handle=id.replace(/^@/,'');
-  if(!supa||!supa.from) return Promise.resolve(null);
-  // Sentinel (2026-11-10 7:25 PM): the handle is resolved ONLY by the email_for_handle RPC. The old
-  // fallback read app_users.email, a column that does not exist, so it never found anyone; removed.
-  return supa.rpc('email_for_handle',{h:handle}).then(function(rp){
-    return (rp&&!rp.error&&rp.data)?rp.data:null;
-  }).catch(function(){ return null; });
-}
-
+/* KEEPITIL 1.0 (Grok 2026-11-24): sign-in is by EMAIL only. @handle sign-in was never able to work (no email_for_handle function exists in production, and a lookup that
+   returns an email to an anonymous caller would be a privacy leak), so the handle path and its RPC call are gone. */
 function signIn(){
   if(!supa){ $('err').textContent='Sign-in is loading — try again in a moment.'; return; }
   var id=($('login-id').value||'').trim(), pw=$('password').value||'';
   $('err').textContent='';
-  if(!id){ $('err').textContent='Enter your username or email.'; return; }
+  if(!id){ $('err').textContent='Enter your email.'; return; }
+  if(id.indexOf('@')<1){ $('err').textContent='Log in with your email address.'; return; }
   if(!pw){ $('err').textContent='Enter your password.'; return; }
   var b=$('login-btn'); b.disabled=true; b.textContent='LOGGING IN…';
-  resolveEmail(id).then(function(email){
-    if(!email){ $('err').textContent='Couldn’t find that username. Try logging in with your email.'; b.disabled=false; b.textContent='LOG IN'; return; }
+  var email=id;
+  Promise.resolve().then(function(){
     return supa.auth.signInWithPassword({email:email,password:pw}).then(function(r){
       if(r&&r.error){
         var m=r.error.message||'';
@@ -236,7 +227,7 @@ function signIn(){
               .catch(function(){ $('err').textContent='Could not send it just now — try again in a minute.'; });
           });
         }
-        else if(m==='Invalid login credentials') $('err').textContent='Wrong username/email or password. Try “Forgot password?”.';
+        else if(m==='Invalid login credentials') $('err').textContent='Wrong email or password. Try “Forgot password?”.';
         else $('err').textContent=m;
         b.disabled=false; b.textContent='LOG IN';
       } else {

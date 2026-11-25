@@ -70,7 +70,7 @@
     business: {
       // BEFORE a verified license pass: no plans, no prices, no county ladder, no comparison. License first.
       startTitle: 'List your business',
-      startIntro: 'First we verify your state cannabis license. Pricing shows only after your license checks out and your email is confirmed.',
+      startIntro: 'First we check your state cannabis license. Pricing shows only after your license checks out and your email is confirmed.',
       howTitle: 'How it works',
       how: ['Confirm you are 21 or older.', 'Tell us about your license.', 'We verify it against the state record.', 'Once it checks out, confirm your email and your pricing shows.'],
       create: 'Start with my license',

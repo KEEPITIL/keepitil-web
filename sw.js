@@ -44,11 +44,11 @@
    US spelling, solid colors, corrected privacy text), on top of #205's FMW bump. All three names are new and
    never shipped, so installed phones drop cached page HTML and shell code once more. Kai Tarako keeps its own
    worker and kai-tarako-* caches (scope app/kaitarako/).
-   Previous on main: kil-pwa-v109-20261121a / kil-pages-v46 / kil-code-v89 */
-var VERSION = 'kil-pwa-v110-20261121a';
-var PAGES = 'kil-pages-v47';
-var ASSETS = 'kil-assets-v41';
-var CODE = 'kil-code-v90';
+   Previous on main: kil-pwa-v110-20261121a / kil-pages-v47 / kil-assets-v41 / kil-code-v90 (bumped 2026-11-25 with the removal of the Google font rules: evicts the cached gstatic fonts and the old HTML that linked them) */
+var VERSION = 'kil-pwa-v111-20261125a';
+var PAGES = 'kil-pages-v48';
+var ASSETS = 'kil-assets-v42';
+var CODE = 'kil-code-v91';
 var KEEP = [VERSION, PAGES, ASSETS, CODE];
 var PAGE_LIMIT = 40;
 var PRECACHE = [
@@ -114,9 +114,9 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  // CODE (all JS/CSS, same-origin or CDN incl. fonts.googleapis.com CSS): NETWORK-FIRST.
+  // CODE (all JS/CSS): NETWORK-FIRST.
   // Full URL (incl. ?v=) is the cache key. Never stale while online.
-  if (CODE_EXT.test(url.pathname) || url.hostname === 'fonts.googleapis.com') {
+  if (CODE_EXT.test(url.pathname)) {
     e.respondWith(
       fetch(req).then(function (res) {
         if (res && res.ok) {
@@ -129,8 +129,8 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  // Media/fonts/icons: stale-while-revalidate (visual assets only — can't break logic).
-  if ((url.origin === self.location.origin && MEDIA_EXT.test(url.pathname)) || url.hostname === 'fonts.gstatic.com') {
+  // Media/fonts/icons (same-origin only; fonts are self-hosted since #359): stale-while-revalidate (visual assets only — can't break logic).
+  if (url.origin === self.location.origin && MEDIA_EXT.test(url.pathname)) {
     e.respondWith(
       caches.open(ASSETS).then(function (cache) {
         return cache.match(req).then(function (hit) {

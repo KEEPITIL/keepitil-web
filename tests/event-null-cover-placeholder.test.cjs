@@ -10,7 +10,7 @@ test('home flyer(): no e.img renders the placeholder <img>, a real cover still r
   const f = s.slice(i, i + 2600);
   assert.ok(f.includes(PH), 'placeholder referenced'); assert.match(f, /evx-flyer-ph/);
   assert.match(f, /var im=e\.img\?\(/); assert.match(f, /class="evx-flyer-bg"/);
-  assert.ok(!/var im=e\.img\?\([^]*?\):''/.test(f.slice(0, f.indexOf('var fb'))), 'the empty-string branch is gone');
+  assert.ok(!/var im=e\.img\?\([^]*?\):''/.test(f.slice(0, f.indexOf('var ribbon'))), 'the empty-string branch is gone');
 });
 test('every event page (template + prerendered) falls back to the placeholder instead of skipping the flyer', () => {
   assert.ok(pages.length >= 11);

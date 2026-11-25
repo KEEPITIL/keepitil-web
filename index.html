@@ -2424,7 +2424,6 @@ function flyer(e,showPick){
   var im=e.img?('<img class="evx-flyer-bg" src="'+h(e.img)+'" alt="" aria-hidden="true" loading="lazy" decoding="async"/>'
                +'<img class="evx-flyer-img" src="'+h(e.img)+'" alt="'+alt+'" loading="lazy" decoding="async"/>')
            :'<img class="evx-flyer-img evx-flyer-ph" src="/assets/images/event-placeholder.svg" alt="'+alt+'" loading="lazy" decoding="async"/>';   /* no cover (cover_url null): our own placeholder, not a gradient */
-  var fb=e.img?'':' style="background:linear-gradient(155deg,#12121c,#241033,#0c0c14)"';
   var ribbon=pk?'<div class="evx-ribbon"><span class="kp">⚡ KEEPITIL PICK</span></div>':'';
   var pr=(e.price&&e.price!=='Tickets')?h(e.price):'';
   var slug=e.slug||slugify(e);

@@ -366,6 +366,7 @@ footer a{color:var(--accent2);}
   .pf-subs{padding:8px}
   .pf-subs button{padding:6px 12px;font-size:.63rem}
 }
+.pf-vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 </style>
 <style id="kil-feedv2">
 /* ===== FEED v2 — 9:16 universal cards, video, IG-style create, legend, events hub ===== */
@@ -641,7 +642,7 @@ window.KIL_FILTER_BADGES = function(badges){
   <div class="pf-top" style="align-items:stretch;gap:26px">
     <img id="pfAvatar" class="pf-avatar pf-skel" src="/icon-192.png" alt="Profile" style="align-self:center">
     <div class="pf-idblock" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px">
-      <h1 class="pf-name" id="pfName" style="margin:0" aria-hidden="true">&nbsp;</h1>
+      <h1 class="pf-name" id="pfName" style="margin:0"><span class="pf-vh">Loading profile</span>&nbsp;</h1>
       <div class="pf-handle" id="pfHandle">&nbsp;</div>
       <div id="pfStatsRow" style="display:flex;gap:24px;font-size:.96rem"><span><b id="stPosts">0</b> feed</span><span style="color:inherit"><b id="stFollowers">0</b> followers</span><span style="color:inherit"><b id="stLikes">0</b> likes</span></div>
       <div id="pfAboutTop" style="display:none;color:var(--text-soft,#c9cede);font-size:.88rem;line-height:1.5"></div>
@@ -1450,7 +1451,7 @@ function applyProfile(){
   /* the profile "cover" is now the LOCKED BACKGROUND image (editable in Edit Profile) */
   try{ var _isM=window.matchMedia('(max-width:768px)').matches; var _bg=(_isM&&PROFILE.cover_mobile)?PROFILE.cover_mobile:PROFILE.cover; document.documentElement.style.setProperty('--pf-bg', _bg?("url('"+String(_bg).replace(/'/g,"%27")+"')"):"url('/assets/images/logo-bg.jpg')"); }catch(e){}
   var _av=g('pfAvatar'); if(_av){ _av.classList.remove('pf-skel'); if(PROFILE.avatar){ _av.style.display=''; _av.src=PROFILE.avatar; } }
-  if(g('pfName')){ var _pn=g('pfName'); _pn.textContent=PROFILE.name||' '; if(PROFILE.name) _pn.removeAttribute('aria-hidden'); else _pn.setAttribute('aria-hidden','true'); }   /* a heading is never exposed empty: the placeholder (no name yet, or a not-found page) stays aria-hidden, the name shows it */
+  if(g('pfName')){ var _pn=g('pfName'); if(PROFILE.name) _pn.textContent=PROFILE.name; else _pn.innerHTML='<span class="pf-vh">Loading profile</span>\u00a0'; }   /* a heading is never empty: it carries a visually hidden "Loading profile" label until a name arrives, then the name */
   if(g('pfHandle'))g('pfHandle').textContent=PROFILE.handle?('@'+PROFILE.handle+(PROFILE.location?' · '+PROFILE.location:'')+(PROFILE.pronouns?' · '+PROFILE.pronouns:'')):' ';
   if(g('pfBio'))g('pfBio').innerHTML=PROFILE.bio?(esc(PROFILE.bio)+(PROFILE.tagline?' <span class="h">'+esc(PROFILE.tagline)+'</span>':'')):' ';
   if(g('pfBook')){ g('pfBook').href='#'; g('pfBook').onclick=function(ev){ev.preventDefault();openDM();}; g('pfBook').style.display=(typeof CAN_EDIT==='function'&&CAN_EDIT())?'none':''; }
@@ -1501,6 +1502,7 @@ function loadProfileMeta(){
        present so the owner's own view — which arrives here without a slug and is redirected
        elsewhere — is never mistaken for a missing profile. */
     if(PROFILE_SLUG && !(r&&r.data) && window.KIL_NOT_FOUND){
+      try{ var _pf=document.getElementById('pfName'); if(_pf) _pf.innerHTML='<span class="pf-vh">Profile not found</span>\u00a0'; }catch(e){}
       window.KIL_NOT_FOUND({ what:'profile', heading:'That profile isn’t here',
         body:'It may have been removed, renamed, or the link may be wrong.',
         links:[['/connect/','Browse the Scene'],['/','Explore'],['/apply','Claim your profile']] });

@@ -195,6 +195,11 @@
     addressNone: 'Address not listed',
     addressNoStreet: 'Street address not listed',
     addressDeliveryNote: 'Delivery only: we show the city, not the street address.',
+    contactTitle: 'Contact',
+    callLabel: function (name) { return 'Call ' + name; },
+    websiteLabel: function (name) { return 'Website for ' + name + ' (opens in a new tab)'; },
+    call: 'Call',
+    website: 'Website',
     directions: 'Directions',
     directionsLabel: function (name) { return 'Directions to ' + name + ' (opens a maps app)'; },
     addressCityNote: 'We show the city, not the street address.',   // no storefront on file and no delivery on file: the city only, with no claim about delivery

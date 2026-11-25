@@ -27,10 +27,21 @@ test('an outside image that fails is swapped once for the placeholder; same-site
   assert.equal(e.listeners.error.cap, true, 'capture-phase: sees every image, including ones added later');
   const ra = img('https://images.ra.co/abc.jpg', { srcset: 'x 2x' }); e.listeners.error.fn({ target: ra });
   assert.equal(ra.src, PH); assert.equal(ra.getAttribute('srcset'), null); assert.ok(ra.classList.has('kil-img-ph'));
-  e.listeners.error.fn({ target: ra }); assert.equal(ra.src, PH, 'no loop if the placeholder itself fails');
+  e.listeners.error.fn({ target: ra }); assert.equal(ra.src, PH, 'no loop if the placeholder itself fails (it is same-site)');
+  // NEXUS2 on ra.co event pages: the page's own render sets the outside address back after the swap; that must be swapped AGAIN (a "swapped once" flag left #ev-flyer broken)
+  ra.src = 'https://images.ra.co/abc.jpg'; e.listeners.error.fn({ target: ra }); assert.equal(ra.src, PH, 're-set to the outside address, then failing again: swapped again');
+  for (let i = 0; i < 5; i++) { ra.src = 'https://images.ra.co/abc.jpg'; e.listeners.error.fn({ target: ra }); assert.equal(ra.src, PH, 'every time (' + i + ')'); }
   const own = img('https://keepitil.com/assets/x.jpg'), rel = img('/assets/y.jpg'), data = img('data:image/png;base64,AAAA'), notImg = { tagName: 'DIV' };
   for (const x of [own, rel, data]) { const before = x.src; e.listeners.error.fn({ target: x }); assert.equal(x.src, before); }
   assert.doesNotThrow(() => e.listeners.error.fn({ target: notImg })); assert.doesNotThrow(() => e.listeners.error.fn({}));
+});
+
+test('NEGATIVE CONTROL: with a "swapped once" flag, an image the page sets back to the outside address stays broken (the bug NEXUS2 found)', () => {
+  const flagged = shell.replace("if(!img || img.tagName !== 'IMG') return;", "if(!img || img.tagName !== 'IMG' || img.__kilPh) return;").replace("img.removeAttribute('srcset'); img.src = PH;", "img.__kilPh = 1; img.removeAttribute('srcset'); img.src = PH;");
+  assert.notEqual(flagged, shell);
+  const e = env(); vm.runInContext(block(flagged), e.ctx); const ra = img('https://images.ra.co/abc.jpg');
+  e.listeners.error.fn({ target: ra }); assert.equal(ra.src, PH); ra.src = 'https://images.ra.co/abc.jpg'; e.listeners.error.fn({ target: ra });
+  assert.equal(ra.src, 'https://images.ra.co/abc.jpg', 'the flagged version leaves it broken: the real code does not');
 });
 
 test('the sweep after load catches outside images that already failed; working images, SVGs, same-site and not-yet-loaded ones are skipped', () => {

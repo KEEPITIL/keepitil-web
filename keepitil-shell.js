@@ -325,16 +325,18 @@
   }catch(e){ __kilMountAnalytics(); }
   /* BROKEN OUTSIDE PICTURES (Grok 2026-11-24). Imported events and profiles hotlink pictures from other sites; images.ra.co now answers 403, so thumbnails showed as
      broken-image icons (10 on one profile page, 1 on the home page). Any <img> whose address is on ANOTHER host and fails to load is swapped, once, for our own placeholder
-     (assets/images/event-placeholder.svg). Same-site and data: images are never touched. A capture-phase listener sees every image, including ones added later; a sweep after
+     (assets/images/event-placeholder.svg), every time it fails (including when a page script sets the outside address again). Same-site and data: images are never touched. A capture-phase listener sees every image, including ones added later; a sweep after
      load catches the ones that failed before this script ran. tests/img-placeholder.test.cjs covers both. */
   (function(){
     var PH = '/assets/images/event-placeholder.svg';
     function outside(src){ try{ var u = new URL(src, location.href); return (u.protocol === 'https:' || u.protocol === 'http:') && u.host !== location.host; }catch(e){ return false; } }
     function swap(img){
       try{
-        if(!img || img.tagName !== 'IMG' || img.__kilPh) return;
+        if(!img || img.tagName !== 'IMG') return;
         var s = img.currentSrc || img.getAttribute('src') || ''; if(!s || !outside(s)) return;
-        img.__kilPh = 1; img.removeAttribute('srcset'); img.src = PH; img.classList.add('kil-img-ph');
+        /* No "already swapped" flag on purpose: a page script may put the outside address back (the event page does: _im.src=_u), and that must be swapped AGAIN.
+           It cannot loop: the placeholder is on our own host, so `outside(s)` is false when it is the one failing. */
+        img.removeAttribute('srcset'); img.src = PH; img.classList.add('kil-img-ph');
       }catch(e){}
     }
     try{ document.addEventListener('error', function(ev){ swap(ev && ev.target); }, true); }catch(e){}

@@ -136,3 +136,58 @@ test("Muse's approved copy is exactly what ships (2026-11-25 5:08), with no upse
   const h = readFileSync(join(root, 'event.html'), 'utf8');
   assert.match(h, /g\.textContent=n\+' going'/, 'the count reads "{N} going"'); assert.doesNotMatch(h, /textContent='.{0,3}'\+n\+' going'/);
 });
+
+/* ---- NEXUS2 notes on #380 (Grok 5:42): phone placement, multi-day cutoff, local "N going" bump, header comment ---- */
+test('cutoff = max(starts_at + 3 h, ends_at): a multi-day event keeps the button until it ends; a short one still hides 3 h after the start; no usable date never hides', () => {
+  const at = (iso) => new Date(iso);
+  const one = { startsAt: '2026-12-01T20:00:00Z' };
+  assert.equal(R.isPast(one, at('2026-12-01T22:59:00Z')), false); assert.equal(R.isPast(one, at('2026-12-01T23:01:00Z')), true);
+  const multi = { startsAt: '2026-12-01T20:00:00Z', endsAt: '2026-12-03T06:00:00Z' };
+  assert.equal(R.isPast(multi, at('2026-12-02T12:00:00Z')), false, 'day 2 of a festival: still shown'); assert.equal(R.isPast(multi, at('2026-12-03T06:01:00Z')), true);
+  const early = { startsAt: '2026-12-01T20:00:00Z', endsAt: '2026-12-01T21:00:00Z' };
+  assert.equal(R.isPast(early, at('2026-12-01T22:30:00Z')), false, 'a 1 h event: start + 3 h still wins'); assert.equal(R.isPast(early, at('2026-12-01T23:01:00Z')), true);
+  assert.equal(R.isPast({}, at('2030-01-01T00:00:00Z')), false); assert.equal(R.isPast({ startsAt: 'garbage', endsAt: 'x' }, at('2030-01-01T00:00:00Z')), false);
+  assert.equal(R.isPast({ endsAt: '2026-12-01T00:00:00Z' }, at('2026-12-01T01:00:00Z')), true, 'only an end date: used');
+});
+function withGoing(initial) {
+  const s = setup(); const g = s.dom.window.document.createElement('div'); g.id = 'ev-going'; g.style.display = initial == null ? 'none' : 'inline-flex'; if (initial != null) { g.setAttribute('data-n', String(initial)); g.textContent = initial + ' going'; }
+  s.dom.window.document.body.appendChild(g); return { s, g };
+}
+test('your own tap bumps "N going" by one (a hidden 0 badge is revealed as "1 going"); only a real tap bumps; a second tap and a remount never bump again', async () => {
+  const a = withGoing(null); a.s.mount({ going: a.g }); assert.equal(a.g.style.display, 'none'); click(a.s.host, '.rsvp-tap'); await tick();
+  assert.equal(a.g.textContent, '1 going'); assert.equal(a.g.style.display, 'inline-flex'); assert.equal(a.g.getAttribute('data-bumped'), '1');
+  const b = withGoing(5); const c = b.s.mount({ going: b.g }); click(b.s.host, '.rsvp-tap'); c.tap(); c.tap(); await tick(); assert.equal(b.g.textContent, '6 going', 'exactly +1 however many taps');
+  const d = withGoing(5); d.s.mem[R.KEY + EV.slug] = JSON.stringify({ going: 1, sent: 1, email: 0 }); d.s.mount({ going: d.g }); await tick(); assert.equal(d.g.textContent, '5 going', 'NEGATIVE CONTROL: already going on this device = the server number, no bump'); assert.equal(d.g.getAttribute('data-bumped'), null);
+  const e = setup(); e.mount({ going: null }); click(e.host, '.rsvp-tap'); await tick(); assert.equal(e.calls.length, 1, 'a page without a badge still works');
+  const f = withGoing(7); f.s.setMode('reject'); f.s.mount({ going: f.g }); click(f.s.host, '.rsvp-tap'); await tick(); assert.equal(f.g.textContent, '8 going', 'a failed insert keeps the optimistic number, like the confirmation');
+});
+test('event.html: a server count that arrives after your tap shows as server + 1, and it records data-n for the bump', () => {
+  const h = readFileSync(join(root, 'event.html'), 'utf8');
+  assert.match(h, /if\(g && g\.getAttribute\('data-bumped'\)==='1'\) n\+=1; if\(g && n>0\)\{ g\.setAttribute\('data-n',String\(n\)\); g\.textContent=n\+' going';/);
+  assert.match(h, /KilRsvp\.mount\(document\.getElementById\('ev-rsvp'\),\{ev:ev,sb:sb,going:document\.getElementById\('ev-going'\),/);
+});
+function phoneDom(matches) {
+  const dom = new JSDOM('<!doctype html><body><div class="tp-head"><a>Back</a></div><div class="tp-body"><div class="tp-col"><div id="ev-flyer"></div></div><div class="tp-col"><div class="infocard"><h1>Show</h1><div id="ev-going" style="display:inline-flex" data-n="3">3 going</div><div id="ev-rsvp" style="display:none"></div><p class="desc">d</p></div></div></div></body>');
+  const win = dom.window; let listener = null; const mq = { matches, addEventListener: (_, f) => { listener = f; } };
+  globalThis.matchMedia = () => mq; return { dom, doc: win.document, mq, fire: (m) => { mq.matches = m; listener && listener(); } };
+}
+test('PHONE placement: at <= 700 px the button and the badge move into one row between the back button and the flyer (first screen, above the bottom nav); wide screens keep them in the info card; crossing the breakpoint moves them back and forth', () => {
+  const sbOf = (doc) => ({ from: () => ({ insert: () => Promise.resolve({ error: null }) }) });
+  try {
+    const p = phoneDom(true); const host = p.doc.getElementById('ev-rsvp'), going = p.doc.getElementById('ev-going');
+    R.mount(host, { ev: { ...EV, title: 'Show' }, sb: sbOf(p.doc), going, store: setup().store, now: NOW });
+    const row = p.doc.querySelector('.rsvp-row'); assert.ok(row, 'row created'); assert.equal(row.previousElementSibling.className, 'tp-head'); assert.equal(row.nextElementSibling.className, 'tp-body');
+    assert.deepEqual([...row.children].map((c) => c.id), ['ev-rsvp', 'ev-going'].reverse().reverse(), 'button first, badge beside it');
+    p.fire(false); assert.equal(p.doc.querySelector('.rsvp-row'), null, 'back to the info card'); const card = p.doc.querySelector('.infocard');
+    assert.deepEqual([...card.children].map((c) => c.id || c.tagName.toLowerCase()), ['h1', 'ev-going', 'ev-rsvp', 'p'], 'original order restored: badge, button, description'); p.fire(true); assert.ok(p.doc.querySelector('.rsvp-row'));
+    const w = phoneDom(false); R.mount(w.doc.getElementById('ev-rsvp'), { ev: EV, sb: sbOf(w.doc), going: w.doc.getElementById('ev-going'), store: setup().store, now: NOW });
+    assert.equal(w.doc.querySelector('.rsvp-row'), null, 'NEGATIVE CONTROL: wide screen is unchanged'); assert.equal(w.doc.getElementById('ev-rsvp').parentNode.className, 'infocard');
+    const x = new JSDOM('<!doctype html><body><div id="ev-rsvp" style="display:none"></div></body>'); globalThis.matchMedia = () => ({ matches: true, addEventListener() {} });
+    assert.ok(R.mount(x.window.document.getElementById('ev-rsvp'), { ev: EV, sb: sbOf(x.window.document), store: setup().store, now: NOW }), 'no .tp-body: nothing to move, no crash');
+  } finally { delete globalThis.matchMedia; }
+});
+test('the button names its event (starts with the visible words) now that it can sit above the title; the header comment no longer says emails-only', () => {
+  const s = setup(); s.mount({ ev: { ...EV, title: '80s Night' } }); const b = s.host.querySelector('.rsvp-tap'); assert.equal(b.getAttribute('aria-label'), 'I\'m going to 80s Night'); assert.ok(b.getAttribute('aria-label').startsWith(b.textContent));
+  const s2 = setup(); s2.mount({ ev: { slug: 'x', id: 1, startsAt: EV.startsAt } }); assert.equal(s2.host.querySelector('.rsvp-tap').getAttribute('aria-label'), null, 'no title: no label');
+  const src = readFileSync(join(root, 'assets/js/kil-rsvp.js'), 'utf8'); assert.doesNotMatch(src, /counts distinct EMAILS only|not in that number/i); assert.match(src, /after the SQL in keepitil\.github\.io #129/); assert.match(src, /max\(starts_at \+ 3 h, ends_at\)/);
+});

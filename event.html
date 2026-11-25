@@ -145,6 +145,7 @@
   .tix-terms a{color:var(--brand-2);}
   /* one-tap RSVP (assets/js/kil-rsvp.js) */
   .rsvp{margin-top:12px}
+  .rsvp-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:10px 0 12px} .rsvp-row .rsvp,.rsvp-row .going{margin-top:0}
   .rsvp-tap{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 26px;border-radius:999px;border:0;background:var(--green,#22e39b);color:#06120a;font:inherit;font-weight:800;font-size:.9rem;letter-spacing:.04em;cursor:pointer}
   .rsvp-tap:hover{filter:brightness(1.1)} .rsvp-tap:focus-visible,.rsvp-go:focus-visible,.rsvp-save:focus-visible{outline:2px solid #fff;outline-offset:2px}
   .rsvp-done{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:14px;background:rgba(34,227,155,.12);border:1px solid rgba(34,227,155,.4);color:#22e39b} .rsvp-done strong{font-size:1rem} .rsvp-sub{font-size:.8rem;color:#b8c4cf}
@@ -685,9 +686,9 @@
           /* HOST button — only shown once a real organizer resolves (no dead "Host" chip) */
           var _hb=$('ev-host'); if(_hb){ if(x.owner_handle){ _hb.innerHTML='<span style="opacity:.6;font-size:.72rem;letter-spacing:.06em;margin-right:2px">HOST</span> <a href="/profile?slug='+encodeURIComponent(x.owner_handle)+'">'+esc(x.owner_name||x.owner_handle)+'</a>'; _hb.style.display='flex'; } else { _hb.style.display='none'; } }
           /* social proof — "N going" */
-          sb.rpc('get_event_social',{p_slug:ev.slug}).then(function(gr){ var n=(gr&&typeof gr.data==='number')?gr.data:0; var g=$('ev-going'); if(g && n>0){ g.textContent=n+' going'; g.style.display='inline-flex'; } }).catch(function(){});
+          sb.rpc('get_event_social',{p_slug:ev.slug}).then(function(gr){ var n=(gr&&typeof gr.data==='number')?gr.data:0; var g=$('ev-going'); if(g && g.getAttribute('data-bumped')==='1') n+=1; if(g && n>0){ g.setAttribute('data-n',String(n)); g.textContent=n+' going'; g.style.display='inline-flex'; } }).catch(function(){});
           paint(); loadExtras(sb);
-          try{ if(window.KilRsvp) window.KilRsvp.mount(document.getElementById('ev-rsvp'),{ev:ev,sb:sb,track:function(k,slug){ try{ Promise.resolve(sb.rpc('kil_track',{p_kind:'event',p_target_slug:slug,p_event_type:'rsvp'})).catch(function(){}); }catch(_t){} }}); }catch(_rs){}   /* one-tap RSVP: never blocks the page */
+          try{ if(window.KilRsvp) window.KilRsvp.mount(document.getElementById('ev-rsvp'),{ev:ev,sb:sb,going:document.getElementById('ev-going'),track:function(k,slug){ try{ Promise.resolve(sb.rpc('kil_track',{p_kind:'event',p_target_slug:slug,p_event_type:'rsvp'})).catch(function(){}); }catch(_t){} }}); }catch(_rs){}   /* one-tap RSVP: never blocks the page */
           try{ evLanding(sb, x); }catch(_el){}   /* about + share + venue + more-like-this */
           /* organizer on-site announcements (public read) */
           sb.from('event_announcements').select('title,body,active,created_at').eq('event_slug',ev.slug).eq('active',true).order('created_at',{ascending:false}).then(function(ar){

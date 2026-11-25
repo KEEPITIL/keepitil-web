@@ -1,8 +1,10 @@
 /* KEEPITIL one-tap RSVP (event page). ONE tap says "I'm going": the confirmation shows at once and nothing else is required. An email (reminder) and an account are optional afterwards.
-   DATA: one row in public.event_registrations per tap (event_slug, event_id, answers {rsvp:true, source:'one_tap'}; buyer_email and buyer_name stay empty because every column
-   is nullable and the anon INSERT policy already allows it). It never blocks the UI: the confirmation does not wait for the insert, a failed insert is retried once on the next
-   visit, and a device that already tapped sees "going" with no second insert. NOTE: get_event_social ("N going") counts distinct EMAILS only, so a bare tap is not in that number
-   until its SQL is changed (a separate DRAFT, not part of this file); an RSVP with the optional email is counted today.
+   DATA: one row in public.event_registrations per tap (event_slug, event_id, answers {rsvp:true, source:'one_tap', device:<random per-browser id>}; buyer_email and buyer_name stay empty because every
+   column is nullable and the anon INSERT policy already allows it). It never blocks the UI: the confirmation does not wait for the insert, a failed insert is retried once on the next
+   visit, and a device that already tapped sees "going" with no second insert. COUNTING: after the SQL in keepitil.github.io #129, get_event_social ("N going") counts distinct people: an
+   email once, a bare tap once per device, and a tap that later adds an email (same device id) as ONE person. Until #129 is applied the number still counts emails only, so the page
+   also bumps the badge by one locally after your own tap (a server value that arrives later is shown as server + 1 for that tap).
+   "UPCOMING": the button is shown until max(starts_at + 3 h, ends_at), so a multi-day event keeps it.
    COPY: every user-facing string is in COPY below so Muse's copy replaces it without touching logic (the strings now in it are Muse's approved copy, 2026-11-25). */
 (function (root) {
   'use strict';
@@ -10,6 +12,7 @@
     tap: "I'm going",
     done: "You're in - see you there.",
     doneSub: '',                      /* no upsell and no extra line under the confirmation */
+    count: function (n) { return n + ' going'; },
     emailLabel: 'Email me a reminder',
     emailPlaceholder: 'you@email.com',
     emailBtn: 'Remind me',
@@ -55,8 +58,11 @@
   }
 
   function isPast(ev, now) {
-    var t = ev && ev.startsAt ? new Date(ev.startsAt).getTime() : NaN;
-    return !isNaN(t) && t < now.getTime() - 3 * 60 * 60 * 1000;   /* still "tonight" until 3 h after the start */
+    var start = ev && ev.startsAt ? new Date(ev.startsAt).getTime() : NaN;
+    var end = ev && ev.endsAt ? new Date(ev.endsAt).getTime() : NaN;
+    if (isNaN(start) && isNaN(end)) return false;                       /* no usable date: never hide on a guess */
+    var cutoff = Math.max(isNaN(start) ? -Infinity : start + 3 * 60 * 60 * 1000, isNaN(end) ? -Infinity : end);
+    return now.getTime() > cutoff;
   }
 
   function send(sb, rec) {
@@ -73,6 +79,7 @@
     var now = opts.now || new Date();
     if (isPast(ev, now)) { host.style.display = 'none'; return null; }
     var copy = Object.assign({}, COPY, opts.copy || {});
+    var going = opts.going || null;                      /* the "N going" badge element, if the page has one */
     var store = safeStore(opts.store);
     var saved = read(store, ev.slug);
     var device = deviceId(store);
@@ -83,6 +90,7 @@
       host.style.display = '';
       if (!state.going) {
         var b = el(doc, 'button', 'rsvp-tap', copy.tap); b.type = 'button'; b.setAttribute('aria-pressed', 'false');
+        if (ev.title) b.setAttribute('aria-label', copy.tap + ' to ' + ev.title);   /* starts with the visible words; names the event now that the button can sit above its title */
         b.addEventListener('click', tap);
         host.appendChild(b);
         return;
@@ -113,13 +121,39 @@
       if (copy.save) { var a = el(doc, 'a', 'rsvp-save', copy.save); a.href = copy.saveHref; host.appendChild(a); }
     }
 
+    /* the badge: show 'N going' (copy.count) and remember N so the local bump and a late server value agree */
+    function bump() {
+      if (!going) return;
+      var n = parseInt(going.getAttribute('data-n'), 10); if (isNaN(n)) n = 0;
+      going.setAttribute('data-bumped', '1'); going.setAttribute('data-n', String(n + 1));
+      going.textContent = copy.count(n + 1); going.style.display = 'inline-flex';
+    }
+
     function tap() {
       if (state.going) return;                         /* idempotent: a second tap never sends a second row */
-      state.going = true; render();                    /* the confirmation does not wait for the network */
+      state.going = true; render(); bump();                    /* the confirmation does not wait for the network */
       write(store, ev.slug, { going: 1, sent: 0, email: 0 });
       if (typeof opts.track === 'function') { try { opts.track('rsvp_tap', ev.slug); } catch (e) { /* analytics never blocks */ } }
       send(sb, buildRecord(ev, { device: device })).then(function (okk) { if (okk) { state.sent = true; write(store, ev.slug, { going: 1, sent: 1, email: state.email ? 1 : 0 }); } });
     }
+
+    /* PHONES (<= 700 px): the flyer is taller than the first screen, so the button and the badge sit in one row right under the back button, above the flyer and the fixed bottom nav.
+       Wider screens keep them in the info card. Re-placed when the width crosses the breakpoint (rotation). */
+    var mq = root.matchMedia ? root.matchMedia('(max-width: 700px)') : null, anchor = host.nextElementSibling, home = host.parentNode, rowEl = null;
+    function place() {
+      var body = host.closest ? host.closest('.tp-body') || (rowEl && rowEl.nextElementSibling) : null;
+      if (mq && mq.matches) {
+        if (!body || !body.parentNode) return;
+        if (!rowEl) { rowEl = el(doc, 'div', 'rsvp-row'); }
+        if (rowEl.parentNode !== body.parentNode || rowEl.nextElementSibling !== body) body.parentNode.insertBefore(rowEl, body);
+        rowEl.appendChild(host); if (going) rowEl.appendChild(going);
+      } else if (rowEl && rowEl.parentNode) {
+        if (going) home.insertBefore(going, anchor); home.insertBefore(host, anchor);
+        rowEl.parentNode.removeChild(rowEl);
+      }
+    }
+    place();
+    if (mq && mq.addEventListener) mq.addEventListener('change', place);
 
     render();
     if (state.going && !state.sent) {                  /* a tap whose insert failed last time: one quiet retry */

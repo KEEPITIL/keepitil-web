@@ -366,6 +366,16 @@ footer a{color:var(--accent2);}
   .pf-subs{padding:8px}
   .pf-subs button{padding:6px 12px;font-size:.63rem}
 }
+
+/* CLS (phones only; desktop has its own block above): reserve the space late content fills so the blocks below it do not jump. Measured in real Chrome at 390.
+   Nothing is hidden. The about/links block that appears ABOVE the buttons on long profiles still pushes them down (see the PR), and the shell's late
+   body/main offset on a not-found page is keepitil-shell.js, not this file. */
+@media(max-width:768px){
+  .pf-meta{min-height:172px}
+  .pf-panel.active{min-height:260px}
+  .mono{min-height:282px}
+  main#main{min-height:100vh}
+}
 </style>
 <style id="kil-feedv2">
 /* ===== FEED v2 — 9:16 universal cards, video, IG-style create, legend, events hub ===== */

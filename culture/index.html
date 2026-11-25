@@ -20,8 +20,9 @@
 <link rel="canonical" href="https://keepitil.com/culture/"/>
 <!-- The player is a YouTube iframe; opening those connections during page load rather
      than at first swipe removes a DNS+TLS round trip from the moment of playback. -->
-<link rel="preconnect" href="https://www.youtube.com" crossorigin/>
-<link rel="preconnect" href="https://i.ytimg.com" crossorigin/>
+<script>/* Warm the video connection only for visitors who did NOT send Global Privacy Control / Do Not Track (those get click-to-load and no early contact with Google). Same check as keepitil-shell.js (__kilOptedOut). */
+(function(){var o=false;try{o=navigator.globalPrivacyControl===true||navigator.doNotTrack==='1'||navigator.doNotTrack==='yes'||window.doNotTrack==='1'||navigator.msDoNotTrack==='1';}catch(e){}
+if(!o){['https://www.youtube-nocookie.com','https://i.ytimg.com'].forEach(function(h){var l=document.createElement('link');l.rel='preconnect';l.href=h;l.crossOrigin='';document.head.appendChild(l);});}})();</script>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-purple-nav.png"/>
@@ -2179,13 +2180,30 @@ window.culFetchMedia = culFetchMedia;
     var img = well.querySelector('img'); if(img) img.style.display='block';
     var ov = well.querySelector('.kil-vid-play'); if(ov) ov.style.display='';
   }
+  /* YouTube privacy-enhanced mode: the same player from youtube-nocookie.com (no YouTube cookies until the video plays). The postMessage origin check below already accepts it. */
+  function kilNoCookie(u){ return String(u).replace(/^https:\/\/(www\.)?youtube\.com\/embed\//i, 'https://www.youtube-nocookie.com/embed/'); }
+  function kilOptedOut(){   /* same check as keepitil-shell.js __kilOptedOut(); a test keeps them identical */
+    try{ if(navigator.globalPrivacyControl === true) return true; }catch(e){}
+    try{ if(navigator.doNotTrack === '1' || navigator.doNotTrack === 'yes' || window.doNotTrack === '1' || navigator.msDoNotTrack === '1') return true; }catch(e){}
+    return false;
+  }
+  /* click-to-load: show the card's play button (the thumbnail stays) and mount the player on the first tap */
+  function armTap(card){
+    var well = card.querySelector('.kil-vid-well'); if(!well) return;
+    var ov = well.querySelector('.kil-vid-play'); if(ov) ov.style.display='';
+    if(card.__kilArmed) return; card.__kilArmed = 1;
+    well.addEventListener('click', function(ev){ ev.preventDefault(); card.__kilTapped = 1; if(current === card) current = null; play(card); }, { once:true });
+  }
   function play(card){
     if(!card) return;
     if(current && !document.contains(current)) current = null;   /* survived a repaint */
     if(card === current) return;
+    /* GPC / DNT visitors (Grok 2026-11-24): no player, so no contact with YouTube or Google ads, until they tap the card. Everyone else keeps the muted autoplay below. */
+    if(kilOptedOut() && !card.__kilTapped){ armTap(card); return; }
     stop(current); current = card;
     var url = card.getAttribute('data-embed'); if(!url) return;
     if(window.KilSafeHtml){ url = KilSafeHtml.safeNavUrl(url); if(!url) return; }
+    url = kilNoCookie(url);
     var well = card.querySelector('.kil-vid-well'); if(!well || well.querySelector('iframe')) return;
     var f = document.createElement('iframe');
     f.title = 'KEEPITIL culture video player';   /* a11y: every iframe needs an accessible name */

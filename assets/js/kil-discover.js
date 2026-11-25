@@ -629,12 +629,13 @@
   async function safe(p) { try { return await p; } catch (e) { return { data: null, error: e }; } }
   function ok(r) { return !!r && !r.error; }
 
-  async function load(client, cfg, now) {
+  /* knownGeos: city_geo rows already fetched by the caller (the /discover/ index loads them once, in parallel with the city rows); omit it and load() fetches city_geo itself. */
+  async function load(client, cfg, now, knownGeos) {
     now = now || new Date();
     var ev = await safe(buildEventsQuery(client, now.toISOString(), cfg.cityExact));
     if (!ok(ev)) return { failed: true, now: now };
-    var geo = await safe(client.from('city_geo').select('city,state,county,tz'));
-    var geos = ok(geo) ? (geo.data || []) : [];
+    var geos = knownGeos;
+    if (!Array.isArray(geos)) { var geo = await safe(client.from('city_geo').select('city,state,county,tz')); geos = ok(geo) ? (geo.data || []) : []; }
     var tz = tzFromGeo(geos, cfg.cityName, cfg.state, cfg.fallbackTz || 'America/Los_Angeles');
     var part = prepare(ev.data || [], {
       now: now, tz: tz, city: cfg.city, state: cfg.state, genre: cfg.genre || ''
@@ -744,7 +745,7 @@
   /* /discover/ index: list every city that has published upcoming events; #city=... opens that city's events below the list. */
   function mountCities(citiesEl, listsEl, cfg) {
     if (!citiesEl || !listsEl) return;
-    var client = null, cities = [];
+    var client = null, cities = [], geos = null;   /* city_geo, fetched once by run() and reused by every city view */
     function mk() {
       if (client) return client;
       if (!root.supabase || !root.supabase.createClient) return null;
@@ -760,17 +761,18 @@
       listsEl.innerHTML = '<p class="disc-loading">Loading published events\u2026</p>';
       var cfg2 = { city: citySlug(sel.city), cityName: sel.city, state: sel.state, cityExact: sel.city, view: 'hub', genre: '', noMeta: true,
         cityHref: '/discover/#city=' + encodeURIComponent(sel.city) + (sel.state ? '&state=' + encodeURIComponent(sel.state) : ''), fallbackTz: cfg.fallbackTz || 'America/Los_Angeles' };
-      var result = await load(c, cfg2, new Date());
+      var result = await load(c, cfg2, new Date(), geos);
       draw(listsEl, cfg2, result, '');
     }
     async function run() {
       citiesEl.innerHTML = '<p class="disc-loading">Loading cities\u2026</p>';
       var c = mk();
       if (!c) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
-      var r = await loadCityRows(c, new Date().toISOString());
+      var both = await Promise.all([loadCityRows(c, new Date().toISOString()), safe(c.from('city_geo').select('city,state,county,tz'))]);   /* one round trip, not two in a row */
+      var r = both[0], geo = both[1];
       if (r.failed) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
-      var geo = await safe(c.from('city_geo').select('city,state,county,tz'));
-      cities = cityList(r.rows, cfg.fallbackTz, ok(geo) ? (geo.data || []) : []);
+      geos = ok(geo) ? (geo.data || []) : [];   /* city_geo failing is not fatal: tzFromGeo falls back to the LA timezone */
+      cities = cityList(r.rows, cfg.fallbackTz, geos);
       citiesEl.innerHTML = renderCities(cities, { truncated: r.truncated });
       await openCity();
     }
@@ -837,7 +839,8 @@
     parseCityHash: parseCityHash,
     tzFromGeo: tzFromGeo,
     load: load,
-    mount: mount
+    mount: mount,
+    mountCities: mountCities
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.KilDiscover = api;

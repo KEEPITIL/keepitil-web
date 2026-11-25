@@ -366,6 +366,15 @@ footer a{color:var(--accent2);}
   .pf-subs{padding:8px}
   .pf-subs button{padding:6px 12px;font-size:.63rem}
 }
+
+/* CLS (desktop only; phones are unchanged): reserve the space that late content (the feed, the partner shelf, the bio/about/links block) fills, so nothing below it moves
+   when data arrives. Tuned in real Chrome at 1280: /profile CLS 0.13-0.49 -> under 0.1 on four pages. Space is reserved, nothing is hidden. */
+@media(min-width:769px){
+  .pf-panel.active{min-height:420px}
+  #shelf{min-height:72px}
+  .pf-meta{min-height:224px}
+  main#main{min-height:100vh}
+}
 </style>
 <style id="kil-feedv2">
 /* ===== FEED v2 — 9:16 universal cards, video, IG-style create, legend, events hub ===== */

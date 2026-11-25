@@ -22,6 +22,8 @@ const ORIGIN = 'https://keepitil.com';
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const PAGES = ['index.html', 'results.html', 'listing.html', 'about.html', 'privacy.html', '404.html'];
 const BUSINESS = APP + '/for-business/index.html';
+const BUSINESS_SHA256_BODY = '87565b11eb9533fa76116f446b0421873d3412d5f2f2a1dfa601737a5d0f33bf';   // Grok 2026-11-24 6:40 PM: the page BODY is Find-My-Weed-only (hero, news section, footer, "check" not "verify"); undoing BODY_PAIRS gives the DESC pin below
+const BODY_PAIRS = [["Cannabis marketing by KEEPITIL. We put", "Get your licensed cannabis business found on Find My Weed. We put"], ["KEEPITIL's news section", "our news section"], ["Find My Weed by <a href=\"https://keepitil.com\">KEEPITIL</a> \u00b7 Cannabis marketing services \u00b7 21+ (18+ medical where legal)", "Find My Weed \u00b7 Business listings \u00b7 21+ (18+ medical where legal)"], [">Verify your license to see pricing</a>", ">Check your license to see pricing</a>"], [">Verify your license to see pricing</a>", ">Check your license to see pricing</a>"], ["verify your license and email to see it", "check your license and confirm your email to see it"], [">Verify your license and email to see placement pricing<", ">Check your license and confirm your email to see placement pricing<"], ["Licensed businesses verify once and unlock", "Licensed businesses get checked once and unlock"]];
 const BUSINESS_SHA256_DESC = '51c079a82a1122b2d412b9130da00d69a4a58fbd9eeb6957406b692e0cdd58d9';   // Grok/KODE 2026-11-24: og:description + meta description are Find-My-Weed-only ("List your licensed cannabis business on Find My Weed so nearby customers can find you."); undoing DESC_PAIRS gives the TITLE pin below
 const DESC_PAIRS = [["og:description\" content=\"Put your cannabis brand across the KEEPITIL network. Pricing is shown to licensed businesses after a license check.\"", "og:description\" content=\"List your licensed cannabis business on Find My Weed so nearby customers can find you.\""], ["<meta name=\"description\" content=\"Find My Weed by KEEPITIL puts your cannabis brand across our network: menu rotation on our email and social channels, monthly recaps, and add-on marketing services. Pricing is shown to licensed businesses after a license check.\">", "<meta name=\"description\" content=\"List your licensed cannabis business on Find My Weed so nearby customers can find you.\">"]];
 const BUSINESS_SHA256_TITLE = 'aee2783ffee98e7c71100927a4826d93e1cbba8b60151df9189945b701706173';   // Grok 2026-11-24 6:02 PM: title + og:title = "List Your Business \u00b7 Find My Weed"; undoing TITLE_PAIRS gives the NOCOMP pin below
@@ -185,9 +187,13 @@ test('for-business/: the #201 bytes minus the M201-1 robots meta and the commiss
   assert.deepEqual(fs.readdirSync(path.join(ROOT, APP, 'for-business')), ['index.html']);
   const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
   const biz = fs.readFileSync(path.join(ROOT, BUSINESS));
-  assert.equal(sha(biz), BUSINESS_SHA256_DESC, BUSINESS + ' changed (if it changed on purpose, update the pin)');
-  // the description change is the newest edit: undoing it gives the TITLE pin
-  let preDesc = biz.toString('utf8'); for (const [prev, now] of [...DESC_PAIRS].reverse()) preDesc = preDesc.replace(now, () => prev);
+  assert.equal(sha(biz), BUSINESS_SHA256_BODY, BUSINESS + ' changed (if it changed on purpose, update the pin)');
+  // the body rebrand is the newest edit: undoing it gives the DESC pin (a pair listed twice undoes two occurrences)
+  let preBody = biz.toString('utf8'); for (const [prev, now] of [...BODY_PAIRS].reverse()) preBody = preBody.replace(now, () => prev);
+  assert.equal(sha(preBody), BUSINESS_SHA256_DESC);
+  assert.doesNotMatch(biz.toString('utf8'), /KEEPITIL/, 'the body is Find-My-Weed-only (case-sensitive: the keepitil.com URLs stay)'); assert.doesNotMatch(biz.toString('utf8'), /verif/i, 'no verify wording');
+  // the description change is the next one back: undoing it gives the TITLE pin
+  let preDesc = preBody; for (const [prev, now] of [...DESC_PAIRS].reverse()) preDesc = preDesc.replace(now, () => prev);
   assert.equal(sha(preDesc), BUSINESS_SHA256_TITLE);
   assert.doesNotMatch(biz.toString('utf8'), /across the KEEPITIL network|Find My Weed by KEEPITIL puts/, 'the descriptions are Find-My-Weed-only');
   // the title change is the next one back: undoing it gives the previous pin

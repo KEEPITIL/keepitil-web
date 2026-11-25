@@ -31,7 +31,7 @@ test('A205: the age line is "21+ (18+ medical where legal)", never a bare 21+ or
   const text = HTML.replace(/<style\b[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ');
   const bare = (t) => /21\+(?! \(18\+ medical where legal\))/.test(t) || /21\+\s*only/i.test(t);
   assert.equal(bare(text), false);
-  assert.match(text, /Cannabis marketing services · 21\+ \(18\+ medical where legal\)/);
+  assert.match(text, /Business listings · 21\+ \(18\+ medical where legal\)/);
   assert.match(text, /Consumers 21\+ \(18\+ medical where legal\) join free\./);
   // NEGATIVE CONTROLS: the launched wording is caught
   assert.equal(bare('Cannabis marketing services · 21+ only'), true);
@@ -50,5 +50,5 @@ test('no FindMyWeed prices or Stripe links on the public for-business page', () 
   assert.doesNotMatch(HTML, /buy\.stripe\.com/);
   const ours = HTML.replace(/<td>\$[^<]*<\/td>|<td>Up to \$[^<]*<\/td>/g, '');
   assert.doesNotMatch(ours, /\$\d/);
-  assert.match(HTML, /href="https:\/\/keepitil\.com\/app\/findmyweed\/signup\.html\?as=business">Verify your license to see pricing</);
+  assert.match(HTML, /href="https:\/\/keepitil\.com\/app\/findmyweed\/signup\.html\?as=business">Check your license to see pricing</);
 });

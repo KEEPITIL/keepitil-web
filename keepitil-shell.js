@@ -692,7 +692,7 @@ window.KIL_NOT_FOUND = function(opts){
   var host = opts.into && document.querySelector(opts.into);
   if(!host) host = document.querySelector('main') || document.body;
   host.innerHTML =
-    '<div class="kil-404" role="status" style="max-width:560px;margin:12vh auto;padding:0 20px;text-align:center">'
+    '<div class="kil-404" role="status" style="max-width:560px;margin:0 auto;padding:12vh 20px;text-align:center">'
     + '<div style="font-size:2.6rem;margin-bottom:10px" aria-hidden="true">🔍</div>'
     + '<h1 style="font-family:\'Bebas Neue\',Inter,sans-serif;font-size:2rem;letter-spacing:.04em;margin:0 0 10px;color:#fff">'
     + (opts.heading || ('That ' + what + ' isn’t here')) + '</h1>'
@@ -1583,6 +1583,8 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     /* The phone bar used to be pushed off-screen here (translateY(220%)). Superseded 2026-09-24:
        the compact bar docks on the bottom nav — see keepitil-radio.js, MOBILE: THE COMPACT BAR. */
     +'@media(max-width:860px){#kil-bnav{display:flex}}'
+    /* The footer is built at DOMContentLoaded. On a short page it would land INSIDE the viewport and shift; keeping <main> at least a screen tall puts it below the fold, where it cannot count (CLS). Desktop: the page already clears the 66px fixed nav with body padding. */
+    +'main{min-height:calc(100vh - 66px)}@media(max-width:860px){main{min-height:100vh}}'
     +'#v3-footer{border-top:1px solid var(--line,rgba(255,255,255,.08));background:var(--bg,#0a0a0f);color:var(--muted,#888);padding:40px 20px;margin-top:56px;font-family:var(--font,Inter,sans-serif);font-size:.85rem;text-align:left}'
     /* FOOTER GAP — Founder 2026-08-19: "there is a gap after the footer section" on Connect and
        Create. Cause: each page reserves room for the fixed bottom nav with its own

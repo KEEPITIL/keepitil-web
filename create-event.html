@@ -293,8 +293,9 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
         </div>
         <div class="card" id="delCard" style="display:none">
           <h3>Delete this event</h3>
-          <div class="note">Removes this event page permanently. An event that has sold tickets cannot be deleted; email info@keepitil.com and we will help.</div>
+          <div class="note">Removes this event page permanently. An event that has sold tickets cannot be deleted; after every ticket is refunded you can hide it from the public instead.</div>
           <button type="button" class="sact del" id="delEventBtn" style="margin-top:12px;background:transparent;border:1px solid #ff6b6b;color:#ff6b6b;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer">Delete event</button>
+          <button type="button" class="sact hide" id="hideEventBtn" style="display:none;margin-top:12px;margin-left:8px;background:transparent;border:1px solid var(--gold,#e0b021);color:var(--gold,#e0b021);border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer">Hide this event</button>
           <div class="msg" id="delMsg" role="status" aria-live="polite"></div>
         </div>
       </div>
@@ -556,11 +557,24 @@ async function deleteThisEvent(){
   try{
     var r=await supa.rpc('delete_event',{p_slug:EDIT_SLUG}); if(r.error) throw r.error;
     var d=(r&&r.data)||{};
-    if(d.error){ m.className='msg err'; m.textContent=d.message||'This event cannot be deleted. Email info@keepitil.com.'; btn.disabled=false; return; }
+    if(d.error){ m.className='msg err'; m.textContent=d.message||'This event cannot be deleted. Email info@keepitil.com.'; btn.disabled=false; if(d.error==='has_sales'){ var hb=$('hideEventBtn'); if(hb) hb.style.display=''; } return; }
     location.href='/dashboard';
   }catch(e){ m.className='msg err'; m.textContent='Could not delete: '+(e.message||e); btn.disabled=false; }
 }
-(function(){ var b=document.getElementById('delEventBtn'); if(b) b.addEventListener('click',deleteThisEvent); })();
+/* A paid event cannot be deleted. Once every ticket is refunded, archive_event (owner-only) hides it from the public and keeps the records;
+   while tickets are active the server refuses and says so. */
+async function hideThisEvent(){
+  var hb=$('hideEventBtn'), m=$('delMsg'); if(!EDIT_SLUG||!hb) return;
+  if(!confirm('Hide this event from the public? Your records and orders are kept.')) return;
+  hb.disabled=true; m.className='msg'; m.textContent='Hiding…';
+  try{
+    var r=await supa.rpc('archive_event',{p_slug:EDIT_SLUG}); if(r.error) throw r.error;
+    var d=(r&&r.data)||{};
+    if(d.error){ m.className='msg err'; m.textContent=d.message||'This event cannot be hidden right now. Email info@keepitil.com.'; hb.disabled=false; return; }
+    m.className='msg ok'; m.textContent='Event hidden. It no longer shows to the public.'; hb.style.display='none'; var db=$('delEventBtn'); if(db) db.style.display='none';
+  }catch(e){ m.className='msg err'; m.textContent='Could not hide: '+(e.message||e); hb.disabled=false; }
+}
+(function(){ var b=document.getElementById('delEventBtn'); if(b) b.addEventListener('click',deleteThisEvent); var h=document.getElementById('hideEventBtn'); if(h) h.addEventListener('click',hideThisEvent); })();
 function esc2(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 async function seriesAction(act, slug, btn){
   var human=(act==='delete')?'delete this date permanently':'hide this date from the public (kept for your records)';

@@ -32,7 +32,7 @@ test("confirm then delete_event for this slug only, then back to the dashboard",
 test("negative controls: declining the confirm calls nothing; a server refusal shows its message and keeps the page", async () => {
   let t = load(); t.ctx.__ok = false; await t.ctx.run();
   assert.equal(t.ctx.calls.length, 0);
-  t = load(); t.ctx.__res = { data: { error: "has_orders", message: "This event has sold tickets." } };
+  t = load(); t.ctx.__res = { data: { error: "has_sales", message: "This event has sold tickets." } };
   await t.ctx.run();
   assert.equal(t.els.delMsg.textContent, "This event has sold tickets.");
   assert.equal(t.els.delEventBtn.disabled, false);

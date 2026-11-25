@@ -345,12 +345,17 @@ $('flyerFile').addEventListener('change',function(){
     cv.width=Math.round(img.width*scale); cv.height=Math.round(img.height*scale);
     cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
     cv.toBlob(function(blob){
-      var path='event-flyers/'+Date.now()+'-'+file.name.toLowerCase().replace(/[^a-z0-9._-]+/g,'-');
-      supa.storage.from('chat-images').upload(path,blob,{contentType:'image/jpeg'}).then(function(r){
-        if(r.error){ alert('Upload failed: '+r.error.message); return; }
-        var pub=supa.storage.from('chat-images').getPublicUrl(path);
-        var url=(pub&&pub.data)?pub.data.publicUrl:'';
-        $('cover_url').value=url; paintFlyer(url);
+      /* the chat-images bucket only accepts uploads into the signed-in user's own folder (first path segment = their user id): <uid>/event-flyers/... Existing files keep their old paths and URLs. */
+      supa.auth.getSession().then(function(sr){
+        var uid=sr&&sr.data&&sr.data.session&&sr.data.session.user?sr.data.session.user.id:'';
+        if(!uid){ alert('Sign in to upload a flyer.'); return; }
+        var path=uid+'/event-flyers/'+Date.now()+'-'+file.name.toLowerCase().replace(/[^a-z0-9._-]+/g,'-');
+        supa.storage.from('chat-images').upload(path,blob,{contentType:'image/jpeg'}).then(function(r){
+          if(r.error){ alert('Upload failed: '+r.error.message); return; }
+          var pub=supa.storage.from('chat-images').getPublicUrl(path);
+          var url=(pub&&pub.data)?pub.data.publicUrl:'';
+          $('cover_url').value=url; paintFlyer(url);
+        });
       });
     },'image/jpeg',.88);
   }; img.src=rd.result; };
@@ -656,6 +661,6 @@ $('form').addEventListener('submit',async function(e){
 init();
 </script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261124e" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
 </body>
 </html>

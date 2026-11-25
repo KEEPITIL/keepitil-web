@@ -33,7 +33,6 @@
     if (r.q) r.county = '';
     return r;
   }
-  function kind(l) { return l.storefront && l.delivery ? C.storefrontAndDelivery : l.delivery ? C.deliveryOnly : C.storefrontOnly; }
   // known === false: the hours are missing or malformed -> "Hours not listed", never "open" (#15)
   function badge(s) {
     if (s.known === false) return el('span', 'badge unknown', C.hoursNotListed);
@@ -328,7 +327,7 @@
       box.appendChild(lg);
     }
     if (m.dots.some(function (d) { return d.kind === 'delivery'; })) box.appendChild(el('p', 'muted map-note', C.mapDeliveryNote));
-    if (m.dropped.length) box.appendChild(el('p', 'muted map-note', C.mapNotShown(m.dropped.length)));
+    if (m.dropped.length + m.skipped) box.appendChild(el('p', 'muted map-note', C.mapNotShown(m.dropped.length + m.skipped)));   // dots + this number = the list's number
     box.hidden = false;
   }
 
@@ -381,6 +380,8 @@
     for (var i = 1; i <= 4; i++) lines.appendChild(el('span', 'ln ln-' + i + (i === 2 && !L[i] ? ' ln-none' : ''), L[i] || ' '));   // no hours data: the slot stays (six lines) but is not shown
     var lic = el('span', 'ln ln-lic'); lic.appendChild(icon('check', 'ck')); lic.appendChild(el('span', null, L[5]));
     lines.appendChild(lic);
+    // the license strip (status + expiry) is the sixth line when there are no hours; with hours the six lines are full, and the listing page carries it
+    if (!L[2]) lines.appendChild(el('span', 'ln ln-strip', F.licenseStripCardText(F.licenseStrip(l), C)));
     a.appendChild(th); a.appendChild(lines); li.appendChild(a);
     var pin = el('button', 'icon-btn pin-btn'); pin.type = 'button';
     pin.setAttribute('aria-label', C.mapShow(l.name)); pin.setAttribute('data-id', l.id); pin.appendChild(icon('pin'));
@@ -636,12 +637,16 @@
       box.appendChild(el('h1', 'name', l.name));
       var meta = el('div', 'row meta');
       if (s.known !== false) meta.appendChild(badge(s));   // no hours data: no badge
-      meta.appendChild(el('span', 'muted', kind(l))); box.appendChild(meta);
+      var pf = F.profileFacts(l, C);   // the card's own facts, read from the same record through the same helpers (kind, county, rating)
+      meta.appendChild(el('span', 'muted pf-kind', pf.kind + (pf.county ? ' \u00b7 ' + pf.county : '')));
+      if (pf.rating) meta.appendChild(el('span', 'muted pf-rating', pf.rating));
+      box.appendChild(meta);
 
       var lic = el('section', 'card'); lic.appendChild(el('h2', null, C.license));
-      lic.appendChild(el('p', 'mono', l.license));
+      lic.appendChild(el('p', 'mono', l.license || C.stripNoNumber));
       if (l.licenseType) lic.appendChild(el('p', 'muted', l.licenseType));
-      lic.appendChild(el('p', 'status', C.licenseStatus(l.licenseStatus)));
+      var strip = F.licenseStrip(l), sp = el('p', 'license-strip', pf.strip);   // status + expiry, from the listing's own fields
+      sp.setAttribute('data-strip', strip.status && strip.expires ? 'full' : 'partial'); lic.appendChild(sp);
       // "License checked on {date}": only with a valid check date; older than F.STALE_DAYS reads as possibly out of date.
       var chk = F.licenseCheck(l, new Date());
       if (chk.show) {
@@ -672,7 +677,7 @@
       // Address per the Privacy page: storefronts in full; delivery-only = city only; missing = said so (F.addressLines)
       var ad = el('section', 'card address'), AL = F.addressLines(l); ad.appendChild(el('h2', null, C.address));
       AL.lines.forEach(function (t) { ad.appendChild(el('p', null, t)); });
-      if (AL.note) ad.appendChild(el('p', 'muted addr-note', AL.note === 'delivery' ? C.addressDeliveryNote : AL.note === 'street' ? C.addressNoStreet : C.addressNone));
+      if (AL.note) ad.appendChild(el('p', 'muted addr-note', AL.note === 'delivery' ? C.addressDeliveryNote : AL.note === 'city' ? C.addressCityNote : AL.note === 'street' ? C.addressNoStreet : C.addressNone));
       box.appendChild(ad);
 
       // No hours data (all of today's listings): no Hours card at all. A card that only says "Hours not listed" is noise; it returns the day a listing has real hours.

@@ -42,6 +42,8 @@ body{background:var(--bg,#0a0a0f);color:var(--text,#f0f0f0);font-family:Inter,sy
 .disc-empty a{color:var(--brand-2,#5cc8ff)}
 .disc-failed{border-color:rgba(255,92,138,.45);background:rgba(255,92,138,.08)}
 .disc-retry,.disc-cta{display:inline-flex;align-items:center;justify-content:center;margin-top:12px;min-height:44px;padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font:700 .9rem/1 Inter,sans-serif;text-decoration:none;cursor:pointer}
+/* CLS: the city / event list arrives after a fetch (23 px "Loading..." -> 1,400 px of cities, 4,100 px of events) and used to push everything below it (Pack for the night, Elsewhere, the footer) up to 4,000 px down while they were on screen. Reserve one screen of height while it loads so those blocks start below the fold; kil-discover.js sets min-height:0 as soon as the real list is drawn, so a short list (or a failed load) collapses to its real height and nothing stays blank. Not applied without JS (the noscript note must not sit in a blank screen). */
+@media (scripting:enabled){.disc-reserve{min-height:100vh}}
 .disc-pack{margin-top:32px}
 .disc-pack h2,.disc-links h2,.disc-scene h2{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:.05em;font-weight:400;margin:0 0 8px;color:#fff}
 .disc-pack p,.disc-links p,.disc-scene p{color:#c5ced8;line-height:1.5;max-width:68ch}

@@ -633,6 +633,7 @@ window.KIL_FILTER_BADGES = function(badges){
 <!-- P0 fix 2026-07-16: hero ships BLANK (skeleton) — live/demo data is applied by JS only.
      A new/empty profile must render a blank, fillable page — never someone else's identity. -->
 <style>@keyframes pfskel{50%{opacity:.45}}.pf-skel{animation:pfskel 1.2s ease-in-out infinite}</style>
+<main id="main">
 <button id="pfBack" onclick="history.back()">‹ Previous</button>
 <div class="pf-cover"><img id="pfCover" src="" alt="" style="display:none" onerror="this.style.display='none'"></div>
 <div class="pf-head">
@@ -828,6 +829,8 @@ window.KIL_FILTER_BADGES = function(badges){
     <div class="shelf" id="shelf"></div>
   </div>
 </div>
+
+</main>
 
 <!-- custom footer removed: the universal shell footer (#v3-footer, same as the homepage) is injected by keepitil-shell.js -->
 <!-- pfFootSocials removed (Founder 2026-07-31): socials/links live only in the header Links row, not duplicated at the bottom of the page -->

@@ -20,3 +20,11 @@ test('venue: one <main> holds the cover and the content; the sticky booking butt
   const old = '<div id="v"><div class="v-cover" id="vCover"></div><main class="wrap">x</main></div><div class="sticky" id="sticky"><button>Request booking</button></div>';
   assert.ok(old.indexOf('id="vCover"') < old.indexOf('<main'), 'old: the cover came before main'); assert.doesNotMatch(old, /role="region"/);
 });
+
+test('venue: a static (off-screen) h1 sits in the loading box before the fetch settles; the shared not-found state replaces it with the real heading (NEGATIVE CONTROL: the old markup has no h1 until data arrives)', () => {
+  const v = R('venue.html');
+  assert.match(v, /<div class="loading" id="loading"><h1 class="vh">Venue<\/h1>/);
+  assert.match(v, /\.vh\{position:absolute/);
+  const old = '<div class="loading" id="loading">Loading venue…</div>';
+  assert.doesNotMatch(old, /<h1/);
+});

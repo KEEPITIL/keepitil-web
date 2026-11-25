@@ -24,6 +24,7 @@ body{background:var(--bg,#0a0a0f);color:var(--text);font-family:var(--font,Inter
 body::before{display:none!important}
 a{color:inherit;text-decoration:none}
 .wrap{max-width:960px;margin:0 auto;padding:0 20px}
+.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .loading{max-width:700px;margin:90px auto;text-align:center;color:var(--muted)}
 /* hero */
 /* VENUE HEADER IS 16:9 (Founder 2026-08-23). A fixed 300px height cropped a 16:9 cover to
@@ -134,7 +135,7 @@ textarea{min-height:90px;resize:vertical}
   <a href="/apply" class="nav-cta">LOGIN</a>
 </div></nav>
 
-<div class="loading" id="loading">Loading venue…</div>
+<div class="loading" id="loading"><h1 class="vh">Venue</h1>Loading venue…</div>
 <main id="v" style="display:none">
   <div class="v-cover" id="vCover"></div>
   <div class="wrap" id="main">

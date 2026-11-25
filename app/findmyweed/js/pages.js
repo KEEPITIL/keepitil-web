@@ -60,11 +60,13 @@
   // "claims" on as well: List Your Business opens the business path there. Nothing here signs anyone in.
   var ACCT = window.FMW_CONFIG && window.FMW_CONFIG.accounts === true, CLAIMS = ACCT && window.FMW_CONFIG.claims === true;
   var SESS = window.FMW_SESSION || {}, SIGNED_IN = ACCT && SESS.signedIn === true;   // js/session.js: a hint about what to draw (the server checks every call)
+  // The 404 page is served at ANY depth (a/b/c.html under the site folder), so its own links must be absolute under basePath; every other page is flat and keeps relative links.
+  var HERE = function (rel) { return page === 'notfound' ? (((window.FMW_CONFIG && window.FMW_CONFIG.basePath) || '') + '/' + rel) : rel; };
   if (ACCT) doc.querySelectorAll('button.signin').forEach(function (b) {
-    var a = el('a', b.className, SIGNED_IN ? C.account : b.textContent); a.href = SIGNED_IN ? 'account.html' : 'signup.html'; b.parentNode.replaceChild(a, b);
+    var a = el('a', b.className, SIGNED_IN ? C.account : b.textContent); a.href = HERE(SIGNED_IN ? 'account.html' : 'signup.html'); b.parentNode.replaceChild(a, b);
     var note = doc.getElementById('signin-note'); if (note && note.parentNode) note.parentNode.removeChild(note);
   });
-  if (CLAIMS) doc.querySelectorAll('a[data-biz]').forEach(function (n) { n.href = 'signup.html?as=business'; });
+  if (CLAIMS) doc.querySelectorAll('a[data-biz]').forEach(function (n) { n.href = HERE('signup.html?as=business'); });
   if (!C.PLACEHOLDER) doc.querySelectorAll('.draft').forEach(function (n) { n.remove(); });
 
   // Icons: inline SVG paths (no image request; CSP img-src stays 'self'), drawn with currentColor.
@@ -139,8 +141,8 @@
         li.appendChild(n); groups[it.group].appendChild(li);
       });
       if (SIGNED_IN) {   // signed in: Account, and Sign out (the account page runs the full server revoke when it is opened with ?signout=1)
-        var ac = el('a', 'pill outline', C.account); ac.href = 'account.html'; ac.setAttribute('data-menu', 'account'); acct.appendChild(ac);
-        var so = el('a', 'pill fill', C.signOut); so.href = 'account.html?signout=1'; so.setAttribute('data-menu', 'signout'); acct.appendChild(so);
+        var ac = el('a', 'pill outline', C.account); ac.href = HERE('account.html'); ac.setAttribute('data-menu', 'account'); acct.appendChild(ac);
+        var so = el('a', 'pill fill', C.signOut); so.href = HERE('account.html?signout=1'); so.setAttribute('data-menu', 'signout'); acct.appendChild(so);
       }
       panel.appendChild(acct);
       if (anySoonAcct) { var note = el('p', 'menu-note muted', C.signInSoon); note.id = noteId; panel.appendChild(note); }

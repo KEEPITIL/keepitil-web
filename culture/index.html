@@ -658,8 +658,6 @@ footer a{color:var(--purple)}
         <div class="gm-h">Type</div>
         <button data-ct="all" class="on" onclick="setCulType('all')">All<small>Public feed from everyone · ranked</small></button>
         <button data-ct="following" onclick="setCulType('following')">Following<small>Profiles you follow</small></button>
-        <button data-ct="followers" onclick="setCulType('followers')">Followers<small>Profiles that follow you</small></button>
-        <button data-ct="circle" onclick="setCulType('circle')">Circle<small>People you follow who follow you back</small></button>
       </div>
       <h2 id="feedNow" style="font-family:var(--fs);font-weight:900;font-size:1.6rem;color:#fff">Feed</h2>
       <div class="feeddd" id="feedDD"><button class="feeddd-btn" id="feedDDBtn" onclick="toggleFeedDD(event)">EXPLORE <span aria-hidden="true">&#9662;</span></button><div class="feeddd-menu" id="feedDDMenu"><button onclick="culSection('feed')">📰 Feed</button><button onclick="culSection('radio')">📻 Radio</button><button onclick="culSection('vs')">⚔️ VS</button><button onclick="culSection('givebacks')">💚 Givebacks</button></div></div>
@@ -1012,11 +1010,9 @@ function applyCulFilters(){
   /* Filter (gear) */
   if(culFilter==='articles'){ rows=rows.filter(function(x){ return x.kind==='article' && CUL_AGENTS[String(x.profile_slug||'').toLowerCase()]; }); }
   else if(culFilter==='user'){ rows=rows.filter(function(x){ return !CUL_AGENTS[String(x.profile_slug||'').toLowerCase()]; }); }
-  /* Type (gear) — all / following / followers / circle */
-  var fg=window.__culFollowing||{}, fr=window.__culFollowers||{};
+  /* Type (gear) — all / following (Followers and Circle are hidden until follower_handles() exists in production) */
+  var fg=window.__culFollowing||{};
   if(culType==='following'){ rows=rows.filter(function(x){ return fg[String(x.profile_slug||'').toLowerCase()]; }); }
-  else if(culType==='followers'){ rows=rows.filter(function(x){ return fr[String(x.profile_slug||'').toLowerCase()]; }); }
-  else if(culType==='circle'){ rows=rows.filter(function(x){ var s=String(x.profile_slug||'').toLowerCase(); return fg[s]&&fr[s]; }); }
   /* Year / month filtering and chronological grouping live in one place so every category
      (ARTICLE, CREATE, VIDEO) gets the same treatment. See the mobile month block below. */
   if(window.__culApplyMonth) rows = window.__culApplyMonth(rows);
@@ -1030,10 +1026,8 @@ function loadCulRelations(){
   sb.rpc('my_profile_slug').then(function(rr){ var me=rr&&!rr.error?rr.data:null;
     sb.auth.getUser().then(function(ur){ var uid=ur&&ur.data&&ur.data.user?ur.data.user.id:null;
       if(uid){ sb.from('follows').select('profile_slug').eq('follower_id',uid).then(function(r){ var m={}; ((r&&r.data)||[]).forEach(function(x){m[String(x.profile_slug).toLowerCase()]=1;}); window.__culFollowing=m; }); }
-      /* Sentinel (2026-11-10 7:25 PM): app_users is no longer readable beyond your own row (production
-         stopgap), so my followers' handles come ONLY from follower_handles() (handles, nothing else).
-         No fallback to reading app_users: it can no longer return anyone else's handle. */
-      if(me){ sb.rpc('follower_handles',{p_profile_slug:me}).then(function(r){ var m={}; ((r&&!r.error&&r.data)||[]).forEach(function(u){ if(u&&u.handle)m[String(u.handle).toLowerCase()]=1; }); window.__culFollowers=m; },function(){ window.__culFollowers={}; }); }
+      /* KEEPITIL 1.0 (Grok 2026-11-24): the Followers and Circle views are hidden. They need public.follower_handles(), which does not exist in production
+         yet (a reviewed draft waits for Grok's GO), so this page makes NO follower_handles call and shows no empty Followers/Circle list. Following still works. */
     });
   }).catch(function(){});
 }

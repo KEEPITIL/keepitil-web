@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const TARGET = '/app/findmyweed/';
-const OLD_TITLE = 'Find My Weed — Cannabis Marketing by KEEPITIL';   // the page title after the brand fix (no run-together name)
+const OLD_TITLE = 'List Your Business \u00b7 Find My Weed';   // the page title (Grok 2026-11-24: "List Your Business · Find My Weed"; it was "Cannabis Marketing by KEEPITIL")
 const STUBS = ['findmyweed.html', 'findmyweed/index.html'];
 const BUSINESS = 'app/findmyweed/for-business/index.html';
 

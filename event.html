@@ -408,6 +408,15 @@
         var done=function(){ cb.textContent='✓ Copied'; setTimeout(function(){ cb.textContent='🔗 Copy link'; },1800); };
         try{ navigator.clipboard.writeText(url).then(done, done); }catch(e){ done(); }
       };
+      /* NATIVE SHARE: where the browser has a share sheet (most phones) a first button opens it; everywhere else the row is unchanged. A cancelled sheet is not an error. */
+      try{ if(typeof navigator.share==='function'){
+        sh.insertAdjacentHTML('afterbegin','<button type="button" id="ev-share-native">↗ Share</button>');
+        $('ev-share-native').onclick=function(){
+          navigator.share({title:ev.title, text:ev.title+(ev.date?(' — '+fmt(ev.date)):''), url:url}).catch(function(err){
+            if(!err || err.name!=='AbortError'){ var c=$('ev-copy'); if(c) c.click(); }
+          });
+        };
+      } }catch(_n){}
     }
 
     /* ---- VENUE + OTHER EVENTS THERE ----

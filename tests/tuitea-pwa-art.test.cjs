@@ -1,7 +1,8 @@
 'use strict';
 // Run: node --test tests/tuitea-pwa-art.test.cjs
 // The TUITEA installed-app icons (PWA manifest + apple-touch icon) must be the owner's gold-tree art, not the green "T" placeholder (Joe's every-app-branded rule; Grok 2026-11-24).
-// Tests 1-3 are RED on purpose until Muse/Echo's art is installed with tools/install-tuitea-pwa-art.cjs; tests 4-9 test the installer itself with generated PNGs and are green now.
+// Decision (Grok 2026-11-24, option a): the PWA icons are the OWNER-PINNED leaf-and-sparkles bytes from thrive-app assets/brand/site_shell/ (hashes in thrive-app assets/brand/BRAND_MANIFEST.json), installed with tools/install-tuitea-pwa-art.cjs. The gold-tree PWA art is cancelled.
+// Tests 1-3 fail if a green-T placeholder is referenced again; test 3b pins the exact owner bytes; tests 4-9 test the installer itself with generated PNGs.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -35,10 +36,23 @@ test('2. the four installed icon files are not the green T placeholder', () => {
   assert.deepEqual(INSTALLED.filter((p) => GREEN_T.has(sha(rd(p)))), []);
 });
 
-test('3. once the gold-tree art is installed, brand/tuitea/pwa-art.json pins every installed file (sha256, size)', () => {
+test('3. brand/tuitea/pwa-art.json pins every installed file (written by the installer; was: brand/tuitea/pwa-art.json pins every installed file (sha256, size))', () => {
   assert.ok(fs.existsSync(path.join(root, 'brand/tuitea/pwa-art.json')), 'brand/tuitea/pwa-art.json is written by the installer');
   const pin = JSON.parse(rd('brand/tuitea/pwa-art.json').toString());
   for (const p of INSTALLED) { assert.ok(pin.files[p], p + ' is pinned'); assert.equal(sha(rd(p)), pin.files[p].sha256, p + ' changed since it was pinned'); }
+});
+
+// owner-pinned: thrive-app assets/brand/BRAND_MANIFEST.json (site_shell derivatives of TUITEA_app_icon_2026-10-08.webp)
+const OWNER = {
+  'app/tuitea/icon-192.png': '3011290dae764b8829782874929223833cede7a416369df4ae60080095ae66ad',
+  'app/tuitea/icon-512.png': 'a21365c7e49a7bff3fd3f8cbd010e5bb11156fc52e0d7b1ea9f20c1e21d7dfab',
+  'app/tuitea/icon-maskable-512.png': 'a21365c7e49a7bff3fd3f8cbd010e5bb11156fc52e0d7b1ea9f20c1e21d7dfab',
+  'app/tuitea/apple-touch-icon.png': 'abefa623d3a1a2fc6d2fdd9a5385aaf94af1eda83da6a969606574776abbba98',
+};
+test('3b. the four PWA icons are exactly the owner-pinned bytes, and the installed web app (app/tuitea/app/icons) uses the same 192 art', () => {
+  for (const [p, h] of Object.entries(OWNER)) assert.equal(sha(rd(p)), h, p + ' is not the owner-pinned art');
+  assert.equal(sha(rd('app/tuitea/app/icons/Icon-192.png')), OWNER['app/tuitea/icon-192.png'], 'the web app and the site shell agree');
+  const m = JSON.parse(rd('app/tuitea/manifest.webmanifest').toString()); assert.deepEqual(m.icons.map((i) => i.src), ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png']);
 });
 
 // ---- the installer, with generated PNGs (never touches the repo: --root points at a temp dir)
@@ -50,7 +64,9 @@ function png(w, h, { alpha = false, seed = 1 } = {}) {
   const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = alpha ? 6 : 2;
   return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(Buffer.concat(rows))), chunk('IEND', Buffer.alloc(0))]);
 }
-const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'tuitea-art-'));
+const made = [];
+const tmp = () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'tuitea-art-')); made.push(d); return d; };
+test.after(() => { for (const d of made) fs.rmSync(d, { recursive: true, force: true }); });
 function run(args, cwd) { return spawnSync(process.execPath, [path.join(root, 'tools/install-tuitea-pwa-art.cjs'), ...args], { encoding: 'utf8', cwd }); }
 function inputs(dir, over = {}) {
   const f = { 'icon-512': png(512, 512, { seed: 2 }), 'maskable-512': png(512, 512, { seed: 3 }), 'apple-touch-180': png(180, 180, { seed: 4 }), 'icon-192': png(192, 192, { seed: 5 }), ...over };

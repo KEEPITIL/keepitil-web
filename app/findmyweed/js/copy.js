@@ -210,7 +210,7 @@
     menuNote: 'Opens the business’s own site. The business checks ID there: 21+ (18+ medical where legal). Find My Weed does not check ID.',
     noMenu: 'No menu link yet.',
     claim: 'Claim this listing',
-    claimSoon: 'Coming soon: business owners will be able to claim and update their listing.',
+    claimNote: 'Own this business? Sign up and we will confirm you own it.',
     // "Report a problem with this listing" (W3r). No reporter identity is asked for or kept. While the reports queue is
     // not live (DRAFT SQL, not applied) the form checks the input and says plainly that nothing was sent.
     report: 'Report a problem',

@@ -106,7 +106,7 @@
       // AFTER a verified license pass (anonymous check): no prices yet. Prices and payment links come ONLY from the server
       // (fmw.business_pricing, migration 20261123030000) once the emailed link has signed the business in with a confirmed
       // email AND the license check is recorded as verified for that account. No price or payment link is in this file.
-      verifiedNote: 'License checked. Confirm your email to see pricing.',
+      verifiedNote: 'License checked. Confirm your email, then we\'ll confirm you own this business.',
       sentBusiness: 'Open the link on this device. Your pricing shows once your email is confirmed.',
       pricingLoading: 'Checking your license and email\u2026',
       pricingTitle: 'Your pricing',

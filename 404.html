@@ -223,12 +223,12 @@ html[data-fmw] a{color:#0a7a33}
 })();
 </script>
 </head><body>
-<main class="wrap" id="fmwfourohfour" style="display:none">
+<div class="wrap" id="fmwfourohfour" style="display:none">
   <div class="fmw-logo">Find <span>My</span> Weed</div>
   <h1 style="font-size:2rem;margin:0 0 6px">Page not found</h1>
   <p style="color:#9aa;margin:0 0 20px;max-width:460px">That Find My Weed page doesn't exist, or it moved.</p>
   <a class="fmw-back" href="/app/findmyweed/">Back to Find My Weed</a>
-</main>
+</div>
 <main class="wrap" id="fourohfour" style="display:none">
   <h1 style="font-size:2rem;margin:0 0 6px">Page not found</h1>
   <p style="color:#9aa;margin:0 0 20px;max-width:460px">That link doesn't exist, or it moved. Here's everything on KEEPITIL:</p>
@@ -251,6 +251,7 @@ html[data-fmw] a{color:#0a7a33}
 </main>
 <script>
 /* only reveal the 404 message if the router didn't redirect */
-if(document.documentElement.getAttribute('data-nomatch')){ document.getElementById(document.documentElement.getAttribute('data-fmw') ? 'fmwfourohfour' : 'fourohfour').style.display='flex'; }
+/* exactly one main landmark: the box that is revealed gets role=main (the FMW one is a div until then) */
+if(document.documentElement.getAttribute('data-nomatch')){ var box=document.getElementById(document.documentElement.getAttribute('data-fmw') ? 'fmwfourohfour' : 'fourohfour'); box.setAttribute('role','main'); box.style.display='flex'; }
 </script>
 </body></html>

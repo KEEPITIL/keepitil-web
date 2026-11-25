@@ -1665,6 +1665,10 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
        Placed AFTER the footer rules above on purpose: the ≤860px legal rule sets min-height:34px
        at the same specificity, and the later rule wins. The brand link keeps its look; the extra
        hit area comes from padding with an equal negative margin so the footer does not grow. */
+    +'#v3-footer .v3-foot-links a{display:inline-flex;align-items:center;min-height:24px}'
+    +'#v3-footer .v3-foot-social a{min-width:24px;min-height:24px;align-items:center;justify-content:center}'
+    +'#v3-footer .v3-foot-about a.v3-foot-brand{min-height:24px;box-sizing:border-box;padding-top:2px;padding-bottom:2px}'
+    +'#v3shell-nav .v3s-links a{display:inline-flex;align-items:center;min-height:24px}'
     +'@media(pointer:coarse){'
     +  '#v3-footer .v3-foot-legal a{min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center}'
     +  '#v3-footer .v3-foot-about a.v3-foot-brand{min-height:44px;box-sizing:border-box;padding:10px 0;margin:-5px 0}'

@@ -436,7 +436,7 @@
     $('m-desc').setAttribute('content', descTxt);
     $('og-title').setAttribute('content', titledate + ' | KEEPITIL');
     $('og-desc').setAttribute('content', descTxt);
-    if(ev.img) $('og-img').setAttribute('content', ev.img);
+    if(ev.img && !isSvgUrl(ev.img)) $('og-img').setAttribute('content', ev.img);   /* an SVG cover (the placeholder) keeps the template's raster og:image */
     /* Canonical is the CLEAN /event?e=<slug> form, never location.href. Pages serves both
        /event and /event.html, so echoing the requested path would let the two aliases compete
        as separate pages; naming one form consolidates them. This is also byte-identical to what
@@ -508,6 +508,7 @@
      or empty URL. Deriving it from ev.slug on demand has no order to get wrong. */
   function canonFor(slug){ return 'https://keepitil.com/event?e='+encodeURIComponent(slug||''); }
 
+  function isSvgUrl(u){ try{ return new window.URL(String(u),location.href).pathname.toLowerCase().slice(-4)==='.svg'; }catch(e){ return false; } }
   function writeEventLd(tiers){
     var ld={"@context":"https://schema.org","@type":"MusicEvent","name":ev.title,"url":canonFor(ev.slug),"eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode"};
     /* startDate must not be invented. This used to append "T20:00:00-07:00" to every event:
@@ -518,7 +519,7 @@
     if(ev.startsAt) ld.startDate=ev.startsAt;
     else if(ev.date) ld.startDate=ev.date;
     if(ev.endsAt) ld.endDate=ev.endsAt;
-    if(ev.img) ld.image=ev.img;
+    if(ev.img) ld.image=isSvgUrl(ev.img)?'https://keepitil.com/keepitil-og.png':ev.img;
     if(ev.venue) ld.location={"@type":"Place","name":ev.venue,"address":{"@type":"PostalAddress","addressLocality":ev.city||"Los Angeles","addressRegion":"CA","addressCountry":"US"}};
 
     var offers=tierOffers(tiers);

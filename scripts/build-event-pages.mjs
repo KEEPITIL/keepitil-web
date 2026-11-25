@@ -55,7 +55,7 @@ export function renderEventPage(template, row) {
   const ld = { '@context': 'https://schema.org', '@type': 'MusicEvent', name: title, url: canon, eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode' };
   if (row.starts_at) ld.startDate = row.starts_at; else if (date) ld.startDate = date;
   if (row.ends_at) ld.endDate = row.ends_at;
-  if (img) ld.image = img;
+  if (img) ld.image = ogImg || SITE + '/keepitil-og.png';   // JSON-LD image is a raster too: an SVG cover gets the site default
   if (row.venue) ld.location = { '@type': 'Place', name: String(row.venue), address: { '@type': 'PostalAddress', addressLocality: row.city || 'Los Angeles', addressRegion: 'CA', addressCountry: 'US' } };
   ld.organizer = { '@type': 'Organization', name: 'KEEPITIL', url: SITE + '/' };
 

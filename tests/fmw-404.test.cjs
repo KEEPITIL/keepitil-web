@@ -13,7 +13,7 @@ const html = fs.readFileSync(path.join(__dirname, '..', '404.html'), 'utf8');
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
 const router = scripts[0];
 
-function run(pathname) {
+function run(pathname, extra) {
   const attrs = {};
   const shown = [];
   const replaced = [];
@@ -27,6 +27,7 @@ function run(pathname) {
     location: { protocol: 'https:', pathname, search: '', hash: '', replace: (u) => replaced.push(u) },
     sessionStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
   };
+  if (extra && extra.fetch) { ctx.fetch = extra.fetch; document.open = () => extra.log.push('open'); document.write = (h) => extra.log.push(['write', h]); document.close = () => extra.log.push('close'); }
   vm.runInNewContext(router, ctx);
   vm.runInNewContext(scripts[1], ctx);
   return { attrs, shown, replaced, title: document.title };
@@ -74,4 +75,24 @@ test('the FMW 404 uses the Find My Weed LIGHT palette and wordmark, scoped so ev
   assert.match(html, /html,body\{margin:0;height:100%;background:#0a0a0f;color:#eef;/, 'the default page is still the KEEPITIL dark one');
   const rules = html.slice(html.indexOf('/* Find My Weed 404'), html.indexOf('</style>', html.indexOf('/* Find My Weed 404')));
   for (const sel of rules.split('\n').filter((l) => /^[^\/\s]/.test(l)).map((l) => l.split('{')[0])) assert.match(sel, /data-fmw|fmwfourohfour/, 'every palette rule is scoped to the FMW 404: ' + sel);
+});
+
+test('a missing FMW page renders Find My Weed\'s OWN 404 page in place (title, header, menu); the address stays; every other path never fetches it', async () => {
+  const fmw404 = fs.readFileSync(path.join(__dirname, '..', 'app', 'findmyweed', '404.html'), 'utf8');
+  assert.match(fmw404, /<title>[^<]*Find My Weed<\/title>/); assert.match(fmw404, /<header class="top">/); assert.match(fmw404, /id="menu-btn"/); assert.match(fmw404, /data-page="notfound"/);
+  const calls = [], log = [];
+  const fetchStub = async (u, o) => { calls.push([u, o]); return { ok: true, text: async () => fmw404 }; };
+  const r = run('/app/findmyweed/no-such-page.html', { fetch: fetchStub, log });
+  await new Promise((res) => setImmediate(res));
+  assert.deepEqual(r.replaced, [], 'no redirect: the address stays');
+  assert.deepEqual(calls.map((c) => c[0]), ['/app/findmyweed/404.html'], 'it fetches the FMW 404 page, same origin, no-store');
+  assert.deepEqual(log.map((x) => (Array.isArray(x) ? x[0] : x)), ['open', 'write', 'close']);
+  assert.equal(log[1][1], fmw404, 'the whole FMW page is what gets rendered');
+  // NEGATIVE CONTROLS: other paths never fetch it; a failed or non-404 answer leaves the panel; no fetch support leaves the panel
+  const other = []; const c2 = [], l2 = [];
+  run('/some/other/missing', { fetch: async (u) => { other.push(u); return { ok: true, text: async () => fmw404 }; }, log: l2 }); await new Promise((res) => setImmediate(res));
+  assert.deepEqual(other, [], 'the KEEPITIL 404 elsewhere is untouched'); assert.deepEqual(l2, []);
+  const bad = []; run('/app/findmyweed/x', { fetch: async () => ({ ok: false, text: async () => '' }), log: bad }); await new Promise((res) => setImmediate(res)); assert.deepEqual(bad, [], 'a failed fetch leaves the panel');
+  const wrong = []; run('/app/findmyweed/x', { fetch: async () => ({ ok: true, text: async () => '<html>not it</html>' }), log: wrong }); await new Promise((res) => setImmediate(res)); assert.deepEqual(wrong, [], 'an answer that is not the FMW 404 page is never written');
+  const none = run('/app/findmyweed/x'); assert.deepEqual(none.shown, [['fmwfourohfour', 'flex']], 'without fetch the panel is shown as before'); assert.ok(c2.length === 0);
 });

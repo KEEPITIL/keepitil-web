@@ -3,14 +3,14 @@
    is nullable and the anon INSERT policy already allows it). It never blocks the UI: the confirmation does not wait for the insert, a failed insert is retried once on the next
    visit, and a device that already tapped sees "going" with no second insert. NOTE: get_event_social ("N going") counts distinct EMAILS only, so a bare tap is not in that number
    until its SQL is changed (a separate DRAFT, not part of this file); an RSVP with the optional email is counted today.
-   COPY: every user-facing string is in COPY below so Muse's copy replaces it without touching logic. */
+   COPY: every user-facing string is in COPY below so Muse's copy replaces it without touching logic (the strings now in it are the plain defaults Grok approved on 2026-11-25 until Muse's arrive). */
 (function (root) {
   'use strict';
   var COPY = {   /* TODO(Muse): final copy */
     tap: 'I’m going',
-    done: 'You’re going ✓',
-    doneSub: 'You’re on the list. That’s it, nothing else to do.',
-    emailLabel: 'Want a reminder? Add your email (optional)',
+    done: 'You’re on the list ✓',
+    doneSub: 'Nothing else to do.',
+    emailLabel: 'Want a reminder? Add your email',
     emailPlaceholder: 'you@email.com',
     emailBtn: 'Remind me',
     emailOk: 'Done. We’ll remind you before it starts.',
@@ -20,6 +20,8 @@
     saveHref: '/join'
   };
   var KEY = 'kil_rsvp_v1:';
+  var DEVKEY = 'kil_rsvp_device_v1';
+  var memDevice = null;
 
   function validEmail(s) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(s || '').trim()) && String(s).length <= 254; }
 
@@ -30,8 +32,22 @@
   function read(store, slug) { try { var v = store && store.getItem(KEY + slug); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
   function write(store, slug, obj) { try { if (store) store.setItem(KEY + slug, JSON.stringify(obj)); } catch (e) { /* private mode: the page still confirms */ } }
 
+  /* A random id kept on the device (never derived from the person): both rows of one person (the tap and the optional email follow-up) carry it, so get_event_social can count that person ONCE. */
+  function deviceId(store) {
+    var id = null;
+    try { id = store && store.getItem(DEVKEY); } catch (e) { id = null; }
+    if (id && /^[a-z0-9-]{8,64}$/.test(id)) return id;
+    if (memDevice && !store) return memDevice;
+    try { id = (root.crypto && root.crypto.randomUUID) ? root.crypto.randomUUID() : null; } catch (e) { id = null; }
+    if (!id) { id = ''; for (var i = 0; i < 4; i++) id += Math.random().toString(36).slice(2, 10); id = id.slice(0, 32); }
+    try { if (store) store.setItem(DEVKEY, id); } catch (e) { /* private mode: this page view keeps one id in memory */ }
+    memDevice = id;
+    return id;
+  }
+
   function buildRecord(ev, extra) {
     var rec = { event_slug: String(ev.slug), answers: Object.assign({ rsvp: true, source: 'one_tap' }, extra && extra.answers || {}) };
+    if (extra && extra.device) rec.answers.device = String(extra.device);
     if (ev.id) rec.event_id = ev.id;
     if (extra && extra.email) rec.buyer_email = String(extra.email).trim();
     return rec;
@@ -58,6 +74,7 @@
     var copy = Object.assign({}, COPY, opts.copy || {});
     var store = safeStore(opts.store);
     var saved = read(store, ev.slug);
+    var device = deviceId(store);
     var state = { going: !!(saved && saved.going), sent: !!(saved && saved.sent), email: !!(saved && saved.email) };
 
     function render() {
@@ -85,7 +102,7 @@
           var v = inp.value.trim();
           if (!validEmail(v)) { err.textContent = copy.emailBad; return; }
           go.disabled = true;
-          send(sb, buildRecord(ev, { email: v, answers: { source: 'one_tap_followup' } })).then(function (okk) {
+          send(sb, buildRecord(ev, { email: v, device: device, answers: { source: 'one_tap_followup' } })).then(function (okk) {
             if (okk) { state.email = true; write(store, ev.slug, { going: 1, sent: state.sent ? 1 : 0, email: 1 }); render(); }
             else { go.disabled = false; err.textContent = copy.emailFail; }
           });
@@ -100,16 +117,16 @@
       state.going = true; render();                    /* the confirmation does not wait for the network */
       write(store, ev.slug, { going: 1, sent: 0, email: 0 });
       if (typeof opts.track === 'function') { try { opts.track('rsvp_tap', ev.slug); } catch (e) { /* analytics never blocks */ } }
-      send(sb, buildRecord(ev)).then(function (okk) { if (okk) { state.sent = true; write(store, ev.slug, { going: 1, sent: 1, email: state.email ? 1 : 0 }); } });
+      send(sb, buildRecord(ev, { device: device })).then(function (okk) { if (okk) { state.sent = true; write(store, ev.slug, { going: 1, sent: 1, email: state.email ? 1 : 0 }); } });
     }
 
     render();
     if (state.going && !state.sent) {                  /* a tap whose insert failed last time: one quiet retry */
-      send(sb, buildRecord(ev)).then(function (okk) { if (okk) { state.sent = true; write(store, ev.slug, { going: 1, sent: 1, email: state.email ? 1 : 0 }); } });
+      send(sb, buildRecord(ev, { device: device })).then(function (okk) { if (okk) { state.sent = true; write(store, ev.slug, { going: 1, sent: 1, email: state.email ? 1 : 0 }); } });
     }
     return { state: state, tap: tap };
   }
 
-  var api = { COPY: COPY, KEY: KEY, validEmail: validEmail, buildRecord: buildRecord, isPast: isPast, mount: mount };
+  var api = { COPY: COPY, KEY: KEY, DEVKEY: DEVKEY, deviceId: deviceId, validEmail: validEmail, buildRecord: buildRecord, isPast: isPast, mount: mount };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.KilRsvp = api;
 })(typeof window !== 'undefined' ? window : globalThis);

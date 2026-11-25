@@ -185,7 +185,7 @@
     });
     return ask.then(function (acct) {
       var out = { known: !!acct.known, kind: 'customer', license: null, saved: null, data: null };
-      if (acct.known && acct.state && acct.state !== 'none') { out.kind = acct.state === 'approved' ? 'business' : 'customer'; out.license = businessCard(doc, holder, ctx, acct); checklistCard(doc, holder, ctx, acct); if (acct.state !== 'approved') out.saved = savedCard(doc, holder, ctx); }
+      if (acct.known && acct.state && acct.state !== 'none') { out.kind = acct.state === 'approved' ? 'business' : 'customer'; out.license = businessCard(doc, holder, ctx, acct); checklistCard(doc, holder, ctx, acct); }   // a business in ANY state (pending, not verified, approved) sees no Saved listings card (Grok 2026-11-25: pending matches approved)
       else if (acct.known) {
         out.saved = savedCard(doc, holder, ctx);
         if (claimBiz) { var n = card(doc, T.bizTitle, 'business-unchecked'); n.appendChild(el(doc, 'p', 'muted', T.bizNone)); holder.appendChild(n); }   // said business at sign-up, nothing recorded: no business-only content

@@ -220,7 +220,7 @@
       notfound: { title: 'Page not found · Find My Weed', description: 'This page does not exist. Search state-licensed cannabis businesses on Find My Weed.' },
       // the sign-up page (signup.html, behind site.json "accounts"). Its own words are in js/signup-copy.js.
       signup: { title: 'Account · Find My Weed', description: 'Create a Find My Weed account or sign in with an emailed link. Browsing licensed businesses needs no account.' },
-      terms: { title: 'Terms · Find My Weed', description: 'The terms for using Find My Weed: licensed businesses only, how to report an unlicensed seller, and what Find My Weed is and is not. Draft for counsel review.' },
+      terms: { title: 'Terms · Find My Weed', description: 'The terms for using Find My Weed: licensed businesses only, how to report an unlicensed seller, and what Find My Weed is and is not.' },
       account: { title: 'Your account · Find My Weed', description: 'Your Find My Weed account: who is signed in, and sign out.' },
       strain: { title: 'Strain · Find My Weed', description: 'Facts about a cannabis strain: type, aroma and flavor words, and lineage when known. No effect or medical claims.' },
       help: { title: 'Help · Find My Weed', description: 'Short answers on how Find My Weed works, what a license means, how to report an unlicensed seller, accounts and contact.' },   // DRAFT for Muse; kept out of search results until Muse OKs it

@@ -726,18 +726,21 @@
       }, function () {});
 
       // No hours data (all of today's listings): no Hours card at all. A card that only says "Hours not listed" is noise; it returns the day a listing has real hours.
-      if (F.hoursKnown(l)) {
-        var hr = el('section', 'card'), t = el('table', 'hours'), today = F.localTime(new Date(), l.tz).day;
-        hr.appendChild(el('h2', null, C.hours));
+      // The card is built from ONE function so the owner-supplied hours (below) draw exactly the same card as hours in the data would.
+      var hoursCardFor = function (lh, note) {
+        var hr = el('section', 'card'), t = el('table', 'hours'), today = F.localTime(new Date(), lh.tz).day;
+        hr.setAttribute('data-card', 'hours'); hr.appendChild(el('h2', null, C.hours));
         t.appendChild(el('caption', 'sr', C.hours));
-        F.weekHours(l).forEach(function (h) {
+        F.weekHours(lh).forEach(function (h) {
           var tr = el('tr', h.key === today ? 'today' : null), th = el('th', null, h.day);
           th.scope = 'row';
           if (h.key === today) tr.setAttribute('aria-current', 'date');
           tr.appendChild(th); tr.appendChild(el('td', null, h.text)); t.appendChild(tr);
         });
-        hr.appendChild(t); box.appendChild(hr);
-      }
+        hr.appendChild(t); if (note) hr.appendChild(el('p', 'muted hours-note', note));
+        return hr;
+      };
+      if (F.hoursKnown(l)) box.appendChild(hoursCardFor(l, ''));
 
       var mn = el('section', 'card'), url = F.safeUrl(l.menuUrl); mn.appendChild(el('h2', null, C.menu));
       if (url) {
@@ -748,6 +751,18 @@
       }
       else mn.appendChild(el('p', 'muted', C.noMenu));
       box.appendChild(mn);
+
+      // OWNER-SUPPLIED HOURS (Joe/Grok 2026-11-25): the approved business's own opening hours, read from the server only while site.json "hours" is on (window.FMW_HOURS exists only then) and only when the
+      // data has none. They pass the same checks again (FMW_HOURS_UTIL.usable), then go through the EXISTING logic: F.openState decides the badge, F.weekHours the Hours card. Nothing otherwise, no placeholder.
+      if (window.FMW_HOURS && window.FMW_HOURS_UTIL && !F.hoursKnown(l)) window.FMW_HOURS.forLicense(l.license).then(function (r) {
+        var u = r && r.ok ? window.FMW_HOURS_UTIL.usable(r.data) : { hours: null, note: '' };
+        if (!u.hours) return;
+        var lh = {}; for (var k in l) if (Object.prototype.hasOwnProperty.call(l, k)) lh[k] = l[k]; lh.hours = u.hours;
+        if (!F.hoursKnown(lh)) return;
+        var s2 = F.openState(lh, new Date());
+        if (s2.known !== false) meta.insertBefore(badge(s2), meta.firstChild);
+        box.insertBefore(hoursCardFor(lh, u.note), mn);
+      }, function () {});
 
       // "Claim this listing" is a live link to the business sign-up (signup.html?as=business). The sign-up page itself says
       // what is open and what is not; the claim is confirmed by the team after sign-up, so nothing here promises a price or a result.

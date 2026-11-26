@@ -129,9 +129,21 @@ export async function main(argv = process.argv.slice(2), fetchImpl = fetch) {
   const key = (template.match(/var KEY='(eyJ[A-Za-z0-9._-]+)'/) || [])[1];
   if (!url || !key) throw new Error('could not read the public Supabase URL and anon key from event.html');
   const H = { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' };
-  const list = await fetchImpl(url + '/rest/v1/events?status=eq.published&select=slug&order=starts_at&limit=1000', { headers: H });
-  if (!list.ok) throw new Error('events list failed: HTTP ' + list.status);
-  const slugs = (await list.json()).map((r) => r.slug).filter((s) => typeof s === 'string');
+  // EVERY published event, in pages. The old single request (limit=1000, oldest first) silently dropped everything past the first 1000 rows: 834 published upcoming events (from 2026-12-04 on)
+  // never got a page. PostgREST may also cap a response below the page size, so a page is never taken as "the last one" because it is short: paging stops on an EMPTY page, or a page that adds
+  // no new slug (a server that ignores offset). The order has a tiebreak (slug) so rows with the same start time cannot be skipped or repeated between pages.
+  const PAGE = 1000, MAX_PAGES = 50, seen = new Set(), slugs = [];
+  let offset = 0;   // advances by the rows the server ACTUALLY returned (a capped response must not skip the rows between the cap and the page size)
+  for (let p = 0; p < MAX_PAGES; p++) {
+    const list = await fetchImpl(url + '/rest/v1/events?status=eq.published&select=slug&order=starts_at,slug&limit=' + PAGE + '&offset=' + offset, { headers: H });
+    if (!list.ok) throw new Error('events list failed: HTTP ' + list.status);
+    const raw = await list.json();
+    offset += raw.length;
+    const page = raw.map((r) => r && r.slug).filter((s) => typeof s === 'string');
+    const fresh = page.filter((s) => !seen.has(s));
+    if (!page.length || !fresh.length) break;
+    fresh.forEach((s) => { seen.add(s); slugs.push(s); });
+  }
   const keep = new Set(), skipped = [], changed = [], same = [], rows = [];
   for (const slug of slugs) {
     if (!SLUG_RE.test(slug)) { skipped.push(slug); continue; }

@@ -106,6 +106,10 @@
     return s;
   }
 
+  /* a cover on a host that refuses hotlinking is never requested (assets/js/kil-img-host.js; the card then uses the no-cover layout) */
+  function noDeadHost(u) {
+    try { var H = (typeof module !== 'undefined' && module.exports) ? require('./kil-img-host.js') : root.KilImgHost; return H && u ? H.clean(u) : u; } catch (e) { return u; }
+  }
   function norm(s) {
     return String(s == null ? '' : s)
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -380,7 +384,7 @@
     var when = whenLabel(e, tz);
     var where = [e.venue, e.city].filter(Boolean).join(' · ');
     var labels = genreLabels(e.genres);
-    var cover = safeUrl(e.cover_url);
+    var cover = noDeadHost(safeUrl(e.cover_url));
     var mediaInner = cover
       ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async">'
       : '<span class="disc-dow">' + esc(when ? when.split(' · ')[0] : 'Night') + '</span>';
@@ -467,7 +471,7 @@
     var href = eventHref(e);
     var page = href ? ('https://keepitil.com' + href) : '';
     var ticket = safeUrl(e.source_url);
-    var image = safeUrl(e.cover_url);
+    var image = noDeadHost(safeUrl(e.cover_url));
     var locName = e.venue || e.city || '';
     if (!locName) return null;
     var address = { '@type': 'PostalAddress' };

@@ -33,8 +33,6 @@
   <meta name="twitter:title" content="KEEPITIL — Create Loud. Live Louder."/>
   <meta name="twitter:description" content="KEEPITIL is a culture platform built to discover, connect, create, share and earn through people, events, media and community."/>
   <meta name="twitter:image" content="https://keepitil.com/keepitil-og.png"/>
-  <link rel="preconnect" href="https://images.ra.co"/>
-  <link rel="dns-prefetch" href="https://images.ra.co"/>
   <link rel="preconnect" href="https://images.posh.vip"/>
   <link rel="dns-prefetch" href="https://images.posh.vip"/>
   <link href="/assets/css/fonts.css" rel="stylesheet"/>
@@ -1970,6 +1968,7 @@
   <!-- Scroll-to-top moved into keepitil-shell.js (#kil-top) on 2026-08-15 so it can appear on
        every page from one config instead of being copied per page. Do not re-add it here. -->
 
+  <script src="/assets/js/kil-img-host.js"></script>
   <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script>
   /* ── SUPABASE ── */
@@ -3122,7 +3121,7 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
       var internal=!e.source_url||!/^https?:\/\//i.test(e.source_url);
       return {title:e.title,date:_kld(e.starts_at,e.tz),venue:e.venue||'',city:e.city||'',
         state:e.state||'',county:e.county||'',   /* 2026-08-18: drives the location filter */
-        genre:g||'KEEPITIL',gcat:_cl.gcat,ecat:_cl.ecat,img:e.cover_url||e.img||'',
+        genre:g||'KEEPITIL',gcat:_cl.gcat,ecat:_cl.ecat,img:(window.KilImgHost?window.KilImgHost.clean(e.cover_url||e.img||''):(e.cover_url||e.img||'')),
         ticket:(e.source_url&&!internal)?e.source_url:('/event?e='+encodeURIComponent(e.slug||'')),
         price:'Tickets',pick:!!e.featured,keepitil:internal,slug:e.slug,owner:e.owner_handle||''};
     });

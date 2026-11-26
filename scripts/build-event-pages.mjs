@@ -13,6 +13,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+const IMG_HOST = createRequire(import.meta.url)('../assets/js/kil-img-host.js');   // hosts that refuse hotlinking: no flyer <img> is baked in for them (the page script shows the placeholder)
 
 export const MARKER = '<!-- kil-prerender v1 -->';
 export const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,120}$/;
@@ -43,7 +45,7 @@ export function renderEventPage(template, row) {
   const title = String(row.title || 'KEEPITIL Event');
   const date = localDate(row.starts_at, row.tz);
   const loc = [row.venue, row.city].filter(Boolean).join(', ');
-  const img = safeUrl(row.cover_url);
+  const img = IMG_HOST.clean(safeUrl(row.cover_url));
   // og:image must be a raster: Facebook, X and iMessage ignore SVG, so an SVG cover (the branded event-placeholder.svg every artwork-less event gets) keeps the template default og:image (keepitil-og.png). The page itself still shows the cover.
   const isSvg = (u) => { try { return new URL(u).pathname.toLowerCase().endsWith(".svg"); } catch (e) { return false; } };
   const ogImg = img && !isSvg(img) ? img : null;

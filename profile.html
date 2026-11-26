@@ -870,6 +870,7 @@ window.__pfGate=(function(){
 
 <script src="/assets/js/vendor/qrcode.js"></script>
 <script src="/assets/js/kil-ticket-qr.js"></script>
+<script src="/assets/js/kil-img-host.js"></script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script src="/assets/js/vendor/purify.min.js?v=20261107b"></script>
 <script src="/assets/js/kil-safe-html.js?v=20261107b"></script>
@@ -1205,7 +1206,7 @@ function dbToEv(e,src){
     title:e.title||'Event', venue:e.city||'',
     tags: src==='tickets'?('🎟 Ticket'+(e.qty>1?' ×'+e.qty:'')):(e.genres||(st&&st!=='published'?st:'')),
     tix: src==='tickets'?('/tickets?e='+encodeURIComponent(e.slug||'')):('/event?e='+encodeURIComponent(e.slug||'')),
-    cover:e.cover_url||'', kind:'kil', _src:src, _ts:d?d.getTime():0 };
+    cover:KH(e.cover_url||''), kind:'kil', _src:src, _ts:d?d.getTime():0 };
 }
 /* SINGLE events feed: all event types + my events + my tickets, filterable, newest -> oldest */
 function renderShows(){
@@ -1278,7 +1279,7 @@ function openTicket(i){
   var door=KilTicketQr.payload(t.qr_token);
   var qr='';
   if(door){ var qrDraw=qrcode(0,'M'); qrDraw.addData(door); qrDraw.make(); qr=qrDraw.createDataURL(4,0); }
-  var flyer=t.cover_url?'<img src="'+esc(t.cover_url)+'" alt="" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" onerror="this.style.display=\'none\'">':'';
+  var flyer=KH(t.cover_url)?'<img src="'+esc(KH(t.cover_url))+'" alt="" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" onerror="this.style.display=\'none\'">':'';
   var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';
   ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Your Ticket<button class="kil-mx" onclick="closeModal()">&times;</button></div><div class="kil-mb">'
     +flyer
@@ -1307,7 +1308,7 @@ function toggleAlert(){_alerts=!_alerts;var b=document.getElementById('alertBtn'
     ['$15.99','Kandi Kit','Trade PLUR on the floor','https://www.amazon.com/s?k=kandi+rave+kit&tag=tuitea09-20','https://images.ra.co/233912b5340b79213e16e58647ecd297165d0a52.jpg','linear-gradient(160deg,#201018,#12080d)',true]
   ];
   sh.innerHTML=items.map(function(it){
-    var bg=it[4]?'<img class="bgimg" src="'+it[4]+'" alt="" onerror="this.style.display=\'none\'"><div class="ov"></div>':'';
+    var bg=KH(it[4])?'<img class="bgimg" src="'+it[4]+'" alt="" onerror="this.style.display=\'none\'"><div class="ov"></div>':'';
     var style=it[5]?' style="background:'+it[5]+'"':'';
     var badge=it[6]?'<span class="badge">Amazon</span>':'';
     var cta=it[6]?'Shop on Amazon →':'Open →';
@@ -1325,6 +1326,7 @@ function loadStored(){
   ADDED.chats.forEach(function(c){GT_CHATS.unshift(c);});
 }
 function saveStored(){try{localStorage.setItem(PROFILE_KEY,JSON.stringify(ADDED));}catch(e){}}
+function KH(u){ return (window.KilImgHost&&window.KilImgHost.clean)?window.KilImgHost.clean(u):u; }   /* known-unloadable cover hosts (assets/js/kil-img-host.js) never get a request */
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function storedBody(rec){ return (window.KilSafeHtml && KilSafeHtml.renderStored(rec)) || ''; }
 function safeNav(url){ return (window.KilSafeHtml && KilSafeHtml.safeNavUrl(url)) || ''; }

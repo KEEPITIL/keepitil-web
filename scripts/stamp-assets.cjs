@@ -8,11 +8,12 @@
 const fs = require('fs'), path = require('path'), crypto = require('crypto'), { execSync } = require('child_process');
 const ROOT = path.join(__dirname, '..');
 const SKIP_DIR = /^(node_modules|event|article|app|docs)\//;
+const SKIP_FILE = /^offline\.html$/;   // its scripts are precached by EXACT url in sw.js (no ?v=), so it must not be stamped
 const SKIP_ASSET = /^\/assets\/(css\/nav-reserve\.css|js\/keepitil-(radio|ai|feedback|social)\.js)$|^\/keepitil-shell\.js$/;   // own manual stamps (pinned by tests/shell-a11y.test.cjs, tests/nav-first-paint.test.cjs)
 const REF = /((?:href|src)=")(\/(?:assets|games\/kbeats)\/[^"#?]*?\.(?:css|js))(\?v=[^"]*)?"/g;
 const hash = (file) => crypto.createHash('sha1').update(fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n')).digest('hex').slice(0, 8);
 const tool = /^\?v=h[0-9a-f]{8}$/;
-function pages() { return execSync("git ls-files '*.html'", { cwd: ROOT, encoding: 'utf8' }).split('\n').filter((f) => f && !SKIP_DIR.test(f)); }
+function pages() { return execSync("git ls-files '*.html'", { cwd: ROOT, encoding: 'utf8' }).split('\n').filter((f) => f && !SKIP_DIR.test(f) && !SKIP_FILE.test(f)); }
 function run(check) {
   const bad = []; let changed = 0, refs = 0;
   for (const f of pages()) {

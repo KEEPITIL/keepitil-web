@@ -32,18 +32,18 @@ function createWorker(initialCaches = []) {
 
 test('activation only removes obsolete main-site kil-* caches', async () => {
   const current = [
-    'kil-pwa-v111-20261125a', 'kil-pages-v49', 'kil-assets-v42', 'kil-code-v92',
+    'kil-pwa-v112-20261127a', 'kil-pages-v49', 'kil-assets-v42', 'kil-code-v92',
   ];
   const otherApps = [
     'kwars-v88', 'kwars1-v88', 'tuitea-release-20261023',
     'kai-tarako-v5', 'kmob-cache-v1', 'kode-cache-v1',
     'future-game-cache', 'unrelated-decoy-cache',
   ];
-  const worker = createWorker([...current, ...otherApps, 'kil-code-v88', 'kil-code-v89', 'kil-pages-v45', 'kil-pages-v46', 'kil-pwa-v108-20261120c', 'kil-pwa-v109-20261121a', 'kil-pwa-v110-20261121a', 'kil-pages-v47', 'kil-assets-v41', 'kil-code-v90', 'kil-pages-v48', 'kil-code-v91'].sort());
+  const worker = createWorker([...current, ...otherApps, 'kil-code-v88', 'kil-code-v89', 'kil-pages-v45', 'kil-pages-v46', 'kil-pwa-v108-20261120c', 'kil-pwa-v109-20261121a', 'kil-pwa-v110-20261121a', 'kil-pwa-v111-20261125a', 'kil-pages-v47', 'kil-assets-v41', 'kil-code-v90', 'kil-pages-v48', 'kil-code-v91'].sort());
   let activation;
   worker.handlers.get('activate')({ waitUntil(p) { activation = p; } });
   await activation;
-  assert.deepEqual(worker.deleted.sort(), ['kil-code-v88', 'kil-code-v89', 'kil-pages-v45', 'kil-pages-v46', 'kil-pwa-v108-20261120c', 'kil-pwa-v109-20261121a', 'kil-pwa-v110-20261121a', 'kil-pages-v47', 'kil-assets-v41', 'kil-code-v90', 'kil-pages-v48', 'kil-code-v91'].sort());
+  assert.deepEqual(worker.deleted.sort(), ['kil-code-v88', 'kil-code-v89', 'kil-pages-v45', 'kil-pages-v46', 'kil-pwa-v108-20261120c', 'kil-pwa-v109-20261121a', 'kil-pwa-v110-20261121a', 'kil-pwa-v111-20261125a', 'kil-pages-v47', 'kil-assets-v41', 'kil-code-v90', 'kil-pages-v48', 'kil-code-v91'].sort());
 });
 
 test('root worker does not intercept isolated app requests', () => {

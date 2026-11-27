@@ -21,7 +21,10 @@ button{background:linear-gradient(90deg,#00b4ff,#22e39b);color:#04121b;border:0;
   <img class="x" src="/icon-192.png" alt="KEEPITIL">
   <h1>You&rsquo;re offline</h1>
   <p>Reconnect to load the latest events, scene drops, and the radio. Your app shell is saved — everything comes back the second you&rsquo;re online.</p>
-  <button onclick="location.reload()">Try again</button>
+  <button data-click="kilReload">Try again</button>
 </main>
+<!-- No cache-stamp query on these two: sw.js precaches them by exact URL so this page works with the network off (tests/offline-page.test.cjs keeps the two lists equal). -->
+<script src="/assets/js/kil-actions.js"></script>
+<script src="/assets/js/kil-common-actions.js"></script>
 </body>
 </html>

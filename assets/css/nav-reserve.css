@@ -4,8 +4,14 @@
    With scripting on, collapse the static nav and give the body the padding the shell will give it, so the content is at the same top before and after the shell mounts
    (tests/nav-first-paint.test.cjs measures both with the shell blocked and mounted). With scripting off (@media (scripting: none)) none of this applies and the static nav
    stays visible for no-JS readers and crawlers. A page whose shell leaves the static nav in place (signup.html: the shell nav is off there) opts out with <body data-static-nav>. */
+/* FAILSAFE: collapsed, not display:none, so it can come back. If the shell has not removed the static nav 5s after first paint (its script failed, or the connection is
+   very slow), the animation below reveals it, so a visitor is never left without a nav. max-height + visibility animate in every browser (display does not, in older ones). */
+@keyframes kil-nav-failsafe { to { max-height: 800px; visibility: visible; } }
 @media (scripting: enabled) {
-  body:not([data-static-nav]) #main-nav { display: none; }
+  body:not([data-static-nav]) #main-nav {
+    max-height: 0; overflow: hidden; visibility: hidden; margin: 0; padding: 0; border: 0;
+    animation: kil-nav-failsafe 0.01s linear 5s forwards;
+  }
 }
 @media (scripting: enabled) and (min-width: 861px) {
   body:not([data-static-nav]) { padding-top: 66px; }   /* = keepitil-shell.js: if(!IS_MOBILE) document.body.style.paddingTop='66px' (IS_MOBILE = max-width:860px) */

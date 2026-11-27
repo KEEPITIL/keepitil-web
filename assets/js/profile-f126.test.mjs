@@ -111,7 +111,7 @@ function assertNoDataInHandlers(html, label) {
 function cardCtx() {
   const h = makeCtx({
     PROFILE_SLUG: 'x', PROFILE: { name: 'N', avatar: '/a.png' }, IS_OWNER: false, OWNS: false,
-    CAN_EDIT() { return false; }, safeMedia(u) { return u; },
+    CAN_EDIT() { return false; }, safeMedia(u) { return u; }, KH(u) { return u; },   // KH = the kil-img-host deny-list helper defined earlier in profile.html
     fbToggleLike: null, fbReshare: null, fbSave: null, fbShare: null, postMenu: null
   });
   h.run(line('function esc(s)'));

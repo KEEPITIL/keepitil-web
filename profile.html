@@ -1531,7 +1531,7 @@ function applyProfile(){
     }
   }catch(e){}
   /* the profile "cover" is now the LOCKED BACKGROUND image (editable in Edit Profile) */
-  try{ var _isM=window.matchMedia('(max-width:768px)').matches; var _bg=(_isM&&PROFILE.cover_mobile)?PROFILE.cover_mobile:PROFILE.cover; document.documentElement.style.setProperty('--pf-bg', _bg?("url('"+String(_bg).replace(/'/g,"%27")+"')"):"url('/assets/images/logo-bg.jpg')"); }catch(e){}
+  try{ var _isM=window.matchMedia('(max-width:768px)').matches; var _bg=KH((_isM&&PROFILE.cover_mobile)?PROFILE.cover_mobile:PROFILE.cover);   /* a cover on a no-hotlink host (images.ra.co) falls back to the default backdrop instead of a dead request */ document.documentElement.style.setProperty('--pf-bg', _bg?("url('"+String(_bg).replace(/'/g,"%27")+"')"):"url('/assets/images/logo-bg.jpg')"); }catch(e){}
   var _av=g('pfAvatar'); if(_av){ _av.classList.remove('pf-skel'); if(PROFILE.avatar){ _av.style.display=''; _av.src=PROFILE.avatar; } }
   if(g('pfName')){ var _pn=g('pfName'); if(PROFILE.name) _pn.textContent=PROFILE.name; else _pn.innerHTML='<span class="pf-vh">Loading profile</span>\u00a0'; }   /* a heading is never empty: it carries a visually hidden "Loading profile" label until a name arrives, then the name */
   if(g('pfHandle'))g('pfHandle').textContent=PROFILE.handle?('@'+PROFILE.handle+(PROFILE.location?' · '+PROFILE.location:'')+(PROFILE.pronouns?' · '+PROFILE.pronouns:'')):' ';
@@ -2278,7 +2278,7 @@ function allPosts(){
   GT_ARTICLES.forEach(function(a,i){ out.push({type:postType(a),title:a.t,sub:a.d,media:a.img,mtype:a.mtype||'image',collab:a.collab,hideFeed:a.hideFeed,src:'article',idx:i,pid:a._pid||sigPid(a.t,a.img),body:storedBody(a)}); });
   GAL_IMGS.forEach(function(t,i){ var mt=t[3]||'image'; out.push({type:(mt==='video')?'video':'image',title:t[1],sub:(t[2]?('▶ '+t[2]):''),media:galSrc(t[0]),mtype:mt,collab:null,hideFeed:t[4],src:'photo',idx:i,pid:t[5]||sigPid(t[1],t[0]),body:''}); });
   COLLAB_POSTS.forEach(function(c,i){ var d=c.payload||{}; out.push({type:(d.mtype==='video')?'video':(d.mtype==='image'?'image':'article'),title:d.t||c.title||'Collab',sub:'✦ Collab · @'+c.source_slug,media:d.img||'',mtype:d.mtype||'image',collab:[c.source_slug],hideFeed:false,src:'collab',idx:i,pid:'collab:'+c.id,body:storedBody(d)}); });
-  EVENTS_FEED.forEach(function(e,i){ out.push({type:'event',title:e.title,sub:'',media:e.cover||'',mtype:'image',collab:null,hideFeed:false,src:'event',idx:i,pid:e._pid||('event:'+e.slug),body:'',event:e}); });
+  EVENTS_FEED.forEach(function(e,i){ out.push({type:'event',title:e.title,sub:'',media:KH(e.cover)||'',mtype:'image',collab:null,hideFeed:false,src:'event',idx:i,pid:e._pid||('event:'+e.slug),body:'',event:e}); });
   return out;
 }
 /* Collab READ side — a shared post shows on this profile only after the owner ACCEPTS it. */
@@ -2429,7 +2429,7 @@ document.addEventListener('scroll',function(e){
 },true);
 function eventCardHtml(e,pid){
   var ext=!!e.is_external; var url=e.ticket_url||('/event?e='+encodeURIComponent(e.slug||''));
-  var img=e.cover||'/assets/images/blog-default-744.webp';   // 31 KB copy of blog-default.jpg for this 372px card (the jpg is 232 KB); onerror below falls back to the jpg
+  var img=KH(e.cover)||'/assets/images/blog-default-744.webp';   // 31 KB copy of blog-default.jpg for this 372px card (the jpg is 232 KB); onerror below falls back to the jpg
   var when=''; try{var dt=new Date(e.date); if(!isNaN(dt)) when=dt.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});}catch(x){}
   var tgt=ext?' target="_blank" rel="noopener noreferrer"':'';
   return '<div class="pf-card fbcard evpost" data-pid="'+esc(pid)+'" style="overflow:hidden">'
@@ -3193,7 +3193,7 @@ function loadTagged(){
         var where=[e.venue,e.city].filter(Boolean).join(' · ');
         var amt=o.amount_cents ? '$'+(o.amount_cents/100).toFixed(2) : 'Free';
         var href=e.slug ? '/event?e='+encodeURIComponent(e.slug) : '#';
-        var img=e.cover_url||'';
+        var img=KH(e.cover_url)||'';
         var media = img
           ? '<img class="pfe-bg" src="'+esc(img)+'" alt="" aria-hidden="true" loading="lazy">'
             +'<img class="pfe-img" src="'+esc(img)+'" alt="'+esc(e.title||'')+'" loading="lazy">'

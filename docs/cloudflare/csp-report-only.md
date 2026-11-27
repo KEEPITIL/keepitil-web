@@ -44,8 +44,18 @@ Repo-wide (static markup, excluding `app/`, `apps/`, tests): **227 `onclick=`**,
 
 Migration path, in order of payoff: (1) one delegated `error` listener replaces the ~3,000 image handlers; (2) convert the `onclick=` attributes to `data-act` + one delegated `click` listener per page (the pattern already used in `profile.html` after #476/#481); (3) move the inline `<script>` blocks into versioned files under `assets/js/` (the homepage's 12 are the bulk); (4) only then consider enforcing, using a Cloudflare Worker that adds per-response nonces, or hashes for the few that cannot move.
 
-## Reporting: a decision for Grok
-A report-only header only helps if someone reads the reports. Options (none is set up by this PR): (a) add `report-to` / `report-uri` pointing at a collector (a small Supabase Edge Function we own, or a hosted collector); (b) Cloudflare Page Shield, if the plan includes it; (c) no endpoint: only visible in developers' browser consoles (cheap, but no fleet data). This proposal ships the header **without** an endpoint until one is chosen.
+## Reporting: our own collector (Grok GO 2026-11-27)
+`supabase/functions/csp-report/` is a small Supabase Edge Function that receives the reports. **Not deployed by merging this PR** (deploy and the Cloudflare change are separate steps for Grok / Sentinel).
+- Accepts `POST` with `application/csp-report` (the `report-uri` format) and `application/reports+json` (the Reporting API format). Anything else: 415; other methods: 405; bodies over 8 KB: 413 (checked by `Content-Length` and by bytes actually read); malformed JSON: 400; more than 30 requests a minute per hashed address (per running instance): 429. Success is **204** with an empty body.
+- Writes **one compact JSON log line per violation** and nothing else: `{"t":"csp","ip":"<8 hex>","d":"script-src-elem","b":"https://host/path","u":"https://keepitil.com/profile","s":"","l":0,"c":0,"m":"report"}`. No table, no migration, no cookies. Query strings, fragments and userinfo are stripped from every URL (`document-uri`, `blocked-uri`, `source-file`); `data:`, `blob:` and extension URLs are reduced to their scheme; script samples and the policy text are dropped; at most 10 violations per request. The address is only ever an HMAC with a random per-instance salt (comparable inside one running instance, like the rate limiter), never logged raw.
+- `verify_jwt` off (browsers send reports with no credentials); no CORS (reports are not preflighted).
+- Deploy (needs a GO): `supabase functions deploy csp-report --no-verify-jwt --project-ref ovmqtzjfpzrbzrlkxwgw` (keepitil-prod). Read the reports in the project's Edge Function logs for `csp-report`.
+- Then add these to the Cloudflare rule (still no enforcement): append `; report-uri https://ovmqtzjfpzrbzrlkxwgw.supabase.co/functions/v1/csp-report; report-to csp` to the Report-Only value, and set a second header:
+```text
+Reporting-Endpoints: csp="https://ovmqtzjfpzrbzrlkxwgw.supabase.co/functions/v1/csp-report"
+```
+  (`report-uri` for browsers that only know it, `report-to csp` for those that use the Reporting API.)
+- Tests: `tests/csp-report.test.cjs` (sample Chrome and Reporting API reports, URL stripping, size cap, rate limit, one log line, no raw address in the log). Also run once under Deno (`deno run --allow-net --allow-env supabase/functions/csp-report/index.ts`) with curl: 204 / 204 / 405 / 415 / 413 and the expected two log lines.
 
 ## Verify after applying (read-only)
 ```bash

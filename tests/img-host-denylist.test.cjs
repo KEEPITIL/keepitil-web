@@ -24,7 +24,7 @@ test("discover cards: a denied cover gives the no-cover card (no <img>, no ra.co
   assert.match(good, /<img src="https:\/\/seatgeekimages\.com\/a\.jpg"/);
 });
 test("the pages load the list before they use it, and use it where a cover becomes a picture", () => {
-  for (const f of ["event.html", "profile.html", "index.html", "discover/index.html", "discover/los-angeles/index.html"]) assert.match(read(f), /<script src="\/assets\/js\/kil-img-host\.js"><\/script>/, f);
+  for (const f of ["event.html", "profile.html", "index.html", "discover/index.html", "discover/los-angeles/index.html"]) assert.match(read(f), /<script src="\/assets\/js\/kil-img-host\.js\?v=h[0-9a-f]{8}"><\/script>/, f);
   assert.match(read("event.html"), /ev\.img=KH\(x\.cover_url\|\|ev\.img\)/); assert.match(read("event.html"), /\(KH\(e\.cover_url\)\?/);
   assert.match(read("profile.html"), /var bg=KH\(it\[4\]\)\?/, "the partner shelf images");
   assert.match(read("profile.html"), /cover:KH\(e\.cover_url\|\|''\)/); assert.match(read("profile.html"), /var flyer=KH\(t\.cover_url\)\?/);

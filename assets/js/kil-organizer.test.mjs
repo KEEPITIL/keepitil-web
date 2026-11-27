@@ -69,7 +69,7 @@ test('mount NEGATIVE CONTROLS: signed out, RPC missing/erroring, not_authenticat
 });
 test('dashboard.html wires it: the mount point inside the Events tab, the script, the mount call and the CSS that hides the superseded listings box', () => {
   const h = readFileSync(join(root, 'dashboard.html'), 'utf8');
-  assert.match(h, /<div class="panel on" id="tab-events">[\s\S]*?<div id="org-view"><\/div>/); assert.match(h, /<script src="\/assets\/js\/kil-organizer\.js"><\/script>/);
+  assert.match(h, /<div class="panel on" id="tab-events">[\s\S]*?<div id="org-view"><\/div>/); assert.match(h, /<script src="\/assets\/js\/kil-organizer\.js\?v=h[0-9a-f]{8}"><\/script>/);
   assert.match(h, /KilOrganizer\.mount\(document\.getElementById\('org-view'\), supa\)/); assert.match(h, /\.org-ev a\.ev-title\{color:inherit/, 'the public-page title link is not the browser default blue on the dark page (contrast 2.06)'); assert.match(h, /#tab-events\.org-on #listings\s*\{\s*display:\s*none/);
 });
 

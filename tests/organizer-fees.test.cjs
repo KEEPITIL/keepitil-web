@@ -29,9 +29,36 @@ test('page states the buyer-paid model, the two lines (Stripe processing fee / K
 test('Stripe sources are cited with their URLs', () => {
   for (const u of ['stripe.com/pricing', 'docs.stripe.com/connect/destination-charges', 'docs.stripe.com/connect/identity-verification', 'docs.stripe.com/connect/payouts-connected-accounts', 'docs.stripe.com/payouts', 'docs.stripe.com/refunds', 'docs.stripe.com/disputes', 'stripe.com/legal/restricted-businesses']) assert.ok(page.includes('https://' + u), u);
 });
-test('restrictions: cannabis (prohibited, related businesses) with the contact-first rule, CBD, gambling, adult, and the KEEPITIL rules from the code', () => {
+const CANN = /KEEPITIL does not host or sell tickets to cannabis events\. Cannabis events and businesses belong on Find My Weed \(findmyweedapp\.com\)\./;
+test('Stripe restrictions section: every category that can touch an event or ticket is summarized in plain words, with the live list as the source of truth and the "can change / every paid ticket" line', () => {
   const t = rendered(page);
-  for (const m of [/Cannabis products/, /Cannabis dispensaries and related businesses/, /contact info@keepitil\.com before you publish paid tickets/, /We cannot promise Stripe will allow it/, /CBD/, /raffles, lotteries or prize draws/, /at least \$1\.00/, /up to 20 tickets/, /cannot be bought once the event has started/, /cannot be deleted/, /pause ticket sales/, /at least 18/]) assert.match(t, m);
+  assert.match(page, /<h2 id="stripe-restrictions">/);
+  for (const m of [/applies to every paid ticket/, /Stripe can change this list/, /live list is the source of truth/, /stripe\.com\/legal\/restricted-businesses/, /Prohibited: Stripe does not allow these at all/, /Restricted: Stripe allows these only after extra review/,
+    /Cannabis \(marijuana\)/, /Illegal products and services/, /drug paraphernalia/, /Adult content and services/, /Gambling and prize games/, /raffles, lotteries, prize draws or prize tournaments/, /Weapons and dangerous materials/, /Counterfeit and unlicensed goods/, /Financial schemes and risky finance/, /pyramid schemes/, /Fundraising/, /Tobacco and CBD/, /Legal firearms and other weapons/, /Health/, /Money and stored value/, /sanctions/, /Alcohol is not on Stripe's US list/]) assert.match(t, m, String(m));
+  assert.match(t, CANN);
+  assert.match(page, /href="https:\/\/findmyweedapp\.com"/);
+});
+test('KEEPITIL rules from the code are listed', () => {
+  const t = rendered(page);
+  for (const m of [/at least \$1\.00/, /up to 20 tickets/, /cannot be bought once the event has started/, /cannot be deleted/, /pause ticket sales/, /at least 18/]) assert.match(t, m);
+});
+test('organizer-funded (Joe 2026-11-27): refunds, Stripe lost fee, lost-dispute amounts + $15/$15 dispute fees and Connect charges are deducted from the organizer payout, stated on the page, Ticket Terms and Terms; mechanics stay OPEN FOR GROK', () => {
+  const t = rendered(page);
+  for (const m of [/The organizer pays for refunds, disputes and Stripe's related charges, and KEEPITIL deducts them from the organizer's payout/, /\$15 when a dispute is received and \$15 if it is countered/, /Stripe Connect charges/, /\$2 per monthly active account and 0\.25% \+ 25¢ per payout/]) assert.match(t, m, String(m));
+  const FUND = /paid by the organizer and are deducted from the organizer's payout/;
+  assert.match(rendered(raw('ticket-terms.html')), FUND); assert.match(rendered(raw('terms.html')), FUND);
+  assert.match(rendered(raw('create-event.html')), /Refunds, disputes and Stripe's related fees are deducted from your payout/);
+  assert.match(page, /<!-- OPEN FOR GROK \(mechanics/);
+  assert.doesNotMatch(rendered(page), /You pay it|offset against/);
+});
+test('cannabis (Joe): KEEPITIL does not host or sell tickets to cannabis events and points to Find My Weed, on the organizer page, Terms, Ticket Terms and create-event, each linking findmyweedapp.com', () => {
+  for (const f of ['organizer-fees.html', 'terms.html', 'ticket-terms.html', 'create-event.html']) { assert.match(rendered(raw(f)), CANN, f); assert.match(raw(f), /href="https:\/\/findmyweedapp\.com"/, f); }
+  assert.match(raw('create-event.html'), /href="\/organizer-fees#stripe-restrictions"/, 'create-event links the Stripe restrictions section');
+});
+test('NEGATIVE CONTROLS: the old "contact us before publishing cannabis tickets" wording and a page without the sentence are caught', () => {
+  assert.doesNotMatch('If your event involves cannabis in any way, contact info@keepitil.com before you publish paid tickets.', CANN);
+  assert.doesNotMatch(rendered('<p>Cannabis events belong somewhere else.</p>'), CANN);
+  assert.doesNotMatch(rendered(raw('refund.html')), CANN, 'a page that should not carry it does not');
 });
 test('the old fee text is gone everywhere and the buyer-paid text is on create-event, Ticket Terms and the page; links to the page exist', () => {
   for (const f of ['create-event.html', 'ticket-terms.html', 'organizer-fees.html']) { assert.doesNotMatch(raw(f), /5% \+ \$0\.99|2\.5% \+ \$0\.49/, f); }

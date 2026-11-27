@@ -61,7 +61,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0 18px;font-size:.95rem}th
 <p>This page is for people who sell tickets on KEEPITIL. It shows what buyers pay on top of your ticket price, how that splits between Stripe and KEEPITIL, how you get paid, what happens when a ticket is refunded or disputed, and what is not allowed. Numbers come from how KEEPITIL ticketing works and from Stripe's own pages, which are linked.</p>
 
 <h2>1. The fee: the buyer pays it, you receive the full ticket price</h2>
-<p>At checkout the buyer pays <strong>your ticket price plus a service fee of 5% + $0.50 per order</strong>. The fee is shown to the buyer before they pay. <strong>You receive the full ticket price you set</strong>: nothing is taken out of your ticket money for fees. Free and RSVP tickets are never charged and carry no fee.</p>
+<p>At checkout the buyer pays <strong>your ticket price plus a service fee of 5% + $0.50 per order</strong>. The fee is shown to the buyer before they pay. <strong>You receive the full ticket price you set</strong>: no fee is taken out of your ticket money. Refunds, disputes and Stripe's Connect charges are the exception: they are deducted from your payouts (section 3). Free and RSVP tickets are never charged and carry no fee.</p>
 <p>The service fee has two lines, so you can see where it goes:</p>
 <div class="tw"><table>
 <thead><tr><th>Line</th><th>Stripe processing fee</th><th>KEEPITIL operational fee</th><th>Total service fee</th></tr></thead>
@@ -104,27 +104,48 @@ table{border-collapse:collapse;width:100%;margin:12px 0 18px;font-size:.95rem}th
 <li><strong>When you are paid:</strong> by default, money from a sale builds up in your Stripe balance and is paid out to your bank on a daily rolling basis (<a href="https://docs.stripe.com/connect/payouts-connected-accounts" rel="noopener">Stripe: payouts for connected accounts</a>). Stripe typically schedules a new account's first payout within 7 to 14 days (<a href="https://docs.stripe.com/payouts" rel="noopener">Stripe: payouts</a>). Payout settings and status are managed with Stripe.</li>
 </ul>
 
-<h2>3. Refunds, disputes and chargebacks</h2>
+<h2>3. Refunds, disputes and chargebacks: the organizer pays</h2>
+<p><strong>The organizer pays for refunds, disputes and Stripe's related charges, and KEEPITIL deducts them from the organizer's payout.</strong> That means:</p>
 <ul>
-<li><strong>Refunds:</strong> see the <a href="/refund">Refund Policy</a>. A refund returns the buyer's ticket price to their original payment method. Stripe does not give back its own processing fee on a refund: &ldquo;Stripe's processing fees from the original transaction aren't returned&rdquo; (<a href="https://docs.stripe.com/refunds" rel="noopener">Stripe: refunds</a>).</li>
-<li><strong>Who pays:</strong> refunds you owe because of your cancellation or your event's description, the processing fee Stripe does not return, and dispute amounts and dispute fees are the organizer's cost. KEEPITIL may take them from your payouts. This is already in the <a href="/ticket-terms">Ticket Terms</a> (&ldquo;Chargebacks and refunds may be offset against your payouts&rdquo;).</li>
-<li><strong>Disputes (chargebacks):</strong> if a buyer disputes a payment with their bank, the payment is reversed right away and Stripe takes the amount plus a dispute fee from the platform account (<a href="https://docs.stripe.com/disputes" rel="noopener">Stripe: disputes</a>). The ticket may be voided (<a href="/ticket-terms">Ticket Terms</a>).</li>
+<li><strong>Refunds:</strong> the amount refunded to a buyer comes out of your payout. See the <a href="/refund">Refund Policy</a>: a refund returns the buyer's ticket price to their original payment method.</li>
+<li><strong>Stripe's lost processing fee:</strong> Stripe does not give back its own fee on a refund (<a href="https://docs.stripe.com/refunds" rel="noopener">Stripe: refunds</a>), so that fee is also deducted from your payout.</li>
+<li><strong>Disputes (chargebacks):</strong> if a buyer disputes a payment with their bank, the payment is reversed right away (<a href="https://docs.stripe.com/disputes" rel="noopener">Stripe: disputes</a>). If the dispute is lost, the disputed amount is deducted from your payout, plus Stripe's dispute fees: $15 when a dispute is received and $15 if it is countered (the counter fee comes back if the dispute is won), as shown on <a href="https://stripe.com/pricing" rel="noopener">stripe.com/pricing</a>. The ticket may be voided (<a href="/ticket-terms">Ticket Terms</a>).</li>
+<li><strong>Stripe Connect charges:</strong> any charges Stripe makes for your account or your payouts are deducted from your payouts too. Stripe's published Connect pricing is $2 per monthly active account and 0.25% + 25&cent; per payout (<a href="https://stripe.com/connect/pricing" rel="noopener">stripe.com/connect/pricing</a>).</li>
 </ul>
-<!-- OPEN FOR GROK: Joe's rule is that KEEPITIL never takes on any expenses, so refunds, Stripe's lost fee and dispute fees are written as organizer-funded. Stripe's defaults and our code do NOT do this yet: refunds are issued from the platform account and by default the organizer keeps the funds (reverse_transfer is not set), the dispute fee is debited from the platform. Decide the mechanism before this page goes live. -->
+<p>The same rule is in the <a href="/ticket-terms">Ticket Terms</a> (organizer responsibilities) and the <a href="/terms">Terms of Service</a>.</p>
+<!-- OPEN FOR GROK (mechanics, no code or Stripe setting changed here): today refunds are issued from KEEPITIL's platform account and, by Stripe's defaults on a destination charge, KEEPITIL pays the refund while the organizer keeps the transferred funds unless reverse_transfer=true is set on the refund; dispute amounts and fees are debited from the platform. Deducting from payouts needs reverse_transfer on refunds and a way to recover dispute losses, fees and Connect charges from the organizer's balance. Whether Stripe's Connect per-account and per-payout fees apply to Express accounts is not stated on stripe.com/connect/pricing. -->
 
-<h2>4. What is not allowed</h2>
-<h3>Stripe's restrictions</h3>
-<p>All card payments on KEEPITIL run on Stripe, so Stripe's rules apply to every event and organizer. Stripe's list of prohibited and restricted businesses is at <a href="https://stripe.com/legal/restricted-businesses" rel="noopener">stripe.com/legal/restricted-businesses</a>. Relevant entries:</p>
+<h2 id="stripe-restrictions">4. Stripe's restrictions: what cannot be sold</h2>
+<p>All card payments on KEEPITIL run on Stripe, so <strong>Stripe's list of prohibited and restricted businesses applies to every paid ticket</strong> and every organizer. Stripe can change this list, and can modify or revoke approval at any time. Stripe says its list gives examples and is not complete. <strong>The live list is the source of truth: <a href="https://stripe.com/legal/restricted-businesses" rel="noopener">stripe.com/legal/restricted-businesses</a>.</strong> This is our plain-words summary of the parts that can touch an event or a ticket (read from Stripe's list on November 27, 2026; Stripe's page says it was last updated 2026-09-22).</p>
+
+<h3>Prohibited: Stripe does not allow these at all</h3>
 <ul>
-<li><strong>Cannabis (prohibited):</strong> Stripe lists &ldquo;Cannabis products&rdquo; and &ldquo;Cannabis dispensaries and related businesses&rdquo; as prohibited. Stripe's list has no entry for ticketing or events as such. An event that sells cannabis, or that is run by a cannabis business, may be treated as a related business, and Stripe can refuse or stop payments for it. <strong>If your event involves cannabis in any way, contact <a href="mailto:info@keepitil.com">info@keepitil.com</a> before you publish paid tickets.</strong> We cannot promise Stripe will allow it.</li>
-<li><strong>CBD (restricted):</strong> CBD products with only negligible amounts of THC, per local limits, need extra review by Stripe; CBD above the legal THC limit is prohibited.</li>
-<li><strong>Gambling (prohibited):</strong> Stripe lists games of chance, including sweepstakes and contests with a monetary or material prize, and lotteries. Do not sell tickets to raffles, lotteries or prize draws.</li>
-<li><strong>Adult content (prohibited), tobacco (restricted) and anything illegal:</strong> Stripe prohibits pornography and content made for sexual gratification, restricts tobacco and e-cigarette products sold in line with the law, and prohibits illegal drugs and anything that breaks the law where you operate or sell.</li>
+<li><strong>Cannabis (marijuana):</strong> cannabis products, dispensaries and related businesses, CBD above the legal THC limit, equipment for growing cannabis, and courses on growing it. <strong>KEEPITIL does not host or sell tickets to cannabis events. Cannabis events and businesses belong on <a href="https://findmyweedapp.com" rel="noopener">Find My Weed</a> (findmyweedapp.com).</strong></li>
+<li><strong>Illegal products and services:</strong> illegal drugs and look-alike substances, drug paraphernalia, fake IDs, signal-jamming gear, promoting unlawful violence, or anything illegal where you operate or sell.</li>
+<li><strong>Adult content and services:</strong> sexual services, strip clubs and topless bars, adult chat and fetish services, pornography and other content made for sexual gratification.</li>
+<li><strong>Gambling and prize games:</strong> games of chance, sweepstakes and contests with a money or goods prize; games of skill with a prize, such as game tournaments, darts, card or board games; entry or player fees that promise a prize; betting and odds-making; lotteries; bidding-fee auctions. <em>Do not sell tickets to raffles, lotteries, prize draws or prize tournaments.</em></li>
+<li><strong>Weapons and dangerous materials:</strong> illegal weapons, replica or toy firearms that are not marked as required, toxic, flammable or radioactive materials, and goods the postal service will not carry.</li>
+<li><strong>Counterfeit and unlicensed goods:</strong> bootleg or unauthorized music, movies and software, counterfeit or fake brand-name goods, and anything that infringes someone's trademark, copyright or patent.</li>
+<li><strong>Financial schemes and risky finance:</strong> pyramid schemes, multi-level marketing that pays for recruiting, get-rich-quick schemes, deceptive or high-pressure selling, resale that adds no value, predatory investment pitches, debt relief, credit repair, check cashing, person-to-person money transfer, and cryptocurrency mining, token sales (ICOs) or secondary NFT sales.</li>
+<li><strong>Other prohibited categories:</strong> government services without authorization, identity-theft protection, bail bonds and some legal services, commercial airlines, cruises and timeshares, and unsafe supplements or fake medicines.</li>
 </ul>
-<p>Stripe can change its list. The version above was read on November 27, 2026; Stripe's page says &ldquo;Last updated: 2026-09-22&rdquo;. If Stripe closes or limits your account, KEEPITIL cannot reverse that.</p>
 
-<h3>KEEPITIL's rules</h3>
+<h3>Restricted: Stripe allows these only after extra review</h3>
 <ul>
+<li><strong>Fundraising:</strong> charities, political groups and anyone offering a reward for donations; crowdfunding; charity raffles and sweepstakes (only in some countries).</li>
+<li><strong>Tobacco and CBD:</strong> tobacco, e-cigarettes and e-liquid sold within the law, and CBD with only negligible THC.</li>
+<li><strong>Legal firearms and other weapons:</strong> guns, regulated parts, stun guns, swords, pepper spray and similar.</li>
+<li><strong>Health:</strong> online pharmacies, prescription products, regulated medical devices and telemedicine.</li>
+<li><strong>Money and stored value:</strong> investment, lending, money transfer, escrow, buy-now-pay-later, cryptocurrency, gift cards, game currency, precious metals and other high-value goods, and platforms that process payments for others.</li>
+<li><strong>Other restricted categories:</strong> platforms that let creators sell exclusive content, dating services, file-sharing services, and travel reservation services.</li>
+</ul>
+<p>Stripe's list also bars use of its services for certain countries and regions that are under sanctions. Alcohol is not on Stripe's US list, but alcohol, age and venue licensing laws still apply to your event.</p>
+<p>If Stripe decides an event or organizer is not allowed, it can refuse or stop payments, hold money or close the account, and KEEPITIL cannot reverse that. Questions: <a href="mailto:info@keepitil.com">info@keepitil.com</a>.</p>
+<!-- OPEN FOR GROK: whether paid KEEPITIL competition entry fees (Create / challenge entries, paid through Stripe) fall under Stripe's gambling and prize-games category (contests, games of skill with a prize, entry fees promising a prize). Not decided here; needs Stripe or counsel. -->
+
+<h2>5. KEEPITIL's rules</h2>
+<ul>
+<li><strong>KEEPITIL does not host or sell tickets to cannabis events. Cannabis events and businesses belong on <a href="https://findmyweedapp.com" rel="noopener">Find My Weed</a> (findmyweedapp.com).</strong></li>
 <li>You must be at least 18, or the age of majority where you live, and have a KEEPITIL account (<a href="/terms">Terms</a>). Buyers also need a free KEEPITIL account to buy a ticket.</li>
 <li>You must finish Stripe's identity and bank setup before you can sell paid tickets, and have the right to sell tickets to the event (<a href="/ticket-terms">Ticket Terms</a>, section 6).</li>
 <li>Paid tickets must cost at least $1.00. Prices are in US dollars. A buyer can add up to 20 tickets of one type to an order.</li>

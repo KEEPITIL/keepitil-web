@@ -240,6 +240,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/assets/js/kil-actions.js?v=h40e5a201"></script>
+<script src="/assets/js/kil-img-fallback.js?v=h21ad0ec7"></script>
 <script>
 const SUPABASE_URL = 'https://xdoxfoectugsbbujjezq.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_F1oMr-STZ3HH3Z_Wu4CYCg_oDwhLKnm';
@@ -281,7 +283,7 @@ db.auth.onAuthStateChange(() => route());
 
 function renderWho(){
   $('who').innerHTML = me
-    ? `<span>@<b>${myProfile ? escapeHtml(myProfile.handle) : '…'}</b></span><button class="linkbtn" onclick="signOut()">Sign out</button>`
+    ? `<span>@<b>${myProfile ? escapeHtml(myProfile.handle) : '…'}</b></span><button class="linkbtn" data-click="signOut">Sign out</button>`
     : '';
 }
 async function signOut(){ await db.auth.signOut(); }
@@ -361,7 +363,7 @@ let connected = {}; // platform -> account_name
 async function loadConnections(){
   const { data } = await db.from('connected_accounts').select('platform,account_name');
   connected = Object.fromEntries((data || []).map(r => [r.platform, r.account_name || 'connected']));
-  $('connections').innerHTML = `<div style="text-align:right;margin-bottom:8px"><button class="linkbtn" type="button" onclick="syncVendor()">↻ Refresh connections</button></div>` + PROVIDERS.map(p => `
+  $('connections').innerHTML = `<div style="text-align:right;margin-bottom:8px"><button class="linkbtn" type="button" data-click="syncVendor">↻ Refresh connections</button></div>` + PROVIDERS.map(p => `
     <div class="conn">
       <div class="cico">${p.icon}</div>
       <div class="cbody">
@@ -372,8 +374,8 @@ async function loadConnections(){
         }</div>
       </div>
       ${connected[p.key]
-        ? `<button class="off" onclick="disconnectSocial('${p.key}')">Disconnect</button>`
-        : p.live ? `<button onclick="connectSocial('${p.key}')">Connect</button>`
+        ? `<button class="off" data-click="disconnectSocial" data-a="${escapeHtml(JSON.stringify([p.key]))}">Disconnect</button>`
+        : p.live ? `<button data-click="connectSocial" data-a="${escapeHtml(JSON.stringify([p.key]))}">Connect</button>`
         : `<span class="soon">Soon</span>`}
     </div>`).join('');
 }
@@ -457,7 +459,7 @@ function mediaThumb(p){
   if (!p.media_url || !/^https?:\/\/[^\s"'<>]+$/.test(p.media_url)) return '';
   const u = escapeHtml(p.media_url);
   if (/\.(mp4|mov|webm)(\?|$)/i.test(p.media_url)) return `<a class="pthumb vid" href="${u}" target="_blank" rel="noopener noreferrer" title="Open video">🎬</a>`;
-  return `<a href="${u}" target="_blank" rel="noopener noreferrer" title="Open media"><img class="pthumb" src="${u}" alt="" loading="lazy" onerror="this.parentNode.style.display='none'"></a>`;
+  return `<a href="${u}" target="_blank" rel="noopener noreferrer" title="Open media"><img class="pthumb" src="${u}" alt="" loading="lazy" data-fb="hide-parent"></a>`;
 }
 
 async function loadQueue(){
@@ -495,9 +497,9 @@ async function loadQueue(){
             ${p.status === 'failed' && p.error ? `<div class="perr">${escapeHtml(p.error)}</div>` : ''}
           </div>
           <div class="acts">
-            ${p.status === 'queued' && !connected[p.platform] ? `<button onclick="markPublished('${p.id}')">✓ published</button>` : ''}
-            ${p.status === 'failed' ? `<button onclick="retryPost('${p.id}')">↻ retry</button>` : ''}
-            <button class="del" onclick="delPost('${p.id}')">delete</button>
+            ${p.status === 'queued' && !connected[p.platform] ? `<button data-click="markPublished" data-a="${escapeHtml(JSON.stringify([p.id]))}">✓ published</button>` : ''}
+            ${p.status === 'failed' ? `<button data-click="retryPost" data-a="${escapeHtml(JSON.stringify([p.id]))}">↻ retry</button>` : ''}
+            <button class="del" data-click="delPost" data-a="${escapeHtml(JSON.stringify([p.id]))}">delete</button>
           </div>
         </div>`).join('')}
     </div>`).join('');
@@ -518,11 +520,11 @@ function renderReady(list){
         <div class="pmeta">was due ${new Date(p.scheduled_at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div>
       </div>
       <div class="acts">
-        ${p.media_url && /^https?:\/\/[^\s"'<>]+$/.test(p.media_url) ? `<button data-url="${escapeHtml(p.media_url)}" onclick="window.open(this.dataset.url,'_blank','noopener,noreferrer')">🖼 media</button>` : ''}
-        <button onclick="copyCaption('${p.id}')" id="copy-${p.id}">⧉ copy caption</button>
-        <button onclick="window.open(OPEN_LINK['${p.platform}'],'_blank','noopener,noreferrer')">↗ open ${p.platform}</button>
-        <button onclick="markPublished('${p.id}')">✓ posted</button>
-        <button class="del" onclick="delPost('${p.id}')">delete</button>
+        ${p.media_url && /^https?:\/\/[^\s"'<>]+$/.test(p.media_url) ? `<button data-url="${escapeHtml(p.media_url)}" data-click="kodeOpenMedia" data-a="[&quot;$el&quot;]">🖼 media</button>` : ''}
+        <button data-click="copyCaption" data-a="${escapeHtml(JSON.stringify([p.id]))}" id="copy-${p.id}">⧉ copy caption</button>
+        <button data-click="kodeOpenPlatform" data-a="${escapeHtml(JSON.stringify([p.platform]))}">↗ open ${p.platform}</button>
+        <button data-click="markPublished" data-a="${escapeHtml(JSON.stringify([p.id]))}">✓ posted</button>
+        <button class="del" data-click="delPost" data-a="${escapeHtml(JSON.stringify([p.id]))}">delete</button>
       </div>
     </div>`).join('');
   notifyReady(list);
@@ -602,9 +604,13 @@ $('copy-btn').onclick = async () => {
 
 route();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+/* Delegated actions (assets/js/kil-actions.js): the markup carries data-click instead of inline handlers; only the names listed in KilActions.allow() can run. */
+function kodeOpenMedia(el){ window.open(el.dataset.url,'_blank','noopener,noreferrer'); }
+function kodeOpenPlatform(platform){ if(Object.prototype.hasOwnProperty.call(OPEN_LINK,platform)) window.open(OPEN_LINK[platform],'_blank','noopener,noreferrer'); }
 window.signOut = signOut; window.delPost = delPost; window.markPublished = markPublished;
 window.retryPost = retryPost; window.connectSocial = connectSocial; window.disconnectSocial = disconnectSocial;
 window.syncVendor = syncVendor; window.copyCaption = copyCaption; window.OPEN_LINK = OPEN_LINK;
+if (window.KilActions) KilActions.allow(["connectSocial", "copyCaption", "delPost", "disconnectSocial", "kodeOpenMedia", "kodeOpenPlatform", "markPublished", "retryPost", "signOut", "syncVendor"]);
 </script>
 </body>
 </html>

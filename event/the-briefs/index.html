@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<!-- kil-prerender v1 -->
+<html lang="en" data-theme="default">
+<head>
+<link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/>
+<meta name="robots" content="index,follow">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>The Briefs — Thu, Jan 14, 2027 | KEEPITIL</title>
+<link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
+<link rel="preconnect" href="https://cdn.jsdelivr.net"/>
+<meta name="description" id="m-desc" content="The Briefs at The Ritz - San Jose, San Jose on Thu, Jan 14, 2027 · rock alternative punk. Save it on KEEPITIL, join the event conversation, and grab tickets."/>
+<!-- NO STATIC CANONICAL. This page is identified by ?e=<slug>, so any single hardcoded
+     value is wrong for every event: the previous "https://keepitil.com/event" told every
+     crawler that does not execute JS that all 322 event URLs were one page, which is an
+     instruction to drop 321 of them. A MISSING canonical is strictly better than a wrong one
+     -- a crawler then indexes the URL it requested, which is the correct distinct URL. The
+     real per-event canonical is injected in paint(). -->
+<link rel="icon" type="image/png" href="https://keepitil.com/logo-blue-nav.png"/>
+<meta property="og:type" content="event"/>
+<meta property="og:title" id="og-title" content="The Briefs — Thu, Jan 14, 2027 | KEEPITIL"/>
+<meta property="og:description" id="og-desc" content="The Briefs at The Ritz - San Jose, San Jose on Thu, Jan 14, 2027 · rock alternative punk. Save it on KEEPITIL, join the event conversation, and grab tickets."/>
+<meta property="og:image" id="og-img" content="https://keepitil.com/keepitil-og.png"/>
+<meta property="og:url" id="og-url" content="https://keepitil.com/event/the-briefs/"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<link rel="canonical" id="m-canon" href="https://keepitil.com/event/the-briefs/"/>
+<script type="application/ld+json" id="ld-event">{"@context":"https://schema.org","@type":"MusicEvent","name":"The Briefs","url":"https://keepitil.com/event/the-briefs/","eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","startDate":"2027-01-15T03:00:00+00:00","image":"https://keepitil.com/keepitil-og.png","location":{"@type":"Place","name":"The Ritz - San Jose","address":{"@type":"PostalAddress","addressLocality":"San Jose","addressRegion":"CA","addressCountry":"US"}},"organizer":{"@type":"Organization","name":"KEEPITIL","url":"https://keepitil.com/"}}</script>
+<script type="application/json" id="kil-prerender-slug">"the-briefs"</script>
+<link rel="preload" as="image" href="https://keepitil.com/assets/images/event-placeholder.svg" fetchpriority="high"/>
+<meta name="geo.region" content="US-CA"/>
+<link rel="preconnect" href="https://seatgeekimages.com"/>
+<script src="/assets/js/event-preload.js?v=hf51810b0"></script>
+<link href="/assets/css/fonts.css?v=h613ded09" rel="stylesheet"/>
+<!-- NO STATIC JSON-LD. This carried {"@type":"MusicEvent","name":"KEEPITIL Event"} on every
+     event URL: a MusicEvent with no startDate and no location is invalid, and the name was
+     not the real event's name, so a crawler that does not run JS was served an identical
+     fabricated event 322 times. Publishing an empty shape to satisfy the schema is worse than
+     publishing none. The real, fully-populated node is injected in paint(). -->
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{--green:var(--live);--blue:var(--brand);--gold:#ffd76a;--white:var(--text);--grey:#8a97a4;--head:'Bebas Neue',sans-serif;--body:'Inter',sans-serif;}
+  body{background:#0a0a12;color:var(--white);font-family:var(--body);line-height:1.6;}
+  a{color:var(--blue);text-decoration:none;}
+  header{position:sticky;top:0;z-index:20;background:rgba(9,9,16,.97);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,180,255,.15);padding-top:env(safe-area-inset-top,0px);}
+  .hd{max-width:1000px;margin:0 auto;display:flex;align-items:center;gap:12px;height:58px;padding:0 20px;}
+  /* CLS (desktop): the shell swaps this 59px header for its fixed 66px nav + 66px body padding, and injects its own page box (`.wrap{max-width:1360px!important;padding-left/right:40px!important}`) at DOMContentLoaded.
+     Both used to move the whole page (main 59 -> 66 px and 1000 -> 1280 px wide, ~0.10). State the final values up front so the shell's rules change nothing. */
+  @media(min-width:861px){.hd{height:65px}}
+  .hd .brand{font-family:var(--head);letter-spacing:.16em;font-size:1.15rem;color:#fff;}
+  .hd .back{margin-left:auto;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8aa;}
+  .wrap{max-width:1000px;margin:0 auto;padding:26px 20px 80px;}
+  @media(min-width:861px){.wrap{max-width:1360px;padding-left:40px;padding-right:40px;box-sizing:border-box}}/* = the shell's .wrap box (see the .hd note above), stated after the page's own .wrap so it wins on source order */
+  .crumbs{font-size:.7rem;color:#5a6570;letter-spacing:.06em;text-transform:uppercase;margin-bottom:18px;}
+  .crumbs a{color:#7a8a99;}
+  .ev{display:grid;grid-template-columns:340px 1fr;gap:32px;}
+  @media(max-width:720px){.ev{grid-template-columns:1fr;gap:20px;}}
+  .flyer{width:100%;aspect-ratio:2/3;border-radius:16px;overflow:hidden;background:var(--surface-2) center/cover no-repeat;border:1px solid rgba(255,255,255,.1);}
+  .flyer img{width:100%;height:100%;object-fit:cover;display:block;}
+  .eyebrow{font-size:.64rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--green);}
+  h1{font-family:var(--head);font-size:clamp(2rem,6vw,3.4rem);line-height:1.02;letter-spacing:.02em;margin:8px 0 12px;}
+  .meta{color:var(--grey);font-size:.95rem;margin-bottom:6px;}
+  .genre{display:inline-block;font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 11px;border-radius:12px;background:rgba(0,180,255,.14);color:var(--brand-2);border:1px solid rgba(0,180,255,.35);margin-bottom:16px;}
+  .cta-row{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0 8px;}
+  .cta{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:12px 20px;border-radius:9px;transition:filter .2s;}
+  .cta-tix{background:var(--green);color:#06120a;}
+  .cta-vip{background:rgba(212,160,23,.16);color:var(--gold);border:1px solid rgba(212,160,23,.5);}
+  .cta-chat{background:rgba(0,180,255,.16);color:var(--brand-2);border:1px solid rgba(0,180,255,.45);}
+  .cta:hover{filter:brightness(1.12);}
+  .desc{color:#b6c2ce;font-size:.95rem;line-height:1.75;margin:18px 0;max-width:640px;}
+  .ev-left{display:flex;flex-direction:column;gap:16px;}
+  .ev-qr{background:var(--surface,#12121c);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px;text-align:center;}
+  .ev-qr img{width:180px;height:180px;background:#fff;border-radius:10px;padding:8px;display:block;margin:0 auto;}
+  .ev-qr .cap{color:#8a97a4;font-size:.72rem;font-weight:700;letter-spacing:.05em;margin-top:10px;}
+  footer{border-top:1px solid rgba(255,255,255,.06);padding:30px 20px;text-align:center;color:#556;font-size:.75rem;}
+  /* organizer announcement banners */
+  .ann{background:linear-gradient(90deg,rgba(0,180,255,.14),rgba(0,180,255,.04));border:1px solid rgba(0,180,255,.35);border-left:3px solid var(--brand);border-radius:12px;padding:12px 16px;margin-bottom:16px;}
+  .ann .t{font-weight:800;font-size:.9rem;color:var(--brand-2);margin-bottom:2px;}
+  .ann .b{font-size:.88rem;color:#c8d2dc;line-height:1.5;}
+  /* registration / attendee-capture modal */
+  .kreg-ov{position:fixed;inset:0;background:rgba(4,4,10,.74);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;padding:18px;}
+  .kreg{background:#12121c;border:1px solid rgba(0,180,255,.25);border-radius:16px;max-width:440px;width:100%;padding:24px;max-height:88vh;overflow:auto;}
+  .kreg h3{font-family:var(--head);font-size:1.5rem;letter-spacing:.06em;margin-bottom:4px;}
+  .kreg p.sub{color:var(--grey);font-size:.82rem;margin-bottom:8px;}
+  .kreg label{display:block;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9aa7b4;margin:12px 0 5px;}
+  .kreg input{width:100%;background:#0a0a12;border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:11px 12px;color:#fff;font:inherit;}
+  .kreg input:focus{outline:none;border-color:var(--brand);}
+  .kreg .req{color:#ff6b6b;}
+  .kreg .go{margin-top:18px;width:100%;background:var(--green);color:#06120a;border:0;border-radius:9px;padding:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font:inherit;}
+  .kreg .go:disabled{opacity:.6;cursor:default;}
+  .kreg .x{float:right;background:none;border:0;color:#889;font-size:1.5rem;cursor:pointer;line-height:1;}
+  .kreg .err{color:#ff6b6b;font-size:.8rem;margin-top:10px;min-height:1em;}
+  /* card look (matches the ticket page) */
+  .ev{background:#000;border-radius:20px;padding:14px;align-items:start;}
+  @media(max-width:720px){.ev{padding:10px;}}
+  .flyer{aspect-ratio:2/3;}
+  .infocard{background:var(--surface,#12121c);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:20px 22px;}
+  .infocard h1{margin:0 0 12px;font-family:var(--head);font-size:clamp(1.8rem,5vw,2.8rem);line-height:1;color:#fff;}
+  .infocard .meta{margin-bottom:5px;}
+  .tier-hd{font-size:.66rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--grey);margin:20px 0 10px;}
+  .cta-row{display:flex;flex-direction:column;gap:10px;margin:0;align-items:stretch;}
+  .cta-tix,.cta-vip{justify-content:center;width:100%;font-size:.8rem;padding:14px 18px;border-radius:11px;}
+  .cta-chat{justify-content:center;width:100%;}
+  /* sections below the card */
+  .esec{margin:34px 0 0;}
+  .esec-h{font-family:var(--head);font-size:1.4rem;letter-spacing:.04em;margin-bottom:14px;}
+  .esec-h .esub{font-family:var(--body);font-size:.8rem;color:var(--grey);letter-spacing:0;font-weight:600;}
+  .ecar{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;scroll-snap-type:x proximity;}
+  .ecar::-webkit-scrollbar{display:none;}
+  .lcard{flex:0 0 150px;scroll-snap-align:start;text-align:center;}
+  .lcard .im,.lcard .ph{width:150px;height:150px;border-radius:14px;border:1px solid rgba(255,255,255,.1);display:block;}
+  .lcard .im{object-fit:cover;background:#12121c;}
+  .lcard .ph{background:linear-gradient(150deg,color-mix(in srgb,var(--brand) 26%,#12121c),#12121c);display:flex;align-items:center;justify-content:center;font-family:var(--head);font-size:2rem;color:rgba(255,255,255,.4);}
+  .lcard .nm{font-weight:800;font-size:.9rem;margin-top:8px;display:block;}
+  .lcard a.nm:hover{color:var(--brand);}
+  .lcard .lnk{font-size:.62rem;color:var(--brand-2);font-weight:700;text-transform:uppercase;letter-spacing:.06em;}
+  .gcard2{flex:0 0 190px;scroll-snap-align:start;aspect-ratio:4/3;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:#12121c;}
+  .gcard2 img,.gcard2 video{width:100%;height:100%;object-fit:cover;display:block;}
+  /* feed = single column of content cards (like profiles / culture), newest first */
+  #ev-feed{max-width:640px;}
+  .fpost{background:var(--surface,#12121c);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:16px 18px;margin-bottom:14px;}
+  .fp-head{display:flex;align-items:center;gap:11px;margin-bottom:12px;}
+  .fp-av{width:42px;height:42px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-family:var(--head);font-size:1.15rem;color:#fff;background:linear-gradient(150deg,color-mix(in srgb,var(--brand) 40%,#12121c),#12121c);border:1px solid rgba(255,255,255,.12);overflow:hidden;}
+  .fp-av img{width:100%;height:100%;object-fit:cover;}
+  .fp-who{font-weight:800;font-size:.9rem;color:#fff;}
+  .fp-who a{color:#fff;text-decoration:none;}
+  .fp-who a:hover{color:var(--brand-2);}
+  .fp-meta{font-size:.7rem;color:var(--grey);margin-top:2px;display:flex;align-items:center;gap:8px;}
+  .fp-badge{font-size:.56rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:20px;border:1px solid;}
+  .fp-badge.post{color:var(--brand-2);border-color:rgba(0,180,255,.4);background:rgba(0,180,255,.1);}
+  .fp-badge.photo{color:#22e39b;border-color:rgba(34,227,155,.4);background:rgba(34,227,155,.1);}
+  .fp-badge.video{color:var(--gold,#e0b021);border-color:rgba(224,176,33,.4);background:rgba(224,176,33,.1);}
+  .fp-badge.blog{color:#c48bff;border-color:rgba(196,139,255,.4);background:rgba(196,139,255,.1);}
+  .fp-text{color:#d3dbe2;font-size:.95rem;line-height:1.6;}
+  .fp-title{font-family:var(--head);font-size:1.25rem;color:#fff;margin:0 0 6px;letter-spacing:.02em;}
+  .fp-media{margin-top:12px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.1);}
+  .fp-media img,.fp-media video{width:100%;display:block;max-height:520px;object-fit:cover;background:#0a0a12;}
+  .fp-read{display:inline-block;margin-top:10px;font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--brand-2);text-decoration:none;}
+  .fp-read:hover{text-decoration:underline;}
+  .esec-empty{color:var(--grey);font-size:.88rem;}
+  /* ticket tiers (separate from info) */
+  .tiers2{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+  .tcard{background:var(--surface,#12121c);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;}
+  .tcard .tn{font-weight:800;font-size:1rem;color:#fff;}
+  .tcard .tpr{font-family:var(--head);font-size:1.5rem;letter-spacing:.02em;color:var(--green);margin:2px 0 8px;}
+  .tcard .tds{color:#b6c2ce;font-size:.86rem;line-height:1.5;margin-bottom:10px;flex:1;}
+  .tcard .tav{font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--grey);margin-bottom:10px;}
+  .tcard .tav.low{color:var(--gold);}
+  .tcard .tav.open{color:var(--brand-2);}
+  .tcard .tbtn{width:100%;background:var(--green);color:#06120a;border:0;border-radius:10px;padding:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font:inherit;font-size:.76rem;}
+  .tcard .tbtn:disabled{opacity:.45;cursor:default;background:#2a2a38;color:#8a97a4;}
+  .tcard.free .tpr{color:var(--brand-2);}
+  .tix-terms{font-size:.72rem;color:var(--grey);margin-top:12px;}
+  .tix-terms a{color:var(--brand-2);}
+  /* one-tap RSVP (assets/js/kil-rsvp.js) */
+  .rsvp{margin-top:12px}
+  .rsvp-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:10px 0 12px} .rsvp-row .rsvp,.rsvp-row .going{margin-top:0}
+  .rsvp-tap{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 26px;border-radius:999px;border:0;background:var(--green,#22e39b);color:#06120a;font:inherit;font-weight:800;font-size:.9rem;letter-spacing:.04em;cursor:pointer}
+  .rsvp-tap:hover{filter:brightness(1.1)} .rsvp-tap:focus-visible,.rsvp-go:focus-visible,.rsvp-save:focus-visible{outline:2px solid #fff;outline-offset:2px}
+  .rsvp-done{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:14px;background:rgba(34,227,155,.12);border:1px solid rgba(34,227,155,.4);color:#22e39b} .rsvp-done strong{font-size:1rem} .rsvp-sub{font-size:.8rem;color:#b8c4cf}
+  .rsvp-mail{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px} .rsvp-mail label{flex:1 0 100%;font-size:.78rem;color:#b8c4cf}
+  .rsvp-mail input{flex:1 1 180px;min-height:44px;padding:10px 12px;border-radius:10px;border:1px solid #2a2a3a;background:#0d0d13;color:#fff;font:inherit}
+  .rsvp-go{min-height:44px;padding:10px 16px;border-radius:10px;border:1px solid rgba(0,180,255,.5);background:rgba(0,180,255,.16);color:var(--brand-2,#00b4ff);font:inherit;font-weight:800;cursor:pointer} .rsvp-go:disabled{opacity:.5;cursor:default}
+  .rsvp-err{flex:1 0 100%;min-height:0;font-size:.78rem;color:#ff8a8a} .rsvp-ok{margin:10px 0 0;font-size:.82rem;color:#b8c4cf}
+  .rsvp-save{display:inline-block;margin-top:10px;font-size:.8rem;color:var(--brand-2,#00b4ff)}
+  .going{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding:6px 13px;border-radius:20px;background:rgba(34,227,155,.12);border:1px solid rgba(34,227,155,.4);color:#22e39b;font-weight:800;font-size:.8rem;letter-spacing:.02em;}
+  /* ── event card mirrors the ticket page ── */
+  .evcard{background:#000;border-radius:20px;padding:12px;}
+  .tp-head{display:grid;grid-template-columns:var(--lcol,32%) 1fr;gap:14px;margin-bottom:14px;}
+  .backbtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:transparent;border:1.5px solid var(--brand-2,#00b4ff);border-radius:12px;padding:12px 16px;color:var(--brand-2,#00b4ff);text-decoration:none;font-weight:800;font-size:.9rem;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;cursor:pointer;}
+  .backbtn:hover{background:color-mix(in srgb,var(--brand-2,#00b4ff) 12%,transparent);}
+  .orgbar{display:flex;width:100%;justify-content:center;align-items:center;gap:6px;background:transparent;border:1.5px solid var(--brand-2,#00b4ff);border-radius:12px;padding:12px 16px;}
+  .orgbar a,.orgbar span{color:var(--brand-2,#00b4ff);font-weight:800;text-decoration:none;font-size:.9rem;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tp-body{display:grid;grid-template-columns:var(--lcol,32%) 1fr;gap:14px;align-items:stretch;}
+  .tp-col{display:flex;flex-direction:column;gap:14px;min-width:0;}
+  .evcard .flyer{aspect-ratio:2/3;width:100%;border-radius:14px;}
+  .evcard .infocard{flex:0 0 auto;}
+  .tixcard{flex:0 0 auto;background:var(--surface,#12121c);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;}
+  .tixhd{font-family:var(--head);font-size:1.15rem;letter-spacing:.04em;margin-bottom:11px;}
+  .tixrows{display:flex;flex-direction:column;gap:9px;max-height:320px;overflow-y:auto;scrollbar-width:thin;padding-right:2px;}
+  .tixrows::-webkit-scrollbar{width:8px;}
+  .tixrows::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:8px;}
+  .tixrow{border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:9px 12px;transition:border-color .2s,background .2s;}
+  .tixrow:hover{border-color:var(--brand-2);background:rgba(0,180,255,.05);}
+  .trtop{display:flex;align-items:center;gap:10px;}
+  .trprice{font-family:var(--head);font-size:1.15rem;color:var(--green);flex:0 0 auto;min-width:46px;}
+  .tixrow.free .trprice{color:var(--brand-2);}
+  .trname{font-weight:800;font-size:.9rem;color:#fff;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .trline{font-weight:800;font-size:.9rem;color:#fff;flex:0 0 auto;min-width:56px;text-align:right;}
+  .stp{display:flex;align-items:center;border:1px solid rgba(255,255,255,.2);border-radius:9px;overflow:hidden;flex:0 0 auto;}
+  .stp button{background:transparent;border:0;color:#fff;width:30px;height:30px;font-size:1.2rem;cursor:pointer;line-height:1;}
+  .stp button:disabled{opacity:.3;cursor:default;}
+  .stp .num{min-width:26px;text-align:center;font-weight:800;font-size:.95rem;}
+  .trmore{max-height:0;overflow:hidden;transition:max-height .25s ease;}
+  .tixrow:hover .trmore{max-height:140px;}
+  .trdesc{color:#b6c2ce;font-size:.82rem;line-height:1.45;margin-top:8px;}
+  .trav.rev{font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--brand-2);margin-top:7px;}
+  .trav.rev.low{color:var(--gold);}
+  .trstatus{font-size:.64rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--grey);white-space:nowrap;}
+  .tixrow.closed .trprice{color:var(--grey);}
+  /* order summary bar (single row) */
+  .tixfoot{display:flex;align-items:center;gap:14px;margin-top:13px;padding-top:13px;border-top:1px solid rgba(255,255,255,.14);flex-wrap:wrap;}
+  .tf-count{font-weight:800;font-size:.82rem;color:#fff;}
+  .tf-sub{font-family:var(--head);font-size:1.25rem;color:#fff;}
+  .tf-tax{font-size:.7rem;color:var(--grey);letter-spacing:.02em;}
+  .tf-buy{margin-left:auto;background:var(--green);color:#06120a;border:0;border-radius:11px;padding:13px 30px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;font-size:.82rem;cursor:pointer;box-shadow:0 0 18px rgba(0,255,136,.45);}
+  .tf-buy:hover{filter:brightness(1.08);}
+  .tf-buy:disabled{opacity:.4;cursor:default;background:#2a2a38;color:#8a97a4;box-shadow:none;}
+  .chatbar{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:15px;border-radius:14px;border:1px solid rgba(0,180,255,.4);background:rgba(0,180,255,.12);color:var(--brand-2,#22e39b);font-weight:800;font-size:.92rem;letter-spacing:.03em;text-decoration:none;cursor:pointer;}
+  .chatbar:hover{background:rgba(0,180,255,.2);}
+  @media(max-width:760px){
+    .tp-head{grid-template-columns:1fr;}
+    .tp-body{grid-template-columns:1fr;}
+    .evcard .flyer{max-width:340px;margin:0 auto;}
+    /* No cover (every listing with the branded placeholder): a short banner on phones so the title, date and the I'm going tap are above the fold. Real flyers keep 2:3. */
+    .evcard .flyer:has(img[src$="event-placeholder.svg"]){aspect-ratio:auto;height:150px;max-width:none}
+    .evcard .flyer img[src$="event-placeholder.svg"]{object-fit:contain;padding:14px;box-sizing:border-box}
+  }
+
+#kil-pwgate{position:fixed;inset:0;z-index:99990;background:#07070c;display:none;align-items:center;justify-content:center;padding:20px}
+#kil-pwgate .box{max-width:380px;width:100%;background:#12121c;border:1px solid #2a2a3a;border-radius:16px;padding:28px;text-align:center;font-family:Inter,system-ui,sans-serif;color:#f0f0f0}
+#kil-pwgate h2{font-size:1.1rem;font-weight:800;margin-bottom:6px}
+#kil-pwgate p{color:#8a8a99;font-size:.85rem;margin-bottom:14px}
+#kil-pwgate input{width:100%;background:#0d0d13;color:#fff;border:1px solid #2a2a3a;border-radius:10px;padding:12px;font:400 .95rem Inter,sans-serif;outline:none;margin-bottom:10px;text-align:center}
+#kil-pwgate button{width:100%;background:linear-gradient(90deg,#00b4ff,#22e39b);color:#04121b;border:0;border-radius:999px;padding:12px;font-weight:800;cursor:pointer}
+#kil-pwgate .err{color:#ff6b6b;font-size:.8rem;min-height:1.1em;margin-top:8px}
+
+/* ── event landing page additions (2026-08-18) ─────────────────────────────────────── */
+.ev-about{color:#c8cedb;font-size:.95rem;line-height:1.65}
+.ev-about p{margin:0 0 10px}
+.ev-about .fact{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:.88rem}
+.ev-about .fact b{flex:0 0 108px;color:#8b95a3;font-weight:700;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase}
+.ev-about .src{margin-top:12px;font-size:.78rem;color:#7d8794}
+.ev-about .seller{display:inline-flex;align-items:center;justify-content:center;margin-top:12px;min-height:44px;padding:12px 18px;border-radius:11px;background:var(--green,#3ddc74);color:#06120a;font-weight:800;font-size:.85rem;text-decoration:none}
+.ev-about .seller:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.ev-share{display:flex;gap:8px;flex-wrap:wrap}
+.ev-share button,.ev-share a{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#e8e6f2;
+  border-radius:999px;padding:9px 16px;font:700 .78rem Inter,sans-serif;letter-spacing:.04em;cursor:pointer;text-decoration:none}
+.ev-share button:hover,.ev-share a:hover{border-color:var(--green,#00ff88);color:#fff}
+.evv{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}
+.evv .nm{font-family:var(--fh,inherit);font-size:1.25rem;color:#fff;letter-spacing:.03em}
+.evv .ct{color:#8b95a3;font-size:.85rem;margin-top:2px}
+.evv .map{display:inline-block;margin-top:8px;font-size:.78rem;color:var(--green,#00ff88);text-decoration:none;border:1px solid rgba(0,255,136,.4);border-radius:8px;padding:6px 12px}
+.evmini{flex:0 0 150px;display:block;text-decoration:none;color:inherit}
+.evmini .im{width:150px;aspect-ratio:2/3;border-radius:8px;background:#14141c center/cover no-repeat;overflow:hidden}
+.evmini .tt{font-size:.8rem;color:#e8e6f2;margin-top:6px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.evmini .dt{font-size:.72rem;color:#8b95a3;margin-top:2px}
+</style>
+</head>
+<body>
+<div id="kil-pwgate"><div class="box"><h2>🔒 Private event</h2><p>This event is password protected — enter the password from your host.</p><input id="kil-pw" type="password" autocomplete="off" placeholder="Event password"/><button id="kil-pwgo">Unlock</button><div class="err" id="kil-pwerr"></div></div></div>
+
+<header id="main-nav"><div class="hd"><a href="/" class="brand">⚡ KEEPITIL</a> <a class="back" id="ev-back" href="/">&larr; My events</a></div></header>
+<main class="wrap">
+  <div id="ev-ann"></div>
+  <div class="card evcard">
+    <div class="tp-head">
+      <a class="backbtn" id="ev-back2" href="/">&larr; EVENTS</a>
+      <div class="orgbar" id="ev-host" style="display:none"></div>
+    </div>
+    <div class="tp-body">
+      <div class="tp-col">
+        <div class="flyer" id="ev-flyer"><img fetchpriority="high" decoding="async" alt="Flyer for The Briefs" src="https://keepitil.com/assets/images/event-placeholder.svg"></div>
+        <div class="ev-qr" id="ev-qr" style="display:none"></div>
+      </div>
+      <div class="tp-col">
+        <div class="infocard">
+          <h1 id="ev-title">The Briefs</h1>
+          <div class="meta" id="ev-date">Thu, Jan 14, 2027</div>
+          <div class="meta" id="ev-venue">📍 The Ritz - San Jose, San Jose</div>
+          <span class="genre" id="ev-genre" style="display:inline-block;">rock alternative punk</span>
+          <div class="going" id="ev-going" style="display:none"></div>
+          <div class="rsvp" id="ev-rsvp" style="display:none"></div>
+          <p class="desc" id="ev-desc" style="display:none"></p>
+        </div>
+        <div class="tixcard" id="sec-tickets" style="display:none">
+          <div class="tixhd">Tickets</div>
+          <div class="tixrows" id="ev-tickets"></div>
+          <div class="tixfoot" id="ev-tixfoot" style="display:none">
+            <span class="tf-count" id="tf-count">0 tickets</span>
+            <span class="tf-sub" id="tf-sub">$0.00</span>
+            <span class="tf-tax" id="tf-tax">Tax $0.00</span>
+            <button class="tf-buy" id="tf-buy" type="button" disabled>Buy</button>
+          </div>
+          <div class="tix-terms" id="tix-terms" style="display:none">By purchasing you agree to the <a href="/ticket-terms">Ticket Terms</a> &amp; <a href="/refund">Refund Policy</a>.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="ev-ctas" style="display:none"></div>
+  <section class="esec" id="sec-lineup" style="display:none"><div class="esec-h">Artist Lineup</div><div class="ecar" id="ev-lineup"></div></section>
+  <section class="esec" id="sec-gallery" style="display:none"><div class="esec-h">Gallery</div><div class="ecar" id="ev-gallery"></div></section>
+  <!-- ── EVENT LANDING PAGE, rebuilt 2026-08-18 (Founder: "improve like eventbrite/posh") ──
+       RESEARCH FINDING THAT SHAPED THIS: of 271 published events, exactly ONE has a description,
+       zero have galleries, zero have media. Eventbrite pages look rich because organizers WRITE
+       them. Ours are API imports carrying title, date, venue and an image. So a prettier layout
+       alone would have produced a beautiful empty page.
+       These sections are built from data we ACTUALLY hold, plus the KEEPITIL graph — which is the
+       one thing Eventbrite cannot show: the other events at this venue, and what else is on in
+       this scene. The Observatory alone has 25 upcoming events. -->
+  <section class="esec" id="sec-about" style="display:none">
+    <div class="esec-h">About this event</div>
+    <div id="ev-about" class="ev-about"></div>
+  </section>
+  <section class="esec" id="sec-share">
+    <div class="esec-h">Share</div>
+    <div class="ev-share" id="ev-share"></div>
+  </section>
+  <section class="esec" id="sec-venue" style="display:none">
+    <div class="esec-h">Venue <span class="esub" id="ev-venue-sub"></span></div>
+    <div id="ev-venue-box"></div>
+    <div class="ecar" id="ev-venue-more"></div>
+  </section>
+  <section class="esec" id="sec-similar" style="display:none">
+    <div class="esec-h">More like this</div>
+    <div class="ecar" id="ev-similar"></div>
+  </section>
+  <section class="esec" id="sec-feed"><div class="esec-h">Feed <span class="esub">— posts that tagged this event</span></div><div id="ev-feed"></div></section>
+</main>
+<footer>© 2026 KEEPITIL — OC · LA · San Diego events, artists &amp; culture. <a href="/">keepitil.com</a></footer>
+<script src="/assets/js/kil-img-fallback.js?v=hac99000e"></script>
+<script src="/assets/js/kil-rsvp.js?v=hd3a78229"></script>
+<script src="/assets/js/kil-calendar.js?v=h8a10045f"></script>
+<script src="/assets/js/vendor/qrcode.js?v=h4c79be16"></script>
+<script src="/assets/js/kil-img-host.js?v=hde4eec33"></script>
+<script src="/assets/js/vendor/supabase-js.min.js?v=hcb41d8ab"></script>
+<script src="/assets/js/event-page.js?v=he9c6a363"></script>
+<script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20261124c" defer></script>
+
+<script src="/assets/js/event-password.js?v=h936d5927"></script>
+</body>
+</html>

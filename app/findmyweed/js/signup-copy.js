@@ -106,7 +106,7 @@
       // AFTER a verified license pass (anonymous check): no prices yet. Prices and payment links come ONLY from the server
       // (fmw.business_pricing, migration 20261123030000) once the emailed link has signed the business in with a confirmed
       // email AND the license check is recorded as verified for that account. No price or payment link is in this file.
-      verifiedNote: 'License checked. Confirm your email to see pricing.',
+      verifiedNote: 'License checked. Confirm your email, then we\'ll confirm you own this business.',
       sentBusiness: 'Open the link on this device. Your pricing shows once your email is confirmed.',
       pricingLoading: 'Checking your license and email\u2026',
       pricingTitle: 'Your pricing',
@@ -115,6 +115,9 @@
       contact: 'Contact us',
       pricingLockedTitle: 'We need to check your license by hand',
       pricingLockedBody: 'We could not confirm a checked license for this account yet. Our team reviews it and emails you. Pricing shows once your license is checked.',
+      // verified license + confirmed email, but the team has not confirmed the claim yet (fmw.business_pricing reason 'approval'): not "check your license by hand" (it IS checked); the same words as the account page
+      pricingApprovalTitle: 'We\'ll confirm you own this business',
+      pricingApprovalBody: 'Your license checked out. Pricing shows once our team has confirmed the claim. We email you.',
       pricingErrorTitle: 'We could not load your pricing',
       pricingErrorBody: 'Something went wrong on our side. Try the sign-in link again in a minute, or contact us.',
       nextTitle: 'What happens next',

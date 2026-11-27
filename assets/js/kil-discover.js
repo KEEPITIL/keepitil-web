@@ -106,6 +106,10 @@
     return s;
   }
 
+  /* a cover on a host that refuses hotlinking is never requested (assets/js/kil-img-host.js; the card then uses the no-cover layout) */
+  function noDeadHost(u) {
+    try { var H = (typeof module !== 'undefined' && module.exports) ? require('./kil-img-host.js') : root.KilImgHost; return H && u ? H.clean(u) : u; } catch (e) { return u; }
+  }
   function norm(s) {
     return String(s == null ? '' : s)
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -380,7 +384,7 @@
     var when = whenLabel(e, tz);
     var where = [e.venue, e.city].filter(Boolean).join(' · ');
     var labels = genreLabels(e.genres);
-    var cover = safeUrl(e.cover_url);
+    var cover = noDeadHost(safeUrl(e.cover_url));
     var mediaInner = cover
       ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async">'
       : '<span class="disc-dow">' + esc(when ? when.split(' · ')[0] : 'Night') + '</span>';
@@ -467,7 +471,7 @@
     var href = eventHref(e);
     var page = href ? ('https://keepitil.com' + href) : '';
     var ticket = safeUrl(e.source_url);
-    var image = safeUrl(e.cover_url);
+    var image = noDeadHost(safeUrl(e.cover_url));
     var locName = e.venue || e.city || '';
     if (!locName) return null;
     var address = { '@type': 'PostalAddress' };
@@ -688,6 +692,44 @@
     return line;
   }
 
+  /* the list is drawn: give back the screen reserved for it (.disc-reserve), so a short list or a failure shows no blank */
+  function settle(el) { if (el && el.style) el.style.minHeight = '0'; }
+
+  /* SEARCH: a visitor types part of an event's name, venue, city or genre; every word must appear. Filters the cards already on the page, nothing is fetched. */
+  function searchMatch(text, q) {
+    var words = norm(q).split(' ').filter(Boolean);
+    if (!words.length) return true;
+    var hay = norm(text);
+    return words.every(function (w) { return hay.indexOf(w) !== -1; });
+  }
+  function applySearch(rootEl, q) {
+    var cards = rootEl.querySelectorAll('.disc-card'), shown = 0;
+    for (var i = 0; i < cards.length; i++) {
+      var hit = searchMatch(cards[i].textContent, q);
+      cards[i].hidden = !hit;
+      if (hit) shown++;
+    }
+    var secs = rootEl.querySelectorAll('.disc-sec');
+    for (var j = 0; j < secs.length; j++) {
+      secs[j].hidden = !!norm(q) && !secs[j].querySelector('.disc-card:not([hidden])');
+    }
+    var st = root.document.getElementById('disc-q-status');
+    if (st) st.textContent = !norm(q) ? '' : (shown ? shown + (shown === 1 ? ' event matches' : ' events match') + ' \u201c' + String(q).trim() + '\u201d.' : 'No events match \u201c' + String(q).trim() + '\u201d. Clear the search to see them all.');
+    return shown;
+  }
+  function addSearch(rootEl) {
+    if (!rootEl.querySelector('.disc-card')) return;
+    var box = root.document.getElementById('disc-search');
+    if (!box) {
+      box = root.document.createElement('div');
+      box.id = 'disc-search'; box.className = 'disc-search';
+      box.innerHTML = '<label for="disc-q">Search events</label><input id="disc-q" type="search" placeholder="Event name, venue or genre" autocomplete="off" maxlength="80"><p id="disc-q-status" role="status" aria-live="polite"></p>';
+      rootEl.parentNode.insertBefore(box, rootEl);
+      box.querySelector('input').addEventListener('input', function () { applySearch(rootEl, this.value); });
+    }
+    applySearch(rootEl, box.querySelector('input').value);   /* a redraw keeps what was typed */
+  }
+
   function draw(rootEl, cfg, result, pageUrl) {
     var state = { failed: result.failed, view: cfg.view, cityName: cfg.cityName, genre: cfg.genre, genreLabel: cfg.genreLabel, cityHref: cfg.cityHref, tz: result.tz, truncated: result.truncated };
     if (!result.failed && result.part) {
@@ -697,6 +739,8 @@
       state.tz = result.part.tz;
     }
     rootEl.innerHTML = renderLists(state);
+    settle(rootEl);
+    if (!result.failed) { try { addSearch(rootEl); } catch (e) { /* the list is already drawn; search is an extra */ } }
     var count = root.document.getElementById('disc-count');
     var meta = root.document.querySelector('meta[name="description"]');
     if (result.failed) {
@@ -774,13 +818,14 @@
     async function run() {
       citiesEl.innerHTML = '<p class="disc-loading">Loading cities\u2026</p>';
       var c = mk();
-      if (!c) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
+      if (!c) { citiesEl.innerHTML = renderCities(null, { failed: true }); settle(citiesEl); return; }
       var both = await Promise.all([loadCityRows(c, new Date().toISOString()), geoFetch(c, cfg.geoTimeoutMs)]);   /* one round trip, not two in a row; city_geo gives up after GEO_TIMEOUT_MS */
       var r = both[0], geo = both[1];
-      if (r.failed) { citiesEl.innerHTML = renderCities(null, { failed: true }); return; }
+      if (r.failed) { citiesEl.innerHTML = renderCities(null, { failed: true }); settle(citiesEl); return; }
       geos = ok(geo) ? (geo.data || []) : [];   /* city_geo failing is not fatal: tzFromGeo falls back to the LA timezone */
       cities = cityList(r.rows, cfg.fallbackTz, geos);
       citiesEl.innerHTML = renderCities(cities, { truncated: r.truncated });
+      settle(citiesEl);
       await openCity();
     }
     if (!citiesEl.__discBound) {
@@ -848,7 +893,10 @@
     load: load,
     mount: mount,
     mountCities: mountCities,
-    GEO_TIMEOUT_MS: GEO_TIMEOUT_MS
+    GEO_TIMEOUT_MS: GEO_TIMEOUT_MS,
+    searchMatch: searchMatch,
+    applySearch: applySearch,
+    settle: settle
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.KilDiscover = api;

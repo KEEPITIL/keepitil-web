@@ -373,7 +373,7 @@ function fakeSupabase(opts) {
     q.then = function (res, rej) {
       log.push(table);
       if (table === 'city_geo' && opts.geoNever) return new Promise(function () {});   /* supabase-js is stuck retrying: never settles */
-      var out = table === 'city_geo' ? (opts.geoFails ? { data: null, error: new Error('geo down') } : { data: opts.geos || [], error: null }) : { data: opts.rows || [], error: null };
+      var out = table === 'city_geo' ? (opts.geoFails ? { data: null, error: new Error('geo down') } : { data: opts.geos || [], error: null }) : (opts.rowsFail ? { data: null, error: new Error('events down') } : { data: opts.rows || [], error: null });
       return Promise.resolve(opts.delay ? new Promise(function (r) { setTimeout(r, opts.delay); }) : null).then(function () { log.push(table + ':done'); return out; }).then(res, rej);
     };
     return q;
@@ -382,7 +382,7 @@ function fakeSupabase(opts) {
 }
 async function mountWith(opts, hash) {
   var f = fakeSupabase(opts);
-  var el = function () { return { innerHTML: '', textContent: '', addEventListener: function () {}, __discBound: false }; };
+  var el = function () { return { innerHTML: '', textContent: '', style: { minHeight: '100vh' }, addEventListener: function () {}, __discBound: false }; };
   var cities = el(), lists = el();
   var saved = { document: globalThis.document, supabase: globalThis.supabase, location: globalThis.location };
   globalThis.document = { getElementById: function () { return el(); }, querySelector: function () { return null; }, createElement: function () { return { setAttribute: function () {} }; }, readyState: 'complete' };
@@ -458,4 +458,39 @@ test('a city_geo that answers in time is still used (the timeout only cuts off a
   var r = await mountWith({ rows: rows, geos: [{ city: 'Austin', state: 'TX', tz: 'America/Chicago' }], delay: 10, geoTimeoutMs: 400 }, '');
   assert.match(r.cities.innerHTML, /Austin/);
   assert.match(r.cities.innerHTML, /Austin, TX · 2 events/, 'the chip count uses the Chicago timezone (2 nights)');
+});
+
+test('CLS reserve: the screen reserved for the list (.disc-reserve) is given back as soon as the list is drawn (min-height 0), on success, on a failed load and for the city view; settle() is null-safe (NEGATIVE CONTROL: before the draw the element still holds its reserve)', async function () {
+  var rows = [AUS('2027-12-06T05:30:00Z')];
+  var r = await mountWith({ rows: rows, geos: [] }, '#city=Austin&state=TX');
+  assert.equal(r.cities.style.minHeight, '0', 'cities list settled'); assert.equal(r.lists.style.minHeight, '0', 'city view settled');
+  var f = { style: { minHeight: '100vh' } }; assert.equal(f.style.minHeight, '100vh', 'control: untouched until settle()'); D.settle(f); assert.equal(f.style.minHeight, '0');
+  D.settle(null); D.settle({});   /* no throw */
+  var failed = await mountWith({ rows: [], geos: [], geoFails: true, rowsFail: true }, '');
+  assert.equal(failed.cities.style.minHeight, '0', 'a failed or empty load collapses too (no blank screen)');
+});
+
+/* ---- ordering on /discover/ is a pure read of date and locality: no ranking layer (Grok / Muse) ---- */
+var ORDER_FLAGS = { featured: true, sponsored: true, paid: true, boost: 99, rank: 1, priority: 1, promoted: true, score: 100, weight: 100 };
+test('event order is by starts_at only: ranking-looking fields on the rows change nothing (NEGATIVE CONTROL: a comparator that honoured them would reorder)', function () {
+  var base = function (id, t) { return { id: id, slug: id, title: 'Show ' + id, venue: 'V' + id, city: 'Long Beach', state: 'CA', status: 'published', starts_at: t, tz: 'America/Los_Angeles' }; };
+  var rows = [base('c', '2027-03-03T20:00:00Z'), base('a', '2027-01-01T20:00:00Z'), base('b', '2027-02-02T20:00:00Z')];
+  var plain = D.prepare(rows, { now: new Date('2026-11-25T00:00:00Z'), tz: 'America/Los_Angeles', city: 'long-beach', state: 'CA' });
+  var flagged = D.prepare(rows.map(function (r, i) { return Object.assign({}, r, ORDER_FLAGS, i === 0 ? { featured: true } : {}); }), { now: new Date('2026-11-25T00:00:00Z'), tz: 'America/Los_Angeles', city: 'long-beach', state: 'CA' });
+  var ids = function (p) { return p.weekend.concat(p.upcoming, p.later).map(function (e) { return e.id; }); };
+  assert.deepEqual(ids(plain), ['a', 'b', 'c'], 'chronological'); assert.deepEqual(ids(flagged), ids(plain), 'flags change nothing');
+  var rankAware = rows.map(function (r, i) { return Object.assign({}, r, i === 0 ? ORDER_FLAGS : {}); }).sort(function (x, y) { return (y.featured ? 1 : 0) - (x.featured ? 1 : 0); });
+  assert.equal(rankAware[0].id, 'c', 'control: a rank-aware sort WOULD put the flagged late event first, so the test can tell');
+});
+test('city order is event count (descending) then name: no paid or rank field exists in the query or the sort', function () {
+  var mk = function (c, n) { var a = []; for (var i = 0; i < n; i++) a.push({ city: c, state: 'CA', status: 'published', title: 'T' + c + i, venue: 'V' + c + i, starts_at: '2027-01-0' + (1 + i) + 'T20:00:00Z', tz: 'America/Los_Angeles' }); return a; };
+  var rows = [].concat(mk('Oakland', 1), mk('Long Beach', 3), mk('Anaheim', 1)).map(function (r) { return Object.assign({}, r, ORDER_FLAGS); });
+  assert.deepEqual(D.cityList(rows).map(function (c) { return c.name + ':' + c.n; }), ['Long Beach:3', 'Anaheim:1', 'Oakland:1']);
+  var src = readFileSync(new URL('./kil-discover.js', import.meta.url), 'utf8');
+  assert.match(src, /list\.sort\(function \(a, b\) \{ return String\(a\.starts_at\)\.localeCompare\(String\(b\.starts_at\)\); \}\);/);
+  assert.match(src, /\.sort\(function \(a, b\) \{ return b\.n - a\.n \|\| a\.name\.localeCompare\(b\.name\); \}\)/);
+  assert.equal((src.match(/\.sort\(/g) || []).length, 2, 'exactly these two sorts exist in the file');
+  var cols = (src.match(/var EVENT_COLUMNS = '([^']*)'/) || [])[1] + ',' + (src.match(/var CITY_COLUMNS = '([^']*)'/) || [])[1];
+  assert.doesNotMatch(cols, /feature|sponsor|paid|boost|rank|priorit|promo|score|weight|pin/i, 'the queries select no ranking, paid or placement column');
+  assert.match(src, /\.order\('starts_at', \{ ascending: true \}\)/);
 });

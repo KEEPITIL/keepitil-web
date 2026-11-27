@@ -35,6 +35,7 @@ h1.pt{font-family:var(--fh);font-size:2.4rem;letter-spacing:.03em;margin-bottom:
 .panel .psub{color:var(--muted);font-size:.9rem;margin-bottom:20px}
 .grp{display:none}.grp.on{display:block}
 .row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 0;border-bottom:1px solid var(--line)}
+.row[hidden]{display:none}   /* .row sets display:flex, which beats the UA [hidden] rule: the email-request row showed next to the Download button while MEMBER_DATA_CONTROLS is on */
 .row:last-child{border-bottom:0}
 .row .lbl{font-weight:600}.row .lbl small{display:block;color:var(--muted);font-weight:400;font-size:.82rem;margin-top:2px}
 .row .val{color:var(--text-soft);font-size:.92rem}
@@ -87,14 +88,14 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
   <a href="/apply" class="nav-cta">LOGIN</a>
 </div></nav>
 
-<div class="wrap">
+<main class="wrap" id="main">
   <button class="sback" onclick="goProfile()">‹ Back to profile</button>
   <h1 class="pt">Settings</h1>
 
   <div id="gate" class="gate" style="display:none">
     <h2>Log in to manage settings</h2>
     <p>Your preferences, theme, and notifications live in your KEEPITIL account. Theme still works while signed out.</p>
-    <a class="btn primary" href="/apply">Log in / Join</a>
+    <a class="btn primary" href="/apply?next=%2Fsettings">Log in / Join</a>
     <div style="margin-top:18px"><a class="btn" href="#" onclick="showAnyway();return false">Adjust theme only →</a></div>
   </div>
 
@@ -115,15 +116,15 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
         <h2>Account</h2><div class="psub">Manage how you sign in.</div>
         <div class="row"><div class="lbl">Handle</div><div class="val" id="acc-handle">—</div></div>
         <div class="row"><div class="lbl">Email<small>Used to sign in and for account notices</small></div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="email" id="acc-email-in" placeholder="you@email.com" style="min-width:180px"><button class="btn primary" onclick="saveEmail()">Update</button></div></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="email" id="acc-email-in" aria-label="Email address" placeholder="you@email.com" style="min-width:180px"><button class="btn primary" onclick="saveEmail()">Update</button></div></div>
         <div class="row"><div class="lbl">Change password<small>At least 8 characters</small></div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="password" id="acc-pass" placeholder="New password" style="min-width:150px"><button class="btn" onclick="savePass()">Change</button></div></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="password" id="acc-pass" aria-label="New password" placeholder="New password" style="min-width:150px"><button class="btn" onclick="savePass()">Change</button></div></div>
         <div class="row"><div class="lbl">Language</div>
-          <select data-k="language"><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="pt">Português</option><option value="de">Deutsch</option></select></div>
+          <select data-k="language" aria-label="Language"><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="pt">Português</option><option value="de">Deutsch</option></select></div>
         <div class="row"><div class="lbl">Two-factor authentication<small>Extra security at sign-in</small></div><a class="btn" href="mailto:info@keepitil.com">Set up →</a></div>
         <div class="row"><div class="lbl">Sign out<small>End your session on this device</small></div><button class="btn danger" onclick="doLogout()">Log out</button></div>
-        <div class="row" id="exp-row"><div class="lbl">Download my data<small>A copy of your profile, events, saves, follows and orders as a JSON file</small></div><button class="btn" id="exp-go" type="button" onclick="exportMyData()">Download</button></div>
-        <div class="row" id="exp-mail-row" hidden><div class="lbl">Download my data<small>Email us and we will send you a copy of your profile, events, saves, follows and orders</small></div><a class="btn" href="mailto:info@keepitil.com?subject=My%20data%20request">Email us</a></div>
+        <div class="row" id="exp-row"><div class="lbl">Download my data<small>A JSON file with everything tied to your account: account details and settings, your profiles and what you posted, events you submitted or own, saved events, who you follow, ticket orders and registrations, your comments, chat messages, playlists and other activity, billing and payout records, and messages you sent</small></div><button class="btn" id="exp-go" type="button" onclick="exportMyData()">Download</button></div>
+        <div class="row" id="exp-mail-row" hidden><div class="lbl">Download my data<small>Email us and we will send you the same copy: account details and settings, your profiles and what you posted, events, saved events, who you follow, ticket orders and registrations, your comments, chat messages, playlists and other activity, billing and payout records, and messages you sent</small></div><a class="btn" href="mailto:info@keepitil.com?subject=My%20data%20request">Email us</a></div>
         <div class="row" id="del-row"><div class="lbl">Delete account<small>Permanently removes your KEEPITIL account and the things only you own. This cannot be undone.</small></div><button class="btn danger" id="del-open" type="button" onclick="delOpen()">Delete account…</button></div>
         <div id="del-panel" hidden style="border:1px solid #ff6b6b;border-radius:14px;padding:16px;margin:8px 0 4px">
           <div style="font-weight:800;margin-bottom:6px">Delete your account?</div>
@@ -178,10 +179,10 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
       <div class="grp" data-g="privacy">
         <h2>Privacy</h2><div class="psub">Control who sees you.</div>
         <div class="row"><div class="lbl">Profile visibility</div>
-          <select data-k="privacy_visibility"><option value="public">Public</option><option value="members">Members only</option></select></div>
+          <select data-k="privacy_visibility" aria-label="Profile visibility"><option value="public">Public</option><option value="members">Members only</option></select></div>
         <div class="row"><div class="lbl">Show me in the Scene directory<small>Appear in search &amp; discovery</small></div><div class="tog" data-k="privacy_directory"></div></div>
         <div class="row"><div class="lbl">Allow messages from<small>Who can start a chat with you</small></div>
-          <select data-k="privacy_messages"><option value="everyone">Everyone</option><option value="members">Members</option><option value="none">No one</option></select></div>
+          <select data-k="privacy_messages" aria-label="Allow messages from"><option value="everyone">Everyone</option><option value="members">Members</option><option value="none">No one</option></select></div>
         <div class="savez" id="sz-privacy"></div>
       </div>
 
@@ -189,7 +190,7 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
       <div class="grp" data-g="chat">
         <h2>Chat defaults</h2><div class="psub">Defaults for rooms you create.</div>
         <div class="row"><div class="lbl">Who can post</div>
-          <select data-k="chat_whocanpost"><option value="everyone">Everyone</option><option value="admins">Admins only</option></select></div>
+          <select data-k="chat_whocanpost" aria-label="Who can post"><option value="everyone">Everyone</option><option value="admins">Admins only</option></select></div>
         <div class="row"><div class="lbl">Approve new members<small>Review joins before they can see the room</small></div><div class="tog" data-k="chat_approve"></div></div>
         <div class="row"><div class="lbl">Read receipts<small>Let others see when you've read</small></div><div class="tog" data-k="chat_receipts"></div></div>
         <div class="savez" id="sz-chat"></div>
@@ -214,7 +215,7 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
       </div>
     </section>
   </div>
-</div>
+</main>
 
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script>
@@ -327,8 +328,8 @@ function savePass(){ var sz=document.getElementById('sz-account'); var el=docume
   if(!SB||!SIGNED){ if(sz)sz.textContent='Log in to change your password'; return; }
   if(sz)sz.textContent='Updating…';
   SB.auth.updateUser({password:p}).then(function(r){ el.value=''; if(sz){ sz.textContent=(r&&r.error)?('Could not update: '+r.error.message):'Password changed ✓'; setTimeout(function(){sz.textContent='';},3000);} }); }
-/* MEMBER_DATA_CONTROLS: the Download button needs export_my_data() from keepitil.github.io #95 (not on prod yet). Keep false until it is applied and verified, then set true here AND in submit-event.html (a test keeps both equal). Off = an email request row is shown instead. */
-var MEMBER_DATA_CONTROLS=false;
+/* MEMBER_DATA_CONTROLS: ON since keepitil.github.io #95 (export_my_data) was applied and verified on prod (2026-11-25 15:30 window). Keep it equal here AND in submit-event.html (a test keeps both equal). Off = an email request row is shown instead. */
+var MEMBER_DATA_CONTROLS=true;
 (function(){ var d=document.getElementById('exp-row'), m=document.getElementById('exp-mail-row'); if(!MEMBER_DATA_CONTROLS){ if(d) d.hidden=true; if(m) m.hidden=false; } })();
 /* DATA EXPORT: export_my_data() returns only the signed-in person's own rows. */
 function exportFileName(d){ d=d||new Date(); return 'keepitil-my-data-'+d.toISOString().slice(0,10)+'.json'; }
@@ -402,6 +403,6 @@ function showAnyway(){ document.getElementById('gate').style.display='none'; doc
 })();
 </script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261124e" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
 </body>
 </html>

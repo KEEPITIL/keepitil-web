@@ -259,7 +259,7 @@ function render(){
   $('vName').textContent=V.name;
   $('vTag').textContent=V.tagline||'';
   var loc=V.address||V.city;
-  $('vLoc').innerHTML=loc?('📍 <a style="color:inherit;border-bottom:1px solid var(--line)" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(V.maps_query||loc)+'" target="_blank" rel="noopener noreferrer">'+esc(loc)+' ↗</a>'):'';
+  $('vLoc').innerHTML=loc?('📍 <a style="color:inherit;border-bottom:1px solid var(--line);display:inline-block;padding:3px 0;min-height:24px;box-sizing:border-box" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(V.maps_query||loc)+'" target="_blank" rel="noopener noreferrer">'+esc(loc)+' ↗</a>'):'';
   // quick answers (host? / cost? / book?)
   var rooms=V.rooms||[]; var lowest='';
   try{ var ps=[]; rooms.forEach(function(rm){(rm.pricing||[]).forEach(function(p){var n=parseInt(String(p.price).replace(/[^0-9]/g,''),10); if(n)ps.push(n);});}); if(ps.length)lowest='from $'+Math.min.apply(null,ps).toLocaleString(); }catch(e){}
@@ -292,7 +292,7 @@ function render(){
   var rev=V.reviews||{};
   if(rev && rev.source){
     var rc=(rev.rating||rev.count)?(' · '+esc(rev.rating||'')+(rev.count?(' ('+esc(rev.count)+' reviews)'):'')):'';
-    $('vReviews').innerHTML='<b>'+esc(rev.source)+'</b>'+rc+(rev.note?('<div style="margin-top:6px">'+esc(rev.note)+'</div>'):'')+(rev.url?('<div style="margin-top:8px"><a style="color:var(--brand)" href="'+esc(rev.url)+'" target="_blank" rel="noopener noreferrer nofollow">View on '+esc(rev.source)+' ↗</a></div>'):'');
+    $('vReviews').innerHTML='<b>'+esc(rev.source)+'</b>'+rc+(rev.note?('<div style="margin-top:6px">'+esc(rev.note)+'</div>'):'')+(rev.url?('<div style="margin-top:8px"><a style="color:var(--brand);display:inline-block;padding:3px 0;min-height:24px;box-sizing:border-box" href="'+esc(rev.url)+'" target="_blank" rel="noopener noreferrer nofollow">View on '+esc(rev.source)+' ↗</a></div>'):'');
   } else { $('vReviews').innerHTML=esc((rev&&rev.note)||'No reviews yet.'); }
   // on-site reviews + gallery (auto-filled from tagged posts, filterable)
   loadReviews();

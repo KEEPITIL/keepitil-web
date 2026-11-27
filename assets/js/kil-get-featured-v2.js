@@ -27,13 +27,13 @@
 
   var CSS = '#get-featured{max-width:640px;margin:48px auto 0;padding:0 0 48px;scroll-margin-top:212px;color:var(--ink,#f4f2fb)}' +
     '#get-featured .gf-card{box-sizing:border-box;background:#14121f;border:1px solid var(--panel-brd,rgba(255,255,255,.09));border-radius:16px;padding:22px 18px}' +
-    '#get-featured h2{margin:0 0 6px;font-size:1.35rem}#get-featured p.gf-sub{margin:0 0 16px;color:var(--ink2,#9a94b4);font-size:.95rem;line-height:1.5}' +
+    '#get-featured h1,#get-featured h2{margin:0 0 6px;font-size:1.35rem}#get-featured p.gf-sub{margin:0 0 16px;color:var(--ink2,#9a94b4);font-size:.95rem;line-height:1.5}' +
     '#get-featured label{display:block;margin:0 0 4px;font-size:.82rem;color:var(--ink2,#9a94b4)}' +
     '#get-featured input[type=text],#get-featured input[type=email],#get-featured input[type=tel],#get-featured input[type=url],#get-featured select,#get-featured textarea{box-sizing:border-box;width:100%;margin:0 0 12px;padding:12px 13px;font:inherit;font-size:16px;color:#fff;background:#07060d;border:1px solid rgba(255,255,255,.2);border-radius:10px}' +
     '#get-featured textarea{min-height:132px;resize:vertical;max-height:52vh;scroll-margin-top:14px;scroll-margin-bottom:90px}' +
     '#get-featured textarea[name=story_before],#get-featured textarea[name=story_today]{min-height:168px}' +
     '#get-featured input,#get-featured select{scroll-margin-top:14px;scroll-margin-bottom:90px}' +
-    '@media (max-width:640px){#get-featured{max-width:100%}#get-featured .gf-card{padding:20px 14px;border-radius:0;border-left:0;border-right:0}#get-featured h2{font-size:1.25rem}}' +
+    '@media (max-width:640px){#get-featured{max-width:100%}#get-featured .gf-card{padding:20px 14px;border-radius:0;border-left:0;border-right:0}#get-featured h1,#get-featured h2{font-size:1.25rem}}' +
     '#get-featured input[type=file]{margin:0 0 6px;color:var(--ink2,#9a94b4)}' +
     '#get-featured .gf-check{display:flex;gap:8px;align-items:flex-start;margin:0 0 10px;font-size:.9rem;color:var(--ink,#f4f2fb)}' +
     '#get-featured .gf-check input{margin-top:3px}' +
@@ -58,7 +58,7 @@
     var SOCS = [['instagram','Instagram','@handle or link'],['tiktok','TikTok','@handle or link'],['youtube','YouTube','Channel link'],['x_handle','X (Twitter)','@handle or link'],['soundcloud','SoundCloud','Profile link'],['spotify','Spotify','Artist link'],['website','Website','https://']];
     var socPick = SOCS.map(function (x) { return '<label class="gf-dd-opt"><input type="checkbox" name="gf_soc" value="' + x[0] + '"' + (x[0] === 'instagram' ? ' checked' : '') + '> ' + x[1] + '</label>'; }).join('');
     var socFields = SOCS.map(function (x) { return '<div class="gf-soc" data-soc="' + x[0] + '"' + (x[0] === 'instagram' ? '' : ' hidden') + '>' + field(x[1], textIn(x[0], x[2])) + '</div>'; }).join('');
-    mount.innerHTML += '<div class="gf-card"><h2>Get Featured on KEEPITIL Connect</h2>' +
+    mount.innerHTML += '<div class="gf-card"><h1>Get Featured on KEEPITIL Connect</h1>' +
       '<p class="gf-sub">A free artist feature on keepitil.com, shared across our pages. Artwork and artists of all kinds — tell us your story and upload your best photos. Your main photo becomes your article cover.</p>' +
       '<form id="gf-form" novalidate>' +
       '<label>I am a… (select all that apply) *</label><div class="gf-dd" data-dd="cat"><button type="button" class="gf-dd-btn"><span class="gf-dd-txt">Select your category</span><span>\u25BE</span></button><div class="gf-dd-panel" hidden>' + cats + '</div></div>' +
@@ -71,8 +71,8 @@
       '<label>Your socials — pick the ones you want to add</label><div class="gf-dd" data-dd="soc"><button type="button" class="gf-dd-btn"><span class="gf-dd-txt">Choose socials</span><span>\u25BE</span></button><div class="gf-dd-panel" hidden>' + socPick + '</div></div>' +
       socFields +
       field('Best track or set link *', textIn('best_track_link', 'The one link that represents you best', true)) +
-      '<label>Your best photos * (up to 5)</label>' +
-      '<input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple required>' +
+      '<label for="gf-photos">Your best photos * (up to 5)</label>' +
+      '<input id="gf-photos" type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple required>' +
       '<p class="gf-note">Upload your BEST quality photos — original files, not screenshots. Your main photo becomes your article cover.</p>' +
       field('Before the craft *', '<textarea name="story_before" required placeholder="Who were you before the music/art? Where are you from, what were you doing, and what pulled you in?"></textarea>') +
       field('The artist today *', '<textarea name="story_today" required placeholder="Who are you as an artist today — your sound, your latest releases or work, and what you are building toward."></textarea>') +

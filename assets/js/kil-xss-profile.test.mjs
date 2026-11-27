@@ -4,6 +4,8 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const root = join(dir, '../..');
@@ -193,7 +195,7 @@ function sliceFunction(src, name) {
 }
 
 test('chat name and slug quotes do not become handlers', () => {
-  const profile = read('profile.html');
+  const profile = __assemble(read('profile.html'));
   const dom = new JSDOM('<div id="chat-list"></div><button id="dm-new"></button>', {
     url: 'https://keepitil.com/profile',
     runScripts: 'dangerously'
@@ -234,7 +236,7 @@ test('chat name and slug quotes do not become handlers', () => {
 });
 
 test('pages do not assign stored html straight to innerHTML', () => {
-  const profile = read('profile.html');
+  const profile = __assemble(read('profile.html'));
   const culture = read('culture/index.html');
   const dashboard = read('dashboard.html');
   assert.match(profile, /assets\/js\/vendor\/purify\.min\.js/);

@@ -10,10 +10,12 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(join(dir, '../..', rel), 'utf8');
-const PAGE = read('profile.html');
+const PAGE = __assemble(read('profile.html'));
 
 /* ---------- a tiny DOM: elements with parents and attributes ---------- */
 function node(attrs = {}, parent = null) {

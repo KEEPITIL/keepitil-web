@@ -71,8 +71,8 @@ test('a message from another origin gets no session reply', () => {
 });
 
 test('the ticket page does not ask an outside host to draw a door code', () => {
-  const tickets = read('tickets.html');
-  const profile = read('profile.html');
+  const tickets = __assemble(read('tickets.html'));
+  const profile = __assemble(read('profile.html'));
   for (const html of [tickets, profile]) {
     assert.equal(/qrserver|chart\.googleapis|quickchart|api\.qrserver/i.test(html), false);
     assert.match(html, /\/assets\/js\/vendor\/qrcode\.js/);
@@ -118,9 +118,9 @@ test('profile draws the raw token and tickets draws the KIL- form', () => {
   assert.notEqual(qr.eventCheckinScan(fromTickets), token);
   assert.equal(qr.payload(''), '');
   assert.equal(qr.payload('99', { prefix: true }), '');
-  assert.match(read('tickets.html'), /KilTicketQr\.payload\(e\.qr_token,\s*\{\s*prefix:\s*true\s*\}\)/);
-  assert.match(read('profile.html'), /KilTicketQr\.payload\(t\.qr_token\)/);
-  assert.equal(/prefix:\s*true/.test(read('profile.html')), false);
+  assert.match(__assemble(read('tickets.html')), /KilTicketQr\.payload\(e\.qr_token,\s*\{\s*prefix:\s*true\s*\}\)/);
+  assert.match(__assemble(read('profile.html')), /KilTicketQr\.payload\(t\.qr_token\)/);
+  assert.equal(/prefix:\s*true/.test(__assemble(read('profile.html'))), false);
 });
 
 test('every page is framed only by this site', () => {

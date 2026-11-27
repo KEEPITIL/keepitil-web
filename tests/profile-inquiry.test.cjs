@@ -1,13 +1,14 @@
 // Profile contact form: validation, off-by-default gating, no owner email in the page, draft-only backend.
 // Run: node --test tests/profile-inquiry.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const ROOT = process.env.PI_ROOT || path.resolve(__dirname, "..");
 const read = (p) => fs.readFileSync(path.join(ROOT, p), "utf8");
 const js = read("assets/js/profile-inquiry.js");
-const page = read("profile.html");
+const page = __A(read("profile.html"));
 const fn = read("db/drafts/profile-inquiry/index.ts");
 const sql = read("db/drafts/2026-11-25-profile-inquiries.sql");
 const mod = require(path.join(ROOT, "assets/js/profile-inquiry.js"));

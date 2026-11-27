@@ -2,7 +2,8 @@
 // Grok 11:36: hold ONLY the late block (stats, about, links, account type, badges, the buttons row); name, avatar and bio paint at once, the header keeps its space (.pf-meta min-height),
 // and the hold is released when all four pieces are in, on a not-found / no-database page, or after 1.5 s.
 const test = require('node:test'), assert = require('node:assert/strict'), fs = require('fs'), path = require('path'), vm = require('vm');
-const html = fs.readFileSync(path.join(__dirname, '..', 'profile.html'), 'utf8');
+const __A = require("./helpers/event-assembled.cjs").assemble;
+const html = __A(fs.readFileSync(path.join(__dirname, '..', 'profile.html'), 'utf8'));
 const gateSrc = html.match(/\/\*PF-GATE-START\*\/([\s\S]*?)\/\*PF-GATE-END\*\//)[1];
 
 function makeGate(src = gateSrc) {

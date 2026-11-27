@@ -13,6 +13,8 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(join(dir, '../..', rel), 'utf8');
@@ -93,7 +95,7 @@ test('(b) share menu: hostile title cannot inject markup', () => {
 });
 
 test('(c) profile: category badges and cpPreview escape hostile values', () => {
-  const src = read('profile.html');
+  const src = __assemble(read('profile.html'));
   const escCode = src.slice(src.indexOf('function esc(s)'), src.indexOf('\n', src.indexOf('function esc(s)')));
   const cats = fakeEl('div');
   const els = { pfCats: cats };

@@ -1,13 +1,14 @@
 // Member control: unpublish / delete own submitted events (submit-event) and data export (settings).
 // Runs the REAL handlers in a vm with a fake supabase client. Run: node --test tests/member-data-control.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const ROOT = process.env.MD_ROOT || path.resolve(__dirname, "..");
-const se = fs.readFileSync(path.join(ROOT, "submit-event.html"), "utf8");
-const st = fs.readFileSync(path.join(ROOT, "settings.html"), "utf8");
+const se = __A(fs.readFileSync(path.join(ROOT, "submit-event.html"), "utf8"));
+const st = __A(fs.readFileSync(path.join(ROOT, "settings.html"), "utf8"));
 
 function extract(src, name) {
   const start = src.indexOf("function " + name + "(");

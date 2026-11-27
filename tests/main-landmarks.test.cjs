@@ -1,6 +1,7 @@
 // Axe sweep 2026-11-24 (live pages): every content page has exactly one <main>; the culture video iframe has a title; the signup logo is not a redundant
 // alt; the create calendar rows that scroll sideways are keyboard-focusable. Run: node --test tests/main-landmarks.test.cjs
 const test = require("node:test"), assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const R = (f) => fs.readFileSync(path.join(__dirname, "..", f), "utf8");
 for (const f of ["about.html", "artists.html", "business.html", "venues/index.html", "terms.html", "privacy.html", "event.html", "culture/index.html"]) {
   test(f + " has exactly one <main> and no leftover div.wrap", () => {
@@ -12,7 +13,7 @@ test("the prerender template anchors the generator needs are still present after
   const h = require("./helpers/event-assembled.cjs").assemble(R("event.html")); for (const a of ['<div class="flyer" id="ev-flyer"></div>', '<h1 id="ev-title">Event</h1>', "function canonFor(slug)"]) assert.ok(h.includes(a), a);
 });
 test("culture: the video iframe is given a title", () => assert.match(R("culture/index.html"), /var f = document\.createElement\('iframe'\);\n\s+f\.title = 'KEEPITIL culture video player';/));
-test("signup: the brand logo next to the visible brand text has empty alt", () => assert.match(R("signup.html"), /<img src="\/keepitil-x-blue\.png" alt=""\/><span class="nav-brand">KEEPITIL<\/span>/));
+test("signup: the brand logo next to the visible brand text has empty alt", () => assert.match(__A(R("signup.html")), /<img src="\/keepitil-x-blue\.png" alt=""\/><span class="nav-brand">KEEPITIL<\/span>/));
 test("create calendar rows are focusable groups with a name, and the vs-app stamp moved to b on create", () => {
   const v = R("vs-app.js"); assert.equal((v.match(/<div class="ce-grid" tabindex="0" role="group" aria-label="Events, scroll sideways">/g) || []).length, 2);
   assert.match(R("create/index.html"), /\/vs-app\.js\?v=20261124b/);

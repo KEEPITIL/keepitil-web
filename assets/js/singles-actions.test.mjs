@@ -8,6 +8,8 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(join(dir, '../..', rel), 'utf8');
@@ -64,7 +66,7 @@ test('none of the nine pages has an inline on*= handler attribute left', () => {
     assert.deepEqual([...t.matchAll(new RegExp(INLINE.source, 'gi'))].map((m) => m[0]), [], p);
   }
 });
-const count = (p, re) => (read(p).match(re) || []).length;
+const count = (p, re) => (__assemble(read(p)).match(re) || []).length;
 test('mobile menu toggles: signup, apply, connect use kilToggleMobileMenu and load kil-actions.js then kil-common-actions.js', () => {
   for (const p of ['signup.html', 'apply.html', 'connect/index.html']) {
     const h = read(p); assert.equal(count(p, /data-click="kilToggleMobileMenu"/g), 1, p);
@@ -74,7 +76,7 @@ test('mobile menu toggles: signup, apply, connect use kilToggleMobileMenu and lo
 });
 test('connect and kode/embed image fallbacks are data-fb="hide"; the home Spotlight image is swap-next', () => {
   assert.equal(count('connect/index.html', /data-fb="hide"/g), 2); assert.equal(count('kode/embed.html', /data-fb="hide"/g), 1);
-  assert.equal(count('index.html', /data-fb="swap-next"/g), 1); assert.ok(read('kode/embed.html').includes('/assets/js/kil-img-fallback.js'));
+  assert.equal(count('index.html', /data-fb="swap-next"/g), 1); assert.ok(__assemble(read('kode/embed.html')).includes('/assets/js/kil-img-fallback.js'));
 });
 test('home: the hamburger is data-click="toggleMenu" and toggleMenu is allowed', () => {
   const h = read('index.html'); assert.equal(count('index.html', /data-click="toggleMenu"/g), 1);

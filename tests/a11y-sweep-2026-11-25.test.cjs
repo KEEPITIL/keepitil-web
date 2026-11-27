@@ -1,6 +1,7 @@
 // KEEPITIL live a11y sweep 2026-11-25 (fmw-web) + Black Friday leftovers. Source probes, each with a negative control.
 // Run: node --test tests/a11y-sweep-2026-11-25.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -31,7 +32,7 @@ test("footer links, social icons, footer brand, shell nav links and Forgot passw
     assert.ok(rules.length, sel);
     assert.ok(rules.some((r) => /min-height:24px/.test(r)), sel);
   }
-  const a = read("apply.html").match(/\.forgot\{([^}]*)\}/);
+  const a = __A(read("apply.html")).match(/\.forgot\{([^}]*)\}/);
   assert.ok(a && /min-height:24px/.test(a[1]) && /padding:4px 0/.test(a[1]));
   assert.doesNotMatch(".forgot{display:inline-block;margin-top:16px;font-size:.82rem;}".match(/\.forgot\{([^}]*)\}/)[1], /min-height/, "negative control");
 });

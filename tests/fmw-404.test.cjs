@@ -17,10 +17,11 @@ function run(pathname, extra) {
   const attrs = {};
   const shown = [];
   const replaced = [];
+  const roles = [];
   const document = {
     title: '',
     documentElement: { setAttribute: (k, v) => { attrs[k] = v; }, getAttribute: (k) => attrs[k] || null },
-    getElementById: (id) => ({ style: { set display(v) { shown.push([id, v]); } } }),
+    getElementById: (id) => ({ setAttribute: (k, v) => { if (k === 'role') roles.push([id, v]); }, style: { set display(v) { shown.push([id, v]); } } }),
   };
   const ctx = {
     document,
@@ -30,18 +31,19 @@ function run(pathname, extra) {
   if (extra && extra.fetch) { ctx.fetch = extra.fetch; document.open = () => extra.log.push('open'); document.write = (h) => extra.log.push(['write', h]); document.close = () => extra.log.push('close'); }
   vm.runInNewContext(router, ctx);
   vm.runInNewContext(scripts[1], ctx);
-  return { attrs, shown, replaced, title: document.title };
+  return { attrs, shown, roles, replaced, title: document.title };
 }
 
 test('missing FMW page shows the Find My Weed panel and does not redirect', () => {
   const r = run('/app/findmyweed/no-such-page');
   assert.deepEqual(r.replaced, []);
   assert.deepEqual(r.shown, [['fmwfourohfour', 'flex']]);
+  assert.deepEqual(r.roles, [['fmwfourohfour', 'main']]);
   assert.match(r.title, /Find My Weed/);
 });
 
 test('the FMW panel links back to the Find My Weed home', () => {
-  const panel = html.match(/<main class="wrap" id="fmwfourohfour"[\s\S]*?<\/main>/)[0];
+  const panel = html.match(/<div class="wrap" id="fmwfourohfour"[\s\S]*?\n<\/div>/)[0];
   assert.match(panel, /href="\/app\/findmyweed\/"[^>]*>Back to Find My Weed</);
 });
 
@@ -49,6 +51,7 @@ test('other missing paths keep the KEEPITIL panel', () => {
   for (const p of ['/no-such-page', '/app/tuitea/nope', '/app/nope']) {
     const r = run(p);
     assert.deepEqual(r.shown, [['fourohfour', 'flex']], p);
+    assert.deepEqual(r.roles, [['fourohfour', 'main']], p);
     assert.equal(r.attrs['data-fmw'], undefined, p);
   }
 });
@@ -57,14 +60,14 @@ test('clean URLs still route', () => {
   assert.deepEqual(run('/profile/someone').replaced, ['/profile?slug=someone']);
 });
 
-// live-shots finding (axe landmark-one-main): each 404 panel is a <main>, so the page has a main landmark. NEGATIVE CONTROL below.
-test('both 404 panels are <main> landmarks', () => {
+// a11y sweep 2026-11-25: exactly ONE <main> in the markup (the KEEPITIL box); the FMW box is a div that gets role=main only when revealed. NEGATIVE CONTROL below.
+test('404 has one <main> in the markup and the revealed panel is the main landmark', () => {
   const h = fs.readFileSync(require('path').join(__dirname, '..', '404.html'), 'utf8');
-  assert.equal((h.match(/<main class="wrap" id="(fmwfourohfour|fourohfour)"/g) || []).length, 2);
-  assert.equal((h.match(/<\/main>/g) || []).length, 2);
-  assert.doesNotMatch(h.replace(/<main class="wrap"/g, ''), /<div class="wrap" id="(fmw)?fourohfour"/);
-  const old = h.replace(/<main class="wrap"/g, '<div class="wrap"');
-  assert.notEqual((old.match(/<main class="wrap" id=/g) || []).length, 2, 'the pre-fix markup has no main');
+  assert.equal((h.match(/<main[\s>]/g) || []).length, 1);
+  assert.match(h, /<main class="wrap" id="fourohfour"/);
+  assert.match(h, /<div class="wrap" id="fmwfourohfour"/);
+  const old = h.replace('<div class="wrap" id="fmwfourohfour"', '<main class="wrap" id="fmwfourohfour"');
+  assert.equal((old.match(/<main[\s>]/g) || []).length, 2, 'the pre-fix markup had two mains');
 });
 
 test('the FMW 404 uses the Find My Weed LIGHT palette and wordmark, scoped so every other 404 stays KEEPITIL dark', () => {

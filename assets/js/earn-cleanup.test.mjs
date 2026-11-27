@@ -78,10 +78,12 @@ test('Earn has no KEEPITIL Radio or playlist section, chips, search, INFO cards 
 
 /* Create & Earn restructure (Joe 2026-11-22): Earn's chips name what you earn from. A "Create"
    chip on Earn read as a second Create page, so it is gone. */
-test('Earn filter chips are exactly All, Partners, Early access, Rewards', () => {
+test('Earn filter chips are exactly All, Partners, Rewards (no Early access chip since 2026-11-25)', () => {
   const seg = innerOf(markup(EARN), /<div class="seg" id="radSeg">/);
   const chips = [...seg.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((b) => b[1].trim());
-  assert.deepEqual(chips, ['All', 'Partners', 'Early access', 'Rewards']);
+  assert.deepEqual(chips, ['All', 'Partners', 'Rewards']);
+  // NEGATIVE CONTROL: the chip list check sees the removed chip if it returns
+  assert.notDeepEqual([...innerOf(markup(EARN).replace('<button data-k="rewards">', '<button data-k="early">Early access</button><button data-k="rewards">'), /<div class="seg" id="radSeg">/).matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((b) => b[1].trim()), ['All', 'Partners', 'Rewards']);
 });
 
 test('INFO panels stay index-aligned: MAP rows match the HOW YOU EARN cards in order', () => {
@@ -94,7 +96,7 @@ test('INFO panels stay index-aligned: MAP rows match the HOW YOU EARN cards in o
 });
 
 test('Earn JS no longer wires radio/playlist sections (filter map, pager, bar swap)', () => {
-  assert.match(EARN, /var SEC=\{partners:'earn',early:'early',rewards:'create'\};/);
+  assert.match(EARN, /var SEC=\{partners:'earn',rewards:'create'\};/);
   assert.ok(!/EARN MOBILE RADIO\/SEARCH SWAP/.test(EARN));
   assert.ok(!/\{ ids:\['stations'\]/.test(EARN));
   assert.match(EARN, /body\.rad-m #kil-radio\{display:none!important\}/, 'owner 2026-11-20: Earn phones keep NO docked radio bar');

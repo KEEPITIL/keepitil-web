@@ -83,7 +83,7 @@ test('home: the hamburger is data-click="toggleMenu" and toggleMenu is allowed',
   assert.match(h, /KilActions\.allow\(\['toggleMenu'\]\)/); assert.ok(h.indexOf('/assets/js/kil-actions.js') < h.indexOf('KilActions.allow('));
 });
 test('findmyweed-explore: showView("list") / showView("map") through data-click', () => {
-  const h = read('findmyweed-explore.html');
+  const h = __assemble(read('findmyweed-explore.html'));
   assert.match(h, /id="btnList" class="on" data-click="showView" data-a="\[&quot;list&quot;\]"/); assert.match(h, /id="btnMap" data-click="showView" data-a="\[&quot;map&quot;\]"/);
   assert.match(h, /KilActions\.allow\(\["showView"\]\)/); assert.ok(h.indexOf('/assets/js/kil-actions.js') < h.indexOf('KilActions.allow('));
 });

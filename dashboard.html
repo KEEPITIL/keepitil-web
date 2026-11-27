@@ -220,8 +220,8 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
     <div class="panel" id="tab-venues"><div class="head2">Venue Bookings <span class="ct" id="bookCt"></span></div><div id="bookReview"></div></div>
     <div class="panel" id="tab-chat">
       <div class="chatwrap">
-        <div class="chatbox"><h3 aria-level="2">Chat with an agent</h3><div class="cbar" style="margin-bottom:10px"><select id="agentPick" aria-label="Agent to chat with" onchange="clearAgentLog()"></select></div><div class="chatlog" id="agentLog"></div><div class="cbar"><input id="agentQ" placeholder="Ask this agent…" onkeydown="if(event.key==='Enter')askAgentDash()"><button onclick="askAgentDash()">Ask</button></div></div>
-        <div class="chatbox"><h3 aria-level="2">Crew group — activity + messages</h3><div class="chatlog" id="groupLog"></div><div class="cbar"><input id="groupMsg" placeholder="Message the whole crew…" onkeydown="if(event.key==='Enter')postGroup()"><button onclick="postGroup()">Send</button></div></div>
+        <div class="chatbox"><h3 aria-level="2">Chat with an agent</h3><div class="cbar" style="margin-bottom:10px"><select id="agentPick" aria-label="Agent to chat with" data-change="clearAgentLog"></select></div><div class="chatlog" id="agentLog"></div><div class="cbar"><input id="agentQ" placeholder="Ask this agent…" data-keydown="dashEnterAsk" data-a="[&quot;$e&quot;]"><button data-click="askAgentDash">Ask</button></div></div>
+        <div class="chatbox"><h3 aria-level="2">Crew group — activity + messages</h3><div class="chatlog" id="groupLog"></div><div class="cbar"><input id="groupMsg" placeholder="Message the whole crew…" data-keydown="dashEnterPostGroup" data-a="[&quot;$e&quot;]"><button data-click="postGroup">Send</button></div></div>
       </div>
     </div>
     <div class="panel" id="tab-knowledge">
@@ -233,7 +233,7 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
         <label for="kShort">Short answer — shown to everyone</label><textarea id="kShort"></textarea>
         <label for="kFull">Full answer — shown to paid members</label><textarea id="kFull"></textarea>
         <label>Source URL (optional)</label><input id="kSource" placeholder="https://…">
-        <button class="btn prim" style="margin-top:12px" onclick="addKnowledge()">Add to bank</button>
+        <button class="btn prim" style="margin-top:12px" data-click="addKnowledge">Add to bank</button>
         <div class="msg" id="kMsg" style="margin-top:8px"></div>
       </div></div>
       <div class="head2">In the bank <span class="ct" id="kCt"></span></div>
@@ -258,13 +258,13 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
       <div class="head2">Admins <span class="ct" id="admCt"></span></div>
       <div class="rv" style="display:block"><div class="kform">
         <label>Add an admin by member handle</label>
-        <div class="cbar"><input id="admHandle" placeholder="handle" onkeydown="if(event.key==='Enter')addAdminUI()"><button onclick="addAdminUI()">Add</button></div>
+        <div class="cbar"><input id="admHandle" placeholder="handle" data-keydown="dashEnterAddAdmin" data-a="[&quot;$e&quot;]"><button data-click="addAdminUI">Add</button></div>
         <div class="msg" id="admMsg" style="margin-top:8px"></div>
       </div></div>
       <div id="admList"></div>
     </div>
     <div class="panel" id="tab-recommendations">
-      <div class="head2">Recommendations <span class="ct" id="recCt"></span><button class="btn" style="margin-left:auto;font-size:.78rem;padding:8px 14px" onclick="loadRecommendations(true)">Refresh</button></div>
+      <div class="head2">Recommendations <span class="ct" id="recCt"></span><button class="btn" style="margin-left:auto;font-size:.78rem;padding:8px 14px" data-click="loadRecommendations" data-a="[true]">Refresh</button></div>
       <div style="color:var(--muted,#9aa0b0);font-size:.85rem;margin:-4px 0 14px">What needs your attention, ranked. The crew recommends — you approve. Nothing here acts on its own.</div>
       <div id="recList"></div>
     </div>
@@ -277,7 +277,7 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
       <div id="hoList"></div>
     </div>
     <div class="panel" id="tab-learning">
-      <div class="head2">Assisted Learning <span class="ct" id="learnCt"></span><button class="btn" style="margin-left:auto;font-size:.78rem;padding:8px 14px" onclick="genSuggestions(this)">Generate from questions</button></div>
+      <div class="head2">Assisted Learning <span class="ct" id="learnCt"></span><button class="btn" style="margin-left:auto;font-size:.78rem;padding:8px 14px" data-click="genSuggestions" data-a="[&quot;$el&quot;]">Generate from questions</button></div>
       <div style="color:var(--muted,#9aa0b0);font-size:.85rem;margin:-4px 0 14px">Real questions the crew couldn't answer, drafted into knowledge. Edit, then Approve to teach every agent — or Dismiss.</div>
       <div id="learnList"></div>
     </div>
@@ -286,6 +286,8 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
 
 <style>#tab-events.org-on #listings{display:none} .org-connect{margin:10px 0 14px;padding:12px 14px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:rgba(255,255,255,.04);font-size:.9rem;line-height:1.5} .org-connect-state{font-weight:800} .org-connect-link{color:var(--brand,#00b4ff);font-weight:700} .org-reason{margin-top:6px;font-size:.85rem;color:#ffb86b} .org-counts{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:.9rem;font-weight:700} .org-ce{list-style:none;margin:0 0 14px;padding:10px 14px;border:1px solid rgba(255,255,255,.14);border-radius:12px;font-size:.9rem;line-height:1.7} .org-ce-link{color:var(--brand,#00b4ff);font-weight:700} .org-ce-pool{color:var(--muted,#aab2e0)} .org-empty{color:var(--muted,#aab2e0)} .org-empty a,.org-edit{color:var(--brand,#00b4ff)} .org-ev a.ev-title{color:inherit;text-decoration:underline;text-underline-offset:2px}</style>
 <script src="/assets/js/kil-organizer.js?v=h22740fd0"></script>
+<script src="/assets/js/kil-actions.js?v=h40e5a201"></script>
+<script src="/assets/js/kil-img-fallback.js?v=h21ad0ec7"></script>
 <script>
 /* ONE organizer view (Grok 2026-11-25): the signed-in organizer's own events with status, people going, paid tickets, a Connect status link and an Edit link. Read-only; renders nothing until get_my_organizer_events exists on prod. */
 window.addEventListener('DOMContentLoaded', function(){ try{ if(window.KilOrganizer && typeof supa!=='undefined' && supa) KilOrganizer.mount(document.getElementById('org-view'), supa); }catch(e){} });
@@ -343,7 +345,7 @@ function fmtDate(iso,tz){ try{ if(!iso)return 'Date TBD'; return new Date(iso).t
 
 function card(d){
   var st=(d.status||'draft').toLowerCase();
-  var cov=d.cover?'<img class="ev-cov" src="'+esc(d.cover)+'" alt="" onerror="this.style.display=\'none\'">':'<div class="ev-cov"></div>';
+  var cov=d.cover?'<img class="ev-cov" src="'+esc(d.cover)+'" alt="" data-fb="hide">':'<div class="ev-cov"></div>';
   return '<div class="ev">'+cov+
     '<div class="ev-main">'+
       '<div class="ev-top"><span class="ev-title">'+esc(d.title||'Untitled')+'</span><span class="ev-badge '+st+'">'+esc(st)+'</span></div>'+
@@ -358,7 +360,7 @@ function card(d){
         '<a class="scan" href="/dashboard">Door scanner</a>'+
         (st==='published'?'<a href="/event?e='+encodeURIComponent(d.slug)+'">View</a>':'')+
         '<a href="/dashboard?e='+encodeURIComponent(d.slug)+'">Promote</a>'+
-        '<button onclick="dup('+d.event_id+',this)">Duplicate</button>'+
+        '<button data-click="dup" data-a="'+esc(JSON.stringify([d.event_id,"$el"]))+'">Duplicate</button>'+
       '</div>'+
     '</div>'+
   '</div>';
@@ -416,7 +418,7 @@ async function buildAdminTabs(){
     if($('agentPick')) $('agentPick').innerHTML=opt;
     if($('kAgent')) $('kAgent').innerHTML='<option value="">All agents (shared)</option>'+opt;
   }
-  nav.innerHTML=tabs.map(function(t,i){return '<button data-tab="'+t[0]+'"'+(i===0?' class="on"':'')+' onclick="showTab(\''+t[0]+'\')">'+t[1]+'</button>';}).join('');
+  nav.innerHTML=tabs.map(function(t,i){return '<button data-tab="'+t[0]+'"'+(i===0?' class="on"':'')+' data-click="showTab" data-a="'+esc(JSON.stringify([''+(t[0])]))+'">'+t[1]+'</button>';}).join('');
   nav.style.display = tabs.length>1 ? 'flex' : 'none';
 }
 /* combined tabs: FEED = daily posts + social queue; Crew & Brain = agents + knowledge bank + assisted learning */
@@ -562,6 +564,16 @@ function renderSettingsTab(){
   }catch(e){}
 }
 
+/* Delegated actions (assets/js/kil-actions.js): the markup carries data-click / data-change / data-input / data-keydown instead of inline handlers; only the names listed in
+   KilActions.allow() can run. The small functions below are the old inline statements, unchanged in behaviour. */
+function campCalToday(){ campCalRef=new Date(); renderCamp(); }
+function dashBookingStatus(id,el){ setBooking(id,el.value); }
+function dashSocPlatform(el){ setSocPlatform(el.value); }
+function dashShowTabFromEl(el){ showTab(el.dataset.tab); }
+function dashEnterAddAdmin(e){ if(e.key==='Enter') addAdminUI(); }
+function dashEnterAsk(e){ if(e.key==='Enter') askAgentDash(); }
+function dashEnterPostGroup(e){ if(e.key==='Enter') postGroup(); }
+if(window.KilActions) KilActions.allow(["addAdminUI", "addKnowledge", "approveFeed", "approveSocial", "approveSuggestion", "askAgentDash", "campApprove", "campCalMove", "campCalToday", "campDeny", "campDryRun", "campEdit", "campPublish", "campSchedule", "campScheduleAll", "campShift", "clearAgentLog", "closeCP", "closeCampEdit", "closeSocEdit", "cpMedia", "cpPreview", "cpSave", "cpToggle", "dashBookingStatus", "dashEnterAddAdmin", "dashEnterAsk", "dashEnterPostGroup", "dashShowTabFromEl", "dashSocPlatform", "denyFeed", "denySocial", "dismissSuggestion", "dup", "editSocial", "genSuggestions", "loadRecommendations", "markPostedSocial", "postGroup", "pullPost", "removeAdminUI", "restorePost", "saveAgent", "setCalMode", "setCampPlat", "setCampTheme", "setCampView", "setSocStatus", "showTab", "toggleAgentEdit", "toggleKnow"]);
 function showTab(name){
   var grp=TAB_GROUPS[name]||[name];
   document.querySelectorAll('.panel').forEach(function(p){p.classList.toggle('on', grp.indexOf(p.id.replace('tab-',''))>=0);});
@@ -674,7 +686,7 @@ function loadKnowledge(){
   supa.rpc('get_agent_knowledge_admin',{p_agent_slug:null,p_limit:200}).then(function(r){
     var rows=(r&&r.data)||[]; $('kCt').textContent=rows.length+' entries';
     $('kList').innerHTML=rows.length?rows.map(function(k){
-      return '<div class="rv"><div class="info"><div class="t">'+esc(k.topic)+'</div><div class="d">'+esc((k.answer_short||'').slice(0,140))+'</div><div class="tags"><span class="pill2">'+esc((k.agent_slug||'ALL').toUpperCase())+'</span><span class="pill2 '+(k.active?'pub':'den')+'">'+(k.active?'active':'off')+'</span></div></div><div class="acts"><button class="'+(k.active?'deny':'approve')+'" onclick="toggleKnow('+k.id+','+(!k.active)+',this)">'+(k.active?'Turn off':'Turn on')+'</button></div></div>';
+      return '<div class="rv"><div class="info"><div class="t">'+esc(k.topic)+'</div><div class="d">'+esc((k.answer_short||'').slice(0,140))+'</div><div class="tags"><span class="pill2">'+esc((k.agent_slug||'ALL').toUpperCase())+'</span><span class="pill2 '+(k.active?'pub':'den')+'">'+(k.active?'active':'off')+'</span></div></div><div class="acts"><button class="'+(k.active?'deny':'approve')+'" data-click="toggleKnow" data-a="'+esc(JSON.stringify([k.id,(!k.active),"$el"]))+'">'+(k.active?'Turn off':'Turn on')+'</button></div></div>';
     }).join(''):'<div class="rv-empty">No knowledge entries yet — add one above.</div>';
   }).catch(function(){ $('kList').innerHTML='<div class="rv-empty">Could not load.</div>'; });
 }
@@ -689,7 +701,7 @@ async function loadBookingReview(){
     box.innerHTML=rows.map(function(b){
       var opts=BK_STAGES.map(function(s){return '<option value="'+s+'"'+(b.status===s?' selected':'')+'>'+s.replace(/_/g,' ')+'</option>';}).join('');
       var d=[b.venue_slug,b.room,b.event_type,(b.guest_count?b.guest_count+' guests':''),b.preferred_date].filter(Boolean).join(' · ');
-      return '<div class="rv"><div class="info"><div class="t">'+esc(b.contact_name)+' — '+esc(b.contact_email)+(b.contact_phone?(' · '+esc(b.contact_phone)):'')+'</div><div class="d">'+esc(d)+(b.notes?('<br>“'+esc(b.notes)+'”'):'')+'</div></div><div class="acts"><select onchange="setBooking('+b.id+',this.value)" style="font-size:.78rem;padding:8px 10px;border-radius:9px;background:transparent;border:1px solid var(--line);color:var(--text)">'+opts+'</select></div></div>';
+      return '<div class="rv"><div class="info"><div class="t">'+esc(b.contact_name)+' — '+esc(b.contact_email)+(b.contact_phone?(' · '+esc(b.contact_phone)):'')+'</div><div class="d">'+esc(d)+(b.notes?('<br>“'+esc(b.notes)+'”'):'')+'</div></div><div class="acts"><select aria-label="Booking status" data-change="dashBookingStatus" data-a="'+esc(JSON.stringify([b.id,"$el"]))+'" style="font-size:.78rem;padding:8px 10px;border-radius:9px;background:transparent;border:1px solid var(--line);color:var(--text)">'+opts+'</select></div></div>';
     }).join('');
   }catch(e){ box.innerHTML='<div class="rv-empty">Could not load bookings.</div>'; }
 }
@@ -707,14 +719,14 @@ async function loadPostReview(){
     if(!feed.length){ html+='<div class="rv-empty">No agent drafts waiting. Hourly + daily posts from all agents land here for you to approve or deny.</div>'; }
     else html+='<div class="feedwrap">'+feed.map(function(p){
       var typ=(p.kind==='event')?'event':(p.is_ad?'ad':(p.hourly?'hourly':(p.intent||'post')));
-      var media=p.cover?'<div class="fc-media"><img src="'+esc(p.cover)+'" alt="" onerror="this.parentNode.style.display=\'none\'"></div>':'';
+      var media=p.cover?'<div class="fc-media"><img src="'+esc(p.cover)+'" alt="" data-fb="hide-parent"></div>':'';
       var buy=p.buy_url?'<a class="fc-buy" href="'+esc(p.buy_url)+'" target="_blank" rel="noopener sponsored nofollow">🛒 '+esc(p.buy_label||'Buy on Amazon')+'</a>':'';
       var when=''; try{ when=new Date(p.created_at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }catch(e){}
       return '<div class="fc" id="fc-'+p.id+'">'
-        +'<div class="fc-head"><img class="fc-av" src="'+esc(p.agent_avatar||'/assets/images/logo-blue-nav.png')+'" onerror="this.src=\'/assets/images/logo-blue-nav.png\'"><div class="fc-who"><b>'+esc(p.agent_name||'')+'</b><span>'+esc((p.agent||'').toUpperCase())+' · '+esc(when)+'</span></div><span class="fc-tag">'+esc(typ)+'</span></div>'
+        +'<div class="fc-head"><img class="fc-av" src="'+esc(p.agent_avatar||'/assets/images/logo-blue-nav.png')+'" data-fb="src" data-fb-src="/assets/images/logo-blue-nav.png"><div class="fc-who"><b>'+esc(p.agent_name||'')+'</b><span>'+esc((p.agent||'').toUpperCase())+' · '+esc(when)+'</span></div><span class="fc-tag">'+esc(typ)+'</span></div>'
         +media
         +'<div class="fc-body"><div class="fc-title">'+esc(p.title||'(untitled)')+'</div><div class="fc-text">'+esc(p.body||'')+'</div>'+buy+'</div>'
-        +'<div class="fc-acts"><button class="approve" onclick="approveFeed(\''+p.id+'\',this)">✓ Approve &amp; publish</button><button class="deny" onclick="denyFeed(\''+p.id+'\',this)">✕ Deny</button><a class="fc-view" href="/profile?slug='+encodeURIComponent(p.agent||'')+'" target="_blank" rel="noopener noreferrer">View profile ↗</a></div>'
+        +'<div class="fc-acts"><button class="approve" data-click="approveFeed" data-a="'+esc(JSON.stringify([''+(p.id),"$el"]))+'">✓ Approve &amp; publish</button><button class="deny" data-click="denyFeed" data-a="'+esc(JSON.stringify([''+(p.id),"$el"]))+'">✕ Deny</button><a class="fc-view" href="/profile?slug='+encodeURIComponent(p.agent||'')+'" target="_blank" rel="noopener noreferrer">View profile ↗</a></div>'
       +'</div>';
     }).join('')+'</div>';
     /* existing published agent blog posts */
@@ -722,8 +734,8 @@ async function loadPostReview(){
     if(!rows.length){ html+='<div class="rv-empty">No blog posts yet.</div>'; }
     else html+=rows.map(function(p){
       var pub=p.status==='published';
-      var act=pub?'<a class="view" href="/profile?slug='+encodeURIComponent(p.agent_slug||'')+'" target="_blank" rel="noopener noreferrer">View</a><button class="deny" onclick="pullPost('+p.id+',this)">Deny / Pull</button>'
-                 :'<span class="pill2 den">Pulled</span><button class="approve" onclick="restorePost('+p.id+',this)">Restore</button>';
+      var act=pub?'<a class="view" href="/profile?slug='+encodeURIComponent(p.agent_slug||'')+'" target="_blank" rel="noopener noreferrer">View</a><button class="deny" data-click="pullPost" data-a="'+esc(JSON.stringify([p.id,"$el"]))+'">Deny / Pull</button>'
+                 :'<span class="pill2 den">Pulled</span><button class="approve" data-click="restorePost" data-a="'+esc(JSON.stringify([p.id,"$el"]))+'">Restore</button>';
       return '<div class="rv"><div class="info"><div class="t">'+esc(p.title)+'</div><div class="d">'+esc((p.dek||'').slice(0,160))+'</div><div class="tags"><span class="pill2">'+esc((p.agent_slug||'').toUpperCase())+'</span><span class="pill2 '+(pub?'pub':'den')+'">'+esc(p.status)+'</span>'+(p.genre?'<span class="pill2">'+esc(p.genre)+'</span>':'')+'</div></div><div class="acts">'+act+'</div></div>';
     }).join('');
     box.innerHTML=html;
@@ -757,8 +769,8 @@ function renderSocial(){
   var pfs=['all','instagram','x','facebook','tiktok'];
   var note = ZAP_HOOK ? '' : '<div style="background:#2a2410;border:1px solid #5a4a1a;color:#e8c15a;border-radius:10px;padding:9px 12px;font-size:.74rem;margin:2px 0 12px">Publishing hook not set — Approve queues the post; set <b>platform_config.zapier_hook_url</b> to auto-post on approve.</div>';
   var fh=note+'<div style="display:flex;gap:7px;flex-wrap:wrap;margin:4px 0 10px">'
-    +labels.map(function(l){return '<button onclick="setSocStatus(\''+l[0]+'\')" style="cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:700;font-size:.72rem;'+(SOC_STATUS===l[0]?'background:var(--accent);border-color:var(--accent);color:#0c0d1a':'background:var(--panel);color:var(--muted)')+'">'+l[1]+' '+(counts[l[0]]||0)+'</button>';}).join('')
-    +'</div><div style="margin:0 0 12px"><select onchange="setSocPlatform(this.value)" aria-label="Platform" style="background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:7px 11px;font-size:.8rem">'
+    +labels.map(function(l){return '<button data-click="setSocStatus" data-a="'+esc(JSON.stringify([''+(l[0])]))+'" style="cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:700;font-size:.72rem;'+(SOC_STATUS===l[0]?'background:var(--accent);border-color:var(--accent);color:#0c0d1a':'background:var(--panel);color:var(--muted)')+'">'+l[1]+' '+(counts[l[0]]||0)+'</button>';}).join('')
+    +'</div><div style="margin:0 0 12px"><select data-change="dashSocPlatform" data-a="[&quot;$el&quot;]" aria-label="Platform" style="background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:7px 11px;font-size:.8rem">'
     +pfs.map(function(x){return '<option value="'+x+'"'+(SOC_PLATFORM===x?' selected':'')+'>'+(x==='all'?'All platforms':x.charAt(0).toUpperCase()+x.slice(1))+'</option>';}).join('')
     +'</select></div>';
   $('socialFilters').innerHTML=fh;
@@ -770,10 +782,10 @@ function renderSocial(){
   box.innerHTML=rows.map(function(p){
     var s=socStat(p);
     var acts='<div class="acts">';
-    if(s!=='approved'&&s!=='posted') acts+='<button class="approve" onclick="approveSocial('+p.id+',this)">Approve</button>';
-    if(s!=='denied') acts+='<button class="deny" onclick="denySocial('+p.id+',this)">Deny</button>';
-    acts+='<button onclick="editSocial('+p.id+')" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 12px;font-weight:700;cursor:pointer">Edit / Schedule</button>';
-    if(s!=='posted') acts+='<button onclick="markPostedSocial('+p.id+',this)" style="background:var(--brand-2);border:0;color:#04241a;border-radius:8px;padding:7px 12px;font-weight:800;cursor:pointer">Mark Posted</button>';
+    if(s!=='approved'&&s!=='posted') acts+='<button class="approve" data-click="approveSocial" data-a="'+esc(JSON.stringify([p.id,"$el"]))+'">Approve</button>';
+    if(s!=='denied') acts+='<button class="deny" data-click="denySocial" data-a="'+esc(JSON.stringify([p.id,"$el"]))+'">Deny</button>';
+    acts+='<button data-click="editSocial" data-a="'+esc(JSON.stringify([p.id]))+'" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 12px;font-weight:700;cursor:pointer">Edit / Schedule</button>';
+    if(s!=='posted') acts+='<button data-click="markPostedSocial" data-a="'+esc(JSON.stringify([p.id,"$el"]))+'" style="background:var(--brand-2);border:0;color:#04241a;border-radius:8px;padding:7px 12px;font-weight:800;cursor:pointer">Mark Posted</button>';
     acts+='</div>';
     return '<div class="rv"><div class="info"><div class="t">'+esc((p.platform||'').toUpperCase())
       +' <span style="color:var(--muted);font-weight:600">'+esc((p.agent_slug||'').toUpperCase())+'</span>'
@@ -807,7 +819,7 @@ function editSocial(id){
     +'<input id="socELink" type="text" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:9px 10px;font:inherit">'
     +'<label style="display:block;font-size:.7rem;color:var(--muted);font-weight:700;margin:10px 0 4px">Schedule for (blank = unscheduled)</label>'
     +'<input id="socEWhen" type="datetime-local" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:9px 10px;font:inherit">'
-    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button onclick="closeSocEdit()" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer">Cancel</button><button id="socESave" style="background:var(--brand);border:0;color:#04121b;border-radius:8px;padding:8px 14px;font-weight:800;cursor:pointer">Save</button></div>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button data-click="closeSocEdit" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer">Cancel</button><button id="socESave" style="background:var(--brand);border:0;color:#04121b;border-radius:8px;padding:8px 14px;font-weight:800;cursor:pointer">Save</button></div>'
     +'</div>';
   document.body.appendChild(ov);
   ov.addEventListener('click',function(e){if(e.target===ov)closeSocEdit();});
@@ -835,12 +847,12 @@ var CAMP_ICON={x:'𝕏',instagram:'IG',facebook:'f',tiktok:'TT',youtube:'YT'};
 function campChannelsRail(){
   var pc={x:'#111',instagram:'#c13584',facebook:'#1877f2',tiktok:'#111',youtube:'#ff0000'};
   var cnt=function(p){ return CVARIANTS.filter(function(v){return v.platform===p;}).length; };
-  var item=function(p,n){ var on=(CAMP_PLAT===p); var c=cnt(p); return '<div onclick="setCampPlat(\''+p+'\')" style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:10px;cursor:pointer;margin-bottom:4px;'+(on?'background:var(--panel2);border:1px solid var(--line)':'border:1px solid transparent')+'">'
+  var item=function(p,n){ var on=(CAMP_PLAT===p); var c=cnt(p); return '<div data-click="setCampPlat" data-a="'+esc(JSON.stringify([''+(p)]))+'" style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:10px;cursor:pointer;margin-bottom:4px;'+(on?'background:var(--panel2);border:1px solid var(--line)':'border:1px solid transparent')+'">'
     +'<span style="width:26px;height:26px;border-radius:8px;background:'+(pc[p]||'#888')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;flex:0 0 auto">'+(CAMP_ICON[p]||'?')+'</span>'
     +'<div style="min-width:0;flex:1"><div style="font-weight:700;font-size:.8rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(n)+'</div><div style="font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">'+esc(p)+'</div></div>'
     +(c?'<span style="font-size:.6rem;color:var(--muted);background:var(--panel);border-radius:999px;padding:1px 7px">'+c+'</span>':'')+'</div>'; };
   return '<div style="flex:0 0 194px;min-width:172px"><div style="font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:2px 4px 8px">Channels</div>'
-    +'<div onclick="setCampPlat(\'all\')" style="padding:8px 10px;border-radius:10px;cursor:pointer;margin-bottom:6px;font-weight:700;font-size:.82rem;color:var(--text);'+(CAMP_PLAT==='all'?'background:var(--panel2);border:1px solid var(--line)':'border:1px solid transparent')+'">All channels</div>'
+    +'<div data-click="setCampPlat" data-a="[&quot;all&quot;]" style="padding:8px 10px;border-radius:10px;cursor:pointer;margin-bottom:6px;font-weight:700;font-size:.82rem;color:var(--text);'+(CAMP_PLAT==='all'?'background:var(--panel2);border:1px solid var(--line)':'border:1px solid transparent')+'">All channels</div>'
     +CHANNELS.map(function(c){return item(c.p,c.n);}).join('')+'</div>';
 }
 function campLegend(){
@@ -868,20 +880,20 @@ function renderCamp(){
   $('campCt').textContent=CAMPAIGNS.length+' campaign'+(CAMPAIGNS.length!==1?'s':'');
   var gate=window.__campGate?'':'<div style="background:#2a2410;border:1px solid #5a4a1a;color:#e8c15a;border-radius:10px;padding:9px 12px;font-size:.74rem;margin:2px 0 12px">Publishing OFF — Approve/Schedule only stages posts; nothing goes live until <b>campaigns_beta_enabled</b> + <b>campaigns_postiz_enabled</b> are ON.</div>';
   var seg='<div style="display:inline-flex;background:var(--panel2);border-radius:9px;padding:3px;margin-bottom:12px">'
-    +'<button onclick="setCampView(\'list\')" style="border:0;border-radius:7px;padding:6px 14px;font-weight:700;font-size:.75rem;cursor:pointer;'+(CAMP_VIEW==='list'?'background:var(--panel);color:#fff':'background:none;color:var(--muted)')+'">&#9776; List</button>'
-    +'<button onclick="setCampView(\'cal\')" style="border:0;border-radius:7px;padding:6px 14px;font-weight:700;font-size:.75rem;cursor:pointer;'+(CAMP_VIEW==='cal'?'background:var(--panel);color:#fff':'background:none;color:var(--muted)')+'">&#9638; Calendar</button>'
-    +'<button onclick="setCampView(\'metrics\')" style="border:0;border-radius:7px;padding:6px 14px;font-weight:700;font-size:.75rem;cursor:pointer;'+(CAMP_VIEW==='metrics'?'background:var(--panel);color:#fff':'background:none;color:var(--muted)')+'">&#128202; Metrics</button></div>';
+    +'<button data-click="setCampView" data-a="[&quot;list&quot;]" style="border:0;border-radius:7px;padding:6px 14px;font-weight:700;font-size:.75rem;cursor:pointer;'+(CAMP_VIEW==='list'?'background:var(--panel);color:#fff':'background:none;color:var(--muted)')+'">&#9776; List</button>'
+    +'<button data-click="setCampView" data-a="[&quot;cal&quot;]" style="border:0;border-radius:7px;padding:6px 14px;font-weight:700;font-size:.75rem;cursor:pointer;'+(CAMP_VIEW==='cal'?'background:var(--panel);color:#fff':'background:none;color:var(--muted)')+'">&#9638; Calendar</button>'
+    +'<button data-click="setCampView" data-a="[&quot;metrics&quot;]" style="border:0;border-radius:7px;padding:6px 14px;font-weight:700;font-size:.75rem;cursor:pointer;'+(CAMP_VIEW==='metrics'?'background:var(--panel);color:#fff':'background:none;color:var(--muted)')+'">&#128202; Metrics</button></div>';
   var modeToggle='';
-  if(CAMP_VIEW==='cal'){ var mb=function(m,l){return '<button onclick="setCalMode(\''+m+'\')" style="border:1px solid var(--line);border-radius:7px;padding:5px 11px;font-weight:700;font-size:.72rem;cursor:pointer;margin-left:6px;'+(CAMP_CALMODE===m?'background:var(--brand);color:#04121b;border-color:var(--brand)':'background:var(--panel2);color:var(--muted)')+'">'+l+'</button>';}; modeToggle='<span style="display:inline-block;margin:0 0 12px 8px">'+mb('day','Day')+mb('week','Week')+mb('month','Month')+'</span>'; }
+  if(CAMP_VIEW==='cal'){ var mb=function(m,l){return '<button data-click="setCalMode" data-a="'+esc(JSON.stringify([''+(m)]))+'" style="border:1px solid var(--line);border-radius:7px;padding:5px 11px;font-weight:700;font-size:.72rem;cursor:pointer;margin-left:6px;'+(CAMP_CALMODE===m?'background:var(--brand);color:#04121b;border-color:var(--brand)':'background:var(--panel2);color:var(--muted)')+'">'+l+'</button>';}; modeToggle='<span style="display:inline-block;margin:0 0 12px 8px">'+mb('day','Day')+mb('week','Week')+mb('month','Month')+'</span>'; }
   var _tc=document.getElementById('tab-campaigns'); if(_tc)_tc.classList.toggle('light',CAMP_THEME==='light');
-  var themeBtn='<button onclick="setCampTheme(\''+(CAMP_THEME==='dark'?'light':'dark')+'\')" title="Toggle light / dark" style="margin-left:auto;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:9px;padding:6px 12px;cursor:pointer;font-size:.78rem;font-weight:700">'+(CAMP_THEME==='dark'?'☀ Light':'☾ Dark')+'</button>';
+  var themeBtn='<button data-click="setCampTheme" data-a="'+esc(JSON.stringify([''+((CAMP_THEME==='dark'?'light':'dark'))]))+'" title="Toggle light / dark" style="margin-left:auto;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:9px;padding:6px 12px;cursor:pointer;font-size:.78rem;font-weight:700">'+(CAMP_THEME==='dark'?'☀ Light':'☾ Dark')+'</button>';
   $('campControls').innerHTML=gate+'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px">'+seg+modeToggle+themeBtn+'</div>';
   if(CAMP_VIEW==='metrics'){ $('campBody').innerHTML=campMetricsHTML(); return; }
   if(!CAMPAIGNS.length){ $('campBody').innerHTML='<div class="rv-empty">No campaigns yet. The Conductor drafts them into READY_FOR_REVIEW.</div>'; return; }
   var content = campLegend() + (CAMP_VIEW==='cal' ? campCalHTML() : campListHTML());
   $('campBody').innerHTML='<div style="display:flex;gap:14px;align-items:flex-start">'+campChannelsRail()+'<div style="flex:1;min-width:0">'+content+'</div></div>';
 }
-function campSchedAllBtn(c){ var n=(c._v||[]).filter(function(v){return v.approval_status==='approved'&&v.scheduled_for;}).length; return n?'<button onclick="campScheduleAll('+c.id+',this)" style="margin-top:8px;background:var(--brand);border:0;color:#08210f;border-radius:9px;padding:7px 14px;font-weight:800;cursor:pointer">⏱ Schedule all &rarr; Postiz ('+n+')</button>':''; }
+function campSchedAllBtn(c){ var n=(c._v||[]).filter(function(v){return v.approval_status==='approved'&&v.scheduled_for;}).length; return n?'<button data-click="campScheduleAll" data-a="'+esc(JSON.stringify([c.id,"$el"]))+'" style="margin-top:8px;background:var(--brand);border:0;color:#08210f;border-radius:9px;padding:7px 14px;font-weight:800;cursor:pointer">⏱ Schedule all &rarr; Postiz ('+n+')</button>':''; }
 function campListHTML(){
   return CAMPAIGNS.map(function(c){
     var head='<div class="rv" style="display:block"><div class="info"><div class="t">'+esc(c.objective||'Campaign')
@@ -890,11 +902,11 @@ function campListHTML(){
       +'<div class="tags"><span class="pill2">agents: '+esc((c.agents||[]).join(', '))+'</span>'+((c.revenue_opportunity&&c.revenue_opportunity.affiliate)?'<span class="pill2">aff: '+esc(c.revenue_opportunity.affiliate)+'</span>':'')+'</div></div>'+campSchedAllBtn(c);
     var vs=(c._v||[]).filter(function(v){return CAMP_PLAT==='all'||v.platform===CAMP_PLAT;}).map(function(v){
       var s=v.approval_status; var acts='<div class="acts">';
-      if(s!=='approved'&&s!=='published') acts+='<button class="approve" onclick="campApprove('+v.id+','+(v.content_version||1)+',this)">Approve</button>';
-      if(s==='approved') acts+='<button onclick="campDryRun('+v.id+',this)" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 11px;font-weight:700;cursor:pointer">Dry-run</button>'+(v.scheduled_for?'<button onclick="campSchedule('+v.id+',this)" style="background:var(--panel2);border:1px solid var(--brand);color:var(--brand);border-radius:8px;padding:6px 11px;font-weight:800;cursor:pointer">Schedule &rarr; Postiz</button>':'')+'<button onclick="campPublish('+v.id+',this)" style="background:linear-gradient(135deg,#7c5bd6,#3aa5ff);border:0;color:#fff;border-radius:8px;padding:6px 13px;font-weight:800;cursor:pointer">Publish now</button>';
+      if(s!=='approved'&&s!=='published') acts+='<button class="approve" data-click="campApprove" data-a="'+esc(JSON.stringify([v.id,(v.content_version||1),"$el"]))+'">Approve</button>';
+      if(s==='approved') acts+='<button data-click="campDryRun" data-a="'+esc(JSON.stringify([v.id,"$el"]))+'" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 11px;font-weight:700;cursor:pointer">Dry-run</button>'+(v.scheduled_for?'<button data-click="campSchedule" data-a="'+esc(JSON.stringify([v.id,"$el"]))+'" style="background:var(--panel2);border:1px solid var(--brand);color:var(--brand);border-radius:8px;padding:6px 11px;font-weight:800;cursor:pointer">Schedule &rarr; Postiz</button>':'')+'<button data-click="campPublish" data-a="'+esc(JSON.stringify([v.id,"$el"]))+'" style="background:linear-gradient(135deg,#7c5bd6,#3aa5ff);border:0;color:#fff;border-radius:8px;padding:6px 13px;font-weight:800;cursor:pointer">Publish now</button>';
       if(s==='published') acts+='<span style="color:#26e6a6;font-weight:800;font-size:.8rem">&#10003; Posted</span>';
-      if(s!=='denied'&&s!=='approved'&&s!=='published') acts+='<button class="deny" onclick="campDeny('+v.id+',this)">Deny</button>';
-      acts+='<button onclick="campEdit('+v.id+')" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 11px;font-weight:700;cursor:pointer">Edit / Schedule</button></div>';
+      if(s!=='denied'&&s!=='approved'&&s!=='published') acts+='<button class="deny" data-click="campDeny" data-a="'+esc(JSON.stringify([v.id,"$el"]))+'">Deny</button>';
+      acts+='<button data-click="campEdit" data-a="'+esc(JSON.stringify([v.id]))+'" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 11px;font-weight:700;cursor:pointer">Edit / Schedule</button></div>';
       return '<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px;background:var(--panel2)">'
         +'<div><span style="text-transform:uppercase;font-size:.7rem;font-weight:800;color:var(--brand)">'+esc(v.platform)+'</span>'
         +' <span style="color:'+campColor(s)+';font-size:.58rem;font-weight:800;text-transform:uppercase;border:1px solid currentColor;border-radius:999px;padding:1px 6px;margin-left:3px">'+esc(s)+'</span>'
@@ -913,47 +925,47 @@ function campCalHTML(){
   var byDay={}, unsched=[]; var pc=CAMP_PC;
   campVars().forEach(function(v){ if(!v.scheduled_for){unsched.push(v);return;} var d=new Date(String(v.scheduled_for).replace(' ','T')); if(isNaN(d)){unsched.push(v);return;} if(d.getFullYear()===y&&d.getMonth()===m){(byDay[d.getDate()]=byDay[d.getDate()]||[]).push(v);} });
   var mn=campCalRef.toLocaleString([], {month:'long',year:'numeric'});
-  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><b style="font-size:15px">'+mn+'</b><div style="display:flex;gap:6px"><button onclick="campCalMove(-1)" style="border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:8px;padding:5px 11px;cursor:pointer">&lsaquo;</button><button onclick="campCalRef=new Date();renderCamp()" style="border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:8px;padding:5px 11px;cursor:pointer">Today</button><button onclick="campCalMove(1)" style="border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:8px;padding:5px 11px;cursor:pointer">&rsaquo;</button></div></div>';
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><b style="font-size:15px">'+mn+'</b><div style="display:flex;gap:6px"><button data-click="campCalMove" data-a="[-1]" style="border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:8px;padding:5px 11px;cursor:pointer">&lsaquo;</button><button data-click="campCalToday" style="border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:8px;padding:5px 11px;cursor:pointer">Today</button><button data-click="campCalMove" data-a="[1]" style="border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:8px;padding:5px 11px;cursor:pointer">&rsaquo;</button></div></div>';
   h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px">'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(function(d){return '<div style="font-size:.6rem;font-weight:800;color:var(--muted);text-align:center;text-transform:uppercase">'+d+'</div>';}).join('');
   for(var i=0;i<start;i++) h+='<div style="background:var(--panel2);border-radius:8px;min-height:76px;opacity:.4"></div>';
   for(var d=1;d<=days;d++){ var cd=new Date(y,m,d); var isT=cd.getTime()===today.getTime(); var posts=byDay[d]||[];
     h+='<div class="glass-cell" style="border-radius:9px;min-height:76px;padding:5px"><div style="font-size:.66rem;font-weight:700;color:'+(isT?'#ffe08a':'var(--muted)')+'">'+d+'</div>'
-      +posts.map(function(v){return '<span onclick="campEdit('+v.id+')" style="display:block;font-size:.6rem;margin-top:3px;padding:2px 5px;border-radius:5px;color:#fff;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:'+(pc[v.platform]||'#555')+'">'+esc(v.platform.slice(0,2).toUpperCase())+' '+esc(v.approval_status.slice(0,4))+'</span>';}).join('')+'</div>';
+      +posts.map(function(v){return '<span data-click="campEdit" data-a="'+esc(JSON.stringify([v.id]))+'" style="display:block;font-size:.6rem;margin-top:3px;padding:2px 5px;border-radius:5px;color:#fff;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:'+(pc[v.platform]||'#555')+'">'+esc(v.platform.slice(0,2).toUpperCase())+' '+esc(v.approval_status.slice(0,4))+'</span>';}).join('')+'</div>';
   }
   h+='</div>';
   if(unsched.length){ h+='<div style="background:var(--panel);border:1px dashed var(--line);border-radius:11px;padding:11px;margin-top:14px"><div style="font-size:.72rem;color:var(--muted);margin-bottom:7px">Unscheduled ('+unsched.length+') &mdash; open a variant to set a date</div>'
-    +unsched.map(function(v){return '<span onclick="campEdit('+v.id+')" style="display:inline-block;margin:3px;font-size:.66rem;padding:3px 8px;border-radius:6px;color:#fff;cursor:pointer;background:'+(pc[v.platform]||'#555')+'">'+esc(v.platform)+' &middot; '+esc(v.approval_status)+'</span>';}).join('')+'</div>'; }
+    +unsched.map(function(v){return '<span data-click="campEdit" data-a="'+esc(JSON.stringify([v.id]))+'" style="display:inline-block;margin:3px;font-size:.66rem;padding:3px 8px;border-radius:6px;color:#fff;cursor:pointer;background:'+(pc[v.platform]||'#555')+'">'+esc(v.platform)+' &middot; '+esc(v.approval_status)+'</span>';}).join('')+'</div>'; }
   return h;
 }
 function campShift(nd){ campCalRef=new Date(campCalRef.getFullYear(),campCalRef.getMonth(),campCalRef.getDate()+nd); renderCamp(); }
 function campVarsOn(dt){ return campVars().filter(function(v){ if(!v.scheduled_for) return false; var d=new Date(String(v.scheduled_for).replace(' ','T')); return !isNaN(d)&&d.getFullYear()===dt.getFullYear()&&d.getMonth()===dt.getMonth()&&d.getDate()===dt.getDate(); }); }
-function campDayChip(v){ return '<div onclick="campEdit('+v.id+')" style="cursor:pointer;background:'+(CAMP_PC[v.platform]||'#555')+';color:#fff;border-radius:7px;padding:5px 8px;margin-top:5px"><div style="font-size:.6rem;font-weight:800;text-transform:uppercase">'+esc(v.platform)+' &middot; '+esc(v.approval_status)+'</div><div style="font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(v.hook||v.body||'')+'</div></div>'; }
-function campNavBtns(back,fwd){ return '<div style="display:flex;gap:6px"><button onclick="'+back+'" style="border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:8px;padding:5px 11px;cursor:pointer">&lsaquo;</button><button onclick="campCalRef=new Date();renderCamp()" style="border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:8px;padding:5px 11px;cursor:pointer">Today</button><button onclick="'+fwd+'" style="border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:8px;padding:5px 11px;cursor:pointer">&rsaquo;</button></div>'; }
+function campDayChip(v){ return '<div data-click="campEdit" data-a="'+esc(JSON.stringify([v.id]))+'" style="cursor:pointer;background:'+(CAMP_PC[v.platform]||'#555')+';color:#fff;border-radius:7px;padding:5px 8px;margin-top:5px"><div style="font-size:.6rem;font-weight:800;text-transform:uppercase">'+esc(v.platform)+' &middot; '+esc(v.approval_status)+'</div><div style="font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(v.hook||v.body||'')+'</div></div>'; }
+function campNavBtns(step){ return '<div style="display:flex;gap:6px"><button data-click="campShift" data-a="'+esc(JSON.stringify([-step]))+'" style="border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:8px;padding:5px 11px;cursor:pointer">&lsaquo;</button><button data-click="campCalToday" style="border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:8px;padding:5px 11px;cursor:pointer">Today</button><button data-click="campShift" data-a="'+esc(JSON.stringify([step]))+'" style="border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:8px;padding:5px 11px;cursor:pointer">&rsaquo;</button></div>'; }
 function campHrLbl(hr){ return hr===0?'12 AM':hr<12?hr+' AM':hr===12?'12 PM':(hr-12)+' PM'; }
 function campWeekHTML(){
   var b=new Date(campCalRef), ws=new Date(b.getFullYear(),b.getMonth(),b.getDate()-b.getDay()), we=new Date(ws.getFullYear(),ws.getMonth(),ws.getDate()+6);
   var today=new Date(); today.setHours(0,0,0,0); var fmt=function(d){return (d.getMonth()+1)+'/'+d.getDate();}; var dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   var wsD=new Date(ws.getFullYear(),ws.getMonth(),ws.getDate()).getTime(); var todayDi=Math.round((today.getTime()-wsD)/86400000);
   var buckets={}; campVars().forEach(function(v){ if(!v.scheduled_for) return; var d=new Date(String(v.scheduled_for).replace(' ','T')); if(isNaN(d)) return; var di=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()-wsD)/86400000); if(di<0||di>6) return; var k=di+'_'+d.getHours(); (buckets[k]=buckets[k]||[]).push(v); });
-  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><b style="font-size:14px">'+fmt(ws)+' &ndash; '+fmt(we)+'</b>'+campNavBtns('campShift(-7)','campShift(7)')+'</div>';
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><b style="font-size:14px">'+fmt(ws)+' &ndash; '+fmt(we)+'</b>'+campNavBtns(7)+'</div>';
   h+='<div class="glass" style="border-radius:14px;overflow:hidden">';
   h+='<div class="glass-hd" style="display:grid;grid-template-columns:50px repeat(7,1fr)"><div></div>'+[0,1,2,3,4,5,6].map(function(i){var d=new Date(ws.getFullYear(),ws.getMonth(),ws.getDate()+i); var isT=(new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()===today.getTime()); return '<div style="padding:7px 3px;text-align:center;font-size:.6rem;font-weight:800;color:'+(isT?'#ffe08a':'var(--muted)')+';border-left:1px solid var(--line)">'+dow[i]+' '+d.getDate()+'</div>';}).join('')+'</div>';
   h+='<div style="max-height:520px;overflow-y:auto">';
   for(var hr=0;hr<24;hr++){ h+='<div style="display:grid;grid-template-columns:50px repeat(7,1fr);border-top:1px solid var(--line);min-height:34px"><div style="font-size:.56rem;color:var(--muted);padding:3px 4px">'+campHrLbl(hr)+'</div>';
-    for(var di=0;di<7;di++){ var ps=buckets[di+'_'+hr]||[]; h+='<div style="border-left:1px solid var(--line);padding:2px;'+(di===todayDi?'background:rgba(255,224,138,.05)':'')+'">'+ps.map(function(v){return '<span onclick="campEdit('+v.id+')" style="display:block;font-size:.56rem;padding:2px 4px;border-radius:4px;color:#fff;cursor:pointer;background:'+(CAMP_PC[v.platform]||'#555')+';margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(v.platform.slice(0,2).toUpperCase())+' '+esc(v.hook||v.body||'')+'</span>';}).join('')+'</div>'; }
+    for(var di=0;di<7;di++){ var ps=buckets[di+'_'+hr]||[]; h+='<div style="border-left:1px solid var(--line);padding:2px;'+(di===todayDi?'background:rgba(255,224,138,.05)':'')+'">'+ps.map(function(v){return '<span data-click="campEdit" data-a="'+esc(JSON.stringify([v.id]))+'" style="display:block;font-size:.56rem;padding:2px 4px;border-radius:4px;color:#fff;cursor:pointer;background:'+(CAMP_PC[v.platform]||'#555')+';margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(v.platform.slice(0,2).toUpperCase())+' '+esc(v.hook||v.body||'')+'</span>';}).join('')+'</div>'; }
     h+='</div>'; }
   h+='</div></div>';
   var uns=campVars().filter(function(v){return !v.scheduled_for;});
-  if(uns.length) h+='<div style="background:var(--panel);border:1px dashed var(--line);border-radius:11px;padding:11px;margin-top:14px"><div style="font-size:.72rem;color:var(--muted);margin-bottom:7px">Unscheduled ('+uns.length+') &mdash; open to set a time</div>'+uns.map(function(v){return '<span onclick="campEdit('+v.id+')" style="display:inline-block;margin:3px;font-size:.66rem;padding:3px 8px;border-radius:6px;color:#fff;cursor:pointer;background:'+(CAMP_PC[v.platform]||'#555')+'">'+esc(v.platform)+' &middot; '+esc(v.approval_status)+'</span>';}).join('')+'</div>';
+  if(uns.length) h+='<div style="background:var(--panel);border:1px dashed var(--line);border-radius:11px;padding:11px;margin-top:14px"><div style="font-size:.72rem;color:var(--muted);margin-bottom:7px">Unscheduled ('+uns.length+') &mdash; open to set a time</div>'+uns.map(function(v){return '<span data-click="campEdit" data-a="'+esc(JSON.stringify([v.id]))+'" style="display:inline-block;margin:3px;font-size:.66rem;padding:3px 8px;border-radius:6px;color:#fff;cursor:pointer;background:'+(CAMP_PC[v.platform]||'#555')+'">'+esc(v.platform)+' &middot; '+esc(v.approval_status)+'</span>';}).join('')+'</div>';
   return h;
 }
 function campDayHTML(){
   var d=new Date(campCalRef); var lbl=d.toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'});
   var byHr={}; campVarsOn(d).forEach(function(v){ var dd=new Date(String(v.scheduled_for).replace(' ','T')); (byHr[dd.getHours()]=byHr[dd.getHours()]||[]).push(v); });
-  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><b style="font-size:15px">'+lbl+'</b>'+campNavBtns('campShift(-1)','campShift(1)')+'</div>';
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><b style="font-size:15px">'+lbl+'</b>'+campNavBtns(1)+'</div>';
   h+='<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden"><div style="max-height:560px;overflow-y:auto">';
   for(var hr=0;hr<24;hr++){ var ps=byHr[hr]||[]; h+='<div style="display:grid;grid-template-columns:64px 1fr;border-top:1px solid var(--line);min-height:40px"><div style="font-size:.62rem;color:var(--muted);padding:4px 6px">'+campHrLbl(hr)+'</div><div style="padding:3px">'
-    +ps.map(function(v){return '<div onclick="campEdit('+v.id+')" style="cursor:pointer;background:var(--panel2);border:1px solid var(--line);border-left:3px solid '+(CAMP_PC[v.platform]||'#555')+';border-radius:7px;padding:5px 8px;margin-bottom:3px"><span style="text-transform:uppercase;font-size:.62rem;font-weight:800;color:var(--brand)">'+esc(v.platform)+'</span> <span style="color:var(--muted);font-size:.62rem">&middot; '+esc(v.approval_status)+'</span><div style="font-size:.78rem;font-weight:600">'+esc(v.hook||v.body||'')+'</div></div>';}).join('')
+    +ps.map(function(v){return '<div data-click="campEdit" data-a="'+esc(JSON.stringify([v.id]))+'" style="cursor:pointer;background:var(--panel2);border:1px solid var(--line);border-left:3px solid '+(CAMP_PC[v.platform]||'#555')+';border-radius:7px;padding:5px 8px;margin-bottom:3px"><span style="text-transform:uppercase;font-size:.62rem;font-weight:800;color:var(--brand)">'+esc(v.platform)+'</span> <span style="color:var(--muted);font-size:.62rem">&middot; '+esc(v.approval_status)+'</span><div style="font-size:.78rem;font-weight:600">'+esc(v.hook||v.body||'')+'</div></div>';}).join('')
     +'</div></div>'; }
   h+='</div></div>';
   var uns=campVars().filter(function(v){return !v.scheduled_for;});
@@ -1009,7 +1021,7 @@ function campEdit(id){
     +'<textarea id="campEBody" style="width:100%;min-height:110px;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:10px;font:inherit;font-size:.85rem"></textarea>'
     +'<label style="display:block;font-size:.7rem;color:var(--muted);font-weight:700;margin:10px 0 4px">Schedule for (blank = unscheduled)</label>'
     +'<input id="campEWhen" type="datetime-local" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:9px 10px;font:inherit">'
-    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button onclick="closeCampEdit()" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer">Cancel</button><button id="campESave" style="background:var(--brand);border:0;color:#04121b;border-radius:8px;padding:8px 14px;font-weight:800;cursor:pointer">Save</button></div></div>';
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button data-click="closeCampEdit" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer">Cancel</button><button id="campESave" style="background:var(--brand);border:0;color:#04121b;border-radius:8px;padding:8px 14px;font-weight:800;cursor:pointer">Save</button></div></div>';
   document.body.appendChild(ov); ov.addEventListener('click',function(e){if(e.target===ov)closeCampEdit();});
   $('campEHook').value=v.hook||''; $('campEBody').value=v.body||''; $('campEWhen').value=w;
   $('campESave').onclick=async function(){
@@ -1032,29 +1044,29 @@ function openCreatePost(){
     +'<div style="font-size:20px;font-weight:800">Create Post</div>'
     +'<div id="cpChannels" style="display:flex;gap:10px;margin:16px 0 14px;flex-wrap:wrap"></div>'
     +'<div style="background:'+P.soft+';border:1px solid '+P.line+';border-radius:14px;padding:12px">'
-      +'<textarea id="cpText" placeholder="Write something…" oninput="cpPreview()" style="width:100%;min-height:190px;background:transparent;border:0;outline:none;color:'+P.text+';font:inherit;font-size:15px;line-height:1.5;resize:vertical"></textarea>'
+      +'<textarea id="cpText" placeholder="Write something…" data-input="cpPreview" style="width:100%;min-height:190px;background:transparent;border:0;outline:none;color:'+P.text+';font:inherit;font-size:15px;line-height:1.5;resize:vertical"></textarea>'
       +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;border-top:1px solid '+P.line+';padding-top:10px;margin-top:6px">'
-        +'<button onclick="cpMedia()" style="background:'+P.panel+';border:1px solid '+P.line+';color:'+P.text+';border-radius:8px;padding:6px 11px;font-weight:700;font-size:.78rem;cursor:pointer">&#128247; Insert Media</button>'
+        +'<button data-click="cpMedia" style="background:'+P.panel+';border:1px solid '+P.line+';color:'+P.text+';border-radius:8px;padding:6px 11px;font-weight:700;font-size:.78rem;cursor:pointer">&#128247; Insert Media</button>'
         +'<span id="cpMediaTag" style="font-size:.72rem;color:'+P.muted+'"></span>'
       +'</div>'
     +'</div>'
     +'<div style="font-size:.72rem;color:'+P.muted+';margin-top:10px">Pick channels above; each becomes a platform-native variant. Publishing stays gated &mdash; this saves a draft into Campaigns.</div>'
   +'</div>';
   var right='<div style="flex:1;min-width:0;padding:20px 22px;overflow:auto;background:'+P.panel+';border-left:1px solid '+P.line+'">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between"><div style="font-size:20px;font-weight:800">Post Preview</div><button onclick="closeCP()" style="background:none;border:0;color:'+P.muted+';font-size:22px;cursor:pointer;line-height:1">&times;</button></div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between"><div style="font-size:20px;font-weight:800">Post Preview</div><button data-click="closeCP" style="background:none;border:0;color:'+P.muted+';font-size:22px;cursor:pointer;line-height:1">&times;</button></div>'
     +'<div id="cpPreview" style="margin-top:16px;color:'+P.muted+'">Start writing your post for a preview</div>'
   +'</div>';
   var footer='<div style="border-top:1px solid '+P.line+';padding:12px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
     +'<span style="color:'+P.muted+';font-size:.74rem">&#128197; Schedule</span><input id="cpWhen" type="datetime-local" style="background:'+P.soft+';border:1px solid '+P.line+';color:'+P.text+';border-radius:9px;padding:8px 10px;font:inherit">'
-    +'<div style="margin-left:auto;display:flex;gap:8px"><button onclick="cpSave(\'draft\')" style="background:'+P.soft+';border:1px solid '+P.line+';color:'+P.text+';border-radius:10px;padding:9px 16px;font-weight:700;cursor:pointer">Save as draft</button>'
-    +'<button onclick="cpSave(\'schedule\')" style="background:linear-gradient(135deg,#7c5bd6,#3aa5ff);border:0;color:#fff;border-radius:10px;padding:9px 18px;font-weight:800;cursor:pointer;box-shadow:0 6px 18px rgba(120,90,220,.35)">Schedule Post</button></div>'
+    +'<div style="margin-left:auto;display:flex;gap:8px"><button data-click="cpSave" data-a="[&quot;draft&quot;]" style="background:'+P.soft+';border:1px solid '+P.line+';color:'+P.text+';border-radius:10px;padding:9px 16px;font-weight:700;cursor:pointer">Save as draft</button>'
+    +'<button data-click="cpSave" data-a="[&quot;schedule&quot;]" style="background:linear-gradient(135deg,#7c5bd6,#3aa5ff);border:0;color:#fff;border-radius:10px;padding:9px 18px;font-weight:800;cursor:pointer;box-shadow:0 6px 18px rgba(120,90,220,.35)">Schedule Post</button></div>'
   +'</div>';
   ov.innerHTML='<div style="background:'+P.bg+';color:'+P.text+';border:1px solid '+P.line+';border-radius:20px;max-width:1080px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,.55)"><div style="display:flex;flex:1;min-height:0">'+left+right+'</div>'+footer+'</div>';
   document.body.appendChild(ov); ov.addEventListener('click',function(e){if(e.target===ov)closeCP();});
   cpRenderChannels(); cpPreview();
 }
 function cpRenderChannels(){ var el=document.getElementById('cpChannels'); if(!el) return;
-  el.innerHTML=CHANNELS.map(function(c){var on=CP_CHANS[c.p]; return '<div onclick="cpToggle(\''+c.p+'\')" title="'+esc(c.n)+'" style="width:42px;height:42px;border-radius:50%;background:'+(CP_PC[c.p]||'#555')+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.68rem;cursor:pointer;border:3px solid '+(on?'#26e6a6':'transparent')+';opacity:'+(on?'1':'.5')+';transition:all .15s">'+(CAMP_ICON[c.p]||'?')+'</div>';}).join('');
+  el.innerHTML=CHANNELS.map(function(c){var on=CP_CHANS[c.p]; return '<div data-click="cpToggle" data-a="'+esc(JSON.stringify([''+(c.p)]))+'" title="'+esc(c.n)+'" style="width:42px;height:42px;border-radius:50%;background:'+(CP_PC[c.p]||'#555')+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.68rem;cursor:pointer;border:3px solid '+(on?'#26e6a6':'transparent')+';opacity:'+(on?'1':'.5')+';transition:all .15s">'+(CAMP_ICON[c.p]||'?')+'</div>';}).join('');
 }
 function cpToggle(p){ CP_CHANS[p]=!CP_CHANS[p]; cpRenderChannels(); cpPreview(); }
 function cpSelected(){ return CHANNELS.map(function(c){return c.p;}).filter(function(p){return CP_CHANS[p];}); }
@@ -1148,7 +1160,7 @@ async function loadAdmins(){
     box.innerHTML=rows.map(function(a){
       var founder=(a.handle||'').toLowerCase()==='tuitea';
       var since=''; try{since=new Date(a.added_at).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});}catch(e){}
-      return '<div class="rv"><div class="info"><div class="t">@'+esc(a.handle)+(a.display_name?' — '+esc(a.display_name):'')+'</div><div class="tags">'+(founder?'<span class="pill2 pub">FOUNDER</span>':'')+'<span class="pill2">since '+esc(since)+'</span></div></div><div class="acts">'+(founder?'':'<button class="deny" onclick="removeAdminUI(decodeURIComponent(\''+encodeURIComponent(a.handle||'')+'\'),this)">Remove</button>')+'</div></div>';
+      return '<div class="rv"><div class="info"><div class="t">@'+esc(a.handle)+(a.display_name?' — '+esc(a.display_name):'')+'</div><div class="tags">'+(founder?'<span class="pill2 pub">FOUNDER</span>':'')+'<span class="pill2">since '+esc(since)+'</span></div></div><div class="acts">'+(founder?'':'<button class="deny" data-click="removeAdminUI" data-a="'+esc(JSON.stringify([a.handle||"","$el"]))+'">Remove</button>')+'</div></div>';
     }).join('');
   }catch(e){ box.innerHTML='<div class="rv-empty">Could not load admins.</div>'; }
 }
@@ -1190,7 +1202,7 @@ async function loadAgents(){
           '<div class="info"><div class="t">'+esc(p.display_name)+' <span class="pill2">'+esc(p.genre_lane)+'</span> <span class="pill2">'+esc(p.department)+'</span>'+(p.active?'':' <span class="pill2 den">OFF</span>')+'</div>'+
           '<div class="d">'+esc(p.personality)+'</div>'+
           '<div class="tags"><span class="pill2 pub">'+(p.knowledge_count||0)+' knowledge</span><span class="pill2'+((p.review_queue||0)>0?' den':'')+'">'+(p.review_queue||0)+' to review</span><span class="pill2">'+(p.handoffs_7d||0)+' handoffs 7d</span></div></div>'+
-          '<div class="acts"><button onclick="toggleAgentEdit(\''+p.slug+'\')">Edit</button></div>'+
+          '<div class="acts"><button data-click="toggleAgentEdit" data-a="'+esc(JSON.stringify([''+(p.slug)]))+'">Edit</button></div>'+
         '</div>'+
         '<div class="kform" id="apf-'+p.slug+'" style="display:none;margin-top:10px">'+
           '<label>Personality</label><textarea id="ap-per-'+p.slug+'">'+esc(p.personality)+'</textarea>'+
@@ -1198,7 +1210,7 @@ async function loadAgents(){
           '<label>Escalation notes</label><textarea id="ap-esc-'+p.slug+'">'+esc(p.escalation_notes)+'</textarea>'+
           '<label>Subgenres (comma separated)</label><input id="ap-sub-'+p.slug+'" value="'+esc(subs)+'">'+
           '<label>Active</label><select id="ap-act-'+p.slug+'"><option value="1"'+(p.active?' selected':'')+'>On</option><option value="0"'+(p.active?'':' selected')+'>Off</option></select>'+
-          '<div class="cbar" style="margin-top:10px"><button class="approve" style="border:1px solid #22e39b;background:transparent;color:#22e39b;border-radius:9px;font-weight:800;padding:8px 14px" onclick="saveAgent(\''+p.slug+'\',this)">Save</button></div>'+
+          '<div class="cbar" style="margin-top:10px"><button class="approve" style="border:1px solid #22e39b;background:transparent;color:#22e39b;border-radius:9px;font-weight:800;padding:8px 14px" data-click="saveAgent" data-a="'+esc(JSON.stringify([''+(p.slug),"$el"]))+'">Save</button></div>'+
           '<div class="msg" id="ap-msg-'+p.slug+'"></div>'+
         '</div>'+
       '</div>';
@@ -1252,7 +1264,7 @@ async function loadRecommendations(force){
     if(!recs.length){ box.innerHTML='<div class="rv-empty">All clear — nothing needs your attention right now.</div>'; return; }
     var PILL={high:'den',medium:'',low:'pub'};
     box.innerHTML=recs.map(function(x){
-      return '<div class="rv"><div class="info"><div class="t">'+esc(x.title)+'</div><div class="d">'+esc(x.detail||'')+'</div><div class="tags"><span class="pill2 '+(PILL[x.priority]||'')+'">'+esc((x.priority||'').toUpperCase())+'</span></div></div><div class="acts"><button class="approve" data-tab="'+esc(x.tab)+'" onclick="showTab(this.dataset.tab)">Go &rarr;</button></div></div>';
+      return '<div class="rv"><div class="info"><div class="t">'+esc(x.title)+'</div><div class="d">'+esc(x.detail||'')+'</div><div class="tags"><span class="pill2 '+(PILL[x.priority]||'')+'">'+esc((x.priority||'').toUpperCase())+'</span></div></div><div class="acts"><button class="approve" data-tab="'+esc(x.tab)+'" data-click="dashShowTabFromEl" data-a="[&quot;$el&quot;]">Go &rarr;</button></div></div>';
     }).join('');
   }catch(e){ box.innerHTML='<div class="rv-empty">Could not load recommendations.</div>'; }
 }
@@ -1274,7 +1286,7 @@ async function loadLearning(){
         '<label>Topic</label><input id="st'+s.id+'" value="'+esc(s.suggested_topic||'')+'">'+
         '<label style="margin-top:8px">Answer (edit before approving)</label><textarea id="sa'+s.id+'" rows="4" placeholder="Write the answer agents should give…">'+esc(s.suggested_answer||'')+'</textarea>'+
         '<label style="margin-top:8px">Teach which agent</label><select id="sg'+s.id+'">'+opt+'</select>'+
-        '<div class="cbar" style="margin-top:10px"><button class="approve" onclick="approveSuggestion('+s.id+',this)">Approve &amp; teach</button> <button class="deny" onclick="dismissSuggestion('+s.id+',this)">Dismiss</button></div>'+
+        '<div class="cbar" style="margin-top:10px"><button class="approve" data-click="approveSuggestion" data-a="'+esc(JSON.stringify([s.id,"$el"]))+'">Approve &amp; teach</button> <button class="deny" data-click="dismissSuggestion" data-a="'+esc(JSON.stringify([s.id,"$el"]))+'">Dismiss</button></div>'+
         '<div class="msg" id="sm'+s.id+'"></div>'+
       '</div></div>';
     }).join('');

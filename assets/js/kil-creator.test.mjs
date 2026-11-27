@@ -77,7 +77,8 @@ test('attendees are text, searchable, and the csv neutralizes formula cells', as
 test('attendees RPC is owner-only', () => {
   const sql = readFileSync(join(root, 'supabase/migrations/20261127172000_owner_attendees.sql'), 'utf8');
   assert.match(sql, /not public\.kil_row_owned\(v_id\)/);
-  assert.match(sql, /where event_slug = \$1/);
+  assert.match(sql, /r\.event_id = v_id/); assert.match(sql, /o\.event_id = v_id and o\.status = 'paid'/);
+  assert.doesNotMatch(sql.replace(/^\s*--.*$/gm, ''), /public\.orders|when undefined/);
   assert.match(sql, /revoke all on function public\.kil_event_customers\(text\) from public, anon/);
   assert.match(sql, /grant execute on function public\.kil_event_customers\(text\) to authenticated/);
   assert.doesNotMatch(sql, /to anon/);
@@ -87,7 +88,8 @@ test('promo migration is owner-only and the hit beacon is not a reader', () => {
   const sql = readFileSync(join(root, 'supabase/migrations/20261127171000_creator_promo.sql'), 'utf8');
   assert.match(sql, /kil_row_owned\(p_event_id\)/);
   assert.match(sql, /kil_row_owned\(v_id\)/);
-  assert.match(sql, /revoke all on public\.event_promo_codes from public, anon, authenticated/);
+  assert.doesNotMatch(sql.replace(/^\s*--.*$/gm, ''), /event_promo_codes from public/, 'the existing promo table keeps its grants and its public-read policy');
+  assert.doesNotMatch(sql.replace(/^\s*--.*$/gm, ''), /create table[^;]*event_promo_codes/i, 'the table already exists in prod; it is not recreated');
   assert.match(sql, /revoke all on public\.event_link_hits from public, anon, authenticated/);
   assert.match(sql, /grant execute on function public\.kil_record_event_hit\(text, text, text, text, text, text\) to anon, authenticated/);
   assert.doesNotMatch(sql, /grant select on public\.event_promo_codes/);

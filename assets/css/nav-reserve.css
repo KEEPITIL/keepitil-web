@@ -1,0 +1,12 @@
+/* FIRST-PAINT NAV RESERVE (live sweep 2026-11-27: /earn/ at 1280px intermittently scored CLS 0.32).
+   23 pages ship a static crawler <nav id="main-nav"> in normal flow (about 140px of unstyled list). keepitil-shell.js is deferred: it removes that nav, mounts the fixed
+   shell nav and, above 860px, sets body padding-top:66px inline. When Chrome painted BEFORE the shell ran, the content sat 140-250px lower and then jumped.
+   With scripting on, collapse the static nav and give the body the padding the shell will give it, so the content is at the same top before and after the shell mounts
+   (tests/nav-first-paint.test.cjs measures both with the shell blocked and mounted). With scripting off (@media (scripting: none)) none of this applies and the static nav
+   stays visible for no-JS readers and crawlers. A page whose shell leaves the static nav in place (signup.html: the shell nav is off there) opts out with <body data-static-nav>. */
+@media (scripting: enabled) {
+  body:not([data-static-nav]) #main-nav { display: none; }
+}
+@media (scripting: enabled) and (min-width: 861px) {
+  body:not([data-static-nav]) { padding-top: 66px; }   /* = keepitil-shell.js: if(!IS_MOBILE) document.body.style.paddingTop='66px' (IS_MOBILE = max-width:860px) */
+}

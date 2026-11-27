@@ -58,31 +58,47 @@ table{border-collapse:collapse;width:100%;margin:12px 0 18px;font-size:.95rem}th
 <h1>Organizer fees &amp; payouts</h1>
 <div class="upd">KEEPITIL · Last updated November 27, 2026</div>
 
-<p>This page is for people who sell tickets on KEEPITIL. It shows what KEEPITIL charges, what Stripe charges, how you get paid, what happens when a ticket is refunded or disputed, and what is not allowed. Numbers come from how KEEPITIL ticketing works today and from Stripe's own pages, which are linked.</p>
+<p>This page is for people who sell tickets on KEEPITIL. It shows what buyers pay on top of your ticket price, how that splits between Stripe and KEEPITIL, how you get paid, what happens when a ticket is refunded or disputed, and what is not allowed. Numbers come from how KEEPITIL ticketing works and from Stripe's own pages, which are linked.</p>
 
-<h2>1. KEEPITIL's fee</h2>
-<p>For every paid ticket sold, KEEPITIL's fee is <strong>2.5% of the ticket price plus a flat amount per ticket</strong>:</p>
-<ul>
-<li><strong>$0.49</strong> when the ticket price is under $10.00;</li>
-<li><strong>$0.99</strong> when the ticket price is $10.00 or more.</li>
-</ul>
-<p>The fee is worked out per ticket, rounded to the cent, and multiplied by the number of tickets in the order. <strong>You pay it</strong>: it is taken out of each sale before the rest goes to your Stripe account. The buyer pays the ticket price you set and nothing is added at checkout. Free and RSVP tickets are never charged and carry no fee.</p>
-
-<h3>Worked examples (one ticket, domestic card)</h3>
+<h2>1. The fee: the buyer pays it, you receive the full ticket price</h2>
+<p>At checkout the buyer pays <strong>your ticket price plus a service fee of 5% + $0.50 per order</strong>. The fee is shown to the buyer before they pay. <strong>You receive the full ticket price you set</strong>: nothing is taken out of your ticket money for fees. Free and RSVP tickets are never charged and carry no fee.</p>
+<p>The service fee has two lines, so you can see where it goes:</p>
 <div class="tw"><table>
-<thead><tr><th>Ticket price</th><th>KEEPITIL fee</th><th>Stripe card fee*</th><th>You receive</th></tr></thead>
+<thead><tr><th>Line</th><th>Stripe processing fee</th><th>KEEPITIL operational fee</th><th>Total service fee</th></tr></thead>
 <tbody>
-<tr><td>$5.00</td><td>$0.62</td><td>$0.45</td><td><strong>$4.38</strong></td></tr>
-<tr><td>$10.00</td><td>$1.24</td><td>$0.59</td><td><strong>$8.76</strong></td></tr>
-<tr><td>$25.00</td><td>$1.62</td><td>$1.03</td><td><strong>$23.38</strong></td></tr>
-<tr><td>$50.00</td><td>$2.24</td><td>$1.75</td><td><strong>$47.76</strong></td></tr>
+<tr><td>Card</td><td>2.9% + 30&cent;</td><td>2.1% + 20&cent;</td><td><strong>5% + 50&cent;</strong></td></tr>
+<tr><td>International card (extra)</td><td>+1.5%</td><td>+0.5%</td><td>+2%</td></tr>
+<tr><td>Currency conversion (extra)</td><td>+1%</td><td>+1%</td><td>+2%</td></tr>
 </tbody></table></div>
-<p>*Stripe's card fee is shown so you can see the full picture. With KEEPITIL's setup it is charged to KEEPITIL's Stripe account, <strong>not taken from your payout</strong>, so &ldquo;You receive&rdquo; is the ticket price minus KEEPITIL's fee. Refunds, disputes and the cases below are different: see section 3.</p>
-<!-- OPEN FOR GROK: Stripe's card fee is paid by KEEPITIL out of its fee under the current destination-charge setup (Stripe docs); Joe's rule is that KEEPITIL takes on no expenses. Decide whether the organizer pays it, and re-check the high-price and international-card cases (PR body). -->
+<ul>
+<li>The $0.50 is charged once per <strong>order</strong>, not per ticket. The percentage is on the paid tickets in the order.</li>
+<li><strong>Currency conversion:</strong> the extra 2% is added when the tickets are priced in a currency other than US dollars. All tickets on KEEPITIL are priced in US dollars today.</li>
+<li><strong>International cards:</strong> Stripe charges +1.5% on them. KEEPITIL cannot see a card's country before the buyer pays, so the buyer pays the same 5% + $0.50 on every card and the extra international fee is not added.</li>
+<li>The &ldquo;KEEPITIL operational fee&rdquo; is KEEPITIL's share: it covers running ticketing, payouts and support.</li>
+</ul>
+<!-- OPEN FOR JOE: Stripe applies its 2.9% + 30c to the whole amount charged (ticket + service fee), so its exact fee is a few cents more than 2.9% of the ticket price shown in the tables below; the service fee total is unchanged. The international-card surcharge (+2%) is NOT charged because the card country is unknown at checkout (see the keepitil.github.io create-checkout PR). -->
+
+<h3>Worked examples: one ticket, domestic card</h3>
+<div class="tw"><table>
+<thead><tr><th>Ticket price (you receive)</th><th>Service fee</th><th>Stripe processing fee</th><th>KEEPITIL operational fee</th><th>Buyer pays</th></tr></thead>
+<tbody>
+<tr><td>$10.00</td><td>$1.00</td><td>$0.59</td><td>$0.41</td><td>$11.00</td></tr>
+<tr><td>$25.00</td><td>$1.75</td><td>$1.03</td><td>$0.72</td><td>$26.75</td></tr>
+<tr><td>$50.00</td><td>$3.00</td><td>$1.75</td><td>$1.25</td><td>$53.00</td></tr>
+</tbody></table></div>
+<h3>Worked examples: one ticket, international card</h3>
+<div class="tw"><table>
+<thead><tr><th>Ticket price (you receive)</th><th>Service fee</th><th>Stripe processing fee*</th><th>KEEPITIL operational fee</th><th>Buyer pays</th></tr></thead>
+<tbody>
+<tr><td>$10.00</td><td>$1.00</td><td>$0.74</td><td>$0.26</td><td>$11.00</td></tr>
+<tr><td>$25.00</td><td>$1.75</td><td>$1.40</td><td>$0.35</td><td>$26.75</td></tr>
+<tr><td>$50.00</td><td>$3.00</td><td>$2.50</td><td>$0.50</td><td>$53.00</td></tr>
+</tbody></table></div>
+<p>*On an international card Stripe charges 2.9% + 30&cent; plus 1.5%, so more of the same service fee goes to Stripe and less is left as KEEPITIL's operational fee. The buyer's total is the same. Stripe's amounts here are worked out on the ticket price; Stripe applies its rates to the full amount charged, so its exact fee can be a few cents higher.</p>
 
 <h2>2. Stripe's fees, payouts and getting set up</h2>
 <ul>
-<li><strong>Card processing:</strong> Stripe's published price is 2.9% + 30&cent; per successful domestic card payment, plus 1.5% for international cards and plus 1% if currency conversion is needed (<a href="https://stripe.com/pricing" rel="noopener">stripe.com/pricing</a>). For tickets on KEEPITIL, Stripe charges this to KEEPITIL as the platform (<a href="https://docs.stripe.com/connect/destination-charges" rel="noopener">Stripe: destination charges</a>: &ldquo;Your platform separately pays the Stripe fees on the charge&rdquo;).</li>
+<li><strong>Card processing:</strong> Stripe's published price is 2.9% + 30&cent; per successful domestic card payment, plus 1.5% for international cards and plus 1% if currency conversion is needed (<a href="https://stripe.com/pricing" rel="noopener">stripe.com/pricing</a>). On KEEPITIL the buyer's service fee covers it: <strong>you pay no processing fee on ticket sales</strong> (<a href="https://docs.stripe.com/connect/destination-charges" rel="noopener">Stripe: destination charges</a>: the platform pays the Stripe fee on the charge).</li>
 <li><strong>Your Stripe account:</strong> when you set up payouts, KEEPITIL creates a Stripe Express account for you and sends you to Stripe to finish. You give Stripe your identity and bank details there, not to KEEPITIL. Stripe asks for information about you and, for a business, the business: for example name, address, tax ID number, date of birth, and details of beneficial owners. It may also ask for a scan of a government ID or proof of address, and it &ldquo;temporarily pauses charges or payouts if the information isn't provided or verified&rdquo; (<a href="https://docs.stripe.com/connect/identity-verification" rel="noopener">Stripe: identity verification</a>).</li>
 <li><strong>You cannot sell paid tickets until payouts are set up.</strong> Checkout refuses a paid ticket for an organizer who has not finished Stripe's setup.</li>
 <li><strong>When you are paid:</strong> by default, money from a sale builds up in your Stripe balance and is paid out to your bank on a daily rolling basis (<a href="https://docs.stripe.com/connect/payouts-connected-accounts" rel="noopener">Stripe: payouts for connected accounts</a>). Stripe typically schedules a new account's first payout within 7 to 14 days (<a href="https://docs.stripe.com/payouts" rel="noopener">Stripe: payouts</a>). Payout settings and status are managed with Stripe.</li>

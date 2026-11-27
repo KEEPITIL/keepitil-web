@@ -3,6 +3,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import test from 'node:test';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const root = new URL('../..', import.meta.url);
 const require = createRequire(import.meta.url);
@@ -91,7 +92,7 @@ test('the ticket page does not ask an outside host to draw a door code', () => {
 });
 
 test('no first-party page posts a token', () => {
-  const files = walk(new URL('.', root).pathname, []);
+  const files = walk(fileURLToPath(new URL('.', root)), []); // fileURLToPath: URL.pathname is /C:/... on Windows
   const hits = [];
   for (const path of files) {
     const text = readFileSync(path, 'utf8');

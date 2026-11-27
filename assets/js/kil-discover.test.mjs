@@ -225,7 +225,7 @@ test('sitemap lists the directory and robots still allows /discover/', function 
     readdirSync(dir).forEach(function (name) {
       var p = join(dir, name);
       if (statSync(p).isDirectory()) walk(p, acc);
-      else if (name === 'index.html') acc.push(p.slice(root.length + 1));
+      else if (name === 'index.html') acc.push(p.slice(root.length + 1).replace(/\\/g, '/')); // forward slashes on Windows too
     });
   }
   var found = [];

@@ -47,6 +47,7 @@
       cn.appendChild(el(doc, 'strong', '', 'Payouts (Stripe): ')); cn.appendChild(el(doc, 'span', 'org-connect-state', c.label)); cn.appendChild(el(doc, 'span', 'org-connect-note', ' ' + c.note));
       if (c.link) { var a = el(doc, 'a', 'org-connect-link', c.link.text); a.href = c.link.href; cn.appendChild(doc.createTextNode(' ')); cn.appendChild(a); }
       wrap.appendChild(cn);
+      var fp = el(doc, 'p', 'org-fees', ''); var fl = el(doc, 'a', 'org-fees-link', 'Fees, payouts and rules'); fl.href = '/organizer-fees'; fp.appendChild(fl); wrap.appendChild(fp);
     }
 
     var ce = data && data.create_earn;

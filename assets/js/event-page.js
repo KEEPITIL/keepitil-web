@@ -8,6 +8,8 @@
   var p=new URLSearchParams(location.search);
   function g(k){return p.get(k)||'';}
   function $(id){return document.getElementById(id);}
+  /* TICKET SERVICE FEE (buyer-paid, Joe): 5% + $0.50 per ORDER on the paid ticket subtotal, shown before payment. Mirrors create-checkout v59 (fee.mjs): cents, Math.round on a positive sum. */
+  function kilServiceFee(sub){ sub=Math.trunc(Number(sub)); if(!(sub>0)) return 0; return Math.round(sub*500/10000)+50; }
   function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -440,7 +442,7 @@
               return '<div class="tixrow'+(free?' free':'')+(dis?' closed':'')+'" data-tier="'+t.id+'" data-unit="'+unit+'" data-free="'+(free?1:0)+'" data-max="'+maxq+'" data-name="'+esc(t.name)+'">'+
                 '<div class="trtop"><span class="trprice">'+esc(pl)+'</span><span class="trname">'+esc(t.name)+'</span>'+right+'</div>'+more+'</div>';
             }).join('');
-            sec.style.display=''; $('ev-tixfoot').style.display='flex'; if(anyPaid){ var tt=$('tix-terms'); if(tt) tt.style.display=''; }
+            sec.style.display=''; $('ev-tixfoot').style.display='flex'; if(anyPaid){ var tt=$('tix-terms'); if(tt){ if(!$('tix-fee')){ var fl=document.createElement('div'); fl.id='tix-fee'; fl.className='tix-terms'; fl.textContent='Service fee: 5% + $0.50 per order (Stripe processing + KEEPITIL operational fee) is added to paid tickets before payment. You see the total here before you pay.'; tt.parentNode.insertBefore(fl,tt); } tt.style.display=''; } }
             var ctas=$('ev-ctas'); if(ctas){ ctas.querySelectorAll('.cta-tix,.cta-vip').forEach(function(a){ a.remove(); }); }
             function money(c){ var s=(c/100).toFixed(2); return '$'+s.replace(/\.00$/,''); }
             function recalc(){
@@ -453,7 +455,7 @@
               });
               $('tf-count').textContent=count+' ticket'+(count===1?'':'s');
               $('tf-sub').textContent=money(sub);
-              $('tf-tax').textContent='Tax $0.00 · fees included';
+              var fee=kilServiceFee(sub); $('tf-tax').textContent=sub>0?('Service fee '+money(fee)+' · Total '+money(sub+fee)):'Service fee 5% + $0.50 per order';
               $('tf-buy').disabled=(count<=0);
             }
             /* − 0 + steppers update each line total + the order summary */

@@ -262,7 +262,7 @@ test('pages do not assign stored html straight to innerHTML', () => {
   assert.match(profile, /tile\.style\.backgroundImage='url\('\+JSON\.stringify\(img\)\+'\)'/);
   assert.match(profile, /kil-safe-html\.js\?v=20261107b/);
   assert.match(culture, /kil-safe-html\.js\?v=20261107b/);
-  const connect = read('connect/index.html');
+  const connect = __assemble(read('connect/index.html'));
   assert.match(connect, /kilSafeUrl\(x\.img\)/);
   assert.match(connect, /escHtml\(x\.name/);
   assert.match(connect, /escHtml\(x\.city\)/);

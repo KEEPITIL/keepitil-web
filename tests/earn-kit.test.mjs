@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-const s = readFileSync(new URL('../earn/index.html', import.meta.url), 'utf8');
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../tests/helpers/event-assembled.cjs').assemble;
+const s = __assemble(readFileSync(new URL('../earn/index.html', import.meta.url), 'utf8'));
 const tag = /<a [^>]*id="kitAffiliate"[^>]*>/.exec(s)?.[0] || '';
 test('Kit tile exists once with the exact partner link', () => {
   assert.equal((s.match(/partners\.kit\.com/g) || []).length, 1);

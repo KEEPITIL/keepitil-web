@@ -88,7 +88,7 @@ test('findmyweed-explore: showView("list") / showView("map") through data-click'
   assert.match(h, /KilActions\.allow\(\["showView"\]\)/); assert.ok(h.indexOf('/assets/js/kil-actions.js') < h.indexOf('KilActions.allow('));
 });
 test('create: the two Enter-a-competition buttons call the guarded helpers', () => {
-  const h = read('create/index.html'); assert.match(h, /data-click="kilVsGoJoin"/); assert.match(h, /data-click="kilVsGo" data-a="\[&quot;join&quot;\]"/);
+  const h = __assemble(read('create/index.html')); assert.match(h, /data-click="kilVsGoJoin"/); assert.match(h, /data-click="kilVsGo" data-a="\[&quot;join&quot;\]"/);
   assert.ok(h.indexOf('/assets/js/kil-common-actions.js') < h.indexOf('/vs-app.js'));
 });
 test('kbeats submit: the four forms are data-submit="kilNoSubmit" and the scripts load before the module', () => {
@@ -96,5 +96,5 @@ test('kbeats submit: the four forms are data-submit="kilNoSubmit" and the script
   assert.ok(h.indexOf('/assets/js/kil-common-actions.js') < h.indexOf('type="module"'));
 });
 test('earn: the two playlist buttons were removed (earn-dead-buttons): no handler attribute, no data-click for them', () => {
-  const h = read('earn/index.html'); assert.doesNotMatch(h.replace(/\/\*[\s\S]*?\*\//g, ''), /setDefaultPlaylist|rmPlaylist/);
+  const h = __assemble(read('earn/index.html')); assert.doesNotMatch(h.replace(/\/\*[\s\S]*?\*\//g, ''), /setDefaultPlaylist|rmPlaylist/);
 });

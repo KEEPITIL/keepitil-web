@@ -10,11 +10,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { JSDOM, VirtualConsole } from 'jsdom';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const ROOT = new URL('../../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, ROOT), 'utf8');
-const CREATE = read('create/index.html');
-const EARN = read('earn/index.html');
+const CREATE = __assemble(read('create/index.html'));
+const EARN = __assemble(read('earn/index.html'));
 const markup = (h) => h.replace(/<!--[\s\S]*?-->/g, '').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '')
   .replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, '');
 

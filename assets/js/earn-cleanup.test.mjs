@@ -10,8 +10,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { JSDOM, VirtualConsole } from 'jsdom';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
-const EARN = readFileSync(new URL('../../earn/index.html', import.meta.url), 'utf8');
+const EARN = __assemble(readFileSync(new URL('../../earn/index.html', import.meta.url), 'utf8'));
 const SHELL = readFileSync(new URL('../../keepitil-shell.js', import.meta.url), 'utf8');
 
 /* Markup only: comments and <script>/<style> bodies removed. */

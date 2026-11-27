@@ -8,10 +8,12 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(join(dir, '../..', rel), 'utf8');
-const PAGE = read('venue.html');
+const PAGE = __assemble(read('venue.html'));
 
 const EXPECTED = { 'click:askV': 1, 'click:claim': 1, 'click:loadGallery': 1, 'click:scrollToAsk': 1, 'click:scrollToBook': 2, 'click:submitBooking': 1, 'click:submitReview': 1, 'click:vAskFromEl': 1, 'click:vToggleOpen': 1, 'keydown:vAskEnter': 1 };
 const used = {};
@@ -30,7 +32,7 @@ test('every action used in markup is allowed and defined as a function; the allo
 });
 
 test('kil-actions.js and kil-img-fallback.js load before the page script', () => {
-  const a = PAGE.indexOf('/assets/js/kil-actions.js'), f = PAGE.indexOf('/assets/js/kil-img-fallback.js'), inline = PAGE.indexOf('<script>\n');
+  const a = PAGE.indexOf('/assets/js/kil-actions.js'), f = PAGE.indexOf('/assets/js/kil-img-fallback.js'), inline = PAGE.indexOf('<script>');   // PAGE is assembled: the first inline script is the (formerly external) page script
   assert.ok(a > 0 && f > 0 && a < inline && f < inline);
 });
 

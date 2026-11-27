@@ -8,9 +8,11 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const dir = dirname(fileURLToPath(import.meta.url));
-const PAGE = readFileSync(join(dir, '../../kode/app.html'), 'utf8');
+const PAGE = __assemble(readFileSync(join(dir, '../../kode/app.html'), 'utf8'));
 const EXPECTED = { 'click:connectSocial': 1, 'click:copyCaption': 1, 'click:delPost': 2, 'click:disconnectSocial': 1, 'click:kodeOpenMedia': 1, 'click:kodeOpenPlatform': 1, 'click:markPublished': 2, 'click:retryPost': 1, 'click:signOut': 1, 'click:syncVendor': 1 };
 const used = {};
 for (const m of PAGE.matchAll(/\sdata-(click|change|input|keydown|over|out)="(\w+)"/g)) used[m[1] + ':' + m[2]] = (used[m[1] + ':' + m[2]] || 0) + 1;

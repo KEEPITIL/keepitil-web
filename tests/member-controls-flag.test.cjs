@@ -1,7 +1,8 @@
 // Gate 11: Unpublish / Delete / Download-my-data are hidden behind ONE flag until gh.io #95 (server functions) is applied.
 const test = require("node:test"), assert = require("node:assert/strict"), fs = require("node:fs"), vm = require("node:vm"), path = require("node:path");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const R = (f) => fs.readFileSync(path.join(__dirname, "..", f), "utf8");
-const se = R("submit-event.html"), st = R("settings.html");
+const se = __A(R("submit-event.html")), st = __A(R("settings.html"));
 const flag = (s) => (s.match(/var MEMBER_DATA_CONTROLS=(true|false);/) || [])[1];
 test("the flag exists in both pages, is equal in both, and is ON (gh.io #95 applied + verified on prod 2026-11-25 15:30 window)", () => {
   assert.ok(flag(se) && flag(st)); assert.equal(flag(se), flag(st)); assert.equal(flag(se), "true");

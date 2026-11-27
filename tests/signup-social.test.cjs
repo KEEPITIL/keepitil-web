@@ -1,12 +1,13 @@
 // Sign-up offers the same Google / Apple providers as sign-in, and /reset-password uses the shared shell.
 // Run: node --test tests/signup-social.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const ROOT = process.env.SS_ROOT || path.resolve(__dirname, "..");
-const su = fs.readFileSync(path.join(ROOT, "signup.html"), "utf8");
+const su = __A(fs.readFileSync(path.join(ROOT, "signup.html"), "utf8"));
 const rp = fs.readFileSync(path.join(ROOT, "reset-password.html"), "utf8");
 
 function extract(src, name) {

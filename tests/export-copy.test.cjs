@@ -1,10 +1,11 @@
 // The "Download my data" sentence on /settings must describe what export_my_data() really returns (keepitil.github.io #95, applied 2026-11-25).
 // Run: node --test tests/export-copy.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const st = fs.readFileSync(path.join(__dirname, "..", "settings.html"), "utf8");
+const st = __A(fs.readFileSync(path.join(__dirname, "..", "settings.html"), "utf8"));
 const line = (id) => (st.match(new RegExp('id="' + id + '"[\\s\\S]*?<small>([^<]*)</small>')) || [])[1] || "";
 // top-level keys of export_my_data() and the plain words that cover each
 const KEYS = {

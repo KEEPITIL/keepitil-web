@@ -1,10 +1,11 @@
 // axe (2026-11-25, real Chrome, signed-out): /settings had no <main> landmark (landmark-one-main) and its h1 and log-in gate sat outside any landmark (region).
 // The page content now lives in one <main>. Run: node --test tests/settings-main-landmark.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const html = fs.readFileSync(path.join(__dirname, "..", "settings.html"), "utf8");
+const html = __A(fs.readFileSync(path.join(__dirname, "..", "settings.html"), "utf8"));
 const body = html.slice(html.indexOf("<body"));
 const count = (s, re) => (s.match(re) || []).length;
 const main = body.slice(body.indexOf("<main"), body.indexOf("</main>"));

@@ -2,6 +2,7 @@
 // field, and autocomplete tokens so password managers and screen readers work.
 // Run: node --test tests/auth-forms-a11y.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -28,10 +29,10 @@ for (const f of ["apply.html", "signup.html"]) {
 }
 
 test("signup password fields use new-password, login uses current-password", () => {
-  const up = inputs(read("signup.html")).filter((t) => /type="password"/.test(t));
+  const up = inputs(__A(read("signup.html"))).filter((t) => /type="password"/.test(t));
   assert.equal(up.length, 2);
   for (const t of up) assert.equal(attr(t, "autocomplete"), "new-password");
-  const inn = inputs(read("apply.html")).filter((t) => /type="password"/.test(t));
+  const inn = inputs(__A(read("apply.html"))).filter((t) => /type="password"/.test(t));
   assert.equal(inn.length, 1);
   assert.equal(attr(inn[0], "autocomplete"), "current-password");
 });

@@ -4,6 +4,7 @@
 // production. A handle -> email lookup for an anonymous caller would also leak personal data, so it must never come back. These tests fail if the handle field, either RPC call, or the
 // Followers / Circle views come back before Grok says go.
 const assert = require('node:assert/strict');
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
@@ -11,7 +12,7 @@ const test = require('node:test');
 const root = path.join(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 const RPC = (name) => new RegExp("rpc\\(\\s*['\"`]" + name + "['\"`]");
-const apply = read('apply.html'), culture = read('culture/index.html');
+const apply = __A(read('apply.html')), culture = read('culture/index.html');
 
 // every shipped page and script (not tests, docs, tools or node_modules)
 function shipped(dir = root, out = []) {

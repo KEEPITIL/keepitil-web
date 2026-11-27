@@ -3,9 +3,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../tests/helpers/event-assembled.cjs').assemble;
 
 function kilNext(search) {
-  const src = readFileSync('apply.html', 'utf8');
+  const src = __assemble(readFileSync('apply.html', 'utf8'));
   const start = src.indexOf('function kilNext()');
   assert.ok(start >= 0, 'kilNext() not found in apply.html');
   let i = src.indexOf('{', start), depth = 0;

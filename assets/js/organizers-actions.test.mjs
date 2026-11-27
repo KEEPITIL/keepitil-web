@@ -6,9 +6,11 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const dir = dirname(fileURLToPath(import.meta.url));
-const PAGE = readFileSync(join(dir, '../../organizers/dashboard.html'), 'utf8');
+const PAGE = __assemble(readFileSync(join(dir, '../../organizers/dashboard.html'), 'utf8'));
 const EXPECTED = {"click:addTier": 1, "click:doLogin": 1, "click:doLogout": 1, "click:doReset": 1, "click:doSignup": 1, "click:removeTier": 2, "click:saveProfile": 1, "click:showLogin": 1, "click:showReset": 1, "click:showTab": 9, "click:submitEvent": 1, "click:switchAuthTab": 2};
 const used = {};
 for (const m of PAGE.matchAll(/\sdata-(click|change|input|keydown|over|out)="(\w+)"/g)) used[m[1] + ':' + m[2]] = (used[m[1] + ':' + m[2]] || 0) + 1;

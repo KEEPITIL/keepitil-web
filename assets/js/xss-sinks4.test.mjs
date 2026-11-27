@@ -32,7 +32,7 @@ function noExec(html, label) {
   }
 }
 
-const kode = read('kode/app.html');
+const kode = __assemble(read('kode/app.html'));
 const escCode = kode.slice(kode.indexOf('function escapeHtml('), kode.indexOf('\n', kode.indexOf('function escapeHtml(')));
 
 test('(a) kode renderWho escapes the handle', () => {

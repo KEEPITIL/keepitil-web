@@ -16,14 +16,14 @@ test('profile: main does not break the page scripts (no code looks the page up b
   assert.match(R('keepitil-shell.js'), /document\.querySelector\('main'\) \|\| document\.body/);
 });
 test('venue: one <main> holds the cover and the content; the sticky booking button is a named region (NEGATIVE CONTROL: the old markup has the cover and the button outside any landmark)', () => {
-  const v = R('venue.html'); assert.equal(n(v, /<main\b/g), 1); assert.match(v, /<main id="v">\s*<div class="loading" id="loading">[\s\S]*?<div id="vBody" style="display:none">\s*<div class="v-cover" id="vCover"><\/div>/);
+  const v = __A(R('venue.html')); assert.equal(n(v, /<main\b/g), 1); assert.match(v, /<main id="v">\s*<div class="loading" id="loading">[\s\S]*?<div id="vBody" style="display:none">\s*<div class="v-cover" id="vCover"><\/div>/);
   assert.match(v, /<div class="sticky" id="sticky" role="region" aria-label="Request a booking">/);
   const old = '<div id="v"><div class="v-cover" id="vCover"></div><main class="wrap">x</main></div><div class="sticky" id="sticky"><button>Request booking</button></div>';
   assert.ok(old.indexOf('id="vCover"') < old.indexOf('<main'), 'old: the cover came before main'); assert.doesNotMatch(old, /role="region"/);
 });
 
 test('venue: a static (off-screen) h1 sits in the loading box before the fetch settles; the shared not-found state replaces it with the real heading (NEGATIVE CONTROL: the old markup has no h1 until data arrives)', () => {
-  const v = R('venue.html');
+  const v = __A(R('venue.html'));
   assert.match(v, /<div class="loading" id="loading"><h1 class="vh">Venue<\/h1>/);
   assert.match(v, /\.vh\{position:absolute/);
   const old = '<div class="loading" id="loading">Loading venue…</div>';
@@ -32,7 +32,7 @@ test('venue: a static (off-screen) h1 sits in the loading box before the fetch s
 
 test('venue: the loading box and the not-found card live INSIDE the one visible <main id=v>; only the loaded content (#vBody) is hidden until data arrives (NEGATIVE CONTROL: the old markup had them outside a hidden main)', () => {
   const { JSDOM } = require('jsdom');
-  const v = R('venue.html'), d = new JSDOM(v).window.document;
+  const v = __A(R('venue.html')), d = new JSDOM(v).window.document;
   const mains = d.querySelectorAll('main'); assert.equal(mains.length, 1);
   const m = mains[0]; assert.equal(m.id, 'v'); assert.equal(m.getAttribute('style'), null, 'main is visible from first paint');
   assert.ok(m.contains(d.getElementById('loading')), 'loading box (and the not-found card, which renders into #loading) is inside main');

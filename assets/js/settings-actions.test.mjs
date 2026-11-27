@@ -7,9 +7,11 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const dir = dirname(fileURLToPath(import.meta.url));
-const PAGE = readFileSync(join(dir, '../../settings.html'), 'utf8');
+const PAGE = __assemble(readFileSync(join(dir, '../../settings.html'), 'utf8'));
 const EXPECTED = { 'click:delClose': 1, 'click:delGo': 1, 'click:delOpen': 1, 'click:doLogout': 1, 'click:exportMyData': 1, 'click:goProfile': 1, 'click:saveEmail': 1, 'click:savePass': 1, 'click:setShowAnyway': 1, 'input:delSync': 1 };
 const used = {};
 for (const m of PAGE.matchAll(/\sdata-(click|change|input|keydown|over|out)="(\w+)"/g)) used[m[1] + ':' + m[2]] = (used[m[1] + ':' + m[2]] || 0) + 1;

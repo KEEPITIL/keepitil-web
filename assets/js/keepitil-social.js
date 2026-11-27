@@ -31,6 +31,8 @@
     document.head.appendChild(s);
   }
 
+  function escH(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
+
   function openMenu(p) {
     css();
     var url = p.url || location.href;
@@ -48,12 +50,12 @@
     ];
     var ov = document.createElement("div"); ov.className = "kil-share-ov";
     var links = targets.map(function (t) {
-      return '<a href="' + t[1] + '" target="_blank" rel="noopener noreferrer">' + t[0] + "</a>";
+      return '<a href="' + escH(t[1]) + '" target="_blank" rel="noopener noreferrer">' + t[0] + "</a>";
     }).join("");
     ov.innerHTML =
       '<div class="kil-share-card" style="position:relative">' +
       '<button class="kil-share-x" aria-label="Close">✕</button>' +
-      "<h4>Share</h4><div class=\"sub\">" + (title || "") + "</div>" +
+      "<h4>Share</h4><div class=\"sub\">" + escH(title || "") + "</div>" +
       '<div class="kil-share-grid">' + links +
       '<button class="kil-share-copy">📋 Copy link</button>' +
       "</div></div>";

@@ -2062,8 +2062,8 @@
       host.innerHTML=pls.map(function(pl,i){
         return '<button type="button" class="kr-st'+(i===KIL_PL_I?' on':'')+'" data-i="'+i+'"'
           +(i===KIL_PL_I?' aria-current="true"':'')+'>'
-          +(pl.art?'<img src="'+pl.art+'" alt=""/>':'<span class="kr-st-noart"></span>')
-          +'<span>'+String(pl.name||'Station')+'</span></button>';
+          +(pl.art?'<img src="'+String(pl.art).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')+'" alt=""/>':'<span class="kr-st-noart"></span>')
+          +'<span>'+String(pl.name||'Station').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</span></button>';
       }).join('');
       /* after the cards exist, and again once their artwork has changed the widths */
       syncStationArrows();

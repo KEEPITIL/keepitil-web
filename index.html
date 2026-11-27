@@ -2116,6 +2116,9 @@
     if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
     return (parts[0]||'?').slice(0,2).toUpperCase();
   }
+  /* Spotlight rows come from profile_meta (display_name / tagline / bio / avatar_url are owner-editable): escape every field, allow only http(s) or site-relative image URLs. */
+  function spEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+  function spImg(u) { u = String(u == null ? '' : u).trim(); return /^(https?:\/\/|\/(?!\/))/i.test(u) ? u : ''; }
   function buildWidget(el, items, color) {
     if (!el) return;
     const dotsEl = el.querySelector('.spot-widget-dots');
@@ -2124,14 +2127,14 @@
     items.forEach((item, i) => {
       const slide = document.createElement('div');
       slide.className = 'spot-slide' + (i===0?' active':'');
-      const imgSrc = item.img ? `<img loading="lazy" decoding="async" src="${item.img}" alt="${item.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span class="spot-slide-img-fb" style="display:none;color:${color}">${initials(item.name)}</span>` : `<span class="spot-slide-img-fb" style="color:${color}">${initials(item.name)}</span>`;
+      const imgSrc = spImg(item.img) ? `<img loading="lazy" decoding="async" src="${spEsc(spImg(item.img))}" alt="${spEsc(item.name)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span class="spot-slide-img-fb" style="display:none;color:${color}">${spEsc(initials(item.name))}</span>` : `<span class="spot-slide-img-fb" style="color:${color}">${spEsc(initials(item.name))}</span>`;
       slide.innerHTML = `
         <div class="spot-slide-img" style="background:${color}18">${imgSrc}</div>
         <div class="spot-slide-body">
-          <div class="spot-slide-name" style="color:${color}">${item.name}</div>
-          <div class="spot-slide-tag">${item.tag}</div>
-          <div class="spot-slide-bio">${item.bio}</div>
-          <a class="spot-slide-link" style="color:${color};border-color:${color}44" href="${item.link}">View ${item.type||'Page'} →</a>
+          <div class="spot-slide-name" style="color:${color}">${spEsc(item.name)}</div>
+          <div class="spot-slide-tag">${spEsc(item.tag)}</div>
+          <div class="spot-slide-bio">${spEsc(item.bio)}</div>
+          <a class="spot-slide-link" style="color:${color};border-color:${color}44" href="${spEsc(item.link)}">View ${spEsc(item.type||'Page')} →</a>
         </div>`;
       trackEl.appendChild(slide);
       const dot = document.createElement('span');

@@ -16,7 +16,7 @@ test('/venue: load() waits for the deferred shell before it can show the not-fou
   const lb = h.slice(h.indexOf('async function load(){'), h.indexOf('function render(){')), ready = lb.indexOf("document.readyState==='loading'");
   assert.ok(lb.indexOf("SB.rpc('get_venue'") > 0 && lb.indexOf("SB.rpc('get_venue'") < ready, 'the venue request starts BEFORE the DOMContentLoaded wait (perf)');
   assert.ok(lb.indexOf('venueNF();') > ready && lb.indexOf('render();') > ready, 'but not-found and render still wait for the shell');
-  assert.ok(h.includes('fetchpriority="high" decoding="async" onerror="this.style.display='), 'the hero img is high priority (the LCP element)');
+  assert.ok(h.includes('fetchpriority="high" decoding="async" data-fb="hide"'), 'the hero img is high priority (the LCP element)');
   assert.ok(h.includes("cur.getAttribute('data-hero')===v.cover_url) return;") && h.includes('if(req) req.then(function(r){ var v=r&&r.data&&r.data[0]; if(v&&v.cover_url) setHero(v); });'), 'the hero is drawn when the data arrives and render() does not draw it twice');
   assert.match(h, /el\.textContent=''; var h=document\.createElement\('h1'\); h\.className='vh'; h\.textContent='Venue';/);
   assert.doesNotMatch(h, /else if\(el\) el\.textContent='This venue is not available\.';/, 'NEGATIVE CONTROL: the old fallback that dropped the h1 is gone');

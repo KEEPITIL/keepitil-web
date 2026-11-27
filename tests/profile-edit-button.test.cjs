@@ -2,11 +2,12 @@
 // RLS-protected Edit Profile modal (profile_meta upsert). No new writes, no new tables.
 // Run: node --test tests/profile-edit-button.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const ROOT = process.env.PE_ROOT || path.resolve(__dirname, "..");
-const page = fs.readFileSync(path.join(ROOT, "profile.html"), "utf8");
+const page = __A(fs.readFileSync(path.join(ROOT, "profile.html"), "utf8"));
 
 test("EDIT PAGE button exists, hidden by default, opens the existing editor", () => {
   assert.match(page, /<button[^>]*id="pfEditPage"[^>]*style="display:none"[^>]*data-click="openEditProfile"[^>]*>EDIT PAGE<\/button>/);

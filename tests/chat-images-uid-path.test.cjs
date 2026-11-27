@@ -1,4 +1,5 @@
 const test = require('node:test'), assert = require('node:assert/strict'), fs = require('fs'), path = require('path');
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const ROOT = path.join(__dirname, '..'), READ = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 // chat-images uploads go into the signed-in user's own folder: H-3 of the security sweep (#132) lets an authenticated user INSERT into bucket 'chat-images' only when (storage.foldername(name))[1] = auth.uid()::text.
 // MERGE + DEPLOY THIS BEFORE #132 IS APPLIED: after it, the old paths (event-flyers/..., profiles/<slug>/...) are refused by storage RLS.
@@ -9,7 +10,7 @@ const line = (src, re, label) => { const m = src.match(re); assert.ok(m, label +
 const run = (expr, scope) => new Function(...Object.keys(scope), 'return ' + expr)(...Object.values(scope));
 
 test('profile.html: every image upload path starts with the signed-in user id (avatar, covers, highlights, post media all go through uploadImage)', () => {
-  const src = READ('profile.html');
+  const src = __A(READ('profile.html'));
   const decl = line(src, /var path=SESSION\.user\.id\+'\/profiles\/'\+PROFILE_SLUG\+'\/'\+Date\.now\(\)\+'-'\+file\.name\.replace\(\/\[\^a-z0-9\.\\-\]\+\/gi,'_'\);/, 'path declaration');
   const expr = decl.replace(/^var path=/, '').replace(/;$/, '');
   const path = run(expr, { SESSION: { user: { id: UID } }, PROFILE_SLUG: 'groove-trooper', Date, file: { name: 'My Photo.JPG' } });
@@ -34,5 +35,7 @@ test('NEGATIVE CONTROL: the previous paths (event-flyers/..., profiles/<slug>/..
 test('only these two pages upload to chat-images (the list KODE asked for): nothing else writes to the bucket, so no other feature needs a new path', () => {
   const { execSync } = require('child_process');
   const hits = execSync("git grep -l \"chat-images\" -- . ':!*.test.*' ':!*.md' ':!.github' ':!app' || true", { cwd: ROOT }).toString().trim().split('\n').filter(Boolean).sort();
-  assert.deepEqual(hits, ['create-event.html', 'profile.html']);
+  // profile.html's scripts live in assets/js/pages/profile-*.js since the CSP inline-script migration: those files count as the profile page
+  const pages = [...new Set(hits.map((h) => (/^assets\/js\/pages\/profile-/.test(h) ? 'profile.html' : h)))].sort();
+  assert.deepEqual(pages, ['create-event.html', 'profile.html']);
 });

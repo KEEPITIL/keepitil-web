@@ -2,6 +2,7 @@
 // the home cards, the discover cards and the event prerender. The shell's after-the-failure swap (tests/img-placeholder.test.cjs) stays as the safety net for every other host.
 // Run: node --test tests/img-host-denylist.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -26,8 +27,8 @@ test("discover cards: a denied cover gives the no-cover card (no <img>, no ra.co
 test("the pages load the list before they use it, and use it where a cover becomes a picture", () => {
   for (const f of ["event.html", "profile.html", "index.html", "discover/index.html", "discover/los-angeles/index.html"]) assert.match(read(f), /<script src="\/assets\/js\/kil-img-host\.js\?v=h[0-9a-f]{8}"><\/script>/, f);
   assert.match(read("event.html"), /ev\.img=KH\(x\.cover_url\|\|ev\.img\)/); assert.match(read("event.html"), /\(KH\(e\.cover_url\)\?/);
-  assert.match(read("profile.html"), /var bg=KH\(it\[4\]\)\?/, "the partner shelf images");
-  assert.match(read("profile.html"), /cover:KH\(e\.cover_url\|\|''\)/); assert.match(read("profile.html"), /var flyer=KH\(t\.cover_url\)\?/);
+  assert.match(__A(read("profile.html")), /var bg=KH\(it\[4\]\)\?/, "the partner shelf images");
+  assert.match(__A(read("profile.html")), /cover:KH\(e\.cover_url\|\|''\)/); assert.match(__A(read("profile.html")), /var flyer=KH\(t\.cover_url\)\?/);
   assert.match(read("index.html"), /window\.KilImgHost\.clean\(e\.cover_url\|\|e\.img\|\|''\)/);
   assert.doesNotMatch("ev.img=x.cover_url||ev.img;", /KH\(/, "negative control: the old assignment had no filter");
 });

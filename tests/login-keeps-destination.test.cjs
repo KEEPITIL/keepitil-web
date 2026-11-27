@@ -1,6 +1,7 @@
 // A signed-out visitor who is sent to log in must come back to what they were doing (apply.html honours a safe ?next=).
 // Run: node --test tests/login-keeps-destination.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -13,7 +14,7 @@ test("create-event and settings signed-out gates carry ?next= to their own page"
   assert.doesNotMatch(read("create-event.html"), /class="btn primary" href="\/apply">/, "negative control: the old bare link is gone");
 });
 test("profile MESSAGE and the sign-in-check retry send the visitor back to this profile", () => {
-  const p = read("profile.html");
+  const p = __A(read("profile.html"));
   assert.match(p, /Sign in to message\.'\); setTimeout\(function\(\)\{location\.href='\/apply\?next='\+encodeURIComponent\(location\.pathname\+location\.search\);\}/);
   assert.match(p, /label:'Sign in', go:function\(\)\{ location\.href='\/apply\?next='\+encodeURIComponent\(location\.pathname\+location\.search\); \}/);
   assert.doesNotMatch(p, /location\.href='\/apply';\},700\)/);

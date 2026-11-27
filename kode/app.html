@@ -281,7 +281,7 @@ db.auth.onAuthStateChange(() => route());
 
 function renderWho(){
   $('who').innerHTML = me
-    ? `<span>@<b>${myProfile ? myProfile.handle : '…'}</b></span><button class="linkbtn" onclick="signOut()">Sign out</button>`
+    ? `<span>@<b>${myProfile ? escapeHtml(myProfile.handle) : '…'}</b></span><button class="linkbtn" onclick="signOut()">Sign out</button>`
     : '';
 }
 async function signOut(){ await db.auth.signOut(); }
@@ -465,7 +465,7 @@ async function loadQueue(){
     .select('*').eq('user_id', me.id)
     .order('scheduled_at', { ascending: true }).limit(200);
   const q = $('queue');
-  if (error) { q.innerHTML = `<div class="empty">${error.message}</div>`; return; }
+  if (error) { q.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; return; }
 
   renderReady(allPosts.filter(p => p.status === 'ready'));
   const posts = allPosts.filter(p => p.status !== 'ready');
@@ -518,7 +518,7 @@ function renderReady(list){
         <div class="pmeta">was due ${new Date(p.scheduled_at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div>
       </div>
       <div class="acts">
-        ${p.media_url ? `<button onclick="window.open('${escapeHtml(p.media_url)}','_blank','noopener,noreferrer')">🖼 media</button>` : ''}
+        ${p.media_url && /^https?:\/\/[^\s"'<>]+$/.test(p.media_url) ? `<button data-url="${escapeHtml(p.media_url)}" onclick="window.open(this.dataset.url,'_blank','noopener,noreferrer')">🖼 media</button>` : ''}
         <button onclick="copyCaption('${p.id}')" id="copy-${p.id}">⧉ copy caption</button>
         <button onclick="window.open(OPEN_LINK['${p.platform}'],'_blank','noopener,noreferrer')">↗ open ${p.platform}</button>
         <button onclick="markPublished('${p.id}')">✓ posted</button>
@@ -579,7 +579,7 @@ setInterval(() => { if (me && myProfile && $('view-app').classList.contains('on'
 async function delPost(id){ await db.from('posts').delete().eq('id', id); loadQueue(); }
 async function markPublished(id){ await db.from('posts').update({ status:'published' }).eq('id', id); loadQueue(); }
 async function retryPost(id){ await db.from('posts').update({ status:'queued', error:null }).eq('id', id); loadQueue(); }
-function escapeHtml(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function escapeHtml(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 /* ---------- embed snippet ---------- */
 function renderSnippet(){

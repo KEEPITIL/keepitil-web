@@ -1617,7 +1617,7 @@ function loadCategories(){
 }
 function renderCategories(){ var box=document.getElementById('pfCats'); if(!box)return;
   var L={artist:'Artist',brand:'Brand',organizer:'Organizer',venue:'Venue'};
-  box.innerHTML=(PROFILE.categories||[]).map(function(k){return '<span class="pf-catbadge '+esc(k)+'">'+esc(L[k]||k)+'</span>';}).join('');
+  box.innerHTML=(PROFILE.categories||[]).filter(function(k){return Object.prototype.hasOwnProperty.call(L,k);}).map(function(k){return '<span class="pf-catbadge '+esc(k)+'">'+esc(L[k])+'</span>';}).join('');
 }
 function updateOwnerUI(){
   ['pfDashWrap','pfEditPage'].forEach(function(id){ var e=document.getElementById(id); if(e)e.style.display=CAN_EDIT()?'':'none'; });

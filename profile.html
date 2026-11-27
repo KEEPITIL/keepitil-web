@@ -1617,7 +1617,7 @@ function loadCategories(){
 }
 function renderCategories(){ var box=document.getElementById('pfCats'); if(!box)return;
   var L={artist:'Artist',brand:'Brand',organizer:'Organizer',venue:'Venue'};
-  box.innerHTML=(PROFILE.categories||[]).map(function(k){return '<span class="pf-catbadge '+k+'">'+L[k]+'</span>';}).join('');
+  box.innerHTML=(PROFILE.categories||[]).map(function(k){return '<span class="pf-catbadge '+esc(k)+'">'+esc(L[k]||k)+'</span>';}).join('');
 }
 function updateOwnerUI(){
   ['pfDashWrap','pfEditPage'].forEach(function(id){ var e=document.getElementById(id); if(e)e.style.display=CAN_EDIT()?'':'none'; });
@@ -1985,13 +1985,13 @@ function cpPreview(){
   else{
     d.classList.add('has');
     d.innerHTML=(first.mtype==='video')
-      ? '<video class="cp-media" src="'+first.media+'" muted loop playsinline autoplay></video>'
-      : '<img class="cp-media" src="'+first.media+'" alt="">';
+      ? '<video class="cp-media" src="'+esc(first.media)+'" muted loop playsinline autoplay></video>'
+      : '<img class="cp-media" src="'+esc(first.media)+'" alt="">';
   }
   var th=document.getElementById('cpThumbs');
   if(th) th.innerHTML=CP.items.map(function(it,i){
-    var tb=(it.mtype==='video')?'<video src="'+it.media+'" muted style="width:64px;height:64px;object-fit:cover;border-radius:8px;display:block"></video>'
-                               :'<img src="'+it.media+'" style="width:64px;height:64px;object-fit:cover;border-radius:8px;display:block">';
+    var tb=(it.mtype==='video')?'<video src="'+esc(it.media)+'" muted style="width:64px;height:64px;object-fit:cover;border-radius:8px;display:block"></video>'
+                               :'<img src="'+esc(it.media)+'" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;display:block">';
     return '<span style="position:relative;display:inline-block">'+tb
       +'<button type="button" onclick="cpRemoveItem('+i+')" style="position:absolute;top:-6px;right:-6px;background:#ff6b6b;color:#fff;border:0;border-radius:50%;width:18px;height:18px;font-size:.7rem;cursor:pointer;line-height:1">✕</button>'
       +(i>0?'<button type="button" onclick="cpMoveItem('+i+',-1)" style="position:absolute;bottom:-6px;left:-6px;background:#15151f;color:#fff;border:1px solid var(--line);border-radius:50%;width:18px;height:18px;font-size:.7rem;cursor:pointer;line-height:1">◀</button>':'')

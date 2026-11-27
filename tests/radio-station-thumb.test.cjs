@@ -17,5 +17,5 @@ test('the two small-art setters use krSetThumb (lazy + onerror fallback to the o
   assert.match(src, /if\(pl\.art\)\{ krSetThumb\(art,pl\.art\); art\.hidden=false; \}/);
   assert.match(src, /if\(art\)\{ krSetThumb\(a,art\); a\.style\.visibility=''; \}/);
   assert.match(src, /img\.loading='lazy'; img\.decoding='async'; img\.onerror = \(t!==u\) \? function\(\)\{ img\.onerror=null; img\.src=u; \} : null; img\.src=t;/);
-  assert.match(src, /\+\(pl\.art\?'<img src="'\+pl\.art\+'" alt=""\/>'/, 'station list keeps the full art');
+  assert.match(src, /\+\(pl\.art\?'<img src="'\+String\(pl\.art\)\.replace\(\/&\/g,'&amp;'\)\.replace\(\/"\/g,'&quot;'\)\.replace\(\/<\/g,'&lt;'\)\+'" alt=""\/>'/, 'station list keeps the full art (escaped for the attribute)');
 });

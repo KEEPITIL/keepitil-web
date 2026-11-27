@@ -318,6 +318,7 @@
   <section class="esec" id="sec-feed"><div class="esec-h">Feed <span class="esub">— posts that tagged this event</span></div><div id="ev-feed"></div></section>
 </main>
 <footer>© 2026 KEEPITIL — OC · LA · San Diego events, artists &amp; culture. <a href="/">keepitil.com</a></footer>
+<script src="/assets/js/kil-img-fallback.js"></script>
 <script src="/assets/js/kil-rsvp.js"></script>
 <script src="/assets/js/kil-calendar.js"></script>
 <script src="/assets/js/vendor/qrcode.js"></script>
@@ -829,7 +830,7 @@
       var rows=(r&&r.data)||[]; if(!rows.length) return; var box=$('ev-lineup'); if(!box) return;
       box.innerHTML=rows.map(function(a){
         var ini=esc((a.artist_name||'?').charAt(0).toUpperCase());
-        var img=a.image_url?'<img class="im" src="'+esc(a.image_url)+'" alt="'+esc(a.artist_name)+'" onerror="this.outerHTML=&quot;<div class=\\&quot;ph\\&quot;>'+ini+'</div>&quot;">':'<div class="ph">'+ini+'</div>';
+        var img=a.image_url?'<img class="im" src="'+esc(a.image_url)+'" alt="'+esc(a.artist_name)+'" data-fb="ph" data-ini="'+ini+'">':'<div class="ph">'+ini+'</div>';
         var href=a.profile_slug?(/^(https?:|\/)/.test(a.profile_slug)?a.profile_slug:('/profile?slug='+encodeURIComponent(a.profile_slug))):'';
         var nm=href?('<a class="nm" href="'+esc(href)+'">'+esc(a.artist_name)+'</a><div class="lnk">View profile →</div>'):('<span class="nm">'+esc(a.artist_name)+'</span>');
         return '<div class="lcard">'+img+nm+'</div>';
@@ -839,7 +840,7 @@
     if(ev.show_gallery!==false)
     sb.rpc('get_event_media',{p_slug:slug,p_kind:'image',p_limit:10}).then(function(r){
       var rows=(r&&r.data)||[]; if(!rows.length) return; var box=$('ev-gallery'); if(!box) return;
-      box.innerHTML=rows.slice(0,10).map(function(m){ return '<div class="gcard2"><img src="'+esc(m.media_url)+'" alt="" onerror="this.parentNode.style.display=\'none\'"></div>'; }).join('');
+      box.innerHTML=rows.slice(0,10).map(function(m){ return '<div class="gcard2"><img src="'+esc(m.media_url)+'" alt="" data-fb="hide-parent"></div>'; }).join('');
       $('sec-gallery').style.display='';
     }).catch(function(){});
     sb.rpc('get_event_media',{p_slug:slug,p_kind:null,p_limit:30}).then(function(r){
@@ -853,7 +854,7 @@
         var when=timeAgo(m.created_at);
         var whoLink=m.author_handle?('<a href="/profile?slug='+esc(m.author_handle)+'">@'+who+'</a>'):('@'+who);
         var media='';
-        if(m.media_url && m.kind==='image') media='<div class="fp-media"><img src="'+esc(m.media_url)+'" alt="" loading="lazy" onerror="this.parentNode.style.display=\'none\'"></div>';
+        if(m.media_url && m.kind==='image') media='<div class="fp-media"><img src="'+esc(m.media_url)+'" alt="" loading="lazy" data-fb="hide-parent"></div>';
         else if(m.media_url && m.kind==='video') media='<div class="fp-media"><video src="'+esc(m.media_url)+'" controls preload="metadata"></video></div>';
         var body;
         if(kind==='blog'){ body='<div class="fp-title">'+esc(m.title||'Untitled')+'</div>'+(m.source_url?'<a class="fp-read" href="'+esc(m.source_url)+'" target="_blank" rel="noopener">Read →</a>':''); }

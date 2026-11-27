@@ -93,12 +93,6 @@ test('kbeats submit: the four forms are data-submit="kilNoSubmit" and the script
   const h = read('games/kbeats/submit/index.html'); assert.equal(count('games/kbeats/submit/index.html', /data-submit="kilNoSubmit"/g), 4);
   assert.ok(h.indexOf('/assets/js/kil-common-actions.js') < h.indexOf('type="module"'));
 });
-test('earn: the two playlist buttons carry their id as JSON; their targets are not defined anywhere, so they are deliberately NOT allowed (they did nothing before either)', () => {
-  const h = read('earn/index.html');
-  assert.match(h, /data-click="setDefaultPlaylist" data-a="'\+JSON\.stringify\(\[p\.id\]\)\.replace\(\/"\/g,'&quot;'\)\+'"/); assert.match(h, /data-click="rmPlaylist" data-a="'\+JSON\.stringify\(\[p\.id\]\)\.replace/);
-  assert.doesNotMatch(h, /function (setDefaultPlaylist|rmPlaylist)\(/); assert.doesNotMatch(h, /KilActions\.allow/);
-  for (const id of [5, 'x"y', '"><img src=x onerror=1>']) {   // ids are numeric today; a stray quote still cannot close the attribute
-    const v = JSON.stringify([id]).replace(/"/g, '&quot;'); assert.equal(v.includes('"'), false);
-    assert.deepEqual(JSON.parse(v.replace(/&quot;/g, '"')), [id]);
-  }
+test('earn: the two playlist buttons were removed (earn-dead-buttons): no handler attribute, no data-click for them', () => {
+  const h = read('earn/index.html'); assert.doesNotMatch(h.replace(/\/\*[\s\S]*?\*\//g, ''), /setDefaultPlaylist|rmPlaylist/);
 });

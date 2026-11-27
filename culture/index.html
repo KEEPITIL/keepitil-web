@@ -646,9 +646,9 @@ footer a{color:var(--purple)}
      count, and set() overwrites it with the REAL value the moment stats arrive.
      Do not put a number here. If the fetch fails the honest render is "no value
      yet", never "zero". -->
-    <div class="stat articles" role="button" tabindex="0" onclick="setCulContentType('article')"><b id="kA">&mdash;</b><span>Articles</span></div>
-    <div class="stat photos" role="button" tabindex="0" onclick="setCulContentType('create')"><b id="kP">&mdash;</b><span>Create</span></div>
-    <div class="stat videos" role="button" tabindex="0" onclick="setCulContentType('video')"><b id="kV">&mdash;</b><span>Videos</span></div>
+    <div class="stat articles" role="button" tabindex="0" data-click="setCulContentType" data-a="[&quot;article&quot;]"><b id="kA">&mdash;</b><span>Articles</span></div>
+    <div class="stat photos" role="button" tabindex="0" data-click="setCulContentType" data-a="[&quot;create&quot;]"><b id="kP">&mdash;</b><span>Create</span></div>
+    <div class="stat videos" role="button" tabindex="0" data-click="setCulContentType" data-a="[&quot;video&quot;]"><b id="kV">&mdash;</b><span>Videos</span></div>
   </div>
 </header>
 
@@ -658,15 +658,15 @@ footer a{color:var(--purple)}
   <section class="feedcol" tabindex="0" aria-label="Culture feed">
     <div class="feedhd">
       <a class="cul-add" id="cul-add" href="/profile?create=feed" aria-label="Create a feed post" title="Create a feed post" style="display:none">+</a>
-      <button class="cul-gear" id="cul-gear" style="display:none" aria-label="Feed settings" onclick="toggleCulGear(event)">&#9881;</button>
+      <button class="cul-gear" id="cul-gear" style="display:none" aria-label="Feed settings" data-click="toggleCulGear" data-a="[&quot;$e&quot;]" data-stop>&#9881;</button>
       <div class="cul-gear-menu" id="culGearMenu">
         <div class="gm-h">Type</div>
-        <button data-ct="all" class="on" onclick="setCulType('all')">All<small>Public feed from everyone · ranked</small></button>
-        <button data-ct="following" onclick="setCulType('following')">Following<small>Profiles you follow</small></button>
+        <button data-ct="all" class="on" data-click="setCulType" data-a="[&quot;all&quot;]">All<small>Public feed from everyone · ranked</small></button>
+        <button data-ct="following" data-click="setCulType" data-a="[&quot;following&quot;]">Following<small>Profiles you follow</small></button>
       </div>
       <h2 id="feedNow" style="font-family:var(--fs);font-weight:900;font-size:1.6rem;color:#fff">Feed</h2>
-      <div class="feeddd" id="feedDD"><button class="feeddd-btn" id="feedDDBtn" onclick="toggleFeedDD(event)">EXPLORE <span aria-hidden="true">&#9662;</span></button><div class="feeddd-menu" id="feedDDMenu"><button onclick="culSection('feed')">📰 Feed</button><button onclick="culSection('radio')">📻 Radio</button><button onclick="culSection('vs')">⚔️ VS</button><button onclick="culSection('givebacks')">💚 Givebacks</button></div></div>
-      <button class="cul-heart" id="cul-heart" style="display:none" aria-label="Notifications" title="Notifications" onclick="var b=document.querySelector('.kiln-bell'); if(b){b.click();}else{location.href='/apply';}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.9-9.3-9C1.2 8 3 4.5 6.4 4.5c2.2 0 3.6 1.2 4.4 2.6.2.4.9.4 1.1 0 .8-1.4 2.2-2.6 4.4-2.6 3.4 0 5.2 3.5 3.7 7-1.8 4.1-8 9-8 9z"/></svg></button>
+      <div class="feeddd" id="feedDD"><button class="feeddd-btn" id="feedDDBtn" data-click="toggleFeedDD" data-a="[&quot;$e&quot;]" data-stop>EXPLORE <span aria-hidden="true">&#9662;</span></button><div class="feeddd-menu" id="feedDDMenu"><button data-click="culSection" data-a="[&quot;feed&quot;]">📰 Feed</button><button data-click="culSection" data-a="[&quot;radio&quot;]">📻 Radio</button><button data-click="culSection" data-a="[&quot;vs&quot;]">⚔️ VS</button><button data-click="culSection" data-a="[&quot;givebacks&quot;]">💚 Givebacks</button></div></div>
+      <button class="cul-heart" id="cul-heart" style="display:none" aria-label="Notifications" title="Notifications" data-click="culBell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.9-9.3-9C1.2 8 3 4.5 6.4 4.5c2.2 0 3.6 1.2 4.4 2.6.2.4.9.4 1.1 0 .8-1.4 2.2-2.6 4.4-2.6 3.4 0 5.2 3.5 3.7 7-1.8 4.1-8 9-8 9z"/></svg></button>
     </div>
     <!-- CONTENT-TYPE FILTERS REMOVED 2026-08-18 (Founder).
          Both surfaces are gone: this mobile bar and the desktop #vrFilters rail were the SAME
@@ -686,9 +686,9 @@ footer a{color:var(--purple)}
          data-tp values are the culContentType vocabulary: article | image | video. The order
          matches the metric row above it; two lists in different orders read as unrelated. -->
     <div id="culTypeBar" role="tablist" aria-label="Culture feed">
-      <button type="button" role="tab" data-tp="article" onclick="setCulContentType('article')">Articles</button>
-      <button type="button" role="tab" data-tp="create"  onclick="setCulContentType('create')">Create</button>
-      <button type="button" role="tab" data-tp="video" class="on" aria-selected="true" onclick="setCulContentType('video')">Videos</button>
+      <button type="button" role="tab" data-tp="article" data-click="setCulContentType" data-a="[&quot;article&quot;]">Articles</button>
+      <button type="button" role="tab" data-tp="create"  data-click="setCulContentType" data-a="[&quot;create&quot;]">Create</button>
+      <button type="button" role="tab" data-tp="video" class="on" aria-selected="true" data-click="setCulContentType" data-a="[&quot;video&quot;]">Videos</button>
     </div>
     <div class="feed" id="community-feed" style="margin-bottom:12px"></div>
 
@@ -781,6 +781,7 @@ footer a{color:var(--purple)}
 </div></main>
 <footer>KEEPITIL <a href="/">keepitil.com</a> — Culture &amp; Community</footer>
 
+<script src="/assets/js/kil-actions.js?v=h1fe8e1c8"></script>
 <script>
 /* ── CULTURE DESKTOP BLOG FEED REMOVED 2026-08-26 (Founder) ─────────────────────────────
    It rendered 71 cards from a POSTS list whose articles do not exist: all 142 of its links
@@ -793,6 +794,9 @@ footer a{color:var(--purple)}
    KEPT: #feed and #feedNow. They are SHARED — culNav() and culSection() write section
    placeholders into them, so they were never the blog feed's to take. The mobile swipe feed
    (#community-feed) is untouched. */
+/* Delegated actions (assets/js/kil-actions.js): the markup carries data-click instead of inline handlers; only the names listed here can run. */
+function culBell(){ var b=document.querySelector('.kiln-bell'); if(b){ b.click(); } else { location.href='/apply'; } }
+if(window.KilActions) KilActions.allow(["__culCloseWall", "culBell", "culSection", "setCulContentType", "setCulType", "toggleCulGear", "toggleFeedDD"]);
 function toggleFeedDD(e){if(e){e.stopPropagation();}var m=document.getElementById('feedDDMenu');if(m)m.classList.toggle('open');}
 /* ── Culture EXPLORE dropdown: radio / battles / games / apps / services ── */
 function culNav(section){
@@ -3098,7 +3102,7 @@ function culResolveFilters(){
   function meAvatar(){var u=SES&&SES.user,m=(u&&u.user_metadata)||{};return m.avatar||m.avatar_url||'';}
   function closeWall(){var w=document.getElementById('kil-loginwall');if(w)w.remove();}
   window.__culCloseWall=closeWall;
-  function wall(){if(document.getElementById('kil-loginwall'))return true;var next=encodeURIComponent(location.pathname+location.search);var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kil-loginwall';ov.innerHTML='<div class="kil-modal" style="max-width:390px"><div class="kil-mh">Join KEEPITIL<button class="kil-mx" onclick="__culCloseWall()">&times;</button></div><div class="kil-mb" style="padding:26px 22px;text-align:center"><div style="font-size:2.5rem;margin-bottom:12px">&#128274;</div><p style="font-size:1rem;line-height:1.55;color:var(--ink,#e8e8f0);margin:0 0 20px">Create a free account to like, reshare and save. Anyone can look around &mdash; you just need to be signed in to join in.</p><a href="/apply?next='+next+'" class="kil-join-btn" style="padding:12px 28px">Log in / Join &rarr;</a></div></div>';document.body.appendChild(ov);ov.addEventListener('click',function(e){if(e.target===ov)closeWall();});return true;}
+  function wall(){if(document.getElementById('kil-loginwall'))return true;var next=encodeURIComponent(location.pathname+location.search);var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kil-loginwall';ov.innerHTML='<div class="kil-modal" style="max-width:390px"><div class="kil-mh">Join KEEPITIL<button class="kil-mx" data-click="__culCloseWall">&times;</button></div><div class="kil-mb" style="padding:26px 22px;text-align:center"><div style="font-size:2.5rem;margin-bottom:12px">&#128274;</div><p style="font-size:1rem;line-height:1.55;color:var(--ink,#e8e8f0);margin:0 0 20px">Create a free account to like, reshare and save. Anyone can look around &mdash; you just need to be signed in to join in.</p><a href="/apply?next='+next+'" class="kil-join-btn" style="padding:12px 28px">Log in / Join &rarr;</a></div></div>';document.body.appendChild(ov);ov.addEventListener('click',function(e){if(e.target===ov)closeWall();});return true;}
   function gate(){if(signedIn())return false;wall();return true;}
   function keyOf(x){ x=String(x); if(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x)) return x; return x.indexOf('cul:')===0?x:('cul:'+x); }
   function pst(k){return PST[k]||(PST[k]={likes:0,liked:false,resh:0,reshared:false,comments:0});}

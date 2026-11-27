@@ -1,0 +1,18 @@
+# 15A enable checklist (all gates are open; nothing below is done by this PR)
+
+1. **12A packs applied and verified on prod**, in the documented order, with Joe's relayed yes, the Sentinel pass and a backup. Until then the RPC's old behaviour (buyer e-mail returned, null-owner hole, `ok/result/message` shape differences) is live and this page must not be linked or used. The adapter drops contact keys either way, but the null-owner authorisation hole is a server fact.
+2. **Atlas's `checkin-scan-fix.md` Sentinel conditions: reviewed? NOT available to this job** (the file was not provided and is not in the repo). Whoever links the page must read those conditions first; this PR makes no claim to satisfy them.
+3. **Merge order**: #137 (12A) -> #138 (13A) -> #139 (14A) -> this PR. This branch is stacked on #139 and contains the adapter copy from #137 (parity-tested).
+4. **Deploy**: Pages must serve `/assets/js/kil-door-scan-adapter.mjs` with a JavaScript MIME type (verify after deploy; see TEST-PLAN). Tests, docs and `db/` are not published (`.github/pages-exclude.txt`); `door.html` and the two scripts are.
+5. **Link it** (separate change, not here): `dashboard.html:326` "Door scanner" `href="/dashboard"` -> `/door.html`, only for users who own an event. Do not add it to the nav, sitemap or any locked file.
+6. **Door roles beyond the owner handle: OPEN DECISION D2.** The RPC authorises only the event's `owner_handle` (no staff/delegate table). Volunteers at the door would have to sign in as the owner. A delegate model is a new server authorisation design, not a UI change.
+7. **Decoder for browsers without `BarcodeDetector`: OPEN DECISION D1.** No QR decoder library was added in this slice (no CDN, no vendored library). Chromium on Android and desktop Chrome have `BarcodeDetector`; iOS Safari is not expected to, so on an iPhone the page offers manual entry only. Options: vendor a small MIT decoder (jsQR/zxing-wasm) under `assets/js/vendor/` with a pinned hash and a licence note (needs approval), or require Android/Chrome door devices, or use the iPhone Camera app to read the QR as text and paste. Decide before promising "scan with an iPhone".
+8. **Native app**: needs the bundle/guard/permission changes in `NATIVE-APP-PATCH-SPEC.md` (separate PR in keepitil-app, under the re-scoped payments/commerce guard, plus a camera-permission string change that App Review sees).
+9. **Camera and the CSP/headers**: nothing in `_headers` blocks the camera; if Cloudflare adds a `Permissions-Policy` it must allow `camera=(self)` for this page.
+10. **Operational**: a short door-staff instruction (sign in first; keep screen on; what each state means). Retry-after-error is safe by contract (server answers `already_used`).
+
+## Privacy notes
+* No attendee contact (e-mail, handle, phone, buyer name, order id, Stripe ids, amounts) is ever shown. The 12A server already omits them; the adapter whitelist drops them if the server regresses; the renderer prints only event title, tier, quantity and the first-scan time; a test injects every such key and scans the whole DOM.
+* **Attendee names are opt-in and not implemented**: no column exists, so none is returned. If names are wanted later they need an explicit buyer opt-in, a server column, and an adapter + renderer change with a new no-contact test.
+* The scanned code is the ticket. It is never logged, put in a URL, history, storage or the DOM (the input is cleared on submit); the debounce keeps the last code in memory for 4 s only; error messages from the server are never forwarded (they could echo it). The page sets `Referrer-Policy: no-referrer`, `noindex`.
+* The Supabase client's own session storage is the site's existing mechanism and is not touched by this code.

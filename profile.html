@@ -2746,6 +2746,7 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
      bounces back. Kept deliberately plain: this is an error state, not a screen to design. */
   function pfStuck(title, body, actions){
     var w=document.createElement('div');
+    w.setAttribute('role','status');
     w.setAttribute('style','max-width:560px;margin:14vh auto;padding:26px 24px;border:1px solid rgba(0,255,136,.28);'
       +'border-radius:14px;background:rgba(10,12,11,.92);color:#e8ecf1;font:400 15px/1.55 Inter,system-ui,sans-serif;text-align:center');
     var h=document.createElement('h2');

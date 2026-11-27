@@ -3,8 +3,8 @@
  * Floating chat widget | keepitil.com
  * Self-contained, zero dependencies.
  */
-// Auto-load KEEPITIL Radio Bar on every page
-(function(){if(!window.__kilRadioInit){var s=document.createElement('script');s.src='/assets/js/keepitil-radio.js?v=20261124c';document.head.appendChild(s);}})();
+// Auto-load KEEPITIL Radio Bar on every page that does not already carry its own <script> tag (the tag is deferred, so __kilRadioInit is not set yet when this runs: without the DOM check the radio was fetched twice)
+(function(){if(!window.__kilRadioInit&&!document.querySelector('script[src*="keepitil-radio"]')){var s=document.createElement('script');s.src='/assets/js/keepitil-radio.js?v=20261124c';document.head.appendChild(s);}})();
 // Swap nav logo PNGs to extracted transparent X marks + resize (keepitil-radio.js handles this on load; this is a fallback)
 (function(){
   function swapNavLogos(){

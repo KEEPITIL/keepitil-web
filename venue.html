@@ -234,9 +234,11 @@ function venueNF(){
   if(window.KIL_NOT_FOUND) window.KIL_NOT_FOUND({ what:'venue', heading:'That venue isn’t here',
     body:'It may have been removed, or the link may be wrong.', into:'#loading',
     links:[['/','Explore events'],['/connect/','Connect'],['/submit-event','Submit an event']] });
-  else if(el) el.textContent='This venue is not available.';
+  else if(el){ el.textContent=''; var h=document.createElement('h1'); h.className='vh'; h.textContent='Venue'; el.appendChild(h); el.appendChild(document.createTextNode('This venue is not available.')); }   // keep the heading even without the shell
 }
 async function load(){
+  /* keepitil-shell.js is deferred and defines KIL_NOT_FOUND; running before DOMContentLoaded took the bare-text fallback below, which replaced the page's only h1 (axe page-has-heading-one on /venue). */
+  if(document.readyState==='loading') await new Promise(function(r){ document.addEventListener('DOMContentLoaded', r, {once:true}); });
   SLUG=new URLSearchParams(location.search).get('v')||new URLSearchParams(location.search).get('slug')||'';
   if(!SB||!SLUG){ venueNF(); return; }
   var r=null; try{ r=await SB.rpc('get_venue',{p_slug:SLUG}); }catch(e){ r=null; }

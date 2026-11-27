@@ -1,0 +1,182 @@
+PROPOSED HANDOFF PATCH v53 (not applied, not deployed): stripe-webhook money hardening. Unified diff against the EXACT deployed v52 source (md5 33840e79eebb15fbb5d8a2a02787e002; apply with `patch -p1` inside a directory holding that file as index.ts).
+Supersedes patches/stripe-webhook-payment-settled.PROPOSED.diff (its payment-settled gate and async handling are included here). Requires 14A-01 (v2 SQL functions) to be applied FIRST. Deploying it is a separate gate (Atlas + Sentinel + Joe).
+Behaviour: reconciles via fulfill_ticket_order_v2; refunds via refund_ticket_order_v2 using Stripe's own succeeded-refund total (partial / pending never revoke); disputes hold / restore / release; every DB failure answers 500 (retry); no QR token or buyer contact in any log.
+
+--- a/index.ts
++++ b/index.ts
+@@ -3,6 +3,10 @@
+ // v16 (KODE 2026-08-05): + VS competition entry fees. Branch order is remove_ads → vs_entry →
+ // event tickets; each returns early, so adding VS cannot change ticket behaviour.
+ //
++// v53 (PROPOSED, KODE 2026-11-11): money hardening for event tickets (Atlas 3-6, Sentinel S2-S4). Calls the v2 SQL functions (14A-01): server-side reconciliation of amount /
++// currency / tier / event, a Stripe-event ledger (replays are no-ops), atomic capacity, refund and dispute state that survives out-of-order delivery. Failures answer 500 so Stripe retries.
++// Nothing here logs a QR token or any buyer contact. wifi-remote (A) and VS (B) react to checkout.session.completed only, exactly as before.
++//
+ // Fulfilment for BOTH money paths is one atomic SQL function with index-enforced idempotency,
+ // so a Stripe retry can neither double-sell a ticket nor grant two competition entitlements.
+ import Stripe from "npm:stripe@16";
+@@ -42,11 +46,11 @@
+   }
+ 
+   try {
+-    if (event.type === "checkout.session.completed") {
++    if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
+       const session = event.data.object as Stripe.Checkout.Session;
+ 
+       // ── (A) wifi-remote licence — UNCHANGED ─────────────────────────────────
+-      if (session.metadata?.product === "remove_ads") {
++      if (event.type === "checkout.session.completed" && session.metadata?.product === "remove_ads") {
+         const supabase = admin();
+ 
+         let code = generateCode();
+@@ -76,7 +80,7 @@
+ 
+       // ── (B) VS COMPETITION ENTRY FEE ──────────────────────────────────────
+       // Grants an ENTITLEMENT only — the creator still submits and an admin still approves.
+-      if (session.metadata?.vs_entry_id) {
++      if (event.type === "checkout.session.completed" && session.metadata?.vs_entry_id) {
+         const supabase = admin();
+         const paymentIntentId =
+           typeof session.payment_intent === "string" ? session.payment_intent : null;
+@@ -107,9 +111,14 @@
+         return new Response("ok", { status: 200 });
+       }
+ 
+-      // ── (C) EVENT TICKETS — unchanged from v15 ───────────────────────────────
++      // ── (C) EVENT TICKETS ────────────────────────────────────────────────────
+       const eventId = session.metadata?.event_id;
+       if (eventId) {
++        // PAYMENT-SETTLED GATE: a ticket is fulfilled ONLY when the money has settled (payment_status "paid"). Delayed methods settle later via async_payment_succeeded (same branch).
++        if (session.payment_status !== "paid") {
++          console.log("ticket fulfilment skipped: payment not settled", session.id, String(session.payment_status), event.type);
++          return new Response("ok", { status: 200 });
++        }
+         let items: Array<{ t: number; q: number; u: number }> = [];
+         try {
+           items = JSON.parse(session.metadata?.items ?? "[]");
+@@ -123,7 +132,7 @@
+ 
+         let appFee: number | null = null;
+         let destination: string | null = null;
+-        let paymentIntentId: string | null =
++        const paymentIntentId: string | null =
+           typeof session.payment_intent === "string" ? session.payment_intent : null;
+         try {
+           if (paymentIntentId) {
+@@ -137,7 +146,8 @@
+         }
+ 
+         const supabase = admin();
+-        const { data, error } = await supabase.rpc("fulfill_ticket_order", {
++        const { data, error } = await supabase.rpc("fulfill_ticket_order_v2", {
++          p_stripe_event_id: event.id,
+           p_session_id: session.id,
+           p_payment_intent: paymentIntentId,
+           p_event_id: Number(eventId),
+@@ -145,34 +155,89 @@
+           p_buyer_email: session.customer_details?.email ?? session.customer_email ?? null,
+           p_app_fee_cents: appFee,
+           p_organizer_acct: destination,
++          p_amount_total: session.amount_total ?? null,
++          p_currency: session.currency ?? null,
+         });
+-
+         if (error) {
+-          console.error("fulfill_ticket_order failed", error.message, session.id);
++          console.error("fulfill_ticket_order_v2 failed", error.message, session.id);
+           return new Response(`fulfilment failed: ${error.message}`, { status: 500 });
+         }
+-        console.log("ticket fulfilment", JSON.stringify(data));
++        // counts only: never a QR token, never a buyer contact, in any log
++        console.log("ticket fulfilment", JSON.stringify({
++          ok: data?.ok, duplicate: !!data?.duplicate, inserted: data?.inserted ?? 0, skipped_duplicate: data?.skipped_duplicate ?? 0,
++          oversold_lines: data?.oversold_lines ?? 0, blocked: !!data?.blocked, rejected: data?.rejected ?? null,
++        }));
++        if (data?.rejected) {
++          // the payment does not match our server-side price / event / currency: nothing is issued, retrying cannot help, a human must review (the ledger row records why)
++          console.error("ticket fulfilment REJECTED, needs review:", data.rejected, session.id);
++          return new Response("ok", { status: 200 });
++        }
++        if (data?.oversold_lines && data?.oversold_cents && paymentIntentId) {
++          // capacity was exhausted by concurrent buyers: the overflow lines were NOT issued; refund exactly their price. Idempotent per session; a failure answers 500 and the retry repeats it.
++          try {
++            await stripe.refunds.create({ payment_intent: paymentIntentId, amount: Number(data.oversold_cents), reason: "requested_by_customer", metadata: { kil_reason: "oversold" } }, { idempotencyKey: `kil-oversold-${session.id}` });
++          } catch (e) {
++            console.error("oversold refund failed", String(e), session.id);
++            return new Response(`oversold refund failed: ${String(e)}`, { status: 500 });
++          }
++        }
+       }
+     }
+ 
+-    // ── (D) REFUNDS — tickets release inventory; VS entries lose their entitlement ────
++    // ── (C2) a delayed payment failed: nothing was fulfilled, nothing to undo ─────
++    if (event.type === "checkout.session.async_payment_failed") {
++      const failed = event.data.object as Stripe.Checkout.Session;
++      console.log("async payment failed, no fulfilment", failed.id);
++      return new Response("ok", { status: 200 });
++    }
++
++    // ── (D) REFUNDS ─────────────────────────────────────────────────────────────
++    // charge.refunded carries a Charge; charge.refund.updated carries a Refund. Either way the decision comes from Stripe's own record: the sum of SUCCEEDED refunds of the charge.
++    // Full = succeeded refunds cover the whole charge. A partial or still-pending refund only RECORDS; it never revokes the order. Any failure answers 500 so Stripe retries.
+     if (event.type === "charge.refunded" || event.type === "charge.refund.updated") {
+-      const charge = event.data.object as Stripe.Charge;
+-      const pi = typeof charge.payment_intent === "string" ? charge.payment_intent : null;
+-      if (pi) {
++      const obj = event.data.object as any;
++      const chargeId: string | null = event.type === "charge.refunded" ? (obj.id ?? null) : (typeof obj.charge === "string" ? obj.charge : null);
++      const pi: string | null = typeof obj.payment_intent === "string" ? obj.payment_intent : null;
++      if (pi && chargeId) {
++        const charge = await stripe.charges.retrieve(chargeId);
++        const list = await stripe.refunds.list({ charge: chargeId, limit: 100 });
++        if (list.has_more) throw new Error("refund list truncated: cannot decide full vs partial");
++        const refundedCents = list.data.filter((r: any) => r.status === "succeeded").reduce((a: number, r: any) => a + Number(r.amount || 0), 0);
++        const full = Number(charge.amount) > 0 && refundedCents >= Number(charge.amount);
+         const supabase = admin();
+-        // both are no-ops when the payment intent is not theirs, so order does not matter
+-        const { data: t, error: te } = await supabase.rpc("refund_ticket_order", {
+-          p_session_id: null, p_payment_intent: pi,
++        const { data: t, error: te } = await supabase.rpc("refund_ticket_order_v2", {
++          p_stripe_event_id: event.id, p_session_id: null, p_payment_intent: pi, p_full: full, p_refunded_cents: refundedCents,
+         });
+-        if (te) console.error("refund_ticket_order failed", te.message, pi);
+-        else console.log("ticket refund", JSON.stringify(t));
++        if (te) {
++          console.error("refund_ticket_order_v2 failed", te.message, pi);
++          return new Response(`refund failed: ${te.message}`, { status: 500 });
++        }
++        console.log("ticket refund", JSON.stringify({ ok: t?.ok, duplicate: !!t?.duplicate, partial: !!t?.partial, revoked: t?.revoked ?? 0 }));
++        if (full) {
++          // VS entry fees: same gate, and a failure is now a retry instead of a silent log line
++          const { data: v, error: ve } = await supabase.rpc("vs_refund_entry_payment", { p_session_id: null, p_payment_intent: pi });
++          if (ve) {
++            console.error("vs_refund_entry_payment failed", ve.message, pi);
++            return new Response(`vs refund failed: ${ve.message}`, { status: 500 });
++          }
++          console.log("vs refund", JSON.stringify(v));
++        }
++      }
++    }
+ 
+-        const { data: v, error: ve } = await supabase.rpc("vs_refund_entry_payment", {
+-          p_session_id: null, p_payment_intent: pi,
+-        });
+-        if (ve) console.error("vs_refund_entry_payment failed", ve.message, pi);
+-        else console.log("vs refund", JSON.stringify(v));
++    // ── (E) DISPUTES: an opened dispute holds the ticket (the door refuses it); won restores it; lost releases the seat ─────
++    if (event.type === "charge.dispute.created" || event.type === "charge.dispute.closed") {
++      const d = event.data.object as any;
++      const pi: string | null = typeof d.payment_intent === "string" ? d.payment_intent : null;
++      const phase = event.type === "charge.dispute.created" ? "created" : (d.status === "lost" ? "lost" : "won");   // won | warning_closed -> restore
++      if (pi) {
++        const supabase = admin();
++        const { data, error } = await supabase.rpc("dispute_ticket_order", { p_stripe_event_id: event.id, p_payment_intent: pi, p_phase: phase });
++        if (error) {
++          console.error("dispute_ticket_order failed", error.message, pi);
++          return new Response(`dispute handling failed: ${error.message}`, { status: 500 });
++        }
++        console.log("ticket dispute", JSON.stringify({ phase, ok: data?.ok, duplicate: !!data?.duplicate, orders: data?.orders ?? 0 }));
+       }
+     }
+   } catch (e) {

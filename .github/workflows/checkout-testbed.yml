@@ -1,0 +1,104 @@
+name: checkout testbed (real PostgreSQL, simulated Stripe)
+
+# Runs the checkout-testbed unit tests AND every scenario (40 + 40 patched-webhook + 10 settled + the money-hardening proofs) against a REAL PostgreSQL 17 service
+# container on the runner's own loopback. contents: read, no secrets, no deploy, no hosted database, no real Stripe (the fake Stripe is in-process on 127.0.0.1).
+# A missing Postgres FAILS the job. Separate from node-tests.yml (assets/js tests only).
+
+on:
+  pull_request:
+    paths:
+      - "scripts/checkout-testbed/**"
+      - "docs/money-build/checkout-testbed/**"
+      - ".github/workflows/checkout-testbed.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checkout-testbed-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testbed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: pgadmin
+          POSTGRES_DB: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pgadmin -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: pgadmin
+      PGDATABASE: postgres
+      KIL_PG_NODE_MODULES: ${{ github.workspace }}/scripts/checkout-testbed/_ci
+      NODE_OPTIONS: --experimental-strip-types --no-warnings
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Wait for PostgreSQL (fails if not ready; never a skip)
+        run: |
+          set -euo pipefail
+          command -v pg_isready >/dev/null 2>&1 || { sudo apt-get update -qq; sudo apt-get install -y -qq postgresql-client; }
+          for i in $(seq 1 30); do pg_isready -h localhost -p 5432 -U pgadmin -d postgres && exit 0; sleep 2; done
+          echo "::error::PostgreSQL service not ready after 60 s"; exit 1
+
+      - name: Install the pinned node-postgres (lockfile, no scripts)
+        working-directory: scripts/checkout-testbed/_ci
+        run: npm ci --ignore-scripts
+
+      - name: Unit tests (guards, local-only host, prod-ref refusal, redactor, QR decode)
+        run: node --test scripts/checkout-testbed/tests/*.test.mjs
+
+      - name: Tools the launcher test needs (zsh, bc, lsof)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq zsh bc lsof
+
+      - name: Launcher never touches a Postgres it did not start (ownership test, no database)
+        run: bash scripts/checkout-testbed/tests/launcher-ownership.sh
+
+      - name: Scenarios on real PostgreSQL (each must pass in full, with a minimum count)
+        run: |
+          set -euo pipefail
+          T=scripts/checkout-testbed
+          run() { name="$1"; file="$2"; min="$3"; res="$4"; shift 4
+            echo "=== $name"; mkdir -p "out-$name"
+            env KIL_OUT="$PWD/out-$name" "$@" node "$T/$file"
+            node -e 'const r=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); console.log(process.argv[2],r.pass+"/"+r.total); if(r.aborted||r.pass!==r.total||r.total<Number(process.argv[3])){console.error("below required count or failures");process.exit(1)}' "out-$name/$res" "$name" "$min"
+          }
+          run scenario scenario.mjs 40 results.json
+          run scenario-patched scenario.mjs 40 results.json KIL_PATCHED_WEBHOOK=1
+          run settled scenario-settled.mjs 10 results-settled.json
+          run money scenario-money.mjs 27 results-money.json
+
+      - name: No artifact contains a QR token or a synthetic contact value
+        run: |
+          set -euo pipefail
+          if grep -R -n -E "[A-Za-z0-9._%+-]+@example\.test|KIL-[0-9A-Za-z]{8,}" out-* ; then echo "::error::a log or result file contains a contact or token value"; exit 1; fi
+          echo "clean"
+
+      - name: Scenarios left no databases or stand-in roles behind
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            import { createRequire } from "node:module";
+            const pg = createRequire(process.env.KIL_PG_NODE_MODULES + "/x.js")("pg");
+            const c = new pg.Client({ host: process.env.PGHOST, port: Number(process.env.PGPORT), user: process.env.PGUSER, database: process.env.PGDATABASE });
+            await c.connect();
+            const dbs = (await c.query("select datname from pg_database where datname like $1", ["kil_rehearsal_%"])).rows.length;
+            const roles = (await c.query("select rolname from pg_roles where rolname = any($1)", [["postgres", "authenticator", "anon", "authenticated", "service_role"]])).rows.length;
+            await c.end(); console.log("leftover databases=" + dbs + " leftover roles=" + roles); if (dbs || roles) process.exit(1);
+          '

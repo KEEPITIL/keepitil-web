@@ -876,8 +876,7 @@ window.__pfGate=(function(){
 <script src="/assets/js/vendor/purify.min.js?v=20261107b"></script>
 <script src="/assets/js/kil-safe-html.js?v=20261107b"></script>
 <!-- Nudity / explicit-content moderation for image uploads (in-browser, no keys) -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/nsfwjs@3.0.0/dist/nsfwjs.min.js" defer></script>
+<!-- tf.js + nsfwjs (~560 KB) are only needed to screen UPLOADS (signed-in editors): loadNsfwLibs() fetches them on demand / after sign-in. -->
 <script>
 function toggleMenu(){var m=document.getElementById('mobile-menu');if(m)m.classList.toggle('open');}
 /* OWNER (subscriber, can edit/add) vs PUBLIC (customer-facing, read-only) */
@@ -1395,11 +1394,20 @@ function publish(kind,data){
    Fails OPEN (allows) only if the model can't load, so uploads never hard-break;
    server-side moderation is the recommended hardening layer on top of this. */
 var _nsfwModel=null, _nsfwLoading=null;
+var _nsfwLibs=null;
+function loadNsfwLibs(){
+  if(_nsfwLibs) return _nsfwLibs;
+  function add(src){ return new Promise(function(res,rej){ var sc=document.createElement('script'); sc.src=src; sc.onload=res; sc.onerror=rej; document.head.appendChild(sc); }); }
+  _nsfwLibs = add('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js').then(function(){ return add('https://cdn.jsdelivr.net/npm/nsfwjs@3.0.0/dist/nsfwjs.min.js'); }).catch(function(){ return null; });
+  return _nsfwLibs;
+}
 function getNsfwModel(){
   if(_nsfwModel) return Promise.resolve(_nsfwModel);
   if(_nsfwLoading) return _nsfwLoading;
-  if(typeof nsfwjs==='undefined') return Promise.resolve(null);
-  _nsfwLoading = nsfwjs.load().then(function(m){ _nsfwModel=m; return m; }).catch(function(){ return null; });
+  _nsfwLoading = loadNsfwLibs().then(function(){
+    if(typeof nsfwjs==='undefined') return null;
+    return nsfwjs.load().then(function(m){ _nsfwModel=m; return m; });
+  }).catch(function(){ return null; });
   return _nsfwLoading;
 }
 function isImageSafe(file){
@@ -2838,8 +2846,8 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
     if(SB){ resolveMyProfile(); }
     else { location.replace('/apply'); }
   } else if(SB){
-    SB.auth.getSession().then(function(r){ SESSION=(r&&r.data)?r.data.session:null; return checkOwnership(); }).then(function(){ updateOwnerUI(); try{applyProfileTabs();}catch(e){} loadProfileMeta(); loadFromDB(); loadFollow(); loadCollab(); loadMyTickets(); loadMyEvents(); }).catch(function(){ loadProfileMeta(); loadFromDB(); loadFollow(); loadMyEvents(); });
-    SB.auth.onAuthStateChange(function(_e,s){ SESSION=s; checkOwnership().then(function(){ updateOwnerUI(); try{applyProfileTabs();}catch(e){} loadFromDB(); loadFollow(); loadCollab(); loadMyTickets(); loadMyEvents(); }); });
+    SB.auth.getSession().then(function(r){ SESSION=(r&&r.data)?r.data.session:null; if(SESSION) getNsfwModel(); return checkOwnership(); }).then(function(){ updateOwnerUI(); try{applyProfileTabs();}catch(e){} loadProfileMeta(); loadFromDB(); loadFollow(); loadCollab(); loadMyTickets(); loadMyEvents(); }).catch(function(){ loadProfileMeta(); loadFromDB(); loadFollow(); loadMyEvents(); });
+    SB.auth.onAuthStateChange(function(_e,s){ SESSION=s; if(s) getNsfwModel(); checkOwnership().then(function(){ updateOwnerUI(); try{applyProfileTabs();}catch(e){} loadFromDB(); loadFollow(); loadCollab(); loadMyTickets(); loadMyEvents(); }); });
   } else { loadProfileMeta(); loadFromDB(); }
 })();
 </script>

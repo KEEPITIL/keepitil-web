@@ -4,7 +4,7 @@ html{background:#0a0a0f}
 body{background:var(--bg,#0a0a0f);color:var(--text,#f0f0f0);font-family:Inter,system-ui,sans-serif;line-height:1.5;padding-top:env(safe-area-inset-top);padding-bottom:calc(110px + env(safe-area-inset-bottom))}
 .disc{max-width:1152px;margin:0 auto;padding:22px 16px 28px;width:100%;box-sizing:border-box}
 .disc-crumbs{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:.78rem;color:var(--muted,#9aa7b4);margin:0 0 16px}
-.disc-crumbs a{color:var(--brand-2,#5cc8ff);text-decoration:none}
+.disc-crumbs a{color:var(--brand-2,#5cc8ff);text-decoration:none;display:inline-flex;align-items:center;min-height:24px}
 .disc-crumbs a:hover{text-decoration:underline}
 .disc-sub{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 0 18px;padding-bottom:2px}
 .disc-sub::-webkit-scrollbar{display:none}
@@ -55,8 +55,8 @@ body{background:var(--bg,#0a0a0f);color:var(--text,#f0f0f0);font-family:Inter,sy
 .disc-tag{align-self:flex-start;font-size:.62rem;font-weight:800;letter-spacing:.12em;color:var(--live,#00ff88)}
 .disc-disclosure{margin:14px 0 0;color:#9aa7b4;font-size:.8rem;line-height:1.45;max-width:72ch}
 .disc-links{margin-top:28px}
-.disc-links ul,.disc-scene ul{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
-.disc-links a,.disc-scene a{color:var(--brand-2,#5cc8ff);text-decoration:none}
+.disc-links ul,.disc-scene ul{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+.disc-links a,.disc-scene a{color:var(--brand-2,#5cc8ff);text-decoration:none;display:inline-block;min-height:24px;padding:2px 0;box-sizing:border-box}   /* 24px tap targets (live sweep: 20px city links); gap 8->4 keeps the list rhythm */
 .disc-links a:hover,.disc-scene a:hover{text-decoration:underline}
 .disc-scene{margin-top:22px}
 .disc :focus-visible{outline:2px solid var(--live,#00ff88);outline-offset:3px}

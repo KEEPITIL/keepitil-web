@@ -41,7 +41,6 @@
     ['cancer-awareness','Cancer Awareness Month', D(10,1), D(10,31), 2],
     ['veterans-day','Veterans Day', D(11,10), D(11,11), 6],
     ['thanksgiving','Thanksgiving', win(nth(Y,10,4,4),2), nth(Y,10,4,4), 6],
-    ['black-friday','Black Friday', new Date(nth(Y,10,4,4).getTime()+864e5), new Date(nth(Y,10,4,4).getTime()+864e5), 7],
     ['christmas','Christmas', D(12,18), D(12,26), 6],
     ['new-years-eve','New Year’s Eve', D(12,30), D(12,31), 7],
     // year-round AMBIENT backdrops (priority 1 — every holiday above overrides them) so the site
@@ -76,7 +75,7 @@
     'memorial-day':'205,214,255','fathers-day':'159,208,216','independence-day':'207,224,255','summer-finale':'255,176,122',
     'labor-day':'207,224,255','patriot-day':'188,208,255','oktoberfest':'255,207,107','halloween':'255,154,77',
     'down-syndrome-awareness':'255,213,74','cancer-awareness':'255,154,192','veterans-day':'205,214,255',
-    'thanksgiving':'240,164,90','black-friday':'208,160,255','christmas':'127,224,160','new-years-eve':'255,217,122',
+    'thanksgiving':'240,164,90','christmas':'127,224,160','new-years-eve':'255,217,122',
     'default':'127,208,255'};
   function setTint(slug){ var rgb=ACCENT[slug]||'127,208,255';
     try{ var r=document.documentElement.style; r.setProperty('--kil-season-tint','rgb('+rgb+')'); r.setProperty('--kil-season-tint-rgb',rgb); }catch(e){} }

@@ -48,6 +48,9 @@ input::placeholder{color:var(--muted);opacity:1}
 /* Keyboard focus: one clear ring everywhere (links, buttons, fields, result cards, filter chips) */
 a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,main:focus-visible{outline:3px solid var(--green);outline-offset:2px}
 main:focus{outline:none}
+/* CLS (1.0 baseline 2026-11-23): pages draw their content with JavaScript, so the footer used to jump when the list/text arrived (CLS 0.17-0.43).
+   Reserve a full screen for <main> so the footer starts below the fold and never moves (the footer text is also written into the HTML, so it does not change size when script fills it). */
+main.wrap{min-height:100vh}
 .chip input:focus-visible{outline:none}
 .chip:has(input:focus-visible){outline:3px solid var(--green);outline-offset:2px}
 .filters{border:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -110,6 +113,7 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 /* Listing page */
 .detail .name{font-size:32px;line-height:1.15;text-wrap:balance}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px}
+.license-check{color:var(--green);font-weight:700}
 .card h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
 .mono{font-family:ui-monospace,Consolas,monospace;font-size:17px}
 .hours{border-collapse:collapse;width:100%;max-width:340px}
@@ -189,6 +193,7 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .tile{flex:none}
 .tile-in{display:block;color:var(--text);text-decoration:none;font-weight:700;font-size:14px}
 .tile img{display:block;width:100%;height:100%;object-fit:cover;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.tile-license{display:block;font-size:.8em;opacity:.8}
 .tile-label{display:block;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ads .tile{width:min(320px,80vw)}
 .ads .tile img{aspect-ratio:16/9;height:auto}
@@ -209,6 +214,7 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .map-svg .dot.sel .pin{fill:var(--band-accent);stroke:var(--text);stroke-width:3}
 .rail h2{font-size:17px;margin:4px 0 10px;background:var(--section);color:var(--on-section);border:1px solid var(--section-edge);border-radius:10px;padding:7px 12px;letter-spacing:.01em}
 .rail+.rail{margin-top:22px}
+.rail h2.sr{margin:-1px;padding:0;border:0;background:none}   /* the hidden heading above the cards stays hidden (the .rail h2 block style must not apply) */
 /* the listing card: the same fixed size everywhere. 1:1 tile (114px) + six 19px lines (114px): text never taller than the tile */
 .listings{grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr))}
 .shop{position:relative}
@@ -218,11 +224,18 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .lines{display:block;min-width:0;height:114px;overflow:hidden}
 .ln{display:block;height:19px;line-height:19px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
 .listing h3.ln-name{font-size:16px;font-weight:800;color:var(--text);padding-right:40px}
+.lines-5{display:flex;flex-direction:column;justify-content:space-between}
+.ln-none{display:none}   /* the hours slot when there is no hours data: kept in the DOM, not shown */
 .ln-lic{font-family:ui-monospace,Consolas,monospace;font-size:13px;color:var(--text)}
+.ln-strip{font-size:12px;color:var(--muted)}
+.license-strip{font-weight:600;margin:4px 0}
 .ln-lic .ck{width:16px;height:16px;stroke:var(--green);stroke-width:3;vertical-align:-3px;margin-right:4px}
 .pin-btn{position:absolute;top:4px;right:4px;width:40px;height:40px;min-height:40px;border-color:var(--line)}
 .pin-btn .ico{width:20px;height:20px}
 .foot .biz{margin-top:4px}
+.foot .report-seller{margin-top:4px}
+.foot .report-seller a{color:var(--band-accent);font-weight:700;display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
+.foot .report-seller span{display:block}
 .foot .biz a{color:var(--band-accent);display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
 @media(max-width:767px){
   /* phone (joe-0045): FOUR locked rows, pinned while the cards scroll beneath them: 1 the header (a fixed 64px row + its
@@ -232,6 +245,8 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
   body[data-page=search] .top,body[data-page=results] .top{position:sticky;top:0;z-index:40}
   body[data-page=search] .top-in,body[data-page=results] .top-in{height:64px;padding-top:0;padding-bottom:0}
   .lockrows{position:sticky;top:var(--lock-top);z-index:30;background:var(--bg);margin:-14px -16px 0;padding:8px 16px;border-bottom:1px solid var(--line)}
+  /* WCAG 2.4.11 (focus not obscured): keyboard focus / scroll-into-view must land BELOW the sticky stack (header 68px + the locked rows ~175px), e.g. "Show more" and a new first card */
+  html:has(body[data-page=search]),html:has(body[data-page=results]){scroll-padding-top:252px}
   .lockrows .filterbar{padding:8px 0 0}
   .lockrows .viewtoggle{margin-top:8px}
   /* row 3: List (default) shows the cards, Map shows the map in their place; never both */
@@ -271,6 +286,7 @@ select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--
 .menu-panel[hidden]{display:none}
 .menu-page{position:static;width:auto;max-width:560px;max-height:none;margin:14px 16px 24px max(16px,calc((100% - 1280px) / 2 + 16px));padding:14px;animation:fmw-slide .2s ease-out}
 body.menu-open #home{display:none}
+body.menu-open main.wrap{display:none}
 @keyframes fmw-slide{from{transform:translateX(-28px);opacity:0}to{transform:none;opacity:1}}
 @media(prefers-reduced-motion:reduce){.menu-page{animation:none}}
 .menu-acct{display:flex;gap:10px}
@@ -293,6 +309,9 @@ a.menu-link:hover{background:var(--tint);color:var(--text)}
 .bar .menu{margin-left:auto}
 
 
+/* the text-only "License verified" line on the listing page's license card (SEO 1.0 cut) */
+.verified-badge{display:inline-block;margin:6px 0;padding:4px 10px;border:1px solid var(--green);border-radius:999px;color:var(--green);font-weight:700;font-size:14px;text-decoration:none}
+.verified-badge:before{content:"\2713 "}
 /* Sign up / sign in (signup.html; front end only, inert unless site.json "accounts" is true). Tokens only, everything bordered,
    no pop-ups. Text pairs used here (checked in both themes by tests/signup.test.js): text / muted on card and bg, on-section on
    section, closed on closed-bg, text on tint, btn-text on btn-bg. */
@@ -327,3 +346,34 @@ a.menu-link:hover{background:var(--tint);color:var(--text)}
 .signup .state{margin:0}
 .signup .state h2{margin:0;font-size:17px}
 @media(min-width:720px){.choices{grid-template-columns:1fr 1fr}}
+
+
+/* paged list: the "Show N more" row, and the label on a real paid placement */
+.listings li.more{grid-column:1/-1;display:flex;align-items:center;gap:12px;justify-content:center;padding:8px 0;list-style:none}
+.sponsored-tag{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.band-fill{width:100%;height:100%}   /* the header band's pattern fill (a CSS size, so no percent literal sits in the page source) */
+
+/* HOME v2 look (layout patterns only): swipe carousels with snap, a "See all" link on the row title, an "Ad" label on ad tiles */
+.hscroll{scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.hscroll .tile{scroll-snap-align:start}
+.hrow{position:relative}
+.hrow .seeall{position:absolute;top:2px;right:0;font-size:14px;font-weight:700;text-decoration:none;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card)}
+.hrow .seeall::after{content:" \203A"}
+.ads .tile-in{position:relative}
+.ad-tag{position:absolute;top:6px;right:6px;font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--card);color:var(--text);border:1px solid var(--line)}
+.hrow.has-seeall h2{padding-right:104px}
+/* legal pages: the effective-date slot is hidden until the swap; once shown, the DRAFT banner goes (one-line swap in terms.html / privacy.html) */
+.effective{color:var(--muted);font-size:14px;margin:6px 0 12px}
+main:has(.effective:not([hidden])) .state.info{display:none}
+.checklist{list-style:none;padding:0;margin:0}.checklist>li{margin:10px 0}.prime-criteria{margin:6px 0 6px 18px;padding:0}
+
+/* the invite card in an empty Ads / Deals home row: a plain box for businesses, clearly not an ad or a deal */
+.tile.invite{width:min(320px,80vw)}
+.tile.invite .tile-in.invite-in{display:flex;flex-direction:column;gap:4px;padding:14px;border:1px dashed var(--line);border-radius:12px;background:var(--card);min-height:96px;white-space:normal}
+.invite-tag{font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.invite-title{font-size:15px;font-weight:800}
+.invite-body{font-size:.85rem;font-weight:400;opacity:.9;line-height:1.4}
+.directions{margin-top:10px}
+.hours-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:8px 0}
+.hours-row label:first-of-type{min-width:9.5em}
+.hours-note{margin-top:8px}

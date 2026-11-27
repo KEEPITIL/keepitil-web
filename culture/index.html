@@ -14,18 +14,22 @@
     }
   }, {passive:true});
 })();</script>
-<link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content"/>
+<link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content"/>
 <meta name="description" content="CULTURE on KEEPITIL — original stories, media and the community feed from the people making culture."/>
 <title>CULTURE — Stories, Media & Community Feed | KEEPITIL</title>
 <link rel="canonical" href="https://keepitil.com/culture/"/>
 <!-- The player is a YouTube iframe; opening those connections during page load rather
      than at first swipe removes a DNS+TLS round trip from the moment of playback. -->
-<link rel="preconnect" href="https://www.youtube.com" crossorigin/>
-<link rel="preconnect" href="https://i.ytimg.com" crossorigin/>
+<script>/* Warm the video connection only for visitors who did NOT send Global Privacy Control / Do Not Track (those get click-to-load and no early contact with Google). Same check as keepitil-shell.js (__kilOptedOut). */
+(function(){var o=false;try{o=navigator.globalPrivacyControl===true||navigator.doNotTrack==='1'||navigator.doNotTrack==='yes'||window.doNotTrack==='1'||navigator.msDoNotTrack==='1';}catch(e){}
+if(!o){['https://www.youtube-nocookie.com','https://i.ytimg.com'].forEach(function(h){var l=document.createElement('link');l.rel='preconnect';l.href=h;l.crossOrigin='';document.head.appendChild(l);});}
+window.KIL_GPC=o;
+/* GPC / DNT visitors: a video card's thumbnail is YouTube's own picture (i.ytimg.com), i.e. a request to Google for every card. Until they tap play they get our own default picture instead. */
+window.kilVideoThumb=function(u){ try{ if(window.KIL_GPC && u){ var h=new window.URL(u,location.href).hostname; if(/(^|\.)(ytimg|youtube|youtube-nocookie|ggpht|googleusercontent)\.com$/i.test(h)) return ''; } }catch(e){} return u; };})();</script>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-purple-nav.png"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&display=swap" rel="stylesheet"/>
+<link href="/assets/css/fonts.css" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--panel:rgba(255,255,255,.035);--brd:rgba(255,255,255,.09);--ink:#f4f2fb;--ink2:#9a94b4;--ink3:#6b6588;--purple:var(--purple-2);--fh:'Bebas Neue',sans-serif;--fb:'Inter',sans-serif;--fs:'Fraunces',serif}
@@ -93,6 +97,7 @@ html.has-season body::before{display:none!important} /* seasonal image takes ove
 .hero::before{content:"";position:absolute;top:-160px;left:-120px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(168,85,247,.32),transparent 62%);filter:blur(20px);z-index:-1;}
 .hero::after{content:"";position:absolute;top:-90px;right:-120px;width:460px;height:460px;border-radius:50%;background:radial-gradient(circle,rgba(192,132,252,.20),transparent 62%);filter:blur(20px);z-index:-1;}
 .hero-head{width:max-content;max-width:100%;}
+.kil-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 /* CULTURE is neon purple — the page theme (Founder 2026-08-24). CONNECT is green, so the
    gradient stops are the only thing that differs between the two heroes. */
 .hero h1{font-family:var(--fh);font-size:clamp(3.6rem,13vw,8rem);line-height:.88;letter-spacing:.02em;filter:drop-shadow(0 4px 26px rgba(0,0,0,.7));background:linear-gradient(120deg,#EBD9FF 12%,#C084FC 48%,#A855F7);-webkit-background-clip:text;background-clip:text;color:transparent;}
@@ -625,7 +630,7 @@ footer a{color:var(--purple)}
      (Founder 2026-08-24). Purple is Culture's theme colour. -->
 <header class="hero">
   <div class="hero-head">
-    <h1>CULTURE</h1>
+    <h1 aria-hidden="true">CULTURE</h1>
   </div>
   <!-- Order mirrors the filter row exactly: article, create, video. Metrics that list in a
        different order than the filters beneath them read as two unrelated lists. -->
@@ -646,9 +651,10 @@ footer a{color:var(--purple)}
   </div>
 </header>
 
-<div class="wrap"><div class="merge">
+<main class="wrap">
+  <h1 class="kil-sr-only">CULTURE: stories, media and community</h1><div class="merge">
   <!-- LEFT: live feed -->
-  <section class="feedcol">
+  <section class="feedcol" tabindex="0" aria-label="Culture feed">
     <div class="feedhd">
       <a class="cul-add" id="cul-add" href="/profile?create=feed" aria-label="Create a feed post" title="Create a feed post" style="display:none">+</a>
       <button class="cul-gear" id="cul-gear" style="display:none" aria-label="Feed settings" onclick="toggleCulGear(event)">&#9881;</button>
@@ -656,8 +662,6 @@ footer a{color:var(--purple)}
         <div class="gm-h">Type</div>
         <button data-ct="all" class="on" onclick="setCulType('all')">All<small>Public feed from everyone · ranked</small></button>
         <button data-ct="following" onclick="setCulType('following')">Following<small>Profiles you follow</small></button>
-        <button data-ct="followers" onclick="setCulType('followers')">Followers<small>Profiles that follow you</small></button>
-        <button data-ct="circle" onclick="setCulType('circle')">Circle<small>People you follow who follow you back</small></button>
       </div>
       <h2 id="feedNow" style="font-family:var(--fs);font-weight:900;font-size:1.6rem;color:#fff">Feed</h2>
       <div class="feeddd" id="feedDD"><button class="feeddd-btn" id="feedDDBtn" onclick="toggleFeedDD(event)">EXPLORE <span aria-hidden="true">&#9662;</span></button><div class="feeddd-menu" id="feedDDMenu"><button onclick="culSection('feed')">📰 Feed</button><button onclick="culSection('radio')">📻 Radio</button><button onclick="culSection('vs')">⚔️ VS</button><button onclick="culSection('givebacks')">💚 Givebacks</button></div></div>
@@ -773,7 +777,7 @@ footer a{color:var(--purple)}
        filter chips. With those gone the whole rail is empty chrome, so it goes with them. -->
   <!-- (no filter rail) -->
   <div class="typebar" id="typebar" style="display:none"></div><div id="discover" style="display:none"></div>
-</div></div>
+</div></main>
 <footer>KEEPITIL <a href="/">keepitil.com</a> — Culture &amp; Community</footer>
 
 <script>
@@ -1010,11 +1014,9 @@ function applyCulFilters(){
   /* Filter (gear) */
   if(culFilter==='articles'){ rows=rows.filter(function(x){ return x.kind==='article' && CUL_AGENTS[String(x.profile_slug||'').toLowerCase()]; }); }
   else if(culFilter==='user'){ rows=rows.filter(function(x){ return !CUL_AGENTS[String(x.profile_slug||'').toLowerCase()]; }); }
-  /* Type (gear) — all / following / followers / circle */
-  var fg=window.__culFollowing||{}, fr=window.__culFollowers||{};
+  /* Type (gear) — all / following (Followers and Circle are hidden until follower_handles() exists in production) */
+  var fg=window.__culFollowing||{};
   if(culType==='following'){ rows=rows.filter(function(x){ return fg[String(x.profile_slug||'').toLowerCase()]; }); }
-  else if(culType==='followers'){ rows=rows.filter(function(x){ return fr[String(x.profile_slug||'').toLowerCase()]; }); }
-  else if(culType==='circle'){ rows=rows.filter(function(x){ var s=String(x.profile_slug||'').toLowerCase(); return fg[s]&&fr[s]; }); }
   /* Year / month filtering and chronological grouping live in one place so every category
      (ARTICLE, CREATE, VIDEO) gets the same treatment. See the mobile month block below. */
   if(window.__culApplyMonth) rows = window.__culApplyMonth(rows);
@@ -1028,10 +1030,8 @@ function loadCulRelations(){
   sb.rpc('my_profile_slug').then(function(rr){ var me=rr&&!rr.error?rr.data:null;
     sb.auth.getUser().then(function(ur){ var uid=ur&&ur.data&&ur.data.user?ur.data.user.id:null;
       if(uid){ sb.from('follows').select('profile_slug').eq('follower_id',uid).then(function(r){ var m={}; ((r&&r.data)||[]).forEach(function(x){m[String(x.profile_slug).toLowerCase()]=1;}); window.__culFollowing=m; }); }
-      /* Sentinel (2026-11-10 7:25 PM): app_users is no longer readable beyond your own row (production
-         stopgap), so my followers' handles come ONLY from follower_handles() (handles, nothing else).
-         No fallback to reading app_users: it can no longer return anyone else's handle. */
-      if(me){ sb.rpc('follower_handles',{p_profile_slug:me}).then(function(r){ var m={}; ((r&&!r.error&&r.data)||[]).forEach(function(u){ if(u&&u.handle)m[String(u.handle).toLowerCase()]=1; }); window.__culFollowers=m; },function(){ window.__culFollowers={}; }); }
+      /* KEEPITIL 1.0 (Grok 2026-11-24): the Followers and Circle views are hidden. They need public.follower_handles(), which does not exist in production
+         yet (a reviewed draft waits for Grok's GO), so this page makes NO follower_handles call and shows no empty Followers/Circle list. Following still works. */
     });
   }).catch(function(){});
 }
@@ -1105,7 +1105,7 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
 </script>
 <script src="/assets/js/vendor/supabase-js.min.js" defer></script>
 <script src="/kil-seasons.js?v=20260910b"></script>
-<script src="/assets/js/keepitil-radio.js?v=20261120a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20261124c" defer></script>
 <script src="/keepitil-pager.js?v=20260820e" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
 <script src="/assets/js/vendor/purify.min.js?v=20261107b"></script>
@@ -1355,7 +1355,7 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
       var vwhen=''; try{var vt=new Date(r.created_at); if(!isNaN(vt)) vwhen=vt.toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'});}catch(x){}
       var isShort = vd.is_short === true;
       n = { pid:r.id, href:vd.source_url||'#', external:true,
-            thumb:vd.img||vd.cover||'/assets/images/blog-default.jpg',
+            thumb:window.kilVideoThumb(vd.img||vd.cover)||'/assets/images/blog-default.jpg',
             aspect:isShort?'9/16':'16/9', maxH:isShort?'calc(100dvh - 210px)':'',
             badge:(r.source_platform||'VIDEO').toUpperCase(),
             title:r.title||'Untitled',
@@ -2183,15 +2183,33 @@ window.culFetchMedia = culFetchMedia;
     var img = well.querySelector('img'); if(img) img.style.display='block';
     var ov = well.querySelector('.kil-vid-play'); if(ov) ov.style.display='';
   }
+  /* YouTube privacy-enhanced mode: the same player from youtube-nocookie.com (no YouTube cookies until the video plays). The postMessage origin check below already accepts it. */
+  function kilNoCookie(u){ return String(u).replace(/^https:\/\/(www\.)?youtube\.com\/embed\//i, 'https://www.youtube-nocookie.com/embed/'); }
+  function kilOptedOut(){   /* same check as keepitil-shell.js __kilOptedOut(); a test keeps them identical */
+    try{ if(navigator.globalPrivacyControl === true) return true; }catch(e){}
+    try{ if(navigator.doNotTrack === '1' || navigator.doNotTrack === 'yes' || window.doNotTrack === '1' || navigator.msDoNotTrack === '1') return true; }catch(e){}
+    return false;
+  }
+  /* click-to-load: show the card's play button (the thumbnail stays) and mount the player on the first tap */
+  function armTap(card){
+    var well = card.querySelector('.kil-vid-well'); if(!well) return;
+    var ov = well.querySelector('.kil-vid-play'); if(ov) ov.style.display='';
+    if(card.__kilArmed) return; card.__kilArmed = 1;
+    well.addEventListener('click', function(ev){ ev.preventDefault(); card.__kilTapped = 1; if(current === card) current = null; play(card); }, { once:true });
+  }
   function play(card){
     if(!card) return;
     if(current && !document.contains(current)) current = null;   /* survived a repaint */
     if(card === current) return;
+    /* GPC / DNT visitors (Grok 2026-11-24): no player, so no contact with YouTube or Google ads, until they tap the card. Everyone else keeps the muted autoplay below. */
+    if(kilOptedOut() && !card.__kilTapped){ armTap(card); return; }
     stop(current); current = card;
     var url = card.getAttribute('data-embed'); if(!url) return;
     if(window.KilSafeHtml){ url = KilSafeHtml.safeNavUrl(url); if(!url) return; }
+    url = kilNoCookie(url);
     var well = card.querySelector('.kil-vid-well'); if(!well || well.querySelector('iframe')) return;
     var f = document.createElement('iframe');
+    f.title = 'KEEPITIL culture video player';   /* a11y: every iframe needs an accessible name */
     /* VOLUME 50% (Founder 2026-08-21). The iframe MUST still start muted — every browser blocks
        autoplay with sound, and an unmuted attempt does not fall back, it just never plays.
        enablejsapi=1 lets us postMessage unMute + setVolume(50) the moment sound is actually
@@ -2818,7 +2836,7 @@ function culResolveFilters(){
   new MutationObserver(enhance).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
-<script src="/keepitil-shell.js?v=20261120b" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
 <style id="cul-int-css">
 .kil-modal-ov{position:fixed;inset:0;background:rgba(4,4,10,.72);backdrop-filter:blur(3px);z-index:12000;display:flex;align-items:center;justify-content:center;padding:16px}
 .kil-modal{width:100%;max-width:520px;max-height:88vh;max-height:88dvh;overflow:hidden;display:flex;flex-direction:column;background:var(--bg2,#12121c);border:1px solid var(--line,#242433);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.6)}
@@ -3377,7 +3395,7 @@ function culResolveFilters(){
       return 'Post';
     }
     function titleOf(r){ var d=r.data||{}; return r.title||d.t||d.title||'Untitled'; }
-    function thumbOf(r){ var d=r.data||{}; return d.cover||d.img||r.thumbnail_url||d.thumbnail_url||'/assets/images/blog-default.jpg'; }
+    function thumbOf(r){ var d=r.data||{}; return window.kilVideoThumb(d.cover||d.img||r.thumbnail_url||d.thumbnail_url)||'/assets/images/blog-default.jpg'; }
     function whenOf(r){ try{ var t=new Date(r.published_at||r.created_at); if(!isNaN(t)) return t.toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'}); }catch(e){} return ''; }
     function whoOf(r){ return r.author_name||r.creator_name||r.profile_slug||''; }
     function hrefOf(r){

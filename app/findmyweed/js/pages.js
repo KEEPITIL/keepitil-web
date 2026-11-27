@@ -2,6 +2,26 @@
 (function () {
   var C = window.FMW_COPY, F = window.FMW, doc = document, page = doc.body.getAttribute('data-page');
   function el(tag, cls, text) { var e = doc.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  // SEO (1.0 cut): the head of a listing / city view says what the page is. Googlebot renders this script, so title, description,
+  // canonical and JSON-LD are read from the rendered page. Set with attributes / textContent only; JSON-LD has "<" escaped.
+  var SEO_BASE = (typeof location !== 'undefined' && location.origin ? location.origin : '') + ((window.FMW_CONFIG && window.FMW_CONFIG.basePath) || '');
+  function seoApply(seo) {
+    if (!seo || typeof doc.querySelector !== 'function') return;   // no head to write (a page-less test DOM)
+    if (seo.title) doc.title = seo.title;
+    var head = doc.head || doc.querySelector('head'); if (!head) return;
+    var setMeta = function (sel, attr, key, val) { var n = doc.querySelector(sel); if (!n) { n = doc.createElement('meta'); n.setAttribute(attr, key); head.appendChild(n); } n.setAttribute('content', val); };
+    if (seo.description) { setMeta('meta[name="description"]', 'name', 'description', seo.description); setMeta('meta[property="og:description"]', 'property', 'og:description', seo.description); }
+    if (seo.title) setMeta('meta[property="og:title"]', 'property', 'og:title', seo.title);
+    if (seo.canonical) {
+      var lk = doc.querySelector('link[rel="canonical"]'); if (!lk) { lk = doc.createElement('link'); lk.setAttribute('rel', 'canonical'); head.appendChild(lk); }
+      lk.setAttribute('href', seo.canonical); setMeta('meta[property="og:url"]', 'property', 'og:url', seo.canonical);
+    }
+    if (seo.jsonLd) {
+      var sc = doc.querySelector('script[type="application/ld+json"]'); if (!sc) { sc = doc.createElement('script'); sc.setAttribute('type', 'application/ld+json'); head.appendChild(sc); }
+      sc.textContent = JSON.stringify(seo.jsonLd).replace(/</g, '\\u003c');
+    }
+    if (seo.heading) { var h = doc.querySelector('h1.sr'); if (h) h.textContent = seo.heading; }
+  }
   function params() {
     var p = new URLSearchParams(location.search);
     // county: the area (location selector). A typed place (q) wins over it, so "Oakland" from the Los Angeles home finds
@@ -13,7 +33,6 @@
     if (r.q) r.county = '';
     return r;
   }
-  function kind(l) { return l.storefront && l.delivery ? C.storefrontAndDelivery : l.delivery ? C.deliveryOnly : C.storefrontOnly; }
   // known === false: the hours are missing or malformed -> "Hours not listed", never "open" (#15)
   function badge(s) {
     if (s.known === false) return el('span', 'badge unknown', C.hoursNotListed);
@@ -39,11 +58,14 @@
   // placeholder above and List Your Business keeps the for-business link. "accounts" on: Sign in opens signup.html.
   // "claims" on as well: List Your Business opens the business path there. Nothing here signs anyone in.
   var ACCT = window.FMW_CONFIG && window.FMW_CONFIG.accounts === true, CLAIMS = ACCT && window.FMW_CONFIG.claims === true;
+  var SESS = window.FMW_SESSION || {}, SIGNED_IN = ACCT && SESS.signedIn === true;   // js/session.js: a hint about what to draw (the server checks every call)
+  // The 404 page is served at ANY depth (a/b/c.html under the site folder), so its own links must be absolute under basePath; every other page is flat and keeps relative links.
+  var HERE = function (rel) { return page === 'notfound' ? (((window.FMW_CONFIG && window.FMW_CONFIG.basePath) || '') + '/' + rel) : rel; };
   if (ACCT) doc.querySelectorAll('button.signin').forEach(function (b) {
-    var a = el('a', b.className, b.textContent); a.href = 'signup.html'; b.parentNode.replaceChild(a, b);
+    var a = el('a', b.className, SIGNED_IN ? C.account : b.textContent); a.href = HERE(SIGNED_IN ? 'account.html' : 'signup.html'); b.parentNode.replaceChild(a, b);
     var note = doc.getElementById('signin-note'); if (note && note.parentNode) note.parentNode.removeChild(note);
   });
-  if (CLAIMS) doc.querySelectorAll('a[data-biz]').forEach(function (n) { n.href = 'signup.html?as=business'; });
+  if (CLAIMS) doc.querySelectorAll('a[data-biz]').forEach(function (n) { n.href = HERE('signup.html?as=business'); });
   if (!C.PLACEHOLDER) doc.querySelectorAll('.draft').forEach(function (n) { n.remove(); });
 
   // Icons: inline SVG paths (no image request; CSP img-src stays 'self'), drawn with currentColor.
@@ -52,7 +74,7 @@
   var ICON = {
     home: 'M3 11 12 4l9 7v9h-6v-6H9v6H3z', store: 'M4 9h16l-1.5-5h-13zM5 9v11h14V9M9 20v-6h6v6',
     truck: 'M2 6h12v10H2zM14 10h4l3 3v3h-7M6 19.5a1.5 1.5 0 1 0 0-.01M17 19.5a1.5 1.5 0 1 0 0-.01', tag: 'M3 3h8l10 10-8 8L3 11zM7.5 7.5h.01',
-    star: 'M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.4l-5.5 2.9 1-6.2L3 9.7l6.2-.9z', building: 'M4 21V5l8-2v18M12 8h8v13M7 8h2M7 12h2M7 16h2M15 12h2M15 16h2M2 21h20',
+    star: 'M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.4l-5.5 2.9 1-6.2L3 9.7l6.2-.9z', briefcase: 'M3 8h18v12H3zM8 8V5h8v3M3 13h18', building: 'M4 21V5l8-2v18M12 8h8v13M7 8h2M7 12h2M7 16h2M15 12h2M15 16h2M2 21h20',
     wrench: 'M14.5 5.5a4 4 0 0 0 4 5.5l-9 9-3-3 9-9a4 4 0 0 1-1-2.5z', calendar: 'M4 6h16v15H4zM4 10h16M8 3v5M16 3v5', book: 'M12 6c-2-2-5-2-8-1v14c3-1 6-1 8 1 2-2 5-2 8-1V5c-3-1-6-1-8 1zM12 6v14',
     heart: 'M12 20s-8-5-8-11a4 4 0 0 1 8-1.5A4 4 0 0 1 20 9c0 6-8 11-8 11z', help: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01', plus: 'M12 5v14M5 12h14',
     check: 'M4.5 12.5l5 5 10-11', pin: 'M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z', close: 'M6 6l12 12M18 6 6 18'
@@ -72,7 +94,7 @@
   function bodyClass(c, on) { var b = doc.body; if (b && b.classList) b.classList[on ? 'add' : 'remove'](c); }
   (function menu() {
     var btn = doc.getElementById('menu-btn'), panel = doc.getElementById('menu-panel');
-    if (!btn || !panel || !btn.addEventListener || !F.menuItems || !C.NAV_MENU) return;
+    if (!btn || !panel || !btn.addEventListener || !F || !F.menuItems || !C.NAV_MENU) return;   // a missing module must never abort the rest of the page script
     var cfg = window.FMW_CONFIG || {}, base = cfg.basePath || '', abs = page === 'notfound', isOpen = false, offered = {};
     panel.setAttribute('aria-label', C.navMenuLabel);
     function soonButton(cls, label, describedBy) {
@@ -101,7 +123,7 @@
       var a = doc.activeElement, keep = isOpen && a && panel.contains(a) ? (a.getAttribute('data-menu') || (a.parentNode && a.parentNode.getAttribute && a.parentNode.getAttribute('data-menu'))) : null;
       clear(panel);
       var noteId = 'menu-acct-note', acct = el('div', 'menu-acct'), groups = {}, order = [], anySoonAcct = false;
-      F.menuItems(C.NAV_MENU, { accounts: cfg.accounts === true, basePath: base, absolute: abs, offered: offered }).forEach(function (it) {
+      F.menuItems(C.NAV_MENU, { accounts: cfg.accounts === true, signedIn: SIGNED_IN, business: SIGNED_IN && SESS.isBusiness && SESS.isBusiness() === true, basePath: base, absolute: abs, offered: offered }).forEach(function (it) {
         var n;
         if (!it.group) {   // the two account pills, side by side at the top
           if (it.disabled) { n = soonButton('pill ' + (it.pill || 'outline'), it.label, noteId); anySoonAcct = true; }
@@ -117,6 +139,10 @@
         if (it.disabled) n.appendChild(el('span', 'soon-tag', C.comingSoon));
         li.appendChild(n); groups[it.group].appendChild(li);
       });
+      if (SIGNED_IN) {   // signed in: Account, and Sign out (the account page runs the full server revoke when it is opened with ?signout=1)
+        var ac = el('a', 'pill outline', C.account); ac.href = HERE('account.html'); ac.setAttribute('data-menu', 'account'); acct.appendChild(ac);
+        var so = el('a', 'pill fill', C.signOut); so.href = HERE('account.html?signout=1'); so.setAttribute('data-menu', 'signout'); acct.appendChild(so);
+      }
       panel.appendChild(acct);
       if (anySoonAcct) { var note = el('p', 'menu-note muted', C.signInSoon); note.id = noteId; panel.appendChild(note); }
       order.forEach(function (g) { panel.appendChild(groups[g]); });
@@ -148,7 +174,11 @@
       offered = { storefront: F.storefrontOffered(data, now), delivery: F.deliveryOffered(data, now) };
       draw();
     };
-    if (page === 'about' || page === 'privacy') load().then(menuData, function () {});
+    // About / Privacy / Terms need only two flags, not all 1,249 listings (1.0 baseline: -75 KB gz): data/offered.json, kept in step with
+    // listings.json by tests/offered-json.test.js. If it cannot be read the menu simply keeps its disabled items.
+    if (page === 'about' || page === 'privacy' || page === 'terms') window.fetch('data/offered.json', { cache: 'no-store' }).then(function (r) { return r && r.ok ? r.json() : null; }).then(function (o) {
+      if (o && typeof o.storefront === 'boolean' && typeof o.delivery === 'boolean') { offered = { storefront: o.storefront, delivery: o.delivery }; draw(); }
+    }, function () {});
   })();
 
   // The location dropdown INSIDE the search bar (approved spec item 2): State / County / City in ONE select, built from the
@@ -175,6 +205,22 @@
   }
 
   function load() { return F.loadData(window.fetch.bind(window), 'data/listings.json'); }
+  // The listing page needs ONE listing: the small index (data/listings-index.json) + that listing's county file (data/counties/<key>.json), assembled into the full data shape
+  // (the other rows are light rows, enough for the menu flags). An unknown id keeps the not-found page; any failure, or a county file that lacks the license, falls back to the
+  // whole data/listings.json as before. tests/listing-split.test.js proves the listing and the menu flags are identical.
+  function loadListing(id) {
+    var want = String(id || '').toLowerCase();
+    return F.loadPart(F.fetchOf(window), 'data/listings-index.json', function (d) { return d && Array.isArray(d.places) && Array.isArray(d.listings) && d.listings.length > 0 && d.listings.every(function (r) { return r && typeof r.county === 'string' && !r.address; }); })
+      .then(function (idx) {
+        var row = null; idx.listings.forEach(function (r) { if (!row && String(r.license || '').toLowerCase() === want) row = r; });
+        if (!row) return F.assembleHome(idx, {});
+        var k = F.countyFileKey(row.county);
+        return F.loadPart(F.fetchOf(window), 'data/counties/' + k + '.json', function (d) { return d && d.county === k && Array.isArray(d.listings); }).then(function (cf) {
+          if (!cf.listings.some(function (l) { return String(l.license || '').toLowerCase() === want; })) return load();
+          var files = {}; files[k] = cf; return F.assembleHome(idx, files);
+        });
+      }).catch(function () { return load(); });
+  }
   function fill(form, p) { if (form && form.q) form.q.value = p.q; }
 
   // An empty or error state under the page heading: a short explanation and, where it helps, one action.
@@ -202,7 +248,7 @@
   function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
 
   // About / Privacy / 404: plain-text sections from copy.js (C.info[page]); textContent only.
-  if (page === 'about' || page === 'privacy' || page === 'notfound') {
+  if (page === 'about' || page === 'privacy' || page === 'help' || page === 'notfound') {
     var info = C.info[page], box = doc.getElementById('info');
     box.appendChild(el('h1', 'name', info.title));
     info.sections.forEach(function (sec) {
@@ -254,13 +300,20 @@
     s.appendChild(outline);
     var g = svg('g', { 'class': 'map-dots' });
     // delivery rings first and 1.6× larger: a ring at its city's centre stays visible around a storefront dot on the same spot
-    m.dots.slice().sort(function (x, y) { return (x.kind === 'delivery' ? 0 : 1) - (y.kind === 'delivery' ? 0 : 1); }).forEach(function (d) {
+    var ordered = m.dots.slice().sort(function (x, y) { return (x.kind === 'delivery' ? 0 : 1) - (y.kind === 'delivery' ? 0 : 1); });
+    function drawDot(d) {
       var label = C.mapDot(d.name, d.kind, d.city), a = svg('a', { href: detailHref(d.id), 'class': 'dot ' + d.kind, 'data-id': d.id, 'aria-label': label, tabindex: 0 });
       var t = svg('title'); t.textContent = label; a.appendChild(t);
       a.setAttribute('data-cat', d.cat);
       a.appendChild(pinShape(d, r));
       g.appendChild(a);
-    });
+    }
+    // Perf (NEXUS2 profile 2026-11-24: the long task on home/results was building ~1,250 map dots = ~8,750 SVG nodes in one go): the
+    // first MAP_FIRST dots at once, the rest MAP_SIZE per animation frame; a newer draw cancels (mapToken). No rAF (node tests) or few dots: all at once.
+    var my = ++mapToken, i = 0, raf = window.requestAnimationFrame;
+    function stepDots(n) { var end = Math.min(i + n, ordered.length); for (; i < end; i++) drawDot(ordered[i]); }
+    if (typeof raf !== 'function' || ordered.length <= MAP_FIRST) stepDots(ordered.length);
+    else { stepDots(MAP_FIRST); (function more() { if (i >= ordered.length || my !== mapToken) return; raf.call(window, function () { if (my !== mapToken) return; stepDots(MAP_SIZE); more(); }); })(); }
     s.appendChild(g); box.appendChild(s);
     // the legend: the pin shapes on this map, by category (shape + label, so a category reads without tapping)
     var cats = PIN_ORDER.filter(function (c) { return m.dots.some(function (d) { return d.cat === c; }); });
@@ -274,7 +327,7 @@
       box.appendChild(lg);
     }
     if (m.dots.some(function (d) { return d.kind === 'delivery'; })) box.appendChild(el('p', 'muted map-note', C.mapDeliveryNote));
-    if (m.dropped.length) box.appendChild(el('p', 'muted map-note', C.mapNotShown(m.dropped.length)));
+    if (m.dropped.length + m.skipped) box.appendChild(el('p', 'muted map-note', C.mapNotShown(m.dropped.length + m.skipped)));   // dots + this number = the list's number
     box.hidden = false;
   }
 
@@ -284,17 +337,51 @@
   // county; a green check mark + the license number). An empty line 2 keeps its place so every card is the same size.
   // A small map icon (its own button, outside the link) shows the business on the map.
   var showOnMap = function () {};   // set by the home
+  // Perf: the map's dots are drawn in chunks (see renderMap); the card list is PAGED (showCards below), so no chunker is needed for the cards.
+  var MAP_FIRST = 150, MAP_SIZE = 300, mapToken = 0;   // the map's dots, same idea (see renderMap)
+  // The home / results list is PAGED, not endless: the first PAGE cards, then a "Show N more" button (all real results stay reachable; the map keeps every dot).
+  var PAGE_FIRST = 24, PAGE_MORE = 60;
+  function showCards(out, list) {
+    var shown = 0, row = null, live = out.__live || null;
+    // the polite status lives in a sibling element OUTSIDE the list (a list item would be read as one more result and the new cards land after it)
+    function say(text) {
+      if (!live && out.parentNode && out.parentNode.insertBefore) { live = out.__live = el('div', 'sr'); live.setAttribute('role', 'status'); live.setAttribute('aria-live', 'polite'); out.parentNode.insertBefore(live, out.nextSibling); }
+      if (live) live.textContent = text;
+    }
+    // like the map chunker: without requestAnimationFrame (the node tests) or for a short list everything is drawn at once, exactly as before
+    if (typeof window.requestAnimationFrame !== 'function' || list.length <= PAGE_FIRST) { for (; shown < list.length; shown++) out.appendChild(card(list[shown])); say(''); return; }
+    function next() {
+      var first = shown > 0, end = Math.min(shown + (shown ? PAGE_MORE : PAGE_FIRST), list.length), firstNew = null;
+      if (row && row.parentNode) row.parentNode.removeChild(row);
+      for (; shown < end; shown++) { var c = card(list[shown]); if (!firstNew) firstNew = c; out.appendChild(c); }
+      say(C.showMoreCount(shown, list.length));
+      if (first && firstNew) { var a = firstNew.querySelector ? firstNew.querySelector('a') : null; if (a && a.focus) a.focus(); }   // after "Show more", focus lands on the first new card
+      if (shown < list.length) {
+        row = el('li', 'more');
+        var b = el('button', 'btn ghost', C.showMore(Math.min(PAGE_MORE, list.length - shown))); b.type = 'button'; b.setAttribute('data-act', 'show-more');
+        b.addEventListener('click', next);
+        var vis = el('span', 'muted', C.showMoreCount(shown, list.length)); vis.setAttribute('aria-hidden', 'true');   // the live region says it; the visible copy is not read twice
+        row.appendChild(b); row.appendChild(vis);
+        out.appendChild(row);
+      }
+    }
+    next();
+  }
   function card(r) {
     var l = r.listing, L = F.cardLines(r, C), li = el('li', 'shop'), a = el('a', 'listing');
     li.setAttribute('data-id', l.id);
     a.href = detailHref(l.id);
     var th = el('span', 'thumb'); th.setAttribute('aria-hidden', 'true');
     th.appendChild(el('span', 'thumb-a', 'Find My')); th.appendChild(el('span', 'thumb-b', 'Weed'));
-    var lines = el('span', 'lines');
-    lines.appendChild(el('h3', 'ln ln-name', L[0]));
-    for (var i = 1; i <= 4; i++) lines.appendChild(el('span', 'ln ln-' + i, L[i] || ' '));
+    var lines = el('span', 'lines' + (L[2] ? '' : ' lines-5'));   // no hours: five lines share the tile's height (no blank strip)
+    var nm = el('h3', 'ln ln-name', L[0]);
+    if (F.isPaid(r)) nm.appendChild(el('span', 'sponsored-tag', ' \u00b7 ' + C.sponsored));   // only a real, labelled paid placement; inside the link, so it is part of its accessible name
+    lines.appendChild(nm);
+    for (var i = 1; i <= 4; i++) lines.appendChild(el('span', 'ln ln-' + i + (i === 2 && !L[i] ? ' ln-none' : ''), L[i] || ' '));   // no hours data: the slot stays (six lines) but is not shown
     var lic = el('span', 'ln ln-lic'); lic.appendChild(icon('check', 'ck')); lic.appendChild(el('span', null, L[5]));
     lines.appendChild(lic);
+    // the license strip (status + expiry) is the sixth line when there are no hours; with hours the six lines are full, and the listing page carries it
+    if (!L[2]) lines.appendChild(el('span', 'ln ln-strip', F.licenseStripCardText(F.licenseStrip(l), C)));
     a.appendChild(th); a.appendChild(lines); li.appendChild(a);
     var pin = el('button', 'icon-btn pin-btn'); pin.type = 'button';
     pin.setAttribute('aria-label', C.mapShow(l.name)); pin.setAttribute('data-id', l.id); pin.appendChild(icon('pin'));
@@ -304,19 +391,44 @@
   }
   // A home row from real entries only (F.promoRows): ads 16:9, categories 1:1 tiles, deals / featured cards. The section
   // stays hidden (as shipped in the page) unless there is at least one real entry. Images are same-site (img/...).
-  function renderRow(key, entries) {
+  function renderRow(key, entries, seeAll) {
     var sec = doc.getElementById('row-' + key); if (!sec) return;
     var ul = sec.querySelector ? sec.querySelector('ul') : null;
     sec.hidden = true; if (!ul) return;
     clear(ul);
+    // a sideways-scrolling list is a scrollable region: keyboard-focusable and named (axe: scrollable-region-focusable)
+    ul.setAttribute('tabindex', '0'); ul.setAttribute('aria-label', { ads: C.rowAds, deals: C.rowDeals, categories: C.rowCategories, featured: C.rowFeatured }[key] || '');
+    // Weedmaps-style row header (layout pattern only): a "See all" link next to the title for the rows that have a full list behind them. Built like the
+    // category tiles: it keeps the current area (?city= / ?county=) and opens the filter IN PLACE (no full reload); `seeAll(key)` comes from the home.
+    var old = sec.querySelector ? sec.querySelector('a.seeall') : null; if (old && old.parentNode) old.parentNode.removeChild(old);
+    sec.className = String(sec.className || '').replace(/\s*\bhas-seeall\b/g, '');
+    var sa = seeAll && entries && entries.length ? seeAll(key) : null;
+    if (sa) {
+      var all = el('a', 'seeall', C.seeAll); all.href = sa.href; all.setAttribute('aria-label', C.seeAllRow(key === 'deals' ? C.rowDeals : C.rowFeatured));
+      all.addEventListener('click', sa.onClick); sec.insertBefore(all, ul); sec.className += ' has-seeall';
+    }
+    // No real entry in the Ads or Deals row: ONE invite card for businesses instead of hiding the row (never a fake ad or deal; gone as soon as real entries exist).
+    var invite = (key === 'ads' || key === 'deals') && !(entries && entries.length);
+    if (invite) {
+      var base = (window.FMW_CONFIG && window.FMW_CONFIG.basePath) || '';
+      var href = (key === 'deals' && CLAIMS) ? HERE('signup.html?as=business') : base + '/for-business/';
+      var ili = el('li', 'tile invite'), ia = el('a', 'tile-in invite-in'); ia.href = href;
+      ia.appendChild(el('span', 'invite-tag', C.inviteTag));
+      ia.appendChild(el('span', 'invite-title', key === 'ads' ? C.inviteAdsTitle : C.inviteDealsTitle));
+      ia.appendChild(el('span', 'invite-body', key === 'ads' ? C.inviteAdsBody : C.inviteDealsBody));
+      ul.setAttribute('aria-label', key === 'ads' ? C.inviteAdsTitle : C.inviteDealsTitle);   // the region is an invitation, not "Ads"
+      ili.appendChild(ia); ul.appendChild(ili); sec.hidden = false; return;
+    }
     (entries || []).forEach(function (e) {
       var li = el('li', 'tile'), wrap = e.href ? el('a', 'tile-in') : el('div', 'tile-in');
       if (e.href) wrap.href = e.href;
       var im = el('img'); im.src = e.image; im.alt = ''; im.loading = 'lazy'; wrap.appendChild(im);
       wrap.appendChild(el('span', 'tile-label', e.label));
+      if (e.license) wrap.appendChild(el('span', 'tile-license mono', e.license));   // placements always show the license number
+      if (key === 'ads') wrap.appendChild(el('span', 'ad-tag', C.adTag));   // an ad is always labelled
       li.appendChild(wrap); ul.appendChild(li);
     });
-    sec.hidden = !(entries && entries.length);
+    sec.hidden = !(entries && entries.length >= (key === 'categories' ? 2 : 1));   // a one-tile Categories row is filler, from data or from the listings alike
   }
   var FILTER_COPY = { home: 'fHome', storefront: 'fStorefront', delivery: 'fDelivery', open: 'fOpenNow', deals: 'fDeals', retail: 'fRetail', brands: 'fBrands',
     cultivation: 'fCultivation', manufacturing: 'fManufacturing', distribution: 'fDistribution', testing: 'fTesting', microbusiness: 'fMicrobusiness', services: 'fServices', events: 'fEvents' };
@@ -389,10 +501,33 @@
       if (mapEl && mapEl.scrollIntoView && window.innerWidth >= 768) mapEl.scrollIntoView({ block: 'nearest' });
     };
 
+    // The HOME and results.html load the small state index and only the chosen area's county file(s) (weight 1.0, Phases 2 and 3); the whole
+    // state, or any failure or odd response here, falls back to the full data/listings.json as before.
+    var homeIndex = null, homeFiles = {}, fullFor = null, namesFile = null, namesFor = null;   // namesFor: the typed text whose name search uses the names-only index (data/listings-names.json) + the county files of the matches; fullFor: the fallback when that file cannot be read (the full data/listings.json)
+    var loadNames = function () { return namesFile ? Promise.resolve(namesFile) : F.loadPart(F.fetchOf(window), 'data/listings-names.json', function (d) { return d && Array.isArray(d.names) && d.names.length > 0; }).then(function (d) { namesFile = d; return d; }); };
+    var loadHomeIndex = function () {
+      var get = homeIndex ? Promise.resolve(homeIndex) : F.loadPart(F.fetchOf(window), 'data/listings-index.json', function (d) { return d && Array.isArray(d.places) && Array.isArray(d.listings) && d.listings.length > 0 && d.listings.every(function (r) { return r && typeof r.county === 'string' && !r.address; }); }).then(function (d) { homeIndex = d; return d; });
+      return get.then(function (idx) { return F.assembleHome(idx, {}); }, function () { return load(); });
+    };
+    var zipMap = null;
+    var withAreaFiles = function (data, p) {
+      if (!data.light || !homeIndex) return data;
+      // a typed place also needs data/zip-county.json (a place is its city name OR its ZIPs); nothing else reads it
+      var zm = !p.q ? Promise.resolve(null) : zipMap ? Promise.resolve(zipMap) : F.loadPart(F.fetchOf(window), 'data/zip-county.json', function (d) { return d && d.zips && typeof d.zips === 'object'; }).then(function (d) { zipMap = d; return d; });
+      return zm.then(function (z) {
+        var keys = F.areaCountyKeys(data, p, z);
+        if (namesFor === p.q && namesFile) F.nameCountyKeys(homeIndex, F.nameIds(namesFile, p.q)).forEach(function (k) { if (keys.indexOf(k) < 0) keys.push(k); });   // + the counties of the listings whose NAME matches the typed text
+        if (!keys.length) return p.q || p.county || p.city ? F.assembleHome(homeIndex, {}) : load();   // an unknown area / place stays light (same "not found"); the whole state needs every row
+        return Promise.all(keys.map(function (k) {
+          return homeFiles[k] ? homeFiles[k] : F.loadPart(F.fetchOf(window), 'data/counties/' + k + '.json', function (d) { return d && d.county === k && Array.isArray(d.listings); }).then(function (d) { homeFiles[k] = d; return d; });
+        })).then(function (list) { var f = {}; keys.forEach(function (k, i) { f[k] = list[i]; }); return F.assembleHome(homeIndex, f); });
+      }).then(null, function () { return load(); });   // any failure: the full file, as before
+    };
     var run = function () {
-      clear(out); clear(stateBox); head.textContent = ''; head.hidden = false; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
+      mapToken++; clear(out); clear(stateBox); head.textContent = ''; head.hidden = false; if (mapEl) { clear(mapEl); mapEl.hidden = true; }
       if (nearby) nearby.hidden = true;
-      load().then(function (data) {
+      var light = page === 'search' || page === 'results';
+      (light && fullFor !== p.q ? loadHomeIndex() : load()).then(function (data) {
         menuData(data);
         var now = new Date();
         if (page === 'search' && !p.q && !p.city && !p.hasCounty) {
@@ -401,9 +536,25 @@
           if (saved != null && F.areaKnown(data, saved, now)) { var sa = F.parseArea(saved); p.county = sa.kind === 'county' ? sa.name : ''; if (sa.kind === 'city') p.city = sa.name; }
           else p.county = F.topCounty(data, now);
         }
+        return light ? withAreaFiles(data, p) : data;
+      }).then(function (data) {
+        var now = new Date();
         fillArea(form, data, p);
         PROMO(data);
         var res = F.search(data, p, now);
+        // NAME SEARCH (Joe 2026-11-25): the light files have no business names. A typed text that is not a place may still be a business name: read the NAMES-ONLY index
+        // (data/listings-names.json: id + name, ~14 KB gz, built from the same listings), load the county files of the listings whose name matches, and search again: the same rows in the
+        // same order as the full file gives. A place that is found draws at once; the names index is then read in the background and the page is redrawn only when a business NAME
+        // outside the place also matches. If the names file cannot be read, the full listings.json is used instead, as before.
+        var nameTry = data.light && namesFor !== p.q && fullFor !== p.q && F.classify(p.q).kind === 'city' && F.classify(p.q).value.length >= 3;
+        if (nameTry && res.notFound && res.reason === 'city') {
+          return loadNames().then(function () { namesFor = p.q; return run(); }, function () { fullFor = p.q; return run(); });
+        }
+        if (nameTry && !res.notFound && res.place) {
+          var typed = p.q, have = {};
+          res.results.forEach(function (r) { have[String(r.listing.id)] = true; });
+          loadNames().then(function (n) { if (p.q === typed && namesFor !== typed && F.nameIds(n, typed).some(function (id) { return !have[id]; })) { namesFor = typed; run(); } }, function () {});
+        }
         if (res.notFound) {
           drawFilters(F.FILTERS, 'home');
           var c = F.classify(p.q);
@@ -432,6 +583,8 @@
         }
         // a chip: only the area's rows with a REAL value for it. None: say so plainly (never invented rows), one way back.
         CATS(data, res.results);
+        // a city view (?area=city:<name>) is a landing page: its own title, description, canonical and sr-only heading (no visible count: owner ruling 2026-11-22)
+        if (p.city && !p.q) { var seoCityName = matchCity(F.cities(data, now), p.city); if (seoCityName) seoApply(F.seoCity(seoCityName, res.results.length, SEO_BASE)); }
         var rows = p.f !== 'home' ? F.filterRows(data, res.results, p.f) : res.results;
         if (!rows.length) {
           head.textContent = C.filterEmptyTitle(C[FILTER_COPY[p.f]], placeName || cityName);
@@ -439,7 +592,7 @@
             actions: [{ text: C.showAll, onClick: function () { go(areaParams()); } }] });
           return;
         }
-        res = { place: res.place, results: rows };
+        res = { place: res.place, results: F.orderCards(rows) };
         // joe-0045 + owner ruling 2026-11-22 ("Yes, remove there too"): NO page shows the "<N> licensed businesses in
         // <area>" line (no replacement copy), neither the home nor results.html; the heading is used only for the empty /
         // not-found states above.
@@ -447,7 +600,7 @@
         if (mapEl) renderMap(mapEl, data, res.results);
         // ONE listing (the old Storefronts rail folded in): every result, nearest first (F.search), named rows before
         // "[Equity Retailer]"-only rows. No ranking-by-rating rail and no paid-placement slot exist on this page.
-        res.results.forEach(function (r) { out.appendChild(card(r)); });
+        showCards(out, res.results);
         if (nearby) nearby.hidden = false;
       }, function (e) { loadFailed(e, head, stateBox, run); });
     };
@@ -460,10 +613,16 @@
         fbar.appendChild(b);
       });
     };
-    var PROMO = function (data) { var rows = F.promoRows(data); F.PROMO_ROWS.forEach(function (k) { renderRow(k, rows[k]); }); };
+    var SEE_ALL = { deals: 'deals', featured: 'brands' };
+    var seeAllFor = function (k) {
+      if (!SEE_ALL[k]) return null;
+      var u = areaParams(); u.set('f', SEE_ALL[k]);
+      return { href: '?' + u.toString(), onClick: function (e) { if (!canPush) return; e.preventDefault(); go(u); } };
+    };
+    var PROMO = function (data) { var rows = F.promoRows(data); F.PROMO_ROWS.forEach(function (k) { renderRow(k, rows[k], seeAllFor); }); };
     // Categories (row 6, a 1:1 single-row carousel) from REAL listing data: one tile per customer category with shown rows
     // in this area (F.categoryTiles). A tile opens the same in-place filter as its chip. Entries in the data file
-    // (data.categories, with real images) win when they exist. No tile = the row stays hidden.
+    // (data.categories, with real images) win when they exist. Fewer than two tiles = the row stays hidden.
     var CATS = function (data, results) {
       if (F.promoRows(data).categories.length) return;
       var sec = doc.getElementById('row-categories'), ul = sec && sec.querySelector ? sec.querySelector('ul') : null;
@@ -479,7 +638,7 @@
         a.addEventListener('click', function (e) { if (!canPush) return; e.preventDefault(); var v = areaParams(); v.set('f', t.key); go(v); });
         li.appendChild(a); ul.appendChild(li);
       });
-      sec.hidden = !tiles.length;
+      sec.hidden = tiles.length < 2;   // a row of one tile is filler: it shows only with two or more real categories
     };
     run();
     return;
@@ -491,7 +650,7 @@
     back.href = 'results.html' + (from && from.charAt(0) === '?' ? from : '');
     var runListing = function () {
     clear(box);
-    load().then(function (data) {
+    loadListing(lp.id).then(function (data) {
       menuData(data);
       var l = lp.id ? F.byId(data, lp.id) : null;
       if (!l) {
@@ -500,15 +659,21 @@
         showState(box, { name: 'listing-missing', body: C.listingMissingBody, actions: [{ text: C.backToSearch, href: 'index.html' }] });
         return;
       }
-      doc.title = l.name + ' · ' + C.name;
+      seoApply(F.seoListing(l, SEO_BASE));
       var s = F.openState(l, new Date());
       box.appendChild(el('h1', 'name', l.name));
-      var meta = el('div', 'row meta'); meta.appendChild(badge(s)); meta.appendChild(el('span', 'muted', kind(l))); box.appendChild(meta);
+      var meta = el('div', 'row meta');
+      if (s.known !== false) meta.appendChild(badge(s));   // no hours data: no badge
+      var pf = F.profileFacts(l, C);   // the card's own facts, read from the same record through the same helpers (kind, county, rating)
+      meta.appendChild(el('span', 'muted pf-kind', pf.kind + (pf.county ? ' \u00b7 ' + pf.county : '')));
+      if (pf.rating) meta.appendChild(el('span', 'muted pf-rating', pf.rating));
+      box.appendChild(meta);
 
       var lic = el('section', 'card'); lic.appendChild(el('h2', null, C.license));
-      lic.appendChild(el('p', 'mono', l.license));
+      lic.appendChild(el('p', 'mono', l.license || C.stripNoNumber));
       if (l.licenseType) lic.appendChild(el('p', 'muted', l.licenseType));
-      lic.appendChild(el('p', 'status', C.licenseStatus(l.licenseStatus)));
+      var strip = F.licenseStrip(l), sp = el('p', 'license-strip', pf.strip);   // status + expiry, from the listing's own fields
+      sp.setAttribute('data-strip', strip.status && strip.expires ? 'full' : 'partial'); lic.appendChild(sp);
       // "License checked on {date}": only with a valid check date; older than F.STALE_DAYS reads as possibly out of date.
       var chk = F.licenseCheck(l, new Date());
       if (chk.show) {
@@ -519,34 +684,63 @@
       }
       // Official record: built ONLY from the license number on the allow-listed DCC base (never a listing field).
       var rec = F.dccRecordUrl(l.license);
+      // "License verified": only for an active license whose state-record check is recent (not stale), linking the official record
+      if (rec && chk.show && !chk.stale && (l.licenseStatus === 'Active' || l.licenseStatus === 'About to Expire')) {
+        lic.appendChild(el('p', 'verified-badge', C.licenseVerified));   // text only: the official-record link is the one just below
+      }
       if (rec) {
         var ra = el('a', 'record', C.licenseRecord);
         ra.href = rec; ra.target = '_blank'; ra.rel = 'noopener noreferrer';
         lic.appendChild(ra);
       }
       box.appendChild(lic);
+      // order-ahead (behind FMW_CONFIG.ordering, off today: the module draws nothing unless the flag is true)
+      if (window.FMW_ORDERING && window.FMW_ORDERING.mount) window.FMW_ORDERING.mount(doc, l.license, box);
+      // deals (behind FMW_CONFIG.deals, off today; a one-tap 21+ confirmation first)
+      if (window.FMW_DEALS && window.FMW_DEALS.mount) window.FMW_DEALS.mount(doc, l.license, box);
+      // favorites: a plain "Save" link to the account page (behind FMW_CONFIG.favorites, off today)
+      if (window.FMW_FAVORITES && window.FMW_FAVORITES.mountSaveLink) window.FMW_FAVORITES.mountSaveLink(doc, l.id, box);
 
       // Address per the Privacy page: storefronts in full; delivery-only = city only; missing = said so (F.addressLines)
       var ad = el('section', 'card address'), AL = F.addressLines(l); ad.appendChild(el('h2', null, C.address));
       AL.lines.forEach(function (t) { ad.appendChild(el('p', null, t)); });
-      if (AL.note) ad.appendChild(el('p', 'muted addr-note', AL.note === 'delivery' ? C.addressDeliveryNote : AL.note === 'street' ? C.addressNoStreet : C.addressNone));
-      box.appendChild(ad);
-
-      var hr = el('section', 'card'), t = el('table', 'hours'), today = F.localTime(new Date(), l.tz).day;
-      hr.appendChild(el('h2', null, C.hours));
-      t.appendChild(el('caption', 'sr', C.hours));
-      if (!F.hoursKnown(l)) {
-        // missing or malformed hours: say so, never a week of "Closed" (#15)
-        hr.appendChild(el('p', 'muted hours-unknown', C.hoursNotListed)); box.appendChild(hr);
-      } else {
-      F.weekHours(l).forEach(function (h) {
-        var tr = el('tr', h.key === today ? 'today' : null), th = el('th', null, h.day);
-        th.scope = 'row';
-        if (h.key === today) tr.setAttribute('aria-current', 'date');
-        tr.appendChild(th); tr.appendChild(el('td', null, h.text)); t.appendChild(tr);
-      });
-      hr.appendChild(t); box.appendChild(hr);
+      if (AL.note) ad.appendChild(el('p', 'muted addr-note', AL.note === 'delivery' ? C.addressDeliveryNote : AL.note === 'city' ? C.addressCityNote : AL.note === 'street' ? C.addressNoStreet : C.addressNone));
+      // Directions: a storefront with a real street only (F.directionsUrl is '' for any other record): Apple Maps on iPhone / iPad, Google Maps elsewhere
+      var apple = /iPhone|iPad|iPod/.test(String(window.navigator && navigator.userAgent || '')) || (/Macintosh/.test(String(window.navigator && navigator.userAgent || '')) && (navigator.maxTouchPoints || 0) > 1),
+        dir = F.directionsUrl(l, apple);
+      if (dir) {
+        var da = el('a', 'btn ghost directions', C.directions); da.href = dir; da.target = '_blank'; da.rel = 'noopener noreferrer';
+        da.setAttribute('aria-label', C.directionsLabel(l.name)); da.setAttribute('data-maps', apple ? 'apple' : 'google'); ad.appendChild(da);
       }
+      box.appendChild(ad);
+      // OWNER-SUPPLIED CONTACT (Grok 2026-11-25, option c): a phone and a website the approved business added itself, read from the server only while site.json "contact" is on (window.FMW_CONTACT
+      // exists only then). A Contact card with a Call button (tel:) and a Website link is drawn ONLY for a field that is set and passes the same checks again; nothing otherwise, no placeholder.
+      if (window.FMW_CONTACT && window.FMW_CONTACT_UTIL) window.FMW_CONTACT.forLicense(l.license).then(function (r) {
+        var k = r && r.ok ? window.FMW_CONTACT_UTIL.links(r.data) : { tel: '', website: '' };
+        if (!k.tel && !k.website) return;
+        var cc = el('section', 'card contact'); cc.appendChild(el('h2', null, C.contactTitle)); cc.setAttribute('data-card', 'contact');
+        var cr = el('div', 'actions');
+        if (k.tel) { var ca = el('a', 'btn ghost call', C.call); ca.href = k.tel; ca.setAttribute('aria-label', C.callLabel(l.name)); cr.appendChild(ca); }
+        if (k.website) { var wa = el('a', 'btn ghost website', C.website); wa.href = k.website; wa.target = '_blank'; wa.rel = 'noopener noreferrer nofollow'; wa.setAttribute('aria-label', C.websiteLabel(l.name)); cr.appendChild(wa); }
+        cc.appendChild(cr); ad.parentNode.insertBefore(cc, ad.nextSibling);
+      }, function () {});
+
+      // No hours data (all of today's listings): no Hours card at all. A card that only says "Hours not listed" is noise; it returns the day a listing has real hours.
+      // The card is built from ONE function so the owner-supplied hours (below) draw exactly the same card as hours in the data would.
+      var hoursCardFor = function (lh, note) {
+        var hr = el('section', 'card'), t = el('table', 'hours'), today = F.localTime(new Date(), lh.tz).day;
+        hr.setAttribute('data-card', 'hours'); hr.appendChild(el('h2', null, C.hours));
+        t.appendChild(el('caption', 'sr', C.hours));
+        F.weekHours(lh).forEach(function (h) {
+          var tr = el('tr', h.key === today ? 'today' : null), th = el('th', null, h.day);
+          th.scope = 'row';
+          if (h.key === today) tr.setAttribute('aria-current', 'date');
+          tr.appendChild(th); tr.appendChild(el('td', null, h.text)); t.appendChild(tr);
+        });
+        hr.appendChild(t); if (note) hr.appendChild(el('p', 'muted hours-note', note));
+        return hr;
+      };
+      if (F.hoursKnown(l)) box.appendChild(hoursCardFor(l, ''));
 
       var mn = el('section', 'card'), url = F.safeUrl(l.menuUrl); mn.appendChild(el('h2', null, C.menu));
       if (url) {
@@ -558,12 +752,23 @@
       else mn.appendChild(el('p', 'muted', C.noMenu));
       box.appendChild(mn);
 
-      // Not a real `disabled` button: that would drop it from the Tab order, so keyboard and screen-reader users would never
-      // hear "coming soon". aria-disabled keeps it reachable, announced as unavailable, and it does nothing.
-      var cl = el('section', 'card claim'), b = el('button', 'btn', C.claim), note = el('p', 'muted', C.claimSoon);
+      // OWNER-SUPPLIED HOURS (Joe/Grok 2026-11-25): the approved business's own opening hours, read from the server only while site.json "hours" is on (window.FMW_HOURS exists only then) and only when the
+      // data has none. They pass the same checks again (FMW_HOURS_UTIL.usable), then go through the EXISTING logic: F.openState decides the badge, F.weekHours the Hours card. Nothing otherwise, no placeholder.
+      if (window.FMW_HOURS && window.FMW_HOURS_UTIL && !F.hoursKnown(l)) window.FMW_HOURS.forLicense(l.license).then(function (r) {
+        var u = r && r.ok ? window.FMW_HOURS_UTIL.usable(r.data) : { hours: null, note: '' };
+        if (!u.hours) return;
+        var lh = {}; for (var k in l) if (Object.prototype.hasOwnProperty.call(l, k)) lh[k] = l[k]; lh.hours = u.hours;
+        if (!F.hoursKnown(lh)) return;
+        var s2 = F.openState(lh, new Date());
+        if (s2.known !== false) meta.insertBefore(badge(s2), meta.firstChild);
+        box.insertBefore(hoursCardFor(lh, u.note), mn);
+      }, function () {});
+
+      // "Claim this listing" is a live link to the business sign-up (signup.html?as=business). The sign-up page itself says
+      // what is open and what is not; the claim is confirmed by the team after sign-up, so nothing here promises a price or a result.
+      var cl = el('section', 'card claim'), b = el('a', 'btn', C.claim), note = el('p', 'muted', C.claimNote);
       note.id = 'claim-note';
-      b.type = 'button'; b.setAttribute('aria-disabled', 'true'); b.setAttribute('aria-describedby', 'claim-note');
-      b.addEventListener('click', function (e) { e.preventDefault(); });
+      b.href = HERE('signup.html?as=business'); b.setAttribute('aria-describedby', 'claim-note');
       cl.appendChild(b); cl.appendChild(note); box.appendChild(cl);
 
       // Report a problem (W3r). The rules are FMW.reportCheck, the twin of the DRAFT fmw.submit_report. There is NO send

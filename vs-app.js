@@ -398,7 +398,7 @@
    + '#vs-app .ce-chip.ce-year{font-weight:700;letter-spacing:.1em;color:#c8d0da;'
    +   'border-color:rgba(255,255,255,.26)}'
    /* A month with nothing open still holds its place in the rolling window, just quieter. */
-   + '#vs-app .ce-chip.ce-empty{opacity:.42}'
+   + '#vs-app .ce-chip.ce-empty{opacity:.88;border-style:dashed}'
    /* The two dropdown-style controls. A real <select> so the options are native and
       accessible; styled to sit in the chip rail rather than look like a form field. */
    + '#vs-app .ce-dd{flex:0 0 auto;display:inline-flex}'
@@ -1286,13 +1286,13 @@
                  : ceMonthLabel(mk)+' '+mk.slice(0,4);
         return '<div class="ce-mgroup">'
              +   '<h2 class="ce-mhead">'+h(head)+'</h2>'
-             +   '<div class="ce-grid">'+bucket[mk].map(ceCard).join('')+'</div>'
+             +   '<div class="ce-grid" tabindex="0" role="group" aria-label="Events, scroll sideways">'+bucket[mk].map(ceCard).join('')+'</div>'
              + '</div>';
       }).join('');
     }
     html += shown.length
       ? ((CE_SORT==='az'||CE_SORT==='za')
-          ? '<div class="ce-grid">'+shown.map(ceCard).join('')+'</div>'
+          ? '<div class="ce-grid" tabindex="0" role="group" aria-label="Events, scroll sideways">'+shown.map(ceCard).join('')+'</div>'
           : ceGrouped(shown))
       : '<div class="soon"><div class="i">🔎</div><h2>Nothing matches those filters</h2>'
         + '<p>Try a different month or type — there are '+rows.length+' competitions open.</p></div>';

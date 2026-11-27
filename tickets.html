@@ -2,22 +2,29 @@
 <html lang="en" data-theme="default">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="robots" content="index,follow"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
 <title>My Ticket — KEEPITIL</title>
+<meta property="og:title" content="My Ticket — KEEPITIL">
+<meta property="og:description" content="Your KEEPITIL ticket — flyer, QR code, event info and the live event chat.">
+<meta property="og:url" content="https://keepitil.com/tickets">
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
 <meta name="description" content="Your KEEPITIL ticket — flyer, QR code, event info and the live event chat."/>
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://keepitil.com/keepitil-og.png">
+<meta name="twitter:image" content="https://keepitil.com/keepitil-og.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/assets/css/tokens.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+<link href="/assets/css/fonts.css" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg,#0a0a0f);color:var(--text);font-family:var(--font,Inter,sans-serif);line-height:1.5;padding:22px 0 40px}
 .tp{max-width:1000px;margin:0 auto;padding:0 16px}
 .loading{text-align:center;color:var(--muted);padding:60px 20px}
 .gate,.empty{max-width:460px;margin:60px auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:34px 28px;text-align:center}
-.gate h2,.empty h2{font-size:1.3rem;font-weight:800;margin-bottom:8px}.gate p,.empty p{color:var(--muted);margin-bottom:18px}
+.gate h1,.empty h1{font-size:1.3rem;font-weight:800;margin-bottom:8px;line-height:1.2}.gate p,.empty p{color:var(--muted);margin-bottom:18px}
 .btnp{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800;padding:13px 22px;border-radius:999px;text-decoration:none;cursor:pointer;border:0;background:linear-gradient(90deg,var(--brand),var(--brand-2));color:#04121b}
 .card{background:#000;border-radius:20px;padding:12px}
 .tp-head{display:grid;grid-template-columns:var(--lcol,30%) 1fr;gap:12px;margin-bottom:12px}
@@ -109,19 +116,19 @@ body{background:var(--bg,#0a0a0f);color:var(--text);font-family:var(--font,Inter
   <a href="/apply" class="nav-cta">LOGIN</a>
 </div></nav>
 
-<div class="tp">
+<main class="tp" id="main">
   <!-- chromeless ticket-wallet view (registry: tool). Back handled by the Profile button, per Founder 2026-07-16 -->
   <div class="loading" id="loading">Loading your ticket…</div>
   <div class="gate" id="gate" style="display:none">
-    <h2>Log in to see your ticket</h2><p>Your tickets live in your KEEPITIL account.</p>
+    <h1>Log in to see your ticket</h1><p>Your tickets live in your KEEPITIL account.</p>
     <a class="btnp" id="loginBtn" href="/apply">Log in / Join</a>
   </div>
   <div class="empty" id="empty" style="display:none">
-    <h2>No tickets yet</h2><p>When you grab a ticket, it shows up here with your QR code and the event chat.</p>
+    <h1>No tickets yet</h1><p>When you grab a ticket, it shows up here with your QR code and the event chat.</p>
     <a class="btnp" href="/">Browse events</a>
   </div>
   <div id="ticketview" style="display:none"></div>
-</div>
+</main>
 <div class="carwrap" id="carwrap" style="display:none"></div>
 
 <!-- Event Chat overlay REMOVED 2026-08-28 (§57). It loaded /event-chat.html, a page that
@@ -239,7 +246,7 @@ async function init(){
 init();
 </script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261120b" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
 <!-- radio bar intentionally NOT loaded on tickets.html (Founder 2026-07-16: it sat below the chat box) -->
 </body>
 </html>

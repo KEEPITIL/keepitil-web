@@ -34,7 +34,7 @@
    the shell changed after #198 shipped, so PAGES and CODE are renamed again to evict the #198
    shell from installed phones. Previous: kil-pwa-v106-20261120a / kil-pages-v43 / kil-code-v86 */
 /* BUMPED AGAIN 2026-11-20 for the radio fix (seekTo null-guard + SoundCloud frame only when the
-   radio is visible; keepitil-radio.js?v=20261120a): every page that loads the radio changed its
+   radio is visible; keepitil-radio.js?v=20261124c): every page that loads the radio changed its
    tag, so PAGES and CODE are renamed to evict the old page HTML and radio build from installed
    phones. Previous: kil-pwa-v107-20261120b / kil-pages-v44 / kil-code-v87 */
 /* BUMPED 2026-11-21 for the Find My Weed web 1.0 launch drop-in (app/findmyweed/ replaced; the
@@ -44,11 +44,15 @@
    US spelling, solid colors, corrected privacy text), on top of #205's FMW bump. All three names are new and
    never shipped, so installed phones drop cached page HTML and shell code once more. Kai Tarako keeps its own
    worker and kai-tarako-* caches (scope app/kaitarako/).
-   Previous on main: kil-pwa-v109-20261121a / kil-pages-v46 / kil-code-v89 */
-var VERSION = 'kil-pwa-v110-20261121a';
-var PAGES = 'kil-pages-v47';
-var ASSETS = 'kil-assets-v41';
-var CODE = 'kil-code-v90';
+   Previous on main: kil-pwa-v110-20261121a / kil-pages-v47 / kil-assets-v41 / kil-code-v90 (bumped 2026-11-25 with the removal of the Google font rules: evicts the cached gstatic fonts and the old HTML that linked them) */
+/* BUMPED 2026-11-25 for the shell offset (#392: keepitil-shell.js?v=20261125a on every page + the main min-height rule): PAGES and CODE are renamed so `activate` evicts cached page
+   HTML that still names the old ?v=, and the old shell. The worker's install only precaches the icons, offline page and manifest (cache.add of fixed URLs, no shell or page HTML), so there
+   is no install-time fetch of the shell that the HTTP cache could serve stale; pages and code are fetched at request time, network-first (code) and stale-while-revalidate (pages).
+   Previous: kil-pages-v48 / kil-code-v91 */
+var VERSION = 'kil-pwa-v111-20261125a';
+var PAGES = 'kil-pages-v49';
+var ASSETS = 'kil-assets-v42';
+var CODE = 'kil-code-v92';
 var KEEP = [VERSION, PAGES, ASSETS, CODE];
 var PAGE_LIMIT = 40;
 var PRECACHE = [
@@ -114,9 +118,9 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  // CODE (all JS/CSS, same-origin or CDN incl. fonts.googleapis.com CSS): NETWORK-FIRST.
+  // CODE (all JS/CSS): NETWORK-FIRST.
   // Full URL (incl. ?v=) is the cache key. Never stale while online.
-  if (CODE_EXT.test(url.pathname) || url.hostname === 'fonts.googleapis.com') {
+  if (CODE_EXT.test(url.pathname)) {
     e.respondWith(
       fetch(req).then(function (res) {
         if (res && res.ok) {
@@ -129,8 +133,8 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  // Media/fonts/icons: stale-while-revalidate (visual assets only — can't break logic).
-  if ((url.origin === self.location.origin && MEDIA_EXT.test(url.pathname)) || url.hostname === 'fonts.gstatic.com') {
+  // Media/fonts/icons (same-origin only; fonts are self-hosted since #359): stale-while-revalidate (visual assets only — can't break logic).
+  if (url.origin === self.location.origin && MEDIA_EXT.test(url.pathname)) {
     e.respondWith(
       caches.open(ASSETS).then(function (cache) {
         return cache.match(req).then(function (hit) {

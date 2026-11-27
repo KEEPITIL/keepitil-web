@@ -17,7 +17,7 @@ export const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => 
 const vars = Object.fromEntries([...HTML.match(/:root\{([^}]*)\}/)[1].matchAll(/--([a-z-]+):(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]]));
 
 test('A205: plain links get the green link colour, readable (>= 4.5:1) on the page and card backgrounds', () => {
-  assert.match(HTML, /\n  a\{color:var\(--green\)\}\n/, 'base link colour rule');
+  assert.match(HTML, /\n  a\{color:var\(--green\)(;text-decoration:underline)?\}\n/, 'base link colour rule');
   const plain = [...HTML.matchAll(/<a (?![^>]*class="btn)[^>]*>/g)].length;
   assert.ok(plain >= 5, 'plain links exist (' + plain + ')');
   for (const bg of ['bg', 'card']) assert.ok(ratio(vars.green, vars[bg]) >= 4.5, 'green on ' + bg + ': ' + ratio(vars.green, vars[bg]).toFixed(2));
@@ -31,9 +31,24 @@ test('A205: the age line is "21+ (18+ medical where legal)", never a bare 21+ or
   const text = HTML.replace(/<style\b[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ');
   const bare = (t) => /21\+(?! \(18\+ medical where legal\))/.test(t) || /21\+\s*only/i.test(t);
   assert.equal(bare(text), false);
-  assert.match(text, /Cannabis marketing services · 21\+ \(18\+ medical where legal\)/);
+  assert.match(text, /Business listings · 21\+ \(18\+ medical where legal\)/);
   assert.match(text, /Consumers 21\+ \(18\+ medical where legal\) join free\./);
   // NEGATIVE CONTROLS: the launched wording is caught
   assert.equal(bare('Cannabis marketing services · 21+ only'), true);
   assert.equal(bare('Consumers 21+ join free.'), true);
+});
+
+// Joe 2026-11-22: no sample member profile exists, so the for-business page must not offer one.
+test('no "sample member profile" link on for-business', () => {
+  assert.doesNotMatch(HTML, /findmyweed-sample|sample member profile/i);
+});
+
+// Joe 2026-11-22: "keep it public to verified business owners only". The public page shows no FindMyWeed
+// price and no Stripe payment link; pricing is reached through license verification (signup ?as=business).
+// Competitor ranges in the comparison grid stay.
+test('no FindMyWeed prices or Stripe links on the public for-business page', () => {
+  assert.doesNotMatch(HTML, /buy\.stripe\.com/);
+  const ours = HTML.replace(/<td>\$[^<]*<\/td>|<td>Up to \$[^<]*<\/td>/g, '');
+  assert.doesNotMatch(ours, /\$\d/);
+  assert.match(HTML, /href="https:\/\/keepitil\.com\/app\/findmyweed\/signup\.html\?as=business">Check your license to see pricing</);
 });

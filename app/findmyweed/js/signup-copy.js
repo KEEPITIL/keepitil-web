@@ -2,17 +2,17 @@
 // Three separate sets, so the two audiences never see each other's material (tests/signup.test.js checks it):
 //   shared   - the first choice, the age check, the email and theme steps, "coming soon". Neutral: no pricing, no pitch.
 //   customer - sign up / sign in basics ONLY. No business pricing or pitch, ever.
-//   business - license first: before a VERIFIED license pass no plans, prices, county ladder or comparison are shown; the
-//              category prices, Sponsored county placement and the next steps unlock only after it (not wired yet).
-// Pricing is DISPLAY ONLY and shows only AFTER a verified license pass (no payment UI; the payment link goes out by email after
-// a screening call). Category prices, the standard annual and the county ladder follow the 2026-11-21 business spec; the monthly
-// and ladder figures match the live for-business page (source pinned in tests/signup.test.js).
+//   business - license first: no plans, prices, county ladder or comparison in the public flow at all; after a verified
+//              license and a confirmed email the SERVER answers with the pricing.
+// NO PRICES and NO PAYMENT LINKS in this file (owner 2026-11-22: "keep it public to verified business owners only"). They come
+// only from the server, to a signed-in business with a confirmed email and a verified license (js/fmw-auth.js pricing()).
 (function (root) {
   var COPY = {
     shared: {
       offTitle: 'Accounts are coming soon',
       offBody: 'Find My Weed accounts are not open yet. You can keep browsing licensed businesses without an account.',
       backToSearch: 'Back to search',
+      accountLink: 'Your account',
       chooseTitle: 'Sign in or create an account',
       chooseIntro: 'First, which kind of account is it?',
       chooseCustomer: 'Customer',
@@ -43,7 +43,16 @@
       // with the back end (site.json authProject): the sign-in link was sent
       sentTitle: 'Check your email',
       sentBody: 'We sent you a sign-in link. Open it on this device to finish. Your date of birth was not saved.',
-      soonTheme: 'Your light or dark choice is kept in this browser only.'
+      soonTheme: 'Your light or dark choice is kept in this browser only.',
+      // a refused or failed sign-in link request (rate limit, network): stay on the email step and say so
+      sendFailed: 'We could not send the sign-in link just now. Wait a minute and try again.',
+      // back from the emailed link
+      inTitle: 'You’re signed in',
+      inBody: 'Your email is confirmed and your Find My Weed account is open. Browsing licensed businesses needs no sign-in.',
+      inBodyBusiness: 'Your email is confirmed and your business account is open.',
+      linkBadTitle: 'That sign-in link has expired',
+      linkBadBody: 'Sign-in links work once and only for a short time. Ask for a new one and open it on this device.',
+      linkAgain: 'Email me a new link'
     },
     customer: {
       startTitle: 'Your account',
@@ -61,9 +70,9 @@
     business: {
       // BEFORE a verified license pass: no plans, no prices, no county ladder, no comparison. License first.
       startTitle: 'List your business',
-      startIntro: 'First we verify your state cannabis license. Plans open only after your license checks out.',
+      startIntro: 'First we check your state cannabis license. Pricing shows only after your license checks out and your email is confirmed.',
       howTitle: 'How it works',
-      how: ['Confirm you are 21 or older.', 'Tell us about your license.', 'We verify it against the state record.', 'Once it checks out, you pick your category and we follow up by email.'],
+      how: ['Confirm you are 21 or older.', 'Tell us about your license.', 'We check it against the state record.', 'Once it checks out, confirm your email and your pricing shows.'],
       create: 'Start with my license',
       signIn: 'Business sign in',
       eligTitle: 'Confirm your age',
@@ -83,44 +92,36 @@
       contactRole: 'Your role at the business',
       contactPhone: 'Business phone (optional)',
       pick: 'Choose one',
-      verify: 'Verify my license',
+      verify: 'Check my license',
       errLegalName: 'Enter the legal business name.',
       errLicense: 'Enter the license number like C10-0000123-LIC.',
       errType: 'Choose the license type.',
       errState: 'Choose the state.',
       errContact: 'Enter your name and your role.',
       errPhone: 'Enter a 10-digit phone number, or leave it empty.',
-      pendingTitle: 'License verification is coming soon',
-      pendingBody: 'We can\u2019t verify licenses online yet, so nothing was sent and nothing you entered was saved. Plans open only after a license is verified.',
+      pendingTitle: 'License checks are coming soon',
+      pendingBody: 'We can\u2019t check licenses online yet, so nothing was sent and nothing you entered was saved. Pricing shows only after a license is checked.',
       flaggedTitle: 'We need to check your license by hand',
-      flaggedBody: 'Our team reviews it and emails you. Plans are not shown until your license is verified.',
-      // AFTER a verified license pass only (the verification is not wired yet, so a visitor cannot reach these today).
-      // Prices are display only: nothing is charged here.
-      categoryTitle: 'Pick your category',
-      categoryIntro: 'Your license is verified. Your price is set by your category: two tiers, Retail and Standard.',
-      // Owner ruling 2026-11-21 16:46 PT: TWO tiers. Retail (storefront + delivery) is the top tier: $50/mo or $500/yr. Standard
-      // (every other category): $10/mo or $100/yr. Each annual price belongs to its own tier; no blended annual price.
-      categories: [
-        { id: 'retail', name: 'Retail storefront', tier: 'retail', price: '$50/mo or $500/yr' }, { id: 'delivery', name: 'Delivery', tier: 'retail', price: '$50/mo or $500/yr' },
-        { id: 'brand', name: 'Brand', tier: 'standard', price: '$10/mo or $100/yr' }, { id: 'manufacturer', name: 'Manufacturer', tier: 'standard', price: '$10/mo or $100/yr' },
-        { id: 'distributor', name: 'Distributor', tier: 'standard', price: '$10/mo or $100/yr' }, { id: 'cultivator', name: 'Cultivator', tier: 'standard', price: '$10/mo or $100/yr' },
-        { id: 'lab', name: 'Testing Lab', tier: 'standard', price: '$10/mo or $100/yr' }, { id: 'microbusiness', name: 'Microbusiness', tier: 'standard', price: '$10/mo or $100/yr' },
-        { id: 'services', name: 'Services', tier: 'standard', price: '$10/mo or $100/yr' }, { id: 'venue', name: 'Venue', tier: 'standard', price: '$10/mo or $100/yr' }
-      ],
-      annual: 'Retail tier: $50/mo or $500/yr. Standard tier: $10/mo or $100/yr.',
-      sponsoredTitle: 'Sponsored county placement',
-      sponsoredIntro: 'Optional, a flat monthly fee per county, per category, by rank. Labelled Sponsored wherever it shows; live licenses only.',
-      ranks: ['1st: $500/mo', '2nd: $400/mo', '3rd: $300/mo', '4th: $200/mo', '5th: $100/mo'],
-      errCategory: 'Choose your category.',
-      detailsTitle: 'Contacts and services',
-      detailsIntro: 'Who should we talk to, and what are you interested in?',
-      contactEmailLabel: 'Second contact email (optional)',
-      servicesLegend: 'Services you are interested in',
-      services: ['Sponsored county placement', 'Menu rotation on email and social', 'Monthly recap call', 'Other marketing services'],
+      flaggedBody: 'Our team reviews it and emails you. Pricing is not shown until your license is checked.',
+      // AFTER a verified license pass (anonymous check): no prices yet. Prices and payment links come ONLY from the server
+      // (fmw.business_pricing, migration 20261123030000) once the emailed link has signed the business in with a confirmed
+      // email AND the license check is recorded as verified for that account. No price or payment link is in this file.
+      verifiedNote: 'License checked. Confirm your email, then we\'ll confirm you own this business.',
+      sentBusiness: 'Open the link on this device. Your pricing shows once your email is confirmed.',
+      pricingLoading: 'Checking your license and email\u2026',
+      pricingTitle: 'Your pricing',
+      pricingIntro: 'Your license is checked and your email is confirmed. Pick a plan to start.',
+      pricingPay: 'Each button opens a secure checkout page. Questions before you start?',
+      contact: 'Contact us',
+      pricingLockedTitle: 'We need to check your license by hand',
+      pricingLockedBody: 'We could not confirm a checked license for this account yet. Our team reviews it and emails you. Pricing shows once your license is checked.',
+      // verified license + confirmed email, but the team has not confirmed the claim yet (fmw.business_pricing reason 'approval'): not "check your license by hand" (it IS checked); the same words as the account page
+      pricingApprovalTitle: 'We\'ll confirm you own this business',
+      pricingApprovalBody: 'Your license checked out. Pricing shows once our team has confirmed the claim. We email you.',
+      pricingErrorTitle: 'We could not load your pricing',
+      pricingErrorBody: 'Something went wrong on our side. Try the sign-in link again in a minute, or contact us.',
       nextTitle: 'What happens next',
-      nextSteps: ['We email you first.', 'We book a short screening call.', 'We send your payment link by email.'],
-      nextNote: 'Nothing is charged on this page.',
-      refund: 'If your license check fails after you pay, we refund you in full.',
+      nextSteps: ['Open the sign-in link we emailed you.', 'Your pricing shows once your email is confirmed.'],
       emailTitle: 'Your business email',
       signInTitle: 'Business sign in'
     }

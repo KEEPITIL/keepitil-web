@@ -2,18 +2,20 @@
 <html lang="en" data-theme="default">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
 <title>Venue — KEEPITIL</title>
+<meta property="og:description" content="Book this venue on KEEPITIL — capacity, pricing, amenities, and a booking request in one place.">
 <meta name="description" id="mDesc" content="Book this venue on KEEPITIL — capacity, pricing, amenities, and a booking request in one place."/>
 <meta property="og:type" content="business.business"/>
 <meta property="og:site_name" content="KEEPITIL"/>
 <meta property="og:title" id="mOg" content="Venue — KEEPITIL"/>
 <meta property="og:image" id="mImg" content="https://keepitil.com/assets/images/logo-blue-nav.png"/>
+<meta name="twitter:card" content="summary">
 <!-- NO STATIC CANONICAL: identified by ?v=<slug>; a single hardcoded value is wrong for
      every venue. Injected at runtime below. -->
 <link rel="stylesheet" href="/assets/css/tokens.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+<link href="/assets/css/fonts.css" rel="stylesheet"/>
 <script type="application/ld+json" id="ldjson">{"@context":"https://schema.org","@type":"EventVenue","name":"KEEPITIL Venue"}</script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <style>
@@ -22,6 +24,7 @@ body{background:var(--bg,#0a0a0f);color:var(--text);font-family:var(--font,Inter
 body::before{display:none!important}
 a{color:inherit;text-decoration:none}
 .wrap{max-width:960px;margin:0 auto;padding:0 20px}
+.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .loading{max-width:700px;margin:90px auto;text-align:center;color:var(--muted)}
 /* hero */
 /* VENUE HEADER IS 16:9 (Founder 2026-08-23). A fixed 300px height cropped a 16:9 cover to
@@ -132,10 +135,11 @@ textarea{min-height:90px;resize:vertical}
   <a href="/apply" class="nav-cta">LOGIN</a>
 </div></nav>
 
-<div class="loading" id="loading">Loading venue…</div>
-<div id="v" style="display:none">
+<main id="v">
+  <div class="loading" id="loading"><h1 class="vh">Venue</h1>Loading venue…</div>
+  <div id="vBody" style="display:none">
   <div class="v-cover" id="vCover"></div>
-  <div class="wrap">
+  <div class="wrap" id="main">
     <div class="v-head">
       <h1 class="v-name" id="vName"></h1>
       <div class="v-tag" id="vTag"></div>
@@ -158,22 +162,22 @@ textarea{min-height:90px;resize:vertical}
     <div class="sec" id="bookSec"><h2>Request a booking</h2>
       <div class="card">
         <div class="frow">
-          <div><label>Room</label><select id="bRoom"></select></div>
-          <div><label>Preferred date</label><input type="date" id="bDate"/></div>
+          <div><label for="bRoom">Room</label><select id="bRoom"></select></div>
+          <div><label for="bDate">Preferred date</label><input type="date" id="bDate"/></div>
         </div>
         <div class="frow">
-          <div><label>Event type</label><input id="bType" placeholder="Birthday, wedding, DJ night…"/></div>
-          <div><label>Guest count</label><input type="number" id="bGuests" min="1" placeholder="120"/></div>
+          <div><label for="bType">Event type</label><input id="bType" placeholder="Birthday, wedding, DJ night…"/></div>
+          <div><label for="bGuests">Guest count</label><input type="number" id="bGuests" min="1" placeholder="120"/></div>
         </div>
         <div class="frow">
-          <div><label>Your name</label><input id="bName" placeholder="Full name"/></div>
-          <div><label>Email</label><input id="bEmail" type="email" placeholder="you@email.com"/></div>
+          <div><label for="bName">Your name</label><input id="bName" placeholder="Full name"/></div>
+          <div><label for="bEmail">Email</label><input id="bEmail" type="email" placeholder="you@email.com"/></div>
         </div>
         <div class="frow">
-          <div><label>Phone (optional)</label><input id="bPhone" placeholder="(714) …"/></div>
-          <div><label>Add-ons (optional)</label><input id="bAddons" placeholder="Corkage bar, extra hour…"/></div>
+          <div><label for="bPhone">Phone (optional)</label><input id="bPhone" placeholder="(714) …"/></div>
+          <div><label for="bAddons">Add-ons (optional)</label><input id="bAddons" placeholder="Corkage bar, extra hour…"/></div>
         </div>
-        <label>Notes</label><textarea id="bNotes" placeholder="Tell the venue about your event…"></textarea>
+        <label for="bNotes">Notes</label><textarea id="bNotes" placeholder="Tell the venue about your event…"></textarea>
         <button class="submit" id="bSend" onclick="submitBooking()">Send booking request</button>
         <div class="msg" id="bMsg"></div>
         <div class="mini" id="bNote"></div>
@@ -211,8 +215,9 @@ textarea{min-height:90px;resize:vertical}
 
     <div class="claim" id="vClaim"></div>
   </div>
-</div>
-<div class="sticky" id="sticky"><button onclick="scrollToBook()">Request booking</button></div>
+  </div>
+</main>
+<div class="sticky" id="sticky" role="region" aria-label="Request a booking"><button onclick="scrollToBook()">Request booking</button></div>
 
 <script>
 var SUPA_URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
@@ -222,12 +227,32 @@ function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 var V=null, SLUG='';
 
+/* Same not-found state as /event and /profile: a heading, a way out, and noindex. A bare line of
+   text in the loading box gave a dead end with no navigation and left the page indexable. */
+function venueNF(){
+  var el=$('loading');
+  if(window.KIL_NOT_FOUND) window.KIL_NOT_FOUND({ what:'venue', heading:'That venue isn’t here',
+    body:'It may have been removed, or the link may be wrong.', into:'#loading',
+    links:[['/','Explore events'],['/connect/','Connect'],['/submit-event','Submit an event']] });
+  else if(el){ el.textContent=''; var h=document.createElement('h1'); h.className='vh'; h.textContent='Venue'; el.appendChild(h); el.appendChild(document.createTextNode('This venue is not available.')); }   // keep the heading even without the shell
+}
+function setHero(v){
+  var box=$('vCover'); if(!box||!v||!v.cover_url) return;
+  var cur=box.querySelector('img'); if(cur&&cur.getAttribute('data-hero')===v.cover_url) return;   // already drawn (early path): do not create a second request
+  box.innerHTML='<img src="'+esc(v.cover_url)+'" data-hero="'+esc(v.cover_url)+'" alt="'+esc(v.name)+'" fetchpriority="high" decoding="async" onerror="this.style.display=\'none\'">';   /* the LCP element: the .v-cover box already holds its 16:9 space + gradient, so nothing shifts when it arrives */
+}
 async function load(){
   SLUG=new URLSearchParams(location.search).get('v')||new URLSearchParams(location.search).get('slug')||'';
-  if(!SB||!SLUG){ $('loading').textContent='Venue not found.'; return; }
-  var r=null; try{ r=await SB.rpc('get_venue',{p_slug:SLUG}); }catch(e){ r=null; }
+  /* PERF: start the venue request NOW. It used to wait for DOMContentLoaded, which waits for the deferred shell/radio/echo scripts (~1.8 s on a throttled phone), so the data and then the hero image started that much later. Only the not-found / render step still waits for the shell (below). */
+  var req=null; if(SB&&SLUG){ try{ req=Promise.resolve(SB.rpc('get_venue',{p_slug:SLUG})).catch(function(){ return null; }); }catch(e){ req=null; } }
+  /* and draw the hero as soon as its URL is known (before DOMContentLoaded) so the image request starts then; render() below skips it when it is already there */
+  if(req) req.then(function(r){ var v=r&&r.data&&r.data[0]; if(v&&v.cover_url) setHero(v); });
+  /* keepitil-shell.js is deferred and defines KIL_NOT_FOUND; running before DOMContentLoaded took the bare-text fallback below, which replaced the page's only h1 (axe page-has-heading-one on /venue). */
+  if(document.readyState==='loading') await new Promise(function(r){ document.addEventListener('DOMContentLoaded', r, {once:true}); });
+  if(!SB||!SLUG){ venueNF(); return; }
+  var r=null; try{ r=await req; }catch(e){ r=null; }
   V=r&&r.data&&r.data[0];
-  if(!V){ $('loading').textContent='This venue is not available.'; return; }
+  if(!V){ venueNF(); return; }
   render();
 }
 function render(){
@@ -240,12 +265,12 @@ function render(){
   if(!_vc){ _vc=document.createElement('link'); _vc.rel='canonical'; _vc.id='mCanon';
             document.head.appendChild(_vc); }
   _vc.setAttribute('href','https://keepitil.com/venue?v='+encodeURIComponent(V.slug));
-  if(V.cover_url){ $('vCover').innerHTML='<img src="'+esc(V.cover_url)+'" alt="'+esc(V.name)+'" onerror="this.style.display=\'none\'">'; $('mImg').setAttribute('content',V.cover_url); }
+  if(V.cover_url){ setHero(V); $('mImg').setAttribute('content',V.cover_url); }
   try{ $('ldjson').textContent=JSON.stringify({"@context":"https://schema.org","@type":"EventVenue","name":V.name,"description":V.about||V.tagline,"address":V.address||V.city,"maximumAttendeeCapacity":V.capacity_summary,"image":V.cover_url||undefined,"url":'https://keepitil.com/venue?v='+V.slug}); }catch(e){}
   $('vName').textContent=V.name;
   $('vTag').textContent=V.tagline||'';
   var loc=V.address||V.city;
-  $('vLoc').innerHTML=loc?('📍 <a style="color:inherit;border-bottom:1px solid var(--line)" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(V.maps_query||loc)+'" target="_blank" rel="noopener noreferrer">'+esc(loc)+' ↗</a>'):'';
+  $('vLoc').innerHTML=loc?('📍 <a style="color:inherit;border-bottom:1px solid var(--line);display:inline-block;padding:3px 0;min-height:24px;box-sizing:border-box" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(V.maps_query||loc)+'" target="_blank" rel="noopener noreferrer">'+esc(loc)+' ↗</a>'):'';
   // quick answers (host? / cost? / book?)
   var rooms=V.rooms||[]; var lowest='';
   try{ var ps=[]; rooms.forEach(function(rm){(rm.pricing||[]).forEach(function(p){var n=parseInt(String(p.price).replace(/[^0-9]/g,''),10); if(n)ps.push(n);});}); if(ps.length)lowest='from $'+Math.min.apply(null,ps).toLocaleString(); }catch(e){}
@@ -278,7 +303,7 @@ function render(){
   var rev=V.reviews||{};
   if(rev && rev.source){
     var rc=(rev.rating||rev.count)?(' · '+esc(rev.rating||'')+(rev.count?(' ('+esc(rev.count)+' reviews)'):'')):'';
-    $('vReviews').innerHTML='<b>'+esc(rev.source)+'</b>'+rc+(rev.note?('<div style="margin-top:6px">'+esc(rev.note)+'</div>'):'')+(rev.url?('<div style="margin-top:8px"><a style="color:var(--brand)" href="'+esc(rev.url)+'" target="_blank" rel="noopener noreferrer nofollow">View on '+esc(rev.source)+' ↗</a></div>'):'');
+    $('vReviews').innerHTML='<b>'+esc(rev.source)+'</b>'+rc+(rev.note?('<div style="margin-top:6px">'+esc(rev.note)+'</div>'):'')+(rev.url?('<div style="margin-top:8px"><a style="color:var(--brand);display:inline-block;padding:3px 0;min-height:24px;box-sizing:border-box" href="'+esc(rev.url)+'" target="_blank" rel="noopener noreferrer nofollow">View on '+esc(rev.source)+' ↗</a></div>'):'');
   } else { $('vReviews').innerHTML=esc((rev&&rev.note)||'No reviews yet.'); }
   // on-site reviews + gallery (auto-filled from tagged posts, filterable)
   loadReviews();
@@ -291,7 +316,7 @@ function render(){
   $('askSugg').innerHTML=['How many guests fit?','Can I bring outside food?','Can I have alcohol?','Can I tour first?'].map(function(q){return '<button onclick="askVQ(this.textContent)">'+esc(q)+'</button>';}).join('');
   // claim
   $('vClaim').innerHTML=V.owner_handle?('Managed by <a href="/profile?slug='+esc(V.owner_handle)+'">@'+esc(V.owner_handle)+'</a>'):'Is this your venue? <a onclick="claim()">Claim this page →</a>';
-  $('loading').style.display='none'; $('v').style.display='block';
+  $('loading').style.display='none'; $('vBody').style.display='block';
 }
 /* ── Gallery (auto-filled from posts/blogs that tag or mention the venue) ── */
 function loadGallery(kind){
@@ -328,7 +353,7 @@ function loadReviews(){
   }).catch(function(){});
   SB.auth.getSession().then(function(s){
     if(s&&s.data&&s.data.session){
-      $('reviewForm').innerHTML='<div class="card"><label>Leave a review</label><select id="rvRating" style="max-width:160px"><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option><option value="2">★★</option><option value="1">★</option></select><textarea id="rvBody" placeholder="How was your event at '+esc(V.name)+'?" style="margin-top:10px"></textarea><button class="submit" onclick="submitReview()">Post review</button><div class="msg" id="rvMsg"></div></div>';
+      $('reviewForm').innerHTML='<div class="card"><label for="rvRating">Leave a review</label><select id="rvRating" style="max-width:160px"><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option><option value="2">★★</option><option value="1">★</option></select><textarea id="rvBody" placeholder="How was your event at '+esc(V.name)+'?" style="margin-top:10px"></textarea><button class="submit" onclick="submitReview()">Post review</button><div class="msg" id="rvMsg"></div></div>';
     }
   });
 }
@@ -377,8 +402,8 @@ async function claim(){
 }
 load();
 </script>
-<script src="/assets/js/keepitil-radio.js?v=20261120a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20261124c" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261120b" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
 </body>
 </html>

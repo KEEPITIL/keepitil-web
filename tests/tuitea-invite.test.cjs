@@ -77,11 +77,33 @@ for (const [label, ua, touch, , wantLive] of UA) {
 }
 
 test('negative control: the checklist would catch a script that sends everyone to the App Store', () => {
-  const broken = scriptMatch[1].replace('loc.replace(apple && APP_STORE_LIVE ? APP_STORE : WEB_APP)', 'loc.replace(APP_STORE)');
+  const broken = scriptMatch[1].replace('loc.replace(apple && APP_STORE_LIVE && !toWeb ? APP_STORE : web)', 'loc.replace(APP_STORE)');
   assert.notEqual(broken, scriptMatch[1], 'the replacement must apply');
   const calls = [];
   vm.runInNewContext(broken, { navigator: { userAgent: UA[9][1], maxTouchPoints: 5 }, location: { search: '', replace: (u) => calls.push(u) } });
   assert.notEqual(calls[0], WEB_APP, 'Android would no longer reach the web app, so the Android row fails');
+});
+
+test('Joe 2026-11-23: the invitation (?invite=<token>) is carried on to the web app; the App Store is unchanged', () => {
+  const tok = '0123456789abcdef0123456789abcdef';
+  assert.equal(run(UA[9][1], 5, `?invite=${tok}`), `${WEB_APP}?invite=${tok}`);
+  assert.equal(run(UA[0][1], 5, `?invite=${tok}`), LIVE_NOW ? APP_STORE : `${WEB_APP}?invite=${tok}`);
+  // CONTROL: anything that is not 32 lowercase hex is not passed on.
+  assert.equal(run(UA[9][1], 5, '?invite=../../evil'), WEB_APP);
+  assert.equal(run(UA[9][1], 5, `?invite=${tok.slice(0, 20)}`), WEB_APP);
+});
+
+test('Joe 2026-11-23: the Share link (open=web) sends every device to the web app with the invitation', () => {
+  const tok = '0123456789abcdef0123456789abcdef';
+  assert.equal(run(UA[0][1], 5, `?invite=${tok}&open=web`), `${WEB_APP}?invite=${tok}`, 'iPhone');
+  assert.equal(run(UA[9][1], 5, `?invite=${tok}&open=web`), `${WEB_APP}?invite=${tok}`, 'Android');
+  // CONTROL: without open=web an iPhone still goes to the App Store.
+  assert.equal(run(UA[0][1], 5, `?invite=${tok}`), LIVE_NOW ? APP_STORE : `${WEB_APP}?invite=${tok}`);
+  assert.equal(run(UA[0][1], 5, `?invite=${tok}&open=webby`), LIVE_NOW ? APP_STORE : `${WEB_APP}?invite=${tok}`);
+});
+
+test('Joe 2026-11-23: simple text "You\'re invited to join for free"', () => {
+  assert.match(html, /<p class="lead">You're invited to join for free\.<\/p>/);
 });
 
 test('?stay=1 keeps the page (QA and screenshots)', () => {
@@ -90,7 +112,8 @@ test('?stay=1 keeps the page (QA and screenshots)', () => {
 });
 
 test('link preview: og and twitter tags point at the invite card', () => {
-  assert.equal(meta('property', 'og:title'), "You're invited to TUITEA");
+  assert.equal(meta('property', 'og:title'), 'TUITEA', 'the card image carries the words (Joe 2026-11-23)');
+  assert.equal(meta('name', 'twitter:title'), 'TUITEA');
   assert.ok((meta('property', 'og:description') || '').length > 20);
   assert.equal(meta('property', 'og:url'), 'https://keepitil.com/app/tuitea/invite/');
   assert.equal(meta('property', 'og:image'), CARD);
@@ -108,11 +131,11 @@ test('the card is a 1200x630 PNG stored next to the page', () => {
   assert.equal(png.readUInt32BE(20), 630);
 });
 
-test('three fallback buttons, in order (owner 2026-11-21 ~23:15): Apple, Android coming soon, Web', () => {
+test('three buttons, in order (Joe 2026-11-23): Apple, Google coming soon, Web', () => {
   const buttons = [...html.matchAll(/<(a|span) class="btn ([a-z]+)"([^>]*)>([\s\S]*?)<\/\1>/g)].map((m) => ({
     tag: m[1], kind: m[2], attrs: m[3], text: m[4].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
   }));
-  assert.deepEqual(buttons.map((b) => b.text), [LIVE_NOW ? 'Download Apple App' : 'Download Apple App Coming soon', 'Download Android App Coming soon', 'Download Web App']);
+  assert.deepEqual(buttons.map((b) => b.text), [LIVE_NOW ? 'Apple' : 'Apple Coming soon', 'Google Coming soon', 'Web']);
   const [apple, android, web] = buttons;
   if (LIVE_NOW) {
     // TUITEA is live on the App Store (2026-11-22): the Apple button links to the listing.
@@ -131,14 +154,14 @@ test('three fallback buttons, in order (owner 2026-11-21 ~23:15): Apple, Android
   assert.match(android.attrs, /aria-disabled="true"/);
   assert.doesNotMatch(android.attrs, /href=/);
   assert.equal(web.tag, 'a');
-  assert.equal(web.attrs, ' href="/app/tuitea/app/"');
+  assert.equal(web.attrs, ' id="web" href="/app/tuitea/app/"');
   assert.doesNotMatch(html, /play\.google\.com/);
 });
 
 test('CONTROL: the button check catches the earlier labels and order', () => {
   const old = '<a class="btn primary" href="x">Download on the App Store</a><a class="btn secondary" href="y">Open the web app</a>';
   const texts = [...old.matchAll(/<(a|span) class="btn ([a-z]+)"([^>]*)>([\s\S]*?)<\/\1>/g)].map((m) => m[4]);
-  assert.notDeepEqual(texts, ['Download Apple App', 'Download Android App Coming soon', 'Download Web App']);
+  assert.notDeepEqual(texts, ['Apple', 'Google Coming soon', 'Web']);
 });
 
 test('owner ~23:25: Apple logo and Android robot glyphs are inline SVG, monochrome, no external fetch', () => {
@@ -146,8 +169,8 @@ test('owner ~23:25: Apple logo and Android robot glyphs are inline SVG, monochro
   const byClass = (c) => svgs.filter((m) => new RegExp(`class="[^"]*\\b${c}\\b`).test(m[1]));
   assert.equal(byClass('glyph-apple').length, 1, 'one Apple glyph');
   assert.equal(byClass('glyph-android').length, 1, 'one Android glyph');
-  assert.match(html, LIVE_NOW ? /<a class="btn primary"[^>]*><svg class="glyph glyph-apple"[^>]*>[\s\S]*?<\/svg>Download Apple App<\/a>/ : /<span class="btn disabled"[^>]*><svg class="glyph glyph-apple"[^>]*>[\s\S]*?<\/svg>Download Apple App<small>Coming soon<\/small><\/span>/);
-  assert.match(html, /<span class="btn disabled"[^>]*><svg class="glyph glyph-android"[^>]*>[\s\S]*?<\/svg>Download Android App<small>/);
+  assert.match(html, LIVE_NOW ? /<a class="btn primary"[^>]*><svg class="glyph glyph-apple"[^>]*>[\s\S]*?<\/svg>Apple<\/a>/ : /<span class="btn disabled"[^>]*><svg class="glyph glyph-apple"[^>]*>[\s\S]*?<\/svg>Apple<small>Coming soon<\/small><\/span>/);
+  assert.match(html, /<span class="btn disabled"[^>]*><svg class="glyph glyph-android"[^>]*>[\s\S]*?<\/svg>Google<small>/);
   for (const [whole, attrs, body] of svgs) {
     assert.match(attrs, /aria-hidden="true"/, 'decorative');
     assert.doesNotMatch(whole, /\b(xlink:)?href=|\bsrc=|url\(|<image|<use|<foreignObject|https?:/i, 'no external reference');

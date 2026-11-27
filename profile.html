@@ -10,19 +10,23 @@
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/>
 <meta name="robots" content="index,follow">
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
   <!-- NO STATIC CANONICAL: this page is identified by ?slug=<slug>, so one hardcoded value
        collapsed all six sitemap-listed profiles onto /profile for any crawler that does
        not run JS. Missing beats wrong; the real canonical is injected below. -->
 <title>Profile | KEEPITIL</title>
+<meta property="og:title" content="Profile | KEEPITIL">
+<meta property="og:description" content="KEEPITIL is a culture platform built to discover, connect, create, share and earn through people, events, media and community.">
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
 <meta name="description" content="KEEPITIL is a culture platform built to discover, connect, create, share and earn through people, events, media and community."/>
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://keepitil.com/keepitil-og.png">
+<meta name="twitter:image" content="https://keepitil.com/keepitil-og.png">
+<meta name="twitter:card" content="summary_large_image">
   <link rel="icon" type="image/png" href="/assets/images/logo-green-nav.png"/>
   <script>(function(){try{var t=localStorage.getItem('kil-theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="/assets/css/fonts.css" rel="stylesheet"/>
   <style>
 :root,html[data-theme="dark"]{--bg:#0b0b0b;--surface:#141420;--surface2:#1b1b28;--text:#f0f0f0;--text-soft:rgba(240,240,240,.86);--muted:#8a8a99;--line:rgba(255,255,255,.09);--accent:var(--live);--accent2:var(--brand);--nav:rgba(11,11,11,.95);--onacc:#06120a;}
 html[data-theme="light"]{--bg:#f4f5fa;--surface:#ffffff;--surface2:#eceef5;--text:#141621;--text-soft:#33384a;--muted:#6b7080;--line:rgba(0,0,0,.10);--accent:#00b36b;--accent2:#0077ff;--nav:rgba(255,255,255,.92);--onacc:#ffffff;}
@@ -52,8 +56,10 @@ nav#main-nav{position:sticky;top:0;z-index:100;background:var(--nav);backdrop-fi
 /* header banner removed — the locked background image is the profile's visual now */
 .pf-cover{display:none!important;}
 /* Locked full-page backdrop (like culture + homepage) — content scrolls over it. Image is editable via --pf-bg. Dark scrim keeps feed text readable over any image. */
+html{background:#0a0a0f;}   /* the same dark as the backdrop below: gives the page a real background colour under body::before (a pseudo-element no checker can see) and avoids a white flash */
 body{background:transparent!important;}
 body::before{content:""!important;position:fixed!important;inset:0!important;z-index:-1!important;background:linear-gradient(rgba(6,7,14,.62),rgba(6,7,14,.62)),var(--pf-bg,url('/assets/images/scene-hero.jpg')) center center/cover no-repeat #0a0a0f!important;opacity:1!important;}
+@supports (background-image:image-set(url('/assets/images/scene-hero.webp') type('image/webp'))){body::before{background:linear-gradient(rgba(6,7,14,.62),rgba(6,7,14,.62)),var(--pf-bg,image-set(url('/assets/images/scene-hero.webp') type('image/webp'),url('/assets/images/scene-hero.jpg') type('image/jpeg'))) center center/cover no-repeat #0a0a0f!important}}
 .pf-cover img{width:100%;height:100%;object-fit:cover;object-position:center 35%;filter:brightness(.62);}
 .pf-cover::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 30%,var(--bg));}
 .pf-head{max-width:940px;margin:0 auto;padding:0 22px;position:relative;z-index:2;margin-top:28px;}
@@ -142,11 +148,11 @@ body::before{content:""!important;position:fixed!important;inset:0!important;z-i
 /* The optional social icons are not equal-width controls; they keep their own size inside
    whatever column they land in rather than stretching into a 100px slab. */
 .pf-cta .pf-btn.icon{width:44px;justify-self:center}
-.pf-cta #pfFollow,.pf-cta #pfBook,
+.pf-cta #pfFollow,.pf-cta #pfBook,.pf-cta #pfEditPage,.pf-cta #pfContact,
 .pf-cta #pfShare>button,.pf-cta #pfDashWrap>button{
   width:100%;height:40px;display:flex;align-items:center;justify-content:center;
   padding:0 10px;white-space:nowrap}
-.pf-cta #pfFollow,.pf-cta #pfBook{flex:1;text-align:center}
+.pf-cta #pfFollow,.pf-cta #pfBook,.pf-cta #pfEditPage,.pf-cta #pfContact{flex:1;text-align:center}
 .alert-btn{font-family:var(--font-head);font-size:.95rem;letter-spacing:.1em;background:var(--accent);color:var(--onacc);border:none;border-radius:6px;padding:9px 20px;cursor:pointer;white-space:nowrap;transition:filter .15s,transform .15s;}
 .alert-btn:hover{filter:brightness(1.08);transform:translateY(-1px);}
 .alert-btn.on{background:transparent;border:2px solid var(--accent);color:var(--accent);}
@@ -296,7 +302,7 @@ footer a{color:var(--accent2);}
   .kil-mx{background:none;border:none;color:var(--muted);font-size:1.6rem;line-height:1;cursor:pointer;}
   .kil-mb{padding:16px 20px;display:flex;flex-direction:column;gap:14px;}
   .kil-mf{display:flex;flex-direction:column;gap:6px;font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);}
-  .kil-mf input[type=text],.kil-mf textarea{font-family:inherit;font-size:.95rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;width:100%;box-sizing:border-box;}
+  .kil-mf input[type=text],.kil-mf textarea{font-family:inherit;font-size:1rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;width:100%;box-sizing:border-box;}
   .kil-mf input[type=text]:focus,.kil-mf textarea:focus{outline:none;border-color:var(--accent);}
   .kil-mf input[type=file]{font-size:.8rem;color:var(--muted);}
   .kil-prev{display:none;max-height:120px;border-radius:8px;margin-top:8px;object-fit:cover;}
@@ -318,7 +324,7 @@ footer a{color:var(--accent2);}
   .kil-ph3 input[type=file]{font-size:.68rem;}
   .kil-ph3 .kil-mf>span{font-size:.62rem;}
   .kil-row2{display:flex;gap:12px;flex-wrap:wrap;}.kil-row2 .kil-mf{flex:1;min-width:150px;}
-  .kil-mf input[type=password]{font-family:inherit;font-size:.95rem;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;width:100%;box-sizing:border-box;}
+  .kil-mf input[type=password]{font-family:inherit;font-size:1rem;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;width:100%;box-sizing:border-box;}
   .kil-mf input[type=password]:focus{outline:none;border-color:var(--accent);}
   .kil-prev.on{display:block;}
   .kil-hls{display:flex;flex-direction:column;gap:8px;}
@@ -361,6 +367,18 @@ footer a{color:var(--accent2);}
   .pf-subs{padding:8px}
   .pf-subs button{padding:6px 12px;font-size:.63rem}
 }
+.pf-vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ONE-PASS HEADER (KODE parked ticket; Grok 11:36): the header arrives in steps (name/bio/avatar, then about/links/badges/account type, then the stats), so the page re-flowed several times
+   (phone CLS 0.4-0.9 on long-bio profiles). While `body.pf-hold` ONLY the late block is painted invisible: stats, about, links, account type, badges, the buttons row and everything under the header
+   (name, avatar and bio paint at once). js releases the hold when all pieces are in, after 1.5 s at the latest, or on a not-found / no-database page. Only with scripting on. */
+@media (scripting:enabled){
+  .pf-meta{min-height:14rem}
+  body.pf-hold #pfStatsRow,body.pf-hold #pfAcctType,body.pf-hold #pfBadges,body.pf-late #pfAboutTop,body.pf-late #pfLinksDrop,body.pf-late #pfAbout,body.pf-late #pfLinks,body.pf-late .pf-cta{visibility:hidden}
+  /* the feed arrives last and can be 1,000+ px tall and lands above the partner block and the footer. Both stay invisible (not collapsed: no blank band) until the feed is drawn (loadFromDB), or at once when the record says 0 posts (get_profile_stats). */
+  body.pf-feed .mono,body.pf-foot #v3-footer{visibility:hidden}   /* the partner block paints at once (early LCP); if the feed is not drawn by 450 ms it is hidden (hidden elements never count toward CLS) until the feed is drawn, so a 1,000+ px feed cannot push it. The footer waits for the feed from the start. No reserved height, so no blank band. */
+}
+@media (scripting:enabled) and (max-width:768px){.pf-meta{min-height:19rem}}
 </style>
 <style id="kil-feedv2">
 /* ===== FEED v2 — 9:16 universal cards, video, IG-style create, legend, events hub ===== */
@@ -414,7 +432,7 @@ footer a{color:var(--accent2);}
 /* EVENTS hub — 9:16 universal flyer cards */
 .ev-group-h{font-family:var(--font-head);font-size:1.05rem;letter-spacing:.1em;color:var(--muted);margin:22px 0 12px;display:flex;align-items:center;gap:8px;}
 .ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
-.ev-flyer{position:relative;aspect-ratio:2/3;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#0a0a0f url('/assets/images/scene-hero.jpg') center/cover no-repeat;cursor:pointer;transition:transform .18s,border-color .18s;}
+.ev-flyer{position:relative;aspect-ratio:2/3;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#0a0a0f url('/assets/images/scene-hero.jpg') center/cover no-repeat;background-image:image-set(url('/assets/images/scene-hero.webp') type('image/webp'),url('/assets/images/scene-hero.jpg') type('image/jpeg'));cursor:pointer;transition:transform .18s,border-color .18s;}
 .ev-flyer:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--accent) 45%,transparent);}
 .ev-flyer .cov{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}
 .ev-flyer::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(transparent 34%,rgba(0,0,0,.86));}
@@ -603,7 +621,26 @@ window.KIL_FILTER_BADGES = function(badges){
 };
 </script>
 </head>
-<body>
+<body class="pf-hold pf-late pf-foot">
+<script>
+/*PF-GATE-START*/
+window.__pfGate=(function(){
+  // two holds on <body>: pf-hold (stats, account type, badges: small text) is released when all four pieces are in or after 1.5 s;
+  // pf-late (about, links, the buttons row: the blocks that MOVE things) is released as soon as the profile row is drawn (meta), or at a hard cap of 6 s, so it never appears after the page has been shown.
+  var need={meta:1,about:1,claim:1,stats:1}, holdOff=false, lateOff=false, t1=null, t2=null, t3=null;
+  function cl(c){ try{ document.body.classList.remove(c); }catch(e){} }
+  function releaseHold(){ if(holdOff) return; holdOff=true; if(t1) clearTimeout(t1); cl('pf-hold'); }
+  function releaseLate(){ if(lateOff) return; lateOff=true; if(t2) clearTimeout(t2); cl('pf-late'); }
+  var feedOff=false;
+  function releaseFeed(){ feedOff=true; if(t3) clearTimeout(t3); cl('pf-feed'); cl('pf-foot'); }
+  function holdFeed(){ if(feedOff) return; try{ document.body.classList.add('pf-feed'); }catch(e){} }
+  function reveal(){ releaseHold(); releaseLate(); releaseFeed(); }
+  function mark(k){ if(k==='feed'){ releaseFeed(); return; } if(!need[k]) return; delete need[k]; if(k==='meta') releaseLate(); for(var x in need){ if(Object.prototype.hasOwnProperty.call(need,x)) return; } releaseHold(); }
+  t3=setTimeout(holdFeed,450); t1=setTimeout(releaseHold,1500); t2=setTimeout(function(){ releaseLate(); releaseFeed(); },6000);
+  return { mark:mark, holdFeed:holdFeed, reveal:reveal, pending:function(){ return Object.keys(need); }, released:function(){ return holdOff&&lateOff; }, hold:function(){ return !holdOff; }, late:function(){ return !lateOff; } };
+})();
+/*PF-GATE-END*/
+</script>
 
 <nav id="main-nav">
   <div class="nav-inner">
@@ -629,15 +666,16 @@ window.KIL_FILTER_BADGES = function(badges){
 <!-- P0 fix 2026-07-16: hero ships BLANK (skeleton) — live/demo data is applied by JS only.
      A new/empty profile must render a blank, fillable page — never someone else's identity. -->
 <style>@keyframes pfskel{50%{opacity:.45}}.pf-skel{animation:pfskel 1.2s ease-in-out infinite}</style>
+<main id="main">
 <button id="pfBack" onclick="history.back()">‹ Previous</button>
 <div class="pf-cover"><img id="pfCover" src="" alt="" style="display:none" onerror="this.style.display='none'"></div>
 <div class="pf-head">
   <div class="pf-top" style="align-items:stretch;gap:26px">
     <img id="pfAvatar" class="pf-avatar pf-skel" src="/icon-192.png" alt="Profile" style="align-self:center">
     <div class="pf-idblock" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px">
-      <h1 class="pf-name" id="pfName" style="margin:0">&nbsp;</h1>
+      <h1 class="pf-name" id="pfName" style="margin:0"><span class="pf-vh">Loading profile</span>&nbsp;</h1>
       <div class="pf-handle" id="pfHandle">&nbsp;</div>
-      <div id="pfStatsRow" style="display:flex;gap:24px;font-size:.96rem"><span><b id="stPosts">0</b> feed</span><span style="color:inherit"><b id="stFollowers">0</b> followers</span><span style="color:inherit"><b id="stLikes">0</b> likes</span></div>
+      <div id="pfStatsRow" style="display:flex;flex-wrap:wrap;gap:6px 24px;font-size:.96rem"><span><b id="stPosts">0</b> feed</span><span style="color:inherit"><b id="stFollowers">0</b> followers</span><span style="color:inherit"><b id="stLikes">0</b> likes</span></div>
       <div id="pfAboutTop" style="display:none;color:var(--text-soft,#c9cede);font-size:.88rem;line-height:1.5"></div>
       <div id="pfLinksDrop" style="display:none;position:relative">
         <button class="evsub-b" onclick="var m=document.getElementById('pfLinksMenu');m.style.display=m.style.display==='none'?'block':'none';event.stopPropagation()">🔗 Links ▾</button>
@@ -654,8 +692,10 @@ window.KIL_FILTER_BADGES = function(badges){
   <div class="pf-cta">
     <button class="pf-btn follow" id="pfFollow" onclick="toggleFollow()">+ FOLLOW</button>
     <button class="pf-btn book" id="pfCreate" style="display:none" onclick="toggleCreateMenu(event)">＋ CREATE</button>
+    <button type="button" class="pf-btn book" id="pfEditPage" style="display:none" onclick="openEditProfile()">EDIT PAGE</button>
     <span id="pfDashWrap" style="display:none"><button class="pf-btn book" id="pfArchive" onclick="location.href='/dashboard'">DASH</button></span>
     <a class="pf-btn book" id="pfBook" href="#" style="display:none">MESSAGE</a>
+    <button type="button" class="pf-btn book" id="pfContact" style="display:none">CONTACT</button>
     <a class="pf-btn icon" id="pfIG" href="#" style="display:none" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2zm0 3.2A6.6 6.6 0 1012 18.6 6.6 6.6 0 0012 5.4zm0 10.9a4.3 4.3 0 110-8.6 4.3 4.3 0 010 8.6zm6.85-11.2a1.54 1.54 0 11-3.08 0 1.54 1.54 0 013.08 0z"/></svg></a>
     <a class="pf-btn icon" id="pfSC" href="#" style="display:none" target="_blank" rel="noopener noreferrer" aria-label="SoundCloud"><svg viewBox="0 0 24 24"><path d="M1.5 13.6c-.1 0-.2.1-.2.2l-.2 1.7.2 1.6c0 .1.1.2.2.2s.2-.1.2-.2l.2-1.6-.2-1.7c0-.1-.1-.2-.2-.2zm2 .6c-.1 0-.2.1-.2.2l-.2 1.1.2 1.1c0 .1.1.2.2.2s.2-.1.2-.2l.3-1.1-.3-1.1c0-.1-.1-.2-.2-.2zm12.9-4.9c-.5 0-.9.1-1.3.3-.3-2.9-2.7-5.1-5.7-5.1-.7 0-1.4.1-2 .4-.2.1-.3.2-.3.4v9.1c0 .2.2.4.4.4h8.9c1.7 0 3.1-1.4 3.1-3.1 0-1.5-1.2-2.8-3.1-2.8z"/></svg></a>
     <style>#pfShare>button.pf-btn{background:transparent!important;color:var(--brand,#00b4ff)!important;border:2px solid var(--brand,#00b4ff)!important;box-shadow:0 0 12px color-mix(in srgb,var(--brand,#00b4ff) 50%,transparent),inset 0 0 8px color-mix(in srgb,var(--brand,#00b4ff) 20%,transparent)}</style>
@@ -825,17 +865,19 @@ window.KIL_FILTER_BADGES = function(badges){
   </div>
 </div>
 
+</main>
+
 <!-- custom footer removed: the universal shell footer (#v3-footer, same as the homepage) is injected by keepitil-shell.js -->
 <!-- pfFootSocials removed (Founder 2026-07-31): socials/links live only in the header Links row, not duplicated at the bottom of the page -->
 
 <script src="/assets/js/vendor/qrcode.js"></script>
 <script src="/assets/js/kil-ticket-qr.js"></script>
+<script src="/assets/js/kil-img-host.js"></script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script src="/assets/js/vendor/purify.min.js?v=20261107b"></script>
 <script src="/assets/js/kil-safe-html.js?v=20261107b"></script>
 <!-- Nudity / explicit-content moderation for image uploads (in-browser, no keys) -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/nsfwjs@3.0.0/dist/nsfwjs.min.js" defer></script>
+<!-- tf.js + nsfwjs (~560 KB) are only needed to screen UPLOADS (signed-in editors): loadNsfwLibs() fetches them on demand / after sign-in. -->
 <script>
 function toggleMenu(){var m=document.getElementById('mobile-menu');if(m)m.classList.toggle('open');}
 /* OWNER (subscriber, can edit/add) vs PUBLIC (customer-facing, read-only) */
@@ -1128,7 +1170,7 @@ function renderHighlights(){
   var r=document.getElementById('hl-row');if(!r)return;
   r.innerHTML=(PROFILE.highlights||[]).map(function(h){ var src=safeMedia(h&&h.img); if(!src) return ''; return '<div class="hl" onclick="showTab(\'gallery\')"><div class="hl-c"><img src="'+esc(src)+'" alt="'+esc(h.label)+'" loading="lazy" onerror="this.style.opacity=.12"></div><span>'+esc(h.label)+'</span></div>';}).join('');
 }
-function galSrc(v){return (v.indexOf('http')===0||v.indexOf('data:')===0)?v:'https://images.ra.co/'+v+'.jpg';}
+function galSrc(v){var u=(v.indexOf('http')===0||v.indexOf('data:')===0)?v:'https://images.ra.co/'+v+'.jpg'; return (typeof window!=='undefined'&&window.KilImgHost&&window.KilImgHost.clean)?window.KilImgHost.clean(u):u;}   /* a host that refuses hotlinking (images.ra.co) is never requested: '' = no picture, the card shows its placeholder */
 var GAL_IMGS=[['07f9c05ddcb8a49e9f957760d870ec493b30a4d9','Latin House Night','12.4K'],['095b3c97c806dfa2326c4bc5a8239907b4a24815','Avalon Hollywood','48K'],['0c08978993ce4ba443b61b007d1de45445ddced3','Warehouse Set','9.1K'],['0eb69717593e6bb32225fec905e93762454a7894','Groove Cruise','22K'],['1641a2b8fddcee60bb204595abe0a3f20d8a0e51','Day Trip','7.7K'],['1bfc214a7b4917efac1afad318fd4dafa631a480','Rooftop Session','5.2K'],['233912b5340b79213e16e58647ecd297165d0a52','Kingdom @ Catch One','15K'],['234c570dd0c0ce4c93d62945d502ef1952b2cf31','R&V Radio','3.8K'],['288b5245302955ed0864e6f9dad31af0a092984c','Nocturnal Fest','31K']];
 function renderGallery(){
   var g=document.getElementById('gal-grid');if(!g)return;
@@ -1165,7 +1207,7 @@ function dbToEv(e,src){
     title:e.title||'Event', venue:e.city||'',
     tags: src==='tickets'?('🎟 Ticket'+(e.qty>1?' ×'+e.qty:'')):(e.genres||(st&&st!=='published'?st:'')),
     tix: src==='tickets'?('/tickets?e='+encodeURIComponent(e.slug||'')):('/event?e='+encodeURIComponent(e.slug||'')),
-    cover:e.cover_url||'', kind:'kil', _src:src, _ts:d?d.getTime():0 };
+    cover:KH(e.cover_url||''), kind:'kil', _src:src, _ts:d?d.getTime():0 };
 }
 /* SINGLE events feed: all event types + my events + my tickets, filterable, newest -> oldest */
 function renderShows(){
@@ -1238,7 +1280,7 @@ function openTicket(i){
   var door=KilTicketQr.payload(t.qr_token);
   var qr='';
   if(door){ var qrDraw=qrcode(0,'M'); qrDraw.addData(door); qrDraw.make(); qr=qrDraw.createDataURL(4,0); }
-  var flyer=t.cover_url?'<img src="'+esc(t.cover_url)+'" alt="" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" onerror="this.style.display=\'none\'">':'';
+  var flyer=KH(t.cover_url)?'<img src="'+esc(KH(t.cover_url))+'" alt="" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" onerror="this.style.display=\'none\'">':'';
   var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';
   ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Your Ticket<button class="kil-mx" onclick="closeModal()">&times;</button></div><div class="kil-mb">'
     +flyer
@@ -1267,7 +1309,7 @@ function toggleAlert(){_alerts=!_alerts;var b=document.getElementById('alertBtn'
     ['$15.99','Kandi Kit','Trade PLUR on the floor','https://www.amazon.com/s?k=kandi+rave+kit&tag=tuitea09-20','https://images.ra.co/233912b5340b79213e16e58647ecd297165d0a52.jpg','linear-gradient(160deg,#201018,#12080d)',true]
   ];
   sh.innerHTML=items.map(function(it){
-    var bg=it[4]?'<img class="bgimg" src="'+it[4]+'" alt="" onerror="this.style.display=\'none\'"><div class="ov"></div>':'';
+    var bg=KH(it[4])?'<img class="bgimg" src="'+it[4]+'" alt="" onerror="this.style.display=\'none\'"><div class="ov"></div>':'';
     var style=it[5]?' style="background:'+it[5]+'"':'';
     var badge=it[6]?'<span class="badge">Amazon</span>':'';
     var cta=it[6]?'Shop on Amazon →':'Open →';
@@ -1285,6 +1327,7 @@ function loadStored(){
   ADDED.chats.forEach(function(c){GT_CHATS.unshift(c);});
 }
 function saveStored(){try{localStorage.setItem(PROFILE_KEY,JSON.stringify(ADDED));}catch(e){}}
+function KH(u){ return (window.KilImgHost&&window.KilImgHost.clean)?window.KilImgHost.clean(u):u; }   /* known-unloadable cover hosts (assets/js/kil-img-host.js) never get a request */
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function storedBody(rec){ return (window.KilSafeHtml && KilSafeHtml.renderStored(rec)) || ''; }
 function safeNav(url){ return (window.KilSafeHtml && KilSafeHtml.safeNavUrl(url)) || ''; }
@@ -1318,10 +1361,10 @@ function rebuild(rows){
   renderAll();
 }
 function loadFromDB(){
-  if(!SB){ fallbackLocal(); return; }
+  if(!SB){ fallbackLocal(); window.__pfGate&&window.__pfGate.mark('feed'); return; }
   SB.from('profile_content').select('*').eq('profile_slug',PROFILE_SLUG).order('created_at',{ascending:true}).then(function(r){
-    if(r&&!r.error){ DB_OK=true; rebuild(r.data); }
-    else { fallbackLocal(); }
+    if(r&&!r.error){ DB_OK=true; rebuild(r.data); window.__pfGate&&window.__pfGate.mark('feed'); }
+    else { fallbackLocal(); }   // a failed read draws the small local seed: the real feed may still land, so the hold stays (6 s cap)
   }).catch(function(){ fallbackLocal(); });
 }
 function fallbackLocal(){ GT_ARTICLES=SEED.articles.slice();GAL_IMGS=SEED.photos.slice();GT_SHOWS=SEED.shows.slice();GT_CHATS=SEED.chats.slice();
@@ -1352,11 +1395,20 @@ function publish(kind,data){
    Fails OPEN (allows) only if the model can't load, so uploads never hard-break;
    server-side moderation is the recommended hardening layer on top of this. */
 var _nsfwModel=null, _nsfwLoading=null;
+var _nsfwLibs=null;
+function loadNsfwLibs(){
+  if(_nsfwLibs) return _nsfwLibs;
+  function add(src){ return new Promise(function(res,rej){ var sc=document.createElement('script'); sc.src=src; sc.onload=res; sc.onerror=rej; document.head.appendChild(sc); }); }
+  _nsfwLibs = add('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js').then(function(){ return add('https://cdn.jsdelivr.net/npm/nsfwjs@3.0.0/dist/nsfwjs.min.js'); }).catch(function(){ return null; });
+  return _nsfwLibs;
+}
 function getNsfwModel(){
   if(_nsfwModel) return Promise.resolve(_nsfwModel);
   if(_nsfwLoading) return _nsfwLoading;
-  if(typeof nsfwjs==='undefined') return Promise.resolve(null);
-  _nsfwLoading = nsfwjs.load().then(function(m){ _nsfwModel=m; return m; }).catch(function(){ return null; });
+  _nsfwLoading = loadNsfwLibs().then(function(){
+    if(typeof nsfwjs==='undefined') return null;
+    return nsfwjs.load().then(function(m){ _nsfwModel=m; return m; });
+  }).catch(function(){ return null; });
   return _nsfwLoading;
 }
 function isImageSafe(file){
@@ -1377,19 +1429,58 @@ function isImageSafe(file){
     });
   });
 }
-function uploadImage(file,cb){
-  if(!file||!SB||!SESSION){ cb(null); return; }
+/* Resize before upload (owner uploads were stored as-is: two ~2 MB 1672x941 PNGs shown as a 124px avatar made the page 1.8 MB).
+   Longest edge capped at 1600px, re-encoded as WebP (q .85); a JPEG source falls back to JPEG when the browser cannot encode WebP.
+   The ORIGINAL file is kept when: it is not a png/jpeg/webp (gif, video...), it is already small (<=1600px and <=400 KB), the browser cannot
+   encode (a PNG with no WebP encoder would lose its transparency in a JPEG), anything fails or takes over 6 s, or the result is not smaller. */
+function resizeForUpload(file){
+  return new Promise(function(resolve){
+    var settled=false; function done(f){ if(!settled){ settled=true; resolve(f||file); } }
+    try{
+      if(!file||!/^image\/(png|jpeg|webp)$/i.test(file.type||'')) return done(file);
+      setTimeout(function(){ done(file); },6000);
+      var url=URL.createObjectURL(file), img=new Image();
+      img.onerror=function(){ try{URL.revokeObjectURL(url);}catch(e){} done(file); };
+      img.onload=function(){
+        try{ URL.revokeObjectURL(url); }catch(e){}
+        var w=img.naturalWidth, h=img.naturalHeight, longEdge=Math.max(w,h);
+        if(!w||!h||(longEdge<=1600&&file.size<=400*1024)) return done(file);
+        var k=Math.min(1,1600/longEdge), cw=Math.max(1,Math.round(w*k)), ch=Math.max(1,Math.round(h*k));
+        var c=document.createElement('canvas'); c.width=cw; c.height=ch;
+        var ctx=c.getContext&&c.getContext('2d'); if(!ctx) return done(file);
+        ctx.drawImage(img,0,0,cw,ch);
+        var base=String(file.name||'image').replace(/\.[^.]+$/,'');
+        function finish(blob,type,ext){
+          if(!blob||blob.size>=file.size) return done(file);
+          var out; try{ out=new File([blob],base+'.'+ext,{type:type}); }catch(e){ return done(file); }   // no File constructor: keep the original (it has a name)
+          done(out);
+        }
+        c.toBlob(function(b){
+          if(b&&b.type==='image/webp') return finish(b,'image/webp','webp');
+          if(/^image\/jpeg$/i.test(file.type)) return c.toBlob(function(j){ finish(j,'image/jpeg','jpg'); },'image/jpeg',0.85);
+          done(file);
+        },'image/webp',0.85);
+      };
+      img.src=url;
+    }catch(e){ done(file); }
+  });
+}
+function uploadImage(file0,cb){
+  if(!file0||!SB||!SESSION){ cb(null); return; }
+  resizeForUpload(file0).then(function(file){
   /* moderation must never hang the upload — on mobile the NSFW/TF.js model can stall.
-     Race it against a 4s timeout that fails OPEN (consistent with the model-unavailable path). */
+     Race it against a 4s timeout that fails OPEN (consistent with the model-unavailable path). The check runs on the RESIZED image that is actually uploaded. */
   var moderated=Promise.race([ isImageSafe(file), new Promise(function(res){ setTimeout(function(){ res(true); },4000); }) ]);
   moderated.then(function(safe){
     if(!safe){ toast('⛔ Image blocked — nudity or explicit content is not allowed on KEEPITIL.'); cb(null); return; }
-    var path='profiles/'+PROFILE_SLUG+'/'+Date.now()+'-'+file.name.replace(/[^a-z0-9.\-]+/gi,'_');
+    /* chat-images accepts uploads only into the signed-in user's own folder (first path segment = their user id): <uid>/profiles/<slug>/... Existing files keep their old paths and URLs. */
+    var path=SESSION.user.id+'/profiles/'+PROFILE_SLUG+'/'+Date.now()+'-'+file.name.replace(/[^a-z0-9.\-]+/gi,'_');
     SB.storage.from('chat-images').upload(path,file).then(function(r){
       if(r&&r.error){ cb(null); return; }
       var pub=SB.storage.from('chat-images').getPublicUrl(path);
       cb((pub&&pub.data)?pub.data.publicUrl:null);
     }).catch(function(){ cb(null); });
+  });
   });
 }
 function resolveImg(vals,fileKey,urlKey,dflt,cb){ uploadImage(vals[fileKey+'_file'],function(pub){ cb(pub||vals[fileKey]||vals[urlKey]||dflt||''); }); }
@@ -1442,7 +1533,7 @@ function applyProfile(){
   /* the profile "cover" is now the LOCKED BACKGROUND image (editable in Edit Profile) */
   try{ var _isM=window.matchMedia('(max-width:768px)').matches; var _bg=(_isM&&PROFILE.cover_mobile)?PROFILE.cover_mobile:PROFILE.cover; document.documentElement.style.setProperty('--pf-bg', _bg?("url('"+String(_bg).replace(/'/g,"%27")+"')"):"url('/assets/images/logo-bg.jpg')"); }catch(e){}
   var _av=g('pfAvatar'); if(_av){ _av.classList.remove('pf-skel'); if(PROFILE.avatar){ _av.style.display=''; _av.src=PROFILE.avatar; } }
-  if(g('pfName'))g('pfName').textContent=PROFILE.name||' ';
+  if(g('pfName')){ var _pn=g('pfName'); if(PROFILE.name) _pn.textContent=PROFILE.name; else _pn.innerHTML='<span class="pf-vh">Loading profile</span>\u00a0'; }   /* a heading is never empty: it carries a visually hidden "Loading profile" label until a name arrives, then the name */
   if(g('pfHandle'))g('pfHandle').textContent=PROFILE.handle?('@'+PROFILE.handle+(PROFILE.location?' · '+PROFILE.location:'')+(PROFILE.pronouns?' · '+PROFILE.pronouns:'')):' ';
   if(g('pfBio'))g('pfBio').innerHTML=PROFILE.bio?(esc(PROFILE.bio)+(PROFILE.tagline?' <span class="h">'+esc(PROFILE.tagline)+'</span>':'')):' ';
   if(g('pfBook')){ g('pfBook').href='#'; g('pfBook').onclick=function(ev){ev.preventDefault();openDM();}; g('pfBook').style.display=(typeof CAN_EDIT==='function'&&CAN_EDIT())?'none':''; }
@@ -1487,12 +1578,14 @@ function renderLinksMenu(){
   if(row){ row.style.display='flex'; row.innerHTML=capped.map(function(it){ var href=safeNav(it.url); if(!href) return ''; return '<a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer" title="'+esc(it.label)+'" aria-label="'+esc(it.label)+'" style="flex:0 0 auto;width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid var(--line,rgba(255,255,255,.12));text-decoration:none;color:#fff">'+pfSvg(it.key)+'</a>'; }).join(''); }
 }
 function loadProfileMeta(){
-  if(!SB) return Promise.resolve();
+  if(!SB){ window.__pfGate&&window.__pfGate.reveal(); return Promise.resolve(); }
   return SB.from('profile_meta').select('*').eq('slug',PROFILE_SLUG).maybeSingle().then(function(r){
     /* SOFT-404: an explicit ?slug= that matches no profile. Guarded on PROFILE_SLUG being
        present so the owner's own view — which arrives here without a slug and is redirected
        elsewhere — is never mistaken for a missing profile. */
     if(PROFILE_SLUG && !(r&&r.data) && window.KIL_NOT_FOUND){
+      window.__pfGate&&window.__pfGate.reveal();
+      try{ var _pf=document.getElementById('pfName'); if(_pf) _pf.innerHTML='<span class="pf-vh">Profile not found</span>\u00a0'; }catch(e){}
       window.KIL_NOT_FOUND({ what:'profile', heading:'That profile isn’t here',
         body:'It may have been removed, renamed, or the link may be wrong.',
         links:[['/connect/','Browse the Scene'],['/','Explore'],['/apply','Claim your profile']] });
@@ -1507,7 +1600,13 @@ function loadProfileMeta(){
       if(Array.isArray(d.highlights)&&d.highlights.length)PROFILE.highlights=d.highlights;
     }
     applyProfile(); loadCategories();
-  }).catch(function(){ applyProfile(); });
+    /* ONE PASS: the row already carries about and links (select *), so draw them in the SAME task as the name and bio instead of waiting for the second read (profile_meta again), which landed 0.5-2 s later and moved the buttons and everything below. The second read re-draws the same text (no change). */
+    try{
+      if(d && d.about){ var _at1=document.getElementById('pfAboutTop'); if(_at1)_at1.style.display='none'; var _ab1=document.getElementById('pfAbout'); if(_ab1){ _ab1.textContent=d.about; _ab1.style.display='block'; } }
+      if(d && Array.isArray(d.links)){ PROFILE.links=d.links; if(typeof renderLinksMenu==='function') renderLinksMenu(); }
+    }catch(e){}
+    window.__pfGate&&window.__pfGate.mark('meta');
+  }).catch(function(){ applyProfile(); window.__pfGate&&window.__pfGate.mark('meta'); });
 }
 function loadCategories(){
   if(!SB) return;
@@ -1520,7 +1619,7 @@ function renderCategories(){ var box=document.getElementById('pfCats'); if(!box)
   box.innerHTML=(PROFILE.categories||[]).map(function(k){return '<span class="pf-catbadge '+k+'">'+L[k]+'</span>';}).join('');
 }
 function updateOwnerUI(){
-  ['pfDashWrap'].forEach(function(id){ var e=document.getElementById(id); if(e)e.style.display=CAN_EDIT()?'':'none'; });
+  ['pfDashWrap','pfEditPage'].forEach(function(id){ var e=document.getElementById(id); if(e)e.style.display=CAN_EDIT()?'':'none'; });
   var _pc=document.getElementById('pfCreate'); if(_pc)_pc.style.display='none';
   /* __feedCatPaint call removed with #feed-cat, 2026-08-27. */
   try{ syncNavCta(); }catch(e){}  /* own profile = hamburger menu; someone else's = PROFILE button back to mine */
@@ -1533,7 +1632,7 @@ function updateOwnerUI(){
 /* toggleDashMenu removed 2026-08-26 — DASH opens the dashboard directly, there is no menu. */
 /* ── DIRECT MESSAGE (viewer → this profile) via send_dm RPC ── */
 function openDM(){
-  if(!SB||!SESSION){ toast('Sign in to message.'); setTimeout(function(){location.href='/apply';},700); return; }
+  if(!SB||!SESSION){ toast('Sign in to message.'); setTimeout(function(){location.href='/apply?next='+encodeURIComponent(location.pathname+location.search);},700); return; }
   if(document.getElementById('kilDM'))return;
   var nm=(typeof PROFILE!=='undefined'&&PROFILE.name)?PROFILE.name:'this profile';
   var ov=document.createElement('div'); ov.id='kilDM';
@@ -1564,13 +1663,13 @@ function renderFollowBtn(){
   b.textContent=(FOLLOWING?'✓ FOLLOWING':'+ FOLLOW')+(FOLLOWERS>0?' · '+FOLLOWERS:'');
   b.classList.toggle('following',FOLLOWING);
 }
+/* Follower count and "am I following" come from get_profile_stats (SECURITY DEFINER): the page never lists who follows anyone,
+   so the follows table can be private (only your own rows readable; gh.io follows-privacy DRAFT). */
 function loadFollow(){
   if(!SB)return;
-  SB.from('follows').select('follower_id',{count:'exact'}).eq('profile_slug',PROFILE_SLUG).then(function(r){
-    if(r&&!r.error){ FOLLOWERS=(typeof r.count==='number')?r.count:(r.data?r.data.length:0);
-      FOLLOWING = !!(SESSION && r.data && r.data.some(function(x){return x.follower_id===SESSION.user.id;}));
-      renderFollowBtn();
-    }
+  SB.rpc('get_profile_stats',{p_slug:PROFILE_SLUG}).then(function(r){
+    var d=r&&!r.error&&r.data;
+    if(d&&typeof d==='object'){ FOLLOWERS=Number(d.followers)||0; FOLLOWING=!!(SESSION&&d.is_following); renderFollowBtn(); }
   }).catch(function(){});
 }
 /* ── SHARE: social platforms, email or SMS only ── */
@@ -2330,7 +2429,7 @@ document.addEventListener('scroll',function(e){
 },true);
 function eventCardHtml(e,pid){
   var ext=!!e.is_external; var url=e.ticket_url||('/event?e='+encodeURIComponent(e.slug||''));
-  var img=e.cover||'/assets/images/blog-default.jpg';
+  var img=e.cover||'/assets/images/blog-default-744.webp';   // 31 KB copy of blog-default.jpg for this 372px card (the jpg is 232 KB); onerror below falls back to the jpg
   var when=''; try{var dt=new Date(e.date); if(!isNaN(dt)) when=dt.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});}catch(x){}
   var tgt=ext?' target="_blank" rel="noopener noreferrer"':'';
   return '<div class="pf-card fbcard evpost" data-pid="'+esc(pid)+'" style="overflow:hidden">'
@@ -2713,7 +2812,7 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
       pfStuck('Could not check your sign-in',
         'The sign-in check did not complete, so nothing has been assumed about your account.',
         [{label:'Try again', primary:true, go:function(){ location.reload(); }},
-         {label:'Sign in', go:function(){ location.href='/apply'; }}]);
+         {label:'Sign in', go:function(){ location.href='/apply?next='+encodeURIComponent(location.pathname+location.search); }}]);
     });
   }
 
@@ -2786,8 +2885,8 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
     if(SB){ resolveMyProfile(); }
     else { location.replace('/apply'); }
   } else if(SB){
-    SB.auth.getSession().then(function(r){ SESSION=(r&&r.data)?r.data.session:null; return checkOwnership(); }).then(function(){ updateOwnerUI(); try{applyProfileTabs();}catch(e){} loadProfileMeta(); loadFromDB(); loadFollow(); loadCollab(); loadMyTickets(); loadMyEvents(); }).catch(function(){ loadProfileMeta(); loadFromDB(); loadFollow(); loadMyEvents(); });
-    SB.auth.onAuthStateChange(function(_e,s){ SESSION=s; checkOwnership().then(function(){ updateOwnerUI(); try{applyProfileTabs();}catch(e){} loadFromDB(); loadFollow(); loadCollab(); loadMyTickets(); loadMyEvents(); }); });
+    SB.auth.getSession().then(function(r){ SESSION=(r&&r.data)?r.data.session:null; if(SESSION) getNsfwModel(); return checkOwnership(); }).then(function(){ updateOwnerUI(); try{applyProfileTabs();}catch(e){} loadProfileMeta(); loadFromDB(); loadFollow(); loadCollab(); loadMyTickets(); loadMyEvents(); }).catch(function(){ loadProfileMeta(); loadFromDB(); loadFollow(); loadMyEvents(); });
+    SB.auth.onAuthStateChange(function(_e,s){ SESSION=s; if(s) getNsfwModel(); checkOwnership().then(function(){ updateOwnerUI(); try{applyProfileTabs();}catch(e){} loadFromDB(); loadFollow(); loadCollab(); loadMyTickets(); loadMyEvents(); }); });
   } else { loadProfileMeta(); loadFromDB(); }
 })();
 </script>
@@ -2829,7 +2928,7 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
   var n=0; var iv=setInterval(function(){ n++; build(); if(n>20) clearInterval(iv); },600);
 })();
 </script>
-<script src="/assets/js/keepitil-radio.js?v=20261120a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20261124c" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
 
 <script>
@@ -2912,7 +3011,9 @@ function toggleArchived(id,val){
         var d=(r&&r.data)||{};
         var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=(v==null?0:v);};
         set('stPosts',d.posts); set('stFollowers',d.followers); set('stLikes',d.likes);
-      });
+        if(d.posts===0&&window.__pfGate) window.__pfGate.mark('feed');   // no posts on the record: nothing will land above the partner block, so it needs no hold
+        window.__pfGate&&window.__pfGate.mark('stats');
+      },function(){ window.__pfGate&&window.__pfGate.mark('stats'); });
       SB.from('profile_meta').select('about,links,account_type,links_label,badges').eq('slug',PROFILE_SLUG).maybeSingle().then(function(r){
         var m=(r&&r.data)||{};
         /* S2: never print the raw enum — post-migration that reads "editorial_brand". */
@@ -2927,7 +3028,7 @@ function toggleArchived(id,val){
               var _l=window.KIL_FILTER_BADGES(Array.isArray(m.badges)?m.badges:[]).filter(function(x){
                 var k=String(x).toLowerCase().trim(); if(!k||k===_ac2||_seen2[k])return false; _seen2[k]=1; return true; });
               _b.innerHTML=_l.slice(0,6).map(function(x){return '<span class="bdg">'+String(x).replace(/[<>]/g,'').slice(0,16)+'</span>';}).join(''); } }catch(e){}
-        });
+        }).then(function(){ window.__pfGate&&window.__pfGate.mark('claim'); },function(){ window.__pfGate&&window.__pfGate.mark('claim'); });
         PROFILE.about=m.about||''; PROFILE.links=Array.isArray(m.links)?m.links:[];
         PROFILE.links_label=m.links_label||''; PROFILE.badges=Array.isArray(m.badges)?m.badges:null;
         /* editable Links dropdown title */
@@ -2941,7 +3042,8 @@ function toggleArchived(id,val){
         if(m.socials&&typeof m.socials==='object')PROFILE.socials=Object.assign({},PROFILE.socials,m.socials);
         renderLinksMenu();
         document.addEventListener('click',function(){ var mm=document.getElementById('pfLinksMenu'); if(mm)mm.style.display='none'; });
-      });
+        window.__pfGate&&window.__pfGate.mark('about');
+      },function(){ window.__pfGate&&window.__pfGate.mark('about'); });
     }catch(e){}
   }
   boot();
@@ -3176,6 +3278,7 @@ function loadTagged(){
 (function(){ var iv=setInterval(function(){ var n=0; document.querySelectorAll('#feed-grid [data-status]').forEach(function(c){ if(!/published|live/i.test(c.getAttribute('data-status')||'published')) { c.style.display='none'; n++; } }); },1200); setTimeout(function(){clearInterval(iv);},12000); })();
 </script>
 
-<script src="/keepitil-shell.js?v=20261120b" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
+<script src="/assets/js/profile-inquiry.js?v=20261125a"></script>
 </body>
 </html>

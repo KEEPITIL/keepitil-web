@@ -3,8 +3,8 @@
  * Floating chat widget | keepitil.com
  * Self-contained, zero dependencies.
  */
-// Auto-load KEEPITIL Radio Bar on every page
-(function(){if(!window.__kilRadioInit){var s=document.createElement('script');s.src='/assets/js/keepitil-radio.js?v=20261120a';document.head.appendChild(s);}})();
+// Auto-load KEEPITIL Radio Bar on every page that does not already carry its own <script> tag (the tag is deferred, so __kilRadioInit is not set yet when this runs: without the DOM check the radio was fetched twice)
+(function(){if(!window.__kilRadioInit&&!document.querySelector('script[src*="keepitil-radio"]')){var s=document.createElement('script');s.src='/assets/js/keepitil-radio.js?v=20261124c';document.head.appendChild(s);}})();
 // Swap nav logo PNGs to extracted transparent X marks + resize (keepitil-radio.js handles this on load; this is a fallback)
 (function(){
   function swapNavLogos(){
@@ -632,7 +632,7 @@
       '</div>',
       '<div id="kilo-msgs"></div>',
       '<div id="kilo-input-row">',
-        '<input id="kilo-input" type="text" placeholder="Ask me anything about the scene…" maxlength="300" autocomplete="off"/>',
+        '<input id="kilo-input" type="text" aria-label="Ask KEEPITIL" placeholder="Ask me anything about the scene…" maxlength="300" autocomplete="off"/>',
         '<button id="kilo-send" aria-label="Send">',
           '<svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>',
         '</button>',

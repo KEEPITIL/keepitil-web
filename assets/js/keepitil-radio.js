@@ -627,7 +627,7 @@
   // ── Inject HTML (skip if already in DOM — e.g. inline on index.html) ─────
   if(!document.getElementById('kil-radio')){
     var bar=document.createElement('div');
-    bar.id='kil-radio';
+    bar.id='kil-radio'; bar.setAttribute('role','region'); bar.setAttribute('aria-label','KEEPITIL Radio');
     /* ── BAR LAYOUT (Founder 2026-08-22) ────────────────────────────────────────────────
        << Prev Playlist · < Prev song · CURRENT · Next song > · Next Playlist >> · (mute)
        Every referral and affiliate link is gone: the rotating DistroKid / Posh / FreeCash /
@@ -641,7 +641,7 @@
          The ▴ indicator that used to sit inside it is GONE (brief 15): the entire bar
          is clickable, so a dedicated expand affordance was a control that duplicated the
          surface it sat on. */
-      '<button type="button" class="krb krb-brand" id="kr-live" aria-expanded="false" aria-label="Open KEEPITIL Radio">'+
+      '<button type="button" class="krb krb-brand" id="kr-live" aria-expanded="false" aria-label="LIVE RADIO: open KEEPITIL Radio">'+
         /* §4: the status dot and the logo are BOTH gone, and the label is one row.
            The dot asserted "live" from a play-state flag beside a permanently-live
            broadcast, so it carried no information the words did not. The logo repeated an
@@ -732,6 +732,7 @@
       var sc=document.createElement('iframe');
       sc.id='kil-sc';
       sc.setAttribute('allow','autoplay');
+      sc.setAttribute('title','KEEPITIL Radio audio player');
       sc.setAttribute('scrolling','no');
       sc.setAttribute('frameborder','no');
       sc.src=window.__kilPlayerSrc();
@@ -1205,7 +1206,7 @@
     widget=null; widgetReady=false;
     kilClearTimers();   /* teardown: no delayed seekTo/play may reach the frame just removed */
     var sc=document.createElement('iframe');
-    sc.id='kil-sc'; sc.setAttribute('allow','autoplay');
+    sc.id='kil-sc'; sc.setAttribute('allow','autoplay'); sc.setAttribute('title','KEEPITIL Radio audio player');
     sc.setAttribute('scrolling','no'); sc.setAttribute('frameborder','no');
     sc.src=window.__kilPlayerSrc();
     document.body.appendChild(sc);
@@ -1330,7 +1331,7 @@
   /* @kil-widget-guard ── DELAYED WIDGET CALLS NEVER OUTLIVE THEIR FRAME (Grok draft 2026-11-20) ──
      Live on Android Chrome, 2 of 4 loads of keepitil.com/:
        TypeError: Cannot read properties of null (reading 'postMessage')
-         at r.seekTo (w.soundcloud.com/player/api.js) at keepitil-radio.js?v=20261109a:1406
+         at r.seekTo (w.soundcloud.com/player/api.js) at keepitil-radio.js?v=20261124c:1406
      epochSync() (and the hand-off / DJ-sync paths) schedule seekTo → play 200-400ms later. In that
      gap the #kil-sc iframe can be removed (the shell's _kill on pages where the radio is not
      allowed) or replaced (kilLoadPlaylist). SoundCloud's widget object outlives its iframe, and
@@ -1664,9 +1665,14 @@
        The gesture listeners STAY as a fallback: if requestIdleCallback never fires (a tab
        opened in the background stays throttled), the first gesture still boots it. `boot`
        is idempotent — __kilMountRadio returns early when #kil-sc already exists. */
+    /* DEFERRED MOUNT (Grok decision 2026-11-24, perf baseline: the 1.23 MB widget loaded on every desktop page
+       inside the load window). The founder's muted autoplay stays: the player still mounts by itself, but at the
+       FIRST GESTURE (listeners below) or KIL_RADIO_AUTOPLAY_MS after load, whichever comes first, instead of as
+       soon as the main thread is idle. A visitor who stays still hears (muted) autoplay start; a visit that bounces
+       or is measured in a load audit never pays for the third-party frame. */
+    var KIL_RADIO_AUTOPLAY_MS = 10000;
     function bootWhenIdle(){
-      if(window.requestIdleCallback) window.requestIdleCallback(boot, { timeout: 3000 });
-      else setTimeout(boot, 1200);
+      setTimeout(boot, KIL_RADIO_AUTOPLAY_MS);
     }
     if(document.readyState === 'complete') bootWhenIdle();
     else window.addEventListener('load', bootWhenIdle, { once:true });
@@ -1724,7 +1730,8 @@
   var drawerEl=null;
 
   function _gwLabel(st){
-    return st==='compact' ? 'Open KEEPITIL Radio' : 'Close KEEPITIL Radio';
+    /* label-in-name (WCAG 2.5.3): the visible text is LIVE RADIO, so the accessible name must contain it */
+    return st==='compact' ? 'LIVE RADIO: open KEEPITIL Radio' : 'LIVE RADIO: close KEEPITIL Radio';
   }
   /* The drawer and the full view share ONE header component so the gateway cannot drift
      between them. Built lazily: a visitor who never opens the radio pays nothing. */

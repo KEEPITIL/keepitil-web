@@ -2,13 +2,13 @@
 <html lang="en" data-theme="default">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="robots" content="noindex,nofollow"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
 <title>Add an Event — KEEPITIL</title>
 <meta name="description" content="KEEPITIL is a culture platform built to discover, connect, create, share and earn through people, events, media and community."/>
 <link rel="stylesheet" href="/assets/css/tokens.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+<link href="/assets/css/fonts.css" rel="stylesheet"/>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <style>
 /* ── GOLD STANDARD #2 — third-party/curated event form (EDMtrain-curate model, Founder 2026-07-18).
@@ -65,6 +65,9 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
 .rc .st.live{color:#22e39b;border-color:rgba(34,227,155,.5)}
 .rc .ed{background:none;border:1px solid var(--line);border-radius:8px;color:var(--text);font-weight:700;font-size:.74rem;padding:5px 11px;cursor:pointer}
 .rc .ed:hover{border-color:var(--brand);color:var(--brand)}
+.rc a.ed{text-decoration:none}
+.rc .ed.danger{border-color:#ff6b6b;color:#ff6b6b}
+.rc .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .tabs{display:flex;gap:6px;margin-bottom:10px}
 .tabs button{flex:1;background:var(--bg,#0d0d13);border:1px solid var(--line);border-radius:9px;color:var(--muted);font:700 .8rem Inter,sans-serif;padding:8px;cursor:pointer}
 .tabs button.on{color:#04121b;background:linear-gradient(90deg,var(--brand),var(--brand-2));border-color:transparent}
@@ -77,7 +80,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
 </head>
 <body>
 <nav id="main-nav"></nav>
-<div class="wrap">
+<main class="wrap" id="main">
   <div class="gate" id="gate" style="display:none">
     <h1 style="font-size:1.6rem">ADD AN EVENT</h1>
     <p>Log in to add an event to the KEEPITIL calendar. It is free, every listing is reviewed before it goes live, and you come straight back here after you log in.</p>
@@ -103,11 +106,11 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
         </div>
         <input type="hidden" id="city" value="Los Angeles"/>
         <div class="row">
-          <div><label>Date *</label><input id="date" type="date" required/></div>
-          <div><label>Duration</label><select id="days"><option value="1">1 Day</option><option value="2">2 Days</option><option value="3">3 Days</option><option value="4">4 Days</option><option value="5">5+ Days</option></select></div>
+          <div><label for="date">Date *</label><input id="date" type="date" required/></div>
+          <div><label for="days">Duration</label><select id="days"><option value="1">1 Day</option><option value="2">2 Days</option><option value="3">3 Days</option><option value="4">4 Days</option><option value="5">5+ Days</option></select></div>
         </div>
         <div class="row">
-          <div><label>Start time</label><input id="time" type="time" step="900" value="21:00"/></div>
+          <div><label for="time">Start time</label><input id="time" type="time" step="900" value="21:00"/></div>
           <div></div>
         </div>
         <label>Title</label>
@@ -139,12 +142,12 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
       <!-- ══ rail: my recent + duplicate search ══ -->
       <div>
         <div class="card">
-          <h3>📋 Recent</h3>
+          <h3 aria-level="2">📋 Recent</h3>
           <div class="note">Your submissions — tap Edit to fix one (edits re-enter review).</div>
           <div id="recent"><div class="sub" style="font-size:.82rem">Nothing submitted yet.</div></div>
         </div>
         <div class="card" style="margin-top:14px">
-          <h3>🔎 Search</h3>
+          <h3 aria-level="2">🔎 Search</h3>
           <div class="note">Check it isn't already listed before you submit.</div>
           <div class="tabs"><button type="button" class="on" data-k="event">Events</button><button type="button" data-k="artist">Artists</button><button type="button" data-k="venue">Venues</button></div>
           <input id="sq" placeholder="Venue, artist, or event title" autocomplete="off"/>
@@ -153,7 +156,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
       </div>
     </div>
   </div>
-</div>
+</main>
 
 <script>
 var SUPA_URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
@@ -219,21 +222,62 @@ $('gseg').addEventListener('click',function(e){ var b=e.target.closest('button')
   this.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);}); });
 
 /* ── recent (mine) + edit ── */
-function loadRecent(){
-  return supa.rpc('get_my_community_events').then(function(r){
-    var rows=(r&&r.data)||[]; RECENT=rows; if(!rows.length) return rows;
-    $('recent').innerHTML=rows.map(function(e,i){
+var RECENT_OFFSET=0, RECENT_PAGE=25;
+/* My events: prefer get_my_events (community AND organizer events, paged, has_orders). Until that server
+   function is deployed, fall back to get_my_community_events (community only, 25 rows) exactly as before. */
+function loadRecent(more){
+  var off=more?RECENT_OFFSET:0;
+  return supa.rpc('get_my_events',{p_limit:RECENT_PAGE,p_offset:off}).then(function(r){
+    if(r&&r.error&&memberFnMissing(r.error)) return supa.rpc('get_my_community_events').then(function(r2){ return {rows:(r2&&r2.data)||[],paged:false}; });
+    if(r&&r.error) return {error:true,rows:[],paged:false};
+    return {rows:(r&&r.data)||[],paged:true};
+  }).then(function(res){
+    if(res.error){ $('recent').innerHTML='<div class="rc" role="alert">Could not load your events. Try again.</div>'; return RECENT; }
+    var rows=res.rows; RECENT=more?RECENT.concat(rows):rows; RECENT_OFFSET=RECENT.length;
+    if(!RECENT.length) return RECENT;
+    $('recent').innerHTML=RECENT.map(function(e,i){
       var d=e.starts_at?new Date(e.starts_at):null;
       var ds=d?new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',month:'numeric',day:'numeric',year:'2-digit'}).format(d):'';
+      var mine=e.source==null||e.source==='community';
+      var acts=mine
+        ?'<button type="button" class="ed" data-i="'+i+'">Edit</button>'
+          +(MEMBER_DATA_CONTROLS&&MEMBER_LIVE.indexOf(e.status)>-1?'<button type="button" class="ed" data-act="unpublish" data-i="'+i+'">Unpublish</button>':'')
+          +(MEMBER_DATA_CONTROLS&&!e.has_orders?'<button type="button" class="ed danger" data-act="delete" data-i="'+i+'">Delete</button>':'')
+        :'<a class="ed" href="/create-event?e='+encodeURIComponent(e.slug)+'">Edit</a>';
       return '<div class="rc"><div class="t"><b>'+esc(e.title)+'</b><span>'+esc([e.venue,e.city].filter(Boolean).join(' · '))+(ds?' · '+ds:'')+'</span></div>'
         +'<span class="st'+(e.status==='published'?' live':'')+'">'+esc(e.status)+'</span>'
-        +'<button type="button" class="ed" data-i="'+i+'">Edit</button></div>';
-    }).join('');
-    $('recent').querySelectorAll('.ed').forEach(function(b){ b.addEventListener('click',function(){ startEdit(rows[+b.dataset.i]); }); });
-    return rows;
+        +'<span class="acts">'+acts+'</span></div>';
+    }).join('')+(res.paged&&rows.length===RECENT_PAGE?'<div class="rc"><button type="button" class="ed" id="recentMore">Show more</button></div>':'')
+      +(MEMBER_DATA_CONTROLS?'':'<div class="rc" id="recentHelp">To unpublish or delete an event, email <a href="mailto:info@keepitil.com">info@keepitil.com</a> and we will do it for you.</div>');
+    $('recent').querySelectorAll('button.ed[data-i], .ed[data-i]').forEach(function(b){ b.addEventListener('click',function(){
+      var row=RECENT[+b.dataset.i], act=b.dataset.act; if(!act){ startEdit(row); return; } memberAct(act,row,b); }); });
+    var mb=$('recentMore'); if(mb) mb.addEventListener('click',function(){ loadRecent(true); });
+    return RECENT;
   }).catch(function(e){ try{ console.error('[submit-event] listings', e); }catch(x){} return []; });
 }
 var RECENT=[];
+/* MEMBER CONTROL: unpublish / delete my own submitted event. Server functions are owner-only
+   (events.submitted_by = auth.uid()). */
+/* MEMBER_DATA_CONTROLS: ON since keepitil.github.io #95 (unpublish/delete_my_community_event) was applied and verified on prod (2026-11-25 15:30 window). Keep it equal here AND in settings.html (a test keeps both equal). Off = the email-request fallback is shown instead. */
+var MEMBER_DATA_CONTROLS=true;
+var MEMBER_LIVE=['published','review','sold_out'];
+function memberFnMissing(err){ return !!err && (err.code==='PGRST202' || /could not find the function|does not exist/i.test(String(err.message||''))); }
+function memberAct(act,row,btn){
+  var del=act==='delete';
+  var q=del?('Delete "'+(row.title||'this event')+'" permanently? This cannot be undone.'):('Take "'+(row.title||'this event')+'" off the public site? You can edit it and submit it again later.');
+  if(!window.confirm(q)) return;
+  var m=$('msg'); if(btn) btn.disabled=true;
+  supa.rpc(del?'delete_my_community_event':'unpublish_my_community_event',{p_id:row.id}).then(function(r){
+    var d=r&&r.data, err=r&&r.error;
+    if(btn) btn.disabled=false;
+    if(err){ m.className='msg err'; m.textContent=memberFnMissing(err)?'This is not available yet. Email info@keepitil.com and we will do it for you.':'Could not complete that. Nothing was changed.'; return; }
+    if(d&&d.ok===false){ m.className='msg err'; m.textContent=d.message||d.error||'Could not complete that.'; return; }
+    m.className='msg ok'; m.textContent=del?'Event deleted.':'Event unpublished.'; loadRecent();
+  }).catch(function(){ if(btn) btn.disabled=false; m.className='msg err'; m.textContent='Could not complete that. Nothing was changed.'; });
+}
+/* After an edit: the server (update_community_event, edit-review policy) says whether the event went back to
+   review. Only an explicit needs_review === false means it stayed live; the older server (no flag) always re-reviews. */
+function editSavedMessage(d){ return (d&&d.needs_review===false)?'Saved — your event stays live. ✓':'Saved — back in review. ✓'; }
 function startEdit(e){
   EDIT_ID=e.id; $('formTitle').textContent='EDIT EVENT'; $('submitBtn').textContent='Save changes';
   $('venue').value=e.venue||''; $('city').value=e.city||'Los Angeles'; $('title').value=e.title||'';
@@ -295,7 +339,7 @@ $('form').addEventListener('submit',function(e){
     }}).then(function(r){
       var d=(r&&r.data)||{};
       if(r.error||!d.ok){ fail((r.error&&r.error.message)||d.error||'Could not save.'); return; }
-      msg.className='msg ok'; msg.textContent='Saved — back in review. ✓';
+      msg.className='msg ok'; msg.textContent=editSavedMessage(d);
       b.disabled=false; b.textContent=old; clearForm(); loadRecent();
     }).catch(offline);
     return;
@@ -339,6 +383,6 @@ $('form').addEventListener('submit',function(e){
 })();
 </script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261120b" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
 </body>
 </html>

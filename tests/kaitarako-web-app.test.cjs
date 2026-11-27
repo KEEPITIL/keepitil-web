@@ -18,7 +18,13 @@ test('the web app is present and is the v1 build', () => {
 });
 
 test('worker: removes only old kai-tarako-* caches, stays in its own scope, works offline (ignoreVary)', () => {
-  assert.match(sw, /k\.startsWith\('kai-tarako-'\) && k !== CACHE/);
+  // Per-scope caches (kai-tarako #123): activation removes only older caches of THIS worker's own scope
+  // (same scope tag, another build) plus an untagged legacy kai-tarako-<build> cache that holds this scope's files.
+  assert.match(sw, /k\.startsWith\(PREFIX\) && k !== NAME/);
+  assert.match(sw, /LEGACY\.test\(k\) && \(await ownsLegacy\(k\)\)/);
+  assert.match(sw, /const PREFIX = 'kai-tarako-' \+ scopeTag\(self\.registration\.scope\) \+ '-'/);
+  // CONTROL: the old rule (delete every kai-tarako-* cache but the current one) would also delete another folder's Kai cache.
+  assert.doesNotMatch(sw, /k\.startsWith\('kai-tarako-'\) && k !== CACHE/);
   assert.match(sw, /req\.url\.startsWith\(self\.registration\.scope\)/);
   assert.match(sw, /ignoreVary: true/);
   assert.doesNotMatch(sw, /caches\.delete\(k\)\)\)\)\.then\(\(\) => self\.registration\.unregister/);

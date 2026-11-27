@@ -262,7 +262,7 @@
              tag ran the current one. Two different radio bars on one site, and the stale half
              was invisible to a cache bump because the URL never changed. Bump this WITH the
              page tags whenever keepitil-radio.js changes. */
-          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20261120a'; document.body.appendChild(_rs);
+          var _rs=document.createElement('script'); _rs.defer=true; _rs.src='/assets/js/keepitil-radio.js?v=20261124c'; document.body.appendChild(_rs);
         }
       }catch(e){} });
     }
@@ -295,7 +295,17 @@
     try{ w = window.innerWidth || (document.documentElement && document.documentElement.clientWidth) || 0; }catch(e){}
     return w >= 861;
   }
+  /* GLOBAL PRIVACY CONTROL + DO NOT TRACK (Grok 2026-11-24; the privacy page promises both). A browser that sends either signal gets NO Google Analytics and NO Microsoft
+     Clarity: neither script is added, so no request is made to Google, Microsoft or Bing. Everyone else is unchanged. culture/index.html carries the same two-line check for
+     the video player (click-to-load); tests/gpc-honoured.test.cjs keeps the two identical. */
+  function __kilOptedOut(){
+    try{ if(navigator.globalPrivacyControl === true) return true; }catch(e){}
+    try{ if(navigator.doNotTrack === '1' || navigator.doNotTrack === 'yes' || window.doNotTrack === '1' || navigator.msDoNotTrack === '1') return true; }catch(e){}
+    return false;
+  }
+  try{ window.KIL_OPTED_OUT = __kilOptedOut(); }catch(e){}
   function __kilMountAnalytics(){
+    if(__kilOptedOut()){ try{ window['ga-disable-G-ZR36NRE4MT'] = true; }catch(e){} return; }
     /* GA4 */
     try{ if(!window.__kilGA4){ window.__kilGA4='G-ZR36NRE4MT';
       var _g=document.createElement('script'); _g.async=true; _g.src='https://www.googletagmanager.com/gtag/js?id=G-ZR36NRE4MT'; document.head.appendChild(_g);
@@ -313,6 +323,26 @@
     if(document.readyState === 'complete'){ setTimeout(__kilMountAnalytics, 0); }
     else { window.addEventListener('load', function(){ setTimeout(__kilMountAnalytics, 0); }, { once:true }); }
   }catch(e){ __kilMountAnalytics(); }
+  /* BROKEN OUTSIDE PICTURES (Grok 2026-11-24). Imported events and profiles hotlink pictures from other sites; images.ra.co now answers 403, so thumbnails showed as
+     broken-image icons (10 on one profile page, 1 on the home page). Any <img> whose address is on ANOTHER host and fails to load is swapped, once, for our own placeholder
+     (assets/images/event-placeholder.svg), every time it fails (including when a page script sets the outside address again). Same-site and data: images are never touched. A capture-phase listener sees every image, including ones added later; a sweep after
+     load catches the ones that failed before this script ran. tests/img-placeholder.test.cjs covers both. */
+  (function(){
+    var PH = '/assets/images/event-placeholder.svg';
+    function outside(src){ try{ var u = new URL(src, location.href); return (u.protocol === 'https:' || u.protocol === 'http:') && u.host !== location.host; }catch(e){ return false; } }
+    function swap(img){
+      try{
+        if(!img || img.tagName !== 'IMG') return;
+        var s = img.currentSrc || img.getAttribute('src') || ''; if(!s || !outside(s)) return;
+        /* No "already swapped" flag on purpose: a page script may put the outside address back (the event page does: _im.src=_u), and that must be swapped AGAIN.
+           It cannot loop: the placeholder is on our own host, so `outside(s)` is false when it is the one failing. */
+        img.removeAttribute('srcset'); img.src = PH; img.classList.add('kil-img-ph');
+      }catch(e){}
+    }
+    try{ document.addEventListener('error', function(ev){ swap(ev && ev.target); }, true); }catch(e){}
+    function sweep(){ try{ [].forEach.call(document.images, function(i){ if(i.complete && i.naturalWidth === 0 && i.getAttribute('src') && !/\.svg(\?|#|$)/i.test(i.getAttribute('src'))) swap(i);   /* an SVG with no intrinsic size also reports 0 */ }); }catch(e){} }
+    try{ if(document.readyState === 'complete') setTimeout(sweep, 0); else window.addEventListener('load', function(){ setTimeout(sweep, 0); }, { once:true }); }catch(e){}
+  })();
   /* Customer feedback widget — V3 only (floating "Feedback" pill -> Supabase feedback table). Added 2026-07-10. */
   try{ if(!window.__kilFeedbackLoad){ window.__kilFeedbackLoad=1;
     var _fb=document.createElement('script'); _fb.defer=true; _fb.src='/assets/js/keepitil-feedback.js?v=20260826a'; document.head.appendChild(_fb);
@@ -662,7 +692,7 @@ window.KIL_NOT_FOUND = function(opts){
   var host = opts.into && document.querySelector(opts.into);
   if(!host) host = document.querySelector('main') || document.body;
   host.innerHTML =
-    '<div class="kil-404" role="status" style="max-width:560px;margin:12vh auto;padding:0 20px;text-align:center">'
+    '<div class="kil-404" role="status" style="max-width:560px;margin:0 auto;padding:12vh 20px;text-align:center">'
     + '<div style="font-size:2.6rem;margin-bottom:10px" aria-hidden="true">🔍</div>'
     + '<h1 style="font-family:\'Bebas Neue\',Inter,sans-serif;font-size:2rem;letter-spacing:.04em;margin:0 0 10px;color:#fff">'
     + (opts.heading || ('That ' + what + ' isn’t here')) + '</h1>'
@@ -737,7 +767,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
         }).join('')
         +'<a href="/apply" id="v3s-iconprof" class="v3s-contextual" aria-label="Profile">'+icon('profile')+'</a>'
         +'</div>';
-      var hdr = document.createElement('nav'); hdr.id='v3shell-nav';
+      var hdr = document.createElement('nav'); hdr.id='v3shell-nav'; hdr.setAttribute('aria-label','Main');
       if(RULES.gear==='hamburger') hdr.classList.add('on-profile');
       hdr.innerHTML =
         '<div class="v3s-inner">'
@@ -773,7 +803,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           +'<span class="fa-pmb"> PMB 1066,</span> '
           +'<span class="fa-l2">Garden Grove, CA 92844</span>'
           +'<span class="fa-mail"> · <a href="mailto:info@keepitil.com">info@keepitil.com</a></span></p></div>'
-        +'<nav class="v3-foot-links">'
+        +'<nav class="v3-foot-links" aria-label="Footer">'
         +DESTINATIONS.map(function(d){ return '<a href="'+d.href+'">'+d.label+'</a>'; }).join('')
         /* Shop is a footer link, never a nav tab (Joe 2026-11-20). */
         +'<a href="/shop/">Shop</a>'
@@ -786,7 +816,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           +'<a href="https://facebook.com/keepitil" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M22 12a10 10 0 10-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0022 12z"/></svg></a>'
           +'<a href="mailto:info@keepitil.com" aria-label="Email KEEPITIL"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg></a>'
         +'</div></div>'
-        +'<div class="v3-foot-legal" style="max-width:var(--maxw,1400px);margin:14px auto 0;font-size:.78rem;opacity:.7;display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
+        +'<div class="v3-foot-legal" style="max-width:var(--maxw,1400px);margin:14px auto 0;font-size:.78rem;display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
         +'<a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refund">Refunds</a>'
         +'<a href="/ticket-terms"><span class="lg-f">Ticket Terms</span><span class="lg-s">Tickets</span></a>'
         +'<a href="/community-guidelines"><span class="lg-f">Community Guidelines</span><span class="lg-s">Rules</span></a>'
@@ -915,7 +945,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           }
 
           if(document.getElementById('kil-bnav')) return;
-          var bn=document.createElement('nav'); bn.id='kil-bnav';
+          var bn=document.createElement('nav'); bn.id='kil-bnav'; bn.setAttribute('aria-label','Tabs');
           /* One slot per destination in DESTINATIONS (five; no Shop). Create WAS the centre slot — it is an action,
              not a place, and mixing it in is what left no room for Radio and VS. It moves to
              a floating button above the bar, calling the same __kilCreateMenu as before.
@@ -1553,6 +1583,8 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     /* The phone bar used to be pushed off-screen here (translateY(220%)). Superseded 2026-09-24:
        the compact bar docks on the bottom nav — see keepitil-radio.js, MOBILE: THE COMPACT BAR. */
     +'@media(max-width:860px){#kil-bnav{display:flex}}'
+    /* The footer is built at DOMContentLoaded. On a short page it would land INSIDE the viewport and shift; keeping <main> at least a screen tall puts it below the fold, where it cannot count (CLS). Desktop: the page already clears the 66px fixed nav with body padding. */
+    +'main{min-height:calc(100vh - 66px)}@media(max-width:860px){main{min-height:100vh}}'
     +'#v3-footer{border-top:1px solid var(--line,rgba(255,255,255,.08));background:var(--bg,#0a0a0f);color:var(--muted,#888);padding:40px 20px;margin-top:56px;font-family:var(--font,Inter,sans-serif);font-size:.85rem;text-align:left}'
     /* FOOTER GAP — Founder 2026-08-19: "there is a gap after the footer section" on Connect and
        Create. Cause: each page reserves room for the fixed bottom nav with its own
@@ -1581,8 +1613,8 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     +'#v3-footer .v3-foot-social{display:flex;gap:14px;align-items:center;flex-wrap:wrap}#v3-footer .v3-foot-social a{color:var(--muted,#888);display:inline-flex;transition:color .2s,transform .2s}#v3-footer .v3-foot-social a:hover{color:var(--brand,#00b4ff);transform:translateY(-2px)}'
     +'#v3-footer .v3-foot-inner{align-items:flex-start}#v3-footer .v3-foot-about{max-width:420px;flex:1 1 300px;text-align:left}#v3-footer .v3-foot-brand,#v3-footer .v3-foot-addr{text-align:left;display:block}'
     +'#v3-footer .v3-foot-desc{margin:10px 0 0;font-size:.82rem;line-height:1.55;color:var(--muted,#9a94b4);opacity:.9}'
-    +'#v3-footer .v3-foot-addr{margin:8px 0 0;font-size:.74rem;line-height:1.5;color:var(--muted,#888);opacity:.7}#v3-footer .v3-foot-addr a{color:var(--brand-2,#5cc8ff)}'
-    +'#v3-footer .v3-foot-entity{max-width:var(--maxw,1400px);margin:12px auto 0;font-size:.78rem;line-height:1.5;opacity:.75}'
+    +'#v3-footer .v3-foot-addr{margin:8px 0 0;font-size:.74rem;line-height:1.5;color:var(--muted,#888)}#v3-footer .v3-foot-addr a{color:var(--brand-2,#5cc8ff);text-decoration:underline}'
+    +'#v3-footer .v3-foot-entity{max-width:var(--maxw,1400px);margin:12px auto 0;font-size:.78rem;line-height:1.5}'
     /* ── MOBILE FOOTER, SIX ROWS (Founder 2026-08-26) ────────────────────────────────────
        1 KEEPITIL · 2 street · 3 city · 4 social, full width · 5 legal, full width · 6 space.
        Desktop is untouched — every rule below is inside the ≤860px block.
@@ -1601,7 +1633,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     /* rows 2 and 3: two clean address lines. PMB and the email address are for the desktop
        one-liner; on a phone they push the street onto three ragged lines. */
     +  '#v3-footer .v3-foot-addr{text-align:center;text-transform:uppercase;letter-spacing:.06em;'
-    +    'font-size:.7rem;line-height:1.7;opacity:.75}'
+    +    'font-size:.7rem;line-height:1.7}'
     +  '#v3-footer .fa-l1,#v3-footer .fa-l2{display:block}'
     +  '#v3-footer .fa-pmb,#v3-footer .fa-mail{display:none}'
     /* the destination links are the bottom nav on a phone — repeating them here is furniture */
@@ -1622,7 +1654,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
     +  '#v3-footer .lg-f{display:none}#v3-footer .lg-s{display:inline}'
     /* the copyright drops to its own centred line rather than fighting for width in row 5 */
     +  '#v3-footer .v3-foot-legal>span{flex:1 0 100%;margin-left:0!important;text-align:center;'
-    +    'opacity:.6;padding-top:6px}'
+    +    'padding-top:6px}'
     +  '#v3-footer .v3-foot-entity{text-align:center;width:100%}'
     /* row 6: deliberate empty space so the floating up-arrow (left) and chat (right) buttons
        have somewhere to sit that is not on top of a link. */
@@ -1633,6 +1665,10 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
        Placed AFTER the footer rules above on purpose: the ≤860px legal rule sets min-height:34px
        at the same specificity, and the later rule wins. The brand link keeps its look; the extra
        hit area comes from padding with an equal negative margin so the footer does not grow. */
+    +'#v3-footer .v3-foot-links a{display:inline-flex;align-items:center;min-height:24px}'
+    +'#v3-footer .v3-foot-social a{min-width:24px;min-height:24px;align-items:center;justify-content:center}'
+    +'#v3-footer .v3-foot-about a.v3-foot-brand{min-height:24px;box-sizing:border-box;padding-top:2px;padding-bottom:2px}'
+    +'#v3shell-nav .v3s-links a{display:inline-flex;align-items:center;min-height:24px}'
     +'@media(pointer:coarse){'
     +  '#v3-footer .v3-foot-legal a{min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center}'
     +  '#v3-footer .v3-foot-about a.v3-foot-brand{min-height:44px;box-sizing:border-box;padding:10px 0;margin:-5px 0}'
@@ -1696,6 +1732,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
         var host = document.querySelector('article') || document.querySelector('main') || document.body;
         if(!host) return;
         var box = document.createElement('aside');
+        box.setAttribute('aria-label','Community');
         box.className = 'kil-culture-comm';
         box.setAttribute('style',
           'display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin:26px auto 8px;max-width:760px;'
@@ -1713,7 +1750,9 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
           +   'border-radius:10px;text-decoration:none;background:linear-gradient(90deg,#0f6e56,#00e0a4);'
           +   'color:#04120a;font:800 .68rem/1 Inter,system-ui,sans-serif;letter-spacing:.1em;'
           +   'text-transform:uppercase">Discuss in Community</a>';
-        host.appendChild(box);
+        /* a complementary landmark must be top level (not inside <main>/<article>): place it after the page's outermost content block, which also puts it on the dark page, the colours it was designed for */
+        var top = host; while(top.parentNode && top.parentNode !== document.body) top = top.parentNode;
+        if(top === document.body) document.body.appendChild(box); else top.parentNode.insertBefore(box, top.nextSibling);
       })
       .catch(function(){});   /* a missing CTA must never break an article */
   }catch(e){}

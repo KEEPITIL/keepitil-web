@@ -4,11 +4,11 @@
 //   1. No HTML (or first-party JS) mentions formsubmit.co or another hosted form relay
 //      (formspree, getform, basin, web3forms, formcarry, staticforms, formkeep, pageclip).
 //   2. No <form action> / formaction in any HTML points at a host other than keepitil.com.
-//      Relative actions (results.html, /search) are first-party. The only allowance is the
-//      reserved placeholder host example.com (RFC 2606) inside build-service/starter/, which
-//      holds client templates whose action is filled in per client.
-//   3. /needs (needs.html) is static text: no <form>, no network call, no pop-up, and it says
-//      exactly the agreed sentence.
+//      Relative actions (results.html, /search) are first-party. There is no allowance: the
+//      build-service client templates that used an example.com placeholder action were removed
+//      as dead pages (Joe, 2026-11-22).
+//   3. /needs (needs.html) is gone: it was reduced to a static "not taking requests" notice in R-J1
+//      and then removed as a dead page (owner directive "remove all keepitil dead pages", 2026-11-22).
 //   4. No page links to /needs (or needs.html): the "Tell Us What You Need" / "Start Here" / "Work with us"
 //      buttons were removed (Grok, R-J1) so a visitor never lands on the static notice as a dead end.
 // Every checker has a NEGATIVE CONTROL that must fail on a known-bad input.
@@ -20,7 +20,6 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const SKIP_DIRS = new Set(['.git', 'node_modules']);
-const NEEDS_TEXT = "We're not taking requests through this page right now. Use the contact link on keepitil.com (About / footer).";
 
 function walk(dir, out = []) {
   for (const ent of readdirSync(dir, { withFileTypes: true })) {
@@ -46,7 +45,6 @@ function attrValue(tag, name) {
 }
 
 function firstParty(host) { return host === 'keepitil.com' || host.endsWith('.keepitil.com'); }
-function placeholder(host) { return /^(?:.+\.)?example\.(?:com|org|net)$/.test(host); }
 
 /** Form actions in the HTML that leave keepitil.com. `rel` is the file's repo path. */
 export function thirdPartyActions(html, rel = '') {
@@ -64,29 +62,10 @@ export function thirdPartyActions(html, rel = '') {
       }
       const host = abs[1].toLowerCase();
       if (firstParty(host)) continue;
-      if (placeholder(host) && rel.startsWith('build-service/starter/')) continue;
       bad.push(url);
     }
   }
   return bad;
-}
-
-function pageText(html) {
-  return html.replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]+>/g, ' ')
-    .replace(/&(?:#39|#x27|apos|rsquo);/gi, "'").replace(/&amp;/gi, '&').replace(/&nbsp;/gi, ' ')
-    .replace(/\s+/g, ' ').trim();
-}
-
-/** Problems with the /needs page, [] when it is plain static text. */
-export function needsProblems(html) {
-  const p = [];
-  if (/<form\b/i.test(html)) p.push('has a <form>');
-  if (/<(?:input|textarea|select)\b/i.test(html)) p.push('has form fields');
-  if (/<dialog\b/i.test(html)) p.push('has a <dialog>');
-  if (/\b(?:fetch|XMLHttpRequest|sendBeacon|alert|confirm|prompt|showModal)\s*\(|window\.open\s*\(|new\s+XMLHttpRequest/.test(html)) p.push('has a network call or pop-up');
-  if (relayMentions(html).length) p.push('names a form relay');
-  if (!pageText(html).includes(NEEDS_TEXT)) p.push('missing the agreed notice text');
-  return p;
 }
 
 const NEEDS_TARGET = /^(?:(?:https?:)?\/\/(?:www\.)?keepitil\.com)?(?:\.{0,2}\/)*needs(?:\.html)?\/?(?:[?#].*)?$/i;
@@ -112,7 +91,6 @@ const FILES = walk(ROOT);
 
 test('the walk sees the site (sanity)', () => {
   assert.ok(FILES.includes('index.html'), 'index.html not found: walk broken');
-  assert.ok(FILES.includes('needs.html'), 'needs.html not found');
   assert.ok(FILES.filter((f) => /\.html?$/i.test(f)).length > 50, 'too few HTML files: walk broken');
 });
 
@@ -138,13 +116,13 @@ test('findmyweed-join.html is gone (the /findmyweed-join 301 is a Cloudflare zon
   assert.equal(FILES.includes('findmyweed-join.html'), false);
 });
 
-test('/needs has no <form> and shows only the static notice', () => {
-  assert.deepEqual(needsProblems(readFileSync(join(ROOT, 'needs.html'), 'utf8')), []);
+test('needs.html is gone (removed as a dead page, 2026-11-22)', () => {
+  assert.equal(FILES.includes('needs.html'), false);
 });
 
 test('no page links to /needs (the CTA buttons were removed, so no dead ends)', () => {
   const hits = [];
-  for (const rel of FILES.filter((f) => f !== 'needs.html')) {
+  for (const rel of FILES) {
     const found = needsLinks(readFileSync(join(ROOT, rel), 'utf8'));
     if (found.length) hits.push(rel + ': ' + found.join(', '));
   }
@@ -175,30 +153,10 @@ test('NEGATIVE CONTROL: action scan catches third-party actions in every quoting
     '<form action="https://keepitil.com/x">', '<form action="https://www.keepitil.com/x">', '<form action="?q=1">',
     '<a href="https://evil.test/x">'];
   for (const g of good) assert.deepEqual(thirdPartyActions(g, 'about.html'), [], 'false positive: ' + g);
-  // the example.com placeholder is allowed only inside the client starter templates
+  // an example.com placeholder action is third-party too (no template allowance is left)
   const tmpl = '<form class="form" method="post" action="https://contact.example.com/functions/v1/client-contact">';
-  assert.deepEqual(thirdPartyActions(tmpl, 'build-service/starter/preview/contact.html'), []);
   assert.equal(thirdPartyActions(tmpl, 'contact.html').length, 1);
-  assert.equal(thirdPartyActions('<form action="https://keepitil.com.evil.test/x">', 'build-service/starter/x.html').length, 1);
-});
-
-test('NEGATIVE CONTROL: /needs checker rejects the old form page and near misses', () => {
-  const good = readFileSync(join(ROOT, 'needs.html'), 'utf8');
-  const notice = good.match(/<p class="notice"[^>]*>[\s\S]*?<\/p>/)[0];
-  // the pre-R-J1 page: a form whose script posted to formsubmit.co
-  const oldPage = good.replace(notice, '<form id="needsForm"><input type="email" id="email" required><button class="btn" type="submit">Send</button></form>'
-    + "<script>fetch('https://formsubmit.co/ajax/info@keepitil.com',{method:'POST'})</script>");
-  assert.notDeepEqual(needsProblems(oldPage), []);
-  assert.notDeepEqual(needsProblems(good.replace('</footer>', '</footer><form></form>')), []);
-  assert.notDeepEqual(needsProblems(good.replace('</body>', '<script>setTimeout(function(){alert("hi")},1000)</script></body>')), []);
-  assert.notDeepEqual(needsProblems(good.replace('</body>', '<dialog open>Tell us</dialog></body>')), []);
-  assert.notDeepEqual(needsProblems(good.replace(notice, notice.replace('right now.', 'today.'))), []);
-  // the meta description alone does not count as the notice
-  assert.ok(/<meta name="description"[^>]*right now/.test(good), 'fixture: description changed');
-  assert.notDeepEqual(needsProblems(good.replace(notice, '').replace('KEEPITIL is not', "We're not")), []);
-  assert.notDeepEqual(needsProblems(good.replace(notice, '')), []);
-  // the apostrophe may be written as an entity and still pass
-  assert.deepEqual(needsProblems(good.replace("We're", 'We&#39;re')), []);
+  assert.equal(thirdPartyActions('<form action="https://keepitil.com.evil.test/x">', 'contact.html').length, 1);
 });
 
 test('NEGATIVE CONTROL: /needs link scan catches the removed buttons and their variants', () => {

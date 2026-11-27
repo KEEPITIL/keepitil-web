@@ -42,6 +42,13 @@
     open: 'Open',
     closed: 'Closed',
     hoursNotListed: 'Hours not listed',
+    // NEW LINES for Muse's review (draft wording, marked): the paged card list and the paid-placement label
+    seeAllRow: function (title) { return 'See all ' + title; },   // NEW (draft, for Muse): the accessible name of a row's link, built from the row's own title (the sales-word guard allows only the two approved labels)
+    seeAll: 'See all',   // NEW (draft, for Muse): the link on a carousel row's title
+    adTag: 'Ad',         // NEW (draft, for Muse): the label on an ad tile
+    showMore: function (n) { return 'Show ' + n + ' more'; },
+    showMoreCount: function (shown, total) { return 'Showing ' + shown + ' of ' + total; },
+    sponsored: 'Sponsored',
     fCity: 'City',
     fCityAll: 'All cities',
     // Discovery home (2026-11-21; PENDING design review: written from a summary of the design spec).
@@ -51,6 +58,8 @@
     countyName: function (c) { return c + ' County'; },
     unknownCountyTitle: function (c) { return 'No licensed shops in ' + c + ' County'; },
     signIn: 'Sign in',
+    account: 'Account',
+    signOut: 'Sign out',
     signInSoon: 'Coming soon: accounts are not open yet.',
     forBusiness: 'List Your Business',
     comingSoon: 'Coming soon',
@@ -79,15 +88,22 @@
     fServices: 'Services',
     fEvents: 'Events',
     // A chip with nothing real behind it yet in this area: said plainly, never filled with invented rows
-    filterEmptyTitle: function (label, place) { return label + ': no licensed businesses listed' + (place ? ' in ' + place : '') + ' yet'; },
+    filterEmptyTitle: function (label, place) { return label + ': none on file' + (place ? ' in ' + place : '') + ' yet'; },   // Grok 8:05: "none on file" (the old "no licensed businesses listed" read as if the county had none)
     filterEmptyOpen: 'Opening hours are not on file yet, so no business can be shown as open now.',
     filterEmptyOther: 'Nothing listed here has this on file yet. Only real license and business data is shown.',
     showAll: 'Show all',
     // Home rows drawn ONLY from real entries (FMW.promoRows); hidden while there are none. No ranking-by-rating row and no paid-placement slot exist.
+    // An EMPTY Ads or Deals row shows ONE invite card for businesses (Joe 2026-11-25 12:40, "Yes, add invites"): never a fake ad or deal, no prices, no promises. It disappears as soon as the row has real entries.
+    inviteTag: 'For businesses',
+    inviteAdsTitle: 'Advertise here',
+    inviteAdsBody: 'Reach shoppers looking for licensed shops near them.',
+    inviteDealsTitle: 'Post a deal',
+    inviteDealsBody: 'Licensed businesses can list a deal here.',
     rowAds: 'Ads',
     rowDeals: 'Deals nearby',
     rowCategories: 'Categories',
     rowFeatured: 'Featured',
+    resultsHeading: 'Licensed businesses',   // NEW (draft, for Muse): a visually hidden heading above the card list (heading order h1 > h2 > h3); never shown, no count
     // Categories row tiles (FMW.categoryTiles): a tile only for a category with real rows in the area
     catTile: { storefront: 'Storefronts', delivery: 'Deliveries', brands: 'Brands' },   // Services / Events: the chip words (fServices / fEvents)
     catTileLabel: function (name) { return 'Show ' + name; },
@@ -95,6 +111,7 @@
     rating: function (n) { return n.toFixed(1) + ' ★'; },
     kindStorefront: 'Storefront',
     kindDelivery: 'Delivery',
+    kindNone: 'Licensed business',   // a record with neither a storefront nor delivery on file never says "Delivery" (Grok 2026-11-25 11:36)
     kindBoth: 'Storefront + Delivery',
     cardLicense: function (n) { return 'License ' + n; },   // the check mark's accessible text: the plain license number
     // The menu page (approved spec item 9; supersedes the five-section menu of #79). ONE list in display order;
@@ -118,19 +135,20 @@
     themeBright: 'Bright',
     themeDark: 'Dark',
     NAV_MENU: [
-      { key: 'signin', label: 'Sign in', account: true, pill: 'outline', page: 'signup.html?mode=signin' },
-      { key: 'signup', label: 'Sign up', account: true, pill: 'fill', page: 'signup.html' },
+      { key: 'signin', label: 'Sign in', account: true, visitorOnly: true, pill: 'outline', page: 'signup.html?mode=signin' },
+      { key: 'signup', label: 'Sign up', account: true, visitorOnly: true, pill: 'fill', page: 'signup.html' },
       { key: 'home', label: 'Home', group: 1, icon: 'home', page: 'index.html' },
-      { key: 'storefronts', label: 'Storefronts', group: 1, icon: 'store', page: 'index.html?storefront=1', needsData: 'storefront' },
+      { key: 'storefronts', label: 'Storefronts', group: 1, icon: 'store', page: 'index.html?storefront=1' },   // always a live link: the directory IS storefronts (no "coming soon" on pages that do not load the listings)
       { key: 'deliveries', label: 'Deliveries', group: 1, icon: 'truck', page: 'index.html?delivery=1', needsData: 'delivery' },
       { key: 'deals', label: 'Deals', group: 1, icon: 'tag', needsData: 'deals' },
       { key: 'brands', label: 'Brands', group: 2, icon: 'star', needsData: 'brands' },
       { key: 'business', label: 'Business', group: 2, icon: 'building', page: 'results.html' },   // the whole licensed-business directory
       { key: 'services', label: 'Services', group: 2, icon: 'wrench', needsData: 'services' },
       { key: 'events', label: 'Events', group: 2, icon: 'calendar', needsData: 'events' },
-      { key: 'learning', label: 'Learning', group: 2, icon: 'book', host: '/culture/' },   // the host site's culture stories feed
+      { key: 'learning', label: 'Learning', group: 2, icon: 'book', page: 'learn.html' },   // Find My Weed's own Learn page (not the host site's culture feed)
+      { key: 'mybusiness', label: 'My business', group: 3, icon: 'briefcase', account: true, signedInOnly: true, businessOnly: true, page: 'account.html#business' },   // a signed-in business account only
       { key: 'favorites', label: 'Favorites', group: 3, icon: 'heart', account: true },
-      { key: 'help', label: 'Help', group: 3, icon: 'help', host: '/support/' },          // the host site's standing support page
+      { key: 'help', label: 'Help', group: 3, icon: 'help', page: 'help.html' },       // Find My Weed's own Help page (FAQ); About keeps "Help and contact" until Muse approves: how it works, the data source, contact and the report link
       { key: 'listbiz', label: 'List Your Business', group: 3, icon: 'plus', biz: true }
     ],
     railDelivery: 'Delivery',
@@ -158,11 +176,33 @@
     licenseChecked: function (date) { return 'License checked on ' + date; },
     licenseStale: 'This check may be out of date. Confirm on the state record.',
     licenseRecord: 'View the official state record',
+    // license strip (cards + listing page): status and expiry from the listing's own fields; plain "not on file" when missing
+    stripActive: 'Active license',
+    stripSoon: 'Active license, ends soon',
+    stripNoStatus: 'License status not on file',
+    stripUntil: function (d) { return 'Expires ' + d; },
+    stripNoExpiry: 'Expiry date not on file',
+    stripNoNumber: 'License number not on file',
+    // the short words for the directory CARD (one nowrap line, about 144 px on a 320 px phone); the full words above stay on the listing page
+    stripCardActive: function (d) { return 'Active · exp ' + d; },
+    stripCardSoon: function (d) { return 'Ends soon · ' + d; },
+    stripCardActiveNoDate: 'Active · exp not on file',
+    stripCardSoonNoDate: 'Ends soon · no date',
+    stripCardNoStatus: 'Status not on file',
+    licenseVerified: 'License checked against the state record',   // key name kept for stability; the text carries the green-check-plus-number rule (Joe/Muse home rules 2026-11-24)
     hours: 'Hours',
     address: 'Address',
     addressNone: 'Address not listed',
     addressNoStreet: 'Street address not listed',
     addressDeliveryNote: 'Delivery only: we show the city, not the street address.',
+    contactTitle: 'Contact',
+    callLabel: function (name) { return 'Call ' + name; },
+    websiteLabel: function (name) { return 'Website for ' + name + ' (opens in a new tab)'; },
+    call: 'Call',
+    website: 'Website',
+    directions: 'Directions',
+    directionsLabel: function (name) { return 'Directions to ' + name + ' (opens a maps app)'; },
+    addressCityNote: 'We show the city, not the street address.',   // no storefront on file and no delivery on file: the city only, with no claim about delivery
     menu: 'Menu',
     // This link leaves Find My Weed for the business's own site, which may take orders there (Find My Weed never does).
     // Review B/D (2026-11-21): the hand-off says the business checks ID and shows the age rule; Find My Weed claims no check.
@@ -170,7 +210,7 @@
     menuNote: 'Opens the business’s own site. The business checks ID there: 21+ (18+ medical where legal). Find My Weed does not check ID.',
     noMenu: 'No menu link yet.',
     claim: 'Claim this listing',
-    claimSoon: 'Coming soon: business owners will be able to claim and update their listing.',
+    claimNote: 'Own this business? Sign up and we will confirm you own it.',
     // "Report a problem with this listing" (W3r). No reporter identity is asked for or kept. While the reports queue is
     // not live (DRAFT SQL, not applied) the form checks the input and says plainly that nothing was sent.
     report: 'Report a problem',
@@ -191,19 +231,33 @@
       results: { title: 'Licensed businesses near you · Find My Weed', description: 'State-licensed cannabis storefronts and delivery services, with license numbers and opening hours. Cannabis is for adults 21+ (18+ medical where legal).' },
       listing: { title: 'Licensed business · Find My Weed', description: 'License number, address and hours for a state-licensed cannabis business. Cannabis is for adults 21+ (18+ medical where legal).' },
       about: { title: 'About · Find My Weed', description: 'How Find My Weed lists only state-licensed cannabis businesses, where the license data comes from, and its limits.' },
-      privacy: { title: 'Privacy · Find My Weed', description: 'What Find My Weed stores: business data from the state license record only, no visitor accounts, no ad tracking.' },
+      privacy: { title: 'Privacy · Find My Weed', description: 'What Find My Weed stores: business data from the state license record, optional accounts with email sign-in, no ad tracking, nothing sold.' },
       notfound: { title: 'Page not found · Find My Weed', description: 'This page does not exist. Search state-licensed cannabis businesses on Find My Weed.' },
       // the sign-up page (signup.html, behind site.json "accounts"). Its own words are in js/signup-copy.js.
-      signup: { title: 'Account · Find My Weed', description: 'Find My Weed accounts are coming soon. Browsing licensed businesses needs no account.' },
+      signup: { title: 'Account · Find My Weed', description: 'Create a Find My Weed account or sign in with an emailed link. Browsing licensed businesses needs no account.' },
+      terms: { title: 'Terms · Find My Weed', description: 'The terms for using Find My Weed: licensed businesses only, how to report an unlicensed seller, and what Find My Weed is and is not.' },
+      account: { title: 'Your account · Find My Weed', description: 'Your Find My Weed account: who is signed in, and sign out.' },
+      strain: { title: 'Strain · Find My Weed', description: 'Facts about a cannabis strain: type, aroma and flavor words, and lineage when known. No effect or medical claims.' },
+      help: { title: 'Help · Find My Weed', description: 'Short answers on how Find My Weed works, what a license means, how to report an unlicensed seller, accounts and contact.' },   // DRAFT for Muse; kept out of search results until Muse OKs it
+      learn: { title: 'Learn · Find My Weed', description: 'Plain-language guides to licenses, lab results, age and ID rules, delivery and reporting, plus links to videos. No health claims.' },
+      events: { title: 'Events · Find My Weed', description: 'A short, reviewed list of upcoming events, with the age rule for each. Cannabis is for adults 21+ (18+ medical where legal).' },
       imageAlt: 'Find My Weed: search state-licensed cannabis storefronts and delivery services',   // the real share image (launched)
       imageAltPlaceholder: 'Find My Weed placeholder share image'   // the draft's placeholder image
     },
     // Age notice (owner decision 2026-11-21: follow Weedmaps / Leafly): the directory is open to everyone, with
     // no entry wall; age is checked by the business at the point of sale. FMW has no ordering, so nothing here asks for an age.
-    footer21: 'Cannabis is for adults 21+, or 18+ medical patients where state law allows. Licensed businesses only. The business checks ID.',
-    footerNote: 'Find My Weed is a directory of state-licensed businesses. Check your local laws.',
+    footer21: 'Cannabis is for adults 21+ (18+ medical where legal). Licensed businesses only. The business checks your ID.',
+    footerNote: 'Find My Weed is a directory only: nothing is sold, reserved or delivered here. Check your local laws.',
     footerAbout: 'About',
     footerPrivacy: 'Privacy',
+    footerTerms: 'Terms',
+    footerHelp: 'Help',   // DRAFT for Muse
+    // SB 378 (Bus. & Prof. Code 22943, cannabis marketplaces): a PUBLIC way to report an unlicensed seller, in the footer of
+    // every page, no account needed. A plain mailto to info@keepitil.com (the support address): no form, no network call,
+    // no database. The same href is written into each page so it works before (and without) JavaScript.
+    footerReport: 'Report an unlicensed seller',
+    footerReportNote: 'Opens an email to info@keepitil.com. No account needed.',
+    reportSellerHref: 'mailto:info@keepitil.com?subject=Report%20an%20unlicensed%20seller%20(Find%20My%20Weed)&body=Business%20or%20seller%20name%3A%0A%0AWhere%20you%20saw%20it%20(address%2C%20website%2C%20app%20or%20social%20account)%3A%0A%0AWhat%20happened%2C%20and%20when%3A%0A%0A',
     // About / Privacy / 404 pages (PLACEHOLDER; the Privacy text also needs a privacy review before launch).
     // Each page: a title and sections of plain-text paragraphs. Everything stated here is true of the code and
     // docs/DATA_PLAN.md today; keep it that way when editing.
@@ -221,16 +275,59 @@
             'License details come from the California Department of Cannabis Control public license search (search.cannabis.ca.gov), which the State publishes as public information.',
             'The State does not guarantee the accuracy of that data, and neither can we. If something looks wrong, check the official record linked on the listing.'] },
           { h: 'Hours and menus', p: [
-            'Hours, menu links and delivery details come from the business, not from the State. They can change; confirm with the business before you go.'] }
+            'Hours, menu links and delivery details come from the business, not from the State. They can change; confirm with the business before you go.'] },
+          { h: 'Help and contact', p: [
+            'Questions, a correction, or a problem with a listing? Email info@keepitil.com.',
+            'To report an unlicensed seller, use the "Report an unlicensed seller" link at the bottom of any page. It opens an email to the same address.'] }
+        ]
+      },
+      // DRAFT FOR MUSE (2026-11-24): the Help FAQ. Every line is true of the live code today (search, license data, the report link, email-link sign-in, 30-day token, claims approved by the team).
+      help: {
+        title: 'Help',
+        sections: [
+          { h: 'How search works', p: [
+            'Type a city, county or ZIP code in the search bar, or pick an area from the location list. The list and the map show the licensed businesses there.',
+            'The filter chips under the search bar narrow the list, for example to storefronts or delivery. Hours come from the business, so check with it before you go.'] },
+          { h: 'What "licensed" means', p: [
+            'Every business here holds a state cannabis license, and its license number is on its listing. A business is listed only while its license is Active (or About to Expire) and has not expired.',
+            'License details come from the California Department of Cannabis Control public license search. Each listing links to the official record so you can check it yourself.'] },
+          { h: 'Report an unlicensed seller', p: [
+            'Use the "Report an unlicensed seller" link at the bottom of any page. It opens an email to info@keepitil.com. Tell us the name of the seller and where you saw it.'] },
+          { h: 'Accounts', p: [
+            'You do not need an account to browse. A customer account is for saving your choices; a business account is for a licensed business that manages its listing.',
+            'Signing in uses a link we email to you. There is no password. You stay signed in on this device for up to 30 days, or until you sign out.',
+            'To sign out of this device, open the menu and choose Sign out.',
+            'Saving listings, and downloading or deleting your account data from the account page, are coming. Until then, email info@keepitil.com and we will help.'] },
+          { h: 'Claim your business', p: [
+            'A licensed business can ask to manage its listing from the menu. Our team approves each request before anything changes on the listing.'] },
+          { h: 'Contact', p: [
+            'Questions, a correction or a problem with a listing? Email info@keepitil.com.'] }
         ]
       },
       privacy: {
         title: 'Privacy',
         sections: [
-          { h: 'No accounts, no ad tracking', p: [   // A61-8 (review 03:30 PT): accurate next to the Cloudflare Web Analytics line
-            'You do not need an account to use Find My Weed. We do not use advertising trackers.',
-            'We use Cloudflare Web Analytics to count page views. It uses no cookies and gives us totals only: no ads and no profile that follows you to other sites.',
+          { h: 'Accounts are optional; no ad tracking', p: [
+            'You do not need an account to browse Find My Weed. We do not use advertising trackers.',
+            'Find My Weed pages don\'t use analytics or tracking scripts.',   // Grok 2026-11-24 5:08 PM: exact wording; the page-view beacon is off
             'We don\'t keep your searches. Like any website, our host keeps short-lived server logs (IP address and page requested) for security.'] },
+          // Accounts (sign-up live since 2026-11-22). Every line is true of js/signup.js, js/fmw-auth.js and
+          // supabase/migrations/20261123010000_fmw_signup.sql; tests/privacy-accounts.test.js checks each against the code.
+          { h: 'If you create an account', p: [
+            'Signing in uses a link we email to you. There is no password.',
+            // PLACEHOLDER WORDING (Grok 2026-11-24): Muse words this line, Echo checks it. The facts are true of js/session-store.js.
+            'When you sign in, a sign-in token is kept on this device so you stay signed in. It is removed when you sign out, and it ends 30 days after you sign in.',
+            'Your account holds your email address and whether it is a customer or a business account. For 18 to 20 year olds with a medical recommendation, it also notes that the account is medical-only. It also keeps your light or dark choice if you make one. Saving listings is coming; when it is on, saved listings will be stored with your account and be visible only to you.',
+            'Sign-up asks when you were born, to check eligibility. That check runs in your browser, and the answer is not stored.',
+            'Business accounts: To check a license, we look it up in the state\'s public license records. We use the license number, the legal business name and the category you enter. When you are signed in, the result of that check is kept with your account, together with the license number.',
+            'Accounts are stored in a hosted database that we run. Find My Weed keeps its own account records, separate from member profiles on our other sites. A login you made on one of our other sites can also sign in here.'] },
+          { h: 'What we do not do', p: [
+            'Find My Weed does not take reservations or requests for cannabis, and it takes no payment: no card details are collected here. Nothing is sold, reserved or delivered here.',
+            'Each listing points you to the business itself. Anything you arrange, you arrange with the business, and the business checks your ID.'] },
+          { h: 'Who sees your information, and deleting it', p: [
+            'We do not sell your information and we do not share it with advertisers. Services that host and email the site process it only to run Find My Weed.',
+            'If you report an unlicensed seller, we keep your email and what you wrote only to handle the report and to tell you the result.',   // DRAFT for Muse / Grok GO
+            'To delete your account and what is kept with it, email info@keepitil.com from the address on the account. Until a delete button exists, we will do it for you.'] },
           { h: 'What stays on your device', p: [
             'Searching near you uses the city or ZIP you type. Your exact location is never sent to a server.',
             'This site saves up to two settings in your browser: fmw-theme (System, Bright or Dark), if you pick a theme in the menu, and fmw-area, the last location you chose in the search bar, so the home opens there next time. They stay on this device and aren\'t sent to us or anyone else. Clear this site\'s data in your browser settings to remove them.'] },

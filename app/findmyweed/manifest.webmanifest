@@ -1,0 +1,18 @@
+{
+  "name": "Find My Weed",
+  "short_name": "Find My Weed",
+  "description": "State-licensed cannabis storefronts and delivery services. For adults 21+ (18+ medical where legal).",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef6ee",
+  "theme_color": "#0a7a33",
+  "lang": "en",
+  "categories": ["lifestyle"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

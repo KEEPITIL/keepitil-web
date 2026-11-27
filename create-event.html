@@ -2,13 +2,13 @@
 <html lang="en" data-theme="default">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="robots" content="noindex,nofollow"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
 <title>Create an Event — KEEPITIL</title>
 <meta name="description" content="Create and publish your event on KEEPITIL — a live visual editor with tickets, tiers, features and per-event branding."/>
 <link rel="stylesheet" href="/assets/css/tokens.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&family=Anton&family=Fraunces:opsz,wght@9..144,600;9..144,900&display=swap" rel="stylesheet"/>
+<link href="/assets/css/fonts.css" rel="stylesheet"/>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <style>
 /* ── Posh-parity single-page live editor (Founder 2026-07-17): the page IS the event —
@@ -18,8 +18,9 @@ body{background:var(--bg,#0a0a0f);color:var(--text);font-family:var(--font,Inter
 body::before{display:none!important}
 .wrap{max-width:1120px;margin:0 auto;padding:0 var(--sp-3,20px)}
 .gate{max-width:460px;margin:60px auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:34px 28px;text-align:center}
-.gate h2{font-size:1.3rem;font-weight:800;margin-bottom:8px}
+.gate h1,.gate h2{font-size:1.3rem;font-weight:800;margin-bottom:8px;line-height:1.2}.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .gate p{color:var(--muted);margin-bottom:18px}
+.gate-peek{text-align:left;border-top:1px solid var(--line);margin:0 0 20px;padding-top:16px}.gate-peek h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}.gate-peek ul{margin:0 0 12px 18px;padding:0;color:var(--text);font-size:.92rem;line-height:1.5}.gate-peek li{margin-bottom:6px}.gate-peek p{font-size:.85rem;margin:0}
 /* editor top bar */
 .edbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:18px 0 6px}
 .edbar .org{display:flex;align-items:center;gap:8px}
@@ -71,6 +72,7 @@ textarea{min-height:96px;resize:vertical}
 .addtier{margin-top:14px;background:transparent;border:1px solid var(--line);color:var(--text);border-radius:999px;padding:9px 16px;font-weight:700;cursor:pointer}
 .addtier:hover{border-color:var(--ev-accent,var(--brand));color:var(--ev-accent,var(--brand))}
 .hint{font-size:.78rem;color:var(--muted);margin-top:6px}
+.hint a{color:inherit;font-weight:700;text-decoration:underline}
 .tier-badge{display:inline-block;font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--brand);border:1px solid var(--line);border-radius:20px;padding:3px 9px;margin-bottom:8px}
 body.rsvp .price-only{display:none!important}
 /* guestlist preview */
@@ -116,18 +118,28 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
 <body>
 <nav id="main-nav"><div class="nav-inner"></div></nav>
 
-<div class="wrap">
+<main class="wrap" id="main">
   <!-- not-logged-in gate -->
   <div class="gate" id="gate" style="display:none">
-    <h2>Log in to create an event</h2>
-    <p>You'll need a KEEPITIL account. Free members can list events; selling tickets is a Community perk.</p>
-    <a class="btn primary" href="/apply">Log in / Join</a>
+    <h1>Log in to create an event</h1>
+    <p>You'll need a KEEPITIL account. Members submit an event for review; the KEEPITIL team approves it before it goes live. Selling tickets is a Community perk.</p>
+    <div class="gate-peek" id="gate-peek">
+      <h2>What you'll fill in</h2>
+      <ul>
+        <li><b>Required:</b> an event name and a start date and time.</li>
+        <li><b>Optional:</b> where it is, a description, a cover image, lineup, a Spotify song link, a password for a private event, and ticket tiers.</li>
+      </ul>
+      <p>Nothing publishes until the KEEPITIL team approves it. You can come back and edit your event after it is published.</p>
+    </div>
+    <a class="btn primary" href="/apply?next=%2Fcreate-event">Log in to create your event</a>
   </div>
 
   <form id="form" style="display:none">
+    <h1 class="vh">Create an event</h1>
+    <h2 class="vh">Your event</h2>
     <!-- editor top bar: org · Sell/RSVP · help -->
     <div class="edbar">
-      <div class="org"><span class="tzlab">Hosting as</span><select id="orgSel"><option value="">…</option></select></div>
+      <div class="org"><span class="tzlab" id="orgLab">Hosting as</span><select id="orgSel" aria-labelledby="orgLab"><option value="">…</option></select></div>
       <div class="mode" id="evMode">
         <button type="button" id="modeSell" class="on">Sell Tickets</button>
         <button type="button" id="modeRSVP">RSVP</button>
@@ -139,8 +151,8 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
       <!-- ══ LEFT: the live event page ══ -->
       <div>
         <div class="pagehead">
-          <div id="title-inline" contenteditable="true" spellcheck="false" aria-label="Event name"></div>
-          <div id="summary-inline" contenteditable="true" spellcheck="false" aria-label="Short summary"></div>
+          <div id="title-inline" contenteditable="true" role="textbox" spellcheck="false" aria-label="Event name"></div>
+          <div id="summary-inline" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="false" aria-label="Short summary"></div>
           <!-- canonical fields the whole submit path reads (kept in sync with the inline editors) -->
           <input type="hidden" id="title"/>
           <input type="hidden" id="tagline"/>
@@ -159,12 +171,13 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
           <div id="seriesList"></div>
         </div>
 
+
         <div class="card">
           <h3>📅 Date &amp; time <span class="tzlab" style="margin-left:auto">Pacific Time · America/Los_Angeles</span></h3>
           <div class="row">
-            <div><label>Starts *</label><input id="starts_at" type="datetime-local" step="900" required/></div>
+            <div><label for="starts_at">Starts *</label><input id="starts_at" type="datetime-local" step="900" required/></div>
             <div>
-              <label style="display:flex;align-items:center;gap:8px">Ends
+              <label for="ends_at" style="display:flex;align-items:center;gap:8px">Ends
                 <button type="button" class="eye on" id="endEye" title="Shown publicly — click to hide the end time on the event page" aria-pressed="true">👁</button>
               </label>
               <input id="ends_at" type="datetime-local" step="900"/>
@@ -264,14 +277,14 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
         </div>
         <div class="railcard">
           <h4>Branding</h4>
-          <label>Title font</label>
+          <label for="title_font">Title font</label>
           <select id="title_font">
             <option value="">KEEPITIL default (Bebas Neue)</option>
             <option value="Anton">Anton — heavy poster</option>
             <option value="Fraunces">Fraunces — editorial serif</option>
             <option value="Inter">Inter — clean modern</option>
           </select>
-          <label>Accent color</label>
+          <label for="accent_color">Accent color</label>
           <input id="accent_color" type="color" value="#00b4ff" style="height:44px;padding:4px"/>
           <div class="hint">Font + accent style YOUR event page only — the rest of the site never changes.</div>
         </div>
@@ -279,6 +292,13 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
           <button type="submit" class="submit" id="submitBtn">Create Event</button>
           <div class="msg" id="msg"></div>
           <div class="hint">By submitting you agree to the <a href="/terms">Terms</a>. Nothing publishes until the KEEPITIL team approves it.</div>
+        </div>
+        <div class="card" id="delCard" style="display:none">
+          <h3>Delete this event</h3>
+          <div class="note">Removes this event page permanently. An event that has sold tickets cannot be deleted; after every ticket is refunded you can hide it from the public instead.</div>
+          <button type="button" class="sact del" id="delEventBtn" style="margin-top:12px;background:transparent;border:1px solid #ff6b6b;color:#ff6b6b;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer">Delete event</button>
+          <button type="button" class="sact hide" id="hideEventBtn" style="display:none;margin-top:12px;margin-left:8px;background:transparent;border:1px solid var(--gold,#e0b021);color:var(--gold,#e0b021);border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer">Hide this event</button>
+          <div class="msg" id="delMsg" role="status" aria-live="polite"></div>
         </div>
       </div>
     </div>
@@ -293,7 +313,7 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
     <br/>
     <a class="btn ghost" href="/connect/">Back to the Scene</a>
   </div>
-</div>
+</main>
 
 <script>
 var SUPA_URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
@@ -344,12 +364,17 @@ $('flyerFile').addEventListener('change',function(){
     cv.width=Math.round(img.width*scale); cv.height=Math.round(img.height*scale);
     cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
     cv.toBlob(function(blob){
-      var path='event-flyers/'+Date.now()+'-'+file.name.toLowerCase().replace(/[^a-z0-9._-]+/g,'-');
-      supa.storage.from('chat-images').upload(path,blob,{contentType:'image/jpeg'}).then(function(r){
-        if(r.error){ alert('Upload failed: '+r.error.message); return; }
-        var pub=supa.storage.from('chat-images').getPublicUrl(path);
-        var url=(pub&&pub.data)?pub.data.publicUrl:'';
-        $('cover_url').value=url; paintFlyer(url);
+      /* the chat-images bucket only accepts uploads into the signed-in user's own folder (first path segment = their user id): <uid>/event-flyers/... Existing files keep their old paths and URLs. */
+      supa.auth.getSession().then(function(sr){
+        var uid=sr&&sr.data&&sr.data.session&&sr.data.session.user?sr.data.session.user.id:'';
+        if(!uid){ alert('Sign in to upload a flyer.'); return; }
+        var path=uid+'/event-flyers/'+Date.now()+'-'+file.name.toLowerCase().replace(/[^a-z0-9._-]+/g,'-');
+        supa.storage.from('chat-images').upload(path,blob,{contentType:'image/jpeg'}).then(function(r){
+          if(r.error){ alert('Upload failed: '+r.error.message); return; }
+          var pub=supa.storage.from('chat-images').getPublicUrl(path);
+          var url=(pub&&pub.data)?pub.data.publicUrl:'';
+          $('cover_url').value=url; paintFlyer(url);
+        });
       });
     },'image/jpeg',.88);
   }; img.src=rd.result; };
@@ -367,8 +392,8 @@ function tierHtml(i){
     '<textarea class="t-desc" rows="2" placeholder="e.g. Early entry + drink token, or VIP table for 4…"></textarea>'+
     '<div class="row"><div class="price-only"><label>Price (USD)</label><input class="t-price" type="number" min="0" step="1" placeholder="0 = free"/></div>'+
     '<div><label>Quantity limit</label><input class="t-qty" type="number" min="1" step="1" placeholder="Unlimited"/></div></div>'+
-    '<div class="row"><div><label>Sales start <span style="font-weight:600;color:var(--muted);font-size:.8rem">(optional)</span></label><input class="t-start" type="datetime-local" step="900"/></div>'+
-    '<div><label>Sales end <span style="font-weight:600;color:var(--muted);font-size:.8rem">(optional)</span></label><input class="t-end" type="datetime-local" step="900"/></div></div>'+
+    '<div class="row"><div><label>Sales start <span style="font-weight:600;color:var(--muted);font-size:.8rem">(optional)</span></label><input class="t-start" type="datetime-local" step="900" aria-label="Sales start (optional)"/></div>'+
+    '<div><label>Sales end <span style="font-weight:600;color:var(--muted);font-size:.8rem">(optional)</span></label><input class="t-end" type="datetime-local" step="900" aria-label="Sales end (optional)"/></div></div>'+
     '<div class="hint" style="margin-top:6px">Leave blank to sell right away until the event starts. Sales windows can’t run past the event’s date/time.</div>'+
     '<label class="tgl" style="margin-top:8px"><input type="checkbox" class="t-showqty"/> Show remaining count publicly (otherwise it only appears when a guest hovers the ticket)</label>'+
     '</div>';
@@ -453,6 +478,7 @@ async function prefillEdit(){
     if(tiers.length && tiers.every(function(t){ return !t.price_cents; })) setMode(true);
     if(Array.isArray(ev.reg_questions)){ ev.reg_questions.forEach(function(q){ addQ(); var qs=document.querySelectorAll('#qs .tier'); var qr=qs[qs.length-1]; if(qr){ if(q.label)qr.querySelector('.q-label').value=q.label; qr.querySelector('.q-type').value=q.type||'text'; qr.querySelector('.q-req').value=q.required?'yes':'no'; } }); }
     SERIES_ID=ev.series_id||null; SERIES=Array.isArray(d.series)?d.series:[]; renderSeries();
+    { var _dc=$('delCard'); if(_dc) _dc.style.display=(EDIT_SLUG && !SERIES.length)?'block':'none'; }   /* single events have no series manager, so they get their own Delete */
     var b=$('submitBtn'); if(b) b.textContent='Save changes';
   }catch(e){}
 }
@@ -525,6 +551,32 @@ function renderSeries(){
     b.addEventListener('click',function(){ seriesAction(b.getAttribute('data-act'), b.getAttribute('data-slug'), b); });
   });
 }
+/* Delete a single (non-series) event. delete_event is owner-only and refuses once any order exists; its message is shown as is. */
+async function deleteThisEvent(){
+  var btn=$('delEventBtn'), m=$('delMsg'); if(!EDIT_SLUG||!btn) return;
+  if(!confirm('Delete this event permanently? This cannot be undone.')) return;
+  btn.disabled=true; m.className='msg'; m.textContent='Deleting…';
+  try{
+    var r=await supa.rpc('delete_event',{p_slug:EDIT_SLUG}); if(r.error) throw r.error;
+    var d=(r&&r.data)||{};
+    if(d.error){ m.className='msg err'; m.textContent=d.message||'This event cannot be deleted. Email info@keepitil.com.'; btn.disabled=false; if(d.error==='has_sales'){ var hb=$('hideEventBtn'); if(hb) hb.style.display=''; } return; }
+    location.href='/dashboard';
+  }catch(e){ m.className='msg err'; m.textContent='Could not delete: '+(e.message||e); btn.disabled=false; }
+}
+/* A paid event cannot be deleted. Once every ticket is refunded, archive_event (owner-only) hides it from the public and keeps the records;
+   while tickets are active the server refuses and says so. */
+async function hideThisEvent(){
+  var hb=$('hideEventBtn'), m=$('delMsg'); if(!EDIT_SLUG||!hb) return;
+  if(!confirm('Hide this event from the public? Your records and orders are kept.')) return;
+  hb.disabled=true; m.className='msg'; m.textContent='Hiding…';
+  try{
+    var r=await supa.rpc('archive_event',{p_slug:EDIT_SLUG}); if(r.error) throw r.error;
+    var d=(r&&r.data)||{};
+    if(d.error){ m.className='msg err'; m.textContent=d.message||'This event cannot be hidden right now. Email info@keepitil.com.'; hb.disabled=false; return; }
+    m.className='msg ok'; m.textContent='Event hidden. It no longer shows to the public.'; hb.style.display='none'; var db=$('delEventBtn'); if(db) db.style.display='none';
+  }catch(e){ m.className='msg err'; m.textContent='Could not hide: '+(e.message||e); hb.disabled=false; }
+}
+(function(){ var b=document.getElementById('delEventBtn'); if(b) b.addEventListener('click',deleteThisEvent); var h=document.getElementById('hideEventBtn'); if(h) h.addEventListener('click',hideThisEvent); })();
 function esc2(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 async function seriesAction(act, slug, btn){
   var human=(act==='delete')?'delete this date permanently':'hide this date from the public (kept for your records)';
@@ -540,12 +592,24 @@ async function seriesAction(act, slug, btn){
   }catch(e){ alert('Could not complete: '+(e.message||e)); btn.disabled=false; btn.textContent=old; }
 }
 
+/* LINK FIELDS: cover, Spotify and YouTube are stored and later rendered as image sources and
+   links on the public event page. Only http(s) is a valid link; anything else ("javascript:...",
+   a bare word, "www.x.com" without a scheme) either breaks the page or is a script-URL sink. */
+function badLink(v){ v=(v||'').trim(); return !!v && !/^https?:\/\/[^\s]+$/i.test(v); }
+function firstBadLink(){
+  var f=[['cover_url','Cover image link'],['spotify_url','Spotify link'],['youtube_url','YouTube link']];
+  for(var i=0;i<f.length;i++){ var el=document.getElementById(f[i][0]); if(el && badLink(el.value)) return f[i]; }
+  return null;
+}
+
 $('form').addEventListener('submit',async function(e){
   e.preventDefault();
   syncInline();
   var msg=$('msg'); msg.className='msg'; msg.textContent='';
   var title=$('title').value.trim();
   if(!title){ msg.className='msg err'; msg.textContent='Name your event (click the big title at the top).'; return; }
+  var _bl=firstBadLink();
+  if(_bl){ msg.className='msg err'; msg.textContent=_bl[1]+' must start with http:// or https://'; var _el=document.getElementById(_bl[0]); if(_el && _el.focus) _el.focus(); return; }
   var b=$('submitBtn'); b.disabled=true; b.textContent='Submitting…';
   try{
     var evStartISO=$('starts_at').value?new Date($('starts_at').value).toISOString():null;
@@ -643,6 +707,6 @@ $('form').addEventListener('submit',async function(e){
 init();
 </script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261120b" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
 </body>
 </html>

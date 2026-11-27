@@ -1227,7 +1227,7 @@ function submitAirplay(){
       var free = !c.entry_fee_cents;
       var cover=window.KilSafeHtml?KilSafeHtml.safeMediaUrl(c.cover_url):'';
       var art = cover
-        ? '<div class="card-img" style="height:auto;aspect-ratio:2/3;margin:-16px -16px 12px;background:#15131f url(\''+esc(cover)+'\') center/cover no-repeat"></div>'
+        ? '<div class="card-img" style="height:auto;aspect-ratio:2/3;margin:-16px -16px 12px;background:#15131f"><img src="'+esc(cover)+'" alt="" loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover"></div>'
         : '<div class="card-img" style="background:linear-gradient(150deg,#ff2e88,#a06bff)">🏆</div>';
       return '<a class="card station" href="/create/?view=enter&c='+encodeURIComponent(c.id)+'">'
         + art

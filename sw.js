@@ -49,7 +49,10 @@
    HTML that still names the old ?v=, and the old shell. The worker's install only precaches the icons, offline page and manifest (cache.add of fixed URLs, no shell or page HTML), so there
    is no install-time fetch of the shell that the HTTP cache could serve stale; pages and code are fetched at request time, network-first (code) and stale-while-revalidate (pages).
    Previous: kil-pages-v48 / kil-code-v91 */
-var VERSION = 'kil-pwa-v111-20261125a';
+/* BUMPED 2026-11-27 for the CSP migration: /offline.html now loads kil-actions.js + kil-common-actions.js (its Try again button used an inline handler, which a strict
+   script-src would block). They are precached by exact URL below so the page still works with the network off, and PRECACHE entries are now fetched with cache:'reload'
+   so an install can never store a copy the HTTP cache (or the CDN) was still holding stale. Previous: kil-pwa-v111-20261125a */
+var VERSION = 'kil-pwa-v112-20261127a';
 var PAGES = 'kil-pages-v49';
 var ASSETS = 'kil-assets-v42';
 var CODE = 'kil-code-v92';
@@ -60,7 +63,9 @@ var PRECACHE = [
   '/icon-192.png',
   '/icon-512.png',
   '/apple-touch-icon.png',
-  '/manifest.webmanifest'
+  '/manifest.webmanifest',
+  '/assets/js/kil-actions.js',
+  '/assets/js/kil-common-actions.js'
 ];
 var CODE_EXT = /\.(js|css)(\?|$)/i;
 var MEDIA_EXT = /\.(png|jpg|jpeg|webp|gif|svg|ico|woff2?|ttf)$/i;
@@ -68,7 +73,7 @@ var MEDIA_EXT = /\.(png|jpg|jpeg|webp|gif|svg|ico|woff2?|ttf)$/i;
 self.addEventListener('install', function (e) {
   e.waitUntil(
     caches.open(VERSION).then(function (cache) {
-      return Promise.allSettled(PRECACHE.map(function (u) { return cache.add(u); }));
+      return Promise.allSettled(PRECACHE.map(function (u) { return cache.add(new Request(u, { cache: 'reload' })); }));
     }).then(function () { return self.skipWaiting(); })
   );
 });

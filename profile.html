@@ -658,7 +658,7 @@ window.__pfGate=(function(){
       <li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li>
     </ul>
     <a href="/apply" class="nav-cta">LOGIN</a>
-    <button class="nav-hamburger" onclick="toggleMenu()" aria-label="Open menu"><span></span><span></span><span></span></button>
+    <button class="nav-hamburger" data-click="toggleMenu" aria-label="Open menu"><span></span><span></span><span></span></button>
   </div>
 </nav>
 <div class="mobile-menu" id="mobile-menu"><a href="/">DISCOVER</a><a href="/connect/">CONNECT</a><a href="/create/">CREATE</a><a href="/culture/">CULTURE</a><a href="/earn/">EARN</a><a href="/apply" class="nav-cta">LOGIN</a></div>
@@ -668,8 +668,8 @@ window.__pfGate=(function(){
      A new/empty profile must render a blank, fillable page — never someone else's identity. -->
 <style>@keyframes pfskel{50%{opacity:.45}}.pf-skel{animation:pfskel 1.2s ease-in-out infinite}</style>
 <main id="main">
-<button id="pfBack" onclick="history.back()">‹ Previous</button>
-<div class="pf-cover"><img id="pfCover" src="" alt="" style="display:none" onerror="this.style.display='none'"></div>
+<button id="pfBack" data-click="pfBack">‹ Previous</button>
+<div class="pf-cover"><img id="pfCover" src="" alt="" style="display:none" data-fb="hide"></div>
 <div class="pf-head">
   <div class="pf-top" style="align-items:stretch;gap:26px">
     <img id="pfAvatar" class="pf-avatar pf-skel" src="/icon-192.png" alt="Profile" style="align-self:center">
@@ -679,7 +679,7 @@ window.__pfGate=(function(){
       <div id="pfStatsRow" style="display:flex;flex-wrap:wrap;gap:6px 24px;font-size:.96rem"><span><b id="stPosts">0</b> feed</span><span style="color:inherit"><b id="stFollowers">0</b> followers</span><span style="color:inherit"><b id="stLikes">0</b> likes</span></div>
       <div id="pfAboutTop" style="display:none;color:var(--text-soft,#c9cede);font-size:.88rem;line-height:1.5"></div>
       <div id="pfLinksDrop" style="display:none;position:relative">
-        <button class="evsub-b" onclick="var m=document.getElementById('pfLinksMenu');m.style.display=m.style.display==='none'?'block':'none';event.stopPropagation()">🔗 Links ▾</button>
+        <button class="evsub-b" data-click="pfLinksToggle" data-stop>🔗 Links ▾</button>
         <div id="pfLinksMenu" style="display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:90;background:#15151f;border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:8px;min-width:230px;box-shadow:0 12px 30px rgba(0,0,0,.5)"></div>
       </div>
     </div>
@@ -691,26 +691,26 @@ window.__pfGate=(function(){
   <div id="pfAbout" style="display:none;color:var(--text-soft,#c9cede);font-size:.9rem;line-height:1.6;margin:6px 0"></div>
   <div id="pfLinks" style="display:none;flex-wrap:wrap;gap:8px;margin:6px 0"></div>
   <div class="pf-cta">
-    <button class="pf-btn follow" id="pfFollow" onclick="toggleFollow()">+ FOLLOW</button>
-    <button class="pf-btn book" id="pfCreate" style="display:none" onclick="toggleCreateMenu(event)">＋ CREATE</button>
-    <button type="button" class="pf-btn book" id="pfEditPage" style="display:none" onclick="openEditProfile()">EDIT PAGE</button>
-    <span id="pfDashWrap" style="display:none"><button class="pf-btn book" id="pfArchive" onclick="location.href='/dashboard'">DASH</button></span>
+    <button class="pf-btn follow" id="pfFollow" data-click="toggleFollow">+ FOLLOW</button>
+    <button class="pf-btn book" id="pfCreate" style="display:none" data-click="toggleCreateMenu" data-a="[&quot;$e&quot;]">＋ CREATE</button>
+    <button type="button" class="pf-btn book" id="pfEditPage" style="display:none" data-click="openEditProfile">EDIT PAGE</button>
+    <span id="pfDashWrap" style="display:none"><button class="pf-btn book" id="pfArchive" data-click="pfGoDashboard">DASH</button></span>
     <a class="pf-btn book" id="pfBook" href="#" style="display:none">MESSAGE</a>
     <button type="button" class="pf-btn book" id="pfContact" style="display:none">CONTACT</button>
     <a class="pf-btn icon" id="pfIG" href="#" style="display:none" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2zm0 3.2A6.6 6.6 0 1012 18.6 6.6 6.6 0 0012 5.4zm0 10.9a4.3 4.3 0 110-8.6 4.3 4.3 0 010 8.6zm6.85-11.2a1.54 1.54 0 11-3.08 0 1.54 1.54 0 013.08 0z"/></svg></a>
     <a class="pf-btn icon" id="pfSC" href="#" style="display:none" target="_blank" rel="noopener noreferrer" aria-label="SoundCloud"><svg viewBox="0 0 24 24"><path d="M1.5 13.6c-.1 0-.2.1-.2.2l-.2 1.7.2 1.6c0 .1.1.2.2.2s.2-.1.2-.2l.2-1.6-.2-1.7c0-.1-.1-.2-.2-.2zm2 .6c-.1 0-.2.1-.2.2l-.2 1.1.2 1.1c0 .1.1.2.2.2s.2-.1.2-.2l.3-1.1-.3-1.1c0-.1-.1-.2-.2-.2zm12.9-4.9c-.5 0-.9.1-1.3.3-.3-2.9-2.7-5.1-5.7-5.1-.7 0-1.4.1-2 .4-.2.1-.3.2-.3.4v9.1c0 .2.2.4.4.4h8.9c1.7 0 3.1-1.4 3.1-3.1 0-1.5-1.2-2.8-3.1-2.8z"/></svg></a>
     <style>#pfShare>button.pf-btn{background:transparent!important;color:var(--brand,#00b4ff)!important;border:2px solid var(--brand,#00b4ff)!important;box-shadow:0 0 12px color-mix(in srgb,var(--brand,#00b4ff) 50%,transparent),inset 0 0 8px color-mix(in srgb,var(--brand,#00b4ff) 20%,transparent)}</style>
     <div class="pf-share" id="pfShare">
-      <button class="pf-btn icon" onclick="toggleShare(event)" aria-label="Share" aria-haspopup="true"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg><span class="pf-share-lbl" style="font-weight:700;letter-spacing:.06em">SHARE</span></button>
+      <button class="pf-btn icon" data-click="toggleShare" data-a="[&quot;$e&quot;]" aria-label="Share" aria-haspopup="true"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg><span class="pf-share-lbl" style="font-weight:700;letter-spacing:.06em">SHARE</span></button>
       <div class="share-menu" id="shareMenu" role="menu">
         <div class="sm-head">SHARE TO</div>
-        <a role="menuitem" onclick="shareTo('x')"><svg viewBox="0 0 24 24"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.97 6.82H1.66l7.73-8.84L1.24 2.25h6.83l4.71 6.23 5.46-6.23zm-1.16 17.52h1.83L7.01 4.13H5.05l12.03 15.64z"/></svg>X (Twitter)</a>
-        <a role="menuitem" onclick="shareTo('fb')"><svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0022 12z"/></svg>Facebook</a>
-        <a role="menuitem" onclick="shareTo('wa')"><svg viewBox="0 0 24 24"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.34 4.95L2 22l5.25-1.38a9.9 9.9 0 004.79 1.22c5.5 0 9.96-4.46 9.96-9.96S17.54 2 12.04 2zm5.8 14.06c-.24.68-1.4 1.3-1.94 1.34-.5.05-.5.4-3.15-.66-2.65-1.06-4.3-3.77-4.43-3.95-.13-.18-1.06-1.4-1.06-2.67 0-1.27.67-1.9.9-2.16.24-.26.52-.32.7-.32.17 0 .35 0 .5.01.16.01.38-.06.6.46.23.53.77 1.84.84 1.97.07.13.11.29.02.47-.09.18-.13.29-.26.44-.13.15-.27.34-.39.46-.13.13-.26.27-.11.53.15.26.66 1.09 1.42 1.77.98.87 1.8 1.15 2.06 1.28.26.13.41.11.56-.07.15-.18.65-.76.82-1.02.17-.26.35-.22.58-.13.24.09 1.52.72 1.78.85.26.13.43.2.5.3.06.11.06.62-.18 1.3z"/></svg>WhatsApp</a>
-        <a role="menuitem" onclick="shareTo('tg')"><svg viewBox="0 0 24 24"><path d="M21.9 4.3l-3.3 15.6c-.25 1.1-.9 1.37-1.82.85l-5.03-3.7-2.43 2.34c-.27.27-.5.5-1.02.5l.36-5.14L17.02 6.9c.41-.36-.09-.56-.63-.2L6.5 13.02l-4.9-1.53c-1.06-.33-1.08-1.06.22-1.57l19.16-7.39c.89-.33 1.67.2 1.72 1.77z"/></svg>Telegram</a>
-        <a role="menuitem" onclick="shareTo('email')"><svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>Email</a>
-        <a role="menuitem" onclick="shareTo('sms')"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 9H6V9h12v2zm0-3H6V6h12v2z"/></svg>Text (SMS)</a>
-        <a role="menuitem" onclick="shareTo('copy')"><svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 00-2 2v14h2V3h12V1zm3 4H8a2 2 0 00-2 2v14a2 2 0 002 2h11a2 2 0 002-2V7a2 2 0 00-2-2zm0 16H8V7h11v14z"/></svg>Copy link</a>
+        <a role="menuitem" data-click="shareTo" data-a="[&quot;x&quot;]"><svg viewBox="0 0 24 24"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.97 6.82H1.66l7.73-8.84L1.24 2.25h6.83l4.71 6.23 5.46-6.23zm-1.16 17.52h1.83L7.01 4.13H5.05l12.03 15.64z"/></svg>X (Twitter)</a>
+        <a role="menuitem" data-click="shareTo" data-a="[&quot;fb&quot;]"><svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0022 12z"/></svg>Facebook</a>
+        <a role="menuitem" data-click="shareTo" data-a="[&quot;wa&quot;]"><svg viewBox="0 0 24 24"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.34 4.95L2 22l5.25-1.38a9.9 9.9 0 004.79 1.22c5.5 0 9.96-4.46 9.96-9.96S17.54 2 12.04 2zm5.8 14.06c-.24.68-1.4 1.3-1.94 1.34-.5.05-.5.4-3.15-.66-2.65-1.06-4.3-3.77-4.43-3.95-.13-.18-1.06-1.4-1.06-2.67 0-1.27.67-1.9.9-2.16.24-.26.52-.32.7-.32.17 0 .35 0 .5.01.16.01.38-.06.6.46.23.53.77 1.84.84 1.97.07.13.11.29.02.47-.09.18-.13.29-.26.44-.13.15-.27.34-.39.46-.13.13-.26.27-.11.53.15.26.66 1.09 1.42 1.77.98.87 1.8 1.15 2.06 1.28.26.13.41.11.56-.07.15-.18.65-.76.82-1.02.17-.26.35-.22.58-.13.24.09 1.52.72 1.78.85.26.13.43.2.5.3.06.11.06.62-.18 1.3z"/></svg>WhatsApp</a>
+        <a role="menuitem" data-click="shareTo" data-a="[&quot;tg&quot;]"><svg viewBox="0 0 24 24"><path d="M21.9 4.3l-3.3 15.6c-.25 1.1-.9 1.37-1.82.85l-5.03-3.7-2.43 2.34c-.27.27-.5.5-1.02.5l.36-5.14L17.02 6.9c.41-.36-.09-.56-.63-.2L6.5 13.02l-4.9-1.53c-1.06-.33-1.08-1.06.22-1.57l19.16-7.39c.89-.33 1.67.2 1.72 1.77z"/></svg>Telegram</a>
+        <a role="menuitem" data-click="shareTo" data-a="[&quot;email&quot;]"><svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>Email</a>
+        <a role="menuitem" data-click="shareTo" data-a="[&quot;sms&quot;]"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 9H6V9h12v2zm0-3H6V6h12v2z"/></svg>Text (SMS)</a>
+        <a role="menuitem" data-click="shareTo" data-a="[&quot;copy&quot;]"><svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 00-2 2v14h2V3h12V1zm3 4H8a2 2 0 00-2 2v14a2 2 0 002 2h11a2 2 0 002-2V7a2 2 0 00-2-2zm0 16H8V7h11v14z"/></svg>Copy link</a>
       </div>
     </div>
   </div>
@@ -807,7 +807,7 @@ window.__pfGate=(function(){
 <div class="pf-panel" id="tab-shows">
   <div class="alert-bar">
     <div class="txt" id="pfAlertTxt"><b>🔔 Never miss a set.</b> Get alerts when they play near you.</div>
-    <button class="alert-btn" id="alertBtn" onclick="toggleAlert()">GET ALERTS</button>
+    <button class="alert-btn" id="alertBtn" data-click="toggleAlert">GET ALERTS</button>
   </div>
   <!-- P0b (Founder 2026-07-16): single-row Events subfilter — My Events · My Tickets · Create Event -->
   <style>
@@ -818,24 +818,24 @@ window.__pfGate=(function(){
   .evsub-b.create{border-color:var(--accent);color:var(--accent)}
   </style>
   <div class="evsub" id="evsub">
-    <button class="evsub-b on" data-k="mine" style="display:none" onclick="evSub('mine')">Event</button>
-    <button class="evsub-b" data-k="tix" style="display:none" onclick="evSub('tix')">Tickets</button>
+    <button class="evsub-b on" data-k="mine" style="display:none" data-click="evSub" data-a="[&quot;mine&quot;]">Event</button>
+    <button class="evsub-b" data-k="tix" style="display:none" data-click="evSub" data-a="[&quot;tix&quot;]">Tickets</button>
     <!-- Create Event removed from Events subfilter (Founder 2026-07-20) -->
   </div>
   <div class="mytix-wrap" id="myev-wrap" style="display:none">
     <div class="mytix-h" id="myev-h" style="display:none">EVENT</div>
     <div class="mytix-car" id="myev-car">
-      <button class="mytix-arrow prev" aria-label="Scroll to previous events" onclick="myevScroll(-1)">&lsaquo;</button>
+      <button class="mytix-arrow prev" aria-label="Scroll to previous events" data-click="myevScroll" data-a="[-1]">&lsaquo;</button>
       <div class="mytix-row" id="myev-row"></div>
-      <button class="mytix-arrow next" aria-label="Scroll to next events" onclick="myevScroll(1)">&rsaquo;</button>
+      <button class="mytix-arrow next" aria-label="Scroll to next events" data-click="myevScroll" data-a="[1]">&rsaquo;</button>
     </div>
   </div>
   <div class="mytix-wrap" id="mytix-wrap" style="display:none">
 
     <div class="mytix-car" id="mytix-car">
-      <button class="mytix-arrow prev" aria-label="Scroll to previous tickets" onclick="mytixScroll(-1)">&lsaquo;</button>
+      <button class="mytix-arrow prev" aria-label="Scroll to previous tickets" data-click="mytixScroll" data-a="[-1]">&lsaquo;</button>
       <div class="mytix-row" id="mytix-row"></div>
-      <button class="mytix-arrow next" aria-label="Scroll to next tickets" onclick="mytixScroll(1)">&rsaquo;</button>
+      <button class="mytix-arrow next" aria-label="Scroll to next tickets" data-click="mytixScroll" data-a="[1]">&rsaquo;</button>
     </div>
   </div>
   <div class="pf-filter" id="ev-filter"></div>
@@ -843,14 +843,14 @@ window.__pfGate=(function(){
 </div>
 
 <div class="pf-panel" id="tab-chat">
-  <div style="display:flex;align-items:center;gap:8px"><div class="pf-filter" id="chat-filter" style="flex:1"></div><button class="evsub-b create" id="dm-new" title="Create a chat" onclick="addContent('chat group')" style="display:none;flex:0 0 auto;white-space:nowrap">＋Create</button></div>
+  <div style="display:flex;align-items:center;gap:8px"><div class="pf-filter" id="chat-filter" style="flex:1"></div><button class="evsub-b create" id="dm-new" title="Create a chat" data-click="addContent" data-a="[&quot;chat group&quot;]" style="display:none;flex:0 0 auto;white-space:nowrap">＋Create</button></div>
   <div class="pf-grid" id="chat-list"></div>
-  <div class="chat-open" id="chat-open" style="display:none;" onclick="if(event.target===this)closeChatGroup()">
+  <div class="chat-open" id="chat-open" style="display:none;" data-click="pfChatBackdrop" data-a="[&quot;$e&quot;,&quot;$el&quot;]">
     <div class="chat-modal">
       <div class="chat-modal-top">
-        <button class="chat-back" onclick="closeChatGroup()">&larr; Chats</button>
+        <button class="chat-back" data-click="closeChatGroup">&larr; Chats</button>
         <div class="chat-title" id="chat-title"></div>
-        <button class="chat-x" onclick="closeChatGroup()" aria-label="Close chat">&times;</button>
+        <button class="chat-x" data-click="closeChatGroup" aria-label="Close chat">&times;</button>
       </div>
       <div class="chat-wrap"><iframe id="chat-frame" title="Community Room"></iframe></div>
     </div>
@@ -874,6 +874,8 @@ window.__pfGate=(function(){
 <script src="/assets/js/vendor/qrcode.js?v=h4c79be16"></script>
 <script src="/assets/js/kil-ticket-qr.js?v=h4b7e11da"></script>
 <script src="/assets/js/kil-img-host.js?v=hde4eec33"></script>
+<script src="/assets/js/kil-actions.js?v=h40e5a201"></script>
+<script src="/assets/js/kil-img-fallback.js?v=h221d284f"></script>
 <script src="/assets/js/vendor/supabase-js.min.js?v=hcb41d8ab"></script>
 <script src="/assets/js/vendor/purify.min.js?v=20261107b"></script>
 <script src="/assets/js/kil-safe-html.js?v=20261107b"></script>
@@ -929,7 +931,7 @@ function openInsights(){
   var ov=document.createElement('div'); ov.id='insOv';
   ov.style.cssText='position:fixed;inset:0;z-index:9998;background:rgba(4,4,10,.72);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px';
   ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
-  ov.innerHTML='<div style="width:100%;max-width:660px;max-height:90vh;overflow:auto;background:linear-gradient(180deg,#16161f,#101017);border:1px solid var(--line,#242433);border-radius:20px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.6)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:1.35rem;color:#fff;letter-spacing:.01em">Insights</b><button onclick="var o=document.getElementById(\'insOv\');if(o)o.remove()" style="background:none;border:0;color:#9aa0b0;font-size:1.6rem;line-height:1;cursor:pointer">&times;</button></div><div style="color:#6b7280;font-size:.8rem;margin-bottom:16px">Last 14 days · first-party analytics</div><div id="insBody" style="color:#9aa0b0">Loading…</div></div>';
+  ov.innerHTML='<div style="width:100%;max-width:660px;max-height:90vh;overflow:auto;background:linear-gradient(180deg,#16161f,#101017);border:1px solid var(--line,#242433);border-radius:20px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.6)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:1.35rem;color:#fff;letter-spacing:.01em">Insights</b><button data-click="pfCloseInsights" style="background:none;border:0;color:#9aa0b0;font-size:1.6rem;line-height:1;cursor:pointer">&times;</button></div><div style="color:#6b7280;font-size:.8rem;margin-bottom:16px">Last 14 days · first-party analytics</div><div id="insBody" style="color:#9aa0b0">Loading…</div></div>';
   document.body.appendChild(ov);
   SB.rpc('get_profile_insights',{p_slug:PROFILE_SLUG}).then(function(r){
     var m=(r&&r.data)||{}; var b=document.getElementById('insBody'); if(!b) return;
@@ -1169,7 +1171,7 @@ function showTab(name){
 window.addEventListener('load',function(){ try{ var _t=(new URLSearchParams(location.search).get('tab')||'').toLowerCase(); if(['article','gallery','chat','tagged','saved','shows'].indexOf(_t)>-1){ setTimeout(function(){ showTab(_t); },300); } }catch(e){} });
 function renderHighlights(){
   var r=document.getElementById('hl-row');if(!r)return;
-  r.innerHTML=(PROFILE.highlights||[]).map(function(h){ var src=safeMedia(h&&h.img); if(!src) return ''; return '<div class="hl" onclick="showTab(\'gallery\')"><div class="hl-c"><img src="'+esc(src)+'" alt="'+esc(h.label)+'" loading="lazy" onerror="this.style.opacity=.12"></div><span>'+esc(h.label)+'</span></div>';}).join('');
+  r.innerHTML=(PROFILE.highlights||[]).map(function(h){ var src=safeMedia(h&&h.img); if(!src) return ''; return '<div class="hl" data-click="showTab" data-a="[&quot;gallery&quot;]"><div class="hl-c"><img src="'+esc(src)+'" alt="'+esc(h.label)+'" loading="lazy" data-fb="dim" data-fb-op=".12"></div><span>'+esc(h.label)+'</span></div>';}).join('');
 }
 function galSrc(v){var u=(v.indexOf('http')===0||v.indexOf('data:')===0)?v:'https://images.ra.co/'+v+'.jpg'; return (typeof window!=='undefined'&&window.KilImgHost&&window.KilImgHost.clean)?window.KilImgHost.clean(u):u;}   /* a host that refuses hotlinking (images.ra.co) is never requested: '' = no picture, the card shows its placeholder */
 var GAL_IMGS=[['07f9c05ddcb8a49e9f957760d870ec493b30a4d9','Latin House Night','12.4K'],['095b3c97c806dfa2326c4bc5a8239907b4a24815','Avalon Hollywood','48K'],['0c08978993ce4ba443b61b007d1de45445ddced3','Warehouse Set','9.1K'],['0eb69717593e6bb32225fec905e93762454a7894','Groove Cruise','22K'],['1641a2b8fddcee60bb204595abe0a3f20d8a0e51','Day Trip','7.7K'],['1bfc214a7b4917efac1afad318fd4dafa631a480','Rooftop Session','5.2K'],['233912b5340b79213e16e58647ecd297165d0a52','Kingdom @ Catch One','15K'],['234c570dd0c0ce4c93d62945d502ef1952b2cf31','R&V Radio','3.8K'],['288b5245302955ed0864e6f9dad31af0a092984c','Nocturnal Fest','31K']];
@@ -1177,7 +1179,7 @@ function renderGallery(){
   var g=document.getElementById('gal-grid');if(!g)return;
   var chips=[['all','All'],['blog','Blogs'],['article','Articles'],['image','Images'],['video','Videos']];
   var bar=document.getElementById('gal-filter');
-  if(bar)bar.innerHTML=chips.map(function(c){return '<button class="pf-chip'+(GAL_FILTER===c[0]?' on':'')+'" onclick="setGalFilter(\''+c[0]+'\')">'+c[1]+'</button>';}).join('');
+  if(bar)bar.innerHTML=chips.map(function(c){return '<button class="pf-chip'+(GAL_FILTER===c[0]?' on':'')+'" data-click="setGalFilter" data-a="'+esc(JSON.stringify([c[0]]))+'">'+c[1]+'</button>';}).join('');
   var add='';   /* in-feed create tile removed (Founder pass 2) */
   var items=allPosts().filter(function(p){return GAL_FILTER==='all'||p.type===GAL_FILTER;});
   g.innerHTML=add+(items.length?items.map(postCard).join(''):'<div class="pf-empty">Nothing here yet.</div>');
@@ -1186,10 +1188,10 @@ var GT_SHOWS=[['JUL','12','FRI','Kozmoz: Euphaura','Warehouse TBA · Los Angeles
 function evFromArr(s){return {month:s[0],day:s[1],dow:s[2],title:s[3],venue:s[4],tags:s[5],tix:s[6],cover:s[7]||'',desc:s[8]||'',price:s[9]||'',kind:s[10]||'ext'};}
 function evFlyer(o){
   var cover=kilSafeUrl(o.cover);
-  var cov=cover?'<img class="cov" src="'+esc(cover)+'" alt="" onerror="this.style.display=\'none\'">':'';
+  var cov=cover?'<img class="cov" src="'+esc(cover)+'" alt="" data-fb="hide">':'';
   var kind=(o.kind==='kil')?'<span class="ev-kind kil">KEEPITIL</span>':'<span class="ev-kind ext">External</span>';
   var tixHref=(o.tix&&o.tix!=='#')?safeNav(o.tix):'';
-  var tix=tixHref?'<a class="ev-tix" href="'+esc(tixHref)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">'+((o.kind==='kil')?'TICKETS / RSVP':'TICKETS')+'</a>':'';
+  var tix=tixHref?'<a class="ev-tix" href="'+esc(tixHref)+'" target="_blank" rel="noopener noreferrer" data-click="pfNoop" data-stop>'+((o.kind==='kil')?'TICKETS / RSVP':'TICKETS')+'</a>':'';
   return '<div class="ev-flyer">'+cov
     +'<div class="ev-datechip"><b>'+esc(o.month)+'</b><span>'+esc(o.day)+'</span></div>'+kind
     +'<div class="c"><div class="et">'+esc(o.title)+'</div>'
@@ -1217,7 +1219,7 @@ function renderShows(){
   var chips=[['mine','Events']];
   if(owner){ chips.push(['tickets','Tickets']); }
   var bar=document.getElementById('ev-filter');
-  if(bar)bar.innerHTML=chips.map(function(c){return '<button class="pf-chip'+(EV_FILTER===c[0]?' on':'')+'" onclick="setEvFilter(\''+c[0]+'\')">'+c[1]+'</button>';}).join('');
+  if(bar)bar.innerHTML=chips.map(function(c){return '<button class="pf-chip'+(EV_FILTER===c[0]?' on':'')+'" data-click="setEvFilter" data-a="'+esc(JSON.stringify([c[0]]))+'">'+c[1]+'</button>';}).join('');
   var _es=document.getElementById('evsub'); if(_es)_es.style.display='none';  /* old subfilter replaced by the unified filter chips */
   function ts(o){ if(o._ts)return o._ts; var mi=_MON3.indexOf((o.month||'').toUpperCase()); return (mi>=0)?new Date(new Date().getFullYear(),mi,+o.day||1).getTime():0; }
   var all=[];
@@ -1281,9 +1283,9 @@ function openTicket(i){
   var door=KilTicketQr.payload(t.qr_token);
   var qr='';
   if(door){ var qrDraw=qrcode(0,'M'); qrDraw.addData(door); qrDraw.make(); qr=qrDraw.createDataURL(4,0); }
-  var flyer=KH(t.cover_url)?'<img src="'+esc(KH(t.cover_url))+'" alt="" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" onerror="this.style.display=\'none\'">':'';
+  var flyer=KH(t.cover_url)?'<img src="'+esc(KH(t.cover_url))+'" alt="" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" data-fb="hide">':'';
   var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Dialog');
-  ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Your Ticket<button class="kil-mx" onclick="closeModal()">&times;</button></div><div class="kil-mb">'
+  ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Your Ticket<button class="kil-mx" data-click="closeModal">&times;</button></div><div class="kil-mb">'
     +flyer
     +'<h3 style="margin:0 0 4px">'+esc(t.title||'Event')+'</h3>'
     +'<p class="note" style="margin:0 0 12px">'+esc(fmtTixDate(t.starts_at))+(t.venue?' · '+esc(t.venue):'')+(t.city?' · '+esc(t.city):'')+'</p>'
@@ -1310,7 +1312,7 @@ function toggleAlert(){_alerts=!_alerts;var b=document.getElementById('alertBtn'
     ['$15.99','Kandi Kit','Trade PLUR on the floor','https://www.amazon.com/s?k=kandi+rave+kit&tag=tuitea09-20','https://images.ra.co/233912b5340b79213e16e58647ecd297165d0a52.jpg','linear-gradient(160deg,#201018,#12080d)',true]
   ];
   sh.innerHTML=items.map(function(it){
-    var bg=KH(it[4])?'<img class="bgimg" src="'+it[4]+'" alt="" onerror="this.style.display=\'none\'"><div class="ov"></div>':'';
+    var bg=KH(it[4])?'<img class="bgimg" src="'+it[4]+'" alt="" data-fb="hide"><div class="ov"></div>':'';
     var style=it[5]?' style="background:'+it[5]+'"':'';
     var badge=it[6]?'<span class="badge">Amazon</span>':'';
     var cta=it[6]?'Shop on Amazon →':'Open →';
@@ -1674,7 +1676,22 @@ function loadFollow(){
   }).catch(function(){});
 }
 /* ── SHARE: social platforms, email or SMS only ── */
-function toggleShare(e){ if(e){e.stopPropagation();} var w=document.getElementById('pfShare'); if(w) w.classList.toggle('open'); }
+/* ── Delegated actions (assets/js/kil-actions.js): the markup carries data-click / data-change / data-input / data-keydown / data-over / data-out instead of inline on*= handlers.
+   Only the names listed in KilActions.allow() can run. The small functions below are the old inline statements, unchanged in behaviour. ── */
+function pfStop(ev){ if(!ev) return; if(typeof ev.stopImmediatePropagation==='function') ev.stopImmediatePropagation(); else if(typeof ev.stopPropagation==='function') ev.stopPropagation(); }
+function pfNoop(){}
+function pfBack(){ history.back(); }
+function pfGoDashboard(){ location.href='/dashboard'; }
+function pfLinksToggle(){ var m=document.getElementById('pfLinksMenu'); m.style.display=m.style.display==='none'?'block':'none'; }
+function pfChatBackdrop(e,el){ if(e.target===el) closeChatGroup(); }
+function pfCloseInsights(){ var o=document.getElementById('insOv'); if(o) o.remove(); }
+function pfRemoveParent(el){ el.parentNode.remove(); }
+function pfClickId(id){ document.getElementById(id).click(); }
+function pfAgEnter(e){ if(e.key==='Enter'){ e.preventDefault(); agSend(); } }
+function pfVidPlay(el){ try{ el.play(); }catch(e){} }
+function pfVidPause(el){ el.pause(); }
+if(window.KilActions) KilActions.allow(["addContent", "agAsk", "agSend", "closeChatGroup", "closeLoginWall", "closeModal", "cpChipKey", "cpCount", "cpMoveItem", "cpRemoveChip", "cpRemoveItem", "cpSubmit", "cpUseUrl", "evSub", "fbCapToggle", "myevScroll", "mytixScroll", "openEditProfile", "pfAgEnter", "pfBack", "pfChatBackdrop", "pfClickId", "pfCloseInsights", "pfGoDashboard", "pfLinksToggle", "pfNoop", "pfRemoveParent", "pfVidPause", "pfVidPlay", "setEvFilter", "setGalFilter", "shareTo", "showTab", "toggleAlert", "toggleCat", "toggleCreateMenu", "toggleFollow", "toggleHideFeed", "toggleMenu", "toggleShare"]);
+function toggleShare(e){ pfStop(e); var w=document.getElementById('pfShare'); if(w) w.classList.toggle('open'); }
 document.addEventListener('click',function(e){ var w=document.getElementById('pfShare'); if(w&&w.classList.contains('open')&&!w.contains(e.target)) w.classList.remove('open'); });
 /* Share links must open for whoever receives them. In the app the page origin is capacitor://localhost, which
    is not a link anyone can open, so anything but keepitil.com itself shares the canonical https://keepitil.com. */
@@ -1735,7 +1752,7 @@ function syncNavCta(){ if(window.__ncStarted)return; window.__ncStarted=1; var t
 /* ── EDIT PROFILE (owner-only) ── */
 function editHighlightsHTML(){
   return (PROFILE.highlights||[]).map(function(h,i){
-    return '<div class="kil-hl" data-i="'+i+'"><img src="'+(h.img||'')+'" onerror="this.style.opacity=.12"><input class="hl-label" type="text" value="'+esc(h.label||'')+'" placeholder="Label"><input class="hl-file" type="file" accept="image/*"><button type="button" class="hl-del" onclick="this.parentNode.remove()">✕</button></div>';
+    return '<div class="kil-hl" data-i="'+i+'"><img src="'+(h.img||'')+'" data-fb="dim" data-fb-op=".12"><input class="hl-label" type="text" value="'+esc(h.label||'')+'" placeholder="Label"><input class="hl-file" type="file" accept="image/*"><button type="button" class="hl-del" data-click="pfRemoveParent" data-a="[&quot;$el&quot;]">✕</button></div>';
   }).join('');
 }
 var PRESET_BADGES=['Member','Founder','Verified','Artist','DJ','Producer','Promoter','Host','Resident','VIP','Vendor','Photographer','Crew','Team'];
@@ -1744,7 +1761,7 @@ function openEditProfile(){
   closeModal();
   var s=PROFILE.socials||{};
   var html=''+
-  '<div class="kil-modal kil-wide"><div class="kil-mh">Edit Profile<button class="kil-mx" onclick="closeModal()">&times;</button></div>'+
+  '<div class="kil-modal kil-wide"><div class="kil-mh">Edit Profile<button class="kil-mx" data-click="closeModal">&times;</button></div>'+
   '<div class="kil-mb">'+
     '<div class="kil-sec">Photos</div>'+
     '<div class="kil-photos kil-ph3">'+
@@ -1769,10 +1786,10 @@ function openEditProfile(){
     '<label class="kil-mf"><span>Website</span><input type="text" id="epWeb" value="'+esc(s.website||'')+'"></label></div>'+
     '<div class="kil-sec">Categories — pick what you are</div>'+
     '<div class="kil-cats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">'+
-      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epCat" value="artist" onchange="toggleCat()"> Artist</label>'+
-      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epCat" value="brand" onchange="toggleCat()"> Brand</label>'+
-      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epCat" value="organizer" onchange="toggleCat()"> Organizer</label>'+
-      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epCat" value="venue" onchange="toggleCat()"> Venue</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epCat" value="artist" data-change="toggleCat"> Artist</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epCat" value="brand" data-change="toggleCat"> Brand</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epCat" value="organizer" data-change="toggleCat"> Organizer</label>'+
+      '<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" class="epCat" value="venue" data-change="toggleCat"> Venue</label>'+
     '</div>'+
     '<div class="kil-catbox" data-cat="artist" style="display:none">'+
       '<div class="kil-row2"><label class="kil-mf"><span>Genres</span><input type="text" id="epArtGenre" placeholder="House · Techno · Bass"></label>'+
@@ -1804,7 +1821,7 @@ function openEditProfile(){
     '<label class="kil-mf"><span>Confirm password</span><input type="password" id="epPass2" placeholder="repeat new password"></label></div>'+
     '<div class="kil-note">Account name = your @handle above. Email/password changes are applied to your login when you Save.</div>'+
   '</div>'+
-  '<div class="kil-mfoot"><button class="kil-mcancel" onclick="closeModal()">Cancel</button><button class="kil-msave" id="epSave">Save changes</button></div></div>';
+  '<div class="kil-mfoot"><button class="kil-mcancel" data-click="closeModal">Cancel</button><button class="kil-msave" id="epSave">Save changes</button></div></div>';
   var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Dialog');ov.innerHTML=html;document.body.appendChild(ov);
   ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
   function bindPrev(fileId,prevId){var f=document.getElementById(fileId);if(!f)return;f.addEventListener('change',function(){var file=f.files&&f.files[0];if(!file)return;var rd=new FileReader();rd.onload=function(){var p=document.getElementById(prevId);if(p)p.src=rd.result;};rd.readAsDataURL(file);});}
@@ -1900,7 +1917,7 @@ function openModal(title,fields,cb){
     if(f.type==='file') return '<label class="kil-mf"><span>'+esc(f.label)+'</span><input type="file" accept="image/*" id="'+id+'" data-target="'+esc(f.target||'')+'"><img class="kil-prev" id="'+id+'_prev" alt=""></label>';
     return '<label class="kil-mf"><span>'+esc(f.label)+'</span><input type="text" id="'+id+'" placeholder="'+esc(f.ph||'')+'" value="'+esc(f.val||'')+'"></label>';
   }).join('');
-  ov.innerHTML='<div class="kil-modal"><div class="kil-mh">'+esc(title)+'<button class="kil-mx" onclick="closeModal()">&times;</button></div><div class="kil-mb">'+rows+'</div><div class="kil-mfoot"><button class="kil-mcancel" onclick="closeModal()">Cancel</button><button class="kil-msave" id="kilSave">Publish</button></div></div>';
+  ov.innerHTML='<div class="kil-modal"><div class="kil-mh">'+esc(title)+'<button class="kil-mx" data-click="closeModal">&times;</button></div><div class="kil-mb">'+rows+'</div><div class="kil-mfoot"><button class="kil-mcancel" data-click="closeModal">Cancel</button><button class="kil-msave" id="kilSave">Publish</button></div></div>';
   document.body.appendChild(ov);
   ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
   fields.forEach(function(f){ if(f.type==='file'){ var inp=document.getElementById('mf_'+f.name); inp.addEventListener('change',function(){ var file=inp.files&&inp.files[0]; if(!file)return; var rd=new FileReader(); rd.onload=function(){ inp.dataset.dataurl=rd.result; var pv=document.getElementById('mf_'+f.name+'_prev'); if(pv){pv.src=rd.result;pv.style.display='block';} }; rd.readAsDataURL(file); }); } });
@@ -1926,29 +1943,29 @@ function openCreatePost(target){
   CP={target:target||'feed',media:'',mtype:'',file:null,tags:[],collab:[]};
   closeModal();
   var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Dialog');
-  ov.innerHTML='<div class="kil-modal"><div class="kil-mh">New post<button class="kil-mx" onclick="closeModal()">&times;</button></div>'
+  ov.innerHTML='<div class="kil-modal"><div class="kil-mh">New post<button class="kil-mx" data-click="closeModal">&times;</button></div>'
     +'<div class="kil-mb">'
-    +'<div class="cp-drop" id="cpDrop" onclick="document.getElementById(\'cpFile\').click()"><div class="cp-plus">＋</div><div class="cp-hint">Tap to add photos or video<br><small>Required — media comes first · pick several for a carousel</small></div></div>'
+    +'<div class="cp-drop" id="cpDrop" data-click="pfClickId" data-a="[&quot;cpFile&quot;]"><div class="cp-plus">＋</div><div class="cp-hint">Tap to add photos or video<br><small>Required — media comes first · pick several for a carousel</small></div></div>'
     +'<input type="file" id="cpFile" accept="image/*,video/*" multiple style="display:none">'
     +'<input type="file" id="cpCam" accept="image/*" capture="environment" style="display:none">'
     +'<input type="file" id="cpRec" accept="video/*" capture="environment" style="display:none">'
-    +'<div style="display:flex;gap:8px;margin:8px 0"><button type="button" class="kil-mcancel" style="flex:1" onclick="document.getElementById(\'cpFile\').click()">🖼 Library</button><button type="button" class="kil-mcancel" style="flex:1" onclick="document.getElementById(\'cpCam\').click()">📷 Camera</button><button type="button" class="kil-mcancel" style="flex:1" onclick="document.getElementById(\'cpRec\').click()">🎥 Record</button></div>'
+    +'<div style="display:flex;gap:8px;margin:8px 0"><button type="button" class="kil-mcancel" style="flex:1" data-click="pfClickId" data-a="[&quot;cpFile&quot;]">🖼 Library</button><button type="button" class="kil-mcancel" style="flex:1" data-click="pfClickId" data-a="[&quot;cpCam&quot;]">📷 Camera</button><button type="button" class="kil-mcancel" style="flex:1" data-click="pfClickId" data-a="[&quot;cpRec&quot;]">🎥 Record</button></div>'
     +'<div id="cpThumbs" style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 8px"></div>'
     +'<div id="cpCoverWrap" style="display:none;margin:4px 0 8px"><label class="kil-mf"><span>Video cover photo (optional — shows instead of a black first frame)</span><input type="file" id="cpCoverFile" accept="image/*"></label><img id="cpCoverPrev" style="display:none;width:90px;height:90px;object-fit:cover;border-radius:9px;border:1px solid var(--line)"></div>'
-    +'<div class="cp-orurl"><input type="text" id="cpUrl" placeholder="…or paste an image / video URL (adds one)"><button type="button" class="kil-mcancel" onclick="cpUseUrl()">Add</button></div>' 
-    +'<label class="kil-mf"><span>Description</span><textarea id="cpDesc" rows="3" placeholder="Write a caption… length can vary" oninput="cpCount()"></textarea></label>'
+    +'<div class="cp-orurl"><input type="text" id="cpUrl" placeholder="…or paste an image / video URL (adds one)"><button type="button" class="kil-mcancel" data-click="cpUseUrl">Add</button></div>' 
+    +'<label class="kil-mf"><span>Description</span><textarea id="cpDesc" rows="3" placeholder="Write a caption… length can vary" data-input="cpCount"></textarea></label>'
     +'<div class="cp-count" id="cpCount">0 characters</div>'
     +'<label class="kil-mf"><span>Title</span><input type="text" id="cpTitle" placeholder="Give this post a title"></label>'
-    +'<label class="kil-mf"><span>Tag people</span><input type="text" id="cpTagIn" placeholder="@handle, then Enter" onkeydown="cpChipKey(event,\'tag\')"></label>'
+    +'<label class="kil-mf"><span>Tag people</span><input type="text" id="cpTagIn" placeholder="@handle, then Enter" data-keydown="cpChipKey" data-a="[&quot;$e&quot;,&quot;tag&quot;]"></label>'
     +'<div class="cp-chips" id="cpTagChips"></div><div class="cp-cap" id="cpTagCap">0/10 tagged</div>'
-    +'<label class="kil-mf"><span>Collab — shared to their profile too</span><input type="text" id="cpColIn" placeholder="@handle, then Enter" onkeydown="cpChipKey(event,\'col\')"></label>'
+    +'<label class="kil-mf"><span>Collab — shared to their profile too</span><input type="text" id="cpColIn" placeholder="@handle, then Enter" data-keydown="cpChipKey" data-a="[&quot;$e&quot;,&quot;col&quot;]"></label>'
     +'<div class="cp-chips" id="cpColChips"></div><div class="cp-cap" id="cpColCap">0/5 collaborators</div>'
     +'<label class="kil-mf"><span>Location</span><input type="text" id="cpLoc" placeholder="Add location"></label>'
     +'<label class="kil-mf"><span>Alt text (accessibility)</span><input type="text" id="cpAlt" placeholder="Describe the photo or video"></label>'
     +'<div class="cp-toggles"><label class="cp-tog"><span>Hide from feed <small style="color:var(--muted)">— show only in Gallery</small></span><input type="checkbox" id="cpHideFeed"></label>'
     +'<label class="cp-tog"><span>Hide like counts on this post</span><input type="checkbox" id="cpHideLikes"></label>'
     +'</div>'
-    +'</div><div class="kil-mfoot"><button class="kil-mcancel" onclick="closeModal()">Cancel</button><button class="kil-msave" onclick="cpSubmit()">Share</button></div></div>';
+    +'</div><div class="kil-mfoot"><button class="kil-mcancel" data-click="closeModal">Cancel</button><button class="kil-msave" data-click="cpSubmit">Share</button></div></div>';
   document.body.appendChild(ov);
   ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
   ['cpFile','cpCam','cpRec'].forEach(function(id){
@@ -1993,9 +2010,9 @@ function cpPreview(){
     var tb=(it.mtype==='video')?'<video src="'+esc(it.media)+'" muted style="width:64px;height:64px;object-fit:cover;border-radius:8px;display:block"></video>'
                                :'<img src="'+esc(it.media)+'" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;display:block">';
     return '<span style="position:relative;display:inline-block">'+tb
-      +'<button type="button" onclick="cpRemoveItem('+i+')" style="position:absolute;top:-6px;right:-6px;background:#ff6b6b;color:#fff;border:0;border-radius:50%;width:18px;height:18px;font-size:.7rem;cursor:pointer;line-height:1">✕</button>'
-      +(i>0?'<button type="button" onclick="cpMoveItem('+i+',-1)" style="position:absolute;bottom:-6px;left:-6px;background:#15151f;color:#fff;border:1px solid var(--line);border-radius:50%;width:18px;height:18px;font-size:.7rem;cursor:pointer;line-height:1">◀</button>':'')
-      +(i<CP.items.length-1?'<button type="button" onclick="cpMoveItem('+i+',1)" style="position:absolute;bottom:-6px;right:-6px;background:#15151f;color:#fff;border:1px solid var(--line);border-radius:50%;width:18px;height:18px;font-size:.7rem;cursor:pointer;line-height:1">▶</button>':'')
+      +'<button type="button" data-click="cpRemoveItem" data-a="'+esc(JSON.stringify([i]))+'" style="position:absolute;top:-6px;right:-6px;background:#ff6b6b;color:#fff;border:0;border-radius:50%;width:18px;height:18px;font-size:.7rem;cursor:pointer;line-height:1">✕</button>'
+      +(i>0?'<button type="button" data-click="cpMoveItem" data-a="'+esc(JSON.stringify([i,-1]))+'" style="position:absolute;bottom:-6px;left:-6px;background:#15151f;color:#fff;border:1px solid var(--line);border-radius:50%;width:18px;height:18px;font-size:.7rem;cursor:pointer;line-height:1">◀</button>':'')
+      +(i<CP.items.length-1?'<button type="button" data-click="cpMoveItem" data-a="'+esc(JSON.stringify([i,1]))+'" style="position:absolute;bottom:-6px;right:-6px;background:#15151f;color:#fff;border:1px solid var(--line);border-radius:50%;width:18px;height:18px;font-size:.7rem;cursor:pointer;line-height:1">▶</button>':'')
       +'</span>';
   }).join('');
   var cw=document.getElementById('cpCoverWrap');
@@ -2015,7 +2032,7 @@ function cpRenderChips(which){
   var arr=(which==='tag')?CP.tags:CP.collab;
   var wrap=document.getElementById(which==='tag'?'cpTagChips':'cpColChips');
   var cap=document.getElementById(which==='tag'?'cpTagCap':'cpColCap');
-  if(wrap)wrap.innerHTML=arr.map(function(h,i){return '<span class="cp-chip"><b>@'+esc(h)+'</b><span class="x" onclick="cpRemoveChip(\''+which+'\','+i+')">×</span></span>';}).join('');
+  if(wrap)wrap.innerHTML=arr.map(function(h,i){return '<span class="cp-chip"><b>@'+esc(h)+'</b><span class="x" data-click="cpRemoveChip" data-a="'+esc(JSON.stringify([which,i]))+'">×</span></span>';}).join('');
   if(cap)cap.textContent=arr.length+'/'+(which==='tag'?10:5)+(which==='tag'?' tagged':' collaborators');
 }
 function cpBuildHtml(title,desc,media,mtype,tags,collab,loc){
@@ -2313,7 +2330,7 @@ function showLoginWall(){
   var next=encodeURIComponent(location.pathname+location.search);
   var ov=document.createElement('div'); ov.className='kil-modal-ov'; ov.id='kil-loginwall';
   ov.innerHTML='<div class="kil-modal" style="max-width:390px">'
-    +'<div class="kil-mh">Join KEEPITIL<button class="kil-mx" onclick="closeLoginWall()">&times;</button></div>'
+    +'<div class="kil-mh">Join KEEPITIL<button class="kil-mx" data-click="closeLoginWall">&times;</button></div>'
     +'<div class="kil-mb" style="padding:26px 22px;text-align:center">'
       +'<div style="font-size:2.5rem;line-height:1;margin-bottom:12px">🔒</div>'
       +'<p style="font-size:1rem;line-height:1.55;color:var(--text-soft,#d4d7e2);margin:0 0 20px">Create a free account to like, comment, reshare and save. Anyone can look around — you just need to be signed in to join in.</p>'
@@ -2421,7 +2438,7 @@ function editPost(src,idx){ closeMenu(); var cur='',pid;
   if(isUuid(pid)&&SB){ SB.from('profile_content').select('data').eq('id',pid).maybeSingle().then(function(r){ var d=(r&&r.data&&r.data.data)||{}; if(src==='article')d.t=nv; else d.label=nv; SB.from('profile_content').update({data:d}).eq('id',pid).then(function(){toast('Caption updated');}); }).catch(function(){}); }
   else { toast('Caption updated (sample post — not saved to server).'); } }
 function reportPost(){ closeMenu(); toast('Thanks — this post was reported for review.'); }
-function fbCapToggle(el,ev){ if(ev){ if(ev.target&&ev.target.closest&&ev.target.closest('a')) return; ev.stopPropagation(); } el.classList.toggle('open'); }
+function fbCapToggle(el,ev){ if(ev){ if(ev.target&&ev.target.closest&&ev.target.closest('a')) return; pfStop(ev); } el.classList.toggle('open'); }
 document.addEventListener('scroll',function(e){
   var c=e.target; if(!c.classList||!c.classList.contains('fb-caro'))return;
   var i=Math.round(c.scrollLeft/c.clientWidth);
@@ -2435,7 +2452,7 @@ function eventCardHtml(e,pid){
   var tgt=ext?' target="_blank" rel="noopener noreferrer"':'';
   return '<div class="pf-card fbcard evpost" data-pid="'+esc(pid)+'" style="overflow:hidden">'
     +'<a href="'+esc(url)+'"'+tgt+' style="text-decoration:none;display:block">'
-      +'<div style="position:relative;aspect-ratio:16/9;background:#0a0a0f"><img src="'+esc(img)+'" alt="'+esc(e.title||'Event')+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.src=\'/assets/images/blog-default.jpg\'">'
+      +'<div style="position:relative;aspect-ratio:16/9;background:#0a0a0f"><img src="'+esc(img)+'" alt="'+esc(e.title||'Event')+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" data-fb="src" data-fb-src="/assets/images/blog-default.jpg">'
         +'<span style="position:absolute;top:10px;left:10px;background:'+(ext?'rgba(0,0,0,.7)':'rgba(0,224,164,.95)')+';color:'+(ext?'#fff':'#06120a')+';font:800 .58rem Inter,sans-serif;letter-spacing:.09em;padding:3px 9px;border-radius:6px">'+(ext?'EXTERNAL':'KEEPITIL EVENT')+'</span></div>'
       +'<div style="padding:12px 15px 6px"><div style="font-family:var(--font-head,Inter);font-weight:800;font-size:1.15rem;letter-spacing:.02em;color:#fff;line-height:1.15">'+esc(e.title||'Event')+'</div>'
         +'<div style="color:var(--muted,#9aa0b0);font-size:.82rem;margin-top:5px">'+(when?esc(when):'')+(e.venue?(when?' · ':'')+esc(e.venue):'')+(e.city?' · '+esc(e.city):'')+'</div></div></a>'
@@ -2454,20 +2471,20 @@ function postCard(p){
   var authorAv=(p.collab&&p.collab.length)?'/icon-192.png':(PROFILE.avatar||'/icon-192.png');
   var safeSrc=safeMedia(p.media||'');
   var media=(p.mtype==='video'&&safeSrc)
-    ? '<video src="'+esc(safeSrc)+'#t=0.1" muted loop playsinline preload="metadata" onmouseover="try{this.play()}catch(e){}" onmouseout="this.pause()"></video>'
-    : '<img src="'+esc(safeSrc||authorAv||'/icon-192.png')+'" alt="'+esc(p.title)+'" loading="lazy" onerror="this.src=\'/icon-192.png\'">';  /* every post shows an image — fall back to the author avatar */
+    ? '<video src="'+esc(safeSrc)+'#t=0.1" muted loop playsinline preload="metadata" data-over="pfVidPlay" data-a="[&quot;$el&quot;]" data-out="pfVidPause" data-a="[&quot;$el&quot;]"></video>'
+    : '<img src="'+esc(safeSrc||authorAv||'/icon-192.png')+'" alt="'+esc(p.title)+'" loading="lazy" data-fb="src" data-fb-src="/icon-192.png">';  /* every post shows an image — fall back to the author avatar */
   var col=(p.collab&&p.collab.length)?' <span style="color:var(--accent)">✦ @'+p.collab.map(esc).join(', @')+'</span>':'';
   var hid=(CAN_EDIT()&&isHiddenFromFeed(p))?'<span class="pc-hidden">Gallery only</span>':'';
   var plink='/profile?slug='+encodeURIComponent(authorSlug);
   return '<div class="pf-card fbcard" data-kind="'+p.type+'" data-pid="'+esc(pid)+'">'
     +'<div class="fb-head">'
-      +'<a class="fb-avlink" href="'+plink+'" tabindex="-1" aria-hidden="true"><img class="fb-av" src="'+esc(authorAv)+'" alt="" onerror="this.src=\'/icon-192.png\'"></a>'
+      +'<a class="fb-avlink" href="'+plink+'" tabindex="-1" aria-hidden="true"><img class="fb-av" src="'+esc(authorAv)+'" alt="" data-fb="src" data-fb-src="/icon-192.png"></a>'
       +'<a class="fb-who" href="'+plink+'"><b>'+esc(authorName)+'</b><span>'+esc(p.type)+col+'</span></a>'
       +'<button class="fb-more" data-kil-act="menu" data-pid="'+esc(pid)+'" data-src="'+esc(p.src)+'" data-idx="'+esc(p.idx)+'" title="Options">⋯</button>'
       +hid
     +'</div>'
     +'<div class="fb-media">'+media+'</div>'
-    +(p.title||p.sub||p.body?'<div class="fb-cap" onclick="fbCapToggle(this,event)"><div class="fb-cap-lead"><b>'+esc(p.title||'')+'</b>'+(p.sub?' '+esc(p.sub):'')+'</div>'+(p.body?'<div class="fb-cap-full">'+p.body+'</div><span class="fb-more-txt">… more</span>':'')+'</div>':'')
+    +(p.title||p.sub||p.body?'<div class="fb-cap" data-click="fbCapToggle" data-a="[&quot;$el&quot;,&quot;$e&quot;]"><div class="fb-cap-lead"><b>'+esc(p.title||'')+'</b>'+(p.sub?' '+esc(p.sub):'')+'</div>'+(p.body?'<div class="fb-cap-full">'+p.body+'</div><span class="fb-more-txt">… more</span>':'')+'</div>':'')
     +(p.buy_url?('<div style="padding:2px 15px 8px"><a href="'+esc(p.buy_url)+'" target="_blank" rel="noopener sponsored nofollow" data-kt="affiliate_click" style="display:block;text-align:center;background:#ff9900;color:#111;font-weight:800;letter-spacing:.03em;padding:11px;border-radius:10px;text-decoration:none">🛒 '+esc(p.buy_label||'Buy on Amazon')+'</a><div style="font-size:.68rem;color:var(--muted,#9aa0b0);text-align:center;margin-top:5px">'+esc(p.disclosure||'#ad · affiliate')+'</div></div>'):'')
     +'<div class="fb-actions">'
       +'<button class="fba fba-like" data-kil-act="like" data-pid="'+esc(pid)+'" title="Like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.9-9.3-9C1.2 8 3 4.5 6.4 4.5c2.2 0 3.6 1.2 4.4 2.6.2.4.9.4 1.1 0 .8-1.4 2.2-2.6 4.4-2.6 3.4 0 5.2 3.5 3.7 7-1.8 4.1-8 9-8 9z"/></svg><b></b></button>'
@@ -2478,7 +2495,7 @@ function postCard(p){
   +'</div>';
 }
 /* F1 — card buttons carry data-kil-act + data-* values and ONE capture-phase listener dispatches them.
-   They used to be inline onclick="fbX('<pid>')" strings: esc() HTML-escapes the value, but the browser
+   They used to be inline click-handler strings calling fbX('<pid>'): esc() HTML-escapes the value, but the browser
    decodes &#39; back to ' BEFORE the JS in the attribute runs, so a pid/slug containing a quote broke out
    of the string. A data-* attribute is only ever read back as a string, never parsed as code.
    Capture phase + stopPropagation reproduces the old per-button event.stopPropagation(). */
@@ -2513,11 +2530,11 @@ function openPost(src,idx){
   if(CAN_EDIT()&&src!=='collab'){
     var pp=(src==='article')?{title:(GT_ARTICLES[idx]||{}).t,media:(GT_ARTICLES[idx]||{}).img}:{title:(GAL_IMGS[idx]||[])[1],media:galSrc((GAL_IMGS[idx]||[])[0]||'')};
     var hidden=isHiddenFromFeed(pp);
-    foot='<div class="kil-mfoot"><button class="kil-mcancel" onclick="toggleHideFeed(\''+src+'\','+idx+')">'+(hidden?'👁 Show in feed':'🚫 Hide from feed')+'</button></div>';
+    foot='<div class="kil-mfoot"><button class="kil-mcancel" data-click="toggleHideFeed" data-a="'+esc(JSON.stringify([src,idx]))+'">'+(hidden?'👁 Show in feed':'🚫 Hide from feed')+'</button></div>';
   }
   closeModal();
   var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Dialog');
-  ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Post<button class="kil-mx" onclick="closeModal()">&times;</button></div><div class="kil-mb kil-post"></div>'+foot+'</div>';
+  ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Post<button class="kil-mx" data-click="closeModal">&times;</button></div><div class="kil-mb kil-post"></div>'+foot+'</div>';
   var slot=ov.querySelector('.kil-post'); if(slot) slot.innerHTML=html;
   document.body.appendChild(ov); ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
 }
@@ -2564,15 +2581,15 @@ function renderAgentChat(){
   var info=AGENT_INFO[PROFILE_SLUG]||[], nm=PROFILE.name||info[0]||PROFILE_SLUG;
   list.classList.add('agmode');
   list.innerHTML='<div class="agchat" id="agchat">'
-    +'<div class="ag-head"><img src="'+esc(PROFILE.avatar||'/icon-192.png')+'" alt="" onerror="this.style.opacity=.2">'
+    +'<div class="ag-head"><img src="'+esc(PROFILE.avatar||'/icon-192.png')+'" alt="" data-fb="dim" data-fb-op=".2">'
     +'<div><b>Ask '+esc(nm)+'</b><span>'+esc([info[1],info[2]].filter(Boolean).join(' · '))+' — live answers from '+esc(nm)+'’s own knowledge.</span></div></div>'
     +'<div class="ag-msgs" id="agMsgs"></div>'
     +'<div class="ag-chips" id="agChips">'
-      +'<button onclick="agAsk(\'What do you do at KEEPITIL?\')">What do you do here?</button>'
-      +'<button onclick="agAsk(\'What should I listen to in your genre right now?\')">What should I listen to?</button>'
-      +'<button onclick="agAsk(\'How can you help me grow as a creator?\')">How can you help me?</button>'
+      +'<button data-click="agAsk" data-a="[&quot;What do you do at KEEPITIL?&quot;]">What do you do here?</button>'
+      +'<button data-click="agAsk" data-a="[&quot;What should I listen to in your genre right now?&quot;]">What should I listen to?</button>'
+      +'<button data-click="agAsk" data-a="[&quot;How can you help me grow as a creator?&quot;]">How can you help me?</button>'
     +'</div>'
-    +'<div class="ag-in"><input id="agIn" placeholder="Ask '+esc(nm)+' anything…" maxlength="500" onkeydown="if(event.key===\'Enter\'){event.preventDefault();agSend();}"><button id="agGo" onclick="agSend()">Send</button></div>'
+    +'<div class="ag-in"><input id="agIn" placeholder="Ask '+esc(nm)+' anything…" maxlength="500" data-keydown="pfAgEnter" data-a="[&quot;$e&quot;]"><button id="agGo" data-click="agSend">Send</button></div>'
   +'</div>';
   agBubble('bot','','Hey — I’m '+nm+' ⚡ Ask me anything about what I do, my genre, or the scene.');
 }
@@ -2632,7 +2649,7 @@ function chatRow(av,title,desc,time,dot,slug,name){
   }
   var src=esc(kilSafeUrl(av)||'/icon-192.png');
   return '<div class="chat-card" data-chat-slug="'+esc(slug||'')+'" data-chat-name="'+esc(name||'')+'">'
-    +'<img class="cc-av" src="'+src+'" alt="" loading="lazy" onerror="this.src=\'/icon-192.png\'">'
+    +'<img class="cc-av" src="'+src+'" alt="" loading="lazy" data-fb="src" data-fb-src="/icon-192.png">'
     +'<div class="cc-body"><div class="cc-nm">'+title+'</div><div class="cc-pv">'+desc+'</div></div>'
     +(time?'<div class="cc-rt">'+time+dot+'</div>':'')
     +menu
@@ -2662,7 +2679,7 @@ function renderChats(){
   if(bar){ bar.innerHTML=''; bar.style.display='none'; }
   if(CHAT_FILTER==='events'){ renderEventChats(list); return; }
   var items=GT_CHATS.filter(function(c){return chatCat(c)===CHAT_FILTER;});
-  if(!items.length){ list.innerHTML='<div class="pf-empty">'+(CAN_EDIT()?'No chats here yet. Start a group to talk with your community. <button class="pf-chip" style="margin-top:8px" onclick="addContent(\'chat group\')">Start a chat</button>':'No chats here yet.')+'</div>'; return; }
+  if(!items.length){ list.innerHTML='<div class="pf-empty">'+(CAN_EDIT()?'No chats here yet. Start a group to talk with your community. <button class="pf-chip" style="margin-top:8px" data-click="addContent" data-a="[&quot;chat group&quot;]">Start a chat</button>':'No chats here yet.')+'</div>'; return; }
   list.innerHTML=items.map(function(c){
     var dot=c[4]?'<span class="cc-dot"></span>':'';
     return chatRow(c[5]||'/icon-192.png', esc(c[1]), esc(c[2]||''), esc(c[3]||''), dot, c[0], c[1]);
@@ -2680,7 +2697,7 @@ function renderEventChats(list){
       var when=''; try{ if(e.starts_at){ var dt=new Date(e.starts_at); if(!isNaN(dt)) when=dt.toLocaleDateString([], {month:'short',day:'numeric'}); } }catch(x){}
       var title=e.title||e.slug||'';
       return '<div class="chat-card" data-event-slug="'+esc(e.slug||'')+'" data-event-title="'+esc(title)+'">'
-        +'<img class="cc-av" src="'+esc(kilSafeUrl(e.cover_url)||'/icon-192.png')+'" alt="" loading="lazy" onerror="this.src=\'/icon-192.png\'">'
+        +'<img class="cc-av" src="'+esc(kilSafeUrl(e.cover_url)||'/icon-192.png')+'" alt="" loading="lazy" data-fb="src" data-fb-src="/icon-192.png">'
         +'<div class="cc-body"><div class="cc-nm">'+esc(title)+'</div><div class="cc-pv">'+esc(when?('Event chat · '+when):'Event chat')+'</div></div>'
         +'</div>';
     }).join('');
@@ -2939,7 +2956,7 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
 function openCreateChooser(){
   closeModal();
   var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Dialog');
-  ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Create Event<button class="kil-mx" onclick="closeModal()">&times;</button></div>'
+  ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Create Event<button class="kil-mx" data-click="closeModal">&times;</button></div>'
     +'<div class="kil-mb"><div class="ev-choose">'
     +'<a class="ev-opt" href="/submit-event"><span class="ei"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 16.9 6.2 19.9l.9-5.4L3.2 10.7l5.4-.8L12 2z"/></svg></span><span><h4>New event</h4><p>Host your own — tickets, tiers, payouts. The full event form.</p></span></a>'
     +'<a class="ev-opt" href="/submit-event"><span class="ei"><svg viewBox="0 0 24 24"><path d="M10 6v2H5v11h11v-5h2v6a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1h6zm11-3v7h-2V6.4l-8.3 8.3-1.4-1.4L17.6 5H14V3h7z"/></svg></span><span><h4>Repost event</h4><p>Share a show you found — listing + ticket link out. Reviewed before it goes live.</p></span></a>'
@@ -2949,7 +2966,7 @@ function openCreateChooser(){
 }
 /* ＋ CREATE menu: feed · event · story · highlight · chat */
 function toggleCreateMenu(e){
-  if(e){e.stopPropagation();}
+  pfStop(e);
   var m=document.getElementById('createMenu');
   if(m){ m.remove(); return; }
   m=document.createElement('div'); m.id='createMenu';
@@ -2981,7 +2998,7 @@ function createHighlight(){
 function openArchive(){
   closeModal();
   var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Dialog');
-  ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Archive<button class="kil-mx" onclick="closeModal()">&times;</button></div><div class="kil-mb" id="archList" style="max-height:60vh;overflow:auto">Loading…</div></div>';
+  ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Archive<button class="kil-mx" data-click="closeModal">&times;</button></div><div class="kil-mb" id="archList" style="max-height:60vh;overflow:auto">Loading…</div></div>';
   document.body.appendChild(ov);
   ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
   SB.from('profile_content').select('id,kind,data,archived,created_at').eq('profile_slug',PROFILE_SLUG).order('created_at',{ascending:false}).limit(120).then(function(r){

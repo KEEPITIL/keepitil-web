@@ -6,7 +6,7 @@ const pages = require('child_process').execSync("git ls-files '*.html'", { cwd: 
 
 test('every page that ships the static crawler nav links nav-reserve.css (23 today); only signup opts out', () => {
   assert.ok(pages.length >= 23, 'found ' + pages.length);
-  for (const f of pages) assert.match(read(f), /<link href="\/assets\/css\/nav-reserve\.css" rel="stylesheet"\/>/, f);
+  for (const f of pages) assert.match(read(f), /<link href="\/assets\/css\/nav-reserve\.css\?v=20261127b" rel="stylesheet"\/>/, f + ': versioned link (Cloudflare caches the bare URL for 4 h, so a changed file must get a new ?v=)');
   const optOut = pages.filter((f) => /<body[^>]*data-static-nav/.test(read(f)));
   assert.deepEqual(optOut, ['signup.html'], 'the shell nav is off on signup, so its static nav must stay');
 });
@@ -108,4 +108,13 @@ test('cold-load CLS at 1280 stays under 0.05 on earn, connect, create (was 0.32 
     }
   } finally { srv.close(); }
   assert.deepEqual(bad, [], 'CLS too high: ' + bad.join(', '));
+});
+
+test('nav-reserve.css is cached for hours by Cloudflare: when the file changes, bump the ?v= on ALL 23 links together (one shared stamp)', () => {
+  const stamps = new Set(); for (const f of pages) stamps.add((/nav-reserve\.css\?v=([0-9]{8}[a-z])/.exec(read(f)) || [])[1]);
+  assert.equal(stamps.size, 1, 'one stamp on every page: ' + [...stamps].join(','));
+  // the stamp is pinned to the file content, so editing the CSS without bumping the stamp fails here
+  const sha = require('crypto').createHash('sha1').update(css.replace(/\r\n/g, '\n')).digest('hex').slice(0, 10);
+  const PIN = { '20261127b': '1b8371154d' };
+  assert.equal(PIN[[...stamps][0]], sha, 'nav-reserve.css changed: bump ?v= on every page AND update PIN in this test (stamp ' + [...stamps][0] + ', sha ' + sha + ')');
 });

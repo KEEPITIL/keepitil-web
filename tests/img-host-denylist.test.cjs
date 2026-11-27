@@ -6,7 +6,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const ROOT = path.resolve(__dirname, "..");
-const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
+const read = (f) => require("./helpers/event-assembled.cjs").assemble(fs.readFileSync(path.join(ROOT, f), "utf8"));
 const H = require("../assets/js/kil-img-host.js");
 const D = require("../assets/js/kil-discover.js");
 const RA = "https://images.ra.co/c1eccd6e54b73b9be5bdb1633845e7c9dd794fc8.jpg";

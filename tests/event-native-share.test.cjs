@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const ROOT = process.env.NS_ROOT || path.resolve(__dirname, "..");
-const html = fs.readFileSync(path.join(ROOT, "event.html"), "utf8");
+const html = require("./helpers/event-assembled.cjs").assemble(fs.readFileSync(path.join(ROOT, "event.html"), "utf8"));
 const block = html.match(/try\{ if\(typeof navigator\.share==='function'\)\{[\s\S]*?\} \}catch\(_n\)\{\}/)[0];
 
 function run(nav) {

@@ -30,7 +30,7 @@ function server(N, { maxRows = 1000, honourOffset = true } = {}) {
   return { fetchImpl, calls, all };
 }
 async function run(srv) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pp-")); fs.writeFileSync(path.join(dir, "event.html"), TEMPLATE);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pp-")); fs.writeFileSync(path.join(dir, "event.html"), TEMPLATE); require("./helpers/event-assembled.cjs").stage(dir);
   const { main } = await lib(), log = console.log; console.log = () => {};
   try { return await main(["--out", dir, "--dry"], srv.fetchImpl); } finally { console.log = log; fs.rmSync(dir, { recursive: true, force: true }); }
 }
@@ -57,5 +57,5 @@ test("NEGATIVE CONTROLS: a server that ignores offset cannot loop forever (stops
 });
 test("an empty calendar and a failed list request behave: no pages, and the failure is an error (never a silent shrink)", async () => {
   assert.equal((await run(server(0))).same.length, 0);
-  await assert.rejects(async () => { const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pp-")); fs.writeFileSync(path.join(dir, "event.html"), TEMPLATE); const { main } = await lib(); try { await main(["--out", dir, "--dry"], async () => ({ ok: false, status: 503 })); } finally { fs.rmSync(dir, { recursive: true, force: true }); } }, /events list failed: HTTP 503/);
+  await assert.rejects(async () => { const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pp-")); fs.writeFileSync(path.join(dir, "event.html"), TEMPLATE); require("./helpers/event-assembled.cjs").stage(dir); const { main } = await lib(); try { await main(["--out", dir, "--dry"], async () => ({ ok: false, status: 503 })); } finally { fs.rmSync(dir, { recursive: true, force: true }); } }, /events list failed: HTTP 503/);
 });

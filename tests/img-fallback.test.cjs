@@ -45,7 +45,7 @@ test("control: the inline-handler detector flags the old markup", () => {
 });
 
 test("event.html and every generated event page: no inline onerror, the shared script is loaded before the page script", () => {
-  const t = read("event.html");
+  const t = require("./helpers/event-assembled.cjs").assemble(read("event.html"));
   assert.equal(INLINE_ERR.test(t), false, "event.html");
   assert.match(t, /<script src="\/assets\/js\/kil-img-fallback\.js\?v=h[0-9a-f]{8}"><\/script>\n<script src="\/assets\/js\/kil-rsvp\.js/);
   assert.equal((t.match(/data-fb="/g) || []).length, 3);
@@ -53,7 +53,7 @@ test("event.html and every generated event page: no inline onerror, the shared s
   assert.ok(dirs.length > 500, "scan sees the generated pages");
   const bad = [];
   for (const d of dirs) {
-    const s = read("event/" + d + "/index.html");
+    const s = require("./helpers/event-assembled.cjs").assemble(read("event/" + d + "/index.html"));
     if (INLINE_ERR.test(s) || !/<script src="\/assets\/js\/kil-img-fallback\.js[^"]*"><\/script>\n<script src="\/assets\/js\/kil-rsvp\.js/.test(s) || (s.match(/data-fb="/g) || []).length !== 3) bad.push(d);
   }
   assert.deepEqual(bad.slice(0, 5), []);

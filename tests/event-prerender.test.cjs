@@ -31,9 +31,13 @@ test("a normal event gets its real head and above-the-fold content in the HTML",
   assert.equal(d.querySelector("#ev-desc").textContent, "A real description.");
   const ld = JSON.parse(d.querySelector("#ld-event").textContent);
   assert.equal(ld["@type"], "MusicEvent"); assert.equal(ld.url, "https://keepitil.com/event/sample-show-20270101/"); assert.equal(ld.location.name, "The Venue");
-  assert.match(d.documentElement.outerHTML, /window\.__kilPrerenderSlug="sample-show-20270101"/);
-  assert.match(TEMPLATE.length ? renderEventPage(TEMPLATE, row()) : "", /slug:g\('e'\)\|\|window\.__kilPrerenderSlug\|\|''/);
-  assert.match(renderEventPage(TEMPLATE, row()), /function canonFor\(slug\)\{ return 'https:\/\/keepitil\.com\/event\/'\+encodeURIComponent\(slug\|\|''\)\+'\/'; \}/);
+  // the slug is DATA (non-executable JSON) and the page script, now an external file, reads it: no executable inline code is emitted per page
+  assert.equal(JSON.parse(d.querySelector("#kil-prerender-slug").textContent), "sample-show-20270101"); assert.equal(d.querySelector("#kil-prerender-slug").getAttribute("type"), "application/json");
+  assert.doesNotMatch(d.documentElement.outerHTML, /window\.__kilPrerenderSlug\s*=/);
+  const page = fs.readFileSync(path.join(ROOT, "assets/js/event-page.js"), "utf8");
+  assert.match(page, /slug:g\('e'\)\|\|window\.__kilPrerenderSlug\|\|''/);
+  assert.match(page, /function canonFor\(slug\)\{ return window\.__kilPrerenderSlug \? 'https:\/\/keepitil\.com\/event\/'\+encodeURIComponent\(slug\|\|''\)\+'\/' : 'https:\/\/keepitil\.com\/event\?e='\+encodeURIComponent\(slug\|\|''\); \}/);
+  assert.match(page, /getElementById\('kil-prerender-slug'\)/);
 });
 
 test("XSS: hostile text in every field stays text; no script, no event handler, no javascript: URL is created", async () => {
@@ -84,7 +88,7 @@ test("removeStale deletes only generated pages of events that are no longer publ
 test("main(): writes published events, skips bad slugs and unpublished rows, and a failed fetch never deletes an existing page", async () => {
   const { main, MARKER } = await lib();
   const d = mk("pr-");
-  fs.writeFileSync(path.join(d, "event.html"), TEMPLATE);
+  fs.writeFileSync(path.join(d, "event.html"), TEMPLATE); require("./helpers/event-assembled.cjs").stage(d);
   fs.mkdirSync(path.join(d, "event", "flaky-event"), { recursive: true }); fs.writeFileSync(path.join(d, "event", "flaky-event", "index.html"), MARKER + "old");
   fs.mkdirSync(path.join(d, "event", "was-published"), { recursive: true }); fs.writeFileSync(path.join(d, "event", "was-published", "index.html"), MARKER + "old");
   const calls = [];
@@ -127,7 +131,7 @@ test("main(): writes the sitemap when every fetch worked, and leaves it alone wh
   const future = new Date(Date.now() + 864e5 * 30).toISOString();
   for (const flaky of [false, true]) {
     const d = mk("pr-");
-    fs.writeFileSync(path.join(d, "event.html"), TEMPLATE);
+    fs.writeFileSync(path.join(d, "event.html"), TEMPLATE); require("./helpers/event-assembled.cjs").stage(d);
     fs.writeFileSync(path.join(d, "sitemap-events.xml"), "OLD");
     const fakeFetch = async (url, opt = {}) => {
       if (url.includes("/rest/v1/events?")) return { ok: true, json: async () => [{ slug: "good-one" }, { slug: "flaky-event" }] };
@@ -177,16 +181,17 @@ test("JSON-LD image: an SVG cover gets the site's raster default, raster covers 
 
 test("runtime (event.html): og:image and the JSON-LD image use the raster default for an SVG cover; isSvgUrl is path-based (NEGATIVE CONTROL: a name or query containing 'svg' is not an SVG)", () => {
   const vm = require("node:vm");
-  const m = TEMPLATE.match(/function isSvgUrl\(u\)\{[^\n]*\}/); assert.ok(m, "isSvgUrl exists");
+  const PAGECODE = require("./helpers/event-assembled.cjs").assemble(TEMPLATE);
+  const m = PAGECODE.match(/function isSvgUrl\(u\)\{[^\n]*\}/); assert.ok(m, "isSvgUrl exists");
   // event.html declares `var URL = '<supabase url>'` in the same IIFE (line ~301), so a bare `new URL(...)` inside the helper hits that string and throws. Run the helper in the SAME shadowing scope, with window.URL being the real one.
-  assert.match(TEMPLATE, /\n\s*var URL='https:\/\/[a-z0-9]+\.supabase\.co';/, "the page really shadows URL (this test is only meaningful while that holds)");
+  assert.match(PAGECODE, /\n\s*var URL='https:\/\/[a-z0-9]+\.supabase\.co';/, "the page really shadows URL (this test is only meaningful while that holds)");
   const inPage = (src) => vm.runInNewContext("(function(){ var URL='https://x.supabase.co'; " + src + "; return isSvgUrl; })()", { window: { URL }, location: { href: "https://keepitil.com/event?e=x" }, String });
   assert.equal(inPage(m[0].replace(/new window\.URL/g, "new URL"))("/assets/images/event-placeholder.svg"), false, "NEGATIVE CONTROL: a bare `new URL` under the page's shadow cannot detect an SVG (this is the bug NEXUSMAC caught)");
   assert.ok(!/new URL\(/.test(m[0]), "the helper must use window.URL, never the shadowed bare URL");
   const f = inPage(m[0]);
   for (const u of ["/assets/images/event-placeholder.svg", "https://x.test/A.SVG", "https://x.test/a.svg?v=1#z"]) assert.equal(f(u), true, u);
   for (const u of ["https://x.test/a.jpg", "https://x.test/svg-banner.png", "https://x.test/a.webp?fmt=svg", "https://x.test/a.svg.jpg", "https://x.test/svg/a.png"]) assert.equal(f(u), false, u);
-  assert.match(TEMPLATE, /if\(ev\.img && !isSvgUrl\(ev\.img\)\) \$\('og-img'\)\.setAttribute/);
-  assert.match(TEMPLATE, /ld\.image=isSvgUrl\(ev\.img\)\?'https:\/\/keepitil\.com\/keepitil-og\.png':ev\.img;/);
-  assert.doesNotMatch(TEMPLATE, /if\(ev\.img\) \$\('og-img'\)/, "the old unconditional og:image line is gone");
+  assert.match(PAGECODE, /if\(ev\.img && !isSvgUrl\(ev\.img\)\) \$\('og-img'\)\.setAttribute/);
+  assert.match(PAGECODE, /ld\.image=isSvgUrl\(ev\.img\)\?'https:\/\/keepitil\.com\/keepitil-og\.png':ev\.img;/);
+  assert.doesNotMatch(PAGECODE, /if\(ev\.img\) \$\('og-img'\)/, "the old unconditional og:image line is gone");
 });

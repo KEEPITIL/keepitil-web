@@ -19,6 +19,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { createRequire } from 'node:module';
+// Page scripts moved out of inline <script> blocks (CSP migration) live in assets/js/pages/*.js. This puts them back into the page text, so the guard still reads every page's real code.
+const assemble = createRequire(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -43,10 +46,11 @@ function walk(dir, exts, out = []) {
   }
   return out;
 }
-const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
+const read = (rel) => assemble(readFileSync(join(ROOT, rel), 'utf8'));
 // *.play.html are the undeployed coming-soon originals (.github/pages-exclude.txt), not served pages.
 const PAGES = walk(ROOT, ['.html']).filter((r) => !/^google[0-9a-f]+\.html$/.test(r) && !r.endsWith('.play.html'));
-const SCRIPTS = walk(ROOT, ['.js']).filter((r) => r !== 'sw.js');
+// assets/js/pages/* are PAGE scripts: they are scanned inside the page that loads them (read() above), under that page's own exemptions, never as shared scripts.
+const SCRIPTS = walk(ROOT, ['.js']).filter((r) => r !== 'sw.js' && !r.startsWith('assets/js/pages/'));
 
 /* ── helpers ─────────────────────────────────────────────────────────────────────────────── */
 export function stripJsComments(s) {

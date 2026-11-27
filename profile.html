@@ -2460,7 +2460,7 @@ function postCard(p){
   var plink='/profile?slug='+encodeURIComponent(authorSlug);
   return '<div class="pf-card fbcard" data-kind="'+p.type+'" data-pid="'+esc(pid)+'">'
     +'<div class="fb-head">'
-      +'<a class="fb-avlink" href="'+plink+'"><img class="fb-av" src="'+esc(authorAv)+'" alt="" onerror="this.src=\'/icon-192.png\'"></a>'
+      +'<a class="fb-avlink" href="'+plink+'" tabindex="-1" aria-hidden="true"><img class="fb-av" src="'+esc(authorAv)+'" alt="" onerror="this.src=\'/icon-192.png\'"></a>'
       +'<a class="fb-who" href="'+plink+'"><b>'+esc(authorName)+'</b><span>'+esc(p.type)+col+'</span></a>'
       +'<button class="fb-more" data-kil-act="menu" data-pid="'+esc(pid)+'" data-src="'+esc(p.src)+'" data-idx="'+esc(p.idx)+'" title="Options">⋯</button>'
       +hid
@@ -3239,7 +3239,7 @@ function loadTagged(){
   +'.fbcard::after,.fbcard::before{display:none!important}'  /* remove the .pf-card dark gradient overlay from feed cards — was making the profile feed visibly darker than Culture; now identical */
   +'.fb-head{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer}'
   +'.fb-av{width:36px;height:36px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#0a0a0f}'
-  +'.fb-who{flex:1;min-width:0;line-height:1.25}.fb-who b{display:block;font-size:.9rem;color:#fff}.fb-who span{font-size:.7rem;color:#6b6588;text-transform:uppercase;letter-spacing:.06em}'
+  +'.fb-who{flex:1;min-width:0;line-height:1.25}.fb-who b{display:block;font-size:.9rem;color:#fff}.fb-who span{font-size:.7rem;color:#8f89ab;text-transform:uppercase;letter-spacing:.06em}'
   +'.fb-more{background:none;border:0;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:2px 8px}'
   /* THE universal media window: ~1:1, any image/video fits (cover, centered) */
   /* SAME square card as before — only change vs original: contain (whole image fits inside the card) instead of cover (cropped) */

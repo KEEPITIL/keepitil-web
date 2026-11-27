@@ -17,19 +17,8 @@
   // until a collection). One formatter is built once and reused; the output is identical.
   var TODAY_FMT = null;
   function today(now) { if (!TODAY_FMT) TODAY_FMT = new Intl.DateTimeFormat('en-CA', { timeZone: DEFAULT_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }); return TODAY_FMT.format(now || new Date()); }
-  // Held licenses: never shown publicly, even if published:true. C10-0001471-LIC
-  // Fails closed. A held license is NEVER shown, whatever the data says: licensed() (and so
-  // search, byId, cities and the map, which all go through it) drops it even if a row slips through with published: true.
-  // Two more layers: the converter (tools/export-to-listings.js) writes held rows with published: false, and the release
-  // check (tools/check-listings.js, run by npm run lint and CI) refuses a listings file that publishes one.
-  // This list is the ONE source for all three.
-  var HELD_LICENSES = ['C10-0001471-LIC'];
-  // Matched on the license number OR the id (the id is the number in lower case), trimmed, any case.
-  function isHeld(l) {
-    if (!l) return false;
-    var k = function (v) { return typeof v === 'string' ? v.trim().toUpperCase() : ''; };
-    return HELD_LICENSES.indexOf(k(l.license)) >= 0 || HELD_LICENSES.indexOf(k(l.id)) >= 0;
-  }
+  // Held licenses are NOT known to this file (Sentinel C-1, 2026-11-25): the list used to live here and so shipped, with the held row itself, to every visitor. The hold is
+  // applied where data files are WRITTEN (tools/held.js: held and unpublished rows are dropped before any file is written); here an unpublished row is simply never shown.
   // The state-license half of the rule (number, status, expiry), without published / held: the converter uses it to decide
   // which rows to keep; the pages always use licensed().
   function licenseLive(l, now, todayStr) {
@@ -39,7 +28,7 @@
   function licensed(list, now) {
     var day = null;   // LA's date, computed once per call (and only if a row needs it), not once per listing
     return (list || []).filter(function (l) {
-      if (!l || l.published !== true || isHeld(l)) return false;
+      if (!l || l.published !== true) return false;
       if (day === null) day = today(now);
       return licenseLive(l, now, day);
     });
@@ -290,6 +279,28 @@
   // Returns { place, notFound, reason, results: [{ listing, miles, open, until }] } sorted by distance, then name.
   // When nothing matches the place: notFound = true and reason = 'badzip' | 'zip' (valid ZIP we don't cover) | 'city'.
   // When the place is found but the filters leave nothing: results = [] and filtered = true (clearing filters helps).
+  // NAME SEARCH (Joe 2026-11-25): a typed text that is a business name finds the business, from the shipped listings only (no new query, data or ranking).
+  // Accents, punctuation and case are ignored; every word the visitor typed must appear in the name. Placeholder-only names ("[Equity Retailer]") never match.
+  function nameKey(s) { return String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+  function nameMatch(l, q) {
+    var words = nameKey(q).split(' ').filter(Boolean);
+    if (!words.length || !l || placeholderName(l.name)) return false;
+    var n = nameKey(l.name);
+    return words.every(function (w) { return n.indexOf(w) >= 0; });
+  }
+  // NAMES-ONLY INDEX (data/listings-names.json: [id, name] per shown listing): the ids whose NAME matches a typed text, by the same rule search() applies to a full row, and the county
+  // files those listings sit in (from the state index). The results page loads those few county files instead of the whole listings.json, so a typed search stays light.
+  function nameIds(names, q) {
+    var c = classify(q), rows = names && Array.isArray(names.names) ? names.names : [];
+    if (c.kind !== 'city' || c.value.length < 3) return [];
+    return rows.filter(function (r) { return Array.isArray(r) && typeof r[0] === 'string' && nameMatch({ name: r[1] }, c.value); }).map(function (r) { return r[0]; });
+  }
+  function nameCountyKeys(index, ids) {
+    var want = {}, keys = {};
+    (ids || []).forEach(function (i) { want[i] = true; });
+    ((index && index.listings) || []).forEach(function (r) { if (r && typeof r.license === 'string' && want[r.license.toLowerCase()]) keys[countyFileKey(r.county)] = true; });
+    return Object.keys(keys).sort();
+  }
   function search(data, opts, now) {
     opts = opts || {}; now = now || new Date();
     var c = classify(opts.q), q = c.value;
@@ -297,7 +308,8 @@
     // ambiguous names go to the place with the most listed businesses (counted on the licensed rows, by place key)
     var count = {}; licensed(data.listings, now).forEach(function (l) { var k = placeKey(l.address && l.address.city); if (k) count[k] = (count[k] || 0) + 1; });
     var place = q ? findPlace(q, data.places, function (p) { return count[placeKey(p.name)] || 0; }) : null;
-    if (q && !place) return { place: null, notFound: true, reason: c.kind, results: [] };
+    var byName = c.kind === 'city' && q.length >= 3 ? function (l) { return nameMatch(l, q); } : function () { return false; };
+    if (q && !place && !licensed(data.listings, now).some(byName)) return { place: null, notFound: true, reason: c.kind, results: [] };   // not a place, not a business name: the honest empty state
     var city = cleanQuery(opts.city);
     if (city && !cities(data, now).some(function (x) { return norm(x) === norm(city); })) {
       return { place: null, notFound: true, reason: 'city', results: [] };
@@ -317,7 +329,7 @@
     // real coordinates (owner walk 19:22 PT: line 2 shows the distance on the default view too). The whole state: none.
     var origin = place && hasPoint(place) ? place : city ? cityPlace(data, city) : county ? countyCentre(data, county, now) : null;
     var rows = licensed(data.listings, now).filter(function (l) {
-      if (place && !inPlace(l, place)) return false;
+      if (q && !(place && inPlace(l, place)) && !byName(l)) return false;   // a typed text: the place's businesses, plus any business whose name matches
       if (county && countyKey(l.address && l.address.county) !== countyKey(county)) return false;
       if (city && norm(l.address && l.address.city) !== norm(city)) return false;
       if (kindFilter && wantDelivery && !l.delivery) return false;
@@ -330,7 +342,8 @@
     }).filter(function (r) { return !wantOpen || r.open; });
     // placeholder-only names (e.g. "[Equity Retailer]") after every named listing; then nearest first; rows with no
     // distance (delivery-only services) after them; then by name
-    rows.sort(function (a, b) { return (placeholderName(a.listing.name) - placeholderName(b.listing.name)) || ((a.miles == null) - (b.miles == null)) || ((a.miles || 0) - (b.miles || 0)) || a.listing.name.localeCompare(b.listing.name); });
+    var inP = function (r) { return place && inPlace(r.listing, place) ? 0 : 1; };   // a place's own rows first, then the name matches
+    rows.sort(function (a, b) { return (inP(a) - inP(b)) || (placeholderName(a.listing.name) - placeholderName(b.listing.name)) || ((a.miles == null) - (b.miles == null)) || ((a.miles || 0) - (b.miles || 0)) || a.listing.name.localeCompare(b.listing.name); });
     var filtered = !!(wantOpen || kindFilter || city);   // a county is the area, not a filter
     return { place: place, notFound: false, reason: null, filtered: filtered, results: rows };
   }
@@ -346,7 +359,7 @@
     var city = s(a.city), st = s(a.state), zip = s(a.zip), line1 = s(a.line1);
     if (!city) return { lines: [], note: 'none' };
     var cityState = city + (st ? ', ' + st : '');
-    if (!(l && l.storefront)) return { lines: [cityState], note: 'delivery' };
+    if (!(l && l.storefront)) return { lines: [cityState], note: l && l.delivery === true ? 'delivery' : 'city' };
     var cityLine = cityState + (zip ? ' ' + zip : '');
     return line1 ? { lines: [line1, cityLine], note: null } : { lines: [cityLine], note: 'street' };
   }
@@ -363,6 +376,17 @@
   // search.cannabis.ca.gov, 2026-11-17; not called by this site). Only real state-format numbers get a link:
   // C9- (delivery), C10- (storefront), C12- (microbusiness), 7 digits, -LIC. The SAMPLE fixture numbers get none.
   var DCC_SEARCH = 'https://search.cannabis.ca.gov/results?searchQuery=';
+  // DIRECTIONS (Joe 2026-11-25): a storefront's real street address, as a maps link: Apple Maps on iPhone / iPad, Google Maps elsewhere. A record with no street (delivery-only,
+  // city-only, a storefront with no line1) gets NO link and no made-up address. The text is the address the listing page already shows (line1, city, state, ZIP), URL-encoded.
+  var APPLE_MAPS = 'https://maps.apple.com/?daddr=', GOOGLE_MAPS = 'https://www.google.com/maps/dir/?api=1&destination=';
+  function directionsUrl(l, apple) {
+    if (!l || l.storefront !== true) return '';
+    var a = (l.address && typeof l.address === 'object') ? l.address : {}, s = function (v) { return typeof v === 'string' ? v.trim() : ''; };
+    var line1 = s(a.line1), city = s(a.city), st = s(a.state), zip = s(a.zip);
+    if (!line1 || !city) return '';
+    var dest = line1 + ', ' + city + (st ? ', ' + st : '') + (zip ? ' ' + zip : '');
+    return (apple ? APPLE_MAPS : GOOGLE_MAPS) + encodeURIComponent(dest);
+  }
   var DCC_LICENSE = /^C(9|10|12)-\d{7}-LIC$/;
   var STALE_DAYS = 7;   // DATA_PLAN §3: staff are alerted when the last good sync is older than 7 days
   function dccRecordUrl(license) {
@@ -518,14 +542,14 @@
     var shown = licensed((data && data.listings) || [], now), ids = {}, business = !!(opts && opts.mode === 'business'), eventIds = {};
     shown.forEach(function (l) { ids[l.id] = 1; });
     ((data && Array.isArray(data.events)) ? data.events : []).forEach(function (e) { if (e && typeof e.listingId === 'string') eventIds[e.listingId] = 1; });
-    var dots = [], dropped = [];
+    var dots = [], dropped = [], skipped = 0;   // skipped: shown rows that get no dot by rule (no consumer pin, or no real name left); dropped: no usable location. The page counts both in "in the list only" so the map's number and the list's number add up (honest counts)
     (listings || []).forEach(function (l) {
       if (!l || !ids[l.id]) return;
       var cat = pinCategory(l, eventIds);
-      if (!cat && !business) return;   // customer map: consumer-facing pins only
+      if (!cat && !business) { skipped++; return; }   // customer map: consumer-facing pins only
       // joe-0045: the map never shows a bracketed program tag ("[Equity Retailer]") and never a nameless dot: the name is
       // drawn without its tags, and a row with no real name left gets no dot at all.
-      var name = mapName(l.name); if (!name) return;
+      var name = mapName(l.name); if (!name) { skipped++; return; }
       var kind = l.storefront ? 'storefront' : 'delivery';
       var pt = l.storefront ? (hasPoint(l) ? { lat: l.lat, lng: l.lng } : null) : deliveryPoint(l, shown, data && data.places);
       if (!pt) { dropped.push({ id: l.id, why: 'no-location' }); return; }
@@ -533,7 +557,7 @@
       if (!xy) { dropped.push({ id: l.id, why: 'outside' }); return; }
       dots.push({ id: l.id, name: name, city: cityOf(l), kind: kind, cat: cat || 'business', brand: brandIcon(l), x: xy.x, y: xy.y });
     });
-    return { w: MAP_W, h: MAP_H, dots: dots, dropped: dropped };
+    return { w: MAP_W, h: MAP_H, dots: dots, dropped: dropped, skipped: skipped };
   }
 
   // The part of the fixed map to show: the dots' extent plus a margin, at least MIN_SPAN wide, 4:3, inside the map. Only
@@ -749,16 +773,30 @@
     var soon = s.status === 'About to Expire';
     return s.short ? (soon ? C.stripCardSoon(s.short) : C.stripCardActive(s.short)) : (soon ? C.stripCardSoonNoDate : C.stripCardActiveNoDate);
   }
+  // The three card facts that the listing page (the profile) shows too. ONE implementation each, read by cardLines AND profileFacts, so the card and the profile can
+  // never word or compute the same fact differently (Grok 2026-11-25: the profile is a pure read of the same record as the card; Muse checks card vs profile field by field).
+  function ratingText(l, C) { return (typeof l.rating === 'number' && isFinite(l.rating) && l.rating >= 0 && l.rating <= 5) ? C.rating(l.rating) : ''; }
+  function kindText(l, C) { return l.storefront && l.delivery === true ? C.kindBoth : l.storefront ? C.kindStorefront : l.delivery === true ? C.kindDelivery : C.kindNone; }
+  function countyText(l, C) {
+    var a = (l.address && typeof l.address === 'object') ? l.address : {};
+    return typeof a.county === 'string' && a.county.trim() ? C.countyName(a.county.trim().replace(/\s+county$/i, '')) : '';
+  }
   function cardLines(r, C) {
     var l = r.listing, a = (l.address && typeof l.address === 'object') ? l.address : {};
     var two = [];
-    if (typeof l.rating === 'number' && isFinite(l.rating) && l.rating >= 0 && l.rating <= 5) two.push(C.rating(l.rating));
+    var rt = ratingText(l, C); if (rt) two.push(rt);
     if (typeof r.miles === 'number' && isFinite(r.miles)) two.push(C.miles(r.miles));
     var hours = r.known === false || !hoursKnown(l) ? '' : r.open ? C.openUntil(fmtTime(r.until)) : C.closed;   // no hours data: nothing is shown (an empty "Hours not listed" on every card was noise)
     var al = addressLines(l), addr = al.lines.length ? (l.storefront && al.lines.length === 2 ? al.lines[0] + ', ' + cityOf(l) : al.lines[0]) : C.addressNone;
-    var kind = l.storefront && l.delivery === true ? C.kindBoth : l.storefront ? C.kindStorefront : C.kindDelivery;
-    var county = typeof a.county === 'string' && a.county.trim() ? C.countyName(a.county.trim().replace(/\s+county$/i, '')) : '';
-    return [String(l.name == null ? '' : l.name), two.join(' · '), hours, addr, kind + (county ? ' · ' + county : ''), String(l.license || '')];
+    var county = countyText(l, C);
+    return [String(l.name == null ? '' : l.name), two.join(' \u00b7 '), hours, addr, kindText(l, C) + (county ? ' \u00b7 ' + county : ''), String(l.license || '')];
+  }
+  // The profile (listing page) facts: a pure read of the SAME listing record the card is drawn from, through the same helpers. Every field the card shows
+  // that is not distance or open-now (those depend on where and when you look) is here with the same words.
+  function profileFacts(l, C) {
+    var strip = licenseStrip(l);
+    return { name: String(l.name == null ? '' : l.name), rating: ratingText(l, C), kind: kindText(l, C), county: countyText(l, C), license: String(l.license || ''),
+      address: addressLines(l), strip: licenseStripText(strip, C), cardStrip: licenseStripCardText(strip, C) };
   }
 
   // ---- SEO (1.0 cut, KODE/Grok 2026-11-24): what the search engines read. Pure functions; pages.js writes the result into the head. ----
@@ -769,7 +807,7 @@
   function seoListing(l, base) {
     var al = addressLines(l), a = (l && l.address) || {}, rec = dccRecordUrl(l && l.license);
     var where = cityOf(l), name = String((l && l.name) || '').trim();
-    var kindWord = l.storefront && l.delivery ? 'storefront and delivery' : l.delivery ? 'delivery' : 'storefront';
+    var kindWord = l.storefront && l.delivery ? 'storefront and delivery' : l.delivery === true ? 'delivery' : l.storefront ? 'storefront' : 'business';
     var d = {
       '@context': SCHEMA_CONTEXT, '@type': 'LocalBusiness', name: name, url: base + '/listing.html?id=' + encodeURIComponent(l.id),
       identifier: { '@type': 'PropertyValue', name: 'California cannabis license number', value: String(l.license || '') }
@@ -811,8 +849,8 @@
     return out;
   }
 
-  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, licenseStrip: licenseStrip, licenseStripText: licenseStripText, licenseStripCardText: licenseStripCardText, filterRows: filterRows, licenseCategories: licenseCategories, categoriesOf: categoriesOf, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, orderCards: orderCards, isPaid: isPaid, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, isHeld: isHeld, HELD_LICENSES: HELD_LICENSES.slice(), findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
-    dccRecordUrl: dccRecordUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
+  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, licenseStrip: licenseStrip, licenseStripText: licenseStripText, licenseStripCardText: licenseStripCardText, filterRows: filterRows, licenseCategories: licenseCategories, categoriesOf: categoriesOf, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, nameIds: nameIds, nameCountyKeys: nameCountyKeys, nameMatch: nameMatch, nameKey: nameKey, profileFacts: profileFacts, ratingText: ratingText, kindText: kindText, countyText: countyText, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, orderCards: orderCards, isPaid: isPaid, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+    dccRecordUrl: dccRecordUrl, directionsUrl: directionsUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;
 })(typeof window !== 'undefined' ? window : globalThis);

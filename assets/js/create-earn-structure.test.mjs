@@ -4,7 +4,7 @@
 // create and earn page fully restructured to make sense of what the brand is."
 //
 // CREATE = where you make something (an event listing, a competition entry, a post).
-// EARN   = how you earn (partner programmes, early access, creator rewards).
+// EARN   = how you earn (partner programmes, creator rewards; the early-access section was removed 2026-11-25, owner order).
 // Every door on either page must point at a file this repo actually serves.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -55,15 +55,16 @@ export function earnProblems(html) {
   const m = markup(html);
   if (/<h2>\s*CREATE\s*<\/h2>/.test(m)) p.push('Earn still has a section titled CREATE');
   if (/data-k="create"/.test(m)) p.push('Earn still has a Create chip');
-  const order = ['earn', 'early', 'create', 'games'].map((id) => m.indexOf('<section id="' + id + '"'));
+  const order = ['earn', 'create', 'games'].map((id) => m.indexOf('<section id="' + id + '"'));
   if (order.some((i) => i < 0)) p.push('missing section: ' + order.join(','));
-  else if (order.some((v, i) => i && v < order[i - 1])) p.push('sections out of order (partners, early access, rewards, games)');
-  for (const id of ['early', 'create']) {
+  else if (order.some((v, i) => i && v < order[i - 1])) p.push('sections out of order (partners, rewards, games)');
+  if (/<section id="early"/.test(m)) p.push('the removed early-access section is back');
+  for (const id of ['create']) {
     for (const [, h] of sectionOf(html, id).matchAll(/<a [^>]*href="([^"]+)"/g)) {
       if (!h.startsWith('#') && !/^https?:/.test(h) && !servedFile(h)) p.push('dead link ' + h);
     }
   }
-  if (!/<section id="early"[\s\S]*?href="\/early-access\.html"/.test(m)) p.push('early access card does not link /early-access.html');
+  if (/href="\/early-access/.test(m)) p.push('a link to the removed /early-access.html is back');
   return p;
 }
 
@@ -71,12 +72,15 @@ test('CREATE: one hub above the competitions with working doors (add, manage, co
   assert.deepEqual(hubProblems(CREATE), []);
 });
 
-test('EARN: partners, early access, rewards, games; no Create section or chip; no dead links', () => {
+test('EARN: partners, rewards, games; no early-access section, no Create section or chip; no dead links', () => {
   assert.deepEqual(earnProblems(EARN), []);
+  // NEGATIVE CONTROLS: the checker catches the removed section and its link coming back
+  assert.ok(earnProblems(EARN.replace('<section id="create">', '<section id="early"><a href="/early-access.html">x</a></section>\n<section id="create">')).some((x) => /early-access section is back/.test(x)));
+  assert.ok(earnProblems(EARN.replace('</main>', '<a href="/early-access.html">x</a></main>')).some((x) => /link to the removed/.test(x)));
 });
 
-test('EARN: the early-access section is removed after the sale ends', () => {
-  assert.match(EARN, /Date\.now\(\) < Date\.parse\('2026-12-01T08:00:00Z'\)\) return;\s*var sec=document\.getElementById\('early'\); if\(sec\) sec\.remove\(\);/);
+test('EARN: the early-access section is gone from the page source (removed 2026-11-25, owner order)', () => {
+  assert.doesNotMatch(markup(EARN), /<section id="early"|id="earlyGrid"|id="earnEarlyAccess"/);
 });
 
 function hubDom(search) {

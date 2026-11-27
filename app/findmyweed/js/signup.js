@@ -222,9 +222,9 @@
       return recheck.then(function () { return AUTH.pricing(tok); }).then(function (r) { return r || {}; }, function () { return { allowed: false, reason: 'error' }; }).then(function (r) {
         if (wait.parentNode) wait.parentNode.removeChild(wait);
         if (r.allowed === true && r.pricing && Array.isArray(r.pricing.sections)) return showPricing(si, r.pricing);
-        var errd = r.reason === 'error';
-        var s = el('section', 'card'); s.setAttribute('data-state', errd ? 'pricing-error' : 'pricing-locked');
-        s.appendChild(el('h2', null, errd ? B.pricingErrorTitle : B.pricingLockedTitle)); s.appendChild(el('p', null, errd ? B.pricingErrorBody : B.pricingLockedBody));
+        var errd = r.reason === 'error', appr = r.reason === 'approval';   // appr: licence checked, the team has not confirmed the claim yet
+        var s = el('section', 'card'); s.setAttribute('data-state', errd ? 'pricing-error' : appr ? 'pricing-approval' : 'pricing-locked');
+        s.appendChild(el('h2', null, errd ? B.pricingErrorTitle : appr ? B.pricingApprovalTitle : B.pricingLockedTitle)); s.appendChild(el('p', null, errd ? B.pricingErrorBody : appr ? B.pricingApprovalBody : B.pricingLockedBody));
         si.appendChild(s); si.appendChild(backLink());
       });
     }

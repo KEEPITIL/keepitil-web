@@ -87,3 +87,9 @@ test('privacy page: ONE last-updated date; says GPC and DNT are honored; names G
   for (const must of [/Global Privacy Control and Do Not Track are honored/, /Google Analytics 4/, /Microsoft Clarity/, /Bing/, /YouTube/, /privacy-enhanced mode/, /only starts after you tap play/]) assert.match(privacy, must);
   assert.doesNotMatch(privacy, /where supported/, 'the old vague promise is gone');
 });
+
+test('privacy page: names RSVP device id + optional email, Cloudflare + form limiting, email sign-in, and Stripe only for tickets and competition entries', () => {
+  for (const must of [/random device ID/, /only if you choose to add one, your email address/, /<strong>Cloudflare<\/strong>/, /limit how often one address can submit our forms/, /you sign in with it/, /when you buy a ticket or enter a competition/]) assert.match(privacy, must);
+  assert.doesNotMatch(privacy, /Payment info<\/strong> for purchases/, 'no open-ended Stripe wording');
+  assert.equal((privacy.match(/Last updated/g) || []).length, 1);
+});

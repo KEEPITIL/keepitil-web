@@ -16,13 +16,13 @@ const xml = fs.readFileSync(path.join(APP, 'sitemap.xml'), 'utf8');
 const BASE = 'https://keepitil.com/app/findmyweed/';
 const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
 test('the sitemap lists the static pages first, then every shown listing and every city view', () => {
-  assert.deepEqual(locs.slice(0, 3), [BASE, BASE + 'about.html', BASE + 'privacy.html']);
+  assert.deepEqual(locs.slice(0, 4), [BASE, BASE + 'about.html', BASE + 'privacy.html', BASE + 'help.html']);
   const want = F.sitemapPaths(data, new Date()).map((p) => BASE + p), have = new Set(locs);
   assert.deepEqual(want.filter((u) => !have.has(u)), [], 'a shown listing or city is missing from sitemap.xml (regenerate it)');
 });
 test('and nothing the data does not have (no dead URL): every listing id and city in the file exists in listings.json', () => {
   const ids = new Set(data.listings.map((l) => l.id)), cityNames = new Set(data.listings.map((l) => String((l.address && l.address.city) || '').trim().toLowerCase().replace(/\s+/g, ' ')));
-  for (const u of locs.slice(3)) {
+  for (const u of locs.slice(4)) {
     const q = new URL(u).searchParams;
     if (q.has('id')) assert.ok(ids.has(q.get('id')), u); else assert.ok(cityNames.has(q.get('area').replace(/^city:/, '').trim().toLowerCase().replace(/\s+/g, ' ')), u);
   }
@@ -30,7 +30,7 @@ test('and nothing the data does not have (no dead URL): every listing id and cit
   assert.ok(locs.every((u) => u.startsWith(BASE)), 'one origin and folder');
 });
 test('NEGATIVE CONTROL: a sitemap without the listings fails the first check', () => {
-  const static3 = [BASE, BASE + 'about.html', BASE + 'privacy.html'], want = F.sitemapPaths(data, new Date()).map((p) => BASE + p);
+  const static3 = [BASE, BASE + 'about.html', BASE + 'privacy.html', BASE + 'help.html'], want = F.sitemapPaths(data, new Date()).map((p) => BASE + p);
   assert.ok(want.length > 100 && want.filter((u) => !new Set(static3).has(u)).length > 0);
 });
 

@@ -263,6 +263,8 @@ footer a{color:var(--brand-2)}
 <!-- VS platform (KODE): Supabase client + the app that renders into #vs-app.
      vs-app.js defines the real window.vsFilter, replacing the placeholder hook. -->
 <script src="/assets/js/vendor/supabase-js.min.js?v=hcb41d8ab"></script>
+<script src="/assets/js/kil-actions.js?v=h1fe8e1c8"></script>
+<script src="/assets/js/kil-common-actions.js?v=h434f09e4"></script>
 <script src="/vs-app.js?v=20261124b"></script>
 <script src="/keepitil-pager.js?v=20260820e" defer></script>
 <script>
@@ -344,7 +346,7 @@ function vrGoSub(sp){ var dd=document.getElementById('vrSubDD'); if(dd)dd.classL
              : 'No entries yet.';
     return { title:line,
              body:'<span>Entering takes a minute.</span>'
-                 +'<button type="button" class="vsp-join" onclick="window.__vsGoJoin&&window.__vsGoJoin()">Enter a competition →</button>' };
+                 +'<button type="button" class="vsp-join" data-click="kilVsGoJoin">Enter a competition →</button>' };
   }
   /* Works on BOTH breakpoints. The old copy — "Tap Join on the rail" — was at least true on
      desktop, where the rail exists; replacing it with a mobile-only control would have fixed
@@ -364,7 +366,7 @@ function vrGoSub(sp){ var dd=document.getElementById('vrSubDD'); if(dd)dd.classL
       +'<h3>'+title+'</h3>'
       +(by?'<div class="vsp-by">'+by+'</div>':'')
       +(x.competition_id||x.id
-        ? '<button type="button" class="vsp-join" onclick="window.vsGo&&window.vsGo(\'join\')">Enter this competition →</button>'
+        ? '<button type="button" class="vsp-join" data-click="kilVsGo" data-a="[&quot;join&quot;]">Enter this competition →</button>'
         : '')
       +'</div>';
   }

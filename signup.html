@@ -9,6 +9,8 @@
 <link href="/assets/css/fonts.css?v=h613ded09" rel="stylesheet"/>
 <link href="/assets/css/nav-reserve.css?v=20261127b" rel="stylesheet"/>
 <script src="/assets/js/vendor/supabase-js.min.js?v=hcb41d8ab"></script>
+<script src="/assets/js/kil-actions.js?v=h1fe8e1c8"></script>
+<script src="/assets/js/kil-common-actions.js?v=h434f09e4"></script>
 <style>
 :root{--black:#0b0b0f;--dark:#111118;--dark2:#18181f;--dark3:#22222c;--blue:#00b4ff;--white:#f0f0f0;--grey:#888;--font-head:'Bebas Neue',sans-serif;--font-body:'Inter',sans-serif;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -80,7 +82,7 @@ footer a{margin:0 5px;}
       <li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li>
     </ul>
   <a href="/apply" class="nav-cta">LOGIN</a>
-  <button class="nav-hamburger" onclick="document.getElementById('mm').classList.toggle('open')" aria-label="Menu"><span></span><span></span><span></span></button>
+  <button class="nav-hamburger" data-click="kilToggleMobileMenu" aria-label="Menu"><span></span><span></span><span></span></button>
 </div></nav>
 <div class="mobile-menu" id="mm"><a href="/">DISCOVER</a><a href="/connect/">CONNECT</a><a href="/create/">CREATE</a><a href="/culture/">CULTURE</a><a href="/earn/">EARN</a><a href="/apply" class="nav-cta">LOGIN</a></div>
 

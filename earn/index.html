@@ -1165,9 +1165,9 @@ function renderPls(){
           +   '<div class="card-img" style="'+cover+'">'+(artUrl?'':'\u266a')+'</div>'
           +   '<div class="g">'+esc(p.name)+'</div><div class="s">Your playlist</div>'
           + close
-          + '<button class="chip'+(p.is_default?'':' soon')+'" onclick="setDefaultPlaylist('+p.id+')" '
+          + '<button class="chip'+(p.is_default?'':' soon')+'" data-click="setDefaultPlaylist" data-a="'+JSON.stringify([p.id]).replace(/"/g,'&quot;')+'" '
           +   'style="border:0;cursor:pointer;margin-top:8px">'+(p.is_default?'DEFAULT':'SET DEFAULT')+'</button>'
-          + '<button onclick="rmPlaylist('+p.id+')" title="Remove" '
+          + '<button data-click="rmPlaylist" data-a="'+JSON.stringify([p.id]).replace(/"/g,'&quot;')+'" title="Remove" '
           +   'style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);border:0;color:#ff6b6b;'
           +   'font-weight:800;cursor:pointer;border-radius:6px;padding:2px 7px">&times;</button>'
           + '</div>';

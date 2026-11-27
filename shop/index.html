@@ -100,9 +100,45 @@
 <main class="hub">
   <p class="kicker">KEEPITIL</p>
   <h1>Shop KEEPITIL</h1>
-  <p class="lede">Merch and For Artists, in one place. Checkout is on Shopify.</p>
+  <p class="lede">For Artists and merch, in one place. Checkout is on Shopify.</p>
+
+  <section class="start" aria-labelledby="start-title">
+    <h2 id="start-title">For Artists: start here</h2>
+    <p class="lede2">Plans, graphics and reviews for your next release. Digital items have no shipping.</p>
+    <ol class="picks">
+      <li class="offer"><h3 class="pname">Release Strategy Session</h3><p class="price">$150</p><p class="meta">A written release plan with a timeline, three ranked promo actions and a recorded walkthrough. No live call.</p><p class="meta"><b>Delivery:</b> Plan within 2 business days of receiving your details.</p><a class="btn" href="https://www.illestratedlifestyle.com/products/release-strategy-session?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=session" rel="noopener" aria-label="Buy Release Strategy Session, $150">Buy</a></li>
+      <li class="offer"><h3 class="pname">Release Graphics Pack</h3><p class="price">$99</p><p class="meta">7 launch graphics in 3 sizes, built around your cover art. One round of revisions.</p><p class="meta"><b>Delivery:</b> PNG files by email within 3 business days of receiving your files. No shipping.</p><a class="btn" href="https://www.illestratedlifestyle.com/products/release-graphics-pack?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=graphics-pack" rel="noopener" aria-label="Buy Release Graphics Pack, $99">Buy</a></li>
+      <li class="offer"><h3 class="pname">Release Rollout Kit</h3><p class="price">$19</p><p class="meta">A 3-page, day-by-day launch plan with caption templates and checklists.</p><p class="meta"><b>Delivery:</b> Download link in your order email. No shipping.</p><a class="btn" href="https://www.illestratedlifestyle.com/products/release-rollout-kit?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=rollout-kit" rel="noopener" aria-label="Buy Release Rollout Kit, $19">Buy</a></li>
+      <li class="offer"><h3 class="pname">SoundCloud Profile Audit</h3><p class="price">$29</p><p class="meta">A written review of one profile and one track, with 5 improvements.</p><p class="meta"><b>Delivery:</b> Delivered within 3 business days of receiving your links.</p><a class="btn" href="https://www.illestratedlifestyle.com/products/soundcloud-profile-audit-written?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=soundcloud-audit" rel="noopener" aria-label="Buy SoundCloud Profile Audit, $29">Buy</a></li>
+      <li class="offer"><h3 class="pname">Lyric Visual &amp; Social Content Pack</h3><p class="price">$35</p><p class="meta">5 vertical cards, captions and a release-week posting schedule for one track.</p><p class="meta"><b>Delivery:</b> Delivered as a folder by email.</p><a class="btn" href="https://www.illestratedlifestyle.com/products/lyric-visual-social-content-pack?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=lyric-pack" rel="noopener" aria-label="Buy Lyric Visual &amp; Social Content Pack, $35">Buy</a></li>
+    </ol>
+  </section>
+
+  <section class="freekit" aria-labelledby="freekit-title">
+    <!-- DRAFT: not connected. No action, no endpoint, button disabled. Do not merge as-is: wire it (see PR) or remove it. -->
+    <h2 id="freekit-title">Free 7-Day Rollout Kit</h2>
+    <p>A day-by-day launch plan for your next release. Enter your email and we send the kit.</p>
+    <form class="kitform" onsubmit="return false">
+      <label for="kit-email">Email</label>
+      <input id="kit-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" disabled>
+      <label class="consent"><input type="checkbox" name="marketing_consent" value="yes" disabled> Also send me release tips and offers from KEEPITIL. You can unsubscribe at any time.</label>
+      <button class="btn" type="submit" disabled>Sign-up opens soon</button>
+    </form>
+    <p class="meta">The kit itself does not depend on the tips box. Leave it unchecked to get the kit only.</p>
+  </section>
 
   <div class="sections">
+    <section class="card" aria-labelledby="digital-title">
+      <img class="mark" src="/assets/images/logo-blue-nav.png" width="72" height="72" alt="">
+      <h2 id="digital-title">For Artists</h2>
+      <p>Services and downloads for your release.</p>
+      <div class="actions">
+        <a class="btn" data-collection="services" href="https://www.illestratedlifestyle.com/collections/services?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=services" rel="noopener">Services</a>
+        <a class="btn" data-collection="downloads" href="https://www.illestratedlifestyle.com/collections/downloads?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=downloads" rel="noopener">Downloads</a>
+      </div>
+      <a class="textlink" href="/services/">See what’s included</a>
+    </section>
+
     <section class="card" aria-labelledby="merch-title">
       <img class="art" src="/assets/sponsors/affiliate-keepitil-store-2x3-600.webp" width="600" height="900" alt="KEEPITIL merch">
       <h2 id="merch-title">Merch</h2>
@@ -115,17 +151,6 @@
         <a class="btn" data-collection="wall-art" href="https://www.illestratedlifestyle.com/collections/canvas-wall-art?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=wall-art" rel="noopener">Canvas &amp; Wall Art</a>
         <a class="btn" data-collection="mugs" href="https://www.illestratedlifestyle.com/collections/all-merch?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=mugs" rel="noopener">Mugs</a>
       </div>
-    </section>
-
-    <section class="card" aria-labelledby="digital-title">
-      <img class="mark" src="/assets/images/logo-blue-nav.png" width="72" height="72" alt="">
-      <h2 id="digital-title">For Artists</h2>
-      <p>Services and downloads for your release.</p>
-      <div class="actions">
-        <a class="btn" data-collection="services" href="https://www.illestratedlifestyle.com/collections/services?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=services" rel="noopener">Services</a>
-        <a class="btn" data-collection="downloads" href="https://www.illestratedlifestyle.com/collections/downloads?utm_source=keepitil&amp;utm_medium=site&amp;utm_campaign=shop&amp;utm_content=downloads" rel="noopener">Downloads</a>
-      </div>
-      <a class="textlink" href="/services/">See what’s included</a>
     </section>
   </div>
 

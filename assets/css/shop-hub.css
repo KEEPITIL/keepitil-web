@@ -54,3 +54,18 @@ h1{margin:0;font-family:"Bebas Neue",Inter,sans-serif;font-size:clamp(3rem,12vw,
   .card .art{height:210px}
   .card .mark{width:72px;height:72px}
 }
+
+/* Digital-first shelf and free-kit block */
+.start{margin-top:28px}.start h2,.freekit h2{margin:0 0 6px;font-family:"Bebas Neue",Inter,sans-serif;font-size:2rem;font-weight:400;letter-spacing:.06em}
+.lede2{margin:0 0 14px;color:#d5d2e2}
+.picks{list-style:none;margin:0;padding:0;display:grid;gap:12px;counter-reset:pick}
+.picks .offer{position:relative;padding-left:52px}
+.picks .offer::before{counter-increment:pick;content:counter(pick);position:absolute;left:14px;top:16px;width:28px;height:28px;border-radius:50%;background:#5CD6FF;color:#0B1B3A;font:800 .95rem/28px Inter,system-ui,sans-serif;text-align:center}
+.pname{margin:0;font-family:"Bebas Neue",Inter,sans-serif;font-size:1.6rem;font-weight:400;letter-spacing:.04em;line-height:1.05;text-transform:none;color:#f0f0f0}
+.freekit{margin-top:22px;padding:16px;border-radius:18px;background:#10182a;border:1px solid rgba(92,214,255,.28)}
+.freekit p{margin:0 0 10px;color:#d5d2e2}
+.kitform{display:grid;gap:10px;max-width:460px}.kitform label{font-weight:700}
+.kitform input[type=email]{font:inherit;min-height:48px;padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:#0a0f1c;color:#f0f0f0}
+.kitform .consent{display:flex;gap:10px;align-items:flex-start;font-weight:400;color:#d5d2e2}.kitform .consent input{width:24px;height:24px;flex:none;margin-top:2px}
+.kitform .btn[disabled]{opacity:.55;cursor:not-allowed}
+@media(min-width:800px){.picks{grid-template-columns:repeat(2,minmax(0,1fr))}}

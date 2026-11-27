@@ -219,18 +219,18 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
     <div class="panel" id="tab-venues"><div class="head2">Venue Bookings <span class="ct" id="bookCt"></span></div><div id="bookReview"></div></div>
     <div class="panel" id="tab-chat">
       <div class="chatwrap">
-        <div class="chatbox"><h3>Chat with an agent</h3><div class="cbar" style="margin-bottom:10px"><select id="agentPick" onchange="clearAgentLog()"></select></div><div class="chatlog" id="agentLog"></div><div class="cbar"><input id="agentQ" placeholder="Ask this agent…" onkeydown="if(event.key==='Enter')askAgentDash()"><button onclick="askAgentDash()">Ask</button></div></div>
-        <div class="chatbox"><h3>Crew group — activity + messages</h3><div class="chatlog" id="groupLog"></div><div class="cbar"><input id="groupMsg" placeholder="Message the whole crew…" onkeydown="if(event.key==='Enter')postGroup()"><button onclick="postGroup()">Send</button></div></div>
+        <div class="chatbox"><h3 aria-level="2">Chat with an agent</h3><div class="cbar" style="margin-bottom:10px"><select id="agentPick" aria-label="Agent to chat with" onchange="clearAgentLog()"></select></div><div class="chatlog" id="agentLog"></div><div class="cbar"><input id="agentQ" placeholder="Ask this agent…" onkeydown="if(event.key==='Enter')askAgentDash()"><button onclick="askAgentDash()">Ask</button></div></div>
+        <div class="chatbox"><h3 aria-level="2">Crew group — activity + messages</h3><div class="chatlog" id="groupLog"></div><div class="cbar"><input id="groupMsg" placeholder="Message the whole crew…" onkeydown="if(event.key==='Enter')postGroup()"><button onclick="postGroup()">Send</button></div></div>
       </div>
     </div>
     <div class="panel" id="tab-knowledge">
       <div class="head2">Add to the Knowledge Bank</div>
       <div class="rv" style="display:block"><div class="kform">
-        <label>Agent (blank = all agents share it)</label><select id="kAgent"></select>
+        <label for="kAgent">Agent (blank = all agents share it)</label><select id="kAgent"></select>
         <label>Topic</label><input id="kTopic" placeholder="e.g. Parking at events">
         <label>Keywords (comma or space separated)</label><input id="kKeywords" placeholder="parking car lot where to park">
-        <label>Short answer — shown to everyone</label><textarea id="kShort"></textarea>
-        <label>Full answer — shown to paid members</label><textarea id="kFull"></textarea>
+        <label for="kShort">Short answer — shown to everyone</label><textarea id="kShort"></textarea>
+        <label for="kFull">Full answer — shown to paid members</label><textarea id="kFull"></textarea>
         <label>Source URL (optional)</label><input id="kSource" placeholder="https://…">
         <button class="btn prim" style="margin-top:12px" onclick="addKnowledge()">Add to bank</button>
         <div class="msg" id="kMsg" style="margin-top:8px"></div>
@@ -756,8 +756,8 @@ function renderSocial(){
   var pfs=['all','instagram','x','facebook','tiktok'];
   var note = ZAP_HOOK ? '' : '<div style="background:#2a2410;border:1px solid #5a4a1a;color:#e8c15a;border-radius:10px;padding:9px 12px;font-size:.74rem;margin:2px 0 12px">Publishing hook not set — Approve queues the post; set <b>platform_config.zapier_hook_url</b> to auto-post on approve.</div>';
   var fh=note+'<div style="display:flex;gap:7px;flex-wrap:wrap;margin:4px 0 10px">'
-    +labels.map(function(l){return '<button onclick="setSocStatus(\''+l[0]+'\')" style="cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:700;font-size:.72rem;'+(SOC_STATUS===l[0]?'background:var(--accent);border-color:var(--accent);color:#fff':'background:var(--panel);color:var(--muted)')+'">'+l[1]+' '+(counts[l[0]]||0)+'</button>';}).join('')
-    +'</div><div style="margin:0 0 12px"><select onchange="setSocPlatform(this.value)" style="background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:7px 11px;font-size:.8rem">'
+    +labels.map(function(l){return '<button onclick="setSocStatus(\''+l[0]+'\')" style="cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:700;font-size:.72rem;'+(SOC_STATUS===l[0]?'background:var(--accent);border-color:var(--accent);color:#0c0d1a':'background:var(--panel);color:var(--muted)')+'">'+l[1]+' '+(counts[l[0]]||0)+'</button>';}).join('')
+    +'</div><div style="margin:0 0 12px"><select onchange="setSocPlatform(this.value)" aria-label="Platform" style="background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:7px 11px;font-size:.8rem">'
     +pfs.map(function(x){return '<option value="'+x+'"'+(SOC_PLATFORM===x?' selected':'')+'>'+(x==='all'?'All platforms':x.charAt(0).toUpperCase()+x.slice(1))+'</option>';}).join('')
     +'</select></div>';
   $('socialFilters').innerHTML=fh;

@@ -1,0 +1,9 @@
+{
+  "name": "kil-db-proofs-ci",
+  "private": true,
+  "version": "0.0.0",
+  "description": "CI-only dependency pin for db/proposed real-PostgreSQL proofs (.github/workflows/db-proofs.yml). The proof harness (11b-combined-rehearsal/lib/pgdb.mjs) loads node-postgres from here via KIL_PG_NODE_MODULES. Inert: nothing under db/ is served or applied.",
+  "dependencies": {
+    "pg": "8.23.1"
+  }
+}

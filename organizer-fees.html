@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="default">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
+<meta name="description" content="KEEPITIL organizer fees and payouts — what you pay, what Stripe charges, how payouts work, and what is not allowed."/>
+<meta name="robots" content="index,follow"/>
+<title>Organizer fees &amp; payouts — KEEPITIL</title>
+<meta property="og:title" content="Organizer fees &amp; payouts — KEEPITIL">
+<meta property="og:description" content="KEEPITIL organizer fees and payouts — what you pay, what Stripe charges, how payouts work, and what is not allowed.">
+<meta property="og:url" content="https://keepitil.com/organizer-fees">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://keepitil.com/keepitil-og.png">
+<meta name="twitter:image" content="https://keepitil.com/keepitil-og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/assets/css/tokens.css?v=h7678f146"/>
+<link href="/assets/css/fonts.css?v=h613ded09" rel="stylesheet"/>
+<link href="/assets/css/nav-reserve.css?v=20261127b" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg,#0a0a0f);color:var(--text);font-family:var(--font);line-height:1.7;padding-bottom:72px}
+.wrap{max-width:820px;margin:0 auto;padding:var(--sp-5,56px) var(--sp-3,20px)}
+/* CLS (desktop + any JS): the static #main-nav above exists for crawlers and no-JS readers only; keepitil-shell.js removes it and, on desktop, adds body padding-top:66px and its own .wrap box
+   (max-width 1360px, 40px gutters, !important). Until then it rendered as an unstyled list and the page jumped (main 250 -> 66 px, 820 -> 1280 px wide: CLS 0.38 on /privacy at 1280).
+   With scripting on it is not painted (still in the DOM for crawlers; no-JS readers still see it) and the shell's final values are stated up front. */
+@media (scripting:enabled){#main-nav{display:none}}
+@media (min-width:861px){.wrap{max-width:1360px;padding-left:40px;padding-right:40px}}
+@media (min-width:861px) and (scripting:enabled){body{padding-top:66px}}
+h1{font-size:clamp(2rem,5vw,3rem);font-weight:900;margin-bottom:6px}
+.upd{color:var(--muted);font-size:.85rem;margin-bottom:var(--sp-4,32px)}
+h2{font-size:1.25rem;font-weight:800;margin:var(--sp-4,32px) 0 var(--sp-2,12px);color:var(--brand)}
+p,li{color:var(--text);opacity:.9;margin-bottom:12px}
+ul{padding-left:22px}
+a{color:var(--brand)}
+.note{background:color-mix(in srgb,var(--brand) 8%,var(--surface));border:1px dashed color-mix(in srgb,var(--brand) 40%,var(--line));border-radius:var(--radius,14px);padding:16px 18px;margin:var(--sp-4,32px) 0;font-size:.9rem}
+table{border-collapse:collapse;width:100%;margin:12px 0 18px;font-size:.95rem}th,td{border:1px solid var(--line,rgba(255,255,255,.14));padding:8px 10px;text-align:right}th:first-child,td:first-child{text-align:left}th{background:color-mix(in srgb,var(--brand) 10%,var(--surface))}.tw{overflow-x:auto}
+</style>
+
+<link rel="canonical" href="https://keepitil.com/organizer-fees"/>
+</head>
+<body>
+<!-- ── STATIC PLATFORM NAV — CRAWLER SOURCE OF TRUTH (KODE 2026-09-08) ──────────
+     This page previously shipped NO crawlable navigation at all: the global nav
+     existed only inside keepitil-shell.js, so a crawler that does not execute JS
+     saw a page with no architecture around it and could not discover the other
+     four platform sections from here. keepitil-shell.js removes #main-nav (see the
+     querySelectorAll('#main-nav, ...').remove() sweep) before it injects the real
+     navigation, so this markup is gone by the time a visitor sees the page - it
+     exists for crawlers and for no-JS readers, and adds no visual duplication.
+     One architecture only: DISCOVER · CONNECT · CREATE · CULTURE · EARN (+ Login). -->
+<nav id="main-nav" aria-label="KEEPITIL platform"><div class="nav-inner">
+  <a class="nav-logo" href="/"><span class="nav-brand">KEEPITIL</span></a>
+  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
+  <a href="/apply" class="nav-cta">LOGIN</a>
+</div></nav>
+
+<main class="wrap">
+<h1>Organizer fees &amp; payouts</h1>
+<div class="upd">KEEPITIL · Last updated November 27, 2026</div>
+
+<p>This page is for people who sell tickets on KEEPITIL. It shows what KEEPITIL charges, what Stripe charges, how you get paid, what happens when a ticket is refunded or disputed, and what is not allowed. Numbers come from how KEEPITIL ticketing works today and from Stripe's own pages, which are linked.</p>
+
+<h2>1. KEEPITIL's fee</h2>
+<p>For every paid ticket sold, KEEPITIL's fee is <strong>2.5% of the ticket price plus a flat amount per ticket</strong>:</p>
+<ul>
+<li><strong>$0.49</strong> when the ticket price is under $10.00;</li>
+<li><strong>$0.99</strong> when the ticket price is $10.00 or more.</li>
+</ul>
+<p>The fee is worked out per ticket, rounded to the cent, and multiplied by the number of tickets in the order. <strong>You pay it</strong>: it is taken out of each sale before the rest goes to your Stripe account. The buyer pays the ticket price you set and nothing is added at checkout. Free and RSVP tickets are never charged and carry no fee.</p>
+
+<h3>Worked examples (one ticket, domestic card)</h3>
+<div class="tw"><table>
+<thead><tr><th>Ticket price</th><th>KEEPITIL fee</th><th>Stripe card fee*</th><th>You receive</th></tr></thead>
+<tbody>
+<tr><td>$5.00</td><td>$0.62</td><td>$0.45</td><td><strong>$4.38</strong></td></tr>
+<tr><td>$10.00</td><td>$1.24</td><td>$0.59</td><td><strong>$8.76</strong></td></tr>
+<tr><td>$25.00</td><td>$1.62</td><td>$1.03</td><td><strong>$23.38</strong></td></tr>
+<tr><td>$50.00</td><td>$2.24</td><td>$1.75</td><td><strong>$47.76</strong></td></tr>
+</tbody></table></div>
+<p>*Stripe's card fee is shown so you can see the full picture. With KEEPITIL's setup it is charged to KEEPITIL's Stripe account, <strong>not taken from your payout</strong>, so &ldquo;You receive&rdquo; is the ticket price minus KEEPITIL's fee. Refunds, disputes and the cases below are different: see section 3.</p>
+<!-- OPEN FOR GROK: Stripe's card fee is paid by KEEPITIL out of its fee under the current destination-charge setup (Stripe docs); Joe's rule is that KEEPITIL takes on no expenses. Decide whether the organizer pays it, and re-check the high-price and international-card cases (PR body). -->
+
+<h2>2. Stripe's fees, payouts and getting set up</h2>
+<ul>
+<li><strong>Card processing:</strong> Stripe's published price is 2.9% + 30&cent; per successful domestic card payment, plus 1.5% for international cards and plus 1% if currency conversion is needed (<a href="https://stripe.com/pricing" rel="noopener">stripe.com/pricing</a>). For tickets on KEEPITIL, Stripe charges this to KEEPITIL as the platform (<a href="https://docs.stripe.com/connect/destination-charges" rel="noopener">Stripe: destination charges</a>: &ldquo;Your platform separately pays the Stripe fees on the charge&rdquo;).</li>
+<li><strong>Your Stripe account:</strong> when you set up payouts, KEEPITIL creates a Stripe Express account for you and sends you to Stripe to finish. You give Stripe your identity and bank details there, not to KEEPITIL. Stripe asks for information about you and, for a business, the business: for example name, address, tax ID number, date of birth, and details of beneficial owners. It may also ask for a scan of a government ID or proof of address, and it &ldquo;temporarily pauses charges or payouts if the information isn't provided or verified&rdquo; (<a href="https://docs.stripe.com/connect/identity-verification" rel="noopener">Stripe: identity verification</a>).</li>
+<li><strong>You cannot sell paid tickets until payouts are set up.</strong> Checkout refuses a paid ticket for an organizer who has not finished Stripe's setup.</li>
+<li><strong>When you are paid:</strong> by default, money from a sale builds up in your Stripe balance and is paid out to your bank on a daily rolling basis (<a href="https://docs.stripe.com/connect/payouts-connected-accounts" rel="noopener">Stripe: payouts for connected accounts</a>). Stripe typically schedules a new account's first payout within 7 to 14 days (<a href="https://docs.stripe.com/payouts" rel="noopener">Stripe: payouts</a>). Payout settings and status are managed with Stripe.</li>
+</ul>
+
+<h2>3. Refunds, disputes and chargebacks</h2>
+<ul>
+<li><strong>Refunds:</strong> see the <a href="/refund">Refund Policy</a>. A refund returns the buyer's ticket price to their original payment method. Stripe does not give back its own processing fee on a refund: &ldquo;Stripe's processing fees from the original transaction aren't returned&rdquo; (<a href="https://docs.stripe.com/refunds" rel="noopener">Stripe: refunds</a>).</li>
+<li><strong>Who pays:</strong> refunds you owe because of your cancellation or your event's description, the processing fee Stripe does not return, and dispute amounts and dispute fees are the organizer's cost. KEEPITIL may take them from your payouts. This is already in the <a href="/ticket-terms">Ticket Terms</a> (&ldquo;Chargebacks and refunds may be offset against your payouts&rdquo;).</li>
+<li><strong>Disputes (chargebacks):</strong> if a buyer disputes a payment with their bank, the payment is reversed right away and Stripe takes the amount plus a dispute fee from the platform account (<a href="https://docs.stripe.com/disputes" rel="noopener">Stripe: disputes</a>). The ticket may be voided (<a href="/ticket-terms">Ticket Terms</a>).</li>
+</ul>
+<!-- OPEN FOR GROK: Joe's rule is that KEEPITIL never takes on any expenses, so refunds, Stripe's lost fee and dispute fees are written as organizer-funded. Stripe's defaults and our code do NOT do this yet: refunds are issued from the platform account and by default the organizer keeps the funds (reverse_transfer is not set), the dispute fee is debited from the platform. Decide the mechanism before this page goes live. -->
+
+<h2>4. What is not allowed</h2>
+<h3>Stripe's restrictions</h3>
+<p>All card payments on KEEPITIL run on Stripe, so Stripe's rules apply to every event and organizer. Stripe's list of prohibited and restricted businesses is at <a href="https://stripe.com/legal/restricted-businesses" rel="noopener">stripe.com/legal/restricted-businesses</a>. Relevant entries:</p>
+<ul>
+<li><strong>Cannabis (prohibited):</strong> Stripe lists &ldquo;Cannabis products&rdquo; and &ldquo;Cannabis dispensaries and related businesses&rdquo; as prohibited. Stripe's list has no entry for ticketing or events as such. An event that sells cannabis, or that is run by a cannabis business, may be treated as a related business, and Stripe can refuse or stop payments for it. <strong>If your event involves cannabis in any way, contact <a href="mailto:info@keepitil.com">info@keepitil.com</a> before you publish paid tickets.</strong> We cannot promise Stripe will allow it.</li>
+<li><strong>CBD (restricted):</strong> CBD products with only negligible amounts of THC, per local limits, need extra review by Stripe; CBD above the legal THC limit is prohibited.</li>
+<li><strong>Gambling (prohibited):</strong> Stripe lists games of chance, including sweepstakes and contests with a monetary or material prize, and lotteries. Do not sell tickets to raffles, lotteries or prize draws.</li>
+<li><strong>Adult content (prohibited), tobacco (restricted) and anything illegal:</strong> Stripe prohibits pornography and content made for sexual gratification, restricts tobacco and e-cigarette products sold in line with the law, and prohibits illegal drugs and anything that breaks the law where you operate or sell.</li>
+</ul>
+<p>Stripe can change its list. The version above was read on November 27, 2026; Stripe's page says &ldquo;Last updated: 2026-09-22&rdquo;. If Stripe closes or limits your account, KEEPITIL cannot reverse that.</p>
+
+<h3>KEEPITIL's rules</h3>
+<ul>
+<li>You must be at least 18, or the age of majority where you live, and have a KEEPITIL account (<a href="/terms">Terms</a>). Buyers also need a free KEEPITIL account to buy a ticket.</li>
+<li>You must finish Stripe's identity and bank setup before you can sell paid tickets, and have the right to sell tickets to the event (<a href="/ticket-terms">Ticket Terms</a>, section 6).</li>
+<li>Paid tickets must cost at least $1.00. Prices are in US dollars. A buyer can add up to 20 tickets of one type to an order.</li>
+<li>An event must be published (new events are reviewed first), and tickets cannot be bought once the event has started or outside the sales dates you set. Sold-out tiers stop selling.</li>
+<li>An event that has sold tickets cannot be deleted. Refund every ticket first; then the event can be hidden.</li>
+<li>You must describe the event accurately, honor valid tickets and follow venue, licensing, safety and local laws, including age limits such as 18+ or 21+ (<a href="/ticket-terms">Ticket Terms</a>). The <a href="/community-guidelines">Community Guidelines</a> prohibit promoting illegal activity.</li>
+<li>KEEPITIL can pause ticket sales on the whole site.</li>
+</ul>
+
+<p style="margin-top:var(--sp-5,56px)"><a href="/ticket-terms">Ticket Terms</a> · <a href="/refund">Refund Policy</a> · <a href="/terms">Terms of Service</a> · <a href="/support">Support</a> · <a href="/">Home</a></p>
+<p style="margin-top:28px;padding-top:16px;border-top:1px solid var(--line,rgba(255,255,255,.1));font-size:.82rem;color:var(--muted,#9a94b4);line-height:1.7"><b>KEEPITIL</b><br>9252 Garden Grove Blvd, Ste 19 PMB 1066, Garden Grove, CA 92844<br>Questions: <a href="mailto:info@keepitil.com">info@keepitil.com</a></p>
+</main>
+<script src="/assets/js/keepitil-radio.js?v=20261124c" defer></script>
+<script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
+</body>
+</html>

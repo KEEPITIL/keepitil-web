@@ -45,6 +45,10 @@ function fakeEl(tag) {
     classList: { toggle() {}, add() {}, remove() {}, contains() { return false; } },
     appendChild(c) { el.children.push(c); return c; },
     addEventListener(t, f, c) { el.listeners.push({ t, f, c }); },
+    attrs: {},
+    setAttribute(k, v) { el.attrs[k] = String(v); },
+    getAttribute(k) { return Object.prototype.hasOwnProperty.call(el.attrs, k) ? el.attrs[k] : null; },
+    removeAttribute(k) { delete el.attrs[k]; },
     remove() {}
   };
   return el;

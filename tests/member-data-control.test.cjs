@@ -75,5 +75,5 @@ test("settings export: one call site, own filename, graceful when the function i
   const fn = extract(st, "exportMyData");
   assert.match(fn, /PGRST202/);
   assert.match(fn, /Log in to download your data/);
-  assert.match(st, /id="exp-go" type="button" onclick="exportMyData\(\)"/);
+  assert.match(st, /id="exp-go" type="button" data-click="exportMyData"/);
 });

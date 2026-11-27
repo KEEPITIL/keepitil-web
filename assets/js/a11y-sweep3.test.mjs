@@ -5,13 +5,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const lum = (hex) => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4))); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
 const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 
 test('/venue: load() waits for the deferred shell before it can show the not-found state, and even the bare fallback keeps an h1', () => {
-  const h = read('venue.html');
+  const h = __assemble(read('venue.html'));
   assert.match(h, /async function load\(\)\{[\s\S]{0,1400}document\.readyState==='loading'\) await new Promise\(function\(r\)\{ document\.addEventListener\('DOMContentLoaded', r, \{once:true\}\); \}\);/);
   const lb = h.slice(h.indexOf('async function load(){'), h.indexOf('function render(){')), ready = lb.indexOf("document.readyState==='loading'");
   assert.ok(lb.indexOf("SB.rpc('get_venue'") > 0 && lb.indexOf("SB.rpc('get_venue'") < ready, 'the venue request starts BEFORE the DOMContentLoaded wait (perf)');

@@ -4,6 +4,8 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const root = join(dir, '../..');
@@ -193,7 +195,7 @@ function sliceFunction(src, name) {
 }
 
 test('chat name and slug quotes do not become handlers', () => {
-  const profile = read('profile.html');
+  const profile = __assemble(read('profile.html'));
   const dom = new JSDOM('<div id="chat-list"></div><button id="dm-new"></button>', {
     url: 'https://keepitil.com/profile',
     runScripts: 'dangerously'
@@ -234,8 +236,8 @@ test('chat name and slug quotes do not become handlers', () => {
 });
 
 test('pages do not assign stored html straight to innerHTML', () => {
-  const profile = read('profile.html');
-  const culture = read('culture/index.html');
+  const profile = __assemble(read('profile.html'));
+  const culture = __assemble(read('culture/index.html'));
   const dashboard = read('dashboard.html');
   assert.match(profile, /assets\/js\/vendor\/purify\.min\.js/);
   assert.match(profile, /assets\/js\/kil-safe-html\.js/);
@@ -260,7 +262,7 @@ test('pages do not assign stored html straight to innerHTML', () => {
   assert.match(profile, /tile\.style\.backgroundImage='url\('\+JSON\.stringify\(img\)\+'\)'/);
   assert.match(profile, /kil-safe-html\.js\?v=20261107b/);
   assert.match(culture, /kil-safe-html\.js\?v=20261107b/);
-  const connect = read('connect/index.html');
+  const connect = __assemble(read('connect/index.html'));
   assert.match(connect, /kilSafeUrl\(x\.img\)/);
   assert.match(connect, /escHtml\(x\.name/);
   assert.match(connect, /escHtml\(x\.city\)/);

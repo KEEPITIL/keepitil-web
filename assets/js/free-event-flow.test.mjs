@@ -7,9 +7,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { JSDOM, VirtualConsole } from 'jsdom';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
-const SUBMIT = read('submit-event.html');
+const SUBMIT = __assemble(read('submit-event.html'));
 const DASH = read('dashboard.html');
 const noComments = (h) => h.replace(/<!--[\s\S]*?-->/g, '');
 

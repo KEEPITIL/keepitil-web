@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const SKIP = new Set(['.git', 'node_modules']);
@@ -41,12 +43,12 @@ test('no page links the removed /early-access page', () => {
   assert.deepEqual(linksEarlyAccess(PAGES), []);
 });
 test('/earn/ has no early-access section, chip or Black Friday wording', () => {
-  assert.deepEqual(earnProblems(read('earn/index.html')), []);
+  assert.deepEqual(earnProblems(__assemble(read('earn/index.html'))), []);
 });
 test('NEGATIVE CONTROLS: a returning page link, section, chip or Black Friday string is caught', () => {
   assert.deepEqual(linksEarlyAccess(PAGES.concat([['x.html', '<a href="/early-access.html">x</a>'], ['y.html', '<a href="/early-access">y</a>'], ['z.html', '<a href="https://keepitil.com/early-access.html#join">z</a>']])), ['x.html', 'y.html', 'z.html']);
   assert.deepEqual(linksEarlyAccess([['ok.html', '<a href="/earn/">earn</a> early-access']]), [], 'a bare word is not a link');
-  const earn = read('earn/index.html');
+  const earn = __assemble(read('earn/index.html'));
   assert.deepEqual(earnProblems(earn + '<section id="early"></section>'), ['the early-access section is back']);
   assert.deepEqual(earnProblems(earn + '<button data-k="early">Early access</button>'), ['the Early access chip is back']);
   assert.deepEqual(earnProblems(earn + 'Black Friday early access'), ['Black Friday wording is back']);

@@ -1,11 +1,12 @@
 // settings.html: the "Download my data" email-request row (id exp-mail-row, hidden) must really be hidden while MEMBER_DATA_CONTROLS is on. `.row{display:flex}` beats the browser's [hidden]{display:none},
 // so the page showed TWO "Download my data" rows (the Download button and the "Email us" one). `.row[hidden]{display:none}` fixes it.   node --test tests/settings-hidden-row.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const ROOT = process.env.SH_ROOT || path.resolve(__dirname, "..");
-const html = fs.readFileSync(path.join(ROOT, "settings.html"), "utf8");
+const html = __A(fs.readFileSync(path.join(ROOT, "settings.html"), "utf8"));
 const css = html.slice(html.indexOf("<style"), html.indexOf("</style>"));
 
 // every element class that is made display:flex/grid/block by the page's CSS AND carries the hidden attribute in the markup, without a [hidden] rule to win

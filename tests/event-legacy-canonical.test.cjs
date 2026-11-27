@@ -1,6 +1,6 @@
 // Legacy /event?e=<slug> upgrades its canonical to the prerendered /event/<slug>/ only when that page exists (HEAD ok).
 const test = require("node:test"), assert = require("node:assert/strict"), fs = require("node:fs");
-const src = fs.readFileSync(require("node:path").join(__dirname, "..", "event.html"), "utf8");
+const src = require("./helpers/event-assembled.cjs").assemble(fs.readFileSync(require("node:path").join(__dirname, "..", "event.html"), "utf8"));
 const block = (src.match(/if\(!window\.__kilPrerenderSlug && ev\.slug && window\.fetch\)\{[\s\S]*?\n    \}\n/) || [])[0] || "";
 function run(headOk, prerendered) {
   const attrs = {}, og = {};
@@ -22,7 +22,7 @@ test("HEAD 404 or network error: canonical untouched (never points at a missing 
   for (const v of [false, "throw"]) { const r = await run(v, false); assert.deepEqual(r.attrs, {}); }
 });
 test("the prerendered page itself does no upgrade", async () => { const r = await run(true, true); assert.deepEqual(r.calls, []); });
-test("prerender template anchors still match (canonFor string unchanged)", () => assert.ok(src.includes("function canonFor(slug){ return \x27https://keepitil.com/event?e=\x27+encodeURIComponent(slug||\x27\x27); }")));
+test("canonFor adapts at runtime: the prerendered page (slug present) canonicalises to /event/<slug>/, the legacy page keeps /event?e=<slug>", () => { const m = src.match(/function canonFor\(slug\)\{[^\n]*\}/); assert.ok(m); const f = (pre) => new Function("window", m[0] + "; return canonFor('a b');")({ __kilPrerenderSlug: pre }); assert.equal(f("a-b"), "https://keepitil.com/event/a%20b/"); assert.equal(f(undefined), "https://keepitil.com/event?e=a%20b"); });
 test("control: a block that skips the HEAD check is caught", async () => {
   const bad = block.replace(/\.then\(function\(r\)\{\s*if\(r&&r\.ok\)\{/, ".then(function(r){ {");
   assert.notEqual(bad, block);

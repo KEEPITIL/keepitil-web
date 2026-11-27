@@ -19,8 +19,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { createRequire } from 'node:module';
+// Page scripts moved out of inline <script> blocks (CSP migration) live in assets/js/pages/*.js. This puts them back into the page text, so the guard still reads every page's real code.
+const assemble = createRequire(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const FIVE = ['DISCOVER', 'CONNECT', 'CREATE', 'CULTURE', 'EARN'];
@@ -43,10 +48,11 @@ function walk(dir, exts, out = []) {
   }
   return out;
 }
-const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
+const read = (rel) => assemble(readFileSync(join(ROOT, rel), 'utf8'));
 // *.play.html are the undeployed coming-soon originals (.github/pages-exclude.txt), not served pages.
 const PAGES = walk(ROOT, ['.html']).filter((r) => !/^google[0-9a-f]+\.html$/.test(r) && !r.endsWith('.play.html'));
-const SCRIPTS = walk(ROOT, ['.js']).filter((r) => r !== 'sw.js');
+// assets/js/pages/* are PAGE scripts: they are scanned inside the page that loads them (read() above), under that page's own exemptions, never as shared scripts.
+const SCRIPTS = walk(ROOT, ['.js']).filter((r) => r !== 'sw.js' && !r.startsWith('assets/js/pages/'));
 
 /* ── helpers ─────────────────────────────────────────────────────────────────────────────── */
 export function stripJsComments(s) {
@@ -157,6 +163,7 @@ const ALLOW = [
   // INTERNAL TOOL (noindex, robots Disallow, linked from nowhere public): the radio grid tuner's
   // whole job is to hold the shipped radio drawer open so its sliders can resize it.
   { file: 'radio-tuner/index.html', has: 'openDrawer' },
+  { file: 'assets/js/pages/radio-tuner-main.js', has: 'openDrawer' },   // the same tool: its inline script moved to an external file (CSP)
 ];
 const allowed = (file, snippet) => ALLOW.some((a) => a.file === file && snippet.includes(a.has));
 
@@ -270,7 +277,7 @@ export function earnProblems(html) {
 }
 
 test('Earn: no radio/playlist copy, no docked radio bar on phones, Kit inside the carousel', () => {
-  assert.deepEqual(earnProblems(read('earn/index.html')), []);
+  assert.deepEqual(earnProblems(__assemble(read('earn/index.html'))), []);
 });
 
 /* ── NEGATIVE CONTROLS ────────────────────────────────────────────────────────────────────── */
@@ -316,7 +323,7 @@ test('NEGATIVE CONTROL: user-opened overlays inside load handlers are NOT flagge
 });
 
 test('NEGATIVE CONTROL: Earn checks fail on radio copy, a visible docked bar and Kit outside the carousel', () => {
-  const earn = read('earn/index.html');
+  const earn = __assemble(read('earn/index.html'));
   const withCopy = earn.replace('id="affGrid">', 'id="affGrid">\n<h2>KEEPITIL RADIO</h2>');
   assert.ok(earnProblems(withCopy).some((p) => p.startsWith('radio/playlist copy')));
   const withMeta = earn.replace(/<title>([\s\S]*?)<\/title>/i, '<title>Earn — Radio & Playlists</title>');

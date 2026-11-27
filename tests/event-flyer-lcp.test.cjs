@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const ROOT = process.env.EF_ROOT || path.resolve(__dirname, "..");
-const html = fs.readFileSync(path.join(ROOT, "event.html"), "utf8");
+const html = require("./helpers/event-assembled.cjs").assemble(fs.readFileSync(path.join(ROOT, "event.html"), "utf8"));
 test("the flyer is an <img> with fetchpriority=high, not a CSS background", () => {
   assert.doesNotMatch(html, /\$\('ev-flyer'\)\.style\.backgroundImage/);
   const i = html.indexOf("The flyer is the LCP element");

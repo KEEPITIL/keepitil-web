@@ -3,12 +3,13 @@
 // Follow-up to #352 (Grok 2026-11-24): a visitor who sends Global Privacy Control or Do Not Track must not make a request to Google for a video card's thumbnail either.
 // Culture shows ~100 YouTube cards; each thumbnail was an i.ytimg.com request. Opted-out visitors get our own default picture until they tap play.
 const assert = require('node:assert/strict');
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const test = require('node:test');
 
-const culture = fs.readFileSync(path.join(__dirname, '..', 'culture/index.html'), 'utf8');
+const culture = __A(fs.readFileSync(path.join(__dirname, '..', 'culture/index.html'), 'utf8'));
 function thumbFn(src = culture, gpc) {
   const a = src.indexOf('window.kilVideoThumb=function(u){'); assert.ok(a > 0, 'kilVideoThumb exists'); const b = src.indexOf('};', a) + 2;
   const ctx = vm.createContext({ window: { KIL_GPC: gpc, URL }, location: { href: 'https://keepitil.com/culture/' } });

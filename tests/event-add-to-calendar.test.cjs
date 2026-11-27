@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const ROOT = process.env.AC_ROOT || path.resolve(__dirname, "..");
 const cal = require(path.join(ROOT, "assets/js/kil-calendar.js"));
-const html = fs.readFileSync(path.join(ROOT, "event.html"), "utf8");
+const html = require("./helpers/event-assembled.cjs").assemble(fs.readFileSync(path.join(ROOT, "event.html"), "utf8"));
 const row = { slug: "winter-wonderland", title: "Winter, Wonderland; live", venue: "Watermark Bar", city: "New York", state: "NY", starts_at: "2026-11-27T03:00:00Z", ends_at: null };
 const NOW = new Date("2026-11-25T12:00:00Z");
 

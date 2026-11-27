@@ -79,7 +79,8 @@
       document.getElementById('kil-fb-card').innerHTML =
         '<div id="kil-fb-done"><div class="big">🙏</div><h3>Thank you!</h3>'
         + '<p class="sub">Your feedback goes straight to the KEEPITIL team.</p>'
-        + '<button class="kil-fb-send" onclick="document.getElementById(\'kil-fb-ov\').classList.remove(\'on\')">Close</button></div>';
+        + '<button class="kil-fb-send" id="kil-fb-close" type="button">Close</button></div>';
+      document.getElementById('kil-fb-close').addEventListener('click', function () { document.getElementById('kil-fb-ov').classList.remove('on'); });
     } catch (e) {
       send.disabled = false; send.textContent = 'Send feedback';
       alert('Sorry — could not send right now. Please try again in a moment.');

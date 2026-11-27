@@ -2,6 +2,7 @@
 // (or an empty shell), while /profile and /event?e=bad render the shared KIL_NOT_FOUND state
 // (heading, links, noindex). Run: node --test tests/not-found-states.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -9,11 +10,11 @@ const ROOT = process.env.NF_ROOT || path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
 
 test("event.html renders the not-found state when the URL has no slug", () => {
-  const h = read("event.html");
+  const h = require("./helpers/event-assembled.cjs").assemble(read("event.html"));
   assert.match(h, /if\(!ev\.slug\)\{[\s\S]{0,400}window\.KIL_NOT_FOUND\(\{ what:'event'/);
 });
 test("venue.html uses KIL_NOT_FOUND for both a missing and an unknown venue", () => {
-  const h = read("venue.html");
+  const h = __A(read("venue.html"));
   assert.match(h, /function venueNF\(\)/);
   assert.match(h, /KIL_NOT_FOUND\(\{ what:'venue'/);
   assert.match(h, /if\(!SB\|\|!SLUG\)\{ venueNF\(\)/);

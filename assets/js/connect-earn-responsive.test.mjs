@@ -6,10 +6,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import test from 'node:test';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const root = process.env.SEVENC_ROOT ? new URL('file:///' + process.env.SEVENC_ROOT.replace(/\\/g, '/').replace(/\/?$/, '/')) : new URL('../../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, root), 'utf8');
-const pages = { connect: read('connect/index.html'), earn: read('earn/index.html') };
+const pages = { connect: __assemble(read('connect/index.html')), earn: __assemble(read('earn/index.html')) };
 const base = process.env.SEVENC_BASE;
 const git = (...a) => execFileSync(process.env.GIT || 'git', a, { cwd: new URL('../../', import.meta.url), encoding: 'utf8' });
 

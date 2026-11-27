@@ -3,6 +3,7 @@
 // Grok 2026-11-24: honour Global Privacy Control AND Do Not Track. A browser sending either gets NO Google Analytics and NO Microsoft Clarity (no script added, no request),
 // and the Culture YouTube player only mounts after a tap (served from youtube-nocookie.com for everyone). Visitors who send neither are unchanged. The privacy page says so.
 const assert = require('node:assert/strict');
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
@@ -10,7 +11,7 @@ const test = require('node:test');
 
 const root = path.join(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
-const shell = read('keepitil-shell.js'), culture = read('culture/index.html'), privacy = read('privacy.html');
+const shell = read('keepitil-shell.js'), culture = __A(read('culture/index.html')), privacy = read('privacy.html');
 
 // the analytics block of the shell, from the opt-out check through the end of __kilMountAnalytics
 function analyticsBlock(src) { const a = src.indexOf('function __kilClarityAllowed'); const b = src.indexOf('/* gtag() must exist BEFORE'); assert.ok(a > 0 && b > a, 'analytics block found'); return src.slice(a, b) + '\n' + src.slice(src.indexOf('function __kilOptedOut'), src.indexOf('try{ window.KIL_OPTED_OUT')); }
@@ -89,7 +90,7 @@ test('privacy page: ONE last-updated date; says GPC and DNT are honored; names G
 });
 
 test('privacy page: names RSVP device id + optional email, Cloudflare + form limiting, email sign-in, and Stripe only for tickets and competition entries', () => {
-  for (const must of [/random device ID/, /only if you choose to add one, your email address/, /<strong>Cloudflare<\/strong>/, /limit how often one address can submit our forms/, /you sign in with it/, /when you buy a ticket or enter a competition/]) assert.match(privacy, must);
+  for (const must of [/random device ID/, /only if you choose to add one, your email address/, /<strong>Cloudflare<\/strong>/, /limit how often one address can submit our forms/, /you sign in with it/, /when you buy a ticket, enter a competition or buy an artist service/]) assert.match(privacy, must);
   assert.doesNotMatch(privacy, /Payment info<\/strong> for purchases/, 'no open-ended Stripe wording');
   assert.equal((privacy.match(/Last updated/g) || []).length, 1);
 });

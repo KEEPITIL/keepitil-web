@@ -1,5 +1,6 @@
 const test = require('node:test'), assert = require('node:assert'), fs = require('fs'), path = require('path');
-const h = fs.readFileSync(path.join(__dirname, '..', 'profile.html'), 'utf8');
+const __A = require("./helpers/event-assembled.cjs").assemble;
+const h = __A(fs.readFileSync(path.join(__dirname, '..', 'profile.html'), 'utf8'));
 test('profile: every event cover that becomes an <img> goes through KH() (kil-img-host deny-list), so images.ra.co is never requested', () => {
   assert.match(h, /var img=KH\(e\.cover\)\|\|'\/assets\/images\/blog-default-744\.webp';/);
   assert.match(h, /type:'event',title:e\.title,sub:'',media:KH\(e\.cover\)\|\|''/);

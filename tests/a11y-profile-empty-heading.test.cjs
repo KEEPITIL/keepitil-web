@@ -1,7 +1,8 @@
 // axe empty-heading on /profile (pre-existing, NEXUS2's #370 read-back): h1#pfName was a space/&nbsp; placeholder until a name arrived, and on a not-found profile it never got one (an EMPTY heading). Grok 6:20: instead of aria-hidden, give it a visually hidden label ("Loading profile"; "Profile not found" on a soft 404) so axe is 0 in EVERY state, loading included.
 const test = require('node:test'), assert = require('node:assert/strict'), fs = require('fs'), path = require('path'), { JSDOM } = require('jsdom');
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const R = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
-const html = R('profile.html');
+const html = __A(R('profile.html'));
 const stmt = html.match(/if\(g\('pfName'\)\)\{ var _pn=g\('pfName'\);[^\n]*?\}   \/\*/);
 const nf = html.match(/try\{ var _pf=document\.getElementById\('pfName'\);[^\n]*?\}catch\(e\)\{\}/);
 const nameOf = (h) => h.textContent.replace(/[\s ]/g, '');

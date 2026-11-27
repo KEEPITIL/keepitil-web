@@ -1,6 +1,6 @@
 // An event whose cover_url is null shows our own event-placeholder.svg: on the home cards AND as the event-page flyer (not a gradient, not hidden).
 const test = require('node:test'), assert = require('node:assert/strict'), fs = require('fs'), path = require('path');
-const root = path.join(__dirname, '..'), rd = (f) => fs.readFileSync(path.join(root, f), 'utf8');
+const root = path.join(__dirname, '..'), rd = (f) => require('./helpers/event-assembled.cjs').assemble(fs.readFileSync(path.join(root, f), 'utf8'));
 const PH = '/assets/images/event-placeholder.svg';
 const pages = ['event.html', ...fs.readdirSync(path.join(root, 'event')).map((d) => 'event/' + d + '/index.html')];
 

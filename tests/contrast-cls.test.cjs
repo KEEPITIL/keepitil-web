@@ -2,6 +2,7 @@
 // /support layout shift (CLS 0.496). Source probes; the values were also verified with axe-core 4.10.2 and a layout-shift observer in real Chrome.
 // Run: node --test tests/contrast-cls.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -27,7 +28,7 @@ test("the shared footer no longer fades its text with opacity", () => {
 });
 test("links inside text are underlined, not distinguished by colour alone", () => {
   assert.match(read("support/index.html"), /\.contact a\{[^}]*text-decoration:underline/);
-  assert.match(read("signup.html"), /\.row a\{text-decoration:underline\}/);
+  assert.match(__A(read("signup.html")), /\.row a\{text-decoration:underline\}/);
 });
 test("/support first paint already matches the layout the shell applies (no layout shift)", () => {
   const shell = read("keepitil-shell.js"), s = read("support/index.html");

@@ -91,14 +91,6 @@ footer a{color:var(--green);text-decoration:none}
   <footer>FindMyWeed by <a href="https://keepitil.com">KEEPITIL</a> · <a href="https://keepitil.com/app/findmyweed/for-business/">Pricing &amp; the grid</a> · <a href="https://keepitil.com/findmyweed-directory">Directory</a> · <a href="https://keepitil.com/app/findmyweed/for-business/">Join</a></footer>
 </div>
 <script src="/assets/js/kil-actions.js?v=h1fe8e1c8"></script>
-<script>
-if(window.KilActions) KilActions.allow(["showView"]);
-function showView(v){
-  document.getElementById('listPanel').style.display = v==='list' ? 'block' : 'none';
-  document.getElementById('mapPanel').style.display = v==='map' ? 'block' : 'none';
-  document.getElementById('btnList').classList.toggle('on', v==='list');
-  document.getElementById('btnMap').classList.toggle('on', v==='map');
-}
-</script>
+<script src="/assets/js/pages/fmw-explore-view.js?v=h67191fed"></script>
 </body>
 </html>

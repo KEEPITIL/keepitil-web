@@ -1,5 +1,6 @@
 const test = require('node:test'), assert = require('node:assert'), fs = require('fs'), path = require('path');
-const html = fs.readFileSync(path.join(__dirname, '..', 'profile.html'), 'utf8');
+const __A = require("./helpers/event-assembled.cjs").assemble;
+const html = __A(fs.readFileSync(path.join(__dirname, '..', 'profile.html'), 'utf8'));
 const a = html.indexOf('function resizeForUpload(file){'), b = html.indexOf('function uploadImage(file0,cb){');
 assert.ok(a > 0 && b > a);
 const src = html.slice(a, b);

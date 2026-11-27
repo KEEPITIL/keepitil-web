@@ -157,6 +157,7 @@ const ALLOW = [
   // INTERNAL TOOL (noindex, robots Disallow, linked from nowhere public): the radio grid tuner's
   // whole job is to hold the shipped radio drawer open so its sliders can resize it.
   { file: 'radio-tuner/index.html', has: 'openDrawer' },
+  { file: 'assets/js/pages/radio-tuner-main.js', has: 'openDrawer' },   // the same tool: its inline script moved to an external file (CSP)
 ];
 const allowed = (file, snippet) => ALLOW.some((a) => a.file === file && snippet.includes(a.has));
 

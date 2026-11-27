@@ -41,7 +41,7 @@ export function stubProblems(html) {
   if (canon.length !== 1 || attr(canon[0], 'href') !== 'https://keepitil.com' + TARGET) p.push('canonical must be https://keepitil.com' + TARGET);
   const robots = tags(html, /<meta\b[^>]*name\s*=\s*"robots"[^>]*>/gi);
   if (robots.length !== 1 || !/\bnoindex\b/i.test(attr(robots[0], 'content') || '')) p.push('missing robots noindex');
-  const js = html.match(/location\.replace\(\s*"([^"]*)"/);
+  const js = html.match(/location\.replace\(\s*"([^"]*)"/) || html.match(/kil-redirect\.js[^>]*data-to="([^"]*)"/);   // the redirect is the shared kil-redirect.js with data-to since the CSP migration
   if (js && js[1] !== TARGET) p.push('location.replace goes to ' + js[1]);
   return p;
 }
@@ -147,7 +147,7 @@ test('negative control: stub checker rejects a stub without noindex, a wrong tar
   assert.notDeepEqual(stubProblems(good.replace('0;url=/app/findmyweed/', '0;url=/findmyweed-join')), []);
   assert.notDeepEqual(stubProblems(good.replace('0;url=', '5;url=')), []);
   assert.notDeepEqual(stubProblems(good.replace('https://keepitil.com/app/findmyweed/"', 'https://keepitil.com/findmyweed"')), []);
-  assert.notDeepEqual(stubProblems(good.replace('location.replace("/app/findmyweed/"', 'location.replace("/"')), []);
+  assert.notDeepEqual(stubProblems(good.replace('data-to="/app/findmyweed/"', 'data-to="/"')), []);
 });
 
 test('negative control: business checker rejects a wrong title, a relative link, a missing canonical, base after CSP', () => {

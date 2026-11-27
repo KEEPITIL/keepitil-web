@@ -844,7 +844,9 @@
   }
 
   function boot() {
+    /* The page config is DATA (a non-executable JSON block, CSP: no inline script), with the old window.KIL_DISCOVER global still honoured. */
     var cfg = root.KIL_DISCOVER;
+    if (!cfg && root.document) { try { var cb = root.document.getElementById('kil-discover-config'); if (cb) cfg = root.KIL_DISCOVER = JSON.parse(cb.textContent); } catch (e) { cfg = null; } }
     if (!cfg || cfg.kind === 'static') return;
     if (cfg.kind === 'cities') {
       mountCities(root.document.getElementById('disc-cities'), root.document.getElementById('disc-lists'), cfg);

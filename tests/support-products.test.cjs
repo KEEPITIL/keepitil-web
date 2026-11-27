@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const ROOT = process.env.SP_ROOT || path.resolve(__dirname, "..");
-const html = fs.readFileSync(path.join(ROOT, "support/index.html"), "utf8");
+const html = require("./helpers/event-assembled.cjs").assemble(fs.readFileSync(path.join(ROOT, "support/index.html"), "utf8"));
 function lit(name) {
   const m = html.match(new RegExp("var " + name + " = (\\[[\\s\\S]*?\\n  \\]|\\{[\\s\\S]*?\\n  \\});"));
   assert.ok(m, name + " not found");

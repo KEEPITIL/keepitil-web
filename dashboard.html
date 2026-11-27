@@ -294,12 +294,9 @@ window.addEventListener('DOMContentLoaded', function(){ try{ if(window.KilOrgani
 </script>
 <script>
 /* ── YOUR CALENDAR LISTINGS (free event flow, 2026-11-22) ───────────────────────────────────
-   Members add events through /submit-event (create-event is team-only: rpc('is_admin') sends
-   everyone else to /submit-event). Those listings never showed up here, so a member's
-   Dashboard said "No events yet" right after they submitted one. This lists them, read-only,
-   from the same get_my_community_events() the submit page already calls, with each one's review
-   status and an Edit link back to the form. It also points the header button at /submit-event
-   for members, where /create-event would bounce them. No writes, no new RPC. */
+   Community calendar submissions (events you found, no ticketing) still list here from
+   get_my_community_events(), with an Edit link back to /submit-event. The header
+   "+ Create Event" stays on /create-event for every signed-in account. */
 window.addEventListener('DOMContentLoaded', function(){
   if(typeof supa==='undefined' || !supa) return;
   function e2(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -307,11 +304,6 @@ window.addEventListener('DOMContentLoaded', function(){
   var LABEL={ review:'In review', published:'Live', rejected:'Not approved', draft:'Draft', archived:'Archived' };
   supa.auth.getSession().then(function(r){
     if(!(r&&r.data&&r.data.session)) return;
-    supa.rpc('is_admin').then(function(a){
-      if(a&&a.data) return;
-      var hb=document.querySelector('.head a.btn.prim[href="/create-event"]');
-      if(hb){ hb.href='/submit-event'; hb.textContent='+ Add an event'; }
-    }).catch(function(){});
     var panel=document.getElementById('tab-events'); if(!panel) return;
     var box=document.getElementById('listings');
     if(!box){ box=document.createElement('div'); box.id='listings'; panel.appendChild(box); }
@@ -393,6 +385,8 @@ async function load(){
 var ZAP_HOOK='', IS_ADMIN=false, TAB_LOADED={};
 var AGENTS=[['cho','CHO'],['atlas','ATLAS'],['fable','FABLE'],['pulse','PULSE'],['xus','XUS'],['sentinel','SENTINEL'],['oracle','ORACLE'],['nova','NOVA'],['luna','LUNA'],['lyric','LYRIC'],['vibe','VIBE'],['scout','SCOUT'],['merch','MERCH'],['beacon','BEACON']];
 var ADMIN_TABS=[['posts','FEED'],['social','Social Command'],['campaigns','Campaigns'],['analytics','Analytics'],['agents','Crew & Brain'],['venues','Venue Bookings'],['chat','Chat'],['access','Access']];
+/* Internal tools stay admin-only: staging, nightly heal (QA), knowledge bank, and the rest of the crew console. */
+var ADMIN_PANELS={posts:1,social:1,campaigns:1,analytics:1,agents:1,venues:1,chat:1,access:1,knowledge:1,learning:1,staging:1,qa:1,recommendations:1};
 async function buildAdminTabs(){
   try{ var a=await supa.rpc('is_admin'); IS_ADMIN=!!(a&&a.data); }catch(e){}
   /* The dashboard is where profile management lives now (Founder 2026-08-26). DASH used to
@@ -575,7 +569,9 @@ function dashEnterAsk(e){ if(e.key==='Enter') askAgentDash(); }
 function dashEnterPostGroup(e){ if(e.key==='Enter') postGroup(); }
 if(window.KilActions) KilActions.allow(["addAdminUI", "addKnowledge", "approveFeed", "approveSocial", "approveSuggestion", "askAgentDash", "campApprove", "campCalMove", "campCalToday", "campDeny", "campDryRun", "campEdit", "campPublish", "campSchedule", "campScheduleAll", "campShift", "clearAgentLog", "closeCP", "closeCampEdit", "closeSocEdit", "cpMedia", "cpPreview", "cpSave", "cpToggle", "dashBookingStatus", "dashEnterAddAdmin", "dashEnterAsk", "dashEnterPostGroup", "dashShowTabFromEl", "dashSocPlatform", "denyFeed", "denySocial", "dismissSuggestion", "dup", "editSocial", "genSuggestions", "loadRecommendations", "markPostedSocial", "postGroup", "pullPost", "removeAdminUI", "restorePost", "saveAgent", "setCalMode", "setCampPlat", "setCampTheme", "setCampView", "setSocStatus", "showTab", "toggleAgentEdit", "toggleKnow"]);
 function showTab(name){
+  if(ADMIN_PANELS[name] && !IS_ADMIN) return;
   var grp=TAB_GROUPS[name]||[name];
+  if(grp.some(function(g){ return ADMIN_PANELS[g] && !IS_ADMIN; })) return;
   document.querySelectorAll('.panel').forEach(function(p){p.classList.toggle('on', grp.indexOf(p.id.replace('tab-',''))>=0);});
   document.querySelectorAll('#subnav button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===name);});
   grp.forEach(function(g){
@@ -1327,7 +1323,7 @@ async function init(){
 init();
 </script>
 <script src="/assets/js/keepitil-radio.js?v=20261124c" defer></script>
-<script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261125a" defer></script>
+<script src="/assets/js/keepitil-ai.js?v=20261127b" defer></script>
+<script src="/keepitil-shell.js?v=20261127b" defer></script>
 </body>
 </html>

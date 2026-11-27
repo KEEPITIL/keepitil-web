@@ -336,9 +336,8 @@
     return false;
   }
 
-  /* The public create path. NOT /create-event — that is admin-only and bounces everyone
-     else, dropping query params on the way. */
-  var KIL_CREATE_URL = '/submit-event';
+  /* The public create path. Any signed-in account opens /create-event; the page itself asks for a login when there is no session. */
+  var KIL_CREATE_URL = '/create-event';
 
   function welcomeActions(){
     return kilSignedIn()

@@ -33,7 +33,7 @@ test('cache-bust: every page that loads keepitil-shell.js uses the SAME ?v= stam
   const stamps = new Set(); let n = 0;
   for (const f of files) { const s = fs.readFileSync(path.join(__dirname, '..', f), 'utf8'); for (const m of s.matchAll(/keepitil-shell\.js\?v=([0-9a-z]+)/g)) { stamps.add(m[1]); n++; } }
   assert.ok(n > 700, 'stamp seen on ' + n + ' pages');
-  assert.deepEqual([...stamps], ['20261125a']);
+  assert.deepEqual([...stamps], ['20261127b']);
   assert.ok(!stamps.has('20261124e'), 'the old stamp is gone');
 });
 test('NEGATIVE CONTROL: a tree where the shell changed but one page kept the old stamp is flagged (two distinct stamps)', () => {

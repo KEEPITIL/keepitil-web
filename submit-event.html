@@ -91,7 +91,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
   <div id="app" style="display:none">
     <header class="hero">
       <h1 id="formTitle">NEW EVENT</h1>
-      <div class="sub">Add an event to the KEEPITIL calendar: your own show or one you found. It is free. No ticketing here, just the listing and a link out to tickets or RSVP. Submissions are reviewed before they go live. Track them under <a href="/dashboard" style="color:var(--brand)">Manage your events</a>.<span id="hostLink" hidden> Selling tickets as the KEEPITIL team? <a href="/create-event" style="color:var(--brand)">Use Create Event →</a></span></div>
+      <div class="sub">Add an event to the KEEPITIL calendar: your own show or one you found. It is free. No ticketing here, just the listing and a link out to tickets or RSVP. Submissions are reviewed before they go live. Track them under <a href="/dashboard" style="color:var(--brand)">Manage your events</a>.<span id="hostLink" hidden> Selling tickets or taking RSVPs on KEEPITIL? <a href="/create-event" style="color:var(--brand)">Use Create Event →</a></span></div>
       <!-- /create-event is team-only today: it runs rpc('is_admin') and sends everyone else here with
            ?why=keepitil-events-are-company-only. Say so, instead of offering a link that loops back. -->
       <div class="sub" id="whyNote" hidden style="margin-top:10px;padding:10px 12px;border:1px solid var(--line,#2a2a3a);border-radius:10px">Ticketed event pages are run by the KEEPITIL team for now. Add your event here instead: the listing links out to your tickets or RSVP, and the team reviews it before it goes live.</div>
@@ -372,7 +372,7 @@ $('form').addEventListener('submit',function(e){
     $('app').style.display='block';
     var qs=new URLSearchParams(location.search);
     if(qs.get('why')==='keepitil-events-are-company-only') $('whyNote').hidden=false;
-    supa.rpc('is_admin').then(function(a){ if(a&&a.data) $('hostLink').hidden=false; }).catch(function(){});
+    var hl=$('hostLink'); if(hl) hl.hidden=false;
     /* ?edit=<id> opens one of YOUR listings for editing (the dashboard links here). */
     var want=qs.get('edit');
     loadRecent().then(function(rows){
@@ -383,7 +383,7 @@ $('form').addEventListener('submit',function(e){
   });
 })();
 </script>
-<script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261125a" defer></script>
+<script src="/assets/js/keepitil-ai.js?v=20261127b" defer></script>
+<script src="/keepitil-shell.js?v=20261127b" defer></script>
 </body>
 </html>

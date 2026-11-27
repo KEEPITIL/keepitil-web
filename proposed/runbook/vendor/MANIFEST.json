@@ -1,0 +1,45 @@
+{
+ "_note": "Byte-exact copies for the step-1 runbook dry-run. Never edit; re-vendor from the commit.",
+ "files": [
+  {
+   "pr": "#67",
+   "repo": "KEEPITIL/keepitil.github.io",
+   "commit": "742e81867bd3b0b3f5895e0194cf483c6e1062f5",
+   "path": ".github/internal/supabase/proposed/event_orders_guard/event_orders_guard.PROPOSED.sql",
+   "vendored": "event_orders_guard.PROPOSED.sql",
+   "sha256": "b3a81dc3c474b0fb8ba31c9026ab9f01717bdba3f9b5113c6fc2bd795c816584"
+  },
+  {
+   "pr": "#67",
+   "repo": "KEEPITIL/keepitil.github.io",
+   "commit": "742e81867bd3b0b3f5895e0194cf483c6e1062f5",
+   "path": ".github/internal/supabase/proposed/event_orders_guard/event_orders_guard.ROLLBACK.sql",
+   "vendored": "event_orders_guard.ROLLBACK.sql",
+   "sha256": "f2bb7b2c03c0cba67c701d20c052c2c9ecfd1f23021d6a7686b0e5951baac227"
+  },
+  {
+   "pr": "#67",
+   "repo": "KEEPITIL/keepitil.github.io",
+   "commit": "742e81867bd3b0b3f5895e0194cf483c6e1062f5",
+   "path": ".github/internal/supabase/proposed/event_orders_guard/event_orders.live.json",
+   "vendored": "event_orders.live.json",
+   "sha256": "84c547a6e84c90b361d7121841a0bd7230e527c55c4193428ec38667e057db95"
+  },
+  {
+   "pr": "#66 baseline",
+   "repo": "KEEPITIL/keepitil.github.io",
+   "commit": "63aa3164f71c6384f2507155becd773fd4565903",
+   "path": ".github/internal/supabase/proposed/refunds/baseline/check_in_ticket.live.sql",
+   "vendored": "check_in_ticket.live.sql",
+   "sha256": "45eeb9448ded1f3ab59733fa49daa8824e3ee75f4ea4f26aeefd8f9d9357b52b"
+  },
+  {
+   "pr": "#66 baseline",
+   "repo": "KEEPITIL/keepitil.github.io",
+   "commit": "63aa3164f71c6384f2507155becd773fd4565903",
+   "path": ".github/internal/supabase/proposed/refunds/baseline/event_checkin_scan.live.sql",
+   "vendored": "event_checkin_scan.live.sql",
+   "sha256": "45dd9cc0f903cab8f1e22b6431a54c3f280ffd0ffeb7dcfd74b5e3786e6cb042"
+  }
+ ]
+}

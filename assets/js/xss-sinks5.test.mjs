@@ -26,7 +26,7 @@ test('recommendation "Go" button carries the tab in data-tab, never inside a JS 
   });
   vm.runInContext(code + '\nthis.loadRecommendations=loadRecommendations;', ctx);
   await ctx.loadRecommendations();
-  assert.match(box.innerHTML, /onclick="showTab\(this\.dataset\.tab\)"/);
+  assert.match(box.innerHTML, /data-click="dashShowTabFromEl" data-a="\[&quot;\$el&quot;\]"/);
   assert.match(box.innerHTML, /data-tab="&#39;\);alert\(1\);\(&#39;&quot;&gt;&lt;img src=x onerror=alert\(1\)&gt;"/);
   // the payload appears only inside the quoted data-tab value
   const outsideData = box.innerHTML.replace(/data-tab="[^"]*"/, '');

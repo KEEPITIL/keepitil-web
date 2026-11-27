@@ -11,7 +11,7 @@ const lum = (hex) => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 
 const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 
 test('the admin selects and textareas have accessible names', () => {
-  assert.match(h, /<select onchange="setSocPlatform\(this\.value\)" aria-label="Platform"/);
+  assert.match(h, /<select data-change="dashSocPlatform" data-a="\[&quot;\$el&quot;\]" aria-label="Platform"/);
   assert.match(h, /<select id="agentPick" aria-label="Agent to chat with"/);
   for (const id of ['kAgent', 'kShort', 'kFull']) { assert.match(h, new RegExp('<label for="' + id + '">')); assert.ok(h.includes('id="' + id + '"')); }
 });

@@ -178,8 +178,10 @@
        Checked with a HEAD request, so an event that has no prerendered page yet keeps the legacy canonical (never a 404). */
     if(!window.__kilPrerenderSlug && ev.slug && window.fetch){
       var _pp='/event/'+encodeURIComponent(ev.slug)+'/';
-      fetch(_pp,{method:'HEAD',cache:'no-store'}).then(function(r){
-        if(r&&r.ok){ var _pc='https://keepitil.com'+_pp; cl.setAttribute('href',_pc); $('og-url').setAttribute('content',_pc); }
+      /* Asked of the prerender's own list (sitemap-events.xml, written by scripts/build-event-pages.mjs with every /event/<slug>/ it built),
+         not with a HEAD probe: a probe for an event with no page yet got a 404, which the browser logs as a console error no catch can hide. */
+      fetch('/sitemap-events.xml').then(function(r){ return r&&r.ok ? r.text() : ''; }).then(function(x){
+        if(x && x.indexOf('<loc>https://keepitil.com'+_pp+'</loc>')>=0){ var _pc='https://keepitil.com'+_pp; cl.setAttribute('href',_pc); $('og-url').setAttribute('content',_pc); }
       }).catch(function(){});
     }
     var _cr=$('cr-title'); if(_cr) _cr.textContent = ev.title;

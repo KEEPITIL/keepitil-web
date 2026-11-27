@@ -28,7 +28,6 @@
 <script>window.__kilPrerenderSlug="the-hold-steady";</script>
 <link rel="preload" as="image" href="https://keepitil.com/assets/images/event-placeholder.svg" fetchpriority="high"/>
 <meta name="geo.region" content="US-CA"/>
-<link rel="preconnect" href="https://images.ra.co"/>
 <link rel="preconnect" href="https://seatgeekimages.com"/>
 <script>/* flyer-preload: when the link already carries ?img=, start fetching the flyer now (before the page script runs); http(s) only */(function(){try{var m=/[?&]img=([^&]+)/.exec(location.search);if(!m)return;var u=decodeURIComponent(m[1]);if(!/^https?:\/\//i.test(u))return;var l=document.createElement('link');l.rel='preload';l.as='image';l.href=u;l.setAttribute('fetchpriority','high');document.head.appendChild(l);}catch(e){}})();</script>
 <link href="/assets/css/fonts.css" rel="stylesheet"/>
@@ -317,6 +316,7 @@
 <script src="/assets/js/kil-rsvp.js"></script>
 <script src="/assets/js/kil-calendar.js"></script>
 <script src="/assets/js/vendor/qrcode.js"></script>
+<script src="/assets/js/kil-img-host.js"></script>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script>
 (function(){
@@ -462,10 +462,11 @@
         }).catch(function(){});
     }
   }
+  function KH(u){ return (window.KilImgHost&&window.KilImgHost.clean)?window.KilImgHost.clean(u):u; }   /* known-unloadable cover hosts (assets/js/kil-img-host.js) never get a request */
   function evMini(e){
     var d=''; try{ d=fmt(localDate(e.starts_at,e.tz)); }catch(_x){}
     return '<a class="evmini" href="/event?e='+encodeURIComponent(e.slug)+'">'
-      + '<div class="im"'+(e.cover_url?(' style="background-image:url('+String(e.cover_url).replace(/"/g,'')+')"'):'')+'></div>'
+      + '<div class="im"'+(KH(e.cover_url)?(' style="background-image:url('+String(KH(e.cover_url)).replace(/"/g,'')+')"'):'')+'></div>'
       + '<div class="tt">'+esc(e.title||'')+'</div><div class="dt">'+esc(d)+'</div></a>';
   }
 
@@ -707,7 +708,7 @@
           ev.title=x.title||ev.title; ev.venue=x.venue||ev.venue; ev.city=x.city||ev.city;
           ev.date=localDate(x.starts_at,x.tz)||ev.date; ev.genre=x.genres||ev.genre;
           ev.startsAt=x.starts_at||ev.startsAt; ev.endsAt=x.ends_at||ev.endsAt;  /* real timestamps for JSON-LD */
-          ev.img=x.cover_url||ev.img; ev.description=x.description||ev.description;
+          ev.img=KH(x.cover_url||ev.img); ev.description=x.description||ev.description;
           ev.id=x.id; ev.reg=Array.isArray(x.reg_questions)?x.reg_questions:[];
           ev.show_lineup=x.show_lineup!==false; ev.show_gallery=x.show_gallery!==false; ev.show_feed=x.show_feed!==false; ev.is_external=x.is_external===true;
           if(!ev.show_feed){ var sf=$('sec-feed'); if(sf) sf.style.display='none'; }

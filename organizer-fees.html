@@ -76,7 +76,6 @@ table{border-collapse:collapse;width:100%;margin:12px 0 18px;font-size:.95rem}th
 <li><strong>International cards:</strong> Stripe charges +1.5% on them. KEEPITIL cannot see a card's country before the buyer pays, so the buyer pays the same 5% + $0.50 on every card and the extra international fee is not added.</li>
 <li>The &ldquo;KEEPITIL operational fee&rdquo; is KEEPITIL's share: it covers running ticketing, payouts and support.</li>
 </ul>
-<!-- OPEN FOR JOE: Stripe applies its 2.9% + 30c to the whole amount charged (ticket + service fee), so its exact fee is a few cents more than 2.9% of the ticket price shown in the tables below; the service fee total is unchanged. The international-card surcharge (+2%) is NOT charged because the card country is unknown at checkout (see the keepitil.github.io create-checkout PR). -->
 
 <h3>Worked examples: one ticket, domestic card</h3>
 <div class="tw"><table>
@@ -107,8 +106,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0 18px;font-size:.95rem}th
 <h2>3. Refunds, disputes and chargebacks: the organizer pays</h2>
 <p><strong>The organizer pays for refunds, disputes and Stripe's related charges, and KEEPITIL deducts them from the organizer's payout.</strong> That means:</p>
 <ul>
-<li><strong>Refunds:</strong> the amount refunded to a buyer comes out of your payout. See the <a href="/refund">Refund Policy</a>: a refund returns the buyer's ticket price to their original payment method.</li>
-<li><strong>Stripe's lost processing fee:</strong> Stripe does not give back its own fee on a refund (<a href="https://docs.stripe.com/refunds" rel="noopener">Stripe: refunds</a>), so that fee is also deducted from your payout.</li>
+<li><strong>Refunds:</strong> the amount refunded to a buyer comes out of your payout. See the <a href="/refund">Refund Policy</a>: a refund returns the buyer's ticket price to their original payment method (<a href="https://docs.stripe.com/refunds" rel="noopener">Stripe: refunds</a>). The buyer's service fee is not refunded (unless the refund is KEEPITIL's mistake), and it is what covers Stripe's processing fee that Stripe does not return, so nothing extra is taken from you for that.</li>
 <li><strong>Disputes (chargebacks):</strong> if a buyer disputes a payment with their bank, the payment is reversed right away (<a href="https://docs.stripe.com/disputes" rel="noopener">Stripe: disputes</a>). If the dispute is lost, the disputed amount is deducted from your payout, plus Stripe's dispute fees: $15 when a dispute is received and $15 if it is countered (the counter fee comes back if the dispute is won), as shown on <a href="https://stripe.com/pricing" rel="noopener">stripe.com/pricing</a>. The ticket may be voided (<a href="/ticket-terms">Ticket Terms</a>).</li>
 <li><strong>Stripe Connect charges:</strong> any charges Stripe makes for your account or your payouts are deducted from your payouts too. Stripe's published Connect pricing is $2 per monthly active account and 0.25% + 25&cent; per payout (<a href="https://stripe.com/connect/pricing" rel="noopener">stripe.com/connect/pricing</a>).</li>
 </ul>

@@ -110,8 +110,20 @@ test('NEGATIVE CONTROL: the old artists line and old terms phrasing are caught b
 const refund = () => rendered('refund.html').replace(/\s+/g, ' ');
 test('refund.html covers ticket refunds the way the ticketing code works (who, how, cancel, postpone, fees, timing, contact)', () => {
   const t = refund();
-  for (const must of [/keepitil\.com\/support/, /info@keepitil\.com/, /There is no refund button/, /KEEPITIL issues the refund in Stripe/, /full ticket price you paid/, /2\.5% plus \$0\.49 per ticket under \$10, or \$0\.99 per ticket at \$10 or more/, /marked refunded on KEEPITIL/, /about 5 to 10 business days later, depending on your bank/, /can only go back to the card or payment method you paid with/, /full amount or for part of it/, /does not give its own card-processing fee back to us/, /dispute the charge instead of asking us/, /Canceled:/, /Postponed or rescheduled:/, /cannot delete an event that has sold tickets/]) assert.match(t, must);
+  for (const must of [/keepitil\.com\/support/, /info@keepitil\.com/, /There is no refund button/, /KEEPITIL issues the refund in Stripe/, /full ticket price you paid/, /plus a service fee of 5% plus \$0\.50 per order/, /shown before you pay/, /organizer receives the full ticket price you paid/, /not refundable<\/strong>|is not refundable/, /duplicate charge or an error at checkout/, /KEEPITIL issues it, and the organizer pays for it/, /partial refund is made at the organizer's request/, /disputed amount and Stripe's dispute fees are paid by the organizer/, /marked refunded on KEEPITIL/, /about 5 to 10 business days later, depending on your bank/, /can only go back to the card or payment method you paid with/, /full ticket price or for part of it/, /dispute the charge instead of asking us/, /Canceled:/, /Postponed or rescheduled:/, /cannot delete an event that has sold tickets/]) assert.match(t, must);
   assert.doesNotMatch(t, /membership|PRO\b/i);
+  // the old organizer-paid wording must be gone (buyer-paid model is live)
+  assert.doesNotMatch(t, /nothing is added at checkout/i); assert.doesNotMatch(t, /2\.5%|\$0\.49|\$0\.99/); assert.doesNotMatch(t, /OPEN FOR/i);
+  assert.doesNotMatch(t, /card-processing fee back to us|lost processing fee/i, 'organizers are not charged a lost processing fee');
+});
+test('NEGATIVE CONTROL: the old refund text (nothing added at checkout, 2.5% + $0.49/$0.99 from the organizer) is caught by the same checks', () => {
+  const old = 'You pay the ticket price shown, by card through Stripe Checkout, and nothing is added at checkout. KEEPITIL keeps a service fee out of the organizer\'s share (2.5% plus $0.49 per ticket under $10, or $0.99 per ticket at $10 or more).';
+  assert.match(old, /nothing is added at checkout/i); assert.match(old, /2\.5%|\$0\.49|\$0\.99/);
+  assert.doesNotMatch(old, /plus a service fee of 5% plus \$0\.50 per order/);
+});
+test('no page charges the organizer a lost Stripe processing fee on refunds (Grok decision): Terms, Ticket Terms, organizer fees', () => {
+  for (const f of ['terms.html', 'ticket-terms.html', 'organizer-fees.html', 'refund.html', 'create-event.html']) assert.doesNotMatch(rendered(f).replace(/\s+/g, ' '), /does not return on a refund|lost processing fee|Stripe does not give back its own fee/i, f);
+  assert.match(rendered('organizer-fees.html').replace(/\s+/g, ' '), /service fee is not refunded \(unless the refund is KEEPITIL's mistake\)/);
 });
 test('NEGATIVE CONTROL: the old refund page (no refund steps, no fee statement) fails the same checks', () => {
   const old = 'Approved refunds are issued to your original payment method via Stripe and typically post within 5-10 business days. To request a refund, use the contact/support link';

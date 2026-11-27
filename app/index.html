@@ -120,7 +120,7 @@
   .get:hover{background:rgba(34,211,238,.12)}
   .get:focus-visible,.story:focus-visible,.feature .card:focus-visible{outline:2px solid #fff;outline-offset:3px}
   .get.soon{color:var(--dim);border-color:var(--line)}
-  .row .cap{color:var(--mute);font-size:11px;letter-spacing:.04em}
+  .row .cap{color:var(--dim);font-size:11px;letter-spacing:.04em}
 
   /* Search */
   .searchbox{display:flex;align-items:center;gap:10px;padding:0 16px;min-height:50px;border-radius:16px;
@@ -153,14 +153,14 @@
     <a class="home" href="/">&larr; keepitil.com</a>
   </header>
 
-  <div class="seg-wrap">
+  <nav class="seg-wrap" aria-label="Sections">
     <div class="seg" role="tablist" aria-label="KEEPITIL Apps sections">
       <button type="button" role="tab" id="tab-today" data-tab="today" aria-controls="panel-today" aria-selected="true">Today</button>
       <button type="button" role="tab" id="tab-apps" data-tab="apps" aria-controls="panel-apps" aria-selected="false" tabindex="-1">Apps</button>
       <button type="button" role="tab" id="tab-games" data-tab="games" aria-controls="panel-games" aria-selected="false" tabindex="-1">Games</button>
       <button type="button" role="tab" id="tab-search" data-tab="search" aria-controls="panel-search" aria-selected="false" tabindex="-1">Search</button>
     </div>
-  </div>
+  </nav>
 
   <main>
     <section role="tabpanel" id="panel-today" aria-labelledby="tab-today">

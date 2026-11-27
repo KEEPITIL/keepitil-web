@@ -32,7 +32,7 @@ test("negative controls: no start = no file and no link; ended events get no but
   assert.match(cal.ics({ ...row, ends_at: "2026-11-26T00:00:00Z" }, "", NOW), /DTEND:20261127T050000Z/, "an end before the start is ignored");
 });
 test("event.html loads the module and wires the buttons into the Share row, using window.URL (the page shadows URL)", () => {
-  assert.match(html, /<script src="\/assets\/js\/kil-calendar\.js"><\/script>/);
+  assert.match(html, /<script src="\/assets\/js\/kil-calendar\.js\?v=h[0-9a-f]{8}"><\/script>/);
   assert.match(html, /id="ev-ics">📅 Add to calendar/); assert.match(html, /id="ev-gcal"/);
   assert.match(html, /window\.URL\.createObjectURL/); assert.doesNotMatch(html, /[^.\w]URL\.createObjectURL/);
 });

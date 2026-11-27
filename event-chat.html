@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Event chat | KEEPITIL</title>
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg,#0a0a0f);color:var(--text,#f0f0f0);font-family:var(--font,system-ui,sans-serif);text-align:center;padding:24px;box-sizing:border-box}
+  .box{max-width:360px}
+  h1{font-size:1.4rem;margin:0 0 10px}
+  p{color:var(--muted,#888);line-height:1.5;margin:0 0 18px}
+  a{display:inline-block;padding:12px 22px;border-radius:999px;background:var(--brand,#00b4ff);color:#05050a;font-weight:700;text-decoration:none}
+  .embed a{display:none}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1 id="t">Event chat is coming soon</h1>
+  <p>Chat rooms for events and groups aren't open yet. We'll switch them on here when they're ready.</p>
+  <a href="/">Back to KEEPITIL</a>
+</div>
+<script>
+  /* Placeholder for the event and group chat rooms that profile.html opens in a popup (embed=1).
+     The old v31 page was removed, and those links returned 404. Replace this file when chat ships. */
+  (function(){var q=new URLSearchParams(location.search);if(q.get('embed')==='1')document.body.className='embed';
+  var t=q.get('t');if(t)document.getElementById('t').textContent=t.slice(0,80)+': chat coming soon';})();
+</script>
+</body>
+</html>

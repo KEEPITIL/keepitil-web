@@ -1429,10 +1429,47 @@ function isImageSafe(file){
     });
   });
 }
-function uploadImage(file,cb){
-  if(!file||!SB||!SESSION){ cb(null); return; }
+/* Resize before upload (owner uploads were stored as-is: two ~2 MB 1672x941 PNGs shown as a 124px avatar made the page 1.8 MB).
+   Longest edge capped at 1600px, re-encoded as WebP (q .85); a JPEG source falls back to JPEG when the browser cannot encode WebP.
+   The ORIGINAL file is kept when: it is not a png/jpeg/webp (gif, video...), it is already small (<=1600px and <=400 KB), the browser cannot
+   encode (a PNG with no WebP encoder would lose its transparency in a JPEG), anything fails or takes over 6 s, or the result is not smaller. */
+function resizeForUpload(file){
+  return new Promise(function(resolve){
+    var settled=false; function done(f){ if(!settled){ settled=true; resolve(f||file); } }
+    try{
+      if(!file||!/^image\/(png|jpeg|webp)$/i.test(file.type||'')) return done(file);
+      setTimeout(function(){ done(file); },6000);
+      var url=URL.createObjectURL(file), img=new Image();
+      img.onerror=function(){ try{URL.revokeObjectURL(url);}catch(e){} done(file); };
+      img.onload=function(){
+        try{ URL.revokeObjectURL(url); }catch(e){}
+        var w=img.naturalWidth, h=img.naturalHeight, longEdge=Math.max(w,h);
+        if(!w||!h||(longEdge<=1600&&file.size<=400*1024)) return done(file);
+        var k=Math.min(1,1600/longEdge), cw=Math.max(1,Math.round(w*k)), ch=Math.max(1,Math.round(h*k));
+        var c=document.createElement('canvas'); c.width=cw; c.height=ch;
+        var ctx=c.getContext&&c.getContext('2d'); if(!ctx) return done(file);
+        ctx.drawImage(img,0,0,cw,ch);
+        var base=String(file.name||'image').replace(/\.[^.]+$/,'');
+        function finish(blob,type,ext){
+          if(!blob||blob.size>=file.size) return done(file);
+          var out; try{ out=new File([blob],base+'.'+ext,{type:type}); }catch(e){ return done(file); }   // no File constructor: keep the original (it has a name)
+          done(out);
+        }
+        c.toBlob(function(b){
+          if(b&&b.type==='image/webp') return finish(b,'image/webp','webp');
+          if(/^image\/jpeg$/i.test(file.type)) return c.toBlob(function(j){ finish(j,'image/jpeg','jpg'); },'image/jpeg',0.85);
+          done(file);
+        },'image/webp',0.85);
+      };
+      img.src=url;
+    }catch(e){ done(file); }
+  });
+}
+function uploadImage(file0,cb){
+  if(!file0||!SB||!SESSION){ cb(null); return; }
+  resizeForUpload(file0).then(function(file){
   /* moderation must never hang the upload — on mobile the NSFW/TF.js model can stall.
-     Race it against a 4s timeout that fails OPEN (consistent with the model-unavailable path). */
+     Race it against a 4s timeout that fails OPEN (consistent with the model-unavailable path). The check runs on the RESIZED image that is actually uploaded. */
   var moderated=Promise.race([ isImageSafe(file), new Promise(function(res){ setTimeout(function(){ res(true); },4000); }) ]);
   moderated.then(function(safe){
     if(!safe){ toast('⛔ Image blocked — nudity or explicit content is not allowed on KEEPITIL.'); cb(null); return; }
@@ -1443,6 +1480,7 @@ function uploadImage(file,cb){
       var pub=SB.storage.from('chat-images').getPublicUrl(path);
       cb((pub&&pub.data)?pub.data.publicUrl:null);
     }).catch(function(){ cb(null); });
+  });
   });
 }
 function resolveImg(vals,fileKey,urlKey,dflt,cb){ uploadImage(vals[fileKey+'_file'],function(pub){ cb(pub||vals[fileKey]||vals[urlKey]||dflt||''); }); }

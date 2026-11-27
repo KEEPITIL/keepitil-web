@@ -73,3 +73,39 @@ test('failsafe: with the shell blocked the static nav is collapsed at first pain
     }
   } finally { await br.close(); srv.close(); }
 });
+
+test('hero first paint: nav-reserve.css repeats, verbatim, the desktop rules keepitil-shell.js injects (kil-desktop-grid .wrap + landing-standard), so the shell changes nothing when it mounts', () => {
+  const shell = read('keepitil-shell.js'), c = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  // .wrap grid declarations
+  for (const d of ["max-width:var(--kil-page-max)!important;margin-left:auto!important;margin-right:auto!important;", "padding-left:var(--kil-page-pad)!important;padding-right:var(--kil-page-pad)!important;", "box-sizing:border-box!important"]) assert.ok(shell.includes(d), 'shell has ' + d);
+  assert.ok(shell.includes(":root{--kil-page-max:1360px;--kil-page-pad:40px}"));
+  assert.match(c, /--kil-page-max: 1360px; --kil-page-pad: 40px;/);
+  assert.match(c, /\.wrap \{ max-width: var\(--kil-page-max\) !important; margin-left: auto !important; margin-right: auto !important; padding-left: var\(--kil-page-pad\) !important; padding-right: var\(--kil-page-pad\) !important; box-sizing: border-box !important; \}/);
+  // landing standard: every rule the CSS repeats exists in the shell with the same declarations
+  const pairs = [
+    ['.hero-head,.ce-head', 'margin-left:auto!important;margin-right:auto!important;', /\.hero-head, \.ce-head \{ margin-left: auto !important; margin-right: auto !important; \}/],
+    ['.hero h1,.ce-hero h1', 'text-align:center!important;', /\.hero h1, \.ce-hero h1 \{ text-align: center !important; \}/],
+    ['.hero .eyebrow,.ce-hero .eyebrow', 'text-align:center!important;', /\.hero \.eyebrow, \.ce-hero \.eyebrow \{ text-align: center !important; \}/],
+    ['.hero>p,.ce-hero>p', 'margin-left:auto!important;margin-right:auto!important;text-align:center!important;', /\.hero > p, \.ce-hero > p \{ margin-left: auto !important; margin-right: auto !important; text-align: center !important; \}/],
+    ['.hero .stats,.hero .hero-stats,.ce-hero .ce-stats', 'justify-content:center!important;', /\.hero \.stats, \.hero \.hero-stats, \.ce-hero \.ce-stats \{ justify-content: center !important; \}/],
+    ['.hero,.ce-hero', 'align-items:center;', /\.hero, \.ce-hero \{ align-items: center; \}/],
+  ];
+  for (const [sel, decl, re] of pairs) { assert.ok(shell.includes(sel + '{' + decl + '}') || shell.includes("'" + sel + '{' + decl + "}'"), 'shell has ' + sel); assert.match(c, re, sel); }
+  assert.match(css, /@media \(scripting: enabled\) and \(min-width: 861px\) \{\s*:root \{ --kil-page-max/, 'same breakpoint as the shell (min-width:861px) and scripting-gated');
+});
+
+test('cold-load CLS at 1280 stays under 0.05 on earn, connect, create (was 0.32 / 0.07 / 0.06 before the hero rules)', { skip: MEASURE_SKIP, timeout: 180000 }, async () => {
+  const T = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webp': 'image/webp', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.jpg': 'image/jpeg' };
+  const srv = http.createServer((q, r) => { let u = decodeURIComponent(q.url.split('?')[0]); let f = path.join(root, u); if (u.endsWith('/')) f = path.join(f, 'index.html'); if (!fs.existsSync(f) && fs.existsSync(f + '.html')) f += '.html'; if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end('nf'); } r.writeHead(200, { 'content-type': T[path.extname(f)] || 'application/octet-stream', 'cache-control': 'no-store' }); r.end(fs.readFileSync(f)); });
+  await new Promise((r) => srv.listen(0, r)); const base = 'http://localhost:' + srv.address().port; const bad = [];
+  try {
+    for (const pg of ['/earn/', '/connect/', '/create/']) {
+      const br = await puppeteer.launch({ executablePath: chrome, headless: true }); // fresh profile = cold cache
+      const p = await br.newPage(); await p.setViewport({ width: 1280, height: 800 });
+      await p.evaluateOnNewDocument(() => { window.__c = 0; new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__c += e.value; }).observe({ type: 'layout-shift', buffered: true }); });
+      await p.goto(base + pg, { waitUntil: 'networkidle2' }); await new Promise((r) => setTimeout(r, 1800));
+      const cls = await p.evaluate(() => window.__c); await br.close(); if (cls >= 0.05) bad.push(pg + ' ' + cls.toFixed(3));
+    }
+  } finally { srv.close(); }
+  assert.deepEqual(bad, [], 'CLS too high: ' + bad.join(', '));
+});

@@ -2429,7 +2429,7 @@ document.addEventListener('scroll',function(e){
 },true);
 function eventCardHtml(e,pid){
   var ext=!!e.is_external; var url=e.ticket_url||('/event?e='+encodeURIComponent(e.slug||''));
-  var img=e.cover||'/assets/images/blog-default.jpg';
+  var img=e.cover||'/assets/images/blog-default-744.webp';   // 31 KB copy of blog-default.jpg for this 372px card (the jpg is 232 KB); onerror below falls back to the jpg
   var when=''; try{var dt=new Date(e.date); if(!isNaN(dt)) when=dt.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});}catch(x){}
   var tgt=ext?' target="_blank" rel="noopener noreferrer"':'';
   return '<div class="pf-card fbcard evpost" data-pid="'+esc(pid)+'" style="overflow:hidden">'

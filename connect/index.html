@@ -520,7 +520,7 @@ body[data-kind="artist"] .subfilters{display:none!important}
       <li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li>
     </ul>
   <a href="/apply" class="nav-cta">LOGIN</a>
-  <button class="nav-hamburger" onclick="document.getElementById('mm').classList.toggle('open')" aria-label="Menu"><span></span><span></span><span></span></button>
+  <button class="nav-hamburger" data-click="kilToggleMobileMenu" aria-label="Menu"><span></span><span></span><span></span></button>
 </div></nav>
 <div class="mobile-menu" id="mm"><a href="/">DISCOVER</a><a href="/connect/">CONNECT</a><a href="/create/">CREATE</a><a href="/culture/">CULTURE</a><a href="/earn/">EARN</a><a href="/apply" class="nav-cta">LOGIN</a></div>
 <header class="hero">
@@ -561,6 +561,9 @@ body[data-kind="artist"] .subfilters{display:none!important}
 <footer>KEEPITIL <a href="/">keepitil.com</a></footer>
 <script src="/assets/js/vendor/supabase-js.min.js?v=hcb41d8ab" defer></script>
 <script src="/assets/js/kil-safe-html.js?v=20261107b"></script>
+<script src="/assets/js/kil-actions.js?v=h1fe8e1c8"></script>
+<script src="/assets/js/kil-common-actions.js?v=h434f09e4"></script>
+<script src="/assets/js/kil-img-fallback.js?v=hac99000e"></script>
 <script>
 // roster reset 2026-07-21 — rebuild from Google Sheet + web research. Seeded with the 2 gold standards.
 /* ARTISTS COME FROM ARTICLES (Founder 2026-08-26: "public view profiles will not be on the
@@ -635,7 +638,7 @@ function card(x){
   const href=(window.KilSafeHtml&&KilSafeHtml.safeNavUrl(hrefRaw))||'';
   const ext=!x.blog && !!igurl && !!href;
   const imgUrl=kilSafeUrl(x.img);
-  const img=imgUrl?('<img loading="lazy" referrerpolicy="no-referrer" src="'+escHtml(imgUrl)+'" alt="" onerror="this.style.display=\'none\'"/>'):'';
+  const img=imgUrl?('<img loading="lazy" referrerpolicy="no-referrer" src="'+escHtml(imgUrl)+'" alt="" data-fb="hide"/>'):'';
   const fb='<div class="fallback" style="background:linear-gradient(135deg,'+escHtml(x.color||'#6d28d9')+',#111)">'+escHtml(initials(x.name))+'</div>';
   const chips=(x.kinds||[]).map(k=>'<span class="kind '+escHtml(k)+'">'+(KL[k]||escHtml(k))+'</span>').join('');
   const inner='<div class="imgw"><div class="kinds">'+chips+'</div>'+img+fb+'</div>'
@@ -671,7 +674,7 @@ function pinnedCard(){
      always the Get Featured card — a 2:3 image linking to the standalone form page. */
   return '<a class="card" href="/connect/get-featured" aria-label="Get Featured — free artist article">'
     +'<div class="imgw"><div class="kinds"><span class="kind artist">Artist</span></div>'
-    +'<img loading="lazy" referrerpolicy="no-referrer" src="/assets/images/get-featured-card.jpg" alt="Get Featured — your free artist article" onerror="this.style.display=\'none\'"/>'
+    +'<img loading="lazy" referrerpolicy="no-referrer" src="/assets/images/get-featured-card.jpg" alt="Get Featured — your free artist article" data-fb="hide"/>'
     +'<div class="fallback" style="background:linear-gradient(135deg,#6d28d9,#111)">GF</div></div>'
     +'<div class="body"><div class="nm">Get Featured</div><div class="desc">Free artist article</div>'
     +'<div class="loc">\u25CD KEEPITIL Connect</div></div></a>';

@@ -4,7 +4,7 @@
    Markup:   <button data-click="closeModal">            calls window.closeModal()
              <button data-click="cpMoveItem" data-a="[3,-1]">   calls cpMoveItem(3, -1)
              data-a is a JSON array; the strings "$e" and "$el" stand for the event and the element carrying the attribute.
-   Events:   data-click, data-change, data-input, data-keydown, data-over (mouseover), data-out (mouseout)
+   Events:   data-click, data-change, data-input, data-keydown, data-over (mouseover), data-out (mouseout), data-submit
    Stop:     data-stop  = event.stopPropagation() of the old inline handler. Because this listener sits on document and is registered before the page's own
              document listeners, stopImmediatePropagation() reproduces "other document/window listeners do not see this event".
    Safety:   ONLY names the page has allowed with KilActions.allow([...]) can run, and only if window[name] is a function. Markup that reaches the page from data
@@ -13,7 +13,7 @@
 (function () {
   if (window.KilActions) return;
   var allowed = Object.create(null);
-  var EVENTS = { click: 'data-click', change: 'data-change', input: 'data-input', keydown: 'data-keydown', mouseover: 'data-over', mouseout: 'data-out' };
+  var EVENTS = { click: 'data-click', change: 'data-change', input: 'data-input', keydown: 'data-keydown', mouseover: 'data-over', mouseout: 'data-out', submit: 'data-submit' };
   function args(el, ev) {
     var raw = el.getAttribute('data-a'), list = [];
     if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } if (!Array.isArray(list)) list = []; }

@@ -1819,7 +1819,7 @@
       <li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li>
     </ul>
     <a href="/apply" class="nav-cta">LOGIN</a>
-    <button class="nav-hamburger" onclick="toggleMenu()" aria-label="Open menu"><span></span><span></span><span></span></button>
+    <button class="nav-hamburger" data-click="toggleMenu" aria-label="Open menu"><span></span><span></span><span></span></button>
   </div>
   </nav>
 
@@ -1970,6 +1970,8 @@
        every page from one config instead of being copied per page. Do not re-add it here. -->
 
   <script src="/assets/js/kil-img-host.js?v=hde4eec33"></script>
+  <script src="/assets/js/kil-actions.js?v=h1fe8e1c8"></script>
+  <script src="/assets/js/kil-img-fallback.js?v=hac99000e"></script>
   <script src="/assets/js/vendor/supabase-js.min.js?v=hcb41d8ab"></script>
 <script>
   /* ── SUPABASE ── */
@@ -2127,7 +2129,7 @@
     items.forEach((item, i) => {
       const slide = document.createElement('div');
       slide.className = 'spot-slide' + (i===0?' active':'');
-      const imgSrc = spImg(item.img) ? `<img loading="lazy" decoding="async" src="${spEsc(spImg(item.img))}" alt="${spEsc(item.name)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span class="spot-slide-img-fb" style="display:none;color:${color}">${spEsc(initials(item.name))}</span>` : `<span class="spot-slide-img-fb" style="color:${color}">${spEsc(initials(item.name))}</span>`;
+      const imgSrc = spImg(item.img) ? `<img loading="lazy" decoding="async" src="${spEsc(spImg(item.img))}" alt="${spEsc(item.name)}" data-fb="swap-next"><span class="spot-slide-img-fb" style="display:none;color:${color}">${spEsc(initials(item.name))}</span>` : `<span class="spot-slide-img-fb" style="color:${color}">${spEsc(initials(item.name))}</span>`;
       slide.innerHTML = `
         <div class="spot-slide-img" style="background:${color}18">${imgSrc}</div>
         <div class="spot-slide-body">
@@ -2262,6 +2264,8 @@
     if (scrollBtn) scrollBtn.classList.toggle('visible', window.scrollY > 400);
   });
 
+  /* Delegated actions (assets/js/kil-actions.js): only the names listed here can run from data-click. */
+  if (window.KilActions) KilActions.allow(['toggleMenu']);
   function toggleMenu() {
     const h = document.getElementById('hamburger');
     const m = document.getElementById('mobile-menu');

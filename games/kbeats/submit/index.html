@@ -57,7 +57,7 @@
   <main id="main">
   <section id="v-auth" hidden>
     <h1>Artist sign in</h1><p class="lead">Use your KEEPITIL account. Your uploads, charts and submission status are saved to your account, so you can leave and come back at any step.</p>
-    <form class="card f" id="authf" onsubmit="return false">
+    <form class="card f" id="authf" data-submit="kilNoSubmit">
       <label class="i">Email<input type="email" id="em" required autocomplete="email"></label>
       <label class="i">Password<input type="password" id="pw" minlength="6" autocomplete="current-password" placeholder="leave empty for a magic link"></label>
       <div class="full" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" id="si">Sign in</button><button class="btn ghost" id="su">Create account</button><button class="btn ghost" id="gg">Continue with Google</button></div>
@@ -78,7 +78,7 @@
     <p><a href="#" id="toDash" style="color:var(--dim)">← Dashboard</a></p>
     <ol class="steps"><li data-s="artist">1 · Artist</li><li data-s="track">2 · Track</li><li data-s="processing">3 · Upload &amp; analyse</li><li data-s="editor">4 · Charts</li><li data-s="rights">5 · Rights</li><li data-s="done">6 · Submitted</li></ol>
 
-    <section data-step="artist"><form class="card f" id="artistForm" onsubmit="return false">
+    <section data-step="artist"><form class="card f" id="artistForm" data-submit="kilNoSubmit">
       <h3 class="full">Artist profile</h3>
       <label class="i">Artist / stage name<input id="stage" required maxlength="60"></label>
       <label class="i">Legal name<input id="legal" required maxlength="100" autocomplete="name"></label>
@@ -89,7 +89,7 @@
       <div class="full"><button type="button" class="btn primary" id="saveArtist">Save &amp; continue</button></div>
     </form></section>
 
-    <section data-step="track" hidden><form class="card f" id="trackForm" onsubmit="return false">
+    <section data-step="track" hidden><form class="card f" id="trackForm" data-submit="kilNoSubmit">
       <label class="i full">Master file (WAV, FLAC, high-quality MP3 or M4A, 30 s – 12 min, up to 200 MB)<input id="file" type="file" accept=".wav,.flac,.mp3,.m4a,.aac,audio/*" required></label>
       <label class="i">Track title<input id="title" required maxlength="100"></label>
       <label class="i">Genre<select id="genre" required><option>Rock</option><option>Pop</option><option>Hip-Hop</option><option>R&amp;B</option><option>EDM</option><option>Country</option><option>Christian/Gospel</option><option>Alternative</option><option>Latin</option><option>Instrumental</option><option>Other</option></select></label>
@@ -108,7 +108,7 @@
       <button class="btn primary" id="toRights">Continue to rights</button> <a class="btn ghost" id="playPreview" target="_blank" rel="noopener noreferrer">▶ Play it in KBeats</a>
     </section>
 
-    <section data-step="rights" hidden><form class="card f" id="rightsForm" onsubmit="return false">
+    <section data-step="rights" hidden><form class="card f" id="rightsForm" data-submit="kilNoSubmit">
       <h3 class="full">Rights &amp; credits</h3>
       <label class="i">Writers<input id="writers" required maxlength="300"></label>
       <label class="i">Master owner<input id="masterOwner" required maxlength="160"></label>
@@ -126,6 +126,8 @@
   </section>
   </main>
 </div>
+<script src="/assets/js/kil-actions.js?v=h1fe8e1c8"></script>
+<script src="/assets/js/kil-common-actions.js?v=h434f09e4"></script>
 <script type="module" src="/games/kbeats/js/submit.js?v=hf7814b8c"></script>
 </body>
 </html>

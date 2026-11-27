@@ -53,8 +53,8 @@ footer a{color:var(--green);text-decoration:none}
   <div class="loc">
     <h1>Near <span>Santa Ana · Orange County</span></h1>
     <div class="toggle">
-      <button id="btnList" class="on" onclick="showView('list')">List</button>
-      <button id="btnMap" onclick="showView('map')">Map</button>
+      <button id="btnList" class="on" data-click="showView" data-a="[&quot;list&quot;]">List</button>
+      <button id="btnMap" data-click="showView" data-a="[&quot;map&quot;]">Map</button>
     </div>
   </div>
   <p class="sub">Stores show real distance from you. Delivery isn't ranked by distance — if they deliver to your location, they show, with their typical delivery time.</p>
@@ -90,7 +90,9 @@ footer a{color:var(--green);text-decoration:none}
   <p class="note">Same layout on mobile and desktop: featured carousel first, organic list below, one tap between list and map. FindMyWeed is a marketing network by KEEPITIL — we never sell cannabis. 21+ only.</p>
   <footer>FindMyWeed by <a href="https://keepitil.com">KEEPITIL</a> · <a href="https://keepitil.com/app/findmyweed/for-business/">Pricing &amp; the grid</a> · <a href="https://keepitil.com/findmyweed-directory">Directory</a> · <a href="https://keepitil.com/app/findmyweed/for-business/">Join</a></footer>
 </div>
+<script src="/assets/js/kil-actions.js?v=h1fe8e1c8"></script>
 <script>
+if(window.KilActions) KilActions.allow(["showView"]);
 function showView(v){
   document.getElementById('listPanel').style.display = v==='list' ? 'block' : 'none';
   document.getElementById('mapPanel').style.display = v==='map' ? 'block' : 'none';

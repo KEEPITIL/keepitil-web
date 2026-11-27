@@ -2,6 +2,7 @@
    An <img> opts in with data-fb:
      data-fb="hide-parent"     a broken image hides its parent box
      data-fb="hide"            a broken image hides itself
+     data-fb="swap-next"       a broken image hides itself and shows its next sibling (display:flex), e.g. an initials placeholder
      data-fb="hide-closest"     a broken image hides its nearest ancestor matching data-fb-sel (a single class selector such as .gcard)
      data-fb="dim"             a broken image fades to the opacity in data-fb-op (a number 0..1, default .12)
      data-fb="src"             a broken image is swapped ONCE for data-fb-src (a same-site path starting with a single "/"; anything else is ignored)
@@ -14,6 +15,7 @@
     if (!mode || img.__kilFb) return;
     img.__kilFb = true;
     if (mode === 'hide-parent') { if (img.parentNode && img.parentNode.style) img.parentNode.style.display = 'none'; }
+    else if (mode === 'swap-next') { if (img.style) img.style.display = 'none'; var nx = img.nextElementSibling; if (nx && nx.style) nx.style.display = 'flex'; }
     else if (mode === 'hide-closest') { var sel = img.getAttribute('data-fb-sel') || ''; if (/^\.[A-Za-z][\w-]*$/.test(sel) && img.closest) { var c = img.closest(sel); if (c && c.style) c.style.display = 'none'; } }
     else if (mode === 'hide') { if (img.style) img.style.display = 'none'; }
     else if (mode === 'dim') { var o = parseFloat(img.getAttribute('data-fb-op')); if (!(o >= 0 && o <= 1)) o = 0.12; if (img.style) img.style.opacity = String(o); }

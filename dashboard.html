@@ -321,7 +321,7 @@ window.addEventListener('DOMContentLoaded', function(){
               + '<div class="ev-acts"><a href="/submit-event?edit='+encodeURIComponent(e.id)+'">Edit</a></div>'
               + '</div></div>';
           }).join('')
-        + '<p style="color:var(--muted);font-size:.85rem;margin-top:6px">Listings are reviewed before they go live. Editing one sends it back to review. <a href="/submit-event" style="color:var(--brand)">Add another →</a></p>';
+        + '<p style="color:var(--muted);font-size:.85rem;margin-top:6px">Calendar listings you added. <a href="/submit-event" style="color:var(--brand)">Add another →</a></p>';
     }).catch(function(){ box.innerHTML=''; });
   }).catch(function(){});
 });
@@ -377,7 +377,7 @@ async function load(){
       '<div class="sum"><div class="n">'+chk+'</div><div class="l">Checked in</div></div>'+
       '<div class="sum"><div class="n">'+money(rev)+'</div><div class="l">Revenue</div></div>';
     $('list').innerHTML = evs.length ? evs.map(card).join('')
-      : '<div class="empty"><h2>No hosted events yet</h2><p>Add your event to the KEEPITIL calendar. It is free and reviewed before it goes live.</p><a class="btn prim" href="/submit-event">+ Add an event</a></div>';
+      : '<div class="empty"><h2>No hosted events yet</h2><p>Create your event. It goes live as soon as you submit it.</p><a class="btn prim" href="/create-event">+ Create Event</a></div>';
   }catch(e){ $('list').innerHTML='<div class="empty"><h2>Couldn’t load</h2><p>Please refresh.</p></div>'; }
 }
 
@@ -1323,7 +1323,7 @@ async function init(){
 init();
 </script>
 <script src="/assets/js/keepitil-radio.js?v=20261124c" defer></script>
-<script src="/assets/js/keepitil-ai.js?v=20261127b" defer></script>
+<script src="/assets/js/keepitil-ai.js?v=20261127c" defer></script>
 <script src="/keepitil-shell.js?v=20261127b" defer></script>
 </body>
 </html>

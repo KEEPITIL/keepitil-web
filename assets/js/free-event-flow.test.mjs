@@ -101,8 +101,11 @@ test('create-event does not bounce a signed-in account, and dashboard keeps admi
   assert.match(read('keepitil-shell.js'), /item\('Event','\/create-event'\)/);
 });
 
-test('dashboard: the empty state sends members to /submit-event, not the team-only /create-event', () => {
-  assert.match(DASH, /<h2>No hosted events yet<\/h2>[^\n]*href="\/submit-event">\+ Add an event<\/a>/);
+test('dashboard: the empty state sends every signed-in account to /create-event, with no review-queue copy', () => {
+  assert.match(DASH, /<h2>No hosted events yet<\/h2>[^\n]*href="\/create-event">\+ Create Event<\/a>/);
+  assert.match(DASH, /It goes live as soon as you submit it/);
+  assert.doesNotMatch(DASH, /reviewed before it goes live/);
+  assert.doesNotMatch(DASH, /Listings are reviewed before they go live/);
   assert.doesNotMatch(DASH, /Create your first event and start selling tickets/);
 });
 

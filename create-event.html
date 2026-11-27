@@ -123,14 +123,14 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
   <!-- not-logged-in gate -->
   <div class="gate" id="gate" style="display:none">
     <h1>Log in to create an event</h1>
-    <p>You'll need a KEEPITIL account. Members submit an event for review; the KEEPITIL team approves it before it goes live. Selling tickets is a Community perk.</p>
+    <p>You'll need a KEEPITIL account. Your event goes live as soon as you submit it. You can edit it any time.</p>
     <div class="gate-peek" id="gate-peek">
       <h2>What you'll fill in</h2>
       <ul>
         <li><b>Required:</b> an event name and a start date and time.</li>
         <li><b>Optional:</b> where it is, a description, a cover image, lineup, a Spotify song link, a password for a private event, and ticket tiers.</li>
       </ul>
-      <p>Nothing publishes until the KEEPITIL team approves it. You can come back and edit your event after it is published.</p>
+      <p>It goes live as soon as you submit it. You can come back and edit it any time. Name, date, and links are checked first. Report and takedown still apply if something breaks or is abused.</p>
     </div>
     <a class="btn primary" href="/apply?next=%2Fcreate-event">Log in to create your event</a>
   </div>
@@ -292,7 +292,7 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
         <div class="railcard">
           <button type="submit" class="submit" id="submitBtn">Create Event</button>
           <div class="msg" id="msg"></div>
-          <div class="hint">By submitting you agree to the <a href="/terms">Terms</a>. Nothing publishes until the KEEPITIL team approves it.</div>
+          <div class="hint">By submitting you agree to the <a href="/terms">Terms</a>. It goes live right away. You can edit it any time.</div>
         </div>
         <div class="card" id="delCard" style="display:none">
           <h3>Delete this event</h3>
@@ -308,8 +308,8 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
   <!-- success -->
   <div class="done" id="done" style="display:none">
     <div class="big">🎉</div>
-    <h2 style="font-size:1.4rem;font-weight:900;margin:8px 0">Submitted!</h2>
-    <p style="color:var(--muted);margin-bottom:20px">Your event is in review. Once approved it appears in the Scene, on your profile, and in the radio-bar "List Your Event" slot — and our crew can whip up a flyer + promo.</p>
+    <h2 style="font-size:1.4rem;font-weight:900;margin:8px 0">You're live</h2>
+    <p style="color:var(--muted);margin-bottom:20px">Your event is published. It shows on your page and in the Scene. You can edit it from the dashboard. Report and takedown still apply if something breaks or is abused.</p>
     <a class="btn primary" id="mktg-link" href="/dashboard" style="margin-bottom:10px">📣 Set up marketing</a>
     <br/>
     <a class="btn ghost" href="/connect/">Back to the Scene</a>
@@ -594,6 +594,15 @@ async function seriesAction(act, slug, btn){
 /* LINK FIELDS: cover, Spotify and YouTube are stored and later rendered as image sources and
    links on the public event page. Only http(s) is a valid link; anything else ("javascript:...",
    a bare word, "www.x.com" without a scheme) either breaks the page or is a script-URL sink. */
+function rpcMissing(err){
+  var m=String((err&&(err.message||err.details||err.code||err))||'');
+  return /does not exist|schema cache|PGRST202|42883|Could not find the function/i.test(m);
+}
+async function rpcOr(name, args, fallback){
+  var r=await supa.rpc(name, args);
+  if(r&&r.error&&rpcMissing(r.error)&&fallback) return supa.rpc(fallback, args);
+  return r;
+}
 function badLink(v){ v=(v||'').trim(); return !!v && !/^https?:\/\/[^\s]+$/i.test(v); }
 function firstBadLink(){
   var f=[['cover_url','Cover image link'],['spotify_url','Spotify link'],['youtube_url','YouTube link']];
@@ -626,7 +635,7 @@ $('form').addEventListener('submit',async function(e){
       starts_at:evStartISO, cover_url:$('cover_url').value.trim()||null,
       genres:$('genres').value.trim()||null,
       show_lineup:$('show_lineup').checked, show_gallery:$('show_gallery').checked, show_feed:$('show_feed').checked,
-      status:'review',
+      status:'published',
       /* Posh-parity extras (applied server-side by events_apply_extras) */
       ends_at:evEndISO, end_time_public:$('endEye').classList.contains('on'),
       waitlist_enabled:$('waitlist_enabled').checked, hide_guest_count:$('hide_guest_count').checked,
@@ -658,13 +667,12 @@ $('form').addEventListener('submit',async function(e){
       tiers.push({name:name,description:desc,price_cents:price*100,qty_total:qty,sales_start:startISO,sales_end:endISO,show_qty:showq});
     });
     if(tierErr){ b.disabled=false; b.textContent=EDIT_SLUG?'Save changes':'Create Event'; msg.className='msg err'; msg.textContent=tierErr; return; }
-    // Event creation goes through SECURITY DEFINER RPCs (create_event_with_tiers /
-    // create_event_series) which insert server-side and force status='review'.
+    // Owner RPCs (supabase/migrations/20261127170000_self_serve_publish.sql) write status
+    // published. Until that migration is applied on prod, fall back to the existing RPCs.
     var newSlug, newEventId=null;
     if(EDIT_SLUG){
       var scope=(SERIES.length>1 && $('editScope'))?$('editScope').value:'one';
-      // always save this date's own edits (incl. its date/time) first
-      var ru=await supa.rpc('update_event',{ p_slug:EDIT_SLUG, ev:ev, tiers:tiers });
+      var ru=await rpcOr('kil_update_own_event',{ p_slug:EDIT_SLUG, ev:ev, tiers:tiers }, 'update_event');
       if(ru.error) throw ru.error; var du=ru.data||{}; if(du.error) throw new Error(du.error); newEventId=du.event_id||null;
       if(scope!=='one' && SERIES_ID){
         var evS=Object.assign({},ev); delete evS.starts_at; delete evS.slug; delete evS.ends_at;   // shared fields only — never overwrite each date's time
@@ -678,11 +686,11 @@ $('form').addEventListener('submit',async function(e){
       var dates=[]; if(evStartISO) dates.push(evStartISO);
       document.querySelectorAll('#seriesDates .s-date').forEach(function(inp){ if(inp.value) dates.push(new Date(inp.value).toISOString()); });
       if(dates.length<2){ b.disabled=false; b.textContent='Create Event'; msg.className='msg err'; msg.textContent='A series needs at least two dates — add another date, or turn off the series toggle.'; return; }
-      var rc2=await supa.rpc('create_event_series',{ ev:ev, tiers:tiers, dates:dates });
+      var rc2=await rpcOr('kil_publish_own_series',{ ev:ev, tiers:tiers, dates:dates }, 'create_event_series');
       if(rc2.error) throw rc2.error; var res2=rc2.data||{}; if(res2.error) throw new Error(res2.error);
       newSlug=(res2.slugs&&res2.slugs[0])||ev.slug;
     } else {
-      var rc=await supa.rpc('create_event_with_tiers',{ ev:ev, tiers:tiers });
+      var rc=await rpcOr('kil_publish_own_event',{ ev:ev, tiers:tiers }, 'create_event_with_tiers');
       if(rc.error) throw rc.error;
       var res=rc.data||{}; newSlug=res.slug||ev.slug; newEventId=res.id||null;
     }
@@ -705,7 +713,7 @@ $('form').addEventListener('submit',async function(e){
 
 init();
 </script>
-<script src="/assets/js/keepitil-ai.js?v=20261127b" defer></script>
+<script src="/assets/js/keepitil-ai.js?v=20261127c" defer></script>
 <script src="/keepitil-shell.js?v=20261127b" defer></script>
 </body>
 </html>

@@ -33,6 +33,10 @@ test("moved code is unchanged: preload and password blocks byte-identical, the p
   assert.ok(main.includes(FEE_TAX)); main = main.replace(FEE_TAX, "$('tf-tax').textContent='Tax $0.00 · fees included';");
   const FEE_NOTE = /if\(tt\)\{ if\(!\$\('tix-fee'\)\)\{[^\n]*?tt\.parentNode\.insertBefore\(fl,tt\); \} tt\.style\.display=''; \} \}/;
   assert.match(main, FEE_NOTE); main = main.replace(FEE_NOTE, "if(tt) tt.style.display=''; }");
+  // documented later change (live QA 2026-11-27): the legacy-canonical upgrade asks sitemap-events.xml instead of a HEAD probe (the probe's 404 was a console error).
+  // Put the old probe back here so the rest of the script is still proven byte-identical.
+  const SITEMAP_CHECK = /      \/\* Asked of the prerender's own list[^\n]*\n[^\n]*\*\/\n      fetch\('\/sitemap-events\.xml'\)\.then\(function\(r\)\{ return r&&r\.ok \? r\.text\(\) : ''; \}\)\.then\(function\(x\)\{\n        if\(x && x\.indexOf\('<loc>https:\/\/keepitil\.com'\+_pp\+'<\/loc>'\)>=0\)\{/;
+  assert.match(main, SITEMAP_CHECK); main = main.replace(SITEMAP_CHECK, "      fetch(_pp,{method:'HEAD',cache:'no-store'}).then(function(r){\n        if(r&&r.ok){");
   assert.equal(sha(main.trim()), OLD.main);
 });
 test("the three files parse, and none can close its own <script> tag", () => {

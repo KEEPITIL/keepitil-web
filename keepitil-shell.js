@@ -180,12 +180,21 @@
     addEventListener('resize', publishNavHeight, {passive:true});
     [60,400,1500].forEach(function(ms){ setTimeout(publishNavHeight, ms); });
 
+    /* --kil-sbw: the width the vertical scrollbar takes (0 on macOS/iOS/Android, where scrollbars overlay; ~15-17px on Windows/Linux).
+       100vw INCLUDES that gutter, so a 100vw full-bleed bar was wider than the page and the whole site scrolled sideways by the
+       gutter (live QA 2026-11-27: 3px at 1366). Full-bleed rules use calc(100vw - var(--kil-sbw)) instead. */
+    function publishScrollbar(){ var w=Math.max(0, window.innerWidth - document.documentElement.clientWidth); document.documentElement.style.setProperty('--kil-sbw', w+'px'); }
+    window.__kilPublishScrollbar=publishScrollbar;
+    publishScrollbar();
+    addEventListener('resize', publishScrollbar, {passive:true});
+    [60,400,1500].forEach(function(ms){ setTimeout(publishScrollbar, ms); });
+
     var fs=document.createElement('style'); fs.setAttribute('data-kil','filter-shell');
     fs.textContent='@media(min-width:861px){'
       /* flush to the nav, with the 3px overlap that kills the seam */
       + '.kil-filter-shell{position:sticky!important;top:var(--kil-filter-top,64px)!important;z-index:100;}'
       /* full-bleed opaque surface, controls held to a centred column inside it */
-      + '.kil-filter-shell,#vs-app .ce-bar.kil-filter-shell{width:100vw!important;margin-left:calc(50% - 50vw)!important;margin-right:calc(50% - 50vw)!important;'
+      + '.kil-filter-shell,#vs-app .ce-bar.kil-filter-shell{width:calc(100vw - var(--kil-sbw,0px))!important;margin-left:calc(50% - 50vw + var(--kil-sbw,0px) / 2)!important;margin-right:calc(50% - 50vw + var(--kil-sbw,0px) / 2)!important;'
       +   'background:#0b0b12!important;max-width:none!important;'
       +   'padding-top:8px!important;padding-bottom:6px!important;'
       +   'padding-left:max(24px,calc(50vw - 680px))!important;padding-right:max(24px,calc(50vw - 680px))!important;}'
@@ -1540,7 +1549,7 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
        z-index 940: BELOW the bottom nav (950), because the Founder's rule is that the nav is
        an app-shell layer that page content passes behind, never in front of. */
     +  '.kil-deck{position:sticky;top:var(--kil-safe-top,0px);z-index:940;'
-    +    'background:#0b0b12;width:100vw;margin-left:calc(50% - 50vw);'
+    +    'background:#0b0b12;width:calc(100vw - var(--kil-sbw,0px));margin-left:calc(50% - 50vw + var(--kil-sbw,0px) / 2);'
     +    'padding:8px 14px;display:flex;flex-direction:column;gap:8px}'
     /* Full-bleed opaque, so no backdrop shows above it or down either side as the page scrolls
        underneath (Founder 2026-08-21). The ::before closes the sub-pixel seam that opens

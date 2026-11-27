@@ -1,0 +1,29 @@
+{
+  "note": "Installed by tools/install-tuitea-pwa-art.cjs. tests/tuitea-pwa-art.test.cjs pins these hashes; changing the art means running the installer again.",
+  "files": {
+    "app/tuitea/icon-512.png": {
+      "sha256": "a21365c7e49a7bff3fd3f8cbd010e5bb11156fc52e0d7b1ea9f20c1e21d7dfab",
+      "bytes": 279949,
+      "width": 512,
+      "height": 512
+    },
+    "app/tuitea/icon-maskable-512.png": {
+      "sha256": "a21365c7e49a7bff3fd3f8cbd010e5bb11156fc52e0d7b1ea9f20c1e21d7dfab",
+      "bytes": 279949,
+      "width": 512,
+      "height": 512
+    },
+    "app/tuitea/apple-touch-icon.png": {
+      "sha256": "abefa623d3a1a2fc6d2fdd9a5385aaf94af1eda83da6a969606574776abbba98",
+      "bytes": 49117,
+      "width": 180,
+      "height": 180
+    },
+    "app/tuitea/icon-192.png": {
+      "sha256": "3011290dae764b8829782874929223833cede7a416369df4ae60080095ae66ad",
+      "bytes": 54339,
+      "width": 192,
+      "height": 192
+    }
+  }
+}

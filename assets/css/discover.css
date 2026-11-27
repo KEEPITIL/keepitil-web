@@ -2,9 +2,9 @@
    Compact header on purpose: the event list is the page, not a second landing hero. */
 html{background:#0a0a0f}
 body{background:var(--bg,#0a0a0f);color:var(--text,#f0f0f0);font-family:Inter,system-ui,sans-serif;line-height:1.5;padding-top:env(safe-area-inset-top);padding-bottom:calc(110px + env(safe-area-inset-bottom))}
-.disc{max-width:1120px;margin:0 auto;padding:22px 16px 28px;width:100%}
+.disc{max-width:1152px;margin:0 auto;padding:22px 16px 28px;width:100%;box-sizing:border-box}
 .disc-crumbs{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:.78rem;color:var(--muted,#9aa7b4);margin:0 0 16px}
-.disc-crumbs a{color:var(--brand-2,#5cc8ff);text-decoration:none}
+.disc-crumbs a{color:var(--brand-2,#5cc8ff);text-decoration:none;display:inline-flex;align-items:center;min-height:24px}
 .disc-crumbs a:hover{text-decoration:underline}
 .disc-sub{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 0 18px;padding-bottom:2px}
 .disc-sub::-webkit-scrollbar{display:none}
@@ -35,12 +35,15 @@ body{background:var(--bg,#0a0a0f);color:var(--text,#f0f0f0);font-family:Inter,sy
 .disc-also{margin:6px 0 0;color:#b7c0cc;font-size:.8rem;line-height:1.4}
 .disc-also a{color:var(--brand-2,#5cc8ff)}
 .disc-note,.disc-loading{color:#c5ced8;font-size:.95rem;line-height:1.5;margin:8px 0 0}
+.disc-note a{color:#7fdcff;text-decoration:underline;text-underline-offset:2px}   /* unstyled links were the browser's #0000ee on the dark page (contrast 2.1) */
 .disc-empty{margin-top:8px;padding:16px 16px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.03)}
 .disc-empty-t{margin:0 0 6px;color:#fff;font-weight:750}
 .disc-empty p{margin:0;color:#d5dbe6;line-height:1.5}
 .disc-empty a{color:var(--brand-2,#5cc8ff)}
 .disc-failed{border-color:rgba(255,92,138,.45);background:rgba(255,92,138,.08)}
 .disc-retry,.disc-cta{display:inline-flex;align-items:center;justify-content:center;margin-top:12px;min-height:44px;padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font:700 .9rem/1 Inter,sans-serif;text-decoration:none;cursor:pointer}
+/* CLS: the city / event list arrives after a fetch (23 px "Loading..." -> 1,400 px of cities, 4,100 px of events) and used to push everything below it (Pack for the night, Elsewhere, the footer) up to 4,000 px down while they were on screen. Reserve one screen of height while it loads so those blocks start below the fold; kil-discover.js sets min-height:0 as soon as the real list is drawn, so a short list (or a failed load) collapses to its real height and nothing stays blank. Not applied without JS (the noscript note must not sit in a blank screen). */
+@media (scripting:enabled){.disc-reserve{min-height:100vh}}
 .disc-pack{margin-top:32px}
 .disc-pack h2,.disc-links h2,.disc-scene h2{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:.05em;font-weight:400;margin:0 0 8px;color:#fff}
 .disc-pack p,.disc-links p,.disc-scene p{color:#c5ced8;line-height:1.5;max-width:68ch}
@@ -52,8 +55,8 @@ body{background:var(--bg,#0a0a0f);color:var(--text,#f0f0f0);font-family:Inter,sy
 .disc-tag{align-self:flex-start;font-size:.62rem;font-weight:800;letter-spacing:.12em;color:var(--live,#00ff88)}
 .disc-disclosure{margin:14px 0 0;color:#9aa7b4;font-size:.8rem;line-height:1.45;max-width:72ch}
 .disc-links{margin-top:28px}
-.disc-links ul,.disc-scene ul{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
-.disc-links a,.disc-scene a{color:var(--brand-2,#5cc8ff);text-decoration:none}
+.disc-links ul,.disc-scene ul{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+.disc-links a,.disc-scene a{color:var(--brand-2,#5cc8ff);text-decoration:none;display:inline-block;min-height:24px;padding:2px 0;box-sizing:border-box}   /* 24px tap targets (live sweep: 20px city links); gap 8->4 keeps the list rhythm */
 .disc-links a:hover,.disc-scene a:hover{text-decoration:underline}
 .disc-scene{margin-top:22px}
 .disc :focus-visible{outline:2px solid var(--live,#00ff88);outline-offset:3px}
@@ -62,3 +65,9 @@ body{background:var(--bg,#0a0a0f);color:var(--text,#f0f0f0);font-family:Inter,sy
   .disc-media{flex-basis:96px;width:96px}
   .disc-body h3{font-size:1.3rem}
 }
+
+.disc-card[hidden],.disc-sec[hidden]{display:none!important}
+.disc-search{margin:18px 0 0}.disc-search label{display:block;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted,#9aa7b4);margin-bottom:6px}
+.disc-search input{width:100%;box-sizing:border-box;min-height:44px;padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:#0d0d13;color:#fff;font:inherit;font-size:1rem}
+.disc-search input:focus-visible{outline:2px solid #7fdcff;outline-offset:2px}
+.disc-search p{min-height:1.2em;margin:6px 0 0;color:#c5ced8;font-size:.88rem}

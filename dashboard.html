@@ -5,13 +5,13 @@
 <html lang="en" data-theme="default" data-page-type="standard">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="robots" content="noindex,nofollow"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
 <title>Dashboard — KEEPITIL</title>
 <meta name="description" content="Manage your KEEPITIL events — sales, check-ins, revenue, promotion."/>
 <link rel="stylesheet" href="/assets/css/tokens.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+<link href="/assets/css/fonts.css" rel="stylesheet"/>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <style>
 :root{--bg:#0c0d1a;--panel:#191c30;--panel2:#20243d;--text:#f3f5ff;--muted:#aab2e0;--line:#2f3556;--brand:#3aa5ff;--brand-2:#26e6a6;--accent:#a56bff;--warn:#ffb43c}
@@ -191,11 +191,11 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
      One architecture only: DISCOVER · CONNECT · CREATE · CULTURE · EARN (+ Login). -->
 <nav id="main-nav" aria-label="KEEPITIL platform"><div class="nav-inner">
   <a class="nav-logo" href="/"><span class="nav-brand">KEEPITIL</span></a>
-  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/shop/">SHOP</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
+  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
   <a href="/apply" class="nav-cta">LOGIN</a>
 </div></nav>
 
-<div class="wrap">
+<main id="main" class="wrap">
   <div class="head">
     <h1><b>Dashboard</b></h1>
     <a class="btn prim" href="/create-event">+ Create Event</a>
@@ -207,7 +207,7 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
   </div>
   <div id="app" style="display:none">
     <div class="subnav" id="subnav"></div>
-    <div class="panel on" id="tab-events"><div class="summary" id="summary"></div><div id="list"></div></div>
+    <div class="panel on" id="tab-events"><div class="summary" id="summary"></div><div id="org-view"></div><div id="list"></div></div>
     <div class="panel" id="tab-insights"><div id="insightsBody" style="color:var(--muted,#9aa0b0)">Loading…</div></div>
     <div class="panel" id="tab-plugins"><div id="pluginsBody"></div></div>
     <div class="panel" id="tab-postiz"><div id="postizBody"></div></div>
@@ -219,18 +219,18 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
     <div class="panel" id="tab-venues"><div class="head2">Venue Bookings <span class="ct" id="bookCt"></span></div><div id="bookReview"></div></div>
     <div class="panel" id="tab-chat">
       <div class="chatwrap">
-        <div class="chatbox"><h3>Chat with an agent</h3><div class="cbar" style="margin-bottom:10px"><select id="agentPick" onchange="clearAgentLog()"></select></div><div class="chatlog" id="agentLog"></div><div class="cbar"><input id="agentQ" placeholder="Ask this agent…" onkeydown="if(event.key==='Enter')askAgentDash()"><button onclick="askAgentDash()">Ask</button></div></div>
-        <div class="chatbox"><h3>Crew group — activity + messages</h3><div class="chatlog" id="groupLog"></div><div class="cbar"><input id="groupMsg" placeholder="Message the whole crew…" onkeydown="if(event.key==='Enter')postGroup()"><button onclick="postGroup()">Send</button></div></div>
+        <div class="chatbox"><h3 aria-level="2">Chat with an agent</h3><div class="cbar" style="margin-bottom:10px"><select id="agentPick" aria-label="Agent to chat with" onchange="clearAgentLog()"></select></div><div class="chatlog" id="agentLog"></div><div class="cbar"><input id="agentQ" placeholder="Ask this agent…" onkeydown="if(event.key==='Enter')askAgentDash()"><button onclick="askAgentDash()">Ask</button></div></div>
+        <div class="chatbox"><h3 aria-level="2">Crew group — activity + messages</h3><div class="chatlog" id="groupLog"></div><div class="cbar"><input id="groupMsg" placeholder="Message the whole crew…" onkeydown="if(event.key==='Enter')postGroup()"><button onclick="postGroup()">Send</button></div></div>
       </div>
     </div>
     <div class="panel" id="tab-knowledge">
       <div class="head2">Add to the Knowledge Bank</div>
       <div class="rv" style="display:block"><div class="kform">
-        <label>Agent (blank = all agents share it)</label><select id="kAgent"></select>
+        <label for="kAgent">Agent (blank = all agents share it)</label><select id="kAgent"></select>
         <label>Topic</label><input id="kTopic" placeholder="e.g. Parking at events">
         <label>Keywords (comma or space separated)</label><input id="kKeywords" placeholder="parking car lot where to park">
-        <label>Short answer — shown to everyone</label><textarea id="kShort"></textarea>
-        <label>Full answer — shown to paid members</label><textarea id="kFull"></textarea>
+        <label for="kShort">Short answer — shown to everyone</label><textarea id="kShort"></textarea>
+        <label for="kFull">Full answer — shown to paid members</label><textarea id="kFull"></textarea>
         <label>Source URL (optional)</label><input id="kSource" placeholder="https://…">
         <button class="btn prim" style="margin-top:12px" onclick="addKnowledge()">Add to bank</button>
         <div class="msg" id="kMsg" style="margin-top:8px"></div>
@@ -281,8 +281,56 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
       <div id="learnList"></div>
     </div>
   </div>
-</div>
+</main>
 
+<style>#tab-events.org-on #listings{display:none} .org-connect{margin:10px 0 14px;padding:12px 14px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:rgba(255,255,255,.04);font-size:.9rem;line-height:1.5} .org-connect-state{font-weight:800} .org-connect-link{color:var(--brand,#00b4ff);font-weight:700} .org-reason{margin-top:6px;font-size:.85rem;color:#ffb86b} .org-counts{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:.9rem;font-weight:700} .org-ce{list-style:none;margin:0 0 14px;padding:10px 14px;border:1px solid rgba(255,255,255,.14);border-radius:12px;font-size:.9rem;line-height:1.7} .org-ce-link{color:var(--brand,#00b4ff);font-weight:700} .org-ce-pool{color:var(--muted,#aab2e0)} .org-empty{color:var(--muted,#aab2e0)} .org-empty a,.org-edit{color:var(--brand,#00b4ff)} .org-ev a.ev-title{color:inherit;text-decoration:underline;text-underline-offset:2px}</style>
+<script src="/assets/js/kil-organizer.js"></script>
+<script>
+/* ONE organizer view (Grok 2026-11-25): the signed-in organizer's own events with status, people going, paid tickets, a Connect status link and an Edit link. Read-only; renders nothing until get_my_organizer_events exists on prod. */
+window.addEventListener('DOMContentLoaded', function(){ try{ if(window.KilOrganizer && typeof supa!=='undefined' && supa) KilOrganizer.mount(document.getElementById('org-view'), supa); }catch(e){} });
+</script>
+<script>
+/* ── YOUR CALENDAR LISTINGS (free event flow, 2026-11-22) ───────────────────────────────────
+   Members add events through /submit-event (create-event is team-only: rpc('is_admin') sends
+   everyone else to /submit-event). Those listings never showed up here, so a member's
+   Dashboard said "No events yet" right after they submitted one. This lists them, read-only,
+   from the same get_my_community_events() the submit page already calls, with each one's review
+   status and an Edit link back to the form. It also points the header button at /submit-event
+   for members, where /create-event would bounce them. No writes, no new RPC. */
+window.addEventListener('DOMContentLoaded', function(){
+  if(typeof supa==='undefined' || !supa) return;
+  function e2(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function when(iso){ try{ return iso ? new Date(iso).toLocaleDateString('en-US',{timeZone:'America/Los_Angeles',weekday:'short',month:'short',day:'numeric',year:'numeric'}) : 'Date TBD'; }catch(x){ return ''; } }
+  var LABEL={ review:'In review', published:'Live', rejected:'Not approved', draft:'Draft', archived:'Archived' };
+  supa.auth.getSession().then(function(r){
+    if(!(r&&r.data&&r.data.session)) return;
+    supa.rpc('is_admin').then(function(a){
+      if(a&&a.data) return;
+      var hb=document.querySelector('.head a.btn.prim[href="/create-event"]');
+      if(hb){ hb.href='/submit-event'; hb.textContent='+ Add an event'; }
+    }).catch(function(){});
+    var panel=document.getElementById('tab-events'); if(!panel) return;
+    var box=document.getElementById('listings');
+    if(!box){ box=document.createElement('div'); box.id='listings'; panel.appendChild(box); }
+    supa.rpc('get_my_community_events').then(function(res){
+      var rows=(res&&res.data)||[];
+      if(res&&res.error){ box.innerHTML='<div class="head2">Your calendar listings</div><p style="color:var(--muted)">Could not load your listings. Please refresh.</p>'; return; }
+      if(!rows.length){ box.innerHTML=''; return; }
+      box.innerHTML='<div class="head2">Your calendar listings <span class="ct">'+rows.length+'</span></div>'
+        + rows.map(function(e){
+            var st=String(e.status||'review').toLowerCase();
+            return '<div class="ev" data-listing="'+e2(e.id)+'"><div class="ev-main">'
+              + '<div class="ev-top"><span class="ev-title">'+e2(e.title||e.venue||'Untitled')+'</span>'
+              + '<span class="ev-badge '+e2(st)+'">'+e2(LABEL[st]||st)+'</span></div>'
+              + '<div class="ev-meta">'+when(e.starts_at)+(e.venue?' · '+e2(e.venue):'')+(e.city?' · '+e2(e.city):'')+'</div>'
+              + '<div class="ev-acts"><a href="/submit-event?edit='+encodeURIComponent(e.id)+'">Edit</a></div>'
+              + '</div></div>';
+          }).join('')
+        + '<p style="color:var(--muted);font-size:.85rem;margin-top:6px">Listings are reviewed before they go live. Editing one sends it back to review. <a href="/submit-event" style="color:var(--brand)">Add another →</a></p>';
+    }).catch(function(){ box.innerHTML=''; });
+  }).catch(function(){});
+});
+</script>
 <script>
 var SUPA_URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ';
@@ -334,7 +382,7 @@ async function load(){
       '<div class="sum"><div class="n">'+chk+'</div><div class="l">Checked in</div></div>'+
       '<div class="sum"><div class="n">'+money(rev)+'</div><div class="l">Revenue</div></div>';
     $('list').innerHTML = evs.length ? evs.map(card).join('')
-      : '<div class="empty"><h2>No events yet</h2><p>Create your first event and start selling tickets.</p><a class="btn prim" href="/create-event">+ Create Event</a></div>';
+      : '<div class="empty"><h2>No hosted events yet</h2><p>Add your event to the KEEPITIL calendar. It is free and reviewed before it goes live.</p><a class="btn prim" href="/submit-event">+ Add an event</a></div>';
   }catch(e){ $('list').innerHTML='<div class="empty"><h2>Couldn’t load</h2><p>Please refresh.</p></div>'; }
 }
 
@@ -708,8 +756,8 @@ function renderSocial(){
   var pfs=['all','instagram','x','facebook','tiktok'];
   var note = ZAP_HOOK ? '' : '<div style="background:#2a2410;border:1px solid #5a4a1a;color:#e8c15a;border-radius:10px;padding:9px 12px;font-size:.74rem;margin:2px 0 12px">Publishing hook not set — Approve queues the post; set <b>platform_config.zapier_hook_url</b> to auto-post on approve.</div>';
   var fh=note+'<div style="display:flex;gap:7px;flex-wrap:wrap;margin:4px 0 10px">'
-    +labels.map(function(l){return '<button onclick="setSocStatus(\''+l[0]+'\')" style="cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:700;font-size:.72rem;'+(SOC_STATUS===l[0]?'background:var(--accent);border-color:var(--accent);color:#fff':'background:var(--panel);color:var(--muted)')+'">'+l[1]+' '+(counts[l[0]]||0)+'</button>';}).join('')
-    +'</div><div style="margin:0 0 12px"><select onchange="setSocPlatform(this.value)" style="background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:7px 11px;font-size:.8rem">'
+    +labels.map(function(l){return '<button onclick="setSocStatus(\''+l[0]+'\')" style="cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:700;font-size:.72rem;'+(SOC_STATUS===l[0]?'background:var(--accent);border-color:var(--accent);color:#0c0d1a':'background:var(--panel);color:var(--muted)')+'">'+l[1]+' '+(counts[l[0]]||0)+'</button>';}).join('')
+    +'</div><div style="margin:0 0 12px"><select onchange="setSocPlatform(this.value)" aria-label="Platform" style="background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:7px 11px;font-size:.8rem">'
     +pfs.map(function(x){return '<option value="'+x+'"'+(SOC_PLATFORM===x?' selected':'')+'>'+(x==='all'?'All platforms':x.charAt(0).toUpperCase()+x.slice(1))+'</option>';}).join('')
     +'</select></div>';
   $('socialFilters').innerHTML=fh;
@@ -1265,8 +1313,8 @@ async function init(){
 }
 init();
 </script>
-<script src="/assets/js/keepitil-radio.js?v=20261109a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20261124c" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261031a" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
 </body>
 </html>

@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // Only the git metadata, installed packages, vendored/minified libraries and this tests/ tree (which holds
-// deliberately bad fixtures) are skipped: everything else, including build-service and app/ pages, is scanned.
+// deliberately bad fixtures) are skipped: everything else, including app/ pages, is scanned.
 const SKIP_DIR = /^(\.git|node_modules|tests)$|(^|\/)(vendor|node_modules)$/;
 const SKIP_FILE = /\.min\.js$/;
 

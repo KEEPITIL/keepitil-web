@@ -3,12 +3,11 @@
 <head>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<meta name="description" content="CREATE on KEEPITIL — enter open calls and competitions, share your work, and get seen by the community."/>
-<title>CREATE — Enter, Compete, Get Seen | KEEPITIL</title>
+<meta name="description" content="CREATE on KEEPITIL: add your event to the calendar, manage your events, enter competitions and post your work."/>
+<title>CREATE — Events, Competitions and Posts | KEEPITIL</title>
 <link rel="canonical" href="https://keepitil.com/create/"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-purple-nav.png"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="/assets/css/fonts.css" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--brand:#a855f7;--brand-2:#c084fc;--ink:#f4f2fb;--ink2:#9a94b4;--ink3:#6b6588;--brd:rgba(255,255,255,.12);--fh:'Bebas Neue',sans-serif;--fb:'Inter',sans-serif;--fs:'Fraunces',serif}
@@ -138,6 +137,27 @@ footer a{color:var(--brand-2)}
      into the contest form fields on focus. */
   #vs-app .vs-form input,#vs-app .vs-form textarea,#vs-app .vs-form select{font-size:16px}
 }
+/* ── CREATE HUB (Create & Earn restructure, Joe 2026-11-22) ─────────────────────────────────
+   CREATE is where you MAKE something on KEEPITIL: an event listing, a competition entry, a post.
+   One compact row of doors above the competitions. On phones it is a single swipe row (~110px
+   tall) so the competition grid stays near the top, which is why the 2026-08-19 hero came out.
+   Hidden on a competition detail/entry view (?c= or ?view=), where the competition owns the page. */
+#createHub{padding:18px 0 6px}
+#createHub h2{font-family:var(--fh);font-size:1.6rem;letter-spacing:.08em;color:#fff;margin:0 0 4px}
+#createHub .ch-lead{color:#e7e5f2;font-size:.95rem;margin:0 0 12px}
+#createHub .ch-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;list-style:none}
+#createHub .ch-card{display:flex;flex-direction:column;gap:4px;min-height:44px;height:100%;padding:13px 14px;border-radius:14px;
+  border:1px solid var(--brd);background:rgba(20,18,30,.82);backdrop-filter:blur(8px);color:var(--ink)}
+#createHub .ch-card:hover,#createHub .ch-card:focus-visible{border-color:var(--brand-2);outline:none}
+#createHub .ch-card b{font-family:var(--fh);font-size:1.15rem;letter-spacing:.06em;color:#fff}
+#createHub .ch-card span{font-size:.84rem;line-height:1.4;color:var(--ink2)}
+#createHub .ch-card.pri{background:linear-gradient(135deg,rgba(124,58,237,.9),rgba(168,85,247,.85));border-color:transparent}
+#createHub .ch-card.pri span{color:#f1e9ff}
+@media(max-width:860px){
+  #createHub{padding:14px 16px 4px}
+  #createHub .ch-row{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+  #createHub .ch-row>li{flex:0 0 66%;scroll-snap-align:start}
+}
 </style>
   <!-- PWA manifest — STATIC, deliberately (Founder 2026-08-15).
        keepitil-shell.js has injected this link from JS since forever (see its head-tags block),
@@ -150,15 +170,15 @@ footer a{color:var(--brand-2)}
   <meta name="apple-mobile-web-app-title" content="KEEPITIL"/>
 
 <meta property="og:site_name" content="KEEPITIL"/>
-<meta property="og:title" content="CREATE — Enter, Compete, Get Seen | KEEPITIL"/>
-<meta property="og:description" content="CREATE on KEEPITIL — enter open calls and competitions, share your work, and get seen by the community."/>
+<meta property="og:title" content="CREATE — Events, Competitions and Posts | KEEPITIL"/>
+<meta property="og:description" content="CREATE on KEEPITIL: add your event to the calendar, manage your events, enter competitions and post your work."/>
 <meta property="og:type" content="website"/>
 <meta property="og:url" content="https://keepitil.com/create/"/>
 <meta property="og:image" content="https://keepitil.com/keepitil-og.png"/>
 <meta property="og:locale" content="en_US"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="CREATE — Enter, Compete, Get Seen | KEEPITIL"/>
-<meta name="twitter:description" content="CREATE on KEEPITIL — enter open calls and competitions, share your work, and get seen by the community."/>
+<meta name="twitter:title" content="CREATE — Events, Competitions and Posts | KEEPITIL"/>
+<meta name="twitter:description" content="CREATE on KEEPITIL: add your event to the calendar, manage your events, enter competitions and post your work."/>
 <meta name="twitter:image" content="https://keepitil.com/keepitil-og.png"/></head>
 <body>
 <!-- ── STATIC PLATFORM NAV — CRAWLER SOURCE OF TRUTH (KODE 2026-09-08) ──────────
@@ -172,7 +192,7 @@ footer a{color:var(--brand-2)}
      One architecture only: DISCOVER · CONNECT · CREATE · CULTURE · EARN (+ Login). -->
 <nav id="main-nav" aria-label="KEEPITIL platform"><div class="nav-inner">
   <a class="nav-logo" href="/"><span class="nav-brand">KEEPITIL</span></a>
-  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/shop/">SHOP</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
+  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
   <a href="/apply" class="nav-cta">LOGIN</a>
 </div></nav>
 
@@ -186,6 +206,32 @@ footer a{color:var(--brand-2)}
        This block is the PRE-JAVASCRIPT state — it is what crawlers and link unfurlers see, so it
        must never claim the product is unbuilt. It said "the VS platform is being built" while 36
        competitions were live. -->
+  <section id="createHub" aria-labelledby="createHubTitle">
+    <h2 id="createHubTitle">MAKE SOMETHING</h2>
+    <p class="ch-lead">Add your event, run your listings, enter a competition or post your work.</p>
+    <ul class="ch-row">
+      <li><a class="ch-card pri" href="/submit-event" data-kt="create_hub_add_event"><b>Add your event</b><span>Put your show on the KEEPITIL calendar. Free, and reviewed before it goes live.</span></a></li>
+      <li><a class="ch-card" href="/dashboard" data-kt="create_hub_manage"><b>Manage your events</b><span>See your events and listings and where each one is in review.</span></a></li>
+      <li><a class="ch-card" href="#vs-app" data-kt="create_hub_compete"><b>Enter a competition</b><span>Open calls for music, art and more. Winners earn rewards on EARN.</span></a></li>
+      <li><a class="ch-card" href="/profile?create=feed" data-kt="create_hub_post"><b>Post to the feed</b><span>Share your work with the KEEPITIL community.</span></a></li>
+      <li><a class="ch-card" href="/artists" data-kt="create_hub_artists"><b>For artists</b><span>Release help and artist packages from KEEPITIL.</span></a></li>
+      <li><a class="ch-card" href="/venues/" data-kt="create_hub_venues"><b>For venues and promoters</b><span>Event promotion and social media for your room.</span></a></li>
+    </ul>
+  </section>
+  <script>
+  /* A competition view (?c= / ?view=) owns the page: hide the hub there. vs-app.js changes views
+     with history.pushState/replaceState (no reload), so re-check after every history change. */
+  (function(){
+    var h=document.getElementById('createHub'); if(!h) return;
+    function sync(){ try{ var q=new URLSearchParams(location.search); h.hidden=!!(q.get('c')||q.get('view')); }catch(e){} }
+    ['pushState','replaceState'].forEach(function(m){
+      var orig=history[m]; if(typeof orig!=='function') return;
+      history[m]=function(){ var r=orig.apply(this,arguments); sync(); return r; };
+    });
+    window.addEventListener('popstate',sync);
+    sync();
+  })();
+  </script>
   <div id="vs-app">
     <div class="soon"><div class="i">⚔️</div><h2>Loading competitions…</h2><p>CREATE — seven creator competitions. Q4 2026 season opens soon.</p></div>
   </div>
@@ -208,15 +254,15 @@ footer a{color:var(--brand-2)}
      Both breakpoints now reach a competition the same way — by tapping the competition. -->
 
 <!-- universal shell: injects the DISCOVER·CONNECT·CREATE·CULTURE·EARN nav + footer + radio bar (same on every page) -->
-<script src="/keepitil-shell.js?v=20261031a" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
 <script src="/kil-seasons.js?v=20260910b"></script>
-<script src="/assets/js/keepitil-radio.js?v=20261109a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20261124c" defer></script>
 <!-- floating AI chat bubble (#kilo-btn) — same as Culture/home for uniformity -->
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
 <!-- VS platform (KODE): Supabase client + the app that renders into #vs-app.
      vs-app.js defines the real window.vsFilter, replacing the placeholder hook. -->
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
-<script src="/vs-app.js?v=20261109a"></script>
+<script src="/vs-app.js?v=20261124b"></script>
 <script src="/keepitil-pager.js?v=20260820e" defer></script>
 <script>
 /* VS subpage view switch (Founder 2026-08-05): rail drives vs-app.js via window.vsGo(view).
@@ -340,6 +386,5 @@ function vrGoSub(sp){ var dd=document.getElementById('vrSubDD'); if(dd)dd.classL
 })();
 document.addEventListener('click',function(e){ var dd=document.getElementById('vrSubDD'),b=document.getElementById('vrSubBtn'); if(dd&&dd.classList.contains('open')&&!dd.contains(e.target)&&b&&!b.contains(e.target))dd.classList.remove('open'); });
 </script>
-<script src="/assets/js/kil-bf-popup.js?v=20261109a" defer></script>
 </body>
 </html>

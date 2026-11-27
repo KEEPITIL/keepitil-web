@@ -11,9 +11,9 @@
    treated as los-angeles.
    Ticket links come from events.source_url. public.ticketing_links is readable
    and empty, and the anon role has no URL column on it, so it is not queried.
-   Cards open the live event page /event?e=<slug> (the page /show in #84 also
-   sends people to). /show and /browse (#84, #86) are not linked: they are not
-   on the site yet. This file does not sell anything and does not change a price.
+   Cards open the live event page /event?e=<slug>. (The unlaunched /show, /browse
+   and /member pages were removed as dead pages, Joe 2026-11-22.) This file does
+   not sell anything and does not change a price.
 
    WEEKEND WINDOW
    "This weekend" is Friday 00:00:00.000 through Sunday 23:59:59.999 in the city
@@ -106,6 +106,10 @@
     return s;
   }
 
+  /* a cover on a host that refuses hotlinking is never requested (assets/js/kil-img-host.js; the card then uses the no-cover layout) */
+  function noDeadHost(u) {
+    try { var H = (typeof module !== 'undefined' && module.exports) ? require('./kil-img-host.js') : root.KilImgHost; return H && u ? H.clean(u) : u; } catch (e) { return u; }
+  }
   function norm(s) {
     return String(s == null ? '' : s)
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -380,7 +384,7 @@
     var when = whenLabel(e, tz);
     var where = [e.venue, e.city].filter(Boolean).join(' · ');
     var labels = genreLabels(e.genres);
-    var cover = safeUrl(e.cover_url);
+    var cover = noDeadHost(safeUrl(e.cover_url));
     var mediaInner = cover
       ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async">'
       : '<span class="disc-dow">' + esc(when ? when.split(' · ')[0] : 'Night') + '</span>';
@@ -467,7 +471,7 @@
     var href = eventHref(e);
     var page = href ? ('https://keepitil.com' + href) : '';
     var ticket = safeUrl(e.source_url);
-    var image = safeUrl(e.cover_url);
+    var image = noDeadHost(safeUrl(e.cover_url));
     var locName = e.venue || e.city || '';
     if (!locName) return null;
     var address = { '@type': 'PostalAddress' };
@@ -519,25 +523,130 @@
     return (part.weekend || []).concat(part.upcoming || [], part.later || []);
   }
 
-  function buildEventsQuery(client, nowIso) {
-    return client.from('events').select(EVENT_COLUMNS)
+  function buildEventsQuery(client, nowIso, cityExact) {
+    var q = client.from('events').select(EVENT_COLUMNS)
       .eq('status', 'published')
       .gte('starts_at', nowIso)
       .eq('password_protected', false)   // needs the #39 migration: the hash itself is not readable by API roles
-      .or(EXPLORE_OR)
-      .order('starts_at', { ascending: true })
+      .or(EXPLORE_OR);
+    /* Only that city's rows are requested. Without this the query returns the first 200 published events of ALL cities by date and the page then filters to its city, so a city page lost events as other cities were added (Los Angeles showed 50 of its 51). A string = one exact city, an array = spellings of one city. */
+    if (Array.isArray(cityExact)) { if (cityExact.length) q = q.in('city', cityExact); }
+    else if (cityExact) q = q.eq('city', cityExact);
+    return q.order('starts_at', { ascending: true })
       .limit(EVENT_LIMIT);
   }
 
+  /* DIRECTORY INDEX (/discover/): every city that has at least one published upcoming event, with its count, so an event in a city that has no
+     hand-made page (Long Beach, San Diego, Oakland...) still appears on /discover. Same filters as the city pages; only city + state are read. */
+  var CITY_PAGE = 1000;          /* the API's row cap per request */
+  var CITY_MAX_PAGES = 6;        /* read at most 6000 rows; past that the index says so */
+  var CITY_ROWS_LIMIT = CITY_PAGE * CITY_MAX_PAGES;
+  var CITY_COLUMNS = 'id,city,state,title,venue,starts_at,tz';   /* what the city view's de-duplication needs, so a chip count equals what that city shows */
+  function buildCitiesQuery(client, nowIso, from, to) {
+    from = from || 0; to = to == null ? CITY_PAGE - 1 : to;
+    return client.from('events').select(CITY_COLUMNS)
+      .eq('status', 'published')
+      .gte('starts_at', nowIso)
+      .eq('password_protected', false)
+      .or(EXPLORE_OR)
+      .order('id', { ascending: true })   /* stable order, so pages never skip or repeat a row */
+      .range(from, to);
+  }
+
+  /* One request returns at most CITY_PAGE rows, and with ~40 cities x 50 events the list is longer than that: read page after page until a short page. */
+  async function loadCityRows(client, nowIso) {
+    var all = [];
+    for (var p = 0; p < CITY_MAX_PAGES; p++) {
+      var r = await safe(buildCitiesQuery(client, nowIso, p * CITY_PAGE, (p + 1) * CITY_PAGE - 1));
+      if (!ok(r)) return { failed: true, rows: [], truncated: false };
+      var d = r.data || [];
+      all = all.concat(d);
+      if (d.length < CITY_PAGE) return { failed: false, rows: all, truncated: false };
+    }
+    return { failed: false, rows: all, truncated: true };
+  }
+
+  /* Counts are AFTER the city view's own de-duplication (same title stem + venue + local day collapse to one card), so a chip never says more than the city shows. */
+  function cityList(rows, fallbackTz, geos) {
+    var groups = Object.create(null), order = [];
+    (rows || []).forEach(function (e) {
+      if (!e || !String(e.city || '').trim()) return;
+      if (e.status && e.status !== 'published') return;
+      if (e.show_on_explore === false || e.password_protected === true) return;
+      var slug = eventCitySlug(e);
+      if (!slug) return;
+      var st = String(e.state || '').toUpperCase();
+      var key = slug + '|' + st;
+      var g = groups[key];
+      if (!g) {
+        g = groups[key] = { slug: slug, state: st, name: slug === 'los-angeles' ? 'Los Angeles' : String(e.city).trim(), n: 0, rows: [] };
+        order.push(key);
+      }
+      g.rows.push(e);
+    });
+    return order.map(function (k) {
+      var g = groups[k];
+      /* each city is de-duplicated in ITS OWN timezone, the same tzFromGeo() the city view uses, so a chip never differs from the city view for a non-Pacific city (the old code used one LA timezone for all) */
+      g.n = dedupe(g.rows, tzFromGeo(geos, g.name, g.state, fallbackTz || 'America/Los_Angeles')).length;
+      delete g.rows;
+      g.href = (g.slug === 'los-angeles' && (!g.state || g.state === 'CA'))
+        ? '/discover/los-angeles/'
+        : '#city=' + encodeURIComponent(g.name) + (g.state ? '&state=' + encodeURIComponent(g.state) : '');
+      return g;
+    }).sort(function (a, b) { return b.n - a.n || a.name.localeCompare(b.name); });
+  }
+
+  function renderCities(list, opts) {
+    opts = opts || {};
+    if (opts.failed) {
+      return '<div class="disc-empty disc-failed" role="alert"><p class="disc-empty-t">Cities couldn&#39;t load.</p>' +
+        '<p>Check your connection and try again.</p><button type="button" class="disc-retry">Try again</button></div>';
+    }
+    if (!list || !list.length) return '';
+    var items = list.map(function (c) {
+      var label = c.name + (c.state ? ', ' + c.state : '') + ' · ' + c.n + (c.n === 1 ? ' event' : ' events');
+      return '<li><a href="' + esc(c.href) + '">' + esc(label) + '</a></li>';
+    }).join('');
+    return '<section class="disc-links"><h2>Upcoming events by city</h2><ul>' + items + '</ul>' +
+      (opts.truncated ? '<p class="disc-note">Counts cover the first ' + CITY_ROWS_LIMIT + ' published upcoming events.</p>' : '') + '</section>';
+  }
+
+  /* #city=Long%20Beach&state=CA -> { city, state } or null. Only plain city names are accepted. */
+  function parseCityHash(hash) {
+    var m = String(hash || '').replace(/^#/, '');
+    if (!m) return null;
+    var city = '', state = '';
+    var ok = m.split('&').every(function (kv) {
+      var i = kv.indexOf('=');
+      if (i < 1) return false;
+      var k = kv.slice(0, i), v;
+      try { v = decodeURIComponent(kv.slice(i + 1)); } catch (e) { return false; }
+      if (k === 'city') { city = v; return true; }
+      if (k === 'state') { state = v; return true; }
+      return false;
+    });
+    if (!ok || !/^[A-Za-z0-9][A-Za-z0-9 .'\u2019-]{1,59}$/.test(city)) return null;
+    if (state && !/^[A-Za-z]{2}$/.test(state)) return null;
+    return { city: city, state: state.toUpperCase() };
+  }
+
   async function safe(p) { try { return await p; } catch (e) { return { data: null, error: e }; } }
+  /* city_geo only refines the timezone (the fallback is LA), so it must never hold the page: if supabase-js is still retrying after GEO_TIMEOUT_MS, give up on it (data null, error 'timeout') and paint. */
+  var GEO_TIMEOUT_MS = 1500;
+  function geoFetch(client, ms) {
+    var t, limit = ms > 0 ? ms : GEO_TIMEOUT_MS;
+    var timeout = new Promise(function (res) { t = setTimeout(function () { res({ data: null, error: new Error('timeout') }); }, limit); });
+    return Promise.race([safe(client.from('city_geo').select('city,state,county,tz')), timeout]).then(function (r) { clearTimeout(t); return r; });
+  }
   function ok(r) { return !!r && !r.error; }
 
-  async function load(client, cfg, now) {
+  /* knownGeos: city_geo rows already fetched by the caller (the /discover/ index loads them once, in parallel with the city rows); omit it and load() fetches city_geo itself. */
+  async function load(client, cfg, now, knownGeos) {
     now = now || new Date();
-    var ev = await safe(buildEventsQuery(client, now.toISOString()));
+    var ev = await safe(buildEventsQuery(client, now.toISOString(), cfg.cityExact));
     if (!ok(ev)) return { failed: true, now: now };
-    var geo = await safe(client.from('city_geo').select('city,state,county,tz'));
-    var geos = ok(geo) ? (geo.data || []) : [];
+    var geos = knownGeos;
+    if (!Array.isArray(geos)) { var geo = await geoFetch(client, cfg.geoTimeoutMs); geos = ok(geo) ? (geo.data || []) : []; }
     var tz = tzFromGeo(geos, cfg.cityName, cfg.state, cfg.fallbackTz || 'America/Los_Angeles');
     var part = prepare(ev.data || [], {
       now: now, tz: tz, city: cfg.city, state: cfg.state, genre: cfg.genre || ''
@@ -583,6 +692,44 @@
     return line;
   }
 
+  /* the list is drawn: give back the screen reserved for it (.disc-reserve), so a short list or a failure shows no blank */
+  function settle(el) { if (el && el.style) el.style.minHeight = '0'; }
+
+  /* SEARCH: a visitor types part of an event's name, venue, city or genre; every word must appear. Filters the cards already on the page, nothing is fetched. */
+  function searchMatch(text, q) {
+    var words = norm(q).split(' ').filter(Boolean);
+    if (!words.length) return true;
+    var hay = norm(text);
+    return words.every(function (w) { return hay.indexOf(w) !== -1; });
+  }
+  function applySearch(rootEl, q) {
+    var cards = rootEl.querySelectorAll('.disc-card'), shown = 0;
+    for (var i = 0; i < cards.length; i++) {
+      var hit = searchMatch(cards[i].textContent, q);
+      cards[i].hidden = !hit;
+      if (hit) shown++;
+    }
+    var secs = rootEl.querySelectorAll('.disc-sec');
+    for (var j = 0; j < secs.length; j++) {
+      secs[j].hidden = !!norm(q) && !secs[j].querySelector('.disc-card:not([hidden])');
+    }
+    var st = root.document.getElementById('disc-q-status');
+    if (st) st.textContent = !norm(q) ? '' : (shown ? shown + (shown === 1 ? ' event matches' : ' events match') + ' \u201c' + String(q).trim() + '\u201d.' : 'No events match \u201c' + String(q).trim() + '\u201d. Clear the search to see them all.');
+    return shown;
+  }
+  function addSearch(rootEl) {
+    if (!rootEl.querySelector('.disc-card')) return;
+    var box = root.document.getElementById('disc-search');
+    if (!box) {
+      box = root.document.createElement('div');
+      box.id = 'disc-search'; box.className = 'disc-search';
+      box.innerHTML = '<label for="disc-q">Search events</label><input id="disc-q" type="search" placeholder="Event name, venue or genre" autocomplete="off" maxlength="80"><p id="disc-q-status" role="status" aria-live="polite"></p>';
+      rootEl.parentNode.insertBefore(box, rootEl);
+      box.querySelector('input').addEventListener('input', function () { applySearch(rootEl, this.value); });
+    }
+    applySearch(rootEl, box.querySelector('input').value);   /* a redraw keeps what was typed */
+  }
+
   function draw(rootEl, cfg, result, pageUrl) {
     var state = { failed: result.failed, view: cfg.view, cityName: cfg.cityName, genre: cfg.genre, genreLabel: cfg.genreLabel, cityHref: cfg.cityHref, tz: result.tz, truncated: result.truncated };
     if (!result.failed && result.part) {
@@ -592,6 +739,8 @@
       state.tz = result.part.tz;
     }
     rootEl.innerHTML = renderLists(state);
+    settle(rootEl);
+    if (!result.failed) { try { addSearch(rootEl); } catch (e) { /* the list is already drawn; search is an extra */ } }
     var count = root.document.getElementById('disc-count');
     var meta = root.document.querySelector('meta[name="description"]');
     if (result.failed) {
@@ -603,6 +752,7 @@
     var n = cfg.view === 'weekend' ? result.part.weekend.length : all.length;
     var text = description(n, { now: result.now, tz: result.tz, cityName: cfg.cityName, view: cfg.view, genreLabel: cfg.genreLabel });
     if (count) count.textContent = countLine(result.part, cfg);
+    if (cfg.noMeta) return;   /* the directory index keeps its own description and has no ItemList */
     if (meta) meta.setAttribute('content', text);
     var prev = root.document.getElementById('disc-jsonld');
     if (prev) prev.remove();
@@ -643,9 +793,63 @@
     return run();
   }
 
+  /* /discover/ index: list every city that has published upcoming events; #city=... opens that city's events below the list. */
+  function mountCities(citiesEl, listsEl, cfg) {
+    if (!citiesEl || !listsEl) return;
+    var client = null, cities = [], geos = null;   /* city_geo, fetched once by run() and reused by every city view */
+    function mk() {
+      if (client) return client;
+      if (!root.supabase || !root.supabase.createClient) return null;
+      try { client = root.supabase.createClient(SUPA_URL, SUPA_KEY); } catch (e) { client = null; }
+      return client;
+    }
+    var countEl = root.document.getElementById('disc-count');
+    async function openCity() {
+      var sel = parseCityHash(root.location && root.location.hash);
+      if (!sel) { listsEl.innerHTML = ''; if (countEl) countEl.textContent = cities.length ? 'Pick a city to see its events.' : ''; return; }
+      var c = mk();
+      if (!c) { listsEl.innerHTML = renderLists({ failed: true }); return; }
+      listsEl.innerHTML = '<p class="disc-loading">Loading published events\u2026</p>';
+      var cfg2 = { city: citySlug(sel.city), cityName: sel.city, state: sel.state, cityExact: sel.city, view: 'hub', genre: '', noMeta: true,
+        cityHref: '/discover/#city=' + encodeURIComponent(sel.city) + (sel.state ? '&state=' + encodeURIComponent(sel.state) : ''), fallbackTz: cfg.fallbackTz || 'America/Los_Angeles' };
+      var result = await load(c, cfg2, new Date(), geos);
+      draw(listsEl, cfg2, result, '');
+    }
+    async function run() {
+      citiesEl.innerHTML = '<p class="disc-loading">Loading cities\u2026</p>';
+      var c = mk();
+      if (!c) { citiesEl.innerHTML = renderCities(null, { failed: true }); settle(citiesEl); return; }
+      var both = await Promise.all([loadCityRows(c, new Date().toISOString()), geoFetch(c, cfg.geoTimeoutMs)]);   /* one round trip, not two in a row; city_geo gives up after GEO_TIMEOUT_MS */
+      var r = both[0], geo = both[1];
+      if (r.failed) { citiesEl.innerHTML = renderCities(null, { failed: true }); settle(citiesEl); return; }
+      geos = ok(geo) ? (geo.data || []) : [];   /* city_geo failing is not fatal: tzFromGeo falls back to the LA timezone */
+      cities = cityList(r.rows, cfg.fallbackTz, geos);
+      citiesEl.innerHTML = renderCities(cities, { truncated: r.truncated });
+      settle(citiesEl);
+      await openCity();
+    }
+    if (!citiesEl.__discBound) {
+      citiesEl.__discBound = true;
+      citiesEl.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('.disc-retry') : null;
+        if (b) run();
+      });
+      listsEl.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('.disc-retry') : null;
+        if (b) openCity();
+      });
+      if (root.addEventListener) root.addEventListener('hashchange', openCity);
+    }
+    return run();
+  }
+
   function boot() {
     var cfg = root.KIL_DISCOVER;
     if (!cfg || cfg.kind === 'static') return;
+    if (cfg.kind === 'cities') {
+      mountCities(root.document.getElementById('disc-cities'), root.document.getElementById('disc-lists'), cfg);
+      return;
+    }
     var el = root.document && root.document.getElementById('disc-lists');
     if (!el) return;
     mount(el, cfg);
@@ -677,9 +881,22 @@
     amazonHref: amazonHref,
     merchHref: merchHref,
     buildEventsQuery: buildEventsQuery,
+    buildCitiesQuery: buildCitiesQuery,
+    loadCityRows: loadCityRows,
+    CITY_PAGE: CITY_PAGE,
+    CITY_COLUMNS: CITY_COLUMNS,
+    CITY_ROWS_LIMIT: CITY_ROWS_LIMIT,
+    cityList: cityList,
+    renderCities: renderCities,
+    parseCityHash: parseCityHash,
     tzFromGeo: tzFromGeo,
     load: load,
-    mount: mount
+    mount: mount,
+    mountCities: mountCities,
+    GEO_TIMEOUT_MS: GEO_TIMEOUT_MS,
+    searchMatch: searchMatch,
+    applySearch: applySearch,
+    settle: settle
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.KilDiscover = api;

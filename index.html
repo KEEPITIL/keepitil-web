@@ -7,7 +7,7 @@
     if(h.indexOf('type=recovery')>-1||(h.indexOf('access_token=')>-1&&h.indexOf('recovery')>-1)){location.replace('/reset-password'+h);}
     else if(h.indexOf('otp_expired')>-1||h.indexOf('error_code=access_denied')>-1||(h.indexOf('error')>-1&&h.indexOf('expired')>-1)){location.replace('/apply'+h);}
   }catch(e){}})();</script>
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
   <title>KEEPITIL — Create Loud. Live Louder.</title>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
@@ -33,13 +33,9 @@
   <meta name="twitter:title" content="KEEPITIL — Create Loud. Live Louder."/>
   <meta name="twitter:description" content="KEEPITIL is a culture platform built to discover, connect, create, share and earn through people, events, media and community."/>
   <meta name="twitter:image" content="https://keepitil.com/keepitil-og.png"/>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link rel="preconnect" href="https://images.ra.co"/>
-  <link rel="dns-prefetch" href="https://images.ra.co"/>
   <link rel="preconnect" href="https://images.posh.vip"/>
   <link rel="dns-prefetch" href="https://images.posh.vip"/>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link href="/assets/css/fonts.css" rel="stylesheet"/>
   <!-- PWA manifest (Founder 2026-08-15). It existed at /manifest.webmanifest but NO page linked it,
        so "Add to Home Screen" had no start_url to obey and iOS baked whatever URL happened to be open.
        That is why the installed icon launches onto the 404 router page. -->
@@ -301,7 +297,7 @@
     .subscribe h2{font-family:var(--font-head);font-size:clamp(40px,6vw,70px);letter-spacing:.04em;color:var(--white);margin-bottom:16px;}
     .subscribe p{font-size:16px;color:var(--grey);margin-bottom:40px;}
     .subscribe-form{display:flex;flex-direction:column;gap:10px;max-width:480px;margin:0 auto;}
-    .subscribe-form input{padding:14px 20px;background:var(--dark3);border:1px solid rgba(0,180,255,.2);color:var(--white);font-family:var(--font-body);font-size:14px;outline:none;transition:border-color .2s;border-radius:4px;width:100%;}
+    .subscribe-form input{padding:14px 20px;background:var(--dark3);border:1px solid rgba(0,180,255,.2);color:var(--white);font-family:var(--font-body);font-size:16px;outline:none;transition:border-color .2s;border-radius:4px;width:100%;}
     .subscribe-form input:focus{border-color:rgba(0,180,255,.6);}
     .subscribe-form input::placeholder{color:#555;}
     .subscribe-form button{padding:14px 28px;background:var(--blue);color:#fff;border:none;font-family:var(--font-body);font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-radius:4px;transition:all .2s;width:100%;}
@@ -434,7 +430,7 @@
 #evx .evx-mo:hover{border-color:rgba(0,255,136,.4);color:#fff;}
 #evx .evx-mo.active{background:var(--green);border-color:var(--green);color:#06120a;}
 #evx .evx-mo .c{opacity:.55;font-size:.6rem;margin-left:5px;}
-#evx .evx-gn{flex-shrink:0;padding:6px 14px;border-radius:20px;background:transparent;border:1px solid rgba(255,255,255,.12);color:#66727e;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;}
+#evx .evx-gn{flex-shrink:0;padding:6px 14px;border-radius:20px;background:transparent;border:1px solid rgba(255,255,255,.12);color:#909ca8;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;}
 #evx .evx-gn:hover{border-color:var(--green);color:#fff;}
 #evx .evx-gn.active{background:var(--green);border-color:var(--green);color:#06120a;}
 #evx .evx-dtab{flex-shrink:0;padding:9px 14px;background:transparent;border:none;border-bottom:2px solid transparent;color:#5a6570;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:color .2s;}
@@ -455,7 +451,7 @@
   #evx .evx-datecol{display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap;overflow:hidden;}
   #evx .evx-daynum{font-size:2rem;}
   #evx .evx-daydow,#evx .evx-daymo{font-size:.95rem;margin-top:0;}
-  #evx .evx-daycount-inline{margin-left:auto;margin-bottom:0;white-space:nowrap;color:#5a6570;}
+  #evx .evx-daycount-inline{margin-left:auto;margin-bottom:0;white-space:nowrap;color:#8d99a5;}
   #evx .evx-daycol > .evx-daycount{display:none;}
 }
 /* Desktop keeps the count under the date column, so the inline copy is the one hidden. */
@@ -469,7 +465,7 @@
 @media(max-width:860px){#evx .evx-nav{top:var(--kil-safe-top,0px);z-index:120;padding-top:9px}}
 #evx .evx-daycol{border-left:1px solid rgba(0,255,136,.12);padding-left:22px;min-width:0;}
 @media(max-width:680px){#evx .evx-daycol{border-left:none;padding-left:0;border-top:1px solid rgba(0,255,136,.12);padding-top:14px;}}
-#evx .evx-daycount{font-size:.6rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#3a4550;margin-bottom:12px;}
+#evx .evx-daycount{font-size:.6rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#8d99a5;margin-bottom:12px;}
 #evx .evx-carousel{position:relative;}
 #evx .evx-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:6;width:34px;height:34px;border-radius:50%;background:rgba(12,12,22,.94);border:1px solid rgba(255,255,255,.16);color:#fff;font-size:1.35rem;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 3px 14px rgba(0,0,0,.5);}
 #evx .evx-arrow:hover{border-color:var(--green);color:var(--green);}
@@ -493,7 +489,7 @@
   #evx .evx-daycol{padding-top:9px;}
   #evx .evx-daycount{margin-bottom:7px;}
 }
-#evx .evx-empty{padding:26px 6px;color:#44505a;font-size:.8rem;letter-spacing:.05em;}
+#evx .evx-empty{padding:26px 6px;color:#8d99a5;font-size:.8rem;letter-spacing:.05em;}
 /* Founder 2026-08-15: a landscape flyer must fit ENTIRELY inside the card.
    Was object-fit:cover, which centre-crops — on a 9:16 card a wide flyer lost most of its width,
    usually the lineup text. Now `contain` shows the whole image, and .evx-flyer-bg is the same
@@ -522,7 +518,7 @@
 .kil-modal-logo{font-family:var(--font-head);letter-spacing:.18em;color:var(--green);font-size:1.1rem;margin-bottom:14px;}
 .kil-modal-card h3{font-family:var(--font-head);font-size:1.5rem;letter-spacing:.03em;color:#fff;margin:0 0 8px;}
 .kil-modal-card p{color:#9aa7b4;font-size:.85rem;line-height:1.6;margin:0 0 18px;}
-.kil-modal-card input{width:100%;padding:12px 14px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:.9rem;margin-bottom:10px;}
+.kil-modal-card input{width:100%;padding:12px 14px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:1rem;margin-bottom:10px;}
 .kil-modal-btn{width:100%;padding:12px;border-radius:9px;background:var(--green);color:#06120a;font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:.8rem;border:none;cursor:pointer;transition:filter .2s;}
 .kil-modal-btn:hover{filter:brightness(1.1);}
 .kil-modal-msg{min-height:18px;font-size:.75rem;color:var(--green);margin-top:10px;}
@@ -685,7 +681,7 @@
 #evx .evx-mhead:first-of-type{margin-top:14px;}
 #evx .evx-mhead-t{font-family:var(--font-head);font-size:clamp(2.6rem,5vw,3.8rem);line-height:.95;
   letter-spacing:.06em;color:var(--green);text-transform:uppercase;}
-#evx .evx-mhead-c{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#4a5560;}
+#evx .evx-mhead-c{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8d99a5;}
 #evx .evx-mhead-div{flex:1;height:1px;background:linear-gradient(90deg,rgba(0,255,136,.28),transparent);}
 #evx .evx-day{margin-top:34px;}
 #evx .evx-more{display:block;max-width:1180px;width:calc(100% - 48px);margin:26px auto 0;padding:13px 24px;background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.28);border-radius:10px;color:var(--green);font-family:var(--font-body);font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .2s;text-align:center;}
@@ -1819,7 +1815,7 @@
      KEEPITIL architecture that no longer exists. There is exactly one current
      architecture: DISCOVER · CONNECT · CREATE · CULTURE · EARN (+ Login).
      If the platform sections change, change them HERE as well as in the shell. -->
-      <li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/shop/">SHOP</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li>
+      <li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li>
     </ul>
     <a href="/apply" class="nav-cta">LOGIN</a>
     <button class="nav-hamburger" onclick="toggleMenu()" aria-label="Open menu"><span></span><span></span><span></span></button>
@@ -1827,9 +1823,10 @@
   </nav>
 
   <!-- Mobile Menu -->
-  <div class="mobile-menu" id="mobile-menu"><a href="/">DISCOVER</a><a href="/connect/">CONNECT</a><a href="/create/">CREATE</a><a href="/shop/">SHOP</a><a href="/culture/">CULTURE</a><a href="/earn/">EARN</a><a href="/apply" class="nav-cta">LOGIN</a></div>
+  <div class="mobile-menu" id="mobile-menu"><a href="/">DISCOVER</a><a href="/connect/">CONNECT</a><a href="/create/">CREATE</a><a href="/culture/">CULTURE</a><a href="/earn/">EARN</a><a href="/apply" class="nav-cta">LOGIN</a></div>
 
 <!-- Hero -->
+<main id="main-content">
   <section class="hero" id="home">
     <canvas id="hero-canvas"></canvas>
     <div class="hero-overlay"></div>
@@ -1905,6 +1902,7 @@
   <div class="evx-days" id="evx-days-list"></div>
 </div>
 </div>
+</main>
 
 <!-- CLASSIC flyers section removed 2026-07-01 per Founder directive (homepage v2: only Events + Classic change; Classic removed) -->
 
@@ -1970,6 +1968,7 @@
   <!-- Scroll-to-top moved into keepitil-shell.js (#kil-top) on 2026-08-15 so it can appear on
        every page from one config instead of being copied per page. Do not re-add it here. -->
 
+  <script src="/assets/js/kil-img-host.js"></script>
   <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <script>
   /* ── SUPABASE ── */
@@ -2422,8 +2421,8 @@ function flyer(e,showPick){
      The backdrop is decorative — aria-hidden and empty alt, so a screen reader announces the
      flyer once, not twice. */
   var im=e.img?('<img class="evx-flyer-bg" src="'+h(e.img)+'" alt="" aria-hidden="true" loading="lazy" decoding="async"/>'
-               +'<img class="evx-flyer-img" src="'+h(e.img)+'" alt="'+alt+'" loading="lazy" decoding="async"/>'):'';
-  var fb=e.img?'':' style="background:linear-gradient(155deg,#12121c,#241033,#0c0c14)"';
+               +'<img class="evx-flyer-img" src="'+h(e.img)+'" alt="'+alt+'" loading="lazy" decoding="async"/>')
+           :'<img class="evx-flyer-img evx-flyer-ph" src="/assets/images/event-placeholder.svg" alt="'+alt+'" loading="lazy" decoding="async"/>';   /* no cover (cover_url null): our own placeholder, not a gradient */
   var ribbon=pk?'<div class="evx-ribbon"><span class="kp">⚡ KEEPITIL PICK</span></div>':'';
   var pr=(e.price&&e.price!=='Tickets')?h(e.price):'';
   var slug=e.slug||slugify(e);
@@ -3122,7 +3121,7 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
       var internal=!e.source_url||!/^https?:\/\//i.test(e.source_url);
       return {title:e.title,date:_kld(e.starts_at,e.tz),venue:e.venue||'',city:e.city||'',
         state:e.state||'',county:e.county||'',   /* 2026-08-18: drives the location filter */
-        genre:g||'KEEPITIL',gcat:_cl.gcat,ecat:_cl.ecat,img:e.cover_url||e.img||'',
+        genre:g||'KEEPITIL',gcat:_cl.gcat,ecat:_cl.ecat,img:(window.KilImgHost?window.KilImgHost.clean(e.cover_url||e.img||''):(e.cover_url||e.img||'')),
         ticket:(e.source_url&&!internal)?e.source_url:('/event?e='+encodeURIComponent(e.slug||'')),
         price:'Tickets',pick:!!e.featured,keepitil:internal,slug:e.slug,owner:e.owner_handle||''};
     });
@@ -3176,7 +3175,7 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
 </script>
 
 <script src="/kil-seasons.js?v=20260910b"></script>
-<script src="/assets/js/keepitil-radio.js?v=20261109a" defer></script>
+<script src="/assets/js/keepitil-radio.js?v=20261124c" defer></script>
 <script>
 /* Inline KEEPITIL-X save icon (staging preview self-contained; /keepitil-save.js not yet deployed) */
 (function(){
@@ -3435,7 +3434,7 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
   else setTimeout(run,500);
 })();
 </script>
-<script src="/keepitil-shell.js?v=20261031a" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
   <!-- Create FAB removed (Founder 2026-07-17): linked to a retired v3 create page (wrong page). Same fix as V3 home. -->
   <!-- Founder fixes 2026-07-12: (the old "force chat FAB above the Create FAB" rule is REMOVED — the Create FAB
        no longer exists, and its bottom:132px was overriding the chat-FAB placement below) + bulletproof hero typewriter -->
@@ -3571,7 +3570,7 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
       ['August',['summer-finale']],
       ['September',['labor-day','patriot-day','oktoberfest']],
       ['October',['halloween','down-syndrome-awareness','cancer-awareness']],
-      ['November',['veterans-day','thanksgiving','black-friday']],
+      ['November',['veterans-day','thanksgiving']],
       ['December',['christmas','new-years-eve']],
       ['KEEPITIL',['default']]
     ];
@@ -3719,6 +3718,5 @@ function boot(){fyLoad();initLocDD();buildMonths();buildGenres();buildForYou();b
   window.addEventListener('orientationchange', function () { setHidden(false); });
 })();
 </script>
-<script src="/assets/js/kil-bf-popup.js?v=20261109a" defer></script>
 </body>
 </html>

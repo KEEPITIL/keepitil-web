@@ -1,0 +1,2 @@
+Self-hosted web fonts (SIL Open Font License): Anton, Archivo, Bebas Neue, Fraunces, Inter, Lilita One, Nunito, Space Grotesk. Latin + latin-ext only (variable fonts keep their weight range). Declared in /assets/css/fonts.css; pages link that one file. No page requests fonts.googleapis.com or fonts.gstatic.com.
+To add or refresh a family: fetch its css2 URL once with a modern browser User-Agent, download the latin / latin-ext woff2 files here, and add the @font-face blocks (same naming: <family>-<subset>.woff2) with font-display: swap.

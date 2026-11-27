@@ -60,8 +60,9 @@ article/kform-lead-capture/index.play.html
 games/kwars1/index.play.html
 games/kwars1/manifest.play.webmanifest
 
-# Internal leftovers (2026-11-15): build probe, build stamp, brand-pipeline note. Unreferenced; the files were removed
-# from the repo, and these lines keep them out of the artifact if they come back. Exact paths on purpose: a pattern
+# Internal leftovers (2026-11-15): build probe, build stamp, brand-pipeline note. Unreferenced. The probe and the build stamp were
+# removed from the repo; brand/tuitea/README.md is a maintained brand-kit note (updated 2026-11-24), so it STAYS in the repo and is only
+# kept out of the public artifact. These lines keep all three out of the artifact. Exact paths on purpose: a pattern
 # such as **/README.md would also hit app/tuitea/app/assets/assets/audio/README.md, which app/tuitea/sw.js references.
 join/_probe.txt
 games/13/BUILD.txt

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>Page not found — KEEPITIL</title>
 <!-- ============================================================================
@@ -36,7 +36,15 @@
 ============================================================================ -->
 <style>html,body{margin:0;height:100%;background:#0a0a0f;color:#eef;font:15px/1.6 'Inter',system-ui,sans-serif}
 .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
-a{color:#5cc8ff}</style>
+a{color:#5cc8ff}
+/* Find My Weed 404 (a missing /app/findmyweed/ page): the FMW LIGHT palette and wordmark, not KEEPITIL's dark page. Scoped to html[data-fmw], so every other 404 stays dark. */
+html[data-fmw],html[data-fmw] body{background:#eef6ee;color:#0d1f14}
+html[data-fmw] a{color:#0a7a33}
+#fmwfourohfour .fmw-logo{display:inline-block;margin:0 0 18px;padding:6px 14px;border-radius:10px;background:#000;color:#fff;font-weight:900;font-size:26px;letter-spacing:-.035em}
+#fmwfourohfour .fmw-logo span{color:#39ff14}
+#fmwfourohfour p{color:#3f5446!important}
+#fmwfourohfour .fmw-back{display:inline-block;padding:12px 20px;border:1px solid #064d20!important;border-bottom-width:4px!important;border-radius:12px!important;background:#0a7a33;color:#fff!important;font-weight:800;text-decoration:none}
+</style>
 <script>
 /* KEEPITIL clean-URL router (Founder 2026-07-31).
    GitHub Pages serves this 404.html for any unmatched path; we translate pretty URLs
@@ -194,12 +202,34 @@ a{color:#5cc8ff}</style>
     if(CLEAN_URL_PAGES.indexOf(one)>=0) return go('/'+one+'.html'+q);
   }
 
+  /* FIND MY WEED (Joe 2026-11-22 FMW QA): a missing /app/findmyweed/* address still ends as a
+     genuine 404 here (no redirect), but the panel offers a way back into Find My Weed instead
+     of the KEEPITIL section list. */
+  if(seg[0]==='app' && seg[1]==='findmyweed'){
+    document.documentElement.setAttribute('data-fmw','1');
+    document.title='Page not found — Find My Weed';
+    /* NEXUS2 live walk 2026-11-24: the visitor must see Find My Weed's OWN 404 page (its title, header, menu), not just a panel on KEEPITIL's page.
+       The address stays (still a genuine 404, no redirect): the FMW 404 page is fetched and rendered in place. Without JS, or if the fetch fails,
+       the panel below stays. Every other missing path is untouched. */
+    try {
+      if (typeof fetch === 'function') fetch('/app/findmyweed/404.html', { cache: 'no-store' }).then(function (r) { return r && r.ok ? r.text() : null; }).then(function (h) {
+        if (h && h.indexOf('data-page="notfound"') > 0) { document.open(); document.write(h); document.close(); }
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
   // No route matched — show a minimal 404 with a way home.
   document.documentElement.setAttribute('data-nomatch','1');
 })();
 </script>
 </head><body>
-<div class="wrap" id="fourohfour" style="display:none">
+<div class="wrap" id="fmwfourohfour" style="display:none">
+  <div class="fmw-logo">Find <span>My</span> Weed</div>
+  <h1 style="font-size:2rem;margin:0 0 6px">Page not found</h1>
+  <p style="color:#9aa;margin:0 0 20px;max-width:460px">That Find My Weed page doesn't exist, or it moved.</p>
+  <a class="fmw-back" href="/app/findmyweed/">Back to Find My Weed</a>
+</div>
+<main class="wrap" id="fourohfour" style="display:none">
   <h1 style="font-size:2rem;margin:0 0 6px">Page not found</h1>
   <p style="color:#9aa;margin:0 0 20px;max-width:460px">That link doesn't exist, or it moved. Here's everything on KEEPITIL:</p>
   <noscript>
@@ -218,9 +248,10 @@ a{color:#5cc8ff}</style>
        named 404.html. Do not delete it — every clean URL depends on it.
        (Kept as a comment: it used to be a visible paragraph, shown to every visitor who
        reached a dead link. Removed from view 2026-09-24 at the owner's request.) -->
-</div>
+</main>
 <script>
 /* only reveal the 404 message if the router didn't redirect */
-if(document.documentElement.getAttribute('data-nomatch')){ document.getElementById('fourohfour').style.display='flex'; }
+/* exactly one main landmark: the box that is revealed gets role=main (the FMW one is a div until then) */
+if(document.documentElement.getAttribute('data-nomatch')){ var box=document.getElementById(document.documentElement.getAttribute('data-fmw') ? 'fmwfourohfour' : 'fourohfour'); box.setAttribute('role','main'); box.style.display='flex'; }
 </script>
 </body></html>

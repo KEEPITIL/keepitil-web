@@ -1252,7 +1252,7 @@ async function loadRecommendations(force){
     if(!recs.length){ box.innerHTML='<div class="rv-empty">All clear — nothing needs your attention right now.</div>'; return; }
     var PILL={high:'den',medium:'',low:'pub'};
     box.innerHTML=recs.map(function(x){
-      return '<div class="rv"><div class="info"><div class="t">'+esc(x.title)+'</div><div class="d">'+esc(x.detail||'')+'</div><div class="tags"><span class="pill2 '+(PILL[x.priority]||'')+'">'+esc((x.priority||'').toUpperCase())+'</span></div></div><div class="acts"><button class="approve" onclick="showTab(\''+esc(x.tab)+'\')">Go &rarr;</button></div></div>';
+      return '<div class="rv"><div class="info"><div class="t">'+esc(x.title)+'</div><div class="d">'+esc(x.detail||'')+'</div><div class="tags"><span class="pill2 '+(PILL[x.priority]||'')+'">'+esc((x.priority||'').toUpperCase())+'</span></div></div><div class="acts"><button class="approve" data-tab="'+esc(x.tab)+'" onclick="showTab(this.dataset.tab)">Go &rarr;</button></div></div>';
     }).join('');
   }catch(e){ box.innerHTML='<div class="rv-empty">Could not load recommendations.</div>'; }
 }

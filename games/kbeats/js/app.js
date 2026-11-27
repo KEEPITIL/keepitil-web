@@ -144,7 +144,7 @@ const screens = {
     const draw = () => {
       $('#s-artist').innerHTML = `<div class="wrapc artist">
         <header class="top bar"><a class="ico" href="#/home" aria-label="Back">${I.back}</a><b class="ttl">ARTIST PAGE</b></header>
-        <div class="ahead"><img class="av" src="${a.avatar || coverArt({ id: a.slug, hue: 300, bpm: '' }, 240)}" alt="" width="120" height="120">
+        <div class="ahead"><img class="av" src="${esc(a.avatar || coverArt({ id: a.slug, hue: 300, bpm: '' }, 240))}" alt="" width="120" height="120">
           <div><h2>${esc(a.name)} ${a.verified ? I.check : ''}</h2><div class="x">${esc((a.genres || []).join(' / '))}</div>
           <div class="stats2"><div><b>${big(a.followers)}</b><small>Followers</small></div><div><b>${big(a.plays)}</b><small>Plays</small></div></div>
           <div class="fr"><button class="btn sm primary" id="fol">${isFol(a.slug) ? 'Following' : 'Follow'}</button><button class="btn sm ghost circ" id="more" aria-label="More">•••</button></div></div></div>

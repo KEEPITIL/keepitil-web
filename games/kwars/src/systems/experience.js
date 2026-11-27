@@ -150,8 +150,9 @@
     if(lab) lab.textContent = a ? ('CONTINUE WAR — WAVE '+a.wave) : 'CONTINUE WAR';
     document.getElementById('continuesub').textContent=a?('Wave '+a.wave+' · '+CIV_NAMES[(a.civ||1)-1]+' · '+Math.max(0,Math.min(100,Math.round(100*(a.gateHP||0)/(a.gateMax||1))))+'% fort · '+mins(a.time)+' · '+played(data.lastPlayed)):'';
   }
+  function escH(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
   function showPanel(title,html){document.getElementById('paneltitle').textContent=title;document.getElementById('panelbody').innerHTML=html;panel.classList.remove('hidden');}
-  function showKingdom(){const p=data.profile,r=data.records,g=window.KWCommerce?KWCommerce.balance():p.gems;showPanel('ARMY · KINGDOM','<div class="profilecrest">⚜</div><h3>'+p.name+'</h3><p>'+p.title+' · Legacy Level '+p.legacyLevel+'</p><p>Legacy XP: '+p.legacyXP+' · Gems: 💎 '+g+'</p><hr><p>Highest wave: '+r.highestWave+'<br>Longest war: '+mins(r.longestRun)+'<br>Total enemies defeated: '+r.enemiesDefeated+'<br>Bosses defeated: '+r.bossesDefeated+'</p>');}
+  function showKingdom(){const p=data.profile,r=data.records,g=window.KWCommerce?KWCommerce.balance():p.gems;showPanel('ARMY · KINGDOM','<div class="profilecrest">⚜</div><h3>'+escH(p.name)+'</h3><p>'+escH(p.title)+' · Legacy Level '+p.legacyLevel+'</p><p>Legacy XP: '+p.legacyXP+' · Gems: 💎 '+g+'</p><hr><p>Highest wave: '+r.highestWave+'<br>Longest war: '+mins(r.longestRun)+'<br>Total enemies defeated: '+r.enemiesDefeated+'<br>Bosses defeated: '+r.bossesDefeated+'</p>');}
   const missionDefs={waves:{goal:5,label:'Complete 5 waves'},recruits:{goal:20,label:'Recruit 20 soldiers'},powers:{goal:10,label:'Use 10 battlefield powers'}};
   function missionProgress(key,amount=1){
     const def=missionDefs[key];if(!def)return;

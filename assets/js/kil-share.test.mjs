@@ -330,14 +330,16 @@ test('a business profile does not need 18+ on the page, and a member still does'
 
 test('the owner save does not write account_type', () => {
   const html = readFileSync(new URL('../../profile.html', import.meta.url), 'utf8');
-  const start = html.indexOf('var meta={');
-  const meta = html.slice(start, html.indexOf('};', start));
+  /* 10B: the builder returns {full, diff}; only the diff (changed, allowed columns) is written. */
+  const start = html.indexOf('function epBuildMeta(');
+  const meta = html.slice(start, html.indexOf('function openEditProfile(', start));
+  assert.ok(start > 0);
   assert.equal(/account_type/.test(meta), false);
   assert.equal(/\bslug:/.test(meta), false);
-  assert.match(meta, /profile_public:/);
-  assert.match(meta, /public_fields:/);
+  assert.match(meta, /'profile_public'/);
+  assert.match(meta, /public_fields/);
   assert.match(html, /id="epPublic"/);
-  assert.match(html, /\.update\(meta\)\.eq\('slug',PROFILE_SLUG\)/);
+  assert.match(html, /\.update\(diff\)\.eq\('slug',PROFILE_SLUG\)/);
   assert.match(html, /var created=\{slug:PROFILE_SLUG\}/);
   assert.match(html, /\.insert\(created\)/);
   assert.equal(/id="epAcct"/.test(html), false);

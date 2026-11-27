@@ -59,3 +59,6 @@ games/pokasnap/play/sw.play.js
 article/kform-lead-capture/index.play.html
 games/kwars1/index.play.html
 games/kwars1/manifest.play.webmanifest
+
+# Kai Tarako mirror: the sync instructions (not site content).
+app/kaitarako/MIRROR_SYNC.md

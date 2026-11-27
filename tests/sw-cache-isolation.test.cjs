@@ -32,18 +32,18 @@ function createWorker(initialCaches = []) {
 
 test('activation only removes obsolete main-site kil-* caches', async () => {
   const current = [
-    'kil-pwa-v105-20260912b', 'kil-pages-v42', 'kil-assets-v41', 'kil-code-v85',
+    'kil-pwa-v111-20261125a', 'kil-pages-v49', 'kil-assets-v42', 'kil-code-v92',
   ];
   const otherApps = [
     'kwars-v88', 'kwars1-v88', 'tuitea-release-20261023',
     'kai-tarako-v5', 'kmob-cache-v1', 'kode-cache-v1',
     'future-game-cache', 'unrelated-decoy-cache',
   ];
-  const worker = createWorker([...current, ...otherApps, 'kil-code-v84', 'kil-pwa-v104']);
+  const worker = createWorker([...current, ...otherApps, 'kil-code-v88', 'kil-code-v89', 'kil-pages-v45', 'kil-pages-v46', 'kil-pwa-v108-20261120c', 'kil-pwa-v109-20261121a', 'kil-pwa-v110-20261121a', 'kil-pages-v47', 'kil-assets-v41', 'kil-code-v90', 'kil-pages-v48', 'kil-code-v91'].sort());
   let activation;
   worker.handlers.get('activate')({ waitUntil(p) { activation = p; } });
   await activation;
-  assert.deepEqual(worker.deleted.sort(), ['kil-code-v84', 'kil-pwa-v104']);
+  assert.deepEqual(worker.deleted.sort(), ['kil-code-v88', 'kil-code-v89', 'kil-pages-v45', 'kil-pages-v46', 'kil-pwa-v108-20261120c', 'kil-pwa-v109-20261121a', 'kil-pwa-v110-20261121a', 'kil-pages-v47', 'kil-assets-v41', 'kil-code-v90', 'kil-pages-v48', 'kil-code-v91'].sort());
 });
 
 test('root worker does not intercept isolated app requests', () => {
@@ -54,6 +54,8 @@ test('root worker does not intercept isolated app requests', () => {
     '/kode/index.html',
     '/app/tuitea/index.html',
     '/app/kaitarako/assets/index-123.js',
+    '/app/findmyweed/',
+    '/app/findmyweed/js/fmw.js',
   ]) {
     let intercepted = false;
     worker.handlers.get('fetch')({
@@ -73,4 +75,21 @@ test('root still handles its own JavaScript requests', async () => {
   });
   assert.ok(responded && typeof responded.then === 'function');
   await responded;
+});
+
+test('cache names: PAGES and CODE changed for the shell restamp, and the name is the one KEEP and every caches.open uses (no stale literal anywhere)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
+  const names = (s) => ({ pages: (s.match(/var PAGES = '([^']+)'/) || [])[1], code: (s.match(/var CODE = '([^']+)'/) || [])[1] });
+  const n = names(src);
+  assert.equal(n.pages, 'kil-pages-v49'); assert.equal(n.code, 'kil-code-v92');
+  assert.notEqual(n.pages, 'kil-pages-v48'); assert.notEqual(n.code, 'kil-code-v91');
+  assert.match(src, /var KEEP = \[VERSION, PAGES, ASSETS, CODE\];/);
+  assert.deepEqual([...src.matchAll(/caches\.open\(([A-Za-z_]+)\)/g)].map((m) => m[1]).filter((v) => !['VERSION', 'PAGES', 'ASSETS', 'CODE'].includes(v)), [], 'every caches.open uses a named constant');
+  assert.ok(!/kil-pages-v4[0-8]'|kil-code-v(?:8\d|9[01])'/.test(src.replace(/\/\*[\s\S]*?\*\//g, '')), 'no old cache name outside comments');
+  assert.ok(!/cache\.add\([^)]*shell|cache\.add\([^)]*\.html/i.test(src), 'install does not fetch the shell or page HTML (so no HTTP-cache staleness at install)');
+});
+test('NEGATIVE CONTROL: the previous names (v48 / v91) would be flagged, and an install that precaches the shell would be', () => {
+  const old = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8').replace("kil-pages-v49", "kil-pages-v48").replace("kil-code-v92", "kil-code-v91");
+  assert.match(old, /var PAGES = 'kil-pages-v48'/); assert.match(old, /var CODE = 'kil-code-v91'/);
+  assert.ok(/cache\.add\([^)]*shell/i.test("cache.add('/keepitil-shell.js')"));
 });

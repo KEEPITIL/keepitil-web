@@ -1,0 +1,47 @@
+# Per-event prerender (design GO'd by Grok 2026-11-24). Regenerates event/<slug>/index.html for every PUBLISHED event and pushes the result to a branch
+# prerender/run-<run id> when anything changed. It does NOT create or approve pull requests (the repo setting that allows that also lets Actions approve PRs, a review
+# bypass, so it stays off): a person opens the PR from that branch and it gets a normal review and merge.
+# Off by default: it only runs when the repository variable EVENT_PRERENDER is "on". ROLLBACK: set EVENT_PRERENDER to "off" (or delete the variable), then revert the
+# generated event/ directory in one PR; /event?e=<slug> and the page script never depended on these files.
+# Triggers: every 30 minutes (so a published, edited, unpublished or deleted event is on a page within the hour), manual, and repository_dispatch "event-changed" (fire it from the publish / edit / unpublish / delete hook when that is wired).
+# Least privilege: the workflow default is read-only; contents:write is granted to this one job only. Reads only from Supabase: the public anon key already in event.html.
+name: Event prerender
+on:
+  schedule: [{ cron: '11,41 * * * *' }]
+  workflow_dispatch:
+  repository_dispatch:
+    types: [event-changed]
+permissions:
+  contents: read
+concurrency:
+  group: event-prerender
+  cancel-in-progress: false
+jobs:
+  prerender:
+    if: ${{ vars.EVENT_PRERENDER == 'on' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: { ref: main }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: 22 }
+      - name: Generate event pages
+        run: node scripts/build-event-pages.mjs --out .
+      - name: Skip when a prerender branch already carries exactly these pages
+        id: dedupe
+        run: |
+          if [ -z "$(git status --porcelain event sitemap-events.xml)" ]; then echo "skip=none" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if b=$(sh scripts/prerender-dedupe.sh); then echo "skip=$b" >> "$GITHUB_OUTPUT"; echo "Already waiting on branch \`$b\` (same pages): nothing pushed." >> "$GITHUB_STEP_SUMMARY"; else echo "skip=no" >> "$GITHUB_OUTPUT"; fi
+      - name: Push the generated pages to a branch if anything changed
+        if: ${{ steps.dedupe.outputs.skip == 'no' }}
+        run: |
+          if [ -z "$(git status --porcelain event sitemap-events.xml)" ]; then echo "no change"; echo "No event page changed." >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          git config user.name "keepitil-bot"; git config user.email "keepitil-bot@users.noreply.github.com"
+          branch="prerender/run-${{ github.run_id }}"
+          git checkout -b "$branch"
+          git add event sitemap-events.xml
+          git commit -m "Event pages: regenerate prerendered event pages (run ${{ github.run_id }})"
+          git push origin "$branch"
+          echo "Pushed branch \`$branch\`. Open a PR: https://github.com/${{ github.repository }}/compare/main...$branch?expand=1" >> "$GITHUB_STEP_SUMMARY"

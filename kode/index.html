@@ -4,7 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KODE — Social Media Scheduler</title>
+<meta property="og:title" content="KODE — Social Media Scheduler">
+<meta property="og:description" content="Schedule social posts, embed your content calendar on any website, and manage it all from your phone. Free to start.">
+<meta property="og:url" content="https://keepitil.com/kode/">
 <meta name="description" content="Schedule social posts, embed your content calendar on any website, and manage it all from your phone. Free to start.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://keepitil.com/keepitil-og.png">
+<meta name="twitter:image" content="https://keepitil.com/keepitil-og.png">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#2ee6ff">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -76,7 +83,7 @@
   .feature:nth-child(even) .feature-visual{order:-1}
   .feature h2{font-size:clamp(1.6rem,3vw,2.2rem);letter-spacing:-.02em;line-height:1.15;margin-bottom:14px}
   .feature p{color:var(--ink-soft);margin-bottom:22px;font-size:1.05rem}
-  .tag{display:inline-block;font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#0891b2;margin-bottom:12px}
+  .tag{display:inline-block;font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#0e7490;margin-bottom:12px}
   .feature-visual{border-radius:var(--radius-sm);padding:28px;min-height:280px;display:flex;align-items:center;justify-content:center}
   .fv-1{background:var(--peach)}
   .fv-2{background:var(--sky)}
@@ -94,7 +101,7 @@
   .code-lines b{color:#fff}
   .bar-chart{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:10px}
   .bar-chart i{flex:1;background:var(--neon);border-radius:6px 6px 0 0;border:1.5px solid var(--ink)}
-  @media(max-width:820px){.feature{grid-template-columns:1fr;gap:28px;padding:28px}.feature:nth-child(even) .feature-visual{order:0}}
+  @media(max-width:820px){.feature{grid-template-columns:minmax(0,1fr);gap:28px;padding:28px}.feature>*{min-width:0}.feature:nth-child(even) .feature-visual{order:0}}
 
   .quote{padding:56px 0}
   .quote-card{background:var(--ink);color:#eaf7fd;border-radius:var(--radius);padding:64px 48px;text-align:center}
@@ -167,6 +174,7 @@
   </div>
 </header>
 
+<main id="main">
 <section class="hero wrap">
   <span class="eyebrow">✦ Free to start — no card required</span>
   <h1>Your social calendar, <em>everywhere</em> your audience is</h1>
@@ -321,6 +329,8 @@
   </div>
 </section>
 
+</main>
+
 <footer>
   <div class="wrap">
     <div class="foot-grid">
@@ -329,7 +339,7 @@
         <p>The social scheduler you can embed anywhere and carry everywhere.</p>
       </div>
       <div>
-        <h4>Product</h4>
+        <h4 aria-level="3">Product</h4>
         <ul>
           <li><a href="app.html">Scheduler</a></li>
           <li><a href="#embed">Embed widget</a></li>
@@ -337,7 +347,7 @@
         </ul>
       </div>
       <div>
-        <h4>Platforms</h4>
+        <h4 aria-level="3">Platforms</h4>
         <ul>
           <li><a href="#">Instagram</a></li>
           <li><a href="#">TikTok</a></li>
@@ -347,7 +357,7 @@
         </ul>
       </div>
       <div>
-        <h4>Company</h4>
+        <h4 aria-level="3">Company</h4>
         <ul>
           <li><a href="#">About</a></li>
           <li><a href="#">Contact</a></li>

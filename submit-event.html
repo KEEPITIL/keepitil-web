@@ -2,13 +2,13 @@
 <html lang="en" data-theme="default">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="robots" content="noindex,nofollow"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
 <title>Add an Event — KEEPITIL</title>
 <meta name="description" content="KEEPITIL is a culture platform built to discover, connect, create, share and earn through people, events, media and community."/>
 <link rel="stylesheet" href="/assets/css/tokens.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+<link href="/assets/css/fonts.css" rel="stylesheet"/>
 <script src="/assets/js/vendor/supabase-js.min.js"></script>
 <style>
 /* ── GOLD STANDARD #2 — third-party/curated event form (EDMtrain-curate model, Founder 2026-07-18).
@@ -65,6 +65,9 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
 .rc .st.live{color:#22e39b;border-color:rgba(34,227,155,.5)}
 .rc .ed{background:none;border:1px solid var(--line);border-radius:8px;color:var(--text);font-weight:700;font-size:.74rem;padding:5px 11px;cursor:pointer}
 .rc .ed:hover{border-color:var(--brand);color:var(--brand)}
+.rc a.ed{text-decoration:none}
+.rc .ed.danger{border-color:#ff6b6b;color:#ff6b6b}
+.rc .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .tabs{display:flex;gap:6px;margin-bottom:10px}
 .tabs button{flex:1;background:var(--bg,#0d0d13);border:1px solid var(--line);border-radius:9px;color:var(--muted);font:700 .8rem Inter,sans-serif;padding:8px;cursor:pointer}
 .tabs button.on{color:#04121b;background:linear-gradient(90deg,var(--brand),var(--brand-2));border-color:transparent}
@@ -77,17 +80,20 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
 </head>
 <body>
 <nav id="main-nav"></nav>
-<div class="wrap">
+<main class="wrap" id="main">
   <div class="gate" id="gate" style="display:none">
     <h1 style="font-size:1.6rem">ADD AN EVENT</h1>
-    <p>Log in to submit third-party events to the KEEPITIL calendar. Every listing is reviewed before it goes live, and you come straight back here after you log in. Hosting your own with tickets? Use <a href="/create-event" style="color:var(--brand)">Create Event</a>.</p>
+    <p>Log in to add an event to the KEEPITIL calendar. It is free, every listing is reviewed before it goes live, and you come straight back here after you log in.</p>
     <a class="btn" id="gateLogin" href="/apply?next=%2Fsubmit-event">Log in / Join</a>
   </div>
 
   <div id="app" style="display:none">
     <header class="hero">
       <h1 id="formTitle">NEW EVENT</h1>
-      <div class="sub">Add a third-party event to the calendar — a show you found, not one you're hosting. No ticketing here, just the listing + a ticket link out. Hosting your own? <a href="/create-event" style="color:var(--brand)">Use the event form →</a>. Submissions are reviewed before they go live.</div>
+      <div class="sub">Add an event to the KEEPITIL calendar: your own show or one you found. It is free. No ticketing here, just the listing and a link out to tickets or RSVP. Submissions are reviewed before they go live. Track them under <a href="/dashboard" style="color:var(--brand)">Manage your events</a>.<span id="hostLink" hidden> Selling tickets as the KEEPITIL team? <a href="/create-event" style="color:var(--brand)">Use Create Event →</a></span></div>
+      <!-- /create-event is team-only today: it runs rpc('is_admin') and sends everyone else here with
+           ?why=keepitil-events-are-company-only. Say so, instead of offering a link that loops back. -->
+      <div class="sub" id="whyNote" hidden style="margin-top:10px;padding:10px 12px;border:1px solid var(--line,#2a2a3a);border-radius:10px">Ticketed event pages are run by the KEEPITIL team for now. Add your event here instead: the listing links out to your tickets or RSVP, and the team reviews it before it goes live.</div>
     </header>
 
     <div class="grid">
@@ -100,11 +106,11 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
         </div>
         <input type="hidden" id="city" value="Los Angeles"/>
         <div class="row">
-          <div><label>Date *</label><input id="date" type="date" required/></div>
-          <div><label>Duration</label><select id="days"><option value="1">1 Day</option><option value="2">2 Days</option><option value="3">3 Days</option><option value="4">4 Days</option><option value="5">5+ Days</option></select></div>
+          <div><label for="date">Date *</label><input id="date" type="date" required/></div>
+          <div><label for="days">Duration</label><select id="days"><option value="1">1 Day</option><option value="2">2 Days</option><option value="3">3 Days</option><option value="4">4 Days</option><option value="5">5+ Days</option></select></div>
         </div>
         <div class="row">
-          <div><label>Start time</label><input id="time" type="time" step="900" value="21:00"/></div>
+          <div><label for="time">Start time</label><input id="time" type="time" step="900" value="21:00"/></div>
           <div></div>
         </div>
         <label>Title</label>
@@ -136,12 +142,12 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
       <!-- ══ rail: my recent + duplicate search ══ -->
       <div>
         <div class="card">
-          <h3>📋 Recent</h3>
+          <h3 aria-level="2">📋 Recent</h3>
           <div class="note">Your submissions — tap Edit to fix one (edits re-enter review).</div>
           <div id="recent"><div class="sub" style="font-size:.82rem">Nothing submitted yet.</div></div>
         </div>
         <div class="card" style="margin-top:14px">
-          <h3>🔎 Search</h3>
+          <h3 aria-level="2">🔎 Search</h3>
           <div class="note">Check it isn't already listed before you submit.</div>
           <div class="tabs"><button type="button" class="on" data-k="event">Events</button><button type="button" data-k="artist">Artists</button><button type="button" data-k="venue">Venues</button></div>
           <input id="sq" placeholder="Venue, artist, or event title" autocomplete="off"/>
@@ -150,7 +156,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
       </div>
     </div>
   </div>
-</div>
+</main>
 
 <script>
 var SUPA_URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
@@ -159,6 +165,23 @@ var supa=window.supabase?supabase.createClient(SUPA_URL,SUPA_KEY):null;
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 var GENRE='electronic', ARTISTS=[], EDIT_ID=null;
+/* Pacific wall-clock date+time -> UTC ISO, whatever time zone the browser is in. The edit path
+   used new Date(date+'T'+time), which reads the BROWSER's zone, so an edit made outside
+   California moved the event by the zone difference. The submit path already sends
+   local_date/local_time for the server to place in Pacific time. */
+function laWallToISO(date, time){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date||'')) return null;
+  var t=/^\d{2}:\d{2}$/.test(time||'')?time:'21:00';
+  var guess=new Date(date+'T'+t+':00Z');
+  for(var i=0;i<2;i++){
+    var p={}; new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
+      .formatToParts(guess).forEach(function(x){ p[x.type]=x.value; });
+    var shown=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour%24,+p.minute);
+    guess=new Date(guess.getTime()+(Date.parse(date+'T'+t+':00Z')-shown));
+  }
+  return guess.toISOString();
+}
+function laToday(){ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }
 
 /* ── debounced autocomplete against community_suggest ── */
 function debounce(fn,ms){ var t; return function(){ var a=arguments; clearTimeout(t); t=setTimeout(function(){fn.apply(null,a);},ms); }; }
@@ -199,19 +222,62 @@ $('gseg').addEventListener('click',function(e){ var b=e.target.closest('button')
   this.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);}); });
 
 /* ── recent (mine) + edit ── */
-function loadRecent(){
-  supa.rpc('get_my_community_events').then(function(r){
-    var rows=(r&&r.data)||[]; if(!rows.length) return;
-    $('recent').innerHTML=rows.map(function(e,i){
+var RECENT_OFFSET=0, RECENT_PAGE=25;
+/* My events: prefer get_my_events (community AND organizer events, paged, has_orders). Until that server
+   function is deployed, fall back to get_my_community_events (community only, 25 rows) exactly as before. */
+function loadRecent(more){
+  var off=more?RECENT_OFFSET:0;
+  return supa.rpc('get_my_events',{p_limit:RECENT_PAGE,p_offset:off}).then(function(r){
+    if(r&&r.error&&memberFnMissing(r.error)) return supa.rpc('get_my_community_events').then(function(r2){ return {rows:(r2&&r2.data)||[],paged:false}; });
+    if(r&&r.error) return {error:true,rows:[],paged:false};
+    return {rows:(r&&r.data)||[],paged:true};
+  }).then(function(res){
+    if(res.error){ $('recent').innerHTML='<div class="rc" role="alert">Could not load your events. Try again.</div>'; return RECENT; }
+    var rows=res.rows; RECENT=more?RECENT.concat(rows):rows; RECENT_OFFSET=RECENT.length;
+    if(!RECENT.length) return RECENT;
+    $('recent').innerHTML=RECENT.map(function(e,i){
       var d=e.starts_at?new Date(e.starts_at):null;
       var ds=d?new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',month:'numeric',day:'numeric',year:'2-digit'}).format(d):'';
+      var mine=e.source==null||e.source==='community';
+      var acts=mine
+        ?'<button type="button" class="ed" data-i="'+i+'">Edit</button>'
+          +(MEMBER_DATA_CONTROLS&&MEMBER_LIVE.indexOf(e.status)>-1?'<button type="button" class="ed" data-act="unpublish" data-i="'+i+'">Unpublish</button>':'')
+          +(MEMBER_DATA_CONTROLS&&!e.has_orders?'<button type="button" class="ed danger" data-act="delete" data-i="'+i+'">Delete</button>':'')
+        :'<a class="ed" href="/create-event?e='+encodeURIComponent(e.slug)+'">Edit</a>';
       return '<div class="rc"><div class="t"><b>'+esc(e.title)+'</b><span>'+esc([e.venue,e.city].filter(Boolean).join(' · '))+(ds?' · '+ds:'')+'</span></div>'
         +'<span class="st'+(e.status==='published'?' live':'')+'">'+esc(e.status)+'</span>'
-        +'<button type="button" class="ed" data-i="'+i+'">Edit</button></div>';
-    }).join('');
-    $('recent').querySelectorAll('.ed').forEach(function(b){ b.addEventListener('click',function(){ startEdit(rows[+b.dataset.i]); }); });
-  });
+        +'<span class="acts">'+acts+'</span></div>';
+    }).join('')+(res.paged&&rows.length===RECENT_PAGE?'<div class="rc"><button type="button" class="ed" id="recentMore">Show more</button></div>':'')
+      +(MEMBER_DATA_CONTROLS?'':'<div class="rc" id="recentHelp">To unpublish or delete an event, email <a href="mailto:info@keepitil.com">info@keepitil.com</a> and we will do it for you.</div>');
+    $('recent').querySelectorAll('button.ed[data-i], .ed[data-i]').forEach(function(b){ b.addEventListener('click',function(){
+      var row=RECENT[+b.dataset.i], act=b.dataset.act; if(!act){ startEdit(row); return; } memberAct(act,row,b); }); });
+    var mb=$('recentMore'); if(mb) mb.addEventListener('click',function(){ loadRecent(true); });
+    return RECENT;
+  }).catch(function(e){ try{ console.error('[submit-event] listings', e); }catch(x){} return []; });
 }
+var RECENT=[];
+/* MEMBER CONTROL: unpublish / delete my own submitted event. Server functions are owner-only
+   (events.submitted_by = auth.uid()). */
+/* MEMBER_DATA_CONTROLS: ON since keepitil.github.io #95 (unpublish/delete_my_community_event) was applied and verified on prod (2026-11-25 15:30 window). Keep it equal here AND in settings.html (a test keeps both equal). Off = the email-request fallback is shown instead. */
+var MEMBER_DATA_CONTROLS=true;
+var MEMBER_LIVE=['published','review','sold_out'];
+function memberFnMissing(err){ return !!err && (err.code==='PGRST202' || /could not find the function|does not exist/i.test(String(err.message||''))); }
+function memberAct(act,row,btn){
+  var del=act==='delete';
+  var q=del?('Delete "'+(row.title||'this event')+'" permanently? This cannot be undone.'):('Take "'+(row.title||'this event')+'" off the public site? You can edit it and submit it again later.');
+  if(!window.confirm(q)) return;
+  var m=$('msg'); if(btn) btn.disabled=true;
+  supa.rpc(del?'delete_my_community_event':'unpublish_my_community_event',{p_id:row.id}).then(function(r){
+    var d=r&&r.data, err=r&&r.error;
+    if(btn) btn.disabled=false;
+    if(err){ m.className='msg err'; m.textContent=memberFnMissing(err)?'This is not available yet. Email info@keepitil.com and we will do it for you.':'Could not complete that. Nothing was changed.'; return; }
+    if(d&&d.ok===false){ m.className='msg err'; m.textContent=d.message||d.error||'Could not complete that.'; return; }
+    m.className='msg ok'; m.textContent=del?'Event deleted.':'Event unpublished.'; loadRecent();
+  }).catch(function(){ if(btn) btn.disabled=false; m.className='msg err'; m.textContent='Could not complete that. Nothing was changed.'; });
+}
+/* After an edit: the server (update_community_event, edit-review policy) says whether the event went back to
+   review. Only an explicit needs_review === false means it stayed live; the older server (no flag) always re-reviews. */
+function editSavedMessage(d){ return (d&&d.needs_review===false)?'Saved — your event stays live. ✓':'Saved — back in review. ✓'; }
 function startEdit(e){
   EDIT_ID=e.id; $('formTitle').textContent='EDIT EVENT'; $('submitBtn').textContent='Save changes';
   $('venue').value=e.venue||''; $('city').value=e.city||'Los Angeles'; $('title').value=e.title||'';
@@ -252,11 +318,20 @@ $('form').addEventListener('submit',function(e){
   var msg=$('msg'); msg.className='msg'; msg.textContent='';
   var b=$('submitBtn'); b.disabled=true; var old=b.textContent; b.textContent='Submitting…';
   function fail(t){ msg.className='msg err'; msg.textContent=t; b.disabled=false; b.textContent=old; }
+  function offline(e){ fail('Could not reach KEEPITIL. Check your connection and try again.'); try{ console.error('[submit-event]', e); }catch(x){} }
+  if(!$('venue').value.trim()){ fail('Add the venue.'); return; }
+  if(!$('date').value){ fail('Pick the date.'); return; }
+  /* A new listing can't start in the past (Pacific date). Edits are allowed so a host can fix
+     an old listing's details. */
+  if(!EDIT_ID && $('date').value < laToday()){ fail('That date has passed. Pick today or a later date.'); return; }
+  var tl=$('ticket_link').value.trim();
+  if(tl && !/^https?:\/\//i.test(tl)){ tl='https://'+tl; $('ticket_link').value=tl; }   /* "posh.vip/e/x" -> https://posh.vip/e/x */
+  if(tl && !/^https?:\/\/[^\s\/.]+\.[^\s]+$/i.test(tl)){ fail('The ticket link does not look like a web address. Paste the full link, e.g. https://posh.vip/e/your-event'); return; }
   var xl=[]; document.querySelectorAll('#xlinks .xl').forEach(function(i){ var u=i.value.trim(); if(u) xl.push(u); });
   var genres=(GENRE==='other'?'Other':'')+($('subgenres').value.trim()?((GENRE==='other'?' · ':'')+$('subgenres').value.trim()):(GENRE==='other'?'':'Electronic'));
   if(EDIT_ID){
     var startsISO=null;
-    if($('date').value){ startsISO=new Date($('date').value+'T'+($('time').value||'21:00')).toISOString(); }
+    if($('date').value){ startsISO=laWallToISO($('date').value, $('time').value||'21:00'); }
     supa.rpc('update_community_event',{p_id:EDIT_ID,p:{
       title:$('title').value.trim()||null, venue:$('venue').value.trim(), city:$('city').value,
       starts_at:startsISO, ticket_link:$('ticket_link').value.trim(), note:$('note').value.trim(),
@@ -264,9 +339,9 @@ $('form').addEventListener('submit',function(e){
     }}).then(function(r){
       var d=(r&&r.data)||{};
       if(r.error||!d.ok){ fail((r.error&&r.error.message)||d.error||'Could not save.'); return; }
-      msg.className='msg ok'; msg.textContent='Saved — back in review. ✓';
+      msg.className='msg ok'; msg.textContent=editSavedMessage(d);
       b.disabled=false; b.textContent=old; clearForm(); loadRecent();
-    });
+    }).catch(offline);
     return;
   }
   supa.rpc('submit_community_event',{p:{
@@ -278,9 +353,9 @@ $('form').addEventListener('submit',function(e){
   }}).then(function(r){
     var d=(r&&r.data)||{};
     if(r.error||!d.ok){ fail((r.error&&r.error.message)||d.error||'Could not submit.'); return; }
-    msg.className='msg ok'; msg.textContent='Submitted for review ✓ — it appears on the calendar once approved.';
+    msg.className='msg ok'; msg.textContent='Submitted for review ✓ — it appears on the calendar once approved. Track it under Manage your events.';
     b.disabled=false; b.textContent=old; clearForm(); loadRecent();
-  });
+  }).catch(offline);
 });
 
 /* ── boot: auth gate ── */
@@ -294,11 +369,20 @@ $('form').addEventListener('submit',function(e){
       $('gate').style.display='block'; return;
     }
     $('app').style.display='block';
-    loadRecent();
+    var qs=new URLSearchParams(location.search);
+    if(qs.get('why')==='keepitil-events-are-company-only') $('whyNote').hidden=false;
+    supa.rpc('is_admin').then(function(a){ if(a&&a.data) $('hostLink').hidden=false; }).catch(function(){});
+    /* ?edit=<id> opens one of YOUR listings for editing (the dashboard links here). */
+    var want=qs.get('edit');
+    loadRecent().then(function(rows){
+      if(!want) return;
+      var hit=(rows||[]).filter(function(e){ return String(e.id)===String(want); })[0];
+      if(hit) startEdit(hit);
+    });
   });
 })();
 </script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261031a" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
 </body>
 </html>

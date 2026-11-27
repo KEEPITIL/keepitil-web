@@ -14,8 +14,7 @@
 <meta name="twitter:card" content="summary_large_image"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-purple-nav.png"/>
 <link rel="preconnect" href="https://ovmqtzjfpzrbzrlkxwgw.supabase.co"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="/assets/css/fonts.css" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/css/tokens.css?v=20260826a"/>
 <link rel="stylesheet" href="/assets/css/discover.css"/>
 <script type="application/ld+json">
@@ -45,7 +44,7 @@
   <h1>Techno events in Los Angeles</h1>
   <p class="disc-lede">Techno in Los Angeles shows up as a room, not a district: a downtown market, a one-off bill, a tag on a flyer. Only published upcoming events whose genres map to techno are listed. Tech house is included, because that phrase is both house and techno. House-only nights stay on the Los Angeles page, and a night with no genre is not guessed onto this one.</p>
   <p class="disc-count" id="disc-count">Loading published events…</p>
-  <div id="disc-lists" aria-live="polite">
+  <div id="disc-lists" class="disc-reserve" aria-live="polite">
     <p class="disc-loading">Loading published events…</p>
   </div>
   <noscript><p class="disc-note">Event listings load from KEEPITIL Discover and need JavaScript. You can still <a href="/submit-event">submit an event</a>.</p></noscript>
@@ -89,6 +88,7 @@
 window.KIL_DISCOVER = {
   kind: 'events',
   city: 'los-angeles',
+  cityExact: ['Los Angeles', 'LA'],
   cityName: 'Los Angeles',
   state: 'CA',
   view: 'genre',
@@ -99,8 +99,9 @@ window.KIL_DISCOVER = {
 };
 </script>
 <script src="/assets/js/vendor/supabase-js.min.js" defer></script>
+<script src="/assets/js/kil-img-host.js"></script>
 <script src="/assets/js/kil-discover.js" defer></script>
 <script src="/kil-seasons.js?v=20260910b"></script>
-<script src="/keepitil-shell.js?v=20261031a" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
 </body>
 </html>

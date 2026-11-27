@@ -1,0 +1,4 @@
+{
+  "_note": "EVENTS v0 (Joe/KODE 2026-11-24, flag-gated). A short CURATED list, not a feed: prod public.events has no cannabis category and events where cannabis is sold or consumed need counsel before any are listed. Entries are built by tools/export-events.js from an allow-list of event slugs, public fields only, and start as status draft with no reviewer. An entry shows only when status is published AND reviewed_by is set AND it passes js/events.js. Empty = the page says Events are coming soon.",
+  "events": []
+}

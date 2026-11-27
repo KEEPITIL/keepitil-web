@@ -1,17 +1,30 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="default">
 <head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no.0,viewport-fit=cover"/>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <link rel="icon" type="image/png" href="/assets/images/logo-blue-nav.png"/>
 <meta name="description" content="KEEPITIL Refund Policy — memberships, tickets, challenge entries, and fees."/>
 <meta name="robots" content="index,follow"/>
 <title>Refund Policy — KEEPITIL</title>
+<meta property="og:title" content="Refund Policy — KEEPITIL">
+<meta property="og:description" content="KEEPITIL Refund Policy — memberships, tickets, challenge entries, and fees.">
+<meta property="og:url" content="https://keepitil.com/refund">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://keepitil.com/keepitil-og.png">
+<meta name="twitter:image" content="https://keepitil.com/keepitil-og.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/assets/css/tokens.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="/assets/css/fonts.css" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg,#0a0a0f);color:var(--text);font-family:var(--font);line-height:1.7;padding-bottom:72px}
 .wrap{max-width:820px;margin:0 auto;padding:var(--sp-5,56px) var(--sp-3,20px)}
+/* CLS (desktop + any JS): the static #main-nav above exists for crawlers and no-JS readers only; keepitil-shell.js removes it and, on desktop, adds body padding-top:66px and its own .wrap box
+   (max-width 1360px, 40px gutters, !important). Until then it rendered as an unstyled list and the page jumped (main 250 -> 66 px, 820 -> 1280 px wide: CLS 0.38 on /privacy at 1280).
+   With scripting on it is not painted (still in the DOM for crawlers; no-JS readers still see it) and the shell's final values are stated up front. */
+@media (scripting:enabled){#main-nav{display:none}}
+@media (min-width:861px){.wrap{max-width:1360px;padding-left:40px;padding-right:40px}}
+@media (min-width:861px) and (scripting:enabled){body{padding-top:66px}}
 h1{font-size:clamp(2rem,5vw,3rem);font-weight:900;margin-bottom:6px}
 .upd{color:var(--muted);font-size:.85rem;margin-bottom:var(--sp-4,32px)}
 h2{font-size:1.25rem;font-weight:800;margin:var(--sp-4,32px) 0 var(--sp-2,12px);color:var(--brand)}
@@ -35,11 +48,11 @@ a{color:var(--brand)}
      One architecture only: DISCOVER · CONNECT · CREATE · CULTURE · EARN (+ Login). -->
 <nav id="main-nav" aria-label="KEEPITIL platform"><div class="nav-inner">
   <a class="nav-logo" href="/"><span class="nav-brand">KEEPITIL</span></a>
-  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/shop/">SHOP</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
+  <ul class="nav-links"><li><a href="/">DISCOVER</a></li><li><a href="/connect/">CONNECT</a></li><li><a href="/create/">CREATE</a></li><li><a href="/culture/">CULTURE</a></li><li><a href="/earn/">EARN</a></li></ul>
   <a href="/apply" class="nav-cta">LOGIN</a>
 </div></nav>
 
-<div class="wrap">
+<main class="wrap">
 <h1>Refund Policy</h1>
 <div class="upd">KEEPITIL · Last updated 2026-09-14</div>
 
@@ -83,9 +96,9 @@ partner under its terms, not purchased from KEEPITIL, so there is nothing for KE
 
 <p style="margin-top:var(--sp-5,56px)"><a href="/terms">Terms of Service</a> · <a href="/privacy">Privacy Policy</a> · <a href="/">Home</a></p>
 <p style="margin-top:28px;padding-top:16px;border-top:1px solid var(--line,rgba(255,255,255,.1));font-size:.82rem;color:var(--muted,#9a94b4);line-height:1.7"><b>KEEPITIL</b><br>9252 Garden Grove Blvd, Ste 19 PMB 1066, Garden Grove, CA 92844<br>Contact: <a href="mailto:info@keepitil.com">info@keepitil.com</a><br>Last updated: September 14, 2026</p>
-</div>
-<script src="/assets/js/keepitil-radio.js?v=20261109a" defer></script>
+</main>
+<script src="/assets/js/keepitil-radio.js?v=20261124c" defer></script>
 <script src="/assets/js/keepitil-ai.js?v=20260905a" defer></script>
-<script src="/keepitil-shell.js?v=20261031a" defer></script>
+<script src="/keepitil-shell.js?v=20261125a" defer></script>
 </body>
 </html>

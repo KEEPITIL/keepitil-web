@@ -32,3 +32,4 @@ Disallow: /app/tuitea-preview/
 
 Sitemap: https://keepitil.com/sitemap.xml
 Sitemap: https://keepitil.com/sitemap-events.xml
+Sitemap: https://keepitil.com/app/findmyweed/sitemap.xml

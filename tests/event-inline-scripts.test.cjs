@@ -26,6 +26,13 @@ test("moved code is unchanged: preload and password blocks byte-identical, the p
   let main = body("event-page");
   const shim = main.slice(0, main.indexOf("})();\n") + 6); assert.match(shim, /kil-prerender-slug/); main = main.slice(shim.length);
   main = main.replace(/function canonFor\(slug\)\{ return window\.__kilPrerenderSlug \? [^\n]*?\/\* prerendered pages canonicalise[^\n]*?\*\//, "function canonFor(slug){ return 'https://keepitil.com/event?e='+encodeURIComponent(slug||''); }").replace("slug:g('e')||window.__kilPrerenderSlug||'',", "slug:g('e'),");
+  // documented later change (buyer-paid ticket service fee, 2026-11-27): three additions to the page script, removed here so the rest is still proven byte-identical
+  const FEE_FN = /  \/\* TICKET SERVICE FEE \(buyer-paid, Joe\)[^\n]*\*\/\n  function kilServiceFee\(sub\)\{[^\n]*\}\n/;
+  assert.match(main, FEE_FN); main = main.replace(FEE_FN, "");
+  const FEE_TAX = "var fee=kilServiceFee(sub); $('tf-tax').textContent=sub>0?('Service fee '+money(fee)+' · Total '+money(sub+fee)):'Service fee 5% + $0.50 per order';";
+  assert.ok(main.includes(FEE_TAX)); main = main.replace(FEE_TAX, "$('tf-tax').textContent='Tax $0.00 · fees included';");
+  const FEE_NOTE = /if\(tt\)\{ if\(!\$\('tix-fee'\)\)\{[^\n]*?tt\.parentNode\.insertBefore\(fl,tt\); \} tt\.style\.display=''; \} \}/;
+  assert.match(main, FEE_NOTE); main = main.replace(FEE_NOTE, "if(tt) tt.style.display=''; }");
   assert.equal(sha(main.trim()), OLD.main);
 });
 test("the three files parse, and none can close its own <script> tag", () => {

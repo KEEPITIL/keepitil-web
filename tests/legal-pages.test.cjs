@@ -34,7 +34,7 @@ test('no internal drafting note on a customer-facing legal page', () => {
 // ONE "last updated" date per legal page, each the real date of the last change to the page's wording (from git history:
 // terms = 2026-09-17 PT, ticket-terms = 2026-09-14 PT, refund = 2026-09-14 PT). Two dates on one page was the defect (checklist gap 7a).
 const lastUpdated = (html) => [...html.matchAll(/Last updated:?\s*([^<]+)</g)].map((m) => m[1].trim());
-const EXPECT = { 'terms.html': 'November 27, 2026', 'ticket-terms.html': 'September 14, 2026', 'privacy.html': null };
+const EXPECT = { 'terms.html': 'November 27, 2026', 'ticket-terms.html': 'November 27, 2026', 'privacy.html': null };
 
 test('terms and ticket-terms show exactly ONE last-updated date, the real one', () => {
   for (const f of ['terms.html', 'ticket-terms.html']) assert.deepEqual(lastUpdated(raw(f)), [EXPECT[f]], f);

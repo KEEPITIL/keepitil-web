@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const ROOT = process.env.SS_ROOT || path.resolve(__dirname, "..");
-const html = fs.readFileSync(path.join(ROOT, "support/index.html"), "utf8");
+const html = require("./helpers/event-assembled.cjs").assemble(fs.readFileSync(path.join(ROOT, "support/index.html"), "utf8"));
 const lit = (name) => vm.runInNewContext("(" + html.match(new RegExp("var " + name + " = (\\[[\\s\\S]*?\\n  \\]);"))[1] + ")");
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const inner = (id) => html.match(new RegExp('id="' + id + '"[^>]*>([\\s\\S]*?)</div>'))[1];

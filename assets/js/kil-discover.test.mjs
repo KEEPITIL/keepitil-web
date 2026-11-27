@@ -329,7 +329,7 @@ test('loadCityRows reads page after page until a short page, in a stable range o
 test('/discover/ index page wires the cities list and still links Los Angeles; the pages that exist are unchanged', function () {
   var h = readFileSync(join(root, 'discover/index.html'), 'utf8');
   assert.match(h, /id="disc-cities"/); assert.match(h, /id="disc-lists"/); assert.match(h, /id="disc-count"/);
-  assert.match(h, /kind: 'cities'/);
+  assert.match(h, /"kind":"cities"/);
   assert.match(h, /\/assets\/js\/vendor\/supabase-js\.min\.js/); assert.match(h, /\/assets\/js\/kil-discover\.js/);
   assert.match(h, /href="\/discover\/los-angeles\/"/);
   assert.equal((h.match(/<h1/g) || []).length, 1);
@@ -338,7 +338,7 @@ test('/discover/ index page wires the cities list and still links Los Angeles; t
 test('every Los Angeles page asks for Los Angeles rows only, so its list never depends on how many events other cities have (it showed 50 of 51 once other cities were added)', function () {
   ['discover/los-angeles/index.html', 'discover/los-angeles/this-weekend/index.html', 'discover/los-angeles/techno/index.html'].forEach(function (rel) {
     var h = readFileSync(join(root, rel), 'utf8');
-    assert.match(h, /cityExact: \['Los Angeles', 'LA'\]/, rel);
+    assert.match(h, /"cityExact":\["Los Angeles","LA"\]/, rel);
   });
   var calls = [];
   function chain() { var c = {}; ['select', 'eq', 'gte', 'or', 'order', 'limit', 'in'].forEach(function (m) { c[m] = function () { calls.push([m].concat([].slice.call(arguments))); return c; }; }); return c; }

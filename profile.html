@@ -1281,7 +1281,7 @@ function openTicket(i){
   var qr='';
   if(door){ var qrDraw=qrcode(0,'M'); qrDraw.addData(door); qrDraw.make(); qr=qrDraw.createDataURL(4,0); }
   var flyer=KH(t.cover_url)?'<img src="'+esc(KH(t.cover_url))+'" alt="" style="width:100%;border-radius:12px;margin-bottom:12px;display:block" onerror="this.style.display=\'none\'">':'';
-  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';
+  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Dialog');
   ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Your Ticket<button class="kil-mx" onclick="closeModal()">&times;</button></div><div class="kil-mb">'
     +flyer
     +'<h3 style="margin:0 0 4px">'+esc(t.title||'Event')+'</h3>'
@@ -1484,7 +1484,7 @@ function uploadImage(file0,cb){
   });
 }
 function resolveImg(vals,fileKey,urlKey,dflt,cb){ uploadImage(vals[fileKey+'_file'],function(pub){ cb(pub||vals[fileKey]||vals[urlKey]||dflt||''); }); }
-function toast(msg){ var t=document.createElement('div'); t.textContent=msg; t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--surface);color:var(--text);border:1px solid var(--line);padding:11px 18px;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.45);z-index:10000;font-size:.85rem;max-width:90%;text-align:center;'; document.body.appendChild(t); setTimeout(function(){t.style.opacity='0';t.style.transition='opacity .4s';},2600); setTimeout(function(){t.remove();},3200); }
+function toast(msg){ var t=document.createElement('div'); t.setAttribute('role','status'); t.textContent=msg; t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--surface);color:var(--text);border:1px solid var(--line);padding:11px 18px;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.45);z-index:10000;font-size:.85rem;max-width:90%;text-align:center;'; document.body.appendChild(t); setTimeout(function(){t.style.opacity='0';t.style.transition='opacity .4s';},2600); setTimeout(function(){t.remove();},3200); }
 
 /* ── PROFILE META (header/bio/links/highlights) — editable by the owner ── */
 /* Groove Trooper's data lives ONLY here, gated by IS_DEMO — never in markup, never for other slugs. */
@@ -1635,10 +1635,10 @@ function openDM(){
   if(!SB||!SESSION){ toast('Sign in to message.'); setTimeout(function(){location.href='/apply?next='+encodeURIComponent(location.pathname+location.search);},700); return; }
   if(document.getElementById('kilDM'))return;
   var nm=(typeof PROFILE!=='undefined'&&PROFILE.name)?PROFILE.name:'this profile';
-  var ov=document.createElement('div'); ov.id='kilDM';
+  var ov=document.createElement('div'); ov.id='kilDM'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true'); ov.setAttribute('aria-label','Message '+nm);
   ov.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:16px';
   ov.innerHTML='<div style="background:#15151f;border:1px solid rgba(255,255,255,.14);border-radius:16px;max-width:420px;width:100%;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.6)">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><b style="font-size:1.05rem;color:#fff">Message '+nm+'</b><button id="dmX" aria-label="Close" style="background:none;border:0;color:#888;font-size:1.5rem;line-height:1;cursor:pointer">&times;</button></div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><b style="font-size:1.05rem;color:#fff">Message '+esc(nm)+'</b><button id="dmX" aria-label="Close" style="background:none;border:0;color:#888;font-size:1.5rem;line-height:1;cursor:pointer">&times;</button></div>'
     +'<textarea id="dmBody" rows="4" placeholder="Write a message…" maxlength="4000" style="width:100%;box-sizing:border-box;background:#0e0e16;border:1px solid rgba(255,255,255,.16);border-radius:10px;color:#e8e8f0;padding:11px;font-size:.95rem;resize:vertical"></textarea>'
     +'<button id="dmSend" class="pf-btn book" style="width:100%;margin-top:12px;justify-content:center">Send</button></div>';
   document.body.appendChild(ov);
@@ -1747,9 +1747,9 @@ function openEditProfile(){
   '<div class="kil-mb">'+
     '<div class="kil-sec">Photos</div>'+
     '<div class="kil-photos kil-ph3">'+
-      '<label class="kil-mf"><span>Profile · 1:1</span><img class="kil-prev on kil-ar11" id="epAvatarPrev" src="'+esc(PROFILE.avatar||'')+'"><input type="file" accept="image/*" id="epAvatarFile"><input type="text" id="epAvatarUrl" placeholder="…or URL"></label>'+
-      '<label class="kil-mf"><span>Mobile BG · 9:16</span><img class="kil-prev on kil-ar916" id="epCoverMPrev" src="'+esc(PROFILE.cover_mobile||'')+'"><input type="file" accept="image/*" id="epCoverMFile"><input type="text" id="epCoverMUrl" placeholder="…or URL"></label>'+
-      '<label class="kil-mf"><span>Desktop BG · 16:9</span><img class="kil-prev on kil-ar169" id="epCoverPrev" src="'+esc(PROFILE.cover||'')+'"><input type="file" accept="image/*" id="epCoverFile"><input type="text" id="epCoverUrl" placeholder="…or URL"></label>'+
+      '<label class="kil-mf"><span>Profile · 1:1</span><img class="kil-prev on kil-ar11" id="epAvatarPrev" alt="" src="'+esc(PROFILE.avatar||'')+'"><input type="file" accept="image/*" id="epAvatarFile"><input type="text" id="epAvatarUrl" placeholder="…or URL"></label>'+
+      '<label class="kil-mf"><span>Mobile BG · 9:16</span><img class="kil-prev on kil-ar916" id="epCoverMPrev" alt="" src="'+esc(PROFILE.cover_mobile||'')+'"><input type="file" accept="image/*" id="epCoverMFile"><input type="text" id="epCoverMUrl" placeholder="…or URL"></label>'+
+      '<label class="kil-mf"><span>Desktop BG · 16:9</span><img class="kil-prev on kil-ar169" id="epCoverPrev" alt="" src="'+esc(PROFILE.cover||'')+'"><input type="file" accept="image/*" id="epCoverFile"><input type="text" id="epCoverUrl" placeholder="…or URL"></label>'+
     '</div>'+
     '<div class="kil-sec">Profile</div>'+
     '<label class="kil-mf"><span>Display name</span><input type="text" id="epName" value="'+esc(PROFILE.name)+'"></label>'+
@@ -1804,7 +1804,7 @@ function openEditProfile(){
     '<div class="kil-note">Account name = your @handle above. Email/password changes are applied to your login when you Save.</div>'+
   '</div>'+
   '<div class="kil-mfoot"><button class="kil-mcancel" onclick="closeModal()">Cancel</button><button class="kil-msave" id="epSave">Save changes</button></div></div>';
-  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';ov.innerHTML=html;document.body.appendChild(ov);
+  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Dialog');ov.innerHTML=html;document.body.appendChild(ov);
   ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
   function bindPrev(fileId,prevId){var f=document.getElementById(fileId);if(!f)return;f.addEventListener('change',function(){var file=f.files&&f.files[0];if(!file)return;var rd=new FileReader();rd.onload=function(){var p=document.getElementById(prevId);if(p)p.src=rd.result;};rd.readAsDataURL(file);});}
   bindPrev('epAvatarFile','epAvatarPrev'); bindPrev('epCoverFile','epCoverPrev'); bindPrev('epCoverMFile','epCoverMPrev');
@@ -1892,7 +1892,7 @@ function slugify(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-'
 /* generic modal: fields=[{name,label,type,ph,req,val}], returns values via cb */
 function openModal(title,fields,cb){
   closeModal();
-  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';
+  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Dialog');
   var rows=fields.map(function(f){
     var id='mf_'+f.name;
     if(f.type==='textarea') return '<label class="kil-mf"><span>'+esc(f.label)+'</span><textarea id="'+id+'" rows="4" placeholder="'+esc(f.ph||'')+'">'+esc(f.val||'')+'</textarea></label>';
@@ -1924,7 +1924,7 @@ function openCreatePost(target){
   if(!CAN_EDIT()){ if(IS_OWNER&&SB&&!SESSION){toast('Sign in as the profile owner to post.');} else if(IS_OWNER&&SESSION&&!OWNS){toast('Only this profile’s owner can post.');} else {toast('Only KEEPITIL users can post — on their own profile.');} return; }
   CP={target:target||'feed',media:'',mtype:'',file:null,tags:[],collab:[]};
   closeModal();
-  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';
+  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Dialog');
   ov.innerHTML='<div class="kil-modal"><div class="kil-mh">New post<button class="kil-mx" onclick="closeModal()">&times;</button></div>'
     +'<div class="kil-mb">'
     +'<div class="cp-drop" id="cpDrop" onclick="document.getElementById(\'cpFile\').click()"><div class="cp-plus">＋</div><div class="cp-hint">Tap to add photos or video<br><small>Required — media comes first · pick several for a carousel</small></div></div>'
@@ -2515,7 +2515,7 @@ function openPost(src,idx){
     foot='<div class="kil-mfoot"><button class="kil-mcancel" onclick="toggleHideFeed(\''+src+'\','+idx+')">'+(hidden?'👁 Show in feed':'🚫 Hide from feed')+'</button></div>';
   }
   closeModal();
-  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';
+  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Dialog');
   ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Post<button class="kil-mx" onclick="closeModal()">&times;</button></div><div class="kil-mb kil-post"></div>'+foot+'</div>';
   var slot=ov.querySelector('.kil-post'); if(slot) slot.innerHTML=html;
   document.body.appendChild(ov); ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
@@ -2936,7 +2936,7 @@ if(!IS_DEMO){ PROFILE={name:'',handle:PROFILE_SLUG,location:'',bio:'',tagline:''
 /* Create Event chooser — the ONLY two gold standards */
 function openCreateChooser(){
   closeModal();
-  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';
+  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Dialog');
   ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Create Event<button class="kil-mx" onclick="closeModal()">&times;</button></div>'
     +'<div class="kil-mb"><div class="ev-choose">'
     +'<a class="ev-opt" href="/submit-event"><span class="ei"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 16.9 6.2 19.9l.9-5.4L3.2 10.7l5.4-.8L12 2z"/></svg></span><span><h4>New event</h4><p>Host your own — tickets, tiers, payouts. The full event form.</p></span></a>'
@@ -2978,7 +2978,7 @@ function createHighlight(){
 /* ARCHIVE — expired stories + manually archived posts; archive/unarchive own content */
 function openArchive(){
   closeModal();
-  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';
+  var ov=document.createElement('div');ov.className='kil-modal-ov';ov.id='kilModal';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Dialog');
   ov.innerHTML='<div class="kil-modal"><div class="kil-mh">Archive<button class="kil-mx" onclick="closeModal()">&times;</button></div><div class="kil-mb" id="archList" style="max-height:60vh;overflow:auto">Loading…</div></div>';
   document.body.appendChild(ov);
   ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});

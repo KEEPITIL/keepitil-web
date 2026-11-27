@@ -1,0 +1,42 @@
+-- REVIEW-TEMPLATE-get_event_view-organizer-mask_PROPOSED.sql   (slice 10A, Atlas I11 "mask get_event_view organizer")
+--
+-- *** THIS IS A TEMPLATE, NOT A PATCH. IT CANNOT BE APPLIED AS WRITTEN. ***
+-- The live body of public.get_event_view(text) is not in any pack and production was not read for this slice. Rewriting a function from memory of its
+-- callers would be a guess, so this file only records (1) the exact change to make, (2) the callers it affects, (3) what to capture first.
+--
+-- STEP 0  Capture the live body: PRECHECK-10A.sql block D1 (pg_get_functiondef + ACL + SECURITY DEFINER/INVOKER + search_path). Paste it into
+--         ROLLBACK as {{GET_EVENT_VIEW_OLD_DEFINITION}} and {{GET_EVENT_VIEW_OLD_GRANTS}} before writing anything else.
+--
+-- WHAT THE CALLERS READ (verified in the #92-head tree):
+--   event.html:628-650  r.data[0] -> slug,title,venue,city,starts_at,tz,genres,ends_at,cover_url,description,id,reg_questions,show_lineup,show_gallery,show_feed,is_external,
+--                       owner_handle, owner_name (HOST chip: a link to /profile?slug=<owner_handle>, text owner_name || owner_handle)
+--   assets/js/kil-show.js:124  vr.data[0] -> same row, then slugOf(ev.owner_handle) for the host link and host name
+-- So the organizer is exposed through exactly two output columns: owner_handle and owner_name (names taken from the callers; confirm against block D1).
+--
+-- THE CHANGE (after STEP 0), expressed against the captured body, not replacing it:
+--   * keep the function's signature, return table, LANGUAGE, SECURITY, SET search_path and every non-organizer column byte-identical;
+--   * replace the two organizer output expressions with a public-profile gate. For a SECURITY DEFINER body with search_path = public the gate must be schema-qualified:
+--
+--         CASE WHEN private.profile_is_public(lower(btrim(e.owner_handle))) THEN e.owner_handle END AS owner_handle,
+--         CASE WHEN private.profile_is_public(lower(btrim(e.owner_handle))) THEN <existing owner_name expression> END AS owner_name
+--
+--     private.profile_is_public is callable from a DEFINER function owned by postgres (the private schema has no USAGE for anon/authenticated, but the definer's owner has it);
+--     it returns FALSE for unknown, private, minor, non-attested or ownerless pages, so the organizer of an event whose page is not public is hidden.
+--   * the event OWNER viewing their own draft keeps the current path (kil-show.js:130 reads the row through RLS), unchanged.
+--   * the function must stay STABLE; do NOT add a volatile call; do NOT widen EXECUTE (keep the captured ACL: PRECHECK-RESULTS says the sibling functions are
+--     anon/authenticated/service_role only).
+--
+-- WHAT THIS DOES NOT CLOSE (so do not claim it does):
+--   events.owner_handle is still SELECT-able by anon/authenticated as a plain column (APPLY-92 keeps it; "organizer is not a privacy control" in the #92 README).
+--   Readers of the column that must move to a masked source BEFORE it can be revoked:
+--       assets/js/kil-browse.js:112 (COLS includes owner_handle; host chips)        assets/js/kil-show.js:115 (EVENT_COLS; host's own draft fallback)
+--       index.html:3155 (home event list select ... owner_handle)                    event.html reads it only through get_event_view
+--       get_profile_events / get_profile_event_summary (DEFINER, unaffected)
+--   plus the cached copies in the iOS bundle. Revoking SELECT (owner_handle) is therefore a LATER step (ORDER-10A.md, "deferred"), with its own guard list.
+--
+-- TEST CASES the replacement must pass in Sentinel's isolated run (all against a database built from the real catalog, not a replica):
+--   T1 event of a PUBLIC profile: owner_handle/owner_name returned.        T2 event whose host profile is private / minor / unattested / missing: both NULL.
+--   T3 every other column and the row count identical to the captured body for the same inputs.   T4 anon and authenticated still EXECUTE; hash never in output.
+--   T5 the host chip hides (event.html:652, kil-show host link) instead of rendering "undefined" when both are NULL.   T6 rollback restores the captured body byte-for-byte.
+
+-- {{GET_EVENT_VIEW_NEW_DEFINITION}}   -- written only after STEP 0, reviewed as a diff against the captured body

@@ -98,6 +98,7 @@
     var hnd = handlers || {};
     var wrap = el(doc, 'section', 'cr-tools'); wrap.setAttribute('aria-label', 'Promote your events');
     wrap.appendChild(el(doc, 'div', 'head2', 'Promote'));
+    wrap.appendChild(connectBar(doc, (hnd && hnd.connect) || 'not_connected', hnd && hnd.connectPayouts));
     var list = Array.isArray(events) ? events : [];
     if (!list.length) { wrap.appendChild(el(doc, 'p', 'cr-empty', 'Create an event to get a share link, a promoter link, and a promo code.')); return wrap; }
     list.forEach(function (ev) {
@@ -176,6 +177,18 @@
       list.appendChild(el(doc, 'li', '', String(r.code || '') + ' · ' + pct + '% off · ' + (r.active ? 'on' : 'off')));
     });
   }
+  function connectBar(doc, status, onConnect) {
+    var known = status === 'connected' || status === 'needs_action' ? status : 'not_connected';
+    var label = known === 'connected' ? 'Payouts connected' : known === 'needs_action' ? 'Payouts need action' : 'Payouts not connected';
+    var bar = el(doc, 'div', 'cr-connect'); bar.setAttribute('data-connect', known);
+    bar.appendChild(el(doc, 'span', 'cr-badge', label));
+    if (known !== 'connected') {
+      var b = el(doc, 'button', 'cr-btn', 'Connect Payouts'); b.type = 'button';
+      b.addEventListener('click', function () { if (onConnect) onConnect(b); });
+      bar.appendChild(b);
+    }
+    return bar;
+  }
   function paintTraffic(node, t) {
     t = t || {};
     var n = function (v) { var x = parseInt(v, 10); return x > 0 ? x : 0; };
@@ -190,15 +203,38 @@
     return [];
   }
 
+  var ONBOARD = 'https://ovmqtzjfpzrbzrlkxwgw.supabase.co/functions/v1/connect-onboard';
+  function payoutState(supa, session) {
+    var uid = session && session.user && session.user.id;
+    if (!uid || !supa.from) return Promise.resolve('not_connected');
+    return Promise.resolve(supa.from('app_users').select('payouts_enabled').eq('id', uid).maybeSingle()).then(function (q) {
+      return q && q.data && q.data.payouts_enabled ? 'connected' : 'not_connected';
+    }, function () { return 'not_connected'; });
+  }
   function mount(host, supa) {
     if (!host || !supa || !supa.auth || !supa.rpc) return Promise.resolve(false);
     var doc = host.ownerDocument;
     return Promise.resolve(supa.auth.getSession()).then(function (s) {
-      if (!(s && s.data && s.data.session)) return false;
-      return Promise.resolve(supa.rpc('organizer_dashboard')).then(function (r) {
+      var session = s && s.data && s.data.session;
+      if (!session) return false;
+      return Promise.all([Promise.resolve(supa.rpc('organizer_dashboard')), payoutState(supa, session)]).then(function (both) {
+        var r = both[0];
         var evs = r && !r.error && Array.isArray(r.data) ? r.data : null;
         if (!evs) return false;
         var handlers = {
+          connect: both[1],
+          connectPayouts: function (btn) {
+            btn.disabled = true; btn.textContent = 'Opening Stripe…';
+            var token = session.access_token;
+            var done = function (label) { btn.disabled = false; btn.textContent = label || 'Connect Payouts'; };
+            if (!token || !root.fetch) { done(); return; }
+            root.fetch(ONBOARD, { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } })
+              .then(function (res) { return res.json(); })
+              .then(function (d) {
+                if (d && d.url && root.location) root.location.href = d.url;
+                else done(d && d.error === 'stripe_not_configured' ? 'Payouts not configured yet' : 'Connect Payouts');
+              }, function () { done(); });
+          },
           saveCode: function (p) { return supa.rpc('kil_upsert_promo_code', { p_event_id: p.eventId, p_code: p.code, p_percent: p.percent, p_active: p.active }); },
           loadCodes: function (id) { return Promise.resolve(supa.rpc('kil_list_promo_codes', { p_event_id: id })).then(rowsOf); },
           loadTraffic: function (slug) { return Promise.resolve(supa.rpc('kil_event_traffic', { p_slug: slug })).then(function (res) { return (res && res.data) || {}; }); },

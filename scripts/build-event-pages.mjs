@@ -3,7 +3,7 @@
 // event.html (the single template) with the event's real head (title, description, canonical, OG/Twitter, JSON-LD) and the
 // above-the-fold content (flyer <img fetchpriority=high>, h1, date, venue, genre, description) already in the HTML.
 // The page's own script still runs and hydrates the live parts (tickets, going count, lineup, social); it reads the slug from
-// window.__kilPrerenderSlug because the URL has no ?e=. /event?e=<slug> keeps working exactly as before.
+// window.__kilPrerenderSlug (set by assets/js/event-page.js from the kil-prerender-slug JSON data block) because the URL has no ?e=. /event?e=<slug> keeps working exactly as before.
 //
 //   node scripts/build-event-pages.mjs [--out .] [--dry]       needs network (public anon key, read-only: published events + get_event_view)
 //
@@ -72,13 +72,10 @@ export function renderEventPage(template, row) {
   h = replaceOnce(h, '<meta name="twitter:card" content="summary_large_image"/>',
     '<meta name="twitter:card" content="summary_large_image"/>\n<link rel="canonical" id="m-canon" href="' + esc(canon) + '"/>\n' +
     '<script type="application/ld+json" id="ld-event">' + jsonLd(ld) + '</script>\n' +
-    '<script>window.__kilPrerenderSlug=' + jsonLd(slug) + ';</script>' +
+    '<script type="application/json" id="kil-prerender-slug">' + jsonLd(slug) + '</script>' +
     (img ? '\n<link rel="preload" as="image" href="' + esc(img) + '" fetchpriority="high"/>' : ''), 'twitter:card');
-  // the page script builds its canonical from this helper: point it at the prerendered URL, not the legacy one
-  h = replaceOnce(h, "function canonFor(slug){ return 'https://keepitil.com/event?e='+encodeURIComponent(slug||''); }",
-    "function canonFor(slug){ return 'https://keepitil.com/event/'+encodeURIComponent(slug||'')+'/'; }", 'canonFor');
-  // the slug comes from the path, not ?e=
-  h = replaceOnce(h, "slug:g('e'),", "slug:g('e')||window.__kilPrerenderSlug||'',", 'slug source');
+  // The page script (assets/js/event-page.js, external since the CSP migration) reads the slug from the kil-prerender-slug DATA block above and canonicalises to
+  // /event/<slug>/ when it is present, so the generator no longer rewrites any script text.
   // above-the-fold content, in the HTML
   h = replaceOnce(h, '<div class="flyer" id="ev-flyer"></div>',
     '<div class="flyer" id="ev-flyer">' + (img ? '<img fetchpriority="high" decoding="async" alt="' + esc('Flyer for ' + title) + '" src="' + esc(img) + '">' : '') + '</div>', 'flyer');
@@ -125,9 +122,12 @@ export async function main(argv = process.argv.slice(2), fetchImpl = fetch) {
   const out = outIdx >= 0 ? argv[outIdx + 1] : '.';
   const dry = argv.includes('--dry');
   const template = fs.readFileSync(path.join(out, 'event.html'), 'utf8');
-  const url = (template.match(/var URL='(https:\/\/[a-z0-9]+\.supabase\.co)'/) || [])[1];
-  const key = (template.match(/var KEY='(eyJ[A-Za-z0-9._-]+)'/) || [])[1];
-  if (!url || !key) throw new Error('could not read the public Supabase URL and anon key from event.html');
+  // the public Supabase URL and anon key live in the page script, which is the external assets/js/event-page.js since the CSP migration (older templates kept it inline)
+  const extPath = path.join(out, 'assets', 'js', 'event-page.js');
+  const pageCode = template + '\n' + (fs.existsSync(extPath) ? fs.readFileSync(extPath, 'utf8') : '');
+  const url = (pageCode.match(/var URL='(https:\/\/[a-z0-9]+\.supabase\.co)'/) || [])[1];
+  const key = (pageCode.match(/var KEY='(eyJ[A-Za-z0-9._-]+)'/) || [])[1];
+  if (!url || !key) throw new Error('could not read the public Supabase URL and anon key from event.html / assets/js/event-page.js');
   const H = { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' };
   // EVERY published event, in pages. The old single request (limit=1000, oldest first) silently dropped everything past the first 1000 rows: 834 published upcoming events (from 2026-12-04 on)
   // never got a page. PostgREST may also cap a response below the page size, so a page is never taken as "the last one" because it is short: paging stops on an EMPTY page, or a page that adds

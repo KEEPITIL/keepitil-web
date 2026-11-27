@@ -1,6 +1,9 @@
 // One-tap RSVP (assets/js/kil-rsvp.js): behaviour under jsdom with a fake Supabase client and storage. Run: node --test assets/js/kil-rsvp.test.mjs
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
+
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -106,9 +109,9 @@ test('the tap reports to analytics only when a tracker is given, and a throwing 
 });
 
 test('event.html wires it: the mount point under the going badge, the script loaded before the page script, the mount after the first paint, and every event page template still has its prerender anchors', () => {
-  const h = readFileSync(join(root, 'event.html'), 'utf8');
+  const h = __assemble(readFileSync(join(root, 'event.html'), 'utf8'));
   assert.ok(h.indexOf('id="ev-going"') < h.indexOf('id="ev-rsvp"') && h.indexOf('id="ev-rsvp"') < h.indexOf('id="ev-desc"'));
-  assert.ok(h.indexOf('/assets/js/kil-rsvp.js') > 0 && h.indexOf('/assets/js/kil-rsvp.js') < h.indexOf('<script>\n(function(){'), 'loaded before the inline page script');
+  assert.ok(h.indexOf('/assets/js/kil-rsvp.js') > 0 && h.indexOf('/assets/js/kil-rsvp.js') < h.indexOf('KilRsvp.mount('), 'loaded before the page script (external event-page.js since the CSP migration)');
   assert.ok(h.indexOf("KilRsvp.mount(document.getElementById('ev-rsvp')") > h.indexOf('paint(); loadExtras(sb);'));
   assert.equal((h.match(/id="ev-rsvp"/g) || []).length, 1);
   assert.match(h, /\.rsvp-tap\{[^}]*min-height:48px/);
@@ -125,7 +128,7 @@ test('device id: random, kept on the device, reused for the retry and across eve
   const bad = setup(); bad.mem[R.DEVKEY] = '<script>x'; bad.mount(); click(bad.host, '.rsvp-tap'); await tick(); assert.match(bad.calls[0][1].answers.device, /^[a-z0-9-]{8,64}$/, 'a tampered stored id is replaced');
 });
 test('event.html passes a tracker that calls kil_track with the rsvp type (a no-op until the SQL lands: kil_track ignores unknown types)', () => {
-  const h = readFileSync(join(root, 'event.html'), 'utf8');
+  const h = __assemble(readFileSync(join(root, 'event.html'), 'utf8'));
   assert.match(h, /sb\.rpc\('kil_track',\{p_kind:'event',p_target_slug:slug,p_event_type:'rsvp'\}\)/);
 });
 
@@ -133,7 +136,7 @@ test("Muse's approved copy is exactly what ships (2026-11-25 5:08), with no upse
   assert.deepEqual({ tap: R.COPY.tap, done: R.COPY.done, emailLabel: R.COPY.emailLabel, emailPlaceholder: R.COPY.emailPlaceholder, emailBtn: R.COPY.emailBtn, emailOk: R.COPY.emailOk },
     { tap: "I'm going", done: "You're in - see you there.", emailLabel: 'Email me a reminder', emailPlaceholder: 'you@email.com', emailBtn: 'Remind me', emailOk: 'Reminder set.' });
   assert.equal(R.COPY.doneSub, ''); assert.equal(R.COPY.save, '');
-  const h = readFileSync(join(root, 'event.html'), 'utf8');
+  const h = __assemble(readFileSync(join(root, 'event.html'), 'utf8'));
   assert.match(h, /g\.textContent=n\+' going'/, 'the count reads "{N} going"'); assert.doesNotMatch(h, /textContent='.{0,3}'\+n\+' going'/);
 });
 
@@ -162,7 +165,7 @@ test('your own tap bumps "N going" by one (a hidden 0 badge is revealed as "1 go
   const f = withGoing(7); f.s.setMode('reject'); f.s.mount({ going: f.g }); click(f.s.host, '.rsvp-tap'); await tick(); assert.equal(f.g.textContent, '8 going', 'a failed insert keeps the optimistic number, like the confirmation');
 });
 test('event.html: a server count that arrives after your tap shows as server + 1, and it records data-n for the bump', () => {
-  const h = readFileSync(join(root, 'event.html'), 'utf8');
+  const h = __assemble(readFileSync(join(root, 'event.html'), 'utf8'));
   assert.match(h, /if\(g && g\.getAttribute\('data-bumped'\)==='1'\) n\+=1; if\(g && n>0\)\{ g\.setAttribute\('data-n',String\(n\)\); g\.textContent=n\+' going';/);
   assert.match(h, /KilRsvp\.mount\(document\.getElementById\('ev-rsvp'\),\{ev:ev,sb:sb,going:document\.getElementById\('ev-going'\),/);
 });

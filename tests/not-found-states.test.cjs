@@ -9,7 +9,7 @@ const ROOT = process.env.NF_ROOT || path.resolve(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
 
 test("event.html renders the not-found state when the URL has no slug", () => {
-  const h = read("event.html");
+  const h = require("./helpers/event-assembled.cjs").assemble(read("event.html"));
   assert.match(h, /if\(!ev\.slug\)\{[\s\S]{0,400}window\.KIL_NOT_FOUND\(\{ what:'event'/);
 });
 test("venue.html uses KIL_NOT_FOUND for both a missing and an unknown venue", () => {

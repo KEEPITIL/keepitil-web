@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
+
 import { createRequire } from 'node:module';
 import test from 'node:test';
 import { join } from 'node:path';
@@ -78,7 +81,7 @@ test('the ticket page does not ask an outside host to draw a door code', () => {
   assert.match(tickets, /KilTicketQr\.payload\(e\.qr_token,\s*\{\s*prefix:\s*true\s*\}\)/);
   assert.match(profile, /KilTicketQr\.payload\(t\.qr_token\)/);
   assert.equal(/order_id/.test(tickets), false);
-  const eventPage = read('event.html');
+  const eventPage = __assemble(read('event.html'));
   assert.equal(/qrserver/i.test(eventPage), false);
   assert.match(eventPage, /canonFor\(ev\.slug\)/);
   assert.equal(/location\.href/.test(eventPage.slice(eventPage.indexOf('ev-qr'), eventPage.indexOf('ev-qr') + 500)), false);

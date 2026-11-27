@@ -9,7 +9,7 @@ for (const f of ["about.html", "artists.html", "business.html", "venues/index.ht
   });
 }
 test("the prerender template anchors the generator needs are still present after the main swap", () => {
-  const h = R("event.html"); for (const a of ['<div class="flyer" id="ev-flyer"></div>', '<h1 id="ev-title">Event</h1>', "function canonFor(slug)"]) assert.ok(h.includes(a), a);
+  const h = require("./helpers/event-assembled.cjs").assemble(R("event.html")); for (const a of ['<div class="flyer" id="ev-flyer"></div>', '<h1 id="ev-title">Event</h1>', "function canonFor(slug)"]) assert.ok(h.includes(a), a);
 });
 test("culture: the video iframe is given a title", () => assert.match(R("culture/index.html"), /var f = document\.createElement\('iframe'\);\n\s+f\.title = 'KEEPITIL culture video player';/));
 test("signup: the brand logo next to the visible brand text has empty alt", () => assert.match(R("signup.html"), /<img src="\/keepitil-x-blue\.png" alt=""\/><span class="nav-brand">KEEPITIL<\/span>/));

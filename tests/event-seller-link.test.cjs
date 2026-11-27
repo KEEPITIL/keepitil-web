@@ -10,7 +10,7 @@ const test = require('node:test');
 
 const root = path.join(__dirname, '..');
 const PAGES = ['event.html', ...fs.readdirSync(path.join(root, 'event'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => 'event/' + e.name + '/index.html').filter((p) => fs.existsSync(path.join(root, p)))];
-const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
+const read = (p) => require('./helpers/event-assembled.cjs').assemble(fs.readFileSync(path.join(root, p), 'utf8'));
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');   // the same escaper the page defines
 function fnSource(html) { const a = html.indexOf('function sellerLinkHtml('); assert.ok(a > 0, 'sellerLinkHtml exists'); const b = html.indexOf('\n  }\n', a); return html.slice(a, b + 4); }
 // the page declares its OWN `const URL = '<supabase address>'`, so the browser's constructor is only reachable as window.URL: the sandbox does the same (a bare URL here is a string)

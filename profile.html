@@ -59,6 +59,7 @@ nav#main-nav{position:sticky;top:0;z-index:100;background:var(--nav);backdrop-fi
 html{background:#0a0a0f;}   /* the same dark as the backdrop below: gives the page a real background colour under body::before (a pseudo-element no checker can see) and avoids a white flash */
 body{background:transparent!important;}
 body::before{content:""!important;position:fixed!important;inset:0!important;z-index:-1!important;background:linear-gradient(rgba(6,7,14,.62),rgba(6,7,14,.62)),var(--pf-bg,url('/assets/images/scene-hero.jpg')) center center/cover no-repeat #0a0a0f!important;opacity:1!important;}
+@supports (background-image:image-set(url('/assets/images/scene-hero.webp') type('image/webp'))){body::before{background:linear-gradient(rgba(6,7,14,.62),rgba(6,7,14,.62)),var(--pf-bg,image-set(url('/assets/images/scene-hero.webp') type('image/webp'),url('/assets/images/scene-hero.jpg') type('image/jpeg'))) center center/cover no-repeat #0a0a0f!important}}
 .pf-cover img{width:100%;height:100%;object-fit:cover;object-position:center 35%;filter:brightness(.62);}
 .pf-cover::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 30%,var(--bg));}
 .pf-head{max-width:940px;margin:0 auto;padding:0 22px;position:relative;z-index:2;margin-top:28px;}
@@ -431,7 +432,7 @@ footer a{color:var(--accent2);}
 /* EVENTS hub — 9:16 universal flyer cards */
 .ev-group-h{font-family:var(--font-head);font-size:1.05rem;letter-spacing:.1em;color:var(--muted);margin:22px 0 12px;display:flex;align-items:center;gap:8px;}
 .ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
-.ev-flyer{position:relative;aspect-ratio:2/3;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#0a0a0f url('/assets/images/scene-hero.jpg') center/cover no-repeat;cursor:pointer;transition:transform .18s,border-color .18s;}
+.ev-flyer{position:relative;aspect-ratio:2/3;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#0a0a0f url('/assets/images/scene-hero.jpg') center/cover no-repeat;background-image:image-set(url('/assets/images/scene-hero.webp') type('image/webp'),url('/assets/images/scene-hero.jpg') type('image/jpeg'));cursor:pointer;transition:transform .18s,border-color .18s;}
 .ev-flyer:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--accent) 45%,transparent);}
 .ev-flyer .cov{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}
 .ev-flyer::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(transparent 34%,rgba(0,0,0,.86));}

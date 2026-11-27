@@ -28,7 +28,7 @@ html{scroll-behavior:smooth;}
    sticky resolves against the viewport again. `hidden` is kept first as the fallback for
    anything that predates `clip`. */
 body{background:var(--bg,#0a0a0f);color:var(--ink);font-family:var(--fb);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;overflow-x:clip;}
-body::before{content:"";position:fixed;inset:0;z-index:-3;background:var(--bg,#0a0a0f) url('/assets/images/scene-hero.jpg') center/cover no-repeat;opacity:1}
+body::before{content:"";position:fixed;inset:0;z-index:-3;background:var(--bg,#0a0a0f) url('/assets/images/scene-hero.jpg') center/cover no-repeat;background-image:image-set(url('/assets/images/scene-hero.webp') type('image/webp'),url('/assets/images/scene-hero.jpg') type('image/jpeg'));opacity:1}
 html.has-season body::before{display:none!important} /* seasonal image takes over the hero backdrop on its dates */
 a{color:inherit;text-decoration:none;}
 nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,180,255,.15);padding:0 24px;}

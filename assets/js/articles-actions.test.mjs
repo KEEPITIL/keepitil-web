@@ -11,14 +11,18 @@ import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
+// the article pages' inline scripts moved to assets/js/pages/article-*.js (CSP): read the page with them put back
+const rd = (p) => __assemble(readFileSync(join(root, p), 'utf8'));
 function pages(d) { const out = []; for (const n of readdirSync(join(root, d))) { const p = join(d, n); if (statSync(join(root, p)).isDirectory()) out.push(...pages(p)); else if (/\.html$/.test(n)) out.push(p); } return out; }
 const ALL = pages('article');
-const SHARE = ALL.filter((p) => readFileSync(join(root, p), 'utf8').includes('function kilShare('));
+const SHARE = ALL.filter((p) => rd(p).includes('function kilShare('));
 
 test('every article page that defines kilShare has exactly one delegated share button, the allow-list entry, and kil-actions.js before the script that defines it', () => {
   assert.equal(SHARE.length, 24);
   for (const p of SHARE) {
-    const h = readFileSync(join(root, p), 'utf8');
+    const h = rd(p);
     assert.equal((h.match(/data-click="kilShare" data-a="\[&quot;native&quot;,&quot;\$el&quot;\]"/g) || []).length, 1, p);
     assert.equal((h.match(/KilActions\.allow\(\['kilShare'\]\)/g) || []).length, 1, p);
     const a = h.indexOf('/assets/js/kil-actions.js'), d = h.indexOf('function kilShare(');
@@ -30,12 +34,12 @@ const INLINE = /\son(click|change|input|keydown|keyup|error|load|mouseover|mouse
 test('control: the guard detects an inline handler', () => { assert.ok(INLINE.test("<button onclick=\"kilShare('native')\">")); assert.equal(INLINE.test('<button data-click="kilShare">'), false); });
 test('no article page has an inline on*= handler attribute left', () => {
   const bad = [];
-  for (const p of ALL) { const t = readFileSync(join(root, p), 'utf8').replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, ''); if (INLINE.test(t)) bad.push(p); }
+  for (const p of ALL) { const t = rd(p).replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, ''); if (INLINE.test(t)) bad.push(p); }
   assert.deepEqual(bad, []);
 });
 
 function share(extra) {
-  const h = readFileSync(join(root, 'article/bleu/index.html'), 'utf8');
+  const h = rd('article/bleu/index.html');
   const src = h.slice(h.indexOf('function kilShare('), h.indexOf('\n', h.indexOf('function kilShare(')));
   const log = []; const timers = [];
   const ctx = vm.createContext({ location: { href: 'https://keepitil.com/article/x/' }, document: { title: 'T' }, window: { open: (...a) => log.push(['open', a[0].slice(0, 30)]) }, encodeURIComponent, setTimeout: (f, ms) => timers.push([f, ms]), prompt: (m) => log.push(['prompt', m]),

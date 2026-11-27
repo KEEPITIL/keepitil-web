@@ -3,6 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../tests/helpers/event-assembled.cjs').assemble;
 const K = createRequire(import.meta.url)('../assets/js/kil-intake.js');
 const good = { name: 'Ricardo', email: 'A@B.co', brand: 'RAB3L', links: 'https://soundcloud.com/x', need: 'graphics', message: 'Need a cover pack', website: '' };
 
@@ -40,7 +42,7 @@ test('bot gate: honeypot or too fast is a bot, a patient human is not', () => {
   assert.equal(K.isBot({ website: '' }, 8000), false);
 });
 test('/connect loads the form exactly once and has the mount point', () => {
-  const s = readFileSync(new URL('../connect/index.html', import.meta.url), 'utf8');
+  const s = __assemble(readFileSync(new URL('../connect/index.html', import.meta.url), 'utf8'));
   assert.equal((s.match(/kil-intake\.js/g) || []).length, 1);
   assert.equal((s.match(/id="kil-intake"/g) || []).length, 1);
 });

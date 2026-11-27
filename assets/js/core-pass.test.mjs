@@ -24,6 +24,8 @@ import { createRequire } from 'node:module';
 const assemble = createRequire(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const FIVE = ['DISCOVER', 'CONNECT', 'CREATE', 'CULTURE', 'EARN'];
@@ -275,7 +277,7 @@ export function earnProblems(html) {
 }
 
 test('Earn: no radio/playlist copy, no docked radio bar on phones, Kit inside the carousel', () => {
-  assert.deepEqual(earnProblems(read('earn/index.html')), []);
+  assert.deepEqual(earnProblems(__assemble(read('earn/index.html'))), []);
 });
 
 /* ── NEGATIVE CONTROLS ────────────────────────────────────────────────────────────────────── */
@@ -321,7 +323,7 @@ test('NEGATIVE CONTROL: user-opened overlays inside load handlers are NOT flagge
 });
 
 test('NEGATIVE CONTROL: Earn checks fail on radio copy, a visible docked bar and Kit outside the carousel', () => {
-  const earn = read('earn/index.html');
+  const earn = __assemble(read('earn/index.html'));
   const withCopy = earn.replace('id="affGrid">', 'id="affGrid">\n<h2>KEEPITIL RADIO</h2>');
   assert.ok(earnProblems(withCopy).some((p) => p.startsWith('radio/playlist copy')));
   const withMeta = earn.replace(/<title>([\s\S]*?)<\/title>/i, '<title>Earn — Radio & Playlists</title>');

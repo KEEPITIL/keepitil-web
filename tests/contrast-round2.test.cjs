@@ -1,5 +1,6 @@
 // Contrast round 2 (axe sweep of about/artists/business/venues, connect, create): source probes with computed ratios. Run: node --test tests/contrast-round2.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -11,7 +12,7 @@ test("about, artists, business and venues underline their footer links (colour a
   for (const f of ["about.html", "artists.html", "business.html", "venues/index.html"]) assert.match(read(f), /footer a\{[^}]*text-decoration:underline\}/, f);
 });
 test("connect: white text on the artist button is >= 4.5:1 and the count/placeholder grey is >= 4.5:1 on the page background", () => {
-  const s = read("connect/index.html");
+  const s = __A(read("connect/index.html"));
   const bg = s.match(/\.seg button\[data-k=artist\]\.on\{background:(#[0-9a-f]{6});color:#fff;\}/i); assert.ok(bg, "artist rule");
   assert.ok(ratio(bg[1], "#ffffff") >= 4.5, "artist " + bg[1]);
   const ink3 = s.match(/--ink3:(#[0-9a-f]{6});/i)[1]; assert.ok(ratio(ink3, "#0b0b12") >= 4.5, "ink3 " + ink3);

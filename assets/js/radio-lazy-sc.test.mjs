@@ -17,10 +17,12 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { JSDOM, VirtualConsole } from 'jsdom';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const RADIO = readFileSync(process.env.KIL_RADIO_FILE || path.join(root, 'assets/js/keepitil-radio.js'), 'utf8');
-const EARN = readFileSync(path.join(root, 'earn/index.html'), 'utf8');
+const EARN = __assemble(readFileSync(path.join(root, 'earn/index.html'), 'utf8'));
 const PLAIN = '<!doctype html><html><head></head><body><main><p>page</p></main></body></html>';
 
 function load(html, { url, phone }) {

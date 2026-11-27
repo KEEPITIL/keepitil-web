@@ -8,8 +8,10 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
-const PAGE = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../earn/index.html'), 'utf8');
+const PAGE = __assemble(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../earn/index.html'), 'utf8'));
 const a = PAGE.indexOf('function renderPls(){');
 let z = PAGE.indexOf('{', a) + 1; for (let d = 1; d > 0; z++) { if (PAGE[z] === '{') d++; else if (PAGE[z] === '}') d--; }   // end of the function by brace matching
 const escSrc = PAGE.slice(PAGE.indexOf('function esc(s)'), PAGE.indexOf('\n', PAGE.indexOf('function esc(s)')));

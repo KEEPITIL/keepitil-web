@@ -7,7 +7,7 @@ test('scene-hero.webp exists, is smaller than the jpg, and the jpg stays as the 
   assert.ok(w < j * 0.6, 'webp is at least 40% smaller');
 });
 test('connect backdrop: jpg shorthand first (fallback), then image-set webp with jpg', () => {
-  const c = R('connect/index.html'); const i = c.indexOf("scene-hero.jpg') center/cover no-repeat;background-image:image-set");
+  const c = __A(R('connect/index.html')); const i = c.indexOf("scene-hero.jpg') center/cover no-repeat;background-image:image-set");
   assert.ok(i > 0); assert.match(c, IS);
 });
 test('profile: default backdrop + flyer placeholder keep the jpg rule and add webp only under @supports / as a later declaration', () => {

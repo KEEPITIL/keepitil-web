@@ -4,12 +4,13 @@
 // panel (still a genuine 404, no redirect). Every other unmatched path keeps the KEEPITIL panel.
 // Runs the real router script from 404.html against a stub location/document.
 const assert = require('node:assert/strict');
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 
-const html = fs.readFileSync(path.join(__dirname, '..', '404.html'), 'utf8');
+const html = __A(fs.readFileSync(path.join(__dirname, '..', '404.html'), 'utf8'));
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
 const router = scripts[0];
 
@@ -62,7 +63,7 @@ test('clean URLs still route', () => {
 
 // a11y sweep 2026-11-25: exactly ONE <main> in the markup (the KEEPITIL box); the FMW box is a div that gets role=main only when revealed. NEGATIVE CONTROL below.
 test('404 has one <main> in the markup and the revealed panel is the main landmark', () => {
-  const h = fs.readFileSync(require('path').join(__dirname, '..', '404.html'), 'utf8');
+  const h = __A(fs.readFileSync(require('path').join(__dirname, '..', '404.html'), 'utf8'));
   assert.equal((h.match(/<main[\s>]/g) || []).length, 1);
   assert.match(h, /<main class="wrap" id="fourohfour"/);
   assert.match(h, /<div class="wrap" id="fmwfourohfour"/);
@@ -71,7 +72,7 @@ test('404 has one <main> in the markup and the revealed panel is the main landma
 });
 
 test('the FMW 404 uses the Find My Weed LIGHT palette and wordmark, scoped so every other 404 stays KEEPITIL dark', () => {
-  const html = fs.readFileSync(path.join(__dirname, '..', '404.html'), 'utf8');
+  const html = __A(fs.readFileSync(path.join(__dirname, '..', '404.html'), 'utf8'));
   assert.match(html, /html\[data-fmw\],html\[data-fmw\] body\{background:#eef6ee;color:#0d1f14\}/);
   assert.match(html, /<div class="fmw-logo">Find <span>My<\/span> Weed<\/div>/);
   assert.match(html, /class="fmw-back" href="\/app\/findmyweed\/">Back to Find My Weed/);
@@ -81,7 +82,7 @@ test('the FMW 404 uses the Find My Weed LIGHT palette and wordmark, scoped so ev
 });
 
 test('a missing FMW page renders Find My Weed\'s OWN 404 page in place (title, header, menu); the address stays; every other path never fetches it', async () => {
-  const fmw404 = fs.readFileSync(path.join(__dirname, '..', 'app', 'findmyweed', '404.html'), 'utf8');
+  const fmw404 = __A(fs.readFileSync(path.join(__dirname, '..', 'app', 'findmyweed', '404.html'), 'utf8'));
   assert.match(fmw404, /<title>[^<]*Find My Weed<\/title>/); assert.match(fmw404, /<header class="top">/); assert.match(fmw404, /id="menu-btn"/); assert.match(fmw404, /data-page="notfound"/);
   const calls = [], log = [];
   const fetchStub = async (u, o) => { calls.push([u, o]); return { ok: true, text: async () => fmw404 }; };

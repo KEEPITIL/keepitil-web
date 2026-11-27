@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 import { execFileSync } from 'node:child_process';
 import vm from 'node:vm';
 import test from 'node:test';
 
 // SHEET_OPTIN_FILE lets the negative control point this suite at an unmodified copy.
 const file = process.env.SHEET_OPTIN_FILE || new URL('../../connect/index.html', import.meta.url);
-const html = readFileSync(file, 'utf8');
+const html = __assemble(readFileSync(file, 'utf8'));   // connect's scripts are external files since the CSP migration
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1UU2rPPwsIRCFnZBgk6Uzb9IRcckcBmvYVORNVMFtIoo/gviz/tq?sheet=Untitled&headers=1&tqx=out:json';
 
 function iifeSource() {

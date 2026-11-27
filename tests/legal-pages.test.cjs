@@ -34,7 +34,7 @@ test('no internal drafting note on a customer-facing legal page', () => {
 // ONE "last updated" date per legal page, each the real date of the last change to the page's wording (from git history:
 // terms = 2026-09-17 PT, ticket-terms = 2026-09-14 PT, refund = 2026-09-14 PT). Two dates on one page was the defect (checklist gap 7a).
 const lastUpdated = (html) => [...html.matchAll(/Last updated:?\s*([^<]+)</g)].map((m) => m[1].trim());
-const EXPECT = { 'terms.html': 'September 17, 2026', 'ticket-terms.html': 'September 14, 2026', 'privacy.html': null };
+const EXPECT = { 'terms.html': 'November 27, 2026', 'ticket-terms.html': 'September 14, 2026', 'privacy.html': null };
 
 test('terms and ticket-terms show exactly ONE last-updated date, the real one', () => {
   for (const f of ['terms.html', 'ticket-terms.html']) assert.deepEqual(lastUpdated(raw(f)), [EXPECT[f]], f);
@@ -81,4 +81,16 @@ test('NEGATIVE CONTROLS: the PRO scan sees a PRO hidden in an attribute, and the
 
 test('NEGATIVE CONTROL: the old "you sign in with it" wording alone would fail the sign-in guard', () => {
   assert.doesNotMatch('your email address (you sign in with it), a username/handle', /you sign in with it, with a password or a one-time link, or through Google or Apple/);
+});
+
+test('artist services paid through Stripe are named in Terms and Privacy (artists.html sells them), and Terms still says there is no paid membership', () => {
+  const terms = rendered('terms.html').replace(/\s+/g, ' '), priv = rendered('privacy.html').replace(/\s+/g, ' ');
+  assert.match(terms, /Artist services sold at keepitil\.com\/artists .* are also paid through Stripe/);
+  assert.match(terms, /social media management is billed monthly/);
+  assert.match(priv, /buy an artist service: processed by Stripe/);
+  assert.match(terms, /There is no paid membership and no subscription/, 'unchanged: no membership was found on the site');
+  assert.ok((raw('artists.html').match(/https:\/\/buy\.stripe\.com\//g) || []).length >= 1, 'the page the Terms line describes still sells through Stripe');
+});
+test('NEGATIVE CONTROL: Terms without the artist-services sentence fails the guard', () => {
+  assert.doesNotMatch('(processed by Stripe). Event details, dates', /Artist services sold at keepitil\.com\/artists/);
 });

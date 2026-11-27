@@ -16,3 +16,19 @@
 @media (scripting: enabled) and (min-width: 861px) {
   body:not([data-static-nav]) { padding-top: 66px; }   /* = keepitil-shell.js: if(!IS_MOBILE) document.body.style.paddingTop='66px' (IS_MOBILE = max-width:860px) */
 }
+
+/* FIRST-PAINT DESKTOP GRID + LANDING HERO (live re-check 2026-11-27: /earn/ still scored CLS 0.32 on every cold load at 1280 after the nav fix).
+   keepitil-shell.js injects two desktop (>=861px) style blocks when it mounts ('kil-desktop-grid' and 'landing-standard'). Until then the page paints with its OWN
+   .wrap / .hero rules (1120px column, left-aligned title and stats); the shell then widens .wrap to the 1360px grid with 40px gutters and centres the hero, so the whole hero
+   jumps sideways (the 670px-high /earn/ hero is what makes the score 0.3). These are the SAME rules, verbatim, applied from the first paint, so the shell's blocks change nothing.
+   Keep in sync with keepitil-shell.js ('kil-desktop-grid', 'landing-standard'); tests/nav-first-paint.test.cjs compares the two. */
+@media (scripting: enabled) and (min-width: 861px) {
+  :root { --kil-page-max: 1360px; --kil-page-pad: 40px; }
+  .wrap { max-width: var(--kil-page-max) !important; margin-left: auto !important; margin-right: auto !important; padding-left: var(--kil-page-pad) !important; padding-right: var(--kil-page-pad) !important; box-sizing: border-box !important; }
+  .hero-head, .ce-head { margin-left: auto !important; margin-right: auto !important; }
+  .hero h1, .ce-hero h1 { text-align: center !important; }
+  .hero .eyebrow, .ce-hero .eyebrow { text-align: center !important; }
+  .hero > p, .ce-hero > p { margin-left: auto !important; margin-right: auto !important; text-align: center !important; }
+  .hero .stats, .hero .hero-stats, .ce-hero .ce-stats { justify-content: center !important; }
+  .hero, .ce-hero { align-items: center; }
+}

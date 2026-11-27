@@ -166,18 +166,18 @@ textarea{min-height:90px;resize:vertical}
           <div><label for="bDate">Preferred date</label><input type="date" id="bDate"/></div>
         </div>
         <div class="frow">
-          <div><label>Event type</label><input id="bType" placeholder="Birthday, wedding, DJ night…"/></div>
-          <div><label>Guest count</label><input type="number" id="bGuests" min="1" placeholder="120"/></div>
+          <div><label for="bType">Event type</label><input id="bType" placeholder="Birthday, wedding, DJ night…"/></div>
+          <div><label for="bGuests">Guest count</label><input type="number" id="bGuests" min="1" placeholder="120"/></div>
         </div>
         <div class="frow">
-          <div><label>Your name</label><input id="bName" placeholder="Full name"/></div>
-          <div><label>Email</label><input id="bEmail" type="email" placeholder="you@email.com"/></div>
+          <div><label for="bName">Your name</label><input id="bName" placeholder="Full name"/></div>
+          <div><label for="bEmail">Email</label><input id="bEmail" type="email" placeholder="you@email.com"/></div>
         </div>
         <div class="frow">
-          <div><label>Phone (optional)</label><input id="bPhone" placeholder="(714) …"/></div>
-          <div><label>Add-ons (optional)</label><input id="bAddons" placeholder="Corkage bar, extra hour…"/></div>
+          <div><label for="bPhone">Phone (optional)</label><input id="bPhone" placeholder="(714) …"/></div>
+          <div><label for="bAddons">Add-ons (optional)</label><input id="bAddons" placeholder="Corkage bar, extra hour…"/></div>
         </div>
-        <label>Notes</label><textarea id="bNotes" placeholder="Tell the venue about your event…"></textarea>
+        <label for="bNotes">Notes</label><textarea id="bNotes" placeholder="Tell the venue about your event…"></textarea>
         <button class="submit" id="bSend" onclick="submitBooking()">Send booking request</button>
         <div class="msg" id="bMsg"></div>
         <div class="mini" id="bNote"></div>
@@ -344,7 +344,7 @@ function loadReviews(){
   }).catch(function(){});
   SB.auth.getSession().then(function(s){
     if(s&&s.data&&s.data.session){
-      $('reviewForm').innerHTML='<div class="card"><label>Leave a review</label><select id="rvRating" style="max-width:160px"><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option><option value="2">★★</option><option value="1">★</option></select><textarea id="rvBody" placeholder="How was your event at '+esc(V.name)+'?" style="margin-top:10px"></textarea><button class="submit" onclick="submitReview()">Post review</button><div class="msg" id="rvMsg"></div></div>';
+      $('reviewForm').innerHTML='<div class="card"><label for="rvRating">Leave a review</label><select id="rvRating" style="max-width:160px"><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option><option value="2">★★</option><option value="1">★</option></select><textarea id="rvBody" placeholder="How was your event at '+esc(V.name)+'?" style="margin-top:10px"></textarea><button class="submit" onclick="submitReview()">Post review</button><div class="msg" id="rvMsg"></div></div>';
     }
   });
 }

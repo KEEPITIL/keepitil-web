@@ -1125,7 +1125,7 @@
     pl.textContent = isStation ? 'NEXT STATION' : (playlistName || '');
     var art = isStation ? (sound.art || '') : kilArt(sound);
     if(a){
-      if(art){ a.src=art; a.style.visibility=''; }
+      if(art){ krSetThumb(a,art); a.style.visibility=''; }
       else { a.removeAttribute('src'); a.style.visibility='hidden'; }
     }
   }
@@ -1699,11 +1699,14 @@
   window.__kilPaintPlay=paintPlay;
 
   /* ── STATION NAME + ARTWORK IN THE COMPACT BAR ───────────────────────────────────────── */
+  /* PERF: the compact bar and the track cards draw station artwork at 38-40px, but the station images are 800x1200 JPEGs (200-260 KB; station-hiphop.jpg alone was fetched on every page at 390px, competing with the page's own LCP image). The drawer and the station list keep the full image; the small slots use the 80x120 WebP twin when art is one of our /assets/images/station-*.jpg files, and fall back to the original if the twin is missing. */
+  function krThumb(u){ var m=/^((?:https:\/\/keepitil\.com)?\/assets\/images\/station-[a-z0-9-]+)\.jpg(?:\?[^#]*)?$/i.exec(String(u||'')); return m ? m[1]+'-80.webp' : u; }
+  function krSetThumb(img,u){ var t=krThumb(u); img.loading='lazy'; img.decoding='async'; img.onerror = (t!==u) ? function(){ img.onerror=null; img.src=u; } : null; img.src=t; }   /* lazy: on a phone the compact bar draws no art (0x0), so a hidden slot fetches nothing */
   function paintStationCompact(){
     var pl=KIL_PL[KIL_PL_I]||KIL_PL[0]||{};
     var art=document.getElementById('kr-art');
     if(art){
-      if(pl.art){ art.src=pl.art; art.hidden=false; } else { art.removeAttribute('src'); art.hidden=true; }
+      if(pl.art){ krSetThumb(art,pl.art); art.hidden=false; } else { art.removeAttribute('src'); art.hidden=true; }
     }
   }
   window.__kilPaintStationCompact=paintStationCompact;

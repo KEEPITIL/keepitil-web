@@ -8,12 +8,12 @@ const hasLabelFor = (html, id) => new RegExp('<label[^>]*\\bfor="' + id + '"').t
 const count = (html, re) => (html.replace(/<!--[\s\S]*?-->/g, '').replace(/<script[\s\S]*?<\/script>/g, '').match(re) || []).length;
 
 test('venue: the booking Room and Date fields are labelled (label for=), the old unlabelled markup would fail (NEGATIVE CONTROL)', () => {
-  const v = R('venue.html'); assert.ok(hasLabelFor(v, 'bRoom') && hasLabelFor(v, 'bDate'));
+  const v = __A(R('venue.html')); assert.ok(hasLabelFor(v, 'bRoom') && hasLabelFor(v, 'bDate'));
   const old = '<div><label>Room</label><select id="bRoom"></select></div><div><label>Preferred date</label><input type="date" id="bDate"/></div>';
   assert.ok(!hasLabelFor(old, 'bRoom') && !hasLabelFor(old, 'bDate'));
 });
 test('create-event and tickets: exactly one <main>, and a heading level 1 in every view (gate, empty, form / ticket)', () => {
-  const c = R('create-event.html'), t = R('tickets.html');
+  const c = R('create-event.html'), t = __A(R('tickets.html'));
   for (const [n, h] of [['create-event', c], ['tickets', t]]) assert.equal(count(h, /<main\b/g), 1, n + ': one main');
   assert.match(c, /<h1>Log in to create an event<\/h1>/); assert.match(c, /<form id="form"[^>]*>\s*<h1 class="vh">Create an event<\/h1>/); assert.doesNotMatch(c, /<h2>Log in to create an event<\/h2>/);
   assert.match(t, /<h1>Log in to see your ticket<\/h1>/); assert.match(t, /<h1>No tickets yet<\/h1>/); assert.match(t, /'<h1>'\+esc\(e\.title/);

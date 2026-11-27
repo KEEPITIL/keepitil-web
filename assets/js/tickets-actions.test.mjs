@@ -6,9 +6,11 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const dir = dirname(fileURLToPath(import.meta.url));
-const PAGE = readFileSync(join(dir, '../../tickets.html'), 'utf8');
+const PAGE = __assemble(readFileSync(join(dir, '../../tickets.html'), 'utf8'));
 const EXPECTED = {"click:carScroll": 2, "click:setActive": 2, "click:toggleTix": 1};
 const used = {};
 for (const m of PAGE.matchAll(/\sdata-(click|change|input|keydown|over|out)="(\w+)"/g)) used[m[1] + ':' + m[2]] = (used[m[1] + ':' + m[2]] || 0) + 1;

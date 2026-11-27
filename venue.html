@@ -236,12 +236,21 @@ function venueNF(){
     links:[['/','Explore events'],['/connect/','Connect'],['/submit-event','Submit an event']] });
   else if(el){ el.textContent=''; var h=document.createElement('h1'); h.className='vh'; h.textContent='Venue'; el.appendChild(h); el.appendChild(document.createTextNode('This venue is not available.')); }   // keep the heading even without the shell
 }
+function setHero(v){
+  var box=$('vCover'); if(!box||!v||!v.cover_url) return;
+  var cur=box.querySelector('img'); if(cur&&cur.getAttribute('data-hero')===v.cover_url) return;   // already drawn (early path): do not create a second request
+  box.innerHTML='<img src="'+esc(v.cover_url)+'" data-hero="'+esc(v.cover_url)+'" alt="'+esc(v.name)+'" fetchpriority="high" decoding="async" onerror="this.style.display=\'none\'">';   /* the LCP element: the .v-cover box already holds its 16:9 space + gradient, so nothing shifts when it arrives */
+}
 async function load(){
+  SLUG=new URLSearchParams(location.search).get('v')||new URLSearchParams(location.search).get('slug')||'';
+  /* PERF: start the venue request NOW. It used to wait for DOMContentLoaded, which waits for the deferred shell/radio/echo scripts (~1.8 s on a throttled phone), so the data and then the hero image started that much later. Only the not-found / render step still waits for the shell (below). */
+  var req=null; if(SB&&SLUG){ try{ req=Promise.resolve(SB.rpc('get_venue',{p_slug:SLUG})).catch(function(){ return null; }); }catch(e){ req=null; } }
+  /* and draw the hero as soon as its URL is known (before DOMContentLoaded) so the image request starts then; render() below skips it when it is already there */
+  if(req) req.then(function(r){ var v=r&&r.data&&r.data[0]; if(v&&v.cover_url) setHero(v); });
   /* keepitil-shell.js is deferred and defines KIL_NOT_FOUND; running before DOMContentLoaded took the bare-text fallback below, which replaced the page's only h1 (axe page-has-heading-one on /venue). */
   if(document.readyState==='loading') await new Promise(function(r){ document.addEventListener('DOMContentLoaded', r, {once:true}); });
-  SLUG=new URLSearchParams(location.search).get('v')||new URLSearchParams(location.search).get('slug')||'';
   if(!SB||!SLUG){ venueNF(); return; }
-  var r=null; try{ r=await SB.rpc('get_venue',{p_slug:SLUG}); }catch(e){ r=null; }
+  var r=null; try{ r=await req; }catch(e){ r=null; }
   V=r&&r.data&&r.data[0];
   if(!V){ venueNF(); return; }
   render();
@@ -256,7 +265,7 @@ function render(){
   if(!_vc){ _vc=document.createElement('link'); _vc.rel='canonical'; _vc.id='mCanon';
             document.head.appendChild(_vc); }
   _vc.setAttribute('href','https://keepitil.com/venue?v='+encodeURIComponent(V.slug));
-  if(V.cover_url){ $('vCover').innerHTML='<img src="'+esc(V.cover_url)+'" alt="'+esc(V.name)+'" onerror="this.style.display=\'none\'">'; $('mImg').setAttribute('content',V.cover_url); }
+  if(V.cover_url){ setHero(V); $('mImg').setAttribute('content',V.cover_url); }
   try{ $('ldjson').textContent=JSON.stringify({"@context":"https://schema.org","@type":"EventVenue","name":V.name,"description":V.about||V.tagline,"address":V.address||V.city,"maximumAttendeeCapacity":V.capacity_summary,"image":V.cover_url||undefined,"url":'https://keepitil.com/venue?v='+V.slug}); }catch(e){}
   $('vName').textContent=V.name;
   $('vTag').textContent=V.tagline||'';

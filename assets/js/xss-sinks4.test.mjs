@@ -12,6 +12,8 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(join(dir, '../..', rel), 'utf8');
@@ -68,7 +70,7 @@ test('(b) kode escapeHtml escapes quotes; renderReady media button carries the U
 });
 
 test('(c) profile renderCategories drops unknown and prototype keys, escapes the rest', () => {
-  const src = read('profile.html');
+  const src = __assemble(read('profile.html'));
   const escLine = src.slice(src.indexOf('function esc(s)'), src.indexOf('\n', src.indexOf('function esc(s)')));
   const box = el();
   const ctx = vm.createContext({ document: { getElementById: () => box }, PROFILE: { categories: ['artist', 'constructor', '__proto__', 'toString', HOSTILE, 'venue', 'hasOwnProperty'] }, String, RegExp, Object });

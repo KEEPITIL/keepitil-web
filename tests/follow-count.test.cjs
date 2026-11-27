@@ -1,12 +1,13 @@
 // Profile follow button reads count + state from get_profile_stats, never lists the follows table.
 // Run: node --test tests/follow-count.test.cjs
 const test = require("node:test");
+const __A = require("./helpers/event-assembled.cjs").assemble;
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const ROOT = process.env.FC_ROOT || path.resolve(__dirname, "..");
-const html = fs.readFileSync(path.join(ROOT, "profile.html"), "utf8");
+const html = __A(fs.readFileSync(path.join(ROOT, "profile.html"), "utf8"));
 function extract(name) {
   const start = html.indexOf("function " + name + "(");
   assert.ok(start > 0, name + " not found");

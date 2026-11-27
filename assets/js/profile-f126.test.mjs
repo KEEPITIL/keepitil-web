@@ -13,10 +13,12 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const FILE = process.env.PROFILE_HTML || join(dir, '../../profile.html');
-const SRC = readFileSync(FILE, 'utf8');
+const SRC = __assemble(readFileSync(FILE, 'utf8'));
 
 function slice(from, to) {
   const a = SRC.indexOf(from);

@@ -39,7 +39,7 @@ test("blocker codes get a human sentence, unknown codes point to support", () =>
 });
 test("the panel starts closed and the delete button starts disabled", () => {
   assert.match(html, /<div id="del-panel" hidden/);
-  assert.match(html, /id="del-go" type="button" onclick="delGo\(\)" disabled>/);
+  assert.match(html, /id="del-go" type="button" data-click="delGo" disabled>/);
 });
 test("flow: blockers fetched first, delete only after delReady, sign out after success", () => {
   const open = extract("delOpen"), go = extract("delGo");

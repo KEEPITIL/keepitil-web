@@ -90,14 +90,14 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
 </div></nav>
 
 <main class="wrap" id="main">
-  <button class="sback" onclick="goProfile()">‹ Back to profile</button>
+  <button class="sback" data-click="goProfile">‹ Back to profile</button>
   <h1 class="pt">Settings</h1>
 
   <div id="gate" class="gate" style="display:none">
     <h2>Log in to manage settings</h2>
     <p>Your preferences, theme, and notifications live in your KEEPITIL account. Theme still works while signed out.</p>
     <a class="btn primary" href="/apply?next=%2Fsettings">Log in / Join</a>
-    <div style="margin-top:18px"><a class="btn" href="#" onclick="showAnyway();return false">Adjust theme only →</a></div>
+    <div style="margin-top:18px"><a class="btn" href="#" data-click="setShowAnyway" data-a="[&quot;$e&quot;]">Adjust theme only →</a></div>
   </div>
 
   <div id="cols" class="cols" style="display:none">
@@ -117,25 +117,25 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
         <h2>Account</h2><div class="psub">Manage how you sign in.</div>
         <div class="row"><div class="lbl">Handle</div><div class="val" id="acc-handle">—</div></div>
         <div class="row"><div class="lbl">Email<small>Used to sign in and for account notices</small></div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="email" id="acc-email-in" aria-label="Email address" placeholder="you@email.com" style="min-width:180px"><button class="btn primary" onclick="saveEmail()">Update</button></div></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="email" id="acc-email-in" aria-label="Email address" placeholder="you@email.com" style="min-width:180px"><button class="btn primary" data-click="saveEmail">Update</button></div></div>
         <div class="row"><div class="lbl">Change password<small>At least 8 characters</small></div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="password" id="acc-pass" aria-label="New password" placeholder="New password" style="min-width:150px"><button class="btn" onclick="savePass()">Change</button></div></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="password" id="acc-pass" aria-label="New password" placeholder="New password" style="min-width:150px"><button class="btn" data-click="savePass">Change</button></div></div>
         <div class="row"><div class="lbl">Language</div>
           <select data-k="language" aria-label="Language"><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="pt">Português</option><option value="de">Deutsch</option></select></div>
         <div class="row"><div class="lbl">Two-factor authentication<small>Extra security at sign-in</small></div><a class="btn" href="mailto:info@keepitil.com">Set up →</a></div>
-        <div class="row"><div class="lbl">Sign out<small>End your session on this device</small></div><button class="btn danger" onclick="doLogout()">Log out</button></div>
-        <div class="row" id="exp-row"><div class="lbl">Download my data<small>A JSON file with everything tied to your account: account details and settings, your profiles and what you posted, events you submitted or own, saved events, who you follow, ticket orders and registrations, your comments, chat messages, playlists and other activity, billing and payout records, and messages you sent</small></div><button class="btn" id="exp-go" type="button" onclick="exportMyData()">Download</button></div>
+        <div class="row"><div class="lbl">Sign out<small>End your session on this device</small></div><button class="btn danger" data-click="doLogout">Log out</button></div>
+        <div class="row" id="exp-row"><div class="lbl">Download my data<small>A JSON file with everything tied to your account: account details and settings, your profiles and what you posted, events you submitted or own, saved events, who you follow, ticket orders and registrations, your comments, chat messages, playlists and other activity, billing and payout records, and messages you sent</small></div><button class="btn" id="exp-go" type="button" data-click="exportMyData">Download</button></div>
         <div class="row" id="exp-mail-row" hidden><div class="lbl">Download my data<small>Email us and we will send you the same copy: account details and settings, your profiles and what you posted, events, saved events, who you follow, ticket orders and registrations, your comments, chat messages, playlists and other activity, billing and payout records, and messages you sent</small></div><a class="btn" href="mailto:info@keepitil.com?subject=My%20data%20request">Email us</a></div>
-        <div class="row" id="del-row"><div class="lbl">Delete account<small>Permanently removes your KEEPITIL account and the things only you own. This cannot be undone.</small></div><button class="btn danger" id="del-open" type="button" onclick="delOpen()">Delete account…</button></div>
+        <div class="row" id="del-row"><div class="lbl">Delete account<small>Permanently removes your KEEPITIL account and the things only you own. This cannot be undone.</small></div><button class="btn danger" id="del-open" type="button" data-click="delOpen">Delete account…</button></div>
         <div id="del-panel" hidden style="border:1px solid #ff6b6b;border-radius:14px;padding:16px;margin:8px 0 4px">
           <div style="font-weight:800;margin-bottom:6px">Delete your account?</div>
           <p style="margin:0 0 10px;font-size:.9rem">Your profile, profile page, saved events, follows and settings are deleted. Community posts and replies that other people answered stay, with your name and words removed. Events you submitted are not removed automatically: email info@keepitil.com before you delete your account if you want them taken down. Ticket orders you placed are kept for our records. This cannot be undone.</p>
           <ul id="del-blockers" style="margin:0 0 10px;padding-left:18px;font-size:.9rem;color:#ff6b6b"></ul>
           <label for="del-confirm" style="display:block;font-size:.85rem;margin-bottom:6px">Type <b>DELETE</b> to confirm</label>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <input type="text" id="del-confirm" autocomplete="off" autocapitalize="characters" spellcheck="false" style="min-width:160px" oninput="delSync()">
-            <button class="btn danger" id="del-go" type="button" onclick="delGo()" disabled>Delete my account</button>
-            <button class="btn" type="button" onclick="delClose()">Cancel</button>
+            <input type="text" id="del-confirm" autocomplete="off" autocapitalize="characters" spellcheck="false" style="min-width:160px" data-input="delSync">
+            <button class="btn danger" id="del-go" type="button" data-click="delGo" disabled>Delete my account</button>
+            <button class="btn" type="button" data-click="delClose">Cancel</button>
           </div>
           <div class="savez" id="sz-delete" role="status" aria-live="polite"></div>
         </div>
@@ -219,6 +219,7 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
 </main>
 
 <script src="/assets/js/vendor/supabase-js.min.js?v=hcb41d8ab"></script>
+<script src="/assets/js/kil-actions.js?v=h40e5a201"></script>
 <script>
 var SUPA_URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ';
@@ -375,6 +376,9 @@ function delGo(){ var sz=document.getElementById('sz-delete'),b=document.getElem
     SB.auth.signOut().then(function(){ location.href='/?account=deleted'; },function(){ location.href='/?account=deleted'; });
   }).catch(function(){ if(sz)sz.textContent='Could not delete your account. Nothing was changed. Try again, or email info@keepitil.com.'; b.disabled=false; }); }
 function doLogout(){ if(SB){ SB.auth.signOut().then(function(){ location.href='/'; }); } else { location.href='/'; } }
+/* Delegated actions (assets/js/kil-actions.js): the markup carries data-click / data-input instead of inline handlers; only the names listed here can run. */
+function setShowAnyway(e){ showAnyway(); e.preventDefault(); }
+if(window.KilActions) KilActions.allow(["delClose", "delGo", "delOpen", "delSync", "doLogout", "exportMyData", "goProfile", "saveEmail", "savePass", "setShowAnyway"]);
 function showAnyway(){ document.getElementById('gate').style.display='none'; document.getElementById('cols').style.display='grid'; renderThemes(); }
 
 /* ---- boot ---- */

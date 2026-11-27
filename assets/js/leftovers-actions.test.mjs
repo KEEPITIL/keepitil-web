@@ -11,12 +11,14 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const read = (rel) => readFileSync(join(root, rel), 'utf8');
 
 test('culture feed cards: like / reshare / save / share are data-click + JSON data-a set from JS, ids are never spliced into code', () => {
-  const h = read('culture/index.html');
+  const h = __assemble(read('culture/index.html'));
   assert.doesNotMatch(h, /setAttribute\(\s*['"]on[a-z]+['"]/);
   const a = h.indexOf("var on = function(sel, name, args){"), z = h.indexOf("var box = document.createElement('div');", a);
   const src = h.slice(a, z);
@@ -30,7 +32,7 @@ test('culture feed cards: like / reshare / save / share are data-click + JSON da
   assert.match(h, /KilActions\.allow\(\[[^\]]*"fbLike", "fbReshareL", "fbSaveL", "fbShare"\]\)/);
 });
 test('culture: thumbnails fall back through data-fb="src" (set from JS and in the related-items template), the fallback script is loaded', () => {
-  const h = read('culture/index.html');
+  const h = __assemble(read('culture/index.html'));
   assert.match(h, /el\.setAttribute\('data-fb', 'src'\); el\.setAttribute\('data-fb-src', '\/assets\/images\/blog-default\.jpg'\)/);
   assert.match(h, /data-fb="src" data-fb-src="\/assets\/images\/blog-default\.jpg"\/>/);
   assert.ok(h.indexOf('/assets/js/kil-img-fallback.js') > 0 && h.indexOf('/assets/js/kil-img-fallback.js') < h.indexOf('KilActions.allow('));

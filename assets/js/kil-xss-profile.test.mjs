@@ -237,7 +237,7 @@ test('chat name and slug quotes do not become handlers', () => {
 
 test('pages do not assign stored html straight to innerHTML', () => {
   const profile = __assemble(read('profile.html'));
-  const culture = read('culture/index.html');
+  const culture = __assemble(read('culture/index.html'));
   const dashboard = read('dashboard.html');
   assert.match(profile, /assets\/js\/vendor\/purify\.min\.js/);
   assert.match(profile, /assets\/js\/kil-safe-html\.js/);

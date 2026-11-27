@@ -131,6 +131,7 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
         <li><b>Optional:</b> where it is, a description, a cover image, lineup, a Spotify song link, a password for a private event, and ticket tiers.</li>
       </ul>
       <p>It goes live as soon as you submit it. You can come back and edit it any time. Name, date, and links are checked first. Report and takedown still apply if something breaks or is abused.</p>
+      <p class="cannabis-notice">KEEPITIL does not host or sell tickets to cannabis events. Cannabis events and businesses belong on <a href="https://findmyweedapp.com" rel="noopener">Find My Weed</a>.</p>
     </div>
     <a class="btn primary" href="/apply?next=%2Fcreate-event">Log in to create your event</a>
   </div>
@@ -673,7 +674,7 @@ $('form').addEventListener('submit',async function(e){
     if(EDIT_SLUG){
       var scope=(SERIES.length>1 && $('editScope'))?$('editScope').value:'one';
       var ru=await rpcOr('kil_update_own_event',{ p_slug:EDIT_SLUG, ev:ev, tiers:tiers }, 'update_event');
-      if(ru.error) throw ru.error; var du=ru.data||{}; if(du.error) throw new Error(du.error); newEventId=du.event_id||null;
+      if(ru.error) throw ru.error; var du=ru.data||{}; if(du.error) throw new Error(du.message||du.error); newEventId=du.event_id||null;
       if(scope!=='one' && SERIES_ID){
         var evS=Object.assign({},ev); delete evS.starts_at; delete evS.slug; delete evS.ends_at;   // shared fields only — never overwrite each date's time
         var picks=null;
@@ -687,12 +688,12 @@ $('form').addEventListener('submit',async function(e){
       document.querySelectorAll('#seriesDates .s-date').forEach(function(inp){ if(inp.value) dates.push(new Date(inp.value).toISOString()); });
       if(dates.length<2){ b.disabled=false; b.textContent='Create Event'; msg.className='msg err'; msg.textContent='A series needs at least two dates — add another date, or turn off the series toggle.'; return; }
       var rc2=await rpcOr('kil_publish_own_series',{ ev:ev, tiers:tiers, dates:dates }, 'create_event_series');
-      if(rc2.error) throw rc2.error; var res2=rc2.data||{}; if(res2.error) throw new Error(res2.error);
+      if(rc2.error) throw rc2.error; var res2=rc2.data||{}; if(res2.error) throw new Error(res2.message||res2.error);
       newSlug=(res2.slugs&&res2.slugs[0])||ev.slug;
     } else {
       var rc=await rpcOr('kil_publish_own_event',{ ev:ev, tiers:tiers }, 'create_event_with_tiers');
       if(rc.error) throw rc.error;
-      var res=rc.data||{}; newSlug=res.slug||ev.slug; newEventId=res.id||null;
+      var res=rc.data||{}; if(res.error) throw new Error(res.message||res.error); newSlug=res.slug||ev.slug; newEventId=res.id||null;
     }
     // optional launch discount code → discount_codes (non-blocking; skipped for series)
     try{

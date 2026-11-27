@@ -26,16 +26,39 @@ test("dashboard hosted-event empty state has no review-queue copy", () => {
   assert.match(dash, /It goes live as soon as you submit it/);
 });
 
-test("publish migration is owner-scoped, not anon-writable, and keeps takedowns", () => {
-  assert.match(sql, /if uid is null then/);
-  assert.match(sql, /auth\.uid\(\)/);
-  assert.match(sql, /set search_path = public/);
-  assert.match(sql, /'taken_down'/);
-  assert.match(sql, /with check \(%s\)/);
-  assert.match(sql, /grant execute on function public\.kil_publish_own_event\(jsonb, jsonb\) to authenticated/);
-  assert.match(sql, /revoke all on function public\.kil_publish_own_event\(jsonb, jsonb\) from public, anon/);
-  assert.match(sql, /revoke all on function public\.kil_events_apply\(text, jsonb, jsonb\) from public, anon, authenticated/);
-  assert.doesNotMatch(sql, /grant execute on function public\.kil_publish_own_event\(jsonb, jsonb\) to anon/);
-  assert.doesNotMatch(sql, /user_metadata/);
-  assert.doesNotMatch(sql, /auth\.role\(\)/);
+test("publish migration is RPC-only, owner-scoped (submitted_by / owner_handle), payouts-gated, capped, and fails closed", () => {
+  const code = sql.replace(/^\s*--.*$/gm, "");
+  assert.match(code, /if uid is null then/);
+  assert.match(code, /set search_path = public/);
+  assert.match(code, /grant execute on function public\.kil_publish_own_event\(jsonb, jsonb\) to authenticated/);
+  assert.match(code, /revoke all on function public\.kil_publish_own_event\(jsonb, jsonb\) from public, anon/);
+  assert.match(code, /revoke all on function public\.kil_insert_event\(uuid, text, jsonb, jsonb, timestamptz, uuid\) from public, anon, authenticated/);
+  assert.doesNotMatch(code, /grant execute on function public\.kil_publish_own_event\(jsonb, jsonb\) to anon/);
+  assert.doesNotMatch(code, /create policy/i, "RPC-only: no owner insert/update policy and no table grant");
+  assert.doesNotMatch(code, /grant (select|insert|update|delete|all)[^;]* on public\.(events|ticket_tiers)/i);
+  assert.match(code, /payouts_required/); assert.match(code, /payouts_enabled/); assert.match(code, /public\.is_admin\(\)/);
+  assert.match(code, /submitted_by = auth\.uid\(\)/); assert.match(code, /handle_required/);
+  assert.match(code, /public\.event_orders/); assert.match(code, /qty_sold/);
+  assert.doesNotMatch(code, /public\.orders|public\.tickets|event_tiers|information_schema|when others|to_regclass/i);
+  assert.match(code, /events_apply_extras/); assert.match(code, /sales_start/); assert.match(code, /show_qty/); assert.match(code, /publish_limit/);
+  assert.match(code, /drop policy if exists tiers_owner_insert on public\.ticket_tiers/);
+  assert.doesNotMatch(code, /user_metadata|auth\.role\(\)/);
+});
+
+test("every self-serve migration has a rollback; the Connect rollback never drops the existing stripe_account_id column; promo rollback keeps event_promo_codes", () => {
+  for (const f of ["20261127170000_self_serve_publish", "20261127171000_creator_promo", "20261127172000_owner_attendees", "20261127173000_connect_account"]) assert.ok(fs.existsSync(path.join(ROOT, "supabase/migrations", f + ".rollback.sql")), f);
+  const strip = (f) => read("supabase/migrations/" + f + ".rollback.sql").replace(/^\s*--.*$/gm, "");
+  assert.doesNotMatch(strip("20261127173000_connect_account"), /drop column/i);
+  assert.match(strip("20261127173000_connect_account"), /drop index if exists public\.app_users_stripe_account_id_idx/);
+  assert.doesNotMatch(strip("20261127171000_creator_promo"), /drop table if exists public\.event_promo_codes/i);
+  assert.match(strip("20261127170000_self_serve_publish"), /create policy tiers_owner_insert on public\.ticket_tiers/);
+});
+
+test("the create form says KEEPITIL never hosts cannabis events (and the calendar form too), and shows an RPC error message instead of ignoring it", () => {
+  const NOTICE = /KEEPITIL does not host or sell tickets to cannabis events\. Cannabis events and businesses belong on <a href="https:\/\/findmyweedapp\.com" rel="noopener">Find My Weed<\/a>\./;
+  assert.match(create, NOTICE); assert.match(read("submit-event.html"), NOTICE);
+  assert.match(create, /var res=rc\.data\|\|\{\}; if\(res\.error\) throw new Error\(res\.message\|\|res\.error\)/);
+  assert.match(create, /du\.message\|\|du\.error/); assert.match(create, /res2\.message\|\|res2\.error/);
+  // NEGATIVE CONTROL: the old line that ignored a returned error would not match
+  assert.doesNotMatch("var res=rc.data||{}; newSlug=res.slug||ev.slug;", /if\(res\.error\) throw/);
 });

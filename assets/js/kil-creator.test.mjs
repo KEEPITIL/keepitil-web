@@ -54,6 +54,35 @@ test('dashboard mounts the promote panel inside the events tab', () => {
   assert.match(h, /KilCreator\.mount\(document\.getElementById\('creator-tools'\), supa\)/);
 });
 
+test('attendees are text, searchable, and the csv neutralizes formula cells', async () => {
+  const doc = mk();
+  const rows = [
+    { name: '=cmd|calc', email: 'a@b.co', tier: 'GA', quantity: 2, checked_in: true, at: '2026-12-01T00:00:00Z' },
+    { name: '<img src=x onerror=alert(1)>', email: 'c@d.co', tier: 'VIP', quantity: 1, checked_in: false, at: '2026-12-02T00:00:00Z' },
+  ];
+  const n = C.render(doc, [EV], { loadCustomers: function () { return Promise.resolve(rows); } });
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(n.querySelector('img'), null);
+  assert.equal(n.querySelectorAll('.cr-att-row').length, 2);
+  n.querySelector('.cr-find').value = 'vip';
+  n.querySelector('.cr-find').dispatchEvent(new doc.defaultView.Event('input', { bubbles: true }));
+  assert.equal(n.querySelectorAll('.cr-att-row').length, 1);
+  assert.match(n.querySelector('.cr-att-row').textContent, /<img/);
+  const csv = C.toCsv(rows);
+  assert.match(csv, /'=cmd\|calc/);
+  assert.match(csv, /<img src=x onerror=alert\(1\)>/);
+  assert.doesNotMatch(readFileSync(join(root, 'assets/js/kil-creator.js'), 'utf8'), /innerHTML|onclick=/);
+});
+
+test('attendees RPC is owner-only', () => {
+  const sql = readFileSync(join(root, 'supabase/migrations/20261127172000_owner_attendees.sql'), 'utf8');
+  assert.match(sql, /not public\.kil_row_owned\(v_id\)/);
+  assert.match(sql, /where event_slug = \$1/);
+  assert.match(sql, /revoke all on function public\.kil_event_customers\(text\) from public, anon/);
+  assert.match(sql, /grant execute on function public\.kil_event_customers\(text\) to authenticated/);
+  assert.doesNotMatch(sql, /to anon/);
+});
+
 test('promo migration is owner-only and the hit beacon is not a reader', () => {
   const sql = readFileSync(join(root, 'supabase/migrations/20261127171000_creator_promo.sql'), 'utf8');
   assert.match(sql, /kil_row_owned\(p_event_id\)/);

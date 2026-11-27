@@ -7,6 +7,65 @@
   function slugOk(s) { return /^[a-z0-9][a-z0-9-]{0,200}$/.test(String(s || '')); }
   function cleanUtm(v) { return String(v || '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, 80); }
   function codeOk(v) { return /^[A-Z0-9_-]{2,24}$/.test(String(v || '')); }
+  function csvCell(v) {
+    var s = String(v == null ? '' : v);
+    if (/^[=+\-@]/.test(s)) s = "'" + s;
+    if (/[",\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function toCsv(rows) {
+    var head = ['name', 'email', 'tier', 'quantity', 'checked_in', 'at'];
+    var lines = [head.join(',')];
+    (rows || []).forEach(function (r) {
+      lines.push([r.name, r.email, r.tier, r.quantity == null ? 1 : r.quantity, r.checked_in ? 'yes' : 'no', r.at].map(csvCell).join(','));
+    });
+    return lines.join('\n');
+  }
+  function downloadCsv(doc, filename, text) {
+    try {
+      var blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+      var u = URL.createObjectURL(blob);
+      var a = el(doc, 'a'); a.href = u; a.download = filename;
+      doc.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(u); }, 500);
+    } catch (e) {}
+  }
+  function attendeesBlock(doc, slug, hnd) {
+    var box = el(doc, 'div', 'cr-people');
+    box.appendChild(el(doc, 'p', 'cr-k', 'Attendees'));
+    var search = el(doc, 'input'); search.type = 'search'; search.className = 'cr-find'; search.placeholder = 'Search name or email'; search.setAttribute('aria-label', 'Search attendees');
+    var filter = el(doc, 'select'); filter.className = 'cr-filter'; filter.setAttribute('aria-label', 'Filter check-in');
+    [['all', 'All'], ['in', 'Checked in'], ['out', 'Not checked in']].forEach(function (o) { var opt = el(doc, 'option', '', o[1]); opt.value = o[0]; filter.appendChild(opt); });
+    var exp = el(doc, 'button', 'cr-btn', 'Export CSV'); exp.type = 'button';
+    var table = el(doc, 'div', 'cr-att');
+    var all = [];
+    function draw() {
+      var q = search.value.trim().toLowerCase();
+      var mode = filter.value;
+      var shown = all.filter(function (r) {
+        var hay = (String(r.name || '') + ' ' + String(r.email || '') + ' ' + String(r.tier || '')).toLowerCase();
+        if (q && hay.indexOf(q) < 0) return false;
+        if (mode === 'in' && !r.checked_in) return false;
+        if (mode === 'out' && r.checked_in) return false;
+        return true;
+      });
+      table.textContent = '';
+      if (!shown.length) { table.appendChild(el(doc, 'p', 'cr-note', all.length ? 'No matches.' : 'No attendees yet.')); return; }
+      shown.forEach(function (r) {
+        table.appendChild(el(doc, 'p', 'cr-att-row', [r.name || '—', r.email || '—', r.tier || '—', String(r.quantity == null ? 1 : r.quantity), r.checked_in ? 'Checked in' : 'Not checked in', r.at || ''].join(' · ')));
+      });
+    }
+    search.addEventListener('input', draw);
+    filter.addEventListener('change', draw);
+    exp.addEventListener('click', function () {
+      var text = toCsv(all);
+      if (hnd && hnd.exportCsv) hnd.exportCsv(slug, text); else downloadCsv(doc, slug + '-attendees.csv', text);
+    });
+    box.appendChild(search); box.appendChild(filter); box.appendChild(exp); box.appendChild(table);
+    if (hnd && hnd.loadCustomers) Promise.resolve(hnd.loadCustomers(slug)).then(function (rows) { all = Array.isArray(rows) ? rows : []; draw(); }, function () { draw(); });
+    else draw();
+    return box;
+  }
 
   function publicUrl(slug) { return 'https://keepitil.com/event?e=' + encodeURIComponent(slug); }
   function trackingUrl(slug, utm) {
@@ -102,6 +161,7 @@
       var stats = el(doc, 'p', 'cr-stats', 'Traffic: loading…');
       card.appendChild(stats);
       if (hnd.loadTraffic) Promise.resolve(hnd.loadTraffic(slug)).then(function (t) { paintTraffic(stats, t); }, function () { stats.textContent = 'Traffic: unavailable.'; });
+      card.appendChild(attendeesBlock(doc, slug, hnd));
       wrap.appendChild(card);
     });
     return wrap;
@@ -141,7 +201,8 @@
         var handlers = {
           saveCode: function (p) { return supa.rpc('kil_upsert_promo_code', { p_event_id: p.eventId, p_code: p.code, p_percent: p.percent, p_active: p.active }); },
           loadCodes: function (id) { return Promise.resolve(supa.rpc('kil_list_promo_codes', { p_event_id: id })).then(rowsOf); },
-          loadTraffic: function (slug) { return Promise.resolve(supa.rpc('kil_event_traffic', { p_slug: slug })).then(function (res) { return (res && res.data) || {}; }); }
+          loadTraffic: function (slug) { return Promise.resolve(supa.rpc('kil_event_traffic', { p_slug: slug })).then(function (res) { return (res && res.data) || {}; }); },
+          loadCustomers: function (slug) { return Promise.resolve(supa.rpc('kil_event_customers', { p_slug: slug })).then(function (res) { var d = res && res.data; return Array.isArray(d) ? d : []; }); }
         };
         host.textContent = '';
         host.appendChild(render(doc, evs, handlers));
@@ -150,6 +211,6 @@
     }).catch(function () { return false; });
   }
 
-  var api = { render: render, mount: mount, publicUrl: publicUrl, trackingUrl: trackingUrl, codeOk: codeOk, cleanUtm: cleanUtm };
+  var api = { render: render, mount: mount, publicUrl: publicUrl, trackingUrl: trackingUrl, codeOk: codeOk, cleanUtm: cleanUtm, toCsv: toCsv };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.KilCreator = api;
 })(typeof window !== 'undefined' ? window : globalThis);

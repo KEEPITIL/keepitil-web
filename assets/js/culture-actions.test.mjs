@@ -6,9 +6,11 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { createRequire as __cr } from 'node:module';
+const __assemble = __cr(import.meta.url)('../../tests/helpers/event-assembled.cjs').assemble;
 
 const dir = dirname(fileURLToPath(import.meta.url));
-const PAGE = readFileSync(join(dir, '../../culture/index.html'), 'utf8');
+const PAGE = __assemble(readFileSync(join(dir, '../../culture/index.html'), 'utf8'));
 const EXPECTED = {"click:__culCloseWall": 1, "click:culBell": 1, "click:culSection": 4, "click:setCulContentType": 6, "click:setCulType": 2, "click:toggleCulGear": 1, "click:toggleFeedDD": 1};
 const used = {};
 for (const m of PAGE.matchAll(/\sdata-(click|change|input|keydown|over|out)="(\w+)"/g)) used[m[1] + ':' + m[2]] = (used[m[1] + ':' + m[2]] || 0) + 1;

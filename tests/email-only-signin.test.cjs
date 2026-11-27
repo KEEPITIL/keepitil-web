@@ -12,7 +12,7 @@ const test = require('node:test');
 const root = path.join(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 const RPC = (name) => new RegExp("rpc\\(\\s*['\"`]" + name + "['\"`]");
-const apply = __A(read('apply.html')), culture = read('culture/index.html');
+const apply = __A(read('apply.html')), culture = __A(read('culture/index.html'));
 
 // every shipped page and script (not tests, docs, tools or node_modules)
 function shipped(dir = root, out = []) {

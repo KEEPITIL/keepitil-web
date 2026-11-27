@@ -9,7 +9,7 @@ const ROOT = process.env.PE_ROOT || path.resolve(__dirname, "..");
 const page = fs.readFileSync(path.join(ROOT, "profile.html"), "utf8");
 
 test("EDIT PAGE button exists, hidden by default, opens the existing editor", () => {
-  assert.match(page, /<button[^>]*id="pfEditPage"[^>]*style="display:none"[^>]*onclick="openEditProfile\(\)"[^>]*>EDIT PAGE<\/button>/);
+  assert.match(page, /<button[^>]*id="pfEditPage"[^>]*style="display:none"[^>]*data-click="openEditProfile"[^>]*>EDIT PAGE<\/button>/);
 });
 test("it is shown only through the CAN_EDIT() owner gate, alongside DASH", () => {
   assert.match(page, /\['pfDashWrap','pfEditPage'\]\.forEach\(function\(id\)\{[^}]*CAN_EDIT\(\)\?'':'none'/);

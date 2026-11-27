@@ -63,7 +63,7 @@ test('(b) kode escapeHtml escapes quotes; renderReady media button carries the U
   assert.equal(/data-url/.test(list.innerHTML), false, 'non-http(s) URL rejected');
   ctx.renderReady([{ ...base, media_url: 'https://cdn.example.test/a.jpg?x=1&y=2' }]);
   assert.match(list.innerHTML, /data-url="https:\/\/cdn\.example\.test\/a\.jpg\?x=1&amp;y=2"/, 'valid URL kept, attribute-escaped');
-  assert.match(list.innerHTML, /window\.open\(this\.dataset\.url,/);
+  assert.match(list.innerHTML, /data-click="kodeOpenMedia" data-a="\[&quot;\$el&quot;\]"/);
   noExec(list.innerHTML, 'ready');
 });
 

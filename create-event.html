@@ -72,6 +72,7 @@ textarea{min-height:96px;resize:vertical}
 .addtier{margin-top:14px;background:transparent;border:1px solid var(--line);color:var(--text);border-radius:999px;padding:9px 16px;font-weight:700;cursor:pointer}
 .addtier:hover{border-color:var(--ev-accent,var(--brand));color:var(--ev-accent,var(--brand))}
 .hint{font-size:.78rem;color:var(--muted);margin-top:6px}
+.hint a{color:inherit;font-weight:700;text-decoration:underline}
 .tier-badge{display:inline-block;font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--brand);border:1px solid var(--line);border-radius:20px;padding:3px 9px;margin-bottom:8px}
 body.rsvp .price-only{display:none!important}
 /* guestlist preview */
@@ -135,9 +136,10 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
 
   <form id="form" style="display:none">
     <h1 class="vh">Create an event</h1>
+    <h2 class="vh">Your event</h2>
     <!-- editor top bar: org · Sell/RSVP · help -->
     <div class="edbar">
-      <div class="org"><span class="tzlab">Hosting as</span><select id="orgSel"><option value="">…</option></select></div>
+      <div class="org"><span class="tzlab" id="orgLab">Hosting as</span><select id="orgSel" aria-labelledby="orgLab"><option value="">…</option></select></div>
       <div class="mode" id="evMode">
         <button type="button" id="modeSell" class="on">Sell Tickets</button>
         <button type="button" id="modeRSVP">RSVP</button>
@@ -149,8 +151,8 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
       <!-- ══ LEFT: the live event page ══ -->
       <div>
         <div class="pagehead">
-          <div id="title-inline" contenteditable="true" spellcheck="false" aria-label="Event name"></div>
-          <div id="summary-inline" contenteditable="true" spellcheck="false" aria-label="Short summary"></div>
+          <div id="title-inline" contenteditable="true" role="textbox" spellcheck="false" aria-label="Event name"></div>
+          <div id="summary-inline" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="false" aria-label="Short summary"></div>
           <!-- canonical fields the whole submit path reads (kept in sync with the inline editors) -->
           <input type="hidden" id="title"/>
           <input type="hidden" id="tagline"/>
@@ -173,9 +175,9 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
         <div class="card">
           <h3>📅 Date &amp; time <span class="tzlab" style="margin-left:auto">Pacific Time · America/Los_Angeles</span></h3>
           <div class="row">
-            <div><label>Starts *</label><input id="starts_at" type="datetime-local" step="900" required/></div>
+            <div><label for="starts_at">Starts *</label><input id="starts_at" type="datetime-local" step="900" required/></div>
             <div>
-              <label style="display:flex;align-items:center;gap:8px">Ends
+              <label for="ends_at" style="display:flex;align-items:center;gap:8px">Ends
                 <button type="button" class="eye on" id="endEye" title="Shown publicly — click to hide the end time on the event page" aria-pressed="true">👁</button>
               </label>
               <input id="ends_at" type="datetime-local" step="900"/>
@@ -275,14 +277,14 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
         </div>
         <div class="railcard">
           <h4>Branding</h4>
-          <label>Title font</label>
+          <label for="title_font">Title font</label>
           <select id="title_font">
             <option value="">KEEPITIL default (Bebas Neue)</option>
             <option value="Anton">Anton — heavy poster</option>
             <option value="Fraunces">Fraunces — editorial serif</option>
             <option value="Inter">Inter — clean modern</option>
           </select>
-          <label>Accent color</label>
+          <label for="accent_color">Accent color</label>
           <input id="accent_color" type="color" value="#00b4ff" style="height:44px;padding:4px"/>
           <div class="hint">Font + accent style YOUR event page only — the rest of the site never changes.</div>
         </div>
@@ -390,8 +392,8 @@ function tierHtml(i){
     '<textarea class="t-desc" rows="2" placeholder="e.g. Early entry + drink token, or VIP table for 4…"></textarea>'+
     '<div class="row"><div class="price-only"><label>Price (USD)</label><input class="t-price" type="number" min="0" step="1" placeholder="0 = free"/></div>'+
     '<div><label>Quantity limit</label><input class="t-qty" type="number" min="1" step="1" placeholder="Unlimited"/></div></div>'+
-    '<div class="row"><div><label>Sales start <span style="font-weight:600;color:var(--muted);font-size:.8rem">(optional)</span></label><input class="t-start" type="datetime-local" step="900"/></div>'+
-    '<div><label>Sales end <span style="font-weight:600;color:var(--muted);font-size:.8rem">(optional)</span></label><input class="t-end" type="datetime-local" step="900"/></div></div>'+
+    '<div class="row"><div><label>Sales start <span style="font-weight:600;color:var(--muted);font-size:.8rem">(optional)</span></label><input class="t-start" type="datetime-local" step="900" aria-label="Sales start (optional)"/></div>'+
+    '<div><label>Sales end <span style="font-weight:600;color:var(--muted);font-size:.8rem">(optional)</span></label><input class="t-end" type="datetime-local" step="900" aria-label="Sales end (optional)"/></div></div>'+
     '<div class="hint" style="margin-top:6px">Leave blank to sell right away until the event starts. Sales windows can’t run past the event’s date/time.</div>'+
     '<label class="tgl" style="margin-top:8px"><input type="checkbox" class="t-showqty"/> Show remaining count publicly (otherwise it only appears when a guest hovers the ticket)</label>'+
     '</div>';

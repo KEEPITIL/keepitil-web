@@ -38,9 +38,13 @@
   a{color:var(--blue);text-decoration:none;}
   header{position:sticky;top:0;z-index:20;background:rgba(9,9,16,.97);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,180,255,.15);padding-top:env(safe-area-inset-top,0px);}
   .hd{max-width:1000px;margin:0 auto;display:flex;align-items:center;gap:12px;height:58px;padding:0 20px;}
+  /* CLS (desktop): the shell swaps this 59px header for its fixed 66px nav + 66px body padding, and injects its own page box (`.wrap{max-width:1360px!important;padding-left/right:40px!important}`) at DOMContentLoaded.
+     Both used to move the whole page (main 59 -> 66 px and 1000 -> 1280 px wide, ~0.10). State the final values up front so the shell's rules change nothing. */
+  @media(min-width:861px){.hd{height:65px}}
   .hd .brand{font-family:var(--head);letter-spacing:.16em;font-size:1.15rem;color:#fff;}
   .hd .back{margin-left:auto;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8aa;}
   .wrap{max-width:1000px;margin:0 auto;padding:26px 20px 80px;}
+  @media(min-width:861px){.wrap{max-width:1360px;padding-left:40px;padding-right:40px;box-sizing:border-box}}/* = the shell's .wrap box (see the .hd note above), stated after the page's own .wrap so it wins on source order */
   .crumbs{font-size:.7rem;color:#5a6570;letter-spacing:.06em;text-transform:uppercase;margin-bottom:18px;}
   .crumbs a{color:#7a8a99;}
   .ev{display:grid;grid-template-columns:340px 1fr;gap:32px;}

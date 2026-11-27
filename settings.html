@@ -62,7 +62,7 @@ select:focus,input[type=text]:focus,input[type=email]:focus,input[type=password]
 .gate p{color:var(--muted);margin-bottom:18px}
 .soon{font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--cyan);border:1px solid var(--cyan);border-radius:999px;padding:2px 8px;margin-left:8px}
 @media(max-width:760px){
-  .cols{grid-template-columns:1fr;gap:14px}
+  .cols{grid-template-columns:minmax(0,1fr);gap:14px}   /* minmax(0,…): the nowrap tab strip must scroll inside its box, not stretch the column past the screen */
   .snav{position:static;display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:6px}
   .snav::-webkit-scrollbar{display:none}
   .snav button{flex:0 0 auto;white-space:nowrap}

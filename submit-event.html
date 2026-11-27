@@ -106,11 +106,11 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
         </div>
         <input type="hidden" id="city" value="Los Angeles"/>
         <div class="row">
-          <div><label>Date *</label><input id="date" type="date" required/></div>
-          <div><label>Duration</label><select id="days"><option value="1">1 Day</option><option value="2">2 Days</option><option value="3">3 Days</option><option value="4">4 Days</option><option value="5">5+ Days</option></select></div>
+          <div><label for="date">Date *</label><input id="date" type="date" required/></div>
+          <div><label for="days">Duration</label><select id="days"><option value="1">1 Day</option><option value="2">2 Days</option><option value="3">3 Days</option><option value="4">4 Days</option><option value="5">5+ Days</option></select></div>
         </div>
         <div class="row">
-          <div><label>Start time</label><input id="time" type="time" step="900" value="21:00"/></div>
+          <div><label for="time">Start time</label><input id="time" type="time" step="900" value="21:00"/></div>
           <div></div>
         </div>
         <label>Title</label>
@@ -142,12 +142,12 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand)}
       <!-- ══ rail: my recent + duplicate search ══ -->
       <div>
         <div class="card">
-          <h3>📋 Recent</h3>
+          <h3 aria-level="2">📋 Recent</h3>
           <div class="note">Your submissions — tap Edit to fix one (edits re-enter review).</div>
           <div id="recent"><div class="sub" style="font-size:.82rem">Nothing submitted yet.</div></div>
         </div>
         <div class="card" style="margin-top:14px">
-          <h3>🔎 Search</h3>
+          <h3 aria-level="2">🔎 Search</h3>
           <div class="note">Check it isn't already listed before you submit.</div>
           <div class="tabs"><button type="button" class="on" data-k="event">Events</button><button type="button" data-k="artist">Artists</button><button type="button" data-k="venue">Venues</button></div>
           <input id="sq" placeholder="Venue, artist, or event title" autocomplete="off"/>

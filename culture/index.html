@@ -781,6 +781,7 @@ footer a{color:var(--purple)}
 </div></main>
 <footer>KEEPITIL <a href="/">keepitil.com</a> — Culture &amp; Community</footer>
 
+<script src="/assets/js/kil-img-fallback.js?v=hac99000e"></script>
 <script src="/assets/js/kil-actions.js?v=h1fe8e1c8"></script>
 <script>
 /* ── CULTURE DESKTOP BLOG FEED REMOVED 2026-08-26 (Founder) ─────────────────────────────
@@ -796,7 +797,7 @@ footer a{color:var(--purple)}
    (#community-feed) is untouched. */
 /* Delegated actions (assets/js/kil-actions.js): the markup carries data-click instead of inline handlers; only the names listed here can run. */
 function culBell(){ var b=document.querySelector('.kiln-bell'); if(b){ b.click(); } else { location.href='/apply'; } }
-if(window.KilActions) KilActions.allow(["__culCloseWall", "culBell", "culSection", "setCulContentType", "setCulType", "toggleCulGear", "toggleFeedDD"]);
+if(window.KilActions) KilActions.allow(["__culCloseWall", "culBell", "culSection", "setCulContentType", "setCulType", "toggleCulGear", "toggleFeedDD", "fbLike", "fbReshareL", "fbSaveL", "fbShare"]);
 function toggleFeedDD(e){if(e){e.stopPropagation();}var m=document.getElementById('feedDDMenu');if(m)m.classList.toggle('open');}
 /* ── Culture EXPLORE dropdown: radio / battles / games / apps / services ── */
 function culNav(section){
@@ -1196,7 +1197,7 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
     if((el = q('thumb'))){
       el.setAttribute('src', safeSrc(n.thumb) || '/assets/images/blog-default.jpg');
       el.setAttribute('alt', n.title || '');
-      el.setAttribute('onerror', "this.src='/assets/images/blog-default.jpg'");
+      el.setAttribute('data-fb', 'src'); el.setAttribute('data-fb-src', '/assets/images/blog-default.jpg');
       if(n.fit) el.style.objectFit = n.fit;
     }
     if((el = q('platform'))){
@@ -1276,12 +1277,12 @@ window.culPostMenu=function(e,slug,url){ try{e.preventDefault();e.stopPropagatio
     }
 
     /* Wired by class, so reordering buttons in the template cannot unwire them. */
-    var pe = pid.replace(/'/g, "\\'");
-    var on = function(sel, fn){ var b = frag.querySelector(sel); if(b) b.setAttribute('onclick', fn); };
-    on('.fba-like',  "fbLike('"+pe+"',this)");
-    on('.fba-resh',  "fbReshareL('"+pe+"',this)");
-    on('.fba-share', "fbShare('"+String(safeHref(n.href)||'').replace(/'/g,"\\'")+"')");
-    on('.fb-save',   "fbSaveL('"+pe+"',this)");
+    /* Delegated actions (assets/js/kil-actions.js): name + JSON args as attributes, never code spliced into an onclick string. */
+    var on = function(sel, name, args){ var b = frag.querySelector(sel); if(b){ b.setAttribute('data-click', name); b.setAttribute('data-a', JSON.stringify(args)); } };
+    on('.fba-like',  'fbLike', [String(pid), '$el']);
+    on('.fba-resh',  'fbReshareL', [String(pid), '$el']);
+    on('.fba-share', 'fbShare', [String(safeHref(n.href)||'')]);
+    on('.fb-save',   'fbSaveL', [String(pid), '$el']);
 
     var box = document.createElement('div');
     box.appendChild(frag);
@@ -3441,7 +3442,7 @@ function culResolveFilters(){
         return '<button type="button" class="cr-item'+(k===CURRENT?' cr-cur':'')+(VIEWED[k]&&k!==CURRENT?' cr-seen':'')
           + '" data-key="'+esc(k)+'">'
           + '<img class="cr-thumb" loading="lazy" alt="" src="'+esc(thumbOf(r))+'" '
-          + 'onerror="this.src=\'/assets/images/blog-default.jpg\'"/>'
+          + 'data-fb="src" data-fb-src="/assets/images/blog-default.jpg"/>'
           + '<div><div class="cr-kind">'+esc(kindOf(r))+'</div>'
           + '<div class="cr-title">'+esc(titleOf(r))+'</div>'
           + '<div class="cr-meta">'+esc([whoOf(r),whenOf(r)].filter(Boolean).join(' · '))+'</div></div></button>';

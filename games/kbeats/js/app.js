@@ -84,7 +84,7 @@ const screens = {
     const isNew = feat && (feat.dev || (Date.now() - new Date(feat.publishedAt || 0)) < 14 * 864e5);
     $('#s-home').innerHTML = `<div class="wrapc">${topBar()}
       <div class="tabs" role="tablist">${[['foryou', 'For You'], ['trending', 'Trending'], ['new', 'New']].map(([k, l]) => `<button role="tab" aria-selected="${k === tab}" class="${k === tab ? 'on' : ''}" data-tab="${k}">${l}</button>`).join('')}
-        <button role="tab" onclick="location.hash='#/genres'">Genres</button></div>
+        <button role="tab" data-go="#/genres">Genres</button></div>
       ${feat ? `<a class="hero" href="#/track/${encodeURIComponent(feat.slug)}"><img src="${coverArt(feat, 640)}" alt="">
         <div>${isNew ? '<span class="newb">NEW</span>' : ''}<h2>${esc(feat.title)}</h2><div class="ha">${esc(feat.artist)}</div><small>${esc(feat.genre)}${feat.dev ? ' · development test track' : ''}</small>
         <div class="dots"><i class="on"></i><i></i><i></i><i></i></div></div><span class="play-c" aria-hidden="true">${I.play}</span></a>` : '<p class="empty">No tracks are live yet.</p>'}
@@ -93,6 +93,7 @@ const screens = {
       ${D.RELEASE.mode !== 'production' && live.some(t => t.dev) ? `<p class="fine">Beta: tracks marked DEV are KBeats development test tracks, not artist releases. <a href="/games/kbeats/submit/">Submit your music →</a></p>` : ''}
     </div>`;
     $('#s-home').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => screens.home(b.dataset.tab));
+    $('#s-home').querySelectorAll('[data-go]').forEach(b => b.onclick = () => { location.hash = b.dataset.go; });
     D.track('track_impression', { track: feat?.slug });
   },
   discover() {
@@ -194,7 +195,7 @@ const screens = {
         <div><h2>${esc(ME?.name || (anon ? 'Guest player' : 'Player'))}</h2><div class="x">Lv. ${ME?.level || 1} · ${(ME?.xp || 0).toLocaleString()} XP${ME?.email ? ' · ' + esc(ME.email) : anon ? ' · guest account' : ''}</div></div></div>
         <label class="set"><span>Display name<small>shown on leaderboards</small></span><input type="text" id="nm" maxlength="24" value="${esc(ME?.name || '')}"></label></div>
       ${anon ? `<div class="card"><h3>Save your progress</h3><p class="x">You're playing as a guest. Your scores already sync to this guest account. Add an email to keep them across devices; signing in to an existing account moves your guest progress over.</p>
-        <form id="authf" class="authf" onsubmit="return false"><input type="email" id="em" placeholder="Email" autocomplete="email" required><input type="password" id="pw" placeholder="Password (optional for a magic link)" autocomplete="current-password" minlength="6">
+        <form id="authf" class="authf"><input type="email" id="em" placeholder="Email" autocomplete="email" required><input type="password" id="pw" placeholder="Password (optional for a magic link)" autocomplete="current-password" minlength="6">
         <div class="grid2"><button class="btn primary" id="si">Sign in</button><button class="btn ghost" id="su">Create account</button></div>
         <button class="btn ghost" id="gg" style="width:100%;margin-top:8px">Continue with Google</button><p class="fine" id="am"></p></form>
         <p class="fine">Uses your KEEPITIL account. SoundCloud is never required.</p></div>`
@@ -207,6 +208,7 @@ const screens = {
       <a class="btn ghost" href="/games/kbeats/submit/" style="width:100%">${ME?.artist ? 'Artist dashboard' : 'Artist? Submit your music'}</a></div>`;
     $('#nm').onchange = async e => { try { ME = await D.profileUpdate(e.target.value.trim()); toast('Name saved'); } catch (x) { toast(x.message); } };
     const am = m => { const el = $('#am'); if (el) el.textContent = m; };
+    if ($('#authf')) $('#authf').addEventListener('submit', (e) => e.preventDefault());   // replaces the inline return-false submit handler
     if ($('#si')) $('#si').onclick = async () => { if (!$('#authf').reportValidity()) return; try { const r = await D.auth.signInEmail($('#em').value, $('#pw').value); am(r.session ? 'Signed in.' : 'Check your email for a sign-in link.'); if (r.session) await refreshMe(true); } catch (x) { am(x.message); } };
     if ($('#su')) $('#su').onclick = async () => { if (!$('#authf').reportValidity() || $('#pw').value.length < 6) return am('Choose a password of at least 6 characters.'); try { const r = await D.auth.signUpEmail($('#em').value, $('#pw').value); am(r.upgraded ? 'Check your email to confirm. Your guest progress stays with this account.' : 'Check your email to confirm your account.'); } catch (x) { am(x.message); } };
     if ($('#gg')) $('#gg').onclick = () => D.auth.signInGoogle().catch(x => am(x.message));

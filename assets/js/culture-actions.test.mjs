@@ -21,7 +21,9 @@ test('all 16 delegated handlers are in the page, exactly as many per event:actio
 test('every action is allowed and defined as a function; the allow list has no dead entries; kil-actions.js loads first', () => {
   const allow = JSON.parse(PAGE.match(/KilActions\.allow\((\[[^\]]*\])\)/)[1]);
   const names = [...new Set(Object.keys(used).map((k) => k.split(':')[1]))].sort();
-  assert.deepEqual([...allow].sort(), names);
+  const built = ['fbLike', 'fbReshareL', 'fbSaveL', 'fbShare'];   // feed-card buttons: attributes set from JS (data-click + data-a), not in the static markup
+  assert.deepEqual([...allow].sort(), [...names, ...built].sort());
+  for (const n of built) assert.match(PAGE, new RegExp('window\\.' + n + '\\s*='), n + ' is defined');
   for (const n of names) assert.match(PAGE, new RegExp('function ' + n + '\\(|(?:var|let|const) ' + n + '\\s*=|window\\.' + n + '\\s*='), n + ' is defined');
   assert.ok(PAGE.indexOf('/assets/js/kil-actions.js') > 0 && PAGE.indexOf('/assets/js/kil-actions.js') < PAGE.indexOf('KilActions.allow('));
 });

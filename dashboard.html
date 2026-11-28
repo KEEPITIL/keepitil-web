@@ -55,7 +55,7 @@ body::before{display:none!important} /* organizer tool page — no decorative ba
 .head h1 b{color:var(--brand,#00b4ff)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:800;padding:11px 18px;border-radius:11px;text-decoration:none;cursor:pointer;border:1px solid var(--line,#242433);background:transparent;color:var(--text);font:inherit;font-weight:800;white-space:nowrap}
 .btn.prim{background:linear-gradient(90deg,var(--brand,#00b4ff),var(--brand-2,#22e39b));color:#04121b;border:0}
-.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:8px 0 22px}
+.summary{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:8px 0 22px}
 .sum{background:var(--surface,#12121c);border:1px solid var(--line,#242433);border-radius:14px;padding:14px 16px}
 .sum .n{font-size:1.6rem;font-weight:900;line-height:1}
 .sum .l{color:var(--muted);font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-top:4px}
@@ -345,6 +345,7 @@ function card(d){
       '<div class="ev-meta">'+fmtDate(d.starts_at,d.tz)+(d.venue?' · '+esc(d.venue):(d.city?' · '+esc(d.city):''))+'</div>'+
       '<div class="ev-stats">'+
         '<div class="s"><div class="n">'+(d.sold||0)+'</div><div class="l">Sold</div></div>'+
+        '<div class="s"><div class="n">'+(d.rsvps||0)+'</div><div class="l">RSVPs</div></div>'+
         '<div class="s"><div class="n">'+(d.checked_in||0)+'</div><div class="l">Checked in</div></div>'+
         '<div class="s"><div class="n">'+money(d.revenue_cents)+'</div><div class="l">Revenue</div></div>'+
       '</div>'+
@@ -370,11 +371,12 @@ async function load(){
   try{
     var r=await supa.rpc('organizer_dashboard');
     var evs=(r&&r.data)||[];
-    var sold=0,rev=0,chk=0;
-    evs.forEach(function(e){ sold+=e.sold||0; rev+=e.revenue_cents||0; chk+=e.checked_in||0; });
+    var sold=0,rev=0,chk=0,rsv=0;
+    evs.forEach(function(e){ sold+=e.sold||0; rev+=e.revenue_cents||0; chk+=e.checked_in||0; rsv+=e.rsvps||0; });
     $('summary').innerHTML=
       '<div class="sum"><div class="n">'+evs.length+'</div><div class="l">Events</div></div>'+
       '<div class="sum"><div class="n">'+sold+'</div><div class="l">Tickets sold</div></div>'+
+      '<div class="sum"><div class="n">'+rsv+'</div><div class="l">RSVPs</div></div>'+
       '<div class="sum"><div class="n">'+chk+'</div><div class="l">Checked in</div></div>'+
       '<div class="sum"><div class="n">'+money(rev)+'</div><div class="l">Revenue</div></div>';
     $('list').innerHTML = evs.length ? evs.map(card).join('')

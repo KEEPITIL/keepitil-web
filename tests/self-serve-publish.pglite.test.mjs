@@ -102,8 +102,25 @@ test('HIGH: price_cents > 0 is refused unless the caller is an admin or has payo
   const okFree = await call(db, U.a, 'kil_publish_own_event', [ev({}), free]);
   assert.equal((await call(db, U.a, 'kil_update_own_event', [okFree.slug, ev({}), paid])).error, 'payouts_required');
   assert.equal((await call(db, U.a, 'kil_publish_own_series', [ev({}), paid, ['2027-04-01T20:00:00Z', '2027-04-08T20:00:00Z']])).error, 'payouts_required');
+  await db.exec('reset role');
   await db.exec(`update public.app_users set payouts_enabled = true where id = '${U.a}'`);
   assert.equal((await call(db, U.a, 'kil_publish_own_event', [ev({}), paid])).status, 'published');
+  // Table-level UPDATE is what members have on their profile. Column REVOKE does not remove it, so the trigger must.
+  await db.exec('reset role');
+  await db.exec('grant select, update on table public.app_users to authenticated, service_role');
+  await as(db, U.a);
+  for (const sql of [
+    `update public.app_users set payouts_enabled = false where id = '${U.a}'`,
+    `update public.app_users set stripe_account_id = 'acct_member' where id = '${U.a}'`,
+  ]) {
+    const denied = await db.query(sql).then(() => null, (e) => e);
+    assert.ok(denied && /not member-writable/.test(denied.message), denied && denied.message);
+  }
+  await db.exec('reset role');
+  await db.exec('set role service_role');
+  await db.query(`update public.app_users set stripe_account_id = 'acct_ok' where id = '${U.a}'`);
+  await db.exec('reset role');
+  assert.equal((await rows(db, `select stripe_account_id from public.app_users where id = '${U.a}'`))[0].stripe_account_id, 'acct_ok');
   assert.equal((await call(db, U.adm, 'kil_publish_own_event', [ev({ title: 'Staff show' }), paid])).status, 'published');
   assert.equal((await call(db, U.a, 'kil_publish_own_event', [ev({}), [{ name: 'x', price_cents: '12.5' }]])).error, 'bad_price');
 });

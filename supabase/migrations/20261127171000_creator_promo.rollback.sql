@@ -6,4 +6,5 @@ drop function if exists public.kil_event_traffic(text);
 drop function if exists public.kil_record_event_hit(text, text, text, text, text, text);
 drop function if exists public.kil_event_id_for_slug(text);
 -- created by this migration: the beacon table (its counts are lost)
+alter table if exists public.event_link_hits no force row level security;
 drop table if exists public.event_link_hits;

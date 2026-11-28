@@ -25,7 +25,7 @@ create or replace function public.kil_bad_link(v text)
 returns boolean
 language sql
 immutable
-set search_path = public
+set search_path = ''
 as $$
   select coalesce(btrim(v), '') <> '' and btrim(v) !~* '^https://\S+$';
 $$;
@@ -36,7 +36,7 @@ returns text
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select a.handle from public.app_users a where a.id = auth.uid() limit 1;
 $$;
@@ -47,7 +47,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select coalesce((
     select e.submitted_by = auth.uid()
@@ -62,7 +62,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select exists (select 1 from public.event_orders o where o.event_id = p_id)
       or exists (select 1 from public.ticket_tiers t where t.event_id = p_id and coalesce(t.qty_sold, 0) > 0);
@@ -74,7 +74,7 @@ returns text
 language plpgsql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   t jsonb;
@@ -106,7 +106,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select public.is_admin() or (
     select count(*) from public.events e where e.submitted_by = auth.uid() and e.created_at > now() - interval '24 hours'
@@ -117,6 +117,7 @@ create or replace function public.kil_err(p_code text, p_message text)
 returns jsonb
 language sql
 immutable
+set search_path = ''
 as $$
   select jsonb_build_object('error', p_code, 'message', p_message);
 $$;
@@ -126,7 +127,7 @@ create or replace function public.kil_insert_event(p_uid uuid, p_handle text, p_
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_id bigint;
@@ -169,7 +170,7 @@ create or replace function public.kil_publish_own_event(ev jsonb, tiers jsonb de
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   uid uuid := auth.uid();
@@ -202,7 +203,7 @@ create or replace function public.kil_update_own_event(p_slug text, ev jsonb, ti
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   uid uuid := auth.uid();
@@ -264,7 +265,7 @@ create or replace function public.kil_publish_own_series(ev jsonb, tiers jsonb, 
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   uid uuid := auth.uid();
@@ -272,7 +273,7 @@ declare
   n int;
   d text;
   starts timestamptz;
-  sid uuid := gen_random_uuid();
+  sid uuid := pg_catalog.gen_random_uuid();
   one jsonb;
   slugs jsonb := '[]'::jsonb;
   first_id bigint;

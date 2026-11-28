@@ -21,6 +21,7 @@ create table if not exists public.event_link_hits (
 );
 create index if not exists event_link_hits_slug_idx on public.event_link_hits (event_slug, kind, created_at desc);
 alter table public.event_link_hits enable row level security;
+alter table public.event_link_hits force row level security;
 revoke all on public.event_link_hits from public, anon, authenticated;
 
 create or replace function public.kil_event_id_for_slug(p_slug text)
@@ -28,7 +29,7 @@ returns bigint
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select e.id from public.events e where e.slug = p_slug limit 1;
 $$;
@@ -37,7 +38,7 @@ create or replace function public.kil_upsert_promo_code(p_event_id bigint, p_cod
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   c text := upper(regexp_replace(coalesce(p_code, ''), '[^A-Za-z0-9_-]', '', 'g'));
@@ -60,7 +61,7 @@ returns jsonb
 language plpgsql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   if auth.uid() is null then return jsonb_build_object('error', 'not_authenticated'); end if;
@@ -77,7 +78,7 @@ returns jsonb
 language plpgsql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_id bigint;
@@ -102,7 +103,7 @@ create or replace function public.kil_record_event_hit(
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   kind text := lower(coalesce(p_kind, ''));

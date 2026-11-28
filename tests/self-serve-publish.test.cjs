@@ -29,7 +29,9 @@ test("dashboard hosted-event empty state has no review-queue copy", () => {
 test("publish migration is RPC-only, owner-scoped (submitted_by / owner_handle), payouts-gated, capped, and fails closed", () => {
   const code = sql.replace(/^\s*--.*$/gm, "");
   assert.match(code, /if uid is null then/);
-  assert.match(code, /set search_path = public/);
+  assert.match(code, /set search_path = ''/);
+  assert.doesNotMatch(code, /set search_path = public/);
+  assert.match(code, /function public\.kil_err\(p_code text, p_message text\)[\s\S]{0,160}set search_path = ''/);
   assert.match(code, /grant execute on function public\.kil_publish_own_event\(jsonb, jsonb\) to authenticated/);
   assert.match(code, /revoke all on function public\.kil_publish_own_event\(jsonb, jsonb\) from public, anon/);
   assert.match(code, /revoke all on function public\.kil_insert_event\(uuid, text, jsonb, jsonb, timestamptz, uuid\) from public, anon, authenticated/);
@@ -43,6 +45,25 @@ test("publish migration is RPC-only, owner-scoped (submitted_by / owner_handle),
   assert.match(code, /events_apply_extras/); assert.match(code, /sales_start/); assert.match(code, /show_qty/); assert.match(code, /publish_limit/);
   assert.match(code, /drop policy if exists tiers_owner_insert on public\.ticket_tiers/);
   assert.doesNotMatch(code, /user_metadata|auth\.role\(\)/);
+});
+
+test("security definer functions use an empty search_path, hit rows are force-RLS, and members cannot write payout columns", () => {
+  const files = ["20261127170000_self_serve_publish", "20261127171000_creator_promo", "20261127172000_owner_attendees", "20261127173000_connect_account"];
+  for (const f of files) {
+    const code = read("supabase/migrations/" + f + ".sql").replace(/^\s*--.*$/gm, "");
+    assert.doesNotMatch(code, /set search_path = public/, f);
+    for (const part of code.split(/security definer/i).slice(1)) assert.match(part.slice(0, 180), /set search_path = ''/, f);
+  }
+  const promo = read("supabase/migrations/20261127171000_creator_promo.sql");
+  assert.match(promo, /alter table public\.event_link_hits force row level security/);
+  assert.match(read("supabase/migrations/20261127171000_creator_promo.rollback.sql"), /no force row level security/);
+  const connect = read("supabase/migrations/20261127173000_connect_account.sql");
+  assert.match(connect, /revoke update \(payouts_enabled, stripe_account_id\) on table public\.app_users from public, anon, authenticated/);
+  assert.match(connect, /kil_block_payout_columns/);
+  assert.match(connect, /current_user in \('anon', 'authenticated'\)/);
+  const rb = read("supabase/migrations/20261127173000_connect_account.rollback.sql");
+  assert.match(rb, /drop trigger if exists kil_block_payout_columns/);
+  assert.doesNotMatch(rb, /drop column/i);
 });
 
 test("every self-serve migration has a rollback; the Connect rollback never drops the existing stripe_account_id column; promo rollback keeps event_promo_codes", () => {

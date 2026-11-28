@@ -12,7 +12,7 @@ returns jsonb
 language plpgsql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_id bigint;

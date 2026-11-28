@@ -11,6 +11,7 @@
 <link href="/assets/css/fonts.css?v=h613ded09" rel="stylesheet"/>
 <link href="/assets/css/nav-reserve.css?v=20261127b" rel="stylesheet"/>
 <script src="/assets/js/vendor/supabase-js.min.js?v=hcb41d8ab"></script>
+<script src="/assets/js/kil-tz.js?v=h08f986b9"></script>
 <style>
 /* ── Posh-parity single-page live editor (Founder 2026-07-17): the page IS the event —
    inline title, stacked add-on sections, sticky right rail. KEEPITIL tokens/copy only. ── */
@@ -175,7 +176,7 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
 
 
         <div class="card">
-          <h3>📅 Date &amp; time <span class="tzlab" style="margin-left:auto">Pacific Time · America/Los_Angeles</span></h3>
+          <h3>📅 Date &amp; time <label class="tzlab" for="tz" style="margin-left:auto;display:flex;align-items:center;gap:6px;font-weight:600">Time zone <select id="tz" aria-label="Time zone of this event"></select></label></h3>
           <div class="row">
             <div><label for="starts_at">Starts *</label><input id="starts_at" type="datetime-local" step="900" required/></div>
             <div>
@@ -461,7 +462,8 @@ async function prefillEdit(){
     $('city').value=ev.city||''; if(ev.city && ev.city!=='Los Angeles') openAddon('ad-loc');
     $('cover_url').value=ev.cover_url||''; paintFlyer(ev.cover_url||'');
     $('genres').value=ev.genres||''; if(ev.genres) openAddon('ad-genres');
-    var toLocal=function(v){ if(!v) return ''; try{ var dt=new Date(v), p=function(n){return String(n).padStart(2,'0');}; return dt.getFullYear()+'-'+p(dt.getMonth()+1)+'-'+p(dt.getDate())+'T'+p(dt.getHours())+':'+p(dt.getMinutes()); }catch(e){ return ''; } };
+    if(ev.tz && KilTz.known(ev.tz)){ setTz(ev.tz,true); } else { setTz(KilTz.defaultTz(ev.city,deviceTz()),true); }
+    var toLocal=function(v){ return v?KilTz.isoToWall(v,curTz()):''; };
     if(ev.starts_at){ $('starts_at').value=toLocal(ev.starts_at); }
     if(ev.ends_at){ $('ends_at').value=toLocal(ev.ends_at); }
     if(ev.end_time_public===false){ var ee=$('endEye'); ee.classList.remove('on'); ee.setAttribute('aria-pressed','false'); $('endEyeHint').textContent='End time is HIDDEN on the event page.'; }
@@ -536,7 +538,16 @@ $('is_series').addEventListener('change',function(){ var on=this.checked; $('ser
 
 /* ── SERIES: manager (edit mode) ── */
 var SERIES_ID=null, SERIES=[];
-function fmtWhen(iso){ if(!iso) return 'No date'; try{ var dt=new Date(iso); return dt.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+' · '+dt.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); }catch(e){ return iso; } }
+/* Event time zone: typed times are read in THIS zone (not the device's); saved with kil_set_my_event_tz after the event exists. */
+var TZ_TOUCHED=false;
+function deviceTz(){ try{ return Intl.DateTimeFormat().resolvedOptions().timeZone; }catch(e){ return ''; } }
+function curTz(){ var el=$('tz'); return (el&&el.value)||'America/Los_Angeles'; }
+function setTz(z,fixed){ var el=$('tz'); if(el && KilTz.known(z)){ el.value=z; if(fixed) TZ_TOUCHED=true; } }
+(function(){ var el=$('tz'); if(!el) return; el.innerHTML=KilTz.ZONES.map(function(z){ return '<option value="'+z[0]+'">'+z[1]+'</option>'; }).join('');
+  el.value=KilTz.defaultTz($('city')&&$('city').value,deviceTz());
+  el.addEventListener('change',function(){ TZ_TOUCHED=true; });
+  var c=$('city'); if(c) c.addEventListener('input',function(){ if(!TZ_TOUCHED) el.value=KilTz.defaultTz(c.value,deviceTz()); }); })();
+function fmtWhen(iso){ if(!iso) return 'No date'; try{ var dt=new Date(iso); return dt.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',timeZone:curTz()})+' · '+dt.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit',timeZone:curTz()}); }catch(e){ return iso; } }
 function renderSeries(){
   var box=$('seriesList'); if(!box) return; if(!SERIES.length){ $('seriesMgr').style.display='none'; return; }
   $('seriesMgr').style.display='block';
@@ -649,8 +660,8 @@ $('form').addEventListener('submit',async function(e){
   if(_bl){ msg.className='msg err'; msg.textContent=_bl[1]+' must start with http:// or https://'; var _el=document.getElementById(_bl[0]); if(_el && _el.focus) _el.focus(); return; }
   var b=$('submitBtn'); b.disabled=true; b.textContent='Submitting…';
   try{
-    var evStartISO=$('starts_at').value?new Date($('starts_at').value).toISOString():null;
-    var evEndISO=$('ends_at').value?new Date($('ends_at').value).toISOString():null;
+    var evStartISO=$('starts_at').value?KilTz.wallToISO($('starts_at').value,curTz()):null;
+    var evEndISO=$('ends_at').value?KilTz.wallToISO($('ends_at').value,curTz()):null;
     if(evStartISO&&evEndISO&&evEndISO<=evStartISO){ b.disabled=false; b.textContent=EDIT_SLUG?'Save changes':'Create Event'; msg.className='msg err'; msg.textContent='The end time must be after the start time.'; return; }
     var features=[];
     document.querySelectorAll('#features .feat').forEach(function(f){
@@ -688,7 +699,7 @@ $('form').addEventListener('submit',async function(e){
       var qty=t.querySelector('.t-qty').value?parseInt(t.querySelector('.t-qty').value,10):null;
       var desc=(t.querySelector('.t-desc').value||'').trim()||null;
       var sv=t.querySelector('.t-start').value, ev2=t.querySelector('.t-end').value;
-      var startISO=sv?new Date(sv).toISOString():null, endISO=ev2?new Date(ev2).toISOString():null;
+      var startISO=sv?KilTz.wallToISO(sv,curTz()):null, endISO=ev2?KilTz.wallToISO(ev2,curTz()):null;
       if(startISO&&endISO&&startISO>=endISO) tierErr='Tier “'+name+'”: sales start must be before sales end.';
       if(evStartISO&&endISO&&endISO>evStartISO) tierErr='Tier “'+name+'”: sales must end by the event’s start time.';
       if(evStartISO&&startISO&&startISO>evStartISO) tierErr='Tier “'+name+'”: sales can’t start after the event.';
@@ -713,7 +724,7 @@ $('form').addEventListener('submit',async function(e){
       newSlug=EDIT_SLUG;
     } else if($('is_series').checked){
       var dates=[]; if(evStartISO) dates.push(evStartISO);
-      document.querySelectorAll('#seriesDates .s-date').forEach(function(inp){ if(inp.value) dates.push(new Date(inp.value).toISOString()); });
+      document.querySelectorAll('#seriesDates .s-date').forEach(function(inp){ if(inp.value) dates.push(KilTz.wallToISO(inp.value,curTz())); });
       if(dates.length<2){ b.disabled=false; b.textContent='Create Event'; msg.className='msg err'; msg.textContent='A series needs at least two dates — add another date, or turn off the series toggle.'; return; }
       var rc2=await rpcOr('kil_publish_own_series',{ ev:ev, tiers:tiers, dates:dates }, 'create_event_series');
       if(rc2.error) throw rc2.error; var res2=rc2.data||{}; if(res2.error) throw new Error(res2.message||res2.error);
@@ -723,6 +734,13 @@ $('form').addEventListener('submit',async function(e){
       if(rc.error) throw rc.error;
       var res=rc.data||{}; if(res.error) throw new Error(res.message||res.error); newSlug=res.slug||ev.slug; newEventId=res.id||null;
     }
+    // time zone: the typed times were read in the chosen zone above; store the same zone on the event(s) (owner-only RPC; a failure here never blocks the save)
+    try{
+      var tzSlugs=[newSlug];
+      if(EDIT_SLUG){ var sc2=(SERIES.length>1 && $('editScope'))?$('editScope').value:'one'; tzSlugs=[EDIT_SLUG]; if(sc2==='all') tzSlugs=SERIES.map(function(x){return x.slug;}); else if(sc2==='selected'){ document.querySelectorAll('.s-pick:checked').forEach(function(c){ tzSlugs.push(c.getAttribute('data-slug')); }); } }
+      else if($('is_series').checked && typeof res2!=='undefined' && res2 && res2.slugs){ tzSlugs=res2.slugs; }
+      for(var zi=0; zi<tzSlugs.length; zi++){ await supa.rpc('kil_set_my_event_tz',{p_slug:tzSlugs[zi],p_tz:curTz()}); }
+    }catch(e){}
     // optional launch discount code → discount_codes (non-blocking; skipped for series)
     try{
       var dcCode=(($('dc-code')||{}).value||'').trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'');

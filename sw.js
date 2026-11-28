@@ -45,18 +45,19 @@
    never shipped, so installed phones drop cached page HTML and shell code once more. Kai Tarako keeps its own
    worker and kai-tarako-* caches (scope app/kaitarako/).
    Previous on main: kil-pwa-v110-20261121a / kil-pages-v47 / kil-assets-v41 / kil-code-v90 (bumped 2026-11-25 with the removal of the Google font rules: evicts the cached gstatic fonts and the old HTML that linked them) */
-/* BUMPED 2026-11-25 for the shell offset (#392: keepitil-shell.js?v=20261127b on every page + the main min-height rule): PAGES and CODE are renamed so `activate` evicts cached page
+/* BUMPED 2026-11-25 for the shell offset (#392: keepitil-shell.js?v=20261128a on every page + the main min-height rule): PAGES and CODE are renamed so `activate` evicts cached page
    HTML that still names the old ?v=, and the old shell. The worker's install only precaches the icons, offline page and manifest (cache.add of fixed URLs, no shell or page HTML), so there
    is no install-time fetch of the shell that the HTTP cache could serve stale; pages and code are fetched at request time, network-first (code) and stale-while-revalidate (pages).
    Previous: kil-pages-v48 / kil-code-v91 */
 /* BUMPED 2026-11-27 for the CSP migration: /offline.html now loads kil-actions.js + kil-common-actions.js (its Try again button used an inline handler, which a strict
    script-src would block). They are precached by exact URL below so the page still works with the network off, and PRECACHE entries are now fetched with cache:'reload'
    so an install can never store a copy the HTTP cache (or the CDN) was still holding stale. Previous: kil-pwa-v111-20261125a */
-/* BUMPED 2026-11-27 for self-serve /create-event (keepitil-shell.js?v=20261127b): PAGES and CODE renamed so installed phones drop HTML that still pointed Event at /submit-event. Previous: kil-pwa-v112-20261127a / kil-pages-v49 / kil-code-v92 */
-var VERSION = 'kil-pwa-v113-20261127b';
-var PAGES = 'kil-pages-v50';
+/* BUMPED 2026-11-27 for self-serve /create-event (keepitil-shell.js?v=20261128a): PAGES and CODE renamed so installed phones drop HTML that still pointed Event at /submit-event. Previous: kil-pwa-v112-20261127a / kil-pages-v49 / kil-code-v92 */
+/* BUMPED 2026-11-28 so phones drop page HTML that still named the previous shell stamp after the scrollbar fix. Previous: kil-pwa-v113-20261127b / kil-pages-v50 / kil-code-v93 */
+var VERSION = 'kil-pwa-v114-20261128a';
+var PAGES = 'kil-pages-v51';
 var ASSETS = 'kil-assets-v42';
-var CODE = 'kil-code-v93';
+var CODE = 'kil-code-v94';
 var KEEP = [VERSION, PAGES, ASSETS, CODE];
 var PAGE_LIMIT = 40;
 var PRECACHE = [

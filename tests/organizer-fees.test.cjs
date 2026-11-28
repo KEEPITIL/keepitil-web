@@ -10,7 +10,9 @@ const svc = (bps, flat) => (c) => rnd(c * bps / 10000) + flat;
 const usd = (c) => '$' + Math.floor(c / 100) + '.' + String(c % 100).padStart(2, '0');
 const page = raw('organizer-fees.html');
 const rows = (section) => { const s = page.split(section)[1] || ''; const tb = s.slice(s.indexOf('<tbody>'), s.indexOf('</tbody>')); return [...tb.matchAll(/<tr><td>(\$[\d.]+)<\/td><td>(\$[\d.]+)<\/td><td>(\$[\d.]+)<\/td><td>(\$[\d.]+)<\/td><td>(\$[\d.]+)<\/td><\/tr>/g)].map((m) => m.slice(1)); };
-const expected = (fee, stripeBps) => [1000, 2500, 5000].map((c) => { const f = fee(c), st = rnd(c * stripeBps / 10000) + 30; return [usd(c), usd(f), usd(st), usd(f - st), usd(c + f)]; });
+// Stripe applies its rate to the FULL amount charged (ticket + service fee), so its share is computed on c + f; the operational fee is the remainder.
+const expected = (fee, stripeBps) => [1000, 2500, 5000].map((c) => { const f = fee(c), st = rnd((c + f) * stripeBps / 10000) + 30; return [usd(c), usd(f), usd(st), usd(f - st), usd(c + f)]; });
+const onTicketOnly = (fee, stripeBps) => [1000, 2500, 5000].map((c) => { const f = fee(c), st = rnd(c * stripeBps / 10000) + 30; return [usd(c), usd(f), usd(st), usd(f - st), usd(c + f)]; });
 
 test('worked examples (domestic and international) are recomputed from 5% + $0.50 and Stripe 2.9% (+1.5% international) + 30c, for $10, $25, $50', () => {
   assert.deepEqual(rows('Worked examples: one ticket, domestic card'), expected(svc(500, 50), 290));
@@ -19,6 +21,9 @@ test('worked examples (domestic and international) are recomputed from 5% + $0.5
 });
 test('NEGATIVE CONTROLS: the old organizer-paid 2.5% + $0.49/$0.99 model, a 2.5% buyer fee and a $0.99 flat all disagree with the tables', () => {
   for (const f of [(c) => rnd(c * 250 / 10000) + (c < 1000 ? 49 : 99), svc(250, 50), svc(500, 99)]) assert.notDeepEqual(rows('Worked examples: one ticket, domestic card'), expected(f, 290));
+  // the earlier tables worked Stripe's share out on the ticket price only: a few cents low on every row
+  assert.notDeepEqual(rows('Worked examples: one ticket, domestic card'), onTicketOnly(svc(500, 50), 290), 'Stripe on the ticket price alone');
+  assert.notDeepEqual(rows('Worked examples: one ticket, international card'), onTicketOnly(svc(500, 50), 440));
 });
 test('page states the buyer-paid model, the two lines (Stripe processing fee / KEEPITIL operational fee), the totals and surcharges, and per-order', () => {
   const t = rendered(page);
@@ -82,4 +87,12 @@ test('NEGATIVE CONTROL: the old per-ticket / 2.5% variants would not match the c
   const perTicket = (sub, n) => n * (rnd(sub / n * 500 / 10000) + 50);
   assert.notEqual(perTicket(5000, 2), kilServiceFee(5000));
   assert.notEqual(svc(250, 50)(1000), kilServiceFee(1000));
+});
+
+test('the support email is a plain mailto that Cloudflare must not rewrite (email_off), and Stripe is said to charge on the full amount', () => {
+  const links = page.match(/<!--email_off--><a href="mailto:info@keepitil\.com">info@keepitil\.com<\/a><!--\/email_off-->/g) || [];
+  assert.equal(links.length, 2, 'both addresses are wrapped');
+  assert.ok(!/<a href="mailto:info@keepitil\.com">info@keepitil\.com<\/a>(?!<!--\/email_off-->)/.test(page), 'NEGATIVE CONTROL: no unwrapped copy left');
+  assert.match(rendered(page), /on the full amount the buyer pays \(ticket price plus service fee\)/);
+  assert.doesNotMatch(rendered(page), /worked out on the ticket price/);
 });

@@ -42,5 +42,5 @@ test("install precaches with cache:'reload' (never a copy the HTTP cache or CDN 
   let p; handlers.get("install")({ waitUntil: (x) => { p = x; } }); await p;
   assert.deepEqual(JSON.parse(JSON.stringify(added.map((r) => r.url).sort())), JSON.parse(JSON.stringify(precache().slice().sort())));
   assert.ok(added.every((r) => r.opts && r.opts.cache === "reload"));
-  assert.match(sw, /var VERSION = 'kil-pwa-v113-20261127b'/);
+  assert.match(sw, /var VERSION = 'kil-pwa-v114-20261128a'/);
 });

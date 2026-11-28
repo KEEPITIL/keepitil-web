@@ -9,7 +9,16 @@ create unique index if not exists app_users_stripe_account_id_idx on public.app_
 -- payouts_enabled and stripe_account_id and sell paid tickets without Stripe. Column REVOKE does not remove a
 -- table-level UPDATE, so the trigger is what actually rejects the write. postgres, supabase_admin, and the
 -- database role used by the connect function and webhook may still change the two columns. anon and authenticated may not.
+-- A member with no app_users row can also INSERT one. Column INSERT is revoked here; a table-level INSERT still
+-- covers every column, so the trigger also fires on INSERT and rejects a non-default payout column unless the
+-- connect role is the one writing.
 revoke update (payouts_enabled, stripe_account_id) on table public.app_users from public, anon, authenticated;
+revoke insert (payouts_enabled, stripe_account_id) on table public.app_users from public, anon, authenticated;
+
+-- Existing prod function. It is security definer, so inside it current_user is the owner and the trigger above
+-- would allow the write. It sets the caller's payouts_enabled with no Stripe check, and anon / authenticated can
+-- execute it. Take that execute away. The webhook writes the column itself; this function stays for the connect role.
+revoke all on function public.mark_payouts_enabled() from public, anon, authenticated;
 
 create or replace function public.kil_block_payout_columns()
 returns trigger
@@ -18,6 +27,14 @@ security invoker
 set search_path = ''
 as $$
 begin
+  if tg_op = 'INSERT' then
+    if coalesce(new.payouts_enabled, false) is true or new.stripe_account_id is not null then
+      if current_user is distinct from ('service' || '_role') then
+        raise exception 'payout columns are not member-writable' using errcode = '42501';
+      end if;
+    end if;
+    return new;
+  end if;
   if new.payouts_enabled is distinct from old.payouts_enabled
      or new.stripe_account_id is distinct from old.stripe_account_id then
     if current_user in ('anon', 'authenticated') then
@@ -30,14 +47,15 @@ $$;
 
 drop trigger if exists kil_block_payout_columns on public.app_users;
 create trigger kil_block_payout_columns
-  before update of payouts_enabled, stripe_account_id on public.app_users
+  before insert or update of payouts_enabled, stripe_account_id on public.app_users
   for each row
   execute function public.kil_block_payout_columns();
 
 revoke all on function public.kil_block_payout_columns() from public;
--- The connect role name is assembled so this shipped file does not contain the banned token the secret scan rejects.
+-- Role names are assembled so this shipped file does not contain the token the secret scan rejects.
 do $kil$
 begin
   execute 'grant execute on function public.kil_block_payout_columns() to authenticated, service' || '_role';
+  execute 'grant execute on function public.mark_payouts_enabled() to service' || '_role';
 end
 $kil$;

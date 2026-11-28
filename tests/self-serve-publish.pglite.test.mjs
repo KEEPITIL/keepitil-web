@@ -64,6 +64,11 @@ const STANDIN = `
   grant usage on schema public to anon, authenticated; grant select on all tables in schema public to anon, authenticated;
   grant insert, update, delete on public.events to authenticated; grant insert, update, delete on public.ticket_tiers to authenticated;
   insert into public.app_users (id, handle, payouts_enabled) values ('${U.a}', 'alice', false), ('${U.b}', 'bob', false), ('${U.c}', null, false), ('${U.adm}', 'staff', true);
+  create function public.mark_payouts_enabled() returns void language plpgsql security definer set search_path = '' as $$
+  begin
+    update public.app_users set payouts_enabled = true where id = auth.uid();
+  end $$;
+  grant execute on function public.mark_payouts_enabled() to public, anon, authenticated;
 `;
 async function fresh(withMigrations = true) {
   const db = new PGlite();
@@ -123,6 +128,37 @@ test('HIGH: price_cents > 0 is refused unless the caller is an admin or has payo
   assert.equal((await rows(db, `select stripe_account_id from public.app_users where id = '${U.a}'`))[0].stripe_account_id, 'acct_ok');
   assert.equal((await call(db, U.adm, 'kil_publish_own_event', [ev({ title: 'Staff show' }), paid])).status, 'published');
   assert.equal((await call(db, U.a, 'kil_publish_own_event', [ev({}), [{ name: 'x', price_cents: '12.5' }]])).error, 'bad_price');
+});
+test('HIGH: mark_payouts_enabled is not callable by a member, and a member insert cannot set payout columns', { skip }, async () => {
+  const db = await fresh();
+  await as(db, U.a);
+  const called = await db.query('select public.mark_payouts_enabled()').then(() => null, (e) => e);
+  assert.ok(called && /permission denied/.test(called.message), called && called.message);
+  await as(db, null);
+  const anonCall = await db.query('select public.mark_payouts_enabled()').then(() => null, (e) => e);
+  assert.ok(anonCall && /permission denied/.test(anonCall.message), anonCall && anonCall.message);
+  await db.exec('reset role');
+  assert.equal((await rows(db, `select payouts_enabled from public.app_users where id = '${U.a}'`))[0].payouts_enabled, false);
+  // Table-level INSERT covers every column, so re-grant it (and the two columns). The trigger still rejects a non-default.
+  await db.exec('grant insert on table public.app_users to authenticated, service_role');
+  await db.exec('grant insert (payouts_enabled, stripe_account_id) on table public.app_users to authenticated');
+  await as(db, U.a);
+  const newbie = '44444444-4444-4444-4444-444444444444';
+  for (const sql of [
+    `insert into public.app_users (id, handle, payouts_enabled) values ('${newbie}', 'neo', true)`,
+    `insert into public.app_users (id, handle, stripe_account_id) values ('${newbie}', 'neo', 'acct_member')`,
+  ]) {
+    const denied = await db.query(sql).then(() => null, (e) => e);
+    assert.ok(denied && /not member-writable/.test(denied.message), denied && denied.message);
+  }
+  await db.query(`insert into public.app_users (id, handle) values ('${newbie}', 'neo')`);
+  await db.exec('reset role');
+  assert.deepEqual(await rows(db, `select payouts_enabled, stripe_account_id from public.app_users where id = '${newbie}'`), [{ payouts_enabled: false, stripe_account_id: null }]);
+  await db.exec('set role service_role');
+  const platform = '55555555-5555-5555-5555-555555555555';
+  await db.query(`insert into public.app_users (id, handle, payouts_enabled, stripe_account_id) values ('${platform}', 'stripe', true, 'acct_ok')`);
+  await db.exec('reset role');
+  assert.deepEqual(await rows(db, `select payouts_enabled, stripe_account_id from public.app_users where id = '${platform}'`), [{ payouts_enabled: true, stripe_account_id: 'acct_ok' }]);
 });
 test('HIGH: writes are RPC-only. A signed-in user cannot PATCH featured / source / link_status / password hash / cover_url / status, insert a published or featured row, or insert a priced tier directly', { skip }, async () => {
   const db = await fresh(); const r = await call(db, U.a, 'kil_publish_own_event', [ev({}), free]);

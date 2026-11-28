@@ -59,10 +59,16 @@ test("security definer functions use an empty search_path, hit rows are force-RL
   assert.match(read("supabase/migrations/20261127171000_creator_promo.rollback.sql"), /no force row level security/);
   const connect = read("supabase/migrations/20261127173000_connect_account.sql");
   assert.match(connect, /revoke update \(payouts_enabled, stripe_account_id\) on table public\.app_users from public, anon, authenticated/);
+  assert.match(connect, /revoke insert \(payouts_enabled, stripe_account_id\) on table public\.app_users from public, anon, authenticated/);
+  assert.match(connect, /revoke all on function public\.mark_payouts_enabled\(\) from public, anon, authenticated/);
+  assert.match(connect, /before insert or update of payouts_enabled, stripe_account_id/);
   assert.match(connect, /kil_block_payout_columns/);
   assert.match(connect, /current_user in \('anon', 'authenticated'\)/);
+  assert.doesNotMatch(create, /mark_payouts_enabled/);
   const rb = read("supabase/migrations/20261127173000_connect_account.rollback.sql");
   assert.match(rb, /drop trigger if exists kil_block_payout_columns/);
+  assert.match(rb, /grant insert \(payouts_enabled, stripe_account_id\) on table public\.app_users to anon, authenticated/);
+  assert.match(rb, /grant execute on function public\.mark_payouts_enabled\(\) to public, anon, authenticated/);
   assert.doesNotMatch(rb, /drop column/i);
 });
 

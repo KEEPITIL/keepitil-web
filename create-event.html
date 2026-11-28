@@ -510,7 +510,6 @@ async function init(){
   /* Any signed-in account can create an event. Admin-only tools stay on /dashboard (staging, QA, knowledge). */
   var uid=s.user&&s.user.id, payok=false;
   try{ if(uid){ var q=await supa.from('app_users').select('handle,payouts_enabled').eq('id',uid).maybeSingle(); if(q&&q.data){ if(q.data.handle) MY_HANDLE=q.data.handle; payok=!!q.data.payouts_enabled; } } }catch(e){}
-  try{ if(uid && new URLSearchParams(location.search).get('payouts')==='done' && !payok){ await supa.rpc('mark_payouts_enabled'); payok=true; } }catch(e){}
   var os=$('orgSel'); os.innerHTML='<option value="'+(MY_HANDLE||'')+'">@'+(MY_HANDLE||'me')+'</option>';
   $('form').style.display='block'; addTier();
   payoutsPanel(payok);

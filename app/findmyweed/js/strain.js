@@ -75,7 +75,7 @@
       box.appendChild(el('h2', COPY.where)); box.appendChild(el('p', COPY.whereNone, 'muted'));   // menu links arrive with the menu slice
     }
     box.appendChild(el('p', COPY.note, 'muted'));
-    var a = el('a', COPY.back); a.setAttribute('href', 'results.html'); box.appendChild(el('p')).appendChild(a);
+    var a = el('a', COPY.back); a.setAttribute('href', 'results'); box.appendChild(el('p')).appendChild(a);
   }
   var api = { TYPES: TYPES, checkEntry: checkEntry, publicEntries: publicEntries, find: find, render: render, COPY: COPY };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }

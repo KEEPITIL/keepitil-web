@@ -126,6 +126,9 @@
   // Is the "Delivery" filter offered at all? Same rule as openNowOffered (and #68): only when at least one SHOWN listing
   // has delivery === true. Today every row is delivery:false, so the pages hide the chip and search() IGNORES ?delivery=1
   // (the same results as without it, never an empty state). Nothing here invents a delivery flag.
+  // The menu's data flags, in ONE place (pages.js and the tests read this): Storefronts / Deliveries, and the Delivery (Non-Storefront) category entry, which lists the same real delivery rows
+  // ('delivery-nonstore' = deliveryOffered). The business categories (licensed-*) are not here: they have no page yet, so they stay "coming soon".
+  function menuOffered(data, now) { var d = deliveryOffered(data, now); return { storefront: storefrontOffered(data, now), delivery: d, 'delivery-nonstore': d }; }
   function deliveryOffered(data, now) {
     return licensed((data && data.listings) || [], now).some(function (l) { return l.delivery === true; });
   }
@@ -227,6 +230,28 @@
     });
     return out.sort(function (a, b) { return a.localeCompare(b); });
   }
+  // Redesign PR-4: the "Browse by area" tiles. One tile per county that has SHOWN storefronts, with the real count; the biggest first, capped. Nothing is invented: no data, no tiles.
+  function areaTiles(data, now, limit) {
+    var n = {}, name = {};
+    licensed((data && data.listings) || [], now).forEach(function (l) {
+      if (!l.storefront) return;
+      var c = String((l.address && l.address.county) || '').trim(); if (!c) return;
+      var k = countyKey(c); n[k] = (n[k] || 0) + 1; name[k] = name[k] || c;
+    });
+    return Object.keys(n).map(function (k) { return { key: k, name: name[k], count: n[k] }; })
+      .sort(function (a, b) { return b.count - a.count || a.name.localeCompare(b.name); }).slice(0, limit === 0 ? undefined : (limit || 12));   // limit 0 = every county (the "All counties" list)
+  }
+  // The top city links of the regions block: the cities with the most SHOWN storefronts (a city is only a storefront's own city; delivery rows are county only). Real counts, nothing invented.
+  function cityTiles(data, now, limit) {
+    var n = {}, name = {};
+    licensed((data && data.listings) || [], now).forEach(function (l) {
+      if (!l.storefront) return;
+      var c = String((l.address && l.address.city) || '').trim(); if (!c) return;
+      var k = norm(c); n[k] = (n[k] || 0) + 1; name[k] = name[k] || c;
+    });
+    return Object.keys(n).map(function (k) { return { name: name[k], count: n[k] }; })
+      .sort(function (a, b) { return b.count - a.count || a.name.localeCompare(b.name); }).slice(0, limit || 12);
+  }
   // Discovery home default area: the county with the most SHOWN (licensed) listings, computed from the data (Los Angeles
   // today, 361 rows), never hard-coded. Ties go alphabetically. No county data at all = '' (the home then shows every row).
   function topCounty(data, now) {
@@ -295,6 +320,13 @@
     if (c.kind !== 'city' || c.value.length < 3) return [];
     return rows.filter(function (r) { return Array.isArray(r) && typeof r[0] === 'string' && nameMatch({ name: r[1] }, c.value); }).map(function (r) { return r[0]; });
   }
+  // search ALL: a typed business name (3+ letters, not a place or ZIP) against the non-retail names index (data/business-names.json): the matching entries [id, name, category, county key], at most `limit`
+  function bizNameMatches(names, q, limit) {
+    var c = classify(q), rows = names && Array.isArray(names.names) ? names.names : [], out = [];
+    if (c.kind !== 'city' || c.value.length < 3) return out;
+    for (var i = 0; i < rows.length && out.length < (limit || 30); i++) { var r = rows[i]; if (Array.isArray(r) && typeof r[1] === 'string' && typeof r[0] === 'string' && nameMatch({ name: r[1] }, c.value)) out.push(r); }
+    return out;
+  }
   function nameCountyKeys(index, ids) {
     var want = {}, keys = {};
     (ids || []).forEach(function (i) { want[i] = true; });
@@ -327,7 +359,9 @@
     // distance origin (approved home 2026-11-21: "sorted by nearest to the chosen location"): the searched place; else a
     // chosen city's own place centre (data.places); else a chosen county's centre, the MEDIAN of its own shown listings'
     // real coordinates (owner walk 19:22 PT: line 2 shows the distance on the default view too). The whole state: none.
-    var origin = place && hasPoint(place) ? place : city ? cityPlace(data, city) : county ? countyCentre(data, county, now) : null;
+    // USE MY LOCATION: opts.near = { lat, lng } the visitor's browser gave on a click. It only becomes the distance origin here, in memory; it is never read from or written to a URL, storage or a request.
+    var near = opts.near && hasPoint(opts.near) && Math.abs(opts.near.lat) <= 90 && Math.abs(opts.near.lng) <= 180 ? { lat: opts.near.lat, lng: opts.near.lng } : null;
+    var origin = near ? near : place && hasPoint(place) ? place : city ? cityPlace(data, city) : county ? countyCentre(data, county, now) : null;
     var rows = licensed(data.listings, now).filter(function (l) {
       if (q && !(place && inPlace(l, place)) && !byName(l)) return false;   // a typed text: the place's businesses, plus any business whose name matches
       if (county && countyKey(l.address && l.address.county) !== countyKey(county)) return false;
@@ -357,11 +391,45 @@
     var a = (l && l.address && typeof l.address === 'object') ? l.address : {};
     var s = function (v) { return typeof v === 'string' ? v.trim() : ''; };
     var city = s(a.city), st = s(a.state), zip = s(a.zip), line1 = s(a.line1);
-    if (!city) return { lines: [], note: 'none' };
+    if (!city) {   // Grok 2026-11-25: a delivery row has no city (the state withholds it): its COUNTY is the only place line
+      var co = s(a.county).replace(/\s+county$/i, '');
+      return !(l && l.storefront) && l && l.delivery === true && co ? { lines: [co + ' County'], note: 'deliveryCounty' } : { lines: [], note: 'none' };
+    }
     var cityState = city + (st ? ', ' + st : '');
     if (!(l && l.storefront)) return { lines: [cityState], note: l && l.delivery === true ? 'delivery' : 'city' };
     var cityLine = cityState + (zip ? ' ' + zip : '');
     return line1 ? { lines: [line1, cityLine], note: null } : { lines: [cityLine], note: 'street' };
+  }
+  // DELIVERY IN A CITY SEARCH (Grok 2026-11-25 20:48): a delivery row has no city (the state withholds it) and the state does not list service areas. With the Delivery chip on in a CITY search, the
+  // delivery services LICENSED in that city's COUNTY are listed, each marked "Licensed in <County> County. The state doesn't list service areas, so check with the service." Never "delivers to you",
+  // never a city-level claim. The city's county = the county most of its licensed storefronts are in (a city searched by ZIP resolves the same way). A city with no storefront has no county: nothing.
+  function countyOfPlace(data, place, now) {
+    var tally = {}, name = {}, best = '';
+    licensed((data && data.listings) || [], now || new Date()).forEach(function (l) {
+      if (!l.storefront || !inPlace(l, place)) return;
+      var k = countyKey(l.address && l.address.county); if (!k) return;
+      tally[k] = (tally[k] || 0) + 1; if (!name[k]) name[k] = String(l.address.county).trim().replace(/\s+county$/i, '');
+    });
+    Object.keys(tally).forEach(function (k) { if (!best || tally[k] > tally[best] || (tally[k] === tally[best] && k < best)) best = k; });
+    return best ? { key: best, name: name[best] } : null;
+  }
+  // the extra result rows: delivery-only services licensed in the place's county that are not already in `have` (rows already listed). Each carries countyNote (set by the caller's copy).
+  function deliveryInCityCounty(data, place, now, have) {
+    var c = place ? countyOfPlace(data, place, now) : null, seen = {}, out = [];
+    (have || []).forEach(function (r) { if (r && r.listing) seen[r.listing.id] = true; });
+    if (!c) return { county: null, key: null, rows: [] };
+    licensed((data && data.listings) || [], now || new Date()).forEach(function (l) {
+      if (l.storefront || l.delivery !== true || seen[l.id] || countyKey(l.address && l.address.county) !== c.key) return;
+      out.push({ listing: l, miles: null, countyNote: true });
+    });
+    return { county: c.name, key: c.key, rows: out };
+  }
+  // the rows to show for the Delivery chip in a city search: the ones already found (a service whose NAME matched the search keeps its place), each delivery service of the city's county marked,
+  // then the county's other services. Rows outside the county are left as they are (unmarked: they matched by name, not by county).
+  function deliveryCityRows(data, place, now, rows) {
+    var x = deliveryInCityCounty(data, place, now, rows);
+    if (!x.key) return rows;
+    return rows.map(function (r) { var l = r.listing; return !l.storefront && l.delivery === true && countyKey(l.address && l.address.county) === x.key ? Object.assign({}, r, { countyNote: true }) : r; }).concat(x.rows);
   }
   function cityOf(l) { return (l && l.address && typeof l.address.city === 'string') ? l.address.city.trim() : ''; }
 
@@ -379,6 +447,12 @@
   // DIRECTIONS (Joe 2026-11-25): a storefront's real street address, as a maps link: Apple Maps on iPhone / iPad, Google Maps elsewhere. A record with no street (delivery-only,
   // city-only, a storefront with no line1) gets NO link and no made-up address. The text is the address the listing page already shows (line1, city, state, ZIP), URL-encoded.
   var APPLE_MAPS = 'https://maps.apple.com/?daddr=', GOOGLE_MAPS = 'https://www.google.com/maps/dir/?api=1&destination=';
+  // The card's monogram tile: the first letters of the first two words of the business name (letters and digits only), upper case; 'F' when there is none.
+  // Pure and deterministic; the tile is decoration (aria-hidden), the name is always in the link's text.
+  function monogram(name) {
+    var w = String(name == null ? '' : name).split(/\s+/).map(function (x) { return x.replace(/[^A-Za-z0-9]/g, ''); }).filter(Boolean);
+    return w.length ? (w.length > 1 ? w[0].charAt(0) + w[1].charAt(0) : w[0].slice(0, 2)).toUpperCase() : 'F';
+  }
   function directionsUrl(l, apple) {
     if (!l || l.storefront !== true) return '';
     var a = (l.address && typeof l.address === 'object') ? l.address : {}, s = function (v) { return typeof v === 'string' ? v.trim() : ''; };
@@ -584,7 +658,15 @@
   //     opts.absolute, for 404.html at any depth) | biz (<basePath>/for-business/) | host (a root-relative page of the host
   //     site, a link only while basePath is set: a build on its own domain has no host site). Anything else (javascript:,
   //     //host, an absolute URL) is never a destination.
-  var PAGE_RE = /^[a-z0-9][a-z0-9_-]*\.html(\?[a-z0-9_=&%.-]*)?(#[a-z][a-z0-9_-]*)?$/i, HOST_RE = /^\/[a-z0-9][a-z0-9\/-]*$/;
+  var PAGE_RE = /^(?:[a-z0-9][a-z0-9_-]*\.html(\?[a-z0-9_=&%.-]*)?(#[a-z][a-z0-9_-]*)?|[a-z0-9][a-z0-9-]*(?:\/[a-z0-9][a-z0-9-]*)*\/(\?[a-z0-9_=&%.-]*)?(#[a-z][a-z0-9_-]*)?)$/i, HOST_RE = /^\/[a-z0-9][a-z0-9\/-]*$/;
+  // The same rule as tools/page-href.js (a test keeps them equal). learn.html stays, because a learn/ directory exists.
+  function cleanPageHref(p) {
+    var s = String(p == null ? '' : p);
+    if (/^(?:mailto:|https?:|tel:|#)/i.test(s)) return s;
+    s = s.replace(/(^|\/)index\.html(?=$|[?#])/g, function (m, pre) { return pre ? pre : './'; });
+    s = s.replace(/(^|\/)(?!learn\.html\b)([a-z0-9_-]+)\.html(?=$|[?#])/gi, function (m, pre, name) { return pre + name; });
+    return s;
+  }
   function menuItems(list, opts) {
     opts = opts || {};
     var base = opts.basePath || '', offered = opts.offered || {}, out = [];
@@ -593,8 +675,9 @@
       if (it.signedInOnly === true && opts.signedIn !== true) return;   // My business: only once signed in ...
       if (it.businessOnly === true && opts.business !== true) return;   // ... and only when the session hint says business (a menu link only: the account page asks the SERVER before it shows anything)
       if (it.visitorOnly === true && opts.signedIn === true) return;   // Sign in / Sign up for a visitor; Account / Sign out once signed in
-      var href = it.biz ? base + '/for-business/'
-        : (typeof it.page === 'string' && PAGE_RE.test(it.page)) ? (opts.absolute ? base + '/' + it.page : it.page)
+      var href = it.report ? (typeof opts.reportHref === 'string' && /^mailto:[^\s]+$/.test(opts.reportHref) ? opts.reportHref : null)
+        : it.biz ? base + '/for-business/'
+        : (typeof it.page === 'string' && PAGE_RE.test(it.page)) ? cleanPageHref(opts.absolute ? base + '/' + it.page : it.page)
         : (base && typeof it.host === 'string' && HOST_RE.test(it.host)) ? it.host : null;
       var r = { key: it.key, label: it.label, group: it.group || 0, icon: it.icon || '', pill: it.pill || '', account: !!it.account };
       var live = it.account ? (opts.accounts === true && !!href) : (!!href && (!it.needsData || offered[it.needsData] === true));
@@ -646,20 +729,95 @@
   // accounts only. There is no business-account mode yet, so they are OFF the customer filter bar (FILTERS) but their code
   // path stays (businessOnly: true; filterRows still honours them, filtersFor('business') lists them).
   var FILTER_DEFS = [
-    { key: 'home' }, { key: 'storefront' }, { key: 'delivery' }, { key: 'open' }, { key: 'deals' }, { key: 'retail' }, { key: 'brands' },
-    { key: 'cultivation', businessOnly: true }, { key: 'manufacturing', businessOnly: true }, { key: 'distribution', businessOnly: true },
-    { key: 'testing', businessOnly: true }, { key: 'microbusiness', businessOnly: true },
-    { key: 'services' },
+    // Homepage layout v2 (owner, 2026-11-25), section 1: the pills are the license categories: Storefront, Delivery, Cultivation, Manufacturing, Distribution, Testing, Microbusiness,
+    // Event Organizer. 'home' is "no pill pressed" (every row). Retail, Open now, Deals, Brands, Services and Events are off the customer bar (businessOnly: the code path and old
+    // links stay, an old ?f= for one of them is Home); a pill is DRAWN only when a shown listing has that license type (chipsOffered).
+    { key: 'home' }, { key: 'storefront' }, { key: 'delivery' }, { key: 'cultivation' }, { key: 'manufacturing' }, { key: 'distribution' },
+    { key: 'testing' }, { key: 'microbusiness' }, { key: 'eventorg' },
+    { key: 'retail', businessOnly: true }, { key: 'open', businessOnly: true }, { key: 'deals', businessOnly: true }, { key: 'brands', businessOnly: true },
+    { key: 'services', businessOnly: true },
     // Owner 2026-11-22 (A3): "Events shows events". A row counts only when a REAL event entry (data.events[].listingId)
     // points at it, or the row carries a real 'events' category tag. No event data exists yet, so the chip says so.
-    { key: 'events' }
+    { key: 'events', businessOnly: true }
   ];
+  // PILLS OFFERED: a pill is drawn only when at least one SHOWN listing really has it (the same filterRows the pill applies). Today: Storefront. Delivery appears by itself when
+  // the delivery import lands; Cultivation ... Event Organizer appear when their license exports land. Nothing is drawn "to be filled later"; nothing invents data.
+  function chipsOffered(data, now) {
+    var rows = licensed((data && data.listings) || [], now).map(function (l) { return { listing: l, known: false }; });
+    return FILTERS.filter(function (k) { return k !== 'home' && filterRows(data, rows, k).length > 0; });
+  }
+  // ---- the 2-row search bar's chips (Joe 2026-11-26): MULTI-select, Weedmaps style. A chip is LIT only when real data backs it (chipsLit); the rest stay visible but inactive. ----
+  // Semantics: the TYPE chips (storefront, delivery, and the five license categories) are OR'd (a visitor who ticks Storefronts and Delivery wants both kinds); the ATTRIBUTE chips
+  // (open now, pickup, deals, medical, recreational) are AND'd on top, each narrowing the list. Business categories live in their own files (county-only rows, data/business/<county>.json):
+  // the caller loads them for the active county and passes them as bizRows.
+  var CHIP_KEYS = ['open', 'storefront', 'delivery', 'deals', 'medical', 'recreational', 'pickup', 'cultivation', 'manufacturing', 'distribution', 'testing', 'microbusiness'];
+  // dropdown chips (Products, Brand): drawn after Curbside pickup, each opens a list of REAL options. The listing data has none today (no product or brand fields), so the options are empty and the chips stay dimmed + aria-disabled; nothing is invented.
+  var DROPDOWN_CHIPS = ['products', 'brands'];
+  function dropdownOptions(data, key) { var v = data && (key === 'products' ? data.products : key === 'brands' ? data.brandOptions : null); return Array.isArray(v) ? v.filter(function (x) { return typeof x === 'string' && x.trim(); }) : []; }
+  var CHIP_RETAIL = ['storefront', 'delivery'], CHIP_BIZ = ['cultivation', 'manufacturing', 'distribution', 'testing', 'microbusiness'];
+  function chipKeys(v) {   // 'open,delivery' -> ['open','delivery'] (known keys only, each once, in the bar's order); anything else is dropped
+    var want = {}; String(v == null ? '' : v).split(',').forEach(function (k) { k = String(k).trim().toLowerCase(); if (CHIP_KEYS.indexOf(k) >= 0) want[k] = 1; });
+    return CHIP_KEYS.filter(function (k) { return want[k]; });
+  }
+  function designationHas(l, word) { return !!l && typeof l.designation === 'string' && l.designation.indexOf(word) >= 0; }
+  function chipAttr(key, r, ctx) {   // an ATTRIBUTE chip against one result row ({ listing, open, known })
+    var l = r && r.listing; if (!l) return false;
+    switch (key) {
+      case 'open': return r.known !== false && hoursKnown(l) && r.open === true;
+      case 'pickup': return l.pickup === true;
+      case 'deals': return !!(ctx && ctx.dealIds && ctx.dealIds[l.id]);
+      case 'medical': return designationHas(l, 'Medicinal');
+      case 'recreational': return designationHas(l, 'Adult-Use');
+      default: return false;
+    }
+  }
+  function chipCtx(data) { var o = {}; ((data && Array.isArray(data.deals)) ? data.deals : []).forEach(function (d) { if (d && typeof d.listingId === 'string') o[d.listingId] = 1; }); return { dealIds: o }; }
+  function filterRowsMulti(data, results, keys, bizRows) {
+    var ks = chipKeys((keys || []).join(',')), rows = results || [];
+    if (!ks.length) return rows.slice();
+    var ctx = chipCtx(data), retail = ks.filter(function (k) { return CHIP_RETAIL.indexOf(k) >= 0; }), biz = ks.filter(function (k) { return CHIP_BIZ.indexOf(k) >= 0; }),
+      attrs = ks.filter(function (k) { return CHIP_RETAIL.indexOf(k) < 0 && CHIP_BIZ.indexOf(k) < 0; });
+    var attrsOk = function (r) { return attrs.every(function (k) { return chipAttr(k, r, ctx); }); };
+    var out = [];
+    if (retail.length || !biz.length) rows.forEach(function (r) {
+      var l = r.listing;
+      if (retail.length && !retail.some(function (k) { return k === 'storefront' ? !!l.storefront : l.delivery === true; })) return;
+      if (attrsOk(r)) out.push(r);
+    });
+    if (biz.length) (bizRows || []).forEach(function (r) { if (biz.indexOf(r.listing.category) >= 0 && attrsOk(r)) out.push(r); });
+    return out;
+  }
+  // which chips real data backs: storefront / delivery / open / deals / medical / recreational / pickup from the shown rows; a license category from the business summary (data/business-summary.json)
+  function chipsLit(data, now, summary) {
+    var rows = licensed((data && data.listings) || [], now).map(function (l) { return { listing: l, known: false }; }), ctx = chipCtx(data), lit = {};
+    lit.storefront = rows.some(function (r) { return !!r.listing.storefront; });
+    lit.delivery = deliveryOffered(data, now);
+    lit.open = openNowOffered(data, now);
+    lit.pickup = rows.some(function (r) { return r.listing.pickup === true; });
+    lit.deals = rows.some(function (r) { return !!ctx.dealIds[r.listing.id]; });
+    lit.medical = rows.some(function (r) { return designationHas(r.listing, 'Medicinal'); });
+    lit.recreational = rows.some(function (r) { return designationHas(r.listing, 'Adult-Use'); });
+    var cats = summary && typeof summary === 'object' && summary.categories && typeof summary.categories === 'object' ? summary.categories : {};   // a missing or broken summary lights none
+    CHIP_BIZ.forEach(function (k) { var c = cats[k]; lit[k] = !!c && typeof c.count === 'number' && isFinite(c.count) && c.count > 0; });
+    return CHIP_KEYS.filter(function (k) { return lit[k]; });
+  }
+  // the location cascade (State -> County -> City) from the shown rows: one state, its counties, each county's cities (a delivery service has a county and no city)
+  function locationTree(data, now) {
+    var rows = licensed((data && data.listings) || [], now), by = {}, name = {};
+    rows.forEach(function (l) {
+      var a = l.address || {}, ck = countyKey(a.county); if (!ck) return;
+      if (!by[ck]) { by[ck] = {}; name[ck] = String(a.county).trim().replace(/\s+county$/i, ''); }
+      var c = String(a.city || '').trim(); if (c) by[ck][placeKey(c)] = by[ck][placeKey(c)] || c;
+    });
+    var counties = Object.keys(by).sort().map(function (k) { return { key: k, name: name[k], cities: Object.keys(by[k]).map(function (x) { return by[k][x]; }).sort(function (a, b) { return a.localeCompare(b); }) }; });
+    return { state: 'California', counties: counties };
+  }
   function filtersFor(mode) { return FILTER_DEFS.filter(function (d) { return mode === 'business' || !d.businessOnly; }).map(function (d) { return d.key; }); }
   var FILTERS = filtersFor('customer');        // the customer filter bar
   var ALL_FILTERS = filtersFor('business');    // every key filterRows understands (the business set included)
   var BUSINESS_FILTERS = FILTER_DEFS.filter(function (d) { return d.businessOnly; }).map(function (d) { return d.key; });
   // license-type words (the state's own licenseType text) for the license categories
-  var LICENSE_CAT = { retail: /retail/i, cultivation: /cultivat|nursery|processor/i, manufacturing: /manufactur/i, distribution: /distribut/i, testing: /testing/i, microbusiness: /microbusiness/i };
+  var LICENSE_CAT = { retail: /retail/i, cultivation: /cultivat|nursery|processor/i, manufacturing: /manufactur/i, distribution: /distribut/i, testing: /testing/i, microbusiness: /microbusiness/i, eventorg: /event organizer/i };
   // FILTER HONESTY (Muse via Grok 2026-11-25): the category tags of a listing for the LICENSE categories (retail, cultivation,
   // manufacturing, distribution, testing, microbusiness) come from its state license type and from nothing else: a data tag can
   // never add one the license type does not have, so a chip returns only true matches. The other keys (brands, services, events,
@@ -734,8 +892,7 @@
   // chip it opens). No row behind a category = no tile; no tile at all = the row stays hidden. No counts, no images
   // that do not exist: each tile is the category's own colour + pattern + icon, drawn in the page.
   var CATEGORY_TILES = [
-    { key: 'storefront', icon: 'store' }, { key: 'delivery', icon: 'truck' }, { key: 'brands', icon: 'star' },
-    { key: 'services', icon: 'wrench' }, { key: 'events', icon: 'calendar' }
+    { key: 'storefront', icon: 'store' }, { key: 'delivery', icon: 'truck' }   // v2: Brands / Services / Events are no longer customer filters, so they are no tiles either
   ];
   function categoryTiles(data, results) {
     return CATEGORY_TILES.filter(function (t) { return filterRows(data, results, t.key).length > 0; }).map(function (t) { return { key: t.key, icon: t.icon }; });
@@ -773,6 +930,22 @@
     var soon = s.status === 'About to Expire';
     return s.short ? (soon ? C.stripCardSoon(s.short) : C.stripCardActive(s.short)) : (soon ? C.stripCardSoonNoDate : C.stripCardActiveNoDate);
   }
+  // JOE'S LEAFLY-STYLE CARD (2026-11-26): the only rows a card shows, read from the SAME listing fields the owner editor writes. Real data only: nothing here is ever a placeholder.
+  //   1 placement number + name | 2 licence type, City ST, whole miles (miles only when a location is known) | 3 rating + count and deals (only when real) |
+  //   4 today's hours: Open / Closed (only when the record has real hours) | 5 Pickup / Delivery as offered | 6 REC / MED badge from the state designation (top right)
+  function cardModel(r, C, index) {
+    var l = r.listing, a = (l.address && typeof l.address === 'object') ? l.address : {}, s = function (v) { return typeof v === 'string' ? v.trim() : ''; };
+    var type = (l.category && C.industryCat && C.industryCat[l.category]) || kindText(l, C);   // the SHORT type: Storefront, Delivery, Cultivation, Manufacturing ... (owner 2026-11-26)
+    var st = s(a.state) || 'CA', place = l.storefront && s(a.city) ? s(a.city) + ', ' + st : (s(a.county) ? C.countyName(s(a.county).replace(/\s+county$/i, '')) + ', ' + st : '');
+    var dist = typeof r.miles === 'number' && isFinite(r.miles) ? C.cardMiles(Math.round(r.miles)) : '';
+    var rating = (typeof l.rating === 'number' && isFinite(l.rating) && l.rating >= 1 && l.rating <= 5 && l.ratingCount >= 1 && Math.floor(l.ratingCount) === l.ratingCount) ? C.cardRating(l.rating, l.ratingCount) : '';
+    var nDeals = Array.isArray(l.deals) ? l.deals.length : (typeof l.dealCount === 'number' && l.dealCount >= 1 && Math.floor(l.dealCount) === l.dealCount ? l.dealCount : 0);
+    var hours = r.known === false || !hoursKnown(l) ? '' : r.open ? 'open' : 'closed';
+    var offers = []; if (l.pickup === true) offers.push(C.cardPickup); if (l.delivery === true) offers.push(C.cardDelivery);
+    var d = l.designation, badge = d === 'Adult-Use' ? ['REC'] : d === 'Medicinal' ? ['MED'] : d === 'Adult-Use and Medicinal' ? ['REC', 'MED'] : [];
+    return { rank: typeof index === 'number' && index >= 1 ? C.cardRank(index) : '', name: String(l.name == null ? '' : l.name), line2: [type, place].filter(Boolean).join(' \u00b7 '), dist: dist,
+      rating: rating, deals: nDeals ? C.cardDeals(nDeals) : '', hours: hours, offers: offers, badge: badge };
+  }
   // The three card facts that the listing page (the profile) shows too. ONE implementation each, read by cardLines AND profileFacts, so the card and the profile can
   // never word or compute the same fact differently (Grok 2026-11-25: the profile is a pure read of the same record as the card; Muse checks card vs profile field by field).
   function ratingText(l, C) { return (typeof l.rating === 'number' && isFinite(l.rating) && l.rating >= 0 && l.rating <= 5) ? C.rating(l.rating) : ''; }
@@ -781,13 +954,15 @@
     var a = (l.address && typeof l.address === 'object') ? l.address : {};
     return typeof a.county === 'string' && a.county.trim() ? C.countyName(a.county.trim().replace(/\s+county$/i, '')) : '';
   }
+  // The state's designation tag of a delivery row (Adult-Use, Medicinal or both); '' for anything else. Never invented.
+  function designationText(l, C) { return l && (l.designation === 'Adult-Use' || l.designation === 'Medicinal' || l.designation === 'Adult-Use and Medicinal') ? C.designationText(l.designation) : ''; }
   function cardLines(r, C) {
     var l = r.listing, a = (l.address && typeof l.address === 'object') ? l.address : {};
     var two = [];
     var rt = ratingText(l, C); if (rt) two.push(rt);
     if (typeof r.miles === 'number' && isFinite(r.miles)) two.push(C.miles(r.miles));
     var hours = r.known === false || !hoursKnown(l) ? '' : r.open ? C.openUntil(fmtTime(r.until)) : C.closed;   // no hours data: nothing is shown (an empty "Hours not listed" on every card was noise)
-    var al = addressLines(l), addr = al.lines.length ? (l.storefront && al.lines.length === 2 ? al.lines[0] + ', ' + cityOf(l) : al.lines[0]) : C.addressNone;
+    var al = addressLines(l), addr = r.countyNote === true ? C.deliveryCountyNote(countyText(l, C)) : al.note === 'deliveryCounty' ? (designationText(l, C) || C.addressNone) : al.lines.length ? (l.storefront && al.lines.length === 2 ? al.lines[0] + ', ' + cityOf(l) : al.lines[0]) : C.addressNone;
     var county = countyText(l, C);
     return [String(l.name == null ? '' : l.name), two.join(' \u00b7 '), hours, addr, kindText(l, C) + (county ? ' \u00b7 ' + county : ''), String(l.license || '')];
   }
@@ -796,7 +971,7 @@
   function profileFacts(l, C) {
     var strip = licenseStrip(l);
     return { name: String(l.name == null ? '' : l.name), rating: ratingText(l, C), kind: kindText(l, C), county: countyText(l, C), license: String(l.license || ''),
-      address: addressLines(l), strip: licenseStripText(strip, C), cardStrip: licenseStripCardText(strip, C) };
+      address: addressLines(l), designation: designationText(l, C), strip: licenseStripText(strip, C), cardStrip: licenseStripCardText(strip, C) };
   }
 
   // ---- SEO (1.0 cut, KODE/Grok 2026-11-24): what the search engines read. Pure functions; pages.js writes the result into the head. ----
@@ -804,15 +979,16 @@
   // the license number as an identifier, the official state record as sameAs, geo for storefronts only, hours only when usable). Nothing
   // that the page does not already show publicly. base = the page's origin + basePath.
   var SCHEMA_CONTEXT = 'https:' + '//schema.org';   // a JSON-LD vocabulary identifier, never fetched (the host-scan guard allows only this one)
-  function seoListing(l, base) {
+  // clean = the canonical is the extensionless form (/listing?id=... on the apex), which is what the own-domain host serves without a redirect
+  function seoListing(l, base, clean) {
     var al = addressLines(l), a = (l && l.address) || {}, rec = dccRecordUrl(l && l.license);
     var where = cityOf(l), name = String((l && l.name) || '').trim();
     var kindWord = l.storefront && l.delivery ? 'storefront and delivery' : l.delivery === true ? 'delivery' : l.storefront ? 'storefront' : 'business';
     var d = {
-      '@context': SCHEMA_CONTEXT, '@type': 'LocalBusiness', name: name, url: base + '/listing.html?id=' + encodeURIComponent(l.id),
+      '@context': SCHEMA_CONTEXT, '@type': 'LocalBusiness', name: name, url: base + (clean ? '/listing?id=' : '/listing.html?id=') + encodeURIComponent(l.id),
       identifier: { '@type': 'PropertyValue', name: 'California cannabis license number', value: String(l.license || '') }
     };
-    if (al.lines.length) {
+    if (al.lines.length && where) {
       d.address = { '@type': 'PostalAddress', addressLocality: where, addressRegion: String(a.state || 'CA') };
       if (l.storefront && al.note === null) { d.address.streetAddress = al.lines[0]; if (a.zip) d.address.postalCode = String(a.zip); }
     }
@@ -826,19 +1002,19 @@
     return {
       title: name + (where ? ' · ' + where : '') + ' · Find My Weed',
       description: name + ' is a state-licensed cannabis ' + kindWord + (where ? ' in ' + where + ', California' : ' in California') + '. License ' + (l.license || '') + ', with a link to the official state record. Cannabis is for adults 21+.',
-      canonical: base + '/listing.html?id=' + encodeURIComponent(l.id), jsonLd: d
+      canonical: base + (clean ? '/listing?id=' : '/listing.html?id=') + encodeURIComponent(l.id), jsonLd: d
     };
   }
   var DAY_FULL = { mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday' };
   // City landing view (index.html?area=city:<name>): unique title, heading and intro from the data; count = shown listings in that city.
-  function seoCity(name, count, base) {
+  function seoCity(name, count, base, clean) {
     var n = String(name || '').trim();
     return {
       title: 'Licensed cannabis businesses in ' + n + ', CA · Find My Weed',
       description: count + ' state-licensed cannabis ' + (count === 1 ? 'business' : 'businesses') + ' in ' + n + ', California, each with its license number and a link to the official state record. Cannabis is for adults 21+.',
       heading: 'Licensed cannabis businesses in ' + n,
       intro: count + ' state-licensed ' + (count === 1 ? 'business is' : 'businesses are') + ' listed in ' + n + ', California. Every listing shows its license number and links to the official state record.',
-      canonical: base + '/index.html?area=' + encodeURIComponent('city:' + n)
+      canonical: base + (clean ? '/?area=' : '/index.html?area=') + encodeURIComponent('city:' + n)
     };
   }
   // The URLs for sitemap.xml beyond the static pages: every shown listing and every city view (tools/build-site.js writes them).
@@ -849,8 +1025,8 @@
     return out;
   }
 
-  var api = { seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, licenseStrip: licenseStrip, licenseStripText: licenseStripText, licenseStripCardText: licenseStripCardText, filterRows: filterRows, licenseCategories: licenseCategories, categoriesOf: categoriesOf, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, nameIds: nameIds, nameCountyKeys: nameCountyKeys, nameMatch: nameMatch, nameKey: nameKey, profileFacts: profileFacts, ratingText: ratingText, kindText: kindText, countyText: countyText, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, orderCards: orderCards, isPaid: isPaid, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
-    dccRecordUrl: dccRecordUrl, directionsUrl: directionsUrl, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
+  var api = { bizNameMatches: bizNameMatches, cityTiles: cityTiles, DROPDOWN_CHIPS: DROPDOWN_CHIPS, dropdownOptions: dropdownOptions, CHIP_KEYS: CHIP_KEYS, chipKeys: chipKeys, filterRowsMulti: filterRowsMulti, chipsLit: chipsLit, locationTree: locationTree, menuOffered: menuOffered, countyOfPlace: countyOfPlace, deliveryInCityCounty: deliveryInCityCounty, deliveryCityRows: deliveryCityRows, seoListing: seoListing, seoCity: seoCity, sitemapPaths: sitemapPaths, DEFAULT_TZ: DEFAULT_TZ, hasPoint: hasPoint, CA_BOX: CA_BOX, MAP_W: MAP_W, MAP_H: MAP_H, project: project, deliveryPoint: deliveryPoint, mapDots: mapDots, pinCategory: pinCategory, brandIcon: brandIcon, PIN_CATS: ['retail', 'events', 'services'], categoryTiles: categoryTiles, CATEGORY_TILES: CATEGORY_TILES.slice(), mapView: mapView, hoursKnown: hoursKnown, openNowOffered: openNowOffered, deliveryOffered: deliveryOffered, storefrontOffered: storefrontOffered, menuItems: menuItems, cleanPageHref: cleanPageHref, areaValue: areaValue, parseArea: parseArea, areaKnown: areaKnown, cityPlace: cityPlace, countyCentre: countyCentre, FILTERS: FILTERS.slice(), BUSINESS_FILTERS: BUSINESS_FILTERS.slice(), filtersFor: filtersFor, mapName: mapName, licenseStrip: licenseStrip, licenseStripText: licenseStripText, licenseStripCardText: licenseStripCardText, filterRows: filterRows, licenseCategories: licenseCategories, categoriesOf: categoriesOf, filterKey: filterKey, promoRows: promoRows, PROMO_ROWS: PROMO_ROWS.slice(), PLACEMENT_ROWS: PLACEMENT_ROWS.slice(), cardLines: cardLines, nameIds: nameIds, nameCountyKeys: nameCountyKeys, nameMatch: nameMatch, nameKey: nameKey, profileFacts: profileFacts, ratingText: ratingText, kindText: kindText, countyText: countyText, placeholderName: placeholderName, cities: cities, counties: counties, countyKey: countyKey, topCounty: topCounty, filtersOffered: filtersOffered, areaTiles: areaTiles, chipsOffered: chipsOffered, rails: rails, RAILS: RAILS.slice(), today: today, classify: classify, loadData: loadData, orderCards: orderCards, isPaid: isPaid, countyFileKey: countyFileKey, lightListing: lightListing, assembleHome: assembleHome, areaCountyKeys: areaCountyKeys, loadPart: loadPart, fetchOf: fetchOf, licensed: licensed, licenseLive: licenseLive, findPlace: findPlace, miles: miles, localTime: localTime, openState: openState, fmtTime: fmtTime, weekHours: weekHours, search: search, byId: byId, safeUrl: safeUrl, addressLines: addressLines, cityOf: cityOf, placeKey: placeKey, queryKey: queryKey, PREFIX_MIN: PREFIX_MIN, inPlace: inPlace, cleanQuery: cleanQuery, MAX_QUERY: MAX_QUERY, SHOWN_STATUS: SHOWN_STATUS.slice(),
+    dccRecordUrl: dccRecordUrl, directionsUrl: directionsUrl, monogram: monogram, cardModel: cardModel, licenseCheck: licenseCheck, DCC_SEARCH: DCC_SEARCH, STALE_DAYS: STALE_DAYS,
     reportCheck: reportCheck, REPORT_REASONS: REPORT_REASONS.slice(), REPORT_MAX: REPORT_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FMW = api;
 })(typeof window !== 'undefined' ? window : globalThis);

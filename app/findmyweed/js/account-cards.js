@@ -260,9 +260,11 @@
     });
     return ask.then(function (acct) {
       var out = { known: !!acct.known, kind: 'customer', license: null, saved: null, data: null };
-      if (acct.known && acct.state && acct.state !== 'none') { out.kind = acct.state === 'approved' ? 'business' : 'customer'; out.license = businessCard(doc, holder, ctx, acct); checklistCard(doc, holder, ctx, acct); if (acct.state === 'approved') { out.contact = contactCard(doc, holder, ctx); out.hours = hoursCard(doc, holder, ctx); } }   // a business in ANY state (pending, not verified, approved) sees no Saved listings card (Grok 2026-11-25: pending matches approved)
+      if (acct.known && acct.state && acct.state !== 'none') { out.kind = acct.state === 'approved' ? 'business' : 'customer'; out.license = businessCard(doc, holder, ctx, acct); checklistCard(doc, holder, ctx, acct); if (acct.state === 'approved') { out.contact = contactCard(doc, holder, ctx); out.hours = win.FMW_DASHBOARD && typeof win.FMW_DASHBOARD.hasTab === 'function' && win.FMW_DASHBOARD.hasTab('hours') ? 'tab' : hoursCard(doc, holder, ctx); if (win.FMW_DASHBOARD && typeof win.FMW_DASHBOARD.mount === 'function') { try { out.dashboard = win.FMW_DASHBOARD.mount(doc, holder, ctx); } catch (e) { out.dashboard = null; } } } }   // a business in ANY state (pending, not verified, approved) sees no Saved listings card (Grok 2026-11-25: pending matches approved)
       else if (acct.known) {
         out.saved = savedCard(doc, holder, ctx);
+        // an invited team member (manager or editor) is not an approver, so my_account says 'none': ask for the business dashboard anyway; anyone else sees only a collapsed "Have a business invite code?" line
+        if (win.FMW_DASHBOARD && typeof win.FMW_DASHBOARD.mountMember === 'function') { try { out.dashboard = win.FMW_DASHBOARD.mountMember(doc, holder, ctx); } catch (e) { out.dashboard = null; } }
         if (claimBiz) { var n = card(doc, T.bizTitle, 'business-unchecked'); n.appendChild(el(doc, 'p', 'muted', T.bizNone)); holder.appendChild(n); }   // said business at sign-up, nothing recorded: no business-only content
       } else {   // the server could not be asked (or the function is not applied yet): nothing business-only; a customer still gets the customer cards
         if (!claimBiz) out.saved = savedCard(doc, holder, ctx);

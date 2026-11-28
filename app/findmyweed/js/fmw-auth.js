@@ -33,14 +33,30 @@
           return { access: a, refresh: get('refresh_token'), expiresIn: isFinite(n) && n > 0 ? n : null };
         } catch (e) { return null; }
       },
+      // a short-lived signed ticket for an anonymous license check (the function refuses an anonymous check without one)
+      licenseTicket: function () {
+        var h = Object.assign({}, base, { Authorization: 'Bearer ' + key });
+        return fetchFn(url + '/functions/v1/fmw-check-license', { method: 'POST', headers: h, body: JSON.stringify({ op: 'ticket' }) })
+          .then(function (r) { return r && r.ok ? r.json() : null; })
+          .then(function (j) { return j && typeof j.ticket === 'string' && /^[0-9]+\.[0-9a-f]{64}$/.test(j.ticket) ? { value: j.ticket, at: Date.now() } : null; },
+                function () { return null; });
+      },
       // the server-side license check: with the user's token when signed in (the result is recorded), else the public key
+      // plus the signed ticket. A network or non-2xx failure is { status: 'error' } so the page can offer a retry.
+      // verified / not_found / flagged are the only license answers. An error never looks like a flagged license.
       verifyLicense: function (token, d) {
         var h = Object.assign({}, base, { Authorization: 'Bearer ' + (token || key) });
-        return fetchFn(url + '/functions/v1/fmw-check-license', { method: 'POST', headers: h,
-          body: JSON.stringify({ license: d.licenseNumber, legal_name: d.legalName, category: d.category }) })
-          .then(function (r) { return r.ok ? r.json() : { result: 'flagged' }; })
-          .then(function (j) { return { status: j && j.result === 'verified' ? 'verified' : j && j.result === 'not_found' ? 'not_found' : 'flagged' }; },
-                function () { return { status: 'flagged' }; });
+        var body = { license: d.licenseNumber, legal_name: d.legalName, category: d.category };
+        if (!token && d && d.ticket) body.ticket = String(d.ticket);
+        return fetchFn(url + '/functions/v1/fmw-check-license', { method: 'POST', headers: h, body: JSON.stringify(body) })
+          .then(function (r) { return r && r.ok ? r.json() : { status: 'error' }; })
+          .then(function (j) {
+            if (j && j.status === 'error') return { status: 'error' };
+            if (j && j.result === 'verified') return { status: 'verified' };
+            if (j && j.result === 'not_found') return { status: 'not_found' };
+            if (j && j.result === 'flagged') return { status: 'flagged' };
+            return { status: 'error' };
+          }, function () { return { status: 'error' }; });
       },
       // what the SERVER knows about this account (rpc fmw.my_account, migration 20261124020000): whether it is a business is decided there (a verified + live license check AND
       // a staff approval of the claim; state none | not_verified | pending | approved), never from the client's sign-up "kind". { known: false } when there is no token, the call fails, or the function

@@ -37,6 +37,12 @@ test("moved code is unchanged: preload and password blocks byte-identical, the p
   // Put the old probe back here so the rest of the script is still proven byte-identical.
   const SITEMAP_CHECK = /      \/\* Asked of the prerender's own list[^\n]*\n[^\n]*\*\/\n      fetch\('\/sitemap-events\.xml'\)\.then\(function\(r\)\{ return r&&r\.ok \? r\.text\(\) : ''; \}\)\.then\(function\(x\)\{\n        if\(x && x\.indexOf\('<loc>https:\/\/keepitil\.com'\+_pp\+'<\/loc>'\)>=0\)\{/;
   assert.match(main, SITEMAP_CHECK); main = main.replace(SITEMAP_CHECK, "      fetch(_pp,{method:'HEAD',cache:'no-store'}).then(function(r){\n        if(r&&r.ok){");
+  // documented later change (cancel event, 2026-11-28): cancelled banner, EventCancelled JSON-LD status and no RSVP mount; put the old text back so the rest is still proven byte-identical.
+  const CANCEL_BANNER = /          if\(x\.status==='cancelled'\)\{ ev\.cancelled=true;[^\n]*\n[^\n]*_an\.insertAdjacentHTML\([^\n]*\} \}\n/;
+  assert.match(main, CANCEL_BANNER); main = main.replace(CANCEL_BANNER, "");
+  const CANCEL_LD = '"eventStatus":(ev.cancelled?"https://schema.org/EventCancelled":"https://schema.org/EventScheduled")';
+  assert.ok(main.includes(CANCEL_LD)); main = main.replace(CANCEL_LD, '"eventStatus":"https://schema.org/EventScheduled"');
+  assert.ok(main.includes('KilRsvp && !ev.cancelled')); main = main.replace('KilRsvp && !ev.cancelled', 'KilRsvp');
   assert.equal(sha(main.trim()), OLD.main);
 });
 test("the three files parse, and none can close its own <script> tag", () => {

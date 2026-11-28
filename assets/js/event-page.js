@@ -239,7 +239,7 @@
 
   function isSvgUrl(u){ try{ return new window.URL(String(u),location.href).pathname.toLowerCase().slice(-4)==='.svg'; }catch(e){ return false; } }
   function writeEventLd(tiers){
-    var ld={"@context":"https://schema.org","@type":"MusicEvent","name":ev.title,"url":canonFor(ev.slug),"eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode"};
+    var ld={"@context":"https://schema.org","@type":"MusicEvent","name":ev.title,"url":canonFor(ev.slug),"eventStatus":(ev.cancelled?"https://schema.org/EventCancelled":"https://schema.org/EventScheduled"),"eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode"};
     /* startDate must not be invented. This used to append "T20:00:00-07:00" to every event:
        a fabricated 8pm start and a fixed Pacific offset, applied even to a morning event in
        another timezone -- and it threw away the real time, because ev.date is a local DATE
@@ -391,6 +391,8 @@
           return;
         }
         if(r&&r.data&&r.data[0]){ var x=r.data[0];
+          if(x.status==='cancelled'){ ev.cancelled=true; document.body.classList.add('ev-cancelled'); document.title='Cancelled: '+document.title;
+            var _an=$('ev-ann'); if(_an){ _an.insertAdjacentHTML('afterbegin','<div class="ev-cancelled-banner" role="status"><b>This event has been cancelled.</b> Ask the organizer about refunds or a new date.</div>'); } }
           if(x.slug){ ev.slug=x.slug; }  /* canonicalize slug so lineup/social/tickets resolve even when the URL slug differs */
           ev.title=x.title||ev.title; ev.venue=x.venue||ev.venue; ev.city=x.city||ev.city;
           ev.date=localDate(x.starts_at,x.tz)||ev.date; ev.genre=x.genres||ev.genre;
@@ -404,7 +406,7 @@
           /* social proof — "N going" */
           sb.rpc('get_event_social',{p_slug:ev.slug}).then(function(gr){ var n=(gr&&typeof gr.data==='number')?gr.data:0; var g=$('ev-going'); if(g && g.getAttribute('data-bumped')==='1') n+=1; if(g && n>0){ g.setAttribute('data-n',String(n)); g.textContent=n+' going'; g.style.display='inline-flex'; } }).catch(function(){});
           paint(); loadExtras(sb);
-          try{ if(window.KilRsvp) window.KilRsvp.mount(document.getElementById('ev-rsvp'),{ev:ev,sb:sb,going:document.getElementById('ev-going'),track:function(k,slug){ try{ Promise.resolve(sb.rpc('kil_track',{p_kind:'event',p_target_slug:slug,p_event_type:'rsvp'})).catch(function(){}); }catch(_t){} }}); }catch(_rs){}   /* one-tap RSVP: never blocks the page */
+          try{ if(window.KilRsvp && !ev.cancelled) window.KilRsvp.mount(document.getElementById('ev-rsvp'),{ev:ev,sb:sb,going:document.getElementById('ev-going'),track:function(k,slug){ try{ Promise.resolve(sb.rpc('kil_track',{p_kind:'event',p_target_slug:slug,p_event_type:'rsvp'})).catch(function(){}); }catch(_t){} }}); }catch(_rs){}   /* one-tap RSVP: never blocks the page */
           try{ evLanding(sb, x); }catch(_el){}   /* about + share + venue + more-like-this */
           /* organizer on-site announcements (public read) */
           sb.from('event_announcements').select('title,body,active,created_at').eq('event_slug',ev.slug).eq('active',true).order('created_at',{ascending:false}).then(function(ar){

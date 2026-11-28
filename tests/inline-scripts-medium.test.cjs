@@ -32,7 +32,7 @@ const BLOCKS = [
 {
 "page": "submit-event.html",
 "file": "assets/js/pages/submit-event-main.js",
-"hash": "b22bf0085d2f79dc770b8fd3712cc09921b3489266cbdac35354484b781bb8d8"
+"hash": "4c3f59983ae0a8b5030e0bc7a9cb0fea8723cc78a2dce15f8b57bc7f4b8ee689"
 },
 {
 "page": "signup.html",

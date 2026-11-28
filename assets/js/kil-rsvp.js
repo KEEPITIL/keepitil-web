@@ -69,6 +69,20 @@
     try { return Promise.resolve(sb.from('event_registrations').insert(rec)).then(function (r) { return !(r && r.error); }, function () { return false; }); }
     catch (e) { return Promise.resolve(false); }
   }
+  /* One hit for the event page, and a conversion after a saved RSVP. No-op unless the client exposes rpc (the tests' fake does not). */
+  function recordTraffic(sb, slug, kind) {
+    try {
+      if (!sb || typeof sb.rpc !== 'function' || !/^[a-z0-9][a-z0-9-]{0,200}$/.test(String(slug || ''))) return;
+      var params = null;
+      try { params = new URLSearchParams((root.location && root.location.search) || ''); } catch (e) { params = null; }
+      var pick = function (k) { return params ? String(params.get(k) || '').replace(/[\u0000-\u001f]/g, '').slice(0, 80) : ''; };
+      var knd = kind || (pick('utm_source') || pick('utm_campaign') || pick('utm_content') ? 'click' : 'view');
+      Promise.resolve(sb.rpc('kil_record_event_hit', {
+        p_slug: String(slug), p_kind: knd, p_utm_source: pick('utm_source'), p_utm_medium: pick('utm_medium'),
+        p_utm_campaign: pick('utm_campaign'), p_utm_content: pick('utm_content')
+      })).catch(function () {});
+    } catch (e) {}
+  }
 
   function el(doc, tag, cls, text) { var n = doc.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
 
@@ -111,7 +125,7 @@
           var v = inp.value.trim();
           if (!validEmail(v)) { err.textContent = copy.emailBad; return; }
           go.disabled = true;
-          send(sb, buildRecord(ev, { email: v, device: device, answers: { source: 'one_tap_followup' } })).then(function (okk) {
+          send(sb, buildRecord(ev, { email: v, device: device, answers: { source: 'one_tap_followup' } })).then(function (okk) { if (okk) recordTraffic(sb, ev.slug, 'conversion');
             if (okk) { state.email = true; write(store, ev.slug, { going: 1, sent: state.sent ? 1 : 0, email: 1 }); render(); }
             else { go.disabled = false; err.textContent = copy.emailFail; }
           });
@@ -134,7 +148,7 @@
       state.going = true; render(); bump();                    /* the confirmation does not wait for the network */
       write(store, ev.slug, { going: 1, sent: 0, email: 0 });
       if (typeof opts.track === 'function') { try { opts.track('rsvp_tap', ev.slug); } catch (e) { /* analytics never blocks */ } }
-      send(sb, buildRecord(ev, { device: device })).then(function (okk) { if (okk) { state.sent = true; write(store, ev.slug, { going: 1, sent: 1, email: state.email ? 1 : 0 }); } });
+      send(sb, buildRecord(ev, { device: device })).then(function (okk) { if (okk) { state.sent = true; recordTraffic(sb, ev.slug, 'conversion'); write(store, ev.slug, { going: 1, sent: 1, email: state.email ? 1 : 0 }); } });
     }
 
     /* PHONES (<= 700 px): the flyer is taller than the first screen, so the button and the badge sit in one row right under the back button, above the flyer and the fixed bottom nav.
@@ -156,8 +170,9 @@
     if (mq && mq.addEventListener) mq.addEventListener('change', place);
 
     render();
+    recordTraffic(sb, ev.slug);
     if (state.going && !state.sent) {                  /* a tap whose insert failed last time: one quiet retry */
-      send(sb, buildRecord(ev, { device: device })).then(function (okk) { if (okk) { state.sent = true; write(store, ev.slug, { going: 1, sent: 1, email: state.email ? 1 : 0 }); } });
+      send(sb, buildRecord(ev, { device: device })).then(function (okk) { if (okk) { state.sent = true; recordTraffic(sb, ev.slug, 'conversion'); write(store, ev.slug, { going: 1, sent: 1, email: state.email ? 1 : 0 }); } });
     }
     return { state: state, tap: tap };
   }

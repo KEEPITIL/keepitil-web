@@ -1,7 +1,6 @@
 /* KEEPITIL organizer view (dashboard > Events). ONE read-only view of the signed-in organizer's own events: the event (title, date, status, and the review reason while it is held),
    the RSVP count (people) and paid tickets, the Stripe Connect status as a plain link to the EXISTING flow (no money moves here), and an edit link.
-   WHO SEES WHAT (NEXUS2 5:4x): the editor and the payout onboarding live at /create-event, which sends every NON-admin to /submit-event, and ticket money is held OFF. So for non-admins the view has NO Connect/payout
-   line and NO link to /create-event anywhere; community events keep their /submit-event Edit link, other events have no Edit link. Admins get the full view (payout status + /create-event links).
+   WHO SEES WHAT: every signed-in creator can edit their own hosted events at /create-event. Community calendar listings still edit at /submit-event. The Stripe payout line stays on admin accounts until Connect self-serve is mounted for everyone.
    DATA: one RPC, public.get_my_organizer_events() (draft SQL in keepitil.github.io, owner-only via auth.uid()). Until that RPC exists on prod the call fails and this view renders NOTHING,
    so the dashboard keeps showing exactly what it shows today. Every string from the database is written with textContent. */
 (function (root) {
@@ -24,9 +23,9 @@
   function el(doc, tag, cls, text) { var n = doc.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
   function slugOk(s) { return /^[a-z0-9][a-z0-9-]{0,200}$/.test(String(s || '')); }
 
-  function editHref(e, admin) {
+  function editHref(e) {
     if (String(e.source || '') === 'community' && e.id != null) return '/submit-event?edit=' + encodeURIComponent(String(e.id));
-    return admin && slugOk(e.slug) ? '/create-event?e=' + encodeURIComponent(e.slug) : null;   /* /create-event is team-only: no dead-end link for anyone else */
+    return slugOk(e.slug) ? '/create-event?e=' + encodeURIComponent(e.slug) : null;
   }
   function when(iso) {
     try { return iso ? new Date(iso).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD'; } catch (x) { return ''; }
@@ -62,7 +61,7 @@
       wrap.appendChild(box);
     }
     if (!events.length) {
-      var em = el(doc, 'p', 'org-empty', 'No events yet. '); var add = el(doc, 'a', '', 'Add an event'); add.href = '/submit-event'; em.appendChild(add); wrap.appendChild(em);
+      var em = el(doc, 'p', 'org-empty', 'No events yet. '); var add = el(doc, 'a', '', 'Create an event'); add.href = '/create-event'; em.appendChild(add); wrap.appendChild(em);
       return wrap;
     }
     events.forEach(function (e) {
@@ -81,7 +80,7 @@
       var paid = Math.max(0, parseInt(e.paid_tickets, 10) || 0);
       if (paid > 0) counts.appendChild(el(doc, 'span', 'org-paid', plural(paid, 'ticket sold', 'tickets sold')));
       main.appendChild(counts);
-      var acts = el(doc, 'div', 'ev-acts'), eh = editHref(e, admin);
+      var acts = el(doc, 'div', 'ev-acts'), eh = editHref(e);
       if (eh) { var ed = el(doc, 'a', 'org-edit', 'Edit'); ed.href = eh; acts.appendChild(ed); }
       main.appendChild(acts); row.appendChild(main); wrap.appendChild(row);
     });

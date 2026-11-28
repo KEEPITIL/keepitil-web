@@ -336,9 +336,8 @@
     return false;
   }
 
-  /* The public create path. NOT /create-event — that is admin-only and bounces everyone
-     else, dropping query params on the way. */
-  var KIL_CREATE_URL = '/submit-event';
+  /* The public create path. Any signed-in account opens /create-event; the page itself asks for a login when there is no session. */
+  var KIL_CREATE_URL = '/create-event';
 
   function welcomeActions(){
     return kilSignedIn()
@@ -1508,102 +1507,58 @@
           });
       }
 
-      /* ── PERMISSION-AWARE EVENT ROUTING (Founder 2026-08-29) ────────────────────────────
-         An authenticated user who may already publish events uses the AUTHORIZED path; everyone
-         else keeps the community review path. CHO picks the route; it never grants access.
-
-         The authorized route is create_event_with_tiers — the exact RPC /create-event
-         calls. It is SECURITY DEFINER and refuses non-admins itself with errcode 42501
-         ("Only KEEPITIL can create ticketed events"), so even if this client-side check were
-         wrong or bypassed, the database still decides. That is the point: the permission test
-         below chooses which door to knock on and sets the user's expectation, it is NOT the
-         lock.
-
-         DIRECT PUBLISH (approved 2026-08-29): the RPC now honours status='published', but ONLY
-         on an explicit request from a caller that passes is_admin(). Its default is still
-         'review', so every existing caller — including /create-event.html, which sends
-         status:'review' — is unchanged. CHO asks for 'published' on this route and reports the
-         status the RPC actually persisted, never the one it requested. */
-      return rpc('is_admin', {}).then(function (adm) {
-        var canPublishDirect = adm && adm.ok && adm.body === true;
-        if (canPublishDirect) {
-          return rpc('create_event_with_tiers', {
-            ev: {
-              title: d.title, venue: d.venue, city: d.city,
-              starts_at: (function () {
-                try { return new Date(d.local_date + 'T' + (d.local_time || '21:00')).toISOString(); }
-                catch (e) { return null; }
-              })(),
-              cover_url: d.flyer_url || null,
-              description: 'Added via CHO from ' + (d.provider || 'an external link')
-                         + (d.ticket_link ? ('\nTickets: ' + d.ticket_link) : ''),
-              show_lineup: true, show_gallery: true, show_feed: true,
-              /* Explicit publish request (Founder 2026-08-29). The RPC honours this ONLY for a
-                 caller that passes is_admin(); for anyone else it silently falls back to
-                 review. CHO asks — the database decides. */
-              status: 'published'
-            },
-            tiers: []
-          }).then(function (r) {
-            var b = r.body || {};
-            if (!r.ok || b.error) throw new Error(b.error || b.message || 'the event was refused');
-            var slug = b.slug || '';
-            /* The RPC returns what was PERSISTED, not what was asked for. Reporting the
-               persisted value is the point: if the publish request was declined the user must
-               be told the event is in review, not congratulated on a publication that did not
-               happen. */
-            var persisted = b.status || 'review';
-            var wentLive = persisted === 'published';
-            return rpc('cho_log_action', { p_action: 'create_event_authorized', p_object_type: 'event',
-                         p_object_id: String(b.id || ''),
-                         p_payload: { route: 'create_event_with_tiers',
-                                      requested_status: b.requested_status || 'published',
-                                      persisted_status: persisted,
-                                      provider: d.provider,
-                                      source_url: d.ticket_link, title: d.title, venue: d.venue,
-                                      city: d.city, date: d.local_date, time: d.local_time,
-                                      flyer: d.flyer_url },
-                         p_ok: true, p_error: null })
-              .then(function () {
-                choClearFlow();
-                if (slug) setTimeout(function () { location.href = '/event?e=' + encodeURIComponent(slug); }, 1400);
-                return { title: wentLive ? 'Event published ✓' : 'Event created ✓',
-                         text: (wentLive
-                                 ? 'Published through the authorized event path with your permissions — it is live in DISCOVER now.'
-                                 : 'Created through the authorized event path, and it is in REVIEW — the publish request was not granted for this account.')
-                             + ' Your ticket link still points at ' + (d.provider || 'the original site') + '. Opening it…' };
-              });
-          }).catch(function (e) {
-            return { title: 'Could not create the event', text: String(e.message || e) + '\n\nNothing was sent.' };
+      /* Self-serve publish: every signed-in account asks for status published.
+         kil_publish_own_event is owner-scoped and writes published (see the SQL migration).
+         If that RPC is not on the database yet, fall back to create_event_with_tiers.
+         The persisted status is what we report. */
+      var evPayload = {
+        title: d.title, venue: d.venue, city: d.city,
+        starts_at: (function () {
+          try { return new Date(d.local_date + 'T' + (d.local_time || '21:00')).toISOString(); }
+          catch (e) { return null; }
+        })(),
+        cover_url: d.flyer_url || null,
+        description: 'Added via CHO from ' + (d.provider || 'an external link')
+                   + (d.ticket_link ? ('\nTickets: ' + d.ticket_link) : ''),
+        show_lineup: true, show_gallery: true, show_feed: true,
+        status: 'published'
+      };
+      function missingRpc(r) {
+        var b = (r && r.body) || {};
+        return !r.ok && /PGRST202|does not exist|schema cache|42883/i.test(String(b.message || b.error || b.code || ''));
+      }
+      function finishPublish(r) {
+        var b = r.body || {};
+        if (!r.ok || b.error) throw new Error(b.error || b.message || 'the event was refused');
+        var slug = b.slug || '';
+        var persisted = b.status || 'published';
+        var wentLive = persisted === 'published';
+        return rpc('cho_log_action', { p_action: 'create_event_authorized', p_object_type: 'event',
+                     p_object_id: String(b.id || b.event_id || ''),
+                     p_payload: { route: 'kil_publish_own_event',
+                                  requested_status: 'published',
+                                  persisted_status: persisted,
+                                  provider: d.provider,
+                                  source_url: d.ticket_link, title: d.title, venue: d.venue,
+                                  city: d.city, date: d.local_date, time: d.local_time,
+                                  flyer: d.flyer_url },
+                     p_ok: true, p_error: null })
+          .then(function () {
+            choClearFlow();
+            if (slug && wentLive) setTimeout(function () { location.href = '/event?e=' + encodeURIComponent(slug); }, 1400);
+            return { title: wentLive ? 'Event published ✓' : 'Event saved',
+                     text: (wentLive
+                             ? 'It is live now. Your ticket link still points at ' + (d.provider || 'the original site') + '.'
+                             : 'Saved, but the database did not mark it published (' + persisted + ').')
+                         + (slug && wentLive ? ' Opening it…' : '') };
           });
-        }
-        /* Not authorized to publish directly: the normal community review workflow, unchanged. */
-        return rpc('submit_community_event', { p: {
-                   title: d.title, venue: d.venue, city: d.city,
-                   local_date: d.local_date, local_time: d.local_time, days: 1,
-                   headliners: [], ticket_link: d.ticket_link || '',
-                   extra_links: d.flyer_url ? [{ label: 'Flyer', url: d.flyer_url }] : [],
-                   note: 'Submitted via CHO from ' + (d.provider || 'an external link'), genres: [] } })
-        .then(function (r) {
-          var b = r.body || {};
-          if (!r.ok || b.ok === false) throw new Error(b.error || (b.message) || 'the event was refused');
-          return rpc('cho_log_action', { p_action: 'submit_event', p_object_type: 'event',
-                       p_object_id: String(b.id || b.event_id || ''),
-                       p_payload: { provider: d.provider, source_url: d.ticket_link, title: d.title,
-                                    venue: d.venue, city: d.city, date: d.local_date,
-                                    time: d.local_time, flyer: d.flyer_url },
-                       p_ok: true, p_error: null })
-            .then(function () {
-              choClearFlow();
-              return { title: 'Event submitted ✓',
-                       text: 'It is in the review queue and appears on the calendar once approved — '
-                           + 'the same route every submitted event takes. Your ticket link stays pointing at the original site.' };
-            });
-        })
-        .catch(function (e) {
-          return { title: 'Could not submit the event', text: String(e.message || e) + '\n\nNothing was sent.' };
-        });
-      });   /* close is_admin().then */
+      }
+      return rpc('kil_publish_own_event', { ev: evPayload, tiers: [] }).then(function (r) {
+        if (missingRpc(r)) return rpc('create_event_with_tiers', { ev: evPayload, tiers: [] }).then(finishPublish);
+        return finishPublish(r);
+      }).catch(function (e) {
+        return { title: 'Could not create the event', text: String(e.message || e) + '\n\nNothing was sent.' };
+      });
     });
   }
 

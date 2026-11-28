@@ -18,8 +18,10 @@ test("the gate lists what you will fill in and still has the login button with ?
   for (const w of ["where it is", "a description", "a cover image"]) assert.ok(opt.includes(w), w + " is listed as optional");
   assert.match("<b>Required:</b> name, where it is, a cover image<", /<b>Required:<\/b>[^<]*where/i, "control: the old wording put them under the basics");
   assert.match(gate, /<a class="btn primary" href="\/apply\?next=%2Fcreate-event">Log in to create your event<\/a>/);
-  assert.match(gate, /Nothing publishes until the KEEPITIL team approves it\./);
-  assert.match(gate, /Members submit an event for review/);
+  assert.match(gate, /It goes live as soon as you submit it\./);
+  assert.match(gate, /Your event goes live as soon as you submit it\./);
+  assert.doesNotMatch(gate, /Nothing publishes until the KEEPITIL team approves it/);
+  assert.doesNotMatch(gate, /Members submit an event for review/);
   assert.doesNotMatch(gate, /Free members can list events/, "the old claim: non-admins are sent to /submit-event for review");
 });
 test("gate copy has no price, money or verification wording (negative control on a bad sample)", () => {

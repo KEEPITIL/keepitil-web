@@ -211,7 +211,7 @@ $('form').addEventListener('submit',function(e){
     $('app').style.display='block';
     var qs=new URLSearchParams(location.search);
     if(qs.get('why')==='keepitil-events-are-company-only') $('whyNote').hidden=false;
-    supa.rpc('is_admin').then(function(a){ if(a&&a.data) $('hostLink').hidden=false; }).catch(function(){});
+    var hl=$('hostLink'); if(hl) hl.hidden=false;
     /* ?edit=<id> opens one of YOUR listings for editing (the dashboard links here). */
     var want=qs.get('edit');
     loadRecent().then(function(rows){

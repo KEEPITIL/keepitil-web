@@ -887,10 +887,8 @@ function namedDestinations(){ return DESTINATIONS.filter(function(d){ return !d.
         ov.innerHTML='<div style="background:#15151f;border-radius:18px 18px 0 0;width:100%;max-width:520px;padding:14px 18px 26px">'
           +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="color:#fff;font-size:1.08rem">Create</b><button id="kilCX" style="background:none;border:0;color:#888;font-size:1.6rem;line-height:1;cursor:pointer">&times;</button></div>'
           +item('Feed post','/profile?create=feed')
-          /* /create-event is admin-only — it runs rpc('is_admin') and bounces everyone
-             else to submit-event, dropping query params. The public create path is
-             submit-event. §C's chat surface must use this same destination. */
-          +item('Event','/submit-event')
+          /* Signed-in accounts create their own event at /create-event. Calendar listings of a show you found stay on /submit-event. */
+          +item('Event','/create-event')
           +item('Collection','/profile?tab=saved&create=collection')
           +'<a href="/profile?tab=chat&create=chat" style="display:block;color:#e8e8f0;padding:15px 8px;text-decoration:none;font-weight:700;font-size:1.02rem">Chat</a>'
           +'</div>';

@@ -1,8 +1,8 @@
 // node --test assets/js/free-event-flow.test.mjs   (jsdom only, no network)
 //
 // FREE event flow for members (KEEPITIL 1.0, Joe 2026-11-22: "event creation and management").
-// Today /create-event is team-only (rpc is_admin bounces members to /submit-event?why=...), so the
-// member path is: /submit-event (add) -> /dashboard (see status) -> /submit-event?edit=<id> (fix).
+// Community calendar listings still use /submit-event. Hosted events use /create-event for every signed-in account
+// (the header button is not rewritten). Community rows still edit at /submit-event?edit=<id>.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -79,19 +79,35 @@ test('dashboard: lists the member\'s calendar submissions with status and an Edi
   assert.equal(cards[1].querySelector('.ev-badge').textContent, 'Live');
   assert.equal(cards[0].querySelector('.ev-acts a').getAttribute('href'), '/submit-event?edit=41');
   assert.equal(cards[0].querySelector('.ev-title').textContent, 'Warehouse <b>night</b>', 'title rendered as text, not HTML');
-  assert.equal(doc.querySelector('.head a.btn.prim').getAttribute('href'), '/submit-event', 'members get Add an event, not the bouncing Create Event');
+  assert.equal(doc.querySelector('.head a.btn.prim').getAttribute('href'), '/create-event', 'signed-in accounts keep + Create Event');
+  assert.equal(doc.querySelector('.head a.btn.prim').textContent, '+ Create Event');
 });
 
-test('dashboard: admins keep + Create Event; no rows render nothing; an error says so', async () => {
+test('dashboard: an empty community list renders nothing; an error says so; the header stays on /create-event', async () => {
   const adm = await runListings({ rows: [], admin: true });
   assert.equal(adm.querySelector('.head a.btn.prim').getAttribute('href'), '/create-event');
+  const member = await runListings({ rows: [], admin: false });
+  assert.equal(member.querySelector('.head a.btn.prim').getAttribute('href'), '/create-event');
   assert.equal(adm.getElementById('listings').innerHTML, '');
   const err = await runListings({ rows: [], error: { message: 'x' } });
   assert.match(err.getElementById('listings').textContent, /Could not load your listings/);
 });
 
-test('dashboard: the empty state sends members to /submit-event, not the team-only /create-event', () => {
-  assert.match(DASH, /<h2>No hosted events yet<\/h2>[^\n]*href="\/submit-event">\+ Add an event<\/a>/);
+test('create-event does not bounce a signed-in account, and dashboard keeps admin panels behind is_admin', () => {
+  const create = read('create-event.html');
+  assert.doesNotMatch(create, /keepitil-events-are-company-only/);
+  assert.doesNotMatch(create, /rpc\('is_admin'\)/);
+  assert.match(DASH, /if\(ADMIN_PANELS\[name\] && !IS_ADMIN\) return;/);
+  assert.match(DASH, /staging:1,qa:1,recommendations:1/);
+  assert.doesNotMatch(DASH, /hb\.href='\/submit-event'/);
+  assert.match(read('keepitil-shell.js'), /item\('Event','\/create-event'\)/);
+});
+
+test('dashboard: the empty state sends every signed-in account to /create-event, with no review-queue copy', () => {
+  assert.match(DASH, /<h2>No hosted events yet<\/h2>[^\n]*href="\/create-event">\+ Create Event<\/a>/);
+  assert.match(DASH, /It goes live as soon as you submit it/);
+  assert.doesNotMatch(DASH, /reviewed before it goes live/);
+  assert.doesNotMatch(DASH, /Listings are reviewed before they go live/);
   assert.doesNotMatch(DASH, /Create your first event and start selling tickets/);
 });
 

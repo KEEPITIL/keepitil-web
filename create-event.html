@@ -317,6 +317,7 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
   </div>
 </main>
 
+<script src="/assets/js/kil-event-outcome.js?v=h834a8ecc"></script>
 <script>
 var SUPA_URL='https://ovmqtzjfpzrbzrlkxwgw.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92bXF0empmcHpyYnpybGt4d2d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDM5OTEsImV4cCI6MjA5Njc3OTk5MX0.rqFG5illhiePFOnqkKaA7nVSv_LWtJ95HHW1NVIo6CQ';
@@ -667,13 +668,13 @@ $('form').addEventListener('submit',async function(e){
       tiers.push({name:name,description:desc,price_cents:price*100,qty_total:qty,sales_start:startISO,sales_end:endISO,show_qty:showq});
     });
     if(tierErr){ b.disabled=false; b.textContent=EDIT_SLUG?'Save changes':'Create Event'; msg.className='msg err'; msg.textContent=tierErr; return; }
-    // Owner RPCs (supabase/migrations/20261127170000_self_serve_publish.sql) write status
-    // published. Until that migration is applied on prod, fall back to the existing RPCs.
-    var newSlug, newEventId=null;
+    // Owner RPCs return the stored status (review when the events checks hold the row).
+    // Until those RPCs exist, fall back to the existing ones. A response with no status is treated as published.
+    var newSlug, newEventId=null, saved={};
     if(EDIT_SLUG){
       var scope=(SERIES.length>1 && $('editScope'))?$('editScope').value:'one';
       var ru=await rpcOr('kil_update_own_event',{ p_slug:EDIT_SLUG, ev:ev, tiers:tiers }, 'update_event');
-      if(ru.error) throw ru.error; var du=ru.data||{}; if(du.error) throw new Error(du.message||du.error); newEventId=du.event_id||null;
+      if(ru.error) throw ru.error; var du=ru.data||{}; if(du.error) throw new Error(du.message||du.error); newEventId=du.event_id||null; saved=du;
       if(scope!=='one' && SERIES_ID){
         var evS=Object.assign({},ev); delete evS.starts_at; delete evS.slug; delete evS.ends_at;   // shared fields only — never overwrite each date's time
         var picks=null;
@@ -688,11 +689,11 @@ $('form').addEventListener('submit',async function(e){
       if(dates.length<2){ b.disabled=false; b.textContent='Create Event'; msg.className='msg err'; msg.textContent='A series needs at least two dates — add another date, or turn off the series toggle.'; return; }
       var rc2=await rpcOr('kil_publish_own_series',{ ev:ev, tiers:tiers, dates:dates }, 'create_event_series');
       if(rc2.error) throw rc2.error; var res2=rc2.data||{}; if(res2.error) throw new Error(res2.message||res2.error);
-      newSlug=(res2.slugs&&res2.slugs[0])||ev.slug;
+      newSlug=(res2.slugs&&res2.slugs[0])||ev.slug; saved=res2;
     } else {
       var rc=await rpcOr('kil_publish_own_event',{ ev:ev, tiers:tiers }, 'create_event_with_tiers');
       if(rc.error) throw rc.error;
-      var res=rc.data||{}; if(res.error) throw new Error(res.message||res.error); newSlug=res.slug||ev.slug; newEventId=res.id||null;
+      var res=rc.data||{}; if(res.error) throw new Error(res.message||res.error); newSlug=res.slug||ev.slug; newEventId=res.id||null; saved=res;
     }
     // optional launch discount code → discount_codes (non-blocking; skipped for series)
     try{
@@ -704,6 +705,10 @@ $('form').addEventListener('submit',async function(e){
     }catch(e){}
     /* Marketing link removed 2026-08-26: /campaigns.html does not exist. */
     var mk=$('mktg-link'); if(mk) mk.remove();
+    var outcome=(window.kilEventSaveOutcome?window.kilEventSaveOutcome(saved):{title:"You're live",text:'Your event is published. It shows on your page and in the Scene. You can edit it from the dashboard. Report and takedown still apply if something breaks or is abused.',live:true});
+    var dh=document.querySelector('#done h2'), dp=document.querySelector('#done p');
+    if(dh) dh.textContent=outcome.title;
+    if(dp) dp.textContent=outcome.text;
     $('form').style.display='none'; $('done').style.display='block'; window.scrollTo({top:0,behavior:'smooth'});
   }catch(err){
     b.disabled=false; b.textContent=EDIT_SLUG?'Save changes':'Create Event';

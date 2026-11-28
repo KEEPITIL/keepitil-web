@@ -19,6 +19,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const APP = 'app/findmyweed';
 const PREFIX = '/' + APP + '/';
 const ORIGIN = 'https://keepitil.com';
+const APEX = 'https://findmyweedapp.com';   // the drop-in is built with canonicalUrl: its canonical, og:url, og:image, sitemap and robots name the MATCHING findmyweedapp.com page (find-my-weed site.json), never this host
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const PAGES = ['index.html', 'results.html', 'listing.html', 'about.html', 'privacy.html', '404.html'];
 const BUSINESS = APP + '/for-business/index.html';
@@ -55,7 +56,7 @@ const BUSINESS_SHA256_PRELAUNCH = 'e042b44d4a008e1117dc4401843906dcfd32342909a99
 /** Every src/href in a page, resolved as the browser would at https://keepitil.com/app/findmyweed/<file>. */
 function refs(html, file) {
   const base = ORIGIN + PREFIX + file;
-  return [...html.matchAll(/\b(?:src|href)\s*=\s*"([^"]*)"/gi)].map((m) => ({ raw: m[1], url: new URL(m[1], base) }));
+  return [...html.replace(/<link rel="canonical"[^>]*>/g, '').matchAll(/\b(?:src|href)\s*=\s*"([^"]*)"/gi)].map((m) => ({ raw: m[1], url: new URL(m[1], base) }));   // the canonical link is an address, not a link the page loads or follows
 }
 /** Problems with a page's links: anything on keepitil.com outside /app/findmyweed/, or another origin. */
 export function linkProblems(html, file) {
@@ -117,22 +118,22 @@ test('launched: every page is index,follow, the switch says launched, robots.txt
   assert.match(read(APP + '/404.html'), /<meta name="robots" content="noindex,follow">/);
   assert.equal(indexableProblems(read(APP + '/404.html'), '404.html').length, 1, 'CONTROL: the indexable check rejects the 404, as intended');
   // sign-up LIVE (find-my-weed #77, owner GO 2026-11-22): accounts + claims on, the public project URL + anon key only
-  assert.match(read(APP + '/js/site-config.js'), /var CONFIG = \{ launched: true, reportForm: false, basePath: "\/app\/findmyweed", accounts: true, claims: true, authProject: \{ url: "https:\/\/ovmqtzjfpzrbzrlkxwgw\.supabase\.co", anonKey: "[A-Za-z0-9_.-]+" \} \};/);
+  { const cfg = read(APP + '/js/site-config.js'); assert.match(cfg, /var CONFIG = \{ launched: true, reportForm: false, basePath: "\/app\/findmyweed", accounts: true, claims: true, canonicalOrigin: "https:\/\/findmyweedapp\.com"/); assert.match(cfg, /authProject: \{ url: "https:\/\/ovmqtzjfpzrbzrlkxwgw\.supabase\.co", anonKey: "[A-Za-z0-9_.-]+" \}/); }
   assert.doesNotMatch(read(APP + '/js/site-config.js'), /service_role/);
   // signup.html is noindex,follow (an account page, like the 404)
   assert.match(read(APP + '/signup.html'), /<meta name="robots" content="noindex,follow">/);
   const robots = read(APP + '/robots.txt');
   assert.match(robots, /^Allow: \/$/m);
   assert.doesNotMatch(robots, /Disallow/);
-  assert.match(robots, /^Sitemap: https:\/\/keepitil\.com\/app\/findmyweed\/sitemap\.xml$/m);
+  assert.match(robots, /^Sitemap: https:\/\/findmyweedapp\.com\/sitemap\.xml$/m);   // the apex sitemap: this copy is a mirror whose pages all point at the apex
   const locs = [...read(APP + '/sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
   // the app's own sitemap: the three static pages, then every shown listing and city view (checked against the data by assets/js/fmw-sitemap.test.mjs)
-  assert.deepEqual(locs.slice(0, 3), [ORIGIN + PREFIX, ORIGIN + PREFIX + 'about.html', ORIGIN + PREFIX + 'privacy.html']);
-  assert.ok(locs.every((u) => u.startsWith(ORIGIN + PREFIX)), 'one origin and folder');
+  assert.deepEqual(locs.slice(0, 4), [APEX + '/', APEX + '/about', APEX + '/privacy', APEX + '/help']);
+  assert.ok(locs.every((u) => u.startsWith(APEX + '/')), 'one origin: the apex');
   // the real share image, never the placeholder; open browsing (no age prompt, no exit page)
   for (const f of PAGES) {
     const h = read(APP + '/' + f);
-    assert.match(h, /<meta property="og:image" content="https:\/\/keepitil\.com\/app\/findmyweed\/img\/og\.png">/, f);
+    assert.match(h, /<meta property="og:image" content="https:\/\/findmyweedapp\.com\/img\/og\.png">/, f);
     assert.doesNotMatch(h, /og-placeholder|agegate/, f);
   }
   for (const gone of ['img/og-placeholder.png', 'js/agegate.js', 'under21.html']) assert.equal(fs.existsSync(path.join(ROOT, APP, gone)), false, gone + ' is gone');
@@ -149,7 +150,8 @@ test('the root sitemap lists the launched app pages and for-business, and nothin
   const fmw = locs.filter((l) => l.startsWith(ORIGIN + PREFIX));
   const appMap = [...read(APP + '/sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
   // the shared ROOT sitemap lists the app's three static pages + for-business; the per-listing / per-city URLs live in the app's own sitemap (robots.txt names it)
-  assert.deepEqual(fmw, [...appMap.slice(0, 3), ORIGIN + PREFIX + 'for-business/'], 'the static pages, then for-business');
+  // (the app's OWN sitemap now names the apex pages: its canonical is findmyweedapp.com; this shared root sitemap keeps the keepitil.com addresses of the same pages)
+  assert.deepEqual(fmw, [ORIGIN + PREFIX, ORIGIN + PREFIX + 'about.html', ORIGIN + PREFIX + 'privacy.html', ORIGIN + PREFIX + 'for-business/'], 'the static pages, then for-business');
   for (const l of fmw) {
     let rel = l.slice(ORIGIN.length + 1); if (rel.endsWith('/')) rel += 'index.html';
     assert.ok(fs.existsSync(path.join(ROOT, rel)), l + ' is a real file');
@@ -167,6 +169,7 @@ test('every asset and link URL in the app resolves under /app/findmyweed/ and to
       if (/^(#|mailto:|tel:)/i.test(raw) || url.origin !== ORIGIN) continue;
       let rel = decodeURIComponent(url.pathname.slice(1));
       if (rel.endsWith('/')) rel += 'index.html';
+      else if (!/\.[a-z0-9]+$/i.test(rel)) rel = fs.existsSync(path.join(ROOT, rel + '.html')) ? rel + '.html' : rel + '/index.html';   // the build's links are extensionless (/about): the host serves about.html at /about
       assert.ok(fs.existsSync(path.join(ROOT, rel)), f + ' -> ' + raw + ' (' + rel + ')');
       n++;
     }
@@ -177,7 +180,7 @@ test('every asset and link URL in the app resolves under /app/findmyweed/ and to
   // NEGATIVE CONTROLS: a root-absolute asset, a relative escape and an old-folder link are each caught
   const idx = read(APP + '/index.html');
   assert.equal(linkProblems(idx.replace(/src="js\/fmw\.js(\?v=[0-9a-f]+)?"/, 'src="/js/fmw.js$1"'), 'index.html').length, 1, 'root-absolute');
-  assert.equal(linkProblems(idx.replace('href="about.html"', 'href="../about.html"'), 'index.html').length, 1, 'relative escape');
+  assert.equal(linkProblems(idx.replace(/href="about"/, 'href="../about"'), 'index.html').length, 1, 'relative escape');
   assert.equal(linkProblems('<a href="/findmyweed/about.html">', '404.html').length, 1, 'old /findmyweed/ folder');
   assert.equal(linkProblems('<script src="https://cdn.example/x.js"></script>', 'index.html').length, 1, 'off-site');
   assert.deepEqual(linkProblems('<link href="/app/findmyweed/css/fmw.css">', '404.html'), [], 'CONTROL: the right prefix passes');
@@ -253,7 +256,8 @@ test('for-business/: the #201 bytes minus the M201-1 robots meta and the commiss
     .replace('<link rel="canonical" href="https://keepitil.com/app/findmyweed/for-business/">\n', '$&<meta name="robots" content="noindex,nofollow">\n')
     .replace('      <li>Your brand in front of our network of delivery, retail, and manufacturing partners</li>\n', '$&' + COMMISSION_BULLET);
   assert.equal(sha(back), BUSINESS_SHA256_PRELAUNCH);
-  assert.equal(fs.existsSync(path.join(ROOT, APP, 'for-business.html')), false);
+  // the find-my-weed build now ships its own for-business.html (the business pitch page); #201's page stays in the for-business/ folder, a different path, so the two do not collide
+  assert.equal(fs.existsSync(path.join(ROOT, APP, 'for-business.html')), true);
   // NEGATIVE CONTROL: one changed byte changes the hash
   assert.notEqual(sha(read(BUSINESS) + ' '), BUSINESS_SHA256);
 });

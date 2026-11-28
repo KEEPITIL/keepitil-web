@@ -50,7 +50,7 @@
         if (!token || p === null || w === null) return Promise.resolve({ ok: false, invalid: true });   // never sent: the same rules the server applies
         return rpc('set_my_contact', { p_phone: p || null, p_website: w || null }, token);
       },
-      forLicense: function (license) { return /^C(9|10|12)-\d{7}-LIC$/.test(String(license || '')) ? rpc('fmw_listing_contact', { p_license: String(license) }, null, 'public') : Promise.resolve({ ok: false }); }
+      forLicense: function (license) { var t = String(license || '').trim().toUpperCase(); return (/^[A-Z]{1,4}\d{0,2}-\d{7}-LIC$/.test(t) || /^CCL\d{2}-\d{7}$/.test(t) || /^DCC-\d{8}$/.test(t)) ? rpc('fmw_listing_contact', { p_license: t }, null, 'public') : Promise.resolve({ ok: false }); }
     };
   }
   var api = { cleanPhone: cleanPhone, cleanWebsite: cleanWebsite, links: links, create: create };

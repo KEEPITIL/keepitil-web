@@ -1,0 +1,109 @@
+{
+ "_note": "Real, existing cannabis brands shown as UNCLAIMED placeholder cards on the shared account page template. Every website below is the brand's OWN site, opened and checked on the date in 'source.checked'. A phone is filled in ONLY when the brand's own site lists it as its contact; none was confirmed, so every phone is blank (the contact block then shows the website only). Never invent or guess a phone or URL; leave it blank. Names are text only (no logos or marks). Listing a brand here does not mean it works with Find My Weed.",
+ "brands": [
+  {
+   "slug": "stiiizy",
+   "name": "STIIIZY",
+   "category": "Flower, extracts and vapes",
+   "phone": "",
+   "website": "https://www.stiiizy.com/",
+   "source": {
+    "label": "the brand's own site (www.stiiizy.com)",
+    "url": "https://www.stiiizy.com/",
+    "checked": "2026-11-27",
+    "note": "page title: Cannabis Flower, Extracts, Vapes, Pods"
+   }
+  },
+  {
+   "slug": "raw-garden",
+   "name": "Raw Garden",
+   "category": "Cannabis extracts",
+   "phone": "",
+   "website": "https://rawgarden.farm/",
+   "source": {
+    "label": "the brand's own site (rawgarden.farm)",
+    "url": "https://rawgarden.farm/",
+    "checked": "2026-11-27",
+    "note": "page title: Cannabis Extracts"
+   }
+  },
+  {
+   "slug": "kiva-confections",
+   "name": "Kiva Confections",
+   "category": "Cannabis edibles",
+   "phone": "",
+   "website": "https://www.kivaconfections.com/",
+   "source": {
+    "label": "the brand's own site (www.kivaconfections.com)",
+    "url": "https://www.kivaconfections.com/",
+    "checked": "2026-11-27",
+    "note": "page title: Cannabis Edibles"
+   }
+  },
+  {
+   "slug": "papa-and-barkley",
+   "name": "Papa & Barkley",
+   "category": "Cannabis wellness products",
+   "phone": "",
+   "website": "https://www.papaandbarkley.com/",
+   "source": {
+    "label": "the brand's own site (www.papaandbarkley.com)",
+    "url": "https://www.papaandbarkley.com/",
+    "checked": "2026-11-27",
+    "note": "page title: Cannabis Wellness"
+   }
+  },
+  {
+   "slug": "jeeter",
+   "name": "Jeeter",
+   "category": "Pre-rolls",
+   "phone": "",
+   "website": "https://www.jeeter.com/",
+   "source": {
+    "label": "the brand's own site (www.jeeter.com)",
+    "url": "https://www.jeeter.com/",
+    "checked": "2026-11-27",
+    "note": "page title: Pre-Roll"
+   }
+  },
+  {
+   "slug": "sherbinskis",
+   "name": "Sherbinskis",
+   "category": "Cannabis brand",
+   "phone": "",
+   "website": "https://sherbinskis.com/",
+   "source": {
+    "label": "the brand's own site (sherbinskis.com)",
+    "url": "https://sherbinskis.com/",
+    "checked": "2026-11-27",
+    "note": "site loads and names the brand; no product line claimed"
+   }
+  },
+  {
+   "slug": "cannabiotix",
+   "name": "Cannabiotix",
+   "category": "Cannabis brand",
+   "phone": "",
+   "website": "https://cannabiotix.com/",
+   "source": {
+    "label": "the brand's own site (cannabiotix.com)",
+    "url": "https://cannabiotix.com/",
+    "checked": "2026-11-27",
+    "note": "site loads and names the brand; no product line claimed"
+   }
+  },
+  {
+   "slug": "plus",
+   "name": "PLUS",
+   "category": "Cannabis edibles",
+   "phone": "",
+   "website": "https://www.plusproducts.com/",
+   "source": {
+    "label": "the brand's own site (www.plusproducts.com)",
+    "url": "https://www.plusproducts.com/",
+    "checked": "2026-11-27",
+    "note": "page title: Cannabis Infused Edibles"
+   }
+  }
+ ]
+}

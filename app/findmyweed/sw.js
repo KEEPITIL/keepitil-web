@@ -18,7 +18,7 @@ var PAGE_LIMIT = 30;
 var CHECK_MS = 10 * 60 * 1000;   // the kill-switch flag is re-read on a navigation at most this often (and on every activate)
 var dead = false, lastCheck = -Infinity;
 var BASE = (function () { var p = self.location.pathname; return p.slice(0, p.lastIndexOf('/') + 1); })();   // e.g. the site folder with a trailing slash
-var NEVER_CACHE_PAGES = /(^|\/)(account|signup)\.html$/;
+var NEVER_CACHE_PAGES = /(^|\/)(account|signup)(\.html)?$/;
 var STATIC_EXT = /\.(css|js|png|jpg|jpeg|webp|gif|svg|ico|woff2?|ttf)$/i;
 var IMAGE_EXT = /\.(png|jpg|jpeg|webp|gif|svg|ico|woff2?|ttf)$/i;
 var PRECACHE = ['css/fmw.css'];

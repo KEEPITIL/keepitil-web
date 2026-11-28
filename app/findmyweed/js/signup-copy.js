@@ -19,7 +19,9 @@
       chooseCustomerHint: 'I want to find licensed businesses.',
       chooseBusiness: 'Business',
       chooseBusinessHint: 'I run a licensed cannabis business.',
-      step: function (n, total) { return 'Step ' + n + ' of ' + total; },
+      chooseOrganizer: 'Organizer',
+      chooseOrganizerHint: 'I run licensed cannabis events.',
+      step: function (n, total) { return total ? 'Step ' + n + ' of ' + total : 'Step ' + n; },
       back: 'Back',
       next: 'Continue',
       dobLabel: 'Date of birth',
@@ -54,6 +56,17 @@
       linkBadBody: 'Sign-in links work once and only for a short time. Ask for a new one and open it on this device.',
       linkAgain: 'Email me a new link'
     },
+    organizer: {
+      // an EVENT ORGANIZER account: the business path, for the Event organizer license only (same check order: 21+, license, then the sign-in link)
+      startTitle: 'Create your organizer account',
+      startIntro: 'For licensed event organizers. First we check your state event organizer license. Then we email you a sign-in link. It is free.',
+      how: ['Confirm you are 21 or older.', 'Tell us about your event organizer license.', 'We check it against the state record.', 'Once it checks out, confirm your email and set up your events.'],
+      create: 'Start with my license',
+      signIn: 'Organizer sign in',
+      organizerType: 'Event organizer',
+      licenseNumberHint: 'Like C6-0000123-LIC.',
+      errOrganizerLicense: 'Organizer accounts are for event organizer licenses. Enter your license number like C6-0000123-LIC.'
+    },
     customer: {
       startTitle: 'Your account',
       startIntro: 'Create an account, or sign in if you already have one.',
@@ -70,7 +83,7 @@
     business: {
       // BEFORE a verified license pass: no plans, no prices, no county ladder, no comparison. License first.
       startTitle: 'List your business',
-      startIntro: 'First we check your state cannabis license. Pricing shows only after your license checks out and your email is confirmed.',
+      startIntro: 'First we check your state cannabis license. Then we email you a sign-in link. Listing is free, for licensed businesses only.',
       howTitle: 'How it works',
       how: ['Confirm you are 21 or older.', 'Tell us about your license.', 'We check it against the state record.', 'Once it checks out, confirm your email and your pricing shows.'],
       create: 'Start with my license',
@@ -84,21 +97,20 @@
       legalName: 'Legal business name',
       licenseNumber: 'License number',
       licenseNumberHint: 'Like C10-0000123-LIC.',
-      licenseType: 'License type',
+      licenseType: 'Business type',
       licenseTypes: ['Retailer (storefront)', 'Retailer, non-storefront (delivery)', 'Microbusiness', 'Manufacturer', 'Distributor', 'Cultivator', 'Testing laboratory', 'Event organizer'],
       licenseState: 'State',
       licenseStates: ['California'],
-      contactName: 'Your name',
-      contactRole: 'Your role at the business',
-      contactPhone: 'Business phone (optional)',
+      secContact: 'Contact',
+      secBusiness: 'Business',
+      secLicense: 'License',
       pick: 'Choose one',
       verify: 'Check my license',
       errLegalName: 'Enter the legal business name.',
       errLicense: 'Enter the license number like C10-0000123-LIC.',
       errType: 'Choose the license type.',
       errState: 'Choose the state.',
-      errContact: 'Enter your name and your role.',
-      errPhone: 'Enter a 10-digit phone number, or leave it empty.',
+      checkFailed: 'We could not check that license just now. Check your connection and try again.',
       pendingTitle: 'License checks are coming soon',
       pendingBody: 'We can\u2019t check licenses online yet, so nothing was sent and nothing you entered was saved. Pricing shows only after a license is checked.',
       flaggedTitle: 'We need to check your license by hand',
@@ -113,6 +125,7 @@
       pricingIntro: 'Your license is checked and your email is confirmed. Pick a plan to start.',
       pricingPay: 'Each button opens a secure checkout page. Questions before you start?',
       contact: 'Contact us',
+      contactHref: 'mailto:info@keepitil.com?subject=Find%20My%20Weed%20business%20listing',   // the support address the footer and the business form already use: a plain mailto, no form, no network
       pricingLockedTitle: 'We need to check your license by hand',
       pricingLockedBody: 'We could not confirm a checked license for this account yet. Our team reviews it and emails you. Pricing shows once your license is checked.',
       // verified license + confirmed email, but the team has not confirmed the claim yet (fmw.business_pricing reason 'approval'): not "check your license by hand" (it IS checked); the same words as the account page

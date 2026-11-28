@@ -7,8 +7,7 @@
   var T = {
     title: 'Your account', signedOutTitle: 'You are signed out', signedOutBody: 'Sign in with an emailed link to see your account.',
     signIn: 'Sign in', search: 'Back to search', signOut: 'Sign out', confirmSignOut: 'Sign out of Find My Weed on this device?', cancel: 'Cancel', signingOut: 'Signing out…', done: 'You are signed out on this device.',
-    email: 'Email', kind: 'Account type', customer: 'Customer', business: 'Business', expires: 'This session ends when you close the tab.', staySignedIn: 'You stay signed in on this device until you sign out.', refreshing: 'Signing you in…',
-    soon: 'Favorites and your business listing are coming here.'
+    email: 'Email', kind: 'Account type', customer: 'Customer', business: 'Business', expires: 'This session ends when you close the tab.', staySignedIn: 'You stay signed in on this device until you sign out.', refreshing: 'Signing you in…'
   };
   // the claims of a JWT, or null (never throws). Not a verification: the server verifies every call; this only decides what to draw.
   function claims(token) {
@@ -42,8 +41,9 @@
       forget(); clear(); title.textContent = T.signedOutTitle; box.setAttribute('data-state', 'signed-out');
       var s = el('div', 'state info'); s.setAttribute('role', 'status');
       s.appendChild(el('p', null, msg || T.signedOutBody));
-      var row = el('div', 'actions'); var sv = win.FMW_FAVORITES && win.FMW_FAVORITES.saveParam ? win.FMW_FAVORITES.saveParam(win) : ''; row.appendChild(link(T.signIn, 'signup.html?mode=signin' + (sv ? '&save=' + encodeURIComponent(sv) : ''))); row.appendChild(link(T.search, 'index.html', 'btn ghost'));
+      var row = el('div', 'actions'); var sv = win.FMW_FAVORITES && win.FMW_FAVORITES.saveParam ? win.FMW_FAVORITES.saveParam(win) : ''; row.appendChild(link(T.signIn, 'signup?mode=signin' + (sv ? '&save=' + encodeURIComponent(sv) : ''))); row.appendChild(link(T.search, './', 'btn ghost'));
       s.appendChild(row); box.appendChild(s);
+      if (win.FMW_FAVORITES && win.FMW_FAVORITES.mountSignedOut) win.FMW_FAVORITES.mountSignedOut(doc, box, { win: win });   // "Sign in to save across devices" (flag on only)
     }
     function showIn(token, c) {
       title.textContent = T.title; box.setAttribute('data-state', 'signed-in');
@@ -52,7 +52,7 @@
       var kind = c.user_metadata && c.user_metadata.kind === 'business' ? T.business : T.customer;
       var kindDd = null;
       [[T.email, typeof c.email === 'string' ? c.email : ''], [T.kind, kind]].forEach(function (x) { dl.appendChild(el('dt', null, x[0])); var d = el('dd', null, x[1]); dl.appendChild(d); if (x[0] === T.kind) kindDd = d; });
-      card.appendChild(dl); card.appendChild(el('p', 'muted', SS ? T.staySignedIn : T.expires)); card.appendChild(el('p', 'muted', T.soon));
+      card.appendChild(dl); card.appendChild(el('p', 'muted', SS ? T.staySignedIn : T.expires)); 
       var out = el('button', 'btn', T.signOut); out.type = 'button'; out.setAttribute('data-act', 'signout');
       out.addEventListener('click', function () {
         out.disabled = true; out.textContent = T.signingOut;
@@ -60,14 +60,14 @@
         // the local session ends whatever the server says; the request only revokes the token server-side
         signOutRequest(cfg, token, win.fetch && win.fetch.bind(win)).then(function () { signedOut(T.done); });
       });
-      var row = el('div', 'actions'); row.appendChild(out); row.appendChild(link(T.search, 'index.html', 'btn ghost'));
+      var row = el('div', 'actions'); row.appendChild(out); row.appendChild(link(T.search, './', 'btn ghost'));
       card.appendChild(row); box.appendChild(card);
       // The menu's Sign out opens this page with ?signout=1. A bare link must not end a session by itself, so the page asks first (a same-page confirm button);
       // only that click runs the same sign-out as the button above.
       if (win.FMW_SESSION && win.FMW_SESSION.signOutRequested && win.FMW_SESSION.signOutRequested()) {
         var ask = el('div', 'state info'); ask.setAttribute('role', 'group'); ask.setAttribute('data-state', 'confirm-signout'); ask.appendChild(el('p', null, T.confirmSignOut));
         var yes = el('button', 'btn', T.signOut); yes.type = 'button'; yes.setAttribute('data-act', 'confirm-signout'); yes.addEventListener('click', function () { out.click(); });
-        var arow = el('div', 'actions'); arow.appendChild(yes); arow.appendChild(link(T.cancel, 'account.html', 'btn ghost')); ask.appendChild(arow);
+        var arow = el('div', 'actions'); arow.appendChild(yes); arow.appendChild(link(T.cancel, 'account', 'btn ghost')); ask.appendChild(arow);
         box.insertBefore ? box.insertBefore(ask, card) : box.appendChild(ask);
       }
       // the cards below the email (js/account-cards.js): business details + license status, or saved listings; Download / Delete for both
@@ -77,7 +77,7 @@
       if (cardsDone && cardsDone.then) cardsDone.then(function (r) { if (ST && ST.businessHint) ST.businessHint(c && c.sub, !!(r && r.kind === 'business')); });
       if (cardsDone && cardsDone.then) cardsDone.then(function (r) { if (r && r.kind === 'business' && win.FMW_INBOX && win.FMW_INBOX.mount) win.FMW_INBOX.mount(doc, box, { win: win }); });
       else if (kind === T.business && win.FMW_INBOX && win.FMW_INBOX.mount) win.FMW_INBOX.mount(doc, box, { win: win });   // no cards module: the old behaviour
-      // a customer account also gets its saved listings (behind FMW_CONFIG.favorites, off today)
+      // a customer account also gets its saved listings (behind FMW_CONFIG.favorites, on since 2026-11-26)
       if (kind === T.customer && !win.FMW_ACCOUNT_CARDS && win.FMW_FAVORITES && win.FMW_FAVORITES.mountList) win.FMW_FAVORITES.mountList(doc, box, { win: win });
 
     }

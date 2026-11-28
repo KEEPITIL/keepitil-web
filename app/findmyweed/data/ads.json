@@ -1,0 +1,42 @@
+{
+  "_note": "Real running ads, invoice-only (nothing here is sold on the site). EMPTY BY DEFAULT: with no entry a slot shows Find My Weed's own house graphics (img/fmw/ads/*), labelled as ours, never a made-up ad. An entry shows only while start <= today <= end (YYYY-MM-DD) for its county ('*' = every county). Fields: slot ('prime' | 'nonretail'), county, creative (a same-site image under img/), alt (the creative's words, plain text), license (the advertiser's state license number, shown on the ad), href (optional https link), start, end. HOUSE banners (key 'house', prime slot only, used when no real ad runs): our own promos for Find My Weed, labelled \"Find My Weed\" (never \"Ad\"), 2440x680 (src) and 1220x340 (srcHalf) WebP, alt = the headline; no third-party brand, price or licence number.",
+  "ads": [],
+  "house": [
+    {
+      "id": "fmw-ad-01-prime-placement",
+      "alt": "PRIME placement: put your licensed business here",
+      "src": "img/fmw/ads/fmw-ad-01-prime-placement-2440x680.webp",
+      "srcHalf": "img/fmw/ads/fmw-ad-01-prime-placement-1220x340.webp"
+    },
+    {
+      "id": "fmw-ad-02-list-free",
+      "alt": "List your licensed business free",
+      "src": "img/fmw/ads/fmw-ad-02-list-free-2440x680.webp",
+      "srcHalf": "img/fmw/ads/fmw-ad-02-list-free-1220x340.webp"
+    },
+    {
+      "id": "fmw-ad-03-find-dispensaries",
+      "alt": "Find licensed dispensaries near you",
+      "src": "img/fmw/ads/fmw-ad-03-find-dispensaries-2440x680.webp",
+      "srcHalf": "img/fmw/ads/fmw-ad-03-find-dispensaries-1220x340.webp"
+    },
+    {
+      "id": "fmw-ad-04-licensed-delivery",
+      "alt": "Licensed delivery in your county",
+      "src": "img/fmw/ads/fmw-ad-04-licensed-delivery-2440x680.webp",
+      "srcHalf": "img/fmw/ads/fmw-ad-04-licensed-delivery-1220x340.webp"
+    },
+    {
+      "id": "fmw-ad-05-browse-5000",
+      "alt": "Browse 5,000+ licensed cannabis businesses",
+      "src": "img/fmw/ads/fmw-ad-05-browse-5000-2440x680.webp",
+      "srcHalf": "img/fmw/ads/fmw-ad-05-browse-5000-1220x340.webp"
+    },
+    {
+      "id": "fmw-ad-06-claim-listing",
+      "alt": "Claim your listing",
+      "src": "img/fmw/ads/fmw-ad-06-claim-listing-2440x680.webp",
+      "srcHalf": "img/fmw/ads/fmw-ad-06-claim-listing-1220x340.webp"
+    }
+  ]
+}

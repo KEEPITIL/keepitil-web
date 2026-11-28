@@ -64,13 +64,15 @@
   // is not counted: the first screen the visitor sees is step 1.
   function steps(mode, twoAudiences, audience, preset) {
     var s = twoAudiences && !preset ? ['choose', 'start'] : ['start'];
+    if (preset && audience === 'business' && mode === 'signup') s = [];   // "List your business" opens on the first real question (step 1 = the 21+ check), not on a blank intro screen
     if (mode === 'signin') return s.concat(['signin']);
     if (mode !== 'signup') return s;
-    var mid = audience === 'business' ? ['license'] : [];
+    if (audience === 'business') return s.concat(['bizform', 'theme']);   // ONE form (21+, license, email), then the theme
+    var mid = [];
     return s.concat(['eligibility'], mid, ['email', 'theme']);
   }
   // A state license number as the state record writes it, e.g. C10-0000123-LIC (format only; the record check is the back end's).
-  function licenseOk(s) { return /^[A-Z]{1,4}\d{0,2}-\d{7}-LIC$/.test(String(s == null ? '' : s).trim().toUpperCase()); }
+  function licenseOk(s) { var t = String(s == null ? '' : s).trim().toUpperCase(); return /^[A-Z]{1,4}\d{0,2}-\d{7}-LIC$/.test(t) || /^CCL\d{2}-\d{7}$/.test(t) || /^DCC-\d{8}$/.test(t); }
   function phoneOk(s) { s = String(s == null ? '' : s).replace(/[\s().+-]/g, ''); return s === '' || /^1?\d{10}$/.test(s); }
   // The license check is NOT wired: this stub is the only verifier the page uses, and it always answers "pending".
   function verifyStub() { return { status: 'pending' }; }
@@ -84,12 +86,12 @@
   function sid() { return root.FMW_SAVEID || (typeof require === 'function' ? require('./save-id.js') : null); }
   function returnHref(search, cfg) {
     var S = sid(), v = S ? S.fromSearch(search, cfg) : '';
-    return v ? 'account.html?save=' + encodeURIComponent(v) : 'account.html';
+    return v ? 'account?save=' + encodeURIComponent(v) : 'account';
   }
   // The address the emailed link returns to (redirect_to): this page WITHOUT its query string or hash, plus only what the return needs: mode=signin,
   // as=business when the visitor came that way, and a valid save slug. No other query (tracking, decoys, anything unvalidated) rides in the email.
   function signInReturn(loc, cfg, business) {
-    var base = String((loc && loc.href) || '').split('#')[0].split('?')[0], q = ['mode=signin'], S = sid(), v = S ? S.fromSearch((loc && loc.search) || '', cfg) : '';
+    var base = String((loc && loc.href) || '').split('#')[0].split('?')[0].replace(/\/index\.html$/, '/').replace(/\/([a-z0-9-]+)\.html$/, function (m, name) { return '/' + name; }), q = ['mode=signin'], S = sid(), v = S ? S.fromSearch((loc && loc.search) || '', cfg) : '';
     if (business) q.unshift('as=business');
     if (v) q.push('save=' + encodeURIComponent(v));
     return base + '?' + q.join('&');
@@ -127,8 +129,8 @@
     var box = doc.getElementById('signup'), title = doc.getElementById('signup-title'), prog = doc.getElementById('signup-step');
     if (!box || !title) return null;
     var accounts = CFG.accounts === true, business = accounts && CFG.claims === true;
-    var st = { audience: business ? null : 'customer', mode: null, step: null, cls: null, unlocked: false, lic: null, preset: false };
-    var wanted = /(?:^|[?&])as=business(?:&|$)/.test((win.location && win.location.search) || '');
+    var st = { audience: business ? null : 'customer', organizer: false, mode: null, step: null, cls: null, unlocked: false, lic: null, preset: false };
+    var wanted = /(?:^|[?&])as=business(?:&|$)/.test((win.location && win.location.search) || ''), wantedOrg = /(?:^|[?&])as=organizer(?:&|$)/.test((win.location && win.location.search) || '');   // ?as=organizer: the same business path for a licensed EVENT ORGANIZER
     // the menu's "Sign in" (signup.html?mode=signin) opens the sign-in path, not the sign-up one
     var wantSignin = /(?:^|[?&])mode=signin(?:&|$)/.test((win.location && win.location.search) || '');
     // back from the emailed link: the project's Auth puts the session (#access_token=...) or the error (#error_code=...) in the
@@ -137,12 +139,14 @@
 
     function el(tag, cls, text) { var e = doc.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
     function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
-    function W() { return SC[st.audience] || {}; }   // the chosen audience's words ONLY
+    function W() { return st.audience === 'business' && st.organizer ? Object.assign({}, SC.business, SC.organizer || {}) : SC[st.audience] || {}; }   // the chosen audience's words ONLY
     function button(text, act, cls, type) { var b = el('button', cls || 'btn', text); b.type = type || 'button'; b.setAttribute('data-act', act); return b; }
-    function backLink() { var a = el('a', 'btn ghost', S.backToSearch); a.href = 'index.html'; return a; }
+    function backLink() { var a = el('a', 'btn ghost', S.backToSearch); a.href = './'; return a; }
     function head(text, stepIdx) {
       title.textContent = text;
-      if (prog) { prog.textContent = stepIdx ? S.step(stepIdx, path().length) : ''; prog.hidden = !stepIdx; }
+      // The choose screen is shared by both paths. Their lengths differ (customer 5, business 6), so it does not
+      // publish a total. After a path is chosen the total is that path's real length and stays the same on every step.
+      if (prog) { var total = stepIdx && st.step !== 'choose' ? path().length : 0; prog.textContent = stepIdx ? S.step(stepIdx, total) : ''; prog.hidden = !stepIdx; }
     }
     function focusTitle() { if (title.focus) title.focus(); }
     function path() { return steps(st.mode || 'signup', business, st.audience, st.preset); }   // before Sign up / Sign in is picked, count the sign-up path
@@ -151,7 +155,7 @@
     function back() {
       var all = path(), prev = all[all.indexOf(st.step) - 1] || 'start';
       if (prev === 'start' || prev === 'choose') { st.mode = null; st.cls = null; }   // back to the start forgets the path taken
-      if (prev === 'choose') st.audience = null;
+      if (prev === 'choose') { st.audience = null; st.organizer = false; }
       go(prev);
     }
     function actions() { var a = el('div', 'actions'); for (var i = 0; i < arguments.length; i++) a.appendChild(arguments[i]); return a; }
@@ -225,6 +229,7 @@
         var errd = r.reason === 'error', appr = r.reason === 'approval';   // appr: licence checked, the team has not confirmed the claim yet
         var s = el('section', 'card'); s.setAttribute('data-state', errd ? 'pricing-error' : appr ? 'pricing-approval' : 'pricing-locked');
         s.appendChild(el('h2', null, errd ? B.pricingErrorTitle : appr ? B.pricingApprovalTitle : B.pricingLockedTitle)); s.appendChild(el('p', null, errd ? B.pricingErrorBody : appr ? B.pricingApprovalBody : B.pricingLockedBody));
+        if (!appr) { var mail = el('a', 'btn ghost', B.contact); mail.href = B.contactHref; mail.setAttribute('data-act', 'contact'); s.appendChild(mail); }   // the error and locked cards say "contact us": now there is something to click (mailto only)
         si.appendChild(s); si.appendChild(backLink());
       });
     }
@@ -256,10 +261,10 @@
         head(S.chooseTitle, idx('choose'));
         box.appendChild(el('p', 'muted', S.chooseIntro));
         var c = el('div', 'choices');
-        [['customer', S.chooseCustomer, S.chooseCustomerHint], ['business', S.chooseBusiness, S.chooseBusinessHint]].forEach(function (x) {
+        [['customer', S.chooseCustomer, S.chooseCustomerHint], ['business', S.chooseBusiness, S.chooseBusinessHint], ['organizer', S.chooseOrganizer, S.chooseOrganizerHint]].forEach(function (x) {
           var b = button(null, x[0], 'choice');
           b.appendChild(el('strong', null, x[1])); b.appendChild(el('span', null, x[2]));
-          b.addEventListener('click', function () { st.audience = x[0]; go(st.mode === 'signin' ? 'signin' : 'start'); });
+          b.addEventListener('click', function () { st.audience = x[0] === 'organizer' ? 'business' : x[0]; st.organizer = x[0] === 'organizer'; go(st.mode === 'signin' ? 'signin' : 'start'); });
           c.appendChild(b);
         });
         box.appendChild(c);
@@ -273,7 +278,7 @@
           var ol = el('ol', 'claim-steps'); w.how.forEach(function (x) { ol.appendChild(el('li', null, x)); }); how.appendChild(ol); box.appendChild(how);
         }
         var create = button(w.create, 'create'), signin = button(w.signIn, 'signin', 'btn ghost');
-        create.addEventListener('click', function () { st.mode = 'signup'; go('eligibility'); });
+        create.addEventListener('click', function () { st.mode = 'signup'; go(st.audience === 'business' ? 'bizform' : 'eligibility'); });
         signin.addEventListener('click', function () { st.mode = 'signin'; go('signin'); });
         box.appendChild(actions(create, signin));
         if (business) { var b = button(S.back, 'back', 'btn ghost'); b.addEventListener('click', back); box.appendChild(actions(b)); }
@@ -300,7 +305,7 @@
         box.appendChild(f);
         function submit() {
           var r = eligibility(dob.value, !!(med && med.checked), aud);
-          if (r.ok) { st.cls = r.cls; return go(aud === 'business' ? 'license' : 'email'); }
+          if (r.ok) { st.cls = r.cls; return go('email'); }
           if (r.reason === 'under-18') return stop('under-18', S.under18Title, S.under18Body);
           if (r.reason === 'business-under-21') return stop('business-under-21', w.under21Title, w.under21Body);
           if (medRow) medRow.hidden = !asksMedical(dob.value, aud);
@@ -345,37 +350,75 @@
         f.appendChild(actions(button(S.finish, 'finish', 'btn', 'submit'), bk));
         box.appendChild(f);
       },
-      license: function () {   // business: the license details first
+      bizform: function () {   // business: ONE form (Leafly style): the 21+ confirmation, the license details and the contact email on one screen; the license is checked, THEN the sign-in link is sent
         var w = W();
-        head(w.licenseTitle, idx('license'));
+        head(w.startTitle, idx('bizform'));
         var f = form(submit), err = errorLine();
-        f.appendChild(el('p', null, w.licenseIntro));
+        box.appendChild(el('p', 'muted', w.startIntro));
+        var dob = input('date', 'dob', 'bday'); dob.setAttribute('max', fmt(todayParts())); dob.setAttribute('required', '');
         var name = input('text', 'legalName', 'organization'), num = input('text', 'licenseNumber', 'off');
-        var type = select('licenseType', w.licenseTypes), state = select('licenseState', w.licenseStates);
-        var who = input('text', 'contactName', 'name'), role = input('text', 'contactRole', 'organization-title'), tel = input('tel', 'contactPhone', 'tel');
-        f.appendChild(field(w.legalName, null, name)); f.appendChild(field(w.licenseNumber, w.licenseNumberHint, num));
-        f.appendChild(field(w.licenseType, null, type)); f.appendChild(field(w.licenseState, null, state));
-        f.appendChild(field(w.contactName, null, who)); f.appendChild(field(w.contactRole, null, role)); f.appendChild(field(w.contactPhone, null, tel));
+        var type = select('licenseType', st.organizer ? [w.organizerType] : w.licenseTypes), state = select('licenseState', w.licenseStates);
+        if (st.organizer) { type.value = w.organizerType; type.setAttribute('disabled', 'disabled'); }   // an organizer account is for the Event organizer license only: the type is fixed, not chosen
+        var em = input('email', 'email', 'email');
+        function section(title, fields) { var fs = el('fieldset', 'biz-sec'); fs.appendChild(el('legend', null, title)); fields.forEach(function (x) { fs.appendChild(x); }); f.appendChild(fs); }
+        // same three groups, in the same order, as the big directories' "add a business" page: Contact, Business, License
+        section(w.secContact, [field(S.emailLabel, S.emailHint, em), field(S.dobLabel, w.eligRule, dob)]);
+        section(w.secBusiness, [field(w.legalName, null, name), field(w.licenseType, null, type)]);
+        section(w.secLicense, [field(w.licenseNumber, w.licenseNumberHint, num), field(w.licenseState, null, state)]);
         f.appendChild(err);
-        var bk = button(S.back, 'back', 'btn ghost'); bk.addEventListener('click', back);
-        f.appendChild(actions(button(w.verify, 'continue', 'btn', 'submit'), bk));
-        box.appendChild(f);
+        var si = button(w.signIn, 'signin', 'btn ghost'); si.addEventListener('click', function () { st.mode = 'signin'; go('signin'); });
+        f.appendChild(actions(button(w.verify, 'continue', 'btn', 'submit'), si, backLink()));
+        var card = el('div', 'biz-form-card'); card.appendChild(f); box.appendChild(card);
+        if (AUTH && typeof AUTH.licenseTicket === 'function' && !(AUTH.token && AUTH.token()) && !st.licTicket) AUTH.licenseTicket().then(function (t) { if (t) st.licTicket = t; }, function () {});
         function submit() {
-          var bad = !name.value.trim() ? w.errLegalName : !licenseOk(num.value) ? w.errLicense : !type.value ? w.errType : !state.value ? w.errState :
-            !(who.value.trim() && role.value.trim()) ? w.errContact : !phoneOk(tel.value) ? w.errPhone : '';
+          var ag = eligibility(dob.value, false, 'business');
+          if (!ag.ok) {
+            if (ag.reason === 'business-under-21') return stop('business-under-21', w.under21Title, w.under21Body);
+            err.textContent = ag.reason === 'dob-missing' ? S.dobMissing : S.dobInvalid; err.setAttribute('data-reason', ag.reason); return;
+          }
+          st.cls = ag.cls;
+          var bad = !name.value.trim() ? w.errLegalName : !licenseOk(num.value) ? w.errLicense : st.organizer && !/^C6-/i.test(num.value.trim()) ? w.errOrganizerLicense : !type.value ? w.errType : !state.value ? w.errState : !emailOk(em.value) ? S.emailBad : '';
           if (bad) { err.textContent = bad; return; }
-          var d = { legalName: name.value.trim(), licenseNumber: num.value.trim().toUpperCase(), licenseType: type.value, state: state.value, category: '' };
-          var res = verify(d);
+          var d = { legalName: name.value.trim(), licenseNumber: num.value.trim().toUpperCase(), licenseType: st.organizer ? w.organizerType : type.value, state: state.value, category: '' };
+          var btn = f.querySelector ? f.querySelector('[data-act="continue"]') : null;
           // a verified answer goes on to the email step (still NO prices: they need the confirmed email too, and come from the
-          // server); flagged / not found = checked by hand; anything else = pending
+          // server); flagged / not found = checked by hand; a network or server failure stays here and can be tried again;
+          // anything else = pending
           var handle = function (r) {
             r = r || {};
-            if (r.status === 'verified') { st.unlocked = true; st.lic = { licenseNumber: d.licenseNumber, legalName: d.legalName }; return go('email'); }
+            if (r.status === 'error') { if (btn) btn.disabled = false; err.textContent = w.checkFailed; err.setAttribute('data-reason', 'check-failed'); return; }
+            if (r.status === 'verified') {
+              st.unlocked = true; st.lic = { licenseNumber: d.licenseNumber, legalName: d.legalName };
+              // the license checked out: NOW (and only now) the sign-in link goes to the email typed above
+              var meta = { kind: 'business', medical_only: false, license: d.licenseNumber, legal_name: d.legalName };
+              return send(f, err, em.value.trim(), meta, function () { go('theme'); });
+            }
             if (r.status === 'flagged' || r.status === 'not_found') return ended('flagged', 'license-flagged', w.flaggedTitle, w.flaggedBody);
             ended('pending', 'verification-pending', w.pendingTitle, w.pendingBody);   // the stub: always
           };
-          if (res && typeof res.then === 'function') { err.textContent = ''; res.then(handle, function () { handle({ status: 'flagged' }); }); }
-          else handle(res);
+          var run = function (payload) {
+            var res;
+            try { res = verify(payload); } catch (e) { return handle({ status: 'error' }); }
+            if (res && typeof res.then === 'function') { err.textContent = ''; if (btn) btn.disabled = true; res.then(handle, function () { handle({ status: 'error' }); }); }
+            else handle(res);
+          };
+          // anonymous check: the server wants a signed ticket that is a few seconds old. A person filling the form is past that;
+          // a missing or expired ticket is a retryable error, never a "check by hand" screen.
+          if (AUTH && typeof AUTH.licenseTicket === 'function' && !(AUTH.token && AUTH.token())) {
+            var begin = function (t, refreshed) {
+              if (!t || !t.value) { err.textContent = w.checkFailed; err.setAttribute('data-reason', 'check-failed'); return; }
+              st.licTicket = t;
+              var ts = Number(String(t.value).split('.')[0]), age = isFinite(ts) ? Math.floor(Date.now() / 1000) - ts : 0;
+              if (age > 7200) { st.licTicket = null; if (refreshed) { err.textContent = w.checkFailed; err.setAttribute('data-reason', 'check-failed'); return; } return AUTH.licenseTicket().then(function (n) { begin(n, true); }, function () { err.textContent = w.checkFailed; err.setAttribute('data-reason', 'check-failed'); }); }
+              var wait = Math.max(0, 3500 - (Date.now() - t.at));
+              if (age < 3 && isFinite(ts)) wait = Math.max(wait, (ts + 4) * 1000 - Date.now());
+              if (wait > 15000) { err.textContent = w.checkFailed; err.setAttribute('data-reason', 'check-failed'); return; }
+              if (btn) btn.disabled = true;
+              (root.setTimeout || setTimeout)(function () { run(Object.assign({}, d, { ticket: t.value })); }, wait);
+            };
+            if (st.licTicket) begin(st.licTicket, false);
+            else AUTH.licenseTicket().then(function (t) { begin(t, false); }, function () { err.textContent = w.checkFailed; err.setAttribute('data-reason', 'check-failed'); });
+          } else run(d);
         }
       },
       signin: function () {
@@ -432,9 +475,10 @@
       le.appendChild(actions(again, backLink())); box.appendChild(le); focusTitle();
       return st;
     }
-    if (business && wanted) { st.audience = 'business'; st.preset = true; }   // "List Your Business" opens the business path directly; no choose screen, so it starts at step 1
+    if (business && (wanted || wantedOrg)) { st.audience = 'business'; st.preset = true; st.organizer = wantedOrg; }   // "List Your Business" opens the business path directly; no choose screen, so it starts at step 1
     if (wantSignin) st.mode = 'signin';
-    st.step = st.audience ? (st.mode === 'signin' ? 'signin' : 'start') : 'choose';
+    if (st.preset && st.audience === 'business' && st.mode !== 'signin') st.mode = 'signup';
+    st.step = st.audience ? (st.mode === 'signin' ? 'signin' : st.preset && st.audience === 'business' ? 'bizform' : 'start') : 'choose';
     render();
     return st;
   }

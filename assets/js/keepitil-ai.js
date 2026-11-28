@@ -5,6 +5,30 @@
  */
 // Auto-load KEEPITIL Radio Bar on every page that does not already carry its own <script> tag (the tag is deferred, so __kilRadioInit is not set yet when this runs: without the DOM check the radio was fetched twice)
 (function(){if(!window.__kilRadioInit&&!document.querySelector('script[src*="keepitil-radio"]')){var s=document.createElement('script');s.src='/assets/js/keepitil-radio.js?v=20261124c';document.head.appendChild(s);}})();
+/* Same function as /assets/js/kil-event-outcome.js, so CHO can report a review save on pages that do not load that file. */
+function kilEventSaveOutcome(res) {
+  var r = res && typeof res === 'object' ? res : {};
+  var status = typeof r.status === 'string' && r.status ? r.status : 'published';
+  var reason = typeof r.review_reason === 'string' ? r.review_reason.trim() : '';
+  var n = typeof r.in_review === 'number' && isFinite(r.in_review) ? r.in_review : null;
+  var waiting = status === 'review' || (n !== null && n > 0);
+  if (waiting) {
+    var parts = [];
+    if (n !== null && n > 0) parts.push(n === 1 ? '1 date is waiting for review.' : (n + ' dates are waiting for review.'));
+    if (reason) parts.push(reason);
+    parts.push("Email info@keepitil.com for changes. You can't edit an event while it is in review.");
+    return { live: false, title: 'Saved, waiting for review', text: parts.join(' ') };
+  }
+  if (status === 'published') {
+    return {
+      live: true,
+      title: "You're live",
+      text: 'Your event is published. It shows on your page and in the Scene. You can edit it from the dashboard. Report and takedown still apply if something breaks or is abused.'
+    };
+  }
+  return { live: false, title: 'Saved', text: 'Saved with status ' + status + '.' };
+}
+if (typeof window !== 'undefined') window.kilEventSaveOutcome = kilEventSaveOutcome;
 // Swap nav logo PNGs to extracted transparent X marks + resize (keepitil-radio.js handles this on load; this is a fallback)
 (function(){
   function swapNavLogos(){
@@ -1531,8 +1555,11 @@
         var b = r.body || {};
         if (!r.ok || b.error) throw new Error(b.error || b.message || 'the event was refused');
         var slug = b.slug || '';
-        var persisted = b.status || 'published';
-        var wentLive = persisted === 'published';
+        var outcome = (typeof window !== 'undefined' && window.kilEventSaveOutcome)
+          ? window.kilEventSaveOutcome(b)
+          : { live: (b.status || 'published') === 'published', title: (b.status === 'review' ? 'Saved, waiting for review' : "You're live"), text: '' };
+        var persisted = (b && b.status) || (outcome.live ? 'published' : 'review');
+        var wentLive = outcome.live;
         return rpc('cho_log_action', { p_action: 'create_event_authorized', p_object_type: 'event',
                      p_object_id: String(b.id || b.event_id || ''),
                      p_payload: { route: 'kil_publish_own_event',
@@ -1546,10 +1573,9 @@
           .then(function () {
             choClearFlow();
             if (slug && wentLive) setTimeout(function () { location.href = '/event?e=' + encodeURIComponent(slug); }, 1400);
-            return { title: wentLive ? 'Event published ✓' : 'Event saved',
-                     text: (wentLive
-                             ? 'It is live now. Your ticket link still points at ' + (d.provider || 'the original site') + '.'
-                             : 'Saved, but the database did not mark it published (' + persisted + ').')
+            return { title: outcome.title,
+                     text: outcome.text
+                         + (wentLive ? (' Your ticket link still points at ' + (d.provider || 'the original site') + '.') : '')
                          + (slug && wentLive ? ' Opening it…' : '') };
           });
       }

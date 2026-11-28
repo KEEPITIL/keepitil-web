@@ -297,7 +297,11 @@ nav#main-nav{position:sticky;top:0;z-index:200;background:rgba(11,11,11,.95);bac
           <div class="hint">By submitting you agree to the <a href="/terms">Terms</a>. It goes live right away. You can edit it any time.</div>
         </div>
         <div class="card" id="delCard" style="display:none">
-          <h3>Delete this event</h3>
+          <h3>Cancel or delete this event</h3>
+          <div class="note" id="cancelNote">Cancelling keeps the event page up with a "cancelled" banner, turns off RSVPs and ticket buying, and removes it from search and the calendar. We do not email attendees for you: after cancelling you get the list and a message to send. Refunds for paid tickets are handled by KEEPITIL by hand (email info@keepitil.com).</div>
+          <button type="button" class="sact" id="cancelEventBtn" style="margin:12px 0 18px;background:transparent;border:1px solid var(--gold,#e0b021);color:var(--gold,#e0b021);border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer">Cancel this event</button>
+          <div class="msg" id="cancelMsg" role="status" aria-live="polite"></div>
+          <div id="cancelOut" style="display:none;margin-bottom:18px"></div>
           <div class="note">Removes this event page permanently. An event that has sold tickets cannot be deleted; after every ticket is refunded you can hide it from the public instead.</div>
           <button type="button" class="sact del" id="delEventBtn" style="margin-top:12px;background:transparent;border:1px solid #ff6b6b;color:#ff6b6b;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer">Delete event</button>
           <button type="button" class="sact hide" id="hideEventBtn" style="display:none;margin-top:12px;margin-left:8px;background:transparent;border:1px solid var(--gold,#e0b021);color:var(--gold,#e0b021);border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer">Hide this event</button>
@@ -454,6 +458,7 @@ async function prefillEdit(){
     $('title-inline').textContent=ev.title||''; $('summary-inline').textContent=ev.tagline||''; syncInline();
     $('description').value=ev.description||''; if(ev.description) openAddon('ad-desc');
     $('venue').value=ev.venue||''; if(ev.venue) openAddon('ad-venue');
+    EV_STATUS=ev.status||''; { var _cb=$('cancelEventBtn'); if(_cb){ if(EV_STATUS==='cancelled'){ _cb.style.display='none'; var _cn=$('cancelNote'); if(_cn) _cn.textContent='This event is cancelled. Its page shows a cancelled banner.'; } else if(['published','review','draft','sold_out'].indexOf(EV_STATUS)<0){ _cb.style.display='none'; } } }
     $('city').value=ev.city||''; if(ev.city && ev.city!=='Los Angeles') openAddon('ad-loc');
     $('cover_url').value=ev.cover_url||''; paintFlyer(ev.cover_url||'');
     $('genres').value=ev.genres||''; if(ev.genres) openAddon('ad-genres');
@@ -586,6 +591,30 @@ async function hideThisEvent(){
     m.className='msg ok'; m.textContent='Event hidden. It no longer shows to the public.'; hb.style.display='none'; var db=$('delEventBtn'); if(db) db.style.display='none';
   }catch(e){ m.className='msg err'; m.textContent='Could not hide: '+(e.message||e); hb.disabled=false; }
 }
+/* Cancel (owner-only RPC kil_cancel_my_event): status 'cancelled', public page shows a banner. Attendees are NOT emailed by us: hand the organizer the list + a message. */
+var EV_STATUS='';
+function csvCell(v){ v=String(v==null?'':v); if(/^[=+\-@\t\r]/.test(v)) v="'"+v; return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+async function cancelThisEvent(){
+  var btn=$('cancelEventBtn'), m=$('cancelMsg'), out=$('cancelOut'); if(!EDIT_SLUG||!btn) return;
+  if(!confirm('Cancel this event? The page stays up marked cancelled, and RSVPs and ticket buying stop. Paid tickets are refunded by hand, not automatically.')) return;
+  btn.disabled=true; m.className='msg'; m.textContent='Cancelling…';
+  try{
+    var r=await supa.rpc('kil_cancel_my_event',{p_slug:EDIT_SLUG}); if(r.error) throw r.error; var d=(r&&r.data)||{};
+    if(d.error){ m.className='msg err'; m.textContent=d.error==='not_cancellable'?'This event is hidden or finished and cannot be cancelled.':'Could not cancel: '+d.error; btn.disabled=false; return; }
+    m.className='msg ok'; m.textContent='Event cancelled. Its page now says so.'; btn.style.display='none'; EV_STATUS='cancelled';
+    var rows=[]; try{ var cr=await supa.rpc('kil_event_customers',{p_slug:EDIT_SLUG}); rows=(cr&&Array.isArray(cr.data))?cr.data:[]; }catch(e2){}
+    var mails=[], seen={}; rows.forEach(function(x){ var e=String(x.email||'').trim(); if(e && !seen[e.toLowerCase()]){ seen[e.toLowerCase()]=1; mails.push(e); } });
+    var title=($('title-inline')&&$('title-inline').textContent)||'our event';
+    var msgTxt='Subject: '+title+' is cancelled\n\nHi,\n\nWe are sorry to tell you that '+title+' has been cancelled.'+((d.paid_orders|0)>0?' If you bought a ticket, we will refund it; you do not need to do anything.':'')+'\n\nThank you for your support.';
+    out.style.display='block';
+    out.innerHTML='<div class="note"><b>'+(mails.length||d.attendees||0)+' attendee email(s)</b> on file'+((d.paid_orders|0)>0?' · <b>'+(d.paid_orders|0)+' paid order(s)</b>: email info@keepitil.com with this event name so the refunds are done by hand':'')+'.</div>'
+      +'<label for="cancelTxt" style="display:block;margin-top:8px">Message to send them (copy it into your own email):</label><textarea id="cancelTxt" rows="7" style="width:100%"></textarea>'
+      +'<button type="button" class="sact" id="cancelCsv" style="margin-top:8px;background:transparent;border:1px solid var(--brand);color:var(--brand);border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer">Download attendee emails (CSV)</button>';
+    $('cancelTxt').value=msgTxt;
+    $('cancelCsv').addEventListener('click',function(){ var csv='email\n'+mails.map(csvCell).join('\n')+'\n'; var u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); var a=document.createElement('a'); a.href=u; a.download=EDIT_SLUG+'-attendee-emails.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },1000); });
+  }catch(e){ m.className='msg err'; m.textContent='Could not cancel: '+(e.message||e); btn.disabled=false; }
+}
+(function(){ var cb=document.getElementById('cancelEventBtn'); if(cb) cb.addEventListener('click',cancelThisEvent); })();
 (function(){ var b=document.getElementById('delEventBtn'); if(b) b.addEventListener('click',deleteThisEvent); var h=document.getElementById('hideEventBtn'); if(h) h.addEventListener('click',hideThisEvent); })();
 function esc2(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 async function seriesAction(act, slug, btn){
